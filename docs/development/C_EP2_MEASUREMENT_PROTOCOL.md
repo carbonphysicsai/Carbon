@@ -100,11 +100,20 @@ used when sharing is unavailable.
 
 Variant B pays one modeled reference cost per hypothetical group, all candidate
 and closure work per member, and an unknown group-level overhead. Results show
-the lower-bound B work, the total overhead B could tolerate before break-even,
-and sensitivity at frozen overhead values. Unknown overhead prevents an
-unconditional savings conclusion. A fast member's summary waits for the last
-terminal member; an unresolved member leaves its entire group unfinished while
-unrelated later groups remain independently processable.
+an explicit zero-overhead counterfactual and separately recomputed dynamic-
+grouping scenarios at the frozen overhead values. They are not universal
+bounds: overhead changes dispatch time and can therefore change which admitted
+jobs group. Any break-even quantity that fixes membership states that
+assumption. Unknown overhead leaves actual B work, eligibility and release
+times unknown. A numeric synthetic overhead supports only an assumption-
+conditioned model result, never empirical savings. A fast member's summary
+waits for the last terminal member; an unresolved member leaves its entire
+group unfinished while unrelated later groups remain independently processable.
+
+This wording is the v2 post-freeze reporting correction. The original v1 replay
+artifact remains historical evidence; its `lower_bound` labels are superseded
+by `variant_b_replay_correction_v2.json` and must not be interpreted as bounds
+on the endogenous grouping policy.
 
 ## Stop conditions and claim limits
 

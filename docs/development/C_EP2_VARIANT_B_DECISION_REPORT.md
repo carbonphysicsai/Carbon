@@ -9,6 +9,9 @@
 **Frozen study implementation:**
 `bb009a2d8a3045fd29ea2c2c8c46aed2218c5c76`
 
+**Replay-reporting correction implementation:**
+`595ac4c7dec0fc92bcd3ec4d3817927f444814f5`
+
 **Primary map_ref:** `WAVE-C/C-EP2`
 
 ## 1. Plain-language result
@@ -126,16 +129,26 @@ compatible jobs already admitted at a dispatch opportunity may group. It never
 writes the pack ledger, changes A4, sees future arrivals, crosses Challenges or
 routes results into scientific/reward owners.
 
-With B overhead still unknown, every B total and summary time remains unknown;
-the replay reports lower bounds and break-even sensitivity instead. Sparse
-demand formed only singletons and saved zero normalized work. The ordinary
-assumption reduced lower-bound work from 92 to 72, but could tolerate only 20
-total added B work units across two groups before break-even (less than 10 per
-group for a positive result). The bursty assumption reduced 138 to 98 and could
-tolerate 40 total units. These are arithmetic consequences of assuming the
-reference phase costs 10 and is reusable; neither input is observed.
+The frozen v1 replay incorrectly called its zero-overhead dynamic-grouping
+outputs lower bounds. That is not valid when overhead changes dispatch timing
+and therefore group membership. The corrected v2 replay reports zero overhead
+as an explicit counterfactual scenario, recomputes membership for every
+declared overhead scenario, and leaves actual B work and release times unknown
+when B overhead is unknown. The retained four-job regression demonstrates the
+issue: zero overhead forms `[a]`, `[b]`, `[c,d]`, uses 38 units, and releases
+`c/d` at 39; four units per group forms `[a]`, `[b,c,d]`, uses 36 units including
+overhead, and releases `c/d` at 36.
 
-Closure delay is real in the model even with zero fill wait. Lower-bound delay
+Sparse demand still forms only singletons in the zero-overhead scenario. Under
+the explicit normalized assumptions, the ordinary zero-overhead scenario is 72
+units versus A's 92, and the bursty scenario is 98 versus 138. Numeric overhead
+sensitivity results are assumption-conditioned model outputs, not supported or
+empirical savings. A fixed-membership break-even number is retained only with
+an explicit warning that it is not a bound for endogenous regrouping. These are
+arithmetic consequences of assuming the reference phase costs 10 and is
+reusable; neither input is observed.
+
+Closure delay appears in the model even with zero fill wait. Zero-overhead-scenario delay
 from candidate finish to group release reached 14 normalized units in the
 ordinary case, 27 in the saturated case and 38 in the mixed-duration case,
 before unknown B overhead. In the slow/failed/unresolved scenario, a three-
@@ -180,13 +193,19 @@ archive acknowledgement remain unavailable.
 
 ## 6. Verification and delivery status
 
-Focused Python 3.11 verification currently reports `58 passed` with zero skips
-or failures across C-EP2, C-EP1 and C-01 tests. Pinned Black 26.5.1 and Ruff
-0.16.3 pass the changed Python paths. The runbook records exact commands and the
-noncanonical Mac limitation. Applicable PR CI, Merge gate and merge status are
-pending at this report revision; no production activation is claimed.
+The original focused Python 3.11 verification reported `58 passed` with zero
+skips or failures across C-EP2, C-EP1 and C-01 tests. The v2 correction adds
+focused regressions for endogenous grouping, assumption-only savings labels,
+and contradictory grouped reference work; its current exact counts are
+recorded in the evidence record rather than folded into the historical 58.
+Pinned Black 26.5.1 and Ruff 0.16.3 pass the changed Python paths. Applicable
+corrected-head PR CI, Merge gate and merge status remain pending at this report
+revision; no production activation is claimed.
 
 Machine-readable outputs are in `.agent/evidence/wave_c/c-ep2-study/`. The
 committed trace is public-safe; the private trace is retained only in the local
 delivery bundle. This study is unqualified supporting evidence, not an external
 scientific result, qualified Carbon evidence or security certificate.
+The original `variant_b_replay_v1.json` is retained byte-for-byte; its reporting
+labels are superseded by `variant_b_replay_correction_v2.json`, SHA-256
+`a0a51780390a17d4f17aa9d387ec3146631cd879a683aeb22d60219433b58085`.

@@ -58,8 +58,11 @@ admitted and explicitly compatible, with zero fill wait and no future
 information. Candidate/reconstruction work remains per member; only explicitly
 modeled reference work is per hypothetical group. Shared-pack summaries wait
 for the last terminal member; unresolved members remain unfinished. Unknown B
-overhead yields a conditional break-even frontier, never an unconditional
-savings claim.
+overhead yields only an explicit zero-overhead counterfactual; actual B work,
+eligibility and release times remain unknown. Numeric overhead scenarios
+recompute endogenous grouping and support only assumption-conditioned model
+results. A fixed-membership break-even quantity must name that assumption and
+is not a bound on the dynamic policy.
 
 ## Definition of Done
 
@@ -75,6 +78,10 @@ savings claim.
 - [x] Detached replay/accounting tests cover singleton equivalence, no future
       information, compatibility, underfill, finite resources, closure delay,
       unknown overhead and no double charging.
+- [x] Replay v2 reproduces the endogenous-grouping counterexample, rejects
+      contradictory grouped reference requirements, and never promotes a
+      numeric synthetic input to empirical support; frozen v1 evidence remains
+      retained with its reporting labels superseded.
 - [x] Raw fixture-safe traces, aggregate accounting, profiler summary and owner
       report state all missing physical/reference/workload evidence.
 - [x] No Variant B/C runtime, sharing, wait, early summary, public answer,

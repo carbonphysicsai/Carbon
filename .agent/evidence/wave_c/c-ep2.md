@@ -3,6 +3,7 @@
 **Status:** bounded DEVELOPMENT tooling and study complete; automated acceptance pending
 **Baseline:** `d783c2c7209c7eea2d46dd395c4eaaf8094a9e71`
 **Frozen executable revision:** `bb009a2d8a3045fd29ea2c2c8c46aed2218c5c76`
+**Replay-reporting correction source:** `595ac4c7dec0fc92bcd3ec4d3817927f444814f5`
 **Primary Hub map_ref:** `WAVE-C/C-EP2`
 **Recommendation:** `COLLECT MISSING INPUTS FIRST`
 
@@ -20,8 +21,11 @@ pack or completed proposal.
 No eligible numerical probe ran. Actual physical reference cases, reference
 attempts, candidate inference and accelerator time remain unknown because the
 C-EP1 A8 backend is a scalar stub. The seven-scenario detached replay is
-explicitly uncalibrated and preserves unknown B overhead. It supplies
-conditional arithmetic only, so no B implementation is selected.
+explicitly uncalibrated and preserves unknown B overhead. The corrected v2
+artifact treats zero overhead as a named counterfactual, recomputes endogenous
+membership for each numeric overhead scenario, and never calls numeric
+synthetic savings empirical support. It supplies conditional arithmetic only,
+so no B implementation is selected.
 
 The queued-work probe reproduced a C-EP1 composition defect and validates the
 narrow C-01 repair: exact claim leaves an older unrelated attempt `QUEUED` and
@@ -42,10 +46,12 @@ behavior remains compatible.
 | C-EP1/C-01 failure/retry/restart | `test_frozen_harness_accounts_failure_retry_restart_and_keeps_layers_distinct` |
 | Hand-computable singleton | `test_hand_computable_singleton_and_replay_dedup_accounting` |
 | B reduces to A without sharing | `test_b_reduces_to_a_when_compatibility_is_unavailable` |
-| Bounds/underfill/compatibility/no future use | `test_b_groups_only_ready_compatible_same_challenge_jobs` |
+| Bounds/underfill/compatibility/no future use | `test_b_groups_only_ready_compatible_same_challenge_jobs`, `test_b_rejects_grouped_jobs_with_contradictory_reference_work` |
 | Slow/failed/unresolved closure delay | `test_shared_closure_waits_for_slow_or_unresolved_member_without_global_barrier` |
 | Multiple Challenges/no global barrier | same closure test plus multiple-Challenge frozen scenario |
-| Unknown B overhead blocks unconditional claim | `test_unknown_b_overhead_prevents_unconditional_savings_claim` |
+| Unknown B overhead stays unknown | `test_unknown_b_overhead_reports_zero_overhead_scenario_not_a_bound` |
+| Endogenous grouping invalidates universal bound | `test_endogenous_grouping_counterexample_recomputes_declared_overhead` |
+| Synthetic inputs do not become empirical support | `test_numeric_synthetic_overhead_is_not_empirical_savings_support` |
 | Evidence-layer labels | frozen harness test and closed enums/schema validation |
 | Singleton/private/closure/identity/production/reward exclusions | C-EP1 suite, public-safe projection checks, `reference_sharing_implemented=false`, no runtime membership API |
 
@@ -58,8 +64,12 @@ closure, restart/stale-write and TRAIN/EVAL randomness-separation tests.
 
 ```text
 python -m pytest -q tests/cpu/test_c_ep2_measurement_study.py tests/cpu/test_c_ep1_evaluation_packs.py tests/cpu/test_c01_durable_execution.py
-58 passed in 0.67s
+61 passed in 0.69s
 ```
+
+The frozen pre-correction study reported 58 focused passes. The current 61
+includes three added replay-reporting regressions and is not substituted into
+that historical count.
 
 The exact runtime command and host manifest are retained in
 `docs/development/C_EP2_STUDY_RUNBOOK.md` and the machine-readable study folder.
@@ -73,6 +83,8 @@ acceptance remains pending and is not inferred from the local run.
 - `public_safe_trace_v1.jsonl`: 131 records without associations or clocks.
 - `variant_a_observations_v1.json`: aggregate observed execution/accounting.
 - `variant_b_replay_v1.json`: detached uncalibrated counterfactual results.
+- `variant_b_replay_correction_v2.json`: corrected scenario semantics; the v1
+  artifact remains historical evidence.
 - `profiler_summary_v1.json`: unqualified, machine-readable decision summary.
 - `environment_manifest_v1.json`: source/config/host identity.
 - `C_EP2_VARIANT_B_DECISION_REPORT.md`: owner-facing report.

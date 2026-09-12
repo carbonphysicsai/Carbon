@@ -41,6 +41,24 @@ env UV_CACHE_DIR=/private/tmp/c-ep2-uv-cache \
 
 The command is a DEVELOPMENT observation, not canonical acceptance.
 
+## Replay-reporting correction only
+
+The frozen Variant-A observations are not rerun for the v2 reporting repair.
+Generate only the corrected detached replay, preserving every v1 file:
+
+```bash
+correction_revision="$(git rev-parse HEAD)"
+.venv/bin/python scripts/dev/run_c_ep2_study.py \
+  --config .agent/preregistrations/C-EP2_measurement_study_v1.json \
+  --output-dir /path/to/private-correction \
+  --public-output-dir .agent/evidence/wave_c/c-ep2-study \
+  --source-revision "${correction_revision}" \
+  --replay-correction-only
+```
+
+This writes `variant_b_replay_correction_v2.json`. It does not relabel or
+overwrite the historical v1 observations.
+
 ## Focused verification
 
 ```bash
