@@ -2,7 +2,7 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `d958a2ec694f3d937b642b4d8524f2fc166f8273` on `main`, captured 2026-09-12T17:18:47Z.
+**Authority snapshot:** `dc58042044e7d82c77d65ca59dc1b5c882d4cb94` on `main`, captured 2026-09-12T17:27:22Z.
 **Current:** Wave C, ticket C-EP1. C-EP1 alone is selected for a bounded DEVELOPMENT-only Variant-A evaluation-pack implementation, and no later ticket is selected. Local focused and owner-boundary diagnostics pass; canonical acceptance and normal merge remain pending. C-EA1 is the last completed ticket only for its exact closed synthetic profile. C-03, C-08 and C-09 remain unselected, unstarted and not dependency-ready; C-EA2 remains unselected and blocked on a real C1 path plus an eligible real archive profile, and C-02 still lacks its authorized JAX source/interface. D6 canonical full/standard run 34518806217 remains the G2 evidence, and G2 is LOCALNET_READY only for the exact standard-profile disposable v445 localnet. No sharing, answers, real entropy, real/customer evidence, public network, reward change, scientific/security qualification, production or LIVE authority is created.
 **Last completed:** C-EA1 (`done`).
 **Next selected:** none selected.

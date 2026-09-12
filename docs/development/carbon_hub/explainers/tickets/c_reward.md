@@ -40,9 +40,9 @@ DEVELOPMENT fixture reward policy only; no science, security, network or economi
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/d958a2ec694f3d937b642b4d8524f2fc166f8273/.agent/tickets/C-REWARD_score_reward_core.md)
-- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/d958a2ec694f3d937b642b4d8524f2fc166f8273/.agent/evidence/wave_c/c-reward.md)
-- [Reward contract](https://github.com/carbonphysicsai/Carbon/blob/d958a2ec694f3d937b642b4d8524f2fc166f8273/docs/development/SCORE_REWARDS.md)
-- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/d958a2ec694f3d937b642b4d8524f2fc166f8273/.agent/WAVE_C.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/dc58042044e7d82c77d65ca59dc1b5c882d4cb94/.agent/tickets/C-REWARD_score_reward_core.md)
+- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/dc58042044e7d82c77d65ca59dc1b5c882d4cb94/.agent/evidence/wave_c/c-reward.md)
+- [Reward contract](https://github.com/carbonphysicsai/Carbon/blob/dc58042044e7d82c77d65ca59dc1b5c882d4cb94/docs/development/SCORE_REWARDS.md)
+- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/dc58042044e7d82c77d65ca59dc1b5c882d4cb94/.agent/WAVE_C.md)
 
 > Zero opening credit and a finite score range bound lifetime targets; delayed and drip-fed improvements retain strategic incentives.

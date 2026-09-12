@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-12T17:18:47Z"
+  captured_at_utc: "2026-09-12T17:27:22Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "d958a2ec694f3d937b642b4d8524f2fc166f8273"
+  authority_snapshot_commit: "dc58042044e7d82c77d65ca59dc1b5c882d4cb94"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -4278,7 +4278,7 @@ events:
     owner_lane: "repository_owner"
     status: "implemented"
     summary: "The repository owner's issue-#142-linked assignment selects C-EP1 alone as a DEVELOPMENT-only Variant-A interposition. One separately admitted candidate job receives one private child pack; copies, retries and restarts retain that association, and the existing permitted fixture card is gated on durable closure. The decision supplies no sharing, public answers, real entropy, real archive/finality, reward change, scientific/security qualification, production or LIVE authority; C-EA2 and every real-vertical ticket remain blocked or unselected."
-    primary_detail: "https://github.com/carbonphysicsai/Carbon/blob/d958a2ec694f3d937b642b4d8524f2fc166f8273/.agent/tickets/C-EP1_development_evaluation_packs.md"
+    primary_detail: "https://github.com/carbonphysicsai/Carbon/blob/dc58042044e7d82c77d65ca59dc1b5c882d4cb94/.agent/tickets/C-EP1_development_evaluation_packs.md"
     affects:
       - "WAVE-A/A4"
       - "WAVE-A/A5"
