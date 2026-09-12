@@ -33,13 +33,15 @@
 
 **Status:** active in bounded engineering scope because `.agent/WAVE.md` names
 Wave C/C0 and this file as its controlling register.
-**Version:** 1.2
+**Version:** 1.3
 **Activation decision:** `OWNER-WAVE-C0-NET1-01`
-**Selected ticket:** C-EP1 — `in_progress`
-**Active ticket:** C-EP1
-**Next selected ticket:** none. C-EP1 is an owner-selected DEVELOPMENT-only
-interposition; no real C1 implementation ticket is dependency-ready.
-**Last completed ticket:** C-EA1, for the exact synthetic development profile
+**Selected ticket:** C-EP2 — `in_progress`
+**Active ticket:** C-EP2
+**Next selected ticket:** none. C-EP2 is an owner-selected DEVELOPMENT-only
+measurement/tooling interposition; no real C1 implementation ticket is
+dependency-ready and no Variant B implementation is selected.
+**Last completed ticket:** C-EP1, for the exact DEVELOPMENT Variant-A fixture
+lifecycle merged in PR #143
 **Primary Hub map_ref:** `WAVE-C`
 
 C-EA1 passed canonical acceptance in run `34558389185` at accepted head
@@ -99,7 +101,8 @@ production custody, quorum, science or economics blocks only that operation.
 | NET-6 | Disposable operator lifecycle and recovery | done | `.agent/evidence/wave_c/net-6.md` | Codex + network/protocol engineering | Operations + security | NET-5 | MQ-054, MQ-056 | L | C0 |
 | NET-5R | Shielded registration compatibility repair | done | `.agent/evidence/wave_c/net-5r.md` | Codex + network/protocol engineering | Network/protocol + security | NET-5, SDK 11.1.0, runtime v445 | MQ-054, MQ-056 | M | C0/G2 |
 | C-01 | Durable execution state and queue | done | `.agent/evidence/wave_c/c-01.md` | Codex + execution engineering | Execution + scientific integration | A7, B-GATE | MQ-048, MQ-051 | M | C1 |
-| C-EP1 | DEVELOPMENT per-job evaluation packs | in_progress | `.agent/evidence/wave_c/c-ep1.md` | Codex + execution/scientific integration | Execution + scientific integration + data/security | NET-3, C-01, A4, A5, A6, A7, A8 | MQ-048, MQ-051 | M | C1 development |
+| C-EP1 | DEVELOPMENT per-job evaluation packs | done | `.agent/evidence/wave_c/c-ep1.md` | Codex + execution/scientific integration | Execution + scientific integration + data/security | NET-3, C-01, A4, A5, A6, A7, A8 | MQ-048, MQ-051 | M | C1 development |
+| C-EP2 | Variant-A measurement and offline Variant-B decision | in_progress | `.agent/evidence/wave_c/c-ep2.md` | Codex + measurement/execution engineering | Execution + scientific integration + data/security | C-EP1 | MQ-048, MQ-051 | M | C1 development |
 | C-AUTH1 | Goal-driven authoring and Burgers V1 import | done | `.agent/evidence/wave_c/c-auth1.md` | Codex + scientific authoring | Scientific integration | C-01 | MQ-045, MQ-048 | L | C1 |
 | C-EA0 | Evidence capture contract | done | `.agent/evidence/wave_c/c-ea0.md` | Codex + evidence architecture | Execution + Operations + data/security + scientific integration | C-AUTH1, C-01, B-GATE | MQ-048, MQ-051 | M | C1 |
 | C-EA1 | Durable evidence archive | done | `.agent/evidence/wave_c/c-ea1.md` | Codex + evidence architecture | Operations + data/security + scientific integration | C-EA0 + OWNER-C-EA1-SYNTHETIC-01 | MQ-048, MQ-051 | L | C1 |
@@ -145,6 +148,13 @@ scientifically qualified. C-EA1 accepted head
 exact synthetic development profile and cannot acknowledge real evidence or
 satisfy C-EA2. C-03, C-08 and C-09 are contract-only; C-EA2 and every other
 runtime ticket remain unselected and dependency-blocked.
+
+C-EP1 accepted head `e0fbb6208cf0bf95910d51e7a3c996b09387a14e`
+passed RUNTIME_FULL run `34708322417` and normally merged in PR #143 as
+`d783c2c7209c7eea2d46dd395c4eaaf8094a9e71`. Its completion comment selected
+no successor. The later owner C-EP2 assignment now selects only a bounded
+measurement harness, Variant-A observations, and detached Variant-B replay;
+sharing remains structurally unavailable.
 
 ## 4. Acceptance and maturity
 

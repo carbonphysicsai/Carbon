@@ -1,10 +1,23 @@
 # C-EP1 implementation evidence
 
-**Status:** implementation in progress
+**Status:** bounded DEVELOPMENT implementation complete
 **Baseline:** `150ab9313c4cc7cd23e032aebd78bce829db7675`
 **Branch:** `agent/c-ep1-development-evaluation-packs`
 **Issue:** https://github.com/carbonphysicsai/Carbon/issues/142
-**PR / accepted head / merge:** pending
+**PR / accepted head / merge:** PR #143 /
+`e0fbb6208cf0bf95910d51e7a3c996b09387a14e` /
+`d783c2c7209c7eea2d46dd395c4eaaf8094a9e71`
+
+## Final acceptance reconciliation
+
+RUNTIME_FULL run `34708322417` passed at the exact accepted head: Delivery
+preflight, clean development-container image, Canonical environment,
+Development Hub validation, and Merge gate succeeded. The canonical log
+recorded 5,220 CPU tests passed with one skip, 87 package/wheel/outside-tree
+tests passed, and 17 canonical/legacy authority-boundary tests passed. PR #143
+normally merged and its completion comment records no next ticket selected.
+The observations below are retained as historical pre-acceptance evidence;
+their then-pending language is not current delivery state.
 
 ## Artifact provenance
 
@@ -25,7 +38,7 @@ deliberately finite synthetic proxy, not Carbon freshness evidence.
 
 ## What exists
 
-Pending final acceptance, C-EP1 adds one private child pack per NET-3 candidate
+C-EP1 adds one private child pack per NET-3 candidate
 job, an additive/checksum-pinned receipt-database migration, immutable
 materialization and result associations, C-01-backed dispatch/result closure,
 and pack-gated delivery of the existing A6 fixture card. Copies and repeated
@@ -57,8 +70,8 @@ reports `1298 passed, 7 deselected in 21.58s`; the seven deselected cases need
 the optional pinned Bittensor SDK, which is absent from this local Python 3.11
 environment. The same runtime passes the four packaging/binary64 cases that are
 known to fail under unsupported Python 3.13. Pinned Black 26.5.1 and Ruff
-0.16.3 pass the changed Python paths. Canonical acceptance, Hub checks, CI, and
-Merge gate remain pending.
+0.16.3 passed the changed Python paths. These are retained native-host
+diagnostics; final canonical acceptance is recorded above.
 
 ## Worked trace classes
 
@@ -81,8 +94,8 @@ demonstrate context separation, not independent physical draws. The current A8
 interface does not expose qualified per-phase timing/evidence, so phase-level
 reference/prediction accounting is not invented.
 
-Variant B is not ready to implement. After C-EP1 acceptance it may be ready for
-a separately selected measurement-design task only if that task first defines
+Variant B is not ready to implement. C-EP2 is the separately selected
+measurement-design task and must first define
 actual A8 phase observations, common-comparison semantics, matched resource
 accounting, and admission/load inputs without enabling sharing in production.
 
@@ -97,6 +110,5 @@ the manifest.
 
 ## Hub Impact
 
-Primary map_ref: `WAVE-C/C-EP1`. Selection, placement, boundary, dependency and
-maturity state are map-structural, so Hub source and generated projections must
-be updated before closeout. No production activation is claimed.
+Primary map_ref: `WAVE-C/C-EP1`. C-EP1 is now bounded `done`; C-EP2 owns the
+selected measurement study. No production activation is claimed.
