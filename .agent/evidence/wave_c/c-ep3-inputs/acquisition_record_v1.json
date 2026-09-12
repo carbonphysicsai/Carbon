@@ -1,6 +1,6 @@
 {
   "schema_version": "carbon.c-ep3-input-acquisition.v1",
-  "study_revision": "PENDING_FINAL_HEAD",
+  "study_revision": "bed9331e1983b4218af7df99679293e0c83837f9",
   "records": [
     {
       "missing_decision_input": "Actual reconstruction source",

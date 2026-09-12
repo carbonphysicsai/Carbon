@@ -3,6 +3,8 @@
 **Status:** bounded DEVELOPMENT acquisition/probe implementation complete;
 applicable automated acceptance pending
 **Baseline:** `96099aeac9e5022bda9d94730b1d7d955cb6c1d5`
+**Frozen implementation/probe revision:**
+`bed9331e1983b4218af7df99679293e0c83837f9`
 **Primary Hub map_ref:** `WAVE-C/C-EP3`
 
 The repository owner's ordered follow-on assignment selected only bounded input

@@ -56,6 +56,10 @@ treating missing demand as zero or a synthetic parameter as evidence.
 
 ## Public numerical component actually run
 
+The frozen implementation and probe revision is
+`bed9331e1983b4218af7df99679293e0c83837f9`, based on merged C-EP2 commit
+`96099aeac9e5022bda9d94730b1d7d955cb6c1d5`.
+
 The source was the owner-supplied
 `Carbon_Challenge_Authoring_Workbench_V1.zip`, SHA-256
 `40f1fd47d62dd2269f8e141e6bb398d03a403aa6eb3ac08750b49dd68018bcdc`.
