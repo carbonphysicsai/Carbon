@@ -623,7 +623,7 @@ def _queued_work_probe(root, recorder, ledger_timings, reconciliation):
     return {"unrelated_attempt_state": unrelated_status.state.value}
 
 
-def _replay(config):
+def _replay(config, source_revision):
     output = []
     replay_config = config["replay"]
     unknown = ModelQuantity(
@@ -679,6 +679,7 @@ def _replay(config):
         )
     return {
         "schema_version": "carbon.c-ep2.replay-bundle.v2",
+        "source_revision": source_revision,
         "evidence_layer": EvidenceLayer.COUNTERFACTUAL_MODEL.value,
         "calibration": {
             "status": "UNCALIBRATED_FOR_REFERENCE_AND_CANDIDATE_WORK",
@@ -793,7 +794,7 @@ def run_study(
             "security_qualification": False,
         },
     }
-    replay = _replay(config)
+    replay = _replay(config, source_revision)
     profiler = {
         "schema_version": "carbon.c-ep2.profiler-study-summary.v1",
         "source_revision": source_revision,
@@ -898,12 +899,34 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--public-output-dir", type=Path)
     parser.add_argument("--source-revision", required=True)
+    parser.add_argument("--replay-correction-only", action="store_true")
     return parser.parse_args()
 
 
 def main() -> int:
     args = _parse_args()
     config = json.loads(args.config.read_text(encoding="utf-8"))
+    if args.replay_correction_only:
+        args.output_dir.mkdir(parents=True, exist_ok=True)
+        replay = _replay(config, args.source_revision)
+        name = "variant_b_replay_correction_v2.json"
+        body = json.dumps(replay, indent=2, sort_keys=True) + "\n"
+        (args.output_dir / name).write_text(body, encoding="utf-8")
+        if args.public_output_dir is not None:
+            args.public_output_dir.mkdir(parents=True, exist_ok=True)
+            (args.public_output_dir / name).write_text(body, encoding="utf-8")
+        print(
+            json.dumps(
+                {
+                    "source_revision": args.source_revision,
+                    "output": str(args.output_dir / name),
+                    "recommendation": "COLLECT MISSING INPUTS FIRST",
+                },
+                indent=2,
+                sort_keys=True,
+            )
+        )
+        return 0
     observed, _replay_output, profiler = run_study(
         config,
         args.output_dir,
