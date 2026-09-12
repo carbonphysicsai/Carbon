@@ -27,6 +27,9 @@ The client website is an intake and preliminary analysis tool. It does not quali
 | [Protected reference reuse](PROTECTED_REFERENCE_REUSE.md) | Threat model, commitments, cohort proposal, cache lifecycle and qualification work. |
 | [Client fit tool](CLIENT_FIT_TOOL.md) | Plain-language experience, submission/delivery, data rights and learning controls. |
 | [Roadmap and handoff](ROADMAP_AND_HANDOFF.md) | Dependency-led acquisition, Engineering work and unresolved activation inputs. |
+| [Protected Exam Standard: CPES-1](PROTECTED_EXAM_STANDARD.md) | Proposed eight-control minimum: prior commitment, private auditable randomness, frozen cohorts, isolation, audit and incident response. |
+| [Protection integration](PROTECTED_EXAM_PROFILER_INTEGRATION.md) | Mandatory Case protection subsection of Exam review, conditional capacity estimates, existing-owner handoff and cost separation. |
+| [Protection control registry](PROTECTED_EXAM_CONTROLS.json) | Eight unassessed controls, 26 unexecuted adversarial cases and null production inputs; not approval. |
 
 ## Authority crosswalk
 
@@ -55,3 +58,7 @@ Derived from the conversation-supplied drafts below. Hashes identify those input
 Version 0.3 preserves the six checks, explicit unknowns, four spend stages, margin/cost arithmetic, baseline option and dependency-led roadmap. It adds per-profile runtime enforcement requirements, explicit reference-custody limits, a proposed cohort reuse sequence and a client-intake specification. It does not retrospectively change an exam or the input documents. Repository authority was checked against main `150ab9313c4cc7cd23e032aebd78bce829db7675`.
 
 **External results:** sources cited in the detail documents motivate decision/security methods; they do not establish Carbon performance. **Carbon hypothesis:** bottleneck-first review and bounded reuse can improve discovery economics. **Proposed experiments:** one real fit probe, resource calibration and an adversarial cache campaign. **Qualified Carbon evidence:** none from this package. Harshdeep's new JAX repository remains owner-reported and uninspected.
+
+### CPES-1 proposal addendum, 12 September 2026
+
+The protected-exam minimum and profiler integration propose frozen groups, one closed feedback round per pack, global exposure accounting, and protection review before an operating recommendation. Existing cost-only experiments remain conditional scenarios; they do not authorize a reuse count. The workbench UI and backend are unchanged. Production provider/custody/statistical limits and security acceptance remain unapproved. No current wave, official seed/scoring contract or deployment permission changes through this addendum.

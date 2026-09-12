@@ -1,0 +1,77 @@
+{
+  "document_type": "proposed_protected_exam_control_registry",
+  "schema_version": "0.1",
+  "standard_id": "CPES-1",
+  "authority": "PROPOSAL_ONLY",
+  "production_authorization": false,
+  "default_profile_proposal": "FROZEN_COHORT_PRIVATE_CASES",
+  "policy_limits": {
+    "adaptive_cross_cohort_reuse": "NOT_PERMITTED_IN_DEFAULT_PROFILE",
+    "persistent_reservoir": "SEPARATE_QUALIFICATION_REQUIRED",
+    "release_rule": "AFTER_COHORT_TERMINAL_AND_REQUIRED_EVIDENCE_CHECKS"
+  },
+  "controls": [
+    {"id": "P1", "requirement": "Commit rules before case knowability", "review_owner": "Exam owner / independent audit", "required_evidence_kinds": ["policy_identity", "external_ordering_evidence", "equivocation_test"], "evidence_refs": [], "review_state": "UNASSESSED"},
+    {"id": "P2", "requirement": "Lock producer behavior and seal execution", "review_owner": "Construction / execution owners", "required_evidence_kinds": ["submission_commitment", "dependency_pins", "reconstruction_isolation", "artifact_seal"], "evidence_refs": [], "review_state": "UNASSESSED"},
+    {"id": "P3", "requirement": "Fix and verify private case randomness", "review_owner": "A4 / security owners", "required_evidence_kinds": ["provider_qualification", "event_selection_policy", "commitment_scheme_review", "withholding_abort_tests"], "evidence_refs": [], "review_state": "UNASSESSED"},
+    {"id": "P4", "requirement": "Restrict case and answer custody", "review_owner": "Security / operations", "required_evidence_kinds": ["role_access_tests", "egress_tests", "host_trust_review", "cross_service_isolation"], "evidence_refs": [], "review_state": "UNASSESSED"},
+    {"id": "P5", "requirement": "Bound reuse to one frozen group", "review_owner": "Lifecycle / disclosure owners", "required_evidence_kinds": ["cohort_lock", "release_barrier", "reuse_ledger", "retirement_tests"], "evidence_refs": [], "review_state": "UNASSESSED"},
+    {"id": "P6", "requirement": "Verify execution and scientific evidence", "review_owner": "Science / independent audit", "required_evidence_kinds": ["reference_qualification", "measurement_qualification", "prediction_binding", "audit_evidence", "typed_failure_tests"], "evidence_refs": [], "review_state": "UNASSESSED"},
+    {"id": "P7", "requirement": "Bound admission and selection risk", "review_owner": "Science / operations", "required_evidence_kinds": ["admission_policy", "field_resolution_study", "promotion_error_policy"], "evidence_refs": [], "review_state": "UNASSESSED"},
+    {"id": "P8", "requirement": "Qualify attacks and response", "review_owner": "Security / independent reviewers", "required_evidence_kinds": ["attack_campaign", "shadow_case_study", "incident_drill", "requalification_triggers"], "evidence_refs": [], "review_state": "UNASSESSED"}
+  ],
+  "unresolved_production_inputs": {
+    "challenge_version": null,
+    "environment_identity": null,
+    "approved_entropy_provider": null,
+    "approved_commitment_scheme": null,
+    "approved_custody_topology": null,
+    "max_candidates_per_cohort": null,
+    "max_attempts_and_replication_policy": null,
+    "cohort_deadline": null,
+    "disclosure_policy": null,
+    "statistical_selection_policy": null,
+    "independent_audit_policy": null,
+    "leakage_acceptance_policy": null,
+    "incident_retirement_policy": null,
+    "exact_qualification_refs": null
+  },
+  "attack_cases": [
+    {"id": "AT-01", "control": "P1", "attack": "Commit exam configuration after its cases can be known", "required_behavior": "Block the profile/round; preserve ordering evidence.", "execution_status": "NOT_EXECUTED"},
+    {"id": "AT-02", "control": "P1", "attack": "Serve conflicting policy manifests to different parties", "required_behavior": "Reject disagreement; retain evidence and quarantine affected decisions.", "execution_status": "NOT_EXECUTED"},
+    {"id": "AT-03", "control": "P1", "attack": "Suppress aborted rounds until a favorable draw occurs", "required_behavior": "Detect missing/irregular scheduled-round history; block unsupported audit claim.", "execution_status": "NOT_EXECUTED"},
+    {"id": "AT-04", "control": "P2", "attack": "Replace code or data at an unchanged URL after commitment", "required_behavior": "Reject content mismatch before execution.", "execution_status": "NOT_EXECUTED"},
+    {"id": "AT-05", "control": "P2", "attack": "Change callback, preprocessing or normalization after protected input", "required_behavior": "Reject mutation; no accepted result from changed artifact.", "execution_status": "NOT_EXECUTED"},
+    {"id": "AT-06", "control": "P3", "attack": "Use candidate identity, nonce retries or arrival order to search for easier cases", "required_behavior": "Reject seed-affecting metadata outside the fixed approved domain.", "execution_status": "NOT_EXECUTED"},
+    {"id": "AT-07", "control": "P3", "attack": "Select a different beacon round after inspecting the committed event", "required_behavior": "Reject proof/event mismatch; no silent substitute.", "execution_status": "NOT_EXECUTED"},
+    {"id": "AT-08", "control": "P3", "attack": "Withhold the last private contribution to choose completed randomness", "required_behavior": "Stop under the qualified failure rule; retain abort; do not exclude contribution to change draw.", "execution_status": "NOT_EXECUTED"},
+    {"id": "AT-09", "control": "P3", "attack": "Use a public beacon as a supposed secret root with a public generator", "required_behavior": "Fail active-case confidentiality review; no claim of hidden cases.", "execution_status": "NOT_EXECUTED"},
+    {"id": "AT-10", "control": "P3", "attack": "Publish a retired root that also derives material for a live pack", "required_behavior": "Block disclosure; preserve role/pack links.", "execution_status": "NOT_EXECUTED"},
+    {"id": "AT-11", "control": "P4", "attack": "Candidate reads truth through a mount, metadata token or reference API", "required_behavior": "Deny access; evidence of any successful path blocks the profile.", "execution_status": "NOT_EXECUTED"},
+    {"id": "AT-12", "control": "P4", "attack": "Candidate obtains MMS solution expression or latent answer coefficients", "required_behavior": "Reject unauthorized input path; distinguish allowed forcing from answer construction.", "execution_status": "NOT_EXECUTED"},
+    {"id": "AT-13", "control": "P4", "attack": "Candidate exfiltrates through callbacks, network, logs or output metadata", "required_behavior": "Block channel or reject output under the disclosure contract; retest.", "execution_status": "NOT_EXECUTED"},
+    {"id": "AT-14", "control": "P4", "attack": "Next candidate reads prior job state, temporary files or device memory", "required_behavior": "Reject cross-job access; failed isolation blocks use.", "execution_status": "NOT_EXECUTED"},
+    {"id": "AT-15", "control": "P4", "attack": "Client intake/practice service accesses official cache or seeds", "required_behavior": "Deny authorization across services; quarantine if exposure occurred.", "execution_status": "NOT_EXECUTED"},
+    {"id": "AT-16", "control": "P4", "attack": "Root operator copies answer plaintext from its own host", "required_behavior": "Do not report host secrecy; reject a threat claim covering that actor without a qualified stronger boundary.", "execution_status": "NOT_EXECUTED"},
+    {"id": "AT-17", "control": "P5", "attack": "A new hotkey submits a revised candidate to an exposed pack", "required_behavior": "Reject new admission based on global pack state, independent of identity.", "execution_status": "NOT_EXECUTED"},
+    {"id": "AT-18", "control": "P5", "attack": "A committed late-running candidate receives another candidate result", "required_behavior": "Block early release; if exposed, apply incident/quarantine policy.", "execution_status": "NOT_EXECUTED"},
+    {"id": "AT-19", "control": "P5", "attack": "Reuse old answers under a renamed supposedly fresh round", "required_behavior": "Reject asset-lineage mismatch; evaluate overlap under the qualified sampling law.", "execution_status": "NOT_EXECUTED"},
+    {"id": "AT-20", "control": "P5", "attack": "A scheduled time-lock opens before candidate work closes", "required_behavior": "Invalidate that release design or end affected work before exposure under precommitted rules.", "execution_status": "NOT_EXECUTED"},
+    {"id": "AT-21", "control": "P6", "attack": "Replace predictions/reference bytes while preserving a nominal result ID", "required_behavior": "Reject integrity/provenance mismatch and block finalization.", "execution_status": "NOT_EXECUTED"},
+    {"id": "AT-22", "control": "P6", "attack": "Trusted signer submits fabricated computation evidence", "required_behavior": "Require qualified independent integrity evidence; signer identity alone cannot approve it.", "execution_status": "NOT_EXECUTED"},
+    {"id": "AT-23", "control": "P6", "attack": "Drop expensive failed references or score their candidates zero", "required_behavior": "Preserve reference failure; no easy-case substitution or candidate physics failure.", "execution_status": "NOT_EXECUTED"},
+    {"id": "AT-24", "control": "P7", "attack": "Admit unlimited precommitted variants to overwhelm selection precision", "required_behavior": "Enforce supported field/admission policy; more compute does not authorize a stronger claim.", "execution_status": "NOT_EXECUTED"},
+    {"id": "AT-25", "control": "P8", "attack": "Import JSON asserting security_approved=true with a fake evidence ref", "required_behavior": "Reject forged authority; editable drafts cannot create qualification.", "execution_status": "NOT_EXECUTED"},
+    {"id": "AT-26", "control": "P8", "attack": "Suspected leakage affects multiple pending uses of a cached pack", "required_behavior": "Quarantine all affected pending uses; preserve historical records and route disposition.", "execution_status": "NOT_EXECUTED"}
+  ],
+  "source_basis": {
+    "repo_main": "150ab9313c4cc7cd23e032aebd78bce829db7675",
+    "research_branch_base": "d6b81d17dc1f65d467ef877d2d99693988da70dc",
+    "screenshots": "User-supplied discussion; recommendations only, no identity or misconduct verification"
+  },
+  "notes": [
+    "No seeds, answers or protected physical cases belong in this record.",
+    "Registry shape checks do not execute the attack cases.",
+    "A runtime must verify qualified references through its owning authority; it must not trust this file as approval."
+  ]
+}
