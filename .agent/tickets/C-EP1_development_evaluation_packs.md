@@ -67,6 +67,9 @@ path. Downgrade after pack rows exist is unsupported; an unknown schema or
 migration digest fails closed. Rollback can disable new C-EP1 admission but must
 retain the new tables as incident/history evidence.
 
+Repository evidence and runbook commands must remain portable: record the
+required interpreter/version, never a workstation-specific absolute path.
+
 ## Definition of Done
 
 - [ ] One unchanged parent context supports distinct, durable per-job child packs.

@@ -49,7 +49,7 @@ runtime currently reports:
 Command:
 
 ```text
-/Users/nickfitzpatrick/.pyenv/versions/3.11.11/bin/python -m pytest -q tests/cpu/test_c_ep1_evaluation_packs.py tests/cpu/test_c01_durable_execution.py tests/cpu/test_net3_candidates.py
+python3.11 -m pytest -q tests/cpu/test_c_ep1_evaluation_packs.py tests/cpu/test_c01_durable_execution.py tests/cpu/test_net3_candidates.py
 ```
 
 The selected A4/A5/A6/A7/A8, NET-2/NET-3, C-01, and reward regression set
