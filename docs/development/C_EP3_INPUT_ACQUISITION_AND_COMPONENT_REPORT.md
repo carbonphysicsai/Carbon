@@ -140,7 +140,8 @@ has been invented.
 Focused C-EP3 tests cover archive/path/configuration mismatch, closed authority,
 unknown-not-zero values, units/counts, privacy, retained failed calls, exact
 cold/warm accounting, duplicate-output refusal and absence of runtime/sharing
-imports. The unchanged C-EP1/C-EP2 focused suites are rerun separately. Final
+imports: 29 tests pass. C-EP3 plus the affected C-EP1, C-EP2 and C-01 suites
+pass 90 tests, and all 208 invariant tests pass. Final
 canonical counts, CI, PR and merge status are filled only from the delivered
 head; C-EP1/C-EP2 historical counts are not copied into C-EP3 acceptance.
 

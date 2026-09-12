@@ -58,6 +58,12 @@ python -m pytest -q tests/cpu/test_c_ep3_reference_probe.py
 
 python -m pytest -q tests/cpu/test_c_ep1_evaluation_packs.py tests/cpu/test_c_ep2_measurement_study.py
 38 passed
+
+python -m pytest -q tests/cpu/test_c_ep3_reference_probe.py tests/cpu/test_c_ep2_measurement_study.py tests/cpu/test_c_ep1_evaluation_packs.py tests/cpu/test_c01_durable_execution.py
+90 passed
+
+python -m pytest -q tests/invariants
+208 passed
 ```
 
 Final formatting, lint, Hub, classified acceptance and delivery identities are

@@ -42,7 +42,10 @@ def test_only_bounded_development_input_acquisition_ticket_is_selected() -> None
     assert "No real-vertical implementation ticket is dependency-ready" in graph
     assert "no real-vertical or Variant-B implementation ticket is selected" in graph
     assert "C-EP1 ─> C-EP2(done measurement/replay only; no sharing runtime)" in graph
-    assert "C-EP2 + C-AUTH1 ─> C-EP3(selected input acquisition/public component probe)" in graph
+    assert (
+        "C-EP2 + C-AUTH1 ─> C-EP3(selected input acquisition/public component probe)"
+        in graph
+    )
     assert graph.count("| **no** |") >= 10
 
 
