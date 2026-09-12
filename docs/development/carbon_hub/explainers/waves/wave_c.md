@@ -13,7 +13,7 @@
 
 ## What and why
 
-Wave C retains C0 network foundation, C1 real scientific vertical, and C2 direct testnet integration. NET-5R repairs the isolated shielded-registration compatibility gap. C-EA0 specifies durable evidence capture, C-EA1 implements only its closed synthetic development profile, and C-EP1 adds only a private DEVELOPMENT Variant-A job-to-pack lifecycle at existing owners. C-DC1, C-DC2, C-DC3 and C-DC4 add a separate private Research Concierge using approved bootstrap sources. Bittensor wraps the Miner MCP and all scientific/result authority stays with existing owners.
+Wave C retains C0 network foundation, C1 real scientific vertical, and C2 direct testnet integration. NET-5R repairs the isolated shielded-registration compatibility gap. C-EA0 specifies durable evidence capture, C-EA1 implements only its closed synthetic development profile, C-EP1 adds the private DEVELOPMENT Variant-A job-to-pack lifecycle, and C-EP2 measures that path while modeling possible sharing offline. C-DC1 through C-DC4 remain a separate private Research Concierge. All scientific/result authority stays with existing owners.
 
 Carbon must prove both the chain boundary and one real protected scientific path without letting SDK objects, raw scores, fixtures, stale winners, or incomplete evidence acquire economic authority.
 
@@ -56,7 +56,8 @@ Wave C does not authorize LIVE science, Wave-D qualification, learned Landscape/
 - [NET-6](../tickets/net_6.md): Disposable operator lifecycle and recovery [done]
 - [NET-5R](../tickets/net_5r.md): Shielded registration compatibility repair [done]
 - [C-01](../tickets/c_01.md): Durable execution state and queue [done]
-- [C-EP1](../tickets/c_ep1.md): DEVELOPMENT evaluation-pack lifecycle [in_progress]
+- [C-EP1](../tickets/c_ep1.md): DEVELOPMENT evaluation-pack lifecycle [done]
+- [C-EP2](../tickets/c_ep2.md): Variant-A measurement and offline Variant-B decision [in_progress]
 - [C-AUTH1](../tickets/c_auth1.md): Goal-driven authoring and Burgers Dynamics V1 import [done]
 - [C-EA0](../tickets/c_ea0.md): Evidence capture contract [done]
 - [C-EA1](../tickets/c_ea1.md): Durable evidence archive [done]
@@ -73,8 +74,8 @@ Wave C does not authorize LIVE science, Wave-D qualification, learned Landscape/
 
 ## Repository detail
 
-- [Wave C controlling board](https://github.com/carbonphysicsai/Carbon/blob/dc58042044e7d82c77d65ca59dc1b5c882d4cb94/.agent/WAVE_C.md)
-- [Current wave register](https://github.com/carbonphysicsai/Carbon/blob/dc58042044e7d82c77d65ca59dc1b5c882d4cb94/.agent/WAVE.md)
-- [NET-1 ticket](https://github.com/carbonphysicsai/Carbon/blob/dc58042044e7d82c77d65ca59dc1b5c882d4cb94/.agent/tickets/NET-1_chain_adapter.md)
+- [Wave C controlling board](https://github.com/carbonphysicsai/Carbon/blob/1ebb255e8c135a7efb967cea6e96d572608a2f14/.agent/WAVE_C.md)
+- [Current wave register](https://github.com/carbonphysicsai/Carbon/blob/1ebb255e8c135a7efb967cea6e96d572608a2f14/.agent/WAVE.md)
+- [NET-1 ticket](https://github.com/carbonphysicsai/Carbon/blob/1ebb255e8c135a7efb967cea6e96d572608a2f14/.agent/tickets/NET-1_chain_adapter.md)
 
 > Orientation boundary: repository authority owns exact semantics, implementation, review, evidence, and activation.
