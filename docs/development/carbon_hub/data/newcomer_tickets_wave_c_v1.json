@@ -119,7 +119,7 @@
       "title": "Measure Variant A before deciding whether sharing deserves an experiment",
       "what": "Observe the merged singleton fixture lifecycle and compare it with a zero-fill-wait, already-admitted sharing counterfactual that cannot touch the runtime ledger.",
       "why": "A sharing investment needs measured reference cost and compatible demand, not a favorable simulation built from the current scalar stub.",
-      "changes": "Carbon gains a private repeatable study harness, public-safe aggregate traces, failure/retry/restart accounting, an exact queued-attempt claim repair and a conditional break-even replay.",
+      "changes": "Carbon gains a private repeatable study harness, public-safe aggregate traces, failure/retry/restart accounting, an exact queued-attempt claim repair and an assumption-conditioned replay whose unknown costs remain unknown.",
       "not_yet": "No reference sharing, batch wait, early summary, public answer, real backend/reference, reward, finalization, scientific/security qualification, production or LIVE path is added. The current decision is collect missing inputs first.",
       "map_ref": "WAVE-C/C-EP2"
     },

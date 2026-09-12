@@ -16,7 +16,7 @@ Reference sharing should be considered only after Carbon can separate measured s
 
 ## What it adds
 
-A frozen observation protocol, public-safe and private traces, persistent success/failure/retry/restart accounting, an exact C-01 claim repair, detached A/B replay, profiler summary and owner-facing decision report.
+A frozen observation protocol, public-safe and private traces, persistent success/failure/retry/restart accounting, an exact C-01 claim repair, detached assumption-conditioned A/B replay, profiler summary and owner-facing decision report.
 
 ## Placement and handoff
 
@@ -32,7 +32,7 @@ No shared membership, fill wait, early result, public answer, production entropy
 
 ## Current stage
 
-C-EP2 is selected and locally complete as a bounded DEVELOPMENT observation harness and detached, uncalibrated A/B replay; automated acceptance and normal merge remain pending. The evidence recommends collecting missing real reference/backend/workload inputs before any B implementation.
+C-EP2 is selected and locally complete as a bounded DEVELOPMENT observation harness and detached, uncalibrated A/B replay; automated acceptance and normal merge remain pending. Replay v2 corrects invalid universal-bound wording by reporting explicit, assumption-conditioned dynamic-grouping scenarios. The evidence still recommends collecting missing real reference/backend/workload inputs before any B implementation.
 
 ## Maturity ceiling
 
@@ -40,10 +40,10 @@ Specified, implemented and locally tested only as DEVELOPMENT measurement and de
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/1ebb255e8c135a7efb967cea6e96d572608a2f14/.agent/tickets/C-EP2_variant_a_measurement_and_b_decision.md)
-- [Stable measurement evidence](https://github.com/carbonphysicsai/Carbon/blob/1ebb255e8c135a7efb967cea6e96d572608a2f14/.agent/evidence/wave_c/c-ep2.md)
-- [Owner-facing decision report](https://github.com/carbonphysicsai/Carbon/blob/1ebb255e8c135a7efb967cea6e96d572608a2f14/docs/development/C_EP2_VARIANT_B_DECISION_REPORT.md)
-- [Study runbook](https://github.com/carbonphysicsai/Carbon/blob/1ebb255e8c135a7efb967cea6e96d572608a2f14/docs/development/C_EP2_STUDY_RUNBOOK.md)
-- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/1ebb255e8c135a7efb967cea6e96d572608a2f14/.agent/WAVE_C.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/2a567c2c26d01d0aab278a6f38230820db7a2482/.agent/tickets/C-EP2_variant_a_measurement_and_b_decision.md)
+- [Stable measurement evidence](https://github.com/carbonphysicsai/Carbon/blob/2a567c2c26d01d0aab278a6f38230820db7a2482/.agent/evidence/wave_c/c-ep2.md)
+- [Owner-facing decision report](https://github.com/carbonphysicsai/Carbon/blob/2a567c2c26d01d0aab278a6f38230820db7a2482/docs/development/C_EP2_VARIANT_B_DECISION_REPORT.md)
+- [Study runbook](https://github.com/carbonphysicsai/Carbon/blob/2a567c2c26d01d0aab278a6f38230820db7a2482/docs/development/C_EP2_STUDY_RUNBOOK.md)
+- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/2a567c2c26d01d0aab278a6f38230820db7a2482/.agent/WAVE_C.md)
 
 > The recommendation is COLLECT MISSING INPUTS FIRST. A8 measures no physical reference or candidate inference, B overhead and compatible demand are unknown, and the offline replay implements no sharing.

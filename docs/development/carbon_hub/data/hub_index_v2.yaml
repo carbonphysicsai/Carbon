@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-12T19:40:38Z"
+  captured_at_utc: "2026-09-12T20:51:13Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "1ebb255e8c135a7efb967cea6e96d572608a2f14"
+  authority_snapshot_commit: "2a567c2c26d01d0aab278a6f38230820db7a2482"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -457,7 +457,7 @@ current:
     id: "C-EP2"
     title: "Variant-A measurement and offline Variant-B decision"
     status: "in_progress"
-    summary: "C-EP2 is selected and locally complete as a bounded DEVELOPMENT observation harness and detached, uncalibrated A/B replay; automated acceptance and normal merge remain pending. The evidence recommends collecting missing real reference/backend/workload inputs before any B implementation."
+    summary: "C-EP2 is selected and locally complete as a bounded DEVELOPMENT observation harness and detached, uncalibrated A/B replay; automated acceptance and normal merge remain pending. Replay v2 corrects invalid universal-bound wording by reporting explicit, assumption-conditioned dynamic-grouping scenarios. The evidence still recommends collecting missing real reference/backend/workload inputs before any B implementation."
   next_selected_ticket: null
   controlling_register: ".agent/WAVE_C.md"
   controlling_register_version: "1.3"
@@ -4332,6 +4332,24 @@ events:
       - "SYSTEM/DEVELOPMENT-SEQUENCING"
       - "SYSTEM/DEVELOPMENT-HUB"
       - "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+    supersedes: null
+  -
+    map_ref: "WAVE-C/C-EP2"
+    event_type: "adjustment"
+    event_id: "C-EP2-D4"
+    owner_lane: "engineering"
+    status: "implemented"
+    summary: "C-EP2 replay v2 corrects the frozen v1 report's invalid universal lower-bound interpretation. Unknown B overhead now leaves actual work, eligibility and release times unknown; zero overhead is an explicit counterfactual, every numeric overhead scenario recomputes endogenous membership, and synthetic numeric savings never become empirical support. The conservative COLLECT MISSING INPUTS FIRST recommendation and all Variant-B/runtime exclusions remain unchanged."
+    primary_detail: "https://github.com/carbonphysicsai/Carbon/blob/2a567c2c26d01d0aab278a6f38230820db7a2482/docs/development/C_EP2_VARIANT_B_DECISION_REPORT.md"
+    affects:
+      - "WAVE-C"
+      - "WAVE-C/C-EP2"
+      - "WAVE-C/C-EP1"
+      - "WAVE-C/C-02"
+      - "WAVE-C/C-04"
+      - "WAVE-C/C-07"
+      - "SYSTEM/MATURITY"
+      - "SYSTEM/DEVELOPMENT-HUB"
     supersedes: null
 event_schema:
   map_ref: "WAVE-B/B-04"
