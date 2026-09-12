@@ -1,6 +1,9 @@
 # C-EP2 measurement and replay evidence
 
-**Status:** bounded DEVELOPMENT tooling and study complete; automated acceptance pending
+**Status:** done in bounded merged DEVELOPMENT scope. Corrected head
+`89f06eda74b15dd336e57a512f228c6b37cca77d` passed RUNTIME_FULL run
+`34718392697` and normally merged in PR #144 as
+`96099aeac9e5022bda9d94730b1d7d955cb6c1d5`.
 **Baseline:** `d783c2c7209c7eea2d46dd395c4eaaf8094a9e71`
 **Frozen executable revision:** `bb009a2d8a3045fd29ea2c2c8c46aed2218c5c76`
 **Replay-reporting correction source:** `595ac4c7dec0fc92bcd3ec4d3817927f444814f5`
