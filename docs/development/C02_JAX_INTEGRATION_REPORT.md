@@ -1,7 +1,7 @@
 # C-02 JAX development integration report
 
-**Scope:** bounded offline DEVELOPMENT engineering only  
-**Primary map:** `WAVE-C/C-02`  
+**Scope:** bounded offline DEVELOPMENT engineering only
+**Primary map:** `WAVE-C/C-02`
 **Profile:** `carbon.c02.jax-development-profile.v1`
 
 ## Outcome
