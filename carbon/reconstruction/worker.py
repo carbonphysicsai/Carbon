@@ -316,7 +316,11 @@ def build_development_worker_image(
         capture_output=True,
         text=True,
     ).stdout.strip()
-    if len(image_id) != 71 or not image_id.startswith("sha256:"):
+    if (
+        len(image_id) != 71
+        or not image_id.startswith("sha256:")
+        or any(character not in "0123456789abcdef" for character in image_id[7:])
+    ):
         raise ReconstructionFailure("reconstruction.worker.image_invalid")
     return image_id, revision
 
@@ -348,13 +352,22 @@ class DevelopmentReconstructionWorker:
             ) from None
         if (
             not private_root.is_dir()
-            or private_stat.st_uid != os.geteuid()
+            or private_stat.st_uid
+            != getattr(os, "geteuid", lambda: private_stat.st_uid)()
             or private_stat.st_mode & 0o077
         ):
             raise ReconstructionFailure("reconstruction.worker.private_root_invalid")
-        if len(image_id) != 71 or not image_id.startswith("sha256:"):
+        if (
+            len(image_id) != 71
+            or not image_id.startswith("sha256:")
+            or any(character not in "0123456789abcdef" for character in image_id[7:])
+        ):
             raise ReconstructionFailure("reconstruction.worker.image_invalid")
-        if type(source_revision) is not str or len(source_revision) != 40:
+        if (
+            type(source_revision) is not str
+            or len(source_revision) != 40
+            or any(character not in "0123456789abcdef" for character in source_revision)
+        ):
             raise ReconstructionFailure("reconstruction.worker.source_invalid")
         self.queue = queue
         self.private_root = private_root.resolve(strict=True)

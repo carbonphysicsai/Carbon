@@ -72,7 +72,7 @@ Local macOS checks provide model/interface evidence only; Docker is absent on
 that host and no local isolation claim follows.
 
 ```text
-Focused C-03/C-02/C-01 and dependency invariants: 45 passed
+Focused C-03/C-02/C-01 and dependency invariants: 47 passed
 Full invariant lane: 212 passed
 Science lane: 34 passed
 Package/wheel/outside-tree lane: 88 passed

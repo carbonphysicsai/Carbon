@@ -244,6 +244,27 @@ def test_worker_profile_is_finite_public_only_and_source_pinned() -> None:
     )
 
 
+@pytest.mark.parametrize(
+    ("image_id", "revision", "code"),
+    (
+        ("sha256:" + "G" * 64, REVISION, "reconstruction.worker.image_invalid"),
+        (IMAGE, "Z" * 40, "reconstruction.worker.source_invalid"),
+    ),
+)
+def test_worker_rejects_noncanonical_image_and_source_identities(
+    tmp_path: Path, image_id: str, revision: str, code: str
+) -> None:
+    with pytest.raises(ReconstructionFailure) as caught:
+        _FakeWorker(
+            DurableExecutionQueue(tmp_path / "queue.sqlite3"),
+            private_root=tmp_path / "private",
+            image_id=image_id,
+            source_revision=revision,
+            repository=Path.cwd(),
+        )
+    assert caught.value.code == code
+
+
 def test_prepared_dispatch_binds_exact_c01_attempt_and_enforcement_argv(
     tmp_path: Path,
 ) -> None:
