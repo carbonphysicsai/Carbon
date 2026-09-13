@@ -141,10 +141,10 @@
     },
     "C-03": {
       "title": "Isolate hostile reconstruction work",
-      "what": "Define a network-denied, scratch-only, resource-bounded worker around C-02's future authorized JAX adapter.",
+      "what": "Contain the canonical C-02 adapter in one non-root, network-denied, resource-bounded CPU DEVELOPMENT worker for public TRAIN fixtures.",
       "why": "Participant-controlled work must not expose official evaluation material or gain unbounded host capabilities.",
-      "changes": "The future ticket now has an exact isolation, cancellation, cleanup and typed-infrastructure-failure contract.",
-      "not_yet": "No worker is implemented; MQ-015 inputs, resource limits and security acceptance remain missing even though the bounded C-02 adapter now exists.",
+      "changes": "Carbon gains a versioned profile, exact parent/worker association, enforced Docker envelope, cancellation/reconciliation, untrusted-output validation and a required Linux service lane.",
+      "not_yet": "MQ-015 security acceptance, protected inputs, production repeat policy, official science, reward, network, production and LIVE remain unavailable.",
       "map_ref": "WAVE-C/C-03"
     },
     "C-04": {

@@ -333,9 +333,7 @@ def main() -> int:
                         "resource_class_digest": request["resource_class_digest"],
                     }
                 )
-            except (
-                Exception
-            ):  # noqa: BLE001, S110 - best-effort private failure record.
+            except Exception:  # noqa: BLE001, S110 - best-effort private record.
                 pass
         return 2
 

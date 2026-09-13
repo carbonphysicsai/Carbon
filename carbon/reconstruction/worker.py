@@ -149,6 +149,17 @@ def _atomic_json(path: Path, value: object) -> None:
     os.replace(temporary, path)
 
 
+def _remove_unclaimed_staging(run_directory: Path) -> None:
+    """Remove exact disposable input state before any C-01 claim exists."""
+
+    input_directory = run_directory / "input"
+    if input_directory.is_dir() and not input_directory.is_symlink():
+        input_directory.chmod(0o700)
+    shutil.rmtree(run_directory, ignore_errors=True)
+    if run_directory.exists():
+        raise ReconstructionFailure("reconstruction.worker.cleanup_failed")
+
+
 def _safe_tree_size(path: Path, *, maximum: int) -> int:
     total = 0
     if path.is_symlink() or not path.is_dir():
@@ -505,64 +516,84 @@ class DevelopmentReconstructionWorker:
         limits = self.profile.limits
         name = f"carbon-c03-{self.id_factory().hex}"
         create_started = time.perf_counter()
-        create = self._command(
-            "create",
-            "--name",
-            name,
-            "--platform",
-            "linux/amd64",
-            "--user",
-            self.profile.runtime_user,
-            "--read-only",
-            "--network",
-            "none",
-            "--cap-drop",
-            "ALL",
-            "--security-opt",
-            "no-new-privileges:true",
-            "--cpus",
-            str(limits.cpus),
-            "--memory",
-            str(limits.memory_bytes),
-            "--memory-swap",
-            str(limits.memory_bytes),
-            "--pids-limit",
-            str(limits.pids),
-            "--ulimit",
-            f"nofile={limits.open_files}:{limits.open_files}",
-            "--tmpfs",
-            f"/scratch:rw,noexec,nosuid,nodev,size={limits.scratch_bytes}",
-            "--tmpfs",
-            f"/output:rw,noexec,nosuid,nodev,size={limits.output_bytes}",
-            "--env",
-            "TMPDIR=/scratch",
-            "--env",
-            f"JAX_NUM_THREADS={limits.threads}",
-            "--env",
-            f"CARBON_C03_IMAGE_ID={self.image_id}",
-            "--env",
-            f"CARBON_C03_SOURCE_REVISION={self.source_revision}",
-            "--label",
-            f"carbon.request-digest={durable_request_digest}",
-            "--mount",
-            f"type=bind,source={input_directory},target=/input,readonly",
-            self.image_id,
-        )
-        container_id = create.stdout.strip()
-        if len(container_id) < 12 or any(
-            character not in "0123456789abcdef" for character in container_id
-        ):
-            raise ReconstructionFailure("reconstruction.worker.container_invalid")
-        self._verify_container_envelope(container_id, input_directory)
-        create_seconds = float(time.perf_counter() - create_started)
+        container_id: str | None = None
         try:
+            create = self._command(
+                "create",
+                "--name",
+                name,
+                "--platform",
+                "linux/amd64",
+                "--user",
+                self.profile.runtime_user,
+                "--read-only",
+                "--network",
+                "none",
+                "--cap-drop",
+                "ALL",
+                "--security-opt",
+                "no-new-privileges:true",
+                "--log-driver",
+                "local",
+                "--log-opt",
+                "max-size=16k",
+                "--log-opt",
+                "max-file=1",
+                "--cpus",
+                str(limits.cpus),
+                "--memory",
+                str(limits.memory_bytes),
+                "--memory-swap",
+                str(limits.memory_bytes),
+                "--pids-limit",
+                str(limits.pids),
+                "--ulimit",
+                f"nofile={limits.open_files}:{limits.open_files}",
+                "--tmpfs",
+                f"/scratch:rw,noexec,nosuid,nodev,size={limits.scratch_bytes}",
+                "--tmpfs",
+                f"/output:rw,noexec,nosuid,nodev,size={limits.output_bytes}",
+                "--env",
+                "TMPDIR=/scratch",
+                "--env",
+                f"JAX_NUM_THREADS={limits.threads}",
+                "--env",
+                f"CARBON_C03_IMAGE_ID={self.image_id}",
+                "--env",
+                f"CARBON_C03_SOURCE_REVISION={self.source_revision}",
+                "--label",
+                f"carbon.request-digest={durable_request_digest}",
+                "--mount",
+                f"type=bind,source={input_directory},target=/input,readonly",
+                self.image_id,
+            )
+            container_id = create.stdout.strip()
+            if len(container_id) < 12 or any(
+                character not in "0123456789abcdef" for character in container_id
+            ):
+                raise ReconstructionFailure("reconstruction.worker.container_invalid")
+            self._verify_container_envelope(container_id, input_directory)
+            create_seconds = float(time.perf_counter() - create_started)
             claimed = self.queue.claim(
                 execution_ref,
                 "c03-development-worker",
                 claim_id=str(self.id_factory()),
             )
         except BaseException:
-            self._command("rm", "--force", container_id)
+            cleanup_failed = False
+            if container_id is not None:
+                try:
+                    self._command("rm", "--force", container_id)
+                except ReconstructionFailure:
+                    cleanup_failed = True
+            try:
+                _remove_unclaimed_staging(run_directory)
+            except ReconstructionFailure:
+                cleanup_failed = True
+            if cleanup_failed:
+                raise ReconstructionFailure(
+                    "reconstruction.worker.cleanup_failed"
+                ) from None
             raise
         _atomic_json(
             run_directory / "dispatch.json",
@@ -631,6 +662,11 @@ class DevelopmentReconstructionWorker:
                 or host["PublishAllPorts"] is not False
                 or host["PortBindings"] not in (None, {})
                 or host["Devices"] not in (None, [])
+                or host["LogConfig"]
+                != {
+                    "Type": "local",
+                    "Config": {"max-file": "1", "max-size": "16k"},
+                }
                 or host["Tmpfs"]
                 != {
                     "/output": f"rw,noexec,nosuid,nodev,size={limits.output_bytes}",
@@ -651,12 +687,9 @@ class DevelopmentReconstructionWorker:
             ):
                 raise ValueError
         except (KeyError, IndexError, TypeError, ValueError, json.JSONDecodeError):
-            try:
-                self._command("rm", "--force", container_id)
-            finally:
-                raise ReconstructionFailure(
-                    "reconstruction.worker.envelope_mismatch"
-                ) from None
+            raise ReconstructionFailure(
+                "reconstruction.worker.envelope_mismatch"
+            ) from None
 
     def execute(
         self,
@@ -701,7 +734,8 @@ class DevelopmentReconstructionWorker:
                 break
             time.sleep(0.05)
         state = self._state(dispatch.container_id)
-        logs = self._command("logs", dispatch.container_id).stdout.encode("utf-8")
+        log_result = self._command("logs", dispatch.container_id)
+        logs = (log_result.stdout + log_result.stderr).encode("utf-8")
         diagnostic_bytes = min(len(logs), self.profile.limits.diagnostic_bytes)
         diagnostic_digest = _tagged(logs[: self.profile.limits.diagnostic_bytes])
         if disposition is None:

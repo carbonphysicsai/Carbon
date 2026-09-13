@@ -187,6 +187,10 @@ class _FakeWorker(DevelopmentReconstructionWorker):
                         "PublishAllPorts": False,
                         "PortBindings": {},
                         "Devices": [],
+                        "LogConfig": {
+                            "Type": "local",
+                            "Config": {"max-file": "1", "max-size": "16k"},
+                        },
                         "Tmpfs": {
                             "/output": f"rw,noexec,nosuid,nodev,size={limits.output_bytes}",
                             "/scratch": f"rw,noexec,nosuid,nodev,size={limits.scratch_bytes}",
@@ -213,6 +217,12 @@ class _FakeWorker(DevelopmentReconstructionWorker):
         if args[:2] == ("rm", "--force"):
             return subprocess.CompletedProcess(args, 0, "", "")
         raise AssertionError(args)
+
+
+class _EnvelopeRejectingWorker(_FakeWorker):
+    def _verify_container_envelope(self, container_id, input_directory) -> None:
+        del container_id, input_directory
+        raise ReconstructionFailure("reconstruction.worker.envelope_mismatch")
 
 
 def test_worker_profile_is_finite_public_only_and_source_pinned() -> None:
@@ -282,6 +292,9 @@ def test_prepared_dispatch_binds_exact_c01_attempt_and_enforcement_argv(
     assert "none" == create[create.index("--network") + 1]
     assert "ALL" == create[create.index("--cap-drop") + 1]
     assert "no-new-privileges:true" == create[create.index("--security-opt") + 1]
+    assert "local" == create[create.index("--log-driver") + 1]
+    assert "max-size=16k" in create
+    assert "max-file=1" in create
     assert "--read-only" in create
     assert "--memory" in create and "--pids-limit" in create and "--ulimit" in create
     assert create[-1] == IMAGE
@@ -340,6 +353,52 @@ def test_binding_mismatch_rejects_before_claim_or_container(tmp_path: Path) -> N
         is ExecutionState.QUEUED
     )
     assert not any(command[0] == "create" for command in worker.commands)
+
+
+def test_preclaim_envelope_rejection_cleans_staging_and_leaves_attempt_queued(
+    tmp_path: Path,
+) -> None:
+    plan = compile_c02_plan(tmp_path / "plan", backbone="fno")
+    queue = DurableExecutionQueue(tmp_path / "queue.sqlite3")
+    binding = _binding(plan, compile_development_profile(plan).profile_digest)
+    queue.admit(binding)
+    source = tmp_path / "train.npz"
+    data = _data()
+    data.save(source)
+    archive = PublicTrainingArchive.from_file(source, provenance="c03_public_fixture")
+    request = {
+        "initial": data.initial[:1],
+        "viscosity": data.viscosity[:1],
+        "requested_times": data.times[:1],
+        "positions": data.positions,
+    }
+    seed = DerivedSeed(bytes(range(32)))
+    worker = _EnvelopeRejectingWorker(
+        queue,
+        private_root=tmp_path / "private",
+        image_id=IMAGE,
+        source_revision=REVISION,
+        repository=Path.cwd(),
+        id_factory=lambda: uuid.UUID("00000000-0000-4000-8000-000000000001"),
+    )
+
+    with pytest.raises(ReconstructionFailure) as caught:
+        worker.prepare(
+            execution_ref=binding.ref,
+            plan=plan,
+            training_archive=archive,
+            derived_seed=seed,
+            prediction_request=request,
+            replicate_binding=_replicate(plan, archive, request, binding.ref, seed),
+        )
+
+    assert caught.value.code == "reconstruction.worker.envelope_mismatch"
+    assert (
+        queue.status(binding.ref, binding.requester_identity).state
+        is ExecutionState.QUEUED
+    )
+    assert not worker._run_directory(binding.ref).exists()
+    assert any(command[:2] == ("rm", "--force") for command in worker.commands)
 
 
 def test_claim_cancellation_is_terminal_and_not_retryable(tmp_path: Path) -> None:

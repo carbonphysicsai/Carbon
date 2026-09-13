@@ -1831,6 +1831,20 @@ class ValidatorContractTests(unittest.TestCase):
         validator.validate_authority_view(view, "fixture B-07A")
         self.assertEqual(validator.errors, [])
 
+    def test_living_board_accepts_c03_validated_adapter_sequencing(self) -> None:
+        rows = [
+            ("C-02", "in_progress", "owner-a", "reviewer-a", []),
+            ("C-03", "in_progress", "owner-b", "reviewer-b", ["C-02"]),
+        ]
+        validator, view = self.authority_fixture(
+            wave="C", predecessor="B", selected="C-03", rows=rows
+        )
+        view["wave_text"] = (
+            "C-03-D1 records this owner-accepted sequencing distinction."
+        )
+        validator.validate_authority_view(view, "fixture C-03")
+        self.assertEqual(validator.errors, [])
+
     def test_living_board_discovers_new_ticket_without_constant_change(self) -> None:
         rows = [
             ("B-02A", "done", "owner-a", "reviewer-a", []),

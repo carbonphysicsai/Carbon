@@ -86,7 +86,7 @@ class NewcomerProjectionTests(unittest.TestCase):
         current = self.data["current"]
         self.assertEqual(current["last_completed_ticket"]["id"], "C-EP3")
         self.assertEqual(current["last_completed_ticket"]["status"], "done")
-        self.assertEqual(current["selected_ticket"]["id"], "C-02")
+        self.assertEqual(current["selected_ticket"]["id"], "C-03")
         self.assertEqual(current["selected_ticket"]["status"], "in_progress")
         self.assertIsNone(current["next_selected_ticket"])
         self.assertFalse(

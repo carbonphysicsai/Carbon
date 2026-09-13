@@ -11,12 +11,12 @@ When browsing on GitHub, start with **`orientation/START_HERE.md`**. It is the p
 - 14 waves (A-N)
 - 68 captured tickets across Wave A, Wave B, and Wave C
 - 7 protocol-change routes
-- 103 map-level change events
+- 104 map-level change events
 - 8 independent maturity states
 
 ## Captured current position
 
-Wave **C**; current ticket: **C-02**. Last completed: **C-EP3** (`done`). Next selected: **none selected**. C-EP3 completed after head ff1d4603cf6889bb3e9cf7f4a589524ade5c6b8c passed its recorded acceptance and merged in PR #145. PR #146 merged the initial bounded C-02 adapter, and PR #147 accepted head 72608d589582707955943345bc1308017e9650dc in run 34750621646 before merging its v2 hardening and frozen DEVELOPMENT repeats as dbd7e255f8a1d507b924bd1f82d309007b201b0b. The current owner-directed v3 continuation upgrades the exact Python-3.11 CPU environment, binds physical scaling, adds manufactured verification and provides one source-pinned Foundax FNO implementation profile. C-02 remains in progress because the separately described v0.2 research archive is absent, owner-selected repeat policy and C-03 isolation remain absent, and no later ticket is selected. Official science, protected execution, archive, reward, public network, production and LIVE authority remain absent. D6 canonical full/standard run 34518806217 remains historical evidence, and G2 is LOCALNET_READY only for its exact disposable standard-profile localnet. C-EA2 remains blocked; an implementation or test cannot fill an evidence gap owned by a later authority.
+Wave **C**; current ticket: **C-03**. Last completed: **C-EP3** (`done`). Next selected: **none selected**. C-EP3 completed after head ff1d4603cf6889bb3e9cf7f4a589524ade5c6b8c passed its recorded acceptance and merged in PR #145. PRs #146-#148 then delivered the canonical C-02 adapter, repeat/recovery machinery, exact CPU dependency profile, physical scaling and Foundax FNO integration. C-03 is now the sole active ticket for one bounded CPU DEVELOPMENT worker on public TRAIN fixtures; no later ticket is selected. C-02 remains open because C-03 enforcement/security acceptance, production repeat policy and scientific integration are completion prerequisites. The optional carbon_jax_research v0.2 archive remains absent/unverified and is not substituted for canonical carbon_jax_lab. D6 canonical full/standard run 34518806217 remains historical evidence for its exact standard-profile localnet. The real validator-to-exam vertical is planned for Wave C1, and Burgers v1 remains PRE-LIVE. Official science, protected execution, archive, reward, public network, production and LIVE authority remain absent.
 
 ## Maintain
 

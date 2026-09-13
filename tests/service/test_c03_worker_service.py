@@ -29,9 +29,12 @@ from carbon.fees import (
 )
 from carbon.reconstruction import (
     DevelopmentReconstructionWorker,
+    DevelopmentReplica,
     PublicTrainingArchive,
+    ReconstructionFailure,
     WorkerDisposition,
     build_development_worker_image,
+    freeze_development_repeat_plan,
 )
 from carbon.reconstruction._vendor.carbon_jax_lab.data import Trajectories
 from carbon.reconstruction.profile import compile_development_profile
@@ -177,20 +180,42 @@ def test_c03_real_reconstruction_repeats_replay_and_envelope(
         source_revision=revision,
         repository=REPOSITORY,
     )
+    bindings = tuple(
+        _binding(plan, image_id, profile_digest, index) for index in range(1, 4)
+    )
+    seeds = tuple(DerivedSeed(bytes([index]) * 32) for index in range(1, 4))
+    replicas = tuple(
+        _replicate(plan, archive, request, binding.ref, seed, index)
+        for index, (binding, seed) in enumerate(zip(bindings, seeds), start=1)
+    )
+    repeat_plan = freeze_development_repeat_plan(
+        plan_id="c03-canonical-service-three-replica-v1",
+        construction_plan_digest=plan.to_ref().content_digest,
+        training_data_digest=archive.content_digest,
+        request_digest=development_request_digest(request),
+        replicas=tuple(
+            DevelopmentReplica(
+                replica,
+                binding.ref,
+                "sha256:" + hashlib.sha256(seed.as_backend_bytes()).hexdigest(),
+            )
+            for binding, seed, replica in zip(bindings, seeds, replicas)
+        ),
+    )
+    assert len(repeat_plan.replicas) == 3
     outcomes = []
-    for index in range(1, 4):
-        binding = _binding(plan, image_id, profile_digest, index)
+    dispatches = []
+    for index, (binding, seed, replica) in enumerate(
+        zip(bindings, seeds, replicas), start=1
+    ):
         queue.admit(binding)
-        seed = DerivedSeed(bytes([index]) * 32)
         dispatch = worker.prepare(
             execution_ref=binding.ref,
             plan=plan,
             training_archive=archive,
             derived_seed=seed,
             prediction_request=request,
-            replicate_binding=_replicate(
-                plan, archive, request, binding.ref, seed, index
-            ),
+            replicate_binding=replica,
         )
         result = worker.execute(dispatch)
         replay = worker.read_completed(dispatch)
@@ -200,6 +225,10 @@ def test_c03_real_reconstruction_repeats_replay_and_envelope(
         status = queue.status(binding.ref, binding.requester_identity)
         assert status.state is ExecutionState.RUNNING
         assert status.partial_stage_count == 1
+        private_result = json.loads(
+            (dispatch.run_directory / "collected/result.json").read_text()
+        )
+        assert "randomness_hex" not in private_result
         outcomes.append(
             {
                 "replica": index,
@@ -209,6 +238,30 @@ def test_c03_real_reconstruction_repeats_replay_and_envelope(
                 "observations": result.observations,
             }
         )
+        dispatches.append(dispatch)
+
+    first_result = dispatches[0].run_directory / "collected/result.json"
+    original = first_result.read_bytes()
+    first_result.write_bytes(
+        (dispatches[1].run_directory / "collected/result.json").read_bytes()
+    )
+    with pytest.raises(ReconstructionFailure) as cross_attempt:
+        worker.read_completed(dispatches[0])
+    assert cross_attempt.value.code == "reconstruction.worker.output_binding_mismatch"
+    first_result.write_bytes(original)
+    assert (
+        worker.read_completed(dispatches[0]).disposition is WorkerDisposition.COMPLETE
+    )
+
+    prediction = dispatches[0].run_directory / "collected/prediction.npz"
+    prediction_bytes = prediction.read_bytes()
+    prediction.unlink()
+    prediction.symlink_to(dispatches[1].run_directory / "collected/prediction.npz")
+    with pytest.raises(ReconstructionFailure) as substituted:
+        worker.read_completed(dispatches[0])
+    assert substituted.value.code == "reconstruction.worker.output_invalid"
+    prediction.unlink()
+    prediction.write_bytes(prediction_bytes)
 
     inspect = json.loads(_run("image", "inspect", image_id).stdout)[0]
     assert inspect["Config"]["User"] == "10001:10001"
@@ -225,6 +278,8 @@ def test_c03_real_reconstruction_repeats_replay_and_envelope(
             "github_runner": os.environ.get("RUNNER_NAME"),
         },
         "repeat_scope": {
+            "plan_id": repeat_plan.plan_id,
+            "plan_digest": repeat_plan.plan_digest,
             "required": 3,
             "completed": 3,
             "selection": "NONE_ALL_OUTCOMES_RETAINED",

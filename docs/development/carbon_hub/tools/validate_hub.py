@@ -2857,7 +2857,16 @@ class Validator:
             and "owner-accepted" in view["wave_text"]
             and "ordinary delivery predicate" in view["wave_text"]
         )
-        if incomplete_dependencies and not owner_accepted_b05_dependency:
+        owner_accepted_c03_dependency = (
+            authoritative_ticket == "C-03"
+            and incomplete_dependencies == ["C-02"]
+            and board_rows.get("C-02", {}).get("status") == "in_progress"
+            and "C-03-D1" in view["wave_text"]
+            and "owner-accepted sequencing distinction" in view["wave_text"]
+        )
+        if incomplete_dependencies and not (
+            owner_accepted_b05_dependency or owner_accepted_c03_dependency
+        ):
             self.fail(
                 f"{source_label}: selected ticket has non-done dependencies {incomplete_dependencies!r}"
             )

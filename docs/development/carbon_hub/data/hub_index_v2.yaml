@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-13T12:53:33Z"
+  captured_at_utc: "2026-09-13T16:18:30Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "c32f9bf0a54e108ca72e28f64ccca99f5500c88c"
+  authority_snapshot_commit: "b2de2fdb006b095f6c774eccd35513bf881d98ae"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -438,7 +438,7 @@ validator_exam_map:
             -
               label: "Testnet-to-Mainnet Launch Path"
               path: "../../../launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.5.md"
-  current_maturity: "Target-state orientation only. C-EP3 completed after head ff1d4603cf6889bb3e9cf7f4a589524ade5c6b8c passed its recorded acceptance and merged in PR #145. PR #146 merged the initial bounded C-02 adapter, and PR #147 accepted head 72608d589582707955943345bc1308017e9650dc in run 34750621646 before merging its v2 hardening and frozen DEVELOPMENT repeats as dbd7e255f8a1d507b924bd1f82d309007b201b0b. The current owner-directed v3 continuation upgrades the exact Python-3.11 CPU environment, binds physical scaling, adds manufactured verification and provides one source-pinned Foundax FNO implementation profile. C-02 remains in progress because the separately described v0.2 research archive is absent, owner-selected repeat policy and C-03 isolation remain absent, and no later ticket is selected. Official science, protected execution, archive, reward, public network, production and LIVE authority remain absent. D6 canonical full/standard run 34518806217 remains historical evidence, and G2 is LOCALNET_READY only for its exact disposable standard-profile localnet. C-EA2 remains blocked; an implementation or test cannot fill an evidence gap owned by a later authority. The real validator-to-exam vertical is planned for Wave C1. Burgers v1 remains PRE-LIVE until a measured Validation Dossier qualifies the exact exam."
+  current_maturity: "Target-state orientation only. C-EP3 completed after head ff1d4603cf6889bb3e9cf7f4a589524ade5c6b8c passed its recorded acceptance and merged in PR #145. PRs #146-#148 then delivered the canonical C-02 adapter, repeat/recovery machinery, exact CPU dependency profile, physical scaling and Foundax FNO integration. C-03 is now the sole active ticket for one bounded CPU DEVELOPMENT worker on public TRAIN fixtures; no later ticket is selected. C-02 remains open because C-03 enforcement/security acceptance, production repeat policy and scientific integration are completion prerequisites. The optional carbon_jax_research v0.2 archive remains absent/unverified and is not substituted for canonical carbon_jax_lab. D6 canonical full/standard run 34518806217 remains historical evidence for its exact standard-profile localnet. The real validator-to-exam vertical is planned for Wave C1, and Burgers v1 remains PRE-LIVE. Official science, protected execution, archive, reward, public network, production and LIVE authority remain absent. The real validator-to-exam vertical is planned for Wave C1. Burgers v1 remains PRE-LIVE until a measured Validation Dossier qualifies the exact exam."
 current:
   wave: "C"
   wave_title: "Network foundation and real testnet vertical"
@@ -454,15 +454,15 @@ current:
       url: "https://github.com/carbonphysicsai/Carbon/pull/145"
       merge_commit: "a02ca5f46eda2283db7808d9646c1ef24715ec4a"
   selected_ticket:
-    id: "C-02"
-    title: "Real declarative reconstruction"
+    id: "C-03"
+    title: "Isolated reconstruction worker"
     status: "in_progress"
-    summary: "C-02 remains selected and in progress. Its v3 continuation upgrades the exact Python-3.11 CPU dependency profile, binds explicit physical scaling, adds manufactured verification and provides one exact Foundax FNO implementation behind the existing Strategy surface. The separately described v0.2 research archive is absent and unverified. No production repeat count, C-03 selection, protected reference, official score, reward, security qualification, production network or LIVE authority follows."
+    summary: "C-03 alone is selected to contain and measure the canonical C-02 adapter in a bounded CPU-only DEVELOPMENT worker using public TRAIN fixtures. C-02 remains open; MQ-015 security acceptance, protected execution, production repeat policy, official science, reward, network and LIVE authority remain absent."
   next_selected_ticket: null
   controlling_register: ".agent/WAVE_C.md"
-  controlling_register_version: "1.6"
-  controlling_board_fingerprint: "30b298cfd183c114d4e115d1cc40d3a157833ce9db845e8fb1e32f9090e15931"
-  stage: "C-EP3 completed after head ff1d4603cf6889bb3e9cf7f4a589524ade5c6b8c passed its recorded acceptance and merged in PR #145. PR #146 merged the initial bounded C-02 adapter, and PR #147 accepted head 72608d589582707955943345bc1308017e9650dc in run 34750621646 before merging its v2 hardening and frozen DEVELOPMENT repeats as dbd7e255f8a1d507b924bd1f82d309007b201b0b. The current owner-directed v3 continuation upgrades the exact Python-3.11 CPU environment, binds physical scaling, adds manufactured verification and provides one source-pinned Foundax FNO implementation profile. C-02 remains in progress because the separately described v0.2 research archive is absent, owner-selected repeat policy and C-03 isolation remain absent, and no later ticket is selected. Official science, protected execution, archive, reward, public network, production and LIVE authority remain absent. D6 canonical full/standard run 34518806217 remains historical evidence, and G2 is LOCALNET_READY only for its exact disposable standard-profile localnet. C-EA2 remains blocked; an implementation or test cannot fill an evidence gap owned by a later authority."
+  controlling_register_version: "1.7"
+  controlling_board_fingerprint: "7277a26773785d107f831f15a1bbc4c2914d3983e99c824a91eb674d16323cc2"
+  stage: "C-EP3 completed after head ff1d4603cf6889bb3e9cf7f4a589524ade5c6b8c passed its recorded acceptance and merged in PR #145. PRs #146-#148 then delivered the canonical C-02 adapter, repeat/recovery machinery, exact CPU dependency profile, physical scaling and Foundax FNO integration. C-03 is now the sole active ticket for one bounded CPU DEVELOPMENT worker on public TRAIN fixtures; no later ticket is selected. C-02 remains open because C-03 enforcement/security acceptance, production repeat policy and scientific integration are completion prerequisites. The optional carbon_jax_research v0.2 archive remains absent/unverified and is not substituted for canonical carbon_jax_lab. D6 canonical full/standard run 34518806217 remains historical evidence for its exact standard-profile localnet. The real validator-to-exam vertical is planned for Wave C1, and Burgers v1 remains PRE-LIVE. Official science, protected execution, archive, reward, public network, production and LIVE authority remain absent."
   most_recent_closed_wave: "B"
   completed_wave_tickets:
     - "NET-1"
@@ -482,10 +482,7 @@ current:
     - "C-EA0"
     - "C-EA1"
   recent_dependencies:
-    - "B-02B"
-    - "B-03"
-    - "B-E1"
-    - "C-01"
+    - "C-02"
   other_completed_wave_context:
     - "NET-1"
     - "NET-2"
@@ -496,6 +493,7 @@ current:
     - "NET-5"
     - "NET-6"
     - "NET-5R"
+    - "C-01"
     - "C-EP1"
     - "C-EP2"
     - "C-EP3"
@@ -503,9 +501,7 @@ current:
     - "C-EA0"
     - "C-EA1"
   downstream_handoffs:
-    - "C-03"
-    - "C-05"
-    - "C-06"
+    - "C-04"
     - "C-07"
   parallel_context:
     []
@@ -529,21 +525,21 @@ current:
     - "G2 is LOCALNET_READY only for D6 run 34518806217's exact standard-profile disposable v445 localnet. Fast-profile failures, the false global capability flag, public networks, settlement, security/scientific qualification, production and LIVE remain outside the claim."
     - "C-02 is selected only for bounded DEVELOPMENT JAX profiles and optional frozen repeats. Its upgraded CPU lock, physical scaling, manufactured verification and exact Foundax FNO profile are unqualified engineering evidence; the described v0.2 research archive is absent/unverified, and no production repeat count, C-03 isolation, protected reference, official measurement, real archive, security, production or LIVE authority exists."
     - "C-EA1 is implemented/tested only for carbon.synthetic-evidence-archive.dev.v1 with non-secret fixtures, one disposable host/tenant, ephemeral test keys and INTERNAL_AUDIT use. Its acknowledgement is structurally ineligible for real C1 finalization, C-W1, weights, settlement or qualification. Every real/production artifact, rights, retention, custody/KMS, topology, durability, availability, recovery and security value remains HUMAN_INPUT."
-    - "C-03, C-08 and C-09 are contract-only, unselected and unstarted. C-02 now supplies bounded DEVELOPMENT runtime inputs, but C-03 still lacks the grouped MQ-015 owner/security threat boundary, resource limits, image/hardware class, filesystem/network controls, cleanup/audit evidence and accepted residual risk; contract materialization supplies no worker security acceptance, real validator path, qualified provenance, eligible real archive acknowledgement, public-network authority or production qualification."
+    - "C-03 is selected only for a reviewable CPU DEVELOPMENT profile on one trusted disposable host with public TRAIN fixtures. Its implementation and service evidence cannot supply MQ-015 security acceptance, protected-workload permission, hostile-host integrity, official science, production limits/repeat policy, real validator/archive authority, public network or LIVE qualification. C-08 and C-09 remain contract-only and unselected."
     - "C-EP1 is a private DEVELOPMENT fixture interposition only. Different child pack identities demonstrate durable job separation and deterministic fixture binding, not independent physical draws, freshness, honest execution, production entropy, scientific qualification, real archive eligibility, reward entitlement, public answers, Variant B/C sharing or LIVE readiness."
     - "C-EP2 observes that fixture path and models hypothetical sharing offline only. Its recommendation is COLLECT MISSING INPUTS FIRST because physical reference cost, compatibility demand and B control/recovery overhead remain unknown. It implements no shared pack, wait, early result, public answer, production path or qualification."
     - "C-EP3 is a detached public DEVELOPMENT input-acquisition and numerical-component study only. It cannot select or qualify a real reference, implement C-02/C-04, integrate candidate evaluation, clear the five gauntlet blockers, establish compatible demand or measure Variant-B overhead."
   maturity_states:
     specified: "earned"
     implemented: "earned"
-    tested: "earned"
+    tested: "unearned"
     scientifically_qualified: "unearned"
     security_qualified: "unearned"
     network_qualified: "unearned"
     commercially_validated: "unearned"
     production_qualified: "unearned"
-  maturity_summary: "C-EP1 through C-EP3 are done only in their bounded merged DEVELOPMENT scopes. C-02 is selected and earns implemented/tested only for its bounded JAX profiles, upgraded CPU dependency lock, physical scaling, manufactured verification, exact Foundax adapter and frozen DEVELOPMENT repeats. Real isolated execution, owner-selected repeat policy, reference qualification, archive durability, protected evidence, accelerator evidence, testnet eligibility, security, production and LIVE remain unearned."
-  decision_series_status: "C-02-D3 upgrades the bounded CPU environment and adds physical scaling, manufactured verification and one exact Foundax FNO profile while preserving historical identities and C-02 in progress. The described v0.2 research archive remains absent/unverified. C-03 and every later real vertical remain unselected; C-EA2 remains blocked and B-E4 remains deferred/non-blocking and UNMEASURED."
+  maturity_summary: "C-EP1 through C-EP3 are done only in their bounded merged DEVELOPMENT scopes. C-02 remains open with its canonical adapter implemented/tested. C-03 is selected to earn bounded worker implementation and canonical service evidence for public fixtures only. Protected execution, scientific/security qualification, production repeat policy, reference/archive authority, accelerator evidence, testnet eligibility, production and LIVE remain unearned."
+  decision_series_status: "C-03-D1 selects a bounded CPU DEVELOPMENT worker profile around the validated C-02 adapter. It resolves implementation sequencing without marking C-02 complete. MQ-015 acceptance and every protected, scientific, archive, reward, network, production or LIVE path remain unresolved or unselected."
   technical_decision_route: "https://github.com/carbonphysicsai/Carbon/issues/42"
   owner_decision_route: "https://github.com/carbonphysicsai/Carbon/issues/41"
   decision_series:
@@ -1923,7 +1919,7 @@ tickets:
     id: "C-03"
     wave: "C"
     title: "Isolated reconstruction worker"
-    status: "todo"
+    status: "in_progress"
     explainer: "explainers/tickets/c_03.md"
     repo_path: ".agent/tickets/C-03_isolated_reconstruction_worker.md"
     depends_on:
@@ -4465,6 +4461,27 @@ events:
       - "WAVE-C"
       - "WAVE-C/C-02"
       - "WAVE-C/C-03"
+      - "SYSTEM/AGENT-EXECUTION"
+      - "SYSTEM/CI"
+      - "SYSTEM/GOVERNANCE"
+      - "SYSTEM/MATURITY"
+      - "SYSTEM/DEVELOPMENT-SEQUENCING"
+      - "SYSTEM/DEVELOPMENT-HUB"
+      - "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+    supersedes: null
+  -
+    map_ref: "WAVE-C/C-03"
+    event_type: "decision"
+    event_id: "C-03-D1"
+    owner_lane: "repository_owner"
+    status: "implemented"
+    summary: "The owner selects C-03 alone for a bounded CPU DEVELOPMENT worker around C-02's validated canonical adapter. The prospective profile uses public TRAIN fixtures on one trusted disposable host and retains exact C-01/C-02/B-02C bindings, non-root execution, network/filesystem/resource enforcement, cancellation/reconciliation and parent validation. C-02 remains open; MQ-015 security acceptance, protected execution, production repeat policy, official science, archive, reward, network, production and LIVE authority remain absent."
+    primary_detail: "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5654488786"
+    affects:
+      - "WAVE-C"
+      - "WAVE-C/C-02"
+      - "WAVE-C/C-03"
+      - "WAVE-C/C-04"
       - "SYSTEM/AGENT-EXECUTION"
       - "SYSTEM/CI"
       - "SYSTEM/GOVERNANCE"

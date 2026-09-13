@@ -13481,8 +13481,9 @@ decision remains required.
 
 ## 2026-09-14 — C-03-D1: select a bounded CPU DEVELOPMENT worker profile
 
-**Notification:** issue #42 notification pending delivery visibility, for
-awareness under the delegated-decision protocol.
+**Notification:** issue #42 comment
+[`5654488786`](https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5654488786),
+for awareness under the delegated-decision protocol.
 
 **Owner direction.** Implement and test one CPU-only DEVELOPMENT worker around
 the canonical C-02 adapter on a trusted disposable host. This selects C-03 as
