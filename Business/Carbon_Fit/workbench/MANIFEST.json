@@ -4,7 +4,7 @@
   "application_version": "Carbon Opportunity Workbench v0.2",
   "decision_id": "EXAM-PROTECT-WORKBENCH-01",
   "repository_base": "2d5872aff89ca7bef3e3f062b293aeefe17769aa",
-  "integration_revision_at_packaging": "31677d5e5c4c37e96f4c9767e88b7e011960b664",
+  "integration_revision_at_packaging": "52a694c7ab1d2cf4c62fbe8e1763a055aef8da6b",
   "pinned_research_revision": "ca904dfee93d3574df4e56b99981a6ed3b138e80",
   "accepted_research_head": "0a5690270dc449ea19c941280203987d37db5283",
   "research_merge_commit": "2ac835d1dd55deb9c99e493f3615143efa2e51e0",
@@ -48,8 +48,8 @@
       "sha256": "5a4cd2f7f90bf6acbc20c6e7e40affd18552e98ed0c9ae78f90ff69ba1b01679"
     },
     "docs/OWNER_REPORT.md": {
-      "bytes": 5010,
-      "sha256": "887459cfde17303157e840fb4382708a049a15cf5db6236233d8e201c6792abf"
+      "bytes": 6269,
+      "sha256": "731eda75ae4ca0abd0d6e9ff7f9d1c16878aab269632ad94f29a15005b6149fd"
     },
     "docs/REPOSITORY_SEED_INDEX.json": {
       "bytes": 6759,
@@ -192,8 +192,8 @@
       "sha256": "9e1bc74aea8f4bd67cef3bc71439a604e4cb5f42b1aa956aeba34332a23dc7a5"
     },
     "tests/TEST_NOTES.md": {
-      "bytes": 1206,
-      "sha256": "db71f1c6763759d32a2332937e61fc8ffd0f08dee1b2b0f5ee7b08cfbd5c7de5"
+      "bytes": 1641,
+      "sha256": "0744f3fc6c4e5e182cf72953fec127648d42f45127750cabfc7af514a7114304"
     },
     "tests/browser_results.json": {
       "bytes": 2662,
