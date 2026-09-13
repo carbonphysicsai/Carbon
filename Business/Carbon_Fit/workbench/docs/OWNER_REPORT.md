@@ -48,4 +48,11 @@ The smallest useful inputs are: a source-owned compatibility identity and refere
 - Issue #153 fix: separate test-only PR #155, head `29ac8e27bd924ce1fb293c48527ded3b1cff6215`; canonical and Merge gate passed in run `34784974259`; merged as `edf8331428e50ecb60905fa1a6058d02d7f6d53e`. Its clean-image job was correctly not applicable, not called passed.
 - Workbench integration: PR #156. The complete release manifest records the exact source candidate used for packaging; the PR body and completion comments record its final tested head, merge commit and applicable CI results without pretending a file can contain its own commit identity.
 
+PR #156 candidate `71fcae5c64020d8e40675b4ebb5c4ba45981610a` was tested in run `34789353024`. Delivery preflight passed and the live Hub authority/links validation itself reported zero errors. Merge remains blocked by two current-main acceptance defects outside the authored workbench diff:
+
+1. Existing issue #141: Hub validator-enforcement fixtures inherit `HUB_EXPECTED_CHANGE_SCOPE=CONTRACT_AUTHORITY` and reject their own synthetic `RUNTIME_FULL` bodies (8 fixture failures). The issue already requires an isolated tooling fix; no assertion was weakened here.
+2. The contract-only environment collects `tests/invariants/test_c04_reference_runtime_boundaries.py`, whose current-main import of `carbon.reference_runtime.model` requires NumPy, but that job does not install the science dependency group. Collection fails with `ModuleNotFoundError: numpy`. This workstream does not alter C-04, dependency locks, or CI environments.
+
+Merge gate therefore failed as designed. Canonical, clean-image, and C-03/C-04 service jobs were correctly not applicable for this `CONTRACT_AUTHORITY` diff; they are not called passed. The standalone artifact and source bundle remain inspectable and locally accepted while these owner-scoped repository blockers stay open.
+
 The Wave C executor, `.agent/WAVE.md`, runtime types, solver/evaluator, rewards, worker, archive policy, and active C-03/C-04 selection were left unchanged. Hosted delivery and live collection remain separate.
