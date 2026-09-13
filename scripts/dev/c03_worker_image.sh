@@ -78,4 +78,3 @@ trap 'rm -rf "${temporary}"' EXIT
 echo "Carbon C-03 worker image built and pinned:"
 echo "  image:    ${image_id}"
 echo "  manifest: ${output}"
-

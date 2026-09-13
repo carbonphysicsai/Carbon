@@ -68,4 +68,3 @@ LABEL org.opencontainers.image.title="Carbon C-03 DEVELOPMENT reconstruction wor
 WORKDIR /
 USER 65532:65532
 ENTRYPOINT ["/opt/carbon-worker/bin/python", "-I", "-m", "carbon.reconstruction.worker.entrypoint"]
-
