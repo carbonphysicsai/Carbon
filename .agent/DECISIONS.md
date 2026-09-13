@@ -13417,3 +13417,64 @@ earns only `UNQUALIFIED_PUBLIC_DEVELOPMENT` adapter implementation/testing;
 repeat policy, C-03 hostile-worker isolation, protected reference, official
 measurement, archive finalization, reward, public network, production,
 scientific/security qualification and LIVE remain absent.
+
+## 2026-09-13 — C-02-D3: upgrade the Python-3.11 CPU profile and pin Foundax directly
+
+**Notification:** issue #42 comment
+[`5653282388`](https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5653282388),
+for awareness under the delegated-decision protocol.
+
+**Problem.** The owner authorized a current mutually compatible JAX profile,
+explicit physical scaling, manufactured verification and one optional Foundax
+FNO adapter. Independently maximizing current JAX, NumPy and SciPy would require
+Python 3.12 and conflict with Carbon's canonical `>=3.11,<3.12` range. Foundax
+package metadata declares MIT while its tagged source and wheel actually ship
+EPL-2.0 LICENSE bytes. The separately described `carbon_jax_research` v0.2
+source was not among the received files.
+
+**Working decision.** Keep Python 3.11 and pin JAX/jaxlib 0.10.2, NumPy 2.4.6,
+SciPy 1.17.1, Optax 0.2.8, Chex 0.1.92, Equinox 0.13.8, Einops 0.8.2,
+Foundax 0.2.0 and PyYAML 6.0.3 in the optional CPU profile. Bind the complete
+set to environment profile v2 and hash-locked Linux/Apple resolutions. Use
+Foundax git revision `b02b1da52bb03cfad8e437983fc1d1e411e78b04`
+directly through its actual Equinox `fno1d` API, selected by an exact
+implementation pin behind Carbon's existing `fno` Strategy semantic. Do not
+add a public Strategy token, jNO, Orbax or accelerator packages. Apply the
+actual shipped EPL-2.0 LICENSE, digest
+`209fe24bf55677bbf81c2b0481c1403201fab57b3b4c609971eba4ec8162b99c`,
+rather than relying on contradictory metadata.
+
+Version `carbon.burgers-physical-scaling.v1`, development profile v3, lab
+checkpoint v2, outer artifact v3 and repeat plan/report/outcome v2
+prospectively. Bind `L`, `T`, `U`, exact units and coefficient transforms while
+keeping TRAIN RMS numerical normalization and official scoring separate.
+Historical v1/v2 profiles, checkpoints, artifacts and evidence keep their
+original identities and are neither rewritten nor silently loaded as v3.
+
+**Alternatives rejected.** Raising canonical Python only to take JAX 0.11.x,
+NumPy 2.5.x or SciPy 1.18.x adds project-wide migration cost without a C-02
+requirement. jNO's broader wrapper, Orbax and EPL dependency surface adds no
+needed capability. A `foundax_fno` Strategy token would widen the public
+language; routing that name to the existing handwritten FNO would violate the
+source contract. Relabeling the received v0.1 lab archive as the missing v0.2
+research source would falsify provenance.
+
+**Interfaces and downstream effect.** Both canonical lab and Foundax profiles
+take physical finite `u0`, per-case `nu`, time and periodic positions and emit
+physical finite float32 predictions in requested-time order. Foundax preserves
+native model/optimizer/EMA/RNG/step trees in bounded non-pickle checkpoints.
+Unsupported units, layouts, domains, modes and unimplemented training settings
+fail closed. C-03 receives a dependency-ready CPU profile but still owns
+hostile-worker resource/isolation controls and security acceptance.
+
+**Reversibility and migration.** A later profile may upgrade Python or
+dependencies, replace Foundax or repair upstream license metadata. It must use
+new source/environment/artifact identities. The missing v0.2 source can be
+verified and imported only when its exact bytes are supplied; it must not
+compete with the canonical backend silently.
+
+**Human-reserved input.** No scientific threshold, reference qualification,
+production repeat rule, GPU/TPU claim, resource envelope, security acceptance,
+protected-data use, archive policy, production, network or LIVE decision is
+made. C-02 remains `in_progress`; the grouped C-03/MQ-015 owner-security
+decision remains required.

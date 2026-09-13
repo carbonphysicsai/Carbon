@@ -39,7 +39,7 @@
 `c510095b5501587cf93c04632a26b7c303d7d48b` in run `34365282759` and
 normally merged as `ac050fd53ee18bf3788c167ee7b0736bbfd7a46b`, tree
 `46b38440f13a8048db18bc480ddb6907396c9017`
-**Controlling register:** `.agent/WAVE_C.md` version 1.5
+**Controlling register:** `.agent/WAVE_C.md` version 1.6
 **Selected ticket:** C-02 — `in_progress`
 **Active ticket:** C-02
 **Next selected ticket:** none
@@ -69,10 +69,14 @@ grants no pack sharing, protected reference, official answer, scientific or
 security qualification, reward change, C-EA2 implementation, production,
 network, or LIVE authority.
 PR #146 merged the initial adapter as
-`d9fadf7f9cbb9b3a2a4ffa1ec9b0c906826be8ca`. The current continuation hardens
-artifact/prediction association and adds only a prospectively frozen
-DEVELOPMENT repeat capability. C-02 remains `in_progress`; no production repeat
-rule or C-03 selection follows.
+`d9fadf7f9cbb9b3a2a4ffa1ec9b0c906826be8ca`. PR #147 accepted head
+`72608d589582707955943345bc1308017e9650dc` in run `34750621646` and merged
+the artifact/prediction hardening plus frozen DEVELOPMENT repeat capability as
+`dbd7e255f8a1d507b924bd1f82d309007b201b0b`. The current owner-directed v3
+continuation upgrades the Python-3.11 CPU profile, binds physical scaling and
+adds one exact Foundax FNO implementation. C-02 remains `in_progress`; the
+described v0.2 research archive is absent, and no production repeat rule or
+C-03 selection follows.
 **Activation authority:** `OWNER-WAVE-C0-NET1-01` records the repository
 owner's explicit authorization to reconcile B-GATE, close Wave B in bounded
 engineering scope, activate Wave C/C0, select NET-1 alone, and continue through
@@ -121,8 +125,11 @@ finalization, C-W1, network or qualification. C-03, C-08 and C-09 now have
 materialized contracts but remain unselected and unimplemented. The supplied
 immutable JAX bundle makes the bounded C-02 DEVELOPMENT adapter dependency-ready
 and selected; later isolation, science, archive and operations tickets remain
-unselected. The adapter now has bounded repeat/recovery machinery, while an
-owner-selected repeat policy remains absent. C-EA2 is not selected.
+unselected. The adapter now has bounded repeat/recovery machinery; the v3
+candidate adds a mutually locked CPU environment, explicit physical scaling and
+source-pinned Foundax while preserving the missing v0.2 research archive as an
+unverified provenance limitation. An owner-selected repeat policy remains
+absent. C-EA2 is not selected.
 **Owner sequencing:** PR #94 satisfied `OWNER-B05-B07C-01` and reconciles B-05
 and B-07C as bounded done. `OWNER-B07D123-01` selects B-07D1 -> B-07D2 ->
 B-07D3 on one branch and PR while preserving ticket/evidence identity.

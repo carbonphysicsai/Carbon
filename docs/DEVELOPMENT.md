@@ -25,6 +25,21 @@ Torch, chain, CUDA, or GPU stacks are not ordinary Carbon evidence platforms
 or default gates. Use an optional group or inspect archived implementation only
 when the selected ticket explicitly owns it.
 
+For the selected C-02 ticket, the source-controlled Apple-silicon CPU
+diagnostic profile is reproducible with:
+
+```bash
+./scripts/dev/refresh_jax_macos_lock.sh
+./scripts/dev/setup_jax_macos.sh
+.venv-jax-macos/bin/python scripts/dev/jax_macos_diagnostic.py doctor
+PYTHONPATH=tests/cpu .venv-jax-macos/bin/python -m pytest tests/science -q
+```
+
+The refresh command uses repository-required `uv==0.12.7`; the setup command
+syncs only the hash-locked CPU dependencies into `.venv-jax-macos`. It installs
+no CUDA or other accelerator packages. Native results remain diagnostics;
+GitHub's Linux x86-64 `science-jax` lane is canonical acceptance.
+
 The immutable legacy location and retrieval rules are recorded in
 [`docs/history/LEGACY_CODE_INDEX.md`](history/LEGACY_CODE_INDEX.md). Archive
 presence grants no current implementation authority.

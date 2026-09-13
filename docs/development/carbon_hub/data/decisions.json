@@ -2379,6 +2379,35 @@
       ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/75414bb9b85bee3107e880918fe9b91817f48c1b/docs/development/C02_JAX_INTEGRATION_REPORT.md"
+    },
+    {
+      "title": "Upgrade the bounded C-02 CPU profile and add exact Foundax FNO",
+      "question": "How should C-02 adopt a current compatible JAX stack, physical scaling and Foundax without rewriting historical artifacts or expanding scientific and production authority?",
+      "recommendation": "Keep canonical Python 3.11 and pin the newest mutually compatible stable CPU set, bind an explicit versioned Burgers physical-scaling record, independently verify the numerical operators, and expose actual Foundax 0.2.0 only through an exact implementation pin behind the existing public FNO token. Treat Foundax as EPL-2.0 because its distributed license bytes control over contradictory MIT metadata, and leave the absent carbon_jax_research v0.2 input unverified rather than substituting another source.",
+      "why": "The current Python range can resolve JAX/JAXlib 0.10.2 and its compatible numerical stack without a language migration. Carbon needs physical-unit identity and independent mathematical verification, while Foundax's real Equinox API supports the one-dimensional reconstruction contract with explicit Carbon-owned key, layout, state and persistence boundaries.",
+      "if_kept": "C-02 gains an exact reproducible CPU environment, reversible scaling, manufactured verification and a tested optional Foundax FNO DEVELOPMENT implementation while retaining historical profiles and fail-closed provenance. C-02 remains in progress on its missing v0.2 source intake, production repeat policy and C-03 isolation/security decisions.",
+      "if_changed": "A Python-range change, different dependency profile, competing v0.2 source, serializer, accelerator, public Strategy token, production repeat rule, or hostile-worker behavior requires its own exact source/authority record and applicable acceptance.",
+      "decision_id": "C-02-D3",
+      "map_ref": "WAVE-C/C-02",
+      "wave": "C",
+      "ticket": "C-02",
+      "attention": "FOR_AWARENESS",
+      "status": "IMPLEMENTED_WORKING_DECISION",
+      "audience": "harsh",
+      "affects": [
+        "WAVE-C",
+        "WAVE-C/C-02",
+        "WAVE-C/C-03",
+        "SYSTEM/AGENT-EXECUTION",
+        "SYSTEM/CI",
+        "SYSTEM/GOVERNANCE",
+        "SYSTEM/MATURITY",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+      ],
+      "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5653282388",
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/c32f9bf0a54e108ca72e28f64ccca99f5500c88c/docs/development/C02_JAX_INTEGRATION_REPORT.md"
     }
   ]
 }

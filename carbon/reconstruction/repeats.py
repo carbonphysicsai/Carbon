@@ -22,9 +22,9 @@ from carbon.reconstruction.service import predict, reconstruct
 from carbon.resource_policy import BoundReconstructionReplicate
 from carbon.seeding import DerivedSeed
 
-_PLAN_SCHEMA = "carbon.c02.development-repeat-plan.v1"
-_OUTCOME_SCHEMA = "carbon.c02.development-replica-outcome.v1"
-_REPORT_SCHEMA = "carbon.c02.development-repeat-report.v1"
+_PLAN_SCHEMA = "carbon.c02.development-repeat-plan.v2"
+_OUTCOME_SCHEMA = "carbon.c02.development-replica-outcome.v2"
+_REPORT_SCHEMA = "carbon.c02.development-repeat-report.v2"
 
 
 def _canonical(value: object) -> bytes:
@@ -55,18 +55,32 @@ def _execution_id(value: ExecutionAttemptRef) -> str:
 
 
 def _request_arrays(request: Mapping[str, object]) -> tuple[tuple[str, object], ...]:
-    if type(request) is not dict or set(request) != {
+    required = {
         "initial",
         "viscosity",
         "requested_times",
         "positions",
-    }:
+    }
+    keys = set(request) if type(request) is dict else set()
+    if type(request) is not dict or keys not in (
+        required,
+        required | {"physical_unit_system"},
+    ):
         raise ReconstructionFailure("reconstruction.repeat.request_invalid")
+    unit_system = request.get("physical_unit_system", "carbon_burgers_native_v1")
+    if type(unit_system) is not str or not unit_system:
+        raise ReconstructionFailure("reconstruction.repeat.request_invalid")
+    import numpy as np
+
     return (
         ("initial", request["initial"]),
         ("viscosity", request["viscosity"]),
         ("requested_times", request["requested_times"]),
         ("positions", request["positions"]),
+        (
+            "physical_unit_system",
+            np.frombuffer(unit_system.encode("utf-8"), dtype=np.uint8),
+        ),
     )
 
 
@@ -268,6 +282,8 @@ def _receipt_body(receipt: ReconstructionReceipt) -> dict[str, object]:
         "environment_eligibility": receipt.environment_eligibility.value,
         "execution_id": receipt.execution_id,
         "profile_digest": receipt.profile_digest,
+        "physical_scaling_digest": receipt.physical_scaling_digest,
+        "physical_unit_system": receipt.physical_unit_system,
         "status": receipt.status.value,
         "train_execution_seconds": receipt.train_execution_seconds,
     }

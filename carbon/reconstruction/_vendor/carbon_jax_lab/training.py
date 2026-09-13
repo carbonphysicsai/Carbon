@@ -16,6 +16,8 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 
+from carbon.reconstruction.scaling import BurgersPhysicalScaling
+
 from .config import ModelConfig, TaskConfig, TrainConfig, identity
 from .data import Trajectories, assert_case_disjoint
 from .models import Operator, parameter_count
@@ -66,6 +68,18 @@ def conservative_advection(u, L):
     return jnp.fft.irfft(1j * freq * flux_hat, n=n)
 
 
+def temporal_derivative(field, t):
+    """Differentiate a time-parameterized field through JAX's public JVP API."""
+    return jax.jvp(field, (t,), (jnp.ones_like(t),))[1]
+
+
+def burgers_residual(u, ut, nu, L):
+    """Assemble physical-unit unforced Burgers residual on a periodic grid."""
+    return (
+        ut + conservative_advection(u, L) - nu[..., None] * spectral_derivative(u, L, 2)
+    )
+
+
 class Predictor:
     def __init__(self, model_config, task_config, u_scale):
         self.model = Operator(model_config)
@@ -73,16 +87,31 @@ class Predictor:
         if not np.isfinite(u_scale) or u_scale <= 0:
             raise ValueError("normalization scale")
         self.u_scale = float(u_scale)
+        self.physical_scaling = BurgersPhysicalScaling(
+            task_config.domain_length,
+            task_config.time_scale,
+            task_config.velocity_scale,
+            task_config.physical_unit_system,
+        )
+        self.physical_scaling.assert_representable("float32")
 
     def __call__(self, params, u0, nu, t, positions):
         b, n = u0.shape
         if nu.shape != (b,) or t.shape != (b,):
             raise ValueError("nu and t must have shape [B]")
+        scaling = self.physical_scaling
+        u_hat = u0 / scaling.velocity_scale
+        numerical_u_scale = self.u_scale / scaling.velocity_scale
+        nu_hat = nu * scaling.time_scale / scaling.length_scale**2
+        numerical_nu_scale = (
+            self.task.nu_scale * scaling.time_scale / scaling.length_scale**2
+        )
+        t_hat = t / scaling.time_scale
         features = jnp.stack(
             (
-                u0 / self.u_scale,
-                jnp.broadcast_to(nu[:, None] / self.task.nu_scale, (b, n)),
-                jnp.broadcast_to(t[:, None] / self.task.time_scale, (b, n)),
+                u_hat / numerical_u_scale,
+                jnp.broadcast_to(nu_hat[:, None] / numerical_nu_scale, (b, n)),
+                jnp.broadcast_to(t_hat[:, None], (b, n)),
             ),
             axis=-1,
         )
@@ -131,6 +160,7 @@ class Trainer:
             float(np.sqrt(np.mean(data.initial.astype(np.float64) ** 2))), 1e-8
         )
         self.predictor = Predictor(model_config, task_config, self.u_scale)
+        self.physical_scaling = self.predictor.physical_scaling
         if runtime_key_material is None:
             root = jax.random.PRNGKey(train_config.seed)
             self.runtime_key_digest = None
@@ -192,16 +222,10 @@ class Trainer:
             )
             h1 = jnp.mean(dx * dx)
         if cfg.pde_weight:
-            _, ut = jax.jvp(
-                lambda tt: self.predictor(params, u0, nu, tt, positions),
-                (t,),
-                (jnp.ones_like(t),),
+            ut = temporal_derivative(
+                lambda tt: self.predictor(params, u0, nu, tt, positions), t
             )
-            residual = (
-                ut
-                + conservative_advection(pred, task.domain_length)
-                - nu[:, None] * spectral_derivative(pred, task.domain_length, 2)
-            )
+            residual = burgers_residual(pred, ut, nu, task.domain_length)
             pde = jnp.mean((residual * task.time_scale / scale) ** 2)
         ramp = jnp.minimum(1.0, (step + 1) / max(1, cfg.physics_warmup_steps))
         total = data_loss + cfg.h1_weight * h1 + cfg.pde_weight * ramp * pde

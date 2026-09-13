@@ -1,0 +1,16 @@
+{
+  "schema": "carbon.c02.third-party-source.v1",
+  "name": "foundax",
+  "version": "0.2.0",
+  "repository": "https://github.com/FhG-IISB/foundax",
+  "revision": "b02b1da52bb03cfad8e437983fc1d1e411e78b04",
+  "wheel_sha256": "9240526f8bcf9860033807404c6e2402dfb10a73ed75088409c37aa58a6fc9b2",
+  "source_distribution_sha256": "eacfb40ff75e3b27723d6d9a81a0bebaf08038b05ce105270521fd7f8453ca40",
+  "declared_metadata_license": "MIT",
+  "shipped_license": "EPL-2.0",
+  "shipped_license_sha256": "209fe24bf55677bbf81c2b0481c1403201fab57b3b4c609971eba4ec8162b99c",
+  "license_disposition": "Carbon relies on the actual tagged-source and wheel LICENSE bytes, not the contradictory pyproject/PyPI metadata; the dependency distribution carries those bytes.",
+  "runtime_dependencies": ["jax>=0.4", "equinox>=0.11", "einops"],
+  "carbon_use": "Direct source-pinned one-dimensional FNO adapter; jNO and Orbax are not dependencies.",
+  "maturity": "UNQUALIFIED_PUBLIC_DEVELOPMENT"
+}

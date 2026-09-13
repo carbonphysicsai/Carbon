@@ -20,6 +20,15 @@ expectations and failure/error semantics.
 Production source selection, scientific qualification and protected execution
 remain absent and cannot be inferred from this DEVELOPMENT source.
 
+**Owner-directed v3 continuation:** the exact CPU environment is upgraded and
+the canonical repaired adapter gains explicit Burgers physical scaling,
+manufactured verification and one source-pinned Foundax 0.2.0 FNO
+implementation profile. Historical v1/v2 profiles and artifacts are not
+rewritten. The separately described `carbon_jax_research` v0.2 source was not
+present in the supplied files, so its expected file-set digest remains
+unverified and it was not substituted with the older `carbon_jax_lab` bundle.
+This retained provenance limitation does not authorize a competing backend.
+
 ## Goal
 
 Implement the real declarative JAX reconstruction backend without broadening the accepted Strategy language or exposing official cases.
@@ -52,6 +61,9 @@ Carbon-side semantic capabilities, not mandatory upstream symbol names.
 The complete ticket remains open because the owner-selected repeated-build policy
 and C-03's registered isolated-worker limits are still absent. The
 bounded runner is capability, not selection of a required repeat count.
+The missing v0.2 `carbon_jax_research` input also remains open as an optional
+source-intake/provenance item; it does not erase the tested canonical lab and
+Foundax DEVELOPMENT profiles.
 
 ## Authority ceiling
 

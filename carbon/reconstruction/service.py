@@ -24,6 +24,7 @@ from carbon.reconstruction.model import (
     ReconstructionStatus,
 )
 from carbon.reconstruction.profile import compile_development_profile
+from carbon.reconstruction.scaling import BurgersPhysicalScaling
 from carbon.seeding import DerivedSeed
 
 _MANIFEST_FIELDS = frozenset(
@@ -53,6 +54,8 @@ _MANIFEST_FIELDS = frozenset(
         "compile_seconds",
         "train_execution_seconds",
         "mapping_receipt",
+        "physical_scaling",
+        "physical_scaling_digest",
     }
 )
 
@@ -170,6 +173,8 @@ def _receipt(path: Path, manifest: dict[str, object]) -> ReconstructionReceipt:
         environment_eligibility=eligibility,
         input_interface_digest=_exact_digest(manifest["input_interface_digest"]),
         output_interface_digest=_exact_digest(manifest["output_interface_digest"]),
+        physical_scaling_digest=_exact_digest(manifest["physical_scaling_digest"]),
+        physical_unit_system=manifest["physical_scaling"]["unit_system"],
         normalization_scale=_exact_float(manifest["normalization_scale"]),
         inference_weights=manifest["inference_weights"],
     )
@@ -177,9 +182,16 @@ def _receipt(path: Path, manifest: dict[str, object]) -> ReconstructionReceipt:
 
 def _environment_eligibility(observed: dict[str, object]) -> EnvironmentEligibility:
     common = {
-        "jax": "0.9.0.1",
-        "jaxlib": "0.9.0.1",
-        "numpy": "2.3.5",
+        "jax": "0.10.2",
+        "jaxlib": "0.10.2",
+        "numpy": "2.4.6",
+        "scipy": "1.17.1",
+        "optax": "0.2.8",
+        "chex": "0.1.92",
+        "equinox": "0.13.8",
+        "einops": "0.8.2",
+        "foundax": "0.2.0",
+        "pyyaml": "6.0.3",
         "backend": "cpu",
         "x64": False,
     }
@@ -217,7 +229,7 @@ def _validate_artifact(
                 "reconstruction.artifact.reconciliation_required"
             )
         manifest = _read_json(path / "manifest.json")
-        if manifest["schema"] != "carbon.c02.reconstruction-artifact.v2":
+        if manifest["schema"] != "carbon.c02.reconstruction-artifact.v3":
             raise ReconstructionFailure(
                 "reconstruction.artifact.reconciliation_required"
             )
@@ -248,6 +260,11 @@ def _validate_artifact(
             "normalization_scale",
         ):
             _exact_float(manifest[field])
+        scaling = BurgersPhysicalScaling.from_dict(manifest["physical_scaling"])
+        if scaling.digest != manifest["physical_scaling_digest"]:
+            raise ReconstructionFailure(
+                "reconstruction.artifact.reconciliation_required"
+            )
         for field in (
             "plan_digest",
             "profile_digest",
@@ -256,6 +273,7 @@ def _validate_artifact(
             "observed_environment_digest",
             "input_interface_digest",
             "output_interface_digest",
+            "physical_scaling_digest",
             "training_archive_digest",
             "randomness_digest",
             "checkpoint_digest",
@@ -276,7 +294,7 @@ def _validate_artifact(
                 "reconstruction.artifact.reconciliation_required"
             )
         expected: dict[str, object] = {
-            "schema": "carbon.c02.reconstruction-artifact.v2",
+            "schema": "carbon.c02.reconstruction-artifact.v3",
             "scope": "UNQUALIFIED_PUBLIC_DEVELOPMENT",
             "training_role": "TRAIN",
             "checkpoint_subdirectory": "checkpoint",
@@ -292,6 +310,8 @@ def _validate_artifact(
                     "environment_digest": profile.environment_digest,
                     "input_interface_digest": profile.input_interface_digest,
                     "output_interface_digest": profile.output_interface_digest,
+                    "physical_scaling": json.loads(profile.physical_scaling_json),
+                    "physical_scaling_digest": profile.physical_scaling_digest,
                     "mapping_receipt": json.loads(profile.mapping_receipt_json),
                 }
             )
@@ -315,6 +335,7 @@ def _validate_artifact(
             "environment": observed,
             "runtime_key_digest": manifest["randomness_digest"][7:],
             "source_id": manifest["source_digest"][7:],
+            "physical_scaling_digest": manifest["physical_scaling_digest"],
         }
         if profile is not None:
             checkpoint_expected.update(
@@ -424,25 +445,46 @@ def reconstruct(
 
     # Optional numerical imports remain entirely below the execution boundary.
     try:
-        from carbon.reconstruction._vendor.carbon_jax_lab.checkpoint import (
-            environment as observed_environment,
-        )
-        from carbon.reconstruction._vendor.carbon_jax_lab.checkpoint import (
-            inspect_checkpoint,
-            load_checkpoint,
-            save_checkpoint,
-        )
-        from carbon.reconstruction._vendor.carbon_jax_lab.config import (
-            ModelConfig,
-            TaskConfig,
-            TrainConfig,
-        )
         from carbon.reconstruction._vendor.carbon_jax_lab.data import Trajectories
-        from carbon.reconstruction._vendor.carbon_jax_lab.training import (
-            CancelledTraining,
-            NonFiniteTrainingError,
-            Trainer,
-        )
+
+        if profile.backbone_kind == "foundax_fno1d":
+            from carbon.reconstruction._vendor.carbon_jax_lab.config import (
+                TaskConfig,
+                TrainConfig,
+            )
+            from carbon.reconstruction.foundax_adapter import (
+                CancelledTraining,
+                NonFiniteTrainingError,
+                Trainer,
+                inspect_checkpoint,
+                load_checkpoint,
+                save_checkpoint,
+            )
+            from carbon.reconstruction.foundax_adapter import (
+                FoundaxModelConfig as ModelConfig,
+            )
+            from carbon.reconstruction.foundax_adapter import (
+                environment as observed_environment,
+            )
+        else:
+            from carbon.reconstruction._vendor.carbon_jax_lab.checkpoint import (
+                environment as observed_environment,
+            )
+            from carbon.reconstruction._vendor.carbon_jax_lab.checkpoint import (
+                inspect_checkpoint,
+                load_checkpoint,
+                save_checkpoint,
+            )
+            from carbon.reconstruction._vendor.carbon_jax_lab.config import (
+                ModelConfig,
+                TaskConfig,
+                TrainConfig,
+            )
+            from carbon.reconstruction._vendor.carbon_jax_lab.training import (
+                CancelledTraining,
+                NonFiniteTrainingError,
+                Trainer,
+            )
     except ImportError:
         raise ReconstructionFailure("reconstruction.runtime.unavailable") from None
 
@@ -510,7 +552,7 @@ def reconstruct(
         observed = observed_environment()
         eligibility = _environment_eligibility(observed)
         manifest = {
-            "schema": "carbon.c02.reconstruction-artifact.v2",
+            "schema": "carbon.c02.reconstruction-artifact.v3",
             "scope": "UNQUALIFIED_PUBLIC_DEVELOPMENT",
             "execution_id": execution_id,
             "plan_digest": profile.plan_digest,
@@ -522,6 +564,8 @@ def reconstruct(
             "environment_eligibility": eligibility.value,
             "input_interface_digest": profile.input_interface_digest,
             "output_interface_digest": profile.output_interface_digest,
+            "physical_scaling": trainer.physical_scaling.to_dict(),
+            "physical_scaling_digest": trainer.physical_scaling.digest,
             "training_archive_digest": training_archive.content_digest,
             "training_fingerprint": data.fingerprint,
             "training_role": "TRAIN",
@@ -568,6 +612,7 @@ def predict(
     viscosity: object,
     requested_times: object,
     positions: object,
+    physical_unit_system: str | None = None,
     batch_size: int = 32,
 ) -> tuple[object, PredictionReceipt]:
     """Reload an artifact and predict without accepting any target labels."""
@@ -580,10 +625,21 @@ def predict(
         import jax.numpy as jnp
         import numpy as np
 
-        from carbon.reconstruction._vendor.carbon_jax_lab.checkpoint import (
-            inspect_checkpoint,
-            load_inference,
-        )
+        outer = _read_json(receipt.artifact_path / "manifest.json")
+        mapping = outer.get("mapping_receipt")
+        if (
+            type(mapping) is dict
+            and mapping.get("implementation_profile") == "foundax_fno_v1"
+        ):
+            from carbon.reconstruction.foundax_adapter import (
+                inspect_checkpoint,
+                load_inference,
+            )
+        else:
+            from carbon.reconstruction._vendor.carbon_jax_lab.checkpoint import (
+                inspect_checkpoint,
+                load_inference,
+            )
     except ImportError:
         raise ReconstructionFailure("reconstruction.runtime.unavailable") from None
 
@@ -599,6 +655,11 @@ def predict(
         ) from None
     if validated.status is not ReconstructionStatus.COMPLETE:
         raise ReconstructionFailure("reconstruction.prediction.artifact_status_invalid")
+    if (
+        physical_unit_system is not None
+        and physical_unit_system != validated.physical_unit_system
+    ):
+        raise ReconstructionFailure("reconstruction.prediction.units_incompatible")
 
     try:
         u0 = np.asarray(initial)
@@ -722,6 +783,12 @@ def predict(
             ("viscosity", nu),
             ("requested_times", times),
             ("positions", x),
+            (
+                "physical_unit_system",
+                np.frombuffer(
+                    validated.physical_unit_system.encode("utf-8"), dtype=np.uint8
+                ),
+            ),
         )
     )
     output_digest = framed_array_digest((("prediction", result),))
