@@ -331,10 +331,9 @@ class IsolatedReconstructionController:
             raw_parent = Path(
                 tempfile.mkdtemp(prefix=".c03-raw-", dir=self.state_root / "outputs")
             )
-            raw = raw_parent / "raw"
-            raw.mkdir()
+            raw = raw_parent / "output"
             self.cli.run(
-                ["cp", f"{container_name}:/scratch/output/.", str(raw)],
+                ["cp", f"{container_name}:/scratch/output", str(raw_parent)],
                 timeout=30,
             )
             snapshot, snapshot_digest = snapshot_output(

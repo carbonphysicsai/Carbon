@@ -27,7 +27,11 @@ def main(arguments: list[str] | None = None) -> int:
             Path("/host-canary"),
             Path("/root/.ssh"),
         )
-        if any(path.exists() for path in forbidden):
+        for path in forbidden:
+            try:
+                path.stat()
+            except OSError:
+                continue
             return 11
         root_denied = input_denied = False
         try:
