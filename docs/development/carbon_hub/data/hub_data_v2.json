@@ -2561,6 +2561,13 @@
         "map_ref": "WAVE-C"
       },
       {
+        "id": "c1-alpha-vertical-continuation",
+        "match_type": "exact",
+        "path": ".agent/plans/C1_ALPHA_VERTICAL_CONTINUATION.md",
+        "impact_class": "map_structural",
+        "map_ref": "WAVE-C"
+      },
+      {
         "id": "ticket-plan",
         "match_type": "ticket_record",
         "path": ".agent/plans/",
