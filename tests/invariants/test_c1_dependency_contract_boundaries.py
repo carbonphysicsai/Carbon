@@ -87,8 +87,11 @@ def test_hub_projects_only_development_reconstruction_and_future_contract_status
     assert tickets["C-EP3"]["status"] == "done"
     assert tickets["C-02"]["status"] == "in_progress"
     assert tickets["C-03"]["status"] == "in_progress"
-    assert tickets["C-03"]["implementation_state"] == "bounded_development_candidate"
-    assert "Required Linux service acceptance is pending" in tickets["C-03"]["does_not"]
+    assert (
+        tickets["C-03"]["implementation_state"]
+        == "bounded_development_tested_candidate"
+    )
+    assert "Final exact-head CI and merge remain pending" in tickets["C-03"]["does_not"]
     for ticket_id in ("C-08", "C-09"):
         assert tickets[ticket_id]["status"] == "todo"
         assert tickets[ticket_id]["implementation_state"] == "unstarted"
