@@ -30,21 +30,22 @@ def test_materialized_tickets_are_contract_only_and_unselected() -> None:
         assert "Contract materialization only" in ticket
 
 
-def test_only_bounded_development_isolation_ticket_is_selected() -> None:
+def test_only_c03_hardening_is_selected_and_c04_is_prospectively_next() -> None:
     wave = _read(".agent/WAVE.md")
     wave_c = _read(".agent/WAVE_C.md")
     graph = _read(".agent/plans/C1_DEPENDENCY_GRAPH.md")
     for record in (wave, wave_c):
         assert "**Selected ticket:** C-03 — `in_progress`" in record
         assert "**Active ticket:** C-03" in record
-        assert "**Next selected ticket:** none" in record
-    assert "no protected/production C-03, later" in graph
-    assert "C-03 alone is selected for the exact" in graph
+        assert "**Next authorized ticket after current merge:** C-04" in record
+    assert "C-03 hardening alone is selected now" in graph
+    assert "C-04 becomes the next selected engineering/public-" in graph
     assert "C-EP1 ─> C-EP2(done measurement/replay only; no sharing runtime)" in graph
     assert "C-02(merged DEVELOPMENT adapter prerequisite; full ticket open)" in graph
-    assert "└─> C-03(selected bounded DEVELOPMENT isolation)" in graph
-    assert graph.count("| **no** |") >= 8
-    assert "| C-03 | selected, bounded DEVELOPMENT isolation in progress" in graph
+    assert "└─> C-03(PR #149 capability + selected hardening)" in graph
+    assert graph.count("| **no** |") >= 6
+    assert "| C-03 | PR #149 bounded DEVELOPMENT capability accepted" in graph
+    assert "**yes after current merge; not protected/official**" in graph
 
 
 def test_jax_and_archive_blocks_remain_complete_and_fail_closed() -> None:
@@ -89,12 +90,16 @@ def test_hub_projects_only_development_reconstruction_and_future_contract_status
     assert tickets["C-03"]["status"] == "in_progress"
     assert (
         tickets["C-03"]["implementation_state"]
-        == "bounded_development_tested_candidate"
+        == "bounded_development_accepted_hardening_candidate"
     )
-    assert "Final exact-head CI and merge remain pending" in tickets["C-03"]["does_not"]
+    assert "34770761721" in tickets["C-03"]["current_stage"]
+    assert "changed hardening source" in tickets["C-03"]["does_not"]
+    assert "prospectively next" in tickets["C-04"]["current_stage"]
+    assert "Sequentially authorized" in tickets["C-05"]["current_stage"]
     for ticket_id in ("C-08", "C-09"):
         assert tickets[ticket_id]["status"] == "todo"
         assert tickets[ticket_id]["implementation_state"] == "unstarted"
         assert "not dependency-ready" in tickets[ticket_id]["current_stage"]
     assert "34518806217" in current["stage"]
     assert "standard-profile localnet" in current["stage"]
+    assert "OWNER-C1-BURGERS-ALPHA-01" in current["stage"]

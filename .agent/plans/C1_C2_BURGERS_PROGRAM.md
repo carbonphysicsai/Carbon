@@ -1,10 +1,12 @@
 # C1/C2 Burgers execution program
 
-**Decision:** `OWNER-C1-C2-BURGERS-01`
+**Decision:** `OWNER-C1-C2-BURGERS-01`, prospectively amended by
+`OWNER-C1-BURGERS-ALPHA-01`
 **Recorded:** 2026-09-10
-**Status:** active prospective sequencing authority; NET-5R/G2 closed for the
-exact standard-profile disposable v445 localnet and PR #136 closed C-EA1's
-synthetic development profile; no next implementation ticket is selected
+**Status:** active sequential implementation authority; PR #149 closed C-03's
+first bounded worker slice, C-03 prerequisite hardening is selected, and C-04
+is the next authorized engineering/public qualification-candidate slice after
+that normal merge
 **Primary Hub map_ref:** `WAVE-C`
 
 ## Owner source and verified import
@@ -35,9 +37,13 @@ its required evidence.
 2. C-AUTH1 goal-driven authoring and the public Burgers V1 package import.
 3. C-EA0 before any consumer relies on capture, custody, retention or
    acknowledgement semantics.
-4. Remaining C1 tickets in their actual dependency order; materialize C-03,
-   C-08 and C-09 from their existing launch scopes before implementation.
-5. C-W1 through C-W4 only as their offline and real-path dependencies permit;
+4. Complete C-03 prerequisite hardening, then C-04/C-05 algorithm and public
+   qualification-candidate slices with only their D-02–D-05 prerequisite
+   harnesses brought forward under the existing owners; protected and official
+   admission remains disabled until accepted.
+5. Continue one ticket at a time through C-06, C-07, C-08, the eligible real
+   C-EA1/C-EA2/C-EA3 path and C-09 as their actual dependencies are earned.
+6. C-W1 through C-W4 only as their offline and real-path dependencies permit;
    actual eligibility still requires the real signed C1 result, C-EA2 verified
    archive acknowledgement, exact bindings and the applicable G2 disposition.
 
@@ -50,24 +56,32 @@ accepted head `a779af066f4bf9bc36b6d6ab23914fa19191e1de` passed canonical run
 `34558389185` and normally merged as
 `0e0714c8260ca482a0ba2b743b2eaefd50508da1`. The
 synthetic acknowledgement is ineligible for real finalization or network use.
-Separately, C-02 remains unselected and fail-closed until an authorized JAX
-repository, immutable revision, reproducible build identity and its actual
-training/inference interface are supplied. Carbon will implement the adapter;
-the SciML lead is not required to adopt Carbon-authored function names.
+Separately, PR #148 supplied C-02's bounded lab/Foundax adapter prerequisite and
+PR #149 accepted C-03's Docker worker at exact head
+`ef4d5e336c942b7ff40856fcfee03f522ef2d1d5`, run `34770761721`, merge
+`d94a22bb3c09089e01402db9e7ebf6eb3c662966`. Full C-02/C-03 scientific,
+protected and production status remains open.
 
 `OWNER-C1-CONTRACTS-01` materializes C-03, C-08 and C-09 from their retained
 launch identities and records their exact prerequisites in
-`.agent/plans/C1_DEPENDENCY_GRAPH.md`. This contract checkpoint selects and
-implements no runtime ticket; none is currently dependency-ready.
+`.agent/plans/C1_DEPENDENCY_GRAPH.md`. `OWNER-C1-BURGERS-ALPHA-01` now supplies
+the exact trust, three-replica working rule, reference-role, archive-target and
+sequential-engineering choices in
+`.agent/plans/C1_ALPHA_VERTICAL_CONTINUATION.md`. It selects no protected,
+official, public-network, paid or LIVE execution.
 
 ## Scientific and execution ceiling
 
 The workbench's public cases, seeds, controls, ETDRK4-primary development role,
-Cole-Hopf witness role, evidence and gauntlet results remain public development
+Cole–Hopf witness role, evidence and gauntlet results remain public development
 evidence. They cannot become a protected exam, real accepted baseline, C-EA
 acknowledgement, testnet eligibility event, qualification result or LIVE evidence.
 The imported Burgers laws, exact rational score weights, corrected point-query
-semantics and evidence-role labels must remain intact. Launch-owned D-03/D-04
-reference roles, actual JAX source integration, custody/retention/fault policy,
-independent reexecution, public-network identity and human scientific/security
-qualification remain separate unresolved owners.
+semantics and evidence-role labels must remain intact. The retained D-03/D-04
+candidate path uses Cole–Hopf as candidate operational primary, a
+methodologically independent conservative witness, and ETDRK4 only as a
+development cross-check. Three frozen replicas are a selected working rule,
+not evidence of sufficiency. Exact tolerances, reference/measurement
+qualification, independent security acceptance, real deployment/custody
+configuration, public-network identity and scientific/security qualification
+remain separate unresolved inputs.

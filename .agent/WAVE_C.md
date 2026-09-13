@@ -33,13 +33,15 @@
 
 **Status:** active in bounded engineering scope because `.agent/WAVE.md` names
 Wave C/C0 and this file as its controlling register.
-**Version:** 1.7
+**Version:** 1.8
 **Activation decision:** `OWNER-WAVE-C0-NET1-01`
 **Selected ticket:** C-03 — `in_progress`
 **Active ticket:** C-03
-**Next selected ticket:** none. `OWNER-C03-DEV-ISOLATION-01` selects only the
-public-data Docker isolation composition around C-02; later protected science,
-archive and public-network work remains unselected.
+**Next authorized ticket after current merge:** C-04's engineering/public
+qualification-candidate slice. `OWNER-C1-BURGERS-ALPHA-01` keeps one selected
+ticket at a time: C-03 prerequisite hardening is active now, and C-04 becomes
+selected only after its normal tested merge. Protected science, real archive
+acknowledgement and public-network execution remain ineligible.
 PR #146 merged the initial adapter as
 `d9fadf7f9cbb9b3a2a4ffa1ec9b0c906826be8ca`; PR #147 accepted head
 `72608d589582707955943345bc1308017e9650dc` in run `34750621646` and merged
@@ -52,6 +54,14 @@ head `5e3d47039a52f601789f0495f8c3127f8b4a3cf4`. C-02 remains `in_progress`
 for broader requirements. C-03 is now selected only for its bounded
 DEVELOPMENT worker, the v0.2 archive remains absent/deferred, and no production
 repeat count exists.
+PR #149 subsequently accepted exact head
+`ef4d5e336c942b7ff40856fcfee03f522ef2d1d5` in required run `34770761721` and
+normally merged the worker slice as
+`d94a22bb3c09089e01402db9e7ebf6eb3c662966`, tree
+`1869b19e9bd4969d042e9b6e40b1470304974d5c`; its image/config is
+`sha256:dae4717ae00d3174b8644159934eb4edbe94c0ad125549f6ade570a6f4c7e630`.
+The active continuation hardens controller capture, artifact validation,
+resource evidence and recovery semantics before C-04 consumes the capability.
 **Last completed ticket:** C-EP3, merged in PR #145 after head
 `ff1d4603cf6889bb3e9cf7f4a589524ade5c6b8c` passed run `34721794618`
 **Primary Hub map_ref:** `WAVE-C`
@@ -120,8 +130,8 @@ production custody, quorum, science or economics blocks only that operation.
 | C-EA0 | Evidence capture contract | done | `.agent/evidence/wave_c/c-ea0.md` | Codex + evidence architecture | Execution + Operations + data/security + scientific integration | C-AUTH1, C-01, B-GATE | MQ-048, MQ-051 | M | C1 |
 | C-EA1 | Durable evidence archive | done | `.agent/evidence/wave_c/c-ea1.md` | Codex + evidence architecture | Operations + data/security + scientific integration | C-EA0 + OWNER-C-EA1-SYNTHETIC-01 | MQ-048, MQ-051 | L | C1 |
 | C-02 | Real declarative reconstruction | in_progress | `.agent/tickets/C-02_real_reconstruction.md` | Physics/SciML + reconstruction engineering | Scientific integration + execution | B-02B, B-03, B-E1, C-01 | MQ-045, MQ-048 | L | C1 |
-| C-03 | Isolated reconstruction worker | in_progress | `.agent/tickets/C-03_isolated_reconstruction_worker.md` | Codex + execution/SRE engineering | Security + protocol + Physics/SciML | C-01, B-02B, B-02C, A4; C-02 merged adapter capability satisfied and full C-02 closure non-blocking | MQ-015 scoped DEVELOPMENT decision supplied; broader review open, MQ-048 | L | C1 |
-| C-04 | Protected reference runtime | todo | `.agent/plans/C1_DEPENDENCY_GRAPH.md` | Scientific reference + execution engineering | Physics/SciML + security | C-03, B-04, B-E2 | MQ-045, MQ-048 | L | C1 |
+| C-03 | Isolated reconstruction worker | in_progress | `.agent/tickets/C-03_isolated_reconstruction_worker.md` (PR #149 bounded slice accepted; hardening active) | Codex + execution/SRE engineering | Security + protocol + Physics/SciML | C-01, B-02B, B-02C, A4; C-02 merged adapter capability satisfied and full C-02 closure non-blocking | MQ-015 scoped DEVELOPMENT implementation/test evidence; broader review open, MQ-048 | L | C1 |
+| C-04 | Protected reference runtime | todo | `.agent/plans/C1_DEPENDENCY_GRAPH.md` (prospectively next engineering/public-candidate slice; D-03/D-04 prerequisite harness remains under its owners) | Scientific reference + execution engineering | Physics/SciML + security | C-03, B-04, B-E2; accepted isolation capability plus current hardening | MQ-045, MQ-048 | L | C1 |
 | C-05 | Real measurement and Score Pack | todo | `.agent/plans/C1_DEPENDENCY_GRAPH.md` | Scientific measurement engineering | Physics/SciML + statistics | C-02, C-04, B-05 | MQ-045, MQ-048 | L | C1 |
 | C-06 | Signed evaluation receipt | todo | `.agent/plans/C1_DEPENDENCY_GRAPH.md` | Scientific integration + receipt engineering | Security + Physics/SciML | C-01, C-02, C-04, C-05 | MQ-048, MQ-051 | L | C1 |
 | C-07 | Real validator orchestration | todo | `.agent/plans/C1_DEPENDENCY_GRAPH.md` | Validator orchestration engineering | Scientific integration + security | C-01, C-02, C-03, C-04, C-05, C-06 | MQ-048, MQ-051 | L | C1 |

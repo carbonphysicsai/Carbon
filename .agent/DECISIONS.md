@@ -13582,3 +13582,90 @@ production threat acceptance, production repeat policy, backend/scientific
 qualification, customer rights, real archive/custody, network/reward and LIVE
 authority remain open. C-04, C-EA2, Variant B/C and Wave C2/network work are not
 selected by this decision.
+
+## 2026-09-14 — OWNER-C1-BURGERS-ALPHA-01: continue the bounded Burgers alpha vertical after PR #149
+
+**Source and status.** This is the repository owner's prospective “Carbon Wave
+C continuation after PR #149” direction supplied in the 2026-09-14 Codex
+session. The exact operating choices, ordering amendment, bounded integration
+campaign and stop boundary are recorded in
+`.agent/plans/C1_ALPHA_VERTICAL_CONTINUATION.md`. This record is owner direction,
+not another person's approval, an independent security assessment, scientific
+qualification, release-rights opinion or network/deployment authorization.
+
+**Accepted baseline.** PR #149 accepted exact head
+`ef4d5e336c942b7ff40856fcfee03f522ef2d1d5` in required run `34770761721` and
+normally merged it as `d94a22bb3c09089e01402db9e7ebf6eb3c662966`, tree
+`1869b19e9bd4969d042e9b6e40b1470304974d5c`. Its worker image/config
+`sha256:dae4717ae00d3174b8644159934eb4edbe94c0ad125549f6ade570a6f4c7e630`
+is historical evidence only; changed source receives a new identity.
+
+**Trust, review and resources.** Select a Carbon-controlled, single-tenant
+Linux x86-64 CPU host whose named administrators, kernel, Docker runtime, build
+path and supervisor are trusted. Host-root confidentiality, independent
+validator administration, cross-tenancy, confidential computing, GPUs and
+distributed training remain outside the profile. Keep the accepted C-03
+limits and Docker/OCI architecture. Commission the protected-execution
+prerequisites and prepare the exact review package, but keep protected admission
+disabled until a real authorized independent reviewer and security owner
+provide the missing assessment and acceptance. No reviewer identity, purchase
+or outbound engagement is inferred. Retain measured cgroup/resource facts and
+typed unavailable quantities without inferring OOM from exit status alone.
+
+**Backend, repeat and science choices.** Keep canonical `carbon_jax_lab` as the
+baseline and exact Foundax as a separate conformance profile with their current
+locks, notices and rights limits; the absent v0.2 intake remains optional and
+unverified. Select exactly three prospectively frozen reconstruction replicas
+per Strategy for a separately versioned DEVELOPMENT integration profile and as
+the first non-paying-testnet working rule. Same TRAIN and resource policy,
+distinct owner-derived randomness, every terminal outcome retained, no best-of,
+replacement, favorable checkpoint or incomplete-trio official comparison.
+Three is not declared scientifically sufficient and mainnet remains separate.
+Keep the single Burgers Dynamics V1 competition and existing public regimes.
+For the retained qualification-candidate path use Cole–Hopf as candidate
+operational primary, require a methodologically independent conservative
+witness, and allow ETDRK4 only as a development cross-check; its earlier C-EP3
+role remains historical and unchanged. Tolerances, floors, uncertainty,
+sample sufficiency and score eligibility remain scientific-owner decisions.
+
+**Authority and custody separation.** Reconstruction receives approved TRAIN
+only. Frozen inference receives only the validated artifact and exact candidate
+query. Reference/measurement are separate from mutable training and receive no
+candidate-writable reference asset. The supervisor alone retains archive,
+signing and later result authority. None receives master entropy, protected
+answers, scoring internals or unrelated credentials. Errors, logs, timings and
+artifacts remain disclosure-controlled.
+
+**Real archive direction.** Prospectively extend C-EA1 for Carbon-generated
+alpha/non-paying-testnet evidence using a private PostgreSQL catalogue, private
+immutable/versioned objects and externally supplied versioned encryption keys.
+Retain required evidence at least 90 days after last eligible use and through
+active receipt/review/dispute obligations. Start at one active evaluation and a
+20 GiB logical quota with reservation/backpressure. No acknowledged-evidence
+loss under the declared single-host-loss model and restoration within 24 hours
+are implementation/test targets, not guarantees. Provider, project, region,
+custody principals, recoverable key service, costs and deployment identity are
+external inputs; mocks remain real-path ineligible and no service purchase or
+creation is authorized.
+
+**Prospective ordering.** C-03 hardening is selected now, followed after its
+normal merge by C-04, C-05, C-06, C-07, C-08, the eligible C-EA1/C-EA2/C-EA3
+archive path, C-09 and dependency-ready offline C2 work, one selected ticket at
+a time. C-04/C-05 may implement real algorithms and public qualification-
+candidate evidence while only the D-02–D-05 prerequisite harness work needed
+to establish their acceptance is brought forward under its existing owner.
+This does not activate Wave D or grant C scientific qualification authority.
+Protected, official and score-eligible modes remain fail closed until their
+exact security/scientific acceptances exist, while non-official later
+composition tests may consume explicit DEVELOPMENT inputs.
+
+**Campaign and exclusions.** The first integrated public campaign is capped at
+two existing legal recipes, three frozen replicas each (six new reconstruction
+attempts maximum), one exact public TRAIN snapshot, twelve prospectively fixed
+development cases, one worker at a time, and the earlier of six CPU-hours or
+three elapsed hours. No reserve/replacement attempt or silent workload
+reduction is authorized. Variant A, miner workflow, direct-winner-plus-burn and
+optional treasury remain unchanged. No public transaction, registration,
+wallet funding, weights, production secret, paid inference, settlement, LIVE,
+new Challenge, threshold, population, score, reward or network activation is
+authorized.
