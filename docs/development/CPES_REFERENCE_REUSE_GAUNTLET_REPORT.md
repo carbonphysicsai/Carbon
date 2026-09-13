@@ -224,7 +224,7 @@ with zero skips or failures. These are current local runs; historical C-EP
 counts are not copied here and canonical CI remains a separate delivery gate.
 
 Raw outputs and hashes are under
-`.agent/evidence/research/cpes-reference-reuse-v2/`. The profiler-safe output
+`docs/development/cpes_reference_reuse_gauntlet_evidence_v2/`. The profiler-safe output
 contains no protected case, answer, seed, candidate identity or qualification
 toggle. The research harness is under `scripts/dev` and imports no Carbon
 runtime pack, scoring, reward, disclosure or launch service.
