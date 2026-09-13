@@ -4475,9 +4475,12 @@ events:
     event_id: "C-03-D1"
     owner_lane: "repository_owner"
     status: "implemented"
-    summary: "The owner selects C-03 alone for a bounded CPU DEVELOPMENT worker around C-02's validated canonical adapter. The prospective profile uses public TRAIN fixtures on one trusted disposable host and retains exact C-01/C-02/B-02C bindings, non-root execution, network/filesystem/resource enforcement, cancellation/reconciliation and parent validation. C-02 remains open; MQ-015 security acceptance, protected execution, production repeat policy, official science, archive, reward, network, production and LIVE authority remain absent."
+    summary: "The owner selects C-03 alone for a bounded CPU DEVELOPMENT worker around C-02's validated canonical adapter. The prospective profile uses public TRAIN fixtures on one trusted disposable host and retains exact C-01/C-02/B-02C bindings, non-root execution, network/filesystem/resource enforcement, cancellation/reconciliation and parent validation. The source-generated Hub is refreshed to the new committed authority snapshot without changing completed Wave B status. C-02 remains open; MQ-015 security acceptance, protected execution, production repeat policy, official science, archive, reward, network, production and LIVE authority remain absent."
     primary_detail: "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5654488786"
     affects:
+      - "WAVE-B"
+      - "WAVE-B/B-E4"
+      - "WAVE-B/B-GATE"
       - "WAVE-C"
       - "WAVE-C/C-02"
       - "WAVE-C/C-03"

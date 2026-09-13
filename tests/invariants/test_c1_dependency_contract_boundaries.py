@@ -44,7 +44,7 @@ def test_only_bounded_development_worker_ticket_is_selected() -> None:
     )
     assert "C-EP1 ─> C-EP2(done measurement/replay only; no sharing runtime)" in graph
     assert (
-        "C-EP3 + supplied immutable JAX bundle ─> C-02(in progress; validated adapter)"
+        "C-EP3 + supplied immutable JAX bundle ─> C-02(selected bounded DEVELOPMENT adapter)"
         in graph
     )
     assert (

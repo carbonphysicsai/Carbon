@@ -38,7 +38,7 @@ G2(exact standard localnet only) + C-09 + C-EA2 + real signed C1 evidence ─> C
 NET-3 + C-01 + A4-A8 ─> C-EP1(done, DEVELOPMENT fixture only)
 C-EP1 ─> C-EP2(done measurement/replay only; no sharing runtime)
 C-EP2 + C-AUTH1 ─> C-EP3(done input acquisition/public component probe)
-C-EP3 + supplied immutable JAX bundle ─> C-02(in progress; validated adapter)
+C-EP3 + supplied immutable JAX bundle ─> C-02(selected bounded DEVELOPMENT adapter)
 C-02(validated adapter) ─> C-03(selected bounded DEVELOPMENT worker)
 ```
 
