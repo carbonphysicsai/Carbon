@@ -76,6 +76,19 @@ host overhead are not treated as an official 600-second adequacy study. Docker
 cgroup memory is a ceiling; this slice does not claim a calibrated per-model
 peak requirement.
 
+## Acceptance repair history
+
+The first service-backed candidate run, `34767534562`, failed and remains
+failed evidence. It found that Linux-created NPZ members can carry permission
+bits without explicit regular-file type bits, and that Docker's private PID
+namespace is selected by the empty/default PID mode rather than the literal
+CLI value `private`. The repaired audit still rejects explicit non-regular ZIP
+members, while the launch now verifies and rejects any host/container PID mode
+after creation. The same run also found strict Black/import-order debt and a
+missing `SYSTEM/PROTOCOL-AUTHORITY` Hub-impact declaration; both were repaired
+without weakening a runtime control. Passing replacement evidence remains
+required before this bounded slice is called tested.
+
 ## Remaining boundary
 
 Full C-02 and protected/production C-03 remain open. There is no production

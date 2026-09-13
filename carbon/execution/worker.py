@@ -168,8 +168,7 @@ class DurableWorkerLaunchStore:
             with sqlite3.connect(self.path) as db:
                 db.execute("PRAGMA journal_mode=WAL")
                 db.execute("PRAGMA synchronous=FULL")
-                db.executescript(
-                    """
+                db.executescript("""
                     CREATE TABLE IF NOT EXISTS c03_launch_v1 (
                         execution_id TEXT PRIMARY KEY,
                         launch_digest TEXT NOT NULL UNIQUE,
@@ -186,8 +185,7 @@ class DurableWorkerLaunchStore:
                         state TEXT NOT NULL,
                         detail_json TEXT NOT NULL
                     );
-                    """
-                )
+                    """)
             self.path.chmod(0o600)
         except sqlite3.Error:
             raise WorkerFailure(WorkerCode.UNAVAILABLE) from None
@@ -284,12 +282,16 @@ class DurableWorkerLaunchStore:
                 current = WorkerLaunchState(row[1])
                 values = (
                     container_id if container_id is not None else row[2],
-                    effective_controls_digest
-                    if effective_controls_digest is not None
-                    else row[3],
-                    output_snapshot_digest
-                    if output_snapshot_digest is not None
-                    else row[4],
+                    (
+                        effective_controls_digest
+                        if effective_controls_digest is not None
+                        else row[3]
+                    ),
+                    (
+                        output_snapshot_digest
+                        if output_snapshot_digest is not None
+                        else row[4]
+                    ),
                     terminal_code if terminal_code is not None else row[5],
                 )
                 if current is state:

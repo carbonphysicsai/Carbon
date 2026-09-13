@@ -164,7 +164,11 @@ def _audit_zip(path: Path, *, expanded_limit: int) -> int | None:
                     raise WorkerFailure(WorkerCode.STAGING)
                 names.add(info.filename)
                 mode = info.external_attr >> 16
-                if mode and not stat.S_ISREG(mode):
+                file_type = stat.S_IFMT(mode)
+                # ZIP creators commonly preserve permissions without setting
+                # Unix file-type bits. Reject an explicit non-regular type,
+                # while accepting those permission-only regular members.
+                if file_type and file_type != stat.S_IFREG:
                     raise WorkerFailure(WorkerCode.STAGING)
                 expanded += info.file_size
                 compressed += info.compress_size

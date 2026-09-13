@@ -8,11 +8,12 @@ import json
 import re
 import subprocess
 import sys
-import tomllib
 import zipfile
 from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
+
+import tomllib
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 AUTHORITY_PATH = REPOSITORY_ROOT / ".agent" / "CODE_AUTHORITY.toml"
@@ -171,9 +172,9 @@ def _resolve_relative_name(
     relative_name: str,
     package: str | None,
 ) -> str:
-    assert package is not None, (
-        f"relative import has no package context: {path}:{node.lineno}"
-    )
+    assert (
+        package is not None
+    ), f"relative import has no package context: {path}:{node.lineno}"
     try:
         return importlib.util.resolve_name(relative_name, package)
     except ImportError as error:

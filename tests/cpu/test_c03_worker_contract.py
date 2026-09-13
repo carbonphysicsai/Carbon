@@ -6,6 +6,7 @@ import ast
 import hashlib
 import threading
 import time
+import zipfile
 from dataclasses import replace
 from pathlib import Path
 
@@ -50,6 +51,7 @@ from carbon.reconstruction.worker.model import (
     WorkerTiming,
 )
 from carbon.reconstruction.worker.protocol import (
+    _audit_zip,
     load_worker_request,
     snapshot_output,
     stage_request,
@@ -197,7 +199,7 @@ def test_docker_argv_has_fixed_security_and_no_caller_command(tmp_path: Path) ->
 
     for expected in (
         "--network none",
-        "--pid private",
+        "--ipc private",
         "--read-only",
         "--cap-drop ALL",
         "no-new-privileges=true",
@@ -211,9 +213,20 @@ def test_docker_argv_has_fixed_security_and_no_caller_command(tmp_path: Path) ->
         assert expected in rendered
     assert arguments[-1] == _sha("a")
     assert "--privileged" not in arguments
+    assert "--pid" not in arguments
     assert "--device" not in arguments
     assert "--entrypoint" not in arguments
     assert "--volume" not in arguments
+
+
+def test_zip_permission_bits_without_a_file_type_are_regular(tmp_path: Path) -> None:
+    archive_path = tmp_path / "permission-only.zip"
+    member = zipfile.ZipInfo("array.npy")
+    member.external_attr = 0o600 << 16
+    with zipfile.ZipFile(archive_path, "w") as archive:
+        archive.writestr(member, b"bounded")
+
+    assert _audit_zip(archive_path, expanded_limit=1024) == len(b"bounded")
 
 
 def test_worker_entry_path_has_no_scoring_archive_reward_or_network_authority() -> None:

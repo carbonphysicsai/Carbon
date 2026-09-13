@@ -248,8 +248,9 @@ def create_arguments(
         "none",
         "--ipc",
         "private",
-        "--pid",
-        "private",
+        # Docker's empty/default PID mode is a private PID namespace. Unlike
+        # IPC mode, the CLI does not accept the literal value ``private``.
+        # Effective inspection below rejects host/container PID modes.
         "--read-only",
         "--user",
         f"{WORKER_UID}:{WORKER_GID}",
