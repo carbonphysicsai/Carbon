@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import os
 import platform
 import time
@@ -58,6 +59,23 @@ from carbon.resource_policy import (
     ResourceClassRef,
 )
 from carbon.seeding import DerivedSeed, EvaluationBinding, SeedPin
+
+
+def _record_trace(kind: str, disposition: str, **details: object) -> None:
+    """Retain a sanitized service observation without public TRAIN bytes or keys."""
+
+    target = os.environ.get("CARBON_C03_TRACE_PATH")
+    if not target:
+        return
+    record = {
+        "schema": "carbon.c03.development-service-trace.v1",
+        "kind": kind,
+        "disposition": disposition,
+        **details,
+    }
+    with Path(target).open("a", encoding="utf-8") as stream:
+        stream.write(json.dumps(record, sort_keys=True, separators=(",", ":")))
+        stream.write("\n")
 
 
 def _sha(character: str) -> str:
@@ -249,6 +267,21 @@ def test_real_jax_path_is_isolated_validated_and_numerically_identical(
     assert replay.receipt.artifact_digest == isolated.receipt.artifact_digest
     assert replay.effective_controls == {"retained_exact_replay": True}
     assert len(queue.partials(claimed.claim)) == 1
+    _record_trace(
+        "foundax_fno" if foundax else "lab_fno",
+        "complete",
+        image_id=image.image_id,
+        launch_digest=isolated.launch_digest,
+        controls_digest=isolated.effective_controls_digest,
+        snapshot_digest=isolated.output_snapshot_digest,
+        artifact_digest=isolated.receipt.artifact_digest,
+        checkpoint_digest=isolated.receipt.checkpoint_digest,
+        points=points,
+        timings_seconds=isolated.timings,
+        effective_controls=isolated.effective_controls,
+        exact_replay=True,
+        accepted_partials=1,
+    )
 
 
 def _probe_arguments(
@@ -362,6 +395,16 @@ def test_network_filesystem_pid_memory_and_scratch_enforcement(tmp_path: Path) -
         accepted=(12,),
     )
     assert negative.returncode == 12
+    _record_trace(
+        "resource_enforcement",
+        "rejected_as_bounded",
+        image_id=image.image_id,
+        pid_probe=pids.returncode,
+        scratch_bytes_probe=scratch_bytes.returncode,
+        scratch_inodes_probe=scratch_inodes.returncode,
+        memory_capped_probe=capped.returncode,
+        memory_negative_control=negative.returncode,
+    )
 
 
 def test_isolated_partial_checkpoint_continuation_matches_uninterrupted(
@@ -409,6 +452,16 @@ def test_isolated_partial_checkpoint_continuation_matches_uninterrupted(
 
     assert continued.receipt.status is ReconstructionStatus.COMPLETE
     assert continued.receipt.checkpoint_digest == direct.checkpoint_digest
+    _record_trace(
+        "continuation_create_response_loss",
+        "reconciled_complete",
+        image_id=image.image_id,
+        launch_digest=continued.launch_digest,
+        controls_digest=continued.effective_controls_digest,
+        checkpoint_digest=continued.receipt.checkpoint_digest,
+        timings_seconds=continued.timings,
+        create_response_lost=True,
+    )
 
 
 def test_network_none_denies_controlled_canary_and_negative_control_detects_it(
@@ -480,6 +533,14 @@ def test_network_none_denies_controlled_canary_and_negative_control_detects_it(
             accepted=(10,),
         )
         assert dns_denied.returncode == 10
+        _record_trace(
+            "network_canary",
+            "denied",
+            image_id=image.image_id,
+            connected_negative_control=connected.returncode,
+            network_none_probe=denied.returncode,
+            dns_probe=dns_denied.returncode,
+        )
     finally:
         cli.run(["rm", "--force", canary], accepted=(0, 1))
         cli.run(["network", "rm", network], accepted=(0, 1))
@@ -499,8 +560,16 @@ def test_external_timeout_reaps_blocked_worker(tmp_path: Path) -> None:
     cli.run(["start", name])
     started = time.monotonic()
     remove_exact_container(cli=cli, container_name=name, launch_digest=launch_digest)
-    assert time.monotonic() - started < 30
+    cleanup_seconds = time.monotonic() - started
+    assert cleanup_seconds < 30
     assert cli.run(["inspect", name], accepted=(0, 1)).returncode == 1
+    _record_trace(
+        "blocked_worker_timeout",
+        "cancelled",
+        image_id=image.image_id,
+        cleanup_seconds=cleanup_seconds,
+        container_absent=True,
+    )
 
 
 def test_descendant_cannot_survive_exact_container_termination(tmp_path: Path) -> None:
@@ -528,3 +597,10 @@ def test_descendant_cannot_survive_exact_container_termination(tmp_path: Path) -
     remove_exact_container(cli=cli, container_name=name, launch_digest=launch_digest)
     time.sleep(3.5)
     assert cli.run(["inspect", name], accepted=(0, 1)).returncode == 1
+    _record_trace(
+        "descendant_cleanup",
+        "cancelled",
+        image_id=image.image_id,
+        descendant_ready=True,
+        container_absent=True,
+    )

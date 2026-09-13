@@ -184,6 +184,7 @@ jobs:
           path: |
             .carbon-artifacts/c03-worker-image.json
             .carbon-artifacts/c03-service-junit.xml
+            .carbon-artifacts/c03-service-traces.jsonl
           if-no-files-found: error
 
   contract-authority:
