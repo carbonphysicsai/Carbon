@@ -48,8 +48,8 @@ class NewcomerProjectionTests(unittest.TestCase):
         for wave in self.data["waves"]:
             self.assertIn(f'id="wave-{wave["id"]}"', self.output)
             self.assertIn(
-                f'Canonical Wave:</strong> Wave {wave["id"]}: '
-                f'{render_hub.esc(wave["title"])}',
+                f"Canonical Wave:</strong> Wave {wave['id']}: "
+                f"{render_hub.esc(wave['title'])}",
                 self.output,
             )
 
@@ -67,8 +67,8 @@ class NewcomerProjectionTests(unittest.TestCase):
         for ticket in self.data["tickets"]:
             self.assertIn(f'id="ticket-{ticket["id"]}"', self.output)
             self.assertIn(
-                f'Canonical ticket:</strong> {ticket["id"]}: '
-                f'{render_hub.esc(ticket["title"])}',
+                f"Canonical ticket:</strong> {ticket['id']}: "
+                f"{render_hub.esc(ticket['title'])}",
                 self.output,
             )
             self.assertIn(

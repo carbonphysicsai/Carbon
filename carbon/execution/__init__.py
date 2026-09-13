@@ -42,7 +42,7 @@ __all__ = (
     "PartialWorkRef",
     "QueueClaim",
     "ReconciliationDisposition",
-    "WriteDisposition",
     "WorkerLaunchBinding",
     "WorkerLaunchRecord",
+    "WriteDisposition",
 )
