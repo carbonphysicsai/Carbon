@@ -4,7 +4,7 @@
   "application_version": "Carbon Opportunity Workbench v0.2",
   "decision_id": "EXAM-PROTECT-WORKBENCH-01",
   "repository_base": "2d5872aff89ca7bef3e3f062b293aeefe17769aa",
-  "integration_revision_at_packaging": "2d5872aff89ca7bef3e3f062b293aeefe17769aa",
+  "integration_revision_at_packaging": "ab1331e2d7e8ed390bd136e888f05f33d02f275f",
   "pinned_research_revision": "ca904dfee93d3574df4e56b99981a6ed3b138e80",
   "pinned_evidence_index_sha256": "4565995a98fe8f238ca88b44e418e6c7da2954de9dca577b80968854bad34ba7",
   "source_archive_sha256": "aabdc04377700334f50a8748bf28b9fc3e44799b8986d2c38f759df5726469fa",
@@ -12,8 +12,8 @@
   "file_count": 57,
   "files": {
     "Carbon_Opportunity_Workbench.html": {
-      "bytes": 386352,
-      "sha256": "ce726dc05d0a5070e959a09dfff0c51715a20abfb6b828d868b84d5a6eb83c80"
+      "bytes": 387671,
+      "sha256": "4e63dba1d63e78480aefaeec03cb4805c06a6aee4fc8b5e8bf5dc9e2439eef6f"
     },
     "README.md": {
       "bytes": 5183,
@@ -24,8 +24,8 @@
       "sha256": "f5317e38789ead5f1d18c31e2246d83a1ce8d61c55970e35f4676f3b299d6519"
     },
     "data/cpes_study_v1.json": {
-      "bytes": 255257,
-      "sha256": "fc54812bf2cc7b8f745e0c26e171314101e90a0c626e442bc4262d3b7ae375d1"
+      "bytes": 255278,
+      "sha256": "6ef125756a016720e3169f0e5da6d16b68f00a6d62f59505088bc0f01bb2d7e4"
     },
     "data/draft_constants.json": {
       "bytes": 2495,
@@ -172,8 +172,8 @@
       "sha256": "71052d9534e30f3de3aae10a319483dd2812389dfec1ffa78e780559bb09e109"
     },
     "src/app.js": {
-      "bytes": 44268,
-      "sha256": "4686e176f1046e06c09e4e87271363d845b8c626fefdee324046213aefa5255c"
+      "bytes": 45566,
+      "sha256": "7de2b795e5e8b509f4ad360174213c91fc22a0ce65f33bd45a1744a97aef3694"
     },
     "src/engine.js": {
       "bytes": 34052,
@@ -192,20 +192,20 @@
       "sha256": "db71f1c6763759d32a2332937e61fc8ffd0f08dee1b2b0f5ee7b08cfbd5c7de5"
     },
     "tests/browser_results.json": {
-      "bytes": 2523,
-      "sha256": "8bf5cd8b1fdf407d01182782947b63d7b3028d821b775a06cc5d208dede7542f"
+      "bytes": 2662,
+      "sha256": "8b2a42dcec2950da14a32762d27d2348d7e25a81c7c233da0bd3a89e123b7aac"
     },
     "tests/browser_smoke.cjs": {
-      "bytes": 12672,
-      "sha256": "8c963620a8903c8f22a619f20a788f0daea1e83f96ab91089d5648490317e171"
+      "bytes": 13135,
+      "sha256": "4d4abee41e3ea3b517e073da59407c92e5daf22ecdbc2fe5278ce40439c9e3ae"
     },
     "tests/preview_atlas.png": {
       "bytes": 271369,
       "sha256": "004df90a679d3a4a94614fb3740c78e7e9e8cabeaa05dc396b8c2a282f2eac55"
     },
     "tests/preview_mobile.png": {
-      "bytes": 692366,
-      "sha256": "89c2b3cde24fc7bfe97b80c3879eec713b1cf2ce1d8ac2400f20a945572a2b6c"
+      "bytes": 692362,
+      "sha256": "3827cade2f6d84aacb30652013d6bd0610c56cd6e20e210999a2a28f4061873d"
     },
     "tests/preview_profile.png": {
       "bytes": 707918,
@@ -232,8 +232,8 @@
       "sha256": "e0eb6048938b3be65f3a1d105a71d545cd316d59f223b6ae9da783dbf1495634"
     },
     "tools/import_cpes_evidence.py": {
-      "bytes": 14467,
-      "sha256": "e5e64c66a923c861fddfc046957c7a084a1cdb694aabc8ffe8642bd2b8a9b707"
+      "bytes": 14488,
+      "sha256": "e7d4996480e1304982cd817551233022f12396eac6c048be7f78568a84d69a2c"
     },
     "tools/package_release.py": {
       "bytes": 2922,

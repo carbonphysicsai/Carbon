@@ -2476,6 +2476,29 @@
       ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/0a57b13ae97056d722930ab95a9604077af8520d/.agent/plans/C1_ALPHA_VERTICAL_CONTINUATION.md"
+    },
+    {
+      "title": "Integrate CPES evidence into the offline Opportunity Workbench",
+      "question": "How should Carbon turn the completed reference-reuse study into useful Challenge planning without changing runtime policy or claiming missing qualification?",
+      "recommendation": "Extend the exact verified v0.1 browser-local workbench as one maintained v0.2 tool. Keep RETAIN_A as the immutable DEVELOPMENT baseline, expose Variant B only as conditional research economics, keep Variant C as sensitivity, preserve all five unresolved claims, and export one review-only client or Engineering brief from the same deterministic record.",
+      "why": "The owner needs the accepted research evidence inside the actual Profile, Exam, Compare, evidence and export workflow. Explicit provenance, unknown propagation and fixed authority ceilings prevent a favorable synthetic cost scenario or user-supplied hash from becoming official policy, qualification, rights or runtime activation.",
+      "if_kept": "WAVE-G gains a reproducible offline decision-support application and v0.1 migration while live intake, hosted delivery, reference sharing, protected execution, qualification and publication remain in their existing owner domains. The separate Wave C executor and active selection remain unchanged and this tool is not their prerequisite.",
+      "if_changed": "A different research recommendation, runtime design, public/private collection path, authority registry, service envelope, scientific comparison, security/rights decision or hosted delivery requires its own source-owned version and acceptance. Historical studies, drafts and evidence records are not rewritten.",
+      "decision_id": "EXAM-PROTECT-WORKBENCH-01",
+      "map_ref": "WAVE-G",
+      "wave": "G",
+      "ticket": "FIT-WEB-01 / EXAM-PROTECT-01",
+      "attention": "FOR_AWARENESS",
+      "status": "OWNER_SELECTED_WORKING_DECISION",
+      "audience": "harsh",
+      "affects": [
+        "WAVE-G",
+        "SYSTEM/MATURITY",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+      ],
+      "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5656455034",
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/pull/156"
     }
   ]
 }

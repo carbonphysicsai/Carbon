@@ -180,7 +180,7 @@ def validate() -> dict:
             "study_implementation_revision": None,
             "study_implementation_limitation": "The evidence names source/file hashes but no distinct executed-study implementation commit; no SHA is fabricated.",
             "packaging_revision": "ca904dfee93d3574df4e56b99981a6ed3b138e80",
-            "integration_revision": "BUILD_TIME_GIT_HEAD",
+            "integration_revision": "ab1331e2d7e8ed390bd136e888f05f33d02f275f",
             "evidence_index_sha256": INDEX_SHA256,
             "profiler_summary_sha256": PROFILER_SHA256,
             "raw_source_reference": "docs/development/cpes_reference_reuse_gauntlet_evidence_v2/evidence_index_v1.json",

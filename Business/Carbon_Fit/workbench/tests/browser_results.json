@@ -6,7 +6,7 @@
     "1440x1050",
     "390x844"
   ],
-  "passed": 38,
+  "passed": 40,
   "failed": 0,
   "checks": [
     "actual standalone artifact opens with all 64 opportunities",
@@ -29,6 +29,8 @@
     "source-layer evidence retains AT-30",
     "adaptive negative control keeps exact 32/33/46.875 values",
     "self-authored hash-matching claim cannot change A baseline",
+    "later user version coexists visibly without becoming qualified",
+    "user version can be deliberately associated without selection",
     "exact duplicate evidence claim deduplicates",
     "forged evidence authority field rejects",
     "v0.1 client note migrates without loss",
