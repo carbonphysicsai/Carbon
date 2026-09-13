@@ -1,8 +1,8 @@
 # C-04 role-explicit Burgers reference runtime plan
 
-**Decision:** `OWNER-C1-BURGERS-ALPHA-01`  
-**Status:** implementation candidate; normal tested merge pending  
-**Base:** PR #151 merge `2d5872aff89ca7bef3e3f062b293aeefe17769aa`  
+**Decision:** `OWNER-C1-BURGERS-ALPHA-01`
+**Status:** implementation candidate; normal tested merge pending
+**Base:** PR #151 merge `2d5872aff89ca7bef3e3f062b293aeefe17769aa`
 **Primary Hub map_ref:** `WAVE-C/C-04`
 
 ## Scope
