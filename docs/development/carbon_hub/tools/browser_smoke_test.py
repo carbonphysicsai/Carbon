@@ -600,9 +600,15 @@ def _load(
             "width": viewport.width,
             "height": viewport.height,
             "deviceScaleFactor": 1,
-            "mobile": viewport.mobile,
+            # This lane validates Carbon's responsive CSS and navigation at an
+            # exact narrow layout width.  Chrome's handset emulation may apply
+            # a version-dependent page-scale heuristic, so keep browser-mode
+            # emulation off and assert the actual CSS viewport below.
+            "mobile": False,
+            "scale": 1,
             "screenWidth": viewport.width,
             "screenHeight": viewport.height,
+            "dontSetVisibleSize": False,
         },
     )
     session.command(
