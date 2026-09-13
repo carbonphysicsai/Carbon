@@ -9,6 +9,7 @@ import os
 import subprocess
 import tempfile
 import unittest
+from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import patch
@@ -33,6 +34,7 @@ def delivery_body(
     tree: str,
     *,
     hub_declaration: str | None = None,
+    change_scope: str = "RUNTIME_FULL",
 ) -> str:
     hub_declaration = hub_declaration or (
         "HUB_IMPACT_NONE: Only the pull-request declaration changed; the "
@@ -51,7 +53,7 @@ FINAL_TREE: {tree}
 
 ## Canonical validation
 
-CHANGE_SCOPE: RUNTIME_FULL
+CHANGE_SCOPE: {change_scope}
 CANONICAL_LOCAL_VALIDATION: PENDING
 MERGE_GATE: PENDING
 CODEX_GPT_REVIEW_RECEIPT: PENDING
@@ -76,6 +78,18 @@ POST_FREEZE_TREE_CHANGES: 0
 FULL_CI_RUNS: 1
 AVOIDABLE_RERUN_REASON: No avoidable rerun was required.
 """
+
+
+@contextmanager
+def isolated_expected_change_scope(scope: str | None = "RUNTIME_FULL"):
+    """Give a synthetic fixture its own expected scope and restore the caller."""
+
+    with patch.dict(os.environ, {}, clear=False):
+        if scope is None:
+            os.environ.pop("HUB_EXPECTED_CHANGE_SCOPE", None)
+        else:
+            os.environ["HUB_EXPECTED_CHANGE_SCOPE"] = scope
+        yield
 
 
 class DiffValidator(validate_hub.Validator):
@@ -133,6 +147,11 @@ class PushDiffValidator(validate_hub.Validator):
 
 
 class ValidatorContractTests(unittest.TestCase):
+    def setUp(self) -> None:
+        fixture_scope = isolated_expected_change_scope()
+        fixture_scope.__enter__()
+        self.addCleanup(fixture_scope.__exit__, None, None, None)
+
     @staticmethod
     def load_hub_data() -> dict[str, object]:
         return json.loads(HUB_DATA_PATH.read_text(encoding="utf-8"))
@@ -1148,6 +1167,42 @@ class ValidatorContractTests(unittest.TestCase):
                     any(error_fragment in error for error in rejected.errors),
                     rejected.errors,
                 )
+
+    def test_delivery_change_scope_accepts_unset_and_each_supported_scope(self) -> None:
+        head = self.run_git(REPO_ROOT, "rev-parse", "HEAD")
+        tree = self.run_git(REPO_ROOT, "rev-parse", "HEAD^{tree}")
+
+        for expected in (None, *sorted(validate_hub.DELIVERY_CHANGE_SCOPES)):
+            with self.subTest(expected=expected):
+                declared = expected or "RUNTIME_FULL"
+                validator = validate_hub.Validator(REPO_ROOT)
+                validator.github_event = {
+                    "pull_request": {
+                        "body": delivery_body(
+                            head,
+                            head,
+                            tree,
+                            change_scope=declared,
+                        ),
+                        "head": {"sha": head},
+                        "base": {"sha": head},
+                    }
+                }
+                with isolated_expected_change_scope(expected):
+                    validator.validate_legacy_delivery_declaration()
+                self.assertEqual(validator.errors, [])
+
+    def test_synthetic_scope_context_restores_the_calling_environment(self) -> None:
+        self.assertEqual(os.environ["HUB_EXPECTED_CHANGE_SCOPE"], "RUNTIME_FULL")
+        with isolated_expected_change_scope("CONTRACT_AUTHORITY"):
+            self.assertEqual(
+                os.environ["HUB_EXPECTED_CHANGE_SCOPE"], "CONTRACT_AUTHORITY"
+            )
+        self.assertEqual(os.environ["HUB_EXPECTED_CHANGE_SCOPE"], "RUNTIME_FULL")
+
+        with isolated_expected_change_scope(None):
+            self.assertNotIn("HUB_EXPECTED_CHANGE_SCOPE", os.environ)
+        self.assertEqual(os.environ["HUB_EXPECTED_CHANGE_SCOPE"], "RUNTIME_FULL")
 
     def test_hub_workflow_has_explicit_live_pr_least_privilege_contract(
         self,
