@@ -54,6 +54,15 @@ ENVIRONMENT_DIGEST = runtime_environment_digest()
 ROOT = Path(__file__).resolve().parents[2]
 
 
+def test_method_roles_are_closed_and_environment_is_exact() -> None:
+    assert tuple(BurgersReferenceRole) == (
+        BurgersReferenceRole.CANDIDATE_PRIMARY,
+        BurgersReferenceRole.INDEPENDENT_WITNESS,
+        BurgersReferenceRole.DEVELOPMENT_CROSSCHECK,
+    )
+    assert runtime_environment_digest().startswith("sha256:")
+
+
 def _context(material: bytes = b"c" * 32) -> MockContext:
     return MockContext(
         MockEntropy(material),
