@@ -271,6 +271,7 @@ def test_prepared_dispatch_binds_exact_c01_attempt_and_enforcement_argv(
         repository=Path.cwd(),
         id_factory=lambda: next(values),
     )
+    assert worker.private_root.stat().st_mode & 0o077 == 0
     request = {
         "initial": data.initial[:1],
         "viscosity": data.viscosity[:1],

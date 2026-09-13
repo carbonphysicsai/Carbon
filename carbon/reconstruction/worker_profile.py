@@ -168,10 +168,14 @@ def load_development_worker_profile() -> DevelopmentWorkerProfile:
     image = value["image"]
     environment = value["environment"]
     limits = value["limits"]
+    termination = value["termination"]
+    network = value["network"]
     if (
         type(image) is not dict
         or type(environment) is not dict
         or type(limits) is not dict
+        or type(termination) is not dict
+        or type(network) is not dict
     ):
         raise ReconstructionFailure("reconstruction.worker.profile_invalid")
     if set(limits) != _EXPECTED_LIMITS:
@@ -182,6 +186,21 @@ def load_development_worker_profile() -> DevelopmentWorkerProfile:
         "security_qualification": None,
         "hostile_host_resistance": None,
         "side_channel_resistance": None,
+    }:
+        raise ReconstructionFailure("reconstruction.worker.profile_invalid")
+    if network != {
+        "docker_mode": "none",
+        "downloads": False,
+        "online_logging": False,
+    } or termination != {
+        "parent_wall_clock_enforced": True,
+        "container_and_descendants_killed_together": True,
+        "late_output_association": False,
+        "cleanup_failure_is_reported": True,
+        "automatic_retry_after_ambiguous_dispatch": False,
+        "diagnostic_log_driver": "local",
+        "diagnostic_log_max_files": 1,
+        "diagnostic_log_max_bytes": limits["diagnostic_bytes"],
     }:
         raise ReconstructionFailure("reconstruction.worker.profile_invalid")
     worker_limits = DevelopmentWorkerLimits(**limits)

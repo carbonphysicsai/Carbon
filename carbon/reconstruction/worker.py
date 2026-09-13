@@ -339,12 +339,25 @@ class DevelopmentReconstructionWorker:
             raise ReconstructionFailure("reconstruction.worker.queue_invalid")
         if not private_root.is_absolute() or private_root.is_symlink():
             raise ReconstructionFailure("reconstruction.worker.private_root_invalid")
+        try:
+            private_root.mkdir(parents=True, mode=0o700, exist_ok=True)
+            private_stat = private_root.stat()
+        except OSError:
+            raise ReconstructionFailure(
+                "reconstruction.worker.private_root_invalid"
+            ) from None
+        if (
+            not private_root.is_dir()
+            or private_stat.st_uid != os.geteuid()
+            or private_stat.st_mode & 0o077
+        ):
+            raise ReconstructionFailure("reconstruction.worker.private_root_invalid")
         if len(image_id) != 71 or not image_id.startswith("sha256:"):
             raise ReconstructionFailure("reconstruction.worker.image_invalid")
         if type(source_revision) is not str or len(source_revision) != 40:
             raise ReconstructionFailure("reconstruction.worker.source_invalid")
         self.queue = queue
-        self.private_root = private_root
+        self.private_root = private_root.resolve(strict=True)
         self.image_id = image_id
         self.source_revision = source_revision
         self.repository = repository.resolve(strict=True)

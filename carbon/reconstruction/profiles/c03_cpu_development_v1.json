@@ -62,7 +62,10 @@
     "container_and_descendants_killed_together": true,
     "late_output_association": false,
     "cleanup_failure_is_reported": true,
-    "automatic_retry_after_ambiguous_dispatch": false
+    "automatic_retry_after_ambiguous_dispatch": false,
+    "diagnostic_log_driver": "local",
+    "diagnostic_log_max_files": 1,
+    "diagnostic_log_max_bytes": 16384
   },
   "claims": {
     "production_repeat_count": null,
