@@ -2636,6 +2636,56 @@
         "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
       ],
       "supersedes": null
+    },
+    {
+      "map_ref": "WAVE-C/C-04",
+      "event_type": "evidence",
+      "event_id": "C-04-E1",
+      "owner_lane": "scientific_reference_execution_engineering",
+      "status": "implemented",
+      "summary": "PR #154 accepted exact C-04 head 32fa87f0f4947b8fbae9b2b73e5fa875a73de175 in required run 34784739423 and normally merged it as 0cd91bfa6d30f81739ff75e46888f6f1387bd1de. The role-explicit public reference runtime is tested only as a qualification candidate; D-03/D-04 scientific acceptance, protected admission and independent security acceptance remain open.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/actions/runs/34784739423",
+      "affects": [
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE",
+        "WAVE-C",
+        "WAVE-C/C-03",
+        "WAVE-C/C-04",
+        "WAVE-C/C-05",
+        "WAVE-D",
+        "SYSTEM/AGENT-EXECUTION",
+        "SYSTEM/CI",
+        "SYSTEM/MATURITY",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+      ],
+      "supersedes": "C-04-I1"
+    },
+    {
+      "map_ref": "WAVE-C/C-05",
+      "event_type": "evidence",
+      "event_id": "C-05-I1",
+      "owner_lane": "scientific_measurement_engineering",
+      "status": "implemented",
+      "summary": "The C-05 candidate implements four registered Burgers measurement operators and six physics diagnostics in a distinct bounded worker, plus a frozen three-replica-by-twelve-case D-05 prerequisite harness. Exact-head Linux service acceptance is pending; every scientific limit and decision remains unresolved and no score, rank, reward or qualification is emitted.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/4235c778357b51b8b6dd1b629fa1339bd26936ad/.agent/evidence/wave_c/c-05.md",
+      "affects": [
+        "WAVE-B/B-05",
+        "WAVE-C",
+        "WAVE-C/C-02",
+        "WAVE-C/C-04",
+        "WAVE-C/C-05",
+        "WAVE-C/C-06",
+        "WAVE-C/C-07",
+        "WAVE-D",
+        "SYSTEM/AGENT-EXECUTION",
+        "SYSTEM/CI",
+        "SYSTEM/GOVERNANCE",
+        "SYSTEM/MATURITY",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+      ],
+      "supersedes": null
     }
   ]
 }
