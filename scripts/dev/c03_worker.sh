@@ -21,6 +21,8 @@ case "${1:-}" in
     mkdir -p "${state_root}"
     smoke_root="$(mktemp -d "${state_root}/run.XXXXXXXX")"
     CARBON_C03_IMAGE_MANIFEST="${manifest}" \
+      CARBON_C03_TRACE_PATH="${smoke_root}/c03-smoke-traces.jsonl" \
+      CARBON_C03_JUNIT_PATH="${smoke_root}/c03-smoke-junit.xml" \
       "${script_dir}/c03_worker_service.sh" \
       'tests/service/test_c03_worker_service.py::test_real_jax_path_is_isolated_validated_and_numerically_identical[False-16]' \
       --basetemp "${smoke_root}/pytest"

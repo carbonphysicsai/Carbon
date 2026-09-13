@@ -71,9 +71,10 @@ MQ-015 is not resolved and `SECURITY_QUALIFIED` is not earned.
 - The external watchdog owns the fixed deadline. Cooperative Python
   cancellation is not the kill boundary. Cleanup targets one exact recorded
   container, never a global prune.
-- Output copied while alive is provisional. Association occurs only after the
-  worker and descendants are gone, intake is closed, and the controller-owned
-  immutable snapshot passes C-02 receipt/artifact/checkpoint identity,
+- Output streamed through the fixed capped exporter while alive is provisional.
+  Association occurs only after the worker and descendants are gone, intake is
+  closed, and the controller-owned immutable snapshot passes C-02
+  receipt/artifact/checkpoint identity,
   structure, dtype, shape, counter and finite-value validation.
 - Cleanup uncertainty quarantines only the affected execution capacity and
   yields no successful reconstruction. Infrastructure failures remain distinct

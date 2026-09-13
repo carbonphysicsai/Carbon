@@ -2,14 +2,16 @@
 
 **Decision:** `OWNER-C03-DEV-ISOLATION-01`
 **Scope:** first bounded public-data DEVELOPMENT slice
-**Current state:** implementation candidate; final Linux service acceptance and
-merge evidence pending
+**Current state:** implementation candidate with passing Linux service evidence
+at `9fccb2cc28a88b5771410148d8b80f688d4f1ff6`; final exact-head CI and merge
+evidence pending
 
 ## Owner summary
 
 An already admitted reconstruction is copied into a per-attempt input snapshot,
-run by the existing C-02 adapter in a pinned CPU-only Docker worker, copied out
-through a capped provisional snapshot, stopped with all descendants, validated
+run by the existing C-02 adapter in a pinned CPU-only Docker worker, streamed
+out through a capped length-prefixed provisional snapshot, stopped with all
+descendants, validated
 by the controller, and only then attached to the C-01 attempt. A miner sees no
 new action, fee, reveal, request field or interface.
 
@@ -41,6 +43,22 @@ digests are mechanically assigned by `c03_worker_image.sh` for the exact tested
 head and retained as the CI image-manifest artifact. They are deliberately not
 self-embedded as the final image digest.
 
+The first passing implementation campaign, run `34769816925`, built image/config
+`sha256:0440ef4d42012c5fffb80af0d43e413e1ad0d7728d1db2a3b8b5e80b712f0cca`
+from source-tree digest
+`sha256:fc8117dd22421a5f4808f6ebff38d3e9b52d8c9be7e16054120a245a8d526bab`,
+wheel digest
+`sha256:3ce9e0e5ec925fd9b40be873584217ab1689ce2a8eb434d757fbbcbfabe317b6`,
+recipe digest
+`sha256:db26a9a222da45563087209a1d167e112a91e3e2c9e49fdb8928fe962e42ec54`
+and entrypoint digest
+`sha256:5a26105e26d73c2364a7cb1f9699330f705a336a1ef5390180e2763fbeb069b2`.
+Its exact worker-policy digest was
+`sha256:0f81f3f6d4daff01e0f4f2c36ba08d66837afe9eabce51ffdf4f9f8df6f54bdb`.
+These are historical identities for that passing implementation head; the
+final delivery run mechanically assigns a new source/image identity after this
+report-only update and retains it in its own manifest artifact.
+
 ## Selected limits
 
 The exact values are in `c03_worker_profile_v1.json`: one worker; two logical
@@ -66,15 +84,35 @@ budgets.
 | Network/filesystem | controlled canary proves connected negative control and `network=none` denial; root/input writes and Docker/host canaries are absent | private loopback/socket syscalls remain |
 | Cleanup uncertainty | slot becomes `QUARANTINED`; no successful association; later independent capacity is not globally barred | operator reconciliation remains necessary |
 
-Failures found by local unit tests are repaired in the candidate history; the
-required Linux lane must report zero failing service controls before bounded
-completion is claimed. The final delivery response supplies the exact passing
-head, workflow/run, merge, counts and observed timing. Phase timing separates
-staging/create, numerical work (including import/JIT/training), export,
-validation, cleanup and total. Fixture timing is descriptive; worker CPU and
-host overhead are not treated as an official 600-second adequacy study. Docker
-cgroup memory is a ceiling; this slice does not claim a calibrated per-model
-peak requirement.
+Run `34769816925` passed seven required service tests in 67.14 seconds with zero
+failures/skips, then passed doctor, smoke (one test in 16.97 seconds), and exact
+status/reconciliation. Its required campaign retained two ordinary COMPLETE
+traces, one reconciled COMPLETE continuation, two cancellation traces, one
+bounded resource rejection and one network denial: successful `3`, failed `0`,
+cancelled `2`, reconciliation `1`, other enforcement rejections `2`. The owner
+smoke retained one additional COMPLETE trace separately.
+
+The lab FNO trace completed in 12.709 seconds (9.042 numerical, 0.456 export,
+1.240 validation, 0.411 cleanup). Foundax FNO at 512 points completed in 11.384
+seconds (8.589 numerical, 0.458 export, 0.631 validation, 0.425 cleanup). The
+create-response-loss/continuation trace reconciled and completed in 11.550
+seconds with the same checkpoint digest as uninterrupted execution. Bounded
+memory denial exited `137`, its finite removed-guard control reached sentinel
+`12`, PID/scratch byte/scratch inode probes denied at their limits, and blocked
+worker cleanup took 5.119 seconds. Network-none denied both controlled address
+and DNS probes while the same canary was reachable under the deliberately
+connected negative control.
+
+The runtime was Ubuntu 24.04.5 LTS, Linux `6.17.0-1022-azure`, x86-64, Docker
+Engine `28.0.4` API `1.48`, cgroup v2 with the systemd driver, and reported
+AppArmor, built-in seccomp and cgroup namespace support. Inspection observed
+`cpu.max=200000 100000`, cpuset `0-1`, `memory.max=4294967296`,
+`memory.swap.max=0`, `pids.max=256`, zero effective capabilities,
+`NoNewPrivs=1`, seccomp mode `2`, read-only root, `network=none`, private
+PID/IPC, exact 528,482,304-byte/8,192-inode scratch plus 8,388,608-byte
+`/dev/shm`, and Docker's `docker-default` AppArmor profile. No peak RSS was
+measured; 4 GiB is only the enforced ceiling, so this slice makes no calibrated
+per-model memory or official 600-second adequacy claim.
 
 ## Acceptance repair history
 
@@ -88,6 +126,22 @@ after creation. The same run also found strict Black/import-order debt and a
 missing `SYSTEM/PROTOCOL-AUTHORITY` Hub-impact declaration; both were repaired
 without weakening a runtime control. Passing replacement evidence remains
 required before this bounded slice is called tested.
+
+Later failed/cancelled candidates are also retained. Run `34767928064` confirmed
+the ZIP/PID repairs but exposed Docker start failure. Diagnostic run
+`34768569365` identified the exact cause: the local log driver's default
+compression is incompatible with the selected one-file rotation, so the
+profile now pins and inspects `compress=false` while retaining its 1 MiB,
+one-file ceiling. Run `34768731597` then found and repaired the GNU `df` inode
+field invocation. Run `34768907825` passed four controls and exposed both a
+permission-denied host-path probe interpretation and Docker's inability to copy
+the live tmpfs with `docker cp`; run `34769257159` confirmed the path-probe
+repair and the tmpfs-copy limitation. The final implementation uses a fixed
+installed exporter and controller-capped closed stream, never unrestricted
+archive extraction. Run `34769816925` passed all service controls. Its later
+owner smoke overwrote the main JUnit pathname, so the candidate now separates
+smoke JUnit/trace files from the required campaign; this evidence-retention
+repair still requires final exact-head CI before merge.
 
 ## Remaining boundary
 

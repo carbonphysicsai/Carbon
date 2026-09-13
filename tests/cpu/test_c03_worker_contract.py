@@ -546,5 +546,7 @@ def test_owner_doctor_is_read_only_and_all_delivery_commands_are_fixed() -> None
     doctor_branch = script.split("  doctor)", 1)[1].split("    ;;", 1)[0]
     assert "c03_worker_image.sh" not in doctor_branch
     assert 'operator doctor "${manifest}"' in script
+    assert 'CARBON_C03_TRACE_PATH="${smoke_root}/c03-smoke-traces.jsonl"' in script
+    assert 'CARBON_C03_JUNIT_PATH="${smoke_root}/c03-smoke-junit.xml"' in script
     assert 'operator status "${state_root}"' in script
     assert 'operator reconcile "${state_root}"' in script

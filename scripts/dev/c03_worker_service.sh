@@ -9,6 +9,8 @@ fail() {
 script_dir="$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 repo_root="$(CDPATH= cd -- "${script_dir}/../.." && pwd -P)"
 manifest="${CARBON_C03_IMAGE_MANIFEST:-${repo_root}/.carbon-artifacts/c03-worker-image.json}"
+trace_path="${CARBON_C03_TRACE_PATH:-${repo_root}/.carbon-artifacts/c03-service-traces.jsonl}"
+junit_path="${CARBON_C03_JUNIT_PATH:-${repo_root}/.carbon-artifacts/c03-service-junit.xml}"
 
 case "$(uname -s):$(uname -m)" in
   Linux:x86_64) ;;
@@ -23,7 +25,7 @@ command -v docker >/dev/null 2>&1 || fail "Docker is unavailable."
 cd "${repo_root}"
 export PYTHONPATH="${repo_root}/tests/cpu:${repo_root}"
 export CARBON_C03_IMAGE_MANIFEST="${manifest}"
-export CARBON_C03_TRACE_PATH="${repo_root}/.carbon-artifacts/c03-service-traces.jsonl"
+export CARBON_C03_TRACE_PATH="${trace_path}"
 : >> "${CARBON_C03_TRACE_PATH}"
 python_path="${repo_root}/.venv/bin/python"
 if [[ "$(uname -s)" == "Darwin" && "$(uname -m)" == "arm64" ]]; then
@@ -34,4 +36,4 @@ if [[ "$#" -eq 0 ]]; then
   set -- tests/service/test_c03_worker_service.py
 fi
 "${python_path}" -m pytest -q \
-  --junitxml "${repo_root}/.carbon-artifacts/c03-service-junit.xml" "$@"
+  --junitxml "${junit_path}" "$@"
