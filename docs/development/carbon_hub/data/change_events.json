@@ -2432,6 +2432,28 @@
         "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
       ],
       "supersedes": null
+    },
+    {
+      "map_ref": "WAVE-C/C-02",
+      "event_type": "decision",
+      "event_id": "C-02-D2",
+      "owner_lane": "repository_owner",
+      "status": "implemented",
+      "summary": "The owner-authorized C-02 continuation repairs complete receipt/artifact/checkpoint association, exact finite prediction and metadata contracts, and Transolver provenance, then adds an optional frozen DEVELOPMENT repeat runner over existing B-02C replicate and C-01 attempt identities. C-02 remains in progress; no production repeat count, C-03 selection, official science, score, reward, production, network or LIVE authority follows.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/75414bb9b85bee3107e880918fe9b91817f48c1b/.agent/evidence/wave_c/c-02.md",
+      "affects": [
+        "WAVE-C",
+        "WAVE-C/C-02",
+        "WAVE-C/C-03",
+        "SYSTEM/AGENT-EXECUTION",
+        "SYSTEM/CI",
+        "SYSTEM/GOVERNANCE",
+        "SYSTEM/MATURITY",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+      ],
+      "supersedes": null
     }
   ]
 }

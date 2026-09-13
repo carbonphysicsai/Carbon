@@ -2347,6 +2347,35 @@
       ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5651468480",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/567d9519e6bbce7407b739cc0aa1383464027c9b/docs/development/C02_JAX_INTEGRATION_REPORT.md"
+    },
+    {
+      "title": "Harden C-02 and permit frozen bounded DEVELOPMENT repeats",
+      "question": "How should C-02 repair receipt/output/provenance defects and exercise repeat/recovery without selecting a production repeat standard or C-03?",
+      "recommendation": "Validate the full v2 artifact and exact receipt before restore, enforce finite exact-shape float32 prediction after compute, retain exact observed environment and Transolver provenance, and execute only prospectively frozen B-02C replicate identities with supplied C-01 attempts. Retain every disposition and report only descriptive successful-subset dispersion.",
+      "why": "The initial adapter left an outer association gap, conflated prediction failure classes, admitted nonfinite metadata, and cited a nonexistent upstream SHA. A bounded repeat composition is needed to exercise restart semantics without creating a miner repeat knob, second attempt ledger or scientific decision engine.",
+      "if_kept": "C-02 gains a tested optional DEVELOPMENT repeat/recovery capability for FNO and DeepONet. C-02 remains in progress; owner-selected repeat policy, C-03 isolation, official science, protected execution, score, reward, production, network and LIVE authority remain absent.",
+      "if_changed": "Any production repeat count, hostile-worker profile, new execution-attempt semantics, pack association, statistical acceptance criterion or official result path requires its owning decision and separately accepted evidence.",
+      "decision_id": "C-02-D2",
+      "map_ref": "WAVE-C/C-02",
+      "wave": "C",
+      "ticket": "C-02",
+      "attention": "FOR_AWARENESS",
+      "status": "IMPLEMENTED_WORKING_DECISION",
+      "audience": "harsh",
+      "affects": [
+        "WAVE-C",
+        "WAVE-C/C-02",
+        "WAVE-C/C-03",
+        "SYSTEM/AGENT-EXECUTION",
+        "SYSTEM/CI",
+        "SYSTEM/GOVERNANCE",
+        "SYSTEM/MATURITY",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+      ],
+      "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42",
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/75414bb9b85bee3107e880918fe9b91817f48c1b/docs/development/C02_JAX_INTEGRATION_REPORT.md"
     }
   ]
 }
