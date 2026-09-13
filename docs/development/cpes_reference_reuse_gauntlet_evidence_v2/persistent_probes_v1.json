@@ -1,0 +1,445 @@
+{
+  "assignment_race_results": [
+    "ASSIGNED",
+    "INELIGIBLE_MEMBER"
+  ],
+  "expected_guards": {
+    "answer_publication": "ANSWER_PUBLICATION_NOT_AUTHORIZED",
+    "changed_prediction": "PREDICTION_CONFLICT",
+    "early_summary": "PACK_CLOSURE_REQUIRED",
+    "forged_authority": "UNVERIFIED_AUTHORITY",
+    "late_membership": "MEMBERSHIP_CLOSED",
+    "open_retry_closure": "ANSWER_DEPENDENT_OPPORTUNITY_OPEN",
+    "retirement": "ANSWER_DEPENDENT_OPPORTUNITY_OPEN",
+    "stale_write_after_restart": "PACK_CLOSED"
+  },
+  "negative_control_exploits": [
+    "late_membership_guard_removed",
+    "retirement_guard_removed",
+    "authority_evidence_guard_removed"
+  ],
+  "production_authority": false,
+  "research_only": true,
+  "schema_version": "carbon.cpes-reuse.persistent-probes.v1",
+  "traces": [
+    {
+      "probe": "late_membership_guarded",
+      "result": "MEMBERSHIP_CLOSED"
+    },
+    {
+      "events": [
+        {
+          "action": "submit",
+          "details": {
+            "requested": "a",
+            "resolved": "a"
+          },
+          "outcome": "ACCEPTED",
+          "sequence": 1
+        },
+        {
+          "action": "submit",
+          "details": {
+            "requested": "b",
+            "resolved": "b"
+          },
+          "outcome": "ACCEPTED",
+          "sequence": 2
+        },
+        {
+          "action": "lock_pack",
+          "details": {
+            "members": [
+              "a",
+              "b"
+            ],
+            "pack_id": "pack-a"
+          },
+          "outcome": "ACCEPTED",
+          "sequence": 3
+        },
+        {
+          "action": "expose_cases",
+          "details": {
+            "pack_id": "pack-a"
+          },
+          "outcome": "ACCEPTED",
+          "sequence": 4
+        },
+        {
+          "action": "submit",
+          "details": {
+            "requested": "late",
+            "resolved": "late"
+          },
+          "outcome": "ACCEPTED",
+          "sequence": 5
+        },
+        {
+          "action": "add_member",
+          "details": {
+            "job_id": "late",
+            "pack_id": "pack-a"
+          },
+          "outcome": "ACCEPTED",
+          "sequence": 6
+        }
+      ],
+      "probe": "late_membership_guard_removed",
+      "result": "OBSERVED_EXPLOIT"
+    },
+    {
+      "probe": "retirement_guarded",
+      "result": "ANSWER_DEPENDENT_OPPORTUNITY_OPEN"
+    },
+    {
+      "events": [
+        {
+          "action": "submit",
+          "details": {
+            "requested": "a",
+            "resolved": "a"
+          },
+          "outcome": "ACCEPTED",
+          "sequence": 1
+        },
+        {
+          "action": "submit",
+          "details": {
+            "requested": "b",
+            "resolved": "b"
+          },
+          "outcome": "ACCEPTED",
+          "sequence": 2
+        },
+        {
+          "action": "lock_pack",
+          "details": {
+            "members": [
+              "a",
+              "b"
+            ],
+            "pack_id": "pack-a"
+          },
+          "outcome": "ACCEPTED",
+          "sequence": 3
+        },
+        {
+          "action": "expose_cases",
+          "details": {
+            "pack_id": "pack-a"
+          },
+          "outcome": "ACCEPTED",
+          "sequence": 4
+        },
+        {
+          "action": "close_pack",
+          "details": {
+            "pack_id": "pack-a"
+          },
+          "outcome": "ACCEPTED",
+          "sequence": 5
+        }
+      ],
+      "probe": "retirement_guard_removed",
+      "result": "OBSERVED_EXPLOIT"
+    },
+    {
+      "probe": "authority_guarded",
+      "result": "UNVERIFIED_AUTHORITY"
+    },
+    {
+      "probe": "authority_evidence_guard_removed",
+      "result": "OBSERVED_EXPLOIT"
+    },
+    {
+      "answer_release": "ANSWER_PUBLICATION_NOT_AUTHORIZED",
+      "early_summary": "PACK_CLOSURE_REQUIRED",
+      "events": [
+        {
+          "action": "submit",
+          "details": {
+            "requested": "a",
+            "resolved": "a"
+          },
+          "outcome": "ACCEPTED",
+          "sequence": 1
+        },
+        {
+          "action": "submit",
+          "details": {
+            "requested": "b",
+            "resolved": "b"
+          },
+          "outcome": "ACCEPTED",
+          "sequence": 2
+        },
+        {
+          "action": "lock_pack",
+          "details": {
+            "members": [
+              "a",
+              "b"
+            ],
+            "pack_id": "pack-a"
+          },
+          "outcome": "ACCEPTED",
+          "sequence": 3
+        },
+        {
+          "action": "expose_cases",
+          "details": {
+            "pack_id": "pack-a"
+          },
+          "outcome": "ACCEPTED",
+          "sequence": 4
+        },
+        {
+          "action": "seal_artifact",
+          "details": {
+            "digest": "sha256:1716cbaeae698d4fd5856bd42b0b2c1fa47d05a811a773d27eaf1b9c0c3db0c2",
+            "job_id": "a"
+          },
+          "outcome": "ACCEPTED",
+          "sequence": 5
+        },
+        {
+          "action": "start_attempt",
+          "details": {
+            "attempt": 1,
+            "job_id": "a"
+          },
+          "outcome": "ACCEPTED",
+          "sequence": 6
+        },
+        {
+          "action": "bind_prediction",
+          "details": {
+            "digest": "sha256:db7d29471bc9eef1569b597ffbaf00c17b06a67706dd93db4fcbf8d61effdcc9",
+            "job_id": "a"
+          },
+          "outcome": "ACCEPTED",
+          "sequence": 7
+        },
+        {
+          "action": "finish",
+          "details": {
+            "job_id": "a",
+            "state": "TERMINAL"
+          },
+          "outcome": "ACCEPTED",
+          "sequence": 8
+        },
+        {
+          "action": "seal_artifact",
+          "details": {
+            "digest": "sha256:53dd1f437a226eee8767a7e3b089cae66fe4d49f524ff26258e6f25dd26187f2",
+            "job_id": "b"
+          },
+          "outcome": "ACCEPTED",
+          "sequence": 9
+        },
+        {
+          "action": "start_attempt",
+          "details": {
+            "attempt": 1,
+            "job_id": "b"
+          },
+          "outcome": "ACCEPTED",
+          "sequence": 10
+        },
+        {
+          "action": "bind_prediction",
+          "details": {
+            "digest": "sha256:f4cd176b190ab267ffc5742520f07b209b311d813a864b67f21a330d5b2c0ce2",
+            "job_id": "b"
+          },
+          "outcome": "ACCEPTED",
+          "sequence": 11
+        },
+        {
+          "action": "finish",
+          "details": {
+            "job_id": "b",
+            "state": "TERMINAL"
+          },
+          "outcome": "ACCEPTED",
+          "sequence": 12
+        },
+        {
+          "action": "close_pack",
+          "details": {
+            "pack_id": "pack-a"
+          },
+          "outcome": "ACCEPTED",
+          "sequence": 13
+        },
+        {
+          "action": "release_summary",
+          "details": {
+            "digest": "sha256:258418ab9ef84705d0f17bea23dc595b1cb84709766e7a468fd82bd3264ab502",
+            "job_id": "a"
+          },
+          "outcome": "ACCEPTED",
+          "sequence": 14
+        }
+      ],
+      "late_write": "PACK_CLOSED",
+      "probe": "closure_restart",
+      "summary_digest": "sha256:258418ab9ef84705d0f17bea23dc595b1cb84709766e7a468fd82bd3264ab502"
+    },
+    {
+      "exact_match": true,
+      "incomplete": "INCOMPLETE_REFERENCE_ARTIFACT",
+      "mismatches": {
+        "challenge": "CACHE_BINDING_MISMATCH",
+        "environment": "CACHE_BINDING_MISMATCH",
+        "evidence_depth": "CACHE_BINDING_MISMATCH",
+        "output_request": "CACHE_BINDING_MISMATCH",
+        "physical_inputs": "CACHE_BINDING_MISMATCH",
+        "policy": "CACHE_BINDING_MISMATCH",
+        "solver_config": "CACHE_BINDING_MISMATCH",
+        "units_scaling": "CACHE_BINDING_MISMATCH"
+      },
+      "probe": "exact_cache_binding"
+    },
+    {
+      "changed_prediction": "PREDICTION_CONFLICT",
+      "events": [
+        {
+          "action": "submit",
+          "details": {
+            "requested": "bound",
+            "resolved": "bound"
+          },
+          "outcome": "ACCEPTED",
+          "sequence": 1
+        },
+        {
+          "action": "lock_pack",
+          "details": {
+            "members": [
+              "bound"
+            ],
+            "pack_id": "pack-bound"
+          },
+          "outcome": "ACCEPTED",
+          "sequence": 2
+        },
+        {
+          "action": "expose_cases",
+          "details": {
+            "pack_id": "pack-bound"
+          },
+          "outcome": "ACCEPTED",
+          "sequence": 3
+        },
+        {
+          "action": "seal_artifact",
+          "details": {
+            "digest": "sha256:d84301d57a6e95ce18d78b5b612f0ca82da82b01fe76caf230e984fc314be2a9",
+            "job_id": "bound"
+          },
+          "outcome": "ACCEPTED",
+          "sequence": 4
+        },
+        {
+          "action": "start_attempt",
+          "details": {
+            "attempt": 1,
+            "job_id": "bound"
+          },
+          "outcome": "ACCEPTED",
+          "sequence": 5
+        },
+        {
+          "action": "bind_prediction",
+          "details": {
+            "digest": "sha256:fcf898beddfd6eb4fc2c072dfd4f751a057eded0d4ea27d5efab39a8a26b9bf6",
+            "job_id": "bound"
+          },
+          "outcome": "ACCEPTED",
+          "sequence": 6
+        },
+        {
+          "action": "finish",
+          "details": {
+            "job_id": "bound",
+            "state": "TERMINAL"
+          },
+          "outcome": "ACCEPTED",
+          "sequence": 7
+        },
+        {
+          "action": "request_retry",
+          "details": {
+            "job_id": "bound"
+          },
+          "outcome": "ACCEPTED",
+          "sequence": 8
+        }
+      ],
+      "probe": "content_and_retry_binding",
+      "retry_blocks_closure": "ANSWER_DEPENDENT_OPPORTUNITY_OPEN"
+    },
+    {
+      "events": [
+        {
+          "action": "submit",
+          "details": {
+            "requested": "failed-reference",
+            "resolved": "failed-reference"
+          },
+          "outcome": "ACCEPTED",
+          "sequence": 1
+        },
+        {
+          "action": "lock_pack",
+          "details": {
+            "members": [
+              "failed-reference"
+            ],
+            "pack_id": "pack-reference-failure"
+          },
+          "outcome": "ACCEPTED",
+          "sequence": 2
+        },
+        {
+          "action": "expose_cases",
+          "details": {
+            "pack_id": "pack-reference-failure"
+          },
+          "outcome": "ACCEPTED",
+          "sequence": 3
+        },
+        {
+          "action": "finish",
+          "details": {
+            "job_id": "failed-reference",
+            "state": "FAILED_REFERENCE"
+          },
+          "outcome": "ACCEPTED",
+          "sequence": 4
+        },
+        {
+          "action": "close_pack",
+          "details": {
+            "pack_id": "pack-reference-failure"
+          },
+          "outcome": "ACCEPTED",
+          "sequence": 5
+        }
+      ],
+      "positive_scientific_result": false,
+      "probe": "typed_reference_failure",
+      "result": "FAILED_REFERENCE"
+    },
+    {
+      "probe": "independent_connection_race",
+      "results": [
+        "ASSIGNED",
+        "INELIGIBLE_MEMBER"
+      ]
+    }
+  ]
+}

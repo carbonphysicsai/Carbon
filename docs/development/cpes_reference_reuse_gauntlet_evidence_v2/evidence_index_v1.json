@@ -1,0 +1,47 @@
+{
+  "files": {
+    "adaptive_bank_control_v1.json": {
+      "bytes": 641,
+      "sha256": "11cdf7a0fe8c3518315908a0888923baed52ab734cc7d9eea4824a8b432871f5"
+    },
+    "attack_dispositions_v2.json": {
+      "bytes": 29600,
+      "sha256": "1825edfb810a2354a92d86d5337a1f48da0e2777f46f336a0134b1d6495037df"
+    },
+    "attack_traces_v2.jsonl": {
+      "bytes": 7630,
+      "sha256": "d5eaca2b5b5f0439d05600c406f971a2591d274f919b555b8468c8f712f60ad1"
+    },
+    "cost_delay_analysis_v1.json": {
+      "bytes": 198986,
+      "sha256": "61a42a1fdee12ca57041ef25cfd52ff098d502d29985789e6559062cf63f0ffe"
+    },
+    "persistent_probes_v1.json": {
+      "bytes": 11203,
+      "sha256": "181b58362912081daf350fa202826ccb33aa31275c4d5c2acea05fbfeb4c085e"
+    },
+    "profiler_summary_v1.json": {
+      "bytes": 1966,
+      "sha256": "d19b24da7f032bf13d3434c4aefdaaf77d8b35a81eead47e6674bf9d499bb116"
+    },
+    "source_manifest_v1.json": {
+      "bytes": 2488,
+      "sha256": "9bb1333aeaab9839d68271ea1971ba82db68dcb8ab816d063aa199f6b3fafe33"
+    },
+    "study_summary_v1.json": {
+      "bytes": 669,
+      "sha256": "082869baa1c8e71702122c7cb7b91aa6e327cdf1598040802e2efc173807d0d6"
+    }
+  },
+  "new_outcomes_are_detached_research": true,
+  "original_outcomes_are_historical": true,
+  "rerun_commands": [
+    "python3 -m unittest -q test_gauntlet.py",
+    "python3 run_gauntlet.py --out reproduced_results",
+    "python scripts/dev/cpes_reference_reuse_gauntlet.py --config docs/development/cpes_reference_reuse_gauntlet_protocol_v2.json --output-dir /fresh/output --original-bundle /path/to/Carbon_CPES1_v0_2_Gauntlet_Evidence.zip",
+    "python -m pytest -q tests/cpu/test_cpes_reference_reuse_gauntlet.py"
+  ],
+  "schema_version": "carbon.cpes-reuse.evidence-index.v1",
+  "source_revision": "d94a22bb3c09089e01402db9e7ebf6eb3c662966",
+  "study_id": "EXAM-PROTECT-01-REUSE-GAUNTLET-V2"
+}
