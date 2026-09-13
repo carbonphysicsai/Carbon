@@ -66,7 +66,7 @@ def _sanitized_docker_diagnostic(value: bytes) -> str:
     """Expose only synthetic CI mechanics; retain no checkout path or digest."""
 
     text = value.decode("utf-8", "replace")
-    text = re.sub(r"/home/runner/work/[^\s,'\"]+", "<runner-path>", text)
+    text = text.replace(str(Path.cwd()), "<checkout>")
     text = re.sub(r"sha256:[0-9a-f]{64}", "<sha256>", text)
     text = re.sub(r"\b[0-9a-f]{64}\b", "<container-id>", text)
     return text[:4096]
