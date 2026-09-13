@@ -2408,6 +2408,36 @@
       ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5653282388",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/c32f9bf0a54e108ca72e28f64ccca99f5500c88c/docs/development/C02_JAX_INTEGRATION_REPORT.md"
+    },
+    {
+      "title": "Select the first bounded C-03 DEVELOPMENT isolation worker",
+      "question": "How should Carbon isolate the merged C-02 reconstruction adapter now without claiming protected or production security qualification?",
+      "recommendation": "Use one content-addressed Linux x86-64 Docker/cgroup-v2 CPU worker under the exact carbon.c03.linux-x86_64-cpu.development.v1 envelope. Preserve C-01 attempt ownership and B-02C resource/replica identity, inspect effective controls before work, export to an immutable controller snapshot, terminate the full container, validate with C-02 semantics, and quarantine cleanup uncertainty.",
+      "why": "C-02 now supplies the real lab/Foundax adapter needed to implement the isolation boundary. The owner supplied the missing development threat model and exact resource decisions while deliberately retaining host/daemon trust, protected execution, global MQ-015 review and production policy as open seams.",
+      "if_kept": "C-03 can complete a tested public-data DEVELOPMENT slice with no miner-facing ceremony. The missing v0.2 source remains deferred, C-02 stays open for broader requirements, and no production repeat, protected-exam, scientific, archive, reward, network or LIVE authority follows.",
+      "if_changed": "A different engine, rootless mode, accelerator, resource envelope, protected-data use, production repeat rule, host-root defense or broader execution surface requires a prospectively versioned profile, its owning decision and new service/security evidence.",
+      "decision_id": "OWNER-C03-DEV-ISOLATION-01",
+      "map_ref": "WAVE-C/C-03",
+      "wave": "C",
+      "ticket": "C-03",
+      "attention": "FOR_AWARENESS",
+      "status": "OWNER_SELECTED_WORKING_DECISION",
+      "audience": "harsh",
+      "affects": [
+        "WAVE-C",
+        "WAVE-C/C-02",
+        "WAVE-C/C-04",
+        "WAVE-C/C-07",
+        "SYSTEM/AGENT-EXECUTION",
+        "SYSTEM/CI",
+        "SYSTEM/GOVERNANCE",
+        "SYSTEM/MATURITY",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+      ],
+      "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5654112269",
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/8ccea37477ff6087c6d25349b11cb2a9fd8e6c28/docs/development/C03_ISOLATED_WORKER_REPORT.md"
     }
   ]
 }
