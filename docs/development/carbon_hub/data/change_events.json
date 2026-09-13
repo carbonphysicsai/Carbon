@@ -2442,6 +2442,9 @@
       "summary": "The owner-authorized C-02 continuation repairs complete receipt/artifact/checkpoint association, exact finite prediction and metadata contracts, and Transolver provenance, then adds an optional frozen DEVELOPMENT repeat runner over existing B-02C replicate and C-01 attempt identities. C-02 remains in progress; no production repeat count, C-03 selection, official science, score, reward, production, network or LIVE authority follows.",
       "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/75414bb9b85bee3107e880918fe9b91817f48c1b/.agent/evidence/wave_c/c-02.md",
       "affects": [
+        "WAVE-B",
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE",
         "WAVE-C",
         "WAVE-C/C-02",
         "WAVE-C/C-03",

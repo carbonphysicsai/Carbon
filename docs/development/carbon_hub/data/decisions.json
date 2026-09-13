@@ -2363,6 +2363,9 @@
       "status": "IMPLEMENTED_WORKING_DECISION",
       "audience": "harsh",
       "affects": [
+        "WAVE-B",
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE",
         "WAVE-C",
         "WAVE-C/C-02",
         "WAVE-C/C-03",
