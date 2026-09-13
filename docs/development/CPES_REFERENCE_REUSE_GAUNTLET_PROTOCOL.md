@@ -1,9 +1,12 @@
 # CPES reference-reuse gauntlet continuation protocol
 
-**Protocol:** `carbon.cpes-reference-reuse-gauntlet.protocol.v2`  
+**Protocol:** `carbon.cpes-reference-reuse-gauntlet.protocol.v2`
+
 **Frozen configuration:**
-`.agent/preregistrations/EXAM-PROTECT-01_reference_reuse_gauntlet_v2.json`  
-**Issue:** [EXAM-PROTECT-01 #142](https://github.com/carbonphysicsai/Carbon/issues/142)  
+`docs/development/cpes_reference_reuse_gauntlet_protocol_v2.json`
+
+**Issue:** [EXAM-PROTECT-01 #142](https://github.com/carbonphysicsai/Carbon/issues/142)
+
 **Pinned research baseline:** `d94a22bb3c09089e01402db9e7ebf6eb3c662966`
 
 This study is a detached falsification exercise. It neither selects nor changes
