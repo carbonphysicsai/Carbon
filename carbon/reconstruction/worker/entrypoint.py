@@ -8,6 +8,9 @@ import time
 from pathlib import Path
 
 from carbon.reconstruction.worker.protocol import run_staged_worker
+from carbon.reference_runtime.protocol import (
+    run_staged_reference_worker,
+)
 
 _released = False
 
@@ -29,7 +32,11 @@ def main() -> int:
         if _released:
             return 143
         time.sleep(0.05)
-    result = run_staged_worker(Path("/input"), scratch)
+    input_directory = Path("/input")
+    if (input_directory / "reference-request.json").is_file():
+        result = run_staged_reference_worker(input_directory, scratch)
+    else:
+        result = run_staged_worker(input_directory, scratch)
     if result:
         return result
     # Keep the tmpfs mounted while the trusted controller snapshots output.

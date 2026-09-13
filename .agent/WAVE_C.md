@@ -33,15 +33,14 @@
 
 **Status:** active in bounded engineering scope because `.agent/WAVE.md` names
 Wave C/C0 and this file as its controlling register.
-**Version:** 1.8
+**Version:** 1.9
 **Activation decision:** `OWNER-WAVE-C0-NET1-01`
-**Selected ticket:** C-03 — `in_progress`
-**Active ticket:** C-03
-**Next authorized ticket after current merge:** C-04's engineering/public
-qualification-candidate slice. `OWNER-C1-BURGERS-ALPHA-01` keeps one selected
-ticket at a time: C-03 prerequisite hardening is active now, and C-04 becomes
-selected only after its normal tested merge. Protected science, real archive
-acknowledgement and public-network execution remain ineligible.
+**Selected ticket:** C-04 — `in_progress`
+**Active ticket:** C-04 engineering/public qualification-candidate slice
+**Next authorized ticket after current merge:** C-05 engineering/public
+qualification-candidate measurement slice. `OWNER-C1-BURGERS-ALPHA-01` keeps
+one selected ticket at a time. Protected science, real archive acknowledgement
+and public-network execution remain ineligible.
 PR #146 merged the initial adapter as
 `d9fadf7f9cbb9b3a2a4ffa1ec9b0c906826be8ca`; PR #147 accepted head
 `72608d589582707955943345bc1308017e9650dc` in run `34750621646` and merged
@@ -60,10 +59,12 @@ normally merged the worker slice as
 `d94a22bb3c09089e01402db9e7ebf6eb3c662966`, tree
 `1869b19e9bd4969d042e9b6e40b1470304974d5c`; its image/config is
 `sha256:dae4717ae00d3174b8644159934eb4edbe94c0ad125549f6ade570a6f4c7e630`.
-The active continuation hardens controller capture, artifact validation,
-resource evidence and recovery semantics before C-04 consumes the capability.
-**Last completed ticket:** C-EP3, merged in PR #145 after head
-`ff1d4603cf6889bb3e9cf7f4a589524ade5c6b8c` passed run `34721794618`
+PR #151 accepted hardening head
+`abc490495528d8960ff8c66f50feabeae3affd34` in RUNTIME_FULL run
+`34778563403` and normally merged it as
+`2d5872aff89ca7bef3e3f062b293aeefe17769aa`. C-04 now consumes that bounded
+capability for public qualification-candidate reference execution.
+**Last completed slice:** C-03 prerequisite hardening, merged in PR #151
 **Primary Hub map_ref:** `WAVE-C`
 
 C-EA1 passed canonical acceptance in run `34558389185` at accepted head
@@ -130,8 +131,8 @@ production custody, quorum, science or economics blocks only that operation.
 | C-EA0 | Evidence capture contract | done | `.agent/evidence/wave_c/c-ea0.md` | Codex + evidence architecture | Execution + Operations + data/security + scientific integration | C-AUTH1, C-01, B-GATE | MQ-048, MQ-051 | M | C1 |
 | C-EA1 | Durable evidence archive | done | `.agent/evidence/wave_c/c-ea1.md` | Codex + evidence architecture | Operations + data/security + scientific integration | C-EA0 + OWNER-C-EA1-SYNTHETIC-01 | MQ-048, MQ-051 | L | C1 |
 | C-02 | Real declarative reconstruction | in_progress | `.agent/tickets/C-02_real_reconstruction.md` | Physics/SciML + reconstruction engineering | Scientific integration + execution | B-02B, B-03, B-E1, C-01 | MQ-045, MQ-048 | L | C1 |
-| C-03 | Isolated reconstruction worker | in_progress | `.agent/tickets/C-03_isolated_reconstruction_worker.md` (PR #149 bounded slice accepted; hardening active) | Codex + execution/SRE engineering | Security + protocol + Physics/SciML | C-01, B-02B, B-02C, A4; C-02 merged adapter capability satisfied and full C-02 closure non-blocking | MQ-015 scoped DEVELOPMENT implementation/test evidence; broader review open, MQ-048 | L | C1 |
-| C-04 | Protected reference runtime | todo | `.agent/plans/C1_DEPENDENCY_GRAPH.md` (prospectively next engineering/public-candidate slice; D-03/D-04 prerequisite harness remains under its owners) | Scientific reference + execution engineering | Physics/SciML + security | C-03, B-04, B-E2; accepted isolation capability plus current hardening | MQ-045, MQ-048 | L | C1 |
+| C-03 | Isolated reconstruction worker | in_progress | `.agent/tickets/C-03_isolated_reconstruction_worker.md` (PR #149 capability and PR #151 hardening accepted; broader protected/security scope open) | Codex + execution/SRE engineering | Security + protocol + Physics/SciML | C-01, B-02B, B-02C, A4; C-02 merged adapter capability satisfied | MQ-015 scoped DEVELOPMENT implementation/test evidence; broader review open, MQ-048 | L | C1 |
+| C-04 | Protected reference runtime | in_progress | `.agent/plans/C-04_reference_runtime.md` (selected public-candidate slice; D-03/D-04 prerequisite harness only) | Scientific reference + execution engineering | Physics/SciML + security | C-03 PR #151, B-04, B-E2 satisfied for bounded engineering | MQ-045, MQ-048 | L | C1 |
 | C-05 | Real measurement and Score Pack | todo | `.agent/plans/C1_DEPENDENCY_GRAPH.md` | Scientific measurement engineering | Physics/SciML + statistics | C-02, C-04, B-05 | MQ-045, MQ-048 | L | C1 |
 | C-06 | Signed evaluation receipt | todo | `.agent/plans/C1_DEPENDENCY_GRAPH.md` | Scientific integration + receipt engineering | Security + Physics/SciML | C-01, C-02, C-04, C-05 | MQ-048, MQ-051 | L | C1 |
 | C-07 | Real validator orchestration | todo | `.agent/plans/C1_DEPENDENCY_GRAPH.md` | Validator orchestration engineering | Scientific integration + security | C-01, C-02, C-03, C-04, C-05, C-06 | MQ-048, MQ-051 | L | C1 |

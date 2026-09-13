@@ -207,6 +207,8 @@ def test_empty_manifest_retains_full_image_acceptance() -> None:
         ("carbon/reconstruction/worker/controller.py", True),
         ("carbon/execution/worker.py", True),
         ("tests/service/test_c03_worker_service.py", True),
+        ("carbon/reference_runtime/model.py", True),
+        ("tests/service/test_c04_reference_service.py", True),
         ("carbon/reconstruction/service.py", False),
         (".agent/tickets/C-03_isolated_reconstruction_worker.md", False),
     ),

@@ -4,8 +4,8 @@
 **Recorded:** 2026-09-14
 **Source:** the repository owner's prospective “Carbon Wave C continuation
 after PR #149” assignment in the 2026-09-14 Codex session
-**Status:** active prospective sequencing authority; C-03 prerequisite hardening
-is the one selected implementation ticket
+**Status:** active prospective sequencing authority; PR #151 accepted C-03
+prerequisite hardening and C-04 is the selected implementation ticket
 **Primary Hub map_ref:** `WAVE-C`
 
 ## Baseline and purpose
@@ -153,11 +153,13 @@ diagnostics, not production failure, repeat or tail guarantees.
 
 ## Current selected slice and stop boundary
 
-C-03 prerequisite hardening is selected first. It must disposition terminal
-state/retry rights, bounded Docker response capture, bounded native artifact
-validation and deadline/restart/cleanup uncertainty while reconciling PR #149's
-accepted evidence. After its normal tested merge, C-04 is the next selected
-engineering slice without another owner-selection prompt.
+PR #151 accepted exact C-03 hardening head
+`abc490495528d8960ff8c66f50feabeae3affd34` in RUNTIME_FULL run
+`34778563403` and normally merged as
+`2d5872aff89ca7bef3e3f062b293aeefe17769aa`. C-04 is now selected for its
+role-explicit algorithms, isolated public reference runtime and only the
+D-03/D-04 prerequisite evidence harness. After its normal tested merge, C-05
+is the next selected engineering slice without another owner-selection prompt.
 
 The program stops only when further correct implementation needs an actual
 credential, paid deployment, protected-admission approval, independent-review

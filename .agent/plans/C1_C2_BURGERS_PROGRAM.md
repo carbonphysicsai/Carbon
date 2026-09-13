@@ -3,10 +3,9 @@
 **Decision:** `OWNER-C1-C2-BURGERS-01`, prospectively amended by
 `OWNER-C1-BURGERS-ALPHA-01`
 **Recorded:** 2026-09-10
-**Status:** active sequential implementation authority; PR #149 closed C-03's
-first bounded worker slice, C-03 prerequisite hardening is selected, and C-04
-is the next authorized engineering/public qualification-candidate slice after
-that normal merge
+**Status:** active sequential implementation authority; PR #151 accepted C-03
+prerequisite hardening and C-04 is the selected engineering/public
+qualification-candidate slice
 **Primary Hub map_ref:** `WAVE-C`
 
 ## Owner source and verified import
@@ -61,6 +60,12 @@ PR #149 accepted C-03's Docker worker at exact head
 `ef4d5e336c942b7ff40856fcfee03f522ef2d1d5`, run `34770761721`, merge
 `d94a22bb3c09089e01402db9e7ebf6eb3c662966`. Full C-02/C-03 scientific,
 protected and production status remains open.
+
+PR #151 then accepted exact hardening head
+`abc490495528d8960ff8c66f50feabeae3affd34` in RUNTIME_FULL run
+`34778563403` and normally merged as
+`2d5872aff89ca7bef3e3f062b293aeefe17769aa`. C-04 now consumes that bounded
+capability; neither merge is protected-execution or security qualification.
 
 `OWNER-C1-CONTRACTS-01` materializes C-03, C-08 and C-09 from their retained
 launch identities and records their exact prerequisites in

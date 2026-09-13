@@ -32,7 +32,7 @@
 > historical evidence, and human-reserved scientific/security authority remain.
 
 **Current wave:** C
-**Current phase:** C-03 prerequisite hardening after accepted PR #149
+**Current phase:** C-04 role-explicit public reference runtime after accepted PR #151
 **State:** **active in bounded engineering scope**
 **Wave A:** closed in bounded engineering scope
 **Wave B:** closed in bounded engineering scope after PR #118 accepted head
@@ -40,10 +40,10 @@
 normally merged as `ac050fd53ee18bf3788c167ee7b0736bbfd7a46b`, tree
 `46b38440f13a8048db18bc480ddb6907396c9017`
 **Controlling register:** `.agent/WAVE_C.md` version 1.8
-**Selected ticket:** C-03 — `in_progress`
-**Active ticket:** C-03
-**Next authorized ticket after current merge:** C-04 engineering and public
-qualification-candidate slice under `OWNER-C1-BURGERS-ALPHA-01`
+**Selected ticket:** C-04 — `in_progress`
+**Active ticket:** C-04 engineering/public qualification-candidate slice
+**Next authorized ticket after current merge:** C-05 engineering and public
+qualification-candidate measurement under `OWNER-C1-BURGERS-ALPHA-01`
 C-EA1 passed canonical acceptance in run `34558389185` at accepted head
 `a779af066f4bf9bc36b6d6ab23914fa19191e1de` and normally merged in PR #136 as
 `0e0714c8260ca482a0ba2b743b2eaefd50508da1`. `OWNER-C-EA1-SYNTHETIC-01`
@@ -84,9 +84,11 @@ PR #149 accepted exact head `ef4d5e336c942b7ff40856fcfee03f522ef2d1d5`
 in run `34770761721` and normally merged the bounded worker slice as
 `d94a22bb3c09089e01402db9e7ebf6eb3c662966`. The accepted image/config is
 `sha256:dae4717ae00d3174b8644159934eb4edbe94c0ad125549f6ade570a6f4c7e630`.
-`OWNER-C1-BURGERS-ALPHA-01` now selects only C-03's prerequisite-hardening
-continuation; after its tested merge, C-04 is prospectively next without a new
-ticket-selection prompt. Protected and score-eligible admission remain off.
+PR #151 accepted exact C-03 hardening head
+`abc490495528d8960ff8c66f50feabeae3affd34` in run `34778563403` and normally
+merged as `2d5872aff89ca7bef3e3f062b293aeefe17769aa`.
+`OWNER-C1-BURGERS-ALPHA-01` now selects C-04's engineering/public
+qualification-candidate slice. Protected and score-eligible admission remain off.
 **Activation authority:** `OWNER-WAVE-C0-NET1-01` records the repository
 owner's explicit authorization to reconcile B-GATE, close Wave B in bounded
 engineering scope, activate Wave C/C0, select NET-1 alone, and continue through
@@ -135,9 +137,10 @@ finalization, C-W1, network or qualification. C-08 and C-09 remain materialized
 but unselected. The supplied immutable JAX bundle and merged PR #148 satisfy
 C-03's bounded adapter prerequisite. PR #149's exact head passed its required
 Linux service acceptance and normally merged the bounded public-data worker.
-`OWNER-C1-BURGERS-ALPHA-01` retains C-03 as the single active ticket for
-bounded response, parser, resource-observation and deadline/recovery hardening,
-then prospectively sequences C-04. C-02 remains open, the missing v0.2 research
+PR #151 accepted C-03's bounded response, parser, resource-observation and
+deadline/recovery hardening. `OWNER-C1-BURGERS-ALPHA-01` now selects C-04's
+public qualification-candidate reference runtime. C-02/C-03 remain open for
+their broader requirements, the missing v0.2 research
 archive remains deferred/unverified, and the new three-replica working rule is
 not scientific sufficiency or a universal production/mainnet repeat policy.
 C-EA2 and later science/archive/network runtime remain unimplemented and
