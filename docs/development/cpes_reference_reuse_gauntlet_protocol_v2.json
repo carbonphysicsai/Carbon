@@ -1,0 +1,82 @@
+{
+  "schema_version": "carbon.cpes-reference-reuse-gauntlet.protocol.v2",
+  "study_id": "EXAM-PROTECT-01-REUSE-GAUNTLET-V2",
+  "issue": 142,
+  "source_revision": "d94a22bb3c09089e01402db9e7ebf6eb3c662966",
+  "research_only": true,
+  "runtime_integration_authorized": false,
+  "seed": 20260914,
+  "bounded_budget": {
+    "max_wall_seconds": 60,
+    "max_processes": 1,
+    "network": "DENIED_BY_STUDY_DESIGN",
+    "fixtures": "PUBLIC_OR_SYNTHETIC_ONLY",
+    "persistent_state": "DISPOSABLE_SQLITE_ONLY"
+  },
+  "attacker_capabilities": [
+    "colluding identities and copied strategies",
+    "adaptive submissions using previously permitted feedback",
+    "strategic arrival, duplicate, cancellation and slow-member behavior",
+    "malicious caller at the detached model/prototype boundary",
+    "dishonest signer or privileged host where explicitly marked blocked"
+  ],
+  "variants": {
+    "A": "fresh singleton pack per independently admitted job; no fill wait; closure summary",
+    "B": "compatible jobs already committed at dispatch share one fresh pack; no fill wait; closure summary",
+    "C": "B plus one prospectively fixed bounded fill wait; research sensitivity only",
+    "D": "repeatedly exposed finite hidden bank; vulnerable negative control only"
+  },
+  "metrics": [
+    "reference_attempts",
+    "unique_reference_cases",
+    "candidate_work",
+    "reference_work",
+    "control_and_closure_work",
+    "failed_cancelled_and_unresolved_work",
+    "ordinary_queue_delay",
+    "intentional_fill_delay",
+    "other_member_closure_delay",
+    "submission_to_summary_delay",
+    "complete_comparisons",
+    "adaptive_feedback_rounds"
+  ],
+  "negative_controls": [
+    "late_membership_guard_removed",
+    "retirement_guard_removed",
+    "authority_evidence_guard_removed",
+    "finite_bank_exact_score_feedback"
+  ],
+  "held_out": {
+    "adaptive_bank_selection_bits": 32,
+    "adaptive_bank_confirmation_bits": 32,
+    "repair_selection_attacks": ["AT-17", "AT-20", "AT-25"],
+    "confirmation_attacks": ["AT-18", "AT-19", "AT-21", "AT-23", "AT-27", "AT-29", "AT-30"]
+  },
+  "operating_grid": {
+    "group_bound": 3,
+    "bounded_fill_wait_units": 4,
+    "group_overhead_units": [0, 4, 12],
+    "reference_work_units": [2, 40, 400],
+    "scenarios": [
+      "cheap_sparse",
+      "expensive_bursty",
+      "mixed_challenges",
+      "duplicate_flood",
+      "slow_or_unresolved_member"
+    ]
+  },
+  "stop_conditions": [
+    "all 30 original attack IDs have explicit current dispositions",
+    "all four vulnerable controls demonstrate the intended exploit",
+    "persistent restart and stale-write probes complete deterministically",
+    "the small frozen A/B/C grid completes once",
+    "any semantic or accounting contradiction stops the affected claim"
+  ],
+  "claim_limits": [
+    "no production security, scientific, reference, entropy, custody or execution qualification",
+    "no Variant B or C runtime implementation",
+    "synthetic costs and arrivals are assumptions, not miner observations",
+    "C-EP3 reference and C-03 reconstruction observations retain distinct hardware and authority",
+    "the original 72.5 percent overlap remains a finite synthetic counterexample, not a Carbon rate"
+  ]
+}

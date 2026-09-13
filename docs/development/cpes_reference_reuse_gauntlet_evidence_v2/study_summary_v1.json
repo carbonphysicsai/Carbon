@@ -1,0 +1,26 @@
+{
+  "attack_counts": {
+    "BLOCKED": 5,
+    "REJECTED_BY_PERSISTENT_RESEARCH_PROTOTYPE": 8,
+    "REJECTED_BY_REPRODUCED_ORIGINAL_MODEL": 17
+  },
+  "blocked_attack_ids": [
+    "AT-09",
+    "AT-16",
+    "AT-19",
+    "AT-22",
+    "AT-30"
+  ],
+  "negative_control_exploits": [
+    "late_membership_guard_removed",
+    "retirement_guard_removed",
+    "authority_evidence_guard_removed",
+    "finite_bank_exact_score_feedback"
+  ],
+  "operating_replays": 45,
+  "production_authority": false,
+  "recommendation": "RETAIN_A",
+  "runtime_sharing_implemented": false,
+  "schema_version": "carbon.cpes-reuse.study-summary.v1",
+  "study_id": "EXAM-PROTECT-01-REUSE-GAUNTLET-V2"
+}
