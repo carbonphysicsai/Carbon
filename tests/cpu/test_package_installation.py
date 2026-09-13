@@ -315,11 +315,18 @@ sys.path.insert(0, str(installed_root))
 module_names = {json.dumps(INSTALLED_MODULES)}
 modules = [importlib.import_module(name) for name in module_names]
 distribution = importlib.metadata.distribution("carbon")
+vendor_root = installed_root / "carbon/reconstruction/_vendor/carbon_jax_lab/licenses"
+license_files = [
+    vendor_root / "NOTICE.md",
+    vendor_root / "third_party/NEURALOPERATOR_LICENSE.txt",
+    vendor_root / "third_party/TRANSOLVER_LICENSE.txt",
+]
 print(json.dumps({{
     "distribution_name": distribution.metadata["Name"],
     "distribution_version": distribution.version,
     "module_names": [module.__name__ for module in modules],
     "module_files": [str(pathlib.Path(module.__file__).resolve()) for module in modules],
+    "license_files": [str(path) for path in license_files if path.is_file()],
 }}))
 """
     result = subprocess.run(
@@ -337,10 +344,18 @@ print(json.dumps({{
         "distribution_version": CARBON_VERSION,
         "module_names": list(INSTALLED_MODULES),
         "module_files": payload["module_files"],
+        "license_files": payload["license_files"],
     }
     assert all(
         module_file.startswith(f"{installed_wheel_root.resolve()}/carbon")
         for module_file in payload["module_files"]
+    )
+    assert len(payload["license_files"]) == 3
+    assert all(
+        license_file.startswith(
+            f"{installed_wheel_root.resolve()}/carbon/reconstruction/_vendor/"
+        )
+        for license_file in payload["license_files"]
     )
 
 
