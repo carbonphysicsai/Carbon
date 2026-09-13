@@ -33,12 +33,14 @@ from carbon.reconstruction.worker.docker_runtime import (
     create_arguments,
     doctor,
     inspect_effective_controls,
+    observe_effective_resources,
     remove_exact_container,
     spawn_watchdog,
 )
 from carbon.reconstruction.worker.model import (
     CONTROL_BYTES,
     OUTPUT_BYTES,
+    OUTPUT_MEMBERS,
     PRODUCTIVE_DEADLINE_SECONDS,
     DevelopmentWorkerProfile,
     WorkerCode,
@@ -51,7 +53,7 @@ from carbon.reconstruction.worker.protocol import (
     decode_output_stream,
     snapshot_output,
     stage_request,
-    validate_snapshot,
+    validate_snapshot_bounded,
 )
 from carbon.seeding import DerivedSeed
 
@@ -90,6 +92,7 @@ class WorkerRunResult:
     container_id: str
     timings: dict[str, float]
     effective_controls: dict[str, object]
+    resource_observation: dict[str, object]
     snapshot_path: Path
 
 
@@ -211,13 +214,10 @@ class IsolatedReconstructionController:
             snapshot = (
                 self.state_root / "snapshots" / retained_status["launch_digest"][7:]
             )
-            receipt = validate_snapshot(
-                snapshot,
-                execution_ref=replica.execution_ref,
-                plan=plan,
-                training_archive=training_archive,
-                randomness_digest=replica.randomness_digest,
-            )
+            # An associated replay revalidates the retained bytes in the same
+            # bounded native-parser process. Rebuild the read-only stage only
+            # for that validation; it creates no worker execution effect.
+            receipt = validate_snapshot_bounded(snapshot, stage)
             shutil.rmtree(stage, ignore_errors=True)
             return WorkerRunResult(
                 receipt,
@@ -227,6 +227,11 @@ class IsolatedReconstructionController:
                 retained_status["container_id"],
                 {"replay": 0.0, "total": float(time.monotonic() - started_mono)},
                 {"retained_exact_replay": True},
+                retained_status.get("resource_observation")
+                or {
+                    "schema": "carbon.c03.resource-observation.v1",
+                    "status": "UNAVAILABLE_FOR_HISTORICAL_REPLAY",
+                },
                 snapshot,
             )
         try:
@@ -249,6 +254,7 @@ class IsolatedReconstructionController:
                 WorkerLaunchState.FAILED_INFRA,
                 terminal_code=checked.code,
             )
+            shutil.rmtree(stage, ignore_errors=True)
             raise WorkerFailure(WorkerCode.UNAVAILABLE)
         create_started = time.monotonic()
         try:
@@ -289,14 +295,14 @@ class IsolatedReconstructionController:
         self.store.transition(
             binding, WorkerLaunchState.CREATED, container_id=container_id
         )
-        # Start the independent deadline owner before dispatching actual work.
-        spawn_watchdog(
-            container_name=container_name,
-            launch_digest=binding.launch_digest,
-            deadline_unix=timing.productive_deadline_unix,
-        )
+        execution_running = False
         try:
-            execution_running = False
+            # Start the independent deadline owner before dispatching actual work.
+            spawn_watchdog(
+                container_name=container_name,
+                launch_digest=binding.launch_digest,
+                deadline_unix=timing.productive_deadline_unix,
+            )
             self.cli.run(["start", container_name], timeout=20)
             self._wait_file(container_name, "/scratch/control-ready", timing)
             controls_digest, controls = inspect_effective_controls(
@@ -360,10 +366,25 @@ class IsolatedReconstructionController:
             )
             shutil.rmtree(raw_parent, ignore_errors=True)
             export_seconds = time.monotonic() - export_started
+            resource_observation = observe_effective_resources(
+                cli=self.cli, container_name=container_name
+            )
+            output_members = tuple(
+                member for member in snapshot.rglob("*") if member.is_file()
+            )
+            resource_observation["output_snapshot"] = {
+                "observed_bytes": sum(
+                    member.stat().st_size for member in output_members
+                ),
+                "observed_members": len(output_members),
+                "bounded_bytes": OUTPUT_BYTES,
+                "bounded_members": OUTPUT_MEMBERS,
+            }
             self.store.transition(
                 binding,
                 WorkerLaunchState.OUTPUT_SNAPSHOTTED,
                 output_snapshot_digest=snapshot_digest,
+                resource_observation=resource_observation,
             )
             cleanup_started = time.monotonic()
             remove_exact_container(
@@ -372,19 +393,13 @@ class IsolatedReconstructionController:
                 launch_digest=binding.launch_digest,
             )
             cleanup_seconds = time.monotonic() - cleanup_started
-            shutil.rmtree(stage, ignore_errors=True)
             self.store.transition(binding, WorkerLaunchState.TERMINATED)
             validation_started = time.monotonic()
-            receipt = validate_snapshot(
-                snapshot,
-                execution_ref=replica.execution_ref,
-                plan=plan,
-                training_archive=training_archive,
-                randomness_digest=replica.randomness_digest,
-            )
+            receipt = validate_snapshot_bounded(snapshot, stage)
             if receipt.status is not ReconstructionStatus.COMPLETE:
                 raise WorkerFailure(WorkerCode.OUTPUT)
             validation_seconds = time.monotonic() - validation_started
+            shutil.rmtree(stage, ignore_errors=True)
             self.execution_queue.record_partial(
                 claimed.claim,
                 PartialWorkRef(
@@ -410,9 +425,30 @@ class IsolatedReconstructionController:
                     "total": float(time.monotonic() - started_mono),
                 },
                 controls,
+                resource_observation,
                 snapshot,
             )
         except BaseException as error:
+            terminal_code = (
+                error.code if type(error) is WorkerFailure else WorkerCode.RUNTIME
+            )
+            failure_observation: dict[str, object]
+            try:
+                failure_observation = observe_effective_resources(
+                    cli=self.cli, container_name=container_name
+                )
+            except WorkerFailure:  # retain unavailability, never mask cause
+                failure_observation = {
+                    "schema": "carbon.c03.resource-observation.v1",
+                    "status": "UNAVAILABLE_AT_FAILURE",
+                }
+            failure_observation["terminal"] = {
+                "worker_code": terminal_code.value,
+                "elapsed_seconds": float(time.monotonic() - started_mono),
+                "admitted_deadline_seconds": PRODUCTIVE_DEADLINE_SECONDS,
+                "consumption": "OBSERVED_PARTIAL_OR_UNKNOWN",
+                "replacement_authority": "NONE",
+            }
             try:
                 remove_exact_container(
                     cli=self.cli,
@@ -425,23 +461,19 @@ class IsolatedReconstructionController:
                         binding,
                         WorkerLaunchState.RECONCILIATION_REQUIRED,
                         terminal_code=WorkerCode.CLEANUP.value,
+                        resource_observation=failure_observation,
                     )
                     self.store.transition(binding, WorkerLaunchState.QUARANTINED)
                 except WorkerFailure:
                     pass
                 raise WorkerFailure(WorkerCode.QUARANTINED) from None
             shutil.rmtree(stage, ignore_errors=True)
-            if execution_running and (
-                type(error) is not WorkerFailure
-                or error.code
-                in {
-                    WorkerCode.UNAVAILABLE,
-                    WorkerCode.RUNTIME,
-                    WorkerCode.DEADLINE,
-                    WorkerCode.CLEANUP,
-                }
-            ):
+            if execution_running:
                 try:
+                    # C-01 admits a successor only from RETRYABLE_INFRA. This
+                    # source-owned terminal is deliberately FAILED_INFRA so a
+                    # deadline, policy/resource exhaustion, malformed output,
+                    # or native-parser failure cannot mint a fresh budget.
                     self.execution_queue.fail_infrastructure(claimed.claim)
                 except ExecutionFailure:
                     pass
@@ -452,21 +484,23 @@ class IsolatedReconstructionController:
                     WorkerLaunchState.CANCELLED.value,
                     WorkerLaunchState.FAILED_INFRA.value,
                 }:
+                    target = (
+                        WorkerLaunchState.CANCELLED
+                        if terminal_code in {WorkerCode.CANCELLED, WorkerCode.DEADLINE}
+                        else WorkerLaunchState.FAILED_INFRA
+                    )
                     self.store.transition(
                         binding,
-                        WorkerLaunchState.RECONCILIATION_REQUIRED,
-                        terminal_code=(
-                            error.code.value
-                            if type(error) is WorkerFailure
-                            else WorkerCode.RUNTIME.value
-                        ),
+                        target,
+                        terminal_code=terminal_code.value,
+                        resource_observation=failure_observation,
                     )
             except WorkerFailure:
                 pass
             raise
 
     def _wait_file(self, container_name: str, path: str, timing: WorkerTiming) -> None:
-        while time.time() < timing.productive_deadline_unix:
+        while time.monotonic() < timing.productive_deadline_monotonic:
             result = self.cli.run(
                 ["exec", container_name, "/usr/bin/test", "-f", path],
                 timeout=5,

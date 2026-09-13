@@ -1,0 +1,35 @@
+{
+  "case_coordinates": [
+    {"build": 0, "cell": 0, "ordinal": 0, "role": "EVAL"},
+    {"build": 0, "cell": 1, "ordinal": 0, "role": "EVAL"},
+    {"build": 0, "cell": 2, "ordinal": 0, "role": "EVAL"},
+    {"build": 0, "cell": 3, "ordinal": 0, "role": "EVAL"},
+    {"build": 0, "cell": 4, "ordinal": 0, "role": "EVAL"},
+    {"build": 0, "cell": 5, "ordinal": 0, "role": "EVAL"},
+    {"build": 0, "cell": 6, "ordinal": 0, "role": "EVAL"},
+    {"build": 0, "cell": 7, "ordinal": 0, "role": "EVAL"},
+    {"build": 0, "cell": 8, "ordinal": 0, "role": "EVAL"},
+    {"build": 0, "cell": 9, "ordinal": 0, "role": "EVAL"},
+    {"build": 0, "cell": 10, "ordinal": 0, "role": "EVAL"},
+    {"build": 0, "cell": 11, "ordinal": 0, "role": "EVAL"}
+  ],
+  "case_count": 12,
+  "challenge": {"id": "burgers-dynamics-v1", "version": "1.0"},
+  "environment_digest": "sha256:914e6e0aab72edd55854fbfd25ccce7a05d271da4bde3e6a88a49609c07d65a0",
+  "manifest_digest": "sha256:28f4483c3432d8f36239663fb6b79e5ca1f46ad6850b63dac64a240cd1b72ec8",
+  "protected_execution_eligible": false,
+  "query": {
+    "spatial_points": 64,
+    "time_over_characteristic_time": [0.0, 0.1, 0.25]
+  },
+  "roles": [
+    "CANDIDATE_PRIMARY",
+    "INDEPENDENT_WITNESS",
+    "DEVELOPMENT_CROSSCHECK"
+  ],
+  "schema": "carbon.c04.public-reference-candidate-campaign.v1",
+  "scientific_tolerances": null,
+  "scientifically_qualified": false,
+  "scope": "PUBLIC_QUALIFICATION_CANDIDATE_ONLY",
+  "score_eligible": false
+}

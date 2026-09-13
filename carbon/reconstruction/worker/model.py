@@ -33,6 +33,10 @@ DIAGNOSTIC_BYTES = 1024**2
 NOFILE_LIMIT = 1024
 WORKER_UID = 65532
 WORKER_GID = 65532
+VALIDATION_MEMORY_BYTES = 4 * 1024**3
+VALIDATION_CPU_SECONDS = 60
+VALIDATION_WALL_SECONDS = 90
+VALIDATION_NOFILE_LIMIT = 256
 
 _TOKEN = re.compile(r"[A-Za-z0-9]+(?:[._:-][A-Za-z0-9]+)*\Z", re.ASCII)
 
@@ -224,6 +228,12 @@ class WorkerTiming:
             raise WorkerFailure(WorkerCode.INVALID)
         exact_token(self.boot_id)
 
+    @property
+    def productive_deadline_monotonic(self) -> float:
+        """Same-boot live deadline; never compare this value across boot IDs."""
+
+        return self.launch_started_monotonic + PRODUCTIVE_DEADLINE_SECONDS
+
 
 __all__ = [
     "CLEANUP_CONFIRMATION_SECONDS",
@@ -245,6 +255,10 @@ __all__ = [
     "SCRATCH_BYTES",
     "SCRATCH_INODES",
     "SWAP_BYTES",
+    "VALIDATION_CPU_SECONDS",
+    "VALIDATION_MEMORY_BYTES",
+    "VALIDATION_NOFILE_LIMIT",
+    "VALIDATION_WALL_SECONDS",
     "WORKER_GID",
     "WORKER_UID",
     "DevelopmentWorkerProfile",

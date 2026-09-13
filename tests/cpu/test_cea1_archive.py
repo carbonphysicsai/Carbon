@@ -574,7 +574,10 @@ def test_duplicate_converges_conflict_tamper_and_wrong_key_fail_closed(
     object_key = next(
         record.object_key for record in first.manifest.artifacts if record.object_key
     )
-    objects.values[object_key] = objects.values[object_key][:-1] + b"x"
+    original_object = objects.values[object_key]
+    mutated_object = original_object[:-1] + bytes([original_object[-1] ^ 1])
+    assert mutated_object != original_object
+    objects.values[object_key] = mutated_object
     tampered, _ = archive.verify_current(
         first.entry, synthetic_capture_profile(), first.manifest, key
     )

@@ -11,12 +11,12 @@ When browsing on GitHub, start with **`orientation/START_HERE.md`**. It is the p
 - 14 waves (A-N)
 - 68 captured tickets across Wave A, Wave B, and Wave C
 - 7 protocol-change routes
-- 105 map-level change events
+- 109 map-level change events
 - 8 independent maturity states
 
 ## Captured current position
 
-Wave **C**; current ticket: **C-03**. Last completed: **C-EP3** (`done`). Next selected: **none selected**. C-EP3 completed after head ff1d4603cf6889bb3e9cf7f4a589524ade5c6b8c passed run 34721794618 and merged in PR #145. PR #148 then accepted C-02 head 5e3d47039a52f601789f0495f8c3127f8b4a3cf4 in run 34758720071 and merged its exact Python-3.11 CPU environment, physical scaling and Foundax profile as 83186be004a4087b27b07278da490dad36785acb. OWNER-C03-DEV-ISOLATION-01 now selects C-03's first public-data DEVELOPMENT isolation slice around that merged adapter. The immutable Docker image, exact B-02C resource envelope, C-01 launch/recovery binding, bounded output stream/validation and hostile service tests are implemented; run 34769816925 passed all seven service tests and all three owner commands. Final exact-head CI and merge remain pending. C-02 stays open for production repeat/science and protected composition. Global MQ-015, the absent/deferred v0.2 source, protected execution, official science, archive, reward, public network, production and LIVE authority remain open. D6 canonical full/standard run 34518806217 remains historical evidence, and G2 is LOCALNET_READY only for its exact disposable standard-profile localnet. C-EA2 remains blocked; an implementation or test cannot fill an evidence gap owned by later authority. No later ticket is selected.
+Wave **C**; current ticket: **C-04**. Last completed: **C-EP3** (`done`). Next selected: **none selected**. C-EP3 remains the last fully closed ticket. PR #148 supplied C-02's bounded lab/Foundax adapter prerequisite. PR #149 accepted the first C-03 public-DEVELOPMENT worker and PR #151 accepted its bounded streaming, validation, replay and recovery hardening at exact head abc490495528d8960ff8c66f50feabeae3affd34 in run 34778563403, merged as 2d5872aff89ca7bef3e3f062b293aeefe17769aa. OWNER-C1-BURGERS-ALPHA-01 now selects C-04 alone for role-explicit Burgers algorithms and public qualification-candidate evidence under that worker. No later ticket is selected while C-04 is active; C-05 is prospectively next after the bounded C-04 merge. The trusted single-tenant host model, three-replica working profile, reference roles and prospective archive targets grant no scientific sufficiency, independent security acceptance, protected admission, real archive acknowledgement, production, public network or LIVE authority. D6 run 34518806217 remains historical LOCALNET_READY evidence for its exact disposable standard-profile localnet.
 
 ## Maintain
 

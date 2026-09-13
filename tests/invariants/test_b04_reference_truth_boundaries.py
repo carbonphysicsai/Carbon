@@ -172,7 +172,7 @@ def _allowed_carbon_dependency(module_name: str) -> bool:
 
 
 def _is_allowed_evaluation_consumer(path: Path, module_name: str) -> bool:
-    """Permit B-05, B-07F, and B-E1's exact ratified public reference seams."""
+    """Permit exact ratified downstream seams without widening B-04 authority."""
     return (
         (
             path.is_relative_to(_CARBON_ROOT / "measurement")
@@ -185,6 +185,10 @@ def _is_allowed_evaluation_consumer(path: Path, module_name: str) -> bool:
         or (
             path == _CARBON_ROOT / "traineval" / "resolved_fixture.py"
             and module_name == "carbon.evaluation.refs"
+        )
+        or (
+            path.is_relative_to(_CARBON_ROOT / "reference_runtime")
+            and module_name == "carbon.evaluation.enums"
         )
     )
 

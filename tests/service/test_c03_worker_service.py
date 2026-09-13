@@ -300,6 +300,12 @@ def test_real_jax_path_is_isolated_validated_and_numerically_identical(
         "Seccomp": "2",
     }
     assert isolated.effective_controls["cgroup_v2"]["memory.swap.max"] == "0"
+    assert isolated.resource_observation["schema"] == (
+        "carbon.c03.resource-observation.v1"
+    )
+    assert isolated.resource_observation["memory"]["peak_bytes"] is not None
+    assert isolated.resource_observation["cpu"]["usage_usec"] > 0
+    assert isolated.resource_observation["output_snapshot"]["observed_members"] > 0
     assert (
         queue.partials(claimed.claim)[0].artifact_digest
         == isolated.receipt.artifact_digest
@@ -327,6 +333,7 @@ def test_real_jax_path_is_isolated_validated_and_numerically_identical(
         points=points,
         timings_seconds=isolated.timings,
         effective_controls=isolated.effective_controls,
+        resource_observation=isolated.resource_observation,
         exact_replay=True,
         accepted_partials=1,
     )
@@ -452,6 +459,7 @@ def test_network_filesystem_pid_memory_and_scratch_enforcement(tmp_path: Path) -
         scratch_inodes_probe=scratch_inodes.returncode,
         memory_capped_probe=capped.returncode,
         memory_negative_control=negative.returncode,
+        memory_capped_cause="NOT_ESTABLISHED_FROM_EXIT_STATUS",
     )
 
 
@@ -508,6 +516,7 @@ def test_isolated_partial_checkpoint_continuation_matches_uninterrupted(
         controls_digest=continued.effective_controls_digest,
         checkpoint_digest=continued.receipt.checkpoint_digest,
         timings_seconds=continued.timings,
+        resource_observation=continued.resource_observation,
         create_response_lost=True,
     )
 

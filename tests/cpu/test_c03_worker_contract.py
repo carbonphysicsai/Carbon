@@ -5,6 +5,9 @@ from __future__ import annotations
 import ast
 import hashlib
 import json
+import os
+import sqlite3
+import sys
 import threading
 import time
 import zipfile
@@ -17,8 +20,11 @@ from c02_fixtures import compile_c02_plan
 from carbon.execution import (
     ClaimedExecution,
     DurableExecutionBinding,
+    DurableExecutionQueue,
     DurableWorkerLaunchStore,
     ExecutionAttemptRef,
+    ExecutionCode,
+    ExecutionFailure,
     ExecutionScope,
     QueueClaim,
     WorkerLaunchBinding,
@@ -37,7 +43,11 @@ from carbon.reconstruction.repeats import (
     development_replicate_digest,
     freeze_development_repeat_plan,
 )
-from carbon.reconstruction.worker.docker_runtime import create_arguments
+from carbon.reconstruction.worker.controller import IsolatedReconstructionController
+from carbon.reconstruction.worker.docker_runtime import (
+    _bounded_capture,
+    create_arguments,
+)
 from carbon.reconstruction.worker.model import (
     MEMORY_BYTES,
     OUTPUT_BYTES,
@@ -490,7 +500,20 @@ def test_durable_launch_intent_converges_and_conflicts_fail_closed(
             "launch_digest": binding.launch_digest,
             "container_name": binding.container_name,
             "state": WorkerLaunchState.CREATING.value,
+            "host_id": binding.host_id,
+            "boot_id": binding.timing.boot_id,
+            "productive_deadline_unix": binding.timing.productive_deadline_unix,
         },
+    )
+    observation = {
+        "schema": "carbon.c03.resource-observation.v1",
+        "memory": {"peak_bytes": 1234},
+    }
+    store.transition(
+        binding,
+        WorkerLaunchState.RECONCILIATION_REQUIRED,
+        terminal_code=WorkerCode.CLEANUP.value,
+        resource_observation=observation,
     )
     assert (
         store.record_operator_cleanup(
@@ -509,8 +532,77 @@ def test_durable_launch_intent_converges_and_conflicts_fail_closed(
             "effective_controls_digest": None,
             "output_snapshot_digest": None,
             "terminal_code": WorkerCode.CLEANUP.value,
+            "resource_observation": observation,
         },
     )
+    with sqlite3.connect(store.path) as database:
+        database.execute(
+            "UPDATE c03_launch_v1 SET resource_observation_json='[1]' "
+            "WHERE execution_id=?",
+            (binding.execution_id,),
+        )
+    with pytest.raises(WorkerFailure) as captured:
+        store.all_statuses()
+    assert captured.value.code is WorkerCode.UNAVAILABLE
+
+
+def test_controller_capture_enforces_cap_during_receipt_and_reaps_writer() -> None:
+    command = [
+        sys.executable,
+        "-c",
+        "import os,time;os.write(1,b'x'*65536);time.sleep(5)",
+    ]
+    started = time.monotonic()
+    with pytest.raises(WorkerFailure) as captured:
+        _bounded_capture(
+            command,
+            environment=dict(os.environ),
+            timeout=3,
+            maximum=4096,
+        )
+
+    assert captured.value.code is WorkerCode.RUNTIME
+    assert time.monotonic() - started < 2
+    assert len(captured.value.private_diagnostic) <= 1024**2
+
+
+def test_c03_failed_infrastructure_cannot_mint_successor_attempt(
+    tmp_path: Path,
+) -> None:
+    claimed, _, _, _, _, _, _ = _fixture(tmp_path)
+    queue = DurableExecutionQueue(tmp_path / "terminal-queue.sqlite3")
+    queue.admit(claimed.binding)
+    active = queue.claim(claimed.claim.ref, "c03-worker", claim_id="terminal-claim")
+    queue.mark_running(active.claim)
+    queue.fail_infrastructure(active.claim)
+
+    successor = replace(
+        claimed.binding,
+        handle=replace(claimed.binding.handle, attempt_number=2),
+    )
+    with pytest.raises(ExecutionFailure) as captured:
+        queue.admit(successor)
+
+    assert captured.value.code is ExecutionCode.CONFLICT
+
+
+def test_live_wait_uses_same_boot_monotonic_deadline(monkeypatch) -> None:
+    now = float(time.time())
+    timing = WorkerTiming(now, now + PRODUCTIVE_DEADLINE_SECONDS, 10.0, "boot")
+
+    class NoCLI:
+        def run(self, *args, **kwargs):  # pragma: no cover - must not be reached
+            raise AssertionError("deadline should fire before a Docker call")
+
+    controller = object.__new__(IsolatedReconstructionController)
+    controller.cli = NoCLI()
+    monkeypatch.setattr(time, "monotonic", lambda: 611.0)
+    monkeypatch.setattr(time, "time", lambda: 0.0)
+
+    with pytest.raises(WorkerFailure) as captured:
+        controller._wait_file("carbon-c03-fixture", "/scratch/ready", timing)
+
+    assert captured.value.code is WorkerCode.DEADLINE
 
 
 def test_request_json_duplicate_fields_fail_closed(tmp_path: Path) -> None:

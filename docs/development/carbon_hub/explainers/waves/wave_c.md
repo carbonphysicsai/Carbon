@@ -64,7 +64,7 @@ Wave C does not authorize LIVE science, Wave-D qualification, learned Landscape/
 - [C-EA1](../tickets/c_ea1.md): Durable evidence archive [done]
 - [C-02](../tickets/c_02.md): Real declarative reconstruction [in_progress]
 - [C-03](../tickets/c_03.md): Isolated reconstruction worker [in_progress]
-- [C-04](../tickets/c_04.md): Protected reference runtime [todo]
+- [C-04](../tickets/c_04.md): Protected reference runtime [in_progress]
 - [C-05](../tickets/c_05.md): Real measurement and Score Pack [todo]
 - [C-06](../tickets/c_06.md): Signed evaluation receipt [todo]
 - [C-07](../tickets/c_07.md): Real validator orchestration [todo]
@@ -75,8 +75,8 @@ Wave C does not authorize LIVE science, Wave-D qualification, learned Landscape/
 
 ## Repository detail
 
-- [Wave C controlling board](https://github.com/carbonphysicsai/Carbon/blob/007f2e0158ea61e9d275bbca8974db554b75cd0f/.agent/WAVE_C.md)
-- [Current wave register](https://github.com/carbonphysicsai/Carbon/blob/007f2e0158ea61e9d275bbca8974db554b75cd0f/.agent/WAVE.md)
-- [NET-1 ticket](https://github.com/carbonphysicsai/Carbon/blob/007f2e0158ea61e9d275bbca8974db554b75cd0f/.agent/tickets/NET-1_chain_adapter.md)
+- [Wave C controlling board](https://github.com/carbonphysicsai/Carbon/blob/cce53ae3ef12d2140c23ae3a1ef60e968aabe0dd/.agent/WAVE_C.md)
+- [Current wave register](https://github.com/carbonphysicsai/Carbon/blob/cce53ae3ef12d2140c23ae3a1ef60e968aabe0dd/.agent/WAVE.md)
+- [NET-1 ticket](https://github.com/carbonphysicsai/Carbon/blob/cce53ae3ef12d2140c23ae3a1ef60e968aabe0dd/.agent/tickets/NET-1_chain_adapter.md)
 
 > Orientation boundary: repository authority owns exact semantics, implementation, review, evidence, and activation.

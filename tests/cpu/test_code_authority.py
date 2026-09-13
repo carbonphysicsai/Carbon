@@ -1048,7 +1048,7 @@ def test_default_workflow_delegates_all_semantics_to_repository_scripts() -> Non
     assert _yaml_scalar(jobs["dev-image"], "name") == "Clean dev-container image"
     assert (
         _yaml_scalar(jobs["c03-worker"], "name")
-        == "C-03 isolated worker service acceptance"
+        == "C-03/C-04 isolated worker service acceptance"
     )
     assert _yaml_scalar(jobs["canonical"], "needs") == "preflight"
     assert _yaml_scalar(jobs["dev-image"], "needs") == "preflight"

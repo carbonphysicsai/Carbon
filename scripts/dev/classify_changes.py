@@ -63,13 +63,17 @@ class Classification:
             "carbon/execution/worker.py",
             "scripts/dev/c03_worker_image.sh",
             "scripts/dev/c03_worker_service.sh",
+            "docs/development/c04_public_reference_campaign_v1.json",
             "tests/service/test_c03_worker_service.py",
+            "tests/service/test_c04_reference_service.py",
         }
         return any(
             item.path in exact
             or item.path.startswith("carbon/reconstruction/worker/")
+            or item.path.startswith("carbon/reference_runtime/")
             or item.path.startswith("tests/service/c03_")
             or item.path.startswith("tests/service/test_c03_")
+            or item.path.startswith("tests/service/test_c04_")
             for item in self.paths
         )
 
@@ -110,6 +114,7 @@ _RUNTIME_EXACT = frozenset(
         ".python-version",
         "docs/DEVELOPMENT.md",
         "docs/development/ENVIRONMENT.md",
+        "docs/development/c04_public_reference_campaign_v1.json",
         "MANIFEST.in",
         "Pipfile",
         "Pipfile.lock",

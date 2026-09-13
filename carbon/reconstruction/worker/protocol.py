@@ -7,6 +7,7 @@ import json
 import os
 import shutil
 import stat
+import sys
 import tempfile
 import zipfile
 from pathlib import Path, PurePosixPath
@@ -34,6 +35,7 @@ from carbon.reconstruction.worker.model import (
     OUTPUT_BYTES,
     OUTPUT_MEMBERS,
     SCOPE,
+    VALIDATION_WALL_SECONDS,
     DevelopmentWorkerProfile,
     WorkerCode,
     WorkerFailure,
@@ -42,6 +44,33 @@ from carbon.reconstruction.worker.model import (
 )
 from carbon.registry import ChallengeKey
 from carbon.seeding import DerivedSeed
+
+_VALIDATED_RECEIPT_FIELDS = frozenset(
+    {
+        "schema",
+        "artifact_digest",
+        "execution_id",
+        "plan_digest",
+        "profile_digest",
+        "training_data_digest",
+        "randomness_digest",
+        "checkpoint_digest",
+        "status",
+        "completed_steps",
+        "compile_seconds",
+        "train_execution_seconds",
+        "source_digest",
+        "environment_digest",
+        "observed_environment_digest",
+        "environment_eligibility",
+        "input_interface_digest",
+        "output_interface_digest",
+        "physical_scaling_digest",
+        "physical_unit_system",
+        "normalization_scale",
+        "inference_weights",
+    }
+)
 
 _REQUEST_FIELDS = frozenset(
     {
@@ -760,6 +789,154 @@ def validate_snapshot(
         raise WorkerFailure(WorkerCode.OUTPUT) from None
 
 
+def validated_receipt_payload(receipt: ReconstructionReceipt) -> dict[str, object]:
+    """Closed process-boundary projection for one already validated receipt."""
+
+    if type(receipt) is not ReconstructionReceipt:
+        raise WorkerFailure(WorkerCode.OUTPUT)
+    return {
+        "schema": "carbon.c03.validated-receipt.v1",
+        "artifact_digest": receipt.artifact_digest,
+        "execution_id": receipt.execution_id,
+        "plan_digest": receipt.plan_digest,
+        "profile_digest": receipt.profile_digest,
+        "training_data_digest": receipt.training_data_digest,
+        "randomness_digest": receipt.randomness_digest,
+        "checkpoint_digest": receipt.checkpoint_digest,
+        "status": receipt.status.value,
+        "completed_steps": receipt.completed_steps,
+        "compile_seconds": receipt.compile_seconds,
+        "train_execution_seconds": receipt.train_execution_seconds,
+        "source_digest": receipt.source_digest,
+        "environment_digest": receipt.environment_digest,
+        "observed_environment_digest": receipt.observed_environment_digest,
+        "environment_eligibility": (
+            None
+            if receipt.environment_eligibility is None
+            else receipt.environment_eligibility.value
+        ),
+        "input_interface_digest": receipt.input_interface_digest,
+        "output_interface_digest": receipt.output_interface_digest,
+        "physical_scaling_digest": receipt.physical_scaling_digest,
+        "physical_unit_system": receipt.physical_unit_system,
+        "normalization_scale": receipt.normalization_scale,
+        "inference_weights": receipt.inference_weights,
+    }
+
+
+def _receipt_from_validated_payload(
+    value: object, *, artifact_path: Path
+) -> ReconstructionReceipt:
+    from carbon.reconstruction.model import (
+        EnvironmentEligibility,
+        ReconstructionStatus,
+    )
+
+    if (
+        type(value) is not dict
+        or set(value) != _VALIDATED_RECEIPT_FIELDS
+        or value.get("schema") != "carbon.c03.validated-receipt.v1"
+    ):
+        raise WorkerFailure(WorkerCode.OUTPUT)
+    try:
+        return ReconstructionReceipt(
+            artifact_path=artifact_path,
+            artifact_digest=value["artifact_digest"],
+            execution_id=value["execution_id"],
+            plan_digest=value["plan_digest"],
+            profile_digest=value["profile_digest"],
+            training_data_digest=value["training_data_digest"],
+            randomness_digest=value["randomness_digest"],
+            checkpoint_digest=value["checkpoint_digest"],
+            status=ReconstructionStatus(value["status"]),
+            completed_steps=value["completed_steps"],
+            compile_seconds=value["compile_seconds"],
+            train_execution_seconds=value["train_execution_seconds"],
+            source_digest=value["source_digest"],
+            environment_digest=value["environment_digest"],
+            observed_environment_digest=value["observed_environment_digest"],
+            environment_eligibility=(
+                None
+                if value["environment_eligibility"] is None
+                else EnvironmentEligibility(value["environment_eligibility"])
+            ),
+            input_interface_digest=value["input_interface_digest"],
+            output_interface_digest=value["output_interface_digest"],
+            physical_scaling_digest=value["physical_scaling_digest"],
+            physical_unit_system=value["physical_unit_system"],
+            normalization_scale=value["normalization_scale"],
+            inference_weights=value["inference_weights"],
+        )
+    except (KeyError, TypeError, ValueError, ReconstructionFailure, WorkerFailure):
+        raise WorkerFailure(WorkerCode.OUTPUT) from None
+
+
+def validate_snapshot_bounded(snapshot: Path, stage: Path) -> ReconstructionReceipt:
+    """Validate untrusted artifact bytes in a capped, separately owned process."""
+
+    if (
+        not snapshot.is_absolute()
+        or snapshot.is_symlink()
+        or not snapshot.is_dir()
+        or not stage.is_absolute()
+        or stage.is_symlink()
+        or not stage.is_dir()
+    ):
+        raise WorkerFailure(WorkerCode.OUTPUT)
+    environment = {
+        "PATH": "/usr/local/bin:/usr/bin:/bin",
+        "PYTHONHASHSEED": "0",
+        "PYTHONNOUSERSITE": "1",
+        "JAX_PLATFORMS": "cpu",
+        "XLA_PYTHON_CLIENT_PREALLOCATE": "false",
+        "OMP_NUM_THREADS": "2",
+        "OPENBLAS_NUM_THREADS": "2",
+        "MKL_NUM_THREADS": "2",
+    }
+    root = Path(__file__).resolve().parents[3]
+    command = [
+        sys.executable,
+        "-m",
+        "carbon.reconstruction.worker.artifact_validator",
+        str(snapshot),
+        str(stage),
+    ]
+    from carbon.reconstruction.worker.docker_runtime import _bounded_capture
+
+    try:
+        process = _bounded_capture(
+            command,
+            environment=environment,
+            timeout=VALIDATION_WALL_SECONDS,
+            maximum=CONTROL_BYTES,
+            cwd=root,
+        )
+    except WorkerFailure:
+        raise WorkerFailure(WorkerCode.OUTPUT)
+    if process.returncode != 0:
+        raise WorkerFailure(WorkerCode.OUTPUT)
+    try:
+        value = json.loads(
+            process.stdout,
+            object_pairs_hook=lambda pairs: _unique_pairs(pairs, WorkerCode.OUTPUT),
+            parse_constant=lambda _: (_ for _ in ()).throw(ValueError()),
+        )
+    except (UnicodeError, ValueError, json.JSONDecodeError, WorkerFailure):
+        raise WorkerFailure(WorkerCode.OUTPUT) from None
+    return _receipt_from_validated_payload(value, artifact_path=snapshot / "artifact")
+
+
+def _unique_pairs(
+    items: list[tuple[str, object]], code: WorkerCode
+) -> dict[str, object]:
+    result: dict[str, object] = {}
+    for key, value in items:
+        if key in result:
+            raise WorkerFailure(code)
+        result[key] = value
+    return result
+
+
 __all__ = [
     "decode_output_stream",
     "load_worker_request",
@@ -767,4 +944,6 @@ __all__ = [
     "snapshot_output",
     "stage_request",
     "validate_snapshot",
+    "validate_snapshot_bounded",
+    "validated_receipt_payload",
 ]

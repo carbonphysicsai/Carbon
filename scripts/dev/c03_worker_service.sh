@@ -33,7 +33,9 @@ if [[ "$(uname -s)" == "Darwin" && "$(uname -m)" == "arm64" ]]; then
 fi
 [[ -x "${python_path}" ]] || fail "run the existing platform setup first."
 if [[ "$#" -eq 0 ]]; then
-  set -- tests/service/test_c03_worker_service.py
+  set -- \
+    tests/service/test_c03_worker_service.py \
+    tests/service/test_c04_reference_service.py
 fi
 "${python_path}" -m pytest -q \
   --junitxml "${junit_path}" "$@"
