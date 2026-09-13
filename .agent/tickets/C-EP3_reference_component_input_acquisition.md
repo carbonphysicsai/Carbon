@@ -1,7 +1,7 @@
 # C-EP3 — Public-reference input acquisition and component probe
 
 **Wave:** C1 development evaluation foundations
-**Status:** `in_progress`
+**Status:** `done` in bounded DEVELOPMENT scope after PR #145
 **Selection authority:** repository-owner ordered C-EP2 closeout and input-
 acquisition assignment after merged PR #144
 **Depends on:** C-EP2, C-AUTH1
@@ -57,7 +57,9 @@ unknown rather than zero.
 - [x] One owner/SciML request and profiler-safe component summary are delivered.
 - [x] No sharing, candidate-evaluation, protected-reference, reward, production,
       network, real-finalization or qualification capability is added.
-- [ ] Applicable automated acceptance and Merge gate pass at the expected head.
+- [x] Head `ff1d4603cf6889bb3e9cf7f4a589524ade5c6b8c` passed RUNTIME_FULL run
+      `34721794618` and Merge gate; PR #145 normally merged as
+      `a02ca5f46eda2283db7808d9646c1ef24715ec4a`.
 
 ## Maturity ceiling
 

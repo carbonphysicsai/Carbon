@@ -33,16 +33,15 @@
 
 **Status:** active in bounded engineering scope because `.agent/WAVE.md` names
 Wave C/C0 and this file as its controlling register.
-**Version:** 1.4
+**Version:** 1.5
 **Activation decision:** `OWNER-WAVE-C0-NET1-01`
-**Selected ticket:** C-EP3 — `in_progress`
-**Active ticket:** C-EP3
-**Next selected ticket:** none. C-EP3 is an owner-selected DEVELOPMENT-only
-input-acquisition and detached public numerical-component study; no real C1
-implementation ticket is dependency-ready and no Variant B implementation is
-selected.
-**Last completed ticket:** C-EP2, merged in PR #144 after corrected head
-`89f06eda74b15dd336e57a512f228c6b37cca77d` passed run `34718392697`
+**Selected ticket:** C-02 — `in_progress`
+**Active ticket:** C-02
+**Next selected ticket:** none. The owner-supplied immutable JAX bundle selects
+only a bounded DEVELOPMENT adapter; later isolation, scientific, archive and
+public-network work remains unselected.
+**Last completed ticket:** C-EP3, merged in PR #145 after head
+`ff1d4603cf6889bb3e9cf7f4a589524ade5c6b8c` passed run `34721794618`
 **Primary Hub map_ref:** `WAVE-C`
 
 C-EA1 passed canonical acceptance in run `34558389185` at accepted head
@@ -104,11 +103,11 @@ production custody, quorum, science or economics blocks only that operation.
 | C-01 | Durable execution state and queue | done | `.agent/evidence/wave_c/c-01.md` | Codex + execution engineering | Execution + scientific integration | A7, B-GATE | MQ-048, MQ-051 | M | C1 |
 | C-EP1 | DEVELOPMENT per-job evaluation packs | done | `.agent/evidence/wave_c/c-ep1.md` | Codex + execution/scientific integration | Execution + scientific integration + data/security | NET-3, C-01, A4, A5, A6, A7, A8 | MQ-048, MQ-051 | M | C1 development |
 | C-EP2 | Variant-A measurement and offline Variant-B decision | done | `.agent/evidence/wave_c/c-ep2.md` | Codex + measurement/execution engineering | Execution + scientific integration + data/security | C-EP1 | MQ-048, MQ-051 | M | C1 development |
-| C-EP3 | Public-reference input acquisition and component probe | in_progress | `.agent/evidence/wave_c/c-ep3.md` | Codex + scientific measurement engineering | Physics/SciML + scientific integration | C-EP2, C-AUTH1 | MQ-045, MQ-048 | S | C1 development |
+| C-EP3 | Public-reference input acquisition and component probe | done | `.agent/evidence/wave_c/c-ep3.md` | Codex + scientific measurement engineering | Physics/SciML + scientific integration | C-EP2, C-AUTH1 | MQ-045, MQ-048 | S | C1 development |
 | C-AUTH1 | Goal-driven authoring and Burgers V1 import | done | `.agent/evidence/wave_c/c-auth1.md` | Codex + scientific authoring | Scientific integration | C-01 | MQ-045, MQ-048 | L | C1 |
 | C-EA0 | Evidence capture contract | done | `.agent/evidence/wave_c/c-ea0.md` | Codex + evidence architecture | Execution + Operations + data/security + scientific integration | C-AUTH1, C-01, B-GATE | MQ-048, MQ-051 | M | C1 |
 | C-EA1 | Durable evidence archive | done | `.agent/evidence/wave_c/c-ea1.md` | Codex + evidence architecture | Operations + data/security + scientific integration | C-EA0 + OWNER-C-EA1-SYNTHETIC-01 | MQ-048, MQ-051 | L | C1 |
-| C-02 | Real declarative reconstruction | todo | `.agent/plans/C1_DEPENDENCY_GRAPH.md` | Physics/SciML + reconstruction engineering | Scientific integration + execution | B-02B, B-03, B-E1, C-01 | MQ-045, MQ-048 | L | C1 |
+| C-02 | Real declarative reconstruction | in_progress | `.agent/tickets/C-02_real_reconstruction.md` | Physics/SciML + reconstruction engineering | Scientific integration + execution | B-02B, B-03, B-E1, C-01 | MQ-045, MQ-048 | L | C1 |
 | C-03 | Isolated reconstruction worker | todo | `.agent/tickets/C-03_isolated_reconstruction_worker.md` | Codex + execution/SRE engineering | Security + protocol + Physics/SciML | C-02 | MQ-015, MQ-048 | L | C1 |
 | C-04 | Protected reference runtime | todo | `.agent/plans/C1_DEPENDENCY_GRAPH.md` | Scientific reference + execution engineering | Physics/SciML + security | C-03, B-04, B-E2 | MQ-045, MQ-048 | L | C1 |
 | C-05 | Real measurement and Score Pack | todo | `.agent/plans/C1_DEPENDENCY_GRAPH.md` | Scientific measurement engineering | Physics/SciML + statistics | C-02, C-04, B-05 | MQ-045, MQ-048 | L | C1 |
@@ -148,7 +147,7 @@ scientifically qualified. C-EA1 accepted head
 `34558389185` and normally merged in PR #136 as
 `0e0714c8260ca482a0ba2b743b2eaefd50508da1`. Its runtime is limited to the
 exact synthetic development profile and cannot acknowledge real evidence or
-satisfy C-EA2. C-03, C-08 and C-09 are contract-only; C-EA2 and every other
+satisfy C-EA2. C-03, C-08 and C-09 are contract-only; C-EA2 and every later
 runtime ticket remain unselected and dependency-blocked.
 
 C-EP1 accepted head `e0fbb6208cf0bf95910d51e7a3c996b09387a14e`
@@ -157,9 +156,12 @@ passed RUNTIME_FULL run `34708322417` and normally merged in PR #143 as
 `89f06eda74b15dd336e57a512f228c6b37cca77d` then passed RUNTIME_FULL run
 `34718392697` and normally merged in PR #144 as
 `96099aeac9e5022bda9d94730b1d7d955cb6c1d5`. Its conservative recommendation
-remains `COLLECT MISSING INPUTS FIRST`. The ordered follow-on owner assignment
-selects C-EP3 only for input acquisition and one eligible detached public
-numerical component probe; sharing remains structurally unavailable.
+remains `COLLECT MISSING INPUTS FIRST`. C-EP3 then passed RUNTIME_FULL run
+`34721794618` at head `ff1d4603cf6889bb3e9cf7f4a589524ade5c6b8c` and
+normally merged in PR #145 as
+`a02ca5f46eda2283db7808d9646c1ef24715ec4a`. The owner's supplied immutable
+JAX bundle selects bounded DEVELOPMENT C-02 integration; sharing and every
+later real vertical remain structurally unavailable.
 
 ## 4. Acceptance and maturity
 

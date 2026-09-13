@@ -1087,7 +1087,7 @@ def test_default_workflow_delegates_all_semantics_to_repository_scripts() -> Non
     )
     assert "name: quality-inventory" in jobs["canonical"]
     assert "path: .carbon-artifacts/quality.json" in jobs["canonical"]
-    assert 'CARBON_UV_GROUPS: "chain archive"' in jobs["dev-image"]
+    assert 'CARBON_UV_GROUPS: "chain archive science-jax"' in jobs["dev-image"]
     assert jobs["dev-image"].index("docker/build-push-action") < jobs[
         "dev-image"
     ].index("./scripts/dev/verify_image.sh")

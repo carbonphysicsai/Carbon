@@ -31,6 +31,7 @@ implementation_roots = [
     "carbon/observability",
     "carbon/practice",
     "carbon/qualification",
+    "carbon/reconstruction",
     "carbon/registry",
     "carbon/reproducibility",
     "carbon/research",
@@ -45,6 +46,7 @@ implementation_roots = [
 test_roots = [
     "tests/cpu",
     "tests/invariants",
+    "tests/science",
 ]
 fixture_roots = [
     "tests/fixtures",

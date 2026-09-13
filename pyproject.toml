@@ -34,9 +34,11 @@ dev = [
     "wheel==0.48.0",
 ]
 science-jax = [
-    "jax>=0.4.30",
-    "numpy>=1.26",
-    "pyyaml>=6.0",
+    "jax==0.9.0.1",
+    "jaxlib==0.9.0.1",
+    "numpy==2.3.5",
+    "pyyaml==6.0.3",
+    "scipy==1.17.0",
 ]
 science-torch = [
     "neuraloperator>=2.0,<3",
@@ -71,6 +73,12 @@ explicit = true
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["carbon*"]
+
+[tool.setuptools.package-data]
+"carbon.reconstruction._vendor.carbon_jax_lab" = [
+    "licenses/*.md",
+    "licenses/third_party/*.txt",
+]
 
 [tool.pytest.ini_options]
 addopts = ["--strict-markers"]

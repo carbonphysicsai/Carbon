@@ -128,15 +128,15 @@
       "what": "Verify the public Burgers source package, resolve C-02/C-04 source facts, and time one frozen source-defined numerical component outside candidate evaluation.",
       "why": "The singleton measurement cannot justify sharing until actual reference work and the missing reconstruction, workload, comparison and B-overhead inputs are distinguished.",
       "changes": "Carbon gains a closed provenance/probe harness, focused integrity and accounting tests, a scoped component observation, an acquisition table and one exact owner/SciML request.",
-      "not_yet": "No real reconstruction/reference integration, sharing, protected case, scientific qualification, reward, public network, production or LIVE path is added; compatible demand and B overhead remain unknown.",
+      "not_yet": "The merged probe added no reconstruction/reference integration, sharing, protected case, scientific qualification, reward, public network, production or LIVE path; compatible demand and B overhead remain unknown.",
       "map_ref": "WAVE-C/C-EP3"
     },
     "C-02": {
       "title": "Bind Carbon to the actual authorized JAX implementation",
       "what": "Adapt the supplied immutable training and inference interface without widening the Strategy contract.",
       "why": "Research prototypes and forward-pass parity cannot substitute for the exact real reconstruction source.",
-      "changes": "The ticket records the complete external source, build and interface package that must arrive.",
-      "not_yet": "No authorized JAX source/interface has arrived, so implementation and every qualification remain unavailable.",
+      "changes": "Carbon gains a lazy DEVELOPMENT adapter for the supplied exact source, compiler-plan mapping, FNO and DeepONet, full-width seeds, immutable checkpoints, strict resume, target-free inference and reproducible locks.",
+      "not_yet": "The complete ticket still lacks repeat policy and C-03's isolated resource envelope. Protected reference, official scoring, qualification, production, public network and LIVE remain unavailable.",
       "map_ref": "WAVE-C/C-02"
     },
     "C-03": {
@@ -144,7 +144,7 @@
       "what": "Define a network-denied, scratch-only, resource-bounded worker around C-02's future authorized JAX adapter.",
       "why": "Participant-controlled work must not expose official evaluation material or gain unbounded host capabilities.",
       "changes": "The future ticket now has an exact isolation, cancellation, cleanup and typed-infrastructure-failure contract.",
-      "not_yet": "No worker is implemented or dependency-ready; C-02, MQ-015 inputs and security acceptance remain missing.",
+      "not_yet": "No worker is implemented; MQ-015 inputs, resource limits and security acceptance remain missing even though the bounded C-02 adapter now exists.",
       "map_ref": "WAVE-C/C-03"
     },
     "C-04": {

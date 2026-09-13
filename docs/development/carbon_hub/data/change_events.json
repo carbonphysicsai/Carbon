@@ -2406,6 +2406,32 @@
         "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
       ],
       "supersedes": null
+    },
+    {
+      "map_ref": "WAVE-C/C-02",
+      "event_type": "decision",
+      "event_id": "C-02-D1",
+      "owner_lane": "repository_owner",
+      "status": "implemented",
+      "summary": "The owner-supplied immutable source bundle selects one bounded DEVELOPMENT C-02 integration. Carbon keeps the six mathematical families, wraps them behind one decoder-verified exact-pin profile, repairs runtime-key and persistence boundaries, and enables FNO plus DeepONet through that same gate. Variant A remains unchanged and C-03 isolation plus every official, protected, archive, reward, network, qualification and production path remains unselected.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5651468480",
+      "affects": [
+        "WAVE-B",
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE",
+        "WAVE-C",
+        "WAVE-C/C-02",
+        "WAVE-C/C-03",
+        "WAVE-C/C-05",
+        "SYSTEM/AGENT-EXECUTION",
+        "SYSTEM/CI",
+        "SYSTEM/GOVERNANCE",
+        "SYSTEM/MATURITY",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+      ],
+      "supersedes": null
     }
   ]
 }

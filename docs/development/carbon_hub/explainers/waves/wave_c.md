@@ -58,11 +58,11 @@ Wave C does not authorize LIVE science, Wave-D qualification, learned Landscape/
 - [C-01](../tickets/c_01.md): Durable execution state and queue [done]
 - [C-EP1](../tickets/c_ep1.md): DEVELOPMENT evaluation-pack lifecycle [done]
 - [C-EP2](../tickets/c_ep2.md): Variant-A measurement and offline Variant-B decision [done]
-- [C-EP3](../tickets/c_ep3.md): Public-reference input acquisition and component probe [in_progress]
+- [C-EP3](../tickets/c_ep3.md): Public-reference input acquisition and component probe [done]
 - [C-AUTH1](../tickets/c_auth1.md): Goal-driven authoring and Burgers Dynamics V1 import [done]
 - [C-EA0](../tickets/c_ea0.md): Evidence capture contract [done]
 - [C-EA1](../tickets/c_ea1.md): Durable evidence archive [done]
-- [C-02](../tickets/c_02.md): Real declarative reconstruction [todo]
+- [C-02](../tickets/c_02.md): Real declarative reconstruction [in_progress]
 - [C-03](../tickets/c_03.md): Isolated reconstruction worker [todo]
 - [C-04](../tickets/c_04.md): Protected reference runtime [todo]
 - [C-05](../tickets/c_05.md): Real measurement and Score Pack [todo]
@@ -75,8 +75,8 @@ Wave C does not authorize LIVE science, Wave-D qualification, learned Landscape/
 
 ## Repository detail
 
-- [Wave C controlling board](https://github.com/carbonphysicsai/Carbon/blob/7fbf13ebb2629d738432069ee48a88737dcf3242/.agent/WAVE_C.md)
-- [Current wave register](https://github.com/carbonphysicsai/Carbon/blob/7fbf13ebb2629d738432069ee48a88737dcf3242/.agent/WAVE.md)
-- [NET-1 ticket](https://github.com/carbonphysicsai/Carbon/blob/7fbf13ebb2629d738432069ee48a88737dcf3242/.agent/tickets/NET-1_chain_adapter.md)
+- [Wave C controlling board](https://github.com/carbonphysicsai/Carbon/blob/52be76f1439186c413341d155c206632b591a841/.agent/WAVE_C.md)
+- [Current wave register](https://github.com/carbonphysicsai/Carbon/blob/52be76f1439186c413341d155c206632b591a841/.agent/WAVE.md)
+- [NET-1 ticket](https://github.com/carbonphysicsai/Carbon/blob/52be76f1439186c413341d155c206632b591a841/.agent/tickets/NET-1_chain_adapter.md)
 
 > Orientation boundary: repository authority owns exact semantics, implementation, review, evidence, and activation.

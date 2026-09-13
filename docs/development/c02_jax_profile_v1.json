@@ -1,0 +1,37 @@
+{
+  "schema": "carbon.c02.jax-development-profile.v1",
+  "scope": "UNQUALIFIED_PUBLIC_DEVELOPMENT",
+  "canonical_environment": {
+    "platform": "linux-x86_64",
+    "python": "3.11.*",
+    "jax": "0.9.0.1",
+    "jaxlib": "0.9.0.1",
+    "numpy": "2.3.5",
+    "pyyaml": "6.0.3",
+    "scipy": "1.17.0",
+    "digest": "sha256:b74ca853cf2f0db808a14b034ae1ca1c8373a828fbc6baab125019e17eb7495d"
+  },
+  "implementation": {
+    "id": "carbon_jax_lab",
+    "version": "0.1.0",
+    "supplied_wheel_digest": "sha256:3941af49fb7441b9ee37408db2b759bdc65088f0bda089f2a774adc3506935db",
+    "carbon_repaired_source_digest": "sha256:e52b5017e98f2ab914da96c3aac64a5d37f00f10e98e168138c008d764c06499"
+  },
+  "interfaces": {
+    "input_digest": "sha256:313e0dbb7fd7f20a6e3217ce25fd498f893bd40ca63123d059ebd4f5b57f7852",
+    "output_digest": "sha256:cf3c8e14e87b130869ea0faa12481e5c8a14d5089e8e2765ffde298e2e6d8042"
+  },
+  "enabled_backbones": {
+    "fno": "fno1d",
+    "deeponet": "deeponet1d"
+  },
+  "constraints": {
+    "data_role": "TRAIN",
+    "grid": "shared endpoint-excluded uniform periodic 1D",
+    "training_dtype": "float32",
+    "inference": "target-free and requested-time-order preserving",
+    "official_science": false,
+    "network": false,
+    "live": false
+  }
+}
