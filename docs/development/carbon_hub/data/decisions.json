@@ -2493,6 +2493,8 @@
       "audience": "harsh",
       "affects": [
         "WAVE-G",
+        "SYSTEM/BUSINESS-AUTHORITY",
+        "SYSTEM/GOVERNANCE",
         "SYSTEM/MATURITY",
         "SYSTEM/DEVELOPMENT-HUB",
         "SYSTEM/DEVELOPMENT-HUB/VALIDATION"

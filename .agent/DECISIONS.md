@@ -13676,8 +13676,9 @@ authorized.
 evidence into Carbon's Challenge Workbench / Profiler” assignment selects one
 bounded implementation workstream parallel to issues #139 and #142. It does
 not select, close, redirect, or become a prerequisite of the active Wave C
-ticket or any C-02/C-03/C-04/C-05/C-07/C-EA2/C2 successor. The implementation
-plan is `.agent/plans/EXAM_PROTECT_WORKBENCH_01.md`.
+ticket or any C-02/C-03/C-04/C-05/C-07/C-EA2/C2 successor. The bounded
+implementation specification and source ledger are
+`Business/Carbon_Fit/workbench/docs/SPECIFICATION.md`.
 
 **Working decision.** Maintain one browser-local implementation under
 `Business/Carbon_Fit/workbench/` by extending the exact supplied v0.1 source,
