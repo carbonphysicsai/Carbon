@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import platform
+import selectors
 import subprocess
 import sys
 import time
@@ -109,6 +110,109 @@ class DockerCLI:
             return json.loads(result.stdout)
         except (UnicodeError, json.JSONDecodeError):
             raise WorkerFailure(WorkerCode.RUNTIME) from None
+
+    def stream_to_file(
+        self,
+        arguments: list[str],
+        destination: Path,
+        *,
+        maximum: int,
+        timeout: float,
+    ) -> int:
+        """Stream one fixed Docker command without unbounded controller capture."""
+
+        if (
+            type(maximum) is not int
+            or maximum < 1
+            or type(timeout) not in (int, float)
+            or timeout <= 0
+            or not destination.is_absolute()
+            or destination.is_symlink()
+            or not destination.parent.is_dir()
+        ):
+            raise WorkerFailure(WorkerCode.INVALID)
+        environment = {"PATH": "/usr/local/bin:/usr/bin:/bin"}
+        for name in (
+            "DOCKER_HOST",
+            "DOCKER_CONTEXT",
+            "DOCKER_TLS_VERIFY",
+            "DOCKER_CERT_PATH",
+        ):
+            if name in os.environ:
+                environment[name] = os.environ[name]
+        process: subprocess.Popen[bytes] | None = None
+        diagnostic = bytearray()
+        total = 0
+        try:
+            process = subprocess.Popen(
+                [self.executable, *arguments],
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                env=environment,
+            )
+            if process.stdout is None or process.stderr is None:
+                raise WorkerFailure(WorkerCode.RUNTIME)
+            selector = selectors.DefaultSelector()
+            selector.register(process.stdout, selectors.EVENT_READ, "stdout")
+            selector.register(process.stderr, selectors.EVENT_READ, "stderr")
+            deadline = time.monotonic() + float(timeout)
+            with destination.open("xb") as stream:
+                while selector.get_map():
+                    remaining = deadline - time.monotonic()
+                    if remaining <= 0:
+                        raise WorkerFailure(
+                            WorkerCode.RUNTIME,
+                            private_diagnostic=b"stream command timed out",
+                        )
+                    events = selector.select(timeout=min(remaining, 0.25))
+                    for key, _ in events:
+                        block = os.read(key.fd, 1 << 16)
+                        if not block:
+                            selector.unregister(key.fileobj)
+                            continue
+                        if key.data == "stderr":
+                            available = DIAGNOSTIC_BYTES - len(diagnostic)
+                            diagnostic.extend(block[:available])
+                            if len(block) > available:
+                                raise WorkerFailure(
+                                    WorkerCode.RUNTIME,
+                                    private_diagnostic=bytes(diagnostic),
+                                )
+                            continue
+                        total += len(block)
+                        if total > maximum:
+                            raise WorkerFailure(
+                                WorkerCode.RUNTIME,
+                                private_diagnostic=b"stream output exceeded cap",
+                            )
+                        stream.write(block)
+                stream.flush()
+                os.fsync(stream.fileno())
+            return_code = process.wait(timeout=1)
+            if return_code != 0:
+                raise WorkerFailure(
+                    WorkerCode.RUNTIME,
+                    private_diagnostic=(
+                        f"exit={return_code}\nstderr:\n".encode("ascii")
+                        + bytes(diagnostic)
+                    )[:DIAGNOSTIC_BYTES],
+                )
+            return total
+        except WorkerFailure:
+            if process is not None and process.poll() is None:
+                process.kill()
+                process.wait(timeout=5)
+            destination.unlink(missing_ok=True)
+            raise
+        except (OSError, subprocess.SubprocessError):
+            if process is not None and process.poll() is None:
+                process.kill()
+                process.wait(timeout=5)
+            destination.unlink(missing_ok=True)
+            raise WorkerFailure(
+                WorkerCode.RUNTIME, private_diagnostic=bytes(diagnostic)
+            ) from None
 
 
 def doctor(

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import ast
 import hashlib
+import json
 import threading
 import time
 import zipfile
@@ -52,6 +53,7 @@ from carbon.reconstruction.worker.model import (
 )
 from carbon.reconstruction.worker.protocol import (
     _audit_zip,
+    decode_output_stream,
     load_worker_request,
     snapshot_output,
     stage_request,
@@ -247,6 +249,7 @@ def test_worker_entry_path_has_no_scoring_archive_reward_or_network_authority() 
     root = Path(__file__).resolve().parents[2]
     runtime_files = (
         root / "carbon/reconstruction/worker/entrypoint.py",
+        root / "carbon/reconstruction/worker/exporter.py",
         root / "carbon/reconstruction/worker/protocol.py",
     )
     imports: set[str] = set()
@@ -383,6 +386,40 @@ def test_output_snapshot_caps_members_and_seals_late_writes(tmp_path: Path) -> N
     assert digest.startswith("sha256:")
     assert (snapshot / "payload").read_bytes() == b"accepted-snapshot"
     assert (snapshot / "payload").stat().st_mode & 0o222 == 0
+
+
+def test_closed_output_stream_decodes_exact_bytes_and_rejects_traversal(
+    tmp_path: Path,
+) -> None:
+    def line(value: object) -> bytes:
+        return json.dumps(value, sort_keys=True, separators=(",", ":")).encode() + b"\n"
+
+    source = tmp_path / "valid.stream"
+    source.write_bytes(
+        line({"schema": "carbon.c03.output-stream.v1"})
+        + line({"path": "artifact/value.bin", "size": 3})
+        + b"abc"
+        + line({"bytes": 3, "end": True, "members": 1})
+    )
+    destination = tmp_path / "decoded"
+
+    decode_output_stream(source, destination)
+
+    assert (destination / "artifact/value.bin").read_bytes() == b"abc"
+
+    hostile = tmp_path / "hostile.stream"
+    hostile.write_bytes(
+        line({"schema": "carbon.c03.output-stream.v1"})
+        + line({"path": "../host", "size": 1})
+        + b"x"
+        + line({"bytes": 1, "end": True, "members": 1})
+    )
+    rejected = tmp_path / "rejected"
+    with pytest.raises(WorkerFailure) as captured:
+        decode_output_stream(hostile, rejected)
+
+    assert captured.value.code is WorkerCode.OUTPUT
+    assert not rejected.exists()
 
 
 def test_durable_launch_intent_converges_and_conflicts_fail_closed(

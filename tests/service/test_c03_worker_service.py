@@ -76,24 +76,37 @@ def _sanitized_docker_diagnostic(value: bytes) -> str:
 def _retain_failed_docker_diagnostics(monkeypatch: pytest.MonkeyPatch) -> None:
     """Make a bounded, sanitized Docker failure visible in this service lane."""
 
+    def retain(error: WorkerFailure, operation: str) -> None:
+        if error.private_diagnostic:
+            diagnostic = _sanitized_docker_diagnostic(error.private_diagnostic)
+            _record_trace(
+                "docker_runtime_diagnostic",
+                "failed",
+                operation=operation,
+                diagnostic=diagnostic,
+            )
+            print(f"C-03 private synthetic diagnostic:\n{diagnostic}", flush=True)
+
     original = DockerCLI.run
 
     def observed(self, arguments, **kwargs):
         try:
             return original(self, arguments, **kwargs)
         except WorkerFailure as error:
-            if error.private_diagnostic:
-                diagnostic = _sanitized_docker_diagnostic(error.private_diagnostic)
-                _record_trace(
-                    "docker_runtime_diagnostic",
-                    "failed",
-                    operation=arguments[0] if arguments else "missing",
-                    diagnostic=diagnostic,
-                )
-                print(f"C-03 private synthetic diagnostic:\n{diagnostic}", flush=True)
+            retain(error, arguments[0] if arguments else "missing")
+            raise
+
+    original_stream = DockerCLI.stream_to_file
+
+    def observed_stream(self, arguments, destination, **kwargs):
+        try:
+            return original_stream(self, arguments, destination, **kwargs)
+        except WorkerFailure as error:
+            retain(error, "bounded_stream")
             raise
 
     monkeypatch.setattr(DockerCLI, "run", observed)
+    monkeypatch.setattr(DockerCLI, "stream_to_file", observed_stream)
 
 
 def _record_trace(kind: str, disposition: str, **details: object) -> None:

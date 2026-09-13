@@ -37,6 +37,8 @@ from carbon.reconstruction.worker.docker_runtime import (
     spawn_watchdog,
 )
 from carbon.reconstruction.worker.model import (
+    CONTROL_BYTES,
+    OUTPUT_BYTES,
     PRODUCTIVE_DEADLINE_SECONDS,
     DevelopmentWorkerProfile,
     WorkerCode,
@@ -46,6 +48,7 @@ from carbon.reconstruction.worker.model import (
     WorkerTiming,
 )
 from carbon.reconstruction.worker.protocol import (
+    decode_output_stream,
     snapshot_output,
     stage_request,
     validate_snapshot,
@@ -332,10 +335,24 @@ class IsolatedReconstructionController:
                 tempfile.mkdtemp(prefix=".c03-raw-", dir=self.state_root / "outputs")
             )
             raw = raw_parent / "output"
-            self.cli.run(
-                ["cp", f"{container_name}:/scratch/output", str(raw_parent)],
+            framed = raw_parent / "output.stream"
+            self.cli.stream_to_file(
+                [
+                    "exec",
+                    "--user",
+                    "65532:65532",
+                    container_name,
+                    "/opt/carbon-worker/bin/python",
+                    "-I",
+                    "-m",
+                    "carbon.reconstruction.worker.exporter",
+                ],
+                framed,
+                maximum=OUTPUT_BYTES + 2 * CONTROL_BYTES,
                 timeout=30,
             )
+            decode_output_stream(framed, raw)
+            framed.unlink()
             snapshot, snapshot_digest = snapshot_output(
                 raw,
                 self.state_root / "snapshots",

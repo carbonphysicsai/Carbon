@@ -95,6 +95,9 @@ _REPLICATE_FIELDS = frozenset(
     }
 )
 _PATH_FIELDS = frozenset({"plan", "training", "seed"})
+_STREAM_HEADER_FIELDS = frozenset({"schema"})
+_STREAM_MEMBER_FIELDS = frozenset({"path", "size"})
+_STREAM_END_FIELDS = frozenset({"bytes", "end", "members"})
 
 
 def _canonical(value: object) -> bytes:
@@ -145,6 +148,114 @@ def _closed_json(path: Path, fields: frozenset[str]) -> dict[str, object]:
     if type(value) is not dict or set(value) != fields:
         raise WorkerFailure(WorkerCode.INVALID)
     return value
+
+
+def _json_line(stream) -> dict[str, object]:
+    line = stream.readline(2049)
+    if not line.endswith(b"\n") or len(line) > 2048:
+        raise WorkerFailure(WorkerCode.OUTPUT)
+
+    def pairs(items: list[tuple[str, object]]) -> dict[str, object]:
+        result: dict[str, object] = {}
+        for key, value in items:
+            if key in result:
+                raise WorkerFailure(WorkerCode.OUTPUT)
+            result[key] = value
+        return result
+
+    try:
+        value = json.loads(
+            line,
+            object_pairs_hook=pairs,
+            parse_constant=lambda _: (_ for _ in ()).throw(ValueError()),
+        )
+    except WorkerFailure:
+        raise
+    except (UnicodeError, ValueError, json.JSONDecodeError):
+        raise WorkerFailure(WorkerCode.OUTPUT) from None
+    if type(value) is not dict:
+        raise WorkerFailure(WorkerCode.OUTPUT)
+    return value
+
+
+def _closed_json_line(stream, fields: frozenset[str]) -> dict[str, object]:
+    value = _json_line(stream)
+    if set(value) != fields:
+        raise WorkerFailure(WorkerCode.OUTPUT)
+    return value
+
+
+def decode_output_stream(source: Path, destination: Path) -> None:
+    """Decode the fixed worker framing into a fresh controller-owned tree."""
+
+    if (
+        source.is_symlink()
+        or not source.is_file()
+        or source.stat().st_size > OUTPUT_BYTES + 2 * CONTROL_BYTES
+        or destination.exists()
+        or destination.is_symlink()
+    ):
+        raise WorkerFailure(WorkerCode.OUTPUT)
+    count = 0
+    total = 0
+    seen: set[str] = set()
+    try:
+        destination.mkdir(mode=0o700)
+        with source.open("rb") as stream:
+            header = _closed_json_line(stream, _STREAM_HEADER_FIELDS)
+            if header["schema"] != "carbon.c03.output-stream.v1":
+                raise WorkerFailure(WorkerCode.OUTPUT)
+            while True:
+                record = _json_line(stream)
+                if set(record) == _STREAM_END_FIELDS:
+                    end = record
+                    if (
+                        end["end"] is not True
+                        or end["members"] != count
+                        or end["bytes"] != total
+                        or stream.read(1) != b""
+                        or count == 0
+                    ):
+                        raise WorkerFailure(WorkerCode.OUTPUT)
+                    break
+                if set(record) != _STREAM_MEMBER_FIELDS:
+                    raise WorkerFailure(WorkerCode.OUTPUT)
+                member = record
+                relative = _safe_relative(member["path"])
+                size = member["size"]
+                if (
+                    type(size) is not int
+                    or size < 0
+                    or size > OUTPUT_BYTES - total
+                    or relative.as_posix() in seen
+                ):
+                    raise WorkerFailure(WorkerCode.OUTPUT)
+                seen.add(relative.as_posix())
+                count += 1
+                if count > OUTPUT_MEMBERS:
+                    raise WorkerFailure(WorkerCode.OUTPUT)
+                target = destination.joinpath(*relative.parts)
+                target.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+                with target.open("xb") as output:
+                    remaining = size
+                    while remaining:
+                        block = stream.read(min(1 << 20, remaining))
+                        if not block:
+                            raise WorkerFailure(WorkerCode.OUTPUT)
+                        output.write(block)
+                        remaining -= len(block)
+                    output.flush()
+                    os.fsync(output.fileno())
+                total += size
+    except WorkerFailure:
+        shutil.rmtree(destination, ignore_errors=True)
+        raise WorkerFailure(WorkerCode.OUTPUT) from None
+    except Exception:  # noqa: BLE001
+        shutil.rmtree(destination, ignore_errors=True)
+        raise WorkerFailure(WorkerCode.OUTPUT) from None
+    except BaseException:
+        shutil.rmtree(destination, ignore_errors=True)
+        raise
 
 
 def _audit_zip(path: Path, *, expanded_limit: int) -> int | None:
@@ -650,6 +761,7 @@ def validate_snapshot(
 
 
 __all__ = [
+    "decode_output_stream",
     "load_worker_request",
     "run_staged_worker",
     "snapshot_output",
