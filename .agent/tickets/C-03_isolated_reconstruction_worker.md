@@ -1,9 +1,11 @@
 # C-03 — Isolated reconstruction worker
 
 **Wave:** C1 real scientific execution foundations
-**Status:** `in_progress`; first bounded DEVELOPMENT implementation slice selected
-**Depends on:** C-02's merged DEVELOPMENT adapter capability; C-01; B-02B;
-B-02C; A4
+**Status:** `in_progress`
+**Depends on:** C-01; B-02B; B-02C; A4
+**Adapter prerequisite:** C-02's merged DEVELOPMENT adapter capability is
+satisfied by PR #148; full C-02 closure remains open and non-blocking for this
+slice.
 **Selection authority:** `OWNER-C03-DEV-ISOLATION-01`, supplied directly by
 the repository owner on 2026-09-13 as the owner request and attached handoff
 **Primary Hub map_ref:** `WAVE-C/C-03`
