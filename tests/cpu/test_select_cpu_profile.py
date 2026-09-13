@@ -160,6 +160,16 @@ def test_ci_preserves_invariants_collection_packages_and_full_fallback() -> None
     assert "|| true" not in source
 
 
+def test_ci_docker_lane_trigger_does_not_short_circuit_changed_path_stream() -> None:
+    source = (SCRIPT_ROOT / "ci.sh").read_text(encoding="utf-8")
+    trigger = source.partition('echo "==> required C-03 Docker worker service lane"')[0]
+    trigger = trigger.rpartition('if [[ "${CARBON_REQUIRE_DOCKER_TESTS:-}"')[2]
+    assert "git diff --name-only" in trigger
+    assert "rg '^" in trigger
+    assert "rg -q" not in trigger
+    assert ">/dev/null" in trigger
+
+
 def test_unresolvable_base_rejects_profile_selection(tmp_path: Path) -> None:
     result = subprocess.run(
         [

@@ -78,7 +78,7 @@ fi
 
 if [[ "${CARBON_REQUIRE_DOCKER_TESTS:-}" == "1" ]] && \
   git diff --name-only "${quality_base}...HEAD" | \
-    rg -q '^(\.worker/|carbon/(execution/store|reconstruction/worker|reconstruction/profiles/)|tests/service/test_c03_)'; then
+    rg '^(\.worker/|carbon/(execution/store|reconstruction/worker|reconstruction/profiles/)|tests/service/test_c03_)' >/dev/null; then
   echo "==> required C-03 Docker worker service lane"
   "${python_bin}" -m pytest tests/service/test_c03_worker_service.py -q -s
 fi
