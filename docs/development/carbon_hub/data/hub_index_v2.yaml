@@ -4459,6 +4459,9 @@ events:
     summary: "The owner-directed C-02 continuation keeps canonical Python 3.11, upgrades the exact CPU dependency environment, binds explicit Burgers physical scaling, adds independent manufactured verification and implements one source-pinned Foundax 0.2.0 FNO profile behind the existing public Strategy token. Historical identities remain unchanged and the absent carbon_jax_research v0.2 source is not substituted. C-02 remains in progress; no production repeat rule, C-03 selection, scientific/security qualification, accelerator, production, network or LIVE authority follows."
     primary_detail: "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5653282388"
     affects:
+      - "WAVE-B"
+      - "WAVE-B/B-E4"
+      - "WAVE-B/B-GATE"
       - "WAVE-C"
       - "WAVE-C/C-02"
       - "WAVE-C/C-03"
