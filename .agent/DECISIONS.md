@@ -13726,3 +13726,40 @@ field-size evidence adequacy, scientific comparison ownership, acceptable
 service delay and unresolved-member behavior, security/rights acceptance, and
 qualified Carbon evidence remain unavailable. The UI keeps them unknown and
 fail closed.
+
+## 2026-09-14 — C-04-D1: isolate role-explicit public reference candidates without admission authority
+
+**Source and scope.** This engineering decision implements the reference-role,
+sequencing and containment choices already supplied by
+`OWNER-C1-BURGERS-ALPHA-01`. PR #151's accepted C-03 hardening is the bounded
+isolation prerequisite. This is not a new scientific method qualification,
+security acceptance, reviewer decision or protected-data authorization.
+
+**Selection.** Keep B-04's standard-library authority package unchanged and add
+the numerical/process implementation under `carbon.reference_runtime`.
+Cole–Hopf Fourier quadrature is the candidate operational primary; periodic
+conservative finite-volume Rusanov/SSPRK3 is the distinct-discretization
+witness; dealiased Fourier ETDRK4 is DEVELOPMENT cross-check only. All three
+remain unqualified. Shared governing equations, case authoring, NumPy runtime
+and repository lineage are disclosed; a different discretization alone not by
+itself establish independent review or truth.
+
+**Binding and lifecycle.** One closed request digest includes the exact public
+case, policy, role, method/implementation/environment/precision/settings,
+physical coefficients, viscosity/domain, requested points/times and output
+semantics. It is also the idempotent cache/launch identity. The fixed C-03 image
+entry point dispatches the closed schema in a fresh container with no shared
+training cache. Output is a bounded raw float64 snapshot, remains provisional
+while the worker lives, and is validated in a separate limited process only
+after exact container termination. Changed, nonfinite, stale, cross-bound or
+late output cannot associate. Exact replay has no second execution effect;
+uncertain history fails closed.
+
+**Evidence and authority ceiling.** Freeze twelve public cases, one per
+registered cell, with three explicit method roles and no scientific tolerance.
+The D-03/D-04 prerequisite harness records initial recovery, periodic closure,
+conditioning, same-method refinement, conservative mean drift and cross-method
+discrepancy. It outputs `EVIDENCE_ONLY_UNRESOLVED`, never a solver vote,
+average, truth asset, score or qualification. Protected/score eligibility,
+scientific tolerance/applicability/uncertainty acceptance and the commissioned
+independent security assessment remain absent and fail closed.

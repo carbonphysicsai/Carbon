@@ -7,10 +7,6 @@ import pytest
 ROOT = Path(__file__).resolve().parents[2]
 
 FUTURE_TICKET_MARKERS = {
-    "C-04_protected_reference_runtime.md": (
-        "typed `ReferenceRunOutcome`",
-        "no mock, weaker solver, averaging",
-    ),
     "C-05_production_measurement.md": (
         "numerical/reference floors",
         "cannot enter lean scientific scoring",
@@ -64,6 +60,18 @@ def test_selected_c02_retains_ticket_local_acceptance_and_boundary() -> None:
     assert "protected official case material" in ticket
     assert "C-03's exact DEVELOPMENT limits are now supplied" in ticket
     assert "implemented as a separately owned composition" in ticket
+
+
+def test_selected_c04_retains_bounded_acceptance_and_unearned_authority() -> None:
+    ticket = (ROOT / ".agent/tickets/C-04_protected_reference_runtime.md").read_text(
+        encoding="utf-8"
+    )
+    assert "**Status:** `in_progress`" in ticket
+    assert "Definition of Done" in ticket
+    assert "Preserve supported, unsupported, unresolved, cancellation" in ticket
+    assert "no fallback, vote or averaging" in ticket
+    assert "public qualification-candidate" in ticket
+    assert "Human scientific qualification, independent security acceptance" in ticket
 
 
 @pytest.mark.parametrize(("filename", "markers"), FUTURE_TICKET_MARKERS.items())

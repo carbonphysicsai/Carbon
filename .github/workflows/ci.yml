@@ -150,7 +150,7 @@ jobs:
         run: ./scripts/dev/verify_image.sh "${CARBON_DEV_IMAGE}"
 
   c03-worker:
-    name: C-03 isolated worker service acceptance
+    name: C-03/C-04 isolated worker service acceptance
     if: needs.preflight.outputs.change_scope == 'RUNTIME_FULL' && needs.preflight.outputs.c03_worker_required == 'true'
     needs: preflight
     runs-on: ubuntu-24.04
@@ -174,7 +174,7 @@ jobs:
         run: ./scripts/dev/bootstrap.sh
       - name: Build exact worker image and manifest
         run: ./scripts/dev/c03_worker_image.sh
-      - name: Run required service-backed controls and real JAX paths
+      - name: Run required service-backed controls and real numerical paths
         run: ./scripts/dev/c03_worker_service.sh
       - name: Exercise the three retained owner commands
         run: |

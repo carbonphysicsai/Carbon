@@ -15,6 +15,7 @@ _REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 _CARBON_ROOT = _REPOSITORY_ROOT / "carbon"
 _GENERATORS_ROOT = _CARBON_ROOT / "generators"
 _B07F_ADAPTER = _CARBON_ROOT / "traineval" / "resolved_fixture.py"
+_C04_REFERENCE_MODEL = _CARBON_ROOT / "reference_runtime" / "model.py"
 _BURGERS_DEVELOPMENT_MODULE = _GENERATORS_ROOT / "burgers_dynamics.py"
 
 _EXPECTED_MODULE_PATHS = frozenset(
@@ -386,7 +387,10 @@ def test_generators_uses_only_ratified_seeding_apis() -> None:
 def test_existing_carbon_packages_do_not_reverse_import_generators() -> None:
     violations: list[str] = []
     for path in _python_files(_CARBON_ROOT):
-        if _GENERATORS_ROOT in path.parents or path == _B07F_ADAPTER:
+        if _GENERATORS_ROOT in path.parents or path in {
+            _B07F_ADAPTER,
+            _C04_REFERENCE_MODEL,
+        }:
             continue
         violations.extend(
             f"{_relative(path)}:{line}" for line in _imports_generators(path)

@@ -2,8 +2,8 @@
 
 **Wave:** C1 real scientific execution foundations
 **Status:** `in_progress`
-**Current slice:** PR #149 completed the selected worker slice; the
-owner-selected prerequisite-hardening continuation is active
+**Current slice:** PR #151 completed the selected prerequisite-hardening
+continuation; broader protected/security/production requirements remain open
 **Depends on:** C-01; B-02B; B-02C; A4
 **Adapter prerequisite:** C-02's merged DEVELOPMENT adapter capability is
 satisfied by PR #148; full C-02 closure remains open and non-blocking for this
@@ -105,8 +105,8 @@ MQ-015 is not resolved and `SECURITY_QUALIFIED` is not earned.
 
 ## Selected prerequisite-hardening continuation
 
-`OWNER-C1-BURGERS-ALPHA-01` retains C-03 as the single selected ticket long
-enough to disposition four narrow concerns before C-04 consumes the worker:
+`OWNER-C1-BURGERS-ALPHA-01` retained C-03 long enough to disposition four
+narrow concerns before C-04 consumed the worker:
 
 - enforce Docker CLI response caps while bytes are received, rather than
   after an unbounded `capture_output` allocation;
@@ -122,8 +122,13 @@ C-03 deliberately uses source-owned `FAILED_INFRA` after worker execution, so
 policy exhaustion, deadline, malformed output or unknown consumption cannot
 mint another attempt, replica or resource budget. Exit status alone does not
 establish OOM; retained cgroup `memory.events` is the cause evidence when it is
-available. The final changed source receives a new worker image/config identity
-and must pass the required Linux service lane before this continuation closes.
+available. PR #151 accepted exact head
+`abc490495528d8960ff8c66f50feabeae3affd34` in required RUNTIME_FULL run
+`34778563403` and normally merged it as
+`2d5872aff89ca7bef3e3f062b293aeefe17769aa`. The run passed the required
+Linux worker service lane, canonical environment, clean development image,
+Hub validation and Merge gate. That closes only this prerequisite-hardening
+slice and selected C-04; it does not close full C-03.
 
 ## Still open
 
