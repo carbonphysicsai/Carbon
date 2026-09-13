@@ -1,0 +1,12 @@
+{
+  "evidence_class": "SYNTHETIC_ADAPTIVE_NEGATIVE_CONTROL",
+  "feedback": "exact correct-count after each adaptive submission",
+  "independent_holdout_accuracy": 0.46875,
+  "limitation": "This proves exploitability of exact repeated score feedback on this finite synthetic bank, not a Carbon population leakage rate.",
+  "permitted_repair_interface": "one closure-gated summary for one precommitted prediction; no repeated adaptive access to the protected realization",
+  "queries": 33,
+  "recovered_bank_exactly": true,
+  "reused_bank_accuracy": 1.0,
+  "schema_version": "carbon.cpes-reuse.adaptive-bank-control.v1",
+  "whole_cases": 32
+}

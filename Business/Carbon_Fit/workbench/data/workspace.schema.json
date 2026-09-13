@@ -1,0 +1,1874 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Carbon offline opportunity workbench workspace v0.2",
+  "$comment": "Planning artifact only. Derived recommendations are recomputed by engine.js. This schema grants no runtime, evidence, qualification, submission, or reuse authority.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "carbon_workbench_workspace_v0.2"
+    },
+    "application_version": {
+      "const": "Carbon Opportunity Workbench v0.2"
+    },
+    "source_sha256": {
+      "const": "6e755f19f4876311709f171b2265413dfde085c6a5071e1ce748f6ec4be313fc"
+    },
+    "evidence_catalog": {
+      "type": "array",
+      "maxItems": 16,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "schema_version": {
+            "const": "carbon.workbench.cpes-study-import.v1"
+          },
+          "study_id": {
+            "type": "string",
+            "maxLength": 300
+          },
+          "evidence_version": {
+            "type": "string",
+            "maxLength": 300
+          },
+          "recommendation": {
+            "type": "string",
+            "maxLength": 300
+          },
+          "source_reference": {
+            "type": "string",
+            "maxLength": 300
+          },
+          "delivery_status": {
+            "type": "string",
+            "maxLength": 300
+          },
+          "qualified_carbon_evidence": {
+            "type": "null"
+          },
+          "content_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        },
+        "required": [
+          "schema_version",
+          "study_id",
+          "evidence_version",
+          "recommendation",
+          "source_reference",
+          "delivery_status",
+          "qualified_carbon_evidence",
+          "content_sha256"
+        ]
+      }
+    },
+    "drafts": {
+      "type": "array",
+      "maxItems": 64,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "schema_version": {
+            "const": "carbon_workbench_draft_v0.2"
+          },
+          "opportunity_id": {
+            "enum": [
+              "PHY-A01",
+              "PHY-A02",
+              "PHY-A03",
+              "PHY-A04",
+              "PHY-A05",
+              "PHY-A06",
+              "PHY-A07",
+              "PHY-A08",
+              "PHY-A09",
+              "PHY-A10",
+              "PHY-A11",
+              "PHY-A12",
+              "PHY-A13",
+              "PHY-B01",
+              "PHY-B02",
+              "PHY-B03",
+              "PHY-B04",
+              "PHY-B05",
+              "PHY-B06",
+              "PHY-B07",
+              "PHY-B08",
+              "PHY-B09",
+              "PHY-B10",
+              "PHY-B11",
+              "PHY-B12",
+              "PHY-B13",
+              "PHY-B14",
+              "PHY-B15",
+              "PHY-B16",
+              "PHY-B17",
+              "PHY-C01",
+              "PHY-C02",
+              "PHY-C03",
+              "PHY-C04",
+              "PHY-C05",
+              "PHY-C06",
+              "PHY-C07",
+              "PHY-C08",
+              "PHY-C09",
+              "PHY-C10",
+              "PHY-C11",
+              "PHY-C12",
+              "PHY-C13",
+              "PHY-C14",
+              "PHY-C15",
+              "PHY-D01",
+              "PHY-D02",
+              "PHY-D03",
+              "PHY-D04",
+              "PHY-D05",
+              "PHY-D06",
+              "PHY-D07",
+              "PHY-D08",
+              "PHY-D09",
+              "PHY-D10",
+              "PHY-D11",
+              "PHY-D12",
+              "PHY-D13",
+              "PHY-D14",
+              "PHY-D15",
+              "PHY-D16",
+              "PHY-D17",
+              "PHY-D18",
+              "PHY-D19"
+            ]
+          },
+          "source_sha256": {
+            "const": "6e755f19f4876311709f171b2265413dfde085c6a5071e1ce748f6ec4be313fc"
+          },
+          "planning_state": {
+            "enum": [
+              "UNREVIEWED",
+              "INVESTIGATE",
+              "PILOT_PROPOSAL",
+              "PARTNER_DEPENDENT",
+              "PARKED",
+              "DECLINE_CURRENT_SCOPE"
+            ]
+          },
+          "fit_checks": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "job_access": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "state": {
+                    "enum": [
+                      "UNKNOWN",
+                      "SUPPORTED_FOR_STAGE",
+                      "BLOCKED_FOR_SCOPE"
+                    ]
+                  },
+                  "evidence_note": {
+                    "type": "string",
+                    "maxLength": 8000
+                  }
+                },
+                "required": [
+                  "state",
+                  "evidence_note"
+                ]
+              },
+              "reference": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "state": {
+                    "enum": [
+                      "UNKNOWN",
+                      "SUPPORTED_FOR_STAGE",
+                      "BLOCKED_FOR_SCOPE"
+                    ]
+                  },
+                  "evidence_note": {
+                    "type": "string",
+                    "maxLength": 8000
+                  }
+                },
+                "required": [
+                  "state",
+                  "evidence_note"
+                ]
+              },
+              "reconstruction": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "state": {
+                    "enum": [
+                      "UNKNOWN",
+                      "SUPPORTED_FOR_STAGE",
+                      "BLOCKED_FOR_SCOPE"
+                    ]
+                  },
+                  "evidence_note": {
+                    "type": "string",
+                    "maxLength": 8000
+                  }
+                },
+                "required": [
+                  "state",
+                  "evidence_note"
+                ]
+              },
+              "exam": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "state": {
+                    "enum": [
+                      "UNKNOWN",
+                      "SUPPORTED_FOR_STAGE",
+                      "BLOCKED_FOR_SCOPE"
+                    ]
+                  },
+                  "evidence_note": {
+                    "type": "string",
+                    "maxLength": 8000
+                  }
+                },
+                "required": [
+                  "state",
+                  "evidence_note"
+                ]
+              },
+              "deployment": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "state": {
+                    "enum": [
+                      "UNKNOWN",
+                      "SUPPORTED_FOR_STAGE",
+                      "BLOCKED_FOR_SCOPE"
+                    ]
+                  },
+                  "evidence_note": {
+                    "type": "string",
+                    "maxLength": 8000
+                  }
+                },
+                "required": [
+                  "state",
+                  "evidence_note"
+                ]
+              },
+              "value": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "state": {
+                    "enum": [
+                      "UNKNOWN",
+                      "SUPPORTED_FOR_STAGE",
+                      "BLOCKED_FOR_SCOPE"
+                    ]
+                  },
+                  "evidence_note": {
+                    "type": "string",
+                    "maxLength": 8000
+                  }
+                },
+                "required": [
+                  "state",
+                  "evidence_note"
+                ]
+              }
+            },
+            "required": [
+              "job_access",
+              "reference",
+              "reconstruction",
+              "exam",
+              "deployment",
+              "value"
+            ]
+          },
+          "inputs": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "hardware": {
+                "type": "string",
+                "maxLength": 300
+              },
+              "daily_pool_hours": {
+                "type": "string",
+                "maxLength": 300
+              },
+              "supply_per_day": {
+                "type": "string",
+                "maxLength": 300
+              },
+              "repetitions": {
+                "type": "string",
+                "maxLength": 300
+              },
+              "train_ref_lo": {
+                "type": "string",
+                "maxLength": 300
+              },
+              "train_ref_hi": {
+                "type": "string",
+                "maxLength": 300
+              },
+              "rebuild_lo": {
+                "type": "string",
+                "maxLength": 300
+              },
+              "rebuild_hi": {
+                "type": "string",
+                "maxLength": 300
+              },
+              "eval_lo": {
+                "type": "string",
+                "maxLength": 300
+              },
+              "eval_hi": {
+                "type": "string",
+                "maxLength": 300
+              },
+              "overhead_lo": {
+                "type": "string",
+                "maxLength": 300
+              },
+              "overhead_hi": {
+                "type": "string",
+                "maxLength": 300
+              },
+              "promotion_lo": {
+                "type": "string",
+                "maxLength": 300
+              },
+              "promotion_hi": {
+                "type": "string",
+                "maxLength": 300
+              },
+              "ref_lo": {
+                "type": "string",
+                "maxLength": 300
+              },
+              "ref_hi": {
+                "type": "string",
+                "maxLength": 300
+              },
+              "cohort": {
+                "type": "string",
+                "maxLength": 300
+              },
+              "qualification_cost": {
+                "type": "string",
+                "maxLength": 300
+              },
+              "qualification_currency": {
+                "type": "string",
+                "maxLength": 300
+              },
+              "qualification_days": {
+                "type": "string",
+                "maxLength": 300
+              },
+              "qualification_risk": {
+                "type": "string",
+                "maxLength": 300
+              },
+              "baseline_latency_ms": {
+                "type": "string",
+                "maxLength": 300
+              },
+              "required_latency_ms": {
+                "type": "string",
+                "maxLength": 300
+              }
+            },
+            "required": [
+              "hardware",
+              "daily_pool_hours",
+              "supply_per_day",
+              "repetitions",
+              "train_ref_lo",
+              "train_ref_hi",
+              "rebuild_lo",
+              "rebuild_hi",
+              "eval_lo",
+              "eval_hi",
+              "overhead_lo",
+              "overhead_hi",
+              "promotion_lo",
+              "promotion_hi",
+              "ref_lo",
+              "ref_hi",
+              "cohort",
+              "qualification_cost",
+              "qualification_currency",
+              "qualification_days",
+              "qualification_risk",
+              "baseline_latency_ms",
+              "required_latency_ms"
+            ]
+          },
+          "brief": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "job": {
+                "type": "string",
+                "maxLength": 8000
+              },
+              "output": {
+                "type": "string",
+                "maxLength": 8000
+              },
+              "context": {
+                "type": "string",
+                "maxLength": 8000
+              },
+              "baseline": {
+                "type": "string",
+                "maxLength": 8000
+              },
+              "reference_access": {
+                "type": "string",
+                "maxLength": 8000
+              },
+              "accuracy": {
+                "type": "string",
+                "maxLength": 8000
+              },
+              "latency": {
+                "type": "string",
+                "maxLength": 8000
+              },
+              "volume": {
+                "type": "string",
+                "maxLength": 8000
+              },
+              "budget": {
+                "type": "string",
+                "maxLength": 8000
+              },
+              "timing": {
+                "type": "string",
+                "maxLength": 8000
+              },
+              "privacy": {
+                "type": "string",
+                "maxLength": 8000
+              },
+              "contact": {
+                "type": "string",
+                "maxLength": 8000
+              },
+              "notes": {
+                "type": "string",
+                "maxLength": 8000
+              }
+            },
+            "required": [
+              "job",
+              "output",
+              "context",
+              "baseline",
+              "reference_access",
+              "accuracy",
+              "latency",
+              "volume",
+              "budget",
+              "timing",
+              "privacy",
+              "contact",
+              "notes"
+            ]
+          },
+          "reference_roles": {
+            "type": "array",
+            "uniqueItems": true,
+            "maxItems": 6,
+            "items": {
+              "enum": [
+                "verification",
+                "training_data",
+                "routine_exam",
+                "independent_witness",
+                "physical_anchor",
+                "protected_audit"
+              ]
+            }
+          },
+          "reference_architecture": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "verification": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "family": {
+                    "type": "string",
+                    "maxLength": 8000
+                  },
+                  "implementation_scope": {
+                    "type": "string",
+                    "maxLength": 8000
+                  },
+                  "evidence_note": {
+                    "type": "string",
+                    "maxLength": 8000
+                  }
+                },
+                "required": [
+                  "family",
+                  "implementation_scope",
+                  "evidence_note"
+                ]
+              },
+              "training_data": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "family": {
+                    "type": "string",
+                    "maxLength": 8000
+                  },
+                  "implementation_scope": {
+                    "type": "string",
+                    "maxLength": 8000
+                  },
+                  "evidence_note": {
+                    "type": "string",
+                    "maxLength": 8000
+                  }
+                },
+                "required": [
+                  "family",
+                  "implementation_scope",
+                  "evidence_note"
+                ]
+              },
+              "routine_exam": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "family": {
+                    "type": "string",
+                    "maxLength": 8000
+                  },
+                  "implementation_scope": {
+                    "type": "string",
+                    "maxLength": 8000
+                  },
+                  "evidence_note": {
+                    "type": "string",
+                    "maxLength": 8000
+                  }
+                },
+                "required": [
+                  "family",
+                  "implementation_scope",
+                  "evidence_note"
+                ]
+              },
+              "independent_witness": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "family": {
+                    "type": "string",
+                    "maxLength": 8000
+                  },
+                  "implementation_scope": {
+                    "type": "string",
+                    "maxLength": 8000
+                  },
+                  "evidence_note": {
+                    "type": "string",
+                    "maxLength": 8000
+                  }
+                },
+                "required": [
+                  "family",
+                  "implementation_scope",
+                  "evidence_note"
+                ]
+              },
+              "physical_anchor": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "family": {
+                    "type": "string",
+                    "maxLength": 8000
+                  },
+                  "implementation_scope": {
+                    "type": "string",
+                    "maxLength": 8000
+                  },
+                  "evidence_note": {
+                    "type": "string",
+                    "maxLength": 8000
+                  }
+                },
+                "required": [
+                  "family",
+                  "implementation_scope",
+                  "evidence_note"
+                ]
+              },
+              "protected_audit": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "family": {
+                    "type": "string",
+                    "maxLength": 8000
+                  },
+                  "implementation_scope": {
+                    "type": "string",
+                    "maxLength": 8000
+                  },
+                  "evidence_note": {
+                    "type": "string",
+                    "maxLength": 8000
+                  }
+                },
+                "required": [
+                  "family",
+                  "implementation_scope",
+                  "evidence_note"
+                ]
+              }
+            },
+            "required": [
+              "verification",
+              "training_data",
+              "routine_exam",
+              "independent_witness",
+              "physical_anchor",
+              "protected_audit"
+            ]
+          },
+          "next_test": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "study_refs": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+              "type": "string",
+              "maxLength": 200
+            }
+          },
+          "review_note": {
+            "type": "string",
+            "maxLength": 8000
+          },
+          "protection": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "controls": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "P1": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "state": {
+                        "enum": [
+                          "UNASSESSED",
+                          "EVIDENCE_ASSEMBLED",
+                          "BLOCKED"
+                        ]
+                      },
+                      "source_reference": {
+                        "type": "string",
+                        "maxLength": 8000
+                      },
+                      "reviewer_notes": {
+                        "type": "string",
+                        "maxLength": 8000
+                      },
+                      "measurement_method": {
+                        "type": "string",
+                        "maxLength": 8000
+                      },
+                      "unresolved_assumptions": {
+                        "type": "string",
+                        "maxLength": 8000
+                      }
+                    },
+                    "required": [
+                      "state",
+                      "source_reference",
+                      "reviewer_notes",
+                      "measurement_method",
+                      "unresolved_assumptions"
+                    ]
+                  },
+                  "P2": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "state": {
+                        "enum": [
+                          "UNASSESSED",
+                          "EVIDENCE_ASSEMBLED",
+                          "BLOCKED"
+                        ]
+                      },
+                      "source_reference": {
+                        "type": "string",
+                        "maxLength": 8000
+                      },
+                      "reviewer_notes": {
+                        "type": "string",
+                        "maxLength": 8000
+                      },
+                      "measurement_method": {
+                        "type": "string",
+                        "maxLength": 8000
+                      },
+                      "unresolved_assumptions": {
+                        "type": "string",
+                        "maxLength": 8000
+                      }
+                    },
+                    "required": [
+                      "state",
+                      "source_reference",
+                      "reviewer_notes",
+                      "measurement_method",
+                      "unresolved_assumptions"
+                    ]
+                  },
+                  "P3": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "state": {
+                        "enum": [
+                          "UNASSESSED",
+                          "EVIDENCE_ASSEMBLED",
+                          "BLOCKED"
+                        ]
+                      },
+                      "source_reference": {
+                        "type": "string",
+                        "maxLength": 8000
+                      },
+                      "reviewer_notes": {
+                        "type": "string",
+                        "maxLength": 8000
+                      },
+                      "measurement_method": {
+                        "type": "string",
+                        "maxLength": 8000
+                      },
+                      "unresolved_assumptions": {
+                        "type": "string",
+                        "maxLength": 8000
+                      }
+                    },
+                    "required": [
+                      "state",
+                      "source_reference",
+                      "reviewer_notes",
+                      "measurement_method",
+                      "unresolved_assumptions"
+                    ]
+                  },
+                  "P4": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "state": {
+                        "enum": [
+                          "UNASSESSED",
+                          "EVIDENCE_ASSEMBLED",
+                          "BLOCKED"
+                        ]
+                      },
+                      "source_reference": {
+                        "type": "string",
+                        "maxLength": 8000
+                      },
+                      "reviewer_notes": {
+                        "type": "string",
+                        "maxLength": 8000
+                      },
+                      "measurement_method": {
+                        "type": "string",
+                        "maxLength": 8000
+                      },
+                      "unresolved_assumptions": {
+                        "type": "string",
+                        "maxLength": 8000
+                      }
+                    },
+                    "required": [
+                      "state",
+                      "source_reference",
+                      "reviewer_notes",
+                      "measurement_method",
+                      "unresolved_assumptions"
+                    ]
+                  },
+                  "P5": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "state": {
+                        "enum": [
+                          "UNASSESSED",
+                          "EVIDENCE_ASSEMBLED",
+                          "BLOCKED"
+                        ]
+                      },
+                      "source_reference": {
+                        "type": "string",
+                        "maxLength": 8000
+                      },
+                      "reviewer_notes": {
+                        "type": "string",
+                        "maxLength": 8000
+                      },
+                      "measurement_method": {
+                        "type": "string",
+                        "maxLength": 8000
+                      },
+                      "unresolved_assumptions": {
+                        "type": "string",
+                        "maxLength": 8000
+                      }
+                    },
+                    "required": [
+                      "state",
+                      "source_reference",
+                      "reviewer_notes",
+                      "measurement_method",
+                      "unresolved_assumptions"
+                    ]
+                  },
+                  "P6": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "state": {
+                        "enum": [
+                          "UNASSESSED",
+                          "EVIDENCE_ASSEMBLED",
+                          "BLOCKED"
+                        ]
+                      },
+                      "source_reference": {
+                        "type": "string",
+                        "maxLength": 8000
+                      },
+                      "reviewer_notes": {
+                        "type": "string",
+                        "maxLength": 8000
+                      },
+                      "measurement_method": {
+                        "type": "string",
+                        "maxLength": 8000
+                      },
+                      "unresolved_assumptions": {
+                        "type": "string",
+                        "maxLength": 8000
+                      }
+                    },
+                    "required": [
+                      "state",
+                      "source_reference",
+                      "reviewer_notes",
+                      "measurement_method",
+                      "unresolved_assumptions"
+                    ]
+                  },
+                  "P7": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "state": {
+                        "enum": [
+                          "UNASSESSED",
+                          "EVIDENCE_ASSEMBLED",
+                          "BLOCKED"
+                        ]
+                      },
+                      "source_reference": {
+                        "type": "string",
+                        "maxLength": 8000
+                      },
+                      "reviewer_notes": {
+                        "type": "string",
+                        "maxLength": 8000
+                      },
+                      "measurement_method": {
+                        "type": "string",
+                        "maxLength": 8000
+                      },
+                      "unresolved_assumptions": {
+                        "type": "string",
+                        "maxLength": 8000
+                      }
+                    },
+                    "required": [
+                      "state",
+                      "source_reference",
+                      "reviewer_notes",
+                      "measurement_method",
+                      "unresolved_assumptions"
+                    ]
+                  },
+                  "P8": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "state": {
+                        "enum": [
+                          "UNASSESSED",
+                          "EVIDENCE_ASSEMBLED",
+                          "BLOCKED"
+                        ]
+                      },
+                      "source_reference": {
+                        "type": "string",
+                        "maxLength": 8000
+                      },
+                      "reviewer_notes": {
+                        "type": "string",
+                        "maxLength": 8000
+                      },
+                      "measurement_method": {
+                        "type": "string",
+                        "maxLength": 8000
+                      },
+                      "unresolved_assumptions": {
+                        "type": "string",
+                        "maxLength": 8000
+                      }
+                    },
+                    "required": [
+                      "state",
+                      "source_reference",
+                      "reviewer_notes",
+                      "measurement_method",
+                      "unresolved_assumptions"
+                    ]
+                  }
+                },
+                "required": [
+                  "P1",
+                  "P2",
+                  "P3",
+                  "P4",
+                  "P5",
+                  "P6",
+                  "P7",
+                  "P8"
+                ]
+              },
+              "blockers": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "AT-09": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "applicability": {
+                        "enum": [
+                          "UNKNOWN",
+                          "APPLICABLE",
+                          "NOT_APPLICABLE_ASSERTED"
+                        ]
+                      },
+                      "source_reference": {
+                        "type": "string",
+                        "maxLength": 8000
+                      },
+                      "reviewer_notes": {
+                        "type": "string",
+                        "maxLength": 8000
+                      },
+                      "measurement_method": {
+                        "type": "string",
+                        "maxLength": 8000
+                      },
+                      "unresolved_assumptions": {
+                        "type": "string",
+                        "maxLength": 8000
+                      }
+                    },
+                    "required": [
+                      "applicability",
+                      "source_reference",
+                      "reviewer_notes",
+                      "measurement_method",
+                      "unresolved_assumptions"
+                    ]
+                  },
+                  "AT-16": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "applicability": {
+                        "enum": [
+                          "UNKNOWN",
+                          "APPLICABLE",
+                          "NOT_APPLICABLE_ASSERTED"
+                        ]
+                      },
+                      "source_reference": {
+                        "type": "string",
+                        "maxLength": 8000
+                      },
+                      "reviewer_notes": {
+                        "type": "string",
+                        "maxLength": 8000
+                      },
+                      "measurement_method": {
+                        "type": "string",
+                        "maxLength": 8000
+                      },
+                      "unresolved_assumptions": {
+                        "type": "string",
+                        "maxLength": 8000
+                      }
+                    },
+                    "required": [
+                      "applicability",
+                      "source_reference",
+                      "reviewer_notes",
+                      "measurement_method",
+                      "unresolved_assumptions"
+                    ]
+                  },
+                  "AT-19": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "applicability": {
+                        "enum": [
+                          "UNKNOWN",
+                          "APPLICABLE",
+                          "NOT_APPLICABLE_ASSERTED"
+                        ]
+                      },
+                      "source_reference": {
+                        "type": "string",
+                        "maxLength": 8000
+                      },
+                      "reviewer_notes": {
+                        "type": "string",
+                        "maxLength": 8000
+                      },
+                      "measurement_method": {
+                        "type": "string",
+                        "maxLength": 8000
+                      },
+                      "unresolved_assumptions": {
+                        "type": "string",
+                        "maxLength": 8000
+                      }
+                    },
+                    "required": [
+                      "applicability",
+                      "source_reference",
+                      "reviewer_notes",
+                      "measurement_method",
+                      "unresolved_assumptions"
+                    ]
+                  },
+                  "AT-22": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "applicability": {
+                        "enum": [
+                          "UNKNOWN",
+                          "APPLICABLE",
+                          "NOT_APPLICABLE_ASSERTED"
+                        ]
+                      },
+                      "source_reference": {
+                        "type": "string",
+                        "maxLength": 8000
+                      },
+                      "reviewer_notes": {
+                        "type": "string",
+                        "maxLength": 8000
+                      },
+                      "measurement_method": {
+                        "type": "string",
+                        "maxLength": 8000
+                      },
+                      "unresolved_assumptions": {
+                        "type": "string",
+                        "maxLength": 8000
+                      }
+                    },
+                    "required": [
+                      "applicability",
+                      "source_reference",
+                      "reviewer_notes",
+                      "measurement_method",
+                      "unresolved_assumptions"
+                    ]
+                  },
+                  "AT-30": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "applicability": {
+                        "enum": [
+                          "UNKNOWN",
+                          "APPLICABLE",
+                          "NOT_APPLICABLE_ASSERTED"
+                        ]
+                      },
+                      "source_reference": {
+                        "type": "string",
+                        "maxLength": 8000
+                      },
+                      "reviewer_notes": {
+                        "type": "string",
+                        "maxLength": 8000
+                      },
+                      "measurement_method": {
+                        "type": "string",
+                        "maxLength": 8000
+                      },
+                      "unresolved_assumptions": {
+                        "type": "string",
+                        "maxLength": 8000
+                      }
+                    },
+                    "required": [
+                      "applicability",
+                      "source_reference",
+                      "reviewer_notes",
+                      "measurement_method",
+                      "unresolved_assumptions"
+                    ]
+                  }
+                },
+                "required": [
+                  "AT-09",
+                  "AT-16",
+                  "AT-19",
+                  "AT-22",
+                  "AT-30"
+                ]
+              },
+              "publication_review": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "desired_future_feature": {
+                    "const": true
+                  },
+                  "rights_notes": {
+                    "type": "string",
+                    "maxLength": 8000
+                  },
+                  "retirement_notes": {
+                    "type": "string",
+                    "maxLength": 8000
+                  },
+                  "status": {
+                    "const": "DEFERRED_NOT_IMPLEMENTED"
+                  }
+                },
+                "required": [
+                  "desired_future_feature",
+                  "rights_notes",
+                  "retirement_notes",
+                  "status"
+                ]
+              }
+            },
+            "required": [
+              "controls",
+              "blockers",
+              "publication_review"
+            ]
+          },
+          "reference_economics": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "reference_work": {
+                "type": "string",
+                "maxLength": 300
+              },
+              "group_overhead": {
+                "type": "string",
+                "maxLength": 300
+              },
+              "group_size": {
+                "type": "string",
+                "maxLength": 300
+              },
+              "unit": {
+                "enum": [
+                  "",
+                  "synthetic work units",
+                  "CPU seconds \u2014 same profile",
+                  "GPU seconds \u2014 same profile",
+                  "explicit currency rate/basis",
+                  "other named matched unit"
+                ]
+              },
+              "unit_scope": {
+                "type": "string",
+                "maxLength": 300
+              },
+              "reference_status": {
+                "enum": [
+                  "unknown",
+                  "observed",
+                  "source_estimated",
+                  "user_assumed",
+                  "simulated"
+                ]
+              },
+              "overhead_status": {
+                "enum": [
+                  "unknown",
+                  "observed",
+                  "source_estimated",
+                  "user_assumed",
+                  "simulated"
+                ]
+              },
+              "group_size_status": {
+                "enum": [
+                  "unknown",
+                  "observed",
+                  "source_estimated",
+                  "user_assumed",
+                  "simulated"
+                ]
+              },
+              "compatible_demand_status": {
+                "enum": [
+                  "unknown",
+                  "observed",
+                  "source_estimated",
+                  "user_assumed",
+                  "simulated"
+                ]
+              },
+              "compatible_demand_source": {
+                "type": "string",
+                "maxLength": 300
+              },
+              "field_dependent": {
+                "enum": [
+                  "UNKNOWN",
+                  "YES",
+                  "NO"
+                ]
+              },
+              "completed_comparisons": {
+                "type": "string",
+                "maxLength": 300
+              },
+              "offered_requests": {
+                "type": "string",
+                "maxLength": 300
+              },
+              "unresolved_or_censored": {
+                "type": "string",
+                "maxLength": 300
+              },
+              "upfront_cost": {
+                "type": "string",
+                "maxLength": 300
+              },
+              "upfront_duration": {
+                "type": "string",
+                "maxLength": 300
+              },
+              "upfront_risk": {
+                "type": "string",
+                "maxLength": 300
+              }
+            },
+            "required": [
+              "reference_work",
+              "group_overhead",
+              "group_size",
+              "unit",
+              "unit_scope",
+              "reference_status",
+              "overhead_status",
+              "group_size_status",
+              "compatible_demand_status",
+              "compatible_demand_source",
+              "field_dependent",
+              "completed_comparisons",
+              "offered_requests",
+              "unresolved_or_censored",
+              "upfront_cost",
+              "upfront_duration",
+              "upfront_risk"
+            ]
+          },
+          "dynamic_scenario": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "scenario": {
+                "type": "string",
+                "maxLength": 100
+              },
+              "overhead": {
+                "type": "string",
+                "maxLength": 30
+              }
+            },
+            "required": [
+              "scenario",
+              "overhead"
+            ]
+          },
+          "next_evidence": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "compatibility_identity": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "source_reference": {
+                    "type": "string",
+                    "maxLength": 8000
+                  },
+                  "reviewer_notes": {
+                    "type": "string",
+                    "maxLength": 8000
+                  },
+                  "measurement_method": {
+                    "type": "string",
+                    "maxLength": 8000
+                  },
+                  "unresolved_assumptions": {
+                    "type": "string",
+                    "maxLength": 8000
+                  },
+                  "source_owner": {
+                    "type": "string",
+                    "maxLength": 8000
+                  },
+                  "smallest_observation": {
+                    "type": "string",
+                    "maxLength": 8000
+                  },
+                  "why_decision_changes": {
+                    "type": "string",
+                    "maxLength": 8000
+                  }
+                },
+                "required": [
+                  "source_reference",
+                  "reviewer_notes",
+                  "measurement_method",
+                  "unresolved_assumptions",
+                  "source_owner",
+                  "smallest_observation",
+                  "why_decision_changes"
+                ]
+              },
+              "compatible_dispatch_demand": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "source_reference": {
+                    "type": "string",
+                    "maxLength": 8000
+                  },
+                  "reviewer_notes": {
+                    "type": "string",
+                    "maxLength": 8000
+                  },
+                  "measurement_method": {
+                    "type": "string",
+                    "maxLength": 8000
+                  },
+                  "unresolved_assumptions": {
+                    "type": "string",
+                    "maxLength": 8000
+                  },
+                  "source_owner": {
+                    "type": "string",
+                    "maxLength": 8000
+                  },
+                  "smallest_observation": {
+                    "type": "string",
+                    "maxLength": 8000
+                  },
+                  "why_decision_changes": {
+                    "type": "string",
+                    "maxLength": 8000
+                  }
+                },
+                "required": [
+                  "source_reference",
+                  "reviewer_notes",
+                  "measurement_method",
+                  "unresolved_assumptions",
+                  "source_owner",
+                  "smallest_observation",
+                  "why_decision_changes"
+                ]
+              },
+              "same_identity_reference_cost": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "source_reference": {
+                    "type": "string",
+                    "maxLength": 8000
+                  },
+                  "reviewer_notes": {
+                    "type": "string",
+                    "maxLength": 8000
+                  },
+                  "measurement_method": {
+                    "type": "string",
+                    "maxLength": 8000
+                  },
+                  "unresolved_assumptions": {
+                    "type": "string",
+                    "maxLength": 8000
+                  },
+                  "source_owner": {
+                    "type": "string",
+                    "maxLength": 8000
+                  },
+                  "smallest_observation": {
+                    "type": "string",
+                    "maxLength": 8000
+                  },
+                  "why_decision_changes": {
+                    "type": "string",
+                    "maxLength": 8000
+                  }
+                },
+                "required": [
+                  "source_reference",
+                  "reviewer_notes",
+                  "measurement_method",
+                  "unresolved_assumptions",
+                  "source_owner",
+                  "smallest_observation",
+                  "why_decision_changes"
+                ]
+              },
+              "variant_b_overhead": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "source_reference": {
+                    "type": "string",
+                    "maxLength": 8000
+                  },
+                  "reviewer_notes": {
+                    "type": "string",
+                    "maxLength": 8000
+                  },
+                  "measurement_method": {
+                    "type": "string",
+                    "maxLength": 8000
+                  },
+                  "unresolved_assumptions": {
+                    "type": "string",
+                    "maxLength": 8000
+                  },
+                  "source_owner": {
+                    "type": "string",
+                    "maxLength": 8000
+                  },
+                  "smallest_observation": {
+                    "type": "string",
+                    "maxLength": 8000
+                  },
+                  "why_decision_changes": {
+                    "type": "string",
+                    "maxLength": 8000
+                  }
+                },
+                "required": [
+                  "source_reference",
+                  "reviewer_notes",
+                  "measurement_method",
+                  "unresolved_assumptions",
+                  "source_owner",
+                  "smallest_observation",
+                  "why_decision_changes"
+                ]
+              },
+              "field_evidence_adequacy": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "source_reference": {
+                    "type": "string",
+                    "maxLength": 8000
+                  },
+                  "reviewer_notes": {
+                    "type": "string",
+                    "maxLength": 8000
+                  },
+                  "measurement_method": {
+                    "type": "string",
+                    "maxLength": 8000
+                  },
+                  "unresolved_assumptions": {
+                    "type": "string",
+                    "maxLength": 8000
+                  },
+                  "source_owner": {
+                    "type": "string",
+                    "maxLength": 8000
+                  },
+                  "smallest_observation": {
+                    "type": "string",
+                    "maxLength": 8000
+                  },
+                  "why_decision_changes": {
+                    "type": "string",
+                    "maxLength": 8000
+                  }
+                },
+                "required": [
+                  "source_reference",
+                  "reviewer_notes",
+                  "measurement_method",
+                  "unresolved_assumptions",
+                  "source_owner",
+                  "smallest_observation",
+                  "why_decision_changes"
+                ]
+              },
+              "service_envelope": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "source_reference": {
+                    "type": "string",
+                    "maxLength": 8000
+                  },
+                  "reviewer_notes": {
+                    "type": "string",
+                    "maxLength": 8000
+                  },
+                  "measurement_method": {
+                    "type": "string",
+                    "maxLength": 8000
+                  },
+                  "unresolved_assumptions": {
+                    "type": "string",
+                    "maxLength": 8000
+                  },
+                  "source_owner": {
+                    "type": "string",
+                    "maxLength": 8000
+                  },
+                  "smallest_observation": {
+                    "type": "string",
+                    "maxLength": 8000
+                  },
+                  "why_decision_changes": {
+                    "type": "string",
+                    "maxLength": 8000
+                  }
+                },
+                "required": [
+                  "source_reference",
+                  "reviewer_notes",
+                  "measurement_method",
+                  "unresolved_assumptions",
+                  "source_owner",
+                  "smallest_observation",
+                  "why_decision_changes"
+                ]
+              }
+            },
+            "required": [
+              "compatibility_identity",
+              "compatible_dispatch_demand",
+              "same_identity_reference_cost",
+              "variant_b_overhead",
+              "field_evidence_adequacy",
+              "service_envelope"
+            ]
+          },
+          "legacy_sharing_scenario": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "status": {
+                    "const": "LEGACY_HYPOTHETICAL_SHARING_SCENARIO"
+                  },
+                  "cohort": {
+                    "type": "string",
+                    "maxLength": 8000
+                  },
+                  "ref_lo": {
+                    "type": "string",
+                    "maxLength": 8000
+                  },
+                  "ref_hi": {
+                    "type": "string",
+                    "maxLength": 8000
+                  },
+                  "hardware": {
+                    "type": "string",
+                    "maxLength": 8000
+                  },
+                  "note": {
+                    "type": "string",
+                    "maxLength": 8000
+                  }
+                },
+                "required": [
+                  "status",
+                  "cohort",
+                  "ref_lo",
+                  "ref_hi",
+                  "hardware",
+                  "note"
+                ]
+              }
+            ]
+          },
+          "migration_receipt": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "from": {
+                    "const": "carbon_workbench_draft_v0.1"
+                  },
+                  "to": {
+                    "const": "carbon_workbench_draft_v0.2"
+                  },
+                  "original_sha256": {
+                    "type": "string",
+                    "maxLength": 64
+                  },
+                  "digest_status": {
+                    "enum": [
+                      "VERIFIED_WEB_CRYPTO",
+                      "UNAVAILABLE"
+                    ]
+                  },
+                  "semantic_changes": {
+                    "type": "array",
+                    "maxItems": 12,
+                    "items": {
+                      "type": "string",
+                      "maxLength": 500
+                    }
+                  }
+                },
+                "required": [
+                  "from",
+                  "to",
+                  "original_sha256",
+                  "digest_status",
+                  "semantic_changes"
+                ]
+              }
+            ]
+          },
+          "evidence_status": {
+            "const": "USER_ENTERED_UNREVIEWED"
+          },
+          "qualification_status": {
+            "const": "NOT_QUALIFIED_BY_THIS_TOOL"
+          },
+          "submission_status": {
+            "const": "NOT_SENT"
+          },
+          "reuse_permission": {
+            "const": "NOT_GRANTED"
+          }
+        },
+        "required": [
+          "schema_version",
+          "opportunity_id",
+          "source_sha256",
+          "planning_state",
+          "fit_checks",
+          "inputs",
+          "brief",
+          "reference_roles",
+          "reference_architecture",
+          "next_test",
+          "study_refs",
+          "review_note",
+          "protection",
+          "reference_economics",
+          "dynamic_scenario",
+          "next_evidence",
+          "legacy_sharing_scenario",
+          "migration_receipt",
+          "evidence_status",
+          "qualification_status",
+          "submission_status",
+          "reuse_permission"
+        ]
+      }
+    },
+    "shortlist": {
+      "type": "array",
+      "maxItems": 3,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "PHY-A01",
+          "PHY-A02",
+          "PHY-A03",
+          "PHY-A04",
+          "PHY-A05",
+          "PHY-A06",
+          "PHY-A07",
+          "PHY-A08",
+          "PHY-A09",
+          "PHY-A10",
+          "PHY-A11",
+          "PHY-A12",
+          "PHY-A13",
+          "PHY-B01",
+          "PHY-B02",
+          "PHY-B03",
+          "PHY-B04",
+          "PHY-B05",
+          "PHY-B06",
+          "PHY-B07",
+          "PHY-B08",
+          "PHY-B09",
+          "PHY-B10",
+          "PHY-B11",
+          "PHY-B12",
+          "PHY-B13",
+          "PHY-B14",
+          "PHY-B15",
+          "PHY-B16",
+          "PHY-B17",
+          "PHY-C01",
+          "PHY-C02",
+          "PHY-C03",
+          "PHY-C04",
+          "PHY-C05",
+          "PHY-C06",
+          "PHY-C07",
+          "PHY-C08",
+          "PHY-C09",
+          "PHY-C10",
+          "PHY-C11",
+          "PHY-C12",
+          "PHY-C13",
+          "PHY-C14",
+          "PHY-C15",
+          "PHY-D01",
+          "PHY-D02",
+          "PHY-D03",
+          "PHY-D04",
+          "PHY-D05",
+          "PHY-D06",
+          "PHY-D07",
+          "PHY-D08",
+          "PHY-D09",
+          "PHY-D10",
+          "PHY-D11",
+          "PHY-D12",
+          "PHY-D13",
+          "PHY-D14",
+          "PHY-D15",
+          "PHY-D16",
+          "PHY-D17",
+          "PHY-D18",
+          "PHY-D19"
+        ]
+      }
+    },
+    "migration_receipts": {
+      "type": "array",
+      "maxItems": 65,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "from": {
+            "const": "carbon_workbench_workspace_v0.1"
+          },
+          "to": {
+            "const": "carbon_workbench_workspace_v0.2"
+          },
+          "original_sha256": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "digest_status": {
+            "enum": [
+              "VERIFIED_WEB_CRYPTO",
+              "UNAVAILABLE"
+            ]
+          },
+          "semantic_changes": {
+            "type": "array",
+            "maxItems": 12,
+            "items": {
+              "type": "string",
+              "maxLength": 500
+            }
+          }
+        },
+        "required": [
+          "from",
+          "to",
+          "original_sha256",
+          "digest_status",
+          "semantic_changes"
+        ]
+      }
+    }
+  },
+  "required": [
+    "schema_version",
+    "application_version",
+    "source_sha256",
+    "evidence_catalog",
+    "drafts",
+    "shortlist",
+    "migration_receipts"
+  ]
+}

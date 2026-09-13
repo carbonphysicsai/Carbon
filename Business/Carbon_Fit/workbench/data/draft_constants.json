@@ -1,0 +1,133 @@
+{
+  "VERSION": "carbon_workbench_draft_v0.2",
+  "WORKSPACE_VERSION": "carbon_workbench_workspace_v0.2",
+  "APP_VERSION": "Carbon Opportunity Workbench v0.2",
+  "CHECKS": [
+    "job_access",
+    "reference",
+    "reconstruction",
+    "exam",
+    "deployment",
+    "value"
+  ],
+  "STATES": [
+    "UNKNOWN",
+    "SUPPORTED_FOR_STAGE",
+    "BLOCKED_FOR_SCOPE"
+  ],
+  "PLANNING": [
+    "UNREVIEWED",
+    "INVESTIGATE",
+    "PILOT_PROPOSAL",
+    "PARTNER_DEPENDENT",
+    "PARKED",
+    "DECLINE_CURRENT_SCOPE"
+  ],
+  "INPUTS": [
+    "hardware",
+    "daily_pool_hours",
+    "supply_per_day",
+    "repetitions",
+    "train_ref_lo",
+    "train_ref_hi",
+    "rebuild_lo",
+    "rebuild_hi",
+    "eval_lo",
+    "eval_hi",
+    "overhead_lo",
+    "overhead_hi",
+    "promotion_lo",
+    "promotion_hi",
+    "ref_lo",
+    "ref_hi",
+    "cohort",
+    "qualification_cost",
+    "qualification_currency",
+    "qualification_days",
+    "qualification_risk",
+    "baseline_latency_ms",
+    "required_latency_ms"
+  ],
+  "BRIEF": [
+    "job",
+    "output",
+    "context",
+    "baseline",
+    "reference_access",
+    "accuracy",
+    "latency",
+    "volume",
+    "budget",
+    "timing",
+    "privacy",
+    "contact",
+    "notes"
+  ],
+  "ROLES": [
+    "verification",
+    "training_data",
+    "routine_exam",
+    "independent_witness",
+    "physical_anchor",
+    "protected_audit"
+  ],
+  "CONTROL_IDS": [
+    "P1",
+    "P2",
+    "P3",
+    "P4",
+    "P5",
+    "P6",
+    "P7",
+    "P8"
+  ],
+  "BLOCKER_IDS": [
+    "AT-09",
+    "AT-16",
+    "AT-19",
+    "AT-22",
+    "AT-30"
+  ],
+  "ECON_UNITS": [
+    "",
+    "synthetic work units",
+    "CPU seconds \u2014 same profile",
+    "GPU seconds \u2014 same profile",
+    "explicit currency rate/basis",
+    "other named matched unit"
+  ],
+  "ECON_FIELDS": [
+    "reference_work",
+    "group_overhead",
+    "group_size",
+    "unit",
+    "unit_scope",
+    "reference_status",
+    "overhead_status",
+    "group_size_status",
+    "compatible_demand_status",
+    "compatible_demand_source",
+    "field_dependent",
+    "completed_comparisons",
+    "offered_requests",
+    "unresolved_or_censored",
+    "upfront_cost",
+    "upfront_duration",
+    "upfront_risk"
+  ],
+  "GAP_IDS": [
+    "compatibility_identity",
+    "compatible_dispatch_demand",
+    "same_identity_reference_cost",
+    "variant_b_overhead",
+    "field_evidence_adequacy",
+    "service_envelope"
+  ],
+  "QUANTITY_STATUS": [
+    "unknown",
+    "observed",
+    "source_estimated",
+    "user_assumed",
+    "simulated"
+  ]
+}

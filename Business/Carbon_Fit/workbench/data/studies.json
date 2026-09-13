@@ -1,0 +1,82 @@
+{
+  "schema_version": "carbon_study_inventory_v0.1",
+  "studies": [
+    {
+      "id": "R01",
+      "title": "Live throughput pilot",
+      "filename": "Carbon_Live_Throughput_Pilot_Report_v0_1.md",
+      "sha256": "4d4ac6ce5856219af675d80c6e05f769f8f86811c06a6f44833c44bfe0c62803",
+      "method_label": "Physical fixture + trace analysis",
+      "scope_note": "Imported report from the prior Burgers development or synthetic-scenario program. No transfer to other physics rows is established.",
+      "validation_status": "File identity checked during import; numerical results and upstream bundles not re-audited in this build.",
+      "evidence_class": "IMPORTED_UNQUALIFIED_RESEARCH",
+      "qualified_claim_refs": []
+    },
+    {
+      "id": "R02",
+      "title": "Operating-point study",
+      "filename": "Carbon_Challenge_Operating_Point_Study_v0_2.md",
+      "sha256": "b147f8cb4fa9b1d79de56ccd4e02d864e6695cf86caef64966a6f4febc3478fb",
+      "method_label": "Timed research campaigns + simulation",
+      "scope_note": "Imported report from the prior Burgers development or synthetic-scenario program. No transfer to other physics rows is established.",
+      "validation_status": "File identity checked during import; numerical results and upstream bundles not re-audited in this build.",
+      "evidence_class": "IMPORTED_UNQUALIFIED_RESEARCH",
+      "qualified_claim_refs": []
+    },
+    {
+      "id": "R03",
+      "title": "Single-validator operating map",
+      "filename": "Carbon_Single_Validator_Operating_Map_Report_v0_1.md",
+      "sha256": "928e6c501ef22e226b58cf6f5861f8f11846e3c8367d3f6dcff06a34f8c47204",
+      "method_label": "Physical fixture + allocation analysis",
+      "scope_note": "Imported report from the prior Burgers development or synthetic-scenario program. No transfer to other physics rows is established.",
+      "validation_status": "File identity checked during import; numerical results and upstream bundles not re-audited in this build.",
+      "evidence_class": "IMPORTED_UNQUALIFIED_RESEARCH",
+      "qualified_claim_refs": []
+    },
+    {
+      "id": "R04",
+      "title": "Regime conditioning",
+      "filename": "Carbon_Regime_Conditioning_Study_v0_1.md",
+      "sha256": "7350220f55c122be69fba54b7d5fc0326720c89ed89ca8b8fe8fb8ef39bbe62b",
+      "method_label": "Physical fixture diagnostic",
+      "scope_note": "Imported report from the prior Burgers development or synthetic-scenario program. No transfer to other physics rows is established.",
+      "validation_status": "File identity checked during import; numerical results and upstream bundles not re-audited in this build.",
+      "evidence_class": "IMPORTED_UNQUALIFIED_RESEARCH",
+      "qualified_claim_refs": []
+    },
+    {
+      "id": "R05",
+      "title": "Stratum allocation",
+      "filename": "Carbon_Stratum_Allocation_Study_v0_1.md",
+      "sha256": "eac59d75dacf21dfa2df467772d4104199ef4bc7b7b4989bba3623c0253f4bd7",
+      "method_label": "Finite-pool resampling study",
+      "scope_note": "Imported report from the prior Burgers development or synthetic-scenario program. No transfer to other physics rows is established.",
+      "validation_status": "File identity checked during import; numerical results and upstream bundles not re-audited in this build.",
+      "evidence_class": "IMPORTED_UNQUALIFIED_RESEARCH",
+      "qualified_claim_refs": []
+    },
+    {
+      "id": "R06",
+      "title": "Reference-cost heterogeneity",
+      "filename": "Carbon_Reference_Cost_Heterogeneity_Study_v0_1.md",
+      "sha256": "e60e81ebf8046e6ef36a669e0b1257da5d613e83e5022fea7272ba58c7444931",
+      "method_label": "Measured proxy + synthetic cost scenarios",
+      "scope_note": "Imported report from the prior Burgers development or synthetic-scenario program. No transfer to other physics rows is established.",
+      "validation_status": "File identity checked during import; numerical results and upstream bundles not re-audited in this build.",
+      "evidence_class": "IMPORTED_UNQUALIFIED_RESEARCH",
+      "qualified_claim_refs": []
+    },
+    {
+      "id": "R07",
+      "title": "Reference reliability and escalation",
+      "filename": "Carbon_Reference_Reliability_Escalation_Study_v0_1.md",
+      "sha256": "e32194c4d6cba6335cdb68d85139dd32cd58a5a864f0ba93aed1e05e555e478a",
+      "method_label": "Synthetic reliability simulation",
+      "scope_note": "Imported report from the prior Burgers development or synthetic-scenario program. No transfer to other physics rows is established.",
+      "validation_status": "File identity checked during import; numerical results and upstream bundles not re-audited in this build.",
+      "evidence_class": "IMPORTED_UNQUALIFIED_RESEARCH",
+      "qualified_claim_refs": []
+    }
+  ]
+}
