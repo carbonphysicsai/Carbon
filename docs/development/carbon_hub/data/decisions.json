@@ -2315,6 +2315,33 @@
       ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5648064815",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/1ebb255e8c135a7efb967cea6e96d572608a2f14/docs/development/C_EP2_VARIANT_B_DECISION_REPORT.md"
+    },
+    {
+      "title": "Wrap the supplied six-family JAX source under one DEVELOPMENT profile",
+      "question": "How should Carbon integrate the immutable C-02 JAX source bundle without widening scientific or production authority?",
+      "recommendation": "KEEP the supplied six-family mathematical kernels and public interfaces, WRAP them behind one compiler-plan-gated reconstruction profile, REPAIR deterministic runtime-key consumption plus checkpoint/archive validation, and REPLACE only unsafe or incomplete persistence seams. Enable FNO and DeepONet through the same profile.",
+      "why": "The supplied source is sufficient for bounded DEVELOPMENT reconstruction and differentiation, but its standalone seed, checkpoint and archive seams do not bind Carbon job identity, exact runtime seed material, closed manifests or environment provenance. One narrow adapter preserves compiler authority and keeps Variant A unchanged.",
+      "if_kept": "C-02 may exercise the six supplied families only through a decoder-verified plan with exact source, environment and interface pins. FNO and DeepONet share that gate; official science, protected execution, C-03 isolation, archives, rewards, networking, qualification and production remain outside scope.",
+      "if_changed": "Any different source, pin, interface, execution profile, isolation policy, public-result route, reference authority or production use requires a separately selected ticket and new evidence.",
+      "decision_id": "C-02-D1",
+      "map_ref": "WAVE-C/C-02",
+      "wave": "C",
+      "ticket": "C-02",
+      "attention": "FOR_AWARENESS",
+      "status": "IMPLEMENTED_WORKING_DECISION",
+      "audience": "harsh",
+      "affects": [
+        "WAVE-C",
+        "WAVE-C/C-03",
+        "WAVE-C/C-05",
+        "SYSTEM/CI",
+        "SYSTEM/MATURITY",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+      ],
+      "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5651468480",
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/agent/c-02-jax-integration/docs/development/C02_JAX_INTEGRATION_REPORT.md"
     }
   ]
 }

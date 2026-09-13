@@ -23,11 +23,11 @@ does not prove.
 ## Where Carbon is now
 
 - **Current wave:** Wave C — Network foundation and real testnet vertical
-- **Current ticket:** C-EP3 — Public-reference input acquisition and component probe
-- **Last completed ticket:** C-EP2 — Variant-A measurement and offline Variant-B decision (`done`)
+- **Current ticket:** C-02 — Real declarative reconstruction
+- **Last completed ticket:** C-EP3 — Public-reference input acquisition and component probe (`done`)
 - **Next selected ticket:** none selected
-- **Current stage:** C-EP2 is complete after corrected head 89f06eda74b15dd336e57a512f228c6b37cca77d passed RUNTIME_FULL run 34718392697 and merged in PR #144 as 96099aeac9e5022bda9d94730b1d7d955cb6c1d5. C-EP3 alone is selected for bounded public-reference input acquisition and one detached component probe; no later ticket is selected, and no real C1 or Variant-B implementation ticket is selected. C-03, C-08 and C-09 remain unselected and dependency-blocked; C-EA2 remains unselected and blocked on a real C1 path and eligible real archive profile. D6 canonical full/standard run 34518806217 remains the G2 evidence only for its exact standard-profile disposable v445 localnet. No sharing, answers, real entropy/reference qualification, public network, reward change, scientific/security qualification, production or LIVE authority is created.
-- **Captured maturity:** C-EP1 and C-EP2 are done only in their bounded merged DEVELOPMENT scopes. C-EP3 is selected for detached public-reference input acquisition and component measurement. Its observations remain unqualified supporting evidence. Real reconstruction/reference integration, archive durability, physical freshness, protected or scientific evidence, independent execution integrity, testnet eligibility, security, production and LIVE remain unearned.
+- **Current stage:** C-EP3 completed after head ff1d4603cf6889bb3e9cf7f4a589524ade5c6b8c passed RUNTIME_FULL run 34721794618 and merged in PR #145 as a02ca5f46eda2283db7808d9646c1ef24715ec4a. The owner supplied an immutable JAX source/interface bundle and selected C-02 alone for bounded DEVELOPMENT integration. FNO and DeepONet share one compiler-plan adapter; all official science, protected execution, C-03 and later C1/C2 tickets remain unselected. D6 canonical full/standard run 34518806217 remains G2 evidence only for its exact disposable standard-profile localnet. No sharing, official answers, reward change, public network, scientific/security qualification, production or LIVE authority is created.
+- **Captured maturity:** C-EP1 through C-EP3 are done only in their bounded merged DEVELOPMENT scopes. C-02 is selected and earns implemented/tested only for the supplied unqualified JAX adapter. Real isolated execution, reference qualification, archive durability, protected evidence, testnet eligibility, security, production and LIVE remain unearned.
 
 ## How to use the hub
 

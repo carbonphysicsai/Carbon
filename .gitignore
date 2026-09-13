@@ -1,5 +1,7 @@
 # Canonical uv environment
 .venv/
+.venv-jax-macos/
+.carbon-local/
 
 # Python caches and build products
 __pycache__/

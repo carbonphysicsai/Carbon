@@ -3,8 +3,8 @@
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
 **Authority snapshot:** `7fbf13ebb2629d738432069ee48a88737dcf3242` on `main`, captured 2026-09-12T21:57:05Z.
-**Current:** Wave C, ticket C-EP3. C-EP2 is complete after corrected head 89f06eda74b15dd336e57a512f228c6b37cca77d passed RUNTIME_FULL run 34718392697 and merged in PR #144 as 96099aeac9e5022bda9d94730b1d7d955cb6c1d5. C-EP3 alone is selected for bounded public-reference input acquisition and one detached component probe; no later ticket is selected, and no real C1 or Variant-B implementation ticket is selected. C-03, C-08 and C-09 remain unselected and dependency-blocked; C-EA2 remains unselected and blocked on a real C1 path and eligible real archive profile. D6 canonical full/standard run 34518806217 remains the G2 evidence only for its exact standard-profile disposable v445 localnet. No sharing, answers, real entropy/reference qualification, public network, reward change, scientific/security qualification, production or LIVE authority is created.
-**Last completed:** C-EP2 (`done`).
+**Current:** Wave C, ticket C-02. C-EP3 completed after head ff1d4603cf6889bb3e9cf7f4a589524ade5c6b8c passed RUNTIME_FULL run 34721794618 and merged in PR #145 as a02ca5f46eda2283db7808d9646c1ef24715ec4a. The owner supplied an immutable JAX source/interface bundle and selected C-02 alone for bounded DEVELOPMENT integration. FNO and DeepONet share one compiler-plan adapter; all official science, protected execution, C-03 and later C1/C2 tickets remain unselected. D6 canonical full/standard run 34518806217 remains G2 evidence only for its exact disposable standard-profile localnet. No sharing, official answers, reward change, public network, scientific/security qualification, production or LIVE authority is created.
+**Last completed:** C-EP3 (`done`).
 **Next selected:** none selected.
 
 ## Wave spine
@@ -84,11 +84,11 @@
 | [C-01](explainers/tickets/c_01.md) | Persist exact scientific attempts before dispatch and reconcile ambiguity without duplicate work or resampling. | done |
 | [C-EP1](explainers/tickets/c_ep1.md) | Bind one private child pack to each separately admitted DEVELOPMENT fixture evaluation job and release its permitted summary only after durable closure. | done |
 | [C-EP2](explainers/tickets/c_ep2.md) | Measure the merged singleton evaluation-pack path and decide whether the evidence justifies a later sharing experiment. | done |
-| [C-EP3](explainers/tickets/c_ep3.md) | Acquire the missing reconstruction/reference inputs and measure one eligible detached public numerical component. | in_progress |
+| [C-EP3](explainers/tickets/c_ep3.md) | Acquire the missing reconstruction/reference inputs and measure one eligible detached public numerical component. | done |
 | [C-AUTH1](explainers/tickets/c_auth1.md) | Import a verified typed authoring flow and exact public Burgers V1 package into existing Carbon owners. | done |
 | [C-EA0](explainers/tickets/c_ea0.md) | Ratify capture, custody, retention-class, completeness and durability acknowledgement before archive code relies on them. | done |
 | [C-EA1](explainers/tickets/c_ea1.md) | Implement the catalogue, immutable artifacts, verified manifests, journal, outbox and acknowledgement defined by C-EA0. | done |
-| [C-02](explainers/tickets/c_02.md) | Adapt Carbon to an authorized immutable JAX reconstruction implementation without widening the Strategy language. | todo |
+| [C-02](explainers/tickets/c_02.md) | Adapt Carbon to an authorized immutable JAX reconstruction implementation without widening the Strategy language. | in_progress |
 | [C-03](explainers/tickets/c_03.md) | Run an exact authorized reconstruction inside a hostile-input, network-denied, resource-bounded worker. | todo |
 | [C-04](explainers/tickets/c_04.md) | Run qualified protected references behind the current reference/truth boundary. | todo |
 | [C-05](explainers/tickets/c_05.md) | Apply qualified measurements and admissibility to real reconstruction/reference outputs. | todo |
@@ -211,6 +211,7 @@
 - `C-EP2-D1` — `WAVE-C/C-EP2` — C-EP2 measures merged C-EP1 Variant A and models hypothetical zero-fill-wait sharing offline only. The frozen study observes no physical reference phase and retains unknown compatibility demand and B control/recovery overhead, so its recommendation is COLLECT MISSING INPUTS FIRST. No Variant-B runtime, shared membership, wait, early result, answer publication, production entropy, reward route, real finalization or qualification is added.
 - `C-EP2-D4` — `WAVE-C/C-EP2` — C-EP2 replay v2 corrects the frozen v1 report's invalid universal lower-bound interpretation. Unknown B overhead now leaves actual work, eligibility and release times unknown; zero overhead is an explicit counterfactual, every numeric overhead scenario recomputes endogenous membership, and synthetic numeric savings never become empirical support. The conservative COLLECT MISSING INPUTS FIRST recommendation and all Variant-B/runtime exclusions remain unchanged.
 - `C-EP3-D1` — `WAVE-C/C-EP3` — After C-EP2 corrected head 89f06eda74b15dd336e57a512f228c6b37cca77d passed RUNTIME_FULL run 34718392697 and merged in PR #144, the owner selected C-EP3 alone to acquire missing C-02/C-04 source facts and measure one eligible detached public numerical component. The task preserves COLLECT MISSING INPUTS FIRST and adds no Variant-B runtime, sharing, protected reference, candidate evaluation, reward, production, network, real-finalization or qualification authority.
+- `C-02-D1` — `WAVE-C/C-02` — The owner-supplied immutable source bundle selects one bounded DEVELOPMENT C-02 integration. Carbon keeps the six mathematical families, wraps them behind one decoder-verified exact-pin profile, repairs runtime-key and persistence boundaries, and enables FNO plus DeepONet through that same gate. Variant A remains unchanged and C-03 isolation plus every official, protected, archive, reward, network, qualification and production path remains unselected.
 
 ## Authority boundary
 

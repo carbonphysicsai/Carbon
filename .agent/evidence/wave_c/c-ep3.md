@@ -1,7 +1,6 @@
 # C-EP3 public-reference input acquisition and component evidence
 
-**Status:** bounded DEVELOPMENT acquisition/probe implementation complete;
-applicable automated acceptance pending
+**Status:** `done` in bounded DEVELOPMENT acquisition/probe scope
 **Baseline:** `96099aeac9e5022bda9d94730b1d7d955cb6c1d5`
 **Frozen implementation/probe revision:**
 `bed9331e1983b4218af7df99679293e0c83837f9`
@@ -66,8 +65,9 @@ python -m pytest -q tests/invariants
 208 passed
 ```
 
-Final formatting, lint, Hub, classified acceptance and delivery identities are
-recorded only after they run at the final head.
+Final head `ff1d4603cf6889bb3e9cf7f4a589524ade5c6b8c` passed RUNTIME_FULL run
+`34721794618` and Merge gate. PR #145 normally merged as
+`a02ca5f46eda2283db7808d9646c1ef24715ec4a`.
 
 ## Decision
 

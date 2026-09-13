@@ -71,6 +71,11 @@ echo "==> package, wheel, and outside-tree lane"
   tests/cpu/test_observability.py::test_fresh_zero_dependency_wheel_imports_exact_surface_outside_tree \
   -q -s
 
+if [[ " ${CARBON_UV_GROUPS:-} " == *" science-jax "* ]]; then
+  echo "==> required C-02 JAX development lane"
+  "${python_bin}" -m pytest tests/science -q
+fi
+
 echo "==> canonical/legacy authority boundary"
 "${python_bin}" -m pytest tests/cpu/test_code_authority.py -q
 

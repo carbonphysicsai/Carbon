@@ -4,7 +4,7 @@
 
 **Map ref:** `WAVE-C/C-EP3`
 
-**Status:** IN_PROGRESS
+**Status:** DONE
 
 **Target phase:** C1 development
 
@@ -32,7 +32,7 @@ No C-02/C-04 integration, candidate evaluation, shared membership, fill wait, ea
 
 ## Current stage
 
-C-EP3 alone is selected to resolve source/interface facts and measure one eligible public numerical component. It keeps C-EP2's COLLECT MISSING INPUTS FIRST recommendation and adds no Variant-B runtime, protected reference, candidate evaluation, reward, production or LIVE authority.
+PR #145 completed bounded DEVELOPMENT source acquisition and a detached public numerical-component probe after head ff1d4603cf6889bb3e9cf7f4a589524ade5c6b8c passed RUNTIME_FULL run 34721794618 and normally merged as a02ca5f46eda2283db7808d9646c1ef24715ec4a. It creates no reconstruction, real reference, reward, scientific/security, production or LIVE authority.
 
 ## Maturity ceiling
 

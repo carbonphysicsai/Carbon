@@ -1,4 +1,4 @@
-"""Fail-closed checks for the post-C-EP2 C1 dependency contracts."""
+"""Fail-closed checks for the selected bounded C-02 dependency contracts."""
 
 from __future__ import annotations
 
@@ -31,22 +31,24 @@ def test_materialized_tickets_are_contract_only_and_unselected() -> None:
         assert "Contract materialization only" in ticket
 
 
-def test_only_bounded_development_input_acquisition_ticket_is_selected() -> None:
+def test_only_bounded_development_reconstruction_ticket_is_selected() -> None:
     wave = _read(".agent/WAVE.md")
     wave_c = _read(".agent/WAVE_C.md")
     graph = _read(".agent/plans/C1_DEPENDENCY_GRAPH.md")
     for record in (wave, wave_c):
-        assert "**Selected ticket:** C-EP3 — `in_progress`" in record
-        assert "**Active ticket:** C-EP3" in record
+        assert "**Selected ticket:** C-02 — `in_progress`" in record
+        assert "**Active ticket:** C-02" in record
         assert "**Next selected ticket:** none" in record
-    assert "No real-vertical implementation ticket is dependency-ready" in graph
-    assert "no real-vertical or Variant-B implementation ticket is selected" in graph
+    assert (
+        "no later real-vertical or Variant-B implementation ticket is selected" in graph
+    )
+    assert "no later\nreal-vertical ticket is dependency-ready or selected" in graph
     assert "C-EP1 ─> C-EP2(done measurement/replay only; no sharing runtime)" in graph
     assert (
-        "C-EP2 + C-AUTH1 ─> C-EP3(selected input acquisition/public component probe)"
+        "C-EP3 + supplied immutable JAX bundle ─> C-02(selected bounded DEVELOPMENT adapter)"
         in graph
     )
-    assert graph.count("| **no** |") >= 10
+    assert graph.count("| **no** |") >= 9
 
 
 def test_jax_and_archive_blocks_remain_complete_and_fail_closed() -> None:
@@ -67,28 +69,30 @@ def test_jax_and_archive_blocks_remain_complete_and_fail_closed() -> None:
     )
     for marker in required:
         assert marker in graph
-    assert "Until those source/interface facts are supplied" in c02
+    assert "satisfied for this bounded" in c02
+    assert "Production source selection" in c02
     assert "C-03 wraps C-02's actual authorized JAX adapter" in c03
     assert "C-EA2" in c09
     assert "synthetic-archive" in c09
 
 
-def test_hub_projects_only_development_acquisition_selection_and_future_contract_status() -> (
+def test_hub_projects_only_development_reconstruction_and_future_contract_status() -> (
     None
 ):
     data = json.loads(_read("docs/development/carbon_hub/data/hub_data_v2.json"))
     current = data["current"]
-    assert current["last_completed_ticket"]["id"] == "C-EP2"
-    assert current["selected_ticket"]["id"] == "C-EP3"
+    assert current["last_completed_ticket"]["id"] == "C-EP3"
+    assert current["selected_ticket"]["id"] == "C-02"
     assert current["next_selected_ticket"] is None
     tickets = {ticket["id"]: ticket for ticket in data["tickets"]}
     assert tickets["C-EP1"]["status"] == "done"
     assert tickets["C-EP2"]["status"] == "done"
-    assert tickets["C-EP3"]["status"] == "in_progress"
-    assert "shared membership" in tickets["C-EP3"]["does_not"]
+    assert tickets["C-EP3"]["status"] == "done"
+    assert tickets["C-02"]["status"] == "in_progress"
+    assert "C-03 hostile-worker isolation" in tickets["C-02"]["does_not"]
     for ticket_id in ("C-03", "C-08", "C-09"):
         assert tickets[ticket_id]["status"] == "todo"
         assert tickets[ticket_id]["implementation_state"] == "unstarted"
         assert "not dependency-ready" in tickets[ticket_id]["current_stage"]
     assert "34518806217" in current["stage"]
-    assert "standard-profile disposable v445 localnet" in current["stage"]
+    assert "standard-profile localnet" in current["stage"]

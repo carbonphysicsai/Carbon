@@ -3,9 +3,9 @@
 **Decision:** `OWNER-C1-CONTRACTS-01`
 **Status:** authoritative planning checkpoint after merge
 **Primary Hub map_ref:** `WAVE-C`
-**Implementation selection:** C-EP3 only, as a bounded DEVELOPMENT input-
-acquisition and detached public numerical-component study after completed
-C-EP2; no real-vertical or Variant-B implementation ticket is selected
+**Implementation selection:** C-02 only, as a bounded DEVELOPMENT adapter for
+the owner-supplied immutable JAX source/interface bundle after completed C-EP3;
+no later real-vertical or Variant-B implementation ticket is selected
 
 ## Authority resolution
 
@@ -28,7 +28,7 @@ budget/resource controls and fail-closed missing policy.
 
 ```text
 C-01(done) ─┬─> C-AUTH1(done) ─> C-EA0(done) ─> C-EA1(done, synthetic only)
-            └─> C-02(blocked external JAX)
+            └─> C-02(selected bounded DEVELOPMENT adapter)
                     └─> C-03(blocked C-02 + MQ-015)
                             └─> C-04
 C-02 + C-04 ─> C-05 ─> C-06 ─> C-07 ─> C-08
@@ -37,7 +37,8 @@ A10 boundary + C-06 + C-07 + C-EA2 ─> C-09
 G2(exact standard localnet only) + C-09 + C-EA2 + real signed C1 evidence ─> C-W1
 NET-3 + C-01 + A4-A8 ─> C-EP1(done, DEVELOPMENT fixture only)
 C-EP1 ─> C-EP2(done measurement/replay only; no sharing runtime)
-C-EP2 + C-AUTH1 ─> C-EP3(selected input acquisition/public component probe)
+C-EP2 + C-AUTH1 ─> C-EP3(done input acquisition/public component probe)
+C-EP3 + supplied immutable JAX bundle ─> C-02(selected bounded DEVELOPMENT adapter)
 ```
 
 ## Node audit
@@ -50,8 +51,8 @@ C-EP2 + C-AUTH1 ─> C-EP3(selected input acquisition/public component probe)
 | C-EA1 | done only for `carbon.synthetic-evidence-archive.dev.v1` | ticket exists; sufficient for that profile | C-EA0 and synthetic owner decision satisfied | every real/production archive policy remains reserved | none for synthetic scope | complete | already implemented/tested only for synthetic scope |
 | C-EP1 | done, bounded DEVELOPMENT fixture implementation | ticket/evidence complete | NET-3, C-01 and A4-A8 bounded fixtures satisfied | all production entropy, custody, archive, science, security and comparison policy remains reserved | none for closed fixture scope | complete in PR #143 | already implemented/tested only in DEVELOPMENT scope |
 | C-EP2 | done, bounded DEVELOPMENT measurement and detached replay | ticket/evidence complete | C-EP1 satisfied | reference compatibility, acceptable delay, B overhead, science/security criteria remain reserved or unknown | authorized real reconstruction/reference backend and representative workload remain missing | complete in PR #144 | already implemented/tested only in DEVELOPMENT scope |
-| C-EP3 | selected, bounded DEVELOPMENT input acquisition and detached public probe | ticket materialized by owner assignment | C-EP2 and C-AUTH1 satisfied | reference qualification, comparison meaning, and every real security/science input remain reserved | actual authorized JAX reconstruction source/interface and representative workload are missing | materialized by owner assignment | **yes, acquisition/probe tooling only** |
-| C-02 | `future_reserved`, unselected, blocked | ticket exists; sufficient | B-02B, B-03, B-E1, C-01 satisfied as bounded foundations | real resource/backend qualification remains reserved | authorized JAX source, immutable revision/build and actual interface | no missing contract work identified | **no** |
+| C-EP3 | done, bounded DEVELOPMENT input acquisition and detached public probe | ticket/evidence complete | C-EP2 and C-AUTH1 satisfied | reference qualification, comparison meaning, and every real security/science input remain reserved | supplied JAX bundle resolves only the reconstruction-source input | complete in PR #145 | already implemented/tested only in DEVELOPMENT scope |
+| C-02 | selected, bounded DEVELOPMENT adapter in progress | ticket and exact source/interface bundle sufficient for this slice | B-02B, B-03, B-E1, C-01 and C-EP3 satisfied as bounded foundations | repeated-build policy, isolated resource enforcement and real backend/scientific qualification remain reserved | C-03 isolation and later qualified science inputs | selected by owner-supplied bundle | **yes, bounded adapter only** |
 | C-03 | `future_reserved`, unselected, blocked | ticket materialized here; sufficient | C-02; MQ-015 security/threat model | exact real limits, enforcement profile and security acceptance | C-02 authorized JAX/runtime identity | materialized by this checkpoint | **no** |
 | C-04 | `future_reserved`, unselected, blocked | ticket exists; sufficient | B-04, B-E2 satisfied only as bounded fixtures; C-03 missing | qualified primary/witness, applicability, uncertainty and access policy | real protected reference implementations/assets | no missing contract work identified | **no** |
 | C-05 | `future_reserved`, unselected, blocked | ticket exists; sufficient | B-05 bounded foundation; C-02 and C-04 missing | qualified measurements, floors, uncertainty and Score Pack inputs | real reconstruction/reference outputs | no missing contract work identified | **no** |
@@ -62,22 +63,23 @@ C-EP2 + C-AUTH1 ─> C-EP3(selected input acquisition/public component probe)
 | C-09 | `future_reserved`, unselected, blocked | ticket materialized here; sufficient | A10 boundary, C-06, C-07, C-EA2 | qualified provenance and Challenge-local publication/disclosure policy | signed real receipt/result and eligible real archive acknowledgement | materialized by this checkpoint | **no** |
 | C-W1 | `future_reserved`, unselected, blocked | ticket exists; sufficient | exact G2 scope plus C-09, C-EA2 and real signed C1 evidence | public network identity, eligibility window, sink/custody and security/economic activation | actual real C1 proof chain and public testnet access | already materialized; do not select | **no** |
 
-## Exact C-02 external blocker
+## Exact C-02 source resolution and remaining boundary
 
-C-02 requires an authorized JAX repository/source, immutable commit/revision,
+C-02 required an authorized JAX repository/source, immutable commit/revision,
 reproducible dependency/build identity, actual training and inference entry
 points, signatures, parameter/state structures, input/output shapes and dtypes,
 batching/layout rules, PRNG/RNG ownership, checkpoint/artifact format,
-JIT/sharding expectations and failure/error semantics. PR #40 and research or
-parity prototypes are not authorized substitutes. Carbon adapts the actual
-interface and does not require upstream function renaming.
+JIT/sharding expectations and failure/error semantics. The owner-supplied
+permission-cleared bundle resolves those inputs for the bounded DEVELOPMENT
+slice only. Carbon adapts the actual interface and does not require upstream
+function renaming. Production source selection, isolation, protected execution
+and scientific/security qualification remain unresolved.
 
 ## Selection disposition
 
-No real-vertical implementation ticket is dependency-ready. C-EP1 and C-EP2
-are complete in their bounded DEVELOPMENT scopes; C-EP3 is selected only to
-acquire source/interface facts and run an eligible detached public numerical
-component probe. C-EA2 and C-W1 remain unselected. This graph authorizes no
-sharing implementation, real implementation, public-network operation,
-scientific value, archive operating threshold, production qualification or
-LIVE state.
+C-EP1 through C-EP3 are complete in their bounded DEVELOPMENT scopes. C-02
+alone is selected for the supplied unqualified JAX adapter; no later
+real-vertical ticket is dependency-ready or selected. C-EA2 and C-W1 remain
+unselected. This graph authorizes no sharing implementation, protected
+reference, official science, public-network operation, archive operating
+threshold, production qualification or LIVE state.

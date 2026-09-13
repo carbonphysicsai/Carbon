@@ -13388,3 +13388,32 @@ qualification, deployment or LIVE value is approved or inferred. NET-5R remains
 closed and G2 remains `LOCALNET_READY` only for D6's exact standard-profile
 disposable v445 localnet. C-EA1 remains complete only for its synthetic
 development profile.
+
+## 2026-09-13 — C-02-D1: wrap the supplied six-family JAX source under one DEVELOPMENT profile
+
+**Notification:** issue #42 comment
+[`5651468480`](https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5651468480),
+for awareness under the delegated-decision protocol.
+
+**Recommendation.** `KEEP` the supplied `carbon_jax_lab` 0.1.0 numerical
+families and notices. `WRAP` them behind an exact compiler-produced
+`ResolvedConstructionPlan`, public TRAIN archive, C-01 attempt, full-width A4
+`DerivedSeed`, immutable artifact, strict resume and target-free inference
+boundary. `REPAIR` seed truncation, checkpoint/archive validation, packaging
+and exact dependency isolation. `REPLACE` only the omitted Transolver test
+helper with a declared independent NumPy equation adapter tied to pinned
+upstream commit `75e0f676bb61674b4f13f0e1f27fb0b66d267d50`.
+
+**Why.** The owner-supplied bundle resolves C-EP3's missing implementation and
+interface facts, while the existing Carbon compiler, seed and execution owners
+already define the correct identities. A parallel Strategy parser, integer seed
+shortcut or target-bearing prediction API would duplicate authority or weaken
+reproducibility. FNO is the initial path and DeepONet proves a second real family
+through the same adapter without expanding the public Strategy vocabulary.
+
+**Consequences.** The exact Linux profile and separate Apple-silicon diagnostic
+lock become required development evidence. Variant A remains unchanged. This
+earns only `UNQUALIFIED_PUBLIC_DEVELOPMENT` adapter implementation/testing;
+repeat policy, C-03 hostile-worker isolation, protected reference, official
+measurement, archive finalization, reward, public network, production,
+scientific/security qualification and LIVE remain absent.

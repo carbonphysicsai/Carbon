@@ -33,6 +33,7 @@ ROLE_PACKAGES = (
     "carbon.audit",
     "carbon.chain",
     "carbon.qualification",
+    "carbon.reconstruction",
     "carbon.research",
     "carbon.practice",
 )
@@ -125,6 +126,12 @@ B07F_MODULES = ("carbon.traineval.resolved_fixture",)
 
 B07G_MODULES = ("carbon.research.service",)
 
+C02_MODULES = (
+    "carbon.reconstruction.model",
+    "carbon.reconstruction.profile",
+    "carbon.reconstruction.service",
+)
+
 INSTALLED_MODULES = (
     "carbon",
     *ROLE_PACKAGES,
@@ -140,6 +147,7 @@ INSTALLED_MODULES = (
     *B07E_MODULES,
     *B07F_MODULES,
     *B07G_MODULES,
+    *C02_MODULES,
 )
 
 
