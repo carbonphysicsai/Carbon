@@ -85,10 +85,20 @@ class DockerCLI:
             )
         except (OSError, subprocess.TimeoutExpired):
             raise WorkerFailure(WorkerCode.UNAVAILABLE) from None
+        private_diagnostic = (
+            f"exit={result.returncode}\nstdout:\n".encode("ascii")
+            + result.stdout
+            + b"\nstderr:\n"
+            + result.stderr
+        )[:DIAGNOSTIC_BYTES]
         if len(result.stdout) + len(result.stderr) > DIAGNOSTIC_BYTES:
-            raise WorkerFailure(WorkerCode.RUNTIME)
+            raise WorkerFailure(
+                WorkerCode.RUNTIME, private_diagnostic=private_diagnostic
+            )
         if result.returncode not in accepted:
-            raise WorkerFailure(WorkerCode.RUNTIME)
+            raise WorkerFailure(
+                WorkerCode.RUNTIME, private_diagnostic=private_diagnostic
+            )
         return result
 
     def json(self, arguments: list[str], *, timeout: float = 30) -> object:

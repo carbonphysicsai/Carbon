@@ -71,6 +71,16 @@ def _sha(character: str) -> str:
     return "sha256:" + character * 64
 
 
+def test_worker_failure_keeps_bounded_private_diagnostic_out_of_public_error() -> None:
+    failure = WorkerFailure(
+        WorkerCode.RUNTIME, private_diagnostic=b"private-path" * (1024**2)
+    )
+
+    assert str(failure) == "Development reconstruction worker operation failed."
+    assert "private-path" not in str(failure)
+    assert len(failure.private_diagnostic) == 1024**2
+
+
 def _fixture(tmp_path: Path):
     plan = compile_c02_plan(tmp_path, backbone="fno")
     profile = compile_development_profile(plan)

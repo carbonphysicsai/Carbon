@@ -6,6 +6,7 @@ import hashlib
 import json
 import os
 import platform
+import re
 import time
 import uuid
 from dataclasses import replace
@@ -59,6 +60,40 @@ from carbon.resource_policy import (
     ResourceClassRef,
 )
 from carbon.seeding import DerivedSeed, EvaluationBinding, SeedPin
+
+
+def _sanitized_docker_diagnostic(value: bytes) -> str:
+    """Expose only synthetic CI mechanics; retain no checkout path or digest."""
+
+    text = value.decode("utf-8", "replace")
+    text = re.sub(r"/home/runner/work/[^\s,'\"]+", "<runner-path>", text)
+    text = re.sub(r"sha256:[0-9a-f]{64}", "<sha256>", text)
+    text = re.sub(r"\b[0-9a-f]{64}\b", "<container-id>", text)
+    return text[:4096]
+
+
+@pytest.fixture(autouse=True)
+def _retain_failed_docker_diagnostics(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Make a bounded, sanitized Docker failure visible in this service lane."""
+
+    original = DockerCLI.run
+
+    def observed(self, arguments, **kwargs):
+        try:
+            return original(self, arguments, **kwargs)
+        except WorkerFailure as error:
+            if error.private_diagnostic:
+                diagnostic = _sanitized_docker_diagnostic(error.private_diagnostic)
+                _record_trace(
+                    "docker_runtime_diagnostic",
+                    "failed",
+                    operation=arguments[0] if arguments else "missing",
+                    diagnostic=diagnostic,
+                )
+                print(f"C-03 private synthetic diagnostic:\n{diagnostic}", flush=True)
+            raise
+
+    monkeypatch.setattr(DockerCLI, "run", observed)
 
 
 def _record_trace(kind: str, disposition: str, **details: object) -> None:

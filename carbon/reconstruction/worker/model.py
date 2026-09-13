@@ -55,8 +55,13 @@ class WorkerCode(str, Enum):
 class WorkerFailure(RuntimeError):
     """Stable, non-echoing failure for the controller/worker boundary."""
 
-    def __init__(self, code: WorkerCode) -> None:
+    def __init__(
+        self, code: WorkerCode, *, private_diagnostic: bytes | None = None
+    ) -> None:
+        if private_diagnostic is not None and type(private_diagnostic) is not bytes:
+            raise TypeError("private_diagnostic must be bytes")
         self.code = code
+        self.private_diagnostic = (private_diagnostic or b"")[:DIAGNOSTIC_BYTES]
         super().__init__("Development reconstruction worker operation failed.")
 
 
