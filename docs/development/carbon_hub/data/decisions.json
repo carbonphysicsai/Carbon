@@ -2341,7 +2341,7 @@
         "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
       ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5651468480",
-      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/agent/c-02-jax-integration/docs/development/C02_JAX_INTEGRATION_REPORT.md"
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/567d9519e6bbce7407b739cc0aa1383464027c9b/docs/development/C02_JAX_INTEGRATION_REPORT.md"
     }
   ]
 }

@@ -7,10 +7,6 @@ import pytest
 ROOT = Path(__file__).resolve().parents[2]
 
 FUTURE_TICKET_MARKERS = {
-    "C-02_real_reconstruction.md": (
-        "repeated-build identities",
-        "protected official case material",
-    ),
     "C-04_protected_reference_runtime.md": (
         "typed `ReferenceRunOutcome`",
         "no mock, weaker solver, averaging",
@@ -56,6 +52,17 @@ FUTURE_TICKET_MARKERS = {
         "does not recreate B-E4",
     ),
 }
+
+
+def test_selected_c02_retains_ticket_local_acceptance_and_boundary() -> None:
+    ticket = (ROOT / ".agent/tickets/C-02_real_reconstruction.md").read_text(
+        encoding="utf-8"
+    )
+    assert "**Status:** `in_progress`" in ticket
+    assert "Definition of Done" in ticket
+    assert "repeated-build policy" in ticket
+    assert "protected official case material" in ticket
+    assert "C-03 still owns" in ticket
 
 
 @pytest.mark.parametrize(("filename", "markers"), FUTURE_TICKET_MARKERS.items())

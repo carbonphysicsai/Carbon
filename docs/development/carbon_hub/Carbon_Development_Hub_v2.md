@@ -2,8 +2,8 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `7fbf13ebb2629d738432069ee48a88737dcf3242` on `main`, captured 2026-09-12T21:57:05Z.
-**Current:** Wave C, ticket C-02. C-EP3 completed after head ff1d4603cf6889bb3e9cf7f4a589524ade5c6b8c passed RUNTIME_FULL run 34721794618 and merged in PR #145 as a02ca5f46eda2283db7808d9646c1ef24715ec4a. The owner supplied an immutable JAX source/interface bundle and selected C-02 alone for bounded DEVELOPMENT integration. FNO and DeepONet share one compiler-plan adapter; all official science, protected execution, C-03 and later C1/C2 tickets remain unselected. D6 canonical full/standard run 34518806217 remains G2 evidence only for its exact disposable standard-profile localnet. No sharing, official answers, reward change, public network, scientific/security qualification, production or LIVE authority is created.
+**Authority snapshot:** `52be76f1439186c413341d155c206632b591a841` on `main`, captured 2026-09-13T06:20:25Z.
+**Current:** Wave C, ticket C-02. C-EP3 completed after head ff1d4603cf6889bb3e9cf7f4a589524ade5c6b8c passed RUNTIME_FULL run 34721794618 and merged in PR #145 as a02ca5f46eda2283db7808d9646c1ef24715ec4a. The owner supplied an immutable JAX source/interface bundle and selected C-02 alone for bounded DEVELOPMENT integration. No later ticket is selected. FNO and DeepONet share one compiler-plan adapter; all official science, protected execution, C-03 and later C1/C2 tickets remain unselected. D6 canonical full/standard run 34518806217 remains G2 evidence only for its exact disposable standard-profile localnet. No sharing, official answers, reward change, public network, scientific/security qualification, production or LIVE authority is created.
 **Last completed:** C-EP3 (`done`).
 **Next selected:** none selected.
 

@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-12T21:57:05Z"
+  captured_at_utc: "2026-09-13T06:20:25Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "7fbf13ebb2629d738432069ee48a88737dcf3242"
+  authority_snapshot_commit: "52be76f1439186c413341d155c206632b591a841"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -438,7 +438,7 @@ validator_exam_map:
             -
               label: "Testnet-to-Mainnet Launch Path"
               path: "../../../launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.5.md"
-  current_maturity: "Target-state orientation only. C-EP3 completed after head ff1d4603cf6889bb3e9cf7f4a589524ade5c6b8c passed RUNTIME_FULL run 34721794618 and merged in PR #145 as a02ca5f46eda2283db7808d9646c1ef24715ec4a. The owner supplied an immutable JAX source/interface bundle and selected C-02 alone for bounded DEVELOPMENT integration. FNO and DeepONet share one compiler-plan adapter; all official science, protected execution, C-03 and later C1/C2 tickets remain unselected. D6 canonical full/standard run 34518806217 remains G2 evidence only for its exact disposable standard-profile localnet. No sharing, official answers, reward change, public network, scientific/security qualification, production or LIVE authority is created. The real validator-to-exam vertical is planned for Wave C1. Burgers v1 remains PRE-LIVE until a measured Validation Dossier qualifies the exact exam."
+  current_maturity: "Target-state orientation only. C-EP3 completed after head ff1d4603cf6889bb3e9cf7f4a589524ade5c6b8c passed RUNTIME_FULL run 34721794618 and merged in PR #145 as a02ca5f46eda2283db7808d9646c1ef24715ec4a. The owner supplied an immutable JAX source/interface bundle and selected C-02 alone for bounded DEVELOPMENT integration. No later ticket is selected. FNO and DeepONet share one compiler-plan adapter; all official science, protected execution, C-03 and later C1/C2 tickets remain unselected. D6 canonical full/standard run 34518806217 remains G2 evidence only for its exact disposable standard-profile localnet. No sharing, official answers, reward change, public network, scientific/security qualification, production or LIVE authority is created. The real validator-to-exam vertical is planned for Wave C1. Burgers v1 remains PRE-LIVE until a measured Validation Dossier qualifies the exact exam."
 current:
   wave: "C"
   wave_title: "Network foundation and real testnet vertical"
@@ -461,8 +461,8 @@ current:
   next_selected_ticket: null
   controlling_register: ".agent/WAVE_C.md"
   controlling_register_version: "1.5"
-  controlling_board_fingerprint: "2d064da72e622f957f2f6f3c46a803541ba0ff201e7ba6ec4103fd4b2a2e27fa"
-  stage: "C-EP3 completed after head ff1d4603cf6889bb3e9cf7f4a589524ade5c6b8c passed RUNTIME_FULL run 34721794618 and merged in PR #145 as a02ca5f46eda2283db7808d9646c1ef24715ec4a. The owner supplied an immutable JAX source/interface bundle and selected C-02 alone for bounded DEVELOPMENT integration. FNO and DeepONet share one compiler-plan adapter; all official science, protected execution, C-03 and later C1/C2 tickets remain unselected. D6 canonical full/standard run 34518806217 remains G2 evidence only for its exact disposable standard-profile localnet. No sharing, official answers, reward change, public network, scientific/security qualification, production or LIVE authority is created."
+  controlling_board_fingerprint: "24a2f985cecef02e00676eaedcf79fba4d8bb78e4a2882d2b85a4117be9954c2"
+  stage: "C-EP3 completed after head ff1d4603cf6889bb3e9cf7f4a589524ade5c6b8c passed RUNTIME_FULL run 34721794618 and merged in PR #145 as a02ca5f46eda2283db7808d9646c1ef24715ec4a. The owner supplied an immutable JAX source/interface bundle and selected C-02 alone for bounded DEVELOPMENT integration. No later ticket is selected. FNO and DeepONet share one compiler-plan adapter; all official science, protected execution, C-03 and later C1/C2 tickets remain unselected. D6 canonical full/standard run 34518806217 remains G2 evidence only for its exact disposable standard-profile localnet. No sharing, official answers, reward change, public network, scientific/security qualification, production or LIVE authority is created."
   most_recent_closed_wave: "B"
   completed_wave_tickets:
     - "NET-1"
@@ -482,7 +482,6 @@ current:
     - "C-EA0"
     - "C-EA1"
   recent_dependencies:
-    - "C-EP3"
     - "B-02B"
     - "B-03"
     - "B-E1"
@@ -497,12 +496,17 @@ current:
     - "NET-5"
     - "NET-6"
     - "NET-5R"
-    - "C-01"
     - "C-EP1"
+    - "C-EP2"
+    - "C-EP3"
+    - "C-AUTH1"
     - "C-EA0"
     - "C-EA1"
   downstream_handoffs:
-    []
+    - "C-03"
+    - "C-05"
+    - "C-06"
+    - "C-07"
   parallel_context:
     []
   fail_closed:

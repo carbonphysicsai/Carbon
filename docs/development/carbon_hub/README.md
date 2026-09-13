@@ -16,7 +16,7 @@ When browsing on GitHub, start with **`orientation/START_HERE.md`**. It is the p
 
 ## Captured current position
 
-Wave **C**; current ticket: **C-02**. Last completed: **C-EP3** (`done`). Next selected: **none selected**. C-EP3 completed after head ff1d4603cf6889bb3e9cf7f4a589524ade5c6b8c passed RUNTIME_FULL run 34721794618 and merged in PR #145 as a02ca5f46eda2283db7808d9646c1ef24715ec4a. The owner supplied an immutable JAX source/interface bundle and selected C-02 alone for bounded DEVELOPMENT integration. FNO and DeepONet share one compiler-plan adapter; all official science, protected execution, C-03 and later C1/C2 tickets remain unselected. D6 canonical full/standard run 34518806217 remains G2 evidence only for its exact disposable standard-profile localnet. No sharing, official answers, reward change, public network, scientific/security qualification, production or LIVE authority is created.
+Wave **C**; current ticket: **C-02**. Last completed: **C-EP3** (`done`). Next selected: **none selected**. C-EP3 completed after head ff1d4603cf6889bb3e9cf7f4a589524ade5c6b8c passed RUNTIME_FULL run 34721794618 and merged in PR #145 as a02ca5f46eda2283db7808d9646c1ef24715ec4a. The owner supplied an immutable JAX source/interface bundle and selected C-02 alone for bounded DEVELOPMENT integration. No later ticket is selected. FNO and DeepONet share one compiler-plan adapter; all official science, protected execution, C-03 and later C1/C2 tickets remain unselected. D6 canonical full/standard run 34518806217 remains G2 evidence only for its exact disposable standard-profile localnet. No sharing, official answers, reward change, public network, scientific/security qualification, production or LIVE authority is created.
 
 ## Maintain
 
