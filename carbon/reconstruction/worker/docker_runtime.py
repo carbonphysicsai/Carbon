@@ -470,7 +470,13 @@ def inspect_effective_controls(
     )
     scratch_inodes = int(
         cli.run(
-            ["exec", container_name, "/bin/df", "-i", "--output=inodes", "/scratch"],
+            [
+                "exec",
+                container_name,
+                "/bin/df",
+                "--output=itotal",
+                "/scratch",
+            ],
             timeout=10,
         ).stdout.splitlines()[-1]
     )
