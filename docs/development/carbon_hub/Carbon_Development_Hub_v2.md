@@ -2,7 +2,7 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `fbc343f8964b06b012605c3fad00a3165d46940b` on `main`, captured 2026-09-13T15:56:14Z.
+**Authority snapshot:** `d75fd725cb644f3fca61a34ab0fb72a0236db6cb` on `main`, captured 2026-09-13T16:01:13Z.
 **Current:** Wave C, ticket C-03. C-EP3 completed after head ff1d4603cf6889bb3e9cf7f4a589524ade5c6b8c passed run 34721794618 and merged in PR #145. PR #148 then accepted C-02 head 5e3d47039a52f601789f0495f8c3127f8b4a3cf4 in run 34758720071 and merged its exact Python-3.11 CPU environment, physical scaling and Foundax profile as 83186be004a4087b27b07278da490dad36785acb. OWNER-C03-DEV-ISOLATION-01 now selects C-03's first public-data DEVELOPMENT isolation slice around that merged adapter. The immutable Docker image, exact B-02C resource envelope, C-01 launch/recovery binding, output validation and hostile service tests are implemented as a candidate; required Linux Docker acceptance remains pending. C-02 stays open for production repeat/science and protected composition. Global MQ-015, the absent/deferred v0.2 source, protected execution, official science, archive, reward, public network, production and LIVE authority remain open. D6 canonical full/standard run 34518806217 remains historical evidence, and G2 is LOCALNET_READY only for its exact disposable standard-profile localnet. C-EA2 remains blocked; an implementation or test cannot fill an evidence gap owned by later authority. No later ticket is selected.
 **Last completed:** C-EP3 (`done`).
 **Next selected:** none selected.
