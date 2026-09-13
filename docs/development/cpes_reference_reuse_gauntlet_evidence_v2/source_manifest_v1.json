@@ -1,0 +1,56 @@
+{
+  "environment": {
+    "gpu_used": false,
+    "logical_cpu_count": 8,
+    "machine": "arm64",
+    "platform": "macOS-15.6-arm64-arm-64bit-Mach-O",
+    "processes": 1,
+    "python": "3.13.0 (main, Oct  7 2024, 05:02:14) [Clang 16.0.0 (clang-1600.0.26.4)]"
+  },
+  "harness_runtime_is_not_worker_performance": true,
+  "harness_runtime_ns": 49711583,
+  "harness_sha256": "8f52a380b67f8b7d1981c95f888b9e80aae4a6c5f7fa917a043a10c09f25a669",
+  "original_gauntlet": {
+    "claim_limit": "Verification and rerun do not establish scientific validity, runtime security, or production authority.",
+    "embedded_summary": {
+      "attack_status_counts": {
+        "BLOCKED_MISSING_IMPLEMENTATION_OR_DECISION": 5,
+        "REJECTED_IN_MODEL": 25
+      },
+      "confirmation_replays": 3,
+      "negative_control_exploits": [
+        "AT-17",
+        "AT-20",
+        "AT-25"
+      ],
+      "operating_replays": 15,
+      "production_authority": false,
+      "publication_evidence_class": "SYNTHETIC_PUBLICATION_PROXY",
+      "simulation_execution_seconds": 0.006518999995023478,
+      "study_id": "cpes-1-v0.2-preintegration-gauntlet"
+    },
+    "member_count": 25,
+    "report_sha256": "2954e8505202f58be86d5048c571102f2603c30ebd1a56fa23a5bb8f12132395",
+    "sha256": "088d3e1182cbd8974c14ba6614a470cdcf3d5f3e6335c1db085699789ec5ffcb",
+    "status": "VERIFIED_BYTE_IDENTITY_ONLY"
+  },
+  "original_harness_rerun": {
+    "attack_status_counts": {
+      "BLOCKED_MISSING_IMPLEMENTATION_OR_DECISION": 5,
+      "REJECTED_IN_MODEL": 25
+    },
+    "claim_limit": "Historical model reproduced; no production interface was tested by that rerun.",
+    "command": "python3 -m unittest -q test_gauntlet.py; python3 run_gauntlet.py --out reproduced_results",
+    "status": "PASSED_IN_ISOLATED_EXTRACTED_COPY",
+    "tests": 26
+  },
+  "protocol_sha256": "71052d9534e30f3de3aae10a319483dd2812389dfec1ffa78e780559bb09e109",
+  "read_only_repository_inputs": {
+    ".agent/evidence/wave_c/c-ep3-inputs/probe_observation_summary_v1.json": "3a6c7281d155ecab28af3410c26b35beeac233762152dc5665672fd1e4f280dc",
+    "carbon/evaluation_packs/study.py": "56ce63869e7a3118f868f7ed20b56c713df747ba9cf6bebb5ce8cf84d963320f",
+    "docs/development/C03_ISOLATED_WORKER_REPORT.md": "4727a39f5f0dcd5b8b10787758ffbf2b2cabab3c6ff6a1471bd1d3d341ddec6d"
+  },
+  "schema_version": "carbon.cpes-reuse.source-manifest.v1",
+  "source_revision": "d94a22bb3c09089e01402db9e7ebf6eb3c662966",
+  "study_id": "EXAM-PROTECT-01-REUSE-GAUNTLET-V2"
+}

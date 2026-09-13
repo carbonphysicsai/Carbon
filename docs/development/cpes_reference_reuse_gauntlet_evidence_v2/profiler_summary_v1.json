@@ -1,0 +1,51 @@
+{
+  "assumed_quantities": {
+    "compatible_demand": null,
+    "scientifically_adequate_reference_cost": null,
+    "synthetic_group_overhead_grid": [
+      0,
+      4,
+      12
+    ],
+    "synthetic_reference_work_grid": [
+      2,
+      40,
+      400
+    ],
+    "variant_b_overhead": null
+  },
+  "categories": {
+    "carbon_hypothesis": "Closed-pack sharing can save repeated reference work when compatible jobs coexist without creating new answer-dependent opportunities.",
+    "external_scientific_result": "Adaptive holdout and leaderboard guarantees are algorithm- and assumption-specific; drand output is public verifiable randomness.",
+    "proposed_carbon_experiment": "Later Engineering may test immutable pre-exposure membership, exact cache binding and last-member closure under a separately authorized slice.",
+    "qualified_carbon_evidence": null
+  },
+  "current_implemented_policy": "VARIANT_A_DEVELOPMENT_SINGLETON",
+  "editable_fields_create_authority": false,
+  "feedback_delay": "closure waits for the slowest unresolved member; optional fill waiting must be compared incrementally with zero-wait B",
+  "observed_components": {
+    "c03_foundax_worker_total_ms": 11384,
+    "c_ep3_distinct_physical_cases": 1,
+    "c_ep3_public_reference_warm_ms": [
+      288.438125,
+      289.820875
+    ],
+    "cross_hardware_composition_permitted": false
+  },
+  "protection_blockers": [
+    "AT-09",
+    "AT-16",
+    "AT-19",
+    "AT-22",
+    "AT-30"
+  ],
+  "recommendation": "RETAIN_A",
+  "recurring_break_even": "for fixed unchanged membership: (b-1)*R > H",
+  "reuse_candidate": "VARIANT_B_PRECOMMITTED_COMPATIBLE_QUEUE_GROUP",
+  "runtime_sharing_authorized": false,
+  "schema_version": "carbon.challenge-profiler.cpes-reuse-study.v1",
+  "study": "EXAM-PROTECT-01-REUSE-GAUNTLET-V2",
+  "upfront_implementation_and_qualification_burden": "UNKNOWN_AND_SEPARATE",
+  "variant_c": "RESEARCH_SENSITIVITY_ONLY",
+  "variant_d": "VULNERABLE_NEGATIVE_CONTROL_ONLY"
+}
