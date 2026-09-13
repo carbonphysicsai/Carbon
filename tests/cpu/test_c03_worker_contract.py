@@ -473,3 +473,14 @@ def test_request_json_duplicate_fields_fail_closed(tmp_path: Path) -> None:
         load_worker_request(stage)
 
     assert captured.value.code is WorkerCode.INVALID
+
+
+def test_owner_doctor_is_read_only_and_all_delivery_commands_are_fixed() -> None:
+    script = (
+        Path(__file__).resolve().parents[2] / "scripts/dev/c03_worker.sh"
+    ).read_text(encoding="utf-8")
+    doctor_branch = script.split("  doctor)", 1)[1].split("    ;;", 1)[0]
+    assert "c03_worker_image.sh" not in doctor_branch
+    assert 'operator doctor "${manifest}"' in script
+    assert 'operator status "${state_root}"' in script
+    assert 'operator reconcile "${state_root}"' in script

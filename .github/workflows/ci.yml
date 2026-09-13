@@ -176,6 +176,11 @@ jobs:
         run: ./scripts/dev/c03_worker_image.sh
       - name: Run required service-backed controls and real JAX paths
         run: ./scripts/dev/c03_worker_service.sh
+      - name: Exercise the three retained owner commands
+        run: |
+          ./scripts/dev/c03_worker.sh doctor
+          ./scripts/dev/c03_worker.sh smoke
+          ./scripts/dev/c03_worker.sh reconcile
       - name: Upload exact C-03 image and service evidence
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

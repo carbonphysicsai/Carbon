@@ -23,7 +23,39 @@ def _stores(root: Path) -> tuple[Path, ...]:
 
 
 def _doctor(manifest: Path) -> int:
-    image = load_image_identity(manifest)
+    runtime = doctor()
+    if not runtime.eligible:
+        print(
+            json.dumps(
+                {
+                    "eligible": False,
+                    "code": runtime.code,
+                    "cpuset": runtime.cpuset,
+                    "host": runtime.host,
+                    "image_id": None,
+                },
+                sort_keys=True,
+                separators=(",", ":"),
+            )
+        )
+        return 2
+    try:
+        image = load_image_identity(manifest)
+    except (OSError, WorkerFailure):
+        print(
+            json.dumps(
+                {
+                    "eligible": False,
+                    "code": "worker.doctor.image_manifest_unavailable",
+                    "cpuset": runtime.cpuset,
+                    "host": runtime.host,
+                    "image_id": None,
+                },
+                sort_keys=True,
+                separators=(",", ":"),
+            )
+        )
+        return 2
     result = doctor(image_id=image.image_id, image_identity=image)
     print(
         json.dumps(

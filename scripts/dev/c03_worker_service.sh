@@ -24,7 +24,7 @@ cd "${repo_root}"
 export PYTHONPATH="${repo_root}/tests/cpu:${repo_root}"
 export CARBON_C03_IMAGE_MANIFEST="${manifest}"
 export CARBON_C03_TRACE_PATH="${repo_root}/.carbon-artifacts/c03-service-traces.jsonl"
-: > "${CARBON_C03_TRACE_PATH}"
+: >> "${CARBON_C03_TRACE_PATH}"
 python_path="${repo_root}/.venv/bin/python"
 if [[ "$(uname -s)" == "Darwin" && "$(uname -m)" == "arm64" ]]; then
   python_path="${repo_root}/.venv-jax-macos/bin/python"

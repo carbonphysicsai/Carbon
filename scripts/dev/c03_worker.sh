@@ -14,7 +14,6 @@ state_root="${repo_root}/.carbon-local/c03-smoke"
 case "${1:-}" in
   doctor)
     [[ "$#" -eq 1 ]] || fail "usage: ./scripts/dev/c03_worker.sh doctor"
-    [[ -f "${manifest}" ]] || "${script_dir}/c03_worker_image.sh" "${manifest}"
     ;;
   smoke)
     [[ "$#" -eq 1 ]] || fail "usage: ./scripts/dev/c03_worker.sh smoke"
