@@ -44,7 +44,10 @@ def test_only_c04_candidate_runtime_is_selected_and_c05_is_next() -> None:
     assert "C-02(merged DEVELOPMENT adapter prerequisite; full ticket open)" in graph
     assert "└─> C-03(PR #149 capability + PR #151 hardening)" in graph
     assert graph.count("| **no** |") >= 6
-    assert "| C-03 | PR #149 bounded DEVELOPMENT capability and PR #151 hardening accepted" in graph
+    assert (
+        "| C-03 | PR #149 bounded DEVELOPMENT capability and PR #151 hardening accepted"
+        in graph
+    )
     assert "**yes only after C-04 bounded merge**" in graph
 
 
