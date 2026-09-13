@@ -136,15 +136,15 @@
       "what": "Adapt the supplied immutable training and inference interface without widening the Strategy contract.",
       "why": "Research prototypes and forward-pass parity cannot substitute for the exact real reconstruction source.",
       "changes": "Carbon gains v2 complete-artifact and exact finite prediction validation plus an optional frozen DEVELOPMENT repeat runner for FNO and DeepONet, reusing B-02C replicate and C-01 attempt identities.",
-      "not_yet": "The complete ticket still lacks an owner-selected production repeat policy and C-03's isolated resource envelope. Protected reference, official scoring, qualification, production, public network and LIVE remain unavailable.",
+      "not_yet": "The complete ticket still lacks a production repeat policy, protected execution and scientific/security qualification. C-03 owns its separately selected public-development isolation composition. Protected reference, official scoring, production, public network and LIVE remain unavailable.",
       "map_ref": "WAVE-C/C-02"
     },
     "C-03": {
       "title": "Isolate hostile reconstruction work",
-      "what": "Define a network-denied, scratch-only, resource-bounded worker around C-02's future authorized JAX adapter.",
+      "what": "Run C-02's merged DEVELOPMENT adapter in one pinned network-denied, scratch-only, resource-bounded Docker worker with durable launch and post-exit validation.",
       "why": "Participant-controlled work must not expose official evaluation material or gain unbounded host capabilities.",
-      "changes": "The future ticket now has an exact isolation, cancellation, cleanup and typed-infrastructure-failure contract.",
-      "not_yet": "No worker is implemented; MQ-015 inputs, resource limits and security acceptance remain missing even though the bounded C-02 adapter now exists.",
+      "changes": "The selected candidate adds the exact Linux/amd64 worker image, C-01 launch/recovery binding, B-02C envelope, effective-control inspection, bounded immutable output, whole-container cleanup, exact replay, quarantine and a required Linux service lane.",
+      "not_yet": "Required Linux service acceptance is pending. Global MQ-015, protected execution, independent security/scientific qualification, production repeat policy, archive, reward, network and LIVE authority remain open.",
       "map_ref": "WAVE-C/C-03"
     },
     "C-04": {

@@ -24,6 +24,7 @@ jobs:
       base_sha: ${{ steps.candidate.outputs.base_sha }}
       change_scope: ${{ steps.delivery.outputs.change_scope }}
       dev_image_required: ${{ steps.delivery.outputs.dev_image_required }}
+      c03_worker_required: ${{ steps.delivery.outputs.c03_worker_required }}
     steps:
       - name: Resolve the current exact candidate
         id: candidate
@@ -148,6 +149,49 @@ jobs:
           QUALITY_BASE_SHA: ${{ needs.preflight.outputs.base_sha }}
         run: ./scripts/dev/verify_image.sh "${CARBON_DEV_IMAGE}"
 
+  c03-worker:
+    name: C-03 isolated worker service acceptance
+    if: needs.preflight.outputs.change_scope == 'RUNTIME_FULL' && needs.preflight.outputs.c03_worker_required == 'true'
+    needs: preflight
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Check out exact classified candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.preflight.outputs.candidate_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Install pinned uv
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: "0.12.7"
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - name: Bootstrap locked controller environment
+        env:
+          CARBON_UV_GROUPS: "science-jax"
+        run: ./scripts/dev/bootstrap.sh
+      - name: Build exact worker image and manifest
+        run: ./scripts/dev/c03_worker_image.sh
+      - name: Run required service-backed controls and real JAX paths
+        run: ./scripts/dev/c03_worker_service.sh
+      - name: Exercise the three retained owner commands
+        run: |
+          ./scripts/dev/c03_worker.sh doctor
+          ./scripts/dev/c03_worker.sh smoke
+          ./scripts/dev/c03_worker.sh reconcile
+      - name: Upload exact C-03 image and service evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: c03-worker-evidence
+          path: |
+            .carbon-artifacts/c03-worker-image.json
+            .carbon-artifacts/c03-service-junit.xml
+            .carbon-artifacts/c03-service-traces.jsonl
+          if-no-files-found: error
+
   contract-authority:
     name: Contract and authority acceptance
     if: needs.preflight.outputs.change_scope == 'CONTRACT_AUTHORITY'
@@ -241,7 +285,7 @@ jobs:
   merge-gate:
     name: Merge gate
     if: always() && github.event.pull_request.draft == false
-    needs: [preflight, canonical, dev-image, contract-authority, hub-validation, derived-documentation]
+    needs: [preflight, canonical, dev-image, c03-worker, contract-authority, hub-validation, derived-documentation]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
@@ -271,6 +315,7 @@ jobs:
           CANDIDATE_SHA: ${{ needs.preflight.outputs.candidate_sha }}
           PREFLIGHT_SCOPE: ${{ needs.preflight.outputs.change_scope }}
           PREFLIGHT_IMAGE: ${{ needs.preflight.outputs.dev_image_required }}
+          PREFLIGHT_C03: ${{ needs.preflight.outputs.c03_worker_required }}
           BOOTSTRAP_BASE_SHA: a20d9eece054e7f8b02538527221f6aea022aade
         run: |
           set -euo pipefail
@@ -332,6 +377,28 @@ jobs:
           fi
           [[ "${derived_image}" == true || "${derived_image}" == false ]]
           [[ "${PREFLIGHT_IMAGE}" == "${derived_image}" ]]
+          candidate_scope_output="${RUNNER_TEMP}/carbon-gate-candidate-scope.txt"
+          : > "${candidate_scope_output}"
+          python3 .carbon-gate-candidate/scripts/dev/classify_changes.py \
+            --repository .carbon-gate-candidate \
+            --base "${BASE_SHA}" \
+            --github-output "${candidate_scope_output}"
+          derived_c03=
+          while IFS='=' read -r key value; do
+            if [[ "${key}" == "c03_worker_required" ]]; then
+              [[ -z "${derived_c03}" ]] || { echo "Duplicate C-03 worker requirement." >&2; exit 2; }
+              derived_c03="${value}"
+            fi
+          done < "${candidate_scope_output}"
+          [[ "${derived_c03}" == true || "${derived_c03}" == false ]]
+          [[ "${PREFLIGHT_C03}" == "${derived_c03}" ]]
+          if [[ "${derived_c03}" == true ]]; then
+            [[ "${{ needs.c03-worker.result }}" == success ]] \
+              || { echo "C-03 worker service acceptance did not succeed." >&2; exit 1; }
+          else
+            [[ "${{ needs.c03-worker.result }}" == skipped ]] \
+              || { echo "Unexpected C-03 worker service result." >&2; exit 1; }
+          fi
           image_args=()
           if [[ "${derived_scope}" == "RUNTIME_FULL" && "${derived_image}" == false ]]; then
             image_args=(--dev-image-required false)

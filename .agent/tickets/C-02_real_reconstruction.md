@@ -40,10 +40,11 @@ Carbon-side semantic capabilities, not mandatory upstream symbol names.
 
 ## Definition of Done
 
-- [ ] Reconstruct only an exact compiled Strategy under a pinned backend profile
-      and registered CPU/GPU, memory, time, process, output, and environment
-      limits. Exact plan/profile mapping is implemented; C-03 still owns the
-      unavailable hostile-worker resource envelope.
+- [x] Reconstruct only an exact compiled Strategy under a pinned backend profile
+      and the C-03 DEVELOPMENT CPU/memory/time/process/output/environment
+      envelope. This checkbox is limited to the public-development isolated
+      composition selected by `OWNER-C03-DEV-ISOLATION-01`; protected and
+      production enforcement/qualification remain open.
 - [x] Bind every development reconstruction receipt to the Strategy identity,
       resolved plan, candidate artifact, implementation/environment, public
       TRAIN archive, normalization, full-width randomness digest, checkpoint,
@@ -58,9 +59,12 @@ Carbon-side semantic capabilities, not mandatory upstream symbol names.
 - [x] Deterministic bounded tests prove reconstruction/result association and
       prove protected official case material is absent from public receipts.
 
-The complete ticket remains open because the owner-selected repeated-build policy
-and C-03's registered isolated-worker limits are still absent. The
-bounded runner is capability, not selection of a required repeat count.
+The complete ticket remains open because no production repeated-build policy,
+protected execution profile, independent security acceptance or scientific
+qualification is selected. C-03's exact DEVELOPMENT limits are now supplied
+and implemented as a separately owned composition; they do not close either
+full ticket. The bounded runner remains capability, not selection of a required
+repeat count.
 The missing v0.2 `carbon_jax_research` input also remains open as an optional
 source-intake/provenance item; it does not erase the tested canonical lab and
 Foundax DEVELOPMENT profiles.

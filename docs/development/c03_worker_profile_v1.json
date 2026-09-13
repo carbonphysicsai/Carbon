@@ -1,0 +1,63 @@
+{
+  "accelerators": "NOT_APPLICABLE",
+  "authority_ceiling": "UNQUALIFIED_PUBLIC_DEVELOPMENT",
+  "base_image": "ubuntu:24.04@sha256:33ceb71981b602c1a7443a53469e4dba065f7503eab3078a2d7a57a2ab987517",
+  "cleanup_confirmation_seconds": 30,
+  "concurrency": 1,
+  "control_bytes": 1048576,
+  "core_dumps": false,
+  "cpu": {
+    "cpuset_count": 2,
+    "logical_cpus": 2,
+    "quota_cpus": 2
+  },
+  "diagnostic_bytes": 1048576,
+  "graceful_cancellation_seconds": 5,
+  "input": {
+    "bytes": 134217728,
+    "expanded_bytes": 134217728
+  },
+  "memory": {
+    "bytes": 4294967296,
+    "swap_bytes": 0
+  },
+  "nofile_per_process": 1024,
+  "output": {
+    "bytes": 134217728,
+    "expanded_bytes": 134217728,
+    "members": 1024
+  },
+  "pids": 256,
+  "productive_deadline_seconds": 600,
+  "profile_id": "carbon.c03.linux-x86_64-cpu.development.v1",
+  "profile_version": "1.0",
+  "runtime": {
+    "architecture": "linux/amd64",
+    "container_engine": "Docker Engine",
+    "cgroup": "v2",
+    "entrypoint": [
+      "/opt/carbon-worker/bin/python",
+      "-I",
+      "-m",
+      "carbon.reconstruction.worker.entrypoint"
+    ],
+    "python": "3.11.16"
+  },
+  "schema": "carbon.c03.development-worker-envelope.v1",
+  "scratch": {
+    "bytes": 536870912,
+    "inodes": 8192
+  },
+  "security": {
+    "capabilities": [],
+    "ipc_namespace": "private",
+    "network": "none",
+    "no_new_privileges": true,
+    "pid_namespace": "private",
+    "read_only_root": true,
+    "restart": "no",
+    "seccomp": "docker-default",
+    "worker_gid": 65532,
+    "worker_uid": 65532
+  }
+}

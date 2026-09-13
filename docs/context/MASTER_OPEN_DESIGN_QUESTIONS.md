@@ -322,7 +322,11 @@ The exact delay is determined from measured Subtensor finality/reorg behavior.
 
 **Owner:** Protocol/security.  
 **Proof required:** manipulation/reorg/withholding threat analysis.  
-**Status:** `SECURITY_REVIEW_REQUIRED`.
+**Status:** `SECURITY_REVIEW_REQUIRED`. `OWNER-C03-DEV-ISOLATION-01` supplies
+the exact scoped DEVELOPMENT implementation decisions for a disposable
+public-data Docker worker; implementation evidence and broader protected or
+production security acceptance remain outstanding. Global MQ-015 is not
+resolved and `SECURITY_QUALIFIED` is not earned.
 
 ---
 

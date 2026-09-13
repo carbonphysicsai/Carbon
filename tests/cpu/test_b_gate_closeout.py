@@ -62,7 +62,8 @@ def test_selected_c02_retains_ticket_local_acceptance_and_boundary() -> None:
     assert "Definition of Done" in ticket
     assert "repeated-build policy" in ticket
     assert "protected official case material" in ticket
-    assert "C-03 still owns" in ticket
+    assert "C-03's exact DEVELOPMENT limits are now supplied" in ticket
+    assert "implemented as a separately owned composition" in ticket
 
 
 @pytest.mark.parametrize(("filename", "markers"), FUTURE_TICKET_MARKERS.items())

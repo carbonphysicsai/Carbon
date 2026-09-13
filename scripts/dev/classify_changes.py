@@ -53,6 +53,26 @@ class Classification:
     def unknown_paths(self) -> tuple[str, ...]:
         return tuple(item.path for item in self.paths if item.unknown)
 
+    @property
+    def c03_worker_required(self) -> bool:
+        """Require Docker-backed acceptance only when the C-03 boundary changes."""
+        if self.scope is not ChangeScope.RUNTIME_FULL:
+            return False
+        exact = {
+            ".devcontainer/Dockerfile.reconstruction-worker",
+            "carbon/execution/worker.py",
+            "scripts/dev/c03_worker_image.sh",
+            "scripts/dev/c03_worker_service.sh",
+            "tests/service/test_c03_worker_service.py",
+        }
+        return any(
+            item.path in exact
+            or item.path.startswith("carbon/reconstruction/worker/")
+            or item.path.startswith("tests/service/c03_")
+            or item.path.startswith("tests/service/test_c03_")
+            for item in self.paths
+        )
+
 
 # These files define the canonical execution environment or its acceptance.
 _IMAGE_PREFIXES = (".devcontainer/", ".github/workflows/", "scripts/dev/")
@@ -338,6 +358,7 @@ def _payload(classification: Classification) -> dict[str, object]:
     return {
         "scope": classification.scope.value,
         "dev_image_required": classification.dev_image_required,
+        "c03_worker_required": classification.c03_worker_required,
         "path_count": len(classification.paths),
         "unknown_paths": list(classification.unknown_paths),
         "paths": [
@@ -356,6 +377,7 @@ def _write_github_output(path: Path, classification: Classification) -> None:
     values = {
         "change_scope": classification.scope.value,
         "dev_image_required": str(classification.dev_image_required).lower(),
+        "c03_worker_required": str(classification.c03_worker_required).lower(),
         "runtime_full": str(classification.scope is ChangeScope.RUNTIME_FULL).lower(),
         "contract_authority": str(
             classification.scope is ChangeScope.CONTRACT_AUTHORITY

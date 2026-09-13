@@ -1,0 +1,70 @@
+# syntax=docker/dockerfile:1
+
+FROM ghcr.io/astral-sh/uv:0.12.7@sha256:95f2aa1fe59274951cfe9b0cbc7972e879ff1004bc8945d130a32eb0dbd85945 AS uv
+
+FROM ubuntu:24.04@sha256:33ceb71981b602c1a7443a53469e4dba065f7503eab3078a2d7a57a2ab987517 AS builder
+
+ARG DEBIAN_FRONTEND=noninteractive
+ARG PYTHON_VERSION=3.11.16
+ARG SOURCE_TREE_DIGEST
+ARG LOCK_DIGEST
+ARG BASE_IMAGE_DIGEST
+ARG BUILD_RECIPE_DIGEST
+ARG ENTRYPOINT_DIGEST
+
+ENV UV_PYTHON_INSTALL_DIR=/opt/uv-python \
+    UV_PYTHON_DOWNLOADS=automatic \
+    UV_LINK_MODE=copy
+
+COPY --from=uv /uv /usr/local/bin/uv
+WORKDIR /build
+COPY pyproject.toml uv.lock README.md ./
+COPY carbon ./carbon
+
+RUN uv python install "${PYTHON_VERSION}" \
+    && uv build --wheel --out-dir /dist \
+    && uv export --frozen --no-dev --group science-jax --no-emit-project --output-file /tmp/science-jax.txt \
+    && uv venv --python "${PYTHON_VERSION}" /opt/carbon-worker \
+    && uv pip install --python /opt/carbon-worker/bin/python --require-hashes --no-deps -r /tmp/science-jax.txt \
+    && uv pip install --python /opt/carbon-worker/bin/python --no-deps /dist/carbon-*.whl \
+    && wheel_path="$(find /dist -maxdepth 1 -type f -name 'carbon-*.whl' -print -quit)" \
+    && wheel_digest="$(sha256sum "${wheel_path}" | cut -d' ' -f1)" \
+    && mkdir -p /opt/carbon \
+    && printf '{"schema":"carbon.c03.worker-image-build.v1","source_tree_digest":"%s","wheel_digest":"sha256:%s","lock_digest":"%s","base_image_digest":"%s","build_recipe_digest":"%s","entrypoint_digest":"%s"}\n' \
+       "${SOURCE_TREE_DIGEST}" "${wheel_digest}" "${LOCK_DIGEST}" "${BASE_IMAGE_DIGEST}" "${BUILD_RECIPE_DIGEST}" "${ENTRYPOINT_DIGEST}" \
+       > /opt/carbon/worker-image-build.json \
+    && chmod -R a-w /opt/carbon-worker /opt/carbon /opt/uv-python
+
+FROM ubuntu:24.04@sha256:33ceb71981b602c1a7443a53469e4dba065f7503eab3078a2d7a57a2ab987517
+
+ARG SOURCE_TREE_DIGEST
+ARG LOCK_DIGEST
+ARG BASE_IMAGE_DIGEST
+ARG BUILD_RECIPE_DIGEST
+ARG ENTRYPOINT_DIGEST
+
+COPY --from=builder /opt/uv-python /opt/uv-python
+COPY --from=builder /opt/carbon-worker /opt/carbon-worker
+COPY --from=builder /opt/carbon /opt/carbon
+
+ENV HOME=/scratch/home \
+    TMPDIR=/scratch/tmp \
+    XDG_CACHE_HOME=/scratch/cache \
+    JAX_PLATFORMS=cpu \
+    JAX_COMPILATION_CACHE_DIR=/scratch/jax-cache \
+    XLA_PYTHON_CLIENT_PREALLOCATE=false \
+    PATH=/opt/carbon-worker/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+LABEL org.opencontainers.image.title="Carbon C-03 DEVELOPMENT reconstruction worker" \
+      org.opencontainers.image.description="Pinned CPU-only worker; no scientific or security qualification" \
+      org.opencontainers.image.source="https://github.com/carbonphysicsai/Carbon" \
+      org.opencontainers.image.carbon.c03.scope="UNQUALIFIED_PUBLIC_DEVELOPMENT" \
+      org.opencontainers.image.carbon.c03.source-tree="${SOURCE_TREE_DIGEST}" \
+      org.opencontainers.image.carbon.c03.lock="${LOCK_DIGEST}" \
+      org.opencontainers.image.carbon.c03.base-image="${BASE_IMAGE_DIGEST}" \
+      org.opencontainers.image.carbon.c03.build-recipe="${BUILD_RECIPE_DIGEST}" \
+      org.opencontainers.image.carbon.c03.entrypoint="${ENTRYPOINT_DIGEST}"
+
+WORKDIR /
+USER 65532:65532
+ENTRYPOINT ["/opt/carbon-worker/bin/python", "-I", "-m", "carbon.reconstruction.worker.entrypoint"]
