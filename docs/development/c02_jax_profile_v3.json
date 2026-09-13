@@ -1,0 +1,81 @@
+{
+  "schema": "carbon.c02.jax-development-profile.v3",
+  "scope": "UNQUALIFIED_PUBLIC_DEVELOPMENT",
+  "compatibility": {
+    "v1_v2_profiles": "historical snapshots retained; v3 artifacts and repeat records are new identities and older records are not rewritten",
+    "artifact_schema": "carbon.c02.reconstruction-artifact.v3",
+    "lab_checkpoint_schema": "carbon-jax-lab-checkpoint.v2",
+    "foundax_checkpoint_schema": "carbon-foundax-fno-checkpoint.v1",
+    "repeat_schema": "carbon.c02.development-repeat-plan.v2"
+  },
+  "canonical_environment": {
+    "platform": "linux-x86_64-cpu",
+    "python": "3.11.*",
+    "jax": "0.10.2",
+    "jaxlib": "0.10.2",
+    "numpy": "2.4.6",
+    "scipy": "1.17.1",
+    "optax": "0.2.8",
+    "chex": "0.1.92",
+    "equinox": "0.13.8",
+    "einops": "0.8.2",
+    "foundax": "0.2.0",
+    "pyyaml": "6.0.3",
+    "digest": "sha256:2ed4187d9add70afcd18a8faaa1b3acdd50f5ffe6e9b0f1d402f04dc34e13c1e"
+  },
+  "locks": {
+    "linux_uv_lock_sha256": "9de64d6c5ca9a0a73d141ca403de1d2bee8bb85e68cd7ea20195b163a7c2cf11",
+    "darwin_arm64_requirements_sha256": "bacfb721c78ebf438f74c145e154e1daa0a7c0309472188c27682a8048916165"
+  },
+  "canonical_lab_implementation": {
+    "id": "carbon_jax_lab",
+    "version": "0.1.1",
+    "original_supplied_wheel_digest": "sha256:3941af49fb7441b9ee37408db2b759bdc65088f0bda089f2a774adc3506935db",
+    "received_v0_1_archive_sha256": "532c5786ce4ad08e463ecfb03cd8372016173fe9040d381e108d9517cfb084e9",
+    "carbon_v3_source_digest": "sha256:a99aab4fdcab62b3b498eadea9ba9ad480f73210a6b660d2edde38ded1aceaca"
+  },
+  "requested_v0_2_source": {
+    "expected_fileset_digest": "sha256:1e539a856a35701ec7ff85880ba9e5a84eaf13970a6212e56f13a32b9d65955e",
+    "received": false,
+    "verified": false,
+    "disposition": "missing input retained as a provenance limitation; the v0.1 carbon_jax_lab archive was not substituted"
+  },
+  "foundax": {
+    "version": "0.2.0",
+    "git_revision": "b02b1da52bb03cfad8e437983fc1d1e411e78b04",
+    "wheel_sha256": "9240526f8bcf9860033807404c6e2402dfb10a73ed75088409c37aa58a6fc9b2",
+    "license_treatment": "EPL-2.0 from the LICENSE bytes shipped by the tagged source and wheel; pyproject/PyPI MIT metadata is recorded as contradictory and is not relied upon",
+    "license_sha256": "209fe24bf55677bbf81c2b0481c1403201fab57b3b4c609971eba4ec8162b99c",
+    "public_strategy_token": "fno",
+    "implementation_profile": "foundax_fno_v1"
+  },
+  "physical_scaling": {
+    "schema": "carbon.burgers-physical-scaling.v1",
+    "equations": [
+      "x=L*x_hat",
+      "t=T*t_hat",
+      "u=U*u_hat",
+      "advection=U*T/L",
+      "viscosity=nu*T/L^2"
+    ],
+    "unit_system": "carbon_burgers_native_v1",
+    "numerical_normalization": "separate TRAIN RMS",
+    "inference_boundary": "physical units"
+  },
+  "interfaces": {
+    "input_digest": "sha256:566248795dd065470dbc860131217d6138c867b55173b64c103c2bbbbdca25eb",
+    "output_digest": "sha256:08ec5a1da37457611bc08f6aabe8904ebc8d6dabcbea4499911331af2fc0563d"
+  },
+  "backbones": {
+    "carbon_jax_lab": ["fno1d", "deeponet1d"],
+    "foundax_fno_v1": ["foundax.fno1d"]
+  },
+  "limits": {
+    "default_accelerator_dependencies": false,
+    "gpu_tpu_tested": false,
+    "official_science": false,
+    "security_qualified": false,
+    "network": false,
+    "live": false
+  }
+}

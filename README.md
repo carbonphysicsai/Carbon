@@ -132,6 +132,16 @@ The current launch implementation remains intentionally bounded:
 
 The first authoritative Burgers Challenge is being repaired around a narrow fixed-viscosity `u0 -> u(T)` task with independently qualified truth and appropriate final-state physical measurements. Earlier PoC behavior remains historical evidence rather than being retroactively relabeled as qualified science.
 
+The current C-02 reconstruction backend is an offline,
+`UNQUALIFIED_PUBLIC_DEVELOPMENT` capability. Its v3 CPU profile keeps the
+repaired Carbon JAX-lab FNO/DeepONet paths and adds one exact Foundax 0.2.0 FNO
+implementation, explicit reversible Burgers physical scaling, manufactured-
+solution checks, immutable checkpoint/resume, and target-free inference. See
+the [integration report](docs/development/C02_JAX_INTEGRATION_REPORT.md) and
+[machine-readable v3 profile](docs/development/c02_jax_profile_v3.json).
+Neither backend is a qualified reference, official evaluator, hostile-code
+sandbox, production repeat policy, GPU profile, network service, or LIVE path.
+
 ---
 
 ## What Carbon can become

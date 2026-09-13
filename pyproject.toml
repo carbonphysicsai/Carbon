@@ -34,11 +34,16 @@ dev = [
     "wheel==0.48.0",
 ]
 science-jax = [
-    "jax==0.9.0.1",
-    "jaxlib==0.9.0.1",
-    "numpy==2.3.5",
+    "chex==0.1.92",
+    "einops==0.8.2",
+    "equinox==0.13.8",
+    "foundax==0.2.0",
+    "jax==0.10.2",
+    "jaxlib==0.10.2",
+    "numpy==2.4.6",
+    "optax==0.2.8",
     "pyyaml==6.0.3",
-    "scipy==1.17.0",
+    "scipy==1.17.1",
 ]
 science-torch = [
     "neuraloperator>=2.0,<3",

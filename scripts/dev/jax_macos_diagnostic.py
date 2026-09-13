@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import hashlib
+import importlib.metadata
 import json
 import platform
 import shutil
@@ -20,7 +21,7 @@ if str(_REPOSITORY_ROOT) not in sys.path:
 
 def _doctor() -> int:
     report: dict[str, object] = {
-        "schema": "carbon.c02.macos-doctor.v1",
+        "schema": "carbon.c02.macos-doctor.v2",
         "platform": platform.system(),
         "machine": platform.machine(),
         "python": platform.python_version(),
@@ -39,18 +40,60 @@ def _doctor() -> int:
     except (OSError, ValueError, subprocess.CalledProcessError):
         report["memory_gib"] = None
     try:
+        import chex
+        import einops
+        import equinox
+        import foundax
         import jax
         import jaxlib
         import numpy
+        import optax
         import scipy
+        import yaml
 
         report["runtime"] = {
+            "chex": chex.__version__,
+            "einops": einops.__version__,
+            "equinox": equinox.__version__,
+            "foundax": foundax.__version__,
             "jax": jax.__version__,
             "jaxlib": jaxlib.__version__,
             "numpy": numpy.__version__,
+            "optax": optax.__version__,
+            "pyyaml": yaml.__version__,
             "scipy": scipy.__version__,
             "backend": jax.default_backend(),
         }
+        foundax_distribution = importlib.metadata.distribution("foundax")
+        license_members = [
+            member
+            for member in foundax_distribution.files or ()
+            if member.name == "LICENSE"
+        ]
+        if len(license_members) != 1:
+            raise ImportError("foundax LICENSE")
+        license_path = Path(foundax_distribution.locate_file(license_members[0]))
+        report["foundax_license_sha256"] = hashlib.sha256(
+            license_path.read_bytes()
+        ).hexdigest()
+        expected = {
+            "chex": "0.1.92",
+            "einops": "0.8.2",
+            "equinox": "0.13.8",
+            "foundax": "0.2.0",
+            "jax": "0.10.2",
+            "jaxlib": "0.10.2",
+            "numpy": "2.4.6",
+            "optax": "0.2.8",
+            "pyyaml": "6.0.3",
+            "scipy": "1.17.1",
+            "backend": "cpu",
+        }
+        report["runtime_ok"] = (
+            report["runtime"] == expected
+            and report["foundax_license_sha256"]
+            == "209fe24bf55677bbf81c2b0481c1403201fab57b3b4c609971eba4ec8162b99c"
+        )
     except ImportError as error:
         report["runtime_error"] = error.name
     ok = (
@@ -59,6 +102,7 @@ def _doctor() -> int:
         and report["python_ok"] is True
         and report["disk_free_gib"] >= 5.0
         and "runtime_error" not in report
+        and report.get("runtime_ok") is True
     )
     report["status"] = "READY" if ok else "NOT_READY"
     print(json.dumps(report, sort_keys=True, separators=(",", ":")))

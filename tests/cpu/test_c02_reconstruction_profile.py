@@ -24,10 +24,21 @@ def test_compiler_plan_maps_two_real_families_exactly(
     profile = compile_development_profile(compile_c02_plan(tmp_path, backbone=selector))
 
     assert profile.backbone_kind == kind
-    assert profile.profile_version == "2.0"
+    assert profile.profile_version == "3.0"
     assert '"steps":2' in profile.train_config_json
     assert '"seed":0' in profile.train_config_json
     assert "runtime DerivedSeed bytes" in profile.mapping_receipt_json
+    assert "separate_train_rms" in profile.physical_scaling_json
+
+
+def test_foundax_is_an_exact_fno_implementation_profile(tmp_path: Path) -> None:
+    profile = compile_development_profile(compile_c02_plan(tmp_path, foundax=True))
+    mapping = json.loads(profile.mapping_receipt_json)
+
+    assert mapping["backbone_selector"] == "fno"
+    assert mapping["implementation_profile"] == "foundax_fno_v1"
+    assert profile.profile_id == "carbon_c02_foundax_fno_development"
+    assert profile.backbone_kind == "foundax_fno1d"
 
 
 def test_non_plan_input_fails_closed() -> None:

@@ -67,7 +67,9 @@ class ModelConfig:
 class TaskConfig:
     domain_length: float = 1.0
     time_scale: float = 0.3
+    velocity_scale: float = 1.0
     nu_scale: float = 0.05
+    physical_unit_system: str = "carbon_burgers_native_v1"
     hard_initial_condition: bool = True
     enforce_mean: bool = False
 
@@ -77,10 +79,20 @@ class TaskConfig:
             or type(self.enforce_mean) is not bool
         ):
             raise ValueError("task constraint flags must be Boolean")
-        for name in ("domain_length", "time_scale", "nu_scale"):
+        for name in ("domain_length", "time_scale", "velocity_scale", "nu_scale"):
             v = getattr(self, name)
             if type(v) is not float or not math.isfinite(v) or v <= 0:
                 raise ValueError(f"{name} must be positive and finite")
+        if (
+            type(self.physical_unit_system) is not str
+            or not self.physical_unit_system
+            or len(self.physical_unit_system) > 128
+            or not all(
+                character.isalnum() or character in "._:/^-"
+                for character in self.physical_unit_system
+            )
+        ):
+            raise ValueError("physical_unit_system")
 
 
 @dataclass(frozen=True)

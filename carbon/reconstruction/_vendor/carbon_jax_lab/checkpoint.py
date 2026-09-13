@@ -8,6 +8,7 @@ The filesystem owner must ensure a single writer; this is not distributed storag
 from __future__ import annotations
 
 import hashlib
+import importlib.metadata
 import json
 import math
 import os
@@ -22,6 +23,8 @@ import jax
 import jax.numpy as jnp
 import jaxlib
 import numpy as np
+
+from carbon.reconstruction.scaling import BurgersPhysicalScaling
 
 from .config import ModelConfig, TaskConfig, TrainConfig, canonical_json, identity
 from .optim import init_adam
@@ -46,6 +49,8 @@ _MANIFEST_FIELDS = frozenset(
         "paths",
         "leaves",
         "runtime_key_digest",
+        "physical_scaling",
+        "physical_scaling_digest",
     }
 )
 _MAX_LEAVES = 10_000
@@ -78,6 +83,13 @@ def environment():
         "jax": jax.__version__,
         "jaxlib": jaxlib.__version__,
         "numpy": np.__version__,
+        "scipy": importlib.metadata.version("scipy"),
+        "optax": importlib.metadata.version("optax"),
+        "chex": importlib.metadata.version("chex"),
+        "equinox": importlib.metadata.version("equinox"),
+        "einops": importlib.metadata.version("einops"),
+        "foundax": importlib.metadata.version("foundax"),
+        "pyyaml": importlib.metadata.version("pyyaml"),
         "backend": jax.default_backend(),
         "x64": bool(jax.config.jax_enable_x64),
         "platform": platform.system(),
@@ -115,7 +127,7 @@ def save_checkpoint(trainer, path):
         np.savez_compressed(temp / "state.npz", **arrays)
         state_hash = hashlib.sha256((temp / "state.npz").read_bytes()).hexdigest()
         meta = {
-            "schema": "carbon-jax-lab-checkpoint.v1",
+            "schema": "carbon-jax-lab-checkpoint.v2",
             "scope": "UNQUALIFIED_PUBLIC_DEVELOPMENT",
             "model": asdict(trainer.model_config),
             "task": asdict(trainer.task_config),
@@ -129,6 +141,8 @@ def save_checkpoint(trainer, path):
             "source_id": source_identity(),
             "environment": environment(),
             "runtime_key_digest": trainer.runtime_key_digest,
+            "physical_scaling": trainer.physical_scaling.to_dict(),
+            "physical_scaling_digest": trainer.physical_scaling.digest,
             "state_sha256": state_hash,
             "paths": paths,
             "leaves": [
@@ -170,7 +184,7 @@ def _read(path):
     if type(meta) is not dict or set(meta) != _MANIFEST_FIELDS:
         raise ValueError("checkpoint manifest fields")
     if (
-        meta.get("schema") != "carbon-jax-lab-checkpoint.v1"
+        meta.get("schema") != "carbon-jax-lab-checkpoint.v2"
         or meta.get("scope") != "UNQUALIFIED_PUBLIC_DEVELOPMENT"
     ):
         raise ValueError("checkpoint schema/scope")
@@ -188,6 +202,9 @@ def _read(path):
         or type(meta["train"]) is not dict
     ):
         raise ValueError("checkpoint configuration")
+    scaling = BurgersPhysicalScaling.from_dict(meta["physical_scaling"])
+    if meta["physical_scaling_digest"] != scaling.digest:
+        raise ValueError("checkpoint physical scaling")
     model = ModelConfig(**meta["model"])
     task = TaskConfig(**meta["task"])
     train = TrainConfig(**meta["train"])
@@ -216,6 +233,13 @@ def _read(path):
         "jax",
         "jaxlib",
         "numpy",
+        "scipy",
+        "optax",
+        "chex",
+        "equinox",
+        "einops",
+        "foundax",
+        "pyyaml",
         "backend",
         "x64",
         "platform",
@@ -322,6 +346,7 @@ def load_checkpoint(trainer, path):
         or meta["training_data"] != trainer.data.fingerprint
         or meta["u_scale"] != trainer.u_scale
         or meta["runtime_key_digest"] != trainer.runtime_key_digest
+        or meta["physical_scaling_digest"] != trainer.physical_scaling.digest
     ):
         raise ValueError("resume plan/data/normalization mismatch")
     if not 0 <= meta["step"] <= trainer.config.steps:

@@ -22,8 +22,10 @@ from carbon.reconstruction.repeats import (
     freeze_development_repeat_plan,
     run_development_repeats,
 )
+from carbon.reconstruction.scaling import BurgersPhysicalScaling
 
 __all__ = [
+    "BurgersPhysicalScaling",
     "DevelopmentRepeatPlan",
     "DevelopmentReplica",
     "EnvironmentEligibility",

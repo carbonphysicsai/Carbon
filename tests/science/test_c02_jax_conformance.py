@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import importlib.metadata
 import json
 import shutil
 import uuid
@@ -51,6 +52,18 @@ from carbon.reconstruction._vendor.carbon_jax_lab.pr40_bridge import (
     to_flax_params,
 )
 from carbon.reconstruction._vendor.carbon_jax_lab.training import Trainer
+from carbon.reconstruction.foundax_adapter import (
+    FoundaxModelConfig,
+)
+from carbon.reconstruction.foundax_adapter import (
+    Trainer as FoundaxTrainer,
+)
+from carbon.reconstruction.foundax_adapter import (
+    load_inference as load_foundax_inference,
+)
+from carbon.reconstruction.foundax_adapter import (
+    save_checkpoint as save_foundax_checkpoint,
+)
 from carbon.reconstruction.service import predict, reconstruct
 from carbon.resource_policy import (
     RESOURCE_POLICY_CANONICALIZATION_PROFILE,
@@ -233,6 +246,16 @@ def test_compiled_plan_service_update_reload_and_target_free_prediction(
     assert output.shape == (2, 2, 16)
     assert np.isfinite(output).all()
     assert prediction_receipt.output_digest.startswith("sha256:")
+    with pytest.raises(ReconstructionFailure) as caught:
+        predict(
+            receipt,
+            initial=data.initial[:1],
+            viscosity=data.viscosity[:1],
+            requested_times=data.times[:1],
+            positions=data.positions,
+            physical_unit_system="unregistered_unit_system",
+        )
+    assert caught.value.code == "reconstruction.prediction.units_incompatible"
     manifest = json.loads((artifact / "manifest.json").read_text(encoding="utf-8"))
     assert manifest["scope"] == "UNQUALIFIED_PUBLIC_DEVELOPMENT"
     assert manifest["training_role"] == "TRAIN"
@@ -276,6 +299,145 @@ def test_outer_service_resume_matches_uninterrupted_checkpoint(tmp_path: Path) -
     assert partial.status is ReconstructionStatus.PARTIAL
     assert resumed.status is ReconstructionStatus.COMPLETE
     assert resumed.checkpoint_digest == continuous.checkpoint_digest
+
+
+def test_foundax_exact_profile_updates_resumes_and_predicts(tmp_path: Path) -> None:
+    source = tmp_path / "foundax-train.npz"
+    data = _data()
+    data.save(source)
+    archive = PublicTrainingArchive.from_file(source, provenance="c02_foundax_fixture")
+    plan = compile_c02_plan(tmp_path, foundax=True)
+    execution = ExecutionAttemptRef(
+        SubmissionId(str(uuid.UUID("42345678-1234-4234-8234-123456789abc"))), 1
+    )
+    seed = DerivedSeed(bytes(range(32)))
+    partial = reconstruct(
+        execution_ref=execution,
+        plan=plan,
+        training_archive=archive,
+        derived_seed=seed,
+        artifact_path=tmp_path / "foundax-partial",
+        until_step=1,
+    )
+    resumed = reconstruct(
+        execution_ref=execution,
+        plan=plan,
+        training_archive=archive,
+        derived_seed=seed,
+        artifact_path=tmp_path / "foundax-resumed",
+        resume_from=partial,
+    )
+    continuous = reconstruct(
+        execution_ref=execution,
+        plan=plan,
+        training_archive=archive,
+        derived_seed=seed,
+        artifact_path=tmp_path / "foundax-continuous",
+    )
+    output, prediction_receipt = predict(
+        continuous,
+        initial=data.initial[:2],
+        viscosity=data.viscosity[:2],
+        requested_times=data.times[:2, ::-1],
+        positions=data.positions,
+        physical_unit_system="carbon_burgers_native_v1",
+    )
+
+    assert partial.status is ReconstructionStatus.PARTIAL
+    assert resumed.checkpoint_digest == continuous.checkpoint_digest
+    assert output.shape == (2, 2, 16)
+    assert output.dtype == np.dtype("float32")
+    assert np.isfinite(output).all()
+    assert prediction_receipt.output_digest.startswith("sha256:")
+
+
+def test_foundax_512_profile_has_a_real_parameter_update() -> None:
+    points = 512
+    positions = np.arange(points, dtype=np.float64) / points
+    initial = np.stack((np.sin(2 * np.pi * positions), np.cos(2 * np.pi * positions)))
+    data = Trajectories(
+        initial,
+        np.array([0.01, 0.02]),
+        np.broadcast_to(np.array([0.05, 0.1]), (2, 2)).copy(),
+        np.stack((initial * 0.98, initial * 0.96), axis=1),
+        positions,
+        "train",
+        "carbon_c02_foundax_512_fixture",
+    )
+    trainer = FoundaxTrainer(
+        FoundaxModelConfig("foundax_fno1d", 8, 1, 8, False, 0.0),
+        TaskConfig(),
+        TrainConfig(steps=2, warmup_steps=1, batch_size=1),
+        data,
+        runtime_key_material=bytes(range(32)),
+    )
+    before = [
+        np.asarray(leaf).copy()
+        for leaf in jax.tree.leaves(trainer.state.model)
+        if hasattr(leaf, "dtype")
+    ]
+    trainer.fit(until_step=1)
+    after = [
+        np.asarray(leaf)
+        for leaf in jax.tree.leaves(trainer.state.model)
+        if hasattr(leaf, "dtype")
+    ]
+
+    assert int(trainer.state.step) == 1
+    assert (
+        sum(
+            float(np.sum(np.abs(left - right)))
+            for left, right in zip(before, after, strict=True)
+        )
+        > 0
+    )
+
+
+def test_foundax_rejects_unimplemented_training_semantics_and_extra_members(
+    tmp_path: Path,
+) -> None:
+    model = FoundaxModelConfig("foundax_fno1d", 8, 1, 8, False, 0.0)
+    with pytest.raises(ValueError, match="unsupported Foundax training option"):
+        FoundaxTrainer(
+            model,
+            TaskConfig(),
+            TrainConfig(
+                steps=2,
+                warmup_steps=1,
+                batch_size=1,
+                relative_loss=True,
+            ),
+            _data(),
+            runtime_key_material=bytes(range(32)),
+        )
+
+    trainer = FoundaxTrainer(
+        model,
+        TaskConfig(),
+        TrainConfig(steps=2, warmup_steps=1, batch_size=1),
+        _data(),
+        runtime_key_material=bytes(range(32)),
+    )
+    checkpoint = tmp_path / "foundax-checkpoint"
+    save_foundax_checkpoint(trainer, checkpoint)
+    (checkpoint / "unexpected").write_text("rejected", encoding="utf-8")
+    with pytest.raises(ValueError, match="members"):
+        load_foundax_inference(checkpoint)
+
+
+def test_foundax_distribution_carries_the_pinned_epl_license() -> None:
+    distribution = importlib.metadata.distribution("foundax")
+    members = [
+        member for member in distribution.files or () if member.name == "LICENSE"
+    ]
+
+    assert len(members) == 1
+    license_path = Path(distribution.locate_file(members[0]))
+    assert (
+        hashlib.sha256(license_path.read_bytes()).hexdigest()
+        == "209fe24bf55677bbf81c2b0481c1403201fab57b3b4c609971eba4ec8162b99c"
+    )
+    assert "Eclipse Public License - v 2.0" in license_path.read_text(encoding="utf-8")
 
 
 def _service_fixture(tmp_path: Path, *, steps: int = 2):
@@ -544,6 +706,26 @@ def _repeat_member(
     return DevelopmentReplica(binding, execution, digest, cancel)
 
 
+def test_repeat_request_identity_binds_physical_units() -> None:
+    data = _data()
+    request = {
+        "initial": data.initial[:1],
+        "viscosity": data.viscosity[:1],
+        "requested_times": data.times[:1],
+        "positions": data.positions,
+    }
+    implicit = development_request_digest(request)
+    explicit = development_request_digest(
+        {**request, "physical_unit_system": "carbon_burgers_native_v1"}
+    )
+    incompatible = development_request_digest(
+        {**request, "physical_unit_system": "different_registered_units"}
+    )
+
+    assert implicit == explicit
+    assert incompatible != implicit
+
+
 @pytest.mark.parametrize("backbone", ("fno", "deeponet"))
 def test_frozen_multireplica_runner_is_idempotent_and_retains_failures(
     tmp_path: Path, backbone: str
@@ -659,6 +841,7 @@ def test_singleton_repeat_executes_once_and_ambiguous_reopen_requires_reconcilia
         output_directory=tmp_path / "singleton-output",
     )
     assert report["completed"] == 1
+    assert report["schema"] == "carbon.c02.development-repeat-report.v2"
     assert report["dispersion"]["status"] == "UNRESOLVED_INSUFFICIENT_REPLICAS"
     assert report["dispersion"]["mean_pointwise_sample_standard_deviation"] is None
 

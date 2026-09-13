@@ -102,6 +102,8 @@ class ReconstructionProfile:
     environment_digest: str
     input_interface_digest: str
     output_interface_digest: str
+    physical_scaling_digest: str
+    physical_scaling_json: str
     mapping_receipt_json: str
 
     def __post_init__(self) -> None:
@@ -112,6 +114,7 @@ class ReconstructionProfile:
             "environment_digest",
             "input_interface_digest",
             "output_interface_digest",
+            "physical_scaling_digest",
         ):
             object.__setattr__(self, field, _digest(getattr(self, field), field))
         _token(self.profile_id, "profile_id")
@@ -121,6 +124,7 @@ class ReconstructionProfile:
             "model_config_json",
             "task_config_json",
             "train_config_json",
+            "physical_scaling_json",
             "mapping_receipt_json",
         ):
             value = getattr(self, field)
@@ -148,6 +152,8 @@ class ReconstructionReceipt:
     environment_eligibility: EnvironmentEligibility | None = None
     input_interface_digest: str | None = None
     output_interface_digest: str | None = None
+    physical_scaling_digest: str | None = None
+    physical_unit_system: str | None = None
     normalization_scale: float | None = None
     inference_weights: str | None = None
 
@@ -186,10 +192,13 @@ class ReconstructionReceipt:
             "observed_environment_digest",
             "input_interface_digest",
             "output_interface_digest",
+            "physical_scaling_digest",
         ):
             value = getattr(self, field)
             if value is not None:
                 object.__setattr__(self, field, _digest(value, field))
+        if self.physical_unit_system is not None:
+            _token(self.physical_unit_system, "physical_unit_system")
         if self.environment_eligibility is not None and (
             type(self.environment_eligibility) is not EnvironmentEligibility
         ):

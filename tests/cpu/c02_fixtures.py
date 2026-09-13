@@ -29,6 +29,9 @@ from carbon.reconstruction.profile import (
     ENVIRONMENT_DIGEST,
     ENVIRONMENT_ID,
     ENVIRONMENT_VERSION,
+    FOUNDAX_IMPLEMENTATION_ID,
+    FOUNDAX_IMPLEMENTATION_VERSION,
+    FOUNDAX_WHEEL_DIGEST,
     IMPLEMENTATION_ID,
     IMPLEMENTATION_VERSION,
     INPUT_INTERFACE_DIGEST,
@@ -44,12 +47,10 @@ def compile_c02_plan(
     steps: int = 2,
     wheel_digest: str = UPSTREAM_WHEEL_DIGEST,
     environment_digest: str = ENVIRONMENT_DIGEST,
+    foundax: bool = False,
 ):
     fixture = make_compile_fixture(tmp_path)
     old_option = fixture.assembly.backbone_surface.options[0]
-    implementation = ImplementationPin(
-        IMPLEMENTATION_ID, IMPLEMENTATION_VERSION, wheel_digest
-    )
     environment = EnvironmentPin(
         ENVIRONMENT_ID, ENVIRONMENT_VERSION, environment_digest
     )
@@ -68,13 +69,19 @@ def compile_c02_plan(
     )
     backbone_target = ConsumerTarget("carbon_jax_lab_model", "kind")
 
-    def option(selector: str, backbone_id: str):
+    def option(selector: str, backbone_id: str, *, is_foundax: bool = False):
+        source_digest = FOUNDAX_WHEEL_DIGEST if is_foundax else wheel_digest
+        implementation = ImplementationPin(
+            FOUNDAX_IMPLEMENTATION_ID if is_foundax else IMPLEMENTATION_ID,
+            (FOUNDAX_IMPLEMENTATION_VERSION if is_foundax else IMPLEMENTATION_VERSION),
+            source_digest,
+        )
         return replace(
             old_option,
             selector_token=selector,
             backbone_id=backbone_id,
-            backbone_version="1.0",
-            content_digest=wheel_digest,
+            backbone_version="0.2.0" if is_foundax else "1.0",
+            content_digest=source_digest,
             implementation_pin=implementation,
             environment_pin=environment,
             dependency_pins=dependencies,
@@ -86,7 +93,11 @@ def compile_c02_plan(
         "strategy_backbone",
         backbone_target,
         (
-            option("fno", "carbon_jax_fno1d"),
+            option(
+                "fno",
+                "foundax_fno1d" if foundax else "carbon_jax_fno1d",
+                is_foundax=foundax,
+            ),
             option("deeponet", "carbon_jax_deeponet1d"),
         ),
     )
