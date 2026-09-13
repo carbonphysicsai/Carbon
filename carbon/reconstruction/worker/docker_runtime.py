@@ -290,6 +290,8 @@ def create_arguments(
         "max-size=1m",
         "--log-opt",
         "max-file=1",
+        "--log-opt",
+        "compress=false",
         "--stop-timeout",
         str(GRACEFUL_CANCELLATION_SECONDS),
         "--shm-size",
@@ -381,7 +383,14 @@ def inspect_effective_controls(
         or host.get("PidMode") not in ("", "private")
         or host.get("RestartPolicy", {}).get("Name") != "no"
         or host.get("LogConfig")
-        != {"Type": "local", "Config": {"max-file": "1", "max-size": "1m"}}
+        != {
+            "Type": "local",
+            "Config": {
+                "compress": "false",
+                "max-file": "1",
+                "max-size": "1m",
+            },
+        }
         or host.get("PidsLimit") != PIDS_LIMIT
         or host.get("Memory") != MEMORY_BYTES
         or host.get("MemorySwap") != MEMORY_BYTES

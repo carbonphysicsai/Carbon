@@ -219,6 +219,10 @@ def test_docker_argv_has_fixed_security_and_no_caller_command(tmp_path: Path) ->
         "--cpus 2",
         "--cpuset-cpus 0,1",
         "--restart no",
+        "--log-driver local",
+        "--log-opt max-size=1m",
+        "--log-opt max-file=1",
+        "--log-opt compress=false",
     ):
         assert expected in rendered
     assert arguments[-1] == _sha("a")
