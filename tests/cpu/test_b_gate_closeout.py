@@ -7,10 +7,6 @@ import pytest
 ROOT = Path(__file__).resolve().parents[2]
 
 FUTURE_TICKET_MARKERS = {
-    "C-05_production_measurement.md": (
-        "numerical/reference floors",
-        "cannot enter lean scientific scoring",
-    ),
     "C-06_signed_evidence_ledger.md": (
         "SamplingPlan",
         "positive allow-lists",
@@ -66,12 +62,24 @@ def test_selected_c04_retains_bounded_acceptance_and_unearned_authority() -> Non
     ticket = (ROOT / ".agent/tickets/C-04_protected_reference_runtime.md").read_text(
         encoding="utf-8"
     )
-    assert "**Status:** `in_progress`" in ticket
+    assert "**Status:** `done` for the bounded engineering" in ticket
     assert "Definition of Done" in ticket
     assert "Preserve supported, unsupported, unresolved, cancellation" in ticket
     assert "no fallback, vote or averaging" in ticket
     assert "public qualification-candidate" in ticket
     assert "Human scientific qualification, independent security acceptance" in ticket
+
+
+def test_selected_c05_retains_bounded_acceptance_and_unearned_authority() -> None:
+    ticket = (ROOT / ".agent/tickets/C-05_production_measurement.md").read_text(
+        encoding="utf-8"
+    )
+    assert "**Status:** `in_progress`" in ticket
+    assert "Definition of Done" in ticket
+    assert "scientific limits, numerical/reference floors" in ticket
+    assert "D-05 prerequisite" in ticket
+    assert "before any score boundary" in ticket
+    assert "No threshold ratification, scientific qualification" in ticket
 
 
 @pytest.mark.parametrize(("filename", "markers"), FUTURE_TICKET_MARKERS.items())
