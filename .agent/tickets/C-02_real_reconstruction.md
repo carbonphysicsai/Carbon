@@ -1,7 +1,8 @@
 # C-02 — Real declarative reconstruction
 
 **Wave:** C1 real scientific execution foundations
-**Status:** `in_progress`; bounded JAX DEVELOPMENT adapter selected
+**Status:** `in_progress`
+**Development slice:** bounded JAX DEVELOPMENT adapter selected
 **Depends on:** B-02B, B-03, B-E1, C-01
 **Selection authority:** owner-supplied C-02 JAX integration bundle and explicit
 implementation request after C-EP3 merged in PR #145
