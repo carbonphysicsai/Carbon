@@ -2532,6 +2532,59 @@
         "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
       ],
       "supersedes": null
+    },
+    {
+      "map_ref": "WAVE-C/C-03",
+      "event_type": "evidence",
+      "event_id": "C-03-E2",
+      "owner_lane": "execution_sre_engineering",
+      "status": "implemented",
+      "summary": "PR #149 accepted exact head ef4d5e336c942b7ff40856fcfee03f522ef2d1d5 in required run 34770761721 and normally merged C-03's bounded public-DEVELOPMENT worker as d94a22bb3c09089e01402db9e7ebf6eb3c662966 with image/config sha256:dae4717ae00d3174b8644159934eb4edbe94c0ad125549f6ade570a6f4c7e630. This supersedes the earlier candidate observation only; global MQ-015 and protected/scientific/production/network qualification remain open.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/actions/runs/34770761721",
+      "affects": [
+        "WAVE-C",
+        "WAVE-C/C-02",
+        "WAVE-C/C-03",
+        "WAVE-C/C-04",
+        "WAVE-C/C-07",
+        "SYSTEM/AGENT-EXECUTION",
+        "SYSTEM/CI",
+        "SYSTEM/MATURITY",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+      ],
+      "supersedes": "C-03-E1"
+    },
+    {
+      "map_ref": "WAVE-C/C-03",
+      "event_type": "decision",
+      "event_id": "OWNER-C1-BURGERS-ALPHA-01",
+      "owner_lane": "repository_owner",
+      "status": "active",
+      "summary": "The owner selects C-03 prerequisite hardening and a sequential public-data Burgers vertical, with a trusted Carbon single-tenant host, three replicas in new working profiles, explicit Cole–Hopf/witness/ETDRK4 roles and prospective private archive targets. C-04 is next after the current merge; protected admission, independent review acceptance, scientific sufficiency, real archive acknowledgement, public-network operation and LIVE remain unavailable.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/0a57b13ae97056d722930ab95a9604077af8520d/.agent/plans/C1_ALPHA_VERTICAL_CONTINUATION.md",
+      "affects": [
+        "WAVE-C",
+        "WAVE-C/C-02",
+        "WAVE-C/C-03",
+        "WAVE-C/C-04",
+        "WAVE-C/C-05",
+        "WAVE-C/C-06",
+        "WAVE-C/C-07",
+        "WAVE-C/C-08",
+        "WAVE-C/C-09",
+        "WAVE-C/C-EA1",
+        "WAVE-C/C-EA2",
+        "WAVE-C/C-W1",
+        "SYSTEM/AGENT-EXECUTION",
+        "SYSTEM/CI",
+        "SYSTEM/GOVERNANCE",
+        "SYSTEM/MATURITY",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+      ],
+      "supersedes": null
     }
   ]
 }

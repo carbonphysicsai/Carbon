@@ -99,10 +99,10 @@ class NewcomerProjectionTests(unittest.TestCase):
             f"<strong>Current stage:</strong> {render_hub.esc(current['stage'])}",
             self.output,
         )
-        self.assertIn("D6 canonical full/standard run 34518806217", self.output)
-        self.assertIn("G2 is LOCALNET_READY only", self.output)
-        self.assertIn("C-EA2 remains blocked", self.output)
-        self.assertIn("cannot fill an evidence gap", self.output)
+        self.assertIn("required run 34770761721", self.output)
+        self.assertIn("OWNER-C1-BURGERS-ALPHA-01", self.output)
+        self.assertIn("No later ticket is selected", self.output)
+        self.assertIn("C-04 is prospectively authorized", self.output)
 
     def test_changing_canonical_position_reprojects_every_current_surface(self) -> None:
         changed = dict(self.data)
@@ -158,8 +158,8 @@ class NewcomerProjectionTests(unittest.TestCase):
     def test_exam_map_preserves_current_maturity_and_science_boundary(self) -> None:
         for phrase in (
             "Target-state orientation only",
-            "D6 canonical full/standard run 34518806217",
-            "C-EP3 completed after head",
+            "required run 34770761721",
+            "PR #149 then accepted C-03 head",
             "planned for Wave C1",
             "Burgers v1 remains PRE-LIVE",
             "Science ends at R14",
