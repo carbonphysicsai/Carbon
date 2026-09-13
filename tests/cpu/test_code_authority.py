@@ -1037,6 +1037,7 @@ def test_default_workflow_delegates_all_semantics_to_repository_scripts() -> Non
         "preflight",
         "canonical",
         "dev-image",
+        "c03-worker",
         "contract-authority",
         "hub-validation",
         "derived-documentation",
@@ -1045,8 +1046,13 @@ def test_default_workflow_delegates_all_semantics_to_repository_scripts() -> Non
     assert _yaml_scalar(jobs["preflight"], "name") == "Delivery preflight"
     assert _yaml_scalar(jobs["canonical"], "name") == "Canonical environment"
     assert _yaml_scalar(jobs["dev-image"], "name") == "Clean dev-container image"
+    assert (
+        _yaml_scalar(jobs["c03-worker"], "name")
+        == "C-03 isolated worker service acceptance"
+    )
     assert _yaml_scalar(jobs["canonical"], "needs") == "preflight"
     assert _yaml_scalar(jobs["dev-image"], "needs") == "preflight"
+    assert _yaml_scalar(jobs["c03-worker"], "needs") == "preflight"
 
     assert _inline_run_commands(jobs["preflight"]) == ("./scripts/dev/ci_preflight.sh",)
     assert _inline_run_commands(jobs["canonical"]) == (
@@ -1056,11 +1062,18 @@ def test_default_workflow_delegates_all_semantics_to_repository_scripts() -> Non
     assert _inline_run_commands(jobs["dev-image"]) == (
         './scripts/dev/verify_image.sh "${CARBON_DEV_IMAGE}"',
     )
+    assert _inline_run_commands(jobs["c03-worker"]) == (
+        "./scripts/dev/bootstrap.sh",
+        "./scripts/dev/c03_worker_image.sh",
+        "./scripts/dev/c03_worker_service.sh",
+    )
     required_repository_commands = (
         "./scripts/dev/ci_preflight.sh",
         "./scripts/dev/bootstrap.sh",
         "./scripts/dev/ci.sh",
         './scripts/dev/verify_image.sh "${CARBON_DEV_IMAGE}"',
+        "./scripts/dev/c03_worker_image.sh",
+        "./scripts/dev/c03_worker_service.sh",
         "./scripts/dev/ci_contract_authority.sh",
         "./scripts/dev/ci_hub.sh",
         "./scripts/dev/ci_derived_documentation.sh",
@@ -1108,12 +1121,14 @@ def test_default_workflow_delegates_all_semantics_to_repository_scripts() -> Non
     assert 'gh api "${endpoint}" --jq .base.sha' in workflow
     assert '"${candidate_sha}" != "${EVENT_PR_HEAD}"' in workflow
     assert "ref: ${{ steps.candidate.outputs.candidate_sha }}" in workflow
-    assert workflow.count("ref: ${{ needs.preflight.outputs.candidate_sha }}") == 6
-    assert workflow.count("fetch-depth: 0") == 7
-    assert workflow.count("persist-credentials: false") == 8
+    assert workflow.count("ref: ${{ needs.preflight.outputs.candidate_sha }}") == 7
+    assert workflow.count("fetch-depth: 0") == 8
+    assert workflow.count("persist-credentials: false") == 9
     assert "Install pinned uv" not in jobs["preflight"]
     assert "github.event.pull_request.draft == false" in jobs["preflight"]
     assert "dev_image_required == 'true'" in jobs["dev-image"]
+    assert "c03_worker_required == 'true'" in jobs["c03-worker"]
+    assert '[[ "${PREFLIGHT_C03}" == "${derived_c03}" ]]' in workflow
     assert "--dev-image-required false" in jobs["merge-gate"]
     assert '[[ "${PREFLIGHT_IMAGE}" == "${derived_image}" ]]' in workflow
     assert "  push:" not in trigger_contract

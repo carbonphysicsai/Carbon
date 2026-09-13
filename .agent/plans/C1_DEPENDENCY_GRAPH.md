@@ -3,9 +3,9 @@
 **Decision:** `OWNER-C1-CONTRACTS-01`
 **Status:** authoritative planning checkpoint after merge
 **Primary Hub map_ref:** `WAVE-C`
-**Implementation selection:** C-02 only, as a bounded DEVELOPMENT adapter for
-the owner-supplied immutable JAX source/interface bundle after completed C-EP3;
-no later real-vertical or Variant-B implementation ticket is selected
+**Implementation selection:** C-03's first bounded DEVELOPMENT isolation slice,
+using C-02's merged adapter capability; no protected/production C-03, later
+real-vertical or Variant-B implementation ticket is selected
 
 ## Authority resolution
 
@@ -28,8 +28,8 @@ budget/resource controls and fail-closed missing policy.
 
 ```text
 C-01(done) ─┬─> C-AUTH1(done) ─> C-EA0(done) ─> C-EA1(done, synthetic only)
-            └─> C-02(selected bounded DEVELOPMENT adapter)
-                    └─> C-03(blocked C-02 + MQ-015)
+            └─> C-02(merged DEVELOPMENT adapter prerequisite; full ticket open)
+                    └─> C-03(selected bounded DEVELOPMENT isolation)
                             └─> C-04
 C-02 + C-04 ─> C-05 ─> C-06 ─> C-07 ─> C-08
                     C-07 + real archive profile + C-EA1 ─> C-EA2
@@ -38,7 +38,7 @@ G2(exact standard localnet only) + C-09 + C-EA2 + real signed C1 evidence ─> C
 NET-3 + C-01 + A4-A8 ─> C-EP1(done, DEVELOPMENT fixture only)
 C-EP1 ─> C-EP2(done measurement/replay only; no sharing runtime)
 C-EP2 + C-AUTH1 ─> C-EP3(done input acquisition/public component probe)
-C-EP3 + supplied immutable JAX bundle ─> C-02(selected bounded DEVELOPMENT adapter)
+C-EP3 + supplied immutable JAX bundle ─> C-02(merged DEVELOPMENT adapter prerequisite)
 ```
 
 ## Node audit
@@ -52,8 +52,8 @@ C-EP3 + supplied immutable JAX bundle ─> C-02(selected bounded DEVELOPMENT ada
 | C-EP1 | done, bounded DEVELOPMENT fixture implementation | ticket/evidence complete | NET-3, C-01 and A4-A8 bounded fixtures satisfied | all production entropy, custody, archive, science, security and comparison policy remains reserved | none for closed fixture scope | complete in PR #143 | already implemented/tested only in DEVELOPMENT scope |
 | C-EP2 | done, bounded DEVELOPMENT measurement and detached replay | ticket/evidence complete | C-EP1 satisfied | reference compatibility, acceptable delay, B overhead, science/security criteria remain reserved or unknown | authorized real reconstruction/reference backend and representative workload remain missing | complete in PR #144 | already implemented/tested only in DEVELOPMENT scope |
 | C-EP3 | done, bounded DEVELOPMENT input acquisition and detached public probe | ticket/evidence complete | C-EP2 and C-AUTH1 satisfied | reference qualification, comparison meaning, and every real security/science input remain reserved | supplied JAX bundle resolves only the reconstruction-source input | complete in PR #145 | already implemented/tested only in DEVELOPMENT scope |
-| C-02 | selected, bounded DEVELOPMENT adapter in progress | ticket, canonical lab source/interface, v3 exact dependency profile, Foundax pin and frozen repeat capability sufficient for this slice | B-02B, B-03, B-E1, C-01 and C-EP3 satisfied as bounded foundations | owner-selected repeated-build policy, isolated resource enforcement and real backend/scientific qualification remain reserved | described v0.2 `carbon_jax_research` source is absent/unverified; C-03 isolation and later qualified science inputs remain missing | selected by owner-supplied bundle and continuation assignments | **yes, bounded adapter only** |
-| C-03 | `future_reserved`, unselected, blocked | ticket materialized here; sufficient | C-02 remains in progress; MQ-015 security/threat model | exact real limits, enforcement profile and security acceptance | bounded C-02 CPU runtime identity exists; complete C-02/C-03 isolation does not | materialized by this checkpoint | **no** |
+| C-02 | bounded DEVELOPMENT adapter merged; full ticket in progress | ticket, canonical lab source/interface, v3 exact dependency profile, Foundax pin and frozen repeat capability sufficient for C-03 | B-02B, B-03, B-E1, C-01 and C-EP3 satisfied as bounded foundations | production repeated-build policy, protected execution and real backend/scientific qualification remain reserved | described v0.2 `carbon_jax_research` source is absent/unverified but deferred | adapter prerequisite merged in PR #148; isolated composition is separate | **yes, as C-03 prerequisite only** |
+| C-03 | selected, bounded DEVELOPMENT isolation in progress | selected ticket, exact profile, implementation/evidence/report candidate | C-02 adapter capability, C-01, B-02B, B-02C and A4 satisfied in bounded scope; required Linux service evidence pending | protected/production threat acceptance and independent security review remain open | eligible Linux x86-64 Docker/cgroup-v2 service lane required | selected by `OWNER-C03-DEV-ISOLATION-01` | **yes, this slice only** |
 | C-04 | `future_reserved`, unselected, blocked | ticket exists; sufficient | B-04, B-E2 satisfied only as bounded fixtures; C-03 missing | qualified primary/witness, applicability, uncertainty and access policy | real protected reference implementations/assets | no missing contract work identified | **no** |
 | C-05 | `future_reserved`, unselected, blocked | ticket exists; sufficient | B-05 bounded foundation; C-02 and C-04 missing | qualified measurements, floors, uncertainty and Score Pack inputs | real reconstruction/reference outputs | no missing contract work identified | **no** |
 | C-06 | `future_reserved`, unselected, blocked | ticket exists; sufficient | C-01, C-02, C-04, C-05 | signer authorization, key/custody, retention and disclosure policy | real official evidence chain | no missing contract work identified | **no** |
@@ -73,21 +73,22 @@ JIT/sharding expectations and failure/error semantics. The owner-supplied
 permission-cleared bundle resolves those inputs for the bounded DEVELOPMENT
 slice only. Carbon adapts the actual interface and does not require upstream
 function renaming. The delivered repeat runner is an optional composition over
-that adapter, not a prerequisite for C-03 and not a production count. C-03
-can compose the validated adapter only after selection and MQ-015 security
-inputs; its registered envelope remains necessary for full C-02 completion.
+that adapter, not a production count. `OWNER-C03-DEV-ISOLATION-01` supplies the
+exact public-development threat and resource inputs needed for this first
+isolated composition. Required service evidence and broader MQ-015 security
+acceptance remain separate; neither full ticket is closed.
 The owner-directed v3 profile adds exact Python-3.11 CPU dependency locks,
 physical scaling and a source-pinned Foundax implementation. The separately
 described v0.2 `carbon_jax_research` file set was not received and remains
 unverified; the older `carbon_jax_lab` bundle is not substituted or relabeled.
-Production source selection, isolation, protected execution and
+Production source selection, protected isolation/execution and
 scientific/security qualification remain unresolved.
 
 ## Selection disposition
 
-C-EP1 through C-EP3 are complete in their bounded DEVELOPMENT scopes. C-02
-alone is selected for the supplied unqualified JAX adapter; no later
-real-vertical ticket is dependency-ready or selected. C-EA2 and C-W1 remain
-unselected. This graph authorizes no sharing implementation, protected
+C-EP1 through C-EP3 are complete in their bounded DEVELOPMENT scopes and PR
+#148 provides C-02's adapter prerequisite. C-03 alone is selected for the exact
+public-data DEVELOPMENT isolation slice; no later real-vertical ticket is
+selected. C-EA2 and C-W1 remain unselected. This graph authorizes no protected
 reference, official science, public-network operation, archive operating
 threshold, production qualification or LIVE state.

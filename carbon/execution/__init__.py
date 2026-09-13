@@ -23,12 +23,14 @@ from .model import (
     WriteDisposition,
 )
 from .store import DurableExecutionQueue
+from .worker import DurableWorkerLaunchStore, WorkerLaunchBinding, WorkerLaunchRecord
 
 __all__ = (
     "ArchiveRequirement",
     "ClaimedExecution",
     "DurableExecutionBinding",
     "DurableExecutionQueue",
+    "DurableWorkerLaunchStore",
     "ExecutionAttemptRef",
     "ExecutionCode",
     "ExecutionFailure",
@@ -41,4 +43,6 @@ __all__ = (
     "QueueClaim",
     "ReconciliationDisposition",
     "WriteDisposition",
+    "WorkerLaunchBinding",
+    "WorkerLaunchRecord",
 )

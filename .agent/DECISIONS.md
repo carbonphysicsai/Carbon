@@ -13478,3 +13478,102 @@ production repeat rule, GPU/TPU claim, resource envelope, security acceptance,
 protected-data use, archive policy, production, network or LIVE decision is
 made. C-02 remains `in_progress`; the grouped C-03/MQ-015 owner-security
 decision remains required.
+
+## 2026-09-13 — OWNER-C03-DEV-ISOLATION-01: select the first C-03 DEVELOPMENT isolation slice
+
+**Source and authority.** The repository owner's request, “Let's continue
+development. Give me the new prompt and make the blocking decision in the best
+way you possibly can and notate it,” together with the attached C-03 handoff,
+supplies this grouped owner decision. It is not an independent security review,
+institutional approval or signed qualification certificate. The decision
+selects implementation and controlled public-data tests in one coherent C-03
+delivery.
+
+**Dependency disposition.** C-02's merged and repeatedly tested lab/Foundax
+source, interface, environment and repeat capability are sufficient adapter
+prerequisites for this slice. The dependency graph now separates that
+prerequisite from C-03's isolated composition. Neither full C-02 nor production
+C-03 is closed. The unavailable `carbon_jax_research` v0.2 file-set digest
+`sha256:1e539a856a35701ec7ff85880ba9e5a84eaf13970a6212e56f13a32b9d65955e`
+remains deferred and `NOT VERIFIED`; v0.1 is neither substituted nor relabeled.
+The existing lab FNO/DeepONet and Foundax FNO profiles remain DEVELOPMENT
+inputs, not selected production backends or expanded commercial permission.
+No production repeat count is selected.
+
+**Selected trust boundary.** Use one Docker/OCI worker on authorized Linux
+x86-64, cgroup v2 and CPU only. Trust the development host administrator,
+kernel, Docker daemon/runtime, image build and Carbon supervisor. Treat
+declarative parameters, arrays, archives, checkpoints, worker messages and
+artifacts as untrusted. Arbitrary worker behavior from malformed input or a
+native numerical defect is in scope for containment; participant code,
+callbacks, plugins, commands and executables are not supported inputs. Root or
+daemon compromise, malicious image supply, kernel/runtime zero-days,
+microarchitectural side channels, physical attacks and compromised auditors
+are outside the demonstrated claim.
+
+**Exact DEVELOPMENT profile.** Select
+`carbon.c03.linux-x86_64-cpu.development.v1`: one worker; two explicitly
+eligible logical CPUs and aggregate two-CPU CFS quota; 4 GiB cgroup memory and
+zero swap; 600-second fixed productive deadline; five-second graceful stop;
+thirty-second cleanup confirmation; 256 tasks; 512 MiB aggregate scratch and
+8,192 inodes; 128 MiB input plus 128 MiB expanded input; 1 MiB closed control;
+128 MiB output plus 128 MiB expanded output and 1,024 regular files; 1 MiB
+diagnostics; 1,024 descriptors per process; disabled core dumps; no
+accelerator. These B-02C-bound engineering ceilings are not reservations,
+measured requirements, scientific tolerances, availability objectives or
+production budgets. Frozen lower-cap denial profiles are test-only.
+
+**Mechanism.** Build a separate immutable numeric-non-root worker image from
+the current Ubuntu/Python-3.11 and exact locked CPU science set plus the Carbon
+wheel. Bind source tree, wheel, lock, base, recipe, entrypoint and completed
+image/config digests outside the image, and dispatch by content address.
+Require read-only root/input/code, capability drop, no-new-privileges, Docker
+default seccomp, private PID/IPC, `network=none`, `restart=no`, no devices,
+daemon socket, arbitrary mounts, repository/home/credentials/shared caches or
+host environment passthrough, and one bounded disposable scratch. Retain host
+LSM defaults and record what is observed. Private loopback remains, so the
+claim is external network/DNS denial rather than zero socket syscalls.
+
+**Association and recovery.** C-01 owns attempt state. Persist the exact
+attempt/replica/image/policy/container/deadline intent before Docker create and
+grant one create effect transactionally. Reconcile create-response loss through
+the deterministic name and exact label. An external watchdog retains the fixed
+deadline across caller loss and kills the whole container/cgroup. Copy bounded
+output while tmpfs exists, then terminate all descendants, close intake and
+validate the immutable controller snapshot using C-02 semantics before
+association. Exact accepted replay has no new execution effect; conflicting
+bytes reject. Cleanup uncertainty quarantines only the affected slot and yields
+no success. Infrastructure failure remains distinct from physics/scientific
+failure.
+
+**Input and authority separation.** The worker may receive the verified plan,
+exact profiles, admitted attempt, public TRAIN arrays/labels, permitted
+continuation checkpoint and replica-specific DEVELOPMENT randomness. It never
+receives A4 master entropy, EVAL/STRESS cases or targets, reference stores,
+signing/validator/chain/auditor credentials, scoring, reward, archive or network
+authority. Its output is a bounded development artifact proposal, never an
+official result, score, acknowledgement, frontier improvement or reward.
+
+**MQ-015 notation and residual risk.** MQ-015 is now
+`SCOPED_DEVELOPMENT_IMPLEMENTATION_DECISIONS_SUPPLIED` for this exact slice,
+with implementation evidence and broader security acceptance outstanding.
+Global MQ-015 remains unresolved and `SECURITY_QUALIFIED` is not earned. Only
+disposable public/synthetic workloads without production secrets are accepted.
+A demonstrated bypass or unavailable mandatory Docker capability blocks the
+profile until repair and retest.
+
+**Alternatives rejected.** Do not introduce Kubernetes, a second container
+engine, gVisor, microVMs, Docker-in-Docker privileged mode, multi-host JAX, a
+second training loop, a new model library, dependency upgrades, a general
+remote inference API, a parallel resource-policy system, rootless-daemon claims,
+mutable tags, arbitrary caller paths/options, in-process “isolated” fallback or
+mocked enforcement. Do not weaken limits, math or frozen batches to make a test
+pass.
+
+**Reversibility and remaining human authority.** A future profile may
+prospectively replace the exact execution identity after new review and tests;
+old attempts retain their original meaning. Independent review, protected and
+production threat acceptance, production repeat policy, backend/scientific
+qualification, customer rights, real archive/custody, network/reward and LIVE
+authority remain open. C-04, C-EA2, Variant B/C and Wave C2/network work are not
+selected by this decision.

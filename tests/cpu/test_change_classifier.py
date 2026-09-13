@@ -201,6 +201,20 @@ def test_empty_manifest_retains_full_image_acceptance() -> None:
     assert classify_paths([]).dev_image_required is True
 
 
+@pytest.mark.parametrize(
+    ("path", "required"),
+    (
+        ("carbon/reconstruction/worker/controller.py", True),
+        ("carbon/execution/worker.py", True),
+        ("tests/service/test_c03_worker_service.py", True),
+        ("carbon/reconstruction/service.py", False),
+        (".agent/tickets/C-03_isolated_reconstruction_worker.md", False),
+    ),
+)
+def test_c03_service_lane_is_exactly_scoped(path: str, required: bool) -> None:
+    assert classify_paths([path]).c03_worker_required is required
+
+
 def test_runtime_source_still_requires_real_canonical_and_hub_success() -> None:
     statuses = {name: "skipped" for name in JOB_NAMES}
     for name in ("preflight", "canonical", "hub_validation"):
