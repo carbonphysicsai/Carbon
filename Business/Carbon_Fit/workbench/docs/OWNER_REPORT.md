@@ -43,9 +43,9 @@ The smallest useful inputs are: a source-owned compatibility identity and refere
 
 ## Delivery status
 
-- Workbench base: `2d5872aff89ca7bef3e3f062b293aeefe17769aa`.
-- CPES input: PR #152 pinned head `ca904dfee93d3574df4e56b99981a6ed3b138e80`; acceptance run `34778525936` remains failed history pending issue #153 reconciliation.
-- Issue #153 fix: separate test-only PR #155, head `29ac8e27bd924ce1fb293c48527ded3b1cff6215`; repository acceptance pending at this report revision.
-- Workbench integration PR/head/checks: recorded after the tested delivery candidate is pushed.
+- Workbench starting base: `2d5872aff89ca7bef3e3f062b293aeefe17769aa`; reconciled current main through `2ac835d1dd55deb9c99e493f3615143efa2e51e0` without changing the Wave C selection.
+- CPES content input: PR #152 pinned reviewed head `ca904dfee93d3574df4e56b99981a6ed3b138e80`. Reconciled delivery head `0a5690270dc449ea19c941280203987d37db5283` passed canonical, clean-image and Merge gate in run `34786945000` and merged as `2ac835d1dd55deb9c99e493f3615143efa2e51e0`. Failed run `34778525936` remains history.
+- Issue #153 fix: separate test-only PR #155, head `29ac8e27bd924ce1fb293c48527ded3b1cff6215`; canonical and Merge gate passed in run `34784974259`; merged as `edf8331428e50ecb60905fa1a6058d02d7f6d53e`. Its clean-image job was correctly not applicable, not called passed.
+- Workbench integration: PR #156. The complete release manifest records the exact source candidate used for packaging; the PR body and completion comments record its final tested head, merge commit and applicable CI results without pretending a file can contain its own commit identity.
 
 The Wave C executor, `.agent/WAVE.md`, runtime types, solver/evaluator, rewards, worker, archive policy, and active C-03/C-04 selection were left unchanged. Hosted delivery and live collection remain separate.

@@ -30,6 +30,8 @@ python3 -m http.server 8765 --bind 127.0.0.1
 
 The built-in study is derived only from the eight public-safe files indexed by CPES evidence index SHA-256 `4565995a98fe8f238ca88b44e418e6c7da2954de9dca577b80968854bad34ba7` at research packaging head `ca904dfee93d3574df4e56b99981a6ed3b138e80`. Its research baseline, missing implementation identity, packaging revision, delivery state, and integration provenance remain separate fields.
 
+Those pinned bytes were accepted after issue #153's separate test-only correction: reconciled research head `0a5690270dc449ea19c941280203987d37db5283`, acceptance run `34786945000`, merge commit `2ac835d1dd55deb9c99e493f3615143efa2e51e0`. Historical failed run `34778525936` remains recorded rather than overwritten.
+
 The source precedence is: current repository contracts for authority; pinned research for displayed findings; EXAM-PROTECT-WORKBENCH-01 for this bounded UI; user inputs for unreviewed scenarios. The tool does not qualify an official exam, approve protected workloads, authorize reference sharing, publish answers, grant rights, activate runtime behavior, create a submission, or infer a production Strategy/profile.
 
 Exports are unencrypted files. Keep input high-level and non-sensitive. Client exports omit the private contact field, raw traces, paths, seeds, and answers.

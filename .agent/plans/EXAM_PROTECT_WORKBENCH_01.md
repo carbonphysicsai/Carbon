@@ -1,9 +1,11 @@
 # EXAM-PROTECT-WORKBENCH-01 — CPES reference-reuse workbench integration
 
-**Status:** owner-selected bounded implementation workstream, parallel to issues #139 and #142.  
-**Base:** `2d5872aff89ca7bef3e3f062b293aeefe17769aa` (`origin/main`, verified 2026-09-14).  
-**Branch:** `agent/exam-protect-workbench-01`.  
+**Status:** owner-selected bounded implementation workstream, parallel to issues #139 and #142.
+**Base:** `2d5872aff89ca7bef3e3f062b293aeefe17769aa` (`origin/main`, verified 2026-09-14).
+**Branch:** `agent/exam-protect-workbench-01`.
 **Primary Hub map:** `WAVE-G`; affects `WAVE-C/C-EP1`, `WAVE-C/C-EP2`, `WAVE-C/C-EP3`, `SYSTEM/MATURITY`, and `SYSTEM/DEVELOPMENT-HUB` without selecting or changing any Wave C ticket.
+
+The implementation started from the recorded base and was later reconciled with accepted main through `2ac835d1dd55deb9c99e493f3615143efa2e51e0`. That ancestry includes the separate Wave C executor's already-merged work and accepted PR #152 delivery; neither is part of this workstream's authored diff or selection.
 
 ## Outcome
 
