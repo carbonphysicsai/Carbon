@@ -2562,7 +2562,7 @@
       "owner_lane": "repository_owner",
       "status": "active",
       "summary": "The owner selects C-03 prerequisite hardening and a sequential public-data Burgers vertical, with a trusted Carbon single-tenant host, three replicas in new working profiles, explicit Cole–Hopf/witness/ETDRK4 roles and prospective private archive targets. C-04 is next after the current merge; protected admission, independent review acceptance, scientific sufficiency, real archive acknowledgement, public-network operation and LIVE remain unavailable.",
-      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/0a57b13ae97056d722930ab95a9604077af8520d/.agent/plans/C1_ALPHA_VERTICAL_CONTINUATION.md",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/3fb12221f37e1603709016533f33ba99901b0832/.agent/plans/C1_ALPHA_VERTICAL_CONTINUATION.md",
       "affects": [
         "WAVE-B",
         "WAVE-B/B-E4",
@@ -2584,6 +2584,49 @@
         "SYSTEM/GOVERNANCE",
         "SYSTEM/MATURITY",
         "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+      ],
+      "supersedes": null
+    },
+    {
+      "map_ref": "WAVE-C/C-03",
+      "event_type": "evidence",
+      "event_id": "C-03-E3",
+      "owner_lane": "execution_sre_engineering",
+      "status": "implemented",
+      "summary": "PR #151 accepted exact hardening head abc490495528d8960ff8c66f50feabeae3affd34 in required run 34778563403 and normally merged it as 2d5872aff89ca7bef3e3f062b293aeefe17769aa. Streaming controller receipt, bounded native artifact validation, resource observations and restart/replay handling are tested DEVELOPMENT controls only; global MQ-015, protected execution and independent security acceptance remain open.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/actions/runs/34778563403",
+      "affects": [
+        "WAVE-C",
+        "WAVE-C/C-02",
+        "WAVE-C/C-03",
+        "WAVE-C/C-04",
+        "WAVE-C/C-07",
+        "SYSTEM/AGENT-EXECUTION",
+        "SYSTEM/CI",
+        "SYSTEM/MATURITY",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+      ],
+      "supersedes": "C-03-E2"
+    },
+    {
+      "map_ref": "WAVE-C/C-04",
+      "event_type": "evidence",
+      "event_id": "C-04-I1",
+      "owner_lane": "scientific_reference_execution_engineering",
+      "status": "implemented",
+      "summary": "The C-04 candidate implements role-explicit Cole–Hopf primary, conservative finite-volume witness and ETDRK4 development cross-check paths under the C-03 boundary, plus a frozen twelve-cell public D-03/D-04 prerequisite harness. Required exact-head Linux service acceptance is pending; no tolerance, TruthAsset, protected admission, score or scientific/security qualification is asserted.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/3fb12221f37e1603709016533f33ba99901b0832/.agent/evidence/wave_c/c-04.md",
+      "affects": [
+        "WAVE-C",
+        "WAVE-C/C-03",
+        "WAVE-C/C-04",
+        "WAVE-C/C-05",
+        "SYSTEM/AGENT-EXECUTION",
+        "SYSTEM/CI",
+        "SYSTEM/MATURITY",
         "SYSTEM/DEVELOPMENT-HUB",
         "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
       ],
