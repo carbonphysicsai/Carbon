@@ -52,7 +52,7 @@ C-EP3 + supplied immutable JAX bundle ─> C-02(selected bounded DEVELOPMENT ada
 | C-EP1 | done, bounded DEVELOPMENT fixture implementation | ticket/evidence complete | NET-3, C-01 and A4-A8 bounded fixtures satisfied | all production entropy, custody, archive, science, security and comparison policy remains reserved | none for closed fixture scope | complete in PR #143 | already implemented/tested only in DEVELOPMENT scope |
 | C-EP2 | done, bounded DEVELOPMENT measurement and detached replay | ticket/evidence complete | C-EP1 satisfied | reference compatibility, acceptable delay, B overhead, science/security criteria remain reserved or unknown | authorized real reconstruction/reference backend and representative workload remain missing | complete in PR #144 | already implemented/tested only in DEVELOPMENT scope |
 | C-EP3 | done, bounded DEVELOPMENT input acquisition and detached public probe | ticket/evidence complete | C-EP2 and C-AUTH1 satisfied | reference qualification, comparison meaning, and every real security/science input remain reserved | supplied JAX bundle resolves only the reconstruction-source input | complete in PR #145 | already implemented/tested only in DEVELOPMENT scope |
-| C-02 | selected, bounded DEVELOPMENT adapter in progress | ticket and exact source/interface bundle sufficient for this slice | B-02B, B-03, B-E1, C-01 and C-EP3 satisfied as bounded foundations | repeated-build policy, isolated resource enforcement and real backend/scientific qualification remain reserved | C-03 isolation and later qualified science inputs | selected by owner-supplied bundle | **yes, bounded adapter only** |
+| C-02 | selected, bounded DEVELOPMENT adapter in progress | ticket, exact source/interface bundle and frozen repeat capability sufficient for this slice | B-02B, B-03, B-E1, C-01 and C-EP3 satisfied as bounded foundations | owner-selected repeated-build policy, isolated resource enforcement and real backend/scientific qualification remain reserved | C-03 isolation and later qualified science inputs | selected by owner-supplied bundle and continuation assignment | **yes, bounded adapter only** |
 | C-03 | `future_reserved`, unselected, blocked | ticket materialized here; sufficient | C-02; MQ-015 security/threat model | exact real limits, enforcement profile and security acceptance | C-02 authorized JAX/runtime identity | materialized by this checkpoint | **no** |
 | C-04 | `future_reserved`, unselected, blocked | ticket exists; sufficient | B-04, B-E2 satisfied only as bounded fixtures; C-03 missing | qualified primary/witness, applicability, uncertainty and access policy | real protected reference implementations/assets | no missing contract work identified | **no** |
 | C-05 | `future_reserved`, unselected, blocked | ticket exists; sufficient | B-05 bounded foundation; C-02 and C-04 missing | qualified measurements, floors, uncertainty and Score Pack inputs | real reconstruction/reference outputs | no missing contract work identified | **no** |
@@ -72,8 +72,12 @@ batching/layout rules, PRNG/RNG ownership, checkpoint/artifact format,
 JIT/sharding expectations and failure/error semantics. The owner-supplied
 permission-cleared bundle resolves those inputs for the bounded DEVELOPMENT
 slice only. Carbon adapts the actual interface and does not require upstream
-function renaming. Production source selection, isolation, protected execution
-and scientific/security qualification remain unresolved.
+function renaming. The delivered repeat runner is an optional composition over
+that adapter, not a prerequisite for C-03 and not a production count. C-03
+can compose the validated adapter only after selection and MQ-015 security
+inputs; its registered envelope remains necessary for full C-02 completion.
+Production source selection, isolation, protected execution and
+scientific/security qualification remain unresolved.
 
 ## Selection disposition
 

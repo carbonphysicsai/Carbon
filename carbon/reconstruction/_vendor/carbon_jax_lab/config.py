@@ -53,7 +53,11 @@ class ModelConfig:
                 raise ValueError(f"{n} must be a positive integer")
         if self.width < 2 or self.width % self.heads:
             raise ValueError("width must be >=2 and divisible by heads")
-        if not math.isfinite(self.graph_radius) or not 0 < self.graph_radius <= 0.5:
+        if (
+            type(self.graph_radius) is not float
+            or not math.isfinite(self.graph_radius)
+            or not 0 < self.graph_radius <= 0.5
+        ):
             raise ValueError(
                 "graph_radius must lie in (0, .5] in periodic unit coordinates"
             )
@@ -75,7 +79,7 @@ class TaskConfig:
             raise ValueError("task constraint flags must be Boolean")
         for name in ("domain_length", "time_scale", "nu_scale"):
             v = getattr(self, name)
-            if not math.isfinite(v) or v <= 0:
+            if type(v) is not float or not math.isfinite(v) or v <= 0:
                 raise ValueError(f"{name} must be positive and finite")
 
 
@@ -115,15 +119,26 @@ class TrainConfig:
             ):
                 raise ValueError(f"{n} must be in [0,steps)")
         for n in ("learning_rate", "clip_norm", "adam_epsilon"):
-            if not math.isfinite(getattr(self, n)) or getattr(self, n) <= 0:
+            if (
+                type(getattr(self, n)) is not float
+                or not math.isfinite(getattr(self, n))
+                or getattr(self, n) <= 0
+            ):
                 raise ValueError(n)
         for n in ("weight_decay", "h1_weight", "pde_weight"):
-            if not math.isfinite(getattr(self, n)) or getattr(self, n) < 0:
+            if (
+                type(getattr(self, n)) is not float
+                or not math.isfinite(getattr(self, n))
+                or getattr(self, n) < 0
+            ):
                 raise ValueError(n)
         for n in ("beta1", "beta2", "ema_decay"):
-            if not 0 <= getattr(self, n) < 1:
+            if type(getattr(self, n)) is not float or not 0 <= getattr(self, n) < 1:
                 raise ValueError(n)
-        if not 0 <= self.min_learning_rate_ratio <= 1:
+        if (
+            type(self.min_learning_rate_ratio) is not float
+            or not 0 <= self.min_learning_rate_ratio <= 1
+        ):
             raise ValueError("min_learning_rate_ratio")
         if self.inference_weights not in ("params", "ema"):
             raise ValueError("inference_weights")

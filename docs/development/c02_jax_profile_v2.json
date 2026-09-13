@@ -1,0 +1,47 @@
+{
+  "schema": "carbon.c02.jax-development-profile.v2",
+  "scope": "UNQUALIFIED_PUBLIC_DEVELOPMENT",
+  "compatibility": {
+    "v1_profile": "historical snapshot retained; v2 artifacts are new identities and v1 records are not rewritten",
+    "artifact_schema": "carbon.c02.reconstruction-artifact.v2"
+  },
+  "canonical_environment": {
+    "platform": "linux-x86_64",
+    "python": "3.11.*",
+    "jax": "0.9.0.1",
+    "jaxlib": "0.9.0.1",
+    "numpy": "2.3.5",
+    "pyyaml": "6.0.3",
+    "scipy": "1.17.0",
+    "digest": "sha256:b74ca853cf2f0db808a14b034ae1ca1c8373a828fbc6baab125019e17eb7495d"
+  },
+  "diagnostic_environment": {
+    "platform": "darwin-arm64",
+    "eligibility": "NATIVE_MAC_DIAGNOSTIC",
+    "official_eligibility": false
+  },
+  "implementation": {
+    "id": "carbon_jax_lab",
+    "version": "0.1.0",
+    "supplied_wheel_digest": "sha256:3941af49fb7441b9ee37408db2b759bdc65088f0bda089f2a774adc3506935db",
+    "carbon_repaired_source_digest": "sha256:385c7d0b5908257f1828228f5a1906fae5bb96c4a26c3b834108883b082d247f"
+  },
+  "interfaces": {
+    "input_digest": "sha256:313e0dbb7fd7f20a6e3217ce25fd498f893bd40ca63123d059ebd4f5b57f7852",
+    "output_digest": "sha256:cf3c8e14e87b130869ea0faa12481e5c8a14d5089e8e2765ffde298e2e6d8042"
+  },
+  "enabled_backbones": {
+    "fno": "fno1d",
+    "deeponet": "deeponet1d"
+  },
+  "constraints": {
+    "data_role": "TRAIN",
+    "grid": "shared endpoint-excluded uniform periodic 1D",
+    "training_dtype": "float32",
+    "ordinary_inference_artifact_status": "COMPLETE",
+    "inference": "finite exact-shape float32, target-free, requested-time-order preserving",
+    "official_science": false,
+    "network": false,
+    "live": false
+  }
+}

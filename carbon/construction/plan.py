@@ -831,7 +831,7 @@ class ResolvedConstructionPlan:
         return resolved_construction_plan_to_ref(self)
 
 
-_VERIFIED_PLANS: weakref.WeakSet = weakref.WeakSet()
+_VERIFIED_PLANS: dict[int, weakref.ReferenceType[ResolvedConstructionPlan]] = {}
 
 
 def _mark_resolved_construction_plan_verified(
@@ -843,14 +843,21 @@ def _mark_resolved_construction_plan_verified(
             "only an exact resolved construction plan can be verified",
             "/plan",
         )
-    _VERIFIED_PLANS.add(plan)
+    identity = id(plan)
+
+    def discard(reference: weakref.ReferenceType[ResolvedConstructionPlan]) -> None:
+        if _VERIFIED_PLANS.get(identity) is reference:
+            _VERIFIED_PLANS.pop(identity, None)
+
+    _VERIFIED_PLANS[identity] = weakref.ref(plan, discard)
     return plan
 
 
 def _require_resolved_construction_plan_verified(
     plan: ResolvedConstructionPlan,
 ) -> None:
-    if plan not in _VERIFIED_PLANS:
+    reference = _VERIFIED_PLANS.get(id(plan))
+    if reference is None or reference() is not plan:
         raise _invalid(
             "construction.plan_derivation_unverified",
             "plan identity is available only after compiler or decoder verification",

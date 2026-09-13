@@ -27,8 +27,20 @@ profiles, hardware classes and production security acceptance are human-owned.
 The worker must deny network access, mount only a fresh scratch filesystem,
 apply registered CPU/GPU/RAM/VRAM, wall-clock, process/PID and output limits,
 pin image/environment/dependency identities, isolate cancellation and cleanup,
-and expose only bounded redacted diagnostics. It receives no official seeds,
-protected cases, reference answers, validator secrets or signing keys.
+and expose only bounded redacted diagnostics. A reconstruction worker may
+receive only the authorized TRAIN inputs and replica-specific derived
+reconstruction randomness required by C-02. It receives no A4 master entropy,
+protected EVAL seeds/cases, reference answers, validator secrets or signing
+keys.
+
+The first profile proposed for owner/security review is one trusted host,
+pinned worker code, untrusted declarative parameters/arrays, CPU-only local
+resources, no outbound network, and bounded scratch/output. It is not selected
+or security-accepted. MQ-015 must still name threat actors/trust boundary,
+image and hardware class, exact CPU/memory/wall/PID/output limits,
+filesystem/network enforcement, cancellation/descendant cleanup, audit
+evidence and accepted residual risk. Host-root corruption and hardware side
+channels remain outside the proposal absent another approved mechanism.
 
 ## Failure and lifecycle contract
 

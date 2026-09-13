@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import math
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
@@ -18,6 +19,11 @@ class ReconstructionStatus(str, Enum):
     CANCELLED = "CANCELLED"
     NONFINITE_REJECTED = "NONFINITE_REJECTED"
     RECONCILIATION_REQUIRED = "RECONCILIATION_REQUIRED"
+
+
+class EnvironmentEligibility(str, Enum):
+    CANONICAL_DEVELOPMENT = "CANONICAL_DEVELOPMENT"
+    NATIVE_MAC_DIAGNOSTIC = "NATIVE_MAC_DIAGNOSTIC"
 
 
 class ReconstructionFailure(ValueError):
@@ -136,6 +142,14 @@ class ReconstructionReceipt:
     completed_steps: int
     compile_seconds: float
     train_execution_seconds: float
+    source_digest: str | None = None
+    environment_digest: str | None = None
+    observed_environment_digest: str | None = None
+    environment_eligibility: EnvironmentEligibility | None = None
+    input_interface_digest: str | None = None
+    output_interface_digest: str | None = None
+    normalization_scale: float | None = None
+    inference_weights: str | None = None
 
     def __post_init__(self) -> None:
         if (
@@ -157,11 +171,44 @@ class ReconstructionReceipt:
             raise ReconstructionFailure("reconstruction.receipt.status_invalid")
         if type(self.completed_steps) is not int or self.completed_steps < 0:
             raise ReconstructionFailure("reconstruction.receipt.steps_invalid")
+        if (
+            self.status is ReconstructionStatus.COMPLETE and self.completed_steps == 0
+        ) or self.status is ReconstructionStatus.RECONCILIATION_REQUIRED:
+            raise ReconstructionFailure("reconstruction.receipt.status_steps_invalid")
         if any(
-            type(v) is not float or v < 0
+            type(v) is not float or not math.isfinite(v) or v < 0
             for v in (self.compile_seconds, self.train_execution_seconds)
         ):
             raise ReconstructionFailure("reconstruction.receipt.timing_invalid")
+        for field in (
+            "source_digest",
+            "environment_digest",
+            "observed_environment_digest",
+            "input_interface_digest",
+            "output_interface_digest",
+        ):
+            value = getattr(self, field)
+            if value is not None:
+                object.__setattr__(self, field, _digest(value, field))
+        if self.environment_eligibility is not None and (
+            type(self.environment_eligibility) is not EnvironmentEligibility
+        ):
+            raise ReconstructionFailure(
+                "reconstruction.receipt.environment_eligibility_invalid"
+            )
+        if self.normalization_scale is not None and (
+            type(self.normalization_scale) is not float
+            or not math.isfinite(self.normalization_scale)
+            or self.normalization_scale <= 0
+        ):
+            raise ReconstructionFailure("reconstruction.receipt.normalization_invalid")
+        if self.inference_weights is not None and self.inference_weights not in (
+            "params",
+            "ema",
+        ):
+            raise ReconstructionFailure(
+                "reconstruction.receipt.inference_weights_invalid"
+            )
 
 
 @dataclass(frozen=True, slots=True)
@@ -181,11 +228,16 @@ class PredictionReceipt:
             type(v) is not int or v < 1 for v in (self.cases, self.times, self.points)
         ):
             raise ReconstructionFailure("reconstruction.prediction.shape_invalid")
-        if type(self.execution_seconds) is not float or self.execution_seconds < 0:
+        if (
+            type(self.execution_seconds) is not float
+            or not math.isfinite(self.execution_seconds)
+            or self.execution_seconds < 0
+        ):
             raise ReconstructionFailure("reconstruction.prediction.timing_invalid")
 
 
 __all__ = [
+    "EnvironmentEligibility",
     "PredictionReceipt",
     "PublicTrainingArchive",
     "ReconstructionFailure",

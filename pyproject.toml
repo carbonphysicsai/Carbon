@@ -78,6 +78,7 @@ include = ["carbon*"]
 "carbon.reconstruction._vendor.carbon_jax_lab" = [
     "licenses/*.md",
     "licenses/third_party/*.txt",
+    "licenses/third_party/*.json",
 ]
 
 [tool.pytest.ini_options]

@@ -40,6 +40,10 @@ Wave C/C0 and this file as its controlling register.
 **Next selected ticket:** none. The owner-supplied immutable JAX bundle selects
 only a bounded DEVELOPMENT adapter; later isolation, scientific, archive and
 public-network work remains unselected.
+PR #146 merged the initial adapter as
+`d9fadf7f9cbb9b3a2a4ffa1ec9b0c906826be8ca`; the selected continuation adds
+artifact/prediction hardening and frozen DEVELOPMENT repeats only. C-02 remains
+`in_progress`, C-03 remains unselected, and no production repeat count exists.
 **Last completed ticket:** C-EP3, merged in PR #145 after head
 `ff1d4603cf6889bb3e9cf7f4a589524ade5c6b8c` passed run `34721794618`
 **Primary Hub map_ref:** `WAVE-C`
