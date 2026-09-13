@@ -11,12 +11,12 @@ When browsing on GitHub, start with **`orientation/START_HERE.md`**. It is the p
 - 14 waves (A-N)
 - 68 captured tickets across Wave A, Wave B, and Wave C
 - 7 protocol-change routes
-- 107 map-level change events
+- 109 map-level change events
 - 8 independent maturity states
 
 ## Captured current position
 
-Wave **C**; current ticket: **C-03**. Last completed: **C-EP3** (`done`). Next selected: **none selected**. C-EP3 remains the last fully closed ticket. PR #148 supplied C-02's bounded lab/Foundax adapter prerequisite. PR #149 then accepted C-03 head ef4d5e336c942b7ff40856fcfee03f522ef2d1d5 in required run 34770761721 and normally merged its bounded worker as d94a22bb3c09089e01402db9e7ebf6eb3c662966 with image/config sha256:dae4717ae00d3174b8644159934eb4edbe94c0ad125549f6ade570a6f4c7e630. OWNER-C1-BURGERS-ALPHA-01 now selects only C-03 prerequisite hardening. No later ticket is selected while C-03 hardening is active; C-04 is prospectively authorized after its normal tested merge. The owner selected a trusted single-tenant host model, a separate three-replica working profile, explicit reference roles and prospective real-archive targets, without granting scientific sufficiency, independent security acceptance, protected admission, real archive acknowledgement, production, public network or LIVE authority. D6 run 34518806217 remains historical LOCALNET_READY evidence for its exact disposable standard-profile localnet.
+Wave **C**; current ticket: **C-04**. Last completed: **C-EP3** (`done`). Next selected: **none selected**. C-EP3 remains the last fully closed ticket. PR #148 supplied C-02's bounded lab/Foundax adapter prerequisite. PR #149 accepted the first C-03 public-DEVELOPMENT worker and PR #151 accepted its bounded streaming, validation, replay and recovery hardening at exact head abc490495528d8960ff8c66f50feabeae3affd34 in run 34778563403, merged as 2d5872aff89ca7bef3e3f062b293aeefe17769aa. OWNER-C1-BURGERS-ALPHA-01 now selects C-04 alone for role-explicit Burgers algorithms and public qualification-candidate evidence under that worker. No later ticket is selected while C-04 is active; C-05 is prospectively next after the bounded C-04 merge. The trusted single-tenant host model, three-replica working profile, reference roles and prospective archive targets grant no scientific sufficiency, independent security acceptance, protected admission, real archive acknowledgement, production, public network or LIVE authority. D6 run 34518806217 remains historical LOCALNET_READY evidence for its exact disposable standard-profile localnet.
 
 ## Maintain
 

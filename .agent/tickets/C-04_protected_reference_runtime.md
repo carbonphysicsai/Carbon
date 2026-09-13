@@ -1,21 +1,57 @@
-# C-04 — Protected Burgers reference runtime
+# C-04 — Protected reference runtime
 
 **Wave:** C1 real scientific execution foundations
-**Status:** `future_reserved`; unselected and unstarted
-**Depends on:** B-04, B-E2, C-03
+**Status:** `in_progress`
+**Selected slice:** bounded engineering/public qualification-candidate runtime
+after PR #151
+**Depends on:** B-04, B-E2
+**Runtime capability prerequisite:** C-03's PR #149/PR #151 bounded
+public-DEVELOPMENT capability is accepted; broader C-03 remains open
+**Selection authority:** `OWNER-C1-BURGERS-ALPHA-01`
+**Plan:** `.agent/plans/C-04_reference_runtime.md`
+**Evidence:** `.agent/evidence/wave_c/c-04.md`
+**Primary Hub map_ref:** `WAVE-C/C-04`
 
 ## Goal
 
-Implement the protected Burgers primary-reference adapter and an independent witness without leaking truth assets or inventing fallback authority.
+Implement role-explicit Burgers reference algorithms and their isolated runtime
+using public qualification-candidate cases, without leaking truth assets or
+inventing fallback authority. Protected and score-eligible admission remains
+disabled until its separately owned scientific and security evidence exists.
 
 ## Definition of Done
 
-- [ ] Run the qualified primary reference and independent witness on the exact canonical case behind the protected boundary.
-- [ ] Emit typed `ReferenceRunOutcome` records with policy, case, implementation, environment, applicability, uncertainty-evidence, and artifact identities.
-- [ ] Key caches by every qualified identity and reject stale, partial, cross-case, cross-policy, or cross-environment reuse.
-- [ ] Keep unsupported, uncertain, disagreement, not-applicable, numerical-failure, and infrastructure-failure outcomes distinct and non-candidate.
-- [ ] Provide no mock, weaker solver, averaging, majority-vote, or convenience fallback; common-case campaign utilities may reuse the same types without broadening authority.
+- [x] Implement the candidate operational Cole–Hopf primary, an independently
+      discretized periodic conservative finite-volume witness, and an ETDRK4
+      DEVELOPMENT cross-check with explicit, immutable roles.
+- [x] Emit typed DEVELOPMENT-only outcomes binding policy, public case, method,
+      implementation, exact locked environment, precision, numerical settings,
+      requested points/times, output semantics and artifact bytes.
+- [x] Use the complete request digest as the cache/launch identity; reject
+      stale, partial, malformed, cross-case, cross-role, cross-policy and
+      cross-environment output.
+- [x] Preserve supported, unsupported, unresolved, cancellation, numerical,
+      malformed/provenance and infrastructure outcomes as distinct B-04-owned
+      types with no candidate-zero conversion.
+- [x] Run the fixed boundary in a fresh instance of the exact C-03 Docker
+      profile, export provisionally, terminate descendants, then validate raw
+      float64 bytes in a separately resource-limited controller process before
+      DEVELOPMENT association.
+- [x] Add the D-03/D-04 prerequisite harness for initial recovery, periodic
+      closure, conditioning, Cole–Hopf quadrature sensitivity, finite-volume
+      conservation/refinement and cross-method discrepancy without a tolerance,
+      qualification or truth decision.
+- [x] Freeze twelve public cases, one per registered development cell, and
+      test the three roles serially with no fallback, vote or averaging.
+- [ ] Pass the required exact-head Linux service lane and normal merge.
+- [ ] Obtain scientific qualification of the primary/witness hierarchy,
+      applicability, uncertainty and comparison tolerance under D-03/D-04.
+- [ ] Obtain the commissioned independent protected-execution assessment for
+      the exact eventual image/controller/custody path before protected use.
 
 ## Authority ceiling
 
-Burgers-v1 runtime engineering only. Human scientific qualification and truth admission remain separate and fail closed.
+Burgers-v1 runtime engineering and public qualification-candidate evidence
+only. Human scientific qualification, independent security acceptance,
+TruthAsset admission, scoring, protected execution, production, network,
+reward and LIVE authority remain separate and fail closed.
