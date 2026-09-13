@@ -45,7 +45,7 @@ def test_only_c04_candidate_runtime_is_selected_and_c05_is_next() -> None:
     assert "└─> C-03(PR #149 capability + PR #151 hardening)" in graph
     assert graph.count("| **no** |") >= 6
     assert "| C-03 | PR #149 bounded DEVELOPMENT capability and PR #151 hardening accepted" in graph
-    assert "**yes after current merge; not protected/official**" in graph
+    assert "**yes only after C-04 bounded merge**" in graph
 
 
 def test_jax_and_archive_blocks_remain_complete_and_fail_closed() -> None:
@@ -92,7 +92,7 @@ def test_hub_projects_only_development_reconstruction_and_future_contract_status
     assert "34778563403" in tickets["C-03"]["current_stage"]
     assert tickets["C-04"]["status"] == "in_progress"
     assert tickets["C-04"]["implementation_state"] == "candidate_implementation"
-    assert "selected" in tickets["C-04"]["current_stage"]
+    assert "Selected" in tickets["C-04"]["current_stage"]
     assert "Sequentially authorized" in tickets["C-05"]["current_stage"]
     for ticket_id in ("C-08", "C-09"):
         assert tickets[ticket_id]["status"] == "todo"
