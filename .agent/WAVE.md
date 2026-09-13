@@ -39,7 +39,7 @@
 `c510095b5501587cf93c04632a26b7c303d7d48b` in run `34365282759` and
 normally merged as `ac050fd53ee18bf3788c167ee7b0736bbfd7a46b`, tree
 `46b38440f13a8048db18bc480ddb6907396c9017`
-**Controlling register:** `.agent/WAVE_C.md` version 1.8
+**Controlling register:** `.agent/WAVE_C.md` version 1.9
 **Selected ticket:** C-04 — `in_progress`
 **Active ticket:** C-04 engineering/public qualification-candidate slice
 **Next authorized ticket after current merge:** C-05 engineering and public
