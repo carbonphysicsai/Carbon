@@ -17,11 +17,11 @@ from itertools import pairwise
 
 import numpy as np
 
-from carbon.generators.burgers_dynamics import BurgersDevelopmentCase
 from carbon.reference_runtime.model import (
     MAX_POINTS,
     MAX_TIMES,
     OUTPUT_SEMANTICS,
+    BurgersDevelopmentCase,
     BurgersReferenceArtifact,
     BurgersReferenceRequest,
     BurgersReferenceRole,
