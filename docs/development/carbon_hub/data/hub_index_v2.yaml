@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-13T21:02:00Z"
+  captured_at_utc: "2026-09-13T21:10:55Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "3fb12221f37e1603709016533f33ba99901b0832"
+  authority_snapshot_commit: "cce53ae3ef12d2140c23ae3a1ef60e968aabe0dd"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -4551,7 +4551,7 @@ events:
     owner_lane: "repository_owner"
     status: "active"
     summary: "The owner selects C-03 prerequisite hardening and a sequential public-data Burgers vertical, with a trusted Carbon single-tenant host, three replicas in new working profiles, explicit Cole–Hopf/witness/ETDRK4 roles and prospective private archive targets. C-04 is next after the current merge; protected admission, independent review acceptance, scientific sufficiency, real archive acknowledgement, public-network operation and LIVE remain unavailable."
-    primary_detail: "https://github.com/carbonphysicsai/Carbon/blob/3fb12221f37e1603709016533f33ba99901b0832/.agent/plans/C1_ALPHA_VERTICAL_CONTINUATION.md"
+    primary_detail: "https://github.com/carbonphysicsai/Carbon/blob/cce53ae3ef12d2140c23ae3a1ef60e968aabe0dd/.agent/plans/C1_ALPHA_VERTICAL_CONTINUATION.md"
     affects:
       - "WAVE-B"
       - "WAVE-B/B-E4"
@@ -4603,7 +4603,7 @@ events:
     owner_lane: "scientific_reference_execution_engineering"
     status: "implemented"
     summary: "The C-04 candidate implements role-explicit Cole–Hopf primary, conservative finite-volume witness and ETDRK4 development cross-check paths under the C-03 boundary, plus a frozen twelve-cell public D-03/D-04 prerequisite harness. Required exact-head Linux service acceptance is pending; no tolerance, TruthAsset, protected admission, score or scientific/security qualification is asserted."
-    primary_detail: "https://github.com/carbonphysicsai/Carbon/blob/3fb12221f37e1603709016533f33ba99901b0832/.agent/evidence/wave_c/c-04.md"
+    primary_detail: "https://github.com/carbonphysicsai/Carbon/blob/cce53ae3ef12d2140c23ae3a1ef60e968aabe0dd/.agent/evidence/wave_c/c-04.md"
     affects:
       - "WAVE-C"
       - "WAVE-C/C-03"

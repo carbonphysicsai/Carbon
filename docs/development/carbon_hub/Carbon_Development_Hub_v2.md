@@ -2,7 +2,7 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `3fb12221f37e1603709016533f33ba99901b0832` on `main`, captured 2026-09-13T21:02:00Z.
+**Authority snapshot:** `cce53ae3ef12d2140c23ae3a1ef60e968aabe0dd` on `main`, captured 2026-09-13T21:10:55Z.
 **Current:** Wave C, ticket C-04. C-EP3 remains the last fully closed ticket. PR #148 supplied C-02's bounded lab/Foundax adapter prerequisite. PR #149 accepted the first C-03 public-DEVELOPMENT worker and PR #151 accepted its bounded streaming, validation, replay and recovery hardening at exact head abc490495528d8960ff8c66f50feabeae3affd34 in run 34778563403, merged as 2d5872aff89ca7bef3e3f062b293aeefe17769aa. OWNER-C1-BURGERS-ALPHA-01 now selects C-04 alone for role-explicit Burgers algorithms and public qualification-candidate evidence under that worker. No later ticket is selected while C-04 is active; C-05 is prospectively next after the bounded C-04 merge. The trusted single-tenant host model, three-replica working profile, reference roles and prospective archive targets grant no scientific sufficiency, independent security acceptance, protected admission, real archive acknowledgement, production, public network or LIVE authority. D6 run 34518806217 remains historical LOCALNET_READY evidence for its exact disposable standard-profile localnet.
 **Last completed:** C-EP3 (`done`).
 **Next selected:** none selected.
