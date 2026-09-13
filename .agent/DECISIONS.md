@@ -13481,6 +13481,11 @@ decision remains required.
 
 ## 2026-09-13 — OWNER-C03-DEV-ISOLATION-01: select the first C-03 DEVELOPMENT isolation slice
 
+**Notification:** issue #42 comment
+[`5654112269`](https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5654112269),
+for awareness under the delegated-decision protocol; no additional approval
+ceremony is required for this selected engineering slice.
+
 **Source and authority.** The repository owner's request, “Let's continue
 development. Give me the new prompt and make the blocking decision in the best
 way you possibly can and notate it,” together with the attached C-03 handoff,
