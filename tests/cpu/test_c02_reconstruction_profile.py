@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import gc
 import importlib
+import json
 import sys
 from pathlib import Path
 
@@ -22,6 +24,7 @@ def test_compiler_plan_maps_two_real_families_exactly(
     profile = compile_development_profile(compile_c02_plan(tmp_path, backbone=selector))
 
     assert profile.backbone_kind == kind
+    assert profile.profile_version == "2.0"
     assert '"steps":2' in profile.train_config_json
     assert '"seed":0' in profile.train_config_json
     assert "runtime DerivedSeed bytes" in profile.mapping_receipt_json
@@ -83,6 +86,11 @@ def test_vendored_provenance_and_notices_are_present() -> None:
     neuraloperator = (
         root / "licenses/third_party/NEURALOPERATOR_LICENSE.txt"
     ).read_text(encoding="utf-8")
+    source = json.loads(
+        (root / "licenses/third_party/TRANSOLVER_SOURCE.json").read_text(
+            encoding="utf-8"
+        )
+    )
 
     assert UPSTREAM_WHEEL_DIGEST.endswith(
         "3941af49fb7441b9ee37408db2b759bdc65088f0bda089f2a774adc3506935db"
@@ -90,3 +98,24 @@ def test_vendored_provenance_and_notices_are_present() -> None:
     assert "Transolver" in notice
     assert "MIT License" in transolver
     assert "MIT License" in neuraloperator
+    assert source["revision"] == "75e0f67643806a81cd1d3f6adc88dd8c02416fe7"
+    assert (
+        source["source_sha256"]
+        == "f7feffd40e21863a2bd5809d9548a3417a7221a817f9e675ea969712c1d45a36"
+    )
+    assert (
+        source["license_sha256"]
+        == "2c919cd03fa823bf7eefc00a957ff8324c865cd22aa5285e563dc4b558084f25"
+    )
+
+
+def test_equal_verified_plans_keep_independent_identity_lifetimes(
+    tmp_path: Path,
+) -> None:
+    first = compile_c02_plan(tmp_path / "first", backbone="fno")
+    second = compile_c02_plan(tmp_path / "second", backbone="fno")
+    expected = second.to_ref()
+    del first
+    gc.collect()
+
+    assert second.to_ref() == expected

@@ -129,6 +129,7 @@ B07G_MODULES = ("carbon.research.service",)
 C02_MODULES = (
     "carbon.reconstruction.model",
     "carbon.reconstruction.profile",
+    "carbon.reconstruction.repeats",
     "carbon.reconstruction.service",
 )
 
@@ -320,6 +321,7 @@ license_files = [
     vendor_root / "NOTICE.md",
     vendor_root / "third_party/NEURALOPERATOR_LICENSE.txt",
     vendor_root / "third_party/TRANSOLVER_LICENSE.txt",
+    vendor_root / "third_party/TRANSOLVER_SOURCE.json",
 ]
 print(json.dumps({{
     "distribution_name": distribution.metadata["Name"],
@@ -350,7 +352,7 @@ print(json.dumps({{
         module_file.startswith(f"{installed_wheel_root.resolve()}/carbon")
         for module_file in payload["module_files"]
     )
-    assert len(payload["license_files"]) == 3
+    assert len(payload["license_files"]) == 4
     assert all(
         license_file.startswith(
             f"{installed_wheel_root.resolve()}/carbon/reconstruction/_vendor/"

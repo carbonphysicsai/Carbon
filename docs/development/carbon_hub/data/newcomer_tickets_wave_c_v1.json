@@ -135,8 +135,8 @@
       "title": "Bind Carbon to the actual authorized JAX implementation",
       "what": "Adapt the supplied immutable training and inference interface without widening the Strategy contract.",
       "why": "Research prototypes and forward-pass parity cannot substitute for the exact real reconstruction source.",
-      "changes": "Carbon gains a lazy DEVELOPMENT adapter for the supplied exact source, compiler-plan mapping, FNO and DeepONet, full-width seeds, immutable checkpoints, strict resume, target-free inference and reproducible locks.",
-      "not_yet": "The complete ticket still lacks repeat policy and C-03's isolated resource envelope. Protected reference, official scoring, qualification, production, public network and LIVE remain unavailable.",
+      "changes": "Carbon gains v2 complete-artifact and exact finite prediction validation plus an optional frozen DEVELOPMENT repeat runner for FNO and DeepONet, reusing B-02C replicate and C-01 attempt identities.",
+      "not_yet": "The complete ticket still lacks an owner-selected production repeat policy and C-03's isolated resource envelope. Protected reference, official scoring, qualification, production, public network and LIVE remain unavailable.",
       "map_ref": "WAVE-C/C-02"
     },
     "C-03": {

@@ -68,6 +68,11 @@ DEVELOPMENT C-02 implementation, FNO first and a second compatible family. It
 grants no pack sharing, protected reference, official answer, scientific or
 security qualification, reward change, C-EA2 implementation, production,
 network, or LIVE authority.
+PR #146 merged the initial adapter as
+`d9fadf7f9cbb9b3a2a4ffa1ec9b0c906826be8ca`. The current continuation hardens
+artifact/prediction association and adds only a prospectively frozen
+DEVELOPMENT repeat capability. C-02 remains `in_progress`; no production repeat
+rule or C-03 selection follows.
 **Activation authority:** `OWNER-WAVE-C0-NET1-01` records the repository
 owner's explicit authorization to reconcile B-GATE, close Wave B in bounded
 engineering scope, activate Wave C/C0, select NET-1 alone, and continue through
@@ -116,7 +121,8 @@ finalization, C-W1, network or qualification. C-03, C-08 and C-09 now have
 materialized contracts but remain unselected and unimplemented. The supplied
 immutable JAX bundle makes the bounded C-02 DEVELOPMENT adapter dependency-ready
 and selected; later isolation, science, archive and operations tickets remain
-unselected. C-EA2 is not selected.
+unselected. The adapter now has bounded repeat/recovery machinery, while an
+owner-selected repeat policy remains absent. C-EA2 is not selected.
 **Owner sequencing:** PR #94 satisfied `OWNER-B05-B07C-01` and reconciles B-05
 and B-07C as bounded done. `OWNER-B07D123-01` selects B-07D1 -> B-07D2 ->
 B-07D3 on one branch and PR while preserving ticket/evidence identity.

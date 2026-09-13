@@ -1,0 +1,18 @@
+{
+  "adaptation_scope": "Carbon-authored NumPy/JAX equation adapter; not an executed upstream PyTorch model or institutionally independent validation",
+  "license_path": "TRANSOLVER_LICENSE.txt",
+  "license_sha256": "2c919cd03fa823bf7eefc00a957ff8324c865cd22aa5285e563dc4b558084f25",
+  "mapping": {
+    "departures": [
+      "dropout fixed to zero for comparison",
+      "einops dependency removed",
+      "JAX training temperature uses a positive softplus parameterization",
+      "point quadrature weights are supported"
+    ],
+    "retained_equations": "irregular slice, attention, and deslice operations with externally supplied shared weights"
+  },
+  "repository": "https://github.com/thuml/Transolver",
+  "revision": "75e0f67643806a81cd1d3f6adc88dd8c02416fe7",
+  "source_path": "model/Physics_Attention.py",
+  "source_sha256": "f7feffd40e21863a2bd5809d9548a3417a7221a817f9e675ea969712c1d45a36"
+}

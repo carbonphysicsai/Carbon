@@ -218,7 +218,7 @@ def compile_development_profile(
         "seed_policy": "runtime DerivedSeed bytes; excluded from plan/profile identity",
     }
     body = {
-        "schema": "carbon.c02.development-profile.v1",
+        "schema": "carbon.c02.development-profile.v2",
         "plan_digest": plan_digest,
         "backbone_kind": expected[1],
         "model": model,
@@ -233,7 +233,7 @@ def compile_development_profile(
     profile_digest = _tagged(_canonical(body).encode("utf-8"))
     return ReconstructionProfile(
         profile_id="carbon_c02_jax_development",
-        profile_version="1.0",
+        profile_version="2.0",
         profile_digest=profile_digest,
         plan_digest=plan_digest,
         backbone_kind=expected[1],

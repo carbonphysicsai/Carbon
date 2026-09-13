@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import os
 import shutil
 import tempfile
@@ -14,6 +15,7 @@ from pathlib import Path
 from carbon.construction import ResolvedConstructionPlan
 from carbon.execution import ExecutionAttemptRef
 from carbon.reconstruction.model import (
+    EnvironmentEligibility,
     PredictionReceipt,
     PublicTrainingArchive,
     ReconstructionFailure,
@@ -33,6 +35,9 @@ _MANIFEST_FIELDS = frozenset(
         "profile_digest",
         "source_digest",
         "environment_digest",
+        "observed_environment",
+        "observed_environment_digest",
+        "environment_eligibility",
         "input_interface_digest",
         "output_interface_digest",
         "training_archive_digest",
@@ -81,8 +86,10 @@ def _tree_digest(path: Path) -> str:
         raise ReconstructionFailure("reconstruction.artifact.member_invalid")
     digest = hashlib.sha256()
     for member in sorted(path.rglob("*")):
-        if member.is_symlink() or not member.is_file():
+        if member.is_symlink() or (not member.is_file() and not member.is_dir()):
             raise ReconstructionFailure("reconstruction.artifact.member_invalid")
+        if member.is_dir():
+            continue
         relative = member.relative_to(path).as_posix()
         digest.update(len(relative).to_bytes(4, "big"))
         digest.update(relative.encode("utf-8"))
@@ -103,8 +110,12 @@ def _read_json(path: Path) -> dict[str, object]:
         return result
 
     try:
-        value = json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=pairs)
-    except (OSError, UnicodeError, json.JSONDecodeError):
+        value = json.loads(
+            path.read_text(encoding="utf-8"),
+            object_pairs_hook=pairs,
+            parse_constant=lambda _: (_ for _ in ()).throw(ValueError()),
+        )
+    except (OSError, UnicodeError, json.JSONDecodeError, ValueError):
         raise ReconstructionFailure(
             "reconstruction.artifact.manifest_invalid"
         ) from None
@@ -113,30 +124,85 @@ def _read_json(path: Path) -> dict[str, object]:
     return value
 
 
+def _exact_digest(value: object) -> str:
+    if (
+        type(value) is not str
+        or not value.startswith("sha256:")
+        or len(value) != 71
+        or any(character not in "0123456789abcdef" for character in value[7:])
+    ):
+        raise ReconstructionFailure("reconstruction.artifact.manifest_invalid")
+    return value
+
+
+def _exact_float(value: object) -> float:
+    if type(value) is not float or not math.isfinite(value):
+        raise ReconstructionFailure("reconstruction.artifact.manifest_invalid")
+    return value
+
+
 def _receipt(path: Path, manifest: dict[str, object]) -> ReconstructionReceipt:
+    try:
+        status = ReconstructionStatus(manifest["status"])
+        eligibility = EnvironmentEligibility(manifest["environment_eligibility"])
+    except (TypeError, ValueError):
+        raise ReconstructionFailure(
+            "reconstruction.artifact.manifest_invalid"
+        ) from None
     return ReconstructionReceipt(
         artifact_path=path,
-        artifact_digest=_tagged(_canonical(manifest)),
-        execution_id=str(manifest["execution_id"]),
-        plan_digest=str(manifest["plan_digest"]),
-        profile_digest=str(manifest["profile_digest"]),
-        training_data_digest=str(manifest["training_archive_digest"]),
-        randomness_digest=str(manifest["randomness_digest"]),
-        checkpoint_digest=str(manifest["checkpoint_digest"]),
-        status=ReconstructionStatus(str(manifest["status"])),
-        completed_steps=int(manifest["completed_steps"]),
-        compile_seconds=float(manifest["compile_seconds"]),
-        train_execution_seconds=float(manifest["train_execution_seconds"]),
+        artifact_digest=_tree_digest(path),
+        execution_id=manifest["execution_id"],
+        plan_digest=_exact_digest(manifest["plan_digest"]),
+        profile_digest=_exact_digest(manifest["profile_digest"]),
+        training_data_digest=_exact_digest(manifest["training_archive_digest"]),
+        randomness_digest=_exact_digest(manifest["randomness_digest"]),
+        checkpoint_digest=_exact_digest(manifest["checkpoint_digest"]),
+        status=status,
+        completed_steps=manifest["completed_steps"],
+        compile_seconds=_exact_float(manifest["compile_seconds"]),
+        train_execution_seconds=_exact_float(manifest["train_execution_seconds"]),
+        source_digest=_exact_digest(manifest["source_digest"]),
+        environment_digest=_exact_digest(manifest["environment_digest"]),
+        observed_environment_digest=_exact_digest(
+            manifest["observed_environment_digest"]
+        ),
+        environment_eligibility=eligibility,
+        input_interface_digest=_exact_digest(manifest["input_interface_digest"]),
+        output_interface_digest=_exact_digest(manifest["output_interface_digest"]),
+        normalization_scale=_exact_float(manifest["normalization_scale"]),
+        inference_weights=manifest["inference_weights"],
     )
 
 
-def _validate_existing(
+def _environment_eligibility(observed: dict[str, object]) -> EnvironmentEligibility:
+    common = {
+        "jax": "0.9.0.1",
+        "jaxlib": "0.9.0.1",
+        "numpy": "2.3.5",
+        "backend": "cpu",
+        "x64": False,
+    }
+    if not observed.get("python", "").startswith("3.11.") or any(
+        observed.get(key) != value for key, value in common.items()
+    ):
+        raise ReconstructionFailure("reconstruction.runtime.environment_ineligible")
+    if observed.get("platform") == "Linux" and observed.get("machine") == "x86_64":
+        return EnvironmentEligibility.CANONICAL_DEVELOPMENT
+    if observed.get("platform") == "Darwin" and observed.get("machine") == "arm64":
+        return EnvironmentEligibility.NATIVE_MAC_DIAGNOSTIC
+    raise ReconstructionFailure("reconstruction.runtime.environment_ineligible")
+
+
+def _validate_artifact(
     path: Path,
     *,
-    execution_id: str,
-    profile: ReconstructionProfile,
-    archive: PublicTrainingArchive,
-    randomness_digest: str,
+    inspect_checkpoint: Callable[[Path], dict[str, object]],
+    execution_id: str | None = None,
+    profile: ReconstructionProfile | None = None,
+    archive: PublicTrainingArchive | None = None,
+    randomness_digest: str | None = None,
+    promised_receipt: ReconstructionReceipt | None = None,
 ) -> ReconstructionReceipt:
     try:
         if path.is_symlink() or not path.is_dir():
@@ -151,22 +217,88 @@ def _validate_existing(
                 "reconstruction.artifact.reconciliation_required"
             )
         manifest = _read_json(path / "manifest.json")
-        expected = {
-            "schema": "carbon.c02.reconstruction-artifact.v1",
+        if manifest["schema"] != "carbon.c02.reconstruction-artifact.v2":
+            raise ReconstructionFailure(
+                "reconstruction.artifact.reconciliation_required"
+            )
+        if manifest["scope"] != "UNQUALIFIED_PUBLIC_DEVELOPMENT":
+            raise ReconstructionFailure(
+                "reconstruction.artifact.reconciliation_required"
+            )
+        for field in (
+            "execution_id",
+            "training_fingerprint",
+            "training_role",
+            "checkpoint_subdirectory",
+            "inference_weights",
+            "status",
+            "environment_eligibility",
+        ):
+            if type(manifest[field]) is not str:
+                raise ReconstructionFailure(
+                    "reconstruction.artifact.reconciliation_required"
+                )
+        if type(manifest["completed_steps"]) is not int:
+            raise ReconstructionFailure(
+                "reconstruction.artifact.reconciliation_required"
+            )
+        for field in (
+            "compile_seconds",
+            "train_execution_seconds",
+            "normalization_scale",
+        ):
+            _exact_float(manifest[field])
+        for field in (
+            "plan_digest",
+            "profile_digest",
+            "source_digest",
+            "environment_digest",
+            "observed_environment_digest",
+            "input_interface_digest",
+            "output_interface_digest",
+            "training_archive_digest",
+            "randomness_digest",
+            "checkpoint_digest",
+        ):
+            _exact_digest(manifest[field])
+        observed = manifest["observed_environment"]
+        if type(observed) is not dict:
+            raise ReconstructionFailure(
+                "reconstruction.artifact.reconciliation_required"
+            )
+        eligibility = _environment_eligibility(observed)
+        if eligibility.value != manifest["environment_eligibility"]:
+            raise ReconstructionFailure(
+                "reconstruction.artifact.reconciliation_required"
+            )
+        if _tagged(_canonical(observed)) != manifest["observed_environment_digest"]:
+            raise ReconstructionFailure(
+                "reconstruction.artifact.reconciliation_required"
+            )
+        expected: dict[str, object] = {
+            "schema": "carbon.c02.reconstruction-artifact.v2",
             "scope": "UNQUALIFIED_PUBLIC_DEVELOPMENT",
-            "execution_id": execution_id,
-            "plan_digest": profile.plan_digest,
-            "profile_digest": profile.profile_digest,
-            "source_digest": profile.source_digest,
-            "environment_digest": profile.environment_digest,
-            "input_interface_digest": profile.input_interface_digest,
-            "output_interface_digest": profile.output_interface_digest,
-            "training_archive_digest": archive.content_digest,
             "training_role": "TRAIN",
-            "randomness_digest": randomness_digest,
             "checkpoint_subdirectory": "checkpoint",
-            "mapping_receipt": json.loads(profile.mapping_receipt_json),
         }
+        if execution_id is not None:
+            expected["execution_id"] = execution_id
+        if profile is not None:
+            expected.update(
+                {
+                    "plan_digest": profile.plan_digest,
+                    "profile_digest": profile.profile_digest,
+                    "source_digest": profile.source_digest,
+                    "environment_digest": profile.environment_digest,
+                    "input_interface_digest": profile.input_interface_digest,
+                    "output_interface_digest": profile.output_interface_digest,
+                    "mapping_receipt": json.loads(profile.mapping_receipt_json),
+                }
+            )
+        if archive is not None:
+            expected["training_archive_digest"] = archive.content_digest
+        if randomness_digest is not None:
+            expected["randomness_digest"] = randomness_digest
         if any(manifest.get(key) != value for key, value in expected.items()):
             raise ReconstructionFailure(
                 "reconstruction.artifact.reconciliation_required"
@@ -175,13 +307,84 @@ def _validate_existing(
             raise ReconstructionFailure(
                 "reconstruction.artifact.reconciliation_required"
             )
-        return _receipt(path, manifest)
+        checkpoint = inspect_checkpoint(path / "checkpoint")
+        checkpoint_expected = {
+            "training_data": manifest["training_fingerprint"],
+            "u_scale": manifest["normalization_scale"],
+            "step": manifest["completed_steps"],
+            "environment": observed,
+            "runtime_key_digest": manifest["randomness_digest"][7:],
+            "source_id": manifest["source_digest"][7:],
+        }
+        if profile is not None:
+            checkpoint_expected.update(
+                {
+                    "model": json.loads(profile.model_config_json),
+                    "task": json.loads(profile.task_config_json),
+                    "train": json.loads(profile.train_config_json),
+                }
+            )
+        if any(
+            checkpoint.get(key) != value for key, value in checkpoint_expected.items()
+        ):
+            raise ReconstructionFailure(
+                "reconstruction.artifact.reconciliation_required"
+            )
+        train = checkpoint["train"]
+        if (
+            type(train) is not dict
+            or train.get("inference_weights") != manifest["inference_weights"]
+        ):
+            raise ReconstructionFailure(
+                "reconstruction.artifact.reconciliation_required"
+            )
+        steps = train.get("steps")
+        completed = manifest["completed_steps"]
+        status = manifest["status"]
+        if (
+            type(steps) is not int
+            or completed < 0
+            or completed > steps
+            or (status == ReconstructionStatus.COMPLETE.value) != (completed == steps)
+            or status
+            not in {
+                item.value
+                for item in ReconstructionStatus
+                if item is not ReconstructionStatus.RECONCILIATION_REQUIRED
+            }
+        ):
+            raise ReconstructionFailure(
+                "reconstruction.artifact.reconciliation_required"
+            )
+        rebuilt = _receipt(path, manifest)
+        if promised_receipt is not None and rebuilt != promised_receipt:
+            raise ReconstructionFailure("reconstruction.resume.binding_mismatch")
+        return rebuilt
     except ReconstructionFailure:
         raise
     except Exception:  # noqa: BLE001 - corrupted artifacts fail closed.
         raise ReconstructionFailure(
             "reconstruction.artifact.reconciliation_required"
         ) from None
+
+
+def _validate_existing(
+    path: Path,
+    *,
+    inspect_checkpoint: Callable[[Path], dict[str, object]],
+    execution_id: str,
+    profile: ReconstructionProfile,
+    archive: PublicTrainingArchive,
+    randomness_digest: str,
+) -> ReconstructionReceipt:
+    return _validate_artifact(
+        path,
+        inspect_checkpoint=inspect_checkpoint,
+        execution_id=execution_id,
+        profile=profile,
+        archive=archive,
+        randomness_digest=randomness_digest,
+    )
 
 
 def reconstruct(
@@ -214,14 +417,6 @@ def reconstruct(
         or _file_digest(training_archive.path) != training_archive.content_digest
     ):
         raise ReconstructionFailure("reconstruction.archive.digest_mismatch")
-    if artifact_path.exists() or artifact_path.is_symlink():
-        return _validate_existing(
-            artifact_path,
-            execution_id=execution_id,
-            profile=profile,
-            archive=training_archive,
-            randomness_digest=randomness_digest,
-        )
     parent = artifact_path.parent
     parent.mkdir(parents=True, exist_ok=True)
     if parent.is_symlink():
@@ -230,6 +425,10 @@ def reconstruct(
     # Optional numerical imports remain entirely below the execution boundary.
     try:
         from carbon.reconstruction._vendor.carbon_jax_lab.checkpoint import (
+            environment as observed_environment,
+        )
+        from carbon.reconstruction._vendor.carbon_jax_lab.checkpoint import (
+            inspect_checkpoint,
             load_checkpoint,
             save_checkpoint,
         )
@@ -247,6 +446,16 @@ def reconstruct(
     except ImportError:
         raise ReconstructionFailure("reconstruction.runtime.unavailable") from None
 
+    if artifact_path.exists() or artifact_path.is_symlink():
+        return _validate_existing(
+            artifact_path,
+            inspect_checkpoint=inspect_checkpoint,
+            execution_id=execution_id,
+            profile=profile,
+            archive=training_archive,
+            randomness_digest=randomness_digest,
+        )
+
     try:
         data = Trajectories.load(training_archive.path)
         if data.role != "train":
@@ -263,14 +472,15 @@ def reconstruct(
     if resume_from is not None:
         if type(resume_from) is not ReconstructionReceipt:
             raise ReconstructionFailure("reconstruction.resume.receipt_invalid")
-        if (
-            resume_from.execution_id != execution_id
-            or resume_from.plan_digest != profile.plan_digest
-            or resume_from.profile_digest != profile.profile_digest
-            or resume_from.training_data_digest != training_archive.content_digest
-            or resume_from.randomness_digest != randomness_digest
-        ):
-            raise ReconstructionFailure("reconstruction.resume.binding_mismatch")
+        _validate_artifact(
+            resume_from.artifact_path,
+            inspect_checkpoint=inspect_checkpoint,
+            execution_id=execution_id,
+            profile=profile,
+            archive=training_archive,
+            randomness_digest=randomness_digest,
+            promised_receipt=resume_from,
+        )
         try:
             load_checkpoint(trainer, resume_from.artifact_path / "checkpoint")
         except Exception:  # noqa: BLE001 - checkpoint parser failures are private.
@@ -297,14 +507,19 @@ def reconstruct(
         checkpoint = staging / "checkpoint"
         save_checkpoint(trainer, checkpoint)
         checkpoint_digest = _tree_digest(checkpoint)
+        observed = observed_environment()
+        eligibility = _environment_eligibility(observed)
         manifest = {
-            "schema": "carbon.c02.reconstruction-artifact.v1",
+            "schema": "carbon.c02.reconstruction-artifact.v2",
             "scope": "UNQUALIFIED_PUBLIC_DEVELOPMENT",
             "execution_id": execution_id,
             "plan_digest": profile.plan_digest,
             "profile_digest": profile.profile_digest,
             "source_digest": profile.source_digest,
             "environment_digest": profile.environment_digest,
+            "observed_environment": observed,
+            "observed_environment_digest": _tagged(_canonical(observed)),
+            "environment_eligibility": eligibility.value,
             "input_interface_digest": profile.input_interface_digest,
             "output_interface_digest": profile.output_interface_digest,
             "training_archive_digest": training_archive.content_digest,
@@ -336,7 +551,14 @@ def reconstruct(
     except BaseException:
         shutil.rmtree(staging, ignore_errors=True)
         raise
-    return _receipt(artifact_path, manifest)
+    return _validate_artifact(
+        artifact_path,
+        inspect_checkpoint=inspect_checkpoint,
+        execution_id=execution_id,
+        profile=profile,
+        archive=training_archive,
+        randomness_digest=randomness_digest,
+    )
 
 
 def predict(
@@ -353,21 +575,31 @@ def predict(
         raise ReconstructionFailure("reconstruction.prediction.receipt_invalid")
     if type(batch_size) is not int or batch_size < 1:
         raise ReconstructionFailure("reconstruction.prediction.batch_size_invalid")
-    manifest = _read_json(receipt.artifact_path / "manifest.json")
-    if _tagged(_canonical(manifest)) != receipt.artifact_digest:
-        raise ReconstructionFailure("reconstruction.prediction.artifact_mismatch")
-    if _tree_digest(receipt.artifact_path / "checkpoint") != receipt.checkpoint_digest:
-        raise ReconstructionFailure("reconstruction.prediction.artifact_mismatch")
     try:
         import jax
         import jax.numpy as jnp
         import numpy as np
 
         from carbon.reconstruction._vendor.carbon_jax_lab.checkpoint import (
+            inspect_checkpoint,
             load_inference,
         )
     except ImportError:
         raise ReconstructionFailure("reconstruction.runtime.unavailable") from None
+
+    try:
+        validated = _validate_artifact(
+            receipt.artifact_path,
+            inspect_checkpoint=inspect_checkpoint,
+            promised_receipt=receipt,
+        )
+    except ReconstructionFailure:
+        raise ReconstructionFailure(
+            "reconstruction.prediction.artifact_mismatch"
+        ) from None
+    if validated.status is not ReconstructionStatus.COMPLETE:
+        raise ReconstructionFailure("reconstruction.prediction.artifact_status_invalid")
+
     try:
         u0 = np.asarray(initial)
         nu = np.asarray(viscosity)
@@ -375,6 +607,8 @@ def predict(
         x = np.asarray(positions)
         if (
             u0.ndim != 2
+            or u0.shape[0] < 1
+            or u0.shape[1] < 1
             or nu.shape != (u0.shape[0],)
             or times.ndim != 2
             or times.shape[0] != u0.shape[0]
@@ -388,9 +622,48 @@ def predict(
             raise ValueError
         if (nu <= 0).any() or (times < 0).any():
             raise ValueError
+        with np.errstate(over="ignore", invalid="ignore"):
+            u0_f32 = u0.astype(np.float32)
+            nu_f32 = nu.astype(np.float32)
+            times_f32 = times.astype(np.float32)
+            x_f32 = x.astype(np.float32)
+        if not all(
+            np.isfinite(array).all() for array in (u0_f32, nu_f32, times_f32, x_f32)
+        ):
+            raise ValueError
+    except ReconstructionFailure:
+        raise
+    except (KeyboardInterrupt, SystemExit):
+        raise
+    except Exception:  # noqa: BLE001 - arbitrary array providers fail closed.
+        raise ReconstructionFailure(
+            "reconstruction.prediction.request_invalid"
+        ) from None
+
+    try:
         predictor, params, _ = load_inference(
             receipt.artifact_path / "checkpoint", strict_environment=True
         )
+    except (KeyboardInterrupt, SystemExit):
+        raise
+    except Exception:  # noqa: BLE001 - runtime initialization is a backend failure.
+        raise ReconstructionFailure(
+            "reconstruction.prediction.backend_unavailable"
+        ) from None
+
+    try:
+        domain_length = predictor.task.domain_length
+        expected_x = np.arange(u0.shape[1], dtype=np.float64) * (
+            domain_length / u0.shape[1]
+        )
+        if not np.array_equal(x_f32, expected_x.astype(np.float32)):
+            raise ValueError
+    except (TypeError, ValueError, AttributeError):
+        raise ReconstructionFailure(
+            "reconstruction.prediction.request_invalid"
+        ) from None
+
+    try:
         started = time.perf_counter()
         outputs = []
         total = u0.shape[0] * times.shape[1]
@@ -401,19 +674,33 @@ def predict(
             offsets = ids % times.shape[1]
             value = apply(
                 params,
-                jnp.asarray(u0[cases], jnp.float32),
-                jnp.asarray(nu[cases], jnp.float32),
-                jnp.asarray(times[cases, offsets], jnp.float32),
-                jnp.asarray(x, jnp.float32),
+                jnp.asarray(u0_f32[cases]),
+                jnp.asarray(nu_f32[cases]),
+                jnp.asarray(times_f32[cases, offsets]),
+                jnp.asarray(x_f32),
             )
-            outputs.append(np.asarray(jax.block_until_ready(value)))
-        result = np.concatenate(outputs).reshape(
+            value = np.asarray(jax.block_until_ready(value))
+            expected_shape = (len(ids), u0.shape[1])
+            if value.shape != expected_shape or value.dtype != np.dtype("float32"):
+                raise ReconstructionFailure(
+                    "reconstruction.prediction.output_contract_invalid"
+                )
+            if not np.isfinite(value).all():
+                raise ReconstructionFailure(
+                    "reconstruction.prediction.output_nonfinite"
+                )
+            outputs.append(value)
+        result = np.concatenate(outputs, axis=0).reshape(
             u0.shape[0], times.shape[1], u0.shape[1]
         )
         elapsed = float(time.perf_counter() - started)
-    except Exception:  # noqa: BLE001 - numerical request failures are non-echoing.
+    except ReconstructionFailure:
+        raise
+    except (KeyboardInterrupt, SystemExit):
+        raise
+    except Exception:  # noqa: BLE001 - numerical failures are non-echoing.
         raise ReconstructionFailure(
-            "reconstruction.prediction.request_invalid"
+            "reconstruction.prediction.numerical_failure"
         ) from None
 
     def framed_array_digest(named_arrays: tuple[tuple[str, object], ...]) -> str:

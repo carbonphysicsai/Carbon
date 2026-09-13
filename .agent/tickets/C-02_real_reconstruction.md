@@ -39,16 +39,19 @@ Carbon-side semantic capabilities, not mandatory upstream symbol names.
       resolved plan, candidate artifact, implementation/environment, public
       TRAIN archive, normalization, full-width randomness digest, checkpoint,
       and execution-attempt identity.
-- [ ] When policy requests repeats, retain per-repeat outcomes and dispersion evidence under the same Strategy and resource policy.
+- [x] A bounded DEVELOPMENT runner accepts a prospectively frozen set of B-02C
+      replicate identities and C-01 attempts, retains every per-replica outcome,
+      and reports descriptive successful-subset dispersion without selecting a
+      production repeat rule.
 - [x] Reject identity, environment, data, artifact, or seed mismatches before
       result association; cancellation, nonfinite and reconciliation outcomes
       do not become scientific failures.
 - [x] Deterministic bounded tests prove reconstruction/result association and
       prove protected official case material is absent from public receipts.
 
-The complete ticket remains open because repeated-build policy and C-03's
-registered isolated-worker limits are still absent. This change earns only the
-bounded DEVELOPMENT adapter slice.
+The complete ticket remains open because the owner-selected repeated-build policy
+and C-03's registered isolated-worker limits are still absent. The
+bounded runner is capability, not selection of a required repeat count.
 
 ## Authority ceiling
 

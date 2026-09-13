@@ -2,7 +2,7 @@
 
 This is a new Carbon test adapter, not copied upstream code.  It implements the
 slice/attend/deslice equations from THUML/Transolver commit
-75e0f676bb61674b4f13f0e1f27fb0b66d267d50 under the bundled MIT notice.
+75e0f67643806a81cd1d3f6adc88dd8c02416fe7 under the bundled MIT notice.
 """
 
 from __future__ import annotations

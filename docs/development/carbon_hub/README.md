@@ -11,12 +11,12 @@ When browsing on GitHub, start with **`orientation/START_HERE.md`**. It is the p
 - 14 waves (A-N)
 - 68 captured tickets across Wave A, Wave B, and Wave C
 - 7 protocol-change routes
-- 101 map-level change events
+- 102 map-level change events
 - 8 independent maturity states
 
 ## Captured current position
 
-Wave **C**; current ticket: **C-02**. Last completed: **C-EP3** (`done`). Next selected: **none selected**. C-EP3 completed after head ff1d4603cf6889bb3e9cf7f4a589524ade5c6b8c passed RUNTIME_FULL run 34721794618 and merged in PR #145 as a02ca5f46eda2283db7808d9646c1ef24715ec4a. The owner supplied an immutable JAX source/interface bundle and selected C-02 alone for bounded DEVELOPMENT integration. No later ticket is selected. FNO and DeepONet share one compiler-plan adapter; all official science, protected execution, C-03 and later C1/C2 tickets remain unselected. D6 canonical full/standard run 34518806217 remains G2 evidence only for its exact disposable standard-profile localnet. No sharing, official answers, reward change, public network, scientific/security qualification, production or LIVE authority is created.
+Wave **C**; current ticket: **C-02**. Last completed: **C-EP3** (`done`). Next selected: **none selected**. C-EP3 completed after head ff1d4603cf6889bb3e9cf7f4a589524ade5c6b8c passed its recorded acceptance and merged in PR #145. PR #146 then merged the initial bounded C-02 adapter as d9fadf7f9cbb9b3a2a4ffa1ec9b0c906826be8ca. C-02 remains in progress while its v2 continuation hardens resume/prediction association and adds only a prospectively frozen DEVELOPMENT repeat capability over existing B-02C replicate and C-01 attempt identities. No later ticket is selected. Owner-selected repeat policy, C-03 isolation, official science, protected execution, archive, reward, public network, production and LIVE authority remain absent. D6 canonical full/standard run 34518806217 remains historical evidence, and G2 is LOCALNET_READY only for its exact disposable standard-profile localnet. C-EA2 remains blocked; an implementation or test cannot fill an evidence gap owned by a later authority.
 
 ## Maintain
 

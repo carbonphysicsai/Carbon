@@ -2,7 +2,7 @@
 
 **Scope:** bounded offline DEVELOPMENT engineering only
 **Primary map:** `WAVE-C/C-02`
-**Profile:** `carbon.c02.jax-development-profile.v1`
+**Current profile:** `carbon.c02.jax-development-profile.v2` (the v1 snapshot is retained)
 
 ## Outcome
 
@@ -13,6 +13,11 @@ path and a second real DeepONet family through the same interface, uses only
 public TRAIN archives, consumes all 32 bytes of an A4 `DerivedSeed`, and emits
 immutable job/plan/profile/data/seed/checkpoint-bound artifacts. Reloaded
 prediction accepts no target labels and preserves requested-time order.
+
+The continuation hardens the artifact boundary and adds a bounded repeat
+runner. It does not select a production repeat count: the runner accepts only
+an already-frozen set of B-02C `BoundReconstructionReplicate` identities and
+already-issued C-01 `ExecutionAttemptRef` values.
 
 This is not an official reference, score, grade, reward, qualification, public
 network, production, or LIVE path. C-03 isolation and the later C1 scientific
@@ -27,12 +32,16 @@ and evidence chain remain outside this change.
 - Supplied current test record: 50 passed, 2 failed because the distribution
   omitted `third_party.transolver_reference`; the earlier historical record of
   52 passed is retained as a separate claim.
-- Carbon repaired source identity:
-  `sha256:e52b5017e98f2ab914da96c3aac64a5d37f00f10e98e168138c008d764c06499`.
+- PR #146 repaired source identity remains historical evidence. The prospective
+  v2 source identity is
+  `sha256:385c7d0b5908257f1828228f5a1906fae5bb96c4a26c3b834108883b082d247f`.
 - Bundled MIT notices for Transolver and NeuralOperator are retained under the
   vendored package. The new NumPy Transolver test adapter identifies pinned
-  upstream commit `75e0f676bb61674b4f13f0e1f27fb0b66d267d50` and is not presented as
-  upstream code.
+  upstream commit `75e0f67643806a81cd1d3f6adc88dd8c02416fe7` and is not presented as
+  upstream code. Installed source evidence records `Physics_Attention.py`
+  SHA-256 `f7feffd40e21863a2bd5809d9548a3417a7221a817f9e675ea969712c1d45a36`
+  and LICENSE SHA-256
+  `2c919cd03fa823bf7eefc00a957ff8324c865cd22aa5285e563dc4b558084f25`.
 
 ## KEEP → WRAP → REPAIR → REPLACE
 
@@ -93,6 +102,83 @@ and prediction digest
 - Existing Carbon invariant, package, full CPU, Hub, canonical Linux, and clean
   image lanes remain required before merge.
 
+## Hardening findings F1–F4
+
+- **F1 reproduced and repaired.** A digest-altered outer receipt was accepted
+  far enough to load its named checkpoint because only selected fields were
+  compared. One shared validator now checks the full outer tree, receipt,
+  manifest, checkpoint, configuration, source/environment, TRAIN fingerprint,
+  full key, normalization, optimizer/step, status and inference-weight
+  association before restore. Compatible wrong checkpoints and stale outer
+  claims reject.
+- **F2 reproduced and repaired.** Computed NaN/Inf, wrong-shape and wrong-dtype
+  outputs previously reached the generic request-error path. The completed
+  boundary now checks exact `[case,time,point]` float32 and finiteness; fp64
+  inputs that overflow fp32 reject; the endpoint-excluded grid is checked;
+  arbitrary time order remains supported. Request, nonfinite output, output
+  contract, numerical failure and unavailable runtime have distinct stable
+  codes, while process interruption propagates. Ordinary prediction accepts
+  only `COMPLETE` artifacts.
+- **F3 reproduced and repaired.** Receipt timings previously admitted NaN and
+  positive infinity, and loaded JSON used scalar coercions. Constructors and
+  manifests now require exact finite floats, exact non-Boolean counters,
+  closed status/step combinations and closed checkpoint metadata.
+- **F4 confirmed and repaired.** GitHub rejects the former SHA with no commit;
+  the corrected immutable revision and file/license hashes above are retained
+  in package data. The test remains a Carbon-authored NumPy equation adapter
+  used for forward and directional-gradient comparison—not an executed
+  upstream PyTorch implementation or independent institutional validation.
+
+## Bounded repeat and recovery demonstration
+
+The fixed local fixture freezes three replicas per admitted backbone before
+execution: two complete builds with distinct A4-derived key material and one
+declared cancellation. Training data and the target-free prediction request
+are common. Each replica binds Strategy plan, research-resource policy,
+resource class, replica identity, C-01 attempt, randomness, TRAIN archive and
+request. Resume continues the same replica; it is not a fresh build. Plan and
+outcome files are immutable, one-writer, fsynced local records. A recordless
+artifact reopens as `RECONCILIATION_REQUIRED`; completed, cancelled and failed
+members are never silently resampled or extended.
+
+Native Apple-arm64 observation on 2026-09-13, concurrency 1:
+
+| Backbone | Complete / required | Retained incomplete | Total wall | Process CPU | Conditional mean pointwise sample SD |
+|---|---:|---:|---:|---:|---:|
+| FNO | 2 / 3 | 1 cancelled | 5.5700 s | 12.4421 s | 0.00293151 |
+| DeepONet | 2 / 3 | 1 cancelled | 2.1961 s | 6.2241 s | 0.000142607 |
+
+Those dispersion values describe only the successful subset on one authored
+numerical fixture; the fixture is not asserted to solve Burgers. With fewer
+than two completed replicas the report returns unresolved, never zero. No
+threshold, winner, repeat recommendation, independence claim, score, result or
+reward follows. Re-running the same output directory completed in 1.5 s and
+created no additional replicas, attempts or predictions.
+
+## C-03 decision handoff (proposal only)
+
+For owner/security review, the smallest first DEVELOPMENT profile is one
+trusted host running pinned worker code with untrusted declarative parameters
+and arrays, CPU-only local resources, no outbound network, bounded scratch and
+output, and no validator keys, protected EVAL/reference assets or signing
+credentials. The worker needs authorized TRAIN inputs and one replica's
+derived reconstruction randomness—not A4 master entropy, protected EVAL
+seeds, answer keys or signing material. Host-root corruption and hardware side
+channels remain outside this proposal unless an approved mechanism covers
+them; a JAX function or checkpoint hash is not a sandbox.
+JAX's current [security considerations](https://docs.jax.dev/en/latest/security.html)
+also state that several coordination/collective connections are unauthenticated
+or plaintext by default and rely on external network controls; this reinforces,
+rather than replaces, C-03's required isolation evidence.
+
+One grouped MQ-015 decision is still required: named threat actors and trust
+boundary; execution image and hardware class; source-owned CPU, memory, wall,
+PID and output limits; filesystem and network controls; cancellation and
+descendant cleanup; audit evidence; and accepted residual risk. C-02 now
+provides the validated adapter prerequisite and optional repeat composition.
+C-03 must be selected, implemented and security-accepted separately before
+its resource envelope can satisfy full C-02 completion.
+
 ## C2 and downstream dependency status
 
 | Successor | Status after this change | Still required |
@@ -117,6 +203,7 @@ safe to activate.
 ./scripts/dev/setup_jax_macos.sh
 .venv-jax-macos/bin/python scripts/dev/jax_macos_diagnostic.py doctor
 .venv-jax-macos/bin/python scripts/dev/jax_macos_diagnostic.py smoke
+.venv-jax-macos/bin/python scripts/dev/jax_macos_diagnostic.py repeat-demo /new/output/directory
 PYTHONPATH=tests/cpu .venv-jax-macos/bin/python -m pytest tests/science -q
 CARBON_UV_GROUPS="chain archive science-jax" ./scripts/dev/ci.sh
 ```

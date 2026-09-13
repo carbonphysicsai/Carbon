@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import os
 import platform
 import shutil
@@ -173,6 +174,63 @@ def _read(path):
         or meta.get("scope") != "UNQUALIFIED_PUBLIC_DEVELOPMENT"
     ):
         raise ValueError("checkpoint schema/scope")
+    for field in ("contract_id", "training_data", "source_id", "state_sha256"):
+        value = meta[field]
+        if (
+            type(value) is not str
+            or len(value) != 64
+            or any(character not in "0123456789abcdef" for character in value)
+        ):
+            raise ValueError(f"checkpoint {field}")
+    if (
+        type(meta["model"]) is not dict
+        or type(meta["task"]) is not dict
+        or type(meta["train"]) is not dict
+    ):
+        raise ValueError("checkpoint configuration")
+    model = ModelConfig(**meta["model"])
+    task = TaskConfig(**meta["task"])
+    train = TrainConfig(**meta["train"])
+    if identity(model, task, train) != meta["contract_id"]:
+        raise ValueError("configuration integrity mismatch")
+    if type(meta["step"]) is not int or not 0 <= meta["step"] <= train.steps:
+        raise ValueError("checkpoint step")
+    if (
+        type(meta["u_scale"]) is not float
+        or not math.isfinite(meta["u_scale"])
+        or meta["u_scale"] <= 0
+    ):
+        raise ValueError("checkpoint normalization")
+    if (
+        type(meta["training_grid_points"]) is not int
+        or meta["training_grid_points"] < 1
+        or type(meta["training_case_keys"]) is not list
+        or not meta["training_case_keys"]
+        or any(
+            type(value) is not str or not value for value in meta["training_case_keys"]
+        )
+    ):
+        raise ValueError("checkpoint training metadata")
+    expected_environment_fields = {
+        "python",
+        "jax",
+        "jaxlib",
+        "numpy",
+        "backend",
+        "x64",
+        "platform",
+        "machine",
+    }
+    if (
+        type(meta["environment"]) is not dict
+        or set(meta["environment"]) != expected_environment_fields
+        or any(
+            type(meta["environment"][field]) is not str
+            for field in expected_environment_fields - {"x64"}
+        )
+        or type(meta["environment"]["x64"]) is not bool
+    ):
+        raise ValueError("checkpoint environment")
     if type(meta["leaves"]) is not list or not 1 <= len(meta["leaves"]) <= _MAX_LEAVES:
         raise ValueError("checkpoint leaf count")
     if (
@@ -184,6 +242,10 @@ def _read(path):
     if meta["runtime_key_digest"] is not None and (
         type(meta["runtime_key_digest"]) is not str
         or len(meta["runtime_key_digest"]) != 64
+        or any(
+            character not in "0123456789abcdef"
+            for character in meta["runtime_key_digest"]
+        )
     ):
         raise ValueError("runtime key digest")
     state_path = path / "state.npz"
@@ -232,6 +294,12 @@ def _read(path):
     return meta, arrays
 
 
+def inspect_checkpoint(path):
+    """Validate all bytes and return a detached metadata copy without restoring state."""
+    meta, _ = _read(path)
+    return _closed_json(canonical_json(meta))
+
+
 def _restore(template, meta, arrays):
     paths, leaves, definition = _paths_and_leaves(template)
     if paths != meta["paths"] or len(leaves) != len(arrays):
@@ -276,8 +344,6 @@ def load_inference(path, *, strict_environment=True):
     model = ModelConfig(**meta["model"])
     task = TaskConfig(**meta["task"])
     train = TrainConfig(**meta["train"])
-    if identity(model, task, train) != meta["contract_id"]:
-        raise ValueError("configuration integrity mismatch")
     predictor = Predictor(model, task, meta["u_scale"])
     params = predictor.model.init(jax.random.PRNGKey(0))
     template = TrainState(
