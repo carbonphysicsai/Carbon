@@ -1,9 +1,12 @@
-# C-04 — Protected Burgers reference runtime
+# C-04 — Protected reference runtime
 
 **Wave:** C1 real scientific execution foundations
-**Status:** `in_progress` for the bounded engineering/public
-qualification-candidate slice selected after PR #151
-**Depends on:** B-04, B-E2, C-03
+**Status:** `in_progress`
+**Selected slice:** bounded engineering/public qualification-candidate runtime
+after PR #151
+**Depends on:** B-04, B-E2
+**Runtime capability prerequisite:** C-03's PR #149/PR #151 bounded
+public-DEVELOPMENT capability is accepted; broader C-03 remains open
 **Selection authority:** `OWNER-C1-BURGERS-ALPHA-01`
 **Plan:** `.agent/plans/C-04_reference_runtime.md`
 **Evidence:** `.agent/evidence/wave_c/c-04.md`
