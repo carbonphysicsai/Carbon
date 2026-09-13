@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import json
+import math
 import sqlite3
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
 from carbon.execution.model import QueueClaim
 from carbon.reconstruction.worker.model import (
+    CONTROL_BYTES,
     DevelopmentWorkerProfile,
     WorkerCode,
     WorkerFailure,
@@ -25,6 +27,35 @@ _SCHEMA = "carbon.c01.c03-worker-launch.v1"
 
 def _canonical(value: object) -> str:
     return json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False)
+
+
+def _resource_observation(value: str | None) -> dict[str, object] | None:
+    """Decode the controller-owned observation as bounded durable evidence."""
+
+    if value is None:
+        return None
+
+    def pairs(items: list[tuple[str, object]]) -> dict[str, object]:
+        result: dict[str, object] = {}
+        for key, item in items:
+            if key in result:
+                raise ValueError
+            result[key] = item
+        return result
+
+    try:
+        if len(value.encode("utf-8")) > CONTROL_BYTES:
+            raise ValueError
+        decoded = json.loads(
+            value,
+            object_pairs_hook=pairs,
+            parse_constant=lambda _: (_ for _ in ()).throw(ValueError()),
+        )
+        if type(decoded) is not dict:
+            raise ValueError
+        return decoded
+    except (UnicodeError, ValueError, TypeError, json.JSONDecodeError):
+        raise WorkerFailure(WorkerCode.UNAVAILABLE) from None
 
 
 @dataclass(frozen=True, slots=True)
@@ -104,6 +135,7 @@ class WorkerLaunchRecord:
     effective_controls_digest: str | None
     output_snapshot_digest: str | None
     terminal_code: str | None
+    resource_observation: dict[str, object] | None
 
 
 _TRANSITIONS = {
@@ -138,6 +170,7 @@ _TRANSITIONS = {
     WorkerLaunchState.OUTPUT_SNAPSHOTTED: {
         WorkerLaunchState.TERMINATED,
         WorkerLaunchState.CANCELLED,
+        WorkerLaunchState.FAILED_INFRA,
         WorkerLaunchState.RECONCILIATION_REQUIRED,
     },
     WorkerLaunchState.TERMINATED: {
@@ -177,7 +210,8 @@ class DurableWorkerLaunchStore:
                         container_id TEXT,
                         effective_controls_digest TEXT,
                         output_snapshot_digest TEXT,
-                        terminal_code TEXT
+                        terminal_code TEXT,
+                        resource_observation_json TEXT
                     );
                     CREATE TABLE IF NOT EXISTS c03_launch_event_v1 (
                         sequence INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -186,6 +220,13 @@ class DurableWorkerLaunchStore:
                         detail_json TEXT NOT NULL
                     );
                     """)
+                columns = {
+                    row[1] for row in db.execute("PRAGMA table_info(c03_launch_v1)")
+                }
+                if "resource_observation_json" not in columns:
+                    db.execute(
+                        "ALTER TABLE c03_launch_v1 ADD COLUMN resource_observation_json TEXT"
+                    )
             self.path.chmod(0o600)
         except sqlite3.Error:
             raise WorkerFailure(WorkerCode.UNAVAILABLE) from None
@@ -199,13 +240,17 @@ class DurableWorkerLaunchStore:
                 db.execute("BEGIN IMMEDIATE")
                 row = db.execute(
                     "SELECT launch_digest,binding_json,state,container_id,"
-                    "effective_controls_digest,output_snapshot_digest,terminal_code "
+                    "effective_controls_digest,output_snapshot_digest,terminal_code,"
+                    "resource_observation_json "
                     "FROM c03_launch_v1 WHERE execution_id=?",
                     (binding.execution_id,),
                 ).fetchone()
                 if row is None:
                     db.execute(
-                        "INSERT INTO c03_launch_v1 VALUES (?,?,?,?,NULL,NULL,NULL,NULL)",
+                        "INSERT INTO c03_launch_v1("
+                        "execution_id,launch_digest,binding_json,state,container_id,"
+                        "effective_controls_digest,output_snapshot_digest,terminal_code,"
+                        "resource_observation_json) VALUES (?,?,?,?,NULL,NULL,NULL,NULL,NULL)",
                         (
                             binding.execution_id,
                             binding.launch_digest,
@@ -229,6 +274,7 @@ class DurableWorkerLaunchStore:
                         None,
                         None,
                         None,
+                        None,
                     )
                 elif row[0] != binding.launch_digest or row[1] != encoded:
                     raise WorkerFailure(WorkerCode.CONFLICT)
@@ -245,6 +291,7 @@ class DurableWorkerLaunchStore:
             row[4],
             row[5],
             row[6],
+            _resource_observation(row[7]),
         )
 
     def transition(
@@ -256,6 +303,7 @@ class DurableWorkerLaunchStore:
         effective_controls_digest: str | None = None,
         output_snapshot_digest: str | None = None,
         terminal_code: str | None = None,
+        resource_observation: dict[str, object] | None = None,
     ) -> WorkerLaunchRecord:
         if (
             type(binding) is not WorkerLaunchBinding
@@ -269,12 +317,24 @@ class DurableWorkerLaunchStore:
                 exact_digest(value)
         if terminal_code is not None:
             exact_token(terminal_code)
+        if resource_observation is not None:
+            if type(resource_observation) is not dict:
+                raise WorkerFailure(WorkerCode.INVALID)
+            try:
+                resource_json = _canonical(resource_observation)
+            except (TypeError, ValueError):
+                raise WorkerFailure(WorkerCode.INVALID) from None
+            if len(resource_json.encode("utf-8")) > CONTROL_BYTES:
+                raise WorkerFailure(WorkerCode.INVALID)
+        else:
+            resource_json = None
         try:
             with sqlite3.connect(self.path, isolation_level=None, timeout=5) as db:
                 db.execute("BEGIN IMMEDIATE")
                 row = db.execute(
                     "SELECT launch_digest,state,container_id,effective_controls_digest,"
-                    "output_snapshot_digest,terminal_code FROM c03_launch_v1 WHERE execution_id=?",
+                    "output_snapshot_digest,terminal_code,resource_observation_json "
+                    "FROM c03_launch_v1 WHERE execution_id=?",
                     (binding.execution_id,),
                 ).fetchone()
                 if row is None or row[0] != binding.launch_digest:
@@ -293,6 +353,7 @@ class DurableWorkerLaunchStore:
                         else row[4]
                     ),
                     terminal_code if terminal_code is not None else row[5],
+                    resource_json if resource_json is not None else row[6],
                 )
                 if current is state:
                     if values != row[2:]:
@@ -302,7 +363,8 @@ class DurableWorkerLaunchStore:
                 else:
                     db.execute(
                         "UPDATE c03_launch_v1 SET state=?,container_id=?,"
-                        "effective_controls_digest=?,output_snapshot_digest=?,terminal_code=? "
+                        "effective_controls_digest=?,output_snapshot_digest=?,terminal_code=?,"
+                        "resource_observation_json=? "
                         "WHERE execution_id=? AND state=?",
                         (state.value, *values, binding.execution_id, current.value),
                     )
@@ -317,6 +379,8 @@ class DurableWorkerLaunchStore:
                                     "effective_controls_digest": values[1],
                                     "output_snapshot_digest": values[2],
                                     "terminal_code": values[3],
+                                    "resource_observation_recorded": values[4]
+                                    is not None,
                                 }
                             ),
                         ),
@@ -326,7 +390,16 @@ class DurableWorkerLaunchStore:
             raise
         except (sqlite3.Error, ValueError):
             raise WorkerFailure(WorkerCode.UNAVAILABLE) from None
-        return WorkerLaunchRecord(binding, binding.launch_digest, state, *values)
+        return WorkerLaunchRecord(
+            binding,
+            binding.launch_digest,
+            state,
+            values[0],
+            values[1],
+            values[2],
+            values[3],
+            _resource_observation(values[4]),
+        )
 
     def claim_create(self, binding: WorkerLaunchBinding) -> bool:
         """Grant one caller the create effect; concurrent callers do no work."""
@@ -371,7 +444,8 @@ class DurableWorkerLaunchStore:
             with sqlite3.connect(self.path) as db:
                 row = db.execute(
                     "SELECT launch_digest,state,container_id,effective_controls_digest,"
-                    "output_snapshot_digest,terminal_code FROM c03_launch_v1 WHERE execution_id=?",
+                    "output_snapshot_digest,terminal_code,resource_observation_json "
+                    "FROM c03_launch_v1 WHERE execution_id=?",
                     (execution_id,),
                 ).fetchone()
         except sqlite3.Error:
@@ -386,6 +460,7 @@ class DurableWorkerLaunchStore:
             "effective_controls_digest": row[3],
             "output_snapshot_digest": row[4],
             "terminal_code": row[5],
+            "resource_observation": _resource_observation(row[6]),
         }
 
     def binding_payload(self, execution_id: str) -> dict[str, object] | None:
@@ -406,7 +481,7 @@ class DurableWorkerLaunchStore:
         except (sqlite3.Error, ValueError, TypeError, json.JSONDecodeError):
             raise WorkerFailure(WorkerCode.UNAVAILABLE) from None
 
-    def reconciliation_targets(self) -> tuple[dict[str, str], ...]:
+    def reconciliation_targets(self) -> tuple[dict[str, object], ...]:
         """Return only exact names/digests needed for scoped operator cleanup."""
         terminal = {
             WorkerLaunchState.ASSOCIATED.value,
@@ -430,12 +505,22 @@ class DurableWorkerLaunchStore:
                     or value.get("container_name") is None
                 ):
                     raise ValueError
+                productive_deadline_unix = value["timing"]["productive_deadline_unix"]
+                if (
+                    type(productive_deadline_unix) is not float
+                    or not math.isfinite(productive_deadline_unix)
+                    or productive_deadline_unix < 0
+                ):
+                    raise ValueError
                 result.append(
                     {
                         "execution_id": exact_token(execution_id),
                         "launch_digest": exact_digest(launch_digest),
                         "container_name": exact_token(value["container_name"]),
                         "state": WorkerLaunchState(state).value,
+                        "host_id": exact_token(value["host_id"]),
+                        "boot_id": exact_token(value["timing"]["boot_id"]),
+                        "productive_deadline_unix": productive_deadline_unix,
                     }
                 )
             return tuple(result)
@@ -448,7 +533,8 @@ class DurableWorkerLaunchStore:
             with sqlite3.connect(self.path) as db:
                 rows = db.execute(
                     "SELECT execution_id,launch_digest,state,container_id,"
-                    "effective_controls_digest,output_snapshot_digest,terminal_code "
+                    "effective_controls_digest,output_snapshot_digest,terminal_code,"
+                    "resource_observation_json "
                     "FROM c03_launch_v1 ORDER BY execution_id"
                 ).fetchall()
             return tuple(
@@ -460,10 +546,11 @@ class DurableWorkerLaunchStore:
                     "effective_controls_digest": row[4],
                     "output_snapshot_digest": row[5],
                     "terminal_code": row[6],
+                    "resource_observation": _resource_observation(row[7]),
                 }
                 for row in rows
             )
-        except (sqlite3.Error, ValueError, TypeError):
+        except (sqlite3.Error, ValueError, TypeError, json.JSONDecodeError):
             raise WorkerFailure(WorkerCode.UNAVAILABLE) from None
 
     def record_operator_cleanup(

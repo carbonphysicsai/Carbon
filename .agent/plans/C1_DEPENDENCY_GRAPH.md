@@ -1,11 +1,11 @@
-# C1 real-vertical dependency graph after C-EA1
+# C1 real-vertical dependency graph after PR #149
 
 **Decision:** `OWNER-C1-CONTRACTS-01`
 **Status:** authoritative planning checkpoint after merge
 **Primary Hub map_ref:** `WAVE-C`
-**Implementation selection:** C-03's first bounded DEVELOPMENT isolation slice,
-using C-02's merged adapter capability; no protected/production C-03, later
-real-vertical or Variant-B implementation ticket is selected
+**Implementation selection:** C-03 prerequisite hardening is active after its
+bounded DEVELOPMENT worker merged in PR #149; C-04's engineering/public
+qualification-candidate slice is prospectively next after that normal merge
 
 ## Authority resolution
 
@@ -29,9 +29,10 @@ budget/resource controls and fail-closed missing policy.
 ```text
 C-01(done) ─┬─> C-AUTH1(done) ─> C-EA0(done) ─> C-EA1(done, synthetic only)
             └─> C-02(merged DEVELOPMENT adapter prerequisite; full ticket open)
-                    └─> C-03(selected bounded DEVELOPMENT isolation)
-                            └─> C-04
-C-02 + C-04 ─> C-05 ─> C-06 ─> C-07 ─> C-08
+                    └─> C-03(PR #149 capability + selected hardening)
+                            └─> C-04 engineering + D-03/D-04 prerequisite harness
+C-02 + C-04 ─> C-05 engineering + D-02/D-05 prerequisite harness
+             ─> C-06 ─> C-07 ─> C-08
                     C-07 + real archive profile + C-EA1 ─> C-EA2
 A10 boundary + C-06 + C-07 + C-EA2 ─> C-09
 G2(exact standard localnet only) + C-09 + C-EA2 + real signed C1 evidence ─> C-W1
@@ -53,9 +54,9 @@ C-EP3 + supplied immutable JAX bundle ─> C-02(merged DEVELOPMENT adapter prere
 | C-EP2 | done, bounded DEVELOPMENT measurement and detached replay | ticket/evidence complete | C-EP1 satisfied | reference compatibility, acceptable delay, B overhead, science/security criteria remain reserved or unknown | authorized real reconstruction/reference backend and representative workload remain missing | complete in PR #144 | already implemented/tested only in DEVELOPMENT scope |
 | C-EP3 | done, bounded DEVELOPMENT input acquisition and detached public probe | ticket/evidence complete | C-EP2 and C-AUTH1 satisfied | reference qualification, comparison meaning, and every real security/science input remain reserved | supplied JAX bundle resolves only the reconstruction-source input | complete in PR #145 | already implemented/tested only in DEVELOPMENT scope |
 | C-02 | bounded DEVELOPMENT adapter merged; full ticket in progress | ticket, canonical lab source/interface, v3 exact dependency profile, Foundax pin and frozen repeat capability sufficient for C-03 | B-02B, B-03, B-E1, C-01 and C-EP3 satisfied as bounded foundations | production repeated-build policy, protected execution and real backend/scientific qualification remain reserved | described v0.2 `carbon_jax_research` source is absent/unverified but deferred | adapter prerequisite merged in PR #148; isolated composition is separate | **yes, as C-03 prerequisite only** |
-| C-03 | selected, bounded DEVELOPMENT isolation in progress | selected ticket, exact profile, implementation/evidence/report candidate | C-02 adapter capability, C-01, B-02B, B-02C and A4 satisfied in bounded scope; required Linux service evidence pending | protected/production threat acceptance and independent security review remain open | eligible Linux x86-64 Docker/cgroup-v2 service lane required | selected by `OWNER-C03-DEV-ISOLATION-01` | **yes, this slice only** |
-| C-04 | `future_reserved`, unselected, blocked | ticket exists; sufficient | B-04, B-E2 satisfied only as bounded fixtures; C-03 missing | qualified primary/witness, applicability, uncertainty and access policy | real protected reference implementations/assets | no missing contract work identified | **no** |
-| C-05 | `future_reserved`, unselected, blocked | ticket exists; sufficient | B-05 bounded foundation; C-02 and C-04 missing | qualified measurements, floors, uncertainty and Score Pack inputs | real reconstruction/reference outputs | no missing contract work identified | **no** |
+| C-03 | PR #149 bounded DEVELOPMENT capability accepted; hardening selected | exact profile, implementation/evidence/report and accepted Linux service lane | C-02 adapter capability, C-01, B-02B, B-02C and A4 satisfied; response/parser/resource/recovery hardening awaiting its changed-source service run | protected threat acceptance and independent security review remain open | eligible Linux x86-64 Docker/cgroup-v2 acceptance for changed source | selected by `OWNER-C1-BURGERS-ALPHA-01` only for hardening | **yes, current slice only** |
+| C-04 | `todo`, prospectively next after C-03 hardening merge | current ticket/spec sufficient for engineering and public qualification-candidate evidence | accepted C-03 capability, B-04 and B-E2; D-03/D-04 prerequisite harness may be brought forward under its owners | qualified primary/witness, tolerances, applicability, uncertainty and protected access acceptance remain open | no protected assets are needed for public-candidate implementation | no missing contract work for bounded slice | **yes after current merge; not protected/official** |
+| C-05 | `todo`, sequential after C-04 engineering merge | current ticket/spec sufficient for engineering and public qualification-candidate evidence | B-05 bounded foundation plus C-02/C-04 engineering; D-02/D-05 prerequisite harness under its owners | qualified measurements, floors, uncertainty and Score Pack admission remain open | real protected reference/evaluation inputs absent | no missing contract work for bounded slice | **yes only after C-04 bounded merge** |
 | C-06 | `future_reserved`, unselected, blocked | ticket exists; sufficient | C-01, C-02, C-04, C-05 | signer authorization, key/custody, retention and disclosure policy | real official evidence chain | no missing contract work identified | **no** |
 | C-07 | `future_reserved`, unselected, blocked | ticket exists; sufficient | C-01 through C-06 | registered real orchestration policies and scientific inputs | real implementations/results from predecessors | no missing contract work identified | **no** |
 | C-08 | `future_reserved`, unselected, blocked | ticket materialized here; sufficient | NET-2 satisfied in bounded scope; C-07 missing; A9 retained | real budgets/quotas and production auth/security approval | real validator orchestration endpoint/path | materialized by this checkpoint | **no** |
@@ -86,9 +87,11 @@ scientific/security qualification remain unresolved.
 
 ## Selection disposition
 
-C-EP1 through C-EP3 are complete in their bounded DEVELOPMENT scopes and PR
-#148 provides C-02's adapter prerequisite. C-03 alone is selected for the exact
-public-data DEVELOPMENT isolation slice; no later real-vertical ticket is
-selected. C-EA2 and C-W1 remain unselected. This graph authorizes no protected
-reference, official science, public-network operation, archive operating
-threshold, production qualification or LIVE state.
+C-EP1 through C-EP3 are complete in their bounded DEVELOPMENT scopes, PR #148
+provides C-02's adapter prerequisite and PR #149 provides accepted bounded C-03
+worker capability. C-03 hardening alone is selected now. Under
+`OWNER-C1-BURGERS-ALPHA-01`, C-04 becomes the next selected engineering/public-
+candidate ticket only after this merge, without another selection ceremony.
+C-EA2 and C-W1 remain unimplemented and ineligible. This graph authorizes no
+protected reference, official science, public-network operation, real archive
+acknowledgement, production qualification or LIVE state.

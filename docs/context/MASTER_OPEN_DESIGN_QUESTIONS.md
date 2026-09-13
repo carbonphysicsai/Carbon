@@ -382,7 +382,14 @@ Arbitrary participant code belongs only to a later `ConstructionProgram` threat 
 
 **Owner:** Security + protocol + Physics/SciML.
 **Proof required:** compiler-escape and catalog-confusion tests, malicious-Strategy tests, reconstruction-receipt tests, structural-component applicability and anti-self-certification tests, formal threat model, sandbox review, and abuse tests.
-**Status:** `SECURITY_REVIEW_REQUIRED`.
+**Status:** `SECURITY_REVIEW_REQUIRED` globally. PR #149 supplies implemented
+and tested public-DEVELOPMENT isolation evidence for its exact image/runtime.
+`OWNER-C1-BURGERS-ALPHA-01` selects a Carbon-controlled single-tenant trusted-
+host model for the first private-alpha/prospective non-paying-testnet profile
+and commissions the protected-execution prerequisites/review package. The
+reviewer identity, exact final protected target, findings, confirmed-fix retest
+and security-owner acceptance remain absent, so protected admission stays
+disabled and `SECURITY_QUALIFIED` is not earned.
 
 ---
 

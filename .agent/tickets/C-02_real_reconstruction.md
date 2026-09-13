@@ -51,20 +51,24 @@ Carbon-side semantic capabilities, not mandatory upstream symbol names.
       and execution-attempt identity.
 - [x] A bounded DEVELOPMENT runner accepts a prospectively frozen set of B-02C
       replicate identities and C-01 attempts, retains every per-replica outcome,
-      and reports descriptive successful-subset dispersion without selecting a
-      production repeat rule.
+      and reports descriptive successful-subset dispersion. Historical plans
+      remain unchanged; `OWNER-C1-BURGERS-ALPHA-01` prospectively selects three
+      replicas only for a new DEVELOPMENT integration profile and the first
+      non-paying-testnet working profile, without claiming scientific
+      sufficiency or changing mainnet policy.
 - [x] Reject identity, environment, data, artifact, or seed mismatches before
       result association; cancellation, nonfinite and reconciliation outcomes
       do not become scientific failures.
 - [x] Deterministic bounded tests prove reconstruction/result association and
       prove protected official case material is absent from public receipts.
 
-The complete ticket remains open because no production repeated-build policy,
+The complete ticket remains open because the three-replica working rule is not
+a scientifically accepted comparison rule or universal/mainnet repeated-build policy,
 protected execution profile, independent security acceptance or scientific
 qualification is selected. C-03's exact DEVELOPMENT limits are now supplied
 and implemented as a separately owned composition; they do not close either
-full ticket. The bounded runner remains capability, not selection of a required
-repeat count.
+full ticket. The bounded runner remains capability and every frozen outcome is
+retained; an incomplete trio cannot become an official comparison.
 The missing v0.2 `carbon_jax_research` input also remains open as an optional
 source-intake/provenance item; it does not erase the tested canonical lab and
 Foundax DEVELOPMENT profiles.

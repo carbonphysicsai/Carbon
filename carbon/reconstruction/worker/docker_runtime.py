@@ -37,6 +37,100 @@ _SHM_BYTES = 8 * 1024**2
 _SCRATCH_TMPFS_BYTES = SCRATCH_BYTES - _SHM_BYTES
 
 
+def _stop_process(process: subprocess.Popen[bytes]) -> None:
+    """Bounded best-effort reaping for one controller-owned CLI process."""
+
+    if process.poll() is not None:
+        return
+    process.kill()
+    try:
+        process.wait(timeout=5)
+    except subprocess.TimeoutExpired:
+        # The process is already kill-signalled.  Do not turn cleanup of the
+        # local CLI child into an unbounded controller wait.
+        pass
+
+
+def _bounded_capture(
+    command: list[str],
+    *,
+    environment: dict[str, str],
+    timeout: float,
+    maximum: int,
+    cwd: Path | None = None,
+) -> subprocess.CompletedProcess[bytes]:
+    """Capture stdout/stderr while enforcing the aggregate cap during receipt."""
+
+    if (
+        type(command) is not list
+        or not command
+        or any(type(item) is not str or not item for item in command)
+        or type(timeout) not in (int, float)
+        or timeout <= 0
+        or type(maximum) is not int
+        or maximum < 1
+    ):
+        raise WorkerFailure(WorkerCode.INVALID)
+    process: subprocess.Popen[bytes] | None = None
+    stdout = bytearray()
+    stderr = bytearray()
+    try:
+        process = subprocess.Popen(
+            command,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            env=environment,
+            cwd=cwd,
+        )
+        if process.stdout is None or process.stderr is None:
+            raise WorkerFailure(WorkerCode.RUNTIME)
+        with selectors.DefaultSelector() as selector:
+            selector.register(process.stdout, selectors.EVENT_READ, stdout)
+            selector.register(process.stderr, selectors.EVENT_READ, stderr)
+            deadline = time.monotonic() + float(timeout)
+            while selector.get_map():
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    raise WorkerFailure(
+                        WorkerCode.UNAVAILABLE,
+                        private_diagnostic=b"bounded command timed out",
+                    )
+                for key, _ in selector.select(timeout=min(remaining, 0.25)):
+                    block = os.read(key.fd, 1 << 16)
+                    if not block:
+                        selector.unregister(key.fileobj)
+                        continue
+                    destination = key.data
+                    available = maximum - len(stdout) - len(stderr)
+                    destination.extend(block[:available])
+                    if len(block) > available:
+                        raise WorkerFailure(
+                            WorkerCode.RUNTIME,
+                            private_diagnostic=(
+                                b"controller response exceeded cap\nstdout:\n"
+                                + bytes(stdout)
+                                + b"\nstderr:\n"
+                                + bytes(stderr)
+                            )[:DIAGNOSTIC_BYTES],
+                        )
+        return_code = process.wait(timeout=1)
+        return subprocess.CompletedProcess(
+            command, return_code, bytes(stdout), bytes(stderr)
+        )
+    except WorkerFailure:
+        if process is not None:
+            _stop_process(process)
+        raise
+    except (OSError, subprocess.SubprocessError):
+        if process is not None:
+            _stop_process(process)
+        raise WorkerFailure(
+            WorkerCode.UNAVAILABLE,
+            private_diagnostic=(bytes(stdout) + bytes(stderr))[:DIAGNOSTIC_BYTES],
+        ) from None
+
+
 def _canonical(value: object) -> bytes:
     return json.dumps(
         value, sort_keys=True, separators=(",", ":"), allow_nan=False
@@ -75,27 +169,18 @@ class DockerCLI:
         ):
             if name in os.environ:
                 environment[name] = os.environ[name]
-        try:
-            result = subprocess.run(
-                [self.executable, *arguments],
-                stdin=subprocess.DEVNULL,
-                capture_output=True,
-                timeout=timeout,
-                check=False,
-                env=environment,
-            )
-        except (OSError, subprocess.TimeoutExpired):
-            raise WorkerFailure(WorkerCode.UNAVAILABLE) from None
+        result = _bounded_capture(
+            [self.executable, *arguments],
+            environment=environment,
+            timeout=timeout,
+            maximum=DIAGNOSTIC_BYTES,
+        )
         private_diagnostic = (
             f"exit={result.returncode}\nstdout:\n".encode("ascii")
             + result.stdout
             + b"\nstderr:\n"
             + result.stderr
         )[:DIAGNOSTIC_BYTES]
-        if len(result.stdout) + len(result.stderr) > DIAGNOSTIC_BYTES:
-            raise WorkerFailure(
-                WorkerCode.RUNTIME, private_diagnostic=private_diagnostic
-            )
         if result.returncode not in accepted:
             raise WorkerFailure(
                 WorkerCode.RUNTIME, private_diagnostic=private_diagnostic
@@ -200,15 +285,13 @@ class DockerCLI:
                 )
             return total
         except WorkerFailure:
-            if process is not None and process.poll() is None:
-                process.kill()
-                process.wait(timeout=5)
+            if process is not None:
+                _stop_process(process)
             destination.unlink(missing_ok=True)
             raise
         except (OSError, subprocess.SubprocessError):
-            if process is not None and process.poll() is None:
-                process.kill()
-                process.wait(timeout=5)
+            if process is not None:
+                _stop_process(process)
             destination.unlink(missing_ok=True)
             raise WorkerFailure(
                 WorkerCode.RUNTIME, private_diagnostic=bytes(diagnostic)
@@ -632,6 +715,89 @@ def inspect_effective_controls(
     return tagged_sha256(_canonical(evidence)), evidence
 
 
+def observe_effective_resources(
+    *, cli: DockerCLI, container_name: str
+) -> dict[str, object]:
+    """Read exact cgroup counters where available without inferring causes."""
+
+    exact_token(container_name)
+
+    def read(name: str) -> str | None:
+        try:
+            return (
+                cli.run(
+                    ["exec", container_name, "/bin/cat", f"/sys/fs/cgroup/{name}"],
+                    timeout=10,
+                )
+                .stdout.decode("ascii", "strict")
+                .strip()
+            )
+        except (WorkerFailure, UnicodeError):
+            return None
+
+    def scalar(name: str) -> int | None:
+        value = read(name)
+        try:
+            return None if value is None else int(value)
+        except ValueError:
+            return None
+
+    def counters(name: str) -> dict[str, int] | None:
+        value = read(name)
+        if value is None:
+            return None
+        result: dict[str, int] = {}
+        try:
+            for line in value.splitlines():
+                key, raw = line.split()
+                result[exact_token(key)] = int(raw)
+        except (ValueError, WorkerFailure):
+            return None
+        return result
+
+    def filesystem(path: str) -> dict[str, int] | None:
+        try:
+            byte_lines = cli.run(
+                ["exec", container_name, "/bin/df", "-B1", "--output=size,used", path],
+                timeout=10,
+            ).stdout.splitlines()
+            inode_lines = cli.run(
+                ["exec", container_name, "/bin/df", "--output=itotal,iused", path],
+                timeout=10,
+            ).stdout.splitlines()
+            size, used = (int(item) for item in byte_lines[-1].split())
+            inodes, used_inodes = (int(item) for item in inode_lines[-1].split())
+            return {
+                "bounded_bytes": size,
+                "observed_used_bytes": used,
+                "bounded_inodes": inodes,
+                "observed_used_inodes": used_inodes,
+            }
+        except (WorkerFailure, ValueError, IndexError):
+            return None
+
+    return {
+        "schema": "carbon.c03.resource-observation.v1",
+        "measurement_scope": "POST_EXPORT_PRE_TERMINATION",
+        "memory": {
+            "current_bytes": scalar("memory.current"),
+            "peak_bytes": scalar("memory.peak"),
+            "events": counters("memory.events"),
+            "oom_cause_rule": "memory.events oom/oom_kill only; exit status is insufficient",
+        },
+        "cpu": counters("cpu.stat"),
+        "pids": {
+            "current": scalar("pids.current"),
+            "peak": scalar("pids.peak"),
+        },
+        "filesystem": {
+            "scratch": filesystem("/scratch"),
+            "shm": filesystem("/dev/shm"),
+            "high_water_status": "UNAVAILABLE_WITHOUT_CONTINUOUS_SAMPLING",
+        },
+    }
+
+
 def remove_exact_container(
     *, cli: DockerCLI, container_name: str, launch_digest: str
 ) -> None:
@@ -735,6 +901,7 @@ __all__ = [
     "doctor",
     "inspect_effective_controls",
     "load_image_identity",
+    "observe_effective_resources",
     "remove_exact_container",
     "spawn_watchdog",
 ]

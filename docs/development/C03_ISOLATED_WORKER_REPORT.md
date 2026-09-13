@@ -1,10 +1,11 @@
 # C-03 DEVELOPMENT isolated-worker report
 
-**Decision:** `OWNER-C03-DEV-ISOLATION-01`
+**Decision:** `OWNER-C03-DEV-ISOLATION-01`; prerequisite hardening selected by
+`OWNER-C1-BURGERS-ALPHA-01`
 **Scope:** first bounded public-data DEVELOPMENT slice
-**Current state:** implementation candidate with passing Linux service evidence
-at `9fccb2cc28a88b5771410148d8b80f688d4f1ff6`; final exact-head CI and merge
-evidence pending
+**Current state:** PR #149's bounded worker slice is accepted and merged; the
+prerequisite-hardening continuation is an implementation candidate awaiting
+its own changed-source Linux acceptance
 
 ## Owner summary
 
@@ -15,10 +16,14 @@ descendants, validated
 by the controller, and only then attached to the C-01 attempt. A miner sees no
 new action, fee, reveal, request field or interface.
 
-The source baseline is PR #148 merge
+The adapter source baseline is PR #148 merge
 `83186be004a4087b27b07278da490dad36785acb` (historical tested head
-`5e3d47039a52f601789f0495f8c3127f8b4a3cf4`, run `34758720071`). This report
-does not reuse that historical run as C-03 acceptance.
+`5e3d47039a52f601789f0495f8c3127f8b4a3cf4`, run `34758720071`). PR #149 then
+accepted head `ef4d5e336c942b7ff40856fcfee03f522ef2d1d5` in required run
+`34770761721` and normally merged as
+`d94a22bb3c09089e01402db9e7ebf6eb3c662966`, tree
+`1869b19e9bd4969d042e9b6e40b1470304974d5c`. This continuation does not reuse
+that historical run as acceptance for changed worker source.
 
 ## Exact pinned inputs
 
@@ -38,10 +43,19 @@ does not reuse that historical run as C-03 acceptance.
 - Ubuntu 24.04 base image
   `sha256:33ceb71981b602c1a7443a53469e4dba065f7503eab3078a2d7a57a2ab987517`.
 
-The final source-tree, built-wheel, recipe, entrypoint and Docker image/config
-digests are mechanically assigned by `c03_worker_image.sh` for the exact tested
-head and retained as the CI image-manifest artifact. They are deliberately not
-self-embedded as the final image digest.
+PR #149's accepted manifest bound source tree
+`sha256:3399e0ab3788e88c0714911ebbe39741f8860b1bb43c3949d31796159951eb01`,
+wheel `sha256:4702d164fdab942cb985354cfcb7f65339dd2ca836e90fa2d564e38cd5af6d8a`,
+lock `sha256:9de64d6c5ca9a0a73d141ca403de1d2bee8bb85e68cd7ea20195b163a7c2cf11`,
+base `sha256:33ceb71981b602c1a7443a53469e4dba065f7503eab3078a2d7a57a2ab987517`,
+recipe `sha256:db26a9a222da45563087209a1d167e112a91e3e2c9e49fdb8928fe962e42ec54`,
+entrypoint
+`sha256:5a26105e26d73c2364a7cb1f9699330f705a336a1ef5390180e2763fbeb069b2`
+and image/config
+`sha256:dae4717ae00d3174b8644159934eb4edbe94c0ad125549f6ade570a6f4c7e630`.
+Those are historical exact identities. `c03_worker_image.sh` mechanically
+assigns new source/wheel/image identities for this continuation's exact tested
+head; the image digest is not circularly self-embedded.
 
 The first passing implementation campaign, run `34769816925`, built image/config
 `sha256:0440ef4d42012c5fffb80af0d43e413e1ad0d7728d1db2a3b8b5e80b712f0cca`
@@ -83,6 +97,18 @@ budgets.
 | Cancellation | blocked native-like operation and parent/child process tree are removed by exact-label external cleanup | five-plus-thirty-second ceilings, no availability promise |
 | Network/filesystem | controlled canary proves connected negative control and `network=none` denial; root/input writes and Docker/host canaries are absent | private loopback/socket syscalls remain |
 | Cleanup uncertainty | slot becomes `QUARANTINED`; no successful association; later independent capacity is not globally barred | operator reconciliation remains necessary |
+
+The continuation repairs the controller-side response path so its aggregate
+stdout/stderr cap is enforced during receipt and the offending CLI process is
+reaped. It moves native/array artifact validation into a fixed child process
+with a 4 GiB address-space bound, 60 CPU-second limit, 90-second wall bound,
+256 descriptors and disabled core dumps. Same-boot live waits now use the
+persisted launch monotonic origin; restart reconciliation exposes the persisted
+host, boot and wall deadline instead of comparing monotonic clocks across
+boots. Success and failure records retain available `memory.current`,
+`memory.peak`, `memory.events`, `cpu.stat`, PID counters and bounded filesystem/
+output observations. Scratch high-water remains explicitly unavailable without
+continuous sampling, and exit status alone is never called an OOM observation.
 
 Run `34769816925` passed seven required service tests in 67.14 seconds with zero
 failures/skips, then passed doctor, smoke (one test in 16.97 seconds), and exact
@@ -139,9 +165,10 @@ the live tmpfs with `docker cp`; run `34769257159` confirmed the path-probe
 repair and the tmpfs-copy limitation. The final implementation uses a fixed
 installed exporter and controller-capped closed stream, never unrestricted
 archive extraction. Run `34769816925` passed all service controls. Its later
-owner smoke overwrote the main JUnit pathname, so the candidate now separates
-smoke JUnit/trace files from the required campaign; this evidence-retention
-repair still requires final exact-head CI before merge.
+owner smoke overwrote the main JUnit pathname, so the candidate separated smoke
+JUnit/trace files from the required campaign. Required run `34770761721` then
+passed that final exact-head repair and PR #149 normally merged it. The current
+hardening still requires its own changed-source acceptance and image identity.
 
 ## Remaining boundary
 

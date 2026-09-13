@@ -2438,6 +2438,44 @@
       ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5654112269",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/8ccea37477ff6087c6d25349b11cb2a9fd8e6c28/docs/development/C03_ISOLATED_WORKER_REPORT.md"
+    },
+    {
+      "title": "Continue the bounded Burgers alpha vertical after PR #149",
+      "question": "Which first-host trust, repeat, reference-role, archive and sequential implementation choices govern the dependency-ready Wave C continuation?",
+      "recommendation": "Keep one Carbon-controlled single-tenant Linux CPU host and the accepted C-03 limits; harden C-03 first, then implement C-04 onward one ticket at a time. Freeze three replicas in new integration/testnet working profiles, keep Cole–Hopf candidate-primary with an independent conservative witness and ETDRK4 as a development cross-check, and prepare the real archive/review interfaces while protected, official and network admission remain disabled.",
+      "why": "The owner supplied the missing prospective engineering choices without claiming scientific sufficiency, host-root confidentiality, independent review, real durability or public-network authority. Recording them lets public-data engineering proceed while every later acceptance remains explicit and fail closed.",
+      "if_kept": "C-03 hardening can merge and C-04 can begin without another selection checkpoint. The protected review package remains unaccepted, the three-replica rule remains scientifically unqualified, real archive acknowledgement remains unavailable, and no public operation occurs.",
+      "if_changed": "A different host model, engine, repeat count, reference role, archive target or sequence requires a prospective owner amendment and new affected evidence; historical PR #149 and authoring-plan identities remain unchanged.",
+      "decision_id": "OWNER-C1-BURGERS-ALPHA-01",
+      "map_ref": "WAVE-C/C-03",
+      "wave": "C",
+      "ticket": "C-03",
+      "attention": "RESOLVED",
+      "status": "OWNER_SELECTED_WORKING_DECISION",
+      "audience": "harsh",
+      "affects": [
+        "WAVE-C",
+        "WAVE-C/C-02",
+        "WAVE-C/C-03",
+        "WAVE-C/C-04",
+        "WAVE-C/C-05",
+        "WAVE-C/C-06",
+        "WAVE-C/C-07",
+        "WAVE-C/C-08",
+        "WAVE-C/C-09",
+        "WAVE-C/C-EA1",
+        "WAVE-C/C-EA2",
+        "WAVE-C/C-W1",
+        "SYSTEM/AGENT-EXECUTION",
+        "SYSTEM/CI",
+        "SYSTEM/GOVERNANCE",
+        "SYSTEM/MATURITY",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+      ],
+      "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42",
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/0a57b13ae97056d722930ab95a9604077af8520d/.agent/plans/C1_ALPHA_VERTICAL_CONTINUATION.md"
     }
   ]
 }

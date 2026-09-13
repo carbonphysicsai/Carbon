@@ -143,16 +143,16 @@
       "title": "Isolate hostile reconstruction work",
       "what": "Run C-02's merged DEVELOPMENT adapter in one pinned network-denied, scratch-only, resource-bounded Docker worker with durable launch and post-exit validation.",
       "why": "Participant-controlled work must not expose official evaluation material or gain unbounded host capabilities.",
-      "changes": "The selected candidate adds the exact Linux/amd64 worker image, C-01 launch/recovery binding, B-02C envelope, effective-control inspection, bounded immutable output, whole-container cleanup, exact replay, quarantine and a required Linux service lane.",
-      "not_yet": "Required Linux service acceptance is pending. Global MQ-015, protected execution, independent security/scientific qualification, production repeat policy, archive, reward, network and LIVE authority remain open.",
+      "changes": "PR #149 accepted the exact Linux/amd64 worker image and seven-test service campaign. The active continuation bounds every Docker response while receiving it, validates artifacts in a separate capped process, retains resource observations and hardens monotonic deadline/recovery behavior.",
+      "not_yet": "The continuation still needs its own exact-head Linux service acceptance and normal merge. Global MQ-015, protected execution, independent security/scientific qualification, production repeat sufficiency, archive, reward, network and LIVE authority remain open.",
       "map_ref": "WAVE-C/C-03"
     },
     "C-04": {
       "title": "Run protected references without confusing fixtures with truth",
-      "what": "Compose the future isolated worker with registered primary and witness reference policies.",
+      "what": "Compose the accepted isolated-worker capability with role-explicit registered primary, witness and optional development cross-check reference policies.",
       "why": "A fixture reference or successful generator is not a qualified scientific reference.",
-      "changes": "The existing ticket preserves protected assets, reference roles and typed reference failure.",
-      "not_yet": "C-03 and qualified reference inputs are absent; no real reference runtime or qualification exists.",
+      "changes": "OWNER-C1-BURGERS-ALPHA-01 prospectively selects the public qualification-candidate engineering slice after C-03 hardening merges, while D-03/D-04 keep qualification authority.",
+      "not_yet": "No real role-explicit reference runtime or scientific qualification exists yet; protected and score-eligible admission remain disabled.",
       "map_ref": "WAVE-C/C-04"
     },
     "C-05": {

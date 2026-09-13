@@ -32,17 +32,18 @@
 > historical evidence, and human-reserved scientific/security authority remain.
 
 **Current wave:** C
-**Current phase:** C-03 bounded DEVELOPMENT worker isolation
+**Current phase:** C-03 prerequisite hardening after accepted PR #149
 **State:** **active in bounded engineering scope**
 **Wave A:** closed in bounded engineering scope
 **Wave B:** closed in bounded engineering scope after PR #118 accepted head
 `c510095b5501587cf93c04632a26b7c303d7d48b` in run `34365282759` and
 normally merged as `ac050fd53ee18bf3788c167ee7b0736bbfd7a46b`, tree
 `46b38440f13a8048db18bc480ddb6907396c9017`
-**Controlling register:** `.agent/WAVE_C.md` version 1.7
+**Controlling register:** `.agent/WAVE_C.md` version 1.8
 **Selected ticket:** C-03 — `in_progress`
 **Active ticket:** C-03
-**Next selected ticket:** none
+**Next authorized ticket after current merge:** C-04 engineering and public
+qualification-candidate slice under `OWNER-C1-BURGERS-ALPHA-01`
 C-EA1 passed canonical acceptance in run `34558389185` at accepted head
 `a779af066f4bf9bc36b6d6ab23914fa19191e1de` and normally merged in PR #136 as
 `0e0714c8260ca482a0ba2b743b2eaefd50508da1`. `OWNER-C-EA1-SYNTHETIC-01`
@@ -79,6 +80,13 @@ implementation as `83186be004a4087b27b07278da490dad36785acb`.
 `OWNER-C03-DEV-ISOLATION-01` now selects C-03's first bounded public-data
 DEVELOPMENT worker slice. C-02 remains open for production repeat/science and
 protected composition; the v0.2 research archive remains absent/deferred.
+PR #149 accepted exact head `ef4d5e336c942b7ff40856fcfee03f522ef2d1d5`
+in run `34770761721` and normally merged the bounded worker slice as
+`d94a22bb3c09089e01402db9e7ebf6eb3c662966`. The accepted image/config is
+`sha256:dae4717ae00d3174b8644159934eb4edbe94c0ad125549f6ade570a6f4c7e630`.
+`OWNER-C1-BURGERS-ALPHA-01` now selects only C-03's prerequisite-hardening
+continuation; after its tested merge, C-04 is prospectively next without a new
+ticket-selection prompt. Protected and score-eligible admission remain off.
 **Activation authority:** `OWNER-WAVE-C0-NET1-01` records the repository
 owner's explicit authorization to reconcile B-GATE, close Wave B in bounded
 engineering scope, activate Wave C/C0, select NET-1 alone, and continue through
@@ -125,12 +133,15 @@ in run `34558389185` and merged in PR #136 as
 development profile. The synthetic acknowledgement is ineligible for real
 finalization, C-W1, network or qualification. C-08 and C-09 remain materialized
 but unselected. The supplied immutable JAX bundle and merged PR #148 satisfy
-C-03's bounded adapter prerequisite. `OWNER-C03-DEV-ISOLATION-01` selects only
-C-03's public-data DEVELOPMENT Docker worker; the main exact envelope is
-implemented and required Linux service acceptance is pending. C-02 remains
-open, the missing v0.2 research archive remains deferred/unverified, and no
-production repeat rule exists. C-EA2 and later science/archive/network work are
-not selected.
+C-03's bounded adapter prerequisite. PR #149's exact head passed its required
+Linux service acceptance and normally merged the bounded public-data worker.
+`OWNER-C1-BURGERS-ALPHA-01` retains C-03 as the single active ticket for
+bounded response, parser, resource-observation and deadline/recovery hardening,
+then prospectively sequences C-04. C-02 remains open, the missing v0.2 research
+archive remains deferred/unverified, and the new three-replica working rule is
+not scientific sufficiency or a universal production/mainnet repeat policy.
+C-EA2 and later science/archive/network runtime remain unimplemented and
+ineligible until their named dependencies are earned.
 **Owner sequencing:** PR #94 satisfied `OWNER-B05-B07C-01` and reconciles B-05
 and B-07C as bounded done. `OWNER-B07D123-01` selects B-07D1 -> B-07D2 ->
 B-07D3 on one branch and PR while preserving ticket/evidence identity.
