@@ -13478,3 +13478,37 @@ production repeat rule, GPU/TPU claim, resource envelope, security acceptance,
 protected-data use, archive policy, production, network or LIVE decision is
 made. C-02 remains `in_progress`; the grouped C-03/MQ-015 owner-security
 decision remains required.
+
+## 2026-09-14 — C-03-D1: select a bounded CPU DEVELOPMENT worker profile
+
+**Notification:** issue #42 notification pending delivery visibility, for
+awareness under the delegated-decision protocol.
+
+**Owner direction.** Implement and test one CPU-only DEVELOPMENT worker around
+the canonical C-02 adapter on a trusted disposable host. This selects C-03 as
+the sole active implementation ticket. It does not grant MQ-015 security
+acceptance, protected-workload permission, production repeat policy or any
+scientific/production authority.
+
+**Working decision.** `WRAP` the existing exact C-02 plan/archive/seed/repeat
+interfaces and C-01 attempt lifecycle with a pinned non-root Linux Docker
+worker. Use one versioned profile with a read-only root, exact read-only input
+mount, private tmpfs scratch/output, `--network none`, dropped capabilities,
+no-new-privileges, one CPU, 2 GiB memory/no swap, 120-second wall deadline,
+256 PIDs, 128 configured runtime threads, 512 MiB scratch, 256 MiB output,
+256 file descriptors and 16 KiB redacted diagnostic retention. These are
+reversible engineering-test settings, not production policy.
+
+**Sequencing.** The validated C-02 adapter is sufficient to begin C-03. The
+C-03 envelope is a completion prerequisite for the full C-02 execution
+contract. C-02 therefore remains open rather than being fabricated as complete.
+The optional absent `carbon_jax_research` v0.2 archive is not renamed or made a
+blocker; canonical execution retains `carbon_jax_lab` provenance.
+
+**Failure and authority.** The parent distrusts outputs and owns exact
+association. Cancellation and resource-controlled termination are terminal
+non-scientific/infrastructure dispositions and do not automatically authorize a
+successor. Ambiguity requires C-01 reconciliation, not redispatch. Protected
+work stays structurally disabled. Host-root/daemon compromise, container/kernel
+escape, side channels and independent execution integrity remain outside this
+profile and require MQ-015 review before protected use.

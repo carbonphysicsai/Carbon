@@ -76,6 +76,13 @@ if [[ " ${CARBON_UV_GROUPS:-} " == *" science-jax "* ]]; then
   "${python_bin}" -m pytest tests/science -q
 fi
 
+if [[ "${CARBON_REQUIRE_DOCKER_TESTS:-}" == "1" ]] && \
+  git diff --name-only "${quality_base}...HEAD" | \
+    rg -q '^(\.worker/|carbon/(execution/store|reconstruction/worker|reconstruction/profiles/)|tests/service/test_c03_)'; then
+  echo "==> required C-03 Docker worker service lane"
+  "${python_bin}" -m pytest tests/service/test_c03_worker_service.py -q -s
+fi
+
 echo "==> canonical/legacy authority boundary"
 "${python_bin}" -m pytest tests/cpu/test_code_authority.py -q
 

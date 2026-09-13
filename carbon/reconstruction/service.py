@@ -605,6 +605,52 @@ def reconstruct(
     )
 
 
+def validate_reconstruction_artifact(
+    *,
+    execution_ref: ExecutionAttemptRef,
+    plan: ResolvedConstructionPlan,
+    training_archive: PublicTrainingArchive,
+    derived_seed: DerivedSeed,
+    artifact_path: Path,
+) -> ReconstructionReceipt:
+    """Validate an untrusted worker artifact without performing reconstruction."""
+
+    execution_id = _execution_id(execution_ref)
+    if type(training_archive) is not PublicTrainingArchive:
+        raise ReconstructionFailure("reconstruction.archive.invalid")
+    if type(derived_seed) is not DerivedSeed:
+        raise ReconstructionFailure("reconstruction.seed.invalid")
+    if not isinstance(artifact_path, Path) or not artifact_path.is_absolute():
+        raise ReconstructionFailure("reconstruction.artifact.path_invalid")
+    profile = compile_development_profile(plan)
+    try:
+        manifest = _read_json(artifact_path / "manifest.json")
+        mapping = manifest.get("mapping_receipt")
+        if (
+            type(mapping) is dict
+            and mapping.get("implementation_profile") == "foundax_fno_v1"
+        ):
+            from carbon.reconstruction.foundax_adapter import inspect_checkpoint
+        else:
+            from carbon.reconstruction._vendor.carbon_jax_lab.checkpoint import (
+                inspect_checkpoint,
+            )
+    except ReconstructionFailure:
+        raise
+    except Exception:  # noqa: BLE001 - untrusted artifact fails closed.
+        raise ReconstructionFailure(
+            "reconstruction.artifact.reconciliation_required"
+        ) from None
+    return _validate_artifact(
+        artifact_path,
+        inspect_checkpoint=inspect_checkpoint,
+        execution_id=execution_id,
+        profile=profile,
+        archive=training_archive,
+        randomness_digest=_tagged(derived_seed.as_backend_bytes()),
+    )
+
+
 def predict(
     receipt: ReconstructionReceipt,
     *,
@@ -804,4 +850,4 @@ def predict(
     return result, prediction_receipt
 
 
-__all__ = ["predict", "reconstruct"]
+__all__ = ["predict", "reconstruct", "validate_reconstruction_artifact"]

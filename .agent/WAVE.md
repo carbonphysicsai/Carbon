@@ -32,16 +32,16 @@
 > historical evidence, and human-reserved scientific/security authority remain.
 
 **Current wave:** C
-**Current phase:** C-02 bounded JAX development integration
+**Current phase:** C-03 bounded CPU DEVELOPMENT reconstruction worker
 **State:** **active in bounded engineering scope**
 **Wave A:** closed in bounded engineering scope
 **Wave B:** closed in bounded engineering scope after PR #118 accepted head
 `c510095b5501587cf93c04632a26b7c303d7d48b` in run `34365282759` and
 normally merged as `ac050fd53ee18bf3788c167ee7b0736bbfd7a46b`, tree
 `46b38440f13a8048db18bc480ddb6907396c9017`
-**Controlling register:** `.agent/WAVE_C.md` version 1.6
-**Selected ticket:** C-02 — `in_progress`
-**Active ticket:** C-02
+**Controlling register:** `.agent/WAVE_C.md` version 1.7
+**Selected ticket:** C-03 — `in_progress`
+**Active ticket:** C-03
 **Next selected ticket:** none
 C-EA1 passed canonical acceptance in run `34558389185` at accepted head
 `a779af066f4bf9bc36b6d6ab23914fa19191e1de` and normally merged in PR #136 as
@@ -76,7 +76,11 @@ the artifact/prediction hardening plus frozen DEVELOPMENT repeat capability as
 continuation upgrades the Python-3.11 CPU profile, binds physical scaling and
 adds one exact Foundax FNO implementation. C-02 remains `in_progress`; the
 described v0.2 research archive is absent, and no production repeat rule or
-C-03 selection follows.
+C-03 is now selected to wrap the validated adapter under an exact public-fixture
+DEVELOPMENT profile. C-02 remains open: its adapter is C-03's implementation
+prerequisite, while C-03 enforcement and MQ-015 acceptance remain prerequisites
+for the full C-02 execution contract. No protected execution follows.
+`C-03-D1` records this owner-accepted sequencing distinction.
 **Activation authority:** `OWNER-WAVE-C0-NET1-01` records the repository
 owner's explicit authorization to reconcile B-GATE, close Wave B in bounded
 engineering scope, activate Wave C/C0, select NET-1 alone, and continue through

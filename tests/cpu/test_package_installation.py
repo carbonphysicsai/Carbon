@@ -132,6 +132,9 @@ C02_MODULES = (
     "carbon.reconstruction.repeats",
     "carbon.reconstruction.scaling",
     "carbon.reconstruction.service",
+    "carbon.reconstruction.worker",
+    "carbon.reconstruction.worker_entrypoint",
+    "carbon.reconstruction.worker_profile",
 )
 
 INSTALLED_MODULES = (
@@ -318,6 +321,7 @@ module_names = {json.dumps(INSTALLED_MODULES)}
 modules = [importlib.import_module(name) for name in module_names]
 distribution = importlib.metadata.distribution("carbon")
 vendor_root = installed_root / "carbon/reconstruction/_vendor/carbon_jax_lab/licenses"
+worker_profile = installed_root / "carbon/reconstruction/profiles/c03_cpu_development_v1.json"
 license_files = [
     vendor_root / "NOTICE.md",
     vendor_root / "third_party/NEURALOPERATOR_LICENSE.txt",
@@ -330,6 +334,7 @@ print(json.dumps({{
     "module_names": [module.__name__ for module in modules],
     "module_files": [str(pathlib.Path(module.__file__).resolve()) for module in modules],
     "license_files": [str(path) for path in license_files if path.is_file()],
+    "worker_profile": str(worker_profile) if worker_profile.is_file() else None,
 }}))
 """
     result = subprocess.run(
@@ -348,12 +353,16 @@ print(json.dumps({{
         "module_names": list(INSTALLED_MODULES),
         "module_files": payload["module_files"],
         "license_files": payload["license_files"],
+        "worker_profile": payload["worker_profile"],
     }
     assert all(
         module_file.startswith(f"{installed_wheel_root.resolve()}/carbon")
         for module_file in payload["module_files"]
     )
     assert len(payload["license_files"]) == 4
+    assert payload["worker_profile"].startswith(
+        f"{installed_wheel_root.resolve()}/carbon/reconstruction/profiles/"
+    )
     assert all(
         license_file.startswith(
             f"{installed_wheel_root.resolve()}/carbon/reconstruction/_vendor/"

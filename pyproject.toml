@@ -85,6 +85,7 @@ include = ["carbon*"]
     "licenses/third_party/*.txt",
     "licenses/third_party/*.json",
 ]
+"carbon.reconstruction" = ["profiles/*.json"]
 
 [tool.pytest.ini_options]
 addopts = ["--strict-markers"]

@@ -523,6 +523,16 @@ class DurableExecutionQueue:
                 QueueClaim(ref, claim_id, worker_id), _load_binding(row[2])
             )
 
+    def binding_for_dispatch(self, ref: ExecutionAttemptRef) -> DurableExecutionBinding:
+        """Return one private exact binding to a trusted dispatcher without claiming it."""
+
+        ref = self._owned_ref(ref)
+        with self._transaction() as db:
+            row = self._row(db, ref)
+            if ExecutionState(row[3]) is not ExecutionState.QUEUED:
+                raise ExecutionFailure(ExecutionCode.STATE)
+            return _load_binding(row[1])
+
     def claim(
         self,
         ref: ExecutionAttemptRef,
@@ -830,6 +840,37 @@ class DurableExecutionQueue:
 
     def fail_strategy(self, claim: QueueClaim) -> WriteDisposition:
         return self._terminal(claim, ExecutionState.FAILED_STRATEGY)
+
+    def cancel_claim(self, claim: QueueClaim) -> WriteDisposition:
+        """Cancel dispatched work without making it retryable or scientific."""
+
+        claim = self._owned_claim(claim)
+        with self._transaction() as db:
+            row = self._claimed_row(db, claim)
+            state = ExecutionState(row[3])
+            if state not in {
+                ExecutionState.DISPATCHING,
+                ExecutionState.RUNNING,
+                ExecutionState.RECONCILIATION_REQUIRED,
+            }:
+                raise ExecutionFailure(ExecutionCode.STATE)
+            db.execute(
+                "UPDATE execution_attempt_v1 SET state=?,claim_id=NULL,worker_id=NULL "
+                "WHERE submission_id=? AND attempt_number=?",
+                (
+                    ExecutionState.CANCELLED.value,
+                    claim.ref.submission_id.value,
+                    claim.ref.attempt_number,
+                ),
+            )
+            self._event(
+                db,
+                claim.ref.submission_id.value,
+                claim.ref.attempt_number,
+                "CANCELLED_NON_SCIENTIFIC",
+                {"claim_id": claim.claim_id},
+            )
+        return WriteDisposition.INSERTED
 
     def cancel(
         self, ref: ExecutionAttemptRef, requester: RequesterIdentity

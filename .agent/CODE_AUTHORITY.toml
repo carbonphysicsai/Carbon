@@ -47,11 +47,13 @@ test_roots = [
     "tests/cpu",
     "tests/invariants",
     "tests/science",
+    "tests/service",
 ]
 fixture_roots = [
     "tests/fixtures",
 ]
 script_roots = [
+    ".worker",
     "agent_pack/executors/hoh",
     "scripts/check_quality.py",
     "scripts/dev",

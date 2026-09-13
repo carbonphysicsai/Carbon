@@ -55,7 +55,7 @@ class Classification:
 
 
 # These files define the canonical execution environment or its acceptance.
-_IMAGE_PREFIXES = (".devcontainer/", ".github/workflows/", "scripts/dev/")
+_IMAGE_PREFIXES = (".devcontainer/", ".github/workflows/", ".worker/", "scripts/dev/")
 _IMAGE_EXACT = frozenset(
     {
         ".dockerignore",
@@ -74,6 +74,7 @@ _IMAGE_EXACT = frozenset(
 )
 
 _RUNTIME_PREFIXES = (
+    ".worker/",
     "carbon/",
     "tests/",
     "scripts/",

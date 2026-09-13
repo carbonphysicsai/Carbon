@@ -1,0 +1,74 @@
+{
+  "schema": "carbon.c03.worker-profile.v1",
+  "scope": "UNQUALIFIED_PUBLIC_DEVELOPMENT",
+  "profile_id": "carbon_c03_cpu_development_v1",
+  "profile_version": "1.0",
+  "security_state": "REVIEWABLE_NOT_SECURITY_ACCEPTED",
+  "protected_workloads_enabled": false,
+  "trusted_host_assumption": "one trusted disposable Linux Docker host; host-root compromise and hardware side channels are outside this profile",
+  "participant_inputs": "an already compiled declarative Strategy plan only; no code, imports, paths, URIs, dependencies, commands, checkpoints or executables",
+  "image": {
+    "definition": ".worker/Dockerfile",
+    "definition_sha256": "sha256:234bf538fea4fa4f7c907d7da9b0718258703f27bd604e5df4ba590bfd5c0b63",
+    "base": "ubuntu:24.04@sha256:33ceb71981b602c1a7443a53469e4dba065f7503eab3078a2d7a57a2ab987517",
+    "uv_source": "ghcr.io/astral-sh/uv:0.12.7@sha256:95f2aa1fe59274951cfe9b0cbc7972e879ff1004bc8945d130a32eb0dbd85945",
+    "runtime_user": "10001:10001",
+    "runtime_architecture": "linux/amd64",
+    "runtime_image_identity": "bound to an immutable sha256 image ID per request and result"
+  },
+  "source": {
+    "canonical_adapter": "carbon_jax_lab",
+    "canonical_adapter_supplied_wheel": "sha256:3941af49fb7441b9ee37408db2b759bdc65088f0bda089f2a774adc3506935db",
+    "carbon_source_revision": "bound per image/request",
+    "optional_carbon_jax_research_v0_2": "ABSENT_UNVERIFIED_NOT_A_BLOCKER"
+  },
+  "environment": {
+    "python": "3.11.16",
+    "backend": "cpu",
+    "dependency_lock": "uv.lock",
+    "dependency_lock_sha256": "9de64d6c5ca9a0a73d141ca403de1d2bee8bb85e68cd7ea20195b163a7c2cf11",
+    "c02_environment_digest": "sha256:2ed4187d9add70afcd18a8faaa1b3acdd50f5ffe6e9b0f1d402f04dc34e13c1e",
+    "accelerators": false
+  },
+  "limits": {
+    "cpus": 1.0,
+    "cpu_time_seconds": null,
+    "memory_bytes": 2147483648,
+    "swap_bytes": 0,
+    "wall_seconds": 120,
+    "pids": 256,
+    "threads": 128,
+    "scratch_bytes": 536870912,
+    "output_bytes": 268435456,
+    "open_files": 256,
+    "diagnostic_bytes": 16384
+  },
+  "filesystem": {
+    "root_read_only": true,
+    "input_mount": "read-only exact staged request and public TRAIN archive",
+    "scratch_mount": "private noexec,nosuid,nodev tmpfs",
+    "output_mount": "private noexec,nosuid,nodev tmpfs copied out only after stop",
+    "host_repository_mounted": false,
+    "host_home_mounted": false,
+    "docker_socket_mounted": false
+  },
+  "network": {
+    "docker_mode": "none",
+    "downloads": false,
+    "online_logging": false
+  },
+  "termination": {
+    "parent_wall_clock_enforced": true,
+    "container_and_descendants_killed_together": true,
+    "late_output_association": false,
+    "cleanup_failure_is_reported": true,
+    "automatic_retry_after_ambiguous_dispatch": false
+  },
+  "claims": {
+    "production_repeat_count": null,
+    "protected_workload_approval": null,
+    "security_qualification": null,
+    "hostile_host_resistance": null,
+    "side_channel_resistance": null
+  }
+}

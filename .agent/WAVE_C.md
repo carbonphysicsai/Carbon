@@ -33,13 +33,13 @@
 
 **Status:** active in bounded engineering scope because `.agent/WAVE.md` names
 Wave C/C0 and this file as its controlling register.
-**Version:** 1.6
+**Version:** 1.7
 **Activation decision:** `OWNER-WAVE-C0-NET1-01`
-**Selected ticket:** C-02 — `in_progress`
-**Active ticket:** C-02
-**Next selected ticket:** none. The owner-supplied immutable JAX bundle selects
-only a bounded DEVELOPMENT adapter; later isolation, scientific, archive and
-public-network work remains unselected.
+**Selected ticket:** C-03 — `in_progress`
+**Active ticket:** C-03
+**Next selected ticket:** none. The owner selected only a bounded CPU
+DEVELOPMENT worker around the validated C-02 adapter; later protected,
+scientific, archive and public-network work remains unselected.
 PR #146 merged the initial adapter as
 `d9fadf7f9cbb9b3a2a4ffa1ec9b0c906826be8ca`; PR #147 accepted head
 `72608d589582707955943345bc1308017e9650dc` in run `34750621646` and merged
@@ -47,8 +47,10 @@ artifact/prediction hardening plus frozen DEVELOPMENT repeats as
 `dbd7e255f8a1d507b924bd1f82d309007b201b0b`. The current v3 continuation adds
 the locked Python-3.11 CPU upgrade, explicit physical scaling and exact Foundax
 FNO implementation profile. C-02 remains `in_progress`, the described v0.2
-research archive remains absent/unverified, C-03 remains unselected, and no
-production repeat count exists.
+research archive remains absent/unverified and no production repeat count
+exists. C-02 stays open while C-03 implements the envelope required for its
+full execution contract; MQ-015 security acceptance remains unresolved.
+`C-03-D1` records this owner-accepted sequencing distinction.
 **Last completed ticket:** C-EP3, merged in PR #145 after head
 `ff1d4603cf6889bb3e9cf7f4a589524ade5c6b8c` passed run `34721794618`
 **Primary Hub map_ref:** `WAVE-C`
@@ -117,7 +119,7 @@ production custody, quorum, science or economics blocks only that operation.
 | C-EA0 | Evidence capture contract | done | `.agent/evidence/wave_c/c-ea0.md` | Codex + evidence architecture | Execution + Operations + data/security + scientific integration | C-AUTH1, C-01, B-GATE | MQ-048, MQ-051 | M | C1 |
 | C-EA1 | Durable evidence archive | done | `.agent/evidence/wave_c/c-ea1.md` | Codex + evidence architecture | Operations + data/security + scientific integration | C-EA0 + OWNER-C-EA1-SYNTHETIC-01 | MQ-048, MQ-051 | L | C1 |
 | C-02 | Real declarative reconstruction | in_progress | `.agent/tickets/C-02_real_reconstruction.md` | Physics/SciML + reconstruction engineering | Scientific integration + execution | B-02B, B-03, B-E1, C-01 | MQ-045, MQ-048 | L | C1 |
-| C-03 | Isolated reconstruction worker | todo | `.agent/tickets/C-03_isolated_reconstruction_worker.md` | Codex + execution/SRE engineering | Security + protocol + Physics/SciML | C-02 | MQ-015, MQ-048 | L | C1 |
+| C-03 | Isolated reconstruction worker | in_progress | `.agent/tickets/C-03_isolated_reconstruction_worker.md` | Codex + execution/SRE engineering | Security + protocol + Physics/SciML | C-02 validated adapter | MQ-015, MQ-048 | L | C1 |
 | C-04 | Protected reference runtime | todo | `.agent/plans/C1_DEPENDENCY_GRAPH.md` | Scientific reference + execution engineering | Physics/SciML + security | C-03, B-04, B-E2 | MQ-045, MQ-048 | L | C1 |
 | C-05 | Real measurement and Score Pack | todo | `.agent/plans/C1_DEPENDENCY_GRAPH.md` | Scientific measurement engineering | Physics/SciML + statistics | C-02, C-04, B-05 | MQ-045, MQ-048 | L | C1 |
 | C-06 | Signed evaluation receipt | todo | `.agent/plans/C1_DEPENDENCY_GRAPH.md` | Scientific integration + receipt engineering | Security + Physics/SciML | C-01, C-02, C-04, C-05 | MQ-048, MQ-051 | L | C1 |

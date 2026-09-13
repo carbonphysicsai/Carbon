@@ -58,8 +58,11 @@ Carbon-side semantic capabilities, not mandatory upstream symbol names.
 - [x] Deterministic bounded tests prove reconstruction/result association and
       prove protected official case material is absent from public receipts.
 
-The complete ticket remains open because the owner-selected repeated-build policy
-and C-03's registered isolated-worker limits are still absent. The
+The complete ticket remains open because the production repeated-build policy,
+MQ-015 security acceptance and protected/scientific integration remain absent.
+C-03 is now selected to wrap the validated adapter in a bounded public-fixture
+DEVELOPMENT worker; its enforced envelope is a C-02 completion prerequisite,
+not a reason to pretend C-02 had to be complete before C-03 could start. The
 bounded runner is capability, not selection of a required repeat count.
 The missing v0.2 `carbon_jax_research` input also remains open as an optional
 source-intake/provenance item; it does not erase the tested canonical lab and

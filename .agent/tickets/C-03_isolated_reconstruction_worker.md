@@ -1,8 +1,10 @@
 # C-03 — Isolated reconstruction worker
 
 **Wave:** C1 real scientific execution foundations
-**Status:** `future_reserved`; contract materialized, unselected and unstarted
-**Depends on:** C-02; MQ-015 security/threat-model decision
+**Status:** `in_progress`
+**Development slice:** bounded CPU DEVELOPMENT worker selected
+**Depends on:** C-02 validated adapter; MQ-015 security acceptance remains a
+completion/activation prerequisite, not a blocker to the public-fixture slice
 **Owner:** Codex + execution/SRE engineering
 **Accountable reviewer:** Security + protocol + Physics/SciML
 **Authority:** retained C-03 identity from launch v1.0.3 §6.3; current C1
@@ -33,14 +35,23 @@ reconstruction randomness required by C-02. It receives no A4 master entropy,
 protected EVAL seeds/cases, reference answers, validator secrets or signing
 keys.
 
-The first profile proposed for owner/security review is one trusted host,
+The selected `carbon_c03_cpu_development_v1` profile is one trusted host,
 pinned worker code, untrusted declarative parameters/arrays, CPU-only local
-resources, no outbound network, and bounded scratch/output. It is not selected
-or security-accepted. MQ-015 must still name threat actors/trust boundary,
-image and hardware class, exact CPU/memory/wall/PID/output limits,
-filesystem/network enforcement, cancellation/descendant cleanup, audit
-evidence and accepted residual risk. Host-root corruption and hardware side
-channels remain outside the proposal absent another approved mechanism.
+resources, no outbound network, and bounded scratch/output. The owner selected
+implementation and testing of this DEVELOPMENT profile, but did not
+security-accept it or authorize protected workloads. The versioned profile
+states its exact test limits, image/runtime, filesystem/network enforcement,
+cancellation/cleanup behavior and residual trusted-host assumptions. MQ-015
+still requires accountable security acceptance before protected or production
+use. Host-root corruption and hardware side channels remain outside it.
+
+## Dependency interpretation
+
+C-02's validated canonical adapter is the implementation prerequisite for this
+worker. This worker's enforced envelope is in turn a completion prerequisite
+for the full C-02 execution contract. That two-way completion relationship does
+not require falsely marking C-02 done: C-02 remains open while C-03 wraps the
+already validated adapter, and both retain their substantive remaining gates.
 
 ## Failure and lifecycle contract
 
@@ -59,9 +70,9 @@ channels remain outside the proposal absent another approved mechanism.
 
 ## Definition of Done
 
-- [ ] C-02's exact authorized JAX revision/interface and reproducible runtime
+- [x] C-02's exact authorized JAX revision/interface and reproducible runtime
   are available; no prototype or forward-pass parity substitutes for them.
-- [ ] A threat model names every participant-controlled input, host capability,
+- [x] A development threat model names every participant-controlled input, host capability,
   secret/protected boundary, side channel, kill path and residual risk.
 - [ ] Canonical service-backed tests prove network denial, scratch-only access,
   CPU/GPU/RAM/VRAM/wall/process/output enforcement, cancellation and complete
@@ -69,7 +80,7 @@ channels remain outside the proposal absent another approved mechanism.
 - [ ] Escape, traversal, device, fork/process-bomb, oversized-output, log,
   timing, stale/cross-attempt, retry/replay and abrupt-worker-loss tests fail
   closed without hidden-evaluation leakage.
-- [ ] Typed infrastructure failures remain distinct from reconstruction,
+- [x] Typed infrastructure failures remain distinct from reconstruction,
   reference, measurement and scientific failure throughout C-01/C-02/C-EA
   association and recovery.
 - [ ] Security review accepts the exact bounded execution profile before any
@@ -77,6 +88,8 @@ channels remain outside the proposal absent another approved mechanism.
 
 ## Authority ceiling
 
-Contract materialization only at this checkpoint. No worker implementation,
-real execution, scientific/security qualification, public network, production
-or LIVE authority exists.
+Bounded engineering implementation and testing with public TRAIN fixtures only.
+No protected execution, scientific/security qualification, official evaluation,
+public network, production or LIVE authority exists. The separately described
+`carbon_jax_research` v0.2 archive remains absent/unverified optional intake and
+is not substituted for the canonical `carbon_jax_lab` source.
