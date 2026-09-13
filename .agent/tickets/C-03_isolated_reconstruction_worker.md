@@ -53,7 +53,7 @@ confidential-host defense and protected-exam administrator collusion remain
 outside the claim. The slice is eligible only for disposable public/synthetic
 work on authorized development/CI machines without production secrets.
 MQ-015 therefore has scoped DEVELOPMENT implementation decisions, while
-implementation evidence and broader security acceptance remain open; global
+implementation evidence and broader security acceptance remain open. Global
 MQ-015 is not resolved and `SECURITY_QUALIFIED` is not earned.
 
 ## Identity, lifecycle and failure rules

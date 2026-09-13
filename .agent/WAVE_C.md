@@ -35,7 +35,7 @@
 Wave C/C0 and this file as its controlling register.
 **Version:** 1.7
 **Activation decision:** `OWNER-WAVE-C0-NET1-01`
-**Selected ticket:** C-03 — `in_progress`, first bounded DEVELOPMENT slice
+**Selected ticket:** C-03 — `in_progress`
 **Active ticket:** C-03
 **Next selected ticket:** none. `OWNER-C03-DEV-ISOLATION-01` selects only the
 public-data Docker isolation composition around C-02; later protected science,

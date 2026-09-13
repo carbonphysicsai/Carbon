@@ -40,7 +40,7 @@
 normally merged as `ac050fd53ee18bf3788c167ee7b0736bbfd7a46b`, tree
 `46b38440f13a8048db18bc480ddb6907396c9017`
 **Controlling register:** `.agent/WAVE_C.md` version 1.7
-**Selected ticket:** C-03 — `in_progress`, bounded DEVELOPMENT slice
+**Selected ticket:** C-03 — `in_progress`
 **Active ticket:** C-03
 **Next selected ticket:** none
 C-EA1 passed canonical acceptance in run `34558389185` at accepted head
