@@ -1,14 +1,14 @@
 # C-EA1 — Durable evidence archive
 
 **Wave:** C1 real scientific execution foundations
-**Status:** `in_progress` for the separately versioned private-alpha profile
-preparation; prior synthetic scope remains done
+**Status:** `in_progress`
+**Status scope:** separately versioned private-alpha preparation; prior
+synthetic scope remains done
 **Completion boundary:** exact synthetic development profile accepted at head
 `a779af066f4bf9bc36b6d6ab23914fa19191e1de` in run `34558389185` and merged as
 `0e0714c8260ca482a0ba2b743b2eaefd50508da1`; alpha preparation is a new
 fail-closed slice and cannot acknowledge real evidence
-**Depends on:** C-EA0; `OWNER-C-EA1-SYNTHETIC-01` for the accepted synthetic
-profile; `OWNER-C1-BURGERS-ALPHA-01` for the prospective alpha targets
+**Depends on:** C-EA0
 **Owner:** Codex + evidence architecture
 **Accountable reviewer:** Operations + data/security + scientific integration
 **Selection authority:** `OWNER-C1-BURGERS-ALPHA-01` for the active slice
