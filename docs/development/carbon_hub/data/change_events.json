@@ -2721,6 +2721,8 @@
       "summary": "The C-06 candidate binds exact public-development reconstruction, inference, reference, measurement, Dossier and execution evidence in an Ed25519-signed append-only receipt. Atomic replay, tamper, lifecycle and disclosure tests pass locally; exact-head automated acceptance is pending, and every official, protected, score, archive, network and reward authority remains structurally false.",
       "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/f39bc7bda57276758184ad049d249bdf09a442c8/.agent/evidence/wave_c/c-06.md",
       "affects": [
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE",
         "WAVE-C",
         "WAVE-C/C-01",
         "WAVE-C/C-02",
