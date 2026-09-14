@@ -77,3 +77,22 @@ def test_alpha_profile_preparation_cannot_issue_ack_or_finalize() -> None:
     assert "EvidenceArchive(" not in source
     assert "finalize_submission" not in source
     assert "carbon.chain" not in source
+
+
+def test_alpha_provider_package_cannot_issue_ack_or_gain_network_authority() -> None:
+    combined = "\n".join(
+        (ROOT / path).read_text(encoding="utf-8")
+        for path in (
+            "carbon/evidence_archive/alpha_activation.py",
+            "carbon/evidence_archive/alpha_capacity.py",
+            "carbon/evidence_archive/alpha_package.py",
+            "carbon/evidence_archive/aws_provider.py",
+        )
+    )
+    assert "ArchiveAcknowledgement(" not in combined
+    assert "eligible_for_real_acknowledgement: bool = False" in combined
+    assert "eligible_for_c_ea2: bool = False" in combined
+    assert "finalize_submission" not in combined
+    assert "carbon.chain" not in combined
+    assert "carbon.rewards" not in combined
+    assert "def delete" not in combined

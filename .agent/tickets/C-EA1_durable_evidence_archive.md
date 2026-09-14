@@ -2,8 +2,8 @@
 
 **Wave:** C1 real scientific execution foundations
 **Status:** `in_progress`
-**Status scope:** separately versioned private-alpha preparation; prior
-synthetic scope remains done
+**Status scope:** separately versioned private-alpha AWS deployment-package
+continuation; prior synthetic runtime and alpha preparation remain accepted
 **Completion boundary:** exact synthetic development profile accepted at head
 `a779af066f4bf9bc36b6d6ab23914fa19191e1de` in run `34558389185` and merged as
 `0e0714c8260ca482a0ba2b743b2eaefd50508da1`; alpha preparation is a new
@@ -12,7 +12,8 @@ fail-closed slice and cannot acknowledge real evidence
 **Owner:** Codex + evidence architecture
 **Accountable reviewer:** Operations + data/security + scientific integration
 **Selection authority:** `OWNER-C1-BURGERS-ALPHA-01` for the active slice
-**Runtime decisions:** `C-EA1-D1` (synthetic), `C-EA1-D2` (alpha preparation)
+**Runtime decisions:** `C-EA1-D1` (synthetic), `C-EA1-D2` (alpha preparation),
+`C-EA1-D3` (unprovisioned AWS package)
 **Delivery:** PR #136 for synthetic; alpha preparation accepted in PR #168
 **Goal:** Implement the catalogue, immutable artifact store, verified manifests, journal, outbox, and availability acknowledgement defined by C-EA0 without creating real-finalization authority.
 
@@ -162,3 +163,40 @@ evidence, scoped security acceptance, deployment identity and deployment
 authorization remain external blockers. No cloud resources or charges are
 created by this ticket. C-EA2 remains unselected until a real acknowledgement is
 implemented and eligible.
+
+## Selected AWS deployment-package continuation
+
+After C-10 PR #173, the owner's continuation selects C-EA1 alone. `C-EA1-D3`
+keeps `carbon.alpha-evidence-archive.private.v1` unchanged and adds provider
+profile `carbon.alpha-evidence-archive.aws.private.v1`. The package recommends
+AWS `us-west-2` and binds a private Multi-AZ RDS PostgreSQL 17.11 catalogue,
+versioned/Object-Locked S3 objects, KMS data keys, private VPC endpoints,
+separate runtime roles, AWS Backup, database migrations/roles, source-use facts
+and priced quantities. It is unprovisioned and reversible.
+
+The implementation adds bounded S3 immutable writes with exact object-version
+receipts and version-specific recovery, KMS envelope-data-key generation and
+recovery under exact encryption context, RDS IAM token connections, and an
+atomic PostgreSQL ledger enforcing one pending evaluation and 20 GiB across
+pending plus retained evidence. Capacity transitions retain append-only events.
+The activation contract keeps configuration, service identity, authorization,
+recoverability, capacity, integrity, permitted use, rehearsal, security and
+deployment predicates distinct. It cannot issue an acknowledgement or satisfy
+C-EA2.
+
+### AWS-package Definition of Done
+
+- [x] Provider, region recommendation, exact resource shapes, roles, private
+  connectivity, rollback and test-owned recovery procedure are reviewable.
+- [x] Provider adapters preserve bounded immutable/version-specific objects,
+  external versioned keys and short-lived IAM database credentials.
+- [x] One-evaluation/20 GiB admission includes retained evidence and preserves
+  transition history under concurrent PostgreSQL transactions.
+- [x] The deployment manifest binds template, roles, dependency/source-use and
+  cost inputs; the offline doctor remains non-deploying and fail closed.
+- [x] Public price-list quantities and exclusions produce a reviewable monthly
+  and one-off rehearsal estimate.
+- [ ] Exact-head automated acceptance and normal merge remain pending.
+- [ ] Actual account/network/principals, provisioning, recovery rehearsal,
+  security acceptance and deployment authorization remain external; no real
+  acknowledgement is eligible.

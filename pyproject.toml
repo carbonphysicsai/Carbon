@@ -55,6 +55,7 @@ chain = [
     "bittensor==11.1.0",
 ]
 archive = [
+    "boto3==1.43.56",
     "cryptography==50.0.1",
     "psycopg[binary]==3.3.5",
 ]

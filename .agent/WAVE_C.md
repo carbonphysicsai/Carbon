@@ -33,14 +33,14 @@
 
 **Status:** active in bounded engineering scope because `.agent/WAVE.md` names
 Wave C/C0 and this file as its controlling register.
-**Version:** 2.2
+**Version:** 2.3
 **Activation decision:** `OWNER-WAVE-C0-NET1-01`
-**Selected ticket:** C-10 — `in_progress`
-**Active ticket:** linked fresh DEVELOPMENT execution, exact-byte observation,
-disagreement journal and fail-closed quarantine
-**Next authorized ticket after current merge:** C-EA1 deployable private-alpha
-archive continuation. C-EA2 remains blocked until an eligible real archive
-acknowledgement and recovery evidence exist.
+**Selected ticket:** C-EA1 — `in_progress`
+**Active ticket:** unprovisioned AWS private-alpha provider adapters,
+deployment/recovery package, atomic capacity and exact external decision
+**Next boundary:** separately authorized provisioning and test-owned recovery
+rehearsal. C-EA2 remains blocked until an eligible real archive acknowledgement
+and recovery/security evidence exist.
 `OWNER-C1-BURGERS-ALPHA-01` keeps one selected ticket at a time. Protected
 science, real archive acknowledgement and public-network execution remain
 ineligible.
@@ -86,9 +86,12 @@ C-EA1 preparation was accepted at exact head
 `ea51a947bbf21908144f93ffb04b5e9cc46de519` in run `34830155526` and normally
 merged in PR #168 as `0ee4c9b8db8339740521e2afc72624c97d8e177a`, with matching
 tree `e11b05b60909748f5c152f53ca0e65b0b5696d3c`. It remains configuration-only
-and cannot issue real acknowledgements. C-10 is now selected for one bounded
-public-data DEVELOPMENT re-execution slice.
-**Last completed slice:** C-EA1 private-alpha preparation, merged in PR #168
+and cannot issue real acknowledgements. C-10 exact head
+`82073ae2d5cc8504b7e77a9824642f98f0827526` then passed required run
+`34882900413`; PR #173 normally merged the bounded DEVELOPMENT slice as
+`d7ef7270eeb3b9a5594704efe0876ff3fb5ded49`. C-EA1-D3 is now selected for one
+unprovisioned private-alpha AWS package.
+**Last completed slice:** C-10 bounded DEVELOPMENT re-execution, merged in PR #173
 **Primary Hub map_ref:** `WAVE-C`
 
 C-EA1 passed canonical acceptance in run `34558389185` at accepted head
@@ -164,7 +167,7 @@ production custody, quorum, science or economics blocks only that operation.
 | C-06 | Signed evaluation receipt | done | `.agent/evidence/wave_c/c-06.md` (PR #161 accepted non-official DEVELOPMENT receipt slice; official/custody scope open) | Scientific integration + receipt engineering | Security + Physics/SciML | C-01, C-02, C-04, C-05 | MQ-048, MQ-051 | L | C1 |
 | C-07 | Real validator orchestration | done | `.agent/evidence/wave_c/c-07.md` (PR #163 accepted the bounded non-official DEVELOPMENT composition; broader official/protected scope remains open) | Validator orchestration engineering | Scientific integration + security | C-01, C-02, C-03, C-04, C-05, C-06 | MQ-048, MQ-051 | L | C1 |
 | C-08 | Authenticated miner MCP end to end | done | `.agent/evidence/wave_c/c-08.md` (PR #167 accepted) | Codex + API/protocol engineering | Protocol + security + scientific integration | NET-2, C-07, A9 | MQ-051, MQ-054 | L | C1/C2 |
-| C-10 | Independent re-execution and disagreement | in_progress | `.agent/evidence/wave_c/c-10.md` | Codex + validator audit engineering | Scientific integration + security | C-06, C-07 | MQ-048, MQ-051 | L | C1 |
+| C-10 | Independent re-execution and disagreement | done | `.agent/evidence/wave_c/c-10.md` (PR #173 bounded DEVELOPMENT scope; broader science/independence/security open) | Codex + validator audit engineering | Scientific integration + security | C-06, C-07 | MQ-048, MQ-051 | L | C1 |
 | C-EA2 | Archive before finalization | todo | `.agent/tickets/C-EA2_archive_before_finalization.md` | Evidence archive + validator integration | Operations + data/security + scientific integration | C-EA1, C-07 | MQ-048, MQ-051 | L | C1 |
 | C-09 | Official testnet publication provider | todo | `.agent/tickets/C-09_official_testnet_publication_provider.md` | Codex + publication/protocol engineering | Protocol + scientific integration + security | A10, C-06, C-07, C-EA2 | MQ-048, MQ-054 | L | C1/C2 |
 | C-W1 | Exact real testnet eligibility provenance | todo | `.agent/tickets/C-W1_testnet_eligibility.md` | Network/protocol + scientific integration | Security + Physics/SciML | C-09, C-EA2 | MQ-048, MQ-054 | M | C2 |
@@ -200,8 +203,9 @@ scientifically qualified. C-EA1 accepted head
 exact synthetic development profile and cannot acknowledge real evidence or
 satisfy C-EA2. C-03 and C-08 now have bounded DEVELOPMENT implementations;
 C-09 remains contract-only. PR #168 accepted the alpha preparation profile,
-which cannot itself satisfy C-EA2. C-10's DEVELOPMENT audit slice is selected;
-C-EA2 remains unselected and dependency-blocked.
+which cannot itself satisfy C-EA2. PR #173 accepted C-10's DEVELOPMENT audit
+slice; C-EA1-D3's unprovisioned AWS package is selected. C-EA2 remains
+unselected and dependency-blocked.
 
 C-EP1 accepted head `e0fbb6208cf0bf95910d51e7a3c996b09387a14e`
 passed RUNTIME_FULL run `34708322417` and normally merged in PR #143 as

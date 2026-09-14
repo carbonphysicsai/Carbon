@@ -1,0 +1,34 @@
+{
+  "schema_version": "carbon.evidence-archive.aws-cost-estimate.v1",
+  "retrieved_at": "2026-09-15",
+  "currency": "USD",
+  "region": "us-west-2",
+  "hours_per_month": 730,
+  "assumptions": {
+    "logical_evidence_gib": 20,
+    "s3_billed_version_factor": 1.5,
+    "s3_billed_gib": 30,
+    "rds_allocated_gib": 20,
+    "kms_customer_keys": 1,
+    "kms_interface_endpoint_azs": 1,
+    "monthly_put_requests": 10000,
+    "monthly_get_requests": 20000,
+    "rds_excess_backup_gib_contingency": 20
+  },
+  "rates": [
+    {"item": "rds-db.t4g.micro-multi-az", "quantity": 730, "unit": "hours", "rate": 0.032, "subtotal": 23.36, "source": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonRDS/current/us-west-2/index.json", "sku": "P7NF7E45KMYTCGB6"},
+    {"item": "rds-gp3-multi-az", "quantity": 20, "unit": "GB-month", "rate": 0.23, "subtotal": 4.6, "source": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonRDS/current/us-west-2/index.json", "sku": "FU39TGXWFGQS5CK9"},
+    {"item": "s3-standard-including-versions", "quantity": 30, "unit": "GB-month", "rate": 0.023, "subtotal": 0.69, "source": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonS3/current/us-west-2/index.json", "sku": "Z3FQZG73HYSPVABR"},
+    {"item": "s3-put-requests", "quantity": 10000, "unit": "requests", "rate": 0.000005, "subtotal": 0.05, "source": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonS3/current/us-west-2/index.json", "sku": "D4PMUVH6F64HK2D6"},
+    {"item": "s3-get-requests", "quantity": 20000, "unit": "requests", "rate": 0.0000004, "subtotal": 0.008, "source": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonS3/current/us-west-2/index.json", "sku": "E77AQEM2DC4VV3FC"},
+    {"item": "kms-customer-managed-key", "quantity": 1, "unit": "keys-month", "rate": 1.0, "subtotal": 1.0, "source": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/awskms/current/us-west-2/index.json", "sku": "S8HBXBVJKWKDP9AS"},
+    {"item": "kms-api-requests", "quantity": 30000, "unit": "requests", "rate": 0.000003, "subtotal": 0.03, "source": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/awskms/current/us-west-2/index.json", "sku": "SE9KXT6M6JTP7E4W", "note": "first 20000 monthly requests may be free; estimate charges 10000"},
+    {"item": "kms-interface-endpoint", "quantity": 730, "unit": "endpoint-hours", "rate": 0.01, "subtotal": 7.3, "source": "https://aws.amazon.com/privatelink/pricing/", "note": "one AZ; verify account invoice rate before authorization"},
+    {"item": "rds-excess-backup-contingency", "quantity": 20, "unit": "GB-month", "rate": 0.095, "subtotal": 1.9, "source": "https://aws.amazon.com/rds/pricing/", "note": "RDS backup up to allocated database storage is normally included; this is explicit excess contingency"},
+    {"item": "rds-managed-master-secret", "quantity": 1, "unit": "secrets-month", "rate": 0.4, "subtotal": 0.4, "source": "https://aws.amazon.com/secrets-manager/pricing/", "note": "request charges are negligible at alpha volume"}
+  ],
+  "monthly_estimate": 39.338,
+  "monthly_budget_recommendation": 55.0,
+  "one_off_rehearsal_estimate": 5.0,
+  "not_included": ["tax", "operator labor", "existing VPC/supervisor host", "VPN or other supervisor-to-VPC attachment", "internet or inter-region transfer", "unexpected version growth", "security assessment"]
+}
