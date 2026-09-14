@@ -4829,6 +4829,23 @@ events:
       - "SYSTEM/DEVELOPMENT-HUB"
       - "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
     supersedes: null
+  -
+    map_ref: "WAVE-G"
+    event_type: "evidence"
+    event_id: "GOAL-WORKBENCH-03-E1"
+    owner_lane: "business_tooling_engineering"
+    status: "implemented"
+    summary: "The accepted Goal Workbench v0.3 is rehearsed through three public/synthetic intent-preserving and fail-closed handoff journeys. Native Burgers Dynamics authoring works through the existing C-AUTH1 bridge; mismatched and unsupported scopes retain precise extension requests, while Grok, CRM, calendar, launch and numerical score-diagnostic routes remain manual or unavailable."
+    primary_detail: "https://github.com/carbonphysicsai/Carbon/pull/164"
+    affects:
+      - "WAVE-C/C-AUTH1"
+      - "WAVE-G"
+      - "SYSTEM/BUSINESS-AUTHORITY"
+      - "SYSTEM/GOVERNANCE"
+      - "SYSTEM/MATURITY"
+      - "SYSTEM/DEVELOPMENT-HUB"
+      - "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+    supersedes: null
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"

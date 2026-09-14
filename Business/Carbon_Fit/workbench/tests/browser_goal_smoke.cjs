@@ -22,7 +22,7 @@ function response(request){return {schema_version:'carbon.goal-workbench.respons
  await page.locator('#new-alternative').click();
  check('one job supports multiple design alternatives',await page.locator('#design-select option').count()===2);
  await page.locator('#design-select').selectOption('job-001-design-1');await page.locator('#burgers-demo').click();
- check('supported Burgers demonstration binds requirement score case reference and CPES',await page.locator('#goal-summary').innerText().then(text=>text.includes('EXACT_SUPPORTED')&&text.includes('Variant A · DEVELOPMENT')));
+ check('supported Burgers demonstration binds requirement score case reference and CPES in both trace directions',await page.locator('#goal-summary').innerText().then(text=>text.includes('EXACT_SUPPORTED')&&text.includes('Variant A · DEVELOPMENT')&&text.includes('missing case coverage none')));
  check('P1-P8 and five blockers are bound inside the same design',await page.locator('[data-control]').count()===8&&await page.locator('[data-blocker]').count()===5);
  check('source case plan distinguishes target sample and weight',await page.locator('#jobs-view').innerText().then(text=>text.includes('population mass distinct from sampling frequency')));
  await page.getByText('Prospective behavior checks',{exact:true}).click();

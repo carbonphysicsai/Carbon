@@ -1,0 +1,69 @@
+{
+  "schema_version": "carbon.goal-workbench.operational-rehearsal-protocol.v1",
+  "decision_id": "GOAL-WORKBENCH-03",
+  "application_baseline": {
+    "version": "Carbon Goal-to-Challenge Workbench v0.3",
+    "merge_commit": "32c0465d87864e3ba01c0f846be7dca91708c7e4",
+    "accepted_head": "00b197ccd4324a400c8efb9f1073f340de6dec65",
+    "acceptance_run": 34801089908
+  },
+  "operating_source": {
+    "name": "Carbon_Grok_Master_Plan_v1_9.docx",
+    "version": "v1.9",
+    "rendered_pdf_sha256": "925ff210a40bbb9bd5136d95e8ea937beac5c775e472df5258ab6d4736cec2cb",
+    "pages_inspected": 10,
+    "source_docx_sha256": "799108791ec951ebfd51b2d56c35f70df51ebc559929a4991cc118efd13981b5",
+    "source_docx_digest_status": "VERIFIED_BEFORE_RENDER",
+    "interpretation": "Operating source only; it does not grant Grok, CRM, calendar, scientific, rights, execution, or launch authority."
+  },
+  "fixed_rules": {
+    "one_named_lead": true,
+    "maximum_correction_passes": 1,
+    "routine_polling": false,
+    "timeout_means_not_started": false,
+    "one_working_record_sections": [
+      "Assignment",
+      "Preparation",
+      "Execution",
+      "Decision"
+    ],
+    "variant_a_baseline": "RETAIN_A_DEVELOPMENT",
+    "training_permitted": false,
+    "launch_permitted": false
+  },
+  "journeys": [
+    {
+      "journey_id": "GW03-A-BURGERS-DYNAMICS",
+      "label": "Supported public Burgers Dynamics",
+      "physics_family": "periodic_viscous_burgers_1d_v1",
+      "requested_goal": "Dynamics",
+      "rights_scope": "SYNTHETIC_INTERNAL",
+      "authoring_route": "LOCAL_FIXED_CLI",
+      "expected_authoring_status": "INTENT_PRESERVED",
+      "handoff_route": "MANUAL",
+      "expected_stop": "MANUAL_OWNER_HANDOFF_REQUIRED_NOT_LAUNCHED"
+    },
+    {
+      "journey_id": "GW03-B-FRONT-RESOLUTION",
+      "label": "Same physics, unsupported active goal",
+      "physics_family": "periodic_viscous_burgers_1d_v1",
+      "requested_goal": "Front Resolution",
+      "rights_scope": "SYNTHETIC_INTERNAL",
+      "authoring_route": "LOCAL_FIXED_CLI",
+      "expected_emitted_goal": "Dynamics",
+      "expected_authoring_status": "INTENT_MISMATCH",
+      "expected_stop": "SOURCE_OWNER_EXTENSION_REQUIRED"
+    },
+    {
+      "journey_id": "GW03-C-UNSUPPORTED-RIGHTS",
+      "label": "Unsupported customer physics and rights",
+      "physics_family": "customer_heat_transfer_v1",
+      "requested_goal": "Customer thermal decision",
+      "rights_scope": "CLIENT_RESTRICTED",
+      "authoring_route": "SOURCE_OWNER_EXTENSION",
+      "expected_authoring_status": "NOT_EXECUTED",
+      "expected_stop": "BLOCKED_UNTIL_NAMED_SOURCE_OWNER_RESPONSE"
+    }
+  ],
+  "authority": "Synthetic/public DEVELOPMENT rehearsal only. No real customer, Grok account, solver, protected exam, qualification, registration, runtime sharing, training, or launch action is authorized."
+}

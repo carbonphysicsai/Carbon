@@ -222,6 +222,20 @@ class SourceTests(unittest.TestCase):
         manifest = json.loads(manifest_path.read_text())
         self.assertEqual(manifest["file_count"], len(manifest["files"]))
         self.assertEqual(manifest["pinned_evidence_index_sha256"], cpes.INDEX_SHA256)
+        self.assertIn("GOAL-WORKBENCH-03", manifest["decision_ids"])
+        self.assertEqual(
+            manifest["accepted_goal_workbench_baseline"]["merge_commit"],
+            "32c0465d87864e3ba01c0f846be7dca91708c7e4",
+        )
+        self.assertEqual(manifest["grok_plan_artifact"]["pages_inspected"], 10)
+        self.assertEqual(
+            manifest["grok_plan_artifact"]["source_docx_digest_status"],
+            "VERIFIED_BEFORE_RENDER",
+        )
+        self.assertEqual(
+            manifest["grok_plan_artifact"]["source_docx_sha256"],
+            "799108791ec951ebfd51b2d56c35f70df51ebc559929a4991cc118efd13981b5",
+        )
         for name, meta in manifest["files"].items():
             path = ROOT / name
             self.assertEqual(path.stat().st_size, meta["bytes"], name)
@@ -240,6 +254,18 @@ class SourceTests(unittest.TestCase):
             )
             self.assertIn(
                 "carbon_goal_workbench_v0_3/data/goal_workspace.schema.json", names
+            )
+            self.assertIn(
+                "carbon_goal_workbench_v0_3/data/goal_workbench_03_rehearsal_record_v1.json",
+                names,
+            )
+            self.assertIn(
+                "carbon_goal_workbench_v0_3/docs/GOAL_WORKBENCH_03_REHEARSAL_REPORT.md",
+                names,
+            )
+            self.assertIn(
+                "carbon_goal_workbench_v0_3/tools/run_operational_rehearsal.cjs",
+                names,
             )
             self.assertNotIn(
                 "carbon_goal_workbench_v0_3/Carbon_Physics_Opportunity_Workbench_v0_2.zip",
