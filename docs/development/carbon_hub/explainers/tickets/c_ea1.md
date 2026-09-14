@@ -40,11 +40,11 @@ Synthetic acknowledgement remains tested only in its accepted fixture scope. The
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/65b106af4ae41cd9c04b1b871204d1b709f3a8f7/.agent/tickets/C-EA1_durable_evidence_archive.md)
-- [Evidence capture contract](https://github.com/carbonphysicsai/Carbon/blob/65b106af4ae41cd9c04b1b871204d1b709f3a8f7/Design_Specs/Evidence_Archive_and_Custody.md)
-- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/65b106af4ae41cd9c04b1b871204d1b709f3a8f7/.agent/WAVE_C.md)
-- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/65b106af4ae41cd9c04b1b871204d1b709f3a8f7/.agent/evidence/wave_c/c-ea1.md)
-- [Synthetic archive runbook](https://github.com/carbonphysicsai/Carbon/blob/65b106af4ae41cd9c04b1b871204d1b709f3a8f7/docs/development/EVIDENCE_ARCHIVE_SYNTHETIC.md)
-- [Private-alpha preparation runbook](https://github.com/carbonphysicsai/Carbon/blob/65b106af4ae41cd9c04b1b871204d1b709f3a8f7/docs/development/EVIDENCE_ARCHIVE_ALPHA_PROFILE.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/c6a875c5588870bab9e827b3a6442fdd9ef97966/.agent/tickets/C-EA1_durable_evidence_archive.md)
+- [Evidence capture contract](https://github.com/carbonphysicsai/Carbon/blob/c6a875c5588870bab9e827b3a6442fdd9ef97966/Design_Specs/Evidence_Archive_and_Custody.md)
+- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/c6a875c5588870bab9e827b3a6442fdd9ef97966/.agent/WAVE_C.md)
+- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/c6a875c5588870bab9e827b3a6442fdd9ef97966/.agent/evidence/wave_c/c-ea1.md)
+- [Synthetic archive runbook](https://github.com/carbonphysicsai/Carbon/blob/c6a875c5588870bab9e827b3a6442fdd9ef97966/docs/development/EVIDENCE_ARCHIVE_SYNTHETIC.md)
+- [Private-alpha preparation runbook](https://github.com/carbonphysicsai/Carbon/blob/c6a875c5588870bab9e827b3a6442fdd9ef97966/docs/development/EVIDENCE_ARCHIVE_ALPHA_PROFILE.md)
 
 > The accepted synthetic acknowledgement is unchanged. The alpha doctor names missing external inputs, and even a complete reference document remains ineligible until real activation, recovery and security evidence exist.

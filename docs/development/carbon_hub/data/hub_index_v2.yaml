@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-14T17:52:30Z"
+  captured_at_utc: "2026-09-14T18:18:15Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "65b106af4ae41cd9c04b1b871204d1b709f3a8f7"
+  authority_snapshot_commit: "c6a875c5588870bab9e827b3a6442fdd9ef97966"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -4952,7 +4952,7 @@ events:
     owner_lane: "validator_audit_engineering"
     status: "implemented"
     summary: "PR #168's private-alpha archive preparation is reconciled as accepted, and C-10-D1 selects a bounded public DEVELOPMENT candidate over C-01/C-06/C-07. One fresh linked execution preserves registered randomness, uses new workers and scratch, associates both receipts, reports exact bytes only as an engineering observation, and quarantines every other outcome. Exact-head Linux service acceptance and merge remain pending; no scientific, independent-security, archive, network or reward authority exists."
-    primary_detail: "https://github.com/carbonphysicsai/Carbon/blob/65b106af4ae41cd9c04b1b871204d1b709f3a8f7/.agent/evidence/wave_c/c-10.md"
+    primary_detail: "https://github.com/carbonphysicsai/Carbon/blob/c6a875c5588870bab9e827b3a6442fdd9ef97966/.agent/evidence/wave_c/c-10.md"
     affects:
       - "WAVE-B"
       - "WAVE-B/B-E4"
