@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Carbon goal-to-Challenge workbench workspace v0.3",
+  "title": "Carbon goal-to-Challenge workbench workspace v0.4",
   "$comment": "Closed browser-local planning schema. Derived results are recomputed. It grants no scientific, security, rights, reuse, submission, execution, or launch authority.",
   "$defs": {
     "opportunity_workspace_v02": {
@@ -1882,16 +1882,16 @@
   "additionalProperties": false,
   "properties": {
     "schema_version": {
-      "const": "carbon.goal-workbench.workspace.v0.3"
+      "const": "carbon.goal-workbench.workspace.v0.4"
     },
     "application_version": {
-      "const": "Carbon Goal-to-Challenge Workbench v0.3"
+      "const": "Carbon Goal-to-Challenge Workbench v0.4"
     },
     "decision_id": {
-      "const": "GOAL-WORKBENCH-02"
+      "const": "GOAL-WORKBENCH-04"
     },
     "base_application_merge": {
-      "const": "3fb98bfbfb9ca8dd3f6dd0d8e5a588a89b1c9932"
+      "const": "95e717f28fab66a087b1e7006ad2ba5e167e2ddf"
     },
     "opportunity_workspace": {
       "$ref": "#/$defs/opportunity_workspace_v02"
@@ -1986,7 +1986,7 @@
               "additionalProperties": false,
               "properties": {
                 "schema_version": {
-                  "const": "carbon.goal-workbench.design.v0.3"
+                  "const": "carbon.goal-workbench.design.v0.4"
                 },
                 "job_id": {
                   "type": "string",
@@ -3282,6 +3282,498 @@
                     "extension_request"
                   ]
                 },
+                "measurement_evidence": {
+                  "type": "array",
+                  "maxItems": 64,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "schema_version": {
+                        "const": "carbon.goal-workbench.c05-evidence-association.v1"
+                      },
+                      "association_id": {
+                        "type": "string",
+                        "maxLength": 300
+                      },
+                      "workbench_request_id": {
+                        "type": "string",
+                        "maxLength": 128
+                      },
+                      "job_id": {
+                        "type": "string",
+                        "maxLength": 128
+                      },
+                      "design_id": {
+                        "type": "string",
+                        "maxLength": 128
+                      },
+                      "design_revision": {
+                        "type": "integer",
+                        "minimum": 1
+                      },
+                      "requirement_trace_ids": {
+                        "type": "array",
+                        "maxItems": 256,
+                        "items": {
+                          "type": "string",
+                          "maxLength": 128
+                        }
+                      },
+                      "case_family_ids": {
+                        "type": "array",
+                        "maxItems": 128,
+                        "items": {
+                          "type": "string",
+                          "maxLength": 128
+                        }
+                      },
+                      "challenge": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "maxLength": 128
+                          },
+                          "version": {
+                            "type": "string",
+                            "maxLength": 50
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "version"
+                        ]
+                      },
+                      "template_id": {
+                        "type": "string",
+                        "maxLength": 300
+                      },
+                      "evidence_scope": {
+                        "const": "PUBLIC_DEVELOPMENT_ONLY"
+                      },
+                      "evidence_state": {
+                        "enum": [
+                          "SOURCE_MEASUREMENT_EVIDENCE_BOUND",
+                          "SOURCE_MEASUREMENT_EVIDENCE_NOT_EXECUTED"
+                        ]
+                      },
+                      "binding_status": {
+                        "enum": [
+                          "CURRENT_DESIGN_REVISION",
+                          "STALE_DESIGN_CHANGED"
+                        ]
+                      },
+                      "source_disposition": {
+                        "type": "string",
+                        "maxLength": 100
+                      },
+                      "source": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "fixture_id": {
+                            "type": "string",
+                            "maxLength": 160
+                          },
+                          "repository": {
+                            "const": "carbonphysicsai/Carbon"
+                          },
+                          "source_revision": {
+                            "type": "string",
+                            "pattern": "^[0-9a-f]{40}$"
+                          },
+                          "implementation": {
+                            "type": "string",
+                            "maxLength": 300
+                          },
+                          "request_schema": {
+                            "const": "carbon.c05.burgers-measurement.v1"
+                          },
+                          "result_schema": {
+                            "const": "carbon.c05.burgers-measurement-result.v1"
+                          },
+                          "request_digest": {
+                            "type": "string",
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                          },
+                          "result_digest": {
+                            "type": "string",
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                          },
+                          "case_digest": {
+                            "type": "string",
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                          },
+                          "candidate": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "artifact_digest": {
+                                "type": "string",
+                                "pattern": "^sha256:[0-9a-f]{64}$"
+                              },
+                              "binding_digest": {
+                                "type": "string",
+                                "pattern": "^sha256:[0-9a-f]{64}$"
+                              },
+                              "source_digest": {
+                                "type": "string",
+                                "pattern": "^sha256:[0-9a-f]{64}$"
+                              },
+                              "environment_digest": {
+                                "type": "string",
+                                "pattern": "^sha256:[0-9a-f]{64}$"
+                              },
+                              "plan_digest": {
+                                "type": "string",
+                                "pattern": "^sha256:[0-9a-f]{64}$"
+                              },
+                              "replica_id": {
+                                "type": "string",
+                                "maxLength": 160
+                              }
+                            },
+                            "required": [
+                              "artifact_digest",
+                              "binding_digest",
+                              "source_digest",
+                              "environment_digest",
+                              "plan_digest",
+                              "replica_id"
+                            ]
+                          },
+                          "reference": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "artifact_digest": {
+                                "type": "string",
+                                "pattern": "^sha256:[0-9a-f]{64}$"
+                              },
+                              "request_digest": {
+                                "type": "string",
+                                "pattern": "^sha256:[0-9a-f]{64}$"
+                              },
+                              "policy_digest": {
+                                "type": "string",
+                                "pattern": "^sha256:[0-9a-f]{64}$"
+                              },
+                              "environment_digest": {
+                                "type": "string",
+                                "pattern": "^sha256:[0-9a-f]{64}$"
+                              },
+                              "role": {
+                                "type": "string",
+                                "maxLength": 100
+                              },
+                              "scientifically_qualified": {
+                                "const": false
+                              }
+                            },
+                            "required": [
+                              "artifact_digest",
+                              "request_digest",
+                              "policy_digest",
+                              "environment_digest",
+                              "role",
+                              "scientifically_qualified"
+                            ]
+                          },
+                          "measurement": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                              "policy_id": {
+                                "type": "string",
+                                "maxLength": 200
+                              },
+                              "policy_version": {
+                                "type": "string",
+                                "maxLength": 50
+                              },
+                              "contract_digest": {
+                                "type": "string",
+                                "pattern": "^sha256:[0-9a-f]{64}$"
+                              },
+                              "environment_digest": {
+                                "type": "string",
+                                "pattern": "^sha256:[0-9a-f]{64}$"
+                              },
+                              "implementation_digest": {
+                                "type": "string",
+                                "pattern": "^sha256:[0-9a-f]{64}$"
+                              },
+                              "precision": {
+                                "type": "string",
+                                "maxLength": 30
+                              },
+                              "operator_ids": {
+                                "type": "array",
+                                "maxItems": 4,
+                                "items": {
+                                  "type": "string",
+                                  "maxLength": 100
+                                }
+                              },
+                              "physics_ids": {
+                                "type": "array",
+                                "maxItems": 6,
+                                "items": {
+                                  "type": "string",
+                                  "maxLength": 100
+                                }
+                              },
+                              "scientific_limits": {
+                                "type": "null"
+                              },
+                              "uncertainty_policy": {
+                                "type": "null"
+                              },
+                              "scientifically_qualified": {
+                                "const": false
+                              }
+                            },
+                            "required": [
+                              "policy_id",
+                              "policy_version",
+                              "contract_digest",
+                              "environment_digest",
+                              "implementation_digest",
+                              "precision",
+                              "operator_ids",
+                              "physics_ids",
+                              "scientific_limits",
+                              "uncertainty_policy",
+                              "scientifically_qualified"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "fixture_id",
+                          "repository",
+                          "source_revision",
+                          "implementation",
+                          "request_schema",
+                          "result_schema",
+                          "request_digest",
+                          "result_digest",
+                          "case_digest",
+                          "candidate",
+                          "reference",
+                          "measurement"
+                        ]
+                      },
+                      "measurements": {
+                        "type": "array",
+                        "maxItems": 4,
+                        "items": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "properties": {
+                            "measurement_id": {
+                              "type": "string",
+                              "maxLength": 100
+                            },
+                            "candidate_value": {
+                              "type": "number"
+                            },
+                            "reference_value": {
+                              "type": "number"
+                            },
+                            "raw_absolute_error": {
+                              "type": "number",
+                              "minimum": 0
+                            },
+                            "normalization_scale": {
+                              "type": "number",
+                              "exclusiveMinimum": 0
+                            },
+                            "normalized_error": {
+                              "type": "number",
+                              "minimum": 0
+                            },
+                            "uncertainty": {
+                              "type": "null"
+                            },
+                            "scientific_limit": {
+                              "type": "null"
+                            },
+                            "decision": {
+                              "const": "UNRESOLVED_NO_QUALIFIED_LIMIT"
+                            }
+                          },
+                          "required": [
+                            "measurement_id",
+                            "candidate_value",
+                            "reference_value",
+                            "raw_absolute_error",
+                            "normalization_scale",
+                            "normalized_error",
+                            "uncertainty",
+                            "scientific_limit",
+                            "decision"
+                          ]
+                        }
+                      },
+                      "physics": {
+                        "type": "array",
+                        "maxItems": 6,
+                        "items": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "properties": {
+                            "physics_id": {
+                              "type": "string",
+                              "maxLength": 100
+                            },
+                            "raw_defect": {
+                              "type": "number",
+                              "minimum": 0
+                            },
+                            "normalization_scale": {
+                              "type": "number",
+                              "exclusiveMinimum": 0
+                            },
+                            "normalized_defect": {
+                              "type": "number",
+                              "minimum": 0
+                            },
+                            "uncertainty": {
+                              "type": "null"
+                            },
+                            "scientific_limit": {
+                              "type": "null"
+                            },
+                            "decision": {
+                              "const": "UNRESOLVED_NO_QUALIFIED_LIMIT"
+                            }
+                          },
+                          "required": [
+                            "physics_id",
+                            "raw_defect",
+                            "normalization_scale",
+                            "normalized_defect",
+                            "uncertainty",
+                            "scientific_limit",
+                            "decision"
+                          ]
+                        }
+                      },
+                      "diagnostics": {
+                        "type": "array",
+                        "maxItems": 64,
+                        "items": {
+                          "type": "array",
+                          "minItems": 2,
+                          "maxItems": 2,
+                          "prefixItems": [
+                            {
+                              "type": "string",
+                              "maxLength": 200
+                            },
+                            {
+                              "anyOf": [
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "type": "string",
+                                  "maxLength": 1000
+                                }
+                              ]
+                            }
+                          ],
+                          "items": false
+                        }
+                      },
+                      "behavior_classification": {
+                        "type": "array",
+                        "maxItems": 8,
+                        "items": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "properties": {
+                            "example": {
+                              "type": "string",
+                              "maxLength": 100
+                            },
+                            "classification": {
+                              "type": "string",
+                              "maxLength": 100
+                            },
+                            "reason": {
+                              "type": "string",
+                              "maxLength": 1200
+                            }
+                          },
+                          "required": [
+                            "example",
+                            "classification",
+                            "reason"
+                          ]
+                        }
+                      },
+                      "limitations": {
+                        "type": "array",
+                        "maxItems": 32,
+                        "items": {
+                          "type": "string",
+                          "maxLength": 1200
+                        }
+                      },
+                      "trace_state": {
+                        "type": "string",
+                        "maxLength": 150
+                      },
+                      "imported_artifact_digest": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "scientifically_qualified": {
+                        "const": false
+                      },
+                      "score_eligible": {
+                        "const": false
+                      },
+                      "approved": {
+                        "const": false
+                      },
+                      "launch_authorized": {
+                        "const": false
+                      }
+                    },
+                    "required": [
+                      "schema_version",
+                      "association_id",
+                      "workbench_request_id",
+                      "job_id",
+                      "design_id",
+                      "design_revision",
+                      "requirement_trace_ids",
+                      "case_family_ids",
+                      "challenge",
+                      "template_id",
+                      "evidence_scope",
+                      "evidence_state",
+                      "binding_status",
+                      "source_disposition",
+                      "source",
+                      "measurements",
+                      "physics",
+                      "diagnostics",
+                      "behavior_classification",
+                      "limitations",
+                      "trace_state",
+                      "imported_artifact_digest",
+                      "scientifically_qualified",
+                      "score_eligible",
+                      "approved",
+                      "launch_authorized"
+                    ]
+                  }
+                },
                 "handoffs": {
                   "type": "array",
                   "maxItems": 128,
@@ -3644,6 +4136,7 @@
                 "reference_plan",
                 "cpes",
                 "authoring",
+                "measurement_evidence",
                 "handoffs",
                 "responses",
                 "decision",
@@ -3705,7 +4198,7 @@
             "maxLength": 200
           },
           "to": {
-            "const": "carbon.goal-workbench.workspace.v0.3"
+            "const": "carbon.goal-workbench.workspace.v0.4"
           },
           "original_digest_status": {
             "enum": [

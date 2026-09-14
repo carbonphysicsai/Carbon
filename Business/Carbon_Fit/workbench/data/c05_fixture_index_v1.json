@@ -1,0 +1,80 @@
+{
+  "schema_version": "carbon.goal-workbench.c05-fixture-index.v1",
+  "source_interface": {
+    "request_schema": "carbon.c05.burgers-measurement.v1",
+    "result_schema": "carbon.c05.burgers-measurement-result.v1",
+    "measurement_ids": [
+      "field_phase_rms",
+      "maximum_compression",
+      "peak_dissipation",
+      "energy_half_time"
+    ],
+    "physics_ids": [
+      "initial_condition",
+      "periodicity",
+      "conserved_mean",
+      "maximum_principle",
+      "energy_dissipation_balance",
+      "weak_local_pde"
+    ]
+  },
+  "fixtures": [
+    {
+      "fixture_id": "C05-PUBLIC-EVAL2-PERTURBED",
+      "request_digest": "sha256:cbd8f66c1c501325cb74c4c95c197b0a957a58334bb37a4853e9524c2a78a857",
+      "result_digest": "sha256:92aee39eb3f293f1d18cbc40837837a715492314a2565a14cc0b6aba636be8d1",
+      "case_digest": "sha256:2825c686fad1fbdf40184870725af0b637d75749a35bf99afe428015f942d8cf",
+      "candidate_artifact_digest": "sha256:28bea8ac6eeb776b6110c1867285d10677551da93ccbd4fcf16e5234087664c3",
+      "candidate_binding_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "candidate_source_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "candidate_environment_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "candidate_plan_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "candidate_replica_id": "reconstruction-replica-0",
+      "measurement_contract_digest": "sha256:24ac244af02351ca4dcc294e2326a0c87633cdff7d162de1af7bbac38d5ecd07",
+      "measurement_environment_digest": "sha256:23135a8cf9f3a25497d3d3e93642f0a9b9bfd62d4984863cbccb799fe355ce13",
+      "measurement_implementation_digest": "sha256:53415ec1901437a578be1f782c190e5d9f334cb7fe1c9bba654b6c1c3a35ddbd",
+      "source_revision": "8dbee54dcd5bdea3a76b22812955e31fbe95e8da",
+      "association": {
+        "request_id": "diagnostic-job-001-design-1-r1",
+        "job_id": "job-001",
+        "design_id": "job-001-design-1",
+        "design_revision": 1,
+        "requirement_trace_ids": ["TRACE-DYNAMICS"],
+        "case_family_ids": ["BURGERS-12-CELL"],
+        "challenge": {"id": "burgers-dynamics-v1", "version": "1.0"},
+        "template_id": "periodic_viscous_burgers_1d_v1",
+        "expected_source_interface": "carbon.c05.burgers-measurement-result.v1",
+        "evidence_scope": "PUBLIC_DEVELOPMENT_ONLY"
+      }
+    },
+    {
+      "fixture_id": "C05-PUBLIC-EVAL2-NUMERICAL-FAILURE",
+      "request_digest": "sha256:cbd8f66c1c501325cb74c4c95c197b0a957a58334bb37a4853e9524c2a78a857",
+      "result_digest": "sha256:3793ec8f3dfd23907c3346c52af632d00c63c2c96765be94f7ff6a5fc6170b4a",
+      "case_digest": "sha256:2825c686fad1fbdf40184870725af0b637d75749a35bf99afe428015f942d8cf",
+      "candidate_artifact_digest": "sha256:28bea8ac6eeb776b6110c1867285d10677551da93ccbd4fcf16e5234087664c3",
+      "candidate_binding_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "candidate_source_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "candidate_environment_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "candidate_plan_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "candidate_replica_id": "reconstruction-replica-0",
+      "measurement_contract_digest": "sha256:24ac244af02351ca4dcc294e2326a0c87633cdff7d162de1af7bbac38d5ecd07",
+      "measurement_environment_digest": "sha256:23135a8cf9f3a25497d3d3e93642f0a9b9bfd62d4984863cbccb799fe355ce13",
+      "measurement_implementation_digest": "sha256:53415ec1901437a578be1f782c190e5d9f334cb7fe1c9bba654b6c1c3a35ddbd",
+      "source_revision": "8dbee54dcd5bdea3a76b22812955e31fbe95e8da",
+      "association": {
+        "request_id": "diagnostic-job-001-design-1-r1",
+        "job_id": "job-001",
+        "design_id": "job-001-design-1",
+        "design_revision": 1,
+        "requirement_trace_ids": ["TRACE-DYNAMICS"],
+        "case_family_ids": ["BURGERS-12-CELL"],
+        "challenge": {"id": "burgers-dynamics-v1", "version": "1.0"},
+        "template_id": "periodic_viscous_burgers_1d_v1",
+        "expected_source_interface": "carbon.c05.burgers-measurement-result.v1",
+        "evidence_scope": "PUBLIC_DEVELOPMENT_ONLY"
+      }
+    }
+  ],
+  "authority": "PUBLIC_DEVELOPMENT_BYTES_ONLY_NO_QUALIFICATION"
+}

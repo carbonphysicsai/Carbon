@@ -1,0 +1,90 @@
+{
+  "schema_version": "carbon.goal-workbench.c05-evidence-bundle.v1",
+  "association": {
+    "request_id": "diagnostic-job-001-design-1-r1",
+    "job_id": "job-001",
+    "design_id": "job-001-design-1",
+    "design_revision": 1,
+    "requirement_trace_ids": [
+      "TRACE-DYNAMICS"
+    ],
+    "case_family_ids": [
+      "BURGERS-12-CELL"
+    ],
+    "challenge": {
+      "id": "burgers-dynamics-v1",
+      "version": "1.0"
+    },
+    "template_id": "periodic_viscous_burgers_1d_v1",
+    "expected_source_interface": "carbon.c05.burgers-measurement-result.v1",
+    "evidence_scope": "PUBLIC_DEVELOPMENT_ONLY"
+  },
+  "source": {
+    "fixture_id": "C05-PUBLIC-EVAL2-PERTURBED",
+    "repository": "carbonphysicsai/Carbon",
+    "source_revision": "8dbee54dcd5bdea3a76b22812955e31fbe95e8da",
+    "implementation": "carbon.measurement_runtime.model.execute_measurement",
+    "request_schema": "carbon.c05.burgers-measurement.v1",
+    "result_schema": "carbon.c05.burgers-measurement-result.v1",
+    "request_digest": "sha256:cbd8f66c1c501325cb74c4c95c197b0a957a58334bb37a4853e9524c2a78a857",
+    "result_digest": "sha256:92aee39eb3f293f1d18cbc40837837a715492314a2565a14cc0b6aba636be8d1"
+  },
+  "measurement_request_json": "{\"candidate\":{\"artifact_digest\":\"sha256:28bea8ac6eeb776b6110c1867285d10677551da93ccbd4fcf16e5234087664c3\",\"binding_digest\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"environment_digest\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"plan_digest\":\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"replica_id\":\"reconstruction-replica-0\",\"source_digest\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"},\"case_digest\":\"sha256:2825c686fad1fbdf40184870725af0b637d75749a35bf99afe428015f942d8cf\",\"challenge\":{\"id\":\"burgers-dynamics-v1\",\"version\":\"1.0\"},\"eligibility\":{\"development_only\":true,\"measurement_scientifically_qualified\":false,\"protected_execution\":false,\"reference_scientifically_qualified\":false,\"score\":false},\"measurement\":{\"contract_digest\":\"sha256:24ac244af02351ca4dcc294e2326a0c87633cdff7d162de1af7bbac38d5ecd07\",\"environment_digest\":\"sha256:23135a8cf9f3a25497d3d3e93642f0a9b9bfd62d4984863cbccb799fe355ce13\",\"implementation_digest\":\"sha256:53415ec1901437a578be1f782c190e5d9f334cb7fe1c9bba654b6c1c3a35ddbd\",\"operator_ids\":[\"field_phase_rms\",\"maximum_compression\",\"peak_dissipation\",\"energy_half_time\"],\"physics_ids\":[\"initial_condition\",\"periodicity\",\"conserved_mean\",\"maximum_principle\",\"energy_dissipation_balance\",\"weak_local_pde\"],\"policy_id\":\"carbon.burgers.measurement.candidate.v1\",\"policy_version\":\"1.0\",\"precision\":\"float64\",\"scientific_limits\":null,\"scientifically_qualified\":false,\"uncertainty_policy\":null},\"query\":{\"amplitude\":0.22147996892234023,\"characteristic_time\":1.4445203818370458,\"domain_length\":6.283185307179586,\"initial_values\":[-0.1646019140996272,-0.08172740980982464,0.013796737065514153,0.11118701770031053,0.1958921031340202,0.25292368590047504,0.2707404611058153,0.24447669574966208,0.1774841346123039,0.08067597862426354,-0.030146741576160402,-0.13817175375032104,-0.22947326246313487,-0.2957693782565478,-0.33527659872636295,-0.35154014422423846,-0.35078689736672547,-0.3388182209868462,-0.3185768016412033,-0.28924878333421056,-0.24719573192336164,-0.18834566557396332,-0.11113692920360932,-0.018887323062569142,0.0793687517676178,0.1700257015495396,0.23781223339305269,0.26962232270353764,0.2580937520273222,0.20380028929659644,0.11534352563805106,0.007288853793215699,-0.10343064221906305,-0.201543380026978,-0.27668800434641605,-0.32495014402616845,-0.34833763938970885,-0.35252993742526756,-0.3437957835216928,-0.326218721431512,-0.30022254899655965,-0.26290219258293446,-0.210007678977845,-0.13882595418767943,-0.05086438663377407,0.04672089738261351,0.14160004415458666,0.2186545696192899,0.2636211015486381,0.26689065868687106,0.2262697167853274,0.14781355752329123,0.044442916042272254,-0.06724643503802176,-0.1710061005172907,-0.25456900339235894,-0.31182868952014,-0.34299783972764675,-0.35285616497582467,-0.3478229669023149,-0.3329544550671918,-0.30995016055943947,-0.2768653232030521,-0.22960163132504424],\"k_rms\":3.1256609866842484,\"output_semantics\":\"POINT_VALUE_U_T_X_REQUEST_ORDER_FLOAT64\",\"requested_times\":[0.0,0.14445203818370458,0.36113009545926145,0.7222601909185229,1.4445203818370458,2.8890407636740916,5.778081527348183],\"spatial_points\":[0.0,0.09817477042468103,0.19634954084936207,0.2945243112740431,0.39269908169872414,0.4908738521234052,0.5890486225480862,0.6872233929727672,0.7853981633974483,0.8835729338221293,0.9817477042468103,1.0799224746714913,1.1780972450961724,1.2762720155208536,1.3744467859455345,1.4726215563702154,1.5707963267948966,1.6689710972195777,1.7671458676442586,1.8653206380689396,1.9634954084936207,2.061670178918302,2.1598449493429825,2.2580197197676637,2.356194490192345,2.454369260617026,2.552544031041707,2.650718801466388,2.748893571891069,2.84706834231575,2.945243112740431,3.043417883165112,3.141592653589793,3.2397674240144743,3.3379421944391554,3.436116964863836,3.5342917352885173,3.6324665057131984,3.730641276137879,3.8288160465625602,3.9269908169872414,4.025165587411922,4.123340357836604,4.221515128261284,4.319689898685965,4.417864669110647,4.516039439535327,4.614214209960009,4.71238898038469,4.81056375080937,4.908738521234052,5.006913291658733,5.105088062083414,5.203262832508095,5.301437602932776,5.399612373357457,5.497787143782138,5.595961914206819,5.6941366846315,5.792311455056181,5.890486225480862,5.988660995905543,6.086835766330224,6.1850105367549055],\"viscosity\":0.030174714730233525},\"reference\":{\"artifact_digest\":\"sha256:ab7e7caa48faef5a3da42a9020221c5c99445862026a1fe3367c227b649aefe9\",\"environment_digest\":\"sha256:914e6e0aab72edd55854fbfd25ccce7a05d271da4bde3e6a88a49609c07d65a0\",\"policy_digest\":\"sha256:4ccd985135c78cbf45456a4786a063caaa520fc9a475d33dc2c3e054128d43a6\",\"request_digest\":\"sha256:2679e6d42d527b9bd2947cb87ff6a33bd89f01d0a0772b690c9d2c2a72ad6bb3\",\"role\":\"CANDIDATE_PRIMARY\",\"scientifically_qualified\":false},\"schema\":\"carbon.c05.burgers-measurement.v1\",\"scope\":\"PUBLIC_QUALIFICATION_CANDIDATE_ONLY\"}",
+  "measurement_result_json": "{\"diagnostics\":[[\"candidate_half_time_censored\",0],[\"reference_half_time_censored\",0],[\"requested_time_count\",7],[\"spatial_point_count\",64],[\"score_input_emitted\",0]],\"disposition\":\"COMPLETE_DEVELOPMENT_ONLY\",\"eligibility\":{\"protected_execution\":false,\"scientifically_qualified\":false,\"score\":false},\"measurements\":[{\"candidate_value\":0.1877294265874904,\"decision\":\"UNRESOLVED_NO_QUALIFIED_LIMIT\",\"measurement_id\":\"field_phase_rms\",\"normalization_scale\":0.22147996892234026,\"normalized_error\":0.0003192644394105323,\"raw_absolute_error\":7.071067811865307e-05,\"reference_value\":0.18772941327046858,\"scientific_limit\":null,\"uncertainty\":null},{\"candidate_value\":1.4243747207079451,\"decision\":\"UNRESOLVED_NO_QUALIFIED_LIMIT\",\"measurement_id\":\"maximum_compression\",\"normalization_scale\":1.4242749916622777,\"normalized_error\":7.002092029367759e-05,\"raw_absolute_error\":9.972904566746266e-05,\"reference_value\":1.4242749916622777,\"scientific_limit\":null,\"uncertainty\":null},{\"candidate_value\":0.09086062039750549,\"decision\":\"UNRESOLVED_NO_QUALIFIED_LIMIT\",\"measurement_id\":\"peak_dissipation\",\"normalization_scale\":0.1066829721507051,\"normalized_error\":8.88582888753486e-09,\"raw_absolute_error\":9.479666357448124e-10,\"reference_value\":0.09086061944953885,\"scientific_limit\":null,\"uncertainty\":null},{\"candidate_value\":1.1072082864506128,\"decision\":\"UNRESOLVED_NO_QUALIFIED_LIMIT\",\"measurement_id\":\"energy_half_time\",\"normalization_scale\":1.4445203818370458,\"normalized_error\":1.0076397878617536e-07,\"raw_absolute_error\":1.45555621111626e-07,\"reference_value\":1.1072081408949916,\"scientific_limit\":null,\"uncertainty\":null}],\"output_semantics\":\"RAW_UNCERTAINTY_BEARING_NO_SCORE_INPUT\",\"physics\":[{\"decision\":\"UNRESOLVED_NO_QUALIFIED_LIMIT\",\"normalization_scale\":0.22147996892234023,\"normalized_defect\":0.00045150810031307224,\"physics_id\":\"initial_condition\",\"raw_defect\":0.00010000000002552412,\"scientific_limit\":null,\"uncertainty\":null},{\"decision\":\"UNRESOLVED_NO_QUALIFIED_LIMIT\",\"normalization_scale\":0.22147996892234023,\"normalized_defect\":8.772307051276855e-16,\"physics_id\":\"periodicity\",\"raw_defect\":1.942890293094024e-16,\"scientific_limit\":null,\"uncertainty\":null},{\"decision\":\"UNRESOLVED_NO_QUALIFIED_LIMIT\",\"normalization_scale\":0.22147996892234023,\"normalized_defect\":2.2620020325078177e-14,\"physics_id\":\"conserved_mean\",\"raw_defect\":5.009881398621019e-15,\"scientific_limit\":null,\"uncertainty\":null},{\"decision\":\"UNRESOLVED_NO_QUALIFIED_LIMIT\",\"normalization_scale\":0.22147996892234023,\"normalized_defect\":0.00025084446046118476,\"physics_id\":\"maximum_principle\",\"raw_defect\":5.55570233072844e-05,\"scientific_limit\":null,\"uncertainty\":null},{\"decision\":\"UNRESOLVED_NO_QUALIFIED_LIMIT\",\"normalization_scale\":0.15410574337460692,\"normalized_defect\":0.0,\"physics_id\":\"energy_dissipation_balance\",\"raw_defect\":0.0,\"scientific_limit\":null,\"uncertainty\":null},{\"decision\":\"UNRESOLVED_NO_QUALIFIED_LIMIT\",\"normalization_scale\":0.15332422560952488,\"normalized_defect\":0.021851531133651184,\"physics_id\":\"weak_local_pde\",\"raw_defect\":0.003350369089449491,\"scientific_limit\":null,\"uncertainty\":null}],\"request_digest\":\"sha256:cbd8f66c1c501325cb74c4c95c197b0a957a58334bb37a4853e9524c2a78a857\",\"schema\":\"carbon.c05.burgers-measurement-result.v1\",\"scope\":\"PUBLIC_QUALIFICATION_CANDIDATE_ONLY\",\"score_input\":null}",
+  "behavior_classification": [
+    {
+      "example": "PEAK_MISSED",
+      "classification": "OBSERVABLE_WITH_CURRENT_C05_RESULT",
+      "reason": "Compression and dissipation errors are present; no preference rank is inferred."
+    },
+    {
+      "example": "OVERSMOOTHED",
+      "classification": "OBSERVABLE_WITH_CURRENT_C05_RESULT",
+      "reason": "Raw field, compression and dissipation effects are visible; no tolerance is qualified."
+    },
+    {
+      "example": "MANDATORY_FAILURE",
+      "classification": "OBSERVABLE_WITH_CURRENT_C05_RESULT",
+      "reason": "Six raw physics defects are present, while every decision remains unresolved."
+    },
+    {
+      "example": "NONFINITE_OR_WITHHELD",
+      "classification": "REQUIRES_DEDICATED_PUBLIC_FIXTURE",
+      "reason": "This complete fixture is finite; source validation rejects nonfinite artifacts before measurement."
+    },
+    {
+      "example": "DROPPED_WORK",
+      "classification": "REQUIRES_SCOREPACK_DIAGNOSTIC_CONTRACT",
+      "reason": "C-05 has no population denominator, censoring, or dropped-work score contract."
+    },
+    {
+      "example": "UNIT_OR_FLOOR",
+      "classification": "REQUIRES_QUALIFIED_FLOOR_OR_UNCERTAINTY",
+      "reason": "C-05 retains raw values and normalization scales but supplies no qualified floor."
+    },
+    {
+      "example": "BELOW_UNCERTAINTY",
+      "classification": "REQUIRES_QUALIFIED_FLOOR_OR_UNCERTAINTY",
+      "reason": "Every uncertainty field is null, so below-uncertainty behavior cannot be decided."
+    },
+    {
+      "example": "PERSISTENCE_OR_MEMORIZATION",
+      "classification": "REQUIRES_SCOREPACK_DIAGNOSTIC_CONTRACT",
+      "reason": "C-05 measures one bound field artifact and defines no persistence or memorization checks."
+    }
+  ],
+  "limitations": [
+    "Public DEVELOPMENT fixture only; no protected or customer data.",
+    "Scientific limits, uncertainty policy, score input, qualification, approval and launch authority are absent.",
+    "One public EVAL case and deterministic test-created candidate perturbation are not population evidence.",
+    "Import replays retained fixture bytes through a registry-pinned manual workbench association; the association is inspectable but is not operator authentication or proof of honest execution."
+  ],
+  "authority": {
+    "development_only": true,
+    "scientifically_qualified": false,
+    "protected_execution_eligible": false,
+    "score_eligible": false,
+    "approved": false,
+    "launch_authorized": false
+  }
+}

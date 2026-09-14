@@ -1,4 +1,6 @@
-# Workbench v0.3 acceptance notes
+# Workbench v0.4 acceptance notes
+
+GOAL-WORKBENCH-04 adds 25 focused C-05 adapter/workflow checks and one built-artifact Chrome import check. The added closeout check rejects rebinding registered numerical bytes to an unrelated compatible-looking case family. The source fixture generator ran on Python 3.11.11 with the exact pinned C-04/C-05 dependency identities. These results demonstrate read-only DEVELOPMENT evidence integration only; they are not scientific qualification, security acceptance, score validation, or Wave C runtime evidence.
 
 Run from `Business/Carbon_Fit/workbench`:
 

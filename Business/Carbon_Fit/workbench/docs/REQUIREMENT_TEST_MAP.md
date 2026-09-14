@@ -1,10 +1,13 @@
-# GOAL-WORKBENCH-03 / GOAL-WORKBENCH-02 / EXAM-PROTECT-WORKBENCH-01 requirement-to-test map
+# GOAL-WORKBENCH-04 / GOAL-WORKBENCH-03 / GOAL-WORKBENCH-02 / EXAM-PROTECT-WORKBENCH-01 requirement-to-test map
 
 This map describes focused application acceptance. It does not relabel the CPES study's historical 14/52/208 runs as workbench tests.
 
-| v0.3 requirement | UI / data | Native owner / adapter | Automated evidence | Current limitation |
+| v0.4 requirement | UI / data | Native owner / adapter | Automated evidence | Current limitation |
 |---|---|---|---|---|
 | Direct intake, multiple jobs/alternatives, optional Atlas, immutable revisions | Client jobs; v0.3 job/design schemas | Business/WAVE-G planning owner | `test_workflow.cjs`; `browser_goal_smoke.cjs` | Browser-local manual persistence; no live intake/CRM |
+| Exact C-05 result bytes and provenance bind to request/job/design/revision/trace/case | C-05 evidence panel; v0.4 closed association record; retained fixture index | C-05 read-only adapter | 25 `test_c05_evidence.cjs` checks, including cross-design rebind rejection; exact Chrome import | Public DEVELOPMENT only; one retained complete case is not population evidence; the registry-pinned manual association is not operator authentication |
+| Raw values remain separate from scientific interpretation | four measurements, six physics defects, null limit/uncertainty labels | C-05 source contract | ID/order/numeric/unresolved/projection tests | No pass/fail, score, rank, or qualified floor |
+| Fail-closed replay and change semantics | dedup/conflict/rejection/staleness states | Workbench adapter | wrong identity/schema/provenance, nonfinite, forgery, revision and edit tests | Requires exact registered fixture bytes |
 | Preserve original requirement and link score/cases/reference | Requirement trace, score plan, case families, reference plan, diagnostic-request export | Measurement/ScorePack, generator, reference owners | workflow coverage/mandatory-failure/diagnostic-request tests; browser source-bound case trace and downloaded request | Structural coverage is not numerical or scientific adequacy; request status stays `NOT_EXECUTED` |
 | Exact supported Burgers compilation and semantic agreement | Authoring request/result/receipt | C-AUTH1; `tools/authoring_bridge.py` fixed CLI | bridge Python tests; actual CLI round trip in browser journey | DEVELOPMENT Dynamics only; not qualification/registration |
 | Same-PDE incompatible goal and non-Burgers/rights gaps | Extension request retained in design | C-AUTH1 source owner | Front Resolution and extension tests | Source owner must implement/accept any new capability |
