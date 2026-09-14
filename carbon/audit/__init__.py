@@ -1,1 +1,65 @@
-"""Evaluation audit boundary; receipt and re-execution behavior is deferred."""
+"""C-06 signed DEVELOPMENT evidence boundary."""
+
+from .model import (
+    AUTHORITY_MARKER,
+    GENESIS_ENTRY_DIGEST,
+    LEDGER_SCHEMA,
+    PUBLIC_SCHEMA,
+    REVIEWER_SCHEMA,
+    SCHEMA,
+    SIGNATURE_ALGORITHM,
+    SIGNING_SCOPE,
+    AuditCode,
+    AuditFailure,
+    DevelopmentEvaluationReceipt,
+    DevelopmentEvidenceBinding,
+    DevelopmentRunStatus,
+    LedgerCheckpoint,
+    LedgerEventKind,
+    LedgerReceiptRef,
+    ReceiptLifecycleState,
+    ReceiptWriteDisposition,
+    ScientificDecisionState,
+    SignedDevelopmentEvaluationReceipt,
+    canonical_json,
+    digest_bytes,
+)
+from .projection import public_projection, reviewer_projection
+from .signing import (
+    DevelopmentReceiptSigner,
+    DevelopmentVerificationKey,
+    verify_signed_receipt,
+)
+from .store import DevelopmentEvidenceLedger, FrozenEvidenceIndex
+
+__all__ = [
+    "AUTHORITY_MARKER",
+    "GENESIS_ENTRY_DIGEST",
+    "LEDGER_SCHEMA",
+    "PUBLIC_SCHEMA",
+    "REVIEWER_SCHEMA",
+    "SCHEMA",
+    "SIGNATURE_ALGORITHM",
+    "SIGNING_SCOPE",
+    "AuditCode",
+    "AuditFailure",
+    "DevelopmentEvaluationReceipt",
+    "DevelopmentEvidenceBinding",
+    "DevelopmentEvidenceLedger",
+    "DevelopmentReceiptSigner",
+    "DevelopmentRunStatus",
+    "DevelopmentVerificationKey",
+    "FrozenEvidenceIndex",
+    "LedgerCheckpoint",
+    "LedgerEventKind",
+    "LedgerReceiptRef",
+    "ReceiptLifecycleState",
+    "ReceiptWriteDisposition",
+    "ScientificDecisionState",
+    "SignedDevelopmentEvaluationReceipt",
+    "canonical_json",
+    "digest_bytes",
+    "public_projection",
+    "reviewer_projection",
+    "verify_signed_receipt",
+]
