@@ -9,7 +9,7 @@
     "GOAL-WORKBENCH-04"
   ],
   "repository_base": "95e717f28fab66a087b1e7006ad2ba5e167e2ddf",
-  "integration_revision_at_packaging": "826695446525655135d6d729aaa8edc0f623686d",
+  "integration_revision_at_packaging": "6740af63a0a711158ad62a12d6be03ac3c99e4c4",
   "integration_revision_note": "The checksum manifest describes exact packaged bytes. A commit cannot contain its own digest; final PR/head identity is reported by delivery.",
   "pinned_research_revision": "ca904dfee93d3574df4e56b99981a6ed3b138e80",
   "accepted_research_head": "0a5690270dc449ea19c941280203987d37db5283",
