@@ -1,0 +1,152 @@
+{
+  "schema_version": "carbon.goal-workbench.operational-rehearsal-record.v1",
+  "decision_id": "GOAL-WORKBENCH-03",
+  "protocol_sha256": "3694b5a5144382021f066e0205a561a767f13c02e617ac2b8267852fd2c53717",
+  "conformance_sha256": "5a8c7a613245f94159adb0aaeef7df909dd17307dd94cb3115b5e0b5bbb1891d",
+  "application_baseline": {
+    "version": "Carbon Goal-to-Challenge Workbench v0.3",
+    "merge_commit": "32c0465d87864e3ba01c0f846be7dca91708c7e4",
+    "accepted_head": "00b197ccd4324a400c8efb9f1073f340de6dec65",
+    "acceptance_run": 34801089908
+  },
+  "source_conformance": {
+    "source_version": "v1.9",
+    "source_docx_sha256": "799108791ec951ebfd51b2d56c35f70df51ebc559929a4991cc118efd13981b5",
+    "source_docx_digest_status": "VERIFIED_BEFORE_RENDER",
+    "rendered_pdf_sha256": "925ff210a40bbb9bd5136d95e8ea937beac5c775e472df5258ab6d4736cec2cb",
+    "mapping_count": 11,
+    "divergences": []
+  },
+  "journeys": [
+    {
+      "journey_id": "GW03-A-BURGERS-DYNAMICS",
+      "coverage": {
+        "status": "STRUCTURALLY_ASSEMBLED_NOT_NUMERICALLY_AUDITED",
+        "missing_requirements": [],
+        "missing_case_requirements": [],
+        "orphan_traces": [],
+        "orphan_case_families": [],
+        "case_families_without_complete_trace": [],
+        "unresolved_floors": [],
+        "population_sampling_weighting_questions": [],
+        "numerical_diagnostic": "NOT_EXECUTED_UNLESS_SOURCE_OWNED_RESULT_IS_BOUND"
+      },
+      "diagnostic_status": "NOT_EXECUTED",
+      "diagnostic_route": "MANUAL_SOURCE_OWNER_REQUEST",
+      "authoring_status": "INTENT_PRESERVED",
+      "authoring_result_sha256": "9680bf638aeb73c155463637fd8f9bda7771742d291e74c6bcf6ab896bb8dba4",
+      "proposal_digest": "sha256:4d2f4d84dfbf82553c3d51dcd62212adaa2c4595598ce528513bd49d91fd80be",
+      "source_revision": "carbon.authoring.goals-sha256:ee8835c6ddf7902da576ccfd65b5cac7b98f7f08c9b4ee8519561a0af35e521f;profile:carbon.goal-authoring.canonical-json.v1",
+      "response_status": "RETURNED",
+      "launch_candidate_status": "MANUAL_OWNER_HANDOFF_REQUIRED",
+      "native_launch_interface": "UNAVAILABLE",
+      "authority": "CANDIDATE_ONLY_NOT_AUTHORIZED_OR_LAUNCHED"
+    },
+    {
+      "journey_id": "GW03-B-FRONT-RESOLUTION",
+      "requested_goal": "Front Resolution",
+      "emitted_goal": "Dynamics",
+      "authoring_status": "INTENT_MISMATCH",
+      "mismatches": [
+        "requested active goal Front Resolution emitted as Dynamics",
+        "workbench design has unresolved semantic bindings: requested active goal is not Dynamics"
+      ],
+      "extension_request": {
+        "schema_version": "carbon.goal-workbench.authoring-extension.v1",
+        "request_id": "gw03-b-authoring",
+        "job_id": "gw03-front-resolution",
+        "design_id": "gw03-front-resolution-design-1",
+        "design_revision": 1,
+        "missing_capability": "periodic_viscous_burgers_1d_v1 / Front Resolution",
+        "client_rationale": "Use the bounded public DEVELOPMENT Burgers template to test semantic authoring and handoff behavior without qualification, execution, or launch authority.",
+        "compatible_existing_components": "Burgers fixed compiler may supply non-authoritative components only.",
+        "proposed_tests": "Compile, compare physical law/active goal/score/cases/reference/query semantics, and reject omissions or coercions.",
+        "unresolved_scientific_choices": "Numerical qualification and customer trade-offs remain unresolved.",
+        "owner_interface": "C-AUTH1 scientific authoring owner"
+      },
+      "handoff_status": "BLOCKED",
+      "qualification": "NOT_QUALIFIED",
+      "launch": "NOT_LAUNCHED"
+    },
+    {
+      "journey_id": "GW03-C-UNSUPPORTED-RIGHTS",
+      "authoring_route": "SOURCE_OWNER_EXTENSION",
+      "extension_request": {
+        "schema_version": "carbon.goal-workbench.authoring-extension.v1",
+        "request_id": "gw03-c-extension",
+        "job_id": "gw03-unsupported",
+        "design_id": "gw03-unsupported-design-1",
+        "design_revision": 1,
+        "missing_capability": "customer_heat_transfer_v1 / Customer thermal decision",
+        "client_rationale": "Preserve an unsupported synthetic customer-like physics and rights request until the named source owners return a scoped capability and rights decision.",
+        "compatible_existing_components": "None established by this tool.",
+        "proposed_tests": "Compile, compare physical law/active goal/score/cases/reference/query semantics, and reject omissions or coercions.",
+        "unresolved_scientific_choices": "Target population, measurement adequacy, uncertainty and owner acceptance remain unresolved.",
+        "owner_interface": "C-AUTH1 scientific authoring owner"
+      },
+      "response_disposition": "IMPORTED",
+      "duplicate_disposition": "DEDUPLICATED",
+      "handoff_status": "BLOCKED",
+      "restart_event": "A versioned source-owner response for this exact request and design revision.",
+      "operating": {
+        "correction_passes_used": 1,
+        "correction_limit": 1,
+        "poll_events": 0,
+        "timeout_start_inference": false,
+        "status": "PRECISE_BLOCKER_RECORDED"
+      },
+      "launch_status": "NOT_LAUNCHED"
+    }
+  ],
+  "cpes_assertions": {
+    "baseline": "RETAIN_A_DEVELOPMENT",
+    "blockers": [
+      "AT-09",
+      "AT-16",
+      "AT-19",
+      "AT-22",
+      "AT-30"
+    ],
+    "variant_b_activation": false,
+    "qualified_reference_cost": "UNKNOWN",
+    "compatible_demand": "UNKNOWN",
+    "group_overhead": "UNKNOWN",
+    "service_limit": "UNKNOWN"
+  },
+  "friction": {
+    "reentered_material_fields": 0,
+    "handoffs_prepared": 3,
+    "manual_exports": 3,
+    "responses_imported": 4,
+    "duplicate_responses_deduplicated": 1,
+    "correction_passes": 1,
+    "poll_events": 0,
+    "human_active_minutes": null,
+    "human_active_minutes_status": "NOT_MEASURED",
+    "wait_duration": null,
+    "wait_duration_status": "NOT_MEASURED"
+  },
+  "interfaces": {
+    "working": [
+      "browser-local job/design record",
+      "fixed local C-AUTH1 Burgers compiler bridge",
+      "exact-bound manual response import"
+    ],
+    "manual": [
+      "source-owner handoff delivery",
+      "measurement/score diagnostic return",
+      "owner decision"
+    ],
+    "unavailable": [
+      "Grok account connector",
+      "CRM/calendar connector",
+      "native launch status interface"
+    ]
+  },
+  "recommended_next_integration": {
+    "interface": "Source-owned measurement/score diagnostic response adapter",
+    "why": "It closes the earliest evidence gap shared by the supported path while preserving native scientific authority.",
+    "minimum_contract": "Versioned request-bound result with source revision, implementation layer, per-example execution status, limitations, artifact digest, and no qualification promotion."
+  },
+  "authority": "Rehearsal evidence only. No real customer, native execution beyond the public authoring compiler, scientific/security/rights qualification, sharing activation, registration, or launch occurred."
+}

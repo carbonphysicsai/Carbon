@@ -1,4 +1,4 @@
-# GOAL-WORKBENCH-02 / EXAM-PROTECT-WORKBENCH-01 requirement-to-test map
+# GOAL-WORKBENCH-03 / GOAL-WORKBENCH-02 / EXAM-PROTECT-WORKBENCH-01 requirement-to-test map
 
 This map describes focused application acceptance. It does not relabel the CPES study's historical 14/52/208 runs as workbench tests.
 
@@ -13,7 +13,22 @@ This map describes focused application acceptance. It does not relabel the CPES 
 | Least-privilege client/N1/Engineering views | projections and downloads | Business/account and Engineering owners | projection unit tests; parsed browser downloads | Files are unencrypted and not transmitted |
 | Launch candidate and truthful native status | launch-candidate v1 | Launch/registration owner | forged status and candidate export tests | Native launch interface unavailable; no actual launch |
 | Additive v0.1/v0.2/v0.3 migration | outer v0.3 closed schema + receipt | Workbench owner | workflow migration/authority tests; browser migrate/export/reload | No science inferred for migrated component-only sessions |
-| C-PILOT-01 operating projection | read-only v1.9 projection | R1 lead, S1 support, optional H1 | workflow projection test | Grok plan artifact not located; no account integration or training run |
+| C-PILOT-01 operating projection | read-only v1.9 projection | R1 lead, S1 support, optional H1 | workflow projection test plus v1.9 conformance map | DOCX hash verified and ten rendered source pages inspected; no account integration or training run |
+
+## GOAL-WORKBENCH-03 operational rehearsal
+
+| Requirement | UI / data | Native owner / adapter | Automated evidence | Current limitation |
+|---|---|---|---|---|
+| Freeze three public/synthetic journeys before execution | rehearsal protocol v1 | Workbench owner | `test_rehearsal.cjs`: exact journey IDs and authority rules | Does not authorize a customer, protected, solver, training, or launch run |
+| Verify Grok v1.9 roles and operating rules | Grok conformance v1; handoff fields; N1/C-PILOT projections | M0/R1/S1/N1 and named decision owners | exact DOCX hash, conformance mapping test, ten rendered pages inspected | No account connector |
+| Forward and reverse score/case trace | `coverage()` and Challenge result summary | Measurement/ScorePack, generator, reference owners | workflow bidirectional case test; deterministic Journey A | Structural assembly is not numerical adequacy or qualification |
+| Real source-owned supported authoring | Journey A record | C-AUTH1 fixed local CLI bridge | deterministic rehearsal plus bridge/source tests | Burgers Dynamics DEVELOPMENT only |
+| Detect compiler success with semantic mismatch | Journey B record and extension request | C-AUTH1 owner | real Front Resolution bridge run returns Dynamics and `INTENT_MISMATCH` | Active Front Resolution template unavailable |
+| Preserve unsupported physics/rights and resume exactly | Journey C record and extension/handoff | C-AUTH1 plus rights/source owners | blocker binding, duplicate replay and restart event tests | Manual route; source capability and rights decisions absent |
+| One correction, precise blocker, no polling, timeout uncertainty | rehearsal event validator | Named handoff owner | positive sequence plus polling/second-correction/timeout negative controls | Event policy is rehearsal evidence, not a connector or task daemon |
+| CPES change impact remains scoped | `recordImpact`, preserved CPES record | CPES/domain owners | population/score/reference/disclosure/commercial controls | Variant A remains DEVELOPMENT; five claims and core inputs remain unresolved |
+| Design-bound numerical diagnostic request | Journey A diagnostic request | Measurement/ScorePack owner | request stays `NOT_EXECUTED` | Source-owned response adapter is recommended next integration |
+| Rank manual/unavailable interfaces without invented score | rehearsal record and next-integration handoff | Workbench and interface owners | deterministic record assertions | Human time/wait not measured; no ROI claim |
 
 | Requirement | Automated evidence |
 |---|---|

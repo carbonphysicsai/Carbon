@@ -1,4 +1,14 @@
-# Owner report — GOAL-WORKBENCH-02 / EXAM-PROTECT-WORKBENCH-01
+# Owner report — GOAL-WORKBENCH-03 / GOAL-WORKBENCH-02 / EXAM-PROTECT-WORKBENCH-01
+
+## v0.3 operational rehearsal addendum
+
+Three frozen synthetic/public DEVELOPMENT journeys now exercise the maintained product end to end. The real C-AUTH1 bridge preserves Burgers Dynamics intent; the same compiler truthfully returns Dynamics for a Front Resolution request and the workbench records `INTENT_MISMATCH`; an unsupported customer-like physics/rights request stays intact behind a precise manual source-owner restart event. No solver, training, protected exam, qualification, registration, Grok/CRM/calendar connector, or launch was invoked.
+
+The rehearsal added reverse case-to-requirement checks to the existing forward trace. It also machine-checks the v1.9 operating rules for one named lead, one correction pass, a precise blocker, no routine polling, and no inference that a timeout proves native work never started. Details and deterministic provenance are in `GOAL_WORKBENCH_03_REHEARSAL_REPORT.md` and the three rehearsal JSON records.
+
+Variant A remains the DEVELOPMENT baseline. Variant B remains conditional and non-activating. AT-09, AT-16, AT-19, AT-22, and AT-30 plus adequate reference cost, compatible demand, B overhead, field-dependent evidence, and service limits remain unresolved. The recommended next integration is a source-owned Measurement/ScorePack diagnostic response adapter; it is not authorization to change score science or take over its owner.
+
+The Grok v1.9 DOCX was verified at SHA-256 `799108791ec951ebfd51b2d56c35f70df51ebc559929a4991cc118efd13981b5`, read, and all ten rendered pages, including the page-4 diagram, were inspected. The rendered PDF SHA-256 was `925ff210a40bbb9bd5136d95e8ea937beac5c775e472df5258ab6d4736cec2cb`. The supplied DOCX subsequently disappeared from its Downloads path; the DOCX digest remains the original observed `shasum` result and is not inferred from the PDF. The external source bytes are not bundled. This addendum prospectively supersedes the earlier v0.3 packaging note below that the document had not been located.
 
 ## v0.3 goal-to-Challenge capability
 

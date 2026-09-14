@@ -2598,6 +2598,32 @@
       ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5659454050",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/ba88709e3c34ec6bba535fb09129f7e9e7500a57/.agent/plans/C-08_authenticated_miner_mcp_e2e.md"
+    },
+    {
+      "title": "Rehearse goal-to-Challenge handoffs before selecting connector automation",
+      "question": "Which workbench handoff should Carbon automate next after rehearsing the accepted v0.3 workflow against the Grok v1.9 operating model?",
+      "recommendation": "Keep Grok, CRM, calendar and native launch routes manual or unavailable. First add a versioned source-owned Measurement/ScorePack diagnostic response reader after its owner supplies an accepted request-bound contract and public fixture. Preserve the existing one-lead, one-correction, no-polling, exact-binding and fail-closed authority rules.",
+      "why": "The rehearsal showed that native Burgers authoring and manual result binding work, while the earliest common evidence gap is still a NOT_EXECUTED numerical score-behavior diagnostic. Automating transport before that semantic evidence exists would reduce clicks without resolving the owner decision or scientific gap.",
+      "if_kept": "WAVE-G retains a reproducible three-journey operational record, bidirectional requirement/case coverage, explicit interface ranking and one bounded next-interface request. Variant A and all CPES limitations remain unchanged; the separate Wave C executor and runtime are unaffected.",
+      "if_changed": "A different connector, scientific diagnostic, authority verifier or launch interface requires its source owner, versioned contract, public fixture, security/rights review and separate acceptance. Historical rehearsal records and source outputs remain immutable evidence.",
+      "decision_id": "GOAL-WORKBENCH-03",
+      "map_ref": "WAVE-G",
+      "wave": "G",
+      "ticket": "FIT-WEB-01 operational rehearsal",
+      "attention": "FOR_AWARENESS",
+      "status": "OWNER_SELECTED_WORKING_DECISION",
+      "audience": "harsh",
+      "affects": [
+        "WAVE-G",
+        "WAVE-C/C-AUTH1",
+        "SYSTEM/BUSINESS-AUTHORITY",
+        "SYSTEM/GOVERNANCE",
+        "SYSTEM/MATURITY",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+      ],
+      "response_url": "https://github.com/carbonphysicsai/Carbon/issues/139",
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/main/Business/Carbon_Fit/workbench/docs/GOAL_WORKBENCH_03_REHEARSAL_REPORT.md"
     }
   ]
 }
