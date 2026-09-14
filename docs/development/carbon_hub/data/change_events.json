@@ -2960,6 +2960,33 @@
         "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
       ],
       "supersedes": "C-08-I1"
+    },
+    {
+      "map_ref": "WAVE-C/C-10",
+      "event_type": "decision",
+      "event_id": "C-10-I1",
+      "owner_lane": "validator_audit_engineering",
+      "status": "implemented",
+      "summary": "PR #168's private-alpha archive preparation is reconciled as accepted, and C-10-D1 selects a bounded public DEVELOPMENT candidate over C-01/C-06/C-07. One fresh linked execution preserves registered randomness, uses new workers and scratch, associates both receipts, reports exact bytes only as an engineering observation, and quarantines every other outcome. Exact-head Linux service acceptance and merge remain pending; no scientific, independent-security, archive, network or reward authority exists.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/16f848a169a1aefdaf71d8506841c6662e1976a7/.agent/evidence/wave_c/c-10.md",
+      "affects": [
+        "WAVE-C",
+        "WAVE-C/C-01",
+        "WAVE-C/C-06",
+        "WAVE-C/C-07",
+        "WAVE-C/C-10",
+        "WAVE-C/C-EA1",
+        "WAVE-C/C-EA2",
+        "WAVE-C/C-09",
+        "SYSTEM/AGENT-EXECUTION",
+        "SYSTEM/CI",
+        "SYSTEM/GOVERNANCE",
+        "SYSTEM/MATURITY",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+      ],
+      "supersedes": "C-EA1-I1"
     }
   ]
 }

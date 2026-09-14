@@ -32,7 +32,7 @@ It cannot issue a real acknowledgement or satisfy C-EA2, and supplies no provide
 
 ## Current stage
 
-After accepted C-08 PR #167, OWNER-C1-BURGERS-ALPHA-01 selects C-EA1's separately versioned private-alpha preparation. The candidate freezes the one-evaluation/20 GiB, 90-day/open-obligation and single-host-loss/24-hour targets, adds a closed external-input doctor, and reuses isolated non-secret services; real acknowledgement and C-EA2 eligibility remain structurally false.
+PR #168 accepted exact head ea51a947bbf21908144f93ffb04b5e9cc46de519 in required run 34830155526 and normally merged it as 0ee4c9b8db8339740521e2afc72624c97d8e177a with matching tree e11b05b60909748f5c152f53ca0e65b0b5696d3c. The accepted carbon.alpha-evidence-archive.private.v1 preparation has profile digest sha256:e7f9b86943d482ad5c0e92c386a6edf3cdc493049f912c88f7e5a25d5eb6f49c and still cannot issue a real acknowledgement.
 
 ## Maturity ceiling
 
@@ -40,11 +40,11 @@ Synthetic acknowledgement remains tested only in its accepted fixture scope. The
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/d536836e2ddcd3ca5a59cbdc7c4b8e888be38016/.agent/tickets/C-EA1_durable_evidence_archive.md)
-- [Evidence capture contract](https://github.com/carbonphysicsai/Carbon/blob/d536836e2ddcd3ca5a59cbdc7c4b8e888be38016/Design_Specs/Evidence_Archive_and_Custody.md)
-- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/d536836e2ddcd3ca5a59cbdc7c4b8e888be38016/.agent/WAVE_C.md)
-- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/d536836e2ddcd3ca5a59cbdc7c4b8e888be38016/.agent/evidence/wave_c/c-ea1.md)
-- [Synthetic archive runbook](https://github.com/carbonphysicsai/Carbon/blob/d536836e2ddcd3ca5a59cbdc7c4b8e888be38016/docs/development/EVIDENCE_ARCHIVE_SYNTHETIC.md)
-- [Private-alpha preparation runbook](https://github.com/carbonphysicsai/Carbon/blob/d536836e2ddcd3ca5a59cbdc7c4b8e888be38016/docs/development/EVIDENCE_ARCHIVE_ALPHA_PROFILE.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/16f848a169a1aefdaf71d8506841c6662e1976a7/.agent/tickets/C-EA1_durable_evidence_archive.md)
+- [Evidence capture contract](https://github.com/carbonphysicsai/Carbon/blob/16f848a169a1aefdaf71d8506841c6662e1976a7/Design_Specs/Evidence_Archive_and_Custody.md)
+- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/16f848a169a1aefdaf71d8506841c6662e1976a7/.agent/WAVE_C.md)
+- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/16f848a169a1aefdaf71d8506841c6662e1976a7/.agent/evidence/wave_c/c-ea1.md)
+- [Synthetic archive runbook](https://github.com/carbonphysicsai/Carbon/blob/16f848a169a1aefdaf71d8506841c6662e1976a7/docs/development/EVIDENCE_ARCHIVE_SYNTHETIC.md)
+- [Private-alpha preparation runbook](https://github.com/carbonphysicsai/Carbon/blob/16f848a169a1aefdaf71d8506841c6662e1976a7/docs/development/EVIDENCE_ARCHIVE_ALPHA_PROFILE.md)
 
 > The accepted synthetic acknowledgement is unchanged. The alpha doctor names missing external inputs, and even a complete reference document remains ineligible until real activation, recovery and security evidence exist.
