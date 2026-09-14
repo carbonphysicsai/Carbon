@@ -7,7 +7,6 @@ from pathlib import Path
 
 import pytest
 
-from carbon.miner_mcp import __all__ as miner_mcp_exports
 from tests.invariants._import_analysis import direct_import_modules
 
 pytestmark = pytest.mark.invariant
@@ -16,7 +15,25 @@ ROOT = Path(__file__).resolve().parents[2]
 PACKAGE = ROOT / "carbon" / "miner_mcp"
 
 
+def _literal_exports() -> tuple[str, ...]:
+    tree = ast.parse((PACKAGE / "__init__.py").read_text(encoding="utf-8"))
+    declarations = [
+        node
+        for node in tree.body
+        if isinstance(node, ast.Assign)
+        and any(
+            isinstance(target, ast.Name) and target.id == "__all__"
+            for target in node.targets
+        )
+    ]
+    assert len(declarations) == 1
+    exports = ast.literal_eval(declarations[0].value)
+    assert isinstance(exports, tuple)
+    return exports
+
+
 def test_package_is_exact_and_exports_no_official_or_network_surface() -> None:
+    miner_mcp_exports = _literal_exports()
     assert {path.name for path in PACKAGE.glob("*.py")} == {
         "__init__.py",
         "model.py",
