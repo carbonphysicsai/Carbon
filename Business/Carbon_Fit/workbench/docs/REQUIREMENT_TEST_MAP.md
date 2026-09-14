@@ -1,6 +1,21 @@
-# GOAL-WORKBENCH-04 / GOAL-WORKBENCH-03 / GOAL-WORKBENCH-02 / EXAM-PROTECT-WORKBENCH-01 requirement-to-test map
+# GOAL-WORKBENCH-05 / GOAL-WORKBENCH-04 / GOAL-WORKBENCH-03 / GOAL-WORKBENCH-02 / EXAM-PROTECT-WORKBENCH-01 requirement-to-test map
 
 This map describes focused application acceptance. It does not relabel the CPES study's historical 14/52/208 runs as workbench tests.
+
+| v0.5 requirement | UI / data | Automated evidence | Authority limitation |
+|---|---|---|---|
+| Three exact-revision routes; no inferred migration route | Route panel; v0.5 closed schema | `test_routing.cjs` route/migration/sealed-revision cases; browser Journeys A–C | Route is planning only |
+| Existing capability skips authoring; unsupported adaptation fails closed | Journey A; supported Burgers Journey B | pure route validation and Chrome journey checks | Existing is not customer-qualified; adapter remains Burgers/Dynamics only |
+| New capability stops at one bounded feasibility question | Journey C; handoff export | question/lead/stop/restart tests; Chrome waiting state | Export is not send, execution, or approval |
+| Owner Console and deterministic attention/action | Owner Console | separate-axis, attention, no-percent and narrow-width checks | Owner decides priority; no hidden rank |
+| Workflow, evidence and customer statuses remain separate | three console columns | exported/sent/acknowledged/executed/qualified distinction tests | Local state cannot create trusted qualification |
+| Provenance remains visible and closed | provenance badge/detail | manual/native/external/derived tests | Link/hash does not authenticate a claim |
+| Exact-revision evidence binding and selective change impact | Evidence applicability and change-impact panels | commercial, intended-use, physics, output/units, population, score, reference, disclosure, rights and deployment cases | Carry-forward is not qualification or answer reuse |
+| Fixed-case history survives without population inference | sealed parent plus child binding | child-revision and C-05 regression tests | One C-05 case remains source-executed/unresolved |
+| CPES semantics remain unchanged | integrated change-impact display | A/B/C, five blockers, favorable-B non-authority regressions | No protection or launch activation |
+| #42 `EXPORTED_OWNER_REQUEST` remains waiting | explicit external-linked negative control | pure and Chrome checks | No GitHub polling; not acknowledged/approved |
+| v0.1–v0.4 additive migration and atomic rejection | v0.5 workspace receipt | migration, duplicate/dangerous/unknown authority-field tests | No science/applicability inferred |
+| Frozen public/synthetic demonstrations | `goal_workbench_05_journeys_v1.json` | `browser_routing_smoke.cjs` against built HTML | Synthetic DEVELOPMENT only |
 
 | v0.4 requirement | UI / data | Native owner / adapter | Automated evidence | Current limitation |
 |---|---|---|---|---|

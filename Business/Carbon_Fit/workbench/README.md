@@ -1,10 +1,14 @@
-# Carbon Goal-to-Challenge Workbench v0.4
+# Carbon Goal-to-Challenge Workbench v0.5
+
+GOAL-WORKBENCH-05 adds three exact-revision planning routes, an all-job Owner Console, separate workflow/evidence/customer-outcome axes, and deterministic evidence-applicability/change-impact rules. The console exposes one consequential next action, accountable owner, scoped lead, blocker, restart event, and status provenance without a fit percentage, priority score, or autonomous scientific decision. Frozen public/synthetic journeys are recorded in `data/goal_workbench_05_journeys_v1.json`; see `docs/GOAL_WORKBENCH_05_OPTIMIZATION_REPORT.md`.
+
+An existing capability can now avoid unnecessary Challenge authoring; the supported Burgers/Dynamics route can carry exact-scope historical evidence while staling only affected bindings; unsupported physics stops at one bounded feasibility question. Evidence/template reuse is not reference-answer reuse. Local/manual assertions and linked records never become native execution, source-owner confirmation, qualification, protected-use permission, or launch authority.
 
 GOAL-WORKBENCH-04 adds a strict read-only adapter for exact source-owned C-05 public DEVELOPMENT measurement results. Load the public Burgers demonstration, then import `data/c05_public_development_evidence_v1.json`. The adapter binds the exact request/result bytes and provenance to `job-001-design-1` revision 1, `TRACE-DYNAMICS`, and `BURGERS-12-CELL`; it retains raw observations and explicitly unresolved scientific limits without creating a score, pass/fail, qualification, approval, or launch state. See `docs/GOAL_WORKBENCH_04_MEASUREMENT_INTEGRATION_REPORT.md`.
 
 GOAL-WORKBENCH-03 adds a deterministic operational rehearsal over this accepted v0.3 application. Run `node tools/run_operational_rehearsal.cjs --grok-plan /path/to/Carbon_Grok_Master_Plan_v1_9.docx` from this directory (with the repository root on `PYTHONPATH`, as the tool does internally) to verify the source digest and reproduce the three public/synthetic journeys. Omitting `--grok-plan` replays the already pinned record when the external source is unavailable. See `docs/GOAL_WORKBENCH_03_REHEARSAL_REPORT.md` for the supported Dynamics result, Front Resolution mismatch, unsupported-rights blocker, Grok v1.9 conformance, measured friction, and next-interface decision.
 
-Open `Carbon_Opportunity_Workbench.html` and begin in **Client jobs**. The accepted v0.2 Opportunity/CPES workbench remains embedded as the same maintained application; the Atlas is optional supporting research rather than required job identity.
+Open `Carbon_Opportunity_Workbench.html` and begin in **Owner Console**. The accepted v0.4 measurement reader and v0.2 Opportunity/CPES workbench remain embedded in the same maintained application; the Atlas is optional supporting research rather than required job identity.
 
 The v0.3 owner route is:
 
@@ -23,6 +27,13 @@ The exact supported route is the source-owned public DEVELOPMENT periodic viscou
 The browser does not run a generator, reference solver, scorer, reconstruction, training, protected exam or launch. Prospective score-behavior checks remain `NOT_EXECUTED` unless a source-owned result is bound; the UI exports a design-bound request for the Measurement/ScorePack owner instead of emulating that calculation. Grok/CRM/calendar/account connections, live/private intake, hosted collection and native launch remain manual or unavailable.
 
 Local exports are unencrypted. Keep inputs high-level and non-sensitive. A complete form, matching hash, compiled proposal or imported response cannot grant scientific/security/rights approval, reuse, submission, registration, execution or launch.
+
+## v0.5 maintained additions
+
+- `src/routing.js`: closed route/status/provenance vocabularies, evidence bindings, scoped change impact, deterministic next actions, and console summaries.
+- `src/workflow.js` and `src/goal_app.js`: additive v0.5 record/migration, exact-revision route editing, Owner Console, selective carry-forward, and pending-owner negative control.
+- `data/goal_workbench_05_journeys_v1.json`: frozen public/synthetic route and authority expectations.
+- `tests/test_routing.cjs` and `tests/browser_routing_smoke.cjs`: pure and built-artifact route/console/applicability acceptance.
 
 ## v0.4 maintained additions
 
@@ -93,10 +104,12 @@ python3 tools/build_schema.py
 python3 tools/build_goal_schema.py
 python3 tools/build.py
 node --test tests/test_engine.cjs tests/test_workflow.cjs
+node --test tests/test_routing.cjs tests/test_c05_evidence.cjs
 python3 -m pytest tests/test_authoring_bridge.py ../../../../tests/cpu/test_cauth1_goal_authoring.py -q
 python3 tests/test_sources.py
 node tests/browser_smoke.cjs
 node tests/browser_goal_smoke.cjs
+node tests/browser_routing_smoke.cjs
 python3 tools/package_release.py
 ```
 

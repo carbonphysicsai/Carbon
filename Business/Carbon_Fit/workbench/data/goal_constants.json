@@ -1,8 +1,8 @@
 {
-  "DESIGN_VERSION": "carbon.goal-workbench.design.v0.4",
-  "WORKSPACE_VERSION": "carbon.goal-workbench.workspace.v0.4",
-  "APP_VERSION": "Carbon Goal-to-Challenge Workbench v0.4",
-  "BASE_APPLICATION_MERGE": "95e717f28fab66a087b1e7006ad2ba5e167e2ddf",
+  "DESIGN_VERSION": "carbon.goal-workbench.design.v0.5",
+  "WORKSPACE_VERSION": "carbon.goal-workbench.workspace.v0.5",
+  "APP_VERSION": "Carbon Goal-to-Challenge Workbench v0.5",
+  "BASE_APPLICATION_MERGE": "e576fbdc711c9194dbcc7d90405480e90577407e",
   "BLOCKERS": [
     "AT-09",
     "AT-16",
@@ -32,5 +32,44 @@
     "STRESS",
     "QUALIFICATION",
     "REFERENCE_AUDIT"
+  ],
+  "ROUTES": [
+    "UNASSESSED",
+    "USE_EXISTING_CAPABILITY",
+    "ADAPT_SUPPORTED_CHALLENGE",
+    "DEVELOP_NEW_CAPABILITY"
+  ],
+  "PROVENANCE": [
+    "WORKBENCH_DERIVED",
+    "LOCAL_MANUAL_ASSERTION",
+    "NATIVE_IMPORTED_RESULT",
+    "EXTERNAL_LINKED_RECORD"
+  ],
+  "CUSTOMER_OUTCOMES": [
+    "OPEN",
+    "FEASIBILITY_FINDING",
+    "SCOPE_REVISION_NEEDED",
+    "BASELINE_RETAINED",
+    "CANDIDATE_READY_FOR_FURTHER_TEST",
+    "DELIVERY_QUALIFICATION_REQUIRED",
+    "PARKED",
+    "CLOSED"
+  ],
+  "DEPENDENCY_DOMAINS": [
+    "COMMERCIAL_CONTEXT",
+    "INTENDED_USE",
+    "PHYSICS_SCOPE",
+    "INPUT_CONTRACT",
+    "OUTPUT_CONTRACT",
+    "UNITS_SCALING",
+    "POPULATION_CASES",
+    "GENERATOR",
+    "MEASUREMENT_SCORE",
+    "REFERENCE",
+    "RECONSTRUCTION",
+    "CPES_DISCLOSURE",
+    "RIGHTS",
+    "DEPLOYMENT",
+    "AUTHORING"
   ]
 }

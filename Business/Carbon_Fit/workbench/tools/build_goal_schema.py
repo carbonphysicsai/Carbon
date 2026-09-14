@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the closed additive v0.4 goal-workbench schema and constants."""
+"""Generate the closed additive v0.5 goal-workbench schema and constants."""
 
 from __future__ import annotations
 
@@ -7,14 +7,53 @@ import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-DESIGN = "carbon.goal-workbench.design.v0.4"
-WORKSPACE = "carbon.goal-workbench.workspace.v0.4"
-APP = "Carbon Goal-to-Challenge Workbench v0.4"
-BASE = "95e717f28fab66a087b1e7006ad2ba5e167e2ddf"
+DESIGN = "carbon.goal-workbench.design.v0.5"
+WORKSPACE = "carbon.goal-workbench.workspace.v0.5"
+APP = "Carbon Goal-to-Challenge Workbench v0.5"
+BASE = "e576fbdc711c9194dbcc7d90405480e90577407e"
 BLOCKERS = ["AT-09", "AT-16", "AT-19", "AT-22", "AT-30"]
 CONTROLS = [f"P{i}" for i in range(1, 9)]
 ROLES = ["MANDATORY", "SOFT", "DIAGNOSTIC", "DEPLOYMENT"]
 CASE_ROLES = ["TRAIN", "EVAL", "STRESS", "QUALIFICATION", "REFERENCE_AUDIT"]
+ROUTES = [
+    "UNASSESSED",
+    "USE_EXISTING_CAPABILITY",
+    "ADAPT_SUPPORTED_CHALLENGE",
+    "DEVELOP_NEW_CAPABILITY",
+]
+PROVENANCE = [
+    "WORKBENCH_DERIVED",
+    "LOCAL_MANUAL_ASSERTION",
+    "NATIVE_IMPORTED_RESULT",
+    "EXTERNAL_LINKED_RECORD",
+]
+CUSTOMER_OUTCOMES = [
+    "OPEN",
+    "FEASIBILITY_FINDING",
+    "SCOPE_REVISION_NEEDED",
+    "BASELINE_RETAINED",
+    "CANDIDATE_READY_FOR_FURTHER_TEST",
+    "DELIVERY_QUALIFICATION_REQUIRED",
+    "PARKED",
+    "CLOSED",
+]
+DEPENDENCY_DOMAINS = [
+    "COMMERCIAL_CONTEXT",
+    "INTENDED_USE",
+    "PHYSICS_SCOPE",
+    "INPUT_CONTRACT",
+    "OUTPUT_CONTRACT",
+    "UNITS_SCALING",
+    "POPULATION_CASES",
+    "GENERATOR",
+    "MEASUREMENT_SCORE",
+    "REFERENCE",
+    "RECONSTRUCTION",
+    "CPES_DISCLOSURE",
+    "RIGHTS",
+    "DEPLOYMENT",
+    "AUTHORING",
+]
 
 
 def string(maximum: int = 8_000) -> dict[str, object]:
@@ -234,6 +273,96 @@ extension_request = obj(
         "owner_interface": string(),
     }
 )
+route_plan = obj(
+    {
+        "route": {"enum": ROUTES},
+        "rationale": string(),
+        "source_or_capability_ref": string(),
+        "route_basis": string(),
+        "unresolved_conditions": array(string(1_000), 64),
+        "next_decision": string(),
+        "bounded_question": string(),
+        "stop_condition": string(),
+        "restart_event": string(),
+        "selected_by_assertion": string(),
+        "status_provenance": {"enum": PROVENANCE},
+    }
+)
+external_record = obj(
+    {
+        "record_id": string(192),
+        "source_ref": string(1_000),
+        "status": {
+            "enum": [
+                "PREPARED",
+                "EXPORTED_OWNER_REQUEST",
+                "SENT",
+                "ACKNOWLEDGED",
+                "EXECUTED",
+                "OWNER_DECISION",
+                "BLOCKED",
+            ]
+        },
+        "provenance": {"const": "EXTERNAL_LINKED_RECORD"},
+        "note": string(2_000),
+    }
+)
+coordination = obj(
+    {
+        "customer_outcome": {"enum": CUSTOMER_OUTCOMES},
+        "customer_outcome_provenance": {"enum": PROVENANCE},
+        "decision_needed": string(),
+        "blocker": string(),
+        "blocker_owner": string(),
+        "restart_event": string(),
+        "external_records": array(external_record, 64),
+        "last_relevant_design_revision": {"type": "integer", "minimum": 1},
+    }
+)
+evidence_binding = obj(
+    {
+        "evidence_binding_id": string(192),
+        "evidence_kind": {
+            "enum": [
+                "MEASUREMENT_IMPLEMENTATION",
+                "TEMPLATE",
+                "PRIOR_DECISION",
+                "FIXED_CASE_RESULT",
+                "RESEARCH_REFERENCE",
+                "DEPLOYMENT_EVIDENCE",
+            ]
+        },
+        "source_ref": string(1_000),
+        "source_digest_or_identity": string(300),
+        "design_id": string(128),
+        "design_revision": {"type": "integer", "minimum": 1},
+        "trace_ids": array(string(128), 256),
+        "case_family_ids": array(string(128), 128),
+        "dependency_domains": array({"enum": DEPENDENCY_DOMAINS}, 32),
+        "scientific_applicability": {
+            "enum": [
+                "UNASSESSED",
+                "CARRIED_FORWARD_UNCHANGED_SCOPE",
+                "REVIEW_REQUIRED",
+                "NOT_APPLICABLE",
+                "SOURCE_OWNER_CONFIRMED",
+            ]
+        },
+        "use_or_rights_status": {
+            "enum": [
+                "UNRESOLVED",
+                "UNCHANGED_SOURCE_SCOPE",
+                "REVIEW_REQUIRED",
+                "PROHIBITED",
+                "SOURCE_AUTHORIZED",
+            ]
+        },
+        "assessment_basis": string(2_000),
+        "rationale": string(2_000),
+        "invalidated_by": array(string(1_000), 64),
+        "status_provenance": {"enum": PROVENANCE},
+    }
+)
 scope_fields = [
     "physics_family",
     "requested_goal",
@@ -250,6 +379,9 @@ scope_fields = [
     "failure_consequences",
     "data_access",
     "rights_scope",
+    "commercial_context",
+    "disclosure_scope",
+    "deployment_environment",
 ]
 score_fields = [
     "official_score_status",
@@ -461,16 +593,20 @@ design = obj(
                 "extension_request": nullable(extension_request),
             }
         ),
+        "route_plan": route_plan,
         "measurement_evidence": array(evidence_record, 64),
+        "evidence_bindings": array(evidence_binding, 128),
         "handoffs": array(handoff, 128),
         "responses": array(response, 256),
+        "coordination": coordination,
         "decision": obj({field: string() for field in decision_fields}),
         "change_log": array(
             obj(
                 {
                     "field": string(500),
                     "kind": string(500),
-                    "impact": string(500),
+                    "impact": string(1_000),
+                    "domains": array({"enum": DEPENDENCY_DOMAINS}, 32),
                     "note": string(500),
                 }
             ),
@@ -484,6 +620,7 @@ job = obj(
         "title": string(300),
         "source_opportunity_id": nullable(string(128)),
         "native_task_id": string(300),
+        "accountable_owner": string(300),
         "lead": string(300),
         "assignment": obj(
             {
@@ -509,7 +646,7 @@ component = json.loads(
 )
 schema = {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "title": "Carbon goal-to-Challenge workbench workspace v0.4",
+    "title": "Carbon goal-to-Challenge workbench workspace v0.5",
     "$comment": (
         "Closed browser-local planning schema. Derived results are recomputed. "
         "It grants no scientific, security, rights, reuse, submission, execution, or launch authority."
@@ -519,7 +656,7 @@ schema = {
         {
             "schema_version": {"const": WORKSPACE},
             "application_version": {"const": APP},
-            "decision_id": {"const": "GOAL-WORKBENCH-04"},
+            "decision_id": {"const": "GOAL-WORKBENCH-05"},
             "base_application_merge": {"const": BASE},
             "opportunity_workspace": {"$ref": "#/$defs/opportunity_workspace_v02"},
             "jobs": array(job, 64),
@@ -558,6 +695,10 @@ constants = {
     "CONTROLS": CONTROLS,
     "ROLES": ROLES,
     "CASE_ROLES": CASE_ROLES,
+    "ROUTES": ROUTES,
+    "PROVENANCE": PROVENANCE,
+    "CUSTOMER_OUTCOMES": CUSTOMER_OUTCOMES,
+    "DEPENDENCY_DOMAINS": DEPENDENCY_DOMAINS,
 }
 (ROOT / "data/goal_workspace.schema.json").write_text(
     json.dumps(schema, indent=2) + "\n", encoding="utf-8"
@@ -565,4 +706,4 @@ constants = {
 (ROOT / "data/goal_constants.json").write_text(
     json.dumps(constants, indent=2) + "\n", encoding="utf-8"
 )
-print("v0.4 goal-workbench schema and constants generated")
+print("v0.5 goal-workbench schema and constants generated")

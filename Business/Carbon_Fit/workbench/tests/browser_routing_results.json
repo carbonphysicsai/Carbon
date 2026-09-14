@@ -1,0 +1,29 @@
+{
+  "artifact": "Carbon_Opportunity_Workbench.html",
+  "scope": "GOAL-WORKBENCH-05 route, console, applicability journeys",
+  "engine": "Google Chrome (Chromium)",
+  "passed": 17,
+  "failed": 0,
+  "checks": [
+    "Owner Console starts with deterministic zero attention counts",
+    "Journey A selects USE_EXISTING_CAPABILITY",
+    "Journey A avoids unnecessary Challenge authoring",
+    "Journey A exposes one intended-use action without fit percent",
+    "Journey B selects the exact supported Burgers adaptation",
+    "native C-05 result is visibly native and unresolved",
+    "new revision resets route but explicitly carries prior evidence",
+    "output change selectively marks retained evidence for review",
+    "source result remains historical in sealed parent revision",
+    "#42 EXPORTED_OWNER_REQUEST is waiting not approved",
+    "Owner Console separates workflow evidence and customer outcome",
+    "Journey C freezes one bounded unsupported-physics feasibility question",
+    "exported feasibility handoff produces one WAITING state",
+    "unsupported physics does not force Burgers authoring",
+    "Owner Console is usable at narrow width",
+    "browser emitted no script exception",
+    "offline journeys emitted zero external requests"
+  ],
+  "page_errors": [],
+  "outbound_requests": [],
+  "other_engine": "NOT_AVAILABLE_IN_LOCAL_AUTOMATION; Safari/WebKit not claimed"
+}

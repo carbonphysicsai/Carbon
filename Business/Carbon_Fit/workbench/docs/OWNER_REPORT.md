@@ -1,4 +1,16 @@
-# Owner report — GOAL-WORKBENCH-04 / GOAL-WORKBENCH-03 / GOAL-WORKBENCH-02 / EXAM-PROTECT-WORKBENCH-01
+# Owner report — GOAL-WORKBENCH-05 / GOAL-WORKBENCH-04 / GOAL-WORKBENCH-03 / GOAL-WORKBENCH-02 / EXAM-PROTECT-WORKBENCH-01
+
+## v0.5 optimized-routing addendum
+
+The standalone workbench now starts on one all-job Owner Console. Each row shows the exact design revision, one planning route, accountable human owner, scoped lead, one deterministic next action, blocker/restart event, separate workflow/evidence/customer-outcome states, and whether the state is workbench-derived, locally asserted, natively imported, or an external linked record. It has no percent-complete or hidden priority/scientific fit score.
+
+Routes are closed to `UNASSESSED`, `USE_EXISTING_CAPABILITY`, `ADAPT_SUPPORTED_CHALLENGE`, and `DEVELOP_NEW_CAPABILITY`. Existing capability work can skip Challenge authoring. Adaptation is limited to the accepted source-owned Burgers/Dynamics semantics. Unsupported physics requires one bounded question, lead, stop condition, dependency, and restart event before handoff; export remains neither send nor execution.
+
+Evidence bindings are exact-design-revision scoped and declare closed dependency domains. A commercial/editorial change can carry scientific evidence forward unchanged; intended use, rights, disclosure, deployment, population, measurement, output/units, reference, authoring, or physics changes affect only the applicable domains. Carry-forward is not qualification. Fixed-case history can remain inspectable while population inference is removed. Source-owner confirmation and authorization cannot be created through browser input.
+
+The accepted C-05 one-case result remains `SOURCE_EXECUTED_UNRESOLVED`, retains null uncertainty, and creates no pass/fail. D-QUAL-PREP-01-FOLLOWUP-01 on issue #42 is represented only as an external `EXPORTED_OWNER_REQUEST`: waiting, not acknowledged, approved, selected, funded, executed, or qualified. The browser performs no GitHub polling or external request.
+
+The frozen public/synthetic journeys demonstrate existing-capability, supported adaptation with selective staleness, unsupported-physics feasibility, and the pending-owner negative control. Detailed outcomes and the next-integration decision are in `GOAL_WORKBENCH_05_OPTIMIZATION_REPORT.md` and `GOAL_WORKBENCH_05_NEXT_INTEGRATION.md`. Current Wave C selection, C-10 execution, CPES baseline/blockers, scientific runtimes, score authority, protected use, and launch are unchanged.
 
 ## v0.4 source measurement addendum
 
