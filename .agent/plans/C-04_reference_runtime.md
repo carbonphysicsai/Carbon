@@ -1,8 +1,12 @@
 # C-04 role-explicit Burgers reference runtime plan
 
 **Decision:** `OWNER-C1-BURGERS-ALPHA-01`
-**Status:** implementation candidate; normal tested merge pending
+**Status:** bounded implementation accepted in PR #154; scientific/security
+qualification remains pending
 **Base:** PR #151 merge `2d5872aff89ca7bef3e3f062b293aeefe17769aa`
+**Accepted:** head `32fa87f0f4947b8fbae9b2b73e5fa875a73de175`, run
+`34784739423`, PR #154, merge
+`0cd91bfa6d30f81739ff75e46888f6f1387bd1de`
 **Primary Hub map_ref:** `WAVE-C/C-04`
 
 ## Scope
