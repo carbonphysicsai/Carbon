@@ -1,0 +1,975 @@
+{
+  "schema_version": "carbon_opportunity_seed_index_v0.1",
+  "source": {
+    "id": "GTM-2026-08-27",
+    "file": "Carbon_Science_Backed_GTM_Roadmap_2026-08-27.docx",
+    "sha256": "6e755f19f4876311709f171b2265413dfde085c6a5071e1ce748f6ec4be313fc",
+    "research_date": "2026-08-27",
+    "source_repo_snapshot": "4e4a66d29566a2a62a82188adddac76e6e0fb8b8",
+    "status": "Working research memo, not scientific qualification, customer demand, or implementation authority."
+  },
+  "record_count": 64,
+  "status": "Source hypothesis index only. Complete exact five-column extraction is in atlas.json in the workbench bundle.",
+  "records": [
+    {
+      "id": "PHY-A01",
+      "group": "A",
+      "title": "Poisson / Laplace",
+      "source_locator": {
+        "section": "8",
+        "docx_table_1based": 22,
+        "row_1based": 2,
+        "rendered_page_range": [
+          13,
+          14
+        ]
+      },
+      "difficulty_hypothesis": "Q1"
+    },
+    {
+      "id": "PHY-A02",
+      "group": "A",
+      "title": "Linear transient diffusion / heat conduction",
+      "source_locator": {
+        "section": "8",
+        "docx_table_1based": 22,
+        "row_1based": 3,
+        "rendered_page_range": [
+          13,
+          14
+        ]
+      },
+      "difficulty_hypothesis": "Q1"
+    },
+    {
+      "id": "PHY-A03",
+      "group": "A",
+      "title": "Constant-coefficient linear advection",
+      "source_locator": {
+        "section": "8",
+        "docx_table_1based": 22,
+        "row_1based": 4,
+        "rendered_page_range": [
+          13,
+          14
+        ]
+      },
+      "difficulty_hypothesis": "Q1"
+    },
+    {
+      "id": "PHY-A04",
+      "group": "A",
+      "title": "Linear wave and 1D acoustics",
+      "source_locator": {
+        "section": "8",
+        "docx_table_1based": 22,
+        "row_1based": 5,
+        "rendered_page_range": [
+          13,
+          14
+        ]
+      },
+      "difficulty_hypothesis": "Q1"
+    },
+    {
+      "id": "PHY-A05",
+      "group": "A",
+      "title": "1D viscous Burgers",
+      "source_locator": {
+        "section": "8",
+        "docx_table_1based": 22,
+        "row_1based": 6,
+        "rendered_page_range": [
+          13,
+          14
+        ]
+      },
+      "difficulty_hypothesis": "Q2"
+    },
+    {
+      "id": "PHY-A06",
+      "group": "A",
+      "title": "Convex Hamilton–Jacobi / eikonal",
+      "source_locator": {
+        "section": "8",
+        "docx_table_1based": 22,
+        "row_1based": 7,
+        "rendered_page_range": [
+          13,
+          14
+        ]
+      },
+      "difficulty_hypothesis": "Q2"
+    },
+    {
+      "id": "PHY-A07",
+      "group": "A",
+      "title": "Nonlinear thermal conduction with k(T)",
+      "source_locator": {
+        "section": "8",
+        "docx_table_1based": 22,
+        "row_1based": 8,
+        "rendered_page_range": [
+          13,
+          14
+        ]
+      },
+      "difficulty_hypothesis": "Q2"
+    },
+    {
+      "id": "PHY-A08",
+      "group": "A",
+      "title": "Canonical electrostatics / magnetostatics",
+      "source_locator": {
+        "section": "8",
+        "docx_table_1based": 22,
+        "row_1based": 9,
+        "rendered_page_range": [
+          13,
+          14
+        ]
+      },
+      "difficulty_hypothesis": "Q2"
+    },
+    {
+      "id": "PHY-A09",
+      "group": "A",
+      "title": "Linear small-strain elasticity",
+      "source_locator": {
+        "section": "8",
+        "docx_table_1based": 22,
+        "row_1based": 10,
+        "rendered_page_range": [
+          13,
+          14
+        ]
+      },
+      "difficulty_hypothesis": "Q2"
+    },
+    {
+      "id": "PHY-A10",
+      "group": "A",
+      "title": "Canonical Maxwell / Lorenz–Mie",
+      "source_locator": {
+        "section": "8",
+        "docx_table_1based": 22,
+        "row_1based": 11,
+        "rendered_page_range": [
+          13,
+          14
+        ]
+      },
+      "difficulty_hypothesis": "Q2"
+    },
+    {
+      "id": "PHY-A11",
+      "group": "A",
+      "title": "Stokes creeping flow",
+      "source_locator": {
+        "section": "8",
+        "docx_table_1based": 22,
+        "row_1based": 12,
+        "rendered_page_range": [
+          13,
+          14
+        ]
+      },
+      "difficulty_hypothesis": "Q2"
+    },
+    {
+      "id": "PHY-A12",
+      "group": "A",
+      "title": "Single-phase Darcy / groundwater flow",
+      "source_locator": {
+        "section": "8",
+        "docx_table_1based": 22,
+        "row_1based": 13,
+        "rendered_page_range": [
+          13,
+          14
+        ]
+      },
+      "difficulty_hypothesis": "Q2"
+    },
+    {
+      "id": "PHY-A13",
+      "group": "A",
+      "title": "Linear Fokker–Planck / Ornstein–Uhlenbeck",
+      "source_locator": {
+        "section": "8",
+        "docx_table_1based": 22,
+        "row_1based": 14,
+        "rendered_page_range": [
+          13,
+          14
+        ]
+      },
+      "difficulty_hypothesis": "Q2"
+    },
+    {
+      "id": "PHY-B01",
+      "group": "B",
+      "title": "Variable-coefficient elliptic / anisotropic conduction",
+      "source_locator": {
+        "section": "8",
+        "docx_table_1based": 23,
+        "row_1based": 2,
+        "rendered_page_range": [
+          14,
+          16
+        ]
+      },
+      "difficulty_hypothesis": "Q2"
+    },
+    {
+      "id": "PHY-B02",
+      "group": "B",
+      "title": "High-Péclet advection–diffusion",
+      "source_locator": {
+        "section": "8",
+        "docx_table_1based": 23,
+        "row_1based": 3,
+        "rendered_page_range": [
+          14,
+          16
+        ]
+      },
+      "difficulty_hypothesis": "Q3"
+    },
+    {
+      "id": "PHY-B03",
+      "group": "B",
+      "title": "Helmholtz / general linear acoustic scattering",
+      "source_locator": {
+        "section": "8",
+        "docx_table_1based": 23,
+        "row_1based": 4,
+        "rendered_page_range": [
+          14,
+          16
+        ]
+      },
+      "difficulty_hypothesis": "Q3"
+    },
+    {
+      "id": "PHY-B04",
+      "group": "B",
+      "title": "Linear elastodynamics / vibration",
+      "source_locator": {
+        "section": "8",
+        "docx_table_1based": 23,
+        "row_1based": 5,
+        "rendered_page_range": [
+          14,
+          16
+        ]
+      },
+      "difficulty_hypothesis": "Q3"
+    },
+    {
+      "id": "PHY-B05",
+      "group": "B",
+      "title": "Porous-medium nonlinear diffusion",
+      "source_locator": {
+        "section": "8",
+        "docx_table_1based": 23,
+        "row_1based": 6,
+        "rendered_page_range": [
+          14,
+          16
+        ]
+      },
+      "difficulty_hypothesis": "Q3"
+    },
+    {
+      "id": "PHY-B06",
+      "group": "B",
+      "title": "Stefan phase change",
+      "source_locator": {
+        "section": "8",
+        "docx_table_1based": 23,
+        "row_1based": 7,
+        "rendered_page_range": [
+          14,
+          16
+        ]
+      },
+      "difficulty_hypothesis": "Q3"
+    },
+    {
+      "id": "PHY-B07",
+      "group": "B",
+      "title": "Reaction–diffusion and travelling fronts",
+      "source_locator": {
+        "section": "8",
+        "docx_table_1based": 23,
+        "row_1based": 8,
+        "rendered_page_range": [
+          14,
+          16
+        ]
+      },
+      "difficulty_hypothesis": "Q3"
+    },
+    {
+      "id": "PHY-B08",
+      "group": "B",
+      "title": "Scalar conservation laws / Buckley–Leverett",
+      "source_locator": {
+        "section": "8",
+        "docx_table_1based": 23,
+        "row_1based": 9,
+        "rendered_page_range": [
+          14,
+          16
+        ]
+      },
+      "difficulty_hypothesis": "Q3"
+    },
+    {
+      "id": "PHY-B09",
+      "group": "B",
+      "title": "1D shallow-water / dam-break problems",
+      "source_locator": {
+        "section": "8",
+        "docx_table_1based": 23,
+        "row_1based": 10,
+        "rendered_page_range": [
+          14,
+          16
+        ]
+      },
+      "difficulty_hypothesis": "Q3"
+    },
+    {
+      "id": "PHY-B10",
+      "group": "B",
+      "title": "1D compressible Euler / shock tubes",
+      "source_locator": {
+        "section": "8",
+        "docx_table_1based": 23,
+        "row_1based": 11,
+        "rendered_page_range": [
+          14,
+          16
+        ]
+      },
+      "difficulty_hypothesis": "Q3"
+    },
+    {
+      "id": "PHY-B11",
+      "group": "B",
+      "title": "Canonical laminar incompressible Navier–Stokes",
+      "source_locator": {
+        "section": "8",
+        "docx_table_1based": 23,
+        "row_1based": 12,
+        "rendered_page_range": [
+          14,
+          16
+        ]
+      },
+      "difficulty_hypothesis": "Q3"
+    },
+    {
+      "id": "PHY-B12",
+      "group": "B",
+      "title": "Canonical laminar compressible flow",
+      "source_locator": {
+        "section": "8",
+        "docx_table_1based": 23,
+        "row_1based": 13,
+        "rendered_page_range": [
+          14,
+          16
+        ]
+      },
+      "difficulty_hypothesis": "Q3"
+    },
+    {
+      "id": "PHY-B13",
+      "group": "B",
+      "title": "Canonical incompressible MHD",
+      "source_locator": {
+        "section": "8",
+        "docx_table_1based": 23,
+        "row_1based": 14,
+        "rendered_page_range": [
+          14,
+          16
+        ]
+      },
+      "difficulty_hypothesis": "Q3"
+    },
+    {
+      "id": "PHY-B14",
+      "group": "B",
+      "title": "1D slab radiative / neutron transport",
+      "source_locator": {
+        "section": "8",
+        "docx_table_1based": 23,
+        "row_1based": 15,
+        "rendered_page_range": [
+          14,
+          16
+        ]
+      },
+      "difficulty_hypothesis": "Q3"
+    },
+    {
+      "id": "PHY-B15",
+      "group": "B",
+      "title": "Allen–Cahn / Cahn–Hilliard phase field",
+      "source_locator": {
+        "section": "8",
+        "docx_table_1based": 23,
+        "row_1based": 16,
+        "rendered_page_range": [
+          14,
+          16
+        ]
+      },
+      "difficulty_hypothesis": "Q3"
+    },
+    {
+      "id": "PHY-B16",
+      "group": "B",
+      "title": "Canonical laminar conjugate heat transfer",
+      "source_locator": {
+        "section": "8",
+        "docx_table_1based": 23,
+        "row_1based": 17,
+        "rendered_page_range": [
+          14,
+          16
+        ]
+      },
+      "difficulty_hypothesis": "Q3"
+    },
+    {
+      "id": "PHY-B17",
+      "group": "B",
+      "title": "Thermoelasticity and simple heat–mass coupling",
+      "source_locator": {
+        "section": "8",
+        "docx_table_1based": 23,
+        "row_1based": 18,
+        "rendered_page_range": [
+          14,
+          16
+        ]
+      },
+      "difficulty_hypothesis": "Q3"
+    },
+    {
+      "id": "PHY-C01",
+      "group": "C",
+      "title": "General laminar CFD in irregular geometry",
+      "source_locator": {
+        "section": "8",
+        "docx_table_1based": 24,
+        "row_1based": 2,
+        "rendered_page_range": [
+          16,
+          17
+        ]
+      },
+      "difficulty_hypothesis": "Q4"
+    },
+    {
+      "id": "PHY-C02",
+      "group": "C",
+      "title": "General compressible / hypersonic CFD",
+      "source_locator": {
+        "section": "8",
+        "docx_table_1based": 24,
+        "row_1based": 3,
+        "rendered_page_range": [
+          16,
+          17
+        ]
+      },
+      "difficulty_hypothesis": "Q4"
+    },
+    {
+      "id": "PHY-C03",
+      "group": "C",
+      "title": "General Maxwell / RF / photonics",
+      "source_locator": {
+        "section": "8",
+        "docx_table_1based": 24,
+        "row_1based": 4,
+        "rendered_page_range": [
+          16,
+          17
+        ]
+      },
+      "difficulty_hypothesis": "Q4"
+    },
+    {
+      "id": "PHY-C04",
+      "group": "C",
+      "title": "2D shallow water with bathymetry and wet/dry fronts",
+      "source_locator": {
+        "section": "8",
+        "docx_table_1based": 24,
+        "row_1based": 5,
+        "rendered_page_range": [
+          16,
+          17
+        ]
+      },
+      "difficulty_hypothesis": "Q4"
+    },
+    {
+      "id": "PHY-C05",
+      "group": "C",
+      "title": "Free-surface flow without severe breakup",
+      "source_locator": {
+        "section": "8",
+        "docx_table_1based": 24,
+        "row_1based": 6,
+        "rendered_page_range": [
+          16,
+          17
+        ]
+      },
+      "difficulty_hypothesis": "Q4"
+    },
+    {
+      "id": "PHY-C06",
+      "group": "C",
+      "title": "Customer-geometry laminar CHT",
+      "source_locator": {
+        "section": "8",
+        "docx_table_1based": 24,
+        "row_1based": 7,
+        "rendered_page_range": [
+          16,
+          17
+        ]
+      },
+      "difficulty_hypothesis": "Q4"
+    },
+    {
+      "id": "PHY-C07",
+      "group": "C",
+      "title": "Nonlinear hyperelasticity",
+      "source_locator": {
+        "section": "8",
+        "docx_table_1based": 24,
+        "row_1based": 8,
+        "rendered_page_range": [
+          16,
+          17
+        ]
+      },
+      "difficulty_hypothesis": "Q4"
+    },
+    {
+      "id": "PHY-C08",
+      "group": "C",
+      "title": "Plasticity / viscoelasticity",
+      "source_locator": {
+        "section": "8",
+        "docx_table_1based": 24,
+        "row_1based": 9,
+        "rendered_page_range": [
+          16,
+          17
+        ]
+      },
+      "difficulty_hypothesis": "Q4"
+    },
+    {
+      "id": "PHY-C09",
+      "group": "C",
+      "title": "Contact and buckling",
+      "source_locator": {
+        "section": "8",
+        "docx_table_1based": 24,
+        "row_1based": 10,
+        "rendered_page_range": [
+          16,
+          17
+        ]
+      },
+      "difficulty_hypothesis": "Q4"
+    },
+    {
+      "id": "PHY-C10",
+      "group": "C",
+      "title": "Composite materials / homogenization",
+      "source_locator": {
+        "section": "8",
+        "docx_table_1based": 24,
+        "row_1based": 11,
+        "rendered_page_range": [
+          16,
+          17
+        ]
+      },
+      "difficulty_hypothesis": "Q4"
+    },
+    {
+      "id": "PHY-C11",
+      "group": "C",
+      "title": "Poroelasticity / geomechanics / CCS",
+      "source_locator": {
+        "section": "8",
+        "docx_table_1based": 24,
+        "row_1based": 12,
+        "rendered_page_range": [
+          16,
+          17
+        ]
+      },
+      "difficulty_hypothesis": "Q4"
+    },
+    {
+      "id": "PHY-C12",
+      "group": "C",
+      "title": "Semiconductor drift–diffusion",
+      "source_locator": {
+        "section": "8",
+        "docx_table_1based": 24,
+        "row_1based": 13,
+        "rendered_page_range": [
+          16,
+          17
+        ]
+      },
+      "difficulty_hypothesis": "Q4"
+    },
+    {
+      "id": "PHY-C13",
+      "group": "C",
+      "title": "Seismic / acoustic geophysics",
+      "source_locator": {
+        "section": "8",
+        "docx_table_1based": 24,
+        "row_1based": 14,
+        "rendered_page_range": [
+          16,
+          17
+        ]
+      },
+      "difficulty_hypothesis": "Q4"
+    },
+    {
+      "id": "PHY-C14",
+      "group": "C",
+      "title": "Ultrasound and photoacoustics",
+      "source_locator": {
+        "section": "8",
+        "docx_table_1based": 24,
+        "row_1based": 15,
+        "rendered_page_range": [
+          16,
+          17
+        ]
+      },
+      "difficulty_hypothesis": "Q4"
+    },
+    {
+      "id": "PHY-C15",
+      "group": "C",
+      "title": "Fuel cells / electrolyzers",
+      "source_locator": {
+        "section": "8",
+        "docx_table_1based": 24,
+        "row_1based": 16,
+        "rendered_page_range": [
+          16,
+          17
+        ]
+      },
+      "difficulty_hypothesis": "Q4"
+    },
+    {
+      "id": "PHY-D01",
+      "group": "D",
+      "title": "Fracture and crack propagation",
+      "source_locator": {
+        "section": "8",
+        "docx_table_1based": 25,
+        "row_1based": 2,
+        "rendered_page_range": [
+          17,
+          19
+        ]
+      },
+      "difficulty_hypothesis": "Q5"
+    },
+    {
+      "id": "PHY-D02",
+      "group": "D",
+      "title": "Fluid–structure interaction",
+      "source_locator": {
+        "section": "8",
+        "docx_table_1based": 25,
+        "row_1based": 3,
+        "rendered_page_range": [
+          17,
+          19
+        ]
+      },
+      "difficulty_hypothesis": "Q5"
+    },
+    {
+      "id": "PHY-D03",
+      "group": "D",
+      "title": "RANS turbulence",
+      "source_locator": {
+        "section": "8",
+        "docx_table_1based": 25,
+        "row_1based": 4,
+        "rendered_page_range": [
+          17,
+          19
+        ]
+      },
+      "difficulty_hypothesis": "Q5"
+    },
+    {
+      "id": "PHY-D04",
+      "group": "D",
+      "title": "LES / chaotic turbulence",
+      "source_locator": {
+        "section": "8",
+        "docx_table_1based": 25,
+        "row_1based": 5,
+        "rendered_page_range": [
+          17,
+          19
+        ]
+      },
+      "difficulty_hypothesis": "Q5"
+    },
+    {
+      "id": "PHY-D05",
+      "group": "D",
+      "title": "Turbulent conjugate heat transfer",
+      "source_locator": {
+        "section": "8",
+        "docx_table_1based": 25,
+        "row_1based": 6,
+        "rendered_page_range": [
+          17,
+          19
+        ]
+      },
+      "difficulty_hypothesis": "Q5"
+    },
+    {
+      "id": "PHY-D06",
+      "group": "D",
+      "title": "Combustion / reacting flow",
+      "source_locator": {
+        "section": "8",
+        "docx_table_1based": 25,
+        "row_1based": 7,
+        "rendered_page_range": [
+          17,
+          19
+        ]
+      },
+      "difficulty_hypothesis": "Q5"
+    },
+    {
+      "id": "PHY-D07",
+      "group": "D",
+      "title": "Multiphase topology change",
+      "source_locator": {
+        "section": "8",
+        "docx_table_1based": 25,
+        "row_1based": 8,
+        "rendered_page_range": [
+          17,
+          19
+        ]
+      },
+      "difficulty_hypothesis": "Q5"
+    },
+    {
+      "id": "PHY-D08",
+      "group": "D",
+      "title": "Boiling and cavitation",
+      "source_locator": {
+        "section": "8",
+        "docx_table_1based": 25,
+        "row_1based": 9,
+        "rendered_page_range": [
+          17,
+          19
+        ]
+      },
+      "difficulty_hypothesis": "Q5"
+    },
+    {
+      "id": "PHY-D09",
+      "group": "D",
+      "title": "Full MHD / plasma turbulence",
+      "source_locator": {
+        "section": "8",
+        "docx_table_1based": 25,
+        "row_1based": 10,
+        "rendered_page_range": [
+          17,
+          19
+        ]
+      },
+      "difficulty_hypothesis": "Q5"
+    },
+    {
+      "id": "PHY-D10",
+      "group": "D",
+      "title": "Kinetic Boltzmann / Vlasov systems",
+      "source_locator": {
+        "section": "8",
+        "docx_table_1based": 25,
+        "row_1based": 11,
+        "rendered_page_range": [
+          17,
+          19
+        ]
+      },
+      "difficulty_hypothesis": "Q5"
+    },
+    {
+      "id": "PHY-D11",
+      "group": "D",
+      "title": "Reactive porous media / geochemistry",
+      "source_locator": {
+        "section": "8",
+        "docx_table_1based": 25,
+        "row_1based": 12,
+        "rendered_page_range": [
+          17,
+          19
+        ]
+      },
+      "difficulty_hypothesis": "Q5"
+    },
+    {
+      "id": "PHY-D12",
+      "group": "D",
+      "title": "Battery electro-chemo-thermo-mechanics",
+      "source_locator": {
+        "section": "8",
+        "docx_table_1based": 25,
+        "row_1based": 13,
+        "rendered_page_range": [
+          17,
+          19
+        ]
+      },
+      "difficulty_hypothesis": "Q5"
+    },
+    {
+      "id": "PHY-D13",
+      "group": "D",
+      "title": "Nuclear thermal hydraulics",
+      "source_locator": {
+        "section": "8",
+        "docx_table_1based": 25,
+        "row_1based": 14,
+        "rendered_page_range": [
+          17,
+          19
+        ]
+      },
+      "difficulty_hypothesis": "Q5"
+    },
+    {
+      "id": "PHY-D14",
+      "group": "D",
+      "title": "Additive-manufacturing melt pool",
+      "source_locator": {
+        "section": "8",
+        "docx_table_1based": 25,
+        "row_1based": 15,
+        "rendered_page_range": [
+          17,
+          19
+        ]
+      },
+      "difficulty_hypothesis": "Q5"
+    },
+    {
+      "id": "PHY-D15",
+      "group": "D",
+      "title": "Weather and climate dynamics",
+      "source_locator": {
+        "section": "8",
+        "docx_table_1based": 25,
+        "row_1based": 16,
+        "rendered_page_range": [
+          17,
+          19
+        ]
+      },
+      "difficulty_hypothesis": "Q5"
+    },
+    {
+      "id": "PHY-D16",
+      "group": "D",
+      "title": "Patient-specific hemodynamics",
+      "source_locator": {
+        "section": "8",
+        "docx_table_1based": 25,
+        "row_1based": 17,
+        "rendered_page_range": [
+          17,
+          19
+        ]
+      },
+      "difficulty_hypothesis": "Q5"
+    },
+    {
+      "id": "PHY-D17",
+      "group": "D",
+      "title": "Granular / DEM systems",
+      "source_locator": {
+        "section": "8",
+        "docx_table_1based": 25,
+        "row_1based": 18,
+        "rendered_page_range": [
+          17,
+          19
+        ]
+      },
+      "difficulty_hypothesis": "Q5"
+    },
+    {
+      "id": "PHY-D18",
+      "group": "D",
+      "title": "Quantum many-body / electronic structure",
+      "source_locator": {
+        "section": "8",
+        "docx_table_1based": 25,
+        "row_1based": 19,
+        "rendered_page_range": [
+          17,
+          19
+        ]
+      },
+      "difficulty_hypothesis": "Q5"
+    },
+    {
+      "id": "PHY-D19",
+      "group": "D",
+      "title": "Power systems and circuit DAEs",
+      "source_locator": {
+        "section": "8",
+        "docx_table_1based": 25,
+        "row_1based": 20,
+        "rendered_page_range": [
+          17,
+          19
+        ]
+      },
+      "difficulty_hypothesis": "Q4"
+    }
+  ]
+}

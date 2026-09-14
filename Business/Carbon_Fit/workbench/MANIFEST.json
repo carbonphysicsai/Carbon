@@ -1,0 +1,260 @@
+{
+  "schema_version": "carbon.workbench.release-manifest.v0.2",
+  "status": "OFFLINE_DECISION_SUPPORT_NOT_PRODUCTION",
+  "application_version": "Carbon Opportunity Workbench v0.2",
+  "decision_id": "EXAM-PROTECT-WORKBENCH-01",
+  "repository_base": "2d5872aff89ca7bef3e3f062b293aeefe17769aa",
+  "integration_revision_at_packaging": "e7130cf25c1ef1d89d56d70c7eec0d0731f983b3",
+  "pinned_research_revision": "ca904dfee93d3574df4e56b99981a6ed3b138e80",
+  "accepted_research_head": "0a5690270dc449ea19c941280203987d37db5283",
+  "research_merge_commit": "2ac835d1dd55deb9c99e493f3615143efa2e51e0",
+  "research_acceptance_run": 34786945000,
+  "historical_failed_research_run": 34778525936,
+  "accepted_delivery_prerequisite_main": "1a1a5ad4585caebd168725451ca255e06561f693",
+  "hub_fixture_repair": {
+    "pull_request": 159,
+    "accepted_head": "fe89cfa6ca5699dfd00d748e974fbf3a90351043",
+    "acceptance_run": 34791088907,
+    "merge_commit": "8361181d6690e8c56bcba3805018f41cd4752e45"
+  },
+  "test_boundary_repair": {
+    "pull_request": 160,
+    "accepted_head": "2bedd74b4dac8ca49f32e6a2ceb1c356a68d199c",
+    "acceptance_run": 34792307014,
+    "merge_commit": "1a1a5ad4585caebd168725451ca255e06561f693"
+  },
+  "pinned_evidence_index_sha256": "4565995a98fe8f238ca88b44e418e6c7da2954de9dca577b80968854bad34ba7",
+  "source_archive_sha256": "aabdc04377700334f50a8748bf28b9fc3e44799b8986d2c38f759df5726469fa",
+  "authority": "No runtime sharing, qualification, protected-use approval, answer publication, submission, or rights authority is conveyed.",
+  "file_count": 57,
+  "files": {
+    "Carbon_Opportunity_Workbench.html": {
+      "bytes": 387882,
+      "sha256": "cf5439b4e3752b57742f69bce3a6c773bd91c7844966ca6bfcf3bbe0c423cf98"
+    },
+    "README.md": {
+      "bytes": 5501,
+      "sha256": "af9d1f5624d2e7e5721309e8acc64721b074d0e536ba3f07f0d940b4132c8337"
+    },
+    "data/atlas.json": {
+      "bytes": 156569,
+      "sha256": "f5317e38789ead5f1d18c31e2246d83a1ce8d61c55970e35f4676f3b299d6519"
+    },
+    "data/cpes_study_v1.json": {
+      "bytes": 255521,
+      "sha256": "7ffc397b0409c9ce3660f1d0cd097ee19740ff50d9d43e2f03b7c07d11769ce3"
+    },
+    "data/draft_constants.json": {
+      "bytes": 2495,
+      "sha256": "7db49854d975ddd584026b2c833e7d88cdd91fa42c2445045e8a1c41f7a5e171"
+    },
+    "data/seed_index.json": {
+      "bytes": 21862,
+      "sha256": "a0ade161a8e0a02bc37891aa338a2bc4f53962abc571519d61664470d0d0488a"
+    },
+    "data/studies.json": {
+      "bytes": 4752,
+      "sha256": "2e622ca8d60867a1aa4b38f478dac00d429d124b96995727c29a821c404a9dff"
+    },
+    "data/workspace.schema.json": {
+      "bytes": 58471,
+      "sha256": "5a4cd2f7f90bf6acbc20c6e7e40affd18552e98ed0c9ae78f90ff69ba1b01679"
+    },
+    "docs/OWNER_REPORT.md": {
+      "bytes": 6386,
+      "sha256": "e2dc6bc26f138f05b7a56febd40c699c8a1caf91bd38761ccdcf7d9ccb2d5020"
+    },
+    "docs/REPOSITORY_SEED_INDEX.json": {
+      "bytes": 6759,
+      "sha256": "bb05526a6408f70efa32a12ade140305a0cfd2c6d07f3827cc36b16f086eb149"
+    },
+    "docs/REQUIREMENT_TEST_MAP.md": {
+      "bytes": 3372,
+      "sha256": "74afb1bf4e7a558c64356047f5e1d919d9ced046e06e97cf9e9c1ebf3220bc1e"
+    },
+    "docs/SPECIFICATION.md": {
+      "bytes": 6983,
+      "sha256": "59b0b9c54b0171c217627d9349e312c2956ad0f9f156d9e67944eb433234d751"
+    },
+    "evidence/cpes_reference_reuse_v2/adaptive_bank_control_v1.json": {
+      "bytes": 641,
+      "sha256": "11cdf7a0fe8c3518315908a0888923baed52ab734cc7d9eea4824a8b432871f5"
+    },
+    "evidence/cpes_reference_reuse_v2/attack_dispositions_v2.json": {
+      "bytes": 29600,
+      "sha256": "1825edfb810a2354a92d86d5337a1f48da0e2777f46f336a0134b1d6495037df"
+    },
+    "evidence/cpes_reference_reuse_v2/attack_traces_v2.jsonl": {
+      "bytes": 7630,
+      "sha256": "d5eaca2b5b5f0439d05600c406f971a2591d274f919b555b8468c8f712f60ad1"
+    },
+    "evidence/cpes_reference_reuse_v2/cost_delay_analysis_v1.json": {
+      "bytes": 198986,
+      "sha256": "61a42a1fdee12ca57041ef25cfd52ff098d502d29985789e6559062cf63f0ffe"
+    },
+    "evidence/cpes_reference_reuse_v2/evidence_index_v1.json": {
+      "bytes": 1883,
+      "sha256": "4565995a98fe8f238ca88b44e418e6c7da2954de9dca577b80968854bad34ba7"
+    },
+    "evidence/cpes_reference_reuse_v2/persistent_probes_v1.json": {
+      "bytes": 11203,
+      "sha256": "181b58362912081daf350fa202826ccb33aa31275c4d5c2acea05fbfeb4c085e"
+    },
+    "evidence/cpes_reference_reuse_v2/profiler_summary_v1.json": {
+      "bytes": 1966,
+      "sha256": "d19b24da7f032bf13d3434c4aefdaaf77d8b35a81eead47e6674bf9d499bb116"
+    },
+    "evidence/cpes_reference_reuse_v2/source_manifest_v1.json": {
+      "bytes": 2488,
+      "sha256": "9bb1333aeaab9839d68271ea1971ba82db68dcb8ab816d063aa199f6b3fafe33"
+    },
+    "evidence/cpes_reference_reuse_v2/study_summary_v1.json": {
+      "bytes": 669,
+      "sha256": "082869baa1c8e71702122c7cb7b91aa6e327cdf1598040802e2efc173807d0d6"
+    },
+    "sources/Carbon_Challenge_Operating_Point_Study_v0_2.md": {
+      "bytes": 27285,
+      "sha256": "b147f8cb4fa9b1d79de56ccd4e02d864e6695cf86caef64966a6f4febc3478fb"
+    },
+    "sources/Carbon_Challenge_Profiler_Framework_v0_1.md": {
+      "bytes": 7617,
+      "sha256": "ffdd7ac50d27274594754a57658669e16c86fa89fd8ca397a17804a19fda7120"
+    },
+    "sources/Carbon_Fit_Decision_Method_v0_2.md": {
+      "bytes": 22045,
+      "sha256": "901f4be23b93a19c8bc34cd4d04db096e0c52fae44c8616a7e5168b75d349791"
+    },
+    "sources/Carbon_Live_Throughput_Pilot_Report_v0_1.md": {
+      "bytes": 17644,
+      "sha256": "4d4ac6ce5856219af675d80c6e05f769f8f86811c06a6f44833c44bfe0c62803"
+    },
+    "sources/Carbon_Reference_Cost_Heterogeneity_Study_v0_1.md": {
+      "bytes": 8073,
+      "sha256": "e60e81ebf8046e6ef36a669e0b1257da5d613e83e5022fea7272ba58c7444931"
+    },
+    "sources/Carbon_Reference_Reliability_Escalation_Study_v0_1.md": {
+      "bytes": 7398,
+      "sha256": "e32194c4d6cba6335cdb68d85139dd32cd58a5a864f0ba93aed1e05e555e478a"
+    },
+    "sources/Carbon_Regime_Conditioning_Study_v0_1.md": {
+      "bytes": 6575,
+      "sha256": "7350220f55c122be69fba54b7d5fc0326720c89ed89ca8b8fe8fb8ef39bbe62b"
+    },
+    "sources/Carbon_Science_Backed_GTM_Roadmap_2026-08-27.docx": {
+      "bytes": 683958,
+      "sha256": "6e755f19f4876311709f171b2265413dfde085c6a5071e1ce748f6ec4be313fc"
+    },
+    "sources/Carbon_Single_Validator_Operating_Map_Report_v0_1.md": {
+      "bytes": 9000,
+      "sha256": "928e6c501ef22e226b58cf6f5861f8f11846e3c8367d3f6dcff06a34f8c47204"
+    },
+    "sources/Carbon_Stratum_Allocation_Study_v0_1.md": {
+      "bytes": 4499,
+      "sha256": "eac59d75dacf21dfa2df467772d4104199ef4bc7b7b4989bba3623c0253f4bd7"
+    },
+    "sources/cpes/CPES_REFERENCE_REUSE_ENGINEERING_HANDOFF.md": {
+      "bytes": 4063,
+      "sha256": "6f29690a5c1a898db7a51233737cd4ca9ee2b41069d2df1a92a15a1c5752f56b"
+    },
+    "sources/cpes/CPES_REFERENCE_REUSE_GAUNTLET_PROTOCOL.md": {
+      "bytes": 5005,
+      "sha256": "0312c912d45ac200997c0881159e8e8dec5ba0002a0a5f846237c1572ce95d1a"
+    },
+    "sources/cpes/CPES_REFERENCE_REUSE_GAUNTLET_REPORT.md": {
+      "bytes": 13919,
+      "sha256": "91a706e1b710236a944622ce9045d2e9b8939ef70d07946ed55d4c1e6e7b8b49"
+    },
+    "sources/cpes/DECISION_METHOD.md": {
+      "bytes": 10762,
+      "sha256": "c4e6eac9db872a07f45dfb67b10fc71e52cd302582cd8d66035d38e9a6015437"
+    },
+    "sources/cpes/OPPORTUNITY_WORKBENCH_SPEC.md": {
+      "bytes": 13619,
+      "sha256": "a23a984f28cf38e126edabe6d9b2b711e204be214e66f460fb4dbf3bef13a954"
+    },
+    "sources/cpes/PROTECTED_EXAM_CONTROLS.json": {
+      "bytes": 13053,
+      "sha256": "5b453ca1682e0f807a53b52e0fe8fa3d7c3c02449c5fdb08e027edbc2648f825"
+    },
+    "sources/cpes/PROTECTED_EXAM_PROFILER_INTEGRATION.md": {
+      "bytes": 9090,
+      "sha256": "1dbf03321826d145c5b89e28af863f9ae75d59f9aab610c0a2c96d8cc7e756df"
+    },
+    "sources/cpes/PROTECTED_EXAM_STANDARD.md": {
+      "bytes": 20471,
+      "sha256": "c9cb372792187fa762b7d106a4bfd15207b86ba73bc596d47a9049c9fb5f9b71"
+    },
+    "sources/cpes/cpes_reference_reuse_gauntlet_protocol_v2.json": {
+      "bytes": 3218,
+      "sha256": "71052d9534e30f3de3aae10a319483dd2812389dfec1ffa78e780559bb09e109"
+    },
+    "src/app.js": {
+      "bytes": 45566,
+      "sha256": "7de2b795e5e8b509f4ad360174213c91fc22a0ce65f33bd45a1744a97aef3694"
+    },
+    "src/engine.js": {
+      "bytes": 34052,
+      "sha256": "18bf10948be005333f1d9ad6e80165036ef56435976e77c23531135ea7e4bd12"
+    },
+    "src/shell.html": {
+      "bytes": 3922,
+      "sha256": "3f21823bccbed5fc463513f5c361b479b97c8ff6db0eeb7e9f68ef0dc739e9f4"
+    },
+    "src/styles.css": {
+      "bytes": 9017,
+      "sha256": "9e1bc74aea8f4bd67cef3bc71439a604e4cb5f42b1aa956aeba34332a23dc7a5"
+    },
+    "tests/TEST_NOTES.md": {
+      "bytes": 1745,
+      "sha256": "2713a729cb93579ad472ebd0ea3b15558024a59ae17c330139076479a4047c36"
+    },
+    "tests/browser_results.json": {
+      "bytes": 2662,
+      "sha256": "8b2a42dcec2950da14a32762d27d2348d7e25a81c7c233da0bd3a89e123b7aac"
+    },
+    "tests/browser_smoke.cjs": {
+      "bytes": 13135,
+      "sha256": "4d4abee41e3ea3b517e073da59407c92e5daf22ecdbc2fe5278ce40439c9e3ae"
+    },
+    "tests/preview_atlas.png": {
+      "bytes": 271369,
+      "sha256": "004df90a679d3a4a94614fb3740c78e7e9e8cabeaa05dc396b8c2a282f2eac55"
+    },
+    "tests/preview_mobile.png": {
+      "bytes": 692703,
+      "sha256": "15e09306cdad5fe4b877a2d94d320dd15c756ea9236e19e47618fcc3a4459ef6"
+    },
+    "tests/preview_profile.png": {
+      "bytes": 708089,
+      "sha256": "9ffe72e5b8126d82c50890cbc2c8b25f421230b2a6375fc1798b04b6eb8bfbc2"
+    },
+    "tests/test_engine.cjs": {
+      "bytes": 18446,
+      "sha256": "772759308cce3b690521dcd3d5514348ab0dfbcc48eb9b85df458b36576bdef0"
+    },
+    "tests/test_sources.py": {
+      "bytes": 8135,
+      "sha256": "e9f521d4770ad58cdfc6a2d887b49a0a541967421f5861fc2d07d01fb6c2fe2b"
+    },
+    "tools/build.py": {
+      "bytes": 1306,
+      "sha256": "91ae8bc41ef03d4754179f0b2b1a1f088ae072361e7301c3d2cbae5b39c8c45d"
+    },
+    "tools/build_schema.py": {
+      "bytes": 7399,
+      "sha256": "43fdc8d172d3a94a5f9d66fe9d0d6e791780a4127d70fc49996e6e2ee9478fd3"
+    },
+    "tools/extract_atlas.py": {
+      "bytes": 4308,
+      "sha256": "e0eb6048938b3be65f3a1d105a71d545cd316d59f223b6ae9da783dbf1495634"
+    },
+    "tools/import_cpes_evidence.py": {
+      "bytes": 14771,
+      "sha256": "70adaead189bab80e649f81e1e4e695f6f7d71da715a96ae4595027ddab4986c"
+    },
+    "tools/package_release.py": {
+      "bytes": 3801,
+      "sha256": "2fd295f3a85a01a21db64d1a965a79bc55ed8c089ff112d6428c335aaffb30dd"
+    }
+  }
+}

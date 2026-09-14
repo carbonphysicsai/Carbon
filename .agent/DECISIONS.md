@@ -13670,6 +13670,64 @@ wallet funding, weights, production secret, paid inference, settlement, LIVE,
 new Challenge, threshold, population, score, reward or network activation is
 authorized.
 
+## 2026-09-14 — EXAM-PROTECT-WORKBENCH-01: integrate CPES evidence in the existing offline workbench
+
+**Source and ticket.** The repository owner's “integrate CPES reference-reuse
+evidence into Carbon's Challenge Workbench / Profiler” assignment selects one
+bounded implementation workstream parallel to issues #139 and #142. It does
+not select, close, redirect, or become a prerequisite of the active Wave C
+ticket or any C-02/C-03/C-04/C-05/C-07/C-EA2/C2 successor. The bounded
+implementation specification and source ledger are
+`Business/Carbon_Fit/workbench/docs/SPECIFICATION.md`.
+
+**Working decision.** Maintain one browser-local implementation under
+`Business/Carbon_Fit/workbench/` by extending the exact supplied v0.1 source,
+not by creating a competing application or importing PR #140 wholesale. The
+v0.2 tool uses current repository contracts for authority, PR #152 exact head
+`ca904dfee93d3574df4e56b99981a6ed3b138e80` for displayed research findings,
+this assignment for the bounded UI integration, PR #140 exact head
+`1cf65ef3b13b675b20a7566b7441cf25d1784f2a` as historical/proposed design
+input, and user entries only as unreviewed assumptions.
+
+**Semantics.** Variant A remains the immutable current DEVELOPMENT baseline:
+one fresh private pack for each separately admitted job and a pack-closure
+summary. Variant B remains a conditional future research option for compatible
+already-committed queued jobs with no intentional fill wait, early summary,
+answer publication, or new reward route in its minimal design. Variant C is a
+research sensitivity view only. The repeated exact-score finite-bank negative
+control is evidence of vulnerability, never an operating choice. Missing
+mandatory science or protection evidence cannot be compensated by cost.
+
+**Implementation and interfaces.** The existing five views, 64 opportunity
+identities, six fit checks, source hypotheses, reference-role/MMS distinctions,
+and manual browser-local draft contract are retained. A versioned evidence
+adapter, additive workspace/draft migration, pure conditional-economics and
+protection derivation, existing-view integrations, and client/Engineering
+projections are added. Imports are bounded, closed, duplicate-member rejecting,
+and authority inert. Exports are human-review records, not commands, receipts,
+submissions, qualifications, or permission grants.
+
+**Alternatives rejected.** Do not revive PR #140's earlier default-B or v0.1
+universal frozen-campaign proposals; port a scheduler into JavaScript; add a
+service, optimizer, cache, reference store, collection endpoint, solver,
+telemetry, credentials, or hosting provider; copy the full gauntlet execution
+history; change runtime/profile/scoring/reward/disclosure contracts; or infer
+measurements from source ratings and configured maxima.
+
+**Reversibility and downstream effect.** The browser-local schema and study
+adapter are versioned and can coexist with later evidence revisions. A later
+accepted study can be imported as a distinct record and explicitly selected
+for planning without rewriting history. Runtime owners may consume the
+Engineering review packet only through a separately authorized change; this
+tool cannot activate their behavior.
+
+**Human-reserved inputs.** Qualified same-identity reference cost, compatible
+dispatch demand, Variant-B membership/cache/recovery/audit/closure overhead,
+field-size evidence adequacy, scientific comparison ownership, acceptable
+service delay and unresolved-member behavior, security/rights acceptance, and
+qualified Carbon evidence remain unavailable. The UI keeps them unknown and
+fail closed.
+
 ## 2026-09-14 — C-04-D1: isolate role-explicit public reference candidates without admission authority
 
 **Source and scope.** This engineering decision implements the reference-role,
