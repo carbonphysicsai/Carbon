@@ -24,22 +24,54 @@ COUNTS = {
 
 CONTROLS = [
     ("P1", "Commit rules before case knowability", "Exam owner / independent audit"),
-    ("P2", "Lock producer behavior and seal execution", "Construction / execution owners"),
+    (
+        "P2",
+        "Lock producer behavior and seal execution",
+        "Construction / execution owners",
+    ),
     ("P3", "Fix and verify private case randomness", "A4 / security owners"),
     ("P4", "Restrict case and answer custody", "Security / operations"),
-    ("P5", "Bind pre-exposure membership; separate summary release from retired-answer publication", "Lifecycle / disclosure owners"),
+    (
+        "P5",
+        "Bind pre-exposure membership; separate summary release from retired-answer publication",
+        "Lifecycle / disclosure owners",
+    ),
     ("P6", "Verify execution and scientific evidence", "Science / independent audit"),
     ("P7", "Bound admission and selection risk", "Science / operations"),
     ("P8", "Qualify attacks and response", "Security / independent reviewers"),
 ]
 
 ENTRY_CONDITIONS = [
-    ("compatibility_identity", "Complete compatibility identity and intended reference role", "Challenge / reference owner"),
-    ("compatible_dispatch_demand", "Arrival and admission observations showing compatible jobs coexist at dispatch", "Admission / operations owner"),
-    ("same_identity_reference_cost", "Same-identity reference cost with required evidence work and applicability limits", "Reference / measurement owner"),
-    ("variant_b_overhead", "B membership, cache, recovery, audit and closure overhead with scope", "Engineering / operations owner"),
-    ("field_evidence_adequacy", "Common-case comparison, field-size adequacy, repetitions and promotion meaning", "Scientific owner"),
-    ("service_envelope", "Acceptable feedback and unresolved-member behavior", "Product / service owner"),
+    (
+        "compatibility_identity",
+        "Complete compatibility identity and intended reference role",
+        "Challenge / reference owner",
+    ),
+    (
+        "compatible_dispatch_demand",
+        "Arrival and admission observations showing compatible jobs coexist at dispatch",
+        "Admission / operations owner",
+    ),
+    (
+        "same_identity_reference_cost",
+        "Same-identity reference cost with required evidence work and applicability limits",
+        "Reference / measurement owner",
+    ),
+    (
+        "variant_b_overhead",
+        "B membership, cache, recovery, audit and closure overhead with scope",
+        "Engineering / operations owner",
+    ),
+    (
+        "field_evidence_adequacy",
+        "Common-case comparison, field-size adequacy, repetitions and promotion meaning",
+        "Scientific owner",
+    ),
+    (
+        "service_envelope",
+        "Acceptable feedback and unresolved-member behavior",
+        "Product / service owner",
+    ),
 ]
 
 
@@ -77,7 +109,9 @@ def validate() -> dict:
     counts = Counter(row.get("current_disposition") for row in attacks)
     if dict(counts) != COUNTS:
         raise ValueError("attack disposition counts disagree with the pinned study")
-    blocked = [row["attack_id"] for row in attacks if row["current_disposition"] == "BLOCKED"]
+    blocked = [
+        row["attack_id"] for row in attacks if row["current_disposition"] == "BLOCKED"
+    ]
     if blocked != BLOCKED:
         raise ValueError("blocked-attack identity mismatch")
 
@@ -95,21 +129,38 @@ def validate() -> dict:
         "adaptive": "carbon.cpes-reuse.adaptive-bank-control.v1",
         "persistent": "carbon.cpes-reuse.persistent-probes.v1",
     }
-    for label, payload in (("study", study), ("profiler", profiler), ("source", source), ("cost", cost), ("adaptive", adaptive), ("persistent", persistent)):
+    for label, payload in (
+        ("study", study),
+        ("profiler", profiler),
+        ("source", source),
+        ("cost", cost),
+        ("adaptive", adaptive),
+        ("persistent", persistent),
+    ):
         if payload.get("schema_version") != expected_schemas[label]:
             raise ValueError(f"unsupported {label} evidence schema")
-    trace_lines = (EVIDENCE / "attack_traces_v2.jsonl").read_text(encoding="utf-8").splitlines()
+    trace_lines = (
+        (EVIDENCE / "attack_traces_v2.jsonl").read_text(encoding="utf-8").splitlines()
+    )
     try:
         traces = [json.loads(line) for line in trace_lines]
     except json.JSONDecodeError as error:
         raise ValueError("invalid attack trace JSONL") from error
-    if len(traces) != 12 or any("probe" not in row or "evidence_layer" not in row for row in traces):
+    if len(traces) != 12 or any(
+        "probe" not in row or "evidence_layer" not in row for row in traces
+    ):
         raise ValueError("attack trace structure mismatch")
-    if source.get("source_revision") != index["source_revision"] or source.get("study_id") != STUDY_ID:
+    if (
+        source.get("source_revision") != index["source_revision"]
+        or source.get("study_id") != STUDY_ID
+    ):
         raise ValueError("source-manifest revision/study mismatch")
     if not persistent.get("research_only") or persistent.get("production_authority"):
         raise ValueError("persistent probes must remain research-only")
-    if study["recommendation"] != profiler["recommendation"] or study["recommendation"] != "RETAIN_A":
+    if (
+        study["recommendation"] != profiler["recommendation"]
+        or study["recommendation"] != "RETAIN_A"
+    ):
         raise ValueError("recommendation mismatch")
     if study["attack_counts"] != {
         "BLOCKED": 5,
@@ -117,13 +168,25 @@ def validate() -> dict:
         "REJECTED_BY_REPRODUCED_ORIGINAL_MODEL": 17,
     }:
         raise ValueError("summary counts mismatch")
-    if study["blocked_attack_ids"] != BLOCKED or profiler["protection_blockers"] != BLOCKED:
+    if (
+        study["blocked_attack_ids"] != BLOCKED
+        or profiler["protection_blockers"] != BLOCKED
+    ):
         raise ValueError("summary blocker mismatch")
     if profiler["categories"].get("qualified_carbon_evidence") is not None:
         raise ValueError("qualified_carbon_evidence must remain null")
-    if any((study["production_authority"], study["runtime_sharing_implemented"], profiler["runtime_sharing_authorized"])):
+    if any(
+        (
+            study["production_authority"],
+            study["runtime_sharing_implemented"],
+            profiler["runtime_sharing_authorized"],
+        )
+    ):
         raise ValueError("research evidence must not carry runtime authority")
-    if cost.get("schema_version") != "carbon.cpes-reuse.cost-delay-study.v1" or len(cost.get("rows", [])) != 45:
+    if (
+        cost.get("schema_version") != "carbon.cpes-reuse.cost-delay-study.v1"
+        or len(cost.get("rows", [])) != 45
+    ):
         raise ValueError("cost/delay row schema mismatch")
     if not cost.get("membership_recomputed_per_overhead"):
         raise ValueError("dynamic rows must recompute membership per overhead")
@@ -139,7 +202,13 @@ def validate() -> dict:
         if row.get("schema_version") != "carbon.cpes-reuse.operating-replay.v1":
             raise ValueError("unexpected operating-replay row schema")
         work = row.get("work", {})
-        if set(work) != {"candidate", "reference", "group_control", "evidence_closure", "failed_cancelled_unresolved"}:
+        if set(work) != {
+            "candidate",
+            "reference",
+            "group_control",
+            "evidence_closure",
+            "failed_cancelled_unresolved",
+        }:
             raise ValueError("cost-row work scopes are incomplete")
         if sum(work.values()) != row.get("total_recurring_work"):
             raise ValueError("cost-row recurring-work total mismatch")
@@ -228,7 +297,9 @@ def validate() -> dict:
                 "environment": "Linux worker; exact report pin in source manifest",
             },
             "c_ep3_public_reference_warm": {
-                "value": profiler["observed_components"]["c_ep3_public_reference_warm_ms"],
+                "value": profiler["observed_components"][
+                    "c_ep3_public_reference_warm_ms"
+                ],
                 "unit": "ms wall latency",
                 "scope": "one C-EP3 public physical case",
                 "status": "observed",
@@ -245,20 +316,43 @@ def validate() -> dict:
         },
         "fixed_membership_vectors": cost["fixed_membership_sanity"],
         "dynamic": {
-            "units": {"work": "synthetic matched-work units", "time": "synthetic time units"},
+            "units": {
+                "work": "synthetic matched-work units",
+                "time": "synthetic time units",
+            },
             "rows": cost["rows"],
             "counterexample": {
                 "arrivals": {"a": 0, "b": 13, "c": 14, "d": 15},
-                "h0": {"groups": [["a"], ["b"], ["c", "d"]], "work": 38, "c_d_release": 39},
-                "h4": {"groups": [["a"], ["b", "c", "d"]], "work": 36, "c_d_release": 36},
+                "h0": {
+                    "groups": [["a"], ["b"], ["c", "d"]],
+                    "work": 38,
+                    "c_d_release": 39,
+                },
+                "h4": {
+                    "groups": [["a"], ["b", "c", "d"]],
+                    "work": 36,
+                    "c_d_release": 36,
+                },
                 "status": "PINNED_TEST_VECTOR_NOT_A_PRODUCTION_RECOMMENDATION",
             },
         },
         "source_precedence": [
             {"order": 1, "source": "Current repository contracts", "role": "Authority"},
-            {"order": 2, "source": "PR #152 pinned research head", "role": "Displayed research findings"},
-            {"order": 3, "source": "EXAM-PROTECT-WORKBENCH-01 assignment", "role": "Bounded UI integration"},
-            {"order": 4, "source": "User inputs/imports", "role": "Unreviewed scenario assumptions"},
+            {
+                "order": 2,
+                "source": "PR #152 pinned research head",
+                "role": "Displayed research findings",
+            },
+            {
+                "order": 3,
+                "source": "EXAM-PROTECT-WORKBENCH-01 assignment",
+                "role": "Bounded UI integration",
+            },
+            {
+                "order": 4,
+                "source": "User inputs/imports",
+                "role": "Unreviewed scenario assumptions",
+            },
         ],
         "authority_disclaimer": "Planning evidence only. This record cannot qualify an exam, approve protected use, authorize reference sharing or publication, activate runtime behavior, or grant rights.",
     }

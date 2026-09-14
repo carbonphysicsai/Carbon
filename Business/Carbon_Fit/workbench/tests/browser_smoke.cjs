@@ -12,7 +12,7 @@ async function downloaded(page,button,tmp,name){const promise=page.waitForEvent(
  const browser=await chromium.launch({headless:true,executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'}),tmp=fs.mkdtempSync(path.join(os.tmpdir(),'carbon-workbench-browser-'));
  const page=await browser.newPage({viewport:{width:1440,height:1050}}),errors=[],outbound=[],dialogs=[];page.setDefaultTimeout(10000);
  page.on('pageerror',e=>errors.push(String(e)));page.on('request',r=>{if(/^https?:/.test(r.url()))outbound.push(r.url());});page.on('dialog',async d=>{dialogs.push(d.message());await d.accept();});
- await page.goto('file://'+ARTIFACT);await page.waitForSelector('.op-item');
+ await page.goto('file://'+ARTIFACT);await page.locator('[data-tab="atlas"]').click();await page.waitForSelector('.op-item');
  check('actual standalone artifact opens with all 64 opportunities',await page.locator('.op-item').count()===64);
  check('initial client profile is empty',!await page.locator('body').textContent().then(t=>t.includes('private@example')));
  await page.screenshot({path:path.join(ROOT,'tests/preview_atlas.png'),fullPage:true});

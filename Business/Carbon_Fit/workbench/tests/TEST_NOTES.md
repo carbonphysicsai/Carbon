@@ -1,20 +1,25 @@
-# Workbench v0.2 acceptance notes
+# Workbench v0.3 acceptance notes
 
 Run from `Business/Carbon_Fit/workbench`:
 
 ```sh
 python3 tools/import_cpes_evidence.py --check
 python3 tools/build_schema.py
+python3 tools/build_goal_schema.py
 python3 tools/build.py
-node --test tests/test_engine.cjs
+node --test tests/test_engine.cjs tests/test_workflow.cjs
+python3 -m pytest tests/test_authoring_bridge.py ../../../../tests/cpu/test_cauth1_goal_authoring.py -q
 python3 tests/test_sources.py
 node tests/browser_smoke.cjs
+node tests/browser_goal_smoke.cjs
 python3 tools/package_release.py
 ```
 
-Current focused results are recorded in the delivery PR and owner report. `browser_results.json` is machine-readable evidence from the actual standalone HTML. The screenshots cover Atlas desktop, Profile desktop, and Profile narrow layouts.
+Current focused results are recorded in the delivery PR and owner report. `browser_results.json` preserves the accepted CPES route; `browser_goal_results.json` covers direct intake, exact native authoring and closed-loop return in the actual standalone HTML. The screenshots cover desktop and narrow layouts.
 
-The browser run used installed Google Chrome (Chromium), navigated the generated `file://` artifact, blocked network after load, and inspected all four downloaded summary formats. A CUA walkthrough also exercised the documented `127.0.0.1` route. Safari/WebKit automation was unavailable and is not claimed.
+The final local v0.3 candidate ran 65 inherited pure-engine checks, 21 goal-workflow checks, 24 focused Python authoring/bridge checks, 15 source/schema/build/package checks, 105 Hub decision-record checks, 40 inherited Chrome checks, and 27 goal-flow Chrome checks, all passing. These suites have different scopes and are reported separately rather than added into a scientific, security, or qualification total. The outside-tree package check built `carbon-0.9.0`, installed it into a fresh Python 3.11 environment without a source-tree `PYTHONPATH`, and returned `INTENT_PRESERVED / Dynamics / scientifically_qualified=false` through the fixed bridge.
+
+The browser runs use installed Google Chrome (Chromium), navigate the generated `file://` artifact, block network after load, and inspect actual downloaded bytes. The goal journey invokes the fixed local source-owned authoring CLI, reimports its result, and inspects the downloaded source-owner numerical-diagnostic request. Safari/WebKit automation is unavailable and is not claimed.
 
 The original v0.1 source input was independently verified before import: all 38 manifest payloads matched and its 39 Node tests passed. Those checks are input provenance, not v0.2 acceptance and are not added to current totals. The CPES PR's historical 14/52/208 sets likewise remain research provenance and are not application test counts.
 

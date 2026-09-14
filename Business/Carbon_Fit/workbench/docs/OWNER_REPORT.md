@@ -1,4 +1,22 @@
-# Owner report — EXAM-PROTECT-WORKBENCH-01
+# Owner report — GOAL-WORKBENCH-02 / EXAM-PROTECT-WORKBENCH-01
+
+## v0.3 goal-to-Challenge capability
+
+An owner can carry one client need through the intended decision and credible baseline, original requirements, measurement/score roles, target population and finite case families, generator/reference bindings, design-scoped CPES review, exact native authoring output, returned response and a launch-candidate handoff without re-entering its meaning. Jobs can start directly without an Atlas identity, carry alternatives, and retain immutable earlier revisions.
+
+The supported public-development route is the existing periodic viscous Burgers v1 template with active Dynamics. The fixed bridge invokes the source-owned C-AUTH1 CLI, preserves canonical bytes/digests and returns a receipt comparing physical law, active goal/count, measurement/score, sampling, references, query contract and authority flags. It remains unqualified and unlaunched. A Front Resolution request demonstrates the negative path: the compiler truthfully returns Dynamics plus an inactive source-goal report and the workbench records `INTENT_MISMATCH`. Non-Burgers and client-rights scopes retain the job and produce a specific C-AUTH1 extension request.
+
+Manual handoff responses reattach to the exact request and design revision. Exact duplicates deduplicate; conflicting, stale, wrong-task and authority-forging responses fail closed. Client, Engineering, N1 and launch-candidate exports are projections of the same record. Export proves neither send nor execution. The native launch interface is unavailable and no browser input can report `LAUNCHED`.
+
+CPES still constrains the same proposed exam. Variant A remains the DEVELOPMENT baseline; B remains conditional research and C sensitivity only. A population, score/evidence-depth, reference or disclosure change preserves but marks affected CPES economics/protection bindings stale. AT-09, AT-16, AT-19, AT-22 and AT-30 remain unresolved regardless of user applicability assertions.
+
+Scientifically unresolved fields include adequate same-identity reference cost, actual compatible dispatch demand, B lifecycle overhead, field-size-dependent evidence, service/closure limits, numerical floors/uncertainty and any customer-approved trade-off. Numerical prospective diagnostics are structural `NOT_EXECUTED` expectations unless a source-owned result is bound; the app now exports the exact design-bound request for that source-owner result. No general customer-to-launch claim follows from the Burgers demonstration.
+
+Working integrations: generated offline HTML, v0.1/v0.2/v0.3 migration, C-AUTH1 local fixed CLI, exact authoring-result reader, manual handoff/response reader and deterministic downloads. Manual/unavailable integrations: live/private intake, Grok/CRM/calendar/account routes, generator preview, protected execution, authoritative decision verification, qualification/registration and native launch. The supplied Grok v1.9 DOCX was not located in the workspace; only explicit owner-supplied operating facts were projected, so the document hash and page-4 diagram were not independently verified.
+
+The final local candidate passed 65 inherited engine checks, 21 goal-workflow checks, 24 focused Python authoring/bridge checks, 15 source/schema/build/package checks, 105 Hub decision-record checks, 40 inherited Chrome checks and 27 goal-flow Chrome checks. The suites overlap in purpose and are not aggregated into a scientific or security pass count. An outside-tree Python 3.11 wheel install also exercised the bridge against the installed `carbon` package and returned an intent-preserving, unqualified Dynamics proposal. Safari/WebKit and all unavailable/manual integrations above remain unexecuted. The delivery PR, exact tested head, required repository acceptance run and merge status are the final delivery record; they must not be inferred from this pre-CI package document.
+
+## Accepted v0.2 CPES foundation
 
 ## Implemented capability
 
@@ -46,13 +64,13 @@ The smallest useful inputs are: a source-owned compatibility identity and refere
 - Workbench starting base: `2d5872aff89ca7bef3e3f062b293aeefe17769aa`; reconciled current main through `2ac835d1dd55deb9c99e493f3615143efa2e51e0` without changing the Wave C selection.
 - CPES content input: PR #152 pinned reviewed head `ca904dfee93d3574df4e56b99981a6ed3b138e80`. Reconciled delivery head `0a5690270dc449ea19c941280203987d37db5283` passed canonical, clean-image and Merge gate in run `34786945000` and merged as `2ac835d1dd55deb9c99e493f3615143efa2e51e0`. Failed run `34778525936` remains history.
 - Issue #153 fix: separate test-only PR #155, head `29ac8e27bd924ce1fb293c48527ded3b1cff6215`; canonical and Merge gate passed in run `34784974259`; merged as `edf8331428e50ecb60905fa1a6058d02d7f6d53e`. Its clean-image job was correctly not applicable, not called passed.
-- Workbench integration: PR #156. The complete release manifest records the exact source candidate used for packaging; the PR body and completion comments record its final tested head, merge commit and applicable CI results without pretending a file can contain its own commit identity.
+- Workbench integration: PR #156 exact head `3ebc7ac6b1bb72163733db764f89f11f05c8009b` passed Delivery preflight, Contract and authority acceptance, Development Hub validation and Merge gate in run `34794655627`; it merged as `3fb98bfbfb9ca8dd3f6dd0d8e5a588a89b1c9932`.
 
 The earlier PR #156 runs `34789353024` and `34789634638` remain failed history. They exposed two repository acceptance defects outside the application diff; neither failure was waived or relabeled.
 
 - Issue #141 was repaired separately by PR #159, accepted at exact head `fe89cfa6ca5699dfd00d748e974fbf3a90351043` in run `34791088907` and merged as `8361181d6690e8c56bcba3805018f41cd4752e45`.
 - Issue #158 restored the C-04/C-05 contract-versus-numerical test boundary in separate PR #160. Exact head `2bedd74b4dac8ca49f32e6a2ceb1c356a68d199c` passed canonical, corrected Hub validation, and Merge gate in run `34792307014` and merged as `1a1a5ad4585caebd168725451ca255e06561f693`. The initial Hub metadata failure in that run remains history.
 
-PR #156 was then reconciled with accepted main through `1a1a5ad4585caebd168725451ca255e06561f693`. The application was rebuilt and reran 65 pure-engine checks, 14 source/evidence/schema/build/package checks, and 40 actual-Chrome checks with no failures. The standalone HTML remained byte-identical at SHA-256 `cf5439b4e3752b57742f69bce3a6c773bd91c7844966ca6bfcf3bbe0c423cf98`; the manifest and ZIP were regenerated because their packaging provenance changed. Final exact-head PR acceptance and merge identities are recorded in the pull request and issue completion comments rather than through a self-referential artifact digest.
+PR #156 was reconciled with accepted main through `1a1a5ad4585caebd168725451ca255e06561f693`. Its final application rerun reported 65 pure-engine checks, 14 source/evidence/schema/build/package checks, and 40 actual-Chrome checks with no failures. These are v0.2 application evidence, not v0.3 totals or scientific/security qualification. The standalone HTML was byte-identical at SHA-256 `cf5439b4e3752b57742f69bce3a6c773bd91c7844966ca6bfcf3bbe0c423cf98`; final merge identity is recorded above rather than through a self-referential artifact digest.
 
 The Wave C executor, `.agent/WAVE.md`, runtime types, solver/evaluator, rewards, worker, archive policy, and active C-03/C-04 selection were left unchanged. Hosted delivery and live collection remain separate.

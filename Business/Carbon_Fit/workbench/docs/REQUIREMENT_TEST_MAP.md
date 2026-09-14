@@ -1,6 +1,19 @@
-# EXAM-PROTECT-WORKBENCH-01 requirement-to-test map
+# GOAL-WORKBENCH-02 / EXAM-PROTECT-WORKBENCH-01 requirement-to-test map
 
 This map describes focused application acceptance. It does not relabel the CPES study's historical 14/52/208 runs as workbench tests.
+
+| v0.3 requirement | UI / data | Native owner / adapter | Automated evidence | Current limitation |
+|---|---|---|---|---|
+| Direct intake, multiple jobs/alternatives, optional Atlas, immutable revisions | Client jobs; v0.3 job/design schemas | Business/WAVE-G planning owner | `test_workflow.cjs`; `browser_goal_smoke.cjs` | Browser-local manual persistence; no live intake/CRM |
+| Preserve original requirement and link score/cases/reference | Requirement trace, score plan, case families, reference plan, diagnostic-request export | Measurement/ScorePack, generator, reference owners | workflow coverage/mandatory-failure/diagnostic-request tests; browser source-bound case trace and downloaded request | Structural coverage is not numerical or scientific adequacy; request status stays `NOT_EXECUTED` |
+| Exact supported Burgers compilation and semantic agreement | Authoring request/result/receipt | C-AUTH1; `tools/authoring_bridge.py` fixed CLI | bridge Python tests; actual CLI round trip in browser journey | DEVELOPMENT Dynamics only; not qualification/registration |
+| Same-PDE incompatible goal and non-Burgers/rights gaps | Extension request retained in design | C-AUTH1 source owner | Front Resolution and extension tests | Source owner must implement/accept any new capability |
+| Design-bound CPES and stale impact | CPES binding + change log | CPES research and domain owners | favorable-B/stale-economics workflow tests; browser journey | A remains baseline; five claims and adequate R/demand/H/service unknowns remain |
+| Bidirectional idempotent handoffs | handoff/response v1 arrays | Named S1/R1/owner/executor/launch owner | duplicate/conflict/stale/wrong-task/forgery tests; browser ack cycle | Actual route is manual; no Grok/CRM/message connector |
+| Least-privilege client/N1/Engineering views | projections and downloads | Business/account and Engineering owners | projection unit tests; parsed browser downloads | Files are unencrypted and not transmitted |
+| Launch candidate and truthful native status | launch-candidate v1 | Launch/registration owner | forged status and candidate export tests | Native launch interface unavailable; no actual launch |
+| Additive v0.1/v0.2/v0.3 migration | outer v0.3 closed schema + receipt | Workbench owner | workflow migration/authority tests; browser migrate/export/reload | No science inferred for migrated component-only sessions |
+| C-PILOT-01 operating projection | read-only v1.9 projection | R1 lead, S1 support, optional H1 | workflow projection test | Grok plan artifact not located; no account integration or training run |
 
 | Requirement | Automated evidence |
 |---|---|

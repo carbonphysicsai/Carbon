@@ -16,8 +16,8 @@ from carbon.authoring.goals import (
     GoalAuthoringError,
     ProposalWriteDisposition,
     compile_goal_intake,
-    supported_burgers_development_intake,
     load_goal_document,
+    supported_burgers_development_intake,
     write_compiled_proposal,
 )
 from carbon.generators.burgers_dynamics import (
@@ -192,7 +192,9 @@ def test_supported_workbench_adapter_reuses_exact_frozen_intake() -> None:
     )
 
 
-def test_supported_workbench_adapter_preserves_specialist_input_without_activation() -> None:
+def test_supported_workbench_adapter_preserves_specialist_input_without_activation() -> (
+    None
+):
     adapted = supported_burgers_development_intake(
         requested_goal="Front Resolution",
         challenge_id="front-request",
@@ -205,9 +207,14 @@ def test_supported_workbench_adapter_preserves_specialist_input_without_activati
     proposal = compile_goal_intake(adapted).document()
     assert proposal["evidence_boundary"]["source_goal"] == "Front Resolution"
     assert proposal["challenge"]["primary_goal"] == "Dynamics"
-    assert next(
-        item for item in proposal["goal_reports"] if item["name"] == "Front Resolution"
-    )["activation"] == "PREPARED_SPECIALIST_INACTIVE"
+    assert (
+        next(
+            item
+            for item in proposal["goal_reports"]
+            if item["name"] == "Front Resolution"
+        )["activation"]
+        == "PREPARED_SPECIALIST_INACTIVE"
+    )
 
 
 def test_proposal_keeps_science_network_and_evidence_boundaries_closed() -> None:
