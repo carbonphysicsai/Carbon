@@ -2,7 +2,7 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `f39bc7bda57276758184ad049d249bdf09a442c8` on `main`, captured 2026-09-14T00:32:46Z.
+**Authority snapshot:** `1aefe78d620007ddbad229e1276ad9c494defe70` on `main`, captured 2026-09-14T01:45:17Z.
 **Current:** Wave C, ticket C-06. C-05 is the last bounded completed slice after PR #157 accepted exact head 8dbee54dcd5bdea3a76b22812955e31fbe95e8da in run 34789621325 and normally merged as e3324691666da6b8987764048d2bfff45e0578b4. OWNER-C1-BURGERS-ALPHA-01 now selects C-06 alone for signed non-official DEVELOPMENT evidence. No later ticket is selected while C-06 is active; C-07 is prospectively authorized only after C-06's bounded merge. The candidate binds exact reconstruction, inference, reference, measurement, Dossier and execution identities in an append-only Ed25519-signed record. It keeps uncertainty unresolved and every official, protected, score, archive, network and reward eligibility field false. The trusted single-tenant host model, three-replica working profile, candidate reference roles and prospective archive targets grant no scientific sufficiency, independent security acceptance, protected admission, real archive acknowledgement, production, public network or LIVE authority. D6 run 34518806217 remains historical LOCALNET_READY evidence for its exact disposable standard-profile localnet.
 **Last completed:** C-05 (`done`).
 **Next selected:** none selected.
