@@ -183,3 +183,49 @@ merged tree are both `e11b05b60909748f5c152f53ca0e65b0b5696d3c`. Native tests
 do not establish the selected durability target. The exact external-input and
 cost boundary is documented in
 `docs/development/EVIDENCE_ARCHIVE_ALPHA_PROFILE.md`.
+
+## 2026-09-15 AWS private-alpha deployment-package candidate
+
+**Decision:** `C-EA1-D3`
+**Provider profile:** `carbon.alpha-evidence-archive.aws.private.v1`
+**Disposition:** unprovisioned implementation candidate; exact-head acceptance
+pending
+**Maturity ceiling:** provider adapters, deployment package and isolated
+non-secret tests may earn `SPECIFIED / IMPLEMENTED / TESTED`; actual provider
+durability, recovery, security, acknowledgement, protected and production
+maturity remain unavailable
+
+The candidate retains PR #168's alpha policy and accepted synthetic runtime. It
+adds a narrow pinned AWS SDK dependency, concrete S3/KMS/RDS adapters, exact S3
+version receipts and replay, fresh RDS IAM authentication, atomic one-active/
+20-GiB PostgreSQL capacity reservation including retained bytes, and append-only
+capacity history. No numerical worker receives archive credentials.
+
+The unprovisioned CloudFormation package defines private Multi-AZ PostgreSQL,
+versioned 90-day COMPLIANCE-locked S3, an externally administered KMS key,
+private S3/KMS endpoints, daily catalogue recovery points, and distinct
+supervisor/audit/recovery roles. Its versioned manifest binds the template,
+database roles, dependency/source-use facts and cost estimate. The package
+doctor currently reports:
+
+```text
+provider profile: carbon.alpha-evidence-archive.aws.private.v1
+deployment manifest: sha256:e899a49023db5b625632546337c9b43e1237cf6a1ffd7d1bad39652524fcce03
+CloudFormation: sha256:b74e28312ba30cd99f8e79350bcde2970cd75e40e20502cd39b3de2713adcd58
+database roles: sha256:7dc9a791af7466e04b97980596df2ebf0f885c1280565d00f4fc0c007be58903
+source use: sha256:677a61e2c2aec222d04e02a0eb50300fd7ed1241388dae33f53da658aaccb710
+cost estimate: sha256:18f6016c30b09604e6d901c657d21503bcdd4f9f072d7c7cb8fc2123954246dd
+monthly estimate: USD 39.338; recommended authorization ceiling: USD 55
+one-off test-owned rehearsal estimate: USD 5
+deployment authorized: false
+recovery rehearsed: false
+real acknowledgement eligible: false
+C-EA2 eligible: false
+```
+
+Focused native adapter/profile tests pass; the actual PostgreSQL capacity test
+collects but skips when Docker is unavailable and must execute in canonical
+Linux acceptance. No AWS service test is claimed: the prompt forbids
+provisioning, and fake-client tests establish adapter request/response behavior
+only. Exact accepted head/run/merge and final component identities will be
+recorded after the single required acceptance.

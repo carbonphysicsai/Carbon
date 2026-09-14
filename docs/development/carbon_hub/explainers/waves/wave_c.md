@@ -69,15 +69,15 @@ Wave C does not authorize LIVE science, Wave-D qualification, learned Landscape/
 - [C-06](../tickets/c_06.md): Signed evaluation receipt [done]
 - [C-07](../tickets/c_07.md): Real validator orchestration [done]
 - [C-08](../tickets/c_08.md): Authenticated Miner MCP end to end [done]
-- [C-10](../tickets/c_10.md): Independent re-execution and disagreement [in_progress]
+- [C-10](../tickets/c_10.md): Independent re-execution and disagreement [done]
 - [C-EA2](../tickets/c_ea2.md): Archive before finalization [todo]
 - [C-09](../tickets/c_09.md): Official testnet publication and leaderboard provider [todo]
 - [C-W1](../tickets/c_w1.md): Exact real testnet eligibility provenance [todo]
 
 ## Repository detail
 
-- [Wave C controlling board](https://github.com/carbonphysicsai/Carbon/blob/c6a875c5588870bab9e827b3a6442fdd9ef97966/.agent/WAVE_C.md)
-- [Current wave register](https://github.com/carbonphysicsai/Carbon/blob/c6a875c5588870bab9e827b3a6442fdd9ef97966/.agent/WAVE.md)
-- [NET-1 ticket](https://github.com/carbonphysicsai/Carbon/blob/c6a875c5588870bab9e827b3a6442fdd9ef97966/.agent/tickets/NET-1_chain_adapter.md)
+- [Wave C controlling board](https://github.com/carbonphysicsai/Carbon/blob/246abc1cc823161da9366fce94e7edfdfa622832/.agent/WAVE_C.md)
+- [Current wave register](https://github.com/carbonphysicsai/Carbon/blob/246abc1cc823161da9366fce94e7edfdfa622832/.agent/WAVE.md)
+- [NET-1 ticket](https://github.com/carbonphysicsai/Carbon/blob/246abc1cc823161da9366fce94e7edfdfa622832/.agent/tickets/NET-1_chain_adapter.md)
 
 > Orientation boundary: repository authority owns exact semantics, implementation, review, evidence, and activation.

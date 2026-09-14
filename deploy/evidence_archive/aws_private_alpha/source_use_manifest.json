@@ -1,0 +1,19 @@
+{
+  "schema_version": "carbon.evidence-archive.aws-source-use.v1",
+  "uv_lock_digest": "sha256:49708dc4f2ef3118062759a2d1cdd204d16b9328bf481b662be4b3adc2cde4b1",
+  "runtime_dependencies": [
+    {"name": "boto3", "version": "1.43.56", "license": "Apache-2.0", "source": "https://pypi.org/project/boto3/1.43.56/", "use": "operator-created S3, KMS and RDS clients"},
+    {"name": "botocore", "version": "1.43.56", "license": "Apache-2.0", "source": "https://pypi.org/project/botocore/1.43.56/", "use": "AWS protocol and credential-chain implementation through boto3"},
+    {"name": "s3transfer", "version": "0.19.2", "license": "Apache-2.0", "source": "https://pypi.org/project/s3transfer/0.19.2/", "use": "locked boto3 dependency; Carbon's bounded adapter does not call its transfer manager"},
+    {"name": "psycopg-binary", "version": "3.3.5", "license": "LGPL-3.0-only", "source": "https://pypi.org/project/psycopg-binary/3.3.5/", "use": "existing PostgreSQL catalogue and IAM-token connection"},
+    {"name": "cryptography", "version": "50.0.1", "license": "Apache-2.0 OR BSD-3-Clause", "source": "https://pypi.org/project/cryptography/50.0.1/", "use": "existing AES-256-GCM evidence envelope"}
+  ],
+  "service_dependencies": [
+    {"name": "Amazon RDS for PostgreSQL", "version": "17.11", "use": "private Multi-AZ catalogue"},
+    {"name": "Amazon S3 Standard", "version": "provider-managed", "use": "versioned immutable evidence objects"},
+    {"name": "AWS KMS", "version": "provider-managed", "use": "external versioned envelope-key custody"},
+    {"name": "AWS Backup", "version": "provider-managed", "use": "catalogue recovery points and rehearsal source"}
+  ],
+  "distribution_scope": "repository development and unprovisioned operator package",
+  "rights_status": "No protected/customer-data, commercial-redistribution or provider-account right is inferred; target-account and release review remain external."
+}

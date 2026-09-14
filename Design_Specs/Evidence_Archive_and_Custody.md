@@ -1,16 +1,17 @@
 # Evidence Archive, Custody, and Availability Contract
 
-**Version:** 1.2 evidence-capture contract, synthetic runtime, and private-alpha
-preparation profile
+**Version:** 1.3 evidence-capture contract, synthetic runtime, and private-alpha
+deployment-package profile
 **Status:** C-EA0 `SPECIFIED / TESTED`; C-EA1 `SPECIFIED / IMPLEMENTED /
 TESTED` only for `carbon.synthetic-evidence-archive.dev.v1` after PR #136
 acceptance and merge. The separate
-`carbon.alpha-evidence-archive.private.v1` preparation is selected but remains
-ineligible for real acknowledgement and C-EA2 until its external deployment,
-recovery and security inputs are implemented and accepted.
+`carbon.alpha-evidence-archive.private.v1` policy and the unprovisioned
+`carbon.alpha-evidence-archive.aws.private.v1` package are selected but remain
+ineligible for real acknowledgement and C-EA2 until external deployment,
+recovery and security inputs are observed and accepted.
 **Decisions:** `OWNER-EVIDENCE-RESEARCH-01`, `C-EA0-D1`,
 `OWNER-C-EA1-SYNTHETIC-01`, `C-EA1-D1`,
-`OWNER-C1-BURGERS-ALPHA-01`, `C-EA1-D2`
+`OWNER-C1-BURGERS-ALPHA-01`, `C-EA1-D2`, `C-EA1-D3`
 **Tickets:** `C-EA0` through `C-EA3`, then `E-EA4`, `E-EA5`, and `E-EA7`
 
 This companion owns archive and custody semantics for the canonical
@@ -81,15 +82,17 @@ receipt material, plus bounded diagnostics and rebuildable summaries under their
 declared roles. This selection is not a statement that the artifacts are
 qualified or eligible for protected use.
 
-The current implementation prepares the exact profile, capacity/retention
-policy, closed external-input document and read-only doctor. Its isolated
-non-secret service preflight reuses the PostgreSQL migration, immutable object
-interface and encrypted envelope under a dedicated test tenant. It creates no
-archive entry or acknowledgement. Readiness remains structurally false for real
-acknowledgement and C-EA2 even after every external reference is populated;
-provider adapters, actual off-host recovery, security acceptance and deployment
-authorization must still be implemented and tested. The runbook and deployment
-template are under `docs/development/`.
+The accepted preparation implements the exact policy, closed external-input
+document and read-only doctor. `C-EA1-D3` adds a separate unprovisioned AWS
+package: private Multi-AZ RDS PostgreSQL, S3 versioning/Object Lock, KMS envelope
+keys, private endpoints, least-privilege runtime roles, backup configuration,
+exact component/source/cost manifests, version-specific object receipts, RDS
+IAM connections and an atomic retained-byte capacity ledger. Its isolated
+non-secret tests create no real entry or acknowledgement. Readiness remains
+structurally false for real acknowledgement and C-EA2; actual account services,
+provider-observed recovery, security acceptance, custody and deployment
+authorization must still be supplied and tested. The package and runbook are
+under `deploy/evidence_archive/aws_private_alpha/` and `docs/development/`.
 
 ## 0. C-EA0 decision and authority ceiling
 
@@ -264,9 +267,9 @@ value, the affected real path is unavailable.
 | Challenge/execution-class required-artifact profile | scientific + execution/result owners | prospective alpha artifact roles selected; qualification remains absent | real capture profile cannot be admitted | C-EA1/C-EA2 |
 | retention durations, deletion and legal-hold policy | legal/IP + data governance | alpha minimum/open-obligation rule selected; actual policy/deployment remains absent | no production retention/deletion action | C-EA1 |
 | named-use, reuse, release and commercial-rights policy | legal/IP + business + scientific publication | alpha internal-audit/non-paying-testnet uses selected only | every other use is `BLOCKED_UNKNOWN` or `INELIGIBLE` | C-EA1/E-EA4+ |
-| custody zones, access principals, encryption and key policy | security + data owner | private/encrypted target selected; principals/key service/version absent | no protected-zone deployment or acknowledgement | C-EA1 |
-| provider, regions, replication and deployment topology | Operations + security | `HUMAN_INPUT` | no production deployment | C-EA1 |
-| capacity reservation and backpressure policy | Operations | alpha one evaluation/20 GiB selected; real atomic enforcement absent | no real admission under capacity authority | C-EA1/C-EA2 |
+| custody zones, access principals, encryption and key policy | security + data owner | AWS role/KMS proposal implemented; actual account principals/key and acceptance absent | no protected-zone deployment or acknowledgement | C-EA1 |
+| provider, regions, replication and deployment topology | Operations + security | AWS `us-west-2` recommended as unprovisioned D3 package; account/network authorization absent | no deployment or provider claim | C-EA1 |
+| capacity reservation and backpressure policy | Operations | alpha one evaluation/20 GiB selected and PostgreSQL atomic enforcement implemented; deployed observation absent | no real admission under capacity authority | C-EA1/C-EA2 |
 | recovery objectives, exclusions and restore acceptance | Operations/DR + security | alpha single-host-loss/24-hour target selected; observed acceptance absent | no recovery qualification | C-EA3 |
 | security qualification | security owner | `HUMAN_INPUT` | no security/production/LIVE maturity | C-EA3/Wave D |
 
