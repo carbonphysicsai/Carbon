@@ -174,7 +174,7 @@ def test_real_numerical_vertical_produces_non_official_projection_bundle(
                 plan.to_ref(),
                 policy,
                 resource,
-                f"replica-{index}",
+                f"reconstruction-replica-{index}",
                 _sha(f"placeholder-{index}"),
             )
         )
@@ -299,7 +299,7 @@ def test_real_numerical_vertical_produces_non_official_projection_bundle(
         candidate_source_digest=receipts[0].source_digest,
         candidate_environment_digest=receipts[0].environment_digest,
         candidate_plan_digest=plan.to_ref().content_digest,
-        candidate_replica_id="replica-0",
+        candidate_replica_id="reconstruction-replica-0",
         reference_artifact_digest=frozen_reference.artifact_digest,
         reference_request_digest=reference_request.request_digest,
         reference_policy_digest=_policy_digest(),
