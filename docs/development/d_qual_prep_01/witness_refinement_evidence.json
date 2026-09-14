@@ -1433,7 +1433,7 @@
   "overall_readiness_disposition": "MORE_PUBLIC_EVIDENCE_NEEDED",
   "readiness_by_dimension": [
     {
-      "dimension": "spatial_refinement",
+      "dimension": "joint_grid_fixed_cfl_refinement",
       "disposition": "EVIDENCE_READY_FOR_HUMAN_REVIEW"
     },
     {

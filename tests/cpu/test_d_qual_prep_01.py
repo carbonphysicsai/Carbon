@@ -127,6 +127,12 @@ def test_failed_history_entry_is_retained(monkeypatch) -> None:
     assert history[1]["outcome"] == "SUPPORTED"
 
 
+def test_identical_or_unsupported_controls_are_not_refinement_levels() -> None:
+    for grids in ([256, 256], [1024, 512], [64, 8192]):
+        with pytest.raises(ValueError, match="distinct, strictly increasing"):
+            RUNNER._validate_refinement_grids(grids, "test")
+
+
 def test_d05_blocks_without_d02_and_retained_measurement_matrix(records) -> None:
     generator = records["generator_dependency.json"]
     measurement = records["measurement_floor_sensitivity.json"]
@@ -141,8 +147,13 @@ def test_d05_blocks_without_d02_and_retained_measurement_matrix(records) -> None
 def test_development_evidence_and_workbench_cannot_mint_authority(records) -> None:
     projection = records["workbench_projection_status.json"]
     assert projection["projection_eligible"] is False
-    assert projection["status"] == "BLOCKED_INPUT"
+    assert projection["status"] == "MANUAL_ATTACHMENT_ONLY"
     assert projection["import_record"] is None
+    assert projection["supported_reader"] == (
+        "carbon.c05.burgers-measurement-result.v1"
+    )
+    assert projection["dqual_readiness_schema_supported"] is False
+    assert projection["manual_handoff_supported"] is True
     assert projection["can_mint_qualification"] is False
     assert projection["can_activate_scoring"] is False
     assert all(
@@ -150,6 +161,60 @@ def test_development_evidence_and_workbench_cannot_mint_authority(records) -> No
         for record in records.values()
         if "scientifically_qualified" in record
     )
+
+
+def test_retained_coverage_and_accounting_do_not_expand_from_cell_count() -> None:
+    readiness = json.loads(
+        (CAMPAIGN_DIRECTORY / "readiness_record.json").read_text(encoding="ascii")
+    )
+    accounting = readiness["evidence_accounting"]
+    coverage = readiness["coverage"]
+    assert accounting["distinct_physical_cases"] == 12
+    assert accounting["source_request_executions"] == 48
+    assert accounting["numerical_method_evaluations"] == 168
+    assert accounting["distinct_case_role_method_settings_queries"] == 120
+    assert coverage["time_over_characteristic_time"] == [0.0, 0.1, 0.25]
+    assert coverage["time_scope"] == "EARLY_TIME_THREE_SAMPLE_PROBE_NOT_FULL_TRAJECTORY"
+    assert "full trajectory" in coverage["unsupported_extensions"]
+    assert len(coverage["unobserved_c05_measurements"]) == 4
+    assert coverage["unobserved_c05_physics_diagnostics_count"] == 6
+
+
+def test_unavailable_measurement_matrix_cannot_be_completed_by_counts_or_fill() -> None:
+    measurement = json.loads(
+        (CAMPAIGN_DIRECTORY / "measurement_floor_sensitivity.json").read_text(
+            encoding="ascii"
+        )
+    )
+    audit = measurement["matrix_evidence_audit"]
+    assert audit["status"] == "EXECUTION_NOT_ESTABLISHED"
+    assert audit["specified_member_count"] == 72
+    assert audit["retained_member_count"] == 0
+    assert audit["executed_matrix_receipt_count"] == 0
+    assert len(audit["expected_member_ids"]) == 72
+    assert len(set(audit["expected_member_ids"])) == 72
+    assert audit["retained_member_ids"] == []
+    assert audit["conflicting_member_ids"] == []
+    assert all(not row["matrix_compatible"] for row in audit["nonmatrix_evidence"])
+
+
+def test_historical_wait_and_scoped_readiness_remain_distinct() -> None:
+    readiness = json.loads(
+        (CAMPAIGN_DIRECTORY / "readiness_record.json").read_text(encoding="ascii")
+    )
+    assert readiness["historical_campaign_recommendation"] == (
+        "WAIT_FOR_D02_GENERATOR_CONFORMANCE"
+    )
+    axes = {row["axis"]: row for row in readiness["readiness_axes"]}
+    assert axes["application_delivery"]["qualification_or_customer_use_effect"] == (
+        "NONE"
+    )
+    assert axes["measurement_campaign_data"]["evidence_state"] == "UNRESOLVED"
+    assert readiness["workflow"]["packet_state"] == (
+        "EXPORTED_NOT_ACKNOWLEDGED_NOT_APPROVED"
+    )
+    assert readiness["authority"]["wave_d_selected"] is False
+    assert readiness["authority"]["scientific_thresholds"] is None
 
 
 def test_exact_replay_is_byte_identical(tmp_path: Path) -> None:

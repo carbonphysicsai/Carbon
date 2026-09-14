@@ -43,7 +43,7 @@ from carbon.reference_runtime.qualification_candidate import (
 from carbon.registry import ChallengeKey
 from carbon.seeding import EvaluationBinding, MockContext, MockEntropy, SeedPin
 
-SCHEMA = "carbon.d-qual-prep-01.readiness.v1"
+SCHEMA = "carbon.d-qual-prep-01.readiness.v2"
 ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_PROTOCOL = Path(__file__).with_name("protocol_v1.json")
 OUTPUT_FILES = (
@@ -139,6 +139,7 @@ def _run_document(run: Any) -> dict[str, object]:
 def _primary_history(
     request: BurgersReferenceRequest, grids: list[int]
 ) -> list[dict[str, object]]:
+    _validate_refinement_grids(grids, "primary quadrature")
     rows: list[dict[str, object]] = []
     previous: np.ndarray | None = None
     for grid in grids:
@@ -186,6 +187,7 @@ def _primary_history(
 def _witness_history(
     request: BurgersReferenceRequest, grids: list[int]
 ) -> list[dict[str, object]]:
+    _validate_refinement_grids(grids, "witness spatial")
     rows: list[dict[str, object]] = []
     previous: np.ndarray | None = None
     for grid in grids:
@@ -224,6 +226,24 @@ def _witness_history(
             )
             previous = None
     return rows
+
+
+def _validate_refinement_grids(grids: list[int], label: str) -> None:
+    if (
+        not grids
+        or any(
+            type(grid) is not int
+            or grid < 64
+            or grid > 4096
+            or grid & (grid - 1)
+            for grid in grids
+        )
+        or grids != sorted(set(grids))
+    ):
+        raise ValueError(
+            f"{label} refinement grids must be distinct, strictly increasing, "
+            "source-supported powers of two from 64 through 4096"
+        )
 
 
 def _partition_sensitivity(
@@ -330,6 +350,12 @@ def _independence_matrix() -> dict[str, object]:
 
 def _measurement_record(protocol: dict[str, Any]) -> dict[str, object]:
     manifest = frozen_public_measurement_manifest()
+    expected_members = [
+        f"{recipe}/replica-{replica}/EVAL-cell-{cell}-ordinal-0-build-0"
+        for recipe in manifest["recipes"]
+        for replica in range(manifest["replicas_per_recipe"])
+        for cell in range(len(manifest["case_coordinates"]))
+    ]
     observable_rows = []
     for measurement_id in MEASUREMENT_IDS:
         observable_rows.append(
@@ -370,6 +396,34 @@ def _measurement_record(protocol: dict[str, Any]) -> dict[str, object]:
             "expected_distinct_results": 72,
             "retained_result_matrix_path": protocol["measurement_study"][
                 "retained_result_matrix_path"
+            ],
+        },
+        "matrix_evidence_audit": {
+            "status": "EXECUTION_NOT_ESTABLISHED",
+            "specified_member_count": 72,
+            "retained_member_count": 0,
+            "executed_matrix_receipt_count": 0,
+            "expected_member_ids": expected_members,
+            "retained_member_ids": [],
+            "conflicting_member_ids": [],
+            "nonmatrix_evidence": [
+                {
+                    "kind": "ACCEPTED_SINGLE_C05_SERVICE_TEST_RESULT",
+                    "run_id": 34789621325,
+                    "result_digest": "sha256:ea2c2fcd335ecd33689f29fa898ca01e9bf6eb5bab1e3fdb5090525e23fb9897",
+                    "matrix_compatible": False,
+                    "reason": "No frozen recipe/replica/case member identity is retained in the service trace.",
+                },
+                {
+                    "kind": "GOAL_WORKBENCH_04_ONE_CASE_TEST_FIXTURE",
+                    "matrix_compatible": False,
+                    "reason": "Different one-case test-created candidate scope; synthetic fill is forbidden.",
+                },
+            ],
+            "search_scope": [
+                "named C-05 campaign manifest and harness",
+                "authorized GOAL-WORKBENCH-04 and D-QUAL-PREP-01 local outputs",
+                "accepted C-05 run 34789621325 artifact inventory and service trace",
             ],
         },
         "observable_rows": observable_rows,
@@ -444,15 +498,19 @@ def _generator_record() -> dict[str, object]:
 
 def _workbench_record() -> dict[str, object]:
     return {
-        "schema": "carbon.d-qual-prep-01.workbench-projection-status.v1",
+        "schema": "carbon.d-qual-prep-01.workbench-projection-status.v2",
         "goal_workbench_04_expected_commit": "0ea0ad8116ae4d912e866d11c52d6775a37d9813",
-        "observed_main_revision": "ed6047d03cf60db6ce52f03e63040d95c1ea78e4",
-        "expected_commit_is_ancestor_of_observed_main": False,
+        "goal_workbench_04_application_pr": 170,
+        "observed_main_revision": None,
+        "expected_commit_is_ancestor_of_observed_main": None,
         "projection_eligible": False,
-        "status": "BLOCKED_INPUT",
-        "blocked_input": "GOAL_WORKBENCH_04_NORMAL_REPOSITORY_MERGE",
+        "status": "MANUAL_ATTACHMENT_ONLY",
+        "blocked_input": "NATIVE_DQUAL_READINESS_READER_NOT_IMPLEMENTED_OR_AUTHORIZED",
         "import_record": None,
-        "allowed_future_import_class": "DEVELOPMENT_QUALIFICATION_CANDIDATE_EVIDENCE",
+        "supported_reader": "carbon.c05.burgers-measurement-result.v1",
+        "dqual_readiness_schema_supported": False,
+        "manual_handoff_supported": True,
+        "allowed_future_import_class": None,
         "required_future_disposition": "HUMAN_SCIENTIFIC_DECISION_REQUIRED",
         "can_mint_qualification": False,
         "can_activate_scoring": False,
@@ -639,7 +697,7 @@ def build_records(protocol_path: Path = DEFAULT_PROTOCOL) -> dict[str, object]:
         "cases": witness_cases,
         "readiness_by_dimension": [
             {
-                "dimension": "spatial_refinement",
+                "dimension": "joint_grid_fixed_cfl_refinement",
                 "disposition": "EVIDENCE_READY_FOR_HUMAN_REVIEW",
             },
             {
@@ -692,53 +750,35 @@ def run_campaign(protocol_path: Path, output_directory: Path) -> dict[str, objec
         "carbon/measurement_runtime/model.py",
         "carbon/measurement_runtime/qualification_candidate.py",
     )
-    readiness = {
-        "schema": SCHEMA,
-        "scope": "PUBLIC_DEVELOPMENT_DETACHED_READINESS_ONLY",
-        "protocol_digest": _sha256_file(protocol_path),
-        "source_revision": json.loads(protocol_path.read_text(encoding="ascii"))[
-            "source_revision"
-        ],
-        "source_file_digests": {
-            name: _sha256_file(ROOT / name) for name in source_files
-        },
-        "execution_environment": {
-            "python": platform.python_version(),
-            "python_implementation": platform.python_implementation(),
-            "host_platform": platform.platform(),
-            "machine": platform.machine(),
-            "numpy": np.__version__,
-            "c04_declared_environment": runtime_environment_manifest(),
-            "c04_environment_digest": runtime_environment_digest(),
-            "canonical_linux_execution": False,
-            "evidence_role": "NATIVE_MACOS_DIAGNOSTIC",
-        },
-        "outputs": file_digests,
-        "d03_readiness": "MORE_PUBLIC_EVIDENCE_NEEDED",
-        "d04_readiness": "MORE_PUBLIC_EVIDENCE_NEEDED",
-        "d05_readiness": "BLOCKED_INPUT",
-        "d02_dependency": "BLOCKED_INPUT",
-        "goal_workbench_04_merge": "PENDING",
-        "workbench_projection": "INELIGIBLE_BLOCKED_INPUT",
-        "cpes_changed": False,
-        "cpes_variant_a": "DEVELOPMENT_BASELINE",
-        "cpes_variant_b": "CONDITIONAL_RESEARCH",
-        "unresolved_cpes_blockers": ["AT-09", "AT-16", "AT-19", "AT-22", "AT-30"],
-        "final_recommendation": "WAIT_FOR_D02_GENERATOR_CONFORMANCE",
-        "authority": {
-            "wave_d_selected": False,
-            "tickets_activated": [],
-            "scientific_thresholds": None,
-            "scientifically_qualified": False,
-            "protected_execution_eligible": False,
-            "score_input": None,
-            "score_eligible": False,
-            "reward_eligible": False,
-            "network_eligible": False,
-            "production_eligible": False,
-            "live_eligible": False,
-        },
-    }
+    # The committed readiness record is the versioned closeout supplement.  Replays
+    # refresh numerical/environment identities while preserving inspected delivery
+    # and owner-routing facts; those facts are not outputs of the numerical calls.
+    readiness_path = Path(__file__).parent / "readiness_record.json"
+    readiness = json.loads(readiness_path.read_text(encoding="ascii"))
+    readiness.update(
+        {
+            "schema": SCHEMA,
+            "protocol_digest": _sha256_file(protocol_path),
+            "source_revision": json.loads(protocol_path.read_text(encoding="ascii"))[
+                "source_revision"
+            ],
+            "source_file_digests": {
+                name: _sha256_file(ROOT / name) for name in source_files
+            },
+            "execution_environment": {
+                "python": platform.python_version(),
+                "python_implementation": platform.python_implementation(),
+                "host_platform": platform.platform(),
+                "machine": platform.machine(),
+                "numpy": np.__version__,
+                "c04_declared_environment": runtime_environment_manifest(),
+                "c04_environment_digest": runtime_environment_digest(),
+                "canonical_linux_execution": False,
+                "evidence_role": "NATIVE_MACOS_DIAGNOSTIC",
+            },
+            "outputs": file_digests,
+        }
+    )
     _write_json(output_directory / "readiness_record.json", readiness)
     return readiness
 
