@@ -1,14 +1,19 @@
 # C-EA1 — Durable evidence archive
 
 **Wave:** C1 real scientific execution foundations
-**Status:** `done`
-**Completion boundary:** exact synthetic development profile only; accepted head `a779af066f4bf9bc36b6d6ab23914fa19191e1de` passed run `34558389185` and normally merged as `0e0714c8260ca482a0ba2b743b2eaefd50508da1`
-**Depends on:** C-EA0; OWNER-C-EA1-SYNTHETIC-01 approved development profile
+**Status:** `in_progress` for the separately versioned private-alpha profile
+preparation; prior synthetic scope remains done
+**Completion boundary:** exact synthetic development profile accepted at head
+`a779af066f4bf9bc36b6d6ab23914fa19191e1de` in run `34558389185` and merged as
+`0e0714c8260ca482a0ba2b743b2eaefd50508da1`; alpha preparation is a new
+fail-closed slice and cannot acknowledge real evidence
+**Depends on:** C-EA0; `OWNER-C-EA1-SYNTHETIC-01` for the accepted synthetic
+profile; `OWNER-C1-BURGERS-ALPHA-01` for the prospective alpha targets
 **Owner:** Codex + evidence architecture
 **Accountable reviewer:** Operations + data/security + scientific integration
-**Selection authority:** `OWNER-C-EA1-SYNTHETIC-01`
-**Runtime decision:** `C-EA1-D1`
-**Delivery:** PR #136
+**Selection authority:** `OWNER-C1-BURGERS-ALPHA-01` for the active slice
+**Runtime decisions:** `C-EA1-D1` (synthetic), `C-EA1-D2` (alpha preparation)
+**Delivery:** PR #136 for synthetic; active alpha delivery pending
 **Goal:** Implement the catalogue, immutable artifact store, verified manifests, journal, outbox, and availability acknowledgement defined by C-EA0 without creating real-finalization authority.
 
 ## Selected profile
@@ -102,3 +107,55 @@ C-EA2 was not selected or implemented. It remains dependency-blocked on the
 selected real C1 orchestration/reconstruction/execution path and an eligible real
 archive profile/acknowledgement; this synthetic acknowledgement cannot satisfy
 that gate. C-EA3 retains recovery/availability qualification.
+
+## Selected private-alpha preparation
+
+`OWNER-C1-BURGERS-ALPHA-01` prospectively supplies the first real-profile policy
+targets without supplying a provider deployment or claiming they are met.
+`C-EA1-D2` therefore adds
+`carbon.alpha-evidence-archive.private.v1` as a closed preparation profile while
+leaving the accepted synthetic acknowledgement unchanged. Its current canonical
+policy digest is
+`sha256:e7f9b86943d482ad5c0e92c386a6edf3cdc493049f912c88f7e5a25d5eb6f49c`.
+
+Implemented in this slice:
+
+- fixed one-active-evaluation and 20 GiB logical capacity policy with
+  reservation/backpressure dispositions;
+- fixed 90-day minimum retention after last eligible use and indefinite
+  retention while receipt, review, or dispute obligations remain open;
+- fixed internal-audit/non-paying-testnet named uses, artifact requirements,
+  single-host-loss target, 24-hour restore target and explicit correlated-loss/
+  multi-region exclusions;
+- a duplicate-key rejecting closed deployment configuration that names every
+  required external provider, custody, recovery, key, cost, assessment and
+  authorization reference;
+- a read-only doctor that reports missing input names without connecting or
+  exposing secrets; and
+- an isolated non-secret PostgreSQL/encrypted-object preflight reusing the
+  accepted adapters under a dedicated test tenant.
+
+The readiness and preflight types are structurally ineligible for a real
+acknowledgement and C-EA2. Even a fully populated configuration reports
+`ACTIVATION_IMPLEMENTATION_REQUIRED`; local service success cannot be promoted
+into durability or security acceptance.
+
+### Alpha-slice Definition of Done
+
+- [x] Owner-selected policy values and exclusions are represented by one exact,
+  separately versioned profile.
+- [x] Synthetic runtime/acknowledgement identity and eligibility remain
+  unchanged.
+- [x] External deployment inputs are closed, bounded, explicit, and fail closed.
+- [x] Capacity, retention, parsing, eligibility and no-authority-expansion tests
+  pass locally.
+- [ ] Actual Linux service-backed preflight and applicable acceptance pass at the
+  final reviewed head.
+- [ ] The alpha preparation PR is normally merged.
+
+Real provider/project/region configuration, custody principals, recoverable
+key/catalogue/journal/object dependencies, cost authorization, actual recovery
+evidence, scoped security acceptance, deployment identity and deployment
+authorization remain external blockers. No cloud resources or charges are
+created by this ticket. C-EA2 remains unselected until a real acknowledgement is
+implemented and eligible.

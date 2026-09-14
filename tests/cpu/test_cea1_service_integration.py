@@ -15,6 +15,7 @@ from pathlib import Path
 import pytest
 
 from carbon.evidence_archive import (
+    ALPHA_PREFLIGHT_TENANT_ID,
     POSTGRES_IMAGE,
     SYNTHETIC_FIXTURE_PREFIX,
     AcknowledgementState,
@@ -34,6 +35,7 @@ from carbon.evidence_archive import (
     SourceBinding,
     StageJournal,
     canonical_bytes,
+    run_isolated_alpha_preflight,
     synthetic_capture_profile,
 )
 from carbon.execution import DurableExecutionBinding, ExecutionScope
@@ -142,8 +144,9 @@ def _inputs(source: SourceBinding):
 
 
 class ObjectProcess:
-    def __init__(self, root: Path) -> None:
+    def __init__(self, root: Path, tenant_id: str = "carbon-synthetic-ci") -> None:
         self.root = root
+        self.tenant_id = tenant_id
         self.ready = root / "ready"
         self.process = None
         self.endpoint = ""
@@ -160,7 +163,7 @@ class ObjectProcess:
                 "--ready-file",
                 str(self.ready),
                 "--tenant-id",
-                "carbon-synthetic-ci",
+                self.tenant_id,
             ],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
@@ -468,5 +471,39 @@ def test_postgres_capacity_reservation_is_atomic_and_object_tenant_is_closed(
         with pytest.raises(ArchiveFailure) as captured:
             denied.list_keys("different-synthetic-tenant")
         assert captured.value.code is ArchiveCode.DENIED
+    finally:
+        objects.stop()
+
+
+def test_alpha_profile_preflight_exercises_services_without_real_acknowledgement(
+    tmp_path, postgres_service
+):
+    catalogue = PostgresCatalogue(
+        _postgres_dsn(postgres_service),
+        CapacityLimits(max_active_entries=1),
+    )
+    _await_catalogue(
+        catalogue.migrate,
+        "PostgreSQL did not recover for alpha preflight",
+    )
+    objects = ObjectProcess(
+        tmp_path / "alpha-preflight-objects",
+        ALPHA_PREFLIGHT_TENANT_ID,
+    )
+    objects.start()
+    try:
+        report = run_isolated_alpha_preflight(
+            catalogue,
+            HttpImmutableObjectStore(objects.endpoint, ALPHA_PREFLIGHT_TENANT_ID),
+            KeyMaterial("alpha-preflight-key-v1", b"a" * 32),
+            probe_id="service-alpha-preflight-1",
+        )
+        assert report.catalogue_schema_verified is True
+        assert report.object_round_trip_verified is True
+        assert report.encryption_round_trip_verified is True
+        assert report.capacity_policy_verified is True
+        assert report.isolated_non_secret_test_only is True
+        assert report.eligible_for_real_acknowledgement is False
+        assert report.eligible_for_c_ea2 is False
     finally:
         objects.stop()

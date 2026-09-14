@@ -140,3 +140,43 @@ C-EA2 was not selected. It remains dependency-blocked on a selected real C1
 orchestration/reconstruction/execution path and a real eligible archive profile/
 acknowledgement. C-02 separately still lacks the authorized JAX repository,
 immutable revision/build identity and actual training/inference interface.
+
+## 2026-09-14 private-alpha preparation candidate
+
+**Decision:** `OWNER-C1-BURGERS-ALPHA-01`, `C-EA1-D2`
+**Profile:** `carbon.alpha-evidence-archive.private.v1`
+**Profile digest:** `sha256:e7f9b86943d482ad5c0e92c386a6edf3cdc493049f912c88f7e5a25d5eb6f49c`
+**Disposition:** implementation candidate; isolated non-secret preflight only
+**Maturity ceiling:** preparation may earn `SPECIFIED / IMPLEMENTED / TESTED`;
+real acknowledgement, durability/recovery, security, protected, deployment and
+production maturity remain unavailable
+
+The candidate freezes the prospective one-evaluation/20 GiB capacity boundary,
+90-day-plus-open-obligations retention, internal-audit/non-paying-testnet uses,
+artifact requirements, single-host-loss and 24-hour-restore targets, and exact
+correlated-loss exclusions. It adds a closed deployment-input document and
+read-only doctor. Missing inputs are named; a complete document still reports
+`ACTIVATION_IMPLEMENTATION_REQUIRED`, never real-acknowledgement or C-EA2
+eligibility.
+
+The isolated service test reuses the accepted
+`carbon.evidence-archive.postgresql.v1` migration, object-store interface and
+AES-256-GCM envelope under tenant `carbon-alpha-archive-preflight` with an
+ephemeral non-secret key. It verifies schema, encrypted immutable-object round
+trip and the exact capacity boundary. It deliberately creates no archive entry,
+acknowledgement, finalization, score, reward or network effect.
+
+Local focused evidence before CI:
+
+```text
+.venv-jax-macos/bin/python -m pytest \
+  tests/cpu/test_cea1_alpha_profile.py \
+  tests/cpu/test_cea1_archive.py \
+  tests/invariants/test_cea1_archive_boundary.py -q
+42 passed in 0.38s
+```
+
+The actual Linux service-backed result, accepted head, CI run, PR and merge are
+pending. Native tests do not establish the selected durability target. The exact
+external-input and cost boundary is documented in
+`docs/development/EVIDENCE_ARCHIVE_ALPHA_PROFILE.md`.

@@ -1,0 +1,20 @@
+{
+  "tenant_id": null,
+  "provider_id": null,
+  "project_id": null,
+  "region_id": null,
+  "catalogue_service_ref": null,
+  "catalogue_recovery_ref": null,
+  "object_store_ref": null,
+  "object_versioning_policy_ref": null,
+  "object_recovery_ref": null,
+  "journal_recovery_ref": null,
+  "custody_principals_ref": null,
+  "key_service_ref": null,
+  "key_version_ref": null,
+  "deployment_identity": null,
+  "cost_estimate_ref": null,
+  "recovery_test_evidence_ref": null,
+  "security_acceptance_ref": null,
+  "deployment_authorization_ref": null
+}

@@ -1,12 +1,16 @@
 # Evidence Archive, Custody, and Availability Contract
 
-**Version:** 1.1 evidence-capture contract and synthetic runtime profile
+**Version:** 1.2 evidence-capture contract, synthetic runtime, and private-alpha
+preparation profile
 **Status:** C-EA0 `SPECIFIED / TESTED`; C-EA1 `SPECIFIED / IMPLEMENTED /
 TESTED` only for `carbon.synthetic-evidence-archive.dev.v1` after PR #136
-acceptance and merge. No real/production archive, retention, security,
-qualification or deployment is approved.
+acceptance and merge. The separate
+`carbon.alpha-evidence-archive.private.v1` preparation is selected but remains
+ineligible for real acknowledgement and C-EA2 until its external deployment,
+recovery and security inputs are implemented and accepted.
 **Decisions:** `OWNER-EVIDENCE-RESEARCH-01`, `C-EA0-D1`,
-`OWNER-C-EA1-SYNTHETIC-01`, `C-EA1-D1`
+`OWNER-C-EA1-SYNTHETIC-01`, `C-EA1-D1`,
+`OWNER-C1-BURGERS-ALPHA-01`, `C-EA1-D2`
 **Tickets:** `C-EA0` through `C-EA3`, then `E-EA4`, `E-EA5`, and `E-EA7`
 
 This companion owns archive and custody semantics for the canonical
@@ -51,6 +55,41 @@ predicate, retrieve/decrypt/byte/manifest verification, catalogue commit,
 current object availability and exact synthetic policy refs. It is explicitly
 ineligible for real C1 finalization, C-W1, weights, settlement and qualification.
 C-EA2 still owns real archive-before-finalization behavior and is unchanged.
+
+## C-EA1 private-alpha preparation profile
+
+`OWNER-C1-BURGERS-ALPHA-01` selects a prospective Carbon-controlled private
+alpha/non-paying-testnet profile without asserting that its operating targets
+already hold. Runtime profile `carbon.alpha-evidence-archive.private.v1`
+therefore freezes these values separately from the synthetic runtime:
+
+- private PostgreSQL catalogue and private immutable/versioned object storage,
+  encrypted with externally supplied versioned keys;
+- internal audit and explicitly approved non-paying-testnet evidence as the only
+  named uses;
+- one active evaluation and a 20 GiB logical evidence quota, with reservation
+  and backpressure before dispatch;
+- at least 90 days after last eligible use and until receipt, review, and dispute
+  obligations close;
+- no loss of acknowledged evidence under the declared single-host-loss model and
+  restoration within 24 hours as implementation/test targets; and
+- correlated provider/region loss and multi-region availability excluded.
+
+The required artifact profile binds exact source, plan, runtime, attempt,
+outcome, checkpoint, evidence, reconstruction, reference/measurement and signed
+receipt material, plus bounded diagnostics and rebuildable summaries under their
+declared roles. This selection is not a statement that the artifacts are
+qualified or eligible for protected use.
+
+The current implementation prepares the exact profile, capacity/retention
+policy, closed external-input document and read-only doctor. Its isolated
+non-secret service preflight reuses the PostgreSQL migration, immutable object
+interface and encrypted envelope under a dedicated test tenant. It creates no
+archive entry or acknowledgement. Readiness remains structurally false for real
+acknowledgement and C-EA2 even after every external reference is populated;
+provider adapters, actual off-host recovery, security acceptance and deployment
+authorization must still be implemented and tested. The runbook and deployment
+template are under `docs/development/`.
 
 ## 0. C-EA0 decision and authority ceiling
 
@@ -221,14 +260,14 @@ value, the affected real path is unavailable.
 
 | Reserved input | Owner route | Current value | Fail-closed effect | First consumer |
 |---|---|---|---|---|
-| durability fault profile and correlated-failure coverage | Operations + data/security | `HUMAN_INPUT` | no real durability acknowledgement | C-EA1 |
-| Challenge/execution-class required-artifact profile | scientific + execution/result owners | `HUMAN_INPUT` | real capture profile cannot be admitted | C-EA1/C-EA2 |
-| retention durations, deletion and legal-hold policy | legal/IP + data governance | `HUMAN_INPUT` | no production retention/deletion action | C-EA1 |
-| named-use, reuse, release and commercial-rights policy | legal/IP + business + scientific publication | `HUMAN_INPUT` | assessment is `BLOCKED_UNKNOWN` or `INELIGIBLE` | C-EA1/E-EA4+ |
-| custody zones, access principals, encryption and key policy | security + data owner | `HUMAN_INPUT` | no protected-zone deployment or acknowledgement | C-EA1 |
+| durability fault profile and correlated-failure coverage | Operations + data/security | alpha target selected; actual topology/recovery evidence missing | no real durability acknowledgement | C-EA1 |
+| Challenge/execution-class required-artifact profile | scientific + execution/result owners | prospective alpha artifact roles selected; qualification remains absent | real capture profile cannot be admitted | C-EA1/C-EA2 |
+| retention durations, deletion and legal-hold policy | legal/IP + data governance | alpha minimum/open-obligation rule selected; actual policy/deployment remains absent | no production retention/deletion action | C-EA1 |
+| named-use, reuse, release and commercial-rights policy | legal/IP + business + scientific publication | alpha internal-audit/non-paying-testnet uses selected only | every other use is `BLOCKED_UNKNOWN` or `INELIGIBLE` | C-EA1/E-EA4+ |
+| custody zones, access principals, encryption and key policy | security + data owner | private/encrypted target selected; principals/key service/version absent | no protected-zone deployment or acknowledgement | C-EA1 |
 | provider, regions, replication and deployment topology | Operations + security | `HUMAN_INPUT` | no production deployment | C-EA1 |
-| capacity reservation and backpressure policy | Operations | `HUMAN_INPUT` | no real admission under capacity authority | C-EA1/C-EA2 |
-| recovery objectives, exclusions and restore acceptance | Operations/DR + security | `HUMAN_INPUT` | no recovery qualification | C-EA3 |
+| capacity reservation and backpressure policy | Operations | alpha one evaluation/20 GiB selected; real atomic enforcement absent | no real admission under capacity authority | C-EA1/C-EA2 |
+| recovery objectives, exclusions and restore acceptance | Operations/DR + security | alpha single-host-loss/24-hour target selected; observed acceptance absent | no recovery qualification | C-EA3 |
 | security qualification | security owner | `HUMAN_INPUT` | no security/production/LIVE maturity | C-EA3/Wave D |
 
 Fixture-only contract tests may populate visibly synthetic policy references.
@@ -237,6 +276,12 @@ They cannot acknowledge real evidence or satisfy any reserved decision.
 `OWNER-C-EA1-SYNTHETIC-01` approves the exact development values in §C-EA1
 above without changing this real/production register. Synthetic
 `VERIFIED_DURABLE` is profile-scoped evidence, not satisfaction of any row here.
+
+`OWNER-C1-BURGERS-ALPHA-01` supplies the prospective alpha values recorded in
+the table. `C-EA1-D2` implements them only as a fail-closed preparation. Provider,
+project, region, recovery dependencies/evidence, principals, external key
+service/version, costs, deployment identity, security acceptance and deployment
+authorization remain explicit external inputs; local tests cannot satisfy them.
 
 ## 9. Contract-case acceptance
 
@@ -263,7 +308,9 @@ not a contradiction.
 C-EA0 acceptance ratifies this exact v1 vocabulary, invariants, reserved-input
 register, and contract cases. C-EA1 may earn `SPECIFIED / IMPLEMENTED / TESTED`
 only for the exact synthetic development profile after PR #136 acceptance and
-merge. Real archive acceptance still requires later eligible profiles, C-EA2
+merge. The private-alpha profile may separately earn implementation/test maturity
+only for its closed policy, configuration and isolated-service preparation. Real
+archive acceptance still requires an eligible deployed acknowledgement, C-EA2
 finalization integration and C-EA3 recovery/availability qualification. Human
-owners still approve real durability, required artifacts, retention/legal/IP,
-custody/security, production deployment, recovery objectives and any LIVE use.
+owners still approve observed real durability/recovery, custody/security,
+production deployment and any protected or LIVE use.

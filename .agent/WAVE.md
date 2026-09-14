@@ -32,19 +32,20 @@
 > historical evidence, and human-reserved scientific/security authority remain.
 
 **Current wave:** C
-**Current phase:** C-08 authenticated Miner MCP composition after accepted C-07 PR #163
+**Current phase:** C-EA1 private-alpha archive-profile preparation after accepted C-08 PR #167
 **State:** **active in bounded engineering scope**
 **Wave A:** closed in bounded engineering scope
 **Wave B:** closed in bounded engineering scope after PR #118 accepted head
 `c510095b5501587cf93c04632a26b7c303d7d48b` in run `34365282759` and
 normally merged as `ac050fd53ee18bf3788c167ee7b0736bbfd7a46b`, tree
 `46b38440f13a8048db18bc480ddb6907396c9017`
-**Controlling register:** `.agent/WAVE_C.md` version 2.1
-**Selected ticket:** C-08 — `in_progress`
-**Active ticket:** C-08 bounded authenticated DEVELOPMENT composition
-**Next authorized ticket after current merge:** C-EA1 real-profile extension,
-then C-EA2 archive-before-finalization integration under
-`OWNER-C1-BURGERS-ALPHA-01`; neither is selected while C-08 is active
+**Controlling register:** `.agent/WAVE_C.md` version 2.2
+**Selected ticket:** C-EA1 — `in_progress` private-alpha preparation
+**Active ticket:** C-EA1 separately versioned real-profile preparation, with
+real acknowledgement and deployment fail closed
+**Next authorized ticket after current merge:** C-EA2 only if an eligible real
+archive acknowledgement exists; otherwise stop at the explicit external
+deployment/recovery/security boundary
 C-EA1 passed canonical acceptance in run `34558389185` at accepted head
 `a779af066f4bf9bc36b6d6ab23914fa19191e1de` and normally merged in PR #136 as
 `0e0714c8260ca482a0ba2b743b2eaefd50508da1`. `OWNER-C-EA1-SYNTHETIC-01`
@@ -100,8 +101,14 @@ merged it as `0c00350b98b9a0062006f5bd2ce50c20aff37b3c`.
 PR #163 accepted exact C-07 head
 `c8990ddc44b57afd15847fe527c1da7ccecb7f18` in run `34807243278` and normally
 merged it as `44511ac0e18c1f3b66227e1e46a986074d16ee0c`.
-`OWNER-C1-BURGERS-ALPHA-01` now selects C-08's bounded authenticated DEVELOPMENT
-composition. Protected, official, score and archive admission remain off.
+PR #167 accepted exact C-08 head
+`17e72cfd97c12512dd9a6a08a6b8329974422328` in run `34816242461` and normally
+merged it as `ed6047d03cf60db6ce52f03e63040d95c1ea78e4`. Its accepted worker
+image/config is
+`sha256:51f3ddafea959b7b929d72c008fb2334830a431370f0743c609b159a30059752`.
+`OWNER-C1-BURGERS-ALPHA-01` now selects C-EA1's private-alpha profile
+preparation. The accepted synthetic acknowledgement remains unchanged; real
+acknowledgement, protected admission and C-EA2 eligibility remain off.
 **Activation authority:** `OWNER-WAVE-C0-NET1-01` records the repository
 owner's explicit authorization to reconcile B-GATE, close Wave B in bounded
 engineering scope, activate Wave C/C0, select NET-1 alone, and continue through
@@ -146,8 +153,10 @@ C-EA0 passed canonical acceptance and merged in PR #131 as
 in run `34558389185` and merged in PR #136 as
 `0e0714c8260ca482a0ba2b743b2eaefd50508da1` for the exact closed synthetic
 development profile. The synthetic acknowledgement is ineligible for real
-finalization, C-W1, network or qualification. C-08 and C-09 remain materialized
-but unselected. The supplied immutable JAX bundle and merged PR #148 satisfy
+finalization, C-W1, network or qualification. C-08's bounded authenticated
+DEVELOPMENT composition is accepted in PR #167; C-09 remains materialized but
+unselected. C-EA1's private-alpha preparation is selected, while real
+acknowledgement and C-EA2 stay fail closed. The supplied immutable JAX bundle and merged PR #148 satisfy
 C-03's bounded adapter prerequisite. PR #149's exact head passed its required
 Linux service acceptance and normally merged the bounded public-data worker.
 PR #151 accepted C-03's bounded response, parser, resource-observation and

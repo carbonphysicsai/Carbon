@@ -13343,6 +13343,56 @@ journaling, idempotency, immutable writes and reconciliation establish the
 approved sequence. Production cloud/KMS/replication/retention selections would
 exceed the owner decision.
 
+## 2026-09-14 — C-EA1-D2: prepare a separate fail-closed private-alpha profile
+
+**Ticket:** C-EA1
+**Authority source:** repository owner's prospective Wave-C continuation,
+recorded as `OWNER-C1-BURGERS-ALPHA-01`
+**Notification:** issue #42 comment
+[`5661857655`](https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5661857655)
+for awareness under the delegated-decision protocol; it is not an approval gate.
+
+**Working decision.** Preserve the accepted
+`carbon.synthetic-evidence-archive.dev.v1` runtime and acknowledgement exactly,
+and add the separately versioned
+`carbon.alpha-evidence-archive.private.v1` preparation profile. Freeze the
+owner-selected one-active-evaluation, 20 GiB logical-quota, 90-day-minimum
+retention, open-obligation retention, single-host-loss, 24-hour-restore-target,
+named-use, required-artifact and correlated-loss-exclusion values in a closed
+model. Bind every still-external provider, project, region, catalogue/object/
+journal recovery, custody principal, key service/version, deployment identity,
+cost estimate, recovery evidence, security acceptance and deployment
+authorization as an explicit required reference.
+
+**Implementation boundary.** `KEEP` C-EA1's PostgreSQL migration, narrow object
+interface and encrypted envelope; `WRAP` them in an isolated non-secret service
+preflight using a dedicated test tenant and ephemeral key. The preflight verifies
+the current schema, encrypted immutable-object round trip and exact capacity
+policy. It creates no `ArchiveEntry` or `ArchiveAcknowledgement`. Both deployment
+readiness and preflight reports are structurally false for real acknowledgement
+and C-EA2 eligibility, even when all external references are populated. A real
+provider adapter and acknowledgement path require a later authorized deployment
+implementation against the exact configuration and observed recovery/security
+evidence.
+
+**Alternatives rejected.** Relabelling the synthetic acknowledgement would
+launder fixture evidence. A caller-selected `real`, `durable` or `eligible`
+Boolean would recreate authority rather than prove it. Treating a local mock or
+isolated service test as provider recovery evidence would manufacture the
+selected durability target. Inventing a provider, region, principals, KMS,
+prices or credentials—or provisioning paid infrastructure—would exceed this
+assignment. Selecting C-EA2 before an eligible real acknowledgement would bypass
+its dependency.
+
+**Consequences and reversibility.** The profile, parser, doctor, tests and
+deployment template are reviewable without secrets or external effects. A later
+owner-authorized deployment can prospectively implement adapters and a real
+profile-scoped acknowledgement without changing historical synthetic evidence
+or the alpha profile identity. This slice earns only implementation/test evidence
+for preparation and isolated services. It does not establish single-host-loss
+durability, a 24-hour restore, protected/security acceptance, customer rights,
+production qualification, network authority or LIVE status.
+
 ## 2026-09-11 — OWNER-C1-CONTRACTS-01: materialize the blocked C1 dependency chain
 
 The owner authorizes one bounded post-C-EA1 planning, governance and
