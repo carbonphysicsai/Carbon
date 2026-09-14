@@ -1,4 +1,14 @@
-# Carbon Goal-to-Challenge Workbench v0.4 specification
+# Carbon Goal-to-Challenge Workbench v0.5 specification
+
+## v0.5 routing, owner console, and applicability
+
+Every design revision carries one closed planning route: `UNASSESSED`, `USE_EXISTING_CAPABILITY`, `ADAPT_SUPPORTED_CHALLENGE`, or `DEVELOP_NEW_CAPABILITY`. Route selection is a local planning assertion for that exact revision. A sealed revision cannot be changed; a child revision begins `UNASSESSED`. Existing capability may skip authoring, adaptation is limited to a source-supported template, and new capability requires a bounded feasibility question, lead, stop condition, dependency, and restart event.
+
+The Owner Console derives one attention bucket and one primary next action from closed records. Workflow progress, evidence maturity, and customer outcome are independent axes. Status provenance is one of `WORKBENCH_DERIVED`, `LOCAL_MANUAL_ASSERTION`, `NATIVE_IMPORTED_RESULT`, or `EXTERNAL_LINKED_RECORD`; exported, sent, acknowledged, executed, and qualified remain distinct. No overall completion or fit score exists.
+
+Evidence bindings identify exact source evidence, digest/identity, design revision, traces/cases, dependency domains, scientific applicability, rights/use state, rationale, and provenance. Closed change-impact rules selectively carry unchanged-scope evidence or mark affected evidence for review. `CARRIED_FORWARD_UNCHANGED_SCOPE` is not qualification. Source-owner confirmation/authorization requires a trusted source interface and is rejected in local workspace imports.
+
+`carbon.goal-workbench.workspace.v0.5` migrates v0.1–v0.4 additively. Migration creates route `UNASSESSED`, empty applicability records, and a receipt; it infers no source science or authority. Historical CPES and C-05 identities remain unchanged. The parser preserves the existing duplicate-member, dangerous-key, size/depth, unsafe-number, enum, authority-field, CSP, and offline fail-closed posture.
 
 ## v0.4 C-05 evidence integration
 

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Carbon goal-to-Challenge workbench workspace v0.4",
+  "title": "Carbon goal-to-Challenge workbench workspace v0.5",
   "$comment": "Closed browser-local planning schema. Derived results are recomputed. It grants no scientific, security, rights, reuse, submission, execution, or launch authority.",
   "$defs": {
     "opportunity_workspace_v02": {
@@ -1882,16 +1882,16 @@
   "additionalProperties": false,
   "properties": {
     "schema_version": {
-      "const": "carbon.goal-workbench.workspace.v0.4"
+      "const": "carbon.goal-workbench.workspace.v0.5"
     },
     "application_version": {
-      "const": "Carbon Goal-to-Challenge Workbench v0.4"
+      "const": "Carbon Goal-to-Challenge Workbench v0.5"
     },
     "decision_id": {
-      "const": "GOAL-WORKBENCH-04"
+      "const": "GOAL-WORKBENCH-05"
     },
     "base_application_merge": {
-      "const": "95e717f28fab66a087b1e7006ad2ba5e167e2ddf"
+      "const": "e576fbdc711c9194dbcc7d90405480e90577407e"
     },
     "opportunity_workspace": {
       "$ref": "#/$defs/opportunity_workspace_v02"
@@ -1923,6 +1923,10 @@
             ]
           },
           "native_task_id": {
+            "type": "string",
+            "maxLength": 300
+          },
+          "accountable_owner": {
             "type": "string",
             "maxLength": 300
           },
@@ -1986,7 +1990,7 @@
               "additionalProperties": false,
               "properties": {
                 "schema_version": {
-                  "const": "carbon.goal-workbench.design.v0.4"
+                  "const": "carbon.goal-workbench.design.v0.5"
                 },
                 "job_id": {
                   "type": "string",
@@ -2085,6 +2089,18 @@
                     "rights_scope": {
                       "type": "string",
                       "maxLength": 8000
+                    },
+                    "commercial_context": {
+                      "type": "string",
+                      "maxLength": 8000
+                    },
+                    "disclosure_scope": {
+                      "type": "string",
+                      "maxLength": 8000
+                    },
+                    "deployment_environment": {
+                      "type": "string",
+                      "maxLength": 8000
                     }
                   },
                   "required": [
@@ -2102,7 +2118,10 @@
                     "turnaround",
                     "failure_consequences",
                     "data_access",
-                    "rights_scope"
+                    "rights_scope",
+                    "commercial_context",
+                    "disclosure_scope",
+                    "deployment_environment"
                   ]
                 },
                 "requirements": {
@@ -3282,6 +3301,81 @@
                     "extension_request"
                   ]
                 },
+                "route_plan": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "route": {
+                      "enum": [
+                        "UNASSESSED",
+                        "USE_EXISTING_CAPABILITY",
+                        "ADAPT_SUPPORTED_CHALLENGE",
+                        "DEVELOP_NEW_CAPABILITY"
+                      ]
+                    },
+                    "rationale": {
+                      "type": "string",
+                      "maxLength": 8000
+                    },
+                    "source_or_capability_ref": {
+                      "type": "string",
+                      "maxLength": 8000
+                    },
+                    "route_basis": {
+                      "type": "string",
+                      "maxLength": 8000
+                    },
+                    "unresolved_conditions": {
+                      "type": "array",
+                      "maxItems": 64,
+                      "items": {
+                        "type": "string",
+                        "maxLength": 1000
+                      }
+                    },
+                    "next_decision": {
+                      "type": "string",
+                      "maxLength": 8000
+                    },
+                    "bounded_question": {
+                      "type": "string",
+                      "maxLength": 8000
+                    },
+                    "stop_condition": {
+                      "type": "string",
+                      "maxLength": 8000
+                    },
+                    "restart_event": {
+                      "type": "string",
+                      "maxLength": 8000
+                    },
+                    "selected_by_assertion": {
+                      "type": "string",
+                      "maxLength": 8000
+                    },
+                    "status_provenance": {
+                      "enum": [
+                        "WORKBENCH_DERIVED",
+                        "LOCAL_MANUAL_ASSERTION",
+                        "NATIVE_IMPORTED_RESULT",
+                        "EXTERNAL_LINKED_RECORD"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "route",
+                    "rationale",
+                    "source_or_capability_ref",
+                    "route_basis",
+                    "unresolved_conditions",
+                    "next_decision",
+                    "bounded_question",
+                    "stop_condition",
+                    "restart_event",
+                    "selected_by_assertion",
+                    "status_provenance"
+                  ]
+                },
                 "measurement_evidence": {
                   "type": "array",
                   "maxItems": 64,
@@ -3774,6 +3868,144 @@
                     ]
                   }
                 },
+                "evidence_bindings": {
+                  "type": "array",
+                  "maxItems": 128,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "evidence_binding_id": {
+                        "type": "string",
+                        "maxLength": 192
+                      },
+                      "evidence_kind": {
+                        "enum": [
+                          "MEASUREMENT_IMPLEMENTATION",
+                          "TEMPLATE",
+                          "PRIOR_DECISION",
+                          "FIXED_CASE_RESULT",
+                          "RESEARCH_REFERENCE",
+                          "DEPLOYMENT_EVIDENCE"
+                        ]
+                      },
+                      "source_ref": {
+                        "type": "string",
+                        "maxLength": 1000
+                      },
+                      "source_digest_or_identity": {
+                        "type": "string",
+                        "maxLength": 300
+                      },
+                      "design_id": {
+                        "type": "string",
+                        "maxLength": 128
+                      },
+                      "design_revision": {
+                        "type": "integer",
+                        "minimum": 1
+                      },
+                      "trace_ids": {
+                        "type": "array",
+                        "maxItems": 256,
+                        "items": {
+                          "type": "string",
+                          "maxLength": 128
+                        }
+                      },
+                      "case_family_ids": {
+                        "type": "array",
+                        "maxItems": 128,
+                        "items": {
+                          "type": "string",
+                          "maxLength": 128
+                        }
+                      },
+                      "dependency_domains": {
+                        "type": "array",
+                        "maxItems": 32,
+                        "items": {
+                          "enum": [
+                            "COMMERCIAL_CONTEXT",
+                            "INTENDED_USE",
+                            "PHYSICS_SCOPE",
+                            "INPUT_CONTRACT",
+                            "OUTPUT_CONTRACT",
+                            "UNITS_SCALING",
+                            "POPULATION_CASES",
+                            "GENERATOR",
+                            "MEASUREMENT_SCORE",
+                            "REFERENCE",
+                            "RECONSTRUCTION",
+                            "CPES_DISCLOSURE",
+                            "RIGHTS",
+                            "DEPLOYMENT",
+                            "AUTHORING"
+                          ]
+                        }
+                      },
+                      "scientific_applicability": {
+                        "enum": [
+                          "UNASSESSED",
+                          "CARRIED_FORWARD_UNCHANGED_SCOPE",
+                          "REVIEW_REQUIRED",
+                          "NOT_APPLICABLE",
+                          "SOURCE_OWNER_CONFIRMED"
+                        ]
+                      },
+                      "use_or_rights_status": {
+                        "enum": [
+                          "UNRESOLVED",
+                          "UNCHANGED_SOURCE_SCOPE",
+                          "REVIEW_REQUIRED",
+                          "PROHIBITED",
+                          "SOURCE_AUTHORIZED"
+                        ]
+                      },
+                      "assessment_basis": {
+                        "type": "string",
+                        "maxLength": 2000
+                      },
+                      "rationale": {
+                        "type": "string",
+                        "maxLength": 2000
+                      },
+                      "invalidated_by": {
+                        "type": "array",
+                        "maxItems": 64,
+                        "items": {
+                          "type": "string",
+                          "maxLength": 1000
+                        }
+                      },
+                      "status_provenance": {
+                        "enum": [
+                          "WORKBENCH_DERIVED",
+                          "LOCAL_MANUAL_ASSERTION",
+                          "NATIVE_IMPORTED_RESULT",
+                          "EXTERNAL_LINKED_RECORD"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "evidence_binding_id",
+                      "evidence_kind",
+                      "source_ref",
+                      "source_digest_or_identity",
+                      "design_id",
+                      "design_revision",
+                      "trace_ids",
+                      "case_family_ids",
+                      "dependency_domains",
+                      "scientific_applicability",
+                      "use_or_rights_status",
+                      "assessment_basis",
+                      "rationale",
+                      "invalidated_by",
+                      "status_provenance"
+                    ]
+                  }
+                },
                 "handoffs": {
                   "type": "array",
                   "maxItems": 128,
@@ -4024,6 +4256,105 @@
                     ]
                   }
                 },
+                "coordination": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "customer_outcome": {
+                      "enum": [
+                        "OPEN",
+                        "FEASIBILITY_FINDING",
+                        "SCOPE_REVISION_NEEDED",
+                        "BASELINE_RETAINED",
+                        "CANDIDATE_READY_FOR_FURTHER_TEST",
+                        "DELIVERY_QUALIFICATION_REQUIRED",
+                        "PARKED",
+                        "CLOSED"
+                      ]
+                    },
+                    "customer_outcome_provenance": {
+                      "enum": [
+                        "WORKBENCH_DERIVED",
+                        "LOCAL_MANUAL_ASSERTION",
+                        "NATIVE_IMPORTED_RESULT",
+                        "EXTERNAL_LINKED_RECORD"
+                      ]
+                    },
+                    "decision_needed": {
+                      "type": "string",
+                      "maxLength": 8000
+                    },
+                    "blocker": {
+                      "type": "string",
+                      "maxLength": 8000
+                    },
+                    "blocker_owner": {
+                      "type": "string",
+                      "maxLength": 8000
+                    },
+                    "restart_event": {
+                      "type": "string",
+                      "maxLength": 8000
+                    },
+                    "external_records": {
+                      "type": "array",
+                      "maxItems": 64,
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "record_id": {
+                            "type": "string",
+                            "maxLength": 192
+                          },
+                          "source_ref": {
+                            "type": "string",
+                            "maxLength": 1000
+                          },
+                          "status": {
+                            "enum": [
+                              "PREPARED",
+                              "EXPORTED_OWNER_REQUEST",
+                              "SENT",
+                              "ACKNOWLEDGED",
+                              "EXECUTED",
+                              "OWNER_DECISION",
+                              "BLOCKED"
+                            ]
+                          },
+                          "provenance": {
+                            "const": "EXTERNAL_LINKED_RECORD"
+                          },
+                          "note": {
+                            "type": "string",
+                            "maxLength": 2000
+                          }
+                        },
+                        "required": [
+                          "record_id",
+                          "source_ref",
+                          "status",
+                          "provenance",
+                          "note"
+                        ]
+                      }
+                    },
+                    "last_relevant_design_revision": {
+                      "type": "integer",
+                      "minimum": 1
+                    }
+                  },
+                  "required": [
+                    "customer_outcome",
+                    "customer_outcome_provenance",
+                    "decision_needed",
+                    "blocker",
+                    "blocker_owner",
+                    "restart_event",
+                    "external_records",
+                    "last_relevant_design_revision"
+                  ]
+                },
                 "decision": {
                   "type": "object",
                   "additionalProperties": false,
@@ -4104,7 +4435,30 @@
                       },
                       "impact": {
                         "type": "string",
-                        "maxLength": 500
+                        "maxLength": 1000
+                      },
+                      "domains": {
+                        "type": "array",
+                        "maxItems": 32,
+                        "items": {
+                          "enum": [
+                            "COMMERCIAL_CONTEXT",
+                            "INTENDED_USE",
+                            "PHYSICS_SCOPE",
+                            "INPUT_CONTRACT",
+                            "OUTPUT_CONTRACT",
+                            "UNITS_SCALING",
+                            "POPULATION_CASES",
+                            "GENERATOR",
+                            "MEASUREMENT_SCORE",
+                            "REFERENCE",
+                            "RECONSTRUCTION",
+                            "CPES_DISCLOSURE",
+                            "RIGHTS",
+                            "DEPLOYMENT",
+                            "AUTHORING"
+                          ]
+                        }
                       },
                       "note": {
                         "type": "string",
@@ -4115,6 +4469,7 @@
                       "field",
                       "kind",
                       "impact",
+                      "domains",
                       "note"
                     ]
                   }
@@ -4136,9 +4491,12 @@
                 "reference_plan",
                 "cpes",
                 "authoring",
+                "route_plan",
                 "measurement_evidence",
+                "evidence_bindings",
                 "handoffs",
                 "responses",
+                "coordination",
                 "decision",
                 "change_log"
               ]
@@ -4157,6 +4515,7 @@
           "title",
           "source_opportunity_id",
           "native_task_id",
+          "accountable_owner",
           "lead",
           "assignment",
           "designs",
@@ -4198,7 +4557,7 @@
             "maxLength": 200
           },
           "to": {
-            "const": "carbon.goal-workbench.workspace.v0.4"
+            "const": "carbon.goal-workbench.workspace.v0.5"
           },
           "original_digest_status": {
             "enum": [

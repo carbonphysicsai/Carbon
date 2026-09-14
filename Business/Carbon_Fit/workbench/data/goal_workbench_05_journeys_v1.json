@@ -1,0 +1,61 @@
+{
+  "schema_version": "carbon.goal-workbench.optimization-journeys.v1",
+  "decision_id": "GOAL-WORKBENCH-05",
+  "scope": "PUBLIC_SYNTHETIC_DEVELOPMENT_ONLY",
+  "frozen_on": "2026-09-15",
+  "journeys": [
+    {
+      "journey_id": "GW05-JOURNEY-A-USE-EXISTING",
+      "route": "USE_EXISTING_CAPABILITY",
+      "source_or_capability_ref": "public:synth-existing-capability-v1",
+      "expected_next_action": "REVIEW_INTENDED_USE_APPLICABILITY",
+      "expected_customer_outcome": "OPEN",
+      "challenge_authoring_required": false,
+      "unresolved_conditions": [
+        "intended-use verification",
+        "deployment evidence"
+      ],
+      "authority": "No scientific qualification or delivery authorization is inferred."
+    },
+    {
+      "journey_id": "GW05-JOURNEY-B-ADAPT-BURGERS",
+      "route": "ADAPT_SUPPORTED_CHALLENGE",
+      "source_or_capability_ref": "periodic_viscous_burgers_1d_v1 / Dynamics",
+      "expected_next_action": "REVIEW_AFFECTED_EVIDENCE_BINDINGS",
+      "evidence_fixture": "data/c05_public_development_evidence_v1.json",
+      "revision_checks": [
+        "commercial/editorial change carries exact-scope scientific evidence forward",
+        "population change preserves fixed-case history but requires population review",
+        "measurement, output, units, or reference change requires affected-evidence review"
+      ],
+      "authority": "C-05 remains source-executed and scientifically unresolved; no score, pass/fail, or qualification is created."
+    },
+    {
+      "journey_id": "GW05-JOURNEY-C-DEVELOP-UNSUPPORTED",
+      "route": "DEVELOP_NEW_CAPABILITY",
+      "source_or_capability_ref": "",
+      "expected_next_action": "DEFINE_BOUNDED_FEASIBILITY_QUESTION",
+      "question": "Can the unsupported synthetic physics be represented by an accepted source-owned authoring contract without changing Carbon's scientific runtime?",
+      "stop_condition": "Stop after one source-owner compatibility answer; do not create a qualification program.",
+      "restart_event": "A source-owner compatibility response with an exact supported interface or explicit gap.",
+      "expected_workflow_state_after_export": "WAITING_ON_DEPENDENCY",
+      "authority": "The exported handoff is not sent, acknowledged, executed, or approved."
+    },
+    {
+      "journey_id": "GW05-JOURNEY-D-PENDING-OWNER",
+      "route": "ADAPT_SUPPORTED_CHALLENGE",
+      "external_ref": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5670993432",
+      "external_state": "EXPORTED_OWNER_REQUEST",
+      "expected_workflow_state": "WAITING_ON_DEPENDENCY",
+      "expected_provenance": "EXTERNAL_LINKED_RECORD",
+      "authority": "The linked record is not acknowledged, approved, selected, funded, executed, or scientifically accepted."
+    }
+  ],
+  "global_authority_ceiling": {
+    "wave_c_selection_changed": false,
+    "scientific_qualification_granted": false,
+    "protected_use_granted": false,
+    "launch_granted": false,
+    "network_or_customer_transmission": false
+  }
+}

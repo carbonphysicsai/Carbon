@@ -6,3 +6,39 @@
   .job-layout { grid-template-columns: 1fr; }
   .job-layout > .list { max-height: 220px; }
 }
+@media (max-width: 700px) {
+  #owner-console-view .scroll { overflow: visible; }
+  #owner-console-view table,
+  #owner-console-view tbody,
+  #owner-console-view tr,
+  #owner-console-view td { display: block; width: 100%; }
+  #owner-console-view thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+  #owner-console-view tr {
+    background: white;
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    margin-bottom: 14px;
+    padding: 7px 12px;
+  }
+  #owner-console-view td { padding: 9px 0; }
+  #owner-console-view td::before {
+    color: var(--muted);
+    display: block;
+    font-size: 10px;
+    font-weight: 750;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+  #owner-console-view td:nth-child(1)::before { content: "Job / revision"; }
+  #owner-console-view td:nth-child(2)::before { content: "Route / people"; }
+  #owner-console-view td:nth-child(3)::before { content: "Workflow · evidence · outcome"; }
+  #owner-console-view td:nth-child(4)::before { content: "One next action"; }
+  #owner-console-view td:nth-child(5)::before { content: "Blocker / restart"; }
+  #owner-console-view td:nth-child(6)::before { content: "Provenance"; }
+}

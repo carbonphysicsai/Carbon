@@ -11,8 +11,10 @@ function response(request){return {schema_version:'carbon.goal-workbench.respons
  const tmp=fs.mkdtempSync(path.join(os.tmpdir(),'carbon-goal-browser-')),errors=[],outbound=[];
  const browser=await chromium.launch({headless:true,executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'}),page=await browser.newPage({viewport:{width:1440,height:1000}});page.setDefaultTimeout(12000);
  page.on('pageerror',error=>errors.push(String(error)));page.on('request',request=>{if(/^https?:/.test(request.url()))outbound.push(request.url());});page.on('dialog',dialog=>dialog.accept());
- await page.goto('file://'+ARTIFACT);await page.waitForSelector('#new-job');
- check('direct client intake is the initial route without Atlas',await page.locator('#jobs-view').isVisible()&&!await page.locator('#atlas-view').isVisible());
+ await page.goto('file://'+ARTIFACT);await page.waitForSelector('#owner-console-view');
+ check('Owner Console is the initial all-job attention view',await page.locator('#owner-console-view').isVisible()&&!await page.locator('#jobs-view').isVisible());
+ await page.locator('[data-tab="jobs"]').click();await page.waitForSelector('#new-job');
+ check('direct client intake remains available without Atlas',await page.locator('#jobs-view').isVisible()&&!await page.locator('#atlas-view').isVisible());
  check('initial client profile is empty',await page.locator('#jobs-view').innerText().then(text=>text.includes('No client job yet')));
  await page.locator('#new-job').click();
  await page.locator('[data-job="title"]').fill('Public Burgers decision');await page.locator('[data-job="lead"]').fill('S1');
@@ -60,11 +62,11 @@ function response(request){return {schema_version:'carbon.goal-workbench.respons
  check('no send or launch control is reachable',await page.getByRole('button',{name:/Send \/ launch unavailable/}).isDisabled());
 
  const workspacePath=await downloaded(page,'#export-goal',tmp,'goal-workspace.json'),saved=JSON.parse(fs.readFileSync(workspacePath));
- check('v0.4 export preserves alternatives source evidence CPES responses and immutable authority',saved.jobs[0].designs.length===2&&saved.jobs[0].designs[0].measurement_evidence.length===1&&saved.jobs[0].designs[0].responses.length===1&&saved.authority.launch==='NOT_LAUNCHED');
+ check('v0.5 export preserves alternatives source evidence routing responses and immutable authority',saved.jobs[0].designs.length===2&&saved.jobs[0].designs[0].measurement_evidence.length===1&&saved.jobs[0].designs[0].responses.length===1&&saved.jobs[0].designs[0].route_plan.route==='UNASSESSED'&&saved.authority.launch==='NOT_LAUNCHED');
  const component={schema_version:F.WORKSPACE_VERSION,application_version:F.APP_VERSION,source_sha256:A.source.sha256,evidence_catalog:[],drafts:[],shortlist:[],migration_receipts:[]},componentPath=path.join(tmp,'v0.2.json');fs.writeFileSync(componentPath,JSON.stringify(component));
  await page.locator('#goal-workspace-file').setInputFiles(componentPath);await page.waitForFunction(()=>document.querySelector('#toast').textContent.includes('migration receipt'));
  check('v0.2 component migrates into empty direct-job layer',await page.locator('#jobs-view').innerText().then(text=>text.includes('No client job yet')));
- await page.locator('#goal-workspace-file').setInputFiles(workspacePath);await page.waitForFunction(()=>document.querySelector('#toast').textContent.includes('Imported v0.4'));
+ await page.locator('#goal-workspace-file').setInputFiles(workspacePath);await page.waitForFunction(()=>document.querySelector('#toast').textContent.includes('Imported v0.5'));
  check('reimport resumes without retyping scope responses or malicious text',await page.locator('[data-assignment="client_words"]').inputValue().then(text=>text.includes('trustworthy full-field'))&&await page.locator('#jobs-view img').count()===0&&await page.evaluate(()=>window.goalPwned)===undefined);
 
  await page.setViewportSize({width:390,height:844});check('narrow job view avoids document overflow',await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));

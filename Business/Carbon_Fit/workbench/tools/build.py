@@ -29,6 +29,7 @@ def build():
     )
     engine = (ROOT / "src/engine.js").read_text()
     app = (ROOT / "src/app.js").read_text()
+    routing = (ROOT / "src/routing.js").read_text()
     c05_evidence = (ROOT / "src/c05_evidence.js").read_text()
     workflow = (ROOT / "src/workflow.js").read_text()
     goal_app = (ROOT / "src/goal_app.js").read_text()
@@ -41,6 +42,7 @@ def build():
         for s in [
             engine,
             app,
+            routing,
             c05_evidence,
             workflow,
             goal_app,
@@ -61,6 +63,7 @@ def build():
         "C05_INDEX": c05_index,
         "ENGINE": engine,
         "APP": app,
+        "ROUTING": routing,
         "C05_EVIDENCE": c05_evidence,
         "WORKFLOW": workflow,
         "GOAL_APP": goal_app,

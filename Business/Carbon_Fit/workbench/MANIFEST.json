@@ -1,15 +1,16 @@
 {
-  "schema_version": "carbon.workbench.release-manifest.v0.4",
+  "schema_version": "carbon.workbench.release-manifest.v0.5",
   "status": "OFFLINE_DECISION_SUPPORT_NOT_PRODUCTION",
-  "application_version": "Carbon Goal-to-Challenge Workbench v0.4",
+  "application_version": "Carbon Goal-to-Challenge Workbench v0.5",
   "decision_ids": [
     "EXAM-PROTECT-WORKBENCH-01",
     "GOAL-WORKBENCH-02",
     "GOAL-WORKBENCH-03",
-    "GOAL-WORKBENCH-04"
+    "GOAL-WORKBENCH-04",
+    "GOAL-WORKBENCH-05"
   ],
-  "repository_base": "95e717f28fab66a087b1e7006ad2ba5e167e2ddf",
-  "integration_revision_at_packaging": "6740af63a0a711158ad62a12d6be03ac3c99e4c4",
+  "repository_base": "e576fbdc711c9194dbcc7d90405480e90577407e",
+  "integration_revision_at_packaging": "1fd272c498b7a2b82ab162286c0b739ecc6274a7",
   "integration_revision_note": "The checksum manifest describes exact packaged bytes. A commit cannot contain its own digest; final PR/head identity is reported by delivery.",
   "pinned_research_revision": "ca904dfee93d3574df4e56b99981a6ed3b138e80",
   "accepted_research_head": "0a5690270dc449ea19c941280203987d37db5283",
@@ -38,10 +39,20 @@
   "pinned_evidence_index_sha256": "4565995a98fe8f238ca88b44e418e6c7da2954de9dca577b80968854bad34ba7",
   "source_archive_sha256": "aabdc04377700334f50a8748bf28b9fc3e44799b8986d2c38f759df5726469fa",
   "accepted_goal_workbench_baseline": {
-    "pull_request": 164,
-    "accepted_head": "bcaa9bed9f9572df7582bfb7184bf7096bebfbab",
-    "acceptance_run": 34811682690,
-    "merge_commit": "95e717f28fab66a087b1e7006ad2ba5e167e2ddf"
+    "pull_request": 170,
+    "accepted_head": "3a01e099466a613ed61cafaf5735d802c62ad3d4",
+    "acceptance_run": 34891993646,
+    "merge_commit": "e576fbdc711c9194dbcc7d90405480e90577407e"
+  },
+  "accepted_detached_research_reference": {
+    "decision_id": "D-QUAL-PREP-01",
+    "pull_request": 176,
+    "accepted_head": "1024cd5a0d7bf67bb16f521412309d46dec8df79",
+    "acceptance_run": 34894022768,
+    "merge_commit": "1fd272c498b7a2b82ab162286c0b739ecc6274a7",
+    "owner_request": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5670993432",
+    "owner_request_status": "EXPORTED_OWNER_REQUEST",
+    "authority": "External linked research reference only; not acknowledged, approved, selected, funded, executed, or qualified by this workbench."
   },
   "accepted_c05_measurement_source": {
     "pull_request": 157,
@@ -61,15 +72,15 @@
     "use": "Operating conformance only; no Grok/account integration is claimed."
   },
   "authority": "No runtime sharing, qualification, protected-use approval, answer publication, submission, registration, execution, launch, deployment, or rights authority is conveyed.",
-  "file_count": 86,
+  "file_count": 95,
   "files": {
     "Carbon_Opportunity_Workbench.html": {
-      "bytes": 503320,
-      "sha256": "ae6959b296e927fde6141fc519c36ec25ba05ba43998b67b23b7072439e57673"
+      "bytes": 549042,
+      "sha256": "971e4095226e78c07d23d8e767ec9159647b7e20f2b30aee3ba2accc6a77e3c5"
     },
     "README.md": {
-      "bytes": 10663,
-      "sha256": "a709f7f57d1615098c989abd48fb63c4b3e695177c63cdc81328a29377a4404c"
+      "bytes": 12414,
+      "sha256": "fcd7da555f99f0deff4b43579a1c405e3c823915b8ab3a5d50c4ed7619f20512"
     },
     "data/atlas.json": {
       "bytes": 156569,
@@ -104,8 +115,8 @@
       "sha256": "7db49854d975ddd584026b2c833e7d88cdd91fa42c2445045e8a1c41f7a5e171"
     },
     "data/goal_constants.json": {
-      "bytes": 627,
-      "sha256": "ae134c98f81c8be350d0ae95fb223cbe37077454db049e16443ca321722f2465"
+      "bytes": 1463,
+      "sha256": "84707b00d56bb2f2a66fef2d09514fa6e56baa7aa9ef54a432506c4d21a4f440"
     },
     "data/goal_workbench_03_rehearsal_protocol_v1.json": {
       "bytes": 2855,
@@ -115,9 +126,13 @@
       "bytes": 7038,
       "sha256": "8597f175475ee389a75dc1d2b2db7f15a0a5eed008bd26c34723c7e243e6cd5f"
     },
+    "data/goal_workbench_05_journeys_v1.json": {
+      "bytes": 3016,
+      "sha256": "8c16ec10774c58abe1d1c25666012ecc840dae7bf5678505e4dc3e66d50bd667"
+    },
     "data/goal_workspace.schema.json": {
-      "bytes": 158247,
-      "sha256": "6125d483a2fac7e713d78e6260f29c906c3de80b12de2acd3e12edfb15394a58"
+      "bytes": 171882,
+      "sha256": "0a019f3b8609bb6c58b6141a996a78098b71e1cc49fc345ea49855ad4f1a77c6"
     },
     "data/grok_v1_9_conformance_v1.json": {
       "bytes": 3656,
@@ -151,21 +166,29 @@
       "bytes": 788,
       "sha256": "43f16afd1be324f0b2711a36665dbbd35b0dff6e9a77d832f802d47bf5267274"
     },
+    "docs/GOAL_WORKBENCH_05_NEXT_INTEGRATION.md": {
+      "bytes": 1642,
+      "sha256": "4ed701f71721ba4975f87c735829623e325de55e4abe3ff7f8edcffac9c3051c"
+    },
+    "docs/GOAL_WORKBENCH_05_OPTIMIZATION_REPORT.md": {
+      "bytes": 4414,
+      "sha256": "8c2d0bb255e3a83887b3ad5e0be325b07bb12a91d30e4eeed86d743b9bf7da65"
+    },
     "docs/OWNER_REPORT.md": {
-      "bytes": 12872,
-      "sha256": "0aeb50324dcf3f47dd7feb4149def6952818e508e6a7cc3f45203e006dac9413"
+      "bytes": 15180,
+      "sha256": "e753aa25c925f469a9520a12fa3681efa9d8c2d71165bb9103f44fbebec7a0af"
     },
     "docs/REPOSITORY_SEED_INDEX.json": {
       "bytes": 6759,
       "sha256": "bb05526a6408f70efa32a12ade140305a0cfd2c6d07f3827cc36b16f086eb149"
     },
     "docs/REQUIREMENT_TEST_MAP.md": {
-      "bytes": 9520,
-      "sha256": "22c935f9a5765d9fe9131a1b90b9f1261683f6063d65336526efb71144a1270a"
+      "bytes": 11950,
+      "sha256": "2a88088cfac918d5a4983546c43339e3f4b18de8d00d6bc2091776720f3da9fa"
     },
     "docs/SPECIFICATION.md": {
-      "bytes": 10822,
-      "sha256": "6fa125c99e889e18e70cb5beebb67cd61dd0062e193241ea088c7899d92ab3d5"
+      "bytes": 12685,
+      "sha256": "20d45f0bd24cebf0f6b099efcb5027232fb7803b64819d88ccd628e5ba337768"
     },
     "evidence/cpes_reference_reuse_v2/adaptive_bank_control_v1.json": {
       "bytes": 641,
@@ -284,64 +307,84 @@
       "sha256": "17eae91460100c32c963942decf1f56583529528052768a8b68c94e54bdff9a8"
     },
     "src/c05_evidence.js": {
-      "bytes": 23766,
-      "sha256": "32317a82913519bfd249c5bdd6e9b6b787d55d0de9b745c14aa77e1b27a8a747"
+      "bytes": 23885,
+      "sha256": "ce653e45c6f0bf2710692814713820ea941684a17246da693c67168982671690"
     },
     "src/engine.js": {
       "bytes": 34052,
       "sha256": "18bf10948be005333f1d9ad6e80165036ef56435976e77c23531135ea7e4bd12"
     },
     "src/goal_app.js": {
-      "bytes": 39893,
-      "sha256": "66bd695cd067c90cbc37f931711432b384c9a93938f01879bf9eeca584284961"
+      "bytes": 52006,
+      "sha256": "324a3ef5f3f1ec07d96718196a70405ff87850d380d1104fb6076ce2606c8a3c"
     },
     "src/goal_styles.css": {
-      "bytes": 349,
-      "sha256": "858bf906d4d95898a14e79c3880a1ce05acec0aa014ee39adcc2bba2baca5317"
+      "bytes": 1582,
+      "sha256": "755fb50eb83cd9efa97a89a2c98c7b57d7f469978078a107e770b2261b94e0c6"
+    },
+    "src/routing.js": {
+      "bytes": 27726,
+      "sha256": "cacc140b1e9f9904a2360ba7a798d6789619154b54a27ccdf4faf8adb18accf0"
     },
     "src/shell.html": {
-      "bytes": 4556,
-      "sha256": "732e18018c1af0a2255295ad33a4c2dbf6238b4b64985118fa3dd7b03bcb0df5"
+      "bytes": 5131,
+      "sha256": "2ea332238fe0bab012c73e3102e4129d22a04bba6d528b8711a9b31ab30213e1"
     },
     "src/styles.css": {
       "bytes": 9017,
       "sha256": "9e1bc74aea8f4bd67cef3bc71439a604e4cb5f42b1aa956aeba34332a23dc7a5"
     },
     "src/workflow.js": {
-      "bytes": 46111,
-      "sha256": "be126f81600901f78543a435d390455fecdf32dbba75743035031c5a73551850"
+      "bytes": 50024,
+      "sha256": "4137edfc29d7145db1a4d723993f0002149507f5c8128cee6e4cc3f9448f6626"
     },
     "tests/TEST_NOTES.md": {
       "bytes": 3256,
       "sha256": "21a826d76c66b38f531adccb6d15791ef7e4d6bf9e13b7ac389110b346aa9498"
     },
     "tests/browser_goal_results.json": {
-      "bytes": 2175,
-      "sha256": "a67e0c8c665b3e712386372fbab363973d9e6306ee466c4ce5bdcbe47d6f1a55"
+      "bytes": 2234,
+      "sha256": "afef0aa4865a6389d968f3ecc94bb24340b090c539d1304507903567edd14b84"
     },
     "tests/browser_goal_smoke.cjs": {
-      "bytes": 12546,
-      "sha256": "f3e559349d3f13722fae523d04f3ac87d388e3c80fc4c928b88948a0035207c4"
+      "bytes": 12868,
+      "sha256": "fdb5e5bcf63607f0aaa540a37e0251f90adcd34566bb71a6e03ef0646d899808"
     },
     "tests/browser_results.json": {
       "bytes": 2662,
       "sha256": "8b2a42dcec2950da14a32762d27d2348d7e25a81c7c233da0bd3a89e123b7aac"
+    },
+    "tests/browser_routing_results.json": {
+      "bytes": 1389,
+      "sha256": "45d19bee84ddaaa676aeef6fd86145783d96f5053dc795f5c177b686f813be3a"
+    },
+    "tests/browser_routing_smoke.cjs": {
+      "bytes": 6249,
+      "sha256": "3b02f5fac5a4328bdf7112bb2e4eb945334ec470763ea8a08f86bb776dcb95de"
     },
     "tests/browser_smoke.cjs": {
       "bytes": 13184,
       "sha256": "9d29db8de318f960ff8f398f89cabb0037a7f57eca9537aa0ae70c711e79b350"
     },
     "tests/preview_atlas.png": {
-      "bytes": 276114,
-      "sha256": "2d1a93dde652647f86cceee10c95ffdad2763e379b2fd63d252c5104861a7a24"
+      "bytes": 271704,
+      "sha256": "cd2024c7cd76da576a631d54d73e42750175d66e94a2b228bbb877cc5c8b8684"
     },
     "tests/preview_mobile.png": {
-      "bytes": 695668,
-      "sha256": "dbccd9c2d87dc666efc50846c866ff260b30d09e9279c52959a176702946c018"
+      "bytes": 689994,
+      "sha256": "111e02e96cd4f641870a1e5584644bafff6081381f5a02fa34059ef9a0f41afb"
+    },
+    "tests/preview_owner_console.png": {
+      "bytes": 181132,
+      "sha256": "97be989b6ce91fe37404ce859248f6c0f46857f00e7c116f316189c4cb37dca2"
+    },
+    "tests/preview_owner_console_mobile.png": {
+      "bytes": 183586,
+      "sha256": "874d5cdea942092fe53549673f38b85bc994612dbcd8403a8a5c6af83c4ecc03"
     },
     "tests/preview_profile.png": {
-      "bytes": 710248,
-      "sha256": "5427d41f3f28d55b5a74482e4a5235f257314fae0c8d9c7726b4b25107b996f7"
+      "bytes": 705519,
+      "sha256": "aa36d93436fa5226056478c31b27d022e0cc9ea2cd1bafb2834ef7239ac5e688"
     },
     "tests/test_authoring_bridge.py": {
       "bytes": 5855,
@@ -359,25 +402,29 @@
       "bytes": 6195,
       "sha256": "5462e4754714d54a3e57383fe9047484da537b3f244f5e4b5b0cbc708fd3bb0d"
     },
+    "tests/test_routing.cjs": {
+      "bytes": 15009,
+      "sha256": "196dab8d949d1d5769660135a55b5ad0a628669fbe89927d00bdf7729b76205f"
+    },
     "tests/test_sources.py": {
-      "bytes": 12725,
-      "sha256": "b5ab876ea150956f6c0c1f0f3f6eee8be87f6c304651d80bbb3faad64d5aefcf"
+      "bytes": 14733,
+      "sha256": "17a0080179e67cee323bff5fecc8d22ae9dcef76827801a9089efb974a900ef7"
     },
     "tests/test_workflow.cjs": {
-      "bytes": 16450,
-      "sha256": "0e1ca03b8edbdf0e105363e3d8654015ff8cc8989a40ad549389d5715775fa6d"
+      "bytes": 16480,
+      "sha256": "31cf183082e2c57c17f4a0552cd19ba222b3176e3ea2497a3956c2734f45327d"
     },
     "tools/authoring_bridge.py": {
       "bytes": 14879,
       "sha256": "1ee61a97a9703c72a4b2b08bb631668e06ae2c105e4d1c21e896d021c649fc31"
     },
     "tools/build.py": {
-      "bytes": 2066,
-      "sha256": "f2637dc044eca66d6a74bdf20d15ca3210a15cffd5d8c6f7dd635819afc1b883"
+      "bytes": 2286,
+      "sha256": "4a5c19096f5f8b9d928cb9bc3053da5969fcdbd4eb02de1dfa1616fc23759e48"
     },
     "tools/build_goal_schema.py": {
-      "bytes": 17738,
-      "sha256": "ef14a2d1d9334312b275820d9addffc0501637721cdd65d536160b1d66cb3a31"
+      "bytes": 22811,
+      "sha256": "dc29f39d44e0682fed762da14785fd51e88e20d0e7923032f3f661a1be136331"
     },
     "tools/build_schema.py": {
       "bytes": 10246,
@@ -392,16 +439,16 @@
       "sha256": "6e4d8235af6f01db2f47f0dcd2f5a32de4aea5e271dd28bed4ee5fdd1a65abcb"
     },
     "tools/generate_c05_public_fixture.py": {
-      "bytes": 7184,
-      "sha256": "2522ce3d0dc09777e5ebdbb8be26c2da0068a501ffa5f9cd14dedf65b699f413"
+      "bytes": 9202,
+      "sha256": "112bcd06139ba36994902ae9cc11963c009e1e0e26b068cc0ad33987dd052513"
     },
     "tools/import_cpes_evidence.py": {
       "bytes": 15755,
       "sha256": "0e45668f1249f4e232c1a0a5aadb9a3706daa825521b96fc80fe1d72f112cde3"
     },
     "tools/package_release.py": {
-      "bytes": 6068,
-      "sha256": "e33b7d67579f45f8c3541472a614e4745f90dbf327b2056170628fa6fdde72b9"
+      "bytes": 6801,
+      "sha256": "35ce8e28ce8574a92389d03b68155594feca886f358f06744568ace3f53b7d76"
     },
     "tools/run_operational_rehearsal.cjs": {
       "bytes": 15775,
