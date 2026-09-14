@@ -1886,6 +1886,63 @@ class ValidatorContractTests(unittest.TestCase):
         validator.validate_authority_view(view, "fixture B-07A")
         self.assertEqual(validator.errors, [])
 
+    def test_living_board_accepts_bounded_capability_without_closing_full_ticket(
+        self,
+    ) -> None:
+        rows = [
+            ("C-02", "in_progress", "owner-a", "reviewer-a", []),
+            ("C-06", "in_progress", "owner-b", "reviewer-b", ["C-02"]),
+        ]
+        validator, view = self.authority_fixture(
+            wave="C", predecessor="B", selected="C-06", rows=rows
+        )
+        dependency = next(
+            item for item in validator.data["tickets"] if item["id"] == "C-02"
+        )
+        selected = next(
+            item for item in validator.data["tickets"] if item["id"] == "C-06"
+        )
+        dependency["implementation_state"] = "bounded_development_accepted"
+        selected["implementation_state"] = "candidate_implementation"
+        selected["maturity_states"] = {
+            "scientifically_qualified": "unearned",
+            "production_qualified": "unearned",
+        }
+        validator.validate_authority_view(view, "fixture bounded dependency")
+        self.assertEqual(validator.errors, [])
+
+        selected["maturity_states"]["production_qualified"] = "earned"
+        validator.validate_authority_view(view, "fixture authority laundering")
+        self.assertTrue(
+            any(
+                "non-done dependencies ['C-02']" in error for error in validator.errors
+            ),
+            validator.errors,
+        )
+
+    def test_living_board_accepts_named_bounded_adapter_prerequisite(self) -> None:
+        rows = [
+            ("C-02", "in_progress", "owner-a", "reviewer-a", []),
+            ("C-06", "in_progress", "owner-b", "reviewer-b", ["C-02"]),
+        ]
+        validator, view = self.authority_fixture(
+            wave="C", predecessor="B", selected="C-06", rows=rows
+        )
+        dependency = next(
+            item for item in validator.data["tickets"] if item["id"] == "C-02"
+        )
+        selected = next(
+            item for item in validator.data["tickets"] if item["id"] == "C-06"
+        )
+        dependency["implementation_state"] = "bounded_development_adapter"
+        selected["implementation_state"] = "candidate_implementation"
+        selected["maturity_states"] = {
+            "scientifically_qualified": "unearned",
+            "production_qualified": "unearned",
+        }
+        validator.validate_authority_view(view, "fixture bounded adapter")
+        self.assertEqual(validator.errors, [])
+
     def test_living_board_discovers_new_ticket_without_constant_change(self) -> None:
         rows = [
             ("B-02A", "done", "owner-a", "reviewer-a", []),

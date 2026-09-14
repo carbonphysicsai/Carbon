@@ -1,17 +1,51 @@
-#!/usr/bin/env python3
 """Build one offline HTML artifact from the canonical source JSON and JS/CSS."""
+
+import base64
+import hashlib
+import json
 from pathlib import Path
-import base64,hashlib,json
-ROOT=Path(__file__).resolve().parents[1]
-def digest(s):return 'sha256-'+base64.b64encode(hashlib.sha256(s.encode()).digest()).decode()
-def data(p):return json.dumps(json.loads(p.read_text()),ensure_ascii=False,separators=(',',':')).replace('<','\\u003c').replace('\u2028','\\u2028').replace('\u2029','\\u2029')
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def digest(s):
+    return "sha256-" + base64.b64encode(hashlib.sha256(s.encode()).digest()).decode()
+
+
+def data(p):
+    return (
+        json.dumps(json.loads(p.read_text()), ensure_ascii=False, separators=(",", ":"))
+        .replace("<", "\\u003c")
+        .replace("\u2028", "\\u2028")
+        .replace("\u2029", "\\u2029")
+    )
+
+
 def build():
- style=(ROOT/'src/styles.css').read_text();engine=(ROOT/'src/engine.js').read_text();app=(ROOT/'src/app.js').read_text()
- atlas=data(ROOT/'data/atlas.json');studies=data(ROOT/'data/studies.json');cpes=data(ROOT/'data/cpes_study_v1.json')
- scripts=' '.join("'"+digest(s)+"'" for s in [engine,app,atlas,studies,cpes])
- csp=f"default-src 'none'; script-src {scripts}; style-src '{digest(style)}'; img-src data:; connect-src 'none'; form-action 'none'; base-uri 'none'; object-src 'none'"
- html=(ROOT/'src/shell.html').read_text()
- for k,v in {'CSP':csp,'STYLE':style,'ATLAS':atlas,'STUDIES':studies,'CPES':cpes,'ENGINE':engine,'APP':app}.items():html=html.replace('{{'+k+'}}',v)
- (ROOT/'Carbon_Opportunity_Workbench.html').write_text(html)
- return ROOT/'Carbon_Opportunity_Workbench.html'
-if __name__=='__main__': print(build())
+    style = (ROOT / "src/styles.css").read_text()
+    engine = (ROOT / "src/engine.js").read_text()
+    app = (ROOT / "src/app.js").read_text()
+    atlas = data(ROOT / "data/atlas.json")
+    studies = data(ROOT / "data/studies.json")
+    cpes = data(ROOT / "data/cpes_study_v1.json")
+    scripts = " ".join(
+        "'" + digest(s) + "'" for s in [engine, app, atlas, studies, cpes]
+    )
+    csp = f"default-src 'none'; script-src {scripts}; style-src '{digest(style)}'; img-src data:; connect-src 'none'; form-action 'none'; base-uri 'none'; object-src 'none'"
+    html = (ROOT / "src/shell.html").read_text()
+    for k, v in {
+        "CSP": csp,
+        "STYLE": style,
+        "ATLAS": atlas,
+        "STUDIES": studies,
+        "CPES": cpes,
+        "ENGINE": engine,
+        "APP": app,
+    }.items():
+        html = html.replace("{{" + k + "}}", v)
+    (ROOT / "Carbon_Opportunity_Workbench.html").write_text(html)
+    return ROOT / "Carbon_Opportunity_Workbench.html"
+
+
+if __name__ == "__main__":
+    print(build())

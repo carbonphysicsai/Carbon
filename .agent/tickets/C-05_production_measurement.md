@@ -1,8 +1,11 @@
 # C-05 — Production measurement and Score Pack boundary
 
 **Wave:** C1 real scientific execution foundations
-**Status:** `in_progress`
-**Selected slice:** bounded engineering/public qualification-candidate runtime
+**Status:** `done` for bounded engineering/public qualification-candidate slice;
+broader scientific/protected ticket open
+**Accepted delivery:** PR #157 accepted head
+`8dbee54dcd5bdea3a76b22812955e31fbe95e8da` in run `34789621325` and
+normally merged as `e3324691666da6b8987764048d2bfff45e0578b4`
 **Depends on:** B-05, C-04
 **Runtime capability prerequisite:** C-02's bounded adapter capability is
 satisfied; its broader production/scientific closure remains open and
@@ -32,7 +35,7 @@ Implement score-eligible measurement operators and the production A5 boundary us
       harness without selecting a decision-resolution target or alternate count.
 - [x] Tests prove product, novelty, payment, prior, practice, forecast and reward
       data cannot enter the measurement protocol or lean scoring.
-- [ ] Pass the required exact-head Linux service lane and normal merge.
+- [x] Pass the required exact-head Linux service lane and normal merge.
 - [ ] Obtain D-03/D-04 reference acceptance and D-05 scientific qualification
       of applicability, floors, uncertainty, limits and decision resolution.
 

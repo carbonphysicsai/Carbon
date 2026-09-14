@@ -2850,6 +2850,23 @@ class Validator:
             for dependency in selected_dependencies
             if all_tickets.get(dependency, {}).get("status") != "done"
         ]
+        bounded_capability_dependencies = [
+            dependency
+            for dependency in incomplete_dependencies
+            if all_tickets.get(dependency, {}).get("status") == "in_progress"
+            and all_tickets.get(dependency, {}).get("implementation_state")
+            in {"bounded_development_accepted", "bounded_development_adapter"}
+            and selected.get("implementation_state") == "candidate_implementation"
+            and selected.get("maturity_states", {}).get("scientifically_qualified")
+            == "unearned"
+            and selected.get("maturity_states", {}).get("production_qualified")
+            == "unearned"
+        ]
+        incomplete_dependencies = [
+            dependency
+            for dependency in incomplete_dependencies
+            if dependency not in bounded_capability_dependencies
+        ]
         owner_accepted_b05_dependency = (
             incomplete_dependencies == ["B-05"]
             and board_rows.get("B-05", {}).get("status") == "in_progress"

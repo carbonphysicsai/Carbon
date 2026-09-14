@@ -1,7 +1,8 @@
 # C-05 Burgers measurement runtime plan
 
 **Decision:** `OWNER-C1-BURGERS-ALPHA-01`
-**Status:** implementation candidate; normal tested merge pending
+**Status:** bounded implementation accepted in PR #157; scientific and
+protected admission remain open
 **Base:** C-04 PR #154 merge
 `0cd91bfa6d30f81739ff75e46888f6f1387bd1de`
 **Primary Hub map_ref:** `WAVE-C/C-05`
@@ -50,3 +51,14 @@ floors, uncertainty, thresholds and a decision-resolution target. Until then the
 runtime is structurally incapable of producing score input. Protected admission
 also requires the commissioned independent security assessment. C-06 may later
 consume only this explicit non-official result after the bounded merge.
+
+## Accepted delivery
+
+Exact head `8dbee54dcd5bdea3a76b22812955e31fbe95e8da` passed required run
+`34789621325` and normally merged as
+`e3324691666da6b8987764048d2bfff45e0578b4`. The Linux service lane ran 14
+tests in 214.70 seconds with exact image/config
+`sha256:034960220cc3aad1a6c44b0b79bf1a12e4b66de2878bc3391ec7701dfe45c04d`.
+This closes only the bounded engineering slice. D-03/D-04/D-05 acceptance and
+all protected, score, archive, network, reward, production and LIVE authority
+remain absent.
