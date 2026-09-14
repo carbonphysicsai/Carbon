@@ -48,8 +48,9 @@ def compile_c02_plan(
     wheel_digest: str = UPSTREAM_WHEEL_DIGEST,
     environment_digest: str = ENVIRONMENT_DIGEST,
     foundax: bool = False,
+    challenge_key=None,
 ):
-    fixture = make_compile_fixture(tmp_path)
+    fixture = make_compile_fixture(tmp_path, challenge_key=challenge_key)
     old_option = fixture.assembly.backbone_surface.options[0]
     environment = EnvironmentPin(
         ENVIRONMENT_ID, ENVIRONMENT_VERSION, environment_digest

@@ -740,6 +740,7 @@ class DurableExecutionQueue:
             if ExecutionState(row[3]) not in {
                 ExecutionState.RUNNING,
                 ExecutionState.RECONCILIATION_REQUIRED,
+                ExecutionState.RESULT_RECORDED,
             }:
                 raise ExecutionFailure(ExecutionCode.STATE)
             return self._partial_rows(db, claim.ref)

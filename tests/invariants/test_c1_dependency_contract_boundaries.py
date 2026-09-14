@@ -1,4 +1,4 @@
-"""Fail-closed checks for the selected bounded C-06 dependency contracts."""
+"""Fail-closed checks for the selected bounded C-07 dependency contracts."""
 
 from __future__ import annotations
 
@@ -30,26 +30,30 @@ def test_materialized_tickets_are_contract_only_and_unselected() -> None:
         assert "Contract materialization only" in ticket
 
 
-def test_only_c06_development_receipt_is_selected_and_c07_is_next() -> None:
+def test_only_c07_development_orchestration_is_selected_and_c08_is_next() -> None:
     wave = _read(".agent/WAVE.md")
     wave_c = _read(".agent/WAVE_C.md")
     graph = _read(".agent/plans/C1_DEPENDENCY_GRAPH.md")
     for record in (wave, wave_c):
-        assert "**Selected ticket:** C-06 — `in_progress`" in record
-        assert "**Active ticket:** C-06 signed non-official DEVELOPMENT" in record
-        assert "**Next authorized ticket after current merge:** C-07" in record
+        assert "**Selected ticket:** C-07 — `in_progress`" in record
+        assert "**Active ticket:** C-07 durable non-official DEVELOPMENT" in record
+        assert "**Next authorized ticket after current merge:** C-08" in record
     assert "C-04(PR #154 engineering + D-03/D-04 prerequisite harness)" in graph
     assert "C-05(PR #157 engineering + D-02/D-05 prerequisite harness)" in graph
-    assert "C-06(selected DEVELOPMENT receipt)" in graph
+    assert "C-06(PR #161 DEVELOPMENT receipt)" in graph
+    assert "C-07(selected)" in graph
     assert "C-EP1 ─> C-EP2(done measurement/replay only; no sharing runtime)" in graph
     assert "C-02(merged DEVELOPMENT adapter prerequisite; full ticket open)" in graph
     assert "└─> C-03(PR #149 capability + PR #151 hardening)" in graph
-    assert graph.count("| **no** |") >= 5
+    assert graph.count("| **no** |") >= 4
     assert (
         "| C-03 | PR #149 bounded DEVELOPMENT capability and PR #151 hardening accepted"
         in graph
     )
-    assert "**yes, current slice; not protected/official/archive-eligible**" in graph
+    assert (
+        "**yes, current slice; not protected/official/archive/network-eligible**"
+        in graph
+    )
 
 
 def test_jax_and_archive_blocks_remain_complete_and_fail_closed() -> None:
@@ -78,11 +82,13 @@ def test_jax_and_archive_blocks_remain_complete_and_fail_closed() -> None:
     assert "synthetic-archive" in c09
 
 
-def test_hub_projects_only_development_receipt_and_future_contract_status() -> None:
+def test_hub_projects_only_development_orchestration_and_future_contract_status() -> (
+    None
+):
     data = json.loads(_read("docs/development/carbon_hub/data/hub_data_v2.json"))
     current = data["current"]
-    assert current["last_completed_ticket"]["id"] == "C-05"
-    assert current["selected_ticket"]["id"] == "C-06"
+    assert current["last_completed_ticket"]["id"] == "C-06"
+    assert current["selected_ticket"]["id"] == "C-07"
     assert current["next_selected_ticket"] is None
     tickets = {ticket["id"]: ticket for ticket in data["tickets"]}
     assert tickets["C-EP1"]["status"] == "done"
@@ -98,9 +104,12 @@ def test_hub_projects_only_development_receipt_and_future_contract_status() -> N
     assert tickets["C-05"]["status"] == "done"
     assert tickets["C-05"]["implementation_state"] == "bounded_development_accepted"
     assert "34789621325" in tickets["C-05"]["current_stage"]
-    assert tickets["C-06"]["status"] == "in_progress"
-    assert tickets["C-06"]["implementation_state"] == "candidate_implementation"
-    assert "Selected" in tickets["C-06"]["current_stage"]
+    assert tickets["C-06"]["status"] == "done"
+    assert tickets["C-06"]["implementation_state"] == "bounded_development_accepted"
+    assert "34797587027" in tickets["C-06"]["current_stage"]
+    assert tickets["C-07"]["status"] == "in_progress"
+    assert tickets["C-07"]["implementation_state"] == "candidate_implementation"
+    assert "Selected" in tickets["C-07"]["current_stage"]
     for ticket_id in ("C-08", "C-09"):
         assert tickets[ticket_id]["status"] == "todo"
         assert tickets[ticket_id]["implementation_state"] == "unstarted"

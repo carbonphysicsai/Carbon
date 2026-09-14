@@ -63,6 +63,7 @@ class Classification:
             "carbon/execution/worker.py",
             "scripts/dev/c03_worker_image.sh",
             "scripts/dev/c03_worker_service.sh",
+            "scripts/dev/c07_development_vertical.sh",
             "docs/development/c04_public_reference_campaign_v1.json",
             "docs/development/c05_public_measurement_campaign_v1.json",
             "tests/service/test_c03_worker_service.py",
@@ -76,6 +77,8 @@ class Classification:
             or item.path.startswith("carbon/measurement_runtime/")
             or item.path.startswith("tests/service/c03_")
             or item.path.startswith("tests/service/test_c03_")
+            or item.path.startswith("tests/service/test_c07_")
+            or item.path.startswith("carbon/orchestration/")
             or item.path.startswith("tests/service/test_c04_")
             or item.path.startswith("tests/service/test_c05_")
             for item in self.paths

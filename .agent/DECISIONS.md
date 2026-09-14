@@ -13835,3 +13835,43 @@ reward eligibility are structurally false. A valid signature proves only that
 the named development key bound the exact bytes. C-07 may compose it only into
 a non-official DEVELOPMENT vertical until the missing scientific, security,
 signer/custody and real archive authorities exist.
+
+## 2026-09-14 — C-07-D1: compose existing owners through C-01 instead of creating a second orchestrator store
+
+**Source and scope.** This reversible engineering decision implements the C-07
+sequence prospectively authorized by `OWNER-C1-BURGERS-ALPHA-01` after accepted
+C-06 PR #161. It is a public/synthetic DEVELOPMENT composition decision, not
+scientific qualification, independent security acceptance, official signing,
+real archive acknowledgement, deployment, testnet, reward or LIVE authority.
+
+**Selection.** Reuse C-01 as the only attempt, claim, restart, partial-stage and
+result-association owner. Add a thin `carbon.orchestration` layer that accepts
+only exact C-02 reconstruction/prediction, C-04 reference and C-05 measurement
+types, cross-binds them to C-06 evidence, and records a fixed stage sequence.
+The frozen generator/case manifest has a distinct first stage so generator
+failure cannot be mislabeled as reconstruction failure. Exactly three frozen
+replicas are retained in plan order. The score stage is an explicit unresolved
+disposition and the archive stage remains unavailable.
+
+**Failure, restart and disclosure.** Typed generator, reconstruction,
+reference, measurement, infrastructure, cancellation, contested and
+indeterminate terminals produce digest-only operational accounts without a
+completion receipt. A restart cannot reset or replace the attempt: it requires
+explicit C-01 `RESUME_EXISTING` for the same claim. Exact receipt/result replay
+is idempotent, including interruption after the C-06 append. Private, reviewer
+and public report files are positive projections; every official, protected,
+score, archive, network and reward field is structurally false.
+
+**Alternatives rejected.** A second orchestration database would duplicate
+C-01 state and complicate recovery. A generic callback/command executor would
+widen the executable surface. Calling unresolved measurements a score would
+invent scientific authority. Requiring C-EA2 now would confuse a missing real
+archive profile with this authorized engineering slice.
+
+**Reversibility and downstream impact.** The new package and one narrow C-01
+read-after-result allowance are independently removable. C-08/C-EA2 may later
+consume only an accepted explicit capability; neither is selected here. A lead
+can supersede this decision in this heading, the C-07 ticket/plan and
+`carbon/orchestration`. No human-reserved input is needed to test this bounded
+slice. Protected admission remains fail closed pending the named scientific,
+security, signer/custody and archive authorities.

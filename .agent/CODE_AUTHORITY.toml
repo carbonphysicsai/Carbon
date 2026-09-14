@@ -30,6 +30,7 @@ implementation_roots = [
     "carbon/measurement",
     "carbon/measurement_runtime",
     "carbon/observability",
+    "carbon/orchestration",
     "carbon/practice",
     "carbon/qualification",
     "carbon/reconstruction",
