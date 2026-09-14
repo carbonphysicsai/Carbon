@@ -1,7 +1,10 @@
 # C-08 — Authenticated Miner MCP end to end
 
 **Wave:** C1 real scientific execution foundations
-**Status:** `in_progress`
+**Status:** `done` in bounded non-official DEVELOPMENT scope after PR #167
+accepted exact head `17e72cfd97c12512dd9a6a08a6b8329974422328` in run
+`34816242461` and normally merged as
+`ed6047d03cf60db6ce52f03e63040d95c1ea78e4`
 **Status scope:** bounded non-official DEVELOPMENT composition
 **Selected slice:** authenticated NET-2 + A9 + real-path C-07 association,
 without a public listener or official result authority
@@ -69,7 +72,7 @@ research paths remain nominally distinct and cannot satisfy a real result.
   source submission, C-01 attempt and returned C-07 DEVELOPMENT projection
   without making transport an authority over any of them. Official result and
   archive association remain structurally unavailable.
-- [ ] Pass the exact-head automated acceptance, including the mandatory Linux
+- [x] Pass the exact-head automated acceptance, including the mandatory Linux
   installed-SDK/service-backed lane, and normally merge.
 
 ## Authority ceiling
@@ -90,5 +93,7 @@ through the original transport receipt.
 
 Focused CPU/invariant/classifier tests pass locally. The installed Bittensor SDK
 test is registered in the existing C-03/C-04/C-05/C-07 Linux service lane and
-must execute in exact-head acceptance; the native Mac JAX environment does not
-carry that chain dependency and supplies no substitute result.
+passed in exact-head run `34816242461`; the native Mac JAX environment does not
+carry that chain dependency and supplies no substitute result. The accepted
+worker image/config is
+`sha256:51f3ddafea959b7b929d72c008fb2334830a431370f0743c609b159a30059752`.
