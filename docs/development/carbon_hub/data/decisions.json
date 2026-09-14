@@ -2624,6 +2624,37 @@
       ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/139",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/main/Business/Carbon_Fit/workbench/docs/GOAL_WORKBENCH_03_REHEARSAL_REPORT.md"
+    },
+    {
+      "title": "Prepare a separate fail-closed private-alpha archive profile",
+      "question": "How should C-EA1 implement the owner-selected alpha archive targets before provider, custody, recovery, security and deployment inputs exist?",
+      "recommendation": "Preserve the accepted synthetic acknowledgement unchanged. Freeze the alpha policy in a separate content-bound profile, require every external deployment input explicitly, reuse existing PostgreSQL/object/encryption adapters only in a dedicated non-secret preflight, and keep real acknowledgement plus C-EA2 eligibility structurally false.",
+      "why": "This makes the prospective capacity, retention, artifact and recovery targets executable and reviewable without laundering synthetic evidence, treating a local mock as durability proof, or inventing a provider, credentials, prices or security acceptance.",
+      "if_kept": "C-EA1 can complete a dependency-ready preparation and exact deployment package. Real acknowledgement, C-EA2, protected admission and network use stay unavailable until authorized external services, recoverable keys/data, observed recovery evidence and security/deployment acceptance exist.",
+      "if_changed": "A provider deployment or real acknowledgement must be prospective, bind a new exact deployment identity and observed evidence, preserve historical synthetic/alpha identities, and receive its required external authorization. C-EA2 cannot be selected by relabelling this preflight.",
+      "decision_id": "C-EA1-D2",
+      "map_ref": "WAVE-C/C-EA1",
+      "wave": "C",
+      "ticket": "C-EA1",
+      "attention": "FOR_AWARENESS",
+      "status": "IMPLEMENTED_WORKING_DECISION",
+      "audience": "harsh",
+      "affects": [
+        "WAVE-C",
+        "WAVE-C/C-08",
+        "WAVE-C/C-EA1",
+        "WAVE-C/C-EA2",
+        "WAVE-C/C-09",
+        "SYSTEM/AGENT-EXECUTION",
+        "SYSTEM/CI",
+        "SYSTEM/GOVERNANCE",
+        "SYSTEM/MATURITY",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+      ],
+      "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5661857655",
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/d536836e2ddcd3ca5a59cbdc7c4b8e888be38016/.agent/DECISIONS.md"
     }
   ]
 }

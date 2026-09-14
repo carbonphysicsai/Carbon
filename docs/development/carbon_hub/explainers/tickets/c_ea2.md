@@ -32,7 +32,7 @@ It is unselected and unimplemented; no retention, durability, RTO/RPO, custody/K
 
 ## Current stage
 
-Unselected, unstarted and not dependency-ready because no selected real C1 path or approved real archive profile/acknowledgement exists.
+Unselected, unstarted and not dependency-ready. C-EA1's private-alpha preparation cannot issue an eligible real archive acknowledgement; provider deployment, recoverable custody/recovery evidence, independent security acceptance and deployment authorization remain absent.
 
 ## Maturity ceiling
 
@@ -40,7 +40,7 @@ Future contract only; implementation, testing, real durability and every qualifi
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/f92912a1b3c9cd510d36d5d2d99f3eb58e7f2177/.agent/tickets/C-EA2_archive_before_finalization.md)
-- [C1 dependency graph](https://github.com/carbonphysicsai/Carbon/blob/f92912a1b3c9cd510d36d5d2d99f3eb58e7f2177/.agent/plans/C1_DEPENDENCY_GRAPH.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/d536836e2ddcd3ca5a59cbdc7c4b8e888be38016/.agent/tickets/C-EA2_archive_before_finalization.md)
+- [C1 dependency graph](https://github.com/carbonphysicsai/Carbon/blob/d536836e2ddcd3ca5a59cbdc7c4b8e888be38016/.agent/plans/C1_DEPENDENCY_GRAPH.md)
 
 > The synthetic C-EA1 acknowledgement is structurally ineligible for this real gate.

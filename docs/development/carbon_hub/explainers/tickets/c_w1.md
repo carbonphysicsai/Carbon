@@ -40,7 +40,7 @@ Future contract only; implementation, testing, public-network operation and ever
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/f92912a1b3c9cd510d36d5d2d99f3eb58e7f2177/.agent/tickets/C-W1_testnet_eligibility.md)
-- [C1 dependency graph](https://github.com/carbonphysicsai/Carbon/blob/f92912a1b3c9cd510d36d5d2d99f3eb58e7f2177/.agent/plans/C1_DEPENDENCY_GRAPH.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/d536836e2ddcd3ca5a59cbdc7c4b8e888be38016/.agent/tickets/C-W1_testnet_eligibility.md)
+- [C1 dependency graph](https://github.com/carbonphysicsai/Carbon/blob/d536836e2ddcd3ca5a59cbdc7c4b8e888be38016/.agent/plans/C1_DEPENDENCY_GRAPH.md)
 
 > G2 is LOCALNET_READY only for the exact D6 standard-profile disposable v445 localnet and does not grant testnet eligibility.

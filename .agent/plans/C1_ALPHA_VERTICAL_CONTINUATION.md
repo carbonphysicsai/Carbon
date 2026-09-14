@@ -161,10 +161,14 @@ PR #151 accepted exact C-03 hardening head
 normally merged it as `0cd91bfa6d30f81739ff75e46888f6f1387bd1de`.
 PR #157 accepted exact C-05 head
 `8dbee54dcd5bdea3a76b22812955e31fbe95e8da` in run `34789621325` and normally
-merged it as `e3324691666da6b8987764048d2bfff45e0578b4`. C-06 is now selected for
-its signed non-official DEVELOPMENT receipt, append-only ledger and disclosure
-projections. After its normal tested merge, C-07 is next without another
-owner-selection prompt.
+merged it as `e3324691666da6b8987764048d2bfff45e0578b4`. PR #161 accepted C-06,
+PR #163 accepted C-07, and PR #167 accepted C-08 exact head
+`17e72cfd97c12512dd9a6a08a6b8329974422328` in run `34816242461`, normally
+merging it as `ed6047d03cf60db6ce52f03e63040d95c1ea78e4`. C-EA1's separately
+versioned private-alpha profile preparation is now selected. It may freeze and
+test the owner-supplied policy and isolated service adapters, but real archive
+acknowledgement and C-EA2 remain unavailable until the external deployment,
+recovery and security inputs are supplied and accepted.
 
 The program stops only when further correct implementation needs an actual
 credential, paid deployment, protected-admission approval, independent-review

@@ -33,12 +33,14 @@
 
 **Status:** active in bounded engineering scope because `.agent/WAVE.md` names
 Wave C/C0 and this file as its controlling register.
-**Version:** 2.1
+**Version:** 2.2
 **Activation decision:** `OWNER-WAVE-C0-NET1-01`
-**Selected ticket:** C-08 — `in_progress`
-**Active ticket:** C-08 bounded authenticated DEVELOPMENT composition
-**Next authorized ticket after current merge:** C-EA1 real-profile extension,
-then C-EA2 archive-before-finalization integration.
+**Selected ticket:** C-EA1 — `in_progress`
+**Active ticket:** separately versioned real-profile policy, deployment-input
+contract and isolated non-secret service preflight
+**Next authorized ticket after current merge:** C-EA2 only after an eligible
+real archive acknowledgement exists. Otherwise the selected program stops at
+the exact external deployment/recovery/security boundary.
 `OWNER-C1-BURGERS-ALPHA-01` keeps one selected ticket at a time. Protected
 science, real archive acknowledgement and public-network execution remain
 ineligible.
@@ -75,10 +77,14 @@ merged its signed non-official DEVELOPMENT evidence as
 without gaining protected, truth, score or archive authority. PR #163 accepted
 exact C-07 head `c8990ddc44b57afd15847fe527c1da7ccecb7f18` in run
 `34807243278` and normally merged it as
-`44511ac0e18c1f3b66227e1e46a986074d16ee0c`. C-08 is now selected to compose
-that path with NET-2 authentication and A9 disclosure without changing the
-seven-tool miner workflow.
-**Last completed slice:** C-07 durable DEVELOPMENT orchestration, merged in PR #163
+`44511ac0e18c1f3b66227e1e46a986074d16ee0c`. PR #167 then accepted exact C-08
+head `17e72cfd97c12512dd9a6a08a6b8329974422328` in run `34816242461` and
+normally merged it as `ed6047d03cf60db6ce52f03e63040d95c1ea78e4`, with
+accepted worker image/config
+`sha256:51f3ddafea959b7b929d72c008fb2334830a431370f0743c609b159a30059752`.
+C-EA1 is now selected to prepare the owner-directed alpha profile without
+changing miner workflow or activating a real acknowledgement.
+**Last completed slice:** C-08 authenticated DEVELOPMENT composition, merged in PR #167
 **Primary Hub map_ref:** `WAVE-C`
 
 C-EA1 passed canonical acceptance in run `34558389185` at accepted head
@@ -100,7 +106,10 @@ profile result does not authorize public or chain-dependent C2 execution. The ac
 has delivered C-AUTH1 and C-EA0 before consumers rely on archive semantics.
 C-EA1 is complete only under `OWNER-C-EA1-SYNTHETIC-01`'s closed synthetic
 development profile. Real admission and every production archive input remain
-fail closed. `OWNER-C1-CONTRACTS-01` materializes C-03, C-08, C-09 and the exact
+fail closed. `OWNER-C1-BURGERS-ALPHA-01` separately selects an alpha preparation
+profile whose policy and external-input contract may be implemented/tested while
+real acknowledgement and C-EA2 stay structurally ineligible.
+`OWNER-C1-CONTRACTS-01` materializes C-03, C-08, C-09 and the exact
 C1 dependency graph without activating or implementing another ticket.
 NET-5R's first repair merged in PR
 #132, and PR #133 merged its standard-profile/D4 specification checkpoint as
@@ -143,14 +152,14 @@ production custody, quorum, science or economics blocks only that operation.
 | C-EP3 | Public-reference input acquisition and component probe | done | `.agent/evidence/wave_c/c-ep3.md` | Codex + scientific measurement engineering | Physics/SciML + scientific integration | C-EP2, C-AUTH1 | MQ-045, MQ-048 | S | C1 development |
 | C-AUTH1 | Goal-driven authoring and Burgers V1 import | done | `.agent/evidence/wave_c/c-auth1.md` | Codex + scientific authoring | Scientific integration | C-01 | MQ-045, MQ-048 | L | C1 |
 | C-EA0 | Evidence capture contract | done | `.agent/evidence/wave_c/c-ea0.md` | Codex + evidence architecture | Execution + Operations + data/security + scientific integration | C-AUTH1, C-01, B-GATE | MQ-048, MQ-051 | M | C1 |
-| C-EA1 | Durable evidence archive | done | `.agent/evidence/wave_c/c-ea1.md` | Codex + evidence architecture | Operations + data/security + scientific integration | C-EA0 + OWNER-C-EA1-SYNTHETIC-01 | MQ-048, MQ-051 | L | C1 |
+| C-EA1 | Durable evidence archive | in_progress | `.agent/evidence/wave_c/c-ea1.md` | Codex + evidence architecture | Operations + data/security + scientific integration | C-EA0 | MQ-048, MQ-051 | L | C1 |
 | C-02 | Real declarative reconstruction | in_progress | `.agent/tickets/C-02_real_reconstruction.md` | Physics/SciML + reconstruction engineering | Scientific integration + execution | B-02B, B-03, B-E1, C-01 | MQ-045, MQ-048 | L | C1 |
 | C-03 | Isolated reconstruction worker | in_progress | `.agent/tickets/C-03_isolated_reconstruction_worker.md` (PR #149 capability and PR #151 hardening accepted; broader protected/security scope open) | Codex + execution/SRE engineering | Security + protocol + Physics/SciML | C-01, B-02B, B-02C, A4; C-02 merged adapter capability satisfied | MQ-015 scoped DEVELOPMENT implementation/test evidence; broader review open, MQ-048 | L | C1 |
 | C-04 | Protected reference runtime | done | `.agent/evidence/wave_c/c-04.md` (PR #154 accepted only in bounded public-candidate scope; broader D-03/D-04 qualification remains open) | Scientific reference + execution engineering | Physics/SciML + security | B-04, B-E2 | MQ-045, MQ-048 | L | C1 |
 | C-05 | Real measurement and Score Pack | done | `.agent/plans/C-05_measurement_runtime.md` (bounded public-candidate engineering accepted; broader qualification open) | Scientific measurement engineering | Physics/SciML + statistics | B-05, C-04; C-02 bounded adapter capability is satisfied and broader closure is non-blocking | MQ-045, MQ-048 | L | C1 |
 | C-06 | Signed evaluation receipt | done | `.agent/evidence/wave_c/c-06.md` (PR #161 accepted non-official DEVELOPMENT receipt slice; official/custody scope open) | Scientific integration + receipt engineering | Security + Physics/SciML | C-01, C-02, C-04, C-05 | MQ-048, MQ-051 | L | C1 |
 | C-07 | Real validator orchestration | done | `.agent/evidence/wave_c/c-07.md` (PR #163 accepted the bounded non-official DEVELOPMENT composition; broader official/protected scope remains open) | Validator orchestration engineering | Scientific integration + security | C-01, C-02, C-03, C-04, C-05, C-06 | MQ-048, MQ-051 | L | C1 |
-| C-08 | Authenticated miner MCP end to end | in_progress | `.agent/plans/C-08_authenticated_miner_mcp_e2e.md` (selected bounded authenticated DEVELOPMENT composition) | Codex + API/protocol engineering | Protocol + security + scientific integration | NET-2, C-07, A9 | MQ-051, MQ-054 | L | C1/C2 |
+| C-08 | Authenticated miner MCP end to end | done | `.agent/evidence/wave_c/c-08.md` (PR #167 accepted) | Codex + API/protocol engineering | Protocol + security + scientific integration | NET-2, C-07, A9 | MQ-051, MQ-054 | L | C1/C2 |
 | C-EA2 | Archive before finalization | todo | `.agent/tickets/C-EA2_archive_before_finalization.md` | Evidence archive + validator integration | Operations + data/security + scientific integration | C-EA1, C-07 | MQ-048, MQ-051 | L | C1 |
 | C-09 | Official testnet publication provider | todo | `.agent/tickets/C-09_official_testnet_publication_provider.md` | Codex + publication/protocol engineering | Protocol + scientific integration + security | A10, C-06, C-07, C-EA2 | MQ-048, MQ-054 | L | C1/C2 |
 | C-W1 | Exact real testnet eligibility provenance | todo | `.agent/tickets/C-W1_testnet_eligibility.md` | Network/protocol + scientific integration | Security + Physics/SciML | C-09, C-EA2 | MQ-048, MQ-054 | M | C2 |
@@ -184,8 +193,9 @@ scientifically qualified. C-EA1 accepted head
 `34558389185` and normally merged in PR #136 as
 `0e0714c8260ca482a0ba2b743b2eaefd50508da1`. Its runtime is limited to the
 exact synthetic development profile and cannot acknowledge real evidence or
-satisfy C-EA2. C-03, C-08 and C-09 are contract-only; C-EA2 and every later
-runtime ticket remain unselected and dependency-blocked.
+satisfy C-EA2. C-03 and C-08 now have bounded DEVELOPMENT implementations;
+C-09 remains contract-only. The selected alpha preparation cannot itself satisfy
+C-EA2, which remains unselected and dependency-blocked.
 
 C-EP1 accepted head `e0fbb6208cf0bf95910d51e7a3c996b09387a14e`
 passed RUNTIME_FULL run `34708322417` and normally merged in PR #143 as

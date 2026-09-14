@@ -4,19 +4,19 @@
 
 **Map ref:** `WAVE-C/C-EA1`
 
-**Status:** DONE
+**Status:** IN_PROGRESS
 
 **Target phase:** C1
 
 ## What and why
 
-Implement a separately versioned runtime archive contract with admission, stage journaling, immutable object writes, manifest verification, catalogue transaction, outbox and positive availability acknowledgement.
+Preserve the accepted synthetic runtime while preparing the separately versioned private-alpha policy, closed external deployment inputs, capacity/retention rules and isolated non-secret service preflight.
 
-The synthetic profile proves that acknowledgement follows exact required-artifact, policy, catalogue, key and current-object verification rather than an upload, pointer, row or digest.
+The alpha path must make its owner-selected operating targets executable without relabelling fixture durability or inventing provider, recovery, custody, security or deployment evidence.
 
 ## What it adds
 
-A separately versioned closed runtime with pre-dispatch admission, PostgreSQL catalogue/migration and outbox, encrypted restart-safe journal, immutable loopback object storage, manifest/current-availability verification, idempotent effects, quotas and reconciliation.
+A content-bound alpha profile, one-evaluation/20 GiB backpressure policy, 90-day/open-obligation retention rule, closed configuration doctor, exact deployment package and PostgreSQL/encrypted-object preflight under a dedicated test tenant.
 
 ## Placement and handoff
 
@@ -28,22 +28,23 @@ A separately versioned closed runtime with pre-dispatch admission, PostgreSQL ca
 
 ## Explicit non-goals
 
-It rejects real/customer/protected/official evidence and does not supply production retention, custody/KMS, replication, correlated-loss durability, availability, RTO/RPO, security qualification, real finalization or network eligibility.
+It cannot issue a real acknowledgement or satisfy C-EA2, and supplies no provider deployment, recovery proof, independent security acceptance, protected admission, production, network or LIVE authority.
 
 ## Current stage
 
-Done only for carbon.synthetic-evidence-archive.dev.v1 after accepted head a779af066f4bf9bc36b6d6ab23914fa19191e1de passed run 34558389185 and normally merged in PR #136 as 0e0714c8260ca482a0ba2b743b2eaefd50508da1. C-EA2 is not selected or implemented.
+After accepted C-08 PR #167, OWNER-C1-BURGERS-ALPHA-01 selects C-EA1's separately versioned private-alpha preparation. The candidate freezes the one-evaluation/20 GiB, 90-day/open-obligation and single-host-loss/24-hour targets, adds a closed external-input doctor, and reuses isolated non-secret services; real acknowledgement and C-EA2 eligibility remain structurally false.
 
 ## Maturity ceiling
 
-Specified, implemented and tested only for non-secret synthetic fixtures on one disposable host/tenant. No real archive durability, security, production, scientific qualification, network or LIVE maturity is earned.
+Synthetic acknowledgement remains tested only in its accepted fixture scope. The alpha profile is specified and implemented as fail-closed preparation; real acknowledgement, durability/recovery, security, protected, production, network and LIVE maturity remain unearned.
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/f92912a1b3c9cd510d36d5d2d99f3eb58e7f2177/.agent/tickets/C-EA1_durable_evidence_archive.md)
-- [Evidence capture contract](https://github.com/carbonphysicsai/Carbon/blob/f92912a1b3c9cd510d36d5d2d99f3eb58e7f2177/Design_Specs/Evidence_Archive_and_Custody.md)
-- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/f92912a1b3c9cd510d36d5d2d99f3eb58e7f2177/.agent/WAVE_C.md)
-- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/f92912a1b3c9cd510d36d5d2d99f3eb58e7f2177/.agent/evidence/wave_c/c-ea1.md)
-- [Synthetic archive runbook](https://github.com/carbonphysicsai/Carbon/blob/f92912a1b3c9cd510d36d5d2d99f3eb58e7f2177/docs/development/EVIDENCE_ARCHIVE_SYNTHETIC.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/d536836e2ddcd3ca5a59cbdc7c4b8e888be38016/.agent/tickets/C-EA1_durable_evidence_archive.md)
+- [Evidence capture contract](https://github.com/carbonphysicsai/Carbon/blob/d536836e2ddcd3ca5a59cbdc7c4b8e888be38016/Design_Specs/Evidence_Archive_and_Custody.md)
+- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/d536836e2ddcd3ca5a59cbdc7c4b8e888be38016/.agent/WAVE_C.md)
+- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/d536836e2ddcd3ca5a59cbdc7c4b8e888be38016/.agent/evidence/wave_c/c-ea1.md)
+- [Synthetic archive runbook](https://github.com/carbonphysicsai/Carbon/blob/d536836e2ddcd3ca5a59cbdc7c4b8e888be38016/docs/development/EVIDENCE_ARCHIVE_SYNTHETIC.md)
+- [Private-alpha preparation runbook](https://github.com/carbonphysicsai/Carbon/blob/d536836e2ddcd3ca5a59cbdc7c4b8e888be38016/docs/development/EVIDENCE_ARCHIVE_ALPHA_PROFILE.md)
 
-> Only synthetic INTERNAL_AUDIT is eligible. The profile-scoped acknowledgement cannot satisfy real C1 finalization, C-W1, weights, settlement or qualification.
+> The accepted synthetic acknowledgement is unchanged. The alpha doctor names missing external inputs, and even a complete reference document remains ineligible until real activation, recovery and security evidence exist.

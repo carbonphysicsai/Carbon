@@ -63,3 +63,17 @@ def test_profile_and_service_are_closed_to_synthetic_loopback_scope() -> None:
     assert "AdmissionKind.FIXTURE" in model
     assert '"127.0.0.1"' in objects
     assert "self.server.tenant_id" in objects
+
+
+def test_alpha_profile_preparation_cannot_issue_ack_or_finalize() -> None:
+    source = (ROOT / "carbon/evidence_archive/alpha_profile.py").read_text(
+        encoding="utf-8"
+    )
+    assert 'ALPHA_PROFILE_ID = "carbon.alpha-evidence-archive.private.v1"' in source
+    assert "acknowledgement_implemented: bool = False" in source
+    assert "eligible_for_real_acknowledgement: bool = False" in source
+    assert "eligible_for_c_ea2: bool = False" in source
+    assert "ArchiveAcknowledgement" not in source
+    assert "EvidenceArchive(" not in source
+    assert "finalize_submission" not in source
+    assert "carbon.chain" not in source

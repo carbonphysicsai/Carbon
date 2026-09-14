@@ -84,9 +84,9 @@ class NewcomerProjectionTests(unittest.TestCase):
 
     def test_current_stage_comes_only_from_canonical_position(self) -> None:
         current = self.data["current"]
-        self.assertEqual(current["last_completed_ticket"]["id"], "C-07")
+        self.assertEqual(current["last_completed_ticket"]["id"], "C-08")
         self.assertEqual(current["last_completed_ticket"]["status"], "done")
-        self.assertEqual(current["selected_ticket"]["id"], "C-08")
+        self.assertEqual(current["selected_ticket"]["id"], "C-EA1")
         self.assertEqual(current["selected_ticket"]["status"], "in_progress")
         self.assertIsNone(current["next_selected_ticket"])
         self.assertFalse(
@@ -101,8 +101,8 @@ class NewcomerProjectionTests(unittest.TestCase):
         )
         self.assertIn("required run 34807243278", self.output)
         self.assertIn("OWNER-C1-BURGERS-ALPHA-01", self.output)
-        self.assertIn("selects C-08 alone", self.output)
-        self.assertIn("adds no public listener", self.output)
+        self.assertIn("selects C-EA1 alone", self.output)
+        self.assertIn("issues no real archive acknowledgement", self.output)
 
     def test_changing_canonical_position_reprojects_every_current_surface(self) -> None:
         changed = dict(self.data)

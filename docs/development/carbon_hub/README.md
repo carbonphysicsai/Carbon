@@ -11,12 +11,12 @@ When browsing on GitHub, start with **`orientation/START_HERE.md`**. It is the p
 - 14 waves (A-N)
 - 68 captured tickets across Wave A, Wave B, and Wave C
 - 7 protocol-change routes
-- 120 map-level change events
+- 121 map-level change events
 - 8 independent maturity states
 
 ## Captured current position
 
-Wave **C**; current ticket: **C-08**. Last completed: **C-07** (`done`). Next selected: **none selected**. C-07 is the last bounded completed slice after PR #163 accepted exact head c8990ddc44b57afd15847fe527c1da7ccecb7f18 in run 34807243278 and normally merged as 44511ac0e18c1f3b66227e1e46a986074d16ee0c. OWNER-C1-BURGERS-ALPHA-01 now selects C-08 alone for bounded authenticated DEVELOPMENT composition. No later ticket is selected while C-08 is active. The candidate reuses NET-2 authentication, the exact A9 seven-tool interface and C-07/C-01 durability, recording intent before source mutation and retaining exact requester, Challenge, submission, attempt and outcome association. It adds no public listener, fee, scorer, official result, archive acknowledgement, network or reward effect. The trusted single-tenant host model, three-replica working profile, candidate reference roles and prospective archive targets grant no scientific sufficiency, independent security acceptance, protected admission, real archive acknowledgement, production, public network or LIVE authority. D6 run 34518806217 remains historical LOCALNET_READY evidence for its exact disposable standard-profile localnet.
+Wave **C**; current ticket: **C-EA1**. Last completed: **C-08** (`done`). Next selected: **none selected**. C-08 is the last bounded completed slice after PR #167 accepted exact head 17e72cfd97c12512dd9a6a08a6b8329974422328 in run 34816242461 and normally merged as ed6047d03cf60db6ce52f03e63040d95c1ea78e4. OWNER-C1-BURGERS-ALPHA-01 now selects C-EA1 alone for fail-closed private-alpha archive preparation. No later ticket is selected while C-EA1 is active. The candidate preserves the accepted synthetic acknowledgement, freezes the prospective alpha policy, requires exact external provider/custody/recovery/security/deployment references, and tests only a dedicated non-secret service preflight. It issues no real archive acknowledgement and cannot satisfy C-EA2. No provider resources, spend, protected admission, independent security acceptance, public network or LIVE authority exist. D6 run 34518806217 remains historical LOCALNET_READY evidence for its exact disposable standard-profile localnet.
 
 ## Maintain
 
