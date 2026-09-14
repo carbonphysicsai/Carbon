@@ -7,26 +7,13 @@ from pathlib import Path
 
 import pytest
 
-from carbon.audit.model import LedgerReceiptRef
-from carbon.reexecution.model import (
-    ComparisonDisposition,
-    ExecutionProvenance,
-    ExecutionResourceObservation,
-    ReexecutionOutcome,
-    ResourceObservationState,
-)
 from tests.invariants._import_analysis import direct_import_modules
 
 pytestmark = pytest.mark.invariant
 
 ROOT = Path(__file__).resolve().parents[2]
 FILES = tuple(sorted((ROOT / "carbon" / "reexecution").glob("*.py")))
-
-
-def _sha(label: str) -> str:
-    import hashlib
-
-    return "sha256:" + hashlib.sha256(label.encode("ascii")).hexdigest()
+MODEL = ROOT / "carbon" / "reexecution" / "model.py"
 
 
 def test_reexecution_modules_have_no_scoring_archive_network_or_reward_authority() -> (
@@ -83,55 +70,80 @@ def test_reexecution_modules_open_no_network_process_or_dynamic_code_surface() -
 
 
 def test_every_outcome_authority_field_is_structurally_false() -> None:
-    primary = ExecutionProvenance(
-        "primary",
-        "host",
-        "administrators",
-        _sha("hardware"),
-        _sha("source"),
-        _sha("image"),
-        (_sha("primary-launch"),),
-        (_sha("primary-scratch"),),
+    tree = ast.parse(MODEL.read_text(encoding="utf-8"), filename=str(MODEL))
+    marker = next(
+        node.value
+        for node in tree.body
+        if isinstance(node, ast.Assign)
+        and any(
+            isinstance(target, ast.Name) and target.id == "AUTHORITY_MARKER"
+            for target in node.targets
+        )
     )
-    repeated = ExecutionProvenance(
-        "reexecution",
-        "host",
-        "administrators",
-        _sha("hardware"),
-        _sha("source"),
-        _sha("image"),
-        (_sha("reexecution-launch"),),
-        (_sha("reexecution-scratch"),),
+    assert ast.literal_eval(marker) == (
+        "DEVELOPMENT_REEXECUTION_ONLY_NOT_SCIENTIFIC_RESOLUTION"
     )
-    resource = ExecutionResourceObservation(
-        ResourceObservationState.UNAVAILABLE, 0.0, None, None, None, None, None
+
+    outcome = next(
+        node
+        for node in tree.body
+        if isinstance(node, ast.ClassDef) and node.name == "ReexecutionOutcome"
     )
-    receipt = LedgerReceiptRef(1, "receipt", _sha("receipt"), _sha("entry"))
-    outcome = ReexecutionOutcome(
-        "c10-invariant",
-        _sha("request"),
-        ComparisonDisposition.EXACT_BYTES_AGREE_DEVELOPMENT,
-        _sha("primary-account"),
-        _sha("reexecution-account"),
-        receipt,
-        LedgerReceiptRef(2, "reexecution-receipt", _sha("receipt-2"), _sha("entry-2")),
-        (),
-        (_sha("shared"),),
-        primary,
-        repeated,
-        resource,
-        resource,
-    )
-    authority = outcome.document()["authority"]
-    assert type(authority) is dict
-    assert (
-        authority["marker"] == "DEVELOPMENT_REEXECUTION_ONLY_NOT_SCIENTIFIC_RESOLUTION"
-    )
-    assert set(authority.values()) == {
-        False,
-        "DEVELOPMENT_REEXECUTION_ONLY_NOT_SCIENTIFIC_RESOLUTION",
+    authority_fields = {
+        "comparison_policy_qualified",
+        "scientific_resolution",
+        "official",
+        "publishable_winner",
+        "archive_eligible",
+        "network_eligible",
+        "weight_eligible",
+        "reward_eligible",
     }
+    defaults = {
+        node.target.id: node.value.value
+        for node in outcome.body
+        if isinstance(node, ast.AnnAssign)
+        and isinstance(node.target, ast.Name)
+        and node.target.id in authority_fields
+        and isinstance(node.value, ast.Constant)
+    }
+    assert defaults == dict.fromkeys(authority_fields, False)
+
+    document = next(
+        node
+        for node in outcome.body
+        if isinstance(node, ast.FunctionDef) and node.name == "document"
+    )
+    returned = next(
+        node.value for node in ast.walk(document) if isinstance(node, ast.Return)
+    )
+    assert isinstance(returned, ast.Dict)
+    authority = next(
+        value
+        for key, value in zip(returned.keys, returned.values, strict=True)
+        if isinstance(key, ast.Constant) and key.value == "authority"
+    )
+    assert isinstance(authority, ast.Dict)
+    projected = {
+        key.value: value
+        for key, value in zip(authority.keys, authority.values, strict=True)
+        if isinstance(key, ast.Constant)
+    }
+    assert set(projected) == authority_fields | {"marker"}
+    assert all(
+        isinstance(projected[name], ast.Constant) and projected[name].value is False
+        for name in authority_fields
+    )
+    assert ast.dump(projected["marker"]) == ast.dump(
+        ast.Attribute(
+            value=ast.Name(id="self", ctx=ast.Load()),
+            attr="authority_marker",
+            ctx=ast.Load(),
+        )
+    )
+
     source = "\n".join(path.read_text(encoding="utf-8") for path in FILES)
+    assert "value is not False" in source
     for forbidden in (
         "ArchiveAcknowledgement(",
         "ScoreResult(",
