@@ -4772,6 +4772,9 @@ events:
     summary: "PR #161 accepted exact C-06 head bad0b05c7683af67caa5fbd9fe9a8e11fda588da in required run 34797587027 and normally merged it as 0c00350b98b9a0062006f5bd2ce50c20aff37b3c. The signed append-only receipt is tested only for non-official DEVELOPMENT evidence; scientific/security acceptance, official signer custody and real archive/network authority remain open."
     primary_detail: "https://github.com/carbonphysicsai/Carbon/actions/runs/34797587027"
     affects:
+      - "WAVE-B"
+      - "WAVE-B/B-E4"
+      - "WAVE-B/B-GATE"
       - "WAVE-C"
       - "WAVE-C/C-01"
       - "WAVE-C/C-02"
