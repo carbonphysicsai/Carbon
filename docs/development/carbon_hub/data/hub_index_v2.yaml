@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-14T06:04:08Z"
+  captured_at_utc: "2026-09-14T06:11:39Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "ba88709e3c34ec6bba535fb09129f7e9e7500a57"
+  authority_snapshot_commit: "bada422dcacf172c96ee6eba626f14110652c6aa"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -4866,7 +4866,7 @@ events:
     owner_lane: "api_protocol_engineering"
     status: "implemented"
     summary: "The selected C-08 candidate composes NET-2 authentication, exact A9 results and C-07/C-01 DEVELOPMENT orchestration with durable pre-mutation intent, exact ambiguity reconciliation and requester/Challenge/attempt association. Focused tests pass locally; exact-head installed-SDK Linux service acceptance is pending and every protected, official, archive, network and reward authority remains false."
-    primary_detail: "https://github.com/carbonphysicsai/Carbon/blob/ba88709e3c34ec6bba535fb09129f7e9e7500a57/.agent/evidence/wave_c/c-08.md"
+    primary_detail: "https://github.com/carbonphysicsai/Carbon/blob/bada422dcacf172c96ee6eba626f14110652c6aa/.agent/evidence/wave_c/c-08.md"
     affects:
       - "WAVE-C"
       - "WAVE-C/NET-2"

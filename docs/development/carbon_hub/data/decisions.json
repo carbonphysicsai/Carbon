@@ -2597,7 +2597,7 @@
         "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
       ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5659454050",
-      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/ba88709e3c34ec6bba535fb09129f7e9e7500a57/.agent/plans/C-08_authenticated_miner_mcp_e2e.md"
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/bada422dcacf172c96ee6eba626f14110652c6aa/.agent/plans/C-08_authenticated_miner_mcp_e2e.md"
     },
     {
       "title": "Rehearse goal-to-Challenge handoffs before selecting connector automation",
