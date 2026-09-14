@@ -13,7 +13,7 @@ fail-closed slice and cannot acknowledge real evidence
 **Accountable reviewer:** Operations + data/security + scientific integration
 **Selection authority:** `OWNER-C1-BURGERS-ALPHA-01` for the active slice
 **Runtime decisions:** `C-EA1-D1` (synthetic), `C-EA1-D2` (alpha preparation)
-**Delivery:** PR #136 for synthetic; active alpha delivery pending
+**Delivery:** PR #136 for synthetic; alpha preparation accepted in PR #168
 **Goal:** Implement the catalogue, immutable artifact store, verified manifests, journal, outbox, and availability acknowledgement defined by C-EA0 without creating real-finalization authority.
 
 ## Selected profile
@@ -149,9 +149,12 @@ into durability or security acceptance.
 - [x] External deployment inputs are closed, bounded, explicit, and fail closed.
 - [x] Capacity, retention, parsing, eligibility and no-authority-expansion tests
   pass locally.
-- [ ] Actual Linux service-backed preflight and applicable acceptance pass at the
-  final reviewed head.
-- [ ] The alpha preparation PR is normally merged.
+- [x] Actual Linux service-backed preflight and applicable acceptance passed at
+  accepted head `ea51a947bbf21908144f93ffb04b5e9cc46de519` in run
+  `34830155526`.
+- [x] PR #168 normally merged as
+  `0ee4c9b8db8339740521e2afc72624c97d8e177a`, with accepted/merged tree
+  `e11b05b60909748f5c152f53ca0e65b0b5696d3c`.
 
 Real provider/project/region configuration, custody principals, recoverable
 key/catalogue/journal/object dependencies, cost authorization, actual recovery

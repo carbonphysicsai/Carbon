@@ -26,8 +26,10 @@ from .model import (
     ClaimedExecution,
     DurableExecutionBinding,
     ExecutionAttemptRef,
+    ExecutionAttemptRelation,
     ExecutionCode,
     ExecutionFailure,
+    ExecutionRelationKind,
     ExecutionResultRefs,
     ExecutionScope,
     ExecutionStage,
@@ -227,6 +229,19 @@ class DurableExecutionQueue:
                     kind TEXT NOT NULL,
                     body TEXT NOT NULL,
                     body_digest TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS execution_relation_v1 (
+                    submission_id TEXT NOT NULL,
+                    attempt_number INTEGER NOT NULL,
+                    relation_kind TEXT NOT NULL,
+                    source_submission_id TEXT NOT NULL,
+                    source_attempt_number INTEGER NOT NULL,
+                    PRIMARY KEY(submission_id,attempt_number),
+                    UNIQUE(source_submission_id,source_attempt_number,relation_kind),
+                    FOREIGN KEY(submission_id,attempt_number)
+                        REFERENCES execution_attempt_v1(submission_id,attempt_number),
+                    FOREIGN KEY(source_submission_id,source_attempt_number)
+                        REFERENCES execution_attempt_v1(submission_id,attempt_number)
                 );
                 """)
             # ``executescript`` owns its transaction boundary.  Start the
@@ -462,6 +477,155 @@ class DurableExecutionQueue:
                 {"scope": binding.scope.value},
             )
         return WriteDisposition.INSERTED
+
+    @staticmethod
+    def _same_material(
+        source: DurableExecutionBinding, candidate: DurableExecutionBinding
+    ) -> bool:
+        return (
+            source.requester_identity == candidate.requester_identity
+            and source.strategy_hash == candidate.strategy_hash
+            and source.handle.submission_id == candidate.handle.submission_id
+            and source.handle.admission_kind is candidate.handle.admission_kind
+            and source.handle.seed_pin == candidate.handle.seed_pin
+            and source.handle.environment_pin == candidate.handle.environment_pin
+            and source.scope is candidate.scope
+            and source.resolved_plan_digest == candidate.resolved_plan_digest
+            and source.reconstruction_policy_digest
+            == candidate.reconstruction_policy_digest
+            and source.resource_policy_digest == candidate.resource_policy_digest
+            and source.protected_evaluation_policy_digest
+            == candidate.protected_evaluation_policy_digest
+        )
+
+    def admit_reexecution(
+        self,
+        binding: DurableExecutionBinding,
+        *,
+        source: ExecutionAttemptRef,
+    ) -> WriteDisposition:
+        """Admit one linked audit execution without granting retry semantics."""
+
+        if (
+            type(binding) is not DurableExecutionBinding
+            or type(source) is not ExecutionAttemptRef
+        ):
+            raise ExecutionFailure(ExecutionCode.INVALID)
+        binding = _load_binding(_canonical(_binding_payload(binding)))
+        source = self._owned_ref(source)
+        ref = binding.ref
+        if (
+            ref.submission_id != source.submission_id
+            or ref.attempt_number <= source.attempt_number
+        ):
+            raise ExecutionFailure(ExecutionCode.CONFLICT)
+        encoded = _canonical(_binding_payload(binding))
+        digest = _digest(encoded)
+        with self._transaction() as db:
+            source_row = self._row(db, source)
+            if ExecutionState(source_row[3]) is not ExecutionState.RESULT_RECORDED:
+                raise ExecutionFailure(ExecutionCode.STATE)
+            source_binding = _load_binding(source_row[1])
+            if not self._same_material(source_binding, binding):
+                raise ExecutionFailure(ExecutionCode.CONFLICT)
+            existing = db.execute(
+                "SELECT binding,binding_digest FROM execution_attempt_v1 "
+                "WHERE submission_id=? AND attempt_number=?",
+                (ref.submission_id.value, ref.attempt_number),
+            ).fetchone()
+            relation = db.execute(
+                "SELECT relation_kind,source_submission_id,source_attempt_number "
+                "FROM execution_relation_v1 WHERE submission_id=? AND attempt_number=?",
+                (ref.submission_id.value, ref.attempt_number),
+            ).fetchone()
+            expected_relation = (
+                ExecutionRelationKind.REEXECUTION_OF.value,
+                source.submission_id.value,
+                source.attempt_number,
+            )
+            if existing is not None:
+                if existing != (encoded, digest) or relation != expected_relation:
+                    raise ExecutionFailure(ExecutionCode.CONFLICT)
+                return WriteDisposition.ALREADY_PRESENT
+            if relation is not None:
+                raise ExecutionFailure(ExecutionCode.CONFLICT)
+            if (
+                db.execute("SELECT count(*) FROM execution_attempt_v1").fetchone()[0]
+                >= self.capacity
+            ):
+                raise ExecutionFailure(ExecutionCode.CAPACITY)
+            maximum = db.execute(
+                "SELECT MAX(attempt_number) FROM execution_attempt_v1 "
+                "WHERE submission_id=?",
+                (ref.submission_id.value,),
+            ).fetchone()[0]
+            if maximum is None or ref.attempt_number != maximum + 1:
+                raise ExecutionFailure(ExecutionCode.CONFLICT)
+            if db.execute(
+                "SELECT 1 FROM execution_relation_v1 WHERE source_submission_id=? "
+                "AND source_attempt_number=? AND relation_kind=?",
+                (
+                    source.submission_id.value,
+                    source.attempt_number,
+                    ExecutionRelationKind.REEXECUTION_OF.value,
+                ),
+            ).fetchone():
+                raise ExecutionFailure(ExecutionCode.CONFLICT)
+            db.execute(
+                "INSERT INTO execution_attempt_v1 "
+                "(submission_id,attempt_number,requester_identity,binding,"
+                "binding_digest,state) VALUES (?,?,?,?,?,?)",
+                (
+                    ref.submission_id.value,
+                    ref.attempt_number,
+                    binding.requester_identity.value,
+                    encoded,
+                    digest,
+                    ExecutionState.QUEUED.value,
+                ),
+            )
+            db.execute(
+                "INSERT INTO execution_relation_v1 VALUES (?,?,?,?,?)",
+                (
+                    ref.submission_id.value,
+                    ref.attempt_number,
+                    ExecutionRelationKind.REEXECUTION_OF.value,
+                    source.submission_id.value,
+                    source.attempt_number,
+                ),
+            )
+            self._event(
+                db,
+                ref.submission_id.value,
+                ref.attempt_number,
+                "ADMITTED_REEXECUTION",
+                {
+                    "budget_reset": False,
+                    "relation_kind": ExecutionRelationKind.REEXECUTION_OF.value,
+                    "source_attempt_number": source.attempt_number,
+                },
+            )
+        return WriteDisposition.INSERTED
+
+    def relation(self, ref: ExecutionAttemptRef) -> ExecutionAttemptRelation | None:
+        ref = self._owned_ref(ref)
+        with self._transaction() as db:
+            self._row(db, ref)
+            row = db.execute(
+                "SELECT relation_kind,source_submission_id,source_attempt_number "
+                "FROM execution_relation_v1 WHERE submission_id=? AND attempt_number=?",
+                (ref.submission_id.value, ref.attempt_number),
+            ).fetchone()
+        if row is None:
+            return None
+        try:
+            return ExecutionAttemptRelation(
+                ref,
+                ExecutionAttemptRef(SubmissionId(row[1]), row[2]),
+                ExecutionRelationKind(row[0]),
+            )
+        except (ValueError, ExecutionFailure):
+            raise ExecutionFailure(ExecutionCode.STORE) from None
 
     def claim_next(
         self, worker_id: str, *, claim_id: str | None = None

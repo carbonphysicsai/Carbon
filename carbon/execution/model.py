@@ -80,6 +80,10 @@ class WriteDisposition(str, Enum):
     ALREADY_PRESENT = "ALREADY_PRESENT"
 
 
+class ExecutionRelationKind(str, Enum):
+    REEXECUTION_OF = "REEXECUTION_OF"
+
+
 def _tagged_digest(value: object) -> str:
     if type(value) is not str or not is_sha256_digest(value):
         raise ExecutionFailure(ExecutionCode.INVALID)
@@ -140,6 +144,38 @@ class ExecutionAttemptRef:
         if type(self.attempt_number) is not int or not 1 <= self.attempt_number < 2**63:
             raise ExecutionFailure(ExecutionCode.INVALID)
         object.__setattr__(self, "submission_id", submission)
+
+
+@dataclass(frozen=True, slots=True, repr=False)
+class ExecutionAttemptRelation:
+    """C-01-owned link for additional work that is not an ordinary retry."""
+
+    attempt: ExecutionAttemptRef
+    source: ExecutionAttemptRef
+    kind: ExecutionRelationKind
+
+    def __post_init__(self) -> None:
+        if (
+            type(self.attempt) is not ExecutionAttemptRef
+            or type(self.source) is not ExecutionAttemptRef
+            or type(self.kind) is not ExecutionRelationKind
+            or self.kind is not ExecutionRelationKind.REEXECUTION_OF
+            or self.attempt.submission_id != self.source.submission_id
+            or self.attempt.attempt_number == self.source.attempt_number
+        ):
+            raise ExecutionFailure(ExecutionCode.INVALID)
+        object.__setattr__(
+            self,
+            "attempt",
+            ExecutionAttemptRef(
+                self.attempt.submission_id, self.attempt.attempt_number
+            ),
+        )
+        object.__setattr__(
+            self,
+            "source",
+            ExecutionAttemptRef(self.source.submission_id, self.source.attempt_number),
+        )
 
 
 @dataclass(frozen=True, slots=True, repr=False)

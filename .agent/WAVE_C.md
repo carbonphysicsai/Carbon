@@ -35,12 +35,12 @@
 Wave C/C0 and this file as its controlling register.
 **Version:** 2.2
 **Activation decision:** `OWNER-WAVE-C0-NET1-01`
-**Selected ticket:** C-EA1 — `in_progress`
-**Active ticket:** separately versioned real-profile policy, deployment-input
-contract and isolated non-secret service preflight
-**Next authorized ticket after current merge:** C-EA2 only after an eligible
-real archive acknowledgement exists. Otherwise the selected program stops at
-the exact external deployment/recovery/security boundary.
+**Selected ticket:** C-10 — `in_progress`
+**Active ticket:** linked fresh DEVELOPMENT execution, exact-byte observation,
+disagreement journal and fail-closed quarantine
+**Next authorized ticket after current merge:** C-EA1 deployable private-alpha
+archive continuation. C-EA2 remains blocked until an eligible real archive
+acknowledgement and recovery evidence exist.
 `OWNER-C1-BURGERS-ALPHA-01` keeps one selected ticket at a time. Protected
 science, real archive acknowledgement and public-network execution remain
 ineligible.
@@ -82,9 +82,13 @@ head `17e72cfd97c12512dd9a6a08a6b8329974422328` in run `34816242461` and
 normally merged it as `ed6047d03cf60db6ce52f03e63040d95c1ea78e4`, with
 accepted worker image/config
 `sha256:51f3ddafea959b7b929d72c008fb2334830a431370f0743c609b159a30059752`.
-C-EA1 is now selected to prepare the owner-directed alpha profile without
-changing miner workflow or activating a real acknowledgement.
-**Last completed slice:** C-08 authenticated DEVELOPMENT composition, merged in PR #167
+C-EA1 preparation was accepted at exact head
+`ea51a947bbf21908144f93ffb04b5e9cc46de519` in run `34830155526` and normally
+merged in PR #168 as `0ee4c9b8db8339740521e2afc72624c97d8e177a`, with matching
+tree `e11b05b60909748f5c152f53ca0e65b0b5696d3c`. It remains configuration-only
+and cannot issue real acknowledgements. C-10 is now selected for one bounded
+public-data DEVELOPMENT re-execution slice.
+**Last completed slice:** C-EA1 private-alpha preparation, merged in PR #168
 **Primary Hub map_ref:** `WAVE-C`
 
 C-EA1 passed canonical acceptance in run `34558389185` at accepted head
@@ -160,6 +164,7 @@ production custody, quorum, science or economics blocks only that operation.
 | C-06 | Signed evaluation receipt | done | `.agent/evidence/wave_c/c-06.md` (PR #161 accepted non-official DEVELOPMENT receipt slice; official/custody scope open) | Scientific integration + receipt engineering | Security + Physics/SciML | C-01, C-02, C-04, C-05 | MQ-048, MQ-051 | L | C1 |
 | C-07 | Real validator orchestration | done | `.agent/evidence/wave_c/c-07.md` (PR #163 accepted the bounded non-official DEVELOPMENT composition; broader official/protected scope remains open) | Validator orchestration engineering | Scientific integration + security | C-01, C-02, C-03, C-04, C-05, C-06 | MQ-048, MQ-051 | L | C1 |
 | C-08 | Authenticated miner MCP end to end | done | `.agent/evidence/wave_c/c-08.md` (PR #167 accepted) | Codex + API/protocol engineering | Protocol + security + scientific integration | NET-2, C-07, A9 | MQ-051, MQ-054 | L | C1/C2 |
+| C-10 | Independent re-execution and disagreement | in_progress | `.agent/evidence/wave_c/c-10.md` | Codex + validator audit engineering | Scientific integration + security | C-06, C-07 | MQ-048, MQ-051 | L | C1 |
 | C-EA2 | Archive before finalization | todo | `.agent/tickets/C-EA2_archive_before_finalization.md` | Evidence archive + validator integration | Operations + data/security + scientific integration | C-EA1, C-07 | MQ-048, MQ-051 | L | C1 |
 | C-09 | Official testnet publication provider | todo | `.agent/tickets/C-09_official_testnet_publication_provider.md` | Codex + publication/protocol engineering | Protocol + scientific integration + security | A10, C-06, C-07, C-EA2 | MQ-048, MQ-054 | L | C1/C2 |
 | C-W1 | Exact real testnet eligibility provenance | todo | `.agent/tickets/C-W1_testnet_eligibility.md` | Network/protocol + scientific integration | Security + Physics/SciML | C-09, C-EA2 | MQ-048, MQ-054 | M | C2 |
@@ -194,8 +199,9 @@ scientifically qualified. C-EA1 accepted head
 `0e0714c8260ca482a0ba2b743b2eaefd50508da1`. Its runtime is limited to the
 exact synthetic development profile and cannot acknowledge real evidence or
 satisfy C-EA2. C-03 and C-08 now have bounded DEVELOPMENT implementations;
-C-09 remains contract-only. The selected alpha preparation cannot itself satisfy
-C-EA2, which remains unselected and dependency-blocked.
+C-09 remains contract-only. PR #168 accepted the alpha preparation profile,
+which cannot itself satisfy C-EA2. C-10's DEVELOPMENT audit slice is selected;
+C-EA2 remains unselected and dependency-blocked.
 
 C-EP1 accepted head `e0fbb6208cf0bf95910d51e7a3c996b09387a14e`
 passed RUNTIME_FULL run `34708322417` and normally merged in PR #143 as
