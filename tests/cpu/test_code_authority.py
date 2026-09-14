@@ -8,12 +8,11 @@ import json
 import re
 import subprocess
 import sys
+import tomllib
 import zipfile
 from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
-
-import tomllib
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 AUTHORITY_PATH = REPOSITORY_ROOT / ".agent" / "CODE_AUTHORITY.toml"
@@ -1048,7 +1047,7 @@ def test_default_workflow_delegates_all_semantics_to_repository_scripts() -> Non
     assert _yaml_scalar(jobs["dev-image"], "name") == "Clean dev-container image"
     assert (
         _yaml_scalar(jobs["c03-worker"], "name")
-        == "C-03/C-04/C-05/C-07 isolated worker service acceptance"
+        == "C-03/C-04/C-05/C-07/C-08 isolated service acceptance"
     )
     assert _yaml_scalar(jobs["canonical"], "needs") == "preflight"
     assert _yaml_scalar(jobs["dev-image"], "needs") == "preflight"
@@ -1067,7 +1066,7 @@ def test_default_workflow_delegates_all_semantics_to_repository_scripts() -> Non
         "./scripts/dev/c03_worker_image.sh",
         "./scripts/dev/c03_worker_service.sh",
     )
-    assert 'CARBON_UV_GROUPS: "archive science-jax"' in jobs["c03-worker"]
+    assert 'CARBON_UV_GROUPS: "chain archive science-jax"' in jobs["c03-worker"]
     required_repository_commands = (
         "./scripts/dev/ci_preflight.sh",
         "./scripts/dev/bootstrap.sh",

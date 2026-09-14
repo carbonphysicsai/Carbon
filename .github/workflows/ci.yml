@@ -170,7 +170,7 @@ jobs:
           cache-dependency-glob: uv.lock
       - name: Bootstrap locked controller environment
         env:
-          CARBON_UV_GROUPS: "archive science-jax"
+          CARBON_UV_GROUPS: "chain archive science-jax"
         run: ./scripts/dev/bootstrap.sh
       - name: Build exact worker image and manifest
         run: ./scripts/dev/c03_worker_image.sh
