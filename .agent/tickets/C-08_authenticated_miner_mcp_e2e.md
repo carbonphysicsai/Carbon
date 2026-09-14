@@ -1,7 +1,8 @@
 # C-08 — Authenticated Miner MCP end to end
 
 **Wave:** C1 real scientific execution foundations
-**Status:** `in_progress` for the bounded non-official DEVELOPMENT composition
+**Status:** `in_progress`
+**Status scope:** bounded non-official DEVELOPMENT composition
 **Selected slice:** authenticated NET-2 + A9 + real-path C-07 association,
 without a public listener or official result authority
 **Selection authority:** `OWNER-C1-BURGERS-ALPHA-01`, implemented by `C-08-D1`
