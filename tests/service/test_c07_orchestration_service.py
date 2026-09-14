@@ -262,8 +262,8 @@ def test_real_numerical_vertical_produces_non_official_projection_bundle(
         domain_length=1.0,
         viscosity=float(data.viscosity[0]),
         mean=0.0,
-        cosine_coefficients=(0.0, 0.0, 0.0, 0.0),
-        sine_coefficients=(1.0, 0.0, 0.0, 0.0),
+        cosine_coefficients=(0.0,) * 12,
+        sine_coefficients=(1.0,) + (0.0,) * 11,
         environment_digest=runtime_environment_digest(),
         settings=reference_settings(BurgersReferenceRole.CANDIDATE_PRIMARY, 64),
     )
