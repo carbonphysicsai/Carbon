@@ -2,9 +2,9 @@
 
 ## Outcome
 
-The workbench now consumes exact, retained, source-owned C-05 public DEVELOPMENT request/result bytes through a versioned, read-only adapter. One complete result carries four registered measurements and six registered physics defects into the exact job, design revision, requirement trace, and case family. A second retained source-typed `NUMERICAL_FAILURE` fixture proves that non-complete results remain non-execution evidence rather than empty success.
+The workbench now consumes exact, retained, source-owned C-05 public DEVELOPMENT request/result bytes through a versioned, read-only adapter. One complete result carries four registered measurements and six registered physics defects into the exact job, design revision, requirement trace, and case family. A second retained source-typed `NUMERICAL_FAILURE` fixture proves that non-complete results remain non-execution evidence rather than empty success. The fixture registry now pins the complete manual association as well as the numerical identities, so a valid result cannot be rebound to another compatible-looking design or case family.
 
-This is real numerical measurement evidence, not merely the earlier structural trace. It remains unqualified: every imported scientific limit and uncertainty is `null`, every observation decision is `UNRESOLVED_NO_QUALIFIED_LIMIT`, `score_input` is absent, and qualification, protected execution, score, approval, and launch flags remain false.
+This is a newly executed, test-created public fixture retained for exact replay, not the 72-request C-05 campaign and not merely the earlier structural trace. The browser import is a replay of those retained bytes, not a fresh numerical execution. It remains unqualified: every imported scientific limit and uncertainty is `null`, every observation decision is `UNRESOLVED_NO_QUALIFIED_LIMIT`, `score_input` is absent, and qualification, protected execution, score, approval, and launch flags remain false.
 
 ## Source and fixture provenance
 
@@ -13,8 +13,8 @@ This is real numerical measurement evidence, not merely the earlier structural t
 - Generator: `tools/generate_c05_public_fixture.py`, calling `generate_development_case`, `execute_reference`, `build_measurement_request`, and `execute_measurement` without changing source behavior.
 - Exact command: `env PYTHONPATH=. .venv-goal04/bin/python Business/Carbon_Fit/workbench/tools/generate_c05_public_fixture.py`.
 - Environment: Python `3.11.11`; NumPy `2.4.6`; macOS `15.6`, arm64; all C-04 runtime dependency identities matched their repository pins.
-- Case: public EVAL cell 2, parent 0; 64 output points; seven fixed requested times; deterministic `1e-4 sin(x)` candidate perturbation.
-- Retained identities are pinned by `data/c05_fixture_index_v1.json`; exact request/result SHA-256 values are recomputed in the browser before import. `data/c05_evidence_association_v1.json` is the deterministic machine-readable record produced by importing the complete retained bundle.
+- Case: public EVAL cell 2, parent 0; 64 output points; seven fixed requested times spanning `0` through `4 t_c`; deterministic test-created `1e-4 sin(x)` candidate perturbation. This scope differs from the frozen C-05 72-request campaign manifest, which requests three early-time samples through `0.25 t_c`.
+- Retained numerical identities and the manual workbench association are pinned by `data/c05_fixture_index_v1.json`; exact request/result SHA-256 values are recomputed in the browser before import. `data/c05_evidence_association_v1.json` is the deterministic machine-readable record produced by importing the complete retained bundle. This inspectable manual association is not operator authentication and does not prove honest numerical execution.
 
 The first attempted generation without repository `PYTHONPATH` failed with `ModuleNotFoundError`; the second, before all exact runtime packages were installed, failed on the C-04 dependency identity guard. Both causes were corrected without modifying runtime code.
 
@@ -32,6 +32,6 @@ Wave C source code, scientific behavior, active selection, C-05 ticket/evidence,
 
 ## Verification and next decision
 
-Twenty-four focused adapter/workflow tests pass, covering all twenty required positive and negative behaviors. The retained inherited workflow tests pass, the source-owned C-05 CPU file passes, and the built `file://` artifact passes 28 Chrome checks including the exact evidence import. Schema, source, build, manifest, and deterministic bundle checks are maintained separately.
+Twenty-five focused adapter/workflow tests pass, including rejection of an attempted cross-design manual rebind. The retained inherited workflow tests pass, the source-owned C-05 CPU file passes, and the built `file://` artifact passes 28 Chrome checks including the exact evidence import. Schema, source, build, manifest, and deterministic bundle checks are maintained separately.
 
 Recommendation: **B. COLLECT / QUALIFY MISSING SCIENTIFIC FLOOR FIRST.** Raw C-05 evidence is now readable, but its own contract deliberately supplies no qualified limits or uncertainty. Building a ScorePack diagnostic interface before those scientific decisions would automate comparisons whose interpretation is still undefined.
