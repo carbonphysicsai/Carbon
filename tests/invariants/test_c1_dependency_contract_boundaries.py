@@ -78,9 +78,7 @@ def test_jax_and_archive_blocks_remain_complete_and_fail_closed() -> None:
     assert "synthetic-archive" in c09
 
 
-def test_hub_projects_only_development_receipt_and_future_contract_status() -> (
-    None
-):
+def test_hub_projects_only_development_receipt_and_future_contract_status() -> None:
     data = json.loads(_read("docs/development/carbon_hub/data/hub_data_v2.json"))
     current = data["current"]
     assert current["last_completed_ticket"]["id"] == "C-05"

@@ -159,16 +159,16 @@
       "title": "Measure and score the real Challenge under approved science",
       "what": "Apply four registered measurements and six physics diagnostics to exactly bound candidate and reference artifacts in a distinct isolated worker.",
       "why": "Fixture coefficients and missing uncertainty floors cannot decide a real Challenge.",
-      "changes": "The selected candidate adds a bounded protocol/validator, exact replay and a frozen three-replica-by-twelve-case D-05 prerequisite variance/rank-stability harness while preserving challenge-bound scoring and mandatory admissibility.",
-      "not_yet": "Exact-head Linux service acceptance and D-05 scientific applicability, floors, uncertainty, limits and decision resolution remain absent; no real score or qualification exists.",
+      "changes": "PR #157 accepted the bounded protocol/validator, exact replay and frozen three-replica-by-twelve-case D-05 prerequisite variance/rank-stability harness under the C-03 worker profile.",
+      "not_yet": "D-05 scientific applicability, floors, uncertainty, limits and decision resolution remain absent; no real score or qualification exists.",
       "map_ref": "WAVE-C/C-05"
     },
     "C-06": {
       "title": "Sign exact evaluation provenance",
-      "what": "Bind source, execution, reference, measurement and policy identities into a real evaluation receipt.",
+      "what": "Bind exact source, execution, three-replica reconstruction, inference, reference, measurement and policy identities into a signed non-official DEVELOPMENT receipt.",
       "why": "A score or database row cannot prove who evaluated what under which contract.",
-      "changes": "The existing ticket preserves immutable receipt identity and signer boundaries.",
-      "not_yet": "The real evidence chain, signer authorization and custody policy are absent.",
+      "changes": "The selected candidate adds canonical Ed25519-signed receipts, complete digest closure, atomic append/replay, hash-chained supersession/revocation and distinct public/reviewer allow-lists.",
+      "not_yet": "Exact-head acceptance, official signer/custody, scientific/security qualification, protected admission and real archive/network/reward authority remain absent.",
       "map_ref": "WAVE-C/C-06"
     },
     "C-07": {
