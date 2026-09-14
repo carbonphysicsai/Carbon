@@ -2501,6 +2501,32 @@
       ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5656455034",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/pull/156"
+    },
+    {
+      "title": "Realign the offline Workbench around client jobs and verified native handoffs",
+      "question": "How should Carbon carry a client need through requirement, score, case, reference, CPES, authoring and launch preparation without substituting unsupported science or claiming execution authority?",
+      "recommendation": "Use one versioned browser-local job record with immutable design revisions, optional Atlas context, explicit requirement-to-measurement-to-case traceability, design-bound CPES economics, an exact closed Burgers authoring bridge, and idempotent request/response envelopes. Preserve unsupported physics or goals as source-owner extension requests and keep launch as a manual unavailable native integration until its owner supplies a verified interface.",
+      "why": "One record prevents repeated re-entry and makes semantic mismatches visible. Exact result binding, closed imports and least-privilege projections allow preparation and returned evidence to reconnect without granting scientific, security, rights, registration, runtime, sharing or launch authority.",
+      "if_kept": "The maintained WAVE-G application can demonstrate direct intake through a source-owned public Burgers DEVELOPMENT compilation and scoped returned response. Variant A remains the CPES baseline; conditional B economics and all five unresolved claims remain visible. Live/private intake, unsupported authoring, numerical qualification, Grok/CRM connections and native launch stay explicit owner gaps and are not Wave C prerequisites.",
+      "if_changed": "A new physical template, active goal, measurement/score, generator law, authority verifier, connector or launch path requires a source-owned versioned response and its own acceptance. Historical job revisions, CPES findings and compiler bytes remain unchanged.",
+      "decision_id": "GOAL-WORKBENCH-02",
+      "map_ref": "WAVE-G",
+      "wave": "G",
+      "ticket": "FIT-WEB-01 / EXAM-PROTECT-01 / C-AUTH1 adapter",
+      "attention": "FOR_AWARENESS",
+      "status": "OWNER_SELECTED_WORKING_DECISION",
+      "audience": "harsh",
+      "affects": [
+        "WAVE-G",
+        "WAVE-C/C-AUTH1",
+        "SYSTEM/BUSINESS-AUTHORITY",
+        "SYSTEM/GOVERNANCE",
+        "SYSTEM/MATURITY",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+      ],
+      "response_url": "https://github.com/carbonphysicsai/Carbon/issues/139",
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/issues/142"
     }
   ]
 }

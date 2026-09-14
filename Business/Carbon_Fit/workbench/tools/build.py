@@ -22,14 +22,21 @@ def data(p):
 
 
 def build():
-    style = (ROOT / "src/styles.css").read_text()
+    style = (
+        (ROOT / "src/styles.css").read_text()
+        + "\n"
+        + (ROOT / "src/goal_styles.css").read_text()
+    )
     engine = (ROOT / "src/engine.js").read_text()
     app = (ROOT / "src/app.js").read_text()
+    workflow = (ROOT / "src/workflow.js").read_text()
+    goal_app = (ROOT / "src/goal_app.js").read_text()
     atlas = data(ROOT / "data/atlas.json")
     studies = data(ROOT / "data/studies.json")
     cpes = data(ROOT / "data/cpes_study_v1.json")
     scripts = " ".join(
-        "'" + digest(s) + "'" for s in [engine, app, atlas, studies, cpes]
+        "'" + digest(s) + "'"
+        for s in [engine, app, workflow, goal_app, atlas, studies, cpes]
     )
     csp = f"default-src 'none'; script-src {scripts}; style-src '{digest(style)}'; img-src data:; connect-src 'none'; form-action 'none'; base-uri 'none'; object-src 'none'"
     html = (ROOT / "src/shell.html").read_text()
@@ -41,6 +48,8 @@ def build():
         "CPES": cpes,
         "ENGINE": engine,
         "APP": app,
+        "WORKFLOW": workflow,
+        "GOAL_APP": goal_app,
     }.items():
         html = html.replace("{{" + k + "}}", v)
     (ROOT / "Carbon_Opportunity_Workbench.html").write_text(html)

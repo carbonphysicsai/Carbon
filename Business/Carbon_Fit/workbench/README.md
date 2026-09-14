@@ -1,4 +1,33 @@
-# Carbon Opportunity Workbench v0.2
+# Carbon Goal-to-Challenge Workbench v0.3
+
+Open `Carbon_Opportunity_Workbench.html` and begin in **Client jobs**. The accepted v0.2 Opportunity/CPES workbench remains embedded as the same maintained application; the Atlas is optional supporting research rather than required job identity.
+
+The v0.3 owner route is:
+
+1. Create a direct job and record the intended decision, credible deployed baseline, original client words, owner-named lead, rights and constraints.
+2. Add alternative designs or seal/revise one without rewriting earlier meaning.
+3. Trace material requirements through observable/output, measurement/score role, population/case family, generator and reference evidence.
+4. Review P1–P8, the five unresolved CPES claims and conditional economics inside that exact design. Variant A remains the DEVELOPMENT baseline.
+5. For the one supported route, load the public Burgers demonstration, prepare the authoring request, run `python3 tools/authoring_bridge.py REQUEST.json OUTPUT_DIRECTORY`, and reimport `workbench-authoring-result.json`. The receipt displays expected and emitted physical law, active goal, measurement/score, sampling, references and query contract. Front Resolution still emits fixed Dynamics and is reported as an intent mismatch.
+6. Prepare/export one manual handoff and import the exact-bound response. Export is not send or execution.
+7. Export the client, Engineering, N1 and launch-candidate views. The native launch interface remains unavailable and no launch action is exposed.
+
+The exact supported route is the source-owned public DEVELOPMENT periodic viscous Burgers v1 template with active Dynamics, synthetic internal rights and complete source-bound semantics. Other goals, physics, rights or missing generator/measurement capabilities produce a machine-readable C-AUTH1 extension request; the client job is preserved for a later source-owner response.
+
+`carbon.goal-workbench.workspace.v0.3` is a closed additive container around `carbon_workbench_workspace_v0.2`. Exact v0.1/v0.2 CPES workspaces migrate with a receipt and no inferred science or authority. Multiple jobs and alternatives are supported; earlier sealed revisions remain immutable. Changed population, score/evidence depth, reference or disclosure preserves earlier CPES inputs but marks the affected review/economics binding stale.
+
+The browser does not run a generator, reference solver, scorer, reconstruction, training, protected exam or launch. Prospective score-behavior checks remain `NOT_EXECUTED` unless a source-owned result is bound; the UI exports a design-bound request for the Measurement/ScorePack owner instead of emulating that calculation. Grok/CRM/calendar/account connections, live/private intake, hosted collection and native launch remain manual or unavailable.
+
+Local exports are unencrypted. Keep inputs high-level and non-sensitive. A complete form, matching hash, compiled proposal or imported response cannot grant scientific/security/rights approval, reuse, submission, registration, execution or launch.
+
+## v0.3 maintained additions
+
+- `src/workflow.js` and `src/goal_app.js`: job/design trace, change impact, authoring, handoff, return and projections.
+- `data/goal_workspace.schema.json` and `tools/build_goal_schema.py`: reproducible closed additive schema.
+- `tools/authoring_bridge.py`: bounded fixed-argument wrapper over the source-owned C-AUTH1 CLI.
+- `tests/test_workflow.cjs`, `tests/test_authoring_bridge.py`, `tests/browser_goal_smoke.cjs`: pure, bridge and built-artifact acceptance.
+
+## Accepted v0.2 CPES foundation
 
 Open `Carbon_Opportunity_Workbench.html` in a modern browser. It is a browser-local decision-support tool: no install, credentials, worker, wallet, JAX, Docker, network service, analytics, submission, or public deployment is needed. If a browser blocks `file://` pages, use an approved loopback-only host:
 
@@ -56,10 +85,13 @@ Build uses Python's standard library. Re-extracting the atlas needs `python-docx
 ```sh
 python3 tools/import_cpes_evidence.py --check
 python3 tools/build_schema.py
+python3 tools/build_goal_schema.py
 python3 tools/build.py
-node --test tests/test_engine.cjs
+node --test tests/test_engine.cjs tests/test_workflow.cjs
+python3 -m pytest tests/test_authoring_bridge.py ../../../../tests/cpu/test_cauth1_goal_authoring.py -q
 python3 tests/test_sources.py
 node tests/browser_smoke.cjs
+node tests/browser_goal_smoke.cjs
 python3 tools/package_release.py
 ```
 

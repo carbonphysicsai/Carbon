@@ -1,0 +1,8 @@
+.job-layout { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 20px; }
+.job-layout > .list { max-height: 900px; }
+.job-layout section + section { margin-top: 16px; }
+.job-layout code { overflow-wrap: anywhere; }
+@media (max-width: 900px) {
+  .job-layout { grid-template-columns: 1fr; }
+  .job-layout > .list { max-height: 220px; }
+}

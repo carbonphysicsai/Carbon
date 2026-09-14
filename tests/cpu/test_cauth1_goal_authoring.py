@@ -17,6 +17,7 @@ from carbon.authoring.goals import (
     ProposalWriteDisposition,
     compile_goal_intake,
     load_goal_document,
+    supported_burgers_development_intake,
     write_compiled_proposal,
 )
 from carbon.generators.burgers_dynamics import (
@@ -169,6 +170,51 @@ def test_raw_intake_compiles_one_competition_and_four_goal_reports() -> None:
     assert reports[0]["weights"]["field"] == {"denominator": 2, "numerator": 1}
     assert document["source"]["document_kind"] == "RAW_INTAKE"
     assert document["source"]["package_digest"] is None
+
+
+def test_supported_workbench_adapter_reuses_exact_frozen_intake() -> None:
+    adapted = supported_burgers_development_intake(
+        requested_goal="Dynamics",
+        challenge_id="job-7-design-2",
+        title="Bounded public Burgers design",
+        intended_use=(
+            "Use the existing public DEVELOPMENT benchmark to test one exact "
+            "goal-to-Challenge handoff without claiming customer validation."
+        ),
+    )
+    expected = _intake()
+    expected["challenge_id"] = "job-7-design-2"
+    expected["title"] = "Bounded public Burgers design"
+    expected["intended_use"] = adapted["intended_use"]
+    assert adapted == expected
+    assert compile_goal_intake(adapted).document()["challenge"]["primary_goal"] == (
+        "Dynamics"
+    )
+
+
+def test_supported_workbench_adapter_preserves_specialist_input_without_activation() -> (
+    None
+):
+    adapted = supported_burgers_development_intake(
+        requested_goal="Front Resolution",
+        challenge_id="front-request",
+        title="Requested front resolution",
+        intended_use=(
+            "Test that a supported serializer cannot silently turn a requested "
+            "specialist objective into an active competition."
+        ),
+    )
+    proposal = compile_goal_intake(adapted).document()
+    assert proposal["evidence_boundary"]["source_goal"] == "Front Resolution"
+    assert proposal["challenge"]["primary_goal"] == "Dynamics"
+    assert (
+        next(
+            item
+            for item in proposal["goal_reports"]
+            if item["name"] == "Front Resolution"
+        )["activation"]
+        == "PREPARED_SPECIALIST_INACTIVE"
+    )
 
 
 def test_proposal_keeps_science_network_and_evidence_boundaries_closed() -> None:

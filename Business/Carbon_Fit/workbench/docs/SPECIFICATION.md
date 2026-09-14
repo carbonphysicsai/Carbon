@@ -1,4 +1,22 @@
-# Carbon Opportunity Workbench v0.2 specification
+# Carbon Goal-to-Challenge Workbench v0.3 specification
+
+## v0.3 realignment
+
+`GOAL-WORKBENCH-02` keeps one browser-local record organized around a client job and immutable design revisions. An Atlas link is optional. Assignment, Preparation, Execution and Decision are projections of the same record rather than separately edited documents.
+
+Each material requirement retains original words/source and links to an observable/output, measurement/numerical method, mandatory/soft/diagnostic/deployment role, normalization/floor/aggregation/uncertainty, target population/stratum/case coverage, reference need and exact authoring binding or named gap. Case families keep target mass, sampling frequency, analysis weight, independent physical cases and reconstruction replicas distinct. Structural assembly is not a numerical audit.
+
+The exact native authoring adapter accepts only the source-owned public DEVELOPMENT periodic viscous Burgers v1 template and fixed local CLI. Its mapping receipt preserves canonical input/proposal bytes and compares expected with emitted physical law, active goal/count, measurement and score, sampling, references, query contract and authority flags. A requested Front Resolution goal returning fixed Dynamics is an intent mismatch. Unsupported physics, rights or semantic bindings produce a versioned C-AUTH1 extension request rather than a substituted Challenge.
+
+Handoffs carry exact job/design/base revision, native task ID if one exists, sender, recipient, named lead, one question/output, permitted data/rights/authority, allowance/stop, input refs, dependency/restart event and actual manual/connector/unavailable route. Preparation, export, acknowledgment, result and blocker are distinct. Exact duplicate responses deduplicate; conflicts and stale/wrong-task imports reject. Manual browser imports are not authoritative.
+
+The launch-candidate projection lists physical, generator/sampling, measurement/score, reference, protection and rights bindings and exact remaining decisions. The current native launch interface is unavailable and status remains `NOT_LAUNCHED`.
+
+CPES remains design-bound: Variant A is the DEVELOPMENT baseline, B conditional research economics and C sensitivity only. P1–P8 and AT-09/16/19/22/30 remain visible. Population, score/evidence-depth, reference or disclosure changes preserve old findings and mark affected economics/protection bindings for review.
+
+`carbon.goal-workbench.workspace.v0.3` is closed and additive over the full v0.2 workspace. It migrates exact v0.1/v0.2 inputs with a receipt and no favorable defaults. CSP, safe text rendering, duplicate/dangerous-key checks, size/depth limits, safe integers and authority ceilings remain enforced. No generator, solver, evaluator, training, protected execution, sharing activation, CRM/Grok connector, registration or launch endpoint is added.
+
+## Accepted v0.2 CPES foundation
 
 Status: working offline decision-support implementation. It grants no production, scientific, security, rights, qualification, submission, reuse, or deployment authority.
 
