@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Build one offline HTML artifact from the canonical source JSON and JS/CSS."""
 
 import base64

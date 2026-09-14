@@ -13801,3 +13801,37 @@ reversals. The decision-resolution target, numerical/reference/measurement
 floors, qualified limits and alternate replica count stay explicit human inputs.
 The only current recommendation is to keep the profile ineligible until those
 values and their evidence are accepted under D-03/D-04/D-05.
+
+## 2026-09-14 — C-06-D1: sign exact DEVELOPMENT evidence without creating official authority
+
+**Source and scope.** This engineering decision implements the C-06 sequencing,
+receipt and key-separation choices already supplied by
+`OWNER-C1-BURGERS-ALPHA-01`. C-05 PR #157 is the accepted bounded measurement
+prerequisite. This is not scientific/security qualification, an independent
+review, external signer authorization, real archive custody or a protected/
+official/network/reward admission decision.
+
+**Selection.** Extend the existing reserved `carbon.audit` package with one
+canonical DEVELOPMENT receipt, ephemeral Ed25519 signing from externally
+supplied test/development key bytes and a local SQLite append-only ledger. The
+receipt closes the exact submission/Strategy, Challenge/generator/population/
+SamplingPlan, TRAIN commitment, three reconstruction attempts, inference,
+reference, measurement, Dossier/qualification manifest, source, image and
+execution-policy identities. Scientific qualification and uncertainty remain
+explicitly unresolved.
+
+**Durability and correction.** Require the complete trusted digest closure and
+valid issuance/non-revocation before atomic append. Exact byte replay is
+idempotent; changed bytes under one identity reject. Supersession and revocation
+append hash-chained events and never rewrite prior evidence. Store reopen checks
+canonical bytes, lifecycle ordering and the complete event chain; partial or
+tampered state fails closed.
+
+**Disclosure and authority.** Public and reviewer projections are distinct
+positive allow-lists. Raw TRAIN/protected cases, answers, seeds, thresholds and
+private keys are absent. Every receipt bears
+`DEVELOPMENT_EVIDENCE_ONLY_NOT_OFFICIAL`; protected, score, archive, network and
+reward eligibility are structurally false. A valid signature proves only that
+the named development key bound the exact bytes. C-07 may compose it only into
+a non-official DEVELOPMENT vertical until the missing scientific, security,
+signer/custody and real archive authorities exist.

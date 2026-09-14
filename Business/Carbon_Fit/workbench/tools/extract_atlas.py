@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Extract the supplied roadmap without inventing evidence, ratings, or equations.
 
 Requires python-docx only for re-extraction. All table and row locators are 1-based.
@@ -46,7 +45,7 @@ def extract(path):
         )
         for ri, row in enumerate(t.rows[1:], 2):
             raw = [c.text for c in row.cells]
-            title, _, jobs = raw[0].partition("\n")
+            title, _sep, jobs = raw[0].partition("\n")
             match = re.fullmatch(
                 r"(Q[1-5]) \| Cost ([1-5]) \| Hidden ([1-5]) \| GTM ([1-5]\*?)", raw[3]
             )

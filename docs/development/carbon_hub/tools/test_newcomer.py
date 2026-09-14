@@ -84,9 +84,9 @@ class NewcomerProjectionTests(unittest.TestCase):
 
     def test_current_stage_comes_only_from_canonical_position(self) -> None:
         current = self.data["current"]
-        self.assertEqual(current["last_completed_ticket"]["id"], "C-04")
+        self.assertEqual(current["last_completed_ticket"]["id"], "C-05")
         self.assertEqual(current["last_completed_ticket"]["status"], "done")
-        self.assertEqual(current["selected_ticket"]["id"], "C-05")
+        self.assertEqual(current["selected_ticket"]["id"], "C-06")
         self.assertEqual(current["selected_ticket"]["status"], "in_progress")
         self.assertIsNone(current["next_selected_ticket"])
         self.assertFalse(
@@ -99,10 +99,10 @@ class NewcomerProjectionTests(unittest.TestCase):
             f"<strong>Current stage:</strong> {render_hub.esc(current['stage'])}",
             self.output,
         )
-        self.assertIn("required run 34784739423", self.output)
+        self.assertIn("required run 34789621325", self.output)
         self.assertIn("OWNER-C1-BURGERS-ALPHA-01", self.output)
-        self.assertIn("selects C-05 alone", self.output)
-        self.assertIn("C-06 is prospectively authorized", self.output)
+        self.assertIn("selects C-06 alone", self.output)
+        self.assertIn("C-07 is prospectively authorized", self.output)
 
     def test_changing_canonical_position_reprojects_every_current_surface(self) -> None:
         changed = dict(self.data)
@@ -158,8 +158,8 @@ class NewcomerProjectionTests(unittest.TestCase):
     def test_exam_map_preserves_current_maturity_and_science_boundary(self) -> None:
         for phrase in (
             "Target-state orientation only",
-            "required run 34784739423",
-            "PR #154 supplies C-04",
+            "required run 34789621325",
+            "PR #157 supplies C-05",
             "planned for Wave C1",
             "Burgers v1 remains PRE-LIVE",
             "Science ends at R14",

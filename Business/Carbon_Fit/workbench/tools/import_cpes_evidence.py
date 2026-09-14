@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Validate pinned CPES public-safe evidence and emit the browser study record."""
 
 from __future__ import annotations

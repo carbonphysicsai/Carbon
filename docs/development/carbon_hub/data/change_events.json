@@ -2688,6 +2688,57 @@
       "supersedes": null
     },
     {
+      "map_ref": "WAVE-C/C-05",
+      "event_type": "evidence",
+      "event_id": "C-05-E1",
+      "owner_lane": "scientific_measurement_engineering",
+      "status": "implemented",
+      "summary": "PR #157 accepted exact C-05 head 8dbee54dcd5bdea3a76b22812955e31fbe95e8da in required run 34789621325 and normally merged it as e3324691666da6b8987764048d2bfff45e0578b4. The isolated measurement runtime is tested only as a public qualification candidate; D-03/D-04/D-05 scientific acceptance, protected admission, scoring and independent security acceptance remain open.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/actions/runs/34789621325",
+      "affects": [
+        "WAVE-B/B-05",
+        "WAVE-C",
+        "WAVE-C/C-02",
+        "WAVE-C/C-04",
+        "WAVE-C/C-05",
+        "WAVE-C/C-06",
+        "WAVE-C/C-07",
+        "WAVE-D",
+        "SYSTEM/AGENT-EXECUTION",
+        "SYSTEM/CI",
+        "SYSTEM/MATURITY",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+      ],
+      "supersedes": "C-05-I1"
+    },
+    {
+      "map_ref": "WAVE-C/C-06",
+      "event_type": "evidence",
+      "event_id": "C-06-I1",
+      "owner_lane": "scientific_integration_receipt_engineering",
+      "status": "implemented",
+      "summary": "The C-06 candidate binds exact public-development reconstruction, inference, reference, measurement, Dossier and execution evidence in an Ed25519-signed append-only receipt. Atomic replay, tamper, lifecycle and disclosure tests pass locally; exact-head automated acceptance is pending, and every official, protected, score, archive, network and reward authority remains structurally false.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/f39bc7bda57276758184ad049d249bdf09a442c8/.agent/evidence/wave_c/c-06.md",
+      "affects": [
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE",
+        "WAVE-C",
+        "WAVE-C/C-01",
+        "WAVE-C/C-02",
+        "WAVE-C/C-04",
+        "WAVE-C/C-05",
+        "WAVE-C/C-06",
+        "WAVE-C/C-07",
+        "WAVE-C/C-09",
+        "SYSTEM/GOVERNANCE",
+        "SYSTEM/MATURITY",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+      ],
+      "supersedes": null
+    },
+    {
       "map_ref": "WAVE-C/C-04",
       "event_type": "bug",
       "event_id": "C-04-B1",
@@ -2726,6 +2777,22 @@
         "WAVE-C/NET-5",
         "WAVE-C/NET-5R",
         "WAVE-C/NET-6",
+        "SYSTEM/CI",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+      ],
+      "supersedes": null
+    },
+    {
+      "map_ref": "SYSTEM/BUSINESS-AUTHORITY",
+      "event_type": "bug",
+      "event_id": "WORKBENCH-Q1",
+      "owner_lane": "business_tooling_engineering",
+      "status": "implemented",
+      "summary": "PR #161 repairs the repository-wide Ruff and Black diagnostics inherited from the accepted Carbon Opportunity Workbench v0.2 package. Six Python sources are mechanically formatted, unused code and non-executable shebangs are removed, the deterministic package is regenerated from its exact source revision, and no workbench decision, evidence, numerical result or authority boundary changes.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/pull/161",
+      "affects": [
+        "SYSTEM/BUSINESS-AUTHORITY",
         "SYSTEM/CI",
         "SYSTEM/DEVELOPMENT-HUB",
         "SYSTEM/DEVELOPMENT-HUB/VALIDATION"

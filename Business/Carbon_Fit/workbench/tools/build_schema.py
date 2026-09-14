@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Generate the closed v0.2 workspace schema and engine-constant snapshot."""
 
 import json

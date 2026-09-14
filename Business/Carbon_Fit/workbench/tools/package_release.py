@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Create a deterministic source/test/evidence release bundle and checksum manifest."""
 
 from __future__ import annotations

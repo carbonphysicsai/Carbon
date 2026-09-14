@@ -7,10 +7,6 @@ import pytest
 ROOT = Path(__file__).resolve().parents[2]
 
 FUTURE_TICKET_MARKERS = {
-    "C-06_signed_evidence_ledger.md": (
-        "SamplingPlan",
-        "positive allow-lists",
-    ),
     "C-07_official_evaluation_orchestration.md": (
         "no duplicate compiler",
         "no direct chain access",
@@ -70,16 +66,28 @@ def test_selected_c04_retains_bounded_acceptance_and_unearned_authority() -> Non
     assert "Human scientific qualification, independent security acceptance" in ticket
 
 
-def test_selected_c05_retains_bounded_acceptance_and_unearned_authority() -> None:
+def test_accepted_c05_retains_bounded_acceptance_and_unearned_authority() -> None:
     ticket = (ROOT / ".agent/tickets/C-05_production_measurement.md").read_text(
         encoding="utf-8"
     )
-    assert "**Status:** `in_progress`" in ticket
+    assert "**Status:** `done` for bounded engineering" in ticket
     assert "Definition of Done" in ticket
     assert "scientific limits, numerical/reference floors" in ticket
     assert "D-05 prerequisite" in ticket
     assert "before any score boundary" in ticket
     assert "No threshold ratification, scientific qualification" in ticket
+
+
+def test_selected_c06_retains_bounded_acceptance_and_unearned_authority() -> None:
+    ticket = (ROOT / ".agent/tickets/C-06_signed_evidence_ledger.md").read_text(
+        encoding="utf-8"
+    )
+    assert "**Status:** `in_progress`" in ticket
+    assert "Definition of Done" in ticket
+    assert "SamplingPlan" in ticket
+    assert "positive allow-lists" in ticket
+    assert "structurally DEVELOPMENT-only" in ticket
+    assert "does not itself qualify science, security" in ticket
 
 
 @pytest.mark.parametrize(("filename", "markers"), FUTURE_TICKET_MARKERS.items())

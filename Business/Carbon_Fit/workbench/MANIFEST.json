@@ -7,7 +7,7 @@
     "GOAL-WORKBENCH-02"
   ],
   "repository_base": "3fb98bfbfb9ca8dd3f6dd0d8e5a588a89b1c9932",
-  "integration_revision_at_packaging": "605638d149beca7e34410d76a7b652743ce54d5d",
+  "integration_revision_at_packaging": "b7d1b49208cb5b427ba253754a1d676b1f1196f3",
   "integration_revision_note": "The checksum manifest describes exact packaged bytes. A commit cannot contain its own digest; final PR/head identity is reported by delivery.",
   "pinned_research_revision": "ca904dfee93d3574df4e56b99981a6ed3b138e80",
   "accepted_research_head": "0a5690270dc449ea19c941280203987d37db5283",
@@ -279,8 +279,8 @@
       "sha256": "772759308cce3b690521dcd3d5514348ab0dfbcc48eb9b85df458b36576bdef0"
     },
     "tests/test_sources.py": {
-      "bytes": 10551,
-      "sha256": "88133288fa30cab7d6bc384968adce4e4a175d2f84a5aef1f710b3249baa1366"
+      "bytes": 10528,
+      "sha256": "afc30e26117efe950e503a6b1b1f69ee7f1fb2e13277be33b889c56953b5a980"
     },
     "tests/test_workflow.cjs": {
       "bytes": 15594,
@@ -291,28 +291,28 @@
       "sha256": "1ee61a97a9703c72a4b2b08bb631668e06ae2c105e4d1c21e896d021c649fc31"
     },
     "tools/build.py": {
-      "bytes": 1870,
-      "sha256": "70e4588630da3cb496d2d1193e6bae2ae0ecb87f8348e178ae7934b3dd644c31"
+      "bytes": 1847,
+      "sha256": "cab3f7f30eab5c918606d73226d0b7b6fdfccced8fc2d23336d32a3c4e03e3de"
     },
     "tools/build_goal_schema.py": {
       "bytes": 14027,
       "sha256": "ea2771ff0d1313eb714d93a8d580a088ddb06d310c3e7bd128a755d48ea5c1c3"
     },
     "tools/build_schema.py": {
-      "bytes": 10269,
-      "sha256": "f598b2a7c7725d6f515be4b465bd85bce9515d6b4bfc6326a0a660895083f3bc"
+      "bytes": 10246,
+      "sha256": "44282f31c87c5f031237dfaa0436848ae0ad36c50d11ef56a895fc6a5e427928"
     },
     "tools/extract_atlas.py": {
-      "bytes": 5850,
-      "sha256": "aee9226326f80ce3f96beac60cd7fb5e19c63bf5ad58a0efe7f3b1f05b22afa2"
+      "bytes": 5830,
+      "sha256": "6e4d8235af6f01db2f47f0dcd2f5a32de4aea5e271dd28bed4ee5fdd1a65abcb"
     },
     "tools/import_cpes_evidence.py": {
-      "bytes": 15778,
-      "sha256": "b1567a7e9eb82567928d36d769a348a70b9c261df1b01d5e19398398686ac056"
+      "bytes": 15755,
+      "sha256": "0e45668f1249f4e232c1a0a5aadb9a3706daa825521b96fc80fe1d72f112cde3"
     },
     "tools/package_release.py": {
-      "bytes": 4841,
-      "sha256": "75fbdb9a73a2e8b8dedc3b1007d17d3254c2c474361050555ebd3a2cd8a3ca7d"
+      "bytes": 4818,
+      "sha256": "e859dcbda6945b13b9f0909b2df2d12797d8a8e445ed798a11dd1f6ea7bad160"
     }
   }
 }
