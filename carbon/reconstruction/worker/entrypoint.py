@@ -7,6 +7,7 @@ import signal
 import time
 from pathlib import Path
 
+from carbon.measurement_runtime.protocol import run_staged_measurement_worker
 from carbon.reconstruction.worker.protocol import run_staged_worker
 from carbon.reference_runtime.protocol import (
     run_staged_reference_worker,
@@ -33,7 +34,9 @@ def main() -> int:
             return 143
         time.sleep(0.05)
     input_directory = Path("/input")
-    if (input_directory / "reference-request.json").is_file():
+    if (input_directory / "measurement-request.json").is_file():
+        result = run_staged_measurement_worker(input_directory, scratch)
+    elif (input_directory / "reference-request.json").is_file():
         result = run_staged_reference_worker(input_directory, scratch)
     else:
         result = run_staged_worker(input_directory, scratch)

@@ -143,24 +143,24 @@
       "title": "Isolate hostile reconstruction work",
       "what": "Run C-02's merged DEVELOPMENT adapter in one pinned network-denied, scratch-only, resource-bounded Docker worker with durable launch and post-exit validation.",
       "why": "Participant-controlled work must not expose official evaluation material or gain unbounded host capabilities.",
-      "changes": "PR #149 accepted the exact Linux/amd64 worker image and seven-test service campaign. The active continuation bounds every Docker response while receiving it, validates artifacts in a separate capped process, retains resource observations and hardens monotonic deadline/recovery behavior.",
-      "not_yet": "The continuation still needs its own exact-head Linux service acceptance and normal merge. Global MQ-015, protected execution, independent security/scientific qualification, production repeat sufficiency, archive, reward, network and LIVE authority remain open.",
+      "changes": "PR #149 accepted the exact Linux/amd64 worker image and seven-test service campaign; PR #151 accepted bounded Docker response receipt, separately capped artifact validation, resource observations and monotonic deadline/recovery hardening.",
+      "not_yet": "Global MQ-015, protected execution, independent security/scientific qualification, production repeat sufficiency, archive, reward, network and LIVE authority remain open.",
       "map_ref": "WAVE-C/C-03"
     },
     "C-04": {
       "title": "Run protected references without confusing fixtures with truth",
       "what": "Compose the accepted isolated-worker capability with role-explicit registered primary, witness and optional development cross-check reference policies.",
       "why": "A fixture reference or successful generator is not a qualified scientific reference.",
-      "changes": "OWNER-C1-BURGERS-ALPHA-01 prospectively selects the public qualification-candidate engineering slice after C-03 hardening merges, while D-03/D-04 keep qualification authority.",
-      "not_yet": "No real role-explicit reference runtime or scientific qualification exists yet; protected and score-eligible admission remain disabled.",
+      "changes": "PR #154 accepted the bounded Cole–Hopf candidate-primary, independently discretized conservative witness and ETDRK4 development-cross-check runtime over twelve fixed public cases.",
+      "not_yet": "D-03/D-04 scientific qualification and independent security acceptance remain absent; protected and score-eligible admission stay disabled.",
       "map_ref": "WAVE-C/C-04"
     },
     "C-05": {
       "title": "Measure and score the real Challenge under approved science",
-      "what": "Apply qualified measurements and admissibility to real reconstruction and reference outputs.",
+      "what": "Apply four registered measurements and six physics diagnostics to exactly bound candidate and reference artifacts in a distinct isolated worker.",
       "why": "Fixture coefficients and missing uncertainty floors cannot decide a real Challenge.",
-      "changes": "The existing ticket preserves challenge-bound scoring and mandatory admissibility.",
-      "not_yet": "C-02/C-04 and human scientific inputs are absent; no real score or qualification exists.",
+      "changes": "The selected candidate adds a bounded protocol/validator, exact replay and a frozen three-replica-by-twelve-case D-05 prerequisite variance/rank-stability harness while preserving challenge-bound scoring and mandatory admissibility.",
+      "not_yet": "Exact-head Linux service acceptance and D-05 scientific applicability, floors, uncertainty, limits and decision resolution remain absent; no real score or qualification exists.",
       "map_ref": "WAVE-C/C-05"
     },
     "C-06": {

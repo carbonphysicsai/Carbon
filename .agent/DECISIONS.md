@@ -13764,3 +13764,40 @@ discrepancy. It outputs `EVIDENCE_ONLY_UNRESOLVED`, never a solver vote,
 average, truth asset, score or qualification. Protected/score eligibility,
 scientific tolerance/applicability/uncertainty acceptance and the commissioned
 independent security assessment remain absent and fail closed.
+
+## 2026-09-14 — C-05-D1: compute bounded raw Burgers measurements without score authority
+
+**Source and scope.** This engineering decision implements the C-05 ordering,
+measurement and stage-separation choices already supplied by
+`OWNER-C1-BURGERS-ALPHA-01`. C-04 PR #154 is the accepted bounded public
+reference prerequisite. This is not threshold ratification, reference or
+measurement qualification, independent security acceptance, or protected/score
+admission.
+
+**Selection.** Keep B-05's authoring objects and A5's lean scorer unchanged.
+Add a separate `carbon.measurement_runtime` package whose exact candidate
+contract implements the four Burgers proposal observables and six mandatory
+physics diagnostics over immutable finite float64 candidate/reference tensors.
+Bind candidate source, environment, plan, replica and artifact; public case;
+candidate-primary reference request, policy, environment and artifact; and
+measurement implementation, environment, physical scales, points, times and
+output semantics. Caller paths, callbacks, dynamic operators and eligibility
+booleans are not inputs.
+
+**Lifecycle and output.** Run the fixed request in a fresh C-03-profile worker
+only after the separate reference worker has terminated. Stage controller-owned
+read-only copies, stream one bounded result, remove the worker and descendants,
+then validate the immutable report in a separate capped process. Exact replay
+has no second numerical effect. Changed, nonfinite, partial, cross-bound or late
+output rejects. Every metric retains its raw value, normalization, unresolved
+uncertainty and absent scientific limit. A zero defect remains unresolved and
+no ScoreInput, scalar, gate pass, rank, receipt, archive or reward is emitted.
+
+**D-05 prerequisite evidence.** Freeze the two existing recipe identities,
+three reconstruction replicas and twelve public cells. The prerequisite harness
+requires the complete 3x12 matrix for both recipes and separates within-case
+reconstruction variation from across-case variation while recording paired rank
+reversals. The decision-resolution target, numerical/reference/measurement
+floors, qualified limits and alternate replica count stay explicit human inputs.
+The only current recommendation is to keep the profile ineligible until those
+values and their evidence are accepted under D-03/D-04/D-05.

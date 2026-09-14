@@ -1,4 +1,4 @@
-"""C-04 reference runtime dependency and authority boundaries."""
+"""C-05 measurement runtime dependency and authority boundaries."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ from tests.invariants._import_analysis import direct_import_modules
 pytestmark = pytest.mark.invariant
 
 ROOT = Path(__file__).resolve().parents[2]
-PACKAGE = ROOT / "carbon" / "reference_runtime"
+PACKAGE = ROOT / "carbon" / "measurement_runtime"
 CARBON = ROOT / "carbon"
 
 EXPECTED = {
@@ -24,18 +24,14 @@ EXPECTED = {
     "validator.py",
 }
 FORBIDDEN_NAMESPACES = (
-    "carbon.candidates",
     "carbon.cards",
     "carbon.chain",
-    "carbon.evaluation.admission",
-    "carbon.evaluation.assets",
     "carbon.fees",
     "carbon.leaderboard",
     "carbon.mcp",
     "carbon.qualification",
     "carbon.rewards",
     "carbon.scoring",
-    "carbon.traineval",
     "carbon.transport",
 )
 
@@ -58,7 +54,7 @@ def test_runtime_package_is_exact_and_has_no_root_authority_surface() -> None:
     assert ast.literal_eval(declarations[0].value) == ()
 
 
-def test_reference_runtime_does_not_import_authority_or_consumer_packages() -> None:
+def test_measurement_runtime_does_not_import_scoring_or_consumer_authority() -> None:
     violations = []
     for path in _files():
         for module, line in direct_import_modules(ROOT, path):
@@ -71,7 +67,7 @@ def test_reference_runtime_does_not_import_authority_or_consumer_packages() -> N
 
 
 def test_numerical_model_has_no_network_process_or_dynamic_code_surface() -> None:
-    paths = (PACKAGE / "model.py", PACKAGE / "qualification_candidate.py")
+    path = PACKAGE / "model.py"
     forbidden_roots = {
         "asyncio",
         "ctypes",
@@ -85,40 +81,39 @@ def test_numerical_model_has_no_network_process_or_dynamic_code_surface() -> Non
         "urllib",
     }
     violations = []
-    for path in paths:
-        for module, line in direct_import_modules(ROOT, path):
-            if module.partition(".")[0] in forbidden_roots:
-                violations.append(f"{path.name}:{line}:{module}")
-        tree = ast.parse(path.read_text(encoding="utf-8"))
-        for node in ast.walk(tree):
-            if (
-                isinstance(node, ast.Call)
-                and isinstance(node.func, ast.Name)
-                and node.func.id in {"eval", "exec", "compile", "__import__"}
-            ):
-                violations.append(f"{path.name}:{node.lineno}:{node.func.id}")
+    for module, line in direct_import_modules(ROOT, path):
+        if module.partition(".")[0] in forbidden_roots:
+            violations.append(f"{path.name}:{line}:{module}")
+    tree = ast.parse(path.read_text(encoding="utf-8"))
+    for node in ast.walk(tree):
+        if (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id in {"eval", "exec", "compile", "__import__"}
+        ):
+            violations.append(f"{path.name}:{node.lineno}:{node.func.id}")
     assert violations == []
 
 
-def test_worker_has_one_fixed_reference_dispatch_without_caller_command() -> None:
+def test_worker_has_one_fixed_measurement_dispatch_without_caller_command() -> None:
     entrypoint = (CARBON / "reconstruction" / "worker" / "entrypoint.py").read_text(
         encoding="utf-8"
     )
-    assert "run_staged_reference_worker" in entrypoint
-    assert "reference-request.json" in entrypoint
+    assert "run_staged_measurement_worker" in entrypoint
+    assert "measurement-request.json" in entrypoint
     assert "sys.argv" not in entrypoint
     assert "subprocess" not in entrypoint
 
 
-def test_runtime_never_names_truth_score_reward_or_live_artifact_outputs() -> None:
+def test_measurement_has_no_score_reward_archive_or_network_effect() -> None:
     source = "\n".join(path.read_text(encoding="utf-8") for path in _files())
     for forbidden in (
-        "create_truth_asset",
-        "TruthAssetAdmission",
-        "ScoreResult",
-        "SettlementObligation",
-        "LIVE",
+        "ScoreEngine(",
+        "ScoreInput(",
+        "SettlementObligation(",
+        "ArchiveAcknowledgement(",
+        "WeightIntent(",
     ):
         assert forbidden not in source
-    assert source.count('scientifically_qualified": False') >= 2
-    assert "eligible_for_truth_or_score" in source
+    assert '"score_input": None' in source
+    assert '"score": False' in source
