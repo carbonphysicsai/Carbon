@@ -45,7 +45,7 @@ def test_only_c07_development_orchestration_is_selected_and_c08_is_next() -> Non
     assert "C-EP1 ─> C-EP2(done measurement/replay only; no sharing runtime)" in graph
     assert "C-02(merged DEVELOPMENT adapter prerequisite; full ticket open)" in graph
     assert "└─> C-03(PR #149 capability + PR #151 hardening)" in graph
-    assert graph.count("| **no** |") >= 5
+    assert graph.count("| **no** |") >= 4
     assert (
         "| C-03 | PR #149 bounded DEVELOPMENT capability and PR #151 hardening accepted"
         in graph
