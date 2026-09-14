@@ -103,7 +103,7 @@ node --test Business/Carbon_Fit/workbench/tests/test_workflow.cjs Business/Carbo
 - 93 Node engine/workflow/rehearsal checks passed. The suites overlap and are not a scientific or security total.
 - 24 Python C-AUTH1/bridge checks passed.
 - 15 source, evidence, schema, deterministic build, and package checks passed.
-- 106 Hub decision records passed focused validation.
+- 107 Hub decision records passed focused validation after the GOAL-WORKBENCH-03 entry was added.
 - 27 goal-flow and 40 inherited CPES checks passed against the actual generated HTML in Google Chrome. These are separate browser journeys.
 - Changed Python files passed Black 26.5.1 and Ruff 0.16.3 checks; changed JavaScript files passed syntax checks.
 
