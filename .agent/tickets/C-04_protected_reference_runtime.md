@@ -1,7 +1,8 @@
 # C-04 — Protected reference runtime
 
 **Wave:** C1 real scientific execution foundations
-**Status:** `in_progress`
+**Status:** `done` for the bounded engineering/public qualification-candidate
+slice after PR #154; broader qualification requirements remain open
 **Selected slice:** bounded engineering/public qualification-candidate runtime
 after PR #151
 **Depends on:** B-04, B-E2
@@ -43,7 +44,9 @@ disabled until its separately owned scientific and security evidence exists.
       qualification or truth decision.
 - [x] Freeze twelve public cases, one per registered development cell, and
       test the three roles serially with no fallback, vote or averaging.
-- [ ] Pass the required exact-head Linux service lane and normal merge.
+- [x] Pass the required exact-head Linux service lane and normal merge: head
+      `32fa87f0f4947b8fbae9b2b73e5fa875a73de175`, run `34784739423`, PR #154,
+      merge `0cd91bfa6d30f81739ff75e46888f6f1387bd1de`.
 - [ ] Obtain scientific qualification of the primary/witness hierarchy,
       applicability, uncertainty and comparison tolerance under D-03/D-04.
 - [ ] Obtain the commissioned independent protected-execution assessment for

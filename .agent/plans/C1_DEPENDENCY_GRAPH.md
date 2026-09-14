@@ -1,10 +1,10 @@
-# C1 real-vertical dependency graph after PR #151
+# C1 real-vertical dependency graph after C-04 PR #154
 
 **Decision:** `OWNER-C1-CONTRACTS-01`
 **Status:** authoritative planning checkpoint after merge
 **Primary Hub map_ref:** `WAVE-C`
-**Implementation selection:** PR #151 accepted C-03 prerequisite hardening;
-C-04's engineering/public qualification-candidate slice is selected
+**Implementation selection:** PR #154 accepted C-04's bounded public reference
+runtime; C-05's engineering/public qualification-candidate slice is selected
 
 ## Authority resolution
 
@@ -29,8 +29,8 @@ budget/resource controls and fail-closed missing policy.
 C-01(done) ─┬─> C-AUTH1(done) ─> C-EA0(done) ─> C-EA1(done, synthetic only)
             └─> C-02(merged DEVELOPMENT adapter prerequisite; full ticket open)
                     └─> C-03(PR #149 capability + PR #151 hardening)
-                            └─> C-04(selected engineering + D-03/D-04 prerequisite harness)
-C-02 + C-04 ─> C-05 engineering + D-02/D-05 prerequisite harness
+                            └─> C-04(PR #154 engineering + D-03/D-04 prerequisite harness)
+C-02 + C-04 ─> C-05(selected engineering + D-02/D-05 prerequisite harness)
              ─> C-06 ─> C-07 ─> C-08
                     C-07 + real archive profile + C-EA1 ─> C-EA2
 A10 boundary + C-06 + C-07 + C-EA2 ─> C-09
@@ -54,8 +54,8 @@ C-EP3 + supplied immutable JAX bundle ─> C-02(merged DEVELOPMENT adapter prere
 | C-EP3 | done, bounded DEVELOPMENT input acquisition and detached public probe | ticket/evidence complete | C-EP2 and C-AUTH1 satisfied | reference qualification, comparison meaning, and every real security/science input remain reserved | supplied JAX bundle resolves only the reconstruction-source input | complete in PR #145 | already implemented/tested only in DEVELOPMENT scope |
 | C-02 | bounded DEVELOPMENT adapter merged; full ticket in progress | ticket, canonical lab source/interface, v3 exact dependency profile, Foundax pin and frozen repeat capability sufficient for C-03 | B-02B, B-03, B-E1, C-01 and C-EP3 satisfied as bounded foundations | production repeated-build policy, protected execution and real backend/scientific qualification remain reserved | described v0.2 `carbon_jax_research` source is absent/unverified but deferred | adapter prerequisite merged in PR #148; isolated composition is separate | **yes, as C-03 prerequisite only** |
 | C-03 | PR #149 bounded DEVELOPMENT capability and PR #151 hardening accepted; full ticket open | exact profile, implementation/evidence/report and accepted Linux service lanes | C-02 adapter capability, C-01, B-02B, B-02C and A4 satisfied for the bounded worker | protected threat acceptance and independent security review remain open | none for the merged public-development slices | bounded slices complete; broader ticket open | **already usable by C-04 in bounded mode** |
-| C-04 | `in_progress`, selected public qualification-candidate slice | ticket, plan, role-explicit runtime and D-03/D-04 prerequisite harness candidate | accepted C-03 capability/hardening, B-04 and B-E2 satisfied | qualified primary/witness, tolerances, applicability, uncertainty and protected access acceptance remain open | required changed-source Linux service run pending | no missing contract work for bounded slice | **yes, current slice; not protected/official** |
-| C-05 | `todo`, sequential after C-04 engineering merge | current ticket/spec sufficient for engineering and public qualification-candidate evidence | B-05 bounded foundation plus C-02/C-04 engineering; D-02/D-05 prerequisite harness under its owners | qualified measurements, floors, uncertainty and Score Pack admission remain open | real protected reference/evaluation inputs absent | no missing contract work for bounded slice | **yes only after C-04 bounded merge** |
+| C-04 | bounded public qualification-candidate slice accepted in PR #154; broader ticket open | ticket, plan, role-explicit runtime and D-03/D-04 prerequisite harness | accepted C-03 capability/hardening, B-04 and B-E2 satisfied | qualified primary/witness, tolerances, applicability, uncertainty and protected access acceptance remain open | none for merged public slice | bounded slice complete | **already usable by C-05 in bounded mode** |
+| C-05 | `in_progress`, selected public qualification-candidate slice | ticket, plan, measurement runtime and D-05 prerequisite harness candidate | B-05 bounded foundation plus C-02/C-04 engineering satisfied | qualified measurements, floors, uncertainty, decision-resolution target and Score Pack admission remain open | required changed-source Linux service run pending; protected inputs absent | no missing contract work for bounded slice | **yes, current slice; not protected/official** |
 | C-06 | `future_reserved`, unselected, blocked | ticket exists; sufficient | C-01, C-02, C-04, C-05 | signer authorization, key/custody, retention and disclosure policy | real official evidence chain | no missing contract work identified | **no** |
 | C-07 | `future_reserved`, unselected, blocked | ticket exists; sufficient | C-01 through C-06 | registered real orchestration policies and scientific inputs | real implementations/results from predecessors | no missing contract work identified | **no** |
 | C-08 | `future_reserved`, unselected, blocked | ticket materialized here; sufficient | NET-2 satisfied in bounded scope; C-07 missing; A9 retained | real budgets/quotas and production auth/security approval | real validator orchestration endpoint/path | materialized by this checkpoint | **no** |
@@ -88,8 +88,9 @@ scientific/security qualification remain unresolved.
 
 C-EP1 through C-EP3 are complete in their bounded DEVELOPMENT scopes, PR #148
 provides C-02's adapter prerequisite; PR #149 provides accepted bounded C-03
-worker capability; and PR #151 accepted its prerequisite hardening. Under
-`OWNER-C1-BURGERS-ALPHA-01`, C-04 is now the selected engineering/public-
+worker capability; PR #151 accepted its prerequisite hardening; and PR #154
+accepted C-04's bounded public reference slice. Under
+`OWNER-C1-BURGERS-ALPHA-01`, C-05 is now the selected engineering/public-
 candidate ticket without another selection ceremony.
 C-EA2 and C-W1 remain unimplemented and ineligible. This graph authorizes no
 protected reference, official science, public-network operation, real archive

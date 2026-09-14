@@ -35,7 +35,8 @@ fi
 if [[ "$#" -eq 0 ]]; then
   set -- \
     tests/service/test_c03_worker_service.py \
-    tests/service/test_c04_reference_service.py
+    tests/service/test_c04_reference_service.py \
+    tests/service/test_c05_measurement_service.py
 fi
 "${python_path}" -m pytest -q \
   --junitxml "${junit_path}" "$@"

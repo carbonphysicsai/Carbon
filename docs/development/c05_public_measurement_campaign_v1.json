@@ -1,0 +1,46 @@
+{
+  "alternative_replica_count": null,
+  "case_coordinates": [
+    {"build": 0, "cell": 0, "ordinal": 0, "role": "EVAL"},
+    {"build": 0, "cell": 1, "ordinal": 0, "role": "EVAL"},
+    {"build": 0, "cell": 2, "ordinal": 0, "role": "EVAL"},
+    {"build": 0, "cell": 3, "ordinal": 0, "role": "EVAL"},
+    {"build": 0, "cell": 4, "ordinal": 0, "role": "EVAL"},
+    {"build": 0, "cell": 5, "ordinal": 0, "role": "EVAL"},
+    {"build": 0, "cell": 6, "ordinal": 0, "role": "EVAL"},
+    {"build": 0, "cell": 7, "ordinal": 0, "role": "EVAL"},
+    {"build": 0, "cell": 8, "ordinal": 0, "role": "EVAL"},
+    {"build": 0, "cell": 9, "ordinal": 0, "role": "EVAL"},
+    {"build": 0, "cell": 10, "ordinal": 0, "role": "EVAL"},
+    {"build": 0, "cell": 11, "ordinal": 0, "role": "EVAL"}
+  ],
+  "challenge": {"id": "burgers-dynamics-v1", "version": "1.0"},
+  "decision_resolution_target": {
+    "owner": "D-05_MEASUREMENT_QUALIFICATION",
+    "required_value": "MAXIMUM_ACCEPTABLE_PAIRED_RANK_REVERSAL_RATE_AND_INTERVAL_RULE",
+    "state": "HUMAN_INPUT"
+  },
+  "manifest_digest": "sha256:9ad9cb1cbd5859ec50116ea8476bb0112300ab0d494c6233765fa5ffec69d44c",
+  "measurement_floor": null,
+  "measurement_ids": [
+    "field_phase_rms",
+    "maximum_compression",
+    "peak_dissipation",
+    "energy_half_time"
+  ],
+  "protected_execution_eligible": false,
+  "rank_stability": "PAIRED_REPLICA_BY_CASE_LOWER_NORMALIZED_ERROR",
+  "recipes": ["carbon_jax_lab_fno", "foundax_fno"],
+  "reference_campaign": "carbon.c04.public-reference-candidate-campaign.v1",
+  "reference_floor": null,
+  "replicas_per_recipe": 3,
+  "schema": "carbon.c05.public-measurement-candidate-campaign.v1",
+  "scientific_limits": null,
+  "scientifically_qualified": false,
+  "scope": "PUBLIC_QUALIFICATION_CANDIDATE_ONLY",
+  "score_eligible": false,
+  "variance_separation": [
+    "WITHIN_CASE_ACROSS_RECONSTRUCTION_REPLICAS",
+    "ACROSS_CASES_AFTER_REPLICA_MEAN"
+  ]
+}

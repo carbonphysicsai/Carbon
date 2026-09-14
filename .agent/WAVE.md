@@ -32,18 +32,18 @@
 > historical evidence, and human-reserved scientific/security authority remain.
 
 **Current wave:** C
-**Current phase:** C-04 role-explicit public reference runtime after accepted PR #151
+**Current phase:** C-05 public qualification-candidate measurement after accepted C-04 PR #154
 **State:** **active in bounded engineering scope**
 **Wave A:** closed in bounded engineering scope
 **Wave B:** closed in bounded engineering scope after PR #118 accepted head
 `c510095b5501587cf93c04632a26b7c303d7d48b` in run `34365282759` and
 normally merged as `ac050fd53ee18bf3788c167ee7b0736bbfd7a46b`, tree
 `46b38440f13a8048db18bc480ddb6907396c9017`
-**Controlling register:** `.agent/WAVE_C.md` version 1.9
-**Selected ticket:** C-04 — `in_progress`
-**Active ticket:** C-04 engineering/public qualification-candidate slice
-**Next authorized ticket after current merge:** C-05 engineering and public
-qualification-candidate measurement under `OWNER-C1-BURGERS-ALPHA-01`
+**Controlling register:** `.agent/WAVE_C.md` version 2.0
+**Selected ticket:** C-05 — `in_progress`
+**Active ticket:** C-05 engineering/public qualification-candidate slice
+**Next authorized ticket after current merge:** C-06 signed-development-receipt
+engineering under `OWNER-C1-BURGERS-ALPHA-01`
 C-EA1 passed canonical acceptance in run `34558389185` at accepted head
 `a779af066f4bf9bc36b6d6ab23914fa19191e1de` and normally merged in PR #136 as
 `0e0714c8260ca482a0ba2b743b2eaefd50508da1`. `OWNER-C-EA1-SYNTHETIC-01`
@@ -87,7 +87,10 @@ in run `34770761721` and normally merged the bounded worker slice as
 PR #151 accepted exact C-03 hardening head
 `abc490495528d8960ff8c66f50feabeae3affd34` in run `34778563403` and normally
 merged as `2d5872aff89ca7bef3e3f062b293aeefe17769aa`.
-`OWNER-C1-BURGERS-ALPHA-01` now selects C-04's engineering/public
+PR #154 accepted exact C-04 head
+`32fa87f0f4947b8fbae9b2b73e5fa875a73de175` in run `34784739423` and normally
+merged it as `0cd91bfa6d30f81739ff75e46888f6f1387bd1de`.
+`OWNER-C1-BURGERS-ALPHA-01` now selects C-05's engineering/public
 qualification-candidate slice. Protected and score-eligible admission remain off.
 **Activation authority:** `OWNER-WAVE-C0-NET1-01` records the repository
 owner's explicit authorization to reconcile B-GATE, close Wave B in bounded
