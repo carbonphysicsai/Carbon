@@ -1,6 +1,6 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict'),crypto=require('node:crypto'),fs=require('node:fs'),os=require('node:os'),path=require('node:path');
-const ROOT=path.resolve(__dirname,'..'),G=require('../src/workflow.js'),R=require('../tools/run_operational_rehearsal.cjs');
+const ROOT=path.resolve(__dirname,'..'),F=require('../src/engine.js'),E=require('../src/c05_evidence.js'),G=require('../src/workflow.js'),R=require('../tools/run_operational_rehearsal.cjs');
 const protocol=JSON.parse(fs.readFileSync(path.join(ROOT,'data/goal_workbench_03_rehearsal_protocol_v1.json'))),conformance=JSON.parse(fs.readFileSync(path.join(ROOT,'data/grok_v1_9_conformance_v1.json')));
 const sha=raw=>crypto.createHash('sha256').update(raw).digest('hex');
 

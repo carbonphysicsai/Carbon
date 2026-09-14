@@ -28,6 +28,8 @@ function response(request){return {schema_version:'carbon.goal-workbench.respons
  await page.getByText('Prospective behavior checks',{exact:true}).click();
  const diagnosticPath=await downloaded(page,'#download-diagnostic',tmp,'diagnostic-request.json'),diagnostic=JSON.parse(fs.readFileSync(diagnosticPath));
  check('numerical diagnostic remains NOT_EXECUTED with a bound source-owner request',diagnostic.status==='NOT_EXECUTED'&&diagnostic.frozen_expectations.length===8&&diagnostic.authority==='REQUEST_ONLY_NO_SCORER_EXECUTION_OR_QUALIFICATION');
+ await page.locator('#c05-evidence-file').setInputFiles(path.join(ROOT,'data/c05_public_development_evidence_v1.json'));await page.waitForFunction(()=>document.querySelector('#toast').textContent.includes('scientific decision remains unresolved'));
+ check('exact C-05 source evidence is bound without pass fail or qualification',await page.locator('#goal-summary').innerText().then(text=>text.includes('SOURCE_MEASUREMENT_EVIDENCE_BOUND')&&text.includes('not supplied / unresolved')&&text.includes('Not qualified')));
 
  await page.locator('#prepare-authoring').click();
  const requestPath=await downloaded(page,'#download-authoring',tmp,'authoring-request.json'),request=JSON.parse(fs.readFileSync(requestPath));
@@ -58,11 +60,11 @@ function response(request){return {schema_version:'carbon.goal-workbench.respons
  check('no send or launch control is reachable',await page.getByRole('button',{name:/Send \/ launch unavailable/}).isDisabled());
 
  const workspacePath=await downloaded(page,'#export-goal',tmp,'goal-workspace.json'),saved=JSON.parse(fs.readFileSync(workspacePath));
- check('v0.3 export preserves alternatives CPES responses and immutable authority',saved.jobs[0].designs.length===2&&saved.jobs[0].designs[0].responses.length===1&&saved.authority.launch==='NOT_LAUNCHED');
+ check('v0.4 export preserves alternatives source evidence CPES responses and immutable authority',saved.jobs[0].designs.length===2&&saved.jobs[0].designs[0].measurement_evidence.length===1&&saved.jobs[0].designs[0].responses.length===1&&saved.authority.launch==='NOT_LAUNCHED');
  const component={schema_version:F.WORKSPACE_VERSION,application_version:F.APP_VERSION,source_sha256:A.source.sha256,evidence_catalog:[],drafts:[],shortlist:[],migration_receipts:[]},componentPath=path.join(tmp,'v0.2.json');fs.writeFileSync(componentPath,JSON.stringify(component));
  await page.locator('#goal-workspace-file').setInputFiles(componentPath);await page.waitForFunction(()=>document.querySelector('#toast').textContent.includes('migration receipt'));
  check('v0.2 component migrates into empty direct-job layer',await page.locator('#jobs-view').innerText().then(text=>text.includes('No client job yet')));
- await page.locator('#goal-workspace-file').setInputFiles(workspacePath);await page.waitForFunction(()=>document.querySelector('#toast').textContent.includes('Imported v0.3'));
+ await page.locator('#goal-workspace-file').setInputFiles(workspacePath);await page.waitForFunction(()=>document.querySelector('#toast').textContent.includes('Imported v0.4'));
  check('reimport resumes without retyping scope responses or malicious text',await page.locator('[data-assignment="client_words"]').inputValue().then(text=>text.includes('trustworthy full-field'))&&await page.locator('#jobs-view img').count()===0&&await page.evaluate(()=>window.goalPwned)===undefined);
 
  await page.setViewportSize({width:390,height:844});check('narrow job view avoids document overflow',await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));

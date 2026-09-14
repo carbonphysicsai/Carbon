@@ -29,14 +29,16 @@ def build():
     )
     engine = (ROOT / "src/engine.js").read_text()
     app = (ROOT / "src/app.js").read_text()
+    c05_evidence = (ROOT / "src/c05_evidence.js").read_text()
     workflow = (ROOT / "src/workflow.js").read_text()
     goal_app = (ROOT / "src/goal_app.js").read_text()
     atlas = data(ROOT / "data/atlas.json")
     studies = data(ROOT / "data/studies.json")
     cpes = data(ROOT / "data/cpes_study_v1.json")
+    c05_index = data(ROOT / "data/c05_fixture_index_v1.json")
     scripts = " ".join(
         "'" + digest(s) + "'"
-        for s in [engine, app, workflow, goal_app, atlas, studies, cpes]
+        for s in [engine, app, c05_evidence, workflow, goal_app, atlas, studies, cpes, c05_index]
     )
     csp = f"default-src 'none'; script-src {scripts}; style-src '{digest(style)}'; img-src data:; connect-src 'none'; form-action 'none'; base-uri 'none'; object-src 'none'"
     html = (ROOT / "src/shell.html").read_text()
@@ -46,8 +48,10 @@ def build():
         "ATLAS": atlas,
         "STUDIES": studies,
         "CPES": cpes,
+        "C05_INDEX": c05_index,
         "ENGINE": engine,
         "APP": app,
+        "C05_EVIDENCE": c05_evidence,
         "WORKFLOW": workflow,
         "GOAL_APP": goal_app,
     }.items():

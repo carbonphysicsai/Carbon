@@ -1,4 +1,8 @@
-# Owner report — GOAL-WORKBENCH-03 / GOAL-WORKBENCH-02 / EXAM-PROTECT-WORKBENCH-01
+# Owner report — GOAL-WORKBENCH-04 / GOAL-WORKBENCH-03 / GOAL-WORKBENCH-02 / EXAM-PROTECT-WORKBENCH-01
+
+## v0.4 source measurement addendum
+
+The workbench now binds exact source-owned C-05 public DEVELOPMENT results to the originating design trace and case. It retains raw numeric observations while keeping every missing scientific limit and uncertainty unresolved and every authority flag false. Full provenance remains Engineering-only; client/N1 views receive a bounded summary. See `GOAL_WORKBENCH_04_MEASUREMENT_INTEGRATION_REPORT.md` for fixture generation, behavior classification, test evidence, untouched Wave C boundaries, and the evidence-based recommendation to collect/qualify the scientific floor next.
 
 ## v0.3 operational rehearsal addendum
 

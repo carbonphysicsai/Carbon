@@ -1,0 +1,12 @@
+{
+  "request_id": "diagnostic-job-001-design-1-r1",
+  "job_id": "job-001",
+  "design_id": "job-001-design-1",
+  "design_revision": 1,
+  "requirement_trace_ids": ["TRACE-DYNAMICS"],
+  "case_family_ids": ["BURGERS-12-CELL"],
+  "challenge": {"id": "burgers-dynamics-v1", "version": "1.0"},
+  "template_id": "periodic_viscous_burgers_1d_v1",
+  "expected_source_interface": "carbon.c05.burgers-measurement-result.v1",
+  "evidence_scope": "PUBLIC_DEVELOPMENT_ONLY"
+}
