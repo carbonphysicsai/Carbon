@@ -1067,6 +1067,7 @@ def test_default_workflow_delegates_all_semantics_to_repository_scripts() -> Non
         "./scripts/dev/c03_worker_image.sh",
         "./scripts/dev/c03_worker_service.sh",
     )
+    assert 'CARBON_UV_GROUPS: "archive science-jax"' in jobs["c03-worker"]
     required_repository_commands = (
         "./scripts/dev/ci_preflight.sh",
         "./scripts/dev/bootstrap.sh",
