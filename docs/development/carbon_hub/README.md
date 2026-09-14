@@ -11,12 +11,12 @@ When browsing on GitHub, start with **`orientation/START_HERE.md`**. It is the p
 - 14 waves (A-N)
 - 68 captured tickets across Wave A, Wave B, and Wave C
 - 7 protocol-change routes
-- 117 map-level change events
+- 119 map-level change events
 - 8 independent maturity states
 
 ## Captured current position
 
-Wave **C**; current ticket: **C-07**. Last completed: **C-06** (`done`). Next selected: **none selected**. C-06 is the last bounded completed slice after PR #161 accepted exact head bad0b05c7683af67caa5fbd9fe9a8e11fda588da in run 34797587027 and normally merged as 0c00350b98b9a0062006f5bd2ce50c20aff37b3c. OWNER-C1-BURGERS-ALPHA-01 now selects C-07 alone for durable non-official DEVELOPMENT orchestration. No later ticket is selected while C-07 is active; C-08 is prospectively authorized only after C-07's bounded merge. The candidate reuses C-01 durability and source-owned generator, reconstruction, prediction, reference, measurement and C-06 receipt identities. It retains typed failures, explicit same-claim reconciliation and digest-only projections while every official, protected, score, archive, network and reward eligibility field remains false. The trusted single-tenant host model, three-replica working profile, candidate reference roles and prospective archive targets grant no scientific sufficiency, independent security acceptance, protected admission, real archive acknowledgement, production, public network or LIVE authority. D6 run 34518806217 remains historical LOCALNET_READY evidence for its exact disposable standard-profile localnet.
+Wave **C**; current ticket: **C-08**. Last completed: **C-07** (`done`). Next selected: **none selected**. C-07 is the last bounded completed slice after PR #163 accepted exact head c8990ddc44b57afd15847fe527c1da7ccecb7f18 in run 34807243278 and normally merged as 44511ac0e18c1f3b66227e1e46a986074d16ee0c. OWNER-C1-BURGERS-ALPHA-01 now selects C-08 alone for bounded authenticated DEVELOPMENT composition. No later ticket is selected while C-08 is active. The candidate reuses NET-2 authentication, the exact A9 seven-tool interface and C-07/C-01 durability, recording intent before source mutation and retaining exact requester, Challenge, submission, attempt and outcome association. It adds no public listener, fee, scorer, official result, archive acknowledgement, network or reward effect. The trusted single-tenant host model, three-replica working profile, candidate reference roles and prospective archive targets grant no scientific sufficiency, independent security acceptance, protected admission, real archive acknowledgement, production, public network or LIVE authority. D6 run 34518806217 remains historical LOCALNET_READY evidence for its exact disposable standard-profile localnet.
 
 ## Maintain
 

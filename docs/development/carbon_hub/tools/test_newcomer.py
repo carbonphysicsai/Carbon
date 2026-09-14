@@ -84,9 +84,9 @@ class NewcomerProjectionTests(unittest.TestCase):
 
     def test_current_stage_comes_only_from_canonical_position(self) -> None:
         current = self.data["current"]
-        self.assertEqual(current["last_completed_ticket"]["id"], "C-06")
+        self.assertEqual(current["last_completed_ticket"]["id"], "C-07")
         self.assertEqual(current["last_completed_ticket"]["status"], "done")
-        self.assertEqual(current["selected_ticket"]["id"], "C-07")
+        self.assertEqual(current["selected_ticket"]["id"], "C-08")
         self.assertEqual(current["selected_ticket"]["status"], "in_progress")
         self.assertIsNone(current["next_selected_ticket"])
         self.assertFalse(
@@ -99,10 +99,10 @@ class NewcomerProjectionTests(unittest.TestCase):
             f"<strong>Current stage:</strong> {render_hub.esc(current['stage'])}",
             self.output,
         )
-        self.assertIn("required run 34797587027", self.output)
+        self.assertIn("required run 34807243278", self.output)
         self.assertIn("OWNER-C1-BURGERS-ALPHA-01", self.output)
-        self.assertIn("selects C-07 alone", self.output)
-        self.assertIn("C-08 is prospectively authorized", self.output)
+        self.assertIn("selects C-08 alone", self.output)
+        self.assertIn("adds no public listener", self.output)
 
     def test_changing_canonical_position_reprojects_every_current_surface(self) -> None:
         changed = dict(self.data)
@@ -159,7 +159,7 @@ class NewcomerProjectionTests(unittest.TestCase):
         for phrase in (
             "Target-state orientation only",
             "required run 34789621325",
-            "PR #157 supplies C-05",
+            "PR #163 supplies accepted durable non-official orchestration",
             "planned for Wave C1",
             "Burgers v1 remains PRE-LIVE",
             "Science ends at R14",

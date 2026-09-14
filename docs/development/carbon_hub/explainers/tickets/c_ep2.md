@@ -40,10 +40,10 @@ Specified, implemented and locally tested only as DEVELOPMENT measurement and de
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/a1e6065bd28e04230a33a0de737911af23551b3e/.agent/tickets/C-EP2_variant_a_measurement_and_b_decision.md)
-- [Stable measurement evidence](https://github.com/carbonphysicsai/Carbon/blob/a1e6065bd28e04230a33a0de737911af23551b3e/.agent/evidence/wave_c/c-ep2.md)
-- [Owner-facing decision report](https://github.com/carbonphysicsai/Carbon/blob/a1e6065bd28e04230a33a0de737911af23551b3e/docs/development/C_EP2_VARIANT_B_DECISION_REPORT.md)
-- [Study runbook](https://github.com/carbonphysicsai/Carbon/blob/a1e6065bd28e04230a33a0de737911af23551b3e/docs/development/C_EP2_STUDY_RUNBOOK.md)
-- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/a1e6065bd28e04230a33a0de737911af23551b3e/.agent/WAVE_C.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/ba88709e3c34ec6bba535fb09129f7e9e7500a57/.agent/tickets/C-EP2_variant_a_measurement_and_b_decision.md)
+- [Stable measurement evidence](https://github.com/carbonphysicsai/Carbon/blob/ba88709e3c34ec6bba535fb09129f7e9e7500a57/.agent/evidence/wave_c/c-ep2.md)
+- [Owner-facing decision report](https://github.com/carbonphysicsai/Carbon/blob/ba88709e3c34ec6bba535fb09129f7e9e7500a57/docs/development/C_EP2_VARIANT_B_DECISION_REPORT.md)
+- [Study runbook](https://github.com/carbonphysicsai/Carbon/blob/ba88709e3c34ec6bba535fb09129f7e9e7500a57/docs/development/C_EP2_STUDY_RUNBOOK.md)
+- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/ba88709e3c34ec6bba535fb09129f7e9e7500a57/.agent/WAVE_C.md)
 
 > The recommendation is COLLECT MISSING INPUTS FIRST. A8 measures no physical reference or candidate inference, B overhead and compatible demand are unknown, and the offline replay implements no sharing.

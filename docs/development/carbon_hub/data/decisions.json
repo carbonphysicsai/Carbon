@@ -2564,6 +2564,40 @@
       ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/139",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/issues/142"
+    },
+    {
+      "title": "Compose authenticated C-08 requests through exact source owners",
+      "question": "How should C-08 bind NET-2 authentication, the A9 miner interface and C-07 orchestration without redispatching ambiguous work or acquiring result authority?",
+      "recommendation": "Keep NET-2, A9, C-01 and C-07 as the source owners. Persist submit and bind intent before mutation; require exact trusted reconciliation after ambiguity; bind requester, Challenge, submission and attempt; expose only the unchanged A9 result plus the literal-false C-07 public DEVELOPMENT projection.",
+      "why": "A second queue, generic callback or transport-owned result would duplicate authority and could turn replay or association mistakes into extra scientific execution. The selected composition preserves the miner's seven-tool interface while making the real-path association durable and fail closed.",
+      "if_kept": "C-08 can complete one authenticated public/synthetic DEVELOPMENT path with exact replay, restart and typed C-01/C-07 outcomes. Protected admission, official results, archive acknowledgement, public deployment, fees, network effects and rewards remain unavailable.",
+      "if_changed": "A listener, new fee/quota policy, official projection, protected inputs, archive acknowledgement or chain effect requires its source-owned prospective contract and acceptance. Historical NET-2, A9 and C-07 evidence is not reinterpreted.",
+      "decision_id": "C-08-D1",
+      "map_ref": "WAVE-C/C-08",
+      "wave": "C",
+      "ticket": "C-08",
+      "attention": "FOR_AWARENESS",
+      "status": "IMPLEMENTED_WORKING_DECISION",
+      "audience": "harsh",
+      "affects": [
+        "WAVE-C",
+        "WAVE-C/NET-2",
+        "WAVE-C/C-01",
+        "WAVE-C/C-07",
+        "WAVE-C/C-08",
+        "WAVE-C/C-EA1",
+        "WAVE-C/C-EA2",
+        "WAVE-C/C-09",
+        "SYSTEM/AGENT-EXECUTION",
+        "SYSTEM/CI",
+        "SYSTEM/GOVERNANCE",
+        "SYSTEM/MATURITY",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+      ],
+      "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5659454050",
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/ba88709e3c34ec6bba535fb09129f7e9e7500a57/.agent/plans/C-08_authenticated_miner_mcp_e2e.md"
     }
   ]
 }
