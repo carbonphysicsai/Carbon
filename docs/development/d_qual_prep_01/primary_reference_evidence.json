@@ -1,0 +1,1320 @@
+{
+  "cases": [
+    {
+      "base_run": {
+        "artifact_digest": "sha256:9a94410d91a23e502e20a599d58abb1ff488cfdbf3164421b28835e825d268c6",
+        "diagnostics": [
+          [
+            "initial_recovery_max_absolute",
+            6.522560269672795e-14
+          ],
+          [
+            "method",
+            "cole_hopf_fourier_quadrature"
+          ],
+          [
+            "minimum_phi",
+            0.4386356016694295
+          ],
+          [
+            "quadrature_points",
+            1024
+          ]
+        ],
+        "failure_reason": null,
+        "outcome": "SUPPORTED",
+        "protected_execution_eligible": false,
+        "request_digest": "sha256:3270f2d993cb562ed0889f8b24e04b54e76781f60a6c6e0766b022f8755fd631",
+        "role": "CANDIDATE_PRIMARY",
+        "scientifically_qualified": false,
+        "score_eligible": false
+      },
+      "boundary_condition": "PERIODIC",
+      "build": 0,
+      "case_digest": "sha256:02203690d762e67cc0f5cd4ba027c32d89a2af0297fca3172a13b3f359659ee9",
+      "cell": 0,
+      "convergence_history": [
+        {
+          "failure_reason": null,
+          "initial_recovery_max_absolute": 2.531308496145357e-14,
+          "internal_grid_points": 512,
+          "maximum_absolute_change_from_previous_grid": null,
+          "maximum_mean_drift": 1.8769708010069053e-15,
+          "minimum_stabilized_phi": 0.43863860923747755,
+          "outcome": "SUPPORTED",
+          "value_digest": "sha256:e40373dc96bccfff17cdfd52d97ac36804a89859041236f36fde14717e9946ed"
+        },
+        {
+          "failure_reason": null,
+          "initial_recovery_max_absolute": 6.522560269672795e-14,
+          "internal_grid_points": 1024,
+          "maximum_absolute_change_from_previous_grid": 6.63358257213531e-14,
+          "maximum_mean_drift": 5.204170427930421e-17,
+          "minimum_stabilized_phi": 0.4386356016694295,
+          "outcome": "SUPPORTED",
+          "value_digest": "sha256:d4c0b3f3fd0592a787fe31f61ea7c38f67c1f2051ecd88233855fe81f8250d92"
+        },
+        {
+          "failure_reason": null,
+          "initial_recovery_max_absolute": 1.088573675644966e-13,
+          "internal_grid_points": 2048,
+          "maximum_absolute_change_from_previous_grid": 1.3455903058456897e-13,
+          "maximum_mean_drift": 1.5751289161869408e-15,
+          "minimum_stabilized_phi": 0.4386356016694295,
+          "outcome": "SUPPORTED",
+          "value_digest": "sha256:9efd0f388a5ef8c34b05ce722e7cf370ca21969829e17bca5acf6c742fd29cdb"
+        },
+        {
+          "failure_reason": null,
+          "initial_recovery_max_absolute": 1.4982459717316488e-13,
+          "internal_grid_points": 4096,
+          "maximum_absolute_change_from_previous_grid": 1.865174681370263e-13,
+          "maximum_mean_drift": 1.1796119636642288e-15,
+          "minimum_stabilized_phi": 0.43863547082358145,
+          "outcome": "SUPPORTED",
+          "value_digest": "sha256:94e77b6af3f086b6bc61fe5f873e6a81089043bd87419773d19afa03b6bf378d"
+        }
+      ],
+      "domain_length": 6.283185307179586,
+      "equation": "u_t + u*u_x = viscosity*u_xx",
+      "implementation_digest": "sha256:99552564f95bb465513e7116baf6ecd666a927098ccdfc51147642a8061eb69e",
+      "method": "cole_hopf_fourier_quadrature",
+      "observations": {
+        "cole_hopf_quadrature_change_max_absolute": 1.3455903058456897e-13,
+        "initial_recovery_max_absolute": 6.522560269672795e-14,
+        "minimum_cole_hopf_phi": 0.4386356016694295,
+        "periodic_closure_max_absolute": 1.942890293094024e-16,
+        "primary_crosscheck_discrepancy_max_absolute": 1.0341727474383333e-13
+      },
+      "ordinal": 0,
+      "readiness_disposition": "EVIDENCE_READY_FOR_HUMAN_REVIEW",
+      "request_digest": "sha256:3270f2d993cb562ed0889f8b24e04b54e76781f60a6c6e0766b022f8755fd631",
+      "requested_time_over_characteristic_time": [
+        0.0,
+        0.1,
+        0.25
+      ],
+      "reynolds_number": 0.5334119415166267,
+      "reynolds_regime": 0,
+      "settings": {
+        "cfl": 0.25,
+        "contour_points": 0,
+        "internal_grid_points": 1024,
+        "maximum_steps": 200000
+      },
+      "shape_family": "harmonic",
+      "source_role": "EVAL",
+      "viscosity": 0.0967513226257877
+    },
+    {
+      "base_run": {
+        "artifact_digest": "sha256:8a1ca0904efd3d5d57e9ca6f7884808fd83ce924b460d461af2b1e429cb9a522",
+        "diagnostics": [
+          [
+            "initial_recovery_max_absolute",
+            4.005129561335252e-14
+          ],
+          [
+            "method",
+            "cole_hopf_fourier_quadrature"
+          ],
+          [
+            "minimum_phi",
+            0.11345628028171006
+          ],
+          [
+            "quadrature_points",
+            1024
+          ]
+        ],
+        "failure_reason": null,
+        "outcome": "SUPPORTED",
+        "protected_execution_eligible": false,
+        "request_digest": "sha256:f2ccffb14c0a88e45b864acf1117e86f831a9ecb683d0d896aa0f06075e2fddd",
+        "role": "CANDIDATE_PRIMARY",
+        "scientifically_qualified": false,
+        "score_eligible": false
+      },
+      "boundary_condition": "PERIODIC",
+      "build": 0,
+      "case_digest": "sha256:bf0f16eb1d2c180375115bd9d01b15d94da65dcbb053df218aa89cb05601d8e4",
+      "cell": 1,
+      "convergence_history": [
+        {
+          "failure_reason": null,
+          "initial_recovery_max_absolute": 2.3217539002473586e-14,
+          "internal_grid_points": 512,
+          "maximum_absolute_change_from_previous_grid": null,
+          "maximum_mean_drift": 9.992007221626409e-16,
+          "minimum_stabilized_phi": 0.11346505470369428,
+          "outcome": "SUPPORTED",
+          "value_digest": "sha256:a1c46b2ffa582a88749a0cc6d46d4a758bfa3da5f5c30d174cd53f7e3352a7a1"
+        },
+        {
+          "failure_reason": null,
+          "initial_recovery_max_absolute": 4.005129561335252e-14,
+          "internal_grid_points": 1024,
+          "maximum_absolute_change_from_previous_grid": 5.5816462563029745e-14,
+          "maximum_mean_drift": 4.773959005888173e-15,
+          "minimum_stabilized_phi": 0.11345628028171006,
+          "outcome": "SUPPORTED",
+          "value_digest": "sha256:5f3c69f9d472dac868e2c7e4b56e96d8f69dfc03569b08c2f5bd02e16b1e3c5c"
+        },
+        {
+          "failure_reason": null,
+          "initial_recovery_max_absolute": 7.988054662178001e-14,
+          "internal_grid_points": 2048,
+          "maximum_absolute_change_from_previous_grid": 1.0430545316353346e-13,
+          "maximum_mean_drift": 6.8833827526759706e-15,
+          "minimum_stabilized_phi": 0.11345628028170984,
+          "outcome": "SUPPORTED",
+          "value_digest": "sha256:042232bf9e9967488e02871d6d5225f590df70ada0ce5b5e07b3bff2db8f8102"
+        },
+        {
+          "failure_reason": null,
+          "initial_recovery_max_absolute": 1.936228954946273e-13,
+          "internal_grid_points": 4096,
+          "maximum_absolute_change_from_previous_grid": 1.8243739852152885e-13,
+          "maximum_mean_drift": 1.7763568394002505e-14,
+          "minimum_stabilized_phi": 0.11345606788677387,
+          "outcome": "SUPPORTED",
+          "value_digest": "sha256:ef678e9344b5deebcfb310110a679d135dc1df5f7db06162967d3f93aa761b73"
+        }
+      ],
+      "domain_length": 6.283185307179586,
+      "equation": "u_t + u*u_x = viscosity*u_xx",
+      "implementation_digest": "sha256:99552564f95bb465513e7116baf6ecd666a927098ccdfc51147642a8061eb69e",
+      "method": "cole_hopf_fourier_quadrature",
+      "observations": {
+        "cole_hopf_quadrature_change_max_absolute": 1.0430545316353346e-13,
+        "initial_recovery_max_absolute": 4.005129561335252e-14,
+        "minimum_cole_hopf_phi": 0.11345628028171006,
+        "periodic_closure_max_absolute": 6.938893903907228e-17,
+        "primary_crosscheck_discrepancy_max_absolute": 3.040345752935991e-13
+      },
+      "ordinal": 0,
+      "readiness_disposition": "EVIDENCE_READY_FOR_HUMAN_REVIEW",
+      "request_digest": "sha256:f2ccffb14c0a88e45b864acf1117e86f831a9ecb683d0d896aa0f06075e2fddd",
+      "requested_time_over_characteristic_time": [
+        0.0,
+        0.1,
+        0.25
+      ],
+      "reynolds_number": 1.4917643753013863,
+      "reynolds_regime": 1,
+      "settings": {
+        "cfl": 0.25,
+        "contour_points": 0,
+        "internal_grid_points": 1024,
+        "maximum_steps": 200000
+      },
+      "shape_family": "harmonic",
+      "source_role": "EVAL",
+      "viscosity": 0.05109084265517244
+    },
+    {
+      "base_run": {
+        "artifact_digest": "sha256:3217adc9a2e4fb611b80440ce81e588d2e34bd8e2154d3f8b2a6486dc40fe8c6",
+        "diagnostics": [
+          [
+            "initial_recovery_max_absolute",
+            9.39803790345195e-14
+          ],
+          [
+            "method",
+            "cole_hopf_fourier_quadrature"
+          ],
+          [
+            "minimum_phi",
+            0.033837358877825935
+          ],
+          [
+            "quadrature_points",
+            1024
+          ]
+        ],
+        "failure_reason": null,
+        "outcome": "SUPPORTED",
+        "protected_execution_eligible": false,
+        "request_digest": "sha256:a94125b517693faa974b374aa0f807b210455aab15c4990fca7ef42255d2a8c1",
+        "role": "CANDIDATE_PRIMARY",
+        "scientifically_qualified": false,
+        "score_eligible": false
+      },
+      "boundary_condition": "PERIODIC",
+      "build": 0,
+      "case_digest": "sha256:92ac91edd08aa9bbb8b11b3cc008ee504b21f6f0b906d889c7235a8201ac55f6",
+      "cell": 2,
+      "convergence_history": [
+        {
+          "failure_reason": null,
+          "initial_recovery_max_absolute": 4.0190073491430667e-14,
+          "internal_grid_points": 512,
+          "maximum_absolute_change_from_previous_grid": null,
+          "maximum_mean_drift": 4.489464355827977e-15,
+          "minimum_stabilized_phi": 0.03383735887782585,
+          "outcome": "SUPPORTED",
+          "value_digest": "sha256:f23c41171fa6d0a963ea735134280c828f6ee67998e1de0394aecf51ef73730d"
+        },
+        {
+          "failure_reason": null,
+          "initial_recovery_max_absolute": 9.39803790345195e-14,
+          "internal_grid_points": 1024,
+          "maximum_absolute_change_from_previous_grid": 1.270095140171179e-13,
+          "maximum_mean_drift": 8.7360674250192e-15,
+          "minimum_stabilized_phi": 0.033837358877825935,
+          "outcome": "SUPPORTED",
+          "value_digest": "sha256:37e6311ba33a4deded3c12563ab3ef82c1f257afb4b764bcba8525f9d5219103"
+        },
+        {
+          "failure_reason": null,
+          "initial_recovery_max_absolute": 2.2488955142563327e-13,
+          "internal_grid_points": 2048,
+          "maximum_absolute_change_from_previous_grid": 2.7010338410349277e-13,
+          "maximum_mean_drift": 1.749989042565403e-14,
+          "minimum_stabilized_phi": 0.033837318401891886,
+          "outcome": "SUPPORTED",
+          "value_digest": "sha256:6f8d2d0cde1eb5446044d2b23f9c637aaf904b389f2882c8605ba69173dd6b1e"
+        },
+        {
+          "failure_reason": null,
+          "initial_recovery_max_absolute": 3.839706330666104e-13,
+          "internal_grid_points": 4096,
+          "maximum_absolute_change_from_previous_grid": 4.675981823965003e-13,
+          "maximum_mean_drift": 1.1879386363489175e-14,
+          "minimum_stabilized_phi": 0.03383726154272593,
+          "outcome": "SUPPORTED",
+          "value_digest": "sha256:0577aaf7d0e4b7dd7ca3d5d6d4299c77507dd053997579b7fb99b75a107f74fe"
+        }
+      ],
+      "domain_length": 6.283185307179586,
+      "equation": "u_t + u*u_x = viscosity*u_xx",
+      "implementation_digest": "sha256:99552564f95bb465513e7116baf6ecd666a927098ccdfc51147642a8061eb69e",
+      "method": "cole_hopf_fourier_quadrature",
+      "observations": {
+        "cole_hopf_quadrature_change_max_absolute": 2.7010338410349277e-13,
+        "initial_recovery_max_absolute": 9.39803790345195e-14,
+        "minimum_cole_hopf_phi": 0.033837358877825935,
+        "periodic_closure_max_absolute": 2.220446049250313e-16,
+        "primary_crosscheck_discrepancy_max_absolute": 1.1323164628151972e-11
+      },
+      "ordinal": 0,
+      "readiness_disposition": "EVIDENCE_READY_FOR_HUMAN_REVIEW",
+      "request_digest": "sha256:a94125b517693faa974b374aa0f807b210455aab15c4990fca7ef42255d2a8c1",
+      "requested_time_over_characteristic_time": [
+        0.0,
+        0.1,
+        0.25
+      ],
+      "reynolds_number": 2.316189993273877,
+      "reynolds_regime": 2,
+      "settings": {
+        "cfl": 0.25,
+        "contour_points": 0,
+        "internal_grid_points": 1024,
+        "maximum_steps": 200000
+      },
+      "shape_family": "harmonic",
+      "source_role": "EVAL",
+      "viscosity": 0.03320959908869118
+    },
+    {
+      "base_run": {
+        "artifact_digest": "sha256:01a202c69b8cdd56318dc7a4c14fa9b157e6cce5a7f6ee2d360f075842299c0b",
+        "diagnostics": [
+          [
+            "initial_recovery_max_absolute",
+            4.8898662896590395e-12
+          ],
+          [
+            "method",
+            "cole_hopf_fourier_quadrature"
+          ],
+          [
+            "minimum_phi",
+            0.0005088707859262631
+          ],
+          [
+            "quadrature_points",
+            1024
+          ]
+        ],
+        "failure_reason": null,
+        "outcome": "SUPPORTED",
+        "protected_execution_eligible": false,
+        "request_digest": "sha256:9396a002338baec343de61dc9a1e37b764e0fc3a32d1030dd73bdca7a1e91984",
+        "role": "CANDIDATE_PRIMARY",
+        "scientifically_qualified": false,
+        "score_eligible": false
+      },
+      "boundary_condition": "PERIODIC",
+      "build": 0,
+      "case_digest": "sha256:d928a2243b277306addea6f7b8ceb05464695a05e1d803fca6b28cf433d9e530",
+      "cell": 3,
+      "convergence_history": [
+        {
+          "failure_reason": null,
+          "initial_recovery_max_absolute": 3.920530566858815e-12,
+          "internal_grid_points": 512,
+          "maximum_absolute_change_from_previous_grid": null,
+          "maximum_mean_drift": 3.5860203695392556e-13,
+          "minimum_stabilized_phi": 0.0005088742678334701,
+          "outcome": "SUPPORTED",
+          "value_digest": "sha256:604696856673dc46a5d874a07b17a75a6a7f4cab0c69e7810359bbf9254b3a44"
+        },
+        {
+          "failure_reason": null,
+          "initial_recovery_max_absolute": 4.8898662896590395e-12,
+          "internal_grid_points": 1024,
+          "maximum_absolute_change_from_previous_grid": 7.282466296665291e-12,
+          "maximum_mean_drift": 1.432187701766452e-14,
+          "minimum_stabilized_phi": 0.0005088707859262631,
+          "outcome": "SUPPORTED",
+          "value_digest": "sha256:0deec8b842fd33080aa0467c41c288c10176f2918940a80fd9764c6b04b300aa"
+        },
+        {
+          "failure_reason": null,
+          "initial_recovery_max_absolute": 2.1585983001060072e-11,
+          "internal_grid_points": 2048,
+          "maximum_absolute_change_from_previous_grid": 2.341460358934455e-11,
+          "maximum_mean_drift": 9.511280651963716e-13,
+          "minimum_stabilized_phi": 0.0005088664954364663,
+          "outcome": "SUPPORTED",
+          "value_digest": "sha256:ecdc6e96264f29bb48d964585a0ed19ba515a53545281f876daa34b059339117"
+        },
+        {
+          "failure_reason": null,
+          "initial_recovery_max_absolute": 2.6904561911678115e-11,
+          "internal_grid_points": 4096,
+          "maximum_absolute_change_from_previous_grid": 3.252931257691216e-11,
+          "maximum_mean_drift": 1.1157741397482823e-14,
+          "minimum_stabilized_phi": 0.0005088664954363553,
+          "outcome": "SUPPORTED",
+          "value_digest": "sha256:fb9a44b0d8595e321de35b58895c51d6acba298d2f6ebf27a834fa16072813da"
+        }
+      ],
+      "domain_length": 6.283185307179586,
+      "equation": "u_t + u*u_x = viscosity*u_xx",
+      "implementation_digest": "sha256:99552564f95bb465513e7116baf6ecd666a927098ccdfc51147642a8061eb69e",
+      "method": "cole_hopf_fourier_quadrature",
+      "observations": {
+        "cole_hopf_quadrature_change_max_absolute": 2.341460358934455e-11,
+        "initial_recovery_max_absolute": 4.8898662896590395e-12,
+        "minimum_cole_hopf_phi": 0.0005088707859262631,
+        "periodic_closure_max_absolute": 7.632783294297951e-17,
+        "primary_crosscheck_discrepancy_max_absolute": 4.889838534083424e-12
+      },
+      "ordinal": 0,
+      "readiness_disposition": "EVIDENCE_READY_FOR_HUMAN_REVIEW",
+      "request_digest": "sha256:9396a002338baec343de61dc9a1e37b764e0fc3a32d1030dd73bdca7a1e91984",
+      "requested_time_over_characteristic_time": [
+        0.0,
+        0.1,
+        0.25
+      ],
+      "reynolds_number": 5.228341116410024,
+      "reynolds_regime": 3,
+      "settings": {
+        "cfl": 0.25,
+        "contour_points": 0,
+        "internal_grid_points": 1024,
+        "maximum_steps": 200000
+      },
+      "shape_family": "harmonic",
+      "source_role": "EVAL",
+      "viscosity": 0.059114775640799005
+    },
+    {
+      "base_run": {
+        "artifact_digest": "sha256:d3b6c42fddcb8142ea132594aef3b5aff0870204e5eb2a00f2db58af78e9e99e",
+        "diagnostics": [
+          [
+            "initial_recovery_max_absolute",
+            5.1958437552457326e-14
+          ],
+          [
+            "method",
+            "cole_hopf_fourier_quadrature"
+          ],
+          [
+            "minimum_phi",
+            0.079645088659873
+          ],
+          [
+            "quadrature_points",
+            1024
+          ]
+        ],
+        "failure_reason": null,
+        "outcome": "SUPPORTED",
+        "protected_execution_eligible": false,
+        "request_digest": "sha256:bde256e19bc3c3df6fe40ee3356c754fe0e9fbdb3d85356a1bb5219763736aed",
+        "role": "CANDIDATE_PRIMARY",
+        "scientifically_qualified": false,
+        "score_eligible": false
+      },
+      "boundary_condition": "PERIODIC",
+      "build": 0,
+      "case_digest": "sha256:f042f235f5c5c889b652bd7500312e1e17b558197356929259dd30d214a1df41",
+      "cell": 4,
+      "convergence_history": [
+        {
+          "failure_reason": null,
+          "initial_recovery_max_absolute": 2.5465740627339528e-14,
+          "internal_grid_points": 512,
+          "maximum_absolute_change_from_previous_grid": null,
+          "maximum_mean_drift": 1.0794367621969059e-09,
+          "minimum_stabilized_phi": 0.07967724754209249,
+          "outcome": "SUPPORTED",
+          "value_digest": "sha256:86228ed82d4fb88cd1714f02fbb9613fb793031c65fc9630555d23507d731d82"
+        },
+        {
+          "failure_reason": null,
+          "initial_recovery_max_absolute": 5.1958437552457326e-14,
+          "internal_grid_points": 1024,
+          "maximum_absolute_change_from_previous_grid": 5.5788706987414116e-14,
+          "maximum_mean_drift": 1.0794367621969059e-09,
+          "minimum_stabilized_phi": 0.079645088659873,
+          "outcome": "SUPPORTED",
+          "value_digest": "sha256:22ad6908a7a92dbe8ffb2cb7ad5e9ba9dcb6a6ef648472a793942b02a8e6e658"
+        },
+        {
+          "failure_reason": null,
+          "initial_recovery_max_absolute": 6.811218256075335e-14,
+          "internal_grid_points": 2048,
+          "maximum_absolute_change_from_previous_grid": 1.2007062011321068e-13,
+          "maximum_mean_drift": 1.0794367621969059e-09,
+          "minimum_stabilized_phi": 0.07964508865987298,
+          "outcome": "SUPPORTED",
+          "value_digest": "sha256:be65e5772e7acbc78cdd05a8f5323b7271c97736440bf144b2ca90978a417c96"
+        },
+        {
+          "failure_reason": null,
+          "initial_recovery_max_absolute": 1.5851209234085673e-13,
+          "internal_grid_points": 4096,
+          "maximum_absolute_change_from_previous_grid": 1.7709445021552028e-13,
+          "maximum_mean_drift": 1.0794367621969059e-09,
+          "minimum_stabilized_phi": 0.07964286912099068,
+          "outcome": "SUPPORTED",
+          "value_digest": "sha256:825080841ee53480ad7ffb84ca698aa4619e00a96ebf6995009ad4cb49e0f66a"
+        }
+      ],
+      "domain_length": 6.283185307179586,
+      "equation": "u_t + u*u_x = viscosity*u_xx",
+      "implementation_digest": "sha256:99552564f95bb465513e7116baf6ecd666a927098ccdfc51147642a8061eb69e",
+      "method": "cole_hopf_fourier_quadrature",
+      "observations": {
+        "cole_hopf_quadrature_change_max_absolute": 1.2007062011321068e-13,
+        "initial_recovery_max_absolute": 5.1958437552457326e-14,
+        "minimum_cole_hopf_phi": 0.079645088659873,
+        "periodic_closure_max_absolute": 2.7755575615628914e-17,
+        "primary_crosscheck_discrepancy_max_absolute": 3.040071527848909e-10
+      },
+      "ordinal": 0,
+      "readiness_disposition": "EVIDENCE_READY_FOR_HUMAN_REVIEW",
+      "request_digest": "sha256:bde256e19bc3c3df6fe40ee3356c754fe0e9fbdb3d85356a1bb5219763736aed",
+      "requested_time_over_characteristic_time": [
+        0.0,
+        0.1,
+        0.25
+      ],
+      "reynolds_number": 0.8577507979979787,
+      "reynolds_regime": 0,
+      "settings": {
+        "cfl": 0.25,
+        "contour_points": 0,
+        "internal_grid_points": 1024,
+        "maximum_steps": 200000
+      },
+      "shape_family": "localized_packet",
+      "source_role": "EVAL",
+      "viscosity": 0.046736337720260195
+    },
+    {
+      "base_run": {
+        "artifact_digest": "sha256:af4c1f2d935f6fe5020b24b935ff1737b22e3077c6f9208ce600df18af775f2b",
+        "diagnostics": [
+          [
+            "initial_recovery_max_absolute",
+            8.743006318923108e-14
+          ],
+          [
+            "method",
+            "cole_hopf_fourier_quadrature"
+          ],
+          [
+            "minimum_phi",
+            0.032482209948282104
+          ],
+          [
+            "quadrature_points",
+            1024
+          ]
+        ],
+        "failure_reason": null,
+        "outcome": "SUPPORTED",
+        "protected_execution_eligible": false,
+        "request_digest": "sha256:305e66e2ac5a246e82cbe86dcaeb57b24bee1fe712dfab12790e494886f6ce4a",
+        "role": "CANDIDATE_PRIMARY",
+        "scientifically_qualified": false,
+        "score_eligible": false
+      },
+      "boundary_condition": "PERIODIC",
+      "build": 0,
+      "case_digest": "sha256:e3708a416671e9ce019d2f171eedc5473daa98a69786c936e9af4541b9f51994",
+      "cell": 5,
+      "convergence_history": [
+        {
+          "failure_reason": null,
+          "initial_recovery_max_absolute": 3.497202527569243e-14,
+          "internal_grid_points": 512,
+          "maximum_absolute_change_from_previous_grid": null,
+          "maximum_mean_drift": 1.886977796239364e-10,
+          "minimum_stabilized_phi": 0.032482209948282,
+          "outcome": "SUPPORTED",
+          "value_digest": "sha256:40b00d5604e770d9250e909e1b3b5ac826db39c23b1bdb736060dc6580e19f54"
+        },
+        {
+          "failure_reason": null,
+          "initial_recovery_max_absolute": 8.743006318923108e-14,
+          "internal_grid_points": 1024,
+          "maximum_absolute_change_from_previous_grid": 8.781864124784988e-14,
+          "maximum_mean_drift": 1.886977796239364e-10,
+          "minimum_stabilized_phi": 0.032482209948282104,
+          "outcome": "SUPPORTED",
+          "value_digest": "sha256:80e65daa98dae6b2ba4152f7021dbefa9db07e216531ad3902324588b01a02cf"
+        },
+        {
+          "failure_reason": null,
+          "initial_recovery_max_absolute": 1.2573275753879898e-13,
+          "internal_grid_points": 2048,
+          "maximum_absolute_change_from_previous_grid": 2.1316282072803006e-13,
+          "maximum_mean_drift": 1.886977796239364e-10,
+          "minimum_stabilized_phi": 0.0324822099482821,
+          "outcome": "SUPPORTED",
+          "value_digest": "sha256:3f39750b6c1cede3a37aa6b05c863d44461aa6c78cfd7126a378f5463a1e6ed7"
+        },
+        {
+          "failure_reason": null,
+          "initial_recovery_max_absolute": 2.623457007189245e-13,
+          "internal_grid_points": 4096,
+          "maximum_absolute_change_from_previous_grid": 3.0531133177191805e-13,
+          "maximum_mean_drift": 1.886977796239364e-10,
+          "minimum_stabilized_phi": 0.03248220994828209,
+          "outcome": "SUPPORTED",
+          "value_digest": "sha256:da78ee2f826ec4ab2866bc344b2e2851c8fa3cfd506669979bf1323a13b352e2"
+        }
+      ],
+      "domain_length": 6.283185307179586,
+      "equation": "u_t + u*u_x = viscosity*u_xx",
+      "implementation_digest": "sha256:99552564f95bb465513e7116baf6ecd666a927098ccdfc51147642a8061eb69e",
+      "method": "cole_hopf_fourier_quadrature",
+      "observations": {
+        "cole_hopf_quadrature_change_max_absolute": 2.1316282072803006e-13,
+        "initial_recovery_max_absolute": 8.743006318923108e-14,
+        "minimum_cole_hopf_phi": 0.032482209948282104,
+        "periodic_closure_max_absolute": 0.0,
+        "primary_crosscheck_discrepancy_max_absolute": 7.258014189659434e-10
+      },
+      "ordinal": 0,
+      "readiness_disposition": "EVIDENCE_READY_FOR_HUMAN_REVIEW",
+      "request_digest": "sha256:305e66e2ac5a246e82cbe86dcaeb57b24bee1fe712dfab12790e494886f6ce4a",
+      "requested_time_over_characteristic_time": [
+        0.0,
+        0.1,
+        0.25
+      ],
+      "reynolds_number": 1.1872596187827673,
+      "reynolds_regime": 1,
+      "settings": {
+        "cfl": 0.25,
+        "contour_points": 0,
+        "internal_grid_points": 1024,
+        "maximum_steps": 200000
+      },
+      "shape_family": "localized_packet",
+      "source_role": "EVAL",
+      "viscosity": 0.047162024118611
+    },
+    {
+      "base_run": {
+        "artifact_digest": "sha256:b45237bb97830d9453fcaacd1b679e8645271ed483ad37afa8cff068ff99a75c",
+        "diagnostics": [
+          [
+            "initial_recovery_max_absolute",
+            3.492484079714586e-13
+          ],
+          [
+            "method",
+            "cole_hopf_fourier_quadrature"
+          ],
+          [
+            "minimum_phi",
+            0.0013304322124891585
+          ],
+          [
+            "quadrature_points",
+            1024
+          ]
+        ],
+        "failure_reason": null,
+        "outcome": "SUPPORTED",
+        "protected_execution_eligible": false,
+        "request_digest": "sha256:df1842a32d803bf2c6b3d44d060b218b3ddb7c29e9471cfab84458e2cc70041e",
+        "role": "CANDIDATE_PRIMARY",
+        "scientifically_qualified": false,
+        "score_eligible": false
+      },
+      "boundary_condition": "PERIODIC",
+      "build": 0,
+      "case_digest": "sha256:088bf247d585d34010731a100823b44b5838e06e080252fafc872f54b04fb778",
+      "cell": 6,
+      "convergence_history": [
+        {
+          "failure_reason": null,
+          "initial_recovery_max_absolute": 1.1538547894929252e-12,
+          "internal_grid_points": 512,
+          "maximum_absolute_change_from_previous_grid": null,
+          "maximum_mean_drift": 2.2379232023084228e-08,
+          "minimum_stabilized_phi": 0.0013304322124891611,
+          "outcome": "SUPPORTED",
+          "value_digest": "sha256:8e030958ec88b317ae87e583fa0c0281a624858095dea513d9e9ae5ca9fe4d63"
+        },
+        {
+          "failure_reason": null,
+          "initial_recovery_max_absolute": 3.492484079714586e-13,
+          "internal_grid_points": 1024,
+          "maximum_absolute_change_from_previous_grid": 1.1253220577600587e-12,
+          "maximum_mean_drift": 2.237923163450617e-08,
+          "minimum_stabilized_phi": 0.0013304322124891585,
+          "outcome": "SUPPORTED",
+          "value_digest": "sha256:7752a86bc328a25bda7363c6828ef7abe3bbbd6e483ed1d2a20fa3f5d0c8b7c3"
+        },
+        {
+          "failure_reason": null,
+          "initial_recovery_max_absolute": 6.547540287726861e-13,
+          "internal_grid_points": 2048,
+          "maximum_absolute_change_from_previous_grid": 9.055534100355089e-13,
+          "maximum_mean_drift": 2.2379231801039623e-08,
+          "minimum_stabilized_phi": 0.0013303219934811157,
+          "outcome": "SUPPORTED",
+          "value_digest": "sha256:8938c10ddbfc5b6643d2d81aadb50e6e2197ee6b4bbbe5b63827a5a622011de3"
+        },
+        {
+          "failure_reason": null,
+          "initial_recovery_max_absolute": 3.1588065496634954e-12,
+          "internal_grid_points": 4096,
+          "maximum_absolute_change_from_previous_grid": 3.715111551727546e-12,
+          "maximum_mean_drift": 2.2379231967573077e-08,
+          "minimum_stabilized_phi": 0.0013302119821559776,
+          "outcome": "SUPPORTED",
+          "value_digest": "sha256:ff1c54811ddc580c119d368fc70c5b641e7b39bb0dd26c2e2252b18ac57b2813"
+        }
+      ],
+      "domain_length": 6.283185307179586,
+      "equation": "u_t + u*u_x = viscosity*u_xx",
+      "implementation_digest": "sha256:99552564f95bb465513e7116baf6ecd666a927098ccdfc51147642a8061eb69e",
+      "method": "cole_hopf_fourier_quadrature",
+      "observations": {
+        "cole_hopf_quadrature_change_max_absolute": 9.055534100355089e-13,
+        "initial_recovery_max_absolute": 3.492484079714586e-13,
+        "minimum_cole_hopf_phi": 0.0013304322124891585,
+        "periodic_closure_max_absolute": 9.159339953157541e-16,
+        "primary_crosscheck_discrepancy_max_absolute": 1.3327664016848928e-07
+      },
+      "ordinal": 0,
+      "readiness_disposition": "EVIDENCE_READY_FOR_HUMAN_REVIEW",
+      "request_digest": "sha256:df1842a32d803bf2c6b3d44d060b218b3ddb7c29e9471cfab84458e2cc70041e",
+      "requested_time_over_characteristic_time": [
+        0.0,
+        0.1,
+        0.25
+      ],
+      "reynolds_number": 2.1092882243686244,
+      "reynolds_regime": 2,
+      "settings": {
+        "cfl": 0.25,
+        "contour_points": 0,
+        "internal_grid_points": 1024,
+        "maximum_steps": 200000
+      },
+      "shape_family": "localized_packet",
+      "source_role": "EVAL",
+      "viscosity": 0.029391540102025014
+    },
+    {
+      "base_run": {
+        "artifact_digest": "sha256:e92657274ef0a32e316f716710ec63e60a7c227e85312058853a5454e09c3118",
+        "diagnostics": [
+          [
+            "initial_recovery_max_absolute",
+            7.929642895782019e-08
+          ],
+          [
+            "method",
+            "cole_hopf_fourier_quadrature"
+          ],
+          [
+            "minimum_phi",
+            6.402823860950785e-09
+          ],
+          [
+            "quadrature_points",
+            1024
+          ]
+        ],
+        "failure_reason": null,
+        "outcome": "SUPPORTED",
+        "protected_execution_eligible": false,
+        "request_digest": "sha256:4b52ee10839c57f7319654b8eca41d7090f9b3deecf79f362cabcb1bb10e08f9",
+        "role": "CANDIDATE_PRIMARY",
+        "scientifically_qualified": false,
+        "score_eligible": false
+      },
+      "boundary_condition": "PERIODIC",
+      "build": 0,
+      "case_digest": "sha256:a2e8449f9e689af7340d4692e51e73b9e48fbea254a7e3e78de6f2eb356e1185",
+      "cell": 7,
+      "convergence_history": [
+        {
+          "failure_reason": null,
+          "initial_recovery_max_absolute": 4.201147501409208e-08,
+          "internal_grid_points": 512,
+          "maximum_absolute_change_from_previous_grid": null,
+          "maximum_mean_drift": 1.7750585071252267e-08,
+          "minimum_stabilized_phi": 6.402823937929139e-09,
+          "outcome": "SUPPORTED",
+          "value_digest": "sha256:90cacf9a7def6158c87919615f961cd44b7b04745aa2f2b7133d24d5ad7efee9"
+        },
+        {
+          "failure_reason": null,
+          "initial_recovery_max_absolute": 7.929642895782019e-08,
+          "internal_grid_points": 1024,
+          "maximum_absolute_change_from_previous_grid": 7.608350482968262e-08,
+          "maximum_mean_drift": 1.7758764417341588e-08,
+          "minimum_stabilized_phi": 6.402823860950785e-09,
+          "outcome": "SUPPORTED",
+          "value_digest": "sha256:f98a313bf8fbd369c66f8275099f8a33ccd510449e7c510f15c9d7eb392f3f66"
+        },
+        {
+          "failure_reason": null,
+          "initial_recovery_max_absolute": 1.2246733165771628e-07,
+          "internal_grid_points": 2048,
+          "maximum_absolute_change_from_previous_grid": 1.6311709215982573e-07,
+          "maximum_mean_drift": 1.7760081086337642e-08,
+          "minimum_stabilized_phi": 6.40141397225194e-09,
+          "outcome": "SUPPORTED",
+          "value_digest": "sha256:6e1915829780f9cef4c7feed982603a4d7cb7ba5a1b7296f3f6a12855e4232b8"
+        },
+        {
+          "failure_reason": null,
+          "initial_recovery_max_absolute": 8.351411383278329e-08,
+          "internal_grid_points": 4096,
+          "maximum_absolute_change_from_previous_grid": 2.0598144549049957e-07,
+          "maximum_mean_drift": 1.7768455540245753e-08,
+          "minimum_stabilized_phi": 6.400574378449472e-09,
+          "outcome": "SUPPORTED",
+          "value_digest": "sha256:bf82fdfbefb20c6f32c91b7c1ee7c9ad2c6c10296bed5e440a5e6996685ab3a2"
+        }
+      ],
+      "domain_length": 6.283185307179586,
+      "equation": "u_t + u*u_x = viscosity*u_xx",
+      "implementation_digest": "sha256:99552564f95bb465513e7116baf6ecd666a927098ccdfc51147642a8061eb69e",
+      "method": "cole_hopf_fourier_quadrature",
+      "observations": {
+        "cole_hopf_quadrature_change_max_absolute": 1.6311709215982573e-07,
+        "initial_recovery_max_absolute": 7.929642895782019e-08,
+        "minimum_cole_hopf_phi": 6.402823860950785e-09,
+        "periodic_closure_max_absolute": 0.0,
+        "primary_crosscheck_discrepancy_max_absolute": 2.822468077035012e-07
+      },
+      "ordinal": 0,
+      "readiness_disposition": "EVIDENCE_READY_FOR_HUMAN_REVIEW",
+      "request_digest": "sha256:4b52ee10839c57f7319654b8eca41d7090f9b3deecf79f362cabcb1bb10e08f9",
+      "requested_time_over_characteristic_time": [
+        0.0,
+        0.1,
+        0.25
+      ],
+      "reynolds_number": 6.541859968297311,
+      "reynolds_regime": 3,
+      "settings": {
+        "cfl": 0.25,
+        "contour_points": 0,
+        "internal_grid_points": 1024,
+        "maximum_steps": 200000
+      },
+      "shape_family": "localized_packet",
+      "source_role": "EVAL",
+      "viscosity": 0.012481651273250393
+    },
+    {
+      "base_run": {
+        "artifact_digest": "sha256:0dbaa8841b214f2854ed9b6d6d706f63fad9b6cbe559acf008eaae29a95560e0",
+        "diagnostics": [
+          [
+            "initial_recovery_max_absolute",
+            4.8627768478581856e-14
+          ],
+          [
+            "method",
+            "cole_hopf_fourier_quadrature"
+          ],
+          [
+            "minimum_phi",
+            0.1660122005196798
+          ],
+          [
+            "quadrature_points",
+            1024
+          ]
+        ],
+        "failure_reason": null,
+        "outcome": "SUPPORTED",
+        "protected_execution_eligible": false,
+        "request_digest": "sha256:ebd415ada7d4c38e3e8f4b0524a5d109e320d432ddd05ba95281230b9fe03009",
+        "role": "CANDIDATE_PRIMARY",
+        "scientifically_qualified": false,
+        "score_eligible": false
+      },
+      "boundary_condition": "PERIODIC",
+      "build": 0,
+      "case_digest": "sha256:d01c2c47f5696ef18f9dcbd8cb994b667bd8c03242fa9e49f25283399ce1fada",
+      "cell": 8,
+      "convergence_history": [
+        {
+          "failure_reason": null,
+          "initial_recovery_max_absolute": 2.3203661214665772e-14,
+          "internal_grid_points": 512,
+          "maximum_absolute_change_from_previous_grid": null,
+          "maximum_mean_drift": 2.7755575615628914e-17,
+          "minimum_stabilized_phi": 0.16601220051967988,
+          "outcome": "SUPPORTED",
+          "value_digest": "sha256:884ac05ff05f5451bc37b5f15eed17a80b2b9677eb124e41a3bfb7a9b5901d7f"
+        },
+        {
+          "failure_reason": null,
+          "initial_recovery_max_absolute": 4.8627768478581856e-14,
+          "internal_grid_points": 1024,
+          "maximum_absolute_change_from_previous_grid": 6.900036098045348e-14,
+          "maximum_mean_drift": 4.773959005888173e-15,
+          "minimum_stabilized_phi": 0.1660122005196798,
+          "outcome": "SUPPORTED",
+          "value_digest": "sha256:2b00dd75f80f63902e09f96aa5a4ad2738c5e977e440715b68366f419c7f430c"
+        },
+        {
+          "failure_reason": null,
+          "initial_recovery_max_absolute": 1.4382939284018903e-13,
+          "internal_grid_points": 2048,
+          "maximum_absolute_change_from_previous_grid": 1.2762013668066174e-13,
+          "maximum_mean_drift": 5.551115123125783e-15,
+          "minimum_stabilized_phi": 0.16601130514513351,
+          "outcome": "SUPPORTED",
+          "value_digest": "sha256:a5c9181cfc04fd4da32249c99d6210597b0000b1089adf7d1e94bf3aa2179217"
+        },
+        {
+          "failure_reason": null,
+          "initial_recovery_max_absolute": 2.861599845971341e-13,
+          "internal_grid_points": 4096,
+          "maximum_absolute_change_from_previous_grid": 3.3389957465601583e-13,
+          "maximum_mean_drift": 1.4516166046973922e-14,
+          "minimum_stabilized_phi": 0.16601118804314974,
+          "outcome": "SUPPORTED",
+          "value_digest": "sha256:2282979e70e42aea2545e80ec9c41cfcb2879a61456c9e01804ac0d715b39cb1"
+        }
+      ],
+      "domain_length": 6.283185307179586,
+      "equation": "u_t + u*u_x = viscosity*u_xx",
+      "implementation_digest": "sha256:99552564f95bb465513e7116baf6ecd666a927098ccdfc51147642a8061eb69e",
+      "method": "cole_hopf_fourier_quadrature",
+      "observations": {
+        "cole_hopf_quadrature_change_max_absolute": 1.2762013668066174e-13,
+        "initial_recovery_max_absolute": 4.8627768478581856e-14,
+        "minimum_cole_hopf_phi": 0.1660122005196798,
+        "periodic_closure_max_absolute": 5.551115123125783e-17,
+        "primary_crosscheck_discrepancy_max_absolute": 4.96269692007445e-14
+      },
+      "ordinal": 0,
+      "readiness_disposition": "EVIDENCE_READY_FOR_HUMAN_REVIEW",
+      "request_digest": "sha256:ebd415ada7d4c38e3e8f4b0524a5d109e320d432ddd05ba95281230b9fe03009",
+      "requested_time_over_characteristic_time": [
+        0.0,
+        0.1,
+        0.25
+      ],
+      "reynolds_number": 0.7322552200296529,
+      "reynolds_regime": 0,
+      "settings": {
+        "cfl": 0.25,
+        "contour_points": 0,
+        "internal_grid_points": 1024,
+        "maximum_steps": 200000
+      },
+      "shape_family": "multiscale",
+      "source_role": "EVAL",
+      "viscosity": 0.12694042221825713
+    },
+    {
+      "base_run": {
+        "artifact_digest": "sha256:5d9e8a553db6eebba16d758331ded98fd43745e56ac37ea26b9251c51e3c4165",
+        "diagnostics": [
+          [
+            "initial_recovery_max_absolute",
+            1.9301227283108346e-13
+          ],
+          [
+            "method",
+            "cole_hopf_fourier_quadrature"
+          ],
+          [
+            "minimum_phi",
+            0.07579452015030602
+          ],
+          [
+            "quadrature_points",
+            1024
+          ]
+        ],
+        "failure_reason": null,
+        "outcome": "SUPPORTED",
+        "protected_execution_eligible": false,
+        "request_digest": "sha256:38932e1bd1f4bdb0ce3caaee6784aa7e053c81dfe082a8fca47be7ae68213a13",
+        "role": "CANDIDATE_PRIMARY",
+        "scientifically_qualified": false,
+        "score_eligible": false
+      },
+      "boundary_condition": "PERIODIC",
+      "build": 0,
+      "case_digest": "sha256:362c5521a90561c94ebf90a552875ab052f4213db06d0aa0832786ea7e417f0f",
+      "cell": 9,
+      "convergence_history": [
+        {
+          "failure_reason": null,
+          "initial_recovery_max_absolute": 9.825473767932635e-14,
+          "internal_grid_points": 512,
+          "maximum_absolute_change_from_previous_grid": null,
+          "maximum_mean_drift": 6.744604874597826e-15,
+          "minimum_stabilized_phi": 0.07579679981775941,
+          "outcome": "SUPPORTED",
+          "value_digest": "sha256:5ad29be01a141a5b94800c20ebe56f4a1895e4756677456100a94b1fd4463e72"
+        },
+        {
+          "failure_reason": null,
+          "initial_recovery_max_absolute": 1.9301227283108346e-13,
+          "internal_grid_points": 1024,
+          "maximum_absolute_change_from_previous_grid": 2.666755705149626e-13,
+          "maximum_mean_drift": 2.2315482794965646e-14,
+          "minimum_stabilized_phi": 0.07579452015030602,
+          "outcome": "SUPPORTED",
+          "value_digest": "sha256:4e32f248f8cf2bdbff52e904619672c60ef6ef5646e80165f5ec6d2bc463bb27"
+        },
+        {
+          "failure_reason": null,
+          "initial_recovery_max_absolute": 4.120037644383956e-13,
+          "internal_grid_points": 2048,
+          "maximum_absolute_change_from_previous_grid": 4.434230760352875e-13,
+          "maximum_mean_drift": 2.195466031196247e-14,
+          "minimum_stabilized_phi": 0.07579415048868482,
+          "outcome": "SUPPORTED",
+          "value_digest": "sha256:1cedf44060bbc23d6eb0bb363c60e0375f79a55ee6db6d85e027cbc548ee70eb"
+        },
+        {
+          "failure_reason": null,
+          "initial_recovery_max_absolute": 5.962175197993247e-13,
+          "internal_grid_points": 4096,
+          "maximum_absolute_change_from_previous_grid": 7.250866573826897e-13,
+          "maximum_mean_drift": 7.069345109300684e-14,
+          "minimum_stabilized_phi": 0.0757939595345831,
+          "outcome": "SUPPORTED",
+          "value_digest": "sha256:f6465bd9078ce1cf1f23863028bacbb7e40fd25070fb02c241fdbf4beed63bfb"
+        }
+      ],
+      "domain_length": 6.283185307179586,
+      "equation": "u_t + u*u_x = viscosity*u_xx",
+      "implementation_digest": "sha256:99552564f95bb465513e7116baf6ecd666a927098ccdfc51147642a8061eb69e",
+      "method": "cole_hopf_fourier_quadrature",
+      "observations": {
+        "cole_hopf_quadrature_change_max_absolute": 4.434230760352875e-13,
+        "initial_recovery_max_absolute": 1.9301227283108346e-13,
+        "minimum_cole_hopf_phi": 0.07579452015030602,
+        "periodic_closure_max_absolute": 5.551115123125783e-17,
+        "primary_crosscheck_discrepancy_max_absolute": 1.929567616798522e-13
+      },
+      "ordinal": 0,
+      "readiness_disposition": "EVIDENCE_READY_FOR_HUMAN_REVIEW",
+      "request_digest": "sha256:38932e1bd1f4bdb0ce3caaee6784aa7e053c81dfe082a8fca47be7ae68213a13",
+      "requested_time_over_characteristic_time": [
+        0.0,
+        0.1,
+        0.25
+      ],
+      "reynolds_number": 1.0355888119146244,
+      "reynolds_regime": 1,
+      "settings": {
+        "cfl": 0.25,
+        "contour_points": 0,
+        "internal_grid_points": 1024,
+        "maximum_steps": 200000
+      },
+      "shape_family": "multiscale",
+      "source_role": "EVAL",
+      "viscosity": 0.1904710462856902
+    },
+    {
+      "base_run": {
+        "artifact_digest": "sha256:ab9f553924c0dbcee98e56066c1b58fa767394f08861b956124fbac4b05c1f21",
+        "diagnostics": [
+          [
+            "initial_recovery_max_absolute",
+            8.25411961002942e-12
+          ],
+          [
+            "method",
+            "cole_hopf_fourier_quadrature"
+          ],
+          [
+            "minimum_phi",
+            0.00028773900104522854
+          ],
+          [
+            "quadrature_points",
+            1024
+          ]
+        ],
+        "failure_reason": null,
+        "outcome": "SUPPORTED",
+        "protected_execution_eligible": false,
+        "request_digest": "sha256:0b13aa18ef160b52fdf4c93d9065fc1832b8a0251859b09b593bdea8291f94ec",
+        "role": "CANDIDATE_PRIMARY",
+        "scientifically_qualified": false,
+        "score_eligible": false
+      },
+      "boundary_condition": "PERIODIC",
+      "build": 0,
+      "case_digest": "sha256:ec7821f1bf142ad4ac9100e78a8ffc84f095d9b748a5e36f3b7e8a43068861d2",
+      "cell": 10,
+      "convergence_history": [
+        {
+          "failure_reason": null,
+          "initial_recovery_max_absolute": 5.835554262034748e-12,
+          "internal_grid_points": 512,
+          "maximum_absolute_change_from_previous_grid": null,
+          "maximum_mean_drift": 4.405087405956465e-13,
+          "minimum_stabilized_phi": 0.0002877498775958054,
+          "outcome": "SUPPORTED",
+          "value_digest": "sha256:54fb0de36eba2e20eb975bfb73f7dbddaa2b91f901215201a454cb93f6ec3431"
+        },
+        {
+          "failure_reason": null,
+          "initial_recovery_max_absolute": 8.25411961002942e-12,
+          "internal_grid_points": 1024,
+          "maximum_absolute_change_from_previous_grid": 8.956335673104832e-12,
+          "maximum_mean_drift": 1.4441225992811724e-13,
+          "minimum_stabilized_phi": 0.00028773900104522854,
+          "outcome": "SUPPORTED",
+          "value_digest": "sha256:c97a59671f078b4157b148e5c7fedd8c8d007b86bcf1787e3db35d35e3fa36d0"
+        },
+        {
+          "failure_reason": null,
+          "initial_recovery_max_absolute": 1.4277634630133207e-11,
+          "internal_grid_points": 2048,
+          "maximum_absolute_change_from_previous_grid": 1.8925971900785044e-11,
+          "maximum_mean_drift": 5.938860514476119e-13,
+          "minimum_stabilized_phi": 0.0002877374890329354,
+          "outcome": "SUPPORTED",
+          "value_digest": "sha256:b9f3f8c931f9b58e2be26173f5ed8afa81eaea76c3e5a27ae71a493ee7ac1547"
+        },
+        {
+          "failure_reason": null,
+          "initial_recovery_max_absolute": 7.605738261418082e-11,
+          "internal_grid_points": 4096,
+          "maximum_absolute_change_from_previous_grid": 8.7456930586427e-11,
+          "maximum_mean_drift": 6.473099833925744e-12,
+          "minimum_stabilized_phi": 0.00028773649502050747,
+          "outcome": "SUPPORTED",
+          "value_digest": "sha256:1c57f2c20fd83270f442ea3048d182de7034561255257d0859650486e69434f9"
+        }
+      ],
+      "domain_length": 6.283185307179586,
+      "equation": "u_t + u*u_x = viscosity*u_xx",
+      "implementation_digest": "sha256:99552564f95bb465513e7116baf6ecd666a927098ccdfc51147642a8061eb69e",
+      "method": "cole_hopf_fourier_quadrature",
+      "observations": {
+        "cole_hopf_quadrature_change_max_absolute": 1.8925971900785044e-11,
+        "initial_recovery_max_absolute": 8.25411961002942e-12,
+        "minimum_cole_hopf_phi": 0.00028773900104522854,
+        "periodic_closure_max_absolute": 5.551115123125783e-17,
+        "primary_crosscheck_discrepancy_max_absolute": 7.575262639392122e-11
+      },
+      "ordinal": 0,
+      "readiness_disposition": "EVIDENCE_READY_FOR_HUMAN_REVIEW",
+      "request_digest": "sha256:0b13aa18ef160b52fdf4c93d9065fc1832b8a0251859b09b593bdea8291f94ec",
+      "requested_time_over_characteristic_time": [
+        0.0,
+        0.1,
+        0.25
+      ],
+      "reynolds_number": 3.7148277344902625,
+      "reynolds_regime": 2,
+      "settings": {
+        "cfl": 0.25,
+        "contour_points": 0,
+        "internal_grid_points": 1024,
+        "maximum_steps": 200000
+      },
+      "shape_family": "multiscale",
+      "source_role": "EVAL",
+      "viscosity": 0.04763155389446736
+    },
+    {
+      "base_run": {
+        "artifact_digest": "sha256:9868930db681826a911770635d75b5480774e23ea8f9e9edc13d841a384665cf",
+        "diagnostics": [
+          [
+            "initial_recovery_max_absolute",
+            5.825983334650786e-09
+          ],
+          [
+            "method",
+            "cole_hopf_fourier_quadrature"
+          ],
+          [
+            "minimum_phi",
+            4.897964947514488e-08
+          ],
+          [
+            "quadrature_points",
+            1024
+          ]
+        ],
+        "failure_reason": null,
+        "outcome": "SUPPORTED",
+        "protected_execution_eligible": false,
+        "request_digest": "sha256:f2bf960ff0d23ffbe811749cd6cbfb0aa585c2f79021947e059612763bfb334e",
+        "role": "CANDIDATE_PRIMARY",
+        "scientifically_qualified": false,
+        "score_eligible": false
+      },
+      "boundary_condition": "PERIODIC",
+      "build": 0,
+      "case_digest": "sha256:3c1091fff9506184d2d3948f6cf7535b008ef628ebff34db832271cd857966c8",
+      "cell": 11,
+      "convergence_history": [
+        {
+          "failure_reason": null,
+          "initial_recovery_max_absolute": 2.7057067142344238e-09,
+          "internal_grid_points": 512,
+          "maximum_absolute_change_from_previous_grid": null,
+          "maximum_mean_drift": 6.746217803485499e-07,
+          "minimum_stabilized_phi": 4.898097938701995e-08,
+          "outcome": "SUPPORTED",
+          "value_digest": "sha256:94432951c6c8d050d5ad39b1bfa0085f92fc440e335e131972adeecbe68b7947"
+        },
+        {
+          "failure_reason": null,
+          "initial_recovery_max_absolute": 5.825983334650786e-09,
+          "internal_grid_points": 1024,
+          "maximum_absolute_change_from_previous_grid": 5.703235501919313e-09,
+          "maximum_mean_drift": 6.746234556750941e-07,
+          "minimum_stabilized_phi": 4.897964947514488e-08,
+          "outcome": "SUPPORTED",
+          "value_digest": "sha256:f2ccbba8c0db74f59c0e44cacc7db19841a7c5f68a63482f0083908e0dfdef58"
+        },
+        {
+          "failure_reason": null,
+          "initial_recovery_max_absolute": 4.8857629331156005e-09,
+          "internal_grid_points": 2048,
+          "maximum_absolute_change_from_previous_grid": 7.018320705848291e-09,
+          "maximum_mean_drift": 6.74623762610127e-07,
+          "minimum_stabilized_phi": 4.896897368156239e-08,
+          "outcome": "SUPPORTED",
+          "value_digest": "sha256:d443fea2dce07ca6349c80e0f4bc27adf26017496bd95d78d3c32a5977286d3a"
+        },
+        {
+          "failure_reason": null,
+          "initial_recovery_max_absolute": 2.305154606085935e-08,
+          "internal_grid_points": 4096,
+          "maximum_absolute_change_from_previous_grid": 2.4243883432056856e-08,
+          "maximum_mean_drift": 6.746223980141908e-07,
+          "minimum_stabilized_phi": 4.896897370064435e-08,
+          "outcome": "SUPPORTED",
+          "value_digest": "sha256:6ca9c89f4cfa9ba4573603e6b8eee89f9d19e65e0c2f1efc6db369bede2d8d9b"
+        }
+      ],
+      "domain_length": 6.283185307179586,
+      "equation": "u_t + u*u_x = viscosity*u_xx",
+      "implementation_digest": "sha256:99552564f95bb465513e7116baf6ecd666a927098ccdfc51147642a8061eb69e",
+      "method": "cole_hopf_fourier_quadrature",
+      "observations": {
+        "cole_hopf_quadrature_change_max_absolute": 7.018320705848291e-09,
+        "initial_recovery_max_absolute": 5.825983334650786e-09,
+        "minimum_cole_hopf_phi": 4.897964947514488e-08,
+        "periodic_closure_max_absolute": 1.1102230246251565e-16,
+        "primary_crosscheck_discrepancy_max_absolute": 9.037797876754183e-08
+      },
+      "ordinal": 0,
+      "readiness_disposition": "EVIDENCE_READY_FOR_HUMAN_REVIEW",
+      "request_digest": "sha256:f2bf960ff0d23ffbe811749cd6cbfb0aa585c2f79021947e059612763bfb334e",
+      "requested_time_over_characteristic_time": [
+        0.0,
+        0.1,
+        0.25
+      ],
+      "reynolds_number": 4.636584098639155,
+      "reynolds_regime": 3,
+      "settings": {
+        "cfl": 0.25,
+        "contour_points": 0,
+        "internal_grid_points": 1024,
+        "maximum_steps": 200000
+      },
+      "shape_family": "multiscale",
+      "source_role": "EVAL",
+      "viscosity": 0.010255925324823537
+    }
+  ],
+  "method": "cole_hopf_fourier_quadrature",
+  "overall_readiness_disposition": "MORE_PUBLIC_EVIDENCE_NEEDED",
+  "readiness_by_dimension": [
+    {
+      "dimension": "initial_condition_recovery",
+      "disposition": "EVIDENCE_READY_FOR_HUMAN_REVIEW"
+    },
+    {
+      "dimension": "periodic_closure",
+      "disposition": "EVIDENCE_READY_FOR_HUMAN_REVIEW"
+    },
+    {
+      "dimension": "quadrature_sensitivity",
+      "disposition": "EVIDENCE_READY_FOR_HUMAN_REVIEW"
+    },
+    {
+      "dimension": "conditioning",
+      "disposition": "EVIDENCE_READY_FOR_HUMAN_REVIEW"
+    },
+    {
+      "dimension": "mean_invariant",
+      "disposition": "EVIDENCE_READY_FOR_HUMAN_REVIEW"
+    },
+    {
+      "dimension": "precision_sensitivity",
+      "disposition": "METHOD_OR_APPLICABILITY_GAP"
+    },
+    {
+      "dimension": "alternate_transform_sensitivity",
+      "disposition": "METHOD_OR_APPLICABILITY_GAP"
+    },
+    {
+      "dimension": "valid_limiting_cases",
+      "disposition": "MORE_PUBLIC_EVIDENCE_NEEDED"
+    },
+    {
+      "dimension": "empirical_failure_boundary",
+      "disposition": "MORE_PUBLIC_EVIDENCE_NEEDED"
+    }
+  ],
+  "schema": "carbon.d-qual-prep-01.primary-reference-evidence.v1",
+  "scientific_thresholds": null,
+  "scientifically_qualified": false,
+  "scope": "PUBLIC_DEVELOPMENT_DETACHED_READINESS_ONLY"
+}

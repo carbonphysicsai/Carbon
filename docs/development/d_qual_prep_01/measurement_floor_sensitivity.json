@@ -1,0 +1,313 @@
+{
+  "accepted_c05_manifest_digest": "sha256:9ad9cb1cbd5859ec50116ea8476bb0112300ab0d494c6233765fa5ffec69d44c",
+  "campaign_shape": {
+    "cases": 12,
+    "expected_distinct_results": 72,
+    "recipes": [
+      "carbon_jax_lab_fno",
+      "foundax_fno"
+    ],
+    "replicas_per_recipe": 3,
+    "retained_result_matrix_path": null
+  },
+  "currently_estimable_from_retained_accepted_records": [],
+  "decision_resolution_target": null,
+  "empirically_estimable_if_matrix_is_supplied": [
+    "WITHIN_CASE_ACROSS_RECONSTRUCTION_REPLICAS",
+    "ACROSS_CASES_AFTER_REPLICA_MEAN",
+    "PAIRED_REPLICA_BY_CASE_RANK_REVERSALS"
+  ],
+  "observable_rows": [
+    {
+      "across_case_variation": null,
+      "across_replica_variation": null,
+      "blocked_inputs": [
+        "D02_GENERATOR_CONFORMANCE_EVIDENCE",
+        "RETAINED_C05_3_REPLICA_BY_12_CASE_RESULT_MATRIX_FOR_BOTH_RECIPES",
+        "REFERENCE_SETTING_PERTURBATION_MEASUREMENT_MATRIX"
+      ],
+      "censoring_rule": "NOT_APPLICABLE",
+      "measurement_id": "field_phase_rms",
+      "minimum_distinguishable_difference": null,
+      "numerical_reference_floor_candidate": null,
+      "paired_rank_reversal_evidence": null,
+      "readiness_disposition": "BLOCKED_INPUT",
+      "reference_resolution_sensitivity": null,
+      "strata": [
+        {
+          "reynolds_regime": 0,
+          "shape_family": "harmonic"
+        },
+        {
+          "reynolds_regime": 1,
+          "shape_family": "harmonic"
+        },
+        {
+          "reynolds_regime": 2,
+          "shape_family": "harmonic"
+        },
+        {
+          "reynolds_regime": 3,
+          "shape_family": "harmonic"
+        },
+        {
+          "reynolds_regime": 0,
+          "shape_family": "localized_packet"
+        },
+        {
+          "reynolds_regime": 1,
+          "shape_family": "localized_packet"
+        },
+        {
+          "reynolds_regime": 2,
+          "shape_family": "localized_packet"
+        },
+        {
+          "reynolds_regime": 3,
+          "shape_family": "localized_packet"
+        },
+        {
+          "reynolds_regime": 0,
+          "shape_family": "multiscale"
+        },
+        {
+          "reynolds_regime": 1,
+          "shape_family": "multiscale"
+        },
+        {
+          "reynolds_regime": 2,
+          "shape_family": "multiscale"
+        },
+        {
+          "reynolds_regime": 3,
+          "shape_family": "multiscale"
+        }
+      ],
+      "within_case_reconstruction_variation": null
+    },
+    {
+      "across_case_variation": null,
+      "across_replica_variation": null,
+      "blocked_inputs": [
+        "D02_GENERATOR_CONFORMANCE_EVIDENCE",
+        "RETAINED_C05_3_REPLICA_BY_12_CASE_RESULT_MATRIX_FOR_BOTH_RECIPES",
+        "REFERENCE_SETTING_PERTURBATION_MEASUREMENT_MATRIX"
+      ],
+      "censoring_rule": "NOT_APPLICABLE",
+      "measurement_id": "maximum_compression",
+      "minimum_distinguishable_difference": null,
+      "numerical_reference_floor_candidate": null,
+      "paired_rank_reversal_evidence": null,
+      "readiness_disposition": "BLOCKED_INPUT",
+      "reference_resolution_sensitivity": null,
+      "strata": [
+        {
+          "reynolds_regime": 0,
+          "shape_family": "harmonic"
+        },
+        {
+          "reynolds_regime": 1,
+          "shape_family": "harmonic"
+        },
+        {
+          "reynolds_regime": 2,
+          "shape_family": "harmonic"
+        },
+        {
+          "reynolds_regime": 3,
+          "shape_family": "harmonic"
+        },
+        {
+          "reynolds_regime": 0,
+          "shape_family": "localized_packet"
+        },
+        {
+          "reynolds_regime": 1,
+          "shape_family": "localized_packet"
+        },
+        {
+          "reynolds_regime": 2,
+          "shape_family": "localized_packet"
+        },
+        {
+          "reynolds_regime": 3,
+          "shape_family": "localized_packet"
+        },
+        {
+          "reynolds_regime": 0,
+          "shape_family": "multiscale"
+        },
+        {
+          "reynolds_regime": 1,
+          "shape_family": "multiscale"
+        },
+        {
+          "reynolds_regime": 2,
+          "shape_family": "multiscale"
+        },
+        {
+          "reynolds_regime": 3,
+          "shape_family": "multiscale"
+        }
+      ],
+      "within_case_reconstruction_variation": null
+    },
+    {
+      "across_case_variation": null,
+      "across_replica_variation": null,
+      "blocked_inputs": [
+        "D02_GENERATOR_CONFORMANCE_EVIDENCE",
+        "RETAINED_C05_3_REPLICA_BY_12_CASE_RESULT_MATRIX_FOR_BOTH_RECIPES",
+        "REFERENCE_SETTING_PERTURBATION_MEASUREMENT_MATRIX"
+      ],
+      "censoring_rule": "NOT_APPLICABLE",
+      "measurement_id": "peak_dissipation",
+      "minimum_distinguishable_difference": null,
+      "numerical_reference_floor_candidate": null,
+      "paired_rank_reversal_evidence": null,
+      "readiness_disposition": "BLOCKED_INPUT",
+      "reference_resolution_sensitivity": null,
+      "strata": [
+        {
+          "reynolds_regime": 0,
+          "shape_family": "harmonic"
+        },
+        {
+          "reynolds_regime": 1,
+          "shape_family": "harmonic"
+        },
+        {
+          "reynolds_regime": 2,
+          "shape_family": "harmonic"
+        },
+        {
+          "reynolds_regime": 3,
+          "shape_family": "harmonic"
+        },
+        {
+          "reynolds_regime": 0,
+          "shape_family": "localized_packet"
+        },
+        {
+          "reynolds_regime": 1,
+          "shape_family": "localized_packet"
+        },
+        {
+          "reynolds_regime": 2,
+          "shape_family": "localized_packet"
+        },
+        {
+          "reynolds_regime": 3,
+          "shape_family": "localized_packet"
+        },
+        {
+          "reynolds_regime": 0,
+          "shape_family": "multiscale"
+        },
+        {
+          "reynolds_regime": 1,
+          "shape_family": "multiscale"
+        },
+        {
+          "reynolds_regime": 2,
+          "shape_family": "multiscale"
+        },
+        {
+          "reynolds_regime": 3,
+          "shape_family": "multiscale"
+        }
+      ],
+      "within_case_reconstruction_variation": null
+    },
+    {
+      "across_case_variation": null,
+      "across_replica_variation": null,
+      "blocked_inputs": [
+        "D02_GENERATOR_CONFORMANCE_EVIDENCE",
+        "RETAINED_C05_3_REPLICA_BY_12_CASE_RESULT_MATRIX_FOR_BOTH_RECIPES",
+        "REFERENCE_SETTING_PERTURBATION_MEASUREMENT_MATRIX"
+      ],
+      "censoring_rule": "RIGHT_CENSOR_AT_LAST_REQUESTED_TIME",
+      "measurement_id": "energy_half_time",
+      "minimum_distinguishable_difference": null,
+      "numerical_reference_floor_candidate": null,
+      "paired_rank_reversal_evidence": null,
+      "readiness_disposition": "BLOCKED_INPUT",
+      "reference_resolution_sensitivity": null,
+      "strata": [
+        {
+          "reynolds_regime": 0,
+          "shape_family": "harmonic"
+        },
+        {
+          "reynolds_regime": 1,
+          "shape_family": "harmonic"
+        },
+        {
+          "reynolds_regime": 2,
+          "shape_family": "harmonic"
+        },
+        {
+          "reynolds_regime": 3,
+          "shape_family": "harmonic"
+        },
+        {
+          "reynolds_regime": 0,
+          "shape_family": "localized_packet"
+        },
+        {
+          "reynolds_regime": 1,
+          "shape_family": "localized_packet"
+        },
+        {
+          "reynolds_regime": 2,
+          "shape_family": "localized_packet"
+        },
+        {
+          "reynolds_regime": 3,
+          "shape_family": "localized_packet"
+        },
+        {
+          "reynolds_regime": 0,
+          "shape_family": "multiscale"
+        },
+        {
+          "reynolds_regime": 1,
+          "shape_family": "multiscale"
+        },
+        {
+          "reynolds_regime": 2,
+          "shape_family": "multiscale"
+        },
+        {
+          "reynolds_regime": 3,
+          "shape_family": "multiscale"
+        }
+      ],
+      "within_case_reconstruction_variation": null
+    }
+  ],
+  "physics_diagnostics": [
+    "initial_condition",
+    "periodicity",
+    "conserved_mean",
+    "maximum_principle",
+    "energy_dissipation_balance",
+    "weak_local_pde"
+  ],
+  "readiness_disposition": "BLOCKED_INPUT",
+  "repeat_count_selected": null,
+  "schema": "carbon.d-qual-prep-01.measurement-floor-sensitivity.v1",
+  "scientific_limits": null,
+  "scientifically_qualified": false,
+  "score_eligible": false,
+  "score_input": null,
+  "unknown_components": [
+    "REFERENCE_RESOLUTION_AND_SETTINGS_SENSITIVITY",
+    "QUALIFIED_TARGET_POPULATION_VARIABILITY",
+    "STRESS_POPULATION_VARIABILITY",
+    "CENSORING_FREQUENCY_BY_STRATUM",
+    "DECISION_RESOLUTION_TARGET",
+    "REPEAT_SUFFICIENCY"
+  ]
+}

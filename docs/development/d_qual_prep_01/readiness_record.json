@@ -1,0 +1,109 @@
+{
+  "authority": {
+    "live_eligible": false,
+    "network_eligible": false,
+    "production_eligible": false,
+    "protected_execution_eligible": false,
+    "reward_eligible": false,
+    "scientific_thresholds": null,
+    "scientifically_qualified": false,
+    "score_eligible": false,
+    "score_input": null,
+    "tickets_activated": [],
+    "wave_d_selected": false
+  },
+  "cpes_changed": false,
+  "cpes_variant_a": "DEVELOPMENT_BASELINE",
+  "cpes_variant_b": "CONDITIONAL_RESEARCH",
+  "d02_dependency": "BLOCKED_INPUT",
+  "d03_readiness": "MORE_PUBLIC_EVIDENCE_NEEDED",
+  "d04_readiness": "MORE_PUBLIC_EVIDENCE_NEEDED",
+  "d05_readiness": "BLOCKED_INPUT",
+  "execution_environment": {
+    "c04_declared_environment": {
+      "dependencies": [
+        {
+          "distribution": "jax",
+          "version": "0.10.2"
+        },
+        {
+          "distribution": "jaxlib",
+          "version": "0.10.2"
+        },
+        {
+          "distribution": "numpy",
+          "version": "2.4.6"
+        },
+        {
+          "distribution": "scipy",
+          "version": "1.17.1"
+        },
+        {
+          "distribution": "optax",
+          "version": "0.2.8"
+        },
+        {
+          "distribution": "chex",
+          "version": "0.1.92"
+        },
+        {
+          "distribution": "equinox",
+          "version": "0.13.8"
+        },
+        {
+          "distribution": "einops",
+          "version": "0.8.2"
+        },
+        {
+          "distribution": "foundax",
+          "version": "0.2.0"
+        },
+        {
+          "distribution": "PyYAML",
+          "version": "6.0.3"
+        }
+      ],
+      "lock_digest": "sha256:9de64d6c5ca9a0a73d141ca403de1d2bee8bb85e68cd7ea20195b163a7c2cf11",
+      "platform": "linux-x86_64-cpu",
+      "python": "3.11",
+      "schema": "carbon.c04.reference-environment.v1"
+    },
+    "c04_environment_digest": "sha256:914e6e0aab72edd55854fbfd25ccce7a05d271da4bde3e6a88a49609c07d65a0",
+    "canonical_linux_execution": false,
+    "evidence_role": "NATIVE_MACOS_DIAGNOSTIC",
+    "host_platform": "macOS-15.6-arm64-arm-64bit",
+    "machine": "arm64",
+    "numpy": "2.4.6",
+    "python": "3.11.11",
+    "python_implementation": "CPython"
+  },
+  "final_recommendation": "WAIT_FOR_D02_GENERATOR_CONFORMANCE",
+  "goal_workbench_04_merge": "PENDING",
+  "outputs": {
+    "generator_dependency.json": "sha256:cad7aa832e7e5ce06bcc910d4718934630ddeeac97fd76daea14894549df0260",
+    "independence_matrix.json": "sha256:bc3a9856751205f1b642ce9d8af34953692696b1cac5538a16c1eff294b1ff04",
+    "measurement_floor_sensitivity.json": "sha256:1a45ce9796be767878ea7f3e218b84a701472fc326fdb499da61255673c5881f",
+    "primary_reference_evidence.json": "sha256:c0777ca4256fe3ac28d1dacaa9edbeb2f0cde632f2ba9ea321f7a4462911a0af",
+    "witness_refinement_evidence.json": "sha256:06743cbe85f33467422b263bc700450b48f0a03fd225acb75ffc041931a339e3",
+    "workbench_projection_status.json": "sha256:eea2e37b6eeadc723d30516038ce1c49c83d0453fbb8b4216414e3737a478fc6"
+  },
+  "protocol_digest": "sha256:ff2a730838fad9ae0b3148ed149ecd6021cb5ae0d381ca3f3f71c69871e2e99d",
+  "schema": "carbon.d-qual-prep-01.readiness.v1",
+  "scope": "PUBLIC_DEVELOPMENT_DETACHED_READINESS_ONLY",
+  "source_file_digests": {
+    "carbon/generators/burgers_dynamics.py": "sha256:ce4a57f99dd79787616a99ce5d266a07cd77d09f6e80367ce53c63f8e4bf2793",
+    "carbon/measurement_runtime/model.py": "sha256:42904c6c964237b830898a5c0860f0992f6fe60f466ecc33ea28df27080068f9",
+    "carbon/measurement_runtime/qualification_candidate.py": "sha256:68cf217572dc7757e136ee203b75b666778dff1c7aeb42c6c04af7426a004b8f",
+    "carbon/reference_runtime/model.py": "sha256:11a3f346272ed89c2e47fd842d79a5730370b11469e09cb74df21ed2ca4b0e72",
+    "carbon/reference_runtime/qualification_candidate.py": "sha256:ee09dffc8b6426de842d58a03f85b9b560b5531bca7cbcde48bb2cfb620a3b9c"
+  },
+  "source_revision": "ed6047d03cf60db6ce52f03e63040d95c1ea78e4",
+  "unresolved_cpes_blockers": [
+    "AT-09",
+    "AT-16",
+    "AT-19",
+    "AT-22",
+    "AT-30"
+  ],
+  "workbench_projection": "INELIGIBLE_BLOCKED_INPUT"
+}

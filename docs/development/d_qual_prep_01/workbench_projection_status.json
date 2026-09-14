@@ -1,0 +1,14 @@
+{
+  "allowed_future_import_class": "DEVELOPMENT_QUALIFICATION_CANDIDATE_EVIDENCE",
+  "blocked_input": "GOAL_WORKBENCH_04_NORMAL_REPOSITORY_MERGE",
+  "can_activate_scoring": false,
+  "can_mint_qualification": false,
+  "expected_commit_is_ancestor_of_observed_main": false,
+  "goal_workbench_04_expected_commit": "0ea0ad8116ae4d912e866d11c52d6775a37d9813",
+  "import_record": null,
+  "observed_main_revision": "ed6047d03cf60db6ce52f03e63040d95c1ea78e4",
+  "projection_eligible": false,
+  "required_future_disposition": "HUMAN_SCIENTIFIC_DECISION_REQUIRED",
+  "schema": "carbon.d-qual-prep-01.workbench-projection-status.v1",
+  "status": "BLOCKED_INPUT"
+}
