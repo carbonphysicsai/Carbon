@@ -40,7 +40,7 @@
 normally merged as `ac050fd53ee18bf3788c167ee7b0736bbfd7a46b`, tree
 `46b38440f13a8048db18bc480ddb6907396c9017`
 **Controlling register:** `.agent/WAVE_C.md` version 2.2
-**Selected ticket:** C-EA1 — `in_progress` private-alpha preparation
+**Selected ticket:** C-EA1 — `in_progress`
 **Active ticket:** C-EA1 separately versioned real-profile preparation, with
 real acknowledgement and deployment fail closed
 **Next authorized ticket after current merge:** C-EA2 only if an eligible real

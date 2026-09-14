@@ -35,7 +35,7 @@
 Wave C/C0 and this file as its controlling register.
 **Version:** 2.2
 **Activation decision:** `OWNER-WAVE-C0-NET1-01`
-**Selected ticket:** C-EA1 — `in_progress` private-alpha preparation
+**Selected ticket:** C-EA1 — `in_progress`
 **Active ticket:** separately versioned real-profile policy, deployment-input
 contract and isolated non-secret service preflight
 **Next authorized ticket after current merge:** C-EA2 only after an eligible
