@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the closed additive v0.3 goal-workbench schema and constants."""
+"""Generate the closed additive v0.4 goal-workbench schema and constants."""
 
 from __future__ import annotations
 
@@ -7,10 +7,10 @@ import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-DESIGN = "carbon.goal-workbench.design.v0.3"
-WORKSPACE = "carbon.goal-workbench.workspace.v0.3"
-APP = "Carbon Goal-to-Challenge Workbench v0.3"
-BASE = "3fb98bfbfb9ca8dd3f6dd0d8e5a588a89b1c9932"
+DESIGN = "carbon.goal-workbench.design.v0.4"
+WORKSPACE = "carbon.goal-workbench.workspace.v0.4"
+APP = "Carbon Goal-to-Challenge Workbench v0.4"
+BASE = "95e717f28fab66a087b1e7006ad2ba5e167e2ddf"
 BLOCKERS = ["AT-09", "AT-16", "AT-19", "AT-22", "AT-30"]
 CONTROLS = [f"P{i}" for i in range(1, 9)]
 ROLES = ["MANDATORY", "SOFT", "DIAGNOSTIC", "DEPLOYMENT"]
@@ -285,6 +285,22 @@ decision_fields = [
     "next_action",
     "permitted_claims",
 ]
+digest = {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+candidate_identity = obj({field: (string(160) if field == "replica_id" else digest) for field in ["artifact_digest", "binding_digest", "source_digest", "environment_digest", "plan_digest", "replica_id"]})
+reference_identity = obj({"artifact_digest": digest, "request_digest": digest, "policy_digest": digest, "environment_digest": digest, "role": string(100), "scientifically_qualified": {"const": False}})
+measurement_identity = obj({"policy_id": string(200), "policy_version": string(50), "contract_digest": digest, "environment_digest": digest, "implementation_digest": digest, "precision": string(30), "operator_ids": array(string(100), 4), "physics_ids": array(string(100), 6), "scientific_limits": {"type": "null"}, "uncertainty_policy": {"type": "null"}, "scientifically_qualified": {"const": False}})
+measurement_observation = obj({"measurement_id": string(100), "candidate_value": {"type": "number"}, "reference_value": {"type": "number"}, "raw_absolute_error": {"type": "number", "minimum": 0}, "normalization_scale": {"type": "number", "exclusiveMinimum": 0}, "normalized_error": {"type": "number", "minimum": 0}, "uncertainty": {"type": "null"}, "scientific_limit": {"type": "null"}, "decision": {"const": "UNRESOLVED_NO_QUALIFIED_LIMIT"}})
+physics_observation = obj({"physics_id": string(100), "raw_defect": {"type": "number", "minimum": 0}, "normalization_scale": {"type": "number", "exclusiveMinimum": 0}, "normalized_defect": {"type": "number", "minimum": 0}, "uncertainty": {"type": "null"}, "scientific_limit": {"type": "null"}, "decision": {"const": "UNRESOLVED_NO_QUALIFIED_LIMIT"}})
+diagnostic_item = {"type": "array", "minItems": 2, "maxItems": 2, "prefixItems": [string(200), {"anyOf": [{"type": "number"}, string(1000)]}], "items": False}
+behavior_item = obj({"example": string(100), "classification": string(100), "reason": string(1200)})
+evidence_record = obj({
+    "schema_version": {"const": "carbon.goal-workbench.c05-evidence-association.v1"}, "association_id": string(300), "workbench_request_id": string(128), "job_id": string(128), "design_id": string(128), "design_revision": {"type": "integer", "minimum": 1},
+    "requirement_trace_ids": array(string(128), 256), "case_family_ids": array(string(128), 128), "challenge": obj({"id": string(128), "version": string(50)}), "template_id": string(300), "evidence_scope": {"const": "PUBLIC_DEVELOPMENT_ONLY"},
+    "evidence_state": {"enum": ["SOURCE_MEASUREMENT_EVIDENCE_BOUND", "SOURCE_MEASUREMENT_EVIDENCE_NOT_EXECUTED"]}, "binding_status": {"enum": ["CURRENT_DESIGN_REVISION", "STALE_DESIGN_CHANGED"]}, "source_disposition": string(100),
+    "source": obj({"fixture_id": string(160), "repository": {"const": "carbonphysicsai/Carbon"}, "source_revision": {"type": "string", "pattern": "^[0-9a-f]{40}$"}, "implementation": string(300), "request_schema": {"const": "carbon.c05.burgers-measurement.v1"}, "result_schema": {"const": "carbon.c05.burgers-measurement-result.v1"}, "request_digest": digest, "result_digest": digest, "case_digest": digest, "candidate": candidate_identity, "reference": reference_identity, "measurement": measurement_identity}),
+    "measurements": array(measurement_observation, 4), "physics": array(physics_observation, 6), "diagnostics": array(diagnostic_item, 64), "behavior_classification": array(behavior_item, 8), "limitations": array(string(1200), 32), "trace_state": string(150), "imported_artifact_digest": digest,
+    "scientifically_qualified": {"const": False}, "score_eligible": {"const": False}, "approved": {"const": False}, "launch_authorized": {"const": False},
+})
 design = obj(
     {
         "schema_version": {"const": DESIGN},
@@ -336,6 +352,7 @@ design = obj(
                 "extension_request": nullable(extension_request),
             }
         ),
+        "measurement_evidence": array(evidence_record, 64),
         "handoffs": array(handoff, 128),
         "responses": array(response, 256),
         "decision": obj({field: string() for field in decision_fields}),
@@ -383,7 +400,7 @@ component = json.loads(
 )
 schema = {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "title": "Carbon goal-to-Challenge workbench workspace v0.3",
+    "title": "Carbon goal-to-Challenge workbench workspace v0.4",
     "$comment": (
         "Closed browser-local planning schema. Derived results are recomputed. "
         "It grants no scientific, security, rights, reuse, submission, execution, or launch authority."
@@ -393,7 +410,7 @@ schema = {
         {
             "schema_version": {"const": WORKSPACE},
             "application_version": {"const": APP},
-            "decision_id": {"const": "GOAL-WORKBENCH-02"},
+            "decision_id": {"const": "GOAL-WORKBENCH-04"},
             "base_application_merge": {"const": BASE},
             "opportunity_workspace": {"$ref": "#/$defs/opportunity_workspace_v02"},
             "jobs": array(job, 64),
@@ -439,4 +456,4 @@ constants = {
 (ROOT / "data/goal_constants.json").write_text(
     json.dumps(constants, indent=2) + "\n", encoding="utf-8"
 )
-print("v0.3 goal-workbench schema and constants generated")
+print("v0.4 goal-workbench schema and constants generated")

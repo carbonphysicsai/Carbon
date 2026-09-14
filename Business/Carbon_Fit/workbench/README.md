@@ -1,4 +1,6 @@
-# Carbon Goal-to-Challenge Workbench v0.3
+# Carbon Goal-to-Challenge Workbench v0.4
+
+GOAL-WORKBENCH-04 adds a strict read-only adapter for exact source-owned C-05 public DEVELOPMENT measurement results. Load the public Burgers demonstration, then import `data/c05_public_development_evidence_v1.json`. The adapter binds the exact request/result bytes and provenance to `job-001-design-1` revision 1, `TRACE-DYNAMICS`, and `BURGERS-12-CELL`; it retains raw observations and explicitly unresolved scientific limits without creating a score, pass/fail, qualification, approval, or launch state. See `docs/GOAL_WORKBENCH_04_MEASUREMENT_INTEGRATION_REPORT.md`.
 
 GOAL-WORKBENCH-03 adds a deterministic operational rehearsal over this accepted v0.3 application. Run `node tools/run_operational_rehearsal.cjs --grok-plan /path/to/Carbon_Grok_Master_Plan_v1_9.docx` from this directory (with the repository root on `PYTHONPATH`, as the tool does internally) to verify the source digest and reproduce the three public/synthetic journeys. Omitting `--grok-plan` replays the already pinned record when the external source is unavailable. See `docs/GOAL_WORKBENCH_03_REHEARSAL_REPORT.md` for the supported Dynamics result, Front Resolution mismatch, unsupported-rights blocker, Grok v1.9 conformance, measured friction, and next-interface decision.
 
@@ -22,9 +24,10 @@ The browser does not run a generator, reference solver, scorer, reconstruction, 
 
 Local exports are unencrypted. Keep inputs high-level and non-sensitive. A complete form, matching hash, compiled proposal or imported response cannot grant scientific/security/rights approval, reuse, submission, registration, execution or launch.
 
-## v0.3 maintained additions
+## v0.4 maintained additions
 
 - `src/workflow.js` and `src/goal_app.js`: job/design trace, change impact, authoring, handoff, return and projections.
+- `src/c05_evidence.js`, `data/c05_fixture_index_v1.json`, and retained public fixtures: exact C-05 digest/provenance/association validation and typed non-complete handling.
 - `data/goal_workspace.schema.json` and `tools/build_goal_schema.py`: reproducible closed additive schema.
 - `tools/authoring_bridge.py`: bounded fixed-argument wrapper over the source-owned C-AUTH1 CLI.
 - `tests/test_workflow.cjs`, `tests/test_authoring_bridge.py`, `tests/browser_goal_smoke.cjs`: pure, bridge and built-artifact acceptance.

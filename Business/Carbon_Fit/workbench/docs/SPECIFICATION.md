@@ -1,4 +1,10 @@
-# Carbon Goal-to-Challenge Workbench v0.3 specification
+# Carbon Goal-to-Challenge Workbench v0.4 specification
+
+## v0.4 C-05 evidence integration
+
+The browser may import only a closed `carbon.goal-workbench.c05-evidence-bundle.v1` whose exact C-05 request and result byte digests match the embedded retained-fixture index and whose request/job/design/revision/trace/case association matches the current deterministic diagnostic request. A complete result records four registered measurement observations and six registered physics observations. A typed non-complete result records no observations and never becomes success. Replays deduplicate only when all bytes match; changed bytes conflict; semantic design changes stale the association.
+
+Client and N1 projections receive only a public DEVELOPMENT summary. Engineering receives the full retained provenance and observations. Null uncertainty and scientific limits remain “not supplied / unresolved”; the workbench does not derive tolerance, decision, score, rank, qualification, approval, protected eligibility, or launch authority.
 
 ## v0.3 realignment
 

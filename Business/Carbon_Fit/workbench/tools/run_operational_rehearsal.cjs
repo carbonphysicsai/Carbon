@@ -2,7 +2,8 @@
 'use strict';
 
 const crypto=require('node:crypto'),fs=require('node:fs'),os=require('node:os'),path=require('node:path'),{spawnSync}=require('node:child_process');
-const ROOT=path.resolve(__dirname,'..'),REPO=path.resolve(ROOT,'../../..'),G=require('../src/workflow.js');
+const ROOT=path.resolve(__dirname,'..'),REPO=path.resolve(ROOT,'../../..'),F=require('../src/engine.js'),E=require('../src/c05_evidence.js'),G=require('../src/workflow.js');
+E.installFixtureIndex(JSON.parse(fs.readFileSync(path.join(ROOT,'data/c05_fixture_index_v1.json'))));
 const PROTOCOL_PATH=path.join(ROOT,'data/goal_workbench_03_rehearsal_protocol_v1.json');
 const CONFORMANCE_PATH=path.join(ROOT,'data/grok_v1_9_conformance_v1.json');
 const BRIDGE=path.join(ROOT,'tools/authoring_bridge.py');
