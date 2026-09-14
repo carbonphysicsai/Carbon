@@ -150,7 +150,7 @@ jobs:
         run: ./scripts/dev/verify_image.sh "${CARBON_DEV_IMAGE}"
 
   c03-worker:
-    name: C-03/C-04/C-05 isolated worker service acceptance
+    name: C-03/C-04/C-05/C-07 isolated worker service acceptance
     if: needs.preflight.outputs.change_scope == 'RUNTIME_FULL' && needs.preflight.outputs.c03_worker_required == 'true'
     needs: preflight
     runs-on: ubuntu-24.04

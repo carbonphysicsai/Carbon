@@ -99,9 +99,15 @@ def strategy_limits(**overrides: object) -> SubmissionResourceLimits:
     return SubmissionResourceLimits(**values)  # type: ignore[arg-type]
 
 
-def make_compile_fixture(tmp_path: Path) -> CompileFixture:
+def make_compile_fixture(
+    tmp_path: Path, *, challenge_key: ChallengeKey | None = None
+) -> CompileFixture:
     del tmp_path
-    key = ChallengeKey("fixture_authoring", "1.0")
+    key = (
+        ChallengeKey("fixture_authoring", "1.0")
+        if challenge_key is None
+        else ChallengeKey(challenge_key.challenge_id, challenge_key.version)
+    )
 
     def pinned(kind: str, object_id: str) -> object:
         return owner_ref(

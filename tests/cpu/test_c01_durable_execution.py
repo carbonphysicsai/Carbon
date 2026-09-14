@@ -232,6 +232,7 @@ def test_result_is_recorded_but_cannot_claim_archive_finalization(tmp_path) -> N
     assert status.state is ExecutionState.RESULT_RECORDED
     assert status.result_recorded is True
     assert status.archive_acknowledged is False
+    assert queue.partials(claimed.claim) == ()
     assert "private-result" not in repr(status)
     assert "transcript" not in repr(status)
 

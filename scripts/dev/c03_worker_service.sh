@@ -11,6 +11,7 @@ repo_root="$(CDPATH= cd -- "${script_dir}/../.." && pwd -P)"
 manifest="${CARBON_C03_IMAGE_MANIFEST:-${repo_root}/.carbon-artifacts/c03-worker-image.json}"
 trace_path="${CARBON_C03_TRACE_PATH:-${repo_root}/.carbon-artifacts/c03-service-traces.jsonl}"
 junit_path="${CARBON_C03_JUNIT_PATH:-${repo_root}/.carbon-artifacts/c03-service-junit.xml}"
+report_parent="${repo_root}/.carbon-artifacts"
 
 case "$(uname -s):$(uname -m)" in
   Linux:x86_64) ;;
@@ -20,12 +21,16 @@ case "$(uname -s):$(uname -m)" in
   *) fail "worker service tests require Linux x86-64 or diagnostic Docker Desktop on Apple silicon." ;;
 esac
 command -v docker >/dev/null 2>&1 || fail "Docker is unavailable."
+command -v openssl >/dev/null 2>&1 || fail "OpenSSL is unavailable."
 [[ -f "${manifest}" ]] || fail "exact worker image manifest is missing."
+mkdir -p "${report_parent}"
 
 cd "${repo_root}"
 export PYTHONPATH="${repo_root}/tests/cpu:${repo_root}"
 export CARBON_C03_IMAGE_MANIFEST="${manifest}"
 export CARBON_C03_TRACE_PATH="${trace_path}"
+export CARBON_C07_DEVELOPMENT_SIGNING_KEY_HEX="${CARBON_C07_DEVELOPMENT_SIGNING_KEY_HEX:-$(openssl rand -hex 32)}"
+export CARBON_C07_REPORT_ROOT="${CARBON_C07_REPORT_ROOT:-$(mktemp -d "${report_parent}/c07-service-report.XXXXXXXX")}"
 : >> "${CARBON_C03_TRACE_PATH}"
 python_path="${repo_root}/.venv/bin/python"
 if [[ "$(uname -s)" == "Darwin" && "$(uname -m)" == "arm64" ]]; then
@@ -36,7 +41,8 @@ if [[ "$#" -eq 0 ]]; then
   set -- \
     tests/service/test_c03_worker_service.py \
     tests/service/test_c04_reference_service.py \
-    tests/service/test_c05_measurement_service.py
+    tests/service/test_c05_measurement_service.py \
+    tests/service/test_c07_orchestration_service.py
 fi
 "${python_path}" -m pytest -q \
   --junitxml "${junit_path}" "$@"
