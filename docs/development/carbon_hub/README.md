@@ -11,12 +11,12 @@ When browsing on GitHub, start with **`orientation/START_HERE.md`**. It is the p
 - 14 waves (A-N)
 - 69 captured tickets across Wave A, Wave B, and Wave C
 - 7 protocol-change routes
-- 122 map-level change events
+- 123 map-level change events
 - 8 independent maturity states
 
 ## Captured current position
 
-Wave **C**; current ticket: **C-10**. Last completed: **C-08** (`done`). Next selected: **none selected**. C-EA1 private-alpha preparation is the latest accepted continuation after PR #168 accepted exact head ea51a947bbf21908144f93ffb04b5e9cc46de519 in run 34830155526 and normally merged as 0ee4c9b8db8339740521e2afc72624c97d8e177a; its broader ticket remains in progress. C-10 alone is selected for a linked fresh public DEVELOPMENT execution and disagreement/quarantine journal over C-01/C-06/C-07. Exact bytes can support only an engineering reproducibility observation; different or unavailable evidence remains unresolved and quarantined. No later ticket is selected in the canonical position; owner direction authorizes a concrete C-EA1 deployment-package continuation only after C-10 merges. No provider provisioning, real archive acknowledgement, C-EA2, protected execution, independent security/scientific acceptance, public network or LIVE authority exists. D6 run 34518806217 remains historical LOCALNET_READY evidence for its exact disposable standard-profile localnet.
+Wave **C**; current ticket: **C-EA1**. Last completed: **C-10** (`done`). Next selected: **none selected**. PR #173 accepted exact C-10 head 82073ae2d5cc8504b7e77a9824642f98f0827526 in run 34882900413 and normally merged as d7ef7270eeb3b9a5594704efe0876ff3fb5ded49. C-EA1-D3 alone is selected for an unprovisioned AWS private-alpha package over the accepted PR #168 policy: exact provider adapters, immutable version receipts, atomic retained-byte capacity, private infrastructure/roles, recovery procedure and priced decision support. No later ticket is selected. Actual account/network/principals, provisioning, recovery rehearsal, security acceptance and deployment authorization remain absent. No real acknowledgement, C-EA2, protected execution, public network or LIVE authority exists. D6 run 34518806217 remains historical LOCALNET_READY evidence for its exact disposable standard-profile localnet.
 
 ## Maintain
 
