@@ -569,6 +569,90 @@ def _measurement_proposal() -> dict[str, object]:
     }
 
 
+def supported_burgers_development_intake(
+    *,
+    requested_goal: str,
+    challenge_id: str,
+    title: str,
+    intended_use: str,
+) -> dict[str, object]:
+    """Return the exact closed C-AUTH1 intake for one supported public template.
+
+    This is a convenience adapter over already-frozen v1 literals. It adds no
+    goal, score, population, evidence, qualification, registration, or runtime
+    authority. The compiler remains authoritative about what the intake emits.
+    """
+
+    if requested_goal not in _GOAL_WEIGHTS:
+        _fail("/requested_goal", GoalAuthoringCode.SEMANTIC_MISMATCH)
+    _exact_string(challenge_id, "/challenge_id")
+    _exact_string(title, "/title")
+    _exact_string(intended_use, "/intended_use", minimum=40)
+    weights = _GOAL_WEIGHTS[requested_goal]
+    return {
+        "assets_rights": "SYNTHETIC_INTERNAL",
+        "budget": {
+            "local_wall_seconds": 1800.0,
+            "max_candidate_trajectories": 2400,
+            "max_reference_trajectories": 420,
+            "official_evaluations": 0,
+            "provider_calls": 0,
+        },
+        "challenge_id": challenge_id,
+        "claim": {
+            "allowed_evidence": "PUBLIC_DEVELOPMENT_ONLY",
+            "exclusions": [
+                "No continuum-wide or universal generalization proof",
+                "No real industrial or customer validation",
+                "No official Carbon score, payment, network or scientific qualification",
+                "No neural-operator capability claim from kernel or conventional controls",
+            ],
+            "maximum_failure_probability": 0.05,
+            "simultaneous_alpha": 0.05,
+            "tail_quantile": 0.9,
+            "target": "Public numerical development diagnostics of accuracy, engineering QoIs and physics consistency on the declared periodic viscous Burgers population.",
+        },
+        "generator_recipe": "goal_burgers_12cell_v1",
+        "goals": [
+            {
+                "compression_weight": weights[1].numerator / weights[1].denominator,
+                "dissipation_weight": weights[2].numerator / weights[2].denominator,
+                "field_weight": weights[0].numerator / weights[0].denominator,
+                "half_time_weight": weights[3].numerator / weights[3].denominator,
+                "intended_decision": _GOAL_DECISIONS[requested_goal],
+                "name": requested_goal,
+            }
+        ],
+        "intended_use": intended_use,
+        "mandatory_physics": "IC_PERIODIC_MEAN_MAXIMUM_ENERGY_WEAK_PDE",
+        "physical_scope": "PERIODIC_UNFORCED_POSITIVE_VISCOSITY_FINITE_FOURIER_INPUT",
+        "runtime_status": "NOT_INTEGRATED_WITH_CARBON_OR_JAX",
+        "sampling": {
+            "cell_mass": [1.0 / 12.0] * 12,
+            "curriculum": "MATCHED_FULL_SUPPORT",
+            "independent_learning_builds": 2,
+            "learning_per_cell_per_build": 3,
+            "performance_per_cell": 4,
+            "reliability_per_cell": 10,
+            "roles": "TRAIN_EVAL_STRESS_DISJOINT",
+        },
+        "schema_version": "goal-authoring/1",
+        "score_policy": "HALF_MEAN_HALF_WORST_CELL_CVAR_PROPOSAL",
+        "sponsor_type": "INTERNAL",
+        "template": "periodic_viscous_burgers_1d_v1",
+        "title": title,
+        "tolerances": {
+            "basis": "One-percent field RMS and five-percent dimensionless QoI tolerances are explicit internal authoring choices for a discriminating development benchmark. They are not customer-validated requirements and were fixed before this numerical cohort.",
+            "compression_relative_with_floor": 0.05,
+            "dissipation_relative_with_floor": 0.05,
+            "field_over_initial_rms": 0.01,
+            "half_time_over_characteristic_time": 0.05,
+            "origin": "INTERNAL_DEVELOPMENT_PROPOSAL",
+            "reference_budget_fraction": 0.1,
+        },
+    }
+
+
 def compile_goal_intake(document: object) -> CompiledGoalProposal:
     """Compile one supported intake or verified workbench package."""
 
@@ -819,5 +903,6 @@ __all__ = (
     "RationalWeight",
     "compile_goal_intake",
     "load_goal_document",
+    "supported_burgers_development_intake",
     "write_compiled_proposal",
 )
