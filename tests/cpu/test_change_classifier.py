@@ -108,6 +108,16 @@ def test_runtime_and_contract_paths_dominate_weaker_scopes() -> None:
     )
 
 
+def test_c08_composition_requires_existing_isolated_service_lane() -> None:
+    for path in (
+        "carbon/miner_mcp/service.py",
+        "tests/service/test_c08_miner_mcp_service.py",
+    ):
+        classification = classify_paths([path])
+        assert classification.scope is ChangeScope.RUNTIME_FULL
+        assert classification.c03_worker_required is True
+
+
 def test_unknown_and_empty_manifests_fail_closed_to_runtime() -> None:
     unknown = classify_paths(["new-root/readme.txt"])
     assert unknown.scope is ChangeScope.RUNTIME_FULL

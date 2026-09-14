@@ -69,6 +69,7 @@ class Classification:
             "tests/service/test_c03_worker_service.py",
             "tests/service/test_c04_reference_service.py",
             "tests/service/test_c05_measurement_service.py",
+            "tests/service/test_c08_miner_mcp_service.py",
         }
         return any(
             item.path in exact
@@ -78,7 +79,9 @@ class Classification:
             or item.path.startswith("tests/service/c03_")
             or item.path.startswith("tests/service/test_c03_")
             or item.path.startswith("tests/service/test_c07_")
+            or item.path.startswith("tests/service/test_c08_")
             or item.path.startswith("carbon/orchestration/")
+            or item.path.startswith("carbon/miner_mcp/")
             or item.path.startswith("tests/service/test_c04_")
             or item.path.startswith("tests/service/test_c05_")
             for item in self.paths

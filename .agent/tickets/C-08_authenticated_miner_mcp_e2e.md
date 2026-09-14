@@ -55,18 +55,21 @@ research paths remain nominally distinct and cannot satisfy a real result.
 
 ## Definition of Done
 
-- [ ] NET-2 authenticates real transport requests and binds the exact caller,
+- [x] NET-2 authenticates transport requests and binds the exact caller,
   network, Challenge, session, request body and replay state.
-- [ ] C-07 supplies the real source-owned submit/result path; fixture or
+- [x] C-07 supplies the exact source-owned non-LIVE orchestration path; fixture or
   practice evidence cannot enter it.
-- [ ] End-to-end tests cover caller substitution, cross-network/Challenge/
+- [x] End-to-end tests cover caller substitution, cross-network/Challenge/
   session replay, duplicate requests, ambiguous dispatch, cancellation,
   authorized retry, budget exhaustion, concurrency and bounded responses.
-- [ ] Disclosure-composition tests across MCP, cards, errors, timing and
+- [x] Disclosure-composition tests across MCP, cards, errors, timing and
   repeated related requests prove official-exam secrecy and requester isolation.
-- [ ] Durable receipts associate transport request, submission, execution,
-  archive/official result and returned projection without making transport an
-  authority over any of them.
+- [x] In this bounded slice, durable receipts associate transport request,
+  source submission, C-01 attempt and returned C-07 DEVELOPMENT projection
+  without making transport an authority over any of them. Official result and
+  archive association remain structurally unavailable.
+- [ ] Pass the exact-head automated acceptance, including the mandatory Linux
+  installed-SDK/service-backed lane, and normally merge.
 
 ## Authority ceiling
 
@@ -74,3 +77,17 @@ Selected bounded public/synthetic DEVELOPMENT composition only. No public
 listener, protected data, official result, real archive acknowledgement, fee
 policy, scientific/security qualification, chain transaction, production or
 LIVE authority exists.
+
+## Candidate implementation
+
+`carbon.miner_mcp` adds no listener. It composes the exact NET-2 gateway and A9
+service, records submit intent before A9 mutation, records C-07 bind intent
+before the source-owned operation, and retains source terminal accounts. A9
+results remain exact A9 objects; C-08 adds only a canonicalized copy-on-read
+C-07 public projection. The lookup binds requester, submission and Challenge
+through the original transport receipt.
+
+Focused CPU/invariant/classifier tests pass locally. The installed Bittensor SDK
+test is registered in the existing C-03/C-04/C-05/C-07 Linux service lane and
+must execute in exact-head acceptance; the native Mac JAX environment does not
+carry that chain dependency and supplies no substitute result.

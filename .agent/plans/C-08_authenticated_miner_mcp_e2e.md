@@ -47,3 +47,17 @@ unscored, unarchived, non-network and non-reward eligible.
 No public listener, production auth deployment, protected data, official result,
 real archive acknowledgement, fee, scientific/security qualification, chain
 transaction, production or LIVE authority is added.
+
+## Implemented candidate
+
+The candidate uses three versioned tables in NET-2's existing SQLite
+transaction domain: submit association, attempt association and bind-event
+intent. Exact ambiguous submit output can be reconciled without dispatch; exact
+bind operations use only C-07 START, RESUME_EXISTING and ATTACH_COMPLETED.
+Attempt 2 is accepted only after C-01's predecessor rule admits it.
+
+The result extension retains canonical bytes and returns a fresh positive
+projection on read, preventing caller mutation of the retained account. The
+lookup joins the source submit receipt so requester, submission and
+Challenge/version all match. A confirmed first-pass omission of that Challenge
+join was repaired before candidate checkpoint and covered by a negative test.
