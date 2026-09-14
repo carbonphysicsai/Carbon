@@ -40,7 +40,7 @@ Done only in the ticket's recorded bounded implementation and test scope; later 
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/ffe216cd8630bce3eca2297537f3e550dfe98d47/.agent/tickets/B-GATE_closeout.md)
-- [Wave B controlling board](https://github.com/carbonphysicsai/Carbon/blob/ffe216cd8630bce3eca2297537f3e550dfe98d47/.agent/WAVE_B.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/f92912a1b3c9cd510d36d5d2d99f3eb58e7f2177/.agent/tickets/B-GATE_closeout.md)
+- [Wave B controlling board](https://github.com/carbonphysicsai/Carbon/blob/f92912a1b3c9cd510d36d5d2d99f3eb58e7f2177/.agent/WAVE_B.md)
 
 > B-E4 remains preserved deferred research and is not a closeout dependency. This gate grants no scientific, security, network, production, LIVE, launch, settlement, weight, or emission authority.

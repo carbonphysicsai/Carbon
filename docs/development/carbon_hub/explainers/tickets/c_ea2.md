@@ -40,7 +40,7 @@ Future contract only; implementation, testing, real durability and every qualifi
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/ffe216cd8630bce3eca2297537f3e550dfe98d47/.agent/tickets/C-EA2_archive_before_finalization.md)
-- [C1 dependency graph](https://github.com/carbonphysicsai/Carbon/blob/ffe216cd8630bce3eca2297537f3e550dfe98d47/.agent/plans/C1_DEPENDENCY_GRAPH.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/f92912a1b3c9cd510d36d5d2d99f3eb58e7f2177/.agent/tickets/C-EA2_archive_before_finalization.md)
+- [C1 dependency graph](https://github.com/carbonphysicsai/Carbon/blob/f92912a1b3c9cd510d36d5d2d99f3eb58e7f2177/.agent/plans/C1_DEPENDENCY_GRAPH.md)
 
 > The synthetic C-EA1 acknowledgement is structurally ineligible for this real gate.
