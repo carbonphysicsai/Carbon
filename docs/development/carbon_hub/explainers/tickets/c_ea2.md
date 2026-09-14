@@ -32,7 +32,7 @@ It is unselected and unimplemented; no retention, durability, RTO/RPO, custody/K
 
 ## Current stage
 
-Unselected, unstarted and not dependency-ready because no selected real C1 path or approved real archive profile/acknowledgement exists.
+Unselected, unstarted and not dependency-ready. C-EA1's private-alpha preparation cannot issue an eligible real archive acknowledgement; provider deployment, recoverable custody/recovery evidence, independent security acceptance and deployment authorization remain absent.
 
 ## Maturity ceiling
 

@@ -7487,7 +7487,7 @@
       "owner": "Evidence archive + validator integration", "reviewer": "Operations + data/security + scientific integration", "master_questions": ["MQ-048", "MQ-051"], "effort": "L", "target": "C1",
       "repo_path": ".agent/tickets/C-EA2_archive_before_finalization.md",
       "repo_links": [{"label": "Repo ticket", "url": "https://github.com/carbonphysicsai/Carbon/blob/d536836e2ddcd3ca5a59cbdc7c4b8e888be38016/.agent/tickets/C-EA2_archive_before_finalization.md"}, {"label": "C1 dependency graph", "url": "https://github.com/carbonphysicsai/Carbon/blob/d536836e2ddcd3ca5a59cbdc7c4b8e888be38016/.agent/plans/C1_DEPENDENCY_GRAPH.md"}],
-      "current_stage": "Unselected, unstarted and not dependency-ready because no selected real C1 path or approved real archive profile/acknowledgement exists.",
+      "current_stage": "Unselected, unstarted and not dependency-ready. C-EA1's private-alpha preparation cannot issue an eligible real archive acknowledgement; provider deployment, recoverable custody/recovery evidence, independent security acceptance and deployment authorization remain absent.",
       "maturity_ceiling": "Future contract only; implementation, testing, real durability and every qualification are unearned.",
       "maturity_states": {"specified": "earned", "implemented": "unearned", "tested": "unearned", "scientifically_qualified": "unearned", "security_qualified": "unearned", "network_qualified": "unearned", "commercially_validated": "unearned", "production_qualified": "unearned"},
       "orientation_note": "The synthetic C-EA1 acknowledgement is structurally ineligible for this real gate.", "unlocks": ["C-09", "C-W1"]
