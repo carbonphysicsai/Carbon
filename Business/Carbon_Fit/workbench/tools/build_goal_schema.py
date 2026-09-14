@@ -286,21 +286,130 @@ decision_fields = [
     "permitted_claims",
 ]
 digest = {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
-candidate_identity = obj({field: (string(160) if field == "replica_id" else digest) for field in ["artifact_digest", "binding_digest", "source_digest", "environment_digest", "plan_digest", "replica_id"]})
-reference_identity = obj({"artifact_digest": digest, "request_digest": digest, "policy_digest": digest, "environment_digest": digest, "role": string(100), "scientifically_qualified": {"const": False}})
-measurement_identity = obj({"policy_id": string(200), "policy_version": string(50), "contract_digest": digest, "environment_digest": digest, "implementation_digest": digest, "precision": string(30), "operator_ids": array(string(100), 4), "physics_ids": array(string(100), 6), "scientific_limits": {"type": "null"}, "uncertainty_policy": {"type": "null"}, "scientifically_qualified": {"const": False}})
-measurement_observation = obj({"measurement_id": string(100), "candidate_value": {"type": "number"}, "reference_value": {"type": "number"}, "raw_absolute_error": {"type": "number", "minimum": 0}, "normalization_scale": {"type": "number", "exclusiveMinimum": 0}, "normalized_error": {"type": "number", "minimum": 0}, "uncertainty": {"type": "null"}, "scientific_limit": {"type": "null"}, "decision": {"const": "UNRESOLVED_NO_QUALIFIED_LIMIT"}})
-physics_observation = obj({"physics_id": string(100), "raw_defect": {"type": "number", "minimum": 0}, "normalization_scale": {"type": "number", "exclusiveMinimum": 0}, "normalized_defect": {"type": "number", "minimum": 0}, "uncertainty": {"type": "null"}, "scientific_limit": {"type": "null"}, "decision": {"const": "UNRESOLVED_NO_QUALIFIED_LIMIT"}})
-diagnostic_item = {"type": "array", "minItems": 2, "maxItems": 2, "prefixItems": [string(200), {"anyOf": [{"type": "number"}, string(1000)]}], "items": False}
-behavior_item = obj({"example": string(100), "classification": string(100), "reason": string(1200)})
-evidence_record = obj({
-    "schema_version": {"const": "carbon.goal-workbench.c05-evidence-association.v1"}, "association_id": string(300), "workbench_request_id": string(128), "job_id": string(128), "design_id": string(128), "design_revision": {"type": "integer", "minimum": 1},
-    "requirement_trace_ids": array(string(128), 256), "case_family_ids": array(string(128), 128), "challenge": obj({"id": string(128), "version": string(50)}), "template_id": string(300), "evidence_scope": {"const": "PUBLIC_DEVELOPMENT_ONLY"},
-    "evidence_state": {"enum": ["SOURCE_MEASUREMENT_EVIDENCE_BOUND", "SOURCE_MEASUREMENT_EVIDENCE_NOT_EXECUTED"]}, "binding_status": {"enum": ["CURRENT_DESIGN_REVISION", "STALE_DESIGN_CHANGED"]}, "source_disposition": string(100),
-    "source": obj({"fixture_id": string(160), "repository": {"const": "carbonphysicsai/Carbon"}, "source_revision": {"type": "string", "pattern": "^[0-9a-f]{40}$"}, "implementation": string(300), "request_schema": {"const": "carbon.c05.burgers-measurement.v1"}, "result_schema": {"const": "carbon.c05.burgers-measurement-result.v1"}, "request_digest": digest, "result_digest": digest, "case_digest": digest, "candidate": candidate_identity, "reference": reference_identity, "measurement": measurement_identity}),
-    "measurements": array(measurement_observation, 4), "physics": array(physics_observation, 6), "diagnostics": array(diagnostic_item, 64), "behavior_classification": array(behavior_item, 8), "limitations": array(string(1200), 32), "trace_state": string(150), "imported_artifact_digest": digest,
-    "scientifically_qualified": {"const": False}, "score_eligible": {"const": False}, "approved": {"const": False}, "launch_authorized": {"const": False},
-})
+candidate_identity = obj(
+    {
+        field: (string(160) if field == "replica_id" else digest)
+        for field in [
+            "artifact_digest",
+            "binding_digest",
+            "source_digest",
+            "environment_digest",
+            "plan_digest",
+            "replica_id",
+        ]
+    }
+)
+reference_identity = obj(
+    {
+        "artifact_digest": digest,
+        "request_digest": digest,
+        "policy_digest": digest,
+        "environment_digest": digest,
+        "role": string(100),
+        "scientifically_qualified": {"const": False},
+    }
+)
+measurement_identity = obj(
+    {
+        "policy_id": string(200),
+        "policy_version": string(50),
+        "contract_digest": digest,
+        "environment_digest": digest,
+        "implementation_digest": digest,
+        "precision": string(30),
+        "operator_ids": array(string(100), 4),
+        "physics_ids": array(string(100), 6),
+        "scientific_limits": {"type": "null"},
+        "uncertainty_policy": {"type": "null"},
+        "scientifically_qualified": {"const": False},
+    }
+)
+measurement_observation = obj(
+    {
+        "measurement_id": string(100),
+        "candidate_value": {"type": "number"},
+        "reference_value": {"type": "number"},
+        "raw_absolute_error": {"type": "number", "minimum": 0},
+        "normalization_scale": {"type": "number", "exclusiveMinimum": 0},
+        "normalized_error": {"type": "number", "minimum": 0},
+        "uncertainty": {"type": "null"},
+        "scientific_limit": {"type": "null"},
+        "decision": {"const": "UNRESOLVED_NO_QUALIFIED_LIMIT"},
+    }
+)
+physics_observation = obj(
+    {
+        "physics_id": string(100),
+        "raw_defect": {"type": "number", "minimum": 0},
+        "normalization_scale": {"type": "number", "exclusiveMinimum": 0},
+        "normalized_defect": {"type": "number", "minimum": 0},
+        "uncertainty": {"type": "null"},
+        "scientific_limit": {"type": "null"},
+        "decision": {"const": "UNRESOLVED_NO_QUALIFIED_LIMIT"},
+    }
+)
+diagnostic_item = {
+    "type": "array",
+    "minItems": 2,
+    "maxItems": 2,
+    "prefixItems": [string(200), {"anyOf": [{"type": "number"}, string(1000)]}],
+    "items": False,
+}
+behavior_item = obj(
+    {"example": string(100), "classification": string(100), "reason": string(1200)}
+)
+evidence_record = obj(
+    {
+        "schema_version": {
+            "const": "carbon.goal-workbench.c05-evidence-association.v1"
+        },
+        "association_id": string(300),
+        "workbench_request_id": string(128),
+        "job_id": string(128),
+        "design_id": string(128),
+        "design_revision": {"type": "integer", "minimum": 1},
+        "requirement_trace_ids": array(string(128), 256),
+        "case_family_ids": array(string(128), 128),
+        "challenge": obj({"id": string(128), "version": string(50)}),
+        "template_id": string(300),
+        "evidence_scope": {"const": "PUBLIC_DEVELOPMENT_ONLY"},
+        "evidence_state": {
+            "enum": [
+                "SOURCE_MEASUREMENT_EVIDENCE_BOUND",
+                "SOURCE_MEASUREMENT_EVIDENCE_NOT_EXECUTED",
+            ]
+        },
+        "binding_status": {"enum": ["CURRENT_DESIGN_REVISION", "STALE_DESIGN_CHANGED"]},
+        "source_disposition": string(100),
+        "source": obj(
+            {
+                "fixture_id": string(160),
+                "repository": {"const": "carbonphysicsai/Carbon"},
+                "source_revision": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+                "implementation": string(300),
+                "request_schema": {"const": "carbon.c05.burgers-measurement.v1"},
+                "result_schema": {"const": "carbon.c05.burgers-measurement-result.v1"},
+                "request_digest": digest,
+                "result_digest": digest,
+                "case_digest": digest,
+                "candidate": candidate_identity,
+                "reference": reference_identity,
+                "measurement": measurement_identity,
+            }
+        ),
+        "measurements": array(measurement_observation, 4),
+        "physics": array(physics_observation, 6),
+        "diagnostics": array(diagnostic_item, 64),
+        "behavior_classification": array(behavior_item, 8),
+        "limitations": array(string(1200), 32),
+        "trace_state": string(150),
+        "imported_artifact_digest": digest,
+        "scientifically_qualified": {"const": False},
+        "score_eligible": {"const": False},
+        "approved": {"const": False},
+        "launch_authorized": {"const": False},
+    }
+)
 design = obj(
     {
         "schema_version": {"const": DESIGN},

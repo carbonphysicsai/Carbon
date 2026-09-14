@@ -38,7 +38,17 @@ def build():
     c05_index = data(ROOT / "data/c05_fixture_index_v1.json")
     scripts = " ".join(
         "'" + digest(s) + "'"
-        for s in [engine, app, c05_evidence, workflow, goal_app, atlas, studies, cpes, c05_index]
+        for s in [
+            engine,
+            app,
+            c05_evidence,
+            workflow,
+            goal_app,
+            atlas,
+            studies,
+            cpes,
+            c05_index,
+        ]
     )
     csp = f"default-src 'none'; script-src {scripts}; style-src '{digest(style)}'; img-src data:; connect-src 'none'; form-action 'none'; base-uri 'none'; object-src 'none'"
     html = (ROOT / "src/shell.html").read_text()
