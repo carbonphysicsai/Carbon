@@ -89,6 +89,12 @@
     "status": "ACCEPTED_AND_MERGED"
   },
   "goal_workbench_04_merge": "e576fbdc711c9194dbcc7d90405480e90577407e",
+  "research_delivery_candidate": {
+    "branch": "agent/d-qual-prep-01",
+    "pull_request": 176,
+    "status": "REVIEWABLE_ACCEPTANCE_PENDING",
+    "tested_head_and_merge_record": "EXTERNAL_REPOSITORY_RECEIPT_REQUIRED"
+  },
   "outputs": {
     "generator_dependency.json": "sha256:cad7aa832e7e5ce06bcc910d4718934630ddeeac97fd76daea14894549df0260",
     "independence_matrix.json": "sha256:bc3a9856751205f1b642ce9d8af34953692696b1cac5538a16c1eff294b1ff04",
@@ -207,15 +213,15 @@
     },
     {
       "axis": "research_delivery_and_retained_evidence",
-      "workflow_state": "LOCAL",
+      "workflow_state": "REVIEWABLE",
       "evidence_state": "INSPECTED",
       "qualification_or_customer_use_effect": "NONE",
-      "finding": "Original detached source and six summary records verify; raw arrays, step histories and run logs are not retained.",
-      "evidence_reference": "PUBLIC_EVIDENCE_MANIFEST.json",
+      "finding": "Original detached source and six summary records verify; raw arrays, step histories and run logs are not retained. Public-safe delivery is reviewable in PR #176; exact-head acceptance is pending.",
+      "evidence_reference": "https://github.com/carbonphysicsai/Carbon/pull/176",
       "owner": "Engineering delivery",
-      "next_action": "Publish separate research PR and run applicable acceptance.",
+      "next_action": "Complete PR #176 exact-head acceptance and merge with the expected-head guard.",
       "dependency": "Public-safe manifest and repository CI",
-      "restart_event": "Research PR acceptance result.",
+      "restart_event": "PR #176 Merge gate succeeds or reports a concrete failure.",
       "status_source_date": "closeout audit 2026-09-15"
     },
     {

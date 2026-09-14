@@ -2,6 +2,11 @@
   "schema": "carbon.d-qual-prep-01.public-evidence-manifest.v1",
   "generated_date": "2026-09-15",
   "scope": "PUBLIC_DEVELOPMENT_DETACHED_READINESS_ONLY",
+  "delivery_candidate": {
+    "branch": "agent/d-qual-prep-01",
+    "pull_request": 176,
+    "tested_head_and_merge_are_external_receipts": true
+  },
   "original_delivery": {
     "commit": "f1050b8245cae90fb4af817d5449ec97ef0da342",
     "parent": "ed6047d03cf60db6ce52f03e63040d95c1ea78e4",
@@ -114,6 +119,43 @@
       "bytes": 1396,
       "sha256": "cad7aa832e7e5ce06bcc910d4718934630ddeeac97fd76daea14894549df0260",
       "role": "DEPENDENCY_STATUS"
+    },
+    {
+      "path": "workbench_projection_status.json",
+      "bytes": 1037,
+      "sha256": "7047faf00b675195e159d93e3c0b7739082437d678d344749da79d9f99653b02",
+      "role": "MANUAL_ATTACHMENT_AND_READER_BOUNDARY"
+    },
+    {
+      "path": "readiness_record.json",
+      "bytes": 15630,
+      "sha256": "991ee0accecf02c223027b0d94dbeb827916014e14e913df90c54d35fac50d88",
+      "role": "VERSIONED_SCOPED_READINESS_SUPPLEMENT"
+    },
+    {
+      "path": "D_QUAL_PREP_01_REPORT.md",
+      "bytes": 19593,
+      "sha256": "4e13cab44adfe0752d7d9045d498cc5f0574d58753eda5d80d6643e595d8e697",
+      "role": "AUDITED_RESEARCH_REPORT"
+    },
+    {
+      "path": "HUMAN_SCIENTIFIC_DECISION_PACKET.md",
+      "bytes": 11056,
+      "sha256": "5036fe0371f670d36f66eefe2523273fca0da2a906b81f9390ec8c313afbce22",
+      "role": "EXPORTED_NOT_DISPATCHED_OWNER_REQUEST"
+    },
+    {
+      "path": "run_campaign.py",
+      "bytes": 30638,
+      "sha256": "5ffe6ce339cf9bf2fc307128bded1461294ef25e35f70b76c65d7e5ab17f96c1",
+      "role": "SOURCE_PINNED_REPRODUCER"
+    },
+    {
+      "path": "tests/cpu/test_d_qual_prep_01.py",
+      "bytes": 9124,
+      "sha256": "00929b2a4fb2b0d9918d12daf67ee486d2570f77acf4233bf3bed7cb2d354f51",
+      "role": "FOCUSED_EVIDENCE_BOUNDARY_TESTS",
+      "locator": "repository-root/tests/cpu/test_d_qual_prep_01.py"
     }
   ],
   "execution_accounting": {

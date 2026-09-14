@@ -232,10 +232,7 @@ def _validate_refinement_grids(grids: list[int], label: str) -> None:
     if (
         not grids
         or any(
-            type(grid) is not int
-            or grid < 64
-            or grid > 4096
-            or grid & (grid - 1)
+            type(grid) is not int or grid < 64 or grid > 4096 or grid & (grid - 1)
             for grid in grids
         )
         or grids != sorted(set(grids))

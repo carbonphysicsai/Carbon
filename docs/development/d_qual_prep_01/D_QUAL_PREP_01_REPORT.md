@@ -43,6 +43,11 @@ Its reader supports only exact C-05 result bytes. This general readiness record
 is therefore a manual research attachment; forcing it through the C-05 schema
 is rejected and no native readiness import is claimed.
 
+This detached research archive is published separately as PR #176. The exact
+tested head, CI outcome, and merge identity are repository acceptance receipts
+recorded after this immutable candidate is tested; they are not reconstructed
+inside a commit that cannot contain its own digest.
+
 The protocol says `frozen_before_numerical_execution=true`, but the protocol and
 results first appear together in one detached commit and no earlier signed
 manifest, run timestamp, or execution log is retained. Prospective ordering is
