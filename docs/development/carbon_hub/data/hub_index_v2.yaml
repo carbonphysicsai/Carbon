@@ -4758,6 +4758,20 @@ events:
       - "SYSTEM/DEVELOPMENT-HUB"
       - "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
     supersedes: null
+  -
+    map_ref: "SYSTEM/BUSINESS-AUTHORITY"
+    event_type: "bug"
+    event_id: "WORKBENCH-Q1"
+    owner_lane: "business_tooling_engineering"
+    status: "implemented"
+    summary: "PR #161 repairs the repository-wide Ruff and Black diagnostics inherited from the accepted Carbon Opportunity Workbench v0.2 package. Six Python sources are mechanically formatted, unused code and non-executable shebangs are removed, the deterministic package is regenerated from its exact source revision, and no workbench decision, evidence, numerical result or authority boundary changes."
+    primary_detail: "https://github.com/carbonphysicsai/Carbon/pull/161"
+    affects:
+      - "SYSTEM/BUSINESS-AUTHORITY"
+      - "SYSTEM/CI"
+      - "SYSTEM/DEVELOPMENT-HUB"
+      - "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+    supersedes: null
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"
