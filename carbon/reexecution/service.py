@@ -6,13 +6,17 @@ from dataclasses import dataclass
 
 from carbon.audit.model import AuditFailure, ReceiptLifecycleState, digest_bytes
 from carbon.audit.store import DevelopmentEvidenceLedger
-from carbon.execution import ExecutionFailure, ExecutionState
+from carbon.execution import (
+    ClaimedExecution,
+    ExecutionFailure,
+    ExecutionState,
+    ReconciliationDisposition,
+)
 from carbon.orchestration import (
     CompletedDevelopmentOrchestration,
     DevelopmentEvaluationOrchestrator,
     DevelopmentOperationalAccount,
     OperationalDisposition,
-    OrchestrationCode,
     OrchestrationFailure,
     OrchestrationHandle,
 )
@@ -27,6 +31,7 @@ from .model import (
     ReexecutionCode,
     ReexecutionFailure,
     ReexecutionJournalView,
+    ReexecutionLaunchIntent,
     ReexecutionOutcome,
     RequestWriteDisposition,
     scientific_state_digests,
@@ -36,12 +41,12 @@ from .store import ReexecutionJournal
 
 @dataclass(frozen=True, slots=True)
 class ReexecutionLaunch:
-    handle: OrchestrationHandle
+    claimed: ClaimedExecution
     request_disposition: RequestWriteDisposition
 
     def __post_init__(self) -> None:
         if (
-            type(self.handle) is not OrchestrationHandle
+            type(self.claimed) is not ClaimedExecution
             or type(self.request_disposition) is not RequestWriteDisposition
         ):
             raise ReexecutionFailure(ReexecutionCode.INVALID)
@@ -121,13 +126,19 @@ class DevelopmentReexecutionService:
         self.evidence_ledger = evidence_ledger
         self.journal = journal
 
+    def prepare(
+        self, intent: ReexecutionLaunchIntent
+    ) -> tuple[RequestWriteDisposition, ReexecutionJournalView]:
+        return self.journal.prepare(intent)
+
     def request(
         self, request: LinkedReexecutionRequest
     ) -> tuple[RequestWriteDisposition, ReexecutionJournalView]:
-        return self.journal.prepare(request)
+        disposition = self.journal.bind(request)
+        return disposition, self.journal.status(request.launch_intent)
 
-    def launch(self, request: LinkedReexecutionRequest) -> ReexecutionLaunch:
-        disposition, view = self.journal.prepare(request)
+    def launch(self, intent: ReexecutionLaunchIntent) -> ReexecutionLaunch:
+        disposition, view = self.journal.prepare(intent)
         if view.state in {
             JournalState.RUNNING,
             JournalState.RECONCILIATION_REQUIRED,
@@ -137,42 +148,82 @@ class DevelopmentReexecutionService:
             raise ReexecutionFailure(ReexecutionCode.RECONCILIATION_REQUIRED)
         try:
             self.orchestrator.execution_queue.admit_reexecution(
-                request.reexecution_request.execution,
-                source=request.primary_request.execution.ref,
+                intent.reexecution_execution,
+                source=intent.primary_request.execution.ref,
             )
-            handle = self.orchestrator.begin(
-                request.reexecution_request,
-                worker_id=request.worker_id,
-                claim_id=request.claim_id,
+            claimed = self.orchestrator.execution_queue.claim(
+                intent.reexecution_execution.ref,
+                intent.worker_id,
+                claim_id=intent.claim_id,
             )
-        except (ExecutionFailure, OrchestrationFailure) as error:
-            if error.code is OrchestrationCode.RECONCILIATION_REQUIRED:
-                raise ReexecutionFailure(
-                    ReexecutionCode.RECONCILIATION_REQUIRED
-                ) from None
+            state = self.orchestrator.execution_queue.status(
+                intent.reexecution_execution.ref,
+                intent.reexecution_execution.requester_identity,
+            ).state
+            if state is ExecutionState.RECONCILIATION_REQUIRED:
+                self.journal.mark_reconciliation_required(intent)
+                raise ReexecutionFailure(ReexecutionCode.RECONCILIATION_REQUIRED)
+            if state is ExecutionState.DISPATCHING:
+                self.orchestrator.execution_queue.mark_running(claimed.claim)
+            elif state is not ExecutionState.RUNNING:
+                raise ReexecutionFailure(ReexecutionCode.STATE)
+        except ExecutionFailure:
             raise ReexecutionFailure(ReexecutionCode.STATE) from None
-        self.journal.mark_running(request)
-        return ReexecutionLaunch(handle, disposition)
+        self.journal.mark_running(intent)
+        return ReexecutionLaunch(claimed, disposition)
 
-    def resume(self, request: LinkedReexecutionRequest) -> ReexecutionLaunch:
-        if (
-            self.journal.status(request).state
-            is not JournalState.RECONCILIATION_REQUIRED
-        ):
+    def resume(self, intent: ReexecutionLaunchIntent) -> ReexecutionLaunch:
+        journal_state = self.journal.status(intent).state
+        if journal_state not in {
+            JournalState.INTENT_RECORDED,
+            JournalState.RECONCILIATION_REQUIRED,
+        }:
             raise ReexecutionFailure(ReexecutionCode.STATE)
         try:
-            handle = self.orchestrator.resume_existing(
-                request.reexecution_request,
-                worker_id=request.worker_id,
-                claim_id=request.claim_id,
+            claimed = self.orchestrator.execution_queue.claim(
+                intent.reexecution_execution.ref,
+                intent.worker_id,
+                claim_id=intent.claim_id,
             )
-        except OrchestrationFailure:
+            queue_state = self.orchestrator.execution_queue.status(
+                intent.reexecution_execution.ref,
+                intent.reexecution_execution.requester_identity,
+            ).state
+            if queue_state is not ExecutionState.RECONCILIATION_REQUIRED:
+                raise ReexecutionFailure(ReexecutionCode.STATE)
+            if journal_state is JournalState.INTENT_RECORDED:
+                self.journal.mark_reconciliation_required(intent)
+            self.orchestrator.execution_queue.reconcile(
+                claimed.claim, ReconciliationDisposition.RESUME_EXISTING
+            )
+        except ExecutionFailure:
             raise ReexecutionFailure(ReexecutionCode.STATE) from None
-        self.journal.mark_running(request)
-        return ReexecutionLaunch(handle, RequestWriteDisposition.ALREADY_PRESENT)
+        self.journal.mark_running(intent)
+        return ReexecutionLaunch(claimed, RequestWriteDisposition.ALREADY_PRESENT)
 
-    def attach_completed(self, request: LinkedReexecutionRequest) -> ReexecutionLaunch:
-        view = self.journal.status(request)
+    def bind_request(self, request: LinkedReexecutionRequest) -> OrchestrationHandle:
+        self.journal.bind(request)
+        intent = request.launch_intent
+        try:
+            claimed = self.orchestrator.execution_queue.claim(
+                intent.reexecution_execution.ref,
+                intent.worker_id,
+                claim_id=intent.claim_id,
+            )
+            state = self.orchestrator.execution_queue.status(
+                intent.reexecution_execution.ref,
+                intent.reexecution_execution.requester_identity,
+            ).state
+        except ExecutionFailure:
+            raise ReexecutionFailure(ReexecutionCode.STATE) from None
+        if state is not ExecutionState.RUNNING:
+            raise ReexecutionFailure(ReexecutionCode.RECONCILIATION_REQUIRED)
+        return OrchestrationHandle(request.reexecution_request, claimed)
+
+    def attach_completed(
+        self, request: LinkedReexecutionRequest
+    ) -> OrchestrationHandle:
+        view = self.journal.status(request.launch_intent)
         if view.state not in {
             JournalState.RUNNING,
             JournalState.RECONCILIATION_REQUIRED,
@@ -187,8 +238,8 @@ class DevelopmentReexecutionService:
         except OrchestrationFailure:
             raise ReexecutionFailure(ReexecutionCode.STATE) from None
         if view.state is JournalState.RECONCILIATION_REQUIRED:
-            self.journal.mark_running(request)
-        return ReexecutionLaunch(handle, RequestWriteDisposition.ALREADY_PRESENT)
+            self.journal.mark_running(request.launch_intent)
+        return handle
 
     def _receipt_availability(
         self,
@@ -251,11 +302,9 @@ class DevelopmentReexecutionService:
         differences: tuple[str, ...] = ()
         failure_digest = None
         if availability is None:
-            primary_state = scientific_state_digests(
-                request.primary_result.account, request.primary_request
-            )
+            primary_state = scientific_state_digests(request.primary_scientific_state)
             reexecution_state = scientific_state_digests(
-                result.account, request.reexecution_request
+                request.reexecution_scientific_state
             )
             differences = tuple(
                 name

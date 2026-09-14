@@ -41,8 +41,12 @@ Verification engineering only. Resolution thresholds and final scientific/econom
 - Material commitments must match before dispatch. Execution/container/
   location identities must differ and material shared dependencies remain
   disclosed.
-- Exact scientific-state byte agreement is DEVELOPMENT reproducibility evidence
-  only. Different bytes have no invented tolerance and remain unresolved.
+- Launch intent and the C-01 claim are durable before dispatch; actual C-07
+  evidence bytes bind afterward to the same intent and claim. Exact checkpoint,
+  prediction, reference and measurement byte agreement is DEVELOPMENT
+  reproducibility evidence only. Whole artifact envelopes retain their own
+  execution/timing provenance and are not misclassified as scientific state.
+  Different scientific bytes have no invented tolerance and remain unresolved.
 - Disagreement, missing/revoked evidence, failure, cancellation, unavailable
   execution and reconciliation are distinct durable outcomes. Required cases
   quarantine the affected result without producing an official, winner,

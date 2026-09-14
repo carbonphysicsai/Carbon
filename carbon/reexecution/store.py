@@ -14,12 +14,13 @@ from .model import (
     ReexecutionCode,
     ReexecutionFailure,
     ReexecutionJournalView,
+    ReexecutionLaunchIntent,
     ReexecutionOutcome,
     RequestWriteDisposition,
 )
 
-_SCHEMA = "carbon.c10.development-reexecution-journal.v1"
-_GENESIS = digest_bytes(b"carbon.c10.development-reexecution-journal.genesis.v1")
+_SCHEMA = "carbon.c10.development-reexecution-journal.v2"
+_GENESIS = digest_bytes(b"carbon.c10.development-reexecution-journal.genesis.v2")
 _MIGRATION = """
 CREATE TABLE IF NOT EXISTS c10_meta_v1 (
     id INTEGER PRIMARY KEY CHECK(id=1),
@@ -34,6 +35,11 @@ CREATE TABLE IF NOT EXISTS c10_request_v1 (
     state TEXT NOT NULL,
     outcome_digest TEXT,
     outcome_body TEXT
+);
+CREATE TABLE IF NOT EXISTS c10_binding_v1 (
+    request_id TEXT PRIMARY KEY,
+    request_digest TEXT NOT NULL UNIQUE,
+    request_body TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS c10_event_v1 (
     sequence INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -160,57 +166,101 @@ class ReexecutionJournal:
             raise ReexecutionFailure(ReexecutionCode.STORE) from None
 
     def prepare(
-        self, request: LinkedReexecutionRequest
+        self, intent: ReexecutionLaunchIntent
     ) -> tuple[RequestWriteDisposition, ReexecutionJournalView]:
-        if type(request) is not LinkedReexecutionRequest:
+        if type(intent) is not ReexecutionLaunchIntent:
             raise ReexecutionFailure(ReexecutionCode.INVALID)
-        body = request.canonical_bytes.decode("ascii")
+        body = intent.canonical_bytes.decode("ascii")
         with self._transaction() as database:
             row = database.execute(
                 "SELECT request_id,request_digest,state,outcome_digest,request_body "
                 "FROM c10_request_v1 WHERE request_id=?",
-                (request.request_id,),
+                (intent.request_id,),
             ).fetchone()
             if row is not None:
-                if row[1] != request.request_digest or row[4] != body:
+                if row[1] != intent.intent_digest or row[4] != body:
                     raise ReexecutionFailure(ReexecutionCode.CONFLICT)
                 return RequestWriteDisposition.ALREADY_PRESENT, self._view(row[:4])
             database.execute(
                 "INSERT INTO c10_request_v1 "
                 "(request_id,request_digest,request_body,state) VALUES (?,?,?,?)",
                 (
-                    request.request_id,
-                    request.request_digest,
+                    intent.request_id,
+                    intent.intent_digest,
                     body,
                     JournalState.INTENT_RECORDED.value,
                 ),
             )
             self._append_event(
                 database,
-                request.request_id,
+                intent.request_id,
                 "INTENT_RECORDED",
-                {"request_digest": request.request_digest},
+                {"intent_digest": intent.intent_digest},
             )
             return RequestWriteDisposition.INSERTED, ReexecutionJournalView(
-                request.request_id,
-                request.request_digest,
+                intent.request_id,
+                intent.intent_digest,
                 JournalState.INTENT_RECORDED,
                 None,
             )
 
-    def mark_running(self, request: LinkedReexecutionRequest) -> ReexecutionJournalView:
+    def bind(self, request: LinkedReexecutionRequest) -> RequestWriteDisposition:
         if type(request) is not LinkedReexecutionRequest:
+            raise ReexecutionFailure(ReexecutionCode.INVALID)
+        intent = request.launch_intent
+        body = request.canonical_bytes.decode("ascii")
+        with self._transaction() as database:
+            row = database.execute(
+                "SELECT request_digest,request_body,state FROM c10_request_v1 "
+                "WHERE request_id=?",
+                (request.request_id,),
+            ).fetchone()
+            if (
+                row is None
+                or row[0] != intent.intent_digest
+                or row[1] != intent.canonical_bytes.decode("ascii")
+            ):
+                raise ReexecutionFailure(ReexecutionCode.CONFLICT)
+            existing = database.execute(
+                "SELECT request_digest,request_body FROM c10_binding_v1 "
+                "WHERE request_id=?",
+                (request.request_id,),
+            ).fetchone()
+            expected = (request.request_digest, body)
+            if existing is not None:
+                if existing != expected:
+                    raise ReexecutionFailure(ReexecutionCode.CONFLICT)
+                return RequestWriteDisposition.ALREADY_PRESENT
+            if JournalState(row[2]) not in {
+                JournalState.RUNNING,
+                JournalState.RECONCILIATION_REQUIRED,
+            }:
+                raise ReexecutionFailure(ReexecutionCode.STATE)
+            database.execute(
+                "INSERT INTO c10_binding_v1 VALUES (?,?,?)",
+                (request.request_id, request.request_digest, body),
+            )
+            self._append_event(
+                database,
+                request.request_id,
+                "REQUEST_BOUND",
+                {"request_digest": request.request_digest},
+            )
+            return RequestWriteDisposition.INSERTED
+
+    def mark_running(self, intent: ReexecutionLaunchIntent) -> ReexecutionJournalView:
+        if type(intent) is not ReexecutionLaunchIntent:
             raise ReexecutionFailure(ReexecutionCode.INVALID)
         with self._transaction() as database:
             row = database.execute(
                 "SELECT request_id,request_digest,state,outcome_digest,request_body "
                 "FROM c10_request_v1 WHERE request_id=?",
-                (request.request_id,),
+                (intent.request_id,),
             ).fetchone()
             if (
                 row is None
-                or row[1] != request.request_digest
-                or row[4] != request.canonical_bytes.decode("ascii")
+                or row[1] != intent.intent_digest
+                or row[4] != intent.canonical_bytes.decode("ascii")
             ):
                 raise ReexecutionFailure(ReexecutionCode.CONFLICT)
             state = JournalState(row[2])
@@ -223,21 +273,60 @@ class ReexecutionJournal:
                 raise ReexecutionFailure(ReexecutionCode.STATE)
             database.execute(
                 "UPDATE c10_request_v1 SET state=? WHERE request_id=?",
-                (JournalState.RUNNING.value, request.request_id),
+                (JournalState.RUNNING.value, intent.request_id),
             )
             self._append_event(
                 database,
-                request.request_id,
+                intent.request_id,
                 "RUNNING",
                 {
-                    "claim_id": request.claim_id,
-                    "worker_id": request.worker_id,
+                    "claim_id": intent.claim_id,
+                    "worker_id": intent.worker_id,
                 },
             )
             return ReexecutionJournalView(
-                request.request_id,
-                request.request_digest,
+                intent.request_id,
+                intent.intent_digest,
                 JournalState.RUNNING,
+                None,
+            )
+
+    def mark_reconciliation_required(
+        self, intent: ReexecutionLaunchIntent
+    ) -> ReexecutionJournalView:
+        if type(intent) is not ReexecutionLaunchIntent:
+            raise ReexecutionFailure(ReexecutionCode.INVALID)
+        with self._transaction() as database:
+            row = database.execute(
+                "SELECT request_id,request_digest,state,outcome_digest,request_body "
+                "FROM c10_request_v1 WHERE request_id=?",
+                (intent.request_id,),
+            ).fetchone()
+            if (
+                row is None
+                or row[1] != intent.intent_digest
+                or row[4] != intent.canonical_bytes.decode("ascii")
+            ):
+                raise ReexecutionFailure(ReexecutionCode.CONFLICT)
+            state = JournalState(row[2])
+            if state is JournalState.RECONCILIATION_REQUIRED:
+                return self._view(row[:4])
+            if state not in {JournalState.INTENT_RECORDED, JournalState.RUNNING}:
+                raise ReexecutionFailure(ReexecutionCode.STATE)
+            database.execute(
+                "UPDATE c10_request_v1 SET state=? WHERE request_id=?",
+                (JournalState.RECONCILIATION_REQUIRED.value, intent.request_id),
+            )
+            self._append_event(
+                database,
+                intent.request_id,
+                "RECONCILIATION_REQUIRED",
+                {"prior_state": state.value},
+            )
+            return ReexecutionJournalView(
+                intent.request_id,
+                intent.intent_digest,
+                JournalState.RECONCILIATION_REQUIRED,
                 None,
             )
 
@@ -259,6 +348,7 @@ class ReexecutionJournal:
             else JournalState.COMPARED
         )
         outcome_body = outcome.canonical_bytes.decode("ascii")
+        intent = request.launch_intent
         with self._transaction() as database:
             row = database.execute(
                 "SELECT request_id,request_digest,state,outcome_digest,outcome_body,"
@@ -267,8 +357,18 @@ class ReexecutionJournal:
             ).fetchone()
             if (
                 row is None
-                or row[1] != request.request_digest
-                or row[5] != request.canonical_bytes.decode("ascii")
+                or row[1] != intent.intent_digest
+                or row[5] != intent.canonical_bytes.decode("ascii")
+            ):
+                raise ReexecutionFailure(ReexecutionCode.CONFLICT)
+            binding = database.execute(
+                "SELECT request_digest,request_body FROM c10_binding_v1 "
+                "WHERE request_id=?",
+                (request.request_id,),
+            ).fetchone()
+            if binding != (
+                request.request_digest,
+                request.canonical_bytes.decode("ascii"),
             ):
                 raise ReexecutionFailure(ReexecutionCode.CONFLICT)
             state = JournalState(row[2])
@@ -306,30 +406,30 @@ class ReexecutionJournal:
             )
             return ReexecutionJournalView(
                 request.request_id,
-                request.request_digest,
+                intent.intent_digest,
                 target,
                 outcome.outcome_digest,
             )
 
-    def status(self, request: LinkedReexecutionRequest) -> ReexecutionJournalView:
-        if type(request) is not LinkedReexecutionRequest:
+    def status(self, intent: ReexecutionLaunchIntent) -> ReexecutionJournalView:
+        if type(intent) is not ReexecutionLaunchIntent:
             raise ReexecutionFailure(ReexecutionCode.INVALID)
         with self._transaction() as database:
             row = database.execute(
                 "SELECT request_id,request_digest,state,outcome_digest,request_body "
                 "FROM c10_request_v1 WHERE request_id=?",
-                (request.request_id,),
+                (intent.request_id,),
             ).fetchone()
         if (
             row is None
-            or row[1] != request.request_digest
-            or row[4] != request.canonical_bytes.decode("ascii")
+            or row[1] != intent.intent_digest
+            or row[4] != intent.canonical_bytes.decode("ascii")
         ):
             raise ReexecutionFailure(ReexecutionCode.CONFLICT)
         return self._view(row[:4])
 
     def outcome_document(self, request: LinkedReexecutionRequest) -> dict[str, object]:
-        status = self.status(request)
+        status = self.status(request.launch_intent)
         if status.state not in _TERMINAL:
             raise ReexecutionFailure(ReexecutionCode.STATE)
         with self._transaction() as database:
@@ -358,6 +458,7 @@ class ReexecutionJournal:
         with self._transaction() as database:
             previous = _GENESIS
             request_states: dict[str, JournalState] = {}
+            bound_requests: set[str] = set()
             for row in database.execute(
                 "SELECT request_id,kind,body,body_digest,previous_entry_digest,"
                 "entry_digest FROM c10_event_v1 ORDER BY sequence"
@@ -394,6 +495,24 @@ class ReexecutionJournal:
                     if request_states.get(request_id) is not JournalState.RUNNING:
                         raise ReexecutionFailure(ReexecutionCode.STORE)
                     request_states[request_id] = JournalState.RECONCILIATION_REQUIRED
+                elif kind == "RECONCILIATION_REQUIRED":
+                    if request_states.get(request_id) not in {
+                        JournalState.INTENT_RECORDED,
+                        JournalState.RUNNING,
+                    }:
+                        raise ReexecutionFailure(ReexecutionCode.STORE)
+                    request_states[request_id] = JournalState.RECONCILIATION_REQUIRED
+                elif kind == "REQUEST_BOUND":
+                    if (
+                        request_states.get(request_id)
+                        not in {
+                            JournalState.RUNNING,
+                            JournalState.RECONCILIATION_REQUIRED,
+                        }
+                        or request_id in bound_requests
+                    ):
+                        raise ReexecutionFailure(ReexecutionCode.STORE)
+                    bound_requests.add(request_id)
                 elif kind in {state.value for state in _TERMINAL}:
                     if request_states.get(request_id) not in {
                         JournalState.RUNNING,
@@ -423,6 +542,13 @@ class ReexecutionJournal:
                     )
                 ):
                     raise ReexecutionFailure(ReexecutionCode.STORE)
+            bindings = database.execute(
+                "SELECT request_id,request_digest,request_body FROM c10_binding_v1"
+            ).fetchall()
+            if {row[0] for row in bindings} != bound_requests:
+                raise ReexecutionFailure(ReexecutionCode.STORE)
+            if any(digest_bytes(row[2].encode("ascii")) != row[1] for row in bindings):
+                raise ReexecutionFailure(ReexecutionCode.STORE)
 
 
 __all__ = ["ReexecutionJournal"]

@@ -72,8 +72,10 @@ from carbon.reexecution.model import (
     ExecutionResourceObservation,
     LinkedReexecutionRequest,
     ReexecutionBudget,
+    ReexecutionLaunchIntent,
     ReplicaAuditBinding,
     ResourceObservationState,
+    ScientificStateBinding,
 )
 from carbon.reexecution.report import write_reexecution_report_bundle
 from carbon.reexecution.service import DevelopmentReexecutionService
@@ -716,63 +718,30 @@ def test_real_linked_primary_and_reexecution_are_fresh_and_non_official(
         attempt=1,
     )
 
-    expected_receipts = tuple(
-        dataclasses.replace(
-            item.receipt,
-            execution_id=(
-                f"{replica.execution_ref.submission_id.value}:"
-                f"{replica.execution_ref.attempt_number}"
-            ),
-        )
-        for item, replica in zip(
-            primary_run.reconstruction, reexecution_replicas, strict=True
-        )
-    )
-    expected_run = dataclasses.replace(
-        primary_run,
-        repeat=reexecution_repeat,
-        replicas=reexecution_replicas,
-        reconstruction=tuple(
-            dataclasses.replace(item, receipt=receipt)
-            for item, receipt in zip(
-                primary_run.reconstruction, expected_receipts, strict=True
-            )
-        ),
-    )
-    reexecution_evidence = _evidence(
-        image=image,
-        challenge=challenge,
-        plan=plan,
-        profile=profile,
-        policy=policy,
-        resource=resource,
-        archive=archive,
-        run=expected_run,
-        reference_request=reference_request,
-    )
-    reexecution_request = _request_with_actual_inputs(
+    prospective_request = _request_with_actual_inputs(
         _orchestration_request(
-            evidence=reexecution_evidence, attempt=2, plan=plan, profile=profile
+            evidence=primary_evidence, attempt=2, plan=plan, profile=profile
         ),
         reference_request,
-        expected_run,
+        primary_run,
     )
-    linked = LinkedReexecutionRequest(
+    replicas = tuple(
+        ReplicaAuditBinding(
+            primary.binding.replicate_identity.replicate_id,
+            primary.randomness_digest,
+            primary.binding.replicate_identity.replicate_digest,
+            repeated.binding.replicate_identity.replicate_digest,
+        )
+        for primary, repeated in zip(
+            primary_replicas, reexecution_replicas, strict=True
+        )
+    )
+    launch_intent = ReexecutionLaunchIntent(
         request_id="c10-real-linked-reexecution",
         primary_request=primary_request,
         primary_result=primary_result,
-        reexecution_request=reexecution_request,
-        replicas=tuple(
-            ReplicaAuditBinding(
-                primary.binding.replicate_identity.replicate_id,
-                primary.randomness_digest,
-                primary.binding.replicate_identity.replicate_digest,
-                repeated.binding.replicate_identity.replicate_digest,
-            )
-            for primary, repeated in zip(
-                primary_replicas, reexecution_replicas, strict=True
-            )
-        ),
+        reexecution_execution=prospective_request.execution,
+        replicas=replicas,
         budget=ReexecutionBudget(policy.content_digest),
         worker_id="c10-reexecution-orchestrator",
         claim_id="c10-reexecution-claim",
@@ -782,7 +751,7 @@ def test_real_linked_primary_and_reexecution_are_fresh_and_non_official(
         ledger,
         ReexecutionJournal(tmp_path / "reexecution.sqlite3"),
     )
-    reexecution_handle = service.launch(linked).handle
+    service.launch(launch_intent)
     reexecution_run = _run_numerical(
         root=tmp_path,
         role="reexecution",
@@ -800,10 +769,62 @@ def test_real_linked_primary_and_reexecution_are_fresh_and_non_official(
         seeds=repeated_seeds,
         repeat=reexecution_repeat,
     )
-    assert (
-        tuple(value.receipt.artifact_digest for value in reexecution_run.reconstruction)
-        == reexecution_evidence.reconstruction_attempt_digests
+    reexecution_evidence = _evidence(
+        image=image,
+        challenge=challenge,
+        plan=plan,
+        profile=profile,
+        policy=policy,
+        resource=resource,
+        archive=archive,
+        run=reexecution_run,
+        reference_request=reference_request,
     )
+    reexecution_request = _request_with_actual_inputs(
+        _orchestration_request(
+            evidence=reexecution_evidence, attempt=2, plan=plan, profile=profile
+        ),
+        reference_request,
+        reexecution_run,
+    )
+    linked = LinkedReexecutionRequest(
+        request_id=launch_intent.request_id,
+        primary_request=primary_request,
+        primary_result=primary_result,
+        reexecution_request=reexecution_request,
+        replicas=replicas,
+        budget=launch_intent.budget,
+        worker_id=launch_intent.worker_id,
+        claim_id=launch_intent.claim_id,
+        primary_scientific_state=ScientificStateBinding(
+            primary_evidence.reconstruction_attempt_digests,
+            tuple(
+                value.receipt.checkpoint_digest for value in primary_run.reconstruction
+            ),
+            primary_evidence.prediction_digest,
+            primary_evidence.reference_artifact_digest,
+            primary_evidence.measurement_result_digest,
+        ),
+        reexecution_scientific_state=ScientificStateBinding(
+            reexecution_evidence.reconstruction_attempt_digests,
+            tuple(
+                value.receipt.checkpoint_digest
+                for value in reexecution_run.reconstruction
+            ),
+            reexecution_evidence.prediction_digest,
+            reexecution_evidence.reference_artifact_digest,
+            reexecution_evidence.measurement_result_digest,
+        ),
+    )
+    assert linked.launch_intent == launch_intent
+    assert (
+        primary_evidence.reconstruction_attempt_digests
+        != reexecution_evidence.reconstruction_attempt_digests
+    )
+    assert linked.primary_scientific_state.reconstruction_checkpoint_digests == (
+        linked.reexecution_scientific_state.reconstruction_checkpoint_digests
+    )
+    reexecution_handle = service.bind_request(linked)
     assert (
         reexecution_run.prediction_receipt.output_digest
         == reexecution_evidence.prediction_digest

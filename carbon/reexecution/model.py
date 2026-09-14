@@ -19,9 +19,9 @@ from carbon.audit.model import (
     validate_digest,
     validate_token,
 )
+from carbon.execution import DurableExecutionBinding
 from carbon.orchestration import (
     CompletedDevelopmentOrchestration,
-    DevelopmentOperationalAccount,
     DevelopmentOrchestrationRequest,
 )
 from carbon.reconstruction.worker.model import (
@@ -37,7 +37,7 @@ from carbon.reconstruction.worker.model import (
     SWAP_BYTES,
 )
 
-SCHEMA = "carbon.c10.development-reexecution.v1"
+SCHEMA = "carbon.c10.development-reexecution.v2"
 OUTCOME_SCHEMA = "carbon.c10.development-reexecution-outcome.v1"
 PUBLIC_SCHEMA = "carbon.c10.public-reexecution-report.v1"
 REVIEWER_SCHEMA = "carbon.c10.reviewer-reexecution-report.v1"
@@ -324,6 +324,64 @@ class ExecutionProvenance:
         }
 
 
+@dataclass(frozen=True, slots=True)
+class ScientificStateBinding:
+    """Path-free controller validation of scientific bytes and their envelopes."""
+
+    reconstruction_artifact_digests: tuple[str, ...]
+    reconstruction_checkpoint_digests: tuple[str, ...]
+    prediction_digest: str
+    reference_digest: str
+    measurement_digest: str
+
+    def __post_init__(self) -> None:
+        if (
+            type(self.reconstruction_artifact_digests) is not tuple
+            or len(self.reconstruction_artifact_digests) != 3
+            or len(set(self.reconstruction_artifact_digests)) != 3
+            or type(self.reconstruction_checkpoint_digests) is not tuple
+            or len(self.reconstruction_checkpoint_digests) != 3
+        ):
+            raise ReexecutionFailure(ReexecutionCode.INVALID)
+        for name in (
+            "reconstruction_artifact_digests",
+            "reconstruction_checkpoint_digests",
+        ):
+            object.__setattr__(
+                self,
+                name,
+                tuple(validate_digest(value) for value in getattr(self, name)),
+            )
+        for name in ("prediction_digest", "reference_digest", "measurement_digest"):
+            object.__setattr__(self, name, validate_digest(getattr(self, name)))
+
+    def validate_evidence(self, request: DevelopmentOrchestrationRequest) -> None:
+        if type(request) is not DevelopmentOrchestrationRequest:
+            raise ReexecutionFailure(ReexecutionCode.INVALID)
+        evidence = request.evidence
+        if (
+            self.reconstruction_artifact_digests
+            != evidence.reconstruction_attempt_digests
+            or self.prediction_digest != evidence.prediction_digest
+            or self.reference_digest != evidence.reference_artifact_digest
+            or self.measurement_digest != evidence.measurement_result_digest
+        ):
+            raise ReexecutionFailure(ReexecutionCode.CONFLICT)
+
+    def document(self) -> dict[str, object]:
+        return {
+            "measurement_digest": self.measurement_digest,
+            "prediction_digest": self.prediction_digest,
+            "reconstruction_artifact_digests": list(
+                self.reconstruction_artifact_digests
+            ),
+            "reconstruction_checkpoint_digests": list(
+                self.reconstruction_checkpoint_digests
+            ),
+            "reference_digest": self.reference_digest,
+        }
+
+
 def _material_document(request: DevelopmentOrchestrationRequest) -> dict[str, object]:
     evidence = request.evidence
     execution = request.execution
@@ -373,12 +431,43 @@ def _material_document(request: DevelopmentOrchestrationRequest) -> dict[str, ob
     }
 
 
+def _execution_document(execution: DurableExecutionBinding) -> dict[str, object]:
+    handle = execution.handle
+    pin = handle.seed_pin
+    return {
+        "admission_kind": handle.admission_kind.value,
+        "attempt_number": handle.attempt_number,
+        "backend_profile_id": handle.environment_pin.backend_profile_id,
+        "challenge_id": pin.challenge_key.challenge_id,
+        "challenge_version": pin.challenge_key.version,
+        "environment_digest": handle.environment_pin.container_digest,
+        "evaluation_binding_digest": digest_bytes(pin.evaluation_binding._copy_bytes()),
+        "generator_digest": pin.generator_digest,
+        "generator_version": pin.generator_version,
+        "protected_evaluation_policy_digest": (
+            execution.protected_evaluation_policy_digest
+        ),
+        "reconstruction_policy_digest": execution.reconstruction_policy_digest,
+        "requester_identity": execution.requester_identity.value,
+        "resolved_plan_digest": execution.resolved_plan_digest,
+        "resource_policy_digest": execution.resource_policy_digest,
+        "scope": execution.scope.value,
+        "scoring_digest": pin.scoring_digest,
+        "scoring_version": pin.scoring_version,
+        "seed_scheme": pin.seed_scheme,
+        "strategy_digest": execution.strategy_hash.value,
+        "submission_id": handle.submission_id.value,
+    }
+
+
 @dataclass(frozen=True, slots=True)
-class LinkedReexecutionRequest:
+class ReexecutionLaunchIntent:
+    """Prospective C-10 intent that contains no not-yet-produced output digest."""
+
     request_id: str
     primary_request: DevelopmentOrchestrationRequest
     primary_result: CompletedDevelopmentOrchestration
-    reexecution_request: DevelopmentOrchestrationRequest
+    reexecution_execution: DurableExecutionBinding
     replicas: tuple[ReplicaAuditBinding, ...]
     budget: ReexecutionBudget
     worker_id: str
@@ -393,7 +482,7 @@ class LinkedReexecutionRequest:
         if (
             type(self.primary_request) is not DevelopmentOrchestrationRequest
             or type(self.primary_result) is not CompletedDevelopmentOrchestration
-            or type(self.reexecution_request) is not DevelopmentOrchestrationRequest
+            or type(self.reexecution_execution) is not DurableExecutionBinding
             or type(self.budget) is not ReexecutionBudget
             or type(self.replicas) is not tuple
             or len(self.replicas) != 3
@@ -404,6 +493,116 @@ class LinkedReexecutionRequest:
             or self.role != REEXECUTION_ROLE
         ):
             raise ReexecutionFailure(ReexecutionCode.INVALID)
+        primary_account = self.primary_result.account
+        primary_receipt = self.primary_result.signed_receipt.receipt
+        primary_ref = self.primary_result.ledger_reference
+        primary_execution = self.primary_request.execution
+        reexecution = self.reexecution_execution
+        if (
+            primary_account.request_digest != self.primary_request.request_digest
+            or primary_account.submission_id
+            != primary_execution.handle.submission_id.value
+            or primary_account.attempt_number != primary_execution.handle.attempt_number
+            or primary_receipt.binding != self.primary_request.evidence
+            or primary_receipt.receipt_digest != primary_ref.receipt_digest
+            or primary_receipt.receipt_id != primary_ref.receipt_id
+            or primary_execution.handle.submission_id
+            != reexecution.handle.submission_id
+            or primary_execution.handle.attempt_number
+            >= reexecution.handle.attempt_number
+            or primary_execution.requester_identity != reexecution.requester_identity
+            or primary_execution.scope != reexecution.scope
+            or primary_execution.strategy_hash != reexecution.strategy_hash
+            or primary_execution.handle.seed_pin != reexecution.handle.seed_pin
+            or primary_execution.handle.environment_pin
+            != reexecution.handle.environment_pin
+            or primary_execution.resolved_plan_digest
+            != reexecution.resolved_plan_digest
+            or primary_execution.reconstruction_policy_digest
+            != reexecution.reconstruction_policy_digest
+            or primary_execution.resource_policy_digest
+            != reexecution.resource_policy_digest
+            or primary_execution.protected_evaluation_policy_digest
+            != reexecution.protected_evaluation_policy_digest
+            or self.budget.resource_policy_digest != reexecution.resource_policy_digest
+        ):
+            raise ReexecutionFailure(ReexecutionCode.CONFLICT)
+
+    def document(self) -> dict[str, object]:
+        primary_ref = self.primary_result.ledger_reference
+        execution = self.reexecution_execution
+        return {
+            "budget": self.budget.document(),
+            "comparison_policy": {
+                "id": self.comparison_policy_id,
+                "qualified": False,
+                "tolerance": None,
+            },
+            "material_binding": _material_document(self.primary_request),
+            "primary": {
+                "account_digest": self.primary_result.account.account_digest,
+                "attempt_number": self.primary_request.execution.handle.attempt_number,
+                "receipt": _receipt_document(primary_ref),
+                "request_digest": self.primary_request.request_digest,
+            },
+            "reexecution": {
+                "attempt_number": execution.handle.attempt_number,
+                "claim_id": self.claim_id,
+                "execution_binding": _execution_document(execution),
+                "worker_id": self.worker_id,
+            },
+            "replicas": [value.document() for value in self.replicas],
+            "request_id": self.request_id,
+            "role": self.role,
+            "schema": self.schema,
+        }
+
+    @property
+    def canonical_bytes(self) -> bytes:
+        return canonical_json(self.document())
+
+    @property
+    def intent_digest(self) -> str:
+        return digest_bytes(self.canonical_bytes)
+
+
+@dataclass(frozen=True, slots=True)
+class LinkedReexecutionRequest:
+    request_id: str
+    primary_request: DevelopmentOrchestrationRequest
+    primary_result: CompletedDevelopmentOrchestration
+    reexecution_request: DevelopmentOrchestrationRequest
+    replicas: tuple[ReplicaAuditBinding, ...]
+    budget: ReexecutionBudget
+    worker_id: str
+    claim_id: str
+    primary_scientific_state: ScientificStateBinding
+    reexecution_scientific_state: ScientificStateBinding
+    comparison_policy_id: str = COMPARISON_POLICY_ID
+    role: str = REEXECUTION_ROLE
+    schema: str = SCHEMA
+
+    def __post_init__(self) -> None:
+        for name in ("request_id", "worker_id", "claim_id"):
+            object.__setattr__(self, name, validate_token(getattr(self, name)))
+        if (
+            type(self.primary_request) is not DevelopmentOrchestrationRequest
+            or type(self.primary_result) is not CompletedDevelopmentOrchestration
+            or type(self.reexecution_request) is not DevelopmentOrchestrationRequest
+            or type(self.budget) is not ReexecutionBudget
+            or type(self.primary_scientific_state) is not ScientificStateBinding
+            or type(self.reexecution_scientific_state) is not ScientificStateBinding
+            or type(self.replicas) is not tuple
+            or len(self.replicas) != 3
+            or any(type(value) is not ReplicaAuditBinding for value in self.replicas)
+            or len({value.slot_id for value in self.replicas}) != 3
+            or self.schema != SCHEMA
+            or self.comparison_policy_id != COMPARISON_POLICY_ID
+            or self.role != REEXECUTION_ROLE
+        ):
+            raise ReexecutionFailure(ReexecutionCode.INVALID)
+        self.primary_scientific_state.validate_evidence(self.primary_request)
+        self.reexecution_scientific_state.validate_evidence(self.reexecution_request)
         primary_account = self.primary_result.account
         primary_receipt = self.primary_result.signed_receipt.receipt
         primary_ref = self.primary_result.ledger_reference
@@ -418,6 +617,7 @@ class LinkedReexecutionRequest:
             or primary_receipt.receipt_id != primary_ref.receipt_id
         ):
             raise ReexecutionFailure(ReexecutionCode.CONFLICT)
+
         primary_execution = self.primary_request.execution
         reexecution = self.reexecution_request.execution
         if (
@@ -431,6 +631,22 @@ class LinkedReexecutionRequest:
             or self.budget.resource_policy_digest != reexecution.resource_policy_digest
         ):
             raise ReexecutionFailure(ReexecutionCode.CONFLICT)
+
+    @property
+    def launch_intent(self) -> ReexecutionLaunchIntent:
+        return ReexecutionLaunchIntent(
+            request_id=self.request_id,
+            primary_request=self.primary_request,
+            primary_result=self.primary_result,
+            reexecution_execution=self.reexecution_request.execution,
+            replicas=self.replicas,
+            budget=self.budget,
+            worker_id=self.worker_id,
+            claim_id=self.claim_id,
+            comparison_policy_id=self.comparison_policy_id,
+            role=self.role,
+            schema=self.schema,
+        )
 
     def document(self) -> dict[str, object]:
         primary_ref = self.primary_result.ledger_reference
@@ -453,6 +669,10 @@ class LinkedReexecutionRequest:
                 "claim_id": self.claim_id,
                 "request_digest": self.reexecution_request.request_digest,
                 "worker_id": self.worker_id,
+            },
+            "scientific_state": {
+                "primary": self.primary_scientific_state.document(),
+                "reexecution": self.reexecution_scientific_state.document(),
             },
             "replicas": [value.document() for value in self.replicas],
             "request_id": self.request_id,
@@ -655,22 +875,14 @@ class ReexecutionJournalView:
             raise ReexecutionFailure(ReexecutionCode.INVALID)
 
 
-def scientific_state_digests(
-    account: DevelopmentOperationalAccount,
-    request: DevelopmentOrchestrationRequest,
-) -> tuple[str, ...]:
-    if (
-        type(account) is not DevelopmentOperationalAccount
-        or type(request) is not DevelopmentOrchestrationRequest
-        or account.request_digest != request.request_digest
-    ):
-        raise ReexecutionFailure(ReexecutionCode.CONFLICT)
-    evidence = request.evidence
+def scientific_state_digests(binding: ScientificStateBinding) -> tuple[str, ...]:
+    if type(binding) is not ScientificStateBinding:
+        raise ReexecutionFailure(ReexecutionCode.INVALID)
     return (
-        *evidence.reconstruction_attempt_digests,
-        evidence.prediction_digest,
-        evidence.reference_artifact_digest,
-        evidence.measurement_result_digest,
+        *binding.reconstruction_checkpoint_digests,
+        binding.prediction_digest,
+        binding.reference_digest,
+        binding.measurement_digest,
     )
 
 
@@ -691,9 +903,11 @@ __all__ = [
     "ReexecutionCode",
     "ReexecutionFailure",
     "ReexecutionJournalView",
+    "ReexecutionLaunchIntent",
     "ReexecutionOutcome",
     "ReplicaAuditBinding",
     "RequestWriteDisposition",
     "ResourceObservationState",
+    "ScientificStateBinding",
     "scientific_state_digests",
 ]

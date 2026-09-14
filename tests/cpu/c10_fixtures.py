@@ -33,8 +33,10 @@ from carbon.reexecution.model import (
     ExecutionResourceObservation,
     LinkedReexecutionRequest,
     ReexecutionBudget,
+    ReexecutionLaunchIntent,
     ReplicaAuditBinding,
     ResourceObservationState,
+    ScientificStateBinding,
 )
 from carbon.registry import ChallengeKey
 from carbon.seeding import EvaluationBinding, SeedPin
@@ -54,6 +56,7 @@ class C10Fixture:
     primary_request: DevelopmentOrchestrationRequest
     primary_result: CompletedDevelopmentOrchestration
     reexecution_request: DevelopmentOrchestrationRequest
+    launch_intent: ReexecutionLaunchIntent
     linked_request: LinkedReexecutionRequest
 
 
@@ -225,17 +228,18 @@ def make_fixture(tmp_path: Path, *, output_suffix: str = "") -> C10Fixture:
         None,  # type: ignore[arg-type]
         None,  # type: ignore[arg-type]
         None,  # type: ignore[arg-type]
+        None,  # type: ignore[arg-type]
     )
     primary_result = complete_c07(
         placeholder, primary_request, receipt_id="c10-primary-receipt"
     )
     reexecution_evidence = _evidence(
-        repeat="reexecution-repeat", output_suffix=output_suffix
+        repeat="reexecution-repeat",
+        output_suffix=output_suffix or "reexecution-envelope",
     )
     if not output_suffix:
         reexecution_evidence = replace(
             reexecution_evidence,
-            reconstruction_attempt_digests=primary_request.evidence.reconstruction_attempt_digests,
             prediction_digest=primary_request.evidence.prediction_digest,
             reference_artifact_digest=primary_request.evidence.reference_artifact_digest,
             measurement_result_digest=primary_request.evidence.measurement_result_digest,
@@ -259,6 +263,23 @@ def make_fixture(tmp_path: Path, *, output_suffix: str = "") -> C10Fixture:
         budget=ReexecutionBudget(reexecution_evidence.resource_policy_digest),
         worker_id="c10-audit-worker",
         claim_id="c10-audit-claim",
+        primary_scientific_state=ScientificStateBinding(
+            primary_request.evidence.reconstruction_attempt_digests,
+            tuple(sha(f"checkpoint-{index}") for index in range(3)),
+            primary_request.evidence.prediction_digest,
+            primary_request.evidence.reference_artifact_digest,
+            primary_request.evidence.measurement_result_digest,
+        ),
+        reexecution_scientific_state=ScientificStateBinding(
+            reexecution_request.evidence.reconstruction_attempt_digests,
+            tuple(
+                sha(f"checkpoint-{index}{'-different' if output_suffix else ''}")
+                for index in range(3)
+            ),
+            reexecution_request.evidence.prediction_digest,
+            reexecution_request.evidence.reference_artifact_digest,
+            reexecution_request.evidence.measurement_result_digest,
+        ),
     )
     return C10Fixture(
         tmp_path,
@@ -269,6 +290,7 @@ def make_fixture(tmp_path: Path, *, output_suffix: str = "") -> C10Fixture:
         primary_request,
         primary_result,
         reexecution_request,
+        linked.launch_intent,
         linked,
     )
 
