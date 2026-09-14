@@ -2,9 +2,9 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `c6a875c5588870bab9e827b3a6442fdd9ef97966` on `main`, captured 2026-09-14T18:18:15Z.
-**Current:** Wave C, ticket C-10. C-EA1 private-alpha preparation is the latest accepted continuation after PR #168 accepted exact head ea51a947bbf21908144f93ffb04b5e9cc46de519 in run 34830155526 and normally merged as 0ee4c9b8db8339740521e2afc72624c97d8e177a; its broader ticket remains in progress. C-10 alone is selected for a linked fresh public DEVELOPMENT execution and disagreement/quarantine journal over C-01/C-06/C-07. Exact bytes can support only an engineering reproducibility observation; different or unavailable evidence remains unresolved and quarantined. No later ticket is selected in the canonical position; owner direction authorizes a concrete C-EA1 deployment-package continuation only after C-10 merges. No provider provisioning, real archive acknowledgement, C-EA2, protected execution, independent security/scientific acceptance, public network or LIVE authority exists. D6 run 34518806217 remains historical LOCALNET_READY evidence for its exact disposable standard-profile localnet.
-**Last completed:** C-08 (`done`).
+**Authority snapshot:** `246abc1cc823161da9366fce94e7edfdfa622832` on `main`, captured 2026-09-14T20:17:49Z.
+**Current:** Wave C, ticket C-EA1. PR #173 accepted exact C-10 head 82073ae2d5cc8504b7e77a9824642f98f0827526 in run 34882900413 and normally merged as d7ef7270eeb3b9a5594704efe0876ff3fb5ded49. C-EA1-D3 alone is selected for an unprovisioned AWS private-alpha package over the accepted PR #168 policy: exact provider adapters, immutable version receipts, atomic retained-byte capacity, private infrastructure/roles, recovery procedure and priced decision support. No later ticket is selected. Actual account/network/principals, provisioning, recovery rehearsal, security acceptance and deployment authorization remain absent. No real acknowledgement, C-EA2, protected execution, public network or LIVE authority exists. D6 run 34518806217 remains historical LOCALNET_READY evidence for its exact disposable standard-profile localnet.
+**Last completed:** C-10 (`done`).
 **Next selected:** none selected.
 
 ## Wave spine
@@ -95,7 +95,7 @@
 | [C-06](explainers/tickets/c_06.md) | Bind exact non-official DEVELOPMENT evidence into a signed append-only receipt without manufacturing eligibility. | done |
 | [C-07](explainers/tickets/c_07.md) | Compose an admitted DEVELOPMENT attempt through exact source owners without manufacturing official authority. | done |
 | [C-08](explainers/tickets/c_08.md) | Compose authenticated Miner MCP requests with the real validator orchestration path without leaking the official exam. | done |
-| [C-10](explainers/tickets/c_10.md) | Request one fresh linked DEVELOPMENT execution and retain agreement, disagreement or unavailable evidence without inventing a scientific verdict. | in_progress |
+| [C-10](explainers/tickets/c_10.md) | Request one fresh linked DEVELOPMENT execution and retain agreement, disagreement or unavailable evidence without inventing a scientific verdict. | done |
 | [C-EA2](explainers/tickets/c_ea2.md) | Require an eligible real archive acknowledgement before a required real result can finalize. | todo |
 | [C-09](explainers/tickets/c_09.md) | Project a real qualified Challenge-local result toward testnet eligibility without making publication the scientific judge. | todo |
 | [C-W1](explainers/tickets/c_w1.md) | Admit an exact real C1 proof chain into a non-live, non-settling testnet eligibility event. | todo |
@@ -234,6 +234,7 @@
 - `GOAL-WORKBENCH-03-E1` — `WAVE-G` — The accepted Goal Workbench v0.3 is rehearsed through three public/synthetic intent-preserving and fail-closed handoff journeys. Native Burgers Dynamics authoring works through the existing C-AUTH1 bridge; mismatched and unsupported scopes retain precise extension requests, while Grok, CRM, calendar, launch and numerical score-diagnostic routes remain manual or unavailable.
 - `C-EA1-I1` — `WAVE-C/C-EA1` — PR #167 accepted and merged C-08's bounded authenticated DEVELOPMENT composition. C-EA1-D2 now selects and implements the separate carbon.alpha-evidence-archive.private.v1 preparation: fixed owner policy, closed external deployment inputs, a no-side-effect doctor and an isolated non-secret PostgreSQL/encrypted-object preflight. Real acknowledgement and C-EA2 remain structurally ineligible; no provider resource, spend, recovery guarantee, security acceptance or protected authority exists.
 - `C-10-I1` — `WAVE-C/C-10` — PR #168's private-alpha archive preparation is reconciled as accepted, and C-10-D1 selects a bounded public DEVELOPMENT candidate over C-01/C-06/C-07. One fresh linked execution preserves registered randomness, uses new workers and scratch, associates both receipts, reports exact bytes only as an engineering observation, and quarantines every other outcome. Exact-head Linux service acceptance and merge remain pending; no scientific, independent-security, archive, network or reward authority exists.
+- `C-EA1-D3-I1` — `WAVE-C/C-EA1` — PR #173 accepted C-10's bounded DEVELOPMENT re-execution and the owner continuation selects C-EA1-D3's unprovisioned AWS private-alpha package. Exact S3/KMS/RDS adapters, version receipts, atomic retained-byte capacity, private infrastructure/roles, recovery procedure, component/source manifests and priced assumptions are implemented for review. The authority snapshot repin mechanically refreshes historical Wave-B links without changing their meaning. No provider was contacted or provisioned; recovery, security, real acknowledgement, C-EA2, protected and network authority remain unavailable.
 
 ## Authority boundary
 

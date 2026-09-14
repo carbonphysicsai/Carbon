@@ -15,6 +15,7 @@ from pathlib import Path
 import pytest
 
 from carbon.evidence_archive import (
+    ALPHA_LOGICAL_QUOTA_BYTES,
     ALPHA_PREFLIGHT_TENANT_ID,
     POSTGRES_IMAGE,
     SYNTHETIC_FIXTURE_PREFIX,
@@ -30,6 +31,7 @@ from carbon.evidence_archive import (
     ExecutionDisposition,
     HttpImmutableObjectStore,
     KeyMaterial,
+    PostgresAlphaCapacityLedger,
     PostgresCatalogue,
     ScientificResultState,
     SourceBinding,
@@ -507,3 +509,74 @@ def test_alpha_profile_preflight_exercises_services_without_real_acknowledgement
         assert report.eligible_for_c_ea2 is False
     finally:
         objects.stop()
+
+
+def test_alpha_capacity_reservation_is_atomic_and_counts_retained_evidence(
+    postgres_service,
+):
+    catalogue = PostgresCatalogue(
+        _postgres_dsn(postgres_service),
+        CapacityLimits(max_active_entries=1),
+    )
+    _await_catalogue(catalogue.migrate, "PostgreSQL did not recover for alpha ledger")
+    ledger = PostgresAlphaCapacityLedger(catalogue, tenant_id="carbon-alpha")
+    ledger.migrate()
+
+    barrier = threading.Barrier(3)
+    reservations = []
+    failures = []
+
+    def reserve(evaluation_id):
+        barrier.wait()
+        try:
+            reservations.append(
+                ledger.reserve(
+                    evaluation_id=evaluation_id,
+                    declared_bytes=10 * 1024**3,
+                )
+            )
+        except ArchiveFailure as failure:
+            failures.append((evaluation_id, failure.code))
+
+    threads = [
+        threading.Thread(target=reserve, args=(value,))
+        for value in ("alpha-evaluation-1", "alpha-evaluation-2")
+    ]
+    for thread in threads:
+        thread.start()
+    barrier.wait()
+    for thread in threads:
+        thread.join()
+
+    assert len(reservations) == 1
+    assert len(failures) == 1
+    failed_evaluation_id, failure_code = failures[0]
+    assert failure_code is ArchiveCode.CAPACITY
+    retained = ledger.retain(reservations[0].reservation_id)
+    assert retained.active_evaluations == 0
+    assert retained.pending_bytes == 0
+    assert retained.retained_bytes == 10 * 1024**3
+    assert ledger.retain(reservations[0].reservation_id) == retained
+
+    second = ledger.reserve(
+        evaluation_id=failed_evaluation_id,
+        declared_bytes=10 * 1024**3,
+    )
+    assert second.pending_bytes + second.retained_bytes == ALPHA_LOGICAL_QUOTA_BYTES
+    with pytest.raises(ArchiveFailure) as over_quota:
+        ledger.reserve(evaluation_id="alpha-evaluation-3", declared_bytes=1)
+    assert over_quota.value.code is ArchiveCode.CAPACITY
+    released = ledger.release_unacknowledged(second.reservation_id)
+    assert released.retained_bytes == 10 * 1024**3
+    assert released.pending_bytes == 0
+    with catalogue.transaction() as connection:
+        events = connection.execute(
+            "SELECT reservation_id,state FROM cea1_alpha_capacity_event "
+            "ORDER BY sequence"
+        ).fetchall()
+    assert events == [
+        (reservations[0].reservation_id, "PENDING"),
+        (reservations[0].reservation_id, "RETAINED"),
+        (second.reservation_id, "PENDING"),
+        (second.reservation_id, "RELEASED"),
+    ]

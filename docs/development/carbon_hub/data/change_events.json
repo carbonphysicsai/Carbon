@@ -2990,6 +2990,34 @@
         "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
       ],
       "supersedes": "C-EA1-I1"
+    },
+    {
+      "map_ref": "WAVE-C/C-EA1",
+      "event_type": "decision",
+      "event_id": "C-EA1-D3-I1",
+      "owner_lane": "evidence_architecture",
+      "status": "implemented",
+      "summary": "PR #173 accepted C-10's bounded DEVELOPMENT re-execution and the owner continuation selects C-EA1-D3's unprovisioned AWS private-alpha package. Exact S3/KMS/RDS adapters, version receipts, atomic retained-byte capacity, private infrastructure/roles, recovery procedure, component/source manifests and priced assumptions are implemented for review. The authority snapshot repin mechanically refreshes historical Wave-B links without changing their meaning. No provider was contacted or provisioned; recovery, security, real acknowledgement, C-EA2, protected and network authority remain unavailable.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/246abc1cc823161da9366fce94e7edfdfa622832/.agent/evidence/wave_c/c-ea1.md",
+      "affects": [
+        "WAVE-B",
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE",
+        "WAVE-C",
+        "WAVE-C/C-10",
+        "WAVE-C/C-EA1",
+        "WAVE-C/C-EA2",
+        "WAVE-C/C-09",
+        "SYSTEM/AGENT-EXECUTION",
+        "SYSTEM/CI",
+        "SYSTEM/GOVERNANCE",
+        "SYSTEM/MATURITY",
+        "SYSTEM/PROTOCOL-AUTHORITY",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+      ],
+      "supersedes": "C-10-I1"
     }
   ]
 }

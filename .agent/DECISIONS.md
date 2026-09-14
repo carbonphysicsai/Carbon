@@ -14027,3 +14027,52 @@ can supersede this heading, the C-10 ticket and the C-10 implementation files.
 Qualified comparison policy, protected custody, independent reviewer/security
 acceptance, official publication, settlement and network authority remain
 human/external inputs and fail closed.
+
+## 2026-09-15 — C-EA1-D3: select an unprovisioned AWS private-alpha deployment package
+
+**Ticket:** C-EA1 continuation after accepted C-10 PR #173
+**Authority source:** repository owner's prospective continuation after merged
+PR #168, authorizing C-10 and then one concrete C-EA1 deployable private-alpha
+package without paid provisioning, protected data, real acknowledgement, C-EA2,
+or public-network action
+
+**Selection.** After C-10's bounded merge, C-EA1 is the sole selected
+implementation ticket. Preserve the accepted synthetic runtime and
+`carbon.alpha-evidence-archive.private.v1` policy. Add provider profile
+`carbon.alpha-evidence-archive.aws.private.v1` as an unprovisioned review
+package in recommended region `us-west-2`. Use RDS PostgreSQL 17.11 Multi-AZ,
+20 GiB gp3, private S3 Standard with versioning and 90-day COMPLIANCE Object
+Lock, one customer-managed KMS key, private VPC endpoints, daily RDS backup,
+and separate supervisor/audit/recovery roles. The account, network, principals,
+deployment identity and authorization remain exact external inputs.
+
+**Implementation and limits.** KEEP C-EA1's PostgreSQL catalogue,
+AES-256-GCM envelope and immutable-object interface. WRAP them with exact
+`boto3==1.43.56` S3/KMS/RDS adapters, per-entry KMS data keys, version-specific
+object receipts/recovery and fresh RDS IAM tokens. Add an append-only,
+transactionally serialized alpha capacity ledger enforcing one pending
+evaluation and 20 GiB across pending plus retained evidence. Bind the
+CloudFormation template, database roles, dependency/source-use manifest and
+priced estimate into one versioned deployment manifest. The offline package
+doctor validates these identities but deliberately reports deployment,
+recovery, acknowledgement and C-EA2 eligibility false.
+
+**Cost decision support.** The review-package estimate uses public 2026-09-15
+AWS rates and explicit quantities: 730 instance/endpoint hours, 20 GiB RDS,
+30 GiB billed S3 after a 1.5 version factor, 10,000 PUTs, 20,000 GETs, one KMS
+key and 20 GiB excess-backup contingency. Its arithmetic is $39.338/month;
+recommend a $55/month authorization ceiling and a $5 provider-cost allowance
+for one test-owned restore rehearsal, excluding labor, VPC/VPN/supervisor host,
+tax and exceptional transfer/version growth. Pricing must be refreshed in the
+target account before authorization. A billing alarm is observational, not the
+20 GiB Carbon admission limit.
+
+**Alternatives and authority ceiling.** AWS is preferred over the evaluated
+GCP and Azure managed PostgreSQL/object/key combinations because it maps most
+directly to the accepted interfaces and conditional/versioned object behavior;
+this is reversible provider engineering, not a security/durability or rights
+qualification. No provider was contacted and no resource, charge, credential,
+secret, protected datum or real acknowledgement was created. Actual
+single-host-loss recovery within 24 hours, provider behavior, security
+acceptance, custody, deployment authorization and acknowledgement issuer remain
+external and fail closed. C-EA2, C-09 and C-W1 remain unselected/ineligible.

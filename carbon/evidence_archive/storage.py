@@ -8,11 +8,11 @@ import sqlite3
 import urllib.error
 import urllib.parse
 import urllib.request
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Protocol
+from typing import Any, Protocol
 
 from .model import (
     AEAD_ALGORITHM,
@@ -553,17 +553,37 @@ def _load_psycopg():
 class PostgresCatalogue:
     """PostgreSQL metadata/outbox owner with exact migration checks."""
 
-    def __init__(self, dsn: str, limits: CapacityLimits) -> None:
-        if type(dsn) is not str or not dsn.startswith("postgresql://"):
+    def __init__(
+        self,
+        dsn: str | None,
+        limits: CapacityLimits,
+        *,
+        connection_factory: Callable[[], Any] | None = None,
+    ) -> None:
+        if (
+            (dsn is None) == (connection_factory is None)
+            or (
+                dsn is not None
+                and (type(dsn) is not str or not dsn.startswith("postgresql://"))
+            )
+            or (connection_factory is not None and not callable(connection_factory))
+        ):
             raise ArchiveFailure(ArchiveCode.INVALID)
         self.dsn = dsn
         self.limits = limits
+        self.connection_factory = connection_factory
 
     @contextmanager
     def transaction(self):
         psycopg = _load_psycopg()
         try:
-            with psycopg.connect(self.dsn) as connection:  # noqa: SIM117
+            connection_source = self.connection_factory
+            connection = (
+                connection_source()
+                if connection_source is not None
+                else psycopg.connect(self.dsn)
+            )
+            with connection:  # noqa: SIM117
                 with connection.transaction():
                     yield connection
         except ArchiveFailure:

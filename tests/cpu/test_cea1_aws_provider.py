@@ -1,0 +1,331 @@
+from __future__ import annotations
+
+import base64
+import hashlib
+import io
+import json
+import shutil
+import sys
+from pathlib import Path
+from types import SimpleNamespace
+
+import pytest
+
+from carbon.evidence_archive import (
+    ALPHA_PROFILE_ID,
+    AWS_PROVIDER_PROFILE_ID,
+    AlphaActivationEvidence,
+    AlphaActivationPredicate,
+    AlphaActivationStatus,
+    AlphaArchiveProfile,
+    AlphaDeploymentConfiguration,
+    AlphaExternalInput,
+    AlphaPredicateEvidence,
+    ArchiveCode,
+    ArchiveFailure,
+    AwsArchiveConfiguration,
+    AwsKmsDataKeyService,
+    AwsRdsIamConfiguration,
+    AwsRdsIamConnectionFactory,
+    S3ImmutableObjectStore,
+    assess_alpha_activation,
+    derive_object_key,
+)
+from carbon.evidence_archive.alpha_package import validate_aws_package
+
+PACKAGE_ROOT = Path("deploy/evidence_archive/aws_private_alpha")
+
+
+class ProviderError(Exception):
+    def __init__(self, code: str):
+        self.response = {"Error": {"Code": code}}
+
+
+class FakeS3:
+    def __init__(self):
+        self.objects: dict[str, bytes] = {}
+        self.versions: dict[str, str] = {}
+        self.tags: dict[str, object] = {}
+
+    def put_object(self, **request):
+        key = request["Key"]
+        if key in self.objects:
+            raise ProviderError("PreconditionFailed")
+        self.objects[key] = request["Body"]
+        self.versions[key] = "version-1"
+        assert request["IfNoneMatch"] == "*"
+        assert request["ServerSideEncryption"] == "aws:kms"
+        assert request["ChecksumSHA256"]
+        return {
+            "VersionId": self.versions[key],
+            "ChecksumSHA256": request["ChecksumSHA256"],
+        }
+
+    def get_object(self, **request):
+        body = self.objects[request["Key"]]
+        if "VersionId" in request:
+            assert request["VersionId"] == self.versions[request["Key"]]
+        return {"ContentLength": len(body), "Body": io.BytesIO(body)}
+
+    def head_object(self, **request):
+        body = self.objects[request["Key"]]
+        return {
+            "VersionId": self.versions[request["Key"]],
+            "ChecksumSHA256": base64.b64encode(hashlib.sha256(body).digest()).decode(
+                "ascii"
+            ),
+        }
+
+    def list_objects_v2(self, **request):
+        return {
+            "Contents": [
+                {"Key": key}
+                for key in sorted(self.objects)
+                if key.startswith(request["Prefix"])
+            ],
+            "IsTruncated": False,
+        }
+
+    def put_object_tagging(self, **request):
+        self.tags[request["Key"]] = request["Tagging"]
+
+
+class FakeKms:
+    def __init__(self, key_arn: str):
+        self.key_arn = key_arn
+        self.plaintext = b"k" * 32
+        self.wrapped = b"wrapped-data-key"
+        self.context = None
+
+    def generate_data_key(self, **request):
+        self.context = request["EncryptionContext"]
+        return {
+            "Plaintext": self.plaintext,
+            "CiphertextBlob": self.wrapped,
+            "KeyId": self.key_arn,
+        }
+
+    def decrypt(self, **request):
+        assert request["EncryptionContext"] == self.context
+        return {"Plaintext": self.plaintext, "KeyId": self.key_arn}
+
+
+class FakeRds:
+    def __init__(self):
+        self.request = None
+
+    def generate_db_auth_token(self, **request):
+        self.request = request
+        return "short-lived-non-secret-test-token"
+
+
+def _configuration(*, max_object_bytes: int = 1024) -> AwsArchiveConfiguration:
+    return AwsArchiveConfiguration(
+        region="us-west-2",
+        bucket="carbon-alpha-evidence-123456789012",
+        expected_bucket_owner="123456789012",
+        kms_key_arn=(
+            "arn:aws:kms:us-west-2:123456789012:"
+            "key/12345678-1234-1234-1234-123456789012"
+        ),
+        tenant_id="carbon-alpha",
+        max_object_bytes=max_object_bytes,
+    )
+
+
+def _object_key() -> str:
+    return derive_object_key(
+        "carbon-alpha",
+        "sha256:" + "a" * 64,
+        "source_binding",
+        "sha256:" + "b" * 64,
+    )
+
+
+def test_s3_adapter_is_immutable_bounded_and_tenant_scoped() -> None:
+    client = FakeS3()
+    store = S3ImmutableObjectStore(client, _configuration())
+    key = _object_key()
+    created = store.put_immutable_with_receipt(key, b"ciphertext")
+    assert created.created is True
+    assert created.version_id == "version-1"
+    assert (
+        created.checksum_sha256 == "sha256:" + hashlib.sha256(b"ciphertext").hexdigest()
+    )
+    assert store.put_immutable(key, b"ciphertext") is False
+    with pytest.raises(ArchiveFailure) as conflict:
+        store.put_immutable(key, b"changed")
+    assert conflict.value.code is ArchiveCode.CONFLICT
+    assert store.get(key) == b"ciphertext"
+    assert store.get_version(key, created.version_id) == b"ciphertext"
+    assert store.list_keys("carbon-alpha") == (key,)
+    quarantine_ref = store.quarantine(key)
+    assert quarantine_ref.startswith("sha256:")
+    assert client.tags
+    with pytest.raises(ArchiveFailure) as denied:
+        store.list_keys("other-tenant")
+    assert denied.value.code is ArchiveCode.DENIED
+
+
+def test_s3_adapter_caps_request_and_response_bytes() -> None:
+    client = FakeS3()
+    store = S3ImmutableObjectStore(client, _configuration(max_object_bytes=8))
+    with pytest.raises(ArchiveFailure) as oversized:
+        store.put_immutable(_object_key(), b"123456789")
+    assert oversized.value.code is ArchiveCode.CAPACITY
+    client.objects["carbon-alpha-v1/" + _object_key()] = b"123456789"
+    with pytest.raises(ArchiveFailure) as response:
+        store.get(_object_key())
+    assert response.value.code is ArchiveCode.CAPACITY
+
+
+def test_kms_data_key_is_context_bound_and_only_wrapped_bytes_are_recoverable() -> None:
+    configuration = _configuration()
+    client = FakeKms(configuration.kms_key_arn)
+    service = AwsKmsDataKeyService(client, configuration)
+    lease = service.generate(archive_entry_id="sha256:" + "a" * 64)
+    assert lease.key.key_bytes == b"k" * 32
+    assert lease.encrypted_key == b"wrapped-data-key"
+    assert lease.wrapped_key_digest.startswith("sha256:")
+    assert dict(lease.encryption_context)["carbon:profile"] == AWS_PROVIDER_PROFILE_ID
+    assert (
+        service.recover(
+            archive_entry_id="sha256:" + "a" * 64,
+            encrypted_key=lease.encrypted_key,
+        )
+        == lease.key
+    )
+
+
+def test_rds_connection_factory_uses_fresh_iam_token_and_verified_tls(
+    monkeypatch,
+) -> None:
+    client = FakeRds()
+    configuration = AwsRdsIamConfiguration(
+        region="us-west-2",
+        hostname="catalogue.example.us-west-2.rds.amazonaws.com",
+        port=5432,
+        database="carbon_archive",
+        username="carbon_archive_supervisor",
+    )
+    observed = {}
+    sentinel = object()
+
+    def connect(**request):
+        observed.update(request)
+        return sentinel
+
+    monkeypatch.setitem(sys.modules, "psycopg", SimpleNamespace(connect=connect))
+    assert AwsRdsIamConnectionFactory(client, configuration)() is sentinel
+    assert client.request == {
+        "DBHostname": configuration.hostname,
+        "Port": 5432,
+        "DBUsername": configuration.username,
+        "Region": "us-west-2",
+    }
+    assert observed == {
+        "host": configuration.hostname,
+        "port": 5432,
+        "dbname": "carbon_archive",
+        "user": "carbon_archive_supervisor",
+        "password": "short-lived-non-secret-test-token",
+        "sslmode": "verify-full",
+        "connect_timeout": 5,
+    }
+
+
+def test_activation_predicates_remain_non_acknowledging() -> None:
+    configuration = AlphaDeploymentConfiguration(
+        **{value.value: f"input:{value.value}" for value in AlphaExternalInput}
+    )
+    predicates = tuple(
+        AlphaPredicateEvidence(value, f"evidence:{value.value}", True)
+        for value in AlphaActivationPredicate
+    )
+    evidence = AlphaActivationEvidence(
+        AlphaArchiveProfile().digest,
+        AWS_PROVIDER_PROFILE_ID,
+        "sha256:" + "d" * 64,
+        predicates,
+    )
+    readiness = assess_alpha_activation(configuration, evidence)
+    assert (
+        readiness.status
+        is AlphaActivationStatus.ACKNOWLEDGEMENT_IMPLEMENTATION_REQUIRED
+    )
+    assert readiness.missing_predicates == ()
+    assert readiness.eligible_for_real_acknowledgement is False
+    assert readiness.eligible_for_c_ea2 is False
+    assert readiness.public_document()["eligible_for_c_ea2"] is False
+    assert AlphaArchiveProfile().profile_id == ALPHA_PROFILE_ID
+
+
+def test_activation_distinguishes_rehearsal_and_external_acceptance() -> None:
+    configuration = AlphaDeploymentConfiguration(
+        **{value.value: f"input:{value.value}" for value in AlphaExternalInput}
+    )
+    without_rehearsal = tuple(
+        AlphaPredicateEvidence(
+            value,
+            f"evidence:{value.value}",
+            value is not AlphaActivationPredicate.RECOVERY_REHEARSAL,
+        )
+        for value in AlphaActivationPredicate
+    )
+    evidence = AlphaActivationEvidence(
+        AlphaArchiveProfile().digest,
+        AWS_PROVIDER_PROFILE_ID,
+        "sha256:" + "e" * 64,
+        without_rehearsal,
+    )
+    assert (
+        assess_alpha_activation(configuration, evidence).status
+        is AlphaActivationStatus.REHEARSAL_REQUIRED
+    )
+
+
+def test_deployment_package_is_bound_and_fail_closed() -> None:
+    report = validate_aws_package(PACKAGE_ROOT)
+    assert report.monthly_estimate_usd == 39.338
+    assert report.monthly_budget_recommendation_usd == 55.0
+    assert report.one_off_rehearsal_estimate_usd == 5.0
+    assert report.deployment_authorized is False
+    assert report.recovery_rehearsed is False
+    assert report.eligible_for_real_acknowledgement is False
+    assert report.eligible_for_c_ea2 is False
+
+    template = json.loads((PACKAGE_ROOT / "template.json").read_text())
+    bucket = template["Resources"]["EvidenceBucket"]
+    catalogue = template["Resources"]["Catalogue"]
+    assert bucket["DeletionPolicy"] == "Retain"
+    assert bucket["Properties"]["VersioningConfiguration"] == {"Status": "Enabled"}
+    assert bucket["Properties"]["ObjectLockConfiguration"]["Rule"][
+        "DefaultRetention"
+    ] == {"Mode": "COMPLIANCE", "Days": 90}
+    assert set(bucket["Properties"]["PublicAccessBlockConfiguration"].values()) == {
+        True
+    }
+    assert catalogue["DeletionPolicy"] == "Snapshot"
+    assert catalogue["Properties"]["MultiAZ"] is True
+    assert catalogue["Properties"]["PubliclyAccessible"] is False
+    assert catalogue["Properties"]["StorageEncrypted"] is True
+    assert catalogue["Properties"]["EnableIAMDatabaseAuthentication"] is True
+    encoded = json.dumps(template, sort_keys=True)
+    assert "SupervisorRuntimeRole" in template["Resources"]
+    assert "AuditRuntimeRole" in template["Resources"]
+    assert "RecoveryRuntimeRole" in template["Resources"]
+    assert "rds-db:connect" in encoded
+    assert "s3:DeleteObject" not in encoded
+    assert "kms:ScheduleKeyDeletion" in encoded
+
+
+def test_deployment_package_rejects_changed_bound_component(tmp_path: Path) -> None:
+    candidate = tmp_path / "package"
+    shutil.copytree(PACKAGE_ROOT, candidate)
+    cost_path = candidate / "cost_estimate.json"
+    cost = json.loads(cost_path.read_text())
+    cost["monthly_budget_recommendation"] = 54.0
+    cost_path.write_text(json.dumps(cost))
+    with pytest.raises(ArchiveFailure) as changed:
+        validate_aws_package(candidate)
+    assert changed.value.code is ArchiveCode.CONFLICT

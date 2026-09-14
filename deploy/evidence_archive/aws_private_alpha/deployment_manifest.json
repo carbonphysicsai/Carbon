@@ -1,0 +1,25 @@
+{
+  "schema_version": "carbon.evidence-archive.deployment-manifest.v1",
+  "profile_id": "carbon.alpha-evidence-archive.private.v1",
+  "provider_profile_id": "carbon.alpha-evidence-archive.aws.private.v1",
+  "provider": "aws",
+  "recommended_region": "us-west-2",
+  "deployment_state": "UNPROVISIONED_REVIEW_PACKAGE",
+  "components": {
+    "cloudformation_template_digest": "sha256:b74e28312ba30cd99f8e79350bcde2970cd75e40e20502cd39b3de2713adcd58",
+    "database_roles_digest": "sha256:7dc9a791af7466e04b97980596df2ebf0f885c1280565d00f4fc0c007be58903",
+    "cost_estimate_digest": "sha256:18f6016c30b09604e6d901c657d21503bcdd4f9f072d7c7cb8fc2123954246dd",
+    "source_use_manifest_digest": "sha256:677a61e2c2aec222d04e02a0eb50300fd7ed1241388dae33f53da658aaccb710"
+  },
+  "resource_shapes": {
+    "catalogue": {"service": "rds-postgresql", "engine": "17.11", "instance_class": "db.t4g.micro", "multi_az": true, "storage_type": "gp3", "allocated_gib": 20, "backup_retention_days": 35, "public": false, "iam_auth": true},
+    "objects": {"service": "s3-standard", "logical_quota_gib": 20, "versioning": true, "object_lock": "COMPLIANCE", "default_retention_days": 90, "public": false},
+    "keys": {"service": "kms", "key_type": "customer-managed-symmetric", "rotation": true, "data_key": "AES_256", "encryption_context_profile": "carbon.alpha-evidence-archive.aws.private.v1"},
+    "connectivity": {"rds": "private-subnets-only", "s3": "gateway-vpc-endpoint", "kms": "single-az-interface-vpc-endpoint", "supervisor_network": "EXTERNAL_INPUT"},
+    "journal": {"durable_metadata": "rds-transactional-outbox-and-alpha-capacity-events", "recovery": "catalogue-backup", "local_stage_spool": "pre-acknowledgement-only", "acknowledgement_rule": "no-acknowledged-state-may-depend-on-local-spool"},
+    "backup": {"catalogue": "daily-aws-backup-plus-rds-pitr", "retention_days": 90, "restore_test": "OPERATOR_AUTHORIZATION_REQUIRED"}
+  },
+  "limits": {"active_evaluations": 1, "logical_evidence_bytes": 21474836480, "minimum_retention_days": 90, "restore_target_seconds": 86400},
+  "excluded_faults": ["correlated-provider-loss", "correlated-region-loss", "multi-region-availability"],
+  "acknowledgement": {"implemented": false, "eligible": false, "reason": "deployment, recovery rehearsal, security acceptance and authorized issuer remain absent"}
+}

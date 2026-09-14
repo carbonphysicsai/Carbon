@@ -1,7 +1,8 @@
 # C-10 — Independent re-execution and disagreement
 
 **Wave:** C1 real scientific execution foundations
-**Status:** `in_progress`
+**Status:** `done` in the bounded public-data DEVELOPMENT slice; broader
+scientific/independence/security qualification remains open
 **Status scope:** one bounded public-data DEVELOPMENT slice
 **Selected slice:** linked fresh C-07 execution, exact-byte observation,
 disagreement journal and fail-closed quarantine
@@ -9,6 +10,10 @@ disagreement journal and fail-closed quarantine
 implemented by `C-10-D1`
 **Primary Hub map_ref:** `WAVE-C/C-10`
 **Depends on:** C-06, C-07
+**Delivery:** accepted head
+`82073ae2d5cc8504b7e77a9824642f98f0827526` passed required run
+`34882900413`; PR #173 normally merged as
+`d7ef7270eeb3b9a5594704efe0876ff3fb5ded49`
 
 ## Goal
 
@@ -22,8 +27,9 @@ Implement independent re-execution, disagreement records, quarantine, and contes
 - [x] Contested, incomplete, unavailable, or mismatched evidence cannot finalize, settle, publish a winner, or update weights.
 - [x] Deterministic fault and replay tests cover agreement, disagreement, timeout, stale evidence, missing artifacts, and recovery.
 
-Exact-head Linux service acceptance and normal merge remain pending before this
-bounded slice earns `TESTED` status.
+Exact-head Linux service acceptance ran 17 actual service cases in 383.00s and
+the full required acceptance passed before the normal merge. This earns
+`SPECIFIED / IMPLEMENTED / TESTED` only for the bounded DEVELOPMENT slice.
 
 ## Authority ceiling
 

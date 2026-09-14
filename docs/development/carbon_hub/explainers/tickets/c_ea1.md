@@ -10,13 +10,13 @@
 
 ## What and why
 
-Preserve the accepted synthetic runtime while preparing the separately versioned private-alpha policy, closed external deployment inputs, capacity/retention rules and isolated non-secret service preflight.
+Preserve the accepted synthetic runtime and alpha policy while implementing one concrete, unprovisioned AWS provider/deployment/recovery package.
 
-The alpha path must make its owner-selected operating targets executable without relabelling fixture durability or inventing provider, recovery, custody, security or deployment evidence.
+The alpha path needs exact provider adapters, private resource shapes, identities, roles, capacity accounting, recovery procedure and priced authorization inputs before external deployment can be considered.
 
 ## What it adds
 
-A content-bound alpha profile, one-evaluation/20 GiB backpressure policy, 90-day/open-obligation retention rule, closed configuration doctor, exact deployment package and PostgreSQL/encrypted-object preflight under a dedicated test tenant.
+Pinned S3/KMS/RDS adapters, exact object-version receipts, fresh IAM database tokens, atomic one-evaluation/20 GiB retained-byte capacity, private CloudFormation, least-privilege roles, component/source-use manifests, rollback/recovery commands and a sourced cost model.
 
 ## Placement and handoff
 
@@ -32,7 +32,7 @@ It cannot issue a real acknowledgement or satisfy C-EA2, and supplies no provide
 
 ## Current stage
 
-PR #168 accepted exact head ea51a947bbf21908144f93ffb04b5e9cc46de519 in required run 34830155526 and normally merged it as 0ee4c9b8db8339740521e2afc72624c97d8e177a with matching tree e11b05b60909748f5c152f53ca0e65b0b5696d3c. The accepted carbon.alpha-evidence-archive.private.v1 preparation has profile digest sha256:e7f9b86943d482ad5c0e92c386a6edf3cdc493049f912c88f7e5a25d5eb6f49c and still cannot issue a real acknowledgement.
+After accepted C-10 PR #173, C-EA1-D3 selects an unprovisioned AWS private-alpha package: bounded S3/KMS/RDS adapters, exact object versions, atomic retained-byte capacity, private infrastructure, roles, recovery procedure and priced operating proposal. No provider deployment, recovery claim, real acknowledgement or C-EA2 authority exists.
 
 ## Maturity ceiling
 
@@ -40,11 +40,12 @@ Synthetic acknowledgement remains tested only in its accepted fixture scope. The
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/c6a875c5588870bab9e827b3a6442fdd9ef97966/.agent/tickets/C-EA1_durable_evidence_archive.md)
-- [Evidence capture contract](https://github.com/carbonphysicsai/Carbon/blob/c6a875c5588870bab9e827b3a6442fdd9ef97966/Design_Specs/Evidence_Archive_and_Custody.md)
-- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/c6a875c5588870bab9e827b3a6442fdd9ef97966/.agent/WAVE_C.md)
-- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/c6a875c5588870bab9e827b3a6442fdd9ef97966/.agent/evidence/wave_c/c-ea1.md)
-- [Synthetic archive runbook](https://github.com/carbonphysicsai/Carbon/blob/c6a875c5588870bab9e827b3a6442fdd9ef97966/docs/development/EVIDENCE_ARCHIVE_SYNTHETIC.md)
-- [Private-alpha preparation runbook](https://github.com/carbonphysicsai/Carbon/blob/c6a875c5588870bab9e827b3a6442fdd9ef97966/docs/development/EVIDENCE_ARCHIVE_ALPHA_PROFILE.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/246abc1cc823161da9366fce94e7edfdfa622832/.agent/tickets/C-EA1_durable_evidence_archive.md)
+- [Evidence capture contract](https://github.com/carbonphysicsai/Carbon/blob/246abc1cc823161da9366fce94e7edfdfa622832/Design_Specs/Evidence_Archive_and_Custody.md)
+- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/246abc1cc823161da9366fce94e7edfdfa622832/.agent/WAVE_C.md)
+- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/246abc1cc823161da9366fce94e7edfdfa622832/.agent/evidence/wave_c/c-ea1.md)
+- [Synthetic archive runbook](https://github.com/carbonphysicsai/Carbon/blob/246abc1cc823161da9366fce94e7edfdfa622832/docs/development/EVIDENCE_ARCHIVE_SYNTHETIC.md)
+- [Private-alpha preparation runbook](https://github.com/carbonphysicsai/Carbon/blob/246abc1cc823161da9366fce94e7edfdfa622832/docs/development/EVIDENCE_ARCHIVE_ALPHA_PROFILE.md)
+- [AWS private-alpha package](https://github.com/carbonphysicsai/Carbon/blob/246abc1cc823161da9366fce94e7edfdfa622832/docs/development/EVIDENCE_ARCHIVE_AWS_PRIVATE_ALPHA.md)
 
-> The accepted synthetic acknowledgement is unchanged. The alpha doctor names missing external inputs, and even a complete reference document remains ineligible until real activation, recovery and security evidence exist.
+> The accepted synthetic acknowledgement and configuration-only alpha doctor are unchanged. The D3 package can be reviewed without credentials; actual account services, rehearsal, security acceptance and deployment authorization remain required.
