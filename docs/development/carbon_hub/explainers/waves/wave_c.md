@@ -61,22 +61,22 @@ Wave C does not authorize LIVE science, Wave-D qualification, learned Landscape/
 - [C-EP3](../tickets/c_ep3.md): Public-reference input acquisition and component probe [done]
 - [C-AUTH1](../tickets/c_auth1.md): Goal-driven authoring and Burgers Dynamics V1 import [done]
 - [C-EA0](../tickets/c_ea0.md): Evidence capture contract [done]
-- [C-EA1](../tickets/c_ea1.md): Durable evidence archive [done]
+- [C-EA1](../tickets/c_ea1.md): Durable evidence archive [in_progress]
 - [C-02](../tickets/c_02.md): Real declarative reconstruction [in_progress]
 - [C-03](../tickets/c_03.md): Isolated reconstruction worker [in_progress]
 - [C-04](../tickets/c_04.md): Protected reference runtime [done]
 - [C-05](../tickets/c_05.md): Real measurement and Score Pack [done]
 - [C-06](../tickets/c_06.md): Signed evaluation receipt [done]
 - [C-07](../tickets/c_07.md): Real validator orchestration [done]
-- [C-08](../tickets/c_08.md): Authenticated Miner MCP end to end [in_progress]
+- [C-08](../tickets/c_08.md): Authenticated Miner MCP end to end [done]
 - [C-EA2](../tickets/c_ea2.md): Archive before finalization [todo]
 - [C-09](../tickets/c_09.md): Official testnet publication and leaderboard provider [todo]
 - [C-W1](../tickets/c_w1.md): Exact real testnet eligibility provenance [todo]
 
 ## Repository detail
 
-- [Wave C controlling board](https://github.com/carbonphysicsai/Carbon/blob/f92912a1b3c9cd510d36d5d2d99f3eb58e7f2177/.agent/WAVE_C.md)
-- [Current wave register](https://github.com/carbonphysicsai/Carbon/blob/f92912a1b3c9cd510d36d5d2d99f3eb58e7f2177/.agent/WAVE.md)
-- [NET-1 ticket](https://github.com/carbonphysicsai/Carbon/blob/f92912a1b3c9cd510d36d5d2d99f3eb58e7f2177/.agent/tickets/NET-1_chain_adapter.md)
+- [Wave C controlling board](https://github.com/carbonphysicsai/Carbon/blob/d536836e2ddcd3ca5a59cbdc7c4b8e888be38016/.agent/WAVE_C.md)
+- [Current wave register](https://github.com/carbonphysicsai/Carbon/blob/d536836e2ddcd3ca5a59cbdc7c4b8e888be38016/.agent/WAVE.md)
+- [NET-1 ticket](https://github.com/carbonphysicsai/Carbon/blob/d536836e2ddcd3ca5a59cbdc7c4b8e888be38016/.agent/tickets/NET-1_chain_adapter.md)
 
 > Orientation boundary: repository authority owns exact semantics, implementation, review, evidence, and activation.

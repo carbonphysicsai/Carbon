@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-14T07:04:22Z"
+  captured_at_utc: "2026-09-14T09:38:13Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "f92912a1b3c9cd510d36d5d2d99f3eb58e7f2177"
+  authority_snapshot_commit: "d536836e2ddcd3ca5a59cbdc7c4b8e888be38016"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -438,31 +438,31 @@ validator_exam_map:
             -
               label: "Testnet-to-Mainnet Launch Path"
               path: "../../../launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.5.md"
-  current_maturity: "Target-state orientation only. C-07 is the last bounded completed slice after PR #163 accepted exact head c8990ddc44b57afd15847fe527c1da7ccecb7f18 in run 34807243278 and normally merged as 44511ac0e18c1f3b66227e1e46a986074d16ee0c. OWNER-C1-BURGERS-ALPHA-01 now selects C-08 alone for bounded authenticated DEVELOPMENT composition. No later ticket is selected while C-08 is active. The candidate reuses NET-2 authentication, the exact A9 seven-tool interface and C-07/C-01 durability, recording intent before source mutation and retaining exact requester, Challenge, submission, attempt and outcome association. It adds no public listener, fee, scorer, official result, archive acknowledgement, network or reward effect. The trusted single-tenant host model, three-replica working profile, candidate reference roles and prospective archive targets grant no scientific sufficiency, independent security acceptance, protected admission, real archive acknowledgement, production, public network or LIVE authority. D6 run 34518806217 remains historical LOCALNET_READY evidence for its exact disposable standard-profile localnet. The real validator-to-exam vertical is planned for Wave C1. Burgers v1 remains PRE-LIVE until a measured Validation Dossier qualifies the exact exam."
+  current_maturity: "Target-state orientation only. C-08 is the last bounded completed slice after PR #167 accepted exact head 17e72cfd97c12512dd9a6a08a6b8329974422328 in run 34816242461 and normally merged as ed6047d03cf60db6ce52f03e63040d95c1ea78e4. OWNER-C1-BURGERS-ALPHA-01 now selects C-EA1 alone for fail-closed private-alpha archive preparation. No later ticket is selected while C-EA1 is active. The candidate preserves the accepted synthetic acknowledgement, freezes the prospective alpha policy, requires exact external provider/custody/recovery/security/deployment references, and tests only a dedicated non-secret service preflight. It issues no real archive acknowledgement and cannot satisfy C-EA2. No provider resources, spend, protected admission, independent security acceptance, public network or LIVE authority exist. D6 run 34518806217 remains historical LOCALNET_READY evidence for its exact disposable standard-profile localnet. The real validator-to-exam vertical is planned for Wave C1. Burgers v1 remains PRE-LIVE until a measured Validation Dossier qualifies the exact exam."
 current:
   wave: "C"
   wave_title: "Network foundation and real testnet vertical"
   wave_status: "active in bounded engineering scope"
   last_completed_ticket:
-    id: "C-07"
-    title: "Real validator orchestration"
-    status: "done"
-    summary: "PR #163 completed C-07's bounded non-official DEVELOPMENT orchestration after exact head c8990ddc44b57afd15847fe527c1da7ccecb7f18 passed required run 34807243278 and normally merged as 44511ac0e18c1f3b66227e1e46a986074d16ee0c. The durable account composes exact source owners; it grants no scientific truth or official, protected, archive, network, reward, production or LIVE authority."
-    delivery:
-      reference: "PR #163 head c8990ddc44b57afd15847fe527c1da7ccecb7f18, run 34807243278"
-      status: "merged"
-      url: "https://github.com/carbonphysicsai/Carbon/pull/163"
-      merge_commit: "44511ac0e18c1f3b66227e1e46a986074d16ee0c"
-  selected_ticket:
     id: "C-08"
     title: "Authenticated Miner MCP end to end"
+    status: "done"
+    summary: "PR #167 completed C-08's bounded authenticated DEVELOPMENT composition after exact head 17e72cfd97c12512dd9a6a08a6b8329974422328 passed required run 34816242461 and normally merged as ed6047d03cf60db6ce52f03e63040d95c1ea78e4. The seven-tool miner interface is unchanged; no public listener, protected, official, archive, network, reward, production or LIVE authority was added."
+    delivery:
+      reference: "PR #167 head 17e72cfd97c12512dd9a6a08a6b8329974422328, run 34816242461"
+      status: "merged"
+      url: "https://github.com/carbonphysicsai/Carbon/pull/167"
+      merge_commit: "ed6047d03cf60db6ce52f03e63040d95c1ea78e4"
+  selected_ticket:
+    id: "C-EA1"
+    title: "Durable evidence archive"
     status: "in_progress"
-    summary: "After accepted C-07 PR #163, OWNER-C1-BURGERS-ALPHA-01 selects C-08's bounded authenticated DEVELOPMENT composition. The candidate durably binds NET-2 receipts, exact A9 submissions, C-01 attempts and C-07 operational accounts without adding a listener or changing the seven-tool miner interface; every official, protected, score, archive, network and reward eligibility field remains false."
+    summary: "After accepted C-08 PR #167, OWNER-C1-BURGERS-ALPHA-01 selects C-EA1's separately versioned private-alpha preparation. The candidate freezes the one-evaluation/20 GiB, 90-day/open-obligation and single-host-loss/24-hour targets, adds a closed external-input doctor, and reuses isolated non-secret services; real acknowledgement and C-EA2 eligibility remain structurally false."
   next_selected_ticket: null
   controlling_register: ".agent/WAVE_C.md"
-  controlling_register_version: "2.1"
-  controlling_board_fingerprint: "a3697eea941e4114cc712a3eab1616ffd5fd1a599f39e922ff3ce5e95eecbf9b"
-  stage: "C-07 is the last bounded completed slice after PR #163 accepted exact head c8990ddc44b57afd15847fe527c1da7ccecb7f18 in run 34807243278 and normally merged as 44511ac0e18c1f3b66227e1e46a986074d16ee0c. OWNER-C1-BURGERS-ALPHA-01 now selects C-08 alone for bounded authenticated DEVELOPMENT composition. No later ticket is selected while C-08 is active. The candidate reuses NET-2 authentication, the exact A9 seven-tool interface and C-07/C-01 durability, recording intent before source mutation and retaining exact requester, Challenge, submission, attempt and outcome association. It adds no public listener, fee, scorer, official result, archive acknowledgement, network or reward effect. The trusted single-tenant host model, three-replica working profile, candidate reference roles and prospective archive targets grant no scientific sufficiency, independent security acceptance, protected admission, real archive acknowledgement, production, public network or LIVE authority. D6 run 34518806217 remains historical LOCALNET_READY evidence for its exact disposable standard-profile localnet."
+  controlling_register_version: "2.2"
+  controlling_board_fingerprint: "fcedbd9f19b4290f0f0fd23a6f58f2d8462b8505be7b31b9e64653b9c1127ca9"
+  stage: "C-08 is the last bounded completed slice after PR #167 accepted exact head 17e72cfd97c12512dd9a6a08a6b8329974422328 in run 34816242461 and normally merged as ed6047d03cf60db6ce52f03e63040d95c1ea78e4. OWNER-C1-BURGERS-ALPHA-01 now selects C-EA1 alone for fail-closed private-alpha archive preparation. No later ticket is selected while C-EA1 is active. The candidate preserves the accepted synthetic acknowledgement, freezes the prospective alpha policy, requires exact external provider/custody/recovery/security/deployment references, and tests only a dedicated non-secret service preflight. It issues no real archive acknowledgement and cannot satisfy C-EA2. No provider resources, spend, protected admission, independent security acceptance, public network or LIVE authority exist. D6 run 34518806217 remains historical LOCALNET_READY evidence for its exact disposable standard-profile localnet."
   most_recent_closed_wave: "B"
   completed_wave_tickets:
     - "NET-1"
@@ -480,17 +480,16 @@ current:
     - "C-EP3"
     - "C-AUTH1"
     - "C-EA0"
-    - "C-EA1"
     - "C-04"
     - "C-05"
     - "C-06"
     - "C-07"
+    - "C-08"
   recent_dependencies:
-    - "NET-2"
-    - "C-07"
-    - "A9"
+    - "C-EA0"
   other_completed_wave_context:
     - "NET-1"
+    - "NET-2"
     - "NET-3"
     - "C-REWARD"
     - "NET-4A"
@@ -503,13 +502,13 @@ current:
     - "C-EP2"
     - "C-EP3"
     - "C-AUTH1"
-    - "C-EA0"
-    - "C-EA1"
     - "C-04"
     - "C-05"
     - "C-06"
+    - "C-07"
+    - "C-08"
   downstream_handoffs:
-    []
+    - "C-EA2"
   parallel_context:
     []
   fail_closed:
@@ -531,8 +530,8 @@ current:
     - "Disposable synthetic localnet signing and burn observations are earned only in their recorded scope. Scientific/security qualification, public-network settlement, commercial/production, LIVE, launch and frontier authority remain unearned."
     - "G2 is LOCALNET_READY only for D6 run 34518806217's exact standard-profile disposable v445 localnet. Fast-profile failures, the false global capability flag, public networks, settlement, security/scientific qualification, production and LIVE remain outside the claim."
     - "C-02's merged bounded DEVELOPMENT JAX profiles and optional frozen repeats supply C-03's adapter prerequisite only. Its upgraded CPU lock, physical scaling, manufactured verification and exact Foundax FNO profile are unqualified engineering evidence; the described v0.2 research archive is absent/deferred, and no production repeat count, protected reference, official measurement, real archive, security, production or LIVE authority exists."
-    - "C-EA1 is implemented/tested only for carbon.synthetic-evidence-archive.dev.v1 with non-secret fixtures, one disposable host/tenant, ephemeral test keys and INTERNAL_AUDIT use. Its acknowledgement is structurally ineligible for real C1 finalization, C-W1, weights, settlement or qualification. Every real/production artifact, rights, retention, custody/KMS, topology, durability, availability, recovery and security value remains HUMAN_INPUT."
-    - "PR #149 accepted C-03's exact public-data DEVELOPMENT Docker profile and PR #151 accepted its bounded prerequisite hardening. OWNER-C1-BURGERS-ALPHA-01 now selects only C-06's signed non-official DEVELOPMENT evidence slice after accepted C-04/C-05 public candidates. The trusted single-tenant host choice does not prove host-root honesty or protect hidden exams on independently administered validators. The review package has no reviewer or acceptance, global MQ-015 remains SECURITY_REVIEW_REQUIRED, and C-08/C-09 plus real archive/network paths remain unimplemented and ineligible."
+    - "C-EA1's accepted acknowledgement remains limited to carbon.synthetic-evidence-archive.dev.v1. Its selected alpha preparation freezes owner-supplied policy and explicit external inputs but remains structurally ineligible for real acknowledgement and C-EA2. Provider/project/region, recoverable catalogue/journal/object/key dependencies, custody principals, cost/deployment identity, actual recovery evidence, security acceptance and deployment authorization remain absent."
+    - "PR #149 accepted C-03's exact public-data DEVELOPMENT Docker profile and PR #151 accepted its bounded prerequisite hardening. The trusted single-tenant host choice does not prove host-root honesty or protect hidden exams on independently administered validators. The review package has no reviewer or acceptance, global MQ-015 remains SECURITY_REVIEW_REQUIRED, and protected/archive/network paths remain ineligible."
     - "C-04's accepted role-explicit Cole–Hopf, conservative finite-volume and ETDRK4 implementations are public qualification candidates only. No observed agreement, refinement, initial recovery or conservation value is a scientific threshold, TruthAsset, protected admission or score authority; D-03/D-04 and independent security acceptance remain open."
     - "C-05's isolated four-operator and six-diagnostic runtime is a public qualification candidate only. Every applicability, floor, uncertainty, limit and decision is unresolved; the D-05 prerequisite harness issues no score, gate, rank, reward or scientific qualification."
     - "C-06 receipts are DEVELOPMENT-only provenance. Their signatures and ledger events cannot assert official, protected, score, archive, network, reward, scientific, security, production or LIVE authority."
@@ -549,8 +548,8 @@ current:
     network_qualified: "unearned"
     commercially_validated: "unearned"
     production_qualified: "unearned"
-  maturity_summary: "C-EP1 through C-EP3 are done only in their bounded merged DEVELOPMENT scopes, PR #148 supplies C-02's tested adapter prerequisite, PR #149 plus PR #151 supply accepted public-DEVELOPMENT worker evidence, PR #154 and PR #157 supply accepted public reference/measurement candidates, PR #161 supplies the signed DEVELOPMENT receipt, and PR #163 supplies accepted durable non-official orchestration. C-08's authenticated composition is an implemented candidate awaiting exact-head acceptance while every scientific/protected/official/archive qualification remains pending. Protected execution, scientific repeat sufficiency, reference/measurement qualification, real archive durability/acknowledgement, testnet eligibility, security, production and LIVE remain unearned."
-  decision_series_status: "OWNER-C1-BURGERS-ALPHA-01 selects only C-08's bounded authenticated DEVELOPMENT composition after accepted C-07 PR #163 and prospectively sequences the C-EA1 real-profile extension after its merge. It retains a Carbon-controlled trusted single-tenant host, three frozen replicas for separately versioned development/first non-paying-testnet working profiles, Cole–Hopf candidate-primary plus an independent conservative witness and ETDRK4 development cross-check, and a prospective private PostgreSQL/object archive target. Independent security/scientific acceptance, official signer/custody, real deployment inputs, protected admission, public network and LIVE remain absent."
+  maturity_summary: "C-EP1 through C-EP3 are done only in their bounded merged DEVELOPMENT scopes, PR #148 supplies C-02's tested adapter prerequisite, PR #149 plus PR #151 supply accepted public-DEVELOPMENT worker evidence, PR #154 and PR #157 supply accepted public reference/measurement candidates, PR #161 supplies the signed DEVELOPMENT receipt, PR #163 supplies accepted durable non-official orchestration, and PR #167 supplies authenticated DEVELOPMENT composition. C-EA1's private-alpha preparation is an implemented candidate awaiting exact-head service acceptance; it cannot issue a real acknowledgement. Protected execution, scientific repeat sufficiency, reference/measurement qualification, real archive durability/acknowledgement, testnet eligibility, security, production and LIVE remain unearned."
+  decision_series_status: "OWNER-C1-BURGERS-ALPHA-01 selects only C-EA1's private-alpha archive preparation after accepted C-08 PR #167. It retains a Carbon-controlled trusted single-tenant host, three frozen replicas for separately versioned development/first non-paying-testnet working profiles, Cole–Hopf candidate-primary plus an independent conservative witness and ETDRK4 development cross-check, and freezes the prospective PostgreSQL/object archive targets without inventing deployment inputs. Independent security/scientific acceptance, official signer/custody, real deployment inputs, protected admission, C-EA2, public network and LIVE remain absent."
   technical_decision_route: "https://github.com/carbonphysicsai/Carbon/issues/42"
   owner_decision_route: "https://github.com/carbonphysicsai/Carbon/issues/41"
   decision_series:
@@ -1898,7 +1897,7 @@ tickets:
     id: "C-EA1"
     wave: "C"
     title: "Durable evidence archive"
-    status: "done"
+    status: "in_progress"
     explainer: "explainers/tickets/c_ea1.md"
     repo_path: ".agent/tickets/C-EA1_durable_evidence_archive.md"
     depends_on:
@@ -2028,7 +2027,7 @@ tickets:
     id: "C-08"
     wave: "C"
     title: "Authenticated Miner MCP end to end"
-    status: "in_progress"
+    status: "done"
     explainer: "explainers/tickets/c_08.md"
     repo_path: ".agent/tickets/C-08_authenticated_miner_mcp_e2e.md"
     depends_on:
@@ -4900,6 +4899,28 @@ events:
       - "SYSTEM/DEVELOPMENT-HUB"
       - "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
     supersedes: null
+  -
+    map_ref: "WAVE-C/C-EA1"
+    event_type: "evidence"
+    event_id: "C-EA1-I1"
+    owner_lane: "evidence_architecture"
+    status: "implemented"
+    summary: "PR #167 accepted and merged C-08's bounded authenticated DEVELOPMENT composition. C-EA1-D2 now selects and implements the separate carbon.alpha-evidence-archive.private.v1 preparation: fixed owner policy, closed external deployment inputs, a no-side-effect doctor and an isolated non-secret PostgreSQL/encrypted-object preflight. Real acknowledgement and C-EA2 remain structurally ineligible; no provider resource, spend, recovery guarantee, security acceptance or protected authority exists."
+    primary_detail: "https://github.com/carbonphysicsai/Carbon/blob/d536836e2ddcd3ca5a59cbdc7c4b8e888be38016/.agent/evidence/wave_c/c-ea1.md"
+    affects:
+      - "WAVE-C"
+      - "WAVE-C/C-08"
+      - "WAVE-C/C-EA1"
+      - "WAVE-C/C-EA2"
+      - "WAVE-C/C-09"
+      - "SYSTEM/AGENT-EXECUTION"
+      - "SYSTEM/CI"
+      - "SYSTEM/GOVERNANCE"
+      - "SYSTEM/MATURITY"
+      - "SYSTEM/DEVELOPMENT-SEQUENCING"
+      - "SYSTEM/DEVELOPMENT-HUB"
+      - "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+    supersedes: "C-08-I1"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"

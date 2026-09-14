@@ -2,9 +2,9 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `f92912a1b3c9cd510d36d5d2d99f3eb58e7f2177` on `main`, captured 2026-09-14T07:04:22Z.
-**Current:** Wave C, ticket C-08. C-07 is the last bounded completed slice after PR #163 accepted exact head c8990ddc44b57afd15847fe527c1da7ccecb7f18 in run 34807243278 and normally merged as 44511ac0e18c1f3b66227e1e46a986074d16ee0c. OWNER-C1-BURGERS-ALPHA-01 now selects C-08 alone for bounded authenticated DEVELOPMENT composition. No later ticket is selected while C-08 is active. The candidate reuses NET-2 authentication, the exact A9 seven-tool interface and C-07/C-01 durability, recording intent before source mutation and retaining exact requester, Challenge, submission, attempt and outcome association. It adds no public listener, fee, scorer, official result, archive acknowledgement, network or reward effect. The trusted single-tenant host model, three-replica working profile, candidate reference roles and prospective archive targets grant no scientific sufficiency, independent security acceptance, protected admission, real archive acknowledgement, production, public network or LIVE authority. D6 run 34518806217 remains historical LOCALNET_READY evidence for its exact disposable standard-profile localnet.
-**Last completed:** C-07 (`done`).
+**Authority snapshot:** `d536836e2ddcd3ca5a59cbdc7c4b8e888be38016` on `main`, captured 2026-09-14T09:38:13Z.
+**Current:** Wave C, ticket C-EA1. C-08 is the last bounded completed slice after PR #167 accepted exact head 17e72cfd97c12512dd9a6a08a6b8329974422328 in run 34816242461 and normally merged as ed6047d03cf60db6ce52f03e63040d95c1ea78e4. OWNER-C1-BURGERS-ALPHA-01 now selects C-EA1 alone for fail-closed private-alpha archive preparation. No later ticket is selected while C-EA1 is active. The candidate preserves the accepted synthetic acknowledgement, freezes the prospective alpha policy, requires exact external provider/custody/recovery/security/deployment references, and tests only a dedicated non-secret service preflight. It issues no real archive acknowledgement and cannot satisfy C-EA2. No provider resources, spend, protected admission, independent security acceptance, public network or LIVE authority exist. D6 run 34518806217 remains historical LOCALNET_READY evidence for its exact disposable standard-profile localnet.
+**Last completed:** C-08 (`done`).
 **Next selected:** none selected.
 
 ## Wave spine
@@ -87,14 +87,14 @@
 | [C-EP3](explainers/tickets/c_ep3.md) | Acquire the missing reconstruction/reference inputs and measure one eligible detached public numerical component. | done |
 | [C-AUTH1](explainers/tickets/c_auth1.md) | Import a verified typed authoring flow and exact public Burgers V1 package into existing Carbon owners. | done |
 | [C-EA0](explainers/tickets/c_ea0.md) | Ratify capture, custody, retention-class, completeness and durability acknowledgement before archive code relies on them. | done |
-| [C-EA1](explainers/tickets/c_ea1.md) | Implement the catalogue, immutable artifacts, verified manifests, journal, outbox and acknowledgement defined by C-EA0. | done |
+| [C-EA1](explainers/tickets/c_ea1.md) | Implement the catalogue, immutable artifacts, verified manifests, journal, outbox and acknowledgement defined by C-EA0. | in_progress |
 | [C-02](explainers/tickets/c_02.md) | Adapt Carbon to an authorized immutable JAX reconstruction implementation without widening the Strategy language. | in_progress |
 | [C-03](explainers/tickets/c_03.md) | Run an exact authorized reconstruction inside a hostile-input, network-denied, resource-bounded worker. | in_progress |
 | [C-04](explainers/tickets/c_04.md) | Run role-explicit Burgers reference qualification candidates behind the current isolation and truth boundary. | done |
 | [C-05](explainers/tickets/c_05.md) | Measure frozen Burgers candidate/reference outputs without manufacturing score eligibility. | done |
 | [C-06](explainers/tickets/c_06.md) | Bind exact non-official DEVELOPMENT evidence into a signed append-only receipt without manufacturing eligibility. | done |
 | [C-07](explainers/tickets/c_07.md) | Compose an admitted DEVELOPMENT attempt through exact source owners without manufacturing official authority. | done |
-| [C-08](explainers/tickets/c_08.md) | Compose authenticated Miner MCP requests with the real validator orchestration path without leaking the official exam. | in_progress |
+| [C-08](explainers/tickets/c_08.md) | Compose authenticated Miner MCP requests with the real validator orchestration path without leaking the official exam. | done |
 | [C-EA2](explainers/tickets/c_ea2.md) | Require an eligible real archive acknowledgement before a required real result can finalize. | todo |
 | [C-09](explainers/tickets/c_09.md) | Project a real qualified Challenge-local result toward testnet eligibility without making publication the scientific judge. | todo |
 | [C-W1](explainers/tickets/c_w1.md) | Admit an exact real C1 proof chain into a non-live, non-settling testnet eligibility event. | todo |
@@ -231,6 +231,7 @@
 - `C-07-E1` — `WAVE-C/C-07` — PR #163 accepted exact C-07 head c8990ddc44b57afd15847fe527c1da7ccecb7f18 in required run 34807243278 and normally merged it as 44511ac0e18c1f3b66227e1e46a986074d16ee0c. The durable non-official DEVELOPMENT orchestration is tested only in its recorded public/synthetic scope; every scientific, security, protected, official, archive, network and reward qualification remains open.
 - `C-08-I1` — `WAVE-C/C-08` — The selected C-08 candidate composes NET-2 authentication, exact A9 results and C-07/C-01 DEVELOPMENT orchestration with durable pre-mutation intent, exact ambiguity reconciliation and requester/Challenge/attempt association. Focused tests pass locally; exact-head installed-SDK Linux service acceptance is pending and every protected, official, archive, network and reward authority remains false.
 - `GOAL-WORKBENCH-03-E1` — `WAVE-G` — The accepted Goal Workbench v0.3 is rehearsed through three public/synthetic intent-preserving and fail-closed handoff journeys. Native Burgers Dynamics authoring works through the existing C-AUTH1 bridge; mismatched and unsupported scopes retain precise extension requests, while Grok, CRM, calendar, launch and numerical score-diagnostic routes remain manual or unavailable.
+- `C-EA1-I1` — `WAVE-C/C-EA1` — PR #167 accepted and merged C-08's bounded authenticated DEVELOPMENT composition. C-EA1-D2 now selects and implements the separate carbon.alpha-evidence-archive.private.v1 preparation: fixed owner policy, closed external deployment inputs, a no-side-effect doctor and an isolated non-secret PostgreSQL/encrypted-object preflight. Real acknowledgement and C-EA2 remain structurally ineligible; no provider resource, spend, recovery guarantee, security acceptance or protected authority exists.
 
 ## Authority boundary
 

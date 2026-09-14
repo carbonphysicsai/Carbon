@@ -2932,6 +2932,30 @@
         "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
       ],
       "supersedes": null
+    },
+    {
+      "map_ref": "WAVE-C/C-EA1",
+      "event_type": "evidence",
+      "event_id": "C-EA1-I1",
+      "owner_lane": "evidence_architecture",
+      "status": "implemented",
+      "summary": "PR #167 accepted and merged C-08's bounded authenticated DEVELOPMENT composition. C-EA1-D2 now selects and implements the separate carbon.alpha-evidence-archive.private.v1 preparation: fixed owner policy, closed external deployment inputs, a no-side-effect doctor and an isolated non-secret PostgreSQL/encrypted-object preflight. Real acknowledgement and C-EA2 remain structurally ineligible; no provider resource, spend, recovery guarantee, security acceptance or protected authority exists.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/d536836e2ddcd3ca5a59cbdc7c4b8e888be38016/.agent/evidence/wave_c/c-ea1.md",
+      "affects": [
+        "WAVE-C",
+        "WAVE-C/C-08",
+        "WAVE-C/C-EA1",
+        "WAVE-C/C-EA2",
+        "WAVE-C/C-09",
+        "SYSTEM/AGENT-EXECUTION",
+        "SYSTEM/CI",
+        "SYSTEM/GOVERNANCE",
+        "SYSTEM/MATURITY",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+      ],
+      "supersedes": "C-08-I1"
     }
   ]
 }

@@ -100,11 +100,11 @@
       "map_ref": "WAVE-C/C-EA0"
     },
     "C-EA1": {
-      "title": "Prove durable evidence mechanics in a closed synthetic profile",
-      "what": "Archive non-secret synthetic attempts through durable admission, an encrypted stage journal, immutable objects, PostgreSQL catalogue/outbox, manifest verification and current-availability acknowledgement.",
-      "why": "Acknowledgement must require every exact artifact, policy, catalogue, key and current-object predicate rather than trusting an upload, pointer, row or digest.",
-      "changes": "C1 gains a separately versioned synthetic-only archive runtime, actual disposable-service integration, restart reconciliation, quotas, orphan quarantine and an operator runbook.",
-      "not_yet": "Real/customer/protected/official evidence, production retention, custody/KMS, replication, correlated-loss durability, availability/RTO/RPO, security qualification, real finalization and network eligibility remain unavailable.",
+    "title": "Prepare the private-alpha archive boundary without activating it",
+    "what": "Freeze the owner-selected alpha capacity, retention, evidence and recovery targets, require every external deployment input explicitly, and exercise existing catalogue/encryption/object adapters only with non-secret isolated services.",
+    "why": "The real path needs a reviewable deployment contract without relabelling the accepted synthetic acknowledgement or pretending that local services prove provider durability.",
+    "changes": "C1 gains a content-bound private-alpha preparation profile, closed configuration doctor, exact deployment handoff and service preflight that remain ineligible for real acknowledgement and C-EA2.",
+    "not_yet": "Provider deployment, recoverable catalogue/journal/object/key custody, cost authorization, observed recovery, independent security acceptance, protected admission, real acknowledgement, C-EA2 and network eligibility remain unavailable.",
       "map_ref": "WAVE-C/C-EA1"
     },
     "C-EP1": {
