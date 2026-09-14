@@ -176,7 +176,10 @@ Local focused evidence before CI:
 42 passed in 0.38s
 ```
 
-The actual Linux service-backed result, accepted head, CI run, PR and merge are
-pending. Native tests do not establish the selected durability target. The exact
-external-input and cost boundary is documented in
+PR #168 accepted exact head
+`ea51a947bbf21908144f93ffb04b5e9cc46de519` in required run `34830155526` and
+normally merged as `0ee4c9b8db8339740521e2afc72624c97d8e177a`; accepted and
+merged tree are both `e11b05b60909748f5c152f53ca0e65b0b5696d3c`. Native tests
+do not establish the selected durability target. The exact external-input and
+cost boundary is documented in
 `docs/development/EVIDENCE_ARCHIVE_ALPHA_PROFILE.md`.

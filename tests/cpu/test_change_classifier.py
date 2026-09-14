@@ -118,6 +118,17 @@ def test_c08_composition_requires_existing_isolated_service_lane() -> None:
         assert classification.c03_worker_required is True
 
 
+def test_c10_reexecution_requires_existing_isolated_service_lane() -> None:
+    for path in (
+        "carbon/audit/reexecution_service.py",
+        "tests/service/test_c10_reexecution_service.py",
+        "scripts/dev/c10_development_reexecution.sh",
+    ):
+        classification = classify_paths([path])
+        assert classification.scope is ChangeScope.RUNTIME_FULL
+        assert classification.c03_worker_required is True
+
+
 def test_unknown_and_empty_manifests_fail_closed_to_runtime() -> None:
     unknown = classify_paths(["new-root/readme.txt"])
     assert unknown.scope is ChangeScope.RUNTIME_FULL
@@ -224,6 +235,8 @@ def test_empty_manifest_retains_full_image_acceptance() -> None:
         ("carbon/orchestration/service.py", True),
         ("tests/service/test_c07_orchestration_service.py", True),
         ("scripts/dev/c07_development_vertical.sh", True),
+        ("tests/service/test_c10_reexecution_service.py", True),
+        ("scripts/dev/c10_development_reexecution.sh", True),
         ("docs/development/c04_public_reference_campaign_v1.json", True),
         ("carbon/reconstruction/service.py", False),
         (".agent/tickets/C-03_isolated_reconstruction_worker.md", False),
