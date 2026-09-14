@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 import test_b02a_contract_models as domain_fixtures
@@ -127,9 +127,23 @@ def make_compile_fixture(
             content_digest=_DIGEST,
         )
 
-    physical = domain_fixtures._physical()
-    candidate = domain_fixtures._candidate(physical)
-    training = domain_fixtures._training_support(physical, candidate)
+    fixture_physical = domain_fixtures._physical()
+    fixture_candidate = domain_fixtures._candidate(fixture_physical)
+    fixture_training = domain_fixtures._training_support(
+        fixture_physical, fixture_candidate
+    )
+    physical = replace(fixture_physical, challenge_key=key)
+    candidate = replace(
+        fixture_candidate,
+        challenge_key=key,
+        physical_system_ref=physical.to_ref(),
+    )
+    training = replace(
+        fixture_training,
+        challenge_key=key,
+        physical_system_ref=physical.to_ref(),
+        candidate_output_ref=candidate.to_ref(),
+    )
     authored = (physical, candidate, training)
     source_provenance_ref = portable("provenance", "fixture_authoring_source")
     fixture_origin = FixtureAuthoringCapability().issue_origin(
