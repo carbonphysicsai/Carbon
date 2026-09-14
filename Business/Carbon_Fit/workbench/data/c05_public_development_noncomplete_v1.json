@@ -76,7 +76,8 @@
   "limitations": [
     "Public DEVELOPMENT fixture only; no protected or customer data.",
     "Scientific limits, uncertainty policy, score input, qualification, approval and launch authority are absent.",
-    "One public EVAL case and deterministic candidate perturbation are not population evidence."
+    "One public EVAL case and deterministic test-created candidate perturbation are not population evidence.",
+    "Import replays retained fixture bytes through a registry-pinned manual workbench association; the association is inspectable but is not operator authentication or proof of honest execution."
   ],
   "authority": {
     "development_only": true,
