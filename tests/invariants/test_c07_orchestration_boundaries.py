@@ -7,7 +7,6 @@ from pathlib import Path
 
 import pytest
 
-from carbon.orchestration import __all__ as orchestration_exports
 from tests.invariants._import_analysis import direct_import_modules
 
 pytestmark = pytest.mark.invariant
@@ -41,6 +40,35 @@ def _files() -> tuple[Path, ...]:
     return tuple(sorted(PACKAGE.glob("*.py")))
 
 
+def _declared_exports() -> tuple[str, ...]:
+    init_path = PACKAGE / "__init__.py"
+    tree = ast.parse(init_path.read_text(encoding="utf-8"), filename=str(init_path))
+    declarations = [
+        node.value
+        for node in tree.body
+        if isinstance(node, (ast.Assign, ast.AnnAssign))
+        and (
+            (
+                isinstance(node, ast.Assign)
+                and any(
+                    isinstance(target, ast.Name) and target.id == "__all__"
+                    for target in node.targets
+                )
+            )
+            or (
+                isinstance(node, ast.AnnAssign)
+                and isinstance(node.target, ast.Name)
+                and node.target.id == "__all__"
+            )
+        )
+    ]
+    assert len(declarations) == 1
+    exports = ast.literal_eval(declarations[0])
+    assert isinstance(exports, (list, tuple))
+    assert all(isinstance(exported, str) for exported in exports)
+    return tuple(exports)
+
+
 def test_orchestration_package_is_exact_and_exports_no_authority_upgrade() -> None:
     assert {path.name for path in _files()} == EXPECTED
     forbidden_fragments = {
@@ -55,7 +83,7 @@ def test_orchestration_package_is_exact_and_exports_no_authority_upgrade() -> No
     }
     assert not any(
         fragment in exported
-        for exported in orchestration_exports
+        for exported in _declared_exports()
         for fragment in forbidden_fragments
     )
 
