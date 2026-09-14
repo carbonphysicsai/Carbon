@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import gc
 from dataclasses import dataclass, replace
 
 import pytest
@@ -106,6 +107,16 @@ def _base_policy() -> ResolvedTrainingSamplingPolicy:
         randomness_purposes=(),
     )
     return _mark_training_sampling_policy_verified(policy)
+
+
+def test_equal_verified_policies_keep_independent_identity_lifetimes() -> None:
+    first = _base_policy()
+    second = _base_policy()
+    expected = second.to_ref()
+    del first
+    gc.collect()
+
+    assert second.to_ref() == expected
 
 
 def _training_entry(

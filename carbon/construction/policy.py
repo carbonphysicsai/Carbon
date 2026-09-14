@@ -306,7 +306,9 @@ class ResolvedTrainingSamplingPolicy:
         return training_sampling_policy_to_ref(self)
 
 
-_VERIFIED_POLICIES: weakref.WeakSet = weakref.WeakSet()
+_VERIFIED_POLICIES: dict[int, weakref.ReferenceType[ResolvedTrainingSamplingPolicy]] = (
+    {}
+)
 
 
 def _mark_training_sampling_policy_verified(
@@ -318,14 +320,23 @@ def _mark_training_sampling_policy_verified(
             "only an exact resolved training policy can be verified",
             "/policy",
         )
-    _VERIFIED_POLICIES.add(policy)
+    identity = id(policy)
+
+    def discard(
+        reference: weakref.ReferenceType[ResolvedTrainingSamplingPolicy],
+    ) -> None:
+        if _VERIFIED_POLICIES.get(identity) is reference:
+            _VERIFIED_POLICIES.pop(identity, None)
+
+    _VERIFIED_POLICIES[identity] = weakref.ref(policy, discard)
     return policy
 
 
 def _require_training_sampling_policy_verified(
     policy: ResolvedTrainingSamplingPolicy,
 ) -> None:
-    if policy not in _VERIFIED_POLICIES:
+    reference = _VERIFIED_POLICIES.get(id(policy))
+    if reference is None or reference() is not policy:
         raise _invalid(
             "construction.policy_derivation_unverified",
             "policy identity is available only after compiler or decoder verification",
