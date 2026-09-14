@@ -4954,6 +4954,9 @@ events:
     summary: "PR #168's private-alpha archive preparation is reconciled as accepted, and C-10-D1 selects a bounded public DEVELOPMENT candidate over C-01/C-06/C-07. One fresh linked execution preserves registered randomness, uses new workers and scratch, associates both receipts, reports exact bytes only as an engineering observation, and quarantines every other outcome. Exact-head Linux service acceptance and merge remain pending; no scientific, independent-security, archive, network or reward authority exists."
     primary_detail: "https://github.com/carbonphysicsai/Carbon/blob/80b97808bf21365c5f6249d623798fe6f2e6fec7/.agent/evidence/wave_c/c-10.md"
     affects:
+      - "WAVE-B"
+      - "WAVE-B/B-E4"
+      - "WAVE-B/B-GATE"
       - "WAVE-C"
       - "WAVE-C/C-01"
       - "WAVE-C/C-06"
