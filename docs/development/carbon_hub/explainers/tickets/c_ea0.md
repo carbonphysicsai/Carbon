@@ -40,11 +40,11 @@ Specified and contract-tested evidence-capture semantics only; archive implement
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/a1e6065bd28e04230a33a0de737911af23551b3e/.agent/tickets/C-EA0_evidence_capture_contract.md)
-- [Program authority](https://github.com/carbonphysicsai/Carbon/blob/a1e6065bd28e04230a33a0de737911af23551b3e/.agent/plans/C1_C2_BURGERS_PROGRAM.md)
-- [Evidence capture contract](https://github.com/carbonphysicsai/Carbon/blob/a1e6065bd28e04230a33a0de737911af23551b3e/Design_Specs/Evidence_Archive_and_Custody.md)
-- [Machine-checkable contract cases](https://github.com/carbonphysicsai/Carbon/blob/a1e6065bd28e04230a33a0de737911af23551b3e/Design_Specs/evidence_capture_contract_v1.json)
-- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/a1e6065bd28e04230a33a0de737911af23551b3e/.agent/evidence/wave_c/c-ea0.md)
-- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/a1e6065bd28e04230a33a0de737911af23551b3e/.agent/WAVE_C.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/f92912a1b3c9cd510d36d5d2d99f3eb58e7f2177/.agent/tickets/C-EA0_evidence_capture_contract.md)
+- [Program authority](https://github.com/carbonphysicsai/Carbon/blob/f92912a1b3c9cd510d36d5d2d99f3eb58e7f2177/.agent/plans/C1_C2_BURGERS_PROGRAM.md)
+- [Evidence capture contract](https://github.com/carbonphysicsai/Carbon/blob/f92912a1b3c9cd510d36d5d2d99f3eb58e7f2177/Design_Specs/Evidence_Archive_and_Custody.md)
+- [Machine-checkable contract cases](https://github.com/carbonphysicsai/Carbon/blob/f92912a1b3c9cd510d36d5d2d99f3eb58e7f2177/Design_Specs/evidence_capture_contract_v1.json)
+- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/f92912a1b3c9cd510d36d5d2d99f3eb58e7f2177/.agent/evidence/wave_c/c-ea0.md)
+- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/f92912a1b3c9cd510d36d5d2d99f3eb58e7f2177/.agent/WAVE_C.md)
 
 > C-EA0 reserves unsupported durability, required-artifact, retention, legal/IP, custody/key, deployment, capacity, recovery and security decisions as HUMAN_INPUT rather than inventing defaults.

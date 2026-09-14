@@ -33,14 +33,15 @@
 
 **Status:** active in bounded engineering scope because `.agent/WAVE.md` names
 Wave C/C0 and this file as its controlling register.
-**Version:** 2.0
+**Version:** 2.1
 **Activation decision:** `OWNER-WAVE-C0-NET1-01`
-**Selected ticket:** C-07 — `in_progress`
-**Active ticket:** C-07 durable non-official DEVELOPMENT orchestration slice
-**Next authorized ticket after current merge:** C-08 authenticated Miner MCP
-composition. `OWNER-C1-BURGERS-ALPHA-01` keeps
-one selected ticket at a time. Protected science, real archive acknowledgement
-and public-network execution remain ineligible.
+**Selected ticket:** C-08 — `in_progress`
+**Active ticket:** C-08 bounded authenticated DEVELOPMENT composition
+**Next authorized ticket after current merge:** C-EA1 real-profile extension,
+then C-EA2 archive-before-finalization integration.
+`OWNER-C1-BURGERS-ALPHA-01` keeps one selected ticket at a time. Protected
+science, real archive acknowledgement and public-network execution remain
+ineligible.
 PR #146 merged the initial adapter as
 `d9fadf7f9cbb9b3a2a4ffa1ec9b0c906826be8ca`; PR #147 accepted head
 `72608d589582707955943345bc1308017e9650dc` in run `34750621646` and merged
@@ -71,8 +72,13 @@ in run `34789621325` and normally merged its bounded measurement runtime as
 `bad0b05c7683af67caa5fbd9fe9a8e11fda588da` in run `34797587027` and normally
 merged its signed non-official DEVELOPMENT evidence as
 `0c00350b98b9a0062006f5bd2ce50c20aff37b3c`. C-07 now composes that chain
-without gaining protected, truth, score or archive authority.
-**Last completed slice:** C-06 signed DEVELOPMENT evidence, merged in PR #161
+without gaining protected, truth, score or archive authority. PR #163 accepted
+exact C-07 head `c8990ddc44b57afd15847fe527c1da7ccecb7f18` in run
+`34807243278` and normally merged it as
+`44511ac0e18c1f3b66227e1e46a986074d16ee0c`. C-08 is now selected to compose
+that path with NET-2 authentication and A9 disclosure without changing the
+seven-tool miner workflow.
+**Last completed slice:** C-07 durable DEVELOPMENT orchestration, merged in PR #163
 **Primary Hub map_ref:** `WAVE-C`
 
 C-EA1 passed canonical acceptance in run `34558389185` at accepted head
@@ -143,8 +149,8 @@ production custody, quorum, science or economics blocks only that operation.
 | C-04 | Protected reference runtime | done | `.agent/evidence/wave_c/c-04.md` (PR #154 accepted only in bounded public-candidate scope; broader D-03/D-04 qualification remains open) | Scientific reference + execution engineering | Physics/SciML + security | B-04, B-E2 | MQ-045, MQ-048 | L | C1 |
 | C-05 | Real measurement and Score Pack | done | `.agent/plans/C-05_measurement_runtime.md` (bounded public-candidate engineering accepted; broader qualification open) | Scientific measurement engineering | Physics/SciML + statistics | B-05, C-04; C-02 bounded adapter capability is satisfied and broader closure is non-blocking | MQ-045, MQ-048 | L | C1 |
 | C-06 | Signed evaluation receipt | done | `.agent/evidence/wave_c/c-06.md` (PR #161 accepted non-official DEVELOPMENT receipt slice; official/custody scope open) | Scientific integration + receipt engineering | Security + Physics/SciML | C-01, C-02, C-04, C-05 | MQ-048, MQ-051 | L | C1 |
-| C-07 | Real validator orchestration | in_progress | `.agent/plans/C-07_development_orchestration.md` (selected non-official DEVELOPMENT composition) | Validator orchestration engineering | Scientific integration + security | C-01, C-02, C-03, C-04, C-05, C-06 | MQ-048, MQ-051 | L | C1 |
-| C-08 | Authenticated miner MCP end to end | todo | `.agent/tickets/C-08_authenticated_miner_mcp_e2e.md` | Codex + API/protocol engineering | Protocol + security + scientific integration | NET-2, C-07, A9 | MQ-051, MQ-054 | L | C1/C2 |
+| C-07 | Real validator orchestration | done | `.agent/evidence/wave_c/c-07.md` (PR #163 accepted the bounded non-official DEVELOPMENT composition; broader official/protected scope remains open) | Validator orchestration engineering | Scientific integration + security | C-01, C-02, C-03, C-04, C-05, C-06 | MQ-048, MQ-051 | L | C1 |
+| C-08 | Authenticated miner MCP end to end | in_progress | `.agent/plans/C-08_authenticated_miner_mcp_e2e.md` (selected bounded authenticated DEVELOPMENT composition) | Codex + API/protocol engineering | Protocol + security + scientific integration | NET-2, C-07, A9 | MQ-051, MQ-054 | L | C1/C2 |
 | C-EA2 | Archive before finalization | todo | `.agent/tickets/C-EA2_archive_before_finalization.md` | Evidence archive + validator integration | Operations + data/security + scientific integration | C-EA1, C-07 | MQ-048, MQ-051 | L | C1 |
 | C-09 | Official testnet publication provider | todo | `.agent/tickets/C-09_official_testnet_publication_provider.md` | Codex + publication/protocol engineering | Protocol + scientific integration + security | A10, C-06, C-07, C-EA2 | MQ-048, MQ-054 | L | C1/C2 |
 | C-W1 | Exact real testnet eligibility provenance | todo | `.agent/tickets/C-W1_testnet_eligibility.md` | Network/protocol + scientific integration | Security + Physics/SciML | C-09, C-EA2 | MQ-048, MQ-054 | M | C2 |

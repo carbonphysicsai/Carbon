@@ -86,11 +86,11 @@ def test_accepted_c06_retains_bounded_acceptance_and_unearned_authority() -> Non
     assert "does not itself qualify science, security" in ticket
 
 
-def test_selected_c07_retains_bounded_acceptance_and_unearned_authority() -> None:
+def test_accepted_c07_retains_bounded_acceptance_and_unearned_authority() -> None:
     ticket = (
         ROOT / ".agent/tickets/C-07_official_evaluation_orchestration.md"
     ).read_text(encoding="utf-8")
-    assert "**Status:** `in_progress`" in ticket
+    assert "**Status:** `done` for the bounded non-official DEVELOPMENT" in ticket
     assert "Definition of Done" in ticket
     assert "three-replica reconstruction" in ticket
     assert "source-owned result types" in ticket

@@ -40,11 +40,11 @@ Specified, implemented and locally tested only for the nominal private fixture c
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/a1e6065bd28e04230a33a0de737911af23551b3e/.agent/tickets/C-EP1_development_evaluation_packs.md)
-- [Stable implementation evidence](https://github.com/carbonphysicsai/Carbon/blob/a1e6065bd28e04230a33a0de737911af23551b3e/.agent/evidence/wave_c/c-ep1.md)
-- [Development runbook and migration contract](https://github.com/carbonphysicsai/Carbon/blob/a1e6065bd28e04230a33a0de737911af23551b3e/docs/development/DEVELOPMENT_EVALUATION_PACKS.md)
-- [Thirty-attack disposition](https://github.com/carbonphysicsai/Carbon/blob/a1e6065bd28e04230a33a0de737911af23551b3e/docs/development/evaluation_pack_attack_dispositions_v1.json)
-- [Measured local baseline](https://github.com/carbonphysicsai/Carbon/blob/a1e6065bd28e04230a33a0de737911af23551b3e/docs/development/evaluation_pack_baseline_v1.json)
-- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/a1e6065bd28e04230a33a0de737911af23551b3e/.agent/WAVE_C.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/f92912a1b3c9cd510d36d5d2d99f3eb58e7f2177/.agent/tickets/C-EP1_development_evaluation_packs.md)
+- [Stable implementation evidence](https://github.com/carbonphysicsai/Carbon/blob/f92912a1b3c9cd510d36d5d2d99f3eb58e7f2177/.agent/evidence/wave_c/c-ep1.md)
+- [Development runbook and migration contract](https://github.com/carbonphysicsai/Carbon/blob/f92912a1b3c9cd510d36d5d2d99f3eb58e7f2177/docs/development/DEVELOPMENT_EVALUATION_PACKS.md)
+- [Thirty-attack disposition](https://github.com/carbonphysicsai/Carbon/blob/f92912a1b3c9cd510d36d5d2d99f3eb58e7f2177/docs/development/evaluation_pack_attack_dispositions_v1.json)
+- [Measured local baseline](https://github.com/carbonphysicsai/Carbon/blob/f92912a1b3c9cd510d36d5d2d99f3eb58e7f2177/docs/development/evaluation_pack_baseline_v1.json)
+- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/f92912a1b3c9cd510d36d5d2d99f3eb58e7f2177/.agent/WAVE_C.md)
 
 > The pack is a private child of the unchanged Challenge evaluation context. Copies and retries reuse the candidate entitlement; distinct pack IDs do not prove statistical independence, production unpredictability or future-case novelty.

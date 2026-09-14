@@ -1,4 +1,4 @@
-"""Fail-closed checks for the selected bounded C-07 dependency contracts."""
+"""Fail-closed checks for the selected bounded C-08 dependency contracts."""
 
 from __future__ import annotations
 
@@ -16,44 +16,36 @@ def _read(path: str) -> str:
     return (ROOT / path).read_text(encoding="utf-8")
 
 
-def test_materialized_tickets_are_contract_only_and_unselected() -> None:
-    for path, ticket_id in (
-        (".agent/tickets/C-08_authenticated_miner_mcp_e2e.md", "C-08"),
-        (".agent/tickets/C-09_official_testnet_publication_provider.md", "C-09"),
-    ):
-        ticket = _read(path)
-        assert ticket.startswith(f"# {ticket_id} ")
-        assert (
-            "`future_reserved`; contract materialized, unselected and unstarted"
-            in ticket
-        )
-        assert "Contract materialization only" in ticket
+def test_c09_remains_contract_only_and_unselected() -> None:
+    ticket = _read(".agent/tickets/C-09_official_testnet_publication_provider.md")
+    assert ticket.startswith("# C-09 ")
+    assert (
+        "`future_reserved`; contract materialized, unselected and unstarted" in ticket
+    )
+    assert "Contract materialization only" in ticket
 
 
-def test_only_c07_development_orchestration_is_selected_and_c08_is_next() -> None:
+def test_only_c08_development_composition_is_selected() -> None:
     wave = _read(".agent/WAVE.md")
     wave_c = _read(".agent/WAVE_C.md")
     graph = _read(".agent/plans/C1_DEPENDENCY_GRAPH.md")
     for record in (wave, wave_c):
-        assert "**Selected ticket:** C-07 — `in_progress`" in record
-        assert "**Active ticket:** C-07 durable non-official DEVELOPMENT" in record
-        assert "**Next authorized ticket after current merge:** C-08" in record
+        assert "**Selected ticket:** C-08 — `in_progress`" in record
+        assert "**Active ticket:** C-08 bounded authenticated DEVELOPMENT" in record
+        assert "**Next authorized ticket after current merge:** C-EA1" in record
     assert "C-04(PR #154 engineering + D-03/D-04 prerequisite harness)" in graph
     assert "C-05(PR #157 engineering + D-02/D-05 prerequisite harness)" in graph
     assert "C-06(PR #161 DEVELOPMENT receipt)" in graph
-    assert "C-07(selected)" in graph
+    assert "C-07(PR #163 DEVELOPMENT orchestration) ─> C-08(selected)" in graph
     assert "C-EP1 ─> C-EP2(done measurement/replay only; no sharing runtime)" in graph
     assert "C-02(merged DEVELOPMENT adapter prerequisite; full ticket open)" in graph
     assert "└─> C-03(PR #149 capability + PR #151 hardening)" in graph
-    assert graph.count("| **no** |") >= 4
+    assert graph.count("| **no** |") >= 3
     assert (
         "| C-03 | PR #149 bounded DEVELOPMENT capability and PR #151 hardening accepted"
         in graph
     )
-    assert (
-        "**yes, current slice; not protected/official/archive/network-eligible**"
-        in graph
-    )
+    assert "**yes, current slice; not official/archive/network-eligible**" in graph
 
 
 def test_jax_and_archive_blocks_remain_complete_and_fail_closed() -> None:
@@ -82,13 +74,11 @@ def test_jax_and_archive_blocks_remain_complete_and_fail_closed() -> None:
     assert "synthetic-archive" in c09
 
 
-def test_hub_projects_only_development_orchestration_and_future_contract_status() -> (
-    None
-):
+def test_hub_projects_only_authenticated_development_composition() -> None:
     data = json.loads(_read("docs/development/carbon_hub/data/hub_data_v2.json"))
     current = data["current"]
-    assert current["last_completed_ticket"]["id"] == "C-06"
-    assert current["selected_ticket"]["id"] == "C-07"
+    assert current["last_completed_ticket"]["id"] == "C-07"
+    assert current["selected_ticket"]["id"] == "C-08"
     assert current["next_selected_ticket"] is None
     tickets = {ticket["id"]: ticket for ticket in data["tickets"]}
     assert tickets["C-EP1"]["status"] == "done"
@@ -107,13 +97,15 @@ def test_hub_projects_only_development_orchestration_and_future_contract_status(
     assert tickets["C-06"]["status"] == "done"
     assert tickets["C-06"]["implementation_state"] == "bounded_development_accepted"
     assert "34797587027" in tickets["C-06"]["current_stage"]
-    assert tickets["C-07"]["status"] == "in_progress"
-    assert tickets["C-07"]["implementation_state"] == "candidate_implementation"
-    assert "Selected" in tickets["C-07"]["current_stage"]
-    for ticket_id in ("C-08", "C-09"):
-        assert tickets[ticket_id]["status"] == "todo"
-        assert tickets[ticket_id]["implementation_state"] == "unstarted"
-        assert "not dependency-ready" in tickets[ticket_id]["current_stage"]
+    assert tickets["C-07"]["status"] == "done"
+    assert tickets["C-07"]["implementation_state"] == "bounded_development_accepted"
+    assert "34807243278" in tickets["C-07"]["current_stage"]
+    assert tickets["C-08"]["status"] == "in_progress"
+    assert tickets["C-08"]["implementation_state"] == "candidate_implementation"
+    assert "Selected" in tickets["C-08"]["current_stage"]
+    assert tickets["C-09"]["status"] == "todo"
+    assert tickets["C-09"]["implementation_state"] == "unstarted"
+    assert "not dependency-ready" in tickets["C-09"]["current_stage"]
     assert "34518806217" in current["stage"]
     assert "standard-profile localnet" in current["stage"]
     assert "OWNER-C1-BURGERS-ALPHA-01" in current["stage"]

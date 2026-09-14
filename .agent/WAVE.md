@@ -32,19 +32,19 @@
 > historical evidence, and human-reserved scientific/security authority remain.
 
 **Current wave:** C
-**Current phase:** C-07 durable DEVELOPMENT orchestration after accepted C-06 PR #161
+**Current phase:** C-08 authenticated Miner MCP composition after accepted C-07 PR #163
 **State:** **active in bounded engineering scope**
 **Wave A:** closed in bounded engineering scope
 **Wave B:** closed in bounded engineering scope after PR #118 accepted head
 `c510095b5501587cf93c04632a26b7c303d7d48b` in run `34365282759` and
 normally merged as `ac050fd53ee18bf3788c167ee7b0736bbfd7a46b`, tree
 `46b38440f13a8048db18bc480ddb6907396c9017`
-**Controlling register:** `.agent/WAVE_C.md` version 2.0
-**Selected ticket:** C-07 — `in_progress`
-**Active ticket:** C-07 durable non-official DEVELOPMENT orchestration slice
-**Next authorized ticket after current merge:** C-08 authenticated Miner MCP
-composition under `OWNER-C1-BURGERS-ALPHA-01`; it is not selected while C-07
-is active
+**Controlling register:** `.agent/WAVE_C.md` version 2.1
+**Selected ticket:** C-08 — `in_progress`
+**Active ticket:** C-08 bounded authenticated DEVELOPMENT composition
+**Next authorized ticket after current merge:** C-EA1 real-profile extension,
+then C-EA2 archive-before-finalization integration under
+`OWNER-C1-BURGERS-ALPHA-01`; neither is selected while C-08 is active
 C-EA1 passed canonical acceptance in run `34558389185` at accepted head
 `a779af066f4bf9bc36b6d6ab23914fa19191e1de` and normally merged in PR #136 as
 `0e0714c8260ca482a0ba2b743b2eaefd50508da1`. `OWNER-C-EA1-SYNTHETIC-01`
@@ -97,8 +97,11 @@ merged it as `e3324691666da6b8987764048d2bfff45e0578b4`.
 PR #161 accepted exact C-06 head
 `bad0b05c7683af67caa5fbd9fe9a8e11fda588da` in run `34797587027` and normally
 merged it as `0c00350b98b9a0062006f5bd2ce50c20aff37b3c`.
-`OWNER-C1-BURGERS-ALPHA-01` now selects C-07's durable non-official DEVELOPMENT
-orchestration slice. Protected, official, score and archive admission remain off.
+PR #163 accepted exact C-07 head
+`c8990ddc44b57afd15847fe527c1da7ccecb7f18` in run `34807243278` and normally
+merged it as `44511ac0e18c1f3b66227e1e46a986074d16ee0c`.
+`OWNER-C1-BURGERS-ALPHA-01` now selects C-08's bounded authenticated DEVELOPMENT
+composition. Protected, official, score and archive admission remain off.
 **Activation authority:** `OWNER-WAVE-C0-NET1-01` records the repository
 owner's explicit authorization to reconcile B-GATE, close Wave B in bounded
 engineering scope, activate Wave C/C0, select NET-1 alone, and continue through
