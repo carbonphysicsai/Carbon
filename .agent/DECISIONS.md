@@ -13972,3 +13972,58 @@ supersede this heading, the C-08 ticket/plan and `carbon.miner_mcp`. Production
 quota/fee values, public hosting/TLS, protected admission, independent security
 acceptance, scientific qualification, signer/custody, real archive, network and
 LIVE authority remain human/external inputs and fail closed.
+
+## 2026-09-15 — C-10-D1: link a fresh C-07 execution and compare exact retained DEVELOPMENT evidence
+
+**Source and scope.** The repository owner's continuation after merged PR #168
+selects C-10's bounded DEVELOPMENT re-execution and disagreement slice. C-06
+and C-07's accepted non-official capabilities satisfy the engineering
+prerequisites for this composition. This decision does not qualify a comparison
+tolerance, prove independent administration or security, authorize protected
+data, create a payable result, or select C-EA2.
+
+**Selection.** Keep C-01 as the sole attempt/claim/restart/result owner, C-07 as
+the sole numerical orchestration owner, and C-06 as the sole receipt/signer/
+ledger owner. Add a C-10 association journal and service that records intent
+before invoking C-07, binds a different execution identity and fresh isolated
+worker/scratch identities to one exact primary result, and retains both C-06
+receipt references. It may resume or attach only through C-07's existing
+source-owned modes; it never implements another evaluator, queue, signer,
+scorer, comparison policy, publication path, or settlement path.
+
+**Comparison and quarantine.** Require exact equality of candidate/Strategy,
+Challenge, TRAIN, case, reconstruction-randomness role, resource, reference,
+measurement, implementation, environment and policy commitments while
+recording shared source/data/reference/key/trust-domain dependencies. Compare
+only the retained scientific-state digests, not receipt timestamps, execution
+locations, container identities, or newly linked attempt identities. Exact
+byte agreement is an engineering reproducibility observation only. Any changed
+scientific-state bytes remain `UNRESOLVED_NO_QUALIFIED_TOLERANCE`; revoked or
+missing evidence, cancellation, failure and unavailable execution remain
+distinct. Disagreement or unavailable evidence quarantines the affected
+result and cannot be converted by vote, averaging, fallback or a candidate
+zero.
+
+**Resource and independence notation.** Freeze exactly one additional audit
+execution containing the same three registered reconstruction slots, with one
+worker at a time and the existing C-03 DEVELOPMENT per-worker limits. There is
+no reserve or automatic replacement. Record bounded, measured, partial and
+unavailable resource quantities separately. Two fresh containers on one named
+host establish separate execution effects only; shared host/administrator,
+source, reference, data, image and development key dependencies remain
+explicit and do not become an independent security assessment.
+
+**Alternatives rejected.** Do not reuse the primary output under a new receipt,
+call a retry an audit, add a fourth scientific replica to the registered trio,
+use majority vote, invent an R1/R2 tolerance, overwrite a C-07 result, or wire
+the outcome to winner/publication/weight/reward consumers. These alternatives
+would either duplicate authority, misstate independence, or turn an unqualified
+observation into a scientific/economic decision.
+
+**Reversibility and downstream effect.** The C-10 journal, projections and
+operator command are additive and removable without changing C-01/C-06/C-07
+history. D-08 may later consume only a qualified explicit capability. A lead
+can supersede this heading, the C-10 ticket and the C-10 implementation files.
+Qualified comparison policy, protected custody, independent reviewer/security
+acceptance, official publication, settlement and network authority remain
+human/external inputs and fail closed.

@@ -31,6 +31,8 @@ export CARBON_C03_IMAGE_MANIFEST="${manifest}"
 export CARBON_C03_TRACE_PATH="${trace_path}"
 export CARBON_C07_DEVELOPMENT_SIGNING_KEY_HEX="${CARBON_C07_DEVELOPMENT_SIGNING_KEY_HEX:-$(openssl rand -hex 32)}"
 export CARBON_C07_REPORT_ROOT="${CARBON_C07_REPORT_ROOT:-$(mktemp -d "${report_parent}/c07-service-report.XXXXXXXX")}"
+export CARBON_C10_DEVELOPMENT_SIGNING_KEY_HEX="${CARBON_C10_DEVELOPMENT_SIGNING_KEY_HEX:-$(openssl rand -hex 32)}"
+export CARBON_C10_REPORT_ROOT="${CARBON_C10_REPORT_ROOT:-$(mktemp -d "${report_parent}/c10-service-report.XXXXXXXX")}"
 : >> "${CARBON_C03_TRACE_PATH}"
 python_path="${repo_root}/.venv/bin/python"
 if [[ "$(uname -s)" == "Darwin" && "$(uname -m)" == "arm64" ]]; then
@@ -43,7 +45,8 @@ if [[ "$#" -eq 0 ]]; then
     tests/service/test_c04_reference_service.py \
     tests/service/test_c05_measurement_service.py \
     tests/service/test_c07_orchestration_service.py \
-    tests/service/test_c08_miner_mcp_service.py
+    tests/service/test_c08_miner_mcp_service.py \
+    tests/service/test_c10_reexecution_service.py
 fi
 "${python_path}" -m pytest -q \
   --junitxml "${junit_path}" "$@"

@@ -100,11 +100,11 @@
       "map_ref": "WAVE-C/C-EA0"
     },
     "C-EA1": {
-    "title": "Prepare the private-alpha archive boundary without activating it",
-    "what": "Freeze the owner-selected alpha capacity, retention, evidence and recovery targets, require every external deployment input explicitly, and exercise existing catalogue/encryption/object adapters only with non-secret isolated services.",
-    "why": "The real path needs a reviewable deployment contract without relabelling the accepted synthetic acknowledgement or pretending that local services prove provider durability.",
-    "changes": "C1 gains a content-bound private-alpha preparation profile, closed configuration doctor, exact deployment handoff and service preflight that remain ineligible for real acknowledgement and C-EA2.",
-    "not_yet": "Provider deployment, recoverable catalogue/journal/object/key custody, cost authorization, observed recovery, independent security acceptance, protected admission, real acknowledgement, C-EA2 and network eligibility remain unavailable.",
+      "title": "Prepare the private-alpha archive boundary without activating it",
+      "what": "Freeze the owner-selected alpha capacity, retention, evidence and recovery targets, require every external deployment input explicitly, and exercise existing catalogue/encryption/object adapters only with non-secret isolated services.",
+      "why": "The real path needs a reviewable deployment contract without relabelling the accepted synthetic acknowledgement or pretending that local services prove provider durability.",
+      "changes": "PR #168 accepted the content-bound private-alpha preparation profile, closed configuration doctor, exact deployment handoff and isolated-service preflight. They remain ineligible for real acknowledgement and C-EA2.",
+      "not_yet": "Provider adapters and deployment code, provisioned recoverable catalogue/journal/object/key custody, cost authorization, observed recovery, independent security acceptance, protected admission, real acknowledgement, C-EA2 and network eligibility remain unavailable.",
       "map_ref": "WAVE-C/C-EA1"
     },
     "C-EP1": {
@@ -183,9 +183,17 @@
       "title": "Connect authenticated Miner MCP to real validation",
       "what": "Bind exact caller, network, Challenge, session, request, source submission and C-01/C-07 DEVELOPMENT outcome identities across NET-2, A9 and the accepted C-07 path.",
       "why": "Authentication and fixture practice cannot become official scientific authority or reveal the exam.",
-      "changes": "The selected candidate durably records intent before source mutation, reconciles ambiguous submits without redispatch, preserves the seven A9 tools and adds only a bounded literal-false C-07 public projection.",
-      "not_yet": "Exact-head installed-SDK Linux acceptance is pending; no fee, quota, public endpoint, protected input, official result, archive acknowledgement, network/reward effect or qualification is approved.",
+      "changes": "PR #167 accepted durable intent before source mutation, ambiguous-submit reconciliation without redispatch, the unchanged seven A9 tools and a bounded literal-false C-07 public projection.",
+      "not_yet": "No fee, quota, public endpoint, protected input, official result, archive acknowledgement, network/reward effect or qualification is approved.",
       "map_ref": "WAVE-C/C-08"
+    },
+    "C-10": {
+      "title": "Re-run one exact DEVELOPMENT result without turning disagreement into a verdict",
+      "what": "Request one linked fresh C-07 execution with the same registered reconstruction randomness, new workers and scratch, then associate its result and C-06 receipt with the retained primary.",
+      "why": "Ordinary replay proves idempotency; a genuinely new execution can expose reproducibility differences while preserving both histories and scientific ownership.",
+      "changes": "C1 gains a C-01 REEXECUTION_OF relation, durable comparison journal, two-receipt association, exact-byte DEVELOPMENT observation, unresolved difference quarantine and a restart-safe operator report.",
+      "not_yet": "Exact-head Linux service acceptance is pending. No scientific tolerance, different-seed variability claim, independent administration, security assessment, official result, archive acknowledgement, network/reward effect or qualification exists.",
+      "map_ref": "WAVE-C/C-10"
     },
     "C-EA2": {
       "title": "Archive real evidence before finalization",

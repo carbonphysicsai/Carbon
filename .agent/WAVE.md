@@ -32,7 +32,7 @@
 > historical evidence, and human-reserved scientific/security authority remain.
 
 **Current wave:** C
-**Current phase:** C-EA1 private-alpha archive-profile preparation after accepted C-08 PR #167
+**Current phase:** C-10 bounded DEVELOPMENT re-execution after accepted C-EA1 preparation PR #168
 **State:** **active in bounded engineering scope**
 **Wave A:** closed in bounded engineering scope
 **Wave B:** closed in bounded engineering scope after PR #118 accepted head
@@ -40,12 +40,12 @@
 normally merged as `ac050fd53ee18bf3788c167ee7b0736bbfd7a46b`, tree
 `46b38440f13a8048db18bc480ddb6907396c9017`
 **Controlling register:** `.agent/WAVE_C.md` version 2.2
-**Selected ticket:** C-EA1 — `in_progress`
-**Active ticket:** C-EA1 separately versioned real-profile preparation, with
-real acknowledgement and deployment fail closed
-**Next authorized ticket after current merge:** C-EA2 only if an eligible real
-archive acknowledgement exists; otherwise stop at the explicit external
-deployment/recovery/security boundary
+**Selected ticket:** C-10 — `in_progress`
+**Active ticket:** C-10 linked fresh DEVELOPMENT execution, exact-byte
+observation, disagreement journal and fail-closed quarantine
+**Next authorized ticket after current merge:** C-EA1 deployable private-alpha
+archive continuation; C-EA2 remains blocked until an eligible real archive
+acknowledgement and recovery evidence exist
 C-EA1 passed canonical acceptance in run `34558389185` at accepted head
 `a779af066f4bf9bc36b6d6ab23914fa19191e1de` and normally merged in PR #136 as
 `0e0714c8260ca482a0ba2b743b2eaefd50508da1`. `OWNER-C-EA1-SYNTHETIC-01`
@@ -109,6 +109,11 @@ image/config is
 `OWNER-C1-BURGERS-ALPHA-01` now selects C-EA1's private-alpha profile
 preparation. The accepted synthetic acknowledgement remains unchanged; real
 acknowledgement, protected admission and C-EA2 eligibility remain off.
+PR #168 accepted exact C-EA1 preparation head
+`ea51a947bbf21908144f93ffb04b5e9cc46de519` in run `34830155526` and normally
+merged it as `0ee4c9b8db8339740521e2afc72624c97d8e177a`, with matching accepted and
+merged tree `e11b05b60909748f5c152f53ca0e65b0b5696d3c`. The repository owner's
+continuation now selects C-10's bounded DEVELOPMENT re-execution slice.
 **Activation authority:** `OWNER-WAVE-C0-NET1-01` records the repository
 owner's explicit authorization to reconcile B-GATE, close Wave B in bounded
 engineering scope, activate Wave C/C0, select NET-1 alone, and continue through
@@ -154,16 +159,17 @@ in run `34558389185` and merged in PR #136 as
 `0e0714c8260ca482a0ba2b743b2eaefd50508da1` for the exact closed synthetic
 development profile. The synthetic acknowledgement is ineligible for real
 finalization, C-W1, network or qualification. C-08's bounded authenticated
-DEVELOPMENT composition is accepted in PR #167; C-09 remains materialized but
-unselected. C-EA1's private-alpha preparation is selected, while real
-acknowledgement and C-EA2 stay fail closed. The supplied immutable JAX bundle and merged PR #148 satisfy
+DEVELOPMENT composition is accepted in PR #167 and C-EA1's configuration-only
+private-alpha preparation is accepted in PR #168; C-09 remains materialized
+but unselected. C-10's bounded DEVELOPMENT audit slice is selected, while real
+archive acknowledgement and C-EA2 stay fail closed. The supplied immutable JAX bundle and merged PR #148 satisfy
 C-03's bounded adapter prerequisite. PR #149's exact head passed its required
 Linux service acceptance and normally merged the bounded public-data worker.
 PR #151 accepted C-03's bounded response, parser, resource-observation and
 deadline/recovery hardening; PR #154 accepted C-04's reference candidate and
 PR #157 accepted C-05's measurement candidate and PR #161 accepted C-06's
-signed DEVELOPMENT evidence. `OWNER-C1-BURGERS-ALPHA-01` now selects C-07's
-durable non-official orchestration slice. C-02/C-03 remain open for
+signed DEVELOPMENT evidence. C-07 and C-08 are accepted bounded DEVELOPMENT
+compositions. C-02/C-03 remain open for
 their broader requirements, the missing v0.2 research
 archive remains deferred/unverified, and the new three-replica working rule is
 not scientific sufficiency or a universal production/mainnet repeat policy.

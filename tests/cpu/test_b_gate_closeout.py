@@ -7,10 +7,6 @@ import pytest
 ROOT = Path(__file__).resolve().parents[2]
 
 FUTURE_TICKET_MARKERS = {
-    "C-10_independent_reexecution.md": (
-        "typed contested record",
-        "cannot finalize, settle",
-    ),
     "D-02_generator_conformance.md": (
         "intended-versus-realized population",
         "human generator qualification",
@@ -36,6 +32,18 @@ FUTURE_TICKET_MARKERS = {
         "does not recreate B-E4",
     ),
 }
+
+
+def test_selected_c10_retains_bounded_acceptance_and_unearned_authority() -> None:
+    ticket = (ROOT / ".agent/tickets/C-10_independent_reexecution.md").read_text(
+        encoding="utf-8"
+    )
+    assert "**Status:** `in_progress`" in ticket
+    assert "Definition of Done" in ticket
+    assert "typed contested record" in ticket
+    assert "cannot finalize, settle" in ticket
+    assert "one bounded public-data DEVELOPMENT slice" in ticket
+    assert "final scientific/economic decisions remain human-owned" in ticket
 
 
 def test_selected_c02_retains_ticket_local_acceptance_and_boundary() -> None:

@@ -64,12 +64,14 @@ class Classification:
             "scripts/dev/c03_worker_image.sh",
             "scripts/dev/c03_worker_service.sh",
             "scripts/dev/c07_development_vertical.sh",
+            "scripts/dev/c10_development_reexecution.sh",
             "docs/development/c04_public_reference_campaign_v1.json",
             "docs/development/c05_public_measurement_campaign_v1.json",
             "tests/service/test_c03_worker_service.py",
             "tests/service/test_c04_reference_service.py",
             "tests/service/test_c05_measurement_service.py",
             "tests/service/test_c08_miner_mcp_service.py",
+            "tests/service/test_c10_reexecution_service.py",
         }
         return any(
             item.path in exact
@@ -80,7 +82,9 @@ class Classification:
             or item.path.startswith("tests/service/test_c03_")
             or item.path.startswith("tests/service/test_c07_")
             or item.path.startswith("tests/service/test_c08_")
+            or item.path.startswith("tests/service/test_c10_")
             or item.path.startswith("carbon/orchestration/")
+            or item.path.startswith("carbon/reexecution/")
             or item.path.startswith("carbon/miner_mcp/")
             or item.path.startswith("tests/service/test_c04_")
             or item.path.startswith("tests/service/test_c05_")

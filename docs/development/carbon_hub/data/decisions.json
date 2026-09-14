@@ -2655,6 +2655,38 @@
       ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5661857655",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/d536836e2ddcd3ca5a59cbdc7c4b8e888be38016/.agent/DECISIONS.md"
+    },
+    {
+      "title": "Compose one fresh DEVELOPMENT re-execution without inventing a scientific verdict",
+      "question": "How should C-10 distinguish an ordinary replay from a genuinely new audit execution while qualified comparison policy and independent administration remain absent?",
+      "recommendation": "Use C-01 to admit one REEXECUTION_OF attempt for an exact retained C-07 result, preserve the registered reconstruction randomness, require fresh worker and scratch identities, bind two C-06 receipts, treat exact scientific-state bytes only as a DEVELOPMENT reproducibility observation, and quarantine every disagreement, unavailable, cancelled, failed or indeterminate outcome.",
+      "why": "This exercises the accepted execution and receipt owners without creating a second evaluator, giving the candidate another policy opportunity, or converting a byte comparison into scientific truth.",
+      "if_kept": "C-10 can provide durable linked execution evidence, full shared-dependency disclosure, resource accounting and restart-safe quarantine. It remains public DEVELOPMENT evidence on the trusted-host profile and supplies no independent security or scientific acceptance.",
+      "if_changed": "A tolerance, different-seed variability experiment, independent-administrator claim, official disposition or extra audit count requires its governing prospective policy and acceptance. Existing primary and audit histories remain immutable.",
+      "decision_id": "C-10-D1",
+      "map_ref": "WAVE-C/C-10",
+      "wave": "C",
+      "ticket": "C-10",
+      "attention": "FOR_AWARENESS",
+      "status": "IMPLEMENTED_WORKING_DECISION",
+      "audience": "harsh",
+      "affects": [
+        "WAVE-C",
+        "WAVE-C/C-06",
+        "WAVE-C/C-07",
+        "WAVE-C/C-10",
+        "WAVE-C/C-EA1",
+        "WAVE-C/C-EA2",
+        "SYSTEM/AGENT-EXECUTION",
+        "SYSTEM/CI",
+        "SYSTEM/GOVERNANCE",
+        "SYSTEM/MATURITY",
+        "SYSTEM/DEVELOPMENT-SEQUENCING",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+      ],
+      "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5667612465",
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/c6a875c5588870bab9e827b3a6442fdd9ef97966/.agent/DECISIONS.md"
     }
   ]
 }
