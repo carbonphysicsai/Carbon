@@ -216,19 +216,37 @@ class SourceTests(unittest.TestCase):
             "NOT_LAUNCHED",
         )
         self.assertEqual(schema["properties"]["jobs"]["maxItems"], 64)
-        evidence = schema["properties"]["jobs"]["items"]["properties"]["designs"]["items"]["properties"]["measurement_evidence"]
+        evidence = schema["properties"]["jobs"]["items"]["properties"]["designs"][
+            "items"
+        ]["properties"]["measurement_evidence"]
         self.assertFalse(evidence["items"]["additionalProperties"])
 
     def test_retained_c05_fixture_index_binds_exact_source_digests(self):
         index = json.loads((ROOT / "data/c05_fixture_index_v1.json").read_text())
         self.assertEqual(len(index["fixtures"]), 2)
         for filename, item in zip(
-            ["c05_public_development_evidence_v1.json", "c05_public_development_noncomplete_v1.json"],
-            index["fixtures"], strict=True,
+            [
+                "c05_public_development_evidence_v1.json",
+                "c05_public_development_noncomplete_v1.json",
+            ],
+            index["fixtures"],
+            strict=True,
         ):
             bundle = json.loads((ROOT / "data" / filename).read_text())
-            self.assertEqual("sha256:" + hashlib.sha256(bundle["measurement_request_json"].encode("ascii")).hexdigest(), item["request_digest"])
-            self.assertEqual("sha256:" + hashlib.sha256(bundle["measurement_result_json"].encode("ascii")).hexdigest(), item["result_digest"])
+            self.assertEqual(
+                "sha256:"
+                + hashlib.sha256(
+                    bundle["measurement_request_json"].encode("ascii")
+                ).hexdigest(),
+                item["request_digest"],
+            )
+            self.assertEqual(
+                "sha256:"
+                + hashlib.sha256(
+                    bundle["measurement_result_json"].encode("ascii")
+                ).hexdigest(),
+                item["result_digest"],
+            )
             self.assertFalse(bundle["authority"]["score_eligible"])
 
     def test_manifest_and_bundle_are_complete_and_reproducible(self):
