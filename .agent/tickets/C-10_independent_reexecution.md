@@ -1,7 +1,8 @@
 # C-10 — Independent re-execution and disagreement
 
 **Wave:** C1 real scientific execution foundations
-**Status:** `in_progress` for one bounded public-data DEVELOPMENT slice
+**Status:** `in_progress`
+**Status scope:** one bounded public-data DEVELOPMENT slice
 **Selected slice:** linked fresh C-07 execution, exact-byte observation,
 disagreement journal and fail-closed quarantine
 **Selection authority:** repository-owner continuation after merged PR #168;
