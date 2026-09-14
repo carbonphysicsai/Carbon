@@ -80,14 +80,22 @@
   "analysis_classification": "EXPLORATORY_RETROSPECTIVE",
   "final_recommendation": "WAIT_FOR_D02_GENERATOR_CONFORMANCE",
   "historical_campaign_recommendation": "WAIT_FOR_D02_GENERATOR_CONFORMANCE",
-  "goal_workbench_04_merge": "PENDING",
+  "goal_workbench_04_delivery": {
+    "application_pr": 170,
+    "original_commit": "0ea0ad8116ae4d912e866d11c52d6775a37d9813",
+    "tested_head": "3a01e099466a613ed61cafaf5735d802c62ad3d4",
+    "acceptance_run": 34891993646,
+    "merge_commit": "e576fbdc711c9194dbcc7d90405480e90577407e",
+    "status": "ACCEPTED_AND_MERGED"
+  },
+  "goal_workbench_04_merge": "e576fbdc711c9194dbcc7d90405480e90577407e",
   "outputs": {
     "generator_dependency.json": "sha256:cad7aa832e7e5ce06bcc910d4718934630ddeeac97fd76daea14894549df0260",
     "independence_matrix.json": "sha256:bc3a9856751205f1b642ce9d8af34953692696b1cac5538a16c1eff294b1ff04",
     "measurement_floor_sensitivity.json": "sha256:d8bfef6de0986e27f55f722a95098ddb6350a5471c31c28fd886dacd7bfe8815",
     "primary_reference_evidence.json": "sha256:c0777ca4256fe3ac28d1dacaa9edbeb2f0cde632f2ba9ea321f7a4462911a0af",
     "witness_refinement_evidence.json": "sha256:e89b36a4d0115cbd5219239f8682245c049fcfb0a6750f288f1bab1c743167d3",
-    "workbench_projection_status.json": "sha256:c4e87329341b0141e25dfe84e27142c02ad1757a1059d0046976f3e27d2935d4"
+    "workbench_projection_status.json": "sha256:7047faf00b675195e159d93e3c0b7739082437d678d344749da79d9f99653b02"
   },
   "protocol_digest": "sha256:ff2a730838fad9ae0b3148ed149ecd6021cb5ae0d381ca3f3f71c69871e2e99d",
   "schema": "carbon.d-qual-prep-01.readiness.v2",
@@ -186,15 +194,15 @@
   "readiness_axes": [
     {
       "axis": "application_delivery",
-      "workflow_state": "REVIEWABLE",
+      "workflow_state": "ACCEPTED",
       "evidence_state": "REPRODUCED_IN_STATED_SCOPE",
       "qualification_or_customer_use_effect": "NONE",
-      "finding": "GOAL-WORKBENCH-04 recovered, hardened, and published in PR #170; acceptance pending.",
+      "finding": "GOAL-WORKBENCH-04 recovered, hardened, accepted from exact head 3a01e099466a613ed61cafaf5735d802c62ad3d4 in run 34891993646, and merged as e576fbdc711c9194dbcc7d90405480e90577407e.",
       "evidence_reference": "https://github.com/carbonphysicsai/Carbon/pull/170",
       "owner": "Workbench application owner",
-      "next_action": "Complete exact-head CI and merge with expected-head guard.",
-      "dependency": "Repository Merge gate",
-      "restart_event": "PR #170 Merge gate succeeds or reports a concrete failure.",
+      "next_action": "Use the accepted reader only for identity-matching C-05 bytes.",
+      "dependency": "NONE_FOR_APPLICATION_DELIVERY",
+      "restart_event": "A changed design, source fixture, or result requires a new explicit binding/applicability review.",
       "status_source_date": "closeout audit 2026-09-15"
     },
     {
@@ -284,7 +292,7 @@
       "evidence_reference": "workbench_projection_status.json",
       "owner": "Workbench application owner",
       "next_action": "Use C-05 reader only for matching bytes and export this packet through the manual handoff route.",
-      "dependency": "PR #170 application acceptance for packaged use",
+      "dependency": "Accepted PR #170 for packaged use; no native D-QUAL reader exists",
       "restart_event": "A separately authorized readiness adapter, if ever selected.",
       "status_source_date": "source audit 2026-09-15"
     },

@@ -36,10 +36,12 @@ two-recipe 3-replica-by-12-case result matrix or a reference-settings
 perturbation matrix from which numerical floors could be estimated.
 
 GOAL-WORKBENCH-04 was recovered from original commit
-`0ea0ad8116ae4d912e866d11c52d6775a37d9813` and is being delivered separately
-in PR #170. Its accepted reader supports only exact C-05 result bytes. This
-general readiness record is therefore a manual research attachment; forcing it
-through the C-05 schema is rejected and no native readiness import is claimed.
+`0ea0ad8116ae4d912e866d11c52d6775a37d9813`, accepted at tested head
+`3a01e099466a613ed61cafaf5735d802c62ad3d4` in run `34891993646`, and merged
+separately in PR #170 as `e576fbdc711c9194dbcc7d90405480e90577407e`.
+Its reader supports only exact C-05 result bytes. This general readiness record
+is therefore a manual research attachment; forcing it through the C-05 schema
+is rejected and no native readiness import is claimed.
 
 The protocol says `frozen_before_numerical_execution=true`, but the protocol and
 results first appear together in one detached commit and no earlier signed
