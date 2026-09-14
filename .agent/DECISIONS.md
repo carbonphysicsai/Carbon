@@ -13875,3 +13875,50 @@ can supersede this decision in this heading, the C-07 ticket/plan and
 `carbon/orchestration`. No human-reserved input is needed to test this bounded
 slice. Protected admission remains fail closed pending the named scientific,
 security, signer/custody and archive authorities.
+
+## 2026-09-14 — C-08-D1: journal authenticated intent around unchanged A9 and C-07 owners
+
+**Source and scope.** This reversible engineering decision implements the C-08
+sequence prospectively authorized by `OWNER-C1-BURGERS-ALPHA-01` after accepted
+C-07 PR #163. It is a bounded public/synthetic DEVELOPMENT composition, not a
+public endpoint, production authentication/security acceptance, protected exam,
+official result, archive acknowledgement, fee, network operation or LIVE
+decision.
+
+**Selection.** Keep NET-2's gateway and receipt journal, A9's exact seven tools
+and resource/query/disclosure gates, and C-07/C-01's attempt/result lifecycle
+unchanged. Add a separate C-08 composition package plus versioned tables in the
+existing NET-2 SQLite transaction domain. The tables bind authenticated receipt,
+requester, Challenge, source submission, exact C-07 request/attempt and returned
+public projection without becoming authority over any owner record.
+
+**Dispatch and recovery.** Persist submit dispatch intent before calling A9.
+Loss after A9 mutation but before association is typed
+`RECONCILIATION_REQUIRED`; an exact trusted reconciliation may attach the known
+A9 result, while transport replay never calls A9 again. Persist C-07 bind intent
+before `begin`; recovery may only invoke the source-owned explicit start,
+`RESUME_EXISTING` or completed-attach path with the same request, worker and
+claim. C-01 alone admits linked retry attempts and preserves their immutable
+scientific bindings.
+
+**Admission and disclosure.** Bind only exact `REAL_PATH_NON_LIVE` C-07 requests
+whose requester, Challenge and submission match the authenticated submit.
+Fixture/practice scope rejects. Authenticated result polling still consumes A9's
+budget and returns its exact projection plus only C-07's existing positive
+public projection, all inside NET-2's canonical response bound. Source-owned
+failed, cancelled, contested and indeterminate outcomes remain distinct; no
+candidate zero or success is invented.
+
+**Alternatives rejected.** Modifying A9's seven-operation contract would disturb
+its closed owner surface. A second network listener or receipt database would
+duplicate NET-2. A generic callback, caller-supplied execution request or
+automatic retry would widen authority. Publishing a C-07 account as an A6 card
+would invent score/publication semantics. Treating ambiguous mutation as safe to
+repeat would duplicate scientific work.
+
+**Reversibility and remaining authority.** The C-08 package and its journal
+tables can be removed without changing NET-2, A9 or C-07 records. A lead may
+supersede this heading, the C-08 ticket/plan and `carbon.miner_mcp`. Production
+quota/fee values, public hosting/TLS, protected admission, independent security
+acceptance, scientific qualification, signer/custody, real archive, network and
+LIVE authority remain human/external inputs and fail closed.

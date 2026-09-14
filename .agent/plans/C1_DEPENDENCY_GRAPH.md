@@ -1,10 +1,10 @@
-# C1 real-vertical dependency graph after C-06 PR #161
+# C1 real-vertical dependency graph after C-07 PR #163
 
 **Decision:** `OWNER-C1-CONTRACTS-01`
 **Status:** authoritative planning checkpoint after merge
 **Primary Hub map_ref:** `WAVE-C`
-**Implementation selection:** PR #161 accepted C-06's signed non-official
-DEVELOPMENT evidence; C-07's bounded non-official orchestration is selected
+**Implementation selection:** PR #163 accepted C-07's bounded non-official
+DEVELOPMENT orchestration; C-08's authenticated DEVELOPMENT composition is selected
 
 ## Authority resolution
 
@@ -31,7 +31,7 @@ C-01(done) ─┬─> C-AUTH1(done) ─> C-EA0(done) ─> C-EA1(done, synthetic 
                     └─> C-03(PR #149 capability + PR #151 hardening)
                             └─> C-04(PR #154 engineering + D-03/D-04 prerequisite harness)
 C-02 + C-04 ─> C-05(PR #157 engineering + D-02/D-05 prerequisite harness)
-             ─> C-06(PR #161 DEVELOPMENT receipt) ─> C-07(selected) ─> C-08
+             ─> C-06(PR #161 DEVELOPMENT receipt) ─> C-07(PR #163 DEVELOPMENT orchestration) ─> C-08(selected)
                     C-07 + real archive profile + C-EA1 ─> C-EA2
 A10 boundary + C-06 + C-07 + C-EA2 ─> C-09
 G2(exact standard localnet only) + C-09 + C-EA2 + real signed C1 evidence ─> C-W1
@@ -57,8 +57,8 @@ C-EP3 + supplied immutable JAX bundle ─> C-02(merged DEVELOPMENT adapter prere
 | C-04 | bounded public qualification-candidate slice accepted in PR #154; broader ticket open | ticket, plan, role-explicit runtime and D-03/D-04 prerequisite harness | accepted C-03 capability/hardening, B-04 and B-E2 satisfied | qualified primary/witness, tolerances, applicability, uncertainty and protected access acceptance remain open | none for merged public slice | bounded slice complete | **already usable by C-05 in bounded mode** |
 | C-05 | bounded public qualification-candidate slice accepted in PR #157; broader ticket open | ticket, plan, measurement runtime and D-05 prerequisite harness | B-05 bounded foundation plus C-02/C-04 engineering satisfied | qualified measurements, floors, uncertainty, decision-resolution target and Score Pack admission remain open | none for accepted public slice; protected inputs absent | bounded slice complete | **already usable by C-06 in bounded mode** |
 | C-06 | done in bounded non-official DEVELOPMENT scope; PR #161 accepted | ticket, plan, canonical receipt, Ed25519 signer, append-only ledger and allow-listed projections | C-01 and accepted C-02/C-04/C-05 engineering capabilities satisfied | official signer authorization, key/custody, retention, scientific/security acceptance remain open | real official evidence chain absent | bounded slice complete | **already usable by C-07 in bounded mode** |
-| C-07 | `in_progress`, selected non-official DEVELOPMENT orchestration slice | ticket, plan, thin C-01/C-06 composition, typed source-result intake and report projections | C-01 through C-06 bounded engineering capabilities satisfied | protected/scientific/security/official signer and archive acceptance remain open | eligible protected inputs and real archive acknowledgement absent | no missing contract work for bounded slice | **yes, current slice; not protected/official/archive/network-eligible** |
-| C-08 | `future_reserved`, unselected, blocked | ticket materialized here; sufficient | NET-2 satisfied in bounded scope; C-07 missing; A9 retained | real budgets/quotas and production auth/security approval | real validator orchestration endpoint/path | materialized by this checkpoint | **no** |
+| C-07 | done in bounded non-official DEVELOPMENT scope; PR #163 accepted | ticket, plan, thin C-01/C-06 composition, typed source-result intake and report projections | C-01 through C-06 bounded engineering capabilities satisfied | protected/scientific/security/official signer and archive acceptance remain open | eligible protected inputs and real archive acknowledgement absent | bounded slice complete | **already usable by C-08 in bounded mode** |
+| C-08 | `in_progress`, selected bounded authenticated DEVELOPMENT composition | ticket and C-08-D1 working plan | NET-2, C-07 and A9 bounded capabilities satisfied | real budgets/quotas and production auth/security approval remain open | public listener/deployment and protected inputs absent | no missing contract work for bounded slice | **yes, current slice; not official/archive/network-eligible** |
 | C-EA2 | `future_reserved`, unselected, blocked | ticket exists; sufficient | C-EA1 plus selected real C-02–C-07 path | real artifact, rights, retention, custody/KMS, topology, durability, recovery and security policies | eligible real archive service/acknowledgement | already materialized; do not select | **no** |
 | C-09 | `future_reserved`, unselected, blocked | ticket materialized here; sufficient | A10 boundary, C-06, C-07, C-EA2 | qualified provenance and Challenge-local publication/disclosure policy | signed real receipt/result and eligible real archive acknowledgement | materialized by this checkpoint | **no** |
 | C-W1 | `future_reserved`, unselected, blocked | ticket exists; sufficient | exact G2 scope plus C-09, C-EA2 and real signed C1 evidence | public network identity, eligibility window, sink/custody and security/economic activation | actual real C1 proof chain and public testnet access | already materialized; do not select | **no** |
@@ -91,8 +91,9 @@ provides C-02's adapter prerequisite; PR #149 provides accepted bounded C-03
 worker capability; PR #151 accepted its prerequisite hardening; PR #154
 accepted C-04's bounded public reference slice; PR #157 accepted C-05's bounded
 public measurement slice; and PR #161 accepted C-06's signed non-official
-DEVELOPMENT evidence. Under `OWNER-C1-BURGERS-ALPHA-01`, C-07 is now the
-selected durable non-official DEVELOPMENT orchestration ticket without another
+DEVELOPMENT evidence; and PR #163 accepted C-07's durable non-official
+DEVELOPMENT orchestration. Under `OWNER-C1-BURGERS-ALPHA-01`, C-08 is now the
+selected bounded authenticated DEVELOPMENT composition without another
 selection ceremony.
 C-EA2 and C-W1 remain unimplemented and ineligible. This graph authorizes no
 protected reference, official science, public-network operation, real archive

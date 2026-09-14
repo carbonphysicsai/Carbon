@@ -1,7 +1,13 @@
 # C-08 — Authenticated Miner MCP end to end
 
 **Wave:** C1 real scientific execution foundations
-**Status:** `future_reserved`; contract materialized, unselected and unstarted
+**Status:** `in_progress` for the bounded non-official DEVELOPMENT composition
+**Selected slice:** authenticated NET-2 + A9 + real-path C-07 association,
+without a public listener or official result authority
+**Selection authority:** `OWNER-C1-BURGERS-ALPHA-01`, implemented by `C-08-D1`
+**Plan:** `.agent/plans/C-08_authenticated_miner_mcp_e2e.md`
+**Evidence:** `.agent/evidence/wave_c/c-08.md`
+**Primary Hub map_ref:** `WAVE-C/C-08`
 **Depends on:** NET-2, C-07; current A9 Miner MCP disclosure contract
 **Owner:** Codex + API/protocol engineering
 **Accountable reviewer:** Protocol + security + scientific integration
@@ -64,6 +70,7 @@ research paths remain nominally distinct and cannot satisfy a real result.
 
 ## Authority ceiling
 
-Contract materialization only. No real transport composition, public endpoint,
-fee policy, scientific/security qualification, chain transaction, production or
+Selected bounded public/synthetic DEVELOPMENT composition only. No public
+listener, protected data, official result, real archive acknowledgement, fee
+policy, scientific/security qualification, chain transaction, production or
 LIVE authority exists.
