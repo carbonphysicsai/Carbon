@@ -1,8 +1,13 @@
 # C-07 — Official evaluation orchestration
 
 **Wave:** C1 real scientific execution foundations
-**Status:** `future_reserved`; unselected and unstarted
-**Depends on:** C-01 through C-06
+**Status:** `in_progress`
+**Selected slice:** bounded non-official DEVELOPMENT orchestration
+**Selection authority:** `OWNER-C1-BURGERS-ALPHA-01`, implemented by `C-07-D1`
+**Plan:** `.agent/plans/C-07_development_orchestration.md`
+**Evidence:** `.agent/evidence/wave_c/c-07.md`
+**Primary Hub map_ref:** `WAVE-C/C-07`
+**Depends on:** C-01, C-02, C-03, C-04, C-05, C-06
 
 ## Goal
 
@@ -10,12 +15,29 @@ Orchestrate the exact generator, reconstruction, reference, measurement, scoring
 
 ## Definition of Done
 
-- [ ] One durable state machine associates submission, resolved plan, reconstruction, canonical case, reference, measurement, score, receipt, and card identities.
-- [ ] Delegate each operation to its named domain owner; the orchestrator contains no duplicate compiler, generator, evaluator, scorer, or publication logic.
-- [ ] Preserve typed strategy, candidate, generator, reference, measurement, resource, infrastructure, cancellation, and contested outcomes.
-- [ ] Reference, generator, or infrastructure failure cannot become candidate physics failure, invented zero, completed evaluation, or payable outcome.
-- [ ] Crash/replay/idempotency and bounded integration tests cover every terminal disposition; no direct chain access or weight operation exists.
+- [x] One durable state machine associates submission, resolved plan,
+      three-replica reconstruction, exact case/request manifests, prediction,
+      reference, measurement, unresolved score disposition, receipt and opaque
+      card/transcript owner references.
+- [x] Delegate each operation to its named domain owner; the orchestrator
+      accepts exact source-owned result types and contains no compiler,
+      generator, numerical evaluator, scorer or publication logic.
+- [x] Preserve typed generator, reconstruction, reference, measurement,
+      infrastructure, cancellation, contested and indeterminate outcomes.
+- [x] Reference, generator or infrastructure failure produces a retained
+      operational account without a signed completion receipt, invented zero,
+      score eligibility, archive acknowledgement or payable outcome.
+- [x] Crash/replay/idempotency tests cover all terminal dispositions and the
+      receipt-append/result-association seam; no direct chain/weight operation
+      exists.
+- [ ] Pass the required Linux/Docker service-backed exact-head acceptance and
+      normal merge.
+- [ ] Implement official/protected orchestration only after scientific,
+      security, signer/custody and real archive authorities exist.
 
 ## Authority ceiling
 
-Official-path engineering only. Chain submission, scientific qualification, settlement, and LIVE remain separate later gates.
+Official-path engineering only. This selected slice is public/synthetic
+DEVELOPMENT evidence. Chain submission, protected admission, independent
+security review, scientific qualification, real archive acknowledgement,
+settlement and LIVE remain separate later gates.

@@ -1048,7 +1048,7 @@ def test_default_workflow_delegates_all_semantics_to_repository_scripts() -> Non
     assert _yaml_scalar(jobs["dev-image"], "name") == "Clean dev-container image"
     assert (
         _yaml_scalar(jobs["c03-worker"], "name")
-        == "C-03/C-04/C-05 isolated worker service acceptance"
+        == "C-03/C-04/C-05/C-07 isolated worker service acceptance"
     )
     assert _yaml_scalar(jobs["canonical"], "needs") == "preflight"
     assert _yaml_scalar(jobs["dev-image"], "needs") == "preflight"
@@ -1067,6 +1067,7 @@ def test_default_workflow_delegates_all_semantics_to_repository_scripts() -> Non
         "./scripts/dev/c03_worker_image.sh",
         "./scripts/dev/c03_worker_service.sh",
     )
+    assert 'CARBON_UV_GROUPS: "archive science-jax"' in jobs["c03-worker"]
     required_repository_commands = (
         "./scripts/dev/ci_preflight.sh",
         "./scripts/dev/bootstrap.sh",

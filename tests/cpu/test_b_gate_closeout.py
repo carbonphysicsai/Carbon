@@ -7,10 +7,6 @@ import pytest
 ROOT = Path(__file__).resolve().parents[2]
 
 FUTURE_TICKET_MARKERS = {
-    "C-07_official_evaluation_orchestration.md": (
-        "no duplicate compiler",
-        "no direct chain access",
-    ),
     "C-10_independent_reexecution.md": (
         "typed contested record",
         "cannot finalize, settle",
@@ -78,16 +74,29 @@ def test_accepted_c05_retains_bounded_acceptance_and_unearned_authority() -> Non
     assert "No threshold ratification, scientific qualification" in ticket
 
 
-def test_selected_c06_retains_bounded_acceptance_and_unearned_authority() -> None:
+def test_accepted_c06_retains_bounded_acceptance_and_unearned_authority() -> None:
     ticket = (ROOT / ".agent/tickets/C-06_signed_evidence_ledger.md").read_text(
         encoding="utf-8"
     )
-    assert "**Status:** `in_progress`" in ticket
+    assert "**Status:** `done` in bounded non-official DEVELOPMENT scope" in ticket
     assert "Definition of Done" in ticket
     assert "SamplingPlan" in ticket
     assert "positive allow-lists" in ticket
     assert "structurally DEVELOPMENT-only" in ticket
     assert "does not itself qualify science, security" in ticket
+
+
+def test_selected_c07_retains_bounded_acceptance_and_unearned_authority() -> None:
+    ticket = (
+        ROOT / ".agent/tickets/C-07_official_evaluation_orchestration.md"
+    ).read_text(encoding="utf-8")
+    assert "**Status:** `in_progress`" in ticket
+    assert "Definition of Done" in ticket
+    assert "three-replica reconstruction" in ticket
+    assert "source-owned result types" in ticket
+    assert "no direct chain/weight operation" in ticket
+    assert "public/synthetic" in ticket
+    assert "Official-path engineering only" in ticket
 
 
 @pytest.mark.parametrize(("filename", "markers"), FUTURE_TICKET_MARKERS.items())

@@ -56,6 +56,7 @@ class ExecutionState(str, Enum):
 
 
 class ExecutionStage(str, Enum):
+    GENERATOR = "GENERATOR"
     RECONSTRUCTION = "RECONSTRUCTION"
     PREDICTION = "PREDICTION"
     REFERENCE = "REFERENCE"

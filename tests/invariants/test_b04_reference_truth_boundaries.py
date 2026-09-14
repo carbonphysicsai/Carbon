@@ -190,6 +190,10 @@ def _is_allowed_evaluation_consumer(path: Path, module_name: str) -> bool:
             path.is_relative_to(_CARBON_ROOT / "reference_runtime")
             and module_name == "carbon.evaluation.enums"
         )
+        or (
+            path == _CARBON_ROOT / "orchestration" / "service.py"
+            and module_name == "carbon.evaluation.enums"
+        )
     )
 
 

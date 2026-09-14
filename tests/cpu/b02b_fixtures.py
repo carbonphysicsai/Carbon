@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 import test_b02a_contract_models as domain_fixtures
@@ -99,9 +99,15 @@ def strategy_limits(**overrides: object) -> SubmissionResourceLimits:
     return SubmissionResourceLimits(**values)  # type: ignore[arg-type]
 
 
-def make_compile_fixture(tmp_path: Path) -> CompileFixture:
+def make_compile_fixture(
+    tmp_path: Path, *, challenge_key: ChallengeKey | None = None
+) -> CompileFixture:
     del tmp_path
-    key = ChallengeKey("fixture_authoring", "1.0")
+    key = (
+        ChallengeKey("fixture_authoring", "1.0")
+        if challenge_key is None
+        else ChallengeKey(challenge_key.challenge_id, challenge_key.version)
+    )
 
     def pinned(kind: str, object_id: str) -> object:
         return owner_ref(
@@ -121,9 +127,23 @@ def make_compile_fixture(tmp_path: Path) -> CompileFixture:
             content_digest=_DIGEST,
         )
 
-    physical = domain_fixtures._physical()
-    candidate = domain_fixtures._candidate(physical)
-    training = domain_fixtures._training_support(physical, candidate)
+    fixture_physical = domain_fixtures._physical()
+    fixture_candidate = domain_fixtures._candidate(fixture_physical)
+    fixture_training = domain_fixtures._training_support(
+        fixture_physical, fixture_candidate
+    )
+    physical = replace(fixture_physical, challenge_key=key)
+    candidate = replace(
+        fixture_candidate,
+        challenge_key=key,
+        physical_system_ref=physical.to_ref(),
+    )
+    training = replace(
+        fixture_training,
+        challenge_key=key,
+        physical_system_ref=physical.to_ref(),
+        candidate_output_ref=candidate.to_ref(),
+    )
     authored = (physical, candidate, training)
     source_provenance_ref = portable("provenance", "fixture_authoring_source")
     fixture_origin = FixtureAuthoringCapability().issue_origin(

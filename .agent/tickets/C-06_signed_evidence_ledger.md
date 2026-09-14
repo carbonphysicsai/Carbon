@@ -1,7 +1,10 @@
 # C-06 — Signed evidence ledger
 
 **Wave:** C1 real scientific execution foundations
-**Status:** `in_progress`
+**Status:** `done` in bounded non-official DEVELOPMENT scope; PR #161 accepted
+exact head `bad0b05c7683af67caa5fbd9fe9a8e11fda588da` in run
+`34797587027` and normally merged as
+`0c00350b98b9a0062006f5bd2ce50c20aff37b3c`
 **Selected slice:** signed non-official DEVELOPMENT receipt and append-only
 ledger
 **Selection authority:** `OWNER-C1-BURGERS-ALPHA-01`
@@ -31,7 +34,7 @@ official result authority.
       missing-evidence, partial-write and invalid-transition tests fail closed.
 - [x] Every receipt is structurally DEVELOPMENT-only and incapable of asserting
       official, protected, score, archive, network or reward eligibility.
-- [ ] Pass exact-head automated acceptance and normal merge.
+- [x] Pass exact-head automated acceptance and normal merge.
 - [ ] Implement the later qualified official receipt/retention/custody profile
       only after its scientific, security and external key authority exist.
 
