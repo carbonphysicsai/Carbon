@@ -34,11 +34,12 @@ FUTURE_TICKET_MARKERS = {
 }
 
 
-def test_selected_c10_retains_bounded_acceptance_and_unearned_authority() -> None:
+def test_accepted_c10_retains_bounded_acceptance_and_unearned_authority() -> None:
     ticket = (ROOT / ".agent/tickets/C-10_independent_reexecution.md").read_text(
         encoding="utf-8"
     )
-    assert "**Status:** `in_progress`" in ticket
+    assert "**Status:** `done` in the bounded public-data DEVELOPMENT slice" in ticket
+    assert "34882900413" in ticket
     assert "Definition of Done" in ticket
     assert "typed contested record" in ticket
     assert "cannot finalize, settle" in ticket
