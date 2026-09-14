@@ -536,7 +536,7 @@ def test_alpha_capacity_reservation_is_atomic_and_counts_retained_evidence(
                 )
             )
         except ArchiveFailure as failure:
-            failures.append(failure.code)
+            failures.append((evaluation_id, failure.code))
 
     threads = [
         threading.Thread(target=reserve, args=(value,))
@@ -549,7 +549,9 @@ def test_alpha_capacity_reservation_is_atomic_and_counts_retained_evidence(
         thread.join()
 
     assert len(reservations) == 1
-    assert failures == [ArchiveCode.CAPACITY]
+    assert len(failures) == 1
+    failed_evaluation_id, failure_code = failures[0]
+    assert failure_code is ArchiveCode.CAPACITY
     retained = ledger.retain(reservations[0].reservation_id)
     assert retained.active_evaluations == 0
     assert retained.pending_bytes == 0
@@ -557,7 +559,7 @@ def test_alpha_capacity_reservation_is_atomic_and_counts_retained_evidence(
     assert ledger.retain(reservations[0].reservation_id) == retained
 
     second = ledger.reserve(
-        evaluation_id="alpha-evaluation-2",
+        evaluation_id=failed_evaluation_id,
         declared_bytes=10 * 1024**3,
     )
     assert second.pending_bytes + second.retained_bytes == ALPHA_LOGICAL_QUOTA_BYTES
