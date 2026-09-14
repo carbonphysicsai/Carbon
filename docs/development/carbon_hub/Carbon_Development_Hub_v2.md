@@ -2,7 +2,7 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `4235c778357b51b8b6dd1b629fa1339bd26936ad` on `main`, captured 2026-09-13T23:03:13Z.
+**Authority snapshot:** `2554f62d43f4d0d5430a3df53600c6adcdc2da40` on `main`, captured 2026-09-14T00:15:21Z.
 **Current:** Wave C, ticket C-05. C-04 is the last bounded completed slice after PR #154 accepted exact head 32fa87f0f4947b8fbae9b2b73e5fa875a73de175 in run 34784739423 and normally merged as 0cd91bfa6d30f81739ff75e46888f6f1387bd1de. OWNER-C1-BURGERS-ALPHA-01 now selects C-05 alone for real measurement algorithms and public qualification-candidate evidence under a distinct C-03 worker. No later ticket is selected while C-05 is active; C-06 is prospectively authorized only after C-05's bounded merge. The candidate binds C-02 artifact and C-04 candidate-primary reference identities, emits four measurements and six physics diagnostics, and keeps every limit and decision unresolved. The trusted single-tenant host model, three-replica working profile, candidate reference roles and prospective archive targets grant no scientific sufficiency, independent security acceptance, protected admission, real score, archive acknowledgement, production, public network or LIVE authority. D6 run 34518806217 remains historical LOCALNET_READY evidence for its exact disposable standard-profile localnet.
 **Last completed:** C-04 (`done`).
 **Next selected:** none selected.
@@ -222,6 +222,7 @@
 - `C-04-I1` — `WAVE-C/C-04` — The C-04 candidate implements role-explicit Cole–Hopf primary, conservative finite-volume witness and ETDRK4 development cross-check paths under the C-03 boundary, plus a frozen twelve-cell public D-03/D-04 prerequisite harness. Required exact-head Linux service acceptance is pending; no tolerance, TruthAsset, protected admission, score or scientific/security qualification is asserted.
 - `C-04-E1` — `WAVE-C/C-04` — PR #154 accepted exact C-04 head 32fa87f0f4947b8fbae9b2b73e5fa875a73de175 in required run 34784739423 and normally merged it as 0cd91bfa6d30f81739ff75e46888f6f1387bd1de. The role-explicit public reference runtime is tested only as a qualification candidate; D-03/D-04 scientific acceptance, protected admission and independent security acceptance remain open.
 - `C-05-I1` — `WAVE-C/C-05` — The C-05 candidate implements four registered Burgers measurement operators and six physics diagnostics in a distinct bounded worker, plus a frozen three-replica-by-twelve-case D-05 prerequisite harness. Exact-head Linux service acceptance is pending; every scientific limit and decision remains unresolved and no score, rank, reward or qualification is emitted.
+- `C-04-B1` — `WAVE-C/C-04` — Issue #158 separates C-04 dependency-free structural invariants from its exact numerical role/environment assertion and keeps the newly accepted C-05 root-export boundary structural, retaining every original assertion in a mandatory declared lane. It changes no runtime module, scientific value, reference outcome, qualification, Wave selection or dependency policy.
 
 ## Authority boundary
 
