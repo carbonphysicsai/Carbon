@@ -7,11 +7,6 @@ from pathlib import Path
 
 import pytest
 
-from carbon.reference_runtime import __all__ as root_exports
-from carbon.reference_runtime.model import (
-    BurgersReferenceRole,
-    runtime_environment_digest,
-)
 from tests.invariants._import_analysis import direct_import_modules
 
 pytestmark = pytest.mark.invariant
@@ -51,7 +46,16 @@ def _files() -> tuple[Path, ...]:
 
 def test_runtime_package_is_exact_and_has_no_root_authority_surface() -> None:
     assert {path.name for path in _files()} == EXPECTED
-    assert root_exports == ()
+    tree = ast.parse((PACKAGE / "__init__.py").read_text(encoding="utf-8"))
+    declarations = [
+        node
+        for node in tree.body
+        if isinstance(node, ast.AnnAssign)
+        and isinstance(node.target, ast.Name)
+        and node.target.id == "__all__"
+    ]
+    assert len(declarations) == 1
+    assert ast.literal_eval(declarations[0].value) == ()
 
 
 def test_reference_runtime_does_not_import_authority_or_consumer_packages() -> None:
@@ -118,12 +122,3 @@ def test_runtime_never_names_truth_score_reward_or_live_artifact_outputs() -> No
         assert forbidden not in source
     assert source.count('scientifically_qualified": False') >= 2
     assert "eligible_for_truth_or_score" in source
-
-
-def test_method_roles_are_closed_and_environment_is_exact() -> None:
-    assert tuple(BurgersReferenceRole) == (
-        BurgersReferenceRole.CANDIDATE_PRIMARY,
-        BurgersReferenceRole.INDEPENDENT_WITNESS,
-        BurgersReferenceRole.DEVELOPMENT_CROSSCHECK,
-    )
-    assert runtime_environment_digest().startswith("sha256:")

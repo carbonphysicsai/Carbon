@@ -7,7 +7,6 @@ from pathlib import Path
 
 import pytest
 
-from carbon.measurement_runtime import __all__ as root_exports
 from tests.invariants._import_analysis import direct_import_modules
 
 pytestmark = pytest.mark.invariant
@@ -43,7 +42,16 @@ def _files() -> tuple[Path, ...]:
 
 def test_runtime_package_is_exact_and_has_no_root_authority_surface() -> None:
     assert {path.name for path in _files()} == EXPECTED
-    assert root_exports == ()
+    tree = ast.parse((PACKAGE / "__init__.py").read_text(encoding="utf-8"))
+    declarations = [
+        node
+        for node in tree.body
+        if isinstance(node, ast.AnnAssign)
+        and isinstance(node.target, ast.Name)
+        and node.target.id == "__all__"
+    ]
+    assert len(declarations) == 1
+    assert ast.literal_eval(declarations[0].value) == ()
 
 
 def test_measurement_runtime_does_not_import_scoring_or_consumer_authority() -> None:
