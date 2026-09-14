@@ -111,8 +111,7 @@ def test_hub_projects_only_cea1_deployment_package() -> None:
     assert "34816242461" in tickets["C-08"]["current_stage"]
     assert tickets["C-EA1"]["status"] == "in_progress"
     assert (
-        tickets["C-EA1"]["implementation_state"]
-        == "aws_deployment_package_candidate"
+        tickets["C-EA1"]["implementation_state"] == "aws_deployment_package_candidate"
     )
     assert "sha256:e7f9b869" in tickets["C-EA1"]["current_stage"]
     assert tickets["C-EA1"]["maturity_states"]["tested"] == "earned"
