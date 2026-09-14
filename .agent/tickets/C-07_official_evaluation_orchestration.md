@@ -1,13 +1,13 @@
 # C-07 — Official evaluation orchestration
 
 **Wave:** C1 real scientific execution foundations
-**Status:** `in_progress`; selected bounded non-official DEVELOPMENT
-orchestration slice
+**Status:** `in_progress`
+**Selected slice:** bounded non-official DEVELOPMENT orchestration
 **Selection authority:** `OWNER-C1-BURGERS-ALPHA-01`, implemented by `C-07-D1`
 **Plan:** `.agent/plans/C-07_development_orchestration.md`
 **Evidence:** `.agent/evidence/wave_c/c-07.md`
 **Primary Hub map_ref:** `WAVE-C/C-07`
-**Depends on:** C-01 through C-06
+**Depends on:** C-01, C-02, C-03, C-04, C-05, C-06
 
 ## Goal
 
