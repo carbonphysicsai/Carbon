@@ -1,0 +1,86 @@
+{
+  "schema": "carbon.d-qual-prep-01.protocol.v1",
+  "scope": "PUBLIC_DEVELOPMENT_DETACHED_READINESS_ONLY",
+  "frozen_before_numerical_execution": true,
+  "source_revision": "ed6047d03cf60db6ce52f03e63040d95c1ea78e4",
+  "challenge": {"id": "burgers-dynamics-v1", "version": "1.0"},
+  "authority": {
+    "selects_wave_d": false,
+    "qualifies_reference": false,
+    "qualifies_measurement": false,
+    "creates_score_input": false,
+    "score_eligible": false,
+    "protected_execution_eligible": false,
+    "network_eligible": false,
+    "production_eligible": false,
+    "live_eligible": false
+  },
+  "upstream_identities": {
+    "c_auth1_package_digest": "sha256:4fa6828a38050bd34fd76019fa472bdcd141a7f788ac09103544e4de0ffcd716",
+    "c_auth1_execution_freeze_digest": "sha256:f6624238cb5c07fc15ce0b94477336041fb1ef879454aa2d39e0e6f53eeb2788",
+    "c04_campaign_manifest_digest": "sha256:28f4483c3432d8f36239663fb6b79e5ca1f46ad6850b63dac64a240cd1b72ec8",
+    "c04_environment_digest": "sha256:914e6e0aab72edd55854fbfd25ccce7a05d271da4bde3e6a88a49609c07d65a0",
+    "c05_campaign_manifest_digest": "sha256:9ad9cb1cbd5859ec50116ea8476bb0112300ab0d494c6233765fa5ffec69d44c"
+  },
+  "public_case_source": {
+    "context_kind": "MockContext",
+    "mock_entropy_hex": "6363636363636363636363636363636363636363636363636363636363636363",
+    "evaluation_binding_hex": "6565656565656565656565656565656565656565656565656565656565656565",
+    "generator_version": "1.0",
+    "generator_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+    "score_pack_version": "1.0",
+    "score_pack_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+    "case_coordinates": [
+      {"role": "EVAL", "cell": 0, "ordinal": 0, "build": 0},
+      {"role": "EVAL", "cell": 1, "ordinal": 0, "build": 0},
+      {"role": "EVAL", "cell": 2, "ordinal": 0, "build": 0},
+      {"role": "EVAL", "cell": 3, "ordinal": 0, "build": 0},
+      {"role": "EVAL", "cell": 4, "ordinal": 0, "build": 0},
+      {"role": "EVAL", "cell": 5, "ordinal": 0, "build": 0},
+      {"role": "EVAL", "cell": 6, "ordinal": 0, "build": 0},
+      {"role": "EVAL", "cell": 7, "ordinal": 0, "build": 0},
+      {"role": "EVAL", "cell": 8, "ordinal": 0, "build": 0},
+      {"role": "EVAL", "cell": 9, "ordinal": 0, "build": 0},
+      {"role": "EVAL", "cell": 10, "ordinal": 0, "build": 0},
+      {"role": "EVAL", "cell": 11, "ordinal": 0, "build": 0}
+    ]
+  },
+  "query": {
+    "output_spatial_points": 64,
+    "time_over_characteristic_time": [0.0, 0.1, 0.25],
+    "witness_partition_time_over_characteristic_time": [0.0, 0.05, 0.1, 0.175, 0.25]
+  },
+  "primary_study": {
+    "role": "CANDIDATE_PRIMARY",
+    "method": "cole_hopf_fourier_quadrature",
+    "precision": "float64",
+    "quadrature_grid_points": [512, 1024, 2048, 4096],
+    "alternate_precision": null,
+    "alternate_transform": null,
+    "limiting_case_set": null
+  },
+  "witness_study": {
+    "role": "INDEPENDENT_WITNESS",
+    "method": "periodic_finite_volume_rusanov_ssprk3",
+    "spatial_internal_grid_points": [128, 256, 512, 1024],
+    "cfl": 0.35,
+    "alternate_cfl": null,
+    "retain_target_partition_sensitivity": true
+  },
+  "measurement_study": {
+    "evidence_source": "ACCEPTED_C05_QUALIFICATION_CANDIDATE_RECORDS_ONLY",
+    "recipes": ["carbon_jax_lab_fno", "foundax_fno"],
+    "replicas_per_recipe": 3,
+    "cases_per_replica": 12,
+    "retained_result_matrix_path": null,
+    "d02_generator_conformance_required": true
+  },
+  "retention": {
+    "retain_supported": true,
+    "retain_failed": true,
+    "retain_nonconverged": true,
+    "omit_difficult_cases": false
+  },
+  "scientific_thresholds": null,
+  "qualification_decision": null
+}

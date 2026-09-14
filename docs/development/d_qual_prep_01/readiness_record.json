@@ -1,0 +1,335 @@
+{
+  "authority": {
+    "live_eligible": false,
+    "network_eligible": false,
+    "production_eligible": false,
+    "protected_execution_eligible": false,
+    "reward_eligible": false,
+    "scientific_thresholds": null,
+    "scientifically_qualified": false,
+    "score_eligible": false,
+    "score_input": null,
+    "tickets_activated": [],
+    "wave_d_selected": false
+  },
+  "cpes_changed": false,
+  "cpes_variant_a": "DEVELOPMENT_BASELINE",
+  "cpes_variant_b": "CONDITIONAL_RESEARCH",
+  "d02_dependency": "BLOCKED_INPUT",
+  "d03_readiness": "MORE_PUBLIC_EVIDENCE_NEEDED",
+  "d04_readiness": "MORE_PUBLIC_EVIDENCE_NEEDED",
+  "d05_readiness": "BLOCKED_INPUT",
+  "execution_environment": {
+    "c04_declared_environment": {
+      "dependencies": [
+        {
+          "distribution": "jax",
+          "version": "0.10.2"
+        },
+        {
+          "distribution": "jaxlib",
+          "version": "0.10.2"
+        },
+        {
+          "distribution": "numpy",
+          "version": "2.4.6"
+        },
+        {
+          "distribution": "scipy",
+          "version": "1.17.1"
+        },
+        {
+          "distribution": "optax",
+          "version": "0.2.8"
+        },
+        {
+          "distribution": "chex",
+          "version": "0.1.92"
+        },
+        {
+          "distribution": "equinox",
+          "version": "0.13.8"
+        },
+        {
+          "distribution": "einops",
+          "version": "0.8.2"
+        },
+        {
+          "distribution": "foundax",
+          "version": "0.2.0"
+        },
+        {
+          "distribution": "PyYAML",
+          "version": "6.0.3"
+        }
+      ],
+      "lock_digest": "sha256:9de64d6c5ca9a0a73d141ca403de1d2bee8bb85e68cd7ea20195b163a7c2cf11",
+      "platform": "linux-x86_64-cpu",
+      "python": "3.11",
+      "schema": "carbon.c04.reference-environment.v1"
+    },
+    "c04_environment_digest": "sha256:914e6e0aab72edd55854fbfd25ccce7a05d271da4bde3e6a88a49609c07d65a0",
+    "canonical_linux_execution": false,
+    "evidence_role": "NATIVE_MACOS_DIAGNOSTIC",
+    "host_platform": "macOS-15.6-arm64-arm-64bit",
+    "machine": "arm64",
+    "numpy": "2.4.6",
+    "python": "3.11.11",
+    "python_implementation": "CPython"
+  },
+  "analysis_classification": "EXPLORATORY_RETROSPECTIVE",
+  "final_recommendation": "WAIT_FOR_D02_GENERATOR_CONFORMANCE",
+  "historical_campaign_recommendation": "WAIT_FOR_D02_GENERATOR_CONFORMANCE",
+  "goal_workbench_04_delivery": {
+    "application_pr": 170,
+    "original_commit": "0ea0ad8116ae4d912e866d11c52d6775a37d9813",
+    "tested_head": "3a01e099466a613ed61cafaf5735d802c62ad3d4",
+    "acceptance_run": 34891993646,
+    "merge_commit": "e576fbdc711c9194dbcc7d90405480e90577407e",
+    "status": "ACCEPTED_AND_MERGED"
+  },
+  "goal_workbench_04_merge": "e576fbdc711c9194dbcc7d90405480e90577407e",
+  "research_delivery_candidate": {
+    "branch": "agent/d-qual-prep-01",
+    "pull_request": 176,
+    "status": "REVIEWABLE_ACCEPTANCE_PENDING",
+    "tested_head_and_merge_record": "EXTERNAL_REPOSITORY_RECEIPT_REQUIRED"
+  },
+  "outputs": {
+    "generator_dependency.json": "sha256:cad7aa832e7e5ce06bcc910d4718934630ddeeac97fd76daea14894549df0260",
+    "independence_matrix.json": "sha256:bc3a9856751205f1b642ce9d8af34953692696b1cac5538a16c1eff294b1ff04",
+    "measurement_floor_sensitivity.json": "sha256:d8bfef6de0986e27f55f722a95098ddb6350a5471c31c28fd886dacd7bfe8815",
+    "primary_reference_evidence.json": "sha256:c0777ca4256fe3ac28d1dacaa9edbeb2f0cde632f2ba9ea321f7a4462911a0af",
+    "witness_refinement_evidence.json": "sha256:e89b36a4d0115cbd5219239f8682245c049fcfb0a6750f288f1bab1c743167d3",
+    "workbench_projection_status.json": "sha256:7047faf00b675195e159d93e3c0b7739082437d678d344749da79d9f99653b02"
+  },
+  "protocol_digest": "sha256:ff2a730838fad9ae0b3148ed149ecd6021cb5ae0d381ca3f3f71c69871e2e99d",
+  "schema": "carbon.d-qual-prep-01.readiness.v2",
+  "scope": "PUBLIC_DEVELOPMENT_DETACHED_READINESS_ONLY",
+  "prospective_ordering": {
+    "protocol_claim": true,
+    "independently_established": false,
+    "finding": "Protocol and results first appear in one detached commit; no earlier signed manifest, run timestamp, or execution log is retained."
+  },
+  "evidence_accounting": {
+    "distinct_physical_cases": 12,
+    "source_request_executions": 48,
+    "numerical_method_evaluations": 168,
+    "distinct_case_role_method_settings_queries": 120,
+    "retained_raw_field_arrays": 0,
+    "retained_individual_time_step_histories": 0,
+    "retained_stdout_stderr_logs": 0,
+    "retained_summary_records": 6,
+    "note": "Repeated 1024/2048 primary and 256/512 witness calls are executions, not additional refinement levels."
+  },
+  "coverage": {
+    "case_identity": "EVAL cells 0-11, ordinal 0, build 0",
+    "cell_convention": "zero-based source cell index",
+    "physical_case_count": 12,
+    "time_over_characteristic_time": [0.0, 0.1, 0.25],
+    "time_scope": "EARLY_TIME_THREE_SAMPLE_PROBE_NOT_FULL_TRAJECTORY",
+    "broader_source_task_horizon_over_characteristic_time": 4.0,
+    "requested_spatial_points": 64,
+    "primary_internal_grids": [512, 1024, 2048, 4096],
+    "witness_internal_grids": [128, 256, 512, 1024],
+    "observed_quantities": [
+      "initial_recovery_max_absolute",
+      "periodic_closure_max_absolute",
+      "same_method_field_change_max_absolute",
+      "minimum_stabilized_phi",
+      "maximum_mean_drift",
+      "primary_witness_field_discrepancy_max_absolute",
+      "primary_crosscheck_field_discrepancy_max_absolute",
+      "requested_time_partition_field_sensitivity"
+    ],
+    "unobserved_c05_measurements": [
+      "field_phase_rms",
+      "maximum_compression",
+      "peak_dissipation",
+      "energy_half_time"
+    ],
+    "unobserved_c05_physics_diagnostics_count": 6,
+    "evidence_scope": "FIXED_PUBLIC_DIAGNOSTIC_STRATUM_SAMPLE",
+    "unsupported_extensions": [
+      "full trajectory",
+      "late time",
+      "rare event",
+      "extrema population",
+      "half-time population",
+      "qualified population claim"
+    ]
+  },
+  "matrix_evidence": {
+    "status": "EXECUTION_NOT_ESTABLISHED",
+    "specified_members": 72,
+    "retained_members": 0,
+    "matrix_execution_receipts": 0,
+    "accepted_nonmatrix_service_results": 1,
+    "exact_inventory": "measurement_floor_sensitivity.json#/matrix_evidence_audit",
+    "owner_request": "HUMAN_SCIENTIFIC_DECISION_PACKET.md#measurement-data-question"
+  },
+  "limited_reproductions": [
+    {
+      "scope": "CELL_7_FOUR_METHOD_CALL_SPOT_CHECK",
+      "primary_grids": [1024, 2048],
+      "primary_value_digests_match": [true, true],
+      "witness_grids": [256, 512],
+      "witness_value_digests_match": [true, true],
+      "witness_steps": [42, 124]
+    },
+    {
+      "scope": "PACKAGE_IMPORT_SINGLE_TEST",
+      "source_branch_outcome": "PASS",
+      "current_main_archive_revision": "0ee4c9b8db8339740521e2afc72624c97d8e177a",
+      "current_main_archive_outcome": "PASS",
+      "historical_failure_cause": "UNRESOLVED_NOT_REPRODUCED"
+    }
+  ],
+  "workflow": {
+    "job_id": "D-QUAL-PREP-01",
+    "accountable_lead": "Physics/SciML scientific integration lead via issue #42",
+    "assignment": "ACCEPTED",
+    "preparation": "REVIEWABLE",
+    "execution": "AWAITING_EVIDENCE",
+    "decision": "WAITING_ON_OWNERS_INDEPENDENTLY",
+    "s1_role": "PREPARE_SCIENTIFIC_INTERPRETATION",
+    "engineering_role": "DELIVERY_AND_SOURCE_REPRODUCTIONS",
+    "h1_role": "NAMED_AMBIGUITY_ONLY",
+    "packet_state": "EXPORTED_NOT_ACKNOWLEDGED_NOT_APPROVED"
+  },
+  "readiness_axes": [
+    {
+      "axis": "application_delivery",
+      "workflow_state": "ACCEPTED",
+      "evidence_state": "REPRODUCED_IN_STATED_SCOPE",
+      "qualification_or_customer_use_effect": "NONE",
+      "finding": "GOAL-WORKBENCH-04 recovered, hardened, accepted from exact head 3a01e099466a613ed61cafaf5735d802c62ad3d4 in run 34891993646, and merged as e576fbdc711c9194dbcc7d90405480e90577407e.",
+      "evidence_reference": "https://github.com/carbonphysicsai/Carbon/pull/170",
+      "owner": "Workbench application owner",
+      "next_action": "Use the accepted reader only for identity-matching C-05 bytes.",
+      "dependency": "NONE_FOR_APPLICATION_DELIVERY",
+      "restart_event": "A changed design, source fixture, or result requires a new explicit binding/applicability review.",
+      "status_source_date": "closeout audit 2026-09-15"
+    },
+    {
+      "axis": "research_delivery_and_retained_evidence",
+      "workflow_state": "REVIEWABLE",
+      "evidence_state": "INSPECTED",
+      "qualification_or_customer_use_effect": "NONE",
+      "finding": "Original detached source and six summary records verify; raw arrays, step histories and run logs are not retained. Public-safe delivery is reviewable in PR #176; exact-head acceptance is pending.",
+      "evidence_reference": "https://github.com/carbonphysicsai/Carbon/pull/176",
+      "owner": "Engineering delivery",
+      "next_action": "Complete PR #176 exact-head acceptance and merge with the expected-head guard.",
+      "dependency": "Public-safe manifest and repository CI",
+      "restart_event": "PR #176 Merge gate succeeds or reports a concrete failure.",
+      "status_source_date": "closeout audit 2026-09-15"
+    },
+    {
+      "axis": "primary_reference_evidence",
+      "workflow_state": "WAITING_ON_OWNER",
+      "evidence_state": "REPRODUCED_IN_STATED_SCOPE",
+      "qualification_or_customer_use_effect": "BLOCKS_D03_CLAIM_ONLY",
+      "finding": "Cell 7 has smallest retained phi and nondecreasing finest quadrature change; cause and observable applicability are unresolved.",
+      "evidence_reference": "primary_reference_evidence.json#/cases/7",
+      "owner": "Physics/SciML reference owner via issue #42",
+      "next_action": "Freeze the bounded cell-7 hypothesis-discrimination protocol in the owner packet.",
+      "dependency": "Source-exposed controls and actual compute allowance",
+      "restart_event": "Owner-frozen protocol with allowance and stop condition.",
+      "status_source_date": "closeout audit 2026-09-15"
+    },
+    {
+      "axis": "witness_refinement_and_independence",
+      "workflow_state": "WAITING_ON_OWNER",
+      "evidence_state": "REPRODUCED_IN_STATED_SCOPE",
+      "qualification_or_customer_use_effect": "BLOCKS_D04_CLAIM_ONLY",
+      "finding": "Archived grid changes also change time steps; personnel independence and isolated temporal sensitivity are unresolved.",
+      "evidence_reference": "witness_refinement_evidence.json",
+      "owner": "Physics/SciML witness owner via issue #42",
+      "next_action": "Freeze a fixed-grid supported-CFL study and personnel review route.",
+      "dependency": "Owner-selected levels, actual allowance, retained effective time steps",
+      "restart_event": "Owner-frozen temporal protocol and named independent reviewer record.",
+      "status_source_date": "closeout audit 2026-09-15"
+    },
+    {
+      "axis": "generator_conformance",
+      "workflow_state": "WAITING_ON_OWNER",
+      "evidence_state": "UNRESOLVED",
+      "qualification_or_customer_use_effect": "BLOCKS_FORMAL_D05_POPULATION_CLAIMS",
+      "finding": "D-02 remains future-reserved, unselected and unstarted.",
+      "evidence_reference": "generator_dependency.json",
+      "owner": "Carbon scientific owner via issue #41",
+      "next_action": "Select D-02 with retained protocol/resources or keep formal D-05 unselected.",
+      "dependency": "Owner authority and campaign resources",
+      "restart_event": "Explicit D-02 selection and retained inputs, or explicit deferral.",
+      "status_source_date": "repository authority 2026-09-15"
+    },
+    {
+      "axis": "measurement_campaign_data",
+      "workflow_state": "AWAITING_EVIDENCE",
+      "evidence_state": "UNRESOLVED",
+      "qualification_or_customer_use_effect": "BLOCKS_EMPIRICAL_D05_CALIBRATION",
+      "finding": "EXECUTION_NOT_ESTABLISHED: 0/72 exact matrix members and no matrix receipts retained.",
+      "evidence_reference": "measurement_floor_sensitivity.json#/matrix_evidence_audit",
+      "owner": "Scientific measurement engineering via issue #42",
+      "next_action": "Recover exact bytes/receipts or seek separate authorization for the frozen matrix campaign.",
+      "dependency": "Six build identities, twelve paired references, resource allowance and custody",
+      "restart_event": "Verified recovered members or an authorized execution protocol.",
+      "status_source_date": "bounded local/CI artifact search 2026-09-15"
+    },
+    {
+      "axis": "formal_d05_qualification",
+      "workflow_state": "AWAITING_EVIDENCE",
+      "evidence_state": "UNRESOLVED",
+      "qualification_or_customer_use_effect": "FORMAL_QUALIFICATION_BLOCKED",
+      "finding": "D-02, primary, witness, empirical matrix, floors, uncertainty and decision resolution remain independently unresolved.",
+      "evidence_reference": "HUMAN_SCIENTIFIC_DECISION_PACKET.md",
+      "owner": "D-05 scientific owner",
+      "next_action": "Review inputs only after each applicable restart event; do not average axes.",
+      "dependency": "D-02/D-03/D-04 and measurement evidence",
+      "restart_event": "All owner-required inputs exist and D-05 is explicitly selected.",
+      "status_source_date": "closeout audit 2026-09-15"
+    },
+    {
+      "axis": "workbench_reader_projection_compatibility",
+      "workflow_state": "REVIEWABLE",
+      "evidence_state": "INSPECTED",
+      "qualification_or_customer_use_effect": "NONE",
+      "finding": "Exact C-05 reader is supported; D-QUAL readiness has no native reader and remains a manual attachment.",
+      "evidence_reference": "workbench_projection_status.json",
+      "owner": "Workbench application owner",
+      "next_action": "Use C-05 reader only for matching bytes and export this packet through the manual handoff route.",
+      "dependency": "Accepted PR #170 for packaged use; no native D-QUAL reader exists",
+      "restart_event": "A separately authorized readiness adapter, if ever selected.",
+      "status_source_date": "source audit 2026-09-15"
+    },
+    {
+      "axis": "protected_exam_and_launch_authority",
+      "workflow_state": "WAITING_ON_OWNER",
+      "evidence_state": "UNRESOLVED",
+      "qualification_or_customer_use_effect": "PROTECTED_USE_AND_LAUNCH_BLOCKED",
+      "finding": "No protected admission, security qualification, official grade, reward, network, production or launch authority exists.",
+      "evidence_reference": "readiness_record.json#/authority",
+      "owner": "Reserved scientific/security/launch owners",
+      "next_action": "None in this assignment.",
+      "dependency": "Future explicit owner selections and qualifying evidence",
+      "restart_event": "Separate owner authorization outside this closeout.",
+      "status_source_date": "repository authority 2026-09-15"
+    }
+  ],
+  "source_file_digests": {
+    "carbon/generators/burgers_dynamics.py": "sha256:ce4a57f99dd79787616a99ce5d266a07cd77d09f6e80367ce53c63f8e4bf2793",
+    "carbon/measurement_runtime/model.py": "sha256:42904c6c964237b830898a5c0860f0992f6fe60f466ecc33ea28df27080068f9",
+    "carbon/measurement_runtime/qualification_candidate.py": "sha256:68cf217572dc7757e136ee203b75b666778dff1c7aeb42c6c04af7426a004b8f",
+    "carbon/reference_runtime/model.py": "sha256:11a3f346272ed89c2e47fd842d79a5730370b11469e09cb74df21ed2ca4b0e72",
+    "carbon/reference_runtime/qualification_candidate.py": "sha256:ee09dffc8b6426de842d58a03f85b9b560b5531bca7cbcde48bb2cfb620a3b9c"
+  },
+  "source_revision": "ed6047d03cf60db6ce52f03e63040d95c1ea78e4",
+  "unresolved_cpes_blockers": [
+    "AT-09",
+    "AT-16",
+    "AT-19",
+    "AT-22",
+    "AT-30"
+  ],
+  "workbench_projection": "MANUAL_ATTACHMENT_ONLY"
+}

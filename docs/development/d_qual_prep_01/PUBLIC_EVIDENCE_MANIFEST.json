@@ -1,0 +1,211 @@
+{
+  "schema": "carbon.d-qual-prep-01.public-evidence-manifest.v1",
+  "generated_date": "2026-09-15",
+  "scope": "PUBLIC_DEVELOPMENT_DETACHED_READINESS_ONLY",
+  "delivery_candidate": {
+    "branch": "agent/d-qual-prep-01",
+    "pull_request": 176,
+    "tested_head_and_merge_are_external_receipts": true
+  },
+  "original_delivery": {
+    "commit": "f1050b8245cae90fb4af817d5449ec97ef0da342",
+    "parent": "ed6047d03cf60db6ce52f03e63040d95c1ea78e4",
+    "public_locator": "git:f1050b8245cae90fb4af817d5449ec97ef0da342:docs/development/d_qual_prep_01/",
+    "analysis_classification": "EXPLORATORY_RETROSPECTIVE",
+    "prospective_ordering_established": false,
+    "prospective_ordering_finding": "Protocol and results first appear together in the detached commit; no earlier signed manifest, run timestamp, or execution log is retained."
+  },
+  "numerical_source": {
+    "revision": "ed6047d03cf60db6ce52f03e63040d95c1ea78e4",
+    "delivery_rebase_does_not_change_execution_identity": true,
+    "files": [
+      {
+        "path": "carbon/generators/burgers_dynamics.py",
+        "sha256": "ce4a57f99dd79787616a99ce5d266a07cd77d09f6e80367ce53c63f8e4bf2793"
+      },
+      {
+        "path": "carbon/reference_runtime/model.py",
+        "sha256": "11a3f346272ed89c2e47fd842d79a5730370b11469e09cb74df21ed2ca4b0e72"
+      },
+      {
+        "path": "carbon/reference_runtime/qualification_candidate.py",
+        "sha256": "ee09dffc8b6426de842d58a03f85b9b560b5531bca7cbcde48bb2cfb620a3b9c"
+      },
+      {
+        "path": "carbon/measurement_runtime/model.py",
+        "sha256": "42904c6c964237b830898a5c0860f0992f6fe60f466ecc33ea28df27080068f9"
+      },
+      {
+        "path": "carbon/measurement_runtime/qualification_candidate.py",
+        "sha256": "68cf217572dc7757e136ee203b75b666778dff1c7aeb42c6c04af7426a004b8f"
+      }
+    ]
+  },
+  "retained_original_snapshot": [
+    {
+      "path": "protocol_v1.json",
+      "bytes": 3726,
+      "sha256": "ff2a730838fad9ae0b3148ed149ecd6021cb5ae0d381ca3f3f71c69871e2e99d"
+    },
+    {
+      "path": "primary_reference_evidence.json",
+      "bytes": 52030,
+      "sha256": "c0777ca4256fe3ac28d1dacaa9edbeb2f0cde632f2ba9ea321f7a4462911a0af"
+    },
+    {
+      "path": "witness_refinement_evidence.json",
+      "bytes": 53916,
+      "sha256": "06743cbe85f33467422b263bc700450b48f0a03fd225acb75ffc041931a339e3"
+    },
+    {
+      "path": "independence_matrix.json",
+      "bytes": 1921,
+      "sha256": "bc3a9856751205f1b642ce9d8af34953692696b1cac5538a16c1eff294b1ff04"
+    },
+    {
+      "path": "measurement_floor_sensitivity.json",
+      "bytes": 8706,
+      "sha256": "1a45ce9796be767878ea7f3e218b84a701472fc326fdb499da61255673c5881f"
+    },
+    {
+      "path": "generator_dependency.json",
+      "bytes": 1396,
+      "sha256": "cad7aa832e7e5ce06bcc910d4718934630ddeeac97fd76daea14894549df0260"
+    },
+    {
+      "path": "workbench_projection_status.json",
+      "bytes": 653,
+      "sha256": "eea2e37b6eeadc723d30516038ce1c49c83d0453fbb8b4216414e3737a478fc6"
+    },
+    {
+      "path": "readiness_record.json",
+      "bytes": 4072,
+      "sha256": "a3138eea2a206899550124a3148ddbfbba10b89a059edfa0ab1f3f77e835737b"
+    }
+  ],
+  "closeout_evidence_files": [
+    {
+      "path": "protocol_v1.json",
+      "bytes": 3726,
+      "sha256": "ff2a730838fad9ae0b3148ed149ecd6021cb5ae0d381ca3f3f71c69871e2e99d",
+      "role": "RECORDED_PROTOCOL"
+    },
+    {
+      "path": "primary_reference_evidence.json",
+      "bytes": 52030,
+      "sha256": "c0777ca4256fe3ac28d1dacaa9edbeb2f0cde632f2ba9ea321f7a4462911a0af",
+      "role": "RETAINED_SUMMARY_RESULTS"
+    },
+    {
+      "path": "witness_refinement_evidence.json",
+      "bytes": 53929,
+      "sha256": "e89b36a4d0115cbd5219239f8682245c049fcfb0a6750f288f1bab1c743167d3",
+      "role": "RETAINED_SUMMARY_RESULTS_WITH_SCOPE_CORRECTION"
+    },
+    {
+      "path": "independence_matrix.json",
+      "bytes": 1921,
+      "sha256": "bc3a9856751205f1b642ce9d8af34953692696b1cac5538a16c1eff294b1ff04",
+      "role": "METHOD_DEPENDENCY_ACCOUNTING"
+    },
+    {
+      "path": "measurement_floor_sensitivity.json",
+      "bytes": 14456,
+      "sha256": "d8bfef6de0986e27f55f722a95098ddb6350a5471c31c28fd886dacd7bfe8815",
+      "role": "UNEXECUTED_PLAN_AND_72_MEMBER_EVIDENCE_AUDIT"
+    },
+    {
+      "path": "generator_dependency.json",
+      "bytes": 1396,
+      "sha256": "cad7aa832e7e5ce06bcc910d4718934630ddeeac97fd76daea14894549df0260",
+      "role": "DEPENDENCY_STATUS"
+    },
+    {
+      "path": "workbench_projection_status.json",
+      "bytes": 1037,
+      "sha256": "7047faf00b675195e159d93e3c0b7739082437d678d344749da79d9f99653b02",
+      "role": "MANUAL_ATTACHMENT_AND_READER_BOUNDARY"
+    },
+    {
+      "path": "readiness_record.json",
+      "bytes": 15630,
+      "sha256": "991ee0accecf02c223027b0d94dbeb827916014e14e913df90c54d35fac50d88",
+      "role": "VERSIONED_SCOPED_READINESS_SUPPLEMENT"
+    },
+    {
+      "path": "D_QUAL_PREP_01_REPORT.md",
+      "bytes": 19593,
+      "sha256": "4e13cab44adfe0752d7d9045d498cc5f0574d58753eda5d80d6643e595d8e697",
+      "role": "AUDITED_RESEARCH_REPORT"
+    },
+    {
+      "path": "HUMAN_SCIENTIFIC_DECISION_PACKET.md",
+      "bytes": 11056,
+      "sha256": "5036fe0371f670d36f66eefe2523273fca0da2a906b81f9390ec8c313afbce22",
+      "role": "EXPORTED_NOT_DISPATCHED_OWNER_REQUEST"
+    },
+    {
+      "path": "run_campaign.py",
+      "bytes": 30638,
+      "sha256": "5ffe6ce339cf9bf2fc307128bded1461294ef25e35f70b76c65d7e5ab17f96c1",
+      "role": "SOURCE_PINNED_REPRODUCER"
+    },
+    {
+      "path": "tests/cpu/test_d_qual_prep_01.py",
+      "bytes": 9124,
+      "sha256": "00929b2a4fb2b0d9918d12daf67ee486d2570f77acf4233bf3bed7cb2d354f51",
+      "role": "FOCUSED_EVIDENCE_BOUNDARY_TESTS",
+      "locator": "repository-root/tests/cpu/test_d_qual_prep_01.py"
+    }
+  ],
+  "execution_accounting": {
+    "distinct_physical_cases": 12,
+    "source_request_executions": 48,
+    "numerical_method_evaluations": 168,
+    "distinct_case_role_method_settings_queries": 120,
+    "retained_raw_field_arrays": 0,
+    "retained_individual_time_step_histories": 0,
+    "retained_stdout_stderr_logs": 0,
+    "operator_authenticated_execution_receipts": 0
+  },
+  "c05_matrix": {
+    "status": "EXECUTION_NOT_ESTABLISHED",
+    "specified_members": 72,
+    "retained_members": 0,
+    "matrix_execution_receipts": 0,
+    "accepted_run_inspected": 34789621325,
+    "accepted_artifact_name": "c03-worker-evidence",
+    "downloaded_archive_bytes": 7080,
+    "downloaded_archive_sha256": "82a316b428221a8d4d86f5d8ea8d2e4c48e3644e05b8ff7c8d2c2534c7afd508",
+    "safe_listed_before_read": true,
+    "archive_members": [
+      ".carbon-artifacts/c03-worker-image.json",
+      ".carbon-artifacts/c03-service-junit.xml",
+      ".carbon-artifacts/c03-service-traces.jsonl"
+    ],
+    "nonmatrix_service_result_digest": "sha256:ea2c2fcd335ecd33689f29fa898ca01e9bf6eb5bab1e3fdb5090525e23fb9897"
+  },
+  "commands": {
+    "environment_bootstrap": "CARBON_UV_GROUPS=science-jax ./scripts/dev/bootstrap.sh",
+    "campaign_replay_to_new_directory": "env PYTHONPATH=. .venv/bin/python docs/development/d_qual_prep_01/run_campaign.py --output-dir /path/to/empty/output",
+    "focused_tests": "env PYTHONPATH=. .venv/bin/python -m pytest -q tests/cpu/test_d_qual_prep_01.py",
+    "closeout_numerical_reproduction": "CELL_7_FOUR_METHOD_CALL_SPOT_CHECK_ONLY"
+  },
+  "missing_artifacts": [
+    "raw field arrays",
+    "individual time-step histories",
+    "stdout/stderr campaign logs",
+    "operator-authenticated execution receipts",
+    "independent prospective-ordering receipt",
+    "72-member C-05 measurement result matrix and member provenance",
+    "paired measurement results across reference settings",
+    "qualified scientific decision"
+  ],
+  "authority": {
+    "wave_d_selected": false,
+    "scientifically_qualified": false,
+    "score_input": null,
+    "protected_reuse_eligible": false,
+    "launch_eligible": false
+  }
+}

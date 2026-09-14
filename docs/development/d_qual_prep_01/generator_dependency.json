@@ -1,0 +1,44 @@
+{
+  "c07_state": "ACCEPTED_BOUNDED_DEVELOPMENT_ORCHESTRATION",
+  "d02_state": "FUTURE_RESERVED_UNSELECTED_UNSTARTED",
+  "d05_can_proceed_to_qualification": false,
+  "d05_readiness_disposition": "BLOCKED_INPUT",
+  "missing_d02_evidence": [
+    "SUPPORT_AND_EXCLUSION_ACCOUNTING",
+    "MARGINAL_DISTRIBUTION_CONFORMANCE",
+    "JOINT_DISTRIBUTION_CONFORMANCE",
+    "CONDITIONAL_DISTRIBUTION_CONFORMANCE",
+    "STRATUM_MASS_AND_COVERAGE",
+    "DUPLICATE_RATE_AND_IDENTITY",
+    "RETRY_AND_CENSORING_ACCOUNTING",
+    "INTENDED_VERSUS_REALIZED_POPULATION",
+    "EXACT_MANIFEST_SEED_EXCLUSION_FAILURE_WEIGHT_AND_COVERAGE_EVIDENCE"
+  ],
+  "populations": {
+    "public_development_source_population": {
+      "counts": {
+        "EVAL": 48,
+        "STRESS": 120,
+        "TRAIN": 72
+      },
+      "state": "DEFINED_NOT_QUALIFIED"
+    },
+    "qualified_target_population": {
+      "definition": null,
+      "qualification": null,
+      "state": "BLOCKED_INPUT"
+    },
+    "realized_readiness_sample": {
+      "coordinates": "EVAL cells 0-11, ordinal 0, build 0",
+      "count": 12,
+      "state": "OBSERVED"
+    },
+    "stress_or_diagnostic_population": {
+      "available_public_stress_count": 120,
+      "realized_count": 0,
+      "state": "DEFINED_NOT_SAMPLED_BY_ACCEPTED_C04_C05_CAMPAIGNS"
+    }
+  },
+  "schema": "carbon.d-qual-prep-01.generator-dependency.v1",
+  "scientifically_qualified": false
+}

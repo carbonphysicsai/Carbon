@@ -1,0 +1,1468 @@
+{
+  "cases": [
+    {
+      "base_run": {
+        "artifact_digest": "sha256:c6d13d2f5cc33c47a53547c8f7d5ac6014443952142237e20bc4e72cfd72f820",
+        "diagnostics": [
+          [
+            "initial_mean",
+            0.02711942232766088
+          ],
+          [
+            "maximum_mean_drift",
+            6.779719798413741e-08
+          ],
+          [
+            "method",
+            "periodic_finite_volume_rusanov_ssprk3"
+          ],
+          [
+            "steps",
+            225
+          ]
+        ],
+        "failure_reason": null,
+        "outcome": "SUPPORTED",
+        "protected_execution_eligible": false,
+        "request_digest": "sha256:77b5be15c6779a2069014a752706bd0fc4d67b9df8014c107fc4ae6214e12d50",
+        "role": "INDEPENDENT_WITNESS",
+        "scientifically_qualified": false,
+        "score_eligible": false
+      },
+      "boundary_condition": "PERIODIC",
+      "build": 0,
+      "case_digest": "sha256:02203690d762e67cc0f5cd4ba027c32d89a2af0297fca3172a13b3f359659ee9",
+      "cell": 0,
+      "domain_length": 6.283185307179586,
+      "equation": "u_t + u*u_x = viscosity*u_xx",
+      "implementation_digest": "sha256:2d491d8edadebcc3aa52e56bc4660c0f5ee84ed9d6f56fc263728912936ec719",
+      "method": "periodic_finite_volume_rusanov_ssprk3",
+      "observations": {
+        "primary_witness_discrepancy_max_absolute": 0.0014929509729726675,
+        "witness_mean_drift_max_absolute": 6.779719798413741e-08,
+        "witness_spatial_refinement_change_max_absolute": 0.0007393599776736037
+      },
+      "ordinal": 0,
+      "readiness_disposition": "EVIDENCE_READY_FOR_HUMAN_REVIEW",
+      "request_digest": "sha256:77b5be15c6779a2069014a752706bd0fc4d67b9df8014c107fc4ae6214e12d50",
+      "requested_time_over_characteristic_time": [
+        0.0,
+        0.1,
+        0.25
+      ],
+      "reynolds_number": 0.5334119415166267,
+      "reynolds_regime": 0,
+      "settings": {
+        "cfl": 0.35,
+        "contour_points": 0,
+        "internal_grid_points": 256,
+        "maximum_steps": 200000
+      },
+      "shape_family": "harmonic",
+      "source_role": "EVAL",
+      "spatial_refinement_history": [
+        {
+          "cfl": 0.35,
+          "failure_reason": null,
+          "internal_grid_points": 128,
+          "maximum_absolute_change_from_previous_grid": null,
+          "maximum_mean_drift": 1.891585530988671e-07,
+          "outcome": "SUPPORTED",
+          "steps": 59,
+          "value_digest": "sha256:1a4dfdb3713b81788bc49a699c147ba12aad893cc609cedf1946a0e45d4ca2da"
+        },
+        {
+          "cfl": 0.35,
+          "failure_reason": null,
+          "internal_grid_points": 256,
+          "maximum_absolute_change_from_previous_grid": 0.0014380983869291264,
+          "maximum_mean_drift": 6.779719798413741e-08,
+          "outcome": "SUPPORTED",
+          "steps": 225,
+          "value_digest": "sha256:f66fab8871828cd222f1403450e00e29eb1c5db7583be1ff6fc908309ad64ab8"
+        },
+        {
+          "cfl": 0.35,
+          "failure_reason": null,
+          "internal_grid_points": 512,
+          "maximum_absolute_change_from_previous_grid": 0.0007393599776736037,
+          "maximum_mean_drift": 1.9101398778670342e-08,
+          "outcome": "SUPPORTED",
+          "steps": 882,
+          "value_digest": "sha256:72b42dd6eb210f7b6e38ecc82fc45bedd60e7719697d4a105b9944c1726dd04b"
+        },
+        {
+          "cfl": 0.35,
+          "failure_reason": null,
+          "internal_grid_points": 1024,
+          "maximum_absolute_change_from_previous_grid": 0.00037506951030530367,
+          "maximum_mean_drift": 4.461899193869412e-09,
+          "outcome": "SUPPORTED",
+          "steps": 3495,
+          "value_digest": "sha256:a9f230638801f33b4e3c26096ea0bad516f1f4d7953d558d186627330740638a"
+        }
+      ],
+      "target_partition_sensitivity": {
+        "artifact_digest": "sha256:0c85e812f94a2cd50e1925d92dc645ea8e6e3f8c153148f216c32e8dbfbe1416",
+        "failure_reason": null,
+        "label": "REQUESTED_TIME_PARTITION_SENSITIVITY_NOT_CFL_REFINEMENT",
+        "maximum_absolute_change_at_shared_times": 2.968762475435982e-11,
+        "outcome": "SUPPORTED",
+        "request_digest": "sha256:fa0e0e30dced9e62e1cbf855ee6e18ee5020e2133748aef6d56ae38dbcff9ce1",
+        "time_over_characteristic_time": [
+          0.0,
+          0.05,
+          0.1,
+          0.175,
+          0.25
+        ]
+      },
+      "viscosity": 0.0967513226257877
+    },
+    {
+      "base_run": {
+        "artifact_digest": "sha256:ef38133c01de5d2941808b30d1715603749a5b9eb3dec426c9dbab0d969340b0",
+        "diagnostics": [
+          [
+            "initial_mean",
+            -0.15321717503229437
+          ],
+          [
+            "maximum_mean_drift",
+            2.0670850131576657e-07
+          ],
+          [
+            "method",
+            "periodic_finite_volume_rusanov_ssprk3"
+          ],
+          [
+            "steps",
+            393
+          ]
+        ],
+        "failure_reason": null,
+        "outcome": "SUPPORTED",
+        "protected_execution_eligible": false,
+        "request_digest": "sha256:023193572b3231ae473b0663d6efb626360b9fbad8c2fde213c2a70974c7004a",
+        "role": "INDEPENDENT_WITNESS",
+        "scientifically_qualified": false,
+        "score_eligible": false
+      },
+      "boundary_condition": "PERIODIC",
+      "build": 0,
+      "case_digest": "sha256:bf0f16eb1d2c180375115bd9d01b15d94da65dcbb053df218aa89cb05601d8e4",
+      "cell": 1,
+      "domain_length": 6.283185307179586,
+      "equation": "u_t + u*u_x = viscosity*u_xx",
+      "implementation_digest": "sha256:2d491d8edadebcc3aa52e56bc4660c0f5ee84ed9d6f56fc263728912936ec719",
+      "method": "periodic_finite_volume_rusanov_ssprk3",
+      "observations": {
+        "primary_witness_discrepancy_max_absolute": 0.0026898997102304256,
+        "witness_mean_drift_max_absolute": 2.0670850131576657e-07,
+        "witness_spatial_refinement_change_max_absolute": 0.0013324788387907849
+      },
+      "ordinal": 0,
+      "readiness_disposition": "EVIDENCE_READY_FOR_HUMAN_REVIEW",
+      "request_digest": "sha256:023193572b3231ae473b0663d6efb626360b9fbad8c2fde213c2a70974c7004a",
+      "requested_time_over_characteristic_time": [
+        0.0,
+        0.1,
+        0.25
+      ],
+      "reynolds_number": 1.4917643753013863,
+      "reynolds_regime": 1,
+      "settings": {
+        "cfl": 0.35,
+        "contour_points": 0,
+        "internal_grid_points": 256,
+        "maximum_steps": 200000
+      },
+      "shape_family": "harmonic",
+      "source_role": "EVAL",
+      "spatial_refinement_history": [
+        {
+          "cfl": 0.35,
+          "failure_reason": null,
+          "internal_grid_points": 128,
+          "maximum_absolute_change_from_previous_grid": null,
+          "maximum_mean_drift": 5.416862020879432e-07,
+          "outcome": "SUPPORTED",
+          "steps": 107,
+          "value_digest": "sha256:d63f21ce6bd3bfe2d06c850a11bd1a133e3bd111e9edeac2d34dfabd9f546659"
+        },
+        {
+          "cfl": 0.35,
+          "failure_reason": null,
+          "internal_grid_points": 256,
+          "maximum_absolute_change_from_previous_grid": 0.0025934947718335155,
+          "maximum_mean_drift": 2.0670850131576657e-07,
+          "outcome": "SUPPORTED",
+          "steps": 393,
+          "value_digest": "sha256:fbb1fa44c31fdb796f1afdaebdc023ea548f3ce5d18a0a9891ad149f65424f20"
+        },
+        {
+          "cfl": 0.35,
+          "failure_reason": null,
+          "internal_grid_points": 512,
+          "maximum_absolute_change_from_previous_grid": 0.0013324788387907849,
+          "maximum_mean_drift": 9.214615637187507e-08,
+          "outcome": "SUPPORTED",
+          "steps": 1504,
+          "value_digest": "sha256:69eb75d042d0f2f5e6ca53998b006baf0ba4e8d7b4f93358a7b72dc013d7d4d9"
+        },
+        {
+          "cfl": 0.35,
+          "failure_reason": null,
+          "internal_grid_points": 1024,
+          "maximum_absolute_change_from_previous_grid": 0.0006755391705938751,
+          "maximum_mean_drift": 4.53340156525428e-08,
+          "outcome": "SUPPORTED",
+          "steps": 5883,
+          "value_digest": "sha256:be98e361ea0773e0a8a0d019331284fa409b0cf3874cadc695c4982d7167d5a4"
+        }
+      ],
+      "target_partition_sensitivity": {
+        "artifact_digest": "sha256:5e2be6b623183d2449656bb309a167eaf982717e5f60ba164e87e7472fe6fef8",
+        "failure_reason": null,
+        "label": "REQUESTED_TIME_PARTITION_SENSITIVITY_NOT_CFL_REFINEMENT",
+        "maximum_absolute_change_at_shared_times": 2.3141131372250712e-11,
+        "outcome": "SUPPORTED",
+        "request_digest": "sha256:0c70aa651df24cee1f7aa14efc6cd16b731fe7af416cdfc04d86df178dbf5edf",
+        "time_over_characteristic_time": [
+          0.0,
+          0.05,
+          0.1,
+          0.175,
+          0.25
+        ]
+      },
+      "viscosity": 0.05109084265517244
+    },
+    {
+      "base_run": {
+        "artifact_digest": "sha256:9ae7bc17e46b4861b161671284c116523311a99b05cebf2e3fd8e596d86dc16d",
+        "diagnostics": [
+          [
+            "initial_mean",
+            0.059170951304079435
+          ],
+          [
+            "maximum_mean_drift",
+            1.745476774436816e-07
+          ],
+          [
+            "method",
+            "periodic_finite_volume_rusanov_ssprk3"
+          ],
+          [
+            "steps",
+            120
+          ]
+        ],
+        "failure_reason": null,
+        "outcome": "SUPPORTED",
+        "protected_execution_eligible": false,
+        "request_digest": "sha256:1e092449864ca72654c0d12fb8acc8542b7c620dee7c3eff4693259b43cf35f2",
+        "role": "INDEPENDENT_WITNESS",
+        "scientifically_qualified": false,
+        "score_eligible": false
+      },
+      "boundary_condition": "PERIODIC",
+      "build": 0,
+      "case_digest": "sha256:92ac91edd08aa9bbb8b11b3cc008ee504b21f6f0b906d889c7235a8201ac55f6",
+      "cell": 2,
+      "domain_length": 6.283185307179586,
+      "equation": "u_t + u*u_x = viscosity*u_xx",
+      "implementation_digest": "sha256:2d491d8edadebcc3aa52e56bc4660c0f5ee84ed9d6f56fc263728912936ec719",
+      "method": "periodic_finite_volume_rusanov_ssprk3",
+      "observations": {
+        "primary_witness_discrepancy_max_absolute": 0.003961846173974437,
+        "witness_mean_drift_max_absolute": 1.745476774436816e-07,
+        "witness_spatial_refinement_change_max_absolute": 0.0019755995249524094
+      },
+      "ordinal": 0,
+      "readiness_disposition": "EVIDENCE_READY_FOR_HUMAN_REVIEW",
+      "request_digest": "sha256:1e092449864ca72654c0d12fb8acc8542b7c620dee7c3eff4693259b43cf35f2",
+      "requested_time_over_characteristic_time": [
+        0.0,
+        0.1,
+        0.25
+      ],
+      "reynolds_number": 2.316189993273877,
+      "reynolds_regime": 2,
+      "settings": {
+        "cfl": 0.35,
+        "contour_points": 0,
+        "internal_grid_points": 256,
+        "maximum_steps": 200000
+      },
+      "shape_family": "harmonic",
+      "source_role": "EVAL",
+      "spatial_refinement_history": [
+        {
+          "cfl": 0.35,
+          "failure_reason": null,
+          "internal_grid_points": 128,
+          "maximum_absolute_change_from_previous_grid": null,
+          "maximum_mean_drift": 7.989856768905734e-07,
+          "outcome": "SUPPORTED",
+          "steps": 34,
+          "value_digest": "sha256:2631f585f8089f42e6d9d7402c29dc7581d7a896fbd24c3153d1e9b662be55e5"
+        },
+        {
+          "cfl": 0.35,
+          "failure_reason": null,
+          "internal_grid_points": 256,
+          "maximum_absolute_change_from_previous_grid": 0.003973431977458863,
+          "maximum_mean_drift": 1.745476774436816e-07,
+          "outcome": "SUPPORTED",
+          "steps": 120,
+          "value_digest": "sha256:b9ec4a674b32c0d3a379a68cc7875c377d4f1cfe6f13265c0da449d925f000ee"
+        },
+        {
+          "cfl": 0.35,
+          "failure_reason": null,
+          "internal_grid_points": 512,
+          "maximum_absolute_change_from_previous_grid": 0.0019755995249524094,
+          "maximum_mean_drift": 6.909529007281812e-08,
+          "outcome": "SUPPORTED",
+          "steps": 452,
+          "value_digest": "sha256:7869943b85e67eb93717bc2a37466db839237e96b0dceec2a07fe3026712e503"
+        },
+        {
+          "cfl": 0.35,
+          "failure_reason": null,
+          "internal_grid_points": 1024,
+          "maximum_absolute_change_from_previous_grid": 0.0009918448840161576,
+          "maximum_mean_drift": 2.2771750755878895e-08,
+          "outcome": "SUPPORTED",
+          "steps": 1752,
+          "value_digest": "sha256:a3aca57141724a4306adcb38be4988b0071451244ed826a8a986a6eb43fcd475"
+        }
+      ],
+      "target_partition_sensitivity": {
+        "artifact_digest": "sha256:d6a223e57e6ec07ad9b27883acc0db576f69d41a67cf1bf19aeab80b52c398f9",
+        "failure_reason": null,
+        "label": "REQUESTED_TIME_PARTITION_SENSITIVITY_NOT_CFL_REFINEMENT",
+        "maximum_absolute_change_at_shared_times": 1.934019611127269e-11,
+        "outcome": "SUPPORTED",
+        "request_digest": "sha256:eafff55f5135c576123654bb04bcb3033f606abf0f254652bfec73680f5de264",
+        "time_over_characteristic_time": [
+          0.0,
+          0.05,
+          0.1,
+          0.175,
+          0.25
+        ]
+      },
+      "viscosity": 0.03320959908869118
+    },
+    {
+      "base_run": {
+        "artifact_digest": "sha256:43329f302730e31581b4c2c17d7838a19a54af60ef2017ed8e5fe4a096b4a6d8",
+        "diagnostics": [
+          [
+            "initial_mean",
+            0.18995501098945244
+          ],
+          [
+            "maximum_mean_drift",
+            2.050809211895377e-07
+          ],
+          [
+            "method",
+            "periodic_finite_volume_rusanov_ssprk3"
+          ],
+          [
+            "steps",
+            476
+          ]
+        ],
+        "failure_reason": null,
+        "outcome": "SUPPORTED",
+        "protected_execution_eligible": false,
+        "request_digest": "sha256:02475047e8d0adac3fca085bf62b38cae0d12a7b0a0a86675f90f8c417b10fed",
+        "role": "INDEPENDENT_WITNESS",
+        "scientifically_qualified": false,
+        "score_eligible": false
+      },
+      "boundary_condition": "PERIODIC",
+      "build": 0,
+      "case_digest": "sha256:d928a2243b277306addea6f7b8ceb05464695a05e1d803fca6b28cf433d9e530",
+      "cell": 3,
+      "domain_length": 6.283185307179586,
+      "equation": "u_t + u*u_x = viscosity*u_xx",
+      "implementation_digest": "sha256:2d491d8edadebcc3aa52e56bc4660c0f5ee84ed9d6f56fc263728912936ec719",
+      "method": "periodic_finite_volume_rusanov_ssprk3",
+      "observations": {
+        "primary_witness_discrepancy_max_absolute": 0.004014918124790712,
+        "witness_mean_drift_max_absolute": 2.050809211895377e-07,
+        "witness_spatial_refinement_change_max_absolute": 0.001974780845543478
+      },
+      "ordinal": 0,
+      "readiness_disposition": "EVIDENCE_READY_FOR_HUMAN_REVIEW",
+      "request_digest": "sha256:02475047e8d0adac3fca085bf62b38cae0d12a7b0a0a86675f90f8c417b10fed",
+      "requested_time_over_characteristic_time": [
+        0.0,
+        0.1,
+        0.25
+      ],
+      "reynolds_number": 5.228341116410024,
+      "reynolds_regime": 3,
+      "settings": {
+        "cfl": 0.35,
+        "contour_points": 0,
+        "internal_grid_points": 256,
+        "maximum_steps": 200000
+      },
+      "shape_family": "harmonic",
+      "source_role": "EVAL",
+      "spatial_refinement_history": [
+        {
+          "cfl": 0.35,
+          "failure_reason": null,
+          "internal_grid_points": 128,
+          "maximum_absolute_change_from_previous_grid": null,
+          "maximum_mean_drift": 4.5709481588662726e-07,
+          "outcome": "SUPPORTED",
+          "steps": 134,
+          "value_digest": "sha256:5aa5bc90705a704b1d99e28df51bd25edaed24b1695250174bc97f631fcb6d80"
+        },
+        {
+          "cfl": 0.35,
+          "failure_reason": null,
+          "internal_grid_points": 256,
+          "maximum_absolute_change_from_previous_grid": 0.0037584439507435397,
+          "maximum_mean_drift": 2.050809211895377e-07,
+          "outcome": "SUPPORTED",
+          "steps": 476,
+          "value_digest": "sha256:df4ae1db4bf004062527898da0b083cf8ce677e47e0635cd9bd220e4ecaa3628"
+        },
+        {
+          "cfl": 0.35,
+          "failure_reason": null,
+          "internal_grid_points": 512,
+          "maximum_absolute_change_from_previous_grid": 0.001974780845543478,
+          "maximum_mean_drift": 9.159453534524076e-08,
+          "outcome": "SUPPORTED",
+          "steps": 1790,
+          "value_digest": "sha256:7c27f9522d4a79427c5717dcb78021fadbaebf4a22f08e037b9564cfc3908c39"
+        },
+        {
+          "cfl": 0.35,
+          "failure_reason": null,
+          "internal_grid_points": 1024,
+          "maximum_absolute_change_from_previous_grid": 0.0010125611728513118,
+          "maximum_mean_drift": 4.651028412405722e-08,
+          "outcome": "SUPPORTED",
+          "steps": 6930,
+          "value_digest": "sha256:7f505e3af00e08957b85977edd660569a3c7016c1b0fe52521870890f46047dc"
+        }
+      ],
+      "target_partition_sensitivity": {
+        "artifact_digest": "sha256:bb9a5c30ead4e7cecb109f6561ea644302e233a86a7e518e367ed5bf11419d12",
+        "failure_reason": null,
+        "label": "REQUESTED_TIME_PARTITION_SENSITIVITY_NOT_CFL_REFINEMENT",
+        "maximum_absolute_change_at_shared_times": 2.2712203645580686e-11,
+        "outcome": "SUPPORTED",
+        "request_digest": "sha256:674f1863a2c296064d926cca33a8c41bc9e21034a794308d6b7c2f5daeb0742b",
+        "time_over_characteristic_time": [
+          0.0,
+          0.05,
+          0.1,
+          0.175,
+          0.25
+        ]
+      },
+      "viscosity": 0.059114775640799005
+    },
+    {
+      "base_run": {
+        "artifact_digest": "sha256:64e586ae22b3dfb49623f13b21824edbb523eb4e2ab47fa16c5cd54cd348b904",
+        "diagnostics": [
+          [
+            "initial_mean",
+            -0.10073473441603464
+          ],
+          [
+            "maximum_mean_drift",
+            9.264698172153918e-06
+          ],
+          [
+            "method",
+            "periodic_finite_volume_rusanov_ssprk3"
+          ],
+          [
+            "steps",
+            106
+          ]
+        ],
+        "failure_reason": null,
+        "outcome": "SUPPORTED",
+        "protected_execution_eligible": false,
+        "request_digest": "sha256:a82f1020612d6096aa0d5d67b8900403b4e52f5485e4d3591ed645a6ddc3b181",
+        "role": "INDEPENDENT_WITNESS",
+        "scientifically_qualified": false,
+        "score_eligible": false
+      },
+      "boundary_condition": "PERIODIC",
+      "build": 0,
+      "case_digest": "sha256:f042f235f5c5c889b652bd7500312e1e17b558197356929259dd30d214a1df41",
+      "cell": 4,
+      "domain_length": 6.283185307179586,
+      "equation": "u_t + u*u_x = viscosity*u_xx",
+      "implementation_digest": "sha256:2d491d8edadebcc3aa52e56bc4660c0f5ee84ed9d6f56fc263728912936ec719",
+      "method": "periodic_finite_volume_rusanov_ssprk3",
+      "observations": {
+        "primary_witness_discrepancy_max_absolute": 0.014297803812207799,
+        "witness_mean_drift_max_absolute": 9.264698172153918e-06,
+        "witness_spatial_refinement_change_max_absolute": 0.007054369160299667
+      },
+      "ordinal": 0,
+      "readiness_disposition": "EVIDENCE_READY_FOR_HUMAN_REVIEW",
+      "request_digest": "sha256:a82f1020612d6096aa0d5d67b8900403b4e52f5485e4d3591ed645a6ddc3b181",
+      "requested_time_over_characteristic_time": [
+        0.0,
+        0.1,
+        0.25
+      ],
+      "reynolds_number": 0.8577507979979787,
+      "reynolds_regime": 0,
+      "settings": {
+        "cfl": 0.35,
+        "contour_points": 0,
+        "internal_grid_points": 256,
+        "maximum_steps": 200000
+      },
+      "shape_family": "localized_packet",
+      "source_role": "EVAL",
+      "spatial_refinement_history": [
+        {
+          "cfl": 0.35,
+          "failure_reason": null,
+          "internal_grid_points": 128,
+          "maximum_absolute_change_from_previous_grid": null,
+          "maximum_mean_drift": 2.589833183438972e-05,
+          "outcome": "SUPPORTED",
+          "steps": 31,
+          "value_digest": "sha256:9163cabdd8bb1e0580462999fce0cd8184af795bd605bbb8f63187d5d731be67"
+        },
+        {
+          "cfl": 0.35,
+          "failure_reason": null,
+          "internal_grid_points": 256,
+          "maximum_absolute_change_from_previous_grid": 0.013587191764215745,
+          "maximum_mean_drift": 9.264698172153918e-06,
+          "outcome": "SUPPORTED",
+          "steps": 106,
+          "value_digest": "sha256:2135d6c4a9f381a9fac54e4583179f8c12869ed17fe0de5c73622de2e0959364"
+        },
+        {
+          "cfl": 0.35,
+          "failure_reason": null,
+          "internal_grid_points": 512,
+          "maximum_absolute_change_from_previous_grid": 0.007054369160299667,
+          "maximum_mean_drift": 4.3357561281126555e-06,
+          "outcome": "SUPPORTED",
+          "steps": 393,
+          "value_digest": "sha256:cf2f39aa93fe031eeafa7a49a330389d360d8257f7233206351e0bab0d22351a"
+        },
+        {
+          "cfl": 0.35,
+          "failure_reason": null,
+          "internal_grid_points": 1024,
+          "maximum_absolute_change_from_previous_grid": 0.003597663778850513,
+          "maximum_mean_drift": 2.1052265301579887e-06,
+          "outcome": "SUPPORTED",
+          "steps": 1511,
+          "value_digest": "sha256:bbfb2e41ae32ae405a5858701868e0308b1fe3cb7c4862b7179cd83c82ebbce6"
+        }
+      ],
+      "target_partition_sensitivity": {
+        "artifact_digest": "sha256:d753a20210c7a55c6dd26e5e3ead6d7e6719ddb2f1f4d22e98a7033ba2045255",
+        "failure_reason": null,
+        "label": "REQUESTED_TIME_PARTITION_SENSITIVITY_NOT_CFL_REFINEMENT",
+        "maximum_absolute_change_at_shared_times": 4.1811140660819035e-09,
+        "outcome": "SUPPORTED",
+        "request_digest": "sha256:389e325eff7dd88162433d1f7ec80731234dad648742b12cd33c0a6c712fecd9",
+        "time_over_characteristic_time": [
+          0.0,
+          0.05,
+          0.1,
+          0.175,
+          0.25
+        ]
+      },
+      "viscosity": 0.046736337720260195
+    },
+    {
+      "base_run": {
+        "artifact_digest": "sha256:7525fd8b87fb7be3e13fd726eb7da1db712d4c8756947f8880d56b581ce71d42",
+        "diagnostics": [
+          [
+            "initial_mean",
+            -0.2372882992961935
+          ],
+          [
+            "maximum_mean_drift",
+            4.112090816965619e-06
+          ],
+          [
+            "method",
+            "periodic_finite_volume_rusanov_ssprk3"
+          ],
+          [
+            "steps",
+            136
+          ]
+        ],
+        "failure_reason": null,
+        "outcome": "SUPPORTED",
+        "protected_execution_eligible": false,
+        "request_digest": "sha256:bac6afe2e0b6a9bcb78356247fc92e635a9cd531f97b6ada177063897294e15c",
+        "role": "INDEPENDENT_WITNESS",
+        "scientifically_qualified": false,
+        "score_eligible": false
+      },
+      "boundary_condition": "PERIODIC",
+      "build": 0,
+      "case_digest": "sha256:e3708a416671e9ce019d2f171eedc5473daa98a69786c936e9af4541b9f51994",
+      "cell": 5,
+      "domain_length": 6.283185307179586,
+      "equation": "u_t + u*u_x = viscosity*u_xx",
+      "implementation_digest": "sha256:2d491d8edadebcc3aa52e56bc4660c0f5ee84ed9d6f56fc263728912936ec719",
+      "method": "periodic_finite_volume_rusanov_ssprk3",
+      "observations": {
+        "primary_witness_discrepancy_max_absolute": 0.019760679468062592,
+        "witness_mean_drift_max_absolute": 4.112090816965619e-06,
+        "witness_spatial_refinement_change_max_absolute": 0.009708378581211208
+      },
+      "ordinal": 0,
+      "readiness_disposition": "EVIDENCE_READY_FOR_HUMAN_REVIEW",
+      "request_digest": "sha256:bac6afe2e0b6a9bcb78356247fc92e635a9cd531f97b6ada177063897294e15c",
+      "requested_time_over_characteristic_time": [
+        0.0,
+        0.1,
+        0.25
+      ],
+      "reynolds_number": 1.1872596187827673,
+      "reynolds_regime": 1,
+      "settings": {
+        "cfl": 0.35,
+        "contour_points": 0,
+        "internal_grid_points": 256,
+        "maximum_steps": 200000
+      },
+      "shape_family": "localized_packet",
+      "source_role": "EVAL",
+      "spatial_refinement_history": [
+        {
+          "cfl": 0.35,
+          "failure_reason": null,
+          "internal_grid_points": 128,
+          "maximum_absolute_change_from_previous_grid": null,
+          "maximum_mean_drift": 1.2064798357441786e-05,
+          "outcome": "SUPPORTED",
+          "steps": 41,
+          "value_digest": "sha256:0e0c144a8e55caaab72ecbf2c4ac9d5e5d205dbe753ea743c3d4264eff7fe484"
+        },
+        {
+          "cfl": 0.35,
+          "failure_reason": null,
+          "internal_grid_points": 256,
+          "maximum_absolute_change_from_previous_grid": 0.018444479942605674,
+          "maximum_mean_drift": 4.112090816965619e-06,
+          "outcome": "SUPPORTED",
+          "steps": 136,
+          "value_digest": "sha256:147e89f3f5eed0c1a3ded6fddfbb4615f8757134166c2c767590e7913085503d"
+        },
+        {
+          "cfl": 0.35,
+          "failure_reason": null,
+          "internal_grid_points": 512,
+          "maximum_absolute_change_from_previous_grid": 0.009708378581211208,
+          "maximum_mean_drift": 1.8024699657281928e-06,
+          "outcome": "SUPPORTED",
+          "steps": 495,
+          "value_digest": "sha256:a077bba3f7a5b91521fd9518aabb736552172eaa8beaec258a47678c679efd2e"
+        },
+        {
+          "cfl": 0.35,
+          "failure_reason": null,
+          "internal_grid_points": 1024,
+          "maximum_absolute_change_from_previous_grid": 0.004982742783106953,
+          "maximum_mean_drift": 8.835886133595761e-07,
+          "outcome": "SUPPORTED",
+          "steps": 1877,
+          "value_digest": "sha256:9f92118de7ddd67ca3807f3380b04d232bcb36b936f3087f23bfd26be586a70a"
+        }
+      ],
+      "target_partition_sensitivity": {
+        "artifact_digest": "sha256:46028df14254b2fb8618e8d6ec5bde361cf3fc4302d6bbf23a3ace6f8144c7a7",
+        "failure_reason": null,
+        "label": "REQUESTED_TIME_PARTITION_SENSITIVITY_NOT_CFL_REFINEMENT",
+        "maximum_absolute_change_at_shared_times": 3.797962222495954e-10,
+        "outcome": "SUPPORTED",
+        "request_digest": "sha256:7e345f1f1de8df4285e7c5573ab5b06c3ea8322ee9175f5862ec23448a6f82a9",
+        "time_over_characteristic_time": [
+          0.0,
+          0.05,
+          0.1,
+          0.175,
+          0.25
+        ]
+      },
+      "viscosity": 0.047162024118611
+    },
+    {
+      "base_run": {
+        "artifact_digest": "sha256:0da994ad3465057b837d792b562037cb1e916ce32bba893dbd131971beed53ea",
+        "diagnostics": [
+          [
+            "initial_mean",
+            -0.3076025410909048
+          ],
+          [
+            "maximum_mean_drift",
+            1.0693738274780706e-05
+          ],
+          [
+            "method",
+            "periodic_finite_volume_rusanov_ssprk3"
+          ],
+          [
+            "steps",
+            64
+          ]
+        ],
+        "failure_reason": null,
+        "outcome": "SUPPORTED",
+        "protected_execution_eligible": false,
+        "request_digest": "sha256:a7ff6da011bc9d0ab83437ccb28156d476c2861d1450eb5b294f576fae610d4e",
+        "role": "INDEPENDENT_WITNESS",
+        "scientifically_qualified": false,
+        "score_eligible": false
+      },
+      "boundary_condition": "PERIODIC",
+      "build": 0,
+      "case_digest": "sha256:088bf247d585d34010731a100823b44b5838e06e080252fafc872f54b04fb778",
+      "cell": 6,
+      "domain_length": 6.283185307179586,
+      "equation": "u_t + u*u_x = viscosity*u_xx",
+      "implementation_digest": "sha256:2d491d8edadebcc3aa52e56bc4660c0f5ee84ed9d6f56fc263728912936ec719",
+      "method": "periodic_finite_volume_rusanov_ssprk3",
+      "observations": {
+        "primary_witness_discrepancy_max_absolute": 0.051533975708916824,
+        "witness_mean_drift_max_absolute": 1.0693738274780706e-05,
+        "witness_spatial_refinement_change_max_absolute": 0.024794353361268007
+      },
+      "ordinal": 0,
+      "readiness_disposition": "EVIDENCE_READY_FOR_HUMAN_REVIEW",
+      "request_digest": "sha256:a7ff6da011bc9d0ab83437ccb28156d476c2861d1450eb5b294f576fae610d4e",
+      "requested_time_over_characteristic_time": [
+        0.0,
+        0.1,
+        0.25
+      ],
+      "reynolds_number": 2.1092882243686244,
+      "reynolds_regime": 2,
+      "settings": {
+        "cfl": 0.35,
+        "contour_points": 0,
+        "internal_grid_points": 256,
+        "maximum_steps": 200000
+      },
+      "shape_family": "localized_packet",
+      "source_role": "EVAL",
+      "spatial_refinement_history": [
+        {
+          "cfl": 0.35,
+          "failure_reason": null,
+          "internal_grid_points": 128,
+          "maximum_absolute_change_from_previous_grid": null,
+          "maximum_mean_drift": 2.16135721397559e-05,
+          "outcome": "SUPPORTED",
+          "steps": 22,
+          "value_digest": "sha256:1e314b31ee0b237bd4f063974ce3edd887e4050ac0a69774ee9b4502920ebfd8"
+        },
+        {
+          "cfl": 0.35,
+          "failure_reason": null,
+          "internal_grid_points": 256,
+          "maximum_absolute_change_from_previous_grid": 0.045165075365286134,
+          "maximum_mean_drift": 1.0693738274780706e-05,
+          "outcome": "SUPPORTED",
+          "steps": 64,
+          "value_digest": "sha256:b0f9e77cefde8514240329ff021bb75667c74628a54db48215f7b950dca2872f"
+        },
+        {
+          "cfl": 0.35,
+          "failure_reason": null,
+          "internal_grid_points": 512,
+          "maximum_absolute_change_from_previous_grid": 0.024794353361268007,
+          "maximum_mean_drift": 5.193408422976553e-06,
+          "outcome": "SUPPORTED",
+          "steps": 210,
+          "value_digest": "sha256:7f9812df518276a74d6de143fa8fcc57538cc4ae65e20026544228c9e3b2d1cc"
+        },
+        {
+          "cfl": 0.35,
+          "failure_reason": null,
+          "internal_grid_points": 1024,
+          "maximum_absolute_change_from_previous_grid": 0.013095769412061475,
+          "maximum_mean_drift": 2.5077550700469686e-06,
+          "outcome": "SUPPORTED",
+          "steps": 750,
+          "value_digest": "sha256:b6c9f27e254722cd405be197c1c7f75dc6d8439fc422aeb7f29c843ce4ed159a"
+        }
+      ],
+      "target_partition_sensitivity": {
+        "artifact_digest": "sha256:d93770fc056aaac9b86203526104990ceee71e908eb107a66c6539f5a81b1867",
+        "failure_reason": null,
+        "label": "REQUESTED_TIME_PARTITION_SENSITIVITY_NOT_CFL_REFINEMENT",
+        "maximum_absolute_change_at_shared_times": 4.185668256440067e-09,
+        "outcome": "SUPPORTED",
+        "request_digest": "sha256:76b40725aa109214959614c34160bbcf6028ce73ade819df1e0209165c3f811b",
+        "time_over_characteristic_time": [
+          0.0,
+          0.05,
+          0.1,
+          0.175,
+          0.25
+        ]
+      },
+      "viscosity": 0.029391540102025014
+    },
+    {
+      "base_run": {
+        "artifact_digest": "sha256:40b41054c44c88406044aa3485bd01c35e44d407b262dd3c828c47b23609492b",
+        "diagnostics": [
+          [
+            "initial_mean",
+            0.06532202281425342
+          ],
+          [
+            "maximum_mean_drift",
+            4.116953144081559e-05
+          ],
+          [
+            "method",
+            "periodic_finite_volume_rusanov_ssprk3"
+          ],
+          [
+            "steps",
+            42
+          ]
+        ],
+        "failure_reason": null,
+        "outcome": "SUPPORTED",
+        "protected_execution_eligible": false,
+        "request_digest": "sha256:e38819f83f33cccdcd3e64d60a561ac7c3901d51316c8cf344f81e564345a150",
+        "role": "INDEPENDENT_WITNESS",
+        "scientifically_qualified": false,
+        "score_eligible": false
+      },
+      "boundary_condition": "PERIODIC",
+      "build": 0,
+      "case_digest": "sha256:a2e8449f9e689af7340d4692e51e73b9e48fbea254a7e3e78de6f2eb356e1185",
+      "cell": 7,
+      "domain_length": 6.283185307179586,
+      "equation": "u_t + u*u_x = viscosity*u_xx",
+      "implementation_digest": "sha256:2d491d8edadebcc3aa52e56bc4660c0f5ee84ed9d6f56fc263728912936ec719",
+      "method": "periodic_finite_volume_rusanov_ssprk3",
+      "observations": {
+        "primary_witness_discrepancy_max_absolute": 0.04029757164660874,
+        "witness_mean_drift_max_absolute": 4.116953144081559e-05,
+        "witness_spatial_refinement_change_max_absolute": 0.019346514201140197
+      },
+      "ordinal": 0,
+      "readiness_disposition": "EVIDENCE_READY_FOR_HUMAN_REVIEW",
+      "request_digest": "sha256:e38819f83f33cccdcd3e64d60a561ac7c3901d51316c8cf344f81e564345a150",
+      "requested_time_over_characteristic_time": [
+        0.0,
+        0.1,
+        0.25
+      ],
+      "reynolds_number": 6.541859968297311,
+      "reynolds_regime": 3,
+      "settings": {
+        "cfl": 0.35,
+        "contour_points": 0,
+        "internal_grid_points": 256,
+        "maximum_steps": 200000
+      },
+      "shape_family": "localized_packet",
+      "source_role": "EVAL",
+      "spatial_refinement_history": [
+        {
+          "cfl": 0.35,
+          "failure_reason": null,
+          "internal_grid_points": 128,
+          "maximum_absolute_change_from_previous_grid": null,
+          "maximum_mean_drift": 8.647931813898779e-05,
+          "outcome": "SUPPORTED",
+          "steps": 16,
+          "value_digest": "sha256:2b1d61199dca09643eea60ad3db81f6ede0a07738a6190d10e18c2fe2c6988c4"
+        },
+        {
+          "cfl": 0.35,
+          "failure_reason": null,
+          "internal_grid_points": 256,
+          "maximum_absolute_change_from_previous_grid": 0.03538775151414686,
+          "maximum_mean_drift": 4.116953144081559e-05,
+          "outcome": "SUPPORTED",
+          "steps": 42,
+          "value_digest": "sha256:7ccb0b2877fd9d88693d9e0276ccab86feafee3f8a800a310af18d23ffa184d7"
+        },
+        {
+          "cfl": 0.35,
+          "failure_reason": null,
+          "internal_grid_points": 512,
+          "maximum_absolute_change_from_previous_grid": 0.019346514201140197,
+          "maximum_mean_drift": 1.890707800215885e-05,
+          "outcome": "SUPPORTED",
+          "steps": 124,
+          "value_digest": "sha256:14ede410d6f22bb7def269263078749872233dcab9c31d3f240b92d9a1605033"
+        },
+        {
+          "cfl": 0.35,
+          "failure_reason": null,
+          "internal_grid_points": 1024,
+          "maximum_absolute_change_from_previous_grid": 0.010239505912505109,
+          "maximum_mean_drift": 9.283437500159919e-06,
+          "outcome": "SUPPORTED",
+          "steps": 407,
+          "value_digest": "sha256:becb6dbffce1e150e8e8d664bfc7287ef4500314bf8a69a114da20af9aa31488"
+        }
+      ],
+      "target_partition_sensitivity": {
+        "artifact_digest": "sha256:200fdb943cccd7a6ac2216ccdc376bfd0936cbfbf59927eb1adbbefb3cd9ce19",
+        "failure_reason": null,
+        "label": "REQUESTED_TIME_PARTITION_SENSITIVITY_NOT_CFL_REFINEMENT",
+        "maximum_absolute_change_at_shared_times": 1.7902626880950123e-08,
+        "outcome": "SUPPORTED",
+        "request_digest": "sha256:3e65571bc750a8561267310a54e1a3735f1a50d44b1ec7bcaa237c1d5adc3b74",
+        "time_over_characteristic_time": [
+          0.0,
+          0.05,
+          0.1,
+          0.175,
+          0.25
+        ]
+      },
+      "viscosity": 0.012481651273250393
+    },
+    {
+      "base_run": {
+        "artifact_digest": "sha256:e26fc0b456a9b350698ada28dea49104bdc4db339d42687525a5507c2c74a66d",
+        "diagnostics": [
+          [
+            "initial_mean",
+            0.13957955435398858
+          ],
+          [
+            "maximum_mean_drift",
+            6.220359533015696e-09
+          ],
+          [
+            "method",
+            "periodic_finite_volume_rusanov_ssprk3"
+          ],
+          [
+            "steps",
+            757
+          ]
+        ],
+        "failure_reason": null,
+        "outcome": "SUPPORTED",
+        "protected_execution_eligible": false,
+        "request_digest": "sha256:dffe7ed6af09c2a350c09a1f3a52c982512659b21240b60165aa9cf1c756b35b",
+        "role": "INDEPENDENT_WITNESS",
+        "scientifically_qualified": false,
+        "score_eligible": false
+      },
+      "boundary_condition": "PERIODIC",
+      "build": 0,
+      "case_digest": "sha256:d01c2c47f5696ef18f9dcbd8cb994b667bd8c03242fa9e49f25283399ce1fada",
+      "cell": 8,
+      "domain_length": 6.283185307179586,
+      "equation": "u_t + u*u_x = viscosity*u_xx",
+      "implementation_digest": "sha256:2d491d8edadebcc3aa52e56bc4660c0f5ee84ed9d6f56fc263728912936ec719",
+      "method": "periodic_finite_volume_rusanov_ssprk3",
+      "observations": {
+        "primary_witness_discrepancy_max_absolute": 0.0006924803093417975,
+        "witness_mean_drift_max_absolute": 6.220359533015696e-09,
+        "witness_spatial_refinement_change_max_absolute": 0.00033937066058159493
+      },
+      "ordinal": 0,
+      "readiness_disposition": "EVIDENCE_READY_FOR_HUMAN_REVIEW",
+      "request_digest": "sha256:dffe7ed6af09c2a350c09a1f3a52c982512659b21240b60165aa9cf1c756b35b",
+      "requested_time_over_characteristic_time": [
+        0.0,
+        0.1,
+        0.25
+      ],
+      "reynolds_number": 0.7322552200296529,
+      "reynolds_regime": 0,
+      "settings": {
+        "cfl": 0.35,
+        "contour_points": 0,
+        "internal_grid_points": 256,
+        "maximum_steps": 200000
+      },
+      "shape_family": "multiscale",
+      "source_role": "EVAL",
+      "spatial_refinement_history": [
+        {
+          "cfl": 0.35,
+          "failure_reason": null,
+          "internal_grid_points": 128,
+          "maximum_absolute_change_from_previous_grid": null,
+          "maximum_mean_drift": 4.6389715957495525e-08,
+          "outcome": "SUPPORTED",
+          "steps": 195,
+          "value_digest": "sha256:4415b74ed751300d13bf971ce8b537fd5689b6f489491c3b6717e76d64deb5ad"
+        },
+        {
+          "cfl": 0.35,
+          "failure_reason": null,
+          "internal_grid_points": 256,
+          "maximum_absolute_change_from_previous_grid": 0.0006489364878253245,
+          "maximum_mean_drift": 6.220359533015696e-09,
+          "outcome": "SUPPORTED",
+          "steps": 757,
+          "value_digest": "sha256:ffcd2eca94fda6f310fd9a93b956cd227b31e382ac3e6d4336afa68803c90a4c"
+        },
+        {
+          "cfl": 0.35,
+          "failure_reason": null,
+          "internal_grid_points": 512,
+          "maximum_absolute_change_from_previous_grid": 0.00033937066058159493,
+          "maximum_mean_drift": 4.501028494363624e-09,
+          "outcome": "SUPPORTED",
+          "steps": 2984,
+          "value_digest": "sha256:3d834236abd30dd01f7f87559a525d7d8ddbc37fd2dba056c7d26fea740bc2d0"
+        },
+        {
+          "cfl": 0.35,
+          "failure_reason": null,
+          "internal_grid_points": 1024,
+          "maximum_absolute_change_from_previous_grid": 0.000174840653278302,
+          "maximum_mean_drift": 2.206765659096277e-09,
+          "outcome": "SUPPORTED",
+          "steps": 11849,
+          "value_digest": "sha256:5fb3d9e6be43544ae53cee610ad3bf81430772628ec882ed31c7c0716bf1eae1"
+        }
+      ],
+      "target_partition_sensitivity": {
+        "artifact_digest": "sha256:b6042d5c238804624378182cf6dc37b8f30bfd0885bc94971c4c4d04f6db409f",
+        "failure_reason": null,
+        "label": "REQUESTED_TIME_PARTITION_SENSITIVITY_NOT_CFL_REFINEMENT",
+        "maximum_absolute_change_at_shared_times": 1.2092682757924855e-11,
+        "outcome": "SUPPORTED",
+        "request_digest": "sha256:2fe71cf50747a0e8a5efef1663193c6cbb521e3e7cfabb5107941c47a2d92d8b",
+        "time_over_characteristic_time": [
+          0.0,
+          0.05,
+          0.1,
+          0.175,
+          0.25
+        ]
+      },
+      "viscosity": 0.12694042221825713
+    },
+    {
+      "base_run": {
+        "artifact_digest": "sha256:1bed014f62dfda14568ec6fcddcb3c115eaa6b7a9947edd7c1c9869cec34f6b0",
+        "diagnostics": [
+          [
+            "initial_mean",
+            0.2327462495194679
+          ],
+          [
+            "maximum_mean_drift",
+            1.4380928467505605e-07
+          ],
+          [
+            "method",
+            "periodic_finite_volume_rusanov_ssprk3"
+          ],
+          [
+            "steps",
+            780
+          ]
+        ],
+        "failure_reason": null,
+        "outcome": "SUPPORTED",
+        "protected_execution_eligible": false,
+        "request_digest": "sha256:69e929ea6df252a5a0a88bc848ddc9da2b0a764feeb2818f114b96579c4c1920",
+        "role": "INDEPENDENT_WITNESS",
+        "scientifically_qualified": false,
+        "score_eligible": false
+      },
+      "boundary_condition": "PERIODIC",
+      "build": 0,
+      "case_digest": "sha256:362c5521a90561c94ebf90a552875ab052f4213db06d0aa0832786ea7e417f0f",
+      "cell": 9,
+      "domain_length": 6.283185307179586,
+      "equation": "u_t + u*u_x = viscosity*u_xx",
+      "implementation_digest": "sha256:2d491d8edadebcc3aa52e56bc4660c0f5ee84ed9d6f56fc263728912936ec719",
+      "method": "periodic_finite_volume_rusanov_ssprk3",
+      "observations": {
+        "primary_witness_discrepancy_max_absolute": 0.003243577791409047,
+        "witness_mean_drift_max_absolute": 1.4380928467505605e-07,
+        "witness_spatial_refinement_change_max_absolute": 0.0016137410036917155
+      },
+      "ordinal": 0,
+      "readiness_disposition": "EVIDENCE_READY_FOR_HUMAN_REVIEW",
+      "request_digest": "sha256:69e929ea6df252a5a0a88bc848ddc9da2b0a764feeb2818f114b96579c4c1920",
+      "requested_time_over_characteristic_time": [
+        0.0,
+        0.1,
+        0.25
+      ],
+      "reynolds_number": 1.0355888119146244,
+      "reynolds_regime": 1,
+      "settings": {
+        "cfl": 0.35,
+        "contour_points": 0,
+        "internal_grid_points": 256,
+        "maximum_steps": 200000
+      },
+      "shape_family": "multiscale",
+      "source_role": "EVAL",
+      "spatial_refinement_history": [
+        {
+          "cfl": 0.35,
+          "failure_reason": null,
+          "internal_grid_points": 128,
+          "maximum_absolute_change_from_previous_grid": null,
+          "maximum_mean_drift": 3.325301855539031e-07,
+          "outcome": "SUPPORTED",
+          "steps": 204,
+          "value_digest": "sha256:1609636c5d5929572d99778d33f0c69abd049598a5f833f7ea6d75abd6b52835"
+        },
+        {
+          "cfl": 0.35,
+          "failure_reason": null,
+          "internal_grid_points": 256,
+          "maximum_absolute_change_from_previous_grid": 0.003178263597993447,
+          "maximum_mean_drift": 1.4380928467505605e-07,
+          "outcome": "SUPPORTED",
+          "steps": 780,
+          "value_digest": "sha256:6c46eae4e19907ff25f23e6aaf67ba987c5d6d038f5f481ba8059708ba00c7ea"
+        },
+        {
+          "cfl": 0.35,
+          "failure_reason": null,
+          "internal_grid_points": 512,
+          "maximum_absolute_change_from_previous_grid": 0.0016137410036917155,
+          "maximum_mean_drift": 6.051858086886241e-08,
+          "outcome": "SUPPORTED",
+          "steps": 3042,
+          "value_digest": "sha256:9a80299a6220b433276150ffc33221dbf565fd57ad163fe79a55b44356e52caa"
+        },
+        {
+          "cfl": 0.35,
+          "failure_reason": null,
+          "internal_grid_points": 1024,
+          "maximum_absolute_change_from_previous_grid": 0.000812938344067593,
+          "maximum_mean_drift": 2.9661048506213206e-08,
+          "outcome": "SUPPORTED",
+          "steps": 12016,
+          "value_digest": "sha256:39988c338c23e99629beaa96db706c8bfb360b26fb39ed86606794d2dacd9bfe"
+        }
+      ],
+      "target_partition_sensitivity": {
+        "artifact_digest": "sha256:961fe986afce5268b370ed82b94763bc8ed22a237449f708ab6c131e760e825d",
+        "failure_reason": null,
+        "label": "REQUESTED_TIME_PARTITION_SENSITIVITY_NOT_CFL_REFINEMENT",
+        "maximum_absolute_change_at_shared_times": 2.2638039880173988e-11,
+        "outcome": "SUPPORTED",
+        "request_digest": "sha256:5ee461fc33c30ee4209c6a2d0241ebef3715eab8c2b394f941ad769b28d56b3f",
+        "time_over_characteristic_time": [
+          0.0,
+          0.05,
+          0.1,
+          0.175,
+          0.25
+        ]
+      },
+      "viscosity": 0.1904710462856902
+    },
+    {
+      "base_run": {
+        "artifact_digest": "sha256:2aafb089ff00baa8037e0e8bd3d9ecddc2faf74c50266e6a087c395d7bec419f",
+        "diagnostics": [
+          [
+            "initial_mean",
+            0.1565133653584789
+          ],
+          [
+            "maximum_mean_drift",
+            5.535831702763172e-07
+          ],
+          [
+            "method",
+            "periodic_finite_volume_rusanov_ssprk3"
+          ],
+          [
+            "steps",
+            239
+          ]
+        ],
+        "failure_reason": null,
+        "outcome": "SUPPORTED",
+        "protected_execution_eligible": false,
+        "request_digest": "sha256:21d058a073d2928ca1347592c437a7d3fec8b29b7d993ffeacbe3560993bc6b3",
+        "role": "INDEPENDENT_WITNESS",
+        "scientifically_qualified": false,
+        "score_eligible": false
+      },
+      "boundary_condition": "PERIODIC",
+      "build": 0,
+      "case_digest": "sha256:ec7821f1bf142ad4ac9100e78a8ffc84f095d9b748a5e36f3b7e8a43068861d2",
+      "cell": 10,
+      "domain_length": 6.283185307179586,
+      "equation": "u_t + u*u_x = viscosity*u_xx",
+      "implementation_digest": "sha256:2d491d8edadebcc3aa52e56bc4660c0f5ee84ed9d6f56fc263728912936ec719",
+      "method": "periodic_finite_volume_rusanov_ssprk3",
+      "observations": {
+        "primary_witness_discrepancy_max_absolute": 0.008622944700080848,
+        "witness_mean_drift_max_absolute": 5.535831702763172e-07,
+        "witness_spatial_refinement_change_max_absolute": 0.004190825011248456
+      },
+      "ordinal": 0,
+      "readiness_disposition": "EVIDENCE_READY_FOR_HUMAN_REVIEW",
+      "request_digest": "sha256:21d058a073d2928ca1347592c437a7d3fec8b29b7d993ffeacbe3560993bc6b3",
+      "requested_time_over_characteristic_time": [
+        0.0,
+        0.1,
+        0.25
+      ],
+      "reynolds_number": 3.7148277344902625,
+      "reynolds_regime": 2,
+      "settings": {
+        "cfl": 0.35,
+        "contour_points": 0,
+        "internal_grid_points": 256,
+        "maximum_steps": 200000
+      },
+      "shape_family": "multiscale",
+      "source_role": "EVAL",
+      "spatial_refinement_history": [
+        {
+          "cfl": 0.35,
+          "failure_reason": null,
+          "internal_grid_points": 128,
+          "maximum_absolute_change_from_previous_grid": null,
+          "maximum_mean_drift": 2.001674389240371e-06,
+          "outcome": "SUPPORTED",
+          "steps": 69,
+          "value_digest": "sha256:79881b8d99a2004330ddc7d53b9dda0f65c1ed4619f93e1c050cd861d83ae2d0"
+        },
+        {
+          "cfl": 0.35,
+          "failure_reason": null,
+          "internal_grid_points": 256,
+          "maximum_absolute_change_from_previous_grid": 0.007747748123643761,
+          "maximum_mean_drift": 5.535831702763172e-07,
+          "outcome": "SUPPORTED",
+          "steps": 239,
+          "value_digest": "sha256:5787ac79847be6b79d217be8968ec71d3a8a8da12e5d827119a0a6cf9fa7b8ea"
+        },
+        {
+          "cfl": 0.35,
+          "failure_reason": null,
+          "internal_grid_points": 512,
+          "maximum_absolute_change_from_previous_grid": 0.004190825011248456,
+          "maximum_mean_drift": 2.753692594226198e-07,
+          "outcome": "SUPPORTED",
+          "steps": 884,
+          "value_digest": "sha256:945bed90fbac009478298de10144fbd461cc7b7c734c18e3eb346be3acc5d982"
+        },
+        {
+          "cfl": 0.35,
+          "failure_reason": null,
+          "internal_grid_points": 1024,
+          "maximum_absolute_change_from_previous_grid": 0.00218446972259434,
+          "maximum_mean_drift": 1.2911921248859315e-07,
+          "outcome": "SUPPORTED",
+          "steps": 3393,
+          "value_digest": "sha256:b0ce7af26f008ae17822a28d29129f08da639b4485c17e75ec65c8b474a55929"
+        }
+      ],
+      "target_partition_sensitivity": {
+        "artifact_digest": "sha256:dde640e33ac94075264b3160a575710f5629c6db31faf97926300c23079c0a7c",
+        "failure_reason": null,
+        "label": "REQUESTED_TIME_PARTITION_SENSITIVITY_NOT_CFL_REFINEMENT",
+        "maximum_absolute_change_at_shared_times": 6.3257177274067544e-12,
+        "outcome": "SUPPORTED",
+        "request_digest": "sha256:80c9456170caf2bdf24a546bc40ce96b6c4ccf67581a2de7bb9dd5fb06a3d837",
+        "time_over_characteristic_time": [
+          0.0,
+          0.05,
+          0.1,
+          0.175,
+          0.25
+        ]
+      },
+      "viscosity": 0.04763155389446736
+    },
+    {
+      "base_run": {
+        "artifact_digest": "sha256:f9d26f4f7c39c51cfccfa264a7d44eab67ce166a31c71a65f19e01bb1fa14971",
+        "diagnostics": [
+          [
+            "initial_mean",
+            0.034624135841155396
+          ],
+          [
+            "maximum_mean_drift",
+            8.355878577934184e-06
+          ],
+          [
+            "method",
+            "periodic_finite_volume_rusanov_ssprk3"
+          ],
+          [
+            "steps",
+            66
+          ]
+        ],
+        "failure_reason": null,
+        "outcome": "SUPPORTED",
+        "protected_execution_eligible": false,
+        "request_digest": "sha256:4c4260c81b8030dfb9e07d400d68a76f2a30d8f4bd88aaeb2c31ee56ec8e2fbd",
+        "role": "INDEPENDENT_WITNESS",
+        "scientifically_qualified": false,
+        "score_eligible": false
+      },
+      "boundary_condition": "PERIODIC",
+      "build": 0,
+      "case_digest": "sha256:3c1091fff9506184d2d3948f6cf7535b008ef628ebff34db832271cd857966c8",
+      "cell": 11,
+      "domain_length": 6.283185307179586,
+      "equation": "u_t + u*u_x = viscosity*u_xx",
+      "implementation_digest": "sha256:2d491d8edadebcc3aa52e56bc4660c0f5ee84ed9d6f56fc263728912936ec719",
+      "method": "periodic_finite_volume_rusanov_ssprk3",
+      "observations": {
+        "primary_witness_discrepancy_max_absolute": 0.007208678999588297,
+        "witness_mean_drift_max_absolute": 8.355878577934184e-06,
+        "witness_spatial_refinement_change_max_absolute": 0.003494054060644486
+      },
+      "ordinal": 0,
+      "readiness_disposition": "EVIDENCE_READY_FOR_HUMAN_REVIEW",
+      "request_digest": "sha256:4c4260c81b8030dfb9e07d400d68a76f2a30d8f4bd88aaeb2c31ee56ec8e2fbd",
+      "requested_time_over_characteristic_time": [
+        0.0,
+        0.1,
+        0.25
+      ],
+      "reynolds_number": 4.636584098639155,
+      "reynolds_regime": 3,
+      "settings": {
+        "cfl": 0.35,
+        "contour_points": 0,
+        "internal_grid_points": 256,
+        "maximum_steps": 200000
+      },
+      "shape_family": "multiscale",
+      "source_role": "EVAL",
+      "spatial_refinement_history": [
+        {
+          "cfl": 0.35,
+          "failure_reason": null,
+          "internal_grid_points": 128,
+          "maximum_absolute_change_from_previous_grid": null,
+          "maximum_mean_drift": 1.0617964996677276e-05,
+          "outcome": "SUPPORTED",
+          "steps": 21,
+          "value_digest": "sha256:eeda5bab8fc2977e743cbe6cb405e89d32a1a56cd0043f109f351c3362c95fbe"
+        },
+        {
+          "cfl": 0.35,
+          "failure_reason": null,
+          "internal_grid_points": 256,
+          "maximum_absolute_change_from_previous_grid": 0.006575234547361669,
+          "maximum_mean_drift": 8.355878577934184e-06,
+          "outcome": "SUPPORTED",
+          "steps": 66,
+          "value_digest": "sha256:9c1758f6ec795749a1fc62d188c3bfe9697898ecbe0865ffc447bbab392a3254"
+        },
+        {
+          "cfl": 0.35,
+          "failure_reason": null,
+          "internal_grid_points": 512,
+          "maximum_absolute_change_from_previous_grid": 0.003494054060644486,
+          "maximum_mean_drift": 4.0188361458831645e-06,
+          "outcome": "SUPPORTED",
+          "steps": 232,
+          "value_digest": "sha256:0359ef7f53fb1ca56fa547af1854e18768af820f20087f3096b08459da6abfee"
+        },
+        {
+          "cfl": 0.35,
+          "failure_reason": null,
+          "internal_grid_points": 1024,
+          "maximum_absolute_change_from_previous_grid": 0.0018238566099234022,
+          "maximum_mean_drift": 1.9173835094019043e-06,
+          "outcome": "SUPPORTED",
+          "steps": 866,
+          "value_digest": "sha256:926516c01fb24e52703e249081ae327d37fb1e0d41c391290386edbf376bc193"
+        }
+      ],
+      "target_partition_sensitivity": {
+        "artifact_digest": "sha256:9a7f1cbd7d19468698817fa40b133e756d0191beeae6f144eccaf31931ee5132",
+        "failure_reason": null,
+        "label": "REQUESTED_TIME_PARTITION_SENSITIVITY_NOT_CFL_REFINEMENT",
+        "maximum_absolute_change_at_shared_times": 9.012694011240052e-10,
+        "outcome": "SUPPORTED",
+        "request_digest": "sha256:1c56533f0173e1df090d1b5cbb93ce512ffc5643111a690cabd0d9849dbf5407",
+        "time_over_characteristic_time": [
+          0.0,
+          0.05,
+          0.1,
+          0.175,
+          0.25
+        ]
+      },
+      "viscosity": 0.010255925324823537
+    }
+  ],
+  "method": "periodic_finite_volume_rusanov_ssprk3",
+  "overall_readiness_disposition": "MORE_PUBLIC_EVIDENCE_NEEDED",
+  "readiness_by_dimension": [
+    {
+      "dimension": "joint_grid_fixed_cfl_refinement",
+      "disposition": "EVIDENCE_READY_FOR_HUMAN_REVIEW"
+    },
+    {
+      "dimension": "conservation",
+      "disposition": "EVIDENCE_READY_FOR_HUMAN_REVIEW"
+    },
+    {
+      "dimension": "primary_witness_discrepancy",
+      "disposition": "EVIDENCE_READY_FOR_HUMAN_REVIEW"
+    },
+    {
+      "dimension": "requested_time_partition_sensitivity",
+      "disposition": "EVIDENCE_READY_FOR_HUMAN_REVIEW"
+    },
+    {
+      "dimension": "controlled_cfl_time_refinement",
+      "disposition": "METHOD_OR_APPLICABILITY_GAP"
+    },
+    {
+      "dimension": "empirical_nonconvergence_boundary",
+      "disposition": "MORE_PUBLIC_EVIDENCE_NEEDED"
+    },
+    {
+      "dimension": "independent_personnel",
+      "disposition": "BLOCKED_INPUT"
+    }
+  ],
+  "schema": "carbon.d-qual-prep-01.witness-refinement-evidence.v1",
+  "scientific_thresholds": null,
+  "scientifically_qualified": false,
+  "scope": "PUBLIC_DEVELOPMENT_DETACHED_READINESS_ONLY"
+}

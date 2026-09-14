@@ -1,0 +1,63 @@
+{
+  "allowed_classes": [
+    "DISTINCT",
+    "SHARED",
+    "PARTIALLY_SHARED",
+    "UNKNOWN"
+  ],
+  "independence_percentage": null,
+  "rows": [
+    {
+      "basis": "Same Burgers PDE and periodic BC; Cole-Hopf transform versus direct conservative form.",
+      "classification": "PARTIALLY_SHARED",
+      "dimension": "mathematical_formulation"
+    },
+    {
+      "basis": "Fourier quadrature versus finite-volume Rusanov flux.",
+      "classification": "DISTINCT",
+      "dimension": "discretization"
+    },
+    {
+      "basis": "Analytic viscous Fourier evolution versus explicit SSPRK3.",
+      "classification": "DISTINCT",
+      "dimension": "time_integration"
+    },
+    {
+      "basis": "Transformed Fourier representation versus conservative physical-grid cells.",
+      "classification": "DISTINCT",
+      "dimension": "representation"
+    },
+    {
+      "basis": "Separate functions and method paths in one module and repository.",
+      "classification": "PARTIALLY_SHARED",
+      "dimension": "code"
+    },
+    {
+      "basis": "Both execute in Python/NumPy under the same dependency lock.",
+      "classification": "SHARED",
+      "dimension": "libraries"
+    },
+    {
+      "basis": "Both consume the same C-AUTH1 public DEVELOPMENT cases.",
+      "classification": "SHARED",
+      "dimension": "generator"
+    },
+    {
+      "basis": "Both use the same C-04 environment identity and host run.",
+      "classification": "SHARED",
+      "dimension": "environment"
+    },
+    {
+      "basis": "No independently owned implementation or review personnel record is retained.",
+      "classification": "UNKNOWN",
+      "dimension": "personnel"
+    },
+    {
+      "basis": "Both are compared on the same frozen twelve-cell sample.",
+      "classification": "SHARED",
+      "dimension": "validation_data"
+    }
+  ],
+  "schema": "carbon.d-qual-prep-01.independence-matrix.v1",
+  "scientifically_qualified": false
+}
