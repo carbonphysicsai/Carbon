@@ -1,5 +1,7 @@
 # Carbon Goal-to-Challenge Workbench v0.3
 
+GOAL-WORKBENCH-03 adds a deterministic operational rehearsal over this accepted v0.3 application. Run `node tools/run_operational_rehearsal.cjs --grok-plan /path/to/Carbon_Grok_Master_Plan_v1_9.docx` from this directory (with the repository root on `PYTHONPATH`, as the tool does internally) to verify the source digest and reproduce the three public/synthetic journeys. Omitting `--grok-plan` replays the already pinned record when the external source is unavailable. See `docs/GOAL_WORKBENCH_03_REHEARSAL_REPORT.md` for the supported Dynamics result, Front Resolution mismatch, unsupported-rights blocker, Grok v1.9 conformance, measured friction, and next-interface decision.
+
 Open `Carbon_Opportunity_Workbench.html` and begin in **Client jobs**. The accepted v0.2 Opportunity/CPES workbench remains embedded as the same maintained application; the Atlas is optional supporting research rather than required job identity.
 
 The v0.3 owner route is:

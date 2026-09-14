@@ -8,7 +8,7 @@
     "direct client intake is the initial route without Atlas",
     "initial client profile is empty",
     "one job supports multiple design alternatives",
-    "supported Burgers demonstration binds requirement score case reference and CPES",
+    "supported Burgers demonstration binds requirement score case reference and CPES in both trace directions",
     "P1-P8 and five blockers are bound inside the same design",
     "source case plan distinguishes target sample and weight",
     "numerical diagnostic remains NOT_EXECUTED with a bound source-owner request",

@@ -1,0 +1,72 @@
+{
+  "schema_version": "carbon.goal-workbench.grok-conformance.v1",
+  "source_name": "Carbon_Grok_Master_Plan_v1_9.docx",
+  "source_version": "v1.9",
+  "source_docx_sha256": "799108791ec951ebfd51b2d56c35f70df51ebc559929a4991cc118efd13981b5",
+  "source_docx_digest_status": "VERIFIED_BEFORE_RENDER",
+  "rendered_pdf_sha256": "925ff210a40bbb9bd5136d95e8ea937beac5c775e472df5258ab6d4736cec2cb",
+  "pages_inspected": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+  "mappings": [
+    {
+      "source_rule": "M0 coordinates a named assignment and one lead owns the summary.",
+      "workbench_binding": "job.lead plus handoff.lead",
+      "status": "SUPPORTED"
+    },
+    {
+      "source_rule": "One Assignment/Preparation/Execution/Decision working record.",
+      "workbench_binding": "one job/design workspace with role-specific projections and exact-bound responses",
+      "status": "SUPPORTED_AS_PROJECTION"
+    },
+    {
+      "source_rule": "One correction pass precedes a precise blocked handoff.",
+      "workbench_binding": "rehearsal event policy; handoff allowance, stop condition, dependency owner, and restart event",
+      "status": "SUPPORTED_BY_REHEARSAL_CONTRACT"
+    },
+    {
+      "source_rule": "No routine polling; wake on named assignment or observable dependency change.",
+      "workbench_binding": "rehearsal event policy and handoff restart_event",
+      "status": "SUPPORTED_BY_REHEARSAL_CONTRACT"
+    },
+    {
+      "source_rule": "A timeout does not prove that native execution never began.",
+      "workbench_binding": "rehearsal forbids timeout-to-not-started inference and requires native-owner query before retry",
+      "status": "SUPPORTED_BY_REHEARSAL_CONTRACT"
+    },
+    {
+      "source_rule": "C-PILOT-01 is R1-led with S1 context and asks whether Foundax FNO can express the 8/16-mode contract check without training.",
+      "workbench_binding": "cPilotProjection",
+      "status": "SUPPORTED"
+    },
+    {
+      "source_rule": "H1 is optional for routine Class B and used for a named ambiguity or reserved scientific decision.",
+      "workbench_binding": "cPilotProjection.h1 and owner-decision handoff",
+      "status": "SUPPORTED"
+    },
+    {
+      "source_rule": "Ryan owns ordinary Class B disposition; Harsh owns reserved scientific decisions.",
+      "workbench_binding": "owner-named manual handoff recipients; no role grants authority locally",
+      "status": "SUPPORTED_AS_MANUAL_ROUTE"
+    },
+    {
+      "source_rule": "N1 receives approved wording and permitted evidence, not raw private experiments.",
+      "workbench_binding": "n1Projection least-privilege view",
+      "status": "SUPPORTED"
+    },
+    {
+      "source_rule": "The two-task ceiling, 1+1 construction pilot, possible six builds, and proposed owner-attention allowance are pilot rules, not global scientific defaults.",
+      "workbench_binding": "cPilotProjection labels these as pilot scope only; design schemas infer no repeat policy",
+      "status": "SUPPORTED"
+    },
+    {
+      "source_rule": "Use actual tool routes or manual copy; do not claim integrations that were not verified.",
+      "workbench_binding": "routes distinguish MANUAL, VERIFIED_CONNECTOR, and UNAVAILABLE",
+      "status": "SUPPORTED"
+    }
+  ],
+  "verified_connectors": [],
+  "verified_local_routes": ["C-AUTH1 fixed local CLI"],
+  "manual_routes": ["source-owner handoff export/response import"],
+  "unavailable_routes": ["Grok account", "CRM", "calendar", "native launch"],
+  "divergences": [],
+  "authority": "Conformance describes planning representation only. It does not prove an account connection, execution, scientific decision, rights acceptance, or launch."
+}
