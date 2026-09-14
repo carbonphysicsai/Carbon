@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from carbon.audit.model import AuditFailure, ReceiptLifecycleState, digest_bytes
+from carbon.audit.store import DevelopmentEvidenceLedger
 from carbon.execution import ExecutionFailure, ExecutionState
 from carbon.orchestration import (
     CompletedDevelopmentOrchestration,
@@ -15,8 +17,7 @@ from carbon.orchestration import (
     OrchestrationHandle,
 )
 
-from .model import AuditFailure, ReceiptLifecycleState, digest_bytes
-from .reexecution_model import (
+from .model import (
     SCIENTIFIC_STATE_FIELDS,
     ComparisonDisposition,
     ExecutionProvenance,
@@ -30,8 +31,7 @@ from .reexecution_model import (
     RequestWriteDisposition,
     scientific_state_digests,
 )
-from .reexecution_store import ReexecutionJournal
-from .store import DevelopmentEvidenceLedger
+from .store import ReexecutionJournal
 
 
 @dataclass(frozen=True, slots=True)

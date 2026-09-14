@@ -13,18 +13,6 @@ import numpy as np
 from c02_fixtures import compile_c02_plan
 
 from carbon import audit
-from carbon.audit.reexecution_model import (
-    ComparisonDisposition,
-    ExecutionProvenance,
-    ExecutionResourceObservation,
-    LinkedReexecutionRequest,
-    ReexecutionBudget,
-    ReplicaAuditBinding,
-    ResourceObservationState,
-)
-from carbon.audit.reexecution_report import write_reexecution_report_bundle
-from carbon.audit.reexecution_service import DevelopmentReexecutionService
-from carbon.audit.reexecution_store import ReexecutionJournal
 from carbon.execution import (
     DurableExecutionBinding,
     DurableExecutionQueue,
@@ -78,6 +66,18 @@ from carbon.reconstruction.worker.model import (
     DevelopmentWorkerProfile,
     WorkerImageIdentity,
 )
+from carbon.reexecution.model import (
+    ComparisonDisposition,
+    ExecutionProvenance,
+    ExecutionResourceObservation,
+    LinkedReexecutionRequest,
+    ReexecutionBudget,
+    ReplicaAuditBinding,
+    ResourceObservationState,
+)
+from carbon.reexecution.report import write_reexecution_report_bundle
+from carbon.reexecution.service import DevelopmentReexecutionService
+from carbon.reexecution.store import ReexecutionJournal
 from carbon.reference_runtime.controller import (
     IsolatedBurgersReferenceController,
     IsolatedReferenceResult,

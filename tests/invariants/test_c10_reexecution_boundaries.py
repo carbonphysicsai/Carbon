@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from carbon.audit.model import LedgerReceiptRef
-from carbon.audit.reexecution_model import (
+from carbon.reexecution.model import (
     ComparisonDisposition,
     ExecutionProvenance,
     ExecutionResourceObservation,
@@ -20,7 +20,7 @@ from tests.invariants._import_analysis import direct_import_modules
 pytestmark = pytest.mark.invariant
 
 ROOT = Path(__file__).resolve().parents[2]
-FILES = tuple(sorted((ROOT / "carbon" / "audit").glob("reexecution_*.py")))
+FILES = tuple(sorted((ROOT / "carbon" / "reexecution").glob("*.py")))
 
 
 def _sha(label: str) -> str:

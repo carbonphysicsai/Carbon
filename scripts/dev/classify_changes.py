@@ -84,7 +84,7 @@ class Classification:
             or item.path.startswith("tests/service/test_c08_")
             or item.path.startswith("tests/service/test_c10_")
             or item.path.startswith("carbon/orchestration/")
-            or item.path.startswith("carbon/audit/reexecution_")
+            or item.path.startswith("carbon/reexecution/")
             or item.path.startswith("carbon/miner_mcp/")
             or item.path.startswith("tests/service/test_c04_")
             or item.path.startswith("tests/service/test_c05_")

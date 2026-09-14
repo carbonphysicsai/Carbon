@@ -9,21 +9,6 @@ import pytest
 from c10_fixtures import complete_c07, make_fixture, provenance, resources, sha
 
 from carbon import audit
-from carbon.audit.reexecution_model import (
-    ComparisonDisposition,
-    JournalState,
-    ReexecutionCode,
-    ReexecutionFailure,
-    RequestWriteDisposition,
-    ResourceObservationState,
-)
-from carbon.audit.reexecution_report import (
-    public_projection,
-    reviewer_projection,
-    write_reexecution_report_bundle,
-)
-from carbon.audit.reexecution_service import DevelopmentReexecutionService
-from carbon.audit.reexecution_store import ReexecutionJournal
 from carbon.execution import (
     DurableExecutionQueue,
     ExecutionCode,
@@ -37,6 +22,21 @@ from carbon.orchestration import (
     OperationalDisposition,
     ResultOwnerRefs,
 )
+from carbon.reexecution.model import (
+    ComparisonDisposition,
+    JournalState,
+    ReexecutionCode,
+    ReexecutionFailure,
+    RequestWriteDisposition,
+    ResourceObservationState,
+)
+from carbon.reexecution.report import (
+    public_projection,
+    reviewer_projection,
+    write_reexecution_report_bundle,
+)
+from carbon.reexecution.service import DevelopmentReexecutionService
+from carbon.reexecution.store import ReexecutionJournal
 
 
 def _service(fixture):

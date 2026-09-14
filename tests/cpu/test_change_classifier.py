@@ -120,7 +120,7 @@ def test_c08_composition_requires_existing_isolated_service_lane() -> None:
 
 def test_c10_reexecution_requires_existing_isolated_service_lane() -> None:
     for path in (
-        "carbon/audit/reexecution_service.py",
+        "carbon/reexecution/service.py",
         "tests/service/test_c10_reexecution_service.py",
         "scripts/dev/c10_development_reexecution.sh",
     ):

@@ -6,8 +6,9 @@ import sqlite3
 from contextlib import contextmanager
 from pathlib import Path
 
-from .model import canonical_json, digest_bytes, validate_token
-from .reexecution_model import (
+from carbon.audit.model import canonical_json, digest_bytes, validate_token
+
+from .model import (
     JournalState,
     LinkedReexecutionRequest,
     ReexecutionCode,

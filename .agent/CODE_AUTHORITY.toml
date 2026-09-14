@@ -35,6 +35,7 @@ implementation_roots = [
     "carbon/practice",
     "carbon/qualification",
     "carbon/reconstruction",
+    "carbon/reexecution",
     "carbon/reference_runtime",
     "carbon/registry",
     "carbon/reproducibility",

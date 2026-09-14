@@ -6,8 +6,9 @@ import json
 import os
 from pathlib import Path
 
-from .model import canonical_json
-from .reexecution_model import (
+from carbon.audit.model import canonical_json
+
+from .model import (
     PUBLIC_SCHEMA,
     REVIEWER_SCHEMA,
     ReexecutionCode,

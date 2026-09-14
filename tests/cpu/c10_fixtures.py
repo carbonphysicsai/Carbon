@@ -6,14 +6,6 @@ from dataclasses import dataclass, replace
 from pathlib import Path
 
 from carbon import audit
-from carbon.audit.reexecution_model import (
-    ExecutionProvenance,
-    ExecutionResourceObservation,
-    LinkedReexecutionRequest,
-    ReexecutionBudget,
-    ReplicaAuditBinding,
-    ResourceObservationState,
-)
 from carbon.execution import (
     DurableExecutionBinding,
     DurableExecutionQueue,
@@ -35,6 +27,14 @@ from carbon.orchestration import (
     DevelopmentOrchestrationRequest,
     OrchestrationHandle,
     ResultOwnerRefs,
+)
+from carbon.reexecution.model import (
+    ExecutionProvenance,
+    ExecutionResourceObservation,
+    LinkedReexecutionRequest,
+    ReexecutionBudget,
+    ReplicaAuditBinding,
+    ResourceObservationState,
 )
 from carbon.registry import ChallengeKey
 from carbon.seeding import EvaluationBinding, SeedPin
