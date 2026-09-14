@@ -4,7 +4,7 @@
   "application_version": "Carbon Opportunity Workbench v0.2",
   "decision_id": "EXAM-PROTECT-WORKBENCH-01",
   "repository_base": "2d5872aff89ca7bef3e3f062b293aeefe17769aa",
-  "integration_revision_at_packaging": "e7130cf25c1ef1d89d56d70c7eec0d0731f983b3",
+  "integration_revision_at_packaging": "556e28a4c3589f12c93172e0a7a3d1c3d4adbcb6",
   "pinned_research_revision": "ca904dfee93d3574df4e56b99981a6ed3b138e80",
   "accepted_research_head": "0a5690270dc449ea19c941280203987d37db5283",
   "research_merge_commit": "2ac835d1dd55deb9c99e493f3615143efa2e51e0",
@@ -233,28 +233,28 @@
       "sha256": "772759308cce3b690521dcd3d5514348ab0dfbcc48eb9b85df458b36576bdef0"
     },
     "tests/test_sources.py": {
-      "bytes": 8135,
-      "sha256": "e9f521d4770ad58cdfc6a2d887b49a0a541967421f5861fc2d07d01fb6c2fe2b"
+      "bytes": 9244,
+      "sha256": "2bdb35a3c49ad46ca3a8e10aa00804556acaacb507732029dc79a42edbd16185"
     },
     "tools/build.py": {
-      "bytes": 1306,
-      "sha256": "91ae8bc41ef03d4754179f0b2b1a1f088ae072361e7301c3d2cbae5b39c8c45d"
+      "bytes": 1567,
+      "sha256": "579e977e3acc302e8d8f18c16da97e2b71a9dc4ea4795ed3ccbd5c7522784fbb"
     },
     "tools/build_schema.py": {
-      "bytes": 7399,
-      "sha256": "43fdc8d172d3a94a5f9d66fe9d0d6e791780a4127d70fc49996e6e2ee9478fd3"
+      "bytes": 10246,
+      "sha256": "44282f31c87c5f031237dfaa0436848ae0ad36c50d11ef56a895fc6a5e427928"
     },
     "tools/extract_atlas.py": {
-      "bytes": 4308,
-      "sha256": "e0eb6048938b3be65f3a1d105a71d545cd316d59f223b6ae9da783dbf1495634"
+      "bytes": 5830,
+      "sha256": "6e4d8235af6f01db2f47f0dcd2f5a32de4aea5e271dd28bed4ee5fdd1a65abcb"
     },
     "tools/import_cpes_evidence.py": {
-      "bytes": 14771,
-      "sha256": "70adaead189bab80e649f81e1e4e695f6f7d71da715a96ae4595027ddab4986c"
+      "bytes": 15755,
+      "sha256": "0e45668f1249f4e232c1a0a5aadb9a3706daa825521b96fc80fe1d72f112cde3"
     },
     "tools/package_release.py": {
-      "bytes": 3801,
-      "sha256": "2fd295f3a85a01a21db64d1a965a79bc55ed8c089ff112d6428c335aaffb30dd"
+      "bytes": 3963,
+      "sha256": "d27f28c44f2af6cbfec2dae1f04c6dc3cbd7905cd13f1531b86116f17dfd54e1"
     }
   }
 }
