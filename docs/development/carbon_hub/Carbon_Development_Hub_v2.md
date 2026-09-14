@@ -2,7 +2,7 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `47909cd60fdc7ad4b592a8635507dc71ae51f869` on `main`, captured 2026-09-14T17:46:00Z.
+**Authority snapshot:** `65b106af4ae41cd9c04b1b871204d1b709f3a8f7` on `main`, captured 2026-09-14T17:52:30Z.
 **Current:** Wave C, ticket C-10. C-EA1 private-alpha preparation is the latest accepted continuation after PR #168 accepted exact head ea51a947bbf21908144f93ffb04b5e9cc46de519 in run 34830155526 and normally merged as 0ee4c9b8db8339740521e2afc72624c97d8e177a; its broader ticket remains in progress. C-10 alone is selected for a linked fresh public DEVELOPMENT execution and disagreement/quarantine journal over C-01/C-06/C-07. Exact bytes can support only an engineering reproducibility observation; different or unavailable evidence remains unresolved and quarantined. No later ticket is selected in the canonical position; owner direction authorizes a concrete C-EA1 deployment-package continuation only after C-10 merges. No provider provisioning, real archive acknowledgement, C-EA2, protected execution, independent security/scientific acceptance, public network or LIVE authority exists. D6 run 34518806217 remains historical LOCALNET_READY evidence for its exact disposable standard-profile localnet.
 **Last completed:** C-08 (`done`).
 **Next selected:** none selected.

@@ -40,9 +40,9 @@ Local fixture intent software only; reserved public-family issuers remain unavai
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/47909cd60fdc7ad4b592a8635507dc71ae51f869/.agent/tickets/NET-4A_weight_intents.md)
-- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/47909cd60fdc7ad4b592a8635507dc71ae51f869/.agent/evidence/wave_c/net-4a.md)
-- [Operator contract](https://github.com/carbonphysicsai/Carbon/blob/47909cd60fdc7ad4b592a8635507dc71ae51f869/docs/development/WEIGHT_INTENTS.md)
-- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/47909cd60fdc7ad4b592a8635507dc71ae51f869/.agent/WAVE_C.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/65b106af4ae41cd9c04b1b871204d1b709f3a8f7/.agent/tickets/NET-4A_weight_intents.md)
+- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/65b106af4ae41cd9c04b1b871204d1b709f3a8f7/.agent/evidence/wave_c/net-4a.md)
+- [Operator contract](https://github.com/carbonphysicsai/Carbon/blob/65b106af4ae41cd9c04b1b871204d1b709f3a8f7/docs/development/WEIGHT_INTENTS.md)
+- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/65b106af4ae41cd9c04b1b871204d1b709f3a8f7/.agent/WAVE_C.md)
 
 > Intent expiry does not erase stored chain weights; NET-4B owns execution and recovery.

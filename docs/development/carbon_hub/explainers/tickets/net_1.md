@@ -40,12 +40,12 @@ Read-only SPECIFIED/IMPLEMENTED/TESTED only; no localnet or scientific/security/
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/47909cd60fdc7ad4b592a8635507dc71ae51f869/.agent/tickets/NET-1_chain_adapter.md)
-- [Wave C controlling board](https://github.com/carbonphysicsai/Carbon/blob/47909cd60fdc7ad4b592a8635507dc71ae51f869/.agent/WAVE_C.md)
-- [Implementation plan](https://github.com/carbonphysicsai/Carbon/blob/47909cd60fdc7ad4b592a8635507dc71ae51f869/.agent/plans/NET-1_chain_adapter.md)
-- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/47909cd60fdc7ad4b592a8635507dc71ae51f869/.agent/evidence/wave_c/net-1.md)
-- [Current launch roadmap](https://github.com/carbonphysicsai/Carbon/blob/47909cd60fdc7ad4b592a8635507dc71ae51f869/launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.6.md)
-- [C0 reward execution contract](https://github.com/carbonphysicsai/Carbon/blob/47909cd60fdc7ad4b592a8635507dc71ae51f869/.agent/plans/C0_score_reward_program.md)
-- [SDK adapter and upgrades](https://github.com/carbonphysicsai/Carbon/blob/47909cd60fdc7ad4b592a8635507dc71ae51f869/docs/development/CHAIN_ADAPTER.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/65b106af4ae41cd9c04b1b871204d1b709f3a8f7/.agent/tickets/NET-1_chain_adapter.md)
+- [Wave C controlling board](https://github.com/carbonphysicsai/Carbon/blob/65b106af4ae41cd9c04b1b871204d1b709f3a8f7/.agent/WAVE_C.md)
+- [Implementation plan](https://github.com/carbonphysicsai/Carbon/blob/65b106af4ae41cd9c04b1b871204d1b709f3a8f7/.agent/plans/NET-1_chain_adapter.md)
+- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/65b106af4ae41cd9c04b1b871204d1b709f3a8f7/.agent/evidence/wave_c/net-1.md)
+- [Current launch roadmap](https://github.com/carbonphysicsai/Carbon/blob/65b106af4ae41cd9c04b1b871204d1b709f3a8f7/launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.6.md)
+- [C0 reward execution contract](https://github.com/carbonphysicsai/Carbon/blob/65b106af4ae41cd9c04b1b871204d1b709f3a8f7/.agent/plans/C0_score_reward_program.md)
+- [SDK adapter and upgrades](https://github.com/carbonphysicsai/Carbon/blob/65b106af4ae41cd9c04b1b871204d1b709f3a8f7/docs/development/CHAIN_ADAPTER.md)
 
 > Read-only local adapter work proceeds without keys or live-chain access. UID meaning is snapshot- and network-bound; missing or malformed provider state fails closed rather than fabricating identity.

@@ -2686,7 +2686,7 @@
         "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
       ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5667612465",
-      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/47909cd60fdc7ad4b592a8635507dc71ae51f869/.agent/DECISIONS.md"
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/65b106af4ae41cd9c04b1b871204d1b709f3a8f7/.agent/DECISIONS.md"
     }
   ]
 }
