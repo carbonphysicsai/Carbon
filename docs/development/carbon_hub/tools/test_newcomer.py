@@ -99,9 +99,9 @@ class NewcomerProjectionTests(unittest.TestCase):
             f"<strong>Current stage:</strong> {render_hub.esc(current['stage'])}",
             self.output,
         )
-        self.assertIn("run 34915666663", self.output)
-        self.assertIn("C-W1-D1 now selects", self.output)
-        self.assertIn("no registration on scanned netuids", self.output)
+        self.assertIn("run 34927991086", self.output)
+        self.assertIn("closed controller source handoff", self.output)
+        self.assertIn("no approved netuid or registration", self.output)
         self.assertIn("No chain write", self.output)
 
     def test_changing_canonical_position_reprojects_every_current_surface(self) -> None:
@@ -159,7 +159,7 @@ class NewcomerProjectionTests(unittest.TestCase):
         for phrase in (
             "Target-state orientation only",
             "required run 34789621325",
-            "C-W1-D1 is implemented and locally tested as a separate DEVELOPMENT candidate",
+            "PR #183 accepted C-W1-D1",
             "planned for Wave C1",
             "Burgers v1 remains PRE-LIVE",
             "Science ends at R14",

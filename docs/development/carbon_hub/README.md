@@ -11,12 +11,12 @@ When browsing on GitHub, start with **`orientation/START_HERE.md`**. It is the p
 - 14 waves (A-N)
 - 69 captured tickets across Wave A, Wave B, and Wave C
 - 7 protocol-change routes
-- 125 map-level change events
+- 126 map-level change events
 - 8 independent maturity states
 
 ## Captured current position
 
-Wave **C**; current ticket: **C-W1**. Last completed: **C-10** (`done`). Next selected: **none selected**. PR #180 accepted exact C-EA1-D4 head a4395a3b3f7707fc9e2793e333cc5d101ea01c64 in run 34915666663 and normally merged as 1f9ead70c886f9d04804533eab3579083c4e358d. AWS deployment and spending are deferred; Hippius is the preferred but unverified future provider. C-W1-D1 now selects a separate public/synthetic DEVELOPMENT profile with exact C-08/C-06 source association, bounded same-host retention, an all-burn checked intent and secret-free preflight. Read-only public-testnet observation found the endpoint/genesis/runtime but no registration on scanned netuids for the available public hotkey; the current Darwin arm64 host lacks Docker. No chain write, token spend, real archive acknowledgement, protected/official eligibility, science/security qualification or LIVE authority exists. No later ticket is selected. D6 run 34518806217 remains historical LOCALNET_READY evidence for its exact disposable standard-profile localnet.
+Wave **C**; current ticket: **C-W1**. Last completed: **C-10** (`done`). Next selected: **none selected**. PR #183 accepted exact C-W1-D1 foundation head 324a5276cd6a1ffdc491d04d08ef8b3282a060e8 in run 34927991086 and normally merged as bd7e5a5423d1148d340b3de3993068b66f5973d with matching tree 65e2a3d5abee97e5eaf1538050e0dcfab22cc649. The same selected ticket now has a closed controller source handoff, fixed run/status/resume and separate host/chain readiness reporting as a continuation candidate. Read-only public-testnet evidence still has no approved netuid or registration for the available hotkey, and the current Darwin arm64 host lacks Docker. No chain write, token spend, real archive acknowledgement, protected/official eligibility, science/security qualification or LIVE authority exists. AWS stays deferred and Hippius stays unverified. No later ticket is selected.
 
 ## Maintain
 

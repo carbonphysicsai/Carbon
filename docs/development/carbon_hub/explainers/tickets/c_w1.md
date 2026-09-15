@@ -16,7 +16,7 @@ A bounded testnet demonstration needs real identity and dispatch controls withou
 
 ## What it adds
 
-An exact testnet profile; durable C-08-to-C-06 source association; bounded same-host review/export retention; a short-lived unresolved all-burn intent; block-bounded one-dispatch authorization; checked finalization/readback; and a secret-free operator doctor.
+An exact testnet profile; durable C-08-to-C-06 source association; bounded same-host review/export retention; a closed source handoff; separate host/chain readiness; fixed run/status/resume; a short-lived unresolved all-burn intent; block-bounded one-dispatch authorization; and checked finalization/readback.
 
 ## Placement and handoff
 
@@ -32,17 +32,19 @@ The candidate performs no write without a selected netuid, registration/UID/capa
 
 ## Current stage
 
-C-W1-D1 selects a distinct public/synthetic DEVELOPMENT testnet profile over accepted authenticated request, isolated execution, signed evidence, quarantine and checked publication owners. Official C-W1 remains future-reserved; a selected netuid, observed registration/UID/capability, eligible Linux host and exact one-dispatch transaction approval are still absent.
+PR #183 accepted C-W1-D1's distinct public/synthetic DEVELOPMENT testnet foundation. The selected continuation adds a closed source handoff, truthful readiness and fixed run/status/resume over existing journals. Official C-W1 remains future-reserved; a selected netuid, registration/UID/capability, eligible Linux host and exact transaction approval are still absent.
 
 ## Maturity ceiling
 
-The distinct public/synthetic DEVELOPMENT candidate is specified and implemented with local focused tests. Actual public execution and network qualification are unearned; the official ticket, scientific/security/protected/production and LIVE maturity remain unearned.
+The merged foundation is specified, implemented and tested in its bounded DEVELOPMENT scope; the operator continuation remains conditional on exact-head acceptance and merge. Actual public execution and network qualification are unearned; the official ticket, scientific/security/protected/production and LIVE maturity remain unearned.
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/b22abbdc0f5f31009c483f10a478bd6cfa93cff4/.agent/tickets/C-W1_testnet_eligibility.md)
-- [Development testnet plan](https://github.com/carbonphysicsai/Carbon/blob/b22abbdc0f5f31009c483f10a478bd6cfa93cff4/.agent/plans/C_W1_DEVELOPMENT_TESTNET.md)
-- [Development testnet evidence](https://github.com/carbonphysicsai/Carbon/blob/b22abbdc0f5f31009c483f10a478bd6cfa93cff4/.agent/evidence/wave_c/c-w1-development.md)
-- [C1 dependency graph](https://github.com/carbonphysicsai/Carbon/blob/b22abbdc0f5f31009c483f10a478bd6cfa93cff4/.agent/plans/C1_DEPENDENCY_GRAPH.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/6fb8f4327b061181bf519ce64d1cb3f9b49a6e99/.agent/tickets/C-W1_testnet_eligibility.md)
+- [Development testnet plan](https://github.com/carbonphysicsai/Carbon/blob/6fb8f4327b061181bf519ce64d1cb3f9b49a6e99/.agent/plans/C_W1_DEVELOPMENT_TESTNET.md)
+- [Development testnet evidence](https://github.com/carbonphysicsai/Carbon/blob/6fb8f4327b061181bf519ce64d1cb3f9b49a6e99/.agent/evidence/wave_c/c-w1-development.md)
+- [Operator runbook](https://github.com/carbonphysicsai/Carbon/blob/6fb8f4327b061181bf519ce64d1cb3f9b49a6e99/docs/development/CW1_DEVELOPMENT_TESTNET_RUNBOOK.md)
+- [First transaction plan](https://github.com/carbonphysicsai/Carbon/blob/6fb8f4327b061181bf519ce64d1cb3f9b49a6e99/docs/development/CW1_DEVELOPMENT_TESTNET_TRANSACTION_PLAN.md)
+- [C1 dependency graph](https://github.com/carbonphysicsai/Carbon/blob/6fb8f4327b061181bf519ce64d1cb3f9b49a6e99/.agent/plans/C1_DEPENDENCY_GRAPH.md)
 
 > G2 remains LOCALNET_READY only for the exact D6 disposable v445 localnet. C-W1-D1 is separate and permits public/synthetic DEVELOPMENT only after exact external gates; signed DEVELOPMENT evidence remains rejected by official/protected consumers.
