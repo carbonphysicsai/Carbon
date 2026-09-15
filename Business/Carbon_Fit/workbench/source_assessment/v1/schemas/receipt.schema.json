@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "carbon.goal-workbench.source-assessment-validation-receipt.v1",
+  "title": "Carbon Workbench detached source-assessment validation receipt v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "contract_version", "profile_id", "request_id", "response_id", "input_digests", "association", "origin_verification", "interpretation", "review_obligations", "authority_ceiling", "execution"],
+  "properties": {
+    "schema": {"const": "carbon.goal-workbench.source-assessment-validation-receipt.v1"},
+    "contract_version": {"const": "1.0"},
+    "profile_id": {"const": "BURGERS_DYNAMICS_PUBLIC_CAUTH1_C05_V1"},
+    "request_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "response_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "input_digests": {"type": "object", "additionalProperties": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"}},
+    "association": {"$ref": "#/$defs/association"},
+    "origin_verification": {"$ref": "#/$defs/origin"},
+    "interpretation": {"$ref": "#/$defs/interpretation"},
+    "review_obligations": {"$ref": "#/$defs/obligations"},
+    "authority_ceiling": {"$ref": "#/$defs/ceiling"},
+    "execution": {"$ref": "#/$defs/execution"}
+  },
+  "$defs": {
+    "strings": {"type": "array", "maxItems": 128, "uniqueItems": true, "items": {"type": "string", "minLength": 1, "maxLength": 1000}},
+    "association": {"type": "object", "additionalProperties": false, "required": ["status", "job_id", "design_id", "design_revision", "design_snapshot_digest"], "properties": {"status": {"const": "EXACT"}, "job_id": {"const": "job-001"}, "design_id": {"const": "job-001-design-1"}, "design_revision": {"const": 1}, "design_snapshot_digest": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"}}},
+    "origin": {"type": "object", "additionalProperties": false, "required": ["status", "claimed_issuer", "established", "not_established"], "properties": {"status": {"const": "FIXTURE_BYTES_MATCH_TEST_PRODUCER_NOT_SOURCE_OWNER"}, "claimed_issuer": {"const": "GOAL_WORKBENCH_06_TEST_PRODUCER"}, "established": {"$ref": "#/$defs/strings"}, "not_established": {"$ref": "#/$defs/strings"}}},
+    "interpretation": {"type": "object", "additionalProperties": false, "required": ["status", "answered", "partial", "unsupported", "stale", "contradictory", "unresolved", "qualification_effect", "workspace_effect"], "properties": {"status": {"const": "VALID_NON_AUTHORITATIVE_PREVIEW"}, "answered": {"$ref": "#/$defs/strings"}, "partial": {"$ref": "#/$defs/strings"}, "unsupported": {"$ref": "#/$defs/strings"}, "stale": {"$ref": "#/$defs/strings"}, "contradictory": {"$ref": "#/$defs/strings"}, "unresolved": {"$ref": "#/$defs/strings"}, "qualification_effect": {"const": "NONE"}, "workspace_effect": {"const": "NONE_DETACHED_PREVIEW"}}},
+    "obligations": {"type": "object", "additionalProperties": false, "required": ["addressed_reason_ids", "remaining_reason_ids", "prohibitions_retained", "supersession"], "properties": {"addressed_reason_ids": {"$ref": "#/$defs/strings"}, "remaining_reason_ids": {"$ref": "#/$defs/strings"}, "prohibitions_retained": {"$ref": "#/$defs/strings"}, "supersession": {"const": "NONE"}}},
+    "ceiling": {"type": "object", "additionalProperties": false, "required": ["origin_authenticated", "source_owner_accepted", "scientifically_qualified", "rights_authorized", "execution_established_by_response", "score_eligible", "protected_use_authorized", "launch_authorized"], "properties": {"origin_authenticated": {"const": false}, "source_owner_accepted": {"const": false}, "scientifically_qualified": {"const": false}, "rights_authorized": {"const": false}, "execution_established_by_response": {"const": false}, "score_eligible": {"const": false}, "protected_use_authorized": {"const": false}, "launch_authorized": {"const": false}}},
+    "execution": {"type": "object", "additionalProperties": false, "required": ["mode", "solver_runs", "training_runs", "network_requests", "account_actions"], "properties": {"mode": {"const": "DETACHED_DRY_RUN"}, "solver_runs": {"const": 0}, "training_runs": {"const": 0}, "network_requests": {"const": 0}, "account_actions": {"const": 0}}}
+  }
+}

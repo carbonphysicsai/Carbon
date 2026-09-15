@@ -2,11 +2,11 @@
 
 ## Decision
 
-Prepare, but do not implement or dispatch, one source-owned read-only capability and evidence-applicability response interface.
+GOAL-WORKBENCH-06 has prepared, but not activated, one source-owned read-only capability and evidence-applicability request/response contract plus detached conformance package. The production consumer and dispatcher remain unimplemented.
 
 The interface should accept an exact workbench job/design revision, route, intended-use delta, evidence identities, dependency domains, and the one consequential question. A source owner may return capability coverage, scoped evidence applicability, unresolved conditions, provenance, and a restart event. The workbench may display that result only after exact identity/schema validation.
 
-GOAL-WORKBENCH-05A constraint: capability coverage and `SOURCE_OWNER_CONFIRMED` applicability are not scientific qualification records. A future response must keep source-declared origin, workbench origin verification, exact assessment scope, cumulative review reasons, rights/use status, execution, independent review, and scientific acceptance separate. No single confirmed binding may qualify a design. The adapter must not accept caller-supplied native provenance or a public `trustedSource` Boolean. These semantics are prepared design constraints only; no consumer or dispatcher is implemented.
+GOAL-WORKBENCH-05A constraint: capability coverage and `SOURCE_OWNER_CONFIRMED` applicability are not scientific qualification records. Contract v1.0 keeps source-declared origin, consumer origin verification, exact assessment scope, cumulative review reasons, rights/use status, execution, independent review, and scientific acceptance separate. No single confirmed binding may qualify a design. The accepted application still rejects caller-supplied native provenance, a public `trustedSource` Boolean, and the candidate response format. These semantics are executable detached tests only; no consumer or dispatcher is implemented.
 
 ## Why this is next
 
@@ -14,9 +14,9 @@ The three demonstrations show that exact source/capability identity and owner re
 
 ## Owner and restart event
 
-Owner: the existing source owner for the referenced capability or evidence domain; no new global owner is created here.
+Owners: `SYSTEM/BUSINESS-AUTHORITY` for the Workbench consumer and `WAVE-C/C-AUTH1` for the first native source profile. No new global owner is created here.
 
-Restart event: the actual capability/evidence owner accepts a closed request-bound response contract with explicit trust/provenance and non-qualification rules, plus one public fixture. Until then, the existing manual handoff and external-linked record stay labeled manual/external.
+Restart event: the actual C-AUTH1 source contract owner answers the three questions in `GOAL_WORKBENCH_06_SOURCE_OWNER_DECISION_PACKET.md` for contract/profile v1.0 and accepts or supplies the verifier/scope/trust/public-fixture inputs. Until then, the existing manual handoff and external-linked record stay labeled manual/external and the production consumer remains unavailable.
 
 ## Exclusions
 

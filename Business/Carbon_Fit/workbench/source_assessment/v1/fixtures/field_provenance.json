@@ -1,0 +1,41 @@
+{
+  "schema_version": "carbon.goal-workbench.source-assessment-field-provenance.v1",
+  "entries": [
+    {
+      "path": "request.*",
+      "source_kind": "TEST_AUTHORED_REQUEST_FIELD",
+      "source_ref": "GOAL-WORKBENCH-06 ticket",
+      "meaning": "A bounded request, not an owner decision"
+    },
+    {
+      "path": "response.claimed_issuer",
+      "source_kind": "TEST_AUTHORED_EXPECTED_RESPONSE",
+      "source_ref": "fixtures/response.json",
+      "meaning": "Conformance producer claim, not source-owner identity"
+    },
+    {
+      "path": "response.content.capability_declaration",
+      "source_kind": "EXISTING_BRIDGE_DERIVED_FACT",
+      "source_ref": "authoring_result",
+      "meaning": "Intent-preserved public Dynamics authoring fact"
+    },
+    {
+      "path": "response.content.evidence_relationship",
+      "source_kind": "COPIED_SOURCE_FACT",
+      "source_ref": "c05_public_bundle",
+      "meaning": "Exact historical fixed-case C-05 context"
+    },
+    {
+      "path": "response.content.applicability_assessment",
+      "source_kind": "TEST_AUTHORED_EXPECTED_RESPONSE",
+      "source_ref": "fixtures/response.json",
+      "meaning": "Unresolved preview; no owner-supplied assessment is available"
+    },
+    {
+      "path": "response.authority_ceiling",
+      "source_kind": "CONTRACT_INVARIANT",
+      "source_ref": "schemas/response.schema.json",
+      "meaning": "All authority effects remain false"
+    }
+  ]
+}

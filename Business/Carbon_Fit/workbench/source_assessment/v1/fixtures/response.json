@@ -1,0 +1,124 @@
+{
+  "schema_version": "carbon.goal-workbench.source-assessment-response.v1",
+  "contract_version": "1.0",
+  "source_profile_version": "burgers-dynamics-public.v1",
+  "response_id": "GW06-BURGERS-DYNAMICS-PUBLIC-RESPONSE-001",
+  "request_id": "GW06-BURGERS-DYNAMICS-PUBLIC-REQUEST-001",
+  "request_digest": "sha256:a4904e9beb6b5ea8539ff617f7792cb31850156c2c4a977471e699dd3f04e849",
+  "association": {
+    "job_id": "job-001",
+    "design_id": "job-001-design-1",
+    "design_revision": 1,
+    "design_snapshot_digest": "sha256:a493b608d157a9e3473a03b2b64c4e6abe805c8dc5efbc5e48553f36fa913bfe"
+  },
+  "claimed_issuer": {
+    "issuer_id": "GOAL_WORKBENCH_06_TEST_PRODUCER",
+    "issuer_role": "CONFORMANCE_FIXTURE_PRODUCER",
+    "claim_basis": "TEST_AUTHORED_NOT_SOURCE_OWNER"
+  },
+  "result_kind": "PARTIAL_RESPONSE",
+  "content": {
+    "source_snapshot": {
+      "authoring_result": "sha256:ee6adc6aac629e4ab7c46d904d4a67d5403c05831a5d37dd0b7afac2ff5ff067",
+      "native_proposal": "sha256:4d441dd503003355c2dd41942f2d97113b5f25fa6c08bcd6599df838a47cbaf9",
+      "c05_public_bundle": "sha256:ebb4c11df77766111d7223c1671ad7df268d1cf9ad62fa4b3490218951c7974f",
+      "c05_fixture_index": "sha256:a11de945606b7178192345a32670ba6b4998eb755211aca7848a838fc1f43fd5"
+    },
+    "capability_declaration": {
+      "status": "SUPPORTED_EXACT_PUBLIC_DYNAMICS_TECHNICAL_DECLARATION",
+      "template_id": "periodic_viscous_burgers_1d_v1",
+      "active_goal": "Dynamics",
+      "technical_scope": "The accepted local authoring bridge emitted an intent-preserved DEVELOPMENT proposal for the exact public synthetic periodic viscous Burgers Dynamics request.",
+      "field_coverage": [
+        "physical_law",
+        "active_goal",
+        "measurement_bindings",
+        "sampling",
+        "references",
+        "query_contract"
+      ],
+      "source_artifact_ids": [
+        "authoring_result",
+        "native_proposal"
+      ]
+    },
+    "evidence_relationship": {
+      "status": "RETAINED_PUBLIC_DEVELOPMENT_CONTEXT",
+      "fixture_id": "C05-PUBLIC-EVAL2-PERTURBED",
+      "evidence_kind": "FIXED_CASE_RESULT",
+      "case_scope": "ONE_EXACT_PUBLIC_EVAL_CASE_NOT_A_CAMPAIGN",
+      "request_digest": "sha256:cbd8f66c1c501325cb74c4c95c197b0a957a58334bb37a4853e9524c2a78a857",
+      "result_digest": "sha256:92aee39eb3f293f1d18cbc40837837a715492314a2565a14cc0b6aba636be8d1",
+      "measurement_ids": [
+        "field_phase_rms",
+        "maximum_compression",
+        "peak_dissipation",
+        "energy_half_time"
+      ],
+      "physics_ids": [
+        "initial_condition",
+        "periodicity",
+        "conserved_mean",
+        "maximum_principle",
+        "energy_dissipation_balance",
+        "weak_local_pde"
+      ],
+      "source_artifact_id": "c05_public_bundle",
+      "execution_relationship": "HISTORICAL_CONTEXT_NOT_FRESH_EXECUTION"
+    },
+    "applicability_assessment": {
+      "status": "UNRESOLVED_TEST_AUTHORED_PREVIEW",
+      "assumptions": [
+        "PUBLIC_SYNTHETIC_SCOPE_ONLY"
+      ],
+      "exclusions": [
+        "NO_CUSTOMER_USE",
+        "NO_PROTECTED_USE",
+        "NO_POPULATION_ADEQUACY_CLAIM"
+      ],
+      "limitations": [
+        "TEST_PRODUCER_IS_NOT_SOURCE_OWNER",
+        "C05_UNCERTAINTY_AND_LIMITS_REMAIN_UNKNOWN",
+        "ONE_FIXED_CASE_IS_NOT_A_CAMPAIGN"
+      ],
+      "answered_question_ids": [
+        "GW06:TECHNICAL_EXPRESSIBILITY"
+      ],
+      "partial_question_ids": [
+        "GW06:RETAINED_C05_CONTEXT"
+      ],
+      "unsupported_question_ids": [],
+      "unanswered_question_ids": [
+        "GW06:SCIENTIFIC_APPLICABILITY",
+        "GW06:INTENDED_USE_SUITABILITY",
+        "GW06:RIGHTS"
+      ],
+      "reason_ids_addressed": [],
+      "reason_ids_remaining": [
+        "gw06:intended-use:suitability-unresolved",
+        "gw06:rights:use-unresolved",
+        "gw06:scientific:applicability-unresolved"
+      ],
+      "supporting_evidence_refs": [
+        "authoring_result",
+        "native_proposal",
+        "c05_public_bundle",
+        "c05_fixture_index"
+      ],
+      "supersedes_response_id": null,
+      "next_decision": "The WAVE-C/C-AUTH1 source contract owner accepts, changes, or rejects the field semantics, issuer/scope verification, and public fixture mapping.",
+      "restart_event": "The WAVE-C/C-AUTH1 source contract owner answers the three acceptance questions for this exact contract/profile version"
+    }
+  },
+  "content_digest": "sha256:c34a7ddd9ff54b7247a9ffb18476faf11f5888ddf5b6b8c1e3cf1cc6fac05552",
+  "authority_ceiling": {
+    "origin_authenticated": false,
+    "source_owner_accepted": false,
+    "scientifically_qualified": false,
+    "rights_authorized": false,
+    "execution_established_by_response": false,
+    "score_eligible": false,
+    "protected_use_authorized": false,
+    "launch_authorized": false
+  }
+}

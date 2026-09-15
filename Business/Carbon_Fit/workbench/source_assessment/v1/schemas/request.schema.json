@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "carbon.goal-workbench.source-assessment-request.v1",
+  "title": "Carbon Workbench source-assessment request v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "contract_version", "source_profile_version", "request_id", "handoff_identity", "association", "question", "scope", "source_target", "permitted_scope", "expected_result", "authority"],
+  "properties": {
+    "schema_version": {"const": "carbon.goal-workbench.source-assessment-request.v1"},
+    "contract_version": {"const": "1.0"},
+    "source_profile_version": {"const": "burgers-dynamics-public.v1"},
+    "request_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"},
+    "handoff_identity": {"$ref": "#/$defs/handoff"},
+    "association": {"$ref": "#/$defs/association"},
+    "question": {"$ref": "#/$defs/question"},
+    "scope": {"$ref": "#/$defs/scope"},
+    "source_target": {"$ref": "#/$defs/source_target"},
+    "permitted_scope": {"$ref": "#/$defs/permitted_scope"},
+    "expected_result": {"$ref": "#/$defs/expected_result"},
+    "authority": {"const": "REQUEST_ONLY_NO_EXECUTION_APPROVAL_QUALIFICATION_RIGHTS_OR_LAUNCH"}
+  },
+  "$defs": {
+    "ids": {"type": "array", "maxItems": 32, "uniqueItems": true, "items": {"type": "string", "minLength": 1, "maxLength": 128}},
+    "handoff": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema_version", "request_id", "status"],
+      "properties": {
+        "schema_version": {"const": "carbon.goal-workbench.handoff.v1"},
+        "request_id": {"type": "string", "minLength": 1, "maxLength": 128},
+        "status": {"const": "EXPORTED_CONTRACT_FIXTURE_NOT_DISPATCHED"}
+      }
+    },
+    "association": {
+      "type": "object", "additionalProperties": false,
+      "required": ["job_id", "design_id", "design_revision", "design_status", "design_snapshot_ref", "design_snapshot_digest", "design_snapshot_artifact_digest", "planning_route"],
+      "properties": {
+        "job_id": {"const": "job-001"}, "design_id": {"const": "job-001-design-1"},
+        "design_revision": {"const": 1}, "design_status": {"const": "SEALED"},
+        "design_snapshot_ref": {"const": "fixtures/public_design_snapshot.json"},
+        "design_snapshot_digest": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+        "design_snapshot_artifact_digest": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+        "planning_route": {"const": "ADAPT_SUPPORTED_CHALLENGE"}
+      }
+    },
+    "question": {
+      "type": "object", "additionalProperties": false,
+      "required": ["question_id", "response_type", "text", "intended_use_question"],
+      "properties": {
+        "question_id": {"const": "GW06-BURGERS-DYNAMICS-CAPABILITY-AND-CONTEXT"},
+        "response_type": {"const": "CAPABILITY_DECLARATION_WITH_UNRESOLVED_APPLICABILITY"},
+        "text": {"type": "string", "minLength": 1, "maxLength": 2000},
+        "intended_use_question": {"type": "string", "minLength": 1, "maxLength": 2000}
+      }
+    },
+    "evidence_binding": {
+      "type": "object", "additionalProperties": false,
+      "required": ["evidence_binding_id", "evidence_kind", "source_ref", "source_digest", "originating_design_id", "originating_design_revision", "inherited"],
+      "properties": {
+        "evidence_binding_id": {"type": "string", "minLength": 1, "maxLength": 256},
+        "evidence_kind": {"const": "FIXED_CASE_RESULT"},
+        "source_ref": {"type": "string", "minLength": 1, "maxLength": 500},
+        "source_digest": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+        "originating_design_id": {"const": "job-001-design-1"},
+        "originating_design_revision": {"const": 1},
+        "inherited": {"const": false}
+      }
+    },
+    "scope": {
+      "type": "object", "additionalProperties": false,
+      "required": ["requirement_ids", "trace_ids", "case_family_ids", "evidence_bindings", "dependency_domains", "unresolved_reason_ids"],
+      "properties": {
+        "requirement_ids": {"$ref": "#/$defs/ids"}, "trace_ids": {"$ref": "#/$defs/ids"},
+        "case_family_ids": {"$ref": "#/$defs/ids"},
+        "evidence_bindings": {"type": "array", "minItems": 1, "maxItems": 8, "items": {"$ref": "#/$defs/evidence_binding"}},
+        "dependency_domains": {"$ref": "#/$defs/ids"}, "unresolved_reason_ids": {"$ref": "#/$defs/ids"}
+      }
+    },
+    "source_target": {
+      "type": "object", "additionalProperties": false,
+      "required": ["recipient_domain", "requested_response_type", "implementation_ref", "schema_refs", "artifact_ids"],
+      "properties": {
+        "recipient_domain": {"const": "WAVE-C/C-AUTH1"},
+        "requested_response_type": {"const": "DECLARATION_AND_SCOPED_ASSESSMENT"},
+        "implementation_ref": {"type": "string", "minLength": 1, "maxLength": 500},
+        "schema_refs": {"$ref": "#/$defs/ids"}, "artifact_ids": {"$ref": "#/$defs/ids"}
+      }
+    },
+    "permitted_scope": {
+      "type": "object", "additionalProperties": false,
+      "required": ["information", "use", "rights"],
+      "properties": {
+        "information": {"const": "PUBLIC_SYNTHETIC_ONLY"},
+        "use": {"const": "DETACHED_CONTRACT_CONFORMANCE_ONLY"},
+        "rights": {"const": "NO_RIGHTS_GRANTED"}
+      }
+    },
+    "expected_result": {
+      "type": "object", "additionalProperties": false,
+      "required": ["allowed_kinds", "named_blocker", "restart_event"],
+      "properties": {
+        "allowed_kinds": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"enum": ["DECLARATION", "SCOPED_ASSESSMENT", "PARTIAL_RESPONSE", "UNSUPPORTED_SCOPE", "NAMED_BLOCKER"]}},
+        "named_blocker": {"type": "string", "minLength": 1, "maxLength": 1000},
+        "restart_event": {"type": "string", "minLength": 1, "maxLength": 1000}
+      }
+    }
+  }
+}

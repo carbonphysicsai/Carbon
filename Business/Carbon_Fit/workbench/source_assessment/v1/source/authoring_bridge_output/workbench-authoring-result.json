@@ -1,0 +1,694 @@
+{
+  "schema_version": "carbon.goal-workbench.authoring-result.v1",
+  "request_id": "gw06-authoring-job-001-design-1-r1",
+  "job_id": "job-001",
+  "design_id": "job-001-design-1",
+  "design_revision": 1,
+  "input_digest": "sha256:f8a0f05deaf6c65f0c96afde280da5c5c94f684053d847a9072bc3a03830f656",
+  "proposal_digest": "sha256:e1822a5a3bc2b1df8b11481b8accfa6c3cbef06b10f2e47103090aa536e30143",
+  "proposal": {
+    "canonicalization_profile": "carbon.goal-authoring.canonical-json.v1",
+    "capabilities": {
+      "archive_acknowledged": false,
+      "network_authorized": false,
+      "payout_authorized": false,
+      "registered": false,
+      "scientifically_qualified": false
+    },
+    "challenge": {
+      "challenge_id": "burgers-dynamics-v1",
+      "competition_count": 1,
+      "primary_goal": "Dynamics",
+      "title": "Burgers Dynamics V1"
+    },
+    "development_controls": [
+      "SPECTRAL_32",
+      "SPECTRAL_64",
+      "SPECTRAL_128",
+      "HEAT",
+      "MEMORIZER",
+      "KERNEL_BUILD_0",
+      "KERNEL_BUILD_1"
+    ],
+    "evidence_boundary": {
+      "allowed_role": "PUBLIC_DEVELOPMENT_ONLY",
+      "corrected_execution_freeze_digest": "sha256:f6624238cb5c07fc15ce0b94477336041fb1ef879454aa2d39e0e6f53eeb2788",
+      "protected_evaluation_eligible": false,
+      "source_goal": "Dynamics",
+      "template_package_digest": "sha256:4fa6828a38050bd34fd76019fa472bdcd141a7f788ac09103544e4de0ffcd716",
+      "workbench_release_digest": "sha256:7805f87c3b4745454ec9c8fa852a20de6731d8f85e1356eb5d91a708cdafa7ac"
+    },
+    "goal_reports": [
+      {
+        "activation": "PRIMARY_CHALLENGE",
+        "intended_decision": "Predict the complete evolution while resolving compression and dissipation without sacrificing a declared regime.",
+        "name": "Dynamics",
+        "weights": {
+          "compression": {
+            "denominator": 6,
+            "numerator": 1
+          },
+          "field": {
+            "denominator": 2,
+            "numerator": 1
+          },
+          "half_time": {
+            "denominator": 6,
+            "numerator": 1
+          },
+          "peak_dissipation": {
+            "denominator": 6,
+            "numerator": 1
+          }
+        }
+      },
+      {
+        "activation": "PREPARED_SPECIALIST_INACTIVE",
+        "intended_decision": "Track a moving and deforming field across early, nonlinear and decay phases.",
+        "name": "Transport",
+        "weights": {
+          "compression": {
+            "denominator": 10,
+            "numerator": 1
+          },
+          "field": {
+            "denominator": 5,
+            "numerator": 4
+          },
+          "half_time": {
+            "denominator": 20,
+            "numerator": 1
+          },
+          "peak_dissipation": {
+            "denominator": 20,
+            "numerator": 1
+          }
+        }
+      },
+      {
+        "activation": "PREPARED_SPECIALIST_INACTIVE",
+        "intended_decision": "Resolve future maximum compression while retaining the complete field evolution.",
+        "name": "Front Resolution",
+        "weights": {
+          "compression": {
+            "denominator": 2,
+            "numerator": 1
+          },
+          "field": {
+            "denominator": 5,
+            "numerator": 2
+          },
+          "half_time": {
+            "denominator": 20,
+            "numerator": 1
+          },
+          "peak_dissipation": {
+            "denominator": 20,
+            "numerator": 1
+          }
+        }
+      },
+      {
+        "activation": "PREPARED_SPECIALIST_INACTIVE",
+        "intended_decision": "Estimate dissipation intensity and energy half-time while retaining field accuracy.",
+        "name": "Dissipation",
+        "weights": {
+          "compression": {
+            "denominator": 20,
+            "numerator": 1
+          },
+          "field": {
+            "denominator": 5,
+            "numerator": 2
+          },
+          "half_time": {
+            "denominator": 5,
+            "numerator": 1
+          },
+          "peak_dissipation": {
+            "denominator": 20,
+            "numerator": 7
+          }
+        }
+      }
+    ],
+    "measurement_proposal": {
+      "censoring": {
+        "half_time": "CLIP_AT_HORIZON_AND_RETAIN_CENSOR_FLAG_AND_CROSSING_BRACKET"
+      },
+      "definitions": [
+        {
+          "id": "field_phase_rms",
+          "raw_error_retained": true,
+          "tolerance": {
+            "denominator": 100,
+            "numerator": 1,
+            "unit": "INITIAL_FLUCTUATION_RMS"
+          }
+        },
+        {
+          "id": "maximum_compression",
+          "raw_error_retained": true,
+          "tolerance": {
+            "denominator": 20,
+            "numerator": 1,
+            "unit": "max(C_ref,A*k_rms)"
+          }
+        },
+        {
+          "id": "peak_dissipation",
+          "raw_error_retained": true,
+          "tolerance": {
+            "denominator": 20,
+            "numerator": 1,
+            "unit": "max(D_ref,E0/t_c)"
+          }
+        },
+        {
+          "id": "energy_half_time",
+          "raw_error_retained": true,
+          "tolerance": {
+            "denominator": 20,
+            "numerator": 1,
+            "unit": "t_c"
+          }
+        }
+      ],
+      "development_physics_limits": {
+        "energy_balance": {
+          "denominator": 100,
+          "numerator": 1
+        },
+        "initial_condition": {
+          "denominator": 1000000,
+          "numerator": 1
+        },
+        "maximum_principle_excess": {
+          "denominator": 1000,
+          "numerator": 1
+        },
+        "mean_conservation": {
+          "denominator": 1000000,
+          "numerator": 1
+        },
+        "weak_local_pde": {
+          "denominator": 200,
+          "numerator": 1
+        }
+      },
+      "extrema_rule": "FOURFOLD_PERIODIC_TRIGONOMETRIC_INTERPOLATION_OF_DERIVATIVE",
+      "mandatory_physics": [
+        "INITIAL_CONDITION",
+        "PERIODICITY",
+        "CONSERVED_MEAN",
+        "MAXIMUM_PRINCIPLE",
+        "ENERGY_DISSIPATION_BALANCE",
+        "WEAK_LOCAL_PDE"
+      ],
+      "numerical_uncertainty_policy": "UNRESOLVED_OR_INDETERMINATE_IS_EVALUATOR_FAILURE_NOT_STRATEGY_FAILURE",
+      "phase_windows": [
+        [
+          0,
+          "t_c/4"
+        ],
+        [
+          "t_c/4",
+          "t_c"
+        ],
+        [
+          "t_c",
+          "4*t_c"
+        ]
+      ],
+      "point_query_rule": "EVALUATE_PERIODIC_TRIGONOMETRIC_REPRESENTATION_AT_REQUESTED_POINTS_NO_LOW_PASS_SUBSTITUTION",
+      "raw_physical_defects_retained": true,
+      "raw_uncertainty_components_retained": true,
+      "uncertainty_gate": {
+        "fail": "defect-uncertainty>limit",
+        "indeterminate": "otherwise",
+        "pass": "defect+uncertainty<=limit"
+      }
+    },
+    "owner_bindings": {
+      "case_identity": "carbon.authoring.CanonicalChallengeCaseRef",
+      "challenge_registration": "carbon.registry",
+      "construction_reconstruction": "carbon.construction",
+      "generator": "carbon.generators",
+      "measurement": "carbon.measurement.MeasurementContractRef",
+      "reference_qualification": "D-03/D-04",
+      "sampling": "carbon.authoring.SamplingPlanRef",
+      "scoring": "carbon.measurement.ScorePackAuthoringContractRef",
+      "seeding": "carbon.seeding"
+    },
+    "physical_contract": {
+      "boundary": "PERIODIC",
+      "domain": {
+        "length": {
+          "symbol": "2*pi"
+        },
+        "space_dimensions": 1
+      },
+      "equation": "u_t + d_x(u^2/2) = nu*u_xx",
+      "forcing": "NONE",
+      "generator_law": {
+        "amplitude": {
+          "distribution": "UNIFORM",
+          "maximum": 0.35,
+          "minimum": 0.15
+        },
+        "cells": {
+          "count": 12,
+          "mass": {
+            "denominator": 12,
+            "numerator": 1
+          },
+          "shape_families": [
+            "harmonic",
+            "localized_packet",
+            "multiscale"
+          ],
+          "viscous_regimes": [
+            [
+              0.5,
+              1.0
+            ],
+            [
+              1.0,
+              2.0
+            ],
+            [
+              2.0,
+              4.0
+            ],
+            [
+              4.0,
+              8.0
+            ]
+          ]
+        },
+        "characteristic_time": "min(1/(A*k_rms),1/(nu*k_rms^2))",
+        "horizon": "4*t_c",
+        "initial_modes": {
+          "first": 1,
+          "last": 12
+        },
+        "mean_over_amplitude": {
+          "distribution": "UNIFORM",
+          "maximum": 1.0,
+          "minimum": -1.0
+        },
+        "viscosity": "A/(Re_eff*k_rms)"
+      },
+      "physical_scope": "SYNTHETIC_PERIODIC_VISCOUS_BURGERS_DEVELOPMENT_BENCHMARK",
+      "positive_viscosity_required": true
+    },
+    "plans": {
+      "EVAL": {
+        "parents_per_cell": 4,
+        "role": "EVAL",
+        "source": "OWNER_DERIVED"
+      },
+      "STRESS": {
+        "parents_per_cell": 10,
+        "role": "STRESS",
+        "source": "OWNER_DERIVED"
+      },
+      "TRAIN": {
+        "builds": 2,
+        "labels": "TRAIN_ONLY",
+        "parents_per_cell_per_build": 3,
+        "role": "TRAIN",
+        "source": "OWNER_DERIVED"
+      }
+    },
+    "reference_candidates": [
+      {
+        "method": "DEALIASED_FOURIER_CONSERVATIVE_ETDRK4_WITH_EXACT_GALILEAN_MEAN",
+        "role": "PRIMARY_DEVELOPMENT_CANDIDATE",
+        "status": "NOT_QUALIFIED"
+      },
+      {
+        "method": "COLE_HOPF_POSITIVE_GAUSSIAN_EXPECTATION_GAUSS_HERMITE_LOG_STABILIZED",
+        "role": "INDEPENDENT_DEVELOPMENT_WITNESS",
+        "status": "NOT_QUALIFIED"
+      }
+    ],
+    "schema_version": "carbon.goal-authoring-proposal/1",
+    "score_proposal": {
+      "eligibility_order": "MANDATORY_PHYSICS_BEFORE_QUALITY",
+      "performance": "POPULATION_WEIGHTED_MEAN_CASE_LOSS",
+      "quality_component_order": [
+        "field",
+        "compression",
+        "peak_dissipation",
+        "half_time"
+      ],
+      "ranking": {
+        "performance_weight": {
+          "denominator": 2,
+          "numerator": 1
+        },
+        "reliability_weight": {
+          "denominator": 2,
+          "numerator": 1
+        }
+      },
+      "reliability": "MAXIMUM_CELL_EMPIRICAL_CVAR_90_WITH_FRACTIONAL_TAIL_MASS",
+      "status": "NEW_DEVELOPMENT_SCORE_PROPOSAL_NOT_A5_ACTIVATION"
+    },
+    "source": {
+      "document_kind": "RAW_INTAKE",
+      "intake_digest": "sha256:541853c53f0ad9a327562e0c33275292b93f8060ade1ee9773b16fc8052ec31c",
+      "package_digest": null
+    },
+    "status": "DEVELOPMENT_PROPOSAL",
+    "training_adapter": {
+      "candidate_payload_allow_list": [
+        "initial_field",
+        "viscosity",
+        "requested_times",
+        "domain_length"
+      ],
+      "jax_source_status": "UNAVAILABLE",
+      "label_access": "TRAIN_ONLY",
+      "required_backend_interface": [
+        "fit_train_arrays",
+        "freeze_artifact",
+        "infer_requested_points"
+      ]
+    },
+    "unresolved_inputs": [
+      "AUTHORIZED_ACTUAL_JAX_SOURCE_REVISION_AND_API",
+      "QUALIFIED_REFERENCE_AND_MEASUREMENT_ERROR_BUDGETS",
+      "PRODUCTION_CUSTODY_RETENTION_AND_ARCHIVE_ACKNOWLEDGEMENT",
+      "REPRESENTATIVE_RESOURCE_AND_PRECISION_CALIBRATION",
+      "PROTECTED_EVALUATOR_SEED_COMMITMENTS_AND_ACCESS_CONTROL"
+    ]
+  },
+  "cli_result": {
+    "content_digest": "sha256:e1822a5a3bc2b1df8b11481b8accfa6c3cbef06b10f2e47103090aa536e30143",
+    "disposition": "CREATED",
+    "status": "DEVELOPMENT_PROPOSAL"
+  },
+  "semantic_receipt": {
+    "schema_version": "carbon.goal-workbench.semantic-receipt.v1",
+    "request_id": "gw06-authoring-job-001-design-1-r1",
+    "job_id": "job-001",
+    "design_id": "job-001-design-1",
+    "design_revision": 1,
+    "input_digest": "sha256:f8a0f05deaf6c65f0c96afde280da5c5c94f684053d847a9072bc3a03830f656",
+    "proposal_digest": "sha256:e1822a5a3bc2b1df8b11481b8accfa6c3cbef06b10f2e47103090aa536e30143",
+    "expected": {
+      "physical_law": {
+        "template_id": "periodic_viscous_burgers_1d_v1",
+        "equation": "Periodic unforced viscous Burgers equation from C-AUTH1",
+        "conditions": "Periodic boundary; unforced; finite Fourier initial condition; positive viscosity"
+      },
+      "active_goal": "Dynamics",
+      "score_plan": {
+        "official_score_status": "PROPOSED_UNQUALIFIED",
+        "mandatory_gate_summary": "Source mandatory physics gates precede quality ranking",
+        "soft_estimand": "Source population-weighted mean and worst-cell CVaR DEVELOPMENT proposal",
+        "training_objective": "Candidate training remains separate from official measurement and score",
+        "reward_accounting": "SEPARATE_UNRESOLVED",
+        "deployment_acceptance": "No customer deployment acceptance is established",
+        "unresolved_tradeoffs": "Qualified limits, floors and customer trade-offs remain HUMAN_INPUT"
+      },
+      "measurement_bindings": [
+        {
+          "requirement_id": "REQ-DYNAMICS",
+          "role": "MANDATORY",
+          "binding": "carbon.goal-authoring-proposal/1"
+        }
+      ],
+      "sampling": [
+        {
+          "case_family_id": "BURGERS-12-CELL",
+          "role": "EVAL",
+          "generator_ref": "goal_burgers_12cell_v1",
+          "target_population": "source-defined synthetic periodic Burgers population",
+          "sampling_frequency": "4 parents per EVAL cell",
+          "analysis_weight": "population mass distinct from sampling frequency"
+        }
+      ],
+      "references": {
+        "equation": "Periodic unforced viscous Burgers equation from C-AUTH1",
+        "role": "Candidate primary plus independent DEVELOPMENT witness",
+        "method": "Source-owned C-04 reference interfaces",
+        "configuration": "Exact registered DEVELOPMENT template only",
+        "convergence_evidence": "Unqualified development evidence; see native source",
+        "uncertainty_evidence": "Qualified limits remain HUMAN_INPUT",
+        "applicable_envelope": "Synthetic periodic Burgers development cells",
+        "failures": "Failed reference cases remain separate from candidate failure",
+        "cost_scope": "Reference work is not measured by this conformance example",
+        "independence_limitations": "Shared assumptions and correlations remain explicit"
+      },
+      "query_contract": {
+        "inputs": "Finite Fourier initial field, positive viscosity, requested times, and declared periodic domain length",
+        "outputs": "Complete field evolution with compression, dissipation and half-time diagnostics",
+        "units": "Source-defined nondimensional Burgers variables and declared characteristic scales",
+        "query_workload": "Source-defined TRAIN/EVAL/STRESS finite campaign only",
+        "turnaround": "No customer service limit established"
+      }
+    },
+    "emitted": {
+      "physical_law": {
+        "boundary": "PERIODIC",
+        "domain": {
+          "length": {
+            "symbol": "2*pi"
+          },
+          "space_dimensions": 1
+        },
+        "equation": "u_t + d_x(u^2/2) = nu*u_xx",
+        "forcing": "NONE",
+        "generator_law": {
+          "amplitude": {
+            "distribution": "UNIFORM",
+            "maximum": 0.35,
+            "minimum": 0.15
+          },
+          "cells": {
+            "count": 12,
+            "mass": {
+              "denominator": 12,
+              "numerator": 1
+            },
+            "shape_families": [
+              "harmonic",
+              "localized_packet",
+              "multiscale"
+            ],
+            "viscous_regimes": [
+              [
+                0.5,
+                1.0
+              ],
+              [
+                1.0,
+                2.0
+              ],
+              [
+                2.0,
+                4.0
+              ],
+              [
+                4.0,
+                8.0
+              ]
+            ]
+          },
+          "characteristic_time": "min(1/(A*k_rms),1/(nu*k_rms^2))",
+          "horizon": "4*t_c",
+          "initial_modes": {
+            "first": 1,
+            "last": 12
+          },
+          "mean_over_amplitude": {
+            "distribution": "UNIFORM",
+            "maximum": 1.0,
+            "minimum": -1.0
+          },
+          "viscosity": "A/(Re_eff*k_rms)"
+        },
+        "physical_scope": "SYNTHETIC_PERIODIC_VISCOUS_BURGERS_DEVELOPMENT_BENCHMARK",
+        "positive_viscosity_required": true
+      },
+      "active_goal": "Dynamics",
+      "source_goal": "Dynamics",
+      "active_goal_count": 1,
+      "measurement": {
+        "censoring": {
+          "half_time": "CLIP_AT_HORIZON_AND_RETAIN_CENSOR_FLAG_AND_CROSSING_BRACKET"
+        },
+        "definitions": [
+          {
+            "id": "field_phase_rms",
+            "raw_error_retained": true,
+            "tolerance": {
+              "denominator": 100,
+              "numerator": 1,
+              "unit": "INITIAL_FLUCTUATION_RMS"
+            }
+          },
+          {
+            "id": "maximum_compression",
+            "raw_error_retained": true,
+            "tolerance": {
+              "denominator": 20,
+              "numerator": 1,
+              "unit": "max(C_ref,A*k_rms)"
+            }
+          },
+          {
+            "id": "peak_dissipation",
+            "raw_error_retained": true,
+            "tolerance": {
+              "denominator": 20,
+              "numerator": 1,
+              "unit": "max(D_ref,E0/t_c)"
+            }
+          },
+          {
+            "id": "energy_half_time",
+            "raw_error_retained": true,
+            "tolerance": {
+              "denominator": 20,
+              "numerator": 1,
+              "unit": "t_c"
+            }
+          }
+        ],
+        "development_physics_limits": {
+          "energy_balance": {
+            "denominator": 100,
+            "numerator": 1
+          },
+          "initial_condition": {
+            "denominator": 1000000,
+            "numerator": 1
+          },
+          "maximum_principle_excess": {
+            "denominator": 1000,
+            "numerator": 1
+          },
+          "mean_conservation": {
+            "denominator": 1000000,
+            "numerator": 1
+          },
+          "weak_local_pde": {
+            "denominator": 200,
+            "numerator": 1
+          }
+        },
+        "extrema_rule": "FOURFOLD_PERIODIC_TRIGONOMETRIC_INTERPOLATION_OF_DERIVATIVE",
+        "mandatory_physics": [
+          "INITIAL_CONDITION",
+          "PERIODICITY",
+          "CONSERVED_MEAN",
+          "MAXIMUM_PRINCIPLE",
+          "ENERGY_DISSIPATION_BALANCE",
+          "WEAK_LOCAL_PDE"
+        ],
+        "numerical_uncertainty_policy": "UNRESOLVED_OR_INDETERMINATE_IS_EVALUATOR_FAILURE_NOT_STRATEGY_FAILURE",
+        "phase_windows": [
+          [
+            0,
+            "t_c/4"
+          ],
+          [
+            "t_c/4",
+            "t_c"
+          ],
+          [
+            "t_c",
+            "4*t_c"
+          ]
+        ],
+        "point_query_rule": "EVALUATE_PERIODIC_TRIGONOMETRIC_REPRESENTATION_AT_REQUESTED_POINTS_NO_LOW_PASS_SUBSTITUTION",
+        "raw_physical_defects_retained": true,
+        "raw_uncertainty_components_retained": true,
+        "uncertainty_gate": {
+          "fail": "defect-uncertainty>limit",
+          "indeterminate": "otherwise",
+          "pass": "defect+uncertainty<=limit"
+        }
+      },
+      "score": {
+        "eligibility_order": "MANDATORY_PHYSICS_BEFORE_QUALITY",
+        "performance": "POPULATION_WEIGHTED_MEAN_CASE_LOSS",
+        "quality_component_order": [
+          "field",
+          "compression",
+          "peak_dissipation",
+          "half_time"
+        ],
+        "ranking": {
+          "performance_weight": {
+            "denominator": 2,
+            "numerator": 1
+          },
+          "reliability_weight": {
+            "denominator": 2,
+            "numerator": 1
+          }
+        },
+        "reliability": "MAXIMUM_CELL_EMPIRICAL_CVAR_90_WITH_FRACTIONAL_TAIL_MASS",
+        "status": "NEW_DEVELOPMENT_SCORE_PROPOSAL_NOT_A5_ACTIVATION"
+      },
+      "sampling": {
+        "EVAL": {
+          "parents_per_cell": 4,
+          "role": "EVAL",
+          "source": "OWNER_DERIVED"
+        },
+        "STRESS": {
+          "parents_per_cell": 10,
+          "role": "STRESS",
+          "source": "OWNER_DERIVED"
+        },
+        "TRAIN": {
+          "builds": 2,
+          "labels": "TRAIN_ONLY",
+          "parents_per_cell_per_build": 3,
+          "role": "TRAIN",
+          "source": "OWNER_DERIVED"
+        }
+      },
+      "references": [
+        {
+          "method": "DEALIASED_FOURIER_CONSERVATIVE_ETDRK4_WITH_EXACT_GALILEAN_MEAN",
+          "role": "PRIMARY_DEVELOPMENT_CANDIDATE",
+          "status": "NOT_QUALIFIED"
+        },
+        {
+          "method": "COLE_HOPF_POSITIVE_GAUSSIAN_EXPECTATION_GAUSS_HERMITE_LOG_STABILIZED",
+          "role": "INDEPENDENT_DEVELOPMENT_WITNESS",
+          "status": "NOT_QUALIFIED"
+        }
+      ],
+      "query_contract": {
+        "candidate_payload_allow_list": [
+          "initial_field",
+          "viscosity",
+          "requested_times",
+          "domain_length"
+        ],
+        "point_query_rule": "EVALUATE_PERIODIC_TRIGONOMETRIC_REPRESENTATION_AT_REQUESTED_POINTS_NO_LOW_PASS_SUBSTITUTION"
+      },
+      "capabilities": {
+        "archive_acknowledged": false,
+        "network_authorized": false,
+        "payout_authorized": false,
+        "registered": false,
+        "scientifically_qualified": false
+      }
+    },
+    "mismatches": [],
+    "status": "INTENT_PRESERVED",
+    "qualification": "NOT_QUALIFIED",
+    "launch": "NOT_LAUNCHED"
+  },
+  "source_revision": "carbon.authoring.goals-sha256:ee8835c6ddf7902da576ccfd65b5cac7b98f7f08c9b4ee8519561a0af35e521f;profile:carbon.goal-authoring.canonical-json.v1",
+  "route": "LOCAL_FIXED_CLI"
+}
