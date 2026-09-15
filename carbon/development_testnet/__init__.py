@@ -1,5 +1,13 @@
 """Bounded public-testnet DEVELOPMENT publication; never official C-W1."""
 
+from .execution import (
+    DevelopmentSourceHandoff,
+    execute_resume,
+    execute_run,
+    execution_status,
+    load_source_handoff,
+    write_source_handoff,
+)
 from .model import (
     DEVELOPMENT_TESTNET_PROFILE,
     DevelopmentTestnetEvidence,
@@ -14,6 +22,7 @@ from .service import DevelopmentTestnetIntentIssuer
 
 __all__ = [
     "DEVELOPMENT_TESTNET_PROFILE",
+    "DevelopmentSourceHandoff",
     "DevelopmentTestnetEvidence",
     "DevelopmentTestnetFailure",
     "DevelopmentTestnetIntentIssuer",
@@ -22,4 +31,9 @@ __all__ = [
     "DevelopmentTestnetWeightIntent",
     "DevelopmentTransactionAuthorization",
     "LocalRetentionEvidence",
+    "execute_resume",
+    "execute_run",
+    "execution_status",
+    "load_source_handoff",
+    "write_source_handoff",
 ]

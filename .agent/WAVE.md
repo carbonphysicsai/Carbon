@@ -45,8 +45,8 @@ normally merged as `ac050fd53ee18bf3788c167ee7b0736bbfd7a46b`, tree
 **Selected ticket:** C-W1 — `in_progress`
 **Selection scope:** bounded `C-W1-D1` DEVELOPMENT slice only; official C-W1
 remains `future_reserved`
-**Active ticket:** exact public/synthetic testnet profile, source-bound
-DEVELOPMENT evidence, all-burn publication adapter and read-only preflight
+**Active ticket:** exact public/synthetic testnet operator handoff,
+run/status/resume, truthful readiness and all-burn execution preparation
 **Next boundary:** an approved existing public-testnet netuid, observed
 registration/UID/capability, eligible Linux host, bounded testnet-token need and
 exact transaction approval; C-EA2 and official C-W1 remain blocked
@@ -133,6 +133,13 @@ C-EA1-D4 head `a4395a3b3f7707fc9e2793e333cc5d101ea01c64` in run
 now deferred; Hippius is preferred for a future unverified storage assessment.
 `OWNER-C-W1-DEV-TESTNET-01` selects only C-W1-D1's distinct public/synthetic
 DEVELOPMENT profile. C-EA2 and official C-W1 remain blocked.
+PR #183 accepted exact C-W1-D1 foundation head
+`324a5276cd6a1ffdc491d04d08ef8b3282a060e8` in required run `34927991086`
+and normally merged it as `bd7e5a5423d1148d340b3de3993068b66f5973d9`,
+with matching accepted/merged tree
+`65e2a3d5abee97e5eaf1538050e0dcfab22cc649`. The selected continuation keeps
+the same ticket/profile and adds the operator execution/reconciliation boundary;
+public dispatch remains gated on the exact external facts above.
 **Activation authority:** `OWNER-WAVE-C0-NET1-01` records the repository
 owner's explicit authorization to reconcile B-GATE, close Wave B in bounded
 engineering scope, activate Wave C/C0, select NET-1 alone, and continue through

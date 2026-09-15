@@ -3,7 +3,8 @@
 **Decision:** `OWNER-C-W1-DEV-TESTNET-01`
 **Ticket:** distinct bounded slice under C-W1; official C-W1 remains open
 **Profile:** `carbon.public-synthetic-testnet.development.v1`
-**Disposition:** implementation candidate; no public transaction executed
+**Disposition:** PR #183 foundation accepted; operator continuation candidate;
+no public transaction executed
 
 ## Implemented candidate
 
@@ -24,6 +25,16 @@
 - Adds a secret-free operator config and read-only doctor. The doctor cannot
   sign or publish and reports host, Docker, disk, SDK, chain, registration and
   authorization predicates separately.
+- Adds a closed controller-produced source handoff and fixed operator
+  `run`/`status`/`resume` commands. The operator validates active C-06 evidence,
+  C-08 association, the C-07 account, C-03 image/resource identities, exact
+  transport/publication context, configured path roots and every export member.
+  Export hashing is streamed; duplicate, changed, symlinked or over-limit
+  members reject.
+- Separates chain-transaction readiness from full host/execution readiness and
+  retains observed registration/UID and capability facts on a policy denial.
+  A failed chain observation stays unknown. Resume uses no wallet and cannot
+  resubmit or rerun numerical work.
 
 ## Local evidence before acceptance
 
@@ -42,6 +53,13 @@ not public-chain evidence. The earlier accepted NET-5R/G2 localnet and C-03/
 C-07/C-08 service campaigns are reused only for their exact bounded
 capabilities and are not rerun or relabeled as public-testnet observations.
 
+PR #183 accepted exact head `324a5276cd6a1ffdc491d04d08ef8b3282a060e8`
+in required run `34927991086` and normally merged as
+`bd7e5a5423d1148d340b3de3993068b66f5973d9`; accepted and merged tree were
+`65e2a3d5abee97e5eaf1538050e0dcfab22cc649`. The focused operator continuation
+currently passes 22 C-W1/C-08 CPU tests plus Black/Ruff on changed Python files;
+its exact-head repository acceptance and merge remain pending.
+
 ## Read-only public-testnet preflight
 
 The exact pinned `bittensor==11.1.0` source/package observed endpoint
@@ -54,8 +72,9 @@ subnet creation, weight publication or spend occurred.
 
 ## Unearned claims and execution blocker
 
-This candidate is `SPECIFIED / IMPLEMENTED / locally TESTED` only after its
-tests pass; exact-head CI acceptance and merge are pending. It is not
+The merged PR #183 foundation is `SPECIFIED / IMPLEMENTED / TESTED` in its
+bounded scope. The operator continuation is locally implemented/tested but
+remains conditional on exact-head CI acceptance and merge. Neither is
 scientifically, security, archive, network, protected, production or LIVE
 qualified. Separate containers do not prove independent administration. Local
 storage does not prove host-loss recovery. A signed receipt or finalized

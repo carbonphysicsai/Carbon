@@ -40,9 +40,9 @@ Wave C/C0 and this file as its controlling register.
 **Selected ticket:** C-W1 — `in_progress`
 **Selection scope:** bounded `C-W1-D1` DEVELOPMENT slice only; official C-W1
 remains `future_reserved`
-**Active ticket:** `carbon.public-synthetic-testnet.development.v1`
-authenticated/signed composition, all-burn checked publication and operator
-preflight
+**Active ticket:** `carbon.public-synthetic-testnet.development.v1` closed
+source handoff, truthful readiness, run/status/resume and all-burn checked
+publication preparation
 **Next boundary:** exact existing public-testnet subnet, registration/UID and
 publisher capability, eligible Linux host, any bounded testnet-token need and
 one block-bounded transaction authorization. C-EA2 remains blocked.
@@ -106,7 +106,13 @@ normally merged it as `1f9ead70c886f9d04804533eab3579083c4e358d`.
 AWS deployment/spending is now deferred; Hippius is preferred for a future
 unverified storage assessment. C-W1-D1 alone is selected without weakening
 C-EA2 or official C-W1.
-**Last completed slice:** C-EA1-D4 AWS v2 package repair, merged in PR #180
+PR #183 accepted exact head `324a5276cd6a1ffdc491d04d08ef8b3282a060e8`
+in required run `34927991086` and normally merged the C-W1-D1 foundation as
+`bd7e5a5423d1148d340b3de3993068b66f5973d9`, with matching tree
+`65e2a3d5abee97e5eaf1538050e0dcfab22cc649`. Its operator execution/
+reconciliation continuation is the same selected ticket; no successor is
+selected and no public write is authorized.
+**Last completed slice:** C-W1-D1 foundation, merged in PR #183
 **Primary Hub map_ref:** `WAVE-C`
 
 C-EA1 passed canonical acceptance in run `34558389185` at accepted head

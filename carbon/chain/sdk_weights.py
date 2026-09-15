@@ -18,6 +18,26 @@ def require_sdk():
         raise PublicationFailure("UNSUPPORTED_SDK_VERSION")
 
 
+def open_external_wallet(name, hotkey_name, expected_hotkey, expected_coldkey):
+    """Open and identity-check an operator wallet inside the SDK boundary."""
+
+    require_sdk()
+    try:
+        import bittensor as bt
+
+        wallet = bt.Wallet(name=name, hotkey=hotkey_name)
+        if (
+            wallet.hotkey.ss58_address != expected_hotkey
+            or wallet.coldkeypub.ss58_address != expected_coldkey
+        ):
+            raise PublicationFailure("WALLET_IDENTITY_MISMATCH")
+        return wallet
+    except PublicationFailure:
+        raise
+    except Exception:  # noqa: BLE001 - never expose wallet/provider details.
+        raise PublicationFailure("EXTERNAL_WALLET_UNAVAILABLE") from None
+
+
 def require_shield_era_period():
     """Return the exact SDK/runtime-compatible MEV-shield mortality period."""
     require_sdk()

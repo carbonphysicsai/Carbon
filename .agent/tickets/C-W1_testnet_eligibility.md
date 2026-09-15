@@ -51,10 +51,32 @@ claim. See `.agent/plans/C_W1_DEVELOPMENT_TESTNET.md`.
 - [x] Secret-free validation/doctor and account-bound incomplete example exist.
 - [x] Focused replay, cross-association, expiry, authority, all-burn and checked
   publication tests pass locally.
-- [ ] Exact-head automated acceptance and normal merge remain pending.
+- [x] PR #183 exact head `324a5276cd6a1ffdc491d04d08ef8b3282a060e8`
+  passed required run `34927991086` and normally merged as
+  `bd7e5a5423d1148d340b3de3993068b66f5973d9` with matching accepted/merged
+  tree `65e2a3d5abee97e5eaf1538050e0dcfab22cc649`.
+- [x] A closed controller source handoff plus fixed `run`, `status` and `resume`
+  commands bind the exact C-08/C-07/C-06 journals, C-03 image/resource
+  identities and bounded export. Restart reconciliation cannot rerun science or
+  resend a transaction.
+- [x] Readiness distinguishes host, endpoint/genesis/runtime, registration/UID,
+  coldkey association, permit/stake-or-owner, burn sink, method, rate/pending
+  commitments, authorization, chain transaction and whole-scenario status.
+- [ ] Exact-head acceptance and normal merge for the operator continuation are
+  pending; completion takes effect only after both succeed.
 - [ ] Public execution remains blocked until the selected netuid, registration/
   UID/capability, eligible Linux host, any testnet-token limit and transaction
   approval are supplied and observed.
+
+### Unselected next DEVELOPMENT milestone
+
+The smallest score-based successor would bind an active signed C-06/C-07 result
+and C-05 measurement artifact to a prospectively frozen DEVELOPMENT comparison
+decision, reject every C-10 quarantined/unresolved source, then reuse C-REWARD's
+deterministic activation, takeover and decay arithmetic. The existing fixture
+reward ledger is not authority for real DEVELOPMENT receipts. Until that bridge
+has its own selection and evidence, C-W1-D1 remains all-burn and cannot claim a
+winner or payment.
 
 ## Definition of Done
 
