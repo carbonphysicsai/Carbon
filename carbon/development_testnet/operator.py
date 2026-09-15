@@ -15,8 +15,9 @@ from pathlib import Path
 
 from carbon.chain import ChainContext
 from carbon.chain.models import identifier
+from carbon.chain.publication import PublicationFailure
 from carbon.chain.sdk import SDK_VERSION
-from carbon.chain.sdk_weights import BittensorPublicationBackend
+from carbon.chain.sdk_weights import BittensorPublicationBackend, open_external_wallet
 
 from .execution import (
     execute_resume,
@@ -474,21 +475,16 @@ def _wallet(config: OperatorConfig):
     """Open the configured external wallet only after every public preflight gate."""
 
     try:
-        import bittensor as bt
-
-        wallet = bt.Wallet(
-            name=config.wallet_name,
-            hotkey=config.wallet_hotkey_name,
+        return open_external_wallet(
+            config.wallet_name,
+            config.wallet_hotkey_name,
+            config.publisher_hotkey,
+            config.publisher_coldkey,
         )
-        if (
-            wallet.hotkey.ss58_address != config.publisher_hotkey
-            or wallet.coldkeypub.ss58_address != config.publisher_coldkey
-        ):
-            raise DevelopmentTestnetFailure("WALLET_IDENTITY_MISMATCH")
-        return wallet
-    except DevelopmentTestnetFailure:
-        raise
-    except Exception:  # noqa: BLE001 - never expose wallet/provider details.
+    except PublicationFailure as error:
+        reason = str(error)
+        if reason == "WALLET_IDENTITY_MISMATCH":
+            raise DevelopmentTestnetFailure(reason) from None
         raise DevelopmentTestnetFailure("EXTERNAL_WALLET_UNAVAILABLE") from None
 
 
