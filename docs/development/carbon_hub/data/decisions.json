@@ -2687,6 +2687,31 @@
       ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5667612465",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/c6a875c5588870bab9e827b3a6442fdd9ef97966/.agent/DECISIONS.md"
+    },
+    {
+      "title": "Accept the first bounded Workbench source-assessment contract",
+      "question": "Does source-assessment contract/profile v1.0 preserve the C-AUTH1 and exact C-05 meanings, and what issuer-to-scope verifier and trust anchor may a later Workbench consumer use?",
+      "recommendation": "Accept the field semantics and exact public source mapping, keep the checked-in test response non-authoritative, and require an explicitly accepted consumer verifier, issuer/scope mapping, trust anchor and public source-issued fixture before selecting a production consumer.",
+      "why": "The detached package proves request/content/source association, partial/conflict/stale behavior and fail-closed non-qualification, but fixture hashes and claimed issuer text cannot authenticate a live owner. The three source decisions are the smallest missing inputs for a useful consumer that preserves cumulative review debt.",
+      "if_kept": "A later bounded ticket may implement only the accepted request-bound read path. It must preserve exact scope, unresolved reasons and separate origin/applicability/qualification/rights states; no scientific or launch authority follows from contract acceptance.",
+      "if_changed": "Name the smallest request/response field, source mapping, issuer domain, verifier/trust input or fixture assertion to revise. The existing manual/external handoff remains available and the v0.6 application stays unchanged.",
+      "decision_id": "GOAL-WORKBENCH-06-C-AUTH1-CONTRACT-V1",
+      "map_ref": "WAVE-C/C-AUTH1",
+      "wave": "C",
+      "ticket": "GOAL-WORKBENCH-06",
+      "attention": "HUMAN_REQUIRED",
+      "status": "CONTRACT_READY_SOURCE_DECISION_PENDING",
+      "audience": "harsh",
+      "affects": [
+        "WAVE-C/C-AUTH1",
+        "SYSTEM/BUSINESS-AUTHORITY",
+        "SYSTEM/GOVERNANCE",
+        "SYSTEM/MATURITY",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+      ],
+      "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5674263522",
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/pull/182"
     }
   ]
 }

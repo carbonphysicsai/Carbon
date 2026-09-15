@@ -7,7 +7,9 @@ Owning domains:
 - Workbench consumer: `SYSTEM/BUSINESS-AUTHORITY`
 - Native source contract: `WAVE-C/C-AUTH1` / scientific integration
 
-Status: `PREPARED_NOT_DISPATCHED`
+Status: `SENT_UNACKNOWLEDGED`
+
+Destination receipt: <https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5674263522>. This locator proves the notification was posted; it does not prove acknowledgment, acceptance, selection, funding, or scientific authority.
 
 ## Decision requested
 

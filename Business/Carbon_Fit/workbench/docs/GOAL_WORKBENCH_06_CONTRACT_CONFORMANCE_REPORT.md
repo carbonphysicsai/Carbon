@@ -53,6 +53,7 @@ Local results on macOS arm64:
 
 - `node --test` across engine, workflow, routing, state-integrity, C-05, and source-assessment suites: 183 passed, 0 failed, 0 skipped. The source-assessment file contributes 24 focused tests.
 - Pinned pytest 9.1.1 over the bridge and C-AUTH1 source contract: 24 passed, 0 failed, 0 skipped.
+- Focused Decision Console validation after routing the owner packet: 111 decisions, 111 unique IDs, passed.
 - Standalone v0.6 HTML SHA-256 remained `19a8cc52f2c8dd55d4549a4cb581c39e94aa3293803f7ec0193dc3858daf3404` and contains no candidate schema string.
 - Browser automation was not rerun because no application source or generated HTML changed. No new browser/runtime coverage is claimed.
 
@@ -62,6 +63,6 @@ Test counts are reported by suite and do not represent science/security percenta
 
 ## Owner packet status and next action
 
-The packet is `PREPARED_NOT_DISPATCHED`. The intended destination is the existing scientific/technical owner inbox on issue #42, but no source-owner acknowledgment, acceptance, funding, or selection is inferred. The exact next action is for `WAVE-C/C-AUTH1` to answer the three packet questions: field semantics, permitted issuer/scope verification, and fixture/source mapping.
+The packet is `SENT_UNACKNOWLEDGED` at <https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5674263522>. The locator establishes only that one public-safe notification was posted to the existing scientific/technical owner inbox; no source-owner acknowledgment, acceptance, funding, or selection is inferred. The exact next action is for `WAVE-C/C-AUTH1` to answer the three packet questions: field semantics, permitted issuer/scope verification, and fixture/source mapping.
 
 Restart event: an actual source-owner response accepts or names exact changes for contract/profile v1.0 and supplies/accepts the required verifier/trust/public-fixture inputs. Until then, the later production consumer remains unselected and unavailable.
