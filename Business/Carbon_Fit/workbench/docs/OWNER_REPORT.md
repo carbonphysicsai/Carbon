@@ -6,6 +6,8 @@ Ryan / `@jbequ5` is the final authority for this bounded interface. The v0.7 app
 
 The production snapshot contains zero approved assessments. The prepared Burgers/Dynamics statement is `PENDING_EXACT_OWNER_ADOPTION`; its test-positive branch is isolated and cannot be installed by the production path. Ryan can now open the supported design, freeze/export the question, inspect the installed snapshot and pending state, and import only exact admitted bytes. No current import confers scientific qualification, rights, fresh execution, scoring, protected reuse, or launch.
 
+The exact adoption request is recorded at issue #41 comment `5680762605`. Its actual GitHub actor is `fitz-lang6`; it is a delivered request, not a Ryan-authored response. No polling or inferred acknowledgement follows.
+
 The prior Harsh-only prerequisite is superseded for this interface. Historical Workbench-06 posts and actors remain unchanged, and Harsh remains available for consultation at Ryan's request. The runtime Wave selection is untouched.
 
 ## v0.6 state-integrity repair

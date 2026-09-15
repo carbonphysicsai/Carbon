@@ -12,6 +12,8 @@ Decision `OWNER-GW07-RYAN-SNAPSHOT-01` records Ryan / `github:jbequ5` as final i
 
 The user-supplied direction is the provenance for implementation policy. It is not OAuth authentication or exact assessment adoption. The real candidate retains GOAL-WORKBENCH-07 Engineering as preparer and labels Ryan as claimed/proposed issuer; consumer verification remains unavailable until a separate exact adoption is admitted to a later repository snapshot.
 
+The single public-safe adoption request was delivered to the existing Ryan owner inbox as [issue #41 comment 5680762605](https://github.com/carbonphysicsai/Carbon/issues/41#issuecomment-5680762605). GitHub reports the posting actor as `fitz-lang6`, not Ryan. The readback contains the exact request/assessment IDs and digests. Its state is posted and `PENDING_EXACT_OWNER_ADOPTION`; it is not an acknowledgement or adoption and will not be polled.
+
 ## Implemented boundary
 
 - `src/source_assessment.js`: closed request/response/state parsing, canonical identity, installed-snapshot matching, replay/conflict/withdrawal handling, atomic import, workspace revalidation, and non-authoritative projection.
