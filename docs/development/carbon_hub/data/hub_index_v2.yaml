@@ -438,7 +438,7 @@ validator_exam_map:
             -
               label: "Testnet-to-Mainnet Launch Path"
               path: "../../../launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.5.md"
-  current_maturity: "Target-state orientation only. C-W1: PR #188 merged the supervised session. Distinct miner UID 1 finalized on subnet 567 at block 8013851 for 0.005426933 test TAO. Four real model calls cost USD 0.0019395 and proposed FNO-32, then stopped on malformed dry-validation arguments before submission or evaluation. The selected continuation repairs strict agent tool framing; a new bounded model session needs separate approval. Activation and publication remain separately gated. Earlier engineering validation completed three real JAX replicas and 72 measurements; those are not results of the real agent. No activation or all-burn publication occurred. AWS stays deferred, Hippius unverified, and protected/production/scientific qualification remains unearned. No later ticket is selected. The real validator-to-exam vertical is planned for Wave C1. Burgers v1 remains PRE-LIVE until a measured Validation Dossier qualifies the exact exam."
+  current_maturity: "Target-state orientation only. C-W1 DEVELOPMENT: PR #188 merged the supervised session. Distinct miner UID 1 finalized on subnet 567 at block 8013851 for 0.005426933 test TAO. Four real model calls cost USD 0.0019395 and proposed FNO-32, then stopped on malformed dry-validation arguments before submission or evaluation. The selected continuation repairs strict agent tool framing; a new bounded model session needs separate approval. Activation and publication remain separately gated. Earlier engineering validation completed three real JAX replicas and 72 measurements; those are not results of the real agent. No subsequent activation or all-burn publication occurred. AWS stays deferred, Hippius unverified, and protected/production/scientific qualification remains unearned. No later ticket is selected. Subnet 567 creation finalized at block 8010852; that historical creation remains distinct from miner registration. The real validator-to-exam vertical is planned for Wave C1. Burgers v1 remains PRE-LIVE until a measured Validation Dossier qualifies the exact exam."
 current:
   wave: "C"
   wave_title: "Network foundation and real testnet vertical"
@@ -462,7 +462,7 @@ current:
   controlling_register: ".agent/WAVE_C.md"
   controlling_register_version: "2.4"
   controlling_board_fingerprint: "1ec2c6443390084c17991e181bb76cab88c2fb33ff58393e3d8d0f23cc6c8b9c"
-  stage: "C-W1: PR #188 merged the supervised session. Distinct miner UID 1 finalized on subnet 567 at block 8013851 for 0.005426933 test TAO. Four real model calls cost USD 0.0019395 and proposed FNO-32, then stopped on malformed dry-validation arguments before submission or evaluation. The selected continuation repairs strict agent tool framing; a new bounded model session needs separate approval. Activation and publication remain separately gated. Earlier engineering validation completed three real JAX replicas and 72 measurements; those are not results of the real agent. No activation or all-burn publication occurred. AWS stays deferred, Hippius unverified, and protected/production/scientific qualification remains unearned. No later ticket is selected."
+  stage: "C-W1 DEVELOPMENT: PR #188 merged the supervised session. Distinct miner UID 1 finalized on subnet 567 at block 8013851 for 0.005426933 test TAO. Four real model calls cost USD 0.0019395 and proposed FNO-32, then stopped on malformed dry-validation arguments before submission or evaluation. The selected continuation repairs strict agent tool framing; a new bounded model session needs separate approval. Activation and publication remain separately gated. Earlier engineering validation completed three real JAX replicas and 72 measurements; those are not results of the real agent. No subsequent activation or all-burn publication occurred. AWS stays deferred, Hippius unverified, and protected/production/scientific qualification remains unearned. No later ticket is selected. Subnet 567 creation finalized at block 8010852; that historical creation remains distinct from miner registration."
   most_recent_closed_wave: "B"
   completed_wave_tickets:
     - "NET-1"
@@ -5207,7 +5207,10 @@ events:
       - "WAVE-C/C-02"
       - "WAVE-C/C-03"
       - "WAVE-C/C-04"
+      - "WAVE-C/C-05"
       - "WAVE-C/C-06"
+      - "WAVE-C/C-07"
+      - "WAVE-C/C-08"
       - "WAVE-C/C-09"
       - "WAVE-C/C-10"
       - "WAVE-C/C-AUTH1"
@@ -5217,6 +5220,7 @@ events:
       - "WAVE-C/C-EP1"
       - "WAVE-C/C-EP2"
       - "WAVE-C/C-EP3"
+      - "WAVE-C/C-REWARD"
       - "WAVE-C/C-W1"
       - "WAVE-C/NET-1"
       - "WAVE-C/NET-2"
