@@ -2692,7 +2692,7 @@
       "title": "Accept the first bounded Workbench source-assessment contract",
       "question": "Does source-assessment contract/profile v1.0 preserve the C-AUTH1 and exact C-05 meanings, and what issuer-to-scope verifier and trust anchor may a later Workbench consumer use?",
       "recommendation": "Historical contract preparation is complete. Ryan's later bounded interface direction accepted the field semantics and public mapping and selected repository-pinned verification; exact adoption of the newly prepared statement remains separate.",
-      "why": "The detached package proved request/content/source association and fail-closed semantics. Ryan's later instruction supplied the bounded policy decision needed to implement the consumer while retaining exact statement adoption as an independent content decision.",
+      "why": "The detached package proved request/content/source association and fail-closed semantics. The malformed first issue comment and corrected byte-verified delivery remain historical; no eligible Harsh response was observed in that bounded check. Ryan's later instruction supplied the scoped policy decision needed to implement the consumer while retaining exact statement adoption as an independent content decision.",
       "if_kept": "GOAL-WORKBENCH-07 implements the request-bound read path with separate origin, applicability, qualification and rights meanings; no scientific or launch authority follows from the policy decision.",
       "if_changed": "Revise OWNER-GW07-RYAN-SNAPSHOT-01 prospectively. Preserve the corrected Workbench-06 delivery locator and its original actor/readback history.",
       "decision_id": "GOAL-WORKBENCH-06-C-AUTH1-CONTRACT-V1",

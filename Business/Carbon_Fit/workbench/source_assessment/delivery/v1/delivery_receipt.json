@@ -1,0 +1,27 @@
+{
+  "schema_version": "carbon.goal-workbench.source-assessment-delivery-receipt.v1",
+  "decision_id": "GOAL-WORKBENCH-06-C-AUTH1-CONTRACT-V1",
+  "issue_number": 42,
+  "comment_id": 5675346832,
+  "comment_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5675346832",
+  "posted_body_sha256": "sha256:04952e91e9fda00b36e85ac8862cb601bb9992c124546eec9b7fb56e2c63d72c",
+  "verified_readback_body_sha256": "sha256:04952e91e9fda00b36e85ac8862cb601bb9992c124546eec9b7fb56e2c63d72c",
+  "required_markers": [
+    "GOAL-WORKBENCH-06-C-AUTH1-CONTRACT-V1",
+    "Field semantics",
+    "Issuer and scope verification",
+    "Fixture/source mapping",
+    "Authority ceiling",
+    "https://github.com/carbonphysicsai/Carbon/blob/d2067bd4da85edafc24be5917d480089a514c670/",
+    "GOAL-WORKBENCH-06A-CORRECTED-DELIVERY-V1"
+  ],
+  "forbidden_markers_checked": [
+    "/private/tmp",
+    "/Users/",
+    "BEGIN PRIVATE KEY",
+    "github_pat_",
+    "ghp_"
+  ],
+  "delivery_status": "DELIVERED_VERIFIED_UNACKNOWLEDGED",
+  "created_at_or_github_timestamp": "2026-09-15T05:42:21Z"
+}

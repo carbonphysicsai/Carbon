@@ -7,9 +7,11 @@ Owning domains:
 - Workbench consumer: `SYSTEM/BUSINESS-AUTHORITY`
 - Native source contract: `WAVE-C/C-AUTH1` / scientific integration
 
-Status: `SENT_UNACKNOWLEDGED`
+Status: `DELIVERED_VERIFIED_UNACKNOWLEDGED`
 
-Destination receipt: <https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5674263522>. This locator proves the notification was posted; it does not prove acknowledgment, acceptance, selection, funding, or scientific authority.
+Verified destination: <https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5675346832>. Its exact raw Markdown was read back through the GitHub API and matched the posted bytes at `sha256:04952e91e9fda00b36e85ac8862cb601bb9992c124546eec9b7fb56e2c63d72c`. This proves delivery of the decision content to the issue, not acknowledgment, acceptance, selection, funding, or scientific authority.
+
+Historical correction: comment [`5674263522`](https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5674263522) contained only the literal local-path token `@/private/tmp/gw06-owner-notification.md`. It is preserved as `DELIVERY_MALFORMED_CONTENT_NOT_DELIVERED`; it did not deliver this packet. The complete sequence and byte-level receipt are in `source_assessment/delivery/v1/`.
 
 ## Decision requested
 
@@ -65,4 +67,4 @@ If any answer is “change”, name the smallest schema field, profile rule, sou
 
 The package uses only public/synthetic repository records. It does not transmit customer data, fetch external links, run numerical work, grant rights, expose protected answers, change CPES, qualify an exam, create a ScoreInput, or launch. A source-interface acceptance would permit only a later bounded consumer proposal; it would not itself supply scientific qualification or rights.
 
-Next boundary: after all three questions have exact source-owner answers and the accepted trust inputs/public fixture exist, propose a separate bounded production consumer. Do not implement that consumer in GOAL-WORKBENCH-06.
+One post-delivery check found no eligible exact owner response. Next boundary: after all three questions have exact source-owner answers and the accepted trust inputs/public fixture exist, propose a separate bounded production consumer. Do not implement that consumer in GOAL-WORKBENCH-06 or GOAL-WORKBENCH-06A.

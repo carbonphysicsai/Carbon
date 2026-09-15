@@ -374,6 +374,21 @@ def test_transaction_authorization_is_required_expires_and_has_one_effect(tmp_pa
         )
 
 
+def test_local_retention_rejects_archive_or_host_loss_claims():
+    evidence = LocalRetentionEvidence(
+        sha("local-evidence-set"), sha("export-manifest"), 1
+    )
+    assert evidence.host_loss_recoverable is False
+    assert evidence.archive_acknowledgement is None
+    with pytest.raises(DevelopmentTestnetFailure, match="INVALID_LOCAL_RETENTION"):
+        LocalRetentionEvidence(
+            sha("local-evidence-set"),
+            sha("export-manifest"),
+            1,
+            host_loss_recoverable=True,
+        )
+
+
 def test_authenticated_request_cannot_be_cross_associated(tmp_path):
     fixture, service, state = issuer(tmp_path / "first")
     other = authenticated_fixture(tmp_path / "second", request_name="submit-other")
