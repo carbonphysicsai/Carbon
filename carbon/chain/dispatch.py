@@ -31,13 +31,21 @@ STATES = (
 
 
 class DispatchJournal:
-    def __init__(self, receipts):
+    def __init__(
+        self,
+        receipts,
+        *,
+        network="localnet",
+        intent_type=StructuralLocalnetWeightIntent,
+    ):
         if (
             type(receipts) is not ReceiptJournal
-            or receipts.context.network != "localnet"
+            or receipts.context.network != network
+            or type(intent_type) is not type
         ):
-            raise PublicationFailure("LOCALNET_JOURNAL_REQUIRED")
+            raise PublicationFailure("NETWORK_JOURNAL_REQUIRED")
         self.receipts = receipts
+        self.intent_type = intent_type
         with receipts.transaction() as db:
             db.execute(
                 "CREATE TABLE IF NOT EXISTS publication_v1 (identity TEXT PRIMARY KEY, document TEXT NOT NULL, digest TEXT NOT NULL, state TEXT NOT NULL, tracking TEXT NOT NULL, tracking_digest TEXT NOT NULL)"
@@ -89,10 +97,7 @@ class DispatchJournal:
             return rows[0][0] if rows else None
 
     def prepare(self, ref, plan, snapshot, capabilities):
-        if (
-            type(ref) is not StructuralLocalnetWeightIntent
-            or plan.intent_digest != ref.digest
-        ):
+        if type(ref) is not self.intent_type or plan.intent_digest != ref.digest:
             raise PublicationFailure("RESOLVED_INTENT_REQUIRED")
         document = encode(
             {

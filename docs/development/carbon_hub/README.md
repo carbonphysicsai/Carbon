@@ -11,12 +11,12 @@ When browsing on GitHub, start with **`orientation/START_HERE.md`**. It is the p
 - 14 waves (A-N)
 - 69 captured tickets across Wave A, Wave B, and Wave C
 - 7 protocol-change routes
-- 124 map-level change events
+- 125 map-level change events
 - 8 independent maturity states
 
 ## Captured current position
 
-Wave **C**; current ticket: **C-EA1**. Last completed: **C-10** (`done`). Next selected: **none selected**. PR #177 accepted exact C-EA1-D3 head a4d23361b501240e16aff23464950597bf8e0368 in run 34900578390 and normally merged as 86f3a02485a2522dd4c7fa839a34872508746607 with matching tree 439785f4b496f94d5a5a7c04bec7d45261fbccd3. C-EA1-D4 alone is selected for prospective AWS v2 custody, IAM, private-network, retention, full-watermark recovery and account-bound handoff repair. No later ticket is selected. Actual account/network/principals, USD 175/month and USD 5 rehearsal approval, provisioning, recovery rehearsal, security acceptance and signer authorization remain absent. No real acknowledgement, C-EA2, protected execution, public network or LIVE authority exists. D6 run 34518806217 remains historical LOCALNET_READY evidence for its exact disposable standard-profile localnet.
+Wave **C**; current ticket: **C-W1**. Last completed: **C-10** (`done`). Next selected: **none selected**. PR #180 accepted exact C-EA1-D4 head a4395a3b3f7707fc9e2793e333cc5d101ea01c64 in run 34915666663 and normally merged as 1f9ead70c886f9d04804533eab3579083c4e358d. AWS deployment and spending are deferred; Hippius is the preferred but unverified future provider. C-W1-D1 now selects a separate public/synthetic DEVELOPMENT profile with exact C-08/C-06 source association, bounded same-host retention, an all-burn checked intent and secret-free preflight. Read-only public-testnet observation found the endpoint/genesis/runtime but no registration on scanned netuids for the available public hotkey; the current Darwin arm64 host lacks Docker. No chain write, token spend, real archive acknowledgement, protected/official eligibility, science/security qualification or LIVE authority exists. No later ticket is selected. D6 run 34518806217 remains historical LOCALNET_READY evidence for its exact disposable standard-profile localnet.
 
 ## Maintain
 

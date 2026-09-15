@@ -274,7 +274,11 @@ class SourceTests(unittest.TestCase):
             index["schema_version"], "carbon.goal-workbench.c05-fixture-index.v2"
         )
         for item in index["fixtures"]:
-            self.assertTrue(item["saved_projection"]["imported_artifact_digest"].startswith("sha256:"))
+            self.assertTrue(
+                item["saved_projection"]["imported_artifact_digest"].startswith(
+                    "sha256:"
+                )
+            )
 
     def test_frozen_v05_journeys_keep_routes_and_authority_closed(self):
         record = json.loads(

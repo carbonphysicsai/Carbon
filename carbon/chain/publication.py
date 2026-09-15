@@ -39,15 +39,22 @@ class RuntimeCapabilities:
     sufficient_stake: bool
     pending_commits: int = 0
 
-    def validate(self, snapshot, publisher):
+    def validate(
+        self,
+        snapshot,
+        publisher,
+        *,
+        network="localnet",
+        spec_version=RUNTIME_SPEC,
+    ):
         if (
             type(snapshot) is not MetagraphSnapshot
-            or snapshot.context.network != "localnet"
+            or snapshot.context.network != network
         ):
-            raise PublicationFailure("LOCALNET_SNAPSHOT_REQUIRED")
+            raise PublicationFailure("NETWORK_SNAPSHOT_REQUIRED")
         if self.snapshot_id != snapshot.snapshot_id:
             raise PublicationFailure("CAPABILITY_SNAPSHOT_MISMATCH")
-        if self.spec_version != RUNTIME_SPEC:
+        if self.spec_version != spec_version:
             raise PublicationFailure("UNSUPPORTED_RUNTIME_VERSION")
         uint(self.pending_commits)
         if self.pending_commits:
@@ -193,11 +200,21 @@ def validate_integers(plan, uids, values, capabilities):
         raise PublicationFailure("MAXIMUM_WEIGHT_LIMIT_INCOMPATIBLE")
 
 
-def compile_targets(resolved, snapshot, capabilities, publisher):
+def compile_targets(
+    resolved,
+    snapshot,
+    capabilities,
+    publisher,
+    *,
+    network="localnet",
+    spec_version=RUNTIME_SPEC,
+):
     """Caller must resolve NET-4A provenance; this function cannot issue authority."""
     if type(capabilities) is not RuntimeCapabilities:
         raise PublicationFailure("RUNTIME_CAPABILITIES_REQUIRED")
-    member, sink = capabilities.validate(snapshot, publisher)
+    member, sink = capabilities.validate(
+        snapshot, publisher, network=network, spec_version=spec_version
+    )
     body, projection = resolved["intent"], resolved["projection"]
     if body["context"] != asdict(snapshot.context):
         raise PublicationFailure("INTENT_NETWORK_MISMATCH")

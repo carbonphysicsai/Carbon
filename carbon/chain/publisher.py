@@ -39,21 +39,41 @@ def load_caps(value):
     return RuntimeCapabilities(**raw)
 
 
-class LocalnetPublisher:
-    def __init__(self, issuer, backend):
+class VerifiedWeightPublisher:
+    """Shared checked publication lifecycle with an exact stage/type binding."""
+
+    def __init__(
+        self,
+        issuer,
+        backend,
+        *,
+        issuer_type,
+        intent_type,
+        network,
+        spec_version,
+    ):
         if (
-            type(issuer) is not LocalnetIntentIssuer
+            type(issuer) is not issuer_type
             or backend.context != issuer.receipts.context
+            or backend.context.network != network
         ):
-            raise PublicationFailure("LOCALNET_ISSUER_CONTEXT_REQUIRED")
+            raise PublicationFailure("WEIGHT_ISSUER_CONTEXT_REQUIRED")
         self.issuer, self.backend = issuer, backend
-        self.journal = DispatchJournal(issuer.receipts)
+        self.intent_type = intent_type
+        self.network = network
+        self.spec_version = spec_version
+        self.journal = DispatchJournal(
+            issuer.receipts, network=network, intent_type=intent_type
+        )
         self._lock = asyncio.Lock()
         self.last_status = "NOT_STARTED_STORED_EXPOSURE_UNKNOWN"
 
+    def validate_stage(self, ref, snapshot, capabilities, resolved, plan):
+        """Stage-specific authorization hook; shared lifecycle remains unchanged."""
+
     async def publish(self, ref):
-        if type(ref) is not StructuralLocalnetWeightIntent:
-            raise PublicationFailure("LOCALNET_INTENT_REQUIRED")
+        if type(ref) is not self.intent_type:
+            raise PublicationFailure("WEIGHT_INTENT_REQUIRED")
         async with self._lock:
             old = self.journal.get(ref.digest)
             if old:
@@ -64,17 +84,29 @@ class LocalnetPublisher:
                 raise PublicationFailure("RECONCILE_PENDING_DISPATCH_FIRST")
             snapshot, caps = await self.backend.observe()
             resolved = self.issuer.resolve(ref, snapshot)
-            plan = compile_targets(resolved, snapshot, caps, self.backend.publisher)
+            plan = compile_targets(
+                resolved,
+                snapshot,
+                caps,
+                self.backend.publisher,
+                network=self.network,
+                spec_version=self.spec_version,
+            )
+            self.validate_stage(ref, snapshot, caps, resolved, plan)
             self.journal.prepare(ref, plan, snapshot, caps)
 
             async def current():
                 fresh, fresh_caps = await self.backend.observe()
+                fresh_resolved = self.issuer.resolve(ref, fresh)
                 latest = compile_targets(
-                    self.issuer.resolve(ref, fresh),
+                    fresh_resolved,
                     fresh,
                     fresh_caps,
                     self.backend.publisher,
+                    network=self.network,
+                    spec_version=self.spec_version,
                 )
+                self.validate_stage(ref, fresh, fresh_caps, fresh_resolved, latest)
                 if (
                     latest.q12 != plan.q12
                     or latest.publisher_uid != plan.publisher_uid
@@ -356,3 +388,15 @@ class LocalnetPublisher:
             except TimeoutError:
                 pass
         return self.exposure()
+
+
+class LocalnetPublisher(VerifiedWeightPublisher):
+    def __init__(self, issuer, backend):
+        super().__init__(
+            issuer,
+            backend,
+            issuer_type=LocalnetIntentIssuer,
+            intent_type=StructuralLocalnetWeightIntent,
+            network="localnet",
+            spec_version=445,
+        )

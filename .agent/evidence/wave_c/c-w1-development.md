@@ -1,0 +1,72 @@
+# C-W1-D1 public/synthetic DEVELOPMENT testnet evidence
+
+**Decision:** `OWNER-C-W1-DEV-TESTNET-01`
+**Ticket:** distinct bounded slice under C-W1; official C-W1 remains open
+**Profile:** `carbon.public-synthetic-testnet.development.v1`
+**Disposition:** implementation candidate; no public transaction executed
+
+## Implemented candidate
+
+- Generalizes the accepted localnet publisher only through exact issuer type,
+  intent type, network and runtime bindings; localnet defaults and tests remain.
+- Resolves an authenticated NET-2/C-08 request from its durable journal and
+  cross-binds the associated C-07 account and active C-06 signed receipt.
+- Emits only a short-lived all-burn DEVELOPMENT projection while scientific
+  comparison is unresolved. Official `TestnetWinnerWeightIntent` remains
+  unconstructible.
+- Requires an exact testnet transaction authorization and durably consumes it
+  for one intent effect; checks finalized block window, registered publisher,
+  burn sink, stake/permit-or-owner, runtime, integer vector, dispatch,
+  finalization and row readback through existing owners.
+- Retains at most 2 GiB in local review/export storage, records exact evidence
+  and export-manifest digests, and explicitly declares host-loss recovery and
+  archive acknowledgement false.
+- Adds a secret-free operator config and read-only doctor. The doctor cannot
+  sign or publish and reports host, Docker, disk, SDK, chain, registration and
+  authorization predicates separately.
+
+## Local evidence before acceptance
+
+```text
+pytest C-W1-D1/C-08/NET-4B/NET-6 focused set
+87 passed, 8 skipped
+
+operator doctor, shipped incomplete example
+Darwin arm64; 8 GiB RAM; Docker unavailable; pinned SDK absent;
+netuid and transaction authorization missing; transaction_ready=false;
+writes_performed=false; protected_or_official_eligible=false
+```
+
+The skips are existing installed-SDK tests on the native environment. They are
+not public-chain evidence. The earlier accepted NET-5R/G2 localnet and C-03/
+C-07/C-08 service campaigns are reused only for their exact bounded
+capabilities and are not rerun or relabeled as public-testnet observations.
+
+## Read-only public-testnet preflight
+
+The exact pinned `bittensor==11.1.0` source/package observed endpoint
+`wss://test.finney.opentensor.ai:443`, genesis
+`0x8f9cf856bf558a14440e75569c9e58594757048d7b3a84b5d25f6bd978263105`,
+runtime spec 458 and transaction version 1. A scan of available netuids at the
+observed finalized state found no registration for the configured public
+hotkey. No wallet secret was read and no transaction, registration, funding,
+subnet creation, weight publication or spend occurred.
+
+## Unearned claims and execution blocker
+
+This candidate is `SPECIFIED / IMPLEMENTED / locally TESTED` only after its
+tests pass; exact-head CI acceptance and merge are pending. It is not
+scientifically, security, archive, network, protected, production or LIVE
+qualified. Separate containers do not prove independent administration. Local
+storage does not prove host-loss recovery. A signed receipt or finalized
+all-burn row would not prove a candidate winner, reward, payment or epoch result.
+
+Public execution is blocked on a selected existing netuid, observed
+registration/UID and weight-setting prerequisites for the named public hotkey,
+an eligible authorized Linux host, any exact bounded testnet registration cost,
+and a block-bounded one-dispatch owner transaction approval. Ambiguous writes
+must reconcile before retry.
+
+AWS deployment is deferred without spend. Hippius is preferred for a future
+bounded storage assessment but remains wholly unverified against Carbon's
+archive/custody/retention/recovery and acknowledgement contracts.

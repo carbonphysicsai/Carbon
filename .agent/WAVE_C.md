@@ -23,7 +23,9 @@
 > 34518806217 passed the complete auditable predicate at candidate
 > 97a2405776a3f520076e03a89ea8b7b4086d9ad2. NET-5R is done; fast/public
 > capability remains unearned.
-> Treasury remains optional; no public-network operation is authorized.
+> Treasury remains optional; the C0 mandate alone authorizes no public-network
+> operation. `OWNER-C-W1-DEV-TESTNET-01` separately permits only its bounded
+> public/synthetic DEVELOPMENT testnet scenario after exact transaction gates.
 
 > **OWNER-DX-03 delivery override:** Follow `.agent/DELIVERY_PROTOCOL.md`.
 > Engineering tickets require one applicable automated acceptance and normal
@@ -33,17 +35,21 @@
 
 **Status:** active in bounded engineering scope because `.agent/WAVE.md` names
 Wave C/C0 and this file as its controlling register.
-**Version:** 2.3
+**Version:** 2.4
 **Activation decision:** `OWNER-WAVE-C0-NET1-01`
-**Selected ticket:** C-EA1 — `in_progress`
-**Active ticket:** `C-EA1-D4` prospective AWS private-alpha custody/IAM,
-retention, network, recovery-watermark and account-bound deployment repair
-**Next boundary:** separately authorized provisioning and test-owned
-full-watermark recovery rehearsal. C-EA2 remains blocked until an eligible real
-archive acknowledgement and accepted recovery/security evidence exist.
+**Selected ticket:** C-W1 — `in_progress`
+**Selection scope:** bounded `C-W1-D1` DEVELOPMENT slice only; official C-W1
+remains `future_reserved`
+**Active ticket:** `carbon.public-synthetic-testnet.development.v1`
+authenticated/signed composition, all-burn checked publication and operator
+preflight
+**Next boundary:** exact existing public-testnet subnet, registration/UID and
+publisher capability, eligible Linux host, any bounded testnet-token need and
+one block-bounded transaction authorization. C-EA2 remains blocked.
 `OWNER-C1-BURGERS-ALPHA-01` keeps one selected ticket at a time. Protected
-science, real archive acknowledgement and public-network execution remain
-ineligible.
+science, real archive acknowledgement and official public-network execution
+remain ineligible; only the exact C-W1-D1 DEVELOPMENT transaction can become
+eligible after its separately recorded gates pass.
 PR #146 merged the initial adapter as
 `d9fadf7f9cbb9b3a2a4ffa1ec9b0c906826be8ca`; PR #147 accepted head
 `72608d589582707955943345bc1308017e9650dc` in run `34750621646` and merged
@@ -94,10 +100,13 @@ unprovisioned private-alpha AWS package.
 PR #177 subsequently accepted exact C-EA1-D3 head
 `a4d23361b501240e16aff23464950597bf8e0368` in run `34900578390` and normally
 merged it as `86f3a02485a2522dd4c7fa839a34872508746607`, with matching tree
-`439785f4b496f94d5a5a7c04bec7d45261fbccd3`. C-EA1-D4 now selects the bounded
-provider-package correctness repair and account-bound recovery handoff; no AWS
-operation or later authority is selected.
-**Last completed slice:** C-EA1-D3 unprovisioned AWS package, merged in PR #177
+`439785f4b496f94d5a5a7c04bec7d45261fbccd3`. PR #180 accepted exact C-EA1-D4
+head `a4395a3b3f7707fc9e2793e333cc5d101ea01c64` in run `34915666663` and
+normally merged it as `1f9ead70c886f9d04804533eab3579083c4e358d`.
+AWS deployment/spending is now deferred; Hippius is preferred for a future
+unverified storage assessment. C-W1-D1 alone is selected without weakening
+C-EA2 or official C-W1.
+**Last completed slice:** C-EA1-D4 AWS v2 package repair, merged in PR #180
 **Primary Hub map_ref:** `WAVE-C`
 
 C-EA1 passed canonical acceptance in run `34558389185` at accepted head
@@ -176,7 +185,7 @@ production custody, quorum, science or economics blocks only that operation.
 | C-10 | Independent re-execution and disagreement | done | `.agent/evidence/wave_c/c-10.md` (PR #173 bounded DEVELOPMENT scope; broader science/independence/security open) | Codex + validator audit engineering | Scientific integration + security | C-06, C-07 | MQ-048, MQ-051 | L | C1 |
 | C-EA2 | Archive before finalization | todo | `.agent/tickets/C-EA2_archive_before_finalization.md` | Evidence archive + validator integration | Operations + data/security + scientific integration | C-EA1, C-07 | MQ-048, MQ-051 | L | C1 |
 | C-09 | Official testnet publication provider | todo | `.agent/tickets/C-09_official_testnet_publication_provider.md` | Codex + publication/protocol engineering | Protocol + scientific integration + security | A10, C-06, C-07, C-EA2 | MQ-048, MQ-054 | L | C1/C2 |
-| C-W1 | Exact real testnet eligibility provenance | todo | `.agent/tickets/C-W1_testnet_eligibility.md` | Network/protocol + scientific integration | Security + Physics/SciML | C-09, C-EA2 | MQ-048, MQ-054 | M | C2 |
+| C-W1 | Exact real testnet eligibility provenance | in_progress | `.agent/tickets/C-W1_testnet_eligibility.md` (bounded C-W1-D1 DEVELOPMENT slice only; official path remains future reserved) | Network/protocol + scientific integration | Security + Physics/SciML | NET-2, NET-4B, NET-6, C-06, C-07, C-08, C-10; official C-09 and C-EA2 non-blocking only for bounded DEVELOPMENT | MQ-048, MQ-054 | M | C2 |
 
 NET-1: PR #120 expected head 528213a passed run 34405478897 and normally merged
 as 6dad22db26e4b8babadf73c4de2527a17485a2b1. Completion comment:
@@ -210,9 +219,10 @@ exact synthetic development profile and cannot acknowledge real evidence or
 satisfy C-EA2. C-03 and C-08 now have bounded DEVELOPMENT implementations;
 C-09 remains contract-only. PR #168 accepted the alpha preparation profile,
 which cannot itself satisfy C-EA2. PR #173 accepted C-10's DEVELOPMENT audit
-slice and PR #177 accepted C-EA1-D3's unprovisioned AWS package. C-EA1-D4's
-prospective provider-package correctness repair is selected. C-EA2 remains
-unselected and dependency-blocked.
+slice, PR #177 accepted C-EA1-D3's unprovisioned AWS package and PR #180
+accepted its D4 repair. `OWNER-C-W1-DEV-TESTNET-01` now selects only C-W1-D1's
+separate public/synthetic DEVELOPMENT profile. AWS is deferred, Hippius is an
+unverified future preference, and C-EA2/official C-W1 remain blocked.
 
 C-EP1 accepted head `e0fbb6208cf0bf95910d51e7a3c996b09387a14e`
 passed RUNTIME_FULL run `34708322417` and normally merged in PR #143 as

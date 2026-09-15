@@ -1,0 +1,33 @@
+{
+  "context": {
+    "chain_id": "bittensor-official-test",
+    "endpoint": "wss://test.finney.opentensor.ai:443",
+    "genesis_hash": "0x8f9cf856bf558a14440e75569c9e58594757048d7b3a84b5d25f6bd978263105",
+    "netuid": null,
+    "network": "testnet"
+  },
+  "execution": {
+    "resource_policy_digest": "sha256:6033bc599d254a0c84a38e2ab6f44c149f8e862b5c4475c7e98a24d8c496c06a",
+    "worker_image_digest": "sha256:dae4717ae00d3174b8644159934eb4edbe94c0ad125549f6ade570a6f4c7e630",
+    "worker_profile": "carbon.c03.linux-x86_64-cpu.development.v1"
+  },
+  "expected_runtime_spec": 458,
+  "profile_id": "carbon.public-synthetic-testnet.development.v1",
+  "publisher": {
+    "coldkey": "5CmGx8PFzfL7EvrvqFgV2Sv2HGok53YkGUsBw1atTD5hw7N8",
+    "hotkey": "5E48fhGnyi4C94bsAc64s2bgshyJb7bfP59pRbidghc1pAyQ"
+  },
+  "retention": {
+    "export_root": "../../private/development-testnet-export",
+    "host_loss_recoverable": false,
+    "max_retained_bytes": 2147483648,
+    "root": "../../private/development-testnet-evidence"
+  },
+  "schema": "carbon.development-testnet.operator.v1",
+  "stage": "PUBLIC_TESTNET_DEVELOPMENT",
+  "transaction_authorization": null,
+  "wallet": {
+    "hotkey_name": "default",
+    "name": "miner1"
+  }
+}

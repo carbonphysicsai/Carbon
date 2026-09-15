@@ -422,5 +422,48 @@ class MinerMcpJournal:
             raise MinerMcpFailure(MinerMcpCode.STORE) from None
         return value
 
+    def resolve_development_source(
+        self, ref: ReceiptRef, account: DevelopmentOperationalAccount
+    ):
+        """Resolve the exact authenticated request -> retained C-07 account edge."""
+
+        if (
+            type(ref) is not ReceiptRef
+            or type(account) is not DevelopmentOperationalAccount
+        ):
+            raise MinerMcpFailure(MinerMcpCode.INVALID)
+        try:
+            receipt = self.journal.resolve(ref)
+        except Exception:  # noqa: BLE001 - normalize the source-owner boundary.
+            raise MinerMcpFailure(MinerMcpCode.CONFLICT) from None
+        with self._transaction() as connection:
+            rows = connection.execute(
+                "SELECT s.receipt_digest,s.challenge_id,s.challenge_version,"
+                "s.source_submission_id,s.state,a.request_digest,a.state,"
+                "a.account_digest,a.account_json FROM c08_submit_v1 AS s "
+                "JOIN c08_attempt_v1 AS a "
+                "ON a.receipt_sequence=s.receipt_sequence "
+                "WHERE s.receipt_sequence=? AND a.source_submission_id=? "
+                "AND a.attempt_number=?",
+                (ref.sequence, account.submission_id, account.attempt_number),
+            ).fetchall()
+        if len(rows) != 1:
+            raise MinerMcpFailure(MinerMcpCode.DENIED)
+        row = rows[0]
+        expected = (
+            ref.digest,
+            receipt.challenge_id,
+            receipt.challenge_version,
+            account.submission_id,
+            "ASSOCIATED",
+            account.request_digest,
+            "ACCOUNTED",
+            account.account_digest,
+            account.canonical_bytes.decode("ascii"),
+        )
+        if row != expected:
+            raise MinerMcpFailure(MinerMcpCode.DENIED)
+        return receipt
+
 
 __all__ = ["BindIntent", "MinerMcpJournal"]
