@@ -3089,7 +3089,7 @@
       "owner_lane": "network_protocol_scientific_integration",
       "status": "implemented",
       "summary": "PR #183's C-W1-D1 foundation is reconciled as accepted. The same selected DEVELOPMENT ticket now has a closed controller source handoff, streamed bounded export verification, fixed run/status/resume and separate chain-versus-host readiness as a continuation candidate. No approved netuid, eligible Linux host, registration or transaction authority exists, so no wallet was opened, public write made or test token spent. Official C-W1/C-09/C-EA2, protected evidence, scientific/security qualification, reward and LIVE authority remain unavailable.",
-      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/6fb8f4327b061181bf519ce64d1cb3f9b49a6e99/.agent/evidence/wave_c/c-w1-development.md",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/d3a46f7ec7a9100b719949e393e36023735c7971/.agent/evidence/wave_c/c-w1-development.md",
       "affects": [
         "WAVE-B",
         "WAVE-B/B-E4",

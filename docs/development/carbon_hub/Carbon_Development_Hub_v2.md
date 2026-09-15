@@ -2,7 +2,7 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `6fb8f4327b061181bf519ce64d1cb3f9b49a6e99` on `main`, captured 2026-09-15T06:11:23Z.
+**Authority snapshot:** `d3a46f7ec7a9100b719949e393e36023735c7971` on `main`, captured 2026-09-15T06:23:56Z.
 **Current:** Wave C, ticket C-W1. PR #183 accepted exact C-W1-D1 foundation head 324a5276cd6a1ffdc491d04d08ef8b3282a060e8 in run 34927991086 and normally merged as bd7e5a5423d1148d340b3de3993068b66f5973d with matching tree 65e2a3d5abee97e5eaf1538050e0dcfab22cc649. The same selected ticket now has a closed controller source handoff, fixed run/status/resume and separate host/chain readiness reporting as a continuation candidate. Read-only public-testnet evidence still has no approved netuid or registration for the available hotkey, and the current Darwin arm64 host lacks Docker. No chain write, token spend, real archive acknowledgement, protected/official eligibility, science/security qualification or LIVE authority exists. AWS stays deferred and Hippius stays unverified. No later ticket is selected.
 **Last completed:** C-10 (`done`).
 **Next selected:** none selected.
