@@ -3116,6 +3116,22 @@
         "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
       ],
       "supersedes": "C-W1-D1-I1"
+    },
+    {
+      "map_ref": "WAVE-C/C-W1",
+      "event_type": "evidence",
+      "event_id": "CW1-BURGERS-SESSION-20260915",
+      "owner_lane": "technical_lead",
+      "status": "active",
+      "summary": "PR #185 merged the checked operator path. Subnet 567, owner/publisher UID 0 and WSL Ubuntu Docker Engine are observed. The selected supervised Burgers continuation has a bounded executable profile, restricted agent connection and signed source builder. Real agent inference awaits distinct miner registration and provider approval/access; activation and all-burn publication require separate authority. The numerical engineering check completed 36 references, three JAX training replicas and 72 measurements, with no model inference or new chain write.",
+      "primary_detail": "docs/development/CW1_BURGERS_AGENT_SESSION.md",
+      "affects": [
+        "WAVE-C/C-08",
+        "WAVE-C/C-07",
+        "WAVE-C/C-05",
+        "WAVE-C/C-REWARD"
+      ],
+      "supersedes": null
     }
   ]
 }
