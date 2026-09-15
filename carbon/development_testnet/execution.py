@@ -105,7 +105,7 @@ def _stream_digest(path: Path, expected_bytes: int) -> str:
 def _verify_export(path: Path) -> tuple[LocalRetentionEvidence, frozenset[Path]]:
     raw = _json(path, MAX_REPORT_BYTES)
     if set(raw) != {"schema", "entries"} or raw["schema"] != (
-        "carbon.development-testnet.local-export-manifest.v1"
+        "carbon.development-testnet.bounded-export-manifest.v1"
     ):
         raise DevelopmentTestnetFailure("INVALID_LOCAL_EXPORT_MANIFEST")
     entries = raw["entries"]

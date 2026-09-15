@@ -95,7 +95,7 @@ def source_handoff(tmp_path: Path, *, transport_context=None):
     manifest.write_text(
         json.dumps(
             {
-                "schema": "carbon.development-testnet.local-export-manifest.v1",
+                "schema": "carbon.development-testnet.bounded-export-manifest.v1",
                 "entries": entries,
             },
             allow_nan=False,
