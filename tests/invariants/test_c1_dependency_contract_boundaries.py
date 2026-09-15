@@ -1,4 +1,4 @@
-"""Fail-closed checks for the selected C-EA1 deployment-package contracts."""
+"""Fail-closed checks for the selected C-EA1 AWS correctness contracts."""
 
 from __future__ import annotations
 
@@ -25,15 +25,17 @@ def test_c09_remains_contract_only_and_unselected() -> None:
     assert "Contract materialization only" in ticket
 
 
-def test_only_cea1_deployment_package_is_selected() -> None:
+def test_only_cea1_aws_correctness_repair_is_selected() -> None:
     wave = _read(".agent/WAVE.md")
     wave_c = _read(".agent/WAVE_C.md")
     graph = _read(".agent/plans/C1_DEPENDENCY_GRAPH.md")
     for record in (wave, wave_c):
         assert "**Selected ticket:** C-EA1 — `in_progress`" in record
         assert "**Active ticket:**" in record
-        assert "unprovisioned AWS private-alpha" in record
-        assert "**Next boundary:** separately authorized provisioning" in record
+        assert "AWS private-alpha" in record
+        assert "C-EA1-D4" in record
+        assert "**Next boundary:** separately authorized" in record
+        assert "provisioning" in record
         assert "C-EA2 remains blocked" in record
     assert "C-04(PR #154 engineering + D-03/D-04 prerequisite harness)" in graph
     assert "C-05(PR #157 engineering + D-02/D-05 prerequisite harness)" in graph
@@ -80,7 +82,7 @@ def test_jax_and_archive_blocks_remain_complete_and_fail_closed() -> None:
     assert "synthetic-archive" in c09
 
 
-def test_hub_projects_only_cea1_deployment_package() -> None:
+def test_hub_projects_only_cea1_aws_correctness_repair() -> None:
     data = json.loads(_read("docs/development/carbon_hub/data/hub_data_v2.json"))
     current = data["current"]
     assert current["last_completed_ticket"]["id"] == "C-10"
@@ -111,7 +113,8 @@ def test_hub_projects_only_cea1_deployment_package() -> None:
     assert "34816242461" in tickets["C-08"]["current_stage"]
     assert tickets["C-EA1"]["status"] == "in_progress"
     assert (
-        tickets["C-EA1"]["implementation_state"] == "aws_deployment_package_candidate"
+        tickets["C-EA1"]["implementation_state"]
+        == "aws_correctness_recovery_handoff_candidate"
     )
     assert "sha256:e7f9b869" in tickets["C-EA1"]["current_stage"]
     assert tickets["C-EA1"]["maturity_states"]["tested"] == "earned"
@@ -122,5 +125,5 @@ def test_hub_projects_only_cea1_deployment_package() -> None:
     assert "not dependency-ready" in tickets["C-09"]["current_stage"]
     assert "34518806217" in current["stage"]
     assert "standard-profile localnet" in current["stage"]
-    assert "PR #173" in current["stage"]
-    assert "C-EA1-D3" in current["stage"]
+    assert "PR #177" in current["stage"]
+    assert "C-EA1-D4" in current["stage"]

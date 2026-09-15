@@ -32,7 +32,7 @@
 > historical evidence, and human-reserved scientific/security authority remain.
 
 **Current wave:** C
-**Current phase:** C-EA1 unprovisioned private-alpha AWS deployment package after accepted C-10 PR #173
+**Current phase:** C-EA1-D4 AWS private-alpha correctness repair after accepted PR #177
 **State:** **active in bounded engineering scope**
 **Wave A:** closed in bounded engineering scope
 **Wave B:** closed in bounded engineering scope after PR #118 accepted head
@@ -41,11 +41,12 @@ normally merged as `ac050fd53ee18bf3788c167ee7b0736bbfd7a46b`, tree
 `46b38440f13a8048db18bc480ddb6907396c9017`
 **Controlling register:** `.agent/WAVE_C.md` version 2.3
 **Selected ticket:** C-EA1 — `in_progress`
-**Active ticket:** unprovisioned AWS private-alpha provider adapters,
-deployment/recovery package, atomic capacity and exact external decision
-**Next boundary:** separately authorized provisioning and test-owned recovery
-rehearsal; C-EA2 remains blocked until an eligible real archive acknowledgement
-and recovery/security evidence exist
+**Active ticket:** prospectively versioned AWS private-alpha custody/IAM,
+retention, network, recovery-watermark and account-bound deployment repair
+**Next boundary:** separately authorized account-bound provisioning and
+test-owned full-watermark recovery rehearsal; C-EA2 remains blocked until an
+eligible real archive acknowledgement and accepted recovery/security evidence
+exist
 C-EA1 passed canonical acceptance in run `34558389185` at accepted head
 `a779af066f4bf9bc36b6d6ab23914fa19191e1de` and normally merged in PR #136 as
 `0e0714c8260ca482a0ba2b743b2eaefd50508da1`. `OWNER-C-EA1-SYNTHETIC-01`
@@ -119,6 +120,13 @@ continuation selected C-10's bounded DEVELOPMENT re-execution slice. Exact head
 The same prospective continuation now selects C-EA1-D3's unprovisioned
 private-alpha AWS deployment package. No provider deployment, recovery claim,
 real acknowledgement or C-EA2 authority follows.
+PR #177 accepted exact C-EA1-D3 head
+`a4d23361b501240e16aff23464950597bf8e0368` in run `34900578390` and normally
+merged it as `86f3a02485a2522dd4c7fa839a34872508746607`, with accepted/merged tree
+`439785f4b496f94d5a5a7c04bec7d45261fbccd3`. `C-EA1-D4` now selects only the
+prospectively versioned AWS provider-package correctness repair and
+account-bound recovery handoff. No AWS resource, spend, recovery acceptance,
+real acknowledgement, C-EA2, protected or network authority follows.
 **Activation authority:** `OWNER-WAVE-C0-NET1-01` records the repository
 owner's explicit authorization to reconcile B-GATE, close Wave B in bounded
 engineering scope, activate Wave C/C0, select NET-1 alone, and continue through

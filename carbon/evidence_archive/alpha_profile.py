@@ -192,6 +192,37 @@ class AlphaRetentionPolicy:
             return None
         return last_eligible_use_epoch_seconds + self.minimum_retention_days * 86400
 
+    def object_lock_requirement(
+        self,
+        *,
+        last_eligible_use_epoch_seconds: int,
+        receipt_obligation_open: bool,
+        review_obligation_open: bool,
+        dispute_obligation_open: bool,
+    ) -> tuple[int, bool]:
+        """Map the policy to version-specific Object Lock operations.
+
+        Compliance retention advances from the last eligible use.  A legal hold
+        remains on while any non-time-bounded obligation is open; it is not a
+        substitute for the 90-day retention deadline.
+        """
+
+        flags = (
+            receipt_obligation_open,
+            review_obligation_open,
+            dispute_obligation_open,
+        )
+        if (
+            type(last_eligible_use_epoch_seconds) is not int
+            or last_eligible_use_epoch_seconds < 0
+            or any(type(value) is not bool for value in flags)
+        ):
+            raise ArchiveFailure(ArchiveCode.INVALID)
+        return (
+            last_eligible_use_epoch_seconds + self.minimum_retention_days * 86400,
+            any(flags),
+        )
+
 
 def _alpha_artifact_rules() -> tuple[ArtifactRule, ...]:
     terminal = (

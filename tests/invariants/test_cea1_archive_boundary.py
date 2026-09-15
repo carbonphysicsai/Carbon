@@ -86,6 +86,7 @@ def test_alpha_provider_package_cannot_issue_ack_or_gain_network_authority() -> 
             "carbon/evidence_archive/alpha_activation.py",
             "carbon/evidence_archive/alpha_capacity.py",
             "carbon/evidence_archive/alpha_package.py",
+            "carbon/evidence_archive/alpha_recovery.py",
             "carbon/evidence_archive/aws_provider.py",
         )
     )

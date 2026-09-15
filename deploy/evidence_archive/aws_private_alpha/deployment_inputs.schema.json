@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "carbon.evidence-archive.aws-deployment-inputs.v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "provider_profile_id", "fixture_only", "deployment_authorized", "account_id", "region", "stack_name", "tenant_id", "project_tags", "network", "execution", "principals", "custody", "spending", "external_evidence"],
+  "properties": {
+    "schema_version": {"const": "carbon.evidence-archive.aws-deployment-inputs.v1"},
+    "provider_profile_id": {"const": "carbon.alpha-evidence-archive.aws.private.v2"},
+    "fixture_only": {"type": "boolean"},
+    "deployment_authorized": {"type": "boolean"},
+    "account_id": {"type": "string", "pattern": "^[0-9]{12}$"},
+    "region": {"const": "us-west-2"},
+    "stack_name": {"type": "string", "pattern": "^[a-z][a-z0-9-]{2,63}$"},
+    "tenant_id": {"type": "string", "pattern": "^[A-Za-z0-9]+([._:-][A-Za-z0-9]+)*$"},
+    "project_tags": {"type": "object", "minProperties": 2, "additionalProperties": {"type": "string", "minLength": 1, "maxLength": 128}},
+    "network": {"type": "object", "additionalProperties": false, "required": ["vpc_id", "private_subnet_ids", "private_route_table_ids", "operator_security_group_id", "supervisor_security_group_id", "audit_security_group_id", "recovery_security_group_id"], "properties": {
+      "vpc_id": {"type": "string", "pattern": "^vpc-[0-9a-f]+$"},
+      "private_subnet_ids": {"type": "array", "minItems": 2, "maxItems": 2, "uniqueItems": true, "items": {"type": "string", "pattern": "^subnet-[0-9a-f]+$"}},
+      "private_route_table_ids": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "pattern": "^rtb-[0-9a-f]+$"}},
+      "operator_security_group_id": {"type": "string", "pattern": "^sg-[0-9a-f]+$"},
+      "supervisor_security_group_id": {"type": "string", "pattern": "^sg-[0-9a-f]+$"},
+      "audit_security_group_id": {"type": "string", "pattern": "^sg-[0-9a-f]+$"},
+      "recovery_security_group_id": {"type": "string", "pattern": "^sg-[0-9a-f]+$"}
+    }},
+    "execution": {"type": "object", "additionalProperties": false, "required": ["operator_location_ref", "operator_control_plane_connectivity_ref", "supervisor_location_ref", "audit_location_ref", "recovery_location_ref", "private_dns_enabled", "public_egress_required"], "properties": {
+      "operator_location_ref": {"type": "string", "minLength": 1}, "operator_control_plane_connectivity_ref": {"type": "string", "minLength": 1}, "supervisor_location_ref": {"type": "string", "minLength": 1}, "audit_location_ref": {"type": "string", "minLength": 1}, "recovery_location_ref": {"type": "string", "minLength": 1}, "private_dns_enabled": {"const": true}, "public_egress_required": {"const": false}
+    }},
+    "principals": {"type": "object", "additionalProperties": false, "required": ["operator_principal_arn", "supervisor_principal_arn", "audit_principal_arn", "recovery_principal_arn"], "properties": {
+      "operator_principal_arn": {"type": "string"}, "supervisor_principal_arn": {"type": "string"}, "audit_principal_arn": {"type": "string"}, "recovery_principal_arn": {"type": "string"}
+    }},
+    "custody": {"type": "object", "additionalProperties": false, "required": ["key_administrator_ref", "break_glass_principal_ref", "recovery_owner_ref"], "properties": {"key_administrator_ref": {"type": "string", "minLength": 1}, "break_glass_principal_ref": {"type": "string", "minLength": 1}, "recovery_owner_ref": {"type": "string", "minLength": 1}}},
+    "spending": {"type": "object", "additionalProperties": false, "required": ["monthly_usd", "rehearsal_usd", "decision_ref"], "properties": {"monthly_usd": {"type": "number", "minimum": 175}, "rehearsal_usd": {"type": "number", "minimum": 5}, "decision_ref": {"type": "string", "minLength": 1}}},
+    "external_evidence": {"type": "object", "additionalProperties": false, "required": ["security_acceptance_ref", "deployment_authorization_ref", "recovery_rehearsal_authorization_ref"], "properties": {"security_acceptance_ref": {"type": ["string", "null"]}, "deployment_authorization_ref": {"type": ["string", "null"]}, "recovery_rehearsal_authorization_ref": {"type": ["string", "null"]}}}
+  }
+}
