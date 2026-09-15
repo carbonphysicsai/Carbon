@@ -30,7 +30,7 @@ No solver, training, measurement campaign, 72-member matrix, cell-7 study, witne
 
 ## Verification and delivery
 
-The focused suite covers production-empty admission, isolated test-positive verification, wrong associations and semantic subject changes, raw/canonical identity, forged names/flags, test-root isolation, replay/conflict/withdrawal, partial answers, cumulative review, child history, save/reload revalidation, tampered cache rejection, v0.6 migration, and v1 rejection. Inherited engine, routing, F1–F7, workflow, C-05, Workbench-06 conformance, and rehearsal suites pass locally. Browser and repository exact-head acceptance identities are added at delivery closeout; unavailable environments remain explicit.
+The focused suite covers production-empty admission, isolated test-positive verification, wrong associations and semantic subject changes, raw/canonical identity, forged names/flags, test-root isolation, replay/conflict/withdrawal, partial answers, cumulative review, child history, save/reload revalidation, tampered cache rejection, v0.6 migration, and v1 rejection. After integrating current main, 214 JavaScript checks and 27 Python source/schema/bridge checks passed locally with zero failures or skips. Generated standalone Chrome journeys passed separately at 40, 29, 19, and 10 checks with zero page errors or external requests. Inherited engine, routing, F1–F7, workflow, C-05, Workbench-06/06A conformance, and rehearsal suites are included in those runs. Safari/WebKit was unavailable and is not claimed. Repository exact-head acceptance identities are added at delivery closeout.
 
 Completion axes at report authoring:
 
