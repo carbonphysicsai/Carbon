@@ -440,3 +440,49 @@ def test_service_discovery_validation_and_estimate_use_actual_tool_schemas(tmp_p
             RequesterIdentity("synthetic-tool-test"),
         )
         assert result is not None
+
+
+def test_external_miner_key_loader_boundary(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+
+    from carbon.chain import auth
+
+    key_file = tmp_path / "encrypted-key"
+    password_file = tmp_path / "password"
+    key_file.write_bytes(b"encrypted-test-fixture")
+    password_file.write_text("fixture-password")
+    opened = []
+
+    class FakeKeyfile:
+        def __init__(self, path):
+            opened.append(path)
+
+        def get_keypair(self, *, password):
+            assert password == "fixture-password"
+            return SimpleNamespace(ss58_address="expected-test-hotkey")
+
+    monkeypatch.setattr(
+        auth,
+        "_sdk",
+        lambda: SimpleNamespace(keyfiles=SimpleNamespace(Keyfile=FakeKeyfile)),
+    )
+    assert (
+        auth.open_external_hotkey(
+            key_file, password_file, "expected-test-hotkey"
+        ).ss58_address
+        == "expected-test-hotkey"
+    )
+    with pytest.raises(auth.AuthFailure) as caught:
+        auth.open_external_hotkey(key_file, password_file, "wrong-hotkey")
+    assert str(caught.value) == "AUTH_UNAVAILABLE"
+    assert caught.value.__context__ is None
+    opened.clear()
+    link = tmp_path / "key-link"
+    link.symlink_to(key_file)
+    for invalid in (link, Path("relative-key"), tmp_path / "missing"):
+        with pytest.raises(auth.AuthFailure):
+            auth.open_external_hotkey(invalid, password_file, "expected-test-hotkey")
+    password_file.write_bytes(b"x" * 1025)
+    with pytest.raises(auth.AuthFailure):
+        auth.open_external_hotkey(key_file, password_file, "expected-test-hotkey")
+    assert opened == []

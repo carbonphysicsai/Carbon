@@ -390,6 +390,8 @@ def test_existing_carbon_packages_do_not_reverse_import_generators() -> None:
         if _GENERATORS_ROOT in path.parents or path in {
             _B07F_ADAPTER,
             _C04_REFERENCE_MODEL,
+            _CARBON_ROOT / "development_session" / "data.py",
+            _CARBON_ROOT / "development_session" / "evaluation.py",
         }:
             continue
         violations.extend(
@@ -471,3 +473,30 @@ def test_generators_does_not_implement_future_owner_types() -> None:
     }
 
     assert declared_names.isdisjoint(_RESERVED_FUTURE_OWNER_TYPES)
+
+
+def test_supervised_session_imports_only_the_ratified_public_burgers_surface():
+    allowed = {
+        "carbon.generators": {"burgers_dynamics"},
+        "carbon.generators.burgers_dynamics": {
+            "DOMAIN_LENGTH",
+            "BurgersCaseCoordinates",
+            "PublicDevelopmentRole",
+            "candidate_query",
+            "canonical_public_case_bytes",
+            "generate_development_case",
+            "requested_times",
+        },
+    }
+    for name in ("data.py", "evaluation.py"):
+        path = _CARBON_ROOT / "development_session" / name
+        for node in ast.walk(_parse(path)):
+            if isinstance(node, ast.Import):
+                assert not any(
+                    alias.name.startswith("carbon.generators") for alias in node.names
+                )
+            elif isinstance(node, ast.ImportFrom):
+                base = _from_module(path, node)
+                if base.startswith("carbon.generators"):
+                    assert base in allowed
+                    assert {alias.name for alias in node.names} <= allowed[base]

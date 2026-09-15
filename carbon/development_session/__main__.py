@@ -92,14 +92,14 @@ def main():
         check_authority(args.model_authority, now=time.time())
         # No key is loaded for prepare, plan or status. All private key access
         # is on this trusted side of the data-only model connection.
-        from bittensor.keyfiles import Keyfile
+        from carbon.chain.auth import open_external_hotkey
 
         from .service import LocalMinerConnection
 
         config = load_config(args.operator_config)
         public = json.loads(args.miner_public.read_bytes())
-        key = Keyfile(public["key_file"]).get_keypair(
-            password=args.miner_password_file.read_text().strip()
+        key = open_external_hotkey(
+            Path(public["key_file"]), args.miner_password_file, public["hotkey"]
         )
         if key.ss58_address != public["hotkey"] or public["netuid"] != 567:
             raise ValueError("miner identity mismatch")

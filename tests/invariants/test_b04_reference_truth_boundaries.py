@@ -191,7 +191,11 @@ def _is_allowed_evaluation_consumer(path: Path, module_name: str) -> bool:
             and module_name == "carbon.evaluation.enums"
         )
         or (
-            path == _CARBON_ROOT / "orchestration" / "service.py"
+            path
+            in {
+                _CARBON_ROOT / "orchestration" / "service.py",
+                _CARBON_ROOT / "development_session" / "data.py",
+            }
             and module_name == "carbon.evaluation.enums"
         )
     )
