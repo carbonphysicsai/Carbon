@@ -32,20 +32,20 @@ No model inference or new chain operation occurs without its applicable approval
 
 ## Current stage
 
-PR #188 merged the supervised session. Distinct miner UID 1 finalized on subnet 567 at block 8013851 for 0.005426933 test TAO. Four real model calls cost USD 0.0019395 and proposed FNO-32, then stopped on malformed dry-validation arguments before submission or evaluation. The selected continuation repairs strict agent tool framing; a new bounded model session needs separate approval. Activation and publication remain separately gated.
+C-W1 DEVELOPMENT continues after PR #189 merged strict tools. Distinct miner UID 1 finalized on subnet 567 at block 8013851. The second authorized real model session made six calls for USD 0.00380175, proposed FNO-48 and reached authenticated submission. The fixture-only C-03 staging guard stopped it before worker launch. The selected repair admits the exact real/non-live pair under unchanged public DEVELOPMENT worker controls; the stopped attempt is retained without restart.
 
 ## Maturity ceiling
 
-PR #188 supervised session engineering is merged. Registration and four real provider calls are observed; agent numerical evaluation, signed source, comparison and publication remain incomplete. The strict-tool repair is conditional on automated acceptance and normal merge. No qualification is earned.
+Strict tool repair is merged. Two real provider sessions remain stopped, with no agent numerical evaluation or signed source. C-W1-WORKER-SCOPE-01 is conditional on required acceptance and normal merge. No qualification is earned.
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/46e3412ad2c41db65946507f85330167d9addfa6/.agent/tickets/C-W1_testnet_eligibility.md)
-- [Development testnet plan](https://github.com/carbonphysicsai/Carbon/blob/46e3412ad2c41db65946507f85330167d9addfa6/.agent/plans/C_W1_DEVELOPMENT_TESTNET.md)
-- [Development testnet evidence](https://github.com/carbonphysicsai/Carbon/blob/46e3412ad2c41db65946507f85330167d9addfa6/.agent/evidence/wave_c/c-w1-development.md)
-- [Operator runbook](https://github.com/carbonphysicsai/Carbon/blob/46e3412ad2c41db65946507f85330167d9addfa6/docs/development/CW1_DEVELOPMENT_TESTNET_RUNBOOK.md)
-- [First transaction plan](https://github.com/carbonphysicsai/Carbon/blob/46e3412ad2c41db65946507f85330167d9addfa6/docs/development/CW1_DEVELOPMENT_TESTNET_TRANSACTION_PLAN.md)
-- [C1 dependency graph](https://github.com/carbonphysicsai/Carbon/blob/46e3412ad2c41db65946507f85330167d9addfa6/.agent/plans/C1_DEPENDENCY_GRAPH.md)
-- [Supervised Burgers session and numerical observations](https://github.com/carbonphysicsai/Carbon/blob/46e3412ad2c41db65946507f85330167d9addfa6/docs/development/CW1_BURGERS_AGENT_SESSION.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/8d06a01c40087bf60de70e66015134febdbafb6f/.agent/tickets/C-W1_testnet_eligibility.md)
+- [Development testnet plan](https://github.com/carbonphysicsai/Carbon/blob/8d06a01c40087bf60de70e66015134febdbafb6f/.agent/plans/C_W1_DEVELOPMENT_TESTNET.md)
+- [Development testnet evidence](https://github.com/carbonphysicsai/Carbon/blob/8d06a01c40087bf60de70e66015134febdbafb6f/.agent/evidence/wave_c/c-w1-development.md)
+- [Operator runbook](https://github.com/carbonphysicsai/Carbon/blob/8d06a01c40087bf60de70e66015134febdbafb6f/docs/development/CW1_DEVELOPMENT_TESTNET_RUNBOOK.md)
+- [First transaction plan](https://github.com/carbonphysicsai/Carbon/blob/8d06a01c40087bf60de70e66015134febdbafb6f/docs/development/CW1_DEVELOPMENT_TESTNET_TRANSACTION_PLAN.md)
+- [C1 dependency graph](https://github.com/carbonphysicsai/Carbon/blob/8d06a01c40087bf60de70e66015134febdbafb6f/.agent/plans/C1_DEPENDENCY_GRAPH.md)
+- [Supervised Burgers session and numerical observations](https://github.com/carbonphysicsai/Carbon/blob/8d06a01c40087bf60de70e66015134febdbafb6f/docs/development/CW1_BURGERS_AGENT_SESSION.md)
 
 > G2 remains LOCALNET_READY only for the exact D6 disposable v445 localnet. C-W1-D1 is separate and permits public/synthetic DEVELOPMENT only after exact external gates; signed DEVELOPMENT evidence remains rejected by official/protected consumers.
