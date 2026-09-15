@@ -1,6 +1,18 @@
-# GOAL-WORKBENCH-06 / GOAL-WORKBENCH-05A / GOAL-WORKBENCH-05 / GOAL-WORKBENCH-04 / GOAL-WORKBENCH-03 / GOAL-WORKBENCH-02 / EXAM-PROTECT-WORKBENCH-01 requirement-to-test map
+# GOAL-WORKBENCH-07 / GOAL-WORKBENCH-06 / GOAL-WORKBENCH-05A / GOAL-WORKBENCH-05 / GOAL-WORKBENCH-04 / GOAL-WORKBENCH-03 / GOAL-WORKBENCH-02 / EXAM-PROTECT-WORKBENCH-01 requirement-to-test map
 
 This map describes focused application acceptance. It does not relabel the CPES study's historical 14/52/208 runs as workbench tests.
+
+| GW07 repository-snapshot requirement | Implementation / evidence | Automated coverage | Authority limitation |
+|---|---|---|---|
+| Ryan-controlled bounded issuer policy | `OWNER-GW07-RYAN-SNAPSHOT-01`; installed profile | production profile/index and forgery tests | Policy is not exact assessment adoption |
+| Freeze exact subject and avoid re-entry | `scopeSubject`, `buildRequest`, design panel | sealed/draft/semantic-change/request determinism tests | Technical question only |
+| Installed root cannot come from workspace/import | embedded profile/index; immutable installer | test-root production rejection, self-supplied-root, save/reload revalidation | Genuine build/release administration remains trusted |
+| Exact raw/canonical/request/source association | `verifyResponse` | wrong job/design/revision/request/domain, changed bytes, replay tests | Matching bytes do not prove truth or live operator identity |
+| Atomic failure and cumulative reasons | `importResponse`, scoped dispositions | production-empty rejection, partial answer, tamper, child/reload tests | Scientific and rights reasons remain pending |
+| Withdrawal/conflict/supersession fail closed | installed entry states | withdrawal/conflict and replay tests | Offline freshness limited to installed snapshot |
+| Old v1 and v0.1–v0.6 compatibility | v0.7 migration; detached v1 retained | Workbench-06 rejection, v0.6 migration, inherited suites | Migration never creates adoption |
+| Real index empty; positive branch isolated | production/test snapshot separation | build-time test-only rejection and real-consumer positive test | Actual admission remains pending Ryan |
+| Normal browser workflow and zero network | source-assessment panel in generated HTML | generated-browser prepare/export/import/reload and outbound-request checks | No dispatch or remote fetch |
 
 | GW06 contract requirement | Detached artifact | Automated evidence | Authority limitation |
 |---|---|---|---|

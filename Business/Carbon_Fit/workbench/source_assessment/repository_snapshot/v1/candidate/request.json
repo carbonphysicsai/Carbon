@@ -1,0 +1,180 @@
+{
+  "schema_version": "carbon.goal-workbench.source-assessment-request.v2",
+  "profile_id": "burgers-dynamics-public.repository-snapshot.v1",
+  "request_id": "GW07-BURGERS-DYNAMICS-REQUEST-001",
+  "association": {
+    "job_id": "job-001",
+    "design_id": "job-001-design-1",
+    "design_revision": 1
+  },
+  "subject": {
+    "schema_version": "carbon.goal-workbench.assessment-subject.v1",
+    "job_id": "job-001",
+    "design_id": "job-001-design-1",
+    "design_revision": 1,
+    "route": "ADAPT_SUPPORTED_CHALLENGE",
+    "scope": {
+      "physics_family": "periodic_viscous_burgers_1d_v1",
+      "requested_goal": "Dynamics",
+      "intended_use": "Public synthetic periodic viscous Burgers Dynamics technical assessment only",
+      "inputs": "Finite Fourier initial field, positive viscosity, requested times, and declared periodic domain length",
+      "outputs": "Complete field evolution with compression, dissipation, and half-time diagnostics",
+      "units": "Source-defined nondimensional Burgers variables and declared characteristic scales",
+      "geometry": "One-dimensional periodic domain",
+      "conditions": "Periodic boundary; unforced; finite Fourier initial condition; positive viscosity",
+      "regime": "Exact retained C05-PUBLIC-EVAL2-PERTURBED fixed-case context",
+      "exclusions": "No population adequacy, qualification, rights, protected use, customer result, score, or launch",
+      "query_workload": "One retained public fixed-case result; no fresh execution",
+      "turnaround": "No service claim",
+      "failure_consequences": "Unresolved",
+      "data_access": "Public repository artifacts only",
+      "rights_scope": "UNRESOLVED",
+      "commercial_context": "Public synthetic demonstration",
+      "disclosure_scope": "PUBLIC_SYNTHETIC_DEVELOPMENT_ONLY",
+      "deployment_environment": "Not assessed"
+    },
+    "requirements": [
+      {
+        "requirement_id": "REQ-DYNAMICS",
+        "original_words": "Predict complete field evolution without allowing a favorable average to offset mandatory physical failure.",
+        "source_reference": "Public synthetic GOAL-WORKBENCH-07 fixture",
+        "decision_consequence": "Test exact technical expressibility only",
+        "kind": "MATERIAL",
+        "agreement_status": "CLIENT_ASSERTION"
+      }
+    ],
+    "traces": [
+      {
+        "trace_id": "TRACE-DYNAMICS",
+        "requirement_id": "REQ-DYNAMICS",
+        "observable": "field, compression, dissipation, half-time",
+        "requested_output": "complete periodic trajectory",
+        "measurement_definition": "source-owned C-05 public DEVELOPMENT result",
+        "numerical_method": "source-owned C-AUTH1/C-05 definitions",
+        "role": "MANDATORY",
+        "normalization": "source record",
+        "floor": "unresolved",
+        "aggregation": "not qualified",
+        "uncertainty": "null/unresolved",
+        "population_ref": "fixed public case only",
+        "stratum_ref": "EVAL cell 2",
+        "finite_case_coverage": "one case",
+        "reference_requirement": "retained identity only",
+        "authoring_binding": "carbon.goal-authoring-proposal/1",
+        "gap": ""
+      }
+    ],
+    "cases": [
+      {
+        "case_family_id": "BURGERS-12-CELL",
+        "role": "EVAL",
+        "requirement_ids": [
+          "REQ-DYNAMICS"
+        ],
+        "target_population": "source-defined public DEVELOPMENT cells",
+        "target_mass": "unresolved",
+        "sampling_frequency": "one retained fixed case in this assessment",
+        "analysis_weight": "none",
+        "independent_physical_cases": "one retained case",
+        "reconstruction_replicas": "one test-created perturbed candidate",
+        "generator_ref": "goal_burgers_12cell_v1",
+        "rationale": "Preserve the exact C-05 fixture association",
+        "support_status": "SOURCE_SUPPORTED"
+      }
+    ],
+    "authoring": {
+      "template_id": "periodic_viscous_burgers_1d_v1",
+      "requested_goal": "Dynamics",
+      "compatibility": "EXACT_SUPPORTED",
+      "request_id": "GW06-C-AUTH1-PUBLIC-REQUEST",
+      "result_ref": "source_assessment/v1/fixtures/public_design_snapshot.json",
+      "semantic_receipt": null,
+      "extension_request": null
+    },
+    "reference_plan": {
+      "equation": "",
+      "role": "",
+      "method": "",
+      "configuration": "",
+      "convergence_evidence": "",
+      "uncertainty_evidence": "",
+      "applicable_envelope": "",
+      "failures": "",
+      "cost_scope": "",
+      "independence_limitations": ""
+    },
+    "evidence_bindings": [
+      {
+        "evidence_binding_id": "c05-92aee39eb3f293f1d18cbc40",
+        "source_digest_or_identity": "sha256:92aee39eb3f293f1d18cbc40837837a715492314a2565a14cc0b6aba636be8d1",
+        "originating_design_id": "job-001-design-1",
+        "originating_design_revision": 1,
+        "trace_ids": [
+          "TRACE-DYNAMICS"
+        ],
+        "case_family_ids": [
+          "BURGERS-12-CELL"
+        ],
+        "dependency_domains": [
+          "INTENDED_USE",
+          "PHYSICS_SCOPE",
+          "INPUT_CONTRACT",
+          "OUTPUT_CONTRACT",
+          "UNITS_SCALING",
+          "POPULATION_CASES",
+          "GENERATOR",
+          "MEASUREMENT_SCORE",
+          "REFERENCE",
+          "RECONSTRUCTION",
+          "CPES_DISCLOSURE",
+          "RIGHTS",
+          "DEPLOYMENT",
+          "AUTHORING"
+        ],
+        "scientific_applicability": "UNASSESSED",
+        "scientific_review_reasons": [],
+        "use_or_rights_status": "UNRESOLVED",
+        "rights_review_reasons": []
+      }
+    ]
+  },
+  "subject_digest": "sha256:4fc877a2f13545432b062c203a1e4d43d79ed25c17d4279a4124e0e598f17f91",
+  "source": {
+    "implementation_id": "periodic_viscous_burgers_1d_v1/Dynamics",
+    "authoring_result_ref": "source_assessment/v1/fixtures/public_design_snapshot.json",
+    "evidence_identity_refs": [
+      "sha256:92aee39eb3f293f1d18cbc40837837a715492314a2565a14cc0b6aba636be8d1"
+    ]
+  },
+  "questions": [
+    {
+      "question_id": "GW07:AUTHORING_EXPRESSIBILITY",
+      "domain": "AUTHORING_EXPRESSIBILITY",
+      "text": "Does the named authoring artifact express the exact requested Dynamics task?",
+      "reason_ids": []
+    },
+    {
+      "question_id": "GW07:SOURCE_ARTIFACT_IDENTITY",
+      "domain": "SOURCE_ARTIFACT_IDENTITY",
+      "text": "Do the named accepted authoring and retained C-05 identities match the recorded source artifacts?",
+      "reason_ids": []
+    },
+    {
+      "question_id": "GW07:FIXED_EVIDENCE_RELATIONSHIP",
+      "domain": "FIXED_EVIDENCE_RELATIONSHIP",
+      "text": "What exact fixed-case technical relationship can the retained C-05 record support?",
+      "reason_ids": []
+    }
+  ],
+  "permitted_information_scope": "PUBLIC_SYNTHETIC_DEVELOPMENT_ONLY",
+  "requested_recipient": "github:jbequ5",
+  "expected_result_or_restart": "Exact Ryan adoption or a named unsupported scope/blocker; no scientific or rights authority.",
+  "authority_ceiling": {
+    "scientific_qualification": false,
+    "rights_authorization": false,
+    "fresh_execution": false,
+    "score_eligibility": false,
+    "protected_reuse": false,
+    "launch_authorization": false
+  }
+}

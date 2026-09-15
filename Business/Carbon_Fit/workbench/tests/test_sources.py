@@ -197,7 +197,7 @@ class SourceTests(unittest.TestCase):
             "NOT_QUALIFIED_BY_THIS_TOOL",
         )
 
-    def test_additive_goal_schema_is_closed_v06_and_reproducible(self):
+    def test_additive_goal_schema_is_closed_v07_and_reproducible(self):
         tool = ROOT / "tools/build_goal_schema.py"
         subprocess.run(["/usr/bin/python3", str(tool)], check=True, capture_output=True)
         schema_path = ROOT / "data/goal_workspace.schema.json"
@@ -209,7 +209,7 @@ class SourceTests(unittest.TestCase):
         self.assertFalse(schema["additionalProperties"])
         self.assertEqual(
             schema["properties"]["schema_version"]["const"],
-            "carbon.goal-workbench.workspace.v0.6",
+            "carbon.goal-workbench.workspace.v0.7",
         )
         self.assertEqual(
             schema["properties"]["authority"]["properties"]["launch"]["const"],
@@ -226,6 +226,9 @@ class SourceTests(unittest.TestCase):
             design["properties"]["evidence_bindings"]["items"]["additionalProperties"]
         )
         self.assertFalse(design["properties"]["coordination"]["additionalProperties"])
+        self.assertFalse(
+            design["properties"]["source_assessments"]["additionalProperties"]
+        )
         binding = design["properties"]["evidence_bindings"]["items"]["properties"]
         self.assertIn("scientific_review_reasons", binding)
         self.assertIn("origin_verification", binding)
@@ -233,6 +236,29 @@ class SourceTests(unittest.TestCase):
             "CARRIED_FORWARD_UNCHANGED_SCOPE",
             binding["scientific_applicability"]["enum"],
         )
+
+    def test_repository_snapshot_schemas_are_deeply_closed_and_reproducible(self):
+        tool = ROOT / "tools/build_repository_snapshot_schemas.py"
+        schema_dir = ROOT / "source_assessment/repository_snapshot/v1/schemas"
+        subprocess.run(["/usr/bin/python3", str(tool)], check=True, capture_output=True)
+        first = {path.name: path.read_bytes() for path in schema_dir.glob("*.json")}
+        subprocess.run(["/usr/bin/python3", str(tool)], check=True, capture_output=True)
+        self.assertEqual(
+            first, {path.name: path.read_bytes() for path in schema_dir.glob("*.json")}
+        )
+
+        def assert_closed(value):
+            if isinstance(value, dict):
+                if value.get("type") == "object" or "properties" in value:
+                    self.assertIs(value.get("additionalProperties"), False)
+                for child in value.values():
+                    assert_closed(child)
+            elif isinstance(value, list):
+                for child in value:
+                    assert_closed(child)
+
+        for raw_schema in first.values():
+            assert_closed(json.loads(raw_schema))
 
     def test_retained_c05_fixture_index_binds_exact_source_digests(self):
         index = json.loads((ROOT / "data/c05_fixture_index_v1.json").read_text())
@@ -339,47 +365,52 @@ class SourceTests(unittest.TestCase):
             )
         with zipfile.ZipFile(archive_path) as bundle:
             names = bundle.namelist()
-            self.assertIn("carbon_goal_workbench_v0_6/MANIFEST.json", names)
+            self.assertIn("carbon_goal_workbench_v0_7/MANIFEST.json", names)
             self.assertIn(
-                "carbon_goal_workbench_v0_6/Carbon_Opportunity_Workbench.html", names
+                "carbon_goal_workbench_v0_7/Carbon_Opportunity_Workbench.html", names
             )
             self.assertIn(
-                "carbon_goal_workbench_v0_6/evidence/cpes_reference_reuse_v2/evidence_index_v1.json",
+                "carbon_goal_workbench_v0_7/evidence/cpes_reference_reuse_v2/evidence_index_v1.json",
                 names,
             )
             self.assertIn(
-                "carbon_goal_workbench_v0_6/data/goal_workspace.schema.json", names
+                "carbon_goal_workbench_v0_7/data/goal_workspace.schema.json", names
             )
             self.assertIn(
-                "carbon_goal_workbench_v0_6/data/goal_workbench_03_rehearsal_record_v1.json",
+                "carbon_goal_workbench_v0_7/data/goal_workbench_03_rehearsal_record_v1.json",
                 names,
             )
             self.assertIn(
-                "carbon_goal_workbench_v0_6/docs/GOAL_WORKBENCH_03_REHEARSAL_REPORT.md",
+                "carbon_goal_workbench_v0_7/docs/GOAL_WORKBENCH_03_REHEARSAL_REPORT.md",
                 names,
             )
             self.assertIn(
-                "carbon_goal_workbench_v0_6/tools/run_operational_rehearsal.cjs",
+                "carbon_goal_workbench_v0_7/tools/run_operational_rehearsal.cjs",
                 names,
             )
             self.assertIn(
-                "carbon_goal_workbench_v0_6/data/goal_workbench_05_journeys_v1.json",
+                "carbon_goal_workbench_v0_7/data/goal_workbench_05_journeys_v1.json",
                 names,
             )
             self.assertIn(
-                "carbon_goal_workbench_v0_6/docs/GOAL_WORKBENCH_05_OPTIMIZATION_REPORT.md",
+                "carbon_goal_workbench_v0_7/docs/GOAL_WORKBENCH_05_OPTIMIZATION_REPORT.md",
                 names,
             )
             self.assertIn(
-                "carbon_goal_workbench_v0_6/docs/GOAL_WORKBENCH_05A_STATE_INTEGRITY_REPORT.md",
+                "carbon_goal_workbench_v0_7/docs/GOAL_WORKBENCH_05A_STATE_INTEGRITY_REPORT.md",
                 names,
             )
             self.assertIn(
-                "carbon_goal_workbench_v0_6/data/goal_workbench_05a_transition_evidence_v1.json",
+                "carbon_goal_workbench_v0_7/data/goal_workbench_05a_transition_evidence_v1.json",
+                names,
+            )
+            self.assertIn("carbon_goal_workbench_v0_7/src/source_assessment.js", names)
+            self.assertIn(
+                "carbon_goal_workbench_v0_7/source_assessment/repository_snapshot/v1/approved_assessments.json",
                 names,
             )
             self.assertNotIn(
-                "carbon_goal_workbench_v0_6/Carbon_Physics_Opportunity_Workbench_v0_2.zip",
+                "carbon_goal_workbench_v0_7/Carbon_Physics_Opportunity_Workbench_v0_2.zip",
                 names,
             )
             before = hashlib.sha256(archive_path.read_bytes()).hexdigest()

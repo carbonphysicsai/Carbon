@@ -202,11 +202,12 @@ test("current v0.6 response import rejects the candidate format without mutation
   assert.equal(JSON.stringify(design), before);
 });
 
-test("accepted standalone v0.6 artifact is unchanged and contains no candidate adapter", () => {
+test("current standalone ships only the operational v2 consumer and preserves v1 as detached history", () => {
   const file = path.join(WB, "Carbon_Opportunity_Workbench.html");
   const bytes = fs.readFileSync(file);
-  assert.equal(crypto.createHash("sha256").update(bytes).digest("hex"), "19a8cc52f2c8dd55d4549a4cb581c39e94aa3293803f7ec0193dc3858daf3404");
-  assert.equal(bytes.includes(Buffer.from("carbon.goal-workbench.source-assessment-response.v1")), false);
+  assert.equal(bytes.includes(Buffer.from("carbon.goal-workbench.source-assessment-response.v2")), true);
+  assert.equal(bytes.includes(Buffer.from("OWNER-GW07-RYAN-SNAPSHOT-01/empty-production-index/v1")), true);
+  assert.equal(bytes.includes(Buffer.from("GW06-BURGERS-DYNAMICS-PUBLIC-RESPONSE-001")), false);
 });
 
 test("validation failure creates no output directory", async () => {

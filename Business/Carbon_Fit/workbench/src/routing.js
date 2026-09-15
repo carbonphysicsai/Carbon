@@ -1051,6 +1051,28 @@
     };
   }
   function nextAction(job, design) {
+    const assessment = design.source_assessments,
+      assessmentRequest = assessment?.requests?.find(
+        (item) => item.request_id === assessment.current_request_id,
+      ),
+      assessmentReceipt = assessment?.receipts?.find(
+        (item) => item.request_id === assessment.current_request_id,
+      );
+    if (assessmentReceipt)
+      return {
+        action: "REVIEW_SCOPED_SOURCE_ASSESSMENT",
+        why: "A repository-snapshot-matched technical answer is retained; remaining scientific, rights, and customer-use obligations stay separate.",
+        missing_conditions: assessmentReceipt.remaining_reason_ids,
+      };
+    if (assessmentRequest)
+      return {
+        action: "WAIT_FOR_EXACT_RYAN_ADOPTION",
+        why: "The exact request is prepared locally, but no source assessment is admitted by the installed repository snapshot.",
+        missing_conditions: [
+          "Ryan adoption of exact assessment bytes",
+          "Engineering admission in a later accepted repository snapshot",
+        ],
+      };
     const resolved = actionResolution(design);
     if (resolved.kind === "RECONCILE")
       return {
@@ -1114,16 +1136,30 @@
         item.binding_status === "CURRENT_DESIGN_REVISION" &&
         item.evidence_state === "SOURCE_MEASUREMENT_EVIDENCE_BOUND",
     );
-    const review = design.evidence_bindings.filter(
-        (item) =>
-          item.scientific_review_reasons.length ||
-          item.rights_review_reasons.length ||
-          item.scientific_applicability === "REVIEW_REQUIRED",
+    const resolvedTechnicalReasons = new Set(
+        (design.source_assessments?.dispositions || [])
+          .filter((item) => item.effect === "TECHNICAL_REASON_RESOLVED")
+          .map((item) => item.reason_id),
       ),
+      review = design.evidence_bindings.filter((item) => {
+        const unresolvedScientific = item.scientific_review_reasons.filter(
+          (reason) => !resolvedTechnicalReasons.has(reason.reason_id),
+        );
+        return (
+          unresolvedScientific.length ||
+          item.rights_review_reasons.length ||
+          (item.scientific_applicability === "REVIEW_REQUIRED" &&
+            item.scientific_review_reasons.length === 0)
+        );
+      }),
       sourceConfirmed = design.evidence_bindings.some(
         (item) => item.scientific_applicability === "SOURCE_OWNER_CONFIRMED",
       ),
       facts = [];
+    if (design.source_assessments?.receipts?.length)
+      facts.push("REPOSITORY_SNAPSHOT_TECHNICAL_ASSESSMENT_RETAINED");
+    if (resolvedTechnicalReasons.size)
+      facts.push("SCOPED_TECHNICAL_REASON_DISPOSITION_RETAINED");
     if (currentNative) facts.push("EXACT_C05_SOURCE_RESULT_RETAINED");
     if (review.length) facts.push("OUTSTANDING_SCOPED_REVIEW");
     if (sourceConfirmed) facts.push("APPLICABILITY_CONFIRMED_NOT_QUALIFIED");
@@ -1180,6 +1216,18 @@
       };
     const resolved = actionResolution(design),
       action = nextAction(job, design);
+    if (action.action === "WAIT_FOR_EXACT_RYAN_ADOPTION")
+      return {
+        state: "WAITING_ON_DEPENDENCY",
+        provenance: "WORKBENCH_DERIVED",
+        source: design.source_assessments.current_request_id,
+      };
+    if (action.action === "REVIEW_SCOPED_SOURCE_ASSESSMENT")
+      return {
+        state: "NEEDS_OWNER_DECISION",
+        provenance: "NATIVE_IMPORTED_RESULT",
+        source: design.source_assessments.current_request_id,
+      };
     if (resolved.kind === "ACTIVE")
       return {
         state: "ACTIVE_REPORTED",
@@ -1253,6 +1301,7 @@
       lead: job.lead,
       current_action: action.action,
       current_action_ref:
+        design.source_assessments?.current_request_id ||
         resolved.record?.id || "UNLINKED_OR_RECONCILIATION_REQUIRED",
       action_reason: action.why,
       missing_conditions: action.missing_conditions,
@@ -1267,12 +1316,23 @@
       customer_outcome: design.coordination.customer_outcome,
       customer_outcome_provenance:
         design.coordination.customer_outcome_provenance,
-      open_request_or_handoff: resolved.record
+      open_request_or_handoff: design.source_assessments?.current_request_id
+        ? design.source_assessments.receipts.some(
+            (item) =>
+              item.request_id === design.source_assessments.current_request_id,
+          )
+          ? "SOURCE_ASSESSMENT_RETURNED"
+          : "PREPARED_AWAITING_EXACT_OWNER_ADOPTION"
+        : resolved.record
         ? resolved.record.status
         : resolved.kind === "RECONCILE"
           ? "RECONCILIATION_REQUIRED"
           : "NONE",
-      evidence_received: design.measurement_evidence.some(
+      evidence_received: design.source_assessments?.receipts?.some(
+        (item) => item.request_id === design.source_assessments.current_request_id,
+      )
+        ? "YES_SCOPED_SOURCE_ASSESSMENT"
+        : design.measurement_evidence.some(
         (item) => item.binding_status === "CURRENT_DESIGN_REVISION",
       )
         ? "YES_SCOPED_UNRESOLVED"

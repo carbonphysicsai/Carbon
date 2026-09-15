@@ -1,0 +1,23 @@
+{
+  "artifact": "Carbon_Opportunity_Workbench.html",
+  "scope": "GOAL-WORKBENCH-07 repository-snapshot request, rejection, test-only positive, owner state, save/reload, and offline browser journey",
+  "engine": "Google Chrome (Chromium)",
+  "passed": 10,
+  "failed": 0,
+  "checks": [
+    "source-assessment panel exposes installed empty production snapshot",
+    "normal UI freezes and prepares exact request",
+    "export binds current job design revision and semantic subject",
+    "unadopted candidate remains rejected without positive receipt",
+    "Owner Console points to Ryan adoption and never active computation",
+    "save reload preserves frozen request but creates no adoption",
+    "isolated test root exercises actual browser consumer without qualification",
+    "source-assessment panel remains usable at narrow width",
+    "browser emitted no script error",
+    "source-assessment workflow emitted zero external requests"
+  ],
+  "page_errors": [],
+  "outbound_requests": [],
+  "source_admission": "PENDING_EXACT_OWNER_ADOPTION",
+  "positive_path": "TEST_ONLY_ISOLATED_ROOT"
+}

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the closed additive v0.6 goal-workbench schema and constants."""
+"""Generate the closed additive v0.7 goal-workbench schema and constants."""
 
 from __future__ import annotations
 
@@ -7,10 +7,10 @@ import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-DESIGN = "carbon.goal-workbench.design.v0.6"
-WORKSPACE = "carbon.goal-workbench.workspace.v0.6"
-APP = "Carbon Goal-to-Challenge Workbench v0.6"
-BASE = "3681f7fb10be0c6e278f53d59ff9b022099ef12d"
+DESIGN = "carbon.goal-workbench.design.v0.7"
+WORKSPACE = "carbon.goal-workbench.workspace.v0.7"
+APP = "Carbon Goal-to-Challenge Workbench v0.7"
+BASE = "e5aafc522ca40db12f1897bcc0beacdedb44d823"
 BLOCKERS = ["AT-09", "AT-16", "AT-19", "AT-22", "AT-30"]
 CONTROLS = [f"P{i}" for i in range(1, 9)]
 ROLES = ["MANDATORY", "SOFT", "DIAGNOSTIC", "DEPLOYMENT"]
@@ -583,6 +583,224 @@ evidence_record = obj(
         "launch_authorized": {"const": False},
     }
 )
+assessment_association = obj(
+    {
+        "job_id": string(256),
+        "design_id": string(256),
+        "design_revision": {"type": "integer", "minimum": 1},
+    }
+)
+assessment_ceiling = obj(
+    {
+        "scientific_qualification": {"const": False},
+        "rights_authorization": {"const": False},
+        "fresh_execution": {"const": False},
+        "score_eligibility": {"const": False},
+        "protected_reuse": {"const": False},
+        "launch_authorization": {"const": False},
+    }
+)
+assessment_question = obj(
+    {
+        "question_id": string(256),
+        "domain": {
+            "enum": [
+                "AUTHORING_EXPRESSIBILITY",
+                "SOURCE_ARTIFACT_IDENTITY",
+                "FIXED_EVIDENCE_RELATIONSHIP",
+            ]
+        },
+        "text": string(),
+        "reason_ids": array(string(256), 128),
+    }
+)
+assessment_subject = obj(
+    {
+        "schema_version": {"const": "carbon.goal-workbench.assessment-subject.v1"},
+        "job_id": string(128),
+        "design_id": string(128),
+        "design_revision": {"type": "integer", "minimum": 1},
+        "route": {"enum": ROUTES},
+        "scope": obj({field: string() for field in scope_fields}),
+        "requirements": array(requirement, 128),
+        "traces": array(trace, 256),
+        "cases": array(case_family, 128),
+        "authoring": obj(
+            {
+                "template_id": string(300),
+                "requested_goal": string(300),
+                "compatibility": {
+                    "enum": [
+                        "UNASSESSED",
+                        "EXACT_SUPPORTED",
+                        "INTENT_MISMATCH",
+                        "EXTENSION_REQUIRED",
+                    ]
+                },
+                "request_id": string(300),
+                "result_ref": string(300),
+                "semantic_receipt": nullable(semantic_receipt),
+                "extension_request": nullable(extension_request),
+            }
+        ),
+        "reference_plan": obj({field: string() for field in reference_fields}),
+        "evidence_bindings": array(
+            obj(
+                {
+                    "evidence_binding_id": string(128),
+                    "source_digest_or_identity": string(),
+                    "originating_design_id": string(128),
+                    "originating_design_revision": {"type": "integer", "minimum": 1},
+                    "trace_ids": array(string(128), 256),
+                    "case_family_ids": array(string(128), 128),
+                }
+            ),
+            128,
+        ),
+    }
+)
+assessment_request = obj(
+    {
+        "schema_version": {
+            "const": "carbon.goal-workbench.source-assessment-request.v2"
+        },
+        "profile_id": {"const": "burgers-dynamics-public.repository-snapshot.v1"},
+        "request_id": string(256),
+        "association": assessment_association,
+        "subject": assessment_subject,
+        "subject_digest": digest,
+        "source": obj(
+            {
+                "implementation_id": string(),
+                "authoring_result_ref": string(),
+                "evidence_identity_refs": array(string(), 128),
+            }
+        ),
+        "questions": array(assessment_question, 16),
+        "permitted_information_scope": {"const": "PUBLIC_SYNTHETIC_DEVELOPMENT_ONLY"},
+        "requested_recipient": {"const": "github:jbequ5"},
+        "expected_result_or_restart": string(),
+        "authority_ceiling": assessment_ceiling,
+    }
+)
+assessment_answer = obj(
+    {
+        "question_id": string(256),
+        "domain": {
+            "enum": [
+                "AUTHORING_EXPRESSIBILITY",
+                "SOURCE_ARTIFACT_IDENTITY",
+                "FIXED_EVIDENCE_RELATIONSHIP",
+            ]
+        },
+        "status": {"enum": ["ANSWERED", "PARTIAL", "UNSUPPORTED", "BLOCKED"]},
+        "statement": string(),
+        "addressed_reason_ids": array(string(256), 128),
+        "supporting_refs": array(string(), 128),
+    }
+)
+assessment_response = obj(
+    {
+        "schema_version": {
+            "const": "carbon.goal-workbench.source-assessment-response.v2"
+        },
+        "profile_id": {"const": "burgers-dynamics-public.repository-snapshot.v1"},
+        "response_id": string(256),
+        "request_id": string(256),
+        "request_digest": digest,
+        "association": assessment_association,
+        "subject_digest": digest,
+        "prepared_by": string(),
+        "claimed_issuer": obj(
+            {
+                "principal": string(256),
+                "role": string(),
+                "claim_basis": {
+                    "enum": [
+                        "PRODUCER_CLAIM_UNVERIFIED",
+                        "REPOSITORY_ADOPTION_REFERENCE",
+                    ]
+                },
+            }
+        ),
+        "result_kind": {
+            "enum": [
+                "SCOPED_ASSESSMENT",
+                "PARTIAL_RESPONSE",
+                "UNSUPPORTED_SCOPE",
+                "NAMED_BLOCKER",
+                "CORRECTION",
+            ]
+        },
+        "answered": array(assessment_answer, 16),
+        "unanswered_question_ids": array(string(256), 16),
+        "source_basis": array(string(), 32),
+        "limitations": array(string(), 32),
+        "supersedes_response_ids": array(string(256), 16),
+        "next_action": string(),
+        "authority_ceiling": assessment_ceiling,
+    }
+)
+assessment_receipt = obj(
+    {
+        "schema_version": {
+            "const": "carbon.goal-workbench.source-assessment-receipt.v1"
+        },
+        "receipt_id": string(256),
+        "request_id": string(256),
+        "response_id": string(256),
+        "profile_id": string(256),
+        "snapshot_id": string(256),
+        "snapshot_as_of": string(100),
+        "status": {
+            "enum": [
+                "MATCHED_APPROVED_SOURCE_SNAPSHOT",
+                "HISTORICAL_WITHDRAWN",
+                "HISTORICAL_SUPERSEDED",
+            ]
+        },
+        "answered_question_ids": array(string(256), 16),
+        "remaining_question_ids": array(string(256), 16),
+        "resolved_reason_ids": array(string(256), 128),
+        "remaining_reason_ids": array(string(256), 128),
+        "origin_verification": {"const": "CONSUMER_DERIVED_REPOSITORY_SNAPSHOT_MATCH"},
+        "authority_effect": {"const": "NONE"},
+    }
+)
+assessment_state = obj(
+    {
+        "schema_version": {"const": "carbon.goal-workbench.source-assessment-state.v1"},
+        "current_request_id": nullable(string(256)),
+        "requests": array(assessment_request, 32),
+        "responses": array(
+            obj(
+                {
+                    "response": assessment_response,
+                    "raw": string(300_000),
+                    "raw_sha256": digest,
+                    "canonical_digest": digest,
+                    "received_for_request_id": string(256),
+                }
+            ),
+            64,
+        ),
+        "receipts": array(assessment_receipt, 64),
+        "dispositions": array(
+            obj(
+                {
+                    "disposition_id": string(256),
+                    "receipt_id": string(256),
+                    "reason_id": string(256),
+                    "effect": {
+                        "enum": ["TECHNICAL_REASON_RESOLVED", "RETAINED_UNRESOLVED"]
+                    },
+                    "basis": string(),
+                }
+            ),
+            128,
+        ),
+    }
+)
 design = obj(
     {
         "schema_version": {"const": DESIGN},
@@ -637,6 +855,7 @@ design = obj(
         "route_plan": route_plan,
         "measurement_evidence": array(evidence_record, 64),
         "evidence_bindings": array(evidence_binding, 128),
+        "source_assessments": assessment_state,
         "handoffs": array(handoff, 128),
         "responses": array(response, 256),
         "coordination": coordination,
@@ -688,7 +907,7 @@ component = json.loads(
 )
 schema = {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "title": "Carbon goal-to-Challenge workbench workspace v0.6",
+    "title": "Carbon goal-to-Challenge workbench workspace v0.7",
     "$comment": (
         "Closed browser-local planning schema. Derived results are recomputed. "
         "It grants no scientific, security, rights, reuse, submission, execution, or launch authority."
@@ -698,7 +917,7 @@ schema = {
         {
             "schema_version": {"const": WORKSPACE},
             "application_version": {"const": APP},
-            "decision_id": {"const": "GOAL-WORKBENCH-05A"},
+            "decision_id": {"const": "GOAL-WORKBENCH-07"},
             "base_application_merge": {"const": BASE},
             "opportunity_workspace": {"$ref": "#/$defs/opportunity_workspace_v02"},
             "jobs": array(job, 64),
@@ -713,6 +932,7 @@ schema = {
                                 "carbon.goal-workbench.workspace.v0.3",
                                 "carbon.goal-workbench.workspace.v0.4",
                                 "carbon.goal-workbench.workspace.v0.5",
+                                "carbon.goal-workbench.workspace.v0.6",
                                 WORKSPACE,
                             ]
                         },
@@ -757,4 +977,4 @@ constants = {
 (ROOT / "data/goal_constants.json").write_text(
     json.dumps(constants, indent=2) + "\n", encoding="utf-8"
 )
-print("v0.6 goal-workbench schema and constants generated")
+print("v0.7 goal-workbench schema and constants generated")

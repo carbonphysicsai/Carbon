@@ -1,0 +1,76 @@
+{
+  "schema_version": "carbon.goal-workbench.source-assessment-response.v2",
+  "profile_id": "burgers-dynamics-public.repository-snapshot.v1",
+  "response_id": "GW07-BURGERS-DYNAMICS-ASSESSMENT-001",
+  "request_id": "GW07-BURGERS-DYNAMICS-REQUEST-001",
+  "request_digest": "sha256:d92b9eb69d5285dc3fa1ba8cd66863382b2dbcfb7ae93f4c7169ca5c86a56f2f",
+  "association": {
+    "job_id": "job-001",
+    "design_id": "job-001-design-1",
+    "design_revision": 1
+  },
+  "subject_digest": "sha256:4fc877a2f13545432b062c203a1e4d43d79ed25c17d4279a4124e0e598f17f91",
+  "prepared_by": "GOAL-WORKBENCH-07 Engineering",
+  "claimed_issuer": {
+    "principal": "github:jbequ5",
+    "role": "FINAL_INTERFACE_OWNER",
+    "claim_basis": "PRODUCER_CLAIM_UNVERIFIED"
+  },
+  "result_kind": "PARTIAL_RESPONSE",
+  "answered": [
+    {
+      "question_id": "GW07:AUTHORING_EXPRESSIBILITY",
+      "domain": "AUTHORING_EXPRESSIBILITY",
+      "status": "ANSWERED",
+      "statement": "The named accepted authoring path expresses Dynamics for the exact public synthetic periodic Burgers scope recorded by this request.",
+      "addressed_reason_ids": [],
+      "supporting_refs": [
+        "source_assessment/v1/fixtures/public_design_snapshot.json",
+        "carbon/authoring/goals.py"
+      ]
+    },
+    {
+      "question_id": "GW07:SOURCE_ARTIFACT_IDENTITY",
+      "domain": "SOURCE_ARTIFACT_IDENTITY",
+      "status": "ANSWERED",
+      "statement": "The request cites the exact retained C05-PUBLIC-EVAL2-PERTURBED source identities without creating a fresh execution.",
+      "addressed_reason_ids": [],
+      "supporting_refs": [
+        "data/c05_public_development_evidence_v1.json",
+        "data/c05_fixture_index_v2.json"
+      ]
+    },
+    {
+      "question_id": "GW07:FIXED_EVIDENCE_RELATIONSHIP",
+      "domain": "FIXED_EVIDENCE_RELATIONSHIP",
+      "status": "PARTIAL",
+      "statement": "The retained C-05 record supplies one fixed public DEVELOPMENT observation only; population adequacy, scientific applicability, limits, uncertainty, rights, and customer suitability remain unresolved.",
+      "addressed_reason_ids": [],
+      "supporting_refs": [
+        "data/c05_public_development_evidence_v1.json"
+      ]
+    }
+  ],
+  "unanswered_question_ids": [
+    "GW07:FIXED_EVIDENCE_RELATIONSHIP"
+  ],
+  "source_basis": [
+    "C-AUTH1 public Burgers/Dynamics authoring contract",
+    "C05-PUBLIC-EVAL2-PERTURBED retained public DEVELOPMENT bytes"
+  ],
+  "limitations": [
+    "Prepared by Engineering; pending exact Ryan adoption.",
+    "Ryan is not claimed to have run the compiler, solver, or measurement.",
+    "No scientific qualification, rights grant, fresh execution, population claim, protected use, score, or launch follows."
+  ],
+  "supersedes_response_ids": [],
+  "next_action": "Ryan adopts, changes, or rejects these exact bytes; Engineering may admit only an exact adoption in a later accepted snapshot.",
+  "authority_ceiling": {
+    "scientific_qualification": false,
+    "rights_authorization": false,
+    "fresh_execution": false,
+    "score_eligibility": false,
+    "protected_reuse": false,
+    "launch_authorization": false
+  }
+}

@@ -1,0 +1,588 @@
+{
+  "schema_version": "carbon.goal-workbench.design.v0.7",
+  "job_id": "job-001",
+  "design_id": "job-001-design-1",
+  "revision": 1,
+  "parent_design_id": null,
+  "status": "SEALED",
+  "alternative_label": "Primary proposal",
+  "scope": {
+    "physics_family": "periodic_viscous_burgers_1d_v1",
+    "requested_goal": "Dynamics",
+    "intended_use": "Public synthetic periodic viscous Burgers Dynamics technical assessment only",
+    "inputs": "Finite Fourier initial field, positive viscosity, requested times, and declared periodic domain length",
+    "outputs": "Complete field evolution with compression, dissipation, and half-time diagnostics",
+    "units": "Source-defined nondimensional Burgers variables and declared characteristic scales",
+    "geometry": "One-dimensional periodic domain",
+    "conditions": "Periodic boundary; unforced; finite Fourier initial condition; positive viscosity",
+    "regime": "Exact retained C05-PUBLIC-EVAL2-PERTURBED fixed-case context",
+    "exclusions": "No population adequacy, qualification, rights, protected use, customer result, score, or launch",
+    "query_workload": "One retained public fixed-case result; no fresh execution",
+    "turnaround": "No service claim",
+    "failure_consequences": "Unresolved",
+    "data_access": "Public repository artifacts only",
+    "rights_scope": "UNRESOLVED",
+    "commercial_context": "Public synthetic demonstration",
+    "disclosure_scope": "PUBLIC_SYNTHETIC_DEVELOPMENT_ONLY",
+    "deployment_environment": "Not assessed"
+  },
+  "requirements": [
+    {
+      "requirement_id": "REQ-DYNAMICS",
+      "original_words": "Predict complete field evolution without allowing a favorable average to offset mandatory physical failure.",
+      "source_reference": "Public synthetic GOAL-WORKBENCH-07 fixture",
+      "decision_consequence": "Test exact technical expressibility only",
+      "kind": "MATERIAL",
+      "agreement_status": "CLIENT_ASSERTION"
+    }
+  ],
+  "traces": [
+    {
+      "trace_id": "TRACE-DYNAMICS",
+      "requirement_id": "REQ-DYNAMICS",
+      "observable": "field, compression, dissipation, half-time",
+      "requested_output": "complete periodic trajectory",
+      "measurement_definition": "source-owned C-05 public DEVELOPMENT result",
+      "numerical_method": "source-owned C-AUTH1/C-05 definitions",
+      "role": "MANDATORY",
+      "normalization": "source record",
+      "floor": "unresolved",
+      "aggregation": "not qualified",
+      "uncertainty": "null/unresolved",
+      "population_ref": "fixed public case only",
+      "stratum_ref": "EVAL cell 2",
+      "finite_case_coverage": "one case",
+      "reference_requirement": "retained identity only",
+      "authoring_binding": "carbon.goal-authoring-proposal/1",
+      "gap": ""
+    }
+  ],
+  "cases": [
+    {
+      "case_family_id": "BURGERS-12-CELL",
+      "role": "EVAL",
+      "requirement_ids": [
+        "REQ-DYNAMICS"
+      ],
+      "target_population": "source-defined public DEVELOPMENT cells",
+      "target_mass": "unresolved",
+      "sampling_frequency": "one retained fixed case in this assessment",
+      "analysis_weight": "none",
+      "independent_physical_cases": "one retained case",
+      "reconstruction_replicas": "one test-created perturbed candidate",
+      "generator_ref": "goal_burgers_12cell_v1",
+      "rationale": "Preserve the exact C-05 fixture association",
+      "support_status": "SOURCE_SUPPORTED"
+    }
+  ],
+  "score_plan": {
+    "official_score_status": "PROPOSED_UNQUALIFIED",
+    "mandatory_gate_summary": "",
+    "soft_estimand": "",
+    "training_objective": "",
+    "reward_accounting": "SEPARATE_UNRESOLVED",
+    "deployment_acceptance": "",
+    "unresolved_tradeoffs": ""
+  },
+  "reference_plan": {
+    "equation": "",
+    "role": "",
+    "method": "",
+    "configuration": "",
+    "convergence_evidence": "",
+    "uncertainty_evidence": "",
+    "applicable_envelope": "",
+    "failures": "",
+    "cost_scope": "",
+    "independence_limitations": ""
+  },
+  "cpes": {
+    "study_ref": "CPES-REFERENCE-REUSE-GAUNTLET-V2",
+    "baseline": "RETAIN_A_DEVELOPMENT",
+    "design_binding_revision": 1,
+    "protection": {
+      "controls": {
+        "P1": {
+          "state": "UNASSESSED",
+          "source_reference": "",
+          "reviewer_notes": "",
+          "measurement_method": "",
+          "unresolved_assumptions": ""
+        },
+        "P2": {
+          "state": "UNASSESSED",
+          "source_reference": "",
+          "reviewer_notes": "",
+          "measurement_method": "",
+          "unresolved_assumptions": ""
+        },
+        "P3": {
+          "state": "UNASSESSED",
+          "source_reference": "",
+          "reviewer_notes": "",
+          "measurement_method": "",
+          "unresolved_assumptions": ""
+        },
+        "P4": {
+          "state": "UNASSESSED",
+          "source_reference": "",
+          "reviewer_notes": "",
+          "measurement_method": "",
+          "unresolved_assumptions": ""
+        },
+        "P5": {
+          "state": "UNASSESSED",
+          "source_reference": "",
+          "reviewer_notes": "",
+          "measurement_method": "",
+          "unresolved_assumptions": ""
+        },
+        "P6": {
+          "state": "UNASSESSED",
+          "source_reference": "",
+          "reviewer_notes": "",
+          "measurement_method": "",
+          "unresolved_assumptions": ""
+        },
+        "P7": {
+          "state": "UNASSESSED",
+          "source_reference": "",
+          "reviewer_notes": "",
+          "measurement_method": "",
+          "unresolved_assumptions": ""
+        },
+        "P8": {
+          "state": "UNASSESSED",
+          "source_reference": "",
+          "reviewer_notes": "",
+          "measurement_method": "",
+          "unresolved_assumptions": ""
+        }
+      },
+      "blockers": {
+        "AT-09": {
+          "applicability": "UNKNOWN",
+          "source_reference": "",
+          "reviewer_notes": "",
+          "measurement_method": "",
+          "unresolved_assumptions": ""
+        },
+        "AT-16": {
+          "applicability": "UNKNOWN",
+          "source_reference": "",
+          "reviewer_notes": "",
+          "measurement_method": "",
+          "unresolved_assumptions": ""
+        },
+        "AT-19": {
+          "applicability": "UNKNOWN",
+          "source_reference": "",
+          "reviewer_notes": "",
+          "measurement_method": "",
+          "unresolved_assumptions": ""
+        },
+        "AT-22": {
+          "applicability": "UNKNOWN",
+          "source_reference": "",
+          "reviewer_notes": "",
+          "measurement_method": "",
+          "unresolved_assumptions": ""
+        },
+        "AT-30": {
+          "applicability": "UNKNOWN",
+          "source_reference": "",
+          "reviewer_notes": "",
+          "measurement_method": "",
+          "unresolved_assumptions": ""
+        }
+      },
+      "publication_review": {
+        "rights_notes": "",
+        "retirement_notes": ""
+      }
+    },
+    "economics": {
+      "reference_work": "",
+      "reference_status": "unknown",
+      "group_overhead": "",
+      "overhead_status": "unknown",
+      "group_size": "",
+      "group_size_status": "unknown",
+      "unit": "",
+      "unit_scope": "",
+      "compatible_demand_status": "unknown",
+      "compatible_demand_source": "",
+      "field_dependent": "UNKNOWN",
+      "completed_comparisons": "",
+      "offered_requests": "",
+      "unresolved_or_censored": "",
+      "upfront_cost": "",
+      "upfront_duration": "",
+      "upfront_risk": ""
+    },
+    "invalidated_by": []
+  },
+  "authoring": {
+    "template_id": "periodic_viscous_burgers_1d_v1",
+    "requested_goal": "Dynamics",
+    "compatibility": "EXACT_SUPPORTED",
+    "request_id": "GW06-C-AUTH1-PUBLIC-REQUEST",
+    "result_ref": "source_assessment/v1/fixtures/public_design_snapshot.json",
+    "semantic_receipt": null,
+    "extension_request": null
+  },
+  "route_plan": {
+    "route": "ADAPT_SUPPORTED_CHALLENGE",
+    "rationale": "Reuse the exact public Burgers/Dynamics source profile.",
+    "source_or_capability_ref": "periodic_viscous_burgers_1d_v1 / Dynamics",
+    "route_basis": "C-AUTH1 authoring and exact retained C-05 context",
+    "unresolved_conditions": [
+      "scientific applicability",
+      "qualified uncertainty",
+      "rights",
+      "customer suitability"
+    ],
+    "next_decision": "Ryan may adopt only the exact technical statement; all other obligations remain.",
+    "bounded_question": "",
+    "stop_condition": "",
+    "restart_event": "",
+    "selected_by_assertion": "GOAL-WORKBENCH-07 public fixture builder",
+    "status_provenance": "LOCAL_MANUAL_ASSERTION"
+  },
+  "measurement_evidence": [
+    {
+      "schema_version": "carbon.goal-workbench.c05-evidence-association.v1",
+      "association_id": "diagnostic-job-001-design-1-r1::sha256:92aee39eb3f293f1d18cbc40837837a715492314a2565a14cc0b6aba636be8d1",
+      "workbench_request_id": "diagnostic-job-001-design-1-r1",
+      "job_id": "job-001",
+      "design_id": "job-001-design-1",
+      "design_revision": 1,
+      "requirement_trace_ids": [
+        "TRACE-DYNAMICS"
+      ],
+      "case_family_ids": [
+        "BURGERS-12-CELL"
+      ],
+      "challenge": {
+        "id": "burgers-dynamics-v1",
+        "version": "1.0"
+      },
+      "template_id": "periodic_viscous_burgers_1d_v1",
+      "evidence_scope": "PUBLIC_DEVELOPMENT_ONLY",
+      "evidence_state": "SOURCE_MEASUREMENT_EVIDENCE_BOUND",
+      "binding_status": "CURRENT_DESIGN_REVISION",
+      "source_disposition": "COMPLETE_DEVELOPMENT_ONLY",
+      "source": {
+        "fixture_id": "C05-PUBLIC-EVAL2-PERTURBED",
+        "repository": "carbonphysicsai/Carbon",
+        "source_revision": "8dbee54dcd5bdea3a76b22812955e31fbe95e8da",
+        "implementation": "carbon.measurement_runtime.model.execute_measurement",
+        "request_schema": "carbon.c05.burgers-measurement.v1",
+        "result_schema": "carbon.c05.burgers-measurement-result.v1",
+        "request_digest": "sha256:cbd8f66c1c501325cb74c4c95c197b0a957a58334bb37a4853e9524c2a78a857",
+        "result_digest": "sha256:92aee39eb3f293f1d18cbc40837837a715492314a2565a14cc0b6aba636be8d1",
+        "case_digest": "sha256:2825c686fad1fbdf40184870725af0b637d75749a35bf99afe428015f942d8cf",
+        "candidate": {
+          "artifact_digest": "sha256:28bea8ac6eeb776b6110c1867285d10677551da93ccbd4fcf16e5234087664c3",
+          "binding_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "environment_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "plan_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "replica_id": "reconstruction-replica-0",
+          "source_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "reference": {
+          "artifact_digest": "sha256:ab7e7caa48faef5a3da42a9020221c5c99445862026a1fe3367c227b649aefe9",
+          "environment_digest": "sha256:914e6e0aab72edd55854fbfd25ccce7a05d271da4bde3e6a88a49609c07d65a0",
+          "policy_digest": "sha256:4ccd985135c78cbf45456a4786a063caaa520fc9a475d33dc2c3e054128d43a6",
+          "request_digest": "sha256:2679e6d42d527b9bd2947cb87ff6a33bd89f01d0a0772b690c9d2c2a72ad6bb3",
+          "role": "CANDIDATE_PRIMARY",
+          "scientifically_qualified": false
+        },
+        "measurement": {
+          "contract_digest": "sha256:24ac244af02351ca4dcc294e2326a0c87633cdff7d162de1af7bbac38d5ecd07",
+          "environment_digest": "sha256:23135a8cf9f3a25497d3d3e93642f0a9b9bfd62d4984863cbccb799fe355ce13",
+          "implementation_digest": "sha256:53415ec1901437a578be1f782c190e5d9f334cb7fe1c9bba654b6c1c3a35ddbd",
+          "operator_ids": [
+            "field_phase_rms",
+            "maximum_compression",
+            "peak_dissipation",
+            "energy_half_time"
+          ],
+          "physics_ids": [
+            "initial_condition",
+            "periodicity",
+            "conserved_mean",
+            "maximum_principle",
+            "energy_dissipation_balance",
+            "weak_local_pde"
+          ],
+          "policy_id": "carbon.burgers.measurement.candidate.v1",
+          "policy_version": "1.0",
+          "precision": "float64",
+          "scientific_limits": null,
+          "scientifically_qualified": false,
+          "uncertainty_policy": null
+        }
+      },
+      "measurements": [
+        {
+          "candidate_value": 0.1877294265874904,
+          "decision": "UNRESOLVED_NO_QUALIFIED_LIMIT",
+          "measurement_id": "field_phase_rms",
+          "normalization_scale": 0.22147996892234026,
+          "normalized_error": 0.0003192644394105323,
+          "raw_absolute_error": 0.00007071067811865307,
+          "reference_value": 0.18772941327046858,
+          "scientific_limit": null,
+          "uncertainty": null
+        },
+        {
+          "candidate_value": 1.4243747207079451,
+          "decision": "UNRESOLVED_NO_QUALIFIED_LIMIT",
+          "measurement_id": "maximum_compression",
+          "normalization_scale": 1.4242749916622777,
+          "normalized_error": 0.00007002092029367759,
+          "raw_absolute_error": 0.00009972904566746266,
+          "reference_value": 1.4242749916622777,
+          "scientific_limit": null,
+          "uncertainty": null
+        },
+        {
+          "candidate_value": 0.09086062039750549,
+          "decision": "UNRESOLVED_NO_QUALIFIED_LIMIT",
+          "measurement_id": "peak_dissipation",
+          "normalization_scale": 0.1066829721507051,
+          "normalized_error": 8.88582888753486e-9,
+          "raw_absolute_error": 9.479666357448124e-10,
+          "reference_value": 0.09086061944953885,
+          "scientific_limit": null,
+          "uncertainty": null
+        },
+        {
+          "candidate_value": 1.1072082864506128,
+          "decision": "UNRESOLVED_NO_QUALIFIED_LIMIT",
+          "measurement_id": "energy_half_time",
+          "normalization_scale": 1.4445203818370458,
+          "normalized_error": 1.0076397878617536e-7,
+          "raw_absolute_error": 1.45555621111626e-7,
+          "reference_value": 1.1072081408949916,
+          "scientific_limit": null,
+          "uncertainty": null
+        }
+      ],
+      "physics": [
+        {
+          "decision": "UNRESOLVED_NO_QUALIFIED_LIMIT",
+          "normalization_scale": 0.22147996892234023,
+          "normalized_defect": 0.00045150810031307224,
+          "physics_id": "initial_condition",
+          "raw_defect": 0.00010000000002552412,
+          "scientific_limit": null,
+          "uncertainty": null
+        },
+        {
+          "decision": "UNRESOLVED_NO_QUALIFIED_LIMIT",
+          "normalization_scale": 0.22147996892234023,
+          "normalized_defect": 8.772307051276855e-16,
+          "physics_id": "periodicity",
+          "raw_defect": 1.942890293094024e-16,
+          "scientific_limit": null,
+          "uncertainty": null
+        },
+        {
+          "decision": "UNRESOLVED_NO_QUALIFIED_LIMIT",
+          "normalization_scale": 0.22147996892234023,
+          "normalized_defect": 2.2620020325078177e-14,
+          "physics_id": "conserved_mean",
+          "raw_defect": 5.009881398621019e-15,
+          "scientific_limit": null,
+          "uncertainty": null
+        },
+        {
+          "decision": "UNRESOLVED_NO_QUALIFIED_LIMIT",
+          "normalization_scale": 0.22147996892234023,
+          "normalized_defect": 0.00025084446046118476,
+          "physics_id": "maximum_principle",
+          "raw_defect": 0.0000555570233072844,
+          "scientific_limit": null,
+          "uncertainty": null
+        },
+        {
+          "decision": "UNRESOLVED_NO_QUALIFIED_LIMIT",
+          "normalization_scale": 0.15410574337460692,
+          "normalized_defect": 0,
+          "physics_id": "energy_dissipation_balance",
+          "raw_defect": 0,
+          "scientific_limit": null,
+          "uncertainty": null
+        },
+        {
+          "decision": "UNRESOLVED_NO_QUALIFIED_LIMIT",
+          "normalization_scale": 0.15332422560952488,
+          "normalized_defect": 0.021851531133651184,
+          "physics_id": "weak_local_pde",
+          "raw_defect": 0.003350369089449491,
+          "scientific_limit": null,
+          "uncertainty": null
+        }
+      ],
+      "diagnostics": [
+        [
+          "candidate_half_time_censored",
+          0
+        ],
+        [
+          "reference_half_time_censored",
+          0
+        ],
+        [
+          "requested_time_count",
+          7
+        ],
+        [
+          "spatial_point_count",
+          64
+        ],
+        [
+          "score_input_emitted",
+          0
+        ]
+      ],
+      "behavior_classification": [
+        {
+          "example": "PEAK_MISSED",
+          "classification": "OBSERVABLE_WITH_CURRENT_C05_RESULT",
+          "reason": "Compression and dissipation errors are present; no preference rank is inferred."
+        },
+        {
+          "example": "OVERSMOOTHED",
+          "classification": "OBSERVABLE_WITH_CURRENT_C05_RESULT",
+          "reason": "Raw field, compression and dissipation effects are visible; no tolerance is qualified."
+        },
+        {
+          "example": "MANDATORY_FAILURE",
+          "classification": "OBSERVABLE_WITH_CURRENT_C05_RESULT",
+          "reason": "Six raw physics defects are present, while every decision remains unresolved."
+        },
+        {
+          "example": "NONFINITE_OR_WITHHELD",
+          "classification": "REQUIRES_DEDICATED_PUBLIC_FIXTURE",
+          "reason": "This complete fixture is finite; source validation rejects nonfinite artifacts before measurement."
+        },
+        {
+          "example": "DROPPED_WORK",
+          "classification": "REQUIRES_SCOREPACK_DIAGNOSTIC_CONTRACT",
+          "reason": "C-05 has no population denominator, censoring, or dropped-work score contract."
+        },
+        {
+          "example": "UNIT_OR_FLOOR",
+          "classification": "REQUIRES_QUALIFIED_FLOOR_OR_UNCERTAINTY",
+          "reason": "C-05 retains raw values and normalization scales but supplies no qualified floor."
+        },
+        {
+          "example": "BELOW_UNCERTAINTY",
+          "classification": "REQUIRES_QUALIFIED_FLOOR_OR_UNCERTAINTY",
+          "reason": "Every uncertainty field is null, so below-uncertainty behavior cannot be decided."
+        },
+        {
+          "example": "PERSISTENCE_OR_MEMORIZATION",
+          "classification": "REQUIRES_SCOREPACK_DIAGNOSTIC_CONTRACT",
+          "reason": "C-05 measures one bound field artifact and defines no persistence or memorization checks."
+        }
+      ],
+      "limitations": [
+        "Public DEVELOPMENT fixture only; no protected or customer data.",
+        "Scientific limits, uncertainty policy, score input, qualification, approval and launch authority are absent.",
+        "One public EVAL case and deterministic test-created candidate perturbation are not population evidence.",
+        "Import replays retained fixture bytes through a registry-pinned manual workbench association; the association is inspectable but is not operator authentication or proof of honest execution."
+      ],
+      "trace_state": "SOURCE_MEASUREMENT_EXECUTED_SCIENTIFIC_DECISION_UNRESOLVED",
+      "imported_artifact_digest": "sha256:ebb4c11df77766111d7223c1671ad7df268d1cf9ad62fa4b3490218951c7974f",
+      "scientifically_qualified": false,
+      "score_eligible": false,
+      "approved": false,
+      "launch_authorized": false
+    }
+  ],
+  "evidence_bindings": [
+    {
+      "evidence_binding_id": "c05-92aee39eb3f293f1d18cbc40",
+      "evidence_kind": "FIXED_CASE_RESULT",
+      "source_ref": "carbonphysicsai/Carbon@8dbee54dcd5bdea3a76b22812955e31fbe95e8da:carbon.measurement_runtime.model.execute_measurement",
+      "source_digest_or_identity": "sha256:92aee39eb3f293f1d18cbc40837837a715492314a2565a14cc0b6aba636be8d1",
+      "design_id": "job-001-design-1",
+      "design_revision": 1,
+      "originating_design_id": "job-001-design-1",
+      "originating_design_revision": 1,
+      "originating_binding_id": "c05-92aee39eb3f293f1d18cbc40",
+      "trace_ids": [
+        "TRACE-DYNAMICS"
+      ],
+      "case_family_ids": [
+        "BURGERS-12-CELL"
+      ],
+      "dependency_domains": [
+        "INTENDED_USE",
+        "PHYSICS_SCOPE",
+        "INPUT_CONTRACT",
+        "OUTPUT_CONTRACT",
+        "UNITS_SCALING",
+        "POPULATION_CASES",
+        "GENERATOR",
+        "MEASUREMENT_SCORE",
+        "REFERENCE",
+        "RECONSTRUCTION",
+        "CPES_DISCLOSURE",
+        "RIGHTS",
+        "DEPLOYMENT",
+        "AUTHORING"
+      ],
+      "scope_relationship": "UNASSESSED",
+      "scientific_applicability": "UNASSESSED",
+      "scientific_review_reasons": [],
+      "use_or_rights_status": "UNRESOLVED",
+      "rights_review_reasons": [],
+      "assessment_basis": "Exact source-owned C-05 request/result bytes bound by the accepted reader.",
+      "rationale": "Public DEVELOPMENT fixed-case evidence; scientific limits and uncertainty remain unresolved.",
+      "invalidated_by": [],
+      "source_claimed_provenance": "NATIVE_IMPORTED_RESULT",
+      "origin_verification": "PINNED_C05_FIXTURE_VERIFIED",
+      "status_provenance": "NATIVE_IMPORTED_RESULT"
+    }
+  ],
+  "source_assessments": {
+    "schema_version": "carbon.goal-workbench.source-assessment-state.v1",
+    "current_request_id": null,
+    "requests": [],
+    "responses": [],
+    "receipts": [],
+    "dispositions": []
+  },
+  "handoffs": [],
+  "responses": [],
+  "coordination": {
+    "customer_outcome": "OPEN",
+    "customer_outcome_provenance": "WORKBENCH_DERIVED",
+    "decision_needed": "",
+    "blocker": "",
+    "blocker_owner": "",
+    "restart_event": "",
+    "current_action_ref": "",
+    "external_records": [],
+    "last_relevant_design_revision": 1
+  },
+  "decision": {
+    "client_interpretation": "UNRESOLVED",
+    "design_completeness": "INCOMPLETE",
+    "authoring_status": "NOT_ATTEMPTED",
+    "evidence_status": "PLANNED_OR_MISSING",
+    "scientific_qualification": "NOT_QUALIFIED",
+    "security_rights": "UNRESOLVED",
+    "launch_authorization": "NOT_AUTHORIZED",
+    "native_launch_status": "NOT_LAUNCHED",
+    "owner_decision": "",
+    "next_action": "",
+    "permitted_claims": ""
+  },
+  "change_log": []
+}

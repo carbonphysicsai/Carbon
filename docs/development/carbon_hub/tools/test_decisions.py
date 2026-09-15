@@ -18,6 +18,7 @@ ATTENTION = {
     "OWNER_DEFERRED",
     "RESOLVED",
 }
+AUDIENCES = {"harsh", "ryan"}
 REQUIRED = {
     "decision_id",
     "map_ref",
@@ -72,8 +73,8 @@ def main() -> int:
         ids.add(decision_id)
         if item["attention"] not in ATTENTION:
             fail(f"{decision_id} has unknown attention state {item['attention']!r}")
-        if item["audience"] != "harsh":
-            fail(f"{decision_id} must currently target audience 'harsh'")
+        if item["audience"] not in AUDIENCES:
+            fail(f"{decision_id} has unknown owner audience {item['audience']!r}")
         map_ref = str(item["map_ref"])
         if not re.fullmatch(
             r"(?:WAVE-[A-N](?:/[A-Z0-9-]+)?|SYSTEM/[A-Z0-9-]+(?:/[A-Z0-9-]+)*)",

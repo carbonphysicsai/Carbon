@@ -1,8 +1,10 @@
-# Carbon Goal-to-Challenge Workbench v0.6
+# Carbon Goal-to-Challenge Workbench v0.7
 
-GOAL-WORKBENCH-06 adds a detached, versioned source-assessment contract and executable conformance package without changing the v0.6 application. The first profile binds one sealed public Burgers/Dynamics design to the accepted authoring bridge and one exact retained C-05 fixed-case artifact. Its response and preview are test-authored and non-authoritative; scientific applicability, rights, owner acceptance, and qualification remain unresolved. See `docs/GOAL_WORKBENCH_06_SOURCE_ASSESSMENT_CONTRACT.md`, `docs/GOAL_WORKBENCH_06_SOURCE_OWNER_DECISION_PACKET.md`, and `source_assessment/v1/manifest.json`.
+GOAL-WORKBENCH-07 adds a repository-pinned, read-only source-assessment path for the exact public Burgers/Dynamics profile. A sealed design can prepare and export its exact request, then import an assessment only if the response matches the application-installed approved snapshot. The shipped production index is empty pending exact Ryan adoption, so no unadopted candidate can verify. The included positive path uses an isolated test-only root that the production installer rejects. See `docs/GOAL_WORKBENCH_07_IMPLEMENTATION_REPORT.md` and `source_assessment/repository_snapshot/v1/candidate/RYAN_ADOPTION_PACKET.md`.
 
-The current browser still rejects the candidate response through ordinary imports. No source-owner reader, dispatcher, workspace migration, application version, HTML, network route, source runtime, or scientific campaign was added. The detached command is `node tools/source_assessment_conformance.cjs --profile source_assessment/v1/fixtures/profile.json --request source_assessment/v1/fixtures/request.json --response source_assessment/v1/fixtures/response.json --output-dir /path/to/new/output-directory`; the output directory must not already exist.
+`carbon.goal-workbench.workspace.v0.7` migrates v0.1–v0.6 records additively. Stored receipts and display projections are revalidated against the installed snapshot on import; a workspace cannot carry its own trust root. Historical Workbench-06 envelopes remain detached and non-authoritative.
+
+GOAL-WORKBENCH-06 previously added the detached, versioned source-assessment contract and executable conformance package. Its v1 response and preview remain test-authored and non-authoritative. The detached command remains `node tools/source_assessment_conformance.cjs --profile source_assessment/v1/fixtures/profile.json --request source_assessment/v1/fixtures/request.json --response source_assessment/v1/fixtures/response.json --output-dir /path/to/new/output-directory`; the output directory must not already exist.
 
 GOAL-WORKBENCH-05A repairs cumulative review state and truthful Owner Console status without changing the v0.5 routes or architecture. Applicability assessment, scope relationship, review reasons, rights restrictions, and origin verification are now separate. Child revisions and export/reimport retain unresolved obligations. Only an explicit current action can report activity; exact C-05 validation remains the sole native-evidence path. See `docs/GOAL_WORKBENCH_05A_STATE_INTEGRITY_REPORT.md` and `data/goal_workbench_05a_transition_evidence_v1.json`.
 
@@ -15,6 +17,13 @@ GOAL-WORKBENCH-04 adds a strict read-only adapter for exact source-owned C-05 pu
 GOAL-WORKBENCH-03 adds a deterministic operational rehearsal over this accepted v0.3 application. Run `node tools/run_operational_rehearsal.cjs --grok-plan /path/to/Carbon_Grok_Master_Plan_v1_9.docx` from this directory (with the repository root on `PYTHONPATH`, as the tool does internally) to verify the source digest and reproduce the three public/synthetic journeys. Omitting `--grok-plan` replays the already pinned record when the external source is unavailable. See `docs/GOAL_WORKBENCH_03_REHEARSAL_REPORT.md` for the supported Dynamics result, Front Resolution mismatch, unsupported-rights blocker, Grok v1.9 conformance, measured friction, and next-interface decision.
 
 Open `Carbon_Opportunity_Workbench.html` and begin in **Owner Console**. The accepted v0.4 measurement reader and v0.2 Opportunity/CPES workbench remain embedded in the same maintained application; the Atlas is optional supporting research rather than required job identity.
+
+## v0.7 maintained additions
+
+- `src/source_assessment.js`: sealed-subject request builder, closed operational response validator, repository-snapshot verifier, atomic receipts, replay/conflict/withdrawal behavior, and save/reload revalidation.
+- `source_assessment/repository_snapshot/v1/`: Ryan-controlled profile, empty real index, public candidate, exact adoption packet, closed schemas, digest manifest, and isolated test-only positive fixtures.
+- `src/goal_app.js` and `src/routing.js`: source-assessment panel and one coherent Owner Console action without active-computation, qualification, or rights implications.
+- `tests/test_repository_snapshot_assessment.cjs`: exact binding, trust-root isolation, forgery, cumulative state, migration, and compatibility coverage.
 
 The v0.3 owner route is:
 
@@ -115,15 +124,18 @@ Build uses Python's standard library. Re-extracting the atlas needs `python-docx
 python3 tools/import_cpes_evidence.py --check
 python3 tools/build_schema.py
 python3 tools/build_goal_schema.py
+python3 tools/build_repository_snapshot_schemas.py
 node tools/build_c05_saved_fixture_index.cjs
+node tools/build_repository_snapshot_fixtures.cjs
 python3 tools/build.py
 node --test tests/test_engine.cjs tests/test_workflow.cjs
-node --test tests/test_routing.cjs tests/test_state_integrity.cjs tests/test_c05_evidence.cjs
+node --test tests/test_routing.cjs tests/test_state_integrity.cjs tests/test_c05_evidence.cjs tests/test_source_assessment.cjs tests/test_repository_snapshot_assessment.cjs
 python3 -m pytest tests/test_authoring_bridge.py ../../../../tests/cpu/test_cauth1_goal_authoring.py -q
 python3 tests/test_sources.py
 node tests/browser_smoke.cjs
 node tests/browser_goal_smoke.cjs
 node tests/browser_routing_smoke.cjs
+node tests/browser_source_assessment_smoke.cjs
 python3 tools/package_release.py
 ```
 

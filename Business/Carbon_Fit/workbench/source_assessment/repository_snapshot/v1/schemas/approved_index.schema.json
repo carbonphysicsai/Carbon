@@ -1,0 +1,129 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "carbon.goal-workbench.approved-assessment-snapshot.v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "snapshot_id",
+    "test_only",
+    "entries"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "carbon.goal-workbench.approved-assessment-snapshot.v1"
+    },
+    "snapshot_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}$"
+    },
+    "test_only": {
+      "type": "boolean"
+    },
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "assessment_id",
+          "request_id",
+          "request_digest",
+          "subject_digest",
+          "response_raw_sha256",
+          "response_canonical_digest",
+          "issuer_principal",
+          "allowed_domains",
+          "owner_adoption_ref",
+          "owner_adoption_content_digest",
+          "state",
+          "withdrawn_reason",
+          "supersedes_assessment_ids",
+          "conflicts_with_assessment_ids"
+        ],
+        "properties": {
+          "assessment_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}$"
+          },
+          "request_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}$"
+          },
+          "request_digest": {
+            "type": "string",
+            "pattern": "^sha256:[a-f0-9]{64}$"
+          },
+          "subject_digest": {
+            "type": "string",
+            "pattern": "^sha256:[a-f0-9]{64}$"
+          },
+          "response_raw_sha256": {
+            "type": "string",
+            "pattern": "^sha256:[a-f0-9]{64}$"
+          },
+          "response_canonical_digest": {
+            "type": "string",
+            "pattern": "^sha256:[a-f0-9]{64}$"
+          },
+          "issuer_principal": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}$"
+          },
+          "allowed_domains": {
+            "type": "array",
+            "items": {
+              "enum": [
+                "AUTHORING_EXPRESSIBILITY",
+                "SOURCE_ARTIFACT_IDENTITY",
+                "FIXED_EVIDENCE_RELATIONSHIP"
+              ]
+            },
+            "minItems": 0,
+            "maxItems": 128
+          },
+          "owner_adoption_ref": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}$"
+          },
+          "owner_adoption_content_digest": {
+            "type": "string",
+            "pattern": "^sha256:[a-f0-9]{64}$"
+          },
+          "state": {
+            "enum": [
+              "CURRENT",
+              "WITHDRAWN",
+              "SUPERSEDED",
+              "CONFLICTING"
+            ]
+          },
+          "withdrawn_reason": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "supersedes_assessment_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}$"
+            },
+            "minItems": 0,
+            "maxItems": 16
+          },
+          "conflicts_with_assessment_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}$"
+            },
+            "minItems": 0,
+            "maxItems": 16
+          }
+        }
+      },
+      "minItems": 0,
+      "maxItems": 128
+    }
+  }
+}

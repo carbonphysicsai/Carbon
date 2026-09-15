@@ -1,6 +1,6 @@
 {
   "artifact": "Carbon_Opportunity_Workbench.html",
-  "scope": "GOAL-WORKBENCH-05A cumulative state, provenance, console, and applicability journeys",
+  "scope": "GOAL-WORKBENCH-07 cumulative state, provenance, console, applicability, and source-assessment compatibility journeys",
   "engine": "Google Chrome (Chromium)",
   "passed": 19,
   "failed": 0,

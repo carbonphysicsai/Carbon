@@ -3,6 +3,7 @@
   const G = CarbonGoalWorkflow,
     F = CarbonFit,
     E = CarbonC05Evidence,
+    S = CarbonSourceAssessment,
     H = CarbonWorkbenchHost,
     $ = (id) => document.getElementById(id),
     esc = (x) =>
@@ -21,6 +22,16 @@
     F.strictJsonParse(
       document.getElementById("c05-fixture-index").textContent,
       { maxBytes: 100000, maxDepth: 8 },
+    ),
+  );
+  S.installRepositorySnapshot(
+    F.strictJsonParse(
+      document.getElementById("source-assessment-profile").textContent,
+      { maxBytes: 100000, maxDepth: 12 },
+    ),
+    F.strictJsonParse(
+      document.getElementById("source-assessment-index").textContent,
+      { maxBytes: 200000, maxDepth: 12 },
     ),
   );
   let W = G.newWorkspace(H.componentWorkspace()),
@@ -95,6 +106,16 @@
   function applicabilityView(d) {
     const latest = d.change_log.at(-1);
     return `<section class="panel"><div class="eyebrow">Evidence applicability / change impact</div><h3>Selective carry-forward, never automatic qualification</h3>${latest ? `<p><strong>Last change:</strong> ${esc(latest.field)} · ${esc(latest.domains.join(", ") || "impact unresolved")}</p>` : '<p class="muted">No material change recorded for this revision.</p>'}${d.evidence_bindings.length ? `<div class="scroll"><table><thead><tr><th>Evidence / origin</th><th>Scope dependencies</th><th>Assessment / relationship</th><th>Rights/use</th><th>Outstanding reasons / provenance</th></tr></thead><tbody>${d.evidence_bindings.map((x) => `<tr><td>${esc(x.evidence_kind)}<br><small>${esc(x.source_digest_or_identity)}<br>claimed ${esc(x.source_claimed_provenance)} · checked ${esc(x.origin_verification)}</small></td><td>${esc(x.dependency_domains.join(", "))}</td><td>${esc(x.scientific_applicability)}<br><small>${esc(x.scope_relationship)}</small></td><td>${esc(x.use_or_rights_status)}</td><td>${esc([...x.scientific_review_reasons, ...x.rights_review_reasons].map((r) => r.field + ":" + r.domain).join(", ") || "none")}<br><small>${esc(x.status_provenance)} · origin ${esc(x.originating_design_id)} r${esc(x.originating_design_revision)}</small></td></tr>`).join("")}</tbody></table></div>` : '<p class="empty">No applicability binding. Migration and source links do not infer applicability.</p>'}<small>Unchanged scope is a relationship, not a favorable assessment. Reference-answer reuse is excluded.</small></section>`;
+  }
+  function sourceAssessmentView(d) {
+    const p = S.project(d),
+      request = d.source_assessments.requests.find(
+        (item) => item.request_id === d.source_assessments.current_request_id,
+      ),
+      receipt = d.source_assessments.receipts.find(
+        (item) => item.request_id === d.source_assessments.current_request_id,
+      );
+    return `<section class="panel"><div class="eyebrow">Ryan-controlled source assessment</div><h3>Repository-pinned, read-only technical assessment</h3><div class="badges"><span class="badge neutral">${esc(p.request_status)}</span><span class="badge neutral">${esc(p.assessment_status)}</span><span class="badge neutral">qualification effect NONE</span><span class="badge neutral">rights effect NONE</span></div><p><strong>Installed profile:</strong> ${esc(p.profile_id)}<br><strong>Snapshot:</strong> ${esc(p.snapshot_id)} · as of ${esc(p.snapshot_as_of)}</p>${request ? `<p><strong>Frozen request:</strong> ${esc(request.request_id)}<br><small>${esc(request.subject_digest)}</small></p><div class="scroll"><table><thead><tr><th>Question</th><th>State</th></tr></thead><tbody>${request.questions.map((q) => `<tr><td>${esc(q.question_id)}<br><small>${esc(q.text)}</small></td><td>${receipt?.answered_question_ids.includes(q.question_id) ? "ANSWERED_TECHNICAL" : "UNANSWERED"}</td></tr>`).join("")}</tbody></table></div>` : '<p class="empty">No exact assessment request prepared for this design.</p>'}<p><strong>Next action:</strong> ${esc(p.next_action)}</p><div class="actions"><button id="prepare-source-assessment">Freeze & prepare request</button><button id="export-source-assessment" ${request ? "" : "disabled"}>Export exact request</button><button id="import-source-assessment">Import source assessment</button></div><small>The browser sends nothing. A matching repository snapshot establishes only admitted byte-and-scope correspondence. It does not authenticate a live operator, prove fresh execution, qualify science, grant rights, or authorize launch. Offline use cannot detect a later withdrawal until a newer accepted build is installed.</small></section>`;
   }
   function renderOwnerConsole() {
     const root = $("owner-console-view"),
@@ -370,7 +391,7 @@
       a = G.compatibility(d),
       l = G.launchCandidate(d, job()?.native_task_id || "");
     $("goal-summary").innerHTML =
-      `<div class="decision-grid"><div><span>Client/design</span><strong>${esc(d.decision.client_interpretation)}</strong><small>${esc(c.status)} · missing case coverage ${esc(c.missing_case_requirements.join(", ") || "none")}</small></div><div><span>Native authoring</span><strong>${esc(d.authoring.semantic_receipt?.status || a.status)}</strong><small>${esc(a.reason)}${a.gaps?.length ? " Gaps: " + esc(a.gaps.join("; ")) : ""}</small></div><div><span>CPES baseline</span><strong>Variant A · DEVELOPMENT</strong><small>${esc(e.message)}</small></div></div><p><strong>Launch:</strong> ${esc(l.status)} · ${l.remaining_decisions.length} remaining decision(s). A complete local record cannot grant qualification or launch.</p>${evidenceView(d)}`;
+      `<div class="decision-grid"><div><span>Client/design</span><strong>${esc(d.decision.client_interpretation)}</strong><small>${esc(c.status)} · missing case coverage ${esc(c.missing_case_requirements.join(", ") || "none")}</small></div><div><span>Native authoring</span><strong>${esc(d.authoring.semantic_receipt?.status || a.status)}</strong><small>${esc(a.reason)}${a.gaps?.length ? " Gaps: " + esc(a.gaps.join("; ")) : ""}</small></div><div><span>CPES baseline</span><strong>Variant A · DEVELOPMENT</strong><small>${esc(e.message)}</small></div></div><p><strong>Launch:</strong> ${esc(l.status)} · ${l.remaining_decisions.length} remaining decision(s). A complete local record cannot grant qualification or launch.</p>${evidenceView(d)}${sourceAssessmentView(d)}`;
     renderEconomics();
   }
   function render() {
@@ -437,7 +458,7 @@
     };
     $("new-job").onclick = createJob;
     $("export-goal").onclick = () =>
-      download("Carbon_Goal_Workbench_v0.6_PRIVATE_DRAFT.json", workspace());
+      download("Carbon_Goal_Workbench_v0.7_PRIVATE_DRAFT.json", workspace());
     $("import-goal").onclick = () => $("goal-workspace-file").click();
     $("link-atlas").onclick = () => {
       j.source_opportunity_id = H.selectedOpportunity();
@@ -497,6 +518,8 @@
       d.scope.exclusions =
         "No industrial/customer validation; no protected evaluation; no launch";
       d.scope.rights_scope = "SYNTHETIC_INTERNAL";
+      d.authoring.template_id = "periodic_viscous_burgers_1d_v1";
+      d.authoring.requested_goal = "Dynamics";
       d.requirements = [
         G.requirement(
           "REQ-DYNAMICS",
@@ -767,6 +790,7 @@
         }),
     );
     $("import-response").onclick = () => $("handoff-response-file").click();
+
     $("export-client").onclick = () =>
       download(safeName(j.job_id) + "_client.json", G.clientProjection(j, d));
     $("export-engineering").onclick = () =>
@@ -784,9 +808,43 @@
     bind();
     renderSummary();
   }
+  function bindSourceAssessment() {
+    const d = design(), prepareButton = $("prepare-source-assessment");
+    if (!d || !prepareButton) return;
+    prepareButton.onclick = async () => {
+      const beforeStatus = d.status;
+      try {
+        if (d.status === "DRAFT") d.status = "SEALED";
+        const request = await S.prepare(
+          d,
+          "assessment-" + d.design_id + "-r" + d.revision,
+        );
+        G.validateDesign(d, d.job_id);
+        render();
+        notify(
+          "Exact source-assessment request prepared locally. Nothing was sent or adopted.",
+        );
+        return request;
+      } catch (error) {
+        d.status = beforeStatus;
+        notify("Source-assessment request rejected: " + error.message);
+      }
+    };
+    $("export-source-assessment").onclick = () => {
+      const request = d.source_assessments.requests.find(
+        (item) => item.request_id === d.source_assessments.current_request_id,
+      );
+      if (!request) return notify("Prepare the exact request first.");
+      download(safeName(request.request_id) + ".json", request);
+      notify("Request exported locally; it was not transmitted.");
+    };
+    $("import-source-assessment").onclick = () =>
+      $("source-assessment-file").click();
+  }
   const renderSummaryV04 = renderSummary;
   renderSummary = () => {
     renderSummaryV04();
+    bindSourceAssessment();
     bindV05();
     renderOwnerConsole();
   };
@@ -820,6 +878,9 @@
             ),
           status,
         );
+      for (const importedJob of next.jobs)
+        for (const importedDesign of importedJob.designs)
+          await S.revalidateState(importedDesign);
       G.validateWorkspace(next, (x) =>
         F.readWorkspace(
           x,
@@ -845,7 +906,7 @@
       notify(
         next.migration_receipts.length
           ? "Imported with migration receipt; no authority was promoted."
-          : "Imported v0.6 session; privileged derived metadata revalidated.",
+          : "Imported v0.7 session; privileged derived metadata revalidated.",
       );
     } catch (err) {
       notify("Import rejected: " + err.message);
@@ -882,6 +943,27 @@
           ? err.message
           : "SOURCE_MEASUREMENT_EVIDENCE_REJECTED: " + err.message,
       );
+    } finally {
+      e.target.value = "";
+    }
+  };
+  $("source-assessment-file").onchange = async (e) => {
+    const f = e.target.files[0];
+    if (!f) return;
+    const d = design(), before = JSON.stringify(d);
+    try {
+      if (f.size > 300000) throw Error("Assessment response exceeds 300 KB");
+      const result = await S.importResponse(d, await f.text());
+      G.validateDesign(d, d.job_id);
+      render();
+      notify(
+        result.status === "DEDUPLICATED"
+          ? "Exact admitted assessment replay deduplicated."
+          : "Assessment matched the installed repository snapshot; authority effect remains none.",
+      );
+    } catch (err) {
+      Object.assign(d, JSON.parse(before));
+      notify("Source-assessment import rejected: " + err.message);
     } finally {
       e.target.value = "";
     }

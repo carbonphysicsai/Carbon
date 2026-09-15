@@ -2,12 +2,18 @@
   "use strict";
   const F = root.CarbonFit;
   const E = root.CarbonC05Evidence;
+  const S =
+    root.CarbonSourceAssessment ||
+    (typeof require !== "undefined" ? require("./source_assessment.js") : null);
   const R =
     root.CarbonGoalRouting ||
     (typeof require !== "undefined" ? require("./routing.js") : null);
-  const VERSION = "carbon.goal-workbench.design.v0.6",
-    WORKSPACE_VERSION = "carbon.goal-workbench.workspace.v0.6",
-    APP_VERSION = "Carbon Goal-to-Challenge Workbench v0.6";
+  const VERSION = "carbon.goal-workbench.design.v0.7",
+    WORKSPACE_VERSION = "carbon.goal-workbench.workspace.v0.7",
+    APP_VERSION = "Carbon Goal-to-Challenge Workbench v0.7";
+  const ACCEPTED_VERSION = "carbon.goal-workbench.design.v0.6",
+    ACCEPTED_WORKSPACE_VERSION = "carbon.goal-workbench.workspace.v0.6",
+    ACCEPTED_APP_VERSION = "Carbon Goal-to-Challenge Workbench v0.6";
   const PRIOR_VERSION = "carbon.goal-workbench.design.v0.5",
     PRIOR_WORKSPACE_VERSION = "carbon.goal-workbench.workspace.v0.5",
     PRIOR_APP_VERSION = "Carbon Goal-to-Challenge Workbench v0.5";
@@ -208,6 +214,7 @@
       route_plan: R.newRoutePlan(),
       measurement_evidence: [],
       evidence_bindings: [],
+      source_assessments: S.newState(),
       handoffs: [],
       responses: [],
       coordination: R.newCoordination(revision),
@@ -255,8 +262,8 @@
     return {
       schema_version: WORKSPACE_VERSION,
       application_version: APP_VERSION,
-      decision_id: "GOAL-WORKBENCH-05A",
-      base_application_merge: "3681f7fb10be0c6e278f53d59ff9b022099ef12d",
+      decision_id: "GOAL-WORKBENCH-07",
+      base_application_merge: "e5aafc522ca40db12f1897bcc0beacdedb44d823",
       opportunity_workspace: clone(component),
       jobs: [],
       selected_job_id: null,
@@ -522,6 +529,7 @@
         "route_plan",
         "measurement_evidence",
         "evidence_bindings",
+        "source_assessments",
         "handoffs",
         "responses",
         "coordination",
@@ -671,6 +679,7 @@
     const bindings = list(d.evidence_bindings, "evidence bindings", 128).map(
       (x) => R.validateStoredEvidenceBinding(x, bindingDesign, evidence),
     );
+    S.validateState(d.source_assessments);
     list(d.handoffs, "handoffs", 128).forEach((x) => validateHandoff(x, d));
     list(d.responses, "responses", 256).forEach((x) => validateResponse(x, d));
     R.validateCoordination(d.coordination, d.revision);
@@ -813,10 +822,10 @@
     if (
       w.schema_version !== WORKSPACE_VERSION ||
       w.application_version !== APP_VERSION ||
-      w.decision_id !== "GOAL-WORKBENCH-05A"
+      w.decision_id !== "GOAL-WORKBENCH-07"
     )
       throw Error("Unsupported goal workspace version");
-    if (w.base_application_merge !== "3681f7fb10be0c6e278f53d59ff9b022099ef12d")
+    if (w.base_application_merge !== "e5aafc522ca40db12f1897bcc0beacdedb44d823")
       throw Error("Unsupported base application identity");
     const component = componentReader(JSON.stringify(w.opportunity_workspace));
     const jobs = list(w.jobs, "jobs", 64).map(validateJob);
@@ -846,6 +855,7 @@
           LEGACY_WORKSPACE_VERSION,
           OLD_WORKSPACE_VERSION,
           PRIOR_WORKSPACE_VERSION,
+          ACCEPTED_WORKSPACE_VERSION,
           WORKSPACE_VERSION,
         ].includes(x.to)
       )
@@ -908,6 +918,7 @@
     }
     design.route_plan = R.newRoutePlan();
     design.evidence_bindings = [];
+    design.source_assessments = S.newState();
     design.coordination = R.newCoordination(design.revision);
     design.change_log = design.change_log.map((x) => {
       exact(x, ["field", "kind", "impact", "note"], "legacy change");
@@ -1131,11 +1142,33 @@
         : "UNRESOLVED";
     design.decision.launch_authorization = "NOT_AUTHORIZED";
     design.decision.native_launch_status = "NOT_LAUNCHED";
+    design.source_assessments = S.newState();
+  }
+  function migrateAcceptedDesign(design) {
+    const keys = [
+      "schema_version", "job_id", "design_id", "revision", "parent_design_id",
+      "status", "alternative_label", "scope", "requirements", "traces", "cases",
+      "score_plan", "reference_plan", "cpes", "authoring", "route_plan",
+      "measurement_evidence", "evidence_bindings", "handoffs", "responses",
+      "coordination", "decision", "change_log",
+    ];
+    exact(design, keys, "v0.6 design");
+    if (design.schema_version !== ACCEPTED_VERSION)
+      throw Error("Invalid v0.6 design version");
+    design.schema_version = VERSION;
+    design.source_assessments = S.newState();
   }
   function migrateGoalWorkspace(value, digestStatus) {
     const w = clone(value),
       from = w.schema_version;
-    if (from === PRIOR_WORKSPACE_VERSION) {
+    if (from === ACCEPTED_WORKSPACE_VERSION) {
+      if (
+        w.application_version !== ACCEPTED_APP_VERSION ||
+        w.decision_id !== "GOAL-WORKBENCH-05A" ||
+        w.base_application_merge !== "3681f7fb10be0c6e278f53d59ff9b022099ef12d"
+      )
+        throw Error("Unsupported v0.6 workspace identity");
+    } else if (from === PRIOR_WORKSPACE_VERSION) {
       if (
         w.application_version !== PRIOR_APP_VERSION ||
         w.decision_id !== "GOAL-WORKBENCH-05" ||
@@ -1159,10 +1192,12 @@
     } else throw Error("Unsupported goal workspace version");
     w.schema_version = WORKSPACE_VERSION;
     w.application_version = APP_VERSION;
-    w.decision_id = "GOAL-WORKBENCH-05A";
-    w.base_application_merge = "3681f7fb10be0c6e278f53d59ff9b022099ef12d";
+    w.decision_id = "GOAL-WORKBENCH-07";
+    w.base_application_merge = "e5aafc522ca40db12f1897bcc0beacdedb44d823";
     for (const job of w.jobs) {
-      if (from === PRIOR_WORKSPACE_VERSION) {
+      if (from === ACCEPTED_WORKSPACE_VERSION) {
+        for (const design of job.designs) migrateAcceptedDesign(design);
+      } else if (from === PRIOR_WORKSPACE_VERSION) {
         exact(
           job,
           [
@@ -1218,7 +1253,9 @@
       original_digest_status: digestStatus,
       semantic_changes: [
         "Preserved all earlier job, sealed-design, CPES, C-05, authoring, handoff, response and change-history bytes.",
-        from === PRIOR_WORKSPACE_VERSION
+        from === ACCEPTED_WORKSPACE_VERSION
+          ? "Added an empty repository-pinned source-assessment state. No migrated response, receipt, provenance label, or historical Workbench-06 fixture was admitted."
+          : from === PRIOR_WORKSPACE_VERSION
           ? "Reconciled v0.5 carry labels into a separate scope relationship and cumulative scientific/rights review reasons; insufficient history remains unassessed or review-required."
           : "Added explicit working-design selection and cumulative applicability fields without inferring a route, qualification, rights grant, approval or launch.",
         "Revalidated claimed provenance: only an exact retained C-05 record keeps native status; manual labels and links remain claims or locators.",
@@ -1232,6 +1269,7 @@
       return validateWorkspace(value, componentReader);
     if (
       value.schema_version === PRIOR_WORKSPACE_VERSION ||
+      value.schema_version === ACCEPTED_WORKSPACE_VERSION ||
       value.schema_version === OLD_WORKSPACE_VERSION ||
       value.schema_version === LEGACY_WORKSPACE_VERSION
     )
@@ -1266,6 +1304,7 @@
     next.cpes.design_binding_revision = next.revision;
     next.handoffs = [];
     next.responses = [];
+    next.source_assessments = S.newState();
     next.measurement_evidence = [];
     next.evidence_bindings = R.carryEvidenceBindings(found, next);
     next.route_plan = R.newRoutePlan();
