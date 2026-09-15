@@ -89,3 +89,27 @@ must reconcile before retry.
 AWS deployment is deferred without spend. Hippius is preferred for a future
 bounded storage assessment but remains wholly unverified against Carbon's
 archive/custody/retention/recovery and acknowledgement contracts.
+
+
+## 2026-09-15 owner-selected supervised Burgers continuation
+
+PR #185 merged the operator path. Subnet 567, publisher UID 0, new owner/publisher
+wallet identities and WSL Ubuntu/Docker supersede the former missing-host/netuid
+blockers. Creation finalized at block 8010852 for 1.003183218 test TAO. Historical
+wallet and host receipts above are unchanged. The current distinct miner is
+unregistered; no new activation, registration or publication was dispatched.
+
+The executable v2 subset and prospective time-range repair are frozen in
+`docs/development/CW1_BURGERS_AGENT_SESSION.md`. Numerical engineering validation
+completed 36 reference workers, three real JAX training replicas (96 updates),
+three isolated predictions and 72 measurements. One prior worker failed before
+training updates; its evidence and the original cohort remain retained. Recorded
+controller wall time totals 403.21 seconds, excluding software tests/CI. This is
+not model inference, an authenticated miner result, a scientific pass or a winner.
+
+The supervised service, exact unqualified admission, disclosure projection and
+source builder are an engineering candidate until normal automated acceptance
+and merge. Focused canonical session/C-08/C-W1 checks passed 31 tests. Model-run
+approval/credential and distinct miner registration remain external inputs.
+All-burn authorization remains separate from activation and creation. Primary
+Hub map is `WAVE-C/C-W1`; competition successor is defined, not activated.

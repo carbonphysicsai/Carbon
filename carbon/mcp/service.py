@@ -1586,10 +1586,9 @@ class McpService:
             if fixture_origin is not True:
                 raise McpChallengeUnavailableError()
             try:
-                eligibility = self._registry.assess_live_eligibility(
+                eligibility = self._registry.assess_fixture_service_eligibility(
                     challenge.challenge_id,
                     challenge.version,
-                    fixture_mode=True,
                 )
             except Exception:
                 raise McpIntegrationError() from None

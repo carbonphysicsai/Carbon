@@ -45,11 +45,12 @@ normally merged as `ac050fd53ee18bf3788c167ee7b0736bbfd7a46b`, tree
 **Selected ticket:** C-W1 — `in_progress`
 **Selection scope:** bounded `C-W1-D1` DEVELOPMENT slice only; official C-W1
 remains `future_reserved`
-**Active ticket:** exact public/synthetic testnet operator handoff,
-run/status/resume, truthful readiness and all-burn execution preparation
-**Next boundary:** an approved existing public-testnet netuid, observed
-registration/UID/capability, eligible Linux host, bounded testnet-token need and
-exact transaction approval; C-EA2 and official C-W1 remain blocked
+**Active ticket:** supervised Burgers V1 DEVELOPMENT agent/session continuation
+on public-testnet subnet 567, using the merged PR #185 run/status/resume path
+**Next boundary:** distinct miner registration and bounded model-run approval/
+credential, then separate subnet activation and exact all-burn publication
+authority. WSL Linux/Docker and owner/publisher UID 0 are observed. C-EA2 and
+official C-W1 remain blocked
 C-EA1 passed canonical acceptance in run `34558389185` at accepted head
 `a779af066f4bf9bc36b6d6ab23914fa19191e1de` and normally merged in PR #136 as
 `0e0714c8260ca482a0ba2b743b2eaefd50508da1`. `OWNER-C-EA1-SYNTHETIC-01`
