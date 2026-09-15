@@ -14,7 +14,7 @@
     "GOAL-WORKBENCH-07"
   ],
   "repository_base": "3681f7fb10be0c6e278f53d59ff9b022099ef12d",
-  "integration_revision_at_packaging": "97ee8d42467e5b3c6542eba2316cb7fe16d3ba7b",
+  "integration_revision_at_packaging": "972737bbdf6c88e7db60f5bb9c6480eadc133be9",
   "integration_revision_note": "The checksum manifest describes exact packaged bytes. A commit cannot contain its own digest; final PR/head identity is reported by delivery.",
   "pinned_research_revision": "ca904dfee93d3574df4e56b99981a6ed3b138e80",
   "accepted_research_head": "0a5690270dc449ea19c941280203987d37db5283",
@@ -122,15 +122,15 @@
     "use": "Operating conformance only; no Grok/account integration is claimed."
   },
   "authority": "No runtime sharing, qualification, protected-use approval, answer publication, submission, registration, execution, launch, deployment, or rights authority is conveyed.",
-  "file_count": 147,
+  "file_count": 155,
   "files": {
     "Carbon_Opportunity_Workbench.html": {
       "bytes": 673620,
       "sha256": "ef607891763c7e7d765ff0b764504228ec30411384e564aac59ebe8777719f8e"
     },
     "README.md": {
-      "bytes": 16291,
-      "sha256": "4ca72d2f167f0deedc1aaf3d953ccd8384b9f5d43dbd9a659e39b9fdad725646"
+      "bytes": 16653,
+      "sha256": "69f552c20f7050fc4cb0ae90872484d616ab2b479c9bda94f1ae8e896f145e65"
     },
     "data/atlas.json": {
       "bytes": 156569,
@@ -236,17 +236,21 @@
       "bytes": 4877,
       "sha256": "35cdcf83857f5c371f36deea5f7722408508a6e8b43b26d6afad4857e610cc20"
     },
+    "docs/GOAL_WORKBENCH_06A_DELIVERY_INTEGRITY_REPORT.md": {
+      "bytes": 3701,
+      "sha256": "b0ca6272360a985cf6a63394698c5ee1d25ef669854f34511ae847172e090bfe"
+    },
     "docs/GOAL_WORKBENCH_06_CONTRACT_CONFORMANCE_REPORT.md": {
-      "bytes": 6360,
-      "sha256": "36c8ca073ca2ab622e6de917e934f5d39cc7ca8993a2c520823e518c2021ee63"
+      "bytes": 6922,
+      "sha256": "ed03e2c6f8283b3daceb108049d7da80e4642510178283aeb9dd5d3102464bc1"
     },
     "docs/GOAL_WORKBENCH_06_SOURCE_ASSESSMENT_CONTRACT.md": {
       "bytes": 10695,
       "sha256": "38fa983a25b1b7ca4cfa1cfb615ec6c4be1314718334cfdfa42cf9eb8b29ab2c"
     },
     "docs/GOAL_WORKBENCH_06_SOURCE_OWNER_DECISION_PACKET.md": {
-      "bytes": 5666,
-      "sha256": "30f8daa9a8bfb1e3a63c41d8545a37b8d6dec8565da62e5d22190ab0be07a91a"
+      "bytes": 6323,
+      "sha256": "9297e9435c991a9fdc1f583531ef32fe418b0ccb0837942fedf88158a7df9003"
     },
     "docs/GOAL_WORKBENCH_07_IMPLEMENTATION_REPORT.md": {
       "bytes": 5445,
@@ -261,8 +265,8 @@
       "sha256": "bb05526a6408f70efa32a12ade140305a0cfd2c6d07f3827cc36b16f086eb149"
     },
     "docs/REQUIREMENT_TEST_MAP.md": {
-      "bytes": 16848,
-      "sha256": "cf09efbefd6d7e3dbc01c315f76ce639b133901913c7ad902d46554d062c4dd9"
+      "bytes": 17868,
+      "sha256": "f258402ca5b6be9aa939775c6a7422b1881b6f02ad2c9a4bb1755194211518c2"
     },
     "docs/SPECIFICATION.md": {
       "bytes": 14254,
@@ -303,6 +307,26 @@
     "evidence/cpes_reference_reuse_v2/study_summary_v1.json": {
       "bytes": 669,
       "sha256": "082869baa1c8e71702122c7cb7b91aa6e327cdf1598040802e2efc173807d0d6"
+    },
+    "source_assessment/delivery/v1/corrected_comment_readback.json": {
+      "bytes": 594,
+      "sha256": "1b2dcdc05385962ae8eb4b93c8ea9d38f1cbfff87b150ec1a220106e0bf0d115"
+    },
+    "source_assessment/delivery/v1/corrected_owner_notification.md": {
+      "bytes": 3008,
+      "sha256": "04952e91e9fda00b36e85ac8862cb601bb9992c124546eec9b7fb56e2c63d72c"
+    },
+    "source_assessment/delivery/v1/delivery_history.json": {
+      "bytes": 2709,
+      "sha256": "7d192f7299aede9a317575ea6ba89faf5093dabb20116e046533dd83b9321945"
+    },
+    "source_assessment/delivery/v1/delivery_receipt.json": {
+      "bytes": 1077,
+      "sha256": "cd015c6748e6be3f53478ff658a613c53d1fc666104900664a2fab6c5264724f"
+    },
+    "source_assessment/delivery/v1/malformed_comment_readback.json": {
+      "bytes": 373,
+      "sha256": "50cafab9ea97e553d51be33e0cddacf7d3b34bc0ef6728988bac9f507ee20fa4"
     },
     "source_assessment/repository_snapshot/v1/README.md": {
       "bytes": 1701,
@@ -593,8 +617,8 @@
       "sha256": "de38799f6bf45fb2f4a63e9822d516a2f62ed95f58ff39ad97be0ec1a2e23d65"
     },
     "tests/preview_atlas.png": {
-      "bytes": 271704,
-      "sha256": "cd2024c7cd76da576a631d54d73e42750175d66e94a2b228bbb877cc5c8b8684"
+      "bytes": 271607,
+      "sha256": "dc683119266d774cb79b9bca957820185777533b1651bdd77271b72e9e43399b"
     },
     "tests/preview_mobile.png": {
       "bytes": 689994,
@@ -609,8 +633,8 @@
       "sha256": "fa3f10cd9c27ddcd051f0a9d3c49e851950b96483d8aead81f2001100424080e"
     },
     "tests/preview_profile.png": {
-      "bytes": 705519,
-      "sha256": "aa36d93436fa5226056478c31b27d022e0cc9ea2cd1bafb2834ef7239ac5e688"
+      "bytes": 705488,
+      "sha256": "706b115df0faee1e83d3ca873ebf1299bcd035d4805f09612141328a253889d5"
     },
     "tests/test_authoring_bridge.py": {
       "bytes": 5855,
@@ -639,6 +663,10 @@
     "tests/test_source_assessment.cjs": {
       "bytes": 13039,
       "sha256": "2ac332fbac8a919e5d3188d2e2e8567bea5561d1c707c3ca46417b41f750c28a"
+    },
+    "tests/test_source_assessment_delivery.cjs": {
+      "bytes": 5421,
+      "sha256": "da0513e99631a677a96fe6208aed7052e79c1d1e720c148a9a199556c2c3346a"
     },
     "tests/test_sources.py": {
       "bytes": 17947,
@@ -711,6 +739,10 @@
     "tools/source_assessment_conformance.cjs": {
       "bytes": 24137,
       "sha256": "25df1482aebde2088a61a494b7279bf1e2c5d3fb1aeb72cc4ead0dd86c151a49"
+    },
+    "tools/source_assessment_delivery_integrity.cjs": {
+      "bytes": 5402,
+      "sha256": "bc61484adbc14012cf3f50ac3440c1d7fc0bc84ef84a43d55d995de454157b44"
     }
   }
 }
