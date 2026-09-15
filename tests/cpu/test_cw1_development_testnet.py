@@ -77,9 +77,12 @@ def source(fixture) -> DevelopmentTestnetEvidence:
     )
 
 
-def authenticated_fixture(tmp_path, *, request_name="submit-1"):
+def authenticated_fixture(tmp_path, *, request_name="submit-1", transport_context=None):
     (tmp_path / "c08").mkdir(parents=True)
-    state, _, _, orchestrator, associations, miner = _composition(tmp_path / "c08")
+    options = {} if transport_context is None else {"context": transport_context}
+    state, _, _, orchestrator, associations, miner = _composition(
+        tmp_path / "c08", **options
+    )
     submitted = _submit(miner, state, request=request_name)
     request_root = tmp_path / "request"
     request = _real_request(

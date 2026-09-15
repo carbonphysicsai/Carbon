@@ -51,6 +51,26 @@ DEVELOPMENT-only authority. The caller supplies wallet material only to the
 existing trusted operator process after this preflight; no key or seed belongs
 in the config, logs, repository or chat.
 
+After the trusted controller has completed and exported the exact C-08/C-03/
+C-07/C-06 source, it emits
+`carbon.development-testnet.source-handoff.v1`. The handoff contains paths and
+public verification material only. It does not contain wallet or receipt
+signing secrets. The operator then uses the fixed entry point:
+
+```bash
+python -m carbon.development_testnet status --config /absolute/private/operator/development-testnet.json --source /absolute/private/operator/source-handoff.json
+uv run --locked --group chain python -m carbon.development_testnet run --config /absolute/private/operator/development-testnet.json --source /absolute/private/operator/source-handoff.json
+uv run --locked --group chain python -m carbon.development_testnet resume --config /absolute/private/operator/development-testnet.json --source /absolute/private/operator/source-handoff.json
+```
+
+`run` verifies the C-08 association, active C-06 ledger receipt, C-07 account,
+worker image/resource identities and every bounded export member before wallet
+access. `status` is local and read-only. `resume` opens no wallet and can only
+reconcile the retained hash through finalization/readback; it cannot rerun
+science or resend a transaction. See
+[`CW1_DEVELOPMENT_TESTNET_TRANSACTION_PLAN.md`](./CW1_DEVELOPMENT_TESTNET_TRANSACTION_PLAN.md)
+for the exact missing target and authorization fields.
+
 ## Current read-only observation (2026-09-15)
 
 Using the exact pinned `bittensor==11.1.0` package in an isolated Python 3.11
@@ -90,7 +110,10 @@ recipient, authorization, durable dispatch and finalized row checks. See
 6. Stop after the single dispatch. Preserve failures and ambiguous state; do
    not infer emissions, payment or epoch behavior from transaction inclusion.
 
-No public write is currently authorized or technically eligible. The precise
+No public write is currently authorized or technically eligible. PR #183's
+exact head passed required acceptance run `34927991086` and merged as
+`bd7e5a5423d1148d340b3de3993068b66f5973d9`; that evidence is not rerun here.
+The precise
 missing inputs are an approved existing netuid, registration/UID and publication
 capability for the public hotkey, an eligible Linux host/session, any bounded
 testnet-token registration amount, and the exact one-dispatch transaction

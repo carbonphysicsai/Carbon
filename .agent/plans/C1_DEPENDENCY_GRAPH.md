@@ -1,10 +1,11 @@
-# C1/C2 dependency graph after C-EA1 PR #180 and C-W1-D1 selection
+# C1/C2 dependency graph after accepted C-W1-D1 PR #183
 
 **Decision:** `OWNER-C1-CONTRACTS-01`
 **Status:** authoritative planning checkpoint after merge
 **Primary Hub map_ref:** `WAVE-C`
-**Implementation selection:** PR #180 accepted C-EA1-D4; the distinct
-public/synthetic C-W1-D1 DEVELOPMENT profile is selected
+**Implementation selection:** PR #183 accepted the distinct public/synthetic
+C-W1-D1 DEVELOPMENT foundation; its operator execution/reconciliation
+continuation remains selected
 
 ## Authority resolution
 
@@ -100,9 +101,9 @@ DEVELOPMENT composition; PR #168 accepted C-EA1's separately versioned
 private-alpha preparation without implementing real acknowledgement; and PR
 #173 accepted C-10's bounded DEVELOPMENT re-execution; and PR #177 accepted
 C-EA1-D3's concrete unprovisioned AWS deployment package. The repository owner
-PR #180 accepted C-EA1-D4; AWS deployment is now deferred and Hippius remains
-an unverified future storage preference. The repository owner selects only
-C-W1-D1's public/synthetic DEVELOPMENT path. C-EA2 and official C-W1 remain
+PR #183 accepted the C-W1-D1 foundation after AWS deployment was deferred and
+Hippius recorded as an unverified future storage preference. The repository
+owner selects only C-W1-D1's public/synthetic DEVELOPMENT path. C-EA2 and official C-W1 remain
 unimplemented/ineligible. Public execution is still gated by exact observed
 network identity/capability and transaction authorization. This graph
 authorizes no protected reference, official science, real archive

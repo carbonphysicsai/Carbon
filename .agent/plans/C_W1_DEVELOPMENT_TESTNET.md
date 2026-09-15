@@ -65,3 +65,30 @@ a selected existing public-testnet subnet, the named hotkey registered there,
 observed UID/permit-or-owner/stake capability, testnet funding if registration
 requires it, and an exact owner transaction record. Missing values stop chain
 writes only; they do not reopen the official path or authorize a new subnet.
+
+## Operator execution boundary after PR #183
+
+PR #183 accepted and merged the profile/issuer/publication/preflight foundation.
+The continuation adds one closed controller-to-operator handoff and fixed
+`run`, `status` and `resume` commands. The handoff resolves the exact C-08
+authenticated request, C-07 account and C-06 active signed receipt, streams and
+hashes the bounded export without loading an artifact-sized member into the
+controller, and binds its authenticated testnet context to the configured
+publication context. All referenced journals must remain under the configured
+retention root and all exported bytes under the configured export root.
+
+`run` performs fresh read-only readiness before wallet access, records one
+short-lived intent immediately before publication, and uses the existing
+checked SDK publisher. `status` never accesses the wallet or network. `resume`
+opens no wallet and reconciles only a previously journaled hash; it cannot
+dispatch, sign or repeat C-08/C-03/C-07/C-06 work.
+
+## Unselected score-based successor
+
+The smallest later competition slice can KEEP C-05 measurement outputs, C-10
+quarantine and C-REWARD's deterministic activation/takeover/decay arithmetic.
+It must first add a separately authorized DEVELOPMENT-only comparison and
+eligibility bridge from active signed evidence. C-REWARD's current fixture
+ledger cannot be relabeled for that role, and an unresolved or quarantined
+receipt cannot name a winner. No such successor is selected or implemented by
+this continuation.
