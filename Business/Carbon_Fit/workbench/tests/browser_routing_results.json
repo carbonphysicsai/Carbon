@@ -1,8 +1,8 @@
 {
   "artifact": "Carbon_Opportunity_Workbench.html",
-  "scope": "GOAL-WORKBENCH-05 route, console, applicability journeys",
+  "scope": "GOAL-WORKBENCH-05A cumulative state, provenance, console, and applicability journeys",
   "engine": "Google Chrome (Chromium)",
-  "passed": 17,
+  "passed": 19,
   "failed": 0,
   "checks": [
     "Owner Console starts with deterministic zero attention counts",
@@ -11,8 +11,10 @@
     "Journey A exposes one intended-use action without fit percent",
     "Journey B selects the exact supported Burgers adaptation",
     "native C-05 result is visibly native and unresolved",
-    "new revision resets route but explicitly carries prior evidence",
-    "output change selectively marks retained evidence for review",
+    "finished C-05 evidence is not displayed as an active worker",
+    "new revision resets route and preserves prior assessment separately from unchanged scope",
+    "output review survives a following editorial edit",
+    "export and reimport preserve cumulative review debt",
     "source result remains historical in sealed parent revision",
     "#42 EXPORTED_OWNER_REQUEST is waiting not approved",
     "Owner Console separates workflow evidence and customer outcome",

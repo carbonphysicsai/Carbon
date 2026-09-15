@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the closed additive v0.5 goal-workbench schema and constants."""
+"""Generate the closed additive v0.6 goal-workbench schema and constants."""
 
 from __future__ import annotations
 
@@ -7,10 +7,10 @@ import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-DESIGN = "carbon.goal-workbench.design.v0.5"
-WORKSPACE = "carbon.goal-workbench.workspace.v0.5"
-APP = "Carbon Goal-to-Challenge Workbench v0.5"
-BASE = "e576fbdc711c9194dbcc7d90405480e90577407e"
+DESIGN = "carbon.goal-workbench.design.v0.6"
+WORKSPACE = "carbon.goal-workbench.workspace.v0.6"
+APP = "Carbon Goal-to-Challenge Workbench v0.6"
+BASE = "3681f7fb10be0c6e278f53d59ff9b022099ef12d"
 BLOCKERS = ["AT-09", "AT-16", "AT-19", "AT-22", "AT-30"]
 CONTROLS = [f"P{i}" for i in range(1, 9)]
 ROLES = ["MANDATORY", "SOFT", "DIAGNOSTIC", "DEPLOYMENT"]
@@ -53,6 +53,14 @@ DEPENDENCY_DOMAINS = [
     "RIGHTS",
     "DEPLOYMENT",
     "AUTHORING",
+    "UNRESOLVED_IMPACT",
+]
+SCOPE_RELATIONSHIPS = ["UNASSESSED", "UNCHANGED", "CHANGED", "UNKNOWN"]
+ORIGIN_VERIFICATION = [
+    "UNVERIFIED_CLAIM",
+    "EXTERNAL_LOCATOR_ONLY",
+    "PINNED_C05_FIXTURE_VERIFIED",
+    "WORKBENCH_DERIVED_LINEAGE",
 ]
 
 
@@ -298,7 +306,10 @@ external_record = obj(
                 "EXPORTED_OWNER_REQUEST",
                 "SENT",
                 "ACKNOWLEDGED",
+                "EXECUTION_REPORTED_ACTIVE",
                 "EXECUTED",
+                "RETURNED",
+                "FAILED",
                 "OWNER_DECISION",
                 "BLOCKED",
             ]
@@ -315,6 +326,7 @@ coordination = obj(
         "blocker": string(),
         "blocker_owner": string(),
         "restart_event": string(),
+        "current_action_ref": string(192),
         "external_records": array(external_record, 64),
         "last_relevant_design_revision": {"type": "integer", "minimum": 1},
     }
@@ -330,36 +342,65 @@ evidence_binding = obj(
                 "FIXED_CASE_RESULT",
                 "RESEARCH_REFERENCE",
                 "DEPLOYMENT_EVIDENCE",
+                "MANUAL_RESEARCH_NOTE",
             ]
         },
         "source_ref": string(1_000),
         "source_digest_or_identity": string(300),
         "design_id": string(128),
         "design_revision": {"type": "integer", "minimum": 1},
+        "originating_design_id": string(128),
+        "originating_design_revision": {"type": "integer", "minimum": 1},
+        "originating_binding_id": string(192),
         "trace_ids": array(string(128), 256),
         "case_family_ids": array(string(128), 128),
         "dependency_domains": array({"enum": DEPENDENCY_DOMAINS}, 32),
+        "scope_relationship": {"enum": SCOPE_RELATIONSHIPS},
         "scientific_applicability": {
             "enum": [
                 "UNASSESSED",
-                "CARRIED_FORWARD_UNCHANGED_SCOPE",
                 "REVIEW_REQUIRED",
                 "NOT_APPLICABLE",
-                "SOURCE_OWNER_CONFIRMED",
             ]
         },
         "use_or_rights_status": {
             "enum": [
                 "UNRESOLVED",
-                "UNCHANGED_SOURCE_SCOPE",
                 "REVIEW_REQUIRED",
                 "PROHIBITED",
-                "SOURCE_AUTHORIZED",
             ]
         },
         "assessment_basis": string(2_000),
         "rationale": string(2_000),
         "invalidated_by": array(string(1_000), 64),
+        "scientific_review_reasons": array(
+            obj(
+                {
+                    "reason_id": string(192),
+                    "domain": {"enum": DEPENDENCY_DOMAINS},
+                    "field": string(500),
+                    "originating_design_id": string(128),
+                    "originating_revision": {"type": "integer", "minimum": 1},
+                    "basis": string(1_000),
+                }
+            ),
+            128,
+        ),
+        "rights_review_reasons": array(
+            obj(
+                {
+                    "reason_id": string(192),
+                    "domain": {"enum": DEPENDENCY_DOMAINS},
+                    "field": string(500),
+                    "originating_design_id": string(128),
+                    "originating_revision": {"type": "integer", "minimum": 1},
+                    "basis": string(1_000),
+                }
+            ),
+            128,
+        ),
+        "source_claimed_provenance": {"enum": PROVENANCE},
+        "origin_verification": {"enum": ORIGIN_VERIFICATION},
         "status_provenance": {"enum": PROVENANCE},
     }
 )
@@ -622,6 +663,7 @@ job = obj(
         "native_task_id": string(300),
         "accountable_owner": string(300),
         "lead": string(300),
+        "working_design_id": nullable(string(128)),
         "assignment": obj(
             {
                 field: string()
@@ -646,7 +688,7 @@ component = json.loads(
 )
 schema = {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "title": "Carbon goal-to-Challenge workbench workspace v0.5",
+    "title": "Carbon goal-to-Challenge workbench workspace v0.6",
     "$comment": (
         "Closed browser-local planning schema. Derived results are recomputed. "
         "It grants no scientific, security, rights, reuse, submission, execution, or launch authority."
@@ -656,7 +698,7 @@ schema = {
         {
             "schema_version": {"const": WORKSPACE},
             "application_version": {"const": APP},
-            "decision_id": {"const": "GOAL-WORKBENCH-05"},
+            "decision_id": {"const": "GOAL-WORKBENCH-05A"},
             "base_application_merge": {"const": BASE},
             "opportunity_workspace": {"$ref": "#/$defs/opportunity_workspace_v02"},
             "jobs": array(job, 64),
@@ -666,7 +708,14 @@ schema = {
                 obj(
                     {
                         "from": string(200),
-                        "to": {"const": WORKSPACE},
+                        "to": {
+                            "enum": [
+                                "carbon.goal-workbench.workspace.v0.3",
+                                "carbon.goal-workbench.workspace.v0.4",
+                                "carbon.goal-workbench.workspace.v0.5",
+                                WORKSPACE,
+                            ]
+                        },
                         "original_digest_status": {
                             "enum": ["VERIFIED_WEB_CRYPTO", "UNAVAILABLE"]
                         },
@@ -699,6 +748,8 @@ constants = {
     "PROVENANCE": PROVENANCE,
     "CUSTOMER_OUTCOMES": CUSTOMER_OUTCOMES,
     "DEPENDENCY_DOMAINS": DEPENDENCY_DOMAINS,
+    "SCOPE_RELATIONSHIPS": SCOPE_RELATIONSHIPS,
+    "ORIGIN_VERIFICATION": ORIGIN_VERIFICATION,
 }
 (ROOT / "data/goal_workspace.schema.json").write_text(
     json.dumps(schema, indent=2) + "\n", encoding="utf-8"
@@ -706,4 +757,4 @@ constants = {
 (ROOT / "data/goal_constants.json").write_text(
     json.dumps(constants, indent=2) + "\n", encoding="utf-8"
 )
-print("v0.5 goal-workbench schema and constants generated")
+print("v0.6 goal-workbench schema and constants generated")

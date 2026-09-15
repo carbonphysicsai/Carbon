@@ -1,5 +1,7 @@
 # GOAL-WORKBENCH-05 optimization report
 
+> Corrective addendum (GOAL-WORKBENCH-05A): v0.5 one-edit demonstrations did not prove cumulative state integrity. The accepted architecture remains, but review debt, scope relationship, rights restrictions, provenance verification, and current-action status are now separated in v0.6. The 05A report and transition evidence supersede any implication here that a later unrelated edit resolves an earlier review or that retained evidence establishes active work.
+
 Date: 15 September 2026
 
 Scope: Business/workbench application only

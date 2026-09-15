@@ -56,7 +56,7 @@ test('CPES change impact is scoped and commercial notes do not stale protection 
   assert.deepEqual(disclosure.cpes.invalidated_by,['disclosure: CPES protection']);
   const commercial=design();G.recordImpact(commercial,'commercial_note','editorial pricing note');
   assert.deepEqual(commercial.cpes.invalidated_by,[]);
-  assert.equal(commercial.change_log[0].kind,'REVIEW_IMPACT_UNKNOWN');
+  assert.equal(commercial.change_log[0].kind,'EDITORIAL_OR_COMMERCIAL');
 });
 
 test('three-journey rehearsal is deterministic and stops before authority',()=>{

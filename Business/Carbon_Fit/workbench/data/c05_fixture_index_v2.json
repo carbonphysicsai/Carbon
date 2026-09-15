@@ -1,0 +1,334 @@
+{
+  "schema_version": "carbon.goal-workbench.c05-fixture-index.v2",
+  "source_interface": {
+    "request_schema": "carbon.c05.burgers-measurement.v1",
+    "result_schema": "carbon.c05.burgers-measurement-result.v1",
+    "measurement_ids": [
+      "field_phase_rms",
+      "maximum_compression",
+      "peak_dissipation",
+      "energy_half_time"
+    ],
+    "physics_ids": [
+      "initial_condition",
+      "periodicity",
+      "conserved_mean",
+      "maximum_principle",
+      "energy_dissipation_balance",
+      "weak_local_pde"
+    ]
+  },
+  "fixtures": [
+    {
+      "fixture_id": "C05-PUBLIC-EVAL2-PERTURBED",
+      "request_digest": "sha256:cbd8f66c1c501325cb74c4c95c197b0a957a58334bb37a4853e9524c2a78a857",
+      "result_digest": "sha256:92aee39eb3f293f1d18cbc40837837a715492314a2565a14cc0b6aba636be8d1",
+      "case_digest": "sha256:2825c686fad1fbdf40184870725af0b637d75749a35bf99afe428015f942d8cf",
+      "candidate_artifact_digest": "sha256:28bea8ac6eeb776b6110c1867285d10677551da93ccbd4fcf16e5234087664c3",
+      "candidate_binding_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "candidate_source_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "candidate_environment_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "candidate_plan_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "candidate_replica_id": "reconstruction-replica-0",
+      "measurement_contract_digest": "sha256:24ac244af02351ca4dcc294e2326a0c87633cdff7d162de1af7bbac38d5ecd07",
+      "measurement_environment_digest": "sha256:23135a8cf9f3a25497d3d3e93642f0a9b9bfd62d4984863cbccb799fe355ce13",
+      "measurement_implementation_digest": "sha256:53415ec1901437a578be1f782c190e5d9f334cb7fe1c9bba654b6c1c3a35ddbd",
+      "source_revision": "8dbee54dcd5bdea3a76b22812955e31fbe95e8da",
+      "association": {
+        "request_id": "diagnostic-job-001-design-1-r1",
+        "job_id": "job-001",
+        "design_id": "job-001-design-1",
+        "design_revision": 1,
+        "requirement_trace_ids": [
+          "TRACE-DYNAMICS"
+        ],
+        "case_family_ids": [
+          "BURGERS-12-CELL"
+        ],
+        "challenge": {
+          "id": "burgers-dynamics-v1",
+          "version": "1.0"
+        },
+        "template_id": "periodic_viscous_burgers_1d_v1",
+        "expected_source_interface": "carbon.c05.burgers-measurement-result.v1",
+        "evidence_scope": "PUBLIC_DEVELOPMENT_ONLY"
+      },
+      "saved_projection": {
+        "evidence_state": "SOURCE_MEASUREMENT_EVIDENCE_BOUND",
+        "source_disposition": "COMPLETE_DEVELOPMENT_ONLY",
+        "measurements": [
+          {
+            "candidate_value": 0.1877294265874904,
+            "decision": "UNRESOLVED_NO_QUALIFIED_LIMIT",
+            "measurement_id": "field_phase_rms",
+            "normalization_scale": 0.22147996892234026,
+            "normalized_error": 0.0003192644394105323,
+            "raw_absolute_error": 0.00007071067811865307,
+            "reference_value": 0.18772941327046858,
+            "scientific_limit": null,
+            "uncertainty": null
+          },
+          {
+            "candidate_value": 1.4243747207079451,
+            "decision": "UNRESOLVED_NO_QUALIFIED_LIMIT",
+            "measurement_id": "maximum_compression",
+            "normalization_scale": 1.4242749916622777,
+            "normalized_error": 0.00007002092029367759,
+            "raw_absolute_error": 0.00009972904566746266,
+            "reference_value": 1.4242749916622777,
+            "scientific_limit": null,
+            "uncertainty": null
+          },
+          {
+            "candidate_value": 0.09086062039750549,
+            "decision": "UNRESOLVED_NO_QUALIFIED_LIMIT",
+            "measurement_id": "peak_dissipation",
+            "normalization_scale": 0.1066829721507051,
+            "normalized_error": 8.88582888753486e-9,
+            "raw_absolute_error": 9.479666357448124e-10,
+            "reference_value": 0.09086061944953885,
+            "scientific_limit": null,
+            "uncertainty": null
+          },
+          {
+            "candidate_value": 1.1072082864506128,
+            "decision": "UNRESOLVED_NO_QUALIFIED_LIMIT",
+            "measurement_id": "energy_half_time",
+            "normalization_scale": 1.4445203818370458,
+            "normalized_error": 1.0076397878617536e-7,
+            "raw_absolute_error": 1.45555621111626e-7,
+            "reference_value": 1.1072081408949916,
+            "scientific_limit": null,
+            "uncertainty": null
+          }
+        ],
+        "physics": [
+          {
+            "decision": "UNRESOLVED_NO_QUALIFIED_LIMIT",
+            "normalization_scale": 0.22147996892234023,
+            "normalized_defect": 0.00045150810031307224,
+            "physics_id": "initial_condition",
+            "raw_defect": 0.00010000000002552412,
+            "scientific_limit": null,
+            "uncertainty": null
+          },
+          {
+            "decision": "UNRESOLVED_NO_QUALIFIED_LIMIT",
+            "normalization_scale": 0.22147996892234023,
+            "normalized_defect": 8.772307051276855e-16,
+            "physics_id": "periodicity",
+            "raw_defect": 1.942890293094024e-16,
+            "scientific_limit": null,
+            "uncertainty": null
+          },
+          {
+            "decision": "UNRESOLVED_NO_QUALIFIED_LIMIT",
+            "normalization_scale": 0.22147996892234023,
+            "normalized_defect": 2.2620020325078177e-14,
+            "physics_id": "conserved_mean",
+            "raw_defect": 5.009881398621019e-15,
+            "scientific_limit": null,
+            "uncertainty": null
+          },
+          {
+            "decision": "UNRESOLVED_NO_QUALIFIED_LIMIT",
+            "normalization_scale": 0.22147996892234023,
+            "normalized_defect": 0.00025084446046118476,
+            "physics_id": "maximum_principle",
+            "raw_defect": 0.0000555570233072844,
+            "scientific_limit": null,
+            "uncertainty": null
+          },
+          {
+            "decision": "UNRESOLVED_NO_QUALIFIED_LIMIT",
+            "normalization_scale": 0.15410574337460692,
+            "normalized_defect": 0,
+            "physics_id": "energy_dissipation_balance",
+            "raw_defect": 0,
+            "scientific_limit": null,
+            "uncertainty": null
+          },
+          {
+            "decision": "UNRESOLVED_NO_QUALIFIED_LIMIT",
+            "normalization_scale": 0.15332422560952488,
+            "normalized_defect": 0.021851531133651184,
+            "physics_id": "weak_local_pde",
+            "raw_defect": 0.003350369089449491,
+            "scientific_limit": null,
+            "uncertainty": null
+          }
+        ],
+        "diagnostics": [
+          [
+            "candidate_half_time_censored",
+            0
+          ],
+          [
+            "reference_half_time_censored",
+            0
+          ],
+          [
+            "requested_time_count",
+            7
+          ],
+          [
+            "spatial_point_count",
+            64
+          ],
+          [
+            "score_input_emitted",
+            0
+          ]
+        ],
+        "behavior_classification": [
+          {
+            "example": "PEAK_MISSED",
+            "classification": "OBSERVABLE_WITH_CURRENT_C05_RESULT",
+            "reason": "Compression and dissipation errors are present; no preference rank is inferred."
+          },
+          {
+            "example": "OVERSMOOTHED",
+            "classification": "OBSERVABLE_WITH_CURRENT_C05_RESULT",
+            "reason": "Raw field, compression and dissipation effects are visible; no tolerance is qualified."
+          },
+          {
+            "example": "MANDATORY_FAILURE",
+            "classification": "OBSERVABLE_WITH_CURRENT_C05_RESULT",
+            "reason": "Six raw physics defects are present, while every decision remains unresolved."
+          },
+          {
+            "example": "NONFINITE_OR_WITHHELD",
+            "classification": "REQUIRES_DEDICATED_PUBLIC_FIXTURE",
+            "reason": "This complete fixture is finite; source validation rejects nonfinite artifacts before measurement."
+          },
+          {
+            "example": "DROPPED_WORK",
+            "classification": "REQUIRES_SCOREPACK_DIAGNOSTIC_CONTRACT",
+            "reason": "C-05 has no population denominator, censoring, or dropped-work score contract."
+          },
+          {
+            "example": "UNIT_OR_FLOOR",
+            "classification": "REQUIRES_QUALIFIED_FLOOR_OR_UNCERTAINTY",
+            "reason": "C-05 retains raw values and normalization scales but supplies no qualified floor."
+          },
+          {
+            "example": "BELOW_UNCERTAINTY",
+            "classification": "REQUIRES_QUALIFIED_FLOOR_OR_UNCERTAINTY",
+            "reason": "Every uncertainty field is null, so below-uncertainty behavior cannot be decided."
+          },
+          {
+            "example": "PERSISTENCE_OR_MEMORIZATION",
+            "classification": "REQUIRES_SCOREPACK_DIAGNOSTIC_CONTRACT",
+            "reason": "C-05 measures one bound field artifact and defines no persistence or memorization checks."
+          }
+        ],
+        "limitations": [
+          "Public DEVELOPMENT fixture only; no protected or customer data.",
+          "Scientific limits, uncertainty policy, score input, qualification, approval and launch authority are absent.",
+          "One public EVAL case and deterministic test-created candidate perturbation are not population evidence.",
+          "Import replays retained fixture bytes through a registry-pinned manual workbench association; the association is inspectable but is not operator authentication or proof of honest execution."
+        ],
+        "trace_state": "SOURCE_MEASUREMENT_EXECUTED_SCIENTIFIC_DECISION_UNRESOLVED",
+        "imported_artifact_digest": "sha256:ebb4c11df77766111d7223c1671ad7df268d1cf9ad62fa4b3490218951c7974f"
+      }
+    },
+    {
+      "fixture_id": "C05-PUBLIC-EVAL2-NUMERICAL-FAILURE",
+      "request_digest": "sha256:cbd8f66c1c501325cb74c4c95c197b0a957a58334bb37a4853e9524c2a78a857",
+      "result_digest": "sha256:3793ec8f3dfd23907c3346c52af632d00c63c2c96765be94f7ff6a5fc6170b4a",
+      "case_digest": "sha256:2825c686fad1fbdf40184870725af0b637d75749a35bf99afe428015f942d8cf",
+      "candidate_artifact_digest": "sha256:28bea8ac6eeb776b6110c1867285d10677551da93ccbd4fcf16e5234087664c3",
+      "candidate_binding_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "candidate_source_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "candidate_environment_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "candidate_plan_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "candidate_replica_id": "reconstruction-replica-0",
+      "measurement_contract_digest": "sha256:24ac244af02351ca4dcc294e2326a0c87633cdff7d162de1af7bbac38d5ecd07",
+      "measurement_environment_digest": "sha256:23135a8cf9f3a25497d3d3e93642f0a9b9bfd62d4984863cbccb799fe355ce13",
+      "measurement_implementation_digest": "sha256:53415ec1901437a578be1f782c190e5d9f334cb7fe1c9bba654b6c1c3a35ddbd",
+      "source_revision": "8dbee54dcd5bdea3a76b22812955e31fbe95e8da",
+      "association": {
+        "request_id": "diagnostic-job-001-design-1-r1",
+        "job_id": "job-001",
+        "design_id": "job-001-design-1",
+        "design_revision": 1,
+        "requirement_trace_ids": [
+          "TRACE-DYNAMICS"
+        ],
+        "case_family_ids": [
+          "BURGERS-12-CELL"
+        ],
+        "challenge": {
+          "id": "burgers-dynamics-v1",
+          "version": "1.0"
+        },
+        "template_id": "periodic_viscous_burgers_1d_v1",
+        "expected_source_interface": "carbon.c05.burgers-measurement-result.v1",
+        "evidence_scope": "PUBLIC_DEVELOPMENT_ONLY"
+      },
+      "saved_projection": {
+        "evidence_state": "SOURCE_MEASUREMENT_EVIDENCE_NOT_EXECUTED",
+        "source_disposition": "NUMERICAL_FAILURE",
+        "measurements": [],
+        "physics": [],
+        "diagnostics": [
+          [
+            "reason",
+            "retained public typed non-complete fixture"
+          ]
+        ],
+        "behavior_classification": [
+          {
+            "example": "PEAK_MISSED",
+            "classification": "OBSERVABLE_WITH_CURRENT_C05_RESULT",
+            "reason": "Compression and dissipation errors are present; no preference rank is inferred."
+          },
+          {
+            "example": "OVERSMOOTHED",
+            "classification": "OBSERVABLE_WITH_CURRENT_C05_RESULT",
+            "reason": "Raw field, compression and dissipation effects are visible; no tolerance is qualified."
+          },
+          {
+            "example": "MANDATORY_FAILURE",
+            "classification": "OBSERVABLE_WITH_CURRENT_C05_RESULT",
+            "reason": "Six raw physics defects are present, while every decision remains unresolved."
+          },
+          {
+            "example": "NONFINITE_OR_WITHHELD",
+            "classification": "REQUIRES_DEDICATED_PUBLIC_FIXTURE",
+            "reason": "This complete fixture is finite; source validation rejects nonfinite artifacts before measurement."
+          },
+          {
+            "example": "DROPPED_WORK",
+            "classification": "REQUIRES_SCOREPACK_DIAGNOSTIC_CONTRACT",
+            "reason": "C-05 has no population denominator, censoring, or dropped-work score contract."
+          },
+          {
+            "example": "UNIT_OR_FLOOR",
+            "classification": "REQUIRES_QUALIFIED_FLOOR_OR_UNCERTAINTY",
+            "reason": "C-05 retains raw values and normalization scales but supplies no qualified floor."
+          },
+          {
+            "example": "BELOW_UNCERTAINTY",
+            "classification": "REQUIRES_QUALIFIED_FLOOR_OR_UNCERTAINTY",
+            "reason": "Every uncertainty field is null, so below-uncertainty behavior cannot be decided."
+          },
+          {
+            "example": "PERSISTENCE_OR_MEMORIZATION",
+            "classification": "REQUIRES_SCOREPACK_DIAGNOSTIC_CONTRACT",
+            "reason": "C-05 measures one bound field artifact and defines no persistence or memorization checks."
+          }
+        ],
+        "limitations": [
+          "Public DEVELOPMENT fixture only; no protected or customer data.",
+          "Scientific limits, uncertainty policy, score input, qualification, approval and launch authority are absent.",
+          "One public EVAL case and deterministic test-created candidate perturbation are not population evidence.",
+          "Import replays retained fixture bytes through a registry-pinned manual workbench association; the association is inspectable but is not operator authentication or proof of honest execution."
+        ],
+        "trace_state": "SOURCE_MEASUREMENT_NOT_EXECUTED",
+        "imported_artifact_digest": "sha256:991851eb61f8f0e52669444930af445d301df07efb6d138bd854c700cd9aff35"
+      }
+    }
+  ],
+  "authority": "PUBLIC_DEVELOPMENT_BYTES_ONLY_NO_QUALIFICATION"
+}

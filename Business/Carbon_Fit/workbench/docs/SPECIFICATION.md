@@ -1,4 +1,14 @@
-# Carbon Goal-to-Challenge Workbench v0.5 specification
+# Carbon Goal-to-Challenge Workbench v0.6 specification
+
+## v0.6 cumulative assessment and truthful status
+
+Evidence content and origin association are immutable. Scientific assessment, rights/use status, current-design scope relationship, cumulative review reasons, and origin verification are independent fields. `UNCHANGED` is only a relationship; it never replaces `UNASSESSED`, `REVIEW_REQUIRED`, `UNRESOLVED`, or `PROHIBITED`. Child revisions carry reasons and originating identity. Unsupported mutations reject instead of producing favorable empty impact.
+
+Native provenance is derived only by an eligible reader. The current implementation recognizes the exact registered C-05 retained fixture; generic records, route selection, outcomes, hashes, and links cannot claim native authority. Reimport validates privileged metadata against retained content and source association.
+
+The Owner Console uses an explicit job `working_design_id` and coordination `current_action_ref`. Prepared, exported, sent, acknowledged, explicitly active, returned, failed, pending-decision, parked, and closed facts remain distinct. Ambiguous records request reconciliation. Results affect evidence maturity but do not establish present activity.
+
+`carbon.goal-workbench.workspace.v0.6` reads v0.1–v0.5 atomically and appends reconciliation receipts. Contradictory v0.5 carry-forward states recover visible review debt where retained history supports it; otherwise they remain unassessed/review-required. Applicability confirmation is explicitly non-qualifying. The future source-owner interface remains unimplemented and undispatched.
 
 ## v0.5 routing, owner console, and applicability
 

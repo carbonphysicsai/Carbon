@@ -197,7 +197,7 @@ class SourceTests(unittest.TestCase):
             "NOT_QUALIFIED_BY_THIS_TOOL",
         )
 
-    def test_additive_goal_schema_is_closed_v05_and_reproducible(self):
+    def test_additive_goal_schema_is_closed_v06_and_reproducible(self):
         tool = ROOT / "tools/build_goal_schema.py"
         subprocess.run(["/usr/bin/python3", str(tool)], check=True, capture_output=True)
         schema_path = ROOT / "data/goal_workspace.schema.json"
@@ -209,7 +209,7 @@ class SourceTests(unittest.TestCase):
         self.assertFalse(schema["additionalProperties"])
         self.assertEqual(
             schema["properties"]["schema_version"]["const"],
-            "carbon.goal-workbench.workspace.v0.5",
+            "carbon.goal-workbench.workspace.v0.6",
         )
         self.assertEqual(
             schema["properties"]["authority"]["properties"]["launch"]["const"],
@@ -226,6 +226,13 @@ class SourceTests(unittest.TestCase):
             design["properties"]["evidence_bindings"]["items"]["additionalProperties"]
         )
         self.assertFalse(design["properties"]["coordination"]["additionalProperties"])
+        binding = design["properties"]["evidence_bindings"]["items"]["properties"]
+        self.assertIn("scientific_review_reasons", binding)
+        self.assertIn("origin_verification", binding)
+        self.assertNotIn(
+            "CARRIED_FORWARD_UNCHANGED_SCOPE",
+            binding["scientific_applicability"]["enum"],
+        )
 
     def test_retained_c05_fixture_index_binds_exact_source_digests(self):
         index = json.loads((ROOT / "data/c05_fixture_index_v1.json").read_text())
@@ -254,6 +261,20 @@ class SourceTests(unittest.TestCase):
                 item["result_digest"],
             )
             self.assertFalse(bundle["authority"]["score_eligible"])
+
+    def test_saved_c05_projection_index_is_exact_and_reproducible(self):
+        tool = ROOT / "tools/build_c05_saved_fixture_index.cjs"
+        subprocess.run(["node", str(tool)], check=True, capture_output=True)
+        path = ROOT / "data/c05_fixture_index_v2.json"
+        first = path.read_bytes()
+        subprocess.run(["node", str(tool)], check=True, capture_output=True)
+        self.assertEqual(first, path.read_bytes())
+        index = json.loads(first)
+        self.assertEqual(
+            index["schema_version"], "carbon.goal-workbench.c05-fixture-index.v2"
+        )
+        for item in index["fixtures"]:
+            self.assertTrue(item["saved_projection"]["imported_artifact_digest"].startswith("sha256:"))
 
     def test_frozen_v05_journeys_keep_routes_and_authority_closed(self):
         record = json.loads(
@@ -284,6 +305,11 @@ class SourceTests(unittest.TestCase):
         self.assertIn("GOAL-WORKBENCH-03", manifest["decision_ids"])
         self.assertIn("GOAL-WORKBENCH-04", manifest["decision_ids"])
         self.assertIn("GOAL-WORKBENCH-05", manifest["decision_ids"])
+        self.assertIn("GOAL-WORKBENCH-05A", manifest["decision_ids"])
+        self.assertEqual(
+            manifest["accepted_goal_workbench_05_baseline"]["merge_commit"],
+            "3681f7fb10be0c6e278f53d59ff9b022099ef12d",
+        )
         self.assertEqual(
             manifest["accepted_goal_workbench_baseline"]["merge_commit"],
             "e576fbdc711c9194dbcc7d90405480e90577407e",
@@ -309,39 +335,47 @@ class SourceTests(unittest.TestCase):
             )
         with zipfile.ZipFile(archive_path) as bundle:
             names = bundle.namelist()
-            self.assertIn("carbon_goal_workbench_v0_5/MANIFEST.json", names)
+            self.assertIn("carbon_goal_workbench_v0_6/MANIFEST.json", names)
             self.assertIn(
-                "carbon_goal_workbench_v0_5/Carbon_Opportunity_Workbench.html", names
+                "carbon_goal_workbench_v0_6/Carbon_Opportunity_Workbench.html", names
             )
             self.assertIn(
-                "carbon_goal_workbench_v0_5/evidence/cpes_reference_reuse_v2/evidence_index_v1.json",
+                "carbon_goal_workbench_v0_6/evidence/cpes_reference_reuse_v2/evidence_index_v1.json",
                 names,
             )
             self.assertIn(
-                "carbon_goal_workbench_v0_5/data/goal_workspace.schema.json", names
+                "carbon_goal_workbench_v0_6/data/goal_workspace.schema.json", names
             )
             self.assertIn(
-                "carbon_goal_workbench_v0_5/data/goal_workbench_03_rehearsal_record_v1.json",
+                "carbon_goal_workbench_v0_6/data/goal_workbench_03_rehearsal_record_v1.json",
                 names,
             )
             self.assertIn(
-                "carbon_goal_workbench_v0_5/docs/GOAL_WORKBENCH_03_REHEARSAL_REPORT.md",
+                "carbon_goal_workbench_v0_6/docs/GOAL_WORKBENCH_03_REHEARSAL_REPORT.md",
                 names,
             )
             self.assertIn(
-                "carbon_goal_workbench_v0_5/tools/run_operational_rehearsal.cjs",
+                "carbon_goal_workbench_v0_6/tools/run_operational_rehearsal.cjs",
                 names,
             )
             self.assertIn(
-                "carbon_goal_workbench_v0_5/data/goal_workbench_05_journeys_v1.json",
+                "carbon_goal_workbench_v0_6/data/goal_workbench_05_journeys_v1.json",
                 names,
             )
             self.assertIn(
-                "carbon_goal_workbench_v0_5/docs/GOAL_WORKBENCH_05_OPTIMIZATION_REPORT.md",
+                "carbon_goal_workbench_v0_6/docs/GOAL_WORKBENCH_05_OPTIMIZATION_REPORT.md",
+                names,
+            )
+            self.assertIn(
+                "carbon_goal_workbench_v0_6/docs/GOAL_WORKBENCH_05A_STATE_INTEGRITY_REPORT.md",
+                names,
+            )
+            self.assertIn(
+                "carbon_goal_workbench_v0_6/data/goal_workbench_05a_transition_evidence_v1.json",
                 names,
             )
             self.assertNotIn(
-                "carbon_goal_workbench_v0_5/Carbon_Physics_Opportunity_Workbench_v0_2.zip",
+                "carbon_goal_workbench_v0_6/Carbon_Physics_Opportunity_Workbench_v0_2.zip",
                 names,
             )
             before = hashlib.sha256(archive_path.read_bytes()).hexdigest()

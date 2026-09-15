@@ -1,6 +1,17 @@
-# GOAL-WORKBENCH-05 / GOAL-WORKBENCH-04 / GOAL-WORKBENCH-03 / GOAL-WORKBENCH-02 / EXAM-PROTECT-WORKBENCH-01 requirement-to-test map
+# GOAL-WORKBENCH-05A / GOAL-WORKBENCH-05 / GOAL-WORKBENCH-04 / GOAL-WORKBENCH-03 / GOAL-WORKBENCH-02 / EXAM-PROTECT-WORKBENCH-01 requirement-to-test map
 
 This map describes focused application acceptance. It does not relabel the CPES study's historical 14/52/208 runs as workbench tests.
+
+| v0.6 repair requirement | UI / data | Automated evidence | Authority limitation |
+|---|---|---|---|
+| Review debt is cumulative and order-safe | applicability table; reason records | `test_state_integrity.cjs` F1, reverse-order, child/grandchild, export/import | No review is resolved locally |
+| Prohibition and unknowns are not overwritten | rights status plus separate reasons | F3 save/reload and scoped rights tests | No rights grant |
+| All supported mutations have explicit impact | closed field-domain map | exclusions/workload/requirements and unknown-field rejection | Unsupported impact rejects |
+| Native provenance follows verified content | claimed origin plus verification result | forged route/outcome/binding rejection; exact C-05 reimport | Hash/locator alone is not authentication |
+| Evidence, activity, and decisions remain distinct | Owner Console explicit action ref | returned C-05, historical/open action, reconciliation tests | Observation is not execution or acceptance |
+| Applicability cannot qualify | evidence-axis projection | guarded F7 adversarial test | Qualification consumer remains unavailable |
+| v0.5 contradictions reconcile explicitly | v0.6 migration receipt | contradictory carry label migration test | Insufficient history stays unknown/review-required |
+| Built artifact retains repaired state | desktop/narrow generated HTML | `browser_routing_smoke.cjs` material→editorial→export/import journey | Zero external requests; no adapter dispatch |
 
 | v0.5 requirement | UI / data | Automated evidence | Authority limitation |
 |---|---|---|---|
