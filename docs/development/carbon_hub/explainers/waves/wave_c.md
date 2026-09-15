@@ -13,7 +13,7 @@
 
 ## What and why
 
-Wave C retains C0 network foundation, C1 real scientific vertical, and C2 direct testnet integration. Accepted public DEVELOPMENT capabilities cover authenticated requests, durable orchestration and C-10 re-execution; PR #177 accepted an unprovisioned AWS archive package. C-EA1-D4 prospectively versions that package with retained split keys, narrow executable IAM, complete private AWS API paths, last-use/obligation retention and an exact recovery watermark. C-DC1 through C-DC4 remain a separate private Research Concierge. All scientific/result authority stays with existing owners.
+Wave C retains C0 network foundation, C1 real scientific vertical, and C2 direct testnet integration. Accepted public DEVELOPMENT capabilities cover authenticated requests, isolated reconstruction, durable orchestration, signed receipts and C-10 quarantine. PR #180 accepted the unprovisioned AWS v2 archive package, now deferred. C-W1-D1 composes those existing owners into a separate public/synthetic DEVELOPMENT testnet candidate without weakening the official archive/science path. C-DC1 through C-DC4 remain a separate private Research Concierge. All scientific/result authority stays with existing owners.
 
 Carbon must prove both the chain boundary and one real protected scientific path without letting SDK objects, raw scores, fixtures, stale winners, or incomplete evidence acquire economic authority.
 
@@ -72,12 +72,12 @@ Wave C does not authorize LIVE science, Wave-D qualification, learned Landscape/
 - [C-10](../tickets/c_10.md): Independent re-execution and disagreement [done]
 - [C-EA2](../tickets/c_ea2.md): Archive before finalization [todo]
 - [C-09](../tickets/c_09.md): Official testnet publication and leaderboard provider [todo]
-- [C-W1](../tickets/c_w1.md): Exact real testnet eligibility provenance [todo]
+- [C-W1](../tickets/c_w1.md): Exact real testnet eligibility provenance [in_progress]
 
 ## Repository detail
 
-- [Wave C controlling board](https://github.com/carbonphysicsai/Carbon/blob/c26585a03b0d6e4c7eaf1c36b42bfea9026d35c9/.agent/WAVE_C.md)
-- [Current wave register](https://github.com/carbonphysicsai/Carbon/blob/c26585a03b0d6e4c7eaf1c36b42bfea9026d35c9/.agent/WAVE.md)
-- [NET-1 ticket](https://github.com/carbonphysicsai/Carbon/blob/c26585a03b0d6e4c7eaf1c36b42bfea9026d35c9/.agent/tickets/NET-1_chain_adapter.md)
+- [Wave C controlling board](https://github.com/carbonphysicsai/Carbon/blob/b22abbdc0f5f31009c483f10a478bd6cfa93cff4/.agent/WAVE_C.md)
+- [Current wave register](https://github.com/carbonphysicsai/Carbon/blob/b22abbdc0f5f31009c483f10a478bd6cfa93cff4/.agent/WAVE.md)
+- [NET-1 ticket](https://github.com/carbonphysicsai/Carbon/blob/b22abbdc0f5f31009c483f10a478bd6cfa93cff4/.agent/tickets/NET-1_chain_adapter.md)
 
 > Orientation boundary: repository authority owns exact semantics, implementation, review, evidence, and activation.

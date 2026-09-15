@@ -86,7 +86,7 @@ class NewcomerProjectionTests(unittest.TestCase):
         current = self.data["current"]
         self.assertEqual(current["last_completed_ticket"]["id"], "C-10")
         self.assertEqual(current["last_completed_ticket"]["status"], "done")
-        self.assertEqual(current["selected_ticket"]["id"], "C-EA1")
+        self.assertEqual(current["selected_ticket"]["id"], "C-W1")
         self.assertEqual(current["selected_ticket"]["status"], "in_progress")
         self.assertIsNone(current["next_selected_ticket"])
         self.assertFalse(
@@ -99,10 +99,10 @@ class NewcomerProjectionTests(unittest.TestCase):
             f"<strong>Current stage:</strong> {render_hub.esc(current['stage'])}",
             self.output,
         )
-        self.assertIn("run 34900578390", self.output)
-        self.assertIn("C-EA1-D4 alone is selected", self.output)
-        self.assertIn("full-watermark recovery", self.output)
-        self.assertIn("No real acknowledgement", self.output)
+        self.assertIn("run 34915666663", self.output)
+        self.assertIn("C-W1-D1 now selects", self.output)
+        self.assertIn("no registration on scanned netuids", self.output)
+        self.assertIn("No chain write", self.output)
 
     def test_changing_canonical_position_reprojects_every_current_surface(self) -> None:
         changed = dict(self.data)
@@ -159,7 +159,7 @@ class NewcomerProjectionTests(unittest.TestCase):
         for phrase in (
             "Target-state orientation only",
             "required run 34789621325",
-            "C-EA1-D4 is a prospective v2 correctness candidate",
+            "C-W1-D1 is implemented and locally tested as a separate DEVELOPMENT candidate",
             "planned for Wave C1",
             "Burgers v1 remains PRE-LIVE",
             "Science ends at R14",
