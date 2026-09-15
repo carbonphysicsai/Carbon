@@ -7,7 +7,15 @@
 > Mandatory-treasury and temporary-direct-only clauses below are superseded
 > on payment routing only. Scientific admission/comparison, frontier/finality,
 > security, qualification and deployment requirements remain domain-owned.
-> Treasury is optional and non-blocking; no public-network operation is authorized.
+> Treasury is optional and non-blocking; that payment amendment by itself
+> authorizes no public-network operation.
+
+> **OWNER-C-W1-DEV-TESTNET-01 prospective amendment (2026-09-15):**
+> `launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.7.md` adds a distinct
+> public/synthetic DEVELOPMENT testnet demonstration. It does not weaken or
+> complete official C-W1/C-09/C-EA2, protected, scientific, security, mainnet
+> or LIVE requirements. Public writes require its exact external transaction
+> gates; AWS is deferred and Hippius is an unverified future preference.
 
 This repository contains the implementation of **Carbon**, an incentivized experimental system for discovering, independently testing, learning from, and qualifying methods for constructing fast physical models.
 

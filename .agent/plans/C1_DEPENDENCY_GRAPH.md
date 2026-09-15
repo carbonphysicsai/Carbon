@@ -1,10 +1,10 @@
-# C1 real-vertical dependency graph after C-EA1 PR #177
+# C1/C2 dependency graph after C-EA1 PR #180 and C-W1-D1 selection
 
 **Decision:** `OWNER-C1-CONTRACTS-01`
 **Status:** authoritative planning checkpoint after merge
 **Primary Hub map_ref:** `WAVE-C`
-**Implementation selection:** PR #177 accepted C-EA1-D3's unprovisioned AWS
-package; C-EA1-D4's prospective correctness/recovery-handoff repair is selected
+**Implementation selection:** PR #180 accepted C-EA1-D4; the distinct
+public/synthetic C-W1-D1 DEVELOPMENT profile is selected
 
 ## Authority resolution
 
@@ -26,7 +26,7 @@ budget/resource controls and fail-closed missing policy.
 ## Exact graph
 
 ```text
-C-01(done) ─┬─> C-AUTH1(done) ─> C-EA0(done) ─> C-EA1(synthetic + alpha preparation + AWS v1 package accepted; v2 repair selected)
+C-01(done) ─┬─> C-AUTH1(done) ─> C-EA0(done) ─> C-EA1(synthetic + alpha preparation + unprovisioned AWS v1/v2 accepted; deployment deferred)
             └─> C-02(merged DEVELOPMENT adapter prerequisite; full ticket open)
                     └─> C-03(PR #149 capability + PR #151 hardening)
                             └─> C-04(PR #154 engineering + D-03/D-04 prerequisite harness)
@@ -36,6 +36,7 @@ C-02 + C-04 ─> C-05(PR #157 engineering + D-02/D-05 prerequisite harness)
                     C-07 + real archive profile + C-EA1 ─> C-EA2
 A10 boundary + C-06 + C-07 + C-EA2 ─> C-09
 G2(exact standard localnet only) + C-09 + C-EA2 + real signed C1 evidence ─> C-W1
+NET-2 + C-03 + C-06/C-07/C-08 + C-10 + checked publisher ─> C-W1-D1(public/synthetic DEVELOPMENT only)
 NET-3 + C-01 + A4-A8 ─> C-EP1(done, DEVELOPMENT fixture only)
 C-EP1 ─> C-EP2(done measurement/replay only; no sharing runtime)
 C-EP2 + C-AUTH1 ─> C-EP3(done input acquisition/public component probe)
@@ -49,7 +50,7 @@ C-EP3 + supplied immutable JAX bundle ─> C-02(merged DEVELOPMENT adapter prere
 | C-01 | done, bounded | ticket exists; sufficient | A7, B-GATE satisfied | none for closed scope | none | complete | already implemented/tested |
 | C-AUTH1 | done, bounded public development | ticket exists; sufficient | C-01 satisfied | real scientific/reference/archive decisions remain outside scope | none for closed scope | complete | already implemented/tested only in closed scope |
 | C-EA0 | done contract | ticket exists; sufficient | C-01, C-AUTH1, B-GATE satisfied | all real archive policy families remain reserved | none | complete | not an implementation ticket |
-| C-EA1 | synthetic/alpha preparation and D3 AWS v1 package accepted; `C-EA1-D4` v2 correctness/recovery handoff selected | ticket, D2 profile/config/preflight, PR #168, PR #177 and D4 provider/package candidate | C-EA0, accepted preparation and D3 package satisfied | actual recovery/security/deployment/signer acceptance remain open | AWS account/network/principals, provisioned services, custody, full-watermark restore and deployment authorization absent | current selected repair; no real ack | **yes, current slice only** |
+| C-EA1 | synthetic/alpha preparation and unprovisioned AWS v1/v2 packages accepted; AWS deployment deferred | ticket, D2 profile/config/preflight and PRs #168/#177/#180 | C-EA0 satisfied | actual provider recovery/security/deployment/signer acceptance remain open | provider/account/custody/full-watermark observation absent | no real ack; Hippius preferred but unverified | no, not selected |
 | C-EP1 | done, bounded DEVELOPMENT fixture implementation | ticket/evidence complete | NET-3, C-01 and A4-A8 bounded fixtures satisfied | all production entropy, custody, archive, science, security and comparison policy remains reserved | none for closed fixture scope | complete in PR #143 | already implemented/tested only in DEVELOPMENT scope |
 | C-EP2 | done, bounded DEVELOPMENT measurement and detached replay | ticket/evidence complete | C-EP1 satisfied | reference compatibility, acceptable delay, B overhead, science/security criteria remain reserved or unknown | authorized real reconstruction/reference backend and representative workload remain missing | complete in PR #144 | already implemented/tested only in DEVELOPMENT scope |
 | C-EP3 | done, bounded DEVELOPMENT input acquisition and detached public probe | ticket/evidence complete | C-EP2 and C-AUTH1 satisfied | reference qualification, comparison meaning, and every real security/science input remain reserved | supplied JAX bundle resolves only the reconstruction-source input | complete in PR #145 | already implemented/tested only in DEVELOPMENT scope |
@@ -63,7 +64,7 @@ C-EP3 + supplied immutable JAX bundle ─> C-02(merged DEVELOPMENT adapter prere
 | C-10 | done in bounded DEVELOPMENT re-execution scope; PR #173 accepted | ticket, C-10-D1 plan/evidence and C-01 relation/C-06/C-07 composition | C-06 and C-07 bounded engineering capabilities satisfied | qualified scientific comparison and independent security acceptance remain open | independent administration and protected evidence absent | bounded slice complete | **already usable as DEVELOPMENT evidence only** |
 | C-EA2 | `future_reserved`, unselected, blocked | ticket exists; sufficient | C-EA1 plus selected real C-02–C-07 path | real artifact, rights, retention, custody/KMS, topology, durability, recovery and security policies | eligible real archive service/acknowledgement | already materialized; do not select | **no** |
 | C-09 | `future_reserved`, unselected, blocked | ticket materialized here; sufficient | A10 boundary, C-06, C-07, C-EA2 | qualified provenance and Challenge-local publication/disclosure policy | signed real receipt/result and eligible real archive acknowledgement | materialized by this checkpoint | **no** |
-| C-W1 | `future_reserved`, unselected, blocked | ticket exists; sufficient | exact G2 scope plus C-09, C-EA2 and real signed C1 evidence | public network identity, eligibility window, sink/custody and security/economic activation | actual real C1 proof chain and public testnet access | already materialized; do not select | **no** |
+| C-W1 | official path `future_reserved`; distinct C-W1-D1 DEVELOPMENT slice selected | ticket plus C-W1-D1 plan/evidence | official: G2+C-09+C-EA2+real C1; development: accepted NET-2/C-03/C-06/C-07/C-08/C-10 and publisher | exact transaction approval; official science/security remain open | selected netuid, registration/UID/capability and eligible Linux host absent | official path unchanged; development all-burn only | **yes, C-W1-D1 only** |
 
 ## Exact C-02 source resolution and remaining boundary
 
@@ -99,9 +100,10 @@ DEVELOPMENT composition; PR #168 accepted C-EA1's separately versioned
 private-alpha preparation without implementing real acknowledgement; and PR
 #173 accepted C-10's bounded DEVELOPMENT re-execution; and PR #177 accepted
 C-EA1-D3's concrete unprovisioned AWS deployment package. The repository owner
-now selects only C-EA1-D4's v2 correctness and recovery-handoff repair. C-EA2
-remains blocked until an authorized deployment can produce an eligible real
-acknowledgement with accepted full-dependency recovery/security evidence.
-C-EA2 and C-W1 remain unimplemented and ineligible. This graph authorizes no
-protected reference, official science, public-network operation, real archive
+PR #180 accepted C-EA1-D4; AWS deployment is now deferred and Hippius remains
+an unverified future storage preference. The repository owner selects only
+C-W1-D1's public/synthetic DEVELOPMENT path. C-EA2 and official C-W1 remain
+unimplemented/ineligible. Public execution is still gated by exact observed
+network identity/capability and transaction authorization. This graph
+authorizes no protected reference, official science, real archive
 acknowledgement, production qualification or LIVE state.

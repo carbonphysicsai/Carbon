@@ -14125,3 +14125,49 @@ recovery, C-EA3-owned acceptance, scoped security acceptance, deployment and
 signer authorization remain external. The provider-backed real issuer is not
 dependency-ready and stays absent; C-EA2 remains unselected until an eligible
 real C-EA1 acknowledgement exists.
+
+## 2026-09-15 — OWNER-C-W1-DEV-TESTNET-01: separate public/synthetic DEVELOPMENT testnet path
+
+**Authority source and scope.** The repository owner directs Carbon toward a
+working public Bittensor testnet DEVELOPMENT demonstration, defers AWS and its
+spending, names Hippius as the preferred future storage provider, and authorizes
+the prospective roadmap/dependency amendment plus bounded engineering. This is
+not protected-processing, scientific/security qualification, official C-09/
+C-W1 eligibility, C-EA2, mainnet, paid infrastructure or LIVE authority.
+
+**Dependency decision.** Add `carbon.public-synthetic-testnet.development.v1`
+as a distinct C-W1-D1 consumer. Safe/correct DEVELOPMENT dependencies are
+NET-2/C-08 authenticated request association, C-01/C-03 isolated execution,
+C-06/C-07 signed DEVELOPMENT evidence, C-10 quarantine, bounded local review/
+export retention and the checked NET-4B/NET-6 publication lifecycle. Real
+archive acknowledgement, provider durability/host-loss recovery, protected
+custody, official C-09 evidence, qualified science and independent security
+acceptance remain required only by their original protected/official paths.
+Provider research and B-E4 remain optional.
+
+**Publication decision.** Resolve source authority from the exact C-08 journal
+and active C-06 ledger, never from caller approval flags. While comparison is
+unresolved, permit only a short-lived complete all-burn DEVELOPMENT vector to
+the verified subnet-owner sink. Require exact testnet/genesis/netuid/runtime/
+publisher capabilities and a durable, block-bounded, one-dispatch transaction
+authorization with zero TAO value-transfer authority. Preserve dispatch intent,
+ambiguous reconciliation, finalization and row readback. Development signatures
+and chain state cannot become scientific truth, a winner, archive
+acknowledgement, reward, protected evidence or official eligibility.
+
+**Storage and retention.** Permit at most 2 GiB of local DEVELOPMENT evidence
+plus a content-bound review export. Same-host bytes are explicitly not
+host-loss recoverable. Preserve the merged AWS v1/v2 packages but defer
+deployment and spending. Hippius remains wholly unverified pending a later
+bounded assessment of identity/integrity, encryption/custody, retention/
+deletion/recovery, availability, costs, failure semantics and acknowledgement
+compatibility; that study does not block C-W1-D1.
+
+**Observed external boundary.** Read-only pinned-SDK preflight observed the
+official test endpoint/genesis and runtime spec 458 but no registration for the
+available public hotkey on the scanned netuids. The local machine is Darwin
+arm64 without an available Docker daemon, so it cannot establish Linux C-03
+isolation. Public writes remain blocked on a selected existing netuid, observed
+registration/UID and publisher capability, an eligible authorized Linux host,
+any exact testnet-token registration need and a concrete one-dispatch owner
+authorization. No wallet secret was read and no chain mutation occurred.

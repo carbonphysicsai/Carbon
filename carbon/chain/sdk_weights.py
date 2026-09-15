@@ -97,6 +97,7 @@ def journaled_substrate(
     before_sign,
     before_dispatch,
     *,
+    network="localnet",
     after_inner_sign=None,
     after_shield_key=None,
     before_signed_extrinsic=None,
@@ -105,7 +106,7 @@ def journaled_substrate(
     require_sdk()
     if (
         type(context) is not ChainContext
-        or context.network != "localnet"
+        or context.network != network
         or context.netuid == 0
     ):
         raise PublicationFailure("DISPOSABLE_SUBNET_REQUIRED")
@@ -294,16 +295,17 @@ async def capture_capabilities(client, sub, context, publisher):
 
 
 class BittensorPublicationBackend:
-    """Explicit disposable-localnet SDK lifecycle. Wallet supplied externally."""
+    """Exact-network checked SDK lifecycle. Wallet is supplied externally."""
 
-    def __init__(self, context, publisher, wallet):
+    def __init__(self, context, publisher, wallet, *, network="localnet"):
         if (
             type(context) is not ChainContext
-            or context.network != "localnet"
+            or context.network != network
             or context.netuid == 0
         ):
             raise PublicationFailure("DISPOSABLE_SUBNET_REQUIRED")
         self.context, self.publisher, self.wallet = context, publisher, wallet
+        self.network = network
         self.client = self.substrate = None
 
     async def start(self):
@@ -357,7 +359,9 @@ class BittensorPublicationBackend:
     async def execute(self, plan, integers, call_checked, before_sign, before_dispatch):
         import bittensor as bt
 
-        sub = journaled_substrate(self.context, before_sign, before_dispatch)
+        sub = journaled_substrate(
+            self.context, before_sign, before_dispatch, network=self.network
+        )
         client = bt.Client(
             self.context.endpoint,
             substrate=sub,

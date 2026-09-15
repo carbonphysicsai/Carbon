@@ -1,10 +1,9 @@
 # C-EA1 — Durable evidence archive
 
 **Wave:** C1 real scientific execution foundations
-**Status:** `in_progress`
-**Status scope:** separately versioned private-alpha AWS correctness and
-recovery-handoff continuation; prior synthetic runtime, alpha preparation and
-unprovisioned v1 package remain accepted
+**Status:** bounded implementation slices accepted; real acknowledgement open
+**Status scope:** synthetic runtime and unprovisioned AWS v1/v2 packages are
+accepted; AWS deployment is owner-deferred and non-blocking for C-W1-D1
 **Completion boundary:** exact synthetic development profile accepted at head
 `a779af066f4bf9bc36b6d6ab23914fa19191e1de` in run `34558389185` and merged as
 `0e0714c8260ca482a0ba2b743b2eaefd50508da1`; alpha preparation is a new
@@ -12,12 +11,13 @@ fail-closed slice and cannot acknowledge real evidence
 **Depends on:** C-EA0
 **Owner:** Codex + evidence architecture
 **Accountable reviewer:** Operations + data/security + scientific integration
-**Selection authority:** `OWNER-C1-BURGERS-ALPHA-01` for the active slice
+**Selection authority:** `OWNER-C1-BURGERS-ALPHA-01` for the accepted slices;
+`OWNER-C-W1-DEV-TESTNET-01` defers further AWS deployment work
 **Runtime decisions:** `C-EA1-D1` (synthetic), `C-EA1-D2` (alpha preparation),
 `C-EA1-D3` (accepted unprovisioned AWS v1 package), `C-EA1-D4`
-(prospective AWS v2 correctness and recovery handoff)
+(accepted AWS v2 correctness and recovery handoff)
 **Delivery:** PR #136 for synthetic; alpha preparation accepted in PR #168;
-unprovisioned AWS v1 package accepted in PR #177
+AWS v1 package accepted in PR #177; AWS v2 repair accepted in PR #180
 **Goal:** Implement the catalogue, immutable artifact store, verified manifests, journal, outbox, and availability acknowledgement defined by C-EA0 without creating real-finalization authority.
 
 ## Selected profile
@@ -250,7 +250,20 @@ unavailable, and C-EA2 stays unselected.
 - [x] The package contains a credential-free deployment-input schema/example,
   reviewed rollback/recovery order and sourced incremental/complete/rehearsal/
   retained-cost views.
-- [ ] Exact-head automated acceptance and normal merge remain pending.
+- [x] Exact head `a4395a3b3f7707fc9e2793e333cc5d101ea01c64` passed run
+  `34915666663`; PR #180 normally merged as
+  `1f9ead70c886f9d04804533eab3579083c4e358d`.
 - [ ] Provisioning, destructive test-owned rehearsal, provider recovery
   acceptance, security acceptance, real acknowledgement and C-EA2 remain
   external/unselected.
+
+## Owner deferral after PR #180
+
+`OWNER-C-W1-DEV-TESTNET-01` defers AWS deployment and its proposed spending.
+The v1/v2 code, tests and evidence remain historical, reviewable preparation;
+no resource is deleted or relabeled. Hippius is the preferred future storage
+provider, but its identity/integrity, encryption/custody, retention/deletion,
+recovery, availability, cost, failure and acknowledgement semantics remain
+unverified until a later bounded storage milestone. Neither provider blocks the
+separate public/synthetic DEVELOPMENT testnet profile. Real C-EA1
+acknowledgement and C-EA2 remain unavailable.

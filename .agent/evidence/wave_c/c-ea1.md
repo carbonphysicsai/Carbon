@@ -323,3 +323,16 @@ cases. Their required service execution belongs to the single canonical Linux
 acceptance. The first CloudFormation lint run rejected the prior
 `List<AWS::EC2::RouteTable::Id>` declaration and non-array endpoint input; v2
 now uses the documented `CommaDelimitedList` shape and the rerun is clean.
+
+PR #180 accepted exact C-EA1-D4 head
+`a4395a3b3f7707fc9e2793e333cc5d101ea01c64` in run `34915666663` and normally
+merged it as `1f9ead70c886f9d04804533eab3579083c4e358d`. The implementation is tested
+only as an unprovisioned package; provider behavior, recovery, security, real
+acknowledgement and C-EA2 remain unearned.
+
+`OWNER-C-W1-DEV-TESTNET-01` subsequently defers AWS deployment and spending.
+The package and historical cost proposal remain preserved. Hippius is the
+preferred future storage provider but remains unverified against Carbon's
+archive, custody, retention, deletion, recovery, availability, cost and
+acknowledgement contracts. Neither provider is a dependency of the separate
+public/synthetic DEVELOPMENT testnet profile.
