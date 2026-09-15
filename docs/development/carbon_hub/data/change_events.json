@@ -3210,6 +3210,46 @@
         "WAVE-C/NET-6"
       ],
       "supersedes": null
+    },
+    {
+      "map_ref": "WAVE-C/C-W1",
+      "event_type": "evidence",
+      "event_id": "CW1-REAL-AGENT-TOOLS-20260915",
+      "owner_lane": "documentation_maintenance",
+      "status": "active",
+      "summary": "PR #188 merged the supervised session. Distinct miner UID 1 finalized on subnet 567 at block 8013851 for 0.005426933 test TAO. Four real model calls cost USD 0.0019395 and proposed FNO-32, then stopped on malformed dry-validation arguments before submission or evaluation. The selected continuation repairs strict agent tool framing; a new bounded model session needs separate approval. Activation and publication remain separately gated.",
+      "primary_detail": "docs/development/CW1_BURGERS_AGENT_SESSION.md",
+      "affects": [
+        "SYSTEM/AGENT-EXECUTION",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "WAVE-B",
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE",
+        "WAVE-C/C-01",
+        "WAVE-C/C-02",
+        "WAVE-C/C-03",
+        "WAVE-C/C-04",
+        "WAVE-C/C-06",
+        "WAVE-C/C-09",
+        "WAVE-C/C-10",
+        "WAVE-C/C-AUTH1",
+        "WAVE-C/C-EA0",
+        "WAVE-C/C-EA1",
+        "WAVE-C/C-EA2",
+        "WAVE-C/C-EP1",
+        "WAVE-C/C-EP2",
+        "WAVE-C/C-EP3",
+        "WAVE-C/C-W1",
+        "WAVE-C/NET-1",
+        "WAVE-C/NET-2",
+        "WAVE-C/NET-3",
+        "WAVE-C/NET-4A",
+        "WAVE-C/NET-4B",
+        "WAVE-C/NET-5",
+        "WAVE-C/NET-5R",
+        "WAVE-C/NET-6"
+      ],
+      "supersedes": null
     }
   ]
 }
