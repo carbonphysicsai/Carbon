@@ -81,8 +81,13 @@ test("historical malformed and verified delivery receipts preserve sequence", ()
   assert.equal(history.follow_on_ticket.generated, false);
 });
 
-test("production HTML and active Wave selection are unchanged", () => {
+test("historical delivery stays immutable while the successor changes only the application and leaves Wave selection intact", () => {
   const html = fs.readFileSync(path.join(WB, "Carbon_Opportunity_Workbench.html"));
-  assert.equal(crypto.createHash("sha256").update(html).digest("hex"), "19a8cc52f2c8dd55d4549a4cb581c39e94aa3293803f7ec0193dc3858daf3404");
+  assert.notEqual(crypto.createHash("sha256").update(html).digest("hex"), "19a8cc52f2c8dd55d4549a4cb581c39e94aa3293803f7ec0193dc3858daf3404");
+  assert.match(html.toString("utf8"), /CarbonSourceAssessment/);
+  assert.match(
+    fs.readFileSync(path.join(DELIVERY, "delivery_receipt.json"), "utf8"),
+    /DELIVERED_VERIFIED_UNACKNOWLEDGED/,
+  );
   assert.match(fs.readFileSync(path.resolve(WB, "../../../.agent/WAVE_C.md"), "utf8"), /C-W1-D1/);
 });

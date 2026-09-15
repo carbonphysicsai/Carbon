@@ -31,12 +31,19 @@ def build():
     app = (ROOT / "src/app.js").read_text()
     routing = (ROOT / "src/routing.js").read_text()
     c05_evidence = (ROOT / "src/c05_evidence.js").read_text()
+    source_assessment = (ROOT / "src/source_assessment.js").read_text()
     workflow = (ROOT / "src/workflow.js").read_text()
     goal_app = (ROOT / "src/goal_app.js").read_text()
     atlas = data(ROOT / "data/atlas.json")
     studies = data(ROOT / "data/studies.json")
     cpes = data(ROOT / "data/cpes_study_v1.json")
     c05_index = data(ROOT / "data/c05_fixture_index_v2.json")
+    assessment_profile = data(
+        ROOT / "source_assessment/repository_snapshot/v1/profile.json"
+    )
+    assessment_index = data(
+        ROOT / "source_assessment/repository_snapshot/v1/approved_assessments.json"
+    )
     scripts = " ".join(
         "'" + digest(s) + "'"
         for s in [
@@ -44,12 +51,15 @@ def build():
             app,
             routing,
             c05_evidence,
+            source_assessment,
             workflow,
             goal_app,
             atlas,
             studies,
             cpes,
             c05_index,
+            assessment_profile,
+            assessment_index,
         ]
     )
     csp = f"default-src 'none'; script-src {scripts}; style-src '{digest(style)}'; img-src data:; connect-src 'none'; form-action 'none'; base-uri 'none'; object-src 'none'"
@@ -61,10 +71,13 @@ def build():
         "STUDIES": studies,
         "CPES": cpes,
         "C05_INDEX": c05_index,
+        "SOURCE_ASSESSMENT_PROFILE": assessment_profile,
+        "SOURCE_ASSESSMENT_INDEX": assessment_index,
         "ENGINE": engine,
         "APP": app,
         "ROUTING": routing,
         "C05_EVIDENCE": c05_evidence,
+        "SOURCE_ASSESSMENT": source_assessment,
         "WORKFLOW": workflow,
         "GOAL_APP": goal_app,
     }.items():

@@ -143,7 +143,7 @@ function check(name, condition) {
     .locator("#goal-workspace-file")
     .setInputFiles(await exported.path());
   await page.waitForFunction(() =>
-    document.querySelector("#toast").textContent.includes("Imported v0.6"),
+    document.querySelector("#toast").textContent.includes("Imported v0.7"),
   );
   check(
     "export and reimport preserve cumulative review debt",
@@ -257,7 +257,7 @@ function check(name, condition) {
   );
   const result = {
     artifact: "Carbon_Opportunity_Workbench.html",
-    scope: "GOAL-WORKBENCH-05A cumulative state, provenance, console, and applicability journeys",
+    scope: "GOAL-WORKBENCH-07 cumulative state, provenance, console, applicability, and source-assessment compatibility journeys",
     engine: "Google Chrome (Chromium)",
     passed: checks.length,
     failed: 0,

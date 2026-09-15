@@ -1,4 +1,14 @@
-# Owner report — GOAL-WORKBENCH-05A / GOAL-WORKBENCH-05 / GOAL-WORKBENCH-04 / GOAL-WORKBENCH-03 / GOAL-WORKBENCH-02 / EXAM-PROTECT-WORKBENCH-01
+# Owner report — GOAL-WORKBENCH-07 / GOAL-WORKBENCH-06 / GOAL-WORKBENCH-05A / GOAL-WORKBENCH-05 / GOAL-WORKBENCH-04 / GOAL-WORKBENCH-03 / GOAL-WORKBENCH-02 / EXAM-PROTECT-WORKBENCH-01
+
+## v0.7 Ryan-controlled source-assessment consumer
+
+Ryan / `@jbequ5` is the final authority for this bounded interface. The v0.7 application implements request preparation and a repository-pinned read-only consumer. It distinguishes the actual Engineering preparer, claimed/proposed owner, exact adoption, snapshot admission, and consumer verification.
+
+The production snapshot contains zero approved assessments. The prepared Burgers/Dynamics statement is `PENDING_EXACT_OWNER_ADOPTION`; its test-positive branch is isolated and cannot be installed by the production path. Ryan can now open the supported design, freeze/export the question, inspect the installed snapshot and pending state, and import only exact admitted bytes. No current import confers scientific qualification, rights, fresh execution, scoring, protected reuse, or launch.
+
+The exact adoption request is recorded at issue #41 comment `5680762605`. Its actual GitHub actor is `fitz-lang6`; it is a delivered request, not a Ryan-authored response. No polling or inferred acknowledgement follows.
+
+The prior Harsh-only prerequisite is superseded for this interface. Historical Workbench-06 posts and actors remain unchanged, and Harsh remains available for consultation at Ryan's request. The runtime Wave selection is untouched.
 
 ## v0.6 state-integrity repair
 

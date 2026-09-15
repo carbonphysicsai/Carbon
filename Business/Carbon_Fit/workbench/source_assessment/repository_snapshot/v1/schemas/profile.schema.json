@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "carbon.goal-workbench.repository-snapshot-profile.v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "profile_id",
+    "policy_decision_id",
+    "verifier_implementation_id",
+    "issuer_policy",
+    "supported_scope",
+    "trust_assumptions",
+    "snapshot_id",
+    "snapshot_as_of",
+    "test_only"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "carbon.goal-workbench.repository-snapshot-profile.v1"
+    },
+    "profile_id": {
+      "const": "burgers-dynamics-public.repository-snapshot.v1"
+    },
+    "policy_decision_id": {
+      "const": "OWNER-GW07-RYAN-SNAPSHOT-01"
+    },
+    "verifier_implementation_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}$"
+    },
+    "issuer_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "principal",
+        "role",
+        "allowed_domains",
+        "adoption_required"
+      ],
+      "properties": {
+        "principal": {
+          "const": "github:jbequ5"
+        },
+        "role": {
+          "const": "FINAL_INTERFACE_OWNER"
+        },
+        "allowed_domains": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "AUTHORING_EXPRESSIBILITY",
+              "SOURCE_ARTIFACT_IDENTITY",
+              "FIXED_EVIDENCE_RELATIONSHIP"
+            ]
+          },
+          "minItems": 0,
+          "maxItems": 128
+        },
+        "adoption_required": {
+          "const": true
+        }
+      }
+    },
+    "supported_scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "physics_family",
+        "goal",
+        "information_scope"
+      ],
+      "properties": {
+        "physics_family": {
+          "const": "periodic_viscous_burgers_1d_v1"
+        },
+        "goal": {
+          "const": "Dynamics"
+        },
+        "information_scope": {
+          "const": "PUBLIC_SYNTHETIC_DEVELOPMENT_ONLY"
+        }
+      }
+    },
+    "trust_assumptions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "maxLength": 8000,
+        "minLength": 1
+      },
+      "minItems": 0,
+      "maxItems": 16
+    },
+    "snapshot_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}$"
+    },
+    "snapshot_as_of": {
+      "type": "string",
+      "maxLength": 1000,
+      "minLength": 1
+    },
+    "test_only": {
+      "type": "boolean"
+    }
+  }
+}

@@ -14209,3 +14209,32 @@ needs a prospectively frozen DEVELOPMENT comparison/eligibility bridge from
 active signed evidence; the existing fixture ledger and unresolved C-06/C-07
 receipts cannot name a winner. That successor does not weaken this all-burn
 transaction and is not selected here.
+
+## 2026-09-15 — OWNER-GW07-RYAN-SNAPSHOT-01: Ryan-controlled repository snapshot for source assessments
+
+**Authority source and scope.** Ryan, Carbon creator and GitHub `@jbequ5`,
+directs implementation of the bounded Workbench source-assessment consumer and
+is the final interface/verifier-policy owner. Harsh is consultative when Ryan
+requests it. This supersedes only the old Harsh-only prerequisite for the
+GOAL-WORKBENCH-06 interface. It does not rewrite historical issue actors or
+transfer scientific, security, rights, spending, runtime, chain, or launch
+authority.
+
+**Implementation decision.** Use a versioned repository snapshot installed in
+the accepted standalone build as the trust root. An import is current only when
+its exact request, sealed semantic subject, raw response bytes, canonical
+content, source relationships, issuer domains, exact Ryan adoption reference,
+and non-withdrawn/conflict-free index entry all match. Workspace data, claimed
+names, hashes, URLs, badges, test fixtures, or ordinary merges cannot replace
+that root. Failure is atomic. Offline freshness and malicious-release/host
+compromise remain outside the stated trust boundary.
+
+**Admission and authority.** The separate public statement is prepared by
+Engineering with Ryan as proposed adopting owner. Until Ryan adopts those exact
+bytes, the production index remains empty and the state is
+`PENDING_EXACT_OWNER_ADOPTION`; positive tests use an isolated test-only root.
+An admitted assessment can resolve only exact mapped technical authoring,
+identity, or fixed-evidence relationship questions. It cannot qualify science,
+grant rights, prove fresh execution, create ScoreInput/eligibility, authorize
+protected reuse, or launch. The smallest reversal is removal/replacement of the
+profile/index in a later accepted build while historical bytes remain retained.

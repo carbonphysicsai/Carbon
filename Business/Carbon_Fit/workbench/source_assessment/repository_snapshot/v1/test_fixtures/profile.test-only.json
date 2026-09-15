@@ -1,0 +1,30 @@
+{
+  "schema_version": "carbon.goal-workbench.repository-snapshot-profile.v1",
+  "profile_id": "burgers-dynamics-public.repository-snapshot.v1",
+  "policy_decision_id": "OWNER-GW07-RYAN-SNAPSHOT-01",
+  "verifier_implementation_id": "CarbonSourceAssessment/repository-snapshot.v1",
+  "issuer_policy": {
+    "principal": "github:jbequ5",
+    "role": "FINAL_INTERFACE_OWNER",
+    "allowed_domains": [
+      "AUTHORING_EXPRESSIBILITY",
+      "SOURCE_ARTIFACT_IDENTITY",
+      "FIXED_EVIDENCE_RELATIONSHIP"
+    ],
+    "adoption_required": true
+  },
+  "supported_scope": {
+    "physics_family": "periodic_viscous_burgers_1d_v1",
+    "goal": "Dynamics",
+    "information_scope": "PUBLIC_SYNTHETIC_DEVELOPMENT_ONLY"
+  },
+  "trust_assumptions": [
+    "The operator uses a genuine accepted Carbon build and trusts configured repository and release administrators.",
+    "The installed snapshot cannot authenticate a live respondent, fresh execution, scientific truth, rights, or customer suitability.",
+    "Offline verification cannot establish whether a later repository snapshot withdraws an assessment.",
+    "A malicious release administrator, altered HTML, compromised browser, host, or older application build is outside this profile."
+  ],
+  "snapshot_id": "TEST-ONLY-GW07-SNAPSHOT-01",
+  "snapshot_as_of": "2026-09-15",
+  "test_only": true
+}

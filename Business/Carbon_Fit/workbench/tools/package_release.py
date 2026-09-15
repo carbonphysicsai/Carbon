@@ -10,11 +10,12 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / "MANIFEST.json"
-ARCHIVE = ROOT / "Carbon_Physics_Goal_Workbench_v0_6.zip"
+ARCHIVE = ROOT / "Carbon_Physics_Goal_Workbench_v0_7.zip"
 EXCLUDED = {
     MANIFEST.name,
     ARCHIVE.name,
     "Carbon_Physics_Goal_Workbench_v0_5.zip",
+    "Carbon_Physics_Goal_Workbench_v0_6.zip",
     "Carbon_Physics_Goal_Workbench_v0_4.zip",
     "Carbon_Physics_Goal_Workbench_v0_3.zip",
     "Carbon_Physics_Opportunity_Workbench_v0_2.zip",
@@ -52,9 +53,9 @@ def payloads() -> list[Path]:
 def build() -> tuple[Path, Path]:
     files = payloads()
     manifest = {
-        "schema_version": "carbon.workbench.release-manifest.v0.6",
+        "schema_version": "carbon.workbench.release-manifest.v0.7",
         "status": "OFFLINE_DECISION_SUPPORT_NOT_PRODUCTION",
-        "application_version": "Carbon Goal-to-Challenge Workbench v0.6",
+        "application_version": "Carbon Goal-to-Challenge Workbench v0.7",
         "decision_ids": [
             "EXAM-PROTECT-WORKBENCH-01",
             "GOAL-WORKBENCH-02",
@@ -62,6 +63,9 @@ def build() -> tuple[Path, Path]:
             "GOAL-WORKBENCH-04",
             "GOAL-WORKBENCH-05",
             "GOAL-WORKBENCH-05A",
+            "GOAL-WORKBENCH-06",
+            "OWNER-GW07-RYAN-SNAPSHOT-01",
+            "GOAL-WORKBENCH-07",
         ],
         "repository_base": "3681f7fb10be0c6e278f53d59ff9b022099ef12d",
         "integration_revision_at_packaging": integration_revision(),
@@ -106,6 +110,40 @@ def build() -> tuple[Path, Path]:
             "accepted_head": "5344e3da67c10abf35ad177c60c1d10395c28cfa",
             "acceptance_run": 34907708284,
             "merge_commit": "3681f7fb10be0c6e278f53d59ff9b022099ef12d",
+        },
+        "accepted_goal_workbench_05a_baseline": {
+            "pull_request": 181,
+            "accepted_head": "36cb25b6d6d010aaf4378eaece99cebb63ca630a",
+            "acceptance_run": 34918769638,
+            "merge_commit": "e5aafc522ca40db12f1897bcc0beacdedb44d823",
+        },
+        "accepted_goal_workbench_06_contract": {
+            "pull_request": 182,
+            "accepted_head": "fa9c565e576ec971366c85c4696b29f3542a1359",
+            "merge_commit": "d2067bd4da85edafc24be5917d480089a514c670",
+            "authority": "Detached conformance only; historical v1 fixtures remain non-authoritative.",
+        },
+        "accepted_goal_workbench_06a_delivery_integrity": {
+            "pull_request": 184,
+            "accepted_head": "27d84615badccfd91d6d04333cc3157df397f8c7",
+            "acceptance_run": 34971837843,
+            "merge_commit": "5b68da95580c659f8555d1f5a9caaddb049eb487",
+            "corrected_delivery_comment": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5675346832",
+            "authority": "Historical source-owner delivery integrity only; no eligible source response or assessment adoption is inferred.",
+        },
+        "accepted_cw1_ci_boundary_repair": {
+            "pull_request": 186,
+            "accepted_head": "7dd1bc8a5c5bcdfe8ed016f34e535c9ea5d4785f",
+            "acceptance_run": 34967546351,
+            "merge_commit": "d3e285790f722d76270d517947a865d5e5c6bbb1",
+            "scope": "Dependency-light structural invariant; runtime behavior remains covered in the declared CPU environment.",
+        },
+        "source_assessment_snapshot": {
+            "profile": "burgers-dynamics-public.repository-snapshot.v1",
+            "policy_decision": "OWNER-GW07-RYAN-SNAPSHOT-01",
+            "production_approved_entries": 0,
+            "admission_state": "PENDING_EXACT_OWNER_ADOPTION",
+            "authority": "Repository-pinned technical correspondence only; no scientific, rights, execution, score, protected-use, or launch authority.",
         },
         "post_merge_review_input": {
             "archive_sha256": "85aa3633410ea41cad9029a5e864e42ca2134c4ff0ec9eb5caef638acd4e2f78",
@@ -158,7 +196,7 @@ def build() -> tuple[Path, Path]:
         ARCHIVE, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9
     ) as out:
         for path in sorted(archive_files):
-            name = "carbon_goal_workbench_v0_6/" + str(path.relative_to(ROOT))
+            name = "carbon_goal_workbench_v0_7/" + str(path.relative_to(ROOT))
             info = zipfile.ZipInfo(name, date_time=(2026, 9, 15, 0, 0, 0))
             info.compress_type = zipfile.ZIP_DEFLATED
             info.external_attr = (0o755 if path.suffix == ".py" else 0o644) << 16

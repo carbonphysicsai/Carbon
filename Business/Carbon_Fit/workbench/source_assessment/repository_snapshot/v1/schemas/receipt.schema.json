@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "carbon.goal-workbench.source-assessment-receipt.v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "receipt_id",
+    "request_id",
+    "response_id",
+    "profile_id",
+    "snapshot_id",
+    "snapshot_as_of",
+    "status",
+    "answered_question_ids",
+    "remaining_question_ids",
+    "resolved_reason_ids",
+    "remaining_reason_ids",
+    "origin_verification",
+    "authority_effect"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "carbon.goal-workbench.source-assessment-receipt.v1"
+    },
+    "receipt_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}$"
+    },
+    "request_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}$"
+    },
+    "response_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}$"
+    },
+    "profile_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}$"
+    },
+    "snapshot_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}$"
+    },
+    "snapshot_as_of": {
+      "type": "string",
+      "maxLength": 1000,
+      "minLength": 1
+    },
+    "status": {
+      "enum": [
+        "MATCHED_APPROVED_SOURCE_SNAPSHOT",
+        "HISTORICAL_WITHDRAWN",
+        "HISTORICAL_SUPERSEDED"
+      ]
+    },
+    "answered_question_ids": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}$"
+      },
+      "minItems": 0,
+      "maxItems": 128
+    },
+    "remaining_question_ids": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}$"
+      },
+      "minItems": 0,
+      "maxItems": 128
+    },
+    "resolved_reason_ids": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}$"
+      },
+      "minItems": 0,
+      "maxItems": 128
+    },
+    "remaining_reason_ids": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,255}$"
+      },
+      "minItems": 0,
+      "maxItems": 128
+    },
+    "origin_verification": {
+      "const": "CONSUMER_DERIVED_REPOSITORY_SNAPSHOT_MATCH"
+    },
+    "authority_effect": {
+      "const": "NONE"
+    }
+  }
+}

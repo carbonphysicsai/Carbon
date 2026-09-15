@@ -442,7 +442,7 @@ test("favorable conditional economics cannot choose a route", () => {
   assert.equal(d.route_plan.route, "UNASSESSED");
 });
 
-test("v0.4 migration adds empty v0.6 fields and never selects or applies evidence", () => {
+test("v0.4 migration adds current empty fields and never selects or applies evidence", () => {
   const { w } = sourceDesign(),
     old = clone(w);
   old.schema_version = "carbon.goal-workbench.workspace.v0.4";
@@ -462,6 +462,7 @@ test("v0.4 migration adds empty v0.6 fields and never selects or applies evidenc
         delete d.scope[key];
       delete d.route_plan;
       delete d.evidence_bindings;
+      delete d.source_assessments;
       delete d.coordination;
       d.change_log = d.change_log.map(({ domains, ...rest }) => rest);
     }

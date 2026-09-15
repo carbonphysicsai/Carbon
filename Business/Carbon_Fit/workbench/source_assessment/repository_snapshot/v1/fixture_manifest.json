@@ -1,0 +1,35 @@
+{
+  "schema_version": "carbon.goal-workbench.source-assessment-fixture-manifest.v1",
+  "generated_by": "tools/build_repository_snapshot_fixtures.cjs",
+  "production_index_state": "EMPTY_PENDING_EXACT_OWNER_ADOPTION",
+  "files": {
+    "candidate/public_design.json": {
+      "bytes": 22209,
+      "sha256": "19c2442442bc7097616ff0d3f22f006e4a102c7179a9ae11a6dfe738378dc54f"
+    },
+    "candidate/request.json": {
+      "bytes": 7141,
+      "sha256": "0385c3b2630010a2ec84ff2cd1aa93225664b08d1a40556fe4d5951f9681b27b"
+    },
+    "candidate/assessment_pending_adoption.json": {
+      "bytes": 3133,
+      "sha256": "49acb3598d034cf76ba854718cc2941ac3bf069e1623e32a8a99a9002d298e82"
+    },
+    "candidate/RYAN_ADOPTION_PACKET.md": {
+      "bytes": 2706,
+      "sha256": "5bda90e75f30f3e3eb9e684b568fbd1e340363cfc511f7cf6c989e3b80c62c43"
+    },
+    "test_fixtures/profile.test-only.json": {
+      "bytes": 1340,
+      "sha256": "5a4d7787bd83f4d83bda851015426542418d87cfbfc8186ba6be794720743e62"
+    },
+    "test_fixtures/approved_assessments.test-only.json": {
+      "bytes": 1227,
+      "sha256": "71eb543857c0bd5fa063878f03cc202df38ed2bfcb3c24ad723cbedae962f318"
+    },
+    "test_fixtures/assessment.test-only.json": {
+      "bytes": 3137,
+      "sha256": "3a7ca5c456ed3bf3c362dc659914877066c2ab718898e1c790fa8eb509956cc3"
+    }
+  }
+}

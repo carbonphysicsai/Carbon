@@ -1,0 +1,27 @@
+{
+  "schema_version": "carbon.goal-workbench.approved-assessment-snapshot.v1",
+  "snapshot_id": "TEST-ONLY-GW07-SNAPSHOT-01",
+  "test_only": true,
+  "entries": [
+    {
+      "assessment_id": "GW07-BURGERS-DYNAMICS-ASSESSMENT-001",
+      "request_id": "GW07-BURGERS-DYNAMICS-REQUEST-001",
+      "request_digest": "sha256:d92b9eb69d5285dc3fa1ba8cd66863382b2dbcfb7ae93f4c7169ca5c86a56f2f",
+      "subject_digest": "sha256:4fc877a2f13545432b062c203a1e4d43d79ed25c17d4279a4124e0e598f17f91",
+      "response_raw_sha256": "sha256:3a7ca5c456ed3bf3c362dc659914877066c2ab718898e1c790fa8eb509956cc3",
+      "response_canonical_digest": "sha256:61d434c9a841be55e71a222d762a9ff28d6e0a990ef44c91c124f1a923116aad",
+      "issuer_principal": "github:jbequ5",
+      "allowed_domains": [
+        "AUTHORING_EXPRESSIBILITY",
+        "SOURCE_ARTIFACT_IDENTITY",
+        "FIXED_EVIDENCE_RELATIONSHIP"
+      ],
+      "owner_adoption_ref": "test-only:synthetic-owner-adoption/GW07-001",
+      "owner_adoption_content_digest": "sha256:61d434c9a841be55e71a222d762a9ff28d6e0a990ef44c91c124f1a923116aad",
+      "state": "CURRENT",
+      "withdrawn_reason": "",
+      "supersedes_assessment_ids": [],
+      "conflicts_with_assessment_ids": []
+    }
+  ]
+}

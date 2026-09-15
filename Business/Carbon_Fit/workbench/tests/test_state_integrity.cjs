@@ -407,6 +407,7 @@ test("v0.5 contradictory carry-forward migrates to explicit review with correcti
   delete old.jobs[0].working_design_id;
   const od = old.jobs[0].designs[0];
   od.schema_version = "carbon.goal-workbench.design.v0.5";
+  delete od.source_assessments;
   delete od.coordination.current_action_ref;
   const b = od.evidence_bindings[0];
   for (const key of [
