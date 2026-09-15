@@ -14171,3 +14171,41 @@ isolation. Public writes remain blocked on a selected existing netuid, observed
 registration/UID and publisher capability, an eligible authorized Linux host,
 any exact testnet-token registration need and a concrete one-dispatch owner
 authorization. No wallet secret was read and no chain mutation occurred.
+
+## 2026-09-15 — C-W1-D1-E2: finish the bounded operator dispatch boundary
+
+**Authority source and scope.** The repository owner's continuation after
+merged PR #183 directs C-W1-D1 toward its first public-testnet DEVELOPMENT
+execution using existing resources. It authorizes the executable operator
+boundary, truthful readiness repair, read-only target/host discovery and one
+concrete transaction handoff. It does not select a subnet, approve registration
+or transaction fees, supply a Linux host, authorize a chain write, or change
+the original DEVELOPMENT-only authority ceiling.
+
+**Execution decision.** Preserve C-08, C-03, C-07 and C-06 as the request,
+worker, orchestration and receipt owners. Their trusted controller seals one
+closed, content-bound source handoff containing no signing secret. Add fixed
+`run`, `status` and `resume` commands around the existing publication journals:
+`run` validates the exact authenticated context, source association, active
+receipt, worker/resource identities and bounded export before opening the
+named external wallet; `status` is local; `resume` opens no wallet and can only
+reconcile the retained transaction hash. Operator restart therefore cannot
+rerun science or silently resubmit a chain transaction.
+
+**Readiness and external boundary.** Report host eligibility separately from
+chain readiness, and retain observed registration/UID even when permit, stake,
+rate, commitment or runtime policy rejects publication. RPC failure remains
+unknown. The available machine is Darwin arm64 with 8 GiB and no Docker, so it
+cannot run the accepted Linux isolation profile. No Carbon-owned or explicitly
+permitted netuid and no transaction authorization are recorded. The named
+public hotkey was unregistered in the retained read-only scan. Consequently no
+wallet was opened and no registration, publication or test-token spend occurs
+in this delivery.
+
+**Successor boundary.** A later, separately selected score-based DEVELOPMENT
+slice may reuse C-05's exact measurement artifacts, C-10's quarantine outcome
+and C-REWARD's deterministic activation/takeover/decay arithmetic. It first
+needs a prospectively frozen DEVELOPMENT comparison/eligibility bridge from
+active signed evidence; the existing fixture ledger and unresolved C-06/C-07
+receipts cannot name a winner. That successor does not weaken this all-burn
+transaction and is not selected here.

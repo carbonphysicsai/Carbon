@@ -96,9 +96,14 @@ class _Verifier:
         return AuthenticatedHotkey(headers["hotkey"], nonce)
 
 
-def _snapshot(sender: str = "miner", receiver: str = "validator") -> MetagraphSnapshot:
+def _snapshot(
+    sender: str = "miner",
+    receiver: str = "validator",
+    *,
+    context: ChainContext = CONTEXT,
+) -> MetagraphSnapshot:
     return MetagraphSnapshot(
-        CONTEXT,
+        context,
         10,
         "0x" + "2" * 64,
         NOW // 1_000_000,
@@ -115,11 +120,12 @@ def _wire(
     request: str,
     tool: str,
     fields: dict[str, object],
+    challenge: ChallengeKey = CHALLENGE_KEY,
 ) -> bytes:
     return message(
-        CONTEXT,
+        state.context,
         state.snapshot_id,
-        CHALLENGE_KEY,
+        challenge,
         session="c08-session",
         request=request,
         tool=tool,
@@ -131,11 +137,11 @@ def _headers(body: bytes, nonce: int, hotkey: str = "miner") -> dict[str, str]:
     return {"body": digest(body), "nonce": str(nonce), "hotkey": hotkey}
 
 
-def _composition(tmp_path):
-    state = _snapshot()
-    receipt_journal = ReceiptJournal(tmp_path / "transport.sqlite3", CONTEXT)
+def _composition(tmp_path, *, context: ChainContext = CONTEXT):
+    state = _snapshot(context=context)
+    receipt_journal = ReceiptJournal(tmp_path / "transport.sqlite3", context)
     gateway = AuthenticatedGateway(
-        CONTEXT,
+        context,
         CHALLENGE_KEY,
         "validator",
         _Adapter(state),
@@ -161,6 +167,7 @@ def _submit(service, state, *, request: str = "submit-1", nonce: int = NOW):
             "challenge_version": CHALLENGE_KEY.version,
             "strategy": _strategy(),
         },
+        challenge=service.gateway.challenge,
     )
     result = asyncio.run(service.call(body, _headers(body, nonce)))
     assert type(result.mcp_result) is SubmitReceipt
@@ -212,7 +219,7 @@ def _requester(service, receipt_ref) -> RequesterIdentity:
     receipt = service.gateway.journal.resolve(receipt_ref)
     from carbon.transport.gateway import requester_for_receipt
 
-    return requester_for_receipt(CONTEXT, receipt)
+    return requester_for_receipt(service.gateway.context, receipt)
 
 
 def test_authenticated_submit_cancel_and_poll_preserves_source_owners(tmp_path) -> None:

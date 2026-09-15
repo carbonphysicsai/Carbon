@@ -132,8 +132,9 @@ def test_hub_projects_only_cw1_development_slice() -> None:
         == "development_testnet_candidate_official_unstarted"
     )
     assert "No transaction was authorized" in tickets["C-W1"]["current_stage"]
-    assert "34518806217" in current["stage"]
-    assert "standard-profile localnet" in current["stage"]
-    assert "PR #180" in current["stage"]
-    assert "AWS deployment and spending are deferred" in current["stage"]
+    assert "34927991086" in current["stage"]
+    assert "PR #183" in current["stage"]
+    assert "AWS stays deferred" in current["stage"]
+    assert "Hippius stays unverified" in current["stage"]
+    assert "No chain write" in current["stage"]
     assert "C-W1-D1" in current["stage"]

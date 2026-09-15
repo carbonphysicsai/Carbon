@@ -77,9 +77,12 @@ def source(fixture) -> DevelopmentTestnetEvidence:
     )
 
 
-def authenticated_fixture(tmp_path, *, request_name="submit-1"):
+def authenticated_fixture(tmp_path, *, request_name="submit-1", transport_context=None):
     (tmp_path / "c08").mkdir(parents=True)
-    state, _, _, orchestrator, associations, miner = _composition(tmp_path / "c08")
+    options = {} if transport_context is None else {"context": transport_context}
+    state, _, _, orchestrator, associations, miner = _composition(
+        tmp_path / "c08", **options
+    )
     submitted = _submit(miner, state, request=request_name)
     request_root = tmp_path / "request"
     request = _real_request(
@@ -368,6 +371,21 @@ def test_transaction_authorization_is_required_expires_and_has_one_effect(tmp_pa
             DevelopmentTestnetPublisher(service, backend, authorization(state)).publish(
                 second
             )
+        )
+
+
+def test_local_retention_rejects_archive_or_host_loss_claims():
+    evidence = LocalRetentionEvidence(
+        sha("local-evidence-set"), sha("export-manifest"), 1
+    )
+    assert evidence.host_loss_recoverable is False
+    assert evidence.archive_acknowledgement is None
+    with pytest.raises(DevelopmentTestnetFailure, match="INVALID_LOCAL_RETENTION"):
+        LocalRetentionEvidence(
+            sha("local-evidence-set"),
+            sha("export-manifest"),
+            1,
+            host_loss_recoverable=True,
         )
 
 

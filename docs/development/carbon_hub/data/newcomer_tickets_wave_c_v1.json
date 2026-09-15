@@ -215,8 +215,8 @@
       "title": "Demonstrate public testnet without weakening official eligibility",
       "what": "Compose authenticated public/synthetic requests, isolated execution, signed DEVELOPMENT evidence, quarantine and an exact checked all-burn publisher while retaining the official C-09/C-EA2 path unchanged.",
       "why": "A development demonstration needs actual identity and transaction controls, but a valid signature or chain write must not become protected evidence or scientific merit.",
-      "changes": "C-W1-D1 adds a bounded DEVELOPMENT profile, exact source association, same-host review/export retention, one-dispatch authorization and a read-only operator doctor. It is currently blocked before public execution on external network identity, host and authorization facts.",
-      "not_yet": "No public transaction occurred. The available hotkey is unregistered on scanned netuids, the current Mac is not an eligible Linux isolation host, and official C-W1/C-09/C-EA2, protected processing, rewards, production and LIVE remain unavailable.",
+      "changes": "PR #183 accepted C-W1-D1's bounded DEVELOPMENT profile. Its selected continuation adds a closed controller source handoff, exact export validation, separate host/chain readiness and fixed run/status/resume over durable journals without rerunning science or resubmitting on restart.",
+      "not_yet": "No public transaction occurred. There is no approved netuid, the available hotkey was unregistered in the retained scan, the current Mac is not an eligible Linux isolation host, and no registration or one-dispatch transaction authority exists. Official C-W1/C-09/C-EA2, protected processing, rewards, production and LIVE remain unavailable.",
       "map_ref": "WAVE-C/C-W1"
     }
   }
