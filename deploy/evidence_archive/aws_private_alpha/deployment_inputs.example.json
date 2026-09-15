@@ -1,0 +1,30 @@
+{
+  "schema_version": "carbon.evidence-archive.aws-deployment-inputs.v1",
+  "provider_profile_id": "carbon.alpha-evidence-archive.aws.private.v2",
+  "fixture_only": true,
+  "deployment_authorized": false,
+  "account_id": "123456789012",
+  "region": "us-west-2",
+  "stack_name": "carbon-alpha-archive",
+  "tenant_id": "carbon-alpha-fixture",
+  "project_tags": {"carbon:environment": "private-alpha-fixture", "carbon:owner": "REQUIRED_ACCOUNT_OWNER"},
+  "network": {
+    "vpc_id": "vpc-00000000000000001",
+    "private_subnet_ids": ["subnet-00000000000000001", "subnet-00000000000000002"],
+    "private_route_table_ids": ["rtb-00000000000000001"],
+    "operator_security_group_id": "sg-00000000000000001",
+    "supervisor_security_group_id": "sg-00000000000000002",
+    "audit_security_group_id": "sg-00000000000000003",
+    "recovery_security_group_id": "sg-00000000000000004"
+  },
+  "execution": {"operator_location_ref": "REQUIRED_OPERATOR_LOCATION", "operator_control_plane_connectivity_ref": "REQUIRED_EXISTING_OPERATOR_CONTROL_PLANE_PATH", "supervisor_location_ref": "REQUIRED_SUPERVISOR_LOCATION", "audit_location_ref": "REQUIRED_AUDIT_LOCATION", "recovery_location_ref": "REQUIRED_RECOVERY_LOCATION", "private_dns_enabled": true, "public_egress_required": false},
+  "principals": {
+    "operator_principal_arn": "arn:aws:iam::123456789012:role/REQUIRED_OPERATOR_ROLE",
+    "supervisor_principal_arn": "arn:aws:iam::123456789012:role/REQUIRED_SUPERVISOR_ROLE",
+    "audit_principal_arn": "arn:aws:iam::123456789012:role/REQUIRED_AUDIT_ROLE",
+    "recovery_principal_arn": "arn:aws:iam::123456789012:role/REQUIRED_RECOVERY_ROLE"
+  },
+  "custody": {"key_administrator_ref": "REQUIRED_KEY_ADMIN_OWNER", "break_glass_principal_ref": "REQUIRED_BREAK_GLASS_OWNER", "recovery_owner_ref": "REQUIRED_RECOVERY_OWNER"},
+  "spending": {"monthly_usd": 175, "rehearsal_usd": 5, "decision_ref": "REQUIRED_SPENDING_DECISION"},
+  "external_evidence": {"security_acceptance_ref": null, "deployment_authorization_ref": null, "recovery_rehearsal_authorization_ref": null}
+}

@@ -11,7 +11,7 @@
   "service_dependencies": [
     {"name": "Amazon RDS for PostgreSQL", "version": "17.11", "use": "private Multi-AZ catalogue"},
     {"name": "Amazon S3 Standard", "version": "provider-managed", "use": "versioned immutable evidence objects"},
-    {"name": "AWS KMS", "version": "provider-managed", "use": "external versioned envelope-key custody"},
+    {"name": "AWS KMS", "version": "provider-managed", "use": "separate retained service-storage and Carbon envelope keys"},
     {"name": "AWS Backup", "version": "provider-managed", "use": "catalogue recovery points and rehearsal source"}
   ],
   "distribution_scope": "repository development and unprovisioned operator package",

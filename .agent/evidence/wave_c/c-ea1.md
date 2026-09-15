@@ -184,12 +184,11 @@ do not establish the selected durability target. The exact external-input and
 cost boundary is documented in
 `docs/development/EVIDENCE_ARCHIVE_ALPHA_PROFILE.md`.
 
-## 2026-09-15 AWS private-alpha deployment-package candidate
+## 2026-09-15 accepted AWS private-alpha deployment package
 
 **Decision:** `C-EA1-D3`
 **Provider profile:** `carbon.alpha-evidence-archive.aws.private.v1`
-**Disposition:** unprovisioned implementation candidate; exact-head acceptance
-pending
+**Disposition:** accepted unprovisioned implementation package
 **Maturity ceiling:** provider adapters, deployment package and isolated
 non-secret tests may earn `SPECIFIED / IMPLEMENTED / TESTED`; actual provider
 durability, recovery, security, acknowledgement, protected and production
@@ -223,9 +222,104 @@ real acknowledgement eligible: false
 C-EA2 eligible: false
 ```
 
-Focused native adapter/profile tests pass; the actual PostgreSQL capacity test
-collects but skips when Docker is unavailable and must execute in canonical
-Linux acceptance. No AWS service test is claimed: the prompt forbids
-provisioning, and fake-client tests establish adapter request/response behavior
-only. Exact accepted head/run/merge and final component identities will be
-recorded after the single required acceptance.
+Focused native adapter/profile tests passed; the actual PostgreSQL capacity test
+executed in canonical Linux acceptance. PR #177 accepted exact head
+`a4d23361b501240e16aff23464950597bf8e0368` in run `34900578390` and normally
+merged as `86f3a02485a2522dd4c7fa839a34872508746607`; accepted and merged trees are
+both `439785f4b496f94d5a5a7c04bec7d45261fbccd3`. No AWS service test is claimed:
+the package was unprovisioned and fake-client tests establish adapter
+request/response behavior only.
+
+## 2026-09-15 AWS correctness and recovery-handoff candidate
+
+**Decision:** `C-EA1-D4`
+**Provider profile:** `carbon.alpha-evidence-archive.aws.private.v2`
+**Disposition:** unprovisioned implementation candidate; exact-head acceptance
+pending
+**Maturity ceiling:** corrected adapters, infrastructure, policy structure,
+retention/recovery verifier and non-secret tests may earn `SPECIFIED /
+IMPLEMENTED / TESTED`; provider IAM behavior, durability, recovery acceptance,
+security acceptance, acknowledgement, protected and production maturity remain
+unavailable
+
+The focused review confirmed that v1 omitted KMS retention attributes for the
+Carbon envelope key, conflated S3/RDS/Backup encryption with Carbon envelope
+encryption, omitted version-read and private API permissions/routes, conflated
+restore initiation with service execution, could not connect to a restored RDS
+resource ID, relied only on creation-time Object Lock retention, and documented
+a rollback that RDS deletion protection would block. It also confirmed that a
+one-GiB RDS instance did not leave responsible headroom for AWS's documented IAM
+authentication memory overhead. The review disproved a missing-VersionId
+adapter concern and found no historical acknowledgement or corruption: v1 was
+never provisioned.
+
+The prospective v2 package separates retained storage and envelope KMS keys,
+adds exact role/action/context and endpoint policy, fixes exact-version
+retention/legal holds, uses private S3/KMS/STS/Secrets Manager/Backup/Logs paths,
+pins RDS PostgreSQL 17.11 on Multi-AZ `db.t4g.medium`, and distinguishes the
+recovery-control, Backup service and recovery-runtime roles. Initial stack
+execution must disable automatic rollback; ordinary deletion/replacement keeps
+the bucket, vault and both keys, while RDS protection requires a separately
+approved update before a final snapshot-producing deletion.
+
+A bounded recovery verifier now compares a frozen acknowledgement watermark
+against catalogue commit/recovery point, journal, outbox, capacity, manifest,
+signature, exact object-version and envelope-key observations. An older or
+incomplete subset fails. Even a full match remains provisional and cannot issue
+a real acknowledgement or select C-EA2.
+
+The refreshed public-price-list model estimates USD 140.628/month incremental
+archive cost, USD 155.022/month complete cost including one small supervisor
+equivalent, USD 1.15 for an eight-hour restore, and USD 6.49/month illustrative
+retained resources after rollback. The proposed authorization request is USD
+175/month plus the unchanged USD 5 rehearsal ceiling; neither amount is
+authorized. Exact account, network, execution-location, principals, custody,
+spend/rehearsal approval and later observed recovery/security evidence remain
+external.
+
+Local candidate evidence and final exact component identities are recorded in
+the shipping change. Local policy/fake-client checks do not prove AWS IAM or
+recovery behavior; no AWS API, provisioning, charge, destructive action or real
+acknowledgement occurred.
+
+The frozen unprovisioned candidate reports:
+
+```text
+provider profile: carbon.alpha-evidence-archive.aws.private.v2
+deployment manifest: sha256:2bb9b7a668c776138e4dddf6a152226aa443c2c69cc6441ce085ff64f1cd75f2
+CloudFormation: sha256:dd03e05f02cdeb78a8143bc044a94511da20d69a7b93b16164cc3beac22232f9
+database roles: sha256:7dc9a791af7466e04b97980596df2ebf0f885c1280565d00f4fc0c007be58903
+source use: sha256:b2d1dc0fc0e22bf3f398f34a8aebfa22af403cc3fa6c9d79e351410b166e6e53
+cost estimate: sha256:d5c008e2c8459e39a69f63d7c07b2e46b826f2d234fa197e460d7645ce575b11
+incremental monthly: USD 140.628; complete monthly: USD 155.022
+proposed ceiling: USD 175/month plus USD 5 rehearsal; not authorized
+deployment authorized: false
+recovery rehearsed: false
+real acknowledgement eligible: false
+C-EA2 eligible: false
+```
+
+Focused local evidence:
+
+```text
+.venv-jax-macos/bin/python -m pytest \
+  tests/cpu/test_cea1_alpha_profile.py \
+  tests/cpu/test_cea1_archive.py \
+  tests/cpu/test_cea1_aws_provider.py \
+  tests/cpu/test_cea1_service_integration.py \
+  tests/invariants/test_cea1_archive_boundary.py -q
+52 passed, 7 skipped in 0.45s
+
+cfn-lint deploy/evidence_archive/aws_private_alpha/template.json
+PASS (the first run exposed and the repair removed an invalid route-table
+parameter type)
+
+black --check / ruff check (seven changed Python/test files)
+PASS
+```
+
+The seven local skips are the explicitly guarded Docker/PostgreSQL integration
+cases. Their required service execution belongs to the single canonical Linux
+acceptance. The first CloudFormation lint run rejected the prior
+`List<AWS::EC2::RouteTable::Id>` declaration and non-array endpoint input; v2
+now uses the documented `CommaDelimitedList` shape and the rerun is clean.

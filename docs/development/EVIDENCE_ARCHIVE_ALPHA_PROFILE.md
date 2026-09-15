@@ -62,8 +62,11 @@ recovery, custody, or security acceptance.
 
 ## Deployment package and remaining activation boundary
 
-`C-EA1-D3` now supplies, without provisioning, the first five implementation
-items below:
+Accepted `C-EA1-D3` supplied the first unprovisioned AWS package. Prospective
+`C-EA1-D4` repairs that package as the separately versioned
+`carbon.alpha-evidence-archive.aws.private.v2`; it does not reinterpret v1 or
+this configuration-only profile. The package supplies, without provisioning,
+the first five implementation items below:
 
 1. private PostgreSQL and immutable/versioned object-service adapters for the
    authorized provider/project/region;
@@ -87,12 +90,14 @@ acknowledgement or C-EA2 can become eligible:
 
 ## Cost boundary
 
-This work provisions nothing and spends $0. The D3 review package recommends
-AWS `us-west-2` and records exact resource shapes, unit rates, quantities,
-growth assumptions and exclusions. It estimates $39.338/month, recommends a
-$55/month authorization ceiling, and allocates $5 provider cost for one
-test-owned restore rehearsal. Target-account prices must be refreshed before
-authorization; the 20 GiB logical quota is not a billing cap or forecast.
+This work provisions nothing and spends $0. The D4 correction recommends AWS
+`us-west-2` and records exact resource shapes, unit rates, quantities, growth
+assumptions and exclusions. It estimates $140.628/month for the incremental
+archive and $155.022/month including a small supervisor-equivalent host. It
+proposes a corrected $175/month authorization ceiling and retains the prior $5
+provider-cost proposal for one test-owned restore rehearsal. Neither amount is
+authorized. Target-account prices must be refreshed before authorization; the
+20 GiB logical quota is not a billing cap or forecast.
 
 ## Maturity ceiling
 

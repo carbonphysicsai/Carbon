@@ -1,159 +1,193 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "Carbon C-EA1 private-alpha archive services; unprovisioned until separately authorized",
+  "Description": "Carbon C-EA1 private-alpha archive v2; unprovisioned until separately authorized",
   "Parameters": {
     "ProjectName": {"Type": "String", "Default": "carbon-alpha-archive", "AllowedPattern": "[a-z][a-z0-9-]{2,31}"},
+    "TenantId": {"Type": "String", "AllowedPattern": "[a-zA-Z0-9]+([._:-][a-zA-Z0-9]+)*"},
     "VpcId": {"Type": "AWS::EC2::VPC::Id"},
     "PrivateSubnetA": {"Type": "AWS::EC2::Subnet::Id"},
     "PrivateSubnetB": {"Type": "AWS::EC2::Subnet::Id"},
-    "PrivateRouteTableIds": {"Type": "List<AWS::EC2::RouteTable::Id>"},
+    "PrivateRouteTableIds": {"Type": "CommaDelimitedList"},
+    "OperatorSecurityGroupId": {"Type": "AWS::EC2::SecurityGroup::Id"},
     "SupervisorSecurityGroupId": {"Type": "AWS::EC2::SecurityGroup::Id"},
+    "AuditSecurityGroupId": {"Type": "AWS::EC2::SecurityGroup::Id"},
+    "RecoverySecurityGroupId": {"Type": "AWS::EC2::SecurityGroup::Id"},
     "OperatorPrincipalArn": {"Type": "String", "AllowedPattern": "arn:aws:iam::[0-9]{12}:(role|user)/.+"},
     "SupervisorPrincipalArn": {"Type": "String", "AllowedPattern": "arn:aws:iam::[0-9]{12}:role/.+"},
     "AuditPrincipalArn": {"Type": "String", "AllowedPattern": "arn:aws:iam::[0-9]{12}:role/.+"},
     "RecoveryPrincipalArn": {"Type": "String", "AllowedPattern": "arn:aws:iam::[0-9]{12}:role/.+"},
+    "RestoredCatalogueResourceId": {"Type": "String", "Default": "", "AllowedPattern": "(|db-[A-Za-z0-9]{1,253})"},
     "DBName": {"Type": "String", "Default": "carbon_archive", "AllowedValues": ["carbon_archive"]},
     "DBAdminUsername": {"Type": "String", "Default": "carbon_archive_admin", "AllowedPattern": "[a-z][a-z0-9_]{2,62}"},
-    "DBInstanceClass": {"Type": "String", "Default": "db.t4g.micro", "AllowedValues": ["db.t4g.micro"]},
+    "DBInstanceClass": {"Type": "String", "Default": "db.t4g.medium", "AllowedValues": ["db.t4g.medium"]},
     "DBAllocatedStorageGiB": {"Type": "Number", "Default": 20, "AllowedValues": [20]},
     "BackupRetentionDays": {"Type": "Number", "Default": 35, "MinValue": 7, "MaxValue": 35}
   },
+  "Conditions": {"HasRestoredCatalogue": {"Fn::Not": [{"Fn::Equals": [{"Ref": "RestoredCatalogueResourceId"}, ""]}]}},
   "Resources": {
-    "ArchiveKey": {
+    "StorageKey": {
       "Type": "AWS::KMS::Key",
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain",
       "Properties": {
-        "Description": "Carbon alpha evidence envelope and service encryption key",
+        "Description": "Carbon alpha AWS service-storage encryption key",
         "EnableKeyRotation": true,
         "PendingWindowInDays": 30,
-        "KeyPolicy": {
-          "Version": "2012-10-17",
-          "Statement": [
-            {"Sid": "AccountRoot", "Effect": "Allow", "Principal": {"AWS": {"Fn::Sub": "arn:aws:iam::${AWS::AccountId}:root"}}, "Action": "kms:*", "Resource": "*"},
-            {"Sid": "OperatorAdministration", "Effect": "Allow", "Principal": {"AWS": {"Ref": "OperatorPrincipalArn"}}, "Action": ["kms:Describe*", "kms:Get*", "kms:List*", "kms:PutKeyPolicy", "kms:EnableKey", "kms:DisableKey", "kms:EnableKeyRotation", "kms:DisableKeyRotation", "kms:ScheduleKeyDeletion", "kms:CancelKeyDeletion", "kms:CreateAlias", "kms:UpdateAlias", "kms:DeleteAlias", "kms:TagResource", "kms:UntagResource"], "Resource": "*"}
-          ]
-        },
-        "Tags": [{"Key": "carbon:profile", "Value": "carbon.alpha-evidence-archive.aws.private.v1"}]
+        "KeyPolicy": {"Version": "2012-10-17", "Statement": [
+          {"Sid": "AccountRoot", "Effect": "Allow", "Principal": {"AWS": {"Fn::Sub": "arn:aws:iam::${AWS::AccountId}:root"}}, "Action": "kms:*", "Resource": "*"},
+          {"Sid": "OperatorAdministration", "Effect": "Allow", "Principal": {"AWS": {"Ref": "OperatorPrincipalArn"}}, "Action": ["kms:Describe*", "kms:Get*", "kms:List*", "kms:PutKeyPolicy", "kms:EnableKey", "kms:DisableKey", "kms:EnableKeyRotation", "kms:DisableKeyRotation", "kms:ScheduleKeyDeletion", "kms:CancelKeyDeletion", "kms:CreateAlias", "kms:UpdateAlias", "kms:DeleteAlias", "kms:TagResource", "kms:UntagResource", "kms:RevokeGrant"], "Resource": "*"},
+          {"Sid": "OperatorAwsResourceGrants", "Effect": "Allow", "Principal": {"AWS": {"Ref": "OperatorPrincipalArn"}}, "Action": "kms:CreateGrant", "Resource": "*", "Condition": {"Bool": {"kms:GrantIsForAWSResource": "true"}}}
+        ]},
+        "Tags": [{"Key": "carbon:profile", "Value": "carbon.alpha-evidence-archive.aws.private.v2"}, {"Key": "carbon:key-role", "Value": "aws-service-storage"}]
       }
     },
-    "ArchiveKeyAlias": {"Type": "AWS::KMS::Alias", "Properties": {"AliasName": {"Fn::Sub": "alias/${ProjectName}"}, "TargetKeyId": {"Ref": "ArchiveKey"}}},
+    "StorageKeyAlias": {"Type": "AWS::KMS::Alias", "Properties": {"AliasName": {"Fn::Sub": "alias/${ProjectName}-storage"}, "TargetKeyId": {"Ref": "StorageKey"}}},
+    "ArchiveKey": {
+      "Type": "AWS::KMS::Key",
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain",
+      "Properties": {
+        "Description": "Carbon alpha client-side envelope encryption key",
+        "EnableKeyRotation": true,
+        "PendingWindowInDays": 30,
+        "KeyPolicy": {"Version": "2012-10-17", "Statement": [
+          {"Sid": "AccountRoot", "Effect": "Allow", "Principal": {"AWS": {"Fn::Sub": "arn:aws:iam::${AWS::AccountId}:root"}}, "Action": "kms:*", "Resource": "*"},
+          {"Sid": "OperatorAdministration", "Effect": "Allow", "Principal": {"AWS": {"Ref": "OperatorPrincipalArn"}}, "Action": ["kms:Describe*", "kms:Get*", "kms:List*", "kms:PutKeyPolicy", "kms:EnableKey", "kms:DisableKey", "kms:EnableKeyRotation", "kms:DisableKeyRotation", "kms:ScheduleKeyDeletion", "kms:CancelKeyDeletion", "kms:CreateAlias", "kms:UpdateAlias", "kms:DeleteAlias", "kms:TagResource", "kms:UntagResource"], "Resource": "*"}
+        ]},
+        "Tags": [{"Key": "carbon:profile", "Value": "carbon.alpha-evidence-archive.aws.private.v2"}, {"Key": "carbon:key-role", "Value": "carbon-envelope"}]
+      }
+    },
+    "ArchiveKeyAlias": {"Type": "AWS::KMS::Alias", "Properties": {"AliasName": {"Fn::Sub": "alias/${ProjectName}-envelope"}, "TargetKeyId": {"Ref": "ArchiveKey"}}},
     "EvidenceBucket": {
       "Type": "AWS::S3::Bucket",
       "DeletionPolicy": "Retain",
       "UpdateReplacePolicy": "Retain",
       "Properties": {
-        "BucketEncryption": {"ServerSideEncryptionConfiguration": [{"BucketKeyEnabled": true, "ServerSideEncryptionByDefault": {"SSEAlgorithm": "aws:kms", "KMSMasterKeyID": {"Fn::GetAtt": ["ArchiveKey", "Arn"]}}}]},
+        "BucketEncryption": {"ServerSideEncryptionConfiguration": [{"BucketKeyEnabled": true, "ServerSideEncryptionByDefault": {"SSEAlgorithm": "aws:kms", "KMSMasterKeyID": {"Fn::GetAtt": ["StorageKey", "Arn"]}}}]},
         "ObjectLockEnabled": true,
         "ObjectLockConfiguration": {"ObjectLockEnabled": "Enabled", "Rule": {"DefaultRetention": {"Mode": "COMPLIANCE", "Days": 90}}},
         "OwnershipControls": {"Rules": [{"ObjectOwnership": "BucketOwnerEnforced"}]},
         "PublicAccessBlockConfiguration": {"BlockPublicAcls": true, "BlockPublicPolicy": true, "IgnorePublicAcls": true, "RestrictPublicBuckets": true},
         "VersioningConfiguration": {"Status": "Enabled"},
-        "Tags": [{"Key": "carbon:profile", "Value": "carbon.alpha-evidence-archive.aws.private.v1"}]
+        "Tags": [{"Key": "carbon:profile", "Value": "carbon.alpha-evidence-archive.aws.private.v2"}]
       }
     },
-    "EvidenceBucketPolicy": {
-      "Type": "AWS::S3::BucketPolicy",
-      "Properties": {
-        "Bucket": {"Ref": "EvidenceBucket"},
-        "PolicyDocument": {
-          "Version": "2012-10-17",
-          "Statement": [{"Sid": "DenyInsecureTransport", "Effect": "Deny", "Principal": "*", "Action": "s3:*", "Resource": [{"Fn::GetAtt": ["EvidenceBucket", "Arn"]}, {"Fn::Sub": "${EvidenceBucket.Arn}/*"}], "Condition": {"Bool": {"aws:SecureTransport": "false"}}}]
-        }
-      }
-    },
-    "DatabaseSecurityGroup": {
-      "Type": "AWS::EC2::SecurityGroup",
-      "Properties": {
-        "GroupDescription": "Carbon alpha catalogue ingress from the named supervisor only",
-        "VpcId": {"Ref": "VpcId"},
-        "SecurityGroupIngress": [{"IpProtocol": "tcp", "FromPort": 5432, "ToPort": 5432, "SourceSecurityGroupId": {"Ref": "SupervisorSecurityGroupId"}}],
-        "SecurityGroupEgress": []
-      }
-    },
+    "EvidenceBucketPolicy": {"Type": "AWS::S3::BucketPolicy", "Properties": {"Bucket": {"Ref": "EvidenceBucket"}, "PolicyDocument": {"Version": "2012-10-17", "Statement": [
+      {"Sid": "DenyInsecureTransport", "Effect": "Deny", "Principal": "*", "Action": "s3:*", "Resource": [{"Fn::GetAtt": ["EvidenceBucket", "Arn"]}, {"Fn::Sub": "${EvidenceBucket.Arn}/*"}], "Condition": {"Bool": {"aws:SecureTransport": "false"}}}
+    ]}}},
+    "DatabaseSecurityGroup": {"Type": "AWS::EC2::SecurityGroup", "Properties": {"GroupDescription": "Carbon alpha catalogue ingress from named execution roles", "VpcId": {"Ref": "VpcId"}, "SecurityGroupIngress": [
+      {"IpProtocol": "tcp", "FromPort": 5432, "ToPort": 5432, "SourceSecurityGroupId": {"Ref": "OperatorSecurityGroupId"}},
+      {"IpProtocol": "tcp", "FromPort": 5432, "ToPort": 5432, "SourceSecurityGroupId": {"Ref": "SupervisorSecurityGroupId"}},
+      {"IpProtocol": "tcp", "FromPort": 5432, "ToPort": 5432, "SourceSecurityGroupId": {"Ref": "AuditSecurityGroupId"}},
+      {"IpProtocol": "tcp", "FromPort": 5432, "ToPort": 5432, "SourceSecurityGroupId": {"Ref": "RecoverySecurityGroupId"}}
+    ], "SecurityGroupEgress": []}},
     "DatabaseSubnetGroup": {"Type": "AWS::RDS::DBSubnetGroup", "Properties": {"DBSubnetGroupDescription": "Carbon alpha private catalogue", "SubnetIds": [{"Ref": "PrivateSubnetA"}, {"Ref": "PrivateSubnetB"}]}},
     "Catalogue": {
       "Type": "AWS::RDS::DBInstance",
       "DeletionPolicy": "Snapshot",
       "UpdateReplacePolicy": "Snapshot",
       "Properties": {
-        "AllocatedStorage": {"Ref": "DBAllocatedStorageGiB"},
-        "AutoMinorVersionUpgrade": true,
-        "BackupRetentionPeriod": {"Ref": "BackupRetentionDays"},
-        "CopyTagsToSnapshot": true,
-        "DBInstanceClass": {"Ref": "DBInstanceClass"},
-        "DBName": {"Ref": "DBName"},
-        "DBSubnetGroupName": {"Ref": "DatabaseSubnetGroup"},
-        "DeletionProtection": true,
-        "EnableIAMDatabaseAuthentication": true,
-        "Engine": "postgres",
-        "EngineVersion": "17.11",
-        "KmsKeyId": {"Fn::GetAtt": ["ArchiveKey", "Arn"]},
-        "ManageMasterUserPassword": true,
-        "MasterUsername": {"Ref": "DBAdminUsername"},
-        "MasterUserSecret": {"KmsKeyId": {"Fn::GetAtt": ["ArchiveKey", "Arn"]}},
-        "MultiAZ": true,
-        "PubliclyAccessible": false,
-        "StorageEncrypted": true,
-        "StorageType": "gp3",
+        "AllocatedStorage": {"Ref": "DBAllocatedStorageGiB"}, "AutoMinorVersionUpgrade": true,
+        "BackupRetentionPeriod": {"Ref": "BackupRetentionDays"}, "CopyTagsToSnapshot": true,
+        "DBInstanceClass": {"Ref": "DBInstanceClass"}, "DBName": {"Ref": "DBName"},
+        "DBSubnetGroupName": {"Ref": "DatabaseSubnetGroup"}, "DeletionProtection": true,
+        "EnableIAMDatabaseAuthentication": true, "Engine": "postgres", "EngineVersion": "17.11",
+        "KmsKeyId": {"Fn::GetAtt": ["StorageKey", "Arn"]}, "ManageMasterUserPassword": true,
+        "MasterUsername": {"Ref": "DBAdminUsername"}, "MasterUserSecret": {"KmsKeyId": {"Fn::GetAtt": ["StorageKey", "Arn"]}},
+        "MultiAZ": true, "PubliclyAccessible": false, "StorageEncrypted": true, "StorageType": "gp3",
         "VPCSecurityGroups": [{"Fn::GetAtt": ["DatabaseSecurityGroup", "GroupId"]}],
-        "Tags": [{"Key": "carbon:profile", "Value": "carbon.alpha-evidence-archive.aws.private.v1"}, {"Key": "carbon:backup", "Value": "required"}]
+        "Tags": [{"Key": "carbon:profile", "Value": "carbon.alpha-evidence-archive.aws.private.v2"}, {"Key": "carbon:backup", "Value": "required"}]
       }
     },
-    "SupervisorRuntimeRole": {
-      "Type": "AWS::IAM::Role",
-      "Properties": {
-        "AssumeRolePolicyDocument": {"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Principal": {"AWS": {"Ref": "SupervisorPrincipalArn"}}, "Action": "sts:AssumeRole"}]},
-        "MaxSessionDuration": 3600,
-        "Policies": [{"PolicyName": "carbon-alpha-supervisor", "PolicyDocument": {"Version": "2012-10-17", "Statement": [
-          {"Effect": "Allow", "Action": ["s3:ListBucket", "s3:GetBucketVersioning"], "Resource": {"Fn::GetAtt": ["EvidenceBucket", "Arn"]}, "Condition": {"StringLike": {"s3:prefix": ["carbon-alpha-v1/*"]}}},
-          {"Effect": "Allow", "Action": ["s3:GetObject", "s3:GetObjectAttributes", "s3:GetObjectRetention", "s3:GetObjectTagging", "s3:PutObject", "s3:PutObjectRetention", "s3:PutObjectTagging"], "Resource": {"Fn::Sub": "${EvidenceBucket.Arn}/carbon-alpha-v1/*"}},
-          {"Effect": "Allow", "Action": ["kms:GenerateDataKey", "kms:Decrypt", "kms:DescribeKey"], "Resource": {"Fn::GetAtt": ["ArchiveKey", "Arn"]}, "Condition": {"StringEquals": {"kms:EncryptionContext:carbon:profile": "carbon.alpha-evidence-archive.aws.private.v1"}}},
-          {"Effect": "Allow", "Action": "rds-db:connect", "Resource": {"Fn::Sub": "arn:aws:rds-db:${AWS::Region}:${AWS::AccountId}:dbuser/${Catalogue.DbiResourceId}/carbon_archive_supervisor"}}
-        ]}}]
-      }
-    },
-    "AuditRuntimeRole": {
-      "Type": "AWS::IAM::Role",
-      "Properties": {
-        "AssumeRolePolicyDocument": {"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Principal": {"AWS": {"Ref": "AuditPrincipalArn"}}, "Action": "sts:AssumeRole"}]},
-        "MaxSessionDuration": 3600,
-        "Policies": [{"PolicyName": "carbon-alpha-audit", "PolicyDocument": {"Version": "2012-10-17", "Statement": [
-          {"Effect": "Allow", "Action": ["s3:ListBucket", "s3:GetBucketVersioning"], "Resource": {"Fn::GetAtt": ["EvidenceBucket", "Arn"]}, "Condition": {"StringLike": {"s3:prefix": ["carbon-alpha-v1/*"]}}},
-          {"Effect": "Allow", "Action": ["s3:GetObject", "s3:GetObjectAttributes", "s3:GetObjectRetention", "s3:GetObjectTagging"], "Resource": {"Fn::Sub": "${EvidenceBucket.Arn}/carbon-alpha-v1/*"}},
-          {"Effect": "Allow", "Action": "rds-db:connect", "Resource": {"Fn::Sub": "arn:aws:rds-db:${AWS::Region}:${AWS::AccountId}:dbuser/${Catalogue.DbiResourceId}/carbon_archive_audit"}}
-        ]}}]
-      }
-    },
-    "RecoveryRuntimeRole": {
-      "Type": "AWS::IAM::Role",
-      "Properties": {
-        "AssumeRolePolicyDocument": {"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Principal": {"AWS": {"Ref": "RecoveryPrincipalArn"}}, "Action": "sts:AssumeRole"}]},
-        "MaxSessionDuration": 3600,
-        "Policies": [{"PolicyName": "carbon-alpha-recovery", "PolicyDocument": {"Version": "2012-10-17", "Statement": [
-          {"Effect": "Allow", "Action": ["s3:GetBucketVersioning", "s3:ListBucket", "s3:ListBucketVersions"], "Resource": {"Fn::GetAtt": ["EvidenceBucket", "Arn"]}, "Condition": {"StringLike": {"s3:prefix": ["carbon-alpha-v1/*"]}}},
-          {"Effect": "Allow", "Action": ["s3:GetObject", "s3:GetObjectVersion", "s3:GetObjectVersionAttributes"], "Resource": {"Fn::Sub": "${EvidenceBucket.Arn}/carbon-alpha-v1/*"}},
-          {"Effect": "Allow", "Action": ["kms:Decrypt", "kms:DescribeKey"], "Resource": {"Fn::GetAtt": ["ArchiveKey", "Arn"]}},
-          {"Effect": "Allow", "Action": "rds-db:connect", "Resource": {"Fn::Sub": "arn:aws:rds-db:${AWS::Region}:${AWS::AccountId}:dbuser/${Catalogue.DbiResourceId}/carbon_archive_recovery"}}
-        ]}}]
-      }
-    },
-    "S3GatewayEndpoint": {"Type": "AWS::EC2::VPCEndpoint", "Properties": {"ServiceName": {"Fn::Sub": "com.amazonaws.${AWS::Region}.s3"}, "VpcEndpointType": "Gateway", "VpcId": {"Ref": "VpcId"}, "RouteTableIds": {"Ref": "PrivateRouteTableIds"}, "PolicyDocument": {"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Principal": {"AWS": [{"Fn::GetAtt": ["SupervisorRuntimeRole", "Arn"]}, {"Fn::GetAtt": ["AuditRuntimeRole", "Arn"]}, {"Fn::GetAtt": ["RecoveryRuntimeRole", "Arn"]}]}, "Action": ["s3:GetBucketVersioning", "s3:ListBucket", "s3:ListBucketVersions"], "Resource": {"Fn::GetAtt": ["EvidenceBucket", "Arn"]}}, {"Effect": "Allow", "Principal": {"AWS": [{"Fn::GetAtt": ["SupervisorRuntimeRole", "Arn"]}, {"Fn::GetAtt": ["AuditRuntimeRole", "Arn"]}, {"Fn::GetAtt": ["RecoveryRuntimeRole", "Arn"]}]}, "Action": ["s3:GetObject", "s3:GetObjectAttributes", "s3:GetObjectRetention", "s3:GetObjectTagging", "s3:GetObjectVersion", "s3:GetObjectVersionAttributes", "s3:PutObject", "s3:PutObjectRetention", "s3:PutObjectTagging"], "Resource": {"Fn::Sub": "${EvidenceBucket.Arn}/carbon-alpha-v1/*"}}]}}},
-    "KmsEndpointSecurityGroup": {"Type": "AWS::EC2::SecurityGroup", "Properties": {"GroupDescription": "Carbon alpha supervisor to KMS endpoint", "VpcId": {"Ref": "VpcId"}, "SecurityGroupIngress": [{"IpProtocol": "tcp", "FromPort": 443, "ToPort": 443, "SourceSecurityGroupId": {"Ref": "SupervisorSecurityGroupId"}}], "SecurityGroupEgress": []}},
-    "KmsInterfaceEndpoint": {"Type": "AWS::EC2::VPCEndpoint", "Properties": {"PrivateDnsEnabled": true, "SecurityGroupIds": [{"Fn::GetAtt": ["KmsEndpointSecurityGroup", "GroupId"]}], "ServiceName": {"Fn::Sub": "com.amazonaws.${AWS::Region}.kms"}, "SubnetIds": [{"Ref": "PrivateSubnetA"}], "VpcEndpointType": "Interface", "VpcId": {"Ref": "VpcId"}, "PolicyDocument": {"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Principal": {"AWS": [{"Fn::GetAtt": ["SupervisorRuntimeRole", "Arn"]}, {"Fn::GetAtt": ["RecoveryRuntimeRole", "Arn"]}]}, "Action": ["kms:Decrypt", "kms:DescribeKey", "kms:GenerateDataKey"], "Resource": {"Fn::GetAtt": ["ArchiveKey", "Arn"]}}]}}},
-    "BackupVault": {"Type": "AWS::Backup::BackupVault", "DeletionPolicy": "Retain", "UpdateReplacePolicy": "Retain", "Properties": {"BackupVaultName": {"Fn::Sub": "${ProjectName}-vault"}, "EncryptionKeyArn": {"Fn::GetAtt": ["ArchiveKey", "Arn"]}}},
+    "SupervisorRuntimeRole": {"Type": "AWS::IAM::Role", "Properties": {
+      "AssumeRolePolicyDocument": {"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Principal": {"AWS": {"Ref": "SupervisorPrincipalArn"}}, "Action": "sts:AssumeRole"}]}, "MaxSessionDuration": 3600,
+      "Policies": [{"PolicyName": "carbon-alpha-supervisor", "PolicyDocument": {"Version": "2012-10-17", "Statement": [
+        {"Sid": "BucketMetadata", "Effect": "Allow", "Action": "s3:GetBucketVersioning", "Resource": {"Fn::GetAtt": ["EvidenceBucket", "Arn"]}},
+        {"Sid": "TenantList", "Effect": "Allow", "Action": "s3:ListBucket", "Resource": {"Fn::GetAtt": ["EvidenceBucket", "Arn"]}, "Condition": {"StringLike": {"s3:prefix": ["carbon-alpha-v1/*"]}}},
+        {"Sid": "TenantObjects", "Effect": "Allow", "Action": ["s3:GetObject", "s3:GetObjectVersion", "s3:GetObjectAttributes", "s3:GetObjectVersionAttributes", "s3:GetObjectRetention", "s3:GetObjectLegalHold", "s3:GetObjectTagging", "s3:PutObject", "s3:PutObjectRetention", "s3:PutObjectLegalHold", "s3:PutObjectTagging"], "Resource": {"Fn::Sub": "${EvidenceBucket.Arn}/carbon-alpha-v1/*"}},
+        {"Sid": "S3StorageKey", "Effect": "Allow", "Action": ["kms:GenerateDataKey", "kms:Decrypt"], "Resource": {"Fn::GetAtt": ["StorageKey", "Arn"]}, "Condition": {"StringEquals": {"kms:ViaService": {"Fn::Sub": "s3.${AWS::Region}.amazonaws.com"}, "kms:EncryptionContext:aws:s3:arn": {"Fn::GetAtt": ["EvidenceBucket", "Arn"]}}}},
+        {"Sid": "EnvelopeOperations", "Effect": "Allow", "Action": ["kms:GenerateDataKey", "kms:Decrypt"], "Resource": {"Fn::GetAtt": ["ArchiveKey", "Arn"]}, "Condition": {"StringEquals": {"kms:EncryptionContext:carbon:profile": "carbon.alpha-evidence-archive.aws.private.v2", "kms:EncryptionContext:carbon:tenant": {"Ref": "TenantId"}}, "ForAllValues:StringEquals": {"kms:EncryptionContextKeys": ["carbon:entry", "carbon:profile", "carbon:tenant"]}}},
+        {"Sid": "DescribeKeys", "Effect": "Allow", "Action": "kms:DescribeKey", "Resource": [{"Fn::GetAtt": ["StorageKey", "Arn"]}, {"Fn::GetAtt": ["ArchiveKey", "Arn"]}]},
+        {"Sid": "SanitizedDiagnostics", "Effect": "Allow", "Action": ["logs:CreateLogStream", "logs:DescribeLogStreams", "logs:PutLogEvents"], "Resource": {"Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/carbon/${ProjectName}/sanitized-runtime:*"}},
+        {"Sid": "CatalogueConnect", "Effect": "Allow", "Action": "rds-db:connect", "Resource": {"Fn::Sub": "arn:aws:rds-db:${AWS::Region}:${AWS::AccountId}:dbuser/${Catalogue.DbiResourceId}/carbon_archive_supervisor"}}
+      ]}}]
+    }},
+    "AuditRuntimeRole": {"Type": "AWS::IAM::Role", "Properties": {
+      "AssumeRolePolicyDocument": {"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Principal": {"AWS": {"Ref": "AuditPrincipalArn"}}, "Action": "sts:AssumeRole"}]}, "MaxSessionDuration": 3600,
+      "Policies": [{"PolicyName": "carbon-alpha-audit", "PolicyDocument": {"Version": "2012-10-17", "Statement": [
+        {"Sid": "BucketMetadata", "Effect": "Allow", "Action": "s3:GetBucketVersioning", "Resource": {"Fn::GetAtt": ["EvidenceBucket", "Arn"]}},
+        {"Sid": "TenantList", "Effect": "Allow", "Action": "s3:ListBucket", "Resource": {"Fn::GetAtt": ["EvidenceBucket", "Arn"]}, "Condition": {"StringLike": {"s3:prefix": ["carbon-alpha-v1/*"]}}},
+        {"Sid": "CiphertextObjects", "Effect": "Allow", "Action": ["s3:GetObject", "s3:GetObjectVersion", "s3:GetObjectAttributes", "s3:GetObjectVersionAttributes", "s3:GetObjectRetention", "s3:GetObjectLegalHold", "s3:GetObjectTagging"], "Resource": {"Fn::Sub": "${EvidenceBucket.Arn}/carbon-alpha-v1/*"}},
+        {"Sid": "S3StorageKeyOnly", "Effect": "Allow", "Action": "kms:Decrypt", "Resource": {"Fn::GetAtt": ["StorageKey", "Arn"]}, "Condition": {"StringEquals": {"kms:ViaService": {"Fn::Sub": "s3.${AWS::Region}.amazonaws.com"}, "kms:EncryptionContext:aws:s3:arn": {"Fn::GetAtt": ["EvidenceBucket", "Arn"]}}}},
+        {"Sid": "DescribeStorageKey", "Effect": "Allow", "Action": "kms:DescribeKey", "Resource": {"Fn::GetAtt": ["StorageKey", "Arn"]}},
+        {"Sid": "CatalogueConnect", "Effect": "Allow", "Action": "rds-db:connect", "Resource": {"Fn::Sub": "arn:aws:rds-db:${AWS::Region}:${AWS::AccountId}:dbuser/${Catalogue.DbiResourceId}/carbon_archive_audit"}}
+      ]}}]
+    }},
+    "RecoveryRuntimeRole": {"Type": "AWS::IAM::Role", "Properties": {
+      "AssumeRolePolicyDocument": {"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Principal": {"AWS": {"Ref": "RecoveryPrincipalArn"}}, "Action": "sts:AssumeRole"}]}, "MaxSessionDuration": 3600,
+      "Policies": [{"PolicyName": "carbon-alpha-recovery", "PolicyDocument": {"Version": "2012-10-17", "Statement": [
+        {"Sid": "BucketMetadata", "Effect": "Allow", "Action": "s3:GetBucketVersioning", "Resource": {"Fn::GetAtt": ["EvidenceBucket", "Arn"]}},
+        {"Sid": "TenantVersions", "Effect": "Allow", "Action": ["s3:ListBucket", "s3:ListBucketVersions"], "Resource": {"Fn::GetAtt": ["EvidenceBucket", "Arn"]}, "Condition": {"StringLike": {"s3:prefix": ["carbon-alpha-v1/*"]}}},
+        {"Sid": "ExactObjectVersions", "Effect": "Allow", "Action": ["s3:GetObject", "s3:GetObjectVersion", "s3:GetObjectVersionAttributes", "s3:GetObjectRetention", "s3:GetObjectLegalHold"], "Resource": {"Fn::Sub": "${EvidenceBucket.Arn}/carbon-alpha-v1/*"}},
+        {"Sid": "S3StorageKey", "Effect": "Allow", "Action": "kms:Decrypt", "Resource": {"Fn::GetAtt": ["StorageKey", "Arn"]}, "Condition": {"StringEquals": {"kms:ViaService": {"Fn::Sub": "s3.${AWS::Region}.amazonaws.com"}, "kms:EncryptionContext:aws:s3:arn": {"Fn::GetAtt": ["EvidenceBucket", "Arn"]}}}},
+        {"Sid": "EnvelopeRecovery", "Effect": "Allow", "Action": "kms:Decrypt", "Resource": {"Fn::GetAtt": ["ArchiveKey", "Arn"]}, "Condition": {"StringEquals": {"kms:EncryptionContext:carbon:profile": "carbon.alpha-evidence-archive.aws.private.v2", "kms:EncryptionContext:carbon:tenant": {"Ref": "TenantId"}}, "ForAllValues:StringEquals": {"kms:EncryptionContextKeys": ["carbon:entry", "carbon:profile", "carbon:tenant"]}}},
+        {"Sid": "DescribeKeys", "Effect": "Allow", "Action": "kms:DescribeKey", "Resource": [{"Fn::GetAtt": ["StorageKey", "Arn"]}, {"Fn::GetAtt": ["ArchiveKey", "Arn"]}]},
+        {"Sid": "SourceCatalogueConnect", "Effect": "Allow", "Action": "rds-db:connect", "Resource": {"Fn::Sub": "arn:aws:rds-db:${AWS::Region}:${AWS::AccountId}:dbuser/${Catalogue.DbiResourceId}/carbon_archive_recovery"}}
+      ]}}]
+    }},
+    "RestoredCatalogueConnectionPolicy": {"Type": "AWS::IAM::Policy", "Condition": "HasRestoredCatalogue", "Properties": {"PolicyName": "carbon-alpha-restored-catalogue", "Roles": [{"Ref": "RecoveryRuntimeRole"}], "PolicyDocument": {"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Action": "rds-db:connect", "Resource": {"Fn::Sub": "arn:aws:rds-db:${AWS::Region}:${AWS::AccountId}:dbuser/${RestoredCatalogueResourceId}/carbon_archive_recovery"}}]}}},
     "BackupRole": {"Type": "AWS::IAM::Role", "Properties": {"AssumeRolePolicyDocument": {"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Principal": {"Service": "backup.amazonaws.com"}, "Action": "sts:AssumeRole"}]}, "ManagedPolicyArns": ["arn:aws:iam::aws:policy/service-role/AWSBackupServiceRolePolicyForBackup"]}},
+    "BackupRestoreServiceRole": {"Type": "AWS::IAM::Role", "Properties": {"AssumeRolePolicyDocument": {"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Principal": {"Service": "backup.amazonaws.com"}, "Action": "sts:AssumeRole"}]}, "ManagedPolicyArns": ["arn:aws:iam::aws:policy/service-role/AWSBackupServiceRolePolicyForRestores"]}},
+    "RecoveryControlRole": {"Type": "AWS::IAM::Role", "Properties": {
+      "AssumeRolePolicyDocument": {"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Principal": {"AWS": {"Ref": "RecoveryPrincipalArn"}}, "Action": "sts:AssumeRole"}]}, "MaxSessionDuration": 3600,
+      "Policies": [{"PolicyName": "carbon-alpha-restore-initiation", "PolicyDocument": {"Version": "2012-10-17", "Statement": [
+        {"Sid": "InitiateTaggedRecoveryPoint", "Effect": "Allow", "Action": ["backup:StartRestoreJob", "backup:GetRecoveryPointRestoreMetadata"], "Resource": {"Fn::Sub": "arn:aws:backup:${AWS::Region}:${AWS::AccountId}:recovery-point:*"}, "Condition": {"StringEquals": {"aws:ResourceTag/carbon:profile": "carbon.alpha-evidence-archive.aws.private.v2"}}},
+        {"Sid": "ListArchiveVault", "Effect": "Allow", "Action": "backup:ListRecoveryPointsByBackupVault", "Resource": {"Fn::GetAtt": ["BackupVault", "BackupVaultArn"]}},
+        {"Sid": "ObserveRestoreJob", "Effect": "Allow", "Action": "backup:DescribeRestoreJob", "Resource": "*"},
+        {"Sid": "PassExactRestoreServiceRole", "Effect": "Allow", "Action": "iam:PassRole", "Resource": {"Fn::GetAtt": ["BackupRestoreServiceRole", "Arn"]}, "Condition": {"StringEquals": {"iam:PassedToService": "backup.amazonaws.com"}}}
+      ]}}]
+    }},
+    "S3GatewayEndpoint": {"Type": "AWS::EC2::VPCEndpoint", "Properties": {"ServiceName": {"Fn::Sub": "com.amazonaws.${AWS::Region}.s3"}, "VpcEndpointType": "Gateway", "VpcId": {"Ref": "VpcId"}, "RouteTableIds": {"Ref": "PrivateRouteTableIds"}, "PolicyDocument": {"Version": "2012-10-17", "Statement": [
+      {"Effect": "Allow", "Principal": {"AWS": [{"Fn::GetAtt": ["SupervisorRuntimeRole", "Arn"]}, {"Fn::GetAtt": ["AuditRuntimeRole", "Arn"]}, {"Fn::GetAtt": ["RecoveryRuntimeRole", "Arn"]}]}, "Action": "s3:GetBucketVersioning", "Resource": {"Fn::GetAtt": ["EvidenceBucket", "Arn"]}},
+      {"Effect": "Allow", "Principal": {"AWS": [{"Fn::GetAtt": ["SupervisorRuntimeRole", "Arn"]}, {"Fn::GetAtt": ["AuditRuntimeRole", "Arn"]}, {"Fn::GetAtt": ["RecoveryRuntimeRole", "Arn"]}]}, "Action": ["s3:ListBucket", "s3:ListBucketVersions"], "Resource": {"Fn::GetAtt": ["EvidenceBucket", "Arn"]}, "Condition": {"StringLike": {"s3:prefix": ["carbon-alpha-v1/*"]}}},
+      {"Effect": "Allow", "Principal": {"AWS": [{"Fn::GetAtt": ["SupervisorRuntimeRole", "Arn"]}, {"Fn::GetAtt": ["AuditRuntimeRole", "Arn"]}, {"Fn::GetAtt": ["RecoveryRuntimeRole", "Arn"]}]}, "Action": ["s3:GetObject", "s3:GetObjectVersion", "s3:GetObjectAttributes", "s3:GetObjectVersionAttributes", "s3:GetObjectRetention", "s3:GetObjectLegalHold", "s3:GetObjectTagging"], "Resource": {"Fn::Sub": "${EvidenceBucket.Arn}/carbon-alpha-v1/*"}},
+      {"Effect": "Allow", "Principal": {"AWS": {"Fn::GetAtt": ["SupervisorRuntimeRole", "Arn"]}}, "Action": ["s3:PutObject", "s3:PutObjectRetention", "s3:PutObjectLegalHold", "s3:PutObjectTagging"], "Resource": {"Fn::Sub": "${EvidenceBucket.Arn}/carbon-alpha-v1/*"}}
+    ]}}},
+    "AwsApiEndpointSecurityGroup": {"Type": "AWS::EC2::SecurityGroup", "Properties": {"GroupDescription": "Carbon alpha named execution environments to AWS API endpoints", "VpcId": {"Ref": "VpcId"}, "SecurityGroupIngress": [
+      {"IpProtocol": "tcp", "FromPort": 443, "ToPort": 443, "SourceSecurityGroupId": {"Ref": "OperatorSecurityGroupId"}},
+      {"IpProtocol": "tcp", "FromPort": 443, "ToPort": 443, "SourceSecurityGroupId": {"Ref": "SupervisorSecurityGroupId"}},
+      {"IpProtocol": "tcp", "FromPort": 443, "ToPort": 443, "SourceSecurityGroupId": {"Ref": "AuditSecurityGroupId"}},
+      {"IpProtocol": "tcp", "FromPort": 443, "ToPort": 443, "SourceSecurityGroupId": {"Ref": "RecoverySecurityGroupId"}}
+    ], "SecurityGroupEgress": []}},
+    "KmsInterfaceEndpoint": {"Type": "AWS::EC2::VPCEndpoint", "Properties": {"PrivateDnsEnabled": true, "SecurityGroupIds": [{"Fn::GetAtt": ["AwsApiEndpointSecurityGroup", "GroupId"]}], "ServiceName": {"Fn::Sub": "com.amazonaws.${AWS::Region}.kms"}, "SubnetIds": [{"Ref": "PrivateSubnetA"}], "VpcEndpointType": "Interface", "VpcId": {"Ref": "VpcId"}, "PolicyDocument": {"Version": "2012-10-17", "Statement": [
+      {"Sid": "SupervisorKeyOperations", "Effect": "Allow", "Principal": {"AWS": {"Fn::GetAtt": ["SupervisorRuntimeRole", "Arn"]}}, "Action": ["kms:Decrypt", "kms:DescribeKey", "kms:GenerateDataKey"], "Resource": [{"Fn::GetAtt": ["StorageKey", "Arn"]}, {"Fn::GetAtt": ["ArchiveKey", "Arn"]}]},
+      {"Sid": "AuditStorageDecryptOnly", "Effect": "Allow", "Principal": {"AWS": {"Fn::GetAtt": ["AuditRuntimeRole", "Arn"]}}, "Action": ["kms:Decrypt", "kms:DescribeKey"], "Resource": {"Fn::GetAtt": ["StorageKey", "Arn"]}},
+      {"Sid": "RecoveryDecryptOnly", "Effect": "Allow", "Principal": {"AWS": {"Fn::GetAtt": ["RecoveryRuntimeRole", "Arn"]}}, "Action": ["kms:Decrypt", "kms:DescribeKey"], "Resource": [{"Fn::GetAtt": ["StorageKey", "Arn"]}, {"Fn::GetAtt": ["ArchiveKey", "Arn"]}]}
+    ]}}},
+    "StsInterfaceEndpoint": {"Type": "AWS::EC2::VPCEndpoint", "Properties": {"PrivateDnsEnabled": true, "SecurityGroupIds": [{"Fn::GetAtt": ["AwsApiEndpointSecurityGroup", "GroupId"]}], "ServiceName": {"Fn::Sub": "com.amazonaws.${AWS::Region}.sts"}, "SubnetIds": [{"Ref": "PrivateSubnetA"}], "VpcEndpointType": "Interface", "VpcId": {"Ref": "VpcId"}}},
+    "SecretsManagerInterfaceEndpoint": {"Type": "AWS::EC2::VPCEndpoint", "Properties": {"PrivateDnsEnabled": true, "SecurityGroupIds": [{"Fn::GetAtt": ["AwsApiEndpointSecurityGroup", "GroupId"]}], "ServiceName": {"Fn::Sub": "com.amazonaws.${AWS::Region}.secretsmanager"}, "SubnetIds": [{"Ref": "PrivateSubnetA"}], "VpcEndpointType": "Interface", "VpcId": {"Ref": "VpcId"}}},
+    "BackupInterfaceEndpoint": {"Type": "AWS::EC2::VPCEndpoint", "Properties": {"PrivateDnsEnabled": true, "SecurityGroupIds": [{"Fn::GetAtt": ["AwsApiEndpointSecurityGroup", "GroupId"]}], "ServiceName": {"Fn::Sub": "com.amazonaws.${AWS::Region}.backup"}, "SubnetIds": [{"Ref": "PrivateSubnetA"}], "VpcEndpointType": "Interface", "VpcId": {"Ref": "VpcId"}}},
+    "LogsInterfaceEndpoint": {"Type": "AWS::EC2::VPCEndpoint", "Properties": {"PrivateDnsEnabled": true, "SecurityGroupIds": [{"Fn::GetAtt": ["AwsApiEndpointSecurityGroup", "GroupId"]}], "ServiceName": {"Fn::Sub": "com.amazonaws.${AWS::Region}.logs"}, "SubnetIds": [{"Ref": "PrivateSubnetA"}], "VpcEndpointType": "Interface", "VpcId": {"Ref": "VpcId"}, "PolicyDocument": {"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Principal": {"AWS": {"Fn::GetAtt": ["SupervisorRuntimeRole", "Arn"]}}, "Action": ["logs:CreateLogStream", "logs:DescribeLogStreams", "logs:PutLogEvents"], "Resource": {"Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/carbon/${ProjectName}/sanitized-runtime:*"}}]}}},
+    "DiagnosticLogGroup": {"Type": "AWS::Logs::LogGroup", "Properties": {"LogGroupName": {"Fn::Sub": "/carbon/${ProjectName}/sanitized-runtime"}, "RetentionInDays": 90, "Tags": [{"Key": "carbon:profile", "Value": "carbon.alpha-evidence-archive.aws.private.v2"}, {"Key": "carbon:content", "Value": "sanitized-diagnostics-only"}]}},
+    "BackupVault": {"Type": "AWS::Backup::BackupVault", "DeletionPolicy": "Retain", "UpdateReplacePolicy": "Retain", "Properties": {"BackupVaultName": {"Fn::Sub": "${ProjectName}-vault"}, "EncryptionKeyArn": {"Fn::GetAtt": ["StorageKey", "Arn"]}}},
     "BackupPlan": {"Type": "AWS::Backup::BackupPlan", "Properties": {"BackupPlan": {"BackupPlanName": {"Fn::Sub": "${ProjectName}-daily"}, "BackupPlanRule": [{"RuleName": "daily-rds", "TargetBackupVault": {"Ref": "BackupVault"}, "ScheduleExpression": "cron(0 3 * * ? *)", "StartWindowMinutes": 60, "CompletionWindowMinutes": 360, "Lifecycle": {"DeleteAfterDays": 90}}]}}},
-    "BackupSelection": {"Type": "AWS::Backup::BackupSelection", "Properties": {"BackupPlanId": {"Ref": "BackupPlan"}, "BackupSelection": {"IamRoleArn": {"Fn::GetAtt": ["BackupRole", "Arn"]}, "SelectionName": "catalogue", "Resources": [{"Fn::Sub": "arn:aws:rds:${AWS::Region}:${AWS::AccountId}:db:${Catalogue}"}]}}}
+    "BackupSelection": {"Type": "AWS::Backup::BackupSelection", "Properties": {"BackupPlanId": {"Ref": "BackupPlan"}, "BackupSelection": {"IamRoleArn": {"Fn::GetAtt": ["BackupRole", "Arn"]}, "SelectionName": "catalogue", "Resources": [{"Fn::Sub": "arn:aws:rds:${AWS::Region}:${AWS::AccountId}:db:${Catalogue}"}]}}},
+    "CatalogueFreeableMemoryAlarm": {"Type": "AWS::CloudWatch::Alarm", "Properties": {"AlarmDescription": "Review Carbon alpha catalogue IAM-auth and PostgreSQL memory headroom", "ComparisonOperator": "LessThanThreshold", "Dimensions": [{"Name": "DBInstanceIdentifier", "Value": {"Ref": "Catalogue"}}], "EvaluationPeriods": 3, "MetricName": "FreeableMemory", "Namespace": "AWS/RDS", "Period": 300, "Statistic": "Average", "Threshold": 1073741824, "TreatMissingData": "breaching"}},
+    "CatalogueFreeStorageAlarm": {"Type": "AWS::CloudWatch::Alarm", "Properties": {"AlarmDescription": "Review Carbon alpha catalogue storage headroom", "ComparisonOperator": "LessThanThreshold", "Dimensions": [{"Name": "DBInstanceIdentifier", "Value": {"Ref": "Catalogue"}}], "EvaluationPeriods": 3, "MetricName": "FreeStorageSpace", "Namespace": "AWS/RDS", "Period": 300, "Statistic": "Average", "Threshold": 5368709120, "TreatMissingData": "breaching"}}
   },
   "Outputs": {
-    "ProfileId": {"Value": "carbon.alpha-evidence-archive.aws.private.v1"},
+    "ProfileId": {"Value": "carbon.alpha-evidence-archive.aws.private.v2"},
     "BucketName": {"Value": {"Ref": "EvidenceBucket"}},
     "CatalogueEndpoint": {"Value": {"Fn::GetAtt": ["Catalogue", "Endpoint.Address"]}},
     "CataloguePort": {"Value": {"Fn::GetAtt": ["Catalogue", "Endpoint.Port"]}},
     "CatalogueResourceId": {"Value": {"Fn::GetAtt": ["Catalogue", "DbiResourceId"]}},
-    "KmsKeyArn": {"Value": {"Fn::GetAtt": ["ArchiveKey", "Arn"]}},
-    "BackupVaultName": {"Value": {"Ref": "BackupVault"}}
-    ,"SupervisorRuntimeRoleArn": {"Value": {"Fn::GetAtt": ["SupervisorRuntimeRole", "Arn"]}}
-    ,"AuditRuntimeRoleArn": {"Value": {"Fn::GetAtt": ["AuditRuntimeRole", "Arn"]}}
-    ,"RecoveryRuntimeRoleArn": {"Value": {"Fn::GetAtt": ["RecoveryRuntimeRole", "Arn"]}}
+    "StorageKmsKeyArn": {"Value": {"Fn::GetAtt": ["StorageKey", "Arn"]}},
+    "EnvelopeKmsKeyArn": {"Value": {"Fn::GetAtt": ["ArchiveKey", "Arn"]}},
+    "BackupVaultName": {"Value": {"Ref": "BackupVault"}},
+    "BackupRestoreServiceRoleArn": {"Value": {"Fn::GetAtt": ["BackupRestoreServiceRole", "Arn"]}},
+    "RecoveryControlRoleArn": {"Value": {"Fn::GetAtt": ["RecoveryControlRole", "Arn"]}},
+    "SupervisorRuntimeRoleArn": {"Value": {"Fn::GetAtt": ["SupervisorRuntimeRole", "Arn"]}},
+    "AuditRuntimeRoleArn": {"Value": {"Fn::GetAtt": ["AuditRuntimeRole", "Arn"]}},
+    "RecoveryRuntimeRoleArn": {"Value": {"Fn::GetAtt": ["RecoveryRuntimeRole", "Arn"]}}
   }
 }
