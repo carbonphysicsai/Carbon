@@ -2,7 +2,7 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `fe67f8ded4fec12c7e45d543eb84d3eae7021175` on `main`, captured 2026-09-15T13:26:26Z.
+**Authority snapshot:** `af5493aa53ea7177317320432712a9e7de54651f` on `main`, captured 2026-09-15T16:32:03Z.
 **Current:** Wave C, ticket C-W1. The owner-selected C-W1 DEVELOPMENT continuation has an engineering candidate for a supervised Burgers session. The exact reduced 12/12/12-parent profile completed three real JAX replicas (96 updates), three isolated predictions and 72 C-05 measurements in engineering validation; one pre-training failure and all cases are retained. This is not authenticated miner inference or a scientific comparison. Subnet 567 creation finalized at block 8010852 for 1.003183218 test TAO. No subsequent activation, miner registration or all-burn publication has occurred. AWS stays deferred, Hippius unverified and official/protected/production qualification unearned. No later ticket is selected.
 **Last completed:** C-10 (`done`).
 **Next selected:** none selected.
@@ -240,6 +240,7 @@
 - `C-W1-D1-I2` — `WAVE-C/C-W1` — PR #183's C-W1-D1 foundation is reconciled as accepted. The same selected DEVELOPMENT ticket now has a closed controller source handoff, streamed bounded export verification, fixed run/status/resume and separate chain-versus-host readiness as a continuation candidate. No approved netuid, eligible Linux host, registration or transaction authority exists, so no wallet was opened, public write made or test token spent. Official C-W1/C-09/C-EA2, protected evidence, scientific/security qualification, reward and LIVE authority remain unavailable.
 - `CW1-BURGERS-SESSION-20260915` — `WAVE-C/C-W1` — PR #185 merged the checked operator path. Subnet 567, owner/publisher UID 0 and WSL Ubuntu Docker Engine are observed. The selected supervised Burgers continuation has a bounded executable profile, restricted agent connection and signed source builder. Real agent inference awaits distinct miner registration and provider approval/access; activation and all-burn publication require separate authority. The numerical engineering check completed 36 references, three JAX training replicas and 72 measurements, with no model inference or new chain write.
 - `CW1-HUB-AUTHORITY-REPIN-20260915` — `SYSTEM/DEVELOPMENT-HUB` — Reconcile the Hub authority snapshot and current source links after the C-W1 setup/session update, register its canonical package, and replace stale current-stage assertions. Other linked tickets retain their recorded semantics and maturity.
+- `CW1-KEY-BOUNDARY-REPAIR-20260915` — `WAVE-C/C-W1` — Owner-approved session boundary repair confines encrypted miner key loading to carbon.chain, retains the ban on SDK imports in science, and pins exact public-generator consumers and C-07 disclosure composition. Canonical focused validation passed 260 tests. Repin the derived Hub to this structural authority change; runtime inference and chain execution remain separately evidenced.
 
 ## Authority boundary
 

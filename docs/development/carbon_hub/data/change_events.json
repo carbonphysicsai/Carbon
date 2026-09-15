@@ -3170,6 +3170,46 @@
         "WAVE-C/NET-6"
       ],
       "supersedes": null
+    },
+    {
+      "map_ref": "WAVE-C/C-W1",
+      "event_type": "adjustment",
+      "event_id": "CW1-KEY-BOUNDARY-REPAIR-20260915",
+      "owner_lane": "documentation_maintenance",
+      "status": "implemented",
+      "summary": "Owner-approved session boundary repair confines encrypted miner key loading to carbon.chain, retains the ban on SDK imports in science, and pins exact public-generator consumers and C-07 disclosure composition. Canonical focused validation passed 260 tests. Repin the derived Hub to this structural authority change; runtime inference and chain execution remain separately evidenced.",
+      "primary_detail": "carbon/chain/auth.py",
+      "affects": [
+        "SYSTEM/AGENT-EXECUTION",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "WAVE-B",
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE",
+        "WAVE-C/C-01",
+        "WAVE-C/C-02",
+        "WAVE-C/C-03",
+        "WAVE-C/C-04",
+        "WAVE-C/C-06",
+        "WAVE-C/C-09",
+        "WAVE-C/C-10",
+        "WAVE-C/C-AUTH1",
+        "WAVE-C/C-EA0",
+        "WAVE-C/C-EA1",
+        "WAVE-C/C-EA2",
+        "WAVE-C/C-EP1",
+        "WAVE-C/C-EP2",
+        "WAVE-C/C-EP3",
+        "WAVE-C/C-W1",
+        "WAVE-C/NET-1",
+        "WAVE-C/NET-2",
+        "WAVE-C/NET-3",
+        "WAVE-C/NET-4A",
+        "WAVE-C/NET-4B",
+        "WAVE-C/NET-5",
+        "WAVE-C/NET-5R",
+        "WAVE-C/NET-6"
+      ],
+      "supersedes": null
     }
   ]
 }
