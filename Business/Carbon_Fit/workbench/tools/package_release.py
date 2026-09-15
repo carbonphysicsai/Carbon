@@ -10,10 +10,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / "MANIFEST.json"
-ARCHIVE = ROOT / "Carbon_Physics_Goal_Workbench_v0_5.zip"
+ARCHIVE = ROOT / "Carbon_Physics_Goal_Workbench_v0_6.zip"
 EXCLUDED = {
     MANIFEST.name,
     ARCHIVE.name,
+    "Carbon_Physics_Goal_Workbench_v0_5.zip",
     "Carbon_Physics_Goal_Workbench_v0_4.zip",
     "Carbon_Physics_Goal_Workbench_v0_3.zip",
     "Carbon_Physics_Opportunity_Workbench_v0_2.zip",
@@ -51,17 +52,18 @@ def payloads() -> list[Path]:
 def build() -> tuple[Path, Path]:
     files = payloads()
     manifest = {
-        "schema_version": "carbon.workbench.release-manifest.v0.5",
+        "schema_version": "carbon.workbench.release-manifest.v0.6",
         "status": "OFFLINE_DECISION_SUPPORT_NOT_PRODUCTION",
-        "application_version": "Carbon Goal-to-Challenge Workbench v0.5",
+        "application_version": "Carbon Goal-to-Challenge Workbench v0.6",
         "decision_ids": [
             "EXAM-PROTECT-WORKBENCH-01",
             "GOAL-WORKBENCH-02",
             "GOAL-WORKBENCH-03",
             "GOAL-WORKBENCH-04",
             "GOAL-WORKBENCH-05",
+            "GOAL-WORKBENCH-05A",
         ],
-        "repository_base": "e576fbdc711c9194dbcc7d90405480e90577407e",
+        "repository_base": "3681f7fb10be0c6e278f53d59ff9b022099ef12d",
         "integration_revision_at_packaging": integration_revision(),
         "integration_revision_note": (
             "The checksum manifest describes exact packaged bytes. A commit cannot "
@@ -99,6 +101,17 @@ def build() -> tuple[Path, Path]:
             "acceptance_run": 34891993646,
             "merge_commit": "e576fbdc711c9194dbcc7d90405480e90577407e",
         },
+        "accepted_goal_workbench_05_baseline": {
+            "pull_request": 179,
+            "accepted_head": "5344e3da67c10abf35ad177c60c1d10395c28cfa",
+            "acceptance_run": 34907708284,
+            "merge_commit": "3681f7fb10be0c6e278f53d59ff9b022099ef12d",
+        },
+        "post_merge_review_input": {
+            "archive_sha256": "85aa3633410ea41cad9029a5e864e42ca2134c4ff0ec9eb5caef638acd4e2f78",
+            "routing_sha256": "cacc140b1e9f9904a2360ba7a798d6789619154b54a27ccdf4faf8adb18accf0",
+            "scope": "External reproducer inspected as input; not packaged as source authority.",
+        },
         "accepted_detached_research_reference": {
             "decision_id": "D-QUAL-PREP-01",
             "pull_request": 176,
@@ -115,6 +128,9 @@ def build() -> tuple[Path, Path]:
             "acceptance_run": 34789621325,
             "merge_commit": "e3324691666da6b8987764048d2bfff45e0578b4",
             "fixture_index_sha256": sha256(ROOT / "data/c05_fixture_index_v1.json"),
+            "saved_projection_index_sha256": sha256(
+                ROOT / "data/c05_fixture_index_v2.json"
+            ),
             "authority": "Public DEVELOPMENT raw measurement evidence only; no scientific limit, uncertainty qualification, score, approval, or launch authority.",
         },
         "grok_plan_artifact": {
@@ -142,7 +158,7 @@ def build() -> tuple[Path, Path]:
         ARCHIVE, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9
     ) as out:
         for path in sorted(archive_files):
-            name = "carbon_goal_workbench_v0_5/" + str(path.relative_to(ROOT))
+            name = "carbon_goal_workbench_v0_6/" + str(path.relative_to(ROOT))
             info = zipfile.ZipInfo(name, date_time=(2026, 9, 15, 0, 0, 0))
             info.compress_type = zipfile.ZIP_DEFLATED
             info.external_attr = (0o755 if path.suffix == ".py" else 0o644) << 16

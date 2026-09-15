@@ -1,0 +1,49 @@
+{
+  "schema_version": "carbon.goal-workbench.state-integrity-evidence.v1",
+  "decision_id": "GOAL-WORKBENCH-05A",
+  "review_input": {
+    "archive_sha256": "85aa3633410ea41cad9029a5e864e42ca2134c4ff0ec9eb5caef638acd4e2f78",
+    "source_commit": "3681f7fb10be0c6e278f53d59ff9b022099ef12d",
+    "routing_blob": "4d6aa65bca629faa351e2f7d89cd6c4ec934ed1e",
+    "routing_sha256": "cacc140b1e9f9904a2360ba7a798d6789619154b54a27ccdf4faf8adb18accf0",
+    "scope": "Pure-module reproducer; no browser, C-05 reader, numerical runtime, or protected workload."
+  },
+  "transitions": [
+    {
+      "finding": "F1",
+      "before": "A commercial edit replaced REVIEW_REQUIRED with CARRIED_FORWARD_UNCHANGED_SCOPE.",
+      "after": "The unchanged relationship is recorded separately; cumulative scientific reasons remain REVIEW_REQUIRED."
+    },
+    {
+      "finding": "F2",
+      "before": "Child revisions cleared invalidated_by and reset pending assessment state.",
+      "after": "Children retain origin identity, invalidations, restrictions, and scientific/rights review reasons."
+    },
+    {
+      "finding": "F3",
+      "before": "Ordinary edits could downgrade PROHIBITED to a favorable unchanged label.",
+      "after": "PROHIBITED remains effective while a separate changed-rights review reason is pending."
+    },
+    {
+      "finding": "F4",
+      "before": "An unmapped field returned an empty impact and carried evidence forward.",
+      "after": "All supported mutation paths are mapped; unsupported paths reject and unresolved impact has an explicit domain."
+    },
+    {
+      "finding": "F5",
+      "before": "Any current-design result could project active native work.",
+      "after": "Only an explicit current action reports activity; returned evidence requires owner interpretation."
+    },
+    {
+      "finding": "F6",
+      "before": "Generic records accepted caller-selected native provenance enums.",
+      "after": "Native C-05 provenance is derived only from exact registered bytes; route/outcome/manual bindings cannot claim it."
+    },
+    {
+      "finding": "F7",
+      "before": "A guarded projection mapped applicability confirmation to QUALIFIED_SCOPED.",
+      "after": "Applicability confirmation is a non-qualifying fact; the qualification interface remains unavailable."
+    }
+  ],
+  "authority": "Regression evidence only. No scientific qualification, rights grant, protected reuse, score, registration, launch, or source-owner response adapter is created."
+}

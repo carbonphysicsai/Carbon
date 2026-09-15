@@ -36,7 +36,7 @@ def build():
     atlas = data(ROOT / "data/atlas.json")
     studies = data(ROOT / "data/studies.json")
     cpes = data(ROOT / "data/cpes_study_v1.json")
-    c05_index = data(ROOT / "data/c05_fixture_index_v1.json")
+    c05_index = data(ROOT / "data/c05_fixture_index_v2.json")
     scripts = " ".join(
         "'" + digest(s) + "'"
         for s in [

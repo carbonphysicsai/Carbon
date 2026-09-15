@@ -1,7 +1,7 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict'),path=require('node:path'),fs=require('node:fs');
 const ROOT=path.resolve(__dirname,'..'),F=require('../src/engine.js'),E=require('../src/c05_evidence.js'),G=require('../src/workflow.js');
-E.installFixtureIndex(JSON.parse(fs.readFileSync(path.join(ROOT,'data/c05_fixture_index_v1.json'))));
+E.installFixtureIndex(JSON.parse(fs.readFileSync(path.join(ROOT,'data/c05_fixture_index_v2.json'))));
 const atlas=JSON.parse(fs.readFileSync(path.join(ROOT,'data/atlas.json'))),ids=atlas.opportunities.map(x=>x.id),sha=atlas.source.sha256;
 const clone=x=>JSON.parse(JSON.stringify(x));
 function component(){return {schema_version:F.WORKSPACE_VERSION,application_version:F.APP_VERSION,source_sha256:sha,evidence_catalog:[],drafts:[],shortlist:[],migration_receipts:[]};}

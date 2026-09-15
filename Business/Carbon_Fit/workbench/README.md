@@ -1,4 +1,6 @@
-# Carbon Goal-to-Challenge Workbench v0.5
+# Carbon Goal-to-Challenge Workbench v0.6
+
+GOAL-WORKBENCH-05A repairs cumulative review state and truthful Owner Console status without changing the v0.5 routes or architecture. Applicability assessment, scope relationship, review reasons, rights restrictions, and origin verification are now separate. Child revisions and export/reimport retain unresolved obligations. Only an explicit current action can report activity; exact C-05 validation remains the sole native-evidence path. See `docs/GOAL_WORKBENCH_05A_STATE_INTEGRITY_REPORT.md` and `data/goal_workbench_05a_transition_evidence_v1.json`.
 
 GOAL-WORKBENCH-05 adds three exact-revision planning routes, an all-job Owner Console, separate workflow/evidence/customer-outcome axes, and deterministic evidence-applicability/change-impact rules. The console exposes one consequential next action, accountable owner, scoped lead, blocker, restart event, and status provenance without a fit percentage, priority score, or autonomous scientific decision. Frozen public/synthetic journeys are recorded in `data/goal_workbench_05_journeys_v1.json`; see `docs/GOAL_WORKBENCH_05_OPTIMIZATION_REPORT.md`.
 
@@ -22,7 +24,14 @@ The v0.3 owner route is:
 
 The exact supported route is the source-owned public DEVELOPMENT periodic viscous Burgers v1 template with active Dynamics, synthetic internal rights and complete source-bound semantics. Other goals, physics, rights or missing generator/measurement capabilities produce a machine-readable C-AUTH1 extension request; the client job is preserved for a later source-owner response.
 
-`carbon.goal-workbench.workspace.v0.3` is a closed additive container around `carbon_workbench_workspace_v0.2`. Exact v0.1/v0.2 CPES workspaces migrate with a receipt and no inferred science or authority. Multiple jobs and alternatives are supported; earlier sealed revisions remain immutable. Changed population, score/evidence depth, reference or disclosure preserves earlier CPES inputs but marks the affected review/economics binding stale.
+`carbon.goal-workbench.workspace.v0.6` is a closed additive container around `carbon_workbench_workspace_v0.2`. Exact v0.1–v0.5 workspaces migrate with receipts and no inferred science or authority. Multiple jobs and alternatives are supported; the summarized working design is explicit and earlier sealed revisions remain immutable.
+
+## v0.6 maintained additions
+
+- `src/routing.js`: cumulative scientific/rights review reasons, immutable origin lineage, source-derived minimum dependencies, explicit working-action resolution, and non-qualifying applicability projection.
+- `data/c05_fixture_index_v2.json` and `tools/build_c05_saved_fixture_index.cjs`: a deterministic saved-projection index that rechecks displayed C-05 observations and privileged native provenance on workspace reimport while preserving the accepted v1 source index.
+- `src/workflow.js` and `data/goal_workspace.schema.json`: atomic v0.1–v0.5 migration, v0.5 contradiction reconciliation, privileged provenance revalidation, and explicit working-design/current-action identity.
+- `tests/test_state_integrity.cjs` and `tests/browser_routing_smoke.cjs`: F1–F7 regression coverage through pure functions, exact C-05/workspace paths, export/reimport, and generated HTML.
 
 The browser does not run a generator, reference solver, scorer, reconstruction, training, protected exam or launch. Prospective score-behavior checks remain `NOT_EXECUTED` unless a source-owned result is bound; the UI exports a design-bound request for the Measurement/ScorePack owner instead of emulating that calculation. Grok/CRM/calendar/account connections, live/private intake, hosted collection and native launch remain manual or unavailable.
 
@@ -102,9 +111,10 @@ Build uses Python's standard library. Re-extracting the atlas needs `python-docx
 python3 tools/import_cpes_evidence.py --check
 python3 tools/build_schema.py
 python3 tools/build_goal_schema.py
+node tools/build_c05_saved_fixture_index.cjs
 python3 tools/build.py
 node --test tests/test_engine.cjs tests/test_workflow.cjs
-node --test tests/test_routing.cjs tests/test_c05_evidence.cjs
+node --test tests/test_routing.cjs tests/test_state_integrity.cjs tests/test_c05_evidence.cjs
 python3 -m pytest tests/test_authoring_bridge.py ../../../../tests/cpu/test_cauth1_goal_authoring.py -q
 python3 tests/test_sources.py
 node tests/browser_smoke.cjs

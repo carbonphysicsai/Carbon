@@ -2,7 +2,7 @@
 'use strict';
 const crypto=require('node:crypto'),fs=require('node:fs'),path=require('node:path');
 const ROOT=path.resolve(__dirname,'..'),F=require('../src/engine.js'),E=require('../src/c05_evidence.js'),G=require('../src/workflow.js');
-E.installFixtureIndex(JSON.parse(fs.readFileSync(path.join(ROOT,'data/c05_fixture_index_v1.json'))));
+E.installFixtureIndex(JSON.parse(fs.readFileSync(path.join(ROOT,'data/c05_fixture_index_v2.json'))));
 const d=G.newJob('job-001','C-05 public DEVELOPMENT evidence').designs[0];
 d.scope.physics_family='periodic_viscous_burgers_1d_v1';
 d.requirements=[G.requirement('REQ-DYNAMICS','Predict complete field evolution.','public fixture','Inform bounded design')];

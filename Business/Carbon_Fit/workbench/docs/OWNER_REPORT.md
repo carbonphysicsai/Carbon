@@ -1,4 +1,10 @@
-# Owner report — GOAL-WORKBENCH-05 / GOAL-WORKBENCH-04 / GOAL-WORKBENCH-03 / GOAL-WORKBENCH-02 / EXAM-PROTECT-WORKBENCH-01
+# Owner report — GOAL-WORKBENCH-05A / GOAL-WORKBENCH-05 / GOAL-WORKBENCH-04 / GOAL-WORKBENCH-03 / GOAL-WORKBENCH-02 / EXAM-PROTECT-WORKBENCH-01
+
+## v0.6 state-integrity repair
+
+The workbench preserves cumulative scientific and rights review obligations across unrelated edits, child revisions, and export/reimport. A separate scope relationship can say unchanged without replacing an unresolved assessment. Prohibitions remain effective while changed-rights review is pending. Source evidence retains its exact origin and historical association.
+
+The Owner Console now summarizes an explicit working design and current action. Completed evidence does not imply an active worker, and ambiguous unrelated action records require reconciliation. Generic route, outcome, and evidence inputs cannot claim native provenance; the retained C-05 fixture continues through its exact registered-byte reader. Applicability confirmation cannot produce qualification. Detailed evidence and limits are in `GOAL_WORKBENCH_05A_STATE_INTEGRITY_REPORT.md`.
 
 ## v0.5 optimized-routing addendum
 
