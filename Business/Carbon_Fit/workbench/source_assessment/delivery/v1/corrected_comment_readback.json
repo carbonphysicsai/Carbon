@@ -1,0 +1,14 @@
+{
+  "issue_number": 42,
+  "comment_id": 5675346832,
+  "comment_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5675346832",
+  "issue_url": "https://api.github.com/repos/carbonphysicsai/Carbon/issues/42",
+  "created_at": "2026-09-15T05:42:21Z",
+  "author_login": "fitz-lang6",
+  "author_association": "MEMBER",
+  "body_sha256": "sha256:04952e91e9fda00b36e85ac8862cb601bb9992c124546eec9b7fb56e2c63d72c",
+  "body_source": "corrected_owner_notification.md",
+  "required_markers_verified": true,
+  "forbidden_markers_absent": true,
+  "duplicate_corrected_comment_count": 1
+}
