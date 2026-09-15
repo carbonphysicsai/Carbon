@@ -274,3 +274,44 @@ the board/Hub, then run applicable canonical acceptance and normal merge.
 Offline synthetic replies are protocol tests only. The next empirical milestone
 is a valid authenticated submission and real evaluation of this same frozen
 population; it is not yet the comparison bridge described above.
+
+
+## 2026-09-15 authenticated submission and worker-scope repair
+
+PR #189 merged as `a191a9f2d7b3d24dc228c045ca5c7468fe52d9a9`. The separately
+approved session (23:05:01 UTC to 2026-09-16 05:05:01 UTC; USD 0.25,
+12 calls, three proposals) completed six real provider calls for USD 0.00380175.
+It discovered the challenge, scaffold and prior, proposed FNO with 48 steps,
+passed dry validation/structural estimation, and reached authenticated submission.
+C-03 rejected staging before any Docker create because its historical guard
+admitted only `FIXTURE_DEVELOPMENT`, whereas C-W1 correctly retained
+`REAL_PATH_NON_LIVE`. No training updates, predictions, measurements or signed
+source resulted. The attempt, entropy, provider responses and failure remain
+retained. This is an infrastructure/composition failure, not scientific failure.
+
+**C-W1-WORKER-SCOPE-01 — IMPLEMENTATION_LAG / prospective migration:** REPAIR
+the C-03 staging admission to accept exactly the existing paired scopes:
+`FIXTURE / FIXTURE_DEVELOPMENT` and `PRODUCTION / REAL_PATH_NON_LIVE`.
+The latter enum is C-01's non-fixture discriminator, not production authority.
+KEEP all exact public TRAIN archive, registered development profile, plan,
+replica, policy, seed, image and container controls. No LIVE scope, protected
+input, arbitrary code, evaluator credential or qualification capability is added.
+Preserve source scope in the durable queue; never cast a real submission to fixture.
+
+The old fixture-only rejection test is prospectively superseded only for the
+matching real/non-live pair. Both scopes must stage/redecode the same bounded
+request; cross-attempt, profile/policy mismatch, malformed scope and mismatched
+admission remain rejected. Add a real Docker service test retaining non-live
+queue provenance. These protocol tests remain synthetic engineering evidence.
+
+Plan: reproduce the boundary failure with a focused staging test; repair the
+closed pair check; exercise actual isolated training and retained queue scope;
+run invariant/regression and service acceptance, reconcile board/Hub, then normal
+expected-head merge. The stopped agent session is not restarted by this repair.
+No new inference or chain transaction is authorized by engineering delivery.
+
+Alternative rejected: relabel the real attempt as a fixture, remove the scope
+guard entirely, or replay the stopped campaign. The bounded code migration is
+reversible at `carbon/reconstruction/worker/protocol.py`; reverting it restores
+fixture-only admission and blocks real C-W1 reconstruction. Affects C-03/C-W1
+and C-07/C-08 provenance. No scientific/security qualification decision is made.
