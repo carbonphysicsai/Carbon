@@ -17,4 +17,3 @@ Compatibility with Workbench-06:
 | Authority | No accepted issuer route | Ryan controls exact admission policy |
 | Verification | Fixture-pinned conformance | Consumer-derived match to installed approved index |
 | Production use | Explicitly unavailable | Read-only consumer ships fail-closed; index empty pending adoption |
-

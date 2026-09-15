@@ -16,8 +16,8 @@
       "sha256": "49acb3598d034cf76ba854718cc2941ac3bf069e1623e32a8a99a9002d298e82"
     },
     "candidate/RYAN_ADOPTION_PACKET.md": {
-      "bytes": 2708,
-      "sha256": "ff2cef560c0e7bd227721733bc56a93f94e7a8682afdc671011ab5e0bf4cc8d7"
+      "bytes": 2706,
+      "sha256": "5bda90e75f30f3e3eb9e684b568fbd1e340363cfc511f7cf6c989e3b80c62c43"
     },
     "test_fixtures/profile.test-only.json": {
       "bytes": 1340,

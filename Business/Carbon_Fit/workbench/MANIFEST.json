@@ -14,7 +14,7 @@
     "GOAL-WORKBENCH-07"
   ],
   "repository_base": "3681f7fb10be0c6e278f53d59ff9b022099ef12d",
-  "integration_revision_at_packaging": "da861b540a8106060f613030a779078d7c5c06d1",
+  "integration_revision_at_packaging": "cf42a42740a87db9fe728af85623784cee07a42e",
   "integration_revision_note": "The checksum manifest describes exact packaged bytes. A commit cannot contain its own digest; final PR/head identity is reported by delivery.",
   "pinned_research_revision": "ca904dfee93d3574df4e56b99981a6ed3b138e80",
   "accepted_research_head": "0a5690270dc449ea19c941280203987d37db5283",
@@ -329,16 +329,16 @@
       "sha256": "50cafab9ea97e553d51be33e0cddacf7d3b34bc0ef6728988bac9f507ee20fa4"
     },
     "source_assessment/repository_snapshot/v1/README.md": {
-      "bytes": 1701,
-      "sha256": "88856889d24fd569a0ecb184ae96d1df672497ecc181fb6118d7eca479397884"
+      "bytes": 1700,
+      "sha256": "c6936d4c444c42cb7ba7c6dbd290fb9755799dfa942095209c81a6e34315038f"
     },
     "source_assessment/repository_snapshot/v1/approved_assessments.json": {
       "bytes": 193,
       "sha256": "a78fec629fd9bf65c3d5b177543cc6c8674153ba3ce058556d78bbbc06c208a6"
     },
     "source_assessment/repository_snapshot/v1/candidate/RYAN_ADOPTION_PACKET.md": {
-      "bytes": 2708,
-      "sha256": "ff2cef560c0e7bd227721733bc56a93f94e7a8682afdc671011ab5e0bf4cc8d7"
+      "bytes": 2706,
+      "sha256": "5bda90e75f30f3e3eb9e684b568fbd1e340363cfc511f7cf6c989e3b80c62c43"
     },
     "source_assessment/repository_snapshot/v1/candidate/assessment_pending_adoption.json": {
       "bytes": 3133,
@@ -354,7 +354,7 @@
     },
     "source_assessment/repository_snapshot/v1/fixture_manifest.json": {
       "bytes": 1332,
-      "sha256": "9e48c85f7ecaf8fadada207659e682cf84bdcfb2697ed93f769d6997b4437fc0"
+      "sha256": "b0f5fb1d6d4d533e712892843fec26c2b1ceafedaf0b29eeb68e7eb9e7dd8d59"
     },
     "source_assessment/repository_snapshot/v1/profile.json": {
       "bytes": 1368,
@@ -697,8 +697,8 @@
       "sha256": "1ab4872e2c90c61ee54ea9eef1d3afec37071a4bbe4a65eb92ccff2a6239d474"
     },
     "tools/build_repository_snapshot_fixtures.cjs": {
-      "bytes": 13293,
-      "sha256": "22dadb4b9707e68cb7066308de3d710ceb8c9c8f4d6b800ffbafe1236f592cef"
+      "bytes": 13291,
+      "sha256": "a97bf142171b425142aed0bf9789ad3cd71d72dcb106de4ea05cc91f989856ca"
     },
     "tools/build_repository_snapshot_schemas.py": {
       "bytes": 12916,

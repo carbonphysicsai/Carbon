@@ -2,8 +2,10 @@
 
 Status: `PENDING_EXACT_OWNER_ADOPTION`
 
-Accountable owner: Ryan, Carbon creator, GitHub `@jbequ5`  
-Actual preparer: GOAL-WORKBENCH-07 Engineering  
+Accountable owner: Ryan, Carbon creator, GitHub `@jbequ5`
+
+Actual preparer: GOAL-WORKBENCH-07 Engineering
+
 Operational profile: `burgers-dynamics-public.repository-snapshot.v1`
 
 ## Exact content proposed for adoption
