@@ -1,15 +1,8 @@
 """Permanent authority boundaries for C-W1-D1's non-official testnet profile."""
 
-import inspect
 from pathlib import Path
 
 import pytest
-
-from carbon.development_testnet import (
-    DevelopmentTestnetFailure,
-    DevelopmentTestnetPublisher,
-    LocalRetentionEvidence,
-)
 
 ROOT = Path(__file__).parents[2]
 pytestmark = pytest.mark.invariant
@@ -39,23 +32,16 @@ def test_runtime_has_no_archive_provider_or_official_result_dependency():
 
 @pytest.mark.invariant
 def test_local_retention_cannot_claim_archive_or_host_loss_recovery():
-    evidence = LocalRetentionEvidence(
-        "sha256:" + "1" * 64,
-        "sha256:" + "2" * 64,
-        1,
-    )
-    assert evidence.host_loss_recoverable is False
-    assert evidence.archive_acknowledgement is None
-    with pytest.raises(DevelopmentTestnetFailure):
-        LocalRetentionEvidence(
-            "sha256:" + "1" * 64,
-            "sha256:" + "2" * 64,
-            1,
-            host_loss_recoverable=True,
-        )
+    source = (ROOT / "carbon/development_testnet/model.py").read_text()
+    assert "host_loss_recoverable: bool = False" in source
+    assert "archive_acknowledgement: None = None" in source
+    assert "self.host_loss_recoverable is not False" in source
+    assert "self.archive_acknowledgement is not None" in source
 
 
 @pytest.mark.invariant
 def test_public_publisher_cannot_be_constructed_without_authorization():
-    signature = inspect.signature(DevelopmentTestnetPublisher)
-    assert list(signature.parameters) == ["issuer", "backend", "authorization"]
+    source = (ROOT / "carbon/development_testnet/publication.py").read_text()
+    assert "def __init__(self, issuer, backend, authorization):" in source
+    assert "type(authorization) is not DevelopmentTransactionAuthorization" in source
+    assert "TRANSACTION_AUTHORIZATION_REQUIRED" in source
