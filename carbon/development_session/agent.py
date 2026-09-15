@@ -40,32 +40,53 @@ scientific qualification, an accepted winner or miner payment. Stop when the
 budget is exhausted or the supervisor reports a failure. Finish with a concise
 account of what you tried and whether feedback changed your strategy."""
 
-PROMPT += """\nExact tool arguments: get_challenge_info and get_prior require
-challenge_id and challenge_version. get_mock_scaffold requires those two fields
-and optionally scaffold_id='starter'. dry_validate requires only strategy.
-estimate and submit require challenge_id, challenge_version and strategy.
-get_submission_result requires only submission_id from the submit response.
+PROMPT += """\nCall the named Carbon functions directly with the fields in their
+schemas. Do not wrap arguments in another tool envelope or a JSON string.
 Use challenge_id='burgers-dynamics-v1' and challenge_version='1.0'."""
 
+
+def _object(properties):
+    return {
+        "type": "object",
+        "additionalProperties": False,
+        "properties": properties,
+        "required": list(properties),
+    }
+
+
+_CHALLENGE_FIELDS = {
+    "challenge_id": {"type": "string", "enum": ["burgers-dynamics-v1"]},
+    "challenge_version": {"type": "string", "enum": ["1.0"]},
+}
+_STRATEGY = _object(
+    {
+        "schema_version": {"type": "string", "enum": ["1.0"]},
+        "challenge_id": _CHALLENGE_FIELDS["challenge_id"],
+        "backbone": {"type": "string", "enum": ["fno", "deeponet"]},
+        "parameters": _object(
+            {"steps": {"type": "integer", "enum": list(range(32, 65))}}
+        ),
+    }
+)
+_TOOL_FIELDS = {
+    "get_challenge_info": _CHALLENGE_FIELDS,
+    "get_prior": _CHALLENGE_FIELDS,
+    # The registered default scaffold is sufficient; no optional null adapter.
+    "get_mock_scaffold": _CHALLENGE_FIELDS,
+    "dry_validate": {"strategy": _STRATEGY},
+    "estimate": {**_CHALLENGE_FIELDS, "strategy": _STRATEGY},
+    "submit": {**_CHALLENGE_FIELDS, "strategy": _STRATEGY},
+    "get_submission_result": {"submission_id": {"type": "string"}},
+}
 TOOLS = [
     {
         "type": "function",
-        "name": "carbon_tool",
-        "description": "Call one approved authenticated Carbon miner service tool.",
+        "name": tool.value,
+        "description": "Call the authenticated Carbon miner service: " + tool.value,
         "strict": True,
-        "parameters": {
-            "type": "object",
-            "additionalProperties": False,
-            "properties": {
-                "tool": {"type": "string", "enum": [item.value for item in McpTool]},
-                "arguments_json": {
-                    "type": "string",
-                    "description": "JSON object containing the tool's arguments. Use challenge_id burgers-dynamics-v1 and challenge_version 1.0 where required.",
-                },
-            },
-            "required": ["tool", "arguments_json"],
-        },
+        "parameters": _object(_TOOL_FIELDS[tool.value]),
     }
+    for tool in McpTool
 ]
 
 
@@ -278,13 +299,18 @@ async def _run(connection, authority_file: Path, credential_file: Path):
             )
             break
         call = calls[0]
-        if call.get("name") != "carbon_tool" or len(call.get("arguments", "")) > 16384:
+        tool = call.get("name")
+        arguments = call.get("arguments")
+        if (
+            tool not in _TOOL_FIELDS
+            or type(arguments) is not str
+            or len(arguments) > 16384
+        ):
             raise ValueError("unsupported agent tool request")
-        arguments = json.loads(call["arguments"])
-        if set(arguments) != {"tool", "arguments_json"}:
-            raise ValueError("invalid agent tool envelope")
-        fields = json.loads(arguments["arguments_json"])
-        result = await connection.call(arguments["tool"], fields)
+        fields = json.loads(arguments)
+        if type(fields) is not dict or set(fields) != set(_TOOL_FIELDS[tool]):
+            raise ValueError("invalid agent tool arguments")
+        result = await connection.call(tool, fields)
         safe = canonical(result).decode()
         conversation.append(
             {"type": "function_call_output", "call_id": call["call_id"], "output": safe}
@@ -294,7 +320,7 @@ async def _run(connection, authority_file: Path, credential_file: Path):
                 "provider_response_id": response.get("id"),
                 "usage": usage,
                 "estimated_usd": cost,
-                "tool": arguments["tool"],
+                "tool": tool,
                 "result": result,
             }
         )

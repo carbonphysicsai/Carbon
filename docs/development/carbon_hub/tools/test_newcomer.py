@@ -99,10 +99,12 @@ class NewcomerProjectionTests(unittest.TestCase):
             f"<strong>Current stage:</strong> {render_hub.esc(current['stage'])}",
             self.output,
         )
-        self.assertIn("Subnet 567 creation finalized", self.output)
+        self.assertIn("Distinct miner UID 1 finalized", self.output)
         self.assertIn("three real JAX replicas", self.output)
-        self.assertIn("not authenticated miner inference", self.output)
-        self.assertIn("No subsequent activation", self.output)
+        self.assertIn("not results of the real agent", self.output)
+        self.assertIn(
+            "No subsequent activation or all-burn publication occurred", self.output
+        )
 
     def test_changing_canonical_position_reprojects_every_current_surface(self) -> None:
         changed = dict(self.data)
