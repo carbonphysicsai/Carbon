@@ -62,11 +62,17 @@ claim. See `.agent/plans/C_W1_DEVELOPMENT_TESTNET.md`.
 - [x] Readiness distinguishes host, endpoint/genesis/runtime, registration/UID,
   coldkey association, permit/stake-or-owner, burn sink, method, rate/pending
   commitments, authorization, chain transaction and whole-scenario status.
-- [ ] Exact-head acceptance and normal merge for the operator continuation are
-  pending; completion takes effect only after both succeed.
-- [ ] Public execution remains blocked until the selected netuid, registration/
-  UID/capability, eligible Linux host, any testnet-token limit and transaction
-  approval are supplied and observed.
+- [x] PR #185 delivered the operator continuation and normally merged as
+  `97ee8d42467e5b3c6542eba2316cb7fe16d3ba7b`.
+- [x] Subnet 567 creation, owner/publisher UID 0 and the WSL Ubuntu Docker Engine
+  host are observed. The old wallet and Darwin observations remain historical.
+- [ ] The owner-selected supervised Burgers continuation must complete real
+  model inference and authenticated numerical evaluation after distinct miner
+  registration and bounded provider approval/access. Its engineering candidate
+  and exact numerical evidence are in
+  `docs/development/CW1_BURGERS_AGENT_SESSION.md`.
+- [ ] Activation and one all-burn publication need separate exact authority;
+  the completed subnet-creation approval supplies neither.
 
 ### Unselected next DEVELOPMENT milestone
 

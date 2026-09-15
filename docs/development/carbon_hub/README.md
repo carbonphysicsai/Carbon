@@ -11,12 +11,12 @@ When browsing on GitHub, start with **`orientation/START_HERE.md`**. It is the p
 - 14 waves (A-N)
 - 69 captured tickets across Wave A, Wave B, and Wave C
 - 7 protocol-change routes
-- 126 map-level change events
+- 129 map-level change events
 - 8 independent maturity states
 
 ## Captured current position
 
-Wave **C**; current ticket: **C-W1**. Last completed: **C-10** (`done`). Next selected: **none selected**. PR #183 accepted exact C-W1-D1 foundation head 324a5276cd6a1ffdc491d04d08ef8b3282a060e8 in run 34927991086 and normally merged as bd7e5a5423d1148d340b3de3993068b66f5973d with matching tree 65e2a3d5abee97e5eaf1538050e0dcfab22cc649. The same selected ticket now has a closed controller source handoff, fixed run/status/resume and separate host/chain readiness reporting as a continuation candidate. Read-only public-testnet evidence still has no approved netuid or registration for the available hotkey, and the current Darwin arm64 host lacks Docker. No chain write, token spend, real archive acknowledgement, protected/official eligibility, science/security qualification or LIVE authority exists. AWS stays deferred and Hippius stays unverified. No later ticket is selected.
+Wave **C**; current ticket: **C-W1**. Last completed: **C-10** (`done`). Next selected: **none selected**. The owner-selected C-W1 DEVELOPMENT continuation has an engineering candidate for a supervised Burgers session. The exact reduced 12/12/12-parent profile completed three real JAX replicas (96 updates), three isolated predictions and 72 C-05 measurements in engineering validation; one pre-training failure and all cases are retained. This is not authenticated miner inference or a scientific comparison. Subnet 567 creation finalized at block 8010852 for 1.003183218 test TAO. No subsequent activation, miner registration or all-burn publication has occurred. AWS stays deferred, Hippius unverified and official/protected/production qualification unearned. No later ticket is selected.
 
 ## Maintain
 

@@ -7,6 +7,7 @@ import os
 from dataclasses import dataclass, replace
 from typing import Protocol
 
+from carbon.registry.development import DevelopmentServiceAdmission
 from carbon.registry.digest import (
     ArtifactAccessError,
     digest_artifact,
@@ -89,9 +90,67 @@ class ChallengeRegistry(RegistryStore):
         artifact_root: str | os.PathLike[str],
         *,
         scientific_authoring_verifier: ScientificAuthoringVerifier | None = None,
+        development_service_admissions: tuple[DevelopmentServiceAdmission, ...] = (),
     ) -> None:
         super().__init__(registry_root, artifact_root)
         self._scientific_authoring_verifier = scientific_authoring_verifier
+        if type(development_service_admissions) is not tuple or any(
+            type(item) is not DevelopmentServiceAdmission
+            for item in development_service_admissions
+        ):
+            raise ValueError("exact development admissions required")
+        if len({item.challenge for item in development_service_admissions}) != len(
+            development_service_admissions
+        ):
+            raise ValueError("duplicate development admission")
+        self._development_service_admissions = {
+            item.challenge: item for item in development_service_admissions
+        }
+
+    def assess_fixture_service_eligibility(
+        self, challenge_id: str, version: str
+    ) -> LiveEligibility:
+        """Assess service use; this does not change any LIVE/qualification gate."""
+        key = ChallengeKey(challenge_id, version)
+        admission = self._development_service_admissions.get(key)
+        if admission is None:
+            return self.assess_live_eligibility(
+                challenge_id, version, fixture_mode=True
+            )
+        try:
+            record = self.load(challenge_id, version)
+            binding = record.artifacts.get(admission.artifact_id)
+            manifest = record.qualification
+            valid = (
+                record.status == "fixture"
+                and record.fixture_origin is True
+                and manifest is not None
+                and manifest.mode == "fixture"
+                and manifest.challenge_id == challenge_id
+                and manifest.challenge_version == version
+                and not any(value is not None for value in manifest.slots.values())
+                and binding is not None
+                and binding.digest == admission.profile_digest
+                and digest_artifact(self.artifact_root, binding.path)
+                == admission.profile_digest
+                and bool(record.allowed_backbones)
+            )
+        except (RegistryError, ArtifactAccessError, TypeError, ValueError, OSError):
+            valid = False
+        return LiveEligibility(
+            bool(valid),
+            (
+                ()
+                if valid
+                else (
+                    _reason(
+                        "development.admission_invalid",
+                        "/development",
+                        "Exact unqualified development admission is unavailable.",
+                    ),
+                )
+            ),
+        )
 
     def _assess_scientific_authoring(
         self,

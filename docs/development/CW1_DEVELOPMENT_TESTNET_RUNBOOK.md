@@ -4,6 +4,15 @@ This runbook is for `carbon.public-synthetic-testnet.development.v1`. It is not
 the official C-W1/C-09/C-EA2 path and grants no protected, scientific,
 production, reward or LIVE status.
 
+## Current operator setup — 2026-09-15
+
+Use the existing Ubuntu-24.04 WSL2 Docker Engine at `/absolute/linux/checkout`.
+Subnet 567 and publisher UID 0 now exist. The supervised Burgers session contract,
+current identities, exact CLI sequence, observed engineering results and separate
+approval scopes are in [CW1_BURGERS_AGENT_SESSION.md](CW1_BURGERS_AGENT_SESSION.md).
+The older Darwin/no-subnet observations below describe the pre-setup checkpoint.
+Do not switch to Docker Desktop or reuse the earlier unregistered wallet.
+
 ## What the implementation composes
 
 An authenticated NET-2/C-08 submission is resolved from its durable receipt
@@ -81,7 +90,7 @@ available netuids found no registration for public hotkey
 `5E48fhGnyi4C94bsAc64s2bgshyJb7bfP59pRbidghc1pAyQ`; therefore no public UID,
 validator permit or publication eligibility was inferred.
 
-The present operator machine reports Darwin/arm64, 8 GiB RAM, ample disk, no
+At the historical PR #185 preparation checkpoint, the operator machine reported Darwin/arm64, 8 GiB RAM, ample disk, no
 available Docker daemon and no installed pinned Bittensor SDK in its project
 environment. It is diagnostic-only and cannot supply the required Linux C-03
 isolation evidence. Use an already authorized Linux x86-64 host; do not label

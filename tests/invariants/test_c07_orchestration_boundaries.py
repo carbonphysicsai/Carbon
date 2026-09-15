@@ -15,6 +15,7 @@ ROOT = Path(__file__).resolve().parents[2]
 PACKAGE = ROOT / "carbon" / "orchestration"
 
 EXPECTED = {
+    "development_feedback.py",
     "__init__.py",
     "model.py",
     "projection.py",

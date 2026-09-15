@@ -365,10 +365,9 @@ class SubmissionService:
             self._require_validated_identity_locked(record)
             challenge = record.challenge_key
             try:
-                eligibility = self._registry.assess_live_eligibility(
+                eligibility = self._registry.assess_fixture_service_eligibility(
                     challenge.challenge_id,
                     challenge.version,
-                    fixture_mode=True,
                 )
                 if type(eligibility) is not LiveEligibility:
                     raise TypeError

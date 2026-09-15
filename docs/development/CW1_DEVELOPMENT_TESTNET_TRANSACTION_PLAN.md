@@ -17,19 +17,38 @@ LIVE activation.
 | Genesis | `0x8f9cf856bf558a14440e75569c9e58594757048d7b3a84b5d25f6bd978263105` |
 | Last observed runtime | spec 458, transaction version 1; refresh before approval and dispatch |
 | SDK | exact locked `bittensor==11.1.0`; no upgrade in this slice |
-| Publisher hotkey | `5E48fhGnyi4C94bsAc64s2bgshyJb7bfP59pRbidghc1pAyQ` |
-| Publisher coldkey | `5CmGx8PFzfL7EvrvqFgV2Sv2HGok53YkGUsBw1atTD5hw7N8` |
+| Publisher hotkey | `5HWGPxuumoCdSXmbT62wNEnBN4rgU1WZXdPJfw4zqjLqV1wR` |
+| Publisher coldkey | `5D9oP2ZTF1G7pg25EdPjCyy22315c6SvQqwrVzXg2WWF1QMu` |
 | Worker | `carbon.c03.linux-x86_64-cpu.development.v1`; exact image digest comes from the retained source receipt and private operator config |
 | Worker limits | one worker; 2 logical CPUs; 4 GiB/no swap; 256 tasks; 512 MiB scratch; 600-second productive deadline |
 | Evidence | exact C-08 request, C-07 account, active C-06 signature and verified bounded local export; all official/protected/network/reward flags remain false |
 | Publication | mechanism 0; one dispatch; all `Q12` units to the observed registered subnet-owner burn sink |
 | Value transfer | zero TAO value-transfer authority in Carbon's SDK policy; transaction fees remain an observed non-zero-or-unknown external cost |
 
-The current repository/operator context supplies no approved netuid. The named
-hotkey was unregistered across the previously scanned netuids. Therefore UID,
-subnet ownership/permission, burn recipient, current registration price,
-validator permit/stake exception, rate window, pending commitments, exact
-weight method and transaction fee are `UNKNOWN`, not false or zero.
+The selected subnet is now **567**, with owner/publisher **UID 0**. Creation
+finalized at block 8010852, transaction
+`0x8efc1856f94403ace7e2706e8e309fbd5bcb8fdd86f1c94215bf7486d9c897c5`,
+for 1.003183218 test TAO. These current bindings supersede the earlier unregistered
+wallet without rewriting its historical receipts. WSL Ubuntu Docker Engine is
+available. Read-only doctor observed owner capability, owner burn UID 0,
+mechanism 0 and timelocked commit/reveal; refresh every dynamic value near dispatch.
+
+## Consolidated remaining transaction decision
+
+| Separate scope | Concrete operation | Last read-only cost | Authority |
+|---|---|---|---|
+| Miner registration | `burned_register(567, 5HmVzauSQMjErYSAzPFiKXi7uN9vM1TMLLVrjdVDJxYdPTxY)` via SDK 11.1/MEV shield | At finalized 8011286: burn 0.433602189 + estimated fee 0.002141781 test TAO | Proposed total cap 0.50 test TAO; six hours; not approved |
+| Activation | Owner `start_call(567)` | Estimated fee 0.000257187 test TAO; `FirstEmissionBlockNumber=null` at 8011285 | Proposed total cap 0.001 test TAO; distinct approval still required |
+| All-burn publication | One checked mechanism-0 timelocked commitment, all units to observed owner burn UID 0 | Unsigned inner-call fee estimate 0; outer shield/dispatch fee must be refreshed | Exact source, fee cap and one-dispatch block window pending; no approval |
+
+Activation is separate from the already elapsed weights rate limit. It starts
+subtoken trading/alpha epoch behavior and does not grant root-controlled TAO
+emission. Creation authority does not authorize activation. Miner registration
+uses a distinct hotkey under the same owner coldkey, not publisher UID 0 as a
+stand-in. Freeze each transaction's individual authority, cap and validity
+window, recheck before dispatch, and reconcile any ambiguous result before
+another action. The session's USD 0.25 model-run proposal is a separate provider
+approval and cannot be charged against a test-TAO allowance.
 
 ## Required read-only target observation
 
@@ -76,7 +95,7 @@ requires:
 {
   "authorization_id": "OWNER_SUPPLIED_TOKEN",
   "authority_record_digest": "sha256:OWNER_RECORDED_64_HEX_DIGEST",
-  "publisher_hotkey": "5E48fhGnyi4C94bsAc64s2bgshyJb7bfP59pRbidghc1pAyQ",
+  "publisher_hotkey": "5HWGPxuumoCdSXmbT62wNEnBN4rgU1WZXdPJfw4zqjLqV1wR",
   "expected_runtime_spec": 458,
   "valid_from_block": 0,
   "valid_through_block": 0
@@ -129,8 +148,8 @@ effects, miner payment or scientific validity.
 
 ## Missing external decision
 
-One concrete operator response is still required: approved netuid and evidence
-of permission to use it, an eligible Linux x86-64 Docker host/session, and—only
-after refreshed read-only observations—the exact test-TAO cap for any required
-registration plus the distinct one-dispatch block-window authorization. No
-secret value belongs in chat or repository.
+The subnet and Linux host are supplied and observed. The pending operator
+response is the concrete bounded model-run approval/private provider credential
+and distinct miner-registration approval in the supervised session plan. Keep
+activation and the final source-bound all-burn authorization separate. No secret
+value belongs in chat or repository; no transaction is dispatched by this plan.
