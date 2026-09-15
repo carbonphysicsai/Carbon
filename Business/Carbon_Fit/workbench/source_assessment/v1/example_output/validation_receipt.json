@@ -1,0 +1,87 @@
+{
+  "schema": "carbon.goal-workbench.source-assessment-validation-receipt.v1",
+  "contract_version": "1.0",
+  "profile_id": "BURGERS_DYNAMICS_PUBLIC_CAUTH1_C05_V1",
+  "request_id": "GW06-BURGERS-DYNAMICS-PUBLIC-REQUEST-001",
+  "response_id": "GW06-BURGERS-DYNAMICS-PUBLIC-RESPONSE-001",
+  "input_digests": {
+    "profile_artifact": "sha256:cb4207777a551c8dec71ff33b2340f643c8bc2dda6e11f25e946cf1abbe1b67c",
+    "request_artifact": "sha256:a15dd63da4735256ab80c37f76e85f5c1228a7562fc135428515f9dd0cc3ef5d",
+    "response_artifact": "sha256:e61714ce3d5f121b9f5f81784273e9e58753eee35248bc0881b07741b85f8ceb",
+    "request_canonical": "sha256:a4904e9beb6b5ea8539ff617f7792cb31850156c2c4a977471e699dd3f04e849",
+    "response_content_canonical": "sha256:c34a7ddd9ff54b7247a9ffb18476faf11f5888ddf5b6b8c1e3cf1cc6fac05552",
+    "design_snapshot_artifact": "sha256:db33a0aca135da5da02c39f1fb37a8aec5af6636ad78f4e9d63fc4b2170a60da",
+    "design_snapshot_canonical": "sha256:a493b608d157a9e3473a03b2b64c4e6abe805c8dc5efbc5e48553f36fa913bfe"
+  },
+  "association": {
+    "status": "EXACT",
+    "job_id": "job-001",
+    "design_id": "job-001-design-1",
+    "design_revision": 1,
+    "design_snapshot_digest": "sha256:a493b608d157a9e3473a03b2b64c4e6abe805c8dc5efbc5e48553f36fa913bfe"
+  },
+  "origin_verification": {
+    "status": "FIXTURE_BYTES_MATCH_TEST_PRODUCER_NOT_SOURCE_OWNER",
+    "claimed_issuer": "GOAL_WORKBENCH_06_TEST_PRODUCER",
+    "established": [
+      "exact contract-fixture bytes",
+      "exact accepted local authoring-bridge artifact bytes",
+      "exact pinned C-05 fixture bytes and association"
+    ],
+    "not_established": [
+      "live operator identity",
+      "source-owner acceptance",
+      "independent review",
+      "scientific qualification",
+      "rights authorization"
+    ]
+  },
+  "interpretation": {
+    "status": "VALID_NON_AUTHORITATIVE_PREVIEW",
+    "answered": [
+      "GW06:TECHNICAL_EXPRESSIBILITY"
+    ],
+    "partial": [
+      "GW06:RETAINED_C05_CONTEXT"
+    ],
+    "unsupported": [],
+    "stale": [],
+    "contradictory": [],
+    "unresolved": [
+      "GW06:SCIENTIFIC_APPLICABILITY",
+      "GW06:INTENDED_USE_SUITABILITY",
+      "GW06:RIGHTS"
+    ],
+    "qualification_effect": "NONE",
+    "workspace_effect": "NONE_DETACHED_PREVIEW"
+  },
+  "review_obligations": {
+    "addressed_reason_ids": [],
+    "remaining_reason_ids": [
+      "gw06:intended-use:suitability-unresolved",
+      "gw06:rights:use-unresolved",
+      "gw06:scientific:applicability-unresolved"
+    ],
+    "prohibitions_retained": [
+      "NO_RIGHTS_GRANTED"
+    ],
+    "supersession": "NONE"
+  },
+  "authority_ceiling": {
+    "origin_authenticated": false,
+    "source_owner_accepted": false,
+    "scientifically_qualified": false,
+    "rights_authorized": false,
+    "execution_established_by_response": false,
+    "score_eligible": false,
+    "protected_use_authorized": false,
+    "launch_authorized": false
+  },
+  "execution": {
+    "mode": "DETACHED_DRY_RUN",
+    "solver_runs": 0,
+    "training_runs": 0,
+    "network_requests": 0,
+    "account_actions": 0
+  }
+}

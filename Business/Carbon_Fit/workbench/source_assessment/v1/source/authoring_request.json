@@ -1,0 +1,72 @@
+{
+  "schema_version": "carbon.goal-workbench.authoring-request.v1",
+  "request_id": "gw06-authoring-job-001-design-1-r1",
+  "job_id": "job-001",
+  "design_id": "job-001-design-1",
+  "design_revision": 1,
+  "template_id": "periodic_viscous_burgers_1d_v1",
+  "requested_goal": "Dynamics",
+  "intended_use": "Demonstrate exact technical expressibility for the public DEVELOPMENT Burgers Dynamics profile without scientific suitability, customer-use, rights, qualification, or launch claims.",
+  "rights_scope": "SYNTHETIC_INTERNAL",
+  "expected_semantics": {
+    "physical_law": {
+      "template_id": "periodic_viscous_burgers_1d_v1",
+      "equation": "Periodic unforced viscous Burgers equation from C-AUTH1",
+      "conditions": "Periodic boundary; unforced; finite Fourier initial condition; positive viscosity"
+    },
+    "active_goal": "Dynamics",
+    "score_plan": {
+      "official_score_status": "PROPOSED_UNQUALIFIED",
+      "mandatory_gate_summary": "Source mandatory physics gates precede quality ranking",
+      "soft_estimand": "Source population-weighted mean and worst-cell CVaR DEVELOPMENT proposal",
+      "training_objective": "Candidate training remains separate from official measurement and score",
+      "reward_accounting": "SEPARATE_UNRESOLVED",
+      "deployment_acceptance": "No customer deployment acceptance is established",
+      "unresolved_tradeoffs": "Qualified limits, floors and customer trade-offs remain HUMAN_INPUT"
+    },
+    "measurement_bindings": [
+      {
+        "requirement_id": "REQ-DYNAMICS",
+        "role": "MANDATORY",
+        "binding": "carbon.goal-authoring-proposal/1"
+      }
+    ],
+    "sampling": [
+      {
+        "case_family_id": "BURGERS-12-CELL",
+        "role": "EVAL",
+        "generator_ref": "goal_burgers_12cell_v1",
+        "target_population": "source-defined synthetic periodic Burgers population",
+        "sampling_frequency": "4 parents per EVAL cell",
+        "analysis_weight": "population mass distinct from sampling frequency"
+      }
+    ],
+    "references": {
+      "equation": "Periodic unforced viscous Burgers equation from C-AUTH1",
+      "role": "Candidate primary plus independent DEVELOPMENT witness",
+      "method": "Source-owned C-04 reference interfaces",
+      "configuration": "Exact registered DEVELOPMENT template only",
+      "convergence_evidence": "Unqualified development evidence; see native source",
+      "uncertainty_evidence": "Qualified limits remain HUMAN_INPUT",
+      "applicable_envelope": "Synthetic periodic Burgers development cells",
+      "failures": "Failed reference cases remain separate from candidate failure",
+      "cost_scope": "Reference work is not measured by this conformance example",
+      "independence_limitations": "Shared assumptions and correlations remain explicit"
+    },
+    "query_contract": {
+      "inputs": "Finite Fourier initial field, positive viscosity, requested times, and declared periodic domain length",
+      "outputs": "Complete field evolution with compression, dissipation and half-time diagnostics",
+      "units": "Source-defined nondimensional Burgers variables and declared characteristic scales",
+      "query_workload": "Source-defined TRAIN/EVAL/STRESS finite campaign only",
+      "turnaround": "No customer service limit established"
+    }
+  },
+  "compatibility": {
+    "compatible": true,
+    "status": "EXACT_SUPPORTED",
+    "reason": "Exact source-owned public DEVELOPMENT template and active Dynamics goal are semantically bound.",
+    "gaps": []
+  },
+  "route": "LOCAL_FIXED_CLI",
+  "authority": "DEVELOPMENT_REQUEST_ONLY"
+}

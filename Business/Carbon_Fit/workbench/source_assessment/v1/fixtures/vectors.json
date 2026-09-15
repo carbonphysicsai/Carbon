@@ -1,0 +1,79 @@
+{
+  "schema_version": "carbon.goal-workbench.source-assessment-vectors.v1",
+  "base_request": "request.json",
+  "base_response": "response.json",
+  "cases": [
+    {
+      "vector_id": "positive-supported-dynamics",
+      "expected": "ACCEPT_NON_AUTHORITATIVE_PREVIEW"
+    },
+    {
+      "vector_id": "front-resolution-intent-mismatch",
+      "expected": "REJECT_INTENT_MISMATCH"
+    },
+    {
+      "vector_id": "unsupported-physics",
+      "expected": "ACCEPT_EXPLICIT_UNSUPPORTED_ONLY"
+    },
+    {
+      "vector_id": "unsupported-rights",
+      "expected": "ACCEPT_EXPLICIT_UNSUPPORTED_ONLY"
+    },
+    {
+      "vector_id": "wrong-job-design-request",
+      "expected": "REJECT_ASSOCIATION"
+    },
+    {
+      "vector_id": "same-revision-different-content",
+      "expected": "REJECT_SNAPSHOT"
+    },
+    {
+      "vector_id": "wrong-case-query-source-version",
+      "expected": "REJECT_SOURCE_SCOPE"
+    },
+    {
+      "vector_id": "inherited-as-fresh-execution",
+      "expected": "REJECT_EXECUTION_LAUNDERING"
+    },
+    {
+      "vector_id": "exact-response-replay",
+      "expected": "IDEMPOTENT"
+    },
+    {
+      "vector_id": "same-response-id-different-bytes",
+      "expected": "REJECT_IDENTITY_CONFLICT"
+    },
+    {
+      "vector_id": "partial-answer",
+      "expected": "RETAIN_UNRESOLVED"
+    },
+    {
+      "vector_id": "conflicting-assessments",
+      "expected": "RECONCILIATION_REQUIRED"
+    },
+    {
+      "vector_id": "older-revision",
+      "expected": "REJECT_STALE"
+    },
+    {
+      "vector_id": "forged-native-provenance",
+      "expected": "REJECT_UNKNOWN_AUTHORITY_FIELD"
+    },
+    {
+      "vector_id": "hash-without-origin-route",
+      "expected": "NO_AUTHENTICATION"
+    },
+    {
+      "vector_id": "confirmation-as-qualification",
+      "expected": "REJECT_AUTHORITY_ESCALATION"
+    },
+    {
+      "vector_id": "rights-prohibition-plus-technical-confirmation",
+      "expected": "RETAIN_PROHIBITION"
+    },
+    {
+      "vector_id": "hostile-json-and-display-text",
+      "expected": "REJECT_OR_ESCAPE"
+    }
+  ]
+}

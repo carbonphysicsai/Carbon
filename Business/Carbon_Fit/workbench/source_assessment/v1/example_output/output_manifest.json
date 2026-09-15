@@ -1,0 +1,16 @@
+{
+  "schema_version": "carbon.goal-workbench.source-assessment-output-manifest.v1",
+  "files": [
+    {
+      "path": "validation_receipt.json",
+      "bytes": 3070,
+      "sha256": "sha256:ff073d3c15bdce719da433ffb22c16cc1a60e0847d87fb249f8078ce31dce229"
+    },
+    {
+      "path": "interpretation_preview.md",
+      "bytes": 1523,
+      "sha256": "sha256:5cb3c498cfc94d04417e1d4a469f4d92afb8ab62c37b50c39cc26a7e06e5c506"
+    }
+  ],
+  "atomic_validation_completed_before_write": true
+}

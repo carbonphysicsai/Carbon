@@ -1,6 +1,16 @@
-# GOAL-WORKBENCH-05A / GOAL-WORKBENCH-05 / GOAL-WORKBENCH-04 / GOAL-WORKBENCH-03 / GOAL-WORKBENCH-02 / EXAM-PROTECT-WORKBENCH-01 requirement-to-test map
+# GOAL-WORKBENCH-06 / GOAL-WORKBENCH-05A / GOAL-WORKBENCH-05 / GOAL-WORKBENCH-04 / GOAL-WORKBENCH-03 / GOAL-WORKBENCH-02 / EXAM-PROTECT-WORKBENCH-01 requirement-to-test map
 
 This map describes focused application acceptance. It does not relabel the CPES study's historical 14/52/208 runs as workbench tests.
+
+| GW06 contract requirement | Detached artifact | Automated evidence | Authority limitation |
+|---|---|---|---|
+| Exact request/content/source identities | sealed snapshot, request/response/profile/manifest v1 | positive validation; wrong job/design/revision/content/case/query/source tests | No production reader |
+| Capability, evidence, applicability, origin and qualification remain separate | normative field/authority map and receipt | technical-unqualified, forged origin and all-false ceiling tests | Applicability never qualifies |
+| Existing authoring and C-05 source rules are reused | retained bridge output and in-place C-05 ref | actual C-05 `importBundle`; authoring semantic/source digest checks | Fixed case is not a campaign or fresh execution |
+| Partial/unsupported/conflicting/stale responses preserve debt | compact vector inventory | partial reasons, unsupported physics/rights, stale, replay/conflict/reconciliation tests | No real reason is resolved |
+| Closed parser and atomic detached output | schemas and new-directory-only CLI | duplicate/key/number/depth, malicious text, no-output-on-failure tests | No network/account action |
+| Current v0.6 application stays fail closed | unchanged application artifact | candidate response rejects with unchanged design | No source-owner confirmation/rights import |
+| Source owner can decide three exact questions | decision packet | packet/manifest/source mapping assertions | Acceptance remains external and pending |
 
 | v0.6 repair requirement | UI / data | Automated evidence | Authority limitation |
 |---|---|---|---|

@@ -1,0 +1,60 @@
+{
+  "schema_version": "carbon.goal-workbench.source-assessment-design-snapshot.v1",
+  "job_id": "job-001",
+  "design_id": "job-001-design-1",
+  "design_revision": 1,
+  "design_status": "SEALED",
+  "planning_route": "ADAPT_SUPPORTED_CHALLENGE",
+  "intended_use": "Public synthetic periodic viscous Burgers Dynamics contract demonstration only",
+  "template_id": "periodic_viscous_burgers_1d_v1",
+  "challenge": {
+    "id": "burgers-dynamics-v1",
+    "version": "1.0",
+    "active_goal": "Dynamics"
+  },
+  "input_contract": "Finite Fourier initial field, positive viscosity, requested times, and declared periodic domain length",
+  "output_contract": "Complete field evolution with compression, dissipation, and half-time diagnostics",
+  "units": "Source-defined nondimensional Burgers variables and declared characteristic scales",
+  "requirements": [
+    {
+      "requirement_id": "REQ-DYNAMICS",
+      "role": "MANDATORY",
+      "state": "PROPOSED_UNQUALIFIED"
+    }
+  ],
+  "traces": [
+    {
+      "trace_id": "TRACE-DYNAMICS",
+      "requirement_id": "REQ-DYNAMICS",
+      "case_family_id": "BURGERS-12-CELL"
+    }
+  ],
+  "evidence_bindings": [
+    {
+      "evidence_binding_id": "C05-PUBLIC-EVAL2-PERTURBED",
+      "evidence_kind": "FIXED_CASE_RESULT",
+      "source_ref": "Business/Carbon_Fit/workbench/data/c05_public_development_evidence_v1.json",
+      "source_digest": "sha256:ebb4c11df77766111d7223c1671ad7df268d1cf9ad62fa4b3490218951c7974f",
+      "originating_design_id": "job-001-design-1",
+      "originating_design_revision": 1,
+      "inherited": false,
+      "applicability": "UNRESOLVED",
+      "rights_status": "UNRESOLVED"
+    }
+  ],
+  "unresolved_reason_ids": [
+    "gw06:intended-use:suitability-unresolved",
+    "gw06:rights:use-unresolved",
+    "gw06:scientific:applicability-unresolved"
+  ],
+  "authority_ceiling": {
+    "origin_authenticated": false,
+    "source_owner_accepted": false,
+    "scientifically_qualified": false,
+    "rights_authorized": false,
+    "execution_established_by_response": false,
+    "score_eligible": false,
+    "protected_use_authorized": false,
+    "launch_authorized": false
+  }
+}

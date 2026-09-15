@@ -1,0 +1,94 @@
+{
+  "schema_version": "carbon.goal-workbench.source-assessment-request.v1",
+  "contract_version": "1.0",
+  "source_profile_version": "burgers-dynamics-public.v1",
+  "request_id": "GW06-BURGERS-DYNAMICS-PUBLIC-REQUEST-001",
+  "handoff_identity": {
+    "schema_version": "carbon.goal-workbench.handoff.v1",
+    "request_id": "GW06-BURGERS-DYNAMICS-PUBLIC-REQUEST-001",
+    "status": "EXPORTED_CONTRACT_FIXTURE_NOT_DISPATCHED"
+  },
+  "association": {
+    "job_id": "job-001",
+    "design_id": "job-001-design-1",
+    "design_revision": 1,
+    "design_status": "SEALED",
+    "design_snapshot_ref": "fixtures/public_design_snapshot.json",
+    "design_snapshot_digest": "sha256:a493b608d157a9e3473a03b2b64c4e6abe805c8dc5efbc5e48553f36fa913bfe",
+    "design_snapshot_artifact_digest": "sha256:db33a0aca135da5da02c39f1fb37a8aec5af6636ad78f4e9d63fc4b2170a60da",
+    "planning_route": "ADAPT_SUPPORTED_CHALLENGE"
+  },
+  "question": {
+    "question_id": "GW06-BURGERS-DYNAMICS-CAPABILITY-AND-CONTEXT",
+    "response_type": "CAPABILITY_DECLARATION_WITH_UNRESOLVED_APPLICABILITY",
+    "text": "Can the accepted public Burgers authoring path express this exact Dynamics design, and what exact retained C-05 development context is associated with it?",
+    "intended_use_question": "What scientific applicability, intended-use suitability, and rights questions remain unanswered for any later use?"
+  },
+  "scope": {
+    "requirement_ids": [
+      "REQ-DYNAMICS"
+    ],
+    "trace_ids": [
+      "TRACE-DYNAMICS"
+    ],
+    "case_family_ids": [
+      "BURGERS-12-CELL"
+    ],
+    "evidence_bindings": [
+      {
+        "evidence_binding_id": "C05-PUBLIC-EVAL2-PERTURBED",
+        "evidence_kind": "FIXED_CASE_RESULT",
+        "source_ref": "Business/Carbon_Fit/workbench/data/c05_public_development_evidence_v1.json",
+        "source_digest": "sha256:ebb4c11df77766111d7223c1671ad7df268d1cf9ad62fa4b3490218951c7974f",
+        "originating_design_id": "job-001-design-1",
+        "originating_design_revision": 1,
+        "inherited": false
+      }
+    ],
+    "dependency_domains": [
+      "AUTHORING",
+      "INPUT_CONTRACT",
+      "OUTPUT_CONTRACT",
+      "PHYSICS_SCOPE",
+      "REFERENCE",
+      "UNITS_SCALING"
+    ],
+    "unresolved_reason_ids": [
+      "gw06:intended-use:suitability-unresolved",
+      "gw06:rights:use-unresolved",
+      "gw06:scientific:applicability-unresolved"
+    ]
+  },
+  "source_target": {
+    "recipient_domain": "WAVE-C/C-AUTH1",
+    "requested_response_type": "DECLARATION_AND_SCOPED_ASSESSMENT",
+    "implementation_ref": "carbon/authoring/goals.py",
+    "schema_refs": [
+      "carbon.goal-authoring-proposal/1",
+      "carbon.c05.burgers-measurement-result.v1"
+    ],
+    "artifact_ids": [
+      "authoring_result",
+      "native_proposal",
+      "c05_public_bundle",
+      "c05_fixture_index"
+    ]
+  },
+  "permitted_scope": {
+    "information": "PUBLIC_SYNTHETIC_ONLY",
+    "use": "DETACHED_CONTRACT_CONFORMANCE_ONLY",
+    "rights": "NO_RIGHTS_GRANTED"
+  },
+  "expected_result": {
+    "allowed_kinds": [
+      "DECLARATION",
+      "SCOPED_ASSESSMENT",
+      "PARTIAL_RESPONSE",
+      "UNSUPPORTED_SCOPE",
+      "NAMED_BLOCKER"
+    ],
+    "named_blocker": "Source-owner semantic, issuer-scope, trust-anchor, or fixture mapping decision is absent",
+    "restart_event": "The WAVE-C/C-AUTH1 source contract owner answers the three acceptance questions for this exact contract/profile version"
+  },
+  "authority": "REQUEST_ONLY_NO_EXECUTION_APPROVAL_QUALIFICATION_RIGHTS_OR_LAUNCH"
+}

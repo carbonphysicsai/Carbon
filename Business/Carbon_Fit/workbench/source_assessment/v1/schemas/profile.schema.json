@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "carbon.goal-workbench.source-assessment-profile.v1",
+  "title": "Carbon Workbench source-assessment profile v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "contract_version", "profile_id", "source_profile_version", "consumer_owner", "source_contract_owner", "canonicalization", "source_artifacts", "origin_routes", "future_authenticated_route", "authority_ceiling"],
+  "properties": {
+    "schema": {"const": "carbon.goal-workbench.source-assessment-profile.v1"},
+    "contract_version": {"const": "1.0"},
+    "profile_id": {"const": "BURGERS_DYNAMICS_PUBLIC_CAUTH1_C05_V1"},
+    "source_profile_version": {"const": "burgers-dynamics-public.v1"},
+    "consumer_owner": {"$ref": "#/$defs/consumerOwner"},
+    "source_contract_owner": {"$ref": "#/$defs/sourceOwner"},
+    "canonicalization": {"$ref": "#/$defs/canonicalization"},
+    "source_artifacts": {"type": "array", "minItems": 4, "maxItems": 8, "items": {"$ref": "#/$defs/artifact"}},
+    "origin_routes": {"type": "array", "minItems": 5, "maxItems": 8, "items": {"$ref": "#/$defs/trustRow"}},
+    "future_authenticated_route": {"$ref": "#/$defs/futureRoute"},
+    "authority_ceiling": {"$ref": "#/$defs/ceiling"}
+  },
+  "$defs": {
+    "consumerOwner": {"type": "object", "additionalProperties": false, "required": ["domain", "role"], "properties": {"domain": {"const": "SYSTEM/BUSINESS-AUTHORITY"}, "role": {"const": "WORKBENCH_CONSUMER"}}},
+    "sourceOwner": {"type": "object", "additionalProperties": false, "required": ["domain", "role", "decision_inbox", "acceptance_status"], "properties": {"domain": {"const": "WAVE-C/C-AUTH1"}, "role": {"const": "SCIENTIFIC_INTEGRATION"}, "decision_inbox": {"const": "https://github.com/carbonphysicsai/Carbon/issues/42"}, "acceptance_status": {"const": "PENDING_SOURCE_OWNER_DECISION"}}},
+    "canonicalization": {"type": "object", "additionalProperties": false, "required": ["envelope", "artifact"], "properties": {"envelope": {"const": "UTF8_SORTED_KEYS_MINIFIED_JSON_LF_V1"}, "artifact": {"const": "EXACT_RETAINED_BYTES_SHA256"}}},
+    "artifact": {"type": "object", "additionalProperties": false, "required": ["artifact_id", "path", "sha256", "fact_scope"], "properties": {"artifact_id": {"type": "string", "minLength": 1, "maxLength": 128}, "path": {"type": "string", "minLength": 1, "maxLength": 500}, "sha256": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"}, "fact_scope": {"type": "array", "minItems": 1, "maxItems": 32, "items": {"type": "string", "minLength": 1, "maxLength": 500}}}},
+    "trustRow": {"type": "object", "additionalProperties": false, "required": ["input", "establishes", "must_not_follow"], "properties": {"input": {"type": "string", "minLength": 1, "maxLength": 500}, "establishes": {"type": "string", "minLength": 1, "maxLength": 1000}, "must_not_follow": {"type": "string", "minLength": 1, "maxLength": 1000}}},
+    "futureRoute": {"type": "object", "additionalProperties": false, "required": ["status", "verifier_owner", "issuer_scope_mapping", "trust_anchor", "failure_behavior", "missing_inputs"], "properties": {"status": {"const": "NOT_IMPLEMENTED"}, "verifier_owner": {"const": "OWNER_ACCEPTED_INPUT_REQUIRED"}, "issuer_scope_mapping": {"const": "OWNER_ACCEPTED_INPUT_REQUIRED"}, "trust_anchor": {"const": "OWNER_ACCEPTED_INPUT_REQUIRED"}, "failure_behavior": {"const": "REJECT_WITHOUT_PARTIAL_RECEIPT_OR_WORKSPACE_MUTATION"}, "missing_inputs": {"type": "array", "minItems": 1, "maxItems": 16, "items": {"type": "string", "minLength": 1, "maxLength": 500}}}},
+    "ceiling": {"type": "object", "additionalProperties": false, "required": ["origin_authenticated", "source_owner_accepted", "scientifically_qualified", "rights_authorized", "execution_established_by_response", "score_eligible", "protected_use_authorized", "launch_authorized"], "properties": {"origin_authenticated": {"const": false}, "source_owner_accepted": {"const": false}, "scientifically_qualified": {"const": false}, "rights_authorized": {"const": false}, "execution_established_by_response": {"const": false}, "score_eligible": {"const": false}, "protected_use_authorized": {"const": false}, "launch_authorized": {"const": false}}}
+  }
+}

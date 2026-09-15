@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "carbon.goal-workbench.source-assessment-response.v1",
+  "title": "Carbon Workbench source-assessment response v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "contract_version", "source_profile_version", "response_id", "request_id", "request_digest", "association", "claimed_issuer", "result_kind", "content", "content_digest", "authority_ceiling"],
+  "properties": {
+    "schema_version": {"const": "carbon.goal-workbench.source-assessment-response.v1"},
+    "contract_version": {"const": "1.0"},
+    "source_profile_version": {"const": "burgers-dynamics-public.v1"},
+    "response_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"},
+    "request_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"},
+    "request_digest": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+    "association": {"type": "object", "additionalProperties": false, "required": ["job_id", "design_id", "design_revision", "design_snapshot_digest"], "properties": {"job_id": {"const": "job-001"}, "design_id": {"const": "job-001-design-1"}, "design_revision": {"const": 1}, "design_snapshot_digest": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"}}},
+    "claimed_issuer": {"type": "object", "additionalProperties": false, "required": ["issuer_id", "issuer_role", "claim_basis"], "properties": {"issuer_id": {"type": "string", "minLength": 1, "maxLength": 128}, "issuer_role": {"type": "string", "minLength": 1, "maxLength": 128}, "claim_basis": {"enum": ["TEST_AUTHORED_NOT_SOURCE_OWNER", "SOURCE_CLAIMED_UNVERIFIED", "FUTURE_ACCEPTED_ROUTE_REQUIRED"]}}},
+    "result_kind": {"enum": ["DECLARATION", "SCOPED_ASSESSMENT", "PARTIAL_RESPONSE", "UNSUPPORTED_SCOPE", "NAMED_BLOCKER"]},
+    "content": {"$ref": "#/$defs/content"},
+    "content_digest": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+    "authority_ceiling": {"$ref": "#/$defs/ceiling"}
+  },
+  "$defs": {
+    "ids": {"type": "array", "maxItems": 64, "uniqueItems": true, "items": {"type": "string", "minLength": 1, "maxLength": 256}},
+    "capability": {"type": "object", "additionalProperties": false, "required": ["status", "template_id", "active_goal", "technical_scope", "field_coverage", "source_artifact_ids"], "properties": {"status": {"enum": ["SUPPORTED_EXACT_PUBLIC_DYNAMICS_TECHNICAL_DECLARATION", "UNSUPPORTED_REQUESTED_SCOPE", "PARTIAL_COVERAGE", "NAMED_BLOCKER"]}, "template_id": {"type": "string", "minLength": 1, "maxLength": 128}, "active_goal": {"type": "string", "minLength": 1, "maxLength": 128}, "technical_scope": {"type": "string", "minLength": 1, "maxLength": 2000}, "field_coverage": {"$ref": "#/$defs/ids"}, "source_artifact_ids": {"$ref": "#/$defs/ids"}}},
+    "evidence": {"type": "object", "additionalProperties": false, "required": ["status", "fixture_id", "evidence_kind", "case_scope", "request_digest", "result_digest", "measurement_ids", "physics_ids", "source_artifact_id", "execution_relationship"], "properties": {"status": {"enum": ["RETAINED_PUBLIC_DEVELOPMENT_CONTEXT", "NOT_APPLICABLE", "UNSUPPORTED_SCOPE"]}, "fixture_id": {"type": "string", "minLength": 1, "maxLength": 128}, "evidence_kind": {"enum": ["FIXED_CASE_RESULT", "NONE"]}, "case_scope": {"type": "string", "minLength": 1, "maxLength": 256}, "request_digest": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"}, "result_digest": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"}, "measurement_ids": {"$ref": "#/$defs/ids"}, "physics_ids": {"$ref": "#/$defs/ids"}, "source_artifact_id": {"type": "string", "minLength": 1, "maxLength": 128}, "execution_relationship": {"enum": ["HISTORICAL_CONTEXT_NOT_FRESH_EXECUTION", "NO_EXECUTION_CLAIM"]}}},
+    "assessment": {"type": "object", "additionalProperties": false, "required": ["status", "assumptions", "exclusions", "limitations", "answered_question_ids", "partial_question_ids", "unsupported_question_ids", "unanswered_question_ids", "reason_ids_addressed", "reason_ids_remaining", "supporting_evidence_refs", "supersedes_response_id", "next_decision", "restart_event"], "properties": {"status": {"enum": ["UNRESOLVED_TEST_AUTHORED_PREVIEW", "SOURCE_CLAIMED_SCOPED_ASSESSMENT_UNVERIFIED", "PARTIAL", "UNSUPPORTED", "BLOCKED"]}, "assumptions": {"$ref": "#/$defs/ids"}, "exclusions": {"$ref": "#/$defs/ids"}, "limitations": {"$ref": "#/$defs/ids"}, "answered_question_ids": {"$ref": "#/$defs/ids"}, "partial_question_ids": {"$ref": "#/$defs/ids"}, "unsupported_question_ids": {"$ref": "#/$defs/ids"}, "unanswered_question_ids": {"$ref": "#/$defs/ids"}, "reason_ids_addressed": {"$ref": "#/$defs/ids"}, "reason_ids_remaining": {"$ref": "#/$defs/ids"}, "supporting_evidence_refs": {"$ref": "#/$defs/ids"}, "supersedes_response_id": {"type": ["string", "null"], "maxLength": 128}, "next_decision": {"type": "string", "minLength": 1, "maxLength": 2000}, "restart_event": {"type": "string", "minLength": 1, "maxLength": 2000}}},
+    "content": {"type": "object", "additionalProperties": false, "required": ["source_snapshot", "capability_declaration", "evidence_relationship", "applicability_assessment"], "properties": {"source_snapshot": {"type": "object", "additionalProperties": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"}}, "capability_declaration": {"$ref": "#/$defs/capability"}, "evidence_relationship": {"$ref": "#/$defs/evidence"}, "applicability_assessment": {"$ref": "#/$defs/assessment"}}},
+    "ceiling": {"type": "object", "additionalProperties": false, "required": ["origin_authenticated", "source_owner_accepted", "scientifically_qualified", "rights_authorized", "execution_established_by_response", "score_eligible", "protected_use_authorized", "launch_authorized"], "properties": {"origin_authenticated": {"const": false}, "source_owner_accepted": {"const": false}, "scientifically_qualified": {"const": false}, "rights_authorized": {"const": false}, "execution_established_by_response": {"const": false}, "score_eligible": {"const": false}, "protected_use_authorized": {"const": false}, "launch_authorized": {"const": false}}}
+  }
+}
