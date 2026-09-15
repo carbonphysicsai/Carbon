@@ -2,6 +2,13 @@
 
 This map describes focused application acceptance. It does not relabel the CPES study's historical 14/52/208 runs as workbench tests.
 
+| GW06A delivery-integrity requirement | Retained evidence | Automated evidence | Authority limitation |
+|---|---|---|---|
+| Locator existence cannot stand in for delivered content | malformed comment API observation and immutable delivery history | local-path-only and malformed-status tests | Posting is not acknowledgment |
+| Corrected content is complete and byte-verifiable | exact Markdown, readback observation, SHA-256 receipt | required/forbidden marker, issue/author/digest tests | Hash does not authenticate a source-owner response |
+| Duplicate delivery and response inference fail closed | unique delivery marker and one-time response check | duplicate, eligible identity/time/decision and KEEP/CHANGE/BLOCKED tests | Silence and unrelated comments are not acceptance |
+| Contract and application boundaries remain closed | all-false ceiling and unchanged v0.6 artifact | candidate import rejection, HTML digest and active-Wave assertions | No consumer, qualification, rights, execution, score or launch |
+
 | GW06 contract requirement | Detached artifact | Automated evidence | Authority limitation |
 |---|---|---|---|
 | Exact request/content/source identities | sealed snapshot, request/response/profile/manifest v1 | positive validation; wrong job/design/revision/content/case/query/source tests | No production reader |

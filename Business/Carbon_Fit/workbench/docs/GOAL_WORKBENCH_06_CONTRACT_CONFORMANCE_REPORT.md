@@ -63,6 +63,8 @@ Test counts are reported by suite and do not represent science/security percenta
 
 ## Owner packet status and next action
 
-The packet is `SENT_UNACKNOWLEDGED` at <https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5674263522>. The locator establishes only that one public-safe notification was posted to the existing scientific/technical owner inbox; no source-owner acknowledgment, acceptance, funding, or selection is inferred. The exact next action is for `WAVE-C/C-AUTH1` to answer the three packet questions: field semantics, permitted issuer/scope verification, and fixture/source mapping.
+GOAL-WORKBENCH-06A found that comment [`5674263522`](https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5674263522) contained only a local-path token and was therefore `DELIVERY_MALFORMED_CONTENT_NOT_DELIVERED`. It remains historical evidence. The complete notification was posted once as [`5675346832`](https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5675346832), immediately read back, and verified byte-for-byte at `sha256:04952e91e9fda00b36e85ac8862cb601bb9992c124546eec9b7fb56e2c63d72c`. Current status is `DELIVERED_VERIFIED_UNACKNOWLEDGED`; no source-owner acknowledgment, acceptance, funding, or selection is inferred. See `GOAL_WORKBENCH_06A_DELIVERY_INTEGRITY_REPORT.md` and `source_assessment/delivery/v1/`.
+
+The one authorized post-delivery issue check found no eligible exact owner response. The exact next action remains for `WAVE-C/C-AUTH1` to answer the three packet questions: field semantics, permitted issuer/scope verification, and fixture/source mapping. No GOAL-WORKBENCH-07 draft was generated.
 
 Restart event: an actual source-owner response accepts or names exact changes for contract/profile v1.0 and supplies/accepts the required verifier/trust/public-fixture inputs. Until then, the later production consumer remains unselected and unavailable.
