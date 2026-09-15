@@ -12,6 +12,7 @@ from carbon.development_testnet import (
 )
 
 ROOT = Path(__file__).parents[2]
+pytestmark = pytest.mark.invariant
 
 
 @pytest.mark.invariant
