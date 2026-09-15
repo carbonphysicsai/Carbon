@@ -1,23 +1,27 @@
 {
   "schema_version": "carbon.evidence-archive.deployment-manifest.v1",
   "profile_id": "carbon.alpha-evidence-archive.private.v1",
-  "provider_profile_id": "carbon.alpha-evidence-archive.aws.private.v1",
+  "provider_profile_id": "carbon.alpha-evidence-archive.aws.private.v2",
+  "supersedes_provider_profile_id": "carbon.alpha-evidence-archive.aws.private.v1",
   "provider": "aws",
   "recommended_region": "us-west-2",
   "deployment_state": "UNPROVISIONED_REVIEW_PACKAGE",
   "components": {
-    "cloudformation_template_digest": "sha256:b74e28312ba30cd99f8e79350bcde2970cd75e40e20502cd39b3de2713adcd58",
+    "cloudformation_template_digest": "sha256:dd03e05f02cdeb78a8143bc044a94511da20d69a7b93b16164cc3beac22232f9",
     "database_roles_digest": "sha256:7dc9a791af7466e04b97980596df2ebf0f885c1280565d00f4fc0c007be58903",
-    "cost_estimate_digest": "sha256:18f6016c30b09604e6d901c657d21503bcdd4f9f072d7c7cb8fc2123954246dd",
-    "source_use_manifest_digest": "sha256:677a61e2c2aec222d04e02a0eb50300fd7ed1241388dae33f53da658aaccb710"
+    "cost_estimate_digest": "sha256:d5c008e2c8459e39a69f63d7c07b2e46b826f2d234fa197e460d7645ce575b11",
+    "source_use_manifest_digest": "sha256:b2d1dc0fc0e22bf3f398f34a8aebfa22af403cc3fa6c9d79e351410b166e6e53",
+    "operation_role_matrix_digest": "sha256:f5cc497915bc5a7d3bb94fdbb9a0d9c9ccb928b56df8878630b67b17a5e7768f",
+    "deployment_inputs_schema_digest": "sha256:6cb56c388bc63bf09311412137089963b687f9331c028f71567ec87cc0bb41e5",
+    "deployment_inputs_example_digest": "sha256:a2f0a737770369c33ea676fb5f0b980ac83e6ba60064034eb94dde23ffab7991"
   },
   "resource_shapes": {
-    "catalogue": {"service": "rds-postgresql", "engine": "17.11", "instance_class": "db.t4g.micro", "multi_az": true, "storage_type": "gp3", "allocated_gib": 20, "backup_retention_days": 35, "public": false, "iam_auth": true},
-    "objects": {"service": "s3-standard", "logical_quota_gib": 20, "versioning": true, "object_lock": "COMPLIANCE", "default_retention_days": 90, "public": false},
-    "keys": {"service": "kms", "key_type": "customer-managed-symmetric", "rotation": true, "data_key": "AES_256", "encryption_context_profile": "carbon.alpha-evidence-archive.aws.private.v1"},
-    "connectivity": {"rds": "private-subnets-only", "s3": "gateway-vpc-endpoint", "kms": "single-az-interface-vpc-endpoint", "supervisor_network": "EXTERNAL_INPUT"},
+    "catalogue": {"service": "rds-postgresql", "engine": "17.11", "instance_class": "db.t4g.medium", "memory_gib": 4, "multi_az": true, "storage_type": "gp3", "allocated_gib": 20, "backup_retention_days": 35, "public": false, "iam_auth": true},
+    "objects": {"service": "s3-standard", "logical_quota_gib": 20, "versioning": true, "object_lock": "COMPLIANCE_PLUS_OBLIGATION_LEGAL_HOLD", "default_retention_days": 90, "last_use_extension": "EXACT_VERSION_REQUIRED", "public": false},
+    "keys": {"service": "kms", "storage_key": "separate-retained-customer-managed-symmetric", "envelope_key": "separate-retained-customer-managed-symmetric", "rotation": true, "data_key": "AES_256", "encryption_context_profile": "carbon.alpha-evidence-archive.aws.private.v2"},
+    "connectivity": {"rds": "private-subnets-only", "s3": "gateway-vpc-endpoint", "kms": "single-az-interface-vpc-endpoint", "sts": "single-az-interface-vpc-endpoint", "secretsmanager": "single-az-interface-vpc-endpoint", "backup": "single-az-interface-vpc-endpoint", "logs": "single-az-interface-vpc-endpoint", "operator_control_plane": "EXTERNAL_ACCOUNT_INPUT", "public_egress_required": false, "execution_security_groups": "EXTERNAL_ACCOUNT_INPUTS"},
     "journal": {"durable_metadata": "rds-transactional-outbox-and-alpha-capacity-events", "recovery": "catalogue-backup", "local_stage_spool": "pre-acknowledgement-only", "acknowledgement_rule": "no-acknowledged-state-may-depend-on-local-spool"},
-    "backup": {"catalogue": "daily-aws-backup-plus-rds-pitr", "retention_days": 90, "restore_test": "OPERATOR_AUTHORIZATION_REQUIRED"}
+    "backup": {"catalogue": "daily-aws-backup-plus-rds-pitr", "retention_days": 90, "restore_initiator": "RecoveryControlRole", "restore_service_role": "BackupRestoreServiceRole", "restored_connection": "exact-resource-id-stack-update", "restore_test": "OPERATOR_AUTHORIZATION_REQUIRED"}
   },
   "limits": {"active_evaluations": 1, "logical_evidence_bytes": 21474836480, "minimum_retention_days": 90, "restore_target_seconds": 86400},
   "excluded_faults": ["correlated-provider-loss", "correlated-region-loss", "multi-region-availability"],

@@ -6,6 +6,7 @@ import io
 import json
 import shutil
 import sys
+from datetime import UTC, datetime
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -21,6 +22,10 @@ from carbon.evidence_archive import (
     AlphaDeploymentConfiguration,
     AlphaExternalInput,
     AlphaPredicateEvidence,
+    AlphaRecoveryIssue,
+    AlphaRecoveryObject,
+    AlphaRecoveryObservation,
+    AlphaRecoveryWatermark,
     ArchiveCode,
     ArchiveFailure,
     AwsArchiveConfiguration,
@@ -29,7 +34,10 @@ from carbon.evidence_archive import (
     AwsRdsIamConnectionFactory,
     S3ImmutableObjectStore,
     assess_alpha_activation,
+    assess_recovery_watermark,
     derive_object_key,
+    parse_recovery_observation,
+    parse_recovery_watermark,
 )
 from carbon.evidence_archive.alpha_package import validate_aws_package
 
@@ -46,13 +54,15 @@ class FakeS3:
         self.objects: dict[str, bytes] = {}
         self.versions: dict[str, str] = {}
         self.tags: dict[str, object] = {}
+        self.retention = datetime.fromtimestamp(1_000_000, UTC)
+        self.legal_hold = "OFF"
 
     def put_object(self, **request):
         key = request["Key"]
         if key in self.objects:
             raise ProviderError("PreconditionFailed")
         self.objects[key] = request["Body"]
-        self.versions[key] = "version-1"
+        self.versions[key] = "version+/=1"
         assert request["IfNoneMatch"] == "*"
         assert request["ServerSideEncryption"] == "aws:kms"
         assert request["ChecksumSHA256"]
@@ -89,6 +99,24 @@ class FakeS3:
     def put_object_tagging(self, **request):
         self.tags[request["Key"]] = request["Tagging"]
 
+    def get_object_retention(self, **request):
+        assert request["VersionId"] == self.versions[request["Key"]]
+        return {
+            "Retention": {
+                "Mode": "COMPLIANCE",
+                "RetainUntilDate": self.retention,
+            }
+        }
+
+    def put_object_retention(self, **request):
+        self.retention = request["Retention"]["RetainUntilDate"]
+
+    def get_object_legal_hold(self, **request):
+        return {"LegalHold": {"Status": self.legal_hold}}
+
+    def put_object_legal_hold(self, **request):
+        self.legal_hold = request["LegalHold"]["Status"]
+
 
 class FakeKms:
     def __init__(self, key_arn: str):
@@ -124,9 +152,13 @@ def _configuration(*, max_object_bytes: int = 1024) -> AwsArchiveConfiguration:
         region="us-west-2",
         bucket="carbon-alpha-evidence-123456789012",
         expected_bucket_owner="123456789012",
-        kms_key_arn=(
+        storage_kms_key_arn=(
             "arn:aws:kms:us-west-2:123456789012:"
             "key/12345678-1234-1234-1234-123456789012"
+        ),
+        envelope_kms_key_arn=(
+            "arn:aws:kms:us-west-2:123456789012:"
+            "key/87654321-4321-4321-4321-210987654321"
         ),
         tenant_id="carbon-alpha",
         max_object_bytes=max_object_bytes,
@@ -148,7 +180,7 @@ def test_s3_adapter_is_immutable_bounded_and_tenant_scoped() -> None:
     key = _object_key()
     created = store.put_immutable_with_receipt(key, b"ciphertext")
     assert created.created is True
-    assert created.version_id == "version-1"
+    assert created.version_id == "version+/=1"
     assert (
         created.checksum_sha256 == "sha256:" + hashlib.sha256(b"ciphertext").hexdigest()
     )
@@ -158,6 +190,23 @@ def test_s3_adapter_is_immutable_bounded_and_tenant_scoped() -> None:
     assert conflict.value.code is ArchiveCode.CONFLICT
     assert store.get(key) == b"ciphertext"
     assert store.get_version(key, created.version_id) == b"ciphertext"
+    retention = store.apply_version_retention(
+        key,
+        created.version_id,
+        retain_until_epoch_seconds=2_000_000,
+        obligation_hold=True,
+    )
+    assert retention.retain_until_epoch_seconds == 2_000_000
+    assert retention.obligation_hold is True
+    assert client.legal_hold == "ON"
+    retained = store.apply_version_retention(
+        key,
+        created.version_id,
+        retain_until_epoch_seconds=1_500_000,
+        obligation_hold=False,
+    )
+    assert retained.retain_until_epoch_seconds == 2_000_000
+    assert client.legal_hold == "OFF"
     assert store.list_keys("carbon-alpha") == (key,)
     quarantine_ref = store.quarantine(key)
     assert quarantine_ref.startswith("sha256:")
@@ -181,7 +230,7 @@ def test_s3_adapter_caps_request_and_response_bytes() -> None:
 
 def test_kms_data_key_is_context_bound_and_only_wrapped_bytes_are_recoverable() -> None:
     configuration = _configuration()
-    client = FakeKms(configuration.kms_key_arn)
+    client = FakeKms(configuration.envelope_kms_key_arn)
     service = AwsKmsDataKeyService(client, configuration)
     lease = service.generate(archive_entry_id="sha256:" + "a" * 64)
     assert lease.key.key_bytes == b"k" * 32
@@ -195,6 +244,7 @@ def test_kms_data_key_is_context_bound_and_only_wrapped_bytes_are_recoverable() 
         )
         == lease.key
     )
+    assert configuration.storage_kms_key_arn != configuration.envelope_kms_key_arn
 
 
 def test_rds_connection_factory_uses_fresh_iam_token_and_verified_tls(
@@ -284,11 +334,103 @@ def test_activation_distinguishes_rehearsal_and_external_acceptance() -> None:
     )
 
 
+def test_recovery_watermark_rejects_an_older_or_incomplete_subset() -> None:
+    def digest(character):
+        return "sha256:" + character * 64
+
+    recovered_object = AlphaRecoveryObject(
+        digest("a"),
+        "evidence_manifest",
+        "carbon-alpha-v1/v1/tenant/object.bin",
+        "version-1",
+        digest("b"),
+        digest("c"),
+        digest("d"),
+        "arn:aws:kms:us-west-2:123456789012:key/87654321-4321-4321-4321-210987654321",
+        digest("e"),
+    )
+    watermark = AlphaRecoveryWatermark(
+        AlphaArchiveProfile().digest,
+        digest("f"),
+        "arn:aws:backup:us-west-2:123456789012:recovery-point:test",
+        12,
+        11,
+        10,
+        (digest("1"),),
+        (digest("2"),),
+        (digest("3"),),
+        (digest("4"),),
+        (recovered_object,),
+    )
+    complete = AlphaRecoveryObservation(
+        watermark.digest,
+        watermark.catalogue_recovery_point_ref,
+        12,
+        11,
+        10,
+        watermark.outbox_event_refs,
+        watermark.acknowledgement_refs,
+        watermark.manifest_refs,
+        watermark.signature_refs,
+        watermark.objects,
+        (recovered_object.wrapped_key_digest,),
+        3600,
+    )
+    accepted = assess_recovery_watermark(watermark, complete)
+    assert accepted.provisional_rehearsal_passed is True
+    assert accepted.eligible_for_real_acknowledgement is False
+    assert accepted.eligible_for_c_ea2 is False
+    encoded_watermark = json.dumps(watermark.document()).encode()
+    encoded_observation = json.dumps(complete.document()).encode()
+    assert parse_recovery_watermark(encoded_watermark) == watermark
+    assert parse_recovery_observation(encoded_observation) == complete
+    with pytest.raises(ArchiveFailure):
+        parse_recovery_watermark(
+            encoded_watermark.replace(
+                b'"schema_version":',
+                b'"schema_version":"duplicate","schema_version":',
+                1,
+            )
+        )
+
+    older = AlphaRecoveryObservation(
+        watermark.digest,
+        watermark.catalogue_recovery_point_ref,
+        11,
+        10,
+        9,
+        (),
+        (),
+        (),
+        (),
+        (),
+        (),
+        1800,
+    )
+    rejected = assess_recovery_watermark(watermark, older)
+    assert rejected.provisional_rehearsal_passed is False
+    assert set(rejected.issues) == {
+        AlphaRecoveryIssue.CATALOGUE_COMMIT_BEHIND,
+        AlphaRecoveryIssue.JOURNAL_BEHIND,
+        AlphaRecoveryIssue.CAPACITY_LEDGER_BEHIND,
+        AlphaRecoveryIssue.OUTBOX_INCOMPLETE,
+        AlphaRecoveryIssue.ACKNOWLEDGEMENTS_INCOMPLETE,
+        AlphaRecoveryIssue.MANIFESTS_INCOMPLETE,
+        AlphaRecoveryIssue.SIGNATURES_INCOMPLETE,
+        AlphaRecoveryIssue.OBJECT_VERSION_SET_MISMATCH,
+        AlphaRecoveryIssue.ENVELOPE_KEYS_INCOMPLETE,
+    }
+
+
 def test_deployment_package_is_bound_and_fail_closed() -> None:
     report = validate_aws_package(PACKAGE_ROOT)
-    assert report.monthly_estimate_usd == 39.338
-    assert report.monthly_budget_recommendation_usd == 55.0
-    assert report.one_off_rehearsal_estimate_usd == 5.0
+    assert report.incremental_archive_monthly_estimate_usd == 140.628
+    assert report.complete_monthly_estimate_usd == 155.022
+    assert report.previous_monthly_proposal_usd == 55.0
+    assert report.corrected_monthly_authorization_request_usd == 175.0
+    assert report.calculated_rehearsal_estimate_usd == 1.15
+    assert report.rehearsal_authorization_request_usd == 5.0
+    assert report.retained_after_rollback_monthly_estimate_usd == 6.49
     assert report.deployment_authorized is False
     assert report.recovery_rehearsed is False
     assert report.eligible_for_real_acknowledgement is False
@@ -297,6 +439,8 @@ def test_deployment_package_is_bound_and_fail_closed() -> None:
     template = json.loads((PACKAGE_ROOT / "template.json").read_text())
     bucket = template["Resources"]["EvidenceBucket"]
     catalogue = template["Resources"]["Catalogue"]
+    envelope_key = template["Resources"]["ArchiveKey"]
+    storage_key = template["Resources"]["StorageKey"]
     assert bucket["DeletionPolicy"] == "Retain"
     assert bucket["Properties"]["VersioningConfiguration"] == {"Status": "Enabled"}
     assert bucket["Properties"]["ObjectLockConfiguration"]["Rule"][
@@ -310,6 +454,19 @@ def test_deployment_package_is_bound_and_fail_closed() -> None:
     assert catalogue["Properties"]["PubliclyAccessible"] is False
     assert catalogue["Properties"]["StorageEncrypted"] is True
     assert catalogue["Properties"]["EnableIAMDatabaseAuthentication"] is True
+    assert catalogue["Properties"]["DBInstanceClass"] == {"Ref": "DBInstanceClass"}
+    assert template["Parameters"]["DBInstanceClass"]["AllowedValues"] == [
+        "db.t4g.medium"
+    ]
+    for retained_key in (envelope_key, storage_key):
+        assert retained_key["DeletionPolicy"] == "Retain"
+        assert retained_key["UpdateReplacePolicy"] == "Retain"
+    assert catalogue["Properties"]["KmsKeyId"] == {"Fn::GetAtt": ["StorageKey", "Arn"]}
+    assert bucket["Properties"]["BucketEncryption"][
+        "ServerSideEncryptionConfiguration"
+    ][0]["ServerSideEncryptionByDefault"]["KMSMasterKeyID"] == {
+        "Fn::GetAtt": ["StorageKey", "Arn"]
+    }
     encoded = json.dumps(template, sort_keys=True)
     assert "SupervisorRuntimeRole" in template["Resources"]
     assert "AuditRuntimeRole" in template["Resources"]
@@ -317,6 +474,72 @@ def test_deployment_package_is_bound_and_fail_closed() -> None:
     assert "rds-db:connect" in encoded
     assert "s3:DeleteObject" not in encoded
     assert "kms:ScheduleKeyDeletion" in encoded
+    assert "s3:GetObjectVersion" in encoded
+    assert "s3:PutObjectLegalHold" in encoded
+    assert "iam:PassedToService" in encoded
+    assert "AWSBackupServiceRolePolicyForRestores" in encoded
+
+    supervisor = template["Resources"]["SupervisorRuntimeRole"]["Properties"][
+        "Policies"
+    ][0]["PolicyDocument"]["Statement"]
+    by_sid = {statement["Sid"]: statement for statement in supervisor}
+    assert "Condition" not in by_sid["BucketMetadata"]
+    assert by_sid["EnvelopeOperations"]["Resource"] == {
+        "Fn::GetAtt": ["ArchiveKey", "Arn"]
+    }
+    assert (
+        "kms:EncryptionContext:carbon:profile"
+        in by_sid["EnvelopeOperations"]["Condition"]["StringEquals"]
+    )
+    assert "Condition" not in by_sid["DescribeKeys"]
+    assert by_sid["S3StorageKey"]["Condition"]["StringEquals"]["kms:ViaService"] == {
+        "Fn::Sub": "s3.${AWS::Region}.amazonaws.com"
+    }
+
+    audit = template["Resources"]["AuditRuntimeRole"]["Properties"]["Policies"][0][
+        "PolicyDocument"
+    ]["Statement"]
+    audit_encoded = json.dumps(audit, sort_keys=True)
+    assert "ArchiveKey" not in audit_encoded
+    assert "kms:GenerateDataKey" not in audit_encoded
+
+    storage_key_policy = storage_key["Properties"]["KeyPolicy"]["Statement"]
+    storage_key_by_sid = {
+        statement["Sid"]: statement for statement in storage_key_policy
+    }
+    assert (
+        storage_key_by_sid["OperatorAwsResourceGrants"]["Action"] == "kms:CreateGrant"
+    )
+    assert storage_key_by_sid["OperatorAwsResourceGrants"]["Condition"] == {
+        "Bool": {"kms:GrantIsForAWSResource": "true"}
+    }
+    envelope_key_encoded = json.dumps(envelope_key["Properties"]["KeyPolicy"])
+    assert "OperatorAwsResourceGrants" not in envelope_key_encoded
+
+    endpoint = template["Resources"]["KmsInterfaceEndpoint"]["Properties"][
+        "PolicyDocument"
+    ]["Statement"]
+    endpoint_by_sid = {statement["Sid"]: statement for statement in endpoint}
+    assert endpoint_by_sid["AuditStorageDecryptOnly"]["Resource"] == {
+        "Fn::GetAtt": ["StorageKey", "Arn"]
+    }
+    assert (
+        "kms:GenerateDataKey"
+        not in endpoint_by_sid["AuditStorageDecryptOnly"]["Action"]
+    )
+    assert "kms:GenerateDataKey" not in endpoint_by_sid["RecoveryDecryptOnly"]["Action"]
+
+    logs_endpoint = template["Resources"]["LogsInterfaceEndpoint"]["Properties"]
+    assert logs_endpoint["ServiceName"] == {
+        "Fn::Sub": "com.amazonaws.${AWS::Region}.logs"
+    }
+    assert "logs:PutLogEvents" in by_sid["SanitizedDiagnostics"]["Action"]
+    assert "AuditRuntimeRole" not in json.dumps(logs_endpoint["PolicyDocument"])
+
+    runbook = Path("docs/development/EVIDENCE_ARCHIVE_AWS_PRIVATE_ALPHA.md").read_text()
+    assert "execute-change-set" in runbook
+    assert "--disable-rollback" in runbook
+    assert "Catalogue.DeletionProtection=true" in runbook
 
 
 def test_deployment_package_rejects_changed_bound_component(tmp_path: Path) -> None:
@@ -324,7 +547,7 @@ def test_deployment_package_rejects_changed_bound_component(tmp_path: Path) -> N
     shutil.copytree(PACKAGE_ROOT, candidate)
     cost_path = candidate / "cost_estimate.json"
     cost = json.loads(cost_path.read_text())
-    cost["monthly_budget_recommendation"] = 54.0
+    cost["corrected_monthly_authorization_request"] = 164.0
     cost_path.write_text(json.dumps(cost))
     with pytest.raises(ArchiveFailure) as changed:
         validate_aws_package(candidate)

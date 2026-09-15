@@ -99,9 +99,9 @@ class NewcomerProjectionTests(unittest.TestCase):
             f"<strong>Current stage:</strong> {render_hub.esc(current['stage'])}",
             self.output,
         )
-        self.assertIn("run 34882900413", self.output)
-        self.assertIn("C-EA1-D3 alone is selected", self.output)
-        self.assertIn("immutable version receipts", self.output)
+        self.assertIn("run 34900578390", self.output)
+        self.assertIn("C-EA1-D4 alone is selected", self.output)
+        self.assertIn("full-watermark recovery", self.output)
         self.assertIn("No real acknowledgement", self.output)
 
     def test_changing_canonical_position_reprojects_every_current_surface(self) -> None:
@@ -159,7 +159,7 @@ class NewcomerProjectionTests(unittest.TestCase):
         for phrase in (
             "Target-state orientation only",
             "required run 34789621325",
-            "PR #173 supplies accepted C-10 re-execution/disagreement evidence",
+            "C-EA1-D4 is a prospective v2 correctness candidate",
             "planned for Wave C1",
             "Burgers v1 remains PRE-LIVE",
             "Science ends at R14",

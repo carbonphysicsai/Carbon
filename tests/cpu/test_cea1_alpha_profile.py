@@ -137,6 +137,18 @@ def test_alpha_retention_never_authorizes_deletion_with_open_obligations() -> No
         )
         is None
     )
+    assert retention.object_lock_requirement(
+        last_eligible_use_epoch_seconds=last_use,
+        receipt_obligation_open=False,
+        review_obligation_open=True,
+        dispute_obligation_open=False,
+    ) == (last_use + 90 * 86400, True)
+    assert retention.object_lock_requirement(
+        last_eligible_use_epoch_seconds=last_use,
+        receipt_obligation_open=False,
+        review_obligation_open=False,
+        dispute_obligation_open=False,
+    ) == (last_use + 90 * 86400, False)
 
 
 def test_alpha_configuration_is_closed_and_reports_every_external_input() -> None:

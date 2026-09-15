@@ -36,11 +36,11 @@ Wave C/C0 and this file as its controlling register.
 **Version:** 2.3
 **Activation decision:** `OWNER-WAVE-C0-NET1-01`
 **Selected ticket:** C-EA1 — `in_progress`
-**Active ticket:** unprovisioned AWS private-alpha provider adapters,
-deployment/recovery package, atomic capacity and exact external decision
-**Next boundary:** separately authorized provisioning and test-owned recovery
-rehearsal. C-EA2 remains blocked until an eligible real archive acknowledgement
-and recovery/security evidence exist.
+**Active ticket:** `C-EA1-D4` prospective AWS private-alpha custody/IAM,
+retention, network, recovery-watermark and account-bound deployment repair
+**Next boundary:** separately authorized provisioning and test-owned
+full-watermark recovery rehearsal. C-EA2 remains blocked until an eligible real
+archive acknowledgement and accepted recovery/security evidence exist.
 `OWNER-C1-BURGERS-ALPHA-01` keeps one selected ticket at a time. Protected
 science, real archive acknowledgement and public-network execution remain
 ineligible.
@@ -91,7 +91,13 @@ and cannot issue real acknowledgements. C-10 exact head
 `34882900413`; PR #173 normally merged the bounded DEVELOPMENT slice as
 `d7ef7270eeb3b9a5594704efe0876ff3fb5ded49`. C-EA1-D3 is now selected for one
 unprovisioned private-alpha AWS package.
-**Last completed slice:** C-10 bounded DEVELOPMENT re-execution, merged in PR #173
+PR #177 subsequently accepted exact C-EA1-D3 head
+`a4d23361b501240e16aff23464950597bf8e0368` in run `34900578390` and normally
+merged it as `86f3a02485a2522dd4c7fa839a34872508746607`, with matching tree
+`439785f4b496f94d5a5a7c04bec7d45261fbccd3`. C-EA1-D4 now selects the bounded
+provider-package correctness repair and account-bound recovery handoff; no AWS
+operation or later authority is selected.
+**Last completed slice:** C-EA1-D3 unprovisioned AWS package, merged in PR #177
 **Primary Hub map_ref:** `WAVE-C`
 
 C-EA1 passed canonical acceptance in run `34558389185` at accepted head
@@ -204,7 +210,8 @@ exact synthetic development profile and cannot acknowledge real evidence or
 satisfy C-EA2. C-03 and C-08 now have bounded DEVELOPMENT implementations;
 C-09 remains contract-only. PR #168 accepted the alpha preparation profile,
 which cannot itself satisfy C-EA2. PR #173 accepted C-10's DEVELOPMENT audit
-slice; C-EA1-D3's unprovisioned AWS package is selected. C-EA2 remains
+slice and PR #177 accepted C-EA1-D3's unprovisioned AWS package. C-EA1-D4's
+prospective provider-package correctness repair is selected. C-EA2 remains
 unselected and dependency-blocked.
 
 C-EP1 accepted head `e0fbb6208cf0bf95910d51e7a3c996b09387a14e`

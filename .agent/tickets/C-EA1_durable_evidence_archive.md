@@ -2,8 +2,9 @@
 
 **Wave:** C1 real scientific execution foundations
 **Status:** `in_progress`
-**Status scope:** separately versioned private-alpha AWS deployment-package
-continuation; prior synthetic runtime and alpha preparation remain accepted
+**Status scope:** separately versioned private-alpha AWS correctness and
+recovery-handoff continuation; prior synthetic runtime, alpha preparation and
+unprovisioned v1 package remain accepted
 **Completion boundary:** exact synthetic development profile accepted at head
 `a779af066f4bf9bc36b6d6ab23914fa19191e1de` in run `34558389185` and merged as
 `0e0714c8260ca482a0ba2b743b2eaefd50508da1`; alpha preparation is a new
@@ -13,8 +14,10 @@ fail-closed slice and cannot acknowledge real evidence
 **Accountable reviewer:** Operations + data/security + scientific integration
 **Selection authority:** `OWNER-C1-BURGERS-ALPHA-01` for the active slice
 **Runtime decisions:** `C-EA1-D1` (synthetic), `C-EA1-D2` (alpha preparation),
-`C-EA1-D3` (unprovisioned AWS package)
-**Delivery:** PR #136 for synthetic; alpha preparation accepted in PR #168
+`C-EA1-D3` (accepted unprovisioned AWS v1 package), `C-EA1-D4`
+(prospective AWS v2 correctness and recovery handoff)
+**Delivery:** PR #136 for synthetic; alpha preparation accepted in PR #168;
+unprovisioned AWS v1 package accepted in PR #177
 **Goal:** Implement the catalogue, immutable artifact store, verified manifests, journal, outbox, and availability acknowledgement defined by C-EA0 without creating real-finalization authority.
 
 ## Selected profile
@@ -196,7 +199,58 @@ C-EA2.
   cost inputs; the offline doctor remains non-deploying and fail closed.
 - [x] Public price-list quantities and exclusions produce a reviewable monthly
   and one-off rehearsal estimate.
-- [ ] Exact-head automated acceptance and normal merge remain pending.
+- [x] Exact head `a4d23361b501240e16aff23464950597bf8e0368` passed run
+  `34900578390`; PR #177 normally merged as
+  `86f3a02485a2522dd4c7fa839a34872508746607` with matching tree
+  `439785f4b496f94d5a5a7c04bec7d45261fbccd3`.
 - [ ] Actual account/network/principals, provisioning, recovery rehearsal,
   security acceptance and deployment authorization remain external; no real
   acknowledgement is eligible.
+
+## Selected AWS correctness and recovery-handoff continuation
+
+The repository owner's focused continuation keeps C-EA1 as the sole selected
+ticket and records `C-EA1-D4`. It preserves the accepted alpha policy and
+supersedes only the unprovisioned AWS provider profile with
+`carbon.alpha-evidence-archive.aws.private.v2`; v1 remains historical and must
+not be treated as an approval for changed resources.
+
+The selected repair:
+
+- retains both AWS service-storage and Carbon envelope KMS keys across stack
+  deletion/replacement and keeps their permissions/contexts separate;
+- aligns exact-version S3, retention/legal-hold, KMS, IAM DB auth and backup
+  restore operations with distinct supervisor, audit, recovery-control,
+  restore-service and recovery-runtime roles;
+- supplies private S3, KMS, regional STS, Secrets Manager, Backup and
+  CloudWatch Logs paths plus explicit execution-location security-group inputs;
+- maps last eligible use and open receipt/review/dispute obligations to exact
+  S3 version retention and legal holds;
+- verifies a frozen recovery watermark covering catalogue, journal/outbox,
+  capacity, manifests, signatures, exact objects and envelope-key contexts, so
+  an older subset cannot pass; and
+- corrects the RDS memory proposal, cost model, deletion-protection rollback,
+  deployment inputs and account-bound rehearsal order.
+
+No account context was available or inspected, no AWS operation occurred, and
+no spend or destructive rehearsal is authorized. Exact account/network/
+principal/execution inputs, deployment and USD 175/month plus USD 5 rehearsal
+authorization, provider-observed IAM/integration behavior, full-watermark
+recovery, C-EA3-owned acceptance, scoped security acceptance and authorized
+real signer/issuer remain external. Until those exist, the provider-backed
+issuer is not dependency-ready, real acknowledgement remains structurally
+unavailable, and C-EA2 stays unselected.
+
+### D4 Definition of Done
+
+- [x] Confirmed review defects are repaired prospectively without rewriting v1
+  or weakening retention/custody.
+- [x] Operation/role/context/network denials and exact retention/recovery
+  behavior have focused deterministic tests and a fail-closed package doctor.
+- [x] The package contains a credential-free deployment-input schema/example,
+  reviewed rollback/recovery order and sourced incremental/complete/rehearsal/
+  retained-cost views.
+- [ ] Exact-head automated acceptance and normal merge remain pending.
+- [ ] Provisioning, destructive test-owned rehearsal, provider recovery
+  acceptance, security acceptance, real acknowledgement and C-EA2 remain
+  external/unselected.

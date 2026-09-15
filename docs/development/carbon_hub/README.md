@@ -11,12 +11,12 @@ When browsing on GitHub, start with **`orientation/START_HERE.md`**. It is the p
 - 14 waves (A-N)
 - 69 captured tickets across Wave A, Wave B, and Wave C
 - 7 protocol-change routes
-- 123 map-level change events
+- 124 map-level change events
 - 8 independent maturity states
 
 ## Captured current position
 
-Wave **C**; current ticket: **C-EA1**. Last completed: **C-10** (`done`). Next selected: **none selected**. PR #173 accepted exact C-10 head 82073ae2d5cc8504b7e77a9824642f98f0827526 in run 34882900413 and normally merged as d7ef7270eeb3b9a5594704efe0876ff3fb5ded49. C-EA1-D3 alone is selected for an unprovisioned AWS private-alpha package over the accepted PR #168 policy: exact provider adapters, immutable version receipts, atomic retained-byte capacity, private infrastructure/roles, recovery procedure and priced decision support. No later ticket is selected. Actual account/network/principals, provisioning, recovery rehearsal, security acceptance and deployment authorization remain absent. No real acknowledgement, C-EA2, protected execution, public network or LIVE authority exists. D6 run 34518806217 remains historical LOCALNET_READY evidence for its exact disposable standard-profile localnet.
+Wave **C**; current ticket: **C-EA1**. Last completed: **C-10** (`done`). Next selected: **none selected**. PR #177 accepted exact C-EA1-D3 head a4d23361b501240e16aff23464950597bf8e0368 in run 34900578390 and normally merged as 86f3a02485a2522dd4c7fa839a34872508746607 with matching tree 439785f4b496f94d5a5a7c04bec7d45261fbccd3. C-EA1-D4 alone is selected for prospective AWS v2 custody, IAM, private-network, retention, full-watermark recovery and account-bound handoff repair. No later ticket is selected. Actual account/network/principals, USD 175/month and USD 5 rehearsal approval, provisioning, recovery rehearsal, security acceptance and signer authorization remain absent. No real acknowledgement, C-EA2, protected execution, public network or LIVE authority exists. D6 run 34518806217 remains historical LOCALNET_READY evidence for its exact disposable standard-profile localnet.
 
 ## Maintain
 

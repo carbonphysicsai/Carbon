@@ -14076,3 +14076,52 @@ secret, protected datum or real acknowledgement was created. Actual
 single-host-loss recovery within 24 hours, provider behavior, security
 acceptance, custody, deployment authorization and acknowledgement issuer remain
 external and fail closed. C-EA2, C-09 and C-W1 remain unselected/ineligible.
+
+## 2026-09-15 — C-EA1-D4: repair AWS custody, permission, retention, network and recovery correctness
+
+**Ticket:** C-EA1 continuation after accepted AWS package PR #177
+**Authority source:** repository owner's prospective direction to correct the
+private-alpha package and prepare an account-bound deployment/recovery handoff,
+without provisioning, spend, destructive cloud action, real acknowledgement,
+protected processing, or C-EA2 selection
+
+**Review disposition.** The owner-supplied concerns were hypotheses. Inspection
+confirmed missing key retention attributes, incompatible sharing of S3
+service-encryption and Carbon envelope-key policy, missing version-read and
+legal-hold permissions, inapplicable prefix/context conditions, incomplete
+private AWS API paths, an undifferentiated restore role, a rollback/RDS
+deletion-protection conflict, and no exact last-use/obligation retention or
+full-dependency recovery-watermark implementation. The existing adapter did
+already send exact S3 VersionIds, and the bucket/vault retention, private
+Multi-AZ RDS, IAM DB authentication and backup service role were present. The
+unprovisioned v1 profile created no historical provider evidence or real
+acknowledgement to invalidate.
+
+**Selection.** Keep C-EA1 as the sole selected ticket and preserve the alpha
+policy digest. Prospectively replace only the unprovisioned provider package
+with `carbon.alpha-evidence-archive.aws.private.v2`. Use separate retained KMS
+keys for AWS service storage and Carbon envelope custody; exact Carbon context
+never authorizes S3, and the ciphertext audit role never receives envelope-key
+access. Use `db.t4g.medium` because AWS documents 300–1000 MiB extra memory for
+IAM database authentication and the v1 micro supplied only 1 GiB total. Supply
+private S3/KMS/STS/Secrets Manager/Backup/Logs paths and retain all account,
+principal, network and execution-location identifiers as explicit inputs.
+
+**Retention and recovery.** Extend COMPLIANCE retention on each exact object
+version to 90 days after its last eligible use and hold that version while any
+receipt, review or dispute obligation remains open. Bind a recovery rehearsal
+to the latest acknowledged catalogue commit, journal/outbox/capacity sequences,
+acknowledgements, manifests, signatures, exact object versions and envelope-key
+contexts. An older internally consistent subset is failure. Distinguish AWS
+Backup restore initiation, service-role execution and restored RDS connection;
+the latter receives an exact resource-ID policy only after restore.
+
+**Cost and authority.** Public 2026-09-15 rates make the corrected incremental
+archive estimate USD 140.628/month and a complete supervisor-equivalent view
+USD 155.022/month. The prospective request is USD 175/month and USD 5 for one
+rehearsal; the prior USD 55/USD 5 values remain proposals, not authorization.
+No resource or charge is created here. Provider observation, full-watermark
+recovery, C-EA3-owned acceptance, scoped security acceptance, deployment and
+signer authorization remain external. The provider-backed real issuer is not
+dependency-ready and stays absent; C-EA2 remains unselected until an eligible
+real C-EA1 acknowledgement exists.

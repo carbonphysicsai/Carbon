@@ -10,8 +10,12 @@ case "${1:-}" in
     [[ $# -eq 2 ]]
     exec python -m carbon.evidence_archive.alpha_doctor "$2"
     ;;
+  recovery-doctor)
+    [[ $# -eq 3 ]]
+    exec python -m carbon.evidence_archive.alpha_recovery "$2" "$3"
+    ;;
   *)
-    echo "usage: $0 {package-doctor|configuration-doctor CONFIG}" >&2
+    echo "usage: $0 {package-doctor|configuration-doctor CONFIG|recovery-doctor WATERMARK OBSERVATION}" >&2
     exit 2
     ;;
 esac

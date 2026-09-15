@@ -11,13 +11,15 @@ import base64
 import hashlib
 import re
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from typing import Any
 
 from .model import ArchiveCode, ArchiveFailure, content_digest, validate_token
 from .storage import KeyMaterial, validate_object_key
 
-AWS_PROVIDER_SCHEMA = "carbon.evidence-archive.aws-provider.v1"
-AWS_PROVIDER_PROFILE_ID = "carbon.alpha-evidence-archive.aws.private.v1"
+AWS_PROVIDER_SCHEMA = "carbon.evidence-archive.aws-provider.v2"
+AWS_PROVIDER_PROFILE_ID_V1 = "carbon.alpha-evidence-archive.aws.private.v1"
+AWS_PROVIDER_PROFILE_ID = "carbon.alpha-evidence-archive.aws.private.v2"
 AWS_MAX_OBJECT_BYTES = 128 * 1024 * 1024
 AWS_MAX_LISTED_OBJECTS = 8192
 
@@ -44,6 +46,24 @@ def _bounded_ascii(value: object, *, maximum: int = 256) -> str:
     return value
 
 
+def _bounded_provider_id(value: object, *, maximum_bytes: int = 1024) -> str:
+    if (
+        type(value) is not str
+        or not value
+        or any(
+            character.isspace() or not character.isprintable() for character in value
+        )
+    ):
+        raise ArchiveFailure(ArchiveCode.INVALID)
+    try:
+        encoded = value.encode("utf-8")
+    except UnicodeEncodeError:
+        raise ArchiveFailure(ArchiveCode.INVALID) from None
+    if len(encoded) > maximum_bytes:
+        raise ArchiveFailure(ArchiveCode.INVALID)
+    return value
+
+
 def _error_code(error: BaseException) -> str | None:
     response = getattr(error, "response", None)
     if type(response) is not dict:
@@ -54,12 +74,32 @@ def _error_code(error: BaseException) -> str | None:
     return detail["Code"]
 
 
+def _retention_epoch(response: object) -> int:
+    retention = response.get("Retention") if type(response) is dict else None
+    value = retention.get("RetainUntilDate") if type(retention) is dict else None
+    mode = retention.get("Mode") if type(retention) is dict else None
+    if mode != "COMPLIANCE" or not isinstance(value, datetime):
+        raise ArchiveFailure(ArchiveCode.INTEGRITY)
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=UTC)
+    return int(value.timestamp())
+
+
+def _legal_hold(response: object) -> bool:
+    hold = response.get("LegalHold") if type(response) is dict else None
+    status = hold.get("Status") if type(hold) is dict else None
+    if status not in {"ON", "OFF"}:
+        raise ArchiveFailure(ArchiveCode.INTEGRITY)
+    return status == "ON"
+
+
 @dataclass(frozen=True, slots=True)
 class AwsArchiveConfiguration:
     region: str
     bucket: str
     expected_bucket_owner: str
-    kms_key_arn: str
+    storage_kms_key_arn: str
+    envelope_kms_key_arn: str
     tenant_id: str
     prefix: str = "carbon-alpha-v1"
     max_object_bytes: int = AWS_MAX_OBJECT_BYTES
@@ -69,16 +109,21 @@ class AwsArchiveConfiguration:
         region = _bounded_text(self.region, maximum=32)
         bucket = _bounded_text(self.bucket, maximum=63)
         owner = _bounded_text(self.expected_bucket_owner, maximum=12)
-        kms = _bounded_ascii(self.kms_key_arn, maximum=256)
+        storage_kms = _bounded_ascii(self.storage_kms_key_arn, maximum=256)
+        envelope_kms = _bounded_ascii(self.envelope_kms_key_arn, maximum=256)
         tenant = validate_token(self.tenant_id)
         prefix = validate_token(self.prefix, maximum=64)
         if (
             _BUCKET.fullmatch(bucket) is None
             or ".." in bucket
             or _ACCOUNT.fullmatch(owner) is None
-            or _KMS_ARN.fullmatch(kms) is None
-            or kms.split(":")[3] != region
-            or kms.split(":")[4] != owner
+            or _KMS_ARN.fullmatch(storage_kms) is None
+            or _KMS_ARN.fullmatch(envelope_kms) is None
+            or storage_kms == envelope_kms
+            or any(
+                kms.split(":")[3] != region or kms.split(":")[4] != owner
+                for kms in (storage_kms, envelope_kms)
+            )
             or type(self.max_object_bytes) is not int
             or not 1 <= self.max_object_bytes <= AWS_MAX_OBJECT_BYTES
             or type(self.max_listed_objects) is not int
@@ -88,7 +133,8 @@ class AwsArchiveConfiguration:
         object.__setattr__(self, "region", region)
         object.__setattr__(self, "bucket", bucket)
         object.__setattr__(self, "expected_bucket_owner", owner)
-        object.__setattr__(self, "kms_key_arn", kms)
+        object.__setattr__(self, "storage_kms_key_arn", storage_kms)
+        object.__setattr__(self, "envelope_kms_key_arn", envelope_kms)
         object.__setattr__(self, "tenant_id", tenant)
         object.__setattr__(self, "prefix", prefix)
 
@@ -96,7 +142,8 @@ class AwsArchiveConfiguration:
     def identity(self) -> str:
         document = (
             f"{AWS_PROVIDER_SCHEMA}\n{self.region}\n{self.bucket}\n"
-            f"{self.expected_bucket_owner}\n{self.kms_key_arn}\n"
+            f"{self.expected_bucket_owner}\n{self.storage_kms_key_arn}\n"
+            f"{self.envelope_kms_key_arn}\n"
             f"{self.tenant_id}\n{self.prefix}\n{self.max_object_bytes}\n"
             f"{self.max_listed_objects}\n"
         ).encode("ascii")
@@ -204,10 +251,29 @@ class AwsObjectWriteReceipt:
         if (
             type(self.object_key) is not str
             or not self.object_key
-            or validate_token(self.version_id, maximum=256) != self.version_id
+            or _bounded_provider_id(self.version_id) != self.version_id
             or type(self.checksum_sha256) is not str
             or re.fullmatch(r"sha256:[0-9a-f]{64}", self.checksum_sha256) is None
             or type(self.created) is not bool
+        ):
+            raise ArchiveFailure(ArchiveCode.INVALID)
+
+
+@dataclass(frozen=True, slots=True)
+class AwsRetentionReceipt:
+    object_key: str
+    version_id: str
+    retain_until_epoch_seconds: int
+    obligation_hold: bool
+
+    def __post_init__(self) -> None:
+        if (
+            type(self.object_key) is not str
+            or not self.object_key
+            or _bounded_provider_id(self.version_id) != self.version_id
+            or type(self.retain_until_epoch_seconds) is not int
+            or self.retain_until_epoch_seconds < 0
+            or type(self.obligation_hold) is not bool
         ):
             raise ArchiveFailure(ArchiveCode.INVALID)
 
@@ -234,7 +300,7 @@ class AwsKmsDataKeyService:
         )
         try:
             response = self.client.generate_data_key(
-                KeyId=self.configuration.kms_key_arn,
+                KeyId=self.configuration.envelope_kms_key_arn,
                 KeySpec="AES_256",
                 EncryptionContext=context,
             )
@@ -248,7 +314,7 @@ class AwsKmsDataKeyService:
             or len(plaintext) != 32
             or type(wrapped) is not bytes
             or not wrapped
-            or key_id != self.configuration.kms_key_arn
+            or key_id != self.configuration.envelope_kms_key_arn
         ):
             raise ArchiveFailure(ArchiveCode.INTEGRITY)
         key_ref = "aws-kms-" + hashlib.sha256(wrapped).hexdigest()
@@ -270,7 +336,7 @@ class AwsKmsDataKeyService:
             response = self.client.decrypt(
                 CiphertextBlob=encrypted_key,
                 EncryptionContext=context,
-                KeyId=self.configuration.kms_key_arn,
+                KeyId=self.configuration.envelope_kms_key_arn,
             )
         except Exception:  # noqa: BLE001
             raise ArchiveFailure(ArchiveCode.KEY_UNAVAILABLE) from None
@@ -279,7 +345,7 @@ class AwsKmsDataKeyService:
         if (
             type(plaintext) is not bytes
             or len(plaintext) != 32
-            or key_id != self.configuration.kms_key_arn
+            or key_id != self.configuration.envelope_kms_key_arn
         ):
             raise ArchiveFailure(ArchiveCode.INTEGRITY)
         return KeyMaterial(
@@ -334,7 +400,7 @@ class S3ImmutableObjectStore:
         return self._read(response)
 
     def get_version(self, object_key: str, version_id: str) -> bytes:
-        version_id = validate_token(version_id, maximum=256)
+        version_id = _bounded_provider_id(version_id)
         try:
             response = self.client.get_object(
                 Bucket=self.configuration.bucket,
@@ -369,7 +435,7 @@ class S3ImmutableObjectStore:
                 ExpectedBucketOwner=self.configuration.expected_bucket_owner,
                 IfNoneMatch="*",
                 ServerSideEncryption="aws:kms",
-                SSEKMSKeyId=self.configuration.kms_key_arn,
+                SSEKMSKeyId=self.configuration.storage_kms_key_arn,
                 BucketKeyEnabled=True,
             )
             version_id = response.get("VersionId") if type(response) is dict else None
@@ -421,6 +487,97 @@ class S3ImmutableObjectStore:
             "sha256:" + hashlib.sha256(body).hexdigest(),
             False,
         )
+
+    def apply_version_retention(
+        self,
+        object_key: str,
+        version_id: str,
+        *,
+        retain_until_epoch_seconds: int,
+        obligation_hold: bool,
+    ) -> AwsRetentionReceipt:
+        """Extend one exact object version and bind any open-obligation hold.
+
+        Compliance retention is never shortened.  An obligation hold is enabled
+        before retention changes and is released only after the required
+        last-use deadline has been verified on the exact version.
+        """
+
+        key = self._provider_key(object_key)
+        version_id = _bounded_provider_id(version_id)
+        if (
+            type(retain_until_epoch_seconds) is not int
+            or retain_until_epoch_seconds < 0
+            or type(obligation_hold) is not bool
+        ):
+            raise ArchiveFailure(ArchiveCode.INVALID)
+        try:
+            observed_retention = self.client.get_object_retention(
+                Bucket=self.configuration.bucket,
+                Key=key,
+                VersionId=version_id,
+                ExpectedBucketOwner=self.configuration.expected_bucket_owner,
+            )
+            observed_hold = self.client.get_object_legal_hold(
+                Bucket=self.configuration.bucket,
+                Key=key,
+                VersionId=version_id,
+                ExpectedBucketOwner=self.configuration.expected_bucket_owner,
+            )
+        except Exception:  # noqa: BLE001
+            raise ArchiveFailure(ArchiveCode.STORE) from None
+        current = _retention_epoch(observed_retention)
+        current_hold = _legal_hold(observed_hold)
+        target = max(current, retain_until_epoch_seconds)
+        try:
+            if obligation_hold and not current_hold:
+                self.client.put_object_legal_hold(
+                    Bucket=self.configuration.bucket,
+                    Key=key,
+                    VersionId=version_id,
+                    LegalHold={"Status": "ON"},
+                    ExpectedBucketOwner=self.configuration.expected_bucket_owner,
+                )
+            if target > current:
+                self.client.put_object_retention(
+                    Bucket=self.configuration.bucket,
+                    Key=key,
+                    VersionId=version_id,
+                    Retention={
+                        "Mode": "COMPLIANCE",
+                        "RetainUntilDate": datetime.fromtimestamp(target, UTC),
+                    },
+                    ExpectedBucketOwner=self.configuration.expected_bucket_owner,
+                )
+            verified_retention = self.client.get_object_retention(
+                Bucket=self.configuration.bucket,
+                Key=key,
+                VersionId=version_id,
+                ExpectedBucketOwner=self.configuration.expected_bucket_owner,
+            )
+            if _retention_epoch(verified_retention) < target:
+                raise ArchiveFailure(ArchiveCode.INTEGRITY)
+            if not obligation_hold and current_hold:
+                self.client.put_object_legal_hold(
+                    Bucket=self.configuration.bucket,
+                    Key=key,
+                    VersionId=version_id,
+                    LegalHold={"Status": "OFF"},
+                    ExpectedBucketOwner=self.configuration.expected_bucket_owner,
+                )
+            verified_hold = self.client.get_object_legal_hold(
+                Bucket=self.configuration.bucket,
+                Key=key,
+                VersionId=version_id,
+                ExpectedBucketOwner=self.configuration.expected_bucket_owner,
+            )
+        except ArchiveFailure:
+            raise
+        except Exception:  # noqa: BLE001
+            raise ArchiveFailure(ArchiveCode.STORE) from None
+        if _legal_hold(verified_hold) is not obligation_hold:
+            raise ArchiveFailure(ArchiveCode.INTEGRITY)
+        return AwsRetentionReceipt(object_key, version_id, target, obligation_hold)
 
     def list_keys(self, tenant_id: str) -> tuple[str, ...]:
         if validate_token(tenant_id) != self.tenant_id:
