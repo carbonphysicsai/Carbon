@@ -32,7 +32,7 @@ function designWithRequest() {
   return design;
 }
 
-async function admittedTestExchange(design, builtRequest, answers, unanswered) {
+async function admittedTestExchange(design, builtRequest, answers, unanswered, options = {}) {
   design.source_assessments.requests.push(clone(builtRequest));
   design.source_assessments.current_request_id = builtRequest.request_id;
   const response = clone(testResponse);
@@ -60,17 +60,20 @@ async function admittedTestExchange(design, builtRequest, answers, unanswered) {
       allowed_domains: S.TECHNICAL_DOMAINS,
       owner_adoption_ref: "GW07-TEST-ONLY-ADOPTION",
       owner_adoption_content_digest: responseDigest,
-      state: "CURRENT",
+      state: options.entryState || "CURRENT",
       withdrawn_reason: "",
       supersedes_assessment_ids: [],
       conflicts_with_assessment_ids: [],
     }],
   };
-  return S.importResponse(
+  const verifier = S.createVerifier(testProfile, index, { testMode: true });
+  const result = await S.importResponse(
     design,
     responseRaw,
-    S.createVerifier(testProfile, index, { testMode: true }),
+    verifier,
   );
+  result.verifier = verifier;
+  return result;
 }
 
 test("operational schemas are closed at their record roots", () => {
@@ -262,6 +265,59 @@ test("withdrawal and conflict in installed snapshot block current positive use",
     const verifier = S.createVerifier(testProfile, index, { testMode: true });
     await assert.rejects(S.importResponse(designWithRequest(), testRaw, verifier), /withdrawn|conflict/);
   }
+});
+
+test("withdrawn and superseded records remain historical and cannot resolve current reasons", async () => {
+  const sourceDesign = designWithRequest();
+  const authoringReason = {
+    reason_id: "reason-authoring-history",
+    domain: "AUTHORING",
+    field: "authoring",
+    originating_design_id: sourceDesign.design_id,
+    originating_revision: sourceDesign.revision,
+    basis: "Historical test authoring question",
+  };
+  const design = sourceDesign;
+  design.evidence_bindings[0].scientific_review_reasons.push(authoringReason);
+  design.evidence_bindings[0].scientific_applicability = "REVIEW_REQUIRED";
+  const request = await S.buildRequest(design, "GW07-TEST-HISTORY-REQUEST");
+  const exchange = await admittedTestExchange(design, request, [{
+    question_id: "GW07:AUTHORING_EXPRESSIBILITY",
+    domain: "AUTHORING_EXPRESSIBILITY",
+    status: "ANSWERED",
+    statement: "Test-only historical authoring answer.",
+    addressed_reason_ids: [authoringReason.reason_id],
+    supporting_refs: ["TEST-ONLY"],
+  }], ["GW07:SOURCE_ARTIFACT_IDENTITY", "GW07:FIXED_EVIDENCE_RELATIONSHIP"]);
+  assert.deepEqual(exchange.receipt.resolved_reason_ids, [authoringReason.reason_id]);
+
+  const withdrawnIndex = clone(exchange.verifier.index);
+  withdrawnIndex.entries[0].state = "WITHDRAWN";
+  withdrawnIndex.entries[0].withdrawn_reason = "test withdrawal";
+  const withdrawnVerifier = S.createVerifier(exchange.verifier.profile, withdrawnIndex, { testMode: true });
+  await S.revalidateState(design, withdrawnVerifier);
+  const withdrawn = S.project(design, withdrawnVerifier);
+  assert.equal(withdrawn.assessment_status, "HISTORICAL_WITHDRAWN");
+  assert.equal(withdrawn.origin_verification, "CURRENT_USE_REJECTED_BY_INSTALLED_SNAPSHOT");
+  assert.deepEqual(design.source_assessments.dispositions, []);
+  assert.deepEqual(withdrawn.remaining_reason_ids, [authoringReason.reason_id]);
+
+  const supersededDesign = designWithRequest();
+  supersededDesign.evidence_bindings[0].scientific_review_reasons.push(authoringReason);
+  supersededDesign.evidence_bindings[0].scientific_applicability = "REVIEW_REQUIRED";
+  const supersededRequest = await S.buildRequest(supersededDesign, "GW07-TEST-SUPERSEDED-REQUEST");
+  const supersededExchange = await admittedTestExchange(supersededDesign, supersededRequest, [{
+    question_id: "GW07:AUTHORING_EXPRESSIBILITY",
+    domain: "AUTHORING_EXPRESSIBILITY",
+    status: "ANSWERED",
+    statement: "Test-only superseded authoring answer.",
+    addressed_reason_ids: [authoringReason.reason_id],
+    supporting_refs: ["TEST-ONLY"],
+  }], ["GW07:SOURCE_ARTIFACT_IDENTITY", "GW07:FIXED_EVIDENCE_RELATIONSHIP"], { entryState: "SUPERSEDED" });
+  assert.equal(supersededExchange.receipt.status, "HISTORICAL_SUPERSEDED");
+  assert.deepEqual(supersededExchange.receipt.resolved_reason_ids, []);
+  assert.deepEqual(supersededDesign.source_assessments.dispositions, []);
+  assert.deepEqual(supersededExchange.receipt.remaining_reason_ids, [authoringReason.reason_id]);
 });
 
 test("approved entry without exact adoption reference rejects", () => {

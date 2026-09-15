@@ -14,7 +14,7 @@
     "GOAL-WORKBENCH-07"
   ],
   "repository_base": "3681f7fb10be0c6e278f53d59ff9b022099ef12d",
-  "integration_revision_at_packaging": "0892294edbeb4010b784e597bbb5702cd8c68277",
+  "integration_revision_at_packaging": "da861b540a8106060f613030a779078d7c5c06d1",
   "integration_revision_note": "The checksum manifest describes exact packaged bytes. A commit cannot contain its own digest; final PR/head identity is reported by delivery.",
   "pinned_research_revision": "ca904dfee93d3574df4e56b99981a6ed3b138e80",
   "accepted_research_head": "0a5690270dc449ea19c941280203987d37db5283",
@@ -125,12 +125,12 @@
   "file_count": 155,
   "files": {
     "Carbon_Opportunity_Workbench.html": {
-      "bytes": 673620,
-      "sha256": "ef607891763c7e7d765ff0b764504228ec30411384e564aac59ebe8777719f8e"
+      "bytes": 674610,
+      "sha256": "731a8b6b34bec52bb9695220da36382ec118c66741bf5faadb743c99048d212f"
     },
     "README.md": {
-      "bytes": 16653,
-      "sha256": "69f552c20f7050fc4cb0ae90872484d616ab2b479c9bda94f1ae8e896f145e65"
+      "bytes": 16674,
+      "sha256": "27ba244c655382a09f070578e3e70de44a51bfbb9132804494005ccf20028395"
     },
     "data/atlas.json": {
       "bytes": 156569,
@@ -253,8 +253,8 @@
       "sha256": "9297e9435c991a9fdc1f583531ef32fe418b0ccb0837942fedf88158a7df9003"
     },
     "docs/GOAL_WORKBENCH_07_IMPLEMENTATION_REPORT.md": {
-      "bytes": 5727,
-      "sha256": "286390e38643281ef33f9a6b99800ac2e78143c5287587bf2017e923bf8f4f07"
+      "bytes": 5846,
+      "sha256": "92649e714e09a359f8603efd7527aa22c2b05b28eea316fec8ce2abbaaf79f3d"
     },
     "docs/OWNER_REPORT.md": {
       "bytes": 17212,
@@ -569,8 +569,8 @@
       "sha256": "4f6fc4d87da5886f636fb702b98adc11b7b58e69a0834cc318178add37614462"
     },
     "src/source_assessment.js": {
-      "bytes": 39984,
-      "sha256": "98fb15875a0295d6f4021882d5cc760216cd4ca9754df989549294696601da4e"
+      "bytes": 40974,
+      "sha256": "f019939953bd28a9268e640d743d0fa846f63dabd575f454db70785652fb5cf5"
     },
     "src/styles.css": {
       "bytes": 9017,
@@ -653,8 +653,8 @@
       "sha256": "e9286584e80db14fd2a9e5c80dd5c740beda8964081e8a4d6ddf891d80810a55"
     },
     "tests/test_repository_snapshot_assessment.cjs": {
-      "bytes": 16729,
-      "sha256": "3c480235fb15e04adcedddf0297e4320d5b3ce19b7a522a7259c53d7903508c0"
+      "bytes": 19853,
+      "sha256": "44a177153b0cd52408cace02f51d8e7adbf517ccf4cc1ee8b5a96d057c42c7d8"
     },
     "tests/test_routing.cjs": {
       "bytes": 18684,

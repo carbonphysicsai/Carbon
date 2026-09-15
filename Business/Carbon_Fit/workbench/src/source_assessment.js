@@ -412,6 +412,7 @@
     const allQuestionIds = request.questions.map((item) => item.question_id);
     const remainingQuestions = allQuestionIds.filter((item) => !answered.includes(item));
     const allReasons = [...new Set(request.questions.flatMap((item) => item.reason_ids))];
+    const currentUse = entry.state === "CURRENT";
     const receipt = {
       schema_version: RECEIPT_VERSION,
       receipt_id: "receipt:" + parsed.response_id,
@@ -423,8 +424,8 @@
       status: entry.state === "SUPERSEDED" ? "HISTORICAL_SUPERSEDED" : "MATCHED_APPROVED_SOURCE_SNAPSHOT",
       answered_question_ids: [...new Set(answered)].sort(),
       remaining_question_ids: remainingQuestions.sort(),
-      resolved_reason_ids: [...new Set(resolved)].sort(),
-      remaining_reason_ids: allReasons.filter((item) => !resolved.includes(item)).sort(),
+      resolved_reason_ids: currentUse ? [...new Set(resolved)].sort() : [],
+      remaining_reason_ids: currentUse ? allReasons.filter((item) => !resolved.includes(item)).sort() : allReasons.sort(),
       origin_verification: "CONSUMER_DERIVED_REPOSITORY_SNAPSHOT_MATCH",
       authority_effect: "NONE",
     };
@@ -481,6 +482,15 @@
     const state = design.source_assessments, request = state.requests.find((item) => item.request_id === state.current_request_id) || null;
     const receipts = state.receipts.filter((item) => item.request_id === state.current_request_id);
     const current = receipts.at(-1) || null;
+    const stored = state.responses.filter((item) => item.received_for_request_id === state.current_request_id).at(-1) || null;
+    const installedEntry = stored ? verifier.index.entries.find((item) => item.assessment_id === stored.response.response_id) || null : null;
+    const historicalStatus = !current && installedEntry?.state === "WITHDRAWN"
+      ? "HISTORICAL_WITHDRAWN"
+      : !current && installedEntry?.state === "CONFLICTING"
+        ? "CONFLICTING_INSTALLED_SNAPSHOT"
+        : null;
+    const assessmentStatus = current?.status || historicalStatus || "PENDING_EXACT_OWNER_ADOPTION";
+    const usableCurrentAnswer = assessmentStatus === "MATCHED_APPROVED_SOURCE_SNAPSHOT";
     return {
       profile_id: verifier.profile.profile_id,
       snapshot_id: verifier.profile.snapshot_id,
@@ -488,12 +498,16 @@
       request_status: request ? "PREPARED_LOCAL_NOT_TRANSMITTED" : "NOT_PREPARED",
       request_id: request?.request_id || "",
       subject_digest: request?.subject_digest || "",
-      assessment_status: current?.status || "PENDING_EXACT_OWNER_ADOPTION",
-      origin_verification: current?.origin_verification || "NOT_ESTABLISHED",
+      assessment_status: assessmentStatus,
+      origin_verification: current?.origin_verification || (historicalStatus ? "CURRENT_USE_REJECTED_BY_INSTALLED_SNAPSHOT" : "NOT_ESTABLISHED"),
       answered_question_ids: current?.answered_question_ids || [],
       remaining_question_ids: current?.remaining_question_ids || request?.questions.map((item) => item.question_id) || [],
       remaining_reason_ids: current?.remaining_reason_ids || request?.questions.flatMap((item) => item.reason_ids) || [],
-      next_action: current ? "REVIEW_SCOPED_TECHNICAL_ANSWER_AND_REMAINING_OBLIGATIONS" : "RYAN_ADOPT_EXACT_PREPARED_ASSESSMENT_FOR_A_FUTURE_SNAPSHOT",
+      next_action: usableCurrentAnswer
+        ? "REVIEW_SCOPED_TECHNICAL_ANSWER_AND_REMAINING_OBLIGATIONS"
+        : historicalStatus || assessmentStatus === "HISTORICAL_SUPERSEDED"
+          ? "RECONCILE_INSTALLED_SNAPSHOT_HISTORY_WITH_OWNER"
+          : "RYAN_ADOPT_EXACT_PREPARED_ASSESSMENT_FOR_A_FUTURE_SNAPSHOT",
       qualification_effect: "NONE",
       rights_effect: "NONE",
       launch_effect: "NONE",

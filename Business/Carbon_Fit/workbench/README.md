@@ -132,7 +132,7 @@ node tools/build_repository_snapshot_fixtures.cjs
 python3 tools/build.py
 node --test tests/test_engine.cjs tests/test_workflow.cjs
 node --test tests/test_routing.cjs tests/test_state_integrity.cjs tests/test_c05_evidence.cjs tests/test_source_assessment.cjs tests/test_repository_snapshot_assessment.cjs
-python3 -m pytest tests/test_authoring_bridge.py ../../../../tests/cpu/test_cauth1_goal_authoring.py -q
+env PYTHONPATH=../../.. python3 -m pytest tests/test_authoring_bridge.py ../../../tests/cpu/test_cauth1_goal_authoring.py -q
 python3 tests/test_sources.py
 node tests/browser_smoke.cjs
 node tests/browser_goal_smoke.cjs
