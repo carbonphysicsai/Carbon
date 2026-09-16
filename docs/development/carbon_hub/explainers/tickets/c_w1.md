@@ -32,7 +32,7 @@ No model inference or new chain operation occurs without its applicable approval
 
 ## Current stage
 
-C-W1 DEVELOPMENT: the real agent evaluation's signed source completed the separately authorized all-burn testnet path. Subnet 567 activation finalized at 8017622, commitment at 8017643, reveal at 8017851 and exact row [[0, 65535]] at 8017916; the checked journal reached ROW_VERIFIED without resubmission. PR #194's zero-fee guard is merged. C-W1-REVEAL-01 repairs SDK tuple event decoding and provides bounded walletless rescan recovery for a previously missed reveal.
+C-W1 DEVELOPMENT: the real agent evaluation's signed source completed the separately authorized all-burn testnet path. Subnet 567 activation finalized at 8017622, commitment at 8017643, reveal at 8017851 and exact row [[0, 65535]] at 8017916; the checked journal reached ROW_VERIFIED without resubmission. PR #194's zero-fee guard is merged. PR #196 delivered C-W1-REVEAL-01, which repairs SDK tuple event decoding and provides bounded walletless rescan recovery for a previously missed reveal. Creation at 8010852 and distinct miner UID 1 registration remain historical setup evidence. The numerical result remains COMPLETE_UNRESOLVED; no score, accepted improvement, winner, miner payment, burn amount or epoch effect is inferred. No subsequent activation or weight transaction is authorized by the consumed approvals. AWS stays deferred, Hippius unverified and scientific/security/network/production qualification unearned. Official C-W1 and C-EA2 remain blocked. C-W1-D2 is the selected non-paying comparison; official C-W1 remains reserved.
 
 ## Maturity ceiling
 
@@ -40,12 +40,12 @@ Bounded real agent evaluation, signed DEVELOPMENT evidence, finalized public-tes
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/974edafb7c47db2e06448f49e33239ab5a655e50/.agent/tickets/C-W1_testnet_eligibility.md)
-- [Development testnet plan](https://github.com/carbonphysicsai/Carbon/blob/974edafb7c47db2e06448f49e33239ab5a655e50/.agent/plans/C_W1_DEVELOPMENT_TESTNET.md)
-- [Development testnet evidence](https://github.com/carbonphysicsai/Carbon/blob/974edafb7c47db2e06448f49e33239ab5a655e50/.agent/evidence/wave_c/c-w1-development.md)
-- [Operator runbook](https://github.com/carbonphysicsai/Carbon/blob/974edafb7c47db2e06448f49e33239ab5a655e50/docs/development/CW1_DEVELOPMENT_TESTNET_RUNBOOK.md)
-- [First transaction plan](https://github.com/carbonphysicsai/Carbon/blob/974edafb7c47db2e06448f49e33239ab5a655e50/docs/development/CW1_DEVELOPMENT_TESTNET_TRANSACTION_PLAN.md)
-- [C1 dependency graph](https://github.com/carbonphysicsai/Carbon/blob/974edafb7c47db2e06448f49e33239ab5a655e50/.agent/plans/C1_DEPENDENCY_GRAPH.md)
-- [Supervised Burgers session and numerical observations](https://github.com/carbonphysicsai/Carbon/blob/974edafb7c47db2e06448f49e33239ab5a655e50/docs/development/CW1_BURGERS_AGENT_SESSION.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/d8da6beca467065522d8327533ea9da70038cbef/.agent/tickets/C-W1_testnet_eligibility.md)
+- [Development testnet plan](https://github.com/carbonphysicsai/Carbon/blob/d8da6beca467065522d8327533ea9da70038cbef/.agent/plans/C_W1_DEVELOPMENT_TESTNET.md)
+- [Development testnet evidence](https://github.com/carbonphysicsai/Carbon/blob/d8da6beca467065522d8327533ea9da70038cbef/.agent/evidence/wave_c/c-w1-development.md)
+- [Operator runbook](https://github.com/carbonphysicsai/Carbon/blob/d8da6beca467065522d8327533ea9da70038cbef/docs/development/CW1_DEVELOPMENT_TESTNET_RUNBOOK.md)
+- [First transaction plan](https://github.com/carbonphysicsai/Carbon/blob/d8da6beca467065522d8327533ea9da70038cbef/docs/development/CW1_DEVELOPMENT_TESTNET_TRANSACTION_PLAN.md)
+- [C1 dependency graph](https://github.com/carbonphysicsai/Carbon/blob/d8da6beca467065522d8327533ea9da70038cbef/.agent/plans/C1_DEPENDENCY_GRAPH.md)
+- [Supervised Burgers session and numerical observations](https://github.com/carbonphysicsai/Carbon/blob/d8da6beca467065522d8327533ea9da70038cbef/docs/development/CW1_BURGERS_AGENT_SESSION.md)
 
 > G2 remains LOCALNET_READY only for the exact D6 disposable v445 localnet. C-W1-D1 is separate and permits public/synthetic DEVELOPMENT only after exact external gates; signed DEVELOPMENT evidence remains rejected by official/protected consumers.

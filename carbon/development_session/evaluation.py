@@ -77,6 +77,7 @@ def evaluate(
     *,
     resume_completed_reconstruction: bool = False,
     execution_scope: ExecutionScope = ExecutionScope.FIXTURE_DEVELOPMENT,
+    frozen_randomness: tuple[bytes, ...] | None = None,
 ):
     """Called only after the authenticated service admits the miner submission.
 
@@ -149,13 +150,23 @@ def evaluate(
         digest(canonical(profile_document()["budget"])),
     )
     worker = DevelopmentWorkerProfile(policy.content_digest, resource.content_digest)
+    if frozen_randomness is not None and (
+        type(frozen_randomness) is not tuple
+        or len(frozen_randomness) != 3
+        or any(type(seed) is not bytes or len(seed) != 32 for seed in frozen_randomness)
+    ):
+        raise ValueError("three exact private reconstruction seeds required")
     seeds = tuple(
         (
             DerivedSeed(
                 (attempt / f"replica-{index}-private-randomness.bin").read_bytes()
             )
             if retained
-            else DerivedSeed(os.urandom(32))
+            else DerivedSeed(
+                os.urandom(32)
+                if frozen_randomness is None
+                else frozen_randomness[index]
+            )
         )
         for index in range(3)
     )
@@ -278,6 +289,18 @@ def evaluate(
                 plan=plan,
                 training_archive=archive,
                 derived_seed=seed,
+            ),
+        )
+        write_once(
+            attempt / f"replica-{index}-reconstruction-observation.json",
+            canonical(
+                {
+                    "schema": "carbon.cw1.reconstruction-operational-observation.v1",
+                    "status": run.receipt.status.value,
+                    "completed_steps": run.receipt.completed_steps,
+                    "resources": run.resource_observation,
+                    "timings": run.timings,
+                }
             ),
         )
         runs.append(run)

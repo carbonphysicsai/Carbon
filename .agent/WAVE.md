@@ -34,27 +34,29 @@
 > historical evidence, and human-reserved scientific/security authority remain.
 
 **Current wave:** C
-**Current phase:** C-W1-D1 public/synthetic DEVELOPMENT testnet composition
+**Current phase:** C-W1-D2 non-paying DEVELOPMENT comparison
 **State:** **active in bounded engineering scope**
 **Wave A:** closed in bounded engineering scope
 **Wave B:** closed in bounded engineering scope after PR #118 accepted head
 `c510095b5501587cf93c04632a26b7c303d7d48b` in run `34365282759` and
 normally merged as `ac050fd53ee18bf3788c167ee7b0736bbfd7a46b`, tree
 `46b38440f13a8048db18bc480ddb6907396c9017`
-**Controlling register:** `.agent/WAVE_C.md` version 2.4
-**Selected ticket:** C-W1 — `in_progress`
-**Selection scope:** bounded `C-W1-D1` DEVELOPMENT slice only; official C-W1
-remains `future_reserved`
-**Active ticket:** supervised Burgers V1 DEVELOPMENT agent/session continuation
-on public-testnet subnet 567, using the merged PR #185 run/status/resume path
-**Next boundary:** prospectively select a DEVELOPMENT comparison contract and
-non-paying bridge; no successor ticket is selected. PR #194 merged the zero-fee
-publication guard. The separately authorized activation finalized at 8017622,
-and all-burn commitment at 8017643. Walletless reconciliation observed reveal
-at 8017851 and exact row `[[0, 65535]]` at 8017916; state is
-`ROW_VERIFIED`. Both one-dispatch scopes are consumed. The real agent's FNO-40
-evaluation and signed source remain unchanged and `COMPLETE_UNRESOLVED`;
-no comparison, winner, miner payment or qualified scientific result is claimed.
+**Controlling register:** `.agent/WAVE_C.md` version 2.5
+**Selected ticket:** C-W1-D2 — `in_progress`
+**Selection scope:** bounded non-paying DEVELOPMENT comparison only; official
+C-W1 remains `future_reserved`.
+**Active ticket:** `.agent/tickets/C-W1-D2_development_comparison.md`.
+**Next boundary:** complete C-W1-D2 acceptance and normal expected-head merge;
+the descriptive exercise is complete. A future accepted comparison requires
+an authorized acceptance rule, not fitted thresholds. No later ticket is selected.
+PR #196 delivered C-W1-REVEAL-01 at approved head
+`594b8cb668e9b133cb071b32f0ca3e7785d5c3f9`, required run `35143278595`, normal
+merge `15ecbe923c8710313cbeadadc8dd5c7d5ec2ae9e`. The historical publication is
+`ROW_VERIFIED`; its exact row is `[[0, 65535]]`. The numerical source remains
+`COMPLETE_UNRESOLVED`. Both transaction scopes are consumed. Burn amounts,
+epoch effects, miner payment and settlement remain unproven. C-W1-D2 permits
+no public-network transaction. No later ticket is selected.
+C-W1-D2 completed one non-paying DEVELOPMENT experiment on the seen 12 TRAIN / 12 EVAL / 12 STRESS subset: 8 real gpt-5-mini calls, one FNO-48 challenger against the authentic FNO-40 historical baseline, three real JAX replicas, 144 updates and 72 C-05 reports. Field and weak-PDE errors were lower; conserved-mean and STRESS maximum-principle defects worsened. Disposition: INDETERMINATE_NO_ACCEPTANCE_RULE. No scalar, tie, accepted improvement or winner is claimed. The agent used its permitted prior feedback and stopped after one evaluation. PR #201 engineering delivery is conditional on required CI and normal expected-head merge; no later ticket is selected.
 C-EA2 and official C-W1 remain blocked.
 C-EA1 passed canonical acceptance in run `34558389185` at accepted head
 `a779af066f4bf9bc36b6d6ab23914fa19191e1de` and normally merged in PR #136 as
