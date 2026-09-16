@@ -498,10 +498,16 @@ class BittensorPublicationBackend:
                 ):
                     continue
                 attributes = event.get("attributes")
-                if attributes == [self.context.netuid, publisher] or attributes == {
-                    "netuid": self.context.netuid,
-                    "hotkey": publisher,
-                }:
+                # The pinned SDK decodes positional SCALE attributes as tuples.
+                if type(attributes) in (list, tuple) and len(attributes) == 2:
+                    attributes = dict(zip(("netuid", "hotkey"), attributes))
+                if (
+                    type(attributes) is dict
+                    and attributes
+                    == {"netuid": self.context.netuid, "hotkey": publisher}
+                    and type(attributes["netuid"]) is int
+                    and type(attributes["hotkey"]) is str
+                ):
                     matched = True
         except Exception:  # noqa: BLE001
             failed = True

@@ -1,12 +1,61 @@
 # C-W1 — Supervised Burgers DEVELOPMENT continuation
 
+## Finalized DEVELOPMENT chain execution — 2026-09-16
+
+The owner separately authorized one activation and one source-bound all-burn
+publication. Both one-dispatch scopes are consumed; they authorize no subsequent
+activation, weight transaction, registration or model session. PR #194's accepted
+zero-fee guard was merged before dispatch.
+
+| Observation | Verified result |
+|---|---|
+| Public testnet / runtime | Subnet 567 / spec 460 |
+| Activation transaction | `0x2f172cd8d79238d05a9a15f62b0a6ea45446f934bd4e5e7f8b73cbba0388acd3` |
+| Activation finalized / first emission block | 8017622 / 8017623 |
+| Actual activation fee / approved total cap | 257188 / 300000 RAO |
+| All-burn commitment transaction | `0xd3d0a9c92b001f9384c805872381e737e7812fdbe57cb8c706fdaa0340e88e69` |
+| Commitment finalized | 8017643, within approved blocks 8015974–8017774 |
+| Automatic reveal observed | Finalized block 8017851 |
+| Exact row readback | `[[0, 65535]]` at finalized block 8017916 |
+| Publisher / mechanism / burn UID | 0 / 0 / 0, Burn mode |
+| Actual publication fee / total cap | 0 / 0 RAO |
+| Durable operator state | `ROW_VERIFIED` |
+
+The existing checked `execute_run` path issued the short-lived intent near
+dispatch; walletless `execute_resume` observed reveal and exact stored-row
+readback. There was one dispatch per scope and no resubmission or science rerun.
+Transaction finalization, automatic reveal and stored row are distinct retained
+observations. Burn amounts, epoch effects, miner payment and settlement remain
+unmeasured; `ROW_VERIFIED` does not assert them.
+
+The first reconciliation missed the actual SDK's tuple-shaped reveal attributes.
+C-W1-REVEAL-01 repairs exact tuple/list/dictionary matching and adds an explicit
+bounded `resume --rescan-reveal` recovery. The supported walletless rescan recovered
+the retained event without changing the signed source, transaction identities or
+earlier journal history. No transaction was repeated to work around the decoder.
+
+The controller source remains
+`sha256:7000fbdb0e1204b0adc129fe3a74203732707fa29bf230430e34539b3ea5ad68`.
+Its ACTIVE signed DEVELOPMENT receipt remains `COMPLETE_UNRESOLVED`, with no
+qualified score, accepted comparison or winner. Network transport success changes
+none of its protected, official, score, reward or production eligibility flags.
+Total additional on-chain expenditure was **0.000257188 test TAO**. Historical
+creation, miner registration and these two transactions total **1.008867339 test
+TAO**. This continuation made no additional model call.
+
+The next milestone is a separately selected, non-paying DEVELOPMENT comparison
+bridge with prospectively frozen comparison rules, C-10 quarantine, explicit
+tie/regression/indeterminate outcomes and later C-REWARD identity/decay mapping.
+No successor ticket is selected by this observation. Official C-W1 and C-EA2
+remain blocked; AWS stays deferred and Hippius remains unverified.
+
 Selected by the owner on 2026-09-15, starting at PR #185 merge
 `97ee8d42467e5b3c6542eba2316cb7fe16d3ba7b`. Primary Hub map: `WAVE-C/C-W1`.
 This is a continuation of the selected C-W1 DEVELOPMENT ticket. OWNER-DX-03
 governs engineering delivery. No new transaction or paid inference is authorized
 by this working contract.
 
-## Current observed result — 2026-09-16
+## Historical model-completion checkpoint — 2026-09-16, before chain approval
 
 **The fourth separately approved real model session completed one authenticated
 numerical evaluation and signed source.** PR #191 merged normally as
@@ -312,7 +361,6 @@ it is not inferred from one winning scalar. Protected/official/production
 consumers continue to reject every DEVELOPMENT receipt and weight intent.
 No treasury path, broad scientific campaign or B-E4 four-arm revival is needed.
 
-
 ## 2026-09-15 real session and prospective tool-framing repair
 
 PR #188 merged as `a5a520166e97268ec32e546b12edcd448e46d210` after canonical
@@ -350,7 +398,6 @@ the board/Hub, then run applicable canonical acceptance and normal merge.
 Offline synthetic replies are protocol tests only. The next empirical milestone
 is a valid authenticated submission and real evaluation of this same frozen
 population; it is not yet the comparison bridge described above.
-
 
 ## 2026-09-15 authenticated submission and worker-scope repair
 
@@ -391,7 +438,6 @@ guard entirely, or replay the stopped campaign. The bounded code migration is
 reversible at `carbon/reconstruction/worker/protocol.py`; reverting it restores
 fixture-only admission and blocks real C-W1 reconstruction. Affects C-03/C-W1
 and C-07/C-08 provenance. No scientific/security qualification decision is made.
-
 
 ## 2026-09-16 real reconstruction and private-umask prediction repair
 
@@ -439,7 +485,6 @@ retained stop. Prefer recovering the exact trained submission when a supported
 bounded recovery exists; never delete its dispatch marker, rewrite a receipt,
 silently replace failed prediction evidence or redraw the cohort. No successful
 engineering regression can substitute for the still-missing real-agent outcome.
-
 
 ## C-W1-ZERO-FEE-01 — publication fee boundary
 

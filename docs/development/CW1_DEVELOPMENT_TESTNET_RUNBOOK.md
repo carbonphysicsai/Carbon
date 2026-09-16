@@ -1,5 +1,19 @@
 # Public/synthetic DEVELOPMENT testnet runbook
 
+## Finalized DEVELOPMENT chain execution — 2026-09-16
+
+Separate owner-approved one-dispatch scopes completed activation at finalized
+block 8017622 and the all-burn commitment at 8017643. Walletless reconciliation
+observed reveal at 8017851 and exact row `[[0, 65535]]` at
+8017916; the retained state is `ROW_VERIFIED`. Actual fees were
+257188 RAO for activation and zero for publication. Both scopes are consumed;
+do not replay `run` or infer authority for another transaction.
+
+See [the exact transaction evidence and retained scientific limitations](CW1_BURGERS_AGENT_SESSION.md#finalized-development-chain-execution--2026-09-16).
+The earlier proposed and pre-dispatch records below remain historical. The
+source stays `COMPLETE_UNRESOLVED`; no comparison, winner, miner payment,
+burn amount, epoch effect, protected eligibility or qualification is inferred.
+
 This runbook is for `carbon.public-synthetic-testnet.development.v1`. It is not
 the official C-W1/C-09/C-EA2 path and grants no protected, scientific,
 production, reward or LIVE status.
@@ -13,7 +27,7 @@ approval scopes are in [CW1_BURGERS_AGENT_SESSION.md](CW1_BURGERS_AGENT_SESSION.
 The older Darwin/no-subnet observations below describe the pre-setup checkpoint.
 Do not switch to Docker Desktop or reuse the earlier unregistered wallet.
 
-## Latest execution checkpoint — 2026-09-16
+## Historical pre-dispatch checkpoint — 2026-09-16
 
 PR #191 is merged. The separately approved real FNO-40 agent session completed
 three replicas, 120 updates, 72 measurements, permitted feedback and an ACTIVE
@@ -139,3 +153,22 @@ missing inputs are an approved existing netuid, registration/UID and publication
 capability for the public hotkey, an eligible Linux host/session, any bounded
 testnet-token registration amount, and the exact one-dispatch transaction
 approval.
+
+## Recovery of a previously missed reveal event
+
+For an already-finalized timelocked commitment whose journal still lacks a
+reveal, `resume --rescan-reveal` starts a bounded event backfill at the retained
+finalized commitment block plus one. It accepts no caller-provided event, block
+or stored-row claim. Each call scans at most 256 finalized blocks; use ordinary
+`resume` for subsequent pages. Do not repeatedly rewind a long backfill.
+
+```bash
+python -m carbon.development_testnet resume --rescan-reveal --config /absolute/private/operator/development-testnet.json --source /absolute/private/operator/source-handoff.json
+python -m carbon.development_testnet resume --config /absolute/private/operator/development-testnet.json --source /absolute/private/operator/source-handoff.json
+```
+
+This option is walletless and cannot sign, resend or rerun science. It preserves
+transaction facts and prior journal events, does not reopen terminal records,
+and still requires a matching finalized reveal, stable exposure and exact row.
+It is rejected for other commands and unfinalized dispatches. The completed
+subnet 567 example above requires no further rescan or transaction.

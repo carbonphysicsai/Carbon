@@ -1,6 +1,20 @@
 # C-W1-D1 first public-testnet transaction plan
 
-## Current concrete decision — 2026-09-16
+## Finalized DEVELOPMENT chain execution — 2026-09-16
+
+Separate owner-approved one-dispatch scopes completed activation at finalized
+block 8017622 and the all-burn commitment at 8017643. Walletless reconciliation
+observed reveal at 8017851 and exact row `[[0, 65535]]` at
+8017916; the retained state is `ROW_VERIFIED`. Actual fees were
+257188 RAO for activation and zero for publication. Both scopes are consumed;
+do not replay `run` or infer authority for another transaction.
+
+See [the exact transaction evidence and retained scientific limitations](CW1_BURGERS_AGENT_SESSION.md#finalized-development-chain-execution--2026-09-16).
+The earlier proposed and pre-dispatch records below remain historical. The
+source stays `COMPLETE_UNRESOLVED`; no comparison, winner, miner payment,
+burn amount, epoch effect, protected eligibility or qualification is inferred.
+
+## Historical proposed transaction decision — 2026-09-16
 
 The real supervised FNO-40 source is complete and ACTIVE; its digest and measured
 limitations are recorded in `CW1_BURGERS_AGENT_SESSION.md`. Model access and
@@ -30,7 +44,6 @@ intent near dispatch, and use the existing checked `run/status/resume` path.
 Do not request another science run, rewrite the source, resend ambiguity or claim
 burn/epoch effects from transaction inclusion alone. Activation and publication
 are still unapproved; no wallet is opened by preparing this decision.
-
 
 **Status:** concrete execution handoff; public write not authorized
 **Profile:** `carbon.public-synthetic-testnet.development.v1`

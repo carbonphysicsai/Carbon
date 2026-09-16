@@ -201,8 +201,15 @@ class VerifiedWeightPublisher:
                 return self.journal.update(ref.digest, state, reason=reason)
             return await self.reconcile(ref.digest)
 
-    async def reconcile(self, identity):
-        """Scan at most 256 finalized blocks per call. Never resubmit a transaction."""
+    async def reconcile(self, identity, *, rescan_reveal=False):
+        """Scan at most 256 finalized blocks; optionally restart missed reveal reads.
+
+        An explicit rescan rewinds only an unresolved finalized commitment's read
+        cursor. Ordinary subsequent calls continue the bounded backfill. No
+        transaction fact is reset, and terminal records are never reopened.
+        """
+        if type(rescan_reveal) is not bool:
+            raise PublicationFailure("INVALID_REVEAL_RESCAN")
         row = self.journal.get(identity)
         if row is None:
             raise PublicationFailure("UNKNOWN_DISPATCH")
@@ -223,6 +230,22 @@ class VerifiedWeightPublisher:
         ):
             raise PublicationFailure("RECONCILIATION_CHAIN_MISMATCH")
         start = tracking["scan_block"]
+        if rescan_reveal:
+            if (
+                not plan.commit_reveal
+                or tracking["revealed"]
+                or tracking["finalized_block"] is None
+                or tracking["included_block"] != tracking["finalized_block"]
+                or snapshot.finalized_block < tracking["finalized_block"]
+            ):
+                raise PublicationFailure("FINALIZED_UNREVEALED_COMMIT_REQUIRED")
+            start = tracking["finalized_block"] + 1
+            self.journal.update(
+                identity,
+                row["state"],
+                scan_block=start,
+                reason="EXPLICIT_REVEAL_RESCAN",
+            )
         end = min(snapshot.finalized_block, start + 255)
         for block in range(start, end + 1):
             if tracking["included_block"] is None:
