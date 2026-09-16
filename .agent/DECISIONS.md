@@ -14210,6 +14210,68 @@ active signed evidence; the existing fixture ledger and unresolved C-06/C-07
 receipts cannot name a winner. That successor does not weaken this all-burn
 transaction and is not selected here.
 
+## 2026-09-16 — WEB-QA-01-D1: drop-in public explainer with fail-closed live activation
+
+**Ticket:** WEB-QA-01 public homepage answer bot
+**Authority source:** repository owner's 2026-09-16 integration handoff
+
+**Problem.** The owner authorized a public homepage answer bot while requiring
+the existing homepage, Workbench, scientific authority and private-data
+boundaries to remain intact. The accessible repository does not contain the
+deployed homepage source, Cloudflare project, `Carbon_Ask_v1` candidate, its 31
+cards or supplied live cases. The available saved homepage snapshot exactly
+matches the live bytes observed on 2026-09-16 but does not prove deployment
+ownership. Production model, source-release, privacy, cost, route and deploy
+decisions are also absent and human-reserved.
+
+**Working decision.** KEEP the current static homepage and WRAP it with one
+dependency-free `<ask-carbon>` custom element injected by a deterministic
+SHA-pinned integration tool. Default to reviewed-source-shaped saved
+explanations and a visibly non-live preview. Put the exact
+`/api/ask-carbon` and `/api/ask-carbon/health` contract in a separate
+Cloudflare Worker module with an account-global Durable Object ledger. Require
+an approved, dated, unexpired knowledge release; exact origin allowlist;
+owner-approved model; explicit input/output prices, request/cost/concurrency
+ceilings; provider key; context-signing secret; and the ledger binding before
+the health gate can become active. Origin filtering is defense in depth, not
+authentication. The provider gets only bounded signed public cards, no tools,
+and no URL authority; strict output validation rejects unknown source IDs and
+the server maps approved IDs to fixed public destinations.
+
+**Implementation.** The working decision is implemented under
+`website/ask-carbon/`, with the durable scope and missing-input record in
+`.agent/tickets/WEB-QA-01_public_homepage_answer_bot.md`. The release remains
+`DRAFT_NOT_APPROVED`, reports the absent 31-card review, and cannot activate.
+The public UI explicitly warns visitors not to paste confidential data. The
+future authenticated Research Concierge, private archive, protected exam,
+evaluator and miner execution are not dependencies and are not exposed.
+
+**Alternatives rejected.** Replacing the homepage or copying the preview as a
+second application would create a competing site source and route. An iframe
+would weaken integration, focus and policy control. Client-side provider keys
+or direct provider calls would expose credentials and evade the global ledger.
+Treating the saved Workbench package as deployment authority, fabricating the
+missing 31 cards or choosing an unapproved model/price would convert missing
+evidence into public or spending authority.
+
+**Interfaces and downstream effect.** The only new public interface is the
+versioned exact route family above. Existing homepage and `/workbench/` routes,
+miner/runtime contracts, economics, Challenge gates, scientific thresholds and
+qualification states are unchanged. The component can be removed by deleting
+its one stylesheet tag, one element and one module tag. The Worker can be
+rolled back by disabling its activation variable before route removal. The
+actual deployment repository must either adopt these files or supersede this
+decision; there is no automatic publication from main.
+
+**Human-reserved inputs.** Public activation still requires the actual website
+repository/project/production branch and Cloudflare route owner, reviewed 31
+cards and supplied live cases, an approved source release and expiry, privacy
+and security acceptance, model choice, token prices and global ceilings,
+credentials provisioned outside chat, Mobile Safari/assistive-technology
+acceptance, and explicit deployment authorization. The smallest superseding
+change is to update this heading, the WEB-QA-01 ticket and the activation
+manifest/configuration; no scientific or private-data authority is implied.
+
 ## 2026-09-15 — OWNER-GW07-RYAN-SNAPSHOT-01: Ryan-controlled repository snapshot for source assessments
 
 **Authority source and scope.** Ryan, Carbon creator and GitHub `@jbequ5`,

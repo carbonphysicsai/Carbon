@@ -1,0 +1,158 @@
+{
+  "schema_version": 1,
+  "knowledge_version": "public-preview-2026-09-16",
+  "release_status": "DRAFT_NOT_APPROVED",
+  "source_release_date": null,
+  "expires_at": null,
+  "candidate_card_review": {
+    "expected_count": 31,
+    "received_count": 0,
+    "status": "BLOCKED_MISSING_CANDIDATE_PACKAGE",
+    "note": "These preview cards are not substitutes for the missing 31 candidate cards."
+  },
+  "sources": [
+    {
+      "id": "public-homepage-2026-09-16",
+      "title": "Carbon public homepage",
+      "url": "https://carbonphysics.ai/",
+      "kind": "CURRENT_PUBLIC_PAGE",
+      "observed_at": "2026-09-16",
+      "sha256": "5ebb43e859e9837f74bbc93b5748b2db95a6700821afbfcecb407e75702e2020",
+      "release_status": "ALREADY_PUBLIC",
+      "note": "Paraphrased current public homepage content; the observed page is not proof of its deployment repository."
+    },
+    {
+      "id": "scientific-canon-v4-main",
+      "title": "Carbon Scientific Reference Canon v4 — Integrated Master",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/main/docs/context/SCIENTIFIC_REFERENCE_CANON_V4_MASTER.md",
+      "kind": "PUBLIC_REPOSITORY_SOURCE",
+      "observed_at": "2026-09-16",
+      "release_status": "PUBLIC_REPOSITORY",
+      "note": "Paraphrased scientific authority and maturity boundaries from the public repository."
+    },
+    {
+      "id": "constitution-main",
+      "title": "Carbon Constitution",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/main/CONSTITUTION.md",
+      "kind": "PUBLIC_REPOSITORY_SOURCE",
+      "observed_at": "2026-09-16",
+      "release_status": "PUBLIC_REPOSITORY",
+      "note": "Paraphrased repository-wide authority boundaries."
+    }
+  ],
+  "contact_routes": [
+    {
+      "id": "public-email",
+      "label": "Email Carbon",
+      "url": "mailto:hello@carbonphysics.ai",
+      "status": "VERIFIED_ON_CURRENT_PUBLIC_HOMEPAGE"
+    },
+    {
+      "id": "public-github",
+      "label": "Explore the public project",
+      "url": "https://github.com/carbonphysicsai/Carbon",
+      "status": "VERIFIED_PUBLIC_REPOSITORY"
+    }
+  ],
+  "cards": [
+    {
+      "id": "how-carbon-works",
+      "topic": "The basics",
+      "question": "How does Carbon work?",
+      "answer": "Carbon is being built to help discover and independently test methods for constructing fast physical models. For a bounded Challenge, Carbon defines the job and evaluation rules; miners explore model-building strategies; validators reconstruct selected submissions and test fixed candidates against independent references and mandatory requirements. Passing a Challenge comparison is evidence within that Challenge, not automatic qualification for customer use.",
+      "source_ids": ["public-homepage-2026-09-16", "scientific-canon-v4-main"],
+      "follow_ups": ["What do miners submit?", "Who establishes the reference answers?"],
+      "keywords": ["how", "works", "carbon", "process", "system", "miner", "validator"]
+    },
+    {
+      "id": "training-cases",
+      "topic": "Training",
+      "question": "Who chooses the training cases?",
+      "answer": "A Challenge owns the scientific task and its population. Miners may use permitted training cases, practice tools and public findings to develop strategies. Carbon's registered Challenge process controls the official task, sampling plan and protected evaluation; miners do not choose the hidden exam or the answer key. The current public material describes this as the proposed design, not as a completed live scientific pilot.",
+      "source_ids": ["public-homepage-2026-09-16", "scientific-canon-v4-main"],
+      "follow_ups": ["Why are official cases protected?", "What do miners submit?"],
+      "keywords": ["training", "case", "data", "choose", "population", "practice", "exam"]
+    },
+    {
+      "id": "reference-answers",
+      "topic": "Verification",
+      "question": "Where does the ground truth come from?",
+      "answer": "There is no universal ground-truth backend. Each Challenge needs a qualified reference policy suited to its claim and operating range. Depending on the problem, authority could come from an analytic solution, a checked numerical solver, experiment, customer-hosted service, dataset or a qualified combination. Reference uncertainty, provenance and applicability must support the decision; reference failure is not candidate failure.",
+      "source_ids": ["public-homepage-2026-09-16", "scientific-canon-v4-main"],
+      "follow_ups": ["Who checks the exam itself?", "What happens when the evidence is uncertain?"],
+      "keywords": ["ground", "truth", "reference", "answer", "solver", "experiment", "uncertainty"]
+    },
+    {
+      "id": "progress-maturity",
+      "topic": "Progress",
+      "question": "What has been proven?",
+      "answer": "The public homepage says Carbon has built an evaluation-software foundation and checked it with software test cases. It also states that the first scientific pilot, paid customer delivery and measured network advantage have not yet been established. Software tests do not prove physics performance, production security, customer readiness or commercial traction.",
+      "source_ids": ["public-homepage-2026-09-16", "constitution-main"],
+      "follow_ups": ["What must the first pilot establish?", "Does a winning model qualify for use?"],
+      "keywords": ["proven", "progress", "stage", "built", "pilot", "production", "customer", "traction"]
+    },
+    {
+      "id": "miner-submission",
+      "topic": "Participation",
+      "question": "What do miners submit?",
+      "answer": "In the first bounded scope, miners submit reproducible neural-operator training strategies: recipes for building a model, not a self-certified score. Validators reconstruct selected candidates under the registered policy and resource limits before evaluation. Broader construction methods are a future architectural direction and do not widen current execution permissions.",
+      "source_ids": ["public-homepage-2026-09-16", "scientific-canon-v4-main"],
+      "follow_ups": ["How are submissions evaluated?", "How does Carbon make gaming harder?"],
+      "keywords": ["miner", "submit", "recipe", "strategy", "model", "reconstruct"]
+    },
+    {
+      "id": "gaming-controls",
+      "topic": "Verification",
+      "question": "How does Carbon make gaming harder?",
+      "answer": "The proposed controls combine reproducible submissions, producer-independent reconstruction, protected exam cases, independent references and mandatory physics requirements. A candidate cannot compensate for a mandatory scientific failure with a better average score, and the producer does not control the official grade. These controls still require testing and live operational evidence before they can be described as proven production security.",
+      "source_ids": ["public-homepage-2026-09-16", "scientific-canon-v4-main"],
+      "follow_ups": ["Why are some cases hidden?", "Who qualifies the exam?"],
+      "keywords": ["gaming", "cheat", "protected", "security", "grade", "reconstruction"]
+    },
+    {
+      "id": "winning-vs-qualification",
+      "topic": "Qualification",
+      "question": "Does a winning model qualify for customer use?",
+      "answer": "No. A network result can support comparison within its defined Challenge. Customer use needs a separate assessment of the exact model, engineering job, operating range, deployment context, limitations, escalation rules and re-test triggers. Rank can nominate a candidate; bounded evidence is what can qualify a specific use.",
+      "source_ids": ["public-homepage-2026-09-16", "scientific-canon-v4-main"],
+      "follow_ups": ["What is a Challenge?", "What can an Evidence Audit deliver?"],
+      "keywords": ["winning", "winner", "qualify", "customer", "safe", "use", "rank"]
+    },
+    {
+      "id": "private-data-boundary",
+      "topic": "Privacy",
+      "question": "Should I paste confidential engineering data here?",
+      "answer": "No. This public answer surface is only for public information about how Carbon works. Do not paste confidential engineering, customer, model, solver or evaluation data into general chat. Protected exam material, reference answers and customer information remain restricted; a separate authorized workflow would be needed for private work.",
+      "source_ids": ["public-homepage-2026-09-16", "constitution-main"],
+      "follow_ups": ["What information is public?", "How can I contact Carbon about a private project?"],
+      "keywords": ["private", "confidential", "secret", "customer", "data", "paste", "privacy"]
+    },
+    {
+      "id": "research-concierge-boundary",
+      "topic": "Scope",
+      "question": "Is this the Research Concierge?",
+      "answer": "No. This is a bounded public-homepage explainer. It has no private archive, customer workspace, protected evaluation, Landscape or miner-execution access. The future authenticated Research Concierge is a separate governed product path and is not made real or production-ready by this public widget.",
+      "source_ids": ["constitution-main"],
+      "follow_ups": ["What can this public bot answer?", "Should I paste confidential engineering data here?"],
+      "keywords": ["research", "concierge", "private", "authenticated", "archive", "landscape"]
+    },
+    {
+      "id": "commercial-stage",
+      "topic": "Commercial path",
+      "question": "Does Carbon have paying customers?",
+      "answer": "The current public sources do not establish any paid customer delivery. They describe planned Evidence Audit, Sponsored Discovery and Qualification plus Lifecycle offers, and say paid customer delivery remains an evidence gate. Product architecture and proposed services are not proof of traction, validated pricing or recurring revenue.",
+      "source_ids": ["public-homepage-2026-09-16", "constitution-main"],
+      "follow_ups": ["What is an Evidence Audit?", "What stage is Carbon at?"],
+      "keywords": ["paying", "customer", "revenue", "traction", "commercial", "sales"]
+    },
+    {
+      "id": "unknown-answer",
+      "topic": "Limits",
+      "question": "What if the public sources do not establish an answer?",
+      "answer": "The answer should remain unknown or unresolved. This bot may summarize only approved public sources and must not infer launch status, qualification, paid traction, model performance or private facts. You can inspect the cited sources or use the verified public contact route for a question that needs an owner response.",
+      "source_ids": ["constitution-main"],
+      "follow_ups": ["How can I contact Carbon?", "What has been proven?"],
+      "keywords": ["unknown", "unresolved", "don't know", "cannot answer", "source"]
+    }
+  ]
+}
