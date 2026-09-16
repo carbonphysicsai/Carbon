@@ -14238,3 +14238,33 @@ identity, or fixed-evidence relationship questions. It cannot qualify science,
 grant rights, prove fresh execution, create ScoreInput/eligibility, authorize
 protected reuse, or launch. The smallest reversal is removal/replacement of the
 profile/index in a later accepted build while historical bytes remain retained.
+
+## 2026-09-16 — OWNER-GW07-RYAN-SNAPSHOT-01-ADOPTION-001: first exact admitted assessment
+
+**Authority source and exact disposition.** Ryan supplied the explicit
+owner-conversation response “Yes to #5. Approve now and add approval to new
+prompt” to the exact-adoption question for
+`GW07-BURGERS-DYNAMICS-ASSESSMENT-001`. The controlled adoption record retains
+that literal instruction, its normalized `ADOPT` disposition, the exact request,
+subject, raw assessment and operational-canonical identities, and the absence
+of a platform-authenticated GitHub event. Engineering remains the assessment
+preparer. The earlier issue #41 comment remains a request posted by
+`fitz-lang6`, not a Ryan-authored reply.
+
+**Admission decision.** Admit only the unchanged assessment bytes to installed
+snapshot `OWNER-GW07-RYAN-SNAPSHOT-01/sha256-49acb3598d034cf7/v1`, for the
+`AUTHORING_EXPRESSIBILITY`, `SOURCE_ARTIFACT_IDENTITY`, and
+`FIXED_EVIDENCE_RELATIONSHIP` technical domains. The last question remains
+partial/open and the assessment resolves zero review-reason records. A
+build-time check must tie the adoption record to the exact retained request,
+candidate, profile and one-entry production index. Imported workspaces, claimed
+owners, test roots and ordinary merges cannot manufacture this admission.
+
+**Authority ceiling and history.** This prospective record supersedes the
+current pending-adoption projection, not its historical event. It creates no
+scientific qualification, rights grant, fresh execution, customer suitability,
+score eligibility, protected reuse or launch authority. Offline verification
+is only as fresh as the installed accepted snapshot; later withdrawal remains
+unknown until a newer snapshot is installed. The smallest reversal is a later
+accepted snapshot marking the exact entry withdrawn or superseded while
+preserving all historical bytes and receipts.

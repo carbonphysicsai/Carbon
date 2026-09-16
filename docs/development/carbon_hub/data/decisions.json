@@ -2716,16 +2716,16 @@
     {
       "title": "Use a Ryan-controlled repository snapshot for bounded Workbench source assessments",
       "question": "How can the Workbench consume one exact source assessment without treating claimed names, imported manifests, hashes, or test fixtures as owner authority?",
-      "recommendation": "Install a closed repository snapshot in the accepted application build, bind every assessment to an exact sealed request and response bytes, require a content-bound Ryan adoption reference, reject failures atomically, and keep the real index empty until that exact adoption exists.",
-      "why": "This makes the consumer and owner workflow usable now while preserving the difference between implementation policy, exact statement adoption, repository admission, byte verification, and scientific or rights authority.",
-      "if_kept": "The v0.7 Workbench can prepare/export exact requests, verify only admitted bytes, preserve cumulative obligations, and show one coherent owner action. The prepared public assessment remains pending and the positive path remains test-only until Ryan adopts its exact content.",
-      "if_changed": "Replace only the versioned profile/index and affected candidate fields in a later accepted build. Preserve historical Workbench-06 fixtures, responses, withdrawals, conflicts, and original actor provenance.",
+      "recommendation": "Retain the closed repository-snapshot verifier and admit only GW07-BURGERS-DYNAMICS-ASSESSMENT-001 under Ryan's explicit owner-conversation adoption. Bind the exact request, frozen subject, unchanged response bytes, permitted technical scope, separate adoption evidence, and one-entry installed index; reject every mismatch atomically.",
+      "why": "Ryan answered the exact adoption question affirmatively for the named bytes and limits. The controlled repository record preserves that decision without inventing a GitHub-authenticated Ryan action, changing the Engineering preparer, or broadening technical correspondence into scientific or rights authority.",
+      "if_kept": "The v0.7 Workbench verifies the exact retained response through ordinary browser controls, reports two answered technical questions and one partial/open question, resolves zero review reasons, and preserves every scientific, rights, execution, score, protected-use and launch limit.",
+      "if_changed": "Publish a later content-bound snapshot that withdraws or supersedes the exact entry within authorized scope. Preserve the adoption, earlier empty snapshot, response bytes, receipts, conflicts and original issue actors as history.",
       "decision_id": "OWNER-GW07-RYAN-SNAPSHOT-01",
       "map_ref": "WAVE-C/C-AUTH1",
       "wave": "C",
       "ticket": "GOAL-WORKBENCH-07",
-      "attention": "HUMAN_REQUIRED",
-      "status": "PENDING_EXACT_OWNER_ADOPTION",
+      "attention": "RESOLVED",
+      "status": "OWNER_ADOPTED_ASSESSMENT_ADMITTED",
       "audience": "ryan",
       "affects": [
         "WAVE-C/C-AUTH1",
@@ -2735,8 +2735,8 @@
         "SYSTEM/DEVELOPMENT-HUB",
         "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
       ],
-      "response_url": "https://github.com/carbonphysicsai/Carbon/issues/41#issuecomment-5680762605",
-      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/main/Business/Carbon_Fit/workbench/docs/GOAL_WORKBENCH_07_IMPLEMENTATION_REPORT.md"
+      "response_url": "https://github.com/carbonphysicsai/Carbon/blob/main/Business/Carbon_Fit/workbench/source_assessment/repository_snapshot/v1/adoption/owner_gw07_ryan_snapshot_01.json",
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/main/Business/Carbon_Fit/workbench/docs/GOAL_WORKBENCH_07A_ADMISSION_REPORT.md"
     }
   ]
 }
