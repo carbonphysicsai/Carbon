@@ -82,6 +82,12 @@ def test_authenticated_session_under_private_umask_reaches_signed_feedback(
         )
         assert state is audit.ReceiptLifecycleState.ACTIVE
         assert (root / f"source-{sid}.json").is_file()
+        from carbon.development_testnet.execution import load_source_handoff
+        from carbon.development_testnet.operator import TESTNET_GENESIS
+
+        source = load_source_handoff(root / f"source-{sid}.json")
+        assert source.transport_context == context
+        assert source.transport_context.genesis_hash != TESTNET_GENESIS
         attempt = root / "evaluations" / sid
         dossier = json.loads((attempt / "dossier.json").read_bytes())
         assert dossier["training_runs"] == 3

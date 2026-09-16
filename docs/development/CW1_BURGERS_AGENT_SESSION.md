@@ -112,8 +112,12 @@ rejects the same record. C-08's fixture-binding rejection remains unchanged.
 Actual authenticated execution is prospectively bound as `REAL_PATH_NON_LIVE`,
 using the existing `AdmissionKind.PRODUCTION` enum solely as that execution
 owner's non-fixture discriminator. This grants no production qualification,
-official result or real fee policy. Engineering checks stay
-`FIXTURE_DEVELOPMENT` and cannot be converted into real-session sources.
+official result or real fee policy. Ordinary engineering checks stay
+`FIXTURE_DEVELOPMENT` and cannot be converted into real-session sources. The
+complete authenticated service regression added by C-W1-PREDICTION-STAGING-01
+exercises the real/non-live composition using ephemeral test keys and a false
+chain genesis. Its signed source retains that synthetic context, cannot bind to
+the real testnet operator and is never evidence of model inference.
 
 C-07 owns the new DEVELOPMENT feedback projection: complete 12-parent x
 3-replica normalized measurement and physics means, grouped by EVAL/STRESS.
