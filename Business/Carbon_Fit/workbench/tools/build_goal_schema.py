@@ -1002,8 +1002,18 @@ reviewed_intake = obj(
         "field_provenance": array(
             obj(
                 {
-                    "field": {"enum": text_fields + quantity_fields + [f"pilot.{field}" for field in pilot_fields]},
-                    "origin": {"enum": ["CLIENT_TYPED", "AI_SUGGESTED_CLIENT_ACCEPTED", "UNKNOWN"]},
+                    "field": {
+                        "enum": text_fields
+                        + quantity_fields
+                        + [f"pilot.{field}" for field in pilot_fields]
+                    },
+                    "origin": {
+                        "enum": [
+                            "CLIENT_TYPED",
+                            "AI_SUGGESTED_CLIENT_ACCEPTED",
+                            "UNKNOWN",
+                        ]
+                    },
                     "suggestion_id": nullable(string(128)),
                 }
             ),
@@ -1013,7 +1023,10 @@ reviewed_intake = obj(
             obj(
                 {
                     "suggestion_id": string(128),
-                    "field": {"enum": text_fields + [f"pilot.{field}" for field in pilot_fields]},
+                    "field": {
+                        "enum": text_fields
+                        + [f"pilot.{field}" for field in pilot_fields]
+                    },
                     "proposed_value": string(8_000),
                     "rationale": string(1_200),
                     "accepted_at": string(64),
