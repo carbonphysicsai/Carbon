@@ -17,7 +17,7 @@
     "GOAL-WORKBENCH-08"
   ],
   "repository_base": "3681f7fb10be0c6e278f53d59ff9b022099ef12d",
-  "integration_revision_at_packaging": "a3bbbc4664cdf9d8ee308fb4c15f6b6a0adbe096",
+  "integration_revision_at_packaging": "2fd842be8594a51cebde5b3f372bf23987a8cd30",
   "integration_revision_note": "The checksum manifest describes exact packaged bytes. A commit cannot contain its own digest; final PR/head identity is reported by delivery.",
   "pinned_research_revision": "ca904dfee93d3574df4e56b99981a6ed3b138e80",
   "accepted_research_head": "0a5690270dc449ea19c941280203987d37db5283",
@@ -148,7 +148,7 @@
     "use": "Operating conformance only; no Grok/account integration is claimed."
   },
   "authority": "No runtime sharing, qualification, protected-use approval, answer publication, submission, registration, execution, launch, deployment, or rights authority is conveyed.",
-  "file_count": 183,
+  "file_count": 184,
   "files": {
     "Carbon_Client_Intake_Preview.html": {
       "bytes": 51639,
@@ -306,21 +306,25 @@
       "bytes": 6413,
       "sha256": "e08eea13a6bfd31fb35c7775ea946d38e8105d5927d06af8719453a6dd3caee7"
     },
+    "docs/GOAL_WORKBENCH_08B_PILOT_EVALUATION_REPORT.md": {
+      "bytes": 6139,
+      "sha256": "8fb7072cc81755dee1c4209d5fab29c4c85421bd805cdeeba3c0ea27ef14a2a0"
+    },
     "docs/GOAL_WORKBENCH_08_INTAKE_TO_JOB_REPORT.md": {
       "bytes": 7159,
       "sha256": "dcbad46aa098ce6cd097421d484070bca439ad160b21180f21b13d7dce704fd7"
     },
     "docs/OWNER_REPORT.md": {
-      "bytes": 22800,
-      "sha256": "907309f1ebc5ad829c2bebaf9da47fe40084881130be4f8b7d83f521680cff99"
+      "bytes": 24351,
+      "sha256": "ea6a5f5e45164c61d656af578b1b0ed0c0b1f80fb2c9fe313d80126bc04a5aad"
     },
     "docs/REPOSITORY_SEED_INDEX.json": {
       "bytes": 6759,
       "sha256": "bb05526a6408f70efa32a12ade140305a0cfd2c6d07f3827cc36b16f086eb149"
     },
     "docs/REQUIREMENT_TEST_MAP.md": {
-      "bytes": 22157,
-      "sha256": "76e75ac05610edd9126cad9c5b560ea976914465edb75e67235fe915193e2e33"
+      "bytes": 23677,
+      "sha256": "9fdc934162357438b5760295710c042b028334a555a85bfa2c58301e7e4e9f00"
     },
     "docs/SPECIFICATION.md": {
       "bytes": 14254,

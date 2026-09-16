@@ -1,0 +1,106 @@
+{
+  "mode": "PLAN_NO_NETWORK",
+  "suite_id": "ask-carbon-pilot-design-public-v1",
+  "scenario_count": 9,
+  "turn_count": 11,
+  "profile": "PILOT_DESIGN",
+  "knowledge_version": "ask-carbon-staging-2026-09-16.1",
+  "model_config_id": "gpt-5.6-luna:low:v1",
+  "shared_ledger_authority": "ask-carbon-provider-budget-v2",
+  "shared_monthly_ceiling_micro_usd": 50000000,
+  "nested_bakeoff_ceiling_micro_usd": 5000000,
+  "maximum_reserved_exposure_micro_usd": 62040,
+  "network_calls": 0,
+  "live_gate": {
+    "status": "NOT_RUN_NAMED_INPUTS_MISSING",
+    "missing": [
+      "exact permitted private staging route and access authentication",
+      "installed provider secret",
+      "provider-project retention disposition",
+      "current shared-ledger snapshot and execution authorization"
+    ]
+  },
+  "cases": [
+    {
+      "id": "existing-model-evaluation",
+      "turns": 1,
+      "actions": [
+        "ACCEPT"
+      ],
+      "route": "USE_EXISTING_CAPABILITY"
+    },
+    {
+      "id": "thermal-fluid-cold-plate",
+      "turns": 1,
+      "actions": [
+        "ACCEPT",
+        "ACCEPT"
+      ],
+      "route": "DEVELOP_NEW_CAPABILITY"
+    },
+    {
+      "id": "unfamiliar-coupled-physics",
+      "turns": 1,
+      "actions": [
+        "ACCEPT",
+        "ACCEPT"
+      ],
+      "route": "DEVELOP_NEW_CAPABILITY"
+    },
+    {
+      "id": "sparse-information",
+      "turns": 2,
+      "actions": [
+        "ACCEPT",
+        "SKIP",
+        "SKIP"
+      ],
+      "route": "DEVELOP_NEW_CAPABILITY"
+    },
+    {
+      "id": "contradiction-and-correction",
+      "turns": 2,
+      "actions": [
+        "ACCEPT",
+        "ACCEPT",
+        "REJECT",
+        "UNDO",
+        "CLIENT_EDIT",
+        "SWITCH_TO_FORM"
+      ],
+      "route": "DEVELOP_NEW_CAPABILITY"
+    },
+    {
+      "id": "unrealistic-performance",
+      "turns": 1,
+      "actions": [
+        "ACCEPT"
+      ],
+      "route": "USE_EXISTING_CAPABILITY"
+    },
+    {
+      "id": "absent-reference-data",
+      "turns": 1,
+      "actions": [
+        "ACCEPT"
+      ],
+      "route": "DEVELOP_NEW_CAPABILITY"
+    },
+    {
+      "id": "unsupported-guarantee",
+      "turns": 1,
+      "actions": [
+        "ACCEPT"
+      ],
+      "route": "DEVELOP_NEW_CAPABILITY"
+    },
+    {
+      "id": "prompt-injection-cross-client",
+      "turns": 1,
+      "actions": [
+        "SKIP"
+      ],
+      "route": "USE_EXISTING_CAPABILITY"
+    }
+  ]
+}

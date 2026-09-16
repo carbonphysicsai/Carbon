@@ -4,6 +4,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { findSavedAnswer } from "../public/ask-carbon.js";
 import { evaluateRelease } from "../public/release-contract.js";
+import { loadPilotSuite, planPilotSuite, runPilotMock } from "./pilot-design-runner.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const argument = (name, fallback = null) => {
@@ -13,6 +14,7 @@ const argument = (name, fallback = null) => {
   return position >= 0 ? process.argv[position + 1] : fallback;
 };
 const provider = argument("provider", "contract");
+const suiteName = argument("suite", "general-qa");
 const split = argument("split", "all");
 const percentile = (values, fraction) => values.length ? values.slice().sort((a, b) => a - b)[Math.min(values.length - 1, Math.ceil(values.length * fraction) - 1)] : null;
 const selectCases = (suite) => ({
@@ -99,6 +101,21 @@ const runLive = async (suite) => {
 };
 
 const main = async () => {
+  if (suiteName === "pilot-design") {
+    const pilotSuite = await loadPilotSuite();
+    const result = provider === "plan"
+      ? planPilotSuite(pilotSuite)
+      : provider === "mock"
+        ? await runPilotMock(pilotSuite)
+        : null;
+    if (provider === "live") {
+      throw new Error("Pilot live evaluation is fail-closed: use the exact accepted private staging route only after its access credential, provider secret, retention disposition, shared-ledger snapshot and execution authorization are supplied. Direct provider calls are forbidden.");
+    }
+    if (!result) throw new Error("Pilot-design provider must be plan, mock or live.");
+    process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+    return;
+  }
+  if (suiteName !== "general-qa") throw new Error("Suite must be general-qa or pilot-design.");
   const suite = JSON.parse(await readFile(resolve(HERE, "cases.public.json"), "utf8"));
   if (suite.single_turn_cases.length !== 40 || suite.conversation_cases.length !== 5) throw new Error("Supplied evaluation coverage changed unexpectedly.");
   const knowledge = JSON.parse(await readFile(resolve(HERE, "../knowledge/public-knowledge.v1.json"), "utf8"));

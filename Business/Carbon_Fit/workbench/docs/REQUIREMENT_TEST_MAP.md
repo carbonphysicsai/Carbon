@@ -1,6 +1,16 @@
-# GOAL-WORKBENCH-08 / GOAL-WORKBENCH-07A / GOAL-WORKBENCH-07 / GOAL-WORKBENCH-06 / GOAL-WORKBENCH-05A / GOAL-WORKBENCH-05 / GOAL-WORKBENCH-04 / GOAL-WORKBENCH-03 / GOAL-WORKBENCH-02 / EXAM-PROTECT-WORKBENCH-01 requirement-to-test map
+# GOAL-WORKBENCH-08B / GOAL-WORKBENCH-08 / GOAL-WORKBENCH-07A / GOAL-WORKBENCH-07 / GOAL-WORKBENCH-06 / GOAL-WORKBENCH-05A / GOAL-WORKBENCH-05 / GOAL-WORKBENCH-04 / GOAL-WORKBENCH-03 / GOAL-WORKBENCH-02 / EXAM-PROTECT-WORKBENCH-01 requirement-to-test map
 
 This map describes focused application acceptance. It does not relabel the CPES study's historical 14/52/208 runs as workbench tests.
+
+| GW08B guided-evaluation requirement | Implementation / evidence | Automated coverage | Authority limitation |
+|---|---|---|---|
+| Execute the accepted nine scenarios | unchanged description file plus frozen adjacent executable suite | exact ID/order and 11-turn execution checks | Authored development cases, not protected or customer samples |
+| Use the existing Worker and shared budget | `PILOT_DESIGN` requests through `createWorker`; existing Durable Object ledger | closed context/output validation and 11 settled mock attempts | 880 micro-USD is simulated; paid spend is zero |
+| Explicit client review | deterministic accept/reject/undo/correct/skip/form-switch actions | proposal absence cannot fabricate an edit; rejected target stays absent | Client acceptance confirms the brief only |
+| Ordinary Workbench return | reviewed v1 package and existing preview/commit/route/handoff APIs | all nine create `UNASSESSED`, save/reload, dedupe and conflict; one successor revision | No source assessment, science, rights, execution or launch authority |
+| Plan/mock/live separation | existing runner `--suite pilot-design` | no-network plan/mock; live command fail-closed on named missing staging inputs | No direct provider path or production activation |
+| Reviewable evidence | deterministic plan, full mock transcript/briefs, human packet and digest manifest | double-generation digest stability and manifest checks | Live quality, human review and customer usability remain unmeasured |
+
 
 | GW08 intake requirement | Implementation / evidence | Automated coverage | Authority limitation |
 |---|---|---|---|

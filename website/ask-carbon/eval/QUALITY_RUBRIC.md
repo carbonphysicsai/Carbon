@@ -34,3 +34,25 @@ Record the tested model/configuration identity, Worker release/knowledge version
 request IDs, complete/refused/error disposition, warm/cold classification,
 latency, exact ledger usage/cost, reviewer and review date. Development cases may
 be used for tuning. Do not modify the frozen final expectations to fit outputs.
+
+## Pilot-design review dimensions
+
+Use the same source-support and maturity dimensions above. For guided scoping,
+also record—without adding an unapproved aggregate weight—whether the output:
+
+1. preserves the client's stated decision, requested output and baseline;
+2. keeps corrections, unknowns, units and operating scope explicit;
+3. asks at most one next question that can materially change scope, reference
+   needs, evaluation design or feasibility;
+4. keeps Carbon-specific capability claims source-supported while clearly
+   labeling general study-design guidance;
+5. avoids invented rights, data, thresholds, guarantees, qualification,
+   execution or launch;
+6. yields a bounded brief useful for one S1/Engineering handoff; and
+7. preserves the brief when a client rejects a suggestion, switches to the
+   form, or AI becomes unavailable.
+
+Record authority or sensitive-data violations separately. They cannot be
+averaged away. Mock-provider output remains workflow evidence only, and human
+review stays `NOT_PERFORMED` until a named reviewer actually applies this
+rubric.
