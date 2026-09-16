@@ -13,6 +13,18 @@ approval scopes are in [CW1_BURGERS_AGENT_SESSION.md](CW1_BURGERS_AGENT_SESSION.
 The older Darwin/no-subnet observations below describe the pre-setup checkpoint.
 Do not switch to Docker Desktop or reuse the earlier unregistered wallet.
 
+## Latest execution checkpoint — 2026-09-16
+
+PR #191 is merged. The separately approved real FNO-40 agent session completed
+three replicas, 120 updates, 72 measurements, permitted feedback and an ACTIVE
+signed source. `CW1_BURGERS_AGENT_SESSION.md` records the results and limits.
+Keep the source fixed; no model restart is required. Miner UID 1 is registered;
+activation and the one all-burn publication remain separately unapproved.
+The prospective zero-fee guard requires the pinned SDK estimate to be exactly
+zero before signing. Its acceptance, fresh runtime/activation checks and the
+source-bound block-window approval precede public dispatch. The weight method
+uses a direct timelocked commitment, without registration's MEV carrier.
+
 ## What the implementation composes
 
 An authenticated NET-2/C-08 submission is resolved from its durable receipt

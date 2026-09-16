@@ -1,5 +1,37 @@
 # C-W1-D1 first public-testnet transaction plan
 
+## Current concrete decision — 2026-09-16
+
+The real supervised FNO-40 source is complete and ACTIVE; its digest and measured
+limitations are recorded in `CW1_BURGERS_AGENT_SESSION.md`. Model access and
+distinct miner UID 1 registration are complete. No new model run or registration
+is needed for this source. The historical missing-input prose below is superseded
+by this current decision only; historical receipts remain unchanged.
+
+At finalized block 8015374, subnet 567 still had no first emission block.
+Prepare **one** `SubtensorModule.start_call(netuid=567)` from the owner coldkey.
+Its unsigned fee estimate was 257,187 RAO (0.000257187 test TAO). Activation
+enables subnet token trading and alpha epochs; root-controlled TAO emission is
+separate. Obtain a distinct total fee cap and validity interval before signing.
+
+The exact all-burn target is mechanism 0, UID 0, integer weight 65535. Pinned
+SDK `SetWeights` builds `SubtensorModule.commit_timelocked_mechanism_weights`
+on the observed runtime 460. It is a direct timelocked commit, **not an MEV
+carrier**; the carrier used for registration is not reused here. Unsigned
+weight-call estimate at head 8015408 was zero. C-W1-ZERO-FEE-01 adds a fixed
+zero-fee SDK policy: positive or unavailable fee estimates reject before signing.
+The zero value-transfer restriction alone did not previously provide this guard.
+
+After acceptance and explicit approval, record separate activation and publication
+authorities; the latter binds this source, runtime, one dispatch, a fresh exact
+block window and zero total test-TAO spend including fees. Refresh doctor and
+activation state, preserve the registered miner association, create the 60-second
+intent near dispatch, and use the existing checked `run/status/resume` path.
+Do not request another science run, rewrite the source, resend ambiguity or claim
+burn/epoch effects from transaction inclusion alone. Activation and publication
+are still unapproved; no wallet is opened by preparing this decision.
+
+
 **Status:** concrete execution handoff; public write not authorized
 **Profile:** `carbon.public-synthetic-testnet.development.v1`
 **Prepared:** 2026-09-15

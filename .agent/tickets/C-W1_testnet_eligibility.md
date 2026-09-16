@@ -66,14 +66,15 @@ claim. See `.agent/plans/C_W1_DEVELOPMENT_TESTNET.md`.
   `97ee8d42467e5b3c6542eba2316cb7fe16d3ba7b`.
 - [x] Subnet 567 creation, owner/publisher UID 0 and the WSL Ubuntu Docker Engine
   host are observed. The old wallet and Darwin observations remain historical.
-- [ ] The owner-selected supervised Burgers continuation must complete real
-  authenticated numerical evaluation. Miner UID 1 registration is finalized.
-  PR #190 merged real/non-live worker admission. The further six-call FNO-48
-  agent session completed three real isolated reconstructions, then stopped at
-  prediction input permissions under umask 077. Preserve all trained artifacts
-  and failures. C-W1-PREDICTION-STAGING-01 repairs this staging defect and adds
-  complete numerical service coverage; no paid-session restart or numerical
-  agent result is claimed. See `docs/development/CW1_BURGERS_AGENT_SESSION.md`.
+- [x] The owner-selected supervised Burgers continuation completed one real
+  authenticated numerical evaluation after PR #191 merged. Eight actual model
+  calls produced one FNO-40 proposal, three isolated replicas / 120 updates,
+  72 measurements, permitted feedback and an ACTIVE signed controller source.
+  No second strategy, accepted improvement or winner resulted. All earlier
+  stopped attempts remain retained. See `docs/development/CW1_BURGERS_AGENT_SESSION.md`.
+- [ ] C-W1-ZERO-FEE-01 must pass acceptance: the SDK must reject positive or
+  unavailable weight-call fees before signing. A zero value-transfer policy
+  alone does not cap fees. This repair grants no transaction authority.
 - [ ] Activation and one all-burn publication need separate exact authority;
   the completed subnet-creation approval supplies neither.
 

@@ -925,44 +925,66 @@ quantity_answer = obj(
     }
 )
 text_fields = [
-    "intended_decision", "requested_result", "current_baseline",
-    "baseline_limitation", "changing_conditions", "exclusions",
-    "consequential_error", "comparison_evidence", "access_limitations",
+    "intended_decision",
+    "requested_result",
+    "current_baseline",
+    "baseline_limitation",
+    "changing_conditions",
+    "exclusions",
+    "consequential_error",
+    "comparison_evidence",
+    "access_limitations",
 ]
 quantity_fields = [
-    "preparation_time", "prediction_latency", "reference_query_time",
-    "workload_frequency", "desired_accuracy",
+    "preparation_time",
+    "prediction_latency",
+    "reference_query_time",
+    "workload_frequency",
+    "desired_accuracy",
 ]
 intake_draft = obj(
     {
         "schema_version": {"const": "carbon.client-intake.draft.v1"},
         "draft_id": string(128),
         "revision_id": string(128),
-        "predecessor": nullable(obj({
-            "draft_id": string(128),
-            "revision_id": string(128),
-            "canonical_digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
-        })),
+        "predecessor": nullable(
+            obj(
+                {
+                    "draft_id": string(128),
+                    "revision_id": string(128),
+                    "canonical_digest": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$",
+                    },
+                }
+            )
+        ),
         "answers": obj({field: text_answer for field in text_fields}),
         "quantities": obj({field: quantity_answer for field in quantity_fields}),
-        "summary": obj({
-            "mapping_version": {"const": "carbon.client-intake.mapping.v1"},
-            "text": string(24_000),
-            "unknown_fields": array({"enum": text_fields + quantity_fields}, 32),
-            "next_clarification": string(1_000),
-        }),
-        "source": obj({
-            "application": {"const": "Carbon Client Intake Preview"},
-            "mapping_version": {"const": "carbon.client-intake.mapping.v1"},
-            "local_scope": {"const": "LOCAL_SYNTHETIC_DEVELOPMENT_NOT_TRANSMITTED"},
-        }),
+        "summary": obj(
+            {
+                "mapping_version": {"const": "carbon.client-intake.mapping.v1"},
+                "text": string(24_000),
+                "unknown_fields": array({"enum": text_fields + quantity_fields}, 32),
+                "next_clarification": string(1_000),
+            }
+        ),
+        "source": obj(
+            {
+                "application": {"const": "Carbon Client Intake Preview"},
+                "mapping_version": {"const": "carbon.client-intake.mapping.v1"},
+                "local_scope": {"const": "LOCAL_SYNTHETIC_DEVELOPMENT_NOT_TRANSMITTED"},
+            }
+        ),
     }
 )
 intake_record = obj(
     {
         "draft_id": string(128),
         "revision_id": string(128),
-        "predecessor_canonical_digest": nullable({"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}),
+        "predecessor_canonical_digest": nullable(
+            {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+        ),
         "raw_sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
         "canonical_digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
         "raw_json": string(120_000),
@@ -1049,12 +1071,16 @@ constants = {
     json.dumps(constants, indent=2) + "\n", encoding="utf-8"
 )
 (ROOT / "data/intake_draft.schema.json").write_text(
-    json.dumps({
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "title": "Carbon local client intake draft v1",
-        "$comment": "Local, untrusted, non-authoritative transport. Nothing is submitted or approved.",
-        **intake_draft,
-    }, indent=2) + "\n",
+    json.dumps(
+        {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "title": "Carbon local client intake draft v1",
+            "$comment": "Local, untrusted, non-authoritative transport. Nothing is submitted or approved.",
+            **intake_draft,
+        },
+        indent=2,
+    )
+    + "\n",
     encoding="utf-8",
 )
 print("v0.8 goal-workbench and intake schemas generated")

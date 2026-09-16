@@ -3403,6 +3403,50 @@
         "WAVE-C/NET-6"
       ],
       "supersedes": null
+    },
+    {
+      "map_ref": "WAVE-C/C-W1",
+      "event_type": "evidence",
+      "event_id": "CW1-REAL-AGENT-EVALUATION-20260916",
+      "owner_lane": "documentation_maintenance",
+      "status": "active",
+      "summary": "PR #191 merged the prediction staging repair. The separately approved real gpt-5-mini session made eight calls for USD 0.00738, proposed FNO-40 and completed three real JAX replicas (120 updates), 72 measurements, permitted feedback and an ACTIVE signed controller source. It ended after one proposal without a strategy revision. All earlier failures remain retained. The selected continuation adds a zero-fee publication guard before the separate activation/all-burn decision.",
+      "primary_detail": "docs/development/CW1_BURGERS_AGENT_SESSION.md",
+      "affects": [
+        "SYSTEM/AGENT-EXECUTION",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "WAVE-B",
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE",
+        "WAVE-C/C-01",
+        "WAVE-C/C-02",
+        "WAVE-C/C-03",
+        "WAVE-C/C-04",
+        "WAVE-C/C-05",
+        "WAVE-C/C-06",
+        "WAVE-C/C-07",
+        "WAVE-C/C-08",
+        "WAVE-C/C-09",
+        "WAVE-C/C-10",
+        "WAVE-C/C-AUTH1",
+        "WAVE-C/C-EA0",
+        "WAVE-C/C-EA1",
+        "WAVE-C/C-EA2",
+        "WAVE-C/C-EP1",
+        "WAVE-C/C-EP2",
+        "WAVE-C/C-EP3",
+        "WAVE-C/C-REWARD",
+        "WAVE-C/C-W1",
+        "WAVE-C/NET-1",
+        "WAVE-C/NET-2",
+        "WAVE-C/NET-3",
+        "WAVE-C/NET-4A",
+        "WAVE-C/NET-4B",
+        "WAVE-C/NET-5",
+        "WAVE-C/NET-5R",
+        "WAVE-C/NET-6"
+      ],
+      "supersedes": null
     }
   ]
 }

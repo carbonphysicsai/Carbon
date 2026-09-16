@@ -6,6 +6,78 @@ This is a continuation of the selected C-W1 DEVELOPMENT ticket. OWNER-DX-03
 governs engineering delivery. No new transaction or paid inference is authorized
 by this working contract.
 
+## Current observed result — 2026-09-16
+
+**The fourth separately approved real model session completed one authenticated
+numerical evaluation and signed source.** PR #191 merged normally as
+`1d7be31dde94d43ae559818894c79c8e99d126b2`, preserving unrelated main changes.
+Required acceptance run `35040455755` passed. The paid session executed approved
+head `a318c808f4f2491542deca2e6939d0a5e6545611` and its exact accepted image;
+the later fee guard cannot retrospectively change that numerical evidence.
+
+The six-hour model approval was recorded from **02:24:34 to 08:24:34 UTC**,
+maximum USD 0.25 / 12 calls / three proposals. Actual
+`gpt-5-mini-2025-08-07` inference made eight calls: discovery, scaffold, prior,
+dry validation, estimation, authenticated submission, permitted feedback, then
+a final response. It proposed **FNO with 40 steps**, completed **three real JAX
+replicas / 120 training updates**, three isolated cohort predictions and
+**72 C-05 measurements**. It read feedback but made no strategy revision or
+second submission. No rejection, cancellation or infrastructure stop occurred.
+This approval is consumed by that completed session; unused calls do not permit
+an automatic new session. Earlier stopped sessions below remain historical.
+
+The frozen v2 12/12/12 cohort and all references were retained. No easier case,
+new draw, changed ruler or dropped replica was selected. Normalized C-07 means:
+
+| Permitted measurement (36 observations per role, none missing) | EVAL | STRESS |
+|---|---:|---:|
+| Field phase RMS error | 0.561788443 | 0.584775824 |
+| Maximum compression error | 0.231330238 | 0.282234666 |
+| Peak dissipation error | 0.000133442342 | 0.0315835958 |
+| Energy half-time error | 2.766480494 | 2.926730091 |
+| Conserved-mean defect | 0.00733812747 | 0.0111704654 |
+| Energy-dissipation-balance defect | 0 | 0 |
+| Initial-condition defect | 9.61994545e-8 | 1.00118658e-7 |
+| Maximum-principle defect | 4.58547805e-8 | 4.07413333e-8 |
+| Periodicity defect | 8.25669308e-16 | 6.96585373e-16 |
+| Weak local PDE defect | 1.469732576 | 1.662115185 |
+
+Disposition remains `COMPLETE_UNRESOLVED` / `UNRESOLVED_NO_QUALIFIED_LIMIT`.
+Score, qualified uncertainty and accepted improvement are null. This is one
+strategy, with no registered comparison, winner or scientific pass. Zero
+diagnostics do not establish physical validity. The full declared V1 population
+and protected/official/production qualification are not covered.
+
+Latest accounting: **18,008 input / 1,439 output tokens**, **USD 0.00738**;
+328.168 s session wall time, 273.855 s worker/controller accounting,
+163.815517 observed worker CPU seconds, maximum observed memory 776,962,048
+bytes and zero OOM events. All four real provider sessions total **24 calls,
+47,651 input / 2,443 output tokens, USD 0.01679875**. This includes failed
+attempts; engineering fixture/scaffold and CI work remain separate. Six actual
+training replicas / 264 updates occurred across the last two real sessions;
+only the fourth completed numerical evaluation. Reference preparation is counted
+once rather than once per retained session copy.
+
+The controller produced source `8d7ad861-49e4-4cf8-a7be-483fd2ada0c5`, file digest
+`sha256:7000fbdb0e1204b0adc129fe3a74203732707fa29bf230430e34539b3ea5ad68`.
+The prospective rule selected the first completed authenticated submit in
+provider-call order. Owner verification resolved ACTIVE C-06 evidence, the
+exact C-07 account, C-08 miner UID 1 association and the 326,696-byte bounded
+export. No receipt/signature was hand-authored and no publication intent was
+minted. Private `agent-report.json`, readable `owner-status.md`, provider/tool
+records, numerical dossiers, signed evidence and budget journals remain retained.
+
+Read-only finalized block **8015374**: runtime **460**, exact owner/publisher
+and burn UID 0 in Burn mode, permit/stake-or-owner eligible, timelocked method,
+rate limit 100, next rate-eligible block 8010952, no pending commitments and
+`FirstEmissionBlockNumber = null`. Runtime 459 configuration is preserved;
+the new 460 binding records the official source/metadata delta review, without
+claiming deployed-Wasm reproducibility or security qualification. No subsequent
+activation or all-burn publication occurred. Existing creation plus distinct
+miner registration spent **1.008610151 test TAO**; this session spent **0** on chain.
+Activation/publication retain distinct authority. The comparison successor below
+remains a prospective milestone; the all-burn profile cannot accept unresolved winners.
+
 ## Working decisions and plan
 
 KEEP the C-AUTH1 generator, B-02B compiler, C-02 JAX adapter, C-03 Docker
@@ -135,7 +207,7 @@ sources. After an ambiguous dispatch the session stops; retained journals win.
 There is no automatic replacement campaign or resend. The checked C-W1
 `status`/`resume` path remains walletless reconciliation only.
 
-## Bounded model-run proposal
+## Historical bounded model-run proposal
 
 Proposed provider/model: OpenAI Responses API, `gpt-5-mini-2025-08-07`.
 The exact prompt and closed function definitions are emitted by `plan` before
@@ -367,3 +439,36 @@ retained stop. Prefer recovering the exact trained submission when a supported
 bounded recovery exists; never delete its dispatch marker, rewrite a receipt,
 silently replace failed prediction evidence or redraw the cohort. No successful
 engineering regression can substitute for the still-missing real-agent outcome.
+
+
+## C-W1-ZERO-FEE-01 — publication fee boundary
+
+Primary Hub map: `WAVE-C/C-W1`; `HUB_UPDATE_REQUIRED`. This continues the same
+selected DEVELOPMENT ticket. The completed real-agent source is immutable and
+no inference is repeated for this repair.
+
+**IMPLEMENTATION_LAG:** the checked publisher's SDK policy constrained value
+transfer to zero but left `max_fee_tao` unset. The pinned SDK `SetWeights`
+uses direct plaintext or direct timelocked commitment, with no MEV carrier.
+Registration's shielded outer-fee behavior does not apply to weight publication.
+
+REPAIR the shared checked weight backend to require a zero fee estimate as well
+as zero value transfer. Positive or unavailable estimates stop in SDK policy
+before signing; do not invent or infer a positive allowance. KEEP the checked
+builder, current runtime/recipient guards, one-dispatch authorization, journal,
+wallet boundary and reconciliation. A policy rejection gets a sanitized typed
+reason. There is no authorization/schema reinterpretation or historical rescore.
+
+Plan: exercise the installed SDK against direct and timelocked calls, on localnet
+and testnet contexts, with zero, positive and unavailable fee estimates. Confirm
+only zero reaches the submission double, no shielded carrier is selected, and
+existing publication/invariant tests pass. Reconcile observed session results,
+board and Hub, then run applicable acceptance. Tests use ephemeral keys and
+synthetic transport; they cannot dispatch publicly or stand in for model results.
+
+Alternatives rejected: relying only on a copied zero estimate; treating the
+value-transfer cap as a fee cap; or adding an unapproved positive spend limit.
+This conservative guard can be reversed at `carbon/chain/sdk_weights.py`, but
+any fee-bearing public path needs a separately specified and approved cap.
+This is engineering authority only. Activation and all-burn publication still
+require distinct owner approval after exact call, source and window preparation.

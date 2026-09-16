@@ -11,12 +11,12 @@ When browsing on GitHub, start with **`orientation/START_HERE.md`**. It is the p
 - 14 waves (A-N)
 - 69 captured tickets across Wave A, Wave B, and Wave C
 - 7 protocol-change routes
-- 134 map-level change events
+- 135 map-level change events
 - 8 independent maturity states
 
 ## Captured current position
 
-Wave **C**; current ticket: **C-W1**. Last completed: **C-10** (`done`). Next selected: **none selected**. C-W1 DEVELOPMENT continues after PR #190 merged real/non-live worker admission. Distinct miner UID 1 finalized on subnet 567 at block 8013851. The third authorized real model session made six calls for USD 0.0036775, submitted FNO-48 and completed three isolated reconstructions (144 updates). Prediction stopped at input permissions under umask 077. The selected repair explicitly restores traversable read-only inputs and adds complete authenticated numerical service coverage. All failures and trained artifacts remain retained; no automatic restart. Subnet 567 creation finalized at block 8010852. Earlier engineering validation completed three real JAX replicas and 72 measurements; those are not results of the real agent. The real agent has no completed numerical measurements, feedback or signed source. No subsequent activation or all-burn publication occurred. AWS stays deferred, Hippius unverified, and protected/production/scientific qualification remains unearned. No later ticket is selected.
+Wave **C**; current ticket: **C-W1**. Last completed: **C-10** (`done`). Next selected: **none selected**. C-W1 DEVELOPMENT: PR #191 merged the prediction staging repair. The separately approved real gpt-5-mini session made eight calls for USD 0.00738, proposed FNO-40 and completed three real JAX replicas (120 updates), 72 measurements, permitted feedback and an ACTIVE signed controller source. It ended after one proposal without a strategy revision. All earlier failures remain retained. The selected continuation adds a zero-fee publication guard before the separate activation/all-burn decision. Distinct miner UID 1 finalized at block 8013851; Subnet 567 creation finalized at 8010852. Earlier fixed-scaffold engineering observations are not results of the real agent and are not a registered comparison baseline. No subsequent activation or all-burn publication occurred. There is no qualified score, accepted improvement or winner. AWS stays deferred, Hippius unverified and protected/production/scientific qualification unearned. No later ticket is selected.
 
 ## Maintain
 

@@ -385,7 +385,13 @@ class BittensorPublicationBackend:
         client = bt.Client(
             self.context.endpoint,
             substrate=sub,
-            policy=bt.Policy(allowed_netuids=[self.context.netuid], max_spend_tao=0),
+            # SetWeights is a direct call (including timelocked commits), not
+            # a shielded carrier. Unknown or positive fees must block signing.
+            policy=bt.Policy(
+                allowed_netuids=[self.context.netuid],
+                max_spend_tao=0,
+                max_fee_tao=0,
+            ),
         )
         reason = None
         try:
@@ -406,6 +412,8 @@ class BittensorPublicationBackend:
                 )
         except PublicationFailure as error:
             reason = str(error)
+        except bt.PolicyError:
+            reason = "SDK_PUBLICATION_POLICY_REJECTED"
         except Exception:  # noqa: BLE001
             reason = "SDK_EXECUTION_OUTCOME_REQUIRES_RECONCILIATION"
         finally:

@@ -310,3 +310,67 @@ def test_installed_sdk_capability_capture_uses_pinned_finalized_runtime_state():
     with pytest.raises(PublicationFailure, match="GENESIS"):
         run(capture_capabilities(client, sub, context(), owner))
     assert context().genesis_hash == GENESIS
+
+
+@pytest.mark.parametrize("network", ["localnet", "testnet"])
+@pytest.mark.parametrize("cr", [False, True])
+@pytest.mark.parametrize("fee_rao", [0, 1, None])
+def test_weight_backend_blocks_positive_or_unknown_fee_before_submission(
+    tmp_path, monkeypatch, network, cr, fee_rao
+):
+    bt = installed_sdk()
+    from bittensor.keyfiles import Keypair
+
+    from carbon.chain import sdk_weights
+
+    _, _, gate, caps, resolved = prepared(tmp_path)
+    caps = replace(caps, commit_reveal=cr)
+    plan = compile_targets(resolved, gate.adapter.state, caps, "validator")
+
+    class FeeSubstrate(WeightSubstrate):
+        async def connect(self):
+            pass
+
+        async def close(self):
+            pass
+
+        async def block_hash(self, number):
+            return gate.context.genesis_hash if number == 0 else BLOCK
+
+        async def estimate_fee(self, call, public_key):
+            if fee_rao is None:
+                raise RuntimeError("synthetic unavailable fee")
+            return bt.Balance.from_rao(fee_rao)
+
+    sub = FeeSubstrate(cr=cr)
+    monkeypatch.setattr(sdk_weights, "journaled_substrate", lambda *a, **kw: sub)
+
+    async def integers(uids, values, preflight):
+        validate_integers(plan, uids, values, caps)
+
+    async def checked(call, extras):
+        assert call.spec_version == 445
+
+    async def unused(*args):
+        pass
+
+    intent = guarded_weights(1, plan, integers, checked)
+    assert intent.semantic_intent().mev_shield_required is False
+    backend = sdk_weights.BittensorPublicationBackend(
+        replace(gate.context, network=network),
+        "validator",
+        Keypair.create_from_uri("//Alice"),
+        network=network,
+    )
+    operation = backend.execute(plan, integers, checked, unused, unused)
+    if fee_rao == 0:
+        run(operation)
+        assert len(sub.submitted) == 1
+        expected = (
+            "commit_timelocked_mechanism_weights" if cr else "set_mechanism_weights"
+        )
+        assert [call.function for call in sub.composed] == [expected]
+    else:
+        with pytest.raises(PublicationFailure, match="SDK_PUBLICATION_POLICY_REJECTED"):
+            run(operation)
+        assert sub.submitted == []
