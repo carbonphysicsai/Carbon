@@ -30,7 +30,10 @@ permissions; the `bakeoff` scope is durably fixed at 5,000,000 micro-USD while
 the UTC calendar-month application ceiling is 50,000,000 micro-USD. The scope
 caps sum within—not in addition to—the owner ceiling.
 
-Attempt states are:
+Both general Q&A and pilot-design guidance use this authority. Runtime controls
+also include approved origins, an exact model/configuration registry, daily
+request limits, global and per-client concurrency/rate limits, and bounded
+pilot-design requests per session. Attempt states are:
 
 ```text
 prepared -> dispatch_authorized -> settled
@@ -47,6 +50,15 @@ missing usage, model mismatch and possible-dispatch settlement failure retain
 the reservation. Lease expiry releases scheduling concurrency, not financial
 exposure. Late usage settles idempotently against the admission month; duplicate
 attempt IDs and conflicting settlements reject.
+
+Before enabling `PILOT_DESIGN`, verify the exact public notice against the
+actual Carbon OpenAI account retention configuration and the private inquiry
+receiver. AI consent must precede the first request; form-only drafting must
+remain usable. Do not log abandoned raw conversation text for sales/research
+analysis. Inquiry response permission and optional broader reuse permission
+must remain separate.
+
+## Routing and activation order
 
 With current bounds (24,000 input and 700 output tokens), maximum reservations
 are 5,640 micro-USD for Luna and 56,400 micro-USD for Terra. UTF-8 request bytes

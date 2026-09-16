@@ -18,6 +18,7 @@ const emptyState = () => ({
   attempts: {},
   days: {},
   clients: {},
+  pilot_sessions: {},
 });
 
 const sweep = (state, now) => {
@@ -72,6 +73,7 @@ const summarize = (state) => {
 const load = async (storage) => {
   const state = (await storage.get(STATE_KEY)) ?? emptyState();
   state.scope_policies ??= {};
+  state.pilot_sessions ??= {};
   return state;
 };
 
@@ -99,12 +101,13 @@ export class AskCarbonUsageLedger {
       input.now_ms, input.lease_ttl_ms, input.monthly_limit_micro_usd,
       input.scope_limit_micro_usd, input.daily_request_limit, input.concurrency_limit,
       input.client_requests_per_hour, input.client_counter_retention_ms,
-      input.reserved_cost_micro_usd,
+      input.pilot_requests_per_session, input.reserved_cost_micro_usd,
     ];
     if (!requiredIntegers.every((value) => integer(value, { min: 1 })) ||
         input.monthly_limit_micro_usd !== OWNER_MONTHLY_LIMIT_MICRO_USD ||
         input.scope_limit_micro_usd > OWNER_MONTHLY_LIMIT_MICRO_USD ||
-        !text(input.attempt_id) || !text(input.client_id) || !text(input.environment, 40) ||
+        !text(input.attempt_id) || !text(input.client_id) || !text(input.session_id) ||
+        !["GENERAL_QA", "PILOT_DESIGN"].includes(input.mode) || !text(input.environment, 40) ||
         !text(input.scope_id, 100) || !text(input.model_config_id) || !text(input.pricing_id)) {
       return json({ allowed: false, reason: "invalid_admission" }, 400);
     }
@@ -119,6 +122,7 @@ export class AskCarbonUsageLedger {
         state.policy.concurrency_limit !== input.concurrency_limit ||
         state.policy.daily_request_limit !== input.daily_request_limit ||
         state.policy.client_requests_per_hour !== input.client_requests_per_hour ||
+        state.policy.pilot_requests_per_session !== input.pilot_requests_per_session ||
         state.policy.client_counter_retention_ms !== input.client_counter_retention_ms
       )) {
         return json({ allowed: false, reason: "ledger_policy_mismatch" }, 409);
@@ -128,6 +132,7 @@ export class AskCarbonUsageLedger {
         concurrency_limit: input.concurrency_limit,
         daily_request_limit: input.daily_request_limit,
         client_requests_per_hour: input.client_requests_per_hour,
+        pilot_requests_per_session: input.pilot_requests_per_session,
         client_counter_retention_ms: input.client_counter_retention_ms,
       };
       const existingScopePolicy = state.scope_policies[input.scope_id];
@@ -150,6 +155,8 @@ export class AskCarbonUsageLedger {
       const clientRequests = clientState?.hour === clientHour ? clientState.requests : 0;
       const summary = summarize(state);
       const period = monthOf(input.now_ms);
+      const pilotSessionKey = `${period}:${input.session_id}`;
+      const pilotSessionRequests = state.pilot_sessions[pilotSessionKey]?.requests ?? 0;
       const monthExposure = summary.months[period]?.exposure_micro_usd ?? 0;
       const scopeKey = `${period}:${input.scope_id}`;
       const scopeExposure = summary.scopes[scopeKey]?.exposure_micro_usd ?? 0;
@@ -160,6 +167,7 @@ export class AskCarbonUsageLedger {
       else if (summary.active_attempts >= state.policy.concurrency_limit) reason = "global_concurrency_limit";
       else if (clientActive >= 2) reason = "client_concurrency_limit";
       else if (clientRequests >= state.policy.client_requests_per_hour) reason = "client_hourly_limit";
+      else if (input.mode === "PILOT_DESIGN" && pilotSessionRequests >= state.policy.pilot_requests_per_session) reason = "pilot_session_limit";
       else if (monthExposure + input.reserved_cost_micro_usd > OWNER_MONTHLY_LIMIT_MICRO_USD) reason = "monthly_cost_limit";
       else if (scopeExposure + input.reserved_cost_micro_usd > (existingScopePolicy?.limit_micro_usd ?? state.scope_policies[input.scope_id].limit_micro_usd)) reason = "scope_cost_limit";
       if (reason) {
@@ -168,9 +176,12 @@ export class AskCarbonUsageLedger {
       }
       dayState.requests += 1;
       state.clients[input.client_id] = { hour: clientHour, requests: clientRequests + 1, last_seen_ms: input.now_ms };
+      if (input.mode === "PILOT_DESIGN") state.pilot_sessions[pilotSessionKey] = { requests: pilotSessionRequests + 1, last_seen_ms: input.now_ms };
       state.attempts[input.attempt_id] = {
         attempt_id: input.attempt_id,
         client_id: input.client_id,
+        session_id: input.session_id,
+        mode: input.mode,
         environment: input.environment,
         scope_id: input.scope_id,
         admission_period: period,
@@ -290,6 +301,7 @@ export class AskCarbonUsageLedger {
         attempts: state.attempts,
         days: state.days,
         clients: state.clients,
+        pilot_sessions: state.pilot_sessions,
         scope_policies: state.scope_policies,
         ...summarize(state),
       });

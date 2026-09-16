@@ -2,6 +2,10 @@
 
 Status: implementation candidate; final PR, CI, merge, and artifact identities are recorded at delivery closeout.
 
+Owner amendment: guided Ask Carbon pilot design now shares the same canonical
+brief and is detailed in `GOAL_WORKBENCH_08A_GUIDED_PILOT_REPORT.md`. This
+extends, rather than replaces, the form-only and Workbench import boundary.
+
 ## Outcome
 
 The Workbench now has one local, website-ready intake seam and one ordinary
@@ -9,9 +13,14 @@ internal import path:
 
 `plain-language need -> deterministic local brief -> explicit download -> import preview -> UNASSESSED direct job -> operator route -> prepared handoff`
 
-`Carbon_Client_Intake_Preview.html` is a dedicated public/synthetic surface.
-It works from `file://`, keeps draft state in memory, and exposes no submit,
-contact, arbitrary-file, analytics, model, URL-fetch, or network path.
+`Carbon_Client_Intake_Preview.html` and the clearer
+`Carbon_Client_Pilot_Designer_Preview.html` alias are a dedicated
+public/synthetic surface.
+It works from `file://`, keeps draft state in memory, and exposes no enabled
+submit, arbitrary-file upload, analytics, arbitrary URL fetch, or automatic
+network path. Under the owner amendment, contact fields are included only in
+the reviewed local export; AI calls remain off until explicit disclosure and
+consent and target only the configured Ask Carbon route.
 `Carbon_Opportunity_Workbench.html` remains the system of record and performs
 the preview, atomic commit, lineage, route, and handoff work.
 

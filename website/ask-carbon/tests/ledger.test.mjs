@@ -27,6 +27,7 @@ const JAN = Date.parse("2026-01-31T23:59:59Z");
 const MONTHLY_LIMIT = 50_000_000;
 const admission = (overrides = {}) => ({
   attempt_id: "attempt-1", client_id: "client-1", environment: "staging", scope_id: "staging",
+  session_id: "session-1", mode: "GENERAL_QA", pilot_requests_per_session: 8,
   now_ms: JAN, lease_ttl_ms: 30_000, monthly_limit_micro_usd: MONTHLY_LIMIT,
   scope_limit_micro_usd: MONTHLY_LIMIT, daily_request_limit: 100, concurrency_limit: 2,
   client_requests_per_hour: 12, client_counter_retention_ms: 86_400_000,
@@ -191,4 +192,24 @@ test("generated event sequences never admit exposure above the owner ceiling", a
       for (const month of Object.values(state.value.months)) assert.ok(month.exposure_micro_usd <= MONTHLY_LIMIT || month.overrun_micro_usd > 0);
     }
   }
+});
+
+test("general Q&A and pilot guidance share one monthly spending ceiling", async () => {
+  const ledger = new AskCarbonUsageLedger({ storage: new MemoryStorage() });
+  await prepare(ledger, admission({ reserved_cost_micro_usd: 49_000_000 }));
+  await authorize(ledger, "attempt-1");
+  await settle(ledger, "attempt-1", 49_000_000);
+  const rejected = await prepare(ledger, admission({ attempt_id: "pilot-1", client_id: "pilot-client", session_id: "pilot-session", mode: "PILOT_DESIGN", reserved_cost_micro_usd: 1_000_001 }));
+  assert.equal(rejected.status, 429);
+  assert.equal(rejected.value.reason, "monthly_cost_limit");
+});
+
+test("pilot guidance has a bounded per-session request count without a second budget", async () => {
+  const ledger = new AskCarbonUsageLedger({ storage: new MemoryStorage() });
+  const first = admission({ attempt_id: "pilot-1", mode: "PILOT_DESIGN", session_id: "pilot-session", pilot_requests_per_session: 1 });
+  assert.equal((await prepare(ledger, first)).status, 200);
+  await body(ledger, "/release-pre-dispatch", { attempt_id: "pilot-1", now_ms: JAN, reason: "test_complete" });
+  const rejected = await prepare(ledger, admission({ attempt_id: "pilot-2", client_id: "client-2", mode: "PILOT_DESIGN", session_id: "pilot-session", pilot_requests_per_session: 1 }));
+  assert.equal(rejected.status, 429);
+  assert.equal(rejected.value.reason, "pilot_session_limit");
 });

@@ -2787,6 +2787,31 @@
       ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5697149732",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/6e4d14ff3c28e714bd442b93c54f5a236c9e4643/.agent/DECISIONS.md"
+    },
+    {
+      "title": "Use guided Ask Carbon and the form over one client pilot brief",
+      "question": "How should the public explorer help a client prepare a stronger pilot inquiry without turning AI guidance into scientific authority or collecting abandoned conversations by default?",
+      "recommendation": "Keep the v1 intake brief as the canonical core and offer guided conversation plus form editing over the same in-memory state. Require consent before AI, explicit acceptance for schema-constrained suggestions, optional conversation inclusion, and deterministic Workbench validation. Reuse the Ask Carbon server adapter and one combined $50/month ledger for both general Q&A and pilot guidance.",
+      "why": "One shared brief avoids duplicate entry and lets a client understand the evidence and implementation work a pilot may require. Explicit provenance, unknowns, consent, and fail-closed operation prevent suggestions from becoming customer promises, scientific decisions, or hidden data collection.",
+      "if_kept": "The local pilot designer exports a reviewed package that creates one UNASSESSED Workbench inquiry while preserving client words, accepted suggestions, unresolved assumptions, and the form-only fallback. Live provider and submission paths remain disabled until their exact production inputs are accepted.",
+      "if_changed": "Remove the pilot mode and reviewed wrapper prospectively while preserving v1 draft imports and historical reviewed packages. A live host, receiver/store, provider account posture, public notice, reuse permission, security/cost acceptance, or deployment requires its own bounded decision.",
+      "decision_id": "GOAL-WORKBENCH-08A-GUIDED-PILOT-01",
+      "map_ref": "WAVE-G",
+      "wave": "G",
+      "ticket": "FIT-WEB-01 guided pilot designer",
+      "attention": "FOR_AWARENESS",
+      "status": "IMPLEMENTED_WORKING_DECISION",
+      "audience": "ryan",
+      "affects": [
+        "WAVE-G",
+        "SYSTEM/BUSINESS-AUTHORITY",
+        "SYSTEM/GOVERNANCE",
+        "SYSTEM/MATURITY",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+      ],
+      "response_url": "https://github.com/carbonphysicsai/Carbon/issues/139",
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/main/Business/Carbon_Fit/workbench/docs/GOAL_WORKBENCH_08A_GUIDED_PILOT_REPORT.md"
     }
   ]
 }

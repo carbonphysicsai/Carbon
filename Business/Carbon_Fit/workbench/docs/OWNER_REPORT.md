@@ -1,12 +1,40 @@
 # Owner report — GOAL-WORKBENCH-08 / GOAL-WORKBENCH-07A / GOAL-WORKBENCH-07 / GOAL-WORKBENCH-06 / GOAL-WORKBENCH-05A / GOAL-WORKBENCH-05 / GOAL-WORKBENCH-04 / GOAL-WORKBENCH-03 / GOAL-WORKBENCH-02 / EXAM-PROTECT-WORKBENCH-01
 
+## v0.8A guided pilot-design amendment
+
+The local client surface now offers guided Ask Carbon conversation and direct
+form editing over the same canonical brief. AI is opt-in: before its first
+request the client sees the exact high-level draft/context categories, OpenAI
+API provider, current retention caveat, and non-confidential-data warning.
+Every proposed field change requires acceptance, can be rejected or undone,
+and retains client-versus-AI provenance. Switching modes does not lose work.
+If AI or its shared usage ceiling is unavailable, the form and local export
+remain usable.
+
+Exports use `carbon.client-intake.reviewed.v1` around the unchanged v1 draft.
+They preserve the draft pilot, accepted suggestions, unresolved assumptions,
+versions, consent record, and contact fields. Conversation history is excluded
+unless the client selects the unchecked inclusion choice. The Workbench
+previews this package and creates the same `UNASSESSED` source-linked job; AI
+input does not become evidence, route selection, source assessment,
+qualification, rights, execution, score, or launch authority.
+
+General Q&A and pilot guidance share one server ledger and one $50/month owner
+ceiling. Local automated evidence uses authored public/synthetic cases and a
+mock provider; live model calls and permitted customer sessions remain zero.
+The knowledge release, model/price selection, actual account retention posture,
+homepage route, private receiver/store, public notice acceptance, deployment,
+and hosting remain unresolved and the production homepage is unchanged.
+
 ## v0.8 local intake-to-job bridge
 
 The maintained source now produces two offline artifacts. The intake preview
 captures high-level engineering intent, explicit unknowns, and separately
 scoped quantities, then downloads a closed local draft after a deterministic
-review. It has no submit path, contact capture, arbitrary file upload,
-telemetry, model call, or network capability. Its export explicitly says that
+review. It has no enabled submit path, arbitrary file upload, telemetry, or
+automatic network capability. The guided amendment adds contact fields only to
+the reviewed local export and keeps provider calls behind explicit consent.
+Its export explicitly says that
 nothing was transmitted and is unencrypted/non-sensitive guidance only.
 
 The internal Workbench previews the downloaded bytes before mutation. A first

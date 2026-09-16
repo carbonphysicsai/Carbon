@@ -53,13 +53,18 @@ topics use separately bounded windows. The source release date is 2026-09-16.
 
 ## Test and local staging evidence
 
-Focused package tests currently cover 37 cases (all passing at the recorded
+Focused package tests currently cover 43 cases (all passing at the recorded
 candidate): release/withdrawal/freshness, activation/privacy/edge gates,
 continuation forgery and expiry, topic switch, no evidence, claim support,
 pricing, crash/restart, concurrent exact-boundary admission, rollover, scope
 cap immutability, unresolved/late/double settlement, generated event sequences,
 provider errors/usage, settlement failure, stream limits, static integration,
-CSP, source hashes, UI retrieval and request identity.
+CSP, source hashes, UI retrieval and request identity. After `origin/main`
+advanced, the concurrent guided-pilot Workbench mode was preserved and
+reconciled onto the same repaired provider adapter and budget authority. Its
+added coverage checks closed draft-context validation, schema-constrained
+proposals, one combined monthly exposure ceiling and a durable per-session
+request limit; it does not activate a public intake or Research Concierge.
 
 The contract evaluation retained all 40 supplied single-turn cases and all five
 conversations: 38 single-turn questions matched a reviewed saved explanation

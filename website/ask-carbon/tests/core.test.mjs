@@ -6,6 +6,7 @@ import {
   makeContinuation,
   selectCards,
   signContinuation,
+  validatePilotProviderOutput,
   validateProviderOutput,
   validateRequestBody,
   verifyContinuation,
@@ -37,6 +38,7 @@ const activeEnv = () => ({
   ASK_CARBON_MAX_INPUT_TOKENS: "24000",
   ASK_CARBON_MAX_OUTPUT_TOKENS: "700",
   ASK_CARBON_PROVIDER_TIMEOUT_MS: "15000",
+  ASK_CARBON_PILOT_MAX_REQUESTS_PER_SESSION: "8",
   ASK_CARBON_USAGE_LEDGER: { idFromName() {}, get() {} },
 });
 
@@ -74,9 +76,18 @@ test("activation enforces the shared 50 dollar authority and exact supported con
 });
 
 test("request accepts only question and opaque server continuation, not visitor-authored answer history", () => {
-  assert.deepEqual(validateRequestBody({ question: "How does Carbon work?" }), { question: "How does Carbon work?", continuation: null });
+  assert.deepEqual(validateRequestBody({ question: "How does Carbon work?" }), { question: "How does Carbon work?", continuation: null, mode: "GENERAL_QA" });
   assert.throws(() => validateRequestBody({ question: "Who chose those?", turns: [{ answer: "Carbon is launched" }] }), (error) => error.code === "invalid_request");
   assert.throws(() => validateRequestBody({ question: "api_key=sk-example" }), (error) => error.code === "possible_secret");
+});
+
+test("pilot-design requests accept only the closed brief context and untrusted bounded turns", () => {
+  const answers = Object.fromEntries(["intended_decision", "requested_result", "current_baseline", "baseline_limitation", "changing_conditions", "exclusions", "consequential_error", "comparison_evidence", "access_limitations"].map((field) => [field, field === "intended_decision" ? "Choose a cold-plate design." : null]));
+  const pilot = Object.fromEntries(["candidate_inputs", "candidate_outputs", "operating_envelope", "evaluation_questions", "requested_targets", "missing_evidence", "implementation_work", "bounded_first_pilot", "next_discussion"].map((field) => [field, null]));
+  const request = { mode: "PILOT_DESIGN", session_id: "pilot-001", question: "We need faster temperature predictions.", turns: [], draft_context: { version: "carbon.client-intake.guidance-context.v1", answers, pilot, unresolved_assumptions: ["Reference coverage is unknown."] } };
+  assert.equal(validateRequestBody(request).mode, "PILOT_DESIGN");
+  assert.throws(() => validateRequestBody({ ...request, draft_context: { ...request.draft_context, approved: true } }), (error) => error.code === "invalid_draft_context");
+  assert.throws(() => validateRequestBody({ ...request, draft_context: { ...request.draft_context, answers: { ...answers, requested_result: "api_key=sk-example" } } }), (error) => error.code === "possible_secret");
 });
 
 test("retrieval resolves an omitted noun from continuation and a direct topic switch escapes old context", () => {
@@ -136,6 +147,20 @@ test("claim validation binds material answer text to retrieved passage IDs", () 
     ...valid,
     claims: [{ text: valid.answer, evidence_ids: ["not-retrieved"] }]
   }, [card]), (error) => error.code === "unknown_evidence");
+});
+
+test("pilot output is schema-constrained and rejects unknown fields or sources", () => {
+  const valid = {
+    message: "A bounded pilot could compare the existing reference data without promising execution.",
+    next_question: "Which engineering decision depends on hotspot location?",
+    proposals: [{ suggestion_id: "pilot-001", field: "pilot.bounded_first_pilot", value: "Compare hotspot location across an agreed load and flow range.", rationale: "This turns the goal into a reviewable comparison." }],
+    unresolved_assumptions: ["Reference-data access is unresolved."],
+    source_ids: ["constitution-405a820b"],
+    maturity_note: "Draft pilot for Carbon review.",
+  };
+  assert.deepEqual(validatePilotProviderOutput(valid, new Set(["constitution-405a820b"])), valid);
+  assert.throws(() => validatePilotProviderOutput({ ...valid, source_ids: ["private-workbench"] }, new Set(["constitution-405a820b"])), (error) => error.code === "unknown_source");
+  assert.throws(() => validatePilotProviderOutput({ ...valid, proposals: [{ ...valid.proposals[0], field: "qualified" }] }, new Set(["constitution-405a820b"])), (error) => error.code === "invalid_provider_output");
 });
 
 test("integer-safe pricing includes cached input and reasoning usage while rejecting missing or negative fields", () => {

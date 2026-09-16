@@ -39,6 +39,8 @@ units backed by nine exact source revisions.
 - `tools/integrate-static.mjs`: deterministic injection into an existing static
   homepage without changing its routes or content;
 - `PRIVACY_AND_RETENTION.md` and `OPERATIONS.md`: processing and release maps.
+- `PILOT_DESIGN_REVIEW.md`: preview notice, shared-budget behavior, evaluation
+  state and remaining pilot-mode activation inputs.
 
 ## Local verification
 
@@ -51,6 +53,27 @@ npm run eval:contract
 
 `eval:contract` measures deterministic retrieval behavior only. It never claims
 factuality, citation support or live model usefulness.
+
+## Guided pilot mode
+
+The same adapter now exposes a distinct `PILOT_DESIGN` mode for the local
+Carbon pilot designer. It accepts only a bounded schema-derived draft context
+and returns proposed edits that the client must accept. General Q&A remains
+available. Both modes share one ledger and one owner ceiling of $50 per UTC
+month; pilot guidance does not create a second allowance. The local form works
+without AI and preserves the draft when guidance is unavailable.
+
+No secret belongs in this repository or browser bundle. Do not send a secret
+through chat. Production operators should provision Worker secrets through
+their approved Cloudflare release process.
+
+`Business/Carbon_Fit/workbench/Carbon_Client_Pilot_Designer_Preview.html` is
+the maintained local preview. It edits the same `carbon.client-intake.draft.v1`
+core in conversation and form mode, exports a closed
+`carbon.client-intake.reviewed.v1` package, and never submits it. Conversation
+inclusion is off by default.
+
+## Local preview integration
 
 To make a private local staging artifact from the reviewed homepage bytes:
 

@@ -1,73 +1,57 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
     <meta http-equiv="Content-Security-Policy" content="{{CSP}}">
-    <title>Carbon · Local engineering intake</title>
-    <style>{{STYLE}}</style>
+    <title>Carbon · Draft a pilot brief</title><style>{{STYLE}}</style>
   </head>
-  <body>
-    <a class="skip" href="#intake-main">Skip to intake</a>
-    <header class="intake-header">
-      <div class="brand">CARBON <span>LOCAL PREVIEW</span></div>
-      <p class="scope">High-level engineering scoping · nothing is transmitted</p>
-    </header>
-    <main id="intake-main" class="intake-layout">
-      <section class="intake-editor" aria-labelledby="intake-title">
-        <p class="eyebrow">Local engineering brief</p>
-        <h1 id="intake-title">Describe the decision you need to improve</h1>
-        <p class="lede">Unknown is a valid answer. Keep this high level—do not include confidential geometry, simulation files, credentials, executable code, or protected data.</p>
-        <form id="intake-form">
-          <fieldset>
-            <legend>Decision and result</legend>
-            <label>What decision or engineering task are you trying to improve?<textarea data-text="intended_decision"></textarea></label>
-            <label>What do you need to predict or compare?<textarea data-text="requested_result"></textarea></label>
-          </fieldset>
-          <fieldset>
-            <legend>Current approach</legend>
-            <label>What do you use today?<textarea data-text="current_baseline"></textarea></label>
-            <label>What is inadequate about it?<textarea data-text="baseline_limitation"></textarea></label>
-          </fieldset>
-          <fieldset>
-            <legend>Scope and consequences</legend>
-            <label>What varies between runs, and which conditions matter?<textarea data-text="changing_conditions"></textarea></label>
-            <label>What is explicitly outside this inquiry?<textarea data-text="exclusions"></textarea></label>
-            <label>What kind of wrong answer would matter most?<textarea data-text="consequential_error"></textarea></label>
-          </fieldset>
-          <fieldset>
-            <legend>Evidence and access</legend>
-            <label>Is there a reference solver, experiment, or comparison source?<textarea data-text="comparison_evidence"></textarea></label>
-            <label>What access or use restrictions would Carbon need to clarify?<textarea data-text="access_limitations"></textarea></label>
-          </fieldset>
-          <fieldset>
-            <legend>Optional quantities</legend>
-            <p class="field-note">Use unknown, a point estimate, or a supplied range. Units are required for supplied values.</p>
-            <div id="quantity-fields"></div>
-          </fieldset>
-          <details>
-            <summary>Draft identity and revision</summary>
-            <div class="identity-grid">
-              <label>Draft ID<input id="draft-id" value="local-inquiry-001" pattern="[A-Za-z0-9][A-Za-z0-9._:-]{0,127}"></label>
-              <label>Revision ID<input id="revision-id" value="rev-001" pattern="[A-Za-z0-9][A-Za-z0-9._:-]{0,127}"></label>
-              <label>Predecessor revision ID<input id="predecessor-revision" placeholder="optional"></label>
-              <label>Predecessor canonical digest<input id="predecessor-digest" placeholder="sha256:…"></label>
-            </div>
-          </details>
-        </form>
+  <body data-api-url="/api/ask-carbon">
+    <a class="skip" href="#intake-main">Skip to pilot designer</a>
+    <header class="intake-header"><div class="brand">CARBON <span>PILOT DESIGNER PREVIEW</span></div><p class="scope">High-level scoping · nothing is submitted from this preview</p></header>
+    <main id="intake-main" class="page">
+      <section class="intro" aria-labelledby="intake-title">
+        <p class="eyebrow">Draft pilot for Carbon review</p><h1 id="intake-title">Turn an engineering need into a reviewable brief</h1>
+        <p>Use the form, guided conversation, or both. They edit the same draft. Unknown is a valid answer; avoid confidential geometry, files, credentials, source code, protected data, or customer secrets.</p>
+        <div class="mode-tabs" role="tablist" aria-label="Brief editing mode"><button id="show-guided" role="tab" aria-selected="true" aria-controls="guided-panel">Guided conversation</button><button id="show-form" role="tab" aria-selected="false" aria-controls="form-panel">Form</button></div>
       </section>
-      <aside class="intake-summary" aria-labelledby="summary-title">
-        <p class="eyebrow">Review before export</p>
-        <h2 id="summary-title">Preliminary brief</h2>
-        <pre id="summary-text"></pre>
-        <p id="next-clarification" class="clarification"></p>
-        <div class="boundary"><strong>Local draft only.</strong> Exporting downloads an unencrypted file to this device. It does not submit an inquiry, promise contact, qualify a Carbon capability, or grant data-use rights.</div>
-        <button id="export-intake" type="button">Export intake draft</button>
-        <p id="intake-status" role="status" aria-live="polite"></p>
-      </aside>
+      <div class="designer-layout">
+        <section id="guided-panel" class="work-panel" role="tabpanel" aria-labelledby="show-guided">
+          <div class="panel-heading"><div><p class="eyebrow">Ask Carbon · pilot design</p><h2>One useful question at a time</h2></div><button id="clear-conversation" class="quiet" type="button">Clear conversation</button></div>
+          <div id="guidance-boundary" class="boundary"><strong>AI guidance is off.</strong> The form remains local. Enable guidance only after reviewing exactly what would leave this browser. <button id="show-consent" type="button">Review AI data use</button></div>
+          <section id="consent-panel" class="consent" hidden aria-labelledby="consent-title">
+            <h3 id="consent-title">Before enabling AI guidance</h3>
+            <p><strong>Sent to provider:</strong> the current high-level brief, pilot outline, unresolved assumptions, and up to ten conversation turns. Contact details and the optional submission-history choice are not sent.</p>
+            <p><strong>Provider:</strong> OpenAI API, Responses API, <code>store:false</code>. OpenAI states that API data is not used to train models unless the customer opts in. By default, abuse-monitoring logs may retain prompts and responses for up to 30 days; approved Zero Data Retention or Modified Abuse Monitoring controls can change that. Carbon has not yet verified which retention control applies to the eventual deployment.</p>
+            <p><strong>Carbon preview:</strong> this file stores no abandoned conversation. Conversation stays in memory unless explicitly included in an exported review package. Clearing it here does not delete provider records.</p>
+            <details><summary>Preview the exact draft/context fields</summary><pre id="context-preview"></pre></details>
+            <label class="check"><input id="consent-check" type="checkbox"> I understand this disclosure and want to enable AI guidance.</label><button id="enable-guidance" type="button" disabled>Enable AI guidance</button>
+          </section>
+          <div id="conversation" class="conversation" aria-live="polite"><article class="message assistant"><strong>Carbon</strong><p>What engineering decision depends on the prediction or comparison you want to make?</p></article></div>
+          <div id="proposal-list" class="proposal-list" aria-live="polite"></div>
+          <form id="guidance-form" class="composer"><label for="guidance-input">Your answer or question</label><textarea id="guidance-input" maxlength="1200" rows="3" placeholder="Describe the decision, or ask about a concept…" disabled></textarea><div class="actions"><button id="send-guidance" type="submit" disabled>Continue</button><button id="undo-suggestion" class="quiet" type="button" disabled>Undo last accepted change</button></div></form>
+          <p id="guidance-status" role="status" aria-live="polite">Guidance has not been enabled. Continue with the form at any time.</p>
+        </section>
+        <section id="form-panel" class="work-panel" role="tabpanel" aria-labelledby="show-form" hidden>
+          <p class="eyebrow">Direct editing</p><h2>Engineering brief</h2>
+          <form id="intake-form">
+            <fieldset><legend>Decision and result</legend><label>What decision or engineering task are you trying to improve?<textarea data-text="intended_decision"></textarea></label><label>What do you need to predict or compare?<textarea data-text="requested_result"></textarea></label><label>Candidate model inputs, if known<textarea data-pilot="candidate_inputs"></textarea></label><label>Candidate outputs, if known<textarea data-pilot="candidate_outputs"></textarea></label></fieldset>
+            <fieldset><legend>Current approach</legend><label>What do you use today?<textarea data-text="current_baseline"></textarea></label><label>What is inadequate about it?<textarea data-text="baseline_limitation"></textarea></label></fieldset>
+            <fieldset><legend>Scope and consequences</legend><label>What varies between runs, and which conditions matter?<textarea data-text="changing_conditions"></textarea></label><label>Proposed operating envelope<textarea data-pilot="operating_envelope"></textarea></label><label>What is explicitly outside this inquiry?<textarea data-text="exclusions"></textarea></label><label>What kind of wrong answer would matter most?<textarea data-text="consequential_error"></textarea></label></fieldset>
+            <fieldset><legend>Evidence and evaluation</legend><label>Available simulation, experiment, or comparison evidence<textarea data-text="comparison_evidence"></textarea></label><label>What access or use restrictions would Carbon need to clarify?<textarea data-text="access_limitations"></textarea></label><label>Proposed evaluation questions and observables<textarea data-pilot="evaluation_questions"></textarea></label><label>Requested performance targets (client request, not accepted tolerance)<textarea data-pilot="requested_targets"></textarea></label><label>Missing evidence<textarea data-pilot="missing_evidence"></textarea></label><label>Implementation work that may be needed<textarea data-pilot="implementation_work"></textarea></label><label>Bounded first pilot<textarea data-pilot="bounded_first_pilot"></textarea></label><label>Next discussion<textarea data-pilot="next_discussion"></textarea></label></fieldset>
+            <fieldset><legend>Optional quantities</legend><p class="field-note">Use unknown, a point estimate, or a supplied range. Units are required for supplied values.</p><div id="quantity-fields"></div></fieldset>
+            <details><summary>Draft identity and revision</summary><div class="identity-grid"><label>Draft ID<input id="draft-id" value="local-inquiry-001" pattern="[A-Za-z0-9][A-Za-z0-9._:-]{0,127}"></label><label>Revision ID<input id="revision-id" value="rev-001" pattern="[A-Za-z0-9][A-Za-z0-9._:-]{0,127}"></label><label>Predecessor revision ID<input id="predecessor-revision" placeholder="optional"></label><label>Predecessor canonical digest<input id="predecessor-digest" placeholder="sha256:…"></label></div></details>
+          </form>
+        </section>
+        <aside class="brief-panel" aria-labelledby="summary-title">
+          <div class="panel-heading"><div><p class="eyebrow">Shared developing brief</p><h2 id="summary-title">Draft pilot for Carbon review</h2></div><span id="brief-mode" class="chip">client draft</span></div>
+          <pre id="summary-text"></pre><section class="pilot-card"><h3>Proposed pilot</h3><p id="pilot-text">Not yet proposed.</p><h3>Unresolved assumptions</h3><ul id="assumption-list"><li>Complete or skip fields; unknowns remain visible.</li></ul></section><p id="next-clarification" class="clarification"></p>
+          <details><summary>Contact and review-package choices</summary><label>Name<input id="contact-name" autocomplete="name"></label><label>Email<input id="contact-email" type="email" autocomplete="email"></label><label>Organization<input id="contact-organization" autocomplete="organization"></label><label class="check"><input id="include-conversation" type="checkbox"> Include conversation history for Carbon's review</label><p class="field-note">Off by default. Permission to respond does not grant marketing, model-training, or cross-customer reuse rights.</p></details>
+          <div class="boundary"><strong>Local review package only.</strong> Exporting downloads an unencrypted file. It does not submit an inquiry, promise contact, qualify Carbon, approve a pilot, or authorize execution.</div>
+          <button id="export-intake" type="button">Export reviewed brief</button><button type="button" class="quiet" disabled title="No approved receiver or private store is configured">Submit to Carbon · unavailable</button><p id="intake-status" role="status" aria-live="polite"></p>
+        </aside>
+      </div>
     </main>
-    <footer>Later website collection requires a separately approved receiving service, private storage, notice, access controls, retention policy, abuse controls, and operational owner.</footer>
-    <script>{{INTAKE}}</script>
-    <script>{{APP}}</script>
+    <footer>Live collection still requires the actual site and endpoint, private storage, staff access, approved notice, retention/deletion, abuse controls, incident ownership, and deployment authorization.</footer>
+    <script>{{INTAKE}}</script><script>{{APP}}</script>
   </body>
 </html>

@@ -35,6 +35,7 @@ const makeRuntime = (overrides = {}) => {
     ASK_CARBON_MAX_INPUT_TOKENS: "24000",
     ASK_CARBON_MAX_OUTPUT_TOKENS: "700",
     ASK_CARBON_PROVIDER_TIMEOUT_MS: "15000",
+    ASK_CARBON_PILOT_MAX_REQUESTS_PER_SESSION: "8",
     ASK_CARBON_USAGE_LEDGER: { idFromName: () => "global", get: () => ({ fetch: (url, options) => ledger.fetch(new Request(url, options)) }) },
     ...overrides,
   };
@@ -265,4 +266,47 @@ test("pre-dispatch context failure releases provider cost with no dispatch", asy
   const state = await snapshot.json();
   assert.equal(Object.values(state.attempts)[0].state, "released_pre_dispatch");
   assert.equal(state.months[new Date().toISOString().slice(0, 7)].exposure_micro_usd, 0);
+});
+
+test("pilot-design mode shares the repaired adapter, ledger and bounded output path", async () => {
+  const runtime = makeRuntime();
+  const answers = Object.fromEntries(["intended_decision", "requested_result", "current_baseline", "baseline_limitation", "changing_conditions", "exclusions", "consequential_error", "comparison_evidence", "access_limitations"].map((field) => [field, field === "intended_decision" ? "Choose a cold-plate design." : null]));
+  const pilot = Object.fromEntries(["candidate_inputs", "candidate_outputs", "operating_envelope", "evaluation_questions", "requested_targets", "missing_evidence", "implementation_work", "bounded_first_pilot", "next_discussion"].map((field) => [field, null]));
+  let providerRequest;
+  await withProvider(async (_url, options) => {
+    providerRequest = JSON.parse(options.body);
+    return new Response(JSON.stringify(validProviderBody({
+      output: [{ type: "message", role: "assistant", content: [{ type: "output_text", text: JSON.stringify({
+        message: "A bounded comparison can be drafted without promising execution.",
+        next_question: "Which operating conditions vary?",
+        proposals: [{ suggestion_id: "pilot-thermal-001", field: "pilot.evaluation_questions", value: "Compare hotspot location and design ranking.", rationale: "These observables connect the prediction to the design decision." }],
+        unresolved_assumptions: ["Reference coverage and access remain unknown."],
+        source_ids: [],
+        maturity_note: "Draft pilot for Carbon review.",
+      }) }] }],
+    })), { status: 200 });
+  }, async () => {
+    const response = await ask(createWorker(knowledge), runtime.env, "unused", null, { body: JSON.stringify({
+      mode: "PILOT_DESIGN",
+      session_id: "pilot-session-1",
+      question: "We want to predict cold-plate temperatures faster.",
+      turns: [],
+      draft_context: { version: "carbon.client-intake.guidance-context.v1", answers, pilot, unresolved_assumptions: [] },
+    }) });
+    assert.equal(response.status, 200);
+    const body = await response.json();
+    assert.equal(body.mode, "PILOT_DESIGN");
+    assert.equal(body.proposals[0].field, "pilot.evaluation_questions");
+    assert.equal(body.next_question, "Which operating conditions vary?");
+  });
+  assert.equal(providerRequest.store, false);
+  assert.equal(providerRequest.text.format.name, "carbon_pilot_guidance");
+  assert.equal("tools" in providerRequest, false);
+  assert.equal(providerRequest.instructions.includes("Signed bounded-context token"), false);
+  assert.equal(providerRequest.input[0].content[0].text.includes("draft_context"), true);
+  const snapshot = await runtime.ledger.fetch(new Request("https://ledger.test/snapshot", { method: "POST", body: JSON.stringify({ now_ms: Date.now() }) }));
+  const state = await snapshot.json();
+  const attempt = Object.values(state.attempts)[0];
+  assert.equal(attempt.mode, "PILOT_DESIGN");
+  assert.equal(attempt.state, "settled");
 });
