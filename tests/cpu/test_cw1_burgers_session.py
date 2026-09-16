@@ -486,3 +486,152 @@ def test_external_miner_key_loader_boundary(tmp_path, monkeypatch):
     with pytest.raises(auth.AuthFailure):
         auth.open_external_hotkey(key_file, password_file, "expected-test-hotkey")
     assert opened == []
+
+
+def test_strict_named_tools_match_all_seven_actual_mcp_calls(tmp_path):
+    """Offline protocol regression; no agent inference or numerical execution."""
+    from carbon import mcp
+    from carbon.development_session.agent import TOOLS
+    from carbon.development_session.service import make_mcp, scaffold
+    from carbon.fees import RequesterIdentity
+
+    service, _ = make_mcp(tmp_path)
+    requester = RequesterIdentity("synthetic-seven-tool-test")
+    definitions = {item["name"]: item for item in TOOLS}
+    assert set(definitions) == {item.value for item in mcp.McpTool}
+    base = {"challenge_id": "burgers-dynamics-v1", "challenge_version": "1.0"}
+    submission = None
+    for name in (
+        "get_challenge_info",
+        "get_prior",
+        "get_mock_scaffold",
+        "dry_validate",
+        "estimate",
+        "submit",
+        "get_submission_result",
+    ):
+        fields = dict(base)
+        if name == "dry_validate":
+            fields = {"strategy": scaffold()}
+        elif name in ("estimate", "submit"):
+            fields["strategy"] = scaffold()
+        elif name == "get_submission_result":
+            fields = {"submission_id": submission}
+        schema = definitions[name]["parameters"]
+        assert definitions[name]["strict"] is True
+        assert set(fields) == set(schema["properties"]) == set(schema["required"])
+        assert schema["additionalProperties"] is False
+        result = service.call(
+            mcp.McpCall(
+                "1.0", name, tuple(mcp.McpField(k, v) for k, v in fields.items())
+            ),
+            requester,
+        )
+        if name == "submit":
+            submission = result.status.submission_id.value
+        assert result is not None
+
+    def closed_objects(schema):
+        if schema.get("type") == "object":
+            assert schema["additionalProperties"] is False
+            assert set(schema["required"]) == set(schema["properties"])
+            for child in schema["properties"].values():
+                closed_objects(child)
+
+    for tool in TOOLS:
+        closed_objects(tool["parameters"])
+    assert "tool" not in definitions["dry_validate"]["parameters"]["properties"]
+    assert "arguments_json" not in repr(TOOLS)
+
+
+@pytest.mark.parametrize("malformed", (False, True))
+def test_agent_direct_tool_dispatch_and_retained_malformed_stop(
+    tmp_path, monkeypatch, malformed
+):
+    """Synthetic transport replies test routing only; never empirical inference."""
+    import asyncio
+    import json
+    import time
+
+    from carbon.development_session import agent
+    from carbon.development_session.profile import canonical, digest
+    from carbon.development_session.service import scaffold
+
+    called = []
+    fields = {"strategy": scaffold()}
+    if malformed:
+        # Exact shape emitted by the stopped real run's nested argument string.
+        fields["tool"] = "dry_validate"
+    responses = iter(
+        [
+            {
+                "id": "synthetic-1",
+                "model": agent.MODEL,
+                "status": "completed",
+                "usage": {"input_tokens": 100, "output_tokens": 20},
+                "output": [
+                    {
+                        "type": "function_call",
+                        "name": "dry_validate",
+                        "call_id": "synthetic-call",
+                        "arguments": json.dumps(fields),
+                    }
+                ],
+            },
+            {
+                "id": "synthetic-2",
+                "model": agent.MODEL,
+                "status": "completed",
+                "usage": {"input_tokens": 100, "output_tokens": 20},
+                "output": [],
+            },
+        ]
+    )
+    monkeypatch.setattr(
+        agent.ResponsesTransport, "__call__", lambda *_: next(responses)
+    )
+
+    class Connection:
+        def __init__(self):
+            self.root = tmp_path
+            self.budget = SessionBudget(tmp_path / "budget.sqlite3")
+            self.proposals = {}
+            self.completed = {}
+
+        async def check_registration(self):
+            pass
+
+        async def call(self, tool, arguments):
+            called.append((tool, arguments))
+            return {"valid": True}
+
+    authority = tmp_path / "authority.json"
+    authority.write_bytes(
+        canonical(
+            {
+                "schema": "carbon.burgers-session.model-run-authority.v1",
+                "proposal_digest": digest(canonical(agent.proposal())),
+                "approved": True,
+                "valid_from_unix": time.time() - 10,
+                "valid_until_unix": time.time() + 60,
+                "max_total_usd": 0.25,
+            }
+        )
+    )
+    connection = Connection()
+    if malformed:
+        with pytest.raises(ValueError, match="invalid agent tool arguments"):
+            asyncio.run(agent.run(connection, authority, tmp_path / "unused-key"))
+        assert called == []
+        assert (tmp_path / "provider-1-response.json").is_file()
+        assert (tmp_path / "agent-stopped-report.json").is_file()
+        assert not (tmp_path / "provider-2-request.json").exists()
+        assert connection.budget.summary()[0]["state"] == "COMPLETE"
+    else:
+        report = asyncio.run(agent.run(connection, authority, tmp_path / "unused-key"))
+        assert called == [("dry_validate", {"strategy": scaffold()})]
+        assert report["calls"][0]["tool"] == "dry_validate"
+        assert (tmp_path / "provider-1-tool-result.json").is_file()
+    # A second process cannot replace the retained campaign, even in this fixture.
+    with pytest.raises(ValueError):
+        asyncio.run(agent._run(connection, authority, tmp_path / "unused-key"))

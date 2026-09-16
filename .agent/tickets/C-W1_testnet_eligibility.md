@@ -67,9 +67,12 @@ claim. See `.agent/plans/C_W1_DEVELOPMENT_TESTNET.md`.
 - [x] Subnet 567 creation, owner/publisher UID 0 and the WSL Ubuntu Docker Engine
   host are observed. The old wallet and Darwin observations remain historical.
 - [ ] The owner-selected supervised Burgers continuation must complete real
-  model inference and authenticated numerical evaluation after distinct miner
-  registration and bounded provider approval/access. Its engineering candidate
-  and exact numerical evidence are in
+  authenticated numerical evaluation. Miner UID 1 registration is finalized.
+  PR #189 merged strict tool framing after the first four-call session stopped.
+  A separately approved six-call session proposed FNO-48, passed validation and
+  reached authenticated submission, then stopped at C-03's fixture-only staging
+  guard before worker launch. C-W1-WORKER-SCOPE-01 repairs the non-live scope
+  composition; no automatic restart or scientific result is claimed. See
   `docs/development/CW1_BURGERS_AGENT_SESSION.md`.
 - [ ] Activation and one all-burn publication need separate exact authority;
   the completed subnet-creation approval supplies neither.

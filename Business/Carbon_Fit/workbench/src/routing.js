@@ -1061,8 +1061,18 @@
     if (assessmentReceipt)
       return {
         action: "REVIEW_SCOPED_SOURCE_ASSESSMENT",
-        why: "A repository-snapshot-matched technical answer is retained; remaining scientific, rights, and customer-use obligations stay separate.",
-        missing_conditions: assessmentReceipt.remaining_reason_ids,
+        why:
+          "A repository-snapshot-matched technical answer is retained; remaining scientific, rights, and customer-use obligations stay separate. Open response questions: " +
+          (assessmentReceipt.remaining_question_ids.join(", ") || "none") +
+          ".",
+        missing_conditions: [
+          ...assessmentReceipt.remaining_question_ids.map(
+            (item) => "question:" + item,
+          ),
+          ...assessmentReceipt.remaining_reason_ids.map(
+            (item) => "review_reason:" + item,
+          ),
+        ],
       };
     if (assessmentRequest)
       return {

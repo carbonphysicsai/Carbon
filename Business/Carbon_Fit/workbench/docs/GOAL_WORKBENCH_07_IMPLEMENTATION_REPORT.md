@@ -1,5 +1,7 @@
 # GOAL-WORKBENCH-07 implementation report
 
+> Historical implementation record: this report describes the initially shipped empty snapshot. Ryan's later exact owner-conversation adoption and the first admitted snapshot are recorded prospectively in `GOAL_WORKBENCH_07A_ADMISSION_REPORT.md`; the history below is intentionally unchanged.
+
 ## Outcome
 
 The v0.7 standalone workbench implements an operational, read-only source-assessment request and consumer path for the exact public Burgers/Dynamics profile. Its trust root is an application-installed repository snapshot, never a workspace/imported manifest. Request subjects are sealed and content-digested; accepted response bytes must match job, design, revision, questions, source identities, permitted issuer domains, exact owner-adoption reference, raw hash, canonical digest, and the current installed snapshot before an atomic receipt is committed.

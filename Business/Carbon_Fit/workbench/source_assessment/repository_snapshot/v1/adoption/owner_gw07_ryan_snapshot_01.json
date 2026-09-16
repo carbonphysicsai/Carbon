@@ -1,0 +1,66 @@
+{
+  "schema_version": "carbon.goal-workbench.source-assessment-adoption.v1",
+  "decision_id": "OWNER-GW07-RYAN-SNAPSHOT-01-ADOPTION-001",
+  "policy_decision_id": "OWNER-GW07-RYAN-SNAPSHOT-01",
+  "disposition": "ADOPT",
+  "status": "ADOPTED_FOR_REPOSITORY_ADMISSION",
+  "owner": {
+    "name": "Ryan",
+    "principal": "github:jbequ5",
+    "role": "FINAL_INTERFACE_AND_VERIFIER_POLICY_OWNER"
+  },
+  "record_preparer": "GOAL-WORKBENCH-07A Engineering",
+  "decision_source": {
+    "kind": "EXPLICIT_OWNER_CONVERSATION_DECISION",
+    "stable_locator": "UNAVAILABLE_NO_CONVERSATION_URL",
+    "platform_authenticated": false,
+    "literal_response": "Yes to #5. Approve now and add approval to new prompt",
+    "literal_response_sha256": "sha256:1be1c46a4ac5d84dc884b83347dc21f4f564b608781e10648a42438db6023479",
+    "referenced_question": "Ryan, do you adopt GW07-BURGERS-DYNAMICS-ASSESSMENT-001 at the exact identities below, with FIXED_EVIDENCE_RELATIONSHIP remaining partial and no scientific or operational authority added?",
+    "normalized_disposition": "ADOPT OWNER-GW07-RYAN-SNAPSHOT-01\nassessment_id: GW07-BURGERS-DYNAMICS-ASSESSMENT-001\nassessment_file_sha256: 49acb3598d034cf76ba854718cc2941ac3bf069e1623e32a8a99a9002d298e82\nassessment_canonical_digest: sha256:dd28ab5cef652407ce2f10186ade2001f200fc79c51185d24aae0b2b8a1f9f09\nscope: AUTHORING_EXPRESSIBILITY,SOURCE_ARTIFACT_IDENTITY,FIXED_EVIDENCE_RELATIONSHIP\nFIXED_EVIDENCE_RELATIONSHIP remains PARTIAL and unresolved.\nNo scientific qualification, rights, fresh execution, protected reuse, score, or launch is authorized.",
+    "normalized_disposition_sha256": "sha256:e3ea6de3787fa902de54deb8448130c1a48307bd1b85bfba0564a0d793d4a475"
+  },
+  "historical_request": {
+    "url": "https://github.com/carbonphysicsai/Carbon/issues/41#issuecomment-5680762605",
+    "issue_number": 41,
+    "comment_id": 5680762605,
+    "observed_actor": "fitz-lang6",
+    "observed_actor_id": 317786409,
+    "created_at": "2026-09-15T13:13:33Z",
+    "status": "HISTORICAL_ENGINEERING_REQUEST_NOT_OWNER_REPLY"
+  },
+  "assessment": {
+    "assessment_id": "GW07-BURGERS-DYNAMICS-ASSESSMENT-001",
+    "assessment_path": "candidate/assessment_pending_adoption.json",
+    "assessment_git_blob": "9cba4e2f0f0b6629b8743ba00cb4a4eb8444d5c1",
+    "assessment_bytes": 3133,
+    "assessment_file_sha256": "sha256:49acb3598d034cf76ba854718cc2941ac3bf069e1623e32a8a99a9002d298e82",
+    "assessment_canonical_digest": "sha256:dd28ab5cef652407ce2f10186ade2001f200fc79c51185d24aae0b2b8a1f9f09",
+    "request_id": "GW07-BURGERS-DYNAMICS-REQUEST-001",
+    "request_path": "candidate/request.json",
+    "request_file_sha256": "sha256:0385c3b2630010a2ec84ff2cd1aa93225664b08d1a40556fe4d5951f9681b27b",
+    "request_canonical_digest": "sha256:d92b9eb69d5285dc3fa1ba8cd66863382b2dbcfb7ae93f4c7169ca5c86a56f2f",
+    "subject_digest": "sha256:4fc877a2f13545432b062c203a1e4d43d79ed25c17d4279a4124e0e598f17f91"
+  },
+  "scope": {
+    "allowed_domains": [
+      "AUTHORING_EXPRESSIBILITY",
+      "SOURCE_ARTIFACT_IDENTITY",
+      "FIXED_EVIDENCE_RELATIONSHIP"
+    ],
+    "partial_question_id": "GW07:FIXED_EVIDENCE_RELATIONSHIP",
+    "addressed_reason_ids": [],
+    "authority_effect": "NONE"
+  },
+  "limitations": [
+    "The owner decision came from the supplied owner conversation, not a GitHub comment, OAuth event, or cryptographic signature.",
+    "The assessment preparer remains GOAL-WORKBENCH-07 Engineering; Ryan is not represented as the numerical executor or original author.",
+    "The adoption grants no scientific qualification, rights, fresh execution, protected reuse, score eligibility, official grade, reward, or launch authority.",
+    "The fixed-evidence relationship remains partial and unresolved, and zero review-reason records are resolved."
+  ],
+  "admission_ref": "adoption:OWNER-GW07-RYAN-SNAPSHOT-01/GW07-BURGERS-DYNAMICS-ASSESSMENT-001",
+  "resulting_snapshot_id": "OWNER-GW07-RYAN-SNAPSHOT-01/sha256-49acb3598d034cf7/v1",
+  "current_state": "ADOPTED_CURRENT_NO_CONFLICT",
+  "supersedes_decision_ids": [],
+  "conflicts_with_decision_ids": []
+}

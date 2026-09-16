@@ -14,6 +14,7 @@ const BASE = path.join(ROOT, "source_assessment", "repository_snapshot", "v1");
 const CANDIDATE = path.join(BASE, "candidate");
 const TEST = path.join(BASE, "test_fixtures");
 const read = (name) => JSON.parse(fs.readFileSync(path.join(ROOT, name), "utf8"));
+const clone = (value) => JSON.parse(JSON.stringify(value));
 const write = (name, value) => {
   fs.mkdirSync(path.dirname(name), { recursive: true });
   fs.writeFileSync(name, JSON.stringify(value, null, 2) + "\n");
@@ -95,9 +96,50 @@ async function responseFor(request, claimedPrincipal) {
   };
 }
 
+function publicExampleWorkspace(design, request) {
+  const atlas = read("data/atlas.json");
+  const component = {
+    schema_version: F.WORKSPACE_VERSION,
+    application_version: F.APP_VERSION,
+    source_sha256: atlas.source.sha256,
+    evidence_catalog: [],
+    drafts: [],
+    shortlist: [],
+    migration_receipts: [],
+  };
+  const workspace = G.newWorkspace(component);
+  const job = G.newJob(
+    design.job_id,
+    "Public Burgers Dynamics source assessment",
+  );
+  job.accountable_owner = "Ryan / github:jbequ5";
+  job.lead = "Engineering";
+  job.designs = [clone(design)];
+  job.working_design_id = design.design_id;
+  job.designs[0].source_assessments.requests.push(clone(request));
+  job.designs[0].source_assessments.current_request_id = request.request_id;
+  workspace.jobs = [job];
+  workspace.selected_job_id = job.job_id;
+  workspace.selected_design_id = design.design_id;
+  G.validateWorkspace(workspace, (rawValue) =>
+    F.readWorkspace(
+      rawValue,
+      atlas.opportunities.map((item) => item.id),
+      atlas.source.sha256,
+    ),
+  );
+  return workspace;
+}
+
 async function main() {
+  const protectedProductionRecords = [
+    "profile.json",
+    "approved_assessments.json",
+    "adoption/owner_gw07_ryan_snapshot_01.json",
+  ].map((name) => [name, fs.readFileSync(path.join(BASE, name), "utf8")]);
   const design = await publicDesign();
   const request = await S.buildRequest(design, "GW07-BURGERS-DYNAMICS-REQUEST-001");
+  const exampleWorkspace = publicExampleWorkspace(design, request);
   const candidate = await responseFor(request, "github:jbequ5");
   const testResponse = await responseFor(request, "github:jbequ5");
   testResponse.claimed_issuer.claim_basis = "REPOSITORY_ADOPTION_REFERENCE";
@@ -130,6 +172,7 @@ async function main() {
   write(path.join(CANDIDATE, "public_design.json"), design);
   write(path.join(CANDIDATE, "request.json"), request);
   write(path.join(CANDIDATE, "assessment_pending_adoption.json"), candidate);
+  write(path.join(CANDIDATE, "public_example_workspace.json"), exampleWorkspace);
   write(path.join(TEST, "profile.test-only.json"), profile);
   write(path.join(TEST, "approved_assessments.test-only.json"), testIndex);
   write(path.join(TEST, "assessment.test-only.json"), testResponse);
@@ -182,17 +225,22 @@ After exact adoption, Engineering may add only this assessment and its adoption 
 
 No source assessment is presently admitted by the shipped production index.
 `);
-  const manifest = { schema_version: "carbon.goal-workbench.source-assessment-fixture-manifest.v1", generated_by: "tools/build_repository_snapshot_fixtures.cjs", production_index_state: "EMPTY_PENDING_EXACT_OWNER_ADOPTION", files: {} };
-  for (const file of ["public_design.json", "request.json", "assessment_pending_adoption.json", "RYAN_ADOPTION_PACKET.md"]) {
+  const manifest = { schema_version: "carbon.goal-workbench.source-assessment-fixture-manifest.v1", generated_by: "tools/build_repository_snapshot_fixtures.cjs", production_index_state: "ADMITTED_PRODUCTION_SNAPSHOT_PROTECTED; HISTORICAL_EMPTY_FIXTURES_RETAINED", files: {} };
+  for (const file of ["public_design.json", "request.json", "assessment_pending_adoption.json", "public_example_workspace.json", "RYAN_ADOPTION_PACKET.md"]) {
     const raw = fs.readFileSync(path.join(CANDIDATE, file), "utf8");
     manifest.files["candidate/" + file] = { bytes: Buffer.byteLength(raw), sha256: await S.sha256(raw) };
   }
-  for (const file of ["profile.test-only.json", "approved_assessments.test-only.json", "assessment.test-only.json"]) {
+  for (const file of ["profile.test-only.json", "approved_assessments.test-only.json", "assessment.test-only.json", "profile.empty-historical.json", "approved_assessments.empty-historical.json"]) {
     const raw = fs.readFileSync(path.join(TEST, file), "utf8");
     manifest.files["test_fixtures/" + file] = { bytes: Buffer.byteLength(raw), sha256: await S.sha256(raw) };
   }
   write(path.join(BASE, "fixture_manifest.json"), manifest);
+  for (const [name, before] of protectedProductionRecords) {
+    const after = fs.readFileSync(path.join(BASE, name), "utf8");
+    if (after !== before)
+      throw Error("Fixture regeneration modified protected production record: " + name);
+  }
 }
 
 if (require.main === module) main().catch((error) => { console.error(error); process.exitCode = 1; });
-module.exports = { publicDesign, responseFor, main };
+module.exports = { publicDesign, responseFor, publicExampleWorkspace, main };

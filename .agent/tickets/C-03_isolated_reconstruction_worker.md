@@ -141,3 +141,16 @@ The absent `carbon_jax_research` v0.2 file-set digest
 remains `NOT VERIFIED`; v0.1 is not substituted. Foundax remains recorded
 conservatively as EPL-2.0 because shipped source/wheel license bytes conflict
 with package metadata; no commercial permission is granted here.
+
+
+## C-W1 public DEVELOPMENT composition amendment
+
+The owner-selected C-W1 supervised real-agent continuation prospectively admits
+the existing C-01 `PRODUCTION / REAL_PATH_NON_LIVE` pair to the same exact public
+DEVELOPMENT worker, alongside `FIXTURE / FIXTURE_DEVELOPMENT`. The enum is a
+non-fixture provenance discriminator, not production qualification. The former
+fixture-only stage guard caused the retained 2026-09-15 FNO-48 submission to
+stop before worker launch. `C-W1-WORKER-SCOPE-01` in
+`docs/development/CW1_BURGERS_AGENT_SESSION.md` owns the bounded migration.
+All profile, TRAIN-only data, policy, isolation and evidence limits remain.
+This amendment cannot admit protected data, official science, LIVE, or rewards.

@@ -32,20 +32,20 @@ No model inference or new chain operation occurs without its applicable approval
 
 ## Current stage
 
-PR #185 merged the checked operator path. Subnet 567, owner/publisher UID 0 and WSL Ubuntu Docker Engine are observed. The selected supervised Burgers continuation has a bounded executable profile, restricted agent connection and signed source builder. Real agent inference awaits distinct miner registration and provider approval/access; activation and all-burn publication require separate authority.
+C-W1 DEVELOPMENT continues after PR #189 merged strict tools. Distinct miner UID 1 finalized on subnet 567 at block 8013851. The second authorized real model session made six calls for USD 0.00380175, proposed FNO-48 and reached authenticated submission. The fixture-only C-03 staging guard stopped it before worker launch. The selected repair admits the exact real/non-live pair under unchanged public DEVELOPMENT worker controls; the stopped attempt is retained without restart.
 
 ## Maturity ceiling
 
-PR #185 operator delivery is implemented and tested. Supervised-session engineering completion is conditional on automated acceptance and merge; real model inference and chain publication are separate pending observations. No scientific, security, network, protected, production or LIVE qualification is earned.
+Strict tool repair is merged. Two real provider sessions remain stopped, with no agent numerical evaluation or signed source. C-W1-WORKER-SCOPE-01 is conditional on required acceptance and normal merge. No qualification is earned.
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/af5493aa53ea7177317320432712a9e7de54651f/.agent/tickets/C-W1_testnet_eligibility.md)
-- [Development testnet plan](https://github.com/carbonphysicsai/Carbon/blob/af5493aa53ea7177317320432712a9e7de54651f/.agent/plans/C_W1_DEVELOPMENT_TESTNET.md)
-- [Development testnet evidence](https://github.com/carbonphysicsai/Carbon/blob/af5493aa53ea7177317320432712a9e7de54651f/.agent/evidence/wave_c/c-w1-development.md)
-- [Operator runbook](https://github.com/carbonphysicsai/Carbon/blob/af5493aa53ea7177317320432712a9e7de54651f/docs/development/CW1_DEVELOPMENT_TESTNET_RUNBOOK.md)
-- [First transaction plan](https://github.com/carbonphysicsai/Carbon/blob/af5493aa53ea7177317320432712a9e7de54651f/docs/development/CW1_DEVELOPMENT_TESTNET_TRANSACTION_PLAN.md)
-- [C1 dependency graph](https://github.com/carbonphysicsai/Carbon/blob/af5493aa53ea7177317320432712a9e7de54651f/.agent/plans/C1_DEPENDENCY_GRAPH.md)
-- [Supervised Burgers session and numerical observations](https://github.com/carbonphysicsai/Carbon/blob/af5493aa53ea7177317320432712a9e7de54651f/docs/development/CW1_BURGERS_AGENT_SESSION.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/8d06a01c40087bf60de70e66015134febdbafb6f/.agent/tickets/C-W1_testnet_eligibility.md)
+- [Development testnet plan](https://github.com/carbonphysicsai/Carbon/blob/8d06a01c40087bf60de70e66015134febdbafb6f/.agent/plans/C_W1_DEVELOPMENT_TESTNET.md)
+- [Development testnet evidence](https://github.com/carbonphysicsai/Carbon/blob/8d06a01c40087bf60de70e66015134febdbafb6f/.agent/evidence/wave_c/c-w1-development.md)
+- [Operator runbook](https://github.com/carbonphysicsai/Carbon/blob/8d06a01c40087bf60de70e66015134febdbafb6f/docs/development/CW1_DEVELOPMENT_TESTNET_RUNBOOK.md)
+- [First transaction plan](https://github.com/carbonphysicsai/Carbon/blob/8d06a01c40087bf60de70e66015134febdbafb6f/docs/development/CW1_DEVELOPMENT_TESTNET_TRANSACTION_PLAN.md)
+- [C1 dependency graph](https://github.com/carbonphysicsai/Carbon/blob/8d06a01c40087bf60de70e66015134febdbafb6f/.agent/plans/C1_DEPENDENCY_GRAPH.md)
+- [Supervised Burgers session and numerical observations](https://github.com/carbonphysicsai/Carbon/blob/8d06a01c40087bf60de70e66015134febdbafb6f/docs/development/CW1_BURGERS_AGENT_SESSION.md)
 
 > G2 remains LOCALNET_READY only for the exact D6 disposable v445 localnet. C-W1-D1 is separate and permits public/synthetic DEVELOPMENT only after exact external gates; signed DEVELOPMENT evidence remains rejected by official/protected consumers.

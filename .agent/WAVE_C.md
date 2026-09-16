@@ -43,10 +43,13 @@ remains `future_reserved`
 **Active ticket:** supervised Burgers V1 DEVELOPMENT agent/session continuation
 on public-testnet subnet 567, using PR #185's merged checked source and operator
 path; full V1 coverage and accepted comparison remain unclaimed
-**Next boundary:** distinct miner registration and bounded model-run approval/
-credential, then separate subnet activation and exact all-burn publication
-authority. WSL Linux/Docker and owner/publisher UID 0 are observed. C-EA2 remains
-blocked.
+**Next boundary:** accept the C-W1 real/non-live worker-scope repair. PR #189
+merged strict tools; the newly authorized session made six real model calls for
+USD 0.00380175, proposed FNO-48 and reached authenticated submission. C-03's
+fixture-only staging guard stopped it before Docker launch or training. Retain
+both stopped sessions; no automatic restart. Miner UID 1 remains finalized at
+8013851 for 0.005426933 test TAO. Activation and all-burn publication retain
+separate authority. C-EA2 and official C-W1 remain blocked.
 `OWNER-C1-BURGERS-ALPHA-01` keeps one selected ticket at a time. Protected
 science, real archive acknowledgement and official public-network execution
 remain ineligible; only the exact C-W1-D1 DEVELOPMENT transaction can become
@@ -113,7 +116,7 @@ in required run `34927991086` and normally merged the C-W1-D1 foundation as
 `65e2a3d5abee97e5eaf1538050e0dcfab22cc649`. Its operator execution/
 reconciliation continuation is the same selected ticket; no successor is
 selected and no public write is authorized.
-**Last completed slice:** C-W1-D1 operator path, merged in PR #185
+**Last completed slice:** C-W1-D1 strict agent-tool repair, merged in PR #189
 **Primary Hub map_ref:** `WAVE-C`
 
 C-EA1 passed canonical acceptance in run `34558389185` at accepted head

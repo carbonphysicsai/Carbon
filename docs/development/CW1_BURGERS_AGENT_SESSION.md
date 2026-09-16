@@ -102,7 +102,7 @@ realizations/labels, host tools, journal paths and credentials are unavailable.
 The trusted broker signs NET-2 requests; the remote model cannot access the key.
 
 Distinct miner hotkey: `5HmVzauSQMjErYSAzPFiKXi7uN9vM1TMLLVrjdVDJxYdPTxY`.
-It is not yet registered. It shares the owner's coldkey but is distinct from
+It finalized as UID 1 at block 8013851. It shares the owner's coldkey but is distinct from
 publisher UID 0; it is not a separately owned participant. Fresh SDK observations
 must resolve both parties before inference or authenticated tool use.
 
@@ -145,7 +145,8 @@ launching another evaluation. Unknown outcomes consume the reserved budget.
 Proposed API cap: **USD 0.25**, not yet approved. The conservative priced maximum
 is USD 0.24576 using USD 0.25/M input and USD 2/M output tokens. Provider usage,
 including output reasoning tokens, is retained. No subscription coverage is
-assumed, and no provider key exists in the session yet. A model/version mismatch,
+assumed. Owner-only credential access is now verified; the original session
+approval is historical and does not authorize the amended proposal. A model/version mismatch,
 incomplete response, missing usage, time limit or ambiguous HTTP result stops
 the session without retry. This proposal does not claim account access.
 
@@ -234,3 +235,83 @@ requires separately enabled exact allocation totals and per-Challenge ownership;
 it is not inferred from one winning scalar. Protected/official/production
 consumers continue to reject every DEVELOPMENT receipt and weight intent.
 No treasury path, broad scientific campaign or B-E4 four-arm revival is needed.
+
+
+## 2026-09-15 real session and prospective tool-framing repair
+
+PR #188 merged as `a5a520166e97268ec32e546b12edcd448e46d210` after canonical
+acceptance. The separate miner finalized as UID **1** on subnet **567** at block
+**8013851**. The registration spent **0.005426933 test TAO**, including fees;
+inner transaction `0x55427ecd694d0cd64a250c8193dafb1590040f9d6ed04865fe115021a4994ed7`.
+The prior rejected registration spent zero. Runtime upgraded from 458 to 459;
+the private operator preserved the old script and reviewed the official v459
+registration/MEV delta before repinning. Activation/publication were not sent.
+
+The first real model session used `gpt-5-mini-2025-08-07` and completed four
+responses: challenge discovery, prior, scaffold, then dry validation. It proposed
+FNO with 32 steps. The fourth response inserted an unsupported `tool` field
+inside `arguments_json`; authenticated MCP correctly rejected it. The process
+stopped with one retained proposal, no authenticated submission, no reconstruction,
+no numerical evaluation, no signed source and no comparison. Token usage was
+5,334 input / 303 output, priced **USD 0.0019395**. All four requests/responses
+and the stopped report remain in the original private session. Earlier numerical
+engineering evidence remains separate and cannot substitute for this result.
+
+**C-W1-AGENT-TOOLS-01:** REPAIR only the model-facing tool definitions and decoder.
+Seven named strict functions replace the generic function's JSON-string argument.
+Every object is closed and required fields match the existing MCP contracts;
+the scaffold uses its existing default. Unsupported fields still stop before
+service dispatch. C-08 authentication, evaluator disclosure, budgets, scientific
+profile, three-replica policy and no-restart behavior remain unchanged. This is
+a prospective engineering interface amendment, not a relaxation of MCP parsing.
+The changed prompt/tools produce a new proposal digest; previous approval cannot
+authorize it. No new provider request is permitted until a separate bounded
+session is approved. Never delete the old dispatch marker or rewrite its reports.
+
+Plan: replace the model framing, exercise all seven tools against real MCP
+decoding, test direct provider routing and the retained malformed stop, update
+the board/Hub, then run applicable canonical acceptance and normal merge.
+Offline synthetic replies are protocol tests only. The next empirical milestone
+is a valid authenticated submission and real evaluation of this same frozen
+population; it is not yet the comparison bridge described above.
+
+
+## 2026-09-15 authenticated submission and worker-scope repair
+
+PR #189 merged as `a191a9f2d7b3d24dc228c045ca5c7468fe52d9a9`. The separately
+approved session (23:05:01 UTC to 2026-09-16 05:05:01 UTC; USD 0.25,
+12 calls, three proposals) completed six real provider calls for USD 0.00380175.
+It discovered the challenge, scaffold and prior, proposed FNO with 48 steps,
+passed dry validation/structural estimation, and reached authenticated submission.
+C-03 rejected staging before any Docker create because its historical guard
+admitted only `FIXTURE_DEVELOPMENT`, whereas C-W1 correctly retained
+`REAL_PATH_NON_LIVE`. No training updates, predictions, measurements or signed
+source resulted. The attempt, entropy, provider responses and failure remain
+retained. This is an infrastructure/composition failure, not scientific failure.
+
+**C-W1-WORKER-SCOPE-01 — IMPLEMENTATION_LAG / prospective migration:** REPAIR
+the C-03 staging admission to accept exactly the existing paired scopes:
+`FIXTURE / FIXTURE_DEVELOPMENT` and `PRODUCTION / REAL_PATH_NON_LIVE`.
+The latter enum is C-01's non-fixture discriminator, not production authority.
+KEEP all exact public TRAIN archive, registered development profile, plan,
+replica, policy, seed, image and container controls. No LIVE scope, protected
+input, arbitrary code, evaluator credential or qualification capability is added.
+Preserve source scope in the durable queue; never cast a real submission to fixture.
+
+The old fixture-only rejection test is prospectively superseded only for the
+matching real/non-live pair. Both scopes must stage/redecode the same bounded
+request; cross-attempt, profile/policy mismatch, malformed scope and mismatched
+admission remain rejected. Add a real Docker service test retaining non-live
+queue provenance. These protocol tests remain synthetic engineering evidence.
+
+Plan: reproduce the boundary failure with a focused staging test; repair the
+closed pair check; exercise actual isolated training and retained queue scope;
+run invariant/regression and service acceptance, reconcile board/Hub, then normal
+expected-head merge. The stopped agent session is not restarted by this repair.
+No new inference or chain transaction is authorized by engineering delivery.
+
+Alternative rejected: relabel the real attempt as a fixture, remove the scope
+guard entirely, or replay the stopped campaign. The bounded code migration is
+reversible at `carbon/reconstruction/worker/protocol.py`; reverting it restores
+fixture-only admission and blocks real C-W1 reconstruction. Affects C-03/C-W1
+and C-07/C-08 provenance. No scientific/security qualification decision is made.

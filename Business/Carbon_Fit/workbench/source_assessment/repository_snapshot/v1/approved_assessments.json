@@ -1,6 +1,27 @@
 {
   "schema_version": "carbon.goal-workbench.approved-assessment-snapshot.v1",
-  "snapshot_id": "OWNER-GW07-RYAN-SNAPSHOT-01/empty-production-index/v1",
+  "snapshot_id": "OWNER-GW07-RYAN-SNAPSHOT-01/sha256-49acb3598d034cf7/v1",
   "test_only": false,
-  "entries": []
+  "entries": [
+    {
+      "assessment_id": "GW07-BURGERS-DYNAMICS-ASSESSMENT-001",
+      "request_id": "GW07-BURGERS-DYNAMICS-REQUEST-001",
+      "request_digest": "sha256:d92b9eb69d5285dc3fa1ba8cd66863382b2dbcfb7ae93f4c7169ca5c86a56f2f",
+      "subject_digest": "sha256:4fc877a2f13545432b062c203a1e4d43d79ed25c17d4279a4124e0e598f17f91",
+      "response_raw_sha256": "sha256:49acb3598d034cf76ba854718cc2941ac3bf069e1623e32a8a99a9002d298e82",
+      "response_canonical_digest": "sha256:dd28ab5cef652407ce2f10186ade2001f200fc79c51185d24aae0b2b8a1f9f09",
+      "issuer_principal": "github:jbequ5",
+      "allowed_domains": [
+        "AUTHORING_EXPRESSIBILITY",
+        "SOURCE_ARTIFACT_IDENTITY",
+        "FIXED_EVIDENCE_RELATIONSHIP"
+      ],
+      "owner_adoption_ref": "adoption:OWNER-GW07-RYAN-SNAPSHOT-01/GW07-BURGERS-DYNAMICS-ASSESSMENT-001",
+      "owner_adoption_content_digest": "sha256:dd28ab5cef652407ce2f10186ade2001f200fc79c51185d24aae0b2b8a1f9f09",
+      "state": "CURRENT",
+      "withdrawn_reason": "",
+      "supersedes_assessment_ids": [],
+      "conflicts_with_assessment_ids": []
+    }
+  ]
 }
