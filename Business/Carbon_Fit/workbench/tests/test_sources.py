@@ -171,6 +171,7 @@ class SourceTests(unittest.TestCase):
             capture_output=True,
         )
         first = (ROOT / "Carbon_Opportunity_Workbench.html").read_bytes()
+        intake_first = (ROOT / "Carbon_Client_Intake_Preview.html").read_bytes()
         subprocess.run(
             ["/usr/bin/python3", str(ROOT / "tools/build.py")],
             check=True,
@@ -178,10 +179,17 @@ class SourceTests(unittest.TestCase):
         )
         second = (ROOT / "Carbon_Opportunity_Workbench.html").read_bytes()
         self.assertEqual(first, second)
+        self.assertEqual(
+            intake_first, (ROOT / "Carbon_Client_Intake_Preview.html").read_bytes()
+        )
         text = first.decode()
         self.assertIn("default-src 'none'", text)
         self.assertNotIn("</script><script>alert", text)
         self.assertIn("Goal-to-Challenge Workbench", text)
+        intake_text = intake_first.decode()
+        self.assertIn("nothing is transmitted", intake_text)
+        self.assertNotIn("OWNER-GW07-RYAN-SNAPSHOT-01", intake_text)
+        self.assertNotIn("approved_assessments", intake_text)
 
     def test_current_schema_is_closed_v02(self):
         schema = json.loads((ROOT / "data/workspace.schema.json").read_text())
@@ -197,7 +205,7 @@ class SourceTests(unittest.TestCase):
             "NOT_QUALIFIED_BY_THIS_TOOL",
         )
 
-    def test_additive_goal_schema_is_closed_v07_and_reproducible(self):
+    def test_additive_goal_and_intake_schemas_are_closed_v08_and_reproducible(self):
         tool = ROOT / "tools/build_goal_schema.py"
         subprocess.run(["/usr/bin/python3", str(tool)], check=True, capture_output=True)
         schema_path = ROOT / "data/goal_workspace.schema.json"
@@ -209,7 +217,7 @@ class SourceTests(unittest.TestCase):
         self.assertFalse(schema["additionalProperties"])
         self.assertEqual(
             schema["properties"]["schema_version"]["const"],
-            "carbon.goal-workbench.workspace.v0.7",
+            "carbon.goal-workbench.workspace.v0.8",
         )
         self.assertEqual(
             schema["properties"]["authority"]["properties"]["launch"]["const"],
@@ -236,6 +244,10 @@ class SourceTests(unittest.TestCase):
             "CARRIED_FORWARD_UNCHANGED_SCOPE",
             binding["scientific_applicability"]["enum"],
         )
+        intake = json.loads((ROOT / "data/intake_draft.schema.json").read_text())
+        self.assertFalse(intake["additionalProperties"])
+        self.assertNotIn("qualified", intake["properties"])
+        self.assertNotIn("approval", intake["properties"])
 
     def test_repository_snapshot_schemas_are_deeply_closed_and_reproducible(self):
         tool = ROOT / "tools/build_repository_snapshot_schemas.py"
@@ -337,6 +349,7 @@ class SourceTests(unittest.TestCase):
         self.assertIn("GOAL-WORKBENCH-05", manifest["decision_ids"])
         self.assertIn("GOAL-WORKBENCH-05A", manifest["decision_ids"])
         self.assertIn("GOAL-WORKBENCH-07A", manifest["decision_ids"])
+        self.assertIn("GOAL-WORKBENCH-08", manifest["decision_ids"])
         self.assertIn(
             "OWNER-GW07-RYAN-SNAPSHOT-01-ADOPTION-001",
             manifest["decision_ids"],
@@ -382,60 +395,65 @@ class SourceTests(unittest.TestCase):
             )
         with zipfile.ZipFile(archive_path) as bundle:
             names = bundle.namelist()
-            self.assertIn("carbon_goal_workbench_v0_7/MANIFEST.json", names)
+            self.assertIn("carbon_goal_workbench_v0_8/MANIFEST.json", names)
             self.assertIn(
-                "carbon_goal_workbench_v0_7/Carbon_Opportunity_Workbench.html", names
+                "carbon_goal_workbench_v0_8/Carbon_Opportunity_Workbench.html", names
             )
             self.assertIn(
-                "carbon_goal_workbench_v0_7/evidence/cpes_reference_reuse_v2/evidence_index_v1.json",
+                "carbon_goal_workbench_v0_8/Carbon_Client_Intake_Preview.html", names
+            )
+            self.assertIn(
+                "carbon_goal_workbench_v0_8/evidence/cpes_reference_reuse_v2/evidence_index_v1.json",
                 names,
             )
             self.assertIn(
-                "carbon_goal_workbench_v0_7/data/goal_workspace.schema.json", names
+                "carbon_goal_workbench_v0_8/data/goal_workspace.schema.json", names
             )
             self.assertIn(
-                "carbon_goal_workbench_v0_7/data/goal_workbench_03_rehearsal_record_v1.json",
+                "carbon_goal_workbench_v0_8/data/goal_workbench_03_rehearsal_record_v1.json",
                 names,
             )
             self.assertIn(
-                "carbon_goal_workbench_v0_7/docs/GOAL_WORKBENCH_03_REHEARSAL_REPORT.md",
+                "carbon_goal_workbench_v0_8/docs/GOAL_WORKBENCH_03_REHEARSAL_REPORT.md",
                 names,
             )
             self.assertIn(
-                "carbon_goal_workbench_v0_7/tools/run_operational_rehearsal.cjs",
+                "carbon_goal_workbench_v0_8/tools/run_operational_rehearsal.cjs",
                 names,
             )
             self.assertIn(
-                "carbon_goal_workbench_v0_7/data/goal_workbench_05_journeys_v1.json",
+                "carbon_goal_workbench_v0_8/data/goal_workbench_05_journeys_v1.json",
                 names,
             )
             self.assertIn(
-                "carbon_goal_workbench_v0_7/docs/GOAL_WORKBENCH_05_OPTIMIZATION_REPORT.md",
+                "carbon_goal_workbench_v0_8/docs/GOAL_WORKBENCH_05_OPTIMIZATION_REPORT.md",
                 names,
             )
             self.assertIn(
-                "carbon_goal_workbench_v0_7/docs/GOAL_WORKBENCH_05A_STATE_INTEGRITY_REPORT.md",
+                "carbon_goal_workbench_v0_8/docs/GOAL_WORKBENCH_05A_STATE_INTEGRITY_REPORT.md",
                 names,
             )
             self.assertIn(
-                "carbon_goal_workbench_v0_7/data/goal_workbench_05a_transition_evidence_v1.json",
+                "carbon_goal_workbench_v0_8/data/goal_workbench_05a_transition_evidence_v1.json",
                 names,
             )
-            self.assertIn("carbon_goal_workbench_v0_7/src/source_assessment.js", names)
+            self.assertIn("carbon_goal_workbench_v0_8/src/source_assessment.js", names)
+            self.assertIn("carbon_goal_workbench_v0_8/src/intake.js", names)
+            self.assertIn("carbon_goal_workbench_v0_8/data/intake_draft.schema.json", names)
             self.assertIn(
-                "carbon_goal_workbench_v0_7/source_assessment/repository_snapshot/v1/approved_assessments.json",
-                names,
-            )
-            self.assertIn(
-                "carbon_goal_workbench_v0_7/source_assessment/repository_snapshot/v1/adoption/owner_gw07_ryan_snapshot_01.json",
+                "carbon_goal_workbench_v0_8/source_assessment/repository_snapshot/v1/approved_assessments.json",
                 names,
             )
             self.assertIn(
-                "carbon_goal_workbench_v0_7/source_assessment/repository_snapshot/v1/candidate/public_example_workspace.json",
+                "carbon_goal_workbench_v0_8/source_assessment/repository_snapshot/v1/adoption/owner_gw07_ryan_snapshot_01.json",
+                names,
+            )
+            self.assertIn(
+                "carbon_goal_workbench_v0_8/source_assessment/repository_snapshot/v1/candidate/public_example_workspace.json",
                 names,
             )
             self.assertNotIn(
-                "carbon_goal_workbench_v0_7/Carbon_Physics_Opportunity_Workbench_v0_2.zip",
+                "carbon_goal_workbench_v0_8/Carbon_Physics_Opportunity_Workbench_v0_2.zip",
                 names,
             )
             before = hashlib.sha256(archive_path.read_bytes()).hexdigest()

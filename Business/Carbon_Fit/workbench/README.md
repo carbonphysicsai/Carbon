@@ -1,4 +1,28 @@
-# Carbon Goal-to-Challenge Workbench v0.7
+# Carbon Goal-to-Challenge Workbench v0.8
+
+GOAL-WORKBENCH-08 adds a browser-local intake-to-job bridge without adding a
+receiving service. Open `Carbon_Client_Intake_Preview.html`, describe a
+high-level engineering need, review the deterministic brief, and explicitly
+download a closed `carbon.client-intake.draft.v1` file. The preview keeps state
+in memory, sends no request, collects no contact or arbitrary file, and warns
+that the unencrypted export should contain only non-sensitive information.
+
+Import that file with **Import intake draft** in
+`Carbon_Opportunity_Workbench.html`. The Workbench previews the original words,
+unknowns, quantity states, digest, and candidate requirements before mutation.
+An accepted first revision creates one direct `UNASSESSED` job with source
+lineage; exact replay deduplicates, conflicting bytes reject, and a declared
+successor is retained for operator review without overwriting a sealed design.
+The operator then chooses one of the existing three routes and prepares the
+existing manual handoff. Export remains neither send nor execution.
+
+The two artifacts share `src/intake.js`; the public preview does not bundle the
+Owner Console, source-assessment trust root, C-05 evidence, operator records, or
+local paths. Fresh inquiries do not inherit the 07A assessment, even when they
+mention Burgers. Live collection, private persistence, staff notification,
+consent/privacy text, hosting, authentication, abuse controls, retention, and
+deletion remain issue #139 work and are neither implemented nor authorized.
+See `docs/GOAL_WORKBENCH_08_INTAKE_TO_JOB_REPORT.md`.
 
 GOAL-WORKBENCH-07A installs the first owner-adopted source assessment in the repository-pinned, read-only GOAL-WORKBENCH-07 consumer. The production snapshot contains exactly `GW07-BURGERS-DYNAMICS-ASSESSMENT-001`, adopted by Ryan through an explicit owner-conversation decision and admitted by the controlled repository build. The exact public example workspace supplies the original sealed subject and request; importing the unchanged response through ordinary browser controls yields two answered technical questions, one partial/open question, and zero resolved review reasons. No scientific qualification, rights, fresh execution, scoring, protected reuse, or launch follows. See `docs/GOAL_WORKBENCH_07A_ADMISSION_REPORT.md`.
 
@@ -6,7 +30,7 @@ The earlier GOAL-WORKBENCH-07 implementation report, candidate packet, Engineeri
 
 GOAL-WORKBENCH-06A repaired the historical external decision-delivery record and retained a byte-verified receipt under `source_assessment/delivery/v1/`. Its actual posting actor and unacknowledged status remain history; the later Ryan direction supersedes only its Harsh-only interface prerequisite. See `docs/GOAL_WORKBENCH_06A_DELIVERY_INTEGRITY_REPORT.md`.
 
-`carbon.goal-workbench.workspace.v0.7` migrates v0.1–v0.6 records additively. Stored receipts and display projections are revalidated against the installed snapshot on import; a workspace cannot carry its own trust root. Historical Workbench-06 envelopes remain detached and non-authoritative.
+`carbon.goal-workbench.workspace.v0.8` migrates v0.1–v0.7 records additively. Stored receipts and display projections are revalidated against the installed snapshot on import; a workspace cannot carry its own trust root. Historical Workbench-06 envelopes remain detached and non-authoritative. Earlier workspaces receive an empty intake-lineage collection; migration fabricates no client statement, route, consent, owner, or approval.
 
 GOAL-WORKBENCH-06 previously added the detached, versioned source-assessment contract and executable conformance package. Its v1 response and preview remain test-authored and non-authoritative. The detached command remains `node tools/source_assessment_conformance.cjs --profile source_assessment/v1/fixtures/profile.json --request source_assessment/v1/fixtures/request.json --response source_assessment/v1/fixtures/response.json --output-dir /path/to/new/output-directory`; the output directory must not already exist.
 
@@ -129,6 +153,7 @@ Build uses Python's standard library. Re-extracting the atlas needs `python-docx
 python3 tools/import_cpes_evidence.py --check
 python3 tools/build_schema.py
 python3 tools/build_goal_schema.py
+node tools/build_intake_fixtures.cjs
 python3 tools/build_repository_snapshot_schemas.py
 node tools/build_c05_saved_fixture_index.cjs
 node tools/build_repository_snapshot_fixtures.cjs
@@ -142,6 +167,7 @@ node tests/browser_smoke.cjs
 node tests/browser_goal_smoke.cjs
 node tests/browser_routing_smoke.cjs
 node tests/browser_source_assessment_smoke.cjs
+node tests/browser_intake_smoke.cjs
 python3 tools/package_release.py
 ```
 

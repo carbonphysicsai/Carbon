@@ -41,7 +41,7 @@ async function pageText(page, selector) {
 
   await page.locator("#goal-workspace-file").setInputFiles(EXAMPLE);
   await page.waitForFunction(() =>
-    document.querySelector("#toast").textContent.includes("Imported v0.7"),
+    document.querySelector("#toast").textContent.includes("Imported v0.8"),
   );
   await page.locator('[data-tab="jobs"]').click();
   let text = await pageText(page, "#jobs-view");
@@ -131,7 +131,7 @@ async function pageText(page, selector) {
   await fresh.goto("file://" + ARTIFACT);
   await fresh.locator("#goal-workspace-file").setInputFiles(exportedPath);
   await fresh.waitForFunction(() =>
-    document.querySelector("#toast").textContent.includes("Imported v0.7"),
+    document.querySelector("#toast").textContent.includes("Imported v0.8"),
   );
   await fresh.locator('[data-tab="jobs"]').click();
   const reloaded = await pageText(fresh, "#jobs-view");

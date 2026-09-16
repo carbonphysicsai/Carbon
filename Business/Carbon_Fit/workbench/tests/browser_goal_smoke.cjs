@@ -355,7 +355,7 @@ function response(request) {
     ),
     saved = JSON.parse(fs.readFileSync(workspacePath));
   check(
-    "v0.7 export preserves alternatives source evidence routing responses review lineage and immutable authority",
+    "v0.8 export preserves alternatives intake/source evidence routing responses review lineage and immutable authority",
     saved.jobs[0].designs.length === 2 &&
       saved.jobs[0].designs[0].measurement_evidence.length === 1 &&
       saved.jobs[0].designs[0].responses.length === 1 &&
@@ -387,7 +387,7 @@ function response(request) {
   );
   await page.locator("#goal-workspace-file").setInputFiles(workspacePath);
   await page.waitForFunction(() =>
-    document.querySelector("#toast").textContent.includes("Imported v0.7"),
+    document.querySelector("#toast").textContent.includes("Imported v0.8"),
   );
   check(
     "reimport resumes without retyping scope responses or malicious text",

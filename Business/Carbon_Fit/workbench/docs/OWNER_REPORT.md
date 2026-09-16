@@ -1,4 +1,35 @@
-# Owner report — GOAL-WORKBENCH-07A / GOAL-WORKBENCH-07 / GOAL-WORKBENCH-06 / GOAL-WORKBENCH-05A / GOAL-WORKBENCH-05 / GOAL-WORKBENCH-04 / GOAL-WORKBENCH-03 / GOAL-WORKBENCH-02 / EXAM-PROTECT-WORKBENCH-01
+# Owner report — GOAL-WORKBENCH-08 / GOAL-WORKBENCH-07A / GOAL-WORKBENCH-07 / GOAL-WORKBENCH-06 / GOAL-WORKBENCH-05A / GOAL-WORKBENCH-05 / GOAL-WORKBENCH-04 / GOAL-WORKBENCH-03 / GOAL-WORKBENCH-02 / EXAM-PROTECT-WORKBENCH-01
+
+## v0.8 local intake-to-job bridge
+
+The maintained source now produces two offline artifacts. The intake preview
+captures high-level engineering intent, explicit unknowns, and separately
+scoped quantities, then downloads a closed local draft after a deterministic
+review. It has no submit path, contact capture, arbitrary file upload,
+telemetry, model call, or network capability. Its export explicitly says that
+nothing was transmitted and is unencrypted/non-sensitive guidance only.
+
+The internal Workbench previews the downloaded bytes before mutation. A first
+revision creates one direct job with `UNASSESSED` route, local/manual
+provenance, structural-only evidence at most, unresolved rights/science, and
+source-linked requirement candidates. Exact replay creates no duplicate;
+changed bytes with the same identity conflict; a valid declared successor is
+retained beside its predecessor for operator review and cannot overwrite a
+sealed design. Raw client words remain separate from later interpretation.
+
+The normal operator flow reuses existing route, Owner Console, cumulative
+review, handoff, CPES, C-05, source-assessment, migration, and export paths.
+The admitted 07A assessment and one-entry installed snapshot are unchanged in
+meaning and remain exact-subject only. A fresh Burgers-like inquiry is rejected
+if it attempts to import that assessment as its own.
+
+Automated Chrome exercised actual downloaded draft bytes between fresh local
+artifacts at desktop and narrow width, then route selection, handoff,
+deduplication, workspace export/reload, and the 07A non-inheritance control;
+the flow made zero off-device requests. These are local synthetic product-flow
+observations, not customer usability, value, scientific, privacy/security, or
+hosting acceptance. Safari/WebKit and a permitted real-customer session remain
+unexecuted.
 
 ## v0.7A first admitted source snapshot
 
