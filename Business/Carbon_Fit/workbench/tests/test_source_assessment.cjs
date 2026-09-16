@@ -202,11 +202,11 @@ test("current v0.6 response import rejects the candidate format without mutation
   assert.equal(JSON.stringify(design), before);
 });
 
-test("current standalone ships only the operational v2 consumer and preserves v1 as detached history", () => {
+test("current standalone ships only the operational v2 consumer and the admitted snapshot", () => {
   const file = path.join(WB, "Carbon_Opportunity_Workbench.html");
   const bytes = fs.readFileSync(file);
   assert.equal(bytes.includes(Buffer.from("carbon.goal-workbench.source-assessment-response.v2")), true);
-  assert.equal(bytes.includes(Buffer.from("OWNER-GW07-RYAN-SNAPSHOT-01/empty-production-index/v1")), true);
+  assert.equal(bytes.includes(Buffer.from("OWNER-GW07-RYAN-SNAPSHOT-01/sha256-49acb3598d034cf7/v1")), true);
   assert.equal(bytes.includes(Buffer.from("GW06-BURGERS-DYNAMICS-PUBLIC-RESPONSE-001")), false);
 });
 

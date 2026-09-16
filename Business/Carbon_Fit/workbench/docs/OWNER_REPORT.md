@@ -1,10 +1,20 @@
-# Owner report — GOAL-WORKBENCH-07 / GOAL-WORKBENCH-06 / GOAL-WORKBENCH-05A / GOAL-WORKBENCH-05 / GOAL-WORKBENCH-04 / GOAL-WORKBENCH-03 / GOAL-WORKBENCH-02 / EXAM-PROTECT-WORKBENCH-01
+# Owner report — GOAL-WORKBENCH-07A / GOAL-WORKBENCH-07 / GOAL-WORKBENCH-06 / GOAL-WORKBENCH-05A / GOAL-WORKBENCH-05 / GOAL-WORKBENCH-04 / GOAL-WORKBENCH-03 / GOAL-WORKBENCH-02 / EXAM-PROTECT-WORKBENCH-01
+
+## v0.7A first admitted source snapshot
+
+Ryan's explicit owner-conversation decision adopts the unchanged bytes of `GW07-BURGERS-DYNAMICS-ASSESSMENT-001` at raw SHA-256 `49acb3598d034cf76ba854718cc2941ac3bf069e1623e32a8a99a9002d298e82` and operational canonical digest `sha256:dd28ab5cef652407ce2f10186ade2001f200fc79c51185d24aae0b2b8a1f9f09`. Engineering remains the assessment preparer. The controlled adoption record preserves Ryan's literal response, the normalized exact disposition, the historical issue request and its actual `fitz-lang6` actor, and the absence of a platform-authenticated Ryan event.
+
+The installed snapshot `OWNER-GW07-RYAN-SNAPSHOT-01/sha256-49acb3598d034cf7/v1` contains exactly that one production entry. A build-time check binds the adoption record, exact request, frozen subject, raw/canonical response identities, permitted technical domains, and current index. The browser's trust root remains application-installed; a workspace, imported profile, claimed issuer, hash, URL, or test fixture cannot replace it.
+
+The normal public-example journey imports the original response and reports `MATCHED_APPROVED_SOURCE_SNAPSHOT`: `GW07:AUTHORING_EXPRESSIBILITY` and `GW07:SOURCE_ARTIFACT_IDENTITY` are answered, while `GW07:FIXED_EVIDENCE_RELATIONSHIP` remains partial/open. It resolves zero review reasons. The Owner Console treats the response as returned technical evidence requiring scoped interpretation, not active computation or adoption still pending. Export/reload revalidates it against the installed root.
+
+This is correspondence with an owner-adopted repository record, not live identity authentication. Offline use cannot learn of a later withdrawal until a newer accepted snapshot is installed. Scientific applicability, qualified limits, uncertainty, population adequacy, rights, customer suitability, fresh execution, score eligibility, protected use, and launch remain unresolved or excluded.
 
 ## v0.7 Ryan-controlled source-assessment consumer
 
 Ryan / `@jbequ5` is the final authority for this bounded interface. The v0.7 application implements request preparation and a repository-pinned read-only consumer. It distinguishes the actual Engineering preparer, claimed/proposed owner, exact adoption, snapshot admission, and consumer verification.
 
-The production snapshot contains zero approved assessments. The prepared Burgers/Dynamics statement is `PENDING_EXACT_OWNER_ADOPTION`; its test-positive branch is isolated and cannot be installed by the production path. Ryan can now open the supported design, freeze/export the question, inspect the installed snapshot and pending state, and import only exact admitted bytes. No current import confers scientific qualification, rights, fresh execution, scoring, protected reuse, or launch.
+At initial GOAL-WORKBENCH-07 delivery, the production snapshot contained zero approved assessments and the prepared Burgers/Dynamics statement was `PENDING_EXACT_OWNER_ADOPTION`. That remains historical implementation state; GOAL-WORKBENCH-07A records the later exact adoption and admission without rewriting the candidate bytes or this sequence.
 
 The exact adoption request is recorded at issue #41 comment `5680762605`. Its actual GitHub actor is `fitz-lang6`; it is a delivered request, not a Ryan-authored response. No polling or inferred acknowledgement follows.
 

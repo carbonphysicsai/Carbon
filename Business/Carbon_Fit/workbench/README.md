@@ -1,6 +1,8 @@
 # Carbon Goal-to-Challenge Workbench v0.7
 
-GOAL-WORKBENCH-07 adds a repository-pinned, read-only source-assessment path for the exact public Burgers/Dynamics profile. A sealed design can prepare and export its exact request, then import an assessment only if the response matches the application-installed approved snapshot. The shipped production index is empty pending exact Ryan adoption, so no unadopted candidate can verify. The included positive path uses an isolated test-only root that the production installer rejects. See `docs/GOAL_WORKBENCH_07_IMPLEMENTATION_REPORT.md` and `source_assessment/repository_snapshot/v1/candidate/RYAN_ADOPTION_PACKET.md`.
+GOAL-WORKBENCH-07A installs the first owner-adopted source assessment in the repository-pinned, read-only GOAL-WORKBENCH-07 consumer. The production snapshot contains exactly `GW07-BURGERS-DYNAMICS-ASSESSMENT-001`, adopted by Ryan through an explicit owner-conversation decision and admitted by the controlled repository build. The exact public example workspace supplies the original sealed subject and request; importing the unchanged response through ordinary browser controls yields two answered technical questions, one partial/open question, and zero resolved review reasons. No scientific qualification, rights, fresh execution, scoring, protected reuse, or launch follows. See `docs/GOAL_WORKBENCH_07A_ADMISSION_REPORT.md`.
+
+The earlier GOAL-WORKBENCH-07 implementation report, candidate packet, Engineering request on issue #41, and empty snapshot remain historical preparation evidence. The issue comment was authored by `fitz-lang6`, not Ryan; it was not retroactively converted into the later adoption. Test-owned positive roots and the historical empty index remain isolated negative fixtures.
 
 GOAL-WORKBENCH-06A repaired the historical external decision-delivery record and retained a byte-verified receipt under `source_assessment/delivery/v1/`. Its actual posting actor and unacknowledged status remain history; the later Ryan direction supersedes only its Harsh-only interface prerequisite. See `docs/GOAL_WORKBENCH_06A_DELIVERY_INTEGRITY_REPORT.md`.
 
@@ -23,9 +25,10 @@ Open `Carbon_Opportunity_Workbench.html` and begin in **Owner Console**. The acc
 ## v0.7 maintained additions
 
 - `src/source_assessment.js`: sealed-subject request builder, closed operational response validator, repository-snapshot verifier, atomic receipts, replay/conflict/withdrawal behavior, and save/reload revalidation.
-- `source_assessment/repository_snapshot/v1/`: Ryan-controlled profile, empty real index, public candidate, exact adoption packet, closed schemas, digest manifest, and isolated test-only positive fixtures.
+- `source_assessment/repository_snapshot/v1/`: Ryan-controlled profile, one-entry production index, public candidate/request/example, separate exact adoption record, closed schemas, digest manifest, historical empty fixtures, and isolated test-only positive fixtures.
 - `src/goal_app.js` and `src/routing.js`: source-assessment panel and one coherent Owner Console action without active-computation, qualification, or rights implications.
-- `tests/test_repository_snapshot_assessment.cjs`: exact binding, trust-root isolation, forgery, cumulative state, migration, and compatibility coverage.
+- `tools/check_repository_snapshot_admission.cjs`: build-time consistency check tying the exact owner-conversation decision to the unchanged request/response and installed production index.
+- `tests/test_repository_snapshot_assessment.cjs`: exact admission, binding, trust-root isolation, forgery, cumulative state, migration, and compatibility coverage.
 
 The v0.3 owner route is:
 
@@ -129,6 +132,7 @@ python3 tools/build_goal_schema.py
 python3 tools/build_repository_snapshot_schemas.py
 node tools/build_c05_saved_fixture_index.cjs
 node tools/build_repository_snapshot_fixtures.cjs
+node tools/check_repository_snapshot_admission.cjs
 python3 tools/build.py
 node --test tests/test_engine.cjs tests/test_workflow.cjs
 node --test tests/test_routing.cjs tests/test_state_integrity.cjs tests/test_c05_evidence.cjs tests/test_source_assessment.cjs tests/test_repository_snapshot_assessment.cjs

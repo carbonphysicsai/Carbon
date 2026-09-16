@@ -19,12 +19,11 @@
     "information_scope": "PUBLIC_SYNTHETIC_DEVELOPMENT_ONLY"
   },
   "trust_assumptions": [
-    "The operator uses a genuine accepted Carbon build and trusts configured repository and release administrators.",
+    "Historical Workbench-07 production snapshot with no approved assessments.",
     "The installed snapshot cannot authenticate a live respondent, fresh execution, scientific truth, rights, or customer suitability.",
-    "Offline verification cannot establish whether a later repository snapshot withdraws an assessment.",
-    "A malicious release administrator, altered HTML, compromised browser, host, or older application build is outside this profile."
+    "Offline verification cannot establish whether a later repository snapshot withdraws an assessment."
   ],
-  "snapshot_id": "OWNER-GW07-RYAN-SNAPSHOT-01/sha256-49acb3598d034cf7/v1",
-  "snapshot_as_of": "2026-09-16",
+  "snapshot_id": "OWNER-GW07-RYAN-SNAPSHOT-01/empty-production-index/v1",
+  "snapshot_as_of": "2026-09-15",
   "test_only": false
 }

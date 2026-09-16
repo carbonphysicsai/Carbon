@@ -10,6 +10,7 @@ const E = require("../src/c05_evidence.js");
 const S = require("../src/source_assessment.js");
 const G = require("../src/workflow.js");
 const B = require("../tools/build_repository_snapshot_fixtures.cjs");
+const A = require("../tools/check_repository_snapshot_admission.cjs");
 
 const ROOT = path.resolve(__dirname, "..");
 const BASE = path.join(ROOT, "source_assessment", "repository_snapshot", "v1");
@@ -18,9 +19,14 @@ const raw = (name) => fs.readFileSync(path.join(BASE, name), "utf8");
 const clone = (value) => JSON.parse(JSON.stringify(value));
 const productionProfile = load("profile.json");
 const productionIndex = load("approved_assessments.json");
+const historicalEmptyProfile = load("test_fixtures/profile.empty-historical.json");
+const historicalEmptyIndex = load("test_fixtures/approved_assessments.empty-historical.json");
 const testProfile = load("test_fixtures/profile.test-only.json");
 const testIndex = load("test_fixtures/approved_assessments.test-only.json");
 const request = load("candidate/request.json");
+const productionResponse = load("candidate/assessment_pending_adoption.json");
+const productionRaw = raw("candidate/assessment_pending_adoption.json");
+const adoptionRecord = load("adoption/owner_gw07_ryan_snapshot_01.json");
 const testResponse = load("test_fixtures/assessment.test-only.json");
 const testRaw = raw("test_fixtures/assessment.test-only.json");
 const testVerifier = () => S.createVerifier(testProfile, testIndex, { testMode: true });
@@ -77,18 +83,20 @@ async function admittedTestExchange(design, builtRequest, answers, unanswered, o
 }
 
 test("operational schemas are closed at their record roots", () => {
-  for (const name of ["request", "response", "profile", "approved_index", "receipt"]) {
+  for (const name of ["request", "response", "profile", "approved_index", "receipt", "adoption_record"]) {
     const schema = load(`schemas/${name}.schema.json`);
     assert.equal(schema.type, "object");
     assert.equal(schema.additionalProperties, false);
   }
 });
 
-test("production repository snapshot is Ryan-controlled and empty pending exact adoption", () => {
+test("production repository snapshot admits only Ryan's exact adopted assessment", async () => {
   const verifier = S.createVerifier(productionProfile, productionIndex);
   assert.equal(verifier.profile.issuer_policy.principal, "github:jbequ5");
-  assert.deepEqual(verifier.index.entries, []);
+  assert.equal(verifier.index.entries.length, 1);
+  assert.equal(verifier.index.entries[0].assessment_id, productionResponse.response_id);
   assert.equal(verifier.profile.test_only, false);
+  assert.equal((await A.check()).status, "ADMISSION_CONSISTENT");
 });
 
 test("test-owned trust root cannot be installed as production", () => {
@@ -113,9 +121,61 @@ test("draft and unsupported physics cannot prepare an operational request", asyn
   await assert.rejects(S.buildRequest(design, "request-2"), /Unsupported/);
 });
 
-test("production empty index rejects candidate and test responses atomically", async () => {
+test("historical empty production snapshot still rejects candidate atomically", async () => {
   const design = designWithRequest(), before = JSON.stringify(design);
-  await assert.rejects(S.importResponse(design, testRaw, S.createVerifier(productionProfile, productionIndex)), /not admitted/);
+  await assert.rejects(S.importResponse(design, productionRaw, S.createVerifier(historicalEmptyProfile, historicalEmptyIndex)), /not admitted/);
+  assert.equal(JSON.stringify(design), before);
+});
+
+test("real installed production snapshot verifies the unchanged adopted bytes", async () => {
+  const design = designWithRequest();
+  const result = await S.importResponse(
+    design,
+    productionRaw,
+    S.createVerifier(productionProfile, productionIndex),
+  );
+  assert.equal(result.status, "MATCHED_APPROVED_SOURCE_SNAPSHOT");
+  assert.deepEqual(result.receipt.answered_question_ids, [
+    "GW07:AUTHORING_EXPRESSIBILITY",
+    "GW07:SOURCE_ARTIFACT_IDENTITY",
+  ]);
+  assert.deepEqual(result.receipt.remaining_question_ids, [
+    "GW07:FIXED_EVIDENCE_RELATIONSHIP",
+  ]);
+  assert.deepEqual(result.receipt.resolved_reason_ids, []);
+  assert.equal(result.receipt.authority_effect, "NONE");
+  assert.equal(design.decision.scientific_qualification, "NOT_QUALIFIED");
+  assert.equal(design.decision.security_rights, "UNRESOLVED");
+  assert.equal(design.decision.launch_authorization, "NOT_AUTHORIZED");
+});
+
+test("owner conversation adoption record cannot be replaced by a template or mismatched scope", async () => {
+  await assert.doesNotReject(A.validateAdoptionRecord(clone(adoptionRecord)));
+  for (const mutate of [
+    (value) => { value.decision_source.literal_response = "ADOPT template"; },
+    (value) => { value.owner.principal = "github:someone-else"; },
+    (value) => { value.assessment.assessment_canonical_digest = value.decision_source.literal_response_sha256; },
+    (value) => { value.scope.allowed_domains.pop(); },
+    (value) => { value.historical_request.observed_actor = "jbequ5"; },
+    (value) => { value.assessment.assessment_path = "candidate/request.json"; },
+    (value) => { value.assessment.assessment_git_blob = "0".repeat(40); },
+  ]) {
+    const changed = clone(adoptionRecord);
+    mutate(changed);
+    await assert.rejects(A.validateAdoptionRecord(changed));
+  }
+});
+
+test("whitespace-only raw response changes reject under the exact-byte policy", async () => {
+  const design = designWithRequest(), before = JSON.stringify(design);
+  await assert.rejects(
+    S.importResponse(
+      design,
+      productionRaw.replace("{\n", "{  \n"),
+      S.createVerifier(productionProfile, productionIndex),
+    ),
+    /bytes or scope/,
+  );
   assert.equal(JSON.stringify(design), before);
 });
 
@@ -189,7 +249,14 @@ test("changing a claimed producer name cannot create an admitted record", async 
   changed.claimed_issuer.principal = "github:jbequ5";
   changed.claimed_issuer.role = "FINAL_INTERFACE_OWNER";
   changed.claimed_issuer.claim_basis = "REPOSITORY_ADOPTION_REFERENCE";
-  await assert.rejects(S.importResponse(designWithRequest(), JSON.stringify(changed), S.createVerifier(productionProfile, productionIndex)), /not admitted/);
+  await assert.rejects(
+    S.importResponse(
+      designWithRequest(),
+      JSON.stringify(changed),
+      S.createVerifier(productionProfile, productionIndex),
+    ),
+    /not admitted|do not match approved entry/,
+  );
 });
 
 test("partial answer leaves all scientific and rights reasons pending", async () => {
@@ -346,14 +413,14 @@ test("save and reload revalidates assessment state and preserves authority ceili
   assert.equal(design.decision.launch_authorization, "NOT_AUTHORIZED");
 });
 
-test("revalidation cannot carry a test-owned positive receipt into the shipped empty snapshot", async () => {
+test("revalidation cannot carry a test-owned positive receipt into the historical empty snapshot", async () => {
   const design = designWithRequest();
   await S.importResponse(design, testRaw, testVerifier());
   assert.equal(design.source_assessments.receipts.length, 1);
-  await S.revalidateState(design, S.createVerifier(productionProfile, productionIndex));
+  await S.revalidateState(design, S.createVerifier(historicalEmptyProfile, historicalEmptyIndex));
   assert.equal(design.source_assessments.responses.length, 1);
   assert.equal(design.source_assessments.receipts.length, 0);
-  assert.equal(S.project(design, S.createVerifier(productionProfile, productionIndex)).assessment_status, "PENDING_EXACT_OWNER_ADOPTION");
+  assert.equal(S.project(design, S.createVerifier(historicalEmptyProfile, historicalEmptyIndex)).assessment_status, "PENDING_EXACT_OWNER_ADOPTION");
 });
 
 test("revalidation rejects edited display or response cache bytes", async () => {
@@ -397,4 +464,16 @@ test("request and candidate remain deterministic under the fixture builder", asy
   const design = await B.publicDesign();
   const built = await S.buildRequest(design, request.request_id);
   assert.equal(S.canonical(built), S.canonical(request));
+});
+
+test("routine fixture regeneration preserves production admission records", async () => {
+  const names = [
+    "profile.json",
+    "approved_assessments.json",
+    "adoption/owner_gw07_ryan_snapshot_01.json",
+  ];
+  const before = names.map(raw);
+  await B.main();
+  assert.deepEqual(names.map(raw), before);
+  assert.equal((await A.check()).status, "ADMISSION_CONSISTENT");
 });

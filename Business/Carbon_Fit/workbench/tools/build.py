@@ -3,6 +3,7 @@
 import base64
 import hashlib
 import json
+import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -22,6 +23,13 @@ def data(p):
 
 
 def build():
+    subprocess.run(
+        ["node", str(ROOT / "tools/check_repository_snapshot_admission.cjs")],
+        cwd=ROOT,
+        check=True,
+        text=True,
+        capture_output=True,
+    )
     style = (
         (ROOT / "src/styles.css").read_text()
         + "\n"

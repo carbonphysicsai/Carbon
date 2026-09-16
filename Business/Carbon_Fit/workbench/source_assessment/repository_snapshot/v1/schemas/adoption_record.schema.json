@@ -1,0 +1,169 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "carbon.goal-workbench.source-assessment-adoption.v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "decision_id",
+    "policy_decision_id",
+    "disposition",
+    "status",
+    "owner",
+    "record_preparer",
+    "decision_source",
+    "historical_request",
+    "assessment",
+    "scope",
+    "limitations",
+    "admission_ref",
+    "resulting_snapshot_id",
+    "current_state",
+    "supersedes_decision_ids",
+    "conflicts_with_decision_ids"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "carbon.goal-workbench.source-assessment-adoption.v1"
+    },
+    "decision_id": {
+      "const": "OWNER-GW07-RYAN-SNAPSHOT-01-ADOPTION-001"
+    },
+    "policy_decision_id": {
+      "const": "OWNER-GW07-RYAN-SNAPSHOT-01"
+    },
+    "disposition": {
+      "const": "ADOPT"
+    },
+    "status": {
+      "const": "ADOPTED_FOR_REPOSITORY_ADMISSION"
+    },
+    "owner": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "principal", "role"],
+      "properties": {
+        "name": {"const": "Ryan"},
+        "principal": {"const": "github:jbequ5"},
+        "role": {"const": "FINAL_INTERFACE_AND_VERIFIER_POLICY_OWNER"}
+      }
+    },
+    "record_preparer": {
+      "const": "GOAL-WORKBENCH-07A Engineering"
+    },
+    "decision_source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "stable_locator",
+        "platform_authenticated",
+        "literal_response",
+        "literal_response_sha256",
+        "referenced_question",
+        "normalized_disposition",
+        "normalized_disposition_sha256"
+      ],
+      "properties": {
+        "kind": {"const": "EXPLICIT_OWNER_CONVERSATION_DECISION"},
+        "stable_locator": {"const": "UNAVAILABLE_NO_CONVERSATION_URL"},
+        "platform_authenticated": {"const": false},
+        "literal_response": {"type": "string", "minLength": 1, "maxLength": 1000},
+        "literal_response_sha256": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+        "referenced_question": {"type": "string", "minLength": 1, "maxLength": 2000},
+        "normalized_disposition": {"type": "string", "minLength": 1, "maxLength": 4000},
+        "normalized_disposition_sha256": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"}
+      }
+    },
+    "historical_request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "url",
+        "issue_number",
+        "comment_id",
+        "observed_actor",
+        "observed_actor_id",
+        "created_at",
+        "status"
+      ],
+      "properties": {
+        "url": {"type": "string", "format": "uri"},
+        "issue_number": {"const": 41},
+        "comment_id": {"const": 5680762605},
+        "observed_actor": {"const": "fitz-lang6"},
+        "observed_actor_id": {"const": 317786409},
+        "created_at": {"const": "2026-09-15T13:13:33Z"},
+        "status": {"const": "HISTORICAL_ENGINEERING_REQUEST_NOT_OWNER_REPLY"}
+      }
+    },
+    "assessment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "assessment_id",
+        "assessment_path",
+        "assessment_git_blob",
+        "assessment_bytes",
+        "assessment_file_sha256",
+        "assessment_canonical_digest",
+        "request_id",
+        "request_path",
+        "request_file_sha256",
+        "request_canonical_digest",
+        "subject_digest"
+      ],
+      "properties": {
+        "assessment_id": {"const": "GW07-BURGERS-DYNAMICS-ASSESSMENT-001"},
+        "assessment_path": {"type": "string", "minLength": 1, "maxLength": 1000},
+        "assessment_git_blob": {"const": "9cba4e2f0f0b6629b8743ba00cb4a4eb8444d5c1"},
+        "assessment_bytes": {"const": 3133},
+        "assessment_file_sha256": {"const": "sha256:49acb3598d034cf76ba854718cc2941ac3bf069e1623e32a8a99a9002d298e82"},
+        "assessment_canonical_digest": {"const": "sha256:dd28ab5cef652407ce2f10186ade2001f200fc79c51185d24aae0b2b8a1f9f09"},
+        "request_id": {"const": "GW07-BURGERS-DYNAMICS-REQUEST-001"},
+        "request_path": {"type": "string", "minLength": 1, "maxLength": 1000},
+        "request_file_sha256": {"const": "sha256:0385c3b2630010a2ec84ff2cd1aa93225664b08d1a40556fe4d5951f9681b27b"},
+        "request_canonical_digest": {"const": "sha256:d92b9eb69d5285dc3fa1ba8cd66863382b2dbcfb7ae93f4c7169ca5c86a56f2f"},
+        "subject_digest": {"const": "sha256:4fc877a2f13545432b062c203a1e4d43d79ed25c17d4279a4124e0e598f17f91"}
+      }
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["allowed_domains", "partial_question_id", "addressed_reason_ids", "authority_effect"],
+      "properties": {
+        "allowed_domains": {
+          "type": "array",
+          "prefixItems": [
+            {"const": "AUTHORING_EXPRESSIBILITY"},
+            {"const": "SOURCE_ARTIFACT_IDENTITY"},
+            {"const": "FIXED_EVIDENCE_RELATIONSHIP"}
+          ],
+          "items": false,
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "partial_question_id": {"const": "GW07:FIXED_EVIDENCE_RELATIONSHIP"},
+        "addressed_reason_ids": {"type": "array", "maxItems": 0},
+        "authority_effect": {"const": "NONE"}
+      }
+    },
+    "limitations": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 16,
+      "items": {"type": "string", "minLength": 1, "maxLength": 2000}
+    },
+    "admission_ref": {
+      "const": "adoption:OWNER-GW07-RYAN-SNAPSHOT-01/GW07-BURGERS-DYNAMICS-ASSESSMENT-001"
+    },
+    "resulting_snapshot_id": {
+      "const": "OWNER-GW07-RYAN-SNAPSHOT-01/sha256-49acb3598d034cf7/v1"
+    },
+    "current_state": {
+      "const": "ADOPTED_CURRENT_NO_CONFLICT"
+    },
+    "supersedes_decision_ids": {"type": "array", "maxItems": 0},
+    "conflicts_with_decision_ids": {"type": "array", "maxItems": 0}
+  }
+}

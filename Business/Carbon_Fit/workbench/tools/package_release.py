@@ -51,6 +51,13 @@ def payloads() -> list[Path]:
 
 
 def build() -> tuple[Path, Path]:
+    subprocess.run(
+        ["node", str(ROOT / "tools/check_repository_snapshot_admission.cjs")],
+        cwd=ROOT,
+        check=True,
+        text=True,
+        capture_output=True,
+    )
     files = payloads()
     manifest = {
         "schema_version": "carbon.workbench.release-manifest.v0.7",
@@ -66,6 +73,8 @@ def build() -> tuple[Path, Path]:
             "GOAL-WORKBENCH-06",
             "OWNER-GW07-RYAN-SNAPSHOT-01",
             "GOAL-WORKBENCH-07",
+            "OWNER-GW07-RYAN-SNAPSHOT-01-ADOPTION-001",
+            "GOAL-WORKBENCH-07A",
         ],
         "repository_base": "3681f7fb10be0c6e278f53d59ff9b022099ef12d",
         "integration_revision_at_packaging": integration_revision(),
@@ -138,11 +147,23 @@ def build() -> tuple[Path, Path]:
             "merge_commit": "d3e285790f722d76270d517947a865d5e5c6bbb1",
             "scope": "Dependency-light structural invariant; runtime behavior remains covered in the declared CPU environment.",
         },
+        "accepted_goal_workbench_07_baseline": {
+            "pull_request": 187,
+            "accepted_head": "0c94cf592b6ce80b2712395e5cb9bd415fd32e22",
+            "acceptance_run": 34973852521,
+            "acceptance_attempt": 2,
+            "merge_commit": "b71b1a68b6f9a895f12fc608e2dec895ea038760",
+            "scope": "Repository-pinned reader shipped with an empty production index pending exact owner adoption.",
+        },
         "source_assessment_snapshot": {
             "profile": "burgers-dynamics-public.repository-snapshot.v1",
             "policy_decision": "OWNER-GW07-RYAN-SNAPSHOT-01",
-            "production_approved_entries": 0,
-            "admission_state": "PENDING_EXACT_OWNER_ADOPTION",
+            "snapshot_id": "OWNER-GW07-RYAN-SNAPSHOT-01/sha256-49acb3598d034cf7/v1",
+            "production_approved_entries": 1,
+            "admission_state": "OWNER_ADOPTED_ASSESSMENT_ADMITTED",
+            "adoption_source": "EXPLICIT_OWNER_CONVERSATION_DECISION",
+            "assessment_id": "GW07-BURGERS-DYNAMICS-ASSESSMENT-001",
+            "adoption_record": "source_assessment/repository_snapshot/v1/adoption/owner_gw07_ryan_snapshot_01.json",
             "authority": "Repository-pinned technical correspondence only; no scientific, rights, execution, score, protected-use, or launch authority.",
         },
         "post_merge_review_input": {

@@ -336,6 +336,11 @@ class SourceTests(unittest.TestCase):
         self.assertIn("GOAL-WORKBENCH-04", manifest["decision_ids"])
         self.assertIn("GOAL-WORKBENCH-05", manifest["decision_ids"])
         self.assertIn("GOAL-WORKBENCH-05A", manifest["decision_ids"])
+        self.assertIn("GOAL-WORKBENCH-07A", manifest["decision_ids"])
+        self.assertIn(
+            "OWNER-GW07-RYAN-SNAPSHOT-01-ADOPTION-001",
+            manifest["decision_ids"],
+        )
         self.assertEqual(
             manifest["accepted_goal_workbench_05_baseline"]["merge_commit"],
             "3681f7fb10be0c6e278f53d59ff9b022099ef12d",
@@ -343,6 +348,18 @@ class SourceTests(unittest.TestCase):
         self.assertEqual(
             manifest["accepted_goal_workbench_baseline"]["merge_commit"],
             "e576fbdc711c9194dbcc7d90405480e90577407e",
+        )
+        self.assertEqual(
+            manifest["accepted_goal_workbench_07_baseline"]["merge_commit"],
+            "b71b1a68b6f9a895f12fc608e2dec895ea038760",
+        )
+        self.assertEqual(
+            manifest["source_assessment_snapshot"]["production_approved_entries"],
+            1,
+        )
+        self.assertEqual(
+            manifest["source_assessment_snapshot"]["admission_state"],
+            "OWNER_ADOPTED_ASSESSMENT_ADMITTED",
         )
         self.assertEqual(
             manifest["accepted_detached_research_reference"]["owner_request_status"],
@@ -407,6 +424,14 @@ class SourceTests(unittest.TestCase):
             self.assertIn("carbon_goal_workbench_v0_7/src/source_assessment.js", names)
             self.assertIn(
                 "carbon_goal_workbench_v0_7/source_assessment/repository_snapshot/v1/approved_assessments.json",
+                names,
+            )
+            self.assertIn(
+                "carbon_goal_workbench_v0_7/source_assessment/repository_snapshot/v1/adoption/owner_gw07_ryan_snapshot_01.json",
+                names,
+            )
+            self.assertIn(
+                "carbon_goal_workbench_v0_7/source_assessment/repository_snapshot/v1/candidate/public_example_workspace.json",
                 names,
             )
             self.assertNotIn(
