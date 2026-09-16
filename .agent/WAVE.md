@@ -47,15 +47,15 @@ normally merged as `ac050fd53ee18bf3788c167ee7b0736bbfd7a46b`, tree
 remains `future_reserved`
 **Active ticket:** supervised Burgers V1 DEVELOPMENT agent/session continuation
 on public-testnet subnet 567, using the merged PR #185 run/status/resume path
-**Next boundary:** accept the C-W1 zero-fee publication guard, then obtain
-separate activation and exact all-burn publication authority. PR #191 merged
-the private-umask prediction repair. The newly approved real agent completed
-eight calls for USD 0.00738, one FNO-40 proposal, three isolated reconstructions
-(120 updates), 72 C-05 measurements, permitted aggregate feedback and an ACTIVE
-signed controller source. It ended without revising its strategy or making a
-second proposal. All three earlier stopped sessions remain retained. No accepted
-comparison, winner, activation or publication is claimed. Miner UID 1 remains
-finalized at 8013851 for 0.005426933 test TAO. C-EA2 and official C-W1 remain blocked.
+**Next boundary:** prospectively select a DEVELOPMENT comparison contract and
+non-paying bridge; no successor ticket is selected. PR #194 merged the zero-fee
+publication guard. The separately authorized activation finalized at 8017622,
+and all-burn commitment at 8017643. Walletless reconciliation observed reveal
+at 8017851 and exact row `[[0, 65535]]` at 8017916; state is
+`ROW_VERIFIED`. Both one-dispatch scopes are consumed. The real agent's FNO-40
+evaluation and signed source remain unchanged and `COMPLETE_UNRESOLVED`;
+no comparison, winner, miner payment or qualified scientific result is claimed.
+C-EA2 and official C-W1 remain blocked.
 C-EA1 passed canonical acceptance in run `34558389185` at accepted head
 `a779af066f4bf9bc36b6d6ab23914fa19191e1de` and normally merged in PR #136 as
 `0e0714c8260ca482a0ba2b743b2eaefd50508da1`. `OWNER-C-EA1-SYNTHETIC-01`

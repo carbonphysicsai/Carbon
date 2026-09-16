@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "knowledge_version": "ask-carbon-staging-2026-09-16.1",
+  "knowledge_version": "ask-carbon-staging-2026-09-16.2",
   "release": {
-    "release_id": "ask-carbon-staging-2026-09-16.1",
+    "release_id": "ask-carbon-staging-2026-09-16.2",
     "status": "STAGING_REVIEWED",
     "source_release_date": "2026-09-16",
     "expires_at": "2026-12-15T00:00:00Z",
@@ -114,13 +114,13 @@
       "note": "Paraphrased product, customer, rights and commercial-maturity doctrine; not a quotation."
     },
     {
-      "id": "wave-status-405a820b",
+      "id": "wave-status-ab92f913",
       "title": "Carbon Agent Wave Status",
       "repo_path": ".agent/WAVE.md",
       "sections": ["Current wave", "Current phase", "Current C1 status", "maturity ceilings"],
-      "revision": "405a820bfdd5a38aa2d498e3dbde3fa15449379f",
-      "sha256": "6e0e4931573d69411cdce0a03dadbe56f62bb4c28b435fd70e379a39532d4070",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/405a820bfdd5a38aa2d498e3dbde3fa15449379f/.agent/WAVE.md",
+      "revision": "ab92f91314d1b32f61c0b194381bba85f48d0654",
+      "sha256": "e81678d774d00ca95c62b1cac6b99579bb913ad50927905e946299a6c402a582",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/ab92f91314d1b32f61c0b194381bba85f48d0654/.agent/WAVE.md",
       "publication_status": "REVIEWED_PUBLIC_EXISTING",
       "integrity_status": "MATCHED_AT_BUILD",
       "withdrawn_at": null,
@@ -274,7 +274,7 @@
       "keywords": ["proven", "progress", "stage", "live", "production", "ready", "current", "launch"], "related": ["overview", "qualification", "customer-product"],
       "audiences": ["newcomer", "customer", "miner"], "disclosure_class": "PUBLIC", "maturity": "DATED_STATUS_2026_09_16", "scope_note": "Short freshness window; re-review before any public activation.",
       "expires_at": "2026-09-23T00:00:00Z", "publication_status": "REVIEWED_PUBLIC_EXISTING", "withdrawn_at": null,
-      "passages": [{ "id": "current-wave-status", "source_id": "wave-status-405a820b", "section": "Current phase and status", "text": "The repository records active bounded public and synthetic development-testnet engineering while official C-W1, protected scientific qualification, production and broader network authority remain unavailable. Implemented and tested engineering states do not imply later qualification." }]
+      "passages": [{ "id": "current-wave-status", "source_id": "wave-status-ab92f913", "section": "Current phase and status", "text": "The repository records active bounded public and synthetic development-testnet engineering while official C-W1, protected scientific qualification, production and broader network authority remain unavailable. Implemented and tested engineering states do not imply later qualification." }]
     },
     {
       "id": "miner-access", "topic": "Miner research", "questions": ["Do miners get the generator and reference?", "Can miners generate training data?", "Can miners inspect test answers?"],

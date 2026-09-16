@@ -43,15 +43,15 @@ remains `future_reserved`
 **Active ticket:** supervised Burgers V1 DEVELOPMENT agent/session continuation
 on public-testnet subnet 567, using PR #185's merged checked source and operator
 path; full V1 coverage and accepted comparison remain unclaimed
-**Next boundary:** accept the C-W1 zero-fee publication guard, then obtain
-separate activation and exact all-burn publication authority. PR #191 merged
-the private-umask prediction repair. The newly approved real agent completed
-eight calls for USD 0.00738, one FNO-40 proposal, three isolated reconstructions
-(120 updates), 72 C-05 measurements, permitted aggregate feedback and an ACTIVE
-signed controller source. It ended without revising its strategy or making a
-second proposal. All three earlier stopped sessions remain retained. No accepted
-comparison, winner, activation or publication is claimed. Miner UID 1 remains
-finalized at 8013851 for 0.005426933 test TAO. C-EA2 and official C-W1 remain blocked.
+**Next boundary:** prospectively select a DEVELOPMENT comparison contract and
+non-paying bridge; no successor ticket is selected. PR #194 merged the zero-fee
+publication guard. The separately authorized activation finalized at 8017622,
+and all-burn commitment at 8017643. Walletless reconciliation observed reveal
+at 8017851 and exact row `[[0, 65535]]` at 8017916; state is
+`ROW_VERIFIED`. Both one-dispatch scopes are consumed. The real agent's FNO-40
+evaluation and signed source remain unchanged and `COMPLETE_UNRESOLVED`;
+no comparison, winner, miner payment or qualified scientific result is claimed.
+C-EA2 and official C-W1 remain blocked.
 `OWNER-C1-BURGERS-ALPHA-01` keeps one selected ticket at a time. Protected
 science, real archive acknowledgement and official public-network execution
 remain ineligible; only the exact C-W1-D1 DEVELOPMENT transaction can become
@@ -118,7 +118,7 @@ in required run `34927991086` and normally merged the C-W1-D1 foundation as
 `65e2a3d5abee97e5eaf1538050e0dcfab22cc649`. Its operator execution/
 reconciliation continuation is the same selected ticket; no successor is
 selected and no public write is authorized.
-**Last completed slice:** C-W1-D1 private-umask prediction repair, merged in PR #191
+**Last completed slice:** C-W1-D1 authorized all-burn publication and exact row verification
 **Primary Hub map_ref:** `WAVE-C`
 
 C-EA1 passed canonical acceptance in run `34558389185` at accepted head
