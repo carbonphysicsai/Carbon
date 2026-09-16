@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-16T02:03:27Z"
+  captured_at_utc: "2026-09-16T00:31:03Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "229ef2e2977f0cb95e9bf583d805650637a318f3"
+  authority_snapshot_commit: "af9ca727bba5203161c364377e5beb69a40b3bad"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -438,7 +438,7 @@ validator_exam_map:
             -
               label: "Testnet-to-Mainnet Launch Path"
               path: "../../../launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.5.md"
-  current_maturity: "Target-state orientation only. C-W1 DEVELOPMENT continues after PR #189 merged strict tools. Distinct miner UID 1 finalized on subnet 567 at block 8013851. The second authorized real model session made six calls for USD 0.00380175, proposed FNO-48 and reached authenticated submission. The fixture-only C-03 staging guard stopped it before worker launch. The selected repair admits the exact real/non-live pair under unchanged public DEVELOPMENT worker controls; the stopped attempt is retained without restart. Subnet 567 creation finalized at block 8010852. Earlier engineering validation completed three real JAX replicas and 72 measurements; those are not results of the real agent. No subsequent activation or all-burn publication occurred. AWS stays deferred, Hippius unverified, and protected/production/scientific qualification remains unearned. No later ticket is selected. The real validator-to-exam vertical is planned for Wave C1. Burgers v1 remains PRE-LIVE until a measured Validation Dossier qualifies the exact exam."
+  current_maturity: "Target-state orientation only. C-W1 DEVELOPMENT continues after PR #190 merged real/non-live worker admission. Distinct miner UID 1 finalized on subnet 567 at block 8013851. The third authorized real model session made six calls for USD 0.0036775, submitted FNO-48 and completed three isolated reconstructions (144 updates). Prediction stopped at input permissions under umask 077. The selected repair explicitly restores traversable read-only inputs and adds complete authenticated numerical service coverage. All failures and trained artifacts remain retained; no automatic restart. Subnet 567 creation finalized at block 8010852. Earlier engineering validation completed three real JAX replicas and 72 measurements; those are not results of the real agent. The real agent has no completed numerical measurements, feedback or signed source. No subsequent activation or all-burn publication occurred. AWS stays deferred, Hippius unverified, and protected/production/scientific qualification remains unearned. No later ticket is selected. The real validator-to-exam vertical is planned for Wave C1. Burgers v1 remains PRE-LIVE until a measured Validation Dossier qualifies the exact exam."
 current:
   wave: "C"
   wave_title: "Network foundation and real testnet vertical"
@@ -457,12 +457,12 @@ current:
     id: "C-W1"
     title: "Exact real testnet eligibility provenance"
     status: "in_progress"
-    summary: "C-W1 DEVELOPMENT continues after PR #189 merged strict tools. Distinct miner UID 1 finalized on subnet 567 at block 8013851. The second authorized real model session made six calls for USD 0.00380175, proposed FNO-48 and reached authenticated submission. The fixture-only C-03 staging guard stopped it before worker launch. The selected repair admits the exact real/non-live pair under unchanged public DEVELOPMENT worker controls; the stopped attempt is retained without restart."
+    summary: "C-W1 DEVELOPMENT continues after PR #190 merged real/non-live worker admission. Distinct miner UID 1 finalized on subnet 567 at block 8013851. The third authorized real model session made six calls for USD 0.0036775, submitted FNO-48 and completed three isolated reconstructions (144 updates). Prediction stopped at input permissions under umask 077. The selected repair explicitly restores traversable read-only inputs and adds complete authenticated numerical service coverage. All failures and trained artifacts remain retained; no automatic restart."
   next_selected_ticket: null
   controlling_register: ".agent/WAVE_C.md"
   controlling_register_version: "2.4"
   controlling_board_fingerprint: "1ec2c6443390084c17991e181bb76cab88c2fb33ff58393e3d8d0f23cc6c8b9c"
-  stage: "C-W1 DEVELOPMENT continues after PR #189 merged strict tools. Distinct miner UID 1 finalized on subnet 567 at block 8013851. The second authorized real model session made six calls for USD 0.00380175, proposed FNO-48 and reached authenticated submission. The fixture-only C-03 staging guard stopped it before worker launch. The selected repair admits the exact real/non-live pair under unchanged public DEVELOPMENT worker controls; the stopped attempt is retained without restart. Subnet 567 creation finalized at block 8010852. Earlier engineering validation completed three real JAX replicas and 72 measurements; those are not results of the real agent. No subsequent activation or all-burn publication occurred. AWS stays deferred, Hippius unverified, and protected/production/scientific qualification remains unearned. No later ticket is selected."
+  stage: "C-W1 DEVELOPMENT continues after PR #190 merged real/non-live worker admission. Distinct miner UID 1 finalized on subnet 567 at block 8013851. The third authorized real model session made six calls for USD 0.0036775, submitted FNO-48 and completed three isolated reconstructions (144 updates). Prediction stopped at input permissions under umask 077. The selected repair explicitly restores traversable read-only inputs and adds complete authenticated numerical service coverage. All failures and trained artifacts remain retained; no automatic restart. Subnet 567 creation finalized at block 8010852. Earlier engineering validation completed three real JAX replicas and 72 measurements; those are not results of the real agent. The real agent has no completed numerical measurements, feedback or signed source. No subsequent activation or all-burn publication occurred. AWS stays deferred, Hippius unverified, and protected/production/scientific qualification remains unearned. No later ticket is selected."
   most_recent_closed_wave: "B"
   completed_wave_tickets:
     - "NET-1"
@@ -551,8 +551,8 @@ current:
     network_qualified: "unearned"
     commercially_validated: "unearned"
     production_qualified: "unearned"
-  maturity_summary: "Strict tool repair is merged. Two real provider sessions remain stopped, with no agent numerical evaluation or signed source. C-W1-WORKER-SCOPE-01 is conditional on required acceptance and normal merge. No qualification is earned."
-  decision_series_status: "C-W1-WORKER-SCOPE-01 prospectively admits the paired REAL_PATH_NON_LIVE scope to the existing closed public worker. Historical attempts and their identities remain unchanged; new inference, activation and publication require their own authority."
+  maturity_summary: "Three real provider sessions remain stopped. The latest completed three actual training replicas but no agent numerical evaluation or signed source. C-W1-PREDICTION-STAGING-01 is conditional on required acceptance and normal merge. No qualification is earned."
+  decision_series_status: "C-W1-PREDICTION-STAGING-01 repairs effective prediction input permissions under the existing private launcher umask. Parent privacy, readonly export, non-root worker and numerical contracts remain unchanged; new inference, stopped-operation retry, activation and publication require their own authority."
   technical_decision_route: "https://github.com/carbonphysicsai/Carbon/issues/42"
   owner_decision_route: "https://github.com/carbonphysicsai/Carbon/issues/41"
   decision_series:
@@ -5274,32 +5274,16 @@ events:
       - "WAVE-C/NET-6"
     supersedes: null
   -
-    map_ref: "SYSTEM/PUBLICATION-AUTHORITY"
-    event_type: "decision"
-    event_id: "WEB-QA-01-D1"
-    owner_lane: "owner"
-    status: "implemented"
-    summary: "Implement the bounded public Ask Carbon homepage component and server adapter as an inactive integration candidate. Its draft knowledge, missing 31-card package, absent live evaluation, unresolved privacy/security/cost/routing decisions and unverified Cloudflare runtime keep public activation blocked without changing the production homepage."
-    primary_detail: "https://github.com/carbonphysicsai/Carbon/blob/229ef2e2977f0cb95e9bf583d805650637a318f3/.agent/tickets/WEB-QA-01_public_homepage_answer_bot.md"
-    affects:
-      - "SYSTEM/CI"
-      - "SYSTEM/DEVELOPMENT-HUB"
-      - "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
-      - "SYSTEM/GOVERNANCE"
-      - "SYSTEM/MATURITY"
-      - "SYSTEM/PUBLICATION"
-    supersedes: null
-  -
-    map_ref: "SYSTEM/DEVELOPMENT-HUB"
+    map_ref: "WAVE-C/C-W1"
     event_type: "adjustment"
-    event_id: "WEB-QA-01-HUB-REPIN-20260916"
+    event_id: "CW1-PREDICTION-STAGING-20260916"
     owner_lane: "documentation_maintenance"
-    status: "implemented"
-    summary: "Register the WEB-QA-01 publication-authority path and repin current assertion-bearing Hub links to the exact authority snapshot containing the inactive integration. Existing Wave selection, ticket status, dependencies, maturity and scientific authority are unchanged."
-    primary_detail: "https://github.com/carbonphysicsai/Carbon/blob/229ef2e2977f0cb95e9bf583d805650637a318f3/docs/development/carbon_hub/orientation/HUB_UPDATE_PLAYBOOK.md"
+    status: "active"
+    summary: "C-W1 DEVELOPMENT continues after PR #190 merged real/non-live worker admission. Distinct miner UID 1 finalized on subnet 567 at block 8013851. The third authorized real model session made six calls for USD 0.0036775, submitted FNO-48 and completed three isolated reconstructions (144 updates). Prediction stopped at input permissions under umask 077. The selected repair explicitly restores traversable read-only inputs and adds complete authenticated numerical service coverage. All failures and trained artifacts remain retained; no automatic restart."
+    primary_detail: "docs/development/CW1_BURGERS_AGENT_SESSION.md"
     affects:
-      - "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
-      - "SYSTEM/PUBLICATION-AUTHORITY"
+      - "SYSTEM/AGENT-EXECUTION"
+      - "SYSTEM/DEVELOPMENT-HUB"
       - "WAVE-B"
       - "WAVE-B/B-E4"
       - "WAVE-B/B-GATE"
@@ -5321,6 +5305,7 @@ events:
       - "WAVE-C/C-EP2"
       - "WAVE-C/C-EP3"
       - "WAVE-C/C-REWARD"
+      - "WAVE-C/C-W1"
       - "WAVE-C/NET-1"
       - "WAVE-C/NET-2"
       - "WAVE-C/NET-3"

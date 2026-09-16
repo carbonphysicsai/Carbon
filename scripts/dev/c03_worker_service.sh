@@ -46,6 +46,7 @@ if [[ "$#" -eq 0 ]]; then
     tests/service/test_c05_measurement_service.py \
     tests/service/test_c07_orchestration_service.py \
     tests/service/test_c08_miner_mcp_service.py \
+    tests/service/test_cw1_session_service.py \
     tests/service/test_c10_reexecution_service.py
 fi
 "${python_path}" -m pytest -q \
