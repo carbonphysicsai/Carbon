@@ -1,5 +1,6 @@
+import { evaluateRelease } from "./release-contract.js";
+
 const MAX_QUESTION_LENGTH = 1200;
-const MAX_CONTEXT_TURNS = 4;
 const DEFAULT_KNOWLEDGE_URL = "/ask-carbon/public-knowledge.v1.json";
 const DEFAULT_API_URL = "/api/ask-carbon";
 
@@ -15,27 +16,32 @@ const createElement = (documentRef, tag, options = {}) => {
 
 const scoreCard = (card, question) => {
   const normalized = question.toLowerCase();
-  if (card.question.toLowerCase() === normalized.trim()) return 1000;
+  const cardQuestions = card.questions ?? [card.question].filter(Boolean);
+  if (cardQuestions.some((item) => item.toLowerCase() === normalized.trim())) return 1000;
   const words = new Set(normalized.match(/[a-z0-9]+/g) ?? []);
   const keywordScore = (card.keywords ?? []).reduce(
     (score, keyword) => score + (words.has(keyword.toLowerCase()) ? 2 : normalized.includes(keyword.toLowerCase()) ? 1 : 0),
     0,
   );
-  const questionScore = (card.question.toLowerCase().match(/[a-z0-9]+/g) ?? []).reduce(
+  const questionScore = (cardQuestions.join(" ").toLowerCase().match(/[a-z0-9]+/g) ?? []).reduce(
     (score, word) => score + (words.has(word) ? 1 : 0),
     0,
   );
   return keywordScore + questionScore;
 };
 
-export const findSavedAnswer = (knowledge, question) => {
+export const findSavedAnswer = (knowledge, question, { eligibleCardIds = null, priorCardIds = [] } = {}) => {
   if (/\b(ignore|override|disregard)\b.{0,80}\b(instruction|source|rule|say|claim)/i.test(question)) {
-    return knowledge.cards.find((card) => card.id === "unknown-answer");
+    return null;
   }
+  const eligible = eligibleCardIds ? new Set(eligibleCardIds) : null;
+  const needsContext = /\b(those|they|them|their|it|that|this|these)\b/i.test(question) || (question.match(/[a-z0-9]+/gi) ?? []).length <= 3;
+  const prior = new Set(needsContext ? priorCardIds : []);
   const ranked = knowledge.cards
-    .map((card) => ({ card, score: scoreCard(card, question) }))
+    .filter((card) => !eligible || eligible.has(card.id))
+    .map((card) => ({ card, score: scoreCard(card, question) + (prior.has(card.id) ? 3 : 0) + (card.related ?? []).filter((id) => prior.has(id)).length * 2 }))
     .sort((left, right) => right.score - left.score || left.card.id.localeCompare(right.card.id));
-  return ranked[0]?.score > 0 ? ranked[0].card : knowledge.cards.find((card) => card.id === "unknown-answer");
+  return ranked[0]?.score >= 2 ? ranked[0].card : null;
 };
 
 export const createThreadGuard = () => {
@@ -45,6 +51,7 @@ export const createThreadGuard = () => {
     begin() {
       controller?.abort();
       controller = new AbortController();
+      generation += 1;
       const requestGeneration = generation;
       return { signal: controller.signal, isCurrent: () => requestGeneration === generation };
     },
@@ -62,8 +69,10 @@ export class AskCarbonElement extends HTMLElementBase {
   constructor() {
     super();
     this.knowledge = null;
+    this.releaseStatus = null;
     this.liveStatus = { active: false };
-    this.turns = [];
+    this.continuation = null;
+    this.savedCardIds = [];
     this.guard = createThreadGuard();
     this.lastFocused = null;
     this.onKeydown = this.onKeydown.bind(this);
@@ -186,6 +195,9 @@ export class AskCarbonElement extends HTMLElementBase {
       if (!knowledgeResponse.ok) throw new Error("Public explanations are unavailable.");
       this.knowledge = await knowledgeResponse.json();
       if (healthResponse?.ok) this.liveStatus = await healthResponse.json();
+      const mode = this.hasAttribute("staging-preview") ? "staging" : "production";
+      this.releaseStatus = evaluateRelease(this.knowledge, { mode });
+      if (!this.releaseStatus.valid && !this.liveStatus.active) throw new Error("No approved, current public explanation release is available.");
       this.updateStatus();
       this.renderIntro();
       this.setBusy(false);
@@ -198,16 +210,19 @@ export class AskCarbonElement extends HTMLElementBase {
   }
 
   updateStatus() {
-    const date = this.liveStatus.source_release_date || this.knowledge?.source_release_date || this.knowledge?.sources?.[0]?.observed_at || "date unavailable";
+    const date = this.liveStatus.source_release_date || this.knowledge?.release?.source_release_date || "date unavailable";
     if (this.liveStatus.active) {
       this.status.textContent = `Live answers · Reviewed public sources dated ${date}.`;
       this.mode.textContent = "Live public answer";
       this.privacy.textContent = "Questions are sent to the approved AI provider. Do not paste confidential engineering or customer data.";
       return;
     }
-    this.status.textContent = `Interactive preview · Saved explanations, not live AI. Draft sources observed ${date}.`;
-    this.mode.textContent = "Saved explanation";
-    this.privacy.textContent = "This preview uses saved public explanations. It sends no questions to an AI provider. Do not paste confidential data.";
+    const staging = this.hasAttribute("staging-preview");
+    this.status.textContent = staging
+      ? `Private staging preview · Reviewed saved explanations, not live AI. Sources released ${date}.`
+      : `Saved public explanations · Sources released ${date}.`;
+    this.mode.textContent = staging ? "Staging explanation" : "Saved explanation";
+    this.privacy.textContent = "Saved explanations run in this page and send no question to an AI provider. Do not paste confidential data.";
   }
 
   renderIntro() {
@@ -220,14 +235,14 @@ export class AskCarbonElement extends HTMLElementBase {
       createElement(doc, "p", { text: "Start with a question. Ask for more detail as you go." }),
     );
     const topics = createElement(doc, "div", { className: "ask-carbon-topics" });
-    const starterIds = ["how-carbon-works", "training-cases", "reference-answers", "progress-maturity"];
+    const starterIds = ["overview", "training-control", "references", "current-progress"];
     for (const id of starterIds) {
       const card = this.knowledge?.cards?.find((item) => item.id === id);
       const fallback = {
-        "how-carbon-works": ["The basics", "How does Carbon work?"],
-        "training-cases": ["Training", "Who chooses the training cases?"],
-        "reference-answers": ["Verification", "Where does the ground truth come from?"],
-        "progress-maturity": ["Progress", "What has been proven?"],
+        "overview": ["The basics", "How does Carbon work?"],
+        "training-control": ["Training", "Who chooses the training cases?"],
+        "references": ["Verification", "Where does the ground truth come from?"],
+        "current-progress": ["Progress", "What has been proven?"],
       }[id];
       const button = createElement(doc, "button", {
         className: "ask-carbon-topic",
@@ -235,10 +250,10 @@ export class AskCarbonElement extends HTMLElementBase {
       });
       button.append(
         createElement(doc, "span", { className: "ask-carbon-topic-label", text: card?.topic ?? fallback[0] }),
-        createElement(doc, "span", { className: "ask-carbon-topic-question", text: card?.question ?? fallback[1] }),
+        createElement(doc, "span", { className: "ask-carbon-topic-question", text: card?.questions?.[0] ?? fallback[1] }),
       );
       button.disabled = !card;
-      button.addEventListener("click", () => this.ask(card.question));
+      button.addEventListener("click", () => this.ask(card.questions[0]));
       topics.append(button);
     }
     intro.append(
@@ -267,7 +282,9 @@ export class AskCarbonElement extends HTMLElementBase {
   addAnswer(thread, answer) {
     const doc = this.ownerDocument;
     const article = createElement(doc, "article", { className: "ask-carbon-message ask-carbon-message--answer" });
+    if (answer.mode_label) article.append(createElement(doc, "p", { className: "ask-carbon-answer-mode", text: answer.mode_label }));
     article.append(createElement(doc, "p", { className: "ask-carbon-answer-text", text: answer.answer }));
+    if (answer.maturity_note) article.append(createElement(doc, "p", { className: "ask-carbon-maturity", text: answer.maturity_note }));
     const sources = (answer.sources ?? []).filter((source) => source?.url && source?.title);
     if (sources.length) {
       const details = createElement(doc, "details", { className: "ask-carbon-source-details" });
@@ -280,15 +297,17 @@ export class AskCarbonElement extends HTMLElementBase {
           attributes: { href: source.url, target: "_blank", rel: "noopener noreferrer" },
         });
         item.append(link);
-        if (source.note) item.append(` — ${source.note}`);
+        const metadata = [source.sections?.join(", "), source.revision ? `revision ${source.revision.slice(0, 12)}` : null, source.note].filter(Boolean).join(" · ");
+        if (metadata) item.append(` — ${metadata}`);
         list.append(item);
       }
       details.append(list);
       article.append(details);
     }
-    if (answer.follow_ups?.length) {
+    const questions = answer.follow_up ? [answer.follow_up] : (answer.follow_ups ?? []).slice(0, 1);
+    if (questions.length) {
       const followups = createElement(doc, "div", { className: "ask-carbon-followups" });
-      for (const question of answer.follow_ups.slice(0, 3)) {
+      for (const question of questions) {
         const button = createElement(doc, "button", { className: "ask-carbon-followup", text: question, attributes: { type: "button" } });
         button.addEventListener("click", () => this.ask(question));
         followups.append(button);
@@ -309,7 +328,8 @@ export class AskCarbonElement extends HTMLElementBase {
   }
 
   sourcesFor(card) {
-    return (card.source_ids ?? []).map((id) => this.knowledge.sources.find((source) => source.id === id)).filter(Boolean);
+    const sourceIds = [...new Set((card.passages ?? []).map((passage) => passage.source_id))];
+    return sourceIds.map((id) => this.knowledge.sources.find((source) => source.id === id)).filter(Boolean);
   }
 
   async ask(rawQuestion) {
@@ -327,16 +347,43 @@ export class AskCarbonElement extends HTMLElementBase {
       if (this.liveStatus.active) {
         answer = await this.askLive(question, request.signal);
       } else {
-        const card = findSavedAnswer(this.knowledge, question);
-        answer = { ...card, sources: this.sourcesFor(card) };
+        const card = findSavedAnswer(this.knowledge, question, { eligibleCardIds: this.releaseStatus?.eligible_card_ids, priorCardIds: this.savedCardIds });
+        answer = card ? {
+          status: "saved_explanation",
+          answer: card.answer,
+          follow_up: card.questions?.[1] ?? null,
+          maturity_note: `${card.maturity}: ${card.scope_note}`,
+          mode_label: this.hasAttribute("staging-preview") ? "Reviewed staging explanation — not live AI" : "Approved saved explanation — not live AI",
+          sources: this.sourcesFor(card),
+          card_id: card.id,
+        } : {
+          status: "insufficient_evidence",
+          answer: "I don't have a relevant reviewed explanation for that question. Try naming the Carbon mechanism or project area you mean.",
+          follow_up: "Which part of Carbon would you like explained?",
+          sources: [],
+          mode_label: "No relevant saved evidence",
+        };
         await Promise.resolve();
       }
       if (!request.isCurrent()) return;
-      this.turns.push({ question, answer: answer.answer });
-      this.turns = this.turns.slice(-MAX_CONTEXT_TURNS);
+      this.continuation = answer.continuation ?? this.continuation;
+      if (answer.card_id) this.savedCardIds = [answer.card_id, ...this.savedCardIds.filter((id) => id !== answer.card_id)].slice(0, 4);
       this.addAnswer(thread, answer);
     } catch (error) {
-      if (error.name !== "AbortError" && request.isCurrent()) this.renderError(error.message);
+      if (error.name !== "AbortError" && request.isCurrent()) {
+        const fallback = findSavedAnswer(this.knowledge, question, { eligibleCardIds: this.releaseStatus?.eligible_card_ids, priorCardIds: this.savedCardIds });
+        if (this.liveStatus.active && fallback && this.releaseStatus?.valid) {
+          this.addAnswer(thread, {
+            status: "saved_explanation",
+            answer: fallback.answer,
+            follow_up: null,
+            maturity_note: `${fallback.maturity}: ${fallback.scope_note}`,
+            mode_label: "Live answer unavailable — showing an approved saved explanation",
+            sources: this.sourcesFor(fallback),
+            card_id: fallback.id,
+          });
+        } else this.renderError(error.message);
+      }
     } finally {
       if (request.isCurrent()) {
         this.setBusy(false);
@@ -351,7 +398,7 @@ export class AskCarbonElement extends HTMLElementBase {
       method: "POST",
       credentials: "same-origin",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ question, turns: this.turns.slice(-MAX_CONTEXT_TURNS) }),
+      body: JSON.stringify({ question, ...(this.continuation ? { continuation: this.continuation } : {}) }),
       signal,
     });
     const body = await response.json().catch(() => ({}));
@@ -364,11 +411,13 @@ export class AskCarbonElement extends HTMLElementBase {
     this.input.disabled = disabled;
     this.submitButton.disabled = disabled;
     this.submitButton.textContent = busy ? "…" : "→";
+    for (const button of this.main?.querySelectorAll?.(".ask-carbon-topic, .ask-carbon-followup") ?? []) button.disabled = busy;
   }
 
   reset() {
     this.guard.reset();
-    this.turns = [];
+    this.continuation = null;
+    this.savedCardIds = [];
     this.setBusy(false);
     this.renderIntro();
     this.input.value = "";

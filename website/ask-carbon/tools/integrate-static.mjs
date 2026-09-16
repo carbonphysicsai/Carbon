@@ -15,6 +15,10 @@ const parseArgs = (argv) => {
       result["allow-changed-source"] = true;
       continue;
     }
+    if (argument === "--staging-preview") {
+      result["staging-preview"] = true;
+      continue;
+    }
     if (!argument.startsWith("--") || !argv[index + 1]) throw new Error(`Invalid argument: ${argument}`);
     result[argument.slice(2)] = argv[index + 1];
     index += 1;
@@ -23,7 +27,12 @@ const parseArgs = (argv) => {
   return result;
 };
 
-export const integrateHtml = (html, { assetPrefix = "./ask-carbon", knowledgeUrl, apiUrl = "/api/ask-carbon" } = {}) => {
+export const integrateHtml = (html, {
+  assetPrefix = "./ask-carbon",
+  knowledgeUrl,
+  apiUrl = "/api/ask-carbon",
+  stagingPreview = false,
+} = {}) => {
   if (!/<\/head\s*>/i.test(html) || !/<\/body\s*>/i.test(html)) throw new Error("Input is not a complete HTML document.");
   if (html.includes("data-ask-carbon-integration")) throw new Error("Ask Carbon is already integrated.");
   const prefix = assetPrefix.replace(/\/$/, "");
@@ -34,7 +43,7 @@ export const integrateHtml = (html, { assetPrefix = "./ask-carbon", knowledgeUrl
   const resolvedKnowledgeUrl = knowledgeUrl ?? `${prefix}/public-knowledge.v1.json`;
   const head = `  <link data-ask-carbon-integration rel="stylesheet" href="${escapeAttribute(prefix)}/ask-carbon.css">\n`;
   const body = [
-    `  <ask-carbon data-ask-carbon-integration knowledge-url="${escapeAttribute(resolvedKnowledgeUrl)}" api-url="${escapeAttribute(apiUrl)}"></ask-carbon>`,
+    `  <ask-carbon data-ask-carbon-integration knowledge-url="${escapeAttribute(resolvedKnowledgeUrl)}" api-url="${escapeAttribute(apiUrl)}"${stagingPreview ? " staging-preview" : ""}></ask-carbon>`,
     `  <script type="module" src="${escapeAttribute(prefix)}/ask-carbon.js"></script>`,
     "",
   ].join("\n");
@@ -62,6 +71,7 @@ const main = async () => {
     assetPrefix: args["asset-prefix"],
     knowledgeUrl: args["knowledge-url"],
     apiUrl: args["api-url"] ?? "/api/ask-carbon",
+    stagingPreview: args["staging-preview"] === true,
   });
   await mkdir(dirname(outputPath), { recursive: true });
   await writeFile(outputPath, integrated, { flag: "wx" });
@@ -70,6 +80,7 @@ const main = async () => {
   for (const [source, destination] of [
     [join(ROOT, "public", "ask-carbon.css"), "ask-carbon.css"],
     [join(ROOT, "public", "ask-carbon.js"), "ask-carbon.js"],
+    [join(ROOT, "public", "release-contract.js"), "release-contract.js"],
     [join(ROOT, "knowledge", "public-knowledge.v1.json"), "public-knowledge.v1.json"],
   ]) {
     await writeFile(join(assetDirectory, destination), await readFile(source), { flag: "wx" });

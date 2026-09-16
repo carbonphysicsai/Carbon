@@ -208,9 +208,11 @@ body.ask-carbon-open {
 .ask-carbon-thread {
   display: grid;
   gap: 16px;
+  min-width: 0;
 }
 
 .ask-carbon-message {
+  min-width: 0;
   max-width: 92%;
   margin: 0;
   padding: 15px 17px;
@@ -219,6 +221,7 @@ body.ask-carbon-open {
   background: var(--ask-carbon-white);
   font-size: 15px;
   line-height: 1.55;
+  overflow-wrap: anywhere;
 }
 
 .ask-carbon-message--user {
@@ -230,6 +233,27 @@ body.ask-carbon-open {
 
 .ask-carbon-answer-text {
   margin: 0;
+  font-size: 16px;
+}
+
+.ask-carbon-answer-mode,
+.ask-carbon-maturity {
+  margin: 0 0 9px;
+  color: var(--ask-carbon-muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.ask-carbon-answer-mode {
+  font-weight: 700;
+  letter-spacing: .02em;
+}
+
+.ask-carbon-maturity {
+  margin-top: 11px;
+  margin-bottom: 0;
+  padding-left: 10px;
+  border-left: 3px solid var(--ask-carbon-accent);
 }
 
 .ask-carbon-source-details {
@@ -258,6 +282,7 @@ body.ask-carbon-open {
 
 .ask-carbon-source-list a {
   color: inherit;
+  overflow-wrap: anywhere;
   text-underline-offset: 3px;
 }
 
