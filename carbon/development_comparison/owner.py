@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import math
 from pathlib import Path
 
@@ -20,7 +21,13 @@ def accounting(root: Path):
     workers = [row for row in operations if row["kind"] == "worker"]
     inputs = outputs = cached = 0
     tools = []
-    for path in sorted(root.glob("provider-*-response.json")):
+    prior_read = False
+    feedback_read = False
+    revised_after_feedback = False
+    strategies_seen = set()
+    for path in sorted(
+        root.glob("provider-*-response.json"), key=lambda p: int(p.name.split("-")[1])
+    ):
         response = read_json(path)
         usage = response.get("usage", {})
         if (
@@ -33,11 +40,30 @@ def accounting(root: Path):
             if type(cache) is not int or not 0 <= cache <= usage["input_tokens"]:
                 raise ValueError("invalid retained provider usage")
             cached += cache
-        tools.extend(
-            item["name"]
-            for item in response.get("output", [])
-            if item.get("type") == "function_call"
-        )
+        for item in response.get("output", []):
+            if item.get("type") != "function_call":
+                continue
+            tools.append(item["name"])
+            try:
+                fields = json.loads(item.get("arguments", "{}"))
+            except (TypeError, ValueError):
+                fields = {}
+            if type(fields) is dict and "strategy" in fields:
+                key = digest(canonical(fields["strategy"]))
+                if key not in strategies_seen and feedback_read:
+                    revised_after_feedback = True
+                strategies_seen.add(key)
+        result_path = root / path.name.replace("-response.json", "-tool-result.json")
+        if result_path.exists():
+            result = read_json(result_path)
+            prior = result.get("own_historical_development", {})
+            prior_read |= type(prior) is dict and type(prior.get("feedback")) is dict
+            feedback = result.get("feedback", {})
+            feedback_read |= (
+                type(feedback) is dict
+                and feedback.get("schema")
+                == "carbon.c07.development-aggregate-feedback.v1"
+            )
     from carbon.execution import DurableWorkerLaunchStore
 
     observations = []
@@ -89,8 +115,9 @@ def accounting(root: Path):
         ),
         "resource_scope": "POST_EXPORT_PRE_TERMINATION; incomplete workers may lack resource observations",
         "retained_bytes": check_storage(root),
-        "read_own_prior_feedback": "get_prior" in tools,
-        "read_completed_feedback": "get_submission_result" in tools,
+        "read_own_prior_feedback": prior_read,
+        "read_completed_feedback": feedback_read,
+        "revised_after_new_feedback": revised_after_feedback,
         "tool_sequence": tools,
         "failed_or_pending_operations": [
             row for row in operations if row["state"] != "COMPLETE"
@@ -148,8 +175,7 @@ def write_owner_report(root: Path):
         "training_updates_completed": totals["training_updates_observed"],
         "measurement_reports_completed": 72 * completed,
         "wall_seconds": run["wall_seconds"] if run else None,
-        "revised_after_new_feedback": len(proposed) > 1
-        and totals["read_completed_feedback"],
+        "revised_after_new_feedback": totals["revised_after_new_feedback"],
         "changed_from_historical_strategy": any(
             strategy != contract["baseline_strategy"] for strategy in proposed
         ),

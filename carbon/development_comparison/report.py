@@ -126,8 +126,8 @@ def resolve_report(root: Path, ref: ComparisonRef):
     if type(ref) is not ComparisonRef or ref.path.parent != root:
         raise ValueError("nominal comparison report required")
     value = read_json(ref.path)
-    if digest(canonical(value)) != ref.digest or value != compute(
-        root, Path(value["challenger_source"])
+    if digest(canonical(value)) != ref.digest or canonical(value) != canonical(
+        compute(root, Path(value["challenger_source"]))
     ):
         raise ValueError("altered, stale or incompatible comparison report")
     return value

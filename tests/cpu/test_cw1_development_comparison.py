@@ -395,3 +395,68 @@ def test_c04_and_c05_reference_domains_bind_same_bytes_without_relabeling():
         validate_reference_association(
             request, c04.artifact_digest, b"\0" * len(reference.payload)
         )
+
+
+def test_report_readback_compares_canonical_bytes_not_tuple_list_representation(
+    tmp_path, monkeypatch
+):
+    from carbon.development_comparison import report
+
+    value = {
+        "challenger_source": str(tmp_path / "source.json"),
+        "binding": {"replicas": ("one", "two", "three")},
+        "accepted_improvement": None,
+    }
+    path = tmp_path / "comparison-fixture.json"
+    path.write_bytes(canonical(value))
+    monkeypatch.setattr(report, "compute", lambda *_: value)
+    ref = report.ComparisonRef(path, digest(path.read_bytes()))
+    assert report.resolve_report(tmp_path, ref)["binding"]["replicas"] == [
+        "one",
+        "two",
+        "three",
+    ]
+    tampered = json.loads(path.read_bytes())
+    tampered["accepted_improvement"] = True
+    path.write_bytes(canonical(tampered))
+    with pytest.raises(ValueError, match="altered"):
+        report.resolve_report(
+            tmp_path, report.ComparisonRef(path, digest(path.read_bytes()))
+        )
+
+
+def test_adaptation_requires_received_feedback_before_new_strategy(tmp_path):
+    from carbon.development_comparison.owner import accounting
+
+    def response(number, tool, fields):
+        (tmp_path / f"provider-{number}-response.json").write_bytes(
+            canonical(
+                {
+                    "usage": {"input_tokens": 1, "output_tokens": 1},
+                    "output": [
+                        {
+                            "type": "function_call",
+                            "name": tool,
+                            "arguments": json.dumps(fields),
+                        }
+                    ],
+                }
+            )
+        )
+
+    response(2, "dry_validate", {"strategy": {"fixture": 1}})
+    response(9, "get_submission_result", {"submission_id": "fixture"})
+    response(10, "dry_validate", {"strategy": {"fixture": 2}})
+    assert not accounting(tmp_path)["revised_after_new_feedback"]
+    (tmp_path / "provider-9-tool-result.json").write_bytes(
+        canonical(
+            {"feedback": {"schema": "carbon.c07.development-aggregate-feedback.v1"}}
+        )
+    )
+    result = accounting(tmp_path)
+    assert result["tool_sequence"] == [
+        "dry_validate",
+        "get_submission_result",
+        "dry_validate",
+    ]
+    assert result["read_completed_feedback"] and result["revised_after_new_feedback"]
