@@ -85,6 +85,9 @@ def isolated_predict(receipt, query, *, root: Path, image, worker, replay_only=F
         raise ValueError("prediction already started; reconcile existing carrier")
     root.mkdir(parents=True, mode=0o700)
     stage.mkdir(mode=0o755)
+    # The operator uses umask 077. Only this read-only export must be
+    # traversable by the non-root carrier; the enclosing root stays private.
+    stage.chmod(0o755)
     members = list(receipt.artifact_path.rglob("*"))
     files = [item for item in members if item.is_file()]
     if (

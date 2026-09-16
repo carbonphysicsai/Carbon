@@ -635,3 +635,48 @@ def test_agent_direct_tool_dispatch_and_retained_malformed_stop(
     # A second process cannot replace the retained campaign, even in this fixture.
     with pytest.raises(ValueError):
         asyncio.run(agent._run(connection, authority, tmp_path / "unused-key"))
+
+
+def test_prediction_staging_overrides_private_umask_only_for_worker_inputs(
+    tmp_path, monkeypatch
+):
+    import os
+    from types import SimpleNamespace as NS
+
+    import numpy as np
+
+    from carbon.development_session import prediction
+
+    artifact = tmp_path / "trained"
+    artifact.mkdir()
+    (artifact / "weights.bin").write_bytes(b"synthetic weights")
+    receipt = NS(artifact_digest="sha256:" + "1" * 64, artifact_path=artifact)
+    monkeypatch.setattr(
+        prediction, "validated_receipt_payload", lambda _: {"synthetic": True}
+    )
+    monkeypatch.setattr(prediction, "doctor", lambda **_: NS(eligible=False))
+    root = tmp_path / "prediction"
+    previous = os.umask(0o077)
+    try:
+        with pytest.raises(ValueError, match="host ineligible"):
+            prediction.isolated_predict(
+                receipt,
+                {
+                    "initial": np.zeros((1, 64)),
+                    "viscosity": np.array([0.1]),
+                    "requested_times": np.array([0.0, 1.0]),
+                    "positions": np.arange(64),
+                },
+                root=root,
+                image=NS(image_id="sha256:" + "2" * 64),
+                worker=NS(digest="sha256:" + "3" * 64),
+            )
+    finally:
+        os.umask(previous)
+    assert root.stat().st_mode & 0o777 == 0o700
+    assert (root / "input").stat().st_mode & 0o777 == 0o755
+    assert (root / "input/artifact").stat().st_mode & 0o777 == 0o755
+    for path in (root / "input").rglob("*"):
+        if path.is_file():
+            assert path.stat().st_mode & 0o777 == 0o444
+    assert not (root / "intent.json").exists()

@@ -315,3 +315,51 @@ guard entirely, or replay the stopped campaign. The bounded code migration is
 reversible at `carbon/reconstruction/worker/protocol.py`; reverting it restores
 fixture-only admission and blocks real C-W1 reconstruction. Affects C-03/C-W1
 and C-07/C-08 provenance. No scientific/security qualification decision is made.
+
+
+## 2026-09-16 real reconstruction and private-umask prediction repair
+
+PR #190 merged as `a66f64e0d9aa2cb332d0c4ad0b253031418c2268`. The further
+session was separately approved for 2026-09-15 23:35:14 UTC through
+2026-09-16 05:35:14 UTC, with USD 0.25, 12 calls and three proposals.
+Six real `gpt-5-mini-2025-08-07` calls used 12,014 input / 337 output tokens
+for USD 0.0036775 at the recorded rates. The agent discovered the challenge,
+prior and scaffold, proposed FNO with 48 steps, passed structural validation
+and estimation, and submitted through authenticated C-08 as distinct miner UID 1.
+
+Three real C-03 reconstructions completed and remain `ASSOCIATED`: 144 training
+updates, 30.279632 observed worker CPU seconds, maximum observed memory
+800,133,120 bytes, zero OOM kills. Prediction 0 stopped before returning output.
+The private launcher used `umask 077`; the prediction input directory requested
+0755 at creation but actually became 0700, inaccessible to worker UID 65532.
+The carrier was removed. All trained artifacts, provider calls, failed prediction
+and stopped report remain retained. No C-05 measurement, permitted numerical
+feedback, signed source, accepted improvement or scientific result was produced
+by this session. The stop remains an infrastructure outcome.
+
+**C-W1-PREDICTION-STAGING-01 — IMPLEMENTATION_LAG:** REPAIR only the owner-created
+prediction input directory's effective mode after creation, explicitly setting
+0755 independent of the private parent umask. The enclosing attempt remains
+0700; exported input files remain 0444; the Docker bind remains read-only and
+the same non-root, networkless, bounded worker policy applies. No new material,
+evaluator labels, credentials or repository access enters the carrier. Changing
+the launcher umask or using a root worker is rejected because that widens access
+beyond the already authorized staged inputs. Revert the explicit chmod in
+`carbon/development_session/prediction.py` to reverse this repair.
+
+Plan: reproduce under umask 077; verify private parent and readable, immutable
+worker input modes; exercise the full authenticated local service under the same
+umask through real reference generation, FNO-48 three-replica reconstruction,
+prediction, 72 measurements, permitted feedback and active signed source. The
+service regression uses synthetic chain observations and ephemeral test hotkeys,
+with no provider calls or public-chain writes. It is engineering evidence only.
+Add it to the existing required isolated service lane, update board and Hub, run
+applicable acceptance, and merge normally. This repair grants no new model-run,
+failed-operation retry, activation or publication authorization. Historical
+attempts, cohorts and identities are immutable. C-W1 remains in progress.
+
+The next operator decision must explicitly authorize any continuation after the
+retained stop. Prefer recovering the exact trained submission when a supported
+bounded recovery exists; never delete its dispatch marker, rewrite a receipt,
+silently replace failed prediction evidence or redraw the cohort. No successful
+engineering regression can substitute for the still-missing real-agent outcome.
