@@ -1,0 +1,33 @@
+{
+  "schema_version": "carbon.client-intake.fixture-manifest.v1",
+  "fixtures": [
+    {
+      "name": "existing_method_v1.json",
+      "draft_id": "synthetic-existing-method",
+      "revision_id": "rev-001",
+      "raw_sha256": "sha256:16e3cf2a58faf69aedcdc1a759535c5b85d88d4d7571867ffe022e1a4a9d4fea",
+      "canonical_digest": "sha256:5c349e45035cc9c5a21ead1c0aac08ae695ddf3720928747537711c848cdc347"
+    },
+    {
+      "name": "fresh_burgers_v1.json",
+      "draft_id": "synthetic-burgers-inquiry",
+      "revision_id": "rev-001",
+      "raw_sha256": "sha256:d28e04a2887b853c52374e1ef21ec29fbcc8aaf403464706e5f4cf7d9d0f4058",
+      "canonical_digest": "sha256:3238fbcfa9a367459446d3853a87d431b49930d3a3e3c3898d62b825dfb17158"
+    },
+    {
+      "name": "unsupported_physics_v1.json",
+      "draft_id": "synthetic-unsupported-physics",
+      "revision_id": "rev-001",
+      "raw_sha256": "sha256:d38fdc8bdce5fd7c2346c7cecf93c5e4583b1250507dd2d957121569d8205a11",
+      "canonical_digest": "sha256:c7d101b0620acda335cd395906ac28ed28b7cc7fe6377bcd6e36d7752057c32f"
+    },
+    {
+      "name": "unsupported_physics_revision_v2.json",
+      "draft_id": "synthetic-unsupported-physics",
+      "revision_id": "rev-002",
+      "raw_sha256": "sha256:26b07059f463d2479a47cbf5bb4a3216ad962746a4ceb51420b6e89aace7a4ff",
+      "canonical_digest": "sha256:326f25448fa09b674ecb87120fc2999ebe934fc8ce0cee66cd8fc351fda2640a"
+    }
+  ]
+}

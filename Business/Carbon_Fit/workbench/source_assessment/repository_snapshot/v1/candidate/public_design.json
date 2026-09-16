@@ -1,5 +1,5 @@
 {
-  "schema_version": "carbon.goal-workbench.design.v0.7",
+  "schema_version": "carbon.goal-workbench.design.v0.8",
   "job_id": "job-001",
   "design_id": "job-001-design-1",
   "revision": 1,

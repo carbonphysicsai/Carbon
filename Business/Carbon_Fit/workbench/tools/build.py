@@ -40,6 +40,7 @@ def build():
     routing = (ROOT / "src/routing.js").read_text()
     c05_evidence = (ROOT / "src/c05_evidence.js").read_text()
     source_assessment = (ROOT / "src/source_assessment.js").read_text()
+    intake = (ROOT / "src/intake.js").read_text()
     workflow = (ROOT / "src/workflow.js").read_text()
     goal_app = (ROOT / "src/goal_app.js").read_text()
     atlas = data(ROOT / "data/atlas.json")
@@ -60,6 +61,7 @@ def build():
             routing,
             c05_evidence,
             source_assessment,
+            intake,
             workflow,
             goal_app,
             atlas,
@@ -86,11 +88,30 @@ def build():
         "ROUTING": routing,
         "C05_EVIDENCE": c05_evidence,
         "SOURCE_ASSESSMENT": source_assessment,
+        "INTAKE": intake,
         "WORKFLOW": workflow,
         "GOAL_APP": goal_app,
     }.items():
         html = html.replace("{{" + k + "}}", v)
     (ROOT / "Carbon_Opportunity_Workbench.html").write_text(html)
+    intake_style = (ROOT / "src/intake_styles.css").read_text()
+    intake_app = (ROOT / "src/intake_app.js").read_text()
+    intake_csp = (
+        "default-src 'none'; script-src "
+        + " ".join("'" + digest(value) + "'" for value in [intake, intake_app])
+        + "; style-src '"
+        + digest(intake_style)
+        + "'; img-src data:; connect-src 'none'; form-action 'none'; base-uri 'none'; object-src 'none'"
+    )
+    preview = (ROOT / "src/intake_shell.html").read_text()
+    for key, value in {
+        "CSP": intake_csp,
+        "STYLE": intake_style,
+        "INTAKE": intake,
+        "APP": intake_app,
+    }.items():
+        preview = preview.replace("{{" + key + "}}", value)
+    (ROOT / "Carbon_Client_Intake_Preview.html").write_text(preview)
     return ROOT / "Carbon_Opportunity_Workbench.html"
 
 

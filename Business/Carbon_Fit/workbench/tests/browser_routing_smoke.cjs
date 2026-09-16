@@ -143,7 +143,7 @@ function check(name, condition) {
     .locator("#goal-workspace-file")
     .setInputFiles(await exported.path());
   await page.waitForFunction(() =>
-    document.querySelector("#toast").textContent.includes("Imported v0.7"),
+    document.querySelector("#toast").textContent.includes("Imported v0.8"),
   );
   check(
     "export and reimport preserve cumulative review debt",

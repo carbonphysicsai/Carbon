@@ -450,6 +450,7 @@ test("v0.4 migration adds current empty fields and never selects or applies evid
   old.decision_id = "GOAL-WORKBENCH-04";
   old.base_application_merge = "95e717f28fab66a087b1e7006ad2ba5e167e2ddf";
   for (const j of old.jobs) {
+    delete j.intake_records;
     delete j.accountable_owner;
     delete j.working_design_id;
     for (const d of j.designs) {

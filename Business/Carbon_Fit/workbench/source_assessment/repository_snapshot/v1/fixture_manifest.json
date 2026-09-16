@@ -5,7 +5,7 @@
   "files": {
     "candidate/public_design.json": {
       "bytes": 22209,
-      "sha256": "19c2442442bc7097616ff0d3f22f006e4a102c7179a9ae11a6dfe738378dc54f"
+      "sha256": "1cc47591eacf14fd4543ccf049efb4cda51fa93afc21f806459470e4c8377fb3"
     },
     "candidate/request.json": {
       "bytes": 7141,
@@ -16,8 +16,8 @@
       "sha256": "49acb3598d034cf76ba854718cc2941ac3bf069e1623e32a8a99a9002d298e82"
     },
     "candidate/public_example_workspace.json": {
-      "bytes": 38133,
-      "sha256": "45bb1a7c265d275a0ffc1424d57bf6500af332d170d5cc3c63351ce132eb4b1d"
+      "bytes": 38161,
+      "sha256": "a0eabc76af12e0c35b33dd735a88477d0c61995e57332902c6be36a23f1fd491"
     },
     "candidate/RYAN_ADOPTION_PACKET.md": {
       "bytes": 2706,

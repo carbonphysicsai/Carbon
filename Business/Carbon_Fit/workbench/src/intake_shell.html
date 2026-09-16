@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta http-equiv="Content-Security-Policy" content="{{CSP}}">
+    <title>Carbon · Local engineering intake</title>
+    <style>{{STYLE}}</style>
+  </head>
+  <body>
+    <a class="skip" href="#intake-main">Skip to intake</a>
+    <header class="intake-header">
+      <div class="brand">CARBON <span>LOCAL PREVIEW</span></div>
+      <p class="scope">High-level engineering scoping · nothing is transmitted</p>
+    </header>
+    <main id="intake-main" class="intake-layout">
+      <section class="intake-editor" aria-labelledby="intake-title">
+        <p class="eyebrow">Local engineering brief</p>
+        <h1 id="intake-title">Describe the decision you need to improve</h1>
+        <p class="lede">Unknown is a valid answer. Keep this high level—do not include confidential geometry, simulation files, credentials, executable code, or protected data.</p>
+        <form id="intake-form">
+          <fieldset>
+            <legend>Decision and result</legend>
+            <label>What decision or engineering task are you trying to improve?<textarea data-text="intended_decision"></textarea></label>
+            <label>What do you need to predict or compare?<textarea data-text="requested_result"></textarea></label>
+          </fieldset>
+          <fieldset>
+            <legend>Current approach</legend>
+            <label>What do you use today?<textarea data-text="current_baseline"></textarea></label>
+            <label>What is inadequate about it?<textarea data-text="baseline_limitation"></textarea></label>
+          </fieldset>
+          <fieldset>
+            <legend>Scope and consequences</legend>
+            <label>What varies between runs, and which conditions matter?<textarea data-text="changing_conditions"></textarea></label>
+            <label>What is explicitly outside this inquiry?<textarea data-text="exclusions"></textarea></label>
+            <label>What kind of wrong answer would matter most?<textarea data-text="consequential_error"></textarea></label>
+          </fieldset>
+          <fieldset>
+            <legend>Evidence and access</legend>
+            <label>Is there a reference solver, experiment, or comparison source?<textarea data-text="comparison_evidence"></textarea></label>
+            <label>What access or use restrictions would Carbon need to clarify?<textarea data-text="access_limitations"></textarea></label>
+          </fieldset>
+          <fieldset>
+            <legend>Optional quantities</legend>
+            <p class="field-note">Use unknown, a point estimate, or a supplied range. Units are required for supplied values.</p>
+            <div id="quantity-fields"></div>
+          </fieldset>
+          <details>
+            <summary>Draft identity and revision</summary>
+            <div class="identity-grid">
+              <label>Draft ID<input id="draft-id" value="local-inquiry-001" pattern="[A-Za-z0-9][A-Za-z0-9._:-]{0,127}"></label>
+              <label>Revision ID<input id="revision-id" value="rev-001" pattern="[A-Za-z0-9][A-Za-z0-9._:-]{0,127}"></label>
+              <label>Predecessor revision ID<input id="predecessor-revision" placeholder="optional"></label>
+              <label>Predecessor canonical digest<input id="predecessor-digest" placeholder="sha256:…"></label>
+            </div>
+          </details>
+        </form>
+      </section>
+      <aside class="intake-summary" aria-labelledby="summary-title">
+        <p class="eyebrow">Review before export</p>
+        <h2 id="summary-title">Preliminary brief</h2>
+        <pre id="summary-text"></pre>
+        <p id="next-clarification" class="clarification"></p>
+        <div class="boundary"><strong>Local draft only.</strong> Exporting downloads an unencrypted file to this device. It does not submit an inquiry, promise contact, qualify a Carbon capability, or grant data-use rights.</div>
+        <button id="export-intake" type="button">Export intake draft</button>
+        <p id="intake-status" role="status" aria-live="polite"></p>
+      </aside>
+    </main>
+    <footer>Later website collection requires a separately approved receiving service, private storage, notice, access controls, retention policy, abuse controls, and operational owner.</footer>
+    <script>{{INTAKE}}</script>
+    <script>{{APP}}</script>
+  </body>
+</html>

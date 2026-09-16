@@ -1,8 +1,8 @@
 {
-  "schema_version": "carbon.goal-workbench.workspace.v0.7",
-  "application_version": "Carbon Goal-to-Challenge Workbench v0.7",
-  "decision_id": "GOAL-WORKBENCH-07",
-  "base_application_merge": "e5aafc522ca40db12f1897bcc0beacdedb44d823",
+  "schema_version": "carbon.goal-workbench.workspace.v0.8",
+  "application_version": "Carbon Goal-to-Challenge Workbench v0.8",
+  "decision_id": "GOAL-WORKBENCH-08",
+  "base_application_merge": "94762b6a8932ac6834c731a416c3a45c4cbf6170",
   "opportunity_workspace": {
     "schema_version": "carbon_workbench_workspace_v0.2",
     "application_version": "Carbon Opportunity Workbench v0.2",
@@ -30,10 +30,11 @@
         "rights_summary": "",
         "next_owner_decision": ""
       },
+      "intake_records": [],
       "working_design_id": "job-001-design-1",
       "designs": [
         {
-          "schema_version": "carbon.goal-workbench.design.v0.7",
+          "schema_version": "carbon.goal-workbench.design.v0.8",
           "job_id": "job-001",
           "design_id": "job-001-design-1",
           "revision": 1,

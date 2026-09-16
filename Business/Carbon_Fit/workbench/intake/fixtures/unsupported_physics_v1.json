@@ -1,0 +1,119 @@
+{
+  "schema_version": "carbon.client-intake.draft.v1",
+  "draft_id": "synthetic-unsupported-physics",
+  "revision_id": "rev-001",
+  "predecessor": null,
+  "answers": {
+    "intended_decision": {
+      "state": "VALUE",
+      "value": "Determine whether one bounded feasibility question can be stated for an unsupported coupled-physics need.",
+      "origin": "USER_ENTERED_LOCAL"
+    },
+    "requested_result": {
+      "state": "VALUE",
+      "value": "Compare a coupled thermal-structural observable.",
+      "origin": "USER_ENTERED_LOCAL"
+    },
+    "current_baseline": {
+      "state": "VALUE",
+      "value": "Unknown.",
+      "origin": "USER_ENTERED_LOCAL"
+    },
+    "baseline_limitation": {
+      "state": "UNKNOWN",
+      "value": "",
+      "origin": "USER_ENTERED_LOCAL"
+    },
+    "changing_conditions": {
+      "state": "VALUE",
+      "value": "A synthetic operating condition changes between runs.",
+      "origin": "USER_ENTERED_LOCAL"
+    },
+    "exclusions": {
+      "state": "VALUE",
+      "value": "No full research program and no solver execution.",
+      "origin": "USER_ENTERED_LOCAL"
+    },
+    "consequential_error": {
+      "state": "VALUE",
+      "value": "An unsupported representation could lead to a false feasibility conclusion.",
+      "origin": "USER_ENTERED_LOCAL"
+    },
+    "comparison_evidence": {
+      "state": "UNKNOWN",
+      "value": "",
+      "origin": "USER_ENTERED_LOCAL"
+    },
+    "access_limitations": {
+      "state": "VALUE",
+      "value": "Synthetic high-level inputs only; rights remain unresolved.",
+      "origin": "USER_ENTERED_LOCAL"
+    }
+  },
+  "quantities": {
+    "preparation_time": {
+      "state": "UNKNOWN",
+      "value": null,
+      "minimum": null,
+      "maximum": null,
+      "unit": "",
+      "note": "",
+      "origin": "USER_ENTERED_LOCAL"
+    },
+    "prediction_latency": {
+      "state": "UNKNOWN",
+      "value": null,
+      "minimum": null,
+      "maximum": null,
+      "unit": "",
+      "note": "",
+      "origin": "USER_ENTERED_LOCAL"
+    },
+    "reference_query_time": {
+      "state": "UNKNOWN",
+      "value": null,
+      "minimum": null,
+      "maximum": null,
+      "unit": "",
+      "note": "",
+      "origin": "USER_ENTERED_LOCAL"
+    },
+    "workload_frequency": {
+      "state": "UNKNOWN",
+      "value": null,
+      "minimum": null,
+      "maximum": null,
+      "unit": "",
+      "note": "",
+      "origin": "USER_ENTERED_LOCAL"
+    },
+    "desired_accuracy": {
+      "state": "UNKNOWN",
+      "value": null,
+      "minimum": null,
+      "maximum": null,
+      "unit": "",
+      "note": "",
+      "origin": "USER_ENTERED_LOCAL"
+    }
+  },
+  "summary": {
+    "mapping_version": "carbon.client-intake.mapping.v1",
+    "text": "Decision: Determine whether one bounded feasibility question can be stated for an unsupported coupled-physics need.\nRequested result: Compare a coupled thermal-structural observable.\nCurrent baseline: Unknown.\nReported limitation: Unknown\nChanging conditions: A synthetic operating condition changes between runs.\nExclusions: No full research program and no solver execution.\nConsequential error: An unsupported representation could lead to a false feasibility conclusion.\nComparison evidence (claimed): Unknown\nAccess/use limitations: Synthetic high-level inputs only; rights remain unresolved.\nPreparation time: unknown\nRecurring prediction latency: unknown\nReference-query time: unknown\nWorkload frequency: unknown\nRequested accuracy: unknown (unreviewed client intent)",
+    "unknown_fields": [
+      "baseline_limitation",
+      "comparison_evidence",
+      "preparation_time",
+      "prediction_latency",
+      "reference_query_time",
+      "workload_frequency",
+      "desired_accuracy"
+    ],
+    "next_clarification": "Clarify baseline limitation without supplying sensitive data."
+  },
+  "source": {
+    "application": "Carbon Client Intake Preview",
+    "mapping_version": "carbon.client-intake.mapping.v1",
+    "local_scope": "LOCAL_SYNTHETIC_DEVELOPMENT_NOT_TRANSMITTED"
+  }
+}

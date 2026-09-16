@@ -89,6 +89,10 @@ jobs:
           ref: ${{ needs.preflight.outputs.candidate_sha }}
           fetch-depth: 0
           persist-credentials: false
+      - name: Run bounded public Ask Carbon acceptance
+        run: |
+          npm test --prefix website/ask-carbon
+          npm run validate --prefix website/ask-carbon
       - name: Install pinned uv
         uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:

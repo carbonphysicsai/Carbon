@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Carbon goal-to-Challenge workbench workspace v0.7",
+  "title": "Carbon goal-to-Challenge workbench workspace v0.8",
   "$comment": "Closed browser-local planning schema. Derived results are recomputed. It grants no scientific, security, rights, reuse, submission, execution, or launch authority.",
   "$defs": {
     "opportunity_workspace_v02": {
@@ -1876,22 +1876,767 @@
         "shortlist",
         "migration_receipts"
       ]
+    },
+    "intake_draft": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "carbon.client-intake.draft.v1"
+        },
+        "draft_id": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "revision_id": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "predecessor": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "draft_id": {
+                  "type": "string",
+                  "maxLength": 128
+                },
+                "revision_id": {
+                  "type": "string",
+                  "maxLength": 128
+                },
+                "canonical_digest": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                }
+              },
+              "required": [
+                "draft_id",
+                "revision_id",
+                "canonical_digest"
+              ]
+            }
+          ]
+        },
+        "answers": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "intended_decision": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "state": {
+                  "enum": [
+                    "UNKNOWN",
+                    "VALUE"
+                  ]
+                },
+                "value": {
+                  "type": "string",
+                  "maxLength": 8000
+                },
+                "origin": {
+                  "const": "USER_ENTERED_LOCAL"
+                }
+              },
+              "required": [
+                "state",
+                "value",
+                "origin"
+              ]
+            },
+            "requested_result": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "state": {
+                  "enum": [
+                    "UNKNOWN",
+                    "VALUE"
+                  ]
+                },
+                "value": {
+                  "type": "string",
+                  "maxLength": 8000
+                },
+                "origin": {
+                  "const": "USER_ENTERED_LOCAL"
+                }
+              },
+              "required": [
+                "state",
+                "value",
+                "origin"
+              ]
+            },
+            "current_baseline": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "state": {
+                  "enum": [
+                    "UNKNOWN",
+                    "VALUE"
+                  ]
+                },
+                "value": {
+                  "type": "string",
+                  "maxLength": 8000
+                },
+                "origin": {
+                  "const": "USER_ENTERED_LOCAL"
+                }
+              },
+              "required": [
+                "state",
+                "value",
+                "origin"
+              ]
+            },
+            "baseline_limitation": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "state": {
+                  "enum": [
+                    "UNKNOWN",
+                    "VALUE"
+                  ]
+                },
+                "value": {
+                  "type": "string",
+                  "maxLength": 8000
+                },
+                "origin": {
+                  "const": "USER_ENTERED_LOCAL"
+                }
+              },
+              "required": [
+                "state",
+                "value",
+                "origin"
+              ]
+            },
+            "changing_conditions": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "state": {
+                  "enum": [
+                    "UNKNOWN",
+                    "VALUE"
+                  ]
+                },
+                "value": {
+                  "type": "string",
+                  "maxLength": 8000
+                },
+                "origin": {
+                  "const": "USER_ENTERED_LOCAL"
+                }
+              },
+              "required": [
+                "state",
+                "value",
+                "origin"
+              ]
+            },
+            "exclusions": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "state": {
+                  "enum": [
+                    "UNKNOWN",
+                    "VALUE"
+                  ]
+                },
+                "value": {
+                  "type": "string",
+                  "maxLength": 8000
+                },
+                "origin": {
+                  "const": "USER_ENTERED_LOCAL"
+                }
+              },
+              "required": [
+                "state",
+                "value",
+                "origin"
+              ]
+            },
+            "consequential_error": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "state": {
+                  "enum": [
+                    "UNKNOWN",
+                    "VALUE"
+                  ]
+                },
+                "value": {
+                  "type": "string",
+                  "maxLength": 8000
+                },
+                "origin": {
+                  "const": "USER_ENTERED_LOCAL"
+                }
+              },
+              "required": [
+                "state",
+                "value",
+                "origin"
+              ]
+            },
+            "comparison_evidence": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "state": {
+                  "enum": [
+                    "UNKNOWN",
+                    "VALUE"
+                  ]
+                },
+                "value": {
+                  "type": "string",
+                  "maxLength": 8000
+                },
+                "origin": {
+                  "const": "USER_ENTERED_LOCAL"
+                }
+              },
+              "required": [
+                "state",
+                "value",
+                "origin"
+              ]
+            },
+            "access_limitations": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "state": {
+                  "enum": [
+                    "UNKNOWN",
+                    "VALUE"
+                  ]
+                },
+                "value": {
+                  "type": "string",
+                  "maxLength": 8000
+                },
+                "origin": {
+                  "const": "USER_ENTERED_LOCAL"
+                }
+              },
+              "required": [
+                "state",
+                "value",
+                "origin"
+              ]
+            }
+          },
+          "required": [
+            "intended_decision",
+            "requested_result",
+            "current_baseline",
+            "baseline_limitation",
+            "changing_conditions",
+            "exclusions",
+            "consequential_error",
+            "comparison_evidence",
+            "access_limitations"
+          ]
+        },
+        "quantities": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "preparation_time": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "state": {
+                  "enum": [
+                    "UNKNOWN",
+                    "POINT",
+                    "RANGE"
+                  ]
+                },
+                "value": {
+                  "anyOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "number"
+                    }
+                  ]
+                },
+                "minimum": {
+                  "anyOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "number"
+                    }
+                  ]
+                },
+                "maximum": {
+                  "anyOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "number"
+                    }
+                  ]
+                },
+                "unit": {
+                  "type": "string",
+                  "maxLength": 120
+                },
+                "note": {
+                  "type": "string",
+                  "maxLength": 1000
+                },
+                "origin": {
+                  "const": "USER_ENTERED_LOCAL"
+                }
+              },
+              "required": [
+                "state",
+                "value",
+                "minimum",
+                "maximum",
+                "unit",
+                "note",
+                "origin"
+              ]
+            },
+            "prediction_latency": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "state": {
+                  "enum": [
+                    "UNKNOWN",
+                    "POINT",
+                    "RANGE"
+                  ]
+                },
+                "value": {
+                  "anyOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "number"
+                    }
+                  ]
+                },
+                "minimum": {
+                  "anyOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "number"
+                    }
+                  ]
+                },
+                "maximum": {
+                  "anyOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "number"
+                    }
+                  ]
+                },
+                "unit": {
+                  "type": "string",
+                  "maxLength": 120
+                },
+                "note": {
+                  "type": "string",
+                  "maxLength": 1000
+                },
+                "origin": {
+                  "const": "USER_ENTERED_LOCAL"
+                }
+              },
+              "required": [
+                "state",
+                "value",
+                "minimum",
+                "maximum",
+                "unit",
+                "note",
+                "origin"
+              ]
+            },
+            "reference_query_time": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "state": {
+                  "enum": [
+                    "UNKNOWN",
+                    "POINT",
+                    "RANGE"
+                  ]
+                },
+                "value": {
+                  "anyOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "number"
+                    }
+                  ]
+                },
+                "minimum": {
+                  "anyOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "number"
+                    }
+                  ]
+                },
+                "maximum": {
+                  "anyOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "number"
+                    }
+                  ]
+                },
+                "unit": {
+                  "type": "string",
+                  "maxLength": 120
+                },
+                "note": {
+                  "type": "string",
+                  "maxLength": 1000
+                },
+                "origin": {
+                  "const": "USER_ENTERED_LOCAL"
+                }
+              },
+              "required": [
+                "state",
+                "value",
+                "minimum",
+                "maximum",
+                "unit",
+                "note",
+                "origin"
+              ]
+            },
+            "workload_frequency": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "state": {
+                  "enum": [
+                    "UNKNOWN",
+                    "POINT",
+                    "RANGE"
+                  ]
+                },
+                "value": {
+                  "anyOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "number"
+                    }
+                  ]
+                },
+                "minimum": {
+                  "anyOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "number"
+                    }
+                  ]
+                },
+                "maximum": {
+                  "anyOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "number"
+                    }
+                  ]
+                },
+                "unit": {
+                  "type": "string",
+                  "maxLength": 120
+                },
+                "note": {
+                  "type": "string",
+                  "maxLength": 1000
+                },
+                "origin": {
+                  "const": "USER_ENTERED_LOCAL"
+                }
+              },
+              "required": [
+                "state",
+                "value",
+                "minimum",
+                "maximum",
+                "unit",
+                "note",
+                "origin"
+              ]
+            },
+            "desired_accuracy": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "state": {
+                  "enum": [
+                    "UNKNOWN",
+                    "POINT",
+                    "RANGE"
+                  ]
+                },
+                "value": {
+                  "anyOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "number"
+                    }
+                  ]
+                },
+                "minimum": {
+                  "anyOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "number"
+                    }
+                  ]
+                },
+                "maximum": {
+                  "anyOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "number"
+                    }
+                  ]
+                },
+                "unit": {
+                  "type": "string",
+                  "maxLength": 120
+                },
+                "note": {
+                  "type": "string",
+                  "maxLength": 1000
+                },
+                "origin": {
+                  "const": "USER_ENTERED_LOCAL"
+                }
+              },
+              "required": [
+                "state",
+                "value",
+                "minimum",
+                "maximum",
+                "unit",
+                "note",
+                "origin"
+              ]
+            }
+          },
+          "required": [
+            "preparation_time",
+            "prediction_latency",
+            "reference_query_time",
+            "workload_frequency",
+            "desired_accuracy"
+          ]
+        },
+        "summary": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "mapping_version": {
+              "const": "carbon.client-intake.mapping.v1"
+            },
+            "text": {
+              "type": "string",
+              "maxLength": 24000
+            },
+            "unknown_fields": {
+              "type": "array",
+              "maxItems": 32,
+              "items": {
+                "enum": [
+                  "intended_decision",
+                  "requested_result",
+                  "current_baseline",
+                  "baseline_limitation",
+                  "changing_conditions",
+                  "exclusions",
+                  "consequential_error",
+                  "comparison_evidence",
+                  "access_limitations",
+                  "preparation_time",
+                  "prediction_latency",
+                  "reference_query_time",
+                  "workload_frequency",
+                  "desired_accuracy"
+                ]
+              }
+            },
+            "next_clarification": {
+              "type": "string",
+              "maxLength": 1000
+            }
+          },
+          "required": [
+            "mapping_version",
+            "text",
+            "unknown_fields",
+            "next_clarification"
+          ]
+        },
+        "source": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "application": {
+              "const": "Carbon Client Intake Preview"
+            },
+            "mapping_version": {
+              "const": "carbon.client-intake.mapping.v1"
+            },
+            "local_scope": {
+              "const": "LOCAL_SYNTHETIC_DEVELOPMENT_NOT_TRANSMITTED"
+            }
+          },
+          "required": [
+            "application",
+            "mapping_version",
+            "local_scope"
+          ]
+        }
+      },
+      "required": [
+        "schema_version",
+        "draft_id",
+        "revision_id",
+        "predecessor",
+        "answers",
+        "quantities",
+        "summary",
+        "source"
+      ]
+    },
+    "intake_record": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "draft_id": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "revision_id": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "predecessor_canonical_digest": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            }
+          ]
+        },
+        "raw_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "canonical_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "raw_json": {
+          "type": "string",
+          "maxLength": 120000
+        },
+        "validated_draft": {
+          "$ref": "#/$defs/intake_draft"
+        },
+        "mapped_requirement_ids": {
+          "type": "array",
+          "maxItems": 16,
+          "items": {
+            "type": "string",
+            "maxLength": 128
+          }
+        },
+        "import_status": {
+          "const": "IMPORTED_LOCAL_ASSERTION"
+        }
+      },
+      "required": [
+        "draft_id",
+        "revision_id",
+        "predecessor_canonical_digest",
+        "raw_sha256",
+        "canonical_digest",
+        "raw_json",
+        "validated_draft",
+        "mapped_requirement_ids",
+        "import_status"
+      ]
     }
   },
   "type": "object",
   "additionalProperties": false,
   "properties": {
     "schema_version": {
-      "const": "carbon.goal-workbench.workspace.v0.7"
+      "const": "carbon.goal-workbench.workspace.v0.8"
     },
     "application_version": {
-      "const": "Carbon Goal-to-Challenge Workbench v0.7"
+      "const": "Carbon Goal-to-Challenge Workbench v0.8"
     },
     "decision_id": {
-      "const": "GOAL-WORKBENCH-07"
+      "const": "GOAL-WORKBENCH-08"
     },
     "base_application_merge": {
-      "const": "e5aafc522ca40db12f1897bcc0beacdedb44d823"
+      "const": "94762b6a8932ac6834c731a416c3a45c4cbf6170"
     },
     "opportunity_workspace": {
       "$ref": "#/$defs/opportunity_workspace_v02"
@@ -1993,6 +2738,13 @@
               "next_owner_decision"
             ]
           },
+          "intake_records": {
+            "type": "array",
+            "maxItems": 64,
+            "items": {
+              "$ref": "#/$defs/intake_record"
+            }
+          },
           "designs": {
             "type": "array",
             "maxItems": 64,
@@ -2001,7 +2753,7 @@
               "additionalProperties": false,
               "properties": {
                 "schema_version": {
-                  "const": "carbon.goal-workbench.design.v0.7"
+                  "const": "carbon.goal-workbench.design.v0.8"
                 },
                 "job_id": {
                   "type": "string",
@@ -5972,6 +6724,7 @@
           "lead",
           "working_design_id",
           "assignment",
+          "intake_records",
           "designs",
           "created_from"
         ]
@@ -6016,7 +6769,8 @@
               "carbon.goal-workbench.workspace.v0.4",
               "carbon.goal-workbench.workspace.v0.5",
               "carbon.goal-workbench.workspace.v0.6",
-              "carbon.goal-workbench.workspace.v0.7"
+              "carbon.goal-workbench.workspace.v0.7",
+              "carbon.goal-workbench.workspace.v0.8"
             ]
           },
           "original_digest_status": {

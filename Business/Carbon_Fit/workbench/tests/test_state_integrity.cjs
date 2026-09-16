@@ -404,6 +404,7 @@ test("v0.5 contradictory carry-forward migrates to explicit review with correcti
   old.application_version = "Carbon Goal-to-Challenge Workbench v0.5";
   old.decision_id = "GOAL-WORKBENCH-05";
   old.base_application_merge = "e576fbdc711c9194dbcc7d90405480e90577407e";
+  delete old.jobs[0].intake_records;
   delete old.jobs[0].working_design_id;
   const od = old.jobs[0].designs[0];
   od.schema_version = "carbon.goal-workbench.design.v0.5";

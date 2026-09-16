@@ -1,0 +1,118 @@
+{
+  "schema_version": "carbon.client-intake.draft.v1",
+  "draft_id": "synthetic-existing-method",
+  "revision_id": "rev-001",
+  "predecessor": null,
+  "answers": {
+    "intended_decision": {
+      "state": "VALUE",
+      "value": "Decide whether the existing numerical workflow can return useful answers sooner without changing the engineering decision.",
+      "origin": "USER_ENTERED_LOCAL"
+    },
+    "requested_result": {
+      "state": "VALUE",
+      "value": "Compare turnaround and output compatibility for the current method.",
+      "origin": "USER_ENTERED_LOCAL"
+    },
+    "current_baseline": {
+      "state": "VALUE",
+      "value": "A user-reported numerical method.",
+      "origin": "USER_ENTERED_LOCAL"
+    },
+    "baseline_limitation": {
+      "state": "VALUE",
+      "value": "Turnaround is reported as inconvenient; accuracy and financial impact are unknown.",
+      "origin": "USER_ENTERED_LOCAL"
+    },
+    "changing_conditions": {
+      "state": "VALUE",
+      "value": "Operating conditions vary between runs; the exact envelope is unknown.",
+      "origin": "USER_ENTERED_LOCAL"
+    },
+    "exclusions": {
+      "state": "UNKNOWN",
+      "value": "",
+      "origin": "USER_ENTERED_LOCAL"
+    },
+    "consequential_error": {
+      "state": "VALUE",
+      "value": "A misleading output could cause the wrong design comparison.",
+      "origin": "USER_ENTERED_LOCAL"
+    },
+    "comparison_evidence": {
+      "state": "VALUE",
+      "value": "The current method may provide comparison outputs; availability and permission are unverified.",
+      "origin": "USER_ENTERED_LOCAL"
+    },
+    "access_limitations": {
+      "state": "UNKNOWN",
+      "value": "",
+      "origin": "USER_ENTERED_LOCAL"
+    }
+  },
+  "quantities": {
+    "preparation_time": {
+      "state": "UNKNOWN",
+      "value": null,
+      "minimum": null,
+      "maximum": null,
+      "unit": "",
+      "note": "",
+      "origin": "USER_ENTERED_LOCAL"
+    },
+    "prediction_latency": {
+      "state": "UNKNOWN",
+      "value": null,
+      "minimum": null,
+      "maximum": null,
+      "unit": "",
+      "note": "",
+      "origin": "USER_ENTERED_LOCAL"
+    },
+    "reference_query_time": {
+      "state": "UNKNOWN",
+      "value": null,
+      "minimum": null,
+      "maximum": null,
+      "unit": "",
+      "note": "",
+      "origin": "USER_ENTERED_LOCAL"
+    },
+    "workload_frequency": {
+      "state": "RANGE",
+      "value": null,
+      "minimum": 1,
+      "maximum": 5,
+      "unit": "queries/week",
+      "note": "Synthetic product-flow fixture",
+      "origin": "USER_ENTERED_LOCAL"
+    },
+    "desired_accuracy": {
+      "state": "UNKNOWN",
+      "value": null,
+      "minimum": null,
+      "maximum": null,
+      "unit": "",
+      "note": "",
+      "origin": "USER_ENTERED_LOCAL"
+    }
+  },
+  "summary": {
+    "mapping_version": "carbon.client-intake.mapping.v1",
+    "text": "Decision: Decide whether the existing numerical workflow can return useful answers sooner without changing the engineering decision.\nRequested result: Compare turnaround and output compatibility for the current method.\nCurrent baseline: A user-reported numerical method.\nReported limitation: Turnaround is reported as inconvenient; accuracy and financial impact are unknown.\nChanging conditions: Operating conditions vary between runs; the exact envelope is unknown.\nExclusions: Unknown\nConsequential error: A misleading output could cause the wrong design comparison.\nComparison evidence (claimed): The current method may provide comparison outputs; availability and permission are unverified.\nAccess/use limitations: Unknown\nPreparation time: unknown\nRecurring prediction latency: unknown\nReference-query time: unknown\nWorkload frequency: 1–5 queries/week\nRequested accuracy: unknown (unreviewed client intent)",
+    "unknown_fields": [
+      "exclusions",
+      "access_limitations",
+      "preparation_time",
+      "prediction_latency",
+      "reference_query_time",
+      "desired_accuracy"
+    ],
+    "next_clarification": "Clarify exclusions without supplying sensitive data."
+  },
+  "source": {
+    "application": "Carbon Client Intake Preview",
+    "mapping_version": "carbon.client-intake.mapping.v1",
+    "local_scope": "LOCAL_SYNTHETIC_DEVELOPMENT_NOT_TRANSMITTED"
+  }
+}

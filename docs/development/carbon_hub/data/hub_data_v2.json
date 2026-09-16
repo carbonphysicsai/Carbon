@@ -2892,6 +2892,13 @@
         "map_ref": "WAVE-D"
       },
       {
+        "id": "web-qa-01-public-answer-bot-ticket",
+        "match_type": "exact",
+        "path": ".agent/tickets/WEB-QA-01_public_homepage_answer_bot.md",
+        "impact_class": "map_structural",
+        "map_ref": "SYSTEM/PUBLICATION-AUTHORITY"
+      },
+      {
         "id": "ticket-record",
         "match_type": "ticket_record",
         "path": ".agent/tickets/",
