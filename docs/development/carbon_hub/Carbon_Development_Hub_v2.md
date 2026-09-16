@@ -2,7 +2,7 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `ec2b1e8210871905c7061f6bd7da2876cb01198c` on `main`, captured 2026-09-16T02:59:26Z.
+**Authority snapshot:** `6c0e6f20edb79d08de9db99bcfa83036fd522f3e` on `main`, captured 2026-09-16T03:46:55Z.
 **Current:** Wave C, ticket C-W1. C-W1 DEVELOPMENT: PR #191 merged the prediction staging repair. The separately approved real gpt-5-mini session made eight calls for USD 0.00738, proposed FNO-40 and completed three real JAX replicas (120 updates), 72 measurements, permitted feedback and an ACTIVE signed controller source. It ended after one proposal without a strategy revision. All earlier failures remain retained. The selected continuation adds a zero-fee publication guard before the separate activation/all-burn decision. Distinct miner UID 1 finalized at block 8013851; Subnet 567 creation finalized at 8010852. Earlier fixed-scaffold engineering observations are not results of the real agent and are not a registered comparison baseline. No subsequent activation or all-burn publication occurred. There is no qualified score, accepted improvement or winner. AWS stays deferred, Hippius unverified and protected/production/scientific qualification unearned. No later ticket is selected.
 **Last completed:** C-10 (`done`).
 **Next selected:** none selected.
