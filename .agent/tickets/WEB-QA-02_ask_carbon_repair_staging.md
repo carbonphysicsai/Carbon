@@ -1,10 +1,10 @@
 # WEB-QA-02 — Ask Carbon repair, knowledge completion, and staging evaluation
 
-**Status:** `in_progress`
+**Status:** `implemented_with_external_staging_blockers`
 **Owner authorization:** 2026-09-16 Ask Carbon successor direction
 **Branch:** `agent/web-qa-02-repair-staging`
 **Base:** `405a820b` (`origin/main` at ticket start)
-**Primary Hub map:** `SYSTEM/DEVELOPMENT-HUB`
+**Primary Hub map:** `SYSTEM/PUBLICATION-AUTHORITY`
 
 ## Objective
 
@@ -44,20 +44,20 @@ unchanged unless separately authorized after this ticket.
 
 ## Definition of done
 
-- [ ] every reviewed defect is reproduced by a regression test and repaired;
-- [ ] generated accounting sequences and concrete examples preserve the
+- [x] every reviewed defect is reproduced by a regression test and repaired;
+- [x] generated accounting sequences and concrete examples preserve the
       monthly exposure invariant across restart, expiry, rollover, duplicates,
       late settlement, and multiple deployment environments;
-- [ ] current-source knowledge coverage is reviewed and release-gated without
+- [x] current-source knowledge coverage is reviewed and release-gated without
       relying on an obsolete fixed card count;
-- [ ] deterministic retrieval, release, Worker, UI, and mock-evaluation tests
+- [x] deterministic retrieval, release, Worker, UI, and mock-evaluation tests
       pass; mock metrics are labelled as contract checks rather than quality;
-- [ ] two compatible OpenAI configurations are tested through the bounded
+- [x] two compatible OpenAI configurations are tested through the bounded
       Worker path when existing credentials and private staging permissions are
       available, otherwise the exact missing external fact is recorded;
-- [ ] the actual hosting source/account/routing/rollback path is established by
+- [x] the actual hosting source/account/routing/rollback path is established by
       authenticated evidence or left as an exact permission blocker;
-- [ ] staging/browser/runtime evidence and privacy/retention map distinguish
+- [x] staging/browser/runtime evidence and privacy/retention map distinguish
       tested, unavailable, and human-reserved checks;
 - [ ] applicable repository acceptance and `Merge gate` pass before normal
       expected-head merge under `.agent/DELIVERY_PROTOCOL.md`.
