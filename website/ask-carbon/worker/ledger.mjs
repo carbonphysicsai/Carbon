@@ -5,6 +5,7 @@ const json = (value, status = 200) => new Response(JSON.stringify(value), {
 
 const utcDay = (milliseconds) => new Date(milliseconds).toISOString().slice(0, 10);
 const utcHour = (milliseconds) => new Date(milliseconds).toISOString().slice(0, 13);
+const utcMonth = (milliseconds) => new Date(milliseconds).toISOString().slice(0, 7);
 
 export class AskCarbonUsageLedger {
   constructor(state) {
@@ -27,17 +28,21 @@ export class AskCarbonUsageLedger {
     const leaseTtlMs = Number(input.lease_ttl_ms);
     const requestLimit = Number(input.request_limit);
     const costLimit = Number(input.cost_limit_micro_usd);
+    const monthlyCostLimit = Number(input.monthly_cost_limit_micro_usd);
     const concurrencyLimit = Number(input.concurrency_limit);
     const clientRequestsPerHour = Number(input.client_requests_per_hour);
     const reservedCost = Number(input.reserved_cost_micro_usd);
-    if (![now, leaseTtlMs, requestLimit, costLimit, concurrencyLimit, clientRequestsPerHour, reservedCost].every(Number.isSafeInteger) ||
-        now <= 0 || leaseTtlMs <= 0 || requestLimit <= 0 || costLimit <= 0 || concurrencyLimit <= 0 || clientRequestsPerHour <= 0 || reservedCost <= 0 ||
-        typeof input.lease_id !== "string" || !input.lease_id || typeof input.client_id !== "string" || !input.client_id) {
+    const pilotRequestsPerSession = Number(input.pilot_requests_per_session);
+    if (![now, leaseTtlMs, requestLimit, costLimit, monthlyCostLimit, concurrencyLimit, clientRequestsPerHour, pilotRequestsPerSession, reservedCost].every(Number.isSafeInteger) ||
+        now <= 0 || leaseTtlMs <= 0 || requestLimit <= 0 || costLimit <= 0 || monthlyCostLimit <= 0 || concurrencyLimit <= 0 || clientRequestsPerHour <= 0 || pilotRequestsPerSession <= 0 || reservedCost <= 0 ||
+        typeof input.lease_id !== "string" || !input.lease_id || typeof input.client_id !== "string" || !input.client_id || typeof input.session_id !== "string" || !input.session_id || !["GENERAL_QA", "PILOT_DESIGN"].includes(input.mode)) {
       return json({ allowed: false, reason: "invalid_reservation" }, 400);
     }
     return this.state.storage.transaction(async (transaction) => {
       const key = `day:${utcDay(now)}`;
+      const monthKey = `month:${utcMonth(now)}`;
       const current = (await transaction.get(key)) ?? { requests: 0, settled_micro_usd: 0, leases: {}, clients: {} };
+      const monthly = (await transaction.get(monthKey)) ?? { settled_micro_usd: 0, sessions: {} };
       current.clients ??= {};
       for (const [leaseId, lease] of Object.entries(current.leases)) {
         if (lease.expires_at_ms <= now) delete current.leases[leaseId];
@@ -47,24 +52,30 @@ export class AskCarbonUsageLedger {
       const clientWindow = activeLeases.filter((lease) => lease.client_id === input.client_id).length;
       const hour = utcHour(now);
       const clientRate = current.clients[input.client_id]?.hour === hour ? current.clients[input.client_id].requests : 0;
+      const sessionRequests = monthly.sessions[input.session_id] ?? 0;
       let reason = null;
       if (current.requests >= requestLimit) reason = "daily_request_limit";
       else if (activeLeases.length >= concurrencyLimit) reason = "global_concurrency_limit";
       else if (clientWindow >= 2) reason = "client_concurrency_limit";
       else if (clientRate >= clientRequestsPerHour) reason = "client_hourly_limit";
+      else if (input.mode === "PILOT_DESIGN" && sessionRequests >= pilotRequestsPerSession) reason = "pilot_session_limit";
       else if (current.settled_micro_usd + reserved + reservedCost > costLimit) reason = "daily_cost_limit";
+      else if (monthly.settled_micro_usd + reserved + reservedCost > monthlyCostLimit) reason = "monthly_cost_limit";
       if (reason) {
         await transaction.put(key, current);
+        await transaction.put(monthKey, monthly);
         return json({ allowed: false, reason }, 429);
       }
       current.requests += 1;
       current.clients[input.client_id] = { hour, requests: clientRate + 1 };
+      monthly.sessions[input.session_id] = sessionRequests + 1;
       current.leases[input.lease_id] = {
         client_id: input.client_id,
         reserved_micro_usd: reservedCost,
         expires_at_ms: now + leaseTtlMs,
       };
       await transaction.put(key, current);
+      await transaction.put(monthKey, monthly);
       return json({ allowed: true, lease_id: input.lease_id, expires_at_ms: now + leaseTtlMs });
     });
   }
@@ -77,12 +88,16 @@ export class AskCarbonUsageLedger {
     }
     return this.state.storage.transaction(async (transaction) => {
       const key = `day:${utcDay(now)}`;
+      const monthKey = `month:${utcMonth(now)}`;
       const current = (await transaction.get(key)) ?? { requests: 0, settled_micro_usd: 0, leases: {}, clients: {} };
+      const monthly = (await transaction.get(monthKey)) ?? { settled_micro_usd: 0, sessions: {} };
       const lease = current.leases[input.lease_id];
       if (!lease) return json({ settled: false, reason: "lease_not_found" }, 409);
       delete current.leases[input.lease_id];
       current.settled_micro_usd += actualCost;
+      monthly.settled_micro_usd += actualCost;
       await transaction.put(key, current);
+      await transaction.put(monthKey, monthly);
       return json({ settled: true, actual_cost_micro_usd: actualCost });
     });
   }
@@ -91,10 +106,12 @@ export class AskCarbonUsageLedger {
     const now = Number(input.now_ms);
     if (!Number.isSafeInteger(now) || now <= 0) return json({ error: "invalid_snapshot" }, 400);
     const key = `day:${utcDay(now)}`;
+    const monthKey = `month:${utcMonth(now)}`;
     const current = (await this.state.storage.get(key)) ?? { requests: 0, settled_micro_usd: 0, leases: {}, clients: {} };
+    const monthly = (await this.state.storage.get(monthKey)) ?? { settled_micro_usd: 0, sessions: {} };
     for (const [leaseId, lease] of Object.entries(current.leases)) {
       if (lease.expires_at_ms <= now) delete current.leases[leaseId];
     }
-    return json({ ...current, active_leases: Object.keys(current.leases).length });
+    return json({ ...current, active_leases: Object.keys(current.leases).length, monthly_settled_micro_usd: monthly.settled_micro_usd });
   }
 }

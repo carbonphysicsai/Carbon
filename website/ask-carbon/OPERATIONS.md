@@ -34,7 +34,10 @@ Set all explicit operational values in the private deployment configuration:
 - approved origins and model allowlist plus selected model;
 - current input/output price in USD per million tokens;
 - daily request and micro-USD ceilings;
+- one combined monthly ceiling for general Q&A and pilot design, no greater
+  than the owner-authorized $50/month;
 - global concurrency and per-client hourly ceilings;
+- bounded pilot-design requests per session;
 - maximum input/output tokens and provider timeout;
 - Durable Object binding and migration.
 
@@ -42,6 +45,13 @@ Run the supplied live cases against every owner-approved candidate and record
 support, citation relevance, maturity accuracy, context handling, usefulness,
 latency and measured token cost. A second-model check is evidence only; it is
 not an authority or an automatic launch choice.
+
+Before enabling `PILOT_DESIGN`, verify the exact public notice against the
+actual Carbon OpenAI account retention configuration and the private inquiry
+receiver. AI consent must precede the first request; form-only drafting must
+remain usable. Do not log abandoned raw conversation text for sales/research
+analysis. Inquiry response permission and optional broader reuse permission
+must remain separate.
 
 ## Routing and activation order
 

@@ -1,11 +1,21 @@
 # Carbon Goal-to-Challenge Workbench v0.8
 
 GOAL-WORKBENCH-08 adds a browser-local intake-to-job bridge without adding a
-receiving service. Open `Carbon_Client_Intake_Preview.html`, describe a
-high-level engineering need, review the deterministic brief, and explicitly
-download a closed `carbon.client-intake.draft.v1` file. The preview keeps state
-in memory, sends no request, collects no contact or arbitrary file, and warns
-that the unencrypted export should contain only non-sensitive information.
+receiving service. Open `Carbon_Client_Pilot_Designer_Preview.html` (the
+historical `Carbon_Client_Intake_Preview.html` alias has the same bytes), then
+use guided conversation, the form, or switch between them over one shared
+brief. Form-only drafting sends nothing. AI guidance requires an explicit
+disclosure and consent action, proposes closed structured changes for client
+acceptance, supports rejection/undo, and fails back to the intact form. The
+preview keeps state in memory and warns that the unencrypted export should
+contain only non-sensitive information.
+
+The explicit download is a closed `carbon.client-intake.reviewed.v1` package
+containing the canonical `carbon.client-intake.draft.v1` brief, a draft pilot,
+field provenance, accepted suggestions, unresolved assumptions, applicable AI
+notice/consent version, contact fields, and conversation history only when the
+client selects the unchecked inclusion option. It is a “Draft pilot for Carbon
+review,” not a submission or scientific/commercial acceptance.
 
 Import that file with **Import intake draft** in
 `Carbon_Opportunity_Workbench.html`. The Workbench previews the original words,
@@ -20,9 +30,18 @@ The two artifacts share `src/intake.js`; the public preview does not bundle the
 Owner Console, source-assessment trust root, C-05 evidence, operator records, or
 local paths. Fresh inquiries do not inherit the 07A assessment, even when they
 mention Burgers. Live collection, private persistence, staff notification,
-consent/privacy text, hosting, authentication, abuse controls, retention, and
+final approved consent/privacy text, hosting, authentication, abuse controls, retention, and
 deletion remain issue #139 work and are neither implemented nor authorized.
 See `docs/GOAL_WORKBENCH_08_INTAKE_TO_JOB_REPORT.md`.
+
+Ask Carbon general Q&A and the new `PILOT_DESIGN` mode share the existing
+server adapter, public-source mapping, usage ledger, and one $50/month owner
+ceiling. The pilot mode adds a per-session bound and schema-constrained
+proposals; the server owns validation, context signing, source mapping, and
+cost accounting. The current public knowledge release remains draft and no
+provider key, reviewed model/price configuration, deployed receiver, or live
+activation is shipped. See `docs/GOAL_WORKBENCH_08A_GUIDED_PILOT_REPORT.md` and
+`../../../website/ask-carbon/PILOT_DESIGN_REVIEW.md`.
 
 GOAL-WORKBENCH-07A installs the first owner-adopted source assessment in the repository-pinned, read-only GOAL-WORKBENCH-07 consumer. The production snapshot contains exactly `GW07-BURGERS-DYNAMICS-ASSESSMENT-001`, adopted by Ryan through an explicit owner-conversation decision and admitted by the controlled repository build. The exact public example workspace supplies the original sealed subject and request; importing the unchanged response through ordinary browser controls yields two answered technical questions, one partial/open question, and zero resolved review reasons. No scientific qualification, rights, fresh execution, scoring, protected reuse, or launch follows. See `docs/GOAL_WORKBENCH_07A_ADMISSION_REPORT.md`.
 

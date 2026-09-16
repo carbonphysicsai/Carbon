@@ -978,6 +978,81 @@ intake_draft = obj(
         ),
     }
 )
+pilot_fields = [
+    "candidate_inputs",
+    "candidate_outputs",
+    "operating_envelope",
+    "evaluation_questions",
+    "requested_targets",
+    "missing_evidence",
+    "implementation_work",
+    "bounded_first_pilot",
+    "next_discussion",
+]
+reviewed_intake = obj(
+    {
+        "schema_version": {"const": "carbon.client-intake.reviewed.v1"},
+        "brief": intake_draft,
+        "pilot": obj(
+            {
+                "label": {"const": "Draft pilot for Carbon review"},
+                **{field: string(8_000) for field in pilot_fields},
+            }
+        ),
+        "field_provenance": array(
+            obj(
+                {
+                    "field": {"enum": text_fields + quantity_fields + [f"pilot.{field}" for field in pilot_fields]},
+                    "origin": {"enum": ["CLIENT_TYPED", "AI_SUGGESTED_CLIENT_ACCEPTED", "UNKNOWN"]},
+                    "suggestion_id": nullable(string(128)),
+                }
+            ),
+            64,
+        ),
+        "accepted_suggestions": array(
+            obj(
+                {
+                    "suggestion_id": string(128),
+                    "field": {"enum": text_fields + [f"pilot.{field}" for field in pilot_fields]},
+                    "proposed_value": string(8_000),
+                    "rationale": string(1_200),
+                    "accepted_at": string(64),
+                }
+            ),
+            64,
+        ),
+        "unresolved_assumptions": array(string(1_200), 32),
+        "ai_guidance": obj(
+            {
+                "enabled": {"type": "boolean"},
+                "provider": nullable({"const": "OPENAI_API"}),
+                "guidance_version": {"const": "carbon.client-intake.guidance.v1"},
+                "notice_version": nullable(string(128)),
+                "consented_at": nullable(string(64)),
+                "cleared_locally": {"type": "boolean"},
+            }
+        ),
+        "sharing": obj(
+            {
+                "include_conversation": {"type": "boolean"},
+                "conversation": array(
+                    obj(
+                        {
+                            "turn_id": string(128),
+                            "role": {"enum": ["CLIENT", "ASSISTANT"]},
+                            "text": string(4_000),
+                        }
+                    ),
+                    32,
+                ),
+            }
+        ),
+        "contact": obj(
+            {"name": string(300), "email": string(320), "organization": string(300)}
+        ),
+        "local_scope": {"const": "LOCAL_REVIEW_PACKAGE_NOT_SUBMITTED"},
+    }
+)
 intake_record = obj(
     {
         "draft_id": string(128),
@@ -1077,6 +1152,19 @@ constants = {
             "title": "Carbon local client intake draft v1",
             "$comment": "Local, untrusted, non-authoritative transport. Nothing is submitted or approved.",
             **intake_draft,
+        },
+        indent=2,
+    )
+    + "\n",
+    encoding="utf-8",
+)
+(ROOT / "data/intake_reviewed.schema.json").write_text(
+    json.dumps(
+        {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "title": "Carbon reviewed client pilot brief v1",
+            "$comment": "Local untrusted review package. AI suggestions are client-reviewed intake, not scientific or commercial authority.",
+            **reviewed_intake,
         },
         indent=2,
     )

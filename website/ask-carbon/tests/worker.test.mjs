@@ -54,11 +54,13 @@ test("active flow maps source IDs server-side and settles measured usage", async
     ASK_CARBON_OUTPUT_USD_PER_MILLION: "2",
     ASK_CARBON_DAILY_REQUEST_LIMIT: "100",
     ASK_CARBON_DAILY_COST_MICRO_USD_LIMIT: "100000",
+    ASK_CARBON_MONTHLY_COST_MICRO_USD_LIMIT: "50000000",
     ASK_CARBON_MAX_CONCURRENCY: "4",
     ASK_CARBON_CLIENT_REQUESTS_PER_HOUR: "12",
     ASK_CARBON_MAX_INPUT_TOKENS: "24000",
     ASK_CARBON_MAX_OUTPUT_TOKENS: "700",
     ASK_CARBON_PROVIDER_TIMEOUT_MS: "15000",
+    ASK_CARBON_PILOT_MAX_REQUESTS_PER_SESSION: "8",
     ASK_CARBON_USAGE_LEDGER: { idFromName: () => "global", get: () => ledger },
   };
   const released = { ...knowledge, release_status: "APPROVED_PUBLIC", source_release_date: "2026-09-16", expires_at: "2099-01-01T00:00:00Z" };
@@ -119,11 +121,13 @@ test("provider failure settles the conservative reserved maximum", async () => {
     ASK_CARBON_OUTPUT_USD_PER_MILLION: "2",
     ASK_CARBON_DAILY_REQUEST_LIMIT: "100",
     ASK_CARBON_DAILY_COST_MICRO_USD_LIMIT: "100000",
+    ASK_CARBON_MONTHLY_COST_MICRO_USD_LIMIT: "50000000",
     ASK_CARBON_MAX_CONCURRENCY: "4",
     ASK_CARBON_CLIENT_REQUESTS_PER_HOUR: "12",
     ASK_CARBON_MAX_INPUT_TOKENS: "24000",
     ASK_CARBON_MAX_OUTPUT_TOKENS: "700",
     ASK_CARBON_PROVIDER_TIMEOUT_MS: "15000",
+    ASK_CARBON_PILOT_MAX_REQUESTS_PER_SESSION: "8",
     ASK_CARBON_USAGE_LEDGER: { idFromName: () => "global", get: () => ledger },
   };
   const released = { ...knowledge, release_status: "APPROVED_PUBLIC", source_release_date: "2026-09-16", expires_at: "2099-01-01T00:00:00Z" };
@@ -138,6 +142,39 @@ test("provider failure settles the conservative reserved maximum", async () => {
     }), env);
     assert.equal(response.status, 502);
     assert.equal(calls[1].body.actual_cost_micro_usd, 25_400);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("pilot-design mode uses the shared adapter and returns bounded proposed edits", async () => {
+  const calls = [];
+  const ledger = { async fetch(url, options) { calls.push(JSON.parse(options.body)); return new Response(JSON.stringify(url.endsWith("/reserve") ? { allowed: true, lease_id: calls.at(-1).lease_id } : { settled: true }), { status: 200 }); } };
+  const env = {
+    ASK_CARBON_ACTIVATION: "enabled", ASK_CARBON_APPROVED_ORIGINS: "https://carbonphysics.ai", ASK_CARBON_APPROVED_MODELS: "approved-test-model", ASK_CARBON_MODEL: "approved-test-model", ASK_CARBON_OPENAI_API_KEY: "test-provider-key", ASK_CARBON_CONTEXT_SIGNING_SECRET: "test-signing-secret", ASK_CARBON_INPUT_USD_PER_MILLION: "1", ASK_CARBON_OUTPUT_USD_PER_MILLION: "2", ASK_CARBON_DAILY_REQUEST_LIMIT: "100", ASK_CARBON_DAILY_COST_MICRO_USD_LIMIT: "100000", ASK_CARBON_MONTHLY_COST_MICRO_USD_LIMIT: "50000000", ASK_CARBON_MAX_CONCURRENCY: "4", ASK_CARBON_CLIENT_REQUESTS_PER_HOUR: "12", ASK_CARBON_MAX_INPUT_TOKENS: "24000", ASK_CARBON_MAX_OUTPUT_TOKENS: "700", ASK_CARBON_PROVIDER_TIMEOUT_MS: "15000", ASK_CARBON_PILOT_MAX_REQUESTS_PER_SESSION: "8", ASK_CARBON_USAGE_LEDGER: { idFromName: () => "global", get: () => ledger },
+  };
+  const released = { ...knowledge, release_status: "APPROVED_PUBLIC", source_release_date: "2026-09-16", expires_at: "2099-01-01T00:00:00Z" };
+  const activeWorker = createWorker(released);
+  const answers = Object.fromEntries(["intended_decision", "requested_result", "current_baseline", "baseline_limitation", "changing_conditions", "exclusions", "consequential_error", "comparison_evidence", "access_limitations"].map((field) => [field, field === "intended_decision" ? "Choose a cold-plate design." : null]));
+  const pilot = Object.fromEntries(["candidate_inputs", "candidate_outputs", "operating_envelope", "evaluation_questions", "requested_targets", "missing_evidence", "implementation_work", "bounded_first_pilot", "next_discussion"].map((field) => [field, null]));
+  const originalFetch = globalThis.fetch;
+  let providerBody;
+  globalThis.fetch = async (_url, options) => {
+    providerBody = JSON.parse(options.body);
+    return new Response(JSON.stringify({ status: "completed", output: [{ type: "message", role: "assistant", content: [{ type: "output_text", text: JSON.stringify({ message: "A bounded comparison can be drafted without promising execution.", next_question: "Which operating conditions vary?", proposals: [{ suggestion_id: "pilot-thermal-001", field: "pilot.evaluation_questions", value: "Compare hotspot location and design ranking.", rationale: "These observables connect the prediction to the design decision." }], unresolved_assumptions: ["Reference coverage and access remain unknown."], source_ids: [], maturity_note: "Draft pilot for Carbon review." }) }] }], usage: { input_tokens: 120, output_tokens: 80 } }), { status: 200, headers: { "content-type": "application/json" } });
+  };
+  try {
+    const response = await activeWorker.fetch(new Request("https://carbonphysics.ai/api/ask-carbon", { method: "POST", headers: { origin: "https://carbonphysics.ai", "content-type": "application/json", "cf-connecting-ip": "192.0.2.2" }, body: JSON.stringify({ mode: "PILOT_DESIGN", session_id: "pilot-session-1", question: "We want to predict cold-plate temperatures faster.", turns: [], draft_context: { version: "carbon.client-intake.guidance-context.v1", answers, pilot, unresolved_assumptions: [] } }) }), env);
+    assert.equal(response.status, 200);
+    const body = await response.json();
+    assert.equal(body.mode, "PILOT_DESIGN");
+    assert.equal(body.proposals[0].field, "pilot.evaluation_questions");
+    assert.equal(body.next_question, "Which operating conditions vary?");
+    assert.equal("tools" in providerBody, false);
+    assert.equal(providerBody.store, false);
+    assert.equal(providerBody.text.format.name, "carbon_pilot_guidance");
+    assert.equal(calls[0].mode, "PILOT_DESIGN");
+    assert.equal(calls[0].monthly_cost_limit_micro_usd, 50_000_000);
   } finally {
     globalThis.fetch = originalFetch;
   }
