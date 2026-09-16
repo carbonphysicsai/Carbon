@@ -1,0 +1,37 @@
+name = "OWNER_DECISION_REQUIRED"
+main = "worker/index.mjs"
+compatibility_date = "2026-09-16"
+workers_dev = false
+
+# This example intentionally declares no production route. The production
+# project, zone, branch, and route owner were not established by the repository
+# or the accessible Cloudflare session. A reviewed deployment configuration
+# should bind only the exact /api/ask-carbon* route and preserve homepage
+# routing.
+
+[[durable_objects.bindings]]
+name = "ASK_CARBON_USAGE_LEDGER"
+class_name = "AskCarbonUsageLedger"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["AskCarbonUsageLedger"]
+
+[vars]
+ASK_CARBON_ACTIVATION = "disabled"
+ASK_CARBON_APPROVED_ORIGINS = "OWNER_DECISION_REQUIRED"
+ASK_CARBON_APPROVED_MODELS = "OWNER_DECISION_REQUIRED"
+ASK_CARBON_MODEL = "OWNER_DECISION_REQUIRED"
+ASK_CARBON_INPUT_USD_PER_MILLION = "OWNER_DECISION_REQUIRED"
+ASK_CARBON_OUTPUT_USD_PER_MILLION = "OWNER_DECISION_REQUIRED"
+ASK_CARBON_DAILY_REQUEST_LIMIT = "OWNER_DECISION_REQUIRED"
+ASK_CARBON_DAILY_COST_MICRO_USD_LIMIT = "OWNER_DECISION_REQUIRED"
+ASK_CARBON_MAX_CONCURRENCY = "OWNER_DECISION_REQUIRED"
+ASK_CARBON_CLIENT_REQUESTS_PER_HOUR = "OWNER_DECISION_REQUIRED"
+ASK_CARBON_MAX_INPUT_TOKENS = "24000"
+ASK_CARBON_MAX_OUTPUT_TOKENS = "700"
+ASK_CARBON_PROVIDER_TIMEOUT_MS = "15000"
+
+# Secrets, never [vars]:
+# - ASK_CARBON_OPENAI_API_KEY
+# - ASK_CARBON_CONTEXT_SIGNING_SECRET
