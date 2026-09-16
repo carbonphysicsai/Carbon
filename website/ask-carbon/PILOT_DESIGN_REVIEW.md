@@ -57,10 +57,26 @@ it. This implementation creates no second allowance.
 
 - Authored contract cases: nine public/synthetic scenarios in
   `eval/pilot-design.cases.public.json`.
+- Frozen executable scripts: the same nine IDs in
+  `eval/pilot-design.executable.public.json`; 11 literal turns with explicit
+  accept, reject, undo, correction, skip and form-switch actions.
+- Plan observation: no network calls; maximum conservative reservation for the
+  finite 11-turn Luna plan is 62,040 micro-USD inside the existing $5 nested
+  bakeoff scope and $50 shared monthly ceiling.
+- Contract/mock observation: all nine scripts traversed the actual
+  `PILOT_DESIGN` request validator, Worker dispatch boundary, shared ledger,
+  reviewed-package validator and ordinary Workbench import. Eleven test-owned
+  attempts settled 880 simulated micro-USD; paid spend remained zero. Each job
+  started `UNASSESSED`, received an explicit operator route and one prepared
+  manual handoff, survived save/reload, deduplicated exact replay and rejected
+  changed bytes under the same identity.
 - Mock browser conversation: executed through the generated artifact; client
   accepted one suggestion, rejected another, switched modes, undid a change,
   cleared local history, exported, and imported the package into Workbench.
 - Live model/provider calls: **0**.
+- Human quality review: **not performed**; complete public/synthetic output is
+  retained in `evidence/pilot-design-v1/human-review-packet.md` for a named
+  reviewer rather than converted to an automated quality claim.
 - Actual customer usability observations: **none**.
 
 Live comparison remains unavailable because the knowledge release is staging-
