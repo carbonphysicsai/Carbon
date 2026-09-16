@@ -1,0 +1,115 @@
+{
+  "schema_version": "carbon.client-intake.draft.v1",
+  "draft_id": "synthetic-burgers-inquiry",
+  "revision_id": "rev-001",
+  "predecessor": null,
+  "answers": {
+    "intended_decision": {
+      "state": "VALUE",
+      "value": "Explore whether a public periodic viscous Burgers-like task is close to a supported Carbon template.",
+      "origin": "USER_ENTERED_LOCAL"
+    },
+    "requested_result": {
+      "state": "VALUE",
+      "value": "Predict a time-dependent field and compare compression behavior.",
+      "origin": "USER_ENTERED_LOCAL"
+    },
+    "current_baseline": {
+      "state": "VALUE",
+      "value": "Synthetic finite-difference baseline.",
+      "origin": "USER_ENTERED_LOCAL"
+    },
+    "baseline_limitation": {
+      "state": "VALUE",
+      "value": "The example is for workflow testing and has no customer or qualification claim.",
+      "origin": "USER_ENTERED_LOCAL"
+    },
+    "changing_conditions": {
+      "state": "VALUE",
+      "value": "Viscosity and initial conditions vary in a synthetic periodic domain.",
+      "origin": "USER_ENTERED_LOCAL"
+    },
+    "exclusions": {
+      "state": "VALUE",
+      "value": "No protected cases, customer data, production tolerance, or launch.",
+      "origin": "USER_ENTERED_LOCAL"
+    },
+    "consequential_error": {
+      "state": "VALUE",
+      "value": "Missing a compression feature would invalidate the intended comparison.",
+      "origin": "USER_ENTERED_LOCAL"
+    },
+    "comparison_evidence": {
+      "state": "VALUE",
+      "value": "A public development example exists, but this fresh inquiry has its own identity.",
+      "origin": "USER_ENTERED_LOCAL"
+    },
+    "access_limitations": {
+      "state": "VALUE",
+      "value": "Synthetic public-development context only.",
+      "origin": "USER_ENTERED_LOCAL"
+    }
+  },
+  "quantities": {
+    "preparation_time": {
+      "state": "UNKNOWN",
+      "value": null,
+      "minimum": null,
+      "maximum": null,
+      "unit": "",
+      "note": "",
+      "origin": "USER_ENTERED_LOCAL"
+    },
+    "prediction_latency": {
+      "state": "POINT",
+      "value": 2,
+      "minimum": null,
+      "maximum": null,
+      "unit": "seconds/query",
+      "note": "Requested scenario, not measured",
+      "origin": "USER_ENTERED_LOCAL"
+    },
+    "reference_query_time": {
+      "state": "UNKNOWN",
+      "value": null,
+      "minimum": null,
+      "maximum": null,
+      "unit": "",
+      "note": "",
+      "origin": "USER_ENTERED_LOCAL"
+    },
+    "workload_frequency": {
+      "state": "UNKNOWN",
+      "value": null,
+      "minimum": null,
+      "maximum": null,
+      "unit": "",
+      "note": "",
+      "origin": "USER_ENTERED_LOCAL"
+    },
+    "desired_accuracy": {
+      "state": "POINT",
+      "value": 5,
+      "minimum": null,
+      "maximum": null,
+      "unit": "percent",
+      "note": "Requested intent, not accepted tolerance",
+      "origin": "USER_ENTERED_LOCAL"
+    }
+  },
+  "summary": {
+    "mapping_version": "carbon.client-intake.mapping.v1",
+    "text": "Decision: Explore whether a public periodic viscous Burgers-like task is close to a supported Carbon template.\nRequested result: Predict a time-dependent field and compare compression behavior.\nCurrent baseline: Synthetic finite-difference baseline.\nReported limitation: The example is for workflow testing and has no customer or qualification claim.\nChanging conditions: Viscosity and initial conditions vary in a synthetic periodic domain.\nExclusions: No protected cases, customer data, production tolerance, or launch.\nConsequential error: Missing a compression feature would invalidate the intended comparison.\nComparison evidence (claimed): A public development example exists, but this fresh inquiry has its own identity.\nAccess/use limitations: Synthetic public-development context only.\nPreparation time: unknown\nRecurring prediction latency: 2 seconds/query\nReference-query time: unknown\nWorkload frequency: unknown\nRequested accuracy: 5 percent (unreviewed client intent)",
+    "unknown_fields": [
+      "preparation_time",
+      "reference_query_time",
+      "workload_frequency"
+    ],
+    "next_clarification": "Clarify preparation time without supplying sensitive data."
+  },
+  "source": {
+    "application": "Carbon Client Intake Preview",
+    "mapping_version": "carbon.client-intake.mapping.v1",
+    "local_scope": "LOCAL_SYNTHETIC_DEVELOPMENT_NOT_TRANSMITTED"
+  }
+}

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the closed additive v0.7 goal-workbench schema and constants."""
+"""Generate the closed additive v0.8 goal-workbench and intake schemas."""
 
 from __future__ import annotations
 
@@ -7,10 +7,10 @@ import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-DESIGN = "carbon.goal-workbench.design.v0.7"
-WORKSPACE = "carbon.goal-workbench.workspace.v0.7"
-APP = "Carbon Goal-to-Challenge Workbench v0.7"
-BASE = "e5aafc522ca40db12f1897bcc0beacdedb44d823"
+DESIGN = "carbon.goal-workbench.design.v0.8"
+WORKSPACE = "carbon.goal-workbench.workspace.v0.8"
+APP = "Carbon Goal-to-Challenge Workbench v0.8"
+BASE = "94762b6a8932ac6834c731a416c3a45c4cbf6170"
 BLOCKERS = ["AT-09", "AT-16", "AT-19", "AT-22", "AT-30"]
 CONTROLS = [f"P{i}" for i in range(1, 9)]
 ROLES = ["MANDATORY", "SOFT", "DIAGNOSTIC", "DEPLOYMENT"]
@@ -898,6 +898,7 @@ job = obj(
                 ]
             }
         ),
+        "intake_records": array({"$ref": "#/$defs/intake_record"}, 64),
         "designs": array(design, 64),
         "created_from": {"enum": ["DIRECT_INTAKE", "ASSISTED_INTAKE", "MIGRATED"]},
     }
@@ -905,19 +906,88 @@ job = obj(
 component = json.loads(
     (ROOT / "data/workspace.schema.json").read_text(encoding="utf-8")
 )
+text_answer = obj(
+    {
+        "state": {"enum": ["UNKNOWN", "VALUE"]},
+        "value": string(),
+        "origin": {"const": "USER_ENTERED_LOCAL"},
+    }
+)
+quantity_answer = obj(
+    {
+        "state": {"enum": ["UNKNOWN", "POINT", "RANGE"]},
+        "value": nullable({"type": "number"}),
+        "minimum": nullable({"type": "number"}),
+        "maximum": nullable({"type": "number"}),
+        "unit": string(120),
+        "note": string(1_000),
+        "origin": {"const": "USER_ENTERED_LOCAL"},
+    }
+)
+text_fields = [
+    "intended_decision", "requested_result", "current_baseline",
+    "baseline_limitation", "changing_conditions", "exclusions",
+    "consequential_error", "comparison_evidence", "access_limitations",
+]
+quantity_fields = [
+    "preparation_time", "prediction_latency", "reference_query_time",
+    "workload_frequency", "desired_accuracy",
+]
+intake_draft = obj(
+    {
+        "schema_version": {"const": "carbon.client-intake.draft.v1"},
+        "draft_id": string(128),
+        "revision_id": string(128),
+        "predecessor": nullable(obj({
+            "draft_id": string(128),
+            "revision_id": string(128),
+            "canonical_digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        })),
+        "answers": obj({field: text_answer for field in text_fields}),
+        "quantities": obj({field: quantity_answer for field in quantity_fields}),
+        "summary": obj({
+            "mapping_version": {"const": "carbon.client-intake.mapping.v1"},
+            "text": string(24_000),
+            "unknown_fields": array({"enum": text_fields + quantity_fields}, 32),
+            "next_clarification": string(1_000),
+        }),
+        "source": obj({
+            "application": {"const": "Carbon Client Intake Preview"},
+            "mapping_version": {"const": "carbon.client-intake.mapping.v1"},
+            "local_scope": {"const": "LOCAL_SYNTHETIC_DEVELOPMENT_NOT_TRANSMITTED"},
+        }),
+    }
+)
+intake_record = obj(
+    {
+        "draft_id": string(128),
+        "revision_id": string(128),
+        "predecessor_canonical_digest": nullable({"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}),
+        "raw_sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "canonical_digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "raw_json": string(120_000),
+        "validated_draft": {"$ref": "#/$defs/intake_draft"},
+        "mapped_requirement_ids": array(string(128), 16),
+        "import_status": {"const": "IMPORTED_LOCAL_ASSERTION"},
+    }
+)
 schema = {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "title": "Carbon goal-to-Challenge workbench workspace v0.7",
+    "title": "Carbon goal-to-Challenge workbench workspace v0.8",
     "$comment": (
         "Closed browser-local planning schema. Derived results are recomputed. "
         "It grants no scientific, security, rights, reuse, submission, execution, or launch authority."
     ),
-    "$defs": {"opportunity_workspace_v02": component},
+    "$defs": {
+        "opportunity_workspace_v02": component,
+        "intake_draft": intake_draft,
+        "intake_record": intake_record,
+    },
     **obj(
         {
             "schema_version": {"const": WORKSPACE},
             "application_version": {"const": APP},
-            "decision_id": {"const": "GOAL-WORKBENCH-07"},
+            "decision_id": {"const": "GOAL-WORKBENCH-08"},
             "base_application_merge": {"const": BASE},
             "opportunity_workspace": {"$ref": "#/$defs/opportunity_workspace_v02"},
             "jobs": array(job, 64),
@@ -933,6 +1003,7 @@ schema = {
                                 "carbon.goal-workbench.workspace.v0.4",
                                 "carbon.goal-workbench.workspace.v0.5",
                                 "carbon.goal-workbench.workspace.v0.6",
+                                "carbon.goal-workbench.workspace.v0.7",
                                 WORKSPACE,
                             ]
                         },
@@ -977,4 +1048,13 @@ constants = {
 (ROOT / "data/goal_constants.json").write_text(
     json.dumps(constants, indent=2) + "\n", encoding="utf-8"
 )
-print("v0.7 goal-workbench schema and constants generated")
+(ROOT / "data/intake_draft.schema.json").write_text(
+    json.dumps({
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "title": "Carbon local client intake draft v1",
+        "$comment": "Local, untrusted, non-authoritative transport. Nothing is submitted or approved.",
+        **intake_draft,
+    }, indent=2) + "\n",
+    encoding="utf-8",
+)
+print("v0.8 goal-workbench and intake schemas generated")

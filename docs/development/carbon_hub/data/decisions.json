@@ -2626,6 +2626,31 @@
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/main/Business/Carbon_Fit/workbench/docs/GOAL_WORKBENCH_03_REHEARSAL_REPORT.md"
     },
     {
+      "title": "Connect local engineering intake to the existing Workbench",
+      "question": "How should Carbon turn a high-level local engineering need into one reviewable job and scoped next action without publishing a website or creating intake authority?",
+      "recommendation": "Use one closed browser-local intake draft shared by a dedicated public-safe preview and the internal Workbench. Preview before atomic import, create an UNASSESSED direct job with exact source lineage and client-asserted requirement candidates, deduplicate exact replay, retain declared successors for review, then reuse the existing route and handoff. Keep live collection, persistence, notification, consent, hosting and abuse controls unavailable pending issue #139 decisions.",
+      "why": "The bounded seam removes duplicate entry while preserving original words, unknowns and revisions. Separate local and internal surfaces prevent the intake artifact from exposing source-assessment roots or operator evidence, and exact association prevents a fresh inquiry from borrowing the admitted 07A assessment.",
+      "if_kept": "WAVE-G gains a local synthetic intake-to-job connection and a thin future website mounting seam. The current Workbench remains the system of record; C-W1, CPES, scientific qualification, rights, protected use, source-assessment admission and launch remain unchanged.",
+      "if_changed": "A public host, receiving endpoint, private store, staff destination, authentication model, retention/deletion policy, public notice, optional-learning permission, abuse control or incident owner requires a separate prospective issue #139 decision. Historical local drafts and jobs are not rewritten.",
+      "decision_id": "GOAL-WORKBENCH-08-LOCAL-INTAKE-01",
+      "map_ref": "WAVE-G",
+      "wave": "G",
+      "ticket": "FIT-WEB-01 local intake bridge",
+      "attention": "FOR_AWARENESS",
+      "status": "IMPLEMENTED_WORKING_DECISION",
+      "audience": "ryan",
+      "affects": [
+        "WAVE-G",
+        "SYSTEM/BUSINESS-AUTHORITY",
+        "SYSTEM/GOVERNANCE",
+        "SYSTEM/MATURITY",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+      ],
+      "response_url": "https://github.com/carbonphysicsai/Carbon/issues/139",
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/main/Business/Carbon_Fit/workbench/docs/GOAL_WORKBENCH_08_INTAKE_TO_JOB_REPORT.md"
+    },
+    {
       "title": "Prepare a separate fail-closed private-alpha archive profile",
       "question": "How should C-EA1 implement the owner-selected alpha archive targets before provider, custody, recovery, security and deployment inputs exist?",
       "recommendation": "Preserve the accepted synthetic acknowledgement unchanged. Freeze the alpha policy in a separate content-bound profile, require every external deployment input explicitly, reuse existing PostgreSQL/object/encryption adapters only in a dedicated non-secret preflight, and keep real acknowledgement plus C-EA2 eligibility structurally false.",

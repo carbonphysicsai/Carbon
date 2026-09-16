@@ -2,15 +2,21 @@
   "use strict";
   const F = root.CarbonFit;
   const E = root.CarbonC05Evidence;
+  const I =
+    root.CarbonClientIntake ||
+    (typeof require !== "undefined" ? require("./intake.js") : null);
   const S =
     root.CarbonSourceAssessment ||
     (typeof require !== "undefined" ? require("./source_assessment.js") : null);
   const R =
     root.CarbonGoalRouting ||
     (typeof require !== "undefined" ? require("./routing.js") : null);
-  const VERSION = "carbon.goal-workbench.design.v0.7",
-    WORKSPACE_VERSION = "carbon.goal-workbench.workspace.v0.7",
-    APP_VERSION = "Carbon Goal-to-Challenge Workbench v0.7";
+  const VERSION = "carbon.goal-workbench.design.v0.8",
+    WORKSPACE_VERSION = "carbon.goal-workbench.workspace.v0.8",
+    APP_VERSION = "Carbon Goal-to-Challenge Workbench v0.8";
+  const ADMITTED_VERSION = "carbon.goal-workbench.design.v0.7",
+    ADMITTED_WORKSPACE_VERSION = "carbon.goal-workbench.workspace.v0.7",
+    ADMITTED_APP_VERSION = "Carbon Goal-to-Challenge Workbench v0.7";
   const ACCEPTED_VERSION = "carbon.goal-workbench.design.v0.6",
     ACCEPTED_WORKSPACE_VERSION = "carbon.goal-workbench.workspace.v0.6",
     ACCEPTED_APP_VERSION = "Carbon Goal-to-Challenge Workbench v0.6";
@@ -253,6 +259,7 @@
         rights_summary: "",
         next_owner_decision: "",
       },
+      intake_records: [],
       working_design_id: first.design_id,
       designs: [first],
       created_from: "DIRECT_INTAKE",
@@ -262,8 +269,8 @@
     return {
       schema_version: WORKSPACE_VERSION,
       application_version: APP_VERSION,
-      decision_id: "GOAL-WORKBENCH-07",
-      base_application_merge: "e5aafc522ca40db12f1897bcc0beacdedb44d823",
+      decision_id: "GOAL-WORKBENCH-08",
+      base_application_merge: "94762b6a8932ac6834c731a416c3a45c4cbf6170",
       opportunity_workspace: clone(component),
       jobs: [],
       selected_job_id: null,
@@ -754,6 +761,7 @@
         "lead",
         "working_design_id",
         "assignment",
+        "intake_records",
         "designs",
         "created_from",
       ],
@@ -782,6 +790,54 @@
       "assignment",
     );
     for (const v of Object.values(j.assignment)) str(v, "assignment field");
+    const intakeRecords = list(j.intake_records, "intake records", 64).map(
+      (record, index) => {
+        exact(
+          record,
+          [
+            "draft_id",
+            "revision_id",
+            "predecessor_canonical_digest",
+            "raw_sha256",
+            "canonical_digest",
+            "raw_json",
+            "validated_draft",
+            "mapped_requirement_ids",
+            "import_status",
+          ],
+          "intake record " + index,
+        );
+        ident(record.draft_id, "intake draft ID");
+        ident(record.revision_id, "intake revision ID");
+        if (
+          record.predecessor_canonical_digest !== null &&
+          !/^sha256:[0-9a-f]{64}$/.test(record.predecessor_canonical_digest)
+        )
+          throw Error("Invalid intake predecessor digest");
+        for (const key of ["raw_sha256", "canonical_digest"])
+          if (!/^sha256:[0-9a-f]{64}$/.test(record[key]))
+            throw Error("Invalid intake digest");
+        str(record.raw_json, "intake raw JSON", 120000, false);
+        const reparsed = F.strictJsonParse(record.raw_json, {
+          maxBytes: 120000,
+          maxDepth: 10,
+        });
+        const validated = I.validateDraft(record.validated_draft);
+        if (JSON.stringify(reparsed) !== JSON.stringify(validated))
+          throw Error("Stored intake raw/validated content mismatch");
+        list(record.mapped_requirement_ids, "mapped requirement IDs", 16).forEach(
+          (value) => ident(value, "mapped requirement ID"),
+        );
+        if (record.import_status !== "IMPORTED_LOCAL_ASSERTION")
+          throw Error("Invalid intake import status");
+        return clone(record);
+      },
+    );
+    const intakeIdentities = intakeRecords.map(
+      (record) => record.draft_id + "@" + record.revision_id,
+    );
+    if (new Set(intakeIdentities).size !== intakeIdentities.length)
+      throw Error("Duplicate intake revision identity");
     enumValue(
       j.created_from,
       ["DIRECT_INTAKE", "ASSISTED_INTAKE", "MIGRATED"],
@@ -800,7 +856,7 @@
       !ds.some((design) => design.design_id === j.working_design_id)
     )
       throw Error("Unknown working design");
-    return { ...clone(j), designs: ds };
+    return { ...clone(j), intake_records: intakeRecords, designs: ds };
   }
   function validateWorkspace(w, componentReader) {
     exact(
@@ -822,10 +878,10 @@
     if (
       w.schema_version !== WORKSPACE_VERSION ||
       w.application_version !== APP_VERSION ||
-      w.decision_id !== "GOAL-WORKBENCH-07"
+      w.decision_id !== "GOAL-WORKBENCH-08"
     )
       throw Error("Unsupported goal workspace version");
-    if (w.base_application_merge !== "e5aafc522ca40db12f1897bcc0beacdedb44d823")
+    if (w.base_application_merge !== "94762b6a8932ac6834c731a416c3a45c4cbf6170")
       throw Error("Unsupported base application identity");
     const component = componentReader(JSON.stringify(w.opportunity_workspace));
     const jobs = list(w.jobs, "jobs", 64).map(validateJob);
@@ -856,6 +912,7 @@
           OLD_WORKSPACE_VERSION,
           PRIOR_WORKSPACE_VERSION,
           ACCEPTED_WORKSPACE_VERSION,
+          ADMITTED_WORKSPACE_VERSION,
           WORKSPACE_VERSION,
         ].includes(x.to)
       )
@@ -1161,7 +1218,14 @@
   function migrateGoalWorkspace(value, digestStatus) {
     const w = clone(value),
       from = w.schema_version;
-    if (from === ACCEPTED_WORKSPACE_VERSION) {
+    if (from === ADMITTED_WORKSPACE_VERSION) {
+      if (
+        w.application_version !== ADMITTED_APP_VERSION ||
+        w.decision_id !== "GOAL-WORKBENCH-07" ||
+        w.base_application_merge !== "e5aafc522ca40db12f1897bcc0beacdedb44d823"
+      )
+        throw Error("Unsupported v0.7 workspace identity");
+    } else if (from === ACCEPTED_WORKSPACE_VERSION) {
       if (
         w.application_version !== ACCEPTED_APP_VERSION ||
         w.decision_id !== "GOAL-WORKBENCH-05A" ||
@@ -1192,11 +1256,15 @@
     } else throw Error("Unsupported goal workspace version");
     w.schema_version = WORKSPACE_VERSION;
     w.application_version = APP_VERSION;
-    w.decision_id = "GOAL-WORKBENCH-07";
-    w.base_application_merge = "e5aafc522ca40db12f1897bcc0beacdedb44d823";
+    w.decision_id = "GOAL-WORKBENCH-08";
+    w.base_application_merge = "94762b6a8932ac6834c731a416c3a45c4cbf6170";
     for (const job of w.jobs) {
-      if (from === ACCEPTED_WORKSPACE_VERSION) {
+      if (from === ADMITTED_WORKSPACE_VERSION) {
+        for (const design of job.designs) design.schema_version = VERSION;
+        job.intake_records = [];
+      } else if (from === ACCEPTED_WORKSPACE_VERSION) {
         for (const design of job.designs) migrateAcceptedDesign(design);
+        job.intake_records = [];
       } else if (from === PRIOR_WORKSPACE_VERSION) {
         exact(
           job,
@@ -1214,6 +1282,7 @@
           "v0.5 job",
         );
         for (const design of job.designs) migratePriorDesign(design, job);
+        job.intake_records = [];
       } else {
         exact(
           job,
@@ -1230,6 +1299,7 @@
           "legacy job",
         );
         job.accountable_owner = "";
+        job.intake_records = [];
         for (const design of job.designs)
           migrateLegacyDesign(
             design,
@@ -1253,7 +1323,9 @@
       original_digest_status: digestStatus,
       semantic_changes: [
         "Preserved all earlier job, sealed-design, CPES, C-05, authoring, handoff, response and change-history bytes.",
-        from === ACCEPTED_WORKSPACE_VERSION
+        from === ADMITTED_WORKSPACE_VERSION
+          ? "Added an empty local-intake lineage collection; no client statement, route, owner, source assessment, consent or approval was fabricated. Existing source-assessment receipts remain subject to installed-snapshot revalidation."
+          : from === ACCEPTED_WORKSPACE_VERSION
           ? "Added an empty repository-pinned source-assessment state. No migrated response, receipt, provenance label, or historical Workbench-06 fixture was admitted."
           : from === PRIOR_WORKSPACE_VERSION
           ? "Reconciled v0.5 carry labels into a separate scope relationship and cumulative scientific/rights review reasons; insufficient history remains unassessed or review-required."
@@ -1269,6 +1341,7 @@
       return validateWorkspace(value, componentReader);
     if (
       value.schema_version === PRIOR_WORKSPACE_VERSION ||
+      value.schema_version === ADMITTED_WORKSPACE_VERSION ||
       value.schema_version === ACCEPTED_WORKSPACE_VERSION ||
       value.schema_version === OLD_WORKSPACE_VERSION ||
       value.schema_version === LEGACY_WORKSPACE_VERSION
@@ -1391,6 +1464,168 @@
     target[field] = str(value, "changed value");
     return recordImpact(d, field, note);
   }
+
+  function intakeRecordFrom(inspection, mappedRequirementIds) {
+    return {
+      draft_id: inspection.draft.draft_id,
+      revision_id: inspection.draft.revision_id,
+      predecessor_canonical_digest:
+        inspection.draft.predecessor?.canonical_digest || null,
+      raw_sha256: inspection.raw_sha256,
+      canonical_digest: inspection.canonical_digest,
+      raw_json: inspection.raw_json,
+      validated_draft: clone(inspection.draft),
+      mapped_requirement_ids: clone(mappedRequirementIds),
+      import_status: "IMPORTED_LOCAL_ASSERTION",
+    };
+  }
+
+  function previewIntakeImport(workspace, inspection) {
+    I.validateDraft(inspection.draft);
+    if (
+      typeof inspection.raw_json !== "string" ||
+      !/^sha256:[0-9a-f]{64}$/.test(inspection.raw_sha256) ||
+      !/^sha256:[0-9a-f]{64}$/.test(inspection.canonical_digest)
+    )
+      throw Error("Incomplete intake inspection");
+    const records = [];
+    for (const job of workspace.jobs)
+      for (const record of job.intake_records || []) records.push({ job, record });
+    const identity = records.filter(
+      ({ record }) =>
+        record.draft_id === inspection.draft.draft_id &&
+        record.revision_id === inspection.draft.revision_id,
+    );
+    if (identity.length) {
+      const exactReplay = identity.find(
+        ({ record }) =>
+          record.raw_sha256 === inspection.raw_sha256 &&
+          record.canonical_digest === inspection.canonical_digest,
+      );
+      if (exactReplay)
+        return {
+          action: "EXACT_REPLAY",
+          target_job_id: exactReplay.job.job_id,
+          mapping: I.mapDraft(inspection.draft, inspection.canonical_digest),
+          message: "This exact intake revision is already linked; no new job, requirement, or handoff will be created.",
+        };
+      return {
+        action: "IDENTITY_CONFLICT",
+        target_job_id: identity[0].job.job_id,
+        mapping: I.mapDraft(inspection.draft, inspection.canonical_digest),
+        message: "The claimed draft/revision identity already exists with different bytes. Reconciliation is required.",
+      };
+    }
+    const predecessor = inspection.draft.predecessor;
+    if (predecessor) {
+      const matches = records.filter(
+        ({ record }) =>
+          record.draft_id === predecessor.draft_id &&
+          record.revision_id === predecessor.revision_id &&
+          record.canonical_digest === predecessor.canonical_digest,
+      );
+      if (matches.length !== 1)
+        return {
+          action: "RECONCILIATION_REQUIRED",
+          target_job_id: null,
+          mapping: I.mapDraft(inspection.draft, inspection.canonical_digest),
+          message:
+            matches.length === 0
+              ? "The declared predecessor is not present. Import it first or explicitly create a separate inquiry."
+              : "The predecessor association is ambiguous; choose the target outside this automatic path.",
+        };
+      return {
+        action: "ADD_REVISION_FOR_REVIEW",
+        target_job_id: matches[0].job.job_id,
+        mapping: I.mapDraft(inspection.draft, inspection.canonical_digest),
+        message: "Attach this successor as an unreviewed intake revision. It will not overwrite a sealed design or change scientific state.",
+      };
+    }
+    if (records.some(({ record }) => record.draft_id === inspection.draft.draft_id))
+      return {
+        action: "RECONCILIATION_REQUIRED",
+        target_job_id: null,
+        mapping: I.mapDraft(inspection.draft, inspection.canonical_digest),
+        message: "This draft ID is already known, but no predecessor was supplied. The Workbench will not guess whether it is a revision or a separate inquiry.",
+      };
+    return {
+      action: "CREATE_NEW_JOB",
+      target_job_id: null,
+      mapping: I.mapDraft(inspection.draft, inspection.canonical_digest),
+      message: "Create one new unassessed job with source-linked requirement candidates and unresolved science and rights.",
+    };
+  }
+
+  function commitIntakeImport(workspace, inspection, preview) {
+    const current = previewIntakeImport(workspace, inspection);
+    if (
+      current.action !== preview.action ||
+      current.target_job_id !== preview.target_job_id
+    )
+      throw Error("Intake preview is stale; review the import again");
+    if (current.action === "EXACT_REPLAY")
+      return { action: current.action, job_id: current.target_job_id, changed: false };
+    if (!["CREATE_NEW_JOB", "ADD_REVISION_FOR_REVIEW"].includes(current.action))
+      throw Error(current.message);
+    if (current.action === "ADD_REVISION_FOR_REVIEW") {
+      const target = workspace.jobs.find((item) => item.job_id === current.target_job_id);
+      if (!target) throw Error("Intake target job is unavailable");
+      target.intake_records.push(intakeRecordFrom(inspection, []));
+      return { action: current.action, job_id: target.job_id, changed: true };
+    }
+    const base =
+      "intake-" +
+      inspection.draft.draft_id
+        .toLowerCase()
+        .replace(/[^a-z0-9._:-]/g, "-")
+        .slice(0, 100);
+    let id = base || "intake-job";
+    let suffix = 2;
+    while (workspace.jobs.some((item) => item.job_id === id)) id = base + "-" + suffix++;
+    const mapped = current.mapping;
+    const target = newJob(id, mapped.title);
+    target.created_from = "ASSISTED_INTAKE";
+    Object.assign(target.assignment, mapped.assignment);
+    const design = target.designs[0];
+    for (const [key, value] of Object.entries(mapped.scope)) design.scope[key] = value;
+    const requirementIds = [];
+    mapped.requirements.forEach((item, index) => {
+      const requirementId = "INTAKE-REQ-" + String(index + 1).padStart(3, "0");
+      design.requirements.push(
+        requirement(
+          requirementId,
+          item.original_words,
+          item.source_reference,
+          item.consequence,
+          item.kind,
+        ),
+      );
+      requirementIds.push(requirementId);
+    });
+    target.intake_records.push(intakeRecordFrom(inspection, requirementIds));
+    workspace.jobs.push(target);
+    workspace.selected_job_id = target.job_id;
+    workspace.selected_design_id = design.design_id;
+    return { action: current.action, job_id: target.job_id, changed: true };
+  }
+
+  async function revalidateIntakeRecords(workspace) {
+    for (const job of workspace.jobs) {
+      for (const record of job.intake_records || []) {
+        const checked = await I.inspect(record.raw_json, F.strictJsonParse);
+        if (
+          checked.raw_sha256 !== record.raw_sha256 ||
+          checked.canonical_digest !== record.canonical_digest ||
+          JSON.stringify(checked.draft) !== JSON.stringify(record.validated_draft) ||
+          checked.draft.draft_id !== record.draft_id ||
+          checked.draft.revision_id !== record.revision_id
+        )
+          throw Error("Stored intake identity or content failed revalidation");
+      }
+    }
+    return workspace;
+  }
+
   function economics(d) {
     const result = F.fixedGroupEconomics(d.cpes.economics),
       stale = d.cpes.invalidated_by.some((x) => x.includes("CPES economics"));
@@ -2308,6 +2543,9 @@
     n1Projection,
     markdown,
     cPilotProjection,
+    previewIntakeImport,
+    commitIntakeImport,
+    revalidateIntakeRecords,
     emptyEconomics,
     protection,
     selectRoute: R.selectRoute,

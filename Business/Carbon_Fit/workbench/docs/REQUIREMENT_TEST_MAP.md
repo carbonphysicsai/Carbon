@@ -1,6 +1,20 @@
-# GOAL-WORKBENCH-07A / GOAL-WORKBENCH-07 / GOAL-WORKBENCH-06 / GOAL-WORKBENCH-05A / GOAL-WORKBENCH-05 / GOAL-WORKBENCH-04 / GOAL-WORKBENCH-03 / GOAL-WORKBENCH-02 / EXAM-PROTECT-WORKBENCH-01 requirement-to-test map
+# GOAL-WORKBENCH-08 / GOAL-WORKBENCH-07A / GOAL-WORKBENCH-07 / GOAL-WORKBENCH-06 / GOAL-WORKBENCH-05A / GOAL-WORKBENCH-05 / GOAL-WORKBENCH-04 / GOAL-WORKBENCH-03 / GOAL-WORKBENCH-02 / EXAM-PROTECT-WORKBENCH-01 requirement-to-test map
 
 This map describes focused application acceptance. It does not relabel the CPES study's historical 14/52/208 runs as workbench tests.
+
+| GW08 intake requirement | Implementation / evidence | Automated coverage | Authority limitation |
+|---|---|---|---|
+| Short local-only primary flow with explicit unknowns and quantities | `Carbon_Client_Intake_Preview.html`; `src/intake.js`; closed draft schema | intake pure tests; actual Chrome form/summary/download at desktop and narrow width | No contact capture, submission, telemetry, fit score, quote, or customer claim |
+| One shared deterministic definition | `src/intake.js` embedded in both maintained artifacts | double-build/source checks; client summary mismatch rejects | Client calculations remain untrusted |
+| Preview before atomic job creation | `previewIntakeImport` then `commitIntakeImport`; intake panel | pure no-mutation checks; generated Workbench file-control journey | Import grants no source/native authority or route |
+| Preserve original words and source-linked requirements | raw draft plus validated mapping and requirement source refs | exact mapping assertions; export/reload | Requirement candidates remain client assertions |
+| Replay, conflicts, and revisions are fail closed | digest/identity/predecessor lineage; reconciliation state | replay, changed-byte, missing-predecessor, successor, atomic-failure tests | No semantic-similarity merge or server concurrency claim |
+| Reuse current routes and one handoff | existing route/handoff records | browser `USE_EXISTING_CAPABILITY` journey; pure handoff reuse | Export is not sent, acknowledged, executed, or qualified |
+| Fresh inquiry cannot borrow 07A adoption | unchanged installed snapshot; exact assessment reader | pure fresh-Burgers negative and browser import rejection; original 07A regression | Same PDE is not exact subject identity |
+| Preserve CPES and cumulative review boundaries | unchanged routing/CPES/source assessment paths | 243 inherited/focused JS checks plus all Chrome suites | No science, rights, protected-use, score, or launch effect |
+| Public preview excludes internal state | dedicated shell/build with no internal data embeds | source/package assertions and artifact text inspection | Website mount/host/receiver remains unknown |
+| Offline and safe browser behavior | strict CSP, closed parser, escaped rendering | malicious-text, zero HTTP(S)/WebSocket request, parser boundary checks | Local engineering control, not production security/privacy acceptance |
+| Additive v0.1–v0.7 migration | v0.8 workspace and empty intake lineage on migration | historical migration suites and save/reload | Migration fabricates no intake, consent, route, or approval |
 
 | GW07 repository-snapshot requirement | Implementation / evidence | Automated coverage | Authority limitation |
 |---|---|---|---|

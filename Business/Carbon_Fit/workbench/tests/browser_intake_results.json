@@ -1,0 +1,26 @@
+{
+  "browser": "Google Chrome",
+  "checks": [
+    "local preview exposes the intake activity in the first viewport",
+    "preview states local-only boundary and offers no submit or contact capture",
+    "summary preserves unknowns range units and inert text",
+    "export reports a local download rather than submission",
+    "download is the closed v1 transport with no authority fields",
+    "Workbench previews before mutation",
+    "ordinary commit creates one assisted unassessed job with source lineage",
+    "existing-capability route prepares one handoff without authoring or send",
+    "exact replay creates no duplicate job or lineage",
+    "fresh-session save reload retains intake lineage and route",
+    "fresh Burgers-like intake cannot borrow the admitted 07A assessment",
+    "malformed UTF-8 rejects before workspace mutation",
+    "narrow Workbench remains free of page-level horizontal overflow",
+    "narrow intake preview remains free of page-level horizontal overflow",
+    "preview and Workbench made zero off-device requests",
+    "malicious text never executed",
+    "browser contexts reported no page errors",
+    "public preview excludes internal snapshot evidence and local paths"
+  ],
+  "errors": [],
+  "outbound_requests": [],
+  "authority": "Local synthetic product-flow evidence only; no customer, scientific, rights, security, hosting, or launch qualification."
+}

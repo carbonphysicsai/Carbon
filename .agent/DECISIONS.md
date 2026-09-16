@@ -14268,3 +14268,32 @@ is only as fresh as the installed accepted snapshot; later withdrawal remains
 unknown until a newer snapshot is installed. The smallest reversal is a later
 accepted snapshot marking the exact entry withdrawn or superseded while
 preserving all historical bytes and receipts.
+
+## 2026-09-16 — GOAL-WORKBENCH-08-LOCAL-INTAKE-01: local intake-to-job bridge
+
+**Authority source and scope.** The repository owner's GOAL-WORKBENCH-08
+assignment selects one local/synthetic DEVELOPMENT intake bridge under the
+existing Business Workbench. It authorizes maintained local preview and import
+software, not public deployment, live collection, customer contact, a server,
+private persistence, Wave G activation, source-assessment admission, scientific
+qualification, rights, protected use, network action, or launch. The separate
+C-W1 selection and runtime executor remain unchanged.
+
+**Implementation decision.** Use one closed versioned draft and one shared pure
+validation/summary module across a dedicated public-safe local preview and the
+internal Workbench. Preview before mutation; create a direct job with
+`UNASSESSED` route; retain raw words, explicit unknowns, units, digests, and
+source-linked requirement candidates. Exact replay deduplicates, changed bytes
+under the same identity conflict, and a valid successor is attached for review
+without rewriting a sealed design. The operator chooses the existing route and
+prepares the existing handoff; no dispatcher or second workflow is added.
+
+**Trust and successor boundary.** A draft digest proves byte identity only.
+Imported claims cannot carry owner approval, native provenance, receipts, trust
+roots, or qualification. The admitted 07A assessment remains bound to its exact
+request and subject and cannot transfer to a similar intake. A later live
+website requires issue #139's actual host/receiver, private store and staff
+destination, access roles, retention/deletion and notice/permission decisions,
+abuse/incident controls, server recomputation, persistence, and real receipt.
+The smallest reversal is removal of the intake surface and additive lineage
+fields while retaining historical local draft bytes and job records.

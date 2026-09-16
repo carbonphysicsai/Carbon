@@ -4,6 +4,7 @@
     F = CarbonFit,
     E = CarbonC05Evidence,
     S = CarbonSourceAssessment,
+    I = CarbonClientIntake,
     H = CarbonWorkbenchHost,
     $ = (id) => document.getElementById(id),
     esc = (x) =>
@@ -37,7 +38,8 @@
   let W = G.newWorkspace(H.componentWorkspace()),
     jobId = null,
     designId = null,
-    lastAuthoringRequest = null;
+    lastAuthoringRequest = null,
+    pendingIntake = null;
   const option = (v, label, sel) =>
     `<option value="${esc(v)}" ${v === sel ? "selected" : ""}>${esc(label ?? v)}</option>`;
   const job = () => W.jobs.find((x) => x.job_id === jobId) || null,
@@ -59,6 +61,14 @@
   }
   function notify(x) {
     H.notify(x);
+  }
+  function intakePreviewView() {
+    if (!pendingIntake)
+      return `<section class="panel"><div class="eyebrow">Local intake bridge</div><h3>Preview before creating a job</h3><p>Import a closed local intake draft. Nothing is transmitted, and the file cannot carry approvals, native receipts, trusted evidence, or a route.</p><button data-import-intake>Import intake draft</button></section>`;
+    const preview = pendingIntake.preview,
+      draft = pendingIntake.inspection.draft,
+      canCommit = ["CREATE_NEW_JOB", "ADD_REVISION_FOR_REVIEW", "EXACT_REPLAY"].includes(preview.action);
+    return `<section class="panel"><div class="eyebrow">Local intake bridge · ${esc(preview.action)}</div><h3>${esc(draft.draft_id)} / ${esc(draft.revision_id)}</h3><p>${esc(preview.message)}</p><div class="badges"><span class="badge neutral">route UNASSESSED</span><span class="badge neutral">origin LOCAL ASSERTION</span><span class="badge neutral">science / rights unresolved</span></div><pre>${esc(draft.summary.text)}</pre><p><strong>Unknowns:</strong> ${esc(draft.summary.unknown_fields.join(", ") || "none declared")}<br><strong>Source digest:</strong> ${esc(pendingIntake.inspection.raw_sha256)}<br><strong>Canonical digest:</strong> ${esc(pendingIntake.inspection.canonical_digest)}</p><div class="actions"><button data-import-intake>Choose another draft</button><button id="commit-intake-draft" ${canCommit ? "" : "disabled"}>${preview.action === "ADD_REVISION_FOR_REVIEW" ? "Add revised intake for review" : preview.action === "EXACT_REPLAY" ? "Confirm existing link" : "Create job"}</button><button id="clear-intake-preview">Clear preview</button></div><small>The raw statement remains separate from operator interpretation. A revised intake never rewrites a sealed design.</small></section>`;
   }
   let pendingAdaptJourney = false;
   document.addEventListener(
@@ -256,6 +266,42 @@
     W.selected_design_id = designId;
     render();
   }
+  function bindIntakePreview() {
+    document.querySelectorAll("[data-import-intake]").forEach(
+      (button) => (button.onclick = () => $("intake-draft-file").click()),
+    );
+    const clear = $("clear-intake-preview");
+    if (clear)
+      clear.onclick = () => {
+        pendingIntake = null;
+        render();
+      };
+    const commit = $("commit-intake-draft");
+    if (commit)
+      commit.onclick = () => {
+        try {
+          const result = G.commitIntakeImport(
+            W,
+            pendingIntake.inspection,
+            pendingIntake.preview,
+          );
+          const selected = W.jobs.find((item) => item.job_id === result.job_id);
+          jobId = result.job_id;
+          designId = selected.working_design_id || selected.designs[0].design_id;
+          W.selected_job_id = jobId;
+          W.selected_design_id = designId;
+          pendingIntake = null;
+          render();
+          notify(
+            result.changed
+              ? "Local intake linked. Route, science, rights, execution and launch remain unassessed."
+              : "Exact replay recognized; no duplicate job or requirement was created.",
+          );
+        } catch (error) {
+          notify("Intake commit rejected: " + error.message);
+        }
+      };
+  }
   function bind() {
     const j = job(),
       d = design();
@@ -413,9 +459,10 @@
     renderOwnerConsole();
     const root = $("jobs-view");
     if (!W.jobs.length) {
-      root.innerHTML = `<div class="eyebrow">GOAL-WORKBENCH-05A · direct entry</div><h2>Client jobs & Challenge designs</h2><div class="notice"><strong>One record, no forced Atlas match.</strong> Start from the decision the client needs. Nothing is sent, scored, qualified, registered, or launched.</div><section class="panel empty"><h3>No client job yet</h3><p>Create an empty direct-intake record, or import a v0.1–v0.5 workspace into the additive v0.6 container. Migration never chooses a route or resolves review debt.</p><button class="primary" id="new-job">Create direct client job</button><button id="import-goal-empty">Import complete session</button></section>`;
+      root.innerHTML = `<div class="eyebrow">GOAL-WORKBENCH-08 · local intake</div><h2>Client jobs & Challenge designs</h2><div class="notice"><strong>One record, no forced Atlas match.</strong> Start from the decision the client needs. Nothing is sent, scored, qualified, registered, or launched.</div>${intakePreviewView()}<section class="panel empty"><h3>No client job yet</h3><p>Create an empty direct record, import a local intake draft, or import a prior complete session. Migration never chooses a route or resolves review debt.</p><button class="primary" id="new-job">Create direct client job</button><button id="import-goal-empty">Import complete session</button></section>`;
       $("new-job").onclick = createJob;
       $("import-goal-empty").onclick = () => $("goal-workspace-file").click();
+      bindIntakePreview();
       return;
     }
     const j = job() || W.jobs[0];
@@ -439,7 +486,7 @@
       econResult = G.economics(d),
       cov = G.coverage(d),
       launch = G.launchCandidate(d, j.native_task_id);
-    root.innerHTML = `<div class="eyebrow">GOAL-WORKBENCH-05A · cumulative review integrity</div><div class="panel-heading"><div><h2>Client jobs & Challenge designs</h2><p class="muted">The Atlas is optional context. Earlier sealed revisions and source evidence remain immutable.</p></div><div class="actions"><button id="new-job">New job</button><button id="export-goal">Export complete session</button><button id="import-goal">Import session</button></div></div><div class="job-layout"><aside class="list" aria-label="Client jobs">${W.jobs.map((x) => `<button class="op-item ${x.job_id === jobId ? "selected" : ""}" data-job-select="${esc(x.job_id)}"><span>${esc(x.title)}</span><small>${esc(x.job_id)} · ${x.designs.length} design revision(s) · working ${esc(x.working_design_id || "unselected")}</small></button>`).join("")}</aside><div><section class="panel result-card"><div class="panel-heading"><div><div class="eyebrow">Decision snapshot</div><h3>${esc(j.title)} · ${esc(d.design_id)} r${d.revision}</h3></div><span class="badge ${d.status === "DRAFT" ? "hyp" : "neutral"}">${esc(d.status)} · ${j.working_design_id === d.design_id ? "WORKING DESIGN" : "HISTORICAL VIEW"}</span></div><div id="goal-summary" aria-live="polite"></div></section>
+    root.innerHTML = `<div class="eyebrow">GOAL-WORKBENCH-08 · intake lineage and cumulative review integrity</div><div class="panel-heading"><div><h2>Client jobs & Challenge designs</h2><p class="muted">The Atlas is optional context. Earlier intake revisions, sealed designs, and source evidence remain immutable.</p></div><div class="actions"><button id="new-job">New job</button><button data-import-intake>Import intake draft</button><button id="export-goal">Export complete session</button><button id="import-goal">Import session</button></div></div>${pendingIntake ? intakePreviewView() : ""}<div class="job-layout"><aside class="list" aria-label="Client jobs">${W.jobs.map((x) => `<button class="op-item ${x.job_id === jobId ? "selected" : ""}" data-job-select="${esc(x.job_id)}"><span>${esc(x.title)}</span><small>${esc(x.job_id)} · ${x.designs.length} design revision(s) · ${x.intake_records.length} intake revision(s) · working ${esc(x.working_design_id || "unselected")}</small></button>`).join("")}</aside><div><section class="panel result-card"><div class="panel-heading"><div><div class="eyebrow">Decision snapshot</div><h3>${esc(j.title)} · ${esc(d.design_id)} r${d.revision}</h3></div><span class="badge ${d.status === "DRAFT" ? "hyp" : "neutral"}">${esc(d.status)} · ${j.working_design_id === d.design_id ? "WORKING DESIGN" : "HISTORICAL VIEW"}</span></div><div id="goal-summary" aria-live="polite"></div>${j.intake_records.length ? `<details><summary>Source intake lineage (${j.intake_records.length})</summary><ul>${j.intake_records.map((record) => `<li>${esc(record.draft_id)} / ${esc(record.revision_id)} · ${esc(record.canonical_digest)} · local assertion</li>`).join("")}</ul></details>` : ""}</section>
  <section class="panel"><div class="panel-heading"><div><div class="eyebrow">Assignment</div><h3>Intended decision before score</h3></div><label>Design revision<select id="design-select">${j.designs.map((x) => option(x.design_id, x.alternative_label + " · r" + x.revision + " · " + x.status, designId)).join("")}</select></label></div><div class="form-grid"><label>Job title<input data-job="title" value="${esc(j.title)}"></label><label>Lead<input data-job="lead" value="${esc(j.lead)}" placeholder="Owner-named lead"></label><label class="span-all">Client's original words<textarea data-assignment="client_words">${esc(j.assignment.client_words)}</textarea></label><label>Source reference<input data-assignment="client_source" value="${esc(j.assignment.client_source)}"></label><label>Intended decision<textarea data-assignment="intended_decision">${esc(j.assignment.intended_decision)}</textarea></label><label>Credible deployed baseline<textarea data-assignment="credible_baseline">${esc(j.assignment.credible_baseline)}</textarea></label><label>Context / native task link notes<textarea data-assignment="context">${esc(j.assignment.context)}</textarea></label><label>Allowances and stop limits<textarea data-assignment="allowances">${esc(j.assignment.allowances)}</textarea></label><label>Rights summary<textarea data-assignment="rights_summary">${esc(j.assignment.rights_summary)}</textarea></label><label>Next owner decision<textarea data-assignment="next_owner_decision">${esc(j.assignment.next_owner_decision)}</textarea></label><label>Native task ID, if it exists<input data-job="native_task_id" value="${esc(j.native_task_id)}"></label></div><div class="actions"><button id="link-atlas">Link current Atlas opportunity</button><button id="burgers-demo">Load public Burgers demonstration</button><button id="new-alternative">New alternative</button><button id="revise-design">Seal & revise</button></div><small>Current optional source link: ${esc(j.source_opportunity_id || "none")}. Linking does not make an Atlas hypothesis measured or authoritative.</small></section>${routeView(j, d)}${applicabilityView(d)}
  <section class="panel"><div class="eyebrow">Preparation</div><h3>Design scope</h3><div class="form-grid"><label>Physics/template family<input data-scope="physics_family" value="${esc(d.scope.physics_family)}" placeholder="e.g. periodic_viscous_burgers_1d_v1"></label><label>Requested active goal<input data-scope="requested_goal" value="${esc(d.scope.requested_goal)}"></label><label>Intended use<textarea data-scope="intended_use">${esc(d.scope.intended_use)}</textarea></label><label>Required causal inputs<textarea data-scope="inputs">${esc(d.scope.inputs)}</textarea></label><label>Requested outputs<textarea data-scope="outputs">${esc(d.scope.outputs)}</textarea></label><label>Units / scaling<textarea data-scope="units">${esc(d.scope.units)}</textarea></label><label>Geometry<textarea data-scope="geometry">${esc(d.scope.geometry)}</textarea></label><label>Initial / boundary / forcing conditions<textarea data-scope="conditions">${esc(d.scope.conditions)}</textarea></label><label>Intended regime<textarea data-scope="regime">${esc(d.scope.regime)}</textarea></label><label>Query workload<textarea data-scope="query_workload">${esc(d.scope.query_workload)}</textarea></label><label>Required turnaround<textarea data-scope="turnaround">${esc(d.scope.turnaround)}</textarea></label><label>Failure consequences<textarea data-scope="failure_consequences">${esc(d.scope.failure_consequences)}</textarea></label><label>Data/reference access<textarea data-scope="data_access">${esc(d.scope.data_access)}</textarea></label><label>Rights scope<select data-scope="rights_scope">${["UNRESOLVED", "SYNTHETIC_INTERNAL", "CLIENT_RESTRICTED", "THIRD_PARTY_UNRESOLVED"].map((x) => option(x, x, d.scope.rights_scope)).join("")}</select></label><label>Explicit exclusions<textarea data-scope="exclusions">${esc(d.scope.exclusions)}</textarea></label></div></section>
  <section class="panel"><h3>Requirement → score → case → reference trace</h3><p class="muted">Importance labels do not generate weights. Every material requirement needs a semantic binding, agreed exclusion, or visible gap.</p><div class="form-grid"><label>Requirement ID<input id="req-id" placeholder="REQ-1"></label><label>Source reference<input id="req-source"></label><label>Requirement role<select id="req-kind">${["MATERIAL", "PREFERENCE", "CONSTRAINT", "EXCLUSION"].map((x) => option(x, x)).join("")}</select></label><label>Agreement status<select id="req-agreement">${["CLIENT_ASSERTION", "ANALYST_PROPOSAL", "CLIENT_CONFIRMED", "SCOPED_EXCLUSION"].map((x) => option(x, x)).join("")}</select></label><label class="span-all">Original words<textarea id="req-words"></textarea></label><label class="span-all">Decision consequence<textarea id="req-consequence"></textarea></label></div><button id="add-requirement">Add requirement</button>${d.requirements.length ? `<div class="scroll"><table><thead><tr><th>ID / role</th><th>Original words</th><th>Consequence</th><th>Agreement</th></tr></thead><tbody>${d.requirements.map((x) => `<tr><td>${esc(x.requirement_id)} · ${esc(x.kind)}</td><td>${esc(x.original_words)}</td><td>${esc(x.decision_consequence)}</td><td>${esc(x.agreement_status)}</td></tr>`).join("")}</tbody></table></div>` : '<p class="empty">No requirement trace yet.</p>'}<details open><summary>Add measurement/score binding</summary><div class="form-grid"><label>Requirement<select id="trace-req"><option value="">Choose</option>${reqOptions}</select></label><label>Role<select id="trace-role">${G.ROLES.map((x) => option(x, x)).join("")}</select></label><label>Observable<input id="trace-observable"></label><label>Requested output<input id="trace-output"></label><label>Measurement definition<textarea id="trace-measure"></textarea></label><label>Numerical method<textarea id="trace-method"></textarea></label><label>Normalization / floor<input id="trace-floor" placeholder="Keep unresolved if not owner-supplied"></label><label>Authoring binding<input id="trace-binding" placeholder="Exact native ID or named gap"></label></div><button id="add-trace">Add trace binding</button></details>${d.traces.length ? `<div class="scroll"><table><thead><tr><th>Requirement</th><th>Observable/output</th><th>Role</th><th>Binding/gap</th></tr></thead><tbody>${d.traces.map((x) => `<tr><td>${esc(x.requirement_id)}</td><td>${esc(x.observable)} → ${esc(x.requested_output)}</td><td>${esc(x.role)}</td><td>${esc(x.authoring_binding || x.gap || "gap")}</td></tr>`).join("")}</tbody></table></div>` : ""}<details><summary>Add target-population / case-family proposal</summary><div class="form-grid"><label>Case family ID<input id="case-id" placeholder="CASE-1"></label><label>Evidence role<select id="case-role">${G.CASE_ROLES.map((x) => option(x, x)).join("")}</select></label><label>Requirements (comma-separated IDs)<input id="case-requirements"></label><label>Support status<select id="case-support">${["UNASSESSED", "PROPOSED", "SOURCE_SUPPORTED", "GAP"].map((x) => option(x, x)).join("")}</select></label><label>Target population<textarea id="case-population"></textarea></label><label>Target mass / importance<textarea id="case-mass"></textarea></label><label>Sampling frequency<textarea id="case-frequency"></textarea></label><label>Analysis weight<textarea id="case-weight"></textarea></label><label>Independent physical cases<input id="case-physical-count"></label><label>Reconstruction replicas<input id="case-replicas"></label><label>Generator/source contract<input id="case-generator"></label><label>Why this family exists<textarea id="case-rationale"></textarea></label></div><button id="add-case">Add case family</button></details>${d.cases.length ? `<div class="scroll"><table><thead><tr><th>Case / role</th><th>Population and sample</th><th>Requirements</th><th>Generator / support</th></tr></thead><tbody>${d.cases.map((x) => `<tr><td>${esc(x.case_family_id)} · ${esc(x.role)}</td><td>${esc(x.target_population || "unresolved")} · sample ${esc(x.sampling_frequency || "unresolved")} · weight ${esc(x.analysis_weight || "unresolved")}</td><td>${esc(x.requirement_ids.join(", ") || "none")}</td><td>${esc(x.generator_ref || "gap")} · ${esc(x.support_status)}</td></tr>`).join("")}</tbody></table></div>` : ""}<p><strong>Trace diagnostic:</strong> ${esc(cov.status)}. Missing requirements: ${esc(cov.missing_requirements.join(", ") || "none")}. Unresolved floors: ${esc(cov.unresolved_floors.join(", ") || "none")}. Population/sampling questions: ${esc(cov.population_sampling_weighting_questions.join(", ") || "none")}.</p><div class="form-grid"><label>Mandatory physical admissibility<textarea data-score="mandatory_gate_summary">${esc(d.score_plan.mandatory_gate_summary)}</textarea></label><label>Soft scientific estimand<textarea data-score="soft_estimand">${esc(d.score_plan.soft_estimand)}</textarea></label><label>Training objective — separate<textarea data-score="training_objective">${esc(d.score_plan.training_objective)}</textarea></label><label>Miner reward accounting — separate<textarea data-score="reward_accounting">${esc(d.score_plan.reward_accounting)}</textarea></label><label>Deployed-system acceptance<textarea data-score="deployment_acceptance">${esc(d.score_plan.deployment_acceptance)}</textarea></label><label>Unresolved trade-offs<textarea data-score="unresolved_tradeoffs">${esc(d.score_plan.unresolved_tradeoffs)}</textarea></label></div><details><summary>Reference role and evidence envelope</summary><div class="form-grid"><label>Equation / physical law<textarea data-reference="equation">${esc(d.reference_plan.equation)}</textarea></label><label>Reference role<input data-reference="role" value="${esc(d.reference_plan.role)}"></label><label>Method<textarea data-reference="method">${esc(d.reference_plan.method)}</textarea></label><label>Configuration<textarea data-reference="configuration">${esc(d.reference_plan.configuration)}</textarea></label><label>Convergence evidence<textarea data-reference="convergence_evidence">${esc(d.reference_plan.convergence_evidence)}</textarea></label><label>Uncertainty evidence<textarea data-reference="uncertainty_evidence">${esc(d.reference_plan.uncertainty_evidence)}</textarea></label><label>Applicable envelope<textarea data-reference="applicable_envelope">${esc(d.reference_plan.applicable_envelope)}</textarea></label><label>Failures retained<textarea data-reference="failures">${esc(d.reference_plan.failures)}</textarea></label><label>Cost scope<textarea data-reference="cost_scope">${esc(d.reference_plan.cost_scope)}</textarea></label><label>Correlation / independence limits<textarea data-reference="independence_limitations">${esc(d.reference_plan.independence_limitations)}</textarea></label></div></details><details><summary>Prospective behavior checks</summary><div class="card-grid">${G.DIAGNOSTIC_EXAMPLES.map(
@@ -473,8 +520,9 @@
     };
     $("new-job").onclick = createJob;
     $("export-goal").onclick = () =>
-      download("Carbon_Goal_Workbench_v0.7_PRIVATE_DRAFT.json", workspace());
+      download("Carbon_Goal_Workbench_v0.8_PRIVATE_DRAFT.json", workspace());
     $("import-goal").onclick = () => $("goal-workspace-file").click();
+    bindIntakePreview();
     $("link-atlas").onclick = () => {
       j.source_opportunity_id = H.selectedOpportunity();
       notify("Linked optional source opportunity as context only.");
@@ -873,6 +921,30 @@
       .map((x) => x.toString(16).padStart(2, "0"))
       .join("");
   }
+  $("intake-draft-file").onchange = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    const before = JSON.stringify(W);
+    try {
+      if (file.size > 120000) throw Error("Intake draft exceeds 120 KB");
+      const raw = new TextDecoder("utf-8", { fatal: true }).decode(
+        await file.arrayBuffer(),
+      );
+      const inspection = await I.inspect(raw, F.strictJsonParse);
+      pendingIntake = {
+        inspection,
+        preview: G.previewIntakeImport(W, inspection),
+      };
+      render();
+      notify("Intake preview prepared. Review it before changing the workspace.");
+    } catch (error) {
+      if (JSON.stringify(W) !== before)
+        throw Error("Atomic intake preview invariant failed");
+      notify("Intake preview rejected: " + error.message);
+    } finally {
+      event.target.value = "";
+    }
+  };
   $("goal-workspace-file").onchange = async (e) => {
     const f = e.target.files[0];
     if (!f) return;
@@ -896,6 +968,7 @@
       for (const importedJob of next.jobs)
         for (const importedDesign of importedJob.designs)
           await S.revalidateState(importedDesign);
+      await G.revalidateIntakeRecords(next);
       G.validateWorkspace(next, (x) =>
         F.readWorkspace(
           x,
@@ -921,7 +994,7 @@
       notify(
         next.migration_receipts.length
           ? "Imported with migration receipt; no authority was promoted."
-          : "Imported v0.7 session; privileged derived metadata revalidated.",
+          : "Imported v0.8 session; intake lineage and privileged derived metadata revalidated.",
       );
     } catch (err) {
       notify("Import rejected: " + err.message);

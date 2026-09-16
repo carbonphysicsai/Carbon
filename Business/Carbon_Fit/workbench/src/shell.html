@@ -12,7 +12,7 @@
     <header>
       <div class="topline">
         <div class="brand">CARBON <span class="edition">SCIENCE & RESEARCH</span></div>
-        <div class="header-meta">Offline planning tool · v0.7 · 15 September 2026</div>
+        <div class="header-meta">Offline planning tool · v0.8 · 16 September 2026</div>
       </div>
       <h1>Goal-to-Challenge Workbench</h1>
       <p class="lede">Choose the smallest defensible route, see one owner action, and retain only evidence that still applies.</p>
@@ -65,6 +65,7 @@
     <input id="c05-evidence-file" type="file" accept=".json,application/json" hidden>
     <input id="source-assessment-file" type="file" accept=".json,application/json" hidden>
     <input id="handoff-response-file" type="file" accept=".json,application/json" hidden>
+    <input id="intake-draft-file" type="file" accept=".json,.carbon-intake.json,application/json" hidden>
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
     <script id="atlas-data" type="application/json">{{ATLAS}}</script>
     <script id="study-data" type="application/json">{{STUDIES}}</script>
@@ -77,6 +78,7 @@
     <script>{{ROUTING}}</script>
     <script>{{C05_EVIDENCE}}</script>
     <script>{{SOURCE_ASSESSMENT}}</script>
+    <script>{{INTAKE}}</script>
     <script>{{WORKFLOW}}</script>
     <script>{{GOAL_APP}}</script>
   </body>
