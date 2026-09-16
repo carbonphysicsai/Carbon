@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from carbon.development_session.profile import canonical, digest
 from carbon.measurement_runtime.development import VERSION, METRICS
 from .engine import _combined_score
-from .model import LegScore
+from .model import LegScore, ScalarScore
 
 RULE = {
     "schema": "carbon.development-score-rule.v1",
@@ -137,7 +137,7 @@ def summarize(rows):
             )
             values = tuple(1 / (1 + v) for v in errors)
             leg = tuple(
-                LegScore(name, (), v)
+                LegScore(name, (ScalarScore("development_" + name, v),), v)
                 for name, v in zip(
                     ("physics", "robustness", "accuracy"), values, strict=True
                 )
