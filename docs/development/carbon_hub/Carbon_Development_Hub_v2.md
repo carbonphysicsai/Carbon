@@ -2,7 +2,7 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `6c0e6f20edb79d08de9db99bcfa83036fd522f3e` on `main`, captured 2026-09-16T03:46:55Z.
+**Authority snapshot:** `6e4d14ff3c28e714bd442b93c54f5a236c9e4643` on `main`, captured 2026-09-16T12:11:46Z.
 **Current:** Wave C, ticket C-W1. C-W1 DEVELOPMENT: PR #191 merged the prediction staging repair. The separately approved real gpt-5-mini session made eight calls for USD 0.00738, proposed FNO-40 and completed three real JAX replicas (120 updates), 72 measurements, permitted feedback and an ACTIVE signed controller source. It ended after one proposal without a strategy revision. All earlier failures remain retained. The selected continuation adds a zero-fee publication guard before the separate activation/all-burn decision. Distinct miner UID 1 finalized at block 8013851; Subnet 567 creation finalized at 8010852. Earlier fixed-scaffold engineering observations are not results of the real agent and are not a registered comparison baseline. No subsequent activation or all-burn publication occurred. There is no qualified score, accepted improvement or winner. AWS stays deferred, Hippius unverified and protected/production/scientific qualification unearned. No later ticket is selected.
 **Last completed:** C-10 (`done`).
 **Next selected:** none selected.
@@ -247,6 +247,7 @@
 - `WEB-QA-01-D1` — `SYSTEM/PUBLICATION-AUTHORITY` — Implement the bounded public Ask Carbon homepage component and server adapter as an inactive integration candidate. Its draft knowledge, missing 31-card package, absent live evaluation, unresolved privacy/security/cost/routing decisions and unverified Cloudflare runtime keep public activation blocked without changing the production homepage.
 - `WEB-QA-01-HUB-REPIN-20260916` — `SYSTEM/DEVELOPMENT-HUB` — Register the WEB-QA-01 publication-authority path and repin current assertion-bearing Hub links to the exact authority snapshot containing the inactive integration. Existing Wave selection, ticket status, dependencies, maturity and scientific authority are unchanged.
 - `CW1-REAL-AGENT-EVALUATION-20260916` — `WAVE-C/C-W1` — PR #191 merged the prediction staging repair. The separately approved real gpt-5-mini session made eight calls for USD 0.00738, proposed FNO-40 and completed three real JAX replicas (120 updates), 72 measurements, permitted feedback and an ACTIVE signed controller source. It ended after one proposal without a strategy revision. All earlier failures remain retained. The selected continuation adds a zero-fee publication guard before the separate activation/all-burn decision.
+- `WEB-QA-02-D1` — `SYSTEM/PUBLICATION-AUTHORITY` — Repair Ask Carbon's provider accounting, retrieval, citation support, release gating and UI races; reconcile a source-pinned staging knowledge release and keep public activation disabled because the owning host, private staging target, provider project controls and privacy acceptance are not established.
 
 ## Authority boundary
 
