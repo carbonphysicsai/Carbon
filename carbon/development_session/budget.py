@@ -61,7 +61,28 @@ class SessionBudget:
     def run_worker(self, identity: str, operation):
         # 600 productive + 90 bounded validation + 30 cleanup. Unknown elapsed
         # remains charged at the reservation and requires reconciliation.
-        self.reserve(identity, "worker", 720.0, 7200.0, 270)
+        count_limit = 270
+        if (self.path.parent / "session-limits.json").exists():
+            from carbon.development_comparison.experiment import (
+                LIMITS,
+                WORKER_RESERVATION_BYTES,
+                check_storage,
+                load_contract,
+            )
+            from carbon.development_comparison.sources import read_json
+
+            load_contract(self.path.parent)
+            if read_json(self.path.parent / "session-limits.json") != LIMITS:
+                raise ValueError("comparison limits changed")
+            check_storage(self.path.parent, WORKER_RESERVATION_BYTES)
+            dispatch = read_json(self.path.parent / "model-session-dispatch.json")
+            if (
+                time.time() - dispatch["created_unix_ns"] / 1_000_000_000 + 720
+                > LIMITS["max_session_seconds"]
+            ):
+                raise ValueError("comparison wall-time ceiling exhausted")
+            count_limit = LIMITS["max_worker_operations"]
+        self.reserve(identity, "worker", 720.0, 7200.0, count_limit)
         started = time.monotonic()
         try:
             result = operation()

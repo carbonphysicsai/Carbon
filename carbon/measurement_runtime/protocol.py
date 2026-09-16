@@ -520,3 +520,10 @@ __all__ = [
     "validate_measurement_snapshot",
     "validate_measurement_snapshot_bounded",
 ]
+
+
+def decode_measurement_result(
+    document: dict[str, object], request: BurgersMeasurementRequest
+) -> BurgersMeasurementResult:
+    """Validate retained C-05 output through the same decoder as worker snapshots."""
+    return _decode_result(document, request)
