@@ -439,7 +439,9 @@ class SourceTests(unittest.TestCase):
             )
             self.assertIn("carbon_goal_workbench_v0_8/src/source_assessment.js", names)
             self.assertIn("carbon_goal_workbench_v0_8/src/intake.js", names)
-            self.assertIn("carbon_goal_workbench_v0_8/data/intake_draft.schema.json", names)
+            self.assertIn(
+                "carbon_goal_workbench_v0_8/data/intake_draft.schema.json", names
+            )
             self.assertIn(
                 "carbon_goal_workbench_v0_8/source_assessment/repository_snapshot/v1/approved_assessments.json",
                 names,

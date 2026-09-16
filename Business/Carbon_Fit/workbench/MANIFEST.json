@@ -17,7 +17,7 @@
     "GOAL-WORKBENCH-08"
   ],
   "repository_base": "3681f7fb10be0c6e278f53d59ff9b022099ef12d",
-  "integration_revision_at_packaging": "1d7be31dde94d43ae559818894c79c8e99d126b2",
+  "integration_revision_at_packaging": "15c70ce85bc6c5fc2d142eb8d347ade22a9d0a5a",
   "integration_revision_note": "The checksum manifest describes exact packaged bytes. A commit cannot contain its own digest; final PR/head identity is reported by delivery.",
   "pinned_research_revision": "ca904dfee93d3574df4e56b99981a6ed3b138e80",
   "accepted_research_head": "0a5690270dc449ea19c941280203987d37db5283",
@@ -782,8 +782,8 @@
       "sha256": "da0513e99631a677a96fe6208aed7052e79c1d1e720c148a9a199556c2c3346a"
     },
     "tests/test_sources.py": {
-      "bytes": 20061,
-      "sha256": "83da9d111b0b902ba8bde3b5b0cd16bfa136619d6020fbb1ed42a5c568cd8b9e"
+      "bytes": 20091,
+      "sha256": "fea475f6b4726ae1c1331226898ff70759b879a6316eb8fd96b040d92e7f38f1"
     },
     "tests/test_state_integrity.cjs": {
       "bytes": 15956,
@@ -806,8 +806,8 @@
       "sha256": "968bf352f42df67dd9c8b2645c1378c48c142c651f95a743e1c24e0191694435"
     },
     "tools/build_goal_schema.py": {
-      "bytes": 35518,
-      "sha256": "f8358ba9baac278e6c8716071b7027da829d0d5d04d13e7e062fba15e164ac59"
+      "bytes": 35858,
+      "sha256": "0e2e6acb178c12bf75a53dfa062b6aaf53f469269cba57c2c587a0a084f7e82d"
     },
     "tools/build_intake_fixtures.cjs": {
       "bytes": 5815,
