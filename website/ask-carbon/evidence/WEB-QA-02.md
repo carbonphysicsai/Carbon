@@ -1,7 +1,7 @@
 # WEB-QA-02 repair and staging-candidate evidence
 
-**Evidence date:** 2026-09-16  
-**Branch:** `agent/web-qa-02-repair-staging`  
+**Evidence date:** 2026-09-16
+**Branch:** `agent/web-qa-02-repair-staging`
 **Base:** `405a820bfdd5a38aa2d498e3dbde3fa15449379f`
 
 ## Recovered input and reconciliation
