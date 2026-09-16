@@ -102,8 +102,11 @@ class NewcomerProjectionTests(unittest.TestCase):
         self.assertIn("Distinct miner UID 1 finalized", self.output)
         self.assertIn("three real JAX replicas", self.output)
         self.assertIn("not results of the real agent", self.output)
+        self.assertIn("ROW_VERIFIED", current["stage"])
+        self.assertIn("exact row [[0, 65535]]", current["stage"])
         self.assertIn(
-            "No subsequent activation or all-burn publication occurred", self.output
+            "No subsequent activation or weight transaction is authorized",
+            current["stage"],
         )
 
     def test_changing_canonical_position_reprojects_every_current_surface(self) -> None:
