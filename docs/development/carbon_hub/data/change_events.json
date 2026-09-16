@@ -3538,6 +3538,52 @@
         "WAVE-C/NET-6"
       ],
       "supersedes": null
+    },
+    {
+      "map_ref": "WAVE-C/C-W1",
+      "event_type": "evidence",
+      "event_id": "CW1-D2-COMPARISON-20260916",
+      "owner_lane": "documentation_maintenance",
+      "status": "active",
+      "summary": "C-W1-D2 completed one non-paying DEVELOPMENT experiment on the seen 12 TRAIN / 12 EVAL / 12 STRESS subset: 8 real gpt-5-mini calls, one FNO-48 challenger against the authentic FNO-40 historical baseline, three real JAX replicas, 144 updates and 72 C-05 reports. Field and weak-PDE errors were lower; conserved-mean and STRESS maximum-principle defects worsened. Disposition: INDETERMINATE_NO_ACCEPTANCE_RULE. No scalar, tie, accepted improvement or winner is claimed. The agent used its permitted prior feedback and stopped after one evaluation. PR #201 engineering delivery is conditional on required CI and normal expected-head merge; no later ticket is selected. Reconcile current authority links while retaining historical event snapshots.",
+      "primary_detail": "docs/development/CW1_DEVELOPMENT_COMPARISON_RESULTS.md",
+      "affects": [
+        "SYSTEM/AGENT-EXECUTION",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "WAVE-B",
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE",
+        "WAVE-C",
+        "WAVE-C/C-01",
+        "WAVE-C/C-02",
+        "WAVE-C/C-03",
+        "WAVE-C/C-04",
+        "WAVE-C/C-05",
+        "WAVE-C/C-06",
+        "WAVE-C/C-07",
+        "WAVE-C/C-08",
+        "WAVE-C/C-09",
+        "WAVE-C/C-10",
+        "WAVE-C/C-AUTH1",
+        "WAVE-C/C-EA0",
+        "WAVE-C/C-EA1",
+        "WAVE-C/C-EA2",
+        "WAVE-C/C-EP1",
+        "WAVE-C/C-EP2",
+        "WAVE-C/C-EP3",
+        "WAVE-C/C-REWARD",
+        "WAVE-C/C-W1",
+        "WAVE-C/C-W1-D2",
+        "WAVE-C/NET-1",
+        "WAVE-C/NET-2",
+        "WAVE-C/NET-3",
+        "WAVE-C/NET-4A",
+        "WAVE-C/NET-4B",
+        "WAVE-C/NET-5",
+        "WAVE-C/NET-5R",
+        "WAVE-C/NET-6"
+      ],
+      "supersedes": null
     }
   ]
 }

@@ -35,27 +35,24 @@
 
 **Status:** active in bounded engineering scope because `.agent/WAVE.md` names
 Wave C/C0 and this file as its controlling register.
-**Version:** 2.4
+**Version:** 2.5
 **Activation decision:** `OWNER-WAVE-C0-NET1-01`
-**Selected ticket:** C-W1 — `in_progress`
-**Selection scope:** bounded `C-W1-D1` DEVELOPMENT slice only; official C-W1
-remains `future_reserved`
-**Active ticket:** supervised Burgers V1 DEVELOPMENT agent/session continuation
-on public-testnet subnet 567, using PR #185's merged checked source and operator
-path; full V1 coverage and accepted comparison remain unclaimed
-**Next boundary:** prospectively select a DEVELOPMENT comparison contract and
-non-paying bridge; no successor ticket is selected. PR #194 merged the zero-fee
-publication guard. The separately authorized activation finalized at 8017622,
-and all-burn commitment at 8017643. Walletless reconciliation observed reveal
-at 8017851 and exact row `[[0, 65535]]` at 8017916; state is
-`ROW_VERIFIED`. Both one-dispatch scopes are consumed. The real agent's FNO-40
-evaluation and signed source remain unchanged and `COMPLETE_UNRESOLVED`;
-no comparison, winner, miner payment or qualified scientific result is claimed.
+**Selected ticket:** C-W1-D2 — `in_progress`
+**Selection scope:** non-paying DEVELOPMENT comparison only; official C-W1
+remains `future_reserved`.
+**Active ticket:** `.agent/tickets/C-W1-D2_development_comparison.md`.
+**Next boundary:** complete C-W1-D2 acceptance and normal expected-head merge;
+the descriptive exercise is complete. A future accepted comparison requires
+an authorized acceptance rule, not fitted thresholds. No later ticket is selected.
+PR #196 merged as `15ecbe923c8710313cbeadadc8dd5c7d5ec2ae9e` after run
+`35143278595` accepted head `594b8cb668e9b133cb071b32f0ca3e7785d5c3f9`.
+Historical public-testnet publication is `ROW_VERIFIED`, exact row `[[0, 65535]]`;
+the source remains `COMPLETE_UNRESOLVED`. Both transaction scopes are consumed.
+C-W1-D2 completed one non-paying DEVELOPMENT experiment on the seen 12 TRAIN / 12 EVAL / 12 STRESS subset: 8 real gpt-5-mini calls, one FNO-48 challenger against the authentic FNO-40 historical baseline, three real JAX replicas, 144 updates and 72 C-05 reports. Field and weak-PDE errors were lower; conserved-mean and STRESS maximum-principle defects worsened. Disposition: INDETERMINATE_NO_ACCEPTANCE_RULE. No scalar, tie, accepted improvement or winner is claimed. The agent used its permitted prior feedback and stopped after one evaluation. PR #201 engineering delivery is conditional on required CI and normal expected-head merge; no later ticket is selected.
 C-EA2 and official C-W1 remain blocked.
 `OWNER-C1-BURGERS-ALPHA-01` keeps one selected ticket at a time. Protected
 science, real archive acknowledgement and official public-network execution
-remain ineligible; only the exact C-W1-D1 DEVELOPMENT transaction can become
-eligible after its separately recorded gates pass.
+remain ineligible. C-W1-D2 authorizes no public-network transaction.
 PR #146 merged the initial adapter as
 `d9fadf7f9cbb9b3a2a4ffa1ec9b0c906826be8ca`; PR #147 accepted head
 `72608d589582707955943345bc1308017e9650dc` in run `34750621646` and merged
@@ -198,6 +195,7 @@ production custody, quorum, science or economics blocks only that operation.
 | C-EA2 | Archive before finalization | todo | `.agent/tickets/C-EA2_archive_before_finalization.md` | Evidence archive + validator integration | Operations + data/security + scientific integration | C-EA1, C-07 | MQ-048, MQ-051 | L | C1 |
 | C-09 | Official testnet publication provider | todo | `.agent/tickets/C-09_official_testnet_publication_provider.md` | Codex + publication/protocol engineering | Protocol + scientific integration + security | A10, C-06, C-07, C-EA2 | MQ-048, MQ-054 | L | C1/C2 |
 | C-W1 | Exact real testnet eligibility provenance | in_progress | `.agent/tickets/C-W1_testnet_eligibility.md` (bounded C-W1-D1 DEVELOPMENT slice only; official path remains future reserved) | Network/protocol + scientific integration | Security + Physics/SciML | NET-2, NET-4B, NET-6, C-06, C-07, C-08, C-10; official C-09 and C-EA2 non-blocking only for bounded DEVELOPMENT | MQ-048, MQ-054 | M | C2 |
+| C-W1-D2 | Non-paying DEVELOPMENT comparison bridge | in_progress | `.agent/tickets/C-W1-D2_development_comparison.md` | Scientific integration | Physics/SciML + Security | C-05, C-06, C-07, C-08, C-10, C-REWARD | MQ-048, MQ-054 | M | C2 |
 
 NET-1: PR #120 expected head 528213a passed run 34405478897 and normally merged
 as 6dad22db26e4b8babadf73c4de2527a17485a2b1. Completion comment:

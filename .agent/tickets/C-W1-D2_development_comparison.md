@@ -1,6 +1,9 @@
 # C-W1-D2 — Non-paying DEVELOPMENT comparison bridge
 
 **Status:** in_progress
+**Owner:** Scientific integration
+**Reviewer:** Physics/SciML + Security
+**Depends on:** C-05, C-06, C-07, C-08, C-10, C-REWARD
 **Parent / primary Hub map_ref:** WAVE-C/C-W1
 **Selected authority:** owner continuation following PR #196; one experiment at
 most USD 1, 24 provider calls including failures/retries, two new evaluated
@@ -62,3 +65,14 @@ missing decision does not block descriptive engineering/evaluation. Protected,
 official, production, settlement and all-burn consumers reject comparison reports.
 Scientific qualification, live reward policy, future winner publication authority,
 AWS, archives, B-E4, mainnet and payment remain outside this ticket.
+
+## Observed execution and conditional delivery closeout
+
+Implementation and the one authorized experiment are complete. See
+`docs/development/CW1_DEVELOPMENT_COMPARISON_RESULTS.md` for retained identities,
+measurements and resource accounting. The model stopped after one proposal;
+unused capacity does not authorize a replacement session. PR #201 remains the
+delivery candidate. Its bounded engineering closeout becomes effective after
+required CI and normal expected-head merge under OWNER-DX-03; the completion
+comment records external merge identity. No later ticket is selected, and no
+scientific or economic acceptance is implied by that closeout.

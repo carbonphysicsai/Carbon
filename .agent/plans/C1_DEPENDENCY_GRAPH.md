@@ -1,11 +1,11 @@
-# C1/C2 dependency graph after accepted C-W1-D1 PR #183
+# C1/C2 dependency graph: non-paying C-W1-D2 comparison
 
 **Decision:** `OWNER-C1-CONTRACTS-01`
 **Status:** authoritative planning checkpoint after merge
 **Primary Hub map_ref:** `WAVE-C`
-**Implementation selection:** PR #183 accepted the distinct public/synthetic
-C-W1-D1 DEVELOPMENT foundation; its operator execution/reconciliation
-continuation remains selected
+**Implementation selection:** C-W1-D2 only. PR #196 delivered the historical
+ROW_VERIFIED all-burn recovery. The new descriptive experiment is complete;
+comparison engineering delivery remains conditional on PR #201 CI and merge.
 
 ## Authority resolution
 
@@ -38,6 +38,7 @@ C-02 + C-04 ─> C-05(PR #157 engineering + D-02/D-05 prerequisite harness)
 A10 boundary + C-06 + C-07 + C-EA2 ─> C-09
 G2(exact standard localnet only) + C-09 + C-EA2 + real signed C1 evidence ─> C-W1
 NET-2 + C-03 + C-06/C-07/C-08 + C-10 + checked publisher ─> C-W1-D1(public/synthetic DEVELOPMENT only)
+C-05 + C-06/C-07/C-08 + C-10 + C-REWARD ─> C-W1-D2(non-paying descriptive comparison only)
 NET-3 + C-01 + A4-A8 ─> C-EP1(done, DEVELOPMENT fixture only)
 C-EP1 ─> C-EP2(done measurement/replay only; no sharing runtime)
 C-EP2 + C-AUTH1 ─> C-EP3(done input acquisition/public component probe)
@@ -65,7 +66,8 @@ C-EP3 + supplied immutable JAX bundle ─> C-02(merged DEVELOPMENT adapter prere
 | C-10 | done in bounded DEVELOPMENT re-execution scope; PR #173 accepted | ticket, C-10-D1 plan/evidence and C-01 relation/C-06/C-07 composition | C-06 and C-07 bounded engineering capabilities satisfied | qualified scientific comparison and independent security acceptance remain open | independent administration and protected evidence absent | bounded slice complete | **already usable as DEVELOPMENT evidence only** |
 | C-EA2 | `future_reserved`, unselected, blocked | ticket exists; sufficient | C-EA1 plus selected real C-02–C-07 path | real artifact, rights, retention, custody/KMS, topology, durability, recovery and security policies | eligible real archive service/acknowledgement | already materialized; do not select | **no** |
 | C-09 | `future_reserved`, unselected, blocked | ticket materialized here; sufficient | A10 boundary, C-06, C-07, C-EA2 | qualified provenance and Challenge-local publication/disclosure policy | signed real receipt/result and eligible real archive acknowledgement | materialized by this checkpoint | **no** |
-| C-W1 | official path `future_reserved`; distinct C-W1-D1 DEVELOPMENT slice selected | ticket plus C-W1-D1 plan/evidence | official: G2+C-09+C-EA2+real C1; development: accepted NET-2/C-03/C-06/C-07/C-08/C-10 and publisher | exact transaction approval; official science/security remain open | selected netuid, registration/UID/capability and eligible Linux host absent | official path unchanged; development all-burn only | **yes, C-W1-D1 only** |
+| C-W1 | official path `future_reserved`; C-W1-D1 historical row verified | ticket and PR #196 recovery | official: G2+C-09+C-EA2+real C1 | official science/security and future transaction authority remain open | subnet 567, publisher UID 0, miner UID 1 and WSL Docker host observed | current all-burn profile unchanged | **no** |
+| C-W1-D2 | selected; real descriptive experiment complete, delivery pending | frozen contract, authentic comparison and owner report | C-05, C-06, C-07, C-08, C-10, C-REWARD | accepted-improvement/equivalence/score rule absent; descriptive scope remains valid | none for authorized completed exercise | no paying or public-network path | **yes, C-W1-D2 only** |
 
 ## Exact C-02 source resolution and remaining boundary
 
@@ -103,7 +105,7 @@ private-alpha preparation without implementing real acknowledgement; and PR
 C-EA1-D3's concrete unprovisioned AWS deployment package. The repository owner
 PR #183 accepted the C-W1-D1 foundation after AWS deployment was deferred and
 Hippius recorded as an unverified future storage preference. The repository
-owner selects only C-W1-D1's public/synthetic DEVELOPMENT path. C-EA2 and official C-W1 remain
+owner selects only C-W1-D2's non-paying DEVELOPMENT comparison path. C-EA2 and official C-W1 remain
 unimplemented/ineligible. Public execution is still gated by exact observed
 network identity/capability and transaction authorization. This graph
 authorizes no protected reference, official science, real archive

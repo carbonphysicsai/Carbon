@@ -83,21 +83,19 @@ claim. See `.agent/plans/C_W1_DEVELOPMENT_TESTNET.md`.
   distinguished. The source remains `COMPLETE_UNRESOLVED`; no accepted winner,
   miner payment, burn amount, epoch effect or qualification is inferred.
 
-C-W1-REVEAL-01 repairs the SDK tuple reveal decoder and adds bounded walletless
-`resume --rescan-reveal` recovery. The observed journal is `ROW_VERIFIED`;
-delivery of the repair/board closeout remains conditional on applicable CI and
-normal expected-head merge. See the working decision in
-`.agent/plans/C_W1_DEVELOPMENT_TESTNET.md`.
+C-W1-REVEAL-01 delivered in PR #196 at approved head
+`594b8cb668e9b133cb071b32f0ca3e7785d5c3f9`, acceptance `35143278595`, normal
+merge `15ecbe923c8710313cbeadadc8dd5c7d5ec2ae9e`. Historical journals are retained.
 
-### Unselected next DEVELOPMENT milestone
+### Selected non-paying DEVELOPMENT comparison
 
-The smallest score-based successor would bind an active signed C-06/C-07 result
-and C-05 measurement artifact to a prospectively frozen DEVELOPMENT comparison
-decision, reject every C-10 quarantined/unresolved source, then reuse C-REWARD's
-deterministic activation, takeover and decay arithmetic. The existing fixture
-reward ledger is not authority for real DEVELOPMENT receipts. Until that bridge
-has its own selection and evidence, C-W1-D1 remains all-burn and cannot claim a
-winner or payment.
+C-W1-D2 is the only selected successor. Its prospective contract and completed
+descriptive experiment are recorded in `docs/development/CW1_DEVELOPMENT_COMPARISON.md`
+and `docs/development/CW1_DEVELOPMENT_COMPARISON_RESULTS.md`. Active signed sources,
+C-05 measurements and C-10 quarantine are reused. Real acceptance remains
+indeterminate; C-REWARD takeover/self-improvement/decay is exercised with clearly
+synthetic accepted-comparison fixtures only. C-W1-D1 remains all-burn and cannot
+consume comparison reports. No new public-network operation or payment occurred.
 
 ## Definition of Done
 

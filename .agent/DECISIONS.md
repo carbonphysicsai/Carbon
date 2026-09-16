@@ -14439,3 +14439,32 @@ the reviewed wrapper while the v1 form draft and historical imports remain
 valid. No customer outcome, model quality, demand, speedup, cost saving,
 reference adequacy, tolerance, scientific acceptance, protected use, score,
 reward, or launch is inferred from authored cases or a mock conversation.
+
+## 2026-09-16 — C-W1-D2-D1: descriptive comparison before accepted improvement
+
+**Authority and scope.** The owner selected one non-paying DEVELOPMENT bridge
+and one experiment capped at USD 1, 24 calls and two new evaluations of three
+replicas. Earlier consumed authorities are not reused. No public-network write.
+
+**Decision frozen before inference.** KEEP the v2 12/12/12 cohort, construction
+and resource envelope, C-05 measurements, signed C-06/C-07/C-08 sources and C-10
+quarantine. WRAP complete compatible sources in a versioned descriptive report.
+No applicable acceptance/equivalence/scalar rule exists. Equal case means within
+replicas and equal replica means report changes without creating a winner;
+case and replica dependence dimensions remain separate. Three replicas support
+limited descriptive spread only. Seen baseline results prevent confirmatory claims.
+
+**Observed evidence and limits.** One real FNO-48 challenger followed permitted
+historical FNO-40 feedback; the agent stopped. Eight calls, 144 updates, 72 reports,
+USD 0.00348135 published-rate usage and zero transactions. Mixed metric changes
+remain INDETERMINATE_NO_ACCEPTANCE_RULE. An empty C-10 journal means no recorded
+reexecution, not independent validation. Runtime commit 37b23bec produced the
+immutable comparison; a canonical JSON tuple/list readback repair at 1e682e8a
+regenerated the owner summary without another inference or numerical attempt.
+
+**Reserved seam.** Future acceptance needs an owner-authorized comparison rule;
+future reward simulation needs its own score/policy inputs. Existing C-REWARD
+arithmetic is tested only with explicit synthetic accepted fixtures. Finalized
+identity mapping, winner-capable publication and fresh exact transaction scopes
+remain additional prerequisites. All official/protected/settlement/all-burn
+consumers reject this report. Normal PR #201 CI/merge closes only engineering.

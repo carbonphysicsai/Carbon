@@ -21,7 +21,7 @@ Q12 floor/remainder reward ledger, shared-holder aggregation, burn-only targets,
 ## Placement and handoff
 
 - **Depends on:** NET-3
-- **Feeds:** NET-4A
+- **Feeds:** NET-4A, C-W1-D2
 - **Driver:** Codex + reward/protocol engineering
 - **Review route:** Scientific integration + network/security
 - **Master questions:** MQ-054, MQ-056

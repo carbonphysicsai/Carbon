@@ -218,6 +218,14 @@
       "changes": "PR #183 accepted C-W1-D1's bounded DEVELOPMENT profile. Its selected continuation adds a closed controller source handoff, exact export validation, separate host/chain readiness and fixed run/status/resume over durable journals without rerunning science or resubmitting on restart.",
       "not_yet": "No public transaction occurred. There is no approved netuid, the available hotkey was unregistered in the retained scan, the current Mac is not an eligible Linux isolation host, and no registration or one-dispatch transaction authority exists. Official C-W1/C-09/C-EA2, protected processing, rewards, production and LIVE remain unavailable.",
       "map_ref": "WAVE-C/C-W1"
+    },
+    "C-W1-D2": {
+      "title": "See what changed after one real agent proposal",
+      "what": "Resolve complete signed sources through C-06/C-07/C-08 and C-10, then report separate EVAL/STRESS metric differences.",
+      "why": "Real agent adaptation needs inspectable measurements while acceptance and payment remain separate decisions.",
+      "changes": "Frozen comparison identity, complete cohort checks, immutable report, bounded authenticated agent loop, owner-readable accounting and a synthetic-only reward seam.",
+      "not_yet": "No accepted improvement, scalar score, equivalence, winner, protected evidence, settlement, all-burn eligibility, public-network transaction or scientific qualification.",
+      "map_ref": "WAVE-C/C-W1-D2"
     }
   }
 }

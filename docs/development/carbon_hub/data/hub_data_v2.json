@@ -41,16 +41,16 @@
       }
     },
     "selected_ticket": {
-      "id": "C-W1",
-      "title": "Exact real testnet eligibility provenance",
+      "id": "C-W1-D2",
+      "title": "Non-paying DEVELOPMENT comparison bridge",
       "status": "in_progress",
-      "summary": "C-W1 DEVELOPMENT: the real agent evaluation's signed source completed the separately authorized all-burn testnet path. Subnet 567 activation finalized at 8017622, commitment at 8017643, reveal at 8017851 and exact row [[0, 65535]] at 8017916; the checked journal reached ROW_VERIFIED without resubmission. PR #194's zero-fee guard is merged. C-W1-REVEAL-01 repairs SDK tuple event decoding and provides bounded walletless rescan recovery for a previously missed reveal."
+      "summary": "C-W1-D2 completed one non-paying DEVELOPMENT experiment on the seen 12 TRAIN / 12 EVAL / 12 STRESS subset: 8 real gpt-5-mini calls, one FNO-48 challenger against the authentic FNO-40 historical baseline, three real JAX replicas, 144 updates and 72 C-05 reports. Field and weak-PDE errors were lower; conserved-mean and STRESS maximum-principle defects worsened. Disposition: INDETERMINATE_NO_ACCEPTANCE_RULE. No scalar, tie, accepted improvement or winner is claimed. The agent used its permitted prior feedback and stopped after one evaluation. PR #201 engineering delivery is conditional on required CI and normal expected-head merge; no later ticket is selected."
     },
     "next_selected_ticket": null,
     "controlling_register": ".agent/WAVE_C.md",
-    "controlling_register_version": "2.4",
-    "controlling_board_fingerprint": "1ec2c6443390084c17991e181bb76cab88c2fb33ff58393e3d8d0f23cc6c8b9c",
-    "stage": "C-W1 DEVELOPMENT: the real agent evaluation's signed source completed the separately authorized all-burn testnet path. Subnet 567 activation finalized at 8017622, commitment at 8017643, reveal at 8017851 and exact row [[0, 65535]] at 8017916; the checked journal reached ROW_VERIFIED without resubmission. PR #194's zero-fee guard is merged. C-W1-REVEAL-01 repairs SDK tuple event decoding and provides bounded walletless rescan recovery for a previously missed reveal. Creation at 8010852 and distinct miner UID 1 registration remain historical setup evidence. The numerical result remains COMPLETE_UNRESOLVED; no score, accepted improvement, winner, miner payment, burn amount or epoch effect is inferred. No subsequent activation or weight transaction is authorized by the consumed approvals. AWS stays deferred, Hippius unverified and scientific/security/network/production qualification unearned. Official C-W1 and C-EA2 remain blocked. No later ticket is selected; the next proposed milestone is a non-paying DEVELOPMENT comparison bridge with prospective rules and C-10 quarantine. Earlier deterministic engineering scaffold measurements are not results of the real agent.",
+    "controlling_register_version": "2.5",
+    "controlling_board_fingerprint": "ff9d5344d52baa880658c2e42f12337e87627428ec37def8449eef18aca95b78",
+    "stage": "C-W1-D2 completed one non-paying DEVELOPMENT experiment on the seen 12 TRAIN / 12 EVAL / 12 STRESS subset: 8 real gpt-5-mini calls, one FNO-48 challenger against the authentic FNO-40 historical baseline, three real JAX replicas, 144 updates and 72 C-05 reports. Field and weak-PDE errors were lower; conserved-mean and STRESS maximum-principle defects worsened. Disposition: INDETERMINATE_NO_ACCEPTANCE_RULE. No scalar, tie, accepted improvement or winner is claimed. The agent used its permitted prior feedback and stopped after one evaluation. PR #201 engineering delivery is conditional on required CI and normal expected-head merge; no later ticket is selected. Historical C-W1 DEVELOPMENT: C-W1 DEVELOPMENT: the real agent evaluation's signed source completed the separately authorized all-burn testnet path. Subnet 567 activation finalized at 8017622, commitment at 8017643, reveal at 8017851 and exact row [[0, 65535]] at 8017916; the checked journal reached ROW_VERIFIED without resubmission. PR #194's zero-fee guard is merged. PR #196 delivered C-W1-REVEAL-01, which repairs SDK tuple event decoding and provides bounded walletless rescan recovery for a previously missed reveal. Creation at 8010852 and distinct miner UID 1 registration remain historical setup evidence. The numerical result remains COMPLETE_UNRESOLVED; no score, accepted improvement, winner, miner payment, burn amount or epoch effect is inferred. No subsequent activation or weight transaction is authorized by the consumed approvals. AWS stays deferred, Hippius unverified and scientific/security/network/production qualification unearned. Official C-W1 and C-EA2 remain blocked. Earlier deterministic engineering scaffold measurements are not results of the real agent.",
     "most_recent_closed_wave": "B",
     "completed_wave_tickets": [
       "NET-1",
@@ -142,8 +142,8 @@
       "commercially_validated": "unearned",
       "production_qualified": "unearned"
     },
-    "maturity_summary": "Bounded real agent evaluation, signed DEVELOPMENT evidence, finalized public-testnet commitment, automatic reveal and exact row readback observed. Scientific comparison, winner, payment, epoch effects and qualification remain unearned; official C-W1 remains future reserved.",
-    "decision_series_status": "C-W1-ZERO-FEE-01 is accepted in PR #194. Separate owner-approved activation and zero-fee publication scopes each dispatched once and are consumed. The exact completed source remains immutable; no further transaction or model session is authorized by these records.",
+    "maturity_summary": "Authentic descriptive DEVELOPMENT comparison implemented and exercised. Accepted improvement, winner, payment and scientific/security/production qualification remain unearned.",
+    "decision_series_status": "C-W1-D2-D1 frozen before inference; the single new experiment is consumed. No further model session or public-network transaction is authorized by this record.",
     "technical_decision_route": "https://github.com/carbonphysicsai/Carbon/issues/42",
     "owner_decision_route": "https://github.com/carbonphysicsai/Carbon/issues/41",
     "decision_series": []
@@ -504,17 +504,17 @@
       "path": ".agent/WAVE.md",
       "required_markers": [
         "**Current wave:** C",
-        "**Current phase:** C-W1-D1 public/synthetic DEVELOPMENT testnet composition",
-        "**Selected ticket:** C-W1 — `in_progress`",
-        "**Active ticket:** supervised Burgers V1 DEVELOPMENT agent/session continuation",
-        "**Next boundary:** prospectively select a DEVELOPMENT comparison contract and",
+        "**Current phase:** C-W1-D2 non-paying DEVELOPMENT comparison",
+        "**Selected ticket:** C-W1-D2 — `in_progress`",
+        "**Active ticket:** `.agent/tickets/C-W1-D2_development_comparison.md`.",
+        "**Next boundary:** complete C-W1-D2 acceptance and normal expected-head merge;",
         "PR #143",
         "`34708322417`",
         "`d783c2c7209c7eea2d46dd395c4eaaf8094a9e71`",
         "`OWNER-C1-CONTRACTS-01` materializes C-03, C-08 and C-09",
         "`OWNER-C03-DEV-ISOLATION-01` now selects C-03's first bounded",
         "grants no pack sharing,",
-        "**Controlling register:** `.agent/WAVE_C.md` version 2.4",
+        "**Controlling register:** `.agent/WAVE_C.md` version 2.5",
         "**Wave B:** closed in bounded engineering scope",
         "`c510095b5501587cf93c04632a26b7c303d7d48b`",
         "`34365282759`",
@@ -532,10 +532,10 @@
       "id": "controlling-board-selection",
       "path": ".agent/WAVE_C.md",
       "required_markers": [
-        "**Version:** 2.4",
-        "**Selected ticket:** C-W1 — `in_progress`",
-        "**Active ticket:** supervised Burgers V1 DEVELOPMENT agent/session continuation",
-        "**Next boundary:** prospectively select a DEVELOPMENT comparison contract and",
+        "**Version:** 2.5",
+        "**Selected ticket:** C-W1-D2 — `in_progress`",
+        "**Active ticket:** `.agent/tickets/C-W1-D2_development_comparison.md`.",
+        "**Next boundary:** complete C-W1-D2 acceptance and normal expected-head merge;",
         "**Last completed slice:** C-W1-D1 authorized all-burn publication and exact row verification",
         "NET-0 remains a boundary family",
         "| NET-6 | Disposable operator lifecycle and recovery | done |",
@@ -986,7 +986,7 @@
         "### C-W1-D1 Definition of Done",
         "PR #183 exact head `324a5276cd6a1ffdc491d04d08ef8b3282a060e8`",
         "A closed controller source handoff plus fixed `run`, `status` and `resume`",
-        "### Unselected next DEVELOPMENT milestone",
+        "### Selected non-paying DEVELOPMENT comparison",
         "Separate owner authority bounded one activation and one all-burn publication."
       ]
     },
@@ -1793,6 +1793,16 @@
         "ROW_VERIFIED",
         "8017622",
         "8017643"
+      ]
+    },
+    {
+      "id": "cw1-d2-comparison",
+      "path": ".agent/tickets/C-W1-D2_development_comparison.md",
+      "required_markers": [
+        "**Status:** in_progress",
+        "INDETERMINATE_NO_ACCEPTANCE_RULE",
+        "No public-network writes.",
+        "conditional delivery closeout"
       ]
     }
   ],
@@ -3336,7 +3346,8 @@
         "C-10",
         "C-EA2",
         "C-09",
-        "C-W1"
+        "C-W1",
+        "C-W1-D2"
       ],
       "repo_links": [
         {
@@ -6710,7 +6721,8 @@
       },
       "orientation_note": "Zero opening credit and a finite score range bound lifetime targets; delayed and drip-fed improvements retain strategic incentives.",
       "unlocks": [
-        "NET-4A"
+        "NET-4A",
+        "C-W1-D2"
       ]
     },
     {
@@ -7712,7 +7724,8 @@
       "orientation_note": "Mandatory scientific failure cannot be compensated by soft performance. Every candidate value is retained as UNRESOLVED_NO_QUALIFIED_LIMIT and no score schema is emitted.",
       "unlocks": [
         "C-06",
-        "C-07"
+        "C-07",
+        "C-W1-D2"
       ]
     },
     {
@@ -7781,7 +7794,8 @@
         "C-07",
         "C-10",
         "C-09",
-        "C-W1"
+        "C-W1",
+        "C-W1-D2"
       ]
     },
     {
@@ -7849,7 +7863,8 @@
         "C-10",
         "C-EA2",
         "C-09",
-        "C-W1"
+        "C-W1",
+        "C-W1-D2"
       ]
     },
     {
@@ -7910,7 +7925,8 @@
       },
       "orientation_note": "The miner still sees the same seven A9 tools. Fixture/practice evidence cannot bind the non-LIVE real path; official seeds, cases and fine margins remain undisclosed.",
       "unlocks": [
-        "C-W1"
+        "C-W1",
+        "C-W1-D2"
       ]
     },
     {
@@ -7971,7 +7987,8 @@
       },
       "orientation_note": "The re-execution reproduces the same registered reconstruction randomness through new workers and scratch. It does not measure different-seed variability or independent-host honesty.",
       "unlocks": [
-        "C-W1"
+        "C-W1",
+        "C-W1-D2"
       ]
     },
     {
@@ -8138,7 +8155,7 @@
           "url": "https://github.com/carbonphysicsai/Carbon/blob/974edafb7c47db2e06448f49e33239ab5a655e50/docs/development/CW1_BURGERS_AGENT_SESSION.md"
         }
       ],
-      "current_stage": "C-W1 DEVELOPMENT: the real agent evaluation's signed source completed the separately authorized all-burn testnet path. Subnet 567 activation finalized at 8017622, commitment at 8017643, reveal at 8017851 and exact row [[0, 65535]] at 8017916; the checked journal reached ROW_VERIFIED without resubmission. PR #194's zero-fee guard is merged. C-W1-REVEAL-01 repairs SDK tuple event decoding and provides bounded walletless rescan recovery for a previously missed reveal. Creation at 8010852 and distinct miner UID 1 registration remain historical setup evidence. The numerical result remains COMPLETE_UNRESOLVED; no score, accepted improvement, winner, miner payment, burn amount or epoch effect is inferred. No subsequent activation or weight transaction is authorized by the consumed approvals. AWS stays deferred, Hippius unverified and scientific/security/network/production qualification unearned. Official C-W1 and C-EA2 remain blocked. No later ticket is selected; the next proposed milestone is a non-paying DEVELOPMENT comparison bridge with prospective rules and C-10 quarantine. Earlier deterministic engineering scaffold measurements are not results of the real agent.",
+      "current_stage": "C-W1 DEVELOPMENT: the real agent evaluation's signed source completed the separately authorized all-burn testnet path. Subnet 567 activation finalized at 8017622, commitment at 8017643, reveal at 8017851 and exact row [[0, 65535]] at 8017916; the checked journal reached ROW_VERIFIED without resubmission. PR #194's zero-fee guard is merged. PR #196 delivered C-W1-REVEAL-01, which repairs SDK tuple event decoding and provides bounded walletless rescan recovery for a previously missed reveal. Creation at 8010852 and distinct miner UID 1 registration remain historical setup evidence. The numerical result remains COMPLETE_UNRESOLVED; no score, accepted improvement, winner, miner payment, burn amount or epoch effect is inferred. No subsequent activation or weight transaction is authorized by the consumed approvals. AWS stays deferred, Hippius unverified and scientific/security/network/production qualification unearned. Official C-W1 and C-EA2 remain blocked. C-W1-D2 is the selected non-paying comparison; official C-W1 remains reserved.",
       "maturity_ceiling": "Bounded real agent evaluation, signed DEVELOPMENT evidence, finalized public-testnet commitment, automatic reveal and exact row readback observed. Scientific comparison, winner, payment, epoch effects and qualification remain unearned; official C-W1 remains future reserved.",
       "maturity_states": {
         "specified": "earned",
@@ -8151,6 +8168,64 @@
         "production_qualified": "unearned"
       },
       "orientation_note": "G2 remains LOCALNET_READY only for the exact D6 disposable v445 localnet. C-W1-D1 is separate and permits public/synthetic DEVELOPMENT only after exact external gates; signed DEVELOPMENT evidence remains rejected by official/protected consumers.",
+      "unlocks": []
+    },
+    {
+      "id": "C-W1-D2",
+      "wave": "C",
+      "title": "Non-paying DEVELOPMENT comparison bridge",
+      "status": "in_progress",
+      "implementation_state": "development_comparison_exercised_delivery_pending",
+      "phase": "C2",
+      "one_line": "Compare authentic DEVELOPMENT measurements without paying or inventing a winner.",
+      "what": "Resolve complete signed sources through C-06/C-07/C-08 and C-10, then report separate EVAL/STRESS metric differences.",
+      "why": "Real agent adaptation needs inspectable measurements while acceptance and payment remain separate decisions.",
+      "adds": "Frozen comparison identity, complete cohort checks, immutable report, bounded authenticated agent loop, owner-readable accounting and a synthetic-only reward seam.",
+      "does_not": "No accepted improvement, scalar score, equivalence, winner, protected evidence, settlement, all-burn eligibility, public-network transaction or scientific qualification.",
+      "depends_on": [
+        "C-05",
+        "C-06",
+        "C-07",
+        "C-08",
+        "C-10",
+        "C-REWARD"
+      ],
+      "owner": "Scientific integration",
+      "reviewer": "Physics/SciML + Security",
+      "master_questions": [
+        "MQ-048",
+        "MQ-054"
+      ],
+      "effort": "M",
+      "target": "C2",
+      "repo_path": ".agent/tickets/C-W1-D2_development_comparison.md",
+      "repo_links": [
+        {
+          "label": "Repo ticket",
+          "url": "https://github.com/carbonphysicsai/Carbon/blob/974edafb7c47db2e06448f49e33239ab5a655e50/.agent/tickets/C-W1-D2_development_comparison.md"
+        },
+        {
+          "label": "Frozen comparison contract",
+          "url": "https://github.com/carbonphysicsai/Carbon/blob/974edafb7c47db2e06448f49e33239ab5a655e50/docs/development/CW1_DEVELOPMENT_COMPARISON.md"
+        },
+        {
+          "label": "Observed results",
+          "url": "https://github.com/carbonphysicsai/Carbon/blob/974edafb7c47db2e06448f49e33239ab5a655e50/docs/development/CW1_DEVELOPMENT_COMPARISON_RESULTS.md"
+        }
+      ],
+      "current_stage": "C-W1-D2 completed one non-paying DEVELOPMENT experiment on the seen 12 TRAIN / 12 EVAL / 12 STRESS subset: 8 real gpt-5-mini calls, one FNO-48 challenger against the authentic FNO-40 historical baseline, three real JAX replicas, 144 updates and 72 C-05 reports. Field and weak-PDE errors were lower; conserved-mean and STRESS maximum-principle defects worsened. Disposition: INDETERMINATE_NO_ACCEPTANCE_RULE. No scalar, tie, accepted improvement or winner is claimed. The agent used its permitted prior feedback and stopped after one evaluation. PR #201 engineering delivery is conditional on required CI and normal expected-head merge; no later ticket is selected.",
+      "maturity_ceiling": "Authentic descriptive DEVELOPMENT comparison implemented and exercised. Accepted improvement, winner, payment and scientific/security/production qualification remain unearned.",
+      "maturity_states": {
+        "specified": "earned",
+        "implemented": "earned",
+        "tested": "earned",
+        "scientifically_qualified": "unearned",
+        "security_qualified": "unearned",
+        "network_qualified": "unearned",
+        "commercially_validated": "unearned",
+        "production_qualified": "unearned"
+      },
+      "orientation_note": "Seen 12/12/12 development subset; three replicas do not provide confirmatory inference. No authorized acceptance rule applies.",
       "unlocks": []
     }
   ],
