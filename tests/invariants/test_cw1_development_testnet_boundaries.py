@@ -13,7 +13,8 @@ def test_official_cw1_and_archive_gate_remain_open_and_distinct():
     ticket = (ROOT / ".agent/tickets/C-W1_testnet_eligibility.md").read_text()
     graph = (ROOT / ".agent/plans/C1_DEPENDENCY_GRAPH.md").read_text()
     assert "official slice `future_reserved`" in ticket
-    assert "official path unchanged; development all-burn only" in graph
+    assert "official path `future_reserved`" in graph
+    assert "current all-burn profile unchanged" in graph
     assert "C-09+C-EA2+real C1" in graph
 
 

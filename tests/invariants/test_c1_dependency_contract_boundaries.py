@@ -35,7 +35,8 @@ def test_only_cw1_development_slice_is_selected() -> None:
         assert "C-W1-D1" in record
         assert "DEVELOPMENT" in record
         assert "**Next boundary:**" in record
-        assert "public-testnet" in record
+        assert "ROW_VERIFIED" in record
+        assert "INDETERMINATE_NO_ACCEPTANCE_RULE" in record
         assert "C-EA2" in record and "blocked" in record
     assert "C-04(PR #154 engineering + D-03/D-04 prerequisite harness)" in graph
     assert "C-05(PR #157 engineering + D-02/D-05 prerequisite harness)" in graph
