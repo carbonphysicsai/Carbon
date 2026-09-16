@@ -3298,6 +3298,50 @@
         "WAVE-C/NET-6"
       ],
       "supersedes": null
+    },
+    {
+      "map_ref": "WAVE-C/C-W1",
+      "event_type": "adjustment",
+      "event_id": "CW1-PREDICTION-STAGING-20260916",
+      "owner_lane": "documentation_maintenance",
+      "status": "active",
+      "summary": "C-W1 DEVELOPMENT continues after PR #190 merged real/non-live worker admission. Distinct miner UID 1 finalized on subnet 567 at block 8013851. The third authorized real model session made six calls for USD 0.0036775, submitted FNO-48 and completed three isolated reconstructions (144 updates). Prediction stopped at input permissions under umask 077. The selected repair explicitly restores traversable read-only inputs and adds complete authenticated numerical service coverage. All failures and trained artifacts remain retained; no automatic restart.",
+      "primary_detail": "docs/development/CW1_BURGERS_AGENT_SESSION.md",
+      "affects": [
+        "SYSTEM/AGENT-EXECUTION",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "WAVE-B",
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE",
+        "WAVE-C/C-01",
+        "WAVE-C/C-02",
+        "WAVE-C/C-03",
+        "WAVE-C/C-04",
+        "WAVE-C/C-05",
+        "WAVE-C/C-06",
+        "WAVE-C/C-07",
+        "WAVE-C/C-08",
+        "WAVE-C/C-09",
+        "WAVE-C/C-10",
+        "WAVE-C/C-AUTH1",
+        "WAVE-C/C-EA0",
+        "WAVE-C/C-EA1",
+        "WAVE-C/C-EA2",
+        "WAVE-C/C-EP1",
+        "WAVE-C/C-EP2",
+        "WAVE-C/C-EP3",
+        "WAVE-C/C-REWARD",
+        "WAVE-C/C-W1",
+        "WAVE-C/NET-1",
+        "WAVE-C/NET-2",
+        "WAVE-C/NET-3",
+        "WAVE-C/NET-4A",
+        "WAVE-C/NET-4B",
+        "WAVE-C/NET-5",
+        "WAVE-C/NET-5R",
+        "WAVE-C/NET-6"
+      ],
+      "supersedes": null
     }
   ]
 }
