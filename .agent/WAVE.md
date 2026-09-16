@@ -47,12 +47,13 @@ normally merged as `ac050fd53ee18bf3788c167ee7b0736bbfd7a46b`, tree
 remains `future_reserved`
 **Active ticket:** supervised Burgers V1 DEVELOPMENT agent/session continuation
 on public-testnet subnet 567, using the merged PR #185 run/status/resume path
-**Next boundary:** accept the strict agent-tool framing repair and separately
-authorize a new bounded model session. Miner UID 1 registration finalized at
-8013851 for 0.005426933 test TAO. Four real model calls spent USD 0.0019395;
-the first proposal stopped at malformed dry-validation arguments before any
-reconstruction/evaluation. Activation and all-burn publication retain separate
-authority. C-EA2 and official C-W1 remain blocked.
+**Next boundary:** accept the C-W1 real/non-live worker-scope repair. PR #189
+merged strict tools; the newly authorized session made six real model calls for
+USD 0.00380175, proposed FNO-48 and reached authenticated submission. C-03's
+fixture-only staging guard stopped it before Docker launch or training. Retain
+both stopped sessions; no automatic restart. Miner UID 1 remains finalized at
+8013851 for 0.005426933 test TAO. Activation and all-burn publication retain
+separate authority. C-EA2 and official C-W1 remain blocked.
 C-EA1 passed canonical acceptance in run `34558389185` at accepted head
 `a779af066f4bf9bc36b6d6ab23914fa19191e1de` and normally merged in PR #136 as
 `0e0714c8260ca482a0ba2b743b2eaefd50508da1`. `OWNER-C-EA1-SYNTHETIC-01`

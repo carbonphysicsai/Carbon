@@ -384,8 +384,16 @@ def stage_request(
     identity = replica.binding.replicate_identity
     if (
         replica not in repeat_plan.replicas
-        or claimed.binding.handle.admission_kind is not AdmissionKind.FIXTURE
-        or claimed.binding.scope is not ExecutionScope.FIXTURE_DEVELOPMENT
+        # C-W1 retains real authenticated provenance inside this same closed
+        # public DEVELOPMENT worker. PRODUCTION is C-01's non-fixture enum;
+        # neither pair grants protected/LIVE/qualification authority.
+        or type(claimed.binding.handle.admission_kind) is not AdmissionKind
+        or type(claimed.binding.scope) is not ExecutionScope
+        or (claimed.binding.handle.admission_kind, claimed.binding.scope)
+        not in (
+            (AdmissionKind.FIXTURE, ExecutionScope.FIXTURE_DEVELOPMENT),
+            (AdmissionKind.PRODUCTION, ExecutionScope.REAL_PATH_NON_LIVE),
+        )
         or repeat_plan.construction_plan_digest != plan_ref.content_digest
         or repeat_plan.training_data_digest != training_archive.content_digest
         or replica.execution_ref != claimed.claim.ref
