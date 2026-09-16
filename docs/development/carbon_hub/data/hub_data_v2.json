@@ -2903,6 +2903,13 @@
         "map_ref": "SYSTEM/PUBLICATION-AUTHORITY"
       },
       {
+        "id": "web-qa-02-public-answer-bot-ticket",
+        "match_type": "exact",
+        "path": ".agent/tickets/WEB-QA-02_ask_carbon_repair_staging.md",
+        "impact_class": "map_structural",
+        "map_ref": "SYSTEM/PUBLICATION-AUTHORITY"
+      },
+      {
         "id": "ticket-record",
         "match_type": "ticket_record",
         "path": ".agent/tickets/",

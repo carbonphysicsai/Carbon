@@ -14359,3 +14359,83 @@ destination, access roles, retention/deletion and notice/permission decisions,
 abuse/incident controls, server recomputation, persistence, and real receipt.
 The smallest reversal is removal of the intake surface and additive lineage
 fields while retaining historical local draft bytes and job records.
+
+## 2026-09-16 — WEB-QA-02-D1: shared budget, re-grounded continuation and staged release contract
+
+**Authority source and scope.** The owner's Ask Carbon repair, knowledge
+completion and staging-evaluation direction supersedes WEB-QA-01's missing-
+package and unresolved-cost record. It authorizes routine engineering repair,
+reconciliation of already public-use-eligible material, a USD 50 monthly
+provider ceiling and a USD 5 nested bakeoff. It does not authorize production,
+DNS/routes, public activation, a privacy/security acceptance, new paid
+infrastructure, private data, qualification, miner execution or economics.
+
+**Accounting decision.** Use exactly one route-less Durable Object authority
+for every evaluation, staging and production provider call. Environment data
+and permissions remain distinct, but remote bindings target the same namespace
+and fixed authority name. Every attempt is admitted to a UTC calendar month and
+durable operational scope, reserves worst-case work, records dispatch intent,
+and ends released-before-dispatch, settled, overrun or unresolved. Possible
+dispatch never becomes free because of timeout, abort, expiry, missing usage or
+settlement failure. Scope caps cannot be raised by a later environment. This
+ledger is an application exposure guard, not an account invoice cap.
+
+**Dialogue and support decision.** Reject visitor-authored answer history. A
+server-issued 15-minute continuation carries only relevant card IDs and is
+bound to knowledge version and withdrawal epoch; each turn retrieves reviewed
+passages again. A deterministic relevance floor separates missing evidence
+from service failure. Provider claims must map to retrieved passage IDs and
+pass a server support check; only the server maps reviewed source URLs. No
+second-model semantic checker is claimed or mandated without measured benefit.
+
+**Publication decision.** Build validation, Worker activation and saved fallback
+share one release contract. The recovered 31 cards are draft provenance, not a
+permanent count gate. A stale or withdrawn card disables its topic while healthy
+topics remain available; a global withdrawal invalidates all modes and old
+continuations. The current 26-card collection is staging-reviewed with source
+release date 2026-09-16 and is deliberately not public-approved.
+
+**External boundary.** Authenticated discovery found the available Carbon
+Cloudflare account empty of zones/projects/private access, while the live
+hostname remains Cloudflare-served through an unestablished owner account or
+upload flow. No resource was created. Live evaluation and real Cloudflare
+runtime acceptance remain blocked on the exact target/private-access and
+provider-project/data-control facts. Production stays unchanged and the next
+release decision must name the exact target, knowledge/model/configuration,
+privacy disposition and rollback owner.
+
+## 2026-09-16 — GOAL-WORKBENCH-08A-GUIDED-PILOT-01: one brief, two client editing modes
+
+**Owner direction and scope.** The owner amends the current website-intake
+milestone so Ask Carbon guides a client through the same versioned brief as the
+form. This authorizes bounded Engineering implementation, mock/authored
+evaluation, and local preview. It does not authorize homepage deployment,
+live collection, a provider secret, private persistence, scientific
+qualification, rights, numerical execution, source-assessment admission,
+network action, or launch. The active C-W1 lane remains unchanged.
+
+**Implementation decision.** KEEP the v1 intake draft as the canonical core;
+WRAP it in a closed reviewed-package record carrying a draft pilot, field
+provenance, accepted AI proposals, unresolved assumptions, consent/notice
+version, contact data, and optionally selected conversation history. Guided
+conversation and form edit one in-memory draft; proposals require explicit
+acceptance and support rejection/undo. The Workbench validates the package,
+retains its exact bytes, and creates the same `UNASSESSED` job. No AI output is
+evidence, route selection, qualification, or permission.
+
+**Provider, privacy, and cost boundary.** Reuse the PR #193 Ask Carbon adapter
+with a separate `PILOT_DESIGN` output schema. Client text is untrusted; the
+server owns closed validation, source mapping, bounded signed context, units,
+cost accounting, and failure. General Q&A and pilot guidance share one
+50,000,000 micro-USD ($50) monthly ceiling plus existing daily/concurrency/rate
+controls. Form-only use sends nothing; AI requires affirmative disclosure;
+conversation inclusion is off by default; abandoned raw conversations are not
+persisted for sales/research in this implementation. Live activation remains
+blocked on the approved public knowledge/model/prices, actual provider
+retention posture, website/receiver/store/notice/security/deployment decisions.
+
+**Reversal and authority ceiling.** The narrow reversal removes pilot mode and
+the reviewed wrapper while the v1 form draft and historical imports remain
+valid. No customer outcome, model quality, demand, speedup, cost saving,
+reference adequacy, tolerance, scientific acceptance, protected use, score,
+reward, or launch is inferred from authored cases or a mock conversation.

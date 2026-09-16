@@ -6,6 +6,6 @@
   "scripts": {
     "test": "node --test tests/*.test.mjs",
     "validate": "node tools/validate-knowledge.mjs",
-    "eval:mock": "node eval/run.mjs --provider mock"
+    "eval:contract": "node eval/run.mjs --provider contract"
   }
 }

@@ -3,7 +3,10 @@
 
   const DRAFT_VERSION = "carbon.client-intake.draft.v1";
   const MAPPING_VERSION = "carbon.client-intake.mapping.v1";
+  const REVIEW_VERSION = "carbon.client-intake.reviewed.v1";
+  const GUIDANCE_VERSION = "carbon.client-intake.guidance.v1";
   const LOCAL_SCOPE = "LOCAL_SYNTHETIC_DEVELOPMENT_NOT_TRANSMITTED";
+  const REVIEW_SCOPE = "LOCAL_REVIEW_PACKAGE_NOT_SUBMITTED";
   const TEXT_FIELDS = [
     "intended_decision",
     "requested_result",
@@ -21,6 +24,17 @@
     "reference_query_time",
     "workload_frequency",
     "desired_accuracy",
+  ];
+  const PILOT_FIELDS = [
+    "candidate_inputs",
+    "candidate_outputs",
+    "operating_envelope",
+    "evaluation_questions",
+    "requested_targets",
+    "missing_evidence",
+    "implementation_work",
+    "bounded_first_pilot",
+    "next_discussion",
   ];
   const clone = (value) => JSON.parse(JSON.stringify(value));
 
@@ -234,6 +248,88 @@
     return clone(value);
   }
 
+  function nullableText(value, label, limit = 8000) {
+    if (value === null) return null;
+    return text(value, label, limit);
+  }
+
+  function validateReviewedPackage(value) {
+    exact(value, ["schema_version", "brief", "pilot", "field_provenance", "accepted_suggestions", "unresolved_assumptions", "ai_guidance", "sharing", "contact", "local_scope"], "reviewed intake package");
+    if (value.schema_version !== REVIEW_VERSION || value.local_scope !== REVIEW_SCOPE)
+      throw Error("Unsupported reviewed intake package");
+    const brief = validateDraft(value.brief);
+    exact(value.pilot, ["label", ...PILOT_FIELDS], "draft pilot");
+    if (value.pilot.label !== "Draft pilot for Carbon review")
+      throw Error("Invalid draft pilot label");
+    for (const field of PILOT_FIELDS) text(value.pilot[field], "pilot " + field);
+    if (!Array.isArray(value.field_provenance) || value.field_provenance.length > 64)
+      throw Error("Invalid field provenance");
+    const allowedFields = new Set([...TEXT_FIELDS, ...QUANTITY_FIELDS, ...PILOT_FIELDS.map((field) => "pilot." + field)]);
+    const suggestibleFields = new Set([...TEXT_FIELDS, ...PILOT_FIELDS.map((field) => "pilot." + field)]);
+    const seenFields = new Set();
+    for (const item of value.field_provenance) {
+      exact(item, ["field", "origin", "suggestion_id"], "field provenance");
+      if (!allowedFields.has(item.field) || seenFields.has(item.field)) throw Error("Invalid field provenance field");
+      seenFields.add(item.field);
+      if (!["CLIENT_TYPED", "AI_SUGGESTED_CLIENT_ACCEPTED", "UNKNOWN"].includes(item.origin)) throw Error("Invalid field provenance origin");
+      nullableText(item.suggestion_id, "suggestion ID", 128);
+      if (item.origin === "AI_SUGGESTED_CLIENT_ACCEPTED" && !item.suggestion_id) throw Error("Accepted AI provenance requires a suggestion ID");
+    }
+    if (seenFields.size !== allowedFields.size) throw Error("Field provenance must cover every reviewable field");
+    if (!Array.isArray(value.accepted_suggestions) || value.accepted_suggestions.length > 64)
+      throw Error("Invalid accepted suggestions");
+    const suggestionIds = new Set();
+    for (const item of value.accepted_suggestions) {
+      exact(item, ["suggestion_id", "field", "proposed_value", "rationale", "accepted_at"], "accepted suggestion");
+      ident(item.suggestion_id, "suggestion ID");
+      if (suggestionIds.has(item.suggestion_id)) throw Error("Duplicate accepted suggestion ID");
+      suggestionIds.add(item.suggestion_id);
+      if (!suggestibleFields.has(item.field)) throw Error("Invalid suggestion field");
+      text(item.proposed_value, "suggested value");
+      text(item.rationale, "suggestion rationale", 1200);
+      text(item.accepted_at, "suggestion acceptance time", 64, true);
+      const provenance = value.field_provenance.find((entry) => entry.field === item.field);
+      if (provenance?.origin !== "AI_SUGGESTED_CLIENT_ACCEPTED" || provenance.suggestion_id !== item.suggestion_id)
+        throw Error("Accepted suggestion does not match field provenance");
+      const current = item.field.startsWith("pilot.")
+        ? value.pilot[item.field.slice("pilot.".length)]
+        : brief.answers[item.field]?.value;
+      if (current !== item.proposed_value) throw Error("Accepted suggestion does not match the current field value");
+    }
+    if (!Array.isArray(value.unresolved_assumptions) || value.unresolved_assumptions.length > 32 || value.unresolved_assumptions.some((item) => typeof item !== "string" || !item.trim() || item.length > 1200))
+      throw Error("Invalid unresolved assumptions");
+    exact(value.ai_guidance, ["enabled", "provider", "guidance_version", "notice_version", "consented_at", "cleared_locally"], "AI guidance record");
+    if (typeof value.ai_guidance.enabled !== "boolean" || typeof value.ai_guidance.cleared_locally !== "boolean") throw Error("Invalid AI guidance flags");
+    if (value.ai_guidance.guidance_version !== GUIDANCE_VERSION) throw Error("Unsupported guidance version");
+    nullableText(value.ai_guidance.provider, "AI provider", 120);
+    nullableText(value.ai_guidance.notice_version, "notice version", 128);
+    nullableText(value.ai_guidance.consented_at, "consent time", 64);
+    if (value.ai_guidance.enabled && (value.ai_guidance.provider !== "OPENAI_API" || !value.ai_guidance.notice_version || !value.ai_guidance.consented_at))
+      throw Error("Enabled AI guidance requires provider and consent details");
+    if (!value.ai_guidance.enabled && (value.ai_guidance.provider !== null || value.ai_guidance.notice_version !== null || value.ai_guidance.consented_at !== null))
+      throw Error("Disabled AI guidance cannot claim consent");
+    exact(value.sharing, ["include_conversation", "conversation"], "sharing choice");
+    if (typeof value.sharing.include_conversation !== "boolean" || !Array.isArray(value.sharing.conversation) || value.sharing.conversation.length > 32)
+      throw Error("Invalid conversation sharing choice");
+    if (!value.sharing.include_conversation && value.sharing.conversation.length) throw Error("Conversation history requires explicit inclusion");
+    for (const turn of value.sharing.conversation) {
+      exact(turn, ["turn_id", "role", "text"], "conversation turn");
+      ident(turn.turn_id, "conversation turn ID");
+      if (!["CLIENT", "ASSISTANT"].includes(turn.role)) throw Error("Invalid conversation role");
+      text(turn.text, "conversation text", 4000, true);
+    }
+    exact(value.contact, ["name", "email", "organization"], "contact details");
+    text(value.contact.name, "contact name", 300);
+    text(value.contact.email, "contact email", 320);
+    text(value.contact.organization, "contact organization", 300);
+    return { ...clone(value), brief };
+  }
+
+  function draftFromTransport(value) {
+    if (value?.schema_version === REVIEW_VERSION) return validateReviewedPackage(value).brief;
+    return validateDraft(value);
+  }
+
   function canonical(value) {
     const validated = validateDraft(value);
     function stable(item) {
@@ -266,17 +362,21 @@
     if (typeof raw !== "string" || new TextEncoder().encode(raw).length > 120000)
       throw Error("Intake draft exceeds 120 KB");
     const parsed = strictParser(raw, { maxBytes: 120000, maxDepth: 10 });
-    const draft = validateDraft(parsed);
+    const reviewed = parsed?.schema_version === REVIEW_VERSION ? validateReviewedPackage(parsed) : null;
+    const draft = reviewed ? reviewed.brief : validateDraft(parsed);
     return {
       draft,
+      review_package: reviewed,
+      transport_kind: reviewed ? "REVIEWED_PACKAGE" : "LOCAL_DRAFT",
       raw_json: raw,
       raw_sha256: await sha256(raw),
       canonical_digest: await sha256(canonical(draft)),
     };
   }
 
-  function mapDraft(draft, canonicalDigest) {
+  function mapDraft(draft, canonicalDigest, reviewed = null) {
     validateDraft(draft);
+    if (reviewed) validateReviewedPackage(reviewed);
     const value = (field) =>
       draft.answers[field].state === "VALUE" ? draft.answers[field].value : "";
     const quantities = draft.quantities;
@@ -304,19 +404,19 @@
     return {
       title: (value("requested_result") || value("intended_decision") || "Unreviewed local inquiry").slice(0, 300),
       assignment: {
-        client_words: draft.summary.text,
+        client_words: draft.summary.text + (reviewed?.pilot?.bounded_first_pilot ? `\n\nDraft pilot for Carbon review: ${reviewed.pilot.bounded_first_pilot}` : ""),
         client_source: `LOCAL_INTAKE ${draft.draft_id}/${draft.revision_id} ${canonicalDigest}`,
         intended_decision: value("intended_decision"),
         credible_baseline: [value("current_baseline"), value("baseline_limitation")].filter(Boolean).join(" — "),
         context: value("changing_conditions"),
         allowances: "No execution allowance supplied by local intake.",
         rights_summary: value("access_limitations") || "UNRESOLVED",
-        next_owner_decision: draft.summary.next_clarification,
+        next_owner_decision: reviewed?.pilot?.next_discussion || draft.summary.next_clarification,
       },
       scope: {
         intended_use: value("intended_decision"),
-        outputs: value("requested_result"),
-        conditions: value("changing_conditions"),
+        outputs: reviewed?.pilot?.candidate_outputs || value("requested_result"),
+        conditions: reviewed?.pilot?.operating_envelope || value("changing_conditions"),
         exclusions: value("exclusions"),
         query_workload: timing,
         turnaround: `Recurring prediction latency: ${quantityText(quantities.prediction_latency)}; reference-query time: ${quantityText(quantities.reference_query_time)}`,
@@ -333,11 +433,17 @@
     DRAFT_VERSION,
     MAPPING_VERSION,
     LOCAL_SCOPE,
+    REVIEW_VERSION,
+    GUIDANCE_VERSION,
+    REVIEW_SCOPE,
     TEXT_FIELDS,
     QUANTITY_FIELDS,
+    PILOT_FIELDS,
     newDraft,
     summaryFor,
     validateDraft,
+    validateReviewedPackage,
+    draftFromTransport,
     canonical,
     inspect,
     mapDraft,

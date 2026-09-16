@@ -172,6 +172,7 @@ class SourceTests(unittest.TestCase):
         )
         first = (ROOT / "Carbon_Opportunity_Workbench.html").read_bytes()
         intake_first = (ROOT / "Carbon_Client_Intake_Preview.html").read_bytes()
+        pilot_first = (ROOT / "Carbon_Client_Pilot_Designer_Preview.html").read_bytes()
         subprocess.run(
             ["/usr/bin/python3", str(ROOT / "tools/build.py")],
             check=True,
@@ -182,12 +183,19 @@ class SourceTests(unittest.TestCase):
         self.assertEqual(
             intake_first, (ROOT / "Carbon_Client_Intake_Preview.html").read_bytes()
         )
+        self.assertEqual(
+            pilot_first,
+            (ROOT / "Carbon_Client_Pilot_Designer_Preview.html").read_bytes(),
+        )
+        self.assertEqual(intake_first, pilot_first)
         text = first.decode()
         self.assertIn("default-src 'none'", text)
         self.assertNotIn("</script><script>alert", text)
         self.assertIn("Goal-to-Challenge Workbench", text)
         intake_text = intake_first.decode()
-        self.assertIn("nothing is transmitted", intake_text)
+        self.assertIn("nothing is submitted from this preview", intake_text)
+        self.assertIn("Enable AI guidance", intake_text)
+        self.assertIn("Draft pilot for Carbon review", intake_text)
         self.assertNotIn("OWNER-GW07-RYAN-SNAPSHOT-01", intake_text)
         self.assertNotIn("approved_assessments", intake_text)
 
@@ -248,6 +256,12 @@ class SourceTests(unittest.TestCase):
         self.assertFalse(intake["additionalProperties"])
         self.assertNotIn("qualified", intake["properties"])
         self.assertNotIn("approval", intake["properties"])
+        reviewed = json.loads((ROOT / "data/intake_reviewed.schema.json").read_text())
+        self.assertFalse(reviewed["additionalProperties"])
+        self.assertFalse(reviewed["properties"]["brief"]["additionalProperties"])
+        self.assertFalse(reviewed["properties"]["ai_guidance"]["additionalProperties"])
+        self.assertNotIn("approved", reviewed["properties"])
+        self.assertNotIn("qualified", reviewed["properties"])
 
     def test_repository_snapshot_schemas_are_deeply_closed_and_reproducible(self):
         tool = ROOT / "tools/build_repository_snapshot_schemas.py"
@@ -401,6 +415,10 @@ class SourceTests(unittest.TestCase):
             )
             self.assertIn(
                 "carbon_goal_workbench_v0_8/Carbon_Client_Intake_Preview.html", names
+            )
+            self.assertIn(
+                "carbon_goal_workbench_v0_8/Carbon_Client_Pilot_Designer_Preview.html",
+                names,
             )
             self.assertIn(
                 "carbon_goal_workbench_v0_8/evidence/cpes_reference_reuse_v2/evidence_index_v1.json",

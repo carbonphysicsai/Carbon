@@ -11,14 +11,16 @@ test("static integration preserves existing content and routes", () => {
   assert.match(output, /<main id=home>Keep me<\/main>/);
   assert.match(output, /href="\/workbench\/"/);
   assert.match(output, /<ask-carbon/);
+  assert.doesNotMatch(output, /staging-preview/);
   assert.match(output, /ask-carbon\.js/);
   assert.throws(() => integrateHtml(output), /already integrated/);
   assert.throws(() => integrateHtml(input, { assetPrefix: "../../escape" }), /bounded relative/);
 });
 
 test("static integration can point a staging fixture at an unavailable knowledge route", () => {
-  const output = integrateHtml("<html><head></head><body></body></html>", { knowledgeUrl: "/missing-knowledge.json" });
+  const output = integrateHtml("<html><head></head><body></body></html>", { knowledgeUrl: "/missing-knowledge.json", stagingPreview: true });
   assert.match(output, /knowledge-url="\/missing-knowledge\.json"/);
+  assert.match(output, /staging-preview/);
 });
 
 test("CSP generation hashes existing inline code without unsafe-inline", () => {
@@ -32,12 +34,13 @@ test("CSP generation hashes existing inline code without unsafe-inline", () => {
   assert.throws(() => buildCsp("<button onclick=\"alert(1)\">Bad</button>"), /Inline event handlers/);
 });
 
-test("preview knowledge is internally valid but deliberately not production releasable", () => {
-  const preview = validateKnowledge(knowledge);
+test("reviewed knowledge is staging-valid but deliberately not production releasable", async () => {
+  const preview = await validateKnowledge(knowledge, { mode: "staging", now: new Date("2026-09-16T00:00:00Z") });
   assert.equal(preview.valid, true);
-  assert.ok(preview.warnings.includes("31_candidate_cards_not_received_or_reviewed"));
-  const production = validateKnowledge(knowledge, { production: true, now: new Date("2026-09-16T00:00:00Z") });
+  assert.equal(preview.card_count, 26);
+  assert.equal(preview.source_checks.filter((check) => check.matched).length, 9);
+  const production = await validateKnowledge(knowledge, { mode: "production", now: new Date("2026-09-16T00:00:00Z") });
   assert.equal(production.valid, false);
-  assert.ok(production.errors.includes("knowledge_not_approved_for_production"));
-  assert.ok(production.errors.includes("candidate_card_review_incomplete"));
+  assert.ok(production.errors.includes("release_not_approved_public"));
+  assert.ok(production.errors.includes("public_activation_not_allowed"));
 });

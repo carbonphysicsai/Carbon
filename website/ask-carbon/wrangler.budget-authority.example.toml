@@ -1,0 +1,17 @@
+name = "OWNER_DECISION_REQUIRED_SHARED_BUDGET_AUTHORITY"
+main = "worker/budget-authority.mjs"
+compatibility_date = "2026-09-16"
+workers_dev = false
+
+# Deploy exactly one authority for every Ask Carbon evaluation, staging and
+# production provider call. It has no route and no workers.dev URL. App Workers
+# bind to this script by its reviewed deployed name. Creating this resource may
+# have Cloudflare storage/request charges and is not authorized by this file.
+
+[[durable_objects.bindings]]
+name = "ASK_CARBON_USAGE_LEDGER"
+class_name = "AskCarbonUsageLedger"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["AskCarbonUsageLedger"]

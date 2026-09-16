@@ -170,9 +170,14 @@ def build() -> tuple[Path, Path]:
         },
         "local_intake_bridge": {
             "draft_schema": "carbon.client-intake.draft.v1",
+            "reviewed_package_schema": "carbon.client-intake.reviewed.v1",
+            "guidance_version": "carbon.client-intake.guidance.v1",
             "mapping_version": "carbon.client-intake.mapping.v1",
             "preview_artifact": "Carbon_Client_Intake_Preview.html",
-            "scope": "Local/synthetic DEVELOPMENT only; no transmission, live collection, customer validation, source-assessment admission, qualification, rights grant, or launch.",
+            "pilot_designer_artifact": "Carbon_Client_Pilot_Designer_Preview.html",
+            "ai_mode": "OPT_IN_FAIL_CLOSED_SHARED_BRIEF",
+            "conversation_inclusion_default": False,
+            "scope": "Local/synthetic DEVELOPMENT only; provider calls require explicit consent and configured activation; no submission, live collection, customer validation, source-assessment admission, qualification, rights grant, or launch.",
         },
         "post_merge_review_input": {
             "archive_sha256": "85aa3633410ea41cad9029a5e864e42ca2134c4ff0ec9eb5caef638acd4e2f78",

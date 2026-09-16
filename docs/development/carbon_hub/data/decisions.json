@@ -2762,6 +2762,56 @@
       ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/blob/main/Business/Carbon_Fit/workbench/source_assessment/repository_snapshot/v1/adoption/owner_gw07_ryan_snapshot_01.json",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/main/Business/Carbon_Fit/workbench/docs/GOAL_WORKBENCH_07A_ADMISSION_REPORT.md"
+    },
+    {
+      "title": "Repair Ask Carbon behind shared budget and release gates",
+      "question": "How should the public answer bot continue while production hosting, private staging, provider controls and privacy acceptance remain unresolved?",
+      "recommendation": "Keep the repaired component inactive, use one central USD 50 UTC-month application exposure authority with a nested USD 5 bakeoff cap, re-ground every continuation against reviewed public passages, and require the exact private staging target and policy gates before live evaluation.",
+      "why": "The recovered package supplied useful draft coverage but not current authority. Authenticated discovery found no hosting resources in the accessible Cloudflare account and no provider credential or project-policy evidence, so a fail-closed staging candidate is the most complete authorized result.",
+      "if_kept": "The repository retains the existing homepage and Workbench, deterministic tests can continue, and an authorized operator can later run Luna/Terra evaluation through the bounded Worker path without creating a second allowance.",
+      "if_changed": "Any production activation, new paid infrastructure, alternate host, privacy policy, higher provider cap or source-rights expansion requires a prospective owner decision; historical accounting and release records remain immutable.",
+      "decision_id": "WEB-QA-02-D1",
+      "map_ref": "SYSTEM/PUBLICATION-AUTHORITY",
+      "wave": "SYSTEM",
+      "ticket": "WEB-QA-02",
+      "attention": "FOR_AWARENESS",
+      "status": "IMPLEMENTED_WORKING_DECISION",
+      "audience": "harsh",
+      "affects": [
+        "SYSTEM/CI",
+        "SYSTEM/GOVERNANCE",
+        "SYSTEM/MATURITY",
+        "SYSTEM/PUBLICATION",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+      ],
+      "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5697149732",
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/9d43a35ffc056c5b258e225d844b532114819765/.agent/DECISIONS.md"
+    },
+    {
+      "title": "Use guided Ask Carbon and the form over one client pilot brief",
+      "question": "How should the public explorer help a client prepare a stronger pilot inquiry without turning AI guidance into scientific authority or collecting abandoned conversations by default?",
+      "recommendation": "Keep the v1 intake brief as the canonical core and offer guided conversation plus form editing over the same in-memory state. Require consent before AI, explicit acceptance for schema-constrained suggestions, optional conversation inclusion, and deterministic Workbench validation. Reuse the Ask Carbon server adapter and one combined $50/month ledger for both general Q&A and pilot guidance.",
+      "why": "One shared brief avoids duplicate entry and lets a client understand the evidence and implementation work a pilot may require. Explicit provenance, unknowns, consent, and fail-closed operation prevent suggestions from becoming customer promises, scientific decisions, or hidden data collection.",
+      "if_kept": "The local pilot designer exports a reviewed package that creates one UNASSESSED Workbench inquiry while preserving client words, accepted suggestions, unresolved assumptions, and the form-only fallback. Live provider and submission paths remain disabled until their exact production inputs are accepted.",
+      "if_changed": "Remove the pilot mode and reviewed wrapper prospectively while preserving v1 draft imports and historical reviewed packages. A live host, receiver/store, provider account posture, public notice, reuse permission, security/cost acceptance, or deployment requires its own bounded decision.",
+      "decision_id": "GOAL-WORKBENCH-08A-GUIDED-PILOT-01",
+      "map_ref": "WAVE-G",
+      "wave": "G",
+      "ticket": "FIT-WEB-01 guided pilot designer",
+      "attention": "FOR_AWARENESS",
+      "status": "IMPLEMENTED_WORKING_DECISION",
+      "audience": "ryan",
+      "affects": [
+        "WAVE-G",
+        "SYSTEM/BUSINESS-AUTHORITY",
+        "SYSTEM/GOVERNANCE",
+        "SYSTEM/MATURITY",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+      ],
+      "response_url": "https://github.com/carbonphysicsai/Carbon/issues/139",
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/main/Business/Carbon_Fit/workbench/docs/GOAL_WORKBENCH_08A_GUIDED_PILOT_REPORT.md"
     }
   ]
 }
