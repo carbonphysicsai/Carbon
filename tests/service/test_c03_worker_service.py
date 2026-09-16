@@ -153,7 +153,13 @@ def _data(points: int) -> Trajectories:
     )
 
 
-def _case(tmp_path: Path, *, foundax: bool, points: int):
+def _case(
+    tmp_path: Path,
+    *,
+    foundax: bool,
+    points: int,
+    scope: ExecutionScope = ExecutionScope.FIXTURE_DEVELOPMENT,
+):
     plan = compile_c02_plan(tmp_path, foundax=foundax)
     profile = compile_development_profile(plan)
     data = _data(points)
@@ -225,7 +231,11 @@ def _case(tmp_path: Path, *, foundax: bool, points: int):
             ExecutionAttemptHandle(
                 execution.submission_id,
                 execution.attempt_number,
-                AdmissionKind.FIXTURE,
+                (
+                    AdmissionKind.FIXTURE
+                    if scope is ExecutionScope.FIXTURE_DEVELOPMENT
+                    else AdmissionKind.PRODUCTION
+                ),
                 SeedPin(
                     plan.challenge_key,
                     "development-generator-v1",
@@ -238,7 +248,7 @@ def _case(tmp_path: Path, *, foundax: bool, points: int):
             ),
             RequesterIdentity("c03-service-fixture"),
             plan.strategy_hash,
-            ExecutionScope.FIXTURE_DEVELOPMENT,
+            scope,
             plan.to_ref().content_digest,
             profile.profile_digest,
             policy.content_digest,
@@ -336,6 +346,60 @@ def test_real_jax_path_is_isolated_validated_and_numerically_identical(
         resource_observation=isolated.resource_observation,
         exact_replay=True,
         accepted_partials=1,
+    )
+
+
+def test_real_non_live_admission_keeps_scope_through_isolated_training(
+    tmp_path: Path,
+) -> None:
+    """Synthetic engineering regression, not model inference or qualification."""
+    manifest = os.environ.get("CARBON_C03_IMAGE_MANIFEST")
+    assert manifest
+    _, plan, archive, seed, _, repeat, replica, queue, claimed = _case(
+        tmp_path, foundax=False, points=16, scope=ExecutionScope.REAL_PATH_NON_LIVE
+    )
+    controller = IsolatedReconstructionController(
+        state_root=(tmp_path / "real-non-live-worker").resolve(),
+        execution_queue=queue,
+        image=load_image_identity(Path(manifest)),
+    )
+    run = controller.execute(
+        claimed=claimed,
+        repeat_plan=repeat,
+        replica=replica,
+        plan=plan,
+        training_archive=archive,
+        derived_seed=seed,
+    )
+    assert run.receipt.status is ReconstructionStatus.COMPLETE
+    assert run.receipt.completed_steps > 0
+    assert claimed.binding.scope is ExecutionScope.REAL_PATH_NON_LIVE
+    assert claimed.binding.handle.admission_kind is AdmissionKind.PRODUCTION
+    assert run.effective_controls["process"]["NoNewPrivs"] == "1"
+    assert run.effective_controls["cgroup_v2"]["memory.swap.max"] == "0"
+    assert (
+        queue.partials(claimed.claim)[0].artifact_digest == run.receipt.artifact_digest
+    )
+    replay = controller.execute(
+        claimed=claimed,
+        repeat_plan=repeat,
+        replica=replica,
+        plan=plan,
+        training_archive=archive,
+        derived_seed=seed,
+    )
+    assert replay.effective_controls == {"retained_exact_replay": True}
+    assert replay.receipt.artifact_digest == run.receipt.artifact_digest
+    assert len(queue.partials(claimed.claim)) == 1
+    _record_trace(
+        "real_non_live_admission",
+        "complete",
+        execution_scope=claimed.binding.scope.value,
+        admission_kind=claimed.binding.handle.admission_kind.value,
+        image_id=controller.image.image_id,
+        exact_replay=True,
+        training_steps=run.receipt.completed_steps,
+        resource_observation=run.resource_observation,
     )
 
 

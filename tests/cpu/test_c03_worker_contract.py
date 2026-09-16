@@ -286,8 +286,22 @@ def test_worker_entry_path_has_no_scoring_archive_reward_or_network_authority() 
     )
 
 
-def test_stage_is_one_snapshot_and_worker_redecodes_authority(tmp_path: Path) -> None:
+@pytest.mark.parametrize("real_path", (False, True))
+def test_stage_is_one_snapshot_and_worker_redecodes_authority(
+    tmp_path: Path, real_path: bool
+) -> None:
     claimed, repeat, replica, plan, archive, seed, profile = _fixture(tmp_path)
+    if real_path:
+        claimed = replace(
+            claimed,
+            binding=replace(
+                claimed.binding,
+                handle=replace(
+                    claimed.binding.handle, admission_kind=AdmissionKind.PRODUCTION
+                ),
+                scope=ExecutionScope.REAL_PATH_NON_LIVE,
+            ),
+        )
     stage, digest = stage_request(
         stage_root=(tmp_path / "state").resolve(),
         claimed=claimed,
@@ -335,7 +349,7 @@ def test_stage_rejects_cross_attempt_and_policy_mismatch(tmp_path: Path) -> None
 
     assert captured.value.code is WorkerCode.POLICY
 
-    production = replace(
+    real_path_wrong_policy = replace(
         claimed,
         binding=replace(
             claimed.binding,
@@ -344,12 +358,13 @@ def test_stage_rejects_cross_attempt_and_policy_mismatch(tmp_path: Path) -> None
                 admission_kind=AdmissionKind.PRODUCTION,
             ),
             scope=ExecutionScope.REAL_PATH_NON_LIVE,
+            reconstruction_policy_digest=_sha("0"),
         ),
     )
     with pytest.raises(WorkerFailure) as captured:
         stage_request(
             stage_root=(tmp_path / "production-state").resolve(),
-            claimed=production,
+            claimed=real_path_wrong_policy,
             repeat_plan=repeat,
             replica=replica,
             plan=plan,
@@ -642,3 +657,33 @@ def test_owner_doctor_is_read_only_and_all_delivery_commands_are_fixed() -> None
     assert 'CARBON_C03_JUNIT_PATH="${smoke_root}/c03-smoke-junit.xml"' in script
     assert 'operator status "${state_root}"' in script
     assert 'operator reconcile "${state_root}"' in script
+
+
+@pytest.mark.parametrize(
+    "admission,scope",
+    (
+        (AdmissionKind.FIXTURE, ExecutionScope.REAL_PATH_NON_LIVE),
+        (AdmissionKind.PRODUCTION, ExecutionScope.FIXTURE_DEVELOPMENT),
+        (AdmissionKind.PRODUCTION, "REAL_PATH_NON_LIVE"),
+        (AdmissionKind.PRODUCTION, "LIVE"),
+    ),
+)
+def test_stage_rejects_forged_admission_scope_pair(tmp_path, admission, scope):
+    claimed, repeat, replica, plan, archive, seed, profile = _fixture(tmp_path)
+    # Deliberately corrupt immutable typed inputs: the staging boundary must
+    # still reject them even though normal C-01 construction already does.
+    object.__setattr__(claimed.binding.handle, "admission_kind", admission)
+    object.__setattr__(claimed.binding, "scope", scope)
+    with pytest.raises(WorkerFailure) as captured:
+        stage_request(
+            stage_root=(tmp_path / "forged").resolve(),
+            claimed=claimed,
+            repeat_plan=repeat,
+            replica=replica,
+            plan=plan,
+            training_archive=archive,
+            derived_seed=seed,
+            worker_profile=profile,
+        )
+    assert captured.value.code is WorkerCode.POLICY
+    assert not (tmp_path / "forged").exists()
