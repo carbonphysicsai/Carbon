@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import math
+import shlex
 from pathlib import Path
 
 from carbon.development_session.budget import SessionBudget
@@ -244,8 +245,8 @@ def write_owner_report(root: Path):
         "## Status and evidence",
         "",
         "```bash",
-        "cd /home/carbon/Carbon",
-        f".venv/bin/python -m carbon.development_comparison status --root {root}",
+        f"cd {shlex.quote(str(Path(__file__).resolve().parents[2]))}",
+        f".venv/bin/python -m carbon.development_comparison status --root {shlex.quote(str(root))}",
         "```",
         "",
         f"Agent report: {root / 'agent-report.json'}",

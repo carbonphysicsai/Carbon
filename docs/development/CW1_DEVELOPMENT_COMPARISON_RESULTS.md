@@ -115,22 +115,22 @@ This accounting is separate from Ask Carbon's website budget.
 ## Retained owner report and replay recovery
 
 Private session directory:
-`/home/carbon/.local/share/carbon-testnet/burgers-comparison-20260916`.
+`$HOME/.local/share/carbon-testnet/burgers-comparison-20260916`.
 It contains `agent-report.json`, `owner-report.md`, `owner-report.json`,
 `comparison-contract.json`, `budget.sqlite3`, the signed source and immutable
 `comparison-a487e6f4-36a9-4d26-9b02-0db7e50f5992.json` / `.md`.
 The source export retains the numerical reports and signed evidence.
 
 ```bash
-cd /home/carbon/Carbon
-.venv/bin/python -m carbon.development_comparison status --root /home/carbon/.local/share/carbon-testnet/burgers-comparison-20260916
-.venv/bin/python -m carbon.development_comparison report --root /home/carbon/.local/share/carbon-testnet/burgers-comparison-20260916
+cd /absolute/path/to/Carbon
+.venv/bin/python -m carbon.development_comparison status --root "$HOME/.local/share/carbon-testnet/burgers-comparison-20260916"
+.venv/bin/python -m carbon.development_comparison report --root "$HOME/.local/share/carbon-testnet/burgers-comparison-20260916"
 ```
 
-Both commands read retained evidence; do not repeat `run`. On Ryan's machine,
-the combined readable view is
-`C:/Users/Ryan_/source/Carbon/.worktrees/Carbon-Development-Comparison-Results.md`.
-These local paths are owner locations, not publicly downloadable evidence.
+Both commands read retained evidence; do not repeat `run`. Substitute the
+operator checkout path. The Codex owner handoff links the combined readable
+`Carbon-Development-Comparison-Results.md` view and exact machine paths. Private
+local evidence is not publicly downloadable.
 
 Runtime commit `37b23bec` produced the completed model/evaluation and comparison.
 Final owner-summary readback initially rejected tuple/list representations of
