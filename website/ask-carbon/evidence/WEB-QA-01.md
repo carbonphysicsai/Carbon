@@ -12,6 +12,10 @@
   access exposed only `carbonphysicsai/Carbon`; no separate website repository,
   `Carbon_Ask_v1`, `/api/ask-carbon`, WEB-QA ticket, 31-card set or supplied
   live evaluation cases was found.
+- Before delivery, `origin/main` advanced to
+  `94762b6a8932ac6834c731a416c3a45c4cbf6170`. That current main was merged
+  normally into the WEB-QA-01 branch; its concurrent Workbench, Wave-C and
+  worker changes were preserved.
 - `https://carbonphysics.ai/` and `https://www.carbonphysics.ai/` served a
   dependency-free single static HTML document through Cloudflare. The observed
   root document was 5,774,725 bytes and SHA-256
@@ -79,6 +83,12 @@ usefulness; measured handler latency 0.032–8.376 ms; cost USD 0
 
 find website/ask-carbon ... | xargs node --check
 all JavaScript modules parsed successfully
+
+Development Hub source/render validation
+91 generated files current; 133 events after the required repin;
+0 validation errors; 84 validator tests passed; 14 static, 13 interactive and
+5 living-state route checks passed; desktop/mobile JavaScript-on/off browser
+smoke and mobile navigation accessibility passed in Chrome
 ```
 
 The five evaluation cases are author-created local contract cases, not the
@@ -150,7 +160,9 @@ The component and fail-closed adapter earn only **IMPLEMENTED** and locally
 **TESTED** for the evidence above. They are not scientifically, security,
 network, commercially or production qualified. No LIVE/launch authority exists.
 
-Primary Hub map reference remains `SYSTEM/DEVELOPMENT-HUB`. WEB-QA-01 does not
-alter the current Wave-C selection, scientific runtime, dependencies,
-qualification status or public deployment state, so Hub source/events and
-generated outputs remain accurate and were not changed.
+Primary Hub map reference is `SYSTEM/PUBLICATION-AUTHORITY`. The Hub impact
+policy now explicitly owns the WEB-QA-01 ticket, event `WEB-QA-01-D1` records
+the inactive implementation and activation blockers, and the Hub is repinned
+and regenerated from its exact authority snapshot. The current Wave-C
+selection, scientific runtime, dependencies, qualification status and public
+deployment state remain unchanged.
