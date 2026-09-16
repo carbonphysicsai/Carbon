@@ -11,10 +11,12 @@
     "GOAL-WORKBENCH-05A",
     "GOAL-WORKBENCH-06",
     "OWNER-GW07-RYAN-SNAPSHOT-01",
-    "GOAL-WORKBENCH-07"
+    "GOAL-WORKBENCH-07",
+    "OWNER-GW07-RYAN-SNAPSHOT-01-ADOPTION-001",
+    "GOAL-WORKBENCH-07A"
   ],
   "repository_base": "3681f7fb10be0c6e278f53d59ff9b022099ef12d",
-  "integration_revision_at_packaging": "bfd020edde67036a1f9bb9f3a7eb6861242df6a6",
+  "integration_revision_at_packaging": "17400de292c877f3fff2023910a27e9be1422a81",
   "integration_revision_note": "The checksum manifest describes exact packaged bytes. A commit cannot contain its own digest; final PR/head identity is reported by delivery.",
   "pinned_research_revision": "ca904dfee93d3574df4e56b99981a6ed3b138e80",
   "accepted_research_head": "0a5690270dc449ea19c941280203987d37db5283",
@@ -81,11 +83,23 @@
     "merge_commit": "d3e285790f722d76270d517947a865d5e5c6bbb1",
     "scope": "Dependency-light structural invariant; runtime behavior remains covered in the declared CPU environment."
   },
+  "accepted_goal_workbench_07_baseline": {
+    "pull_request": 187,
+    "accepted_head": "0c94cf592b6ce80b2712395e5cb9bd415fd32e22",
+    "acceptance_run": 34973852521,
+    "acceptance_attempt": 2,
+    "merge_commit": "b71b1a68b6f9a895f12fc608e2dec895ea038760",
+    "scope": "Repository-pinned reader shipped with an empty production index pending exact owner adoption."
+  },
   "source_assessment_snapshot": {
     "profile": "burgers-dynamics-public.repository-snapshot.v1",
     "policy_decision": "OWNER-GW07-RYAN-SNAPSHOT-01",
-    "production_approved_entries": 0,
-    "admission_state": "PENDING_EXACT_OWNER_ADOPTION",
+    "snapshot_id": "OWNER-GW07-RYAN-SNAPSHOT-01/sha256-49acb3598d034cf7/v1",
+    "production_approved_entries": 1,
+    "admission_state": "OWNER_ADOPTED_ASSESSMENT_ADMITTED",
+    "adoption_source": "EXPLICIT_OWNER_CONVERSATION_DECISION",
+    "assessment_id": "GW07-BURGERS-DYNAMICS-ASSESSMENT-001",
+    "adoption_record": "source_assessment/repository_snapshot/v1/adoption/owner_gw07_ryan_snapshot_01.json",
     "authority": "Repository-pinned technical correspondence only; no scientific, rights, execution, score, protected-use, or launch authority."
   },
   "post_merge_review_input": {
@@ -122,15 +136,15 @@
     "use": "Operating conformance only; no Grok/account integration is claimed."
   },
   "authority": "No runtime sharing, qualification, protected-use approval, answer publication, submission, registration, execution, launch, deployment, or rights authority is conveyed.",
-  "file_count": 155,
+  "file_count": 162,
   "files": {
     "Carbon_Opportunity_Workbench.html": {
-      "bytes": 674610,
-      "sha256": "731a8b6b34bec52bb9695220da36382ec118c66741bf5faadb743c99048d212f"
+      "bytes": 676823,
+      "sha256": "2200322df9ee74eca039ee203589ead0199c4c98667d2d24fb95160946d09365"
     },
     "README.md": {
-      "bytes": 16674,
-      "sha256": "27ba244c655382a09f070578e3e70de44a51bfbb9132804494005ccf20028395"
+      "bytes": 17474,
+      "sha256": "1b14f00aca0bfd09f2a3159a538939faab2d85efe38ebd3d750e3be5276852c7"
     },
     "data/atlas.json": {
       "bytes": 156569,
@@ -252,21 +266,25 @@
       "bytes": 6323,
       "sha256": "9297e9435c991a9fdc1f583531ef32fe418b0ccb0837942fedf88158a7df9003"
     },
+    "docs/GOAL_WORKBENCH_07A_ADMISSION_REPORT.md": {
+      "bytes": 4798,
+      "sha256": "5785999e17aba3187711509fa092030a2c1cba0468b86dbfb9b9153e345d9a87"
+    },
     "docs/GOAL_WORKBENCH_07_IMPLEMENTATION_REPORT.md": {
-      "bytes": 6295,
-      "sha256": "0c18e0fc7843f32de1dbf471fc6061d720ffc52b0554cfbf01d784244ae7baa0"
+      "bytes": 6589,
+      "sha256": "e456194bc5f4884359c668ff38a574a01cf92bd128f02e15dcb4dd0ff1ea943c"
     },
     "docs/OWNER_REPORT.md": {
-      "bytes": 17433,
-      "sha256": "c5861adc7d7985d44fffdac1fec3c78eeb800cb6166c981a5f90fc11ab07e73b"
+      "bytes": 19248,
+      "sha256": "97e8a875ba9d5fd33c388db770dc91d3d72281740c0ea0b915df4474742805ad"
     },
     "docs/REPOSITORY_SEED_INDEX.json": {
       "bytes": 6759,
       "sha256": "bb05526a6408f70efa32a12ade140305a0cfd2c6d07f3827cc36b16f086eb149"
     },
     "docs/REQUIREMENT_TEST_MAP.md": {
-      "bytes": 17868,
-      "sha256": "f258402ca5b6be9aa939775c6a7422b1881b6f02ad2c9a4bb1755194211518c2"
+      "bytes": 18224,
+      "sha256": "5742dd01ff162018d4f3de656e90272c887ae822c8fe185b329e0ccfc2a28a16"
     },
     "docs/SPECIFICATION.md": {
       "bytes": 14254,
@@ -332,9 +350,13 @@
       "bytes": 1700,
       "sha256": "c6936d4c444c42cb7ba7c6dbd290fb9755799dfa942095209c81a6e34315038f"
     },
+    "source_assessment/repository_snapshot/v1/adoption/owner_gw07_ryan_snapshot_01.json": {
+      "bytes": 4085,
+      "sha256": "297c020a90a5a4a2e1853ab01600c2798294dc43d48351a075cf43262a112ca4"
+    },
     "source_assessment/repository_snapshot/v1/approved_assessments.json": {
-      "bytes": 193,
-      "sha256": "a78fec629fd9bf65c3d5b177543cc6c8674153ba3ce058556d78bbbc06c208a6"
+      "bytes": 1286,
+      "sha256": "6b3afb9cfd8eb550b842a44e1b8326024823d11d806b60cd621969039ce8ccfb"
     },
     "source_assessment/repository_snapshot/v1/candidate/RYAN_ADOPTION_PACKET.md": {
       "bytes": 2706,
@@ -348,17 +370,25 @@
       "bytes": 22209,
       "sha256": "19c2442442bc7097616ff0d3f22f006e4a102c7179a9ae11a6dfe738378dc54f"
     },
+    "source_assessment/repository_snapshot/v1/candidate/public_example_workspace.json": {
+      "bytes": 38133,
+      "sha256": "45bb1a7c265d275a0ffc1424d57bf6500af332d170d5cc3c63351ce132eb4b1d"
+    },
     "source_assessment/repository_snapshot/v1/candidate/request.json": {
       "bytes": 7141,
       "sha256": "0385c3b2630010a2ec84ff2cd1aa93225664b08d1a40556fe4d5951f9681b27b"
     },
     "source_assessment/repository_snapshot/v1/fixture_manifest.json": {
-      "bytes": 1332,
-      "sha256": "b0f5fb1d6d4d533e712892843fec26c2b1ceafedaf0b29eeb68e7eb9e7dd8d59"
+      "bytes": 1873,
+      "sha256": "4052273b40c379ea09b558c68b989028674c3b21349b0ea5f8a026082aed799a"
     },
     "source_assessment/repository_snapshot/v1/profile.json": {
-      "bytes": 1368,
-      "sha256": "731bab0f27c796d076a1d2d380c858e8e8b33b229b8cd8595249c8bc742a4ffd"
+      "bytes": 1369,
+      "sha256": "95682528ec571984fc876f274609aa446f67302ec57872a6aa088a033f4382a1"
+    },
+    "source_assessment/repository_snapshot/v1/schemas/adoption_record.schema.json": {
+      "bytes": 5948,
+      "sha256": "c60bbae0b070ca83f2deb9d3b41f074192e7220b2e5fc8d949005429737ba257"
     },
     "source_assessment/repository_snapshot/v1/schemas/approved_index.schema.json": {
       "bytes": 3596,
@@ -380,6 +410,10 @@
       "bytes": 5834,
       "sha256": "05bfd0fc0afedefea1e6b25cc7d874f8abf3124d4c37cafce3dac00f7860a8f1"
     },
+    "source_assessment/repository_snapshot/v1/test_fixtures/approved_assessments.empty-historical.json": {
+      "bytes": 193,
+      "sha256": "a78fec629fd9bf65c3d5b177543cc6c8674153ba3ce058556d78bbbc06c208a6"
+    },
     "source_assessment/repository_snapshot/v1/test_fixtures/approved_assessments.test-only.json": {
       "bytes": 1227,
       "sha256": "71eb543857c0bd5fa063878f03cc202df38ed2bfcb3c24ad723cbedae962f318"
@@ -388,9 +422,13 @@
       "bytes": 3137,
       "sha256": "3a7ca5c456ed3bf3c362dc659914877066c2ab718898e1c790fa8eb509956cc3"
     },
+    "source_assessment/repository_snapshot/v1/test_fixtures/profile.empty-historical.json": {
+      "bytes": 1196,
+      "sha256": "fcf7c5f88c7da07c25d9b132801f55c124f177826587d558fe0da92a36e16e99"
+    },
     "source_assessment/repository_snapshot/v1/test_fixtures/profile.test-only.json": {
       "bytes": 1340,
-      "sha256": "5a4d7787bd83f4d83bda851015426542418d87cfbfc8186ba6be794720743e62"
+      "sha256": "cedbd0ff1bcad0814cd25ab0e8de9535e959740e6f0dc1f338c750f5eff34e11"
     },
     "source_assessment/v1/example_output/interpretation_preview.md": {
       "bytes": 1523,
@@ -553,16 +591,16 @@
       "sha256": "18bf10948be005333f1d9ad6e80165036ef56435976e77c23531135ea7e4bd12"
     },
     "src/goal_app.js": {
-      "bytes": 67617,
-      "sha256": "e89f56fb2d139e839c9348fa13d23ab1b9cc75cfdba7acc16f0f1df862f1f029"
+      "bytes": 68563,
+      "sha256": "8bd02a2dcdc26b2e204edf07952e3ca59417c8ebf90c6c3a8243140b6be6b051"
     },
     "src/goal_styles.css": {
       "bytes": 1630,
       "sha256": "47434be2e97ec2fe0e26318f4ad68591e70f32167fefacac4c3e072a11dafc09"
     },
     "src/routing.js": {
-      "bytes": 49548,
-      "sha256": "43678b9cc1c0531e8e4f16064f7b8bf4b6c3f0ab5e29b20c745a72ea2332cb42"
+      "bytes": 49880,
+      "sha256": "fbbca4c197a5076070c51329c7da716d4a92707aebe01093979aa22a3b37f6dd"
     },
     "src/shell.html": {
       "bytes": 5473,
@@ -609,12 +647,12 @@
       "sha256": "9d29db8de318f960ff8f398f89cabb0037a7f57eca9537aa0ae70c711e79b350"
     },
     "tests/browser_source_assessment_results.json": {
-      "bytes": 1092,
-      "sha256": "61e3611271b11c8cb6e889cac06e223f094a3d00020ab4cf22684277156270bf"
+      "bytes": 1569,
+      "sha256": "b64af8b63a50029441d1d4aca55fb99b9d3fdeb46befa25539d79afa02a47468"
     },
     "tests/browser_source_assessment_smoke.cjs": {
-      "bytes": 6482,
-      "sha256": "de38799f6bf45fb2f4a63e9822d516a2f62ed95f58ff39ad97be0ec1a2e23d65"
+      "bytes": 7176,
+      "sha256": "dfbb85ef2712b8579d35acb23e42dfd19e0705545609d92a79972681938053ea"
     },
     "tests/preview_atlas.png": {
       "bytes": 271607,
@@ -625,12 +663,12 @@
       "sha256": "111e02e96cd4f641870a1e5584644bafff6081381f5a02fa34059ef9a0f41afb"
     },
     "tests/preview_owner_console.png": {
-      "bytes": 200292,
-      "sha256": "b0fc554d7b00cceb95335c77ecc041243468f93901fe1e6bd6c426e3c8f63e39"
+      "bytes": 211046,
+      "sha256": "51e6eb9ac95859ed65967d16695ad2bcf5e61ced57b20f8fef0d89960d173930"
     },
     "tests/preview_owner_console_mobile.png": {
-      "bytes": 201785,
-      "sha256": "fa3f10cd9c27ddcd051f0a9d3c49e851950b96483d8aead81f2001100424080e"
+      "bytes": 208639,
+      "sha256": "cb3410e18cc43d3cabdf30b93b5577000b16be67c5ed367c5846785ba0d4bd9b"
     },
     "tests/preview_profile.png": {
       "bytes": 705488,
@@ -653,24 +691,24 @@
       "sha256": "e9286584e80db14fd2a9e5c80dd5c740beda8964081e8a4d6ddf891d80810a55"
     },
     "tests/test_repository_snapshot_assessment.cjs": {
-      "bytes": 19853,
-      "sha256": "44a177153b0cd52408cace02f51d8e7adbf517ccf4cc1ee8b5a96d057c42c7d8"
+      "bytes": 23216,
+      "sha256": "79aa32dd4e47ae2f3389c87895f4bb7045768aaed9ba750c7e2e9fc91e60bce0"
     },
     "tests/test_routing.cjs": {
       "bytes": 18684,
       "sha256": "345a1221a688cb0a8a260d5736a9a23db3348ed967c9058bbdd4838e4803695d"
     },
     "tests/test_source_assessment.cjs": {
-      "bytes": 13039,
-      "sha256": "2ac332fbac8a919e5d3188d2e2e8567bea5561d1c707c3ca46417b41f750c28a"
+      "bytes": 13029,
+      "sha256": "d2373ea3a9ab3dbbd5eed613c8f0229ca6caf4272863cc110bd5bccec7cac10a"
     },
     "tests/test_source_assessment_delivery.cjs": {
       "bytes": 5421,
       "sha256": "da0513e99631a677a96fe6208aed7052e79c1d1e720c148a9a199556c2c3346a"
     },
     "tests/test_sources.py": {
-      "bytes": 17947,
-      "sha256": "015903db5e78c78c84219a9e77844d055d5dbe7b3bd5f7341c88849b4f8ad6c2"
+      "bytes": 18987,
+      "sha256": "2bf297e3865839cb600c48c81fab3947cccc8d1c9ad6dd5a52f06c8dc803ec3c"
     },
     "tests/test_state_integrity.cjs": {
       "bytes": 15919,
@@ -685,8 +723,8 @@
       "sha256": "1ee61a97a9703c72a4b2b08bb631668e06ae2c105e4d1c21e896d021c649fc31"
     },
     "tools/build.py": {
-      "bytes": 2836,
-      "sha256": "12818377e52c13c17bbad2be7f4957151e8bed0cedff6e4ab9c8d0b35bd008d9"
+      "bytes": 3045,
+      "sha256": "2dda527315503bdf6c604934a7f0c4dc30978f17408d1dd514e6f574c351212f"
     },
     "tools/build_c05_saved_fixture_index.cjs": {
       "bytes": 1933,
@@ -697,8 +735,8 @@
       "sha256": "1ab4872e2c90c61ee54ea9eef1d3afec37071a4bbe4a65eb92ccff2a6239d474"
     },
     "tools/build_repository_snapshot_fixtures.cjs": {
-      "bytes": 13291,
-      "sha256": "a97bf142171b425142aed0bf9789ad3cd71d72dcb106de4ea05cc91f989856ca"
+      "bytes": 15226,
+      "sha256": "c6c10a65f11aad6a9156fd8bfc1dfca1de6ca155377d26a976066b512b602570"
     },
     "tools/build_repository_snapshot_schemas.py": {
       "bytes": 12916,
@@ -711,6 +749,10 @@
     "tools/build_source_assessment_fixtures.cjs": {
       "bytes": 18454,
       "sha256": "1afa474ce4d04e939456fe27831961fbdc27376b2a070b84c9e6097747d574df"
+    },
+    "tools/check_repository_snapshot_admission.cjs": {
+      "bytes": 12658,
+      "sha256": "281c00600c8130048174e2867d3821bc5b64facc530bca3f1b462702696f2c9e"
     },
     "tools/export_c05_association.cjs": {
       "bytes": 1510,
@@ -729,8 +771,8 @@
       "sha256": "0e45668f1249f4e232c1a0a5aadb9a3706daa825521b96fc80fe1d72f112cde3"
     },
     "tools/package_release.py": {
-      "bytes": 9816,
-      "sha256": "cb49afd164f46efdbc9dc140bb69fbd50a108044edaedc9845a732408898c22e"
+      "bytes": 10880,
+      "sha256": "f7f7428dd8c4ea2032b3dcb83b48ac2387101e5df937bc5863769f3ad75a9074"
     },
     "tools/run_operational_rehearsal.cjs": {
       "bytes": 15775,
