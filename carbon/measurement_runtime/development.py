@@ -9,7 +9,7 @@ from __future__ import annotations
 import math
 import numpy as np
 
-VERSION = "carbon.c05.burgers-development-derived.v2"
+VERSION = "carbon.c05.burgers-development-derived.v3"
 METRICS = (
     "field_time_rms",
     "energy_path_rms",
@@ -17,6 +17,7 @@ METRICS = (
     "conserved_mean",
     "maximum_principle",
     "integrated_energy_balance",
+    "energy_path_max",
 )
 
 
@@ -114,6 +115,7 @@ def measure(
     result = {
         "version": VERSION,
         "metrics": {
+            "energy_path_max": float(np.max(np.abs(e - er)) / energy0),
             "field_time_rms": field,
             "energy_path_rms": energy,
             "initial_condition": float(np.max(np.abs(u[0] - u0)) / amplitude),

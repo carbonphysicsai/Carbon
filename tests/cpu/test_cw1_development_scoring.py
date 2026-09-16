@@ -28,7 +28,7 @@ def rows(field=0.2, energy=0.1):
                 "metrics": dict(
                     zip(
                         METRICS,
-                        (float(field), float(energy), 0.0, 0.0, 0.0, 0.0),
+                        (float(field), float(energy), 0.0, 0.0, 0.0, 0.0, 0.0),
                         strict=True,
                     )
                 ),

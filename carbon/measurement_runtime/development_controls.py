@@ -26,6 +26,16 @@ RECIPES = {
     },
 }
 
+RECIPES["verification-v2"] = {
+    "nu": 0.17,
+    "a": 0.42,
+    "mode": 3,
+    "mean": -0.07,
+    "horizon": 1.2,
+    "points": 256,
+    "times": 193,
+}
+
 
 def controls(stage):
     p = RECIPES[stage]
@@ -157,6 +167,18 @@ def controls(stage):
     observed = run(perturb, nt, nref)["metrics"]["field_time_rms"]
     expected = amplitude / (
         math.sqrt(3) * float(np.sqrt(np.mean((initial - mean) ** 2)))
+    )
+    checks["wrong_decay_energy_envelope"] = (
+        results["wrong_decay"]["metrics"]["energy_path_max"] > 0.05
+    )
+    checks["frozen_initial_energy_envelope"] = (
+        results["frozen_initial"]["metrics"]["energy_path_max"] > 0.05
+    )
+    checks["suppressed_energy_envelope"] = (
+        results["suppressed_dynamics"]["metrics"]["energy_path_max"] > 0.05
+    )
+    checks["exact_energy_envelope"] = (
+        results["exact"]["metrics"]["energy_path_max"] == 0
     )
     checks["nonuniform_time_weights"] = abs(observed / expected - 1) < 1e-5
     return {

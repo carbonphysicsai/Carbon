@@ -13,8 +13,8 @@ from .engine import _combined_score
 from .model import LegScore, ScalarScore
 
 RULE = {
-    "schema": "carbon.development-score-rule.v1",
-    "id": "burgers-development-balanced-v1",
+    "schema": "carbon.development-score-rule.v2",
+    "id": "burgers-development-balanced-v2",
     "authority": "OWNER-C-W1-D3-DELEGATION-01",
     "challenge": ["burgers-dynamics-v1", "1.0"],
     "profile": "carbon.burgers-supervised-development.v2",
@@ -32,9 +32,9 @@ RULE = {
         "initial_condition": 32 * 2**-23,
         "conserved_mean": 0.01,
         "maximum_principle": 0.01,
-        "integrated_energy_balance": 0.05,
+        "energy_path_max": 0.05,
     },
-    "reference_balance_indicator_limit": 0.025,
+    "integrated_energy_balance_role": "DIAGNOSTIC_TIME_UNDERRESOLVED",
     "practical_score_margin": 0.005,
     "per_case_noninferiority": 0.01,
     "equivalence_score_margin": 0.005,
@@ -116,12 +116,9 @@ def summarize(rows):
         for replica in range(3):
             ms = [cells[(role, c, replica)] for c in cases]
             for m in ms:
-                floor = m["reference_balance_discretization_indicator"]
-                reference_unresolved |= (
-                    floor > RULE["reference_balance_indicator_limit"]
-                )
+
                 for name, limit in RULE["hard_limits"].items():
-                    allowance = floor if name == "integrated_energy_balance" else 0.0
+                    allowance = 0.0
                     if (
                         m["metrics"][name] + RULE["arithmetic_floor"]
                         >= limit + allowance

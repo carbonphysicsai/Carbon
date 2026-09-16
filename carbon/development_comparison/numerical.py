@@ -40,13 +40,18 @@ def run_numerical(root: Path, identity: str, bundle: dict, image):
     if not identity.replace("-", "").isalnum() or len(identity) > 60:
         raise ValueError("bounded operation identity required")
     root.mkdir(parents=True, exist_ok=True, mode=0o700)
-    with (root / "numerical.lock").open("a") as lock:
+    task_root = root
+    for ancestor in (root, *root.parents):
+        if (ancestor / "task-envelope.json").is_file():
+            task_root = ancestor
+            break
+    with (task_root / "numerical.lock").open("a") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        budget = SessionBudget(root / "numerical-budget.sqlite3")
+        budget = SessionBudget(task_root / "numerical-budget.sqlite3")
         budget.reserve(identity, "numerical", 600.0, 7200.0, 12)
         started = time.time()
         # Storage includes failures/partial output. Reserve 32 MiB before each run.
-        files = list(root.rglob("*"))
+        files = list(task_root.rglob("*"))
         if (
             any(p.is_symlink() for p in files)
             or sum(p.stat().st_size for p in files if p.is_file()) + 32 * 1024**2

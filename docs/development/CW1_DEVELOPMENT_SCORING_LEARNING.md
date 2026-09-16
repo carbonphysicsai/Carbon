@@ -28,3 +28,40 @@ inspection, V1 becomes calibration and V2 must be defined before new testing.
 
 Retained FNO-40/FNO-48 is seen development evidence only, never confirmatory.
 Cost/outcome and retain/reject decision will be appended after execution.
+
+## Iteration 1 — observed result and decision
+
+All 17 calibration and 17 untouched V1 verification checks passed, including
+analytic energy identity and time-quadrature convergence. V1 verification is
+now retired to development evidence because a rule revision follows.
+
+Authentic retained data exposed a different resolution issue: the primary
+reference's sampled trapezoidal balance reaches 0.0292675724 of initial energy,
+above the candidate's 0.025 resolution budget. Thus exact sampled reference
+agreement could not be accepted on this cohort. This is temporal quadrature
+resolution, not evidence that either FNO is better. The new signed V1 report
+retains this outcome. A serialization omission was repaired by recovering only
+the missing reference-refinement output; completed measurements were reused.
+A scalar wrapper's missing component identity was repaired without numerics.
+
+## Iteration 2 — final prospective candidate
+
+Hypothesis: a maximum sampled energy-trajectory deviation detects the intended
+wrong-decay/suppression failure without using a temporally underresolved balance
+as a pass/fail predicate. Change only the dynamics gate to max |E_candidate -
+E_reference| / E_initial < 0.05, including measured reference sensitivity.
+Keep full integral balance and its reference indicator visible as diagnostics.
+Do not raise its tolerance or change cases/resources. Other rule values stay
+fixed. New measurement v3 and balanced rule v2; old evidence stays immutable.
+
+This is a reference-relative finite-sample fidelity condition, not proof of
+continuous energy conservation. Field error still catches phase/spatial errors
+with identical energy. The falsifier is a wrong-decay, frozen or suppressed
+trajectory remaining within the energy envelope, or exact agreement failing it.
+
+Untouched verification V2, defined before execution: Cole-Hopf closed form with
+nu=0.17, a=0.42, mode=3, mean=-0.07, horizon=1.2, 256 spatial points, 193 times.
+Use the preregistered perturbation families and explicit new energy-envelope
+checks. It has not been used to tune the rule. No third iteration is authorized.
+Historical remeasurement under changed v3 is new derived evidence, not a repeat
+for reassurance, and still cannot yield retrospective acceptance.

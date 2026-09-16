@@ -1,14 +1,14 @@
-# Burgers DEVELOPMENT balanced rule v1
+# Burgers DEVELOPMENT balanced rule v2
 
-**Decision:** OWNER-C-W1-D3-DELEGATION-01. Candidate iteration 1, frozen before
-numerical controls. Executable data: `carbon.scoring.development.RULE`; its
+**Decision:** OWNER-C-W1-D3-DELEGATION-01. Final candidate iteration 2, frozen before V2 verification.
+V1 is retained at commit ac4ce290 and in its signed derived report. Executable data: `carbon.scoring.development.RULE`; its
 canonical SHA-256 binds every report. New measurements:
-`carbon.c05.burgers-development-derived.v2`. No historical C-05 contract changes.
+`carbon.c05.burgers-development-derived.v3`. No historical C-05 contract changes.
 
 ## One recommended objective
 
 Preserve the initial condition, mean, maximum principle and viscous energy
-budget on every sampled case and reconstruction. Among admissible methods,
+trajectory on every sampled case and reconstruction. Among admissible methods,
 reward accurate trajectories, accurate fluctuation-energy evolution and the
 worst case. No soft gain buys relief from a mandatory failure.
 
@@ -34,7 +34,9 @@ conserved mean and integrate by parts: dE/dt = -nu integral(u_x squared) dx.
 New integrated balance is max over sampled prefixes of abs(E(t)-E(0)+integral
 dissipation dt), divided by prescribed initial energy. Trapezoid time error
 and unresolved spatial modes remain; reference balance is a discretization
-indicator, not a proven uncertainty bound. The periodic Fourier gradient
+indicator, not a proven uncertainty bound. This underresolved diagnostic does not
+determine v2 admissibility. The mandatory energy-path maximum compares sampled
+energy against reference energy, with no numerical time derivative/integral. The periodic Fourier gradient
 inherits the sampled representation and cannot detect subgrid error.
 
 Historical `energy_dissipation_balance` is positive sampled energy increment:
@@ -60,7 +62,7 @@ remain readable under their original horizon-clipped contract.
 |---|---|
 | Initial-condition maximum error / amplitude | Strictly below 32 float32 eps = 3.814697265625e-6. Representation-conversion allowance, deliberately distinct from physical tolerance; verify with controls. |
 | Maximum mean drift and overshoot / amplitude | Each strictly below 0.01 in every case/replica. Provisional product choice: permit at most 1% of the physical amplitude budget for these conservation/envelope defects; not fitted to FNO observations or an industrial standard. |
-| Integrated energy balance / initial energy | Strictly below reference discretization indicator + 0.05. Provisional product budget of 5% cumulative energy mismatch; reject acceptance if the reference indicator exceeds half that budget (0.025). |
+| Maximum energy-trajectory error / initial energy | Strictly below 0.05 in every case/replica, including measured reference sensitivity. Provisional product budget: no sampled energy value may deviate by 5% of initial energy. Full integral balance is diagnostic because the retained reference time quadrature itself reaches 2.93% error; its former 2.5% gate-resolution requirement was rejected in iteration 2. |
 | Reference field/energy sensitivity maxima | Each at most 0.0025, one quarter of the per-case noninferiority budget. Empirical resolution budget, not qualified uncertainty. Missing indicators withhold acceptance. |
 | Practical score improvement | Strict gain above 0.005 after the uncertainty envelope: half a percentage point of the fixed score range. Provisional minimum useful development change, not a p-value or measurement floor. |
 | Per-case noninferiority | At most 0.01 normalized field AND energy increase for every EVAL/STRESS case across all replica pairs, including reference sensitivity. Product protection against hidden subgroup losses. |
@@ -95,7 +97,10 @@ this finite-cohort development robustness rule only.
 
 Accept only if the lower difference bound exceeds the practical margin, every
 case is noninferior, both sources pass mandatory conditions and empirical
-reference resolution is adequate. Symmetric robust loss is regression. Resolved
+reference resolution is adequate. C-04 primary quadrature refinement at
+1024/2048/4096 points supplies per-case empirical field and energy sensitivity.
+It shares method/implementation and is not an independent witness or rigorous
+error bound; the acceptance claim is conditional on this development recipe. Symmetric robust loss is regression. Resolved
 aggregate gains/losses with opposing cases are trade-offs. Unresolved envelopes
 are indeterminate. Exact input equality can satisfy the explicit equivalence
 rule; copying is never improvement or new reward credit.
