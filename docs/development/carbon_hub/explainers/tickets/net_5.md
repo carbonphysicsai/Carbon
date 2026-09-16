@@ -40,9 +40,9 @@ Disposable C0 fixture integration only; G2 depends on actual runtime evidence an
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/6c0e6f20edb79d08de9db99bcfa83036fd522f3e/.agent/tickets/NET-5_disposable_localnet.md)
-- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/6c0e6f20edb79d08de9db99bcfa83036fd522f3e/.agent/evidence/wave_c/net-5.md)
-- [Operator contract](https://github.com/carbonphysicsai/Carbon/blob/6c0e6f20edb79d08de9db99bcfa83036fd522f3e/docs/development/LOCALNET_INTEGRATION.md)
-- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/6c0e6f20edb79d08de9db99bcfa83036fd522f3e/.agent/WAVE_C.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/9d43a35ffc056c5b258e225d844b532114819765/.agent/tickets/NET-5_disposable_localnet.md)
+- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/9d43a35ffc056c5b258e225d844b532114819765/.agent/evidence/wave_c/net-5.md)
+- [Operator contract](https://github.com/carbonphysicsai/Carbon/blob/9d43a35ffc056c5b258e225d844b532114819765/docs/development/LOCALNET_INTEGRATION.md)
+- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/9d43a35ffc056c5b258e225d844b532114819765/.agent/WAVE_C.md)
 
 > Targets, stored weights, Yuma outcomes and settled receipts remain separate evidence states.

@@ -1,11 +1,81 @@
+const STATE_KEY = "ask-carbon-provider-budget:v2";
+export const OWNER_MONTHLY_LIMIT_MICRO_USD = 50_000_000;
+
 const json = (value, status = 200) => new Response(JSON.stringify(value), {
   status,
   headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" },
 });
+const monthOf = (milliseconds) => new Date(milliseconds).toISOString().slice(0, 7);
+const dayOf = (milliseconds) => new Date(milliseconds).toISOString().slice(0, 10);
+const hourOf = (milliseconds) => new Date(milliseconds).toISOString().slice(0, 13);
+const integer = (value, { min = 0 } = {}) => Number.isSafeInteger(value) && value >= min;
+const text = (value, max = 200) => typeof value === "string" && value.length > 0 && value.length <= max;
 
-const utcDay = (milliseconds) => new Date(milliseconds).toISOString().slice(0, 10);
-const utcHour = (milliseconds) => new Date(milliseconds).toISOString().slice(0, 13);
-const utcMonth = (milliseconds) => new Date(milliseconds).toISOString().slice(0, 7);
+const emptyState = () => ({
+  schema_version: 2,
+  policy: null,
+  scope_policies: {},
+  attempts: {},
+  days: {},
+  clients: {},
+  pilot_sessions: {},
+});
+
+const sweep = (state, now) => {
+  for (const attempt of Object.values(state.attempts)) {
+    if (attempt.expires_at_ms > now) continue;
+    if (attempt.state === "prepared") {
+      attempt.state = "released_pre_dispatch";
+      attempt.terminal_at_ms = now;
+      attempt.terminal_reason = "prepared_lease_expired";
+    } else if (attempt.state === "dispatch_authorized") {
+      attempt.state = "unresolved";
+      attempt.terminal_at_ms = now;
+      attempt.terminal_reason = "dispatch_lease_expired";
+    }
+  }
+};
+
+const exposureFor = (attempt) => {
+  if (["prepared", "dispatch_authorized", "unresolved"].includes(attempt.state)) return attempt.reserved_cost_micro_usd;
+  if (["settled", "settled_overrun"].includes(attempt.state)) return attempt.actual_cost_micro_usd;
+  return 0;
+};
+
+const summarize = (state) => {
+  const months = {};
+  const scopes = {};
+  let activeAttempts = 0;
+  for (const attempt of Object.values(state.attempts)) {
+    const month = months[attempt.admission_period] ??= {
+      prepared_micro_usd: 0,
+      dispatch_authorized_micro_usd: 0,
+      unresolved_micro_usd: 0,
+      settled_micro_usd: 0,
+      overrun_micro_usd: 0,
+      exposure_micro_usd: 0,
+    };
+    const scopeKey = `${attempt.admission_period}:${attempt.scope_id}`;
+    const scope = scopes[scopeKey] ??= { exposure_micro_usd: 0, limit_micro_usd: attempt.scope_limit_micro_usd };
+    const exposure = exposureFor(attempt);
+    month.exposure_micro_usd += exposure;
+    scope.exposure_micro_usd += exposure;
+    if (attempt.state === "prepared") month.prepared_micro_usd += attempt.reserved_cost_micro_usd;
+    if (attempt.state === "dispatch_authorized") month.dispatch_authorized_micro_usd += attempt.reserved_cost_micro_usd;
+    if (attempt.state === "unresolved") month.unresolved_micro_usd += attempt.reserved_cost_micro_usd;
+    if (["settled", "settled_overrun"].includes(attempt.state)) month.settled_micro_usd += attempt.actual_cost_micro_usd;
+    if (attempt.state === "settled_overrun") month.overrun_micro_usd += attempt.actual_cost_micro_usd - attempt.reserved_cost_micro_usd;
+    if (["prepared", "dispatch_authorized"].includes(attempt.state)) activeAttempts += 1;
+  }
+  return { months, scopes, active_attempts: activeAttempts };
+};
+
+const load = async (storage) => {
+  const state = (await storage.get(STATE_KEY)) ?? emptyState();
+  state.scope_policies ??= {};
+  state.pilot_sessions ??= {};
+  return state;
+};
 
 export class AskCarbonUsageLedger {
   constructor(state) {
@@ -13,105 +83,228 @@ export class AskCarbonUsageLedger {
   }
 
   async fetch(request) {
-    const url = new URL(request.url);
     if (request.method !== "POST") return json({ error: "method_not_allowed" }, 405);
     const input = await request.json().catch(() => null);
-    if (!input || typeof input !== "object") return json({ error: "invalid_request" }, 400);
-    if (url.pathname === "/reserve") return this.reserve(input);
-    if (url.pathname === "/settle") return this.settle(input);
-    if (url.pathname === "/snapshot") return this.snapshot(input);
+    if (!input || typeof input !== "object" || Array.isArray(input)) return json({ error: "invalid_request" }, 400);
+    const path = new URL(request.url).pathname;
+    if (path === "/prepare") return this.prepare(input);
+    if (path === "/authorize-dispatch") return this.authorizeDispatch(input);
+    if (path === "/release-pre-dispatch") return this.releasePreDispatch(input);
+    if (path === "/mark-unresolved") return this.markUnresolved(input);
+    if (path === "/settle") return this.settle(input);
+    if (path === "/snapshot") return this.snapshot(input);
     return json({ error: "not_found" }, 404);
   }
 
-  async reserve(input) {
-    const now = Number(input.now_ms);
-    const leaseTtlMs = Number(input.lease_ttl_ms);
-    const requestLimit = Number(input.request_limit);
-    const costLimit = Number(input.cost_limit_micro_usd);
-    const monthlyCostLimit = Number(input.monthly_cost_limit_micro_usd);
-    const concurrencyLimit = Number(input.concurrency_limit);
-    const clientRequestsPerHour = Number(input.client_requests_per_hour);
-    const reservedCost = Number(input.reserved_cost_micro_usd);
-    const pilotRequestsPerSession = Number(input.pilot_requests_per_session);
-    if (![now, leaseTtlMs, requestLimit, costLimit, monthlyCostLimit, concurrencyLimit, clientRequestsPerHour, pilotRequestsPerSession, reservedCost].every(Number.isSafeInteger) ||
-        now <= 0 || leaseTtlMs <= 0 || requestLimit <= 0 || costLimit <= 0 || monthlyCostLimit <= 0 || concurrencyLimit <= 0 || clientRequestsPerHour <= 0 || pilotRequestsPerSession <= 0 || reservedCost <= 0 ||
-        typeof input.lease_id !== "string" || !input.lease_id || typeof input.client_id !== "string" || !input.client_id || typeof input.session_id !== "string" || !input.session_id || !["GENERAL_QA", "PILOT_DESIGN"].includes(input.mode)) {
-      return json({ allowed: false, reason: "invalid_reservation" }, 400);
+  async prepare(input) {
+    const requiredIntegers = [
+      input.now_ms, input.lease_ttl_ms, input.monthly_limit_micro_usd,
+      input.scope_limit_micro_usd, input.daily_request_limit, input.concurrency_limit,
+      input.client_requests_per_hour, input.client_counter_retention_ms,
+      input.pilot_requests_per_session, input.reserved_cost_micro_usd,
+    ];
+    if (!requiredIntegers.every((value) => integer(value, { min: 1 })) ||
+        input.monthly_limit_micro_usd !== OWNER_MONTHLY_LIMIT_MICRO_USD ||
+        input.scope_limit_micro_usd > OWNER_MONTHLY_LIMIT_MICRO_USD ||
+        !text(input.attempt_id) || !text(input.client_id) || !text(input.session_id) ||
+        !["GENERAL_QA", "PILOT_DESIGN"].includes(input.mode) || !text(input.environment, 40) ||
+        !text(input.scope_id, 100) || !text(input.model_config_id) || !text(input.pricing_id)) {
+      return json({ allowed: false, reason: "invalid_admission" }, 400);
     }
     return this.state.storage.transaction(async (transaction) => {
-      const key = `day:${utcDay(now)}`;
-      const monthKey = `month:${utcMonth(now)}`;
-      const current = (await transaction.get(key)) ?? { requests: 0, settled_micro_usd: 0, leases: {}, clients: {} };
-      const monthly = (await transaction.get(monthKey)) ?? { settled_micro_usd: 0, sessions: {} };
-      current.clients ??= {};
-      for (const [leaseId, lease] of Object.entries(current.leases)) {
-        if (lease.expires_at_ms <= now) delete current.leases[leaseId];
+      const state = await load(transaction);
+      sweep(state, input.now_ms);
+      if (state.attempts[input.attempt_id]) {
+        await transaction.put(STATE_KEY, state);
+        return json({ allowed: false, reason: "duplicate_attempt_id" }, 409);
       }
-      const activeLeases = Object.values(current.leases);
-      const reserved = activeLeases.reduce((total, lease) => total + lease.reserved_micro_usd, 0);
-      const clientWindow = activeLeases.filter((lease) => lease.client_id === input.client_id).length;
-      const hour = utcHour(now);
-      const clientRate = current.clients[input.client_id]?.hour === hour ? current.clients[input.client_id].requests : 0;
-      const sessionRequests = monthly.sessions[input.session_id] ?? 0;
+      if (state.policy && (
+        state.policy.concurrency_limit !== input.concurrency_limit ||
+        state.policy.daily_request_limit !== input.daily_request_limit ||
+        state.policy.client_requests_per_hour !== input.client_requests_per_hour ||
+        state.policy.pilot_requests_per_session !== input.pilot_requests_per_session ||
+        state.policy.client_counter_retention_ms !== input.client_counter_retention_ms
+      )) {
+        return json({ allowed: false, reason: "ledger_policy_mismatch" }, 409);
+      }
+      state.policy ??= {
+        monthly_limit_micro_usd: OWNER_MONTHLY_LIMIT_MICRO_USD,
+        concurrency_limit: input.concurrency_limit,
+        daily_request_limit: input.daily_request_limit,
+        client_requests_per_hour: input.client_requests_per_hour,
+        pilot_requests_per_session: input.pilot_requests_per_session,
+        client_counter_retention_ms: input.client_counter_retention_ms,
+      };
+      const existingScopePolicy = state.scope_policies[input.scope_id];
+      if (existingScopePolicy && existingScopePolicy.limit_micro_usd !== input.scope_limit_micro_usd) {
+        return json({ allowed: false, reason: "scope_policy_mismatch" }, 409);
+      }
+      state.scope_policies[input.scope_id] ??= {
+        limit_micro_usd: input.scope_limit_micro_usd,
+        first_environment: input.environment,
+        created_at_ms: input.now_ms,
+      };
+      const cutoff = input.now_ms - input.client_counter_retention_ms;
+      for (const [clientId, counter] of Object.entries(state.clients)) {
+        if (counter.last_seen_ms < cutoff) delete state.clients[clientId];
+      }
+      const day = dayOf(input.now_ms);
+      const dayState = state.days[day] ??= { requests: 0 };
+      const clientHour = hourOf(input.now_ms);
+      const clientState = state.clients[input.client_id];
+      const clientRequests = clientState?.hour === clientHour ? clientState.requests : 0;
+      const summary = summarize(state);
+      const period = monthOf(input.now_ms);
+      const pilotSessionKey = `${period}:${input.session_id}`;
+      const pilotSessionRequests = state.pilot_sessions[pilotSessionKey]?.requests ?? 0;
+      const monthExposure = summary.months[period]?.exposure_micro_usd ?? 0;
+      const scopeKey = `${period}:${input.scope_id}`;
+      const scopeExposure = summary.scopes[scopeKey]?.exposure_micro_usd ?? 0;
+      const clientActive = Object.values(state.attempts).filter((attempt) =>
+        attempt.client_id === input.client_id && ["prepared", "dispatch_authorized"].includes(attempt.state)).length;
       let reason = null;
-      if (current.requests >= requestLimit) reason = "daily_request_limit";
-      else if (activeLeases.length >= concurrencyLimit) reason = "global_concurrency_limit";
-      else if (clientWindow >= 2) reason = "client_concurrency_limit";
-      else if (clientRate >= clientRequestsPerHour) reason = "client_hourly_limit";
-      else if (input.mode === "PILOT_DESIGN" && sessionRequests >= pilotRequestsPerSession) reason = "pilot_session_limit";
-      else if (current.settled_micro_usd + reserved + reservedCost > costLimit) reason = "daily_cost_limit";
-      else if (monthly.settled_micro_usd + reserved + reservedCost > monthlyCostLimit) reason = "monthly_cost_limit";
+      if (dayState.requests >= state.policy.daily_request_limit) reason = "daily_request_limit";
+      else if (summary.active_attempts >= state.policy.concurrency_limit) reason = "global_concurrency_limit";
+      else if (clientActive >= 2) reason = "client_concurrency_limit";
+      else if (clientRequests >= state.policy.client_requests_per_hour) reason = "client_hourly_limit";
+      else if (input.mode === "PILOT_DESIGN" && pilotSessionRequests >= state.policy.pilot_requests_per_session) reason = "pilot_session_limit";
+      else if (monthExposure + input.reserved_cost_micro_usd > OWNER_MONTHLY_LIMIT_MICRO_USD) reason = "monthly_cost_limit";
+      else if (scopeExposure + input.reserved_cost_micro_usd > (existingScopePolicy?.limit_micro_usd ?? state.scope_policies[input.scope_id].limit_micro_usd)) reason = "scope_cost_limit";
       if (reason) {
-        await transaction.put(key, current);
-        await transaction.put(monthKey, monthly);
+        await transaction.put(STATE_KEY, state);
         return json({ allowed: false, reason }, 429);
       }
-      current.requests += 1;
-      current.clients[input.client_id] = { hour, requests: clientRate + 1 };
-      monthly.sessions[input.session_id] = sessionRequests + 1;
-      current.leases[input.lease_id] = {
+      dayState.requests += 1;
+      state.clients[input.client_id] = { hour: clientHour, requests: clientRequests + 1, last_seen_ms: input.now_ms };
+      if (input.mode === "PILOT_DESIGN") state.pilot_sessions[pilotSessionKey] = { requests: pilotSessionRequests + 1, last_seen_ms: input.now_ms };
+      state.attempts[input.attempt_id] = {
+        attempt_id: input.attempt_id,
         client_id: input.client_id,
-        reserved_micro_usd: reservedCost,
-        expires_at_ms: now + leaseTtlMs,
+        session_id: input.session_id,
+        mode: input.mode,
+        environment: input.environment,
+        scope_id: input.scope_id,
+        admission_period: period,
+        admitted_at_ms: input.now_ms,
+        expires_at_ms: input.now_ms + input.lease_ttl_ms,
+        reserved_cost_micro_usd: input.reserved_cost_micro_usd,
+        scope_limit_micro_usd: input.scope_limit_micro_usd,
+        model_config_id: input.model_config_id,
+        pricing_id: input.pricing_id,
+        state: "prepared",
       };
-      await transaction.put(key, current);
-      await transaction.put(monthKey, monthly);
-      return json({ allowed: true, lease_id: input.lease_id, expires_at_ms: now + leaseTtlMs });
+      await transaction.put(STATE_KEY, state);
+      return json({
+        allowed: true,
+        attempt_id: input.attempt_id,
+        admission_period: period,
+        expires_at_ms: input.now_ms + input.lease_ttl_ms,
+        monthly_remaining_micro_usd: OWNER_MONTHLY_LIMIT_MICRO_USD - monthExposure - input.reserved_cost_micro_usd,
+      });
+    });
+  }
+
+  async transition(input, transition) {
+    if (!integer(input.now_ms, { min: 1 }) || !text(input.attempt_id)) return json({ ok: false, reason: "invalid_transition" }, 400);
+    return this.state.storage.transaction(async (transaction) => {
+      const state = await load(transaction);
+      sweep(state, input.now_ms);
+      const attempt = state.attempts[input.attempt_id];
+      const result = transition(attempt, state);
+      await transaction.put(STATE_KEY, state);
+      return json(result.body, result.status);
+    });
+  }
+
+  authorizeDispatch(input) {
+    return this.transition(input, (attempt) => {
+      if (!attempt) return { status: 409, body: { authorized: false, reason: "attempt_not_found" } };
+      if (attempt.state === "dispatch_authorized") return { status: 200, body: { authorized: true, idempotent: true } };
+      if (attempt.state !== "prepared") return { status: 409, body: { authorized: false, reason: "attempt_not_prepared" } };
+      attempt.state = "dispatch_authorized";
+      attempt.dispatch_authorized_at_ms = input.now_ms;
+      return { status: 200, body: { authorized: true, attempt_id: attempt.attempt_id, admission_period: attempt.admission_period } };
+    });
+  }
+
+  releasePreDispatch(input) {
+    if (!text(input.reason, 100)) return Promise.resolve(json({ released: false, reason: "invalid_release" }, 400));
+    return this.transition(input, (attempt) => {
+      if (!attempt) return { status: 409, body: { released: false, reason: "attempt_not_found" } };
+      if (attempt.state === "released_pre_dispatch") return { status: 200, body: { released: true, idempotent: true } };
+      if (attempt.state !== "prepared") return { status: 409, body: { released: false, reason: "dispatch_may_have_occurred" } };
+      attempt.state = "released_pre_dispatch";
+      attempt.terminal_at_ms = input.now_ms;
+      attempt.terminal_reason = input.reason;
+      return { status: 200, body: { released: true } };
+    });
+  }
+
+  markUnresolved(input) {
+    if (!text(input.reason, 100)) return Promise.resolve(json({ marked: false, reason: "invalid_unresolved" }, 400));
+    return this.transition(input, (attempt) => {
+      if (!attempt) return { status: 409, body: { marked: false, reason: "attempt_not_found" } };
+      if (attempt.state === "unresolved") return { status: 200, body: { marked: true, idempotent: true } };
+      if (attempt.state !== "dispatch_authorized") return { status: 409, body: { marked: false, reason: "dispatch_not_authorized" } };
+      attempt.state = "unresolved";
+      attempt.terminal_at_ms = input.now_ms;
+      attempt.terminal_reason = input.reason;
+      return { status: 200, body: { marked: true, conservative_charge_micro_usd: attempt.reserved_cost_micro_usd } };
     });
   }
 
   async settle(input) {
-    const now = Number(input.now_ms);
-    const actualCost = Number(input.actual_cost_micro_usd);
-    if (!Number.isSafeInteger(now) || now <= 0 || !Number.isSafeInteger(actualCost) || actualCost < 0 || typeof input.lease_id !== "string") {
+    if (!integer(input.now_ms, { min: 1 }) || !integer(input.actual_cost_micro_usd) ||
+        !text(input.attempt_id) || !text(input.settlement_id) || !text(input.provider_response_id)) {
       return json({ settled: false, reason: "invalid_settlement" }, 400);
     }
     return this.state.storage.transaction(async (transaction) => {
-      const key = `day:${utcDay(now)}`;
-      const monthKey = `month:${utcMonth(now)}`;
-      const current = (await transaction.get(key)) ?? { requests: 0, settled_micro_usd: 0, leases: {}, clients: {} };
-      const monthly = (await transaction.get(monthKey)) ?? { settled_micro_usd: 0, sessions: {} };
-      const lease = current.leases[input.lease_id];
-      if (!lease) return json({ settled: false, reason: "lease_not_found" }, 409);
-      delete current.leases[input.lease_id];
-      current.settled_micro_usd += actualCost;
-      monthly.settled_micro_usd += actualCost;
-      await transaction.put(key, current);
-      await transaction.put(monthKey, monthly);
-      return json({ settled: true, actual_cost_micro_usd: actualCost });
+      const state = await load(transaction);
+      sweep(state, input.now_ms);
+      const attempt = state.attempts[input.attempt_id];
+      if (!attempt) return json({ settled: false, reason: "attempt_not_found" }, 409);
+      if (["settled", "settled_overrun"].includes(attempt.state)) {
+        const same = attempt.settlement_id === input.settlement_id &&
+          attempt.provider_response_id === input.provider_response_id &&
+          attempt.actual_cost_micro_usd === input.actual_cost_micro_usd;
+        return json(same ? { settled: true, idempotent: true, actual_cost_micro_usd: attempt.actual_cost_micro_usd } :
+          { settled: false, reason: "conflicting_settlement" }, same ? 200 : 409);
+      }
+      if (!["dispatch_authorized", "unresolved"].includes(attempt.state)) {
+        return json({ settled: false, reason: "dispatch_not_authorized" }, 409);
+      }
+      attempt.actual_cost_micro_usd = input.actual_cost_micro_usd;
+      attempt.settlement_id = input.settlement_id;
+      attempt.provider_response_id = input.provider_response_id;
+      attempt.terminal_at_ms = input.now_ms;
+      const overrun = input.actual_cost_micro_usd > attempt.reserved_cost_micro_usd;
+      attempt.state = overrun ? "settled_overrun" : "settled";
+      attempt.terminal_reason = overrun ? "reservation_overrun" : "provider_usage_settled";
+      await transaction.put(STATE_KEY, state);
+      return json(overrun ? {
+        settled: false,
+        reason: "reservation_overrun_recorded",
+        actual_cost_micro_usd: input.actual_cost_micro_usd,
+      } : { settled: true, actual_cost_micro_usd: input.actual_cost_micro_usd }, overrun ? 409 : 200);
     });
   }
 
   async snapshot(input) {
-    const now = Number(input.now_ms);
-    if (!Number.isSafeInteger(now) || now <= 0) return json({ error: "invalid_snapshot" }, 400);
-    const key = `day:${utcDay(now)}`;
-    const monthKey = `month:${utcMonth(now)}`;
-    const current = (await this.state.storage.get(key)) ?? { requests: 0, settled_micro_usd: 0, leases: {}, clients: {} };
-    const monthly = (await this.state.storage.get(monthKey)) ?? { settled_micro_usd: 0, sessions: {} };
-    for (const [leaseId, lease] of Object.entries(current.leases)) {
-      if (lease.expires_at_ms <= now) delete current.leases[leaseId];
-    }
-    return json({ ...current, active_leases: Object.keys(current.leases).length, monthly_settled_micro_usd: monthly.settled_micro_usd });
+    if (!integer(input.now_ms, { min: 1 })) return json({ error: "invalid_snapshot" }, 400);
+    return this.state.storage.transaction(async (transaction) => {
+      const state = await load(transaction);
+      sweep(state, input.now_ms);
+      await transaction.put(STATE_KEY, state);
+      return json({
+        schema_version: state.schema_version,
+        policy: state.policy,
+        attempts: state.attempts,
+        days: state.days,
+        clients: state.clients,
+        pilot_sessions: state.pilot_sessions,
+        scope_policies: state.scope_policies,
+        ...summarize(state),
+      });
+    });
   }
 }

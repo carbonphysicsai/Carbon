@@ -155,6 +155,18 @@ model and prices; global ceilings; externally provisioned secrets; real
 Cloudflare runtime evidence; Mobile Safari/assistive-technology acceptance; and
 deployment authorization.
 
+## Successor correction (WEB-QA-02, 2026-09-16)
+
+The statements above remain historical evidence for WEB-QA-01, not current
+implementation claims. WEB-QA-02 recovered the package and demonstrated that
+the old ledger did not durably bind all attempts to a UTC month, could release
+uncertain exposure on lease expiry, did not coordinate in-flight work across
+rollover, and could accept absent usage as zero. The old mock metric names also
+overstated substring checks as answer quality, and the runtime/static release
+rules diverged. Those defects are repaired and evidenced in `WEB-QA-02.md`.
+The earlier 23-test result and five mock cases must not be cited as proof of the
+successor's accounting, factual support, model quality or staging runtime.
+
 ## Maturity and Hub impact
 
 The component and fail-closed adapter earn only **IMPLEMENTED** and locally

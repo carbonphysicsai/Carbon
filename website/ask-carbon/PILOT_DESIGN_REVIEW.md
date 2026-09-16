@@ -43,11 +43,11 @@ permission.
 
 General website Q&A and `PILOT_DESIGN` use the same Durable Object ledger and
 one owner ceiling of 50,000,000 micro-USD ($50) per UTC month. The worker
-rejects a configured monthly ceiling above that amount. Both modes also share
-the daily cost, daily request, client-rate, and global-concurrency controls;
-pilot design adds a per-session request count. Reservations count before a
-provider dispatch, and uncertain provider failures settle the conservative
-reserved maximum.
+requires that exact ceiling. Both modes also share daily-request, client-rate,
+global-concurrency and operational-scope controls; pilot design adds a durable
+per-session request count. The Worker prepares a worst-case reservation before
+dispatch, records dispatch intent, and retains conservative exposure when
+dispatch or usage is ambiguous.
 
 If health is inactive, the provider fails, or a limit is reached, the local
 draft is preserved and the visitor can continue through the form and export
@@ -63,11 +63,13 @@ it. This implementation creates no second allowance.
 - Live model/provider calls: **0**.
 - Actual customer usability observations: **none**.
 
-Live comparison remains unavailable because the public knowledge release is
-still draft, an owner-approved model/price configuration and provider secret
-are not installed in this repository, the actual provider retention posture
-for Carbon is unverified, and the public receiving/deployment path is not
-authorized. Mock and authored tests are not model-quality evidence.
+Live comparison remains unavailable because the knowledge release is staging-
+reviewed rather than public-approved, no provider secret or verified project
+policy is available, the actual provider retention posture for Carbon is
+unverified, and the private staging/receiving/deployment path is not
+established. Luna and Terra configurations and prices are pinned for testing,
+not selected by live evidence. Mock and authored tests are not model-quality
+evidence.
 
 ## Remaining production decisions
 

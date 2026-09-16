@@ -14360,6 +14360,50 @@ abuse/incident controls, server recomputation, persistence, and real receipt.
 The smallest reversal is removal of the intake surface and additive lineage
 fields while retaining historical local draft bytes and job records.
 
+## 2026-09-16 — WEB-QA-02-D1: shared budget, re-grounded continuation and staged release contract
+
+**Authority source and scope.** The owner's Ask Carbon repair, knowledge
+completion and staging-evaluation direction supersedes WEB-QA-01's missing-
+package and unresolved-cost record. It authorizes routine engineering repair,
+reconciliation of already public-use-eligible material, a USD 50 monthly
+provider ceiling and a USD 5 nested bakeoff. It does not authorize production,
+DNS/routes, public activation, a privacy/security acceptance, new paid
+infrastructure, private data, qualification, miner execution or economics.
+
+**Accounting decision.** Use exactly one route-less Durable Object authority
+for every evaluation, staging and production provider call. Environment data
+and permissions remain distinct, but remote bindings target the same namespace
+and fixed authority name. Every attempt is admitted to a UTC calendar month and
+durable operational scope, reserves worst-case work, records dispatch intent,
+and ends released-before-dispatch, settled, overrun or unresolved. Possible
+dispatch never becomes free because of timeout, abort, expiry, missing usage or
+settlement failure. Scope caps cannot be raised by a later environment. This
+ledger is an application exposure guard, not an account invoice cap.
+
+**Dialogue and support decision.** Reject visitor-authored answer history. A
+server-issued 15-minute continuation carries only relevant card IDs and is
+bound to knowledge version and withdrawal epoch; each turn retrieves reviewed
+passages again. A deterministic relevance floor separates missing evidence
+from service failure. Provider claims must map to retrieved passage IDs and
+pass a server support check; only the server maps reviewed source URLs. No
+second-model semantic checker is claimed or mandated without measured benefit.
+
+**Publication decision.** Build validation, Worker activation and saved fallback
+share one release contract. The recovered 31 cards are draft provenance, not a
+permanent count gate. A stale or withdrawn card disables its topic while healthy
+topics remain available; a global withdrawal invalidates all modes and old
+continuations. The current 26-card collection is staging-reviewed with source
+release date 2026-09-16 and is deliberately not public-approved.
+
+**External boundary.** Authenticated discovery found the available Carbon
+Cloudflare account empty of zones/projects/private access, while the live
+hostname remains Cloudflare-served through an unestablished owner account or
+upload flow. No resource was created. Live evaluation and real Cloudflare
+runtime acceptance remain blocked on the exact target/private-access and
+provider-project/data-control facts. Production stays unchanged and the next
+release decision must name the exact target, knowledge/model/configuration,
+privacy disposition and rollback owner.
+
 ## 2026-09-16 — GOAL-WORKBENCH-08A-GUIDED-PILOT-01: one brief, two client editing modes
 
 **Owner direction and scope.** The owner amends the current website-intake

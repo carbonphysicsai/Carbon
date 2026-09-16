@@ -40,9 +40,9 @@ C0 fixture integration only; no real scientific, security, network or production
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/6c0e6f20edb79d08de9db99bcfa83036fd522f3e/.agent/tickets/NET-3_candidate_commitments.md)
-- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/6c0e6f20edb79d08de9db99bcfa83036fd522f3e/.agent/evidence/wave_c/net-3.md)
-- [Commitment contract](https://github.com/carbonphysicsai/Carbon/blob/6c0e6f20edb79d08de9db99bcfa83036fd522f3e/docs/development/CANDIDATE_COMMITMENTS.md)
-- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/6c0e6f20edb79d08de9db99bcfa83036fd522f3e/.agent/WAVE_C.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/9d43a35ffc056c5b258e225d844b532114819765/.agent/tickets/NET-3_candidate_commitments.md)
+- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/9d43a35ffc056c5b258e225d844b532114819765/.agent/evidence/wave_c/net-3.md)
+- [Commitment contract](https://github.com/carbonphysicsai/Carbon/blob/9d43a35ffc056c5b258e225d844b532114819765/docs/development/CANDIDATE_COMMITMENTS.md)
+- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/9d43a35ffc056c5b258e225d844b532114819765/.agent/WAVE_C.md)
 
 > Original receipt order and artifact identity survive restart; an interrupted process-local A7 attempt remains indeterminate.
