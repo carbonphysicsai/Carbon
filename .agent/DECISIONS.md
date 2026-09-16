@@ -14468,3 +14468,29 @@ arithmetic is tested only with explicit synthetic accepted fixtures. Finalized
 identity mapping, winner-capable publication and fresh exact transaction scopes
 remain additional prerequisites. All official/protected/settlement/all-burn
 consumers reject this report. Normal PR #201 CI/merge closes only engineering.
+
+## 2026-09-16 — OWNER-C-W1-D3-DELEGATION-01: bounded DEVELOPMENT scientific choices
+
+Ryan prospectively delegates measurement definitions/roles, provisional physical
+tolerances, normalization, aggregation, score composition, practical improvement,
+regression/equivalence, uncertainty/evidence minima, calibration/verification and
+non-paying reward bindings for C-W1-D3. The executor must choose, justify,
+implement and learn; routine choices need no additional approval. This resolves
+the DEVELOPMENT-only reserved seam recorded by C-W1-D2-D1. Older owner-reserved
+wording in AGENTS, B-05/C-05/ScorePack contracts is amended only for this scope.
+Official, protected, production and LIVE qualification remain reserved.
+
+This is delegated owner authority, not independent scientific review. Recommend
+Harshdeep review the scientific choices; no approval is invented or made an
+engineering prerequisite. No message to a third party is implied.
+
+At most two design iterations. Numerical controls and retained-data analysis
+are capped cumulatively at 7,200 wall seconds, one isolated 2-CPU/4-GiB/no-swap
+worker and 10 GiB new diagnostics. CI accounting is separate. No fresh training,
+provider allowance, registration, activation, publication, payment, AWS or
+storage-provider change is authorized. Previously consumed authorities stay
+consumed. Historical signed reports remain immutable; derived remeasurement
+and prospective acceptance use distinct versions and provenance.
+
+Primary Hub: WAVE-C/C-W1; affects C-05, C-07, C-10, C-REWARD and governance.
+Conflict class: DOCUMENTATION_LAG resolved by this narrow explicit delegation.
