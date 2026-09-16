@@ -3,9 +3,21 @@ const decoder = new TextDecoder();
 
 export const MAX_QUESTION_LENGTH = 1200;
 export const MAX_CONTEXT_TURNS = 4;
+export const MAX_PILOT_CONTEXT_TURNS = 10;
 export const MAX_TURN_TEXT_LENGTH = 1600;
 export const MAX_BODY_BYTES = 12_000;
 export const CONTEXT_TTL_SECONDS = 180;
+export const OWNER_COMBINED_MONTHLY_CEILING_MICRO_USD = 50_000_000;
+export const PILOT_FIELDS = [
+  "candidate_inputs", "candidate_outputs", "operating_envelope",
+  "evaluation_questions", "requested_targets", "missing_evidence",
+  "implementation_work", "bounded_first_pilot", "next_discussion",
+];
+export const INTAKE_FIELDS = [
+  "intended_decision", "requested_result", "current_baseline",
+  "baseline_limitation", "changing_conditions", "exclusions",
+  "consequential_error", "comparison_evidence", "access_limitations",
+];
 
 const ACTIVATION_REQUIREMENTS = [
   "ASK_CARBON_ACTIVATION",
@@ -18,11 +30,13 @@ const ACTIVATION_REQUIREMENTS = [
   "ASK_CARBON_OUTPUT_USD_PER_MILLION",
   "ASK_CARBON_DAILY_REQUEST_LIMIT",
   "ASK_CARBON_DAILY_COST_MICRO_USD_LIMIT",
+  "ASK_CARBON_MONTHLY_COST_MICRO_USD_LIMIT",
   "ASK_CARBON_MAX_CONCURRENCY",
   "ASK_CARBON_CLIENT_REQUESTS_PER_HOUR",
   "ASK_CARBON_MAX_INPUT_TOKENS",
   "ASK_CARBON_MAX_OUTPUT_TOKENS",
   "ASK_CARBON_PROVIDER_TIMEOUT_MS",
+  "ASK_CARBON_PILOT_MAX_REQUESTS_PER_SESSION",
 ];
 
 export class PublicApiError extends Error {
@@ -75,11 +89,14 @@ export const activationStatus = (env, knowledge, now = new Date()) => {
   if (!parsePositiveNumber(env.ASK_CARBON_OUTPUT_USD_PER_MILLION)) reasons.push("invalid_output_price");
   if (!parsePositiveInteger(env.ASK_CARBON_DAILY_REQUEST_LIMIT)) reasons.push("invalid_request_limit");
   if (!parsePositiveInteger(env.ASK_CARBON_DAILY_COST_MICRO_USD_LIMIT)) reasons.push("invalid_cost_limit");
+  const monthlyLimit = parsePositiveInteger(env.ASK_CARBON_MONTHLY_COST_MICRO_USD_LIMIT);
+  if (!monthlyLimit || monthlyLimit > OWNER_COMBINED_MONTHLY_CEILING_MICRO_USD) reasons.push("invalid_or_unauthorized_monthly_cost_limit");
   if (!parsePositiveInteger(env.ASK_CARBON_MAX_CONCURRENCY)) reasons.push("invalid_concurrency_limit");
   if (!parsePositiveInteger(env.ASK_CARBON_CLIENT_REQUESTS_PER_HOUR)) reasons.push("invalid_client_rate_limit");
   if (!parsePositiveInteger(env.ASK_CARBON_MAX_INPUT_TOKENS)) reasons.push("invalid_max_input_tokens");
   if (!parsePositiveInteger(env.ASK_CARBON_MAX_OUTPUT_TOKENS)) reasons.push("invalid_max_output_tokens");
   if (!parsePositiveInteger(env.ASK_CARBON_PROVIDER_TIMEOUT_MS)) reasons.push("invalid_provider_timeout");
+  if (!parsePositiveInteger(env.ASK_CARBON_PILOT_MAX_REQUESTS_PER_SESSION)) reasons.push("invalid_pilot_session_limit");
   const sourceIds = new Set((knowledge.sources ?? []).map((source) => source.id));
   if (!Array.isArray(knowledge.sources) || sourceIds.size !== knowledge.sources.length) reasons.push("invalid_source_manifest");
   if (!Array.isArray(knowledge.cards) || !knowledge.cards.length) reasons.push("empty_knowledge_cards");
@@ -131,9 +148,16 @@ const assertPlainObject = (value, message) => {
   }
 };
 
+const POSSIBLE_SECRET = /(?:api[_ -]?key|private[_ -]?key|password|secret)\s*[:=]\s*\S+/i;
+const rejectPossibleSecret = (value) => {
+  if (typeof value === "string" && POSSIBLE_SECRET.test(value)) {
+    throw new PublicApiError(400, "possible_secret", "Please remove credentials or secrets before asking a public question.");
+  }
+};
+
 export const validateRequestBody = (value) => {
   assertPlainObject(value, "The request body must be an object.");
-  const allowedKeys = new Set(["question", "turns"]);
+  const allowedKeys = new Set(["question", "turns", "mode", "session_id", "draft_context"]);
   if (Object.keys(value).some((key) => !allowedKeys.has(key))) {
     throw new PublicApiError(400, "invalid_request", "The request contains unsupported fields.");
   }
@@ -144,12 +168,13 @@ export const validateRequestBody = (value) => {
   if (!question || question.length > MAX_QUESTION_LENGTH) {
     throw new PublicApiError(400, "invalid_question", `Questions must contain 1 to ${MAX_QUESTION_LENGTH} characters.`);
   }
-  if (/(?:api[_ -]?key|private[_ -]?key|password|secret)\s*[:=]\s*\S+/i.test(question)) {
-    throw new PublicApiError(400, "possible_secret", "Please remove credentials or secrets before asking a public question.");
-  }
+  rejectPossibleSecret(question);
+  const mode = value.mode ?? "GENERAL_QA";
+  if (!["GENERAL_QA", "PILOT_DESIGN"].includes(mode)) throw new PublicApiError(400, "invalid_mode", "The requested Ask Carbon mode is unsupported.");
+  const turnLimit = mode === "PILOT_DESIGN" ? MAX_PILOT_CONTEXT_TURNS : MAX_CONTEXT_TURNS;
   const turns = value.turns ?? [];
-  if (!Array.isArray(turns) || turns.length > MAX_CONTEXT_TURNS) {
-    throw new PublicApiError(400, "invalid_context", `At most ${MAX_CONTEXT_TURNS} prior turns are accepted.`);
+  if (!Array.isArray(turns) || turns.length > turnLimit) {
+    throw new PublicApiError(400, "invalid_context", `At most ${turnLimit} prior turns are accepted.`);
   }
   const normalizedTurns = turns.map((turn) => {
     assertPlainObject(turn, "Each prior turn must be an object.");
@@ -162,9 +187,35 @@ export const validateRequestBody = (value) => {
     if (!turn.question.trim() || !turn.answer.trim() || turn.question.length > MAX_TURN_TEXT_LENGTH || turn.answer.length > MAX_TURN_TEXT_LENGTH) {
       throw new PublicApiError(400, "invalid_context", "A prior turn is empty or too long.");
     }
+    rejectPossibleSecret(turn.question);
+    rejectPossibleSecret(turn.answer);
     return { question: turn.question.trim(), answer: turn.answer.trim() };
   });
-  return { question, turns: normalizedTurns };
+  if (mode === "GENERAL_QA") {
+    if (value.session_id !== undefined || value.draft_context !== undefined) throw new PublicApiError(400, "invalid_request", "General Q&A cannot include pilot-design fields.");
+    return { question, turns: normalizedTurns };
+  }
+  if (typeof value.session_id !== "string" || !/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(value.session_id))
+    throw new PublicApiError(400, "invalid_session", "Pilot guidance requires a bounded session identity.");
+  const context = value.draft_context;
+  assertPlainObject(context, "Pilot guidance requires a draft context.");
+  if (Object.keys(context).sort().join("|") !== ["answers", "pilot", "unresolved_assumptions", "version"].sort().join("|"))
+    throw new PublicApiError(400, "invalid_draft_context", "The draft context has unsupported or missing fields.");
+  if (context.version !== "carbon.client-intake.guidance-context.v1") throw new PublicApiError(400, "invalid_draft_context", "The draft context version is unsupported.");
+  const validateFields = (object, fields, label) => {
+    assertPlainObject(object, `${label} must be an object.`);
+    if (Object.keys(object).sort().join("|") !== [...fields].sort().join("|")) throw new PublicApiError(400, "invalid_draft_context", `${label} has unsupported or missing fields.`);
+    for (const field of fields) {
+      if (object[field] !== null && (typeof object[field] !== "string" || object[field].length > 4000)) throw new PublicApiError(400, "invalid_draft_context", `${label} contains an invalid value.`);
+      rejectPossibleSecret(object[field]);
+    }
+  };
+  validateFields(context.answers, INTAKE_FIELDS, "Draft answers");
+  validateFields(context.pilot, PILOT_FIELDS, "Draft pilot");
+  if (!Array.isArray(context.unresolved_assumptions) || context.unresolved_assumptions.length > 16 || context.unresolved_assumptions.some((item) => typeof item !== "string" || !item.trim() || item.length > 800))
+    throw new PublicApiError(400, "invalid_draft_context", "Draft assumptions are invalid.");
+  context.unresolved_assumptions.forEach(rejectPossibleSecret);
+  return { question, turns: normalizedTurns, mode, session_id: value.session_id, draft_context: context };
 };
 
 export const selectCards = (knowledge, question, limit = 6) => {
@@ -221,7 +272,7 @@ export const verifyBoundedContext = async (token, secret, nowSeconds = Math.floo
   return payload;
 };
 
-export const makeBoundedContext = async ({ question, turns, cards, knowledge, requestId, secret, nowSeconds }) => {
+export const makeBoundedContext = async ({ question, turns, mode = "GENERAL_QA", session_id = null, draft_context = null, cards, knowledge, requestId, secret, nowSeconds }) => {
   const payload = {
     v: 1,
     request_id: requestId,
@@ -230,6 +281,9 @@ export const makeBoundedContext = async ({ question, turns, cards, knowledge, re
     card_ids: cards.map((card) => card.id),
     question,
     turns,
+    mode,
+    session_id,
+    draft_context,
     iat: nowSeconds,
     exp: nowSeconds + CONTEXT_TTL_SECONDS,
   };
@@ -244,6 +298,32 @@ export const answerSchema = {
     answer: { type: "string", minLength: 1, maxLength: 1400 },
     source_ids: { type: "array", minItems: 1, maxItems: 4, uniqueItems: true, items: { type: "string" } },
     follow_ups: { type: "array", maxItems: 3, items: { type: "string", minLength: 1, maxLength: 160 } },
+    maturity_note: { type: ["string", "null"], maxLength: 300 },
+  },
+};
+
+export const pilotAnswerSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["message", "next_question", "proposals", "unresolved_assumptions", "source_ids", "maturity_note"],
+  properties: {
+    message: { type: "string", minLength: 1, maxLength: 1400 },
+    next_question: { type: ["string", "null"], maxLength: 240 },
+    proposals: {
+      type: "array", maxItems: 4,
+      items: {
+        type: "object", additionalProperties: false,
+        required: ["suggestion_id", "field", "value", "rationale"],
+        properties: {
+          suggestion_id: { type: "string", pattern: "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$" },
+          field: { type: "string", enum: [...INTAKE_FIELDS, ...PILOT_FIELDS.map((field) => `pilot.${field}`)] },
+          value: { type: "string", minLength: 1, maxLength: 4000 },
+          rationale: { type: "string", minLength: 1, maxLength: 800 },
+        },
+      },
+    },
+    unresolved_assumptions: { type: "array", maxItems: 8, items: { type: "string", minLength: 1, maxLength: 800 } },
+    source_ids: { type: "array", maxItems: 4, uniqueItems: true, items: { type: "string" } },
     maturity_note: { type: ["string", "null"], maxLength: 300 },
   },
 };
@@ -273,6 +353,28 @@ export const validateProviderOutput = (value, allowedSourceIds) => {
     follow_ups: value.follow_ups.map((item) => item.trim()),
     maturity_note: value.maturity_note?.trim() || null,
   };
+};
+
+export const validatePilotProviderOutput = (value, allowedSourceIds) => {
+  assertPlainObject(value, "The guidance provider returned an invalid result.");
+  const expected = ["message", "next_question", "proposals", "unresolved_assumptions", "source_ids", "maturity_note"];
+  if (Object.keys(value).sort().join("|") !== expected.sort().join("|")) throw new PublicApiError(502, "invalid_provider_output", "The guidance provider returned unsupported fields.");
+  if (typeof value.message !== "string" || !value.message.trim() || value.message.length > 1400) throw new PublicApiError(502, "invalid_provider_output", "The guidance message is invalid.");
+  if (value.next_question !== null && (typeof value.next_question !== "string" || !value.next_question.trim() || value.next_question.length > 240)) throw new PublicApiError(502, "invalid_provider_output", "The next guidance question is invalid.");
+  if (!Array.isArray(value.proposals) || value.proposals.length > 4) throw new PublicApiError(502, "invalid_provider_output", "The guidance proposals are invalid.");
+  const fields = new Set([...INTAKE_FIELDS, ...PILOT_FIELDS.map((field) => `pilot.${field}`)]);
+  const ids = new Set();
+  const proposals = value.proposals.map((item) => {
+    assertPlainObject(item, "A guidance proposal is invalid.");
+    if (Object.keys(item).sort().join("|") !== ["suggestion_id", "field", "value", "rationale"].sort().join("|") || !/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(item.suggestion_id) || ids.has(item.suggestion_id) || !fields.has(item.field) || typeof item.value !== "string" || !item.value.trim() || item.value.length > 4000 || typeof item.rationale !== "string" || !item.rationale.trim() || item.rationale.length > 800)
+      throw new PublicApiError(502, "invalid_provider_output", "A guidance proposal is invalid.");
+    ids.add(item.suggestion_id);
+    return { suggestion_id: item.suggestion_id, field: item.field, value: item.value.trim(), rationale: item.rationale.trim() };
+  });
+  if (!Array.isArray(value.unresolved_assumptions) || value.unresolved_assumptions.length > 8 || value.unresolved_assumptions.some((item) => typeof item !== "string" || !item.trim() || item.length > 800)) throw new PublicApiError(502, "invalid_provider_output", "Guidance assumptions are invalid.");
+  if (!Array.isArray(value.source_ids) || value.source_ids.length > 4 || new Set(value.source_ids).size !== value.source_ids.length || value.source_ids.some((id) => typeof id !== "string" || !allowedSourceIds.has(id))) throw new PublicApiError(502, "unknown_source", "The guidance provider referenced an unapproved source.");
+  if (value.maturity_note !== null && (typeof value.maturity_note !== "string" || value.maturity_note.length > 300)) throw new PublicApiError(502, "invalid_provider_output", "The guidance maturity note is invalid.");
+  return { message: value.message.trim(), next_question: value.next_question?.trim() || null, proposals, unresolved_assumptions: value.unresolved_assumptions.map((item) => item.trim()), source_ids: value.source_ids, maturity_note: value.maturity_note?.trim() || null };
 };
 
 export const extractResponseText = (body) => {

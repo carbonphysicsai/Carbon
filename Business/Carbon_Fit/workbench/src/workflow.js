@@ -823,7 +823,8 @@
           maxDepth: 10,
         });
         const validated = I.validateDraft(record.validated_draft);
-        if (JSON.stringify(reparsed) !== JSON.stringify(validated))
+        const transported = I.draftFromTransport(reparsed);
+        if (JSON.stringify(transported) !== JSON.stringify(validated))
           throw Error("Stored intake raw/validated content mismatch");
         list(record.mapped_requirement_ids, "mapped requirement IDs", 16).forEach(
           (value) => ident(value, "mapped requirement ID"),
@@ -1506,13 +1507,13 @@
         return {
           action: "EXACT_REPLAY",
           target_job_id: exactReplay.job.job_id,
-          mapping: I.mapDraft(inspection.draft, inspection.canonical_digest),
+          mapping: I.mapDraft(inspection.draft, inspection.canonical_digest, inspection.review_package),
           message: "This exact intake revision is already linked; no new job, requirement, or handoff will be created.",
         };
       return {
         action: "IDENTITY_CONFLICT",
         target_job_id: identity[0].job.job_id,
-        mapping: I.mapDraft(inspection.draft, inspection.canonical_digest),
+        mapping: I.mapDraft(inspection.draft, inspection.canonical_digest, inspection.review_package),
         message: "The claimed draft/revision identity already exists with different bytes. Reconciliation is required.",
       };
     }
@@ -1528,7 +1529,7 @@
         return {
           action: "RECONCILIATION_REQUIRED",
           target_job_id: null,
-          mapping: I.mapDraft(inspection.draft, inspection.canonical_digest),
+          mapping: I.mapDraft(inspection.draft, inspection.canonical_digest, inspection.review_package),
           message:
             matches.length === 0
               ? "The declared predecessor is not present. Import it first or explicitly create a separate inquiry."
@@ -1537,7 +1538,7 @@
       return {
         action: "ADD_REVISION_FOR_REVIEW",
         target_job_id: matches[0].job.job_id,
-        mapping: I.mapDraft(inspection.draft, inspection.canonical_digest),
+        mapping: I.mapDraft(inspection.draft, inspection.canonical_digest, inspection.review_package),
         message: "Attach this successor as an unreviewed intake revision. It will not overwrite a sealed design or change scientific state.",
       };
     }
@@ -1545,13 +1546,13 @@
       return {
         action: "RECONCILIATION_REQUIRED",
         target_job_id: null,
-        mapping: I.mapDraft(inspection.draft, inspection.canonical_digest),
+        mapping: I.mapDraft(inspection.draft, inspection.canonical_digest, inspection.review_package),
         message: "This draft ID is already known, but no predecessor was supplied. The Workbench will not guess whether it is a revision or a separate inquiry.",
       };
     return {
       action: "CREATE_NEW_JOB",
       target_job_id: null,
-      mapping: I.mapDraft(inspection.draft, inspection.canonical_digest),
+      mapping: I.mapDraft(inspection.draft, inspection.canonical_digest, inspection.review_package),
       message: "Create one new unassessed job with source-linked requirement candidates and unresolved science and rights.",
     };
   }

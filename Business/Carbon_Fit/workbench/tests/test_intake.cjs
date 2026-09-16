@@ -15,6 +15,18 @@ const reader = (raw) => F.readWorkspace(raw, IDS, ATLAS.source.sha256);
 const component = () => ({ schema_version: F.WORKSPACE_VERSION, application_version: F.APP_VERSION, source_sha256: ATLAS.source.sha256, evidence_catalog: [], drafts: [], shortlist: [], migration_receipts: [] });
 const fixtureRaw = (name) => fs.readFileSync(path.join(ROOT, "intake/fixtures", name), "utf8");
 const inspect = (raw) => I.inspect(raw, F.strictJsonParse);
+const reviewed = (brief) => ({
+  schema_version: I.REVIEW_VERSION,
+  brief,
+  pilot: { label: "Draft pilot for Carbon review", ...Object.fromEntries(I.PILOT_FIELDS.map((field) => [field, ""])) },
+  field_provenance: [...I.TEXT_FIELDS, ...I.QUANTITY_FIELDS, ...I.PILOT_FIELDS.map((field) => `pilot.${field}`)].map((field) => ({ field, origin: "UNKNOWN", suggestion_id: null })),
+  accepted_suggestions: [],
+  unresolved_assumptions: ["Reference adequacy is unknown."],
+  ai_guidance: { enabled: false, provider: null, guidance_version: I.GUIDANCE_VERSION, notice_version: null, consented_at: null, cleared_locally: false },
+  sharing: { include_conversation: false, conversation: [] },
+  contact: { name: "", email: "", organization: "" },
+  local_scope: I.REVIEW_SCOPE,
+});
 
 test("closed local draft preserves unknowns and deterministic summary", () => {
   const draft = I.newDraft("draft-a", "rev-001");
@@ -47,6 +59,67 @@ test("client-computed summary mismatch rejects", () => {
   draft.summary = I.summaryFor(draft);
   draft.summary.text = "qualified fit";
   assert.throws(() => I.validateDraft(draft), /does not match/);
+});
+
+test("reviewed pilot package preserves the canonical v1 brief and explicit unknowns", async () => {
+  const brief = JSON.parse(fixtureRaw("existing_method_v1.json"));
+  const value = reviewed(brief);
+  value.pilot.bounded_first_pilot = "Compare the reported baseline across an agreed public operating range.";
+  value.field_provenance.find((item) => item.field === "pilot.bounded_first_pilot").origin = "CLIENT_TYPED";
+  const inspection = await inspect(JSON.stringify(value));
+  assert.equal(inspection.transport_kind, "REVIEWED_PACKAGE");
+  assert.equal(inspection.draft.draft_id, brief.draft_id);
+  assert.equal(inspection.review_package.pilot.label, "Draft pilot for Carbon review");
+  assert.deepEqual(inspection.review_package.unresolved_assumptions, ["Reference adequacy is unknown."]);
+});
+
+test("reviewed package rejects authority injection and conversation sharing without opt-in", () => {
+  const brief = JSON.parse(fixtureRaw("existing_method_v1.json"));
+  const authority = reviewed(brief);
+  authority.approved = true;
+  assert.throws(() => I.validateReviewedPackage(authority), /unsupported or missing fields/);
+  const history = reviewed(brief);
+  history.sharing.conversation.push({ turn_id: "turn-001", role: "CLIENT", text: "private draft" });
+  assert.throws(() => I.validateReviewedPackage(history), /explicit inclusion/);
+});
+
+test("reviewed package requires complete provenance and exact accepted-suggestion linkage", () => {
+  const brief = JSON.parse(fixtureRaw("existing_method_v1.json"));
+  const incomplete = reviewed(brief);
+  incomplete.field_provenance.pop();
+  assert.throws(() => I.validateReviewedPackage(incomplete), /cover every reviewable field/);
+
+  const mismatch = reviewed(brief);
+  mismatch.pilot.evaluation_questions = "Compare hotspot location.";
+  mismatch.accepted_suggestions.push({ suggestion_id: "suggestion-001", field: "pilot.evaluation_questions", proposed_value: mismatch.pilot.evaluation_questions, rationale: "Proposed evaluation focus.", accepted_at: "2026-09-16T12:01:00.000Z" });
+  assert.throws(() => I.validateReviewedPackage(mismatch), /does not match field provenance/);
+
+  const stale = reviewed(brief);
+  const provenance = stale.field_provenance.find((item) => item.field === "pilot.evaluation_questions");
+  provenance.origin = "AI_SUGGESTED_CLIENT_ACCEPTED";
+  provenance.suggestion_id = "suggestion-001";
+  stale.pilot.evaluation_questions = "Current accepted wording.";
+  stale.accepted_suggestions.push({ suggestion_id: "suggestion-001", field: "pilot.evaluation_questions", proposed_value: "Different wording.", rationale: "Proposed evaluation focus.", accepted_at: "2026-09-16T12:01:00.000Z" });
+  assert.throws(() => I.validateReviewedPackage(stale), /does not match the current field value/);
+});
+
+test("accepted AI suggestion is separately attributed and remains unqualified client input", async () => {
+  const brief = JSON.parse(fixtureRaw("fresh_burgers_v1.json"));
+  const value = reviewed(brief);
+  value.ai_guidance = { enabled: true, provider: "OPENAI_API", guidance_version: I.GUIDANCE_VERSION, notice_version: "carbon.ask-guidance.notice.v1-2026-09-16", consented_at: "2026-09-16T12:00:00.000Z", cleared_locally: false };
+  value.pilot.evaluation_questions = "Compare hotspot location and design ranking.";
+  const provenance = value.field_provenance.find((item) => item.field === "pilot.evaluation_questions");
+  provenance.origin = "AI_SUGGESTED_CLIENT_ACCEPTED";
+  provenance.suggestion_id = "suggestion-001";
+  value.accepted_suggestions.push({ suggestion_id: "suggestion-001", field: "pilot.evaluation_questions", proposed_value: value.pilot.evaluation_questions, rationale: "This makes the proposed comparison inspectable.", accepted_at: "2026-09-16T12:01:00.000Z" });
+  const inspection = await inspect(JSON.stringify(value));
+  const workspace = G.newWorkspace(component());
+  G.commitIntakeImport(workspace, inspection, G.previewIntakeImport(workspace, inspection));
+  const design = workspace.jobs[0].designs[0];
+  assert.equal(design.decision.scientific_qualification, "NOT_QUALIFIED");
+  assert.equal(design.decision.security_rights, "UNRESOLVED");
+  assert.equal(design.route_plan.route, "UNASSESSED");
+  assert.equal(workspace.jobs[0].intake_records[0].raw_json.includes("AI_SUGGESTED_CLIENT_ACCEPTED"), true);
 });
 
 test("new intake previews before creating an unassessed source-linked job", async () => {

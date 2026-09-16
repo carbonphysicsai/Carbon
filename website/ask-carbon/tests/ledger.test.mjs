@@ -22,8 +22,12 @@ const reservation = (overrides = {}) => ({
   lease_ttl_ms: 30_000,
   request_limit: 10,
   cost_limit_micro_usd: 10_000,
+  monthly_cost_limit_micro_usd: 50_000_000,
   concurrency_limit: 2,
   client_requests_per_hour: 12,
+  pilot_requests_per_session: 8,
+  session_id: "session-1",
+  mode: "GENERAL_QA",
   reserved_cost_micro_usd: 2_000,
   ...overrides,
 });
@@ -75,4 +79,25 @@ test("ledger enforces a per-client hourly abuse ceiling in addition to global li
   const rejected = await ledger.fetch(request("/reserve", reservation({ lease_id: "lease-2", client_requests_per_hour: 1 })));
   assert.equal(rejected.status, 429);
   assert.equal((await rejected.json()).reason, "client_hourly_limit");
+});
+
+test("general Q&A and pilot guidance share one monthly spending ceiling", async () => {
+  const storage = new MemoryStorage();
+  const ledger = new AskCarbonUsageLedger({ storage });
+  await ledger.fetch(request("/reserve", reservation({ lease_id: "general-1", mode: "GENERAL_QA", reserved_cost_micro_usd: 600, monthly_cost_limit_micro_usd: 1_000 })));
+  await ledger.fetch(request("/settle", { lease_id: "general-1", actual_cost_micro_usd: 600, now_ms: reservation().now_ms }));
+  const rejected = await ledger.fetch(request("/reserve", reservation({ lease_id: "pilot-1", mode: "PILOT_DESIGN", session_id: "pilot-session", reserved_cost_micro_usd: 401, monthly_cost_limit_micro_usd: 1_000 })));
+  assert.equal(rejected.status, 429);
+  assert.equal((await rejected.json()).reason, "monthly_cost_limit");
+});
+
+test("pilot guidance has a bounded per-session request count without a second budget", async () => {
+  const storage = new MemoryStorage();
+  const ledger = new AskCarbonUsageLedger({ storage });
+  const first = reservation({ lease_id: "pilot-1", mode: "PILOT_DESIGN", pilot_requests_per_session: 1 });
+  assert.equal((await ledger.fetch(request("/reserve", first))).status, 200);
+  await ledger.fetch(request("/settle", { lease_id: "pilot-1", actual_cost_micro_usd: 10, now_ms: first.now_ms }));
+  const rejected = await ledger.fetch(request("/reserve", reservation({ lease_id: "pilot-2", mode: "PILOT_DESIGN", pilot_requests_per_session: 1 })));
+  assert.equal(rejected.status, 429);
+  assert.equal((await rejected.json()).reason, "pilot_session_limit");
 });

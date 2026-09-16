@@ -101,7 +101,7 @@ def build():
         + " ".join("'" + digest(value) + "'" for value in [intake, intake_app])
         + "; style-src '"
         + digest(intake_style)
-        + "'; img-src data:; connect-src 'none'; form-action 'none'; base-uri 'none'; object-src 'none'"
+        + "'; img-src data:; connect-src 'self'; form-action 'none'; base-uri 'none'; object-src 'none'"
     )
     preview = (ROOT / "src/intake_shell.html").read_text()
     for key, value in {
@@ -112,6 +112,7 @@ def build():
     }.items():
         preview = preview.replace("{{" + key + "}}", value)
     (ROOT / "Carbon_Client_Intake_Preview.html").write_text(preview)
+    (ROOT / "Carbon_Client_Pilot_Designer_Preview.html").write_text(preview)
     return ROOT / "Carbon_Opportunity_Workbench.html"
 
 

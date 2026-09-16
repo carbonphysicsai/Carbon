@@ -14359,3 +14359,39 @@ destination, access roles, retention/deletion and notice/permission decisions,
 abuse/incident controls, server recomputation, persistence, and real receipt.
 The smallest reversal is removal of the intake surface and additive lineage
 fields while retaining historical local draft bytes and job records.
+
+## 2026-09-16 — GOAL-WORKBENCH-08A-GUIDED-PILOT-01: one brief, two client editing modes
+
+**Owner direction and scope.** The owner amends the current website-intake
+milestone so Ask Carbon guides a client through the same versioned brief as the
+form. This authorizes bounded Engineering implementation, mock/authored
+evaluation, and local preview. It does not authorize homepage deployment,
+live collection, a provider secret, private persistence, scientific
+qualification, rights, numerical execution, source-assessment admission,
+network action, or launch. The active C-W1 lane remains unchanged.
+
+**Implementation decision.** KEEP the v1 intake draft as the canonical core;
+WRAP it in a closed reviewed-package record carrying a draft pilot, field
+provenance, accepted AI proposals, unresolved assumptions, consent/notice
+version, contact data, and optionally selected conversation history. Guided
+conversation and form edit one in-memory draft; proposals require explicit
+acceptance and support rejection/undo. The Workbench validates the package,
+retains its exact bytes, and creates the same `UNASSESSED` job. No AI output is
+evidence, route selection, qualification, or permission.
+
+**Provider, privacy, and cost boundary.** Reuse the PR #193 Ask Carbon adapter
+with a separate `PILOT_DESIGN` output schema. Client text is untrusted; the
+server owns closed validation, source mapping, bounded signed context, units,
+cost accounting, and failure. General Q&A and pilot guidance share one
+50,000,000 micro-USD ($50) monthly ceiling plus existing daily/concurrency/rate
+controls. Form-only use sends nothing; AI requires affirmative disclosure;
+conversation inclusion is off by default; abandoned raw conversations are not
+persisted for sales/research in this implementation. Live activation remains
+blocked on the approved public knowledge/model/prices, actual provider
+retention posture, website/receiver/store/notice/security/deployment decisions.
+
+**Reversal and authority ceiling.** The narrow reversal removes pilot mode and
+the reviewed wrapper while the v1 form draft and historical imports remain
+valid. No customer outcome, model quality, demand, speedup, cost saving,
+reference adequacy, tolerance, scientific acceptance, protected use, score,
+reward, or launch is inferred from authored cases or a mock conversation.

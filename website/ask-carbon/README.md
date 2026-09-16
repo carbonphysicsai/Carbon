@@ -12,6 +12,8 @@ of the production deployment source.
   design and current homepage palette;
 - `knowledge/public-knowledge.v1.json` — draft public-only knowledge manifest;
 - `worker/` — Cloudflare Worker and Durable Object implementation;
+- `PILOT_DESIGN_REVIEW.md` — exact preview notice, shared-budget behavior,
+  evaluation state, and remaining activation inputs;
 - `tools/integrate-static.mjs` — deterministic injection into an existing
   static `index.html` without replacing its content or route;
 - `eval/` — evaluation contract and a mock-only harness;
@@ -26,9 +28,22 @@ token prices, global budgets, a per-client hourly ceiling, a provider key, a
 signing secret, and a Durable Object binding. Missing any gate returns an
 inactive health result and blocks provider calls.
 
+The same adapter now exposes a distinct `PILOT_DESIGN` mode for the local
+Carbon pilot designer. It accepts only a bounded schema-derived draft context
+and returns proposed edits that the client must accept. General Q&A remains
+available. Both modes share one ledger and one owner ceiling of $50 per UTC
+month; pilot guidance does not create a second allowance. The local form works
+without AI and preserves the draft when guidance is unavailable.
+
 No secret belongs in this repository or browser bundle. Do not send a secret
 through chat. Production operators should provision Worker secrets through
 their approved Cloudflare release process.
+
+`Business/Carbon_Fit/workbench/Carbon_Client_Pilot_Designer_Preview.html` is
+the maintained local preview. It edits the same `carbon.client-intake.draft.v1`
+core in conversation and form mode, exports a closed
+`carbon.client-intake.reviewed.v1` package, and never submits it. Conversation
+inclusion is off by default.
 
 ## Local preview integration
 
