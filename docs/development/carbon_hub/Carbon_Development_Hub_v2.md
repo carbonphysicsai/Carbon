@@ -2,7 +2,7 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `ac20b9df30646ae0baf913536eccc4f0e67515b8` on `main`, captured 2026-09-16T11:18:40Z.
+**Authority snapshot:** `974edafb7c47db2e06448f49e33239ab5a655e50` on `main`, captured 2026-09-16T14:39:29Z.
 **Current:** Wave C, ticket C-W1. C-W1 DEVELOPMENT: the real agent evaluation's signed source completed the separately authorized all-burn testnet path. Subnet 567 activation finalized at 8017622, commitment at 8017643, reveal at 8017851 and exact row [[0, 65535]] at 8017916; the checked journal reached ROW_VERIFIED without resubmission. PR #194's zero-fee guard is merged. C-W1-REVEAL-01 repairs SDK tuple event decoding and provides bounded walletless rescan recovery for a previously missed reveal. Creation at 8010852 and distinct miner UID 1 registration remain historical setup evidence. The numerical result remains COMPLETE_UNRESOLVED; no score, accepted improvement, winner, miner payment, burn amount or epoch effect is inferred. No subsequent activation or weight transaction is authorized by the consumed approvals. AWS stays deferred, Hippius unverified and scientific/security/network/production qualification unearned. Official C-W1 and C-EA2 remain blocked. No later ticket is selected; the next proposed milestone is a non-paying DEVELOPMENT comparison bridge with prospective rules and C-10 quarantine. Earlier deterministic engineering scaffold measurements are not results of the real agent.
 **Last completed:** C-10 (`done`).
 **Next selected:** none selected.
