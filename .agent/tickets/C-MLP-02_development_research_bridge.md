@@ -178,6 +178,28 @@ The campaign outcome, costs and cleanup evidence are recorded in the bridge
 document. C-MLP-02 stays open; Hermes/hosted successors do not displace its
 outstanding genuine adaptive-research and independent-reconstruction acceptance.
 
+## Observation dashboard continuation C-MLP-02-D4
+
+Continue independent UI and empirical reporting alongside core programme #209.
+The active second browser campaign stays pinned to its accepted implementation,
+images, profile, scientific rules and separately approved remaining-allowance grant.
+No running campaign is migrated. The core integration owner owns the pending
+research SDK transport identity, reconstruction catalogue, Julia reference and
+standard MCP changes; coordinate before editing those shared interfaces or
+Launchpad ownership/cleanup helpers. Reuse the existing ledger and projections.
+
+The first real practice result exposes a usability gap: its measured curve,
+sampled gate failures and resource accounting are only visible in raw JSON, and
+polling closes an expanded record. In a successor UI slice, display those existing
+allow-listed values directly, plot only the measured training-loss samples, keep
+record expansion stable, and correct the stale historical-source empty message.
+Do not describe a training curve as a Burgers spatial field, a practice score as
+independent improvement, or an agent selection as final acceptance. Test the real
+browser/server with explicitly labelled fixtures, preserve stale-control behavior
+and desktop/mobile layout, and retain the actual campaign outcome separately.
+Primary map: SYSTEM/AGENT-EXECUTION; Hub impact is required and batched with the
+empirical findings before applicable canonical acceptance and delivery.
+
 ## Earlier readback slice evidence
 
 Continuation engineering diagnostics: 94 focused Linux tests passed. The initial

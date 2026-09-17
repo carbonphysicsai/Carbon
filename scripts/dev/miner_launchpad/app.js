@@ -10,6 +10,7 @@
   let developmentSources = [];
   let research = {preflight: {available: false}, runs: []};
   let pendingResearch = null;
+  const expandedResearch = new Set();
   const researchKey = "carbon.launchpad.pending-research.v1";
   const pendingKey = "carbon.launchpad.pending.v1";
   let storageError = false;
@@ -43,7 +44,7 @@
     sources.replaceChildren();
     if (!connected || !developmentSources.length) {
       const note = document.createElement("p"); note.className = "hint";
-      note.textContent = connected ? "No DEVELOPMENT source is attached. Real campaign launch is not enabled yet." : "Reconnect to verify current source state.";
+      note.textContent = connected ? "No historical DEVELOPMENT source is attached. Current research campaigns are shown separately below." : "Reconnect to verify current source state.";
       sources.append(note);
     }
     if (connected) for (const source of developmentSources) {
@@ -214,6 +215,48 @@
     } catch (error) { message("Export not confirmed: " + error.message, true); }
     finally { busy = false; render(); }
   });
+  function researchNote(parent, text, className = "") {
+    const note = document.createElement("p"); note.textContent = text; note.className = className; parent.append(note);
+  }
+  function renderPractice(parent, experiment, index) {
+    const section = document.createElement("section"); section.className = "practice-result";
+    const heading = document.createElement("h4"); heading.textContent = "Practice experiment " + (index + 1); section.append(heading);
+    researchNote(section, "Completed updates: " + experiment.completed_steps + " · Worker seconds: " + experiment.worker_seconds);
+    const diagnostics = experiment.diagnostics || {};
+    researchNote(section, "Descriptive practice score: " + (diagnostics.descriptive_score ?? "unavailable") + " · Not an accepted improvement.");
+    const failures = diagnostics.sampled_gate_failures;
+    researchNote(section, Array.isArray(failures) ? "Sampled gate failures: " + (failures.length ? failures.join(", ") : "none reported; final admissibility is separate") : "Sampled gate failures unavailable.");
+    const points = experiment.inline_curve;
+    if (Array.isArray(points) && points.length >= 2 && points.length <= 8 && points.every((p, i) => p && Number.isFinite(p.step) && Number.isFinite(p.data_loss) && p.data_loss >= 0 && (!i || p.step > points[i - 1].step))) {
+      const first = points[0], last = points[points.length - 1];
+      const maximum = Math.max(...points.map(p => p.data_loss)) || 1;
+      const ns = "http://www.w3.org/2000/svg";
+      const svg = document.createElementNS(ns, "svg");
+      svg.setAttribute("viewBox", "0 0 480 190"); svg.setAttribute("role", "img");
+      svg.setAttribute("aria-label", "Sampled training data loss by optimizer update, not a physical field or final evaluation");
+      const add = (name, attributes, text) => {
+        const node = document.createElementNS(ns, name);
+        for (const [key, value] of Object.entries(attributes)) node.setAttribute(key, value);
+        if (text !== undefined) node.textContent = text;
+        svg.append(node);
+      };
+      const x = p => 65 + 395 * (p.step - first.step) / (last.step - first.step);
+      const y = p => 145 - 125 * p.data_loss / maximum;
+      for (const fraction of [0, 0.5, 1]) {
+        const at = 145 - fraction * 125;
+        add("line", {x1: 65, y1: at, x2: 460, y2: at, class: "curve-grid"});
+        add("text", {x: 58, y: at + 4, "text-anchor": "end"}, (maximum * fraction).toPrecision(3));
+      }
+      add("polyline", {points: points.map(p => x(p) + "," + y(p)).join(" "), class: "curve-line"});
+      for (const p of points) add("circle", {cx: x(p), cy: y(p), r: 3, class: "curve-point"});
+      add("text", {x: 65, y: 164}, String(first.step));
+      add("text", {x: 460, y: 164, "text-anchor": "end"}, String(last.step));
+      add("text", {x: 265, y: 184, "text-anchor": "middle"}, "Optimizer update");
+      section.append(svg);
+      researchNote(section, "Training data loss · " + points.length + " recorded samples, joined for readability. First: " + first.data_loss + "; last: " + last.data_loss + ". Full projected samples remain in the record below.");
+    } else researchNote(section, "Training curve unavailable; no measurements inferred.");
+    parent.append(section);
+  }
   function renderResearch() {
     $("research-preflight").textContent = connected ? research.preflight.status.replaceAll("_", " ") + (research.preflight.available && research.preflight.ceilings ? " · Approved envelope: " + JSON.stringify(research.preflight.ceilings) + " · Expires: " + new Date(research.preflight.expires_unix * 1000).toLocaleString() : "") : "Reconnect to reconcile research state. Controls are disabled.";
     $("research-launch").disabled = !connected || busy || storageError || !research.preflight.available;
@@ -224,6 +267,25 @@
       const title = document.createElement("h3"); title.textContent = run.id.slice(0, 10) + " · " + run.state;
       const description = document.createElement("p"); description.textContent = (run.agent || "Awaiting runtime") + " / " + (run.reasoning || "unavailable") + " / " + (run.compute || "unavailable") + " · Attempts: " + (run.attempted_experiments ?? 0) + " · Completed practice: " + (run.completed_experiments ?? 0);
       card.append(title, description);
+      if (run.current_hypothesis) researchNote(card, "Research hypothesis: " + (run.current_hypothesis.hypothesis || "unavailable"));
+      const current = (run.operations || []).filter(op => op.state === "RESERVED");
+      researchNote(card, current.length ? "Active reserved operations: " + current.map(op => op.phase + " / " + op.id).join(", ") : "No active reserved operation reported.");
+      if (run.usage) {
+        const usage = document.createElement("div"); usage.className = "research-usage";
+        for (const kind of ["available", "reserved", "reported", "uncertain"]) {
+          const amount = run.usage[kind]?.provider_nanodollars;
+          researchNote(usage, kind + ": " + (Number.isFinite(amount) ? "$" + (amount / 1e9).toFixed(8) : "unavailable"));
+        }
+        card.append(usage);
+        researchNote(card, run.usage.cost_basis || "Cost basis unavailable.");
+      }
+      for (const outcome of run.epoch_outcomes || []) researchNote(card, "Agent epoch " + outcome.epoch + ": " + outcome.status + " · " + (outcome.reason || "No reason reported") + " · Agent-reported decision, not independent science.");
+      for (const result of run.final_results || []) {
+        const verified = result.status === "VERIFIED_SOURCE" && result.result;
+        researchNote(card, "DEVELOPMENT evaluation: " + (verified ? (result.result.disposition || "disposition unavailable") + " · Accepted DEVELOPMENT improvement: " + (typeof result.result.accepted_development_improvement === "boolean" ? String(result.result.accepted_development_improvement) : "unavailable") : "Readback unavailable; no disposition inferred."), "development-result");
+      }
+      if (!(run.final_results || []).length) researchNote(card, "DEVELOPMENT evaluation: no independent result available.", "development-result");
+      (run.experiments || []).forEach((experiment, index) => renderPractice(card, experiment, index));
       const controls = document.createElement("div"); controls.className = "controls";
       for (const action of ["pause", "resume", "stop", "reconcile", "export"]) {
         const button = document.createElement("button"); button.type = "button"; button.textContent = action;
@@ -231,6 +293,8 @@
         button.addEventListener("click", () => researchAction(run.id, action)); controls.append(button);
       }
       const details = document.createElement("details"); const summary = document.createElement("summary"); summary.textContent = "Research, usage, candidate and independent result";
+      details.open = expandedResearch.has(run.id);
+      details.addEventListener("toggle", () => { if (details.isConnected) { if (details.open) expandedResearch.add(run.id); else expandedResearch.delete(run.id); } });
       const record = document.createElement("pre"); record.style.whiteSpace = "pre-wrap"; record.style.overflowWrap = "anywhere";
       record.textContent = JSON.stringify({agent_policy: run.agent_policy, hypothesis: run.current_hypothesis, hypotheses: run.hypotheses, decisions: run.decisions, outcomes: run.epoch_outcomes, usage: run.usage, experiments: run.experiments, operations: run.operations, freezes: run.candidate_freezes, development: run.final_results, capability_requests: run.capability_requests}, null, 2);
       details.append(summary, record); card.append(controls, details); container.append(card);
