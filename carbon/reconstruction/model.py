@@ -24,6 +24,7 @@ class ReconstructionStatus(str, Enum):
 class EnvironmentEligibility(str, Enum):
     CANONICAL_DEVELOPMENT = "CANONICAL_DEVELOPMENT"
     NATIVE_MAC_DIAGNOSTIC = "NATIVE_MAC_DIAGNOSTIC"
+    ACCELERATOR_DEVELOPMENT_DIAGNOSTIC = "ACCELERATOR_DEVELOPMENT_DIAGNOSTIC"
 
 
 class ReconstructionFailure(ValueError):
