@@ -37,15 +37,16 @@
 Wave C/C0 and this file as its controlling register.
 **Version:** 2.6
 **Activation decision:** `OWNER-WAVE-C0-NET1-01`
-**Selected ticket:** C-W1-D4 — `in_progress`
-**Selection scope:** public/synthetic DEVELOPMENT miner research and one finite off-chain campaign under OWNER-C-W1-D4-AUTORESEARCH-01; official C-W1 remains `future_reserved`.
-**Active ticket:** `.agent/tickets/C-W1-D4_miner_autoresearch.md`.
-**Next boundary:** C-W1-D4 real research implementation, required acceptance and finite owner-authorized campaign; no chain writes.
+**Selected ticket:** C-W1-D5 — `in_progress`
+**Selection scope:** prospective autonomous research continuity and program campaign two under OWNER-C-W1-RESEARCH-PROGRAM-01; official C-W1 remains `future_reserved`.
+**Active ticket:** `.agent/tickets/C-W1-D5_autonomous_research_continuity.md`.
+**Next boundary:** C-W1-D5 tested continuity repair, normal delivery and campaign two; no chain writes.
+PR #206 delivered C-W1-D4 at ce6a7e389d9f4d815fbbb45c68db2eda8784a1e8, normal merge 54f8aff742b99fd2957fede73ea814f03da49eb6; required run 35226186473 passed. Its real campaign stopped after seven model calls, USD 0.00818185, 96 public reference trajectories and 310.573 numerical seconds. The agent asked for already-granted trial approval; zero training trials or final replicas ran. This is an orchestration finding, not a measured model failure or accepted improvement. C-W1-D5 is selected for prospective autonomous continuity under OWNER-C-W1-RESEARCH-PROGRAM-01. No chain writes.
 PR #196 merged as `15ecbe923c8710313cbeadadc8dd5c7d5ec2ae9e` after run
 `35143278595` accepted head `594b8cb668e9b133cb071b32f0ca3e7785d5c3f9`.
 Historical public-testnet publication is `ROW_VERIFIED`, exact row `[[0, 65535]]`;
 the source remains `COMPLETE_UNRESOLVED`. Both transaction scopes are consumed.
-C-W1-D2 completed one non-paying DEVELOPMENT experiment on the seen 12 TRAIN / 12 EVAL / 12 STRESS subset: 8 real gpt-5-mini calls, one FNO-48 challenger against the authentic FNO-40 historical baseline, three real JAX replicas, 144 updates and 72 C-05 reports. Field and weak-PDE errors were lower; conserved-mean and STRESS maximum-principle defects worsened. Disposition: INDETERMINATE_NO_ACCEPTANCE_RULE. No scalar, tie, accepted improvement or winner is claimed. The agent used its permitted prior feedback and stopped after one evaluation. PR #201 merged as d1d07bb408a2b68efed70baf7e11ec22bb180c9d. C-W1-D2 engineering is complete; C-W1-D3 delivered in PR #202, merge 4a60d85323d1945fa0ec9815340618ad87e6e619. C-W1-D4 alone is selected under OWNER-C-W1-D4-AUTORESEARCH-01.
+C-W1-D2 completed one non-paying DEVELOPMENT experiment on the seen 12 TRAIN / 12 EVAL / 12 STRESS subset: 8 real gpt-5-mini calls, one FNO-48 challenger against the authentic FNO-40 historical baseline, three real JAX replicas, 144 updates and 72 C-05 reports. Field and weak-PDE errors were lower; conserved-mean and STRESS maximum-principle defects worsened. Disposition: INDETERMINATE_NO_ACCEPTANCE_RULE. No scalar, tie, accepted improvement or winner is claimed. The agent used its permitted prior feedback and stopped after one evaluation. PR #201 merged as d1d07bb408a2b68efed70baf7e11ec22bb180c9d. C-W1-D2 engineering is complete; C-W1-D3 delivered in PR #202, merge 4a60d85323d1945fa0ec9815340618ad87e6e619. C-W1-D4 subsequently delivered; C-W1-D5 alone is selected under OWNER-C-W1-RESEARCH-PROGRAM-01.
 C-EA2 and official C-W1 remain blocked.
 `OWNER-C1-BURGERS-ALPHA-01` keeps one selected ticket at a time. Protected
 science, real archive acknowledgement and official public-network execution
@@ -112,7 +113,7 @@ in required run `34927991086` and normally merged the C-W1-D1 foundation as
 `65e2a3d5abee97e5eaf1538050e0dcfab22cc649`. Its operator execution/
 reconciliation continuation is the same selected ticket; no successor is
 selected and no public write is authorized.
-**Last completed slice:** C-W1-D3 non-paying DEVELOPMENT scoring, PR #202
+**Last completed slice:** C-W1-D4 finite campaign, PR #206; no training result
 **Primary Hub map_ref:** `WAVE-C`
 
 C-EA1 passed canonical acceptance in run `34558389185` at accepted head
@@ -194,7 +195,8 @@ production custody, quorum, science or economics blocks only that operation.
 | C-W1 | Exact real testnet eligibility provenance | in_progress | `.agent/tickets/C-W1_testnet_eligibility.md` (bounded C-W1-D1 DEVELOPMENT slice only; official path remains future reserved) | Network/protocol + scientific integration | Security + Physics/SciML | NET-2, NET-4B, NET-6, C-06, C-07, C-08, C-10; official C-09 and C-EA2 non-blocking only for bounded DEVELOPMENT | MQ-048, MQ-054 | M | C2 |
 | C-W1-D2 | Non-paying DEVELOPMENT comparison bridge | done | `.agent/tickets/C-W1-D2_development_comparison.md` | Scientific integration | Physics/SciML + Security | C-05, C-06, C-07, C-08, C-10, C-REWARD | MQ-048, MQ-054 | M | C2 |
 | C-W1-D3 | Measurement review and non-paying DEVELOPMENT scoring | done | `.agent/tickets/C-W1-D3_development_scoring.md` | Scientific integration | Physics/SciML + Security | C-W1-D2, C-05, C-06, C-07, C-08, C-10, C-REWARD | MQ-048, MQ-054 | M | C2 |
-| C-W1-D4 | Miner autoresearch and finite DEVELOPMENT campaign | in_progress | `.agent/tickets/C-W1-D4_miner_autoresearch.md` | Scientific integration | Physics/SciML + Security | B-07G, C-02, C-03, C-04, C-05, C-06, C-07, C-08, C-10, C-W1-D3, C-REWARD | MQ-048, MQ-054 | M | C2 |
+| C-W1-D4 | Miner autoresearch and finite DEVELOPMENT campaign | done | `.agent/tickets/C-W1-D4_miner_autoresearch.md` | Scientific integration | Physics/SciML + Security | B-07G, C-02, C-03, C-04, C-05, C-06, C-07, C-08, C-10, C-W1-D3, C-REWARD | MQ-048, MQ-054 | M | C2 |
+| C-W1-D5 | Autonomous research continuity | in_progress | `.agent/tickets/C-W1-D5_autonomous_research_continuity.md` | Scientific integration | Physics/SciML + Security | C-W1-D4 | MQ-048, MQ-054 | M | C2 |
 
 NET-1: PR #120 expected head 528213a passed run 34405478897 and normally merged
 as 6dad22db26e4b8babadf73c4de2527a17485a2b1. Completion comment:

@@ -9,14 +9,14 @@ When browsing on GitHub, start with **`orientation/START_HERE.md`**. It is the p
 ## Inventory
 
 - 14 waves (A-N)
-- 72 captured tickets across Wave A, Wave B, and Wave C
+- 73 captured tickets across Wave A, Wave B, and Wave C
 - 7 protocol-change routes
-- 145 map-level change events
+- 146 map-level change events
 - 8 independent maturity states
 
 ## Captured current position
 
-Wave **C**; current ticket: **C-W1-D4**. Last completed: **C-W1-D3** (`done`). Next selected: **none selected**. C-W1-D4 implements authenticated local miner research, real isolated practice, a bounded workspace and fresh final reconstruction/comparison. Focused engineering checks passed; required delivery acceptance and the finite real campaign remain pending. No campaign inference, provider charge, accepted winner or new network transaction has occurred. Historical testnet 567 exact row [[0, 65535]] remains ROW_VERIFIED; burn amounts, epoch effects and settlement remain unproven. AWS stays deferred and Hippius unverified. Website and Workbench work and spending are separate. No later ticket is selected. Distinct miner UID 1 finalized in the earlier setup; no identities were registered here. Synthetic controls are not results of the real agent. No subsequent activation or weight transaction is authorized. Subnet 567 creation finalized at block 8010852 in the earlier C-W1 DEVELOPMENT setup.
+Wave **C**; current ticket: **C-W1-D5**. Last completed: **C-W1-D4** (`done`). Next selected: **none selected**. C-W1-D5: The prospective continuity repair passed focused canonical tests. Required acceptance, normal delivery and campaign two remain pending. Campaign one used USD 0.00818185, 96 references and 310.573 numerical seconds; zero training/final replicas. No later ticket is selected. Historical testnet 567 exact row [[0, 65535]] remains ROW_VERIFIED; burn amounts, epoch effects and settlement remain unproven. AWS stays deferred and Hippius unverified. Website and Workbench work and spending are separate. No later ticket is selected. Distinct miner UID 1 finalized in the earlier setup; no identities were registered here. Synthetic controls are not results of the real agent. No subsequent activation or weight transaction is authorized. Subnet 567 creation finalized at block 8010852 in the earlier C-W1 DEVELOPMENT setup.
 
 ## Maintain
 

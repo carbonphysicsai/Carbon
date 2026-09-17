@@ -151,7 +151,7 @@
       "title": "Run protected references without confusing fixtures with truth",
       "what": "Compose the accepted isolated-worker capability with role-explicit registered primary, witness and optional development cross-check reference policies.",
       "why": "A fixture reference or successful generator is not a qualified scientific reference.",
-      "changes": "PR #154 accepted the bounded Cole–Hopf candidate-primary, independently discretized conservative witness and ETDRK4 development-cross-check runtime over twelve fixed public cases.",
+      "changes": "PR #154 accepted the bounded Cole\u2013Hopf candidate-primary, independently discretized conservative witness and ETDRK4 development-cross-check runtime over twelve fixed public cases.",
       "not_yet": "D-03/D-04 scientific qualification and independent security acceptance remain absent; protected and score-eligible admission stay disabled.",
       "map_ref": "WAVE-C/C-04"
     },
@@ -242,6 +242,14 @@
       "changes": "A finite durable research loop with honest learning curves, capability requests, budget accounting, frozen final recipes and a local owner report.",
       "not_yet": "No gate changes, public-network transactions, paid winner, protected data, production processing or qualification.",
       "map_ref": "WAVE-C/C-W1-D4"
+    },
+    "C-W1-D5": {
+      "title": "Let the miner carry out already-authorized trials and explain why it stops.",
+      "what": "Version the local agent instructions and structured stop response; preserve old campaign behavior.",
+      "why": "The first real campaign stopped to request routine permission before training.",
+      "changes": "One metered clarification, an immediate reasoned stop, immutable policy binding and replay checks.",
+      "not_yet": "No gate changes, public-network transactions, paid winner, protected data, production processing or qualification.",
+      "map_ref": "WAVE-C/C-W1-D5"
     }
   }
 }

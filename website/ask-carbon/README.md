@@ -6,7 +6,7 @@ or proof of a production deployment.
 
 ## Current release state
 
-- Repository knowledge version: `ask-carbon-staging-2026-09-17.2` (Wave-source digest refresh; wording unchanged, not deployed)
+- Repository knowledge version: `ask-carbon-staging-2026-09-17.3` (Wave-source digest refresh; wording unchanged, not deployed)
 - Source release date: 2026-09-17
 - Current private staging deployment: `ask-carbon-staging-2026-09-17.1`
 - Retained homepage live-evaluation source basis: `ask-carbon-staging-2026-09-16.1`
