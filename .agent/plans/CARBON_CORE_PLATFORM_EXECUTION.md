@@ -113,6 +113,32 @@ authority and prepared recovery commands are consolidated in
 `.agent/plans/CORE_PLATFORM_RESOURCE_REQUEST.md`, REQUESTED_NOT_GRANTED. Existing
 campaign provider allowances have not been reused for this programme.
 
+V3 TPU WORKER PREPARATION (C-CORE-09 candidate)
+
+The fixed v5e/eight-chip environment now has a real hash-locked image build and
+nonroot package inspection. A separate prospective TPU worker-profile/request
+schema maps to the existing JAX reconstruction contract for miner research and
+validator reconstruction. Both roles remain admission-disabled before staging or
+backend import; the NVIDIA Docker adapter explicitly rejects TPU. The same C03
+controller/accounting remains the integration owner. No new cloud launcher exists.
+
+Image `sha256:4b037bd720d7c154cd012de0ad4803a8b92d360062f102bb9b8c80cf78155dc0`
+was built from exact source `cba4b6a597250591972c8f512ab7d42500c87e6a`.
+All 23 pinned distributions and Carbon service/protocol imports passed a bounded
+network-disabled package check without importing numerical backends. Exact
+container removal was verified. This is implementation and package evidence,
+not TPU execution, numerical comparison, external-client execution or scientific
+qualification. Existing CPU/GPU historical identities and evidence are preserved.
+
+Next concrete TPU action requires the named account/resource grant and verified
+host device/privilege/network/metadata, exclusive ownership and HBM/release
+controls before completing the guarded C03 host adapter. Commands, exact missing
+facts and recovery seam are in `.devcontainer/accelerators/TPU_PREPARATION.md`;
+source/image/check evidence is in `.agent/tickets/C-CORE-09_tpu_worker_preparation.md`.
+The existing consolidated resource request remains REQUESTED_NOT_GRANTED. No
+cloud spending, host installation, device initialization or research campaign
+occurred during this preparation. Runtime acceptance for both roles remains open.
+
 V3 ACCELERATOR IMPLEMENTATION CHECKPOINT (C-CORE-03 candidate)
 
 This checkpoint extends the retained C-CORE-02 record prospectively. The finite

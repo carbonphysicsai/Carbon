@@ -117,3 +117,44 @@ def test_nvidia_docker_adapter_rejects_tpu_before_runtime_calls(tmp_path):
             worker_profile=_profile(),
         )
     assert failure.value.code is WorkerCode.UNSUPPORTED
+
+
+def test_package_instrument_reconciles_uncertain_create_and_rejects_foreign_owner():
+    from types import SimpleNamespace
+
+    from scripts.dev.inspect_tpu_worker_image import _cleanup_instrument
+
+    calls = []
+    name = "fixture-owned-instrument"
+    cli = SimpleNamespace(
+        json=lambda command: {
+            "Config": {"Labels": {"carbon.package.instrument": name}}
+        },
+        run=lambda command, **kwargs: calls.append(command)
+        or SimpleNamespace(stdout=b""),
+    )
+    _cleanup_instrument(cli, name)
+    assert calls[0] == ["rm", "--force", name]
+    assert calls[1][-1] == f"name=^/{name}$"
+    calls.clear()
+    cli.json = lambda command: {
+        "Config": {"Labels": {"carbon.package.instrument": "other"}}
+    }
+    with pytest.raises(ValueError, match="ownership"):
+        _cleanup_instrument(cli, name)
+    assert calls == []
+
+
+def test_package_instrument_absence_requires_successful_confirmation():
+    from types import SimpleNamespace
+
+    from scripts.dev.inspect_tpu_worker_image import _cleanup_instrument
+
+    def missing(command):
+        raise WorkerFailure(WorkerCode.UNAVAILABLE)
+
+    cli = SimpleNamespace(json=missing, run=lambda command: SimpleNamespace(stdout=b""))
+    _cleanup_instrument(cli, "fixture")
+    cli.run = lambda command: SimpleNamespace(stdout=b"container-present")
+    with pytest.raises(ValueError, match="uncertain"):
+        _cleanup_instrument(cli, "fixture")

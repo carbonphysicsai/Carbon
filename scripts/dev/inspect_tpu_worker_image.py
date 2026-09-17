@@ -15,6 +15,7 @@ from carbon.reconstruction.worker.docker_runtime import (
     doctor,
     load_image_identity,
 )
+from carbon.reconstruction.worker.model import WorkerFailure
 
 _PROGRAM = r"""
 import hashlib, importlib.metadata, json, pathlib, platform, re, stat, sys
@@ -42,6 +43,26 @@ print(json.dumps({"python": platform.python_version(),
 """
 
 
+def _cleanup_instrument(cli, name):
+    """Reconcile even an uncertain create response; never remove another owner."""
+    try:
+        value = cli.json(["inspect", name, "--format", "{{json .}}"])
+    except WorkerFailure:
+        remaining = cli.run(["ps", "--all", "--quiet", "--filter", f"name=^/{name}$"])
+        if remaining.stdout.strip():
+            raise ValueError("package container cleanup is uncertain") from None
+        return
+    if (
+        value.get("Config", {}).get("Labels", {}).get("carbon.package.instrument")
+        != name
+    ):
+        raise ValueError("package container ownership mismatch")
+    cli.run(["rm", "--force", name], timeout=15)
+    remaining = cli.run(["ps", "--all", "--quiet", "--filter", f"name=^/{name}$"])
+    if remaining.stdout.strip():
+        raise ValueError("package container release not confirmed")
+
+
 def inspect(root: Path) -> dict:
     """Inspect one exact source build and remove only this diagnostic container."""
     manifest = root / ".carbon-artifacts/tpu-worker-image.json"
@@ -62,13 +83,14 @@ def inspect(root: Path) -> dict:
     ):
         raise ValueError("source or TPU environment identity mismatch")
     name = "carbon-tpu-package-check-" + uuid.uuid4().hex
-    created = False
     try:
         cli.run(
             [
                 "create",
                 "--name",
                 name,
+                "--label",
+                f"carbon.package.instrument={name}",
                 "--network",
                 "none",
                 "--read-only",
@@ -97,7 +119,6 @@ def inspect(root: Path) -> dict:
             ],
             timeout=15,
         )
-        created = True
         controls = cli.json(["inspect", name, "--format", "{{json .}}"])
         host = controls["HostConfig"]
         if (
@@ -135,13 +156,7 @@ def inspect(root: Path) -> dict:
             },
         )
     finally:
-        if created:
-            cli.run(["rm", "--force", name], timeout=15)
-            remaining = cli.run(
-                ["ps", "--all", "--quiet", "--filter", f"name=^/{name}$"]
-            )
-            if remaining.stdout.strip():
-                raise ValueError("package container release not confirmed")
+        _cleanup_instrument(cli, name)
     report["container_cleanup"] = "EXACT_CONTAINER_REMOVED_AND_ABSENCE_VERIFIED"
     return report
 

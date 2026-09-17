@@ -46,7 +46,8 @@ Owned files: this ticket; new `.devcontainer/accelerators/Dockerfile.tpu`,
 `TPU_PREPARATION.md`; `scripts/dev/tpu_worker_image.sh`,
 `inspect_tpu_worker_image.py`; `tests/cpu/test_tpu_worker_preparation.py`;
 bounded prospective changes to `carbon/reconstruction/accelerators.py` and
-`worker/model.py`, `worker/protocol.py`. No changes to other worktrees/campaigns.
+`worker/model.py`, `worker/protocol.py`, `worker/docker_runtime.py` (explicit
+unsupported-adapter guard). No changes to other worktrees/campaigns.
 Root was notified of the shared seam before editing these existing fields.
 
 Rejected alternatives: pretending NVIDIA device controls prove TPU containment,
@@ -69,3 +70,35 @@ expired-lease/controller-loss cleanup and allocation deletion authority. No
 hardware acceptance, multi-device workload, numerical comparison, scientific or
 security qualification is earned here. Completion is conditional on normal
 tested expected-head merge under OWNER-DX-03.
+
+## Prepared source and measured package evidence
+
+Implementation source `cba4b6a597250591972c8f512ab7d42500c87e6a` produced image
+`sha256:4b037bd720d7c154cd012de0ad4803a8b92d360062f102bb9b8c80cf78155dc0`.
+Source archive digest:
+`sha256:65ea0a773b0f71d2dda8d652082e2e60cdd6bae73b582e2a0b632e07060a75ef`.
+TPU lock remains
+`sha256:f42354e5eaec6c995fbee84407b095529b201ce82c04ea78b37777581d7bb3b2`.
+The exact source/wheel/entrypoint identities are retained in the generated C03
+manifest. Image size is 1,949,643,897 bytes; no inference/training timing or cost
+claim follows from image size or build duration.
+
+The local base container doctor passed. The isolated package instrument verified
+all 23 pinned distributions, Python 3.11.16, readable immutable provenance and
+environment files, Carbon service/protocol imports and no JAX/JAXlib/libtpu/Torch
+imports. Its controls were UID65532, read-only root, network none, no devices,
+512 MiB memory with no extra swap, 64 PIDs and 30-second attached-process deadline.
+Exact container removal and absence were verified. A later inspection-tool repair
+also reconciles an uncertain create response using an exact ownership label;
+it does not change the built worker code or image identity. No image is relabelled
+as a later source revision. Local logs/manifests are under
+`.carbon-local/build-source/.carbon-artifacts/` in this ticket's worktree.
+
+Baseline accelerator contracts passed 39 tests (one CPU numerical fixture
+deselected). Integrated TPU/CPU/GPU worker contracts passed 66 tests with that
+same fixture deselected; after the package-tool cleanup repair, eight focused
+TPU/cleanup tests passed. All six changed Python files passed isolated/no-cache
+Ruff and Black with the exact Python3.10 target. These are local diagnostics;
+normal canonical delivery checks remain required. No cloud calls/spend, TPU/GPU
+initialization, host installation, approved grant creation or campaign execution
+occurred. Hardware and scientific acceptance remain open.
