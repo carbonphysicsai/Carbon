@@ -56,6 +56,7 @@ const makeRuntime = () => {
     ASK_CARBON_OPENAI_API_KEY: "test-only-provider-key",
     ASK_CARBON_CONTINUATION_SIGNING_SECRET: "test-only-signing-secret",
     ASK_CARBON_PRIVACY_MODE: "evaluation_public_synthetic_only",
+    ASK_CARBON_STAGING_ACCESS_MODE: "cloudflare_access",
     ASK_CARBON_EDGE_ACCESS_POLICY_ID: "test-only-private-access",
     ASK_CARBON_EDGE_ABUSE_POLICY_ID: "test-only-abuse-policy",
     ASK_CARBON_LEDGER_AUTHORITY_ID: "ask-carbon-provider-budget-v2",
@@ -71,6 +72,7 @@ const makeRuntime = () => {
     ASK_CARBON_MAX_OUTPUT_TOKENS: "700",
     ASK_CARBON_PROVIDER_TIMEOUT_MS: "15000",
     ASK_CARBON_PILOT_MAX_REQUESTS_PER_SESSION: "8",
+    ASK_CARBON_EDGE_RATE_LIMITER: { limit: async () => ({ success: true }) },
     ASK_CARBON_USAGE_LEDGER: { idFromName: () => "global", get: () => ({ fetch: (url, options) => ledger.fetch(new Request(url, options)) }) },
   };
   return { ledger, env };
