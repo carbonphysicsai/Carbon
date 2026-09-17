@@ -153,6 +153,11 @@ def _runtime(profile):
         from carbon.development_session.julia_research import julia_burgers_scope
 
         runtime["scientific_tasks"] = [julia_burgers_scope(image, role_root)]
+    authored = _authored_image(profile, analysis)
+    if authored is not None:
+        from carbon.development_session.julia_analysis import authored_julia_scope
+
+        runtime["authored_research"] = [authored_julia_scope(authored)]
     grant = profile.admission.verify(
         root=profile.root, principal=cfg["principal"], runtime=runtime, now=time.time()
     )
@@ -186,6 +191,14 @@ def _runtime(profile):
         session, paths["image_manifest"], config.context, config.publisher_hotkey, key
     )
     return connection, image, analysis, role_root
+
+
+def _authored_image(profile, analysis):
+    if "authored_research" not in profile.manifest["runtime"]:
+        return None
+    from carbon.development_session.research_campaign import registered_julia_image
+
+    return registered_julia_image(profile.root, profile.manifest["runtime"], analysis)
 
 
 async def _requester(connection):
@@ -322,6 +335,7 @@ async def serve(configuration: Path):
             raise ValueError("authenticated campaign owner changed")
         material, practice = _science(ledger, owner, image, role_root)
         composition = make_research_service(
+            julia_image=_authored_image(profile, analysis),
             root=profile.root / "research-tasks",
             ledger=ledger,
             owner=owner,

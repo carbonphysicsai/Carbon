@@ -557,6 +557,46 @@
     "core_platform_public_envelope": {
       "label": "C-CORE-08: two public Julia cases in the existing Workbench; qualification unchanged",
       "url": "https://github.com/carbonphysicsai/Carbon/blob/2c61c7a3dbcc9b6e8b63673dda08285ddb8df2f1/.agent/tickets/C-CORE-08_public_operating_envelope.md"
+    },
+    "core_platform_authored_julia": {
+      "label": "C-CORE-07: isolated miner-authored Julia DEVELOPMENT research",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/476de7efb4c837a3716d883b9f458e3618d0a757/.agent/tickets/C-CORE-07_authored_julia_research.md"
+    },
+    "authored_julia_guide": {
+      "label": "Authored Julia operator preparation and typed export contract",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/476de7efb4c837a3716d883b9f458e3618d0a757/docs/development/AUTHORED_JULIA_RESEARCH.md"
+    },
+    "core_platform_portable_state": {
+      "label": "C-CORE-06: logical public research state and bound continuation",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/476de7efb4c837a3716d883b9f458e3618d0a757/.agent/tickets/C-CORE-06_portable_research_state.md"
+    },
+    "core_platform_portable_state_workflow": {
+      "label": "Portable research workflow; fresh evaluation remains separate",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/476de7efb4c837a3716d883b9f458e3618d0a757/carbon/reconstruction/PORTABLE_RESEARCH_STATE.md"
+    },
+    "core_platform_compiled_updates": {
+      "label": "C-CORE-05: measured compiled updates; accepted default unchanged",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/476de7efb4c837a3716d883b9f458e3618d0a757/.agent/tickets/C-CORE-05_compiled_update_experiment.md"
+    },
+    "core_platform_compiled_update_observation": {
+      "label": "Local CPU source-bound update observation; not canonical timing evidence",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/476de7efb4c837a3716d883b9f458e3618d0a757/.agent/evidence/wave_c/c-core-05-cpu-update-observation.json"
+    },
+    "core_platform_accelerators": {
+      "label": "C-CORE-03: prospective fixed-device workers; hardware admission unavailable",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/476de7efb4c837a3716d883b9f458e3618d0a757/.agent/tickets/C-CORE-03_accelerator_reconstruction.md"
+    },
+    "core_platform_accelerator_operator": {
+      "label": "Pinned accelerator image build and private host admission",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/476de7efb4c837a3716d883b9f458e3618d0a757/.devcontainer/accelerators/README.md"
+    },
+    "core_platform_tpu": {
+      "label": "C-CORE-09: pinned TPU worker, host dispatch unavailable",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/476de7efb4c837a3716d883b9f458e3618d0a757/.agent/tickets/C-CORE-09_tpu_worker_preparation.md"
+    },
+    "core_platform_tpu_operator": {
+      "label": "TPU package inspection and missing host controls",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/476de7efb4c837a3716d883b9f458e3618d0a757/.devcontainer/accelerators/TPU_PREPARATION.md"
     }
   },
   "authority_source_checks": [
@@ -1973,6 +2013,70 @@
         "Unknown worker consumption",
         "Maturity ceiling: implemented and locally tested public DEVELOPMENT consumer."
       ]
+    },
+    {
+      "id": "core-platform-authored-julia",
+      "path": ".agent/tickets/C-CORE-07_authored_julia_research.md",
+      "required_markers": [
+        "C-CORE-07-D1",
+        "DevelopmentWorkspaceTaskSpecV2",
+        "MINER_SELF_REPORTED",
+        "canonical",
+        "Ten actual Julia"
+      ]
+    },
+    {
+      "id": "core-platform-portable-state-boundary",
+      "path": ".agent/tickets/C-CORE-06_portable_research_state.md",
+      "required_markers": [
+        "new operation binding",
+        "The old same-environment resume",
+        "Actual existing-carrier integration passed",
+        "No new campaign"
+      ]
+    },
+    {
+      "id": "core-platform-compiled-update-decision",
+      "path": ".agent/tickets/C-CORE-05_compiled_update_experiment.md",
+      "required_markers": [
+        "No execution profile selects this helper by installation.",
+        "Cold compilation outweighed warm savings",
+        "Keep the",
+        "existing default.",
+        "ten actual JAX tests in 47.5"
+      ]
+    },
+    {
+      "id": "core-platform-accelerator-candidate",
+      "path": ".agent/tickets/C-CORE-03_accelerator_reconstruction.md",
+      "required_markers": [
+        "REQUESTED_NOT_GRANTED",
+        "all 34 pinned",
+        "This evidence does not establish GPU execution",
+        "canonical delivery acceptance remains required"
+      ]
+    },
+    {
+      "id": "core-platform-accelerator-programme",
+      "path": ".agent/plans/CARBON_CORE_PLATFORM_EXECUTION.md",
+      "required_markers": [
+        "V3 ACCELERATOR IMPLEMENTATION CHECKPOINT",
+        "Docker GPU adapter rejects TPU dispatch",
+        "6,036,044,575",
+        "no newer image identity is implied",
+        "V3 TPU WORKER PREPARATION",
+        "Both roles remain admission-disabled",
+        "not TPU execution"
+      ]
+    },
+    {
+      "id": "core-platform-tpu-candidate",
+      "path": ".agent/tickets/C-CORE-09_tpu_worker_preparation.md",
+      "required_markers": [
+        "REQUESTED_NOT_GRANTED",
+        "all 23 pinned distributions",
+        "Hardware and scientific acceptance remain open"
+      ]
     }
   ],
   "authority_ceilings": {
@@ -2022,6 +2126,13 @@
       "launch/"
     ],
     "rules": [
+      {
+        "id": "core-platform-compiled-update-observation",
+        "match_type": "exact",
+        "path": ".agent/evidence/wave_c/c-core-05-cpu-update-observation.json",
+        "impact_class": "mapped_detail",
+        "map_ref": "SYSTEM/AGENT-EXECUTION"
+      },
       {
         "id": "core-platform-public-envelope",
         "match_type": "exact",
@@ -3479,6 +3590,69 @@
         "match_type": "exact",
         "path": "tests/cpu/test_miner_launchpad.py",
         "impact_class": "mapped_detail",
+        "map_ref": "SYSTEM/AGENT-EXECUTION"
+      },
+      {
+        "id": "authored-julia-guide",
+        "match_type": "exact",
+        "path": "docs/development/AUTHORED_JULIA_RESEARCH.md",
+        "impact_class": "map_structural",
+        "map_ref": "SYSTEM/AGENT-EXECUTION"
+      },
+      {
+        "id": "core-platform-authored-julia",
+        "match_type": "exact",
+        "path": ".agent/tickets/C-CORE-07_authored_julia_research.md",
+        "impact_class": "map_structural",
+        "map_ref": "SYSTEM/AGENT-EXECUTION"
+      },
+      {
+        "id": "core-platform-portable-workflow",
+        "match_type": "exact",
+        "path": "carbon/reconstruction/PORTABLE_RESEARCH_STATE.md",
+        "impact_class": "mapped_detail",
+        "map_ref": "SYSTEM/AGENT-EXECUTION"
+      },
+      {
+        "id": "core-platform-portable-state",
+        "match_type": "exact",
+        "path": ".agent/tickets/C-CORE-06_portable_research_state.md",
+        "impact_class": "map_structural",
+        "map_ref": "SYSTEM/AGENT-EXECUTION"
+      },
+      {
+        "id": "core-platform-compiled-updates",
+        "match_type": "exact",
+        "path": ".agent/tickets/C-CORE-05_compiled_update_experiment.md",
+        "impact_class": "map_structural",
+        "map_ref": "SYSTEM/AGENT-EXECUTION"
+      },
+      {
+        "id": "core-platform-tpu-operator",
+        "match_type": "exact",
+        "path": ".devcontainer/accelerators/TPU_PREPARATION.md",
+        "impact_class": "map_structural",
+        "map_ref": "SYSTEM/AGENT-EXECUTION"
+      },
+      {
+        "id": "core-platform-tpu",
+        "match_type": "exact",
+        "path": ".agent/tickets/C-CORE-09_tpu_worker_preparation.md",
+        "impact_class": "map_structural",
+        "map_ref": "SYSTEM/AGENT-EXECUTION"
+      },
+      {
+        "id": "core-platform-accelerator-operator",
+        "match_type": "exact",
+        "path": ".devcontainer/accelerators/README.md",
+        "impact_class": "map_structural",
+        "map_ref": "SYSTEM/AGENT-EXECUTION"
+      },
+      {
+        "id": "core-platform-accelerators",
+        "match_type": "exact",
+        "path": ".agent/tickets/C-CORE-03_accelerator_reconstruction.md",
+        "impact_class": "map_structural",
         "map_ref": "SYSTEM/AGENT-EXECUTION"
       }
     ]

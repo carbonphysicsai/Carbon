@@ -162,6 +162,32 @@ def _json(raw):
     return value
 
 
+def tools_for_sdk(sdk):
+    """Prospective discovery only; historical campaign tool schemas are immutable."""
+    image = getattr(
+        getattr(getattr(sdk, "composition", None), "executor", None),
+        "julia_image",
+        None,
+    )
+    if image is None:
+        return TOOLS
+    from .julia_analysis import authorize_julia
+
+    authorize_julia(sdk.ledger, sdk.owner, image)
+    result = json.loads(canonical(TOOLS))
+    tool = next(
+        item for item in result if item["name"] == PREFIX + "start_research_task"
+    )
+    tool["parameters"]["properties"]["action"]["enum"].append("run_julia")
+    tool["description"] += (
+        " Prospectively admitted run_julia uses the same workspace arguments as run_python "
+        "and the isolated Julia 1.13.0 Base/standard-library image. No runtime package "
+        "installation. Exports: finite .json, little-endian finite .f64le, UTF-8 .txt, "
+        "at most 8 MiB each. All output remains MINER_SELF_REPORTED."
+    )
+    return result
+
+
 def public_wire(value):
     """Only called on B-07's already projected public wire records."""
     if dataclasses.is_dataclass(value):
@@ -245,8 +271,20 @@ class ResearchMinerTools:
         elif args["kind"] == "workspace":
             if args["strategy_json"] is not None:
                 raise TaskContractMismatch("workspace_recipe_forbidden")
-            spec = research.DevelopmentWorkspaceTaskSpecV1(
+            constructor, version = (
+                research.DevelopmentWorkspaceTaskSpecV1,
                 "carbon.autoresearch.workspace.v1",
+            )
+            if args["action"] == "run_julia":
+                from .julia_analysis import authorize_julia
+
+                authorize_julia(self.ledger, self.owner, c.executor.julia_image)
+                constructor, version = (
+                    research.DevelopmentWorkspaceTaskSpecV2,
+                    "carbon.autoresearch.workspace.v2",
+                )
+            spec = constructor(
+                version,
                 args["action"],
                 canonical(_json(args["arguments_json"])).decode(),
             )
@@ -282,10 +320,23 @@ class ResearchMinerTools:
             )
         ):
             raise ValueError("bounded transport request identity required")
+        if (
+            name == PREFIX + "start_research_task"
+            and type(args) is dict
+            and args.get("action") == "run_julia"
+        ):
+            from .julia_analysis import authorize_julia
+
+            authorize_julia(
+                self.ledger, self.owner, self.composition.executor.julia_image
+            )
         numerical = (
             name == PREFIX + "start_research_task"
             and type(args) is dict
-            and (args.get("kind") == "practice" or args.get("action") == "run_python")
+            and (
+                args.get("kind") == "practice"
+                or args.get("action") in {"run_python", "run_julia"}
+            )
         )
         token = None
         if numerical:
