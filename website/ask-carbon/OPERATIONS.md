@@ -4,15 +4,28 @@ This runbook defines a fail-closed release seam. It does not authorize a
 Cloudflare resource, route, public source release, privacy acceptance or
 production deployment.
 
-## Private target observed on 2026-09-17
+## Discovered target state (2026-09-17)
 
-The owner identified the existing website Cloudflare account as
-`carbon.physics.ai@gmail.com`. The bounded evaluation created two resources in
-that account:
+The owning Cloudflare account is `Carbon.physics.ai@gmail.com's Account`
+(`7462053c6992b9c9fd889952a7ae0496`). Production is the `carbonwebsite`
+static-assets Worker created through manual Dashboard upload. It serves the
+workers.dev hostname plus `carbonphysics.ai` and `www.carbonphysics.ai`; there
+is no separate Worker route. Rollback is a prior Worker deployment selection or
+`wrangler rollback`. A Worker rollback does not roll back Durable Object state.
 
-- route-less shared budget authority: `carbon-ask-budget-authority`;
-- private review Worker: `carbon-ask-private-staging` at
-  `https://carbon-ask-private-staging.carbon-physics-ai.workers.dev`.
+WEB-QA-03 created route-less `ask-carbon-budget-authority` and the separate
+`ask-carbon-eval-luna` / `ask-carbon-eval-terra` Workers on the account's Free
+plan. Cloudflare Zero Trust checkout was not completed because it required a
+new billing/overage authorization; private staging uses Worker-enforced Basic
+Auth over TLS instead. Production resources, routes and DNS were not changed.
+
+The concurrent Workbench evaluation also created a private review Worker at
+`https://carbon-ask-private-staging.carbon-physics-ai.workers.dev` and a second
+route-less ledger script, `carbon-ask-budget-authority`. That second ledger
+retains its evaluation history but must not remain a second USD 50 admission
+authority. The integrated configuration rebinds continuing callers to
+`ask-carbon-budget-authority`; the superseded script remains inactive so its
+historical financial exposure is not erased.
 
 The preview and `/api/ask-carbon*` are protected by one rotated Basic access
 secret installed in the Worker, while the ledger snapshot has a second rotated
@@ -30,11 +43,11 @@ was established. Use public/synthetic inputs only; this is not customer-data
 processing authorization. Never place access or provider credentials in chat,
 Git, browser bundles, issues or retained evaluation output.
 
-The deployed review Worker remains pinned to knowledge
-`ask-carbon-staging-2026-09-16.1`, which is the exact source basis of the
-retained live transcripts. Current main later advanced the repository snapshot
-to `ask-carbon-staging-2026-09-17.1`; that newer snapshot passed local
-validation but has not been deployed or live-model tested here.
+The retained homepage live-evaluation transcripts remain pinned to knowledge
+`ask-carbon-staging-2026-09-16.1`. The reconciled private staging Workers now
+serve validated knowledge `ask-carbon-staging-2026-09-17.1`; that deployment
+does not rewrite the bakeoff source basis and no new paid model run was claimed
+for the newer snapshot.
 
 ## Shared monthly budget authority
 
@@ -50,6 +63,17 @@ Both general Q&A and pilot-design guidance use this authority. Runtime controls
 also include approved origins, an exact model/configuration registry, daily
 request limits, global and per-client concurrency/rate limits, and bounded
 pilot-design requests per session. Attempt states are:
+
+The closed concurrent `carbon-ask-budget-authority` history recorded 80,831
+micro-USD of September `bakeoff` exposure: 13,151 settled and 67,680 unresolved.
+That script is no longer an admission authority. The canonical ledger policy
+durably reserves the full 80,831 micro-USD in period `2026-09` and scope
+`bakeoff`, so neither a restart nor a caller migration can recreate the spent
+allowance. After combining the two historical ledgers, September application
+exposure is 295,165 micro-USD and the nested evaluation balance is 4,704,835
+micro-USD. Do not remove or reduce this offset; later exact reconciliation may
+replace uncertain exposure only through a separately reviewed, idempotent
+accounting migration.
 
 ```text
 prepared -> dispatch_authorized -> settled
@@ -103,9 +127,11 @@ continuations together.
 
 ## Private staging sequence
 
-1. Confirm the recorded private target, credentials, costs and rollback owner.
-   Basic access is the current bounded staging gate; origin filtering remains
-   defense in depth, not authentication.
+1. WEB-QA-03 uses Worker-enforced TLS Basic authentication because
+   Cloudflare Zero Trust Free checkout requires a new overage-charge
+   authorization. Provision the username/password only as Worker secrets;
+   origin filtering is defense in depth, not authentication. Production mode
+   rejects this staging-only access mode.
 2. Deploy exactly one route-less shared budget authority from
    `wrangler.budget-authority.staging.toml`.
 3. Bind evaluation and staging app Workers to that exact authority using

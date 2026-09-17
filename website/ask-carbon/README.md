@@ -8,11 +8,14 @@ or proof of a production deployment.
 
 - Repository knowledge version: `ask-carbon-staging-2026-09-17.1`
 - Source release date: 2026-09-17
-- Private live-evaluation deployment: `ask-carbon-staging-2026-09-16.1`
+- Current private staging deployment: `ask-carbon-staging-2026-09-17.1`
+- Retained homepage live-evaluation source basis: `ask-carbon-staging-2026-09-16.1`
 - Release: `STAGING_REVIEWED`
 - Public activation: disabled
+- Live provider calls: bounded WEB-QA-03 evaluation only; no production calls
 - Private synthetic provider calls: observed through the authenticated staging Worker
-- Human quality review: pending
+- Homepage source-grounded answer review: complete for delivered supported answers
+- Owner hands-on review and Workbench pilot-output review: pending
 - Production homepage change: none
 
 The production release contract deliberately rejects this manifest. The
@@ -25,11 +28,11 @@ The recovered `Carbon_Ask_v1.zip` matched SHA-256
 Its 31 cards and 40 single-turn/five-conversation evaluation plan were treated
 as draft input and reconciled against current sources, not copied as authority
 or retained as a count gate. The current repository collection contains 26
-useful reviewed units backed by nine exact source revisions. The private live
-evaluation remains pinned to the preceding `2026-09-16.1` snapshot so its
-answers and source basis stay inspectable; the `2026-09-17.1` repository
-snapshot passed local validation but was not deployed or live-model tested in
-that run.
+useful reviewed units backed by nine exact source revisions. The retained
+live-evaluation artifacts remain pinned to the preceding `2026-09-16.1`
+snapshot so their answers and source basis stay inspectable. The current
+private staging surface deploys the validated `2026-09-17.1` snapshot; it was
+not substituted into or represented as the already completed model bakeoff.
 
 ## Components
 
@@ -87,6 +90,12 @@ No secret belongs in this repository or browser bundle. Do not send a secret
 through chat. Production operators should provision Worker secrets through
 their approved Cloudflare release process.
 
+WEB-QA-03 staging additionally requires
+`ASK_CARBON_STAGING_AUTH_USER` and `ASK_CARBON_STAGING_AUTH_PASSWORD` as
+Cloudflare secrets. The Worker authenticates every staging asset and API
+request before serving it. This bounded Basic-auth mode is for private owner
+review only and activation rejects it in production.
+
 `Business/Carbon_Fit/workbench/Carbon_Client_Pilot_Designer_Preview.html` is
 the maintained local preview. It edits the same `carbon.client-intake.draft.v1`
 core in conversation and form mode, exports a closed
@@ -120,20 +129,29 @@ accepting caller-provided prices:
 - `gpt-5.6-terra:low:v1`: USD 2.00/M input, 0.20/M cached input,
   12.00/M output.
 
-Prices were observed in official OpenAI model documentation on 2026-09-16.
+Prices were rechecked in official OpenAI model documentation on 2026-09-17.
 The code includes output reasoning tokens in billed output, rejects missing or
 negative usage, and rejects an unexpected returned model identity. These are
-configured candidates, not a general model comparison. The private synthetic
-run used `gpt-5.6-luna:low:v1` through the staging Worker; human quality review
-is still pending. A direct provider evaluation is prohibited; live evaluation
-must traverse the staging Worker and shared ledger.
+configured candidates, not production winners. WEB-QA-03 evaluated both
+through the real staging Worker and shared ledger. Terra was more reliable, but
+neither cleared the frozen final quality gate, so no production candidate was
+selected. Direct unmetered provider evaluation remains prohibited.
+
+The separate guided-pilot evaluation used Luna through the authenticated
+Workbench review Worker. Its human model-quality review is still pending; that
+run does not change the homepage model selection or qualify Workbench output.
 
 ## Deployment boundary
 
-The private evaluation deployment uses `carbon-ask-private-staging` with no
-production homepage route and the route-less `carbon-ask-budget-authority`
-Durable Object script. It remains a staging aid, not a public release. One
-central authority prevents separate app environments from each receiving USD
-50. Cloudflare charges are separate and were not measured by the provider
-ledger. Credentials belong only in the approved secret store. Never put them
-in Git, browser assets, chat, issues or evaluation output.
+WEB-QA-03 deployed one route-less, non-public budget authority and two private
+evaluation Workers on the owning account's existing Free plan. They create no
+production route or DNS change. Separate environments bind the same authority
+so they cannot each receive USD 50. Credentials belong only in Cloudflare
+secrets. Never put them in Git, browser assets, chat, issues or evaluation
+output.
+
+The guided-pilot review surface at `carbon-ask-private-staging` is likewise
+private and has no production route. Its concurrent ledger is historical only;
+the integrated configuration binds all continuing staging callers to
+`ask-carbon-budget-authority`. Cloudflare charges remain outside the provider
+ledger and were not measured by it.

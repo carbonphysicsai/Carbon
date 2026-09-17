@@ -102,10 +102,14 @@ export class AskCarbonUsageLedger {
       input.scope_limit_micro_usd, input.daily_request_limit, input.concurrency_limit,
       input.client_requests_per_hour, input.client_counter_retention_ms,
       input.pilot_requests_per_session, input.reserved_cost_micro_usd,
+      input.legacy_closed_authority_exposure_micro_usd,
     ];
     if (!requiredIntegers.every((value) => integer(value, { min: 1 })) ||
         input.monthly_limit_micro_usd !== OWNER_MONTHLY_LIMIT_MICRO_USD ||
         input.scope_limit_micro_usd > OWNER_MONTHLY_LIMIT_MICRO_USD ||
+        input.legacy_closed_authority_exposure_micro_usd > OWNER_MONTHLY_LIMIT_MICRO_USD ||
+        !/^\d{4}-\d{2}$/.test(input.legacy_closed_authority_period ?? "") ||
+        !text(input.legacy_closed_authority_scope_id, 100) ||
         !text(input.attempt_id) || !text(input.client_id) || !text(input.session_id) ||
         !["GENERAL_QA", "PILOT_DESIGN"].includes(input.mode) || !text(input.environment, 40) ||
         !text(input.scope_id, 100) || !text(input.model_config_id) || !text(input.pricing_id)) {
@@ -118,12 +122,20 @@ export class AskCarbonUsageLedger {
         await transaction.put(STATE_KEY, state);
         return json({ allowed: false, reason: "duplicate_attempt_id" }, 409);
       }
+      if (state.policy && state.policy.legacy_closed_authority_period === undefined) {
+        state.policy.legacy_closed_authority_period = input.legacy_closed_authority_period;
+        state.policy.legacy_closed_authority_scope_id = input.legacy_closed_authority_scope_id;
+        state.policy.legacy_closed_authority_exposure_micro_usd = input.legacy_closed_authority_exposure_micro_usd;
+      }
       if (state.policy && (
         state.policy.concurrency_limit !== input.concurrency_limit ||
         state.policy.daily_request_limit !== input.daily_request_limit ||
         state.policy.client_requests_per_hour !== input.client_requests_per_hour ||
         state.policy.pilot_requests_per_session !== input.pilot_requests_per_session ||
-        state.policy.client_counter_retention_ms !== input.client_counter_retention_ms
+        state.policy.client_counter_retention_ms !== input.client_counter_retention_ms ||
+        state.policy.legacy_closed_authority_period !== input.legacy_closed_authority_period ||
+        state.policy.legacy_closed_authority_scope_id !== input.legacy_closed_authority_scope_id ||
+        state.policy.legacy_closed_authority_exposure_micro_usd !== input.legacy_closed_authority_exposure_micro_usd
       )) {
         return json({ allowed: false, reason: "ledger_policy_mismatch" }, 409);
       }
@@ -134,6 +146,9 @@ export class AskCarbonUsageLedger {
         client_requests_per_hour: input.client_requests_per_hour,
         pilot_requests_per_session: input.pilot_requests_per_session,
         client_counter_retention_ms: input.client_counter_retention_ms,
+        legacy_closed_authority_period: input.legacy_closed_authority_period,
+        legacy_closed_authority_scope_id: input.legacy_closed_authority_scope_id,
+        legacy_closed_authority_exposure_micro_usd: input.legacy_closed_authority_exposure_micro_usd,
       };
       const existingScopePolicy = state.scope_policies[input.scope_id];
       if (existingScopePolicy && existingScopePolicy.limit_micro_usd !== input.scope_limit_micro_usd) {
@@ -160,6 +175,12 @@ export class AskCarbonUsageLedger {
       const monthExposure = summary.months[period]?.exposure_micro_usd ?? 0;
       const scopeKey = `${period}:${input.scope_id}`;
       const scopeExposure = summary.scopes[scopeKey]?.exposure_micro_usd ?? 0;
+      const legacyExposure = period === state.policy.legacy_closed_authority_period
+        ? state.policy.legacy_closed_authority_exposure_micro_usd
+        : 0;
+      const legacyScopeExposure = legacyExposure && input.scope_id === state.policy.legacy_closed_authority_scope_id
+        ? legacyExposure
+        : 0;
       const clientActive = Object.values(state.attempts).filter((attempt) =>
         attempt.client_id === input.client_id && ["prepared", "dispatch_authorized"].includes(attempt.state)).length;
       let reason = null;
@@ -168,8 +189,8 @@ export class AskCarbonUsageLedger {
       else if (clientActive >= 2) reason = "client_concurrency_limit";
       else if (clientRequests >= state.policy.client_requests_per_hour) reason = "client_hourly_limit";
       else if (input.mode === "PILOT_DESIGN" && pilotSessionRequests >= state.policy.pilot_requests_per_session) reason = "pilot_session_limit";
-      else if (monthExposure + input.reserved_cost_micro_usd > OWNER_MONTHLY_LIMIT_MICRO_USD) reason = "monthly_cost_limit";
-      else if (scopeExposure + input.reserved_cost_micro_usd > (existingScopePolicy?.limit_micro_usd ?? state.scope_policies[input.scope_id].limit_micro_usd)) reason = "scope_cost_limit";
+      else if (monthExposure + legacyExposure + input.reserved_cost_micro_usd > OWNER_MONTHLY_LIMIT_MICRO_USD) reason = "monthly_cost_limit";
+      else if (scopeExposure + legacyScopeExposure + input.reserved_cost_micro_usd > (existingScopePolicy?.limit_micro_usd ?? state.scope_policies[input.scope_id].limit_micro_usd)) reason = "scope_cost_limit";
       if (reason) {
         await transaction.put(STATE_KEY, state);
         return json({ allowed: false, reason }, 429);
@@ -199,7 +220,7 @@ export class AskCarbonUsageLedger {
         attempt_id: input.attempt_id,
         admission_period: period,
         expires_at_ms: input.now_ms + input.lease_ttl_ms,
-        monthly_remaining_micro_usd: OWNER_MONTHLY_LIMIT_MICRO_USD - monthExposure - input.reserved_cost_micro_usd,
+        monthly_remaining_micro_usd: OWNER_MONTHLY_LIMIT_MICRO_USD - monthExposure - legacyExposure - input.reserved_cost_micro_usd,
       });
     });
   }

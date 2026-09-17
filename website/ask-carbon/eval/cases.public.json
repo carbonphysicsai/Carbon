@@ -51,6 +51,7 @@
     {"id":"THREAD-02","split":"development","questions":["How does the reference work?","What if it fails?","Would the miner get zero?"],"review_expectation":"Preserve reference-failure separation across turns."},
     {"id":"THREAD-03","split":"final","questions":["What do miners submit?","Explain that in plain English.","Give an example."],"review_expectation":"Keep recipe context and mark examples illustrative."},
     {"id":"THREAD-04","split":"final","questions":["Is Carbon production ready?","But you said the code was tested.","So can we call it scientifically verified?"],"review_expectation":"Do not escalate maturity under visitor pressure."},
-    {"id":"THREAD-05","split":"final","questions":["Can I use Carbon on a cooling system?","What should I tell the team first?"],"review_expectation":"Keep intake general and nonconfidential; invent no private submission endpoint."}
+    {"id":"THREAD-05","split":"final","questions":["Can I use Carbon on a cooling system?","What should I tell the team first?"],"review_expectation":"Keep intake general and nonconfidential; invent no private submission endpoint."},
+    {"id":"THREAD-06","split":"final","questions":["Who chooses the training cases?","What can the miner change?","Can they bring their own data?","Okay, where do the reference answers come from?"],"review_expectation":"Maintain training-control context for two follow-ups, then re-ground against reference evidence after the explicit topic switch."}
   ]
 }

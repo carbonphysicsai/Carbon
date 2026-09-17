@@ -47,9 +47,12 @@ const requiredEnvironment = [
   "ASK_CARBON_APPROVED_MODEL_CONFIGS", "ASK_CARBON_MODEL_CONFIG_ID",
   "ASK_CARBON_OPENAI_API_KEY", "ASK_CARBON_CONTINUATION_SIGNING_SECRET",
   "ASK_CARBON_PRIVACY_MODE", "ASK_CARBON_EDGE_ABUSE_POLICY_ID",
+  "ASK_CARBON_STAGING_ACCESS_MODE",
   "ASK_CARBON_LEDGER_AUTHORITY_ID", "ASK_CARBON_ENVIRONMENT",
   "ASK_CARBON_OPERATIONAL_SCOPE_ID", "ASK_CARBON_OPERATIONAL_SCOPE_LIMIT_MICRO_USD",
   "ASK_CARBON_MONTHLY_LIMIT_MICRO_USD", "ASK_CARBON_DAILY_REQUEST_LIMIT",
+  "ASK_CARBON_LEGACY_CLOSED_AUTHORITY_PERIOD", "ASK_CARBON_LEGACY_CLOSED_AUTHORITY_SCOPE_ID",
+  "ASK_CARBON_LEGACY_CLOSED_AUTHORITY_EXPOSURE_MICRO_USD",
   "ASK_CARBON_MAX_CONCURRENCY", "ASK_CARBON_CLIENT_REQUESTS_PER_HOUR",
   "ASK_CARBON_CLIENT_COUNTER_RETENTION_MS", "ASK_CARBON_MAX_INPUT_TOKENS",
   "ASK_CARBON_MAX_OUTPUT_TOKENS", "ASK_CARBON_PROVIDER_TIMEOUT_MS",
@@ -61,21 +64,36 @@ export const activationStatus = (env, knowledge, now = new Date()) => {
   if (env.ASK_CARBON_ACTIVATION !== "enabled") reasons.push("activation_disabled");
   for (const key of requiredEnvironment) if (!env[key]) reasons.push(`missing_${key.toLowerCase()}`);
   if (!env.ASK_CARBON_USAGE_LEDGER?.idFromName || !env.ASK_CARBON_USAGE_LEDGER?.get) reasons.push("missing_usage_ledger_binding");
+  if (!env.ASK_CARBON_EDGE_RATE_LIMITER?.limit) reasons.push("missing_edge_rate_limit_binding");
   const mode = env.ASK_CARBON_RUNTIME_MODE;
   const release = evaluateRelease(knowledge, { mode: mode === "production" ? "production" : "staging", now });
   reasons.push(...release.reasons);
   if (!['staging', 'production'].includes(mode)) reasons.push("invalid_runtime_mode");
   if (mode === "staging") {
     if (env.ASK_CARBON_PRIVACY_MODE !== STAGING_PRIVACY_MODE) reasons.push("invalid_staging_privacy_mode");
-    if (typeof env.ASK_CARBON_EDGE_ACCESS_POLICY_ID !== "string" || !env.ASK_CARBON_EDGE_ACCESS_POLICY_ID || env.ASK_CARBON_EDGE_ACCESS_POLICY_ID.startsWith("OWNER_DECISION_REQUIRED")) reasons.push("missing_private_staging_access_policy");
+    if (env.ASK_CARBON_STAGING_ACCESS_MODE === "cloudflare_access") {
+      if (typeof env.ASK_CARBON_EDGE_ACCESS_POLICY_ID !== "string" || !env.ASK_CARBON_EDGE_ACCESS_POLICY_ID || env.ASK_CARBON_EDGE_ACCESS_POLICY_ID.startsWith("OWNER_DECISION_REQUIRED")) reasons.push("missing_private_staging_access_policy");
+    } else if (env.ASK_CARBON_STAGING_ACCESS_MODE === "http_basic_v1") {
+      const hasEncodedCredential = typeof env.ASK_CARBON_STAGING_BASIC_AUTH === "string" && env.ASK_CARBON_STAGING_BASIC_AUTH.length >= 16;
+      if (!hasEncodedCredential && (!env.ASK_CARBON_STAGING_AUTH_USER || !env.ASK_CARBON_STAGING_AUTH_PASSWORD)) reasons.push("missing_private_staging_basic_auth");
+    } else reasons.push("invalid_staging_access_mode");
   }
-  if (mode === "production" && env.ASK_CARBON_PRIVACY_MODE !== PRODUCTION_PRIVACY_MODE) reasons.push("public_privacy_not_accepted");
+  if (mode === "production") {
+    if (env.ASK_CARBON_PRIVACY_MODE !== PRODUCTION_PRIVACY_MODE) reasons.push("public_privacy_not_accepted");
+    if (env.ASK_CARBON_STAGING_ACCESS_MODE === "http_basic_v1") reasons.push("staging_basic_auth_forbidden_in_production");
+  }
+  if (mode === "production" && env.ASK_CARBON_EVALUATION_TELEMETRY === "enabled") reasons.push("evaluation_telemetry_forbidden_in_production");
+  if (mode === "staging" && env.ASK_CARBON_EVALUATION_TELEMETRY === "enabled" && !env.ASK_CARBON_OPERATOR_READ_SECRET) reasons.push("missing_evaluation_operator_secret");
   if (typeof env.ASK_CARBON_EDGE_ABUSE_POLICY_ID !== "string" || env.ASK_CARBON_EDGE_ABUSE_POLICY_ID.startsWith("OWNER_DECISION_REQUIRED")) reasons.push("missing_edge_abuse_policy");
   const profile = getModelProfile(env.ASK_CARBON_MODEL_CONFIG_ID);
   if (!profile) reasons.push("unsupported_model_config");
   if (env.ASK_CARBON_MODEL_CONFIG_ID && !splitCsv(env.ASK_CARBON_APPROVED_MODEL_CONFIGS).includes(env.ASK_CARBON_MODEL_CONFIG_ID)) reasons.push("model_config_not_approved");
   if (env.ASK_CARBON_LEDGER_AUTHORITY_ID !== SHARED_LEDGER_AUTHORITY) reasons.push("unverified_shared_ledger_authority");
   if (parsePositiveInteger(env.ASK_CARBON_MONTHLY_LIMIT_MICRO_USD) !== OWNER_MONTHLY_LIMIT_MICRO_USD) reasons.push("invalid_monthly_limit");
+  if (!/^\d{4}-\d{2}$/.test(env.ASK_CARBON_LEGACY_CLOSED_AUTHORITY_PERIOD ?? "")) reasons.push("invalid_legacy_authority_period");
+  if (!env.ASK_CARBON_LEGACY_CLOSED_AUTHORITY_SCOPE_ID) reasons.push("invalid_legacy_authority_scope");
+  const legacyExposure = parsePositiveInteger(env.ASK_CARBON_LEGACY_CLOSED_AUTHORITY_EXPOSURE_MICRO_USD);
+  if (!legacyExposure || legacyExposure > OWNER_MONTHLY_LIMIT_MICRO_USD) reasons.push("invalid_legacy_authority_exposure");
   const scopeLimit = parsePositiveInteger(env.ASK_CARBON_OPERATIONAL_SCOPE_LIMIT_MICRO_USD);
   if (!scopeLimit || scopeLimit > OWNER_MONTHLY_LIMIT_MICRO_USD) reasons.push("invalid_scope_limit");
   for (const key of ["ASK_CARBON_DAILY_REQUEST_LIMIT", "ASK_CARBON_MAX_CONCURRENCY", "ASK_CARBON_CLIENT_REQUESTS_PER_HOUR", "ASK_CARBON_CLIENT_COUNTER_RETENTION_MS", "ASK_CARBON_MAX_INPUT_TOKENS", "ASK_CARBON_MAX_OUTPUT_TOKENS", "ASK_CARBON_PROVIDER_TIMEOUT_MS", "ASK_CARBON_PILOT_MAX_REQUESTS_PER_SESSION"]) {
@@ -322,7 +340,8 @@ export const validateProviderOutput = (value, cards) => {
         !Array.isArray(claim.evidence_ids) || !claim.evidence_ids.length || claim.evidence_ids.length > 4 || new Set(claim.evidence_ids).size !== claim.evidence_ids.length) {
       throw new PublicApiError(502, "invalid_provider_output", "The answer provider returned an invalid claim map.");
     }
-    if (!value.answer.toLowerCase().includes(claim.text.trim().toLowerCase())) throw new PublicApiError(502, "unsupported_claim", "An answer claim was not bound to the answer text.");
+    const binding = overlap(claim.text, value.answer);
+    if (binding.hits < Math.min(2, binding.total)) throw new PublicApiError(502, "unsupported_claim", "An answer claim was not bound to the answer text.");
     const evidence = claim.evidence_ids.map((id) => passages.get(id)).filter(Boolean);
     if (evidence.length !== claim.evidence_ids.length) throw new PublicApiError(502, "unknown_evidence", "The answer provider referenced evidence outside the retrieved context.");
     const evidenceText = evidence.map((item) => item.text).join(" ");
