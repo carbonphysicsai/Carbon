@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-17T22:22:21Z"
+  captured_at_utc: "2026-09-17T23:32:25Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "8fe7b242210deb4c26445395c30d0b112091c225"
+  authority_snapshot_commit: "04810f0c1df8de7ea6560778b0069d7dd4f210e0"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -7323,6 +7323,17 @@ events:
       - "WAVE-L"
       - "WAVE-M"
       - "WAVE-N"
+    supersedes: null
+  -
+    map_ref: "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+    event_type: "adjustment"
+    event_id: "C-CORE-06-DEPENDENCY-RULE-PRECEDENCE"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "The ordered platform dependency union retained the exact compiled-update observation ownership rule but placed it after a generic ticket-record rule. Restore its original precedence so the existing first-match classifier retains SYSTEM/AGENT-EXECUTION ownership. The exact path, impact class, evidence bytes and scientific interpretation are unchanged; no broader exception or ownership grant is introduced."
+    primary_detail: "docs/development/carbon_hub/data/hub_data_v2.json"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
     supersedes: null
 event_schema:
   map_ref: "WAVE-B/B-04"

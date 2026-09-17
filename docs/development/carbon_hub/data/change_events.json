@@ -5324,6 +5324,19 @@
         "WAVE-N"
       ],
       "supersedes": null
+    },
+    {
+      "map_ref": "SYSTEM/DEVELOPMENT-HUB/VALIDATION",
+      "event_type": "adjustment",
+      "event_id": "C-CORE-06-DEPENDENCY-RULE-PRECEDENCE",
+      "owner_lane": "technical_lead",
+      "status": "implemented",
+      "summary": "The ordered platform dependency union retained the exact compiled-update observation ownership rule but placed it after a generic ticket-record rule. Restore its original precedence so the existing first-match classifier retains SYSTEM/AGENT-EXECUTION ownership. The exact path, impact class, evidence bytes and scientific interpretation are unchanged; no broader exception or ownership grant is introduced.",
+      "primary_detail": "docs/development/carbon_hub/data/hub_data_v2.json",
+      "affects": [
+        "SYSTEM/AGENT-EXECUTION"
+      ],
+      "supersedes": null
     }
   ]
 }
