@@ -106,7 +106,7 @@ def _validate_placement(value, environment):
 
 
 def save_research_state(trainer, path, *, principal, operation_id):
-    """Seal a new bundle; return its digest for the existing workspace ledger."""
+    """Seal a single-writer private bundle for the existing workspace ledger."""
     checkpoint, trainer_type = _runtime()
     if type(trainer) is not trainer_type:
         raise TypeError("registered lab Trainer required")
@@ -139,6 +139,12 @@ def save_research_state(trainer, path, *, principal, operation_id):
         if path.exists():
             raise FileExistsError("research bundle is immutable")
         os.rename(temporary, path)
+        if hasattr(os, "O_DIRECTORY"):
+            descriptor = os.open(path.parent, os.O_DIRECTORY)
+            try:
+                os.fsync(descriptor)
+            finally:
+                os.close(descriptor)
         return _digest(raw)
     except BaseException:
         shutil.rmtree(temporary, ignore_errors=True)
