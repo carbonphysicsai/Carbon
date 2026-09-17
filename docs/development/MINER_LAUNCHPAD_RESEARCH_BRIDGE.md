@@ -118,8 +118,9 @@ LIVE. Historical attached evidence retains its separate label.
 
 ## Outstanding empirical acceptance
 
-`MINER_LAUNCHPAD_VALIDATION_REQUEST.json` is the single REQUESTED_NOT_GRANTED
-validation record. It is not an executable approval. Its requested USD0.50 / four
+`MINER_LAUNCHPAD_VALIDATION_REQUEST.json` preserves the original REQUESTED_NOT_GRANTED
+request. The owner subsequently approved it explicitly; approval was installed
+only in its private operator grant. Its USD0.50 / four
 trial envelope includes the existing minimum final reserve of twelve replicas,
 8,640,000 numerical milliseconds and eight selection/report calls. That headroom
 does not guarantee successful reconstruction or sufficient total work. Actual
@@ -129,6 +130,67 @@ Merge the accepted admission-disabled engineering slice first, then build exact
 source-matched images and install only a separately approved private grant. The
 first browser-launched adaptive campaign remains C-MLP-02's selected acceptance;
 controller tests, fixed jobs and D4's separately owned campaigns do not close it.
+
+### First browser campaign: retained stop, acceptance incomplete
+
+The fresh `cmlp02-browser-validation-01` campaign ran from accepted implementation
+`3b6d2d9b5947b139c396f755fef8077d6885fbe8` (PR #207), tree
+`e05d615693b2c6e592d0cfd52106c750dd6f91d4`, with exact source-matched worker images.
+The browser clicked Launch; this was not attached historical readback. Its agent
+was Carbon autoresearch policy v2, using `gpt-5-mini-2025-08-07` through the existing
+OpenAI Responses account route and bounded local CPU workers. No identity or
+registration transaction was created.
+
+It fetched the legitimate public TRAIN/practice data, then submitted one malformed
+numerical proposal: `kind=practice`, `action=run_python`, `strategy_json=null`.
+The SDK correctly rejected that branch mismatch before task dispatch. The model
+subsequently chose `no_feasible_action`. This is a retained model decision, not
+proof that no feasible intervention exists. Its structured outcome reported
+`used_feedback=false`. No training completed, candidate froze, submission occurred,
+or independent DEVELOPMENT disposition was produced. Controller `COMPLETED`
+only means execution ended; the research epoch outcome is `STOPPED`.
+
+| Recorded dimension | Used | Reserved / uncertain at close |
+| --- | ---: | ---: |
+| Reasoning calls | 4 | 0 |
+| Token-based reported cost | USD0.00632685 | USD0 |
+| Attempted / completed experiments | 1 / 0 | 0 |
+| Numerical worker time | 309,660 ms | 0 |
+| Public reference trajectories / invocations | 96 / 96 | 0 |
+| Retained bytes charged | 1,704,496 | 0 |
+| Final replicas | 0 | 0 |
+
+Cost is the existing ledger's published-rate calculation from provider token usage,
+not an independently reconciled invoice. All four calls and the rejected proposal
+remain charged. The one-campaign allowance is used; unused dollars do not create
+another campaign grant. No D4/D5 consumption or private evidence transfers.
+
+Actual Chromium connected at desktop 1440px and mobile 390px, launched the fresh
+campaign, reconnected to the same opaque run, requested pause, observed `PAUSED`
+after the active bounded operation settled with zero reservations, then resumed
+with unchanged deadline and accumulated consumption. After terminal completion,
+the controller restarted with a new session token; browser readback preserved
+the exact campaign and accounting without replay. Cleanup verification found
+zero reserved operations, zero cleanup targets and no containers using the two
+exact campaign images. The controller was then closed. No live crash or training
+cancellation was injected into this campaign; those remain engineering-fixture
+evidence. No hosted service was deployed.
+
+The approved-envelope display overflowed both viewports. The existing fixture
+omitted envelope values; adding them reproduced the failure. Wrapping that text
+repairs the display. Two stale UI notices claiming no provider calls were possible
+are corrected. The SDK now gives an allow-listed practice/workspace correction
+for the observed invalid request, without automatic conversion or new authority.
+The existing capability log retains the contract rejection and intended benefit;
+this observation supports clearer guidance, not a wider execution surface.
+
+**IMPLEMENTED / CANONICALLY TESTED** describes the accepted bridge. This real
+browser/model attempt validates bounded launch, pause, resume, reconnect, terminal
+restart and accounting for its observed path. **REAL CAMPAIGN VALIDATED** for the
+required multi-iteration/freeze/independent-final path remains incomplete.
+**PRIVATE HOSTED VALIDATED** remains unavailable. The immediate next empirical
+step is a fresh explicitly admitted campaign on the accepted repaired runtime;
+the terminal record and original grant must not be reset to obtain it.
 
 ## Focused verification
 

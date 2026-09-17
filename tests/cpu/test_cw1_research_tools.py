@@ -244,3 +244,83 @@ def test_invalid_trial_is_counted_and_returns_repairable_feedback(tmp_path):
     note = meter.status(owner="alice")["notes"][0]["body"]
     assert note["hypothesis"] == "invalid input"
     assert note["authority_granted"] is False
+
+
+@pytest.mark.parametrize(
+    ("kind", "strategy", "action", "arguments", "code"),
+    [
+        (
+            "practice",
+            None,
+            "run_python",
+            '{"source":"PRIVATE_SENTINEL"}',
+            "practice_recipe_required",
+        ),
+        ("practice", None, None, None, "practice_recipe_required"),
+        ("workspace", "{}", "run_python", "{}", "workspace_recipe_forbidden"),
+    ],
+)
+def test_task_kind_mismatch_returns_safe_correction_without_dispatch(
+    tmp_path, kind, strategy, action, arguments, code
+):
+    import asyncio
+
+    from test_cw1_research_ledger import ledger as make_ledger
+
+    meter = make_ledger(tmp_path)
+    composition = make_research_service(
+        root=tmp_path / "tasks",
+        ledger=meter,
+        owner="alice",
+        image=SimpleNamespace(),
+        public_material=lambda *a: pytest.fail("rejected request executed"),
+        practice=lambda *a: pytest.fail("rejected request executed"),
+    )
+    # No connection/signer/provider exists: rejection must precede authentication
+    # and task dispatch. The proposal remains charged in the original ledger.
+    sdk = ResearchMinerTools(
+        connection=None,
+        wrapper=None,
+        composition=composition,
+        ledger=meter,
+        owner="alice",
+    )
+    args = {
+        "kind": kind,
+        "strategy_json": strategy,
+        "action": action,
+        "arguments_json": arguments,
+        "hypothesis": "Inspect public input shapes",
+        "expected_effect": "Choose a useful practice recipe",
+    }
+    try:
+        first = asyncio.run(
+            sdk.call(PREFIX + "start_research_task", args, "mixed-kind")
+        )
+        replay = asyncio.run(
+            sdk.call(PREFIX + "start_research_task", args, "mixed-kind")
+        )
+        assert first == replay
+        assert first["status"] == "REJECTED_BEFORE_DISPATCH"
+        assert first["reason"] == "contract_incompatibility"
+        assert first["correction_code"] == code
+        assert "kind=workspace" in first["correction"]
+        assert first["authority_granted"] is False
+        assert "PRIVATE_SENTINEL" not in canonical(first).decode()
+        status = meter.status(owner="alice")
+        assert status["used"]["research_trials"] == 1
+        assert status["used"]["provider_attempts"] == 0
+        assert status["used"]["numerical_milliseconds"] == 0
+        assert status["notes"][0]["body"]["minimal_safe_design"] == first["correction"]
+        # The hint describes an already supported route; it grants no new API.
+        corrected = {
+            **args,
+            "kind": "workspace",
+            "strategy_json": None,
+            "action": "inventory",
+            "arguments_json": "{}",
+        }
+        request = sdk._request("start_research_task", corrected, "corrected-kind-0001")
+        assert type(request.task_spec) is research.DevelopmentWorkspaceTaskSpecV1
+    finally:
+        composition.tasks.close()

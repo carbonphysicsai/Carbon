@@ -2,7 +2,9 @@
 
 Status: in progress; C-MLP-01 merged as `aff471a89147b538e7c271194107cda30c35d95e`.
 Verified source readback and the admission-disabled runner bridge are implemented.
-Engineering acceptance is in progress. Genuine campaign acceptance remains selected and pending.
+Engineering checkpoint PR #207 is accepted and merged. The first separately
+approved browser campaign is terminal without a candidate. Genuine multi-iteration
+campaign acceptance remains selected and incomplete; empirical repairs are active.
 Primary Hub map: `SYSTEM/AGENT-EXECUTION`; `HUB_UPDATE_REQUIRED`.
 Related map: `WAVE-C/C-W1`. Scientific WAVE selection remains separately owned.
 Starting revision: `c188bc8186a0a61e5c91ca377584a5d5ee4b12df` (PR #205).
@@ -10,8 +12,11 @@ Starting revision: `c188bc8186a0a61e5c91ca377584a5d5ee4b12df` (PR #205).
 ## Authority and boundaries
 
 Ryan authorized end-to-end Launchpad engineering and normal delivery on
-2026-09-17. This ticket does not authorize paid dispatch, reuse of another
-campaign's grant, registration transactions, public deployment or qualification.
+2026-09-17. The owner subsequently explicitly approved the prepared
+`C-MLP-02-BROWSER-VALIDATION-01` envelope and further development-cycle execution.
+That approval is installed through the private trusted grant route; consumption
+does not reset. It does not authorize reuse of another campaign's grant,
+registration transactions, public deployment or qualification.
 Complete C-MLP-01's expected-head merge before delivering this successor.
 
 ## Current repository evidence and working decision
@@ -95,12 +100,12 @@ Only a separate matching explicit grant can enable that validation. No grant is
 created by this decision. Reversing it changes the bridge/control/admission
 modules and this ticket, not scientific comparison or reconstruction semantics.
 
-The accepted reusable runner is integrated. A Launchpad-bound resource grant is
-not available. `MINER_LAUNCHPAD_VALIDATION_REQUEST.json` records one
-REQUESTED_NOT_GRANTED envelope: at most USD0.50, 24 provider calls, four research
+The accepted reusable runner is integrated. The original
+`MINER_LAUNCHPAD_VALIDATION_REQUEST.json` preserves the requested envelope
+as historical request evidence: at most USD0.50, 24 provider calls, four research
 trials, twelve final replicas, four numerical hours and six elapsed hours.
-Account ownership and exact accepted integration/image pins must be resolved in
-the private operator grant before dispatch. No D4 allowance transfers.
+The owner's subsequent approval enables its one privately bound existing account
+route, accepted integration and source-matched images. No D4 allowance transfers.
 
 The bridge uses the runner's existing loop, task/service composition, ledger,
 candidate freeze and signed final comparison path. New v2 admission is opt-in;
@@ -133,7 +138,47 @@ the immediate selected work, pending its separate explicit resource authority
 and the exact accepted implementation/images. Hosted/provider successors must
 not displace that acceptance requirement.
 
-## Readback slice evidence
+## Empirical validation continuation C-MLP-02-D3
+
+The accepted engineering head is `3b6d2d9b5947b139c396f755fef8077d6885fbe8`,
+normally merged as `0afbb9d98338353732ba2fce6716dbefd0af9bbc`. Keep its clean
+runtime and exact worker images unchanged during the separately approved campaign.
+The continuation branch starts from that merge and owns only empirical findings,
+the necessary control-surface repairs, and corresponding tests/Hub reconciliation.
+Primary map remains `SYSTEM/AGENT-EXECUTION`; Hub impact is required. The plan is
+to retain the live observations, repair reproduced defects in the separate
+engineering checkout, run focused canonical/browser acceptance, then deliver the
+tested repair through the existing Merge gate. Scientific runner and concurrent
+platform work remain separately owned.
+
+Fresh browser launch exposed unbroken approved-envelope JSON overflowing desktop
+and mobile layouts. The existing browser fixture omitted a configured envelope.
+Adding that fixture input reproduces the failure before the CSS repair. Wrap the
+preflight text and remove stale build-wide claims that no provider can be called.
+This changes no dispatch, grant, scoring or evaluation behavior. Genuine campaign
+acceptance still requires its actual retained outcome; no fixture replaces it.
+
+The first campaign is now terminal: one rejected proposal, no completed practice
+experiment and no frozen candidate or independent final evaluation. Its agent
+mixed `kind=practice` with `action=run_python` and `strategy_json=null`. The existing
+contract correctly rejected this before dispatch; the agent then explicitly
+stopped for `no_feasible_action`. Preserve that outcome. Add allow-listed
+corrective feedback for this observed branch mismatch and clarify the existing
+tool description. Do not convert the malformed request, force continuation,
+refund the proposal, relax the recipe/workspace boundary or reinterpret the
+agent's stop as scientific failure. Tests must demonstrate safe feedback,
+unchanged counters on replay and construction of the already-supported route.
+
+The separate one-campaign grant has been used even though most money remains.
+It is immutable and is not automatically renewed by a new directory or repaired
+runtime. Further engineering remains authorized by the owner's standing cycle
+direction. A fresh empirical run requires a matching explicit resource record;
+never copy the original full allowance or consume D4/D5's separate grant.
+The campaign outcome, costs and cleanup evidence are recorded in the bridge
+document. C-MLP-02 stays open; Hermes/hosted successors do not displace its
+outstanding genuine adaptive-research and independent-reconstruction acceptance.
+
+## Earlier readback slice evidence
 
 Continuation engineering diagnostics: 94 focused Linux tests passed. The initial
 canonical combined run found one new HTTP fixture token below the established
