@@ -429,3 +429,61 @@ def test_settlement_observations_are_separate_idempotent_and_conflict_checked(tm
         pub.journal.observe_settlement(
             ref.digest, "epoch-3", backend.tx_block, {"epoch": 4}
         )
+
+
+def test_explicit_reveal_rescan_recovers_past_cursor_without_resigning(tmp_path):
+    pub, ref, backend = publisher(tmp_path, cr=True)
+    first = run(pub.publish(ref))
+    commitment = first["tracking"]["finalized_block"]
+    advance(backend.gate, 1000)
+    missed = backend.gate.adapter.state.finalized_block
+    # A decoder miss advances the ordinary cursor without creating reveal facts.
+    scanned = run(pub.reconcile(ref.digest))
+    assert scanned["tracking"]["scan_block"] == missed + 1
+    backend.reveal_block = missed
+    assert run(pub.reconcile(ref.digest))["state"] == "REVEAL_PENDING"
+    result = run(pub.reconcile(ref.digest, rescan_reveal=True))
+    assert result["state"] == "ROW_VERIFIED"
+    assert result["tracking"]["reveal_block"] == missed
+    assert result["tracking"]["finalized_block"] == commitment
+    assert result["document"] == first["document"]
+    assert result["tracking"]["tx_hash"] == first["tracking"]["tx_hash"]
+    assert backend.signatures == backend.executions == 1
+    # A terminal receipt cannot be reopened by a rescan.
+    assert run(pub.reconcile(ref.digest, rescan_reveal=True)) == result
+
+
+def test_reveal_rescan_is_bounded_and_ordinary_resume_continues(tmp_path):
+    pub, ref, backend = publisher(tmp_path, cr=True)
+    first = run(pub.publish(ref))
+    commitment = first["tracking"]["finalized_block"]
+    backend.gate.adapter.state = replace(
+        backend.gate.adapter.state, finalized_block=commitment + 600
+    )
+    calls = []
+
+    async def revealed(publisher, block):
+        calls.append(block)
+        return block == commitment + 400
+
+    backend.revealed = revealed
+    result = run(pub.reconcile(ref.digest, rescan_reveal=True))
+    assert result["state"] == "REVEAL_PENDING"
+    assert calls == list(range(commitment + 1, commitment + 257))
+    assert result["tracking"]["scan_block"] == commitment + 257
+    result = run(pub.reconcile(ref.digest))
+    assert result["state"] == "ROW_VERIFIED"
+    assert result["tracking"]["reveal_block"] == commitment + 400
+    assert backend.signatures == backend.executions == 1
+
+
+def test_reveal_rescan_cannot_reset_an_unfinalized_dispatch(tmp_path):
+    pub, ref, backend = publisher(tmp_path, cr=True)
+    backend.mode = "ambiguous"
+    first = run(pub.publish(ref))
+    with pytest.raises(
+        PublicationFailure, match="FINALIZED_UNREVEALED_COMMIT_REQUIRED"
+    ):
+        run(pub.reconcile(ref.digest, rescan_reveal=True))
+    assert pub.journal.get(ref.digest) == first
+    assert backend.signatures == backend.executions == 1

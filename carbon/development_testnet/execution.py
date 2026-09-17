@@ -509,7 +509,9 @@ async def execute_run(config, source: DevelopmentSourceHandoff, wallet):
         await backend.close()
 
 
-async def execute_resume(config, source: DevelopmentSourceHandoff):
+async def execute_resume(
+    config, source: DevelopmentSourceHandoff, *, rescan_reveal: bool = False
+):
     _require_context(config, source)
     ref, _ = retained_intent(config, source)
     if ref is None:
@@ -519,7 +521,7 @@ async def execute_resume(config, source: DevelopmentSourceHandoff):
     )
     try:
         _, publisher = composition(config, source, backend)
-        return await publisher.reconcile(ref.digest)
+        return await publisher.reconcile(ref.digest, rescan_reveal=rescan_reveal)
     finally:
         await backend.close()
 

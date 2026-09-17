@@ -14486,3 +14486,108 @@ the reviewed wrapper while the v1 form draft and historical imports remain
 valid. No customer outcome, model quality, demand, speedup, cost saving,
 reference adequacy, tolerance, scientific acceptance, protected use, score,
 reward, or launch is inferred from authored cases or a mock conversation.
+
+## 2026-09-16 — C-W1-D2-D1: descriptive comparison before accepted improvement
+
+**Authority and scope.** The owner selected one non-paying DEVELOPMENT bridge
+and one experiment capped at USD 1, 24 calls and two new evaluations of three
+replicas. Earlier consumed authorities are not reused. No public-network write.
+
+**Decision frozen before inference.** KEEP the v2 12/12/12 cohort, construction
+and resource envelope, C-05 measurements, signed C-06/C-07/C-08 sources and C-10
+quarantine. WRAP complete compatible sources in a versioned descriptive report.
+No applicable acceptance/equivalence/scalar rule exists. Equal case means within
+replicas and equal replica means report changes without creating a winner;
+case and replica dependence dimensions remain separate. Three replicas support
+limited descriptive spread only. Seen baseline results prevent confirmatory claims.
+
+**Observed evidence and limits.** One real FNO-48 challenger followed permitted
+historical FNO-40 feedback; the agent stopped. Eight calls, 144 updates, 72 reports,
+USD 0.00348135 published-rate usage and zero transactions. Mixed metric changes
+remain INDETERMINATE_NO_ACCEPTANCE_RULE. An empty C-10 journal means no recorded
+reexecution, not independent validation. Runtime commit 37b23bec produced the
+immutable comparison; a canonical JSON tuple/list readback repair at 1e682e8a
+regenerated the owner summary without another inference or numerical attempt.
+
+**Reserved seam.** Future acceptance needs an owner-authorized comparison rule;
+future reward simulation needs its own score/policy inputs. Existing C-REWARD
+arithmetic is tested only with explicit synthetic accepted fixtures. Finalized
+identity mapping, winner-capable publication and fresh exact transaction scopes
+remain additional prerequisites. All official/protected/settlement/all-burn
+consumers reject this report. Normal PR #201 CI/merge closes only engineering.
+
+## 2026-09-16 — OWNER-C-W1-D3-DELEGATION-01: bounded DEVELOPMENT scientific choices
+
+Ryan prospectively delegates measurement definitions/roles, provisional physical
+tolerances, normalization, aggregation, score composition, practical improvement,
+regression/equivalence, uncertainty/evidence minima, calibration/verification and
+non-paying reward bindings for C-W1-D3. The executor must choose, justify,
+implement and learn; routine choices need no additional approval. This resolves
+the DEVELOPMENT-only reserved seam recorded by C-W1-D2-D1. Older owner-reserved
+wording in AGENTS, B-05/C-05/ScorePack contracts is amended only for this scope.
+Official, protected, production and LIVE qualification remain reserved.
+
+This is delegated owner authority, not independent scientific review. Recommend
+Harshdeep review the scientific choices; no approval is invented or made an
+engineering prerequisite. No message to a third party is implied.
+
+At most two design iterations. Numerical controls and retained-data analysis
+are capped cumulatively at 7,200 wall seconds, one isolated 2-CPU/4-GiB/no-swap
+worker and 10 GiB new diagnostics. CI accounting is separate. No fresh training,
+provider allowance, registration, activation, publication, payment, AWS or
+storage-provider change is authorized. Previously consumed authorities stay
+consumed. Historical signed reports remain immutable; derived remeasurement
+and prospective acceptance use distinct versions and provenance.
+
+Primary Hub: WAVE-C/C-W1; affects C-05, C-07, C-10, C-REWARD and governance.
+Conflict class: DOCUMENTATION_LAG resolved by this narrow explicit delegation.
+
+## 2026-09-17 — C-W1-D3-D2: final finite-cohort DEVELOPMENT objective
+
+KEEP current signed sources, C-10, C-05 measurement ownership, A5 weighted
+geometric arithmetic and C-REWARD. The exact balanced-v2/derived-measurement-v3
+rule and value bases are in CW1_DEVELOPMENT_SCORING_RULE.md. Provisional physical
+and practical budgets are product choices under Ryan's delegation, not numerical
+floors or qualified science. All-case initial/mean/envelope/energy conditions
+precede soft accuracy/fidelity/worst-case aggregation. Every source remains
+official/protected/network/settlement ineligible.
+
+Two iterations completed: analytic controls passed but authentic retained data
+showed that 13-time trapezoidal reference balance could exceed the proposed
+resolution budget. Replace that mandatory test with sampled energy-path maximum,
+retain the full balance diagnostic, and keep all other policy values fixed.
+Retired V1 verification became development evidence; untouched V2 passed 21/21
+checks after freeze. Seen FNO-40/FNO-48 gained only new signed retrospective
+ranking, not acceptance. Both violate mandatory conditions. Shared-method
+reference refinement and three-replica ranges are empirical sensitivity,
+not independent review or population confidence.
+
+Real future acceptance needs registration before both constructions and active,
+compatible complete evidence at every use. Only such acceptance may enter the
+explicit non-paying simulation. The current all-burn publisher remains unchanged.
+No provider spend, fresh training or public-network transaction was authorized
+or performed by this ticket. One complete next-run request is prepared.
+
+
+## OWNER-CW1-DEVELOPMENT-CI-01 — bounded DEVELOPMENT acceptance (2026-09-17)
+
+Ryan explicitly accepted the recommendation to retain all invariants, affected
+measurement/scoring/source/reward tests, packaging, quality and Hub checks for
+bounded DEVELOPMENT iterations; use full regression for official evaluation or
+broader runtime changes; rebuild the clean development image only when its inputs
+change. Applies prospectively to C-W1-D3 / PR #202 and future matching changes.
+This is owner delivery authority, not scientific qualification or spend authority.
+
+Implementation: finite `development_scope.py` runtime and regression manifests;
+unknown or mixed shared scientific/official/worker/reference/lifecycle/dependency
+changes fail closed to full CPU acceptance. All-test collection, canonical doctor,
+all invariants, package/outside-tree checks, applicable JAX checks, quality, Hub,
+public-source validation and Merge gate remain required. The full isolated-service
+campaign remains required for its actual shared runtime/isolation owners, not the
+three explicitly DEVELOPMENT-only measurement/feedback modules. No test failure
+is converted to success. The superseded broad run is cancelled and retained.
+
+The initial policy migration pins the exact prior base and new classifier and
+manifest digests in the workflow. Subsequent delivery uses the protected-base
+classifier normally. This bounded bridge is explicit; it is not a generic
+candidate-controlled scope override. The protected-base Merge gate remains used.

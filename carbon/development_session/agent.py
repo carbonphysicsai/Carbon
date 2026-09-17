@@ -90,8 +90,8 @@ TOOLS = [
 ]
 
 
-def proposal():
-    return {
+def proposal(*, comparison_contract_digest: str | None = None):
+    value = {
         "schema": "carbon.burgers-session.model-run-proposal.v1",
         "profile_digest": profile_digest(),
         "provider": "OpenAI Responses API",
@@ -113,12 +113,31 @@ def proposal():
         "pricing_source": "https://developers.openai.com/api/docs/models/gpt-5-mini",
         "approved": False,
     }
+    if comparison_contract_digest is not None:
+        from carbon.registry import is_sha256_digest
+
+        if not is_sha256_digest(comparison_contract_digest):
+            raise ValueError("comparison contract digest required")
+        value.update(
+            schema="carbon.burgers-session.comparison-model-run-proposal.v1",
+            comparison_contract_digest=comparison_contract_digest,
+            max_calls=24,
+            max_total_usd=1.0,
+            maximum_priced_usage_usd=24 * MAX_CALL_USD,
+            max_proposals=2,
+        )
+        value["prompt"] = (
+            PROMPT.replace("three distinct strategies", "two distinct strategies")
+            + "\nThis is one non-paying improvement exercise on a seen development cohort. Retrieve your own historical strategy and permitted aggregate feedback through get_prior. Propose a challenger within the unchanged resource envelope. After an evaluation, retrieve its permitted feedback and decide whether to revise once or stop. You need not use both proposal slots. Do not claim a winner or scientific qualification from lower observed errors."
+        )
+    return value
 
 
-def check_authority(path: Path, *, now: float):
+def check_authority(path: Path, *, now: float, run_proposal=None):
     if path.is_symlink() or not path.is_file() or path.stat().st_size > 16384:
         raise ValueError("bounded operator model-run approval required")
     authority = json.loads(path.read_bytes())
+    plan = proposal() if run_proposal is None else run_proposal
     expected = {
         "schema",
         "proposal_digest",
@@ -133,12 +152,12 @@ def check_authority(path: Path, *, now: float):
     ):
         raise ValueError("exact operator model-run approval required")
     if authority["approved"] is not True or authority["proposal_digest"] != digest(
-        canonical(proposal())
+        canonical(plan)
     ):
         raise ValueError("model-run approval does not bind this proposal")
     if (
         not authority["valid_from_unix"] <= now <= authority["valid_until_unix"]
-        or authority["max_total_usd"] != MAX_SESSION_USD
+        or authority["max_total_usd"] != plan["max_total_usd"]
     ):
         raise ValueError("model-run approval expired or cap differs")
     return authority
@@ -178,9 +197,20 @@ class ResponsesTransport:
         return json.loads(payload)
 
 
-async def run(connection, authority_file: Path, credential_file: Path):
+async def run(
+    connection,
+    authority_file: Path,
+    credential_file: Path,
+    *,
+    comparison_contract_digest: str | None = None,
+):
     try:
-        return await _run(connection, authority_file, credential_file)
+        return await _run(
+            connection,
+            authority_file,
+            credential_file,
+            comparison_contract_digest=comparison_contract_digest,
+        )
     except BaseException:
         # Keep a bounded owner report even when inference or evaluation stops.
         # Provider/error text is deliberately not echoed into this projection.
@@ -200,10 +230,21 @@ async def run(connection, authority_file: Path, credential_file: Path):
         raise
 
 
-async def _run(connection, authority_file: Path, credential_file: Path):
+async def _run(
+    connection,
+    authority_file: Path,
+    credential_file: Path,
+    *,
+    comparison_contract_digest: str | None = None,
+):
     root = connection.root
-    write_once(root / "model-run-proposal.json", canonical(proposal()))
-    check_authority(authority_file, now=time.time())
+    if comparison_contract_digest != getattr(
+        connection, "comparison_contract_digest", None
+    ):
+        raise ValueError("runner and service comparison scope differ")
+    plan = proposal(comparison_contract_digest=comparison_contract_digest)
+    write_once(root / "model-run-proposal.json", canonical(plan))
+    check_authority(authority_file, now=time.time(), run_proposal=plan)
     await connection.check_registration()
     # The existing A7 store is process-local. A second process cannot silently
     # create a replacement campaign after interruption; retained journals win.
@@ -212,7 +253,7 @@ async def _run(connection, authority_file: Path, credential_file: Path):
         canonical(
             {
                 "created_unix_ns": time.time_ns(),
-                "proposal_digest": digest(canonical(proposal())),
+                "proposal_digest": digest(canonical(plan)),
             }
         ),
     )
@@ -225,13 +266,13 @@ async def _run(connection, authority_file: Path, credential_file: Path):
     ]
     started = time.monotonic()
     outcomes = []
-    for index in range(MAX_CALLS):
+    for index in range(plan["max_calls"]):
         if time.monotonic() - started > 10800:
             raise ValueError("agent session wall-time budget exhausted")
-        check_authority(authority_file, now=time.time())
+        check_authority(authority_file, now=time.time(), run_proposal=plan)
         request = {
             "model": MODEL,
-            "instructions": PROMPT,
+            "instructions": plan["prompt"],
             "input": conversation,
             "tools": TOOLS,
             "parallel_tool_calls": False,
@@ -246,9 +287,17 @@ async def _run(connection, authority_file: Path, credential_file: Path):
             raise ValueError("provider input budget exhausted")
         identity = f"provider-{index + 1}"
         connection.budget.reserve(
-            identity, "provider_usd", MAX_CALL_USD, MAX_SESSION_USD, MAX_CALLS
+            identity,
+            "provider_usd",
+            MAX_CALL_USD,
+            plan["max_total_usd"],
+            plan["max_calls"],
         )
         write_once(root / f"{identity}-request.json", canonical(request))
+        print(
+            f"Agent call {index + 1}/{plan['max_calls']}: reservation recorded",
+            flush=True,
+        )
         try:
             response = await asyncio.to_thread(transport, request)
         except Exception:  # noqa: BLE001 - provider errors may contain private data.

@@ -92,3 +92,50 @@ eligibility bridge from active signed evidence. C-REWARD's current fixture
 ledger cannot be relabeled for that role, and an unresolved or quarantined
 receipt cannot name a winner. No such successor is selected or implemented by
 this continuation.
+
+## C-W1-REVEAL-01 — decoded reveal and bounded recovery
+
+**Working decision:** IMPLEMENTATION_LAG, selected 2026-09-16 under the existing
+C-W1-D1 continuation; primary map `WAVE-C/C-W1`, `HUB_UPDATE_REQUIRED`.
+Starting base: `405a820bfdd5a38aa2d498e3dbde3fa15449379f` (accepted PR #194).
+
+The real runtime-460 reveal event at finalized block 8017851 is decoded by the
+pinned SDK as tuple attributes. The adapter accepted only list/dictionary forms,
+so the durable read cursor passed a valid event without recording it. Independent
+read-only queries observed the exact all-burn row and empty pending commitments;
+those observations do not permit hand-editing the journal to declare success.
+
+KEEP the signed source, frozen cohort, transaction identities, fee guards and
+existing publisher. REPAIR exact event matching to accept the SDK tuple shape
+alongside supported list/dictionary shapes, with exact subnet and hotkey checks.
+Add an explicit `resume --rescan-reveal` recovery option: only for a previously
+finalized timelocked commitment whose reveal is unresolved; restart event reads
+at its retained finalized inclusion plus one, retain the existing 256-block limit,
+and persist the cursor through the existing journal owner. Subsequent ordinary
+`resume` calls continue from that cursor. Existing terminal records are unchanged.
+No caller-supplied block, event, transaction result or stored row is accepted.
+
+This read-only recovery grants no signing, wallet, resend, science-rerun or new
+transaction authority. It keeps exact row/exposure checks and historical journal
+events. Repeated explicit rescans may repeat reads but cannot repeat dispatch.
+Automatic unbounded backfill and direct journal edits were rejected: the former
+changes operator latency/budget semantics; the latter bypasses chain evidence.
+
+Plan and expected manifest: `carbon/chain/sdk_weights.py` event decoder;
+`carbon/chain/publisher.py` bounded rescan; DEVELOPMENT execution/operator option
+plumbing; focused SDK/publisher/operator regression tests; this plan, ticket,
+runbook/session/transaction observations, boards and generated Hub. No dependency,
+worker, evaluator, metric, scoring or reward-policy change is intended.
+
+Validation: focused canonical baseline and regressions; wrong subnet/hotkey,
+malformed event, tuple/list/dict, advanced cursor, 256-block continuation,
+terminal/no-dispatch behavior, walletless operator forwarding; all invariants and
+applicable classified CI. After tested repair, use the supported rescan on the
+existing source and let the journal record actual reveal and row observations.
+Normal expected-head merge and bounded execution closeout follow OWNER-DX-03.
+
+Reversibility: remove the optional recovery argument and tuple normalization to
+supersede this implementation; retain already recorded observations and receipts.
+No human-reserved scientific/economic value is selected and no new transaction is
+requested. Completion remains conditional on passing acceptance, normal merge
+and observed `ROW_VERIFIED`. All qualification and official-path ceilings remain.

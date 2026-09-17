@@ -454,6 +454,54 @@ class ReexecutionJournal:
             raise ReexecutionFailure(ReexecutionCode.STORE) from None
         return value
 
+    @classmethod
+    def source_states(
+        cls, path: Path, *, account_digest: str, receipt_digest: str
+    ) -> tuple[str, ...]:
+        """Read source quarantine without treating a reader as a worker restart.
+
+        The operator supplies the configured owner journal. Never create an empty
+        journal implicitly, or turn RUNNING into reconciliation during a read.
+        Both primary and linked reexecution associations are checked.
+        """
+        import json
+
+        if not path.is_absolute() or path.is_symlink() or not path.is_file():
+            raise ReexecutionFailure(ReexecutionCode.STORE)
+        journal = cls.__new__(cls)
+        journal.path = path
+        journal.verify_integrity()
+        states = []
+        with journal._transaction() as database:
+            if database.execute(
+                "SELECT schema,migration_digest FROM c10_meta_v1 WHERE id=1"
+            ).fetchone() != (_SCHEMA, _MIGRATION_DIGEST):
+                raise ReexecutionFailure(ReexecutionCode.STORE)
+            rows = database.execute(
+                "SELECT r.state,r.request_body,b.request_body,r.outcome_body FROM c10_request_v1 r LEFT JOIN c10_binding_v1 b USING(request_id)"
+            ).fetchall()
+            for state, *documents in rows:
+
+                def associated(value):
+                    if isinstance(value, dict):
+                        return any(
+                            (key == "account_digest" and item == account_digest)
+                            or (key == "receipt_digest" and item == receipt_digest)
+                            or associated(item)
+                            for key, item in value.items()
+                        )
+                    if isinstance(value, list):
+                        return any(associated(item) for item in value)
+                    return False
+
+                if any(
+                    associated(json.loads(body))
+                    for body in documents
+                    if body is not None
+                ):
+                    states.append(state)
+        return tuple(states)
+
     def verify_integrity(self) -> None:
         with self._transaction() as database:
             previous = _GENESIS

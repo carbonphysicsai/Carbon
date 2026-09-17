@@ -18,6 +18,8 @@ CARBON = ROOT / "carbon"
 EXPECTED = {
     "__init__.py",
     "controller.py",
+    "development.py",
+    "development_controls.py",
     "model.py",
     "protocol.py",
     "qualification_candidate.py",
@@ -66,8 +68,11 @@ def test_measurement_runtime_does_not_import_scoring_or_consumer_authority() -> 
     assert violations == []
 
 
-def test_numerical_model_has_no_network_process_or_dynamic_code_surface() -> None:
-    path = PACKAGE / "model.py"
+@pytest.mark.parametrize(
+    "name", ("model.py", "development.py", "development_controls.py")
+)
+def test_numerical_model_has_no_network_process_or_dynamic_code_surface(name) -> None:
+    path = PACKAGE / name
     forbidden_roots = {
         "asyncio",
         "ctypes",

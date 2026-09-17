@@ -374,3 +374,43 @@ def test_weight_backend_blocks_positive_or_unknown_fee_before_submission(
         with pytest.raises(PublicationFailure, match="SDK_PUBLICATION_POLICY_REJECTED"):
             run(operation)
         assert sub.submitted == []
+
+
+@pytest.mark.parametrize(
+    "attributes,expected",
+    [
+        ((1, "validator"), True),
+        ([1, "validator"], True),
+        ({"netuid": 1, "hotkey": "validator"}, True),
+        ((2, "validator"), False),
+        ((1, "another-hotkey"), False),
+        ((1, "validator", "extra"), False),
+        ((True, "validator"), False),
+        (("1", "validator"), False),
+        ({"netuid": 1, "hotkey": "validator", "extra": 1}, False),
+        (None, False),
+    ],
+)
+def test_reveal_event_accepts_sdk_tuple_only_with_exact_identity(attributes, expected):
+    installed_sdk()
+    from carbon.chain.sdk_weights import BittensorPublicationBackend
+
+    class Events:
+        async def block_hash(self, number):
+            return GENESIS if number == 0 else BLOCK
+
+        async def events(self, block_hash):
+            assert block_hash == BLOCK
+            return [
+                {
+                    "event": {
+                        "module_id": "SubtensorModule",
+                        "event_id": "TimelockedWeightsRevealed",
+                        "attributes": attributes,
+                    }
+                }
+            ]
+
+    backend = BittensorPublicationBackend(context(), "validator", None)
+    backend.client, backend.substrate = object(), Events()
+    assert run(backend.revealed("validator", 105)) is expected

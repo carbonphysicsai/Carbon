@@ -347,6 +347,15 @@ jobs:
             exit 2
           fi
 
+          # OWNER-CW1-DEVELOPMENT-CI-01 BEGIN
+          if [[ "${BASE_SHA}" == "d1d07bb408a2b68efed70baf7e11ec22bb180c9d" ]]; then
+            printf '%s\n' "0e13891e2ed9023650aafdc2456672a6eecc2fc1c4b32dbe257ae57a01b4bc9d  .carbon-gate-candidate/scripts/dev/classify_changes.py" | sha256sum --check --strict
+            printf '%s\n' "74ba0d15136cc85c06ff6d143293f37ea4d18388a5fc6ca8b1720cf019ad887d  .carbon-gate-candidate/scripts/dev/development_scope.py" | sha256sum --check --strict
+            classifier=.carbon-gate-candidate/scripts/dev/classify_changes.py
+            echo "Using owner-authorized exact DEVELOPMENT classifier migration; protected-base Merge gate retained."
+          fi
+          # OWNER-CW1-DEVELOPMENT-CI-01 END
+
           scope_output="${RUNNER_TEMP}/carbon-gate-scope.txt"
           : > "${scope_output}"
           python3 "${classifier}" \

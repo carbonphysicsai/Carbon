@@ -1,4 +1,29 @@
-# Owner report — GOAL-WORKBENCH-08 / GOAL-WORKBENCH-07A / GOAL-WORKBENCH-07 / GOAL-WORKBENCH-06 / GOAL-WORKBENCH-05A / GOAL-WORKBENCH-05 / GOAL-WORKBENCH-04 / GOAL-WORKBENCH-03 / GOAL-WORKBENCH-02 / EXAM-PROTECT-WORKBENCH-01
+# Owner report — GOAL-WORKBENCH-08B / GOAL-WORKBENCH-08 / GOAL-WORKBENCH-07A / GOAL-WORKBENCH-07 / GOAL-WORKBENCH-06 / GOAL-WORKBENCH-05A / GOAL-WORKBENCH-05 / GOAL-WORKBENCH-04 / GOAL-WORKBENCH-03 / GOAL-WORKBENCH-02 / EXAM-PROTECT-WORKBENCH-01
+
+## v0.8B executable guided-pilot evaluation
+
+The nine accepted public/synthetic pilot scenarios now have an adjacent frozen
+executable suite. Eleven literal turns run through the existing
+`PILOT_DESIGN` Worker validation and shared budget ledger with a test-owned
+provider response. The deterministic client scripts accept, reject, undo,
+correct, skip and switch to the form without allowing a missing proposal to be
+invented. Full output and reviewed briefs are retained for human review rather
+than reduced to HTTP/source-count success.
+
+Every reviewed package enters the existing Workbench through its normal intake
+preview and commit APIs as `UNASSESSED`. An operator then selects one existing
+route and prepares one request-only handoff. Save/reload, exact replay,
+same-identity conflict and a declared successor revision retain provenance and
+unknowns. No intake inherits the exact 07A assessment, and scientific
+qualification, rights, execution, score and launch remain unchanged.
+
+Plan and mock modes make zero external calls. The mock ledger recorded eleven
+settled attempts and 880 simulated micro-USD; actual provider spend, live-model
+calls and customer sessions are zero. Human quality review was not performed.
+Live evaluation remains fail-closed because the exact private staging target,
+access authentication, installed provider secret, provider-project retention
+disposition and current shared-ledger execution authorization are absent.
+Public activation stays disabled and the production homepage is unchanged.
 
 ## v0.8A guided pilot-design amendment
 

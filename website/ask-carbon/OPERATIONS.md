@@ -107,6 +107,29 @@ continuations together.
    USD 5 bakeoff cap. Freeze configuration, then run the final split and score
    with `eval/QUALITY_RUBRIC.md`. If neither meets the rubric, keep disabled.
 
+## Guided-pilot evaluation commands
+
+The nine public/synthetic guided-pilot scenarios use the existing runner and
+Worker contract:
+
+```sh
+npm run eval:pilot:plan
+npm run eval:pilot:mock
+npm run eval:pilot:evidence
+```
+
+These commands are local-only. Plan enumerates the exact finite request and
+worst-case reservation; mock exercises the real Worker validator and shared
+ledger with test-owned provider output; evidence writes the deterministic
+transcript/review packet and digest manifest. None calls a provider or private
+staging service.
+
+`npm run eval:pilot:live` is intentionally fail-closed while this runbook has
+no exact private target or accepted access mechanism. After the inputs in the
+private staging sequence are actually recorded, the live path must be bound to
+that exact authenticated Worker and central ledger before it is enabled. Do not
+substitute a direct provider call or Origin header for private access.
+
 ## Production release sequence
 
 Production needs a separate exact owner authorization after the staging report:

@@ -147,6 +147,20 @@ class PushDiffValidator(validate_hub.Validator):
 
 
 class ValidatorContractTests(unittest.TestCase):
+    def test_child_ticket_preserves_exact_board_identity_and_dependencies(self) -> None:
+        validator = validate_hub.Validator(REPO_ROOT, skip_pr_contract=True)
+        board = """**Version:** 2.5
+| ID | Deliverable | Status | Driver | Accountable reviewer | Depends on |
+|---|---|---|---|---|---|
+| C-W1-D2 | Comparison | in_progress | Integration | Science | C-05, C-W1-D1 |
+| C-W1-D0 | Invalid zero slice | todo | Integration | Science | C-05 |
+"""
+        version, rows = validator.parse_ticket_board(board, "child fixture")
+        self.assertEqual(version, "2.5")
+        self.assertEqual(list(rows), ["C-W1-D2"])
+        self.assertEqual(rows["C-W1-D2"]["depends_on"], ["C-05", "C-W1-D1"])
+        self.assertTrue(any("invalid ticket ID" in error for error in validator.errors))
+
     def setUp(self) -> None:
         fixture_scope = isolated_expected_change_scope()
         fixture_scope.__enter__()

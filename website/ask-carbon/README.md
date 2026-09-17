@@ -49,10 +49,23 @@ cd website/ask-carbon
 npm test
 npm run validate
 npm run eval:contract
+npm run eval:pilot:plan
+npm run eval:pilot:mock
+npm run eval:pilot:evidence
 ```
 
 `eval:contract` measures deterministic retrieval behavior only. It never claims
 factuality, citation support or live model usefulness.
+
+The pilot commands retain the original nine scenario descriptions and execute
+an adjacent frozen set of literal turns and client review actions. `plan`
+enumerates the finite request and shared-budget exposure without network work;
+`mock` traverses the real `PILOT_DESIGN` Worker validation, shared ledger,
+reviewed-package and Workbench import paths with a test-owned provider. Neither
+is live-model or customer-usability evidence. `eval:pilot:live` remains
+fail-closed until the exact private staging target, access mechanism, installed
+provider secret, provider-project retention disposition and current shared
+ledger authorization exist.
 
 ## Guided pilot mode
 

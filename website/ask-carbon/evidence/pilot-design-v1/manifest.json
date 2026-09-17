@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "suite_id": "ask-carbon-pilot-design-public-v1",
+  "generated_by": "website/ask-carbon/eval/write-pilot-evidence.mjs",
+  "source_ordering": "AUTHOR_CREATED_DEVELOPMENT_CASES_FROZEN_BEFORE_OBSERVATION",
+  "evidence_classes": [
+    "AUTHORED_EXPECTATION",
+    "DETERMINISTIC_CONTRACT_OBSERVATION",
+    "MOCK_PROVIDER_WORKFLOW_OBSERVATION"
+  ],
+  "live_model_observation": "NOT_RUN_NAMED_INPUTS_MISSING",
+  "human_review": "NOT_PERFORMED",
+  "customer_sessions": 0,
+  "files": [
+    {
+      "path": "eval/pilot-design.cases.public.json",
+      "bytes": 3814,
+      "sha256": "38a130fded62395bcd5d11bcdb06579df2027f100d9866020319ce74a574f603",
+      "role": "FROZEN_INPUT"
+    },
+    {
+      "path": "eval/pilot-design.executable.public.json",
+      "bytes": 16801,
+      "sha256": "d6bacc7b9b05cbe29ac09cb5acf96e49a3b162a011c217451c1502f801f8802d",
+      "role": "FROZEN_INPUT"
+    },
+    {
+      "path": "evidence/pilot-design-v1/plan.json",
+      "bytes": 2388,
+      "sha256": "a74cbad36eddd3fdca17087b2d121ab6290f40f43718ade3031ee64e49266927",
+      "role": "GENERATED_EVIDENCE"
+    },
+    {
+      "path": "evidence/pilot-design-v1/mock-run.json",
+      "bytes": 127146,
+      "sha256": "3afd0ddb928bd8e5bc9cd37897193181c2f07757a2f48ea7466192c6d302c095",
+      "role": "GENERATED_EVIDENCE"
+    },
+    {
+      "path": "evidence/pilot-design-v1/human-review-packet.md",
+      "bytes": 6127,
+      "sha256": "7343fdfd0fa07f3e521c2846ccc3201145428e298552928dccdffd1dc4378de4",
+      "role": "GENERATED_EVIDENCE"
+    }
+  ]
+}

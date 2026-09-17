@@ -1,5 +1,13 @@
 # Measurement and Score Pack Authoring Contract
 
+> **OWNER-C-W1-D3-DELEGATION-01:** Ryan delegates provisional scientific and
+> engineering choices only for the separately typed, non-paying C-W1-D3
+> DEVELOPMENT rule. See `.agent/DECISIONS.md` and
+> `docs/development/CW1_DEVELOPMENT_SCORING_RULE.md`. This is not independent
+> review; official/protected/production qualification, A5 fixture provenance,
+> historical receipts and public-network authority remain unchanged.
+
+
 **Ticket:** B-05 — MeasurementContract and Score Pack authoring bindings
 **Version:** 0.1 working engineering contract
 **Status:** SPECIFIED bounded delivery candidate; conditional review/merge

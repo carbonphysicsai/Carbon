@@ -3,7 +3,7 @@
 **Wave:** C2 direct-winner-plus-burn testnet integration
 **Status:** `in_progress`
 **Status scope:** official slice `future_reserved`; bounded `C-W1-D1`
-DEVELOPMENT slice selected and in progress
+DEVELOPMENT demonstration completed; official-path prerequisites remain blocked
 **Depends on:** NET-2, NET-4B, NET-6, C-06, C-07, C-08, C-10
 **Official-path prerequisites:** G2 exact standard-localnet disposition; C-09
 official projection; real C1 signed evaluation path; eligible real C-EA2
@@ -69,24 +69,33 @@ claim. See `.agent/plans/C_W1_DEVELOPMENT_TESTNET.md`.
 - [x] The owner-selected supervised Burgers continuation completed one real
   authenticated numerical evaluation after PR #191 merged. Eight actual model
   calls produced one FNO-40 proposal, three isolated replicas / 120 updates,
-  72 measurements, permitted feedback and an ACTIVE signed controller source.
+  72 per-case C-05 reports, permitted feedback and an ACTIVE signed controller source.
   No second strategy, accepted improvement or winner resulted. All earlier
   stopped attempts remain retained. See `docs/development/CW1_BURGERS_AGENT_SESSION.md`.
-- [ ] C-W1-ZERO-FEE-01 must pass acceptance: the SDK must reject positive or
-  unavailable weight-call fees before signing. A zero value-transfer policy
-  alone does not cap fees. This repair grants no transaction authority.
-- [ ] Activation and one all-burn publication need separate exact authority;
-  the completed subnet-creation approval supplies neither.
+- [x] C-W1-ZERO-FEE-01 passed acceptance and merged in PR #194. Positive or
+  unavailable weight-call fee estimates stop before signing.
+- [x] Separate owner authority bounded one activation and one all-burn publication.
+  Activation finalized at 8017622; commitment finalized at 8017643; automatic
+  reveal was observed at 8017851 and exact row `[[0, 65535]]` at
+  8017916. The checked journal reached `ROW_VERIFIED` without resending.
+  Actual total additional fee: 0.000257188 test TAO. Both scopes are consumed.
+- [x] Numerical evaluation, chain transport and economic/scientific effects are
+  distinguished. The source remains `COMPLETE_UNRESOLVED`; no accepted winner,
+  miner payment, burn amount, epoch effect or qualification is inferred.
 
-### Unselected next DEVELOPMENT milestone
+C-W1-REVEAL-01 delivered in PR #196 at approved head
+`594b8cb668e9b133cb071b32f0ca3e7785d5c3f9`, acceptance `35143278595`, normal
+merge `15ecbe923c8710313cbeadadc8dd5c7d5ec2ae9e`. Historical journals are retained.
 
-The smallest score-based successor would bind an active signed C-06/C-07 result
-and C-05 measurement artifact to a prospectively frozen DEVELOPMENT comparison
-decision, reject every C-10 quarantined/unresolved source, then reuse C-REWARD's
-deterministic activation, takeover and decay arithmetic. The existing fixture
-reward ledger is not authority for real DEVELOPMENT receipts. Until that bridge
-has its own selection and evidence, C-W1-D1 remains all-burn and cannot claim a
-winner or payment.
+### Selected non-paying DEVELOPMENT comparison
+
+C-W1-D2 is the only selected successor. Its prospective contract and completed
+descriptive experiment are recorded in `docs/development/CW1_DEVELOPMENT_COMPARISON.md`
+and `docs/development/CW1_DEVELOPMENT_COMPARISON_RESULTS.md`. Active signed sources,
+C-05 measurements and C-10 quarantine are reused. Real acceptance remains
+indeterminate; C-REWARD takeover/self-improvement/decay is exercised with clearly
+synthetic accepted-comparison fixtures only. C-W1-D1 remains all-burn and cannot
+consume comparison reports. No new public-network operation or payment occurred.
 
 ## Definition of Done
 
