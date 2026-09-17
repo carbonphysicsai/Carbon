@@ -1,6 +1,7 @@
 # C-W1-D5 — Autonomous research continuity
 
-Status: in_progress. Primary map_ref: WAVE-C/C-W1-D5.
+**Status:** in_progress
+**Primary Hub map_ref:** `WAVE-C/C-W1-D5`
 Hub impact: map_structural (D4 bounded closeout, D5 selection, real outcome).
 Starting main: 54f8aff742b99fd2957fede73ea814f03da49eb6. One selected ticket.
 
