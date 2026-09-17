@@ -71,3 +71,11 @@ python -m pytest tests/science/test_compiled_updates.py -q
 
 The observation file is immutable: the command rejects an existing path. A new
 run must receive a new filename and cannot overwrite the recorded observation.
+
+The final local regression collection passed ten actual JAX tests in 47.5
+seconds, including partial-chunk checkpoint resume with exact RNG/progress.
+Repository strict Python 3.10-target Ruff/Black checks passed. These results
+are native WSL diagnostics, not canonical acceptance. Preserve the observation's
+source hashes as recorded; no commit identity or isolated timing distribution
+is inferred from them. Completion remains conditional on the full required
+canonical scope, package and Hub checks and normal tested-head delivery.

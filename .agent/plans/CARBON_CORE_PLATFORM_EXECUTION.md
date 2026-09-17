@@ -97,6 +97,7 @@ slices; these are not declared delivered by this checkpoint.
 | Miner Julia public TRAIN study through MCP | Actual public study, persisted result/reconnect, one 7283 ms numerical charge, two trajectories/invocations, 22154 retained bytes, no provider calls | Sweeps, training-support approval and isolated authored scripts |
 | Workbench Julia study | Shared consumer/UI under development | Integrated draft-bound private-service acceptance |
 | GPU/TPU research and reconstruction | Named profiles and environment preparation in progress | Actual hardware numerical and isolation acceptance |
+| CPU compiled-update experiment | C-CORE-05 opt-in helper; ten actual JAX tests passed; short fixed-work observation favored existing compile-plus-train total | Default unchanged; larger workloads, accelerator timing and prospective execution-profile integration |
 
 The actual miner study reached horizon 20 with 2405 coarse and 9548 fine steps;
 mean drift was 2.17e-17/5.36e-17 and refinement RMS 2.599e-4 (not a certified error
@@ -112,6 +113,33 @@ image command is `bash scripts/dev/julia_worker_image.sh`. Missing accelerator
 authority and prepared recovery commands are consolidated in
 `.agent/plans/CORE_PLATFORM_RESOURCE_REQUEST.md`, REQUESTED_NOT_GRANTED. Existing
 campaign provider allowances have not been reused for this programme.
+
+V3 COMPILED-UPDATE EXPERIMENT CHECKPOINT (2026-09-17, C-CORE-05 candidate)
+
+The opt-in `carbon.jax.compiled-update-experiment.v1` helper batches 1, 4 or 16
+updates over the unchanged registered JAX Trainer. Ten actual JAX tests passed
+locally in 47.5 seconds, covering discrete RNG/progress, numerical state,
+partial-chunk resume, rejected nonfinite updates and cancellation boundaries.
+The helper is not selected by existing execution profiles. Cancellation checks
+between chunks do not replace the controller's independent deadline.
+
+The immutable CPU observation in
+`.agent/evidence/wave_c/c-core-05-cpu-update-observation.json` binds exact
+benchmark/helper/vendor source hashes, configurations, data identity and
+numerical environment. On the single shared local WSL host, 16 updates at
+16/64/128 spatial points took 1.546/1.335/1.364 seconds for baseline
+compile-plus-train totals, versus 2.334/2.287/2.705 seconds for chunk16.
+Warm savings did not offset cold compilation, so the existing default remains.
+Checkpoint serialization took 0.143-0.174 seconds for approximately 35 KB states.
+No external cost was incurred. Source hashes identify the observed files;
+they do not convert this native-host observation into canonical evidence.
+
+This fixed-order single observation is not a statistical speedup, model-quality
+per budget comparison, autonomous campaign, accelerator benchmark or scientific
+equivalence claim. Larger fixed-work workloads, GPU/TPU execution and a
+prospective execution profile remain open. Canonical acceptance and normal
+delivery remain required. Reproduction commands and the decision to retain the
+default are in `.agent/tickets/C-CORE-05_compiled_update_experiment.md`.
 
 OWNER DIRECTION AND SUPERSESSION
 
