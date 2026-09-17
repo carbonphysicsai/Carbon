@@ -52,7 +52,7 @@ merge `15ecbe923c8710313cbeadadc8dd5c7d5ec2ae9e`. The historical publication is
 `ROW_VERIFIED`; its exact row is `[[0, 65535]]`. The numerical source remains
 `COMPLETE_UNRESOLVED`. Both transaction scopes are consumed. Burn amounts,
 epoch effects, miner payment and settlement remain unproven. C-W1-D2 permits
-no public-network transaction. C-W1-D3 is selected separately.
+no public-network transaction. C-W1-D3 subsequently delivered; C-W1-D4 is selected separately.
 C-W1-D2 completed one non-paying DEVELOPMENT experiment on the seen 12 TRAIN / 12 EVAL / 12 STRESS subset: 8 real gpt-5-mini calls, one FNO-48 challenger against the authentic FNO-40 historical baseline, three real JAX replicas, 144 updates and 72 C-05 reports. Field and weak-PDE errors were lower; conserved-mean and STRESS maximum-principle defects worsened. Disposition: INDETERMINATE_NO_ACCEPTANCE_RULE. No scalar, tie, accepted improvement or winner is claimed. The agent used its permitted prior feedback and stopped after one evaluation. PR #201 merged as d1d07bb408a2b68efed70baf7e11ec22bb180c9d. C-W1-D2 engineering is complete; C-W1-D3 delivered in PR #202, merge 4a60d85323d1945fa0ec9815340618ad87e6e619. C-W1-D4 alone is selected under OWNER-C-W1-D4-AUTORESEARCH-01.
 C-EA2 and official C-W1 remain blocked.
 C-EA1 passed canonical acceptance in run `34558389185` at accepted head
