@@ -119,6 +119,34 @@ shared ceilings, generated ledger event sequences, UI request races, private
 staging auth, and the evaluation-only API credential. They do not replace the
 pending live semantic review.
 
+## Browser evidence
+
+The unchanged production homepage bytes were integrated with the current
+component into a localhost-only staging artifact and exercised in the Codex
+in-app browser at its default desktop viewport and at 390 × 844 CSS pixels.
+
+- the launcher exposed an expanded modal dialog and focus remained within its
+  eight interactive controls while tabbing;
+- Escape closed the visible dialog and restored focus to the collapsed
+  launcher;
+- the reviewed training-control explanation displayed its material maturity
+  note and expandable pinned source metadata;
+- the 390-pixel answered state had document and dialog `scrollWidth` equal to
+  `clientWidth` (390 pixels), with no horizontal overflow;
+- the stylesheet includes an explicit `prefers-reduced-motion: reduce` rule;
+  browser media emulation was not executed;
+- native Safari, native Mobile Safari and hands-on VoiceOver were not executed
+  and are not claimed.
+
+This check exposed a false saved-answer match: `What is the weather?` was
+matched only through common question words. The browser retrieval path now
+requires at least one exact, stop-word-filtered content-term overlap before its
+existing ranking can return a card. A retained regression test and a second
+browser run both returned the distinct `No relevant saved evidence` state with
+no citation.
+This UI-only repair does not modify the live Worker retrieval contract or any
+shared Carbon execution interface.
+
 ## Production boundary
 
 Read-only verification after the private deployments returned the unchanged

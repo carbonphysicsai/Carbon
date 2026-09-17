@@ -3,6 +3,10 @@ import { evaluateRelease } from "./release-contract.js";
 const MAX_QUESTION_LENGTH = 1200;
 const DEFAULT_KNOWLEDGE_URL = "/ask-carbon/public-knowledge.v1.json";
 const DEFAULT_API_URL = "/api/ask-carbon";
+const RETRIEVAL_STOP_WORDS = new Set(["a", "an", "and", "are", "as", "at", "be", "by", "can", "do", "does", "for", "from", "how", "i", "in", "is", "it", "of", "on", "or", "that", "the", "their", "this", "to", "was", "what", "when", "where", "which", "who", "why", "with", "you"]);
+
+const retrievalTokens = (value) => (String(value ?? "").toLowerCase().match(/[a-z0-9]+/g) ?? [])
+  .filter((word) => word.length > 1 && !RETRIEVAL_STOP_WORDS.has(word));
 
 const createElement = (documentRef, tag, options = {}) => {
   const element = documentRef.createElement(tag);
@@ -15,9 +19,12 @@ const createElement = (documentRef, tag, options = {}) => {
 };
 
 const scoreCard = (card, question) => {
-  const normalized = question.toLowerCase();
+  const normalized = question.trim().toLowerCase();
   const cardQuestions = card.questions ?? [card.question].filter(Boolean);
-  if (cardQuestions.some((item) => item.toLowerCase() === normalized.trim())) return 1000;
+  if (cardQuestions.some((item) => item.toLowerCase() === normalized)) return 1000;
+  const queryTerms = new Set(retrievalTokens(normalized));
+  const cardTerms = new Set(retrievalTokens(`${cardQuestions.join(" ")} ${(card.keywords ?? []).join(" ")}`));
+  if (![...queryTerms].some((term) => cardTerms.has(term))) return 0;
   const words = new Set(normalized.match(/[a-z0-9]+/g) ?? []);
   const keywordScore = (card.keywords ?? []).reduce(
     (score, keyword) => score + (words.has(keyword.toLowerCase()) ? 2 : normalized.includes(keyword.toLowerCase()) ? 1 : 0),
