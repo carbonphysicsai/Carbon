@@ -55,9 +55,13 @@ human-reserved; their absence does not block DEVELOPMENT implementation.
 
 1. Catalogue, transport identity repair, actual standard CPU research interface.
 2. Pinned Julia instrument and existing reference controller integration.
-3. Miner and existing Workbench consumers with exact draft/evidence association.
+3. Miner consumer; the existing Workbench consumer follows as a separately
+   shippable adapter/UI slice with exact draft/evidence association.
 
 Coherent separately shippable PRs may follow these actual consumer dependencies.
+The first PR includes the usable miner/validator CPU science path and two protocol
+clients. Workbench needs additional private-service and saved-draft UI contracts;
+it follows this shared service dependency rather than delaying CPU availability.
 Use full runtime classification for shared reference/dependency changes. Required
 acceptance includes canonical CPU/invariants/quality, package and outside-tree
 imports, no-Torch JAX reconstruction, actual SDK wire tests, applicable isolated
@@ -65,12 +69,18 @@ service tests and Hub regeneration/validation. Tests never select scientific
 thresholds. Local WSL observations remain diagnostics unless canonical execution
 is established; pinned GitHub CI owns final repository acceptance.
 
-Evidence recorded during development: new adapter/gateway diagnostics 73 passed;
+Evidence recorded during development (local diagnostics, canonical CI pending):
+new adapter/gateway diagnostics 73 passed;
 actual official Python SDK stdio fixture tests 3 passed; supported reconstruction
 catalogue tests 24 passed; three actual JAX implementations reconstructed with
 Torch/neuralop/physicsnemo imports blocked. Native Julia instrument: 64 protocol
 tests passed, one host runtime test skipped, 3 actual local Docker service tests
-passed. Numerical observations live in the programme evidence, not qualification.
+passed. The actual C-04 controller ran Julia and verified cancellation cleanup
+(2 service cases passed). A real Julia miner study through the external Python
+MCP client passed, including reconnect/replay without another dispatch or charge.
+The independent TypeScript client passed its interoperability case; a real agent
+host remains open. Numerical observations live in the programme evidence, not
+qualification. See `carbon/miner_mcp/README.md` for the working operator command.
 
 Completion is conditional on applicable automated checks and normal expected-head
 merge under OWNER-DX-03. #209/#210 remain open until their remaining role/backend/

@@ -81,6 +81,38 @@ remote-service request with named accounts/hosts/devices, current rates, all cos
 cap, expiry and cleanup; continue permitted local work. AWS deferred, Hippius
 outside the critical path.
 
+V3 IMPLEMENTATION CHECKPOINT (2026-09-17, C-CORE-02 candidate)
+
+The CPU scientific workflow now implements standard MCP over the existing
+research services, exact JAX implementation discovery, two bounded physical
+definition templates, and native Julia through the existing C-04 controller.
+Workbench and accelerator integration continue in dependent implementation
+slices; these are not declared delivered by this checkpoint.
+
+| Role/task/interface | Implementation and observed evidence | Still open |
+| --- | --- | --- |
+| Miner CPU JAX reconstruction catalogue | Three supported implementations reconstructed with Torch imports blocked | Does not prove entire repository Torch-free |
+| Miner standard MCP | Python SDK 2.2.0 stdio and private HTTP; independent TypeScript client 2.0.0 wire test passed | Real agent host; remote authenticated deployment |
+| Validator Julia DEVELOPMENT diagnostic | Real Julia 1.13.0 C-04 worker, replay, deadline/cancel and verified cleanup | Scientific/reference/security qualification; protected use |
+| Miner Julia public TRAIN study through MCP | Actual public study, persisted result/reconnect, one 7283 ms numerical charge, two trajectories/invocations, 22154 retained bytes, no provider calls | Sweeps, training-support approval and isolated authored scripts |
+| Workbench Julia study | Shared consumer/UI under development | Integrated draft-bound private-service acceptance |
+| GPU/TPU research and reconstruction | Named profiles and environment preparation in progress | Actual hardware numerical and isolation acceptance |
+
+The actual miner study reached horizon 20 with 2405 coarse and 9548 fine steps;
+mean drift was 2.17e-17/5.36e-17 and refinement RMS 2.599e-4 (not a certified error
+bound). Local Docker C-04 diagnostics observed about 212 MB peak host memory and
+no OOM; those observations establish no device-memory limit. A separate constant
+control and Cole-Hopf witness comparison exercised conservation/refinement.
+Canonical CI remains the repository acceptance authority; local WSL evidence is
+diagnostic. Existing primary reference, historical campaign catalogues, grants,
+official scores and qualification states remain unchanged.
+
+Working operator instructions: `carbon/miner_mcp/README.md`. The native Julia
+image command is `bash scripts/dev/julia_worker_image.sh`. Missing accelerator
+authority and prepared recovery commands are consolidated in
+`.agent/plans/CORE_PLATFORM_RESOURCE_REQUEST.md`, REQUESTED_NOT_GRANTED. Existing
+campaign provider allowances have not been reused for this programme.
+
 OWNER DIRECTION AND SUPERSESSION
 
 Execute the integrated programme now. Julia is a required Carbon-native
