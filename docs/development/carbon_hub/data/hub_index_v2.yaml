@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-17T11:55:18Z"
+  captured_at_utc: "2026-09-17T12:21:14Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "61e8887fa81bd050d5279e858a9a4247649033e9"
+  authority_snapshot_commit: "a4f52d84afcf3f7e749c1e5bb9ab6f95c3fe0793"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -5827,11 +5827,13 @@ events:
     event_id: "C-W1-D4-RESEARCH-01"
     owner_lane: "engineering"
     status: "active"
-    summary: "Ryan authorizes one finite DEVELOPMENT miner research campaign. The candidate now adds real practice, isolated public Python, durable budgets and fresh final source bindings; engineering tests passed in their scopes, while delivery acceptance and real inference remain pending. Reconcile the PR #202 closeout and new D4 dependency edges; refresh shared source links to the current authority snapshot without promoting any qualification."
+    summary: "Ryan authorizes one finite DEVELOPMENT miner research campaign. The candidate now adds real practice, isolated public Python, durable budgets and fresh final source bindings; engineering tests passed in their scopes, while delivery acceptance and real inference remain pending. Reconcile the PR #202 closeout and new D4 dependency edges; refresh shared source links to the current authority snapshot without promoting any qualification. Reconcile the unchanged staging explanation with the updated Wave source digest; no website activation or model expenditure."
     primary_detail: ".agent/tickets/C-W1-D4_miner_autoresearch.md"
     affects:
       - "SYSTEM/DEVELOPMENT-HUB"
       - "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+      - "SYSTEM/GOVERNANCE"
+      - "SYSTEM/PUBLICATION"
       - "WAVE-B"
       - "WAVE-C"
       - "WAVE-C/C-03"

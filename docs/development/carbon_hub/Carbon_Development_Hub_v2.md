@@ -2,7 +2,7 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `61e8887fa81bd050d5279e858a9a4247649033e9` on `main`, captured 2026-09-17T11:55:18Z.
+**Authority snapshot:** `a4f52d84afcf3f7e749c1e5bb9ab6f95c3fe0793` on `main`, captured 2026-09-17T12:21:14Z.
 **Current:** Wave C, ticket C-W1-D4. C-W1-D4 implements authenticated local miner research, real isolated practice, a bounded workspace and fresh final reconstruction/comparison. Focused engineering checks passed; required delivery acceptance and the finite real campaign remain pending. No campaign inference, provider charge, accepted winner or new network transaction has occurred. Historical testnet 567 exact row [[0, 65535]] remains ROW_VERIFIED; burn amounts, epoch effects and settlement remain unproven. AWS remains deferred and Hippius unverified. Website and Workbench work and spending are separate. No later ticket is selected. Distinct miner UID 1 finalized in the earlier setup; no identities were registered here. Synthetic controls are not results of the real agent. No subsequent activation or weight transaction is authorized.
 **Last completed:** C-W1-D3 (`done`).
 **Next selected:** none selected.
@@ -257,7 +257,7 @@
 - `CW1-D3-BOUNDED-CI-20260917` — `WAVE-C/C-W1` — Ryan authorizes bounded DEVELOPMENT CI: exact runtime/test manifests retain invariants, affected subsystem/package/quality/Hub checks; shared/official runtime keeps full regression and image rebuilds follow actual inputs.
 - `WEB-QA-03-D1` — `SYSTEM/PUBLICATION-AUTHORITY` — Ask Carbon now has separate authenticated Cloudflare staging Workers backed by one canonical Durable Object budget authority and a dedicated OpenAI project credential. Luna and Terra were evaluated through the real bounded backend; neither cleared the frozen final-answer reliability gate. Concurrent Workbench evaluation exposure is retained through a durable shared-ledger offset, no production model is selected, and carbonphysics.ai remains unchanged.
 - `WEB-QA-03-HUB-REPIN-20260917` — `SYSTEM/DEVELOPMENT-HUB` — Register WEB-QA-03 under publication authority and repin the current Hub to the reconciled authority snapshot. The private staging evidence changes no scientific, Wave-C, qualification, network or production state.
-- `C-W1-D4-RESEARCH-01` — `WAVE-C/C-W1` — Ryan authorizes one finite DEVELOPMENT miner research campaign. The candidate now adds real practice, isolated public Python, durable budgets and fresh final source bindings; engineering tests passed in their scopes, while delivery acceptance and real inference remain pending. Reconcile the PR #202 closeout and new D4 dependency edges; refresh shared source links to the current authority snapshot without promoting any qualification.
+- `C-W1-D4-RESEARCH-01` — `WAVE-C/C-W1` — Ryan authorizes one finite DEVELOPMENT miner research campaign. The candidate now adds real practice, isolated public Python, durable budgets and fresh final source bindings; engineering tests passed in their scopes, while delivery acceptance and real inference remain pending. Reconcile the PR #202 closeout and new D4 dependency edges; refresh shared source links to the current authority snapshot without promoting any qualification. Reconcile the unchanged staging explanation with the updated Wave source digest; no website activation or model expenditure.
 
 ## Authority boundary
 
