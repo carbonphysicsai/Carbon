@@ -144,6 +144,10 @@ class PublicResearchExecutor:
         if set(args) != expected:
             raise ValueError("workspace fields differ from registered action")
         if spec.action == "public_material":
+            from .advection_research import MATERIAL as ADVECTION_MATERIAL
+            from .advection_research import PublicAdvectionMaterial
+            from .julia_envelope import MATERIAL as ENVELOPE
+            from .julia_envelope import JuliaEnvelopeMaterial
             from .julia_research import MATERIAL, JuliaPublicMaterial
 
             # The bound material service owns the allowlist. No arbitrary path,
@@ -157,6 +161,10 @@ class PublicResearchExecutor:
             }
             if type(self.public_material) is JuliaPublicMaterial:
                 allowed.add(MATERIAL)
+            if type(self.public_material) is PublicAdvectionMaterial:
+                allowed.add(ADVECTION_MATERIAL)
+            if type(self.public_material) is JuliaEnvelopeMaterial:
+                allowed.update({MATERIAL, ENVELOPE})
             if args["name"] not in allowed:
                 raise ValueError("public material unavailable")
             return self.public_material(args["name"], self.workspace)

@@ -155,6 +155,16 @@ settlement, weight, or emission claim.
 - [C-CORE-04: draft-bound public Julia studies in the existing Workbench](https://github.com/carbonphysicsai/Carbon/blob/edbee85c81215a6ed813e825e95d5f075b619746/.agent/tickets/C-CORE-04_workbench_scientific_studies.md)
 - [Private Workbench scientific-service composition and checks](https://github.com/carbonphysicsai/Carbon/blob/edbee85c81215a6ed813e825e95d5f075b619746/Business/Carbon_Fit/workbench/SCIENTIFIC_STUDIES_OPERATOR.md)
 - [C-CORE-10: negotiated Tasks and research Skills over the existing controller](https://github.com/carbonphysicsai/Carbon/blob/68ed5435cd599b3582441bb9152e35fcd40f19e0/.agent/tickets/C-CORE-10_mcp_tasks_and_skills.md)
+- [C-CORE-11: fixed native Julia advection through admitted public research](https://github.com/carbonphysicsai/Carbon/blob/673f6c53ce313ebd8297f8ee49c6882a53e537d5/.agent/tickets/C-CORE-11_native_advection_reuse.md)
+- [C-CORE-08: two public Julia cases in the existing Workbench; qualification unchanged](https://github.com/carbonphysicsai/Carbon/blob/673f6c53ce313ebd8297f8ee49c6882a53e537d5/.agent/tickets/C-CORE-08_public_operating_envelope.md)
+- [C-CORE-06: logical public research state and bound continuation](https://github.com/carbonphysicsai/Carbon/blob/673f6c53ce313ebd8297f8ee49c6882a53e537d5/.agent/tickets/C-CORE-06_portable_research_state.md)
+- [Portable research workflow; fresh evaluation remains separate](https://github.com/carbonphysicsai/Carbon/blob/673f6c53ce313ebd8297f8ee49c6882a53e537d5/carbon/reconstruction/PORTABLE_RESEARCH_STATE.md)
+- [C-CORE-05: measured compiled updates; accepted default unchanged](https://github.com/carbonphysicsai/Carbon/blob/673f6c53ce313ebd8297f8ee49c6882a53e537d5/.agent/tickets/C-CORE-05_compiled_update_experiment.md)
+- [Local CPU source-bound update observation; not canonical timing evidence](https://github.com/carbonphysicsai/Carbon/blob/673f6c53ce313ebd8297f8ee49c6882a53e537d5/.agent/evidence/wave_c/c-core-05-cpu-update-observation.json)
+- [C-CORE-03: prospective fixed-device workers; hardware admission unavailable](https://github.com/carbonphysicsai/Carbon/blob/673f6c53ce313ebd8297f8ee49c6882a53e537d5/.agent/tickets/C-CORE-03_accelerator_reconstruction.md)
+- [Pinned accelerator image build and private host admission](https://github.com/carbonphysicsai/Carbon/blob/673f6c53ce313ebd8297f8ee49c6882a53e537d5/.devcontainer/accelerators/README.md)
+- [C-CORE-09: pinned TPU worker, host dispatch unavailable](https://github.com/carbonphysicsai/Carbon/blob/673f6c53ce313ebd8297f8ee49c6882a53e537d5/.agent/tickets/C-CORE-09_tpu_worker_preparation.md)
+- [TPU package inspection and missing host controls](https://github.com/carbonphysicsai/Carbon/blob/673f6c53ce313ebd8297f8ee49c6882a53e537d5/.devcontainer/accelerators/TPU_PREPARATION.md)
 
 Authority snapshot: `68ed5435` on `main`,
 captured 2026-09-17T22:19:13Z.

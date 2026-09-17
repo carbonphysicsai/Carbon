@@ -119,8 +119,10 @@ slices; these are not declared delivered by this checkpoint.
 | Miner standard MCP | Python SDK 2.2.0 stdio and private HTTP; independent TypeScript client 2.0.0 wire test passed | Real agent host; remote authenticated deployment |
 | Validator Julia DEVELOPMENT diagnostic | Real Julia 1.13.0 C-04 worker, replay, deadline/cancel and verified cleanup | Scientific/reference/security qualification; protected use |
 | Miner Julia public TRAIN study through MCP | Actual public study, persisted result/reconnect, one 7283 ms numerical charge, two trajectories/invocations, 22154 retained bytes, no provider calls | Sweeps, training-support approval and isolated authored scripts |
-| Workbench Julia study | C-CORE-04 existing UI/private-service consumer implemented; actual draft-bound Julia browser and HTTP studies, save/reopen/replay/stale rejection and expired-grant cleanup observed locally | Canonical delivery; operating-envelope sweeps; private customer inputs; production host authentication |
+| Workbench Julia study | C-CORE-04 single-case feasibility and C-CORE-08 two-public-case envelope implemented in the existing private-service UI; actual Julia draft-bound HTTP/browser studies, saved/reopened lineage, partial results and HELD-capacity cleanup observed locally | Canonical delivery; arbitrary parameter sweeps or population coverage; private customer inputs; production host authentication |
 | GPU/TPU research and reconstruction | Named profiles and environment preparation in progress | Actual hardware numerical and isolation acceptance |
+| Miner portable logical research state | C-CORE-06 wraps unchanged checkpoints with source placement and a new-operation continuation binding; two actual CPU workers transported state and matched a fresh CPU control, with replay/accounting/cleanup verified | Canonical delivery; actual GPU/TPU transport and retraining comparison; sharded state |
+| CPU compiled-update experiment | C-CORE-05 opt-in helper; ten actual JAX tests passed; short fixed-work observation favored existing compile-plus-train total | Default unchanged; larger workloads, accelerator timing and prospective execution-profile integration |
 
 The actual miner study reached horizon 20 with 2405 coarse and 9548 fine steps;
 mean drift was 2.17e-17/5.36e-17 and refinement RMS 2.599e-4 (not a certified error
@@ -136,6 +138,42 @@ image command is `bash scripts/dev/julia_worker_image.sh`. Missing accelerator
 authority and prepared recovery commands are consolidated in
 `.agent/plans/CORE_PLATFORM_RESOURCE_REQUEST.md`, REQUESTED_NOT_GRANTED. Existing
 campaign provider allowances have not been reused for this programme.
+
+C-CORE-06 uses the existing admitted Python research action with explicitly staged
+public helper and checkpoint bytes. It does not change the installed analysis
+image, grant, ledger or strict historical checkpoint-resume API. Its CPU service
+fixture consumed two research trials, 23,037 numerical milliseconds and 136,747
+retained bytes, with no provider/reference calls. Backend-changing continuation
+has a prospective new-operation contract; only CPU-to-CPU execution has empirical
+evidence. See `carbon/reconstruction/PORTABLE_RESEARCH_STATE.md`. Fresh validator
+reconstruction and cross-backend scientific calibration remain separate.
+
+V3 COMPILED-UPDATE EXPERIMENT CHECKPOINT (2026-09-17, C-CORE-05 candidate)
+
+The opt-in `carbon.jax.compiled-update-experiment.v1` helper batches 1, 4 or 16
+updates over the unchanged registered JAX Trainer. Ten actual JAX tests passed
+locally in 47.5 seconds, covering discrete RNG/progress, numerical state,
+partial-chunk resume, rejected nonfinite updates and cancellation boundaries.
+The helper is not selected by existing execution profiles. Cancellation checks
+between chunks do not replace the controller's independent deadline.
+
+The immutable CPU observation in
+`.agent/evidence/wave_c/c-core-05-cpu-update-observation.json` binds exact
+benchmark/helper/vendor source hashes, configurations, data identity and
+numerical environment. On the single shared local WSL host, 16 updates at
+16/64/128 spatial points took 1.546/1.335/1.364 seconds for baseline
+compile-plus-train totals, versus 2.334/2.287/2.705 seconds for chunk16.
+Warm savings did not offset cold compilation, so the existing default remains.
+Checkpoint serialization took 0.143-0.174 seconds for approximately 35 KB states.
+No external cost was incurred. Source hashes identify the observed files;
+they do not convert this native-host observation into canonical evidence.
+
+This fixed-order single observation is not a statistical speedup, model-quality
+per budget comparison, autonomous campaign, accelerator benchmark or scientific
+equivalence claim. Larger fixed-work workloads, GPU/TPU execution and a
+prospective execution profile remain open. Canonical acceptance and normal
+delivery remain required. Reproduction commands and the decision to retain the
+default are in `.agent/tickets/C-CORE-05_compiled_update_experiment.md`.
 
 V3 WORKBENCH IMPLEMENTATION CHECKPOINT (2026-09-17, C-CORE-04 candidate)
 
@@ -170,7 +208,126 @@ accelerator execution is claimed. `UNASSESSED`/`NOT_QUALIFIED` and request-only
 challenge preparation persist. Build and composition commands live in
 `Business/Carbon_Fit/workbench/SCIENTIFIC_STUDIES_OPERATOR.md`.
 
+V3 PUBLIC OPERATING-ENVELOPE CONTRACT (2026-09-17, C-CORE-08 candidate)
+
+The first operating-envelope action is a descriptive comparison of baseline and
+one additional exact frozen public TRAIN case. Its prospective v2 grant binds
+the full cohort digest, ordered case/request digests, method, environment, image,
+units, axes and times. Combined Workbench service requires the exact unchanged
+v1 scope followed by the recomputed v2 scope; old v1 grants do not gain this
+authority. Arbitrary numerical mutation, new populations, private customer inputs,
+qualification and public-training handoff remain unavailable.
+
+One durable research task uses the existing CampaignLedger to reserve both child
+vectors atomically, preserving final-phase headroom. The parent has no separate
+allowance. HELD capacity is never-dispatched work; a transactional claim checks
+principal, current grant/generation, and observed cleanup before the second child.
+Expiry/cancellation releases only never-claimed capacity. Reconnect and saved
+study rereads preserve operation identity and partial result lineage, with no
+worker replay or new allowance. Reference feasibility and the two-case action
+retain distinct immutable export names and their separate scope metadata.
+
+The registered-draft two-case HTTP fixture observed 15,653 ms, four trajectories
+and four invocations, 44,311 retained bytes and zero provider use. Actual
+desktop/mobile Workbench observed two 13-by-64 outputs, saved/reopened and reread
+the same task, with 14,389 ms, four trajectories/invocations and 44,306 retained
+bytes; the local host stopped gracefully. Expiry after the first child and
+actual cancellation after C-04 controls verified that HELD capacity is released
+while unknown dispatched work remains charged. All observations are local
+engineering evidence on the existing Julia CPU image; canonical acceptance and
+scientific/security qualification remain separate. The 267-JS/49-Python
+Workbench check entrypoint and actual worker lane include this consumer.
+
+V3 TPU WORKER PREPARATION (C-CORE-09 candidate)
+
+The fixed v5e/eight-chip environment now has a real hash-locked image build and
+nonroot package inspection. A separate prospective TPU worker-profile/request
+schema maps to the existing JAX reconstruction contract for miner research and
+validator reconstruction. Both roles remain admission-disabled before staging or
+backend import; the NVIDIA Docker adapter explicitly rejects TPU. The same C03
+controller/accounting remains the integration owner. No new cloud launcher exists.
+
+Image `sha256:4b037bd720d7c154cd012de0ad4803a8b92d360062f102bb9b8c80cf78155dc0`
+was built from exact source `cba4b6a597250591972c8f512ab7d42500c87e6a`.
+All 23 pinned distributions and Carbon service/protocol imports passed a bounded
+network-disabled package check without importing numerical backends. Exact
+container removal was verified. This is implementation and package evidence,
+not TPU execution, numerical comparison, external-client execution or scientific
+qualification. Existing CPU/GPU historical identities and evidence are preserved.
+
+Next concrete TPU action requires the named account/resource grant and verified
+host device/privilege/network/metadata, exclusive ownership and HBM/release
+controls before completing the guarded C03 host adapter. Commands, exact missing
+facts and recovery seam are in `.devcontainer/accelerators/TPU_PREPARATION.md`;
+source/image/check evidence is in `.agent/tickets/C-CORE-09_tpu_worker_preparation.md`.
+The existing consolidated resource request remains REQUESTED_NOT_GRANTED. No
+cloud spending, host installation, device initialization or research campaign
+occurred during this preparation. Runtime acceptance for both roles remains open.
+
+V3 ACCELERATOR IMPLEMENTATION CHECKPOINT (C-CORE-03 candidate)
+
+This checkpoint extends the retained C-CORE-02 record prospectively. The finite
+research campaign remains closed and its grants/evidence are unchanged.
+
+| Role/task/interface | Implementation and observed evidence | Still open |
+| --- | --- | --- |
+| Miner JAX NVIDIA research / existing Python C-03 controller | Fixed RTX 3060 Laptop GPU profile; private host-grant, exact image/device, exclusive lease and durable allocation binding; v2 staged request, existing trainer and v4 diagnostic artifact | NVIDIA toolkit and approved dedicated host; actual forward/gradient/Fourier/physics/update/export, memory/OOM and cleanup evidence; public consumer composition |
+| Validator JAX NVIDIA reconstruction / internal C-03 controller | Separate fixed reconstruction role; submitted recipe and input archive identities bound to the closed request; existing admission, launch journal, resource policy and output validation | Actual fresh independent GPU reconstruction with validator-owned inputs, numerical comparison and hardware containment; no protected eligibility |
+| Miner and validator JAX TPU / discovery and pinned environment | Named proposed v5e eight-chip profile and hash-locked Python 3.11.16/JAX 0.10.2/libtpu 0.0.42 environment | Account/grant, device adapter and actual TPU execution; Docker GPU adapter rejects TPU dispatch |
+| NVIDIA worker package / local Docker | Exact image built and nonroot installed-package checks passed without JAX/Torch imports; no GPU access; diagnostic container removal verified | Package evidence establishes no accelerator numerical, security or scientific qualification |
+
+The image `sha256:014693768c5bb5da745efffb206b9f63aacfc85adad0c574827893fb3c51b48d`
+was built from source `12025a9b7736d18c6a9726552e9d7a12ce3b9224`, archive
+`sha256:2ccdd991c17063547885090cbc6fecffcac0070e65d3b4810faa093fdd7ce874`.
+All 34 pinned distributions, Python version, profile/lock identities and nonroot
+manifest readability were checked. Removing installer cache and a duplicate
+library layer reduced reported image size from 12,468,651,488 to 6,036,044,575
+bytes. The initial root-only manifest defect was repaired and is preserved as
+failed-validation history. This source identity is retained across later
+documentation/navigation merges; no newer image identity is implied.
+
+The existing C-03 controller retains CPU behavior and accounting. Accelerator
+host grants authorize a physical slot only; they do not mint a research budget.
+Fixed-host locking and a durable exact-launch intent prevent retries, new output
+directories and controller loss from duplicating allocation. The same watchdog
+and cleanup path verifies release; uncertain device use blocks the shared slot.
+Actual hardware lifecycle/OOM, cross-backend loading and comparisons, concurrency
+and sharding remain open. No paid calls, new campaign, GPU/TPU allocation, host
+installation or cloud spending occurred in this packaging/checkpoint work.
+
+Working commands and admission requirements are in
+`.devcontainer/accelerators/README.md`; the bounded ticket is
+`.agent/tickets/C-CORE-03_accelerator_reconstruction.md`. The consolidated external
+resource request remains REQUESTED_NOT_GRANTED. Canonical CI and normal delivery
+remain required before closing this ticket in its bounded engineering scope.
+
 OWNER DIRECTION AND SUPERSESSION
+
+V3 SECOND EXECUTABLE TEMPLATE (2026-09-17, C-CORE-11 candidate)
+
+One fixed public periodic-advection study now reuses the shared physical
+definition/views and existing admitted Julia carrier, research task service and
+campaign ledger. Its exact prospective scientific-task scope and Julia runtime
+grant bind the reviewed upwind/refinement method, public translating sine case,
+source, numerical inputs and image. The existing workspace `public_material`
+action discovers and executes `julia_advection_study_v1`; it accepts no grader,
+script path, user tolerance or replacement Challenge population.
+
+Seven distinct local isolated Julia cases exercised signed/zero transport,
+constant and analytical controls, conservation/refinement, requested-time order
+and repetition, malformed units, one-charge replay and the actual public task
+consumer. The 64/128-grid public control had analytic RMS 0.00159939/0.000798403,
+one trial and 3338 ledger numerical milliseconds; exact source/image identities
+and limitations are in `.agent/tickets/C-CORE-11_native_advection_reuse.md`.
+The existing Julia service acceptance script now requires this suite, sharing
+the operator-built authored image with its existing containment tests.
+
+This is locally tested DEVELOPMENT structural/numerical reuse evidence pending
+canonical checks and normal delivery. First-order diffusion and interpolation
+limitations remain explicit. Results retain MINER_SELF_REPORTED provenance;
+advection Challenge registration, Workbench/validator consumers, qualification
+and training-support permission remain open. No existing grant or Burgers
+reference identity changed; no paid model or cloud allocation was used.
 
 V3 AUTHORED JULIA IMPLEMENTATION CHECKPOINT (2026-09-17, C-CORE-07 candidate)
 

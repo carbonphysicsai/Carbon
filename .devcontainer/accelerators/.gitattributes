@@ -1,0 +1,2 @@
+# These exact bytes are part of the immutable worker profile on every host.
+*.txt text eol=lf

@@ -79,11 +79,12 @@ def julia_burgers_scope(image, role_root):
 
 
 class PublicJuliaStudy:
-    def __init__(self, data, *, cleanup=False):
+    def __init__(self, data, *, envelope_scope=None, cleanup=False):
         if type(data) is not PublicReferenceData or data.phase != "research":
             raise ValueError("public research data composition required")
         self.data = data
         self.scope = julia_burgers_scope(data.image, data.role_root)
+        self.envelope_scope = envelope_scope
         self._authorize(cleanup=cleanup)
 
     def _authorize(self, *, cleanup=False):
@@ -93,10 +94,17 @@ class PublicJuliaStudy:
         if row is None:
             raise ValueError("prospectively frozen Julia campaign required")
         manifest = json.loads(row[0])
+        scopes = [self.scope]
+        if self.envelope_scope is not None:
+            from .julia_envelope import julia_envelope_scope
+
+            if self.envelope_scope != julia_envelope_scope(data.image, data.role_root):
+                raise ValueError("registered companion envelope scope differs")
+            scopes.append(self.envelope_scope)
         if (
             manifest.get("schema") != MANIFEST
             or manifest.get("owner") != data.owner
-            or manifest.get("runtime", {}).get("scientific_tasks") != [self.scope]
+            or manifest.get("runtime", {}).get("scientific_tasks") != scopes
             or self.scope != julia_burgers_scope(data.image, data.role_root)
         ):
             raise ValueError("explicit prospective Julia scope required")
@@ -209,7 +217,7 @@ class PublicJuliaStudy:
             output = self._export(record, request, workspace)
             return {**output, "accounting": record["accounting"]}
 
-    def _export(self, record, request, workspace):
+    def _export(self, record, request, workspace, *, name_prefix="julia-study-"):
         path = self.data.ledger.root / record["snapshot"] / "solution.f64le"
         if path.is_symlink() or not path.resolve().is_relative_to(
             self.data.root.resolve()
@@ -223,7 +231,7 @@ class PublicJuliaStudy:
             or digest(payload) != record["payload_digest"]
         ):
             raise ValueError("Julia artifact association conflict")
-        name = "julia-study-" + request.request_digest[7:23]
+        name = name_prefix + request.request_digest[7:23]
         workspace.put(name + ".f64le", payload)
         metadata = {
             "schema": "carbon.public-julia-study.result.v1",

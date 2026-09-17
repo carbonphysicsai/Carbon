@@ -36,13 +36,30 @@ from carbon.evaluation.enums import ReferenceRunOutcome
 
 
 def prepared(
-    tmp_path, monkeypatch, *, approved=True, fail=False, image=None, owner="test-miner"
+    tmp_path,
+    monkeypatch,
+    *,
+    approved=True,
+    fail=False,
+    image=None,
+    owner="test-miner",
+    envelope=False,
 ):
     tmp_path.chmod(0o700)
     root = tmp_path / "campaign"
     roles = tmp_path / "roles"
     roles.mkdir()
-    body = canonical([case().public_record()])
+    records = [case().public_record()]
+    if envelope:
+        baseline = case()
+        second = replace(
+            baseline,
+            coordinates=replace(baseline.coordinates, ordinal=1),
+            cosine_coefficients=(0.0,) * 12,
+            sine_coefficients=(0.2,) + (0.0,) * 11,
+        )
+        records.append(second.public_record())
+    body = canonical(records)
     (roles / "research-train-cases.json").write_bytes(body)
     (roles / "private-role-manifest.json").write_bytes(
         canonical({"research-train": {"digest": digest(body)}})
@@ -53,6 +70,10 @@ def prepared(
     runtime = {"implementation": "fixture", "images": [image.image_id]}
     if approved:
         runtime["scientific_tasks"] = [julia.julia_burgers_scope(image, roles)]
+        if envelope:
+            from carbon.development_session.julia_envelope import julia_envelope_scope
+
+            runtime["scientific_tasks"].append(julia_envelope_scope(image, roles))
     grant = {
         "schema": SCHEMA,
         "status": "APPROVED",
@@ -119,10 +140,30 @@ def prepared(
             assert cancelled() is True
             raise RuntimeError("fixture uncertain cancellation")
         assert cancelled() is False
-        path = data.root / "c04" / "snapshots" / "fixture"
+        path = (
+            data.root
+            / "c04"
+            / "snapshots"
+            / (value.request_digest[7:] if envelope else "fixture")
+        )
         path.mkdir(parents=True, exist_ok=True)
         (path / "solution.f64le").write_bytes(np.zeros((13, 64), dtype="<f8").tobytes())
+        launch_digest = digest(value.request_digest.encode())
+        if envelope:
+            journal = data.root / "c04" / "launches" / (launch_digest[7:] + ".json")
+            journal.parent.mkdir(exist_ok=True)
+            journal.write_bytes(
+                canonical(
+                    {
+                        "schema": "carbon.c04.reference-launch.v1",
+                        "request_digest": value.request_digest,
+                        "image_id": image.image_id,
+                        "state": "ASSOCIATED_DEVELOPMENT_ONLY",
+                    }
+                )
+            )
         return SimpleNamespace(
+            launch_digest=launch_digest,
             snapshot_path=path,
             snapshot_digest=digest(b"snapshot"),
             result=SimpleNamespace(
@@ -137,7 +178,7 @@ def prepared(
         )
 
     if synthetic:
-        data.controller = SimpleNamespace(execute=execute)
+        data.controller = SimpleNamespace(execute=execute, state_root=data.root / "c04")
     return data, ledger, calls
 
 
@@ -155,6 +196,29 @@ def test_prospective_grant_required_before_dispatch(tmp_path, monkeypatch):
         julia.PublicJuliaStudy(data)
     assert calls == []
     assert ledger.status(owner=data.owner)["operations"] == []
+
+
+def test_expired_companion_scope_allows_owned_cleanup_but_never_execution(
+    tmp_path, monkeypatch
+):
+    from carbon.development_session.julia_envelope import julia_envelope_scope
+
+    data, ledger, calls = prepared(tmp_path, monkeypatch, envelope=True)
+    scope = julia_envelope_scope(data.image, data.role_root)
+    ledger.clock = lambda: 50001
+    with pytest.raises(ValueError, match="expired"):
+        julia.PublicJuliaStudy(data, envelope_scope=scope)
+    study = julia.PublicJuliaStudy(data, envelope_scope=scope, cleanup=True)
+    with pytest.raises(ValueError, match="expired"):
+        study(object())
+    with pytest.raises(ValueError, match="companion envelope scope differs"):
+        julia.PublicJuliaStudy(data, envelope_scope={}, cleanup=True)
+    ledger.generation += 1
+    with pytest.raises(ValueError, match="ownership changed"):
+        julia.PublicJuliaStudy(data, envelope_scope=scope, cleanup=True)
+    assert calls == []
+    with ledger.db() as db:
+        assert db.execute("SELECT COUNT(*) FROM operations").fetchone()[0] == 0
 
 
 def test_replay_across_tasks_one_charge_owned_portable_artifacts(tmp_path, monkeypatch):

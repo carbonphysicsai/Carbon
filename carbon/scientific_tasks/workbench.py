@@ -18,6 +18,8 @@ from dataclasses import dataclass
 import numpy as np
 
 from carbon import research
+from carbon.development_session.julia_envelope import MATERIAL as ENVELOPE_MATERIAL
+from carbon.development_session.julia_envelope import JuliaEnvelopeMaterial, _requests
 from carbon.development_session.julia_research import MATERIAL, JuliaPublicMaterial
 from carbon.development_session.profile import CHALLENGE, canonical, digest
 from carbon.development_session.research_data import decode_public_case
@@ -31,6 +33,9 @@ TEMPLATE = "periodic_viscous_burgers_1d_v1"
 REQUEST = "carbon.workbench.scientific-study.request.v1"
 RESPONSE = "carbon.workbench.scientific-study.response.v1"
 CAPABILITIES = "carbon.workbench.scientific-study.capabilities.v1"
+ENVELOPE_REQUEST = "carbon.workbench.scientific-study.request.v2"
+ENVELOPE_RESPONSE = "carbon.workbench.scientific-study.response.v2"
+ENVELOPE_CAPABILITIES = "carbon.workbench.scientific-study.capabilities.v2"
 _IDENT = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,127}\Z")
 _SCOPE = frozenset(
     {
@@ -116,7 +121,7 @@ class WorkbenchScience:
             )
         adapter._check_binding()
         material = adapter._sdk.composition.executor.public_material
-        if type(material) is not JuliaPublicMaterial:
+        if type(material) not in {JuliaPublicMaterial, JuliaEnvelopeMaterial}:
             raise ValueError("explicit prospective Julia service required")
         if (
             material.study.data.ledger is not adapter._sdk.ledger
@@ -153,7 +158,7 @@ class WorkbenchScience:
 
     async def capabilities(self):
         await self._access()
-        return {
+        result = {
             "schema": CAPABILITIES,
             "template_id": TEMPLATE,
             "physical": self._physical(),
@@ -161,9 +166,30 @@ class WorkbenchScience:
             "environment": self.material.study.scope["environment"],
             "available": True,
         }
+        if type(self.material) is JuliaEnvelopeMaterial:
+            result["schema"] = ENVELOPE_CAPABILITIES
+            result["envelope"] = {
+                "scope_digest": digest(canonical(self.material.envelope.scope)),
+                "case_digests": self.material.envelope.scope["case_digests"],
+                "physical": [
+                    {
+                        "domain_length": r.domain_length,
+                        "viscosity": r.viscosity,
+                        "mean": r.mean,
+                        "cosine_coefficients": list(r.cosine_coefficients),
+                        "sine_coefficients": list(r.sine_coefficients),
+                        "requested_times": list(r.requested_times),
+                        "output_points": 64,
+                        "units": "dimensionless",
+                    }
+                    for r in _requests(self.material.study.data.role_root)
+                ],
+            }
+        return result
 
     def _validate(self, request, *, stale=False):
-        if type(request) is not dict or set(request) != {
+        envelope = type(request) is dict and request.get("schema") == ENVELOPE_REQUEST
+        fields = {
             "schema",
             "operation_id",
             "action",
@@ -172,8 +198,17 @@ class WorkbenchScience:
             "physical",
             "draft_scope",
             "rights_scope",
-        }:
+        }
+        if envelope:
+            fields.add("envelope_scope_digest")
+        if type(request) is not dict or set(request) != fields:
             raise ValueError("closed study request required")
+        if envelope and (
+            type(self.material) is not JuliaEnvelopeMaterial
+            or request["envelope_scope_digest"]
+            != digest(canonical(self.material.envelope.scope))
+        ):
+            raise ValueError("explicit envelope scope differs")
         wire_digest(request)  # Finite types, depth and total bytes before lookups.
         binding = request["binding"]
         if type(binding) is not dict or set(binding) != {
@@ -196,9 +231,10 @@ class WorkbenchScience:
         ):
             raise ValueError("closed draft scope required")
         if (
-            request["schema"] != REQUEST
+            request["schema"] != (ENVELOPE_REQUEST if envelope else REQUEST)
             or request["template_id"] != TEMPLATE
-            or request["action"] != "REFERENCE_FEASIBILITY"
+            or request["action"]
+            != ("OPERATING_ENVELOPE" if envelope else "REFERENCE_FEASIBILITY")
             or request["rights_scope"] != "SYNTHETIC_INTERNAL"
             or scope["rights_scope"] != "SYNTHETIC_INTERNAL"
             or scope["physics_family"] != TEMPLATE
@@ -213,9 +249,18 @@ class WorkbenchScience:
                 "draft_scope": scope,
             }
         )
-        if binding["physical_sha256"] != expected or request[
-            "operation_id"
-        ] != "study-" + wire_digest(binding):
+        operation = (
+            "envelope-"
+            + wire_digest(
+                {"binding": binding, "scope_digest": request["envelope_scope_digest"]}
+            )
+            if envelope
+            else "study-" + wire_digest(binding)
+        )
+        if (
+            binding["physical_sha256"] != expected
+            or request["operation_id"] != operation
+        ):
             raise ValueError("study content identity differs")
         registered = self.resolver(
             self.adapter.principal, binding["job_id"], binding["design_id"], revision
@@ -235,7 +280,7 @@ class WorkbenchScience:
             raise PermissionError("operator draft binding is absent, changed or stale")
         return json.loads(canonical(request))
 
-    def _lookup(self, operation_id):
+    def _lookup(self, operation_id, *, material=MATERIAL):
         tasks = self.adapter._sdk.composition.tasks
         with tasks._lock:
             identity = tasks._idempotency.get((CHALLENGE, operation_id))
@@ -248,7 +293,7 @@ class WorkbenchScience:
                 type(request.task_spec) is not research.DevelopmentWorkspaceTaskSpecV1
                 or request.task_spec.action != "public_material"
                 or request.task_spec.arguments_json
-                != canonical({"name": MATERIAL}).decode()
+                != canonical({"name": material}).decode()
             ):
                 raise ValueError("study operation belongs to a different task")
             sequence = tasks._tasks[identity].last_poll_sequence
@@ -260,19 +305,21 @@ class WorkbenchScience:
         await self._access(cleanup=action == "cancel")
         bound = self._validate(request, stale=action == "cancel")
         operation_id = bound["operation_id"]
+        envelope = bound["schema"] == ENVELOPE_REQUEST
+        material = ENVELOPE_MATERIAL if envelope else MATERIAL
         if action == "start":
             operation, arguments = "start_research_task", {
                 "kind": "workspace",
                 "strategy": None,
                 "action": "public_material",
-                "arguments": {"name": MATERIAL},
+                "arguments": {"name": material},
                 "hypothesis": "Assess the registered Julia public-source refinement diagnostic for draft "
                 + bound["binding"]["physical_sha256"],
                 "expected_effect": "Retain conservation, horizon and resource observations; no reference promotion",
             }
             transmission = operation_id
         else:
-            task_id, sequence = self._lookup(operation_id)
+            task_id, sequence = self._lookup(operation_id, material=material)
             operation = (
                 "cancel_research_task" if action == "cancel" else "get_research_result"
             )
@@ -303,11 +350,36 @@ class WorkbenchScience:
         ledger = self.adapter._sdk.ledger
         observed = ledger.status(owner=self.adapter.principal)
         if status in {"FAILED", "CANCELLED"} and any(
-            item["state"] == "RESERVED" for item in observed["operations"]
+            item["state"] in {"RESERVED", "HELD"} for item in observed["operations"]
         ):
             status = "REQUIRES_RECONCILIATION"
         result = None
-        if status == "COMPLETE":
+        if envelope:
+            task_id = task["task_id"]["value"]
+            with ledger.db() as db:
+                exists = db.execute(
+                    "SELECT 1 FROM operation_sequences WHERE parent=? AND owner=?",
+                    (task_id, self.adapter.principal),
+                ).fetchone()
+            if exists:
+                projection = self.material.envelope.projection(
+                    task_id, self.adapter._sdk.composition.executor.workspace
+                )
+                result = {"metadata": projection, "children": []}
+                for child in projection["children"]:
+                    result["children"].append(
+                        {
+                            **child,
+                            "result": (
+                                self._numerical(child["result"])
+                                if child["result"]
+                                else None
+                            ),
+                        }
+                    )
+            elif status == "COMPLETE":
+                raise ValueError("completed envelope has no durable child association")
+        elif status == "COMPLETE":
             metadata = payload["public_result"]["result"]
             if (
                 metadata["method"] != METHOD_ID
@@ -318,15 +390,7 @@ class WorkbenchScience:
                 or metadata["training_support_eligible"] is not False
             ):
                 raise ValueError("study result provenance differs")
-            raw = self.adapter._sdk.composition.executor.workspace.get(
-                metadata["solution"]
-            )
-            if len(raw) != 13 * 64 * 8 or digest(raw) != metadata["payload_digest"]:
-                raise ValueError("study numerical artifact changed")
-            values = np.frombuffer(raw, dtype="<f8").reshape(13, 64)
-            if not np.all(np.isfinite(values)):
-                raise ValueError("study numerical artifact nonfinite")
-            result = {"metadata": metadata, "values": values.tolist()}
+            result = self._numerical(metadata)
         remaining = {
             key
             + "_remaining": max(
@@ -342,7 +406,7 @@ class WorkbenchScience:
             )
         }
         return {
-            "schema": RESPONSE,
+            "schema": ENVELOPE_RESPONSE if envelope else RESPONSE,
             "operation_id": operation_id,
             "task_id": task["task_id"]["value"],
             "status": status,
@@ -354,3 +418,12 @@ class WorkbenchScience:
             "official_eligible": False,
             "qualification": "NOT_QUALIFIED",
         }
+
+    def _numerical(self, metadata):
+        raw = self.adapter._sdk.composition.executor.workspace.get(metadata["solution"])
+        if len(raw) != 13 * 64 * 8 or digest(raw) != metadata["payload_digest"]:
+            raise ValueError("study numerical artifact changed")
+        values = np.frombuffer(raw, dtype="<f8").reshape(13, 64)
+        if not np.all(np.isfinite(values)):
+            raise ValueError("study numerical artifact nonfinite")
+        return {"metadata": metadata, "values": values.tolist()}
