@@ -348,6 +348,27 @@ async def final_epoch(
     return project_development_acceptance(ref), ref
 
 
+def registered_julia_image(root, runtime, analysis):
+    """Read the fixed operator image record; the caller still verifies its grant."""
+    if "authored_research" not in runtime:
+        return None
+    from .julia_analysis import (
+        authored_julia_scope,
+        load_julia_analysis_image,
+        verify_julia_image,
+    )
+    from .research_admission import private_json
+
+    path = root / "authored-julia-image.json"
+    private_json(path)
+    image = load_julia_analysis_image(path)
+    if image.parent != analysis or runtime["authored_research"] != [
+        authored_julia_scope(image)
+    ]:
+        raise ValueError("authored Julia operator image or scope differs")
+    return verify_julia_image(image)
+
+
 async def execute(args, *, ledger=None):
     agent_policy = getattr(args, "agent_policy", LEGACY)
     policy = binding(agent_policy)
@@ -370,14 +391,23 @@ async def execute(args, *, ledger=None):
     if analysis.parent_image != image.image_id:
         raise ValueError("analysis/trusted image parent differs")
     grant = None
+    authored = None
     if ledger.admission is not None:
+        runtime = {
+            "implementation": implementation,
+            "images": [image.image_id, analysis.image_id],
+        }
+        authored = registered_julia_image(
+            root, ledger.admission.document["runtime"], analysis
+        )
+        if authored is not None:
+            from .julia_analysis import authored_julia_scope
+
+            runtime["authored_research"] = [authored_julia_scope(authored)]
         grant = ledger.admission.verify(
             root=root,
             principal=args.principal,
-            runtime={
-                "implementation": implementation,
-                "images": [image.image_id, analysis.image_id],
-            },
+            runtime=runtime,
             now=ledger.clock(),
         )
     private_file(args.api_key_file)
@@ -478,6 +508,7 @@ async def execute(args, *, ledger=None):
             ledger=ledger, owner=owner, image=image, role_root=role_root
         )
         composition = make_research_service(
+            julia_image=authored,
             root=root / "research-tasks",
             ledger=ledger,
             owner=owner,

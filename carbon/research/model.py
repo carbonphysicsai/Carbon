@@ -219,6 +219,7 @@ class ResearchTaskKind(str, Enum):
     PAIRED_PRACTICE = "PAIRED_PRACTICE"
     RESOURCE_CALIBRATION = "RESOURCE_CALIBRATION"
     DEVELOPMENT_WORKSPACE_V1 = "DEVELOPMENT_WORKSPACE_V1"
+    DEVELOPMENT_WORKSPACE_V2 = "DEVELOPMENT_WORKSPACE_V2"
 
 
 class StrategyTaskRole(str, Enum):
@@ -556,6 +557,14 @@ def _validate_semantics(value: _ExactRecord) -> None:
             raise BoundExceededField("forecast horizon is outside 1..604800")
     elif type(value) is GetResearchResultRequest and value.poll_sequence > 9_999:
         raise BoundExceededField("poll sequence is outside 0..9999")
+    elif type(value) is DevelopmentWorkspaceTaskSpecV2:
+        if (
+            value.version != "carbon.autoresearch.workspace.v2"
+            or value.action != "run_julia"
+        ):
+            raise ValueError("unsupported prospective development workspace action")
+        if not 2 <= len(value.arguments_json.encode("utf-8")) <= 12_288:
+            raise BoundExceededField("workspace arguments exceed closed text bound")
     elif type(value) is DevelopmentWorkspaceTaskSpecV1:
         if value.version != "carbon.autoresearch.workspace.v1":
             raise ValueError("unsupported development workspace version")
@@ -686,6 +695,7 @@ def _validate_semantics(value: _ExactRecord) -> None:
             ),
             ResearchTaskKind.RESOURCE_CALIBRATION: (StrategyTaskRole.PRIMARY,),
             ResearchTaskKind.DEVELOPMENT_WORKSPACE_V1: (),
+            ResearchTaskKind.DEVELOPMENT_WORKSPACE_V2: (),
         }[value.task_kind]
         if tuple(binding.role for binding in value.strategy_bindings) != expected_roles:
             raise ValueError("strategy binding roles conflict with the task kind")
@@ -1085,12 +1095,22 @@ class DevelopmentWorkspaceTaskSpecV1(_ExactRecord):
     arguments_json: str
 
 
+@wire_record("development_workspace_task_spec_v2")
+class DevelopmentWorkspaceTaskSpecV2(_ExactRecord):
+    """Explicitly granted authored Julia; V1 byte identities stay unchanged."""
+
+    version: str
+    action: str
+    arguments_json: str
+
+
 ResearchTaskSpec: TypeAlias = (
     ReconstructionRehearsalSpec
     | PracticeTaskSpec
     | PairedPracticeTaskSpec
     | ResourceCalibrationTaskSpec
     | DevelopmentWorkspaceTaskSpecV1
+    | DevelopmentWorkspaceTaskSpecV2
 )
 
 
