@@ -14,7 +14,7 @@ from scripts.dev.miner_launchpad.runner import RunnerAdapter
 
 def adapter(tmp_path, monkeypatch):
     value, control, manifest = managed(tmp_path)
-    bridge = RunnerAdapter(tmp_path / "browser.sqlite3")
+    bridge = RunnerAdapter(tmp_path / "browser.sqlite3", principal="alice")
     cfg = {"profile_id": "opaque-profile", "principal": "alice"}
     monkeypatch.setattr(
         bridge, "configured", lambda: (cfg, value.admission, value.root)
@@ -138,7 +138,7 @@ def test_restart_fences_stale_state_without_replaying_dispatch(tmp_path, monkeyp
     bridge, value, control = adapter(tmp_path, monkeypatch)
     identity = bridge.launch({"profile": "opaque-profile"}, "request-key-000001")["id"]
     reserve(value)
-    recovered = RunnerAdapter(bridge.database)
+    recovered = RunnerAdapter(bridge.database, principal="alice")
     assert recovered.get(identity)["state"] == "RECONCILIATION_REQUIRED"
     assert control.status()["generation"] > value.generation
     assert recovered.get(identity)["usage"]["reserved"]["research_trials"] == 1
@@ -183,3 +183,18 @@ def test_research_http_authentication_and_closed_requests(tmp_path):
         server.shutdown()
         server.server_close()
         thread.join(5)
+
+
+def test_another_configured_principal_cannot_read_control_or_recover_campaign(
+    tmp_path, monkeypatch
+):
+    bridge, _, control = adapter(tmp_path, monkeypatch)
+    identity = bridge.launch({"profile": "opaque-profile"}, "request-key-000001")["id"]
+    before = control.status()
+    other = RunnerAdapter(bridge.database, principal="bob")
+    assert other.recent() == []
+    with pytest.raises(Rejected, match="unavailable"):
+        other.get(identity)
+    with pytest.raises(Rejected, match="unavailable"):
+        other.control(identity, "stop")
+    assert control.status() == before

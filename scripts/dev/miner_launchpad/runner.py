@@ -34,16 +34,27 @@ PATH_FIELDS = {
 
 
 class RunnerAdapter:
-    def __init__(self, database, *, configuration=None):
+    def __init__(self, database, *, configuration=None, principal=None):
         self.database = database
         self.configuration = configuration
+        self.principal = (
+            private_json(configuration)["principal"]
+            if configuration is not None
+            else principal
+        )
         self.threads = {}
         self.lock = threading.RLock()
         with self.db() as db:
             db.execute(
-                "CREATE TABLE IF NOT EXISTS research_runs (id TEXT PRIMARY KEY, request_key TEXT UNIQUE NOT NULL, profile TEXT NOT NULL, principal TEXT NOT NULL, config_digest TEXT NOT NULL, grant_digest TEXT NOT NULL, campaign TEXT NOT NULL, state TEXT NOT NULL, created REAL NOT NULL, root TEXT NOT NULL, grant_record BLOB NOT NULL)"
+                "CREATE TABLE IF NOT EXISTS research_runs (id TEXT PRIMARY KEY, request_key TEXT UNIQUE NOT NULL, profile TEXT NOT NULL, principal TEXT NOT NULL, config_digest TEXT NOT NULL, grant_digest TEXT NOT NULL, campaign TEXT NOT NULL, state TEXT NOT NULL, created REAL NOT NULL, root TEXT NOT NULL, grant_record BLOB NOT NULL, grant_id TEXT UNIQUE NOT NULL)"
             )
-            roots = [Path(r[0]) for r in db.execute("SELECT root FROM research_runs")]
+            roots = [
+                Path(r[0])
+                for r in db.execute(
+                    "SELECT root FROM research_runs WHERE principal=?",
+                    (self.principal,),
+                )
+            ]
         for root in roots:
             if (root / "campaign.sqlite3").exists():
                 try:
@@ -106,6 +117,7 @@ class RunnerAdapter:
         )
         if (
             cfg["enabled"] is not True
+            or cfg["principal"] != self.principal
             or cfg["account_ref"] != doc["account_ref"]
             or cfg["accepted_revision"] != doc["runtime"]["implementation"]["revision"]
         ):
@@ -148,7 +160,7 @@ class RunnerAdapter:
             cfg, admission, root = self.configured()
         except Exception:  # noqa: BLE001
             raise Rejected("research_admission_unavailable", 409) from None
-        if value["profile"] != cfg["profile_id"]:
+        if value["profile"] != cfg["profile_id"] or cfg["principal"] != self.principal:
             raise Rejected("research_profile_mismatch", 409)
         run_id = digest(
             canonical([admission.document["campaign_id"], cfg["principal"]])
@@ -157,7 +169,8 @@ class RunnerAdapter:
         with self.db() as db:
             db.execute("BEGIN IMMEDIATE")
             previous = db.execute(
-                "SELECT * FROM research_runs WHERE request_key=? OR id=?", (key, run_id)
+                "SELECT * FROM research_runs WHERE request_key=? OR id=? OR grant_id=?",
+                (key, run_id, admission.document["grant_id"]),
             ).fetchall()
             if previous:
                 if len(previous) != 1 or any(
@@ -173,7 +186,7 @@ class RunnerAdapter:
                     raise Rejected("research_launch_replay_conflict", 409)
             else:
                 db.execute(
-                    "INSERT INTO research_runs VALUES(?,?,?,?,?,?,?,?,?,?,?)",
+                    "INSERT INTO research_runs VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
                     (
                         run_id,
                         key,
@@ -191,6 +204,7 @@ class RunnerAdapter:
                                 "document": admission.document,
                             }
                         ),
+                        admission.document["grant_id"],
                     ),
                 )
         # A lost HTTP response cannot produce a second campaign. The identity is
@@ -317,7 +331,7 @@ class RunnerAdapter:
             row = db.execute(
                 "SELECT * FROM research_runs WHERE id=?", (identity,)
             ).fetchone()
-        if row is None:
+        if row is None or row["principal"] != self.principal:
             raise Rejected("research_run_unavailable", 404)
         # Expiry/revocation never removes access to stop or original evidence.
         # Retained trusted associations cannot redirect to a changed grant root.
@@ -369,7 +383,8 @@ class RunnerAdapter:
             ids = [
                 r[0]
                 for r in db.execute(
-                    "SELECT id FROM research_runs ORDER BY created DESC LIMIT 100"
+                    "SELECT id FROM research_runs WHERE principal=? ORDER BY created DESC LIMIT 100",
+                    (self.principal,),
                 )
             ]
         result = []

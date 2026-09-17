@@ -272,6 +272,12 @@ def run():
                         ("stop", "STOPPING"),
                         ("reconcile", "STOPPED"),
                     ):
+                        wait(
+                            session,
+                            "![...document.querySelectorAll('#research-runs button')].find(b => b.textContent === "
+                            + json.dumps(action)
+                            + ").disabled",
+                        )
                         session.evaluate(
                             "[...document.querySelectorAll('#research-runs button')].find(b => b.textContent === "
                             + json.dumps(action)
