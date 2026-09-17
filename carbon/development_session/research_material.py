@@ -37,6 +37,7 @@ def objective():
         "sampling": profile["sampling"],
         "score_rule": profile["objective_math"],
         "score_rule_digest": profile["objective_math_digest"],
+        "active_rule_scope": profile["rule_scope_binding"],
         "limits": {
             "development_subset": True,
             "qualification": False,
@@ -52,11 +53,23 @@ def objective():
 
 
 def capabilities():
+    from carbon.reference_runtime.model import RUNTIME_DEPENDENCIES
+
     return {
         "schema": "carbon.autoresearch.capabilities.v1",
         "namespace": RESEARCH_NAMESPACE,
         "operations": list(SUPPORTED_OPERATIONS),
         "recipes": public_catalog(),
+        "installed_pinned_dependencies": dict(RUNTIME_DEPENDENCIES),
+        "python": "3.11.16",
+        "public_npz_fields": {
+            "initial": "case,x",
+            "viscosity": "case",
+            "times": "case,t",
+            "solution": "case,t,x",
+            "positions": "x",
+            "metadata": "JSON scalar: schema, role, provenance, domain_length, fingerprint",
+        },
         "prediction_contract": "direct u(initial,nu,t,x); no registered rollout or arbitrary submitted code",
         "parameter_notes": {
             "width": "even, compatible with C-02 heads=2; actual memory/time admission applies",
@@ -68,7 +81,8 @@ def capabilities():
             "h1_weight": "spatial-derivative training error; requires additional derivative work",
             "pde_weight": "autodifferential Burgers residual training loss, not a weak-form evaluator; additional derivative cost",
             "inference_weights": "params or EMA; selected weights retained in frozen reconstruction",
-            "steps": "upper update target; execution may stop at operative time/memory limit",
+            "steps": "target updates; choose a recipe that completes within the operative final limit. Incomplete reconstruction is retained and cannot be accepted",
+            "warmup_steps_physics_warmup_steps": "each must be strictly less than steps; physics warmup changes behavior only when pde_weight is positive",
         },
         "workspace_actions": [
             "public_material",

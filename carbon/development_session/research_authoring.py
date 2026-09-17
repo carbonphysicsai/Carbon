@@ -276,3 +276,99 @@ def measurement_contract():
         m.MeasurementRole.DIAGNOSTIC,
         False,
     )
+
+
+def training_graph():
+    """New TRAIN support identity; historical supervised clauses stay untouched.
+
+    Fixture authoring here is the existing non-qualified metadata capability,
+    not the provenance of actual training, predictions or measurements.
+    """
+    from dataclasses import replace
+
+    from carbon import construction as c
+    from carbon.authoring import training_support as t
+    from carbon.authoring.loading import (
+        FixtureAuthoringCapability,
+        compose_authoring_graph_origin,
+        load_authoring_bytes,
+    )
+
+    physical, candidate, old = authored_contracts()
+    training = replace(
+        old,
+        object_id="burgers_autoresearch_train_support",
+        object_version="1.0",
+        supersedes=A.not_applicable(
+            clause("applicability_reason", "new_independent_research_train_profile")
+        ),
+        membership_contract=t.TrainingMembershipContract(
+            clause("membership_rule", "research_train_only_72_parents_two_builds"),
+            clause("physical_support", "c_auth1_twelve_cells_unchanged_laws"),
+            clause("representation_support", "public_train_64_by_13"),
+            "REJECT",
+        ),
+        permitted_generators=t.PermittedGeneratorBinding(
+            t.PermittedGeneratorKind.PERMITTED,
+            (clause("generator", "independent_research_train_role_root"),),
+        ),
+        permitted_use_refs=(
+            clause("permitted_use", "development_train_and_adaptive_recipe_selection"),
+        ),
+        restrictions=(
+            clause("restriction", "no_final_labels_or_qualified_use"),
+            clause("restriction", "practice_labels_never_enter_final_training_archive"),
+        ),
+        provenance_requirements=(
+            clause("provenance", "metered_c04_public_train_reference"),
+        ),
+        disclosure_contract=DisclosureContract(
+            (),
+            (),
+            (),
+            clause("aggregation_policy", "public_research_only"),
+            clause(
+                "release_policy", "train_labels_public_practice_via_separate_service"
+            ),
+        ),
+    )
+    source = clause("provenance", "prospective_autoresearch_profile")
+    origin = FixtureAuthoringCapability().issue_origin(
+        fixture_registration_ref=clause(
+            "fixture_registration", "unqualified_static_research_contract"
+        ),
+        source_provenance_refs=(source,),
+    )
+    loaded = tuple(
+        load_authoring_bytes(
+            value.to_ref(),
+            value.canonical_bytes(),
+            origin=origin,
+            origin_evidence_ref=clause(
+                "authoring_origin_evidence", "research_object_" + str(i)
+            ),
+            source_provenance_refs=(source,),
+            audit_evidence_refs=(
+                clause("audit_evidence", "research_object_" + str(i)),
+            ),
+            qualification_evidence=A.not_applicable(
+                clause("applicability_reason", "not_scientifically_qualified")
+            ),
+        )
+        for i, value in enumerate((physical, candidate, training))
+    )
+    graph = compose_authoring_graph_origin(
+        root=loaded[2],
+        dependencies=loaded[:2],
+        expected_dependency_refs=(physical.to_ref(), candidate.to_ref()),
+        composition_audit_ref=clause(
+            "origin_composition_audit", "autoresearch_causal_contracts"
+        ),
+        registered_authority=None,
+    )
+    provenance = c.FixtureProvenance(
+        clause("fixture_registration", "unqualified_static_research_contract"),
+        (source,),
+        (clause("authoring_origin_evidence", "autoresearch_causal_contracts"),),
+    )
+    return training, graph, (loaded[2], *loaded[:2]), provenance

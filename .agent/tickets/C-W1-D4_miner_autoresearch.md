@@ -107,9 +107,33 @@ reservations, replay/artifact checks and failure retention. The local supervised
 reply retains nominal v2 replies and waits for tasks without model polling.
 Public task/recipe/scoring descriptions contain no realized final data.
 
-Remaining implementation includes authenticated agent orchestration, complete
-cancellation/recovery, prospective final source/comparison integration, real
-changed-surface acceptance and full delivery/Hub reconciliation.
-No PR or accepted D4 revision exists. No new model call, reference trajectory,
-campaign training trial, final reconstruction or network transaction occurred.
+The finite controller, authenticated twelve-operation agent SDK, frozen recipe
+selection, isolated prospective generation, fresh final C-08 submission and signed
+comparison adapters are now implemented. The separate miner image removes
+evaluator/reference/controller modules while retaining pinned numerical libraries
+and allowed lab code. Active cancellation removes the exact owned worker and
+verifies cleanup. Invalid numerical proposals consume trial slots; provider
+ambiguity retains conservative charges and prevents resending.
+
+The new single-practice diagnostics reuse the existing balanced-v2 arithmetic,
+show actual sampled failures and retain full per-case metrics/learning curves.
+They do not manufacture replicas, final admissibility or accepted improvement.
+The existing non-paying reward simulation receives an eligible first comparison;
+fresh-epoch/control comparisons cannot reopen its baseline or activation clock.
+
+Additional focused checks: 121 CPU tests passed; the canonical focused controller,
+research and comparison run passed. A subsequent 37-test score/controller run
+passed. Actual engineering service checks passed for isolated role generation
+and exact replay, minimal-image containment and cancellation. All 24 advertised
+controls passed executed JAX behavior checks in one isolated engineering worker
+(test elapsed 70.48 seconds). The initial probe correctly rejected an invalid
+warmup >= steps; the corrected probe obeyed the existing constraint. These are
+manufactured engineering controls, not agent inference or quality evidence.
+
+Remaining: complete final integrated source/owner-report verification, Hub
+reconciliation, policy-required acceptance and normal delivery, then execute the
+finite real campaign from its accepted revision. Main advanced through unrelated
+Workbench and website PRs #203/#204; preserve their authority and Hub changes.
+No PR or accepted D4 revision exists. No real campaign model call, reference
+trajectory, training trial, final reconstruction or network transaction occurred.
 The campaign clock has not started and none of its provider allowance was spent.

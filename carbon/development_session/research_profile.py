@@ -30,6 +30,13 @@ def document():
         "physics": profile_document()["physics"],
         "objective_math": json.loads(canonical(RULE)),
         "objective_math_digest": rule_digest(),
+        "rule_scope_binding": {
+            "schema": "carbon.autoresearch.score-scope.v1",
+            "active_profile": PROFILE,
+            "historical_metadata_fields_replaced": ["profile", "training_budget"],
+            "active_training_budget": "matched 2-CPU/4-GiB/no-swap, 600 productive seconds per construction; registered catalog controls; no bonus for unused budget",
+            "mathematics_change": False,
+        },
         "scope_extension": "same balanced-v2 mathematics and measurement v3; new recipe/resource/cohort identity, not a historical v2 rescore",
         "sampling": {
             "research_train": {
@@ -70,7 +77,8 @@ def document():
             "cpu": 2,
             "memory_bytes": 4 * 1024**3,
             "swap_bytes": 0,
-            "wall_seconds": 600,
+            "productive_seconds": 600,
+            "validation_cleanup_reservation_seconds": 120,
         },
         "public_data": "TRAIN and adaptive practice labels may be inspected; final realizations and labels remain controller-only",
         "chain_writes": False,

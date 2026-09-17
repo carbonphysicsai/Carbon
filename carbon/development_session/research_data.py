@@ -32,7 +32,7 @@ from carbon.reference_runtime.model import (
 
 from .data import write_once
 from .profile import canonical, digest
-from .research_carrier import _numerical_lease
+from .research_carrier import ACTIVE_TASK, _check_cancel, _numerical_lease
 from .research_profile import document, public_cases
 
 
@@ -67,7 +67,10 @@ def decode_public_case(value):
 
 
 class PublicReferenceData:
-    def __init__(self, *, ledger, owner, image, role_root):
+    def __init__(self, *, ledger, owner, image, role_root, phase="research"):
+        if phase not in {"research", "final"}:
+            raise ValueError("closed reference accounting phase")
+        self.phase = phase
         self.ledger, self.owner, self.image, self.role_root = (
             ledger,
             owner,
@@ -86,6 +89,9 @@ class PublicReferenceData:
         )
 
     def _reference(self, case):
+        task = ACTIVE_TASK.get()
+        if task is not None:
+            _check_cancel(self.ledger, self.owner, task)
         request = build_reference_request(
             case,
             BurgersReferenceRole.CANDIDATE_PRIMARY,
@@ -97,14 +103,14 @@ class PublicReferenceData:
         resources = {
             "reference_trajectories": 1,
             "reference_invocations": 1,
-            "numerical_milliseconds": 600000,
+            "numerical_milliseconds": 720000,
             "retained_bytes": 3 * OUTPUT_BYTES,
         }
         with _numerical_lease(self.ledger):
             admitted = self.ledger.reserve(
                 identity,
                 owner=self.owner,
-                phase="research",
+                phase=self.phase,
                 request={
                     "reference": request.document(),
                     "image": self.image.image_id,

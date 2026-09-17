@@ -34,7 +34,7 @@ FINAL_RESERVE = {
     "final_replicas": 12,
     "provider_attempts": 8,
     "provider_nanodollars": 8 * 20480000,
-    "numerical_milliseconds": 12 * 600000,
+    "numerical_milliseconds": 12 * 720000,
     "reference_trajectories": 48,
     "reference_invocations": 144,
     "retained_bytes": 2 * 1024**3,
@@ -79,6 +79,18 @@ class CampaignLedger:
             raise
         finally:
             db.close()
+
+    def check_storage(self, additional=0):
+        if type(additional) is not int or additional < 0:
+            raise ValueError("nonnegative storage admission required")
+        paths = list(self.root.rglob("*"))
+        if any(path.is_symlink() for path in paths):
+            raise ValueError("campaign symlink rejected")
+        size = sum(path.stat().st_size for path in paths if path.is_file())
+        # Leave one MiB for SQLite pages and cancellation/status metadata.
+        if size + additional + 1024**2 > CEILINGS["retained_bytes"]:
+            raise ValueError("physical campaign retained-data ceiling")
+        return size
 
     def freeze(self, manifest):
         if type(manifest) is not dict or manifest.get("schema") != VERSION:
@@ -166,8 +178,10 @@ class CampaignLedger:
                 started = now
             if now < started or now >= started + ELAPSED_SECONDS:
                 raise ValueError("campaign elapsed-time exhausted or clock regressed")
-            if resources.get("numerical_milliseconds", 0) > 600000:
-                raise ValueError("per-worker ceiling")
+            if resources.get("numerical_milliseconds", 0) > 720000:
+                raise ValueError(
+                    "per-worker productive plus validation/cleanup ceiling"
+                )
             if resources.get("numerical_milliseconds", 0) > 0:
                 if (
                     now + resources["numerical_milliseconds"] / 1000
@@ -257,6 +271,7 @@ class CampaignLedger:
         }:
             raise ValueError("unknown note kind")
         payload = canonical(body)
+        self.check_storage(2 * len(payload) + 65536)
         if (
             type(owner) is not str
             or len(owner) > 128

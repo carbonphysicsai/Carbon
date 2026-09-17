@@ -105,7 +105,7 @@ def test_uncertain_reference_retains_reservation_and_never_retries(
     with pytest.raises(ValueError, match="reconcile"):
         service._reference(case())
     assert len(calls) == 1
-    assert meter.status(owner="alice")["used"]["numerical_milliseconds"] == 600000
+    assert meter.status(owner="alice")["used"]["numerical_milliseconds"] == 720000
 
 
 def test_final_roles_denied_before_any_reference(tmp_path, monkeypatch):

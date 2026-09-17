@@ -42,6 +42,7 @@ class ResearchWorkspace:
         name = self.name(name)
         if type(body) is not bytes or len(body) > MAX_FILE_BYTES:
             raise ValueError("workspace file cap")
+        self.ledger.check_storage(2 * len(body) + 65536)
         fingerprint = digest(body)
         with self.ledger.db() as db:
             db.execute("BEGIN IMMEDIATE")

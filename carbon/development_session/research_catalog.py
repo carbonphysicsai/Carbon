@@ -48,9 +48,16 @@ SURFACES = {
 
 
 def research_contracts() -> SessionContracts:
+    from .research_authoring import training_graph
+
     old = build_contracts()
+    training, origin, artifacts, provenance = training_graph()
     assembly = replace(
-        old.assembly, object_id="burgers_autoresearch_assembly", object_version="1.0"
+        old.assembly,
+        object_id="burgers_autoresearch_assembly",
+        object_version="1.0",
+        training_support_ref=training.to_ref(),
+        provenance=provenance,
     )
     template = next(e for e in old.catalog.entries if e.surface_id == "steps")
     entries = [e for e in old.catalog.entries if e.surface_id != "steps"]
@@ -97,9 +104,11 @@ def research_contracts() -> SessionContracts:
         object_id="burgers_autoresearch_parameters",
         object_version="1.0",
         candidate_assembly_ref=assembly.to_ref(),
+        training_support_ref=training.to_ref(),
+        provenance=provenance,
         entries=tuple(entries),
     )
-    return SessionContracts(assembly, catalog, old.origin, old.artifacts)
+    return SessionContracts(assembly, catalog, origin, artifacts)
 
 
 def compile_recipe(strategy):

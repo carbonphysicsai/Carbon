@@ -96,7 +96,11 @@ def request_model(
         raise ValueError("cumulative history/schema token reservation exhausted")
     request_digest = digest(payload)
     directory = ledger.root / ("model-" + digest(canonical([owner, identity]))[7:])
-    reservation = {"provider_attempts": 1, "provider_nanodollars": RESERVATION_NANO}
+    reservation = {
+        "provider_attempts": 1,
+        "provider_nanodollars": RESERVATION_NANO,
+        "retained_bytes": 3 * 1024**2,
+    }
     admission = ledger.reserve(
         identity, owner=owner, phase=phase, request=request, resources=reservation
     )
@@ -109,6 +113,7 @@ def request_model(
         if digest(body) != admission["result"]["response_digest"]:
             raise ValueError("retained provider response changed")
         return json.loads(body)
+    ledger.check_storage(3 * 1024**2)
     directory.mkdir(mode=0o700)
     write_once(directory / "request.json", payload)
     try:
@@ -132,7 +137,11 @@ def request_model(
         identity,
         owner=owner,
         state=status,
-        actual={"provider_attempts": 1, "provider_nanodollars": usage["nanodollars"]},
+        actual={
+            "provider_attempts": 1,
+            "provider_nanodollars": usage["nanodollars"],
+            "retained_bytes": len(payload) + len(body),
+        },
         result={
             "request_digest": request_digest,
             "response_digest": digest(body),

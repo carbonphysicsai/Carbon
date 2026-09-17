@@ -32,7 +32,7 @@ from carbon.research.records import (
 )
 
 from .profile import canonical, digest
-from .research_carrier import run_script
+from .research_carrier import ACTIVE_TASK, request_cancel, run_script
 from .research_workspace import ResearchWorkspace, request_capability
 
 
@@ -42,6 +42,12 @@ class PublicDevelopmentResearchTasks(DurableResearchTaskProvider):
         if type(request.task_spec) is DevelopmentWorkspaceTaskSpecV1:
             return ResearchTaskKind.DEVELOPMENT_WORKSPACE_V1, (), (), ()
         return DurableResearchTaskProvider._spec_parts(request)
+
+    def cancel_research_task(self, request):
+        result = super().cancel_research_task(request)
+        if result.task.state is ResearchTaskState.CANCEL_REQUESTED:
+            self._executor.executor.cancel(request.task_id.value)
+        return result
 
     def request_for_execution(self, task_id):
         """Trusted executor lookup, never a public operation."""
@@ -202,7 +208,17 @@ class PublicResearchExecutor:
             "workspace_exports": exported,
         }
 
+    def cancel(self, identity):
+        request_cancel(self.ledger, owner=self.owner, identity=identity)
+
     def execute(self, attempt):
+        token = ACTIVE_TASK.set(attempt.task_id.value)
+        try:
+            return self._execute(attempt)
+        finally:
+            ACTIVE_TASK.reset(token)
+
+    def _execute(self, attempt):
         request = self.request_resolver(attempt.task_id)
         spec = request.task_spec
         identity = attempt.task_id.value

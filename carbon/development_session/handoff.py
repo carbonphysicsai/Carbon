@@ -33,6 +33,10 @@ def finish_handoff(connection, transport_ref, requester, numerical):
         raise ValueError(
             "engineering fixture results cannot become authenticated real-path sources"
         )
+    scope_document = numerical.get("profile_document", profile_document())
+    scope_digest = numerical.get("profile_digest", profile_digest())
+    if digest(canonical(scope_document)) != scope_digest:
+        raise ValueError("numerical profile identity differs")
     root = connection.root
     plan, profile = numerical["plan"], numerical["profile"]
     image, worker = numerical["image"], numerical["worker"]
@@ -52,8 +56,8 @@ def finish_handoff(connection, transport_ref, requester, numerical):
         raise ValueError("reference changed since preparation")
     method = reference_request.document()["method"]
     manifest_bytes = (root / "case-manifest.json").read_bytes()
-    sampling = canonical(profile_document()["sampling"])
-    population = canonical(profile_document()["physics"])
+    sampling = canonical(scope_document["sampling"])
+    population = canonical(scope_document["physics"])
     qualification = canonical(
         {
             "schema": "carbon.burgers-session.unqualified.v1",
@@ -88,7 +92,7 @@ def finish_handoff(connection, transport_ref, requester, numerical):
         measurement_implementation_digest=measurement_request.implementation_digest,
         measurement_environment_digest=measurement_request.measurement_environment_digest,
         measurement_result_digest=measurement.result_digest,
-        scoring_policy_digest=profile_digest(),
+        scoring_policy_digest=scope_digest,
         dossier_digest=digest(canonical(dossier)),
         qualification_manifest_digest=digest(qualification),
         source_tree_digest=image.source_tree_digest,
@@ -100,7 +104,7 @@ def finish_handoff(connection, transport_ref, requester, numerical):
             SubmissionId(submission),
             1,
             AdmissionKind.PRODUCTION,
-            replace(numerical["context"].pin, scoring_digest=profile_digest()),
+            replace(numerical["context"].pin, scoring_digest=scope_digest),
             ExecutionEnvironmentPin(profile.profile_id, profile.environment_digest),
         ),
         requester,
@@ -109,7 +113,7 @@ def finish_handoff(connection, transport_ref, requester, numerical):
         plan.to_ref().content_digest,
         profile.profile_digest,
         numerical["policy"].content_digest,
-        profile_digest(),
+        scope_digest,
     )
     request = DevelopmentOrchestrationRequest(
         binding,
@@ -157,7 +161,7 @@ def finish_handoff(connection, transport_ref, requester, numerical):
         ("sampling.json", sampling),
         ("qualification.json", qualification),
         ("case-manifest.json", manifest_bytes),
-        ("profile.json", canonical(profile_document())),
+        ("profile.json", canonical(scope_document)),
         ("dossier.json", canonical(dossier)),
         ("feedback.json", canonical(numerical["feedback"])),
     ):

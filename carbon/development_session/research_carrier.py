@@ -11,6 +11,7 @@ import json
 import math
 import time
 from contextlib import contextmanager
+from contextvars import ContextVar
 
 from carbon.reconstruction.worker.docker_runtime import (
     DockerCLI,
@@ -32,6 +33,10 @@ from .data import write_once
 from .profile import canonical, digest
 from .research_workspace import MAX_FILES, MAX_WORKSPACE_BYTES, ResearchWorkspace
 
+PRECHARGED_TRIAL = ContextVar("carbon_precharged_trial", default=None)
+
+ACTIVE_TASK = ContextVar("carbon_public_research_task", default=None)
+
 BOOTSTRAP = """
 import os,shutil
 from pathlib import Path
@@ -46,6 +51,10 @@ os.execv('/opt/carbon-worker/bin/python',['python','-I','/input/program.py'])
 
 def run_script(ledger, *, owner, identity, source, files, image, seconds=600):
     """Run miner Python only on explicitly staged public/own file bytes."""
+    from .research_image import ResearchImageIdentity
+
+    if type(image) is not ResearchImageIdentity:
+        raise ValueError("miner scripts require the separate analysis image")
     if type(source) is not str or len(source.encode()) > 65536:
         raise ValueError("bounded research source required")
     return _run(
@@ -57,7 +66,9 @@ def run_script(ledger, *, owner, identity, source, files, image, seconds=600):
         image=image,
         seconds=seconds,
         provenance="MINER_SELF_REPORTED",
-        extra_resources={"research_trials": 1},
+        extra_resources=(
+            {} if PRECHARGED_TRIAL.get() is not None else {"research_trials": 1}
+        ),
     )
 
 
@@ -78,9 +89,81 @@ def _numerical_lease(ledger):
         yield
 
 
+def _cancel_path(ledger, owner, identity):
+    return ledger.root / (
+        "cancel-" + digest(canonical([owner, identity]))[7:] + ".json"
+    )
+
+
+def request_cancel(ledger, *, owner, identity):
+    """Trusted task provider only; a flag grants no arbitrary process handle."""
+    write_once(
+        _cancel_path(ledger, owner, identity),
+        canonical({"owner": owner, "identity": identity}),
+    )
+
+
+def _check_cancel(ledger, owner, identity):
+    if _cancel_path(ledger, owner, identity).exists():
+        raise ValueError("research operation cancelled")
+
+
 def _run(ledger, **kwargs):
+    import threading
+
+    owner, identity = kwargs["owner"], kwargs["identity"]
     with _numerical_lease(ledger):
-        return _run_locked(ledger, **kwargs)
+        _check_cancel(ledger, owner, identity)
+        stop = threading.Event()
+        errors = []
+
+        def watch():
+            # Finite worker-lifetime helper. It never dispatches numerical work,
+            # reads another owner's intent, or accepts a caller container name.
+            while not stop.wait(0.1):
+                if not _cancel_path(ledger, owner, identity).exists():
+                    continue
+                try:
+                    _cancel_active_intent(ledger, owner=owner, identity=identity)
+                except Exception:  # noqa: BLE001
+                    errors.append("cancellation cleanup uncertain")
+                    return
+
+        watcher = threading.Thread(target=watch, daemon=True)
+        watcher.start()
+        try:
+            result = _run_locked(ledger, **kwargs)
+            if errors:
+                raise ValueError(errors[0])
+            return result
+        finally:
+            stop.set()
+            watcher.join(timeout=45)
+            if watcher.is_alive():
+                raise ValueError("cancellation supervisor did not stop")
+
+
+def _cancel_active_intent(ledger, *, owner, identity):
+    cli = DockerCLI()
+    for path in ledger.root.glob("operation-*/intent.json"):
+        if path.is_symlink() or path.stat().st_size > 65536:
+            raise ValueError("invalid cancellation intent")
+        intent = json.loads(path.read_bytes())
+        if (intent.get("owner"), intent.get("identity")) != (owner, identity):
+            continue
+        launch = digest(
+            canonical(
+                {"owner": owner, "identity": identity, "request": intent["request"]}
+            )
+        )
+        name = "carbon-d4-" + launch[7:31]
+        if (
+            intent["launch"] != launch
+            or intent["container"] != name
+            or path.parent.name != "operation-" + launch[7:]
+        ):
+            raise ValueError("cancellation intent conflict")
+        remove_exact_container(cli=cli, container_name=name, launch_digest=launch)
 
 
 def _run_locked(
@@ -94,6 +177,7 @@ def _run_locked(
     seconds,
     provenance,
     extra_resources,
+    phase="research",
 ):
     if type(seconds) is not int or not 40 <= seconds <= 600:
         raise ValueError("bounded worker wall allowance required")
@@ -129,7 +213,7 @@ def _run_locked(
         **extra_resources,
     }
     admission = ledger.reserve(
-        identity, owner=owner, phase="research", request=request, resources=resources
+        identity, owner=owner, phase=phase, request=request, resources=resources
     )
     if not admission["dispatch"]:
         if admission["state"] == "RESERVED":
@@ -146,7 +230,13 @@ def _run_locked(
         path.chmod(0o444)
     name = "carbon-d4-" + launch[7:31]
     cli = DockerCLI()
-    checked = doctor(image_id=image.image_id, image_identity=image, cli=cli)
+    if provenance == "MINER_SELF_REPORTED":
+        from .research_image import verify_image
+
+        verify_image(image, cli)
+        checked = doctor(image_id=image.image_id, cli=cli)
+    else:
+        checked = doctor(image_id=image.image_id, image_identity=image, cli=cli)
     if not checked.eligible:
         # No attempt is automatically retried and its reservation remains visible.
         raise ValueError("research host ineligible")
@@ -170,6 +260,7 @@ def _run_locked(
     create_attempted = False
     output = operation / "export.stream"
     try:
+        _check_cancel(ledger, owner, identity)
         create_attempted = True
         cli.run(
             create_arguments(
@@ -182,6 +273,7 @@ def _run_locked(
             ),
             timeout=30,
         )
+        _check_cancel(ledger, owner, identity)
         spawn_watchdog(
             container_name=name,
             launch_digest=launch,
@@ -239,6 +331,7 @@ def _run_locked(
             )
             if remaining.stdout.strip():
                 raise ValueError("research cleanup uncertain; capacity stays reserved")
+    _check_cancel(ledger, owner, identity)
     snapshot = operation / "snapshot"
     decode_output_stream(output, snapshot)
     result = {

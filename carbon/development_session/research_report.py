@@ -22,6 +22,30 @@ def render_status(ledger, *, owner):
             else "IDLE"
         )
     )
+    if (ledger.root / "campaign-complete.json").exists():
+        value["status"] = "FINITE_CAMPAIGN_STOPPED"
+    elif value["status"] == "RECONCILIATION_REQUIRED":
+        value["status"] = "ACTIVE_OR_RECONCILIATION_REQUIRED"
+    value["retained_physical_bytes"] = ledger.check_storage()
+    value["trials"] = []
+    with ledger.db() as db:
+        if db.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='research_results'"
+        ).fetchone():
+            from .profile import digest
+
+            for body, fingerprint in db.execute(
+                "SELECT body,digest FROM research_results WHERE owner=?", (owner,)
+            ):
+                if digest(body) != fingerprint:
+                    raise ValueError("changed report source")
+                item = json.loads(body)
+                if item.get("provenance") == "REAL_JAX_PUBLIC_PRACTICE":
+                    value["trials"].append(item)
+    value["epoch_results"] = [
+        json.loads(path.read_bytes())
+        for path in sorted(ledger.root.glob("epoch-*/permitted-final-feedback.json"))
+    ]
     value["chain_transactions"] = 0
     value["eligibility"] = "DEVELOPMENT_ONLY; no scientific qualification or payment"
     value["remaining"] = {k: value["ceilings"][k] - v for k, v in value["used"].items()}
@@ -46,12 +70,22 @@ def report(ledger, *, owner):
         f"<details><summary>{esc(n['kind'])} #{n['sequence']}</summary><pre>{esc(json.dumps(n['body'],indent=2))}</pre></details>"
         for n in value["notes"]
     )
+    trials = "".join(
+        f"<tr><td>{index+1}</td><td><pre>{esc(json.dumps(t['recipe'],sort_keys=True))}</pre></td><td>{esc(t.get('completed_steps'))}</td><td>{esc(t.get('worker_seconds'))}</td><td><pre>{esc(json.dumps(t.get('diagnostics'),indent=2))}</pre></td></tr>"
+        for index, t in enumerate(value["trials"])
+    )
+    finals = "".join(
+        f"<pre>{esc(json.dumps(item,indent=2))}</pre>"
+        for item in value["epoch_results"]
+    )
     document = f"""<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Carbon miner research status</title>
 <style>body{{font:16px system-ui;max-width:1100px;margin:2em auto;padding:1em;color:#182329;background:#f6f7f5}}table{{border-collapse:collapse;width:100%}}td,th{{text-align:left;border-bottom:1px solid #ccd4d0;padding:.6em}}pre{{white-space:pre-wrap;overflow-wrap:anywhere}}details{{margin:1em 0}}h1,h2{{color:#174b3b}}</style>
 <h1>Carbon miner research</h1><p>Status: <strong>{esc(value['status'])}</strong></p>
 <p>This view shows retained operations only. It does not imply a provider call, training run or accepted improvement.</p>
 <p>Campaign digest: {esc(value['campaign_digest'])}<br>First operation (Unix UTC): {esc(value['started_unix'])}</p>
 <h2>Cumulative accounting</h2><p>Unresolved operations keep their full reservations. Repository CI is separate.</p><table><tr><th>Resource</th><th>Used or reserved</th><th>Remaining ceiling</th></tr>{budgets}</table>
+<h2>Real research trials</h2><p>These single-replica practice observations are adaptively seen, with primary-only references. Full curves and diagnostics remain in miner-owned files and worker snapshots.</p><table><tr><th>Trial</th><th>Recipe</th><th>Completed updates</th><th>Worker seconds</th><th>Permitted diagnostics</th></tr>{trials}</table>
+<h2>Independent final comparisons</h2>{finals}<p>Fresh final EVAL and STRESS cases are withheld until recipe freeze. Three construction replicas do not establish a population confidence interval. Chain state, model quality, and payment remain separate.</p>
 <h2>Retained operations</h2><table><tr><th>Identity</th><th>Phase</th><th>Disposition</th><th>Result</th></tr>{operations}</table>
 <h2>Hypotheses, decisions and capability requests</h2>{notes}<p>{esc(value['eligibility'])}. Chain transactions: zero.</p></html>"""
     for name, data in (
