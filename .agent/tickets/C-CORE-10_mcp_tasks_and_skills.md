@@ -95,3 +95,59 @@ evaluation, grants, runtime images, cloud allocations, paid campaigns, chain
 operations or public deployment. Completion requires the unchanged tested head
 to pass applicable checks and merge normally under OWNER-DX-03; no scientific,
 security or production qualification is earned by this ticket.
+
+## Implementation and observed acceptance
+
+The adapter now acknowledges existing durable starts before supervised execution
+ends. Current task observations use the same provider, ownership lock and store;
+they retain the original operation identity and do not advance the legacy poll
+sequence. A missing adjunct row after a crash or a pre-extension operation is
+derived from the retained request/task with created=False, without new dispatch.
+Concurrent polling is bounded at 10,000 observations. Cancellation reuses its
+accepted domain identity. Graceful shutdown stops admission, cancels owned work
+and joins cleanup before releasing the owner lease; transport cancellation is
+shielded while cleanup finishes. Cleanup-only CLI attachment rejects new work.
+
+MCP Tasks uses released 2026-07-28 flat handles, direct authorized get/cancel/update
+and typed bounded inputs. FAILED_INFRA remains inside a completed tool result.
+Skills uses one fixed two-file SHA-256/byte-size manifest, private zero-TTL
+metadata and guarded resource reads. Current v2 guidance/resource prompt shares
+the Skill workflow; historical v1 guidance remains available with historical
+discovery metadata. Optional SDK imports remain outside the package root.
+
+Local diagnostic tests: 21 standard SDK stdio/HTTP/extension cases passed in
+72.45 seconds; 121 affected signed-service, task lifecycle, durable provider and
+adapter/supervisor cases passed in 72.96 seconds; 101 package/optional import and
+C-08 boundary cases passed in 46.79 seconds. The new extension wire case checks
+actual HTTP envelopes, task/name headers, reconnect, bounded/foreign updates,
+fallback negotiation, private direct access and exact Skill bytes/digests.
+The original TypeScript baseline remains separate from Tasks-client acceptance.
+
+Eight signed supervisor cases plus one actual Julia standard-CLI Tasks case
+passed in 102.63 seconds. The native case returned task handles in 133 ms and
+77 ms across connections, then used real Julia execution. A squares calculation
+charged 2,488 measured numerical milliseconds, one trial and 3,464 retained bytes;
+its completed result and operation identity were identical after reconnect.
+Separate Tasks cancellation and active stdio EOF both stopped Julia and its child
+process, persisted CANCELLED and observed exact container cleanup. Each retained
+an unknown 120,000 ms/270,598,144-byte reservation; these are not measured work
+or a refund. The ledger total is three trials, 242,488 ms and 541,199,752 bytes
+including those reservations, with zero provider/reference calls. Six existing
+ledger rows (trial plus numerical per execution) remained, none RESERVED.
+
+This native diagnostic used image
+`sha256:6ff4bcfcce65d258f9ec957cbd1d31841f92a4e7f58401da03d8a859f1699f8b`,
+the same immutable Julia parent/bootstrap with a locally distinct raw builder
+source pin from Windows CRLF bytes. Its normalized LF source equals the C-CORE-07
+builder; no runtime/source Git change or old-image relabeling is claimed.
+External signing/registration and public fixture composition are explicit
+engineering fixtures; CLI main, admission, grant freeze, owner lock, task store,
+SDK, real carrier, image checks and cleanup execute normally. This is not an
+agent-host learning campaign or production authentication acceptance.
+
+Required CI runs the supervisor and protocol cases through `scripts/dev/ci.sh`
+and the actual native Tasks case through `scripts/dev/julia_worker_service.sh`.
+Working operator and external-client commands are in `carbon/miner_mcp/README.md`.
+Canonical checks and normal tested-head delivery remain required. GPU/TPU,
+protected use, scientific/security qualification and paid agent usefulness remain
+outside this ticket's earned maturity.

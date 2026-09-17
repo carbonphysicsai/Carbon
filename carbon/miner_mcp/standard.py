@@ -285,6 +285,7 @@ class ResearchToolAdapter:
         self._sdk = sdk
         self._principal = principal
         self._binding = (sdk.connection, sdk.wrapper, sdk.composition, sdk.ledger)
+        self._task_api_used = False
 
     @property
     def principal(self) -> str:
@@ -351,3 +352,57 @@ class ResearchToolAdapter:
         return ResearchToolResult(
             request.operation, request.operation_id, payload, reconcile
         )
+
+    async def start_task(self, request: ResearchToolRequest) -> ResearchToolResult:
+        """Acknowledge the existing durable task before owned execution ends."""
+        self._check_binding()
+        if (
+            type(request) is not ResearchToolRequest
+            or request.operation != "start_research_task"
+            or type(request.operation_id) is not str
+            or _TOKEN.fullmatch(request.operation_id) is None
+        ):
+            _invalid()
+        args = _arguments(request.operation, request.arguments)
+        return await self._task_call("start", args, request.operation_id)
+
+    async def observe_task(self, task_id: str) -> ResearchToolResult:
+        self._check_binding()
+        args = _arguments(
+            "get_research_result", {"task_id": task_id, "poll_sequence": 0}
+        )
+        return await self._task_call("observe", args, "mcp-observe-" + task_id)
+
+    async def cancel_task(self, task_id: str) -> ResearchToolResult:
+        self._check_binding()
+        args = _arguments("cancel_research_task", {"task_id": task_id})
+        return await self._task_call("cancel", args, "mcp-cancel-" + task_id)
+
+    async def _task_call(self, mode, args, identity):
+        self._task_api_used = True
+        try:
+            value = await self._sdk.task_call(mode, args, identity)
+        except Exception:  # noqa: BLE001
+            raise AdapterFailure(
+                AdapterCode.OPERATIONAL_STOP, dispatch_may_have_occurred=True
+            ) from None
+        if mode != "start":
+            if (
+                type(value) is not dict
+                or type(value.get("original_operation_id")) is not str
+            ):
+                raise AdapterFailure(
+                    AdapterCode.INVALID_RESULT, dispatch_may_have_occurred=True
+                )
+            identity = value.pop("original_operation_id")
+            value["operation"] = "start_research_task"
+        payload, reconcile = _result("start_research_task", value)
+        return ResearchToolResult("start_research_task", identity, payload, reconcile)
+
+    async def shutdown_tasks(self):
+        self._check_binding()
+        shutdown = getattr(self._sdk.wrapper, "shutdown_tasks", None)
+        if callable(shutdown):
+            await shutdown()
+        elif self._task_api_used:
+            raise AdapterFailure(AdapterCode.OWNER_BINDING)

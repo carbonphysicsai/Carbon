@@ -44,13 +44,18 @@ await connected(async (client) => {
   assert.deepEqual(resources.map((item) => item.uri).sort(), [
     'carbon://research/v1/capabilities',
     'carbon://research/v1/guidance',
+    'carbon://research/v2/guidance',
+    'skill://carbon/carbon-research-v1/SKILL.md',
+    'skill://carbon/carbon-research-v1/references/workflow.md',
   ]);
-  const capabilities = await client.readResource({ uri: resources[0].uri });
+  const capabilities = await client.readResource({ uri: 'carbon://research/v1/capabilities' });
   assert.equal(JSON.parse(capabilities.contents[0].text).audience, 'miner');
   const guidance = await client.readResource({ uri: 'carbon://research/v1/guidance' });
   assert.match(guidance.contents[0].text, /operation_id stable/);
   const prompt = await client.getPrompt({ name: 'carbon_research_workflow_v1' });
   assert.match(prompt.messages[0].content.text, /DEVELOPMENT/);
+  const current = await client.readResource({ uri: 'carbon://research/v2/guidance' });
+  assert.match(current.contents[0].text, /tasks\/get/);
 
   const call = (operation, args) => client.callTool({ name: prefix + operation, arguments: args });
   const first = await call('start_research_task', practice);

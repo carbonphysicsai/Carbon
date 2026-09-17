@@ -88,13 +88,26 @@ class PublicResearchExecutor:
     """Trusted owner-bound composition; it receives no wallet or API key."""
 
     def __init__(
-        self, *, ledger, owner, image, public_material, practice, julia_image=None
+        self,
+        *,
+        ledger,
+        owner,
+        image,
+        public_material,
+        practice,
+        julia_image=None,
+        cleanup_only=False,
     ):
         self.ledger, self.owner, self.image = ledger, owner, image
         self.workspace = ResearchWorkspace(ledger, owner)
         self.public_material, self.practice = public_material, practice
         self.julia_image = julia_image
-        if julia_image is not None:
+        self.cleanup_only = cleanup_only
+        if cleanup_only:
+            from .research_admission import verify_cleanup_owner
+
+            verify_cleanup_owner(ledger, owner)
+        elif julia_image is not None:
             from .julia_analysis import authorize_julia
 
             authorize_julia(ledger, owner, julia_image)
@@ -239,6 +252,8 @@ class PublicResearchExecutor:
         request_cancel(self.ledger, owner=self.owner, identity=identity)
 
     def execute(self, attempt):
+        if self.cleanup_only:
+            raise ValueError("cleanup-only executor cannot admit research")
         token = ACTIVE_TASK.set(attempt.task_id.value)
         try:
             return self._execute(attempt)

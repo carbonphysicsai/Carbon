@@ -11,4 +11,5 @@ export CARBON_JULIA_TRACE_PATH="${CARBON_JULIA_TRACE_PATH:-${repo_root}/.carbon-
   -k 'registered_julia or existing_c04_controller' -q
 "${repo_root}/.venv/bin/python" -m pytest tests/service/test_julia_miner_research.py -q
 "${repo_root}/.venv/bin/python" -m pytest tests/service/test_authored_julia_service.py -q
+"${repo_root}/.venv/bin/python" -m pytest tests/service/test_mcp_tasks_native_julia.py -q
 "${repo_root}/.venv/bin/python" -m pytest tests/service/test_julia_workbench.py -q
