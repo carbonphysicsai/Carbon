@@ -90,6 +90,7 @@ if [[ " ${CARBON_UV_GROUPS:-} " == *" mcp "* ]]; then
     tests/service/test_standard_mcp_cli.py tests/service/test_standard_mcp_http.py -q
   if [[ "${CARBON_REQUIRE_TYPESCRIPT_INTEROP:-}" == "1" ]]; then
     "${python_bin}" -m pytest tests/service/test_standard_mcp_typescript.py -q
+    bash ./scripts/dev/workbench_science_checks.sh
   fi
 fi
 

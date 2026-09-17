@@ -14,6 +14,7 @@ from pathlib import Path
 
 from carbon.construction import ResolvedConstructionPlan
 from carbon.execution import ExecutionAttemptRef
+from carbon.reconstruction.accelerators import require_reconstruction_profile_admission
 from carbon.reconstruction.model import (
     EnvironmentEligibility,
     PredictionReceipt,
@@ -180,7 +181,9 @@ def _receipt(path: Path, manifest: dict[str, object]) -> ReconstructionReceipt:
     )
 
 
-def _environment_eligibility(observed: dict[str, object]) -> EnvironmentEligibility:
+def _environment_eligibility(
+    observed: dict[str, object], *, accelerator=None
+) -> EnvironmentEligibility:
     common = {
         "jax": "0.10.2",
         "jaxlib": "0.10.2",
@@ -192,18 +195,54 @@ def _environment_eligibility(observed: dict[str, object]) -> EnvironmentEligibil
         "einops": "0.8.2",
         "foundax": "0.2.0",
         "pyyaml": "6.0.3",
-        "backend": "cpu",
+        "backend": (
+            "cpu"
+            if accelerator is None
+            else ("gpu" if accelerator.backend.value == "cuda" else "tpu")
+        ),
         "x64": False,
     }
     if not observed.get("python", "").startswith("3.11.") or any(
         observed.get(key) != value for key, value in common.items()
     ):
         raise ReconstructionFailure("reconstruction.runtime.environment_ineligible")
+    if accelerator is not None and observed.get("python") != "3.11.16":
+        raise ReconstructionFailure("reconstruction.runtime.environment_ineligible")
     if observed.get("platform") == "Linux" and observed.get("machine") == "x86_64":
-        return EnvironmentEligibility.CANONICAL_DEVELOPMENT
-    if observed.get("platform") == "Darwin" and observed.get("machine") == "arm64":
+        return (
+            EnvironmentEligibility.CANONICAL_DEVELOPMENT
+            if accelerator is None
+            else EnvironmentEligibility.ACCELERATOR_DEVELOPMENT_DIAGNOSTIC
+        )
+    if (
+        accelerator is None
+        and observed.get("platform") == "Darwin"
+        and observed.get("machine") == "arm64"
+    ):
         return EnvironmentEligibility.NATIVE_MAC_DIAGNOSTIC
     raise ReconstructionFailure("reconstruction.runtime.environment_ineligible")
+
+
+def _mapped_accelerator(mapping):
+    if type(mapping) is not dict:
+        raise ReconstructionFailure("reconstruction.artifact.reconciliation_required")
+    if "execution_profile" not in mapping:
+        return None
+    from carbon.reconstruction.accelerators import resolve_profile
+
+    try:
+        accelerator = resolve_profile(mapping["execution_profile"]["profile_id"])
+        if (
+            mapping.get("schema") != "carbon.c02.plan-mapping.v3"
+            or mapping["execution_profile"] != accelerator.document()
+            or mapping.get("execution_profile_digest") != accelerator.digest
+        ):
+            raise ValueError()
+        return accelerator
+    except (TypeError, ValueError, KeyError):
+        raise ReconstructionFailure(
+            "reconstruction.artifact.reconciliation_required"
+        ) from None
 
 
 def _validate_artifact(
@@ -229,7 +268,13 @@ def _validate_artifact(
                 "reconstruction.artifact.reconciliation_required"
             )
         manifest = _read_json(path / "manifest.json")
-        if manifest["schema"] != "carbon.c02.reconstruction-artifact.v3":
+        accelerator = _mapped_accelerator(manifest["mapping_receipt"])
+        artifact_schema = (
+            "carbon.c02.reconstruction-artifact.v3"
+            if accelerator is None
+            else "carbon.c02.reconstruction-artifact.v4"
+        )
+        if manifest["schema"] != artifact_schema:
             raise ReconstructionFailure(
                 "reconstruction.artifact.reconciliation_required"
             )
@@ -284,7 +329,7 @@ def _validate_artifact(
             raise ReconstructionFailure(
                 "reconstruction.artifact.reconciliation_required"
             )
-        eligibility = _environment_eligibility(observed)
+        eligibility = _environment_eligibility(observed, accelerator=accelerator)
         if eligibility.value != manifest["environment_eligibility"]:
             raise ReconstructionFailure(
                 "reconstruction.artifact.reconciliation_required"
@@ -294,11 +339,13 @@ def _validate_artifact(
                 "reconstruction.artifact.reconciliation_required"
             )
         expected: dict[str, object] = {
-            "schema": "carbon.c02.reconstruction-artifact.v3",
+            "schema": artifact_schema,
             "scope": "UNQUALIFIED_PUBLIC_DEVELOPMENT",
             "training_role": "TRAIN",
             "checkpoint_subdirectory": "checkpoint",
         }
+        if accelerator is not None:
+            expected["environment_digest"] = accelerator.digest
         if execution_id is not None:
             expected["execution_id"] = execution_id
         if profile is not None:
@@ -419,6 +466,7 @@ def reconstruct(
     cancel: Callable[[], bool] | None = None,
     wall_budget_seconds: float | None = None,
     resume_from: ReconstructionReceipt | None = None,
+    worker_profile=None,
 ) -> ReconstructionReceipt:
     """Train or resume exactly one public development artifact."""
     execution_id = _execution_id(execution_ref)
@@ -429,6 +477,8 @@ def reconstruct(
     if not isinstance(artifact_path, Path) or not artifact_path.is_absolute():
         raise ReconstructionFailure("reconstruction.artifact.path_invalid")
     profile = compile_development_profile(plan)
+    require_reconstruction_profile_admission(profile, worker_profile=worker_profile)
+    accelerator = _mapped_accelerator(json.loads(profile.mapping_receipt_json))
     key_material = derived_seed.as_backend_bytes()
     randomness_digest = _tagged(key_material)
     if not training_archive.path.is_file() or training_archive.path.is_symlink():
@@ -488,6 +538,31 @@ def reconstruct(
     except ImportError:
         raise ReconstructionFailure("reconstruction.runtime.unavailable") from None
 
+    if accelerator is not None:
+        import importlib.metadata
+
+        import jax
+
+        from carbon.reconstruction.accelerators import (
+            accelerator_dependency_specs,
+            validate_worker_observation,
+        )
+        from carbon.reconstruction.worker.backend_probe import probe_backend
+
+        observation = probe_backend(accelerator.backend_request)
+        validate_worker_observation(
+            accelerator,
+            observation,
+            global_device_count=jax.device_count(backend=accelerator.backend.value),
+            process_count=jax.process_count(backend=accelerator.backend.value),
+            matmul_precision=jax.config.jax_default_matmul_precision,
+        )
+        if any(
+            importlib.metadata.version(name) != version
+            for name, version, _ in accelerator_dependency_specs(accelerator)
+        ):
+            raise ReconstructionFailure("reconstruction.runtime.environment_ineligible")
+        _environment_eligibility(observed_environment(), accelerator=accelerator)
     if artifact_path.exists() or artifact_path.is_symlink():
         return _validate_existing(
             artifact_path,
@@ -550,9 +625,13 @@ def reconstruct(
         save_checkpoint(trainer, checkpoint)
         checkpoint_digest = _tree_digest(checkpoint)
         observed = observed_environment()
-        eligibility = _environment_eligibility(observed)
+        eligibility = _environment_eligibility(observed, accelerator=accelerator)
         manifest = {
-            "schema": "carbon.c02.reconstruction-artifact.v3",
+            "schema": (
+                "carbon.c02.reconstruction-artifact.v3"
+                if accelerator is None
+                else "carbon.c02.reconstruction-artifact.v4"
+            ),
             "scope": "UNQUALIFIED_PUBLIC_DEVELOPMENT",
             "execution_id": execution_id,
             "plan_digest": profile.plan_digest,

@@ -87,3 +87,16 @@ merge under OWNER-DX-03. #209/#210 remain open until their remaining role/backen
 interface requirements have evidence. GPU/TPU, two independent external clients
 including a real agent host, arbitrary Julia containment, complete Workbench,
 portable optimizer/RNG state and finite learning experiments remain open.
+
+## Canonical build repair
+
+CI run 35281221985 passed its canonical environment and 25 isolated C-03
+service cases, then failed while extending the locally built image with Julia.
+The script used a local Docker image/config ID after `@` as though it were a
+registry manifest digest; the runner attempted an unauthorized registry pull.
+The repair uses a verified local tag with pull disabled, checks its exact parent
+ID before and after building, and verifies inherited layers, entrypoint, nonroot
+user and retained source/wheel/lock provenance before writing the child manifest.
+This does not authenticate a hostile build host or grant deployment authority.
+Eleven focused local tests passed, including tag rebinding and child provenance
+rejections. Actual corrected build and canonical delivery acceptance remain due.

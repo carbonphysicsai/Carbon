@@ -171,10 +171,27 @@ def compile_development_profile(
     ):
         raise ReconstructionFailure("reconstruction.implementation.pin_mismatch")
     environment = backbone.environment_pin
+    accelerator = None
+    if environment.environment_id != ENVIRONMENT_ID:
+        from carbon.reconstruction.accelerators import resolve_profile
+
+        try:
+            accelerator = resolve_profile(environment.environment_id)
+        except ValueError:
+            raise ReconstructionFailure(
+                "reconstruction.environment.pin_mismatch"
+            ) from None
+    expected_environment_id = (
+        ENVIRONMENT_ID if accelerator is None else accelerator.profile_id
+    )
+    expected_environment_version = ENVIRONMENT_VERSION if accelerator is None else "1.0"
+    expected_environment_digest = (
+        ENVIRONMENT_DIGEST if accelerator is None else accelerator.digest
+    )
     if (
-        environment.environment_id != ENVIRONMENT_ID
-        or environment.environment_version != ENVIRONMENT_VERSION
-        or environment.content_digest != ENVIRONMENT_DIGEST
+        environment.environment_id != expected_environment_id
+        or environment.environment_version != expected_environment_version
+        or environment.content_digest != expected_environment_digest
     ):
         raise ReconstructionFailure("reconstruction.environment.pin_mismatch")
     if backbone.input_interface_pin.content_digest != INPUT_INTERFACE_DIGEST:
@@ -185,7 +202,12 @@ def compile_development_profile(
         (pin.dependency_id, pin.dependency_version, pin.content_digest)
         for pin in backbone.dependency_pins
     )
-    if frozenset(observed_dependencies) != frozenset(DEPENDENCY_SPECS):
+    expected_dependencies = DEPENDENCY_SPECS
+    if accelerator is not None:
+        from carbon.reconstruction.accelerators import accelerator_dependency_specs
+
+        expected_dependencies += accelerator_dependency_specs(accelerator)
+    if frozenset(observed_dependencies) != frozenset(expected_dependencies):
         raise ReconstructionFailure("reconstruction.dependency.pin_mismatch")
     if plan.resolved_components:
         raise ReconstructionFailure("reconstruction.component.unsupported")
@@ -274,15 +296,23 @@ def compile_development_profile(
         "upstream_revision": FOUNDAX_REVISION if foundax else None,
         "upstream_license": "EPL-2.0" if foundax else "supplied notices",
     }
+    if accelerator is not None:
+        receipt["schema"] = "carbon.c02.plan-mapping.v3"
+        receipt["execution_profile"] = accelerator.document()
+        receipt["execution_profile_digest"] = accelerator.digest
     body = {
-        "schema": "carbon.c02.development-profile.v3",
+        "schema": (
+            "carbon.c02.development-profile.v3"
+            if accelerator is None
+            else "carbon.c02.development-profile.v4"
+        ),
         "plan_digest": plan_digest,
         "backbone_kind": expected[1],
         "model": model,
         "task": task,
         "train": train,
         "source_digest": FOUNDAX_WHEEL_DIGEST if foundax else _vendored_source_digest(),
-        "environment_digest": ENVIRONMENT_DIGEST,
+        "environment_digest": expected_environment_digest,
         "input_interface_digest": INPUT_INTERFACE_DIGEST,
         "output_interface_digest": OUTPUT_INTERFACE_DIGEST,
         "physical_scaling": scaling.to_dict(),
@@ -292,11 +322,15 @@ def compile_development_profile(
     profile_digest = _tagged(_canonical(body).encode("utf-8"))
     return ReconstructionProfile(
         profile_id=(
-            "carbon_c02_foundax_fno_development"
-            if foundax
-            else "carbon_c02_jax_development"
+            accelerator.profile_id
+            if accelerator is not None
+            else (
+                "carbon_c02_foundax_fno_development"
+                if foundax
+                else "carbon_c02_jax_development"
+            )
         ),
-        profile_version="3.0",
+        profile_version="3.0" if accelerator is None else "4.0",
         profile_digest=profile_digest,
         plan_digest=plan_digest,
         backbone_kind=expected[1],
@@ -304,7 +338,7 @@ def compile_development_profile(
         task_config_json=_canonical(task),
         train_config_json=_canonical(train),
         source_digest=body["source_digest"],
-        environment_digest=ENVIRONMENT_DIGEST,
+        environment_digest=expected_environment_digest,
         input_interface_digest=INPUT_INTERFACE_DIGEST,
         output_interface_digest=OUTPUT_INTERFACE_DIGEST,
         physical_scaling_digest=scaling.digest,

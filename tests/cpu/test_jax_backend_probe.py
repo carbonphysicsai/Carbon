@@ -277,16 +277,40 @@ def test_cli_outputs_observation(monkeypatch, capsys):
     assert "LOCAL_RUNTIME_OBSERVATION_ONLY" in capsys.readouterr().out
 
 
-def test_staged_worker_probes_pinned_cpu_before_reconstruction(monkeypatch, tmp_path):
+@pytest.fixture
+def staged_cpu_request(tmp_path):
+    from carbon.reconstruction.worker.protocol import stage_request
+    from tests.cpu.test_c03_worker_contract import _fixture
+
+    claimed, repeat, replica, plan, archive, seed, profile = _fixture(tmp_path)
+    stage, _digest = stage_request(
+        stage_root=(tmp_path / "state").resolve(),
+        claimed=claimed,
+        repeat_plan=repeat,
+        replica=replica,
+        plan=plan,
+        training_archive=archive,
+        derived_seed=seed,
+        worker_profile=profile,
+    )
+    return stage, profile
+
+
+def test_staged_worker_probes_pinned_cpu_before_reconstruction(
+    monkeypatch, tmp_path, staged_cpu_request
+):
     from carbon.reconstruction.profile import DEPENDENCY_SPECS
     from carbon.reconstruction.worker import protocol
 
+    stage, profile = staged_cpu_request
     calls = []
-    monkeypatch.setattr(
-        protocol,
-        "load_worker_request",
-        lambda path: (calls.append("decode") or (None, None, None, None, None)),
-    )
+    load = protocol.load_worker_request
+
+    def decode(path):
+        calls.append("decode")
+        return load(path)
+
+    monkeypatch.setattr(protocol, "load_worker_request", decode)
 
     def probe(request):
         calls.append("probe")
@@ -297,26 +321,28 @@ def test_staged_worker_probes_pinned_cpu_before_reconstruction(monkeypatch, tmp_
 
     def reconstruct(**kwargs):
         calls.append("reconstruct")
+        assert kwargs["worker_profile"] == profile
+        assert profile.accelerator_profile_id is None
         raise protocol.ReconstructionFailure("test.stop.after.probe")
 
     monkeypatch.setattr(p, "probe_backend", probe)
     monkeypatch.setattr(protocol, "reconstruct", reconstruct)
-    assert protocol.run_staged_worker(tmp_path / "input", tmp_path / "scratch") == 20
+    assert protocol.run_staged_worker(stage, tmp_path / "scratch") == 20
     assert calls == ["decode", "probe", "reconstruct"]
     assert not (tmp_path / "scratch" / "ready").exists()
 
 
 @pytest.mark.parametrize("code", list(p.ProbeCode))
 def test_staged_worker_backend_failure_never_trains_or_publishes(
-    monkeypatch, tmp_path, code
+    monkeypatch, tmp_path, code, staged_cpu_request
 ):
     from carbon.reconstruction.worker import protocol
 
-    monkeypatch.setattr(
-        protocol, "load_worker_request", lambda path: (None, None, None, None, None)
-    )
+    stage, _profile = staged_cpu_request
+    calls = []
 
     def fail_probe(request):
+        calls.append(request.backend)
         raise p.BackendProbeError(code)
 
     def forbidden(**kwargs):
@@ -324,7 +350,8 @@ def test_staged_worker_backend_failure_never_trains_or_publishes(
 
     monkeypatch.setattr(p, "probe_backend", fail_probe)
     monkeypatch.setattr(protocol, "reconstruct", forbidden)
-    assert protocol.run_staged_worker(tmp_path / "input", tmp_path / "scratch") == 20
+    assert protocol.run_staged_worker(stage, tmp_path / "scratch") == 20
+    assert calls == [p.Backend.CPU]
     assert not (tmp_path / "scratch").exists()
 
 
