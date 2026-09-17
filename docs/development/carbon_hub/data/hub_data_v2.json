@@ -511,7 +511,7 @@
       "url": "https://github.com/carbonphysicsai/Carbon/blob/8e509a55100cf99533392a7c2ff6be88bf4c539b/docs/development/MINER_LAUNCHPAD_HANDOFF.md"
     },
     "miner_launchpad_research_ticket": {
-      "label": "C-MLP-02: single-practice independent rejection; multi-iteration acceptance incomplete",
+      "label": "C-MLP-02: finite-completion repair; adaptive acceptance remains incomplete",
       "url": "https://github.com/carbonphysicsai/Carbon/blob/8e509a55100cf99533392a7c2ff6be88bf4c539b/.agent/tickets/C-MLP-02_development_research_bridge.md"
     },
     "miner_launchpad_research_bridge": {
@@ -1928,7 +1928,8 @@
         "No D4 allowance transfers.",
         "REJECTED_MANDATORY",
         "one practice experiment and six",
-        "genuine multi-iteration acceptance remains selected"
+        "genuine multi-iteration acceptance remains selected",
+        "Finite-completion repair C-MLP-02-D5"
       ]
     },
     {
