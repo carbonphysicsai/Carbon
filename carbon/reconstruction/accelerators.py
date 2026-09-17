@@ -255,6 +255,12 @@ def require_reconstruction_profile_admission(profile, *, worker_profile=None) ->
         ) from None
     from carbon.reconstruction.worker.model import DevelopmentWorkerProfile
 
+    # A prospective TPU request/profile is not a validated TPU host adapter.
+    # Keep this before staging, numerical imports and backend initialization,
+    # including when a caller constructs a typed internal worker profile.
+    if selected is TPU_PROFILE:
+        raise ReconstructionFailure("reconstruction.accelerator.admission_disabled")
+
     if (
         type(worker_profile) is not DevelopmentWorkerProfile
         or worker_profile.accelerator_profile_id != selected.profile_id

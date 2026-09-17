@@ -132,11 +132,18 @@ class DevelopmentWorkerProfile:
             ):
                 raise WorkerFailure(WorkerCode.UNSUPPORTED)
         else:
-            from carbon.reconstruction.accelerators import GPU_PROFILE, AcceleratorRole
+            from carbon.reconstruction.accelerators import (
+                GPU_PROFILE,
+                TPU_PROFILE,
+                AcceleratorRole,
+            )
 
             if (
-                self.accelerator_profile_id != GPU_PROFILE.profile_id
-                or self.profile_id != "carbon.c03.cuda.development.v1"
+                (self.accelerator_profile_id, self.profile_id)
+                not in (
+                    (GPU_PROFILE.profile_id, "carbon.c03.cuda.development.v1"),
+                    (TPU_PROFILE.profile_id, "carbon.c03.tpu.preparation.v1"),
+                )
                 or self.profile_version != "1.0"
                 or self.accelerator_role not in [role.value for role in AcceleratorRole]
             ):
@@ -193,17 +200,31 @@ class DevelopmentWorkerProfile:
         }
 
         if self.accelerator_profile_id is not None:
-            from carbon.reconstruction.accelerators import GPU_PROFILE
+            from carbon.reconstruction.accelerators import GPU_PROFILE, TPU_PROFILE
 
-            result["schema"] = "carbon.c03.development-worker-profile.v2"
-            result["accelerators"] = {
-                "profile_id": self.accelerator_profile_id,
-                "profile_digest": GPU_PROFILE.digest,
-                "grant_digest": self.accelerator_grant_digest,
-                "role": self.accelerator_role,
-                "device_uuid": GPU_PROFILE.device_uuid,
-                "allocation": "EXCLUSIVE_SINGLE_DEVICE",
-            }
+            if self.accelerator_profile_id == TPU_PROFILE.profile_id:
+                result["schema"] = "carbon.c03.development-worker-profile.v3"
+                result["accelerators"] = {
+                    "profile_id": TPU_PROFILE.profile_id,
+                    "profile_digest": TPU_PROFILE.digest,
+                    "grant_digest": self.accelerator_grant_digest,
+                    "role": self.accelerator_role,
+                    "local_device_count": TPU_PROFILE.local_device_count,
+                    "global_device_count": TPU_PROFILE.global_device_count,
+                    "process_count": TPU_PROFILE.process_count,
+                    "allocation": "EXCLUSIVE_TPU_HOST_REQUIRED_NOT_VERIFIED",
+                    "host_dispatch": "UNAVAILABLE",
+                }
+            else:
+                result["schema"] = "carbon.c03.development-worker-profile.v2"
+                result["accelerators"] = {
+                    "profile_id": self.accelerator_profile_id,
+                    "profile_digest": GPU_PROFILE.digest,
+                    "grant_digest": self.accelerator_grant_digest,
+                    "role": self.accelerator_role,
+                    "device_uuid": GPU_PROFILE.device_uuid,
+                    "allocation": "EXCLUSIVE_SINGLE_DEVICE",
+                }
         return result
 
     @property

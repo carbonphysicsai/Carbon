@@ -408,6 +408,15 @@ def doctor(
     )
 
 
+def _require_supported_device_adapter(profile: DevelopmentWorkerProfile) -> None:
+    from carbon.reconstruction.accelerators import GPU_PROFILE
+
+    if type(profile) is not DevelopmentWorkerProfile:
+        raise WorkerFailure(WorkerCode.INVALID)
+    if profile.accelerator_profile_id not in (None, GPU_PROFILE.profile_id):
+        raise WorkerFailure(WorkerCode.UNSUPPORTED)
+
+
 def create_arguments(
     *,
     container_name: str,
@@ -420,8 +429,7 @@ def create_arguments(
     exact_token(container_name)
     exact_digest(image_id)
     exact_digest(launch_digest)
-    if type(worker_profile) is not DevelopmentWorkerProfile:
-        raise WorkerFailure(WorkerCode.INVALID)
+    _require_supported_device_adapter(worker_profile)
     if (
         cpuset != "0,1"
         or not input_directory.is_absolute()
@@ -561,6 +569,7 @@ def inspect_effective_controls(
     worker_profile: DevelopmentWorkerProfile,
 ) -> tuple[str, dict[str, object]]:
     """Verify daemon config and kernel-visible controls after create/start."""
+    _require_supported_device_adapter(worker_profile)
     value = cli.json(["inspect", container_name, "--format", "{{json .}}"])
     if type(value) is not dict:
         raise WorkerFailure(WorkerCode.POLICY)
