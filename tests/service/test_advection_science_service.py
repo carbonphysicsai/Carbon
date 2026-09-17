@@ -21,6 +21,7 @@ from carbon.development_session.advection_research import (
     PublicAdvectionMaterial,
 )
 from carbon.development_session.julia_analysis import (
+    build_julia_analysis_image,
     load_julia_analysis_image,
     run_julia,
     verify_julia_image,
@@ -38,10 +39,19 @@ from carbon.reference_runtime.julia.advection import (
 
 
 @pytest.fixture(scope="module")
-def image():
-    return verify_julia_image(
-        load_julia_analysis_image(
-            Path(os.environ["CARBON_ADVECTION_JULIA_IMAGE_MANIFEST"])
+def image(tmp_path_factory):
+    explicit = os.environ.get("CARBON_ADVECTION_JULIA_IMAGE_MANIFEST")
+    if explicit:
+        return verify_julia_image(load_julia_analysis_image(Path(explicit)))
+    # The normal service script shares the exact operator-built authored image
+    # with its containment suite. No solver request installs or builds a runtime.
+    return build_julia_analysis_image(
+        Path(os.environ["CARBON_JULIA_WORKER_MANIFEST"]),
+        Path(
+            os.environ.get(
+                "CARBON_AUTHORED_JULIA_IMAGE_ROOT",
+                str(tmp_path_factory.mktemp("advection-julia-image")),
+            )
         )
     )
 
