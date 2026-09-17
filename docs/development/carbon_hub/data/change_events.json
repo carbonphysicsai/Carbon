@@ -2561,7 +2561,7 @@
       "event_id": "OWNER-C1-BURGERS-ALPHA-01",
       "owner_lane": "repository_owner",
       "status": "active",
-      "summary": "The owner selects C-03 prerequisite hardening and a sequential public-data Burgers vertical, with a trusted Carbon single-tenant host, three replicas in new working profiles, explicit Cole\u2013Hopf/witness/ETDRK4 roles and prospective private archive targets. C-04 is next after the current merge; protected admission, independent review acceptance, scientific sufficiency, real archive acknowledgement, public-network operation and LIVE remain unavailable.",
+      "summary": "The owner selects C-03 prerequisite hardening and a sequential public-data Burgers vertical, with a trusted Carbon single-tenant host, three replicas in new working profiles, explicit Cole–Hopf/witness/ETDRK4 roles and prospective private archive targets. C-04 is next after the current merge; protected admission, independent review acceptance, scientific sufficiency, real archive acknowledgement, public-network operation and LIVE remain unavailable.",
       "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/0a57b13ae97056d722930ab95a9604077af8520d/.agent/plans/C1_ALPHA_VERTICAL_CONTINUATION.md",
       "affects": [
         "WAVE-B",
@@ -2617,7 +2617,7 @@
       "event_id": "C-04-I1",
       "owner_lane": "scientific_reference_execution_engineering",
       "status": "implemented",
-      "summary": "The C-04 candidate implements role-explicit Cole\u2013Hopf primary, conservative finite-volume witness and ETDRK4 development cross-check paths under the C-03 boundary, plus a frozen twelve-cell public D-03/D-04 prerequisite harness. Required exact-head Linux service acceptance is pending; no tolerance, TruthAsset, protected admission, score or scientific/security qualification is asserted.",
+      "summary": "The C-04 candidate implements role-explicit Cole–Hopf primary, conservative finite-volume witness and ETDRK4 development cross-check paths under the C-03 boundary, plus a frozen twelve-cell public D-03/D-04 prerequisite harness. Required exact-head Linux service acceptance is pending; no tolerance, TruthAsset, protected admission, score or scientific/security qualification is asserted.",
       "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/cce53ae3ef12d2140c23ae3a1ef60e968aabe0dd/.agent/evidence/wave_c/c-04.md",
       "affects": [
         "WAVE-B",
@@ -4292,6 +4292,21 @@
         "WAVE-L",
         "WAVE-M",
         "WAVE-N"
+      ],
+      "supersedes": null
+    },
+    {
+      "map_ref": "SYSTEM/AGENT-EXECUTION",
+      "event_type": "evidence",
+      "event_id": "C-MLP-02-BROWSER-VALIDATION-02",
+      "owner_lane": "technical_lead",
+      "status": "implemented",
+      "summary": "The separately approved remaining-allowance browser campaign completed one genuine practice experiment, froze its practiced strategy and returned REJECTED_MANDATORY after six independent final replicas. Stop/reconcile, export, terminal restart and cleanup preserved the result and accounting. Two adaptive iterations remain unobserved; both cycle epoch slots are consumed. The successor UI displays existing measured curves, gates and cost categories and preserves inspection across polling. Shared lifecycle repair and future interfaces stay coordinated with core programme #209; no active experiment is migrated and no GPU/TPU/Julia/hosted qualification is inferred.",
+      "primary_detail": "docs/development/MINER_LAUNCHPAD_RESEARCH_BRIDGE.md",
+      "affects": [
+        "WAVE-C/C-W1",
+        "SYSTEM/CI",
+        "SYSTEM/DEVELOPMENT-HUB"
       ],
       "supersedes": null
     }
