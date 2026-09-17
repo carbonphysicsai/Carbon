@@ -73,10 +73,10 @@ def test_invalid_numerical_attempt_consumes_one_slot_and_replay_does_not_repeat(
     )
     args = {"kind": "practice", "extra": "invalid closed fields"}
     for _ in range(2):
-        with pytest.raises(ValueError, match="closed"):
-            asyncio.run(
-                sdk.call(PREFIX + "start_research_task", args, "invalid-proposal")
-            )
+        result = asyncio.run(
+            sdk.call(PREFIX + "start_research_task", args, "invalid-proposal")
+        )
+        assert result["status"] == "REJECTED_BEFORE_DISPATCH"
     assert meter.status(owner="alice")["used"]["research_trials"] == 1
 
 
@@ -148,3 +148,50 @@ def test_reward_lineage_is_not_reopened_for_fresh_epoch(tmp_path, monkeypatch):
         b["status"] == "WITHHELD_INCOMPATIBLE_INCUMBENT_LINEAGE"
         and b["opening_reset"] is False
     )
+
+
+def test_old_worker_image_is_rejected_before_campaign_dispatch():
+    from types import SimpleNamespace
+
+    from carbon.development_session.research_campaign import verify_current_worker
+
+    with pytest.raises(ValueError, match="exact accepted"):
+        verify_current_worker(
+            SimpleNamespace(source_tree_digest="old"),
+            {"source_tree_digest": "accepted"},
+        )
+    verify_current_worker(
+        SimpleNamespace(source_tree_digest="accepted"),
+        {"source_tree_digest": "accepted"},
+    )
+
+
+def test_provider_timeout_must_fit_remaining_elapsed_envelope(tmp_path):
+    from carbon.development_session.agent import MAX_OUTPUT_TOKENS, MODEL
+    from carbon.development_session.research_agent import request_model
+    from carbon.development_session.research_ledger import ELAPSED_SECONDS
+
+    meter = ledger(tmp_path, clock=lambda: 1000)
+    meter.reserve("start", owner="alice", phase="selection", request={}, resources={})
+    meter.finish("start", owner="alice", state="SUCCEEDED", actual={}, result={})
+    meter.clock = lambda: 1000 + ELAPSED_SECONDS - 119
+    request = {
+        "model": MODEL,
+        "instructions": "test",
+        "input": [],
+        "tools": [],
+        "parallel_tool_calls": False,
+        "store": False,
+        "max_output_tokens": MAX_OUTPUT_TOKENS,
+        "reasoning": {"effort": "low"},
+    }
+    with pytest.raises(ValueError, match="timeout"):
+        request_model(
+            meter,
+            owner="alice",
+            identity="late",
+            request=request,
+            credential_file=None,
+            transport=lambda req: pytest.fail("expired dispatch"),
+        )
+    assert meter.status(owner="alice")["used"]["provider_attempts"] == 0

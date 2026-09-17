@@ -275,6 +275,30 @@ class ResearchMinerTools:
             if token is not None:
                 PRECHARGED_TRIAL.reset(token)
 
+    def rejected(self, operation, args, identity, *, reason="contract_incompatibility"):
+        """A pre-dispatch rejection is feedback, never an ambiguous execution."""
+        record = {
+            "purpose": args.get("expected_effect", "Not supplied by the requester"),
+            "operation": operation,
+            "hypothesis": args.get("hypothesis", "Not supplied by the requester"),
+            "public_evidence": "Rejected request " + identity,
+            "request_digest": digest(canonical(args)),
+            "reason": reason,
+            "expected_benefit": "Requester has not yet justified an extension",
+            "estimated_cost": "Unestimated; requires investigation",
+            "minimal_safe_design": "Use the disclosed closed recipe/workspace contract; extensions require tested delivery",
+            "verification": "A bounded valid request must execute and reconstruct with identical semantics",
+            "disposition": "investigate",
+            "authority_granted": False,
+        }
+        self.ledger.note(owner=self.owner, kind="capability_request", body=record)
+        return {
+            "status": "REJECTED_BEFORE_DISPATCH",
+            "reason": reason,
+            "detail": "Request does not satisfy the disclosed argument/recipe contract. Inspect capabilities and correct the request. This consumed the applicable proposal counter, but started no task.",
+            "authority_granted": False,
+        }
+
     async def _call(self, name, args, identity):
         operation = name.removeprefix(PREFIX)
         if (
@@ -283,17 +307,21 @@ class ResearchMinerTools:
             or type(args) is not dict
             or set(args) != set(FIELDS[operation])
         ):
-            raise ValueError("closed namespaced research tool required")
+            return self.rejected(name, args if type(args) is dict else {}, identity)
         if len(canonical(args)) > 32768:
             raise ValueError("bounded tool arguments required")
-        # Read-only registration observation; no owner wallet or chain transaction.
-        observed = await self.connection.check_registration()
         unavailable = operation == "inspect_prior_alignment"
-        request = self._request(
-            "get_interaction_manifest" if unavailable else operation,
-            {} if unavailable else args,
-            identity,
-        )
+        try:
+            request = self._request(
+                "get_interaction_manifest" if unavailable else operation,
+                {} if unavailable else args,
+                identity,
+            )
+        except (ValueError, TypeError, KeyError):
+            return self.rejected(operation, args, identity)
+        # Authentication and execution exceptions remain operational stops. Only
+        # the pre-dispatch closed request validation above is repairable feedback.
+        observed = await self.connection.check_registration()
         if operation == "start_research_task":
             self.ledger.note(
                 owner=self.owner,

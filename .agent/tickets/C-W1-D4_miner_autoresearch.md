@@ -130,8 +130,22 @@ controls passed executed JAX behavior checks in one isolated engineering worker
 warmup >= steps; the corrected probe obeyed the existing constraint. These are
 manufactured engineering controls, not agent inference or quality evidence.
 
-Remaining: complete final integrated source/owner-report verification, Hub
-reconciliation, policy-required acceptance and normal delivery, then execute the
+The fresh-profile integration completed 96 primary references, six real C-03
+reconstructions and 144 C-05 case-by-replica observations. The first comparison
+correctly rejected an absent engineering quarantine journal; after explicitly
+creating that fixture, resume reused the exact signed sources, completed 48
+refinement trajectories and passed comparison/disclosure/replay assertions.
+No numerical source was replaced to obtain a favorable result. This fixed,
+two-update recipe is integration evidence only, never agent or quality evidence.
+The earlier byte-identity and stale-image failures remain retained. Campaign
+preflight now requires an image built from its exact accepted revision.
+
+Hub source/impact validation and code quality passed. Owner reporting includes
+current hypothesis, active operation, remaining budgets, phase accounting and
+an agent-report.json alias. Invalid closed requests are retained corrective
+feedback; ambiguous execution still stops without duplication.
+
+Remaining: policy-required acceptance and normal delivery, then execute the
 finite real campaign from its accepted revision. Main advanced through unrelated
 Workbench and website PRs #203/#204; preserve their authority and Hub changes.
 No PR or accepted D4 revision exists. No real campaign model call, reference

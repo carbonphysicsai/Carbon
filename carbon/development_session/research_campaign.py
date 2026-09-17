@@ -84,7 +84,21 @@ def accepted_implementation(revision):
         check=False,
     ).returncode:
         raise ValueError("accepted revision is not in fetched main")
-    return {"revision": head, "tree": git("rev-parse", "HEAD^{tree}")}
+    archive = subprocess.check_output(
+        ["git", "archive", "--format=tar", "HEAD"], cwd=repo, timeout=30
+    )
+    return {
+        "revision": head,
+        "tree": git("rev-parse", "HEAD^{tree}"),
+        "source_tree_digest": digest(archive),
+    }
+
+
+def verify_current_worker(image, implementation):
+    if image.source_tree_digest != implementation["source_tree_digest"]:
+        raise ValueError(
+            "trusted worker must be built from this exact accepted source revision"
+        )
 
 
 def private_file(path):
@@ -340,6 +354,7 @@ async def execute(args):
         raise ValueError("no frozen campaign to resume")
     ledger = CampaignLedger(root)
     image = load_image_identity(args.image_manifest)
+    verify_current_worker(image, implementation)
     eligibility = doctor(image_id=image.image_id, image_identity=image)
     if not eligibility.eligible:
         raise ValueError("accepted numerical host unavailable")

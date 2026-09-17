@@ -16,3 +16,23 @@ def test_empty_report_and_untrusted_text(tmp_path):
     assert "<script>" not in page
     assert "&lt;script&gt;" in page
     assert value["campaign_digest"] is None
+
+
+def test_report_separates_phases_and_preserves_machine_readable_alias(tmp_path):
+    import json
+
+    from test_cw1_research_ledger import ledger as make_ledger
+
+    meter = make_ledger(tmp_path)
+    meter.reserve(
+        "reference",
+        owner="alice",
+        phase="research",
+        request={},
+        resources={"reference_invocations": 1},
+    )
+    value = report(meter, owner="alice")
+    assert value["phase_accounting"]["research"]["reference_invocations"] == 1
+    assert value["active_operations"] == ["reference"]
+    assert json.loads((tmp_path / "agent-report.json").read_bytes()) == value
+    assert value["epoch_outcomes"] == []

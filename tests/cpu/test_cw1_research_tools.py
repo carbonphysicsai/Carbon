@@ -211,3 +211,36 @@ def test_authenticated_sdk_waits_for_owned_real_workspace_task(tmp_path, monkeyp
     assert ledger.status(owner=owner)["used"]["provider_attempts"] == 0
     assert ledger.status(owner=owner)["used"]["research_trials"] == 0
     composition.tasks.close()
+
+
+def test_invalid_trial_is_counted_and_returns_repairable_feedback(tmp_path):
+    import asyncio
+
+    from test_cw1_research_ledger import ledger as make_ledger
+
+    meter = make_ledger(tmp_path)
+    sdk = ResearchMinerTools(
+        connection=None, wrapper=None, composition=None, ledger=meter, owner="alice"
+    )
+    args = {
+        "kind": "practice",
+        "strategy_json": "{}",
+        "action": None,
+        "arguments_json": None,
+        "hypothesis": "invalid input",
+        "expected_effect": "no execution",
+        "extra": True,
+    }
+    result = asyncio.run(sdk.call(PREFIX + "start_research_task", args, "bad-trial"))
+    assert result["status"] == "REJECTED_BEFORE_DISPATCH"
+    assert meter.status(owner="alice")["used"]["research_trials"] == 1
+    assert (
+        asyncio.run(sdk.call(PREFIX + "start_research_task", args, "bad-trial"))[
+            "status"
+        ]
+        == result["status"]
+    )
+    assert meter.status(owner="alice")["used"]["research_trials"] == 1
+    note = meter.status(owner="alice")["notes"][0]["body"]
+    assert note["hypothesis"] == "invalid input"
+    assert note["authority_granted"] is False

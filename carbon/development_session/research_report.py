@@ -7,7 +7,7 @@ import html
 import json
 from pathlib import Path
 
-from .research_ledger import CampaignLedger
+from .research_ledger import ELAPSED_SECONDS, CampaignLedger
 
 
 def render_status(ledger, *, owner):
@@ -27,6 +27,31 @@ def render_status(ledger, *, owner):
     elif value["status"] == "RECONCILIATION_REQUIRED":
         value["status"] = "ACTIVE_OR_RECONCILIATION_REQUIRED"
     value["retained_physical_bytes"] = ledger.check_storage()
+    value["elapsed_seconds"] = (
+        max(0, ledger.clock() - value["started_unix"])
+        if value["started_unix"] is not None
+        else 0
+    )
+    value["remaining_elapsed_seconds"] = max(
+        0, ELAPSED_SECONDS - value["elapsed_seconds"]
+    )
+    value["active_operations"] = [
+        op["id"] for op in value["operations"] if op["state"] == "RESERVED"
+    ]
+    value["current_hypothesis"] = next(
+        (n["body"] for n in reversed(value["notes"]) if n["kind"] == "hypothesis"), None
+    )
+    value["phase_accounting"] = {}
+    for op in value["operations"]:
+        total = value["phase_accounting"].setdefault(op["phase"], {})
+        for key, amount in (
+            op["actual"] if op["actual"] is not None else op["reservation"]
+        ).items():
+            total[key] = total.get(key, 0) + amount
+    value["epoch_outcomes"] = [
+        json.loads(p.read_bytes())
+        for p in sorted(ledger.root.glob("epoch-*/outcome.json"))
+    ]
     value["trials"] = []
     with ledger.db() as db:
         if db.execute(
@@ -83,7 +108,7 @@ def report(ledger, *, owner):
 <h1>Carbon miner research</h1><p>Status: <strong>{esc(value['status'])}</strong></p>
 <p>This view shows retained operations only. It does not imply a provider call, training run or accepted improvement.</p>
 <p>Campaign digest: {esc(value['campaign_digest'])}<br>First operation (Unix UTC): {esc(value['started_unix'])}</p>
-<h2>Cumulative accounting</h2><p>Unresolved operations keep their full reservations. Repository CI is separate.</p><table><tr><th>Resource</th><th>Used or reserved</th><th>Remaining ceiling</th></tr>{budgets}</table>
+<h2>Current operation</h2><p>Elapsed seconds: {esc(round(value["elapsed_seconds"],1))}; remaining: {esc(round(value["remaining_elapsed_seconds"],1))}</p><pre>{esc(json.dumps({"active_operations":value["active_operations"],"hypothesis":value["current_hypothesis"]},indent=2))}</pre><h2>Research versus final work</h2><pre>{esc(json.dumps(value["phase_accounting"],indent=2))}</pre><h2>Cumulative accounting</h2><p>Unresolved operations keep their full reservations. Repository CI is separate.</p><table><tr><th>Resource</th><th>Used or reserved</th><th>Remaining ceiling</th></tr>{budgets}</table>
 <h2>Real research trials</h2><p>These single-replica practice observations are adaptively seen, with primary-only references. Full curves and diagnostics remain in miner-owned files and worker snapshots.</p><table><tr><th>Trial</th><th>Recipe</th><th>Completed updates</th><th>Worker seconds</th><th>Permitted diagnostics</th></tr>{trials}</table>
 <h2>Independent final comparisons</h2>{finals}<p>Fresh final EVAL and STRESS cases are withheld until recipe freeze. Three construction replicas do not establish a population confidence interval. Chain state, model quality, and payment remain separate.</p>
 <h2>Retained operations</h2><table><tr><th>Identity</th><th>Phase</th><th>Disposition</th><th>Result</th></tr>{operations}</table>
@@ -91,10 +116,18 @@ def report(ledger, *, owner):
     for name, data in (
         ("research-report.html", document),
         ("research-report.json", json.dumps(value, indent=2, allow_nan=False)),
+        ("agent-report.json", json.dumps(value, indent=2, allow_nan=False)),
     ):
         path = ledger.root / name
         if path.is_symlink():
             raise ValueError("report symlink rejected")
+        ledger.check_storage(
+            max(
+                0,
+                len(data.encode("utf-8"))
+                - (path.stat().st_size if path.exists() else 0),
+            )
+        )
         path.write_text(data, encoding="utf-8")
         path.chmod(0o600)
     return value

@@ -94,6 +94,16 @@ def request_model(
     payload = canonical(request)
     if len(payload) > MAX_INPUT_TOKENS - 4096:
         raise ValueError("cumulative history/schema token reservation exhausted")
+    # The existing transport has a 120-second timeout. A new request must fit
+    # the remaining elapsed envelope; replay remains permitted after expiry.
+    with ledger.db() as db:
+        old = db.execute("SELECT id FROM operations WHERE id=?", (identity,)).fetchone()
+        campaign = db.execute("SELECT started FROM campaign WHERE id=1").fetchone()
+    if old is None and campaign is not None and campaign[0] is not None:
+        from .research_ledger import ELAPSED_SECONDS
+
+        if ledger.clock() + 120 > campaign[0] + ELAPSED_SECONDS:
+            raise ValueError("provider timeout cannot fit remaining campaign time")
     request_digest = digest(payload)
     directory = ledger.root / ("model-" + digest(canonical([owner, identity]))[7:])
     reservation = {

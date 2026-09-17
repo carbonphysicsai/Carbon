@@ -89,7 +89,9 @@ python -m carbon.development_session.research_campaign status --root "$CAMPAIGN_
 python -m carbon.development_session.research_campaign report --root "$CAMPAIGN_ROOT"
 ```
 
-Open `research-report.html` in that private directory. `research-report.json`,
+Open `research-report.html` in that private directory. `research-report.json` and
+its `agent-report.json` alias include current hypothesis, active operations,
+remaining budgets and separate research/final accounting. They are saved with
 per-epoch outcomes, full curves, practice diagnostics, worker snapshots and signed
 source handoffs remain alongside it. The report separates single-construction
 adaptive practice from the independently reconstructed final comparison.

@@ -39,7 +39,7 @@ import json,os,socket,subprocess
 from pathlib import Path
 assert Path('public.txt').read_bytes()==b'public-only'
 assert not Path('/var/run/docker.sock').exists()
-assert not Path('/home/carbon/Carbon').exists()
+assert not list(Path('/home').glob('*/Carbon'))
 import importlib.util
 for name in ('carbon.measurement_runtime','carbon.reference_runtime','carbon.development_session','carbon.audit','carbon.registry','carbon.chain'):
     assert importlib.util.find_spec(name) is None,name

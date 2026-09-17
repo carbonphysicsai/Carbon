@@ -2,9 +2,9 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `cf2ca687031f246b5d50083738d4b51cdc317e58` on `main`, captured 2026-09-17T10:19:12Z.
-**Current:** Wave C, ticket C-W1-D3. C-W1-D3 implements balanced-v2 DEVELOPMENT acceptance and non-paying reward simulation. Two bounded design iterations and analytic verification completed; retained FNO results are retrospective diagnostic ranks and fail mandatory conditions. No fresh training, model charge, real winner, payment or public-network transaction. Required CI and normal merge close engineering only. Historical testnet 567 exact row [[0, 65535]] remains ROW_VERIFIED; burn amounts, epoch effects, miner payment and settlement remain unproven. Distinct miner UID 1 finalized in the earlier setup; no identities were registered here. No later ticket is selected. Synthetic controls are not results of the real agent. No subsequent activation or weight transaction is authorized. Subnet 567 creation finalized at block 8010852 in the earlier C-W1 DEVELOPMENT setup. AWS stays deferred; Hippius unverified. Owner-approved bounded DEVELOPMENT CI retains all invariants and affected subsystem, package, quality and Hub acceptance; official/shared runtime changes still require full regression.
-**Last completed:** C-W1-D2 (`done`).
+**Authority snapshot:** `61e8887fa81bd050d5279e858a9a4247649033e9` on `main`, captured 2026-09-17T11:55:18Z.
+**Current:** Wave C, ticket C-W1-D4. C-W1-D4 implements authenticated local miner research, real isolated practice, a bounded workspace and fresh final reconstruction/comparison. Focused engineering checks passed; required delivery acceptance and the finite real campaign remain pending. No campaign inference, provider charge, accepted winner or new network transaction has occurred. Historical testnet 567 exact row [[0, 65535]] remains ROW_VERIFIED; burn amounts, epoch effects and settlement remain unproven. AWS remains deferred and Hippius unverified. Website and Workbench work and spending are separate. No later ticket is selected. Distinct miner UID 1 finalized in the earlier setup; no identities were registered here. Synthetic controls are not results of the real agent. No subsequent activation or weight transaction is authorized.
+**Last completed:** C-W1-D3 (`done`).
 **Next selected:** none selected.
 
 ## Wave spine
@@ -100,7 +100,8 @@
 | [C-09](explainers/tickets/c_09.md) | Project a real qualified Challenge-local result toward testnet eligibility without making publication the scientific judge. | todo |
 | [C-W1](explainers/tickets/c_w1.md) | Admit an exact real C1 proof chain into a non-live, non-settling testnet eligibility event. | in_progress |
 | [C-W1-D2](explainers/tickets/c_w1_d2.md) | Compare authentic DEVELOPMENT measurements without paying or inventing a winner. | done |
-| [C-W1-D3](explainers/tickets/c_w1_d3.md) | Give miners a useful, bounded DEVELOPMENT objective and test whether its measurements detect failures. | in_progress |
+| [C-W1-D3](explainers/tickets/c_w1_d3.md) | Give miners a useful, bounded DEVELOPMENT objective and test whether its measurements detect failures. | done |
+| [C-W1-D4](explainers/tickets/c_w1_d4.md) | Let a miner learn from real public practice before freezing a recipe for independent testing. | in_progress |
 
 ## Change routes
 
@@ -256,6 +257,7 @@
 - `CW1-D3-BOUNDED-CI-20260917` — `WAVE-C/C-W1` — Ryan authorizes bounded DEVELOPMENT CI: exact runtime/test manifests retain invariants, affected subsystem/package/quality/Hub checks; shared/official runtime keeps full regression and image rebuilds follow actual inputs.
 - `WEB-QA-03-D1` — `SYSTEM/PUBLICATION-AUTHORITY` — Ask Carbon now has separate authenticated Cloudflare staging Workers backed by one canonical Durable Object budget authority and a dedicated OpenAI project credential. Luna and Terra were evaluated through the real bounded backend; neither cleared the frozen final-answer reliability gate. Concurrent Workbench evaluation exposure is retained through a durable shared-ledger offset, no production model is selected, and carbonphysics.ai remains unchanged.
 - `WEB-QA-03-HUB-REPIN-20260917` — `SYSTEM/DEVELOPMENT-HUB` — Register WEB-QA-03 under publication authority and repin the current Hub to the reconciled authority snapshot. The private staging evidence changes no scientific, Wave-C, qualification, network or production state.
+- `C-W1-D4-RESEARCH-01` — `WAVE-C/C-W1` — Ryan authorizes one finite DEVELOPMENT miner research campaign. The candidate now adds real practice, isolated public Python, durable budgets and fresh final source bindings; engineering tests passed in their scopes, while delivery acceptance and real inference remain pending. Reconcile the PR #202 closeout and new D4 dependency edges; refresh shared source links to the current authority snapshot without promoting any qualification.
 
 ## Authority boundary
 

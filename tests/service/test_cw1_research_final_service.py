@@ -27,6 +27,7 @@ from carbon.development_session.research_ledger import (
     CampaignLedger,
 )
 from carbon.reconstruction.worker.docker_runtime import load_image_identity
+from carbon.reexecution.store import ReexecutionJournal
 
 
 def test_real_fresh_final_sources_compare_and_resume_without_redispatch(
@@ -104,6 +105,9 @@ def test_real_fresh_final_sources_compare_and_resume_without_redispatch(
             image_manifest=manifest,
             quarantine_journal=ledger.root / "quarantine.sqlite3",
         )
+        # Explicit engineering lifecycle fixture; production readers never
+        # manufacture an absent operator quarantine journal.
+        ReexecutionJournal(args.quarantine_journal)
         config = SimpleNamespace(
             context=context, publisher_hotkey=publisher.ss58_address
         )

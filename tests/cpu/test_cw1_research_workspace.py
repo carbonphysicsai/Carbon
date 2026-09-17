@@ -29,7 +29,7 @@ def test_requester_isolation_restart_and_compare_swap(tmp_path):
 
 
 @pytest.mark.parametrize(
-    "name", ["../secret", "/home/carbon", "a/b", "a\\b", "..", "", "a" * 97]
+    "name", ["../secret", "/etc/passwd", "a/b", "a\\b", "..", "", "a" * 97]
 )
 def test_no_host_path_surface(tmp_path, name):
     with pytest.raises(ValueError):
