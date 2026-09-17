@@ -213,9 +213,14 @@ cd /home/carbon/Carbon-cw1-program-final
 PYTHONPATH=. /home/carbon/Carbon/.venv/bin/python -m carbon.development_session.research_campaign status --root /home/carbon/.local/share/carbon-testnet/miner-autoresearch-20260917-expansion-2
 ```
 
-Runtime delivery and local/private reporting are complete. This observational
-board/Hub closeout remains unpublished pending the specific result-publication
-approval after automatic review rejected GitHub egress of internal metrics and
-execution history. The local prepared patch contains only sanitized aggregates,
-public delivery identities and limitations; no secrets, hidden realized case
-identities, labels, raw transcripts or private evidence files are included.
+Runtime delivery and local/private reporting are complete. On 2026-09-17 Ryan
+explicitly approved publication of this prepared sanitized closeout and directed
+normal delivery to continue. That resolves the prior automatic-review publication
+block for these aggregates, delivery identities, limitations and recommendations.
+The rejection remains historical evidence. No secrets, hidden realized case
+identities, labels, raw transcripts or private evidence files are published.
+Publication approval adds no experiment spending or chain authority.
+
+The coordinated corrective-feedback work is tracked in PR #212. Its engineering
+acceptance and any real/browser validation remain separate; this program does
+not grant that task additional execution authority or claim its results.
