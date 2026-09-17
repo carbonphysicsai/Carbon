@@ -1,0 +1,1847 @@
+{
+  "mode": "PRIVATE_SYNTHETIC_LIVE_EVALUATION",
+  "run_id": "gw08b-private-live-2026-09-17-v4",
+  "accepted_at": "2026-09-17T09:03:01.834Z",
+  "suite_id": "ask-carbon-pilot-design-public-v1",
+  "evidence_label": "AUTHOR_CREATED_DEVELOPMENT_CASES_FROZEN_BEFORE_OBSERVATION",
+  "scenario_count": 4,
+  "attempted_turns": 5,
+  "customer_sessions": 0,
+  "staging": {
+    "endpoint": "https://carbon-ask-private-staging.carbon-physics-ai.workers.dev/api/ask-carbon",
+    "origin": "https://carbon-ask-private-staging.carbon-physics-ai.workers.dev",
+    "access": "WORKER_BASIC_PRIVATE_REVIEW_CREDENTIAL",
+    "knowledge_version": "ask-carbon-staging-2026-09-16.1",
+    "model_config_id": "gpt-5.6-luna:low:v1"
+  },
+  "budget": {
+    "authority": "ask-carbon-provider-budget-v2",
+    "monthly_ceiling_micro_usd": 50000000,
+    "bakeoff_ceiling_micro_usd": 5000000,
+    "before_summary": {
+      "months": {
+        "2026-09": {
+          "prepared_micro_usd": 0,
+          "dispatch_authorized_micro_usd": 0,
+          "unresolved_micro_usd": 67680,
+          "settled_micro_usd": 10424,
+          "overrun_micro_usd": 0,
+          "exposure_micro_usd": 78104
+        }
+      },
+      "scopes": {
+        "2026-09:ask-carbon-bakeoff-v1": {
+          "exposure_micro_usd": 78104,
+          "limit_micro_usd": 5000000
+        }
+      },
+      "active_attempts": 0
+    },
+    "after_summary": {
+      "months": {
+        "2026-09": {
+          "prepared_micro_usd": 0,
+          "dispatch_authorized_micro_usd": 0,
+          "unresolved_micro_usd": 67680,
+          "settled_micro_usd": 13151,
+          "overrun_micro_usd": 0,
+          "exposure_micro_usd": 80831
+        }
+      },
+      "scopes": {
+        "2026-09:ask-carbon-bakeoff-v1": {
+          "exposure_micro_usd": 80831,
+          "limit_micro_usd": 5000000
+        }
+      },
+      "active_attempts": 0
+    },
+    "run_settled_micro_usd": 2727,
+    "run_unresolved_micro_usd": 0,
+    "attempts": [
+      {
+        "attempt_id": "e03f61d7-bc07-4290-8625-e2506b74d37e",
+        "mode": "PILOT_DESIGN",
+        "environment": "staging",
+        "scope_id": "ask-carbon-bakeoff-v1",
+        "admission_period": "2026-09",
+        "model_config_id": "gpt-5.6-luna:low:v1",
+        "pricing_id": "openai-standard-2026-09-16:gpt-5.6-luna",
+        "state": "settled",
+        "reserved_cost_micro_usd": 5640,
+        "actual_cost_micro_usd": 625,
+        "terminal_reason": "provider_usage_settled"
+      },
+      {
+        "attempt_id": "21418854-9d73-4cc2-bbed-991c760391b2",
+        "mode": "PILOT_DESIGN",
+        "environment": "staging",
+        "scope_id": "ask-carbon-bakeoff-v1",
+        "admission_period": "2026-09",
+        "model_config_id": "gpt-5.6-luna:low:v1",
+        "pricing_id": "openai-standard-2026-09-16:gpt-5.6-luna",
+        "state": "settled",
+        "reserved_cost_micro_usd": 5640,
+        "actual_cost_micro_usd": 662,
+        "terminal_reason": "provider_usage_settled"
+      },
+      {
+        "attempt_id": "28c299b6-9d67-4b3d-8779-93e0274081ad",
+        "mode": "PILOT_DESIGN",
+        "environment": "staging",
+        "scope_id": "ask-carbon-bakeoff-v1",
+        "admission_period": "2026-09",
+        "model_config_id": "gpt-5.6-luna:low:v1",
+        "pricing_id": "openai-standard-2026-09-16:gpt-5.6-luna",
+        "state": "settled",
+        "reserved_cost_micro_usd": 5640,
+        "actual_cost_micro_usd": 594,
+        "terminal_reason": "provider_usage_settled"
+      },
+      {
+        "attempt_id": "380cc95c-fc54-4819-b906-3ca820fefd6d",
+        "mode": "PILOT_DESIGN",
+        "environment": "staging",
+        "scope_id": "ask-carbon-bakeoff-v1",
+        "admission_period": "2026-09",
+        "model_config_id": "gpt-5.6-luna:low:v1",
+        "pricing_id": "openai-standard-2026-09-16:gpt-5.6-luna",
+        "state": "settled",
+        "reserved_cost_micro_usd": 5640,
+        "actual_cost_micro_usd": 349,
+        "terminal_reason": "provider_usage_settled"
+      },
+      {
+        "attempt_id": "c4c8a3d8-132f-4ddb-aadc-3c63dc7fa466",
+        "mode": "PILOT_DESIGN",
+        "environment": "staging",
+        "scope_id": "ask-carbon-bakeoff-v1",
+        "admission_period": "2026-09",
+        "model_config_id": "gpt-5.6-luna:low:v1",
+        "pricing_id": "openai-standard-2026-09-16:gpt-5.6-luna",
+        "state": "settled",
+        "reserved_cost_micro_usd": 5640,
+        "actual_cost_micro_usd": 497,
+        "terminal_reason": "provider_usage_settled"
+      }
+    ]
+  },
+  "latency_ms": {
+    "sample_count": 5,
+    "median": 12210.225,
+    "p95": 17355.953,
+    "maximum": 17355.953
+  },
+  "live_model_quality": "PENDING_NAMED_HUMAN_REVIEW",
+  "human_reviewers": [
+    {
+      "reviewer": "Ryan",
+      "focus": "engineering relevance and pilot-design quality",
+      "status": "NAMED_PENDING_CONFIRMATION_AND_REVIEW"
+    },
+    {
+      "reviewer": "Nick",
+      "focus": "clarity, friction and usefulness to a prospective client",
+      "status": "NAMED_PENDING_CONFIRMATION_AND_REVIEW"
+    }
+  ],
+  "public_activation": "DISABLED_UNCHANGED",
+  "observations": [
+    {
+      "id": "existing-model-evaluation",
+      "evidence_class": "LIVE_MODEL_OBSERVATION_PRIVATE_SYNTHETIC_STAGING",
+      "turns": [
+        {
+          "turn": 1,
+          "user": "We already have a model and want faster comparisons. What should we define first?",
+          "consent": "AFFIRMATIVE_ENABLE_AI_GUIDANCE_BEFORE_REQUEST",
+          "disclosed_context": {
+            "version": "carbon.client-intake.guidance-context.v1",
+            "answers": {
+              "intended_decision": "Decide whether our existing model can support a faster design comparison loop.",
+              "requested_result": "Compare our current model outputs across candidate designs.",
+              "current_baseline": "An existing numerical model.",
+              "baseline_limitation": "Turnaround is too slow; the actual timing boundary is not yet specified.",
+              "changing_conditions": null,
+              "exclusions": null,
+              "consequential_error": null,
+              "comparison_evidence": null,
+              "access_limitations": null
+            },
+            "pilot": {
+              "candidate_inputs": null,
+              "candidate_outputs": null,
+              "operating_envelope": null,
+              "evaluation_questions": null,
+              "requested_targets": null,
+              "missing_evidence": null,
+              "implementation_work": null,
+              "bounded_first_pilot": null,
+              "next_discussion": null
+            },
+            "unresolved_assumptions": []
+          },
+          "http_status": 200,
+          "latency_ms": 12353.83,
+          "returned": {
+            "message": "Define the decision and comparison boundary first: what design decision the loop must support, which inputs and outputs are in scope, the operating envelope, and how the current model’s turnaround and fidelity will be measured. Carbon’s bounded Evidence Audit approach independently tests an existing model against a qualified, problem-specific exam; the exam’s population, sampling, reference process, measurements, and evidence scope require separate review before official use. [business-canon-405a820b; distribution-405a820b]",
+            "next_question": "What specific design decision should the faster comparison loop support, and what turnaround boundary would make it useful?",
+            "proposals": [
+              {
+                "suggestion_id": "p1",
+                "field": "intended_decision",
+                "value": "Decide whether our existing model can support a faster design comparison loop for a specified design decision.",
+                "rationale": "Makes the pilot decision explicit without assuming the decision or outcome."
+              },
+              {
+                "suggestion_id": "p2",
+                "field": "current_baseline",
+                "value": "An existing numerical model; baseline turnaround, fidelity measures, and evaluation procedure remain to be documented.",
+                "rationale": "Preserves the model as the baseline while identifying unprovided evidence."
+              },
+              {
+                "suggestion_id": "p3",
+                "field": "pilot.candidate_inputs",
+                "value": "Candidate design inputs and operating conditions within a yet-to-be-defined operating envelope.",
+                "rationale": "Defines the comparison inputs without inventing geometry, cases, or conditions."
+              },
+              {
+                "suggestion_id": "p4",
+                "field": "pilot.candidate_outputs",
+                "value": "Current-model outputs and comparison metrics to be specified for the design decision.",
+                "rationale": "Avoids assuming which outputs or metrics matter."
+              }
+            ],
+            "unresolved_assumptions": [
+              "The target turnaround boundary is unspecified.",
+              "The design decision, operating envelope, reference process, measurements, and acceptable error or fidelity criteria are unspecified.",
+              "It is unknown whether the existing model can be independently evaluated with permitted inputs and outputs."
+            ],
+            "source_ids": [
+              "business-canon-405a820b",
+              "distribution-405a820b"
+            ],
+            "maturity_note": "This is a draft pilot for Carbon review, not a promise of execution or outcome."
+          },
+          "client_actions": [
+            {
+              "type": "ACCEPT",
+              "suggestion_id": "existing-pilot",
+              "disposition": "EXPECTED_PROPOSAL_ABSENT"
+            }
+          ],
+          "request_association": {
+            "mode": "PILOT_DESIGN",
+            "knowledge_version": "ask-carbon-staging-2026-09-16.1",
+            "model_config_id": "gpt-5.6-luna:low:v1",
+            "request_id": "e03f61d7-bc07-4290-8625-e2506b74d37e"
+          },
+          "disposition": "LIVE_MODEL_OBSERVATION_CLIENT_SCRIPT_APPLIED"
+        }
+      ],
+      "final_checks": {
+        "required_final": {
+          "intended_decision": true,
+          "current_baseline": true,
+          "pilot.bounded_first_pilot": false
+        },
+        "required_unknown": {
+          "comparison_evidence": true,
+          "access_limitations": true
+        }
+      },
+      "final_brief": {
+        "schema_version": "carbon.client-intake.reviewed.v1",
+        "brief": {
+          "schema_version": "carbon.client-intake.draft.v1",
+          "draft_id": "pilot-existing-model-evaluation",
+          "revision_id": "rev-001",
+          "predecessor": null,
+          "answers": {
+            "intended_decision": {
+              "state": "VALUE",
+              "value": "Decide whether our existing model can support a faster design comparison loop.",
+              "origin": "USER_ENTERED_LOCAL"
+            },
+            "requested_result": {
+              "state": "VALUE",
+              "value": "Compare our current model outputs across candidate designs.",
+              "origin": "USER_ENTERED_LOCAL"
+            },
+            "current_baseline": {
+              "state": "VALUE",
+              "value": "An existing numerical model.",
+              "origin": "USER_ENTERED_LOCAL"
+            },
+            "baseline_limitation": {
+              "state": "VALUE",
+              "value": "Turnaround is too slow; the actual timing boundary is not yet specified.",
+              "origin": "USER_ENTERED_LOCAL"
+            },
+            "changing_conditions": {
+              "state": "UNKNOWN",
+              "value": "",
+              "origin": "USER_ENTERED_LOCAL"
+            },
+            "exclusions": {
+              "state": "UNKNOWN",
+              "value": "",
+              "origin": "USER_ENTERED_LOCAL"
+            },
+            "consequential_error": {
+              "state": "UNKNOWN",
+              "value": "",
+              "origin": "USER_ENTERED_LOCAL"
+            },
+            "comparison_evidence": {
+              "state": "UNKNOWN",
+              "value": "",
+              "origin": "USER_ENTERED_LOCAL"
+            },
+            "access_limitations": {
+              "state": "UNKNOWN",
+              "value": "",
+              "origin": "USER_ENTERED_LOCAL"
+            }
+          },
+          "quantities": {
+            "preparation_time": {
+              "state": "UNKNOWN",
+              "value": null,
+              "minimum": null,
+              "maximum": null,
+              "unit": "",
+              "note": "",
+              "origin": "USER_ENTERED_LOCAL"
+            },
+            "prediction_latency": {
+              "state": "UNKNOWN",
+              "value": null,
+              "minimum": null,
+              "maximum": null,
+              "unit": "",
+              "note": "",
+              "origin": "USER_ENTERED_LOCAL"
+            },
+            "reference_query_time": {
+              "state": "UNKNOWN",
+              "value": null,
+              "minimum": null,
+              "maximum": null,
+              "unit": "",
+              "note": "",
+              "origin": "USER_ENTERED_LOCAL"
+            },
+            "workload_frequency": {
+              "state": "UNKNOWN",
+              "value": null,
+              "minimum": null,
+              "maximum": null,
+              "unit": "",
+              "note": "",
+              "origin": "USER_ENTERED_LOCAL"
+            },
+            "desired_accuracy": {
+              "state": "UNKNOWN",
+              "value": null,
+              "minimum": null,
+              "maximum": null,
+              "unit": "",
+              "note": "",
+              "origin": "USER_ENTERED_LOCAL"
+            }
+          },
+          "summary": {
+            "mapping_version": "carbon.client-intake.mapping.v1",
+            "text": "Decision: Decide whether our existing model can support a faster design comparison loop.\nRequested result: Compare our current model outputs across candidate designs.\nCurrent baseline: An existing numerical model.\nReported limitation: Turnaround is too slow; the actual timing boundary is not yet specified.\nChanging conditions: Unknown\nExclusions: Unknown\nConsequential error: Unknown\nComparison evidence (claimed): Unknown\nAccess/use limitations: Unknown\nPreparation time: unknown\nRecurring prediction latency: unknown\nReference-query time: unknown\nWorkload frequency: unknown\nRequested accuracy: unknown (unreviewed client intent)",
+            "unknown_fields": [
+              "changing_conditions",
+              "exclusions",
+              "consequential_error",
+              "comparison_evidence",
+              "access_limitations",
+              "preparation_time",
+              "prediction_latency",
+              "reference_query_time",
+              "workload_frequency",
+              "desired_accuracy"
+            ],
+            "next_clarification": "Clarify changing conditions without supplying sensitive data."
+          },
+          "source": {
+            "application": "Carbon Client Intake Preview",
+            "mapping_version": "carbon.client-intake.mapping.v1",
+            "local_scope": "LOCAL_SYNTHETIC_DEVELOPMENT_NOT_TRANSMITTED"
+          }
+        },
+        "pilot": {
+          "label": "Draft pilot for Carbon review",
+          "candidate_inputs": "",
+          "candidate_outputs": "",
+          "operating_envelope": "",
+          "evaluation_questions": "",
+          "requested_targets": "",
+          "missing_evidence": "",
+          "implementation_work": "",
+          "bounded_first_pilot": "",
+          "next_discussion": ""
+        },
+        "field_provenance": [
+          {
+            "field": "intended_decision",
+            "origin": "CLIENT_TYPED",
+            "suggestion_id": null
+          },
+          {
+            "field": "requested_result",
+            "origin": "CLIENT_TYPED",
+            "suggestion_id": null
+          },
+          {
+            "field": "current_baseline",
+            "origin": "CLIENT_TYPED",
+            "suggestion_id": null
+          },
+          {
+            "field": "baseline_limitation",
+            "origin": "CLIENT_TYPED",
+            "suggestion_id": null
+          },
+          {
+            "field": "changing_conditions",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "exclusions",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "consequential_error",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "comparison_evidence",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "access_limitations",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "preparation_time",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "prediction_latency",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "reference_query_time",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "workload_frequency",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "desired_accuracy",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "pilot.candidate_inputs",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "pilot.candidate_outputs",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "pilot.operating_envelope",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "pilot.evaluation_questions",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "pilot.requested_targets",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "pilot.missing_evidence",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "pilot.implementation_work",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "pilot.bounded_first_pilot",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "pilot.next_discussion",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          }
+        ],
+        "accepted_suggestions": [],
+        "unresolved_assumptions": [
+          "The target turnaround boundary is unspecified.",
+          "The design decision, operating envelope, reference process, measurements, and acceptable error or fidelity criteria are unspecified.",
+          "It is unknown whether the existing model can be independently evaluated with permitted inputs and outputs."
+        ],
+        "ai_guidance": {
+          "enabled": true,
+          "provider": "OPENAI_API",
+          "guidance_version": "carbon.client-intake.guidance.v1",
+          "notice_version": "ask-carbon-guided-intake-notice-v1",
+          "consented_at": "2026-09-17T09:03:01.834Z",
+          "cleared_locally": false
+        },
+        "sharing": {
+          "include_conversation": false,
+          "conversation": []
+        },
+        "contact": {
+          "name": "",
+          "email": "",
+          "organization": ""
+        },
+        "local_scope": "LOCAL_REVIEW_PACKAGE_NOT_SUBMITTED"
+      },
+      "workbench": {
+        "preview": "CREATE_NEW_JOB",
+        "committed": "CREATE_NEW_JOB",
+        "initial_route": "UNASSESSED",
+        "selected_route": "USE_EXISTING_CAPABILITY",
+        "handoff_status": "PREPARED",
+        "handoff_authority": "REQUEST_ONLY_NO_EXECUTION_OR_APPROVAL",
+        "exact_replay": "EXACT_REPLAY",
+        "changed_identity": "IDENTITY_CONFLICT",
+        "revision": null,
+        "reopened_intake_records": 1,
+        "science": "NOT_QUALIFIED",
+        "rights": "UNRESOLVED",
+        "launch": "NOT_AUTHORIZED",
+        "source_assessment_responses": 0
+      },
+      "human_quality_review": "NAMED_PENDING_CONFIRMATION_AND_REVIEW"
+    },
+    {
+      "id": "thermal-fluid-cold-plate",
+      "evidence_class": "LIVE_MODEL_OBSERVATION_PRIVATE_SYNTHETIC_STAGING",
+      "turns": [
+        {
+          "turn": 1,
+          "user": "We want to predict cold-plate temperatures faster. What might a pilot answer?",
+          "consent": "AFFIRMATIVE_ENABLE_AI_GUIDANCE_BEFORE_REQUEST",
+          "disclosed_context": {
+            "version": "carbon.client-intake.guidance-context.v1",
+            "answers": {
+              "intended_decision": "Choose a cold-plate design using predicted temperatures.",
+              "requested_result": "Cold-plate temperatures, hotspots and design ranking.",
+              "current_baseline": null,
+              "baseline_limitation": null,
+              "changing_conditions": "Heat load and flow vary; the ranges are not yet agreed.",
+              "exclusions": null,
+              "consequential_error": null,
+              "comparison_evidence": "The team reports existing simulation or test results, but access and adequacy are unreviewed.",
+              "access_limitations": null
+            },
+            "pilot": {
+              "candidate_inputs": null,
+              "candidate_outputs": null,
+              "operating_envelope": null,
+              "evaluation_questions": null,
+              "requested_targets": null,
+              "missing_evidence": null,
+              "implementation_work": null,
+              "bounded_first_pilot": null,
+              "next_discussion": null
+            },
+            "unresolved_assumptions": []
+          },
+          "http_status": 200,
+          "latency_ms": 6885.198,
+          "returned": {
+            "message": "A bounded pilot could test whether a faster temperature-prediction approach preserves decision-relevant accuracy against an agreed baseline across specified heat-load and flow ranges. It should not yet promise a speedup, ranking reliability, or reference adequacy. Any reference result must be authorized for the exact cases, method, version, provenance, uncertainty, applicability, and failure state. [reference-contract-405a820b]",
+            "next_question": "What existing simulation or test method should serve as the baseline, and what temperature error would be consequential for choosing a design?",
+            "proposals": [
+              {
+                "suggestion_id": "p1",
+                "field": "pilot.candidate_inputs",
+                "value": "Cold-plate design descriptions, heat-load conditions, flow conditions, material and boundary-condition data, and any permitted validation cases.",
+                "rationale": "Defines the inputs without requesting confidential geometry, source code, solver files, credentials, or protected cases."
+              },
+              {
+                "suggestion_id": "p2",
+                "field": "pilot.candidate_outputs",
+                "value": "Predicted temperature fields or agreed temperature summaries, hotspot locations or values where applicable, runtime measurements, and design-comparison outputs.",
+                "rationale": "Matches the requested decision while leaving output granularity to be agreed."
+              },
+              {
+                "suggestion_id": "p3",
+                "field": "pilot.operating_envelope",
+                "value": "An explicitly agreed range of heat loads, flow conditions, designs, and boundary conditions; currently unspecified.",
+                "rationale": "The stated conditions vary, but their ranges are not yet agreed."
+              },
+              {
+                "suggestion_id": "p4",
+                "field": "pilot.evaluation_questions",
+                "value": "Does the candidate method reduce evaluation time relative to the baseline while meeting the agreed temperature and hotspot criteria across the operating envelope? Does it preserve the design ranking where ranking is decision-relevant?",
+                "rationale": "Frames testable questions without assuming a speedup or ranking validity."
+              }
+            ],
+            "unresolved_assumptions": [
+              "The baseline simulation or test method is not identified.",
+              "Temperature-error and hotspot tolerances are not defined.",
+              "Heat-load and flow ranges are not defined.",
+              "The adequacy and accessibility of comparison evidence are unreviewed.",
+              "The permitted design and validation cases are not defined."
+            ],
+            "source_ids": [
+              "reference-contract-405a820b"
+            ],
+            "maturity_note": "This is a draft pilot for Carbon review, not a promise of execution or outcome."
+          },
+          "client_actions": [
+            {
+              "type": "ACCEPT",
+              "suggestion_id": "thermal-eval",
+              "actual_suggestion_id": "p4",
+              "field": "pilot.evaluation_questions",
+              "match_basis": "FROZEN_EXPECTED_FIELD",
+              "disposition": "ACCEPTED_CLIENT_REVIEW"
+            },
+            {
+              "type": "ACCEPT",
+              "suggestion_id": "thermal-pilot",
+              "disposition": "EXPECTED_PROPOSAL_ABSENT"
+            }
+          ],
+          "request_association": {
+            "mode": "PILOT_DESIGN",
+            "knowledge_version": "ask-carbon-staging-2026-09-16.1",
+            "model_config_id": "gpt-5.6-luna:low:v1",
+            "request_id": "21418854-9d73-4cc2-bbed-991c760391b2"
+          },
+          "disposition": "LIVE_MODEL_OBSERVATION_CLIENT_SCRIPT_APPLIED"
+        }
+      ],
+      "final_checks": {
+        "required_final": {
+          "intended_decision": true,
+          "requested_result": true,
+          "pilot.evaluation_questions": true
+        },
+        "required_unknown": {
+          "access_limitations": true
+        }
+      },
+      "final_brief": {
+        "schema_version": "carbon.client-intake.reviewed.v1",
+        "brief": {
+          "schema_version": "carbon.client-intake.draft.v1",
+          "draft_id": "pilot-thermal-fluid-cold-plate",
+          "revision_id": "rev-001",
+          "predecessor": null,
+          "answers": {
+            "intended_decision": {
+              "state": "VALUE",
+              "value": "Choose a cold-plate design using predicted temperatures.",
+              "origin": "USER_ENTERED_LOCAL"
+            },
+            "requested_result": {
+              "state": "VALUE",
+              "value": "Cold-plate temperatures, hotspots and design ranking.",
+              "origin": "USER_ENTERED_LOCAL"
+            },
+            "current_baseline": {
+              "state": "UNKNOWN",
+              "value": "",
+              "origin": "USER_ENTERED_LOCAL"
+            },
+            "baseline_limitation": {
+              "state": "UNKNOWN",
+              "value": "",
+              "origin": "USER_ENTERED_LOCAL"
+            },
+            "changing_conditions": {
+              "state": "VALUE",
+              "value": "Heat load and flow vary; the ranges are not yet agreed.",
+              "origin": "USER_ENTERED_LOCAL"
+            },
+            "exclusions": {
+              "state": "UNKNOWN",
+              "value": "",
+              "origin": "USER_ENTERED_LOCAL"
+            },
+            "consequential_error": {
+              "state": "UNKNOWN",
+              "value": "",
+              "origin": "USER_ENTERED_LOCAL"
+            },
+            "comparison_evidence": {
+              "state": "VALUE",
+              "value": "The team reports existing simulation or test results, but access and adequacy are unreviewed.",
+              "origin": "USER_ENTERED_LOCAL"
+            },
+            "access_limitations": {
+              "state": "UNKNOWN",
+              "value": "",
+              "origin": "USER_ENTERED_LOCAL"
+            }
+          },
+          "quantities": {
+            "preparation_time": {
+              "state": "UNKNOWN",
+              "value": null,
+              "minimum": null,
+              "maximum": null,
+              "unit": "",
+              "note": "",
+              "origin": "USER_ENTERED_LOCAL"
+            },
+            "prediction_latency": {
+              "state": "UNKNOWN",
+              "value": null,
+              "minimum": null,
+              "maximum": null,
+              "unit": "",
+              "note": "",
+              "origin": "USER_ENTERED_LOCAL"
+            },
+            "reference_query_time": {
+              "state": "UNKNOWN",
+              "value": null,
+              "minimum": null,
+              "maximum": null,
+              "unit": "",
+              "note": "",
+              "origin": "USER_ENTERED_LOCAL"
+            },
+            "workload_frequency": {
+              "state": "UNKNOWN",
+              "value": null,
+              "minimum": null,
+              "maximum": null,
+              "unit": "",
+              "note": "",
+              "origin": "USER_ENTERED_LOCAL"
+            },
+            "desired_accuracy": {
+              "state": "UNKNOWN",
+              "value": null,
+              "minimum": null,
+              "maximum": null,
+              "unit": "",
+              "note": "",
+              "origin": "USER_ENTERED_LOCAL"
+            }
+          },
+          "summary": {
+            "mapping_version": "carbon.client-intake.mapping.v1",
+            "text": "Decision: Choose a cold-plate design using predicted temperatures.\nRequested result: Cold-plate temperatures, hotspots and design ranking.\nCurrent baseline: Unknown\nReported limitation: Unknown\nChanging conditions: Heat load and flow vary; the ranges are not yet agreed.\nExclusions: Unknown\nConsequential error: Unknown\nComparison evidence (claimed): The team reports existing simulation or test results, but access and adequacy are unreviewed.\nAccess/use limitations: Unknown\nPreparation time: unknown\nRecurring prediction latency: unknown\nReference-query time: unknown\nWorkload frequency: unknown\nRequested accuracy: unknown (unreviewed client intent)",
+            "unknown_fields": [
+              "current_baseline",
+              "baseline_limitation",
+              "exclusions",
+              "consequential_error",
+              "access_limitations",
+              "preparation_time",
+              "prediction_latency",
+              "reference_query_time",
+              "workload_frequency",
+              "desired_accuracy"
+            ],
+            "next_clarification": "Clarify current baseline without supplying sensitive data."
+          },
+          "source": {
+            "application": "Carbon Client Intake Preview",
+            "mapping_version": "carbon.client-intake.mapping.v1",
+            "local_scope": "LOCAL_SYNTHETIC_DEVELOPMENT_NOT_TRANSMITTED"
+          }
+        },
+        "pilot": {
+          "label": "Draft pilot for Carbon review",
+          "candidate_inputs": "",
+          "candidate_outputs": "",
+          "operating_envelope": "",
+          "evaluation_questions": "Does the candidate method reduce evaluation time relative to the baseline while meeting the agreed temperature and hotspot criteria across the operating envelope? Does it preserve the design ranking where ranking is decision-relevant?",
+          "requested_targets": "",
+          "missing_evidence": "",
+          "implementation_work": "",
+          "bounded_first_pilot": "",
+          "next_discussion": ""
+        },
+        "field_provenance": [
+          {
+            "field": "intended_decision",
+            "origin": "CLIENT_TYPED",
+            "suggestion_id": null
+          },
+          {
+            "field": "requested_result",
+            "origin": "CLIENT_TYPED",
+            "suggestion_id": null
+          },
+          {
+            "field": "current_baseline",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "baseline_limitation",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "changing_conditions",
+            "origin": "CLIENT_TYPED",
+            "suggestion_id": null
+          },
+          {
+            "field": "exclusions",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "consequential_error",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "comparison_evidence",
+            "origin": "CLIENT_TYPED",
+            "suggestion_id": null
+          },
+          {
+            "field": "access_limitations",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "preparation_time",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "prediction_latency",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "reference_query_time",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "workload_frequency",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "desired_accuracy",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "pilot.candidate_inputs",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "pilot.candidate_outputs",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "pilot.operating_envelope",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "pilot.evaluation_questions",
+            "origin": "AI_SUGGESTED_CLIENT_ACCEPTED",
+            "suggestion_id": "p4"
+          },
+          {
+            "field": "pilot.requested_targets",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "pilot.missing_evidence",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "pilot.implementation_work",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "pilot.bounded_first_pilot",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "pilot.next_discussion",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          }
+        ],
+        "accepted_suggestions": [
+          {
+            "suggestion_id": "p4",
+            "field": "pilot.evaluation_questions",
+            "proposed_value": "Does the candidate method reduce evaluation time relative to the baseline while meeting the agreed temperature and hotspot criteria across the operating envelope? Does it preserve the design ranking where ranking is decision-relevant?",
+            "rationale": "Frames testable questions without assuming a speedup or ranking validity.",
+            "accepted_at": "2026-09-17T09:03:01.834Z"
+          }
+        ],
+        "unresolved_assumptions": [
+          "The baseline simulation or test method is not identified.",
+          "Temperature-error and hotspot tolerances are not defined.",
+          "Heat-load and flow ranges are not defined.",
+          "The adequacy and accessibility of comparison evidence are unreviewed.",
+          "The permitted design and validation cases are not defined."
+        ],
+        "ai_guidance": {
+          "enabled": true,
+          "provider": "OPENAI_API",
+          "guidance_version": "carbon.client-intake.guidance.v1",
+          "notice_version": "ask-carbon-guided-intake-notice-v1",
+          "consented_at": "2026-09-17T09:03:01.834Z",
+          "cleared_locally": false
+        },
+        "sharing": {
+          "include_conversation": false,
+          "conversation": []
+        },
+        "contact": {
+          "name": "",
+          "email": "",
+          "organization": ""
+        },
+        "local_scope": "LOCAL_REVIEW_PACKAGE_NOT_SUBMITTED"
+      },
+      "workbench": {
+        "preview": "CREATE_NEW_JOB",
+        "committed": "CREATE_NEW_JOB",
+        "initial_route": "UNASSESSED",
+        "selected_route": "DEVELOP_NEW_CAPABILITY",
+        "handoff_status": "PREPARED",
+        "handoff_authority": "REQUEST_ONLY_NO_EXECUTION_OR_APPROVAL",
+        "exact_replay": "EXACT_REPLAY",
+        "changed_identity": "IDENTITY_CONFLICT",
+        "revision": null,
+        "reopened_intake_records": 1,
+        "science": "NOT_QUALIFIED",
+        "rights": "UNRESOLVED",
+        "launch": "NOT_AUTHORIZED",
+        "source_assessment_responses": 0
+      },
+      "human_quality_review": "NAMED_PENDING_CONFIRMATION_AND_REVIEW"
+    },
+    {
+      "id": "unfamiliar-coupled-physics",
+      "evidence_class": "LIVE_MODEL_OBSERVATION_PRIVATE_SYNTHETIC_STAGING",
+      "turns": [
+        {
+          "turn": 1,
+          "user": "Can Carbon solve our coupled electro-thermal-structural problem?",
+          "consent": "AFFIRMATIVE_ENABLE_AI_GUIDANCE_BEFORE_REQUEST",
+          "disclosed_context": {
+            "version": "carbon.client-intake.guidance-context.v1",
+            "answers": {
+              "intended_decision": "Assess whether a coupled multiphysics design question warrants a pilot.",
+              "requested_result": "Coupled response outputs that are not in the reviewed public capability profile.",
+              "current_baseline": "Unknown.",
+              "baseline_limitation": null,
+              "changing_conditions": "Multiple coupled fields; exact interfaces remain unknown.",
+              "exclusions": null,
+              "consequential_error": null,
+              "comparison_evidence": null,
+              "access_limitations": null
+            },
+            "pilot": {
+              "candidate_inputs": null,
+              "candidate_outputs": null,
+              "operating_envelope": null,
+              "evaluation_questions": null,
+              "requested_targets": null,
+              "missing_evidence": null,
+              "implementation_work": null,
+              "bounded_first_pilot": null,
+              "next_discussion": null
+            },
+            "unresolved_assumptions": []
+          },
+          "http_status": 200,
+          "latency_ms": 17355.953,
+          "returned": {
+            "message": "Carbon cannot currently be confirmed as able to solve this coupled multiphysics problem. The reviewed profile covers a bounded search over neural-operator training strategies; broader model-construction methods remain future architecture, and no production qualification is established. A bounded evidence audit may be more appropriate than requesting a new solver. [constitution-405a820b] [business-canon-405a820b]",
+            "next_question": "Do you already have an existing model and a finite, shareable evaluation case set whose outputs could be independently compared?",
+            "proposals": [
+              {
+                "suggestion_id": "p1",
+                "field": "pilot.bounded_first_pilot",
+                "value": "Assess an existing coupled electro-thermal-structural model through a bounded Evidence Audit, rather than ask Carbon to construct or deploy a new solver.",
+                "rationale": "This limits the pilot to independent testing of an existing model, consistent with the described first customer wedge. [business-canon-405a820b]"
+              },
+              {
+                "suggestion_id": "p2",
+                "field": "pilot.missing_evidence",
+                "value": "Establish whether the problem, reference process, finite sampling plan, measurements, and output interfaces are sufficiently defined before claiming pilot feasibility.",
+                "rationale": "These elements require separate adequacy review in a Challenge. [distribution-405a820b]"
+              }
+            ],
+            "unresolved_assumptions": [
+              "Whether an existing model is available.",
+              "Whether suitable reference results and evaluation cases exist.",
+              "Whether the coupled outputs and interfaces can be specified without expanding scope.",
+              "Whether protected execution or qualification would be required."
+            ],
+            "source_ids": [
+              "constitution-405a820b",
+              "business-canon-405a820b",
+              "distribution-405a820b"
+            ],
+            "maturity_note": "This is a draft pilot direction for Carbon review, not a promise of execution or outcome."
+          },
+          "client_actions": [
+            {
+              "type": "ACCEPT",
+              "suggestion_id": "coupled-missing",
+              "actual_suggestion_id": "p2",
+              "field": "pilot.missing_evidence",
+              "match_basis": "FROZEN_EXPECTED_FIELD",
+              "disposition": "ACCEPTED_CLIENT_REVIEW"
+            },
+            {
+              "type": "ACCEPT",
+              "suggestion_id": "coupled-first",
+              "actual_suggestion_id": "p1",
+              "field": "pilot.bounded_first_pilot",
+              "match_basis": "FROZEN_EXPECTED_FIELD",
+              "disposition": "ACCEPTED_CLIENT_REVIEW"
+            }
+          ],
+          "request_association": {
+            "mode": "PILOT_DESIGN",
+            "knowledge_version": "ask-carbon-staging-2026-09-16.1",
+            "model_config_id": "gpt-5.6-luna:low:v1",
+            "request_id": "28c299b6-9d67-4b3d-8779-93e0274081ad"
+          },
+          "disposition": "LIVE_MODEL_OBSERVATION_CLIENT_SCRIPT_APPLIED"
+        }
+      ],
+      "final_checks": {
+        "required_final": {
+          "pilot.missing_evidence": true,
+          "pilot.bounded_first_pilot": true
+        },
+        "required_unknown": {
+          "comparison_evidence": true,
+          "access_limitations": true
+        }
+      },
+      "final_brief": {
+        "schema_version": "carbon.client-intake.reviewed.v1",
+        "brief": {
+          "schema_version": "carbon.client-intake.draft.v1",
+          "draft_id": "pilot-unfamiliar-coupled-physics",
+          "revision_id": "rev-001",
+          "predecessor": null,
+          "answers": {
+            "intended_decision": {
+              "state": "VALUE",
+              "value": "Assess whether a coupled multiphysics design question warrants a pilot.",
+              "origin": "USER_ENTERED_LOCAL"
+            },
+            "requested_result": {
+              "state": "VALUE",
+              "value": "Coupled response outputs that are not in the reviewed public capability profile.",
+              "origin": "USER_ENTERED_LOCAL"
+            },
+            "current_baseline": {
+              "state": "VALUE",
+              "value": "Unknown.",
+              "origin": "USER_ENTERED_LOCAL"
+            },
+            "baseline_limitation": {
+              "state": "UNKNOWN",
+              "value": "",
+              "origin": "USER_ENTERED_LOCAL"
+            },
+            "changing_conditions": {
+              "state": "VALUE",
+              "value": "Multiple coupled fields; exact interfaces remain unknown.",
+              "origin": "USER_ENTERED_LOCAL"
+            },
+            "exclusions": {
+              "state": "UNKNOWN",
+              "value": "",
+              "origin": "USER_ENTERED_LOCAL"
+            },
+            "consequential_error": {
+              "state": "UNKNOWN",
+              "value": "",
+              "origin": "USER_ENTERED_LOCAL"
+            },
+            "comparison_evidence": {
+              "state": "UNKNOWN",
+              "value": "",
+              "origin": "USER_ENTERED_LOCAL"
+            },
+            "access_limitations": {
+              "state": "UNKNOWN",
+              "value": "",
+              "origin": "USER_ENTERED_LOCAL"
+            }
+          },
+          "quantities": {
+            "preparation_time": {
+              "state": "UNKNOWN",
+              "value": null,
+              "minimum": null,
+              "maximum": null,
+              "unit": "",
+              "note": "",
+              "origin": "USER_ENTERED_LOCAL"
+            },
+            "prediction_latency": {
+              "state": "UNKNOWN",
+              "value": null,
+              "minimum": null,
+              "maximum": null,
+              "unit": "",
+              "note": "",
+              "origin": "USER_ENTERED_LOCAL"
+            },
+            "reference_query_time": {
+              "state": "UNKNOWN",
+              "value": null,
+              "minimum": null,
+              "maximum": null,
+              "unit": "",
+              "note": "",
+              "origin": "USER_ENTERED_LOCAL"
+            },
+            "workload_frequency": {
+              "state": "UNKNOWN",
+              "value": null,
+              "minimum": null,
+              "maximum": null,
+              "unit": "",
+              "note": "",
+              "origin": "USER_ENTERED_LOCAL"
+            },
+            "desired_accuracy": {
+              "state": "UNKNOWN",
+              "value": null,
+              "minimum": null,
+              "maximum": null,
+              "unit": "",
+              "note": "",
+              "origin": "USER_ENTERED_LOCAL"
+            }
+          },
+          "summary": {
+            "mapping_version": "carbon.client-intake.mapping.v1",
+            "text": "Decision: Assess whether a coupled multiphysics design question warrants a pilot.\nRequested result: Coupled response outputs that are not in the reviewed public capability profile.\nCurrent baseline: Unknown.\nReported limitation: Unknown\nChanging conditions: Multiple coupled fields; exact interfaces remain unknown.\nExclusions: Unknown\nConsequential error: Unknown\nComparison evidence (claimed): Unknown\nAccess/use limitations: Unknown\nPreparation time: unknown\nRecurring prediction latency: unknown\nReference-query time: unknown\nWorkload frequency: unknown\nRequested accuracy: unknown (unreviewed client intent)",
+            "unknown_fields": [
+              "baseline_limitation",
+              "exclusions",
+              "consequential_error",
+              "comparison_evidence",
+              "access_limitations",
+              "preparation_time",
+              "prediction_latency",
+              "reference_query_time",
+              "workload_frequency",
+              "desired_accuracy"
+            ],
+            "next_clarification": "Clarify baseline limitation without supplying sensitive data."
+          },
+          "source": {
+            "application": "Carbon Client Intake Preview",
+            "mapping_version": "carbon.client-intake.mapping.v1",
+            "local_scope": "LOCAL_SYNTHETIC_DEVELOPMENT_NOT_TRANSMITTED"
+          }
+        },
+        "pilot": {
+          "label": "Draft pilot for Carbon review",
+          "candidate_inputs": "",
+          "candidate_outputs": "",
+          "operating_envelope": "",
+          "evaluation_questions": "",
+          "requested_targets": "",
+          "missing_evidence": "Establish whether the problem, reference process, finite sampling plan, measurements, and output interfaces are sufficiently defined before claiming pilot feasibility.",
+          "implementation_work": "",
+          "bounded_first_pilot": "Assess an existing coupled electro-thermal-structural model through a bounded Evidence Audit, rather than ask Carbon to construct or deploy a new solver.",
+          "next_discussion": ""
+        },
+        "field_provenance": [
+          {
+            "field": "intended_decision",
+            "origin": "CLIENT_TYPED",
+            "suggestion_id": null
+          },
+          {
+            "field": "requested_result",
+            "origin": "CLIENT_TYPED",
+            "suggestion_id": null
+          },
+          {
+            "field": "current_baseline",
+            "origin": "CLIENT_TYPED",
+            "suggestion_id": null
+          },
+          {
+            "field": "baseline_limitation",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "changing_conditions",
+            "origin": "CLIENT_TYPED",
+            "suggestion_id": null
+          },
+          {
+            "field": "exclusions",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "consequential_error",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "comparison_evidence",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "access_limitations",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "preparation_time",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "prediction_latency",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "reference_query_time",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "workload_frequency",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "desired_accuracy",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "pilot.candidate_inputs",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "pilot.candidate_outputs",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "pilot.operating_envelope",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "pilot.evaluation_questions",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "pilot.requested_targets",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "pilot.missing_evidence",
+            "origin": "AI_SUGGESTED_CLIENT_ACCEPTED",
+            "suggestion_id": "p2"
+          },
+          {
+            "field": "pilot.implementation_work",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "pilot.bounded_first_pilot",
+            "origin": "AI_SUGGESTED_CLIENT_ACCEPTED",
+            "suggestion_id": "p1"
+          },
+          {
+            "field": "pilot.next_discussion",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          }
+        ],
+        "accepted_suggestions": [
+          {
+            "suggestion_id": "p2",
+            "field": "pilot.missing_evidence",
+            "proposed_value": "Establish whether the problem, reference process, finite sampling plan, measurements, and output interfaces are sufficiently defined before claiming pilot feasibility.",
+            "rationale": "These elements require separate adequacy review in a Challenge. [distribution-405a820b]",
+            "accepted_at": "2026-09-17T09:03:01.834Z"
+          },
+          {
+            "suggestion_id": "p1",
+            "field": "pilot.bounded_first_pilot",
+            "proposed_value": "Assess an existing coupled electro-thermal-structural model through a bounded Evidence Audit, rather than ask Carbon to construct or deploy a new solver.",
+            "rationale": "This limits the pilot to independent testing of an existing model, consistent with the described first customer wedge. [business-canon-405a820b]",
+            "accepted_at": "2026-09-17T09:03:01.834Z"
+          }
+        ],
+        "unresolved_assumptions": [
+          "Whether an existing model is available.",
+          "Whether suitable reference results and evaluation cases exist.",
+          "Whether the coupled outputs and interfaces can be specified without expanding scope.",
+          "Whether protected execution or qualification would be required."
+        ],
+        "ai_guidance": {
+          "enabled": true,
+          "provider": "OPENAI_API",
+          "guidance_version": "carbon.client-intake.guidance.v1",
+          "notice_version": "ask-carbon-guided-intake-notice-v1",
+          "consented_at": "2026-09-17T09:03:01.834Z",
+          "cleared_locally": false
+        },
+        "sharing": {
+          "include_conversation": false,
+          "conversation": []
+        },
+        "contact": {
+          "name": "",
+          "email": "",
+          "organization": ""
+        },
+        "local_scope": "LOCAL_REVIEW_PACKAGE_NOT_SUBMITTED"
+      },
+      "workbench": {
+        "preview": "CREATE_NEW_JOB",
+        "committed": "CREATE_NEW_JOB",
+        "initial_route": "UNASSESSED",
+        "selected_route": "DEVELOP_NEW_CAPABILITY",
+        "handoff_status": "PREPARED",
+        "handoff_authority": "REQUEST_ONLY_NO_EXECUTION_OR_APPROVAL",
+        "exact_replay": "EXACT_REPLAY",
+        "changed_identity": "IDENTITY_CONFLICT",
+        "revision": null,
+        "reopened_intake_records": 1,
+        "science": "NOT_QUALIFIED",
+        "rights": "UNRESOLVED",
+        "launch": "NOT_AUTHORIZED",
+        "source_assessment_responses": 0
+      },
+      "human_quality_review": "NAMED_PENDING_CONFIRMATION_AND_REVIEW"
+    },
+    {
+      "id": "sparse-information",
+      "evidence_class": "LIVE_MODEL_OBSERVATION_PRIVATE_SYNTHETIC_STAGING",
+      "turns": [
+        {
+          "turn": 1,
+          "user": "We need better predictions.",
+          "consent": "AFFIRMATIVE_ENABLE_AI_GUIDANCE_BEFORE_REQUEST",
+          "disclosed_context": {
+            "version": "carbon.client-intake.guidance-context.v1",
+            "answers": {
+              "intended_decision": "Improve an engineering decision that has not yet been specified.",
+              "requested_result": null,
+              "current_baseline": null,
+              "baseline_limitation": null,
+              "changing_conditions": null,
+              "exclusions": null,
+              "consequential_error": null,
+              "comparison_evidence": null,
+              "access_limitations": null
+            },
+            "pilot": {
+              "candidate_inputs": null,
+              "candidate_outputs": null,
+              "operating_envelope": null,
+              "evaluation_questions": null,
+              "requested_targets": null,
+              "missing_evidence": null,
+              "implementation_work": null,
+              "bounded_first_pilot": null,
+              "next_discussion": null
+            },
+            "unresolved_assumptions": []
+          },
+          "http_status": 200,
+          "latency_ms": 9401.933,
+          "returned": {
+            "message": "“Better predictions” needs a specific engineering decision and prediction target before a bounded pilot can be drafted. Please identify what you predict, what baseline it is compared against, and how the prediction informs a decision.",
+            "next_question": "What engineering decision should the pilot support, and what quantity or outcome must be predicted to make that decision?",
+            "proposals": [],
+            "unresolved_assumptions": [
+              "The prediction target, baseline, decision context, operating conditions, and acceptable error are unspecified."
+            ],
+            "source_ids": [],
+            "maturity_note": "This is an initial scoping stage; no Carbon-specific claims or execution assumptions have been made."
+          },
+          "client_actions": [
+            {
+              "type": "ACCEPT",
+              "suggestion_id": "absent-suggestion",
+              "disposition": "EXPECTED_PROPOSAL_ABSENT"
+            },
+            {
+              "type": "SKIP",
+              "disposition": "UNKNOWN_RETAINED"
+            }
+          ],
+          "request_association": {
+            "mode": "PILOT_DESIGN",
+            "knowledge_version": "ask-carbon-staging-2026-09-16.1",
+            "model_config_id": "gpt-5.6-luna:low:v1",
+            "request_id": "380cc95c-fc54-4819-b906-3ca820fefd6d"
+          },
+          "disposition": "LIVE_MODEL_OBSERVATION_CLIENT_SCRIPT_APPLIED"
+        },
+        {
+          "turn": 2,
+          "user": "We cannot answer that yet. What should remain open?",
+          "consent": "AFFIRMATIVE_ENABLE_AI_GUIDANCE_BEFORE_REQUEST",
+          "disclosed_context": {
+            "version": "carbon.client-intake.guidance-context.v1",
+            "answers": {
+              "intended_decision": "Improve an engineering decision that has not yet been specified.",
+              "requested_result": null,
+              "current_baseline": null,
+              "baseline_limitation": null,
+              "changing_conditions": null,
+              "exclusions": null,
+              "consequential_error": null,
+              "comparison_evidence": null,
+              "access_limitations": null
+            },
+            "pilot": {
+              "candidate_inputs": null,
+              "candidate_outputs": null,
+              "operating_envelope": null,
+              "evaluation_questions": null,
+              "requested_targets": null,
+              "missing_evidence": null,
+              "implementation_work": null,
+              "bounded_first_pilot": null,
+              "next_discussion": null
+            },
+            "unresolved_assumptions": [
+              "The prediction target, baseline, decision context, operating conditions, and acceptable error are unspecified."
+            ]
+          },
+          "http_status": 200,
+          "latency_ms": 12210.225,
+          "returned": {
+            "message": "Keep the decision, prediction target, baseline, operating conditions, error consequences, evidence, access limits, and pilot scope open until specified. No pilot target or outcome should be assumed yet.",
+            "next_question": "What specific engineering decision should the pilot support, and what prediction would inform it?",
+            "proposals": [
+              {
+                "suggestion_id": "open-1",
+                "field": "intended_decision",
+                "value": "Unspecified pending identification of the engineering decision.",
+                "rationale": "The decision context is not yet defined."
+              },
+              {
+                "suggestion_id": "open-2",
+                "field": "requested_result",
+                "value": "Unspecified pending definition of the prediction target and decision use.",
+                "rationale": "“Better predictions” does not define a measurable result."
+              },
+              {
+                "suggestion_id": "open-3",
+                "field": "current_baseline",
+                "value": "Unspecified pending identification of the comparator.",
+                "rationale": "Improvement cannot be assessed without a baseline."
+              },
+              {
+                "suggestion_id": "open-4",
+                "field": "pilot.bounded_first_pilot",
+                "value": "Remain open until the decision, prediction target, baseline, operating envelope, and evaluation evidence are defined.",
+                "rationale": "A bounded pilot should not assume scope or success criteria."
+              }
+            ],
+            "unresolved_assumptions": [
+              "The prediction target is unspecified.",
+              "The baseline comparator is unspecified.",
+              "The operating conditions and exclusions are unspecified.",
+              "The consequences of prediction error are unspecified.",
+              "Available evidence and access limitations are unspecified."
+            ],
+            "source_ids": [],
+            "maturity_note": "Draft pilot for Carbon review; not an execution commitment or scientific conclusion."
+          },
+          "client_actions": [
+            {
+              "type": "SKIP",
+              "disposition": "UNKNOWN_RETAINED"
+            }
+          ],
+          "request_association": {
+            "mode": "PILOT_DESIGN",
+            "knowledge_version": "ask-carbon-staging-2026-09-16.1",
+            "model_config_id": "gpt-5.6-luna:low:v1",
+            "request_id": "c4c8a3d8-132f-4ddb-aadc-3c63dc7fa466"
+          },
+          "disposition": "LIVE_MODEL_OBSERVATION_CLIENT_SCRIPT_APPLIED"
+        }
+      ],
+      "final_checks": {
+        "required_final": {
+          "intended_decision": true
+        },
+        "required_unknown": {
+          "requested_result": true,
+          "current_baseline": true,
+          "comparison_evidence": true,
+          "access_limitations": true
+        }
+      },
+      "final_brief": {
+        "schema_version": "carbon.client-intake.reviewed.v1",
+        "brief": {
+          "schema_version": "carbon.client-intake.draft.v1",
+          "draft_id": "pilot-sparse-information",
+          "revision_id": "rev-001",
+          "predecessor": null,
+          "answers": {
+            "intended_decision": {
+              "state": "VALUE",
+              "value": "Improve an engineering decision that has not yet been specified.",
+              "origin": "USER_ENTERED_LOCAL"
+            },
+            "requested_result": {
+              "state": "UNKNOWN",
+              "value": "",
+              "origin": "USER_ENTERED_LOCAL"
+            },
+            "current_baseline": {
+              "state": "UNKNOWN",
+              "value": "",
+              "origin": "USER_ENTERED_LOCAL"
+            },
+            "baseline_limitation": {
+              "state": "UNKNOWN",
+              "value": "",
+              "origin": "USER_ENTERED_LOCAL"
+            },
+            "changing_conditions": {
+              "state": "UNKNOWN",
+              "value": "",
+              "origin": "USER_ENTERED_LOCAL"
+            },
+            "exclusions": {
+              "state": "UNKNOWN",
+              "value": "",
+              "origin": "USER_ENTERED_LOCAL"
+            },
+            "consequential_error": {
+              "state": "UNKNOWN",
+              "value": "",
+              "origin": "USER_ENTERED_LOCAL"
+            },
+            "comparison_evidence": {
+              "state": "UNKNOWN",
+              "value": "",
+              "origin": "USER_ENTERED_LOCAL"
+            },
+            "access_limitations": {
+              "state": "UNKNOWN",
+              "value": "",
+              "origin": "USER_ENTERED_LOCAL"
+            }
+          },
+          "quantities": {
+            "preparation_time": {
+              "state": "UNKNOWN",
+              "value": null,
+              "minimum": null,
+              "maximum": null,
+              "unit": "",
+              "note": "",
+              "origin": "USER_ENTERED_LOCAL"
+            },
+            "prediction_latency": {
+              "state": "UNKNOWN",
+              "value": null,
+              "minimum": null,
+              "maximum": null,
+              "unit": "",
+              "note": "",
+              "origin": "USER_ENTERED_LOCAL"
+            },
+            "reference_query_time": {
+              "state": "UNKNOWN",
+              "value": null,
+              "minimum": null,
+              "maximum": null,
+              "unit": "",
+              "note": "",
+              "origin": "USER_ENTERED_LOCAL"
+            },
+            "workload_frequency": {
+              "state": "UNKNOWN",
+              "value": null,
+              "minimum": null,
+              "maximum": null,
+              "unit": "",
+              "note": "",
+              "origin": "USER_ENTERED_LOCAL"
+            },
+            "desired_accuracy": {
+              "state": "UNKNOWN",
+              "value": null,
+              "minimum": null,
+              "maximum": null,
+              "unit": "",
+              "note": "",
+              "origin": "USER_ENTERED_LOCAL"
+            }
+          },
+          "summary": {
+            "mapping_version": "carbon.client-intake.mapping.v1",
+            "text": "Decision: Improve an engineering decision that has not yet been specified.\nRequested result: Unknown\nCurrent baseline: Unknown\nReported limitation: Unknown\nChanging conditions: Unknown\nExclusions: Unknown\nConsequential error: Unknown\nComparison evidence (claimed): Unknown\nAccess/use limitations: Unknown\nPreparation time: unknown\nRecurring prediction latency: unknown\nReference-query time: unknown\nWorkload frequency: unknown\nRequested accuracy: unknown (unreviewed client intent)",
+            "unknown_fields": [
+              "requested_result",
+              "current_baseline",
+              "baseline_limitation",
+              "changing_conditions",
+              "exclusions",
+              "consequential_error",
+              "comparison_evidence",
+              "access_limitations",
+              "preparation_time",
+              "prediction_latency",
+              "reference_query_time",
+              "workload_frequency",
+              "desired_accuracy"
+            ],
+            "next_clarification": "Clarify requested result without supplying sensitive data."
+          },
+          "source": {
+            "application": "Carbon Client Intake Preview",
+            "mapping_version": "carbon.client-intake.mapping.v1",
+            "local_scope": "LOCAL_SYNTHETIC_DEVELOPMENT_NOT_TRANSMITTED"
+          }
+        },
+        "pilot": {
+          "label": "Draft pilot for Carbon review",
+          "candidate_inputs": "",
+          "candidate_outputs": "",
+          "operating_envelope": "",
+          "evaluation_questions": "",
+          "requested_targets": "",
+          "missing_evidence": "",
+          "implementation_work": "",
+          "bounded_first_pilot": "",
+          "next_discussion": ""
+        },
+        "field_provenance": [
+          {
+            "field": "intended_decision",
+            "origin": "CLIENT_TYPED",
+            "suggestion_id": null
+          },
+          {
+            "field": "requested_result",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "current_baseline",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "baseline_limitation",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "changing_conditions",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "exclusions",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "consequential_error",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "comparison_evidence",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "access_limitations",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "preparation_time",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "prediction_latency",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "reference_query_time",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "workload_frequency",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "desired_accuracy",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "pilot.candidate_inputs",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "pilot.candidate_outputs",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "pilot.operating_envelope",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "pilot.evaluation_questions",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "pilot.requested_targets",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "pilot.missing_evidence",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "pilot.implementation_work",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "pilot.bounded_first_pilot",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          },
+          {
+            "field": "pilot.next_discussion",
+            "origin": "UNKNOWN",
+            "suggestion_id": null
+          }
+        ],
+        "accepted_suggestions": [],
+        "unresolved_assumptions": [
+          "The prediction target is unspecified.",
+          "The baseline comparator is unspecified.",
+          "The operating conditions and exclusions are unspecified.",
+          "The consequences of prediction error are unspecified.",
+          "Available evidence and access limitations are unspecified."
+        ],
+        "ai_guidance": {
+          "enabled": true,
+          "provider": "OPENAI_API",
+          "guidance_version": "carbon.client-intake.guidance.v1",
+          "notice_version": "ask-carbon-guided-intake-notice-v1",
+          "consented_at": "2026-09-17T09:03:01.834Z",
+          "cleared_locally": false
+        },
+        "sharing": {
+          "include_conversation": false,
+          "conversation": []
+        },
+        "contact": {
+          "name": "",
+          "email": "",
+          "organization": ""
+        },
+        "local_scope": "LOCAL_REVIEW_PACKAGE_NOT_SUBMITTED"
+      },
+      "workbench": {
+        "preview": "CREATE_NEW_JOB",
+        "committed": "CREATE_NEW_JOB",
+        "initial_route": "UNASSESSED",
+        "selected_route": "DEVELOP_NEW_CAPABILITY",
+        "handoff_status": "PREPARED",
+        "handoff_authority": "REQUEST_ONLY_NO_EXECUTION_OR_APPROVAL",
+        "exact_replay": "EXACT_REPLAY",
+        "changed_identity": "IDENTITY_CONFLICT",
+        "revision": null,
+        "reopened_intake_records": 1,
+        "science": "NOT_QUALIFIED",
+        "rights": "UNRESOLVED",
+        "launch": "NOT_AUTHORIZED",
+        "source_assessment_responses": 0
+      },
+      "human_quality_review": "NAMED_PENDING_CONFIRMATION_AND_REVIEW"
+    }
+  ]
+}

@@ -30,6 +30,8 @@ const admission = (overrides = {}) => ({
   session_id: "session-1", mode: "GENERAL_QA", pilot_requests_per_session: 8,
   now_ms: JAN, lease_ttl_ms: 30_000, monthly_limit_micro_usd: MONTHLY_LIMIT,
   scope_limit_micro_usd: MONTHLY_LIMIT, daily_request_limit: 100, concurrency_limit: 2,
+  legacy_closed_authority_period: "2026-09", legacy_closed_authority_scope_id: "bakeoff",
+  legacy_closed_authority_exposure_micro_usd: 80_831,
   client_requests_per_hour: 12, client_counter_retention_ms: 86_400_000,
   reserved_cost_micro_usd: 2_000, model_config_id: "gpt-5.6-luna:low:v1",
   pricing_id: "openai-standard-2026-09-16:gpt-5.6-luna", ...overrides,
@@ -124,6 +126,31 @@ test("exact monthly boundary is admitted and one micro-dollar over is rejected",
   assert.equal((await prepare(ledger, admission({ reserved_cost_micro_usd: MONTHLY_LIMIT }))).status, 200);
   assert.equal((await authorize(ledger, "attempt-1")).status, 200);
   const denied = await prepare(ledger, admission({ attempt_id: "attempt-2", client_id: "client-2", reserved_cost_micro_usd: 1 }));
+  assert.equal(denied.status, 429);
+  assert.equal(denied.value.reason, "monthly_cost_limit");
+});
+
+test("closed duplicate authority exposure is reserved from the shared month and bakeoff scope", async () => {
+  const ledger = new AskCarbonUsageLedger({ storage: new MemoryStorage() });
+  const september = Date.parse("2026-09-17T12:00:00Z");
+  const headroom = MONTHLY_LIMIT - 80_831;
+  const admitted = await prepare(ledger, admission({
+    now_ms: september,
+    scope_id: "bakeoff",
+    scope_limit_micro_usd: MONTHLY_LIMIT,
+    reserved_cost_micro_usd: headroom,
+  }));
+  assert.equal(admitted.status, 200);
+  assert.equal(admitted.value.monthly_remaining_micro_usd, 0);
+  assert.equal((await authorize(ledger, "attempt-1", september)).status, 200);
+  const denied = await prepare(ledger, admission({
+    attempt_id: "attempt-2",
+    client_id: "client-2",
+    now_ms: september,
+    scope_id: "bakeoff",
+    scope_limit_micro_usd: MONTHLY_LIMIT,
+    reserved_cost_micro_usd: 1,
+  }));
   assert.equal(denied.status, 429);
   assert.equal(denied.value.reason, "monthly_cost_limit");
 });

@@ -1,0 +1,58 @@
+name = "ask-carbon-eval-luna"
+account_id = "7462053c6992b9c9fd889952a7ae0496"
+main = "worker/index.mjs"
+compatibility_date = "2026-09-16"
+workers_dev = true
+preview_urls = false
+
+[assets]
+directory = "./dist/staging"
+binding = "ASSETS"
+run_worker_first = true
+
+[[durable_objects.bindings]]
+name = "ASK_CARBON_USAGE_LEDGER"
+class_name = "AskCarbonUsageLedger"
+script_name = "ask-carbon-budget-authority"
+
+[[ratelimits]]
+name = "ASK_CARBON_EDGE_RATE_LIMITER"
+namespace_id = "902003"
+  [ratelimits.simple]
+  limit = 20
+  period = 60
+
+[vars]
+ASK_CARBON_ACTIVATION = "enabled"
+ASK_CARBON_RUNTIME_MODE = "staging"
+ASK_CARBON_PRIVACY_MODE = "evaluation_public_synthetic_only"
+ASK_CARBON_STAGING_ACCESS_MODE = "http_basic_v1"
+ASK_CARBON_EDGE_ACCESS_POLICY_ID = "staging-http-basic-v1"
+ASK_CARBON_EDGE_ABUSE_POLICY_ID = "cf-workers-rate-limit-902003-v1"
+ASK_CARBON_APPROVED_ORIGINS = "https://ask-carbon-eval-luna.carbon-physics-ai.workers.dev"
+ASK_CARBON_APPROVED_MODEL_CONFIGS = "gpt-5.6-luna:low:v1,gpt-5.6-terra:low:v1"
+ASK_CARBON_MODEL_CONFIG_ID = "gpt-5.6-luna:low:v1"
+ASK_CARBON_LEDGER_AUTHORITY_ID = "ask-carbon-provider-budget-v2"
+ASK_CARBON_ENVIRONMENT = "evaluation-luna"
+ASK_CARBON_OPERATIONAL_SCOPE_ID = "bakeoff"
+ASK_CARBON_OPERATIONAL_SCOPE_LIMIT_MICRO_USD = "5000000"
+ASK_CARBON_MONTHLY_LIMIT_MICRO_USD = "50000000"
+ASK_CARBON_LEGACY_CLOSED_AUTHORITY_PERIOD = "2026-09"
+ASK_CARBON_LEGACY_CLOSED_AUTHORITY_SCOPE_ID = "bakeoff"
+ASK_CARBON_LEGACY_CLOSED_AUTHORITY_EXPOSURE_MICRO_USD = "80831"
+ASK_CARBON_DAILY_REQUEST_LIMIT = "100"
+ASK_CARBON_MAX_CONCURRENCY = "4"
+ASK_CARBON_CLIENT_REQUESTS_PER_HOUR = "100"
+ASK_CARBON_CLIENT_COUNTER_RETENTION_MS = "86400000"
+ASK_CARBON_MAX_INPUT_TOKENS = "24000"
+ASK_CARBON_MAX_OUTPUT_TOKENS = "700"
+ASK_CARBON_PROVIDER_TIMEOUT_MS = "15000"
+ASK_CARBON_PILOT_MAX_REQUESTS_PER_SESSION = "8"
+ASK_CARBON_EVALUATION_TELEMETRY = "enabled"
+
+# Secrets, set only with Cloudflare's secret mechanism:
+# ASK_CARBON_OPENAI_API_KEY
+# ASK_CARBON_CONTINUATION_SIGNING_SECRET
+# ASK_CARBON_STAGING_AUTH_USER
+# ASK_CARBON_STAGING_AUTH_PASSWORD
+# ASK_CARBON_OPERATOR_READ_SECRET

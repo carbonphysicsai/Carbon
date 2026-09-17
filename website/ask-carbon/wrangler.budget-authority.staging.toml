@@ -1,0 +1,17 @@
+name = "ask-carbon-budget-authority"
+account_id = "7462053c6992b9c9fd889952a7ae0496"
+main = "worker/budget-authority.mjs"
+compatibility_date = "2026-09-16"
+workers_dev = false
+preview_urls = false
+
+# This route-less script is the only provider-budget authority for Ask Carbon.
+# Evaluation and owner-review Workers bind to this exact script; no environment
+# receives its own USD 50 namespace.
+[[durable_objects.bindings]]
+name = "ASK_CARBON_USAGE_LEDGER"
+class_name = "AskCarbonUsageLedger"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["AskCarbonUsageLedger"]

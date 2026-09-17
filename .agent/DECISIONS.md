@@ -14404,6 +14404,53 @@ provider-project/data-control facts. Production stays unchanged and the next
 release decision must name the exact target, knowledge/model/configuration,
 privacy disposition and rollback owner.
 
+## 2026-09-17 — WEB-QA-03-D1: use the existing static Worker account for isolated private staging
+
+**Authority source and scope.** The owner's WEB-QA-03 direction authorizes a
+real private staging deployment, dedicated provider isolation, a live Luna/Terra
+bakeoff inside the existing USD 5/USD 50 ceilings, and delivery of a private
+review URL. It does not authorize a production homepage deployment, production
+route or DNS change, public activation, paid Cloudflare plan, private data,
+qualification, miner execution or economics.
+
+**Hosting decision.** Supersede WEB-QA-02's missing-account blocker with the
+authenticated account evidence in `website/ask-carbon/evidence/WEB-QA-03.md`.
+Production is the manually uploaded, static-assets-only Cloudflare Worker
+`carbonwebsite`, not Pages or a repository-backed build. Keep it untouched.
+Deploy staging as separate Workers on the same Free account: one route-less
+shared SQLite Durable Object authority and Worker-enforced, secret-backed Basic
+authentication on every `workers.dev` request. Cloudflare Access was rejected
+because its nominal Free checkout requires billing details and authorization
+for monthly overage charges. The chosen staging-only alternative adds no
+subscription or public interval. The account's Workers Free quotas fail closed;
+no plan upgrade is permitted. Production configuration rejects this Basic-auth
+mode.
+
+**Provider and evaluation decision.** Use a dedicated Ask Carbon OpenAI project
+and independently rotatable key, never the testnet-agent key. Store it only as
+a Worker secret. Both candidate Workers bind the same financial authority and
+the same immutable `bakeoff` scope capped at 5,000,000 micro-USD inside the
+50,000,000-micro-USD UTC-month authority. Evaluate identical cases; select only
+the least expensive candidate clearing the frozen source-grounded quality bar.
+No candidate is selected when neither clears it.
+
+**Measured selection.** Luna delivered five supported answers and Terra 13 on
+the same 32-request frozen split. Three deterministic no-evidence outcomes per
+candidate were correct, but 24 Luna and 16 Terra requests ended in typed service
+failure after strict support validation. Neither clears the frozen reliability
+bar, so no production candidate is selected. Terra remains the more useful
+owner-review diagnostic, not a production winner.
+
+**Access and reversibility.** The owner completed the Cloudflare OAuth and
+OpenAI project setup. The dedicated, restricted Ask Carbon key and staging
+credentials are Worker secrets and independently revocable; none belongs in
+repository evidence. Cloudflare billing details are neither required nor
+authorized. Staging
+rollback selects the prior Worker deployment; deletion removes only the three
+staging Workers after preserving budget evidence. Production rollback and
+assets are not touched. The smallest reversal is disabling/deleting staging and
+revoking its OpenAI key and Cloudflare OAuth grant.
+
 ## 2026-09-16 — GOAL-WORKBENCH-08A-GUIDED-PILOT-01: one brief, two client editing modes
 
 **Owner direction and scope.** The owner amends the current website-intake

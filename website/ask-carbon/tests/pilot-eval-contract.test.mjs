@@ -6,7 +6,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import cases from "../eval/pilot-design.cases.public.json" with { type: "json" };
 import executable from "../eval/pilot-design.executable.public.json" with { type: "json" };
-import { planPilotSuite, runPilotMock } from "../eval/pilot-design-runner.mjs";
+import { planPilotSuite, runPilotLive, runPilotMock } from "../eval/pilot-design-runner.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const sha256 = (bytes) => createHash("sha256").update(bytes).digest("hex");
@@ -82,6 +82,99 @@ test("mock mode exercises the Worker, explicit client review and ordinary Workbe
   assert.equal(corrected.final_brief.pilot.requested_targets, "");
   assert.equal(corrected.turns[1].client_actions.some((item) => item.type === "REJECT" && item.disposition === "REJECTED_NO_MUTATION"), true);
   assert.equal(corrected.turns[1].client_actions.some((item) => item.type === "SWITCH_TO_FORM" && item.disposition === "SAME_BRIEF_PRESERVED"), true);
+});
+
+test("live runner uses authenticated Worker traffic, retains model output and never calls a provider directly", async () => {
+  const originalFetch = globalThis.fetch;
+  const mocks = executable.cases.flatMap((item) => item.turns.map((turn) => turn.mock));
+  const attempts = {};
+  const seen = [];
+  let modelIndex = 0;
+  globalThis.fetch = async (url, options = {}) => {
+    const parsed = new URL(url);
+    seen.push({ path: parsed.pathname, headers: new Headers(options.headers) });
+    assert.notEqual(parsed.hostname, "api.openai.com");
+    assert.equal(new Headers(options.headers).get("cf-access-client-id"), "test-client-id");
+    assert.equal(new Headers(options.headers).get("cf-access-client-secret"), "test-client-secret");
+    assert.equal(new Headers(options.headers).get("authorization"), "Basic test-basic-auth");
+    if (parsed.pathname.endsWith("/health")) return new Response(JSON.stringify({
+      active: true,
+      runtime_mode: "staging",
+      knowledge_version: "ask-carbon-staging-2026-09-16.1",
+      model_config_id: "gpt-5.6-luna:low:v1",
+    }), { status: 200, headers: { "content-type": "application/json" } });
+    if (parsed.pathname.endsWith("/staging/budget-snapshot")) {
+      assert.equal(new Headers(options.headers).get("x-ask-carbon-staging-operator"), "test-operator-secret");
+      return new Response(JSON.stringify({
+        attempts,
+        months: {},
+        scopes: {},
+        active_attempts: 0,
+      }), { status: 200, headers: { "content-type": "application/json" } });
+    }
+    if (parsed.pathname.endsWith("/api/ask-carbon")) {
+      const mock = mocks[modelIndex];
+      const requestId = `live-test-${modelIndex + 1}`;
+      modelIndex += 1;
+      const liveMock = {
+        ...mock,
+        proposals: mock.proposals.map((proposal) => ({ ...proposal, suggestion_id: `live-${modelIndex}-${proposal.suggestion_id}` })),
+      };
+      attempts[requestId] = {
+        attempt_id: requestId,
+        mode: "PILOT_DESIGN",
+        environment: "staging",
+        scope_id: "ask-carbon-bakeoff-v1",
+        admission_period: "2026-09",
+        model_config_id: "gpt-5.6-luna:low:v1",
+        pricing_id: "openai-standard-2026-09-16:gpt-5.6-luna",
+        state: "settled",
+        reserved_cost_micro_usd: 5_640,
+        actual_cost_micro_usd: 80,
+        terminal_reason: "provider_usage_settled",
+      };
+      return new Response(JSON.stringify({
+        status: "supported",
+        mode: "PILOT_DESIGN",
+        ...liveMock,
+        sources: liveMock.source_ids.map((id) => ({ id })),
+        knowledge_version: "ask-carbon-staging-2026-09-16.1",
+        model_config_id: "gpt-5.6-luna:low:v1",
+        request_id: requestId,
+      }), { status: 200, headers: { "content-type": "application/json" } });
+    }
+    throw Error(`unexpected test URL ${url}`);
+  };
+  try {
+    const result = await runPilotLive(executable, {
+      endpoint: "https://private.example/api/ask-carbon",
+      origin: "https://private.example",
+      accessClientId: "test-client-id",
+      accessClientSecret: "test-client-secret",
+      basicAuth: "test-basic-auth",
+      operatorSecret: "test-operator-secret",
+      runId: "test-live-run",
+    });
+    assert.equal(result.mode, "PRIVATE_SYNTHETIC_LIVE_EVALUATION");
+    assert.equal(result.attempted_turns, 11);
+    assert.equal(result.budget.run_settled_micro_usd, 880);
+    assert.equal(result.budget.run_unresolved_micro_usd, 0);
+    assert.equal(result.human_reviewers.every((item) => item.status === "NAMED_PENDING_CONFIRMATION_AND_REVIEW"), true);
+    assert.equal(result.observations.every((item) => item.workbench.initial_route === "UNASSESSED"), true);
+    assert.equal(result.observations.every((item) => item.workbench.handoff_status === "PREPARED"), true);
+    assert.equal(result.observations.every((item) => item.final_brief.sharing.include_conversation === false), true);
+    assert.equal(result.observations.some((item) =>
+      item.turns.some((turn) =>
+        turn.client_actions.some((action) => action.match_basis === "FROZEN_EXPECTED_FIELD"))), true);
+    const corrected = result.observations.find((item) => item.id === "contradiction-and-correction");
+    assert.equal(corrected.turns[1].client_actions.some((action) => action.type === "UNDO" && action.disposition === "NO_EFFECT_SUPERSEDED_OR_ABSENT"), true);
+    assert.equal(JSON.stringify(result).includes("test-client-secret"), false);
+    assert.equal(JSON.stringify(result).includes("test-basic-auth"), false);
+    assert.equal(JSON.stringify(result).includes("test-operator-secret"), false);
+    assert.equal(seen.filter((item) => item.path.endsWith("/api/ask-carbon")).length, 11);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });
 
 test("retained evidence is complete, digest-bound and keeps human/live missingness explicit", async () => {

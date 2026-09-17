@@ -4,21 +4,50 @@ This runbook defines a fail-closed release seam. It does not authorize a
 Cloudflare resource, route, public source release, privacy acceptance or
 production deployment.
 
-## Discovered target state (2026-09-16)
+## Discovered target state (2026-09-17)
 
-Authenticated GitHub access exposes only `carbonphysicsai/Carbon`; its Pages
-workflow publishes the Development Hub from `main:/docs`, not the public
-homepage. The authenticated `hello@carbonphysics.ai` Cloudflare account has no
-domain, Worker, Pages project, Durable Object or Zero Trust application. Public
-DNS and matching homepage bytes show Cloudflare serving, but do not establish
-the owning account or upload workflow. Therefore no private staging target or
-production rollback owner is established, and no resource was created.
+The owning Cloudflare account is `Carbon.physics.ai@gmail.com's Account`
+(`7462053c6992b9c9fd889952a7ae0496`). Production is the `carbonwebsite`
+static-assets Worker created through manual Dashboard upload. It serves the
+workers.dev hostname plus `carbonphysics.ai` and `www.carbonphysics.ai`; there
+is no separate Worker route. Rollback is a prior Worker deployment selection or
+`wrangler rollback`. A Worker rollback does not roll back Durable Object state.
 
-The smallest external action is for the owner to identify the exact account or
-upload workflow that owns `carbonphysics.ai`, then grant the minimum staging
-permissions or name an existing private staging project and rollback owner. Do
-not send credentials through chat. If the central Durable Object or private
-access gate would add charges, accept those charges separately before creation.
+WEB-QA-03 created route-less `ask-carbon-budget-authority` and the separate
+`ask-carbon-eval-luna` / `ask-carbon-eval-terra` Workers on the account's Free
+plan. Cloudflare Zero Trust checkout was not completed because it required a
+new billing/overage authorization; private staging uses Worker-enforced Basic
+Auth over TLS instead. Production resources, routes and DNS were not changed.
+
+The concurrent Workbench evaluation also created a private review Worker at
+`https://carbon-ask-private-staging.carbon-physics-ai.workers.dev` and a second
+route-less ledger script, `carbon-ask-budget-authority`. That second ledger
+retains its evaluation history but must not remain a second USD 50 admission
+authority. The integrated configuration rebinds continuing callers to
+`ask-carbon-budget-authority`; the superseded script remains inactive so its
+historical financial exposure is not erased.
+
+The preview and `/api/ask-carbon*` are protected by one rotated Basic access
+secret installed in the Worker, while the ledger snapshot has a second rotated
+operator secret. These are possession-based staging controls, not named-person
+authentication. The Worker has no production homepage route. The responsible
+operator for this bounded run is the owner-authorized Engineering session.
+Disable by setting activation off or deleting only the private staging Worker;
+the public homepage and route-less financial history are separate. No paid-plan
+change or incremental Cloudflare charge was observed, but Cloudflare charges
+remain outside the provider ledger and are not claimed as zero.
+
+The OpenAI project used for the synthetic run showed API-call logging enabled
+per call. No approved Zero Data Retention or Modified Abuse Monitoring control
+was established. Use public/synthetic inputs only; this is not customer-data
+processing authorization. Never place access or provider credentials in chat,
+Git, browser bundles, issues or retained evaluation output.
+
+The retained homepage live-evaluation transcripts remain pinned to knowledge
+`ask-carbon-staging-2026-09-16.1`. The reconciled private staging Workers now
+serve validated knowledge `ask-carbon-staging-2026-09-17.1`; that deployment
+does not rewrite the bakeoff source basis and no new paid model run was claimed
+for the newer snapshot.
 
 ## Shared monthly budget authority
 
@@ -34,6 +63,17 @@ Both general Q&A and pilot-design guidance use this authority. Runtime controls
 also include approved origins, an exact model/configuration registry, daily
 request limits, global and per-client concurrency/rate limits, and bounded
 pilot-design requests per session. Attempt states are:
+
+The closed concurrent `carbon-ask-budget-authority` history recorded 80,831
+micro-USD of September `bakeoff` exposure: 13,151 settled and 67,680 unresolved.
+That script is no longer an admission authority. The canonical ledger policy
+durably reserves the full 80,831 micro-USD in period `2026-09` and scope
+`bakeoff`, so neither a restart nor a caller migration can recreate the spent
+allowance. After combining the two historical ledgers, September application
+exposure is 295,165 micro-USD and the nested evaluation balance is 4,704,835
+micro-USD. Do not remove or reduce this offset; later exact reconciliation may
+replace uncertain exposure only through a separately reviewed, idempotent
+accounting migration.
 
 ```text
 prepared -> dispatch_authorized -> settled
@@ -51,9 +91,10 @@ the reservation. Lease expiry releases scheduling concurrency, not financial
 exposure. Late usage settles idempotently against the admission month; duplicate
 attempt IDs and conflicting settlements reject.
 
-Before enabling `PILOT_DESIGN`, verify the exact public notice against the
-actual Carbon OpenAI account retention configuration and the private inquiry
-receiver. AI consent must precede the first request; form-only drafting must
+Before enabling public `PILOT_DESIGN`, accept the exact public notice and
+private inquiry receiver. The private synthetic project observation above does
+not settle that release decision. AI consent must precede the first request;
+form-only drafting must
 remain usable. Do not log abandoned raw conversation text for sales/research
 analysis. Inquiry response permission and optional broader reuse permission
 must remain separate.
@@ -86,11 +127,13 @@ continuations together.
 
 ## Private staging sequence
 
-1. Resolve the existing private staging target, costs, permissions and rollback
-   owner. Configure Cloudflare Access or an equivalent authentication gate;
-   origin filtering is defense in depth, not authentication.
+1. WEB-QA-03 uses Worker-enforced TLS Basic authentication because
+   Cloudflare Zero Trust Free checkout requires a new overage-charge
+   authorization. Provision the username/password only as Worker secrets;
+   origin filtering is defense in depth, not authentication. Production mode
+   rejects this staging-only access mode.
 2. Deploy exactly one route-less shared budget authority from
-   `wrangler.budget-authority.example.toml`, after cost authorization.
+   `wrangler.budget-authority.staging.toml`.
 3. Bind evaluation and staging app Workers to that exact authority using
    `script_name`. Deploy with no production route and activation disabled.
 4. Configure Cloudflare edge rate limiting/WAF for all request shapes, including
@@ -102,9 +145,10 @@ continuations together.
 6. Run real Worker/DO tests: concurrent admission, restart, prepared and
    dispatched expiry, failed/late settlement, month rollover, source withdrawal,
    config/price mismatch and rollback. Preserve the ledger snapshot.
-7. Run development cases on Luna and Terra through the Worker within the shared
-   USD 5 bakeoff cap. Freeze configuration, then run the final split and score
-   with `eval/QUALITY_RUBRIC.md`. If neither meets the rubric, keep disabled.
+7. Run the frozen development cases on the selected configuration through the
+   Worker within the shared USD 5 bakeoff cap. Preserve exact outputs for human
+   review with `eval/QUALITY_RUBRIC.md`; do not infer a winner or readiness from
+   unreviewed responses.
 
 ## Guided-pilot evaluation commands
 
@@ -123,11 +167,21 @@ ledger with test-owned provider output; evidence writes the deterministic
 transcript/review packet and digest manifest. None calls a provider or private
 staging service.
 
-`npm run eval:pilot:live` is intentionally fail-closed while this runbook has
-no exact private target or accepted access mechanism. After the inputs in the
-private staging sequence are actually recorded, the live path must be bound to
-that exact authenticated Worker and central ledger before it is enabled. Do not
-substitute a direct provider call or Origin header for private access.
+The live writer is explicit and fail closed. Load secrets only from the
+approved operator environment, then run:
+
+```sh
+node eval/write-pilot-live-evidence.mjs \
+  --output-dir evidence/pilot-design-live-YYYY-MM-DD-vN \
+  --run-id bounded-private-run-id
+```
+
+`ASK_CARBON_EVAL_ENDPOINT` must be the recorded private Worker,
+`ASK_CARBON_EVAL_ORIGIN` its approved origin, and the Basic and operator
+credentials must be present. `--case-ids` can select named affected cases for a
+bounded follow-up. There are no retries or direct-provider calls. Preserve the
+shared hourly/session/monthly controls rather than resetting them to complete a
+run.
 
 ## Production release sequence
 
