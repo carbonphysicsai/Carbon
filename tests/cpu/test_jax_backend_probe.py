@@ -14,14 +14,21 @@ from carbon.reconstruction.worker import backend_probe as p
 
 
 def observation(backend=p.Backend.CPU, count=1, platform=None, **changes):
-    platform = platform or {p.Backend.CPU: "cpu", p.Backend.NVIDIA: "gpu", p.Backend.TPU: "tpu"}[backend]
+    platform = (
+        platform
+        or {p.Backend.CPU: "cpu", p.Backend.NVIDIA: "gpu", p.Backend.TPU: "tpu"}[
+            backend
+        ]
+    )
     values = {
         "requested_backend": backend,
         "jax_version": "0.9.0.1",
         "jaxlib_version": "0.9.0.1",
         "process_index": 0,
         "x64_enabled": False,
-        "devices": tuple(p.DeviceObservation(i, 0, platform, "Test device") for i in range(count)),
+        "devices": tuple(
+            p.DeviceObservation(i, 0, platform, "Test device") for i in range(count)
+        ),
     }
     values.update(changes)
     return p.BackendObservation(**values)
@@ -47,13 +54,18 @@ def test_each_backend_accepts_only_its_explicit_observation(backend):
 @pytest.mark.parametrize("backend", [p.Backend.NVIDIA, p.Backend.TPU])
 def test_accelerator_request_rejects_cpu_result(backend):
     with pytest.raises(p.BackendProbeError) as failure:
-        p.probe_backend(p.BackendRequest(backend), observer=Observer(observation(backend, platform="cpu")))
+        p.probe_backend(
+            p.BackendRequest(backend),
+            observer=Observer(observation(backend, platform="cpu")),
+        )
     assert failure.value.code is p.ProbeCode.PLATFORM_MISMATCH
 
 
 def test_wrong_backend_identity_fails():
     with pytest.raises(p.BackendProbeError) as failure:
-        p.validate_observation(p.BackendRequest(p.Backend.TPU), observation(p.Backend.CPU))
+        p.validate_observation(
+            p.BackendRequest(p.Backend.TPU), observation(p.Backend.CPU)
+        )
     assert failure.value.code is p.ProbeCode.PLATFORM_MISMATCH
 
 
@@ -70,29 +82,39 @@ def test_request_requires_closed_backend_type(backend):
         p.BackendRequest(backend)
 
 
-@pytest.mark.parametrize("versions", [("1", None), (None, "1"), ("", "1"), ("secret\n", "1"), (True, "1")])
+@pytest.mark.parametrize(
+    "versions", [("1", None), (None, "1"), ("", "1"), ("secret\n", "1"), (True, "1")]
+)
 def test_runtime_pins_must_be_complete_and_bounded(versions):
     with pytest.raises(p.BackendProbeError) as failure:
-        p.BackendRequest(p.Backend.CPU, jax_version=versions[0], jaxlib_version=versions[1])
+        p.BackendRequest(
+            p.Backend.CPU, jax_version=versions[0], jaxlib_version=versions[1]
+        )
     assert failure.value.code is p.ProbeCode.INVALID_REQUEST
 
 
 def test_version_mismatch_fails():
-    request = p.BackendRequest(p.Backend.CPU, jax_version="0.10.2", jaxlib_version="0.10.2")
+    request = p.BackendRequest(
+        p.Backend.CPU, jax_version="0.10.2", jaxlib_version="0.10.2"
+    )
     with pytest.raises(p.BackendProbeError) as failure:
         p.validate_observation(request, observation())
     assert failure.value.code is p.ProbeCode.RUNTIME_MISMATCH
 
 
 def test_matching_version_pin_passes():
-    request = p.BackendRequest(p.Backend.CPU, jax_version="0.9.0.1", jaxlib_version="0.9.0.1")
+    request = p.BackendRequest(
+        p.Backend.CPU, jax_version="0.9.0.1", jaxlib_version="0.9.0.1"
+    )
     assert p.validate_observation(request, observation()).jax_version == "0.9.0.1"
 
 
 @pytest.mark.parametrize("count", [2, 4])
 def test_visibility_must_match_exact_count(count):
     with pytest.raises(p.BackendProbeError) as failure:
-        p.validate_observation(p.BackendRequest(p.Backend.CPU), observation(count=count))
+        p.validate_observation(
+            p.BackendRequest(p.Backend.CPU), observation(count=count)
+        )
     assert failure.value.code is p.ProbeCode.DEVICE_COUNT_MISMATCH
 
 
@@ -107,7 +129,17 @@ def test_remote_device_rejected_from_local_observation():
         observation(devices=(p.DeviceObservation(0, 1, "cpu", "Test"),))
 
 
-@pytest.mark.parametrize("field,value", [("device_id", -1), ("device_id", True), ("process_index", "0"), ("platform", "cpu\n"), ("device_kind", "x" * 161), ("device_kind", "")])
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("device_id", -1),
+        ("device_id", True),
+        ("process_index", "0"),
+        ("platform", "cpu\n"),
+        ("device_kind", "x" * 161),
+        ("device_kind", ""),
+    ],
+)
 def test_invalid_device_metadata(field, value):
     values = dict(device_id=0, process_index=0, platform="cpu", device_kind="Test")
     values[field] = value
@@ -115,7 +147,16 @@ def test_invalid_device_metadata(field, value):
         p.DeviceObservation(**values)
 
 
-@pytest.mark.parametrize("changes", [{"devices": []}, {"devices": ()}, {"x64_enabled": 0}, {"jax_version": ""}, {"process_index": True}])
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {"devices": []},
+        {"devices": ()},
+        {"x64_enabled": 0},
+        {"jax_version": ""},
+        {"process_index": True},
+    ],
+)
 def test_invalid_observation(changes):
     with pytest.raises(p.BackendProbeError):
         observation(**changes)
@@ -144,10 +185,12 @@ def test_observation_is_frozen():
 
 def test_observer_exception_redacted_and_no_retry():
     calls = []
+
     class Broken:
         def observe(self, backend):
             calls.append(backend)
             raise RuntimeError("secret provider path")
+
     with pytest.raises(p.BackendProbeError) as failure:
         p.probe_backend(p.BackendRequest(p.Backend.NVIDIA), observer=Broken())
     assert failure.value.code is p.ProbeCode.UNAVAILABLE
@@ -169,14 +212,21 @@ def test_observer_cannot_return_untyped_data():
 
 def install_fake_jax(monkeypatch, *, fail=False):
     queries = []
+
     def local_devices(*, backend):
         queries.append(backend)
         if fail:
             raise RuntimeError("private CUDA failure")
         platform = {"cpu": "cpu", "cuda": "gpu", "tpu": "tpu"}[backend]
-        return [SimpleNamespace(id=0, process_index=0, platform=platform, device_kind="Fake")]
+        return [
+            SimpleNamespace(
+                id=0, process_index=0, platform=platform, device_kind="Fake"
+            )
+        ]
+
     module = SimpleNamespace(
-        __version__="0.9.0.1", local_devices=local_devices,
+        __version__="0.9.0.1",
+        local_devices=local_devices,
         process_index=lambda **kwargs: 0,
         config=SimpleNamespace(jax_enable_x64=False),
     )
@@ -203,6 +253,7 @@ def test_failed_cuda_query_never_attempts_cpu(monkeypatch):
 def test_module_import_does_not_initialize_jax(monkeypatch):
     def deny(*args, **kwargs):
         raise AssertionError("unexpected optional runtime import")
+
     monkeypatch.setattr(importlib, "import_module", deny)
     runpy.run_path(p.__file__, run_name="carbon_backend_import_diagnostic")
 
@@ -219,3 +270,65 @@ def test_cli_outputs_observation(monkeypatch, capsys):
     install_fake_jax(monkeypatch)
     assert p.main(["--backend", "cpu"]) == 0
     assert "LOCAL_RUNTIME_OBSERVATION_ONLY" in capsys.readouterr().out
+
+
+def test_staged_worker_probes_pinned_cpu_before_reconstruction(monkeypatch, tmp_path):
+    from carbon.reconstruction.worker import protocol
+    from carbon.reconstruction.profile import DEPENDENCY_SPECS
+
+    calls = []
+    monkeypatch.setattr(
+        protocol,
+        "load_worker_request",
+        lambda path: (calls.append("decode") or (None, None, None, None, None)),
+    )
+
+    def probe(request):
+        calls.append("probe")
+        pins = {name: version for name, version, _ in DEPENDENCY_SPECS}
+        assert request == p.BackendRequest(
+            p.Backend.CPU, 1, pins["jax"], pins["jaxlib"]
+        )
+
+    def reconstruct(**kwargs):
+        calls.append("reconstruct")
+        raise protocol.ReconstructionFailure("test.stop.after.probe")
+
+    monkeypatch.setattr(p, "probe_backend", probe)
+    monkeypatch.setattr(protocol, "reconstruct", reconstruct)
+    assert protocol.run_staged_worker(tmp_path / "input", tmp_path / "scratch") == 20
+    assert calls == ["decode", "probe", "reconstruct"]
+    assert not (tmp_path / "scratch" / "ready").exists()
+
+
+@pytest.mark.parametrize("code", list(p.ProbeCode))
+def test_staged_worker_backend_failure_never_trains_or_publishes(
+    monkeypatch, tmp_path, code
+):
+    from carbon.reconstruction.worker import protocol
+
+    monkeypatch.setattr(
+        protocol, "load_worker_request", lambda path: (None, None, None, None, None)
+    )
+
+    def fail_probe(request):
+        raise p.BackendProbeError(code)
+
+    def forbidden(**kwargs):
+        pytest.fail("reconstruction after rejected backend")
+
+    monkeypatch.setattr(p, "probe_backend", fail_probe)
+    monkeypatch.setattr(protocol, "reconstruct", forbidden)
+    assert protocol.run_staged_worker(tmp_path / "input", tmp_path / "scratch") == 20
+    assert not (tmp_path / "scratch").exists()
+
+
+def test_invalid_staged_input_does_not_initialize_backend(monkeypatch, tmp_path):
+    from carbon.reconstruction.worker import protocol
+
+    def forbidden(request):
+        pytest.fail("backend initialization before validated input")
+
+    monkeypatch.setattr(p, "probe_backend", forbidden)
+    assert protocol.run_staged_worker(tmp_path / "missing", tmp_path / "scratch") == 20
+    assert not (tmp_path / "scratch").exists()

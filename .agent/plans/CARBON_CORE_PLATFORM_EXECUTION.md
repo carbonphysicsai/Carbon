@@ -1,4 +1,4 @@
-CARBON CORE PLATFORM V2
+CARBON CORE PLATFORM EXECUTION V3
 JAX + GPU + TPU + NATIVE JULIA + MCP + WORKBENCH
 
 Repository: carbonphysicsai/Carbon
@@ -6,6 +6,80 @@ Programme: issue #209
 MCP workstream: issue #210
 Starting draft: PR #211, agent/core-platform-01-backend-probe
 Repository plan: .agent/plans/CARBON_CORE_PLATFORM_EXECUTION.md
+
+V3 OWNER AMENDMENT (2026-09-17)
+
+The owner supplied the integrated v3 execution mandate. This section supersedes
+conflicting delivery order or optional scope below; the retained v2 detail remains
+applicable otherwise. Historical evidence is unchanged. Programme #209 and MCP
+workstream #210 remain the single programme records. Primary Hub map_ref:
+SYSTEM/AGENT-EXECUTION; affects WAVE-C/C-02, C-03, C-04 and C-08.
+
+Deliver coherent tested PRs in this order, allowing distinct implementations to
+advance concurrently under one integration owner:
+1. Complete backend-probe acceptance and admitted worker integration.
+2. Standard MCP over working CPU research, and pinned native Julia Burgers with
+   miner, validator DEVELOPMENT diagnostics and existing Workbench consumers.
+3. Named NVIDIA GPU research and fresh validator reconstruction, portable logical
+   artifacts and measured optimization.
+4. Named TPU equivalent workflow and numerical comparison evidence.
+5. Bounded concurrency, eligible hardware-tested sharding, Workbench refinement
+   and finite external-client learning campaigns.
+
+Use the supported reconstruction implementation catalogue for prospective
+discovery. Distinguish family, implementation/version, prediction, objective,
+execution profile, applicability/evidence eligibility and availability. Preserve
+historical wrapper IDs, licenses, comparison fixtures and frozen campaign
+catalogue digests. Test real reconstruction without importing Torch in the
+intended JAX installation; this does not make the whole repository Torch-free.
+
+Extend existing physical case contracts for equations, variables, units,
+coordinates, conditions, parameters, outputs and array layout; separate permitted
+role views. Start Burgers, then one small second template. Shared types grant no
+data access. Track language/backend/task combinations explicitly.
+
+Use a supervised Julia subprocess with a closed protocol first. Pin runtime,
+project/manifest, source, artifacts and image before execution. No request-time
+installation or user startup/depot lookup. Validate units, axes/order/indexing,
+shape/dtype/complex/precision/time and byte bounds. Require actual Burgers solve,
+conservation, applicability, horizon and refinement observations, analytic controls
+and a methodologically distinct witness where feasible. Missing scientific values
+block promotion, not permitted integration or DEVELOPMENT diagnostics.
+
+Hardware initialization belongs inside an admitted process supervised by an
+independent deadline owner. Device observation alone proves neither numerical
+execution nor isolation. GPU/TPU require actual forwards, gradients, updates,
+Fourier/physical loss, export and independent reconstruction; measure device memory,
+OOM and cleanup after cancellation, crashes, restart and lease expiry. Exclusive
+allocations precede unproven partitioning. Keep unexecuted sharding open.
+
+Define portable logical state before sharding, including leaves, optimizer/EMA,
+RNG/progress, normalization/units, recipe/data/environment and placement. Measure
+cold/warm/transfer/checkpoint/total time across workload sizes. Compare fixed-state,
+within-backend and cross-backend retraining separately; choose a declared final
+comparison class, preserve physics gates and never pool uncalibrated scores.
+
+MCP must pin tested current SDK/spec/client versions, typed schemas/results,
+stdio and authenticated Streamable HTTP. Negotiated Tasks and fallback operations
+must use existing identity/accounting; no false extension advertisements. Test two
+independent clients including a real agent host. Client UI/Skills extensions cannot
+block GPU/TPU delivery. Protocol cancellation requires observed resource cleanup.
+
+Workbench adds physical-definition checks, operating-envelope studies and reference
+feasibility using its existing draft/evidence lineage, private service, budgets,
+saved results and desktop/mobile controls. Physical edits invalidate evidence;
+display edits do not rerun science. Late/stale associations and automatic customer
+data publication are forbidden. UNASSESSED/NOT_QUALIFIED remain where required.
+
+Freeze any new finite campaign's challenge/cohorts, methods, budget, comparison
+rules and stopping conditions. Begin a complete Burgers workflow; measure useful
+trials, time/cost, admissibility, final reconstruction and unmet capabilities. Do
+not force improvement or treat adapted cohorts as unseen confirmation. Preserve
+all separately owned campaigns/grants. No new spend, protected processing, public
+deployment or chain writes. Prepare one bounded REQUESTED_NOT_GRANTED GPU/TPU/
+remote-service request with named accounts/hosts/devices, current rates, all costs,
+cap, expiry and cleanup; continue permitted local work. AWS deferred, Hippius
+outside the critical path.
 
 OWNER DIRECTION AND SUPERSESSION
 

@@ -4,14 +4,26 @@
 > is not a universal truth oracle, and this file does not grant any solver
 > scientific authority.
 
-**Version:** 2.0
-**Status:** reconciled target architecture; not implemented or qualified
+**Version:** 2.1
+**Status:** Julia integration required; native runtime and qualification pending
 **Audience:** SciML, protocol, operations, security, and implementation teams
 **Controlling science:** `SCIENTIFIC_REFERENCE_CANON_V4_MASTER.md`,
-`Evidence_and_Envelope_Standards.md`, and the future ratified
+`Evidence_and_Envelope_Standards.md`, and the ratified
 `Reference_and_TruthAsset_Contract.md` owned by Wave B ticket B-04
 **Operations:** `Operations.md`
-**Sequencing:** `.agent/WAVE_B.md`
+**Sequencing:** `.agent/WAVE_C.md` and owner programme #209, with
+`.agent/plans/CARBON_CORE_PLATFORM_EXECUTION.md` controlling its bounded upgrade.
+
+**Current-status reconciliation (C-CORE-01-D3, DOCUMENTATION_LAG):** B-04's
+reference contract is ratified and its infrastructure implemented. C-04/PR #154
+adds real public-candidate Python Burgers primary, witness and cross-check methods
+under `carbon/reference_runtime`, with existing isolated worker supervision.
+Native Julia is required across miner research, validator DEVELOPMENT diagnostics
+and the existing Workbench through a Python-facing service. It is not yet an
+implemented or qualified runtime merely because this specification requires it.
+Earlier Wave-B fixture-only language below is historical sequencing context,
+superseded for this owner-authorized work. Existing methods/evidence retain their
+identities; no accepted reference or score rule changes here.
 
 ---
 
@@ -58,8 +70,9 @@ select the official case, set a gate, or decide a winner.
 | Claim | Current state |
 |---|---|
 | Target Julia reference interface described | Yes |
-| Exact B-04 contract ratified | No |
-| Runtime implementation present and integrated | No evidence from this file |
+| Exact B-04 contract ratified | Yes, bounded reference-policy infrastructure |
+| Public Python reference runtime | C-04 implemented; code and ticket own evidence |
+| Native Julia runtime integrated | Pending programme #209 implementation |
 | Reference method scientifically qualified | No |
 | Production security or operations qualified | No |
 | Universal ground-truth oracle exists | No, by design |

@@ -121,7 +121,9 @@ class BackendObservation:
         _text(self.jax_version, maximum=64)
         _text(self.jaxlib_version, maximum=64)
         _index(self.process_index)
-        identifiers = [(device.process_index, device.device_id) for device in self.devices]
+        identifiers = [
+            (device.process_index, device.device_id) for device in self.devices
+        ]
         if len(set(identifiers)) != len(identifiers) or any(
             device.process_index != self.process_index for device in self.devices
         ):
@@ -234,15 +236,19 @@ def probe_backend(
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--backend", choices=[item.value for item in Backend], required=True)
+    parser.add_argument(
+        "--backend", choices=[item.value for item in Backend], required=True
+    )
     parser.add_argument("--local-device-count", type=int, default=1)
     parser.add_argument("--jax-version")
     parser.add_argument("--jaxlib-version")
     args = parser.parse_args(argv)
     try:
         request = BackendRequest(
-            Backend(args.backend), args.local_device_count,
-            args.jax_version, args.jaxlib_version,
+            Backend(args.backend),
+            args.local_device_count,
+            args.jax_version,
+            args.jaxlib_version,
         )
         result = probe_backend(request).to_dict()
     except BackendProbeError as error:

@@ -5,6 +5,44 @@ Status: draft implementation; original native diagnostics passed; canonical
 acceptance and Hub integration outstanding. No scientific selector is replaced.
 Starting main: bf21d2e58544701d45cd5c25033097ea10bc9d7c.
 
+## C-CORE-01-D3: admitted initialization and v3 integration (2026-09-17)
+
+Primary Hub map_ref: `SYSTEM/AGENT-EXECUTION`; impact `map_structural`, affecting
+`WAVE-C/C-02`, `WAVE-C/C-03`, `WAVE-C/C-04`, `WAVE-C/C-08`. The v3 owner mandate
+in the existing programme plan supersedes conflicting v2 ordering, with no new
+spend or scientific authority. Current main remains 0afbb9d9; #207 and #208 are
+merged. Reconciled #211 with that main in an isolated worktree; unrelated branches
+and campaign grants remain untouched.
+
+KEEP C-01 launch identity, C-03 admission/controls/watchdog/cleanup, accepted CPU
+profile and all existing reference/scientific contracts. WRAP the existing worker
+reconstruction entry with explicit CPU observation after request validation and
+controller authorization. Require the profile's exact JAX/jaxlib versions and one
+local CPU device before reconstruction. Backend failure produces the existing
+worker infrastructure failure path, without training or provisional output.
+
+Alternatives rejected: initializing accelerators in the controller; introducing
+a probe scheduler; accepting generic/default backend fallback; treating a device
+observation as evidence of compute, precision or isolation. GPU/TPU admission stays
+unavailable until their separate profile implementations and hardware tests.
+
+Reversible change path: `carbon/reconstruction/worker/protocol.py` and
+`backend_probe.py`, with `tests/cpu/test_jax_backend_probe.py`. Superseding the
+working decision requires updating this section and the programme plan. No
+human-reserved input is needed for this bounded integration; hardware allocations
+and scientific promotion retain their external gates.
+
+Baseline: 53 local Linux Python 3.11.16 diagnostic tests passed. Modified probe
+and worker contract diagnostics: 82 passed. Canonical local wrapper could not
+resolve the Windows-created worktree through WSL; required pinned CI owns
+acceptance, including worker service isolation, package and invariants. No device
+computation, paid campaign or hardware execution is claimed from these tests.
+
+Bounded completion is conditional on required CI and normal expected-head merge.
+The next slice is prospective capability discovery and the CPU standard-MCP/Julia
+workflow. Programme #209/#210 stay open; native Julia across three consumers,
+GPU/TPU execution, external clients and full Workbench acceptance remain open.
+
 ## Current scope amendment: C-CORE-01-D2 (2026-09-17)
 
 The owner now requires Julia as a Carbon-native capability for miner research,
@@ -18,8 +56,8 @@ framework for both miners and validators. Julia provides scientific analysis,
 reference and design services through a stable Python-facing API. Python remains
 the control plane. No PyTorch shortcut or Julia ML migration is requested.
 
-The complete replacement execution prompt is:
-`.agent/plans/CARBON_CORE_PLATFORM_EXECUTION.md` (v2).
+The execution prompt is `.agent/plans/CARBON_CORE_PLATFORM_EXECUTION.md`; the
+v3 amendment now controls over the historical D2/v2 wording below.
 
 Use one integration owner and existing domain services. Complete a JAX accelerator
 track, a native Julia track with actual validator and Workbench consumers, and a
@@ -65,9 +103,9 @@ primitive in canonical worker code. It accepts only cpu/cuda/tpu, checks exact
 local device count/platform, optional JAX/jaxlib pins and bounded typed metadata,
 and returns closed redacted errors. It never retries another backend.
 
-This helper has no runtime admission or accelerator-launch consumer. It changes no
-existing numerical/scientific/provider behavior. Backend initialization can acquire
-resources and lacks its own watchdog; invoke inside an admitted supervised process.
+The original helper had no runtime consumer. D3 integrates the accepted CPU
+worker only, after admission and under its existing independent watchdog.
+Backend initialization can acquire resources; the helper alone is not supervision.
 An observation is not attestation, computation verification, precision support,
 a resource grant or qualification. The x64 field is a configuration observation.
 
