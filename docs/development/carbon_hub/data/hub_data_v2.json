@@ -561,6 +561,10 @@
     "core_platform_workbench_operator": {
       "label": "Private Workbench scientific-service composition and checks",
       "url": "https://github.com/carbonphysicsai/Carbon/blob/edbee85c81215a6ed813e825e95d5f075b619746/Business/Carbon_Fit/workbench/SCIENTIFIC_STUDIES_OPERATOR.md"
+    },
+    "core_platform_mcp_extensions": {
+      "label": "C-CORE-10: negotiated Tasks and research Skills over the existing controller",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/68ed5435cd599b3582441bb9152e35fcd40f19e0/.agent/tickets/C-CORE-10_mcp_tasks_and_skills.md"
     }
   },
   "authority_source_checks": [
@@ -1978,6 +1982,17 @@
         "**Current-status reconciliation (C-CORE-04, DOCUMENTATION_LAG):**",
         "Canonical acceptance and normal delivery"
       ]
+    },
+    {
+      "id": "core-platform-mcp-extension-boundary",
+      "path": ".agent/tickets/C-CORE-10_mcp_tasks_and_skills.md",
+      "required_markers": [
+        "A client capability is",
+        "protocol negotiation, never execution permission.",
+        "Cancellation reuses its",
+        "accepted domain identity.",
+        "Canonical checks and normal tested-head delivery remain required."
+      ]
     }
   ],
   "authority_ceilings": {
@@ -2027,6 +2042,13 @@
       "launch/"
     ],
     "rules": [
+      {
+        "id": "core-platform-mcp-extensions",
+        "match_type": "exact",
+        "path": ".agent/tickets/C-CORE-10_mcp_tasks_and_skills.md",
+        "impact_class": "map_structural",
+        "map_ref": "SYSTEM/AGENT-EXECUTION"
+      },
       {
         "id": "authored-julia-guide",
         "match_type": "exact",

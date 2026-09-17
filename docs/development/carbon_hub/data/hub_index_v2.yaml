@@ -6974,6 +6974,19 @@ events:
       - "WAVE-C/C-08"
       - "SYSTEM/DEVELOPMENT-HUB"
     supersedes: null
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "evidence"
+    event_id: "C-CORE-10-TASKS-SKILLS"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    primary_detail: ".agent/tickets/C-CORE-10_mcp_tasks_and_skills.md"
+    affects:
+      - "WAVE-C/C-08"
+      - "SYSTEM/PROTOCOL-AUTHORITY"
+      - "SYSTEM/CI"
+    supersedes: null
+    summary: "Negotiated MCP Tasks now project existing durable operation ownership and supervised cleanup, while versioned research Skills use fixed private manifests and authorized resources. Local SDK and native Julia tests exercised reconnect, direct access checks, cancellation and stdio disconnect; uncertain consumption remains reserved. Canonical delivery, real agent-host learning, accelerator execution and scientific qualification remain distinct open acceptance; no grant, scheduler or protected authority is added."
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"

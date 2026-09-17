@@ -3,8 +3,8 @@
 Programme #209 / MCP #210. Owner authority: integrated v3 execution mandate
 in `.agent/plans/CARBON_CORE_PLATFORM_EXECUTION.md`. Dependency C-CORE-07
 PR #224, starting head `49e418d3aa639558095aeea26b39205d55678238`;
-current main `cfd4a4bc5ed6ce108e5ea61db449b24f663d952b`.
-Status: working contract, implementation and acceptance pending.
+main at ticket start `cfd4a4bc5ed6ce108e5ea61db449b24f663d952b`.
+Status: implemented with local diagnostics; canonical acceptance and delivery pending.
 Primary Hub map_ref `SYSTEM/AGENT-EXECUTION`; `map_structural` impact,
 affecting WAVE-C/C-08, SYSTEM/PROTOCOL-AUTHORITY and SYSTEM/CI.
 
@@ -151,3 +151,15 @@ Working operator and external-client commands are in `carbon/miner_mcp/README.md
 Canonical checks and normal tested-head delivery remain required. GPU/TPU,
 protected use, scientific/security qualification and paid agent usefulness remain
 outside this ticket's earned maturity.
+
+At source head `4ca8722fba8ef50274ca87ac50f54263e6ce0f4a`, an isolated LF
+checkout passed all 276 invariants in 36.66 seconds, collected all 6,557 tests
+across every test directory, and passed strict Python 3.10 Ruff and Black checks
+for all 18 changed Python files. A fresh offline wheel imported the new Tasks
+and Skills modules outside the checkout while optional MCP/AnyIO/Pydantic/
+Starlette/Uvicorn/httpx2 imports were actively rejected. The existing miner_mcp
+namespace still requires Cryptography and NumPy through its established source
+owners; this is not a zero-dependency claim for that namespace. The final current
+guidance passed three stdio tests in 61.64 seconds and the independent locked
+TypeScript client passed in 38.36 seconds. These are native diagnostics, not
+substitutes for required canonical CI or paid real-agent learning evidence.
