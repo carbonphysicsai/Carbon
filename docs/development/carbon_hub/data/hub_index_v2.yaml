@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-17T15:52:50Z"
+  captured_at_utc: "2026-09-17T16:05:43Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "0d11cc31158e6057b69de6bb6dd45298a8f3e894"
+  authority_snapshot_commit: "916ba388b5bacbbbf033f75e43616c4132bddaf5"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -5916,13 +5916,14 @@ events:
     event_id: "C-W1-D5-CONTINUITY-01"
     owner_lane: "engineering"
     status: "active"
-    summary: "Close PR #206 bounded delivery and retain its real early-stop outcome. Select a prospective agent continuity repair under the finite three-campaign owner grant. Repin navigation to the same authority snapshot, preserving unrelated Launchpad, Workbench and website work. No science, network, payment or security maturity is promoted."
+    summary: "Close PR #206 bounded delivery and retain its real early-stop outcome. Select a prospective agent continuity repair under the finite three-campaign owner grant. Repin navigation to the same authority snapshot, preserving unrelated Launchpad, Workbench and website work. No science, network, payment or security maturity is promoted. Refresh the unchanged staging knowledge explanation against the new Wave source digest; no website activation or website model spend."
     primary_detail: ".agent/tickets/C-W1-D5_autonomous_research_continuity.md"
     affects:
       - "SYSTEM/CI"
       - "SYSTEM/DEVELOPMENT-HUB"
       - "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
       - "SYSTEM/GOVERNANCE"
+      - "SYSTEM/PUBLICATION"
       - "WAVE-B"
       - "WAVE-B/B-E4"
       - "WAVE-B/B-GATE"
