@@ -1,8 +1,9 @@
 """Actual native Julia checks in disposable, bounded local Docker workers.
 
-Run with CARBON_JULIA_IMAGE set to an exact locally built sha256 image ID.
-This lane proves bounded DEVELOPMENT calculations and process supervision;
-it is not a security qualification or miner/validator/Workbench integration.
+Primitive controls require CARBON_JULIA_IMAGE, an exact local sha256 image ID.
+Controller controls require CARBON_JULIA_WORKER_MANIFEST from the normal image
+builder. This lane exercises bounded DEVELOPMENT calculation and the existing
+C04 worker lifecycle; it does not qualify security or all three consumer paths.
 """
 
 from __future__ import annotations
@@ -260,3 +261,161 @@ emit({'case':'process_controls','malformed_exit':malformed.returncode,
     assert result["failure_codes"] == ["DEADLINE_EXCEEDED", "CANCELLED"]
     assert result["reaped_children"] == 2
     assert result["process_groups_released"] is True
+
+
+def _controller_case():
+    from carbon.generators.burgers_dynamics import (
+        BurgersCaseCoordinates,
+        PublicDevelopmentRole,
+        generate_development_case,
+        requested_times,
+    )
+    from carbon.reference_runtime.julia.adapter import julia_crosscheck_request
+    from carbon.reference_runtime.model import (
+        BurgersReferenceRole,
+        build_reference_request,
+        runtime_environment_digest,
+    )
+    from carbon.registry import ChallengeKey
+    from carbon.seeding import EvaluationBinding, MockContext, MockEntropy, SeedPin
+
+    sha = "sha256:" + "c" * 64
+    context = MockContext(
+        MockEntropy(b"j" * 32),
+        SeedPin(
+            ChallengeKey("burgers-dynamics-v1", "1.0"),
+            "1.0",
+            sha,
+            "1.0",
+            sha,
+            EvaluationBinding(b"k" * 32),
+        ),
+    )
+    case = generate_development_case(
+        context,
+        BurgersCaseCoordinates(PublicDevelopmentRole.TRAIN, 0, 0),
+    )
+    primary = build_reference_request(
+        case,
+        BurgersReferenceRole.CANDIDATE_PRIMARY,
+        output_points=32,
+        requested_times=requested_times(case, 4),
+        environment_digest=runtime_environment_digest(),
+    )
+    return julia_crosscheck_request(primary, units="dimensionless")
+
+
+def _controller(tmp_path):
+    from carbon.reconstruction.worker.docker_runtime import load_image_identity
+    from carbon.reconstruction.worker.model import DevelopmentWorkerProfile
+    from carbon.reference_runtime.controller import IsolatedBurgersReferenceController
+
+    manifest = os.environ.get("CARBON_JULIA_WORKER_MANIFEST")
+    assert manifest, "exact freshly-built Julia worker identity manifest required"
+    image = load_image_identity(Path(manifest))
+    return IsolatedBurgersReferenceController(
+        state_root=tmp_path.resolve(),
+        image=image,
+        worker_profile=DevelopmentWorkerProfile(
+            "sha256:" + "1" * 64, "sha256:" + "2" * 64
+        ),
+    )
+
+
+def test_registered_julia_runs_and_replays_through_existing_c04_controller(tmp_path):
+    from carbon.evaluation.enums import ReferenceRunOutcome
+
+    controller = _controller(tmp_path)
+    request = _controller_case()
+    result = controller.execute(request)
+    assert result.result.outcome is ReferenceRunOutcome.SUPPORTED
+    assert result.result.shape == (len(request.requested_times), 32)
+    diagnostics = dict(result.result.diagnostics)
+    assert diagnostics["language"] == "julia"
+    assert diagnostics["runtime_version"] == "1.13.0"
+    assert diagnostics["completed_horizon"] == request.requested_times[-1]
+    assert not result.result.eligible_for_truth_or_score
+    replay = controller.execute(request)
+    assert replay.snapshot_digest == result.snapshot_digest
+    assert replay.result.artifact_digest == result.result.artifact_digest
+    assert replay.controls == {"retained_exact_replay": True}
+    journal = json.loads(next((tmp_path / "launches").glob("*.json")).read_bytes())
+    assert journal["state"] == "ASSOCIATED_DEVELOPMENT_ONLY"
+    assert (
+        subprocess.run(
+            ["docker", "inspect", journal["container_name"]],
+            check=False,
+            capture_output=True,
+            timeout=10,
+        ).returncode
+        != 0
+    )
+    record = {
+        "case": "c04_registered_julia_public_train",
+        "image": result.image_id,
+        "request_digest": request.request_digest,
+        "snapshot_digest": result.snapshot_digest,
+        "artifact_digest": result.result.artifact_digest,
+        "timings": result.timings,
+        "resources": result.resources,
+        "diagnostics": diagnostics,
+        "exact_replay": True,
+        "cleanup_confirmed": True,
+        "score_eligible": False,
+        "scientifically_qualified": False,
+    }
+    print(json.dumps(record, sort_keys=True))
+    trace = os.environ.get("CARBON_JULIA_TRACE_PATH")
+    if trace:
+        with Path(trace).open("a", encoding="utf-8") as stream:
+            stream.write(json.dumps(record, sort_keys=True) + "\n")
+
+
+def test_existing_c04_controller_cancels_live_julia_container_and_confirms_release(
+    tmp_path,
+):
+    import pytest
+
+    from carbon.reconstruction.worker.model import WorkerCode, WorkerFailure
+
+    controller = _controller(tmp_path)
+    checks = 0
+
+    def cancelled():
+        nonlocal checks
+        journals = list((tmp_path / "launches").glob("*.json"))
+        if (
+            journals
+            and json.loads(journals[0].read_bytes())["state"] == "CONTROLS_VERIFIED"
+        ):
+            checks += 1
+        return checks >= 3
+
+    with pytest.raises(WorkerFailure) as failure:
+        controller.execute(_controller_case(), cancelled=cancelled)
+    assert failure.value.code is WorkerCode.CANCELLED
+    journal = json.loads(next((tmp_path / "launches").glob("*.json")).read_bytes())
+    assert journal["terminal_code"] == WorkerCode.CANCELLED.value
+    assert journal["cleanup"] == "CONFIRMED"
+    assert journal["state"] != "ASSOCIATED_DEVELOPMENT_ONLY"
+    assert not list((tmp_path / "staging").iterdir())
+    assert (
+        subprocess.run(
+            ["docker", "inspect", journal["container_name"]],
+            check=False,
+            capture_output=True,
+            timeout=10,
+        ).returncode
+        != 0
+    )
+    print(
+        json.dumps(
+            {
+                "case": "c04_registered_julia_cancel",
+                "terminal_code": failure.value.code.value,
+                "cleanup_confirmed": True,
+                "controls_verified_checks": checks,
+            },
+            sort_keys=True,
+        )
+    )

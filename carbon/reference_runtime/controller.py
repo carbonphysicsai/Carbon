@@ -138,6 +138,21 @@ class IsolatedBurgersReferenceController:
             path.mkdir(parents=True, exist_ok=True)
             path.chmod(0o700)
 
+    def _remove_stage(self, stage: Path) -> None:
+        """Remove only this controller's immutable, flat request staging directory."""
+
+        if stage.parent != self.state_root / "staging" or stage.is_symlink():
+            raise WorkerFailure(WorkerCode.CLEANUP)
+        if not stage.exists():
+            return
+        try:
+            # Staging is immutable while mounted; directory write permission is
+            # required to unlink its request after the exact worker is removed.
+            stage.chmod(0o700)
+            shutil.rmtree(stage)
+        except OSError:
+            raise WorkerFailure(WorkerCode.CLEANUP) from None
+
     def _journal(self, launch_digest: str, payload: dict[str, object]) -> None:
         path = self.state_root / "launches" / (launch_digest[7:] + ".json")
         temporary = path.with_suffix(".tmp")
@@ -252,7 +267,7 @@ class IsolatedBurgersReferenceController:
                 or type(retained.get("controls_digest")) is not str
                 or "artifact_digest" not in retained
             ):
-                shutil.rmtree(stage, ignore_errors=True)
+                self._remove_stage(stage)
                 raise WorkerFailure(WorkerCode.CONFLICT)
             snapshot = self.state_root / "snapshots" / launch_digest[7:]
             result = validate_reference_snapshot_bounded(snapshot, stage)
@@ -260,9 +275,9 @@ class IsolatedBurgersReferenceController:
                 _snapshot_digest(snapshot) != retained["snapshot_digest"]
                 or result.artifact_digest != retained["artifact_digest"]
             ):
-                shutil.rmtree(stage, ignore_errors=True)
+                self._remove_stage(stage)
                 raise WorkerFailure(WorkerCode.CONFLICT)
-            shutil.rmtree(stage, ignore_errors=True)
+            self._remove_stage(stage)
             return IsolatedReferenceResult(
                 result,
                 launch_digest,
@@ -283,7 +298,7 @@ class IsolatedBurgersReferenceController:
             descriptor = os.open(lock_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o400)
             os.close(descriptor)
         except OSError:
-            shutil.rmtree(stage, ignore_errors=True)
+            self._remove_stage(stage)
             raise WorkerFailure(WorkerCode.CONFLICT) from None
         journal = {
             "schema": "carbon.c04.reference-launch.v1",
@@ -307,7 +322,7 @@ class IsolatedBurgersReferenceController:
             journal["state"] = "FAILED_INFRA"
             journal["terminal_code"] = checked.code
             self._journal(launch_digest, journal)
-            shutil.rmtree(stage, ignore_errors=True)
+            self._remove_stage(stage)
             raise WorkerFailure(WorkerCode.UNAVAILABLE)
         container_created = False
         try:
@@ -449,7 +464,7 @@ class IsolatedBurgersReferenceController:
             result = validate_reference_snapshot_bounded(snapshot, stage)
             validation_seconds = time.monotonic() - validation_started
             self._check_cancelled(cancelled)
-            shutil.rmtree(stage, ignore_errors=True)
+            self._remove_stage(stage)
             journal["state"] = "ASSOCIATED_DEVELOPMENT_ONLY"
             journal["artifact_digest"] = result.artifact_digest
             self._journal(launch_digest, journal)
@@ -500,7 +515,7 @@ class IsolatedBurgersReferenceController:
                     self._journal(launch_digest, journal)
                     raise WorkerFailure(WorkerCode.QUARANTINED) from None
             self._journal(launch_digest, journal)
-            shutil.rmtree(stage, ignore_errors=True)
+            self._remove_stage(stage)
             raise
 
 

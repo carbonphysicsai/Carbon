@@ -396,9 +396,9 @@ def test_julia_registry_cannot_select_primary_script_or_tolerance(change):
 
 @pytest.mark.parametrize("code", tuple(bridge.JuliaFailureCode))
 def test_native_failure_maps_to_existing_reference_outcome(monkeypatch, code):
+    from carbon.evaluation.enums import ReferenceRunOutcome
     from carbon.reference_runtime.julia import adapter
     from carbon.reference_runtime.model import execute_reference
-    from carbon.evaluation.enums import ReferenceRunOutcome
 
     def fail(*args, **kwargs):
         raise bridge.JuliaFailure(code)
@@ -424,10 +424,11 @@ def test_julia_staged_execution_uses_existing_artifact_and_validation_owners(
     monkeypatch, tmp_path
 ):
     import json
+
     from carbon.reference_runtime.julia import adapter
     from carbon.reference_runtime.protocol import (
-        stage_reference_request,
         run_staged_reference_worker,
+        stage_reference_request,
         validate_reference_snapshot,
     )
 
@@ -460,9 +461,9 @@ def test_julia_staged_execution_uses_existing_artifact_and_validation_owners(
 
 
 def test_julia_wrong_environment_never_starts_native_process(monkeypatch):
+    from carbon.evaluation.enums import ReferenceFailureReason
     from carbon.reference_runtime.julia import adapter
     from carbon.reference_runtime.model import execute_reference
-    from carbon.evaluation.enums import ReferenceFailureReason
 
     julia = replace(
         adapter.julia_crosscheck_request(c04_request(), units="dimensionless"),
@@ -482,13 +483,14 @@ def test_reference_controller_cancellation_uses_existing_exact_cleanup(
 ):
     import json
     from types import SimpleNamespace
-    from carbon.reference_runtime import controller as owner
+
     from carbon.reconstruction.worker.model import (
         DevelopmentWorkerProfile,
-        WorkerImageIdentity,
-        WorkerFailure,
         WorkerCode,
+        WorkerFailure,
+        WorkerImageIdentity,
     )
+    from carbon.reference_runtime import controller as owner
 
     digest = "sha256:" + "c" * 64
     image = WorkerImageIdentity(*([digest] * 8))
@@ -527,8 +529,8 @@ def test_reference_controller_cancellation_uses_existing_exact_cleanup(
 
 
 def test_reference_wait_checks_cancellation_before_polling():
+    from carbon.reconstruction.worker.model import WorkerCode, WorkerFailure
     from carbon.reference_runtime.controller import IsolatedBurgersReferenceController
-    from carbon.reconstruction.worker.model import WorkerFailure, WorkerCode
 
     controller = object.__new__(IsolatedBurgersReferenceController)
     with pytest.raises(WorkerFailure) as failure:

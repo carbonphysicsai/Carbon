@@ -22,6 +22,22 @@ reserve/account for compilation, execution and cleanup; and enforce OS resource,
 network, filesystem and disclosure boundaries. No new controller or ledger is
 provided here. The old C-04 method identities and accepted route are unchanged.
 
+The registered C-04 integration is `adapter.julia_crosscheck_request(existing,
+units="dimensionless")`. It produces a distinct v2 request bound to the fixed
+Julia method and `carbon.burgers.reference.diagnostic.julia.v1` policy. Its only
+permitted role is `DEVELOPMENT_CROSSCHECK`; the primary, witness and legacy
+Python crosscheck retain their v1 identities. Submit the resulting request to
+the existing `IsolatedBurgersReferenceController.execute`, after the consumer's
+normal admission. Its optional `cancelled` callback routes cancellation through
+the existing exact-container cleanup and durable failure journal. The adapter
+cannot issue a grant, promote a reference, select a hidden case, override a
+tolerance or install a package.
+
+Miner research, validator diagnostic and Workbench compositions can share this
+same adapter while retaining their separate principal, grant, case-disclosure
+and draft-lineage owners. Availability of the adapter does not establish that
+all three consumer paths have been connected or accepted.
+
 The exact language pin is Julia **1.13.0**, reported as the current stable
 release dated September 9, 2026 by the official
 [manual downloads page](https://julialang.org/downloads/manual-downloads/).
