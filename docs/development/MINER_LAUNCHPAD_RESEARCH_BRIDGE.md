@@ -1,7 +1,7 @@
 # Launchpad DEVELOPMENT research bridge
 
 Ticket: `.agent/tickets/C-MLP-02_development_research_bridge.md`.
-Status: admission-disabled engineering integration; real campaign validation pending.
+Status: accepted engineering bridge; one browser-launched practice/freeze/independent-final path observed. Multi-iteration campaign acceptance remains incomplete.
 
 ## Existing receipt attachment
 
@@ -126,10 +126,10 @@ trial envelope includes the existing minimum final reserve of twelve replicas,
 does not guarantee successful reconstruction or sufficient total work. Actual
 provider invoice limits are not inferred from token-cost estimates.
 
-Merge the accepted admission-disabled engineering slice first, then build exact
-source-matched images and install only a separately approved private grant. The
-first browser-launched adaptive campaign remains C-MLP-02's selected acceptance;
-controller tests, fixed jobs and D4's separately owned campaigns do not close it.
+The admission-disabled engineering slice was accepted before empirical execution;
+both browser campaigns used exact source-matched images and separate private
+grants. C-MLP-02's multi-iteration acceptance remains selected. Controller tests,
+fixed jobs and D4's separately owned campaigns do not close it.
 
 ### First browser campaign: retained stop, acceptance incomplete
 
@@ -188,9 +188,119 @@ this observation supports clearer guidance, not a wider execution surface.
 browser/model attempt validates bounded launch, pause, resume, reconnect, terminal
 restart and accounting for its observed path. **REAL CAMPAIGN VALIDATED** for the
 required multi-iteration/freeze/independent-final path remains incomplete.
-**PRIVATE HOSTED VALIDATED** remains unavailable. The immediate next empirical
-step is a fresh explicitly admitted campaign on the accepted repaired runtime;
-the terminal record and original grant must not be reset to obtain it.
+**PRIVATE HOSTED VALIDATED** remains unavailable. The following separately
+approved continuation preserves this terminal record and original grant.
+
+### Second browser campaign: real final result, one practice iteration
+
+The owner explicitly approved the exact remaining-allowance grant for
+`cmlp02-browser-validation-02`. It was bound to accepted #212 implementation
+`68948008c2ff921ad62484739a62e0e4042ef90b`, tree
+`5e5d2607dfc39c458a5b2edbe9fe153b79e388c7`, with exact source-matched trusted and
+analysis images. The first grant remained terminal and immutable. A private
+operator allocation checked its settled consumption and assigned only the
+unconsumed original dimensions, including one remaining epoch and the original
+absolute expiry. CampaignLedger remained the sole consumption authority. No D4/D5
+grant, identity registration or core-upgrade runtime was substituted.
+
+The real browser launched opaque run `7a2ddd1046a4ba5624717e9839cb0d24` using the
+same existing model/provider/CPU route. One genuine JAX practice experiment
+completed 256 updates in 10.667 worker seconds, after public reference preparation.
+Its descriptive practice score was `0.7117244846428699`; sampled EVAL and STRESS
+`energy_path_max` gates failed. The complete learning curve and practice record
+remain in the existing research workspace/report. The browser receives the
+existing uniformly sampled curve, not protected numerical assets.
+
+The agent consumed that practice response and selected the practiced recipe,
+with `used_feedback=true` and a rationale referencing its returned measurements
+and gate failures. It chose to stop exploring after one trial despite two trial
+slots remaining. This shows feedback-informed selection, **not** a second
+feedback-driven research iteration. Do not force another trial or describe the
+agent's budget rationale as a controller-measured impossibility.
+
+The frozen Strategy uses FNO depth 3, width 32, 16 modes, batch size 8, 256 steps,
+learning rate 0.002, EMA inference, hard initial condition and conserved mean.
+Its exact strategy hash is
+`sha256:4c835a67f9e75bc33b6c5af8ccceea18f73e0ac34a208c539b3ae91729632886`;
+construction-plan digest is
+`sha256:f81b1390c99a0d337d0e12461d2ce5f0ed4e6620bffdc957009eb1f4b5c03eaa`.
+The existing authenticated submission path independently reconstructed three
+baseline and three challenger replicas, then completed registered measurements,
+reference refinement and the existing signed comparison.
+
+Actual disposition: **REJECTED_MANDATORY**.
+`accepted_development_improvement=false`; official, protected, network and paying
+eligibility remain false. Baseline mandatory failures were EVAL/STRESS
+`energy_path_max` and STRESS `maximum_principle`; challenger failures were
+EVAL/STRESS `energy_path_max`. Descriptive scores were baseline
+`0.7523084606246769` and challenger `0.7160141828612655`. Neither score overrides
+admissibility, proves physical validity or makes this a qualified comparison.
+
+The existing final comparison binds registration
+`sha256:b70212d9dd9c5025312cd78ea2f9ee4fcd33ce12ceafb164aee979107e2baa24`
+and report `sha256:56f01a8a1f364652824b12ae62edcbcdb79ff70dd42686606c4af57388c1cdaf`.
+The authenticated run view/export resolves that source again. Detailed private
+reports remain with the existing runner; private directories are not browser routes.
+
+| Recorded dimension | Second campaign | Both browser campaigns |
+| --- | ---: | ---: |
+| Reasoning calls | 4 | 8 |
+| Token-based recorded cost | USD0.00589815 | USD0.01222500 |
+| Attempted / completed practice | 1 / 1 | 2 / 1 |
+| Numerical worker time | 988,043 ms | 1,297,703 ms |
+| Reference trajectories / invocations | 168 / 168 | 264 / 264 |
+| Retained bytes charged | 33,321,635 | 35,026,131 |
+| Final replicas | 6 | 6 |
+| Epochs charged | 1 | 2 |
+| Reserved / uncertain consumption at stop | 0 / 0 | 0 / 0 |
+
+The second campaign logged no new capability requests or rejected practice
+proposals. The first campaign's rejected request stays retained and charged.
+Costs are the existing ledger's token-based estimates, not invoice verification.
+All cumulative dimensions stayed within the original cycle envelope. Both epoch
+slots are now consumed; unused calls, dollars or trial slots do not authorize a
+third campaign, reset the terminal records or renew the expiry.
+
+After the final result, the current fixed two-epoch loop prepared an epoch-2 plan
+under the one-epoch grant and ended `INTERRUPTED`. No epoch-2 reservation or
+provider operation was admitted. The browser then requested STOP and reconciliation;
+state became `STOPPED`. Verification found zero reserved operations, zero cleanup
+targets in the two owned worker journals and no containers for either exact image.
+The accepted runtime remained clean and unchanged. Record this finite-completion
+seam for a coordinated successor repair; do not patch the frozen experiment or
+increase its grant to hide it.
+
+Desktop 1440px and mobile 390px browser reconnects retained both identities and
+the first campaign's exact projection. The browser downloaded the freshly
+verified second record. After terminal controller shutdown/restart with a new
+session token, its projection matched that export exactly, including final
+result, deadline, candidate and accounting. No operation replay occurred. The
+controller was then closed after verified cleanup; no background execution is
+promised or pending.
+
+**REAL SINGLE-ITERATION PATH OBSERVED** now covers browser launch, genuine
+practice, feedback-informed selection, exact freeze, authenticated submission,
+independent reconstruction, actual rejected disposition and verified cleanup.
+**REAL CAMPAIGN VALIDATED** for C-MLP-02's required multi-iteration behavior remains
+incomplete. No GPU, TPU, Julia, hosted or scientific qualification is inferred.
+
+### Observation dashboard and core coordination
+
+The successor dashboard presents the existing allow-listed cost categories,
+hypothesis, active reservations, practice gate failures and independent disposition.
+Its line plot joins only measured training-data-loss samples by optimizer update;
+it is neither a Burgers spatial/time field nor an independent quality result.
+Missing or malformed curves produce no plot. The complete projected values remain
+available in the expandable record, which now stays open across polling.
+
+Core programme [#209](https://github.com/carbonphysicsai/Carbon/issues/209) and
+MCP workstream [#210](https://github.com/carbonphysicsai/Carbon/issues/210) own the
+prospective shared service interfaces. Their executor reserved research SDK
+transport identity, reconstruction catalogue and Julia reference changes, and
+requested coordination before ownership/cleanup changes. This UI slice changes
+none of those interfaces. The finite-completion repair and future external-agent
+integration must coordinate with that owner and ship as tested successors. Current
+CPU observations cannot establish unexecuted accelerator or Julia capabilities.
 
 ## Focused verification
 

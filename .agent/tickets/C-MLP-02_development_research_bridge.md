@@ -200,6 +200,24 @@ and desktop/mobile layout, and retain the actual campaign outcome separately.
 Primary map: SYSTEM/AGENT-EXECUTION; Hub impact is required and batched with the
 empirical findings before applicable canonical acceptance and delivery.
 
+The separately approved second browser campaign has now returned the real
+`REJECTED_MANDATORY` DEVELOPMENT comparison after one practice experiment and six
+independent final replicas. The agent selected after one trial; feedback-informed
+selection is not two adaptive iterations. Preserve both campaigns' measured
+usage and the first rejection. No new scientific capability was requested in the
+second run. Both original epoch slots are consumed; another root or unused money
+does not renew the grant. The full accounting and source bindings are retained in
+`docs/development/MINER_LAUNCHPAD_RESEARCH_BRIDGE.md`.
+
+The one-epoch grant also exposed a finite-completion seam: the fixed two-epoch
+runner prepared an epoch-2 plan, admitted no epoch-2 operation, and ended
+INTERRUPTED after its final result. Supported browser STOP/reconcile reached
+STOPPED with verified cleanup. Coordinate a prospective narrow lifecycle repair
+with #209's integration owner before editing shared code; no active-run patch,
+grant expansion, forced extra trial or acceptance relabelling is authorized here.
+The dashboard engineering slice may deliver after its applicable checks while
+the genuine multi-iteration acceptance remains selected and explicitly incomplete.
+
 ## Earlier readback slice evidence
 
 Continuation engineering diagnostics: 94 focused Linux tests passed. The initial
