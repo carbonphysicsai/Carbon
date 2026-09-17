@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import ast
 import sys
+import tomllib
 from pathlib import Path
 
 import pytest
-import tomllib
 
 from tests.invariants._import_analysis import direct_import_modules
 
@@ -196,6 +196,9 @@ def _is_allowed_evaluation_consumer(path: Path, module_name: str) -> bool:
                 _CARBON_ROOT / "orchestration" / "service.py",
                 _CARBON_ROOT / "development_session" / "data.py",
                 _CARBON_ROOT / "development_session" / "research_data.py",
+                # C-CORE-02 public Julia diagnostics observe the same outcome
+                # enum; the symbol-level check below forbids evaluator access.
+                _CARBON_ROOT / "development_session" / "julia_research.py",
             }
             and module_name == "carbon.evaluation.enums"
         )
@@ -390,3 +393,54 @@ def test_d4_consumes_only_reference_identity_and_outcome_enum():
         assert imported == symbols
         assert _is_allowed_evaluation_consumer(path, module)
         assert not _is_allowed_evaluation_consumer(path, "carbon.evaluation.execution")
+
+
+def _assert_julia_outcome_import_only(tree):
+    path = _CARBON_ROOT / "development_session" / "julia_research.py"
+    observed = [
+        (module, line)
+        for module, line in direct_import_modules(_REPOSITORY_ROOT, path, tree=tree)
+        if _matches_namespace(module, ("carbon.evaluation",))
+    ]
+    assert len(observed) == 1 and observed[0][0] == "carbon.evaluation.enums"
+    node = next(
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, (ast.Import, ast.ImportFrom))
+        and node.lineno == observed[0][1]
+    )
+    assert (
+        isinstance(node, ast.ImportFrom)
+        and node.level == 0
+        and node.module == "carbon.evaluation.enums"
+    )
+    assert {alias.name for alias in node.names} == {"ReferenceRunOutcome"}
+
+
+def test_core02_julia_consumer_has_no_evaluator_or_truth_asset_authority():
+    path = _CARBON_ROOT / "development_session" / "julia_research.py"
+    _assert_julia_outcome_import_only(_parse(path))
+    for forbidden in (
+        "carbon.evaluation",
+        "carbon.evaluation.assets",
+        "carbon.evaluation.execution",
+        "carbon.evaluation.policy",
+    ):
+        assert not _is_allowed_evaluation_consumer(path, forbidden)
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        "from carbon.evaluation.enums import ReferenceRunOutcome, ReferenceFailureReason",
+        "from carbon.evaluation.enums import *",
+        "import carbon.evaluation.enums as evaluation",
+        "from carbon import evaluation",
+        "from carbon.evaluation.assets import TruthAsset",
+    ],
+)
+def test_core02_julia_outcome_exception_rejects_other_symbols_and_module_imports(
+    source,
+):
+    with pytest.raises(AssertionError):
+        _assert_julia_outcome_import_only(ast.parse(source))
