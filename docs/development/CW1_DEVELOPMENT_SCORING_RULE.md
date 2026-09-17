@@ -143,3 +143,34 @@ https://www.math.toronto.edu/ivrii/APM-textbook/Chapter9/L9.1.html .
 Verification versus physical validation follows the distinction discussed by
 NIST: https://doi.org/10.6028/NIST.IR.8298 . These references do not qualify Carbon.
 Recommend Harshdeep review these provisional scientific/product choices.
+
+
+## Trusted operator commands
+
+The scoring operator uses the existing private source/configuration mechanism.
+It creates C-06 signatures itself; the operator never edits a receipt or signature.
+For the retained review, run in the Ubuntu checkout:
+
+```bash
+PRIVATE_CARBON_ROOT="$HOME/.local/share/carbon-testnet"
+SCORING_ROOT="$PRIVATE_CARBON_ROOT/development-scoring-20260916/iteration-2"
+uv run --locked --group chain python -m carbon.development_comparison.scoring_operator status --root "$SCORING_ROOT"
+uv run --locked --group chain python -m carbon.development_comparison.scoring_operator report --root "$SCORING_ROOT"
+```
+
+Open `owner-scoring-report.html` or `.md` in that directory. Status rechecks
+source lifecycle, quarantine, artifact associations, signatures and rule identity.
+The signed derived report is `development-acceptance.json`; original source
+receipts remain in their historical session directories.
+
+For a separately authorized future experiment, prepare its authenticated session
+and trusted keys first, then `freeze --root <new-private-root> --config <private-config>`
+before either fresh construction starts. The configuration names `template_source`,
+`quarantine_journal`, `reference_root`, and the `sessions` map of session roots to
+trusted service configuration paths. After reconstruction, use `derive --root
+<new-private-root> --baseline <signed-source> --challenger <signed-source>
+--image-manifest <accepted-image-manifest>`. This invokes only the bounded derived
+measurement carrier. Use `--resume-completed` only for reconciliation of a retained,
+matching completed output; it does not authorize duplicate numerical dispatch.
+`feedback` projects the allow-listed miner view. No command invokes a provider,
+trains a model, registers an identity or writes the public chain.

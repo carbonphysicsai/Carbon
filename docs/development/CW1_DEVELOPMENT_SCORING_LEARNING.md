@@ -65,3 +65,28 @@ Use the preregistered perturbation families and explicit new energy-envelope
 checks. It has not been used to tune the rule. No third iteration is authorized.
 Historical remeasurement under changed v3 is new derived evidence, not a repeat
 for reassurance, and still cannot yield retrospective acceptance.
+
+
+## Iteration 2 — verification outcome and final decision
+
+The untouched V2 control set passed all 21 registered checks. Exact reference
+agreement remained admissible; the specified wrong-decay, frozen-initial and
+suppressed-dynamics controls failed the new energy envelope. Phase and localized
+errors remained visible to field error even when energy statistics were
+plausible. Retain balanced-v2 without a third design iteration. These synthetic
+controls verify their stated cases, not physical validity or real-model ranking.
+
+The retained FNO-40/FNO-48 reconstructions remain retrospective development
+evidence. Both fail conserved-mean and sampled energy-path conditions; FNO-48
+also fails a STRESS maximum-principle condition. No accepted improvement or real
+reward simulation follows. The next unresolved question is whether an actual
+construction can supply an admissible opening baseline and then a reproducible
+improvement under this frozen rule; the complete new-resource request is in
+CW1_DEVELOPMENT_SCORING_NEXT_EXPERIMENT.md.
+
+Across both iterations, six isolated numerical jobs consumed 23.247293 seconds
+of wall time and 19.104448 CPU-seconds, with peak observed memory 180,670,464
+bytes and 14,043,574 retained bytes at the owner-report accounting snapshot.
+No fresh training, provider call, provider charge or public transaction occurred.
+Repository acceptance is accounted separately. V1 verification is retired as
+development evidence; V2 remains verification of the frozen final candidate.
