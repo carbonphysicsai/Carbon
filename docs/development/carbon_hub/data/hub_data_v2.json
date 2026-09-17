@@ -1968,6 +1968,20 @@
     ],
     "rules": [
       {
+        "id": "core-platform-ticket",
+        "match_type": "exact",
+        "path": ".agent/tickets/C-CORE-01_backend_discovery.md",
+        "impact_class": "map_structural",
+        "map_ref": "SYSTEM/AGENT-EXECUTION"
+      },
+      {
+        "id": "core-platform-plan",
+        "match_type": "exact",
+        "path": ".agent/plans/CARBON_CORE_PLATFORM_EXECUTION.md",
+        "impact_class": "map_structural",
+        "map_ref": "SYSTEM/AGENT-EXECUTION"
+      },
+      {
         "id": "miner-launchpad-validation-request",
         "match_type": "exact",
         "path": "docs/development/MINER_LAUNCHPAD_VALIDATION_REQUEST.json",
@@ -3368,20 +3382,6 @@
         "match_type": "exact",
         "path": "tests/cpu/test_miner_launchpad.py",
         "impact_class": "mapped_detail",
-        "map_ref": "SYSTEM/AGENT-EXECUTION"
-      },
-      {
-        "id": "core-platform-ticket",
-        "match_type": "exact",
-        "path": ".agent/tickets/C-CORE-01_backend_discovery.md",
-        "impact_class": "map_structural",
-        "map_ref": "SYSTEM/AGENT-EXECUTION"
-      },
-      {
-        "id": "core-platform-plan",
-        "match_type": "exact",
-        "path": ".agent/plans/CARBON_CORE_PLATFORM_EXECUTION.md",
-        "impact_class": "map_structural",
         "map_ref": "SYSTEM/AGENT-EXECUTION"
       }
     ]
