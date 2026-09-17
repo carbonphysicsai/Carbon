@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-17T12:21:14Z"
+  captured_at_utc: "2026-09-17T12:31:00Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "a4f52d84afcf3f7e749c1e5bb9ab6f95c3fe0793"
+  authority_snapshot_commit: "bce71c600cb8348939dfbe78cf9ee752ded56458"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -438,7 +438,7 @@ validator_exam_map:
             -
               label: "Testnet-to-Mainnet Launch Path"
               path: "../../../launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.5.md"
-  current_maturity: "Target-state orientation only. C-W1-D4 implements authenticated local miner research, real isolated practice, a bounded workspace and fresh final reconstruction/comparison. Focused engineering checks passed; required delivery acceptance and the finite real campaign remain pending. No campaign inference, provider charge, accepted winner or new network transaction has occurred. Historical testnet 567 exact row [[0, 65535]] remains ROW_VERIFIED; burn amounts, epoch effects and settlement remain unproven. AWS remains deferred and Hippius unverified. Website and Workbench work and spending are separate. No later ticket is selected. Distinct miner UID 1 finalized in the earlier setup; no identities were registered here. Synthetic controls are not results of the real agent. No subsequent activation or weight transaction is authorized. The real validator-to-exam vertical is planned for Wave C1. Burgers v1 remains PRE-LIVE until a measured Validation Dossier qualifies the exact exam."
+  current_maturity: "Target-state orientation only. C-W1-D4 implements authenticated local miner research, real isolated practice, a bounded workspace and fresh final reconstruction/comparison. Focused engineering checks passed; required delivery acceptance and the finite real campaign remain pending. No campaign inference, provider charge, accepted winner or new network transaction has occurred. Historical testnet 567 exact row [[0, 65535]] remains ROW_VERIFIED; burn amounts, epoch effects and settlement remain unproven. AWS stays deferred and Hippius unverified. Website and Workbench work and spending are separate. No later ticket is selected. Distinct miner UID 1 finalized in the earlier setup; no identities were registered here. Synthetic controls are not results of the real agent. No subsequent activation or weight transaction is authorized. Subnet 567 creation finalized at block 8010852 in the earlier C-W1 DEVELOPMENT setup. The real validator-to-exam vertical is planned for Wave C1. Burgers v1 remains PRE-LIVE until a measured Validation Dossier qualifies the exact exam."
 current:
   wave: "C"
   wave_title: "Network foundation and real testnet vertical"
@@ -462,7 +462,7 @@ current:
   controlling_register: ".agent/WAVE_C.md"
   controlling_register_version: "2.6"
   controlling_board_fingerprint: "e4b72119915cb0883f9e2700640a46266571143591f91fe143aac7ff5d22a7ee"
-  stage: "C-W1-D4 implements authenticated local miner research, real isolated practice, a bounded workspace and fresh final reconstruction/comparison. Focused engineering checks passed; required delivery acceptance and the finite real campaign remain pending. No campaign inference, provider charge, accepted winner or new network transaction has occurred. Historical testnet 567 exact row [[0, 65535]] remains ROW_VERIFIED; burn amounts, epoch effects and settlement remain unproven. AWS remains deferred and Hippius unverified. Website and Workbench work and spending are separate. No later ticket is selected. Distinct miner UID 1 finalized in the earlier setup; no identities were registered here. Synthetic controls are not results of the real agent. No subsequent activation or weight transaction is authorized."
+  stage: "C-W1-D4 implements authenticated local miner research, real isolated practice, a bounded workspace and fresh final reconstruction/comparison. Focused engineering checks passed; required delivery acceptance and the finite real campaign remain pending. No campaign inference, provider charge, accepted winner or new network transaction has occurred. Historical testnet 567 exact row [[0, 65535]] remains ROW_VERIFIED; burn amounts, epoch effects and settlement remain unproven. AWS stays deferred and Hippius unverified. Website and Workbench work and spending are separate. No later ticket is selected. Distinct miner UID 1 finalized in the earlier setup; no identities were registered here. Synthetic controls are not results of the real agent. No subsequent activation or weight transaction is authorized. Subnet 567 creation finalized at block 8010852 in the earlier C-W1 DEVELOPMENT setup."
   most_recent_closed_wave: "B"
   completed_wave_tickets:
     - "NET-1"
