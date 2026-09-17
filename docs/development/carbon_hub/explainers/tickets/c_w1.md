@@ -32,7 +32,7 @@ No model inference or new chain operation occurs without its applicable approval
 
 ## Current stage
 
-C-W1-D3 implements balanced-v2 DEVELOPMENT acceptance and non-paying reward simulation. Two bounded design iterations and analytic verification completed; retained FNO results are retrospective diagnostic ranks and fail mandatory conditions. No fresh training, model charge, real winner, payment or public-network transaction. Required CI and normal merge close engineering only. Historical public-testnet demonstration remains ROW_VERIFIED; official C-W1 stays future_reserved.
+C-W1-D3 implements balanced-v2 DEVELOPMENT acceptance and non-paying reward simulation. Two bounded design iterations and analytic verification completed; retained FNO results are retrospective diagnostic ranks and fail mandatory conditions. No fresh training, model charge, real winner, payment or public-network transaction. Required CI and normal merge close engineering only. Historical public-testnet demonstration remains ROW_VERIFIED; official C-W1 stays future_reserved. No subsequent activation or weight transaction is authorized.
 
 ## Maturity ceiling
 

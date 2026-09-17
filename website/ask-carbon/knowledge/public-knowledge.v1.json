@@ -26,12 +26,7 @@
       "id": "constitution-405a820b",
       "title": "Carbon Constitutional Authority Map",
       "repo_path": "CONSTITUTION.md",
-      "sections": [
-        "1 Carbon identity",
-        "3 Scientific authority",
-        "5 Implementation maturity",
-        "11 Publication authority"
-      ],
+      "sections": ["1 Carbon identity", "3 Scientific authority", "5 Implementation maturity", "11 Publication authority"],
       "revision": "405a820bfdd5a38aa2d498e3dbde3fa15449379f",
       "sha256": "7e088fa32805768453900102446c6691198ad46721469594c5992506357feab5",
       "url": "https://github.com/carbonphysicsai/Carbon/blob/405a820bfdd5a38aa2d498e3dbde3fa15449379f/CONSTITUTION.md",
@@ -44,13 +39,7 @@
       "id": "data-management-405a820b",
       "title": "Carbon Data Management Specification",
       "repo_path": "Design_Specs/Data_Management.md",
-      "sections": [
-        "1 Purpose and Current Scope",
-        "2 Non-Negotiable Data Invariants",
-        "3 The Only Wave B Training-Data Control",
-        "5 Official Evaluation and Stress",
-        "7 Practice, Public Research, and Records"
-      ],
+      "sections": ["1 Purpose and Current Scope", "2 Non-Negotiable Data Invariants", "3 The Only Wave B Training-Data Control", "5 Official Evaluation and Stress", "7 Practice, Public Research, and Records"],
       "revision": "405a820bfdd5a38aa2d498e3dbde3fa15449379f",
       "sha256": "f42f1d6a1944681092a07ead116831ece9ba1e0f9ca9a2fc746de7173f7939be",
       "url": "https://github.com/carbonphysicsai/Carbon/blob/405a820bfdd5a38aa2d498e3dbde3fa15449379f/Design_Specs/Data_Management.md",
@@ -63,16 +52,7 @@
       "id": "distribution-405a820b",
       "title": "Carbon Challenge Instance Distribution Architecture",
       "repo_path": "Design_Specs/Challenge_Instance_Distribution.md",
-      "sections": [
-        "2 Canonical scientific chain",
-        "3 Three distributions",
-        "4 InstanceDistributionContract",
-        "5 SamplingPlan",
-        "6 ChallengeInstanceGenerator",
-        "8 CanonicalChallengeCase",
-        "20 Qualification",
-        "24-26 change and disclosure controls"
-      ],
+      "sections": ["2 Canonical scientific chain", "3 Three distributions", "4 InstanceDistributionContract", "5 SamplingPlan", "6 ChallengeInstanceGenerator", "8 CanonicalChallengeCase", "20 Qualification", "24-26 change and disclosure controls"],
       "revision": "405a820bfdd5a38aa2d498e3dbde3fa15449379f",
       "sha256": "d1dfac19a44169d4a6fc57b454e6b1c2f1b8a87156488da39afec3c3bdd11bce",
       "url": "https://github.com/carbonphysicsai/Carbon/blob/405a820bfdd5a38aa2d498e3dbde3fa15449379f/Design_Specs/Challenge_Instance_Distribution.md",
@@ -85,12 +65,7 @@
       "id": "reference-contract-405a820b",
       "title": "Reference and TruthAsset Contract",
       "repo_path": "Design_Specs/Reference_and_TruthAsset_Contract.md",
-      "sections": [
-        "Authority ceiling",
-        "ReferencePolicy",
-        "TruthAsset",
-        "failure and disclosure semantics"
-      ],
+      "sections": ["Authority ceiling", "ReferencePolicy", "TruthAsset", "failure and disclosure semantics"],
       "revision": "405a820bfdd5a38aa2d498e3dbde3fa15449379f",
       "sha256": "cac9269255a9afc0d922c95f611ecc0fc2bc1c066ac336199f3e7be8ddb320cc",
       "url": "https://github.com/carbonphysicsai/Carbon/blob/405a820bfdd5a38aa2d498e3dbde3fa15449379f/Design_Specs/Reference_and_TruthAsset_Contract.md",
@@ -103,15 +78,10 @@
       "id": "scoring-963f07dd",
       "title": "Carbon Scoring Specification",
       "repo_path": "Design_Specs/Scoring.md",
-      "sections": [
-        "admissibility",
-        "Score Pack",
-        "challenge-local comparison",
-        "forbidden inputs"
-      ],
+      "sections": ["admissibility", "Score Pack", "challenge-local comparison", "forbidden inputs"],
       "revision": "963f07dd71c57cb0c638508280918204b408a31b",
       "sha256": "93376e37747ee99f134f33fa3b8c541c3a29810af5295544cd4f0b543505318d",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/405a820bfdd5a38aa2d498e3dbde3fa15449379f/Design_Specs/Scoring.md",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/963f07dd71c57cb0c638508280918204b408a31b/Design_Specs/Scoring.md",
       "publication_status": "REVIEWED_PUBLIC_EXISTING",
       "integrity_status": "MATCHED_AT_BUILD",
       "withdrawn_at": null,
@@ -121,11 +91,7 @@
       "id": "protocol-405a820b",
       "title": "Carbon Protocol Specification",
       "repo_path": "SPEC.md",
-      "sections": [
-        "Executive summary",
-        "participant roles",
-        "evaluation and network boundaries"
-      ],
+      "sections": ["Executive summary", "participant roles", "evaluation and network boundaries"],
       "revision": "405a820bfdd5a38aa2d498e3dbde3fa15449379f",
       "sha256": "cb66fc9db0d3d2d9c38251c3fdc6e7e88357153a221190f8d760c27375250846",
       "url": "https://github.com/carbonphysicsai/Carbon/blob/405a820bfdd5a38aa2d498e3dbde3fa15449379f/SPEC.md",
@@ -138,14 +104,7 @@
       "id": "business-canon-405a820b",
       "title": "Carbon Business Canon",
       "repo_path": "Business/Business_Canon.md",
-      "sections": [
-        "1 Business identity",
-        "5 Product ladder",
-        "6 First-product doctrine",
-        "7 Commercial outcome",
-        "13 Rights and privacy",
-        "21 Commercial evidence ladder"
-      ],
+      "sections": ["1 Business identity", "5 Product ladder", "6 First-product doctrine", "7 Commercial outcome", "13 Rights and privacy", "21 Commercial evidence ladder"],
       "revision": "405a820bfdd5a38aa2d498e3dbde3fa15449379f",
       "sha256": "d5a779b5426d63138c91e7e3f2a2b6f01b0c7ec0a1c45b4fc7c80bf38c0c3e59",
       "url": "https://github.com/carbonphysicsai/Carbon/blob/405a820bfdd5a38aa2d498e3dbde3fa15449379f/Business/Business_Canon.md",
@@ -158,15 +117,10 @@
       "id": "wave-status-963f07dd",
       "title": "Carbon Agent Wave Status",
       "repo_path": ".agent/WAVE.md",
-      "sections": [
-        "Current wave",
-        "Current phase",
-        "Current C1 status",
-        "maturity ceilings"
-      ],
+      "sections": ["Current wave", "Current phase", "Current C1 status", "maturity ceilings"],
       "revision": "963f07dd71c57cb0c638508280918204b408a31b",
       "sha256": "18f4c8eb461da34177469f3b10b1ac44a1625e29c6b2a91237c4a089fcfc95d0",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/0a23c447cc4541a1a8d49dea3113e6eda706ca17/.agent/WAVE.md",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/963f07dd71c57cb0c638508280918204b408a31b/.agent/WAVE.md",
       "publication_status": "REVIEWED_PUBLIC_EXISTING",
       "integrity_status": "MATCHED_AT_BUILD",
       "withdrawn_at": null,
@@ -176,11 +130,7 @@
       "id": "concierge-ticket-405a820b",
       "title": "Future Research Concierge ticket",
       "repo_path": ".agent/tickets/C-DC3_research_concierge.md",
-      "sections": [
-        "Status",
-        "Goal",
-        "Interfaces and limits"
-      ],
+      "sections": ["Status", "Goal", "Interfaces and limits"],
       "revision": "405a820bfdd5a38aa2d498e3dbde3fa15449379f",
       "sha256": "09214223c8740d99a6be994b7bd66067b34582842d32f5d2aa568b742a309591",
       "url": "https://github.com/carbonphysicsai/Carbon/blob/405a820bfdd5a38aa2d498e3dbde3fa15449379f/.agent/tickets/C-DC3_research_concierge.md",
@@ -191,1114 +141,220 @@
     }
   ],
   "contact_routes": [
-    {
-      "id": "public-email",
-      "label": "Email Carbon",
-      "url": "mailto:hello@carbonphysics.ai",
-      "status": "VERIFIED_ON_PUBLIC_HOMEPAGE_2026-09-16"
-    },
-    {
-      "id": "public-github",
-      "label": "Explore the public project",
-      "url": "https://github.com/carbonphysicsai/Carbon",
-      "status": "VERIFIED_PUBLIC_REPOSITORY"
-    }
+    { "id": "public-email", "label": "Email Carbon", "url": "mailto:hello@carbonphysics.ai", "status": "VERIFIED_ON_PUBLIC_HOMEPAGE_2026-09-16" },
+    { "id": "public-github", "label": "Explore the public project", "url": "https://github.com/carbonphysicsai/Carbon", "status": "VERIFIED_PUBLIC_REPOSITORY" }
   ],
   "cards": [
     {
-      "id": "overview",
-      "topic": "The basics",
-      "questions": [
-        "What is Carbon?",
-        "Explain Carbon simply",
-        "How does Carbon work?"
-      ],
+      "id": "overview", "topic": "The basics", "questions": ["What is Carbon?", "Explain Carbon simply", "How does Carbon work?"],
       "answer": "Carbon is building infrastructure for discovering and independently testing ways to construct fast physical models. A bounded Challenge defines the physical job and evidence rules; miners propose reproducible construction recipes; validators reconstruct selected recipes and evaluate the resulting fixed models. The first bounded implementation focuses on neural-operator training strategies, not arbitrary model-building code.",
-      "keywords": [
-        "carbon",
-        "purpose",
-        "works",
-        "system",
-        "physics",
-        "model",
-        "miner",
-        "validator"
-      ],
-      "related": [
-        "workflow",
-        "challenge",
-        "reconstruction"
-      ],
-      "audiences": [
-        "newcomer",
-        "engineer",
-        "miner",
-        "customer"
-      ],
-      "disclosure_class": "PUBLIC",
-      "maturity": "IMPLEMENTED_AND_TESTED_IN_BOUNDED_COMPONENTS_NOT_QUALIFIED",
-      "scope_note": "Architecture plus bounded implementation; no production qualification.",
-      "expires_at": "2026-12-15T00:00:00Z",
-      "publication_status": "REVIEWED_PUBLIC_EXISTING",
-      "withdrawn_at": null,
-      "passages": [
-        {
-          "id": "overview-purpose",
-          "source_id": "constitution-405a820b",
-          "section": "1 Carbon identity",
-          "text": "Carbon is an incentivized experimental system for discovering, independently testing, learning from and qualifying methods for constructing fast physical models. Its first bounded implementation searches neural-operator TrainingStrategy objects while broader construction methods remain future architecture."
-        }
-      ]
+      "keywords": ["carbon", "purpose", "works", "system", "physics", "model", "miner", "validator"], "related": ["workflow", "challenge", "reconstruction"],
+      "audiences": ["newcomer", "engineer", "miner", "customer"], "disclosure_class": "PUBLIC", "maturity": "IMPLEMENTED_AND_TESTED_IN_BOUNDED_COMPONENTS_NOT_QUALIFIED", "scope_note": "Architecture plus bounded implementation; no production qualification.",
+      "expires_at": "2026-12-15T00:00:00Z", "publication_status": "REVIEWED_PUBLIC_EXISTING", "withdrawn_at": null,
+      "passages": [{ "id": "overview-purpose", "source_id": "constitution-405a820b", "section": "1 Carbon identity", "text": "Carbon is an incentivized experimental system for discovering, independently testing, learning from and qualifying methods for constructing fast physical models. Its first bounded implementation searches neural-operator TrainingStrategy objects while broader construction methods remain future architecture." }]
     },
     {
-      "id": "workflow",
-      "topic": "The basics",
-      "questions": [
-        "What is the end-to-end workflow?",
-        "What happens from problem to result?"
-      ],
+      "id": "workflow", "topic": "The basics", "questions": ["What is the end-to-end workflow?", "What happens from problem to result?"],
       "answer": "The intended chain is: define the physical job and population, qualify the exam, let miners propose reproducible strategies, reconstruct candidates independently, admit only valid evidence, compare candidates within that Challenge, and keep any later frontier, qualification or reward decision separate. Each link has its own authority and maturity gate.",
-      "keywords": [
-        "workflow",
-        "process",
-        "steps",
-        "end",
-        "result",
-        "pipeline"
-      ],
-      "related": [
-        "challenge",
-        "reconstruction",
-        "evaluation-scoring",
-        "qualification"
-      ],
-      "audiences": [
-        "newcomer",
-        "engineer"
-      ],
-      "disclosure_class": "PUBLIC",
-      "maturity": "DESIGN_WITH_BOUNDED_IMPLEMENTATION",
-      "scope_note": "Later frontier and settlement layers are not implied live.",
-      "expires_at": "2026-12-15T00:00:00Z",
-      "publication_status": "REVIEWED_PUBLIC_EXISTING",
-      "withdrawn_at": null,
-      "passages": [
-        {
-          "id": "workflow-chain",
-          "source_id": "constitution-405a820b",
-          "section": "13 Constitutional north star",
-          "text": "The governed workflow defines the physical job, qualifies the exam, supports competition, reconstructs independently, admits valid evidence, promotes only verified frontier advances, separates settlement from science, and expands autonomy outside the judge."
-        }
-      ]
+      "keywords": ["workflow", "process", "steps", "end", "result", "pipeline"], "related": ["challenge", "reconstruction", "evaluation-scoring", "qualification"],
+      "audiences": ["newcomer", "engineer"], "disclosure_class": "PUBLIC", "maturity": "DESIGN_WITH_BOUNDED_IMPLEMENTATION", "scope_note": "Later frontier and settlement layers are not implied live.",
+      "expires_at": "2026-12-15T00:00:00Z", "publication_status": "REVIEWED_PUBLIC_EXISTING", "withdrawn_at": null,
+      "passages": [{ "id": "workflow-chain", "source_id": "constitution-405a820b", "section": "13 Constitutional north star", "text": "The governed workflow defines the physical job, qualifies the exam, supports competition, reconstructs independently, admits valid evidence, promotes only verified frontier advances, separates settlement from science, and expands autonomy outside the judge." }]
     },
     {
-      "id": "challenge",
-      "topic": "Challenges",
-      "questions": [
-        "What is a Challenge?",
-        "How do you turn a customer problem into a Challenge?"
-      ],
+      "id": "challenge", "topic": "Challenges", "questions": ["What is a Challenge?", "How do you turn a customer problem into a Challenge?"],
       "answer": "A Challenge defines a bounded physical job: the operating population, inputs and outputs, finite sampling plan, reference process, measurements, gates and evidence scope. The scientific definition is separate from the generator code that realizes individual cases. Reviewers must qualify the exam before it can qualify candidates.",
-      "keywords": [
-        "challenge",
-        "job",
-        "problem",
-        "operating",
-        "conditions",
-        "define"
-      ],
-      "related": [
-        "population-sampling",
-        "case-generator",
-        "qualification"
-      ],
-      "audiences": [
-        "newcomer",
-        "engineer",
-        "customer"
-      ],
-      "disclosure_class": "PUBLIC",
-      "maturity": "SPECIFIED",
-      "scope_note": "A specified Challenge is not automatically scientifically qualified.",
-      "expires_at": "2026-12-15T00:00:00Z",
-      "publication_status": "REVIEWED_PUBLIC_EXISTING",
-      "withdrawn_at": null,
-      "passages": [
-        {
-          "id": "challenge-definition",
-          "source_id": "distribution-405a820b",
-          "section": "2-5",
-          "text": "The scientific task owns the target population, the SamplingPlan defines finite evidence, and the ChallengeInstanceGenerator implements that plan. Population, sampling, reference and measurement adequacy require separate review before official use."
-        }
-      ]
+      "keywords": ["challenge", "job", "problem", "operating", "conditions", "define"], "related": ["population-sampling", "case-generator", "qualification"],
+      "audiences": ["newcomer", "engineer", "customer"], "disclosure_class": "PUBLIC", "maturity": "SPECIFIED", "scope_note": "A specified Challenge is not automatically scientifically qualified.",
+      "expires_at": "2026-12-15T00:00:00Z", "publication_status": "REVIEWED_PUBLIC_EXISTING", "withdrawn_at": null,
+      "passages": [{ "id": "challenge-definition", "source_id": "distribution-405a820b", "section": "2-5", "text": "The scientific task owns the target population, the SamplingPlan defines finite evidence, and the ChallengeInstanceGenerator implements that plan. Population, sampling, reference and measurement adequacy require separate review before official use." }]
     },
     {
-      "id": "case-generator",
-      "topic": "Case generation",
-      "questions": [
-        "What is a case?",
-        "How are cases generated?",
-        "Is the generator public?"
-      ],
+      "id": "case-generator", "topic": "Case generation", "questions": ["What is a case?", "How are cases generated?", "Is the generator public?"],
       "answer": "A case is one complete physical question, potentially including parameters, geometry, initial and boundary conditions, forcing, requested outputs and query locations or times. A Challenge-specific generator constructs cases under a registered sampling plan. Some development generator code can be public without exposing protected official seeds, realized cases, ordering or reference outputs.",
-      "keywords": [
-        "case",
-        "generator",
-        "public",
-        "condition",
-        "geometry",
-        "boundary",
-        "seed"
-      ],
-      "related": [
-        "challenge",
-        "population-sampling",
-        "gaming"
-      ],
-      "audiences": [
-        "engineer",
-        "miner"
-      ],
-      "disclosure_class": "PUBLIC",
-      "maturity": "SPECIFIED_WITH_PUBLIC_DEVELOPMENT_IMPLEMENTATIONS",
-      "scope_note": "Public code does not make protected realizations public.",
-      "expires_at": "2026-12-15T00:00:00Z",
-      "publication_status": "REVIEWED_PUBLIC_EXISTING",
-      "withdrawn_at": null,
-      "passages": [
-        {
-          "id": "case-shape",
-          "source_id": "distribution-405a820b",
-          "section": "6 and 8",
-          "text": "A canonical case can bind physical inputs, parameters, geometry, boundary and initial conditions, forcing, outputs, query locations, reference requests and provenance. Official generators preserve replay and role separation without miner control or hidden-realization leakage."
-        }
-      ]
+      "keywords": ["case", "generator", "public", "condition", "geometry", "boundary", "seed"], "related": ["challenge", "population-sampling", "gaming"],
+      "audiences": ["engineer", "miner"], "disclosure_class": "PUBLIC", "maturity": "SPECIFIED_WITH_PUBLIC_DEVELOPMENT_IMPLEMENTATIONS", "scope_note": "Public code does not make protected realizations public.",
+      "expires_at": "2026-12-15T00:00:00Z", "publication_status": "REVIEWED_PUBLIC_EXISTING", "withdrawn_at": null,
+      "passages": [{ "id": "case-shape", "source_id": "distribution-405a820b", "section": "6 and 8", "text": "A canonical case can bind physical inputs, parameters, geometry, boundary and initial conditions, forcing, outputs, query locations, reference requests and provenance. Official generators preserve replay and role separation without miner control or hidden-realization leakage." }]
     },
     {
-      "id": "population-sampling",
-      "topic": "Sampling",
-      "questions": [
-        "What is the population?",
-        "Who decides how many cases?",
-        "Is staying in the same range enough?"
-      ],
+      "id": "population-sampling", "topic": "Sampling", "questions": ["What is the population?", "Who decides how many cases?", "Is staying in the same range enough?"],
       "answer": "Carbon separates the target population P(x), the finite proposal or sampling plan Q(x), and evidence weighting w(x). The same input ranges can represent different physical case mixes. Challenge authors and scientific reviewers set a prospective sample budget, coverage, repetitions, tail allocation and failure rules; Carbon has no universal dataset size that proves adequacy for every problem.",
-      "keywords": [
-        "population",
-        "sampling",
-        "cases",
-        "dataset",
-        "range",
-        "mix",
-        "weight"
-      ],
-      "related": [
-        "challenge",
-        "case-generator",
-        "stress"
-      ],
-      "audiences": [
-        "engineer",
-        "customer"
-      ],
-      "disclosure_class": "PUBLIC",
-      "maturity": "SPECIFIED",
-      "scope_note": "No universal production sample threshold is claimed.",
-      "expires_at": "2026-12-15T00:00:00Z",
-      "publication_status": "REVIEWED_PUBLIC_EXISTING",
-      "withdrawn_at": null,
-      "passages": [
-        {
-          "id": "population-separation",
-          "source_id": "distribution-405a820b",
-          "section": "3 and 5",
-          "text": "Target-population prevalence, sampling prevalence and score importance are distinct. A SamplingPlan prospectively binds budget, strata, tails, replication, queries, fidelity, stopping, duplicates, censoring and provenance for the specific Challenge."
-        }
-      ]
+      "keywords": ["population", "sampling", "cases", "dataset", "range", "mix", "weight"], "related": ["challenge", "case-generator", "stress"],
+      "audiences": ["engineer", "customer"], "disclosure_class": "PUBLIC", "maturity": "SPECIFIED", "scope_note": "No universal production sample threshold is claimed.",
+      "expires_at": "2026-12-15T00:00:00Z", "publication_status": "REVIEWED_PUBLIC_EXISTING", "withdrawn_at": null,
+      "passages": [{ "id": "population-separation", "source_id": "distribution-405a820b", "section": "3 and 5", "text": "Target-population prevalence, sampling prevalence and score importance are distinct. A SamplingPlan prospectively binds budget, strata, tails, replication, queries, fidelity, stopping, duplicates, censoring and provenance for the specific Challenge." }]
     },
     {
-      "id": "training-roles",
-      "topic": "Training",
-      "questions": [
-        "What is the difference between training, evaluation and stress?",
-        "What are train eval and stress?"
-      ],
+      "id": "training-roles", "topic": "Training", "questions": ["What is the difference between training, evaluation and stress?", "What are train eval and stress?"],
       "answer": "Training cases construct a model, evaluation cases measure a fixed candidate on separate evidence, and stress cases examine predefined difficult conditions. Carbon separates the randomness and realized material for these roles. Their physical ranges may overlap, but official evaluation and stress realizations remain validator-controlled and protected.",
-      "keywords": [
-        "training",
-        "evaluation",
-        "stress",
-        "train",
-        "eval",
-        "difference"
-      ],
-      "related": [
-        "training-control",
-        "stress",
-        "research-boundary"
-      ],
-      "audiences": [
-        "engineer",
-        "miner"
-      ],
-      "disclosure_class": "PUBLIC",
-      "maturity": "SPECIFIED_WITH_BOUNDED_FIXTURES",
-      "scope_note": "Role separation is implemented in bounded scopes; official qualification is separate.",
-      "expires_at": "2026-12-15T00:00:00Z",
-      "publication_status": "REVIEWED_PUBLIC_EXISTING",
-      "withdrawn_at": null,
-      "passages": [
-        {
-          "id": "role-separation",
-          "source_id": "data-management-405a820b",
-          "section": "2 and 5",
-          "text": "Training, evaluation and stress use separate domains. Official evaluation and stress are validator-controlled realizations of the registered Challenge population and SamplingPlan, and protected realization material never crosses public or miner surfaces."
-        }
-      ]
+      "keywords": ["training", "evaluation", "stress", "train", "eval", "difference"], "related": ["training-control", "stress", "research-boundary"],
+      "audiences": ["engineer", "miner"], "disclosure_class": "PUBLIC", "maturity": "SPECIFIED_WITH_BOUNDED_FIXTURES", "scope_note": "Role separation is implemented in bounded scopes; official qualification is separate.",
+      "expires_at": "2026-12-15T00:00:00Z", "publication_status": "REVIEWED_PUBLIC_EXISTING", "withdrawn_at": null,
+      "passages": [{ "id": "role-separation", "source_id": "data-management-405a820b", "section": "2 and 5", "text": "Training, evaluation and stress use separate domains. Official evaluation and stress are validator-controlled realizations of the registered Challenge population and SamplingPlan, and protected realization material never crosses public or miner surfaces." }]
     },
     {
-      "id": "training-control",
-      "topic": "Training",
-      "questions": [
-        "Who chooses the training cases?",
-        "Who chooses those?",
-        "Do miners choose the training data?",
-        "Can a miner hand-pick cases?"
-      ],
+      "id": "training-control", "topic": "Training", "questions": ["Who chooses the training cases?", "Who chooses those?", "Do miners choose the training data?", "Can a miner hand-pick cases?"],
       "answer": "The Challenge controls the permitted training support. A miner may select a registered training-sampling policy, such as an allowed schedule, curriculum or augmentation, when the exact Challenge offers that option. The validator supplies the training randomness and executes the compiled plan. Miners do not provide official seeds, hand-pick protected cases, or change the official evaluation population or scoring rules.",
-      "keywords": [
-        "choose",
-        "training",
-        "cases",
-        "miner",
-        "validator",
-        "curriculum",
-        "randomness",
-        "those"
-      ],
-      "related": [
-        "training-options",
-        "training-roles",
-        "outside-data"
-      ],
-      "audiences": [
-        "engineer",
-        "miner"
-      ],
-      "disclosure_class": "PUBLIC",
-      "maturity": "SPECIFIED_AND_COMPILED_IN_BOUNDED_WAVE_B_SCOPE",
-      "scope_note": "This does not authorize real miner training or official evidence.",
-      "expires_at": "2026-12-15T00:00:00Z",
-      "publication_status": "REVIEWED_PUBLIC_EXISTING",
-      "withdrawn_at": null,
+      "keywords": ["choose", "training", "cases", "miner", "validator", "curriculum", "randomness", "those"], "related": ["training-options", "training-roles", "outside-data"],
+      "audiences": ["engineer", "miner"], "disclosure_class": "PUBLIC", "maturity": "SPECIFIED_AND_COMPILED_IN_BOUNDED_WAVE_B_SCOPE", "scope_note": "This does not authorize real miner training or official evidence.",
+      "expires_at": "2026-12-15T00:00:00Z", "publication_status": "REVIEWED_PUBLIC_EXISTING", "withdrawn_at": null,
       "passages": [
-        {
-          "id": "training-policy",
-          "source_id": "data-management-405a820b",
-          "section": "3.1",
-          "text": "Participant-selectable training controls are Challenge-bound registered policies, such as bounded schedules, curricula over authorized training strata or resolutions, and approved augmentations. They do not control the target population, official SamplingPlan or evidence weighting."
-        },
-        {
-          "id": "training-randomness",
-          "source_id": "data-management-405a820b",
-          "section": "3.2",
-          "text": "The validator supplies official training-domain entropy. The participant does not provide a seed, nonce, random state, draw identity or hidden ordering, and cannot use a training policy to request evaluation or stress cases."
-        }
+        { "id": "training-policy", "source_id": "data-management-405a820b", "section": "3.1", "text": "Participant-selectable training controls are Challenge-bound registered policies, such as bounded schedules, curricula over authorized training strata or resolutions, and approved augmentations. They do not control the target population, official SamplingPlan or evidence weighting." },
+        { "id": "training-randomness", "source_id": "data-management-405a820b", "section": "3.2", "text": "The validator supplies official training-domain entropy. The participant does not provide a seed, nonce, random state, draw identity or hidden ordering, and cannot use a training policy to request evaluation or stress cases." }
       ]
     },
     {
-      "id": "training-options",
-      "topic": "Training",
-      "questions": [
-        "Can miners modify the training conditions?",
-        "Can they modify the conditions?",
-        "What is a curriculum?"
-      ],
+      "id": "training-options", "topic": "Training", "questions": ["Can miners modify the training conditions?", "Can they modify the conditions?", "What is a curriculum?"],
       "answer": "Only through choices already registered for that Challenge. Those may include a bounded sampling schedule, curriculum over approved strata or resolution, or an augmentation that preserves declared physics and representation invariants. Arbitrary sampling code, unregistered distributions and controls over evaluation or scoring are outside the current contract.",
-      "keywords": [
-        "modify",
-        "conditions",
-        "curriculum",
-        "sampling",
-        "augmentation",
-        "change"
-      ],
-      "related": [
-        "training-control",
-        "outside-data"
-      ],
-      "audiences": [
-        "engineer",
-        "miner"
-      ],
-      "disclosure_class": "PUBLIC",
-      "maturity": "SPECIFIED",
-      "scope_note": "Available choices depend on the exact registered Challenge and catalog version.",
-      "expires_at": "2026-12-15T00:00:00Z",
-      "publication_status": "REVIEWED_PUBLIC_EXISTING",
-      "withdrawn_at": null,
-      "passages": [
-        {
-          "id": "training-bounds",
-          "source_id": "data-management-405a820b",
-          "section": "3.1 and 3.2",
-          "text": "A resolved training policy may contain bounded schedules, curricula and approved augmentations. Compilation rejects arbitrary code, data locations, unknown distributions, official evaluation fields and changes to scientific authority."
-        }
-      ]
+      "keywords": ["modify", "conditions", "curriculum", "sampling", "augmentation", "change"], "related": ["training-control", "outside-data"],
+      "audiences": ["engineer", "miner"], "disclosure_class": "PUBLIC", "maturity": "SPECIFIED", "scope_note": "Available choices depend on the exact registered Challenge and catalog version.",
+      "expires_at": "2026-12-15T00:00:00Z", "publication_status": "REVIEWED_PUBLIC_EXISTING", "withdrawn_at": null,
+      "passages": [{ "id": "training-bounds", "source_id": "data-management-405a820b", "section": "3.1 and 3.2", "text": "A resolved training policy may contain bounded schedules, curricula and approved augmentations. Compilation rejects arbitrary code, data locations, unknown distributions, official evaluation fields and changes to scientific authority." }]
     },
     {
-      "id": "outside-data",
-      "topic": "Data",
-      "questions": [
-        "What about outside data?",
-        "Can miners bring external data?",
-        "Can I upload my dataset?",
-        "Are pretrained models allowed?"
-      ],
+      "id": "outside-data", "topic": "Data", "questions": ["What about outside data?", "Can miners bring external data?", "Can I upload my dataset?", "Are pretrained models allowed?"],
       "answer": "The current bounded validator-side training and practice contract accepts no raw or custom data upload, dataset URL, inline example or custom loader. Future external data or pretraining paths need separate rights, privacy, provenance, poisoning, security and reproducibility decisions. A miner using outside data in private research does not gain permission to import it into Carbon reconstruction.",
-      "keywords": [
-        "outside",
-        "external",
-        "data",
-        "dataset",
-        "upload",
-        "pretrained",
-        "pretraining"
-      ],
-      "related": [
-        "training-control",
-        "private-data"
-      ],
-      "audiences": [
-        "miner",
-        "customer"
-      ],
-      "disclosure_class": "PUBLIC",
-      "maturity": "CURRENT_BOUNDED_CONTRACT",
-      "scope_note": "Future private or licensed data paths remain separately governed.",
-      "expires_at": "2026-12-15T00:00:00Z",
-      "publication_status": "REVIEWED_PUBLIC_EXISTING",
-      "withdrawn_at": null,
-      "passages": [
-        {
-          "id": "outside-data-boundary",
-          "source_id": "data-management-405a820b",
-          "section": "4",
-          "text": "The bounded contract accepts no raw or custom upload for validator-side training, practice, evaluation or stress. Future customer, licensed or participant data paths require separately ratified rights, privacy, security, poisoning, provenance, scientific and execution contracts."
-        }
-      ]
+      "keywords": ["outside", "external", "data", "dataset", "upload", "pretrained", "pretraining"], "related": ["training-control", "private-data"],
+      "audiences": ["miner", "customer"], "disclosure_class": "PUBLIC", "maturity": "CURRENT_BOUNDED_CONTRACT", "scope_note": "Future private or licensed data paths remain separately governed.",
+      "expires_at": "2026-12-15T00:00:00Z", "publication_status": "REVIEWED_PUBLIC_EXISTING", "withdrawn_at": null,
+      "passages": [{ "id": "outside-data-boundary", "source_id": "data-management-405a820b", "section": "4", "text": "The bounded contract accepts no raw or custom upload for validator-side training, practice, evaluation or stress. Future customer, licensed or participant data paths require separately ratified rights, privacy, security, poisoning, provenance, scientific and execution contracts." }]
     },
     {
-      "id": "references",
-      "topic": "Verification",
-      "questions": [
-        "Where does the ground truth come from?",
-        "How do you know the correct answer?",
-        "What is the reference?"
-      ],
+      "id": "references", "topic": "Verification", "questions": ["Where does the ground truth come from?", "How do you know the correct answer?", "What is the reference?"],
       "answer": "There is no universal ground-truth backend. A Challenge can authorize an analytic solution, checked numerical solver, experiment, customer-hosted service, dataset or qualified combination. A TruthAsset binds the accepted result to the exact case, method and version, provenance, uncertainty, applicability, qualification and failure state. Solver reputation alone is not truth authority.",
-      "keywords": [
-        "ground",
-        "truth",
-        "reference",
-        "correct",
-        "solver",
-        "experiment",
-        "answer"
-      ],
-      "related": [
-        "reference-failure",
-        "qualification"
-      ],
-      "audiences": [
-        "newcomer",
-        "engineer",
-        "customer"
-      ],
-      "disclosure_class": "PUBLIC",
-      "maturity": "SPECIFIED_WITH_BOUNDED_REFERENCE_IMPLEMENTATIONS",
-      "scope_note": "Every Challenge must establish its own reference adequacy.",
-      "expires_at": "2026-12-15T00:00:00Z",
-      "publication_status": "REVIEWED_PUBLIC_EXISTING",
-      "withdrawn_at": null,
-      "passages": [
-        {
-          "id": "reference-authority",
-          "source_id": "reference-contract-405a820b",
-          "section": "ReferencePolicy and TruthAsset",
-          "text": "A Challenge-authorized reference may use analytic, numerical, experimental, dataset or partner-controlled evidence. A TruthAsset binds an accepted reference realization to the exact case, implementation and version, provenance, uncertainty, applicability, qualification and failure state; reputation alone is not authority."
-        }
-      ]
+      "keywords": ["ground", "truth", "reference", "correct", "solver", "experiment", "answer"], "related": ["reference-failure", "qualification"],
+      "audiences": ["newcomer", "engineer", "customer"], "disclosure_class": "PUBLIC", "maturity": "SPECIFIED_WITH_BOUNDED_REFERENCE_IMPLEMENTATIONS", "scope_note": "Every Challenge must establish its own reference adequacy.",
+      "expires_at": "2026-12-15T00:00:00Z", "publication_status": "REVIEWED_PUBLIC_EXISTING", "withdrawn_at": null,
+      "passages": [{ "id": "reference-authority", "source_id": "reference-contract-405a820b", "section": "ReferencePolicy and TruthAsset", "text": "A Challenge-authorized reference may use analytic, numerical, experimental, dataset or partner-controlled evidence. A TruthAsset binds an accepted reference realization to the exact case, implementation and version, provenance, uncertainty, applicability, qualification and failure state; reputation alone is not authority." }]
     },
     {
-      "id": "reference-failure",
-      "topic": "Verification",
-      "questions": [
-        "What if the reference fails?",
-        "What if the solver is wrong?",
-        "Can a model be punished when truth is missing?"
-      ],
+      "id": "reference-failure", "topic": "Verification", "questions": ["What if the reference fails?", "What if the solver is wrong?", "Can a model be punished when truth is missing?"],
       "answer": "A missing, disputed, inapplicable or failed reference is an evidence or reference outcome, not a candidate physics failure. Carbon keeps reference infrastructure failure separate from candidate treatment. A witness can corroborate the primary reference under a registered policy, but disagreement is not silently converted into a vote or a bad candidate score.",
-      "keywords": [
-        "reference",
-        "fail",
-        "wrong",
-        "missing",
-        "uncertain",
-        "disagree"
-      ],
-      "related": [
-        "references",
-        "evaluation-scoring"
-      ],
-      "audiences": [
-        "engineer",
-        "miner"
-      ],
-      "disclosure_class": "PUBLIC",
-      "maturity": "SPECIFIED_AND_TESTED_IN_BOUNDED_FIXTURES",
-      "scope_note": "Production scientific adequacy remains unqualified.",
-      "expires_at": "2026-12-15T00:00:00Z",
-      "publication_status": "REVIEWED_PUBLIC_EXISTING",
-      "withdrawn_at": null,
-      "passages": [
-        {
-          "id": "reference-failure-separation",
-          "source_id": "reference-contract-405a820b",
-          "section": "failure semantics",
-          "text": "Unavailable, failed, disputed or inapplicable truth retains a typed reference or evidence outcome and must not become candidate failure. Corroboration follows a prospective policy and does not silently replace primary authority."
-        }
-      ]
+      "keywords": ["reference", "fail", "wrong", "missing", "uncertain", "disagree"], "related": ["references", "evaluation-scoring"],
+      "audiences": ["engineer", "miner"], "disclosure_class": "PUBLIC", "maturity": "SPECIFIED_AND_TESTED_IN_BOUNDED_FIXTURES", "scope_note": "Production scientific adequacy remains unqualified.",
+      "expires_at": "2026-12-15T00:00:00Z", "publication_status": "REVIEWED_PUBLIC_EXISTING", "withdrawn_at": null,
+      "passages": [{ "id": "reference-failure-separation", "source_id": "reference-contract-405a820b", "section": "failure semantics", "text": "Unavailable, failed, disputed or inapplicable truth retains a typed reference or evidence outcome and must not become candidate failure. Corroboration follows a prospective policy and does not silently replace primary authority." }]
     },
     {
-      "id": "reconstruction",
-      "topic": "Reconstruction",
-      "questions": [
-        "What do miners submit?",
-        "Why reconstruct the model?",
-        "Does Carbon just test submitted weights?"
-      ],
+      "id": "reconstruction", "topic": "Reconstruction", "questions": ["What do miners submit?", "Why reconstruct the model?", "Does Carbon just test submitted weights?"],
       "answer": "In the first bounded scope, miners submit reproducible neural-operator training strategies: recipes, not self-certified scores. Validators execute the permitted recipe with controlled inputs and randomness to reconstruct a fixed candidate before evaluation. Broader construction programs are future architecture and do not authorize arbitrary participant code in the official evaluator.",
-      "keywords": [
-        "submit",
-        "miner",
-        "reconstruct",
-        "recipe",
-        "weights",
-        "strategy",
-        "model"
-      ],
-      "related": [
-        "overview",
-        "evaluation-scoring",
-        "gaming"
-      ],
-      "audiences": [
-        "newcomer",
-        "miner"
-      ],
-      "disclosure_class": "PUBLIC",
-      "maturity": "BOUNDED_IMPLEMENTATION",
-      "scope_note": "Arbitrary construction execution and production security are not qualified.",
-      "expires_at": "2026-12-15T00:00:00Z",
-      "publication_status": "REVIEWED_PUBLIC_EXISTING",
-      "withdrawn_at": null,
-      "passages": [
-        {
-          "id": "reconstruction-boundary",
-          "source_id": "constitution-405a820b",
-          "section": "1 and 8",
-          "text": "The first bounded implementation searches TrainingStrategy recipes. Producer-independent reconstruction is the bounded form of the wider construction vision, while construction and official evaluation remain separate security domains."
-        }
-      ]
+      "keywords": ["submit", "miner", "reconstruct", "recipe", "weights", "strategy", "model"], "related": ["overview", "evaluation-scoring", "gaming"],
+      "audiences": ["newcomer", "miner"], "disclosure_class": "PUBLIC", "maturity": "BOUNDED_IMPLEMENTATION", "scope_note": "Arbitrary construction execution and production security are not qualified.",
+      "expires_at": "2026-12-15T00:00:00Z", "publication_status": "REVIEWED_PUBLIC_EXISTING", "withdrawn_at": null,
+      "passages": [{ "id": "reconstruction-boundary", "source_id": "constitution-405a820b", "section": "1 and 8", "text": "The first bounded implementation searches TrainingStrategy recipes. Producer-independent reconstruction is the bounded form of the wider construction vision, while construction and official evaluation remain separate security domains." }]
     },
     {
-      "id": "evaluation-scoring",
-      "topic": "Evaluation",
-      "questions": [
-        "How does scoring work?",
-        "What makes a model win?",
-        "Is score just average error?"
-      ],
+      "id": "evaluation-scoring", "topic": "Evaluation", "questions": ["How does scoring work?", "What makes a model win?", "Is score just average error?"],
       "answer": "A Challenge uses registered measurements and a versioned Score Pack. Mandatory scientific admissibility comes before ranking, so a candidate cannot compensate for a required physics failure with a better soft average. Candidates receiving a nonzero official score complete the same mandatory pack. Scores are Challenge-bound and are not automatically comparable across different Challenges.",
-      "keywords": [
-        "score",
-        "scoring",
-        "win",
-        "winner",
-        "error",
-        "rank",
-        "measurement"
-      ],
-      "related": [
-        "stress",
-        "qualification",
-        "reconstruction"
-      ],
-      "audiences": [
-        "engineer",
-        "miner"
-      ],
-      "disclosure_class": "PUBLIC",
-      "maturity": "IMPLEMENTED_AND_TESTED_IN_BOUNDED_SCOPES",
-      "scope_note": "Frontier promotion and product qualification are separate.",
-      "expires_at": "2026-12-15T00:00:00Z",
-      "publication_status": "REVIEWED_PUBLIC_EXISTING",
-      "withdrawn_at": null,
-      "passages": [
-        {
-          "id": "scoring-admissibility",
-          "source_id": "scoring-963f07dd",
-          "section": "admissibility and Score Pack",
-          "text": "A versioned Challenge Score Pack applies registered measurements. Mandatory admissibility precedes ranking, forbidden inputs cannot alter scientific score, and a scalar result remains Challenge-bound rather than universally comparable."
-        }
-      ]
+      "keywords": ["score", "scoring", "win", "winner", "error", "rank", "measurement"], "related": ["stress", "qualification", "reconstruction"],
+      "audiences": ["engineer", "miner"], "disclosure_class": "PUBLIC", "maturity": "IMPLEMENTED_AND_TESTED_IN_BOUNDED_SCOPES", "scope_note": "Frontier promotion and product qualification are separate.",
+      "expires_at": "2026-12-15T00:00:00Z", "publication_status": "REVIEWED_PUBLIC_EXISTING", "withdrawn_at": null,
+      "passages": [{ "id": "scoring-admissibility", "source_id": "scoring-963f07dd", "section": "admissibility and Score Pack", "text": "A versioned Challenge Score Pack applies registered measurements. Mandatory admissibility precedes ranking, forbidden inputs cannot alter scientific score, and a scalar result remains Challenge-bound rather than universally comparable." }]
     },
     {
-      "id": "stress",
-      "topic": "Evaluation",
-      "questions": [
-        "What is a stress case?",
-        "How do you test robustness?",
-        "Can average error hide failures?"
-      ],
+      "id": "stress", "topic": "Evaluation", "questions": ["What is a stress case?", "How do you test robustness?", "Can average error hide failures?"],
       "answer": "Stress cases examine prospectively defined difficult conditions within the claimed scope. Reviewers can require evidence for particular groups so a favorable overall average does not erase a mandatory subgroup failure. Candidate identity, reputation, stake, sponsorship or training policy cannot earn an easier official pack after outcomes are known.",
-      "keywords": [
-        "stress",
-        "robust",
-        "difficult",
-        "average",
-        "failure",
-        "tail"
-      ],
-      "related": [
-        "evaluation-scoring",
-        "population-sampling"
-      ],
-      "audiences": [
-        "engineer",
-        "customer"
-      ],
-      "disclosure_class": "PUBLIC",
-      "maturity": "SPECIFIED",
-      "scope_note": "Stress design and adequacy are Challenge-specific scientific decisions.",
-      "expires_at": "2026-12-15T00:00:00Z",
-      "publication_status": "REVIEWED_PUBLIC_EXISTING",
-      "withdrawn_at": null,
-      "passages": [
-        {
-          "id": "stress-freeze",
-          "source_id": "data-management-405a820b",
-          "section": "5",
-          "text": "The mandatory official pack, including stress allocation, references, measurements, gates, thresholds and weights, is frozen before candidate outcomes. Candidate identity, reputation, sponsorship and training policy cannot change it."
-        }
-      ]
+      "keywords": ["stress", "robust", "difficult", "average", "failure", "tail"], "related": ["evaluation-scoring", "population-sampling"],
+      "audiences": ["engineer", "customer"], "disclosure_class": "PUBLIC", "maturity": "SPECIFIED", "scope_note": "Stress design and adequacy are Challenge-specific scientific decisions.",
+      "expires_at": "2026-12-15T00:00:00Z", "publication_status": "REVIEWED_PUBLIC_EXISTING", "withdrawn_at": null,
+      "passages": [{ "id": "stress-freeze", "source_id": "data-management-405a820b", "section": "5", "text": "The mandatory official pack, including stress allocation, references, measurements, gates, thresholds and weights, is frozen before candidate outcomes. Candidate identity, reputation, sponsorship and training policy cannot change it." }]
     },
     {
-      "id": "qualification",
-      "topic": "Qualification",
-      "questions": [
-        "Who checks the exam?",
-        "What is a Validation Dossier?",
-        "Does a winning model qualify for customer use?"
-      ],
+      "id": "qualification", "topic": "Qualification", "questions": ["Who checks the exam?", "What is a Validation Dossier?", "Does a winning model qualify for customer use?"],
       "answer": "The exam must be qualified before it can qualify candidates. A Validation Dossier examines the task, population, sampling plan, generator conformance, reference adequacy, representation, measurements, evidence sufficiency and limitations. A Challenge win can nominate a candidate, but customer use requires separate evidence for the exact model, job, operating range and deployment context.",
-      "keywords": [
-        "qualify",
-        "qualification",
-        "exam",
-        "validation",
-        "dossier",
-        "customer",
-        "winner"
-      ],
-      "related": [
-        "challenge",
-        "evaluation-scoring",
-        "customer-product"
-      ],
-      "audiences": [
-        "newcomer",
-        "engineer",
-        "customer"
-      ],
-      "disclosure_class": "PUBLIC",
-      "maturity": "QUALIFICATION_ARCHITECTURE_SPECIFIED_NOT_GENERALLY_EARNED",
-      "scope_note": "No general product or scientific qualification is claimed.",
-      "expires_at": "2026-12-15T00:00:00Z",
-      "publication_status": "REVIEWED_PUBLIC_EXISTING",
-      "withdrawn_at": null,
-      "passages": [
-        {
-          "id": "exam-qualification",
-          "source_id": "distribution-405a820b",
-          "section": "20 qualification",
-          "text": "A Validation Dossier assesses physical task, population, SamplingPlan, generator, reference, representation, measurement, statistical sufficiency, role separation and limitations. Exam qualification precedes candidate qualification, and product use has a separate bounded evidence path."
-        }
-      ]
+      "keywords": ["qualify", "qualification", "exam", "validation", "dossier", "customer", "winner"], "related": ["challenge", "evaluation-scoring", "customer-product"],
+      "audiences": ["newcomer", "engineer", "customer"], "disclosure_class": "PUBLIC", "maturity": "QUALIFICATION_ARCHITECTURE_SPECIFIED_NOT_GENERALLY_EARNED", "scope_note": "No general product or scientific qualification is claimed.",
+      "expires_at": "2026-12-15T00:00:00Z", "publication_status": "REVIEWED_PUBLIC_EXISTING", "withdrawn_at": null,
+      "passages": [{ "id": "exam-qualification", "source_id": "distribution-405a820b", "section": "20 qualification", "text": "A Validation Dossier assesses physical task, population, SamplingPlan, generator, reference, representation, measurement, statistical sufficiency, role separation and limitations. Exam qualification precedes candidate qualification, and product use has a separate bounded evidence path." }]
     },
     {
-      "id": "current-progress",
-      "topic": "Progress",
-      "questions": [
-        "What has been proven?",
-        "Is Carbon live?",
-        "What stage is Carbon at?",
-        "Is it production ready?"
-      ],
+      "id": "current-progress", "topic": "Progress", "questions": ["What has been proven?", "Is Carbon live?", "What stage is Carbon at?", "Is it production ready?"],
       "answer": "As of the pinned 16 September 2026 repository status, Carbon has many implemented and tested bounded engineering components and an active public/synthetic development-testnet workstream. The same status explicitly keeps official scientific qualification, protected execution, production readiness and broader public-network authority separate or blocked. Development execution is not evidence of a qualified production system, customer traction or measured network advantage.",
-      "keywords": [
-        "proven",
-        "progress",
-        "stage",
-        "live",
-        "production",
-        "ready",
-        "current",
-        "launch"
-      ],
-      "related": [
-        "overview",
-        "qualification",
-        "customer-product"
-      ],
-      "audiences": [
-        "newcomer",
-        "customer",
-        "miner"
-      ],
-      "disclosure_class": "PUBLIC",
-      "maturity": "DATED_STATUS_2026_09_16",
-      "scope_note": "Short freshness window; re-review before any public activation.",
-      "expires_at": "2026-09-23T00:00:00Z",
-      "publication_status": "REVIEWED_PUBLIC_EXISTING",
-      "withdrawn_at": null,
-      "passages": [
-        {
-          "id": "current-wave-status",
-          "source_id": "wave-status-963f07dd",
-          "section": "Current phase and status",
-          "text": "The repository records active bounded public and synthetic development-testnet engineering while official C-W1, protected scientific qualification, production and broader network authority remain unavailable. Implemented and tested engineering states do not imply later qualification."
-        }
-      ]
+      "keywords": ["proven", "progress", "stage", "live", "production", "ready", "current", "launch"], "related": ["overview", "qualification", "customer-product"],
+      "audiences": ["newcomer", "customer", "miner"], "disclosure_class": "PUBLIC", "maturity": "DATED_STATUS_2026_09_16", "scope_note": "Short freshness window; re-review before any public activation.",
+      "expires_at": "2026-09-23T00:00:00Z", "publication_status": "REVIEWED_PUBLIC_EXISTING", "withdrawn_at": null,
+      "passages": [{ "id": "current-wave-status", "source_id": "wave-status-963f07dd", "section": "Current phase and status", "text": "The repository records active bounded public and synthetic development-testnet engineering while official C-W1, protected scientific qualification, production and broader network authority remain unavailable. Implemented and tested engineering states do not imply later qualification." }]
     },
     {
-      "id": "miner-access",
-      "topic": "Miner research",
-      "questions": [
-        "Do miners get the generator and reference?",
-        "Can miners generate training data?",
-        "Can miners inspect test answers?"
-      ],
+      "id": "miner-access", "topic": "Miner research", "questions": ["Do miners get the generator and reference?", "Can miners generate training data?", "Can miners inspect test answers?"],
       "answer": "Miners can use the public research resources and practice rights released for an exact Challenge. Public generator or reference methods can support research without exposing official seeds, hidden case realizations, protected ordering or reference outputs. Access to a method is not access to the official answer set, and private or licensed resources need separate permission.",
-      "keywords": [
-        "miner",
-        "access",
-        "generator",
-        "reference",
-        "answers",
-        "research",
-        "public"
-      ],
-      "related": [
-        "case-generator",
-        "research-boundary",
-        "gaming"
-      ],
-      "audiences": [
-        "miner"
-      ],
-      "disclosure_class": "PUBLIC",
-      "maturity": "BOUNDED_PUBLIC_RESEARCH_CONTRACT",
-      "scope_note": "Resource availability is Challenge-specific.",
-      "expires_at": "2026-12-15T00:00:00Z",
-      "publication_status": "REVIEWED_PUBLIC_EXISTING",
-      "withdrawn_at": null,
-      "passages": [
-        {
-          "id": "practice-access",
-          "source_id": "data-management-405a820b",
-          "section": "7",
-          "text": "Practice uses public or mock rights and may retain public contract identities, but it never gains official contexts, seeds, protected cases, private reference outputs or evaluator state. Public methods and protected realizations are separate."
-        }
-      ]
+      "keywords": ["miner", "access", "generator", "reference", "answers", "research", "public"], "related": ["case-generator", "research-boundary", "gaming"],
+      "audiences": ["miner"], "disclosure_class": "PUBLIC", "maturity": "BOUNDED_PUBLIC_RESEARCH_CONTRACT", "scope_note": "Resource availability is Challenge-specific.",
+      "expires_at": "2026-12-15T00:00:00Z", "publication_status": "REVIEWED_PUBLIC_EXISTING", "withdrawn_at": null,
+      "passages": [{ "id": "practice-access", "source_id": "data-management-405a820b", "section": "7", "text": "Practice uses public or mock rights and may retain public contract identities, but it never gains official contexts, seeds, protected cases, private reference outputs or evaluator state. Public methods and protected realizations are separate." }]
     },
     {
-      "id": "bittensor",
-      "topic": "Network",
-      "questions": [
-        "How does Carbon relate to Bittensor?",
-        "Why use a subnet?",
-        "What do miners and validators do?"
-      ],
+      "id": "bittensor", "topic": "Network", "questions": ["How does Carbon relate to Bittensor?", "Why use a subnet?", "What do miners and validators do?"],
       "answer": "Carbon uses the Bittensor subnet model to coordinate competing miners or agents that propose construction strategies and validators that reconstruct and evaluate them under registered rules. The intended advantage is broader external search while the producer does not control the grade. That is a design and development thesis; network publication or token transport does not itself prove scientific merit or measured decentralization advantage.",
-      "keywords": [
-        "bittensor",
-        "subnet",
-        "network",
-        "miners",
-        "validators",
-        "decentralized"
-      ],
-      "related": [
-        "incentives",
-        "overview",
-        "current-progress"
-      ],
-      "audiences": [
-        "newcomer",
-        "miner"
-      ],
-      "disclosure_class": "PUBLIC",
-      "maturity": "DESIGN_WITH_BOUNDED_NETWORK_DEVELOPMENT",
-      "scope_note": "No proven network advantage or production-mainnet claim.",
-      "expires_at": "2026-10-16T00:00:00Z",
-      "publication_status": "REVIEWED_PUBLIC_EXISTING",
-      "withdrawn_at": null,
-      "passages": [
-        {
-          "id": "bittensor-roles",
-          "source_id": "protocol-405a820b",
-          "section": "Executive summary and roles",
-          "text": "The protocol coordinates miners proposing reproducible training strategies and validators reconstructing and independently evaluating candidates. Network transport remains separate from scientific evidence and does not let the producer control the grade."
-        }
-      ]
+      "keywords": ["bittensor", "subnet", "network", "miners", "validators", "decentralized"], "related": ["incentives", "overview", "current-progress"],
+      "audiences": ["newcomer", "miner"], "disclosure_class": "PUBLIC", "maturity": "DESIGN_WITH_BOUNDED_NETWORK_DEVELOPMENT", "scope_note": "No proven network advantage or production-mainnet claim.",
+      "expires_at": "2026-10-16T00:00:00Z", "publication_status": "REVIEWED_PUBLIC_EXISTING", "withdrawn_at": null,
+      "passages": [{ "id": "bittensor-roles", "source_id": "protocol-405a820b", "section": "Executive summary and roles", "text": "The protocol coordinates miners proposing reproducible training strategies and validators reconstructing and independently evaluating candidates. Network transport remains separate from scientific evidence and does not let the producer control the grade." }]
     },
     {
-      "id": "incentives",
-      "topic": "Network",
-      "questions": [
-        "How are miners rewarded?",
-        "Do tokens decide which model is best?",
-        "What are the incentives?"
-      ],
+      "id": "incentives", "topic": "Network", "questions": ["How are miners rewarded?", "Do tokens decide which model is best?", "What are the incentives?"],
       "answer": "Carbon's architecture separates scientific outcome from economic settlement. Scientific evidence determines Challenge-local eligibility under registered rules; a later reward path can settle an entitlement but cannot create, erase or alter scientific merit. Current public development status should not be read as an authorization for production economics, investment returns or mainnet activity.",
-      "keywords": [
-        "reward",
-        "incentive",
-        "token",
-        "alpha",
-        "payment",
-        "settlement",
-        "best"
-      ],
-      "related": [
-        "bittensor",
-        "evaluation-scoring",
-        "current-progress"
-      ],
-      "audiences": [
-        "miner",
-        "newcomer"
-      ],
-      "disclosure_class": "PUBLIC",
-      "maturity": "ARCHITECTURE_AND_BOUNDED_ENGINEERING",
-      "scope_note": "No investment, return or production economic claim.",
-      "expires_at": "2026-10-16T00:00:00Z",
-      "publication_status": "REVIEWED_PUBLIC_EXISTING",
-      "withdrawn_at": null,
-      "passages": [
-        {
-          "id": "science-settlement-separation",
-          "source_id": "constitution-405a820b",
-          "section": "3 and 10",
-          "text": "Scientific winner determination and economic settlement are separate authorities. Treasury or network transport cannot create, erase or alter scientific merit, and public-network operation needs separate authority."
-        }
-      ]
+      "keywords": ["reward", "incentive", "token", "alpha", "payment", "settlement", "best"], "related": ["bittensor", "evaluation-scoring", "current-progress"],
+      "audiences": ["miner", "newcomer"], "disclosure_class": "PUBLIC", "maturity": "ARCHITECTURE_AND_BOUNDED_ENGINEERING", "scope_note": "No investment, return or production economic claim.",
+      "expires_at": "2026-10-16T00:00:00Z", "publication_status": "REVIEWED_PUBLIC_EXISTING", "withdrawn_at": null,
+      "passages": [{ "id": "science-settlement-separation", "source_id": "constitution-405a820b", "section": "3 and 10", "text": "Scientific winner determination and economic settlement are separate authorities. Treasury or network transport cannot create, erase or alter scientific merit, and public-network operation needs separate authority." }]
     },
     {
-      "id": "customer-product",
-      "topic": "Customers",
-      "questions": [
-        "How could Carbon help an engineering customer?",
-        "What is an Evidence Audit?",
-        "Does Carbon have paying customers?"
-      ],
+      "id": "customer-product", "topic": "Customers", "questions": ["How could Carbon help an engineering customer?", "What is an Evidence Audit?", "Does Carbon have paying customers?"],
       "answer": "Carbon's preferred first customer wedge is an Evidence Audit: independently test an existing fast physical model against a qualified, problem-specific exam and report what survives, where it fails, and what stronger evidence is needed. Sponsored discovery, qualification and lifecycle services are product architecture. The pinned sources do not establish paid customer delivery, recurring revenue or commercially validated demand.",
-      "keywords": [
-        "customer",
-        "evidence",
-        "audit",
-        "product",
-        "paying",
-        "revenue",
-        "commercial"
-      ],
-      "related": [
-        "qualification",
-        "private-data",
-        "contact"
-      ],
-      "audiences": [
-        "customer",
-        "newcomer"
-      ],
-      "disclosure_class": "PUBLIC",
-      "maturity": "BUSINESS_DESIGN_NOT_TRACTION",
-      "scope_note": "Architecture is not customer traction.",
-      "expires_at": "2026-10-16T00:00:00Z",
-      "publication_status": "REVIEWED_PUBLIC_EXISTING",
-      "withdrawn_at": null,
-      "passages": [
-        {
-          "id": "evidence-audit",
-          "source_id": "business-canon-405a820b",
-          "section": "5-7 and 21",
-          "text": "The preferred first wedge is an independent Evidence Audit of an existing model against a qualified problem-specific exam. Planned discovery, qualification and lifecycle products remain business design; design is not paid pilot, recurring revenue or commercial validation."
-        }
-      ]
+      "keywords": ["customer", "evidence", "audit", "product", "paying", "revenue", "commercial"], "related": ["qualification", "private-data", "contact"],
+      "audiences": ["customer", "newcomer"], "disclosure_class": "PUBLIC", "maturity": "BUSINESS_DESIGN_NOT_TRACTION", "scope_note": "Architecture is not customer traction.",
+      "expires_at": "2026-10-16T00:00:00Z", "publication_status": "REVIEWED_PUBLIC_EXISTING", "withdrawn_at": null,
+      "passages": [{ "id": "evidence-audit", "source_id": "business-canon-405a820b", "section": "5-7 and 21", "text": "The preferred first wedge is an independent Evidence Audit of an existing model against a qualified problem-specific exam. Planned discovery, qualification and lifecycle products remain business design; design is not paid pilot, recurring revenue or commercial validation." }]
     },
     {
-      "id": "private-data",
-      "topic": "Privacy",
-      "questions": [
-        "Should I paste confidential engineering data here?",
-        "Is customer data public?",
-        "Can this chat review my private solver?"
-      ],
+      "id": "private-data", "topic": "Privacy", "questions": ["Should I paste confidential engineering data here?", "Is customer data public?", "Can this chat review my private solver?"],
       "answer": "No. Ask Carbon is limited to reviewed public explanations. Do not paste confidential engineering, customer, solver, model, credential, personal or protected-evaluation data into this general chat. Private customer work needs a separately authorized workflow with explicit rights, privacy, security, retention and deployment controls.",
-      "keywords": [
-        "private",
-        "confidential",
-        "customer",
-        "data",
-        "paste",
-        "upload",
-        "solver",
-        "privacy"
-      ],
-      "related": [
-        "customer-product",
-        "assistant-scope",
-        "outside-data"
-      ],
-      "audiences": [
-        "customer",
-        "engineer"
-      ],
-      "disclosure_class": "PUBLIC",
-      "maturity": "PUBLIC_ONLY_BOUNDARY",
-      "scope_note": "No private-data processing capability is offered here.",
-      "expires_at": "2026-12-15T00:00:00Z",
-      "publication_status": "REVIEWED_PUBLIC_EXISTING",
-      "withdrawn_at": null,
-      "passages": [
-        {
-          "id": "private-rights",
-          "source_id": "business-canon-405a820b",
-          "section": "13 Rights and privacy",
-          "text": "Customer data, solvers, strategies, artifacts and evidence remain subject to explicit rights and confidentiality. Private modes are legitimate directions but must be technically qualified before being sold or used."
-        }
-      ]
+      "keywords": ["private", "confidential", "customer", "data", "paste", "upload", "solver", "privacy"], "related": ["customer-product", "assistant-scope", "outside-data"],
+      "audiences": ["customer", "engineer"], "disclosure_class": "PUBLIC", "maturity": "PUBLIC_ONLY_BOUNDARY", "scope_note": "No private-data processing capability is offered here.",
+      "expires_at": "2026-12-15T00:00:00Z", "publication_status": "REVIEWED_PUBLIC_EXISTING", "withdrawn_at": null,
+      "passages": [{ "id": "private-rights", "source_id": "business-canon-405a820b", "section": "13 Rights and privacy", "text": "Customer data, solvers, strategies, artifacts and evidence remain subject to explicit rights and confidentiality. Private modes are legitimate directions but must be technically qualified before being sold or used." }]
     },
     {
-      "id": "research-boundary",
-      "topic": "Practice",
-      "questions": [
-        "Do practice scores count?",
-        "Can practice predict my official score?",
-        "Can Ask Carbon run a mining job?"
-      ],
+      "id": "research-boundary", "topic": "Practice", "questions": ["Do practice scores count?", "Can practice predict my official score?", "Can Ask Carbon run a mining job?"],
       "answer": "No. Public practice can help compare ideas, but it does not create an official score, rank, winner, frontier event, reward or qualification. This homepage explainer cannot run a miner, submit a strategy, access protected evaluation or predict an official result. Official and practice authority remain separate.",
-      "keywords": [
-        "practice",
-        "score",
-        "predict",
-        "official",
-        "run",
-        "mining",
-        "job",
-        "submit"
-      ],
-      "related": [
-        "miner-access",
-        "assistant-scope",
-        "evaluation-scoring"
-      ],
-      "audiences": [
-        "miner"
-      ],
-      "disclosure_class": "PUBLIC",
-      "maturity": "BOUNDARY_IMPLEMENTED",
-      "scope_note": "No miner execution or official-evaluation access.",
-      "expires_at": "2026-12-15T00:00:00Z",
-      "publication_status": "REVIEWED_PUBLIC_EXISTING",
-      "withdrawn_at": null,
-      "passages": [
-        {
-          "id": "practice-not-official",
-          "source_id": "data-management-405a820b",
-          "section": "7",
-          "text": "Practice uses public or mock material and cannot create an official score, gate, rank, frontier, weight, emission, settlement or qualification. Official protected contexts remain inaccessible."
-        }
-      ]
+      "keywords": ["practice", "score", "predict", "official", "run", "mining", "job", "submit"], "related": ["miner-access", "assistant-scope", "evaluation-scoring"],
+      "audiences": ["miner"], "disclosure_class": "PUBLIC", "maturity": "BOUNDARY_IMPLEMENTED", "scope_note": "No miner execution or official-evaluation access.",
+      "expires_at": "2026-12-15T00:00:00Z", "publication_status": "REVIEWED_PUBLIC_EXISTING", "withdrawn_at": null,
+      "passages": [{ "id": "practice-not-official", "source_id": "data-management-405a820b", "section": "7", "text": "Practice uses public or mock material and cannot create an official score, gate, rank, frontier, weight, emission, settlement or qualification. Official protected contexts remain inaccessible." }]
     },
     {
-      "id": "assistant-scope",
-      "topic": "Ask Carbon",
-      "questions": [
-        "What can Ask Carbon answer?",
-        "Is this the Research Concierge?",
-        "Where do answers come from?"
-      ],
+      "id": "assistant-scope", "topic": "Ask Carbon", "questions": ["What can Ask Carbon answer?", "Is this the Research Concierge?", "Where do answers come from?"],
       "answer": "Ask Carbon is a bounded public explainer grounded in a reviewed, versioned release. It can explain public mechanisms, boundaries and dated development status, and it should say when relevant public evidence is absent. It is not the future authenticated Research Concierge, a private engineering workspace, a scientific approval service, an investment adviser or a miner execution tool.",
-      "keywords": [
-        "ask",
-        "carbon",
-        "answer",
-        "concierge",
-        "scope",
-        "source",
-        "help"
-      ],
-      "related": [
-        "private-data",
-        "research-boundary",
-        "contact"
-      ],
-      "audiences": [
-        "newcomer",
-        "engineer",
-        "miner",
-        "customer"
-      ],
-      "disclosure_class": "PUBLIC",
-      "maturity": "STAGING_CANDIDATE_PUBLIC_ACTIVATION_DISABLED",
-      "scope_note": "The authenticated Concierge remains future-reserved.",
-      "expires_at": "2026-10-16T00:00:00Z",
-      "publication_status": "REVIEWED_PUBLIC_EXISTING",
-      "withdrawn_at": null,
-      "passages": [
-        {
-          "id": "concierge-separation",
-          "source_id": "concierge-ticket-405a820b",
-          "section": "Status and limits",
-          "text": "The authenticated Research Concierge is future-reserved and requires separate authority, permissions, privacy, security and launch work. A public explainer has no private archive, official prediction, execution or spending authority."
-        }
-      ]
+      "keywords": ["ask", "carbon", "answer", "concierge", "scope", "source", "help"], "related": ["private-data", "research-boundary", "contact"],
+      "audiences": ["newcomer", "engineer", "miner", "customer"], "disclosure_class": "PUBLIC", "maturity": "STAGING_CANDIDATE_PUBLIC_ACTIVATION_DISABLED", "scope_note": "The authenticated Concierge remains future-reserved.",
+      "expires_at": "2026-10-16T00:00:00Z", "publication_status": "REVIEWED_PUBLIC_EXISTING", "withdrawn_at": null,
+      "passages": [{ "id": "concierge-separation", "source_id": "concierge-ticket-405a820b", "section": "Status and limits", "text": "The authenticated Research Concierge is future-reserved and requires separate authority, permissions, privacy, security and launch work. A public explainer has no private archive, official prediction, execution or spending authority." }]
     },
     {
-      "id": "trust-minimized",
-      "topic": "Verification",
-      "questions": [
-        "Is Carbon fully trustless?",
-        "Do public seeds prove correct execution?",
-        "What does trust-minimized mean?"
-      ],
+      "id": "trust-minimized", "topic": "Verification", "questions": ["Is Carbon fully trustless?", "Do public seeds prove correct execution?", "What does trust-minimized mean?"],
       "answer": "Carbon's defensible target is trust-minimized, committed and auditable under explicit qualifications. Registered identities, controlled execution, versioned evidence and independent review reduce reliance on one actor. Open code, hashes or public randomness do not by themselves prove that private computation ran correctly or that a reference represents physical truth.",
-      "keywords": [
-        "trustless",
-        "trust",
-        "seed",
-        "hash",
-        "audit",
-        "verify"
-      ],
-      "related": [
-        "references",
-        "gaming",
-        "qualification"
-      ],
-      "audiences": [
-        "engineer",
-        "miner"
-      ],
-      "disclosure_class": "PUBLIC",
-      "maturity": "ARCHITECTURE_NOT_UNIVERSAL_SECURITY_PROOF",
-      "scope_note": "Security and scientific strength depend on the exact qualified deployment.",
-      "expires_at": "2026-12-15T00:00:00Z",
-      "publication_status": "REVIEWED_PUBLIC_EXISTING",
-      "withdrawn_at": null,
-      "passages": [
-        {
-          "id": "trust-boundary",
-          "source_id": "reference-contract-405a820b",
-          "section": "authority and disclosure",
-          "text": "Commitments, versioned provenance, controlled execution and audit can support trust minimization. Open code, hashes and seeds alone do not prove private execution, provider honesty, scientific adequacy or universal physical truth."
-        }
-      ]
+      "keywords": ["trustless", "trust", "seed", "hash", "audit", "verify"], "related": ["references", "gaming", "qualification"],
+      "audiences": ["engineer", "miner"], "disclosure_class": "PUBLIC", "maturity": "ARCHITECTURE_NOT_UNIVERSAL_SECURITY_PROOF", "scope_note": "Security and scientific strength depend on the exact qualified deployment.",
+      "expires_at": "2026-12-15T00:00:00Z", "publication_status": "REVIEWED_PUBLIC_EXISTING", "withdrawn_at": null,
+      "passages": [{ "id": "trust-boundary", "source_id": "reference-contract-405a820b", "section": "authority and disclosure", "text": "Commitments, versioned provenance, controlled execution and audit can support trust minimization. Open code, hashes and seeds alone do not prove private execution, provider honesty, scientific adequacy or universal physical truth." }]
     },
     {
-      "id": "gaming",
-      "topic": "Verification",
-      "questions": [
-        "What stops gaming?",
-        "Could a miner memorize the exam?",
-        "Can miners cheat?"
-      ],
+      "id": "gaming", "topic": "Verification", "questions": ["What stops gaming?", "Could a miner memorize the exam?", "Can miners cheat?"],
       "answer": "Carbon aims to reward learning the declared physics population, not protected case realizations. Its controls include separate public practice, fresh protected cases, producer-independent reconstruction, immutable official bindings and limited disclosure. Repeated precise feedback against a finite hidden bank can still leak useful information, so secrecy alone is not a guarantee and the controls require testing and qualification.",
-      "keywords": [
-        "gaming",
-        "cheat",
-        "memorize",
-        "leak",
-        "hidden",
-        "exam",
-        "fresh"
-      ],
-      "related": [
-        "case-generator",
-        "reconstruction",
-        "trust-minimized"
-      ],
-      "audiences": [
-        "miner",
-        "engineer"
-      ],
-      "disclosure_class": "PUBLIC",
-      "maturity": "CONTROL_ARCHITECTURE_NOT_SECURITY_QUALIFIED",
-      "scope_note": "No guarantee that every exploit is prevented.",
-      "expires_at": "2026-12-15T00:00:00Z",
-      "publication_status": "REVIEWED_PUBLIC_EXISTING",
-      "withdrawn_at": null,
-      "passages": [
-        {
-          "id": "gaming-controls",
-          "source_id": "data-management-405a820b",
-          "section": "2, 5 and 7",
-          "text": "Protected official realizations, seeds and outputs stay private; the mandatory pack is prospectively fixed; practice remains separate; and producer choices cannot change official evidence. These are controls, not automatic production-security qualification."
-        }
-      ]
+      "keywords": ["gaming", "cheat", "memorize", "leak", "hidden", "exam", "fresh"], "related": ["case-generator", "reconstruction", "trust-minimized"],
+      "audiences": ["miner", "engineer"], "disclosure_class": "PUBLIC", "maturity": "CONTROL_ARCHITECTURE_NOT_SECURITY_QUALIFIED", "scope_note": "No guarantee that every exploit is prevented.",
+      "expires_at": "2026-12-15T00:00:00Z", "publication_status": "REVIEWED_PUBLIC_EXISTING", "withdrawn_at": null,
+      "passages": [{ "id": "gaming-controls", "source_id": "data-management-405a820b", "section": "2, 5 and 7", "text": "Protected official realizations, seeds and outputs stay private; the mandatory pack is prospectively fixed; practice remains separate; and producer choices cannot change official evidence. These are controls, not automatic production-security qualification." }]
     },
     {
-      "id": "contact",
-      "topic": "Contact",
-      "questions": [
-        "How can I contact Carbon?",
-        "Where can I learn more?",
-        "Who should I talk to about a project?"
-      ],
+      "id": "contact", "topic": "Contact", "questions": ["How can I contact Carbon?", "Where can I learn more?", "Who should I talk to about a project?"],
       "answer": "For public material, inspect the cited Carbon repository sources. To discuss a potential engineering project, use the public contact address hello@carbonphysics.ai and keep the first message general until an appropriate private process is agreed. Ask Carbon does not collect files or confidential project details.",
-      "keywords": [
-        "contact",
-        "email",
-        "talk",
-        "project",
-        "learn",
-        "more"
-      ],
-      "related": [
-        "customer-product",
-        "private-data"
-      ],
-      "audiences": [
-        "customer",
-        "newcomer"
-      ],
-      "disclosure_class": "PUBLIC",
-      "maturity": "VERIFIED_PUBLIC_ROUTE_2026_09_16",
-      "scope_note": "Contact does not imply enrollment, acceptance or a paid engagement.",
-      "expires_at": "2026-10-16T00:00:00Z",
-      "publication_status": "REVIEWED_PUBLIC_EXISTING",
-      "withdrawn_at": null,
-      "passages": [
-        {
-          "id": "contact-boundary",
-          "source_id": "business-canon-405a820b",
-          "section": "13 Rights and privacy",
-          "text": "Potential customer work starts from the engineering problem while rights, confidentiality and private data handling require explicit agreement. Public interaction does not authorize confidential data processing."
-        }
-      ]
+      "keywords": ["contact", "email", "talk", "project", "learn", "more"], "related": ["customer-product", "private-data"],
+      "audiences": ["customer", "newcomer"], "disclosure_class": "PUBLIC", "maturity": "VERIFIED_PUBLIC_ROUTE_2026_09_16", "scope_note": "Contact does not imply enrollment, acceptance or a paid engagement.",
+      "expires_at": "2026-10-16T00:00:00Z", "publication_status": "REVIEWED_PUBLIC_EXISTING", "withdrawn_at": null,
+      "passages": [{ "id": "contact-boundary", "source_id": "business-canon-405a820b", "section": "13 Rights and privacy", "text": "Potential customer work starts from the engineering problem while rights, confidentiality and private data handling require explicit agreement. Public interaction does not authorize confidential data processing." }]
     }
   ]
 }
