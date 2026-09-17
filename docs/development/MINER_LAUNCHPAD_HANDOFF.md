@@ -5,6 +5,13 @@ Starting main: `49449ce8406e5d02aad0d7eb6d8c42f6ad11b10f`.
 Branch: `agent/miner-launchpad-dev-foundation`.
 Ticket: `.agent/tickets/C-MLP-01_development_launchpad.md`.
 
+Continuation: C-MLP-01 merged in PR #205 after successful canonical acceptance
+and Merge gate (run 35218321344). Actual browser/server checks and canonical
+Python 3.11 Launchpad regressions passed. C-MLP-02 is in progress; its partial
+verified-source bridge and remaining real-campaign dependency are described in
+`MINER_LAUNCHPAD_RESEARCH_BRIDGE.md`. Older pending-acceptance notes below record
+the original handoff, not the current delivery status.
+
 ## Product target
 
 Let a visitor choose a challenge, connect or launch an agent, choose a reasoning

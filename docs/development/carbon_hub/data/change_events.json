@@ -3826,6 +3826,64 @@
         "WAVE-C/NET-6"
       ],
       "supersedes": null
+    },
+    {
+      "map_ref": "SYSTEM/AGENT-EXECUTION",
+      "event_type": "adjustment",
+      "event_id": "C-MLP-02-READBACK-01",
+      "owner_lane": "technical_lead",
+      "status": "implemented",
+      "summary": "C-MLP-02 begins with durable operator attachment and live verification of existing C-06/C-08 sources, exposing only C-07 public projections. Canonical boundary diagnostics and Chromium rendering/export checks passed. Readback of the retained Burgers session preserves COMPLETE_UNRESOLVED; no new research ran. Genuine multi-iteration campaign launch depends on accepted concurrent C-W1-D4 work and its verified lifecycle/resource integration. Its separate spending grant is not reused. The scientific wave selection is unchanged.",
+      "primary_detail": ".agent/tickets/C-MLP-02_development_research_bridge.md",
+      "affects": [
+        "WAVE-C/C-W1",
+        "SYSTEM/CI",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+      ],
+      "supersedes": null
+    },
+    {
+      "map_ref": "SYSTEM/DEVELOPMENT-HUB",
+      "event_type": "adjustment",
+      "event_id": "C-MLP-02-HUB-SNAPSHOT-01",
+      "owner_lane": "documentation_maintenance",
+      "status": "implemented",
+      "summary": "Repin Hub source navigation to the C-MLP-02 bridge implementation snapshot. Historical scientific statuses, original evidence identities and current scientific wave selection are preserved; this does not complete the real Launchpad campaign.",
+      "primary_detail": "docs/development/carbon_hub/data/hub_data_v2.json",
+      "affects": [
+        "WAVE-B",
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE",
+        "WAVE-C/C-01",
+        "WAVE-C/C-02",
+        "WAVE-C/C-03",
+        "WAVE-C/C-04",
+        "WAVE-C/C-05",
+        "WAVE-C/C-06",
+        "WAVE-C/C-07",
+        "WAVE-C/C-08",
+        "WAVE-C/C-09",
+        "WAVE-C/C-10",
+        "WAVE-C/C-AUTH1",
+        "WAVE-C/C-EA0",
+        "WAVE-C/C-EA1",
+        "WAVE-C/C-EA2",
+        "WAVE-C/C-EP1",
+        "WAVE-C/C-EP2",
+        "WAVE-C/C-EP3",
+        "WAVE-C/C-REWARD",
+        "WAVE-C/C-W1-D2",
+        "WAVE-C/NET-1",
+        "WAVE-C/NET-2",
+        "WAVE-C/NET-3",
+        "WAVE-C/NET-4A",
+        "WAVE-C/NET-4B",
+        "WAVE-C/NET-5",
+        "WAVE-C/NET-5R",
+        "WAVE-C/NET-6"
+      ],
+      "supersedes": null
     }
   ]
 }

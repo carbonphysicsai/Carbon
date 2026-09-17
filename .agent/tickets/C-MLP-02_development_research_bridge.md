@@ -1,6 +1,7 @@
 # C-MLP-02: Launchpad bridge to real DEVELOPMENT research
 
-Status: in progress; preparation while C-MLP-01 awaits required acceptance.
+Status: in progress; C-MLP-01 merged as `aff471a89147b538e7c271194107cda30c35d95e`.
+Verified retained-source readback is implemented. Genuine campaign acceptance remains pending.
 Primary Hub map: `SYSTEM/AGENT-EXECUTION`; `HUB_UPDATE_REQUIRED`.
 Related map: `WAVE-C/C-W1`. Scientific WAVE selection remains separately owned.
 Starting revision: `c188bc8186a0a61e5c91ca377584a5d5ee4b12df` (PR #205).
@@ -69,3 +70,20 @@ The accepted reusable multi-iteration runner, a Launchpad-bound resource grant,
 and verified campaign pause/stop/recovery integration are not yet available.
 Read-only attachment and test development may proceed independently. No model,
 numerical worker, wallet or network transaction is dispatched by this slice.
+
+## Readback slice evidence
+
+Eight canonical source/HTTP boundary tests passed, including authenticated C-08 /
+signed C-06 fixture resolution, durable idempotent attachment, revocation, changed
+source pins, corrupt exports, bounded inputs, authentication and rejected path /
+write routes. The existing rehearsal suite passed except for one notice-text
+regression; restoring explicit rehearsal-only wording passed that unchanged test.
+Actual Chromium/server checks passed lifecycle, fixture readback/export/invalidation
+and desktop/mobile layout. Fixtures are not numerical research evidence.
+
+Readback of the documented 2026-09-16 real Burgers source
+`8d7ad861-49e4-4cf8-a7be-483fd2ada0c5` passed through current Carbon owners and
+returned the existing `COMPLETE_UNRESOLVED` public projection, seven completed
+stages and all eligibility flags false. This was historical receipt inspection,
+not a newly executed Launchpad campaign. Native Windows source-fixture diagnostics
+failed at the existing Linux-only secure registry I/O boundary; no guard was weakened.
