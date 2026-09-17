@@ -21,6 +21,7 @@ from carbon.reconstruction.worker.model import (
     WorkerFailure,
 )
 from carbon.reference_runtime.model import (
+    JULIA_METHOD_VARIANT,
     MAX_POINTS,
     MAX_TIMES,
     OUTPUT_SEMANTICS,
@@ -34,6 +35,7 @@ from carbon.reference_runtime.model import (
 )
 
 _RESULT_SCHEMA = "carbon.c04.burgers-reference-result.v1"
+_JULIA_RESULT_SCHEMA = "carbon.c04.burgers-reference-result.v2"
 _MAX_ARTIFACT_BYTES = MAX_POINTS * MAX_TIMES * 8
 _RESULT_FIELDS = {
     "schema",
@@ -147,10 +149,16 @@ def load_staged_reference_request(input_directory: Path) -> BurgersReferenceRequ
         raise WorkerFailure(WorkerCode.INVALID) from None
 
 
-def _result_document(run: BurgersReferenceRun) -> dict[str, object]:
+def _result_document(
+    run: BurgersReferenceRun, request: BurgersReferenceRequest
+) -> dict[str, object]:
     artifact = run.artifact
     return {
-        "schema": _RESULT_SCHEMA,
+        "schema": (
+            _JULIA_RESULT_SCHEMA
+            if request.method_variant == JULIA_METHOD_VARIANT
+            else _RESULT_SCHEMA
+        ),
         "scope": SCOPE,
         "request_digest": run.request_digest,
         "role": run.role.value,
@@ -194,7 +202,7 @@ def run_staged_reference_worker(input_directory: Path, scratch_directory: Path) 
                 stream.flush()
                 os.fsync(stream.fileno())
             os.chmod(artifact_path, 0o400)
-        manifest = _canonical(_result_document(run)) + b"\n"
+        manifest = _canonical(_result_document(run, request)) + b"\n"
         with (output / "result.json").open("xb") as stream:
             stream.write(manifest)
             stream.flush()
@@ -302,7 +310,12 @@ def validate_reference_snapshot(
         value = _read_closed_json(members["result.json"], maximum=CONTROL_BYTES)
         if (
             set(value) != _RESULT_FIELDS
-            or value["schema"] != _RESULT_SCHEMA
+            or value["schema"]
+            != (
+                _JULIA_RESULT_SCHEMA
+                if request.method_variant == JULIA_METHOD_VARIANT
+                else _RESULT_SCHEMA
+            )
             or value["scope"] != SCOPE
             or value["request_digest"] != request.request_digest
             or value["role"] != request.role.value

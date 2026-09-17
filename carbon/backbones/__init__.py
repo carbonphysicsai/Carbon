@@ -1,7 +1,10 @@
-"""Canonical registry for Carbon backbone adapters.
+"""Historical compatibility registry for optional Carbon backbone wrappers.
 
 Built-in names resolve through local Carbon adapter modules. Those modules keep
 their third-party scientific imports lazy until an adapter is constructed.
+Names retain their historical implementations. Supported JAX reconstruction
+discovery lives in ``carbon.reconstruction.catalogue``; family names here do
+not imply eligibility for a reconstruction profile or campaign.
 """
 
 from __future__ import annotations
