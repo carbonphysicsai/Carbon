@@ -62,6 +62,9 @@ test("one release contract gates staging, production, expiry, withdrawal and ind
   const withdrawn = structuredClone(knowledge);
   withdrawn.release.withdrawn_at = "2026-09-16T11:00:00Z";
   assert.ok(evaluateRelease(withdrawn, { mode: "staging", now }).reasons.includes("release_withdrawn"));
+  const legacyAnswerContract = structuredClone(knowledge);
+  delete legacyAnswerContract.answer_contract;
+  assert.ok(evaluateRelease(legacyAnswerContract, { mode: "staging", now }).reasons.includes("unsupported_answer_contract"));
 });
 
 test("activation enforces the shared 50 dollar authority and exact supported configuration", () => {
@@ -87,6 +90,8 @@ test("activation enforces the shared 50 dollar authority and exact supported con
   env.ASK_CARBON_EVALUATION_TELEMETRY = "enabled";
   assert.ok(activationStatus(env, knowledge, new Date("2026-09-16T12:00:00Z")).reasons.includes("missing_evaluation_operator_secret"));
   env.ASK_CARBON_OPERATOR_READ_SECRET = "test-only-operator-secret";
+  assert.ok(activationStatus(env, knowledge, new Date("2026-09-16T12:00:00Z")).reasons.includes("missing_evaluation_access_secret"));
+  env.ASK_CARBON_EVALUATION_ACCESS_SECRET = "test-only-evaluation-access-secret-32-bytes";
   assert.equal(activationStatus(env, knowledge, new Date("2026-09-16T12:00:00Z")).active, true);
   env.ASK_CARBON_PRIVACY_MODE = "approved_public_privacy_v1";
   assert.ok(activationStatus(env, knowledge, new Date("2026-09-16T12:00:00Z")).reasons.includes("invalid_staging_privacy_mode"));
@@ -145,35 +150,25 @@ test("continuation is server-issued, versioned, expiring and invalidated by with
   await assert.rejects(() => verifyContinuation(forged, "secret", knowledge, now), (error) => error.code === "invalid_continuation");
 });
 
-test("claim validation binds material answer text to retrieved passage IDs", () => {
+test("reviewed-answer selection prevents provider-authored factual text and binds server-owned passages", () => {
   const card = knowledge.cards.find((item) => item.id === "training-control");
+  const followUp = "What training choices can a miner make?";
   const valid = {
     status: "supported",
-    answer: "The validator supplies training randomness. Miners cannot provide official seeds.",
-    claims: [
-      { text: "The validator supplies training randomness.", evidence_ids: ["training-randomness"] },
-      { text: "Miners cannot provide official seeds.", evidence_ids: ["training-randomness"] }
-    ],
-    follow_up: "What training choices can miners make?"
+    card_ids: ["training-control"],
+    follow_up: followUp,
   };
-  const output = validateProviderOutput(valid, [card]);
+  const output = validateProviderOutput(valid, [card], [followUp]);
+  assert.equal(output.answer, card.passages.map((passage) => passage.text).join("\n\n"));
+  assert.deepEqual(output.passage_ids, ["training-policy", "training-randomness"]);
   assert.deepEqual(output.source_ids, ["data-management-405a820b"]);
-  assert.doesNotThrow(() => validateProviderOutput({
-    ...valid,
-    claims: [
-      { text: "The validator supplies training-randomness.", evidence_ids: ["training-randomness"] },
-      valid.claims[1],
-    ],
-  }, [card]));
   assert.throws(() => validateProviderOutput({
     ...valid,
     answer: "Carbon has paying customers.",
-    claims: [{ text: "Carbon has paying customers.", evidence_ids: ["training-randomness"] }]
-  }, [card]), (error) => ["unsupported_claim", "unsupported_sensitive_claim"].includes(error.code));
-  assert.throws(() => validateProviderOutput({
-    ...valid,
-    claims: [{ text: valid.answer, evidence_ids: ["not-retrieved"] }]
-  }, [card]), (error) => error.code === "unknown_evidence");
+  }, [card], [followUp]), (error) => error.code === "invalid_provider_output");
+  assert.throws(() => validateProviderOutput({ ...valid, card_ids: ["not-retrieved"] }, [card], [followUp]), (error) => error.code === "unknown_evidence");
+  assert.throws(() => validateProviderOutput({ ...valid, card_ids: [card.id, card.id] }, [card], [followUp]), (error) => error.code === "invalid_provider_output");
+  assert.throws(() => validateProviderOutput({ ...valid, follow_up: "A model-authored factual follow-up?" }, [card], [followUp]), (error) => error.code === "invalid_provider_output");
 });
 
 test("pilot output is schema-constrained and rejects unknown fields or sources", () => {

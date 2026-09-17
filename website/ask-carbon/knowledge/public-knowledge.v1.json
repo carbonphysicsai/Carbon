@@ -1,8 +1,9 @@
 {
   "schema_version": 2,
-  "knowledge_version": "ask-carbon-staging-2026-09-17.3",
+  "answer_contract": "SERVER_OWNED_REVIEWED_CARD_SELECTION_V1",
+  "knowledge_version": "ask-carbon-staging-2026-09-18.1",
   "release": {
-    "release_id": "ask-carbon-staging-2026-09-17.3",
+    "release_id": "ask-carbon-staging-2026-09-18.1",
     "status": "STAGING_REVIEWED",
     "source_release_date": "2026-09-16",
     "expires_at": "2026-12-15T00:00:00Z",

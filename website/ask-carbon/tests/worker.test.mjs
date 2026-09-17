@@ -22,6 +22,7 @@ const makeRuntime = (overrides = {}) => {
     ASK_CARBON_OPENAI_API_KEY: "test-provider-key",
     ASK_CARBON_CONTINUATION_SIGNING_SECRET: "test-signing-secret",
     ASK_CARBON_OPERATOR_READ_SECRET: "test-operator-secret",
+    ASK_CARBON_EVALUATION_ACCESS_SECRET: "test-only-evaluation-access-secret-32-bytes",
     ASK_CARBON_PRIVACY_MODE: "evaluation_public_synthetic_only",
     ASK_CARBON_EDGE_ACCESS_POLICY_ID: "test-private-access-policy",
     ASK_CARBON_STAGING_ACCESS_MODE: "cloudflare_access",
@@ -62,8 +63,7 @@ const validProviderBody = (overrides = {}) => ({
   status: "completed",
   output: [{ type: "message", role: "assistant", content: [{ type: "output_text", text: JSON.stringify({
     status: "supported",
-    answer: "Carbon discovers and independently tests methods for constructing fast physical models.",
-    claims: [{ text: "Carbon discovers and independently tests methods for constructing fast physical models.", evidence_ids: ["overview-purpose"] }],
+    card_ids: ["overview"],
     follow_up: "What is a Challenge?"
   }) }] }],
   usage: {
@@ -127,6 +127,36 @@ test("staging basic authentication protects assets, health and answer routes bef
   }), tokenRuntime.env);
   assert.equal(tokenAuthenticated.status, 200);
   assert.equal(await tokenAuthenticated.text(), "private token staging");
+});
+
+test("staging evaluation access is secret-bound, evaluation-only and does not weaken browser Basic authentication", async () => {
+  const runtime = makeRuntime({
+    ASK_CARBON_EVALUATION_TELEMETRY: "enabled",
+    ASK_CARBON_STAGING_ACCESS_MODE: "http_basic_v1",
+    ASK_CARBON_STAGING_BASIC_AUTH: btoa("owner-review:browser-secret"),
+  });
+  const workerRef = createWorker(knowledge);
+  const wrong = await workerRef.fetch(new Request("https://staging.example/api/ask-carbon/health", {
+    headers: { "x-ask-carbon-evaluation-access": "wrong" },
+  }), runtime.env);
+  assert.equal(wrong.status, 401);
+  const accepted = await workerRef.fetch(new Request("https://staging.example/api/ask-carbon/health", {
+    headers: { "x-ask-carbon-evaluation-access": runtime.env.ASK_CARBON_EVALUATION_ACCESS_SECRET },
+  }), runtime.env);
+  assert.equal(accepted.status, 200);
+  const assetStillPrivate = await workerRef.fetch(new Request("https://staging.example/", {
+    headers: { "x-ask-carbon-evaluation-access": runtime.env.ASK_CARBON_EVALUATION_ACCESS_SECRET },
+  }), runtime.env);
+  assert.equal(assetStillPrivate.status, 401);
+  const production = makeRuntime({
+    ASK_CARBON_RUNTIME_MODE: "production",
+    ASK_CARBON_EVALUATION_TELEMETRY: undefined,
+    ASK_CARBON_STAGING_ACCESS_MODE: "cloudflare_access",
+  });
+  const productionResponse = await workerRef.fetch(new Request("https://staging.example/api/ask-carbon/health", {
+    headers: { "x-ask-carbon-evaluation-access": production.env.ASK_CARBON_EVALUATION_ACCESS_SECRET },
+  }), production.env);
+  assert.notEqual(productionResponse.status, 200);
 });
 
 test("evaluation ledger readout is staging-only, separately authorized and aggregate-only", async () => {
@@ -209,7 +239,9 @@ test("active path uses the exact compatible schema, settles trustworthy usage an
   assert.equal(providerRequest.body.text.verbosity, "low");
   assert.equal(providerRequest.body.text.format.type, "json_schema");
   assert.equal(providerRequest.body.text.format.strict, true);
-  assert.ok(providerRequest.body.text.format.schema.properties.claims.items.properties.evidence_ids.items.enum.includes("overview-purpose"));
+  assert.equal(providerRequest.body.text.format.name, "ask_carbon_answer_selection");
+  assert.ok(providerRequest.body.text.format.schema.properties.card_ids.items.enum.includes("overview"));
+  assert.ok(providerRequest.body.text.format.schema.properties.follow_up.enum.includes("What is a Challenge?"));
   assert.equal(providerRequest.body.store, false);
   assert.equal("tools" in providerRequest.body, false);
   assert.equal(providerRequest.body.instructions.includes("Signed"), false);
@@ -217,6 +249,28 @@ test("active path uses the exact compatible schema, settles trustworthy usage an
   const state = await snapshot.json();
   assert.equal(Object.values(state.attempts)[0].state, "settled");
   assert.equal(state.months[new Date().toISOString().slice(0, 7)].settled_micro_usd, 80);
+});
+
+test("provider selection and follow-up enums exclude stale release material", async () => {
+  const runtime = makeRuntime();
+  const staleKnowledge = structuredClone(knowledge);
+  staleKnowledge.cards.find((card) => card.id === "challenge").expires_at = "2026-09-16T00:00:00Z";
+  let providerRequest;
+  await withProvider(async (_url, options) => {
+    providerRequest = JSON.parse(options.body);
+    return new Response(JSON.stringify(validProviderBody({
+      output: [{ type: "message", role: "assistant", content: [{ type: "output_text", text: JSON.stringify({
+        status: "supported",
+        card_ids: ["overview"],
+        follow_up: null,
+      }) }] }],
+    })), { status: 200 });
+  }, async () => {
+    const response = await ask(createWorker(staleKnowledge), runtime.env, "What is Carbon?");
+    assert.equal(response.status, 200);
+  });
+  assert.equal(providerRequest.text.format.schema.properties.card_ids.items.enum.includes("challenge"), false);
+  assert.equal(providerRequest.text.format.schema.properties.follow_up.enum.includes("What is a Challenge?"), false);
 });
 
 test("no-evidence is distinct, cites nothing and makes no provider call", async () => {
@@ -251,22 +305,14 @@ test("follow-up continuation re-retrieves evidence and never sends visitor-autho
   const runtime = makeRuntime();
   const requests = [];
   await withProvider(async (url, options) => {
-    requests.push(JSON.parse(options.body));
-    const first = requests.length === 1;
+    const requestBody = JSON.parse(options.body);
+    requests.push(requestBody);
+    const selectedCard = requestBody.text.format.schema.properties.card_ids.items.enum[0];
     return new Response(JSON.stringify(validProviderBody({
       id: `resp-${requests.length}`,
-      output: [{ type: "message", role: "assistant", content: [{ type: "output_text", text: JSON.stringify(first ? {
+      output: [{ type: "message", role: "assistant", content: [{ type: "output_text", text: JSON.stringify({
         status: "supported",
-        answer: "The validator supplies training randomness. Miners cannot provide official seeds.",
-        claims: [
-          { text: "The validator supplies training randomness.", evidence_ids: ["training-randomness"] },
-          { text: "Miners cannot provide official seeds.", evidence_ids: ["training-randomness"] }
-        ],
-        follow_up: "What training choices are permitted?"
-      } : {
-        status: "supported",
-        answer: "Only registered schedules, curricula and approved augmentations can modify training conditions.",
-        claims: [{ text: "Only registered schedules, curricula and approved augmentations can modify training conditions.", evidence_ids: ["training-bounds"] }],
+        card_ids: [selectedCard],
         follow_up: null
       }) }] }]
     })), { status: 200 });

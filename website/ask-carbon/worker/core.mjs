@@ -77,6 +77,10 @@ export const activationStatus = (env, knowledge, now = new Date()) => {
       const hasEncodedCredential = typeof env.ASK_CARBON_STAGING_BASIC_AUTH === "string" && env.ASK_CARBON_STAGING_BASIC_AUTH.length >= 16;
       if (!hasEncodedCredential && (!env.ASK_CARBON_STAGING_AUTH_USER || !env.ASK_CARBON_STAGING_AUTH_PASSWORD)) reasons.push("missing_private_staging_basic_auth");
     } else reasons.push("invalid_staging_access_mode");
+    if (env.ASK_CARBON_EVALUATION_TELEMETRY === "enabled" &&
+        (typeof env.ASK_CARBON_EVALUATION_ACCESS_SECRET !== "string" || env.ASK_CARBON_EVALUATION_ACCESS_SECRET.length < 32)) {
+      reasons.push("missing_evaluation_access_secret");
+    }
   }
   if (mode === "production") {
     if (env.ASK_CARBON_PRIVACY_MODE !== PRODUCTION_PRIVACY_MODE) reasons.push("public_privacy_not_accepted");
@@ -273,20 +277,10 @@ export const makeContinuation = async ({ cards, knowledge, secret, nowSeconds })
 export const answerSchema = {
   type: "object",
   additionalProperties: false,
-  required: ["status", "answer", "claims", "follow_up"],
+  required: ["status", "card_ids", "follow_up"],
   properties: {
     status: { type: "string", enum: ["supported"] },
-    answer: { type: "string", minLength: 1, maxLength: 1800 },
-    claims: {
-      type: "array", minItems: 1, maxItems: 8,
-      items: {
-        type: "object", additionalProperties: false, required: ["text", "evidence_ids"],
-        properties: {
-          text: { type: "string", minLength: 1, maxLength: 500 },
-          evidence_ids: { type: "array", minItems: 1, maxItems: 4, items: { type: "string" } },
-        },
-      },
-    },
+    card_ids: { type: "array", minItems: 1, maxItems: 3, items: { type: "string" } },
     follow_up: { type: ["string", "null"], maxLength: 160 },
   },
 };
@@ -317,51 +311,31 @@ export const pilotAnswerSchema = {
   },
 };
 
-const overlap = (claim, evidence) => {
-  const claimTerms = [...new Set(tokens(claim))];
-  const evidenceTerms = tokenSet(evidence);
-  const hits = claimTerms.filter((term) => evidenceTerms.has(term)).length;
-  return { hits, total: claimTerms.length, ratio: claimTerms.length ? hits / claimTerms.length : 0 };
-};
-const sensitiveClaim = /\b(paid customer|customer result|launched|live network|production[- ]qualified|scientifically qualified|security qualified|proven model performance|guaranteed return)\b/i;
-
-export const validateProviderOutput = (value, cards) => {
+export const validateProviderOutput = (value, cards, followUpOptions = []) => {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new PublicApiError(502, "invalid_provider_output", "The answer provider returned an invalid result.");
   const keys = Object.keys(value).sort();
-  if (JSON.stringify(keys) !== JSON.stringify(["answer", "claims", "follow_up", "status"])) throw new PublicApiError(502, "invalid_provider_output", "The answer provider returned unsupported fields.");
-  if (value.status !== "supported" || typeof value.answer !== "string" || !value.answer.trim() || value.answer.length > 1800) throw new PublicApiError(502, "invalid_provider_output", "The answer provider returned invalid answer text.");
-  if (value.follow_up !== null && (typeof value.follow_up !== "string" || !value.follow_up.trim() || value.follow_up.length > 160)) throw new PublicApiError(502, "invalid_provider_output", "The answer provider returned an invalid follow-up.");
-  if (!Array.isArray(value.claims) || value.claims.length < 1 || value.claims.length > 8) throw new PublicApiError(502, "invalid_provider_output", "The answer provider returned an invalid claim map.");
-  const passages = new Map(cards.flatMap((card) => (card.passages ?? []).map((passage) => [passage.id, { ...passage, card_id: card.id }])));
-  const usedPassages = new Set();
-  for (const claim of value.claims) {
-    if (!claim || typeof claim !== "object" || Array.isArray(claim) || Object.keys(claim).some((key) => !["text", "evidence_ids"].includes(key)) ||
-        typeof claim.text !== "string" || !claim.text.trim() || claim.text.length > 500 ||
-        !Array.isArray(claim.evidence_ids) || !claim.evidence_ids.length || claim.evidence_ids.length > 4 || new Set(claim.evidence_ids).size !== claim.evidence_ids.length) {
-      throw new PublicApiError(502, "invalid_provider_output", "The answer provider returned an invalid claim map.");
-    }
-    const binding = overlap(claim.text, value.answer);
-    if (binding.hits < Math.min(2, binding.total)) throw new PublicApiError(502, "unsupported_claim", "An answer claim was not bound to the answer text.");
-    const evidence = claim.evidence_ids.map((id) => passages.get(id)).filter(Boolean);
-    if (evidence.length !== claim.evidence_ids.length) throw new PublicApiError(502, "unknown_evidence", "The answer provider referenced evidence outside the retrieved context.");
-    const evidenceText = evidence.map((item) => item.text).join(" ");
-    const support = overlap(claim.text, evidenceText);
-    if (support.hits < Math.min(3, support.total) || support.ratio < 0.45) throw new PublicApiError(502, "unsupported_claim", "A material answer claim was not supported by its cited passages.");
-    if (sensitiveClaim.test(claim.text) && !sensitiveClaim.test(evidenceText)) throw new PublicApiError(502, "unsupported_sensitive_claim", "A sensitive status claim was not established by its cited passage.");
-    for (const id of claim.evidence_ids) usedPassages.add(id);
+  if (JSON.stringify(keys) !== JSON.stringify(["card_ids", "follow_up", "status"])) throw new PublicApiError(502, "invalid_provider_output", "The answer provider returned unsupported fields.");
+  if (value.status !== "supported") throw new PublicApiError(502, "invalid_provider_output", "The answer provider returned an invalid status.");
+  if (!Array.isArray(value.card_ids) || value.card_ids.length < 1 || value.card_ids.length > 3 ||
+      value.card_ids.some((id) => typeof id !== "string") || new Set(value.card_ids).size !== value.card_ids.length) {
+    throw new PublicApiError(502, "invalid_provider_output", "The answer provider returned an invalid reviewed-answer selection.");
   }
-  const claimText = value.claims.map((claim) => claim.text.toLowerCase()).join(" ");
-  for (const sentence of value.answer.split(/(?<=[.!?])\s+/).filter((item) => tokens(item).length >= 4)) {
-    const support = overlap(sentence, claimText);
-    if (support.ratio < 0.5) throw new PublicApiError(502, "unmapped_answer_claim", "The answer contained material text without a claim-to-evidence binding.");
+  const cardsById = new Map(cards.map((card) => [card.id, card]));
+  const selectedCards = value.card_ids.map((id) => cardsById.get(id));
+  if (selectedCards.some((card) => !card)) throw new PublicApiError(502, "unknown_evidence", "The answer provider selected material outside the retrieved context.");
+  const answer = selectedCards.flatMap((card) => card.passages.map((passage) => passage.text.trim())).join("\n\n");
+  if (!answer || answer.length > 1800) throw new PublicApiError(502, "invalid_provider_output", "The reviewed answer selection is too large.");
+  const allowedFollowUps = new Set(followUpOptions);
+  if (value.follow_up !== null && (typeof value.follow_up !== "string" || !allowedFollowUps.has(value.follow_up))) {
+    throw new PublicApiError(502, "invalid_provider_output", "The answer provider returned a follow-up outside the reviewed options.");
   }
-  const evidence = [...usedPassages].map((id) => ({ id, ...passages.get(id) }));
+  const evidence = selectedCards.flatMap((card) => card.passages.map((passage) => ({ ...passage, card_id: card.id })));
   return {
     status: "supported",
-    answer: value.answer.trim(),
-    claims: value.claims.map((claim) => ({ text: claim.text.trim(), evidence_ids: claim.evidence_ids })),
-    follow_up: value.follow_up?.trim() || null,
-    passage_ids: [...usedPassages],
+    answer,
+    selected_card_ids: [...value.card_ids],
+    follow_up: value.follow_up,
+    passage_ids: [...new Set(evidence.map((item) => item.id))],
     source_ids: [...new Set(evidence.map((item) => item.source_id))],
   };
 };

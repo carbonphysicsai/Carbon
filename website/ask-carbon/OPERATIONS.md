@@ -37,6 +37,15 @@ the public homepage and route-less financial history are separate. No paid-plan
 change or incremental Cloudflare charge was observed, but Cloudflare charges
 remain outside the provider ledger and are not claimed as zero.
 
+The evaluation Workers additionally accept a rotated
+`ASK_CARBON_EVALUATION_ACCESS_SECRET` header only on
+`/api/ask-carbon*`, only in staging, and only while evaluation telemetry is
+enabled. It leaves the owner's browser Basic credential untouched and cannot
+read static assets. Aggregate ledger reads still require the independent
+operator secret. Rotate both evaluation secrets after a retained run or
+suspected exposure; never copy either into evidence, Git, chat or browser
+assets.
+
 The OpenAI project used for the synthetic run showed API-call logging enabled
 per call. No approved Zero Data Retention or Modified Abuse Monitoring control
 was established. Use public/synthetic inputs only; this is not customer-data
@@ -142,6 +151,9 @@ continuations together.
    requests. A hashed IP remains pseudonymous, not anonymous.
 5. Provision the OpenAI key and continuation HMAC only as Worker secrets. Check
    the actual OpenAI project data controls; `store:false` is not zero retention.
+   Provision evaluation-only access and operator-read credentials through the
+   same secret mechanism; the live runner must not receive the browser Basic
+   credential.
 6. Run real Worker/DO tests: concurrent admission, restart, prepared and
    dispatched expiry, failed/late settlement, month rollover, source withdrawal,
    config/price mismatch and rollback. Preserve the ledger snapshot.

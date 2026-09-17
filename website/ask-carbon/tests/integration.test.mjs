@@ -44,3 +44,15 @@ test("reviewed knowledge is staging-valid but deliberately not production releas
   assert.ok(production.errors.includes("release_not_approved_public"));
   assert.ok(production.errors.includes("public_activation_not_allowed"));
 });
+
+test("knowledge validation rejects answer cards without a reviewed server-owned evidence basis", async () => {
+  const missingBasis = structuredClone(knowledge);
+  missingBasis.cards[0].passages = [];
+  const result = await validateKnowledge(missingBasis, {
+    mode: "staging",
+    now: new Date("2026-09-18T00:00:00Z"),
+    checkSourceBytes: false,
+  });
+  assert.equal(result.valid, false);
+  assert.ok(result.errors.includes(`missing_answer_basis:${missingBasis.cards[0].id}`));
+});
