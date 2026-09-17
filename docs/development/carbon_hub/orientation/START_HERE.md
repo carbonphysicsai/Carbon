@@ -153,6 +153,8 @@ settlement, weight, or emission claim.
 - [C-CORE-04: draft-bound public Julia studies in the existing Workbench](https://github.com/carbonphysicsai/Carbon/blob/2c61c7a3dbcc9b6e8b63673dda08285ddb8df2f1/.agent/tickets/C-CORE-04_workbench_scientific_studies.md)
 - [Private Workbench scientific-service composition and checks](https://github.com/carbonphysicsai/Carbon/blob/2c61c7a3dbcc9b6e8b63673dda08285ddb8df2f1/Business/Carbon_Fit/workbench/SCIENTIFIC_STUDIES_OPERATOR.md)
 - [C-CORE-08: two public Julia cases in the existing Workbench; qualification unchanged](https://github.com/carbonphysicsai/Carbon/blob/2c61c7a3dbcc9b6e8b63673dda08285ddb8df2f1/.agent/tickets/C-CORE-08_public_operating_envelope.md)
+- [C-CORE-12: optional separately authorized Workbench MCP App](https://github.com/carbonphysicsai/Carbon/blob/2c61c7a3dbcc9b6e8b63673dda08285ddb8df2f1/.agent/tickets/C-CORE-12_mcp_workbench_apps.md)
+- [Workbench MCP App composition, fixed assets and host-harness limits](https://github.com/carbonphysicsai/Carbon/blob/2c61c7a3dbcc9b6e8b63673dda08285ddb8df2f1/carbon/miner_mcp/apps_ui/README.md)
 
 Authority snapshot: `2c61c7a3` on `main`,
 captured 2026-09-17T22:42:52Z.

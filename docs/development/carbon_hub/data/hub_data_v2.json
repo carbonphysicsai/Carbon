@@ -557,6 +557,14 @@
     "core_platform_public_envelope": {
       "label": "C-CORE-08: two public Julia cases in the existing Workbench; qualification unchanged",
       "url": "https://github.com/carbonphysicsai/Carbon/blob/2c61c7a3dbcc9b6e8b63673dda08285ddb8df2f1/.agent/tickets/C-CORE-08_public_operating_envelope.md"
+    },
+    "core_platform_mcp_apps": {
+      "label": "C-CORE-12: optional separately authorized Workbench MCP App",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/2c61c7a3dbcc9b6e8b63673dda08285ddb8df2f1/.agent/tickets/C-CORE-12_mcp_workbench_apps.md"
+    },
+    "core_platform_mcp_apps_guide": {
+      "label": "Workbench MCP App composition, fixed assets and host-harness limits",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/2c61c7a3dbcc9b6e8b63673dda08285ddb8df2f1/carbon/miner_mcp/apps_ui/README.md"
     }
   },
   "authority_source_checks": [
@@ -1973,6 +1981,16 @@
         "Unknown worker consumption",
         "Maturity ceiling: implemented and locally tested public DEVELOPMENT consumer."
       ]
+    },
+    {
+      "id": "core-platform-mcp-app-authorization",
+      "path": ".agent/tickets/C-CORE-12_mcp_workbench_apps.md",
+      "required_markers": [
+        "additional operator-provided Workbench",
+        "authorizer runs on every tool and direct resource access;",
+        "Optional UI support cannot become a CPU/GPU/TPU admission prerequisite.",
+        "not a commercial/paid agent-host claim."
+      ]
     }
   ],
   "authority_ceilings": {
@@ -2022,6 +2040,13 @@
       "launch/"
     ],
     "rules": [
+      {
+        "id": "core-platform-mcp-apps",
+        "match_type": "exact",
+        "path": ".agent/tickets/C-CORE-12_mcp_workbench_apps.md",
+        "impact_class": "map_structural",
+        "map_ref": "SYSTEM/AGENT-EXECUTION"
+      },
       {
         "id": "core-platform-public-envelope",
         "match_type": "exact",

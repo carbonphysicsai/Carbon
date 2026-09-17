@@ -81,6 +81,24 @@ remote-service request with named accounts/hosts/devices, current rates, all cos
 cap, expiry and cleanup; continue permitted local work. AWS deferred, Hippius
 outside the critical path.
 
+V3 OPTIONAL MCP APP CHECKPOINT (2026-09-17, C-CORE-12 candidate)
+
+The existing Workbench study service, request validation and numerical plot now
+have an optional MCP Apps view. Its trusted composition binds the exact research
+adapter and requires separate Workbench authorization for direct tool and resource
+access. The static view contains no solver, credentials or direct network client;
+plain clients retain structured/text results. Existing draft, grant, lineage and
+qualification boundaries continue to apply.
+
+Official SDK wire and desktop/mobile AppBridge fixtures exercised controls,
+including cancellation while start is waiting, without inferring cleanup from an
+acknowledgement. A fresh wheel served the exact fixed HTML/manifest/licenses while
+excluding installed JavaScript build dependencies. These are deterministic local
+interface/package observations, not native science, a paid agent-host campaign,
+customer-processing authority or security qualification. Commands and exact
+limits are in `.agent/tickets/C-CORE-12_mcp_workbench_apps.md` and
+`carbon/miner_mcp/apps_ui/README.md`. Canonical integrated delivery remains pending.
+
 V3 IMPLEMENTATION CHECKPOINT (2026-09-17, C-CORE-02 candidate)
 
 The CPU scientific workflow now implements standard MCP over the existing

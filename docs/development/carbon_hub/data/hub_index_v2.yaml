@@ -7023,6 +7023,19 @@ events:
       - "WAVE-C/NET-5R"
       - "WAVE-C/NET-6"
     supersedes: null
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "evidence"
+    event_id: "C-CORE-12-WORKBENCH-APP"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    primary_detail: ".agent/tickets/C-CORE-12_mcp_workbench_apps.md"
+    affects:
+      - "WAVE-C/C-08"
+      - "SYSTEM/BUSINESS-AUTHORITY"
+      - "SYSTEM/CI"
+    supersedes: null
+    summary: "An optional MCP App reuses the existing Workbench study service, request validator and plot through an exact adapter binding and separate Workbench authorization. SDK wire, deferred-start cancellation, desktop/mobile host-harness and fresh-wheel checks exercised the fixed view. The review repaired cancellation usability and exact-asset packaging; these deterministic fixtures add no paid agent-host, numerical, customer-rights, protected or qualification authority. Canonical integrated delivery remains required."
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"
