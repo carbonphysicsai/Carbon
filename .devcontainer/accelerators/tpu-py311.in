@@ -1,0 +1,12 @@
+# Prospective Linux x86_64 Python 3.11.16 worker. No runtime installation.
+jax[tpu]==0.10.2
+jaxlib==0.10.2
+libtpu==0.0.42
+numpy==2.4.6
+scipy==1.17.1
+optax==0.2.8
+chex==0.1.92
+equinox==0.13.8
+einops==0.8.2
+foundax==0.2.0
+PyYAML==6.0.3
