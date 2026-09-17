@@ -1,5 +1,21 @@
 # GOAL-WORKBENCH-08B private pilot-evaluation report
 
+## Post-delivery owner disposition
+
+PR #203 accepted head `b8a0e6c451c2801baebe985b81cb9ab1a6f1b553`
+through RUNTIME_FULL run `35204100188` attempt 2 and merged as
+`3ece81aefb42e73c356dacd27dd471e62c740c34`. The owner later explicitly
+approved the retained private synthetic human-review packet in the owner
+conversation. Repository receipt:
+<https://github.com/carbonphysicsai/Carbon/pull/203#issuecomment-5720679525>.
+
+This is an owner-level bounded quality disposition. It does not assert a
+separate Nick-authored review, customer usability, scientific qualification,
+privacy/security acceptance, public collection permission, or production
+activation. The three missing structured-field observations remain retained as
+accepted limitations. Public activation remains disabled; the next owner input
+is scoped in `website/ask-carbon/PUBLIC_RELEASE_DECISION_PACKET.md`.
+
 Status at candidate preparation:
 
 - Engineering: private-staging and live-evidence implementation complete;

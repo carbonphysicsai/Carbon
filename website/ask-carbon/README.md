@@ -7,7 +7,7 @@ or proof of a production deployment.
 ## Current release state
 
 - Repository knowledge version: `ask-carbon-staging-2026-09-17.4` (Wave-source digest refresh; wording unchanged, not deployed)
-- Source release date: 2026-09-17
+- Source release date: 2026-09-16
 - Current private staging deployment: `ask-carbon-staging-2026-09-17.1`
 - Retained homepage live-evaluation source basis: `ask-carbon-staging-2026-09-16.1`
 - Release: `STAGING_REVIEWED`
@@ -15,7 +15,9 @@ or proof of a production deployment.
 - Live provider calls: bounded WEB-QA-03 evaluation only; no production calls
 - Private synthetic provider calls: observed through the authenticated staging Worker
 - Homepage source-grounded answer review: complete for delivered supported answers
-- Owner hands-on review and Workbench pilot-output review: pending
+- Owner human-quality disposition for the retained private pilot packet:
+  approved in the owner conversation; no separate Nick-authored disposition or
+  customer-usability evidence is inferred
 - Production homepage change: none
 
 The production release contract deliberately rejects this manifest. The
@@ -50,6 +52,9 @@ not substituted into or represented as the already completed model bakeoff.
 - `PRIVACY_AND_RETENTION.md` and `OPERATIONS.md`: processing and release maps.
 - `PILOT_DESIGN_REVIEW.md`: preview notice, shared-budget behavior, evaluation
   state and remaining pilot-mode activation inputs.
+- `PUBLIC_RELEASE_DECISION_PACKET.md`: exact proposed notice, data handling,
+  combined budget controls, production integration, rollback, and the bounded
+  owner decisions required before inactive publication or public activation.
 
 ## Local verification
 
@@ -138,8 +143,10 @@ neither cleared the frozen final quality gate, so no production candidate was
 selected. Direct unmetered provider evaluation remains prohibited.
 
 The separate guided-pilot evaluation used Luna through the authenticated
-Workbench review Worker. Its human model-quality review is still pending; that
-run does not change the homepage model selection or qualify Workbench output.
+Workbench review Worker. The owner approved that exact retained private packet
+and its visible limitations. This does not select the homepage general-Q&A
+model, approve the newer knowledge release, establish customer usability, or
+qualify Workbench output.
 
 ## Deployment boundary
 
