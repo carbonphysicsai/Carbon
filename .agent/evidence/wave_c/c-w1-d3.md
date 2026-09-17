@@ -28,3 +28,23 @@ no real accepted winner, payment, network, scientific/security/production or
 LIVE qualification. Conditional engineering closeout becomes effective after
 required CI and normal merge under OWNER-DX-03. Next real experiment is requested,
 not dispatched or authorized. Recommend scientific review without inventing it.
+
+
+## Owner-directed bounded acceptance repair
+
+Ryan approved implementing the proposed bounded DEVELOPMENT CI scope during
+PR #202. OWNER-CW1-DEVELOPMENT-CI-01 records that authority. The exact
+`development_scope.py` runtime/support/test manifests retain all invariants,
+collection, affected subsystems, package/outside-tree, quality, JAX, public-source,
+Hub and required Merge gate checks. Official/shared scientific, worker/reference,
+broader and unknown runtime changes retain full CPU regression. Clean-image builds
+follow image/dependency/interpreter/packaging inputs. The three exact DEVELOPMENT
+measurement/feedback modules reuse unchanged worker/service isolation evidence.
+
+140 canonical classifier/profile tests passed, including mixed-scope escalation,
+missing-test failure, old network exceptions, actual image-input rebuilds, and
+exact-base/hash-bound one-time classifier migration. The initial new test trigger
+mistook a shared scoring regression file for a development-only change; the
+existing NET-5 exception test caught this and the trigger was narrowed. No test
+failure was suppressed. Prior broad CI runs remain failed/cancelled history.
+No numerical rule, real observation, spending or transaction authority changed.

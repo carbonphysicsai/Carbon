@@ -46,3 +46,11 @@ Owner report separates calibration, verification and historical observations,
 lists resource accounting and one concrete next experiment request. Fixtures
 cannot become real accepted results; all-burn/official/protected/settlement
 consumers remain unchanged and ineligible. Required CI and merge pass.
+
+
+## Owner-authorized delivery slice
+
+OWNER-CW1-DEVELOPMENT-CI-01 adds bounded DEVELOPMENT CI to this selected ticket.
+Its exact manifest, adversarial mixed-scope tests and pinned protected-base policy
+migration ship with the scoring implementation. No extra scientific iteration,
+provider authorization, training or public transaction is implied.

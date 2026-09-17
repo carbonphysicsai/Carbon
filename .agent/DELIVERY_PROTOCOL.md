@@ -43,6 +43,22 @@ Never suppress a failing test, invent a pass, or relabel qualification.
 
 ## 2. Validation budget
 
+
+**OWNER-CW1-DEVELOPMENT-CI-01 (2026-09-17):** Ryan authorizes bounded
+non-paying DEVELOPMENT competition acceptance, including the C-W1-D3 migration.
+The exact runtime paths and subsystem test manifest live in
+`scripts/dev/development_scope.py`; no general development-prefix exemption exists.
+Run all invariants, all-test collection, affected measurement/scoring/signed-source/
+lifecycle/reward and tooling regressions, package/outside-tree checks, canonical
+doctor, quality, applicable JAX tests, public-source validation, Hub and Merge gate.
+Mixed official/shared scientific, worker/reference, broader runtime or unknown
+changes retain full CPU regression. Exact dependency/environment changes retain
+full acceptance. Clean image builds follow actual `.devcontainer`, dependency,
+interpreter and packaging inputs; an unknown document or CI routing change alone
+does not cause a rebuild. Actual worker/reference/shared lifecycle changes retain
+their isolated-service campaign. Reuse accepted isolation evidence for unchanged
+boundaries. This supersedes older blanket full-runtime wording only in this scope.
+
 **OWNER-C0-VALIDATION-01 (2026-09-09, prospective):** The owner authorizes
 skipping the full 30+ minute CPU regression on each NET delivery when the
 executor judges it unnecessary. Known network paths use an explicit tested

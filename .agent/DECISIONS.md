@@ -14520,3 +14520,27 @@ compatible complete evidence at every use. Only such acceptance may enter the
 explicit non-paying simulation. The current all-burn publisher remains unchanged.
 No provider spend, fresh training or public-network transaction was authorized
 or performed by this ticket. One complete next-run request is prepared.
+
+
+## OWNER-CW1-DEVELOPMENT-CI-01 — bounded DEVELOPMENT acceptance (2026-09-17)
+
+Ryan explicitly accepted the recommendation to retain all invariants, affected
+measurement/scoring/source/reward tests, packaging, quality and Hub checks for
+bounded DEVELOPMENT iterations; use full regression for official evaluation or
+broader runtime changes; rebuild the clean development image only when its inputs
+change. Applies prospectively to C-W1-D3 / PR #202 and future matching changes.
+This is owner delivery authority, not scientific qualification or spend authority.
+
+Implementation: finite `development_scope.py` runtime and regression manifests;
+unknown or mixed shared scientific/official/worker/reference/lifecycle/dependency
+changes fail closed to full CPU acceptance. All-test collection, canonical doctor,
+all invariants, package/outside-tree checks, applicable JAX checks, quality, Hub,
+public-source validation and Merge gate remain required. The full isolated-service
+campaign remains required for its actual shared runtime/isolation owners, not the
+three explicitly DEVELOPMENT-only measurement/feedback modules. No test failure
+is converted to success. The superseded broad run is cancelled and retained.
+
+The initial policy migration pins the exact prior base and new classifier and
+manifest digests in the workflow. Subsequent delivery uses the protected-base
+classifier normally. This bounded bridge is explicit; it is not a generic
+candidate-controlled scope override. The protected-base Merge gate remains used.

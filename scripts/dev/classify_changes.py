@@ -12,6 +12,8 @@ from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path, PurePosixPath
 
+from development_scope import DEVELOPMENT_DOCS, DEVELOPMENT_PUBLIC_DATA
+
 
 class ChangeScope(StrEnum):
     """Ordered acceptance scopes; unknown paths deliberately use the full lane."""
@@ -36,11 +38,11 @@ class Classification:
 
     @property
     def dev_image_required(self) -> bool:
-        """Rebuild only when execution infrastructure changes or is unknown."""
+        """Rebuild for image/environment inputs; unknown runtime still gets full CPU."""
         if self.scope is not ChangeScope.RUNTIME_FULL:
             return False
         return any(
-            item.unknown
+            item.path == "<empty-manifest>"
             or item.path in _IMAGE_EXACT
             or item.path.startswith(_IMAGE_PREFIXES)
             or re.fullmatch(
@@ -89,11 +91,17 @@ class Classification:
             or item.path.startswith("tests/service/test_c04_")
             or item.path.startswith("tests/service/test_c05_")
             for item in self.paths
+            if item.path
+            not in {
+                "carbon/measurement_runtime/development.py",
+                "carbon/measurement_runtime/development_controls.py",
+                "carbon/orchestration/development_feedback.py",
+            }
         )
 
 
 # These files define the canonical execution environment or its acceptance.
-_IMAGE_PREFIXES = (".devcontainer/", ".github/workflows/", "scripts/dev/")
+_IMAGE_PREFIXES = (".devcontainer/",)
 _IMAGE_EXACT = frozenset(
     {
         ".dockerignore",
@@ -206,6 +214,14 @@ def normalize_path(raw_path: str) -> str:
 
 def classify_path(raw_path: str) -> PathClassification:
     path = normalize_path(raw_path)
+    if path in DEVELOPMENT_DOCS:
+        return PathClassification(
+            path, ChangeScope.CONTRACT_AUTHORITY, "development rule documentation"
+        )
+    if path in DEVELOPMENT_PUBLIC_DATA:
+        return PathClassification(
+            path, ChangeScope.RUNTIME_FULL, "public knowledge with dedicated acceptance"
+        )
     if path in _RUNTIME_EXACT:
         return PathClassification(path, ChangeScope.RUNTIME_FULL, "runtime exact path")
     if path.startswith(_RUNTIME_PREFIXES):
