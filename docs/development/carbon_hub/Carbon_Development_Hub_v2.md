@@ -2,7 +2,7 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `a461017928cd5db44ceb960a18a5e750c59eeeb9` on `main`, captured 2026-09-17T21:39:59Z.
+**Authority snapshot:** `dcf49f00b470e4aa80dcbd92a434fba4fb4e42f6` on `main`, captured 2026-09-17T22:14:23Z.
 **Current:** Wave C, ticket none active. C-W1-D5 is complete in its bounded engineering scope. No ticket is currently active. PR #208 delivered autonomous research instructions and structured stops. All three authorized campaigns ended: one training trial and six final replicas, no admissible final model or accepted improvement. The final campaign stopped before training with resources remaining. Program totals: 15 provider calls, USD 0.01951925 usage-priced cost, 1339.179 numerical seconds, two rejected trial attempts and 288 reference calculations. No unresolved reservations remain. No research successor is selected; unused budget does not renew the program. Historical testnet 567 publication remains ROW_VERIFIED, exact row [[0, 65535]]; burn amounts, epoch effects and settlement remain unproven. No subsequent activation or weight transaction is authorized. C-MLP browser validation remains separate. AWS stays deferred; unrelated website and Workbench work/spending remain separate. Synthetic incentive scenarios are not results of the real agent. C-W1 DEVELOPMENT retains historical Subnet 567 creation at block 8010852. Hippius unverified; its provider integration remains deferred.
 **Last completed:** C-W1-D5 (`done`).
 **Next selected:** none selected.
