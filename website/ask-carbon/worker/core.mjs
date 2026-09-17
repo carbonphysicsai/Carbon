@@ -265,7 +265,7 @@ export const answerSchema = {
         type: "object", additionalProperties: false, required: ["text", "evidence_ids"],
         properties: {
           text: { type: "string", minLength: 1, maxLength: 500 },
-          evidence_ids: { type: "array", minItems: 1, maxItems: 4, uniqueItems: true, items: { type: "string" } },
+          evidence_ids: { type: "array", minItems: 1, maxItems: 4, items: { type: "string" } },
         },
       },
     },
@@ -294,7 +294,7 @@ export const pilotAnswerSchema = {
       },
     },
     unresolved_assumptions: { type: "array", maxItems: 8, items: { type: "string", minLength: 1, maxLength: 800 } },
-    source_ids: { type: "array", maxItems: 4, uniqueItems: true, items: { type: "string" } },
+    source_ids: { type: "array", maxItems: 4, items: { type: "string" } },
     maturity_note: { type: ["string", "null"], maxLength: 300 },
   },
 };

@@ -1,0 +1,38 @@
+name = "carbon-ask-private-staging"
+main = "worker/private-staging.mjs"
+compatibility_date = "2026-09-16"
+workers_dev = false
+preview_urls = false
+
+[[rules]]
+type = "Text"
+globs = ["**/*.html"]
+fallthrough = true
+
+[[durable_objects.bindings]]
+name = "ASK_CARBON_USAGE_LEDGER"
+class_name = "AskCarbonUsageLedger"
+script_name = "carbon-ask-budget-authority"
+
+[vars]
+ASK_CARBON_ACTIVATION = "disabled"
+ASK_CARBON_RUNTIME_MODE = "staging"
+ASK_CARBON_PRIVACY_MODE = "evaluation_public_synthetic_only"
+ASK_CARBON_EDGE_ACCESS_POLICY_ID = "worker-basic-private-reviewers-v1"
+ASK_CARBON_EDGE_ABUSE_POLICY_ID = "durable-ledger-bounded-private-evaluation-v2"
+ASK_CARBON_APPROVED_ORIGINS = "https://private-staging.invalid"
+ASK_CARBON_APPROVED_MODEL_CONFIGS = "gpt-5.6-luna:low:v1,gpt-5.6-terra:low:v1"
+ASK_CARBON_MODEL_CONFIG_ID = "gpt-5.6-luna:low:v1"
+ASK_CARBON_LEDGER_AUTHORITY_ID = "ask-carbon-provider-budget-v2"
+ASK_CARBON_ENVIRONMENT = "staging"
+ASK_CARBON_OPERATIONAL_SCOPE_ID = "ask-carbon-bakeoff-v1"
+ASK_CARBON_OPERATIONAL_SCOPE_LIMIT_MICRO_USD = "5000000"
+ASK_CARBON_MONTHLY_LIMIT_MICRO_USD = "50000000"
+ASK_CARBON_DAILY_REQUEST_LIMIT = "100"
+ASK_CARBON_MAX_CONCURRENCY = "4"
+ASK_CARBON_CLIENT_REQUESTS_PER_HOUR = "20"
+ASK_CARBON_CLIENT_COUNTER_RETENTION_MS = "86400000"
+ASK_CARBON_MAX_INPUT_TOKENS = "24000"
+ASK_CARBON_MAX_OUTPUT_TOKENS = "700"
+ASK_CARBON_PROVIDER_TIMEOUT_MS = "15000"
+ASK_CARBON_PILOT_MAX_REQUESTS_PER_SESSION = "8"

@@ -17,13 +17,22 @@ same-identity conflict and a declared successor revision retain provenance and
 unknowns. No intake inherits the exact 07A assessment, and scientific
 qualification, rights, execution, score and launch remain unchanged.
 
-Plan and mock modes make zero external calls. The mock ledger recorded eleven
-settled attempts and 880 simulated micro-USD; actual provider spend, live-model
-calls and customer sessions are zero. Human quality review was not performed.
-Live evaluation remains fail-closed because the exact private staging target,
-access authentication, installed provider secret, provider-project retention
-disposition and current shared-ledger execution authorization are absent.
-Public activation stays disabled and the production homepage is unchanged.
+Plan and mock modes still make zero external calls. A private, access-gated
+Cloudflare Worker and route-less shared budget authority now exercise the
+selected `gpt-5.6-luna:low:v1` configuration on the frozen public/synthetic
+suite. The final selected `v3`/`v4` evidence contains 11 supported live turns,
+ordinary `UNASSESSED` Workbench returns, and USD 0.007153 of settled selected
+provider usage. The whole shared ledger, including diagnostics and superseded
+runs, records USD 0.013151 settled plus USD 0.067680 conservative unresolved
+exposure. No limit was reset or bypassed.
+
+The retained answers preserve unknowns and refuse unsupported coupled-physics,
+guarantee, cross-client and URL-fetch claims. They also expose real friction:
+three scenarios did not receive the exact structured field needed by the
+scripted client action, so those final checks remain incomplete. Ryan and Nick
+are named for a short review, but confirmation and human quality evidence are
+still pending. Customer sessions remain zero. Public activation stays disabled
+and the production homepage is unchanged.
 
 ## v0.8A guided pilot-design amendment
 

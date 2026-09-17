@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import worker, { AskCarbonUsageLedger, createWorker } from "../worker/index.mjs";
+import { answerSchema, pilotAnswerSchema, validatePilotProviderOutput } from "../worker/core.mjs";
 import knowledge from "../knowledge/public-knowledge.v1.json" with { type: "json" };
 
 class MemoryStorage {
@@ -36,6 +37,7 @@ const makeRuntime = (overrides = {}) => {
     ASK_CARBON_MAX_OUTPUT_TOKENS: "700",
     ASK_CARBON_PROVIDER_TIMEOUT_MS: "15000",
     ASK_CARBON_PILOT_MAX_REQUESTS_PER_SESSION: "8",
+    ASK_CARBON_STAGING_OPERATOR_SECRET: "test-staging-operator-secret",
     ASK_CARBON_USAGE_LEDGER: { idFromName: () => "global", get: () => ({ fetch: (url, options) => ledger.fetch(new Request(url, options)) }) },
     ...overrides,
   };
@@ -81,6 +83,26 @@ test("health fails closed without exposing secret values and homepage routing st
   assert.equal(body.active, false);
   assert.equal(JSON.stringify(body).includes("test-provider-key"), false);
   assert.equal((await worker.fetch(new Request("https://staging.example/"), {})).status, 404);
+});
+
+test("staging ledger snapshot requires the separate operator secret and returns no prompt text", async () => {
+  const runtime = makeRuntime();
+  const workerRef = createWorker(knowledge);
+  const denied = await workerRef.fetch(new Request("https://staging.example/api/ask-carbon/staging/budget-snapshot", {
+    method: "POST",
+    headers: { "x-ask-carbon-staging-operator": "wrong" },
+  }), runtime.env);
+  assert.equal(denied.status, 403);
+  assert.equal((await denied.json()).error.code, "staging_operator_required");
+  const accepted = await workerRef.fetch(new Request("https://staging.example/api/ask-carbon/staging/budget-snapshot", {
+    method: "POST",
+    headers: { "x-ask-carbon-staging-operator": "test-staging-operator-secret" },
+  }), runtime.env);
+  assert.equal(accepted.status, 200);
+  const body = await accepted.json();
+  assert.equal(body.schema_version, 2);
+  assert.equal(JSON.stringify(body).includes("question"), false);
+  assert.equal(JSON.stringify(body).includes("test-staging-operator-secret"), false);
 });
 
 test("active path uses the exact compatible schema, settles trustworthy usage and returns server-owned citations", async () => {
@@ -222,6 +244,36 @@ test("model mismatch is detected and conservatively unresolved", async () => {
   assert.equal(Object.values((await snapshot.json()).attempts)[0].state, "unresolved");
 });
 
+test("provider HTTP failure is not mislabeled as a model mismatch and remains conservatively unresolved", async () => {
+  const runtime = makeRuntime();
+  await withProvider(async () => new Response(JSON.stringify({
+    error: { type: "invalid_request_error", code: "invalid_request", param: "text.format" },
+  }), { status: 400, headers: { "content-type": "application/json" } }), async () => {
+    const response = await ask(createWorker(knowledge), runtime.env, "What is Carbon?");
+    assert.equal(response.status, 502);
+    const body = await response.json();
+    assert.equal(body.error.code, "provider_error");
+    assert.match(body.request_id, /^[0-9a-f-]{36}$/);
+  });
+  const snapshot = await runtime.ledger.fetch(new Request("https://ledger.test/snapshot", { method: "POST", body: JSON.stringify({ now_ms: Date.now() }) }));
+  const state = await snapshot.json();
+  assert.equal(Object.values(state.attempts)[0].state, "unresolved");
+  assert.equal(Object.values(state.attempts)[0].terminal_reason, "provider_http_400");
+});
+
+test("provider-facing strict schemas omit unsupported uniqueness keywords while runtime validation rejects duplicates", () => {
+  assert.equal(JSON.stringify(answerSchema).includes('"uniqueItems"'), false);
+  assert.equal(JSON.stringify(pilotAnswerSchema).includes('"uniqueItems"'), false);
+  assert.throws(() => validatePilotProviderOutput({
+    message: "Bounded guidance.",
+    next_question: null,
+    proposals: [],
+    unresolved_assumptions: [],
+    source_ids: ["source-a", "source-a"],
+    maturity_note: null,
+  }, new Set(["source-a"])), /unapproved source/);
+});
+
 test("streaming request limit rejects chunked oversized bodies before full buffering", async () => {
   const runtime = makeRuntime();
   const stream = new ReadableStream({
@@ -281,7 +333,7 @@ test("pilot-design mode shares the repaired adapter, ledger and bounded output p
         next_question: "Which operating conditions vary?",
         proposals: [{ suggestion_id: "pilot-thermal-001", field: "pilot.evaluation_questions", value: "Compare hotspot location and design ranking.", rationale: "These observables connect the prediction to the design decision." }],
         unresolved_assumptions: ["Reference coverage and access remain unknown."],
-        source_ids: [],
+        source_ids: ["constitution-405a820b"],
         maturity_note: "Draft pilot for Carbon review.",
       }) }] }],
     })), { status: 200 });
@@ -289,7 +341,7 @@ test("pilot-design mode shares the repaired adapter, ledger and bounded output p
     const response = await ask(createWorker(knowledge), runtime.env, "unused", null, { body: JSON.stringify({
       mode: "PILOT_DESIGN",
       session_id: "pilot-session-1",
-      question: "We want to predict cold-plate temperatures faster.",
+      question: "What is Carbon?",
       turns: [],
       draft_context: { version: "carbon.client-intake.guidance-context.v1", answers, pilot, unresolved_assumptions: [] },
     }) });
@@ -301,6 +353,7 @@ test("pilot-design mode shares the repaired adapter, ledger and bounded output p
   });
   assert.equal(providerRequest.store, false);
   assert.equal(providerRequest.text.format.name, "carbon_pilot_guidance");
+  assert.equal(providerRequest.text.format.schema.properties.source_ids.items.enum.includes("constitution-405a820b"), true);
   assert.equal("tools" in providerRequest, false);
   assert.equal(providerRequest.instructions.includes("Signed bounded-context token"), false);
   assert.equal(providerRequest.input[0].content[0].text.includes("draft_context"), true);

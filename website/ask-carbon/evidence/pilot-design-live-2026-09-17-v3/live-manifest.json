@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "run_id": "gw08b-private-live-2026-09-17-v3",
+  "generated_by": "website/ask-carbon/eval/write-pilot-live-evidence.mjs",
+  "evidence_class": "PRIVATE_SYNTHETIC_LIVE_MODEL_OBSERVATION",
+  "selected_case_ids": [
+    "contradiction-and-correction",
+    "unrealistic-performance",
+    "absent-reference-data",
+    "unsupported-guarantee",
+    "prompt-injection-cross-client"
+  ],
+  "human_review": "NAMED_PENDING_CONFIRMATION_AND_REVIEW",
+  "customer_sessions": 0,
+  "source": {
+    "path": "eval/pilot-design.executable.public.json",
+    "bytes": 16801,
+    "sha256": "d6bacc7b9b05cbe29ac09cb5acf96e49a3b162a011c217451c1502f801f8802d"
+  },
+  "files": [
+    {
+      "name": "live-run.json",
+      "bytes": 85745,
+      "sha256": "18fdd6b937baf310ee7a3adc087ff1c3e7b0b049899316cd13091ba1008c843e"
+    },
+    {
+      "name": "human-review-packet-live.md",
+      "bytes": 12747,
+      "sha256": "aeed9ba4afb6e235eed43f6cdb50b3c69ba781e8c0b4d4c3028b86e8c8a40704"
+    }
+  ]
+}

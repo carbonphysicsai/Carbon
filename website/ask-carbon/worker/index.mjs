@@ -33,6 +33,7 @@ import { AskCarbonUsageLedger } from "./ledger.mjs";
 export { AskCarbonUsageLedger };
 const API_PATH = "/api/ask-carbon";
 const HEALTH_PATH = "/api/ask-carbon/health";
+const STAGING_BUDGET_PATH = "/api/ask-carbon/staging/budget-snapshot";
 const PROVIDER_URL = "https://api.openai.com/v1/responses";
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -44,7 +45,11 @@ const securityHeaders = {
 };
 const json = (value, status = 200, headers = {}) => new Response(JSON.stringify(value), { status, headers: { ...securityHeaders, ...headers } });
 const errorResponse = (error, headers = {}) => {
-  if (error instanceof PublicApiError) return json({ status: "service_failure", error: { code: error.code, message: error.message } }, error.status, headers);
+  if (error instanceof PublicApiError) return json({
+    status: "service_failure",
+    error: { code: error.code, message: error.message },
+    ...(typeof error.requestId === "string" ? { request_id: error.requestId } : {}),
+  }, error.status, headers);
   console.error("ask-carbon unhandled error", error?.name ?? "Error");
   return json({ status: "service_failure", error: { code: "service_error", message: "Ask Carbon is temporarily unavailable." } }, 503, headers);
 };
@@ -90,6 +95,37 @@ const ledgerRequest = async (ledger, path, value) => {
   });
   const body = await response.json().catch(() => null);
   return { response, body };
+};
+
+const constantTimeEqual = (left, right) => {
+  if (typeof left !== "string" || typeof right !== "string") return false;
+  const leftBytes = encoder.encode(left);
+  const rightBytes = encoder.encode(right);
+  let difference = leftBytes.length ^ rightBytes.length;
+  const length = Math.max(leftBytes.length, rightBytes.length);
+  for (let index = 0; index < length; index += 1) {
+    difference |= (leftBytes[index] ?? 0) ^ (rightBytes[index] ?? 0);
+  }
+  return difference === 0;
+};
+
+const stagingBudgetSnapshot = async (request, env) => {
+  if (env.ASK_CARBON_RUNTIME_MODE !== "staging") {
+    throw new PublicApiError(404, "not_found", "Not found.");
+  }
+  if (!constantTimeEqual(
+    request.headers.get("x-ask-carbon-staging-operator"),
+    env.ASK_CARBON_STAGING_OPERATOR_SECRET,
+  )) {
+    throw new PublicApiError(403, "staging_operator_required", "Staging operator access is required.");
+  }
+  const durableId = env.ASK_CARBON_USAGE_LEDGER.idFromName(env.ASK_CARBON_LEDGER_AUTHORITY_ID);
+  const ledger = env.ASK_CARBON_USAGE_LEDGER.get(durableId);
+  const result = await ledgerRequest(ledger, "/snapshot", { now_ms: Date.now() });
+  if (!result.response.ok || !result.body) {
+    throw new PublicApiError(503, "accounting_snapshot_failed", "Ask Carbon could not read the shared accounting snapshot.");
+  }
+  return json(result.body, 200);
 };
 
 const prepareAttempt = async ({ env, attemptId, clientId, sessionId, mode, nowMs, profile }) => {
@@ -152,8 +188,17 @@ const providerPrompt = (cards, mode) => {
   ].join("\n\n");
 };
 
+const sourceIdsForCards = (cards) => [...new Set(cards.flatMap((card) =>
+  (card.passages ?? []).map((passage) => passage.source_id).filter(Boolean)))].sort();
+
 const buildProviderRequest = ({ profile, cards, input, maxOutputTokens, maxInputTokens }) => {
   const mode = input.mode ?? "GENERAL_QA";
+  const formatSchema = mode === "PILOT_DESIGN" ? structuredClone(pilotAnswerSchema) : answerSchema;
+  if (mode === "PILOT_DESIGN") {
+    const allowedSourceIds = sourceIdsForCards(cards);
+    if (allowedSourceIds.length) formatSchema.properties.source_ids.items.enum = allowedSourceIds;
+    else formatSchema.properties.source_ids.maxItems = 0;
+  }
   const content = mode === "PILOT_DESIGN"
     ? JSON.stringify({ question: input.question, prior_turns: input.turns, draft_context: input.draft_context })
     : input.question;
@@ -164,7 +209,7 @@ const buildProviderRequest = ({ profile, cards, input, maxOutputTokens, maxInput
     max_output_tokens: maxOutputTokens,
     instructions: providerPrompt(cards, mode),
     input: [{ role: "user", content: [{ type: "input_text", text: content }] }],
-    text: { verbosity: profile.verbosity, format: { type: "json_schema", name: mode === "PILOT_DESIGN" ? "carbon_pilot_guidance" : "ask_carbon_answer", strict: true, schema: mode === "PILOT_DESIGN" ? pilotAnswerSchema : answerSchema } },
+    text: { verbosity: profile.verbosity, format: { type: "json_schema", name: mode === "PILOT_DESIGN" ? "carbon_pilot_guidance" : "ask_carbon_answer", strict: true, schema: formatSchema } },
   };
   const encoded = JSON.stringify(body);
   const byteUpperBound = encoder.encode(encoded).byteLength + profile.framing_token_allowance;
@@ -231,12 +276,28 @@ const handleAsk = async (request, env, knowledgeManifest) => {
       await requireLedgerTransition(prepared.ledger, "/mark-unresolved", { attempt_id: attemptId, now_ms: Date.now(), reason: error?.name === "AbortError" ? "provider_timeout" : "provider_transport_or_body_failure" }, "accounting_unresolved_failed");
       throw error instanceof PublicApiError ? error : new PublicApiError(502, "provider_error", "The answer provider is temporarily unavailable.");
     } finally { clearTimeout(timeout); }
+    if (!provider.response.ok || !provider.body) {
+      console.error("ask-carbon provider rejected request", {
+        status: provider.response.status,
+        error_type: typeof provider.body?.error?.type === "string" ? provider.body.error.type : "unavailable",
+        error_code: typeof provider.body?.error?.code === "string" ? provider.body.error.code : "unavailable",
+        error_param: typeof provider.body?.error?.param === "string" ? provider.body.error.param : "unavailable",
+      });
+      await requireLedgerTransition(prepared.ledger, "/mark-unresolved", { attempt_id: attemptId, now_ms: Date.now(), reason: `provider_http_${provider.response.status}` }, "accounting_unresolved_failed");
+      throw new PublicApiError(502, "provider_error", "The answer provider is temporarily unavailable.");
+    }
     let usage;
     let providerModel;
     try {
       providerModel = assertProviderModel(provider.body, profile);
       usage = validateProviderUsage(provider.body, profile);
     } catch (error) {
+      if (error?.code === "provider_model_mismatch") {
+        console.error("ask-carbon provider model mismatch", {
+          expected: profile.allowed_response_models,
+          actual: typeof provider.body?.model === "string" ? provider.body.model : "unavailable",
+        });
+      }
       await requireLedgerTransition(prepared.ledger, "/mark-unresolved", { attempt_id: attemptId, now_ms: Date.now(), reason: error.code ?? "untrusted_usage_or_model" }, "accounting_unresolved_failed");
       throw error;
     }
@@ -250,14 +311,13 @@ const handleAsk = async (request, env, knowledgeManifest) => {
       settlement_id: settlementId,
       provider_response_id: providerResponseId,
     }, "accounting_settlement_failed");
-    if (!provider.response.ok || !provider.body) throw new PublicApiError(502, "provider_error", "The answer provider is temporarily unavailable.");
     if (provider.body.status !== "completed") throw new PublicApiError(502, provider.body.status === "incomplete" ? "provider_incomplete" : "provider_refused", "The answer provider did not produce a complete supported answer.");
     const responseText = extractResponseText(provider.body);
     if (!responseText) throw new PublicApiError(502, "invalid_provider_output", "The answer provider returned no answer.");
     let parsed;
     try { parsed = JSON.parse(responseText); } catch { throw new PublicApiError(502, "invalid_provider_output", "The answer provider returned invalid structured output."); }
     const output = mode === "PILOT_DESIGN"
-      ? validatePilotProviderOutput(parsed, new Set(cards.flatMap((card) => card.source_ids)))
+      ? validatePilotProviderOutput(parsed, new Set(sourceIdsForCards(cards)))
       : validateProviderOutput(parsed, cards);
     if (mode === "PILOT_DESIGN") return json({
       status: "supported",
@@ -289,6 +349,7 @@ const handleAsk = async (request, env, knowledgeManifest) => {
     if (!dispatchAuthorized && prepared?.ledger) {
       await ledgerRequest(prepared.ledger, "/release-pre-dispatch", { attempt_id: attemptId, now_ms: Date.now(), reason: error.code ?? "pre_dispatch_failure" }).catch(() => {});
     }
+    if (error instanceof PublicApiError) error.requestId = attemptId;
     throw error;
   }
 };
@@ -297,6 +358,10 @@ export const createWorker = (knowledgeManifest = knowledge) => ({
   async fetch(request, env) {
     const url = new URL(request.url);
     if (!url.pathname.startsWith(API_PATH)) return json({ error: { code: "not_found", message: "Not found." } }, 404);
+    if (url.pathname === STAGING_BUDGET_PATH && request.method === "POST") {
+      try { return await stagingBudgetSnapshot(request, env); }
+      catch (error) { return errorResponse(error); }
+    }
     if (url.pathname === HEALTH_PATH && request.method === "GET") {
       const status = activationStatus(env, knowledgeManifest);
       return json(status, status.active ? 200 : 503);
