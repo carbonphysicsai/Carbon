@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 # The builder script requires the exact freshly built C-03 image digest.
-ARG WORKER_IMAGE
-FROM ${WORKER_IMAGE}
+ARG WORKER_IMAGE_REF
+FROM ${WORKER_IMAGE_REF}
 ARG WORKER_IMAGE
 ARG JULIA_RECIPE_DIGEST
 USER root

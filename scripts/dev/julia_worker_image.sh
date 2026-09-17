@@ -10,6 +10,9 @@ parent_manifest="${repo_root}/.carbon-artifacts/julia-parent-worker-image.json"
 bash "${script_dir}/c03_worker_image.sh" "${parent_manifest}"
 parent="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["image_id"])' "${parent_manifest}")"
 [[ "${parent}" =~ ^sha256:[0-9a-f]{64}$ ]] || exit 2
+source_digest="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["source_tree_digest"])' "${parent_manifest}")"
+[[ "${source_digest}" =~ ^sha256:[0-9a-f]{64}$ ]] || exit 2
+parent_ref="carbon-c03-worker:${source_digest:7:16}@${parent}"
 recipe="${repo_root}/.devcontainer/Dockerfile.julia-worker"
 recipe_digest="sha256:$(sha256sum "${recipe}" | cut -d' ' -f1)"
 temporary="$(mktemp -d)"
@@ -20,6 +23,7 @@ cleanup() {
 }
 trap cleanup EXIT
 docker build --platform linux/amd64 --file "${recipe}" \
+  --build-arg "WORKER_IMAGE_REF=${parent_ref}" \
   --build-arg "WORKER_IMAGE=${parent}" \
   --build-arg "JULIA_RECIPE_DIGEST=${recipe_digest}" \
   --iidfile "${temporary}/iid" "${repo_root}"
