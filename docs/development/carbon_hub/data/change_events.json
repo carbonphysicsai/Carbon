@@ -4626,6 +4626,21 @@
         "SYSTEM/PROTOCOL-AUTHORITY"
       ],
       "supersedes": null
+    },
+    {
+      "map_ref": "SYSTEM/AGENT-EXECUTION",
+      "event_type": "adjustment",
+      "event_id": "C-CORE-02-PACKAGE-AUTHORITY",
+      "owner_lane": "technical_lead",
+      "status": "implemented",
+      "summary": "Register the shared scientific task package in canonical code authority and require native Julia service acceptance through the repository entrypoint. Refresh captured navigation to this implemented boundary; no qualification or new execution authority follows.",
+      "primary_detail": ".agent/CODE_AUTHORITY.toml",
+      "affects": [
+        "SYSTEM/PROTOCOL-AUTHORITY",
+        "SYSTEM/CI",
+        "SYSTEM/DEVELOPMENT-HUB"
+      ],
+      "supersedes": null
     }
   ]
 }
