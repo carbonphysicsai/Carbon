@@ -7,7 +7,10 @@ Authority: OWNER-C-W1-RESEARCH-PROGRAM-01. Primary map: WAVE-C/C-W1-D5.
 Accepted ce6a7e389d9f4d815fbbb45c68db2eda8784a1e8 (PR #206), merged as
 54f8aff742b99fd2957fede73ea814f03da49eb6. Campaign
 cw1-d4-c96cbff96bc54c638d695632548ba724 began 2026-09-17T15:24:51Z and stopped
-after 456.864 elapsed seconds. Model gpt-5-mini-2025-08-07, seven completed calls,
+at 2026-09-17T15:30:49.805448Z, 358.613 elapsed seconds from the retained terminal
+marker filesystem timestamp. The legacy status view continues counting time since
+start after completion; its later 456.864-second observation was report age, not
+execution duration. This correction changes no measured usage or outcome. Model gpt-5-mini-2025-08-07, seven completed calls,
 USD 0.00818185 measured provider cost. Ninety-six public references (72 TRAIN,
 24 adaptive validation), 96 solver invocations, 310.573 numerical worker seconds.
 Zero training trials, zero final construction replicas, zero chain transactions.
