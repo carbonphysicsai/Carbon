@@ -7,6 +7,7 @@
   let busy = false;
   let polling = false;
   let connected = false;
+  let developmentSources = [];
   const pendingKey = "carbon.launchpad.pending.v1";
   let storageError = false;
   try { pending = JSON.parse(sessionStorage.getItem(pendingKey) || "null"); }
@@ -34,6 +35,38 @@
     return result;
   }
   function render() {
+    const sources = $("development-sources");
+    sources.replaceChildren();
+    if (!connected || !developmentSources.length) {
+      const note = document.createElement("p"); note.className = "hint";
+      note.textContent = connected ? "No DEVELOPMENT source is attached. Real campaign launch is not enabled yet." : "Reconnect to verify current source state.";
+      sources.append(note);
+    }
+    if (connected) for (const source of developmentSources) {
+      const card = document.createElement("div"); card.className = "integration";
+      const title = document.createElement("h3");
+      title.textContent = source.receipt ? source.receipt.disposition : "Readback unavailable";
+      const note = document.createElement("p");
+      note.textContent = source.receipt ? "DEVELOPMENT EVALUATION · Receipt " + source.receipt.receipt_id : "Source validation failed. No receipt or result is being inferred.";
+      const button = document.createElement("button"); button.type = "button";
+      button.textContent = "Export verified public receipt";
+      button.disabled = busy || source.status !== "VERIFIED_SOURCE";
+      button.addEventListener("click", async () => {
+        if (busy || !connected) return;
+        busy = true; render();
+        try {
+          const fresh = await api("/api/v1/development/" + source.id);
+          if (fresh.status !== "VERIFIED_SOURCE") throw new Error("development_source_unavailable");
+          const blob = new Blob([JSON.stringify(fresh, null, 2)], {type: "application/json"});
+          const url = URL.createObjectURL(blob);
+          const anchor = document.createElement("a"); anchor.href = url;
+          anchor.download = "carbon-development-" + source.id + ".json";
+          anchor.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+        } catch (error) { message("Receipt export unavailable: " + error.message, true); }
+        finally { busy = false; await refresh(); render(); }
+      });
+      card.append(title, note, button); sources.append(card);
+    }
     $("launch-fields").disabled = !connected || storageError;
     $("launch-button").disabled = busy;
     $("launch-button").firstChild.textContent = pending ? "Retry same launch " : "Launch rehearsal ";
@@ -82,6 +115,7 @@
     polling = true;
     try {
       runs = (await api("/api/v1/runs")).runs;
+      developmentSources = (await api("/api/v1/development")).sources;
       connected = true;
       render();
       $("connection-state").textContent = "Connected";

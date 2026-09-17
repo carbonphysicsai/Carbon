@@ -11,7 +11,7 @@
   <header><a class="wordmark" href="/">carbon<span> / miner launchpad</span></a><span class="badge">DEVELOPMENT</span></header>
   <main>
     <section class="intro"><div><p class="eyebrow">MINER SETUP / FIRST BUILD</p><h1>Start the loop.</h1><p class="lede">Configure a run. Check the controls. Keep a record.</p></div><div class="local"><span class="dot"></span> Local controller</div></section>
-    <div class="notice"><strong>Controller rehearsal only.</strong> This build tests launch, pause, resume, stop and recovery. It does not run an AI agent, train a model, register a miner or submit to Carbon. External spend is $0.</div>
+    <div class="notice"><strong>Controller rehearsal only for new launches.</strong> Existing DEVELOPMENT receipts can be inspected below when attached by the operator. This build does not run an AI agent, train a model, register a miner or submit to Carbon. External spend is $0.</div>
     <section id="connect-panel" class="connect panel"><div><h2>Connect this browser</h2><p>Paste the local session token printed by the server. We keep it in this tab's memory.</p></div><form id="connect-form"><label for="token">Local session token</label><div class="inline"><input id="token" type="password" autocomplete="off" spellcheck="false" required><button type="submit">Connect</button></div></form></section>
     <p id="message" class="message" role="status" aria-live="polite">Start the local server to use this page.</p>
     <noscript><p class="notice">Enable JavaScript to connect to the local controller. No run will start without it.</p></noscript>
@@ -41,6 +41,7 @@
         </div>
       </section>
     </div>
+    <section class="panel integrations" aria-labelledby="development-heading"><div class="panel-heading"><h2 id="development-heading">Retained DEVELOPMENT evaluations</h2><span class="small-tag">Verified source readback</span></div><p class="hint">Existing Carbon receipts attached by the local operator. These were not launched by this browser. Their original disposition is preserved; verification does not establish an improvement or official qualification.</p><div id="development-sources"><p class="hint">Connect to inspect attached sources.</p></div></section>
     <section class="panel integrations"><div class="panel-heading"><h2>Integration queue</h2><span class="small-tag">No provider calls in this build</span></div><div id="integrations" class="integration-grid"><p class="hint">Connect to read the backend capability list.</p></div></section>
     <footer>Private development tool. Do not expose this server to the public internet.<span>Rehearsal evidence ≠ physics evidence</span></footer>
   </main>

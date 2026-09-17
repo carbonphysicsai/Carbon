@@ -75,6 +75,31 @@ def load(session, origin):
     wait(session, "Boolean(document.getElementById('connect-form'))")
 
 
+class ReadbackFixture:
+    """UI-only failure injection. Never creates a Carbon receipt or research run."""
+
+    valid = True
+
+    def get(self, identity):
+        assert identity == "engineering-fixture"
+        return {
+            "schema": "carbon.launchpad.development-readback.v1",
+            "id": identity,
+            "status": "VERIFIED_SOURCE" if self.valid else "READBACK_UNAVAILABLE",
+            "receipt": (
+                {
+                    "disposition": "ENGINEERING_FIXTURE_DISPOSITION",
+                    "receipt_id": "fixture-no-scientific-evidence",
+                }
+                if self.valid
+                else None
+            ),
+        }
+
+    def recent(self):
+        return [self.get("engineering-fixture")]
+
+
 def run():
     with tempfile.TemporaryDirectory(prefix="carbon-launchpad-smoke-") as temporary:
         root = Path(temporary)
@@ -169,6 +194,26 @@ def run():
                         "document.getElementById('connection-state').textContent === 'Connected'",
                     )
 
+                    # Rendering/fresh-read failure injection, not scientific evidence.
+                    readback = ReadbackFixture()
+                    server.development_sources = readback
+                    wait(
+                        session,
+                        "document.getElementById('development-sources').textContent.includes('ENGINEERING_FIXTURE_DISPOSITION')",
+                    )
+                    session.evaluate(
+                        "document.querySelector('#development-sources button').click()"
+                    )
+                    receipt_export = (
+                        root / "carbon-development-engineering-fixture.json"
+                    )
+                    deadline = time.monotonic() + 8
+                    while not receipt_export.exists() and time.monotonic() < deadline:
+                        time.sleep(0.05)
+                    assert json.loads(receipt_export.read_text()) == readback.get(
+                        "engineering-fixture"
+                    )
+
                     for width in (1440, 390):
                         session.command(
                             "Emulation.setDeviceMetricsOverride",
@@ -185,6 +230,17 @@ def run():
                         assert session.evaluate(
                             "document.getElementById('stop').getBoundingClientRect().width >= 44"
                         ), width
+                    readback.valid = False
+                    wait(
+                        session,
+                        "document.getElementById('development-sources').textContent.includes('Readback unavailable')",
+                    )
+                    assert session.evaluate(
+                        "document.querySelector('#development-sources button').disabled"
+                    )
+                    assert "fixture-no-scientific-evidence" not in session.evaluate(
+                        "document.getElementById('development-sources').textContent"
+                    )
                     store.tick()
 
                 # Restart the real HTTP server and reopen the same SQLite history.
@@ -219,7 +275,7 @@ def run():
             finally:
                 session.close()
     print(
-        "Launchpad browser/server smoke passed: connect, launch, lost-response/reload retry, pause/resume/stop, export, storage failure, restart, expiry, desktop/mobile."
+        "Launchpad browser/server smoke passed: connect, launch, lost-response/reload retry, pause/resume/stop, export, storage failure, restart, expiry, desktop/mobile, fixture readback/export invalidation. No scientific campaign ran."
     )
 
 

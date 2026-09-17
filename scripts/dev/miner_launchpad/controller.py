@@ -304,10 +304,18 @@ def capability_catalog() -> dict:
 class Server(ThreadingHTTPServer):
     daemon_threads = True
 
-    def __init__(self, controller: Controller, token: str, port: int = 8788):
+    def __init__(
+        self,
+        controller: Controller,
+        token: str,
+        port: int = 8788,
+        *,
+        development_sources=None,
+    ):
         if len(token) < 32:
             raise ValueError("A generated local session token is required")
         self.controller = controller
+        self.development_sources = development_sources
         self.token = token
         self.assets = Path(__file__).parent
         self.request_slots = threading.BoundedSemaphore(16)
@@ -385,6 +393,18 @@ class Handler(BaseHTTPRequestHandler):
                 self.reply(200, capability_catalog())
             elif self.path == "/api/v1/runs":
                 self.reply(200, {"runs": self.server.controller.recent()})
+            elif self.path == "/api/v1/development":
+                sources = self.server.development_sources
+                self.reply(200, {"sources": sources.recent() if sources else []})
+            elif self.path.startswith("/api/v1/development/"):
+                sources = self.server.development_sources
+                if sources is None:
+                    raise Rejected("development_source_unavailable", 404)
+                try:
+                    result = sources.get(self.path.removeprefix("/api/v1/development/"))
+                except ValueError:
+                    raise Rejected("development_source_unavailable", 404) from None
+                self.reply(200, result)
             elif self.path.startswith("/api/v1/runs/"):
                 self.reply(200, self.server.controller.get(self.path[13:]))
             else:
@@ -491,6 +511,13 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--port", type=int, default=8788)
     parser.add_argument(
+        "--development-source",
+        action="append",
+        type=Path,
+        default=[],
+        help="Attach an existing private Carbon source handoff for verified public readback; no dispatch",
+    )
+    parser.add_argument(
         "--state-dir",
         type=Path,
         default=Path.home() / ".carbon" / "development-launchpad",
@@ -505,7 +532,17 @@ def main() -> None:
         controller = Controller(database)
         database.chmod(0o600)
         token = secrets.token_urlsafe(32)
-        server = Server(controller, token, args.port)
+        if __package__:
+            from .development import DevelopmentSources
+        else:
+            from development import DevelopmentSources
+        sources = DevelopmentSources(database)
+        for path in args.development_source:
+            try:
+                sources.attach(path)
+            except Exception:  # noqa: BLE001 - do not print private source errors.
+                parser.error("DEVELOPMENT source attachment failed verification")
+        server = Server(controller, token, args.port, development_sources=sources)
         controller.recover()
         done = threading.Event()
 
