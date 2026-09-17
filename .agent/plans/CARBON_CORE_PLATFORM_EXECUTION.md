@@ -146,6 +146,69 @@ accelerator execution is claimed. `UNASSESSED`/`NOT_QUALIFIED` and request-only
 challenge preparation persist. Build and composition commands live in
 `Business/Carbon_Fit/workbench/SCIENTIFIC_STUDIES_OPERATOR.md`.
 
+V3 TPU WORKER PREPARATION (C-CORE-09 candidate)
+
+The fixed v5e/eight-chip environment now has a real hash-locked image build and
+nonroot package inspection. A separate prospective TPU worker-profile/request
+schema maps to the existing JAX reconstruction contract for miner research and
+validator reconstruction. Both roles remain admission-disabled before staging or
+backend import; the NVIDIA Docker adapter explicitly rejects TPU. The same C03
+controller/accounting remains the integration owner. No new cloud launcher exists.
+
+Image `sha256:4b037bd720d7c154cd012de0ad4803a8b92d360062f102bb9b8c80cf78155dc0`
+was built from exact source `cba4b6a597250591972c8f512ab7d42500c87e6a`.
+All 23 pinned distributions and Carbon service/protocol imports passed a bounded
+network-disabled package check without importing numerical backends. Exact
+container removal was verified. This is implementation and package evidence,
+not TPU execution, numerical comparison, external-client execution or scientific
+qualification. Existing CPU/GPU historical identities and evidence are preserved.
+
+Next concrete TPU action requires the named account/resource grant and verified
+host device/privilege/network/metadata, exclusive ownership and HBM/release
+controls before completing the guarded C03 host adapter. Commands, exact missing
+facts and recovery seam are in `.devcontainer/accelerators/TPU_PREPARATION.md`;
+source/image/check evidence is in `.agent/tickets/C-CORE-09_tpu_worker_preparation.md`.
+The existing consolidated resource request remains REQUESTED_NOT_GRANTED. No
+cloud spending, host installation, device initialization or research campaign
+occurred during this preparation. Runtime acceptance for both roles remains open.
+
+V3 ACCELERATOR IMPLEMENTATION CHECKPOINT (C-CORE-03 candidate)
+
+This checkpoint extends the retained C-CORE-02 record prospectively. The finite
+research campaign remains closed and its grants/evidence are unchanged.
+
+| Role/task/interface | Implementation and observed evidence | Still open |
+| --- | --- | --- |
+| Miner JAX NVIDIA research / existing Python C-03 controller | Fixed RTX 3060 Laptop GPU profile; private host-grant, exact image/device, exclusive lease and durable allocation binding; v2 staged request, existing trainer and v4 diagnostic artifact | NVIDIA toolkit and approved dedicated host; actual forward/gradient/Fourier/physics/update/export, memory/OOM and cleanup evidence; public consumer composition |
+| Validator JAX NVIDIA reconstruction / internal C-03 controller | Separate fixed reconstruction role; submitted recipe and input archive identities bound to the closed request; existing admission, launch journal, resource policy and output validation | Actual fresh independent GPU reconstruction with validator-owned inputs, numerical comparison and hardware containment; no protected eligibility |
+| Miner and validator JAX TPU / discovery and pinned environment | Named proposed v5e eight-chip profile and hash-locked Python 3.11.16/JAX 0.10.2/libtpu 0.0.42 environment | Account/grant, device adapter and actual TPU execution; Docker GPU adapter rejects TPU dispatch |
+| NVIDIA worker package / local Docker | Exact image built and nonroot installed-package checks passed without JAX/Torch imports; no GPU access; diagnostic container removal verified | Package evidence establishes no accelerator numerical, security or scientific qualification |
+
+The image `sha256:014693768c5bb5da745efffb206b9f63aacfc85adad0c574827893fb3c51b48d`
+was built from source `12025a9b7736d18c6a9726552e9d7a12ce3b9224`, archive
+`sha256:2ccdd991c17063547885090cbc6fecffcac0070e65d3b4810faa093fdd7ce874`.
+All 34 pinned distributions, Python version, profile/lock identities and nonroot
+manifest readability were checked. Removing installer cache and a duplicate
+library layer reduced reported image size from 12,468,651,488 to 6,036,044,575
+bytes. The initial root-only manifest defect was repaired and is preserved as
+failed-validation history. This source identity is retained across later
+documentation/navigation merges; no newer image identity is implied.
+
+The existing C-03 controller retains CPU behavior and accounting. Accelerator
+host grants authorize a physical slot only; they do not mint a research budget.
+Fixed-host locking and a durable exact-launch intent prevent retries, new output
+directories and controller loss from duplicating allocation. The same watchdog
+and cleanup path verifies release; uncertain device use blocks the shared slot.
+Actual hardware lifecycle/OOM, cross-backend loading and comparisons, concurrency
+and sharding remain open. No paid calls, new campaign, GPU/TPU allocation, host
+installation or cloud spending occurred in this packaging/checkpoint work.
+
+Working commands and admission requirements are in
+`.devcontainer/accelerators/README.md`; the bounded ticket is
+`.agent/tickets/C-CORE-03_accelerator_reconstruction.md`. The consolidated external
+resource request remains REQUESTED_NOT_GRANTED. Canonical CI and normal delivery
+remain required before closing this ticket in its bounded engineering scope.
+
 OWNER DIRECTION AND SUPERSESSION
 
 Execute the integrated programme now. Julia is a required Carbon-native

@@ -152,6 +152,10 @@ settlement, weight, or emission claim.
 - [Standard MCP operator and client workflow](https://github.com/carbonphysicsai/Carbon/blob/edbee85c81215a6ed813e825e95d5f075b619746/carbon/miner_mcp/README.md)
 - [C-CORE-04: draft-bound public Julia studies in the existing Workbench](https://github.com/carbonphysicsai/Carbon/blob/edbee85c81215a6ed813e825e95d5f075b619746/.agent/tickets/C-CORE-04_workbench_scientific_studies.md)
 - [Private Workbench scientific-service composition and checks](https://github.com/carbonphysicsai/Carbon/blob/edbee85c81215a6ed813e825e95d5f075b619746/Business/Carbon_Fit/workbench/SCIENTIFIC_STUDIES_OPERATOR.md)
+- [C-CORE-03: prospective fixed-device workers; hardware admission unavailable](https://github.com/carbonphysicsai/Carbon/blob/dbcdf8ecf3aee02391a1201ac4e5564865c09ca2/.agent/tickets/C-CORE-03_accelerator_reconstruction.md)
+- [Pinned accelerator image build and private host admission](https://github.com/carbonphysicsai/Carbon/blob/dbcdf8ecf3aee02391a1201ac4e5564865c09ca2/.devcontainer/accelerators/README.md)
+- [C-CORE-09: pinned TPU worker, host dispatch unavailable](https://github.com/carbonphysicsai/Carbon/blob/dbcdf8ecf3aee02391a1201ac4e5564865c09ca2/.agent/tickets/C-CORE-09_tpu_worker_preparation.md)
+- [TPU package inspection and missing host controls](https://github.com/carbonphysicsai/Carbon/blob/dbcdf8ecf3aee02391a1201ac4e5564865c09ca2/.devcontainer/accelerators/TPU_PREPARATION.md)
 
 Authority snapshot: `edbee85c` on `main`,
 captured 2026-09-17T22:19:10Z.
