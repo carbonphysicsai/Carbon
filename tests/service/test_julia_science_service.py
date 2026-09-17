@@ -356,6 +356,10 @@ def test_registered_julia_runs_and_replays_through_existing_c04_controller(tmp_p
         "request_digest": request.request_digest,
         "snapshot_digest": result.snapshot_digest,
         "artifact_digest": result.result.artifact_digest,
+        "worker_profile_digest": controller.worker_profile.digest,
+        "controls_digest": result.controls_digest,
+        "controls": result.controls,
+        "execution_backend": "cpu",
         "timings": result.timings,
         "resources": result.resources,
         "diagnostics": diagnostics,
@@ -408,14 +412,22 @@ def test_existing_c04_controller_cancels_live_julia_container_and_confirms_relea
         ).returncode
         != 0
     )
-    print(
-        json.dumps(
-            {
-                "case": "c04_registered_julia_cancel",
-                "terminal_code": failure.value.code.value,
-                "cleanup_confirmed": True,
-                "controls_verified_checks": checks,
-            },
-            sort_keys=True,
-        )
-    )
+    record = {
+        "case": "c04_registered_julia_cancel",
+        "image": controller.image.image_id,
+        "worker_profile_digest": controller.worker_profile.digest,
+        "controls_digest": journal["controls_digest"],
+        "execution_backend": "cpu",
+        "terminal_code": failure.value.code.value,
+        "cleanup_confirmed": True,
+        "controls_verified_checks": checks,
+        "elapsed_seconds": journal["elapsed_seconds"],
+        "consumption": journal["observed_consumption"],
+        "scientifically_qualified": False,
+        "score_eligible": False,
+    }
+    print(json.dumps(record, sort_keys=True))
+    trace = os.environ.get("CARBON_JULIA_TRACE_PATH")
+    if trace:
+        with Path(trace).open("a", encoding="utf-8") as stream:
+            stream.write(json.dumps(record, sort_keys=True) + "\n")

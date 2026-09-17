@@ -148,6 +148,11 @@ def _runtime(profile):
         "implementation": implementation,
         "images": [image.image_id, analysis.image_id],
     }
+    role_root = profile.root / "private-roles"
+    if "scientific_tasks" in profile.manifest["runtime"]:
+        from carbon.development_session.julia_research import julia_burgers_scope
+
+        runtime["scientific_tasks"] = [julia_burgers_scope(image, role_root)]
     grant = profile.admission.verify(
         root=profile.root, principal=cfg["principal"], runtime=runtime, now=time.time()
     )
@@ -157,7 +162,6 @@ def _runtime(profile):
         or profile.manifest.get("objective") != document()
     ):
         raise ValueError("campaign runtime or objective changed")
-    role_root = profile.root / "private-roles"
     if private_json(role_root / "research-profile.json") != document():
         raise ValueError("prepared public material profile changed")
     for role in ("research-train", "research-validation"):
@@ -265,9 +269,18 @@ def _science(ledger, owner, image, role_root):
     data = PublicReferenceData(
         ledger=ledger, owner=owner, image=image, role_root=role_root
     )
-    return PublicMaterial(data), PublicPractice(
-        data=data, ledger=ledger, owner=owner, image=image
-    )
+    material = PublicMaterial(data)
+    if (
+        ledger.admission is not None
+        and "scientific_tasks" in ledger.admission.document["runtime"]
+    ):
+        from carbon.development_session.julia_research import (
+            JuliaPublicMaterial,
+            PublicJuliaStudy,
+        )
+
+        material = JuliaPublicMaterial(material, PublicJuliaStudy(data))
+    return material, PublicPractice(data=data, ledger=ledger, owner=owner, image=image)
 
 
 async def serve(configuration: Path):
