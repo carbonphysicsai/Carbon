@@ -52,7 +52,7 @@ def image(tmp_path_factory):
                 "CARBON_AUTHORED_JULIA_IMAGE_ROOT",
                 str(tmp_path_factory.mktemp("advection-julia-image")),
             )
-        )
+        ),
     )
 
 
