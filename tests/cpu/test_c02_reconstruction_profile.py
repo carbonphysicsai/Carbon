@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import gc
-import subprocess
 import json
+import subprocess
 import sys
 from pathlib import Path
 
@@ -80,9 +80,11 @@ def test_public_reconstruction_import_is_jax_and_numpy_free() -> None:
         [
             sys.executable,
             "-c",
-            "import sys; import carbon.reconstruction; "
-            "assert not any(n == 'jax' or n.startswith('jax.') or "
-            "n == 'numpy' or n.startswith('numpy.') for n in sys.modules)",
+            (
+                "import sys; import carbon.reconstruction; "
+                "assert not any(n == 'jax' or n.startswith('jax.') or "
+                "n == 'numpy' or n.startswith('numpy.') for n in sys.modules)"
+            ),
         ],
         cwd=Path(__file__).resolve().parents[2],
         capture_output=True,
