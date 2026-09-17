@@ -33,7 +33,7 @@ node --test "${workbench}"/tests/test_*.cjs
   "${workbench}/tests/test_sources.py" \
   "${workbench}/tests/test_authoring_bridge.py" \
   "${repo_root}/tests/cpu/test_workbench_science.py" \
-  "${repo_root}/tests/cpu/test_workbench_science_http.py"
+  "${repo_root}/tests/service/test_workbench_science_http.py"
 "${python}" "${workbench}/tools/build.py" \
   --output-directory "${scratch}/artifacts/offline"
 "${python}" "${workbench}/tools/build.py" --private-science \
