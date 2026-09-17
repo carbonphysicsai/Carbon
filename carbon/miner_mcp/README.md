@@ -32,8 +32,8 @@ resource release and consumption are established.
 ## Client workflow
 
 Read `carbon://research/v1/capabilities` and
-`carbon://research/v1/guidance`, or request the
-`carbon_research_workflow_v1` prompt. Tools have typed object arguments and
+`carbon://research/v2/guidance`, or request the
+`carbon_research_workflow_v2` prompt. Tools have typed object arguments and
 structured results with text fallback. Clients do not supply the principal or
 wrap arguments in undocumented JSON strings.
 
