@@ -95,6 +95,25 @@ def test_orchestration_composes_source_owners_without_archive_or_network_imports
     violations = []
     for path in _files():
         for module, line in direct_import_modules(ROOT, path):
+            if (
+                path.name == "development_feedback.py"
+                and module == "carbon.scoring.development"
+            ):
+                # C-W1-D3 permits disclosure of this exact DEVELOPMENT rule, not
+                # evaluator invocation or official score/reward authority.
+                imports = [
+                    node
+                    for node in ast.walk(ast.parse(path.read_text()))
+                    if isinstance(node, ast.ImportFrom)
+                    and node.module == "carbon.scoring.development"
+                ]
+                assert len(imports) == 1
+                assert {item.name for item in imports[0].names} == {
+                    "RULE",
+                    "rule_digest",
+                }
+                assert all(item.asname is None for item in imports[0].names)
+                continue
             if any(
                 module == namespace or module.startswith(namespace + ".")
                 for namespace in FORBIDDEN_NAMESPACES

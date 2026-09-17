@@ -1,6 +1,6 @@
 # C-W1-D2 — Non-paying DEVELOPMENT comparison bridge
 
-**Status:** in_progress
+**Status:** done
 **Owner:** Scientific integration
 **Reviewer:** Physics/SciML + Security
 **Depends on:** C-05, C-06, C-07, C-08, C-10, C-REWARD
@@ -76,3 +76,5 @@ delivery candidate. Its bounded engineering closeout becomes effective after
 required CI and normal expected-head merge under OWNER-DX-03; the completion
 comment records external merge identity. No later ticket is selected, and no
 scientific or economic acceptance is implied by that closeout.
+
+PR #201 delivered at merge d1d07bb408a2b68efed70baf7e11ec22bb180c9d; OWNER-DX-03 closeout is satisfied. C-W1-D3 is the selected successor. Historical numerical disposition is unchanged.

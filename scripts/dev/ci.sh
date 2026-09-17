@@ -39,6 +39,14 @@ echo "==> invariant lane"
 echo "==> default CPU lane"
 cpu_profile="$("${python_bin}" scripts/dev/select_cpu_profile.py --base="${quality_base}")"
 case "${cpu_profile}" in
+  DEVELOPMENT_COMPETITION)
+    echo "==> bounded DEVELOPMENT measurement/source/scoring/reward regression; no public transaction"
+    "${python_bin}" -m pytest --collect-only -q >/dev/null
+    development_manifest="$("${python_bin}" scripts/dev/select_cpu_profile.py --base="${quality_base}" --development-tests)"
+    mapfile -t development_tests <<< "${development_manifest}"
+    [[ "${#development_tests[@]}" -gt 0 ]]
+    "${python_bin}" -m pytest "${development_tests[@]}" -q
+    ;;
   NETWORK_FOUNDATION)
     echo "==> bounded network and tooling regression; full invariant and package lanes retained"
     "${python_bin}" -m pytest --collect-only -q >/dev/null

@@ -306,3 +306,99 @@ def test_exact_net5_fixture_extension_is_bounded_to_registered_bytes(
         "test_submission_fsm.py",
     ):
         assert "tests/cpu/" + test in selector.NETWORK_TESTS
+
+
+def test_development_profile_exact_paths_and_complete_regression_manifest():
+    from development_scope import (
+        DEVELOPMENT_RUNTIME,
+        DEVELOPMENT_SUPPORT,
+        DEVELOPMENT_TESTS,
+    )
+
+    for path in (
+        *DEVELOPMENT_RUNTIME,
+        *DEVELOPMENT_SUPPORT,
+        *(p for p in DEVELOPMENT_TESTS if p.startswith("tests/cpu/test_cw1_")),
+    ):
+        assert select_cpu_profile([path]) == "DEVELOPMENT_COMPETITION"
+    assert len(DEVELOPMENT_TESTS) == len(set(DEVELOPMENT_TESTS))
+    assert all((SCRIPT_ROOT.parent.parent / p).is_file() for p in DEVELOPMENT_TESTS)
+    assert {
+        "tests/cpu/test_cw1_development_scoring.py",
+        "tests/cpu/test_cw1_development_comparison.py",
+        "tests/cpu/test_c06_signed_development_evidence.py",
+        "tests/cpu/test_c10_independent_reexecution.py",
+        "tests/cpu/test_reward_core.py",
+        "tests/cpu/test_scoring_engine.py",
+    }.issubset(DEVELOPMENT_TESTS)
+    assert (
+        select_cpu_profile(
+            [
+                "carbon/scoring/development.py",
+                ".github/workflows/ci.yml",
+                "scripts/dev/development_scope.py",
+                "website/ask-carbon/knowledge/public-knowledge.v1.json",
+                "docs/development/CW1_DEVELOPMENT_SCORING_RULE.md",
+            ]
+        )
+        == "DEVELOPMENT_COMPETITION"
+    )
+
+
+@pytest.mark.parametrize(
+    "shared",
+    (
+        "carbon/scoring/engine.py",
+        "carbon/scoring/model.py",
+        "carbon/measurement_runtime/model.py",
+        "carbon/reference_runtime/model.py",
+        "carbon/reconstruction/worker/controller.py",
+        "carbon/rewards/core.py",
+        "carbon/orchestration/service.py",
+        "carbon/reexecution/service.py",
+        "carbon/development_session/new.py",
+        "carbon/measurement_runtime/development_future.py",
+        "tests/conftest.py",
+        "tests/fixtures/shared.json",
+        "uv.lock",
+        ".devcontainer/Dockerfile",
+        "carbon/chain/publication.py",
+        "unknown.txt",
+    ),
+)
+def test_development_scope_cannot_hide_mixed_official_shared_or_unknown_paths(shared):
+    assert (
+        select_cpu_profile(["carbon/scoring/development.py", shared]) == "RUNTIME_FULL"
+    )
+
+
+def test_missing_development_test_rejects_manifest(monkeypatch, tmp_path, capsys):
+    monkeypatch.setattr(
+        "select_cpu_profile.changed_paths",
+        lambda *_: ("carbon/scoring/development.py",),
+    )
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "selector",
+            "--repository",
+            str(tmp_path),
+            "--base",
+            "HEAD",
+            "--development-tests",
+        ],
+    )
+    assert main() == 2
+    assert "missing" in capsys.readouterr().err
+
+
+def test_full_scope_cannot_request_development_manifest(monkeypatch, capsys):
+    monkeypatch.setattr(
+        "select_cpu_profile.changed_paths", lambda *_: ("carbon/scoring/engine.py",)
+    )
+    monkeypatch.setattr(
+        sys, "argv", ["selector", "--base", "HEAD", "--development-tests"]
+    )
+    assert main() == 2
+    assert "Full runtime acceptance" in capsys.readouterr().err

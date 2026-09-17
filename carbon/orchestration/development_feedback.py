@@ -117,3 +117,54 @@ def aggregate_development_feedback(
             "reward": False,
         },
     }
+
+
+def development_objective():
+    """Prospective DEVELOPMENT-only public rule, with no realized case material."""
+    import copy
+
+    from carbon.scoring.development import RULE, rule_digest
+
+    return {
+        "schema": "carbon.c07.development-objective.v1",
+        "rule": copy.deepcopy(RULE),
+        "rule_digest": rule_digest(),
+        "official_eligible": False,
+        "feedback": "aggregate EVAL/STRESS metrics, score, admissibility, disposition; no per-case material",
+    }
+
+
+def project_development_acceptance(ref):
+    """Resolve through the existing source owner before allow-listed disclosure."""
+    from carbon.development_comparison.acceptance import resolve_acceptance
+
+    report = resolve_acceptance(ref)
+    decision = report["decision"]
+    return {
+        "schema": "carbon.c07.development-score-feedback.v1",
+        "rule_digest": report["rule_digest"],
+        "disposition": decision["disposition"],
+        "accepted_development_improvement": decision["accepted_improvement"],
+        "cohorts": {
+            label: {
+                role: {
+                    "metrics": observation["metrics"],
+                    "replica_scores": observation["replica_scores"],
+                }
+                for role, observation in decision[label]["roles"].items()
+            }
+            for label in ("baseline", "challenger")
+        },
+        "scores": {
+            label: decision[label]["score"] for label in ("baseline", "challenger")
+        },
+        "mandatory_failures": {
+            label: decision[label]["failed_mandatory"]
+            for label in ("baseline", "challenger")
+        },
+        "uncertainty": "finite cohort and three-replica empirical envelope; no population confidence claim",
+        "official_eligible": False,
+        "protected_eligible": False,
+        "network_eligible": False,
+        "paying": False,
+    }

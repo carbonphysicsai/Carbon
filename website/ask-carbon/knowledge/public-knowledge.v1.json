@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "knowledge_version": "ask-carbon-staging-2026-09-16.3",
+  "knowledge_version": "ask-carbon-staging-2026-09-17.1",
   "release": {
-    "release_id": "ask-carbon-staging-2026-09-16.3",
+    "release_id": "ask-carbon-staging-2026-09-17.1",
     "status": "STAGING_REVIEWED",
     "source_release_date": "2026-09-16",
     "expires_at": "2026-12-15T00:00:00Z",
@@ -75,13 +75,13 @@
       "note": "Paraphrased reference authority, provenance, uncertainty and failure separation; not a quotation."
     },
     {
-      "id": "scoring-405a820b",
+      "id": "scoring-963f07dd",
       "title": "Carbon Scoring Specification",
       "repo_path": "Design_Specs/Scoring.md",
       "sections": ["admissibility", "Score Pack", "challenge-local comparison", "forbidden inputs"],
-      "revision": "405a820bfdd5a38aa2d498e3dbde3fa15449379f",
-      "sha256": "28d479884ed93225466db19a5298d49f356668a3d3c97df19789b43a4ebdc56f",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/405a820bfdd5a38aa2d498e3dbde3fa15449379f/Design_Specs/Scoring.md",
+      "revision": "963f07dd71c57cb0c638508280918204b408a31b",
+      "sha256": "93376e37747ee99f134f33fa3b8c541c3a29810af5295544cd4f0b543505318d",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/963f07dd71c57cb0c638508280918204b408a31b/Design_Specs/Scoring.md",
       "publication_status": "REVIEWED_PUBLIC_EXISTING",
       "integrity_status": "MATCHED_AT_BUILD",
       "withdrawn_at": null,
@@ -114,13 +114,13 @@
       "note": "Paraphrased product, customer, rights and commercial-maturity doctrine; not a quotation."
     },
     {
-      "id": "wave-status-d8da6bec",
+      "id": "wave-status-963f07dd",
       "title": "Carbon Agent Wave Status",
       "repo_path": ".agent/WAVE.md",
       "sections": ["Current wave", "Current phase", "Current C1 status", "maturity ceilings"],
-      "revision": "d8da6beca467065522d8327533ea9da70038cbef",
-      "sha256": "6f623b2a43f7639e9e0c31629c2216090d2a589a59941286b3cbbd3912feddc8",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/d8da6beca467065522d8327533ea9da70038cbef/.agent/WAVE.md",
+      "revision": "963f07dd71c57cb0c638508280918204b408a31b",
+      "sha256": "18f4c8eb461da34177469f3b10b1ac44a1625e29c6b2a91237c4a089fcfc95d0",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/963f07dd71c57cb0c638508280918204b408a31b/.agent/WAVE.md",
       "publication_status": "REVIEWED_PUBLIC_EXISTING",
       "integrity_status": "MATCHED_AT_BUILD",
       "withdrawn_at": null,
@@ -250,7 +250,7 @@
       "keywords": ["score", "scoring", "win", "winner", "error", "rank", "measurement"], "related": ["stress", "qualification", "reconstruction"],
       "audiences": ["engineer", "miner"], "disclosure_class": "PUBLIC", "maturity": "IMPLEMENTED_AND_TESTED_IN_BOUNDED_SCOPES", "scope_note": "Frontier promotion and product qualification are separate.",
       "expires_at": "2026-12-15T00:00:00Z", "publication_status": "REVIEWED_PUBLIC_EXISTING", "withdrawn_at": null,
-      "passages": [{ "id": "scoring-admissibility", "source_id": "scoring-405a820b", "section": "admissibility and Score Pack", "text": "A versioned Challenge Score Pack applies registered measurements. Mandatory admissibility precedes ranking, forbidden inputs cannot alter scientific score, and a scalar result remains Challenge-bound rather than universally comparable." }]
+      "passages": [{ "id": "scoring-admissibility", "source_id": "scoring-963f07dd", "section": "admissibility and Score Pack", "text": "A versioned Challenge Score Pack applies registered measurements. Mandatory admissibility precedes ranking, forbidden inputs cannot alter scientific score, and a scalar result remains Challenge-bound rather than universally comparable." }]
     },
     {
       "id": "stress", "topic": "Evaluation", "questions": ["What is a stress case?", "How do you test robustness?", "Can average error hide failures?"],
@@ -274,7 +274,7 @@
       "keywords": ["proven", "progress", "stage", "live", "production", "ready", "current", "launch"], "related": ["overview", "qualification", "customer-product"],
       "audiences": ["newcomer", "customer", "miner"], "disclosure_class": "PUBLIC", "maturity": "DATED_STATUS_2026_09_16", "scope_note": "Short freshness window; re-review before any public activation.",
       "expires_at": "2026-09-23T00:00:00Z", "publication_status": "REVIEWED_PUBLIC_EXISTING", "withdrawn_at": null,
-      "passages": [{ "id": "current-wave-status", "source_id": "wave-status-d8da6bec", "section": "Current phase and status", "text": "The repository records active bounded public and synthetic development-testnet engineering while official C-W1, protected scientific qualification, production and broader network authority remain unavailable. Implemented and tested engineering states do not imply later qualification." }]
+      "passages": [{ "id": "current-wave-status", "source_id": "wave-status-963f07dd", "section": "Current phase and status", "text": "The repository records active bounded public and synthetic development-testnet engineering while official C-W1, protected scientific qualification, production and broader network authority remain unavailable. Implemented and tested engineering states do not imply later qualification." }]
     },
     {
       "id": "miner-access", "topic": "Miner research", "questions": ["Do miners get the generator and reference?", "Can miners generate training data?", "Can miners inspect test answers?"],

@@ -203,6 +203,19 @@ class LocalMinerConnection:
     miner_key: object
     comparison_contract_digest: str | None = None
 
+    def attach_development_comparison(self, ref):
+        from carbon.development_comparison.acceptance import resolve_acceptance
+
+        report = resolve_acceptance(ref)
+        if report["challenger"]["authenticated_hotkey"] != self.miner_key.ss58_address:
+            raise ValueError("only own development comparison feedback is permitted")
+        submission = report["challenger"]["binding"]["submission_id"]
+        if submission not in self.completed:
+            raise ValueError("comparison must bind this authenticated session result")
+        if not hasattr(self, "development_comparison_feedback"):
+            self.development_comparison_feedback = {}
+        self.development_comparison_feedback[submission] = ref
+
     def __post_init__(self):
         if self.chain_context.netuid != 567 or self.chain_context.network != "testnet":
             raise ValueError("public testnet 567 required")
@@ -336,6 +349,12 @@ class LocalMinerConnection:
                     "max_provider_usd": 1.0,
                     "public_network_transactions": 0,
                 }
+            from carbon.orchestration.development_feedback import development_objective
+
+            projection["available_development_objective"] = development_objective()
+            projection["development_objective_activation"] = (
+                "requires separate prospective rule registration before fresh constructions; legacy source flags unchanged"
+            )
             return projection
         if type(value) is mcp.PublishedPrior:
             projection = {
@@ -449,9 +468,19 @@ class LocalMinerConnection:
             )
             if lifecycle is not audit.ReceiptLifecycleState.ACTIVE:
                 return {"status": "QUARANTINED", "feedback": None}
-            return {
+            result = {
                 "submission_id": value.status.submission_id.value,
                 "status": "COMPLETE_UNRESOLVED",
                 "feedback": feedback,
             }
+            ref = getattr(self, "development_comparison_feedback", {}).get(
+                value.status.submission_id.value
+            )
+            if ref is not None:
+                from carbon.orchestration.development_feedback import (
+                    project_development_acceptance,
+                )
+
+                result["development_comparison"] = project_development_acceptance(ref)
+            return result
         raise ValueError("unsupported service result projection")

@@ -120,6 +120,21 @@ class DevelopmentReceiptSigner:
             signature=self._private_key.sign(receipt.canonical_bytes),
         )
 
+    def sign_derivation(self, derivation):
+        """Separate domain/type; cannot be decoded as an evaluation receipt."""
+        from .derivation import DevelopmentDerivation
+
+        if (
+            type(derivation) is not DevelopmentDerivation
+            or derivation.key_id != self.verification_key.key_id
+            or derivation.public_key_digest != self.verification_key.public_key_digest
+            or not self.verification_key.permits(
+                derivation.issued_at_micros, derivation.issued_at_micros
+            )
+        ):
+            raise AuditFailure(AuditCode.INVALID)
+        return self._private_key.sign(derivation.canonical_bytes)
+
 
 def verify_signed_receipt(
     signed: SignedDevelopmentEvaluationReceipt,

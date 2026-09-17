@@ -1157,7 +1157,19 @@ def test_default_workflow_delegates_all_semantics_to_repository_scripts() -> Non
         "classifier=.carbon-gate-candidate/scripts/dev/classify_changes.py"
     )
     assert workflow.count(candidate_gate) == 1
-    assert workflow.count(candidate_classifier) == 1
+    assert workflow.count(candidate_classifier) == 2
+    migration = workflow.split("# OWNER-CW1-DEVELOPMENT-CI-01 BEGIN", 1)[1].split(
+        "# OWNER-CW1-DEVELOPMENT-CI-01 END", 1
+    )[0]
+    assert (
+        'if [[ "${BASE_SHA}" == "d1d07bb408a2b68efed70baf7e11ec22bb180c9d" ]]; then'
+        in migration
+    )
+    assert candidate_gate not in migration
+    assert migration.count(candidate_classifier) == 1
+    assert migration.count("sha256sum --check --strict") == 2
+    assert "scripts/dev/development_scope.py" in migration
+    assert "protected-base Merge gate retained" in migration
     bootstrap_selector = (
         'elif [[ "${BASE_SHA}" == "${BOOTSTRAP_BASE_SHA}"'
         " && -f .carbon-gate-candidate/scripts/dev/check_merge_gate.py"
