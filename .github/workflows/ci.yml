@@ -195,9 +195,7 @@ jobs:
         env:
           CARBON_JULIA_WORKER_MANIFEST: .carbon-artifacts/julia-worker-image.json
           CARBON_JULIA_TRACE_PATH: .carbon-artifacts/julia-service-traces.jsonl
-        run: |
-          .venv/bin/python -m pytest tests/service/test_julia_science_service.py -k 'registered_julia or existing_c04_controller' -q
-          .venv/bin/python -m pytest tests/service/test_julia_miner_research.py -q
+        run: bash ./scripts/dev/julia_worker_service.sh
       - name: Exercise the three retained owner commands
         run: |
           ./scripts/dev/c03_worker.sh doctor
