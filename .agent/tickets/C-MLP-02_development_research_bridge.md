@@ -178,6 +178,65 @@ The campaign outcome, costs and cleanup evidence are recorded in the bridge
 document. C-MLP-02 stays open; Hermes/hosted successors do not displace its
 outstanding genuine adaptive-research and independent-reconstruction acceptance.
 
+## Observation dashboard continuation C-MLP-02-D4
+
+Continue independent UI and empirical reporting alongside core programme #209.
+The active second browser campaign stays pinned to its accepted implementation,
+images, profile, scientific rules and separately approved remaining-allowance grant.
+No running campaign is migrated. The core integration owner owns the pending
+research SDK transport identity, reconstruction catalogue, Julia reference and
+standard MCP changes; coordinate before editing those shared interfaces or
+Launchpad ownership/cleanup helpers. Reuse the existing ledger and projections.
+
+The first real practice result exposes a usability gap: its measured curve,
+sampled gate failures and resource accounting are only visible in raw JSON, and
+polling closes an expanded record. In a successor UI slice, display those existing
+allow-listed values directly, plot only the measured training-loss samples, keep
+record expansion stable, and correct the stale historical-source empty message.
+Do not describe a training curve as a Burgers spatial field, a practice score as
+independent improvement, or an agent selection as final acceptance. Test the real
+browser/server with explicitly labelled fixtures, preserve stale-control behavior
+and desktop/mobile layout, and retain the actual campaign outcome separately.
+Primary map: SYSTEM/AGENT-EXECUTION; Hub impact is required and batched with the
+empirical findings before applicable canonical acceptance and delivery.
+
+The separately approved second browser campaign has now returned the real
+`REJECTED_MANDATORY` DEVELOPMENT comparison after one practice experiment and six
+independent final replicas. The agent selected after one trial; feedback-informed
+selection is not two adaptive iterations. Preserve both campaigns' measured
+usage and the first rejection. No new scientific capability was requested in the
+second run. Both original epoch slots are consumed; another root or unused money
+does not renew the grant. The full accounting and source bindings are retained in
+`docs/development/MINER_LAUNCHPAD_RESEARCH_BRIDGE.md`.
+
+The one-epoch grant also exposed a finite-completion seam: the fixed two-epoch
+runner prepared an epoch-2 plan, admitted no epoch-2 operation, and ended
+INTERRUPTED after its final result. Supported browser STOP/reconcile reached
+STOPPED with verified cleanup. Coordinate a prospective narrow lifecycle repair
+with #209's integration owner before editing shared code; no active-run patch,
+grant expansion, forced extra trial or acceptance relabelling is authorized here.
+The dashboard engineering slice may deliver after its applicable checks while
+the genuine multi-iteration acceptance remains selected and explicitly incomplete.
+
+## Finite-completion repair C-MLP-02-D5
+
+The #209 integration owner assigned the campaign orchestrator's narrow
+finite-completion repair to the Launchpad executor as a separate tested successor.
+Keep its shared SDK, task/service, reference, ownership and cleanup files untouched.
+The observed one-epoch campaign prepared an inadmissible second epoch after its
+real final result. Iterate only the epoch identities allowed by the existing
+validated frozen manifest; retain D4 v1's exact two-epoch behavior. Do not derive
+another grant, alter its ceilings, refund usage or migrate either terminal run.
+
+Plan: reproduce the one-epoch failure through the real orchestrator and ledger
+with explicitly non-spending external-boundary fixtures; repair the finite loop;
+test one/two/zero-epoch admitted limits, legacy defaults, non-improved final
+completion, stop/failure paths and unchanged terminal resume. Reuse all existing
+admission, freeze, accounting and cleanup semantics. Deliver after applicable
+canonical and Hub acceptance, separately from #215's observation dashboard.
+Primary map remains SYSTEM/AGENT-EXECUTION; batch its Hub impact before acceptance.
+This repair alone supplies no new empirical adaptive-research evidence or grant.
+
 ## Earlier readback slice evidence
 
 Continuation engineering diagnostics: 94 focused Linux tests passed. The initial

@@ -134,8 +134,31 @@ class ResearchFixture:
                 "id": "engineering-research-fixture",
                 "state": "RUNNING",
                 "agent": "UI FIXTURE",
-                "attempted_experiments": 0,
-                "completed_experiments": 0,
+                "attempted_experiments": 1,
+                "completed_experiments": 1,
+                "experiments": [
+                    {
+                        "completed_steps": 12,
+                        "worker_seconds": 2.5,
+                        "diagnostics": {
+                            "descriptive_score": 0.42,
+                            "sampled_gate_failures": ["ENGINEERING_FIXTURE_GATE"],
+                        },
+                        "inline_curve": [
+                            {"step": 1, "data_loss": 0.5},
+                            {"step": 12, "data_loss": 0.25},
+                        ],
+                    }
+                ],
+                "usage": {
+                    kind: {"provider_nanodollars": value}
+                    for kind, value in [
+                        ("available", 490000000),
+                        ("reserved", 1000000),
+                        ("reported", 2000000),
+                        ("uncertain", 3000000),
+                    ]
+                },
                 "final_results": [],
             }
         return self.record
@@ -286,6 +309,61 @@ def run():
                         session,
                         "document.getElementById('research-runs').textContent.includes('UI FIXTURE')",
                     )
+                    assert session.evaluate(
+                        "document.querySelectorAll('.practice-result svg circle').length === 2"
+                    )
+                    assert session.evaluate(
+                        "document.querySelector('.practice-result').textContent.includes('ENGINEERING_FIXTURE_GATE')"
+                    )
+                    assert session.evaluate(
+                        "document.querySelector('.research-usage').textContent.includes('uncertain: $0.00300000')"
+                    )
+                    assert session.evaluate(
+                        "document.querySelector('.development-result').textContent.includes('no independent result')"
+                    )
+                    session.evaluate(
+                        "document.querySelector('#research-runs details').open = true"
+                    )
+                    research.record["current_hypothesis"] = {
+                        "hypothesis": "UI FIXTURE updated hypothesis"
+                    }
+                    wait(
+                        session,
+                        "document.querySelector('#research-runs').textContent.includes('UI FIXTURE updated hypothesis')",
+                    )
+                    assert session.evaluate(
+                        "document.querySelector('#research-runs details').open"
+                    )
+                    research.record["experiments"][0]["inline_curve"][0][
+                        "data_loss"
+                    ] = None
+                    wait(
+                        session,
+                        "document.querySelectorAll('.practice-result svg').length === 0",
+                    )
+                    assert session.evaluate(
+                        "document.querySelector('.practice-result').textContent.includes('Training curve unavailable')"
+                    )
+                    research.record["experiments"][0]["inline_curve"][0][
+                        "data_loss"
+                    ] = 0.5
+                    original_research_recent = research.recent
+                    research.recent = unavailable
+                    wait(
+                        session,
+                        "document.getElementById('connection-state').textContent === 'Connection interrupted'",
+                    )
+                    assert session.evaluate(
+                        "[...document.querySelectorAll('#research-runs button')].every(b => b.disabled)"
+                    )
+                    research.recent = original_research_recent
+                    wait(
+                        session,
+                        "document.getElementById('connection-state').textContent === 'Connected'",
+                    )
+                    assert session.evaluate(
+                        "document.querySelector('#research-runs details').open"
+                    )
                     for action, observed in (
                         ("pause", "PAUSE_REQUESTED"),
                         ("resume", "RUNNING"),
@@ -312,6 +390,35 @@ def run():
                     assert len(research.keys) == 1
                     assert "UI FIXTURE stop reason" in session.evaluate(
                         "document.getElementById('research-runs').textContent"
+                    )
+                    research.record["final_results"] = [
+                        {
+                            "status": "VERIFIED_SOURCE",
+                            "result": {
+                                "disposition": "ENGINEERING_FIXTURE_COMPLETE_UNRESOLVED",
+                                "accepted_development_improvement": False,
+                            },
+                        }
+                    ]
+                    wait(
+                        session,
+                        "document.querySelector('.development-result').textContent.includes('ENGINEERING_FIXTURE_COMPLETE_UNRESOLVED')",
+                    )
+                    assert session.evaluate(
+                        "document.querySelector('.development-result').textContent.includes('improvement: false')"
+                    )
+                    research.record["final_results"] = [
+                        {"status": "READBACK_UNAVAILABLE", "result": None}
+                    ]
+                    wait(
+                        session,
+                        "document.querySelector('.development-result').textContent.includes('Readback unavailable')",
+                    )
+                    assert (
+                        "ENGINEERING_FIXTURE_COMPLETE_UNRESOLVED"
+                        not in session.evaluate(
+                            "document.getElementById('research-runs').textContent"
+                        )
                     )
                     load(session, origin)
                     connect(session, token)

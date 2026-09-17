@@ -40,9 +40,9 @@ Disposable synthetic operations only. Missing shared-winner runtime evidence kee
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/92e540b66e6ee94d3fad7a0907a2b571838506a3/.agent/tickets/NET-6_network_operations.md)
-- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/92e540b66e6ee94d3fad7a0907a2b571838506a3/.agent/evidence/wave_c/net-6.md)
-- [Operator contract](https://github.com/carbonphysicsai/Carbon/blob/92e540b66e6ee94d3fad7a0907a2b571838506a3/docs/development/NETWORK_OPERATIONS.md)
-- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/92e540b66e6ee94d3fad7a0907a2b571838506a3/.agent/WAVE_C.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/1aa46aae62d0656a07d92550ba8741e067829d96/.agent/tickets/NET-6_network_operations.md)
+- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/1aa46aae62d0656a07d92550ba8741e067829d96/.agent/evidence/wave_c/net-6.md)
+- [Operator contract](https://github.com/carbonphysicsai/Carbon/blob/00ee32c119b7c24d309640eeca439822e3d717f4/docs/development/NETWORK_OPERATIONS.md)
+- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/1aa46aae62d0656a07d92550ba8741e067829d96/.agent/WAVE_C.md)
 
 > Stopped publishers do not clear stored chain weights; backups preserve pending liabilities and credit age.

@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import gc
-import importlib
 import json
+import subprocess
 import sys
 from pathlib import Path
 
@@ -73,16 +73,26 @@ def test_verified_plan_with_wrong_exact_pin_fails_closed(
 
 
 def test_public_reconstruction_import_is_jax_and_numpy_free() -> None:
-    for name in tuple(sys.modules):
-        if name == "carbon.reconstruction" or name.startswith("carbon.reconstruction."):
-            sys.modules.pop(name)
-    before = set(sys.modules)
-
-    importlib.import_module("carbon.reconstruction")
-
-    loaded = set(sys.modules) - before
-    assert not any(name == "jax" or name.startswith("jax.") for name in loaded)
-    assert not any(name == "numpy" or name.startswith("numpy.") for name in loaded)
+    # Observe a genuinely fresh interpreter. Deleting imported modules in the
+    # pytest process left collected tests and lazily importing workers holding
+    # different class/module identities, so their probes could escape patches.
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            (
+                "import sys; import carbon.reconstruction; "
+                "assert not any(n == 'jax' or n.startswith('jax.') or "
+                "n == 'numpy' or n.startswith('numpy.') for n in sys.modules)"
+            ),
+        ],
+        cwd=Path(__file__).resolve().parents[2],
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
 
 
 def test_vendored_provenance_and_notices_are_present() -> None:

@@ -59,6 +59,15 @@ the server-owned reviewed-card selection contract. A two-candidate
 compatibility smoke was run on that successor; it does not rewrite the prior
 bakeoff source basis or constitute the pending frozen final evaluation.
 
+Current main now carries `ask-carbon-staging-2026-09-17.4`. It remains
+`STAGING_REVIEWED`, has `public_activation_allowed:false`, and was not silently
+substituted into either retained live-evaluation basis. The owner approved the
+bounded private pilot-quality packet after PR #203; that disposition does not
+approve this newer knowledge release, general-Q&A model selection, privacy or
+security, production routing, public activation, or inquiry collection. The
+exact next owner decisions are collected in
+`PUBLIC_RELEASE_DECISION_PACKET.md`.
+
 ## Shared monthly budget authority
 
 All evaluation, staging and production provider calls bind to one central
