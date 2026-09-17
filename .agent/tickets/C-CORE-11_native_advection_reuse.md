@@ -158,3 +158,22 @@ that CRLF-normalized contents exactly matched their HEAD blobs and restoring
 those exact bytes, `python -m pytest tests/invariants -q --lf` passed all 11
 previously failing cases. No source changes, digest updates, exemptions or test
 suppression were needed. Canonical CI remains the delivery authority.
+
+## Ordered integration with C-CORE-08
+
+The normal dependency merge retains independent exact-type branches for the
+existing Julia public reference material, the two-case envelope material and this
+advection material. Each admits only its own fixed names; subclasses and other
+wrappers gain no additional material access. The incoming CampaignLedger remains
+byte-identical, including HELD never-dispatched capacity and retained unknown
+claimed-work accounting. The required Julia service script keeps authored,
+Workbench, envelope and advection suites with the shared operator image root.
+
+Focused integration checks passed: 29 advection/envelope/public-task/ledger
+cases, 14 sequence-accounting cases, and three new material-dispatch cases covering
+each exact type, cross-material rejection and unregistered-subclass rejection.
+The new synthetic dispatch fixture initially used noncanonical JSON; correcting
+its serialization to the existing canonical argument contract made all three
+cases pass without changing the production parser. Isolated Ruff and Black passed
+for the merged dispatch and regression test. This integration changes neither
+native Julia source nor the recorded image/scientific evidence identities.

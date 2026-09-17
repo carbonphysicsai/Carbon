@@ -130,3 +130,47 @@ class Admission:
 
     def binding(self):
         return {"path": str(self.path), "digest": self.pin}
+
+
+def verify_cleanup_owner(ledger, owner, *, db=None):
+    """Authenticate retained campaign ownership without admitting further work.
+
+    Expiration ends spending authority, not responsibility for already-owned
+    cleanup. This proof never reserves resources, restarts a task, changes a
+    grant, or substitutes for the caller's fresh external authentication.
+    """
+    admission = ledger.admission
+    if type(admission) is not Admission:
+        raise ValueError("explicit retained campaign authority required")
+    doc = private_json(admission.path)
+    if db is None:
+        with ledger.db() as connection:
+            return verify_cleanup_owner(ledger, owner, db=connection)
+    row = db.execute("SELECT manifest FROM campaign WHERE id=1").fetchone()
+    control = db.execute(
+        "SELECT generation FROM launchpad_control WHERE id=1"
+    ).fetchone()
+    if row is None:
+        raise ValueError("frozen campaign required for cleanup")
+    manifest = json.loads(row[0])
+    if (
+        doc != admission.document
+        or digest(canonical(doc)) != admission.pin
+        or doc.get("schema") != SCHEMA
+        or doc.get("status") != "APPROVED"
+        or doc.get("profile") != PROFILE
+        or manifest.get("schema") != MANIFEST
+        or manifest.get("owner") != owner
+        or manifest.get("grant") != admission.binding()
+        or manifest.get("principal") != doc.get("principal")
+        or manifest.get("runtime") != doc.get("runtime")
+        or manifest.get("campaign_id") != doc.get("campaign_id")
+        or manifest.get("authority") != doc.get("authority")
+        or str(ledger.root) != doc.get("root")
+        or ledger.root.resolve() != ledger.root
+        or ledger.generation is None
+        or control is None
+        or control[0] != ledger.generation
+    ):
+        raise ValueError("retained campaign ownership changed")
+    return manifest

@@ -3,6 +3,7 @@
 import json
 import struct
 from dataclasses import replace
+from types import SimpleNamespace
 
 import pytest
 
@@ -226,3 +227,43 @@ def test_fixed_material_requires_both_scopes_and_same_owner(tmp_path):
         db.execute("UPDATE campaign SET manifest=? WHERE id=1", (json.dumps(manifest),))
     with pytest.raises(ValueError):
         material._authorize()
+
+
+@pytest.mark.parametrize("kind", ["advection", "envelope", "reference"])
+def test_integrated_material_allowlists_remain_separate_exact_types(monkeypatch, kind):
+    from carbon.development_session.advection_research import MATERIAL as ADVECTION
+    from carbon.development_session.advection_research import PublicAdvectionMaterial
+    from carbon.development_session.julia_envelope import MATERIAL as ENVELOPE
+    from carbon.development_session.julia_envelope import JuliaEnvelopeMaterial
+    from carbon.development_session.julia_research import MATERIAL, JuliaPublicMaterial
+    from carbon.development_session.profile import canonical
+    from carbon.development_session.research_tasks import PublicResearchExecutor
+
+    cls, names = {
+        "advection": (PublicAdvectionMaterial, {ADVECTION}),
+        "envelope": (JuliaEnvelopeMaterial, {MATERIAL, ENVELOPE}),
+        "reference": (JuliaPublicMaterial, {MATERIAL}),
+    }[kind]
+    # Exercise only the dispatch allowlist; real constructor/grant validation is
+    # covered separately. The synthetic callback cannot run scientific work.
+    monkeypatch.setattr(cls, "__call__", lambda self, name, workspace: name)
+    executor = object.__new__(PublicResearchExecutor)
+    executor.workspace = None
+    executor.public_material = object.__new__(cls)
+    for name in {MATERIAL, ENVELOPE, ADVECTION}:
+        spec = SimpleNamespace(
+            action="public_material", arguments_json=canonical({"name": name}).decode()
+        )
+        if name in names:
+            assert executor._workspace_action(spec, "fixture") == name
+        else:
+            with pytest.raises(ValueError, match="public material unavailable"):
+                executor._workspace_action(spec, "fixture")
+    unregistered = type("UnregisteredMaterial", (cls,), {})
+    executor.public_material = object.__new__(unregistered)
+    for name in names:
+        spec = SimpleNamespace(
+            action="public_material", arguments_json=canonical({"name": name}).decode()
+        )
+        with pytest.raises(ValueError, match="public material unavailable"):
+            executor._workspace_action(spec, "fixture")
