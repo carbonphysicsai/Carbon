@@ -367,6 +367,35 @@ def test_established_connection_rechecks_authority_on_each_call(
         asyncio.run(bound.check_registration())
 
 
+def test_cleanup_registration_retains_expired_grant_owner_but_not_new_admission(
+    tmp_path, monkeypatch
+):
+    from carbon.development_session.research_control import CampaignControl
+
+    path, ledger, owner = prepare(tmp_path, monkeypatch)
+    profile = standard_cli.load_profile(path)
+    control = CampaignControl(ledger)
+    ledger.generation = control.acquire()
+    connection = fixture_connection(ledger.root)
+    bound = standard_cli._AdmittedConnection(connection, profile, ledger, control)
+    ledger.clock = lambda: profile.admission.document["expires_unix"] + 1
+    with pytest.raises(ValueError, match="expired"):
+        asyncio.run(bound.check_registration())
+    before = ledger.status(owner=owner)["used"]
+    asyncio.run(bound.check_cleanup_registration())
+    assert ledger.status(owner=owner)["used"] == before
+
+    async def unauthenticated():
+        raise ValueError("fresh external identity unavailable")
+
+    connection.check_registration = unauthenticated
+    with pytest.raises(ValueError, match="external identity"):
+        asyncio.run(bound.check_cleanup_registration())
+    control.acquire()
+    with pytest.raises(ValueError, match="ownership changed"):
+        asyncio.run(bound.check_cleanup_registration())
+
+
 if __name__ == "__main__":
     if len(sys.argv) != 3 or sys.argv[1] != "--serve-fixture":
         raise SystemExit("explicit isolated test profile required")
