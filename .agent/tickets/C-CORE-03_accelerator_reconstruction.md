@@ -145,3 +145,16 @@ eligible sharding remain unearned until run. No shared comparison class or score
 pooling is authorized by this implementation. Completion is conditional on
 applicable checks and normal expected-head merge under OWNER-DX-03; partial
 implementation may merge with admission disabled and runtime acceptance open.
+
+### CPU probe regression repair
+
+The accelerator profile selection exposed an obsolete backend-probe test stub:
+returning five `None` values from request decoding left no staged request for the
+new typed worker-profile read. The test therefore stopped before its intended
+probe, and the neighbouring rejection tests could pass without probing at all.
+Reuse the existing C03 bounded fixture to stage and decode a real CPU request,
+assert that reconstruction receives its exact CPU profile, and require each
+backend-rejection case to observe one explicit CPU probe before stopping.
+The decode/probe/reconstruction ordering and no-publication assertions remain.
+This repair changes tests only; CPU runtime selection, accelerator admission and
+the recorded image/hardware acceptance limits remain unchanged.

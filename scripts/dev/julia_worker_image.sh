@@ -12,7 +12,9 @@ parent="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["image
 [[ "${parent}" =~ ^sha256:[0-9a-f]{64}$ ]] || exit 2
 source_digest="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["source_tree_digest"])' "${parent_manifest}")"
 [[ "${source_digest}" =~ ^sha256:[0-9a-f]{64}$ ]] || exit 2
-parent_ref="carbon-c03-worker:${source_digest:7:16}@${parent}"
+# A local image/config ID is not a registry manifest digest. BuildKit's classic
+# store cannot resolve tag@config-ID and must not try to pull this private build.
+parent_ref="carbon-julia-parent:${parent:7}"
 recipe="${repo_root}/.devcontainer/Dockerfile.julia-worker"
 recipe_digest="sha256:$(sha256sum "${recipe}" | cut -d' ' -f1)"
 temporary="$(mktemp -d)"
@@ -22,15 +24,23 @@ cleanup() {
   rm -rf -- "${temporary}"
 }
 trap cleanup EXIT
-docker build --platform linux/amd64 --file "${recipe}" \
+docker tag "${parent}" "${parent_ref}"
+docker image inspect "${parent_ref}" --format '{{json .}}' > "${temporary}/parent-before.json"
+python3 "${script_dir}/verify_julia_build_parent.py" "${parent_manifest}" "${temporary}/parent-before.json"
+docker build --pull=false --platform linux/amd64 --file "${recipe}" \
   --build-arg "WORKER_IMAGE_REF=${parent_ref}" \
   --build-arg "WORKER_IMAGE=${parent}" \
   --build-arg "JULIA_RECIPE_DIGEST=${recipe_digest}" \
   --iidfile "${temporary}/iid" "${repo_root}"
 image="$(tr -d '[:space:]' < "${temporary}/iid")"
 [[ "${image}" =~ ^sha256:[0-9a-f]{64}$ ]] || exit 2
+docker image inspect "${parent_ref}" --format '{{json .}}' > "${temporary}/parent-after.json"
+python3 "${script_dir}/verify_julia_build_parent.py" "${parent_manifest}" "${temporary}/parent-after.json"
+docker image inspect "${image}" --format '{{json .}}' > "${temporary}/child.json"
 container="$(docker create "${image}")"
 docker cp "${container}:/opt/carbon/worker-image-build.json" "${temporary}/build.json"
+python3 "${script_dir}/verify_julia_build_parent.py" "${parent_manifest}" "${temporary}/parent-before.json" \
+  "${temporary}/child.json" "${image}" "${temporary}/build.json" "${recipe_digest}"
 mkdir -p "$(dirname -- "${output}")"
 python3 - "${image}" "${temporary}/build.json" "${output}" <<'PY'
 import json
