@@ -1,11 +1,11 @@
 {
   "schema_version": 2,
   "answer_contract": "SERVER_OWNED_REVIEWED_CARD_SELECTION_V1",
-  "knowledge_version": "ask-carbon-staging-2026-09-18.1",
+  "knowledge_version": "ask-carbon-release-candidate-2026-09-18.1",
   "release": {
-    "release_id": "ask-carbon-staging-2026-09-18.1",
+    "release_id": "ask-carbon-release-candidate-2026-09-18.1",
     "status": "STAGING_REVIEWED",
-    "source_release_date": "2026-09-16",
+    "source_release_date": "2026-09-18",
     "expires_at": "2026-12-15T00:00:00Z",
     "withdrawn_at": null,
     "withdrawal_epoch": 1,
@@ -271,11 +271,11 @@
     },
     {
       "id": "current-progress", "topic": "Progress", "questions": ["What has been proven?", "Is Carbon live?", "What stage is Carbon at?", "Is it production ready?"],
-      "answer": "As of the pinned 16 September 2026 repository status, Carbon has many implemented and tested bounded engineering components and an active public/synthetic development-testnet workstream. The same status explicitly keeps official scientific qualification, protected execution, production readiness and broader public-network authority separate or blocked. Development execution is not evidence of a qualified production system, customer traction or measured network advantage.",
+      "answer": "As of the pinned 17 September 2026 repository status, Carbon has many implemented and tested bounded engineering components. A finite three-campaign public/synthetic development research program is closed: it produced no accepted improvement, and no successor campaign is authorized. Official scientific qualification, protected evaluation, production readiness and broader network authority remain unavailable. Engineering delivery is not evidence of a qualified production system, customer traction or measured network advantage.",
       "keywords": ["proven", "progress", "stage", "live", "production", "ready", "current", "launch"], "related": ["overview", "qualification", "customer-product"],
-      "audiences": ["newcomer", "customer", "miner"], "disclosure_class": "PUBLIC", "maturity": "DATED_STATUS_2026_09_16", "scope_note": "Short freshness window; re-review before any public activation.",
-      "expires_at": "2026-09-23T00:00:00Z", "publication_status": "REVIEWED_PUBLIC_EXISTING", "withdrawn_at": null,
-      "passages": [{ "id": "current-wave-status", "source_id": "wave-status-90dd9670", "section": "Current phase and status", "text": "The repository records active bounded public and synthetic development-testnet engineering while official C-W1, protected scientific qualification, production and broader network authority remain unavailable. Implemented and tested engineering states do not imply later qualification." }]
+      "audiences": ["newcomer", "customer", "miner"], "disclosure_class": "PUBLIC", "maturity": "DATED_STATUS_2026_09_17", "scope_note": "Short freshness window; re-review before any public activation.",
+      "expires_at": "2026-09-25T00:00:00Z", "publication_status": "REVIEWED_PUBLIC_EXISTING", "withdrawn_at": null,
+      "passages": [{ "id": "current-wave-status", "source_id": "wave-status-90dd9670", "section": "Current phase and status", "text": "The repository records that the finite three-campaign public and synthetic development research program is closed, with no accepted improvement and no authorized successor campaign. Official C-W1, protected scientific qualification, production and broader network authority remain unavailable. Implemented and tested engineering states do not imply later qualification." }]
     },
     {
       "id": "miner-access", "topic": "Miner research", "questions": ["Do miners get the generator and reference?", "Can miners generate training data?", "Can miners inspect test answers?"],

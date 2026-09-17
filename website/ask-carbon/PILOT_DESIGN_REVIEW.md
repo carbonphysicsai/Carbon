@@ -16,10 +16,12 @@ separate Nick-authored review, customer usability, public privacy/security
 acceptance, scientific qualification, or deployment authorization.
 
 The exact live evidence remains pinned to
-`ask-carbon-staging-2026-09-16.1` and `gpt-5.6-luna:low:v1`. Current main's
-`ask-carbon-staging-2026-09-17.4` manifest is newer, staging-reviewed, and not
-public-approved. See `PUBLIC_RELEASE_DECISION_PACKET.md` for the next bounded
-decision.
+`ask-carbon-staging-2026-09-16.1` and `gpt-5.6-luna:low:v1`. The
+`ask-carbon-release-candidate-2026-09-18.1` manifest is newer,
+staging-reviewed, and not public-approved. The pilot source wording and Luna
+configuration used by the retained packet are unchanged; the candidate's
+dated progress card is handled as a separate changed-knowledge check. See
+`PUBLIC_RELEASE_DECISION_PACKET.md` for the exact release decision.
 
 ## Exact visitor notice in the preview
 
@@ -104,20 +106,20 @@ it. This implementation creates no second allowance.
 - Actual customer usability observations: **none**.
 
 The private live comparison is complete for the exact retained synthetic
-scope. Public service remains unavailable because the knowledge release is not
-public-approved, the observed provider project does not establish ZDR/MAM,
-general-Q&A production model selection remains open, and the public
-route/privacy/security decision is not accepted. The inquiry receiver/store is
-still absent. Mock, authored, and synthetic live tests are not customer
-usability or scientific evidence.
+scope. The owner has accepted the prepared visitor privacy posture, while the
+observed provider project still does not establish ZDR/MAM. Public service
+remains unavailable because the candidate knowledge release, general-Q&A model,
+production route and exact activation package are not approved. The absent
+inquiry receiver/store blocks submission under issue #139, not local or guided
+drafting. Mock, authored, and synthetic live tests are not customer usability
+or scientific evidence.
 
 ## Remaining production decisions
 
-Activation requires the actual homepage repository/static output and
-Cloudflare route, approved public knowledge release and expiry, owner-approved
-model and prices, account retention posture, privacy/security notice,
-combined cost controls, private inquiry receiver/store, staff access,
-retention/deletion and incident ownership, abuse controls, rollback, and
-deployment authorization. The current preview does not transmit submissions,
-persist abandoned conversations, publish the component, or change the live
-homepage.
+Activation requires the exact homepage source/upload artifact, approved public
+knowledge release and expiry, measured general-Q&A model and prices, confirmed
+provider posture, shared cost and abuse controls, incident ownership,
+rollback, and deployment authorization. The inquiry receiver/store, staff
+access and submission retention remain separate issue #139 requirements. The
+current preview does not transmit submissions, persist abandoned conversations,
+publish the component, or change the live homepage.

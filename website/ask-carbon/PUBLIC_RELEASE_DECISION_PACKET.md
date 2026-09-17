@@ -2,7 +2,8 @@
 
 **Decision ID:** `ASK-CARBON-PUBLIC-RELEASE-DECISION-01`
 
-**Status:** owner review required; public activation disabled
+**Status:** concrete candidate in engineering acceptance; owner release approval
+required; public activation disabled
 
 **Scope:** public Ask Carbon explanation and guided pilot drafting only
 
@@ -18,18 +19,18 @@ guidance quality and its three retained missing-field limitations; it does not
 prove customer usability or approve public data processing, production
 security, publication, routing, or collection.
 
-Current main contains knowledge release
-`ask-carbon-staging-2026-09-17.4`. It is `STAGING_REVIEWED`, expires on
-2026-12-15, and explicitly has `public_activation_allowed: false`. The live
+The release candidate contains knowledge
+`ask-carbon-release-candidate-2026-09-18.1`. It is `STAGING_REVIEWED`, expires
+on 2026-12-15, and explicitly has `public_activation_allowed: false`. The live
 pilot evidence remains bound to `ask-carbon-staging-2026-09-16.1` and
 `gpt-5.6-luna:low:v1`. A newer repository manifest does not retroactively
 change that evidence.
 
 Recommended release sequence:
 
-1. Decide the exact public notice, provider-processing posture, knowledge
-   release, model configuration, abuse policy, incident owner, and production
-   route.
+1. Complete the exact candidate evaluation, static integration, abuse-policy,
+   incident-owner and production-route record. The owner has approved the
+   prepared visitor privacy posture.
 2. If approved, publish the static component and production Worker **inactive**
    and test the exact homepage integration and rollback.
 3. Explicitly enable public general Q&A and guided drafting only after those
@@ -66,8 +67,9 @@ workflow.
 
 ## Exact proposed visitor notice
 
-The following copy is recommended as one notice shown before the first AI
-request. It has not been accepted as a public privacy policy:
+The following copy is the owner-approved visitor posture for this bounded
+candidate and is shown before the first AI request. It does not authorize
+inquiry collection or confidential/customer-data processing:
 
 > **Before you enable Ask Carbon**
 >
@@ -184,8 +186,8 @@ The owner should answer these exact questions together:
 1. **Notice and processing:** Accept, change, or reject the proposed visitor
    notice and processing description, including potential provider retention
    up to 30 days and synthetic-only evidence to date.
-2. **Public knowledge:** Approve an exact new `APPROVED_PUBLIC` release derived
-   from `ask-carbon-staging-2026-09-17.4`, or name the required source changes.
+2. **Public knowledge:** Approve the exact candidate as a new
+   `APPROVED_PUBLIC` release, or name the required source changes.
 3. **Model configuration:** Select the exact production configuration for
    general Q&A and pilot guidance, or keep either mode unavailable. Pilot
    quality approval alone does not select general Q&A.

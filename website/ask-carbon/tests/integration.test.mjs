@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import { integrateHtml } from "../tools/integrate-static.mjs";
 import { buildCsp } from "../tools/csp-report.mjs";
 import { validateKnowledge } from "../tools/validate-knowledge.mjs";
@@ -11,6 +12,7 @@ test("static integration preserves existing content and routes", () => {
   assert.match(output, /<main id=home>Keep me<\/main>/);
   assert.match(output, /href="\/workbench\/"/);
   assert.match(output, /<ask-carbon/);
+  assert.match(output, /pilot-url="\.\/ask-carbon\/pilot-designer\.html"/);
   assert.doesNotMatch(output, /staging-preview/);
   assert.match(output, /ask-carbon\.js/);
   assert.throws(() => integrateHtml(output), /already integrated/);
@@ -18,8 +20,9 @@ test("static integration preserves existing content and routes", () => {
 });
 
 test("static integration can point a staging fixture at an unavailable knowledge route", () => {
-  const output = integrateHtml("<html><head></head><body></body></html>", { knowledgeUrl: "/missing-knowledge.json", stagingPreview: true });
+  const output = integrateHtml("<html><head></head><body></body></html>", { knowledgeUrl: "/missing-knowledge.json", pilotUrl: "/pilot", stagingPreview: true });
   assert.match(output, /knowledge-url="\/missing-knowledge\.json"/);
+  assert.match(output, /pilot-url="\/pilot"/);
   assert.match(output, /staging-preview/);
 });
 
@@ -55,4 +58,16 @@ test("knowledge validation rejects answer cards without a reviewed server-owned 
   });
   assert.equal(result.valid, false);
   assert.ok(result.errors.includes(`missing_answer_basis:${missingBasis.cards[0].id}`));
+});
+
+test("production candidate is inactive, path-bounded, and excludes staging Basic auth", async () => {
+  const config = await readFile(new URL("../wrangler.public-release-candidate.toml", import.meta.url), "utf8");
+  assert.match(config, /ASK_CARBON_ACTIVATION = "disabled"/);
+  assert.match(config, /ASK_CARBON_RUNTIME_MODE = "production"/);
+  assert.match(config, /ASK_CARBON_STAGING_ACCESS_MODE = "none"/);
+  assert.doesNotMatch(config, /ASK_CARBON_STAGING_ACCESS_MODE = "http_basic_v1"/);
+  assert.match(config, /pattern = "carbonphysics\.ai\/api\/ask-carbon\*"/);
+  assert.match(config, /pattern = "www\.carbonphysics\.ai\/api\/ask-carbon\*"/);
+  assert.match(config, /script_name = "ask-carbon-budget-authority"/);
+  assert.match(config, /ASK_CARBON_MONTHLY_LIMIT_MICRO_USD = "50000000"/);
 });

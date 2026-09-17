@@ -1,6 +1,6 @@
 # WEB-QA-04 — Ask Carbon reviewed-answer selection reliability
 
-**Status:** ACTIVE — final bakeoff waiting for the existing UTC daily request reset
+**Status:** ACTIVE — concrete public-release candidate implementation and private acceptance
 **Owner authorization:** continue the Ask Carbon staging workstream; no production activation
 **Depends on:** merged WEB-QA-03 / PR #204 evidence
 **Coordination:** issue #209 comment `5720642402`
@@ -11,8 +11,14 @@
 Repair the retained structured-output failures without weakening source,
 publication, privacy, budget, or production boundaries. Re-run the frozen Ask
 Carbon acceptance split through the private Cloudflare Workers and shared
-provider-budget authority, then select the least-cost passing registered model
-or select none.
+provider-budget authority, select the least-cost passing registered model or
+select none, and prepare one concrete owner-review release candidate.
+
+The first-release candidate includes public Carbon Q&A, guided pilot drafting,
+form-only drafting without AI, and explicit local download of a reviewed draft.
+Inquiry collection, receipt, persistence and staff notification remain a
+separate issue #139 workstream. Their receiver is not a prerequisite for local
+or AI-guided drafting because this release contains no submission action.
 
 ## Bounded implementation
 
@@ -27,6 +33,14 @@ or select none.
 - Preserve the current private staging and production-disabled release gates.
 - Retain old evidence and run the successor as a separate release/evaluation
   identity.
+- Preserve the existing homepage and Workbench; integrate the dependency-free
+  component and the maintained pilot designer without an iframe or second
+  framework.
+- Keep AI off until affirmative disclosure acceptance; expose accept, reject,
+  undo, direct edit, reset, unresolved-field and local-download behavior.
+- Prepare an exact inactive production configuration for only
+  `/api/ask-carbon*` on both approved hostnames. Do not deploy it or mutate the
+  production homepage before the owner approves the exact release package.
 
 ## Core-programme boundary
 
@@ -52,6 +66,12 @@ dependency on those interfaces stays blocked and is coordinated with issue
    private Worker and shared ledger within the remaining evaluation ceiling.
 5. Retained failures and independent source-grounded review determine model
    selection; production remains unchanged.
+6. Local and private-staging browser checks cover the two visitor paths,
+   form-only operation, disclosed outbound context, local download, accessible
+   status/errors, keyboard navigation, mobile overflow and rollback.
+7. The release packet records the exact static input/output hashes, knowledge,
+   model/configuration, budget state, Cloudflare versions and remaining owner
+   inputs without treating merge as public approval.
 
 ## Required automated acceptance
 

@@ -167,6 +167,107 @@ body.ask-carbon-open {
   line-height: 1.5;
 }
 
+.ask-carbon-pathways {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.ask-carbon-pathway {
+  display: block;
+  min-height: 96px;
+  padding: 17px 18px;
+  border: 1px solid var(--ask-carbon-ink);
+  border-radius: 8px;
+  background: var(--ask-carbon-white);
+  color: var(--ask-carbon-ink);
+  font: inherit;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.ask-carbon-pathway:hover,
+.ask-carbon-pathway:focus-visible {
+  border-color: var(--ask-carbon-accent);
+  box-shadow: inset 0 -3px 0 var(--ask-carbon-accent);
+}
+
+.ask-carbon-pathway-title,
+.ask-carbon-pathway-note {
+  display: block;
+}
+
+.ask-carbon-live-disclosure {
+  margin-top: 16px;
+  padding: 15px 17px;
+  border-left: 4px solid var(--ask-carbon-accent);
+  background: var(--ask-carbon-white);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.ask-carbon-live-disclosure h4,
+.ask-carbon-live-disclosure p {
+  margin: 0;
+}
+
+.ask-carbon-live-disclosure p,
+.ask-carbon-consent,
+.ask-carbon-enable-live {
+  margin-top: 10px;
+}
+
+.ask-carbon-consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  color: var(--ask-carbon-ink);
+}
+
+.ask-carbon-consent input {
+  flex: 0 0 auto;
+  margin-top: 3px;
+}
+
+.ask-carbon-enable-live {
+  min-height: 40px;
+  padding: 0 13px;
+  border: 0;
+  border-radius: 7px;
+  background: var(--ask-carbon-accent);
+  color: var(--ask-carbon-ink);
+  font: 700 13px/1 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  cursor: pointer;
+}
+
+.ask-carbon-enable-live:disabled {
+  cursor: not-allowed;
+  opacity: .5;
+}
+
+.ask-carbon-pathway-title {
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.ask-carbon-pathway-note {
+  margin-top: 7px;
+  color: var(--ask-carbon-muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.ask-carbon-section-label {
+  margin-top: 27px !important;
+  color: var(--ask-carbon-ink) !important;
+  font-size: 13px !important;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
 .ask-carbon-topics {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -437,6 +538,10 @@ body.ask-carbon-open {
 
   .ask-carbon-topics {
     gap: 10px;
+  }
+
+  .ask-carbon-pathways {
+    grid-template-columns: 1fr;
   }
 
   .ask-carbon-topic {

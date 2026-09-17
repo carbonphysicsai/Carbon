@@ -53,19 +53,19 @@ processing authorization. Never place access or provider credentials in chat,
 Git, browser bundles, issues or retained evaluation output.
 
 The retained WEB-QA-03 homepage live-evaluation transcripts remain pinned to
-knowledge `ask-carbon-staging-2026-09-16.1`. The reconciled private staging
-Workers now serve validated knowledge `ask-carbon-staging-2026-09-18.1` under
-the server-owned reviewed-card selection contract. A two-candidate
+knowledge `ask-carbon-staging-2026-09-16.1`. The release candidate advances
+to `ask-carbon-release-candidate-2026-09-18.1` under the server-owned
+reviewed-card selection contract and refreshes the dated progress explanation
+against the same pinned, digest-matched Wave source. A two-candidate
 compatibility smoke was run on that successor; it does not rewrite the prior
 bakeoff source basis or constitute the pending frozen final evaluation.
 
-Current main now carries `ask-carbon-staging-2026-09-17.4`. It remains
-`STAGING_REVIEWED`, has `public_activation_allowed:false`, and was not silently
-substituted into either retained live-evaluation basis. The owner approved the
-bounded private pilot-quality packet after PR #203; that disposition does not
-approve this newer knowledge release, general-Q&A model selection, privacy or
-security, production routing, public activation, or inquiry collection. The
-exact next owner decisions are collected in
+The release candidate remains `STAGING_REVIEWED`, has
+`public_activation_allowed:false`, and is not retroactively substituted into
+retained evidence. The owner approved the prepared visitor privacy posture and
+the bounded private pilot-quality packet. Those approvals do not approve the
+new knowledge release, production route, public activation or inquiry
+collection. The exact release decision remains in
 `PUBLIC_RELEASE_DECISION_PACKET.md`.
 
 ## Shared monthly budget authority
@@ -111,13 +111,15 @@ the reservation. Lease expiry releases scheduling concurrency, not financial
 exposure. Late usage settles idempotently against the admission month; duplicate
 attempt IDs and conflicting settlements reject.
 
-Before enabling public `PILOT_DESIGN`, accept the exact public notice and
-private inquiry receiver. The private synthetic project observation above does
-not settle that release decision. AI consent must precede the first request;
-form-only drafting must
-remain usable. Do not log abandoned raw conversation text for sales/research
-analysis. Inquiry response permission and optional broader reuse permission
-must remain separate.
+Public `PILOT_DESIGN` drafting requires the approved visitor notice, explicit
+AI enablement and the shared provider/abuse controls. It does **not** require an
+inquiry receiver because this release offers only local editing and download.
+Any future submit/receive control remains disabled until issue #139 supplies
+and accepts the private receiver, persistence, staff access, retention,
+notification and incident contracts. Form-only drafting must remain usable.
+Do not log abandoned raw conversation text for sales/research analysis.
+Inquiry response permission and optional broader reuse permission remain
+separate.
 
 ## Routing and activation order
 
