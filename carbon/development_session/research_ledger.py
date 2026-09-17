@@ -66,7 +66,16 @@ class CampaignLedger:
                 CREATE TABLE IF NOT EXISTS operations (id TEXT PRIMARY KEY, owner TEXT NOT NULL, phase TEXT NOT NULL, request_digest TEXT NOT NULL, state TEXT NOT NULL, reservation BLOB NOT NULL, actual BLOB, result BLOB, created REAL NOT NULL);
                 CREATE TABLE IF NOT EXISTS notes (sequence INTEGER PRIMARY KEY, owner TEXT NOT NULL, kind TEXT NOT NULL, body BLOB NOT NULL, created REAL NOT NULL);
             """)
+            existing = db.execute("SELECT manifest FROM campaign WHERE id=1").fetchone()
+            if existing:
+                self._check_admission_mode(json.loads(existing[0]))
         self.path.chmod(0o600)
+
+    def _check_admission_mode(self, manifest):
+        from .research_admission import MANIFEST
+
+        if self.admission is not None and manifest.get("schema") != MANIFEST:
+            raise ValueError("legacy campaign cannot consume a Launchpad grant")
 
     @contextmanager
     def db(self):
@@ -104,6 +113,7 @@ class CampaignLedger:
             MANIFEST,
         }:
             raise ValueError("versioned campaign manifest required")
+        self._check_admission_mode(manifest)
         if manifest["schema"] == MANIFEST:
             self._grant(manifest)
         elif (
@@ -160,6 +170,8 @@ class CampaignLedger:
     def checkpoint(self):
         with self.db() as db:
             row = db.execute("SELECT manifest FROM campaign WHERE id=1").fetchone()
+        if row:
+            self._check_admission_mode(json.loads(row[0]))
         if row and json.loads(row[0])["schema"] != VERSION:
             from .research_control import CampaignControl
 
@@ -215,6 +227,7 @@ class CampaignLedger:
             if frozen is None:
                 raise ValueError("freeze before dispatch")
             manifest = json.loads(frozen[0])
+            self._check_admission_mode(manifest)
             caps, elapsed = manifest["ceilings"], manifest["elapsed_seconds"]
             expiry = None
             if manifest["schema"] != VERSION:

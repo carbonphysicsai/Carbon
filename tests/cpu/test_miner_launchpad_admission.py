@@ -1,6 +1,7 @@
 """Non-spending admission/control diagnostics; no campaign evidence."""
 
 import concurrent.futures
+import json
 import threading
 import time
 
@@ -236,6 +237,38 @@ def test_fresh_unapproved_grant_is_not_authority(tmp_path):
     with pytest.raises(ValueError, match="explicit Launchpad grant"):
         fresh.verify(
             root=value.root, principal="alice", runtime=manifest["runtime"], now=1000
+        )
+
+
+def test_launchpad_grant_never_adopts_or_bypasses_legacy_d4_manifest(tmp_path):
+    from test_cw1_research_ledger import ledger as make_legacy
+
+    (tmp_path / "managed").mkdir()
+    managed_ledger, _, _ = managed(tmp_path / "managed")
+    legacy = make_legacy(tmp_path / "legacy")
+    with legacy.db() as db:
+        original = db.execute("SELECT manifest FROM campaign WHERE id=1").fetchone()[0]
+    with pytest.raises(ValueError, match="legacy campaign"):
+        CampaignLedger(legacy.root, admission=managed_ledger.admission)
+    with legacy.db() as db:
+        assert (
+            db.execute("SELECT manifest FROM campaign WHERE id=1").fetchone()[0]
+            == original
+        )
+        assert db.execute("SELECT COUNT(*) FROM operations").fetchone()[0] == 0
+    with pytest.raises(ValueError, match="legacy campaign"):
+        managed_ledger.freeze(json.loads(original))
+    # Admission cannot be attached after opening a legacy ledger to bypass the guard.
+    legacy.admission = managed_ledger.admission
+    with pytest.raises(ValueError, match="legacy campaign"):
+        legacy.checkpoint()
+    with pytest.raises(ValueError, match="legacy campaign"):
+        legacy.reserve(
+            "no-dispatch",
+            owner="alice",
+            phase="research",
+            request={},
+            resources={"provider_attempts": 1},
         )
 
 
