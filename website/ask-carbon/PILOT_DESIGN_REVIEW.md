@@ -12,11 +12,12 @@ Before the first AI request, the pilot designer states:
 > optional submission-history choice are not sent.
 >
 > Provider: OpenAI API, Responses API, `store:false`. OpenAI states that API
-> data is not used to train models unless the customer opts in. By default,
-> abuse-monitoring logs may retain prompts and responses for up to 30 days;
-> approved Zero Data Retention or Modified Abuse Monitoring controls can
-> change that. Carbon has not yet verified which retention control applies to
-> the eventual deployment.
+> data is not used to train models unless the customer opts in. For the private
+> synthetic staging project, Carbon observed API call logging enabled per call
+> and did not establish an approved Zero Data Retention or Modified Abuse
+> Monitoring control. Treat prompts and responses as potentially retained for
+> up to 30 days under default abuse monitoring. This staging observation does
+> not authorize customer-data processing.
 >
 > Carbon preview: this file stores no abandoned conversation. Conversation
 > stays in memory unless explicitly included in an exported review package.

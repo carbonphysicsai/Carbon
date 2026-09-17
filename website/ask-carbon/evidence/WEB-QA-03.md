@@ -42,11 +42,21 @@ Deployed resources:
 - `ask-carbon-budget-authority`: route-less Worker with SQLite Durable Object
   `AskCarbonUsageLedger`; `workers_dev=false`.
 - `ask-carbon-eval-luna`: private evaluation Worker at
-  `https://ask-carbon-eval-luna.carbon-physics-ai.workers.dev`; final staged
-  code version `15ec9f6d-88de-4912-bbc9-55f3852bc971`.
+  `https://ask-carbon-eval-luna.carbon-physics-ai.workers.dev`; live evaluation
+  ran on code version `15ec9f6d-88de-4912-bbc9-55f3852bc971` and the reconciled
+  private staging version is `b21b6e5f-d759-465b-ac3d-fe5c7eb8dc3d`.
 - `ask-carbon-eval-terra`: owner-review Worker at
-  `https://ask-carbon-eval-terra.carbon-physics-ai.workers.dev`; final staged
-  code version `57d86d09-4c43-44f2-83e2-5bfd1bf7bec0`.
+  `https://ask-carbon-eval-terra.carbon-physics-ai.workers.dev`; live evaluation
+  ran on code version `57d86d09-4c43-44f2-83e2-5bfd1bf7bec0` and the reconciled
+  private staging version is `60e0b17a-6c2a-43a9-84b2-8088de8e1a71`.
+- `carbon-ask-private-staging`: authenticated Workbench review Worker at
+  `https://carbon-ask-private-staging.carbon-physics-ai.workers.dev`; reconciled
+  version `e6dac5d9-252e-4048-a67f-7136fbd2abcc`.
+
+The final route-less authority version is
+`a3e409f8-e267-41b0-9854-967536a1500e`. The original evaluation-version IDs
+remain part of the live evidence; the reconciled versions add the shared-ledger
+offset, current knowledge asset and provider-error/private-auth repairs.
 
 Both evaluation Workers bind the same `AskCarbonUsageLedger` namespace and the
 same durable `bakeoff` scope. The staged UI uses the existing homepage assets
@@ -170,6 +180,29 @@ development, final evaluation, abort, rollback, and concurrency checks was:
   (USD 49.785666);
 - attempts: 79 total: 68 settled, six released pre-dispatch, five unresolved;
 - active attempts after expiry/recovery: zero.
+
+Concurrent PR #203 completed a bounded Workbench evaluation against a second
+route-less ledger before its merge was visible to this branch. That closed
+ledger recorded 13,151 micro-USD exact settled cost and 67,680 micro-USD
+unresolved possible-dispatch exposure, for 80,831 micro-USD total. The
+integrated configuration rebinds continuing Workbench staging calls to
+`ask-carbon-budget-authority` and reserves the closed ledger's full exposure in
+the canonical September `bakeoff` policy. It does not delete, refund or pretend
+to merge the historical Durable Object rows.
+
+Combined application accounting after reconciliation is therefore:
+
+- exact settled cost: 148,525 micro-USD (USD 0.148525);
+- unresolved possible-dispatch exposure: 146,640 micro-USD (USD 0.146640);
+- conservative total exposure: 295,165 micro-USD (USD 0.295165);
+- remaining `bakeoff` balance: 4,704,835 micro-USD (USD 4.704835);
+- remaining September application balance: 49,704,835 micro-USD
+  (USD 49.704835).
+
+The original per-ledger snapshot above remains the exact real-Cloudflare state
+captured at the end of the homepage evaluation. The combined figures add the
+retained Workbench ledger evidence and are enforced by a tested policy offset;
+they are not a fabricated rewrite of that snapshot.
 
 Real Cloudflare observations:
 

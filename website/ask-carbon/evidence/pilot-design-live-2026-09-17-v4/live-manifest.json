@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "run_id": "gw08b-private-live-2026-09-17-v4",
+  "generated_by": "website/ask-carbon/eval/write-pilot-live-evidence.mjs",
+  "evidence_class": "PRIVATE_SYNTHETIC_LIVE_MODEL_OBSERVATION",
+  "selected_case_ids": [
+    "existing-model-evaluation",
+    "thermal-fluid-cold-plate",
+    "unfamiliar-coupled-physics",
+    "sparse-information"
+  ],
+  "human_review": "NAMED_PENDING_CONFIRMATION_AND_REVIEW",
+  "customer_sessions": 0,
+  "source": {
+    "path": "eval/pilot-design.executable.public.json",
+    "bytes": 16801,
+    "sha256": "d6bacc7b9b05cbe29ac09cb5acf96e49a3b162a011c217451c1502f801f8802d"
+  },
+  "files": [
+    {
+      "name": "live-run.json",
+      "bytes": 71243,
+      "sha256": "11188bef35878cf0815bcc2afc089a72ca5c522f7c4b428edd451d27fe049a62"
+    },
+    {
+      "name": "human-review-packet-live.md",
+      "bytes": 10730,
+      "sha256": "abe66106c45211c4c27765baeb866ac5ec47bca77bba085b01286684784cf301"
+    }
+  ]
+}

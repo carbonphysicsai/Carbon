@@ -32,6 +32,9 @@ const activeEnv = () => ({
   ASK_CARBON_OPERATIONAL_SCOPE_ID: "staging",
   ASK_CARBON_OPERATIONAL_SCOPE_LIMIT_MICRO_USD: "50000000",
   ASK_CARBON_MONTHLY_LIMIT_MICRO_USD: "50000000",
+  ASK_CARBON_LEGACY_CLOSED_AUTHORITY_PERIOD: "2026-09",
+  ASK_CARBON_LEGACY_CLOSED_AUTHORITY_SCOPE_ID: "bakeoff",
+  ASK_CARBON_LEGACY_CLOSED_AUTHORITY_EXPOSURE_MICRO_USD: "80831",
   ASK_CARBON_DAILY_REQUEST_LIMIT: "100",
   ASK_CARBON_MAX_CONCURRENCY: "4",
   ASK_CARBON_CLIENT_REQUESTS_PER_HOUR: "12",
@@ -75,6 +78,9 @@ test("activation enforces the shared 50 dollar authority and exact supported con
   env.ASK_CARBON_EDGE_ACCESS_POLICY_ID = "test-private-access-policy";
   env.ASK_CARBON_STAGING_ACCESS_MODE = "http_basic_v1";
   assert.ok(activationStatus(env, knowledge, new Date("2026-09-16T12:00:00Z")).reasons.includes("missing_private_staging_basic_auth"));
+  env.ASK_CARBON_STAGING_BASIC_AUTH = btoa("reviewer:test-only-token-password");
+  assert.equal(activationStatus(env, knowledge, new Date("2026-09-16T12:00:00Z")).active, true);
+  delete env.ASK_CARBON_STAGING_BASIC_AUTH;
   env.ASK_CARBON_STAGING_AUTH_USER = "reviewer";
   env.ASK_CARBON_STAGING_AUTH_PASSWORD = "test-only-password";
   assert.equal(activationStatus(env, knowledge, new Date("2026-09-16T12:00:00Z")).active, true);

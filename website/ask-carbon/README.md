@@ -6,11 +6,16 @@ or proof of a production deployment.
 
 ## Current release state
 
-- Knowledge version: `ask-carbon-staging-2026-09-16.1`
-- Source release date: 2026-09-16
+- Repository knowledge version: `ask-carbon-staging-2026-09-17.1`
+- Source release date: 2026-09-17
+- Current private staging deployment: `ask-carbon-staging-2026-09-17.1`
+- Retained homepage live-evaluation source basis: `ask-carbon-staging-2026-09-16.1`
 - Release: `STAGING_REVIEWED`
 - Public activation: disabled
 - Live provider calls: bounded WEB-QA-03 evaluation only; no production calls
+- Private synthetic provider calls: observed through the authenticated staging Worker
+- Homepage source-grounded answer review: complete for delivered supported answers
+- Owner hands-on review and Workbench pilot-output review: pending
 - Production homepage change: none
 
 The production release contract deliberately rejects this manifest. The
@@ -22,8 +27,12 @@ The recovered `Carbon_Ask_v1.zip` matched SHA-256
 `ca1e23c3a77ec813c384d893358fe1fe1959edd5989068a5711b04e2821120cb`.
 Its 31 cards and 40 single-turn/five-conversation evaluation plan were treated
 as draft input and reconciled against current sources, not copied as authority
-or retained as a count gate. The current collection contains 26 useful reviewed
-units backed by nine exact source revisions.
+or retained as a count gate. The current repository collection contains 26
+useful reviewed units backed by nine exact source revisions. The retained
+live-evaluation artifacts remain pinned to the preceding `2026-09-16.1`
+snapshot so their answers and source basis stay inspectable. The current
+private staging surface deploys the validated `2026-09-17.1` snapshot; it was
+not substituted into or represented as the already completed model bakeoff.
 
 ## Components
 
@@ -62,10 +71,11 @@ an adjacent frozen set of literal turns and client review actions. `plan`
 enumerates the finite request and shared-budget exposure without network work;
 `mock` traverses the real `PILOT_DESIGN` Worker validation, shared ledger,
 reviewed-package and Workbench import paths with a test-owned provider. Neither
-is live-model or customer-usability evidence. `eval:pilot:live` remains
-fail-closed until the exact private staging target, access mechanism, installed
-provider secret, provider-project retention disposition and current shared
-ledger authorization exist.
+is live-model or customer-usability evidence. The live mode is bound only to
+the authenticated private staging Worker and its shared budget authority. It
+requires explicit endpoint, origin, Basic access token and operator snapshot
+secret environment variables; it has no direct-provider fallback. Retained
+private synthetic observations are under `evidence/pilot-design-live-*`.
 
 ## Guided pilot mode
 
@@ -127,6 +137,10 @@ through the real staging Worker and shared ledger. Terra was more reliable, but
 neither cleared the frozen final quality gate, so no production candidate was
 selected. Direct unmetered provider evaluation remains prohibited.
 
+The separate guided-pilot evaluation used Luna through the authenticated
+Workbench review Worker. Its human model-quality review is still pending; that
+run does not change the homepage model selection or qualify Workbench output.
+
 ## Deployment boundary
 
 WEB-QA-03 deployed one route-less, non-public budget authority and two private
@@ -135,3 +149,9 @@ production route or DNS change. Separate environments bind the same authority
 so they cannot each receive USD 50. Credentials belong only in Cloudflare
 secrets. Never put them in Git, browser assets, chat, issues or evaluation
 output.
+
+The guided-pilot review surface at `carbon-ask-private-staging` is likewise
+private and has no production route. Its concurrent ledger is historical only;
+the integrated configuration binds all continuing staging callers to
+`ask-carbon-budget-authority`. Cloudflare charges remain outside the provider
+ledger and were not measured by it.
