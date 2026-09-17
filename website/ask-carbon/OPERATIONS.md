@@ -4,21 +4,20 @@ This runbook defines a fail-closed release seam. It does not authorize a
 Cloudflare resource, route, public source release, privacy acceptance or
 production deployment.
 
-## Discovered target state (2026-09-16)
+## Discovered target state (2026-09-17)
 
-Authenticated GitHub access exposes only `carbonphysicsai/Carbon`; its Pages
-workflow publishes the Development Hub from `main:/docs`, not the public
-homepage. The authenticated `hello@carbonphysics.ai` Cloudflare account has no
-domain, Worker, Pages project, Durable Object or Zero Trust application. Public
-DNS and matching homepage bytes show Cloudflare serving, but do not establish
-the owning account or upload workflow. Therefore no private staging target or
-production rollback owner is established, and no resource was created.
+The owning Cloudflare account is `Carbon.physics.ai@gmail.com's Account`
+(`7462053c6992b9c9fd889952a7ae0496`). Production is the `carbonwebsite`
+static-assets Worker created through manual Dashboard upload. It serves the
+workers.dev hostname plus `carbonphysics.ai` and `www.carbonphysics.ai`; there
+is no separate Worker route. Rollback is a prior Worker deployment selection or
+`wrangler rollback`. A Worker rollback does not roll back Durable Object state.
 
-The smallest external action is for the owner to identify the exact account or
-upload workflow that owns `carbonphysics.ai`, then grant the minimum staging
-permissions or name an existing private staging project and rollback owner. Do
-not send credentials through chat. If the central Durable Object or private
-access gate would add charges, accept those charges separately before creation.
+WEB-QA-03 created route-less `ask-carbon-budget-authority` and the separate
+`ask-carbon-eval-luna` / `ask-carbon-eval-terra` Workers on the account's Free
+plan. Cloudflare Zero Trust checkout was not completed because it required a
+new billing/overage authorization; private staging uses Worker-enforced Basic
+Auth over TLS instead. Production resources, routes and DNS were not changed.
 
 ## Shared monthly budget authority
 
@@ -86,9 +85,11 @@ continuations together.
 
 ## Private staging sequence
 
-1. Resolve the existing private staging target, costs, permissions and rollback
-   owner. Configure Cloudflare Access or an equivalent authentication gate;
-   origin filtering is defense in depth, not authentication.
+1. WEB-QA-03 uses Worker-enforced TLS Basic authentication because
+   Cloudflare Zero Trust Free checkout requires a new overage-charge
+   authorization. Provision the username/password only as Worker secrets;
+   origin filtering is defense in depth, not authentication. Production mode
+   rejects this staging-only access mode.
 2. Deploy exactly one route-less shared budget authority from
    `wrangler.budget-authority.example.toml`, after cost authorization.
 3. Bind evaluation and staging app Workers to that exact authority using

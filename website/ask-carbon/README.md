@@ -10,7 +10,7 @@ or proof of a production deployment.
 - Source release date: 2026-09-16
 - Release: `STAGING_REVIEWED`
 - Public activation: disabled
-- Live provider calls made for this release: zero
+- Live provider calls: bounded WEB-QA-03 evaluation only; no production calls
 - Production homepage change: none
 
 The production release contract deliberately rejects this manifest. The
@@ -67,6 +67,12 @@ No secret belongs in this repository or browser bundle. Do not send a secret
 through chat. Production operators should provision Worker secrets through
 their approved Cloudflare release process.
 
+WEB-QA-03 staging additionally requires
+`ASK_CARBON_STAGING_AUTH_USER` and `ASK_CARBON_STAGING_AUTH_PASSWORD` as
+Cloudflare secrets. The Worker authenticates every staging asset and API
+request before serving it. This bounded Basic-auth mode is for private owner
+review only and activation rejects it in production.
+
 `Business/Carbon_Fit/workbench/Carbon_Client_Pilot_Designer_Preview.html` is
 the maintained local preview. It edits the same `carbon.client-intake.draft.v1`
 core in conversation and form mode, exports a closed
@@ -100,18 +106,19 @@ accepting caller-provided prices:
 - `gpt-5.6-terra:low:v1`: USD 2.00/M input, 0.20/M cached input,
   12.00/M output.
 
-Prices were observed in official OpenAI model documentation on 2026-09-16.
+Prices were rechecked in official OpenAI model documentation on 2026-09-17.
 The code includes output reasoning tokens in billed output, rejects missing or
 negative usage, and rejects an unexpected returned model identity. These are
-configured candidates, not live-tested winners. A direct provider evaluation
-is prohibited; live evaluation must traverse the staging Worker and shared
-ledger.
+configured candidates, not production winners. WEB-QA-03 evaluated both
+through the real staging Worker and shared ledger. Terra was more reliable, but
+neither cleared the frozen final quality gate, so no production candidate was
+selected. Direct unmetered provider evaluation remains prohibited.
 
 ## Deployment boundary
 
-The example Cloudflare configurations create no deployment or route. One
-central, non-public budget authority is required so separate app environments
-cannot each receive USD 50. Creating that Durable Object may incur Cloudflare
-charges and needs an exact target and authorization. Credentials belong only in
-the approved secret store. Never put them in Git, browser assets, chat, issues
-or evaluation output.
+WEB-QA-03 deployed one route-less, non-public budget authority and two private
+evaluation Workers on the owning account's existing Free plan. They create no
+production route or DNS change. Separate environments bind the same authority
+so they cannot each receive USD 50. Credentials belong only in Cloudflare
+secrets. Never put them in Git, browser assets, chat, issues or evaluation
+output.

@@ -25,6 +25,7 @@ const activeEnv = () => ({
   ASK_CARBON_CONTINUATION_SIGNING_SECRET: "test-only-signing-secret",
   ASK_CARBON_PRIVACY_MODE: "evaluation_public_synthetic_only",
   ASK_CARBON_EDGE_ACCESS_POLICY_ID: "test-private-access-policy",
+  ASK_CARBON_STAGING_ACCESS_MODE: "cloudflare_access",
   ASK_CARBON_EDGE_ABUSE_POLICY_ID: "test-edge-abuse-policy",
   ASK_CARBON_LEDGER_AUTHORITY_ID: "ask-carbon-provider-budget-v2",
   ASK_CARBON_ENVIRONMENT: "staging",
@@ -40,6 +41,7 @@ const activeEnv = () => ({
   ASK_CARBON_PROVIDER_TIMEOUT_MS: "15000",
   ASK_CARBON_PILOT_MAX_REQUESTS_PER_SESSION: "8",
   ASK_CARBON_USAGE_LEDGER: { idFromName() {}, get() {} },
+  ASK_CARBON_EDGE_RATE_LIMITER: { limit() {} },
 });
 
 test("one release contract gates staging, production, expiry, withdrawal and individual card freshness", () => {
@@ -71,8 +73,20 @@ test("activation enforces the shared 50 dollar authority and exact supported con
   env.ASK_CARBON_EDGE_ACCESS_POLICY_ID = "OWNER_DECISION_REQUIRED_PRIVATE_ACCESS_POLICY";
   assert.ok(activationStatus(env, knowledge, new Date("2026-09-16T12:00:00Z")).reasons.includes("missing_private_staging_access_policy"));
   env.ASK_CARBON_EDGE_ACCESS_POLICY_ID = "test-private-access-policy";
+  env.ASK_CARBON_STAGING_ACCESS_MODE = "http_basic_v1";
+  assert.ok(activationStatus(env, knowledge, new Date("2026-09-16T12:00:00Z")).reasons.includes("missing_private_staging_basic_auth"));
+  env.ASK_CARBON_STAGING_AUTH_USER = "reviewer";
+  env.ASK_CARBON_STAGING_AUTH_PASSWORD = "test-only-password";
+  assert.equal(activationStatus(env, knowledge, new Date("2026-09-16T12:00:00Z")).active, true);
+  env.ASK_CARBON_EVALUATION_TELEMETRY = "enabled";
+  assert.ok(activationStatus(env, knowledge, new Date("2026-09-16T12:00:00Z")).reasons.includes("missing_evaluation_operator_secret"));
+  env.ASK_CARBON_OPERATOR_READ_SECRET = "test-only-operator-secret";
+  assert.equal(activationStatus(env, knowledge, new Date("2026-09-16T12:00:00Z")).active, true);
   env.ASK_CARBON_PRIVACY_MODE = "approved_public_privacy_v1";
   assert.ok(activationStatus(env, knowledge, new Date("2026-09-16T12:00:00Z")).reasons.includes("invalid_staging_privacy_mode"));
+  env.ASK_CARBON_RUNTIME_MODE = "production";
+  assert.ok(activationStatus(env, knowledge, new Date("2026-09-16T12:00:00Z")).reasons.includes("evaluation_telemetry_forbidden_in_production"));
+  assert.ok(activationStatus(env, knowledge, new Date("2026-09-16T12:00:00Z")).reasons.includes("staging_basic_auth_forbidden_in_production"));
 });
 
 test("request accepts only question and opaque server continuation, not visitor-authored answer history", () => {
@@ -138,6 +152,13 @@ test("claim validation binds material answer text to retrieved passage IDs", () 
   };
   const output = validateProviderOutput(valid, [card]);
   assert.deepEqual(output.source_ids, ["data-management-405a820b"]);
+  assert.doesNotThrow(() => validateProviderOutput({
+    ...valid,
+    claims: [
+      { text: "The validator supplies training-randomness.", evidence_ids: ["training-randomness"] },
+      valid.claims[1],
+    ],
+  }, [card]));
   assert.throws(() => validateProviderOutput({
     ...valid,
     answer: "Carbon has paying customers.",
@@ -161,6 +182,7 @@ test("pilot output is schema-constrained and rejects unknown fields or sources",
   assert.deepEqual(validatePilotProviderOutput(valid, new Set(["constitution-405a820b"])), valid);
   assert.throws(() => validatePilotProviderOutput({ ...valid, source_ids: ["private-workbench"] }, new Set(["constitution-405a820b"])), (error) => error.code === "unknown_source");
   assert.throws(() => validatePilotProviderOutput({ ...valid, proposals: [{ ...valid.proposals[0], field: "qualified" }] }, new Set(["constitution-405a820b"])), (error) => error.code === "invalid_provider_output");
+  assert.throws(() => validatePilotProviderOutput({ ...valid, source_ids: ["constitution-405a820b", "constitution-405a820b"] }, new Set(["constitution-405a820b"])), (error) => error.code === "unknown_source");
 });
 
 test("integer-safe pricing includes cached input and reasoning usage while rejecting missing or negative fields", () => {
