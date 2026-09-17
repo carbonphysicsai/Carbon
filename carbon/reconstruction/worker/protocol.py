@@ -615,6 +615,29 @@ def run_staged_worker(input_directory: Path, scratch_directory: Path) -> int:
     """Fixed image entry point. It accepts no command or import path from input."""
     try:
         ref, plan, archive, seed, split = load_worker_request(input_directory)
+        # This function is released by the existing controller only after
+        # admission, deadline ownership and effective container controls. Never
+        # initialize a backend in the controller or select one from miner input.
+        from carbon.reconstruction.profile import DEPENDENCY_SPECS
+        from carbon.reconstruction.worker.backend_probe import (
+            Backend,
+            BackendProbeError,
+            BackendRequest,
+            probe_backend,
+        )
+
+        dependencies = {name: version for name, version, _ in DEPENDENCY_SPECS}
+        try:
+            probe_backend(
+                BackendRequest(
+                    Backend.CPU,
+                    local_device_count=1,
+                    jax_version=dependencies["jax"],
+                    jaxlib_version=dependencies["jaxlib"],
+                )
+            )
+        except BackendProbeError:
+            raise WorkerFailure(WorkerCode.UNAVAILABLE) from None
         output = scratch_directory / "output"
         output.mkdir(parents=True, exist_ok=False)
         if split is None:
