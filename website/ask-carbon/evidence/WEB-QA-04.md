@@ -49,9 +49,9 @@ Knowledge/release identity:
 Final deterministic-rendering deployments:
 
 - Luna Worker `ask-carbon-eval-luna`, version
-  `1403397f-089d-427e-942b-dc9db5ed3b24`
+  `24a181a3-5e13-4d40-8d17-14baa4859d31`
 - Terra Worker `ask-carbon-eval-terra`, version
-  `b144e359-febf-41b3-b827-af50990abc81`
+  `eb513920-e1c3-46f0-b0ce-76286e8ce892`
 
 Both remain route-less from the production domain, bind the existing
 `ask-carbon-budget-authority` Durable Object and retain the existing private
