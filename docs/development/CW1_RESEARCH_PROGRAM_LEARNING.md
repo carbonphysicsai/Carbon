@@ -63,8 +63,8 @@ competitive equilibrium, actual earned credit, wallet payment or settlement.
 
 ## Private owner inspection
 
-Root: /home/carbon/.local/share/carbon-testnet/miner-autoresearch-20260917-d4.
+Root: $HOME/.local/share/carbon-testnet/miner-autoresearch-20260917-d4.
 Open research-report.html and agent-report.json. Existing tested status command:
-`/home/carbon/.local/share/carbon-testnet/operator/run-cw1-d4-ce6a7e38.sh status`.
+`$HOME/.local/share/carbon-testnet/operator/run-cw1-d4-ce6a7e38.sh status`.
 Raw provider responses, task requests, references and accounting remain there.
 Do not run this completed campaign again; it consumes program slot one.
