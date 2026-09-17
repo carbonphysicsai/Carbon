@@ -1,0 +1,236 @@
+"""Finite, durable model-backed research epoch; no numerical or chain shortcuts.
+
+The selected recipe is frozen here. A separate trusted controller performs the
+registered authenticated final submission. Selection is not final evidence.
+"""
+
+from __future__ import annotations
+
+import asyncio
+import json
+
+from .agent import MAX_INPUT_TOKENS, MAX_OUTPUT_TOKENS, MODEL
+from .data import write_once
+from .profile import canonical, digest
+from .research_agent import request_model
+from .research_catalog import compile_recipe
+from .research_tools import PREFIX, PROMPT, TOOLS, _json, _schema
+
+SELECT = "carbon_autoresearch_select_recipe"
+SELECTION_TOOL = {
+    "type": "function",
+    "name": SELECT,
+    "strict": True,
+    "description": "Freeze the best eligible recipe using only research information and finish this epoch. This selects a candidate; the trusted controller separately submits it for independent reconstruction. Explain evidence, limitations, and why another trial is not useful.",
+    "parameters": _schema(
+        {
+            "strategy_json": {"type": "string"},
+            "reason": {"type": "string"},
+            "used_feedback": {"type": "boolean"},
+        }
+    ),
+}
+
+
+def _epoch_paths(ledger, epoch):
+    if type(epoch) is not int or epoch not in (1, 2):
+        raise ValueError("two finite epochs only")
+    root = ledger.root / ("epoch-" + str(epoch))
+    root.mkdir(mode=0o700, exist_ok=True)
+    return root
+
+
+async def run_epoch(
+    ledger, *, owner, epoch, sdk, credential_file, initial_observation, transport=None
+):
+    """Run once or resume completed provider/tool observations without resends.
+
+    An interrupted tool with unknown side effects stops for reconciliation.
+    Successfully journalled replies can be replayed without another model call.
+    """
+    root = _epoch_paths(ledger, epoch)
+    tools = TOOLS + [SELECTION_TOOL]
+    plan = {
+        "schema": "carbon.autoresearch.epoch-plan.v1",
+        "epoch": epoch,
+        "owner": owner,
+        "model": MODEL,
+        "prompt": PROMPT,
+        "tools": tools,
+        "initial_observation": initial_observation,
+        "max_provider_calls": 48,
+        "max_research_trials": 8,
+        "rule_change": False,
+        "selection_is_final_evidence": False,
+    }
+    write_once(root / "plan.json", canonical(plan))
+    start_id = "research-epoch-" + str(epoch)
+    admitted = ledger.reserve(
+        start_id, owner=owner, phase="selection", request=plan, resources={"epochs": 1}
+    )
+    if admitted["dispatch"]:
+        ledger.finish(
+            start_id,
+            owner=owner,
+            state="SUCCEEDED",
+            actual={"epochs": 1},
+            result={"status": "STARTED", "plan_digest": digest(canonical(plan))},
+        )
+    if (root / "outcome.json").exists():
+        return json.loads((root / "outcome.json").read_bytes())
+    history = [{"role": "user", "content": canonical(initial_observation).decode()}]
+    trial_start_file = root / "trial-start.json"
+    if not trial_start_file.exists():
+        write_once(
+            trial_start_file,
+            canonical({"count": ledger.status(owner=owner)["used"]["research_trials"]}),
+        )
+    trial_start = json.loads(trial_start_file.read_bytes())["count"]
+    outcome = None
+    for index in range(48):
+        status = ledger.status(owner=owner)
+        trials = status["used"]["research_trials"] - trial_start
+        call_id = f"epoch-{epoch}-provider-{index:03d}"
+        request = {
+            "model": MODEL,
+            "instructions": PROMPT,
+            "input": history,
+            "tools": tools,
+            "parallel_tool_calls": False,
+            "store": False,
+            "max_output_tokens": MAX_OUTPUT_TOKENS,
+            "reasoning": {"effort": "low"},
+        }
+        if len(canonical(request)) > MAX_INPUT_TOKENS - 4096:
+            outcome = {
+                "status": "STOPPED",
+                "reason": "context admission ceiling; no history silently discarded",
+            }
+            break
+        print(
+            f"Research epoch {epoch}: agent call {index+1}/48; trial slots used {trials}/8",
+            flush=True,
+        )
+        phase_path = root / (call_id + "-admission.json")
+        if not phase_path.exists():
+            write_once(
+                phase_path,
+                canonical({"phase": "research" if trials < 8 else "selection"}),
+            )
+        phase = json.loads(phase_path.read_bytes())["phase"]
+        response = await asyncio.to_thread(
+            request_model,
+            ledger,
+            owner=owner,
+            identity=call_id,
+            request=request,
+            credential_file=credential_file,
+            phase=phase,
+            transport=transport,
+        )
+        output = response.get("output")
+        if type(output) is not list:
+            raise ValueError("provider output malformed; retained and stopped")
+        calls = [
+            item
+            for item in output
+            if type(item) is dict and item.get("type") == "function_call"
+        ]
+        if len(calls) > 1:
+            raise ValueError("parallel tool output prohibited; retained and stopped")
+        history.extend(output)
+        if not calls:
+            outcome = {
+                "status": "STOPPED",
+                "reason": "agent elected to stop",
+                "agent_output": output,
+            }
+            break
+        call = calls[0]
+        if type(call.get("call_id")) is not str or type(call.get("name")) is not str:
+            raise ValueError("provider tool identity malformed")
+        arguments = _json(call.get("arguments"))
+        tool_identity = f"epoch-{epoch}-tool-{index:03d}"
+        intent = {
+            "name": call["name"],
+            "arguments": arguments,
+            "call_id": call["call_id"],
+        }
+        intent_file = root / (tool_identity + "-intent.json")
+        result_file = root / (tool_identity + "-result.json")
+        if result_file.exists():
+            if not intent_file.exists() or intent_file.read_bytes() != canonical(
+                intent
+            ):
+                raise ValueError("tool replay conflict")
+            result = json.loads(result_file.read_bytes())
+        else:
+            if intent_file.exists():
+                raise ValueError(
+                    "tool dispatch incomplete; reconcile without duplication"
+                )
+            write_once(intent_file, canonical(intent))
+            if call["name"] == SELECT:
+                if (
+                    set(arguments) != {"strategy_json", "reason", "used_feedback"}
+                    or type(arguments["used_feedback"]) is not bool
+                    or type(arguments["reason"]) is not str
+                    or not 1 <= len(arguments["reason"]) <= 4096
+                ):
+                    raise ValueError("closed selection required")
+                strategy = _json(arguments["strategy_json"])
+                compiled, profile = compile_recipe(strategy)
+                result = {
+                    "status": "SELECTED",
+                    "strategy": strategy,
+                    "reason": arguments["reason"],
+                    "used_feedback": arguments["used_feedback"],
+                    "strategy_hash": compiled.construction_plan.strategy_hash.value,
+                    "construction_plan_digest": compiled.construction_plan.to_ref().content_digest,
+                    "reconstruction_profile_digest": profile.profile_digest,
+                    "final_evidence": False,
+                }
+                write_once(root / "selected-recipe.json", canonical(result))
+            else:
+                numerical = call["name"] == PREFIX + "start_research_task" and (
+                    arguments.get("kind") == "practice"
+                    or arguments.get("action") == "run_python"
+                )
+                if numerical and trials >= 8:
+                    result = {
+                        "status": "UNAVAILABLE",
+                        "reason": "epoch research trial ceiling; select retained recipe or stop",
+                        "authority_granted": False,
+                    }
+                    ledger.note(owner=owner, kind="capability_request", body=result)
+                else:
+                    result = await sdk.call(call["name"], arguments, tool_identity)
+            write_once(result_file, canonical(result))
+        if result.get("requires_reconciliation"):
+            outcome = {
+                "status": "RECONCILIATION_REQUIRED",
+                "reason": "tool dispatch unresolved",
+                "tool": tool_identity,
+            }
+            break
+        if result.get("status") == "SELECTED":
+            outcome = result
+            break
+        history.append(
+            {
+                "type": "function_call_output",
+                "call_id": call["call_id"],
+                "output": canonical(result).decode(),
+            }
+        )
+    if outcome is None:
+        outcome = {"status": "STOPPED", "reason": "epoch provider-call ceiling"}
+    report = {
+        "schema": "carbon.autoresearch.epoch-outcome.v1",
+        "epoch": epoch,
+        **outcome,
+        "accounting": ledger.status(owner=owner),
+        "chain_transactions": 0,
+    }
+    write_once(root / "outcome.json", canonical(report))
+    return report

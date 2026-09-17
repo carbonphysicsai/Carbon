@@ -16,7 +16,6 @@ from carbon.development_session.contracts import build_contracts
 from carbon.development_session.profile import (
     canonical,
     digest,
-    profile_digest,
     profile_document,
 )
 from carbon.development_testnet.execution import load_source_handoff
@@ -120,6 +119,7 @@ def resolve_source(
     quarantine_journal: Path,
     trusted: dict | None = None,
     reference_root: Path | None = None,
+    research_profile: bool = False,
 ) -> ResolvedSource:
     document = read_json(path, 128 * 1024)
     trust = {
@@ -160,27 +160,47 @@ def resolve_source(
     dossier = read_json(export / "dossier.json")
     manifest = read_json(export / "case-manifest.json")
     strategy = read_json(export / "strategy.json")
-    compiled = build_contracts().compile(strategy)
+    active_profile = profile_document()
+    contracts = build_contracts()
+    resources = active_profile["budget"]
+    if research_profile:
+        from carbon.development_session.research_catalog import research_contracts
+        from carbon.development_session.research_profile import (
+            document as research_document,
+        )
+
+        active_profile = research_document()
+        if read_json(export / "profile.json") != active_profile:
+            raise ValueError("research profile differs from registered version")
+        contracts = research_contracts()
+        resources = active_profile["final_worker"]
+    active_digest = digest(canonical(active_profile))
+    compiled = contracts.compile(strategy)
+    expected_steps = strategy.get("parameters", {}).get("steps")
+    if research_profile and type(compiled) is CompileAccepted:
+        from carbon.reconstruction.profile import compile_development_profile
+
+        expected_steps = json.loads(
+            compile_development_profile(compiled.construction_plan).train_config_json
+        )["steps"]
     binding = receipt.binding
-    worker = DevelopmentWorkerProfile(
-        profile_digest(), digest(canonical(profile_document()["budget"]))
-    )
+    worker = DevelopmentWorkerProfile(active_digest, digest(canonical(resources)))
     if (
         type(compiled) is not CompileAccepted
         or compiled.construction_plan.strategy_hash.value != binding.strategy_digest
         or compiled.construction_plan.to_ref().content_digest
         != binding.reconstruction_plan_digest
-        or binding.resource_policy_digest != profile_digest()
+        or binding.resource_policy_digest != active_digest
         or binding.execution_policy_digest != worker.digest
-        or binding.scoring_policy_digest != profile_digest()
+        or binding.scoring_policy_digest != active_digest
         or digest(canonical(dossier)) != binding.dossier_digest
-        or dossier["profile_digest"] != profile_digest()
+        or dossier["profile_digest"] != active_digest
         or digest(canonical(manifest)) != dossier["case_manifest_digest"]
         or dossier["strategy_digest"] != binding.strategy_digest
         or dossier["repeat_plan_digest"] != binding.repeat_plan_digest
         or manifest["worker_image"] != binding.worker_image_digest
         or dossier["training_runs"] != 3
-        or dossier["training_steps"] != strategy["parameters"]["steps"] * 3
+        or dossier["training_steps"] != expected_steps * 3
     ):
         raise ValueError(
             "incompatible construction, resource or signed dossier identity"
@@ -190,13 +210,22 @@ def resolve_source(
         set(members)
         != {
             f"{role}-{cell:02d}"
-            for role in ("train", "eval", "stress")
+            for role in (
+                ("eval", "stress") if research_profile else ("train", "eval", "stress")
+            )
             for cell in range(12)
         }
-        or len(manifest["cases"]) != 36
-        or len({row["case_digest"] for row in members.values()}) != 36
+        or len(manifest["cases"]) != (24 if research_profile else 36)
+        or len({row["case_digest"] for row in members.values()})
+        != (24 if research_profile else 36)
     ):
-        raise ValueError("exact separated 12/12/12 cohort required")
+        raise ValueError("exact complete separated registered cohort required")
+    if research_profile and (
+        manifest.get("schema") != "carbon.autoresearch.final-cases.v1"
+        or manifest.get("training_parents") != 72
+        or manifest.get("training_archive_digest") != binding.training_data_commitment
+    ):
+        raise ValueError("research TRAIN/final association differs")
     rows = {
         (row["replica"], row["role"], row["case_digest"]): row
         for row in dossier["measurements"]

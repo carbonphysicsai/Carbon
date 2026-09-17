@@ -507,19 +507,31 @@ def _validate_plan_authority_carriers(plan: ResolvedConstructionPlan) -> None:
         for pin in plan.backbone_binding.dependency_pins
     )
     for surface in plan.resolved_surfaces:
-        identities.extend(
+        # Preserve the exact C-02 TRAIN distinction accepted by the catalog.
+        # The consumer is always checked; only these matching field identities
+        # are optimizer/loss/checkpoint controls rather than judge/chain weights.
+        training_control = (
+            surface.consumer_target.consumer_id == "carbon_jax_lab_train"
+            and surface.consumer_target.field_id
+            in {"weight_decay", "h1_weight", "pde_weight", "inference_weights"}
+            and surface.surface_id == surface.consumer_target.field_id
+        )
+        identities.append(
             (
-                (surface.surface_id, "/resolved_surfaces/surface_id"),
-                (
-                    surface.consumer_target.consumer_id,
-                    "/resolved_surfaces/consumer_target/consumer_id",
-                ),
-                (
-                    surface.consumer_target.field_id,
-                    "/resolved_surfaces/consumer_target/field_id",
-                ),
+                surface.consumer_target.consumer_id,
+                "/resolved_surfaces/consumer_target/consumer_id",
             )
         )
+        if not training_control:
+            identities.extend(
+                (
+                    (surface.surface_id, "/resolved_surfaces/surface_id"),
+                    (
+                        surface.consumer_target.field_id,
+                        "/resolved_surfaces/consumer_target/field_id",
+                    ),
+                )
+            )
         if (
             type(surface) in {m.SelectedSurface, m.DefaultedSurface}
             and type(surface.value.value) is str

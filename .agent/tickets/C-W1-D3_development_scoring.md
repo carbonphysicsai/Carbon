@@ -1,6 +1,6 @@
 # C-W1-D3 — Measurement review and non-paying DEVELOPMENT acceptance
 
-**Status:** in_progress
+**Status:** done
 **Owner:** Scientific integration
 **Reviewer:** Physics/SciML + Security
 **Depends on:** C-W1-D2, C-05, C-06, C-07, C-08, C-10, C-REWARD
@@ -54,3 +54,12 @@ OWNER-CW1-DEVELOPMENT-CI-01 adds bounded DEVELOPMENT CI to this selected ticket.
 Its exact manifest, adversarial mixed-scope tests and pinned protected-base policy
 migration ship with the scoring implementation. No extra scientific iteration,
 provider authorization, training or public transaction is implied.
+
+
+## Engineering delivery reconciliation
+
+PR #202 merged as `4a60d85323d1945fa0ec9815340618ad87e6e619`, tree
+`44f86d881bf5ac3e0a78641fddd99690329c797a`. The delivered DEVELOPMENT rule
+and its evidence limits remain unchanged. Historical reports remain signed
+under their original identities. C-W1-D4 is the separately authorized research
+successor; this closeout grants no fresh execution or transaction authority.

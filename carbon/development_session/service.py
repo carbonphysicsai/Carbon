@@ -107,17 +107,26 @@ class ObservedSnapshot:
         return self.value
 
 
-def make_mcp(root: Path):
+def make_mcp(root: Path, research_inputs=None):
+    active_document = (
+        profile_document()
+        if research_inputs is None
+        else research_inputs.profile_document
+    )
+    active_digest = digest(canonical(active_document))
+    active_context = (
+        context(root) if research_inputs is None else research_inputs.context
+    )
     registry_root, artifacts = root / "registry", root / "registry-artifacts"
     registry_root.mkdir(exist_ok=True)
     artifacts.mkdir(exist_ok=True)
-    write_once(artifacts / "development-profile.json", canonical(profile_document()))
+    write_once(artifacts / "development-profile.json", canonical(active_document))
     registry = ChallengeRegistry(
         registry_root,
         artifacts,
         development_service_admissions=(
             DevelopmentServiceAdmission(
-                CHALLENGE, "development_profile", profile_digest()
+                CHALLENGE, "development_profile", active_digest
             ),
         ),
     )
@@ -130,7 +139,7 @@ def make_mcp(root: Path):
             allowed_backbones=("fno", "deeponet"),
             artifacts={
                 "development_profile": ArtifactBinding(
-                    "development-profile.json", profile_digest()
+                    "development-profile.json", active_digest
                 )
             },
             qualification=QualificationManifest(
@@ -138,7 +147,7 @@ def make_mcp(root: Path):
             ),
         )
     )
-    pin = context(root).pin
+    pin = active_context.pin
     submissions = SubmissionService(
         strategy_limits(),
         registry,
@@ -150,7 +159,7 @@ def make_mcp(root: Path):
             pin.generator_digest,
             pin.scoring_version,
             pin.scoring_digest,
-            ExecutionEnvironmentPin("burgers-development", profile_digest()),
+            ExecutionEnvironmentPin("burgers-development", active_digest),
         ),
     )
     limits = mcp.McpResourceLimits(
@@ -202,6 +211,7 @@ class LocalMinerConnection:
     publisher: str
     miner_key: object
     comparison_contract_digest: str | None = None
+    research_inputs: object | None = None
 
     def attach_development_comparison(self, ref):
         from carbon.development_comparison.acceptance import resolve_acceptance
@@ -221,6 +231,15 @@ class LocalMinerConnection:
             raise ValueError("public testnet 567 required")
         if self.miner_key.ss58_address == self.publisher:
             raise ValueError("distinct miner hotkey required")
+        if self.research_inputs is not None:
+            from .research_final import ResearchEvaluationInputs
+
+            if (
+                type(self.research_inputs) is not ResearchEvaluationInputs
+                or self.research_inputs.root != self.root
+                or self.comparison_contract_digest is not None
+            ):
+                raise ValueError("exact separate research final binding required")
         self.signer = development_signer(self.root)
         self.ledger = audit.DevelopmentEvidenceLedger(
             self.root / "evidence.sqlite3", (self.signer.verification_key,)
@@ -240,7 +259,7 @@ class LocalMinerConnection:
             BittensorHotkeyVerifier(),
             self.transport,
         )
-        service, self.registry = make_mcp(self.root)
+        service, self.registry = make_mcp(self.root, self.research_inputs)
         self.service = AuthenticatedMinerMcpService(
             gateway, service, self.orchestrator, MinerMcpJournal(self.transport)
         )
@@ -249,7 +268,7 @@ class LocalMinerConnection:
         self.sequence = 0
         self.completed = {}
         self.submitted = {}
-        self.proposal_limit = 3
+        self.proposal_limit = 3 if self.research_inputs is None else 1
         if self.comparison_contract_digest is not None:
             from carbon.development_comparison.experiment import load_contract
 
@@ -286,6 +305,8 @@ class LocalMinerConnection:
         identity = None
         if "strategy" in fields:
             strategy = fields["strategy"]
+            if self.research_inputs is not None:
+                self.research_inputs.verify(strategy)
             identity = digest(canonical(strategy))
             if identity not in self.proposals:
                 number = len(self.proposals) + 1
@@ -298,13 +319,21 @@ class LocalMinerConnection:
                 )
                 self.proposals[identity] = number
                 write_once(self.root / f"proposal-{number}.json", canonical(strategy))
-                compiled = build_contracts().compile(strategy)
+                compiled = (
+                    build_contracts()
+                    if self.research_inputs is None
+                    else self.research_inputs.contracts
+                ).compile(strategy)
                 self.budget.finish(
                     f"proposal-{number}",
                     1.0,
                     "COMPLETE" if type(compiled) is CompileAccepted else "FAILED",
                 )
-            compiled = build_contracts().compile(strategy)
+            compiled = (
+                build_contracts()
+                if self.research_inputs is None
+                else self.research_inputs.contracts
+            ).compile(strategy)
             if type(compiled) is not CompileAccepted:
                 return {
                     "status": "REJECTED",
@@ -403,7 +432,11 @@ class LocalMinerConnection:
 
             ref = self.transport.resolve(result.transport_receipt)
             requester = requester_for_receipt(self.chain_context, ref)
-            seeds = None
+            seeds = (
+                None
+                if self.research_inputs is None
+                else self.research_inputs.randomness
+            )
             if self.comparison_contract_digest is not None:
                 from carbon.development_comparison.experiment import proposal_seeds
 
@@ -423,6 +456,7 @@ class LocalMinerConnection:
                 requester,
                 execution_scope=ExecutionScope.REAL_PATH_NON_LIVE,
                 frozen_randomness=seeds,
+                research_inputs=self.research_inputs,
             )
             complete = finish_handoff(
                 self, result.transport_receipt, requester, numerical

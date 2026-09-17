@@ -78,12 +78,41 @@ def evaluate(
     resume_completed_reconstruction: bool = False,
     execution_scope: ExecutionScope = ExecutionScope.FIXTURE_DEVELOPMENT,
     frozen_randomness: tuple[bytes, ...] | None = None,
+    research_inputs=None,
 ):
     """Called only after the authenticated service admits the miner submission.
 
     Return domain-owned objects to the trusted C-07 handoff builder. They are
     never sent to the model. This method does not call a provider or chain signer.
     """
+    if research_inputs is not None:
+        from .research_final import ResearchEvaluationInputs
+
+        if (
+            type(research_inputs) is not ResearchEvaluationInputs
+            or research_inputs.root != root
+        ):
+            raise ValueError("trusted exact research evaluation binding required")
+        research_inputs.verify(strategy)
+    scope_document = (
+        profile_document()
+        if research_inputs is None
+        else research_inputs.profile_document
+    )
+    scope_digest = (
+        profile_digest() if research_inputs is None else research_inputs.profile_digest
+    )
+    scope_resources = (
+        profile_document()["budget"]
+        if research_inputs is None
+        else research_inputs.resource_document
+    )
+    scope_context = (
+        context(root) if research_inputs is None else research_inputs.context
+    )
+    contracts = (
+        build_contracts() if research_inputs is None else research_inputs.contracts
+    )
     started_at_micros = time.time_ns() // 1000
     if type(execution_scope) is not ExecutionScope:
         raise ValueError("exact trusted execution scope required")
@@ -98,13 +127,13 @@ def evaluate(
     if resume_completed_reconstruction:
         retained = json.loads((attempt / "dispatch.json").read_bytes())
         started_at_micros = int((attempt / "dispatch.json").stat().st_mtime_ns // 1000)
-    compiled = build_contracts().compile(strategy)
+    compiled = contracts.compile(strategy)
     if type(compiled) is not CompileAccepted:
         raise ValueError("strategy rejected by B-02B")
     preparation = json.loads((root / "preparation.json").read_bytes())
     train = root / "public-train.npz"
     if (
-        preparation["profile_digest"] != profile_digest()
+        preparation["profile_digest"] != scope_digest
         or digest(train.read_bytes()) != preparation["train_archive_digest"]
     ):
         raise ValueError("frozen session identity changed")
@@ -120,7 +149,9 @@ def evaluate(
     )
     cases = tuple(
         case
-        for case in frozen_cases(root)
+        for case in (
+            frozen_cases(root) if research_inputs is None else research_inputs.cases
+        )
         if case.coordinates.role is not PublicDevelopmentRole.TRAIN
     )
     queries = [
@@ -139,7 +170,7 @@ def evaluate(
         "1.0",
         RESOURCE_POLICY_SCHEMA_VERSION,
         RESOURCE_POLICY_CANONICALIZATION_PROFILE,
-        profile_digest(),
+        scope_digest,
     )
     resource = ResourceClassRef(
         CHALLENGE,
@@ -147,7 +178,7 @@ def evaluate(
         "1.0",
         RESOURCE_POLICY_SCHEMA_VERSION,
         RESOURCE_POLICY_CANONICALIZATION_PROFILE,
-        digest(canonical(profile_document()["budget"])),
+        digest(canonical(scope_resources)),
     )
     worker = DevelopmentWorkerProfile(policy.content_digest, resource.content_digest)
     if frozen_randomness is not None and (
@@ -193,7 +224,7 @@ def evaluate(
                 policy,
                 resource,
                 f"replica-{index}",
-                profile_digest(),
+                scope_digest,
             )
         )
         identity = development_replicate_digest(
@@ -223,7 +254,7 @@ def evaluate(
         attempt / "dispatch.json",
         canonical(
             {
-                "profile_digest": profile_digest(),
+                "profile_digest": scope_digest,
                 "strategy_digest": plan.strategy_hash.value,
                 "repeat_plan_digest": repeat.plan_digest,
                 "request_digest": query_digest,
@@ -241,7 +272,11 @@ def evaluate(
     controller = IsolatedReconstructionController(
         state_root=attempt / "reconstruction", execution_queue=queue, image=image
     )
-    budget = SessionBudget(root / "budget.sqlite3")
+    budget = (
+        SessionBudget(root / "budget.sqlite3")
+        if research_inputs is None
+        else research_inputs.budget
+    )
     receipts, runs = [], []
     for index, (replica, seed) in enumerate(zip(replicas, seeds, strict=True)):
         binding = DurableExecutionBinding(
@@ -253,7 +288,7 @@ def evaluate(
                     if execution_scope is ExecutionScope.FIXTURE_DEVELOPMENT
                     else AdmissionKind.PRODUCTION
                 ),
-                context(root).pin,
+                scope_context.pin,
                 ExecutionEnvironmentPin(profile.profile_id, profile.environment_digest),
             ),
             requester,
@@ -262,7 +297,7 @@ def evaluate(
             plan.to_ref().content_digest,
             profile.profile_digest,
             policy.content_digest,
-            profile_digest(),
+            scope_digest,
         )
         queue.admit(binding)
         claimed = queue.claim(
@@ -428,7 +463,7 @@ def evaluate(
     dossier = {
         "schema": "carbon.burgers-session.evaluation-dossier.v1",
         "submission_id": submission_id,
-        "profile_digest": profile_digest(),
+        "profile_digest": scope_digest,
         "case_manifest_digest": preparation["case_manifest_digest"],
         "strategy_digest": plan.strategy_hash.value,
         "repeat_plan_digest": repeat.plan_digest,
@@ -467,7 +502,9 @@ def evaluate(
         "dossier": dossier,
         "feedback": feedback,
         "attempt_root": attempt,
-        "context": context(root),
+        "context": scope_context,
         "started_at_micros": started_at_micros,
         "execution_scope": execution_scope,
+        "profile_document": scope_document,
+        "profile_digest": scope_digest,
     }

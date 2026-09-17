@@ -218,6 +218,7 @@ class ResearchTaskKind(str, Enum):
     PRACTICE = "PRACTICE"
     PAIRED_PRACTICE = "PAIRED_PRACTICE"
     RESOURCE_CALIBRATION = "RESOURCE_CALIBRATION"
+    DEVELOPMENT_WORKSPACE_V1 = "DEVELOPMENT_WORKSPACE_V1"
 
 
 class StrategyTaskRole(str, Enum):
@@ -555,6 +556,21 @@ def _validate_semantics(value: _ExactRecord) -> None:
             raise BoundExceededField("forecast horizon is outside 1..604800")
     elif type(value) is GetResearchResultRequest and value.poll_sequence > 9_999:
         raise BoundExceededField("poll sequence is outside 0..9999")
+    elif type(value) is DevelopmentWorkspaceTaskSpecV1:
+        if value.version != "carbon.autoresearch.workspace.v1":
+            raise ValueError("unsupported development workspace version")
+        if value.action not in {
+            "public_material",
+            "inventory",
+            "read_file",
+            "write_file",
+            "notebook",
+            "capability_request",
+            "run_python",
+        }:
+            raise ValueError("unsupported development workspace action")
+        if not 2 <= len(value.arguments_json.encode("utf-8")) <= 12_288:
+            raise BoundExceededField("workspace arguments exceed closed text bound")
     elif type(value) is StartResearchTaskRequest:
         _validate_request_token(value.idempotency_key, "idempotency_key")
         _require_request_refs(
@@ -669,6 +685,7 @@ def _validate_semantics(value: _ExactRecord) -> None:
                 StrategyTaskRole.INTERVENTION,
             ),
             ResearchTaskKind.RESOURCE_CALIBRATION: (StrategyTaskRole.PRIMARY,),
+            ResearchTaskKind.DEVELOPMENT_WORKSPACE_V1: (),
         }[value.task_kind]
         if tuple(binding.role for binding in value.strategy_bindings) != expected_roles:
             raise ValueError("strategy binding roles conflict with the task kind")
@@ -1059,11 +1076,21 @@ class ResourceCalibrationTaskSpec(_ExactRecord):
     strategy: TrainingStrategy
 
 
+@wire_record("development_workspace_task_spec_v1")
+class DevelopmentWorkspaceTaskSpecV1(_ExactRecord):
+    """Public DEVELOPMENT workspace capability, separate from any recipe."""
+
+    version: str
+    action: str
+    arguments_json: str
+
+
 ResearchTaskSpec: TypeAlias = (
     ReconstructionRehearsalSpec
     | PracticeTaskSpec
     | PairedPracticeTaskSpec
     | ResourceCalibrationTaskSpec
+    | DevelopmentWorkspaceTaskSpecV1
 )
 
 

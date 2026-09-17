@@ -37,6 +37,7 @@ def test_package_is_exact_and_exports_no_official_or_network_surface() -> None:
     assert {path.name for path in PACKAGE.glob("*.py")} == {
         "__init__.py",
         "model.py",
+        "research.py",
         "service.py",
         "store.py",
     }

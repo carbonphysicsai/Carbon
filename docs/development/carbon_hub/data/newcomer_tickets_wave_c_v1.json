@@ -234,6 +234,14 @@
       "changes": "Owner-delegated balanced-v2 scoring, prospective source admission, C-06 derived signatures, C-07 feedback, retained-data findings and an existing-core non-paying reward simulation.",
       "not_yet": "No retrospective acceptance, real winner, provider charge, fresh training, public-network transaction, payment, protected evidence or scientific/security/production qualification.",
       "map_ref": "WAVE-C/C-W1-D3"
+    },
+    "C-W1-D4": {
+      "title": "Give miners a real, bounded research loop",
+      "what": "Connect authenticated research tools, a restricted workspace, real JAX practice and fresh final signed-source comparison.",
+      "why": "Submission-only agents cannot investigate undertraining, optimization, physical biases or missing research capabilities.",
+      "changes": "A finite durable research loop with honest learning curves, capability requests, budget accounting, frozen final recipes and a local owner report.",
+      "not_yet": "No gate changes, public-network transactions, paid winner, protected data, production processing or qualification.",
+      "map_ref": "WAVE-C/C-W1-D4"
     }
   }
 }
