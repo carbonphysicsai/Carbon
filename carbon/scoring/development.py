@@ -70,6 +70,90 @@ class DevelopmentDecision:
     network_eligible: bool = False
 
 
+def _role_components(measurements):
+    """Same arithmetic for complete final replicas and explicitly adaptive practice."""
+    means = {
+        name: math.fsum(m["metrics"][name] for m in measurements) / len(measurements)
+        for name in METRICS
+    }
+    errors = (
+        means["energy_path_rms"],
+        max(m["metrics"]["field_time_rms"] for m in measurements),
+        means["field_time_rms"],
+    )
+    values = tuple(1 / (1 + value) for value in errors)
+    names = ("physics", "robustness", "accuracy")
+    legs = tuple(
+        LegScore(name, (ScalarScore("development_" + name, value),), value)
+        for name, value in zip(names, values, strict=True)
+    )
+    return (
+        means,
+        _combined_score(legs, (0.25, 0.25, 0.5)),
+        dict(zip(names, values, strict=True)),
+    )
+
+
+def practice_diagnostics(measurements, scales):
+    """One real practice construction; no invented replicas or acceptance.
+
+    Primary-only public practice cannot establish reference uncertainty or final
+    admissibility. Return sampled gate failures and the same descriptive score.
+    """
+    if (
+        len(measurements) != 24
+        or len(scales) != 24
+        or {(s["role"], s["cell"]) for s in scales}
+        != {(role, cell) for role in RULE["roles"] for cell in range(12)}
+    ):
+        raise ValueError("complete public practice cohort required")
+    for m in measurements:
+        if (
+            m["version"] != VERSION
+            or set(m["metrics"]) != set(METRICS)
+            or any(
+                type(v) is not float or not math.isfinite(v) or v < 0
+                for v in m["metrics"].values()
+            )
+        ):
+            raise ValueError("incompatible practice measurement")
+    roles = {}
+    failures = []
+    for role in RULE["roles"]:
+        rows = [
+            m
+            for m, scale in zip(measurements, scales, strict=True)
+            if scale["role"] == role
+        ]
+        means, score, legs = _role_components(rows)
+        maximum = {name: max(m["metrics"][name] for m in rows) for name in METRICS}
+        failures.extend(
+            role + ":" + name
+            for name, limit in RULE["hard_limits"].items()
+            if maximum[name] + RULE["arithmetic_floor"] >= limit
+        )
+        roles[role] = {
+            "mean_metrics": means,
+            "maximum_metrics": maximum,
+            "score": score,
+            "legs": legs,
+            "parents": 12,
+            "replicas": 1,
+        }
+    return {
+        "schema": "carbon.development-practice-diagnostics.v1",
+        "rule_digest": rule_digest(),
+        "roles": roles,
+        "descriptive_score": min(row["score"] for row in roles.values()),
+        "sampled_gate_failures": sorted(failures),
+        "reference_uncertainty": "UNMEASURED_PRIMARY_ONLY",
+        "adaptive_practice": True,
+        "final_admissibility": None,
+        "accepted_improvement": False,
+        "official_eligible": False,
+    }
+
+
 def summarize(rows):
     if type(rows) is not tuple or len(rows) != 72:
         raise ValueError("complete 2 x 12 x 3 evidence required")
@@ -127,25 +211,9 @@ def summarize(rows):
                         >= limit + allowance
                     ):
                         failed.add(role + ":" + name)
-            means = {
-                name: math.fsum(m["metrics"][name] for m in ms) / 12 for name in METRICS
-            }
-            errors = (
-                means["energy_path_rms"],
-                max(m["metrics"]["field_time_rms"] for m in ms),
-                means["field_time_rms"],
-            )
-            values = tuple(1 / (1 + v) for v in errors)
-            leg = tuple(
-                LegScore(name, (ScalarScore("development_" + name, v),), v)
-                for name, v in zip(
-                    ("physics", "robustness", "accuracy"), values, strict=True
-                )
-            )
-            scores.append(_combined_score(leg, (0.25, 0.25, 0.5)))
-            legs.append(
-                dict(zip(("physics", "robustness", "accuracy"), values, strict=True))
-            )
+            _means, score, role_legs = _role_components(ms)
+            scores.append(score)
+            legs.append(role_legs)
         roles[role] = {
             "replica_scores": scores,
             "legs": legs,

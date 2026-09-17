@@ -18,6 +18,37 @@ _B07F_ADAPTER = _CARBON_ROOT / "traineval" / "resolved_fixture.py"
 _C04_REFERENCE_MODEL = _CARBON_ROOT / "reference_runtime" / "model.py"
 _BURGERS_DEVELOPMENT_MODULE = _GENERATORS_ROOT / "burgers_dynamics.py"
 
+# OWNER-C-W1-D4-AUTORESEARCH-01 authorizes these controller-owned public
+# DEVELOPMENT consumers. Exact symbols below preserve the generator boundary.
+_D4_GENERATOR_CONSUMERS = {
+    "research_authoring.py": {"carbon.generators": {"burgers_dynamics"}},
+    "research_data.py": {
+        "carbon.generators.burgers_dynamics": {
+            "DOMAIN_LENGTH",
+            "BurgersCaseCoordinates",
+            "BurgersDevelopmentCase",
+            "PublicDevelopmentRole",
+            "candidate_query",
+            "requested_times",
+        }
+    },
+    "research_final.py": {
+        "carbon.generators.burgers_dynamics": {
+            "canonical_public_case_bytes",
+            "requested_times",
+        }
+    },
+    "research_generation.py": {"carbon.generators": {"burgers_dynamics"}},
+    "research_profile.py": {
+        "carbon.generators": {"burgers_dynamics"},
+        "carbon.generators.burgers_dynamics": {
+            "BurgersCaseCoordinates",
+            "PublicDevelopmentRole",
+            "generate_development_case",
+        },
+    },
+}
+
 _EXPECTED_MODULE_PATHS = frozenset(
     {
         "__init__.py",
@@ -394,6 +425,11 @@ def test_existing_carbon_packages_do_not_reverse_import_generators() -> None:
             _CARBON_ROOT / "development_session" / "evaluation.py",
         }:
             continue
+        if (
+            path.parent == _CARBON_ROOT / "development_session"
+            and path.name in _D4_GENERATOR_CONSUMERS
+        ):
+            continue
         violations.extend(
             f"{_relative(path)}:{line}" for line in _imports_generators(path)
         )
@@ -500,3 +536,21 @@ def test_supervised_session_imports_only_the_ratified_public_burgers_surface():
                 if base.startswith("carbon.generators"):
                     assert base in allowed
                     assert {alias.name for alias in node.names} <= allowed[base]
+
+
+def test_d4_controller_consumers_import_only_exact_public_generator_symbols():
+    for name, allowed in _D4_GENERATOR_CONSUMERS.items():
+        path = _CARBON_ROOT / "development_session" / name
+        observed = {}
+        for node in ast.walk(_parse(path)):
+            if isinstance(node, ast.Import):
+                assert not any(
+                    alias.name.startswith("carbon.generators") for alias in node.names
+                )
+            elif isinstance(node, ast.ImportFrom):
+                base = _from_module(path, node)
+                if base.startswith("carbon.generators"):
+                    observed.setdefault(base, set()).update(
+                        alias.name for alias in node.names
+                    )
+        assert observed == allowed

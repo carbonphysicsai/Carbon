@@ -34,7 +34,7 @@
 > historical evidence, and human-reserved scientific/security authority remain.
 
 **Current wave:** C
-**Current phase:** C-W1-D3 measurement review and DEVELOPMENT scoring
+**Current phase:** C-W1-D4 finite miner autoresearch
 **State:** **active in bounded engineering scope**
 **Wave A:** closed in bounded engineering scope
 **Wave B:** closed in bounded engineering scope after PR #118 accepted head
@@ -42,19 +42,18 @@
 normally merged as `ac050fd53ee18bf3788c167ee7b0736bbfd7a46b`, tree
 `46b38440f13a8048db18bc480ddb6907396c9017`
 **Controlling register:** `.agent/WAVE_C.md` version 2.6
-**Selected ticket:** C-W1-D3 — `in_progress`
-**Selection scope:** delegated measurement review and non-paying DEVELOPMENT scoring only; official
-C-W1 remains `future_reserved`.
-**Active ticket:** `.agent/tickets/C-W1-D3_development_scoring.md`.
-**Next boundary:** complete C-W1-D3 required CI and normal merge; the next fresh construction/agent experiment needs new bounded resource authority.
+**Selected ticket:** C-W1-D4 — `in_progress`
+**Selection scope:** public/synthetic DEVELOPMENT miner research and one finite off-chain campaign under OWNER-C-W1-D4-AUTORESEARCH-01; official C-W1 remains `future_reserved`.
+**Active ticket:** `.agent/tickets/C-W1-D4_miner_autoresearch.md`.
+**Next boundary:** C-W1-D4 real research implementation, required acceptance and finite owner-authorized campaign; no chain writes.
 PR #196 delivered C-W1-REVEAL-01 at approved head
 `594b8cb668e9b133cb071b32f0ca3e7785d5c3f9`, required run `35143278595`, normal
 merge `15ecbe923c8710313cbeadadc8dd5c7d5ec2ae9e`. The historical publication is
 `ROW_VERIFIED`; its exact row is `[[0, 65535]]`. The numerical source remains
 `COMPLETE_UNRESOLVED`. Both transaction scopes are consumed. Burn amounts,
 epoch effects, miner payment and settlement remain unproven. C-W1-D2 permits
-no public-network transaction. C-W1-D3 is selected separately.
-C-W1-D2 completed one non-paying DEVELOPMENT experiment on the seen 12 TRAIN / 12 EVAL / 12 STRESS subset: 8 real gpt-5-mini calls, one FNO-48 challenger against the authentic FNO-40 historical baseline, three real JAX replicas, 144 updates and 72 C-05 reports. Field and weak-PDE errors were lower; conserved-mean and STRESS maximum-principle defects worsened. Disposition: INDETERMINATE_NO_ACCEPTANCE_RULE. No scalar, tie, accepted improvement or winner is claimed. The agent used its permitted prior feedback and stopped after one evaluation. PR #201 merged as d1d07bb408a2b68efed70baf7e11ec22bb180c9d. C-W1-D2 engineering is complete; C-W1-D3 alone is selected under OWNER-C-W1-D3-DELEGATION-01.
+no public-network transaction. C-W1-D3 subsequently delivered; C-W1-D4 is selected separately.
+C-W1-D2 completed one non-paying DEVELOPMENT experiment on the seen 12 TRAIN / 12 EVAL / 12 STRESS subset: 8 real gpt-5-mini calls, one FNO-48 challenger against the authentic FNO-40 historical baseline, three real JAX replicas, 144 updates and 72 C-05 reports. Field and weak-PDE errors were lower; conserved-mean and STRESS maximum-principle defects worsened. Disposition: INDETERMINATE_NO_ACCEPTANCE_RULE. No scalar, tie, accepted improvement or winner is claimed. The agent used its permitted prior feedback and stopped after one evaluation. PR #201 merged as d1d07bb408a2b68efed70baf7e11ec22bb180c9d. C-W1-D2 engineering is complete; C-W1-D3 delivered in PR #202, merge 4a60d85323d1945fa0ec9815340618ad87e6e619. C-W1-D4 alone is selected under OWNER-C-W1-D4-AUTORESEARCH-01.
 C-EA2 and official C-W1 remain blocked.
 C-EA1 passed canonical acceptance in run `34558389185` at accepted head
 `a779af066f4bf9bc36b6d6ab23914fa19191e1de` and normally merged in PR #136 as

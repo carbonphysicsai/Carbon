@@ -564,9 +564,26 @@ class ExperimentRecord:
         ):
             if type(value) is not expected or value.challenge_key != self.challenge_key:
                 raise ValueError(f"{label} must exactly bind the record Challenge")
+        from .model import ResearchTaskKind
+
+        workspace_only = (
+            self.task_bindings.task_kind is ResearchTaskKind.DEVELOPMENT_WORKSPACE_V1
+        )
+        if workspace_only and (
+            self.resolved_strategies != ()
+            or self.evidence_class is not ResearchEvidenceClass.STRUCTURAL_ONLY
+            or self.scientific_failure_category is not None
+        ):
+            raise ValueError(
+                "workspace records cannot assert strategy or scientific outcomes"
+            )
         if (
             type(self.resolved_strategies) is not tuple
-            or not 1 <= len(self.resolved_strategies) <= 2
+            or not (
+                len(self.resolved_strategies) == 0
+                if workspace_only
+                else 1 <= len(self.resolved_strategies) <= 2
+            )
             or any(
                 type(item) is not ResolvedStrategy for item in self.resolved_strategies
             )

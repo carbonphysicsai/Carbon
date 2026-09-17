@@ -40,8 +40,8 @@ Authentic descriptive DEVELOPMENT comparison implemented and exercised. Accepted
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/608bc7aaba85e65c21a33ca8157f5a061892bd61/.agent/tickets/C-W1-D2_development_comparison.md)
-- [Frozen comparison contract](https://github.com/carbonphysicsai/Carbon/blob/608bc7aaba85e65c21a33ca8157f5a061892bd61/docs/development/CW1_DEVELOPMENT_COMPARISON.md)
-- [Observed results](https://github.com/carbonphysicsai/Carbon/blob/608bc7aaba85e65c21a33ca8157f5a061892bd61/docs/development/CW1_DEVELOPMENT_COMPARISON_RESULTS.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/dcd4ecf918a066b36916fcb68f35c0b7a89a2863/.agent/tickets/C-W1-D2_development_comparison.md)
+- [Frozen comparison contract](https://github.com/carbonphysicsai/Carbon/blob/dcd4ecf918a066b36916fcb68f35c0b7a89a2863/docs/development/CW1_DEVELOPMENT_COMPARISON.md)
+- [Observed results](https://github.com/carbonphysicsai/Carbon/blob/dcd4ecf918a066b36916fcb68f35c0b7a89a2863/docs/development/CW1_DEVELOPMENT_COMPARISON_RESULTS.md)
 
 > Historical seen-subset descriptive evidence under its unchanged original contract. C-W1-D3 separately adds a prospective DEVELOPMENT decision rule.

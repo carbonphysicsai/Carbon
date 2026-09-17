@@ -74,12 +74,13 @@ Wave C does not authorize LIVE science, Wave-D qualification, learned Landscape/
 - [C-09](../tickets/c_09.md): Official testnet publication and leaderboard provider [todo]
 - [C-W1](../tickets/c_w1.md): Exact real testnet eligibility provenance [in_progress]
 - [C-W1-D2](../tickets/c_w1_d2.md): Non-paying DEVELOPMENT comparison bridge [done]
-- [C-W1-D3](../tickets/c_w1_d3.md): Measurement review and non-paying DEVELOPMENT scoring [in_progress]
+- [C-W1-D3](../tickets/c_w1_d3.md): Measurement review and non-paying DEVELOPMENT scoring [done]
+- [C-W1-D4](../tickets/c_w1_d4.md): Miner autoresearch and finite DEVELOPMENT campaign [in_progress]
 
 ## Repository detail
 
-- [Wave C controlling board](https://github.com/carbonphysicsai/Carbon/blob/608bc7aaba85e65c21a33ca8157f5a061892bd61/.agent/WAVE_C.md)
-- [Current wave register](https://github.com/carbonphysicsai/Carbon/blob/608bc7aaba85e65c21a33ca8157f5a061892bd61/.agent/WAVE.md)
-- [NET-1 ticket](https://github.com/carbonphysicsai/Carbon/blob/608bc7aaba85e65c21a33ca8157f5a061892bd61/.agent/tickets/NET-1_chain_adapter.md)
+- [Wave C controlling board](https://github.com/carbonphysicsai/Carbon/blob/dcd4ecf918a066b36916fcb68f35c0b7a89a2863/.agent/WAVE_C.md)
+- [Current wave register](https://github.com/carbonphysicsai/Carbon/blob/dcd4ecf918a066b36916fcb68f35c0b7a89a2863/.agent/WAVE.md)
+- [NET-1 ticket](https://github.com/carbonphysicsai/Carbon/blob/dcd4ecf918a066b36916fcb68f35c0b7a89a2863/.agent/tickets/NET-1_chain_adapter.md)
 
 > Orientation boundary: repository authority owns exact semantics, implementation, review, evidence, and activation.

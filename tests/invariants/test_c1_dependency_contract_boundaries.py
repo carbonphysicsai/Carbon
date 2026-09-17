@@ -30,7 +30,7 @@ def test_only_cw1_development_slice_is_selected() -> None:
     wave_c = _read(".agent/WAVE_C.md")
     graph = _read(".agent/plans/C1_DEPENDENCY_GRAPH.md")
     for record in (wave, wave_c):
-        assert "**Selected ticket:** C-W1-D3 — `in_progress`" in record
+        assert "**Selected ticket:** C-W1-D4 — `in_progress`" in record
         assert "**Active ticket:**" in record
         assert "C-W1-D1" in record
         assert "DEVELOPMENT" in record
@@ -54,7 +54,7 @@ def test_only_cw1_development_slice_is_selected() -> None:
         "| C-03 | PR #149 bounded DEVELOPMENT capability and PR #151 hardening accepted"
         in graph
     )
-    assert "**yes, C-W1-D3 only**" in graph
+    assert "**yes, C-W1-D4 only**" in graph
     assert "AWS deployment deferred" in graph
     assert "Hippius preferred but unverified" in graph
 
@@ -88,8 +88,8 @@ def test_jax_and_archive_blocks_remain_complete_and_fail_closed() -> None:
 def test_hub_projects_only_cw1_development_slice() -> None:
     data = json.loads(_read("docs/development/carbon_hub/data/hub_data_v2.json"))
     current = data["current"]
-    assert current["last_completed_ticket"]["id"] == "C-W1-D2"
-    assert current["selected_ticket"]["id"] == "C-W1-D3"
+    assert current["last_completed_ticket"]["id"] == "C-W1-D3"
+    assert current["selected_ticket"]["id"] == "C-W1-D4"
     assert current["next_selected_ticket"] is None
     tickets = {ticket["id"]: ticket for ticket in data["tickets"]}
     assert tickets["C-EP1"]["status"] == "done"

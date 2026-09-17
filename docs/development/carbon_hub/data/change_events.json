@@ -2561,7 +2561,7 @@
       "event_id": "OWNER-C1-BURGERS-ALPHA-01",
       "owner_lane": "repository_owner",
       "status": "active",
-      "summary": "The owner selects C-03 prerequisite hardening and a sequential public-data Burgers vertical, with a trusted Carbon single-tenant host, three replicas in new working profiles, explicit Cole–Hopf/witness/ETDRK4 roles and prospective private archive targets. C-04 is next after the current merge; protected admission, independent review acceptance, scientific sufficiency, real archive acknowledgement, public-network operation and LIVE remain unavailable.",
+      "summary": "The owner selects C-03 prerequisite hardening and a sequential public-data Burgers vertical, with a trusted Carbon single-tenant host, three replicas in new working profiles, explicit Cole\u2013Hopf/witness/ETDRK4 roles and prospective private archive targets. C-04 is next after the current merge; protected admission, independent review acceptance, scientific sufficiency, real archive acknowledgement, public-network operation and LIVE remain unavailable.",
       "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/0a57b13ae97056d722930ab95a9604077af8520d/.agent/plans/C1_ALPHA_VERTICAL_CONTINUATION.md",
       "affects": [
         "WAVE-B",
@@ -2617,7 +2617,7 @@
       "event_id": "C-04-I1",
       "owner_lane": "scientific_reference_execution_engineering",
       "status": "implemented",
-      "summary": "The C-04 candidate implements role-explicit Cole–Hopf primary, conservative finite-volume witness and ETDRK4 development cross-check paths under the C-03 boundary, plus a frozen twelve-cell public D-03/D-04 prerequisite harness. Required exact-head Linux service acceptance is pending; no tolerance, TruthAsset, protected admission, score or scientific/security qualification is asserted.",
+      "summary": "The C-04 candidate implements role-explicit Cole\u2013Hopf primary, conservative finite-volume witness and ETDRK4 development cross-check paths under the C-03 boundary, plus a frozen twelve-cell public D-03/D-04 prerequisite harness. Required exact-head Linux service acceptance is pending; no tolerance, TruthAsset, protected admission, score or scientific/security qualification is asserted.",
       "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/cce53ae3ef12d2140c23ae3a1ef60e968aabe0dd/.agent/evidence/wave_c/c-04.md",
       "affects": [
         "WAVE-B",
@@ -3766,6 +3766,28 @@
         "WAVE-C/NET-5",
         "WAVE-C/NET-5R",
         "WAVE-C/NET-6"
+      ],
+      "supersedes": null
+    },
+    {
+      "map_ref": "WAVE-C/C-W1",
+      "event_type": "adjustment",
+      "event_id": "C-W1-D4-RESEARCH-01",
+      "owner_lane": "engineering",
+      "status": "active",
+      "summary": "Ryan authorizes one finite DEVELOPMENT miner research campaign. The candidate now adds real practice, isolated public Python, durable budgets and fresh final source bindings; engineering tests passed in their scopes, while delivery acceptance and real inference remain pending. Reconcile the PR #202 closeout and new D4 dependency edges; refresh shared source links to the current authority snapshot without promoting any qualification. Reconcile the unchanged staging explanation with the updated Wave source digest; no website activation or model expenditure.",
+      "primary_detail": ".agent/tickets/C-W1-D4_miner_autoresearch.md",
+      "affects": [
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-HUB/VALIDATION",
+        "SYSTEM/GOVERNANCE",
+        "SYSTEM/PUBLICATION",
+        "WAVE-B",
+        "WAVE-C",
+        "WAVE-C/C-03",
+        "WAVE-C/C-08",
+        "WAVE-C/C-W1-D3",
+        "WAVE-C/C-W1-D4"
       ],
       "supersedes": null
     },
