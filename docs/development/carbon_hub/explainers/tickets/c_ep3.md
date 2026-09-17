@@ -40,9 +40,9 @@ Bounded DEVELOPMENT acquisition/probe tooling only. A successful public numerica
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/68ed5435cd599b3582441bb9152e35fcd40f19e0/.agent/tickets/C-EP3_reference_component_input_acquisition.md)
-- [Stable acquisition evidence](https://github.com/carbonphysicsai/Carbon/blob/68ed5435cd599b3582441bb9152e35fcd40f19e0/.agent/evidence/wave_c/c-ep3.md)
-- [C1 dependency graph](https://github.com/carbonphysicsai/Carbon/blob/68ed5435cd599b3582441bb9152e35fcd40f19e0/.agent/plans/C1_DEPENDENCY_GRAPH.md)
-- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/68ed5435cd599b3582441bb9152e35fcd40f19e0/.agent/WAVE_C.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/93a8c8a936dc84700851c99fb961afecce340845/.agent/tickets/C-EP3_reference_component_input_acquisition.md)
+- [Stable acquisition evidence](https://github.com/carbonphysicsai/Carbon/blob/93a8c8a936dc84700851c99fb961afecce340845/.agent/evidence/wave_c/c-ep3.md)
+- [C1 dependency graph](https://github.com/carbonphysicsai/Carbon/blob/93a8c8a936dc84700851c99fb961afecce340845/.agent/plans/C1_DEPENDENCY_GRAPH.md)
+- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/93a8c8a936dc84700851c99fb961afecce340845/.agent/WAVE_C.md)
 
 > The workbench's ETDRK4 primary and Cole-Hopf witness are public DEVELOPMENT research candidates, not an official or adequate Carbon reference. Missing JAX source, compatible demand, comparison rules and B overhead remain unknown.
