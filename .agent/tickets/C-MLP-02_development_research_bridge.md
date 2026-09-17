@@ -218,6 +218,25 @@ grant expansion, forced extra trial or acceptance relabelling is authorized here
 The dashboard engineering slice may deliver after its applicable checks while
 the genuine multi-iteration acceptance remains selected and explicitly incomplete.
 
+## Finite-completion repair C-MLP-02-D5
+
+The #209 integration owner assigned the campaign orchestrator's narrow
+finite-completion repair to the Launchpad executor as a separate tested successor.
+Keep its shared SDK, task/service, reference, ownership and cleanup files untouched.
+The observed one-epoch campaign prepared an inadmissible second epoch after its
+real final result. Iterate only the epoch identities allowed by the existing
+validated frozen manifest; retain D4 v1's exact two-epoch behavior. Do not derive
+another grant, alter its ceilings, refund usage or migrate either terminal run.
+
+Plan: reproduce the one-epoch failure through the real orchestrator and ledger
+with explicitly non-spending external-boundary fixtures; repair the finite loop;
+test one/two/zero-epoch admitted limits, legacy defaults, non-improved final
+completion, stop/failure paths and unchanged terminal resume. Reuse all existing
+admission, freeze, accounting and cleanup semantics. Deliver after applicable
+canonical and Hub acceptance, separately from #215's observation dashboard.
+Primary map remains SYSTEM/AGENT-EXECUTION; batch its Hub impact before acceptance.
+This repair alone supplies no new empirical adaptive-research evidence or grant.
+
 ## Earlier readback slice evidence
 
 Continuation engineering diagnostics: 94 focused Linux tests passed. The initial
