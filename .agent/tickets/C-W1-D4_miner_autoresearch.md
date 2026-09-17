@@ -1,6 +1,6 @@
 # C-W1-D4 — Miner autoresearch and finite DEVELOPMENT campaign
 
-**Status:** in_progress
+**Status:** done
 **Selected authority:** OWNER-C-W1-D4-AUTORESEARCH-01 (Ryan's current direction)
 **Primary Hub map_ref:** WAVE-C/C-W1
 **Depends on:** B-07G, C-02, C-03, C-04, C-05, C-06, C-07, C-08, C-10, C-W1-D3, C-REWARD
@@ -151,3 +151,10 @@ Workbench and website PRs #203/#204; preserve their authority and Hub changes.
 No PR or accepted D4 revision exists. No real campaign model call, reference
 trajectory, training trial, final reconstruction or network transaction occurred.
 The campaign clock has not started and none of its provider allowance was spent.
+
+
+## Delivered finite outcome (2026-09-17)
+
+PR #206 delivered C-W1-D4 at ce6a7e389d9f4d815fbbb45c68db2eda8784a1e8, normal merge 54f8aff742b99fd2957fede73ea814f03da49eb6; required run 35226186473 passed. Its real campaign stopped after seven model calls, USD 0.00818185, 96 public reference trajectories and 310.573 numerical seconds. The agent asked for already-granted trial approval; zero training trials or final replicas ran. This is an orchestration finding, not a measured model failure or accepted improvement. C-W1-D5 is selected for prospective autonomous continuity under OWNER-C-W1-RESEARCH-PROGRAM-01. No chain writes.
+The earlier implementation checkpoints above are historical. The outcome did not
+fulfill the desired learning loop; D5 owns the evidence-driven continuity repair.
