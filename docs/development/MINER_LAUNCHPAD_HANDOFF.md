@@ -27,7 +27,7 @@ steps are counters, not physics experiments. Scientific results and submission
 receipts remain null. External spend is zero because no provider is called, not
 because this version implements a monetary spending limiter.
 
-From the repository root on Linux or macOS:
+From the repository root on Linux, macOS or Windows:
 
 ```sh
 python scripts/dev/miner_launchpad/controller.py
@@ -45,6 +45,15 @@ and 1,000 retained runs are admitted; the UI lists the 50 most recent. Credentia
 are not accepted as request fields. No shell command or external endpoint can be
 supplied through the API.
 
+On Windows use a private, user-owned state directory: POSIX mode bits do not
+establish a Windows ACL. OS file locking prevents concurrent controller ownership
+on each supported host and releases ownership when the process exits.
+An unconfirmed browser launch retains only its request key and closed rehearsal
+specification in tab session storage across reloads. Credentials remain in memory.
+If retry storage is unavailable, launch fails closed before dispatch. Closing the
+tab loses that pending request; reconnect and inspect retained runs before starting
+another. Server history persists independently of browser storage.
+
 Do not upload these files to the public marketing site and expect a working hosted
 service. Do not expose this Python HTTP server through a public tunnel. The mobile
 layout is preparatory; real phone access needs a separately reviewed authenticated
@@ -55,12 +64,17 @@ Native diagnostics:
 ```sh
 python -m pytest tests/cpu/test_miner_launchpad.py -q
 node --check scripts/dev/miner_launchpad/app.js
+python scripts/dev/miner_launchpad/browser_smoke.py
 ```
 
 The recorded 56 passing tests ran on Python 3.13.5 outside Carbon's pinned
-environment. Repeat acceptance in canonical Python 3.11. Offline desktop/mobile
-layout checks passed, but browser-to-server testing was blocked by the execution
-environment's Chromium policy. Do not claim that test passed.
+environment. Repeat acceptance in canonical Python 3.11. The continuation repaired
+reload-safe retries, stale connection controls, fresh export, bounded HTTP admission
+and Windows ownership locking. Its 63 Python 3.12 Windows diagnostics passed.
+Actual local Chromium/server smoke passed launch, lost-response/reload retry,
+pause/resume/stop, export, storage failure, reopened SQLite/server recovery,
+expiry and 1440/390px layouts. This replaces the prior browser environment blocker;
+it does not replace canonical Python acceptance. Local Docker/WSL was unavailable.
 
 ## Continue in the Carbon Codex environment
 

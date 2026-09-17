@@ -3,6 +3,22 @@
 Status: in progress; local controller implementation and native diagnostics complete.
 Canonical acceptance, Hub reconciliation and normal merge remain outstanding.
 
+Primary Hub map: `SYSTEM/AGENT-EXECUTION`; `HUB_UPDATE_REQUIRED` for the
+isolated controller, its boundaries, ticket and successor links. The scientific
+WAVE selector remains owned by the research workstream.
+
+## Acceptance repair plan (2026-09-17)
+
+KEEP the closed rehearsal profile, SQLite lifecycle and existing UI. REPAIR
+connection-state truth, reload-safe unconfirmed launch retries, storage-error
+regressions, bounded HTTP admission and host-portable ownership locking. Reuse
+the Hub's existing Chromium/CDP test utility for real browser/server testing.
+Native Windows diagnostics are not canonical acceptance. Current main and this
+branch use OWNER-DX-03 delivery; older mandatory human/GPT receipts are superseded.
+Run focused regressions during repair, reconcile Hub sources, then use the
+unchanged path classifier and pinned CI acceptance with the required Merge gate.
+No provider, scientific runtime, CI exemption or deployment change is included.
+
 ## Owner request and scope
 
 On 2026-09-17 the owner requested: "I want to build this now. So we can test,
@@ -54,6 +70,14 @@ passed. Offline Chromium layout checks passed at 1440px and 390px with no
 horizontal overflow. Chromium refused localhost navigation under this execution
 environment's administrator policy; browser-to-server E2E is NOT VERIFIED. No
 policy was changed. These checks are not the repository's canonical acceptance.
+
+Continuation diagnostics: 63 Python 3.12 Windows tests passed, including
+transaction rollback on event-storage failure, fixed HTTP infrastructure errors,
+request admission limits and cross-process lock release after termination.
+Actual Chromium/server smoke passed launch, lost-response/reload retry,
+pause/resume/stop, fresh export, storage failure, controller/server recovery,
+expiry and 1440/390px layouts. The previous browser blocker is resolved for this
+environment. Docker daemon/WSL unavailability leaves pinned CI acceptance pending.
 
 No real provider calls, training, GPU rental, wallet connection, chain transaction,
 protected evaluation, payment, production deployment or miner earnings occurred.

@@ -10,14 +10,15 @@ import argparse
 import contextlib
 import hmac
 import json
+import os
 import secrets
 import sqlite3
 import threading
 import time
 import uuid
+from collections.abc import Callable
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from typing import Callable
 
 SCHEMA = "carbon.launchpad.rehearsal.v1"
 ACTIVE = ("QUEUED", "RUNNING", "PAUSED", "INTERRUPTED")
@@ -29,9 +30,11 @@ CHOICES = {
     "reasoning": "none",
     "compute": "local",
 }
-STATIC = {"/": ("index.html", "text/html; charset=utf-8"),
-          "/app.js": ("app.js", "text/javascript; charset=utf-8"),
-          "/style.css": ("style.css", "text/css; charset=utf-8")}
+STATIC = {
+    "/": ("index.html", "text/html; charset=utf-8"),
+    "/app.js": ("app.js", "text/javascript; charset=utf-8"),
+    "/style.css": ("style.css", "text/css; charset=utf-8"),
+}
 
 
 class Rejected(Exception):
@@ -114,8 +117,10 @@ class Controller:
                 db.close()
 
     def event(self, db, run_id: str, kind: str) -> None:
-        db.execute("INSERT INTO events(run_id,at,kind) VALUES(?,?,?)",
-                   (run_id, self.clock(), kind))
+        db.execute(
+            "INSERT INTO events(run_id,at,kind) VALUES(?,?,?)",
+            (run_id, self.clock(), kind),
+        )
 
     def transition(self, db, run_id: str, state: str) -> None:
         db.execute("UPDATE runs SET state=? WHERE id=?", (state, run_id))
@@ -142,8 +147,15 @@ class Controller:
 
     def launch(self, value: object, key: str) -> dict:
         spec = validate_spec(value)
-        if (type(key) is not str or not 16 <= len(key) <= 80
-                or any(c not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_" for c in key)):
+        if (
+            type(key) is not str
+            or not 16 <= len(key) <= 80
+            or any(
+                c
+                not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_"
+                for c in key
+            )
+        ):
             raise Rejected("invalid_idempotency_key")
         canonical = json.dumps(spec, sort_keys=True, separators=(",", ":"))
         with self.connection() as db:
@@ -226,11 +238,17 @@ class Controller:
             "SELECT seq,at,kind FROM events WHERE run_id=? ORDER BY seq", (row["id"],)
         ).fetchall()
         return {
-            "schema": SCHEMA, "id": row["id"], "state": row["state"],
-            "spec": json.loads(row["spec"]), "created": row["created"],
-            "deadline": row["deadline"], "steps": row["steps"],
-            "evidence": "CONTROLLER_REHEARSAL_ONLY", "external_spend_cents": 0,
-            "scientific_result": None, "submission_receipt": None,
+            "schema": SCHEMA,
+            "id": row["id"],
+            "state": row["state"],
+            "spec": json.loads(row["spec"]),
+            "created": row["created"],
+            "deadline": row["deadline"],
+            "steps": row["steps"],
+            "evidence": "CONTROLLER_REHEARSAL_ONLY",
+            "external_spend_cents": 0,
+            "scientific_result": None,
+            "submission_receipt": None,
             "events": [dict(event) for event in events],
         }
 
@@ -242,24 +260,43 @@ class Controller:
     def recent(self) -> list:
         with self.connection() as db:
             self.expire(db)
-            rows = db.execute("SELECT * FROM runs ORDER BY created DESC,id DESC LIMIT 50").fetchall()
+            rows = db.execute(
+                "SELECT * FROM runs ORDER BY created DESC,id DESC LIMIT 50"
+            ).fetchall()
             return [self.project(db, row) for row in rows]
 
 
 def capability_catalog() -> dict:
     return {
-        "schema": SCHEMA, "mode": "REHEARSAL", "launch_enabled": True,
+        "schema": SCHEMA,
+        "mode": "REHEARSAL",
+        "launch_enabled": True,
         "supported": CHOICES,
         "limits": {"active_runs": 4, "max_steps": 100, "max_seconds": 600},
         "unavailable": [
-            {"id": "carbon-burgers-development", "reason": "research_bridge_not_implemented"},
+            {
+                "id": "carbon-burgers-development",
+                "reason": "research_bridge_not_implemented",
+            },
             {"id": "hermes", "reason": "adapter_not_implemented"},
-            {"id": "personal-agent", "reason": "authenticated_mcp_bridge_not_implemented"},
+            {
+                "id": "personal-agent",
+                "reason": "authenticated_mcp_bridge_not_implemented",
+            },
             {"id": "mira", "reason": "integration_interface_unverified"},
-            {"id": "chutes", "reason": "authorization_and_billing_adapter_not_implemented"},
-            {"id": "lium", "reason": "provisioning_and_teardown_adapter_not_implemented"},
+            {
+                "id": "chutes",
+                "reason": "authorization_and_billing_adapter_not_implemented",
+            },
+            {
+                "id": "lium",
+                "reason": "provisioning_and_teardown_adapter_not_implemented",
+            },
             {"id": "engy", "reason": "inference_adapter_not_implemented"},
-            {"id": "testnet-registration", "reason": "wallet_adapter_and_transaction_authority_required"},
+            {
+                "id": "testnet-registration",
+                "reason": "wallet_adapter_and_transaction_authority_required",
+            },
         ],
     }
 
@@ -273,9 +310,26 @@ class Server(ThreadingHTTPServer):
         self.controller = controller
         self.token = token
         self.assets = Path(__file__).parent
+        self.request_slots = threading.BoundedSemaphore(16)
         super().__init__(("127.0.0.1", port), Handler)
         self.authority = f"127.0.0.1:{self.server_port}"
         self.origin = f"http://{self.authority}"
+
+    def process_request(self, request, client_address):
+        if not self.request_slots.acquire(blocking=False):
+            self.shutdown_request(request)
+            return
+        try:
+            super().process_request(request, client_address)
+        except Exception:
+            self.request_slots.release()
+            raise
+
+    def process_request_thread(self, request, client_address):
+        try:
+            super().process_request_thread(request, client_address)
+        finally:
+            self.request_slots.release()
 
     def get_request(self):
         connection, address = super().get_request()
@@ -296,7 +350,10 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("Referrer-Policy", "no-referrer")
         self.send_header("X-Frame-Options", "DENY")
-        self.send_header("Content-Security-Policy", "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'")
+        self.send_header(
+            "Content-Security-Policy",
+            "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'",
+        )
         self.end_headers()
         self.wfile.write(body)
 
@@ -309,8 +366,11 @@ class Handler(BaseHTTPRequestHandler):
         if authenticated:
             expected = "Bearer " + self.server.token
             headers = self.headers.get_all("Authorization")
-            if (headers is None or len(headers) != 1
-                    or not hmac.compare_digest(headers[0].encode(), expected.encode())):
+            if (
+                headers is None
+                or len(headers) != 1
+                or not hmac.compare_digest(headers[0].encode(), expected.encode())
+            ):
                 raise Rejected("authentication_required", 401)
 
     def do_GET(self):
@@ -340,8 +400,15 @@ class Handler(BaseHTTPRequestHandler):
             if self.headers.get("Transfer-Encoding") is not None:
                 raise Rejected("unsupported_transfer_encoding")
             lengths = self.headers.get_all("Content-Length")
-            if lengths is None or len(lengths) != 1 or not lengths[0].isdigit():
+            if (
+                lengths is None
+                or len(lengths) != 1
+                or not lengths[0].isascii()
+                or not lengths[0].isdigit()
+            ):
                 raise Rejected("invalid_content_length")
+            if len(lengths[0]) > 4:
+                raise Rejected("body_size_limit", 413)
             length = int(lengths[0])
             if length < 2 or length > 4096:
                 raise Rejected("body_size_limit", 413)
@@ -372,8 +439,11 @@ class Handler(BaseHTTPRequestHandler):
 
 @contextlib.contextmanager
 def owner_lock(directory: Path):
-    """Linux/macOS single-owner lock; no public-host or Windows fallback."""
-    import fcntl
+    """Nonblocking OS ownership lock; released by the OS on process exit.
+
+    POSIX permissions are restrictive; on Windows the operator must use a
+    private, user-owned state directory (chmod does not establish a Windows ACL).
+    """
     directory.mkdir(parents=True, exist_ok=True, mode=0o700)
     if directory.is_symlink():
         raise RuntimeError("State directory must not be a symlink")
@@ -381,23 +451,50 @@ def owner_lock(directory: Path):
     path = directory / "owner.lock"
     if path.is_symlink():
         raise RuntimeError("Lock path must not be a symlink")
-    with path.open("a") as handle:
+    with path.open("a+b") as handle:
         path.chmod(0o600)
+        if os.name == "nt":
+            import msvcrt
+
+            if path.stat().st_size == 0:
+                handle.write(b"\0")
+                handle.flush()
+            handle.seek(0)
+
+            def acquire():
+                msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+
+            def release():
+                handle.seek(0)
+                msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
+
+        else:
+            import fcntl
+
+            def acquire():
+                fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+
+            def release():
+                fcntl.flock(handle, fcntl.LOCK_UN)
+
         try:
-            fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        except BlockingIOError as exc:
+            acquire()
+        except OSError as exc:
             raise RuntimeError("Another launcher owns this state directory") from exc
         try:
             yield
         finally:
-            fcntl.flock(handle, fcntl.LOCK_UN)
+            release()
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--port", type=int, default=8788)
-    parser.add_argument("--state-dir", type=Path,
-                        default=Path.home() / ".carbon" / "development-launchpad")
+    parser.add_argument(
+        "--state-dir",
+        type=Path,
+        default=Path.home() / ".carbon" / "development-launchpad",
+    )
     args = parser.parse_args()
     if not 1024 <= args.port <= 65535:
         parser.error("Use an unprivileged port between 1024 and 65535")

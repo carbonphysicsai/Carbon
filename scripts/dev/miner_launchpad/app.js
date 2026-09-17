@@ -6,6 +6,11 @@
   let pending = null;
   let busy = false;
   let polling = false;
+  let connected = false;
+  const pendingKey = "carbon.launchpad.pending.v1";
+  let storageError = false;
+  try { pending = JSON.parse(sessionStorage.getItem(pendingKey) || "null"); }
+  catch (_) { storageError = true; }
   const $ = id => document.getElementById(id);
   const message = (text, error = false) => {
     $("message").textContent = text;
@@ -29,6 +34,11 @@
     return result;
   }
   function render() {
+    $("launch-fields").disabled = !connected || storageError;
+    $("launch-button").disabled = busy;
+    $("launch-button").firstChild.textContent = pending ? "Retry same launch " : "Launch rehearsal ";
+    $("steps").disabled = Boolean(pending);
+    $("seconds").disabled = Boolean(pending);
     const picker = $("run-picker");
     picker.replaceChildren();
     for (const run of runs) {
@@ -51,9 +61,10 @@
     $("progress").max = run.spec.max_steps;
     $("progress").value = run.steps;
     $("deadline").textContent = "Fixed deadline: " + new Date(run.deadline * 1000).toLocaleString();
-    $("pause").disabled = busy || !["QUEUED", "RUNNING"].includes(run.state);
-    $("resume").disabled = busy || !["PAUSED", "INTERRUPTED"].includes(run.state);
-    $("stop").disabled = busy || !["QUEUED", "RUNNING", "PAUSED", "INTERRUPTED"].includes(run.state);
+    $("pause").disabled = !connected || busy || !["QUEUED", "RUNNING"].includes(run.state);
+    $("resume").disabled = !connected || busy || !["PAUSED", "INTERRUPTED"].includes(run.state);
+    $("stop").disabled = !connected || busy || !["QUEUED", "RUNNING", "PAUSED", "INTERRUPTED"].includes(run.state);
+    $("export").disabled = !connected || busy;
     const events = $("events");
     events.replaceChildren();
     for (const event of run.events.slice(-30).reverse()) {
@@ -71,15 +82,21 @@
     polling = true;
     try {
       runs = (await api("/api/v1/runs")).runs;
+      connected = true;
       render();
       $("connection-state").textContent = "Connected";
     } catch (error) {
+      connected = false;
+      render();
       $("connection-state").textContent = "Connection interrupted";
       message("Controller connection interrupted. Runs may still be active. Reconnect before issuing another command.", true);
     } finally { polling = false; }
   }
   $("connect-form").addEventListener("submit", async event => {
     event.preventDefault();
+    if (busy || polling) return;
+    connected = false;
+    render();
     token = $("token").value.trim();
     try {
       const catalog = await api("/api/v1/capabilities");
@@ -87,7 +104,6 @@
         throw new Error("unsupported_controller_version");
       }
       $("token").value = "";
-      $("launch-fields").disabled = false;
       $("integrations").replaceChildren();
       for (const item of catalog.unavailable) {
         const card = document.createElement("div"); card.className = "integration";
@@ -97,42 +113,45 @@
       }
       message("Connected. Rehearsal records persist on this machine. No external provider is enabled.");
       await refresh();
+      if (storageError) message("Browser retry storage is unavailable. Launch is disabled to preserve duplicate protection.", true);
     } catch (error) {
       token = "";
-      $("launch-fields").disabled = true;
+      connected = false;
+      $("connection-state").textContent = "Disconnected";
+      render();
       message("Could not connect: " + error.message, true);
     }
   });
   $("launch-form").addEventListener("submit", async event => {
     event.preventDefault();
-    if (busy) return;
+    if (busy || !connected || storageError) return;
     if (!pending) {
       pending = {key: crypto.randomUUID(), spec: {
         mode: "REHEARSAL", challenge: "controller-rehearsal-v1", agent: "fixture",
         reasoning: "none", compute: "local", max_steps: Number($("steps").value),
         max_seconds: Number($("seconds").value)
       }};
+      try { sessionStorage.setItem(pendingKey, JSON.stringify(pending)); }
+      catch (_) {
+        storageError = true; render();
+        message("Could not preserve the retry request. Nothing was dispatched.", true);
+        return;
+      }
     }
     busy = true; $("launch-button").disabled = true;
     try {
       const run = await api("/api/v1/runs", pending.spec, pending.key);
-      selected = run.id; pending = null;
+      selected = run.id;
+      sessionStorage.removeItem(pendingKey); pending = null;
       message("Rehearsal started. These fixture steps produce no physics or mining evidence.");
-      $("launch-button").firstChild.textContent = "Launch rehearsal ";
       await refresh();
     } catch (error) {
-      if (error.status >= 400 && error.status < 500 && error.message !== "idempotency_key_conflict") {
-        pending = null;
-        message("Launch rejected: " + error.message + ". Correct the request or free an active slot before retrying.", true);
-      } else {
-        message("Launch not confirmed: " + error.message + ". Retry reuses the same request and cannot create a second run.", true);
-        $("launch-button").firstChild.textContent = "Retry same launch ";
-      }
+      message("Launch not confirmed: " + error.message + ". Retry keeps this request, including after reconnect. Free an active slot if required.", true);
     } finally { busy = false; $("launch-button").disabled = false; render(); }
   });
   for (const action of ["pause", "resume", "stop"]) {
     $(action).addEventListener("click", async () => {
-      if (busy || !selected) return;
+      if (busy || !connected || !selected) return;
       busy = true; render();
       try {
         await api("/api/v1/runs/" + selected + "/" + action, {});
@@ -143,14 +162,18 @@
     });
   }
   $("run-picker").addEventListener("change", () => { selected = $("run-picker").value; render(); });
-  $("export").addEventListener("click", () => {
-    const run = runs.find(r => r.id === selected);
-    if (!run) return;
+  $("export").addEventListener("click", async () => {
+    if (busy || !connected || !selected) return;
+    busy = true; render();
+    try {
+    const run = await api("/api/v1/runs/" + selected);
     const blob = new Blob([JSON.stringify(run, null, 2)], {type: "application/json"});
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a"); anchor.href = url;
     anchor.download = "carbon-rehearsal-" + run.id + ".json";
     anchor.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (error) { message("Export not confirmed: " + error.message, true); }
+    finally { busy = false; render(); }
   });
   setInterval(refresh, 1500);
 })();
