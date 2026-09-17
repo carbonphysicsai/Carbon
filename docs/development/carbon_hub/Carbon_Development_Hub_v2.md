@@ -2,9 +2,9 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `dcd4ecf918a066b36916fcb68f35c0b7a89a2863` on `main`, captured 2026-09-17T12:37:18Z.
-**Current:** Wave C, ticket C-W1-D4. C-W1-D4 implements authenticated local miner research, real isolated practice, a bounded workspace and fresh final reconstruction/comparison. Focused engineering checks passed; required delivery acceptance and the finite real campaign remain pending. No campaign inference, provider charge, accepted winner or new network transaction has occurred. Historical testnet 567 exact row [[0, 65535]] remains ROW_VERIFIED; burn amounts, epoch effects and settlement remain unproven. AWS stays deferred and Hippius unverified. Website and Workbench work and spending are separate. No later ticket is selected. Distinct miner UID 1 finalized in the earlier setup; no identities were registered here. Synthetic controls are not results of the real agent. No subsequent activation or weight transaction is authorized. Subnet 567 creation finalized at block 8010852 in the earlier C-W1 DEVELOPMENT setup.
-**Last completed:** C-W1-D3 (`done`).
+**Authority snapshot:** `dd4251038aa9833f6c73b6954280a9adb73395ce` on `main`, captured 2026-09-17T15:48:40Z.
+**Current:** Wave C, ticket C-W1-D5. C-W1-D5: The prospective continuity repair passed focused canonical tests. Required acceptance, normal delivery and campaign two remain pending. Campaign one used USD 0.00818185, 96 references and 310.573 numerical seconds; zero training/final replicas. No later ticket is selected. Historical testnet 567 exact row [[0, 65535]] remains ROW_VERIFIED; burn, epoch effects and settlement remain unproven. AWS is deferred; website and Workbench work/spending stay separate. Distinct miner UID 1 finalized in the earlier setup. Synthetic controls are not results of the real agent. No subsequent activation or weight transaction is authorized.
+**Last completed:** C-W1-D4 (`done`).
 **Next selected:** none selected.
 
 ## Wave spine
@@ -101,7 +101,8 @@
 | [C-W1](explainers/tickets/c_w1.md) | Admit an exact real C1 proof chain into a non-live, non-settling testnet eligibility event. | in_progress |
 | [C-W1-D2](explainers/tickets/c_w1_d2.md) | Compare authentic DEVELOPMENT measurements without paying or inventing a winner. | done |
 | [C-W1-D3](explainers/tickets/c_w1_d3.md) | Give miners a useful, bounded DEVELOPMENT objective and test whether its measurements detect failures. | done |
-| [C-W1-D4](explainers/tickets/c_w1_d4.md) | Let a miner learn from real public practice before freezing a recipe for independent testing. | in_progress |
+| [C-W1-D4](explainers/tickets/c_w1_d4.md) | Let a miner learn from real public practice before freezing a recipe for independent testing. | done |
+| [C-W1-D5](explainers/tickets/c_w1_d5.md) | Let the miner carry out already-authorized trials and explain why it stops. | in_progress |
 
 ## Change routes
 
@@ -260,6 +261,7 @@
 - `C-W1-D4-RESEARCH-01` — `WAVE-C/C-W1` — Ryan authorizes one finite DEVELOPMENT miner research campaign. The candidate now adds real practice, isolated public Python, durable budgets and fresh final source bindings; engineering tests passed in their scopes, while delivery acceptance and real inference remain pending. Reconcile the PR #202 closeout and new D4 dependency edges; refresh shared source links to the current authority snapshot without promoting any qualification. Reconcile the unchanged staging explanation with the updated Wave source digest; no website activation or model expenditure.
 - `C-MLP-01-CONTROLLER-01` — `SYSTEM/AGENT-EXECUTION` — C-MLP-01 adds a private loopback controller rehearsal with persisted controls and reload-safe launch retries. Native controller and actual Chromium/server checks passed; canonical acceptance and merge remain pending. Fixture counters are not research. C-MLP-02 must wrap existing Carbon research, reconstruction and reporting; no provider, deployment, chain or qualification authority is added. The scientific wave selection is unchanged.
 - `C-MLP-01-HUB-SNAPSHOT-01` — `SYSTEM/DEVELOPMENT-HUB` — Reconcile source navigation with the C-MLP-01 authority snapshot so the new controller ticket is inspectable. Existing linked authority records are repinned to the same snapshot required by Hub validation; their historical dispositions, original evidence identities, scientific wave selection and maturity are unchanged.
+- `C-W1-D5-CONTINUITY-01` — `WAVE-C/C-W1-D5` — Close PR #206 bounded delivery and retain its real early-stop outcome. Select a prospective agent continuity repair under the finite three-campaign owner grant. Repin navigation to the same authority snapshot, preserving unrelated Launchpad, Workbench and website work. No science, network, payment or security maturity is promoted.
 
 ## Authority boundary
 
