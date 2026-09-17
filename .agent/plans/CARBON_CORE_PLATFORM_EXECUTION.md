@@ -115,6 +115,30 @@ campaign provider allowances have not been reused for this programme.
 
 OWNER DIRECTION AND SUPERSESSION
 
+V3 AUTHORED JULIA IMPLEMENTATION CHECKPOINT (2026-09-17, C-CORE-07 candidate)
+
+Prospective `run_julia` now uses the existing admitted research carrier, durable
+task provider, campaign ledger, standard MCP and Launchpad campaign composition.
+An exact operator-installed image and frozen `runtime.authored_research` grant
+enable a distinct V2 workspace task; historical V1 tasks, schemas and campaigns
+remain unchanged. The registered validator Julia method is a separate path.
+
+Ten actual local Docker/Julia carrier cases passed across focused runs, including
+numerical refinement, network/filesystem/startup/package restrictions, bounded
+typed output, retry/reconnect, cancellation and deadline cleanup. The authored
+sine derivative study charged 3,266 ms/one trial; the external SDK stdio study
+charged 2,322 ms/one trial with identical reconnect results. No paid provider or
+reference calls occurred. Unknown failed work retained its numerical reservation.
+The isolated image identity and exact diagnostic details remain in
+`.agent/tickets/C-CORE-07_authored_julia_research.md`; operator commands are in
+`docs/development/AUTHORED_JULIA_RESEARCH.md`.
+
+This is implemented and locally tested DEVELOPMENT capability, pending canonical
+delivery checks and merge. Output remains MINER_SELF_REPORTED and STRUCTURAL_ONLY.
+Scientific/security qualification, package promotion, generated training-support
+approval, paid campaign usefulness, accelerator Julia execution and the broader
+GPU/TPU programme remain open. Existing campaign grants were not reused.
+
 Execute the integrated programme now. Julia is a required Carbon-native
 capability for miner research, validator physics/reference checks, and
 Workbench challenge design. This supersedes earlier instructions that made
