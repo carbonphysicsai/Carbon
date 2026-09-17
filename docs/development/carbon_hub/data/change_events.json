@@ -4608,6 +4608,24 @@
         "WAVE-C/C-W1-D5"
       ],
       "supersedes": null
+    },
+    {
+      "map_ref": "SYSTEM/AGENT-EXECUTION",
+      "event_type": "adjustment",
+      "event_id": "C-CORE-02-CPU-SCIENCE",
+      "owner_lane": "technical_lead",
+      "status": "implemented",
+      "summary": "Standard MCP and native Julia public Burgers studies reuse existing research admission, durable tasks, accounting and the C-04 controller. Two independent protocol clients and real local Julia/reconnect/cleanup diagnostics passed; canonical delivery remains pending. Workbench and accelerator consumers follow separately. No new campaign, cloud spend, hidden access or scientific qualification is granted. The finite C-W1 programme remains closed.",
+      "primary_detail": ".agent/tickets/C-CORE-02_cpu_scientific_workflow.md",
+      "affects": [
+        "WAVE-C/C-02",
+        "WAVE-C/C-03",
+        "WAVE-C/C-04",
+        "WAVE-C/C-08",
+        "SYSTEM/CI",
+        "SYSTEM/PROTOCOL-AUTHORITY"
+      ],
+      "supersedes": null
     }
   ]
 }
