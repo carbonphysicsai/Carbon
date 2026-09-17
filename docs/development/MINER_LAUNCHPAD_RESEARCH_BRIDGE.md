@@ -76,6 +76,13 @@ quarantine_journal. Files must be absolute private operator inputs; browser
 requests cannot install or replace them. The existing registered subnet-567 miner
 is verified through the original trusted signing boundary before research.
 
+New Launchpad campaigns select the accepted C-W1-D5 v2 continuation policy. The
+runner freezes its prompt/tool identity; this does not transfer D5's separate
+program grant. Legacy command defaults and existing campaign manifests remain
+unchanged. Own-research records expose concise hypothesis history, decisions and
+epoch stop reasons separately from verified independent DEVELOPMENT results.
+Raw transcripts and internal accounting payloads are not browser projections.
+
 The separate `carbon.launchpad.research-grant.v1` must explicitly be APPROVED,
 with exact principal, miner, campaign/root, runtime/image identities, provider and
 account reference, all resource dimensions, original lifetime and absolute expiry.

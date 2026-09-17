@@ -140,6 +140,14 @@ class ResearchFixture:
             "stop": "STOPPING",
             "reconcile": "STOPPED",
         }[action]
+        if action == "reconcile":
+            record["epoch_outcomes"] = [
+                {
+                    "status": "STOPPED",
+                    "reason": "UI FIXTURE stop reason",
+                    "final_evidence": False,
+                }
+            ]
         return record
 
     def recent(self):
@@ -290,6 +298,9 @@ def run():
                             + ")",
                         )
                     assert len(research.keys) == 1
+                    assert "UI FIXTURE stop reason" in session.evaluate(
+                        "document.getElementById('research-runs').textContent"
+                    )
                     load(session, origin)
                     connect(session, token)
                     wait(

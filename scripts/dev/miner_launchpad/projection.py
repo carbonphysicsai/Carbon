@@ -27,6 +27,8 @@ def project(row, root):
         "profile": row["profile"],
         "state": row["state"],
         "experiments": [],
+        "hypotheses": [],
+        "epoch_outcomes": [],
         "capability_requests": [],
         "decisions": [],
         "final_results": [],
@@ -54,6 +56,10 @@ def project(row, root):
         compute="local-isolated-cpu",
         runtime_revision=manifest["implementation"]["revision"],
         images=manifest["images"],
+        agent_policy=_text_fields(
+            manifest.get("agent_policy"),
+            {"version", "prompt_digest", "stop_tool_digest"},
+        ),
         started_unix=status["started_unix"],
         deadline_unix=(
             min(
@@ -100,6 +106,9 @@ def project(row, root):
         if note["kind"] == "hypothesis":
             value["current_hypothesis"] = _text_fields(
                 note["body"], {"hypothesis", "expected_effect", "task"}
+            )
+            value["hypotheses"].append(
+                {"sequence": note["sequence"], **value["current_hypothesis"]}
             )
         elif note["kind"] == "capability_request":
             value["capability_requests"].append(
@@ -154,6 +163,44 @@ def project(row, root):
     value["candidate_freezes"] = []
     for epoch in (1, 2):
         directory = root / ("epoch-" + str(epoch))
+        outcome_path = directory / "outcome.json"
+        if outcome_path.exists():
+            try:
+                if (
+                    outcome_path.is_symlink()
+                    or outcome_path.stat().st_size > 4 * 1024**2
+                ):
+                    raise ValueError("bounded own-research outcome required")
+                outcome = json.loads(outcome_path.read_bytes())
+                if (
+                    outcome.get("schema") != "carbon.autoresearch.epoch-outcome.v1"
+                    or outcome.get("epoch") != epoch
+                    or outcome.get("status")
+                    not in {"SELECTED", "STOPPED", "RECONCILIATION_REQUIRED"}
+                ):
+                    raise ValueError("research outcome association differs")
+                value["epoch_outcomes"].append(
+                    {
+                        "epoch": epoch,
+                        "status": outcome["status"],
+                        **_text_fields(outcome, {"reason", "stop_evidence"}),
+                        "used_feedback": (
+                            outcome.get("used_feedback")
+                            if type(outcome.get("used_feedback")) is bool
+                            else None
+                        ),
+                        "evidence_basis": "AGENT_OR_CONTROLLER_REPORTED_NOT_INDEPENDENT_SCIENCE",
+                        "final_evidence": False,
+                    }
+                )
+            except (OSError, ValueError, TypeError, AttributeError):
+                value["epoch_outcomes"].append(
+                    {
+                        "epoch": epoch,
+                        "status": "READBACK_UNAVAILABLE",
+                        "final_evidence": False,
+                    }
+                )
         selected = directory / "selected-recipe.json"
         if selected.is_file():
             selection = json.loads(selected.read_bytes())

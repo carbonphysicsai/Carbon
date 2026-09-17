@@ -98,6 +98,78 @@ def test_projection_withholds_private_operations_and_retains_attempt_failure(
     assert result["final_results"] == []
 
 
+def test_completed_epoch_can_stop_without_candidate_or_improvement(
+    tmp_path, monkeypatch
+):
+    bridge, value, control = adapter(tmp_path, monkeypatch)
+    identity = bridge.launch({"profile": "opaque-profile"}, "request-key-000001")["id"]
+    for hypothesis in ("first hypothesis", "revised hypothesis"):
+        value.note(
+            owner="miner-requester", kind="hypothesis", body={"hypothesis": hypothesis}
+        )
+    directory = value.root / "epoch-1"
+    directory.mkdir()
+    path = directory / "outcome.json"
+    path.write_bytes(
+        canonical(
+            {
+                "schema": "carbon.autoresearch.epoch-outcome.v1",
+                "epoch": 1,
+                "status": "STOPPED",
+                "reason": "agent reported no_feasible_action",
+                "stop_evidence": "No admissible experiment fits the remaining grant",
+                "used_feedback": True,
+                "agent_output": "PRIVATE-TRANSCRIPT-SENTINEL",
+                "accounting": {"private_root": "PRIVATE-PATH-SENTINEL"},
+            }
+        )
+    )
+    control.settled(value.generation, completed=True, cleanup_verified=True)
+    result = bridge.get(identity)
+    assert result["state"] == "COMPLETED"
+    assert len(result["hypotheses"]) == 2
+    assert result["current_hypothesis"]["hypothesis"] == "revised hypothesis"
+    assert result["epoch_outcomes"][0]["status"] == "STOPPED"
+    assert result["epoch_outcomes"][0]["used_feedback"] is True
+    assert result["epoch_outcomes"][0]["final_evidence"] is False
+    assert result["candidate_freezes"] == result["final_results"] == []
+    assert "SENTINEL" not in json.dumps(result)
+    path.write_bytes(canonical({"status": "IMPROVED", "epoch": 2}))
+    assert bridge.get(identity)["epoch_outcomes"] == [
+        {"epoch": 1, "status": "READBACK_UNAVAILABLE", "final_evidence": False}
+    ]
+
+
+def test_adapter_selects_accepted_policy_without_inheriting_program_grant(
+    tmp_path, monkeypatch
+):
+    from carbon.development_session import research_campaign
+    from carbon.development_session.research_agent_policy import AUTONOMOUS
+    from scripts.dev.miner_launchpad.runner import PATH_FIELDS
+
+    bridge, value, _ = adapter(tmp_path, monkeypatch)
+    identity = bridge.launch({"profile": "opaque-profile"}, "request-key-000001")["id"]
+    observed = {}
+
+    async def entry(args, *, ledger):
+        observed.update(
+            policy=args.agent_policy, authority=ledger.admission.document["authority"]
+        )
+
+    monkeypatch.setattr(research_campaign, "execute", entry)
+    monkeypatch.setattr(bridge, "_cleanup", lambda ledger: True)
+    cfg = {
+        "paths": {key: str(tmp_path / key) for key in PATH_FIELDS},
+        "accepted_revision": "fixture-revision",
+        "principal": "alice",
+    }
+    bridge._run(identity, cfg, value.admission, value.root)
+    assert observed == {"policy": AUTONOMOUS, "authority": "ENGINEERING_FIXTURE_ONLY"}
+    result = bridge.get(identity)
+    assert result["state"] == "INTERRUPTED"
+    assert result["final_results"] == []
+
+
 def test_revoked_grant_still_allows_stop_and_retained_readback(tmp_path, monkeypatch):
     bridge, value, control = adapter(tmp_path, monkeypatch)
     identity = bridge.launch({"profile": "opaque-profile"}, "request-key-000001")["id"]

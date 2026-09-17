@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-17T15:48:01Z"
+  captured_at_utc: "2026-09-17T16:05:43Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "8299df5ef8631d3e4d775dd042d80a12345f94cc"
+  authority_snapshot_commit: "916ba388b5bacbbbf033f75e43616c4132bddaf5"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -438,31 +438,31 @@ validator_exam_map:
             -
               label: "Testnet-to-Mainnet Launch Path"
               path: "../../../launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.5.md"
-  current_maturity: "Target-state orientation only. C-W1-D4 implements authenticated local miner research, real isolated practice, a bounded workspace and fresh final reconstruction/comparison. Focused engineering checks passed; required delivery acceptance and the finite real campaign remain pending. No campaign inference, provider charge, accepted winner or new network transaction has occurred. Historical testnet 567 exact row [[0, 65535]] remains ROW_VERIFIED; burn amounts, epoch effects and settlement remain unproven. AWS stays deferred and Hippius unverified. Website and Workbench work and spending are separate. No later ticket is selected. Distinct miner UID 1 finalized in the earlier setup; no identities were registered here. Synthetic controls are not results of the real agent. No subsequent activation or weight transaction is authorized. Subnet 567 creation finalized at block 8010852 in the earlier C-W1 DEVELOPMENT setup. The real validator-to-exam vertical is planned for Wave C1. Burgers v1 remains PRE-LIVE until a measured Validation Dossier qualifies the exact exam."
+  current_maturity: "Target-state orientation only. C-W1-D5: The prospective continuity repair passed focused canonical tests. Required acceptance, normal delivery and campaign two remain pending. Campaign one used USD 0.00818185, 96 references and 310.573 numerical seconds; zero training/final replicas. No later ticket is selected. Historical testnet 567 exact row [[0, 65535]] remains ROW_VERIFIED; burn amounts, epoch effects and settlement remain unproven. AWS stays deferred and Hippius unverified. Website and Workbench work and spending are separate. No later ticket is selected. Distinct miner UID 1 finalized in the earlier setup; no identities were registered here. Synthetic controls are not results of the real agent. No subsequent activation or weight transaction is authorized. Subnet 567 creation finalized at block 8010852 in the earlier C-W1 DEVELOPMENT setup. The real validator-to-exam vertical is planned for Wave C1. Burgers v1 remains PRE-LIVE until a measured Validation Dossier qualifies the exact exam."
 current:
   wave: "C"
   wave_title: "Network foundation and real testnet vertical"
   wave_status: "active in bounded engineering scope"
   last_completed_ticket:
-    id: "C-W1-D3"
-    title: "Measurement review and non-paying DEVELOPMENT scoring"
-    status: "done"
-    summary: "PR #202 delivered balanced-v2 scoring and non-paying simulation. Historical FNO observations remain retrospective and fail mandatory conditions; no real accepted improvement or payment was established."
-    delivery:
-      reference: "PR #202"
-      status: "merged"
-      url: "https://github.com/carbonphysicsai/Carbon/pull/202"
-      merge_commit: "4a60d85323d1945fa0ec9815340618ad87e6e619"
-  selected_ticket:
     id: "C-W1-D4"
     title: "Miner autoresearch and finite DEVELOPMENT campaign"
+    status: "done"
+    summary: "PR #206 delivered the runtime. The unchanged real campaign stopped after seven model calls and public data preparation, before training. The miner asked for already-granted permission. No model quality or accepted improvement was measured."
+    delivery:
+      reference: "PR #206"
+      status: "merged"
+      url: "https://github.com/carbonphysicsai/Carbon/pull/206"
+      merge_commit: "54f8aff742b99fd2957fede73ea814f03da49eb6"
+  selected_ticket:
+    id: "C-W1-D5"
+    title: "Autonomous research continuity"
     status: "in_progress"
-    summary: "C-W1-D4 implements authenticated local miner research, real isolated practice, a bounded workspace and fresh final reconstruction/comparison. Focused engineering checks passed; required delivery acceptance and the finite real campaign remain pending. No campaign inference, provider charge, accepted winner or new network transaction has occurred."
+    summary: "The prospective continuity repair passed focused canonical tests. Required acceptance, normal delivery and campaign two remain pending."
   next_selected_ticket: null
   controlling_register: ".agent/WAVE_C.md"
   controlling_register_version: "2.6"
-  controlling_board_fingerprint: "e4b72119915cb0883f9e2700640a46266571143591f91fe143aac7ff5d22a7ee"
-  stage: "C-W1-D4 implements authenticated local miner research, real isolated practice, a bounded workspace and fresh final reconstruction/comparison. Focused engineering checks passed; required delivery acceptance and the finite real campaign remain pending. No campaign inference, provider charge, accepted winner or new network transaction has occurred. Historical testnet 567 exact row [[0, 65535]] remains ROW_VERIFIED; burn amounts, epoch effects and settlement remain unproven. AWS stays deferred and Hippius unverified. Website and Workbench work and spending are separate. No later ticket is selected. Distinct miner UID 1 finalized in the earlier setup; no identities were registered here. Synthetic controls are not results of the real agent. No subsequent activation or weight transaction is authorized. Subnet 567 creation finalized at block 8010852 in the earlier C-W1 DEVELOPMENT setup."
+  controlling_board_fingerprint: "a1acabd4c40d5210c468418565214c5a3ddc9cfb7e55b2fddaf136e2dce6b65d"
+  stage: "C-W1-D5: The prospective continuity repair passed focused canonical tests. Required acceptance, normal delivery and campaign two remain pending. Campaign one used USD 0.00818185, 96 references and 310.573 numerical seconds; zero training/final replicas. No later ticket is selected. Historical testnet 567 exact row [[0, 65535]] remains ROW_VERIFIED; burn amounts, epoch effects and settlement remain unproven. AWS stays deferred and Hippius unverified. Website and Workbench work and spending are separate. No later ticket is selected. Distinct miner UID 1 finalized in the earlier setup; no identities were registered here. Synthetic controls are not results of the real agent. No subsequent activation or weight transaction is authorized. Subnet 567 creation finalized at block 8010852 in the earlier C-W1 DEVELOPMENT setup."
   most_recent_closed_wave: "B"
   completed_wave_tickets:
     - "NET-1"
@@ -488,10 +488,12 @@ current:
     - "C-10"
     - "C-W1-D2"
     - "C-W1-D3"
+    - "C-W1-D4"
   other_completed_wave_context:
     - "NET-1"
     - "NET-2"
     - "NET-3"
+    - "C-REWARD"
     - "NET-4A"
     - "NET-4B"
     - "NET-5"
@@ -503,19 +505,16 @@ current:
     - "C-EP3"
     - "C-AUTH1"
     - "C-EA0"
-    - "C-W1-D2"
-  recent_dependencies:
-    - "B-07G"
-    - "C-02"
-    - "C-03"
     - "C-04"
     - "C-05"
     - "C-06"
     - "C-07"
     - "C-08"
     - "C-10"
+    - "C-W1-D2"
     - "C-W1-D3"
-    - "C-REWARD"
+  recent_dependencies:
+    - "C-W1-D4"
   downstream_handoffs:
     []
   parallel_context:
@@ -561,7 +560,7 @@ current:
     commercially_validated: "unearned"
     production_qualified: "unearned"
   maturity_summary: "Public/synthetic DEVELOPMENT engineering only. No scientific/security/production qualification, protected evidence, chain write or payment authority."
-  decision_series_status: "OWNER-C-W1-D4-AUTORESEARCH-01 authorizes one finite off-chain campaign with new USD 1.00 provider ceiling, after accepted delivery; no consumed prior approval is reused."
+  decision_series_status: "OWNER-C-W1-RESEARCH-PROGRAM-01 authorizes at most three finite off-chain campaigns, USD 3 total, 18 numerical hours and 24 cumulative experiment hours. First campaign consumed its slot; no automatic renewal or chain write."
   technical_decision_route: "https://github.com/carbonphysicsai/Carbon/issues/42"
   owner_decision_route: "https://github.com/carbonphysicsai/Carbon/issues/41"
   decision_series:
@@ -657,6 +656,7 @@ waves:
       - "C-W1-D2"
       - "C-W1-D3"
       - "C-W1-D4"
+      - "C-W1-D5"
   -
     id: "D"
     title: "Human scientific qualification"
@@ -2200,7 +2200,7 @@ tickets:
     id: "C-W1-D4"
     wave: "C"
     title: "Miner autoresearch and finite DEVELOPMENT campaign"
-    status: "in_progress"
+    status: "done"
     explainer: "explainers/tickets/c_w1_d4.md"
     repo_path: ".agent/tickets/C-W1-D4_miner_autoresearch.md"
     depends_on:
@@ -2215,6 +2215,21 @@ tickets:
       - "C-10"
       - "C-W1-D3"
       - "C-REWARD"
+    depends_on_context:
+      []
+    unlocks:
+      - "C-W1-D5"
+    unlocks_context:
+      []
+  -
+    id: "C-W1-D5"
+    wave: "C"
+    title: "Autonomous research continuity"
+    status: "in_progress"
+    explainer: "explainers/tickets/c_w1_d5.md"
+    repo_path: ".agent/tickets/C-W1-D5_autonomous_research_continuity.md"
+    depends_on:
+      - "C-W1-D4"
     depends_on_context:
       []
     unlocks:
@@ -5896,6 +5911,56 @@ events:
       - "WAVE-C/NET-6"
     supersedes: null
   -
+    map_ref: "WAVE-C/C-W1-D5"
+    event_type: "adjustment"
+    event_id: "C-W1-D5-CONTINUITY-01"
+    owner_lane: "engineering"
+    status: "active"
+    summary: "Close PR #206 bounded delivery and retain its real early-stop outcome. Select a prospective agent continuity repair under the finite three-campaign owner grant. Repin navigation to the same authority snapshot, preserving unrelated Launchpad, Workbench and website work. No science, network, payment or security maturity is promoted. Refresh the unchanged staging knowledge explanation against the new Wave source digest; no website activation or website model spend."
+    primary_detail: ".agent/tickets/C-W1-D5_autonomous_research_continuity.md"
+    affects:
+      - "SYSTEM/CI"
+      - "SYSTEM/DEVELOPMENT-HUB"
+      - "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+      - "SYSTEM/GOVERNANCE"
+      - "SYSTEM/PUBLICATION"
+      - "WAVE-B"
+      - "WAVE-B/B-E4"
+      - "WAVE-B/B-GATE"
+      - "WAVE-C"
+      - "WAVE-C/C-01"
+      - "WAVE-C/C-02"
+      - "WAVE-C/C-03"
+      - "WAVE-C/C-04"
+      - "WAVE-C/C-05"
+      - "WAVE-C/C-06"
+      - "WAVE-C/C-07"
+      - "WAVE-C/C-08"
+      - "WAVE-C/C-09"
+      - "WAVE-C/C-10"
+      - "WAVE-C/C-AUTH1"
+      - "WAVE-C/C-EA0"
+      - "WAVE-C/C-EA1"
+      - "WAVE-C/C-EA2"
+      - "WAVE-C/C-EP1"
+      - "WAVE-C/C-EP2"
+      - "WAVE-C/C-EP3"
+      - "WAVE-C/C-REWARD"
+      - "WAVE-C/C-W1"
+      - "WAVE-C/C-W1-D2"
+      - "WAVE-C/C-W1-D3"
+      - "WAVE-C/C-W1-D4"
+      - "WAVE-C/C-W1-D5"
+      - "WAVE-C/NET-1"
+      - "WAVE-C/NET-2"
+      - "WAVE-C/NET-3"
+      - "WAVE-C/NET-4A"
+      - "WAVE-C/NET-4B"
+      - "WAVE-C/NET-5"
+      - "WAVE-C/NET-5R"
+      - "WAVE-C/NET-6"
+    supersedes: null
+  -
     map_ref: "SYSTEM/AGENT-EXECUTION"
     event_type: "adjustment"
     event_id: "C-MLP-02-READBACK-01"
@@ -5955,13 +6020,14 @@ events:
     event_id: "C-MLP-02-RUNNER-01"
     owner_lane: "technical_lead"
     status: "implemented"
-    summary: "Launchpad wraps accepted C-W1-D4 research with a prospective single-campaign grant, existing-ledger admission, durable pause/stop/generation fencing and authenticated own-research projection. D4 campaigns and allowances remain separately owned. New research remains admission-disabled until a distinct explicit grant and exact accepted runtime/images exist. Canonical focused controls and real browser/server engineering checks do not complete the selected genuine multi-iteration validation. Historical source readback remains separate. Acceptance repair keeps hygiene rules unchanged and uses two exact historical merge exceptions for accepted-dependency ancestry. Terminal reports use prospective durable completion timestamps, leave legacy completion time unknown and preserve unsettled operations. A managed ledger explicitly rejects legacy D4 manifests at open, freeze, checkpoint and reservation, preventing an operator root mismatch from selecting D4 accounting instead of the separate grant."
+    summary: "Launchpad wraps accepted C-W1-D4 research with a prospective single-campaign grant, existing-ledger admission, durable pause/stop/generation fencing and authenticated own-research projection. D4 campaigns and allowances remain separately owned. New research remains admission-disabled until a distinct explicit grant and exact accepted runtime/images exist. Canonical focused controls and real browser/server engineering checks do not complete the selected genuine multi-iteration validation. Historical source readback remains separate. Acceptance repair keeps hygiene rules unchanged and uses two exact historical merge exceptions for accepted-dependency ancestry. Terminal reports use prospective durable completion timestamps, leave legacy completion time unknown and preserve unsettled operations. A managed ledger explicitly rejects legacy D4 manifests at open, freeze, checkpoint and reservation, preventing an operator root mismatch from selecting D4 accounting instead of the separate grant. Integrate accepted D5 v2 continuation for new Launchpad campaigns while retaining D5 board selection, historical defaults and its separate program grant. Browser records now expose concise hypothesis history and actual epoch stop outcomes without provider transcripts or private accounting payloads."
     primary_detail: ".agent/tickets/C-MLP-02_development_research_bridge.md"
     affects:
-      - "WAVE-C/C-W1"
       - "SYSTEM/CI"
       - "SYSTEM/DEVELOPMENT-HUB"
       - "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+      - "WAVE-C/C-W1"
+      - "WAVE-C/C-W1-D5"
     supersedes: null
   -
     map_ref: "SYSTEM/DEVELOPMENT-HUB"

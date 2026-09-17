@@ -109,6 +109,14 @@ opaque profile/run references and an authenticated own-research projection.
 No raw owner report, credential, arbitrary command, private directory or final
 case material is served. Comparison readback and export resolve current sources.
 
+The accepted C-W1-D5 v2 agent continuation policy is selected prospectively for
+new Launchpad campaigns. Its prompt/tool identity is frozen by the existing
+runner and exposed through the own-research projection. Legacy D4 defaults and
+frozen campaigns stay unchanged. The Launchpad manifest's authority and resource
+limits always come from its separate grant; D5's program grant is not inherited.
+Retained epoch stop outcomes, concise hypothesis history and decisions are
+projected separately from independent DEVELOPMENT results, without raw transcripts.
+
 Pause persists before stopping new dispatch and reaches PAUSED only between
 bounded operations. An admitted fixed final/reference/provider call may settle
 within its existing deadline; it has no invented native pause/cancel. Stop cancels

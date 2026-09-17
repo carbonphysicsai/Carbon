@@ -13,6 +13,16 @@ from .agent import MAX_INPUT_TOKENS, MAX_OUTPUT_TOKENS, MODEL
 from .data import write_once
 from .profile import canonical, digest
 from .research_agent import request_model
+from .research_agent_policy import (
+    AUTONOMOUS,
+    AUTONOMOUS_PROMPT,
+    LEGACY,
+    REMINDER,
+    STOP,
+    STOP_TOOL,
+    binding,
+    stop_result,
+)
 from .research_catalog import compile_recipe
 from .research_tools import PREFIX, PROMPT, TOOLS, _json, _schema
 
@@ -41,7 +51,15 @@ def _epoch_paths(ledger, epoch):
 
 
 async def run_epoch(
-    ledger, *, owner, epoch, sdk, credential_file, initial_observation, transport=None
+    ledger,
+    *,
+    owner,
+    epoch,
+    sdk,
+    credential_file,
+    initial_observation,
+    transport=None,
+    agent_policy=LEGACY,
 ):
     """Run once or resume completed provider/tool observations without resends.
 
@@ -49,13 +67,16 @@ async def run_epoch(
     Successfully journalled replies can be replayed without another model call.
     """
     root = _epoch_paths(ledger, epoch)
-    tools = TOOLS + [SELECTION_TOOL]
+    policy = binding(agent_policy)
+    autonomous = agent_policy == AUTONOMOUS
+    prompt = AUTONOMOUS_PROMPT if autonomous else PROMPT
+    tools = TOOLS + [SELECTION_TOOL] + ([STOP_TOOL] if autonomous else [])
     plan = {
         "schema": "carbon.autoresearch.epoch-plan.v1",
         "epoch": epoch,
         "owner": owner,
         "model": MODEL,
-        "prompt": PROMPT,
+        "prompt": prompt,
         "tools": tools,
         "initial_observation": initial_observation,
         "max_provider_calls": 48,
@@ -63,6 +84,8 @@ async def run_epoch(
         "rule_change": False,
         "selection_is_final_evidence": False,
     }
+    if autonomous:
+        plan["agent_policy"] = policy
     write_once(root / "plan.json", canonical(plan))
     start_id = "research-epoch-" + str(epoch)
     admitted = ledger.reserve(
@@ -87,6 +110,7 @@ async def run_epoch(
         )
     trial_start = json.loads(trial_start_file.read_bytes())["count"]
     outcome = None
+    reminders = 0
     for index in range(48):
         ledger.checkpoint()
         status = ledger.status(owner=owner)
@@ -94,7 +118,7 @@ async def run_epoch(
         call_id = f"epoch-{epoch}-provider-{index:03d}"
         request = {
             "model": MODEL,
-            "instructions": PROMPT,
+            "instructions": prompt,
             "input": history,
             "tools": tools,
             "parallel_tool_calls": False,
@@ -141,9 +165,28 @@ async def run_epoch(
             raise ValueError("parallel tool output prohibited; retained and stopped")
         history.extend(output)
         if not calls:
+            if autonomous and reminders < policy["free_text_reminders"]:
+                reminders += 1
+                correction = {"role": "user", "content": REMINDER}
+                write_once(
+                    root / (call_id + "-continuation.json"),
+                    canonical(
+                        {
+                            "policy": policy,
+                            "response_digest": digest(canonical(response)),
+                            "message": correction,
+                        }
+                    ),
+                )
+                history.append(correction)
+                continue
             outcome = {
                 "status": "STOPPED",
-                "reason": "agent elected to stop",
+                "reason": (
+                    "unstructured agent stop after one clarification"
+                    if autonomous
+                    else "agent elected to stop"
+                ),
                 "agent_output": output,
             }
             break
@@ -172,7 +215,9 @@ async def run_epoch(
                 )
             ledger.checkpoint()
             write_once(intent_file, canonical(intent))
-            if call["name"] == SELECT:
+            if autonomous and call["name"] == STOP:
+                result = stop_result(arguments)
+            elif call["name"] == SELECT:
                 if (
                     set(arguments) != {"strategy_json", "reason", "used_feedback"}
                     or type(arguments["used_feedback"]) is not bool
@@ -215,7 +260,9 @@ async def run_epoch(
                 "tool": tool_identity,
             }
             break
-        if result.get("status") == "SELECTED":
+        if result.get("status") in (
+            {"SELECTED", "STOPPED"} if autonomous else {"SELECTED"}
+        ):
             outcome = result
             break
         history.append(

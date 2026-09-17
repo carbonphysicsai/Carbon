@@ -27,6 +27,7 @@ from carbon.transport.models import message
 from .agent import MODEL, ResponsesTransport
 from .data import write_once
 from .profile import CHALLENGE, canonical, digest
+from .research_agent_policy import AUTONOMOUS, LEGACY, binding
 from .research_catalog import compile_recipe
 from .research_data import PublicReferenceData
 from .research_final import prepare_final_inputs
@@ -348,6 +349,8 @@ async def final_epoch(
 
 
 async def execute(args, *, ledger=None):
+    agent_policy = getattr(args, "agent_policy", LEGACY)
+    policy = binding(agent_policy)
     implementation = accepted_implementation(args.accepted_revision)
     root = args.root
     if args.command == "run" and (root / "campaign-manifest.json").exists():
@@ -407,6 +410,7 @@ async def execute(args, *, ledger=None):
             manifest["implementation"] != implementation
             or manifest["owner"] != owner
             or manifest["images"] != [image.image_id, analysis.image_id]
+            or manifest.get("agent_policy", binding(LEGACY)) != policy
         ):
             raise ValueError("campaign implementation/owner/image changed")
     else:
@@ -437,6 +441,9 @@ async def execute(args, *, ledger=None):
             "images": [image.image_id, analysis.image_id],
             "new_network_transactions": 0,
         }
+        if agent_policy != LEGACY:
+            manifest["agent_policy"] = policy
+            manifest["authority"] = "OWNER-C-W1-RESEARCH-PROGRAM-01"
         if grant is not None:
             from .research_admission import MANIFEST
 
@@ -507,6 +514,7 @@ async def execute(args, *, ledger=None):
                 sdk=sdk,
                 credential_file=args.api_key_file,
                 initial_observation=observation,
+                agent_policy=agent_policy,
             )
             report(ledger, owner=owner)
             if result["status"] != "SELECTED":
@@ -575,6 +583,7 @@ def main():
     parser.add_argument("command", choices=("run", "resume", "status", "report"))
     parser.add_argument("--root", type=Path, required=True)
     parser.add_argument("--accepted-revision")
+    parser.add_argument("--agent-policy", choices=(LEGACY, AUTONOMOUS), default=LEGACY)
     for name in (
         "image-manifest",
         "analysis-image-manifest",

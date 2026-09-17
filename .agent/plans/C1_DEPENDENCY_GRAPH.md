@@ -1,9 +1,9 @@
-# C1/C2 dependency graph: C-W1-D4 finite miner autoresearch
+# C1/C2 dependency graph: C-W1-D5 autonomous research continuity
 
 **Decision:** `OWNER-C1-CONTRACTS-01`
 **Status:** authoritative planning checkpoint after merge
 **Primary Hub map_ref:** `WAVE-C`
-**Implementation selection:** C-W1-D4 only under OWNER-C-W1-D4-AUTORESEARCH-01. PR #202 merged balanced-v2 scoring and measurement v3. The new owner direction authorizes bounded public/synthetic research implementation and one finite off-chain campaign after accepted delivery. Scientific mathematics stays fixed; no chain transaction or qualification is authorized.
+**Implementation selection:** C-W1-D5 only under OWNER-C-W1-RESEARCH-PROGRAM-01. C-W1-D4 delivered in PR #206 and its first real campaign stopped before training. The selected successor repairs autonomous continuity prospectively; scientific mathematics, worker ceilings and chain boundaries stay fixed.
 
 ## Authority resolution
 
@@ -37,7 +37,7 @@ A10 boundary + C-06 + C-07 + C-EA2 ─> C-09
 G2(exact standard localnet only) + C-09 + C-EA2 + real signed C1 evidence ─> C-W1
 NET-2 + C-03 + C-06/C-07/C-08 + C-10 + checked publisher ─> C-W1-D1(public/synthetic DEVELOPMENT only)
 C-05 + C-06/C-07/C-08 + C-10 + C-REWARD ─> C-W1-D2(non-paying descriptive comparison only) ─> C-W1-D3(delegated DEVELOPMENT scoring; no paying/network path)
-B-07 research + C-02/C-03 containment + C-08 auth + C-W1-D3 ─> C-W1-D4(real public research, fresh final comparisons, finite campaign; in progress)
+B-07 research + C-02/C-03 containment + C-08 auth + C-W1-D3 ─> C-W1-D4(real public research; delivered, first campaign stopped) -> C-W1-D5(prospective agent continuity)
 NET-3 + C-01 + A4-A8 ─> C-EP1(done, DEVELOPMENT fixture only)
 C-EP1 ─> C-EP2(done measurement/replay only; no sharing runtime)
 C-EP2 + C-AUTH1 ─> C-EP3(done input acquisition/public component probe)
@@ -68,7 +68,8 @@ C-EP3 + supplied immutable JAX bundle ─> C-02(merged DEVELOPMENT adapter prere
 | C-W1 | official path `future_reserved`; C-W1-D1 historical row verified | ticket and PR #196 recovery | official: G2+C-09+C-EA2+real C1 | official science/security and future transaction authority remain open | subnet 567, publisher UID 0, miner UID 1 and WSL Docker host observed | current all-burn profile unchanged | **no** |
 | C-W1-D2 | done in PR #201 | authentic descriptive comparison | C-05, C-06, C-07, C-08, C-10, C-REWARD | historical no-acceptance-rule disposition preserved | none | no paying/network path | already delivered |
 | C-W1-D3 | done in PR #202 | balanced-v2 and derived measurement v3 | C-W1-D2, C-05, C-06, C-07, C-08, C-10, C-REWARD | delegated DEVELOPMENT choices resolved; official qualification reserved | historical results remain retrospective | no paying/network path | already delivered |
-| C-W1-D4 | selected, engineering and finite campaign | versioned real public research and fresh final comparison | B-07G, accepted bounded C-02/C-03 prerequisites, C-04 through C-08, C-10, C-W1-D3, C-REWARD | fixed balanced-v2; no scientific or security qualification | existing private credentials and eligible local host | owner-authorized finite campaign after accepted delivery; no chain write | **yes, C-W1-D4 only** |
+| C-W1-D4 | delivered, campaign stopped before training | versioned real public research and fresh final comparison | B-07G, accepted bounded C-02/C-03 prerequisites, C-04 through C-08, C-10, C-W1-D3, C-REWARD | fixed balanced-v2; no scientific or security qualification | existing private credentials and eligible local host | owner-authorized finite campaign after accepted delivery; no chain write | **no, delivered bounded scope** |
+| C-W1-D5 | selected prospective continuity repair | versioned autonomous instructions and reasoned stop | C-W1-D4 | unchanged balanced-v2 and worker boundaries | existing credential and eligible host | program campaign two after accepted delivery | **yes, C-W1-D5 only** |
 
 ## Exact C-02 source resolution and remaining boundary
 
@@ -106,8 +107,12 @@ private-alpha preparation without implementing real acknowledgement; and PR
 C-EA1-D3's concrete unprovisioned AWS deployment package. The repository owner
 PR #183 accepted the C-W1-D1 foundation after AWS deployment was deferred and
 Hippius recorded as an unverified future storage preference. The repository
-owner selects only C-W1-D4's finite non-paying DEVELOPMENT autoresearch path. C-EA2 and official C-W1 remain
+owner selects only C-W1-D5's prospective continuity repair and program campaign two. C-EA2 and official C-W1 remain
 unimplemented/ineligible. Public execution is still gated by exact observed
 network identity/capability and transaction authorization. This graph
 authorizes no protected reference, official science, real archive
 acknowledgement, production qualification or LIVE state.
+
+C-W1-D5 depends on accepted D4 runtime and the owner program grant. C-MLP-02
+coordinates separate operator UI/admission work; neither ticket creates competing
+research providers, grants the other task spending, or bypasses signed sources.

@@ -223,6 +223,7 @@ class RunnerAdapter:
             thread.start()
 
     def _run(self, run_id, cfg, admission, root):
+        from carbon.development_session.research_agent_policy import AUTONOMOUS
         from carbon.development_session.research_campaign import execute
 
         generation = None
@@ -245,6 +246,7 @@ class RunnerAdapter:
                     root=root,
                     accepted_revision=cfg["accepted_revision"],
                     principal=cfg["principal"],
+                    agent_policy=AUTONOMOUS,
                     command=(
                         "resume"
                         if (root / "campaign-manifest.json").exists()

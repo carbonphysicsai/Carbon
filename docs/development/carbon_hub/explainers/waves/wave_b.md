@@ -80,9 +80,9 @@ Wave B does not include real miner training, production reconstruction, authenti
 
 ## Repository detail
 
-- [Wave B controlling board](https://github.com/carbonphysicsai/Carbon/blob/8299df5ef8631d3e4d775dd042d80a12345f94cc/.agent/WAVE_B.md)
-- [Current wave register](https://github.com/carbonphysicsai/Carbon/blob/8299df5ef8631d3e4d775dd042d80a12345f94cc/.agent/WAVE.md)
-- [C1 dependency graph](https://github.com/carbonphysicsai/Carbon/blob/8299df5ef8631d3e4d775dd042d80a12345f94cc/.agent/plans/C1_DEPENDENCY_GRAPH.md)
-- [Agentic Development Master Plan](https://github.com/carbonphysicsai/Carbon/blob/8299df5ef8631d3e4d775dd042d80a12345f94cc/Design_Specs/Agentic_Development_Master_Plan.md)
+- [Wave B controlling board](https://github.com/carbonphysicsai/Carbon/blob/916ba388b5bacbbbf033f75e43616c4132bddaf5/.agent/WAVE_B.md)
+- [Current wave register](https://github.com/carbonphysicsai/Carbon/blob/916ba388b5bacbbbf033f75e43616c4132bddaf5/.agent/WAVE.md)
+- [C1 dependency graph](https://github.com/carbonphysicsai/Carbon/blob/916ba388b5bacbbbf033f75e43616c4132bddaf5/.agent/plans/C1_DEPENDENCY_GRAPH.md)
+- [Agentic Development Master Plan](https://github.com/carbonphysicsai/Carbon/blob/916ba388b5bacbbbf033f75e43616c4132bddaf5/Design_Specs/Agentic_Development_Master_Plan.md)
 
 > Orientation boundary: repository authority owns exact semantics, implementation, review, evidence, and activation.

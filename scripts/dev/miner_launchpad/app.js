@@ -232,7 +232,7 @@
       }
       const details = document.createElement("details"); const summary = document.createElement("summary"); summary.textContent = "Research, usage, candidate and independent result";
       const record = document.createElement("pre"); record.style.whiteSpace = "pre-wrap"; record.style.overflowWrap = "anywhere";
-      record.textContent = JSON.stringify({hypothesis: run.current_hypothesis, usage: run.usage, experiments: run.experiments, operations: run.operations, freezes: run.candidate_freezes, development: run.final_results, capability_requests: run.capability_requests}, null, 2);
+      record.textContent = JSON.stringify({agent_policy: run.agent_policy, hypothesis: run.current_hypothesis, hypotheses: run.hypotheses, decisions: run.decisions, outcomes: run.epoch_outcomes, usage: run.usage, experiments: run.experiments, operations: run.operations, freezes: run.candidate_freezes, development: run.final_results, capability_requests: run.capability_requests}, null, 2);
       details.append(summary, record); card.append(controls, details); container.append(card);
     }
   }

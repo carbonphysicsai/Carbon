@@ -14621,3 +14621,41 @@ and instructed continuation. Apply only exact matching surface/field identities
 is necessary in resolved-plan validation, which otherwise rejects the catalog's
 valid output. This changes construction control classification only, not score
 mathematics, scientific qualification, public-network authority or historic receipts.
+
+
+## OWNER-C-W1-RESEARCH-PROGRAM-01 — finite evidence-driven miner program
+
+Ryan prospectively authorizes at most three real public/synthetic DEVELOPMENT
+campaigns: the accepted PR #206 campaign, one evidence-driven expansion and one
+further justified expansion/replication. Ordinary engineering and provisional
+development experiment-design choices are delegated; scoring changes require a
+separately versioned prospective contract, never a gate tuned to a known result.
+
+Each campaign: <=2 epochs, 16 research trials, 12 final replicas, 96 provider
+attempts, USD 1 new provider charges, six numerical worker hours, eight elapsed
+experiment hours, 512 generated reference trajectories, 2,048 solver invocations,
+10 GiB retained data, one 2-CPU/4-GiB/no-swap worker, <=600 productive seconds.
+Program: <=3 campaigns, USD 3, 18 numerical hours, 24 cumulative experiment hours;
+track cumulative retained storage and disk, preserve evidence. Conservative unknown
+usage reservations, final capacity and no automatic renewal remain mandatory.
+Engineering/CI and Ask Carbon website spending are separate. No infrastructure,
+credits, registration, activation, chain writes, payments, protected data or
+production/scientific/security qualification are authorized.
+
+The explicit PR #206 ce6a7e38 approval satisfied the prior automatic-review merge
+rejection; no control was bypassed. Its observed early stop is retained unchanged.
+It consumes program slot one, not a renewable failed-run allowance.
+
+### C-W1-D5-D1 — prospective autonomous continuity
+
+Problem: campaign one gathered public material then asked for routine approval.
+Recommendation: explicit existing authority plus a structured supported stop and
+at most one journalled clarification. Implement in research_agent_policy.py,
+research_loop.py and research_campaign.py; new explicit agent-policy v2, legacy
+v1 default. No new gateway operation, evaluator or launcher. C-MLP-02 hooks are
+coordinated separately. Alternative of forcing a training run was rejected because
+legitimate early stops remain valid. Raising budgets/model size or changing scoring
+does not address this observed failure. Context/analysis changes are deferred until
+their value is evidenced. Reversible by selecting v1 for new campaigns; existing
+v2 plans remain immutable. Superseding changes require new policy binding and
+fresh campaign. No human-reserved scientific value is selected here.

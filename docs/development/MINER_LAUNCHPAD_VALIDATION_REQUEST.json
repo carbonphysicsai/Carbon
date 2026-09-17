@@ -4,6 +4,7 @@
   "status": "REQUESTED_NOT_GRANTED",
   "provider": "OpenAI Responses",
   "model": "gpt-5-mini-2025-08-07",
+  "agent_policy": "carbon.autoresearch.agent-policy.v2 from accepted C-W1-D5; no D5 resource authority transfers",
   "account": "Existing private credential route referenced by operator/run-cw1-d4-ce6a7e38.sh; account ownership has not been independently verified. No D4 grant is reused.",
   "principal": "Local authenticated Carbon operator using the existing registered subnet-567 miner",
   "campaign_id": "cmlp02-browser-validation-01",
