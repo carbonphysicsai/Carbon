@@ -2789,6 +2789,31 @@
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/9d43a35ffc056c5b258e225d844b532114819765/.agent/DECISIONS.md"
     },
     {
+      "title": "Retain private Ask Carbon staging with no production model selected",
+      "question": "Which bounded staging target and evaluated model configuration, if any, is ready to advance to a separate production release decision?",
+      "recommendation": "Keep the separate authenticated Cloudflare staging Workers and shared Durable Object for owner review, but select no production model. Terra was more reliable than Luna, yet both missed the frozen final-answer reliability gate. Repair the retained support-validation failures before another bounded bakeoff.",
+      "why": "The correct static Worker account and no-charge staging path are now established, provider credentials are isolated in a dedicated Ask Carbon project, and real runtime accounting stayed inside the USD 5/USD 50 ceilings. Measured quality—not access or cost—is the remaining blocker to a production candidate.",
+      "if_kept": "The owner can inspect the private Terra staging surface while production remains unchanged. The next evaluation reuses the same frozen cases, public source release and shared ledger rather than widening the model search or budget.",
+      "if_changed": "A production deployment, public route, DNS change, higher budget, weaker support gate, paid Cloudflare product, or different model search requires prospective authority. Preserve all failed outputs and historical ledger exposure.",
+      "decision_id": "WEB-QA-03-D1",
+      "map_ref": "SYSTEM/PUBLICATION-AUTHORITY",
+      "wave": "SYSTEM",
+      "ticket": "WEB-QA-03",
+      "attention": "FOR_AWARENESS",
+      "status": "IMPLEMENTED_NO_PRODUCTION_CANDIDATE",
+      "audience": "harsh",
+      "affects": [
+        "SYSTEM/CI",
+        "SYSTEM/GOVERNANCE",
+        "SYSTEM/MATURITY",
+        "SYSTEM/PUBLICATION",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+      ],
+      "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5711954374",
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/c9ea031ece87328c7b9e7dea3eb678a09fc125b6/.agent/DECISIONS.md"
+    },
+    {
       "title": "Use guided Ask Carbon and the form over one client pilot brief",
       "question": "How should the public explorer help a client prepare a stronger pilot inquiry without turning AI guidance into scientific authority or collecting abandoned conversations by default?",
       "recommendation": "Keep the v1 intake brief as the canonical core and offer guided conversation plus form editing over the same in-memory state. Require consent before AI, explicit acceptance for schema-constrained suggestions, optional conversation inclusion, and deterministic Workbench validation. Reuse the Ask Carbon server adapter and one combined $50/month ledger for both general Q&A and pilot guidance.",
