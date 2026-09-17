@@ -1,8 +1,11 @@
 # Ask Carbon public-release decision packet
 
-**Decision ID:** `ASK-CARBON-PUBLIC-RELEASE-DECISION-01`  
-**Status:** owner review required; public activation disabled  
-**Scope:** public Ask Carbon explanation and guided pilot drafting only  
+**Decision ID:** `ASK-CARBON-PUBLIC-RELEASE-DECISION-01`
+
+**Status:** owner review required; public activation disabled
+
+**Scope:** public Ask Carbon explanation and guided pilot drafting only
+
 **Not in scope:** inquiry receipt/persistence, customer-data processing,
 scientific execution, qualification, protected access, or launch authority
 
@@ -213,4 +216,3 @@ INQUIRY_COLLECTION: NOT_IMPLEMENTED
 CUSTOMER_SESSIONS: 0
 SCIENTIFIC_OR_LAUNCH_AUTHORITY: NONE
 ```
-
