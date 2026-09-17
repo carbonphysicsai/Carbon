@@ -209,8 +209,8 @@ its companion safe JSON, full TRAIN curve and each campaign's existing reports
 link retained evidence. Campaign three can be inspected without restarting:
 
 ```bash
-cd /home/carbon/Carbon-cw1-program-final
-PYTHONPATH=. /home/carbon/Carbon/.venv/bin/python -m carbon.development_session.research_campaign status --root /home/carbon/.local/share/carbon-testnet/miner-autoresearch-20260917-expansion-2
+cd $HOME/Carbon-cw1-program-final
+PYTHONPATH=. $HOME/Carbon/.venv/bin/python -m carbon.development_session.research_campaign status --root $HOME/.local/share/carbon-testnet/miner-autoresearch-20260917-expansion-2
 ```
 
 Runtime delivery and local/private reporting are complete. On 2026-09-17 Ryan
