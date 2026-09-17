@@ -1,0 +1,12 @@
+name = "carbon-ask-budget-authority"
+main = "worker/budget-authority.mjs"
+compatibility_date = "2026-09-16"
+workers_dev = false
+
+[[durable_objects.bindings]]
+name = "ASK_CARBON_USAGE_LEDGER"
+class_name = "AskCarbonUsageLedger"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["AskCarbonUsageLedger"]

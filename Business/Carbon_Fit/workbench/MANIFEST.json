@@ -17,7 +17,7 @@
     "GOAL-WORKBENCH-08"
   ],
   "repository_base": "3681f7fb10be0c6e278f53d59ff9b022099ef12d",
-  "integration_revision_at_packaging": "2fd842be8594a51cebde5b3f372bf23987a8cd30",
+  "integration_revision_at_packaging": "fab8acd59f65c67a1560a242002bc0a1de123da5",
   "integration_revision_note": "The checksum manifest describes exact packaged bytes. A commit cannot contain its own digest; final PR/head identity is reported by delivery.",
   "pinned_research_revision": "ca904dfee93d3574df4e56b99981a6ed3b138e80",
   "accepted_research_head": "0a5690270dc449ea19c941280203987d37db5283",
@@ -151,12 +151,12 @@
   "file_count": 184,
   "files": {
     "Carbon_Client_Intake_Preview.html": {
-      "bytes": 51639,
-      "sha256": "00def8441ab9f959100614be8270cb44b74265b9d69561d5af92935e25e5a893"
+      "bytes": 51739,
+      "sha256": "8330f57742e2ccf4ce4b73d00e7e0a0a788b7d102d09fcd864d780d8955f7518"
     },
     "Carbon_Client_Pilot_Designer_Preview.html": {
-      "bytes": 51639,
-      "sha256": "00def8441ab9f959100614be8270cb44b74265b9d69561d5af92935e25e5a893"
+      "bytes": 51739,
+      "sha256": "8330f57742e2ccf4ce4b73d00e7e0a0a788b7d102d09fcd864d780d8955f7518"
     },
     "Carbon_Opportunity_Workbench.html": {
       "bytes": 713249,
@@ -667,8 +667,8 @@
       "sha256": "8e932531285e630cd29c36252ae7ccc86d15b1d692570d8e26218aef07edda9a"
     },
     "src/intake_shell.html": {
-      "bytes": 9532,
-      "sha256": "8b9d692267a15f567e8b921360e0a0e7d654aebbeb5c55c6c4a6af29684a7b99"
+      "bytes": 9632,
+      "sha256": "236ddc1d3c65b5c1683ddcb0a6097be2f51c4bff5387eb048b323ce214a1a1a3"
     },
     "src/intake_styles.css": {
       "bytes": 4938,
@@ -743,12 +743,12 @@
       "sha256": "306088c304240b3e872f210c7e78cedb07e2d9a971d1e36f94264e62dc7b575e"
     },
     "tests/preview_intake.png": {
-      "bytes": 334173,
-      "sha256": "7f0b25c94333f27eaa568379c5634f4a8934e9723791f31f4b40b41c9d317396"
+      "bytes": 343881,
+      "sha256": "b3b9889a5f8c5696a6c557708a0a10d9ae85e7eb72fa73432d9f6d21a3bf025d"
     },
     "tests/preview_intake_mobile.png": {
-      "bytes": 304909,
-      "sha256": "936f83a945f47ac20a9b3ac177b32bf2231d33cdea5b04b2082c809a871ae012"
+      "bytes": 313369,
+      "sha256": "1479732bd0745278ae0c05eddc4315a9a15231090f10608144d103f56d4ab542"
     },
     "tests/preview_mobile.png": {
       "bytes": 689994,

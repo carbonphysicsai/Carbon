@@ -4,7 +4,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { findSavedAnswer } from "../public/ask-carbon.js";
 import { evaluateRelease } from "../public/release-contract.js";
-import { loadPilotSuite, planPilotSuite, runPilotMock } from "./pilot-design-runner.mjs";
+import { loadPilotSuite, planPilotSuite, runPilotLive, runPilotMock } from "./pilot-design-runner.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const argument = (name, fallback = null) => {
@@ -107,10 +107,17 @@ const main = async () => {
       ? planPilotSuite(pilotSuite)
       : provider === "mock"
         ? await runPilotMock(pilotSuite)
-        : null;
-    if (provider === "live") {
-      throw new Error("Pilot live evaluation is fail-closed: use the exact accepted private staging route only after its access credential, provider secret, retention disposition, shared-ledger snapshot and execution authorization are supplied. Direct provider calls are forbidden.");
-    }
+        : provider === "live"
+          ? await runPilotLive(pilotSuite, {
+            endpoint: argument("endpoint", process.env.ASK_CARBON_EVAL_ENDPOINT),
+            origin: argument("origin", process.env.ASK_CARBON_EVAL_ORIGIN),
+            accessClientId: process.env.ASK_CARBON_ACCESS_CLIENT_ID,
+            accessClientSecret: process.env.ASK_CARBON_ACCESS_CLIENT_SECRET,
+            basicAuth: process.env.ASK_CARBON_STAGING_BASIC_AUTH,
+            operatorSecret: process.env.ASK_CARBON_STAGING_OPERATOR_SECRET,
+            runId: argument("run-id", null),
+          })
+          : null;
     if (!result) throw new Error("Pilot-design provider must be plan, mock or live.");
     process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
     return;

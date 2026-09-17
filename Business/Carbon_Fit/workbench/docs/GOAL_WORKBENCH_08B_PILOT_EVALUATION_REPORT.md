@@ -1,117 +1,169 @@
-# GOAL-WORKBENCH-08B pilot-evaluation report
+# GOAL-WORKBENCH-08B private pilot-evaluation report
 
-Status: local evaluation tooling and Workbench return implemented; live model
-evaluation and public activation not run.
+Status at candidate preparation:
+
+- Engineering: private-staging and live-evidence implementation complete;
+  repository delivery pending exact-head acceptance.
+- Private preview: deployed and access-gated.
+- Live evaluation: completed for the frozen nine-scenario / 11-turn synthetic
+  suite using the selected evidence from runs `v3` and `v4`.
+- Human quality review: `NOT_PERFORMED`; Ryan and Nick are named but their
+  reviewer assignments and dispositions remain unconfirmed.
+- Public activation: disabled and unchanged.
+- Customer sessions: zero.
 
 ## Reuse and implementation
 
-| Existing record/function | New use | Extension |
+| Existing record/function | Reuse | Bounded extension |
 |---|---|---|
-| `pilot-design.cases.public.json` | retained nine source scenario IDs and required/forbidden behavior | adjacent frozen executable turns/actions; original descriptions unchanged |
-| Ask Carbon `PILOT_DESIGN` Worker | closed context, retrieval, response validation and bounded provider seam | runner supplies test-owned outputs in mock mode; no second adapter |
-| `ask-carbon-provider-budget-v2` ledger | shared per-request admission and settlement | no new budget or namespace |
-| `carbon.client-intake.reviewed.v1` | final client-reviewed brief | no schema change |
-| Workbench `previewIntakeImport` / `commitIntakeImport` | ordinary `UNASSESSED` inquiry creation | deterministic test driver only |
-| existing routes and `handoff` | one explicit operator route and next action | no new workflow engine |
+| `pilot-design.cases.public.json` and executable suite | retained nine scenario IDs, turns and required/forbidden behavior | live runner applies real proposals only by exact ID or one unambiguous frozen expected field |
+| Ask Carbon `PILOT_DESIGN` Worker | closed context, retrieval, response validation and provider seam | provider HTTP errors, supported strict schema and source passage identities repaired from retained failures |
+| `ask-carbon-provider-budget-v2` | one shared Durable Object ledger | route-less authority deployed once; no second allowance or namespace |
+| reviewed intake and Workbench APIs | ordinary `UNASSESSED` import, route and request-only handoff | live-model reviewed packages traverse the same round trip |
+| maintained pilot preview | same brief in form and conversation modes | authenticated private Worker serves the generated artifact; no homepage route |
 
-The existing general-Q&A runner remains unchanged by default. Selecting
-`--suite pilot-design` adds `plan`, `mock`, and fail-closed `live` behavior.
-Plan and mock make no external network request. Live never calls a provider
-directly and currently stops before dispatch because no accepted private
-staging access mechanism/target exists.
+The private app Worker is `carbon-ask-private-staging` at
+`https://carbon-ask-private-staging.carbon-physics-ai.workers.dev`; the
+route-less authority is `carbon-ask-budget-authority`. Deployed app version
+`47310060-740c-45c4-8575-5d0fee1caf9f` uses knowledge
+`ask-carbon-staging-2026-09-16.1` and model configuration
+`gpt-5.6-luna:low:v1`. Access uses a rotated Basic secret plus a separate
+operator secret for the ledger snapshot. This is possession-based staging
+access, not named-person authentication. No public homepage route changed.
 
-## What ran
+## Live execution and retained failures
 
-The frozen suite contains the accepted nine scenario IDs and 11 public/synthetic
-turns. Each turn retained the exact disclosed brief context, test-owned Worker
-response, proposed edits, explicit client action and resulting brief. The
-scripts include accept, reject, undo, correction, skip and form-switch actions.
-If a named proposal is absent, the action records
-`EXPECTED_PROPOSAL_ABSENT`; it does not fabricate an edit.
+The first full run (`v1`) failed all nine first turns. OpenAI rejected an
+unsupported `uniqueItems` keyword in the strict response schema, but the Worker
+incorrectly classified the HTTP 400 response as a model mismatch. The failed
+run remains retained with 50,760 micro-USD of conservative unresolved exposure.
+Repairs now classify provider rejection before model identity, omit the
+unsupported provider-schema keyword while preserving Carbon duplicate checks,
+and log only safe provider error metadata.
 
-All nine reviewed packages:
+Focused diagnostics then exposed and repaired two more concrete defects:
 
-1. previewed as `CREATE_NEW_JOB`;
-2. created an `UNASSESSED` inquiry;
-3. received an explicit operator route and one `PREPARED` request-only handoff;
-4. reopened with the same intake record and unresolved authority;
-5. deduplicated exact replay; and
-6. rejected changed bytes under the same draft/revision identity.
+1. pilot sources were read from a nonexistent card-level field instead of the
+   retained passage source IDs, causing `unknown_source` after a valid model
+   response;
+2. the 15-second staging timeout was shorter than an observed valid response,
+   so private staging now uses a 60-second engineering limit. This is not a
+   public latency promise.
 
-The contradiction case also attached a valid `rev-002` successor for review
-without overwriting its predecessor. No case contained a source-assessment
-response. Scientific qualification remained `NOT_QUALIFIED`, rights
-`UNRESOLVED`, and launch `NOT_AUTHORIZED`.
+Run `v2` produced six settled responses before the durable 20-request client
+hour limit correctly rejected five remaining turns. It also showed that live
+suggestion IDs differ from mock IDs. The client-action harness was repaired to
+accept an exact suggestion ID or one unambiguous proposal for the frozen
+expected field; absent or ambiguous proposals remain unapplied. Undo now binds
+the actual accepted proposal while retaining scripted lineage. The old `v2`
+packet remains unchanged development history, including its partial briefs.
 
-Deterministic evidence is under
-`website/ask-carbon/evidence/pilot-design-v1/`. Rebuilding twice produced the
-same bytes. The manifest distinguishes authored expectations, deterministic
-contract observations and mock-provider workflow observations.
+After the hourly boundary reset naturally, `v3` ran the five previously
+rate-limited scenarios (six turns). Run `v4` ran the four earlier affected
+scenarios (five turns) through the repaired client-action mapping. There were
+no retries. The final selected evidence is `v4` for the first four scenarios
+and `v3` for the remaining five. All selected 11 turns returned supported,
+schema-valid responses and completed the ordinary Workbench return.
 
-## Measurements and missingness
+Two staging credentials appeared in local diagnostic output during setup. Each
+was rotated immediately, the affected old value was replaced in Cloudflare,
+and no value is retained in repository artifacts. No provider key was exposed
+by those events. Tail-based request inspection is not used for the protected
+operator snapshot route.
 
-| Observation | Result |
+## Observed live results
+
+| Observation | Selected-suite result |
 |---|---|
-| Frozen scenarios / turns | 9 / 11 |
-| External provider calls / paid spend | 0 / USD 0 |
-| Mock Worker attempts | 11 settled |
-| Mock settled cost | 880 micro-USD, simulated only |
-| Conservative plan reservation | 62,040 micro-USD, not spent |
-| Shared ceilings | 5,000,000 micro-USD bakeoff inside 50,000,000 micro-USD monthly |
+| Scenarios / turns | 9 / 11 |
+| Supported live responses | 11 |
+| Selected settled provider cost | 7,153 micro-USD (USD 0.007153) |
+| Median / p95 / maximum latency | 9,197.907 / 17,355.953 / 17,355.953 ms |
+| Workbench initial state | all `UNASSESSED` |
+| Handoff | all `PREPARED`, request-only |
+| Scientific / rights / launch | `NOT_QUALIFIED` / `UNRESOLVED` / `NOT_AUTHORIZED` |
+| Source-assessment responses admitted | 0 |
 | Customer sessions | 0 |
-| Human quality review | `NOT_PERFORMED` |
-| Live-model latency/cost/usefulness | `NOT_MEASURED` |
 
-The inherited generated-artifact Chrome journey passed 28 checks at desktop
-and narrow width with zero outbound requests and zero live-model calls. It
-covered consent before guidance, disclosed context, accept/reject/undo,
-form/conversation continuity, local clearing, reviewed-package download,
-ordinary Workbench import, route/handoff, save/reload, deduplication, 07A
-non-inheritance and escaped hostile text. Safari/WebKit and assistive-technology
-sessions were not run and are not reported as passes.
+Before human judgment, the retained outputs show useful bounded behavior: the
+assistant preserved unknowns in the sparse case, converted the 100x request
+into an aspirational/testable question, kept missing reference evidence
+explicit, declined to confirm arbitrary coupled-physics support, refused
+qualification/launch guarantees, and refused another-client and arbitrary-URL
+requests.
 
-Local acceptance also ran the 47 Ask Carbon tests, 233 focused/inherited
-Workbench JavaScript tests, 19 source/schema/build/package tests and current
-knowledge validation. The first source-test invocation under system Python
-failed before collection because `python-docx` was absent; the same unchanged
-suite passed in the repository/app bundled Python environment. This environment
-failure is retained as diagnostic history, not relabeled as a passing run.
+The outputs also retain quality/friction findings rather than tuning them away.
+The model did not propose `pilot.bounded_first_pilot` in the existing-model or
+absent-reference scenarios, and did not propose `pilot.next_discussion` in the
+unsupported-guarantee scenario. Those client actions are recorded as
+`EXPECTED_PROPOSAL_ABSENT`; their corresponding final checks remain incomplete.
+The cold-plate and coupled-physics cases did produce useful scoped evaluation
+or evidence-audit fields while retaining reference, tolerance, rights and
+execution unknowns. These are observations, not a human quality verdict.
 
-No customer-time or value claim follows from test duration. Synthetic cold
-plate and coupled-physics cases remain scoping examples, not capability or
-scientific-support claims. The complete retained packet is ready for a named
-reviewer using the existing rubric; no automated average hides authority or
-sensitive-data defects.
+## Cost and data boundary
 
-## Live gate and next action
+The shared September ledger after `v4` records:
 
-Private synthetic live evaluation is `NOT_RUN_NAMED_INPUTS_MISSING`. The exact
-restart inputs are:
+- settled provider cost: 13,151 micro-USD (USD 0.013151), including diagnostics
+  and superseded development runs;
+- unresolved conservative exposure: 67,680 micro-USD (USD 0.067680);
+- total ledger exposure: 80,831 micro-USD (USD 0.080831);
+- nested evaluation ceiling: 5,000,000 micro-USD inside the 50,000,000
+  micro-USD application monthly ceiling.
 
-1. exact permitted private staging account/project and Worker route;
-2. its accepted access-authentication mechanism and responsible operator;
-3. provider secret installed through the approved secret process;
-4. provider-project retention/data-control evidence;
-5. current knowledge/model/config release checks and a shared-ledger snapshot
-   showing remaining authorized bakeoff exposure; and
-6. explicit authority for any incremental non-provider infrastructure cost.
+Missing or uncertain usage was not converted to zero. Cloudflare cost is
+separate and unmeasured; no paid-plan change was observed. The OpenAI project
+showed API-call logging enabled per call. No approved Zero Data Retention or
+Modified Abuse Monitoring control was established, so the preview discloses
+potential default abuse-monitoring retention up to 30 days and remains
+synthetic-only. This does not authorize customer-data processing.
 
-Owner: Ryan for product/interface disposition, with the existing security,
-privacy, infrastructure-cost and publication owners for their scoped inputs.
-Restart event: those inputs are recorded for one exact private Worker target.
-Then run the finite suite once through that Worker, retain the ledger snapshot
-and outputs, and assign a named human reviewer. Do not provision a parallel
-Worker, call the provider directly, or activate the public service.
+## Verification executed
 
-## Authority ceiling
+- Ask Carbon: 53 Node tests; knowledge validation of 26 cards / nine sources;
+  40 single-turn and five conversation deterministic retrieval checks; pilot
+  plan and mock paths.
+- Workbench: 233 focused/inherited JavaScript checks; 19
+  source/schema/build/package checks.
+- Generated browser artifacts: 28 intake checks and 29 inherited Workbench
+  checks in Chrome, including desktop/narrow layout, keyboard/file controls,
+  zero external requests for the local path, reviewed-package import,
+  save/reload and 07A non-inheritance.
+- Private deployment: unauthenticated preview returned 401; authenticated
+  preview and health returned 200; current retention disclosure was inspected
+  in Chrome.
+
+The first Playwright attempts failed because the optional module was not on the
+default Node path and then because sandboxed Chrome could not launch. The same
+unchanged suites passed using the bundled dependency runtime with approved GUI
+execution. Safari/WebKit, VoiceOver and an actual customer usability session
+were not run and are not passes.
+
+## Human packet and next decision
+
+`website/ask-carbon/evidence/PILOT_DESIGN_PRIVATE_REVIEW_PACKET_2026-09-17.md`
+links the selected `v3`/`v4` transcripts, resulting briefs and a compact
+ACCEPT/CHANGE/REJECT form. Ryan is named for engineering relevance and
+pilot-design quality; Nick is named for clarity and prospective-client
+usefulness. Their review has not occurred and no acceptance is inferred.
+
+The next decision is a permitted human review of that packet and private
+preview. Fix only a named answer/interaction defect that review identifies.
+Public release still requires explicit publication, privacy/security, customer
+receiver/storage, cost and deployment authorization; this work does not close
+issue #139.
+
+## Authority ceiling and delivery identities
 
 Public activation remains disabled. This work creates no scientific evidence,
-qualification, rights grant, customer-use approval, reference reuse, provider
-account acceptance, execution authority, score, protected use, Wave change or
-launch. C-W1 and the accepted 07A assessment bytes/snapshot are untouched.
+qualification, reference adequacy, rights grant, customer-use approval,
+execution authority, score, protected use, Wave change or launch. C-W1 and the
+accepted 07A assessment bytes/snapshot are untouched.
 
-## Delivery identities
-
-The exact PR, tested head, required acceptance run/attempt, merge revision and
-final artifact hashes are recorded in the delivery PR and completion comment.
-They are not inferred in this pre-merge report.
+PR #200 remains the accepted local/mock baseline (head
+`275a6c94c801a3e688bbaaeac83c60ec32f3025d`, merge
+`fab8acd59f65c67a1560a242002bc0a1de123da5`, run `35111712129`). The exact
+feature PR, tested head, classifier-selected acceptance run, merge revision and
+final package hashes for this continuation are recorded at delivery; they are
+not inferred in this pre-acceptance report.

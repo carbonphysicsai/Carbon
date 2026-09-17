@@ -10,6 +10,7 @@
     "eval:pilot:plan": "node eval/run.mjs --suite pilot-design --provider plan",
     "eval:pilot:mock": "node eval/run.mjs --suite pilot-design --provider mock",
     "eval:pilot:live": "node eval/run.mjs --suite pilot-design --provider live",
-    "eval:pilot:evidence": "node eval/write-pilot-evidence.mjs"
+    "eval:pilot:evidence": "node eval/write-pilot-evidence.mjs",
+    "eval:pilot:live:evidence": "node eval/write-pilot-live-evidence.mjs"
   }
 }

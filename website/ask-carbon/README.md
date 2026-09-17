@@ -10,7 +10,8 @@ or proof of a production deployment.
 - Source release date: 2026-09-16
 - Release: `STAGING_REVIEWED`
 - Public activation: disabled
-- Live provider calls made for this release: zero
+- Private synthetic provider calls: observed through the authenticated staging Worker
+- Human quality review: pending
 - Production homepage change: none
 
 The production release contract deliberately rejects this manifest. The
@@ -62,10 +63,11 @@ an adjacent frozen set of literal turns and client review actions. `plan`
 enumerates the finite request and shared-budget exposure without network work;
 `mock` traverses the real `PILOT_DESIGN` Worker validation, shared ledger,
 reviewed-package and Workbench import paths with a test-owned provider. Neither
-is live-model or customer-usability evidence. `eval:pilot:live` remains
-fail-closed until the exact private staging target, access mechanism, installed
-provider secret, provider-project retention disposition and current shared
-ledger authorization exist.
+is live-model or customer-usability evidence. The live mode is bound only to
+the authenticated private staging Worker and its shared budget authority. It
+requires explicit endpoint, origin, Basic access token and operator snapshot
+secret environment variables; it has no direct-provider fallback. Retained
+private synthetic observations are under `evidence/pilot-design-live-*`.
 
 ## Guided pilot mode
 
@@ -116,15 +118,17 @@ accepting caller-provided prices:
 Prices were observed in official OpenAI model documentation on 2026-09-16.
 The code includes output reasoning tokens in billed output, rejects missing or
 negative usage, and rejects an unexpected returned model identity. These are
-configured candidates, not live-tested winners. A direct provider evaluation
-is prohibited; live evaluation must traverse the staging Worker and shared
-ledger.
+configured candidates, not a general model comparison. The private synthetic
+run used `gpt-5.6-luna:low:v1` through the staging Worker; human quality review
+is still pending. A direct provider evaluation is prohibited; live evaluation
+must traverse the staging Worker and shared ledger.
 
 ## Deployment boundary
 
-The example Cloudflare configurations create no deployment or route. One
-central, non-public budget authority is required so separate app environments
-cannot each receive USD 50. Creating that Durable Object may incur Cloudflare
-charges and needs an exact target and authorization. Credentials belong only in
-the approved secret store. Never put them in Git, browser assets, chat, issues
-or evaluation output.
+The private evaluation deployment uses `carbon-ask-private-staging` with no
+production homepage route and the route-less `carbon-ask-budget-authority`
+Durable Object script. It remains a staging aid, not a public release. One
+central authority prevents separate app environments from each receiving USD
+50. Cloudflare charges are separate and were not measured by the provider
+ledger. Credentials belong only in the approved secret store. Never put them
+in Git, browser assets, chat, issues or evaluation output.
