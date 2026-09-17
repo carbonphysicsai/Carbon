@@ -7,9 +7,13 @@
   let busy = false;
   let polling = false;
   let connected = false;
+  let developmentSources = [];
+  let research = {preflight: {available: false}, runs: []};
+  let pendingResearch = null;
+  const researchKey = "carbon.launchpad.pending-research.v1";
   const pendingKey = "carbon.launchpad.pending.v1";
   let storageError = false;
-  try { pending = JSON.parse(sessionStorage.getItem(pendingKey) || "null"); }
+  try { pending = JSON.parse(sessionStorage.getItem(pendingKey) || "null"); pendingResearch = JSON.parse(sessionStorage.getItem(researchKey) || "null"); }
   catch (_) { storageError = true; }
   const $ = id => document.getElementById(id);
   const message = (text, error = false) => {
@@ -34,6 +38,39 @@
     return result;
   }
   function render() {
+    renderResearch();
+    const sources = $("development-sources");
+    sources.replaceChildren();
+    if (!connected || !developmentSources.length) {
+      const note = document.createElement("p"); note.className = "hint";
+      note.textContent = connected ? "No DEVELOPMENT source is attached. Real campaign launch is not enabled yet." : "Reconnect to verify current source state.";
+      sources.append(note);
+    }
+    if (connected) for (const source of developmentSources) {
+      const card = document.createElement("div"); card.className = "integration";
+      const title = document.createElement("h3");
+      title.textContent = source.receipt ? source.receipt.disposition : "Readback unavailable";
+      const note = document.createElement("p");
+      note.textContent = source.receipt ? "DEVELOPMENT EVALUATION · Receipt " + source.receipt.receipt_id : "Source validation failed. No receipt or result is being inferred.";
+      const button = document.createElement("button"); button.type = "button";
+      button.textContent = "Export verified public receipt";
+      button.disabled = busy || source.status !== "VERIFIED_SOURCE";
+      button.addEventListener("click", async () => {
+        if (busy || !connected) return;
+        busy = true; render();
+        try {
+          const fresh = await api("/api/v1/development/" + source.id);
+          if (fresh.status !== "VERIFIED_SOURCE") throw new Error("development_source_unavailable");
+          const blob = new Blob([JSON.stringify(fresh, null, 2)], {type: "application/json"});
+          const url = URL.createObjectURL(blob);
+          const anchor = document.createElement("a"); anchor.href = url;
+          anchor.download = "carbon-development-" + source.id + ".json";
+          anchor.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+        } catch (error) { message("Receipt export unavailable: " + error.message, true); }
+        finally { busy = false; await refresh(); render(); }
+      });
+      card.append(title, note, button); sources.append(card);
+    }
     $("launch-fields").disabled = !connected || storageError;
     $("launch-button").disabled = busy;
     $("launch-button").firstChild.textContent = pending ? "Retry same launch " : "Launch rehearsal ";
@@ -82,6 +119,8 @@
     polling = true;
     try {
       runs = (await api("/api/v1/runs")).runs;
+      developmentSources = (await api("/api/v1/development")).sources;
+      research = await api("/api/v1/research");
       connected = true;
       render();
       $("connection-state").textContent = "Connected";
@@ -174,6 +213,56 @@
     anchor.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch (error) { message("Export not confirmed: " + error.message, true); }
     finally { busy = false; render(); }
+  });
+  function renderResearch() {
+    $("research-preflight").textContent = connected ? research.preflight.status.replaceAll("_", " ") + (research.preflight.available && research.preflight.ceilings ? " · Approved envelope: " + JSON.stringify(research.preflight.ceilings) + " · Expires: " + new Date(research.preflight.expires_unix * 1000).toLocaleString() : "") : "Reconnect to reconcile research state. Controls are disabled.";
+    $("research-launch").disabled = !connected || busy || storageError || !research.preflight.available;
+    $("research-launch").textContent = pendingResearch ? "Retry same research launch" : "Launch approved research";
+    const container = $("research-runs"); container.replaceChildren();
+    for (const run of research.runs) {
+      const card = document.createElement("div"); card.className = "integration";
+      const title = document.createElement("h3"); title.textContent = run.id.slice(0, 10) + " · " + run.state;
+      const description = document.createElement("p"); description.textContent = (run.agent || "Awaiting runtime") + " / " + (run.reasoning || "unavailable") + " / " + (run.compute || "unavailable") + " · Attempts: " + (run.attempted_experiments ?? 0) + " · Completed practice: " + (run.completed_experiments ?? 0);
+      card.append(title, description);
+      const controls = document.createElement("div"); controls.className = "controls";
+      for (const action of ["pause", "resume", "stop", "reconcile", "export"]) {
+        const button = document.createElement("button"); button.type = "button"; button.textContent = action;
+        button.disabled = !connected || busy || (action !== "export" && ["COMPLETED", "STOPPED", "READBACK_UNAVAILABLE"].includes(run.state));
+        button.addEventListener("click", () => researchAction(run.id, action)); controls.append(button);
+      }
+      const details = document.createElement("details"); const summary = document.createElement("summary"); summary.textContent = "Research, usage, candidate and independent result";
+      const record = document.createElement("pre"); record.style.whiteSpace = "pre-wrap"; record.style.overflowWrap = "anywhere";
+      record.textContent = JSON.stringify({agent_policy: run.agent_policy, hypothesis: run.current_hypothesis, hypotheses: run.hypotheses, decisions: run.decisions, outcomes: run.epoch_outcomes, usage: run.usage, experiments: run.experiments, operations: run.operations, freezes: run.candidate_freezes, development: run.final_results, capability_requests: run.capability_requests}, null, 2);
+      details.append(summary, record); card.append(controls, details); container.append(card);
+    }
+  }
+  async function researchAction(id, action) {
+    if (!connected || busy) return;
+    busy = true; render();
+    try {
+      if (action === "export") {
+        const fresh = await api("/api/v1/research/" + id);
+        const url = URL.createObjectURL(new Blob([JSON.stringify(fresh, null, 2)], {type: "application/json"}));
+        const link = document.createElement("a"); link.href = url; link.download = "carbon-research-" + id + ".json"; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+      } else await api("/api/v1/research/" + id + "/" + action, {});
+      message("Research request acknowledged. Check observed state and cleanup below.");
+    } catch (error) { message("Research request unresolved: " + error.message, true); }
+    finally { busy = false; await refresh(); render(); }
+  }
+  $("research-launch").addEventListener("click", async () => {
+    if (!connected || busy || storageError || !research.preflight.available) return;
+    if (!pendingResearch) {
+      pendingResearch = {key: crypto.randomUUID(), body: {profile: research.preflight.profile}};
+      try { sessionStorage.setItem(researchKey, JSON.stringify(pendingResearch)); }
+      catch (_) { storageError = true; render(); return; }
+    }
+    busy = true; render();
+    try {
+      await api("/api/v1/research", pendingResearch.body, pendingResearch.key);
+      sessionStorage.removeItem(researchKey); pendingResearch = null;
+      message("Research launch recorded. Runtime preflight and actual outcome appear below.");
+    } catch (error) { message("Research launch not confirmed: " + error.message + ". Retry retains the same request.", true); }
+    finally { busy = false; await refresh(); render(); }
   });
   setInterval(refresh, 1500);
 })();

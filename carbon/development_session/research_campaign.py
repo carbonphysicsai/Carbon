@@ -214,6 +214,7 @@ async def final_epoch(
     key,
     config,
 ):
+    ledger.checkpoint()
     from carbon.development_comparison.acceptance import (
         DevelopmentAcceptanceRef,
         create_report,
@@ -279,6 +280,7 @@ async def final_epoch(
     for connection, label, recipe in zip(
         connections, ("baseline", "challenger"), (CONTROL, strategy), strict=True
     ):
+        ledger.checkpoint()
         existing = list(connection.root.glob("source-*.json"))
         intent = connection.root / "final-submit-intent.json"
         if existing:
@@ -346,7 +348,7 @@ async def final_epoch(
     return project_development_acceptance(ref), ref
 
 
-async def execute(args):
+async def execute(args, *, ledger=None):
     agent_policy = getattr(args, "agent_policy", LEGACY)
     policy = binding(agent_policy)
     implementation = accepted_implementation(args.accepted_revision)
@@ -355,7 +357,9 @@ async def execute(args):
         raise ValueError("campaign already exists; use resume")
     if args.command == "resume" and not (root / "campaign-manifest.json").exists():
         raise ValueError("no frozen campaign to resume")
-    ledger = CampaignLedger(root)
+    ledger = ledger if ledger is not None else CampaignLedger(root)
+    if ledger.root != root:
+        raise ValueError("campaign ledger root differs")
     image = load_image_identity(args.image_manifest)
     verify_current_worker(image, implementation)
     eligibility = doctor(image_id=image.image_id, image_identity=image)
@@ -365,12 +369,25 @@ async def execute(args):
     verify_image(analysis)
     if analysis.parent_image != image.image_id:
         raise ValueError("analysis/trusted image parent differs")
+    grant = None
+    if ledger.admission is not None:
+        grant = ledger.admission.verify(
+            root=root,
+            principal=args.principal,
+            runtime={
+                "implementation": implementation,
+                "images": [image.image_id, analysis.image_id],
+            },
+            now=ledger.clock(),
+        )
     private_file(args.api_key_file)
     ResponsesTransport(args.api_key_file)
     config = load_config(args.operator_config)
     public = json.loads(private_file(args.miner_public).read_bytes())
     if public["netuid"] != 567 or config.netuid != 567:
         raise ValueError("existing subnet 567 context required")
+    if grant is not None and public["hotkey"] != grant["miner_identity"]:
+        raise ValueError("grant miner identity differs")
     key = open_external_hotkey(
         Path(public["key_file"]),
         private_file(args.miner_password_file),
@@ -427,6 +444,19 @@ async def execute(args):
         if agent_policy != LEGACY:
             manifest["agent_policy"] = policy
             manifest["authority"] = "OWNER-C-W1-RESEARCH-PROGRAM-01"
+        if grant is not None:
+            from .research_admission import MANIFEST
+
+            manifest.update(
+                schema=MANIFEST,
+                campaign_id=grant["campaign_id"],
+                authority=grant["authority"],
+                principal=grant["principal"],
+                runtime=grant["runtime"],
+                grant=ledger.admission.binding(),
+                ceilings=grant["ceilings"],
+                elapsed_seconds=grant["elapsed_seconds"],
+            )
         compile_recipe(CONTROL)
         write_once(manifest_path, canonical(manifest))
     if (
@@ -467,6 +497,7 @@ async def execute(args):
         )
         feedback = None
         for epoch in (1, 2):
+            ledger.checkpoint()
             observation = {
                 "objective": objective(),
                 "capabilities": capabilities(),
@@ -476,6 +507,14 @@ async def execute(args):
                 "prior_permitted_final_feedback": feedback,
                 "instructions": "Record a testable plan. Use real practice, inspect curves and revise or reject hypotheses; do not stop at the first valid recipe. Select only a recipe you actually practiced, or stop for a supported reason.",
             }
+            if grant is not None:
+                # Immutable across restart; private grant/account paths are absent.
+                observation["campaign_resource_grant"] = {
+                    "ceilings": grant["ceilings"],
+                    "elapsed_seconds": grant["elapsed_seconds"],
+                    "expires_unix": grant["expires_unix"],
+                    "authority": "Trusted controller enforces these narrower campaign limits; public profile maxima do not authorize additional resources.",
+                }
             result = await run_epoch(
                 ledger,
                 owner=owner,
@@ -534,7 +573,11 @@ async def execute(args):
         write_once(
             root / "campaign-complete.json",
             canonical(
-                {"status": "FINITE_CAMPAIGN_STOPPED", "new_network_transactions": 0}
+                {
+                    "status": "FINITE_CAMPAIGN_STOPPED",
+                    "new_network_transactions": 0,
+                    "completed_unix": ledger.clock(),
+                }
             ),
         )
     finally:

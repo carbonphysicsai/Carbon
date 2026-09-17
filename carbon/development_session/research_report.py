@@ -5,9 +5,10 @@ from __future__ import annotations
 import argparse
 import html
 import json
+import math
 from pathlib import Path
 
-from .research_ledger import ELAPSED_SECONDS, CampaignLedger
+from .research_ledger import CampaignLedger
 
 
 def render_status(ledger, *, owner):
@@ -22,18 +23,45 @@ def render_status(ledger, *, owner):
             else "IDLE"
         )
     )
-    if (ledger.root / "campaign-complete.json").exists():
-        value["status"] = "FINITE_CAMPAIGN_STOPPED"
-    elif value["status"] == "RECONCILIATION_REQUIRED":
+    terminal = ledger.root / "campaign-complete.json"
+    completed = None
+    if terminal.exists():
+        completed = json.loads(terminal.read_bytes()).get("completed_unix")
+        if completed is not None and (
+            type(completed) not in (int, float)
+            or not math.isfinite(completed)
+            or completed < (value["started_unix"] or 0)
+            or completed > ledger.clock()
+        ):
+            raise ValueError("invalid campaign completion timestamp")
+        if value["status"] != "RECONCILIATION_REQUIRED":
+            value["status"] = "FINITE_CAMPAIGN_STOPPED"
+    if value["status"] == "RECONCILIATION_REQUIRED":
         value["status"] = "ACTIVE_OR_RECONCILIATION_REQUIRED"
     value["retained_physical_bytes"] = ledger.check_storage()
-    value["elapsed_seconds"] = (
-        max(0, ledger.clock() - value["started_unix"])
-        if value["started_unix"] is not None
-        else 0
+    value["completed_unix"] = completed
+    value["elapsed_basis"] = (
+        "RECORDED_COMPLETION"
+        if completed is not None
+        else "LEGACY_COMPLETION_TIME_UNKNOWN" if terminal.exists() else "CURRENT_CLOCK"
     )
-    value["remaining_elapsed_seconds"] = max(
-        0, ELAPSED_SECONDS - value["elapsed_seconds"]
+    value["elapsed_seconds"] = (
+        None
+        if terminal.exists() and completed is None
+        else (
+            max(
+                0,
+                (completed if completed is not None else ledger.clock())
+                - value["started_unix"],
+            )
+            if value["started_unix"] is not None
+            else 0
+        )
+    )
+    value["remaining_elapsed_seconds"] = (
+        max(0, value["elapsed_limit_seconds"] - value["elapsed_seconds"])
+        if value["elapsed_seconds"] is not None
+        else None
     )
     value["active_operations"] = [
         op["id"] for op in value["operations"] if op["state"] == "RESERVED"
@@ -108,7 +136,7 @@ def report(ledger, *, owner):
 <h1>Carbon miner research</h1><p>Status: <strong>{esc(value['status'])}</strong></p>
 <p>This view shows retained operations only. It does not imply a provider call, training run or accepted improvement.</p>
 <p>Campaign digest: {esc(value['campaign_digest'])}<br>First operation (Unix UTC): {esc(value['started_unix'])}</p>
-<h2>Current operation</h2><p>Elapsed seconds: {esc(round(value["elapsed_seconds"],1))}; remaining: {esc(round(value["remaining_elapsed_seconds"],1))}</p><pre>{esc(json.dumps({"active_operations":value["active_operations"],"hypothesis":value["current_hypothesis"]},indent=2))}</pre><h2>Research versus final work</h2><pre>{esc(json.dumps(value["phase_accounting"],indent=2))}</pre><h2>Cumulative accounting</h2><p>Unresolved operations keep their full reservations. Repository CI is separate.</p><table><tr><th>Resource</th><th>Used or reserved</th><th>Remaining ceiling</th></tr>{budgets}</table>
+<h2>Current operation</h2><p>Elapsed seconds: {esc(round(value["elapsed_seconds"],1) if value["elapsed_seconds"] is not None else "unknown")}; remaining: {esc(round(value["remaining_elapsed_seconds"],1) if value["remaining_elapsed_seconds"] is not None else "unknown")}</p><pre>{esc(json.dumps({"active_operations":value["active_operations"],"hypothesis":value["current_hypothesis"]},indent=2))}</pre><h2>Research versus final work</h2><pre>{esc(json.dumps(value["phase_accounting"],indent=2))}</pre><h2>Cumulative accounting</h2><p>Unresolved operations keep their full reservations. Repository CI is separate.</p><table><tr><th>Resource</th><th>Used or reserved</th><th>Remaining ceiling</th></tr>{budgets}</table>
 <h2>Real research trials</h2><p>These single-replica practice observations are adaptively seen, with primary-only references. Full curves and diagnostics remain in miner-owned files and worker snapshots.</p><table><tr><th>Trial</th><th>Recipe</th><th>Completed updates</th><th>Worker seconds</th><th>Permitted diagnostics</th></tr>{trials}</table>
 <h2>Independent final comparisons</h2>{finals}<p>Fresh final EVAL and STRESS cases are withheld until recipe freeze. Three construction replicas do not establish a population confidence interval. Chain state, model quality, and payment remain separate.</p>
 <h2>Retained operations</h2><table><tr><th>Identity</th><th>Phase</th><th>Disposition</th><th>Result</th></tr>{operations}</table>
