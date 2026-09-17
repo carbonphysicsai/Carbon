@@ -7,7 +7,7 @@ import html
 import json
 from pathlib import Path
 
-from .research_ledger import ELAPSED_SECONDS, CampaignLedger
+from .research_ledger import CampaignLedger
 
 
 def render_status(ledger, *, owner):
@@ -33,7 +33,7 @@ def render_status(ledger, *, owner):
         else 0
     )
     value["remaining_elapsed_seconds"] = max(
-        0, ELAPSED_SECONDS - value["elapsed_seconds"]
+        0, value["elapsed_limit_seconds"] - value["elapsed_seconds"]
     )
     value["active_operations"] = [
         op["id"] for op in value["operations"] if op["state"] == "RESERVED"

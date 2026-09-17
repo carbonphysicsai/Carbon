@@ -100,6 +100,52 @@ class ReadbackFixture:
         return [self.get("engineering-fixture")]
 
 
+class ResearchFixture:
+    """Browser-control fixture only. Zero agents, numerical work or grants."""
+
+    def __init__(self):
+        self.record = None
+        self.keys = set()
+
+    def preflight(self):
+        return {
+            "available": True,
+            "profile": "engineering-fixture",
+            "status": "ENGINEERING_FIXTURE_ONLY",
+        }
+
+    def launch(self, value, key):
+        assert value == {"profile": "engineering-fixture"}
+        self.keys.add(key)
+        if self.record is None:
+            self.record = {
+                "id": "engineering-research-fixture",
+                "state": "RUNNING",
+                "agent": "UI FIXTURE",
+                "attempted_experiments": 0,
+                "completed_experiments": 0,
+                "final_results": [],
+            }
+        return self.record
+
+    def get(self, identity):
+        assert identity == self.record["id"]
+        return self.record
+
+    def control(self, identity, action):
+        record = self.get(identity)
+        record["state"] = {
+            "pause": "PAUSE_REQUESTED",
+            "resume": "RUNNING",
+            "stop": "STOPPING",
+            "reconcile": "STOPPED",
+        }[action]
+        return record
+
+    def recent(self):
+        return [self.record] if self.record else []
+
+
 def run():
     with tempfile.TemporaryDirectory(prefix="carbon-launchpad-smoke-") as temporary:
         root = Path(temporary)
@@ -122,6 +168,9 @@ def run():
                         "document.getElementById('launch-fields').disabled"
                     )
                     connect(session, token)
+                    assert session.evaluate(
+                        "document.getElementById('research-launch').disabled"
+                    )
                     click(session, "launch-button")
                     state(session, "QUEUED")
                     run_id = store.recent()[0]["id"]
@@ -195,6 +244,59 @@ def run():
                     )
 
                     # Rendering/fresh-read failure injection, not scientific evidence.
+                    research = ResearchFixture()
+                    server.research_runner = research
+                    research_launch = research.launch
+
+                    def lost_research_response(value, key):
+                        research_launch(value, key)
+                        raise OSError("injected research acknowledgement loss")
+
+                    research.launch = lost_research_response
+                    click(session, "research-launch")
+                    wait(
+                        session,
+                        "document.getElementById('message').textContent.includes('Research launch not confirmed')",
+                    )
+                    research.launch = research_launch
+                    load(session, origin)
+                    connect(session, token)
+                    click(session, "research-launch")
+                    wait(
+                        session,
+                        "document.getElementById('research-runs').textContent.includes('UI FIXTURE')",
+                    )
+                    for action, observed in (
+                        ("pause", "PAUSE_REQUESTED"),
+                        ("resume", "RUNNING"),
+                        ("stop", "STOPPING"),
+                        ("reconcile", "STOPPED"),
+                    ):
+                        session.evaluate(
+                            "[...document.querySelectorAll('#research-runs button')].find(b => b.textContent === "
+                            + json.dumps(action)
+                            + ").click()"
+                        )
+                        wait(
+                            session,
+                            "document.getElementById('research-runs').textContent.includes("
+                            + json.dumps(observed)
+                            + ")",
+                        )
+                    assert len(research.keys) == 1
+                    load(session, origin)
+                    connect(session, token)
+                    wait(
+                        session,
+                        "document.getElementById('research-runs').textContent.includes('STOPPED')",
+                    )
+                    # Reconnect may choose a different rehearsal when creation
+                    # timestamps tie. Select the exact retained run under test.
+                    session.evaluate(
+                        "document.getElementById('run-picker').value="
+                        + json.dumps(run_id)
+                        + ";document.getElementById('run-picker').dispatchEvent(new Event('change'))"
+                    )
                     readback = ReadbackFixture()
                     server.development_sources = readback
                     wait(

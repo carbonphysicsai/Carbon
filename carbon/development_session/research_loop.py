@@ -88,6 +88,7 @@ async def run_epoch(
     trial_start = json.loads(trial_start_file.read_bytes())["count"]
     outcome = None
     for index in range(48):
+        ledger.checkpoint()
         status = ledger.status(owner=owner)
         trials = status["used"]["research_trials"] - trial_start
         call_id = f"epoch-{epoch}-provider-{index:03d}"
@@ -169,6 +170,7 @@ async def run_epoch(
                 raise ValueError(
                     "tool dispatch incomplete; reconcile without duplication"
                 )
+            ledger.checkpoint()
             write_once(intent_file, canonical(intent))
             if call["name"] == SELECT:
                 if (
