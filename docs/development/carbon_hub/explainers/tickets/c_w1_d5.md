@@ -40,7 +40,7 @@ Public/synthetic DEVELOPMENT engineering only. No scientific/security/production
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/ffe060b5842885aa107c19aa9b15ae053d91faa3/.agent/tickets/C-W1-D5_autonomous_research_continuity.md)
-- [Program learning record](https://github.com/carbonphysicsai/Carbon/blob/ffe060b5842885aa107c19aa9b15ae053d91faa3/docs/development/CW1_RESEARCH_PROGRAM_LEARNING.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/edbee85c81215a6ed813e825e95d5f075b619746/.agent/tickets/C-W1-D5_autonomous_research_continuity.md)
+- [Program learning record](https://github.com/carbonphysicsai/Carbon/blob/edbee85c81215a6ed813e825e95d5f075b619746/docs/development/CW1_RESEARCH_PROGRAM_LEARNING.md)
 
 > Public practice is adaptive learning material. Only the controller sees fresh final cases after recipe freeze; engineering controls do not count as agent inference.
