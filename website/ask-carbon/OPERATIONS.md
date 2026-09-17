@@ -30,6 +30,12 @@ was established. Use public/synthetic inputs only; this is not customer-data
 processing authorization. Never place access or provider credentials in chat,
 Git, browser bundles, issues or retained evaluation output.
 
+The deployed review Worker remains pinned to knowledge
+`ask-carbon-staging-2026-09-16.1`, which is the exact source basis of the
+retained live transcripts. Current main later advanced the repository snapshot
+to `ask-carbon-staging-2026-09-17.1`; that newer snapshot passed local
+validation but has not been deployed or live-model tested here.
+
 ## Shared monthly budget authority
 
 All evaluation, staging and production provider calls bind to one central

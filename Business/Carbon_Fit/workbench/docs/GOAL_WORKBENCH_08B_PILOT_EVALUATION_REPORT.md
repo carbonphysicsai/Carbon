@@ -30,6 +30,9 @@ route-less authority is `carbon-ask-budget-authority`. Deployed app version
 `gpt-5.6-luna:low:v1`. Access uses a rotated Basic secret plus a separate
 operator secret for the ledger snapshot. This is possession-based staging
 access, not named-person authentication. No public homepage route changed.
+Current main subsequently advanced the repository knowledge snapshot to
+`ask-carbon-staging-2026-09-17.1`. It passed local validation, but was not
+silently substituted for the exact deployed/evaluated source basis.
 
 ## Live execution and retained failures
 

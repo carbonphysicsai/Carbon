@@ -6,8 +6,9 @@ or proof of a production deployment.
 
 ## Current release state
 
-- Knowledge version: `ask-carbon-staging-2026-09-16.1`
-- Source release date: 2026-09-16
+- Repository knowledge version: `ask-carbon-staging-2026-09-17.1`
+- Source release date: 2026-09-17
+- Private live-evaluation deployment: `ask-carbon-staging-2026-09-16.1`
 - Release: `STAGING_REVIEWED`
 - Public activation: disabled
 - Private synthetic provider calls: observed through the authenticated staging Worker
@@ -23,8 +24,12 @@ The recovered `Carbon_Ask_v1.zip` matched SHA-256
 `ca1e23c3a77ec813c384d893358fe1fe1959edd5989068a5711b04e2821120cb`.
 Its 31 cards and 40 single-turn/five-conversation evaluation plan were treated
 as draft input and reconciled against current sources, not copied as authority
-or retained as a count gate. The current collection contains 26 useful reviewed
-units backed by nine exact source revisions.
+or retained as a count gate. The current repository collection contains 26
+useful reviewed units backed by nine exact source revisions. The private live
+evaluation remains pinned to the preceding `2026-09-16.1` snapshot so its
+answers and source basis stay inspectable; the `2026-09-17.1` repository
+snapshot passed local validation but was not deployed or live-model tested in
+that run.
 
 ## Components
 
