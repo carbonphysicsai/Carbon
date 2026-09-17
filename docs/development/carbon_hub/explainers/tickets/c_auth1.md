@@ -40,10 +40,10 @@ Bounded public-development authoring engineering only; supplied evidence, refere
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/9c517108b6336e79790898d0d9a2db445a718682/.agent/tickets/C-AUTH1_burgers_authoring.md)
-- [Program authority](https://github.com/carbonphysicsai/Carbon/blob/9c517108b6336e79790898d0d9a2db445a718682/.agent/plans/C1_C2_BURGERS_PROGRAM.md)
-- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/9c517108b6336e79790898d0d9a2db445a718682/.agent/evidence/wave_c/c-auth1.md)
-- [Integration design](https://github.com/carbonphysicsai/Carbon/blob/9c517108b6336e79790898d0d9a2db445a718682/Design_Specs/Goal_Driven_Authoring_and_Burgers_Dynamics_V1.md)
-- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/9c517108b6336e79790898d0d9a2db445a718682/.agent/WAVE_C.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/f333ef7b27fa40c1f355cb4216db14a40d815334/.agent/tickets/C-AUTH1_burgers_authoring.md)
+- [Program authority](https://github.com/carbonphysicsai/Carbon/blob/f333ef7b27fa40c1f355cb4216db14a40d815334/.agent/plans/C1_C2_BURGERS_PROGRAM.md)
+- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/f333ef7b27fa40c1f355cb4216db14a40d815334/.agent/evidence/wave_c/c-auth1.md)
+- [Integration design](https://github.com/carbonphysicsai/Carbon/blob/f333ef7b27fa40c1f355cb4216db14a40d815334/Design_Specs/Goal_Driven_Authoring_and_Burgers_Dynamics_V1.md)
+- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/f333ef7b27fa40c1f355cb4216db14a40d815334/.agent/WAVE_C.md)
 
 > The verified workbench is an input artifact, not a second lifecycle owner or a protected scientific exam.
