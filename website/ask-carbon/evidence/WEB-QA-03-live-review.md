@@ -1,9 +1,9 @@
 # WEB-QA-03 live semantic review
 
-**Reviewer:** Codex source-grounded manual review  
-**Date:** 2026-09-17  
+**Reviewer:** Codex source-grounded manual review
+**Date:** 2026-09-17
 **Inputs:** frozen `final` split in `eval/cases.public.json` and pinned release
-`ask-carbon-staging-2026-09-16.1`  
+`ask-carbon-staging-2026-09-16.1`
 **Rubric:** `eval/QUALITY_RUBRIC.md`
 
 This review is independent of the answer-producing model. Deterministic schema,

@@ -1,8 +1,8 @@
 # WEB-QA-03 private-staging evidence
 
-**Evidence date:** 2026-09-17  
-**Branch:** `agent/web-qa-03-private-staging`  
-**Base:** `2fd842be8594a51cebde5b3f372bf23987a8cd30`  
+**Evidence date:** 2026-09-17
+**Branch:** `agent/web-qa-03-private-staging`
+**Base:** `2fd842be8594a51cebde5b3f372bf23987a8cd30`
 **Production candidate:** none; both evaluated configurations failed the frozen
 final reliability requirement.
 
