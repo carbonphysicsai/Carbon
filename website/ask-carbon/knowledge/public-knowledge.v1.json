@@ -115,13 +115,13 @@
       "note": "Paraphrased product, customer, rights and commercial-maturity doctrine; not a quotation."
     },
     {
-      "id": "wave-status-916ba388",
+      "id": "wave-status-90dd9670",
       "title": "Carbon Agent Wave Status",
       "repo_path": ".agent/WAVE.md",
       "sections": ["Current wave", "Current phase", "Current C1 status", "maturity ceilings"],
-      "revision": "916ba388b5bacbbbf033f75e43616c4132bddaf5",
-      "sha256": "c10d82c0640a5bb14eeff4f59ccb8d549fc2d0570b51e922a34a53bb82f9e064",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/916ba388b5bacbbbf033f75e43616c4132bddaf5/.agent/WAVE.md",
+      "revision": "90dd9670b77de88f76002d9c16b5aaeeee30d24d",
+      "sha256": "543f8d99b72c55cc18c686e0111879b7b79aaa8f2abe851792a0915189e12097",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/90dd9670b77de88f76002d9c16b5aaeeee30d24d/.agent/WAVE.md",
       "publication_status": "REVIEWED_PUBLIC_EXISTING",
       "integrity_status": "MATCHED_AT_BUILD",
       "withdrawn_at": null,
@@ -275,7 +275,7 @@
       "keywords": ["proven", "progress", "stage", "live", "production", "ready", "current", "launch"], "related": ["overview", "qualification", "customer-product"],
       "audiences": ["newcomer", "customer", "miner"], "disclosure_class": "PUBLIC", "maturity": "DATED_STATUS_2026_09_16", "scope_note": "Short freshness window; re-review before any public activation.",
       "expires_at": "2026-09-23T00:00:00Z", "publication_status": "REVIEWED_PUBLIC_EXISTING", "withdrawn_at": null,
-      "passages": [{ "id": "current-wave-status", "source_id": "wave-status-916ba388", "section": "Current phase and status", "text": "The repository records active bounded public and synthetic development-testnet engineering while official C-W1, protected scientific qualification, production and broader network authority remain unavailable. Implemented and tested engineering states do not imply later qualification." }]
+      "passages": [{ "id": "current-wave-status", "source_id": "wave-status-90dd9670", "section": "Current phase and status", "text": "The repository records active bounded public and synthetic development-testnet engineering while official C-W1, protected scientific qualification, production and broader network authority remain unavailable. Implemented and tested engineering states do not imply later qualification." }]
     },
     {
       "id": "miner-access", "topic": "Miner research", "questions": ["Do miners get the generator and reference?", "Can miners generate training data?", "Can miners inspect test answers?"],

@@ -4,7 +4,7 @@
 
 **Map ref:** `WAVE-C/C-W1-D5`
 
-**Status:** IN_PROGRESS
+**Status:** DONE
 
 **Target phase:** C2
 
@@ -32,7 +32,7 @@ No gate changes, public-network transactions, paid winner, protected data, produ
 
 ## Current stage
 
-The prospective continuity repair passed focused canonical tests. Required acceptance, normal delivery and campaign two remain pending.
+PR #208 delivered autonomous research instructions and structured stops. All three authorized campaigns ended: one training trial and six final replicas, no admissible final model or accepted improvement. The final campaign stopped before training with resources remaining.
 
 ## Maturity ceiling
 
@@ -40,7 +40,7 @@ Public/synthetic DEVELOPMENT engineering only. No scientific/security/production
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/f333ef7b27fa40c1f355cb4216db14a40d815334/.agent/tickets/C-W1-D5_autonomous_research_continuity.md)
-- [Program learning record](https://github.com/carbonphysicsai/Carbon/blob/f333ef7b27fa40c1f355cb4216db14a40d815334/docs/development/CW1_RESEARCH_PROGRAM_LEARNING.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/92e540b66e6ee94d3fad7a0907a2b571838506a3/.agent/tickets/C-W1-D5_autonomous_research_continuity.md)
+- [Program learning record](https://github.com/carbonphysicsai/Carbon/blob/92e540b66e6ee94d3fad7a0907a2b571838506a3/docs/development/CW1_RESEARCH_PROGRAM_LEARNING.md)
 
 > Public practice is adaptive learning material. Only the controller sees fresh final cases after recipe freeze; engineering controls do not count as agent inference.
