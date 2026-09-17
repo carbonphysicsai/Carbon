@@ -4,10 +4,13 @@ import concurrent.futures
 import http.client
 import importlib.util
 import json
+import os
+import socket
 import sqlite3
 import subprocess
 import sys
 import threading
+import time
 from pathlib import Path
 
 import pytest
@@ -18,6 +21,49 @@ MODULE = (
 SPEC = importlib.util.spec_from_file_location("carbon_launchpad_controller", MODULE)
 launchpad = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(launchpad)
+
+
+def test_direct_script_starts_outside_repository(tmp_path):
+    with socket.socket() as probe:
+        probe.bind(("127.0.0.1", 0))
+        port = probe.getsockname()[1]
+    environment = dict(os.environ)
+    environment.pop("PYTHONPATH", None)
+    process = subprocess.Popen(
+        [
+            sys.executable,
+            str(MODULE),
+            "--state-dir",
+            str(tmp_path / "state"),
+            "--port",
+            str(port),
+        ],
+        cwd=tmp_path,
+        env=environment,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    try:
+        deadline = time.monotonic() + 10
+        while time.monotonic() < deadline:
+            if process.poll() is not None:
+                pytest.fail(process.stderr.read())
+            connection = http.client.HTTPConnection("127.0.0.1", port, timeout=1)
+            try:
+                connection.request("GET", "/")
+                response = connection.getresponse()
+                assert response.status == 200
+                assert b"Carbon" in response.read()
+                return
+            except OSError:
+                time.sleep(0.05)
+            finally:
+                connection.close()
+        pytest.fail("Direct controller script did not become ready")
+    finally:
+        process.terminate()
+        process.wait(timeout=5)
 
 
 @pytest.fixture

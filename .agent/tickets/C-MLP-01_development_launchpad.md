@@ -1,7 +1,11 @@
 # C-MLP-01: DEVELOPMENT miner launchpad foundation
 
-Status: in progress; local controller implementation and native diagnostics complete.
-Canonical acceptance, Hub reconciliation and normal merge remain outstanding.
+Status: completed in bounded controller-rehearsal scope; PR #205 merged on
+2026-09-17 as `aff471a89147b538e7c271194107cda30c35d95e` after canonical acceptance,
+Hub validation and Merge gate. Expected head `c188bc8186a0a61e5c91ca377584a5d5ee4b12df`
+is the merge's second parent and its tree is preserved. The completion comment
+on PR #205 links run 35218321344. No scientific or production maturity is earned.
+The acceptance checklist below is retained as the original work record.
 
 Primary Hub map: `SYSTEM/AGENT-EXECUTION`; `HUB_UPDATE_REQUIRED` for the
 isolated controller, its boundaries, ticket and successor links. The scientific

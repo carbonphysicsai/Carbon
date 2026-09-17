@@ -75,6 +75,85 @@ def load(session, origin):
     wait(session, "Boolean(document.getElementById('connect-form'))")
 
 
+class ReadbackFixture:
+    """UI-only failure injection. Never creates a Carbon receipt or research run."""
+
+    valid = True
+
+    def get(self, identity):
+        assert identity == "engineering-fixture"
+        return {
+            "schema": "carbon.launchpad.development-readback.v1",
+            "id": identity,
+            "status": "VERIFIED_SOURCE" if self.valid else "READBACK_UNAVAILABLE",
+            "receipt": (
+                {
+                    "disposition": "ENGINEERING_FIXTURE_DISPOSITION",
+                    "receipt_id": "fixture-no-scientific-evidence",
+                }
+                if self.valid
+                else None
+            ),
+        }
+
+    def recent(self):
+        return [self.get("engineering-fixture")]
+
+
+class ResearchFixture:
+    """Browser-control fixture only. Zero agents, numerical work or grants."""
+
+    def __init__(self):
+        self.record = None
+        self.keys = set()
+
+    def preflight(self):
+        return {
+            "available": True,
+            "profile": "engineering-fixture",
+            "status": "ENGINEERING_FIXTURE_ONLY",
+        }
+
+    def launch(self, value, key):
+        assert value == {"profile": "engineering-fixture"}
+        self.keys.add(key)
+        if self.record is None:
+            self.record = {
+                "id": "engineering-research-fixture",
+                "state": "RUNNING",
+                "agent": "UI FIXTURE",
+                "attempted_experiments": 0,
+                "completed_experiments": 0,
+                "final_results": [],
+            }
+        return self.record
+
+    def get(self, identity):
+        assert identity == self.record["id"]
+        return self.record
+
+    def control(self, identity, action):
+        record = self.get(identity)
+        record["state"] = {
+            "pause": "PAUSE_REQUESTED",
+            "resume": "RUNNING",
+            "stop": "STOPPING",
+            "reconcile": "STOPPED",
+        }[action]
+        if action == "reconcile":
+            record["epoch_outcomes"] = [
+                {
+                    "status": "STOPPED",
+                    "reason": "UI FIXTURE stop reason",
+                    "final_evidence": False,
+                }
+            ]
+        return record
+
+    def recent(self):
+        return [self.record] if self.record else []
+
+
 def run():
     with tempfile.TemporaryDirectory(prefix="carbon-launchpad-smoke-") as temporary:
         root = Path(temporary)
@@ -97,6 +176,9 @@ def run():
                         "document.getElementById('launch-fields').disabled"
                     )
                     connect(session, token)
+                    assert session.evaluate(
+                        "document.getElementById('research-launch').disabled"
+                    )
                     click(session, "launch-button")
                     state(session, "QUEUED")
                     run_id = store.recent()[0]["id"]
@@ -169,6 +251,88 @@ def run():
                         "document.getElementById('connection-state').textContent === 'Connected'",
                     )
 
+                    # Rendering/fresh-read failure injection, not scientific evidence.
+                    research = ResearchFixture()
+                    server.research_runner = research
+                    research_launch = research.launch
+
+                    def lost_research_response(value, key):
+                        research_launch(value, key)
+                        raise OSError("injected research acknowledgement loss")
+
+                    research.launch = lost_research_response
+                    click(session, "research-launch")
+                    wait(
+                        session,
+                        "document.getElementById('message').textContent.includes('Research launch not confirmed')",
+                    )
+                    research.launch = research_launch
+                    load(session, origin)
+                    connect(session, token)
+                    click(session, "research-launch")
+                    wait(
+                        session,
+                        "document.getElementById('research-runs').textContent.includes('UI FIXTURE')",
+                    )
+                    for action, observed in (
+                        ("pause", "PAUSE_REQUESTED"),
+                        ("resume", "RUNNING"),
+                        ("stop", "STOPPING"),
+                        ("reconcile", "STOPPED"),
+                    ):
+                        wait(
+                            session,
+                            "![...document.querySelectorAll('#research-runs button')].find(b => b.textContent === "
+                            + json.dumps(action)
+                            + ").disabled",
+                        )
+                        session.evaluate(
+                            "[...document.querySelectorAll('#research-runs button')].find(b => b.textContent === "
+                            + json.dumps(action)
+                            + ").click()"
+                        )
+                        wait(
+                            session,
+                            "document.getElementById('research-runs').textContent.includes("
+                            + json.dumps(observed)
+                            + ")",
+                        )
+                    assert len(research.keys) == 1
+                    assert "UI FIXTURE stop reason" in session.evaluate(
+                        "document.getElementById('research-runs').textContent"
+                    )
+                    load(session, origin)
+                    connect(session, token)
+                    wait(
+                        session,
+                        "document.getElementById('research-runs').textContent.includes('STOPPED')",
+                    )
+                    # Reconnect may choose a different rehearsal when creation
+                    # timestamps tie. Select the exact retained run under test.
+                    session.evaluate(
+                        "document.getElementById('run-picker').value="
+                        + json.dumps(run_id)
+                        + ";document.getElementById('run-picker').dispatchEvent(new Event('change'))"
+                    )
+                    readback = ReadbackFixture()
+                    server.development_sources = readback
+                    wait(
+                        session,
+                        "document.getElementById('development-sources').textContent.includes('ENGINEERING_FIXTURE_DISPOSITION')",
+                    )
+                    session.evaluate(
+                        "document.querySelector('#development-sources button').click()"
+                    )
+                    receipt_export = (
+                        root / "carbon-development-engineering-fixture.json"
+                    )
+                    deadline = time.monotonic() + 8
+                    while not receipt_export.exists() and time.monotonic() < deadline:
+                        time.sleep(0.05)
+                    assert json.loads(receipt_export.read_text()) == readback.get(
+                        "engineering-fixture"
+                    )
+
                     for width in (1440, 390):
                         session.command(
                             "Emulation.setDeviceMetricsOverride",
@@ -185,6 +349,17 @@ def run():
                         assert session.evaluate(
                             "document.getElementById('stop').getBoundingClientRect().width >= 44"
                         ), width
+                    readback.valid = False
+                    wait(
+                        session,
+                        "document.getElementById('development-sources').textContent.includes('Readback unavailable')",
+                    )
+                    assert session.evaluate(
+                        "document.querySelector('#development-sources button').disabled"
+                    )
+                    assert "fixture-no-scientific-evidence" not in session.evaluate(
+                        "document.getElementById('development-sources').textContent"
+                    )
                     store.tick()
 
                 # Restart the real HTTP server and reopen the same SQLite history.
@@ -219,7 +394,7 @@ def run():
             finally:
                 session.close()
     print(
-        "Launchpad browser/server smoke passed: connect, launch, lost-response/reload retry, pause/resume/stop, export, storage failure, restart, expiry, desktop/mobile."
+        "Launchpad browser/server smoke passed: connect, launch, lost-response/reload retry, pause/resume/stop, export, storage failure, restart, expiry, desktop/mobile, fixture readback/export invalidation. No scientific campaign ran."
     )
 
 

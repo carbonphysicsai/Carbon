@@ -112,8 +112,14 @@ async def run_epoch(
     outcome = None
     reminders = 0
     for index in range(48):
+        ledger.checkpoint()
         status = ledger.status(owner=owner)
         trials = status["used"]["research_trials"] - trial_start
+        trial_limit = (
+            min(8, max(0, status["ceilings"]["research_trials"] - trial_start))
+            if ledger.admission is not None
+            else 8
+        )
         call_id = f"epoch-{epoch}-provider-{index:03d}"
         request = {
             "model": MODEL,
@@ -132,14 +138,16 @@ async def run_epoch(
             }
             break
         print(
-            f"Research epoch {epoch}: agent call {index+1}/48; trial slots used {trials}/8",
+            f"Research epoch {epoch}: agent call {index+1}/48; trial slots used {trials}/{trial_limit}",
             flush=True,
         )
         phase_path = root / (call_id + "-admission.json")
         if not phase_path.exists():
             write_once(
                 phase_path,
-                canonical({"phase": "research" if trials < 8 else "selection"}),
+                canonical(
+                    {"phase": "research" if trials < trial_limit else "selection"}
+                ),
             )
         phase = json.loads(phase_path.read_bytes())["phase"]
         response = await asyncio.to_thread(
@@ -212,6 +220,7 @@ async def run_epoch(
                 raise ValueError(
                     "tool dispatch incomplete; reconcile without duplication"
                 )
+            ledger.checkpoint()
             write_once(intent_file, canonical(intent))
             if autonomous and call["name"] == STOP:
                 result = stop_result(arguments)
@@ -241,7 +250,7 @@ async def run_epoch(
                     arguments.get("kind") == "practice"
                     or arguments.get("action") == "run_python"
                 )
-                if numerical and trials >= 8:
+                if numerical and trials >= trial_limit:
                     result = {
                         "status": "UNAVAILABLE",
                         "reason": "epoch research trial ceiling; select retained recipe or stop",

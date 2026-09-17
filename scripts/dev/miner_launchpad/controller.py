@@ -304,10 +304,20 @@ def capability_catalog() -> dict:
 class Server(ThreadingHTTPServer):
     daemon_threads = True
 
-    def __init__(self, controller: Controller, token: str, port: int = 8788):
+    def __init__(
+        self,
+        controller: Controller,
+        token: str,
+        port: int = 8788,
+        *,
+        development_sources=None,
+        research_runner=None,
+    ):
         if len(token) < 32:
             raise ValueError("A generated local session token is required")
         self.controller = controller
+        self.development_sources = development_sources
+        self.research_runner = research_runner
         self.token = token
         self.assets = Path(__file__).parent
         self.request_slots = threading.BoundedSemaphore(16)
@@ -385,6 +395,36 @@ class Handler(BaseHTTPRequestHandler):
                 self.reply(200, capability_catalog())
             elif self.path == "/api/v1/runs":
                 self.reply(200, {"runs": self.server.controller.recent()})
+            elif self.path == "/api/v1/development":
+                sources = self.server.development_sources
+                self.reply(200, {"sources": sources.recent() if sources else []})
+            elif self.path == "/api/v1/research":
+                runner = self.server.research_runner
+                self.reply(
+                    200,
+                    {
+                        "preflight": (
+                            runner.preflight()
+                            if runner
+                            else {"available": False, "status": "ADMISSION_DISABLED"}
+                        ),
+                        "runs": runner.recent() if runner else [],
+                    },
+                )
+            elif self.path.startswith("/api/v1/research/"):
+                runner = self.server.research_runner
+                if runner is None:
+                    raise Rejected("research_admission_unavailable", 409)
+                self.reply(200, runner.get(self.path.removeprefix("/api/v1/research/")))
+            elif self.path.startswith("/api/v1/development/"):
+                sources = self.server.development_sources
+                if sources is None:
+                    raise Rejected("development_source_unavailable", 404)
+                try:
+                    result = sources.get(self.path.removeprefix("/api/v1/development/"))
+                except ValueError:
+                    raise Rejected("development_source_unavailable", 404) from None
+                self.reply(200, result)
             elif self.path.startswith("/api/v1/runs/"):
                 self.reply(200, self.server.controller.get(self.path[13:]))
             else:
@@ -393,6 +433,8 @@ class Handler(BaseHTTPRequestHandler):
             self.reply(exc.status, {"error": exc.code})
         except (OSError, sqlite3.Error):
             self.reply(503, {"error": "local_infrastructure_unavailable"})
+        except ValueError:
+            self.reply(409, {"error": "research_reconciliation_required"})
 
     def do_POST(self):
         try:
@@ -418,7 +460,23 @@ class Handler(BaseHTTPRequestHandler):
             if len(body) != length:
                 raise Rejected("incomplete_body")
             value = parse_json(body)
-            if self.path == "/api/v1/runs":
+            if self.path == "/api/v1/research":
+                runner = self.server.research_runner
+                if runner is None:
+                    raise Rejected("research_admission_unavailable", 409)
+                keys = self.headers.get_all("Idempotency-Key")
+                if keys is None or len(keys) != 1:
+                    raise Rejected("idempotency_key_required")
+                result = runner.launch(value, keys[0])
+            elif self.path.startswith("/api/v1/research/"):
+                parts = self.path.split("/")
+                if len(parts) != 6 or value != {} or type(value) is not dict:
+                    raise Rejected("invalid_research_control")
+                runner = self.server.research_runner
+                if runner is None:
+                    raise Rejected("research_admission_unavailable", 409)
+                result = runner.control(parts[4], parts[5])
+            elif self.path == "/api/v1/runs":
                 keys = self.headers.get_all("Idempotency-Key")
                 if keys is None or len(keys) != 1:
                     raise Rejected("idempotency_key_required")
@@ -435,6 +493,8 @@ class Handler(BaseHTTPRequestHandler):
             self.reply(exc.status, {"error": exc.code})
         except (OSError, sqlite3.Error):
             self.reply(503, {"error": "local_infrastructure_unavailable"})
+        except (ValueError, RuntimeError):
+            self.reply(409, {"error": "research_reconciliation_required"})
 
 
 @contextlib.contextmanager
@@ -491,6 +551,18 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--port", type=int, default=8788)
     parser.add_argument(
+        "--research-profile",
+        type=Path,
+        help="Private operator configuration; requires a separate approved grant",
+    )
+    parser.add_argument(
+        "--development-source",
+        action="append",
+        type=Path,
+        default=[],
+        help="Attach an existing private Carbon source handoff for verified public readback; no dispatch",
+    )
+    parser.add_argument(
         "--state-dir",
         type=Path,
         default=Path.home() / ".carbon" / "development-launchpad",
@@ -505,7 +577,33 @@ def main() -> None:
         controller = Controller(database)
         database.chmod(0o600)
         token = secrets.token_urlsafe(32)
-        server = Server(controller, token, args.port)
+        # Direct-script and package entry points resolve one canonical module.
+        import sys
+
+        sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+        sys.modules.setdefault(
+            "scripts.dev.miner_launchpad.controller", sys.modules[__name__]
+        )
+        from scripts.dev.miner_launchpad.development import DevelopmentSources
+
+        sources = DevelopmentSources(database)
+        for path in args.development_source:
+            try:
+                sources.attach(path)
+            except Exception:  # noqa: BLE001 - do not print private source errors.
+                parser.error("DEVELOPMENT source attachment failed verification")
+        runner = None
+        if args.research_profile is not None:
+            from scripts.dev.miner_launchpad.runner import RunnerAdapter
+
+            runner = RunnerAdapter(database, configuration=args.research_profile)
+        server = Server(
+            controller,
+            token,
+            args.port,
+            development_sources=sources,
+            research_runner=runner,
+        )
         controller.recover()
         done = threading.Event()
 
@@ -522,13 +620,19 @@ def main() -> None:
         thread.start()
         print(f"Carbon DEVELOPMENT controller rehearsal: {server.origin}")
         print(f"Local session token (paste into page; do not share): {token}")
-        print("No agents, paid compute, training, registration, or submissions.")
+        print(
+            "Research requires a separate approved operator profile and accepted runtime."
+            if runner
+            else "No agents, paid compute, training, registration, or submissions."
+        )
         try:
             server.serve_forever(poll_interval=0.2)
         except KeyboardInterrupt:
             pass
         finally:
             done.set()
+            if runner is not None:
+                runner.close()
             thread.join(timeout=3)
             server.server_close()
 
