@@ -26,7 +26,7 @@ from carbon.reference_runtime.model import (
 )
 
 from .profile import canonical, digest
-from .research_admission import MANIFEST
+from .research_admission import MANIFEST, verify_cleanup_owner
 from .research_carrier import ACTIVE_TASK, _cancel_path, _check_cancel, _numerical_lease
 from .research_catalog import public_catalog
 from .research_data import PublicReferenceData, decode_public_case
@@ -86,7 +86,7 @@ class PublicJuliaStudy:
         self.scope = julia_burgers_scope(data.image, data.role_root)
         self._authorize()
 
-    def _authorize(self):
+    def _authorize(self, *, cleanup=False):
         data = self.data
         with data.ledger.db() as db:
             row = db.execute("SELECT manifest FROM campaign WHERE id=1").fetchone()
@@ -102,7 +102,10 @@ class PublicJuliaStudy:
             raise ValueError("explicit prospective Julia scope required")
         # Rechecks the pinned operator grant, expiry, principal and root. Budget
         # and live ownership are checked transactionally by the same ledger.
-        data.ledger._grant(manifest)
+        if cleanup:
+            verify_cleanup_owner(data.ledger, data.owner)
+        else:
+            data.ledger._grant(manifest)
 
     def __call__(self, workspace):
         self._authorize()

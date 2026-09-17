@@ -152,6 +152,8 @@ settlement, weight, or emission claim.
 - [Standard MCP operator and client workflow](https://github.com/carbonphysicsai/Carbon/blob/68ed5435cd599b3582441bb9152e35fcd40f19e0/carbon/miner_mcp/README.md)
 - [C-CORE-07: isolated miner-authored Julia DEVELOPMENT research](https://github.com/carbonphysicsai/Carbon/blob/68ed5435cd599b3582441bb9152e35fcd40f19e0/.agent/tickets/C-CORE-07_authored_julia_research.md)
 - [Authored Julia operator preparation and typed export contract](https://github.com/carbonphysicsai/Carbon/blob/68ed5435cd599b3582441bb9152e35fcd40f19e0/docs/development/AUTHORED_JULIA_RESEARCH.md)
+- [C-CORE-04: draft-bound public Julia studies in the existing Workbench](https://github.com/carbonphysicsai/Carbon/blob/edbee85c81215a6ed813e825e95d5f075b619746/.agent/tickets/C-CORE-04_workbench_scientific_studies.md)
+- [Private Workbench scientific-service composition and checks](https://github.com/carbonphysicsai/Carbon/blob/edbee85c81215a6ed813e825e95d5f075b619746/Business/Carbon_Fit/workbench/SCIENTIFIC_STUDIES_OPERATOR.md)
 
 Authority snapshot: `68ed5435` on `main`,
 captured 2026-09-17T22:19:13Z.

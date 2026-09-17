@@ -553,6 +553,14 @@
     "authored_julia_guide": {
       "label": "Authored Julia operator preparation and typed export contract",
       "url": "https://github.com/carbonphysicsai/Carbon/blob/68ed5435cd599b3582441bb9152e35fcd40f19e0/docs/development/AUTHORED_JULIA_RESEARCH.md"
+    },
+    "core_platform_workbench": {
+      "label": "C-CORE-04: draft-bound public Julia studies in the existing Workbench",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/edbee85c81215a6ed813e825e95d5f075b619746/.agent/tickets/C-CORE-04_workbench_scientific_studies.md"
+    },
+    "core_platform_workbench_operator": {
+      "label": "Private Workbench scientific-service composition and checks",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/edbee85c81215a6ed813e825e95d5f075b619746/Business/Carbon_Fit/workbench/SCIENTIFIC_STUDIES_OPERATOR.md"
     }
   },
   "authority_source_checks": [
@@ -1950,6 +1958,25 @@
         "MINER_SELF_REPORTED",
         "canonical",
         "Ten actual Julia"
+      ]
+    },
+    {
+      "id": "core-platform-workbench-candidate",
+      "path": ".agent/tickets/C-CORE-04_workbench_scientific_studies.md",
+      "required_markers": [
+        "all 262 Workbench JS tests and 46 Python",
+        "REQUIRES_RECONCILIATION",
+        "Canonical delivery",
+        "NOT_QUALIFIED"
+      ]
+    },
+    {
+      "id": "native-julia-current-implementation",
+      "path": "Design_Specs/Runtime_Julia_Truth_Oracle.md",
+      "required_markers": [
+        "**Version:** 2.2",
+        "**Current-status reconciliation (C-CORE-04, DOCUMENTATION_LAG):**",
+        "Canonical acceptance and normal delivery"
       ]
     }
   ],
@@ -3450,6 +3477,20 @@
         "match_type": "exact",
         "path": "tests/cpu/test_miner_launchpad.py",
         "impact_class": "mapped_detail",
+        "map_ref": "SYSTEM/AGENT-EXECUTION"
+      },
+      {
+        "id": "core-platform-workbench-operator",
+        "match_type": "exact",
+        "path": "Business/Carbon_Fit/workbench/SCIENTIFIC_STUDIES_OPERATOR.md",
+        "impact_class": "map_structural",
+        "map_ref": "SYSTEM/AGENT-EXECUTION"
+      },
+      {
+        "id": "core-platform-workbench",
+        "match_type": "exact",
+        "path": ".agent/tickets/C-CORE-04_workbench_scientific_studies.md",
+        "impact_class": "map_structural",
         "map_ref": "SYSTEM/AGENT-EXECUTION"
       }
     ]
