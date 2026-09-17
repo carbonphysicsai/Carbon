@@ -17,6 +17,7 @@ PACKAGE = ROOT / "carbon" / "audit"
 EXPECTED = {
     "__init__.py",
     "model.py",
+    "derivation.py",
     "projection.py",
     "signing.py",
     "store.py",
