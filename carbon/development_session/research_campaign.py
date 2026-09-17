@@ -507,6 +507,14 @@ async def execute(args, *, ledger=None):
                 "prior_permitted_final_feedback": feedback,
                 "instructions": "Record a testable plan. Use real practice, inspect curves and revise or reject hypotheses; do not stop at the first valid recipe. Select only a recipe you actually practiced, or stop for a supported reason.",
             }
+            if grant is not None:
+                # Immutable across restart; private grant/account paths are absent.
+                observation["campaign_resource_grant"] = {
+                    "ceilings": grant["ceilings"],
+                    "elapsed_seconds": grant["elapsed_seconds"],
+                    "expires_unix": grant["expires_unix"],
+                    "authority": "Trusted controller enforces these narrower campaign limits; public profile maxima do not authorize additional resources.",
+                }
             result = await run_epoch(
                 ledger,
                 owner=owner,

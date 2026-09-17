@@ -290,6 +290,10 @@ class CampaignLedger:
             used = self._usage(db)
             for key, cap in caps.items():
                 headroom = FINAL_RESERVE.get(key, 0) if phase == "research" else 0
+                if manifest["schema"] != VERSION and key == "final_replicas":
+                    # Preserve unspent final slots; consumed slots are already in
+                    # used. Numerical and monetary reserves remain conservative.
+                    headroom = max(0, headroom - used[key])
                 if used[key] + resources.get(key, 0) + headroom > cap:
                     raise ValueError("campaign resource admission: " + key)
             db.execute("UPDATE campaign SET started=? WHERE id=1", (started,))

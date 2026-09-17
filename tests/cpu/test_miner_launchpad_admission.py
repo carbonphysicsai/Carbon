@@ -19,11 +19,12 @@ from carbon.development_session.research_control import CampaignControl, Dispatc
 from carbon.development_session.research_ledger import (
     CEILINGS,
     ELAPSED_SECONDS,
+    FINAL_RESERVE,
     CampaignLedger,
 )
 
 
-def managed(tmp_path):
+def managed(tmp_path, *, ceilings=None):
     tmp_path.chmod(0o700)
     root = tmp_path / "campaign"
     path = tmp_path / "grant.json"
@@ -41,7 +42,7 @@ def managed(tmp_path):
         "provider": "openai-responses",
         "account_ref": "fixture-no-credential",
         "campaign_count": 1,
-        "ceilings": dict(CEILINGS),
+        "ceilings": dict(CEILINGS if ceilings is None else ceilings),
         "elapsed_seconds": ELAPSED_SECONDS,
         "expires_unix": 50000,
         "cleanup": "all-campaign-owned-work; unresolved-reservations-retained",
@@ -376,3 +377,77 @@ def test_completed_controller_does_not_imply_scientific_improvement(tmp_path):
     assert value.status(owner="miner-requester")["operations"] == []
     with pytest.raises(DispatchStopped):
         reserve(value)
+
+
+def test_charged_final_slots_are_not_reserved_twice_for_managed_research(tmp_path):
+    value, _, _ = managed(
+        tmp_path,
+        ceilings={
+            **CEILINGS,
+            "numerical_milliseconds": FINAL_RESERVE["numerical_milliseconds"],
+        },
+    )
+    for index in range(6):
+        identity = f"final-fixture-{index}"
+        value.reserve(
+            identity,
+            owner="miner-requester",
+            phase="final",
+            request={},
+            resources={"final_replicas": 1},
+        )
+        value.finish(
+            identity,
+            owner="miner-requester",
+            state="SUCCEEDED",
+            actual={"final_replicas": 1},
+            result={"engineering_fixture": True},
+        )
+    assert reserve(value, "next-epoch-model", resources={"provider_attempts": 1})[
+        "dispatch"
+    ]
+    assert value.status(owner="miner-requester")["used"]["final_replicas"] == 6
+    with pytest.raises(ValueError, match="final_replicas"):
+        reserve(value, "cannot-steal-final-slot", resources={"final_replicas": 1})
+    with pytest.raises(ValueError, match="numerical_milliseconds"):
+        reserve(
+            value,
+            "cannot-spend-final-compute",
+            resources={"numerical_milliseconds": 720000},
+        )
+
+
+def test_narrowed_trial_grant_uses_existing_selection_call_admission(tmp_path):
+    import asyncio
+
+    from test_cw1_research_loop import response
+
+    from carbon.development_session.research_loop import run_epoch
+
+    value, _, _ = managed(tmp_path, ceilings={**CEILINGS, "research_trials": 1})
+    reserve(value, resources={"research_trials": 1})
+    value.finish(
+        "op",
+        owner="miner-requester",
+        state="SUCCEEDED",
+        actual={"research_trials": 1},
+        result={"engineering_fixture": True},
+    )
+    outcome = asyncio.run(
+        run_epoch(
+            value,
+            owner="miner-requester",
+            epoch=2,
+            sdk=None,
+            credential_file=None,
+            initial_observation={"engineering_fixture": True},
+            transport=lambda request: response([]),
+        )
+    )
+    assert outcome["status"] == "STOPPED"
+    status = value.status(owner="miner-requester")
+    provider = next(
+        op for op in status["operations"] if op["id"].startswith("epoch-2-provider")
+    )
+    assert provider["phase"] == "selection"
+    assert status["used"]["research_trials"] == 1
