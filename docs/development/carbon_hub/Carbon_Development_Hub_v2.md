@@ -2,7 +2,7 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `ba9aeda74ca739b35e18541e5ae197b4d2e79e42` on `main`, captured 2026-09-17T12:26:00Z.
+**Authority snapshot:** `608bc7aaba85e65c21a33ca8157f5a061892bd61` on `main`, captured 2026-09-17T12:35:54Z.
 **Current:** Wave C, ticket C-W1-D3. C-W1-D3 implements balanced-v2 DEVELOPMENT acceptance and non-paying reward simulation. Two bounded design iterations and analytic verification completed; retained FNO results are retrospective diagnostic ranks and fail mandatory conditions. No fresh training, model charge, real winner, payment or public-network transaction. Required CI and normal merge close engineering only. Historical testnet 567 exact row [[0, 65535]] remains ROW_VERIFIED; burn amounts, epoch effects, miner payment and settlement remain unproven. Distinct miner UID 1 finalized in the earlier setup; no identities were registered here. No later ticket is selected. Synthetic controls are not results of the real agent. No subsequent activation or weight transaction is authorized. Subnet 567 creation finalized at block 8010852 in the earlier C-W1 DEVELOPMENT setup. AWS stays deferred; Hippius unverified. Owner-approved bounded DEVELOPMENT CI retains all invariants and affected subsystem, package, quality and Hub acceptance; official/shared runtime changes still require full regression.
 **Last completed:** C-W1-D2 (`done`).
 **Next selected:** none selected.
