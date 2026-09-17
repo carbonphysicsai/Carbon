@@ -68,3 +68,14 @@ qualification, score rule, launch, public deployment or chain action is granted.
 The accepted CPU execution class remains the only implemented comparison route
 until a prospective competition contract selects otherwise; this ticket does
 not pool backend scores or choose scientific thresholds.
+
+Local implementation checkpoint: `carbon/reconstruction/portable_state.py` wraps
+the unchanged checkpoint reader/writer/restorer. The original exact-resume
+baseline passed (1 test); 10 focused portability tests passed in 22.56 seconds.
+Actual CPU export/load preserved all leaves and fixed-state predictions exactly,
+and continued training matched the existing strict checkpoint resume. Foreign
+principal, reused operation, precision change, tampering, unknown metadata and
+unbounded/non-array input cases rejected. The cross-backend branch is exercised
+only with explicitly labelled simulated source metadata; no accelerator ran.
+Exact repository py310 Ruff and Black passed. Public analysis-image integration,
+canonical acceptance, Hub and normal merge remain open.
