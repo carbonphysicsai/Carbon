@@ -1,6 +1,8 @@
 # Ask Carbon privacy and retention map
 
-**Status:** proposed for staging review; not an accepted public privacy policy.
+**Status:** proposed public-release input; not an accepted public privacy
+policy. The owner approved the bounded private guidance-quality packet, not
+this notice, provider-processing posture, public collection, or security.
 
 ## Exact visitor notice
 
@@ -33,3 +35,7 @@ The owner must accept or replace those exact words before public live answers.
 General chat never accepts files or confidential project intake. The future
 authenticated Research Concierge is a separate system and gains no authority or
 data path from this component.
+
+The combined proposed notice and exact activation decisions are in
+`PUBLIC_RELEASE_DECISION_PACKET.md`. Inquiry submission remains unavailable;
+local export is not receipt, persistence, or staff notification.
