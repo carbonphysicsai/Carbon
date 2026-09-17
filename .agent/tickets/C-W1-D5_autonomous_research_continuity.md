@@ -1,6 +1,6 @@
 # C-W1-D5 — Autonomous research continuity
 
-**Status:** in_progress
+**Status:** done
 **Primary Hub map_ref:** `WAVE-C/C-W1-D5`
 Hub impact: map_structural (D4 bounded closeout, D5 selection, real outcome).
 Starting main: 54f8aff742b99fd2957fede73ea814f03da49eb6. One selected ticket.
@@ -67,3 +67,26 @@ Engineering completes only after required acceptance and normal expected-head
 merge. Experiment conclusions require the actual finite second campaign or an
 exact unavailable external prerequisite. No qualification, payment or chain write.
 No private key or protected final data is included in tracked records.
+
+## Delivered engineering and finite program outcome
+
+PR #208 passed required RUNTIME_FULL acceptance and merged normally at the
+expected head. The separately coordinated PR #207 admission repair also passed
+required acceptance and merged; its managed API supplied campaign three.
+Default v1 and historical journals remain intact. No second launcher was added.
+
+The narrow D5 hypothesis was supported: campaign two reached one actual practice
+trial without another owner prompt. It did not establish a sustained learning
+loop: the agent selected the unchanged control, then legacy final-reserve
+accounting stopped epoch two before another provider dispatch. Campaign three
+used managed admission but stopped after two invalid task-kind requests and
+public practice preparation, without training. The repaired six-completed-replica
+reserve condition therefore has engineering tests but no real campaign-three
+observation. Neither a browser campaign nor successful model adaptation is claimed.
+
+All three program slots are consumed. No unresolved reservations or active
+workers remain. No fourth campaign, automatic budget renewal, reward winner or
+chain transaction is authorized. The learning record contains the exact finite
+outcome, provisional constraint diagnosis and a proposed future request. This
+post-execution closeout changes documentation only; runtime acceptance belongs
+to the delivered PRs and is not repeated as experiment work.

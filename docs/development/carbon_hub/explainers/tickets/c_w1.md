@@ -40,12 +40,12 @@ Bounded real agent evaluation, signed DEVELOPMENT evidence, finalized public-tes
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/4e6a350fdb356077e947c585331d9d7f3e359795/.agent/tickets/C-W1_testnet_eligibility.md)
-- [Development testnet plan](https://github.com/carbonphysicsai/Carbon/blob/4e6a350fdb356077e947c585331d9d7f3e359795/.agent/plans/C_W1_DEVELOPMENT_TESTNET.md)
-- [Development testnet evidence](https://github.com/carbonphysicsai/Carbon/blob/4e6a350fdb356077e947c585331d9d7f3e359795/.agent/evidence/wave_c/c-w1-development.md)
-- [Operator runbook](https://github.com/carbonphysicsai/Carbon/blob/4e6a350fdb356077e947c585331d9d7f3e359795/docs/development/CW1_DEVELOPMENT_TESTNET_RUNBOOK.md)
-- [First transaction plan](https://github.com/carbonphysicsai/Carbon/blob/4e6a350fdb356077e947c585331d9d7f3e359795/docs/development/CW1_DEVELOPMENT_TESTNET_TRANSACTION_PLAN.md)
-- [C1 dependency graph](https://github.com/carbonphysicsai/Carbon/blob/4e6a350fdb356077e947c585331d9d7f3e359795/.agent/plans/C1_DEPENDENCY_GRAPH.md)
-- [Supervised Burgers session and numerical observations](https://github.com/carbonphysicsai/Carbon/blob/4e6a350fdb356077e947c585331d9d7f3e359795/docs/development/CW1_BURGERS_AGENT_SESSION.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/92e540b66e6ee94d3fad7a0907a2b571838506a3/.agent/tickets/C-W1_testnet_eligibility.md)
+- [Development testnet plan](https://github.com/carbonphysicsai/Carbon/blob/92e540b66e6ee94d3fad7a0907a2b571838506a3/.agent/plans/C_W1_DEVELOPMENT_TESTNET.md)
+- [Development testnet evidence](https://github.com/carbonphysicsai/Carbon/blob/92e540b66e6ee94d3fad7a0907a2b571838506a3/.agent/evidence/wave_c/c-w1-development.md)
+- [Operator runbook](https://github.com/carbonphysicsai/Carbon/blob/92e540b66e6ee94d3fad7a0907a2b571838506a3/docs/development/CW1_DEVELOPMENT_TESTNET_RUNBOOK.md)
+- [First transaction plan](https://github.com/carbonphysicsai/Carbon/blob/92e540b66e6ee94d3fad7a0907a2b571838506a3/docs/development/CW1_DEVELOPMENT_TESTNET_TRANSACTION_PLAN.md)
+- [C1 dependency graph](https://github.com/carbonphysicsai/Carbon/blob/92e540b66e6ee94d3fad7a0907a2b571838506a3/.agent/plans/C1_DEPENDENCY_GRAPH.md)
+- [Supervised Burgers session and numerical observations](https://github.com/carbonphysicsai/Carbon/blob/92e540b66e6ee94d3fad7a0907a2b571838506a3/docs/development/CW1_BURGERS_AGENT_SESSION.md)
 
 > G2 remains LOCALNET_READY only for the exact D6 disposable v445 localnet. C-W1-D1 is separate and permits public/synthetic DEVELOPMENT only after exact external gates; signed DEVELOPMENT evidence remains rejected by official/protected consumers.

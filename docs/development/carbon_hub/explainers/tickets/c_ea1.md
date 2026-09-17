@@ -40,12 +40,12 @@ Synthetic acknowledgement remains tested only in its accepted fixture scope. The
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/4e6a350fdb356077e947c585331d9d7f3e359795/.agent/tickets/C-EA1_durable_evidence_archive.md)
-- [Evidence capture contract](https://github.com/carbonphysicsai/Carbon/blob/4e6a350fdb356077e947c585331d9d7f3e359795/Design_Specs/Evidence_Archive_and_Custody.md)
-- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/4e6a350fdb356077e947c585331d9d7f3e359795/.agent/WAVE_C.md)
-- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/4e6a350fdb356077e947c585331d9d7f3e359795/.agent/evidence/wave_c/c-ea1.md)
-- [Synthetic archive runbook](https://github.com/carbonphysicsai/Carbon/blob/4e6a350fdb356077e947c585331d9d7f3e359795/docs/development/EVIDENCE_ARCHIVE_SYNTHETIC.md)
-- [Private-alpha preparation runbook](https://github.com/carbonphysicsai/Carbon/blob/4e6a350fdb356077e947c585331d9d7f3e359795/docs/development/EVIDENCE_ARCHIVE_ALPHA_PROFILE.md)
-- [AWS private-alpha package](https://github.com/carbonphysicsai/Carbon/blob/4e6a350fdb356077e947c585331d9d7f3e359795/docs/development/EVIDENCE_ARCHIVE_AWS_PRIVATE_ALPHA.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/92e540b66e6ee94d3fad7a0907a2b571838506a3/.agent/tickets/C-EA1_durable_evidence_archive.md)
+- [Evidence capture contract](https://github.com/carbonphysicsai/Carbon/blob/92e540b66e6ee94d3fad7a0907a2b571838506a3/Design_Specs/Evidence_Archive_and_Custody.md)
+- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/92e540b66e6ee94d3fad7a0907a2b571838506a3/.agent/WAVE_C.md)
+- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/92e540b66e6ee94d3fad7a0907a2b571838506a3/.agent/evidence/wave_c/c-ea1.md)
+- [Synthetic archive runbook](https://github.com/carbonphysicsai/Carbon/blob/92e540b66e6ee94d3fad7a0907a2b571838506a3/docs/development/EVIDENCE_ARCHIVE_SYNTHETIC.md)
+- [Private-alpha preparation runbook](https://github.com/carbonphysicsai/Carbon/blob/92e540b66e6ee94d3fad7a0907a2b571838506a3/docs/development/EVIDENCE_ARCHIVE_ALPHA_PROFILE.md)
+- [AWS private-alpha package](https://github.com/carbonphysicsai/Carbon/blob/92e540b66e6ee94d3fad7a0907a2b571838506a3/docs/development/EVIDENCE_ARCHIVE_AWS_PRIVATE_ALPHA.md)
 
 > The accepted synthetic acknowledgement and configuration-only alpha doctor are unchanged. The D4 AWS package is retained but deferred. A later Hippius milestone must assess its exact integrity, encryption/custody, retention/deletion/recovery, availability, cost, failure and acknowledgement behavior before selection; observed full-watermark recovery, scoped security acceptance and signer authorization remain required for any real provider.

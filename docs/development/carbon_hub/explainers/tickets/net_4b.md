@@ -40,9 +40,9 @@ Disposable-localnet publication software only; actual runtime integration and G2
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/4e6a350fdb356077e947c585331d9d7f3e359795/.agent/tickets/NET-4B_verified_publication.md)
-- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/4e6a350fdb356077e947c585331d9d7f3e359795/.agent/evidence/wave_c/net-4b.md)
-- [Operator contract](https://github.com/carbonphysicsai/Carbon/blob/4e6a350fdb356077e947c585331d9d7f3e359795/docs/development/WEIGHT_PUBLICATION.md)
-- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/4e6a350fdb356077e947c585331d9d7f3e359795/.agent/WAVE_C.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/92e540b66e6ee94d3fad7a0907a2b571838506a3/.agent/tickets/NET-4B_verified_publication.md)
+- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/92e540b66e6ee94d3fad7a0907a2b571838506a3/.agent/evidence/wave_c/net-4b.md)
+- [Operator contract](https://github.com/carbonphysicsai/Carbon/blob/92e540b66e6ee94d3fad7a0907a2b571838506a3/docs/development/WEIGHT_PUBLICATION.md)
+- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/92e540b66e6ee94d3fad7a0907a2b571838506a3/.agent/WAVE_C.md)
 
 > A finalized commit is not reveal, and a stored row is not settlement. Shutdown can leave prior weights effective.
