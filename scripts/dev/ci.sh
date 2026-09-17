@@ -84,6 +84,11 @@ if [[ " ${CARBON_UV_GROUPS:-} " == *" science-jax "* ]]; then
   "${python_bin}" -m pytest tests/science -q
 fi
 
+if [[ " ${CARBON_UV_GROUPS:-} " == *" mcp "* ]]; then
+  echo "==> pinned standard MCP external-client interoperability"
+  "${python_bin}" -m pytest tests/service/test_standard_mcp_stdio.py -q
+fi
+
 echo "==> canonical/legacy authority boundary"
 "${python_bin}" -m pytest tests/cpu/test_code_authority.py -q
 

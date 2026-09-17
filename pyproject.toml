@@ -6,11 +6,17 @@ readme = "README.md"
 requires-python = ">=3.11,<3.12"
 dependencies = []
 
+[project.scripts]
+carbon-mcp = "carbon.miner_mcp.standard_cli:main"
+
 [build-system]
 requires = ["setuptools==84.0.0"]
 build-backend = "setuptools.build_meta"
 
 [project.optional-dependencies]
+mcp = [
+    "mcp==2.2.0",
+]
 chain = [
     "bittensor==11.1.0",
 ]
@@ -24,6 +30,9 @@ physicsnemo = [
 ]
 
 [dependency-groups]
+mcp = [
+    "mcp==2.2.0",
+]
 dev = [
     "black==26.5.1",
     "build==1.6.0",
@@ -81,6 +90,7 @@ where = ["."]
 include = ["carbon*"]
 
 [tool.setuptools.package-data]
+"carbon.reference_runtime.julia" = ["*.jl", "*.toml", "README.md"]
 "carbon.reconstruction._vendor.carbon_jax_lab" = [
     "licenses/*.md",
     "licenses/third_party/*.txt",

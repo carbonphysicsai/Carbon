@@ -9,6 +9,7 @@ import shutil
 import stat
 import tempfile
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -169,8 +170,25 @@ class IsolatedBurgersReferenceController:
             raise WorkerFailure(WorkerCode.CONFLICT)
         return value
 
-    def _wait_file(self, container_name: str, path: str, deadline: float) -> None:
+    @staticmethod
+    def _check_cancelled(cancelled: Callable[[], bool] | None) -> None:
+        if cancelled is None:
+            return
+        value = cancelled()
+        if type(value) is not bool:
+            raise WorkerFailure(WorkerCode.INVALID)
+        if value:
+            raise WorkerFailure(WorkerCode.CANCELLED)
+
+    def _wait_file(
+        self,
+        container_name: str,
+        path: str,
+        deadline: float,
+        cancelled: Callable[[], bool] | None = None,
+    ) -> None:
         while time.monotonic() < deadline:
+            self._check_cancelled(cancelled)
             remaining = deadline - time.monotonic()
             status = self.cli.run(
                 ["exec", container_name, "/usr/bin/test", "-f", path],
@@ -178,6 +196,7 @@ class IsolatedBurgersReferenceController:
                 accepted=(0, 1),
             )
             if status.returncode == 0:
+                self._check_cancelled(cancelled)
                 return
             state = self.cli.json(
                 ["inspect", container_name, "--format", "{{json .State}}"],
@@ -188,9 +207,17 @@ class IsolatedBurgersReferenceController:
             time.sleep(0.1)
         raise WorkerFailure(WorkerCode.DEADLINE)
 
-    def execute(self, request: BurgersReferenceRequest) -> IsolatedReferenceResult:
+    def execute(
+        self,
+        request: BurgersReferenceRequest,
+        *,
+        cancelled: Callable[[], bool] | None = None,
+    ) -> IsolatedReferenceResult:
         if type(request) is not BurgersReferenceRequest:
             raise WorkerFailure(WorkerCode.INVALID)
+        if cancelled is not None and not callable(cancelled):
+            raise WorkerFailure(WorkerCode.INVALID)
+        self._check_cancelled(cancelled)
         started_unix = float(time.time())
         started_mono = float(time.monotonic())
         deadline_unix = started_unix + PRODUCTIVE_DEADLINE_SECONDS
@@ -284,6 +311,7 @@ class IsolatedBurgersReferenceController:
             raise WorkerFailure(WorkerCode.UNAVAILABLE)
         container_created = False
         try:
+            self._check_cancelled(cancelled)
             create_started = time.monotonic()
             try:
                 created = self.cli.run(
@@ -320,8 +348,11 @@ class IsolatedBurgersReferenceController:
                 launch_digest=launch_digest,
                 deadline_unix=deadline_unix,
             )
+            self._check_cancelled(cancelled)
             self.cli.run(["start", container_name], timeout=20)
-            self._wait_file(container_name, "/scratch/control-ready", deadline_mono)
+            self._wait_file(
+                container_name, "/scratch/control-ready", deadline_mono, cancelled
+            )
             controls_digest, controls = inspect_effective_controls(
                 cli=self.cli,
                 container_name=container_name,
@@ -335,6 +366,7 @@ class IsolatedBurgersReferenceController:
                 {"state": "CONTROLS_VERIFIED", "controls_digest": controls_digest}
             )
             self._journal(launch_digest, journal)
+            self._check_cancelled(cancelled)
             self.cli.run(
                 [
                     "exec",
@@ -347,7 +379,7 @@ class IsolatedBurgersReferenceController:
                 timeout=10,
             )
             numerical_started = time.monotonic()
-            self._wait_file(container_name, "/scratch/ready", deadline_mono)
+            self._wait_file(container_name, "/scratch/ready", deadline_mono, cancelled)
             numerical_seconds = time.monotonic() - numerical_started
             export_started = time.monotonic()
             remaining = deadline_mono - time.monotonic()
@@ -387,6 +419,7 @@ class IsolatedBurgersReferenceController:
             resources = observe_effective_resources(
                 cli=self.cli, container_name=container_name
             )
+            self._check_cancelled(cancelled)
             files = tuple(item for item in snapshot.rglob("*") if item.is_file())
             resources["output_snapshot"] = {
                 "observed_bytes": sum(item.stat().st_size for item in files),
@@ -411,9 +444,11 @@ class IsolatedBurgersReferenceController:
             cleanup_seconds = time.monotonic() - cleanup_started
             journal["state"] = "TERMINATED"
             self._journal(launch_digest, journal)
+            self._check_cancelled(cancelled)
             validation_started = time.monotonic()
             result = validate_reference_snapshot_bounded(snapshot, stage)
             validation_seconds = time.monotonic() - validation_started
+            self._check_cancelled(cancelled)
             shutil.rmtree(stage, ignore_errors=True)
             journal["state"] = "ASSOCIATED_DEVELOPMENT_ONLY"
             journal["artifact_digest"] = result.artifact_digest
