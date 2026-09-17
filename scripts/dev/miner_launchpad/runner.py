@@ -19,8 +19,7 @@ from carbon.development_session.profile import canonical, digest
 from carbon.development_session.research_admission import Admission, private_json
 from carbon.development_session.research_control import CampaignControl, DispatchStopped
 from carbon.development_session.research_ledger import CampaignLedger
-
-from .controller import Rejected, owner_lock
+from scripts.dev.miner_launchpad.controller import Rejected, owner_lock
 
 PATH_FIELDS = {
     "image_manifest",
@@ -375,7 +374,7 @@ class RunnerAdapter:
         return self.get(identity)
 
     def get(self, identity):
-        from .projection import project
+        from scripts.dev.miner_launchpad.projection import project
 
         row, _, root = self._bound(identity)
         return project(dict(row), root)

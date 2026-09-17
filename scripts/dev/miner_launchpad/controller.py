@@ -577,10 +577,15 @@ def main() -> None:
         controller = Controller(database)
         database.chmod(0o600)
         token = secrets.token_urlsafe(32)
-        if __package__:
-            from .development import DevelopmentSources
-        else:
-            from development import DevelopmentSources
+        # Direct-script and package entry points resolve one canonical module.
+        import sys
+
+        sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+        sys.modules.setdefault(
+            "scripts.dev.miner_launchpad.controller", sys.modules[__name__]
+        )
+        from scripts.dev.miner_launchpad.development import DevelopmentSources
+
         sources = DevelopmentSources(database)
         for path in args.development_source:
             try:
@@ -589,13 +594,6 @@ def main() -> None:
                 parser.error("DEVELOPMENT source attachment failed verification")
         runner = None
         if args.research_profile is not None:
-            # Script entry point resolves the same package used by tests.
-            import sys
-
-            sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
-            sys.modules.setdefault(
-                "scripts.dev.miner_launchpad.controller", sys.modules[__name__]
-            )
             from scripts.dev.miner_launchpad.runner import RunnerAdapter
 
             runner = RunnerAdapter(database, configuration=args.research_profile)
