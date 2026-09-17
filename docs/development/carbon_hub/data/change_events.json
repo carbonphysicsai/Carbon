@@ -4871,6 +4871,23 @@
         "WAVE-N"
       ],
       "supersedes": null
+    },
+    {
+      "map_ref": "SYSTEM/AGENT-EXECUTION",
+      "event_type": "evidence",
+      "event_id": "C-CORE-07-AUTHORED-JULIA-01",
+      "owner_lane": "technical_lead",
+      "status": "implemented",
+      "summary": "Prospectively granted miner-authored Julia now uses the existing carrier, durable task provider, campaign accounting, standard MCP and Launchpad composition. A separately pinned research image and V2 task preserve historical campaigns and the registered validator path. Ten actual local Docker cases exercised numerical refinement, replay/reconnect, typed exports and containment/cleanup; no paid provider or reference calls occurred. Output remains MINER_SELF_REPORTED and STRUCTURAL_ONLY; canonical delivery, scientific/security qualification, package promotion and accelerator execution remain open.",
+      "primary_detail": ".agent/tickets/C-CORE-07_authored_julia_research.md",
+      "affects": [
+        "WAVE-C/C-02",
+        "WAVE-C/C-03",
+        "WAVE-C/C-04",
+        "WAVE-C/C-08",
+        "SYSTEM/DEVELOPMENT-HUB"
+      ],
+      "supersedes": null
     }
   ]
 }
