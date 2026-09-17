@@ -193,7 +193,8 @@ production custody, quorum, science or economics blocks only that operation.
 | C-09 | Official testnet publication provider | todo | `.agent/tickets/C-09_official_testnet_publication_provider.md` | Codex + publication/protocol engineering | Protocol + scientific integration + security | A10, C-06, C-07, C-EA2 | MQ-048, MQ-054 | L | C1/C2 |
 | C-W1 | Exact real testnet eligibility provenance | in_progress | `.agent/tickets/C-W1_testnet_eligibility.md` (bounded C-W1-D1 DEVELOPMENT slice only; official path remains future reserved) | Network/protocol + scientific integration | Security + Physics/SciML | NET-2, NET-4B, NET-6, C-06, C-07, C-08, C-10; official C-09 and C-EA2 non-blocking only for bounded DEVELOPMENT | MQ-048, MQ-054 | M | C2 |
 | C-W1-D2 | Non-paying DEVELOPMENT comparison bridge | done | `.agent/tickets/C-W1-D2_development_comparison.md` | Scientific integration | Physics/SciML + Security | C-05, C-06, C-07, C-08, C-10, C-REWARD | MQ-048, MQ-054 | M | C2 |
-| C-W1-D3 | Measurement review and non-paying DEVELOPMENT scoring | in_progress | `.agent/tickets/C-W1-D3_development_scoring.md` | Scientific integration | Physics/SciML + Security | C-W1-D2, C-05, C-06, C-07, C-08, C-10, C-REWARD | MQ-048, MQ-054 | M | C2 |
+| C-W1-D3 | Measurement review and non-paying DEVELOPMENT scoring | done | `.agent/tickets/C-W1-D3_development_scoring.md` | Scientific integration | Physics/SciML + Security | C-W1-D2, C-05, C-06, C-07, C-08, C-10, C-REWARD | MQ-048, MQ-054 | M | C2 |
+| C-W1-D4 | Miner autoresearch and finite DEVELOPMENT campaign | in_progress | `.agent/tickets/C-W1-D4_miner_autoresearch.md` | Scientific integration | Physics/SciML + Security | B-07G, C-02, C-03, C-04, C-05, C-06, C-07, C-08, C-10, C-W1-D3, C-REWARD | MQ-048, MQ-054 | M | C2 |
 
 NET-1: PR #120 expected head 528213a passed run 34405478897 and normally merged
 as 6dad22db26e4b8babadf73c4de2527a17485a2b1. Completion comment:
@@ -262,3 +263,13 @@ B-01G remain non-blocking.
 ## C-W1-D3 observed implementation
 
 C-W1-D3 implements balanced-v2 DEVELOPMENT acceptance and non-paying reward simulation. Two bounded design iterations and analytic verification completed; retained FNO results are retrospective diagnostic ranks and fail mandatory conditions. No fresh training, model charge, real winner, payment or public-network transaction. Required CI and normal merge close engineering only.
+
+
+## C-W1-D4 bounded prerequisite reuse
+
+C-W1-D4 consumes the already accepted DEVELOPMENT adapter and worker slices of
+C-02/C-03; their broader unfinished qualification obligations remain unchanged.
+Its new arbitrary-script surface requires its own engineering containment tests
+and separate minimal image. Selection does not mark C-02/C-03 broadly done or
+claim independent security/scientific acceptance. The real campaign starts only
+after delivery, with fresh cumulative authority and no public-network writes.

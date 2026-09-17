@@ -3,7 +3,7 @@
 **Status:** in_progress
 **Selected authority:** OWNER-C-W1-D4-AUTORESEARCH-01 (Ryan's current direction)
 **Primary Hub map_ref:** WAVE-C/C-W1
-**Depends on:** B-07A/B/C/E/G, C-02 through C-08, C-10, C-W1-D3, C-REWARD
+**Depends on:** B-07G, C-02, C-03, C-04, C-05, C-06, C-07, C-08, C-10, C-W1-D3, C-REWARD
 **Starting main:** 4a60d85323d1945fa0ec9815340618ad87e6e619 (PR #202),
 tree 44f86d881bf5ac3e0a78641fddd99690329c797a; no advancement at selection.
 

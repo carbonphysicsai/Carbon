@@ -168,8 +168,9 @@ def register_fresh_research(
         ):
             raise ValueError("frozen final role/cohort association differs")
         if any(
-            digest(canonical(case)) != row["case_digest"]
-            for case, row in zip(cases, manifest["cases"], strict=True)
+            digest((prepared / (row["name"] + "-case.json")).read_bytes())
+            != row["case_digest"]
+            for row in manifest["cases"]
         ):
             raise ValueError("prepared case association changed")
         if (

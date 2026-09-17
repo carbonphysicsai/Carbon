@@ -108,3 +108,18 @@ def test_final_reconstruction_and_uncertain_failure_consume_separate_counters(tm
     assert used["final_replicas"] == 1
     assert used["research_trials"] == 0
     assert used["numerical_milliseconds"] >= 720000
+
+
+def test_registration_checks_generator_canonical_bytes_including_newline(tmp_path):
+    import json
+
+    roots = prepared(tmp_path)
+    for root in roots:
+        manifest = json.loads((root / "case-manifest.json").read_bytes())
+        for row in manifest["cases"]:
+            path = root / (row["name"] + "-case.json")
+            body = path.read_bytes() + b"\n"
+            path.write_bytes(body)
+            row["case_digest"] = digest(body)
+        (root / "case-manifest.json").write_bytes(canonical(manifest))
+    assert register(tmp_path, roots)
