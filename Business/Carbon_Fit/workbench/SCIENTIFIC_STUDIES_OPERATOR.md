@@ -88,3 +88,47 @@ can exercise an explicitly prepared loopback Julia fixture. Neither is a
 production authentication or scientific qualification test. The latter requires
 an operator-installed exact draft and an existing admitted worker image; running
 the checks above creates neither a numerical campaign nor new external spending.
+
+## Prospective two-case operating-envelope composition
+
+C-CORE-08 adds `julia_burgers_envelope_v2`: baseline plus the second exact record
+in an already frozen public TRAIN cohort. The capability describes both physical
+definitions, their ordered case digests and the full scope digest. These two
+observations do not establish a population, scientific qualification, or validity
+of customer design text. Arbitrary parameter edits and private inputs remain
+unavailable; neither output becomes public training data automatically.
+
+For an operator-approved combined grant, the exact `runtime.scientific_tasks`
+value must be `[julia_burgers_scope(image, role_root),
+julia_envelope_scope(image, role_root)]`. Construct `PublicJuliaStudy(data,
+envelope_scope=the_exact_second_scope)`, then wrap the existing
+`JuliaPublicMaterial(PublicMaterial(data), study)` with `JuliaEnvelopeMaterial`.
+Pass that material to the same research service and `WorkbenchScience` factories.
+Factories recompute and verify the full ordered scope; constructing expected
+grant bytes does not grant resources. Old single-case grants and constructors
+keep their original behavior and cannot authorize the envelope action.
+
+In the current draft, **Explore operating envelope** selects the v2 operation.
+**Assess reference feasibility** selects the existing v1 operation. Both remain
+available under the combined grant, retain separate immutable artifacts and can
+be saved/reopened independently. Status/cancel/results apply to the displayed
+operation. Each case plot uses its own requested time coordinates. A completed
+first child remains visible when the second is held, cancelled or unresolved.
+
+The existing CampaignLedger atomically reserves both 720,000 ms worker limits
+plus their existing trajectory, invocation and retained-byte vectors, while
+preserving final-phase headroom. The parent consumes no additional allowance.
+`HELD` means reserved capacity with no dispatched worker; one transaction claims
+each child, checking grant, principal and current controller generation. The
+second child additionally requires the first child's observed C-04 cleanup
+journal. Cancellation after expiry can release only never-claimed capacity;
+claimed unknown consumption remains charged. Reconnects never create another
+allowance or infer cleanup from a missing worker journal.
+
+`scripts/dev/julia_worker_service.sh` includes the actual two-case, expiry and
+running-cancellation fixtures. For the existing loopback browser fixture only,
+`tests/service/workbench_native_host.py --envelope` installs the explicit synthetic
+combined scope before serving. Set `CARBON_ENVELOPE=1` for
+`browser_scientific_studies_native.cjs`, and `CARBON_MOBILE=1` for its mobile
+viewport. These fixtures are local engineering controls, not production session
+authentication or new research campaign authority.

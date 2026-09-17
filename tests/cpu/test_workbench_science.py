@@ -27,9 +27,21 @@ from carbon.scientific_tasks.workbench import (
 )
 
 
-def configured(tmp_path, monkeypatch, *, image=None):
-    data, ledger, executions = prepared(tmp_path, monkeypatch, image=image)
-    material = JuliaPublicMaterial(PublicMaterial(data), PublicJuliaStudy(data))
+def configured(tmp_path, monkeypatch, *, image=None, envelope=False):
+    data, ledger, executions = prepared(
+        tmp_path, monkeypatch, image=image, envelope=envelope
+    )
+    from carbon.development_session.julia_envelope import (
+        JuliaEnvelopeMaterial,
+        julia_envelope_scope,
+    )
+
+    scope = julia_envelope_scope(data.image, data.role_root) if envelope else None
+    material = JuliaPublicMaterial(
+        PublicMaterial(data), PublicJuliaStudy(data, envelope_scope=scope)
+    )
+    if envelope:
+        material = JuliaEnvelopeMaterial(material)
     composition = make_research_service(
         root=tmp_path / "tasks",
         ledger=ledger,
