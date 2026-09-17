@@ -511,11 +511,11 @@
       "url": "https://github.com/carbonphysicsai/Carbon/blob/4f84329cb1f91b89b3b11547d938867fd846417d/docs/development/MINER_LAUNCHPAD_HANDOFF.md"
     },
     "miner_launchpad_research_ticket": {
-      "label": "C-MLP-02: first browser campaign stopped; adaptive final acceptance incomplete",
+      "label": "C-MLP-02: single-practice independent rejection; multi-iteration acceptance incomplete",
       "url": "https://github.com/carbonphysicsai/Carbon/blob/4f84329cb1f91b89b3b11547d938867fd846417d/.agent/tickets/C-MLP-02_development_research_bridge.md"
     },
     "miner_launchpad_research_bridge": {
-      "label": "Launchpad bridge, empirical findings and retained resource accounting",
+      "label": "Launchpad observed practice, independent result, accounting and remaining acceptance",
       "url": "https://github.com/carbonphysicsai/Carbon/blob/4f84329cb1f91b89b3b11547d938867fd846417d/docs/development/MINER_LAUNCHPAD_RESEARCH_BRIDGE.md"
     },
     "miner_launchpad_validation_request": {
@@ -1917,7 +1917,10 @@
       "required_markers": [
         "one rejected proposal, no completed practice",
         "C-MLP-02 stays open",
-        "No D4 allowance transfers."
+        "No D4 allowance transfers.",
+        "REJECTED_MANDATORY",
+        "one practice experiment and six",
+        "genuine multi-iteration acceptance remains selected"
       ]
     },
     {
