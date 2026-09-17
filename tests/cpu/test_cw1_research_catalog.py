@@ -138,3 +138,19 @@ def test_catalog_pins_every_selected_control_into_reconstruction():
         actual.update(json.loads(document))
     for key, value in parameters.items():
         assert actual[key] == value
+
+
+def test_resolved_plan_training_exception_rejects_altered_consumer():
+    compiled, _ = compile_recipe(recipe(h1_weight=0.1))
+    plan = compiled.construction_plan
+    surface = next(s for s in plan.resolved_surfaces if s.surface_id == "h1_weight")
+    with pytest.raises(c.ConstructionValidationError):
+        changed = replace(
+            surface, consumer_target=c.ConsumerTarget("scorer", "h1_weight")
+        )
+        replace(
+            plan,
+            resolved_surfaces=tuple(
+                changed if s is surface else s for s in plan.resolved_surfaces
+            ),
+        )

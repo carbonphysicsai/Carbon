@@ -482,12 +482,22 @@ def _validate_entry_authority_identifiers(entry: m.ParameterCatalogEntry) -> Non
             )
         )
 
-    _validate_authority_identifiers(
-        tuple(
-            (identifier, f"/entries/{entry.surface_id}/{field}")
-            for identifier, field in identities
-        )
+    # Exact registered C-02 TRAIN controls; no scorer/network-weight exception.
+    training_fields = frozenset(
+        {"weight_decay", "h1_weight", "pde_weight", "inference_weights"}
     )
+    for identifier, field in identities:
+        if (
+            entry.consumer_target.consumer_id == "carbon_jax_lab_train"
+            and entry.consumer_target.field_id in training_fields
+            and entry.surface_id == entry.consumer_target.field_id
+            and field in {"surface_id", "consumer_target/field_id"}
+            and identifier == entry.surface_id
+        ):
+            continue
+        _validate_authority_identifiers(
+            ((identifier, f"/entries/{entry.surface_id}/{field}"),)
+        )
 
     _validate_resource_output_identifiers(
         entry.resource_impact_tags,

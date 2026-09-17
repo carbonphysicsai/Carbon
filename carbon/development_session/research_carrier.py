@@ -57,7 +57,7 @@ def run_script(ledger, *, owner, identity, source, files, image, seconds=600):
         image=image,
         seconds=seconds,
         provenance="MINER_SELF_REPORTED",
-        extra_resources={},
+        extra_resources={"research_trials": 1},
     )
 
 

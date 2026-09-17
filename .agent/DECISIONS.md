@@ -14563,3 +14563,14 @@ superseding change is the D4 ticket and corresponding versioned adapter/profile;
 historical interpretation remains unchanged. No new governance architecture.
 Primary map_ref WAVE-C/C-W1; Hub maintenance batched before acceptance under
 OWNER-DX-03. Owner direction grants no unsolicited third-party notification.
+
+
+### OWNER-C-W1-D4-COMPILER-01 — exact TRAIN field distinction
+
+Ryan explicitly approved the prepared four-field compiler repair on 2026-09-17
+and instructed continuation. Apply only exact matching surface/field identities
+`weight_decay`, `h1_weight`, `pde_weight`, `inference_weights` owned by
+`carbon_jax_lab_train`; retain all other authority checks. The same distinction
+is necessary in resolved-plan validation, which otherwise rejects the catalog's
+valid output. This changes construction control classification only, not score
+mathematics, scientific qualification, public-network authority or historic receipts.

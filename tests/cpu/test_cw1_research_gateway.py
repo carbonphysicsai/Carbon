@@ -1,6 +1,7 @@
 """Research transport preserves nominal v2 dispatch and requester isolation."""
 
 import asyncio
+import base64
 
 import pytest
 from test_b07g_research_service import _service_fixture
@@ -46,7 +47,11 @@ def compose(tmp_path):
             session="research",
             request="call-" + str(index),
             tool=namespace,
-            fields={"call": research.canonical_bytes(request).decode()},
+            fields={
+                "call_base64": base64.b64encode(
+                    research.canonical_bytes(request)
+                ).decode("ascii")
+            },
         )
 
     wire = body()
@@ -85,3 +90,33 @@ def test_unknown_requester_and_v1_namespace_never_dispatch(tmp_path):
         )
     with pytest.raises(ValueError, match="shared"):
         AuthenticatedResearchService(gateway, {owner: service, "other": service})
+
+
+def test_supervised_discovery_preserves_canonical_reply_and_owner_check(tmp_path):
+    from types import SimpleNamespace
+
+    gateway, service, owner, body = compose(tmp_path)
+    wrapper = AuthenticatedResearchService(gateway, {owner: service})
+    composition = SimpleNamespace(
+        service=service,
+        executor=SimpleNamespace(owner=owner),
+        tasks=service._context.research_task_provider,
+    )
+    wire = body(4)
+    result = asyncio.run(
+        wrapper.supervised_call(wire, _headers(wire, NOW + 3), {owner: composition})
+    )
+    reply = research.load_canonical(
+        base64.b64decode(result["protocol_reply_base64"]), research.ServiceReply
+    )
+    assert reply.status is research.ReplyStatus.OK
+    assert result["terminal_observation_base64"] is None
+    assert result["public_result"] is None
+    assert not result["requires_reconciliation"]
+    assert not result["official_eligible"]
+    wire = body(5)
+    composition.executor.owner = "other-miner"
+    with pytest.raises(ValueError, match="authenticated"):
+        asyncio.run(
+            wrapper.supervised_call(wire, _headers(wire, NOW + 4), {owner: composition})
+        )

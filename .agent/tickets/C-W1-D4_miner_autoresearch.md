@@ -94,16 +94,22 @@ real JAX practice program passed on manufactured engineering data with three
 updates, retained curve/checkpoint and physical-mean check. These diagnostics are
 not real-agent inference, Burgers quality evidence or canonical service acceptance.
 
-The new recipe catalog is not operational: automatic approval review rejected
-twice the exact central-validator exception for four C-02 TRAIN fields containing
-the word weight. Explicit owner confirmation was requested for that concrete
-repair. The validator remains unchanged; positive catalog and new negative-boundary
-tests remain pending. This is a tool approval block, not a claim that repository
-policy reserves routine training choices to an independent scientific reviewer.
+The owner explicitly approved the exact compiler repair on 2026-09-17.
+The catalog and resolved-plan validators now permit the four exact registered
+C-02 TRAIN fields only when surface, field and consumer match. Other guards stay
+active. Compiler/catalog/plan/gateway regression checks passed 142 tests.
 
-Remaining implementation includes complete real B-07 provider composition and
-workspace task extension, agent orchestration, metered C-04 data preparation,
-prospective final source/comparison integration and full delivery/Hub acceptance.
+The new real service composition now binds the existing twelve research
+operations, versioned workspace tasks, typed public authoring contracts, the
+registered compiler, static resource inspection and explicitly unresolved
+forecasts. Public TRAIN/practice reference preparation wraps C-04 with individual
+reservations, replay/artifact checks and failure retention. The local supervised
+reply retains nominal v2 replies and waits for tasks without model polling.
+Public task/recipe/scoring descriptions contain no realized final data.
+
+Remaining implementation includes authenticated agent orchestration, complete
+cancellation/recovery, prospective final source/comparison integration, real
+changed-surface acceptance and full delivery/Hub reconciliation.
 No PR or accepted D4 revision exists. No new model call, reference trajectory,
 campaign training trial, final reconstruction or network transaction occurred.
 The campaign clock has not started and none of its provider allowance was spent.
