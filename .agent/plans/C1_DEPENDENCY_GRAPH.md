@@ -67,7 +67,8 @@ C-EP3 + supplied immutable JAX bundle ─> C-02(merged DEVELOPMENT adapter prere
 | C-09 | `future_reserved`, unselected, blocked | ticket materialized here; sufficient | A10 boundary, C-06, C-07, C-EA2 | qualified provenance and Challenge-local publication/disclosure policy | signed real receipt/result and eligible real archive acknowledgement | materialized by this checkpoint | **no** |
 | C-W1 | official path `future_reserved`; C-W1-D1 historical row verified | ticket and PR #196 recovery | official: G2+C-09+C-EA2+real C1 | official science/security and future transaction authority remain open | subnet 567, publisher UID 0, miner UID 1 and WSL Docker host observed | current all-burn profile unchanged | **no** |
 | C-W1-D2 | done in PR #201 | authentic descriptive comparison | C-05, C-06, C-07, C-08, C-10, C-REWARD | historical no-acceptance-rule disposition preserved | none | no paying/network path | already delivered |
-| C-W1-D3 | selected; implementation and verification complete, delivery pending | balanced-v2 and derived measurement v3 | C-W1-D2, C-05, C-06, C-07, C-08, C-10, C-REWARD | delegated DEVELOPMENT choices resolved; official qualification reserved | fresh training/model authority absent | no paying/network path | **yes, C-W1-D3 only** |
+| C-W1-D3 | done in PR #202 | balanced-v2 and derived measurement v3 | C-W1-D2, C-05, C-06, C-07, C-08, C-10, C-REWARD | delegated DEVELOPMENT choices resolved; official qualification reserved | historical results remain retrospective | no paying/network path | already delivered |
+| C-W1-D4 | selected, engineering and finite campaign | versioned real public research and fresh final comparison | B-07G, accepted bounded C-02/C-03 prerequisites, C-04 through C-08, C-10, C-W1-D3, C-REWARD | fixed balanced-v2; no scientific or security qualification | existing private credentials and eligible local host | owner-authorized finite campaign after accepted delivery; no chain write | **yes, C-W1-D4 only** |
 
 ## Exact C-02 source resolution and remaining boundary
 
@@ -105,7 +106,7 @@ private-alpha preparation without implementing real acknowledgement; and PR
 C-EA1-D3's concrete unprovisioned AWS deployment package. The repository owner
 PR #183 accepted the C-W1-D1 foundation after AWS deployment was deferred and
 Hippius recorded as an unverified future storage preference. The repository
-owner selects only C-W1-D3's delegated non-paying DEVELOPMENT scoring path. C-EA2 and official C-W1 remain
+owner selects only C-W1-D4's finite non-paying DEVELOPMENT autoresearch path. C-EA2 and official C-W1 remain
 unimplemented/ineligible. Public execution is still gated by exact observed
 network identity/capability and transaction authorization. This graph
 authorizes no protected reference, official science, real archive

@@ -112,7 +112,7 @@ in required run `34927991086` and normally merged the C-W1-D1 foundation as
 `65e2a3d5abee97e5eaf1538050e0dcfab22cc649`. Its operator execution/
 reconciliation continuation is the same selected ticket; no successor is
 selected and no public write is authorized.
-**Last completed slice:** C-W1-D2 non-paying descriptive comparison, PR #201
+**Last completed slice:** C-W1-D3 non-paying DEVELOPMENT scoring, PR #202
 **Primary Hub map_ref:** `WAVE-C`
 
 C-EA1 passed canonical acceptance in run `34558389185` at accepted head

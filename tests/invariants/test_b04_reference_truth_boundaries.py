@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import ast
 import sys
+import tomllib
 from pathlib import Path
 
 import pytest
-import tomllib
 
 from tests.invariants._import_analysis import direct_import_modules
 
@@ -195,8 +195,13 @@ def _is_allowed_evaluation_consumer(path: Path, module_name: str) -> bool:
             in {
                 _CARBON_ROOT / "orchestration" / "service.py",
                 _CARBON_ROOT / "development_session" / "data.py",
+                _CARBON_ROOT / "development_session" / "research_data.py",
             }
             and module_name == "carbon.evaluation.enums"
+        )
+        or (
+            path == _CARBON_ROOT / "development_session" / "research_authoring.py"
+            and module_name == "carbon.evaluation.refs"
         )
     )
 
@@ -368,3 +373,20 @@ def test_fixture_module_contains_no_scientific_or_live_authority_literals() -> N
         "live_eligible=True",
     )
     assert [literal for literal in forbidden if literal in source] == []
+
+
+def test_d4_consumes_only_reference_identity_and_outcome_enum():
+    for filename, module, symbols in (
+        ("research_authoring.py", "carbon.evaluation.refs", {"ReferencePolicyRef"}),
+        ("research_data.py", "carbon.evaluation.enums", {"ReferenceRunOutcome"}),
+    ):
+        path = _CARBON_ROOT / "development_session" / filename
+        imported = {
+            alias.name
+            for node in ast.walk(_parse(path))
+            if isinstance(node, ast.ImportFrom) and node.module == module
+            for alias in node.names
+        }
+        assert imported == symbols
+        assert _is_allowed_evaluation_consumer(path, module)
+        assert not _is_allowed_evaluation_consumer(path, "carbon.evaluation.execution")
