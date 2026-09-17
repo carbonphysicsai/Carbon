@@ -38,11 +38,14 @@ integrity evidence, not scientific or ownership authority. Retained outputs stay
 MINER_SELF_REPORTED and cannot replace fresh independent evaluation. An imported
 bundle alone must not enter the reconstruction service or validator image.
 
-Integrate with the existing public analysis image's explicit file allowlist and
-document the Python research workflow. No extra scheduler, ledger or public MCP
-operation is needed: the existing admitted `run_python` action executes research
-code and records the operation/image/source/input identities. Coordinate image
-source changes with the C-CORE-07 owner before writing shared files.
+Integrate through explicitly staged public helper source in the existing Python
+research workspace. The analysis image already contains the unchanged checkpoint
+and JAX implementation; its permitted installed files and historical identity do
+not change. The existing admitted `run_python` action executes this research code
+and records operation/image/source/input identities. No extra scheduler, ledger,
+image capability or public MCP operation is needed. C-CORE-07 image ownership is
+unaffected. This implementation-selected integration avoids invalidating existing
+analysis images merely to add a research helper.
 
 Alternatives: relaxing the established load_checkpoint environment check is
 rejected because it silently changes historical resume. Exporting compiled state
@@ -77,5 +80,15 @@ and continued training matched the existing strict checkpoint resume. Foreign
 principal, reused operation, precision change, tampering, unknown metadata and
 unbounded/non-array input cases rejected. The cross-backend branch is exercised
 only with explicitly labelled simulated source metadata; no accelerator ran.
-Exact repository py310 Ruff and Black passed. Public analysis-image integration,
-canonical acceptance, Hub and normal merge remain open.
+Exact repository py310 Ruff and Black passed.
+
+Actual existing-carrier integration passed in 32.08 seconds: two admitted CPU
+research workers saved a two-update bundle, transported only explicit helper and
+state bytes, restored under a new operation, and completed four updates equal to
+a fresh CPU control. Ledger usage was 23,037 numerical milliseconds, two research
+trials, 136,747 retained bytes and zero provider/reference calls. Replaying the
+second operation preserved both result and usage; both exact containers were
+absent after cleanup. The synthetic engineering fixture did not consume an owner
+campaign or authorize accelerator execution. The service case is required by
+`scripts/dev/c03_worker_service.sh`. Canonical acceptance, Hub and normal merge
+remain open.
