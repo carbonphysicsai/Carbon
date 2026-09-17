@@ -129,6 +129,9 @@ Operator build/composition instructions are in
 controller-owned public source seam imports `DOMAIN_LENGTH` and
 `requested_times` from `carbon.generators.burgers_dynamics`; it grants no
 protected generator access to miners, browser code or numerical workers.
+The prospective C-CORE-04 invariant allowance lists only that exact file and
+those symbols. All 29 generator-boundary tests passed locally, including
+negative probes for generation, role/module/wildcard imports and other consumers.
 
 ## Boundaries and conditional completion
 

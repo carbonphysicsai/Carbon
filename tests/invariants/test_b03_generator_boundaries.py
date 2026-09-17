@@ -64,6 +64,14 @@ _CORE02_GENERATOR_CONSUMERS = {
     },
 }
 
+# C-CORE-04 binds an existing public TRAIN definition to an operator-registered
+# Workbench draft. No generator, role selection or protected-case access follows.
+_CORE04_GENERATOR_CONSUMERS = {
+    "scientific_tasks/workbench.py": {
+        "carbon.generators.burgers_dynamics": {"DOMAIN_LENGTH", "requested_times"}
+    },
+}
+
 _EXPECTED_MODULE_PATHS = frozenset(
     {
         "__init__.py",
@@ -447,6 +455,8 @@ def test_existing_carbon_packages_do_not_reverse_import_generators() -> None:
             continue
         if path.relative_to(_CARBON_ROOT).as_posix() in _CORE02_GENERATOR_CONSUMERS:
             continue
+        if path.relative_to(_CARBON_ROOT).as_posix() in _CORE04_GENERATOR_CONSUMERS:
+            continue
         violations.extend(
             f"{_relative(path)}:{line}" for line in _imports_generators(path)
         )
@@ -573,9 +583,9 @@ def test_d4_controller_consumers_import_only_exact_public_generator_symbols():
         assert observed == allowed
 
 
-def _assert_core02_generator_symbols(path, tree):
+def _assert_registered_generator_symbols(path, tree, consumers):
     relative = path.relative_to(_CARBON_ROOT).as_posix()
-    assert relative in _CORE02_GENERATOR_CONSUMERS
+    assert relative in consumers
     observed = {}
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
@@ -594,13 +604,15 @@ def _assert_core02_generator_symbols(path, tree):
                 observed.setdefault(base, set()).update(
                     alias.name for alias in node.names
                 )
-    assert observed == _CORE02_GENERATOR_CONSUMERS[relative]
+    assert observed == consumers[relative]
 
 
 def test_core02_consumers_import_only_exact_public_case_symbols():
     for relative in _CORE02_GENERATOR_CONSUMERS:
         path = _CARBON_ROOT / relative
-        _assert_core02_generator_symbols(path, _parse(path))
+        _assert_registered_generator_symbols(
+            path, _parse(path), _CORE02_GENERATOR_CONSUMERS
+        )
 
 
 @pytest.mark.parametrize(
@@ -637,4 +649,45 @@ def test_core02_consumer_exceptions_do_not_admit_generation_or_module_imports(
     relative, source
 ):
     with pytest.raises(AssertionError):
-        _assert_core02_generator_symbols(_CARBON_ROOT / relative, ast.parse(source))
+        _assert_registered_generator_symbols(
+            _CARBON_ROOT / relative, ast.parse(source), _CORE02_GENERATOR_CONSUMERS
+        )
+
+
+def test_core04_workbench_imports_only_exact_public_case_symbols():
+    for relative in _CORE04_GENERATOR_CONSUMERS:
+        path = _CARBON_ROOT / relative
+        _assert_registered_generator_symbols(
+            path, _parse(path), _CORE04_GENERATOR_CONSUMERS
+        )
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        "from carbon.generators.burgers_dynamics import DOMAIN_LENGTH, requested_times, generate_development_case",
+        "from carbon.generators.burgers_dynamics import PublicDevelopmentRole",
+        "from carbon.generators.burgers_dynamics import *",
+        "from carbon.generators import GeneratorService",
+        "import carbon.generators.burgers_dynamics as generator",
+        "from carbon import generators",
+    ],
+)
+def test_core04_workbench_exception_rejects_broader_generator_access(source):
+    with pytest.raises(AssertionError):
+        _assert_registered_generator_symbols(
+            _CARBON_ROOT / "scientific_tasks/workbench.py",
+            ast.parse(source),
+            _CORE04_GENERATOR_CONSUMERS,
+        )
+
+
+def test_core04_workbench_exception_does_not_cover_another_consumer():
+    with pytest.raises(AssertionError):
+        _assert_registered_generator_symbols(
+            _CARBON_ROOT / "scientific_tasks/other.py",
+            ast.parse(
+                "from carbon.generators.burgers_dynamics import DOMAIN_LENGTH, requested_times"
+            ),
+            _CORE04_GENERATOR_CONSUMERS,
+        )
