@@ -98,6 +98,10 @@ validation remains CPU and never consumes worker compiled caches. GPU execution
 requires the exact newly built hash-locked image and NVIDIA daemon runtime.
 The image builder extends the normal clean-source C03 build and preserves wheel,
 entrypoint and source identities while updating parent/environment/recipe pins.
+Provenance and environment-lock files must remain readable by the numeric
+nonroot worker; the Docker build checks that identity directly. Installer caches
+are transient and permission freezing stays in the dependency-install layer,
+avoiding a duplicate CUDA library layer.
 TPU's profile/lock is prepared; this Docker device adapter rejects TPU dispatch.
 
 ## Acceptance and limitations

@@ -75,8 +75,9 @@ The script invokes the ordinary C03 clean-source builder, extends its immutable
 image with the hash-locked CUDA environment, and emits the ordinary image
 identity manifest. The Dockerfile verifies its installed profile/lock and retains
 the original source/wheel/entrypoint identities. No numerical initialization
-occurs during the image build. This recipe has not yet been built or exercised
-on an NVIDIA host; do not treat its labels as runtime acceptance.
+occurs during the image build. The build checks manifest and environment-lock
+readability under the actual nonroot worker identity and discards installer
+caches. Building/importing the image does not establish NVIDIA runtime acceptance.
 
 The operator-owned grant location is `/var/lib/carbon/accelerators/grant.json`;
 its closed schema is implemented in `worker/accelerator_runtime.py`. It requires

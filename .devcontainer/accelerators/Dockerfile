@@ -11,8 +11,10 @@ COPY --from=uv /uv /tmp/uv
 COPY .devcontainer/accelerators/cuda13-py311.txt /opt/carbon/accelerator-requirements.txt
 RUN test "sha256:$(sha256sum /opt/carbon/accelerator-requirements.txt | cut -d' ' -f1)" = "${ACCELERATOR_LOCK_DIGEST}" \
     && chmod -R u+w /opt/carbon-worker \
-    && /tmp/uv pip install --python /opt/carbon-worker/bin/python --require-hashes --only-binary=:all: --no-deps -r /opt/carbon/accelerator-requirements.txt \
-    && rm /tmp/uv
+    && TMPDIR=/tmp /tmp/uv --no-cache pip install --python /opt/carbon-worker/bin/python --require-hashes --only-binary=:all: --no-deps -r /opt/carbon/accelerator-requirements.txt \
+    && rm /tmp/uv \
+    && chmod -R a-w /opt/carbon-worker \
+    && chmod 444 /opt/carbon/accelerator-requirements.txt
 RUN WORKER_IMAGE="${WORKER_IMAGE}" ACCELERATOR_RECIPE_DIGEST="${ACCELERATOR_RECIPE_DIGEST}" ACCELERATOR_PROFILE_DIGEST="${ACCELERATOR_PROFILE_DIGEST}" ACCELERATOR_LOCK_DIGEST="${ACCELERATOR_LOCK_DIGEST}" /opt/carbon-worker/bin/python -I - <<'PY'
 import json
 import os
@@ -32,8 +34,9 @@ document.update(base_image_digest=os.environ["WORKER_IMAGE"],
                 lock_digest=os.environ["ACCELERATOR_LOCK_DIGEST"])
 path.chmod(0o600)
 path.write_text(json.dumps(document, sort_keys=True, separators=(",", ":")) + "\n")
+path.chmod(0o444)
 PY
-RUN chmod -R a-w /opt/carbon-worker /opt/carbon
+RUN chmod -R a-w /opt/carbon
 LABEL org.opencontainers.image.title="Carbon fixed NVIDIA DEVELOPMENT reconstruction worker" \
       org.opencontainers.image.description="Unqualified GPU worker; private host admission required" \
       org.opencontainers.image.carbon.c03.base-image="${WORKER_IMAGE}" \
@@ -42,4 +45,15 @@ LABEL org.opencontainers.image.title="Carbon fixed NVIDIA DEVELOPMENT reconstruc
       org.opencontainers.image.carbon.accelerator.profile="${ACCELERATOR_PROFILE_DIGEST}" \
       org.opencontainers.image.carbon.accelerator.environment="${ACCELERATOR_LOCK_DIGEST}"
 USER 65532:65532
+RUN /opt/carbon-worker/bin/python -I - <<'PY'
+import hashlib
+import json
+import pathlib
+from carbon.reconstruction.accelerators import GPU_PROFILE
+
+build = json.loads(pathlib.Path("/opt/carbon/worker-image-build.json").read_bytes())
+lock = pathlib.Path("/opt/carbon/accelerator-requirements.txt").read_bytes()
+assert build["lock_digest"] == GPU_PROFILE.environment_lock_digest
+assert "sha256:" + hashlib.sha256(lock).hexdigest() == build["lock_digest"]
+PY
 # The fixed C03 entrypoint waits for admission before numerical initialization.
