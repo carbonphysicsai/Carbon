@@ -302,6 +302,30 @@ none of those interfaces. The finite-completion repair and future external-agent
 integration must coordinate with that owner and ship as tested successors. Current
 CPU observations cannot establish unexecuted accelerator or Julia capabilities.
 
+### Prospective finite-completion repair
+
+After coordination, the core #209 executor assigned the narrowly scoped existing
+campaign-orchestrator repair to the Launchpad workstream. The successor iterates
+the epoch identities in the already validated frozen manifest instead of always
+attempting epochs 1 and 2. The immutable v1 envelope remains exactly two epochs;
+v2 can stop at its narrower one- or zero-epoch ceiling without preparing an
+inadmissible next epoch. All existing per-operation admission, final reserve,
+deadline, authentication, failure and cleanup checks remain authoritative.
+
+This is a prospective code repair. It does not migrate the observed campaign,
+erase its INTERRUPTED transition, change its eventual STOPPED state, extend its
+grant or reinterpret REJECTED_MANDATORY. A completed finite controller path is
+independent of accepted scientific improvement. A failed final operation still
+prevents the completion marker and retains its unresolved reservation.
+
+The non-spending regression runs the real orchestrator and CampaignLedger with
+explicit fixture boundaries for provider, authentication and numerical work.
+The unmodified loop reproduces resource-admission failures at zero and one
+epochs. Tests also cover the original two-epoch v1 envelope, two-epoch v2 grants,
+rejected final dispositions, unchanged terminal resume, early stop and failed
+final reservations. These fixtures are engineering evidence only; multi-iteration
+model-driven validation still requires a new explicitly admitted experiment.
+
 ## Focused verification
 
 ```sh
