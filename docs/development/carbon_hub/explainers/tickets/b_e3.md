@@ -40,12 +40,12 @@ B-E3 is specified, implemented, and tested only for the bounded structural cross
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/f333ef7b27fa40c1f355cb4216db14a40d815334/.agent/tickets/B-E3_credibility_crosswalk.md)
-- [Wave B controlling board](https://github.com/carbonphysicsai/Carbon/blob/f333ef7b27fa40c1f355cb4216db14a40d815334/.agent/WAVE_B.md)
-- [Working contract](https://github.com/carbonphysicsai/Carbon/blob/f333ef7b27fa40c1f355cb4216db14a40d815334/Design_Specs/Credibility_Crosswalk_Contract.md)
-- [Implementation plan](https://github.com/carbonphysicsai/Carbon/blob/f333ef7b27fa40c1f355cb4216db14a40d815334/.agent/plans/B-E3_credibility_crosswalk.md)
-- [B-E3 stable evidence](https://github.com/carbonphysicsai/Carbon/blob/f333ef7b27fa40c1f355cb4216db14a40d815334/.agent/evidence/wave_b/b-e3.md)
-- [Credibility package surface](https://github.com/carbonphysicsai/Carbon/blob/f333ef7b27fa40c1f355cb4216db14a40d815334/carbon/qualification/__init__.py)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/4e6a350fdb356077e947c585331d9d7f3e359795/.agent/tickets/B-E3_credibility_crosswalk.md)
+- [Wave B controlling board](https://github.com/carbonphysicsai/Carbon/blob/4e6a350fdb356077e947c585331d9d7f3e359795/.agent/WAVE_B.md)
+- [Working contract](https://github.com/carbonphysicsai/Carbon/blob/4e6a350fdb356077e947c585331d9d7f3e359795/Design_Specs/Credibility_Crosswalk_Contract.md)
+- [Implementation plan](https://github.com/carbonphysicsai/Carbon/blob/4e6a350fdb356077e947c585331d9d7f3e359795/.agent/plans/B-E3_credibility_crosswalk.md)
+- [B-E3 stable evidence](https://github.com/carbonphysicsai/Carbon/blob/4e6a350fdb356077e947c585331d9d7f3e359795/.agent/evidence/wave_b/b-e3.md)
+- [Credibility package surface](https://github.com/carbonphysicsai/Carbon/blob/4e6a350fdb356077e947c585331d9d7f3e359795/carbon/qualification/__init__.py)
 - [Working-decision notification](https://github.com/carbonphysicsai/Carbon/issues/42)
 
 > Every support result is structural only. Missing, stale, mismatched, circular, substituted, overstated, or required-human-input evidence fails closed; pending or absent sources stay visible, and audience projections do not disclose protected identities.
