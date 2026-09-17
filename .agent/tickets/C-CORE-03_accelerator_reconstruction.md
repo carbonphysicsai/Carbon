@@ -106,6 +106,34 @@ TPU's profile/lock is prepared; this Docker device adapter rejects TPU dispatch.
 
 ## Acceptance and limitations
 
+### Prepared accelerator candidate
+
+The prospective controller/profile implementation is implemented and locally
+tested. The exact isolated Python3.10-target Ruff and Black checks passed for
+all changed Python modules. Focused grant, lease, protocol and CPU regression
+checks passed; canonical delivery acceptance remains required. The ordinary CPU
+profile/schema interpretation is unchanged.
+
+The corrected CUDA image was built from source commit
+`12025a9b7736d18c6a9726552e9d7a12ce3b9224` with source archive digest
+`sha256:2ccdd991c17063547885090cbc6fecffcac0070e65d3b4810faa093fdd7ce874`.
+Its immutable image identity is
+`sha256:014693768c5bb5da745efffb206b9f63aacfc85adad0c574827893fb3c51b48d`.
+Nonroot, read-only, network-disabled package verification checked all 34 pinned
+distributions, exact lock/profile identities, installed service/protocol imports,
+readable provenance and absent installer cache without importing JAX or Torch.
+This evidence does not establish GPU execution. Image size was 6,036,044,575
+bytes after repairing root-only provenance permissions and removing the
+installer cache and duplicate library layer from the initial 12,468,651,488-byte
+build. The initial failed-validation image remains historical evidence.
+
+The later CPU foundation merge changed no accelerator execution or image-build
+input. This image retains its original source identity; no newer source/image
+identity is implied by navigation or programme reconciliation. The base container
+doctor passed; the separate accelerator gate rejected unavailable NVIDIA runtime.
+The named diagnostic container was removed and absence verified. No GPU/TPU
+allocation, host maintenance, campaign execution or cloud spend occurred.
+
 Require focused profile/protocol rejection tests, actual CPU harness diagnostics,
 CPU profile regression/golden identities, and applicable canonical full CPU,
 invariant, quality, package, worker-service and Hub checks under current delivery
