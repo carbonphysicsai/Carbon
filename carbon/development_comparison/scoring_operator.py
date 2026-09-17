@@ -45,7 +45,9 @@ def owner_report(ref):
         "Rule: " + RULE["id"] + " (`" + report["rule_digest"] + "`).",
         "**Disposition: "
         + d["disposition"]
-        + "**. No accepted real improvement, payment or network change is implied.",
+        + "**. Accepted improvement: "
+        + str(d["accepted_improvement"])
+        + ". This DEVELOPMENT decision establishes no payment or network change.",
         "",
         "Baseline construction: `"
         + json.dumps(report["baseline_strategy"], sort_keys=True)
@@ -54,9 +56,9 @@ def owner_report(ref):
         + json.dumps(report["challenger_strategy"], sort_keys=True)
         + "`.",
         "",
-        "Both are retained authentic results on the seen 12 TRAIN / 12 EVAL / 12 STRESS development subset. New derived measurements preserve original signed receipts. No fresh training or model calls occurred. Historical agent feedback use is recorded in the prior session; this measurement task ran no new agent.",
+        "The signed sources use the seen 12 TRAIN / 12 EVAL / 12 STRESS development subset. Derived measurements preserve original signed receipts. This scoring command dispatches no training or model calls; source-session execution and feedback use retain their separate accounting.",
         "",
-        "| Role | Metric (lower is better) | FNO-40 mean | FNO-48 mean | Difference | Baseline replica SD | Challenger replica SD |",
+        "| Role | Metric (lower is better) | Baseline mean | Challenger mean | Difference | Baseline replica SD | Challenger replica SD |",
         "|---|---|---:|---:|---:|---:|---:|",
     ]
     for role in ("EVAL", "STRESS"):
@@ -80,13 +82,13 @@ def owner_report(ref):
         "",
         "## Decision and limits",
         "",
-        f"Descriptive scores: {d['baseline']['score']:.9f} -> {d['challenger']['score']:.9f}. These are inadmissible diagnostic ranks, not accepted winner scores.",
+        f"Descriptive scores: {d['baseline']['score']:.9f} -> {d['challenger']['score']:.9f}. Rank alone does not establish admission or accepted improvement; use the bound decision above.",
         f"Finite-replica/reference score-difference envelope: {d['difference_interval']}. This is not a confidence interval.",
         "Baseline mandatory failures: "
-        + ", ".join(d["baseline"]["failed_mandatory"])
+        + (", ".join(d["baseline"]["failed_mandatory"]) or "none")
         + ".",
         "Challenger mandatory failures: "
-        + ", ".join(d["challenger"]["failed_mandatory"])
+        + (", ".join(d["challenger"]["failed_mandatory"]) or "none")
         + ".",
         "Reference sensitivity: `"
         + json.dumps(report["reference_indicators"], sort_keys=True)
