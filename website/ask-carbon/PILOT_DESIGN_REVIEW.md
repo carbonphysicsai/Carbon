@@ -1,7 +1,25 @@
 # Ask Carbon pilot-design review
 
-Status: implementation and local preview complete; live activation and public
-collection remain disabled.
+Status: implementation, private synthetic live evaluation, and bounded owner
+human-quality disposition complete; public activation and collection remain
+disabled.
+
+## Post-merge private evaluation and owner disposition
+
+PR #203 delivered the authenticated private staging evaluation. Its selected
+evidence contains nine synthetic scenarios and eleven live model turns, all
+returned through the normal reviewed-brief and `UNASSESSED` Workbench path.
+The owner subsequently approved the retained private human-review packet in
+the owner conversation. That disposition accepts the observed bounded guidance
+quality and its three visible missing-field limitations. It does not claim a
+separate Nick-authored review, customer usability, public privacy/security
+acceptance, scientific qualification, or deployment authorization.
+
+The exact live evidence remains pinned to
+`ask-carbon-staging-2026-09-16.1` and `gpt-5.6-luna:low:v1`. Current main's
+`ask-carbon-staging-2026-09-17.4` manifest is newer, staging-reviewed, and not
+public-approved. See `PUBLIC_RELEASE_DECISION_PACKET.md` for the next bounded
+decision.
 
 ## Exact visitor notice in the preview
 
@@ -74,19 +92,24 @@ it. This implementation creates no second allowance.
 - Mock browser conversation: executed through the generated artifact; client
   accepted one suggestion, rejected another, switched modes, undid a change,
   cleared local history, exported, and imported the package into Workbench.
-- Live model/provider calls: **0**.
-- Human quality review: **not performed**; complete public/synthetic output is
-  retained in `evidence/pilot-design-v1/human-review-packet.md` for a named
-  reviewer rather than converted to an automated quality claim.
+- Historical local/mock checkpoint: live model/provider calls were **0** and
+  human quality review was **not performed** at that point.
+- Later private live checkpoint: nine synthetic scenarios / eleven turns were
+  executed and retained in `evidence/pilot-design-live-2026-09-17-v3/` and
+  `v4/`; the combined packet is
+  `evidence/PILOT_DESIGN_PRIVATE_REVIEW_PACKET_2026-09-17.md`.
+- Owner quality disposition: **APPROVED_BOUNDED_PACKET** through explicit owner
+  conversation direction after PR #203. Individual reviewer comments beyond
+  that owner disposition are not claimed.
 - Actual customer usability observations: **none**.
 
-Live comparison remains unavailable because the knowledge release is staging-
-reviewed rather than public-approved, no provider secret or verified project
-policy is available, the actual provider retention posture for Carbon is
-unverified, and the private staging/receiving/deployment path is not
-established. Luna and Terra configurations and prices are pinned for testing,
-not selected by live evidence. Mock and authored tests are not model-quality
-evidence.
+The private live comparison is complete for the exact retained synthetic
+scope. Public service remains unavailable because the knowledge release is not
+public-approved, the observed provider project does not establish ZDR/MAM,
+general-Q&A production model selection remains open, and the public
+route/privacy/security decision is not accepted. The inquiry receiver/store is
+still absent. Mock, authored, and synthetic live tests are not customer
+usability or scientific evidence.
 
 ## Remaining production decisions
 

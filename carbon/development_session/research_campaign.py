@@ -527,7 +527,9 @@ async def execute(args, *, ledger=None):
             owner=owner,
         )
         feedback = None
-        for epoch in (1, 2):
+        # freeze() validates the immutable limit: v1 remains two epochs, while
+        # a narrower v2 grant must finish without preparing an inadmissible epoch.
+        for epoch in range(1, manifest["ceilings"]["epochs"] + 1):
             ledger.checkpoint()
             observation = {
                 "objective": objective(),
