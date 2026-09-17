@@ -2,8 +2,8 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `dd4251038aa9833f6c73b6954280a9adb73395ce` on `main`, captured 2026-09-17T15:48:40Z.
-**Current:** Wave C, ticket C-W1-D5. C-W1-D5: The prospective continuity repair passed focused canonical tests. Required acceptance, normal delivery and campaign two remain pending. Campaign one used USD 0.00818185, 96 references and 310.573 numerical seconds; zero training/final replicas. No later ticket is selected. Historical testnet 567 exact row [[0, 65535]] remains ROW_VERIFIED; burn, epoch effects and settlement remain unproven. AWS is deferred; website and Workbench work/spending stay separate. Distinct miner UID 1 finalized in the earlier setup. Synthetic controls are not results of the real agent. No subsequent activation or weight transaction is authorized.
+**Authority snapshot:** `0d11cc31158e6057b69de6bb6dd45298a8f3e894` on `main`, captured 2026-09-17T15:52:50Z.
+**Current:** Wave C, ticket C-W1-D5. C-W1-D5: The prospective continuity repair passed focused canonical tests. Required acceptance, normal delivery and campaign two remain pending. Campaign one used USD 0.00818185, 96 references and 310.573 numerical seconds; zero training/final replicas. No later ticket is selected. Historical testnet 567 exact row [[0, 65535]] remains ROW_VERIFIED; burn amounts, epoch effects and settlement remain unproven. AWS stays deferred and Hippius unverified. Website and Workbench work and spending are separate. No later ticket is selected. Distinct miner UID 1 finalized in the earlier setup; no identities were registered here. Synthetic controls are not results of the real agent. No subsequent activation or weight transaction is authorized. Subnet 567 creation finalized at block 8010852 in the earlier C-W1 DEVELOPMENT setup.
 **Last completed:** C-W1-D4 (`done`).
 **Next selected:** none selected.
 

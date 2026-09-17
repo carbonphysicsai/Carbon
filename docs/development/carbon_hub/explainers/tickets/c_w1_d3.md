@@ -40,10 +40,10 @@ Bounded DEVELOPMENT implementation and control verification only. Real accepted 
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/dd4251038aa9833f6c73b6954280a9adb73395ce/.agent/tickets/C-W1-D3_development_scoring.md)
-- [Exact development rule](https://github.com/carbonphysicsai/Carbon/blob/dd4251038aa9833f6c73b6954280a9adb73395ce/docs/development/CW1_DEVELOPMENT_SCORING_RULE.md)
-- [Observed results](https://github.com/carbonphysicsai/Carbon/blob/dd4251038aa9833f6c73b6954280a9adb73395ce/docs/development/CW1_DEVELOPMENT_SCORING_RESULTS.md)
-- [Learning log](https://github.com/carbonphysicsai/Carbon/blob/dd4251038aa9833f6c73b6954280a9adb73395ce/docs/development/CW1_DEVELOPMENT_SCORING_LEARNING.md)
-- [Next experiment request](https://github.com/carbonphysicsai/Carbon/blob/dd4251038aa9833f6c73b6954280a9adb73395ce/docs/development/CW1_DEVELOPMENT_SCORING_NEXT_EXPERIMENT.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/0d11cc31158e6057b69de6bb6dd45298a8f3e894/.agent/tickets/C-W1-D3_development_scoring.md)
+- [Exact development rule](https://github.com/carbonphysicsai/Carbon/blob/0d11cc31158e6057b69de6bb6dd45298a8f3e894/docs/development/CW1_DEVELOPMENT_SCORING_RULE.md)
+- [Observed results](https://github.com/carbonphysicsai/Carbon/blob/0d11cc31158e6057b69de6bb6dd45298a8f3e894/docs/development/CW1_DEVELOPMENT_SCORING_RESULTS.md)
+- [Learning log](https://github.com/carbonphysicsai/Carbon/blob/0d11cc31158e6057b69de6bb6dd45298a8f3e894/docs/development/CW1_DEVELOPMENT_SCORING_LEARNING.md)
+- [Next experiment request](https://github.com/carbonphysicsai/Carbon/blob/0d11cc31158e6057b69de6bb6dd45298a8f3e894/docs/development/CW1_DEVELOPMENT_SCORING_NEXT_EXPERIMENT.md)
 
 > Rule values are provisional delegated product/scientific choices, not independent review. Seen historical sources cannot gain prospective acceptance.
