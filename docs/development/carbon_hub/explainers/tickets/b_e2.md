@@ -40,11 +40,11 @@ SPECIFIED, IMPLEMENTED, and TESTED are prepared only for the exact service seam 
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/267c449626b5f165bef3452c5bf3fd9d0da4e888/.agent/tickets/B-E2_reference_failure.md)
-- [Wave B controlling board](https://github.com/carbonphysicsai/Carbon/blob/267c449626b5f165bef3452c5bf3fd9d0da4e888/.agent/WAVE_B.md)
-- [B-E2 implementation plan](https://github.com/carbonphysicsai/Carbon/blob/267c449626b5f165bef3452c5bf3fd9d0da4e888/.agent/plans/B-E2_reference_failure.md)
-- [B-E2 stable evidence](https://github.com/carbonphysicsai/Carbon/blob/267c449626b5f165bef3452c5bf3fd9d0da4e888/.agent/evidence/wave_b/b-e2.md)
-- [Registered service boundary](https://github.com/carbonphysicsai/Carbon/blob/267c449626b5f165bef3452c5bf3fd9d0da4e888/carbon/evaluation/service_boundary.py)
-- [Reference failure fixtures](https://github.com/carbonphysicsai/Carbon/blob/267c449626b5f165bef3452c5bf3fd9d0da4e888/carbon/evaluation/service_fixtures.py)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/92e540b66e6ee94d3fad7a0907a2b571838506a3/.agent/tickets/B-E2_reference_failure.md)
+- [Wave B controlling board](https://github.com/carbonphysicsai/Carbon/blob/92e540b66e6ee94d3fad7a0907a2b571838506a3/.agent/WAVE_B.md)
+- [B-E2 implementation plan](https://github.com/carbonphysicsai/Carbon/blob/92e540b66e6ee94d3fad7a0907a2b571838506a3/.agent/plans/B-E2_reference_failure.md)
+- [B-E2 stable evidence](https://github.com/carbonphysicsai/Carbon/blob/92e540b66e6ee94d3fad7a0907a2b571838506a3/.agent/evidence/wave_b/b-e2.md)
+- [Registered service boundary](https://github.com/carbonphysicsai/Carbon/blob/92e540b66e6ee94d3fad7a0907a2b571838506a3/carbon/evaluation/service_boundary.py)
+- [Reference failure fixtures](https://github.com/carbonphysicsai/Carbon/blob/92e540b66e6ee94d3fad7a0907a2b571838506a3/carbon/evaluation/service_fixtures.py)
 
 > The boundary accepts only exact B-04 identities and emits only B-04 run records. Failure never yields an artifact or fallback; supported fixtures remain FIXTURE_ONLY and MMS remains verification-only.
