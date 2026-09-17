@@ -139,6 +139,8 @@ settlement, weight, or emission claim.
 - [Owner C0 reward program](https://github.com/carbonphysicsai/Carbon/blob/bce71c600cb8348939dfbe78cf9ee752ded56458/.agent/plans/C0_score_reward_program.md)
 - [Persistent direct-payment launch option](https://github.com/carbonphysicsai/Carbon/blob/bce71c600cb8348939dfbe78cf9ee752ded56458/launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.6.md)
 - [Supervised Burgers session and numerical observations](https://github.com/carbonphysicsai/Carbon/blob/bce71c600cb8348939dfbe78cf9ee752ded56458/docs/development/CW1_BURGERS_AGENT_SESSION.md)
+- [C-MLP-01 private controller rehearsal](https://github.com/carbonphysicsai/Carbon/blob/bce71c600cb8348939dfbe78cf9ee752ded56458/.agent/tickets/C-MLP-01_development_launchpad.md)
+- [Miner Launchpad research integration handoff](https://github.com/carbonphysicsai/Carbon/blob/bce71c600cb8348939dfbe78cf9ee752ded56458/docs/development/MINER_LAUNCHPAD_HANDOFF.md)
 
 Authority snapshot: `bce71c60` on `main`,
 captured 2026-09-17T12:31:00Z.

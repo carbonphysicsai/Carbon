@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Carbon | Miner Launchpad · Development</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <header><a class="wordmark" href="/">carbon<span> / miner launchpad</span></a><span class="badge">DEVELOPMENT</span></header>
+  <main>
+    <section class="intro"><div><p class="eyebrow">MINER SETUP / FIRST BUILD</p><h1>Start the loop.</h1><p class="lede">Configure a run. Check the controls. Keep a record.</p></div><div class="local"><span class="dot"></span> Local controller</div></section>
+    <div class="notice"><strong>Controller rehearsal only.</strong> This build tests launch, pause, resume, stop and recovery. It does not run an AI agent, train a model, register a miner or submit to Carbon. External spend is $0.</div>
+    <section id="connect-panel" class="connect panel"><div><h2>Connect this browser</h2><p>Paste the local session token printed by the server. We keep it in this tab's memory.</p></div><form id="connect-form"><label for="token">Local session token</label><div class="inline"><input id="token" type="password" autocomplete="off" spellcheck="false" required><button type="submit">Connect</button></div></form></section>
+    <p id="message" class="message" role="status" aria-live="polite">Start the local server to use this page.</p>
+    <noscript><p class="notice">Enable JavaScript to connect to the local controller. No run will start without it.</p></noscript>
+    <div class="layout">
+      <section class="panel setup"><div class="panel-heading"><h2>New run</h2><span class="small-tag">01 / Configure</span></div>
+        <form id="launch-form"><fieldset id="launch-fields" disabled>
+          <label for="challenge">Challenge</label><select id="challenge"><option>Controller rehearsal v1</option></select><p class="hint">The Burgers research bridge is the next integration.</p>
+          <label for="agent">Agent</label><select id="agent"><option>Fixture driver · no language model</option></select>
+          <div class="two"><div><label for="reasoning">Reasoning</label><select id="reasoning"><option>None</option></select></div><div><label for="compute">Compute</label><select id="compute"><option>Local counter</option></select></div></div>
+          <div class="two"><div><label for="steps">Rehearsal steps</label><input id="steps" type="number" min="1" max="100" step="1" value="20" required></div><div><label for="seconds">Lifetime limit · seconds</label><input id="seconds" type="number" min="1" max="600" step="1" value="120" required></div></div>
+          <p class="hint">A pause or restart does not extend the lifetime. At most four active runs.</p>
+          <div class="cost"><span>External spend</span><strong>$0.00</strong></div>
+          <button class="primary" id="launch-button" type="submit">Launch rehearsal <span aria-hidden="true">↗</span></button>
+        </fieldset></form>
+      </section>
+      <section class="panel activity"><div class="panel-heading"><h2>Run activity</h2><span id="connection-state" class="small-tag">Disconnected</span></div>
+        <div id="empty" class="empty"><span class="empty-symbol" aria-hidden="true">↗</span><h3>Your first run starts here.</h3><p>Connect the browser, then launch a rehearsal. Closing this tab will not stop a run while the server remains running.</p></div>
+        <label for="run-picker" id="picker-label" hidden>Recent runs</label><select id="run-picker" hidden></select>
+        <div id="run-detail" hidden>
+          <div class="run-top"><div><p class="eyebrow">CONTROLLER REHEARSAL</p><code id="run-id"></code></div><span id="run-state" class="badge"></span></div>
+          <div class="metrics"><div><span>Fixture steps</span><strong id="run-steps"></strong></div><div><span>External spend</span><strong>$0.00</strong></div><div><span>Scientific result</span><strong class="no-result">None</strong></div></div>
+          <progress id="progress" max="100" value="0" aria-label="Rehearsal steps completed"></progress>
+          <p class="hint" id="deadline"></p>
+          <div class="controls"><button id="pause" type="button">Pause</button><button id="resume" type="button">Resume</button><button id="stop" type="button">Stop</button><button id="export" type="button">Export record</button></div>
+          <h3 class="timeline-title">Event history</h3><ol id="events" class="events"></ol>
+          <p class="hint">COMPLETED means the controller finished the rehearsal. It is not a successful research experiment or a mining receipt.</p>
+        </div>
+      </section>
+    </div>
+    <section class="panel integrations"><div class="panel-heading"><h2>Integration queue</h2><span class="small-tag">No provider calls in this build</span></div><div id="integrations" class="integration-grid"><p class="hint">Connect to read the backend capability list.</p></div></section>
+    <footer>Private development tool. Do not expose this server to the public internet.<span>Rehearsal evidence ≠ physics evidence</span></footer>
+  </main>
+</body>
+</html>

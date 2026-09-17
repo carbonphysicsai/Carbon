@@ -505,6 +505,14 @@
     "cw1_supervised_session": {
       "label": "Supervised Burgers session and numerical observations",
       "url": "https://github.com/carbonphysicsai/Carbon/blob/bce71c600cb8348939dfbe78cf9ee752ded56458/docs/development/CW1_BURGERS_AGENT_SESSION.md"
+    },
+    "miner_launchpad_ticket": {
+      "label": "C-MLP-01 private controller rehearsal",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/bce71c600cb8348939dfbe78cf9ee752ded56458/.agent/tickets/C-MLP-01_development_launchpad.md"
+    },
+    "miner_launchpad_handoff": {
+      "label": "Miner Launchpad research integration handoff",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/bce71c600cb8348939dfbe78cf9ee752ded56458/docs/development/MINER_LAUNCHPAD_HANDOFF.md"
     }
   },
   "authority_source_checks": [
@@ -1850,6 +1858,15 @@
       "required_markers": [
         "The real campaign has not started.",
         "## Local commands"
+      ]
+    },
+    {
+      "id": "miner-launchpad-controller-scope",
+      "path": ".agent/tickets/C-MLP-01_development_launchpad.md",
+      "required_markers": [
+        "SYSTEM/AGENT-EXECUTION",
+        "No Carbon scientific modules are called.",
+        "C-MLP-02: real public/synthetic DEVELOPMENT research bridge."
       ]
     }
   ],
@@ -3267,6 +3284,34 @@
         "path": "docs/publications/",
         "impact_class": "mapped_detail",
         "map_ref": "SYSTEM/PUBLICATION-AUTHORITY"
+      },
+      {
+        "id": "miner-launchpad-ticket",
+        "match_type": "exact",
+        "path": ".agent/tickets/C-MLP-01_development_launchpad.md",
+        "impact_class": "map_structural",
+        "map_ref": "SYSTEM/AGENT-EXECUTION"
+      },
+      {
+        "id": "miner-launchpad-handoff",
+        "match_type": "exact",
+        "path": "docs/development/MINER_LAUNCHPAD_HANDOFF.md",
+        "impact_class": "mapped_detail",
+        "map_ref": "SYSTEM/AGENT-EXECUTION"
+      },
+      {
+        "id": "miner-launchpad-controller",
+        "match_type": "prefix",
+        "path": "scripts/dev/miner_launchpad/",
+        "impact_class": "mapped_detail",
+        "map_ref": "SYSTEM/AGENT-EXECUTION"
+      },
+      {
+        "id": "miner-launchpad-tests",
+        "match_type": "exact",
+        "path": "tests/cpu/test_miner_launchpad.py",
+        "impact_class": "mapped_detail",
+        "map_ref": "SYSTEM/AGENT-EXECUTION"
       }
     ]
   },
