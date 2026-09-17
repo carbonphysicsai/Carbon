@@ -2811,7 +2811,7 @@
         "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
       ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/42#issuecomment-5711954374",
-      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/1e3f0fc5d9e7ea84889afb3ca1ef885c9763fc3f/.agent/DECISIONS.md"
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/cf2ca687031f246b5d50083738d4b51cdc317e58/.agent/DECISIONS.md"
     },
     {
       "title": "Use guided Ask Carbon and the form over one client pilot brief",

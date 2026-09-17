@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-17T09:25:42Z"
+  captured_at_utc: "2026-09-17T10:19:12Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "1e3f0fc5d9e7ea84889afb3ca1ef885c9763fc3f"
+  authority_snapshot_commit: "cf2ca687031f246b5d50083738d4b51cdc317e58"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -5712,8 +5712,8 @@ events:
     event_id: "WEB-QA-03-D1"
     owner_lane: "owner"
     status: "implemented"
-    summary: "Ask Carbon now has separate authenticated Cloudflare staging Workers backed by one shared Durable Object budget authority and a dedicated OpenAI project credential. Luna and Terra were evaluated through the real bounded backend; neither cleared the frozen final-answer reliability gate, so no production model is selected and carbonphysics.ai remains unchanged."
-    primary_detail: "https://github.com/carbonphysicsai/Carbon/blob/1e3f0fc5d9e7ea84889afb3ca1ef885c9763fc3f/.agent/tickets/WEB-QA-03_ask_carbon_private_staging.md"
+    summary: "Ask Carbon now has separate authenticated Cloudflare staging Workers backed by one canonical Durable Object budget authority and a dedicated OpenAI project credential. Luna and Terra were evaluated through the real bounded backend; neither cleared the frozen final-answer reliability gate. Concurrent Workbench evaluation exposure is retained through a durable shared-ledger offset, no production model is selected, and carbonphysics.ai remains unchanged."
+    primary_detail: "https://github.com/carbonphysicsai/Carbon/blob/cf2ca687031f246b5d50083738d4b51cdc317e58/.agent/tickets/WEB-QA-03_ask_carbon_private_staging.md"
     affects:
       - "SYSTEM/CI"
       - "SYSTEM/DEVELOPMENT-HUB"
@@ -5730,7 +5730,7 @@ events:
     owner_lane: "documentation_maintenance"
     status: "implemented"
     summary: "Register WEB-QA-03 under publication authority and repin the current Hub to the reconciled authority snapshot. The private staging evidence changes no scientific, Wave-C, qualification, network or production state."
-    primary_detail: "https://github.com/carbonphysicsai/Carbon/blob/1e3f0fc5d9e7ea84889afb3ca1ef885c9763fc3f/docs/development/carbon_hub/orientation/HUB_UPDATE_PLAYBOOK.md"
+    primary_detail: "https://github.com/carbonphysicsai/Carbon/blob/cf2ca687031f246b5d50083738d4b51cdc317e58/docs/development/carbon_hub/orientation/HUB_UPDATE_PLAYBOOK.md"
     affects:
       - "SYSTEM/AGENT-EXECUTION"
       - "SYSTEM/CI"
