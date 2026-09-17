@@ -557,7 +557,11 @@ async def execute(args, *, ledger=None):
         write_once(
             root / "campaign-complete.json",
             canonical(
-                {"status": "FINITE_CAMPAIGN_STOPPED", "new_network_transactions": 0}
+                {
+                    "status": "FINITE_CAMPAIGN_STOPPED",
+                    "new_network_transactions": 0,
+                    "completed_unix": ledger.clock(),
+                }
             ),
         )
     finally:
