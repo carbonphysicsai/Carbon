@@ -141,7 +141,12 @@ def test_remote_device_rejected_from_local_observation():
     ],
 )
 def test_invalid_device_metadata(field, value):
-    values = dict(device_id=0, process_index=0, platform="cpu", device_kind="Test")
+    values = {
+        "device_id": 0,
+        "process_index": 0,
+        "platform": "cpu",
+        "device_kind": "Test",
+    }
     values[field] = value
     with pytest.raises(p.BackendProbeError):
         p.DeviceObservation(**values)
@@ -273,8 +278,8 @@ def test_cli_outputs_observation(monkeypatch, capsys):
 
 
 def test_staged_worker_probes_pinned_cpu_before_reconstruction(monkeypatch, tmp_path):
-    from carbon.reconstruction.worker import protocol
     from carbon.reconstruction.profile import DEPENDENCY_SPECS
+    from carbon.reconstruction.worker import protocol
 
     calls = []
     monkeypatch.setattr(
