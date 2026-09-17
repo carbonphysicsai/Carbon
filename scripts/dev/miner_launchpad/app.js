@@ -150,7 +150,7 @@
         const reason = document.createElement("p"); reason.textContent = item.reason.replaceAll("_", " ");
         card.append(title, reason); $("integrations").append(card);
       }
-      message("Connected. Rehearsal records persist on this machine. No external provider is enabled.");
+      message("Connected. Records persist on this machine. Research dispatch requires the separate approved profile shown below.");
       await refresh();
       if (storageError) message("Browser retry storage is unavailable. Launch is disabled to preserve duplicate protection.", true);
     } catch (error) {

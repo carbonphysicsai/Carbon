@@ -141,8 +141,8 @@ settlement, weight, or emission claim.
 - [Supervised Burgers session and numerical observations](https://github.com/carbonphysicsai/Carbon/blob/267c449626b5f165bef3452c5bf3fd9d0da4e888/docs/development/CW1_BURGERS_AGENT_SESSION.md)
 - [C-MLP-01 private controller rehearsal](https://github.com/carbonphysicsai/Carbon/blob/267c449626b5f165bef3452c5bf3fd9d0da4e888/.agent/tickets/C-MLP-01_development_launchpad.md)
 - [Miner Launchpad research integration handoff](https://github.com/carbonphysicsai/Carbon/blob/267c449626b5f165bef3452c5bf3fd9d0da4e888/docs/development/MINER_LAUNCHPAD_HANDOFF.md)
-- [C-MLP-02: admission-disabled bridge; real validation pending](https://github.com/carbonphysicsai/Carbon/blob/267c449626b5f165bef3452c5bf3fd9d0da4e888/.agent/tickets/C-MLP-02_development_research_bridge.md)
-- [Launchpad runner admission, controls and verified projection](https://github.com/carbonphysicsai/Carbon/blob/267c449626b5f165bef3452c5bf3fd9d0da4e888/docs/development/MINER_LAUNCHPAD_RESEARCH_BRIDGE.md)
+- [C-MLP-02: first browser campaign stopped; adaptive final acceptance incomplete](https://github.com/carbonphysicsai/Carbon/blob/267c449626b5f165bef3452c5bf3fd9d0da4e888/.agent/tickets/C-MLP-02_development_research_bridge.md)
+- [Launchpad bridge, empirical findings and retained resource accounting](https://github.com/carbonphysicsai/Carbon/blob/267c449626b5f165bef3452c5bf3fd9d0da4e888/docs/development/MINER_LAUNCHPAD_RESEARCH_BRIDGE.md)
 - [REQUESTED_NOT_GRANTED: one Launchpad validation campaign](https://github.com/carbonphysicsai/Carbon/blob/267c449626b5f165bef3452c5bf3fd9d0da4e888/docs/development/MINER_LAUNCHPAD_VALIDATION_REQUEST.json)
 
 Authority snapshot: `267c4496` on `main`,

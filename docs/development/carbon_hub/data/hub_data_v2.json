@@ -511,11 +511,11 @@
       "url": "https://github.com/carbonphysicsai/Carbon/blob/267c449626b5f165bef3452c5bf3fd9d0da4e888/docs/development/MINER_LAUNCHPAD_HANDOFF.md"
     },
     "miner_launchpad_research_ticket": {
-      "label": "C-MLP-02: admission-disabled bridge; real validation pending",
+      "label": "C-MLP-02: first browser campaign stopped; adaptive final acceptance incomplete",
       "url": "https://github.com/carbonphysicsai/Carbon/blob/267c449626b5f165bef3452c5bf3fd9d0da4e888/.agent/tickets/C-MLP-02_development_research_bridge.md"
     },
     "miner_launchpad_research_bridge": {
-      "label": "Launchpad runner admission, controls and verified projection",
+      "label": "Launchpad bridge, empirical findings and retained resource accounting",
       "url": "https://github.com/carbonphysicsai/Carbon/blob/267c449626b5f165bef3452c5bf3fd9d0da4e888/docs/development/MINER_LAUNCHPAD_RESEARCH_BRIDGE.md"
     },
     "miner_launchpad_validation_request": {
@@ -1885,6 +1885,15 @@
         "OWNER-C-W1-RESEARCH-PROGRAM-01",
         "Default v1 preserves historical plans",
         "## Delivered engineering and finite program outcome"
+      ]
+    },
+    {
+      "id": "miner-launchpad-first-browser-outcome",
+      "path": ".agent/tickets/C-MLP-02_development_research_bridge.md",
+      "required_markers": [
+        "one rejected proposal, no completed practice",
+        "C-MLP-02 stays open",
+        "No D4 allowance transfers."
       ]
     }
   ],

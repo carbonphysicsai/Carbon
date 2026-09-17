@@ -112,6 +112,18 @@ class ResearchFixture:
             "available": True,
             "profile": "engineering-fixture",
             "status": "ENGINEERING_FIXTURE_ONLY",
+            "ceilings": {
+                "provider_nanodollars": 500000000,
+                "provider_attempts": 24,
+                "research_trials": 4,
+                "final_replicas": 12,
+                "numerical_milliseconds": 14400000,
+                "reference_trajectories": 512,
+                "reference_invocations": 2048,
+                "retained_bytes": 10737418240,
+                "epochs": 2,
+            },
+            "expires_unix": 21600,
         }
 
     def launch(self, value, key):

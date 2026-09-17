@@ -99,10 +99,30 @@ FIELDS = {
     "cancel_research_task": {"task_id": STRING},
 }
 DESCRIPTIONS = {
-    "start_research_task": "Run one real practice recipe, or a public workspace action. For practice: strategy_json is the recipe, action/arguments_json=null. For workspace: strategy_json=null. Actions: public_material {name: objective|capabilities|training_data|practice_data|reference_method}; inventory {}; read_file {name,offset,count<=4096}; write_file {name,content_base64,expected_digest}; notebook {kind:hypothesis|decision|notebook,body:object}; capability_request {request:{purpose,operation,hypothesis,public_evidence,reason,expected_benefit,estimated_cost,minimal_safe_design,verification}}; run_python {source,files:[own filenames],seconds:40..600,hypothesis,expected_effect}. Supervisor waits without model polling.",
+    "start_research_task": "Run one real practice recipe, or a public workspace action. Set kind=practice for a registered recipe: strategy_json is the recipe, action/arguments_json=null. Set kind=workspace for every workspace action, including run_python: strategy_json=null, action names the action and arguments_json contains its JSON object. Actions: public_material {name: objective|capabilities|training_data|practice_data|reference_method}; inventory {}; read_file {name,offset,count<=4096}; write_file {name,content_base64,expected_digest}; notebook {kind:hypothesis|decision|notebook,body:object}; capability_request {request:{purpose,operation,hypothesis,public_evidence,reason,expected_benefit,estimated_cost,minimal_safe_design,verification}}; run_python {source,files:[own filenames to stage],seconds:40..600,hypothesis,expected_effect}. An empty files list stages no workspace files. Supervisor waits without model polling.",
     "get_prior": "Discover prior availability; no registered prior pack in this profile.",
     "inspect_prior_alignment": "Unavailable without a registered prior pack; records capability limitation.",
 }
+
+TASK_CORRECTIONS = {
+    "practice_recipe_required": (
+        "kind=practice requires a registered recipe JSON string in strategy_json "
+        "and null action/arguments_json. For run_python or any other workspace "
+        "action, use kind=workspace, strategy_json=null and the action's arguments_json. "
+        "Only files explicitly listed in run_python arguments are staged."
+    ),
+    "workspace_recipe_forbidden": (
+        "kind=workspace requires strategy_json=null, an allowed action and its "
+        "arguments_json object. To practice a registered recipe, use kind=practice "
+        "with the recipe JSON string and null action/arguments_json."
+    ),
+}
+
+
+class TaskContractMismatch(ValueError):
+    """Allow-listed corrective feedback, never a private exception message."""
+
+
 TOOLS = [
     {
         "type": "function",
@@ -215,12 +235,16 @@ class ResearchMinerTools:
         ):
             raise ValueError("prospective bounded hypothesis required")
         if args["kind"] == "practice":
-            if args["action"] is not None or args["arguments_json"] is not None:
-                raise ValueError("practice arguments differ")
+            if (
+                args["action"] is not None
+                or args["arguments_json"] is not None
+                or type(args["strategy_json"]) is not str
+            ):
+                raise TaskContractMismatch("practice_recipe_required")
             spec = research.PracticeTaskSpec(_json(args["strategy_json"]), None)
         elif args["kind"] == "workspace":
             if args["strategy_json"] is not None:
-                raise ValueError("workspace is not a recipe")
+                raise TaskContractMismatch("workspace_recipe_forbidden")
             spec = research.DevelopmentWorkspaceTaskSpecV1(
                 "carbon.autoresearch.workspace.v1",
                 args["action"],
@@ -275,7 +299,15 @@ class ResearchMinerTools:
             if token is not None:
                 PRECHARGED_TRIAL.reset(token)
 
-    def rejected(self, operation, args, identity, *, reason="contract_incompatibility"):
+    def rejected(
+        self,
+        operation,
+        args,
+        identity,
+        *,
+        reason="contract_incompatibility",
+        correction=None,
+    ):
         """A pre-dispatch rejection is feedback, never an ambiguous execution."""
         record = {
             "purpose": args.get("expected_effect", "Not supplied by the requester"),
@@ -291,13 +323,19 @@ class ResearchMinerTools:
             "disposition": "investigate",
             "authority_granted": False,
         }
+        if correction in TASK_CORRECTIONS:
+            record["minimal_safe_design"] = TASK_CORRECTIONS[correction]
         self.ledger.note(owner=self.owner, kind="capability_request", body=record)
-        return {
+        result = {
             "status": "REJECTED_BEFORE_DISPATCH",
             "reason": reason,
             "detail": "Request does not satisfy the disclosed argument/recipe contract. Inspect capabilities and correct the request. This consumed the applicable proposal counter, but started no task.",
             "authority_granted": False,
         }
+        if correction in TASK_CORRECTIONS:
+            result["correction_code"] = correction
+            result["correction"] = TASK_CORRECTIONS[correction]
+        return result
 
     async def _call(self, name, args, identity):
         operation = name.removeprefix(PREFIX)
@@ -317,6 +355,8 @@ class ResearchMinerTools:
                 {} if unavailable else args,
                 identity,
             )
+        except TaskContractMismatch as exc:
+            return self.rejected(operation, args, identity, correction=exc.args[0])
         except (ValueError, TypeError, KeyError):
             return self.rejected(operation, args, identity)
         # Authentication and execution exceptions remain operational stops. Only
