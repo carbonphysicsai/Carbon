@@ -14544,3 +14544,22 @@ The initial policy migration pins the exact prior base and new classifier and
 manifest digests in the workflow. Subsequent delivery uses the protected-base
 classifier normally. This bounded bridge is explicit; it is not a generic
 candidate-controlled scope override. The protected-base Merge gate remains used.
+
+
+## OWNER-C-W1-D4-AUTORESEARCH-01 — finite public DEVELOPMENT miner research
+
+Ryan authorizes C-W1-D4 as specified in its ticket: implement and deliver real
+isolated public research, then one finite campaign within the recorded maxima.
+Ordinary engineering choices are delegated; no per-trial approval is required.
+Keep balanced-v2/measurement-v3 mathematics. New construction/cohort bindings are
+prospective. No chain writes, wallet use or qualification authority. Previous
+authorizations remain consumed/historical. The experiment clock begins only at
+its first operation; engineering and CI are reported separately.
+
+KEEP B-07, C-02/C-03, C-05/C-06/C-07/C-08/C-10 and C-REWARD owners. WRAP their
+current interfaces with versioned DEVELOPMENT adapters. Do not label fixture
+practice real, or run arbitrary scripts in the final evaluator. The minimum
+superseding change is the D4 ticket and corresponding versioned adapter/profile;
+historical interpretation remains unchanged. No new governance architecture.
+Primary map_ref WAVE-C/C-W1; Hub maintenance batched before acceptance under
+OWNER-DX-03. Owner direction grants no unsolicited third-party notification.

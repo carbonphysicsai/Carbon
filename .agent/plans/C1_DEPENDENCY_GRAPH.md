@@ -1,9 +1,9 @@
-# C1/C2 dependency graph: non-paying C-W1-D3 development scoring
+# C1/C2 dependency graph: C-W1-D4 finite miner autoresearch
 
 **Decision:** `OWNER-C1-CONTRACTS-01`
 **Status:** authoritative planning checkpoint after merge
 **Primary Hub map_ref:** `WAVE-C`
-**Implementation selection:** C-W1-D3 only. PR #201 merged the descriptive comparison. Ryan delegates bounded DEVELOPMENT measurement/scoring decisions; no fresh model/training or network execution is authorized.
+**Implementation selection:** C-W1-D4 only under OWNER-C-W1-D4-AUTORESEARCH-01. PR #202 merged balanced-v2 scoring and measurement v3. The new owner direction authorizes bounded public/synthetic research implementation and one finite off-chain campaign after accepted delivery. Scientific mathematics stays fixed; no chain transaction or qualification is authorized.
 
 ## Authority resolution
 
@@ -37,6 +37,7 @@ A10 boundary + C-06 + C-07 + C-EA2 ─> C-09
 G2(exact standard localnet only) + C-09 + C-EA2 + real signed C1 evidence ─> C-W1
 NET-2 + C-03 + C-06/C-07/C-08 + C-10 + checked publisher ─> C-W1-D1(public/synthetic DEVELOPMENT only)
 C-05 + C-06/C-07/C-08 + C-10 + C-REWARD ─> C-W1-D2(non-paying descriptive comparison only) ─> C-W1-D3(delegated DEVELOPMENT scoring; no paying/network path)
+B-07 research + C-02/C-03 containment + C-08 auth + C-W1-D3 ─> C-W1-D4(real public research, fresh final comparisons, finite campaign; in progress)
 NET-3 + C-01 + A4-A8 ─> C-EP1(done, DEVELOPMENT fixture only)
 C-EP1 ─> C-EP2(done measurement/replay only; no sharing runtime)
 C-EP2 + C-AUTH1 ─> C-EP3(done input acquisition/public component probe)
