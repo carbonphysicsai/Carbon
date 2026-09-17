@@ -24,6 +24,7 @@ from .research_agent_policy import (
     stop_result,
 )
 from .research_catalog import compile_recipe
+from .research_guidance import effective_digest
 from .research_tools import PREFIX, PROMPT, TOOLS, _json, _schema
 
 SELECT = "carbon_autoresearch_select_recipe"
@@ -86,6 +87,8 @@ async def run_epoch(
     }
     if autonomous:
         plan["agent_policy"] = policy
+    if "research_guidance" in initial_observation:
+        plan["effective_input_digest"] = effective_digest(policy, initial_observation)
     write_once(root / "plan.json", canonical(plan))
     start_id = "research-epoch-" + str(epoch)
     admitted = ledger.reserve(

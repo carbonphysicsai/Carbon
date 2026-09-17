@@ -6,7 +6,9 @@ import json
 from pathlib import Path
 
 from carbon.development_session.profile import digest
+from carbon.development_session.research_agent_policy import LEGACY, binding
 from carbon.development_session.research_control import CampaignControl
+from carbon.development_session.research_guidance import context, verify, verify_history
 from carbon.development_session.research_ledger import CampaignLedger
 from carbon.development_session.research_workspace import CAPABILITY_FIELDS
 
@@ -34,6 +36,13 @@ def project(row, root):
         "final_results": [],
         "official_eligible": False,
     }
+    task = verify(
+        json.loads(row["research_guidance"])
+        if row.get("research_guidance") is not None
+        else None
+    )
+    if task is not None:
+        value["research_guidance"] = task
     if not (root / "campaign.sqlite3").exists():
         return value
     ledger = CampaignLedger(root)
@@ -43,6 +52,12 @@ def project(row, root):
     if frozen is None:
         return value
     manifest = json.loads(frozen[0])
+    if verify(manifest.get("research_guidance")) != task:
+        raise ValueError("campaign guidance association differs")
+    if task is not None:
+        value["effective_research_inputs"] = verify_history(
+            root, task, manifest.get("agent_policy", binding(LEGACY)), context(manifest)
+        )
     if (
         manifest.get("campaign_id") != row["campaign"]
         or manifest.get("principal") != row["principal"]
