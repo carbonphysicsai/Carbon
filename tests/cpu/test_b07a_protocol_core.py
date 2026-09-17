@@ -314,7 +314,10 @@ def test_prior_channel_and_task_kind_are_closed_nominal_enums() -> None:
         "PRACTICE",
         "PAIRED_PRACTICE",
         "RESOURCE_CALIBRATION",
+        "DEVELOPMENT_WORKSPACE_V1",
     )
+    with pytest.raises(ValueError):
+        research.ResearchTaskKind("UNREGISTERED_WORKSPACE")
     with pytest.raises((TypeError, ValueError)):
         research.PriorChannelRef(
             info.challenge_key,
