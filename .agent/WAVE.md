@@ -34,7 +34,7 @@
 > historical evidence, and human-reserved scientific/security authority remain.
 
 **Current wave:** C
-**Current phase:** C-W1-D5 autonomous research continuity
+**Current phase:** C-W1-D5 finite research program closed
 **State:** **active in bounded engineering scope**
 **Wave A:** closed in bounded engineering scope
 **Wave B:** closed in bounded engineering scope after PR #118 accepted head
@@ -42,19 +42,40 @@
 normally merged as `ac050fd53ee18bf3788c167ee7b0736bbfd7a46b`, tree
 `46b38440f13a8048db18bc480ddb6907396c9017`
 **Controlling register:** `.agent/WAVE_C.md` version 2.6
-**Selected ticket:** C-W1-D5 — `in_progress`
-**Selection scope:** prospective autonomous research continuity and program campaign two under OWNER-C-W1-RESEARCH-PROGRAM-01; official C-W1 remains `future_reserved`.
-**Active ticket:** `.agent/tickets/C-W1-D5_autonomous_research_continuity.md`.
-**Next boundary:** C-W1-D5 tested continuity repair, normal delivery and campaign two; no chain writes.
-PR #206 delivered C-W1-D4 at ce6a7e389d9f4d815fbbb45c68db2eda8784a1e8, normal merge 54f8aff742b99fd2957fede73ea814f03da49eb6; required run 35226186473 passed. Its real campaign stopped after seven model calls, USD 0.00818185, 96 public reference trajectories and 310.573 numerical seconds. The agent asked for already-granted trial approval; zero training trials or final replicas ran. This is an orchestration finding, not a measured model failure or accepted improvement. C-W1-D5 is selected for prospective autonomous continuity under OWNER-C-W1-RESEARCH-PROGRAM-01. No chain writes.
+**Selected ticket:** C-W1-D5 — `done`
+**Selection scope:** no successor selected; all three OWNER-C-W1-RESEARCH-PROGRAM-01 campaign slots consumed; official C-W1 remains `future_reserved`.
+**Active ticket:** none. Last bounded ticket: `.agent/tickets/C-W1-D5_autonomous_research_continuity.md`.
+**Next boundary:** task-kind guidance and recoverable research errors are recommended; fresh campaign authority is required. No chain writes.
+PR #206 delivered C-W1-D4 at ce6a7e389d9f4d815fbbb45c68db2eda8784a1e8, normal merge 54f8aff742b99fd2957fede73ea814f03da49eb6; required run 35226186473 passed. Its real campaign stopped after seven model calls, USD 0.00818185, 96 public reference trajectories and 310.573 numerical seconds. The agent asked for already-granted trial approval; zero training trials or final replicas ran. This is an orchestration finding, not a measured model failure or accepted improvement. C-W1-D5 subsequently delivered in PR #208; the finite program is closed below. No chain writes.
 PR #196 delivered C-W1-REVEAL-01 at approved head
 `594b8cb668e9b133cb071b32f0ca3e7785d5c3f9`, required run `35143278595`, normal
 merge `15ecbe923c8710313cbeadadc8dd5c7d5ec2ae9e`. The historical publication is
 `ROW_VERIFIED`; its exact row is `[[0, 65535]]`. The numerical source remains
 `COMPLETE_UNRESOLVED`. Both transaction scopes are consumed. Burn amounts,
 epoch effects, miner payment and settlement remain unproven. C-W1-D2 permits
-no public-network transaction. C-W1-D3 and C-W1-D4 subsequently delivered; C-W1-D5 is selected separately.
-C-W1-D2 completed one non-paying DEVELOPMENT experiment on the seen 12 TRAIN / 12 EVAL / 12 STRESS subset: 8 real gpt-5-mini calls, one FNO-48 challenger against the authentic FNO-40 historical baseline, three real JAX replicas, 144 updates and 72 C-05 reports. Field and weak-PDE errors were lower; conserved-mean and STRESS maximum-principle defects worsened. Disposition: INDETERMINATE_NO_ACCEPTANCE_RULE. No scalar, tie, accepted improvement or winner is claimed. The agent used its permitted prior feedback and stopped after one evaluation. PR #201 merged as d1d07bb408a2b68efed70baf7e11ec22bb180c9d. C-W1-D2 engineering is complete; C-W1-D3 delivered in PR #202, merge 4a60d85323d1945fa0ec9815340618ad87e6e619. C-W1-D4 subsequently delivered; C-W1-D5 alone is selected under OWNER-C-W1-RESEARCH-PROGRAM-01.
+no public-network transaction. C-W1-D3 and C-W1-D4 subsequently delivered; C-W1-D5 subsequently delivered; no research successor is selected.
+C-W1-D2 completed one non-paying DEVELOPMENT experiment on the seen 12 TRAIN / 12 EVAL / 12 STRESS subset: 8 real gpt-5-mini calls, one FNO-48 challenger against the authentic FNO-40 historical baseline, three real JAX replicas, 144 updates and 72 C-05 reports. Field and weak-PDE errors were lower; conserved-mean and STRESS maximum-principle defects worsened. Disposition: INDETERMINATE_NO_ACCEPTANCE_RULE. No scalar, tie, accepted improvement or winner is claimed. The agent used its permitted prior feedback and stopped after one evaluation. PR #201 merged as d1d07bb408a2b68efed70baf7e11ec22bb180c9d. C-W1-D2 engineering is complete; C-W1-D3 delivered in PR #202, merge 4a60d85323d1945fa0ec9815340618ad87e6e619. C-W1-D4 subsequently delivered; C-W1-D5 subsequently delivered; all three finite research campaign slots are consumed.
+
+### Finite research program closeout (2026-09-17)
+
+PR #208 delivered C-W1-D5 at 4d1e3f54560c858be4ac20e51f3671f3d77900e6,
+normal merge bf21d2e58544701d45cd5c25033097ea10bc9d7c; required run
+35244485644 passed. Coordinated PR #207 delivered managed admission at
+3b6d2d9b5947b139c396f755fef8077d6885fbe8, merge
+0afbb9d98338353732ba2fce6716dbefd0af9bbc; required run 35255705251 passed.
+Three real campaigns consumed all program slots: 15 provider calls, USD
+0.01951925 usage-priced cost, 1339.179 numerical seconds, one completed
+512-update training trial, two rejected trial attempts, six final replicas
+and 288 reference calculations. The only final comparison reconstructed
+the same recipe on both sides and returned REJECTED_MANDATORY. No stronger
+recipe, admissible final model or accepted improvement was demonstrated.
+The third campaign stopped before training with resources remaining.
+No unresolved reservation, active worker or chain write remains. Unused
+allowances do not renew the program. See
+`docs/development/CW1_RESEARCH_PROGRAM_LEARNING.md` for outcomes, limitations
+and the next falsifiable interface hypothesis. C-MLP's separate browser
+acceptance is not established by this API-driven early-stop campaign.
+
 C-EA2 and official C-W1 remain blocked.
 C-EA1 passed canonical acceptance in run `34558389185` at accepted head
 `a779af066f4bf9bc36b6d6ab23914fa19191e1de` and normally merged in PR #136 as
