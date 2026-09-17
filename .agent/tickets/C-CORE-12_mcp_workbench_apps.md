@@ -77,6 +77,11 @@ Upstream references:
 - https://registry.npmjs.org/@modelcontextprotocol/ext-apps/2.0.0
 - https://py.sdk.modelcontextprotocol.io/advanced/extensions/
 
+The normal MCP lane in `scripts/dev/ci.sh` requires both the App wire suite and
+the real server/HTTP composition suite. The default CPU suite verifies source,
+asset, license and CSP identities. The desktop/mobile AppBridge harness remains
+a separately recorded local diagnostic, with no paid host or deployment claim.
+
 Completion remains conditional on the tested integrated head, required canonical
 checks, normal merge and bounded closeout under current OWNER-DX-03 policy.
 
