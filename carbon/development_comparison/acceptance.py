@@ -6,11 +6,13 @@ original signed sources and their old dispositions are never rewritten.
 """
 
 from __future__ import annotations
-import json
+
 import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
+
 import numpy as np
+
 from carbon.audit.derivation import (
     DevelopmentDerivation,
     sign_derivation,
@@ -22,9 +24,10 @@ from carbon.development_session.profile import canonical, digest
 from carbon.development_session.service import development_signer
 from carbon.development_testnet.execution import load_source_handoff
 from carbon.measurement_runtime.model import FrozenFieldArtifact
-from carbon.scoring.development import RULE, rule_digest, compare
-from .sources import read_json, resolve_source
+from carbon.scoring.development import RULE, compare, rule_digest
+
 from .numerical import run_numerical
+from .sources import read_json, resolve_source
 
 
 @dataclass(frozen=True)
@@ -116,6 +119,8 @@ def register(root, *, template_source, quarantine_journal, reference_root, sessi
 
 
 def registration(root, expected):
+    if (root / "derivation-revoked.json").exists():
+        raise ValueError("derived evidence signing authority revoked")
     body = read_json(root / "scoring-registration.json")
     if digest(canonical(body)) != expected:
         raise ValueError("registration pin mismatch")
@@ -222,6 +227,8 @@ def create_report(
     resume_completed=False,
 ):
     reg, _ = registration(root, registration_digest)
+    if image.image_id != reg["shared_bindings"]["worker_image_digest"]:
+        raise ValueError("diagnostic image differs from registered source environment")
     b, bt = _resolve(baseline_path, reg)
     c, ct = _resolve(challenger_path, reg)
     if b.identity["receipt_digest"] == c.identity["receipt_digest"]:
@@ -328,7 +335,7 @@ def resolve_acceptance(ref):
     for label in ("baseline", "challenger"):
         source, started = _resolve(Path(payload[label + "_source"]), reg)
         if any(
-            source.identity[k] != payload[label][k]
+            canonical(source.identity[k]) != canonical(payload[label][k])
             for k in ("receipt_digest", "source_digest", "binding")
         ):
             raise ValueError("source association changed")
@@ -340,4 +347,23 @@ def resolve_acceptance(ref):
         _bundle(
             source, Path(payload[label + "_source"])
         )  # Recheck exact retained artifact identities, not a numerical rerun.
+    if body["derivation"]["input_receipts"] != [
+        payload[k]["receipt_digest"] for k in ("baseline", "challenger")
+    ]:
+        raise ValueError("derived signature input association differs")
+    prospective = reg["created_at_micros"] < min(payload["construction_started_micros"])
+    indicators = payload["reference_indicators"]
+    computed = asdict(
+        compare(
+            tuple(payload["measurements"]["sources"][0]),
+            tuple(payload["measurements"]["sources"][1]),
+            prospective=prospective,
+            reference_field_indicator=indicators["field"],
+            reference_energy_indicator=indicators["energy"],
+        )
+    )
+    if payload["prospective"] is not prospective or canonical(computed) != canonical(
+        payload["decision"]
+    ):
+        raise ValueError("decision differs from exact evidence and rule")
     return payload

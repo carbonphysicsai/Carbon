@@ -14494,3 +14494,29 @@ and prospective acceptance use distinct versions and provenance.
 
 Primary Hub: WAVE-C/C-W1; affects C-05, C-07, C-10, C-REWARD and governance.
 Conflict class: DOCUMENTATION_LAG resolved by this narrow explicit delegation.
+
+## 2026-09-17 — C-W1-D3-D2: final finite-cohort DEVELOPMENT objective
+
+KEEP current signed sources, C-10, C-05 measurement ownership, A5 weighted
+geometric arithmetic and C-REWARD. The exact balanced-v2/derived-measurement-v3
+rule and value bases are in CW1_DEVELOPMENT_SCORING_RULE.md. Provisional physical
+and practical budgets are product choices under Ryan's delegation, not numerical
+floors or qualified science. All-case initial/mean/envelope/energy conditions
+precede soft accuracy/fidelity/worst-case aggregation. Every source remains
+official/protected/network/settlement ineligible.
+
+Two iterations completed: analytic controls passed but authentic retained data
+showed that 13-time trapezoidal reference balance could exceed the proposed
+resolution budget. Replace that mandatory test with sampled energy-path maximum,
+retain the full balance diagnostic, and keep all other policy values fixed.
+Retired V1 verification became development evidence; untouched V2 passed 21/21
+checks after freeze. Seen FNO-40/FNO-48 gained only new signed retrospective
+ranking, not acceptance. Both violate mandatory conditions. Shared-method
+reference refinement and three-replica ranges are empirical sensitivity,
+not independent review or population confidence.
+
+Real future acceptance needs registration before both constructions and active,
+compatible complete evidence at every use. Only such acceptance may enter the
+explicit non-paying simulation. The current all-burn publisher remains unchanged.
+No provider spend, fresh training or public-network transaction was authorized
+or performed by this ticket. One complete next-run request is prepared.

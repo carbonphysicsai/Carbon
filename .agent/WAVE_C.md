@@ -41,7 +41,7 @@ Wave C/C0 and this file as its controlling register.
 **Selection scope:** non-paying DEVELOPMENT comparison only; official C-W1
 remains `future_reserved`.
 **Active ticket:** `.agent/tickets/C-W1-D3_development_scoring.md`.
-**Next boundary:** implement and verify C-W1-D3 under delegated DEVELOPMENT authority; no new provider spend or public-network transaction is authorized.
+**Next boundary:** complete C-W1-D3 required CI and normal merge; the next fresh construction/agent experiment needs new bounded resource authority.
 PR #196 merged as `15ecbe923c8710313cbeadadc8dd5c7d5ec2ae9e` after run
 `35143278595` accepted head `594b8cb668e9b133cb071b32f0ca3e7785d5c3f9`.
 Historical public-testnet publication is `ROW_VERIFIED`, exact row `[[0, 65535]]`;
@@ -113,7 +113,7 @@ in required run `34927991086` and normally merged the C-W1-D1 foundation as
 `65e2a3d5abee97e5eaf1538050e0dcfab22cc649`. Its operator execution/
 reconciliation continuation is the same selected ticket; no successor is
 selected and no public write is authorized.
-**Last completed slice:** C-W1-D1 authorized all-burn publication and exact row verification
+**Last completed slice:** C-W1-D2 non-paying descriptive comparison, PR #201
 **Primary Hub map_ref:** `WAVE-C`
 
 C-EA1 passed canonical acceptance in run `34558389185` at accepted head
@@ -259,3 +259,7 @@ C-W1 still follows real C1, C-EA2 and its G2 dependency and is not selected.
 The G2 predicate is satisfied only by the retained standard-profile run and does
 not generalize to the failed fast profile or public networks. B-E4 and unfinished
 B-01G remain non-blocking.
+
+## C-W1-D3 observed implementation
+
+C-W1-D3 implements balanced-v2 DEVELOPMENT acceptance and non-paying reward simulation. Two bounded design iterations and analytic verification completed; retained FNO results are retrospective diagnostic ranks and fail mandatory conditions. No fresh training, model charge, real winner, payment or public-network transaction. Required CI and normal merge close engineering only.

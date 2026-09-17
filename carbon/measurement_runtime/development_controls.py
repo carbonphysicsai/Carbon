@@ -1,8 +1,11 @@
 """Frozen analytic verification controls; no model inference or training."""
 
 from __future__ import annotations
+
 import math
+
 import numpy as np
+
 from .development import crossing, measure
 
 RECIPES = {

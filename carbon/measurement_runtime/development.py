@@ -7,6 +7,7 @@ acceptance, qualified uncertainty bound, official ScoreInput or public payload.
 from __future__ import annotations
 
 import math
+
 import numpy as np
 
 VERSION = "carbon.c05.burgers-development-derived.v3"

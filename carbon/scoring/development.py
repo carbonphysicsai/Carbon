@@ -5,10 +5,13 @@ relabel or an official ScoreInput. Provenance is admitted by the comparison owne
 """
 
 from __future__ import annotations
+
 import math
 from dataclasses import dataclass
+
 from carbon.development_session.profile import canonical, digest
-from carbon.measurement_runtime.development import VERSION, METRICS
+from carbon.measurement_runtime.development import METRICS, VERSION
+
 from .engine import _combined_score
 from .model import LegScore, ScalarScore
 
@@ -180,6 +183,17 @@ def compare(
     for x in (reference_field_indicator, reference_energy_indicator):
         if type(x) is not float or not math.isfinite(x) or x < 0:
             raise ValueError("explicit finite numerical/reference indicators required")
+    for summary, source in ((b, baseline), (c, challenger)):
+        failures = set(summary["failed_mandatory"])
+        for row in source:
+            if (
+                row["measurement"]["metrics"]["energy_path_max"]
+                + reference_energy_indicator
+                + RULE["arithmetic_floor"]
+                >= RULE["hard_limits"]["energy_path_max"]
+            ):
+                failures.add(row["role"] + ":energy_path_max")
+        summary["failed_mandatory"] = sorted(failures)
     bkeys = {(r["role"], r["case"], r["replica"]) for r in baseline}
     if bkeys != {(r["role"], r["case"], r["replica"]) for r in challenger}:
         raise ValueError("incompatible cohorts")

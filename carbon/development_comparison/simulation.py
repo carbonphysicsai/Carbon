@@ -1,19 +1,21 @@
 """Non-paying DEVELOPMENT simulation adapter over C-REWARD's existing core."""
 
 from dataclasses import dataclass
+
 from carbon.development_session.profile import canonical, digest
 from carbon.rewards.core import (
-    DevelopmentTerms,
-    Record,
-    Holder,
-    Q12,
     DAY_MS,
-    opening,
-    advance_batch,
-    targets,
+    Q12,
+    DevelopmentTerms,
+    Holder,
+    Record,
     WinnerStatus,
+    advance_batch,
+    opening,
+    targets,
 )
 from carbon.scoring.development import rule_digest
+
 from .acceptance import DevelopmentAcceptanceRef, resolve_acceptance
 
 
@@ -30,7 +32,12 @@ class SimulationResult:
     network_eligible: bool = False
 
 
-def simulate(refs: tuple[DevelopmentAcceptanceRef, ...], *, clock_ms: int):
+def simulate(
+    refs: tuple[DevelopmentAcceptanceRef, ...],
+    *,
+    clock_ms: int,
+    activation_ms: tuple[int, ...],
+):
     if type(refs) is not tuple or not refs:
         raise ValueError("accepted comparison sequence required")
     state = None
@@ -38,7 +45,10 @@ def simulate(refs: tuple[DevelopmentAcceptanceRef, ...], *, clock_ms: int):
     artifacts = []
     previous = None
     context = None
-    for ref in refs:
+    if type(activation_ms) is not tuple or len(activation_ms) != len(refs):
+        raise ValueError("one explicit simulation activation per comparison required")
+    observed_activations = {}
+    for ref, activation in zip(refs, activation_ms, strict=True):
         report = resolve_acceptance(
             ref
         )  # ACTIVE/C-10/signature/artifact checks at every downstream use.
@@ -92,6 +102,8 @@ def simulate(refs: tuple[DevelopmentAcceptanceRef, ...], *, clock_ms: int):
             previous = base["receipt_digest"]
             artifacts.append(base["binding"]["strategy_digest"][7:])
         if ref.report_digest in events:
+            if observed_activations[ref.report_digest] != activation:
+                raise ValueError("conflicting replay clock")
             continue  # Query/replay cannot reset activation.
         if artifact in artifacts:
             raise ValueError("copying a construction cannot renew credit")
@@ -102,7 +114,7 @@ def simulate(refs: tuple[DevelopmentAcceptanceRef, ...], *, clock_ms: int):
             raise ValueError("comparison is not against current simulation incumbent")
         # Explicit simulation clock is ordered by admitted comparison sequence.
         # No wall-clock, block-time, registration or payment claim is inferred.
-        activation = len(events) * 1000
+        observed_activations[ref.report_digest] = activation
         record = Record(
             ref.report_digest[7:],
             artifact,

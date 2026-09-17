@@ -1,13 +1,15 @@
 """Fixed evaluator-owned numerical diagnostics; input carries no credentials."""
 
 from __future__ import annotations
-from carbon.reference_runtime.model import decode_reference_request, _cole_hopf
-from carbon.development_session.profile import digest
+
 import numpy as np
+
+from carbon.development_session.profile import digest
 from carbon.measurement_runtime.development import measure
 from carbon.measurement_runtime.development_controls import controls
 from carbon.measurement_runtime.model import FrozenFieldArtifact
 from carbon.measurement_runtime.protocol import decode_measurement_request
+from carbon.reference_runtime.model import _cole_hopf, decode_reference_request
 
 
 def execute(bundle):
@@ -56,11 +58,9 @@ def execute(bundle):
                 )
                 e0 = q.domain_length * scale * scale / 2
 
-                def energy(w):
+                def energy(w, length=q.domain_length):
                     return (
-                        q.domain_length
-                        * np.mean((w - w.mean(axis=1)[:, None]) ** 2, axis=1)
-                        / 2
+                        length * np.mean((w - w.mean(axis=1)[:, None]) ** 2, axis=1) / 2
                     )
 
                 reference_checks[q.case_digest] = {

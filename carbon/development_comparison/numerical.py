@@ -1,10 +1,12 @@
 """Bounded trusted diagnostics using the existing C-03 isolated carrier."""
 
 from __future__ import annotations
+
 import fcntl
 import json
 import time
 from pathlib import Path
+
 from carbon.development_session.budget import SessionBudget
 from carbon.development_session.data import write_once
 from carbon.development_session.profile import (
@@ -48,7 +50,8 @@ def run_numerical(root: Path, identity: str, bundle: dict, image):
     with (task_root / "numerical.lock").open("a") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         budget = SessionBudget(task_root / "numerical-budget.sqlite3")
-        budget.reserve(identity, "numerical", 600.0, 7200.0, 12)
+        accounting_id = str(root.relative_to(task_root)) + "/" + identity
+        budget.reserve(accounting_id, "numerical", 600.0, 7200.0, 12)
         started = time.time()
         # Storage includes failures/partial output. Reserve 32 MiB before each run.
         files = list(task_root.rglob("*"))
@@ -160,5 +163,5 @@ def run_numerical(root: Path, identity: str, bundle: dict, image):
                 remove_exact_container(
                     cli=cli, container_name=name, launch_digest=launch
                 )
-        budget.finish(identity, time.time() - started, "COMPLETE")
+        budget.finish(accounting_id, time.time() - started, "COMPLETE")
         return json.loads(output.read_bytes())
