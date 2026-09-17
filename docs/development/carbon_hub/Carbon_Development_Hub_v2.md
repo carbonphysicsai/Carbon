@@ -2,7 +2,7 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `92e540b66e6ee94d3fad7a0907a2b571838506a3` on `main`, captured 2026-09-17T19:34:16Z.
+**Authority snapshot:** `00ee32c119b7c24d309640eeca439822e3d717f4` on `main`, captured 2026-09-17T20:29:45Z.
 **Current:** Wave C, ticket none active. C-W1-D5 is complete in its bounded engineering scope. No ticket is currently active. PR #208 delivered autonomous research instructions and structured stops. All three authorized campaigns ended: one training trial and six final replicas, no admissible final model or accepted improvement. The final campaign stopped before training with resources remaining. Program totals: 15 provider calls, USD 0.01951925 usage-priced cost, 1339.179 numerical seconds, two rejected trial attempts and 288 reference calculations. No unresolved reservations remain. No research successor is selected; unused budget does not renew the program. Historical testnet 567 publication remains ROW_VERIFIED, exact row [[0, 65535]]; burn amounts, epoch effects and settlement remain unproven. No subsequent activation or weight transaction is authorized. C-MLP browser validation remains separate. AWS stays deferred; unrelated website and Workbench work/spending remain separate. Synthetic incentive scenarios are not results of the real agent. C-W1 DEVELOPMENT retains historical Subnet 567 creation at block 8010852. Hippius unverified; its provider integration remains deferred.
 **Last completed:** C-W1-D5 (`done`).
 **Next selected:** none selected.
@@ -272,6 +272,7 @@
 - `C-CORE-01-D3` — `SYSTEM/AGENT-EXECUTION` — Core platform v3 extends existing services for JAX GPU/TPU, native Julia across miner, validator DEVELOPMENT and Workbench roles, and standard MCP. The first code slice verifies the pinned CPU backend inside the admitted supervised reconstruction worker. Hardware execution, Julia consumers, external clients and scientific qualification remain open. Preserve separately owned D5 campaigns and grants.
 - `C-CORE-01-SNAPSHOT-01` — `SYSTEM/DEVELOPMENT-HUB` — Pin the navigation snapshot to the committed v3 scope and admitted backend integration. This updates captured links only; existing Wave selection, campaigns, grants, historical event evidence and qualification ceilings remain unchanged.
 - `C-CORE-01-SNAPSHOT-02` — `SYSTEM/DEVELOPMENT-HUB` — Reconcile the combined core-platform and accepted PR #212 Launchpad findings. Retain both event histories, exact campaign accounting, unchanged D5 selection and open empirical acceptance; regenerate navigation from combined committed source.
+- `C-CORE-01-SNAPSHOT-03` — `SYSTEM/DEVELOPMENT-HUB` — Reconcile accepted finite research programme closeout from PR #213 with core platform v3. Preserve both event histories and the closed historical campaigns; this programme supplies no replacement campaign grant or qualification.
 
 ## Authority boundary
 
