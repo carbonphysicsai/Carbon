@@ -25,12 +25,15 @@ def test_c09_remains_contract_only_and_unselected() -> None:
     assert "Contract materialization only" in ticket
 
 
-def test_only_cw1_development_slice_is_selected() -> None:
+def test_cw1_program_is_closed_without_selecting_official_work() -> None:
     wave = _read(".agent/WAVE.md")
     wave_c = _read(".agent/WAVE_C.md")
     graph = _read(".agent/plans/C1_DEPENDENCY_GRAPH.md")
     for record in (wave, wave_c):
-        assert "**Selected ticket:** C-W1-D5 — `in_progress`" in record
+        assert "**Selected ticket:** C-W1-D5 — `done`" in record
+        assert "**Active ticket:** none." in record
+        assert "all three" in record
+        assert "REJECTED_MANDATORY" in record
         assert "**Active ticket:**" in record
         assert "C-W1-D1" in record
         assert "DEVELOPMENT" in record
@@ -54,7 +57,9 @@ def test_only_cw1_development_slice_is_selected() -> None:
         "| C-03 | PR #149 bounded DEVELOPMENT capability and PR #151 hardening accepted"
         in graph
     )
-    assert "**yes, C-W1-D5 only**" in graph
+    assert "**no successor selected**" in graph
+    assert "Any later real campaign" in graph
+    assert "requires fresh authority" in graph
     assert "AWS deployment deferred" in graph
     assert "Hippius preferred but unverified" in graph
 
@@ -85,11 +90,13 @@ def test_jax_and_archive_blocks_remain_complete_and_fail_closed() -> None:
     assert "synthetic-archive" in c09
 
 
-def test_hub_projects_only_cw1_development_slice() -> None:
+def test_hub_projects_closed_program_without_authority_renewal() -> None:
     data = json.loads(_read("docs/development/carbon_hub/data/hub_data_v2.json"))
     current = data["current"]
-    assert current["last_completed_ticket"]["id"] == "C-W1-D4"
-    assert current["selected_ticket"]["id"] == "C-W1-D5"
+    assert current["last_completed_ticket"]["id"] == "C-W1-D5"
+    assert current["last_completed_ticket"]["status"] == "done"
+    assert current["selected_ticket"] is None
+    assert "No automatic renewal" in current["decision_series_status"]
     assert current["next_selected_ticket"] is None
     tickets = {ticket["id"]: ticket for ticket in data["tickets"]}
     assert tickets["C-EP1"]["status"] == "done"
