@@ -69,6 +69,7 @@ C-EP3 + supplied immutable JAX bundle ─> C-02(merged DEVELOPMENT adapter prere
 | C-W1-D2 | done in PR #201 | authentic descriptive comparison | C-05, C-06, C-07, C-08, C-10, C-REWARD | historical no-acceptance-rule disposition preserved | none | no paying/network path | already delivered |
 | C-W1-D3 | done in PR #202 | balanced-v2 and derived measurement v3 | C-W1-D2, C-05, C-06, C-07, C-08, C-10, C-REWARD | delegated DEVELOPMENT choices resolved; official qualification reserved | historical results remain retrospective | no paying/network path | already delivered |
 | C-W1-D4 | delivered, campaign stopped before training | versioned real public research and fresh final comparison | B-07G, accepted bounded C-02/C-03 prerequisites, C-04 through C-08, C-10, C-W1-D3, C-REWARD | fixed balanced-v2; no scientific or security qualification | existing private credentials and eligible local host | owner-authorized finite campaign after accepted delivery; no chain write | **no, delivered bounded scope** |
+| C-W1-D5 | selected prospective continuity repair | versioned autonomous instructions and reasoned stop | C-W1-D4 | unchanged balanced-v2 and worker boundaries | existing credential and eligible host | program campaign two after accepted delivery | **yes, C-W1-D5 only** |
 
 ## Exact C-02 source resolution and remaining boundary
 
