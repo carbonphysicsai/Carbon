@@ -510,7 +510,9 @@ async def _run(config: OperatorConfig, source_path: Path) -> dict[str, object]:
     }
 
 
-async def _resume(config: OperatorConfig, source_path: Path) -> dict[str, object]:
+async def _resume(
+    config: OperatorConfig, source_path: Path, *, rescan_reveal: bool = False
+) -> dict[str, object]:
     if config.context is None or config.transaction_authorization is None:
         raise DevelopmentTestnetFailure("COMPLETE_AUTHORIZED_CONTEXT_REQUIRED")
     source = load_source_handoff(
@@ -518,7 +520,7 @@ async def _resume(config: OperatorConfig, source_path: Path) -> dict[str, object
         retention_root=config.retention_root,
         export_root=config.export_root,
     )
-    result = await execute_resume(config, source)
+    result = await execute_resume(config, source, rescan_reveal=rescan_reveal)
     return {
         "schema": "carbon.development-testnet.resume-result.v1",
         "dispatch": result,
@@ -536,8 +538,15 @@ def main(arguments: list[str] | None = None) -> int:
     parser.add_argument("--config", required=True, type=Path)
     parser.add_argument("--online", action="store_true")
     parser.add_argument("--source", type=Path)
+    parser.add_argument(
+        "--rescan-reveal",
+        action="store_true",
+        help="Resume only: restart bounded event reads after a finalized commitment.",
+    )
     args = parser.parse_args(arguments)
     try:
+        if args.rescan_reveal and args.command != "resume":
+            raise DevelopmentTestnetFailure("REVEAL_RESCAN_REQUIRES_RESUME")
         config = load_config(args.config.absolute())
         if args.command == "validate":
             result = {
@@ -560,7 +569,9 @@ def main(arguments: list[str] | None = None) -> int:
             if args.command == "run":
                 result = asyncio.run(_run(config, source_path))
             elif args.command == "resume":
-                result = asyncio.run(_resume(config, source_path))
+                result = asyncio.run(
+                    _resume(config, source_path, rescan_reveal=args.rescan_reveal)
+                )
             else:
                 result = execution_status(
                     config,

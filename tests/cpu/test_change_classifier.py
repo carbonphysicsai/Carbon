@@ -206,12 +206,12 @@ def test_merge_gate_rejects_unexpected_nonrequired_execution() -> None:
         ("tests/cpu/test_measurement.py", False),
         ("AGENTS.md", False),
         (".devcontainer/Dockerfile", True),
-        (".github/workflows/ci.yml", True),
-        ("scripts/dev/canonical.sh", True),
+        (".github/workflows/ci.yml", False),
+        ("scripts/dev/canonical.sh", False),
         ("uv.lock", True),
         ("pyproject.toml", True),
         ("requirements-dev.txt", True),
-        ("unclassified-file", True),
+        ("unclassified-file", False),
     ],
 )
 def test_clean_image_follows_execution_environment(path: str, required: bool) -> None:
@@ -262,3 +262,86 @@ def test_runtime_source_still_requires_real_canonical_and_hub_success() -> None:
     assert gate_failures(ChangeScope.RUNTIME_FULL, statuses, dev_image_required=True)
     with pytest.raises(ValueError, match="bool"):
         gate_failures(ChangeScope.RUNTIME_FULL, statuses, dev_image_required="false")
+
+
+def test_development_measurements_skip_unrelated_service_campaign_not_shared_owners():
+    for path in (
+        "carbon/measurement_runtime/development.py",
+        "carbon/measurement_runtime/development_controls.py",
+        "carbon/orchestration/development_feedback.py",
+    ):
+        result = classify_paths([path])
+        assert result.scope is ChangeScope.RUNTIME_FULL
+        assert not result.c03_worker_required
+        assert not result.dev_image_required
+        for shared in (
+            "carbon/measurement_runtime/model.py",
+            "carbon/orchestration/service.py",
+            "carbon/reconstruction/worker/controller.py",
+        ):
+            assert classify_paths([path, shared]).c03_worker_required
+    for name in ("RULE", "LEARNING", "RESULTS", "NEXT_EXPERIMENT"):
+        result = classify_paths([f"docs/development/CW1_DEVELOPMENT_SCORING_{name}.md"])
+        assert result.scope is ChangeScope.CONTRACT_AUTHORITY
+        assert not result.unknown_paths and not result.dev_image_required
+
+
+def test_actual_image_inputs_still_require_rebuild_in_mixed_development_change():
+    for path in (
+        "uv.lock",
+        "pyproject.toml",
+        ".python-version",
+        ".devcontainer/Dockerfile",
+        ".dockerignore",
+        "setup.cfg",
+    ):
+        assert classify_paths(
+            ["carbon/scoring/development.py", path]
+        ).dev_image_required
+    assert (
+        classify_paths(["new-root/unclassified.py"]).scope is ChangeScope.RUNTIME_FULL
+    )
+
+
+def test_owner_classifier_migration_is_exact_base_and_digest_bound(tmp_path):
+    import os
+    import shutil
+
+    workflow = (REPOSITORY_ROOT / ".github/workflows/ci.yml").read_text()
+    block = workflow.split("# OWNER-CW1-DEVELOPMENT-CI-01 BEGIN\n", 1)[1].split(
+        "# OWNER-CW1-DEVELOPMENT-CI-01 END", 1
+    )[0]
+    target = tmp_path / ".carbon-gate-candidate/scripts/dev"
+    target.mkdir(parents=True)
+    for name in ("classify_changes.py", "development_scope.py"):
+        shutil.copyfile(SCRIPT_ROOT / name, target / name)
+
+    def invoke(base):
+        return subprocess.run(
+            [
+                "bash",
+                "-c",
+                "set -euo pipefail\nclassifier=protected\n"
+                + block
+                + '\nprintf "%s" "$classifier"',
+            ],
+            cwd=tmp_path,
+            env={**os.environ, "BASE_SHA": base},
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+
+    prior = "d1d07bb408a2b68efed70baf7e11ec22bb180c9d"
+    valid = invoke(prior)
+    assert valid.returncode == 0 and valid.stdout.endswith(
+        ".carbon-gate-candidate/scripts/dev/classify_changes.py"
+    )
+    assert invoke("a" * 40).stdout == "protected"
+    for name in ("classify_changes.py", "development_scope.py"):
+        original = (target / name).read_bytes()
+        (target / name).write_bytes(original + b"\n# altered scope\n")
+        assert invoke(prior).returncode != 0
+        (target / name).write_bytes(original)
+    (target / "development_scope.py").unlink()
+    assert invoke(prior).returncode != 0

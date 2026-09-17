@@ -201,6 +201,20 @@ class LocalMinerConnection:
     chain_context: ChainContext
     publisher: str
     miner_key: object
+    comparison_contract_digest: str | None = None
+
+    def attach_development_comparison(self, ref):
+        from carbon.development_comparison.acceptance import resolve_acceptance
+
+        report = resolve_acceptance(ref)
+        if report["challenger"]["authenticated_hotkey"] != self.miner_key.ss58_address:
+            raise ValueError("only own development comparison feedback is permitted")
+        submission = report["challenger"]["binding"]["submission_id"]
+        if submission not in self.completed:
+            raise ValueError("comparison must bind this authenticated session result")
+        if not hasattr(self, "development_comparison_feedback"):
+            self.development_comparison_feedback = {}
+        self.development_comparison_feedback[submission] = ref
 
     def __post_init__(self):
         if self.chain_context.netuid != 567 or self.chain_context.network != "testnet":
@@ -235,6 +249,14 @@ class LocalMinerConnection:
         self.sequence = 0
         self.completed = {}
         self.submitted = {}
+        self.proposal_limit = 3
+        if self.comparison_contract_digest is not None:
+            from carbon.development_comparison.experiment import load_contract
+
+            contract = load_contract(self.root)
+            if digest(canonical(contract)) != self.comparison_contract_digest:
+                raise ValueError("comparison contract differs from selected agent plan")
+            self.proposal_limit = 2
 
     async def check_registration(self):
         observed = await BittensorReader().capture(self.chain_context)
@@ -252,13 +274,28 @@ class LocalMinerConnection:
             raise ValueError("unsupported miner tool")
         if len(canonical(fields)) > 16384:
             raise ValueError("tool input exceeds bound")
+        if self.comparison_contract_digest is not None:
+            from carbon.development_comparison.experiment import load_contract
+
+            if (
+                digest(canonical(load_contract(self.root)))
+                != self.comparison_contract_digest
+            ):
+                raise ValueError("comparison contract changed during session")
+        print(f"Miner tool: {tool}", flush=True)
         identity = None
         if "strategy" in fields:
             strategy = fields["strategy"]
             identity = digest(canonical(strategy))
             if identity not in self.proposals:
                 number = len(self.proposals) + 1
-                self.budget.reserve(f"proposal-{number}", "proposal", 1.0, 3.0, 3)
+                self.budget.reserve(
+                    f"proposal-{number}",
+                    "proposal",
+                    1.0,
+                    float(self.proposal_limit),
+                    self.proposal_limit,
+                )
                 self.proposals[identity] = number
                 write_once(self.root / f"proposal-{number}.json", canonical(strategy))
                 compiled = build_contracts().compile(strategy)
@@ -293,7 +330,7 @@ class LocalMinerConnection:
         result = await self.service.call(body, headers)
         value = result.mcp_result
         if type(value) is mcp.ChallengeInfo:
-            return {
+            projection = {
                 "challenge": profile_document(),
                 "effectively_live": False,
                 "strategy_schema": {
@@ -303,8 +340,24 @@ class LocalMinerConnection:
                     "parameters": {"steps": "integer 32..64"},
                 },
             }
+            if self.comparison_contract_digest is not None:
+                projection["session_limits"] = {
+                    "max_proposals_including_invalid": 2,
+                    "max_evaluations": 2,
+                    "replicas_per_evaluation": 3,
+                    "max_provider_calls": 24,
+                    "max_provider_usd": 1.0,
+                    "public_network_transactions": 0,
+                }
+            from carbon.orchestration.development_feedback import development_objective
+
+            projection["available_development_objective"] = development_objective()
+            projection["development_objective_activation"] = (
+                "requires separate prospective rule registration before fresh constructions; legacy source flags unchanged"
+            )
+            return projection
         if type(value) is mcp.PublishedPrior:
-            return {
+            projection = {
                 "prior": [
                     {
                         "kind": item.kind.value,
@@ -314,6 +367,23 @@ class LocalMinerConnection:
                     for item in value.directives
                 ]
             }
+            if self.comparison_contract_digest is not None:
+                from carbon.development_comparison.experiment import (
+                    baseline_for_session,
+                )
+
+                baseline = baseline_for_session(self.root)
+                if (
+                    baseline.identity["authenticated_hotkey"]
+                    != self.miner_key.ss58_address
+                ):
+                    raise ValueError("only own historical feedback is permitted")
+                projection["own_historical_development"] = {
+                    "strategy": baseline.strategy,
+                    "feedback": baseline.feedback,
+                    "cohort_previously_seen": True,
+                }
+            return projection
         if type(value) is mcp.PublishedScaffold:
             return {"strategy": value.strategy, "execution_deferred": True}
         if type(value) is mcp.DryValidateResponse:
@@ -333,6 +403,18 @@ class LocalMinerConnection:
 
             ref = self.transport.resolve(result.transport_receipt)
             requester = requester_for_receipt(self.chain_context, ref)
+            seeds = None
+            if self.comparison_contract_digest is not None:
+                from carbon.development_comparison.experiment import proposal_seeds
+
+                seeds = proposal_seeds(self.root, self.proposals[identity])
+                self.budget.reserve(
+                    f"evaluation-{self.proposals[identity]}", "evaluation", 1.0, 2.0, 2
+                )
+            print(
+                f"Reconstruction and evaluation: proposal {self.proposals[identity]}",
+                flush=True,
+            )
             numerical = evaluate(
                 self.root,
                 self.image_manifest,
@@ -340,9 +422,28 @@ class LocalMinerConnection:
                 value.status.submission_id.value,
                 requester,
                 execution_scope=ExecutionScope.REAL_PATH_NON_LIVE,
+                frozen_randomness=seeds,
             )
             complete = finish_handoff(
                 self, result.transport_receipt, requester, numerical
+            )
+            if self.comparison_contract_digest is not None:
+                self.budget.finish(
+                    f"evaluation-{self.proposals[identity]}", 1.0, "COMPLETE"
+                )
+                from carbon.development_comparison.report import write_report
+
+                ref = write_report(
+                    self.root,
+                    self.root / f"source-{value.status.submission_id.value}.json",
+                )
+                print(
+                    f"Comparison report: {ref.path}; INDETERMINATE_NO_ACCEPTANCE_RULE",
+                    flush=True,
+                )
+            print(
+                f"Evaluation complete: {value.status.submission_id.value}; COMPLETE_UNRESOLVED",
+                flush=True,
             )
             self.completed[value.status.submission_id.value] = (
                 complete,
@@ -367,9 +468,19 @@ class LocalMinerConnection:
             )
             if lifecycle is not audit.ReceiptLifecycleState.ACTIVE:
                 return {"status": "QUARANTINED", "feedback": None}
-            return {
+            result = {
                 "submission_id": value.status.submission_id.value,
                 "status": "COMPLETE_UNRESOLVED",
                 "feedback": feedback,
             }
+            ref = getattr(self, "development_comparison_feedback", {}).get(
+                value.status.submission_id.value
+            )
+            if ref is not None:
+                from carbon.orchestration.development_feedback import (
+                    project_development_acceptance,
+                )
+
+                result["development_comparison"] = project_development_acceptance(ref)
+            return result
         raise ValueError("unsupported service result projection")

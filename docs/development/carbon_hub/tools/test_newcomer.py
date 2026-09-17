@@ -84,9 +84,9 @@ class NewcomerProjectionTests(unittest.TestCase):
 
     def test_current_stage_comes_only_from_canonical_position(self) -> None:
         current = self.data["current"]
-        self.assertEqual(current["last_completed_ticket"]["id"], "C-10")
+        self.assertEqual(current["last_completed_ticket"]["id"], "C-W1-D2")
         self.assertEqual(current["last_completed_ticket"]["status"], "done")
-        self.assertEqual(current["selected_ticket"]["id"], "C-W1")
+        self.assertEqual(current["selected_ticket"]["id"], "C-W1-D3")
         self.assertEqual(current["selected_ticket"]["status"], "in_progress")
         self.assertIsNone(current["next_selected_ticket"])
         self.assertFalse(
@@ -102,8 +102,11 @@ class NewcomerProjectionTests(unittest.TestCase):
         self.assertIn("Distinct miner UID 1 finalized", self.output)
         self.assertIn("three real JAX replicas", self.output)
         self.assertIn("not results of the real agent", self.output)
+        self.assertIn("ROW_VERIFIED", current["stage"])
+        self.assertIn("exact row [[0, 65535]]", current["stage"])
         self.assertIn(
-            "No subsequent activation or all-burn publication occurred", self.output
+            "No subsequent activation or weight transaction is authorized",
+            current["stage"],
         )
 
     def test_changing_canonical_position_reprojects_every_current_surface(self) -> None:

@@ -34,28 +34,28 @@
 > historical evidence, and human-reserved scientific/security authority remain.
 
 **Current wave:** C
-**Current phase:** C-W1-D1 public/synthetic DEVELOPMENT testnet composition
+**Current phase:** C-W1-D3 measurement review and DEVELOPMENT scoring
 **State:** **active in bounded engineering scope**
 **Wave A:** closed in bounded engineering scope
 **Wave B:** closed in bounded engineering scope after PR #118 accepted head
 `c510095b5501587cf93c04632a26b7c303d7d48b` in run `34365282759` and
 normally merged as `ac050fd53ee18bf3788c167ee7b0736bbfd7a46b`, tree
 `46b38440f13a8048db18bc480ddb6907396c9017`
-**Controlling register:** `.agent/WAVE_C.md` version 2.4
-**Selected ticket:** C-W1 — `in_progress`
-**Selection scope:** bounded `C-W1-D1` DEVELOPMENT slice only; official C-W1
-remains `future_reserved`
-**Active ticket:** supervised Burgers V1 DEVELOPMENT agent/session continuation
-on public-testnet subnet 567, using the merged PR #185 run/status/resume path
-**Next boundary:** accept the C-W1 zero-fee publication guard, then obtain
-separate activation and exact all-burn publication authority. PR #191 merged
-the private-umask prediction repair. The newly approved real agent completed
-eight calls for USD 0.00738, one FNO-40 proposal, three isolated reconstructions
-(120 updates), 72 C-05 measurements, permitted aggregate feedback and an ACTIVE
-signed controller source. It ended without revising its strategy or making a
-second proposal. All three earlier stopped sessions remain retained. No accepted
-comparison, winner, activation or publication is claimed. Miner UID 1 remains
-finalized at 8013851 for 0.005426933 test TAO. C-EA2 and official C-W1 remain blocked.
+**Controlling register:** `.agent/WAVE_C.md` version 2.6
+**Selected ticket:** C-W1-D3 — `in_progress`
+**Selection scope:** delegated measurement review and non-paying DEVELOPMENT scoring only; official
+C-W1 remains `future_reserved`.
+**Active ticket:** `.agent/tickets/C-W1-D3_development_scoring.md`.
+**Next boundary:** complete C-W1-D3 required CI and normal merge; the next fresh construction/agent experiment needs new bounded resource authority.
+PR #196 delivered C-W1-REVEAL-01 at approved head
+`594b8cb668e9b133cb071b32f0ca3e7785d5c3f9`, required run `35143278595`, normal
+merge `15ecbe923c8710313cbeadadc8dd5c7d5ec2ae9e`. The historical publication is
+`ROW_VERIFIED`; its exact row is `[[0, 65535]]`. The numerical source remains
+`COMPLETE_UNRESOLVED`. Both transaction scopes are consumed. Burn amounts,
+epoch effects, miner payment and settlement remain unproven. C-W1-D2 permits
+no public-network transaction. C-W1-D3 is selected separately.
+C-W1-D2 completed one non-paying DEVELOPMENT experiment on the seen 12 TRAIN / 12 EVAL / 12 STRESS subset: 8 real gpt-5-mini calls, one FNO-48 challenger against the authentic FNO-40 historical baseline, three real JAX replicas, 144 updates and 72 C-05 reports. Field and weak-PDE errors were lower; conserved-mean and STRESS maximum-principle defects worsened. Disposition: INDETERMINATE_NO_ACCEPTANCE_RULE. No scalar, tie, accepted improvement or winner is claimed. The agent used its permitted prior feedback and stopped after one evaluation. PR #201 merged as d1d07bb408a2b68efed70baf7e11ec22bb180c9d. C-W1-D2 engineering is complete; C-W1-D3 alone is selected under OWNER-C-W1-D3-DELEGATION-01.
+C-EA2 and official C-W1 remain blocked.
 C-EA1 passed canonical acceptance in run `34558389185` at accepted head
 `a779af066f4bf9bc36b6d6ab23914fa19191e1de` and normally merged in PR #136 as
 `0e0714c8260ca482a0ba2b743b2eaefd50508da1`. `OWNER-C-EA1-SYNTHETIC-01`
@@ -731,3 +731,7 @@ future ticket, or authorize implementation or launch.
 - Wave-A `done` state and `.agent/WAVE_A_REPORT.md` are authoritative through
   the normally merged PR #52 closeout, only in their bounded engineering scope.
 - Do not convert fixture/stub success into scientific, security, network, commercial, or production qualification claims.
+
+## C-W1-D3 observed implementation
+
+C-W1-D3 implements balanced-v2 DEVELOPMENT acceptance and non-paying reward simulation. Two bounded design iterations and analytic verification completed; retained FNO results are retrospective diagnostic ranks and fail mandatory conditions. No fresh training, model charge, real winner, payment or public-network transaction. Required CI and normal merge close engineering only.

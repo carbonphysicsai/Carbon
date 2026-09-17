@@ -35,27 +35,22 @@
 
 **Status:** active in bounded engineering scope because `.agent/WAVE.md` names
 Wave C/C0 and this file as its controlling register.
-**Version:** 2.4
+**Version:** 2.6
 **Activation decision:** `OWNER-WAVE-C0-NET1-01`
-**Selected ticket:** C-W1 — `in_progress`
-**Selection scope:** bounded `C-W1-D1` DEVELOPMENT slice only; official C-W1
-remains `future_reserved`
-**Active ticket:** supervised Burgers V1 DEVELOPMENT agent/session continuation
-on public-testnet subnet 567, using PR #185's merged checked source and operator
-path; full V1 coverage and accepted comparison remain unclaimed
-**Next boundary:** accept the C-W1 zero-fee publication guard, then obtain
-separate activation and exact all-burn publication authority. PR #191 merged
-the private-umask prediction repair. The newly approved real agent completed
-eight calls for USD 0.00738, one FNO-40 proposal, three isolated reconstructions
-(120 updates), 72 C-05 measurements, permitted aggregate feedback and an ACTIVE
-signed controller source. It ended without revising its strategy or making a
-second proposal. All three earlier stopped sessions remain retained. No accepted
-comparison, winner, activation or publication is claimed. Miner UID 1 remains
-finalized at 8013851 for 0.005426933 test TAO. C-EA2 and official C-W1 remain blocked.
+**Selected ticket:** C-W1-D3 — `in_progress`
+**Selection scope:** non-paying DEVELOPMENT comparison only; official C-W1
+remains `future_reserved`.
+**Active ticket:** `.agent/tickets/C-W1-D3_development_scoring.md`.
+**Next boundary:** complete C-W1-D3 required CI and normal merge; the next fresh construction/agent experiment needs new bounded resource authority.
+PR #196 merged as `15ecbe923c8710313cbeadadc8dd5c7d5ec2ae9e` after run
+`35143278595` accepted head `594b8cb668e9b133cb071b32f0ca3e7785d5c3f9`.
+Historical public-testnet publication is `ROW_VERIFIED`, exact row `[[0, 65535]]`;
+the source remains `COMPLETE_UNRESOLVED`. Both transaction scopes are consumed.
+C-W1-D2 completed one non-paying DEVELOPMENT experiment on the seen 12 TRAIN / 12 EVAL / 12 STRESS subset: 8 real gpt-5-mini calls, one FNO-48 challenger against the authentic FNO-40 historical baseline, three real JAX replicas, 144 updates and 72 C-05 reports. Field and weak-PDE errors were lower; conserved-mean and STRESS maximum-principle defects worsened. Disposition: INDETERMINATE_NO_ACCEPTANCE_RULE. No scalar, tie, accepted improvement or winner is claimed. The agent used its permitted prior feedback and stopped after one evaluation. PR #201 merged as d1d07bb408a2b68efed70baf7e11ec22bb180c9d. C-W1-D2 engineering is complete; C-W1-D3 alone is selected under OWNER-C-W1-D3-DELEGATION-01.
+C-EA2 and official C-W1 remain blocked.
 `OWNER-C1-BURGERS-ALPHA-01` keeps one selected ticket at a time. Protected
 science, real archive acknowledgement and official public-network execution
-remain ineligible; only the exact C-W1-D1 DEVELOPMENT transaction can become
-eligible after its separately recorded gates pass.
+remain ineligible. C-W1-D2 authorizes no public-network transaction.
 PR #146 merged the initial adapter as
 `d9fadf7f9cbb9b3a2a4ffa1ec9b0c906826be8ca`; PR #147 accepted head
 `72608d589582707955943345bc1308017e9650dc` in run `34750621646` and merged
@@ -118,7 +113,7 @@ in required run `34927991086` and normally merged the C-W1-D1 foundation as
 `65e2a3d5abee97e5eaf1538050e0dcfab22cc649`. Its operator execution/
 reconciliation continuation is the same selected ticket; no successor is
 selected and no public write is authorized.
-**Last completed slice:** C-W1-D1 private-umask prediction repair, merged in PR #191
+**Last completed slice:** C-W1-D2 non-paying descriptive comparison, PR #201
 **Primary Hub map_ref:** `WAVE-C`
 
 C-EA1 passed canonical acceptance in run `34558389185` at accepted head
@@ -198,6 +193,8 @@ production custody, quorum, science or economics blocks only that operation.
 | C-EA2 | Archive before finalization | todo | `.agent/tickets/C-EA2_archive_before_finalization.md` | Evidence archive + validator integration | Operations + data/security + scientific integration | C-EA1, C-07 | MQ-048, MQ-051 | L | C1 |
 | C-09 | Official testnet publication provider | todo | `.agent/tickets/C-09_official_testnet_publication_provider.md` | Codex + publication/protocol engineering | Protocol + scientific integration + security | A10, C-06, C-07, C-EA2 | MQ-048, MQ-054 | L | C1/C2 |
 | C-W1 | Exact real testnet eligibility provenance | in_progress | `.agent/tickets/C-W1_testnet_eligibility.md` (bounded C-W1-D1 DEVELOPMENT slice only; official path remains future reserved) | Network/protocol + scientific integration | Security + Physics/SciML | NET-2, NET-4B, NET-6, C-06, C-07, C-08, C-10; official C-09 and C-EA2 non-blocking only for bounded DEVELOPMENT | MQ-048, MQ-054 | M | C2 |
+| C-W1-D2 | Non-paying DEVELOPMENT comparison bridge | done | `.agent/tickets/C-W1-D2_development_comparison.md` | Scientific integration | Physics/SciML + Security | C-05, C-06, C-07, C-08, C-10, C-REWARD | MQ-048, MQ-054 | M | C2 |
+| C-W1-D3 | Measurement review and non-paying DEVELOPMENT scoring | in_progress | `.agent/tickets/C-W1-D3_development_scoring.md` | Scientific integration | Physics/SciML + Security | C-W1-D2, C-05, C-06, C-07, C-08, C-10, C-REWARD | MQ-048, MQ-054 | M | C2 |
 
 NET-1: PR #120 expected head 528213a passed run 34405478897 and normally merged
 as 6dad22db26e4b8babadf73c4de2527a17485a2b1. Completion comment:
@@ -262,3 +259,7 @@ C-W1 still follows real C1, C-EA2 and its G2 dependency and is not selected.
 The G2 predicate is satisfied only by the retained standard-profile run and does
 not generalize to the failed fast profile or public networks. B-E4 and unfinished
 B-01G remain non-blocking.
+
+## C-W1-D3 observed implementation
+
+C-W1-D3 implements balanced-v2 DEVELOPMENT acceptance and non-paying reward simulation. Two bounded design iterations and analytic verification completed; retained FNO results are retrospective diagnostic ranks and fail mandatory conditions. No fresh training, model charge, real winner, payment or public-network transaction. Required CI and normal merge close engineering only.

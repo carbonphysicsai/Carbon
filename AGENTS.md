@@ -1,5 +1,13 @@
 # Carbon — Agent Engineering Instructions
 
+> **OWNER-C-W1-D3-DELEGATION-01:** Ryan delegates provisional scientific and
+> engineering choices only for the separately typed, non-paying C-W1-D3
+> DEVELOPMENT rule. See `.agent/DECISIONS.md` and
+> `docs/development/CW1_DEVELOPMENT_SCORING_RULE.md`. This is not independent
+> review; official/protected/production qualification, A5 fixture provenance,
+> historical receipts and public-network authority remain unchanged.
+
+
 > **OWNER-C0-REWARD-01 prospective amendment (2026-09-09):**
 > `launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.6.md` and
 > `.agent/plans/C0_score_reward_program.md` record the owner's sequential C0

@@ -2466,7 +2466,8 @@ class Validator:
             return version, {}
         rows: dict[str, dict[str, Any]] = {}
         ticket_id_expression = (
-            r"(?:[A-N](?:-\d+[A-Z]?\d*|\d+|-[A-Z][A-Z0-9]*)|" r"NET-\d+[A-Z]?)"
+            r"(?:[A-N](?:-\d+[A-Z]?\d*|\d+|-[A-Z][A-Z0-9]*)|"
+            r"NET-\d+[A-Z]?)(?:-D[1-9]\d*)?"
         )
         ticket_pattern = re.compile(
             rf"(?<![A-Z0-9-])({ticket_id_expression})(?![A-Z0-9-])"
@@ -2989,6 +2990,11 @@ class Validator:
             r"\b[A-N](?:-[A-Z0-9]+|[0-9]+)\b",
             source_fields.get("depends_on", "").upper(),
         )
+        if authoritative_ticket not in board_rows:
+            self.fail(
+                f"{source_label}: selected ticket is absent from controlling board"
+            )
+            return
         board_dependency_context = str(
             board_rows[authoritative_ticket].get("dependency_context", "")
         )

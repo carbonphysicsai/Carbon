@@ -15,6 +15,12 @@ from classify_changes import (
     changed_paths,
     classify_paths,
 )
+from development_scope import (
+    DEVELOPMENT_PUBLIC_DATA,
+    DEVELOPMENT_RUNTIME,
+    DEVELOPMENT_SUPPORT,
+    DEVELOPMENT_TESTS,
+)
 
 # This list owns only development-tooling regression files. A new file is not
 # implicitly exempt from runtime acceptance merely because it has a similar name.
@@ -48,6 +54,7 @@ _TOOLING_PATHS = frozenset(TOOLING_TESTS) | frozenset(
         "scripts/dev/ci_preflight.sh",
         "scripts/dev/classify_changes.py",
         "scripts/dev/select_cpu_profile.py",
+        "scripts/dev/development_scope.py",
         "docs/development/carbon_hub/tools/validate_hub.py",
         "docs/development/carbon_hub/tools/test_validator.py",
         "docs/development/carbon_hub/tools/test_newcomer.py",
@@ -210,6 +217,28 @@ def select_cpu_profile(
     No caller-supplied flag can label one of those paths as tooling-only.
     """
     classification = classify_paths(paths)
+    development = any(
+        path in DEVELOPMENT_RUNTIME
+        or path in DEVELOPMENT_TESTS
+        and path.startswith("tests/cpu/test_cw1_")
+        or path in DEVELOPMENT_SUPPORT
+        for path in paths
+    )
+    if development:
+        allowed_development = (
+            _TOOLING_PATHS
+            | DEVELOPMENT_RUNTIME
+            | DEVELOPMENT_SUPPORT
+            | set(DEVELOPMENT_TESTS)
+            | DEVELOPMENT_PUBLIC_DATA
+        )
+        if classification.unknown_paths or any(
+            item.scope is ChangeScope.RUNTIME_FULL
+            and item.path not in allowed_development
+            for item in classification.paths
+        ):
+            return "RUNTIME_FULL"
+        return "DEVELOPMENT_COMPETITION"
     network = any(path in _NETWORK_PATHS for path in paths)
     allowed = _TOOLING_PATHS | (_NETWORK_PATHS if network else frozenset())
     if network and net5_fixture_extension:
@@ -272,6 +301,7 @@ def main() -> int:
     parser.add_argument("--base", required=True)
     parser.add_argument("--tooling-tests", action="store_true")
     parser.add_argument("--network-tests", action="store_true")
+    parser.add_argument("--development-tests", action="store_true")
     args = parser.parse_args()
     try:
         paths = changed_paths(args.repository, args.base)
@@ -311,12 +341,23 @@ def main() -> int:
     except (ChangeClassificationError, OSError) as error:
         print(f"CPU profile selection failed: {error}", file=sys.stderr)
         return 2
-    if args.tooling_tests or args.network_tests:
-        expected = "NETWORK_FOUNDATION" if args.network_tests else "TOOLING_ONLY"
+    if sum((args.tooling_tests, args.network_tests, args.development_tests)) > 1:
+        print("Select exactly one test manifest.", file=sys.stderr)
+        return 2
+    if args.tooling_tests or args.network_tests or args.development_tests:
+        expected = (
+            "DEVELOPMENT_COMPETITION"
+            if args.development_tests
+            else "NETWORK_FOUNDATION" if args.network_tests else "TOOLING_ONLY"
+        )
         if profile != expected:
             print("Full runtime acceptance is required.", file=sys.stderr)
             return 2
-        tests = NETWORK_TESTS if args.network_tests else TOOLING_TESTS
+        tests = (
+            (*TOOLING_TESTS, *DEVELOPMENT_TESTS)
+            if args.development_tests
+            else NETWORK_TESTS if args.network_tests else TOOLING_TESTS
+        )
         for path in tests:
             if not (args.repository / path).is_file():
                 print(f"Required tooling test is missing: {path}", file=sys.stderr)

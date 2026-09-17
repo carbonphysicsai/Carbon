@@ -636,3 +636,40 @@ def test_source_handoff_context_and_configured_roots_are_mandatory(tmp_path):
             retention_root=tmp_path / "different-retention-root",
             export_root=config.export_root,
         )
+
+
+@pytest.mark.parametrize("command", ["run", "status", "doctor", "validate"])
+def test_reveal_rescan_is_only_a_resume_option(tmp_path, capsys, command):
+    path = write(tmp_path, document())
+    assert main([command, "--config", str(path), "--rescan-reveal"]) == 2
+    assert json.loads(capsys.readouterr().out)["status"] == "FAILED_CLOSED"
+
+
+def test_resume_forwards_explicit_rescan_without_wallet(tmp_path, monkeypatch, capsys):
+    from carbon.development_testnet import operator
+
+    path = write(tmp_path, document())
+    calls = []
+
+    async def resume(config, source, *, rescan_reveal=False):
+        calls.append((source, rescan_reveal))
+        return {"wallet_read": False, "transaction_resubmitted": False}
+
+    monkeypatch.setattr(operator, "_resume", resume)
+    monkeypatch.setattr(operator, "_wallet", lambda *_: pytest.fail("wallet opened"))
+    source = tmp_path / "source.json"
+    assert (
+        main(
+            [
+                "resume",
+                "--config",
+                str(path),
+                "--source",
+                str(source),
+                "--rescan-reveal",
+            ]
+        )
+        == 0
+    )
+    assert calls == [(source, True)]
+    assert json.loads(capsys.readouterr().out)["transaction_resubmitted"] is False
