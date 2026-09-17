@@ -1,0 +1,31 @@
+import { build } from "esbuild";
+import { createHash } from "node:crypto";
+import { readFile, readdir, writeFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
+import path from "node:path";
+const dir = path.dirname(fileURLToPath(import.meta.url));
+const root = path.resolve(dir, "../../..");
+const normalize = (text) => text.replaceAll("\r\n", "\n");
+const read = async (file) => normalize(await readFile(path.resolve(dir, file), "utf8"));
+const sha = (text) => createHash("sha256").update(text).digest("hex");
+const cspHash = (text) => "'sha256-" + createHash("sha256").update(text).digest("base64") + "'";
+const output = await build({ entryPoints: [path.join(dir, "view.mjs")], absWorkingDir: root, bundle: true, write: false, minify: true, format: "esm", target: "es2022", legalComments: "inline", charset: "utf8", metafile: true });
+const script = normalize(output.outputFiles[0].text).replaceAll("</script", "<\\/script");
+const style = await read("style.css");
+const csp = "default-src 'none'; script-src " + cspHash(script) + "; style-src " + cspHash(style) + "; connect-src 'none'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'";
+const html = (await read("shell.html")).replace("{{CSP}}", () => csp).replace("{{STYLE}}", () => style).replace("{{SCRIPT}}", () => script);
+const sources = ["view.mjs", "shell.html", "style.css", "build.mjs", "package.json", "pnpm-lock.yaml", "../../../Business/Carbon_Fit/workbench/src/scientific_studies.js", "../../../Business/Carbon_Fit/workbench/src/scientific_studies_ui.js"];
+const bundledRoots = new Set(Object.keys(output.metafile.inputs).map((file) => file.replaceAll("\\", "/").match(/^(.*node_modules\/(?:@[^/]+\/)?[^/]+)\//)?.[1]).filter(Boolean));
+const notices = [];
+for (const packageRoot of [...bundledRoots].sort()) {
+  const directory = path.resolve(root, packageRoot), metadata = JSON.parse(await readFile(path.join(directory, "package.json"), "utf8"));
+  const licenses = (await readdir(directory)).filter((name) => /^(licen[sc]e|notice)(\.|$)/i.test(name)).sort();
+  if (!licenses.length) throw Error("Missing redistribution license: " + metadata.name);
+  notices.push(metadata.name + "@" + metadata.version + " — " + metadata.license + "\n" + (await Promise.all(licenses.map((name) => readFile(path.join(directory, name), "utf8")))).join("\n"));
+}
+const licenseText = normalize(notices.join("\n\n--------------------\n\n")).replace(/[\t ]+$/gm, "");
+const manifest = { schema: "carbon.mcp-app.workbench-build.v1", spec: "2026-01-26", sdk: "@modelcontextprotocol/ext-apps@2.0.0", upstream: "352f6ced4d80772e92b4e7a311854481a8d65b04", normalization: "UTF-8, CRLF normalized to LF", sources: Object.fromEntries(await Promise.all(sources.map(async (file) => [path.relative(root, path.resolve(dir, file)).replaceAll("\\", "/"), sha(await read(file))]))), artifact: { name: "workbench.html", sha256: sha(html), bytes: Buffer.byteLength(html) }, licenses: { name: "THIRD_PARTY_LICENSES.txt", sha256: sha(licenseText) } };
+await writeFile(path.join(dir, "workbench.html"), html);
+await writeFile(path.join(dir, "THIRD_PARTY_LICENSES.txt"), licenseText);
+await writeFile(path.join(dir, "manifest.json"), JSON.stringify(manifest, null, 2) + "\n");
+process.stdout.write(JSON.stringify(manifest.artifact) + "\n");

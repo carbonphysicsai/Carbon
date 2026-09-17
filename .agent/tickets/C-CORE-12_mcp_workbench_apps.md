@@ -79,3 +79,42 @@ Upstream references:
 
 Completion remains conditional on the tested integrated head, required canonical
 checks, normal merge and bounded closeout under current OWNER-DX-03 policy.
+
+## Implementation and local evidence
+
+The optional extension, shared exact-instance composition, independent Workbench
+authorizer, fixed packaged HTML/manifest/licenses, and reused Workbench validation
+and plot are implemented. The default research surface remains App-free. Direct
+HTTP access with only research scope is rejected even when the tool is discovered.
+Real SDK wire calls use the existing Workbench domain fixture and retain one task
+and its original two reference invocations across repeated start/read/cancel.
+This is deterministic engineering evidence; its worker values are synthetic.
+
+Local WSL checks passed 14 combined App/Workbench tests, then 18 focused
+App/asset/MCP-boundary checks after source changes. The 18 existing scientific
+Workbench JavaScript tests passed. Strict isolated Python 3.10 Ruff/Black passed.
+The official App/AppBridge 2.0.0 browser harness passed at desktop and 390px mobile
+width, with one numerical plot, four controls, no page errors or external
+requests, and a CSP-blocked fetch. The view rejected forged qualification.
+These are not real commercial agent-host or paid-model observations.
+
+Two concrete findings changed the implementation: literal callback insertion
+prevents replacement-token expansion from changing bundled JavaScript/CSP bytes;
+independent cancellation state keeps cancel usable during a deferred synchronous
+start. The browser exercised start/cancel concurrency, an observed
+CANCEL_REQUESTED state, and subsequent completion without inferring release from
+the cancellation acknowledgement. Exact HTML LF attributes preserve package
+byte verification on Windows. Excluding the local npm dependency namespace from
+Python package discovery preserves the intended installed boundary; original
+upstream redistribution licenses accompany the fixed bundle.
+
+The fresh offline wheel check passed with installed npm dependencies present:
+only the fixed HTML, manifest and license notices were included, with no npm tree,
+build sources or unexpanded shell. Outside the checkout, `packaged_app()` returned
+the exact resource with optional SDK imports denied. This establishes package
+portability for the fixed view, not host deployment or security qualification.
+
+C-CORE-10 integration, canonical checks and normal delivery remain pending.
+No accelerator, native Julia, cloud, campaign, protected-data,
+scientific qualification or production security evidence is claimed by this App
+slice. Existing Workbench saved-file/lineage authority remains unchanged.

@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.mcp-app.workbench-build.v1",
+  "spec": "2026-01-26",
+  "sdk": "@modelcontextprotocol/ext-apps@2.0.0",
+  "upstream": "352f6ced4d80772e92b4e7a311854481a8d65b04",
+  "normalization": "UTF-8, CRLF normalized to LF",
+  "sources": {
+    "carbon/miner_mcp/apps_ui/view.mjs": "17e844ac163b95a7057f2c75c7615e0b51f2b47c3eb48977afd7cf2ce3a07c11",
+    "carbon/miner_mcp/apps_ui/shell.html": "24665936c1083157f7c0f0977a3ab144b4d7f40b28afd36b5307a34ea99fc169",
+    "carbon/miner_mcp/apps_ui/style.css": "1d9f06157bd97d6734436e4d9db9ec0de871a6b1d63ffdc2ace9a01780d11cff",
+    "carbon/miner_mcp/apps_ui/build.mjs": "4a8cb98abbeee8f71d10b5f9bce1ff67b6204165158671beab6614bc73e81a6b",
+    "carbon/miner_mcp/apps_ui/package.json": "e7e1cbf78f4118b4c2f6e97abd7fd9fe9171b520d1f9a8ad0198210462f02c56",
+    "carbon/miner_mcp/apps_ui/pnpm-lock.yaml": "aa1439b2f4da8c2229797c71aeca11b60c16a92efc8c7687ca2cde2674ad8eac",
+    "Business/Carbon_Fit/workbench/src/scientific_studies.js": "146b11e58a5a20eb455f04b4e3360dc27dc11dd93bc1298bb57641668bcb5e69",
+    "Business/Carbon_Fit/workbench/src/scientific_studies_ui.js": "edc8af966c1d2d8fc65440563bdf6c1e48cb0abe70b6c519b3f3abc90c8ffeba"
+  },
+  "artifact": {
+    "name": "workbench.html",
+    "sha256": "d03ffda3c0fbd5fd6b70ebd8de72ca604e7e947e9fce3389ea1495301d8b99d0",
+    "bytes": 588963
+  },
+  "licenses": {
+    "name": "THIRD_PARTY_LICENSES.txt",
+    "sha256": "416c28cf32152c869c57411d52c5894921e5ce0c8467815ca9cc6a9e964581bf"
+  }
+}

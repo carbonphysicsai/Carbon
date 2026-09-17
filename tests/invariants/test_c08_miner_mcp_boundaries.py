@@ -45,6 +45,7 @@ def test_package_is_exact_and_exports_no_official_or_network_surface() -> None:
         "standard_cli.py",
         "standard_server.py",
         "standard_http.py",
+        "mcp_apps.py",
         "store.py",
     }
     assert tuple(miner_mcp_exports) == (

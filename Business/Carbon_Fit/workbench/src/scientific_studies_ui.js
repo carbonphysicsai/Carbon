@@ -2,6 +2,18 @@
   "use strict";
   const S = root.CarbonScientificStudies;
   const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+  function plot(values, times) {
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("viewBox", "0 0 640 220"); svg.setAttribute("role", "img");
+    svg.setAttribute("aria-label", "Public source field at requested times " + times[0] + " and " + times[12]);
+    const rows = [values[0], values[12]], points = rows.flat(), low = Math.min(...points), high = Math.max(...points), scale = Math.max(Math.abs(low), Math.abs(high), 1), lower = low / scale, span = high / scale - lower || 1;
+    rows.forEach((row, index) => {
+      const line = document.createElementNS(svg.namespaceURI, "polyline");
+      line.setAttribute("points", row.map((value, x) => `${20 + x * 600 / 63},${190 - (value / scale - lower) * 160 / span}`).join(" "));
+      line.setAttribute("fill", "none"); line.setAttribute("stroke", index ? "#136f63" : "#a34413"); line.setAttribute("stroke-width", "2"); svg.append(line);
+    });
+    return svg;
+  }
   function create({ getDesign, notify, download }) {
     const controllers = new Map();
     const enabled = document.documentElement.dataset.scientificService === "private" && ["http:", "https:"].includes(location.protocol);
@@ -12,18 +24,6 @@
       const key = d.job_id + ":" + d.design_id;
       if (!controllers.has(key)) controllers.set(key, S.createController(enabled ? S.createAdapter() : null, getDesign));
       return controllers.get(key);
-    }
-    function plot(values, times) {
-      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-      svg.setAttribute("viewBox", "0 0 640 220"); svg.setAttribute("role", "img");
-      svg.setAttribute("aria-label", "Public source field at requested times " + times[0] + " and " + times[12]);
-      const rows = [values[0], values[12]], points = rows.flat(), low = Math.min(...points), high = Math.max(...points), scale = Math.max(Math.abs(low), Math.abs(high), 1), lower = low / scale, span = high / scale - lower || 1;
-      rows.forEach((row, index) => {
-        const line = document.createElementNS(svg.namespaceURI, "polyline");
-        line.setAttribute("points", row.map((value, x) => `${20 + x * 600 / 63},${190 - (value / scale - lower) * 160 / span}`).join(" "));
-        line.setAttribute("fill", "none"); line.setAttribute("stroke", index ? "#136f63" : "#a34413"); line.setAttribute("stroke-width", "2"); svg.append(line);
-      });
-      return svg;
     }
     function draw() {
       if (!panel?.isConnected || !getDesign()) return;
@@ -71,5 +71,5 @@
     }
     return Object.freeze({ mount });
   }
-  root.CarbonScientificStudyUI = Object.freeze({ create });
+  root.CarbonScientificStudyUI = Object.freeze({ create, plot });
 })(globalThis);
