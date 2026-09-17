@@ -95,7 +95,7 @@ slices; these are not declared delivered by this checkpoint.
 | Miner standard MCP | Python SDK 2.2.0 stdio and private HTTP; independent TypeScript client 2.0.0 wire test passed | Real agent host; remote authenticated deployment |
 | Validator Julia DEVELOPMENT diagnostic | Real Julia 1.13.0 C-04 worker, replay, deadline/cancel and verified cleanup | Scientific/reference/security qualification; protected use |
 | Miner Julia public TRAIN study through MCP | Actual public study, persisted result/reconnect, one 7283 ms numerical charge, two trajectories/invocations, 22154 retained bytes, no provider calls | Sweeps, training-support approval and isolated authored scripts |
-| Workbench Julia study | Shared consumer/UI under development | Integrated draft-bound private-service acceptance |
+| Workbench Julia study | C-CORE-04 existing UI/private-service consumer implemented; actual draft-bound Julia browser and HTTP studies, save/reopen/replay/stale rejection and expired-grant cleanup observed locally | Canonical delivery; operating-envelope sweeps; private customer inputs; production host authentication |
 | GPU/TPU research and reconstruction | Named profiles and environment preparation in progress | Actual hardware numerical and isolation acceptance |
 
 The actual miner study reached horizon 20 with 2405 coarse and 9548 fine steps;
@@ -112,6 +112,39 @@ image command is `bash scripts/dev/julia_worker_image.sh`. Missing accelerator
 authority and prepared recovery commands are consolidated in
 `.agent/plans/CORE_PLATFORM_RESOURCE_REQUEST.md`, REQUESTED_NOT_GRANTED. Existing
 campaign provider allowances have not been reused for this programme.
+
+V3 WORKBENCH IMPLEMENTATION CHECKPOINT (2026-09-17, C-CORE-04 candidate)
+
+The existing Workbench now checks physical-definition structure and performs
+one admitted public Burgers TRAIN reference-feasibility study through the same
+ResearchToolAdapter, controller and ledger. Its offline build remains offline;
+a separate private build uses fixed same-origin service routes with an
+operator-supplied authenticated principal and registered exact design revision.
+Saved evidence retains lineage, becomes unverified on import, and cannot attach
+after a relevant physical change. Display edits do not rerun a task.
+
+Local diagnostics passed all 262 Workbench JavaScript tests, 46 Python
+source/authoring/service tests, and separate offline/private builds using the
+required `scripts/dev/workbench_science_checks.sh` entrypoint. Desktop/mobile
+fixture interaction and offline zero-network behavior passed. A real Julia
+CPU browser study returned a 13-by-64 array through horizon 20, displayed it,
+saved/reopened it and reread the same operation: 7,725 numerical milliseconds,
+two trajectories/invocations, 22,150 retained bytes and zero provider calls.
+A separate actual HTTP study passed with 8,048 numerical milliseconds,
+two trajectories/invocations and 22,155 retained bytes, also with no provider
+calls. Both used deterministic host authentication fixtures, not production
+authentication, and supplied no reference qualification.
+
+An actual owned-worker cancellation after fixture grant expiry reached
+`reconstruction.worker.cancelled`, verified `CONFIRMED` cleanup and exact
+container absence. Its unknown usage conservatively retains a 720,000 ms,
+two-trajectory/invocation and 402,653,184-byte reservation with
+`REQUIRES_RECONCILIATION`; that reservation is not measured consumption or a
+new grant. Canonical acceptance remains outstanding. No operating-envelope
+sweep, modified case, private customer execution, paid agent campaign or
+accelerator execution is claimed. `UNASSESSED`/`NOT_QUALIFIED` and request-only
+challenge preparation persist. Build and composition commands live in
+`Business/Carbon_Fit/workbench/SCIENTIFIC_STUDIES_OPERATOR.md`.
 
 OWNER DIRECTION AND SUPERSESSION
 

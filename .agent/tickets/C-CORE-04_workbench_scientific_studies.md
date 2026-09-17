@@ -88,18 +88,47 @@ weakening exact-byte verifiers. The source/admission checker remains required
 for both offline and private builds. Root owns required classification,
 package/isolation/Hub checks and normal tested-head delivery.
 
-The working implementation has passed 13 focused JS diagnostic tests and
-headless desktop/mobile fixture interactions. The existing 15-test state
-integrity suite passes against a byte-faithful LF source mirror. A local
+The working implementation has passed all 262 Workbench JS tests and 46 Python
+source, authoring, scientific-service and HTTP tests through
+`scripts/dev/workbench_science_checks.sh` in a byte-faithful LF source mirror.
+This includes the 13 new scientific-study and 15 state-integrity tests.
+The script preserves fixture bytes, runs regenerating tests in a disposable
+copy and builds offline/private artifacts into separate output directories.
+Pinned Node 24.19.0 and development-only python-docx 1.2.0 support this lane;
+neither adds a runtime worker dependency. Headless desktop and mobile fixture
+interactions also passed, including offline zero-network checks. A local
 browser integration also imported an actual Workbench draft, obtained its
 operator-registered public source definition, dispatched the existing Julia
 task, displayed the 13-by-64 result, saved/reopened it and reread the same
 operation with zero page errors. That run used Julia 1.13.0 on CPU with 64/128
 point refinement, observed horizon coverage through 20 and accounted for
-7,725 numerical milliseconds and two reference invocations. Its local host
+7,725 numerical milliseconds, two trajectories, two reference invocations and
+22,150 retained bytes, with no provider calls. Its local host
 authentication is a deterministic fixture, not production authentication;
 refinement discrepancy is not a certified error bound. Canonical delivery
 acceptance and broader operating-envelope scope remain open.
+
+A separate actual Julia private-HTTP integration test passed (one test,
+18.51 seconds): 8,048 numerical milliseconds, two trajectories/invocations,
+22,155 retained bytes and zero provider calls. It exercised saved evidence,
+replay, stale-draft rejection and completed-task cancellation without another
+execution. The actual expired-grant cancellation test passed (one test,
+11.79 seconds): after the owned C-04 worker reached `CONTROLS_VERIFIED`, the
+fixture grant clock expired and the same authenticated owner cancelled it.
+The worker ended with `reconstruction.worker.cancelled`, cleanup was
+`CONFIRMED`, and the exact container was absent. Unknown consumption retained
+the conservative reservation of 720,000 numerical milliseconds, two
+trajectories/invocations and 402,653,184 bytes rather than fabricating a refund;
+the operation remains `REQUIRES_RECONCILIATION`. This is reservation evidence,
+not measured usage or authorization for another execution. These two tests run
+under `tests/service/test_julia_workbench.py` and the existing
+`scripts/dev/julia_worker_service.sh` acceptance entrypoint.
+
+Operator build/composition instructions are in
+`Business/Carbon_Fit/workbench/SCIENTIFIC_STUDIES_OPERATOR.md`. The exact
+controller-owned public source seam imports `DOMAIN_LENGTH` and
+`requested_times` from `carbon.generators.burgers_dynamics`; it grants no
+protected generator access to miners, browser code or numerical workers.
 
 ## Boundaries and conditional completion
 
