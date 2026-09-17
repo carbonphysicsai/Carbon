@@ -2,9 +2,9 @@
 
 **Purpose:** A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail.
 
-**Authority snapshot:** `9c517108b6336e79790898d0d9a2db445a718682` on `main`, captured 2026-09-17T16:51:03Z.
-**Current:** Wave C, ticket C-W1-D5. C-W1-D5: The prospective continuity repair passed focused canonical tests. Required acceptance, normal delivery and campaign two remain pending. Campaign one used USD 0.00818185, 96 references and 310.573 numerical seconds; zero training/final replicas. No later ticket is selected. Historical testnet 567 exact row [[0, 65535]] remains ROW_VERIFIED; burn amounts, epoch effects and settlement remain unproven. AWS stays deferred and Hippius unverified. Website and Workbench work and spending are separate. No later ticket is selected. Distinct miner UID 1 finalized in the earlier setup; no identities were registered here. Synthetic controls are not results of the real agent. No subsequent activation or weight transaction is authorized. Subnet 567 creation finalized at block 8010852 in the earlier C-W1 DEVELOPMENT setup.
-**Last completed:** C-W1-D4 (`done`).
+**Authority snapshot:** `90dd9670b77de88f76002d9c16b5aaeeee30d24d` on `main`, captured 2026-09-17T19:05:09Z.
+**Current:** Wave C, ticket none active. C-W1-D5 is complete in its bounded engineering scope. No ticket is currently active. PR #208 delivered autonomous research instructions and structured stops. All three authorized campaigns ended: one training trial and six final replicas, no admissible final model or accepted improvement. The final campaign stopped before training with resources remaining. Program totals: 15 provider calls, USD 0.01951925 usage-priced cost, 1339.179 numerical seconds, two rejected trial attempts and 288 reference calculations. No unresolved reservations remain. No research successor is selected; unused budget does not renew the program. Historical testnet 567 publication remains ROW_VERIFIED, exact row [[0, 65535]]; burn amounts, epoch effects and settlement remain unproven. No subsequent activation or weight transaction is authorized. C-MLP browser validation remains separate. AWS stays deferred; unrelated website and Workbench work/spending remain separate. Synthetic incentive scenarios are not results of the real agent.
+**Last completed:** C-W1-D5 (`done`).
 **Next selected:** none selected.
 
 ## Wave spine
@@ -102,7 +102,7 @@
 | [C-W1-D2](explainers/tickets/c_w1_d2.md) | Compare authentic DEVELOPMENT measurements without paying or inventing a winner. | done |
 | [C-W1-D3](explainers/tickets/c_w1_d3.md) | Give miners a useful, bounded DEVELOPMENT objective and test whether its measurements detect failures. | done |
 | [C-W1-D4](explainers/tickets/c_w1_d4.md) | Let a miner learn from real public practice before freezing a recipe for independent testing. | done |
-| [C-W1-D5](explainers/tickets/c_w1_d5.md) | Let the miner carry out already-authorized trials and explain why it stops. | in_progress |
+| [C-W1-D5](explainers/tickets/c_w1_d5.md) | Let the miner carry out already-authorized trials and explain why it stops. | done |
 
 ## Change routes
 
@@ -266,6 +266,7 @@
 - `C-MLP-02-HUB-SNAPSHOT-01` — `SYSTEM/DEVELOPMENT-HUB` — Repin Hub source navigation to the C-MLP-02 bridge implementation snapshot. Historical scientific statuses, original evidence identities and current scientific wave selection are preserved; this does not complete the real Launchpad campaign.
 - `C-MLP-02-RUNNER-01` — `SYSTEM/AGENT-EXECUTION` — Launchpad wraps accepted D4 research and D5 v2 continuation with a separately bound single-campaign grant, existing-ledger admission, durable controls and safe own-research projection. Legacy manifests cannot enter managed admission. Charged final slots are not reserved twice; unspent slots and conservative compute/money reserves remain protected. Narrowed trial limits reach existing selection-call admission and immutable approved limits enter agent context without private fields. Browser history includes hypotheses and actual stop outcomes, never raw transcripts or scientific claims. D4/D5 defaults, grants and owned campaigns remain unchanged. Completion time is prospective and durable; legacy time stays unknown and unresolved reservations remain visible. Two exact historical merge exceptions preserve hygiene rules. D5 board selection is retained. Real browser-launched adaptive validation remains selected and requires its own matching explicit grant and exact accepted runtime/images. Canonical acceptance exposed relative imports without package authority; explicit package imports and an outside-repository direct-script startup regression repair the boundary without changing the checker.
 - `C-MLP-02-SNAPSHOT-02` — `SYSTEM/DEVELOPMENT-HUB` — Pin navigation to the combined committed D5 and Launchpad source tree. Preserve D5 selection, the separately owned running campaign, all historical evidence identities and every scientific boundary. This update changes navigation snapshot links across captured Waves and tickets; it does not promote maturity or mark the genuine Launchpad campaign complete.
+- `C-W1-D5-PROGRAM-CLOSEOUT-01` — `WAVE-C/C-W1-D5` — Record the three completed real campaigns and adverse results. Close bounded D5 engineering after PR #208; coordinate accepted PR #207 without claiming its separate browser validation. No admissible final model or accepted improvement. Recommend task-kind/error guidance, with no new campaign authority. Preserve historical evidence and unrelated work. Refresh Wave source metadata only; no website activation or spend. Repin every existing Wave/ticket navigation link to the same authority snapshot; other content and maturity are unchanged.
 
 ## Authority boundary
 

@@ -245,9 +245,9 @@
     },
     "C-W1-D5": {
       "title": "Let the miner carry out already-authorized trials and explain why it stops.",
-      "what": "Version the local agent instructions and structured stop response; preserve old campaign behavior.",
+      "what": "The miner can run already-authorized trials and give a structured reason for stopping.",
       "why": "The first real campaign stopped to request routine permission before training.",
-      "changes": "One metered clarification, an immediate reasoned stop, immutable policy binding and replay checks.",
+      "changes": "Delivered versioned instructions, metered clarification and restart-safe stop records. The finite program reached one real training trial but found no accepted improvement.",
       "not_yet": "No gate changes, public-network transactions, paid winner, protected data, production processing or qualification.",
       "map_ref": "WAVE-C/C-W1-D5"
     }
