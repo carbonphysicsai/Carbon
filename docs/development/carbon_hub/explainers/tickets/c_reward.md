@@ -21,7 +21,7 @@ Q12 floor/remainder reward ledger, shared-holder aggregation, burn-only targets,
 ## Placement and handoff
 
 - **Depends on:** NET-3
-- **Feeds:** NET-4A, C-W1-D2
+- **Feeds:** NET-4A, C-W1-D2, C-W1-D3
 - **Driver:** Codex + reward/protocol engineering
 - **Review route:** Scientific integration + network/security
 - **Master questions:** MQ-054, MQ-056
@@ -40,9 +40,9 @@ DEVELOPMENT fixture reward policy only; no science, security, network or economi
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/d8da6beca467065522d8327533ea9da70038cbef/.agent/tickets/C-REWARD_score_reward_core.md)
-- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/d8da6beca467065522d8327533ea9da70038cbef/.agent/evidence/wave_c/c-reward.md)
-- [Reward contract](https://github.com/carbonphysicsai/Carbon/blob/d8da6beca467065522d8327533ea9da70038cbef/docs/development/SCORE_REWARDS.md)
-- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/d8da6beca467065522d8327533ea9da70038cbef/.agent/WAVE_C.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/963f07dd71c57cb0c638508280918204b408a31b/.agent/tickets/C-REWARD_score_reward_core.md)
+- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/963f07dd71c57cb0c638508280918204b408a31b/.agent/evidence/wave_c/c-reward.md)
+- [Reward contract](https://github.com/carbonphysicsai/Carbon/blob/963f07dd71c57cb0c638508280918204b408a31b/docs/development/SCORE_REWARDS.md)
+- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/963f07dd71c57cb0c638508280918204b408a31b/.agent/WAVE_C.md)
 
 > Zero opening credit and a finite score range bound lifetime targets; delayed and drip-fed improvements retain strategic incentives.

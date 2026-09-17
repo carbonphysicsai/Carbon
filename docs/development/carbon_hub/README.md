@@ -9,14 +9,14 @@ When browsing on GitHub, start with **`orientation/START_HERE.md`**. It is the p
 ## Inventory
 
 - 14 waves (A-N)
-- 70 captured tickets across Wave A, Wave B, and Wave C
+- 71 captured tickets across Wave A, Wave B, and Wave C
 - 7 protocol-change routes
-- 138 map-level change events
+- 139 map-level change events
 - 8 independent maturity states
 
 ## Captured current position
 
-Wave **C**; current ticket: **C-W1-D2**. Last completed: **C-10** (`done`). Next selected: **none selected**. C-W1-D2 completed one non-paying DEVELOPMENT experiment on the seen 12 TRAIN / 12 EVAL / 12 STRESS subset: 8 real gpt-5-mini calls, one FNO-48 challenger against the authentic FNO-40 historical baseline, three real JAX replicas, 144 updates and 72 C-05 reports. Field and weak-PDE errors were lower; conserved-mean and STRESS maximum-principle defects worsened. Disposition: INDETERMINATE_NO_ACCEPTANCE_RULE. No scalar, tie, accepted improvement or winner is claimed. The agent used its permitted prior feedback and stopped after one evaluation. PR #201 engineering delivery is conditional on required CI and normal expected-head merge; no later ticket is selected. Historical C-W1 DEVELOPMENT: C-W1 DEVELOPMENT: the real agent evaluation's signed source completed the separately authorized all-burn testnet path. Subnet 567 activation finalized at 8017622, commitment at 8017643, reveal at 8017851 and exact row [[0, 65535]] at 8017916; the checked journal reached ROW_VERIFIED without resubmission. PR #194's zero-fee guard is merged. PR #196 delivered C-W1-REVEAL-01, which repairs SDK tuple event decoding and provides bounded walletless rescan recovery for a previously missed reveal. Creation at 8010852 and distinct miner UID 1 registration remain historical setup evidence. The numerical result remains COMPLETE_UNRESOLVED; no score, accepted improvement, winner, miner payment, burn amount or epoch effect is inferred. No subsequent activation or weight transaction is authorized by the consumed approvals. AWS stays deferred, Hippius unverified and scientific/security/network/production qualification unearned. Official C-W1 and C-EA2 remain blocked. Earlier deterministic engineering scaffold measurements are not results of the real agent.
+Wave **C**; current ticket: **C-W1-D3**. Last completed: **C-W1-D2** (`done`). Next selected: **none selected**. C-W1-D3 implements balanced-v2 DEVELOPMENT acceptance and non-paying reward simulation. Two bounded design iterations and analytic verification completed; retained FNO results are retrospective diagnostic ranks and fail mandatory conditions. No fresh training, model charge, real winner, payment or public-network transaction. Required CI and normal merge close engineering only. Historical testnet 567 exact row [[0, 65535]] remains ROW_VERIFIED; burn amounts, epoch effects, miner payment and settlement remain unproven. Distinct miner UID 1 finalized in the earlier setup; no identities were registered here. No later ticket is selected. Synthetic controls are not results of the real agent. No subsequent activation or weight transaction is authorized.
 
 ## Maintain
 
