@@ -52,11 +52,12 @@ was established. Use public/synthetic inputs only; this is not customer-data
 processing authorization. Never place access or provider credentials in chat,
 Git, browser bundles, issues or retained evaluation output.
 
-The retained homepage live-evaluation transcripts remain pinned to knowledge
-`ask-carbon-staging-2026-09-16.1`. The reconciled private staging Workers now
-serve validated knowledge `ask-carbon-staging-2026-09-17.1`; that deployment
-does not rewrite the bakeoff source basis and no new paid model run was claimed
-for the newer snapshot.
+The retained WEB-QA-03 homepage live-evaluation transcripts remain pinned to
+knowledge `ask-carbon-staging-2026-09-16.1`. The reconciled private staging
+Workers now serve validated knowledge `ask-carbon-staging-2026-09-18.1` under
+the server-owned reviewed-card selection contract. A two-candidate
+compatibility smoke was run on that successor; it does not rewrite the prior
+bakeoff source basis or constitute the pending frozen final evaluation.
 
 ## Shared monthly budget authority
 
@@ -78,9 +79,10 @@ micro-USD of September `bakeoff` exposure: 13,151 settled and 67,680 unresolved.
 That script is no longer an admission authority. The canonical ledger policy
 durably reserves the full 80,831 micro-USD in period `2026-09` and scope
 `bakeoff`, so neither a restart nor a caller migration can recreate the spent
-allowance. After combining the two historical ledgers, September application
-exposure is 295,165 micro-USD and the nested evaluation balance is 4,704,835
-micro-USD. Do not remove or reduce this offset; later exact reconciliation may
+allowance. After the WEB-QA-04 compatibility work and combining the two
+historical ledgers, September application exposure is 299,802 micro-USD and
+the nested evaluation balance is 4,700,198 micro-USD. Do not remove or reduce
+this offset; later exact reconciliation may
 replace uncertain exposure only through a separately reviewed, idempotent
 accounting migration.
 

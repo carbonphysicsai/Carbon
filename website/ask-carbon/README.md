@@ -8,11 +8,11 @@ or proof of a production deployment.
 
 - Repository knowledge version: `ask-carbon-staging-2026-09-18.1` (server-owned reviewed-answer selection successor; not production deployed)
 - Source release date: 2026-09-16
-- Current private staging deployment: `ask-carbon-staging-2026-09-17.1`
+- Current private staging deployment: `ask-carbon-staging-2026-09-18.1`
 - Retained homepage live-evaluation source basis: `ask-carbon-staging-2026-09-16.1`
 - Release: `STAGING_REVIEWED`
 - Public activation: disabled
-- Live provider calls: bounded WEB-QA-03 evaluation only; no production calls
+- Live provider calls: bounded WEB-QA-03 evaluation and WEB-QA-04 compatibility smoke only; no production calls
 - Private synthetic provider calls: observed through the authenticated staging Worker
 - Homepage source-grounded answer review: complete for delivered supported answers
 - Owner hands-on review and Workbench pilot-output review: pending
@@ -38,7 +38,7 @@ or retained as a count gate. The current repository collection contains 26
 useful reviewed units backed by nine exact source revisions. The retained
 live-evaluation artifacts remain pinned to the preceding `2026-09-16.1`
 snapshot so their answers and source basis stay inspectable. The current
-private staging surface deploys the validated `2026-09-17.1` snapshot; it was
+private staging surface deploys the validated `2026-09-18.1` snapshot; it was
 not substituted into or represented as the already completed model bakeoff.
 
 ## Components
