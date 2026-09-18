@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { integrateHtml } from "../tools/integrate-static.mjs";
+import { integrateHtml, reconcileOwnerUploadedHomepage } from "../tools/integrate-static.mjs";
 import { buildCsp } from "../tools/csp-report.mjs";
 import { validateKnowledge } from "../tools/validate-knowledge.mjs";
 import knowledge from "../knowledge/public-knowledge.v1.json" with { type: "json" };
@@ -24,6 +24,24 @@ test("static integration can point a staging fixture at an unavailable knowledge
   assert.match(output, /knowledge-url="\/missing-knowledge\.json"/);
   assert.match(output, /pilot-url="\/pilot"/);
   assert.match(output, /staging-preview/);
+});
+
+test("owner-upload reconciliation restores only the existing Workbench navigation delta", () => {
+  const input = [
+    "<html><head><style>",
+    "/* Preserve the supplied Global Intelligence banner composition at every width. */",
+    ".network-flow-art img{height:auto;object-fit:contain;object-position:center}",
+    "</style></head><body>",
+    '<nav id="main-nav" aria-label="Main"><a href="#company">Company</a></nav>',
+    '<footer><nav aria-label="Footer"><a href="#faq">FAQ</a></nav></footer>',
+    "</body></html>",
+  ].join("\n");
+  const output = reconcileOwnerUploadedHomepage(input);
+  assert.match(output, /Workbench navigation: allow the existing links to wrap on tablets/);
+  assert.equal(output.match(/href="\/workbench\/"/g)?.length, 2);
+  assert.match(output, /<a href="#company">Company<\/a><a href="\/workbench\/">Workbench<\/a><\/nav>/);
+  assert.match(output, /<a href="#faq">FAQ<\/a><a href="\/workbench\/">Workbench<\/a><\/nav>/);
+  assert.throws(() => reconcileOwnerUploadedHomepage(output), /expected exactly one/);
 });
 
 test("CSP generation hashes existing inline code without unsafe-inline", () => {

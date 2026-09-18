@@ -226,6 +226,34 @@ Production needs a separate exact owner authorization after the staging report:
 5. verify inactive health, route behavior, cache withdrawal and all ceilings;
 6. explicitly enable activation and observe the first bounded requests.
 
+For the approved 18 September inactive-publication candidate, extract the
+owner-supplied ZIP into a temporary directory, verify its recorded archive and
+`index.html` hashes, and build the static artifact with the repository tool:
+
+```sh
+node website/ask-carbon/tools/integrate-static.mjs \
+  --input /path/to/extracted/index.html \
+  --output /tmp/ask-carbon-production/index.html \
+  --asset-prefix ./ask-carbon \
+  --reconcile-owner-upload
+```
+
+The output `index.html` must hash to
+`d897118ebd16a602994f3498ae8084f4a9ba908cee4aa6a7b8ef1650cc25da55`.
+The current `carbonwebsite` Worker uses compatibility date `2026-09-12`; retain
+it for this asset-only update:
+
+```sh
+npx wrangler deploy \
+  --name carbonwebsite \
+  --assets /tmp/ask-carbon-production \
+  --compatibility-date 2026-09-12
+```
+
+Do not run either production deployment until the incident owner and authorized
+disable/rollback operator are recorded. Static publication does not authorize
+the separate activation step.
+
 ## Incident disable and rollback procedure
 
 The named production incident owner and the named operator allowed to run these

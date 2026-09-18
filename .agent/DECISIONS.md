@@ -14659,3 +14659,33 @@ does not address this observed failure. Context/analysis changes are deferred un
 their value is evidenced. Reversible by selecting v1 for new campaigns; existing
 v2 plans remain immutable. Superseding changes require new policy binding and
 fresh campaign. No human-reserved scientific value is selected here.
+
+## 2026-09-18 — WEB-QA-05-D1: inactive Ask Carbon publication from reconciled owner source
+
+**Authority and scope.** The owner approved
+`ask-carbon-public-release-2026-09-18.2` for inactive production publication
+against the reconciled uploaded website source. The approved scope is public
+Carbon Q&A, guided pilot drafting, form-only drafting and explicit local
+download using `gpt-5.6-luna:low:v1`, the approved visitor notice and the
+existing shared ceilings. Inquiry collection remains disabled under issue
+#139. Public enablement is a separate recorded step; no scientific, testnet,
+private-data, DNS, paid-plan or qualification authority is created.
+
+**Source and integration decision.** The owner-supplied ZIP contains one safe
+regular `index.html`. Its only difference from the live production bytes is the
+already-deployed Workbench navigation change: one responsive CSS rule and two
+links. Keep the uploaded file as source authority, deterministically reapply
+that exact hash-pinned delta, require the result to equal the observed live
+homepage hash, and then inject the existing dependency-free Ask Carbon assets.
+Do not substitute an unreconciled download or replace the homepage. The
+production-gated bundle omits `staging-preview`; the prior candidate hash is
+retained explicitly as the staging-preview hash rather than mislabeled as the
+production artifact.
+
+**Operational boundary.** Production mutation still requires a named incident
+owner and named disable/rollback operator because current operations authority
+forbids inferring either identity from account access. Until both are recorded,
+the affected deployment remains fail closed while repository preparation and
+testing continue. The smallest reversal restores the recorded prior
+`carbonwebsite` version and removes only the two Ask Carbon routes while
+preserving Durable Object financial history.

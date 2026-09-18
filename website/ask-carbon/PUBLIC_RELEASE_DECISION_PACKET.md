@@ -4,7 +4,8 @@
 
 **Candidate:** `ask-carbon-public-release-2026-09-18.2`
 
-**Status:** pending one consolidated owner release approval; activation disabled
+**Status:** owner-approved for inactive publication; activation disabled;
+production mutation awaits the two required named operator roles
 
 ## Proposed first release
 
@@ -90,17 +91,26 @@ version, purge affected static assets, and verify both hostnames and Workbench.
 Do not delete or roll back Durable Object financial state. Exact commands and
 checks are in `OPERATIONS.md`.
 
-## Inputs still needed before production mutation
+## Source reconciliation and remaining production inputs
 
-1. The exact latest manually uploaded website ZIP/source. The observed live
-   bytes are not a substitute for the owner's source artifact.
-2. The name of the production incident owner.
-3. The name of the operator authorized to disable and roll back the release.
+The owner supplied `Carbon_Automotive_Cloudflare.zip`, SHA-256
+`d85cfc5cf79d8d6fffa403975dd768ebe69d9874b65d11e511e78b7f2606f125`.
+Its sole regular file is `index.html`, SHA-256
+`546fb89d7df7de98f191ae9585d9952db773eedff4bf33c069f9c6b29f6efb7b`.
+The current production homepage is exactly that source plus the previously
+deployed Workbench navigation delta: one tablet wrapping rule and one
+Workbench link in each navigation. The deterministic reconciliation produces
+the observed production SHA-256
+`5ebb43e859e9837f74bbc93b5748b2db95a6700821afbfcecb407e75702e2020`.
 
-## One requested owner decision
+Two names remain required before any production mutation:
 
-After those three inputs are attached, approve or reject this exact package as
-one decision:
+1. the production incident owner; and
+2. the operator authorized to disable and roll back the release.
+
+## Recorded owner decision
+
+On 18 September 2026 the owner approved this exact package as follows:
 
 > Approve `ask-carbon-public-release-2026-09-18.2` for inactive production
 > publication against the reconciled uploaded website source, followed by the
@@ -109,15 +119,16 @@ one decision:
 > `gpt-5.6-luna:low:v1`, the approved visitor notice and the existing shared
 > ceilings. Keep inquiry collection disabled under issue #139.
 
-This packet does not record that approval. Until it is supplied, no production
-homepage, route, DNS setting or public activation may change.
+This authorizes inactive publication only after the two required operator roles
+are named. It does not authorize the separately recorded enable step. Until
+those roles are supplied, no production homepage or route may change.
 
 ```text
 PRIVATE_STAGING: ACTIVE_AUTHENTICATED
-PUBLIC_KNOWLEDGE_RELEASE: PENDING_OWNER_APPROVAL
+PUBLIC_KNOWLEDGE_RELEASE: OWNER_APPROVED_FOR_INACTIVE_PUBLICATION
 PUBLIC_MODEL_CANDIDATE: GPT_5_6_LUNA_LOW_V1_SELECTED_FOR_REVIEW
 PUBLIC_PRIVACY_POSTURE: OWNER_APPROVED_BOUNDED_SCOPE
-INACTIVE_PRODUCTION_PUBLICATION: NOT_AUTHORIZED
+INACTIVE_PRODUCTION_PUBLICATION: AUTHORIZED_PENDING_NAMED_OPERATORS
 PUBLIC_ACTIVATION: DISABLED
 INQUIRY_COLLECTION: DISABLED_ISSUE_139
 SCIENTIFIC_OR_LAUNCH_AUTHORITY: NONE
