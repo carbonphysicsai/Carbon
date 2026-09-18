@@ -141,3 +141,11 @@ checks passed 15 tests in 14.49 seconds as native diagnostics. Strict isolated
 Python 3.10 Ruff and Black passed for the repaired file. No numerical worker,
 accelerator, provider call or campaign was executed. Canonical acceptance remains
 required on the resulting delivery head.
+The controller's existing cancellation predicate now revalidates the originally
+captured host admission. A valid replacement grant cannot execute under a request
+bound to the earlier grant digest. The controller API is unchanged. A focused
+synthetic regression rotates the grant after reservation and proves rejection
+before numerical work, no result association and retained numerical reservation;
+this case plus existing stop and successful replay checks passed three tests in
+24.57 seconds. Strict isolated Python 3.10 Ruff and Black passed for both affected
+Python files. This is fixture evidence only; no accelerator or worker ran.

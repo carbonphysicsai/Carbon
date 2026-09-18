@@ -405,6 +405,13 @@ class PublicGPUPractice:
                 from .research_control import CampaignControl
 
                 self._authorize()
+                admission.verify(
+                    principal=owner,
+                    state_root=controller_root,
+                    image=self.image,
+                    role=AcceleratorRole.MINER_RESEARCH,
+                    now=float(time.time()),
+                )
                 status = CampaignControl(ledger).status()
                 return (
                     status["generation"] != ledger.generation

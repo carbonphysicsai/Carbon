@@ -386,6 +386,42 @@ def test_plain_public_result_projection_keeps_gpu_score_absent(tmp_path, monkeyp
     c.tasks.close()
 
 
+def test_replaced_host_grant_rejects_before_numerical_work_and_keeps_reservation(
+    tmp_path, monkeypatch
+):
+    data, ledger, image, calls, c = fixture(tmp_path, monkeypatch)
+    path = accelerator_runtime.HOST_ROOT / "grant.json"
+    original = accelerator_runtime.AcceleratorHostAdmission.load()
+    reached = []
+
+    def execute(self, **kwargs):
+        assert (
+            ledger.status(owner=data.owner)["used"]["numerical_milliseconds"] == 720000
+        )
+        replacement = dict(original.document, grant_id="gpu-fixture-replacement")
+        path.write_bytes(canonical(replacement))
+        fresh = accelerator_runtime.AcceleratorHostAdmission.load()
+        fresh.verify(
+            principal=data.owner,
+            state_root=self.state_root,
+            image=image,
+            role=gpu.AcceleratorRole.MINER_RESEARCH,
+            now=float(time.time()),
+        )
+        reached.append("valid replacement installed")
+        kwargs["cancelled"]()
+        pytest.fail("replaced grant reached numerical execution")
+
+    monkeypatch.setattr(gpu.IsolatedReconstructionController, "execute", execute)
+    with pytest.raises(WorkerFailure):
+        invoke(c.executor.practice)
+    assert reached == ["valid replacement installed"]
+    assert not calls
+    assert ledger.status(owner=data.owner)["used"]["numerical_milliseconds"] == 720000
+    assert not list(ledger.root.glob("gpu-*/result.json"))
+    c.tasks.close()
+
+
 def test_campaign_stop_reaches_existing_controller_cancel_predicate(
     tmp_path, monkeypatch
 ):
