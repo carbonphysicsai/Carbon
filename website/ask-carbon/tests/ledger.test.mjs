@@ -109,6 +109,83 @@ test("multiple environments coordinate one shared monthly and evaluation sub-bud
   assert.equal(monthlyDenied.value.reason, "monthly_cost_limit");
 });
 
+test("environment-specific abuse limits coexist under one financial and concurrency authority", async () => {
+  const ledger = new AskCarbonUsageLedger({ storage: new MemoryStorage() });
+  const staging = admission({
+    environment: "staging", daily_request_limit: 2, client_requests_per_hour: 1,
+    attempt_id: "staging-1", client_id: "same-client", reserved_cost_micro_usd: 1,
+  });
+  assert.equal((await prepare(ledger, staging)).status, 200);
+  await body(ledger, "/release-pre-dispatch", { attempt_id: "staging-1", now_ms: JAN, reason: "test_complete" });
+  const stagingDenied = await prepare(ledger, { ...staging, attempt_id: "staging-2" });
+  assert.equal(stagingDenied.value.reason, "client_hourly_limit");
+
+  const production = admission({
+    environment: "production", daily_request_limit: 10, client_requests_per_hour: 12,
+    attempt_id: "production-1", client_id: "same-client", reserved_cost_micro_usd: 1,
+  });
+  assert.equal((await prepare(ledger, production)).status, 200);
+  const state = await snapshot(ledger);
+  assert.equal(state.value.environment_policies.staging.client_requests_per_hour, 1);
+  assert.equal(state.value.environment_policies.production.client_requests_per_hour, 12);
+  assert.equal(state.value.environment_days.staging["2026-01-31"].requests, 1);
+  assert.equal(state.value.environment_days.production["2026-01-31"].requests, 1);
+  assert.equal(state.value.days["2026-01-31"].requests, 2);
+  assert.equal(state.value.months["2026-01"].exposure_micro_usd, 1);
+});
+
+test("an environment abuse policy cannot be changed by a later deployment", async () => {
+  const storage = new MemoryStorage();
+  const first = new AskCarbonUsageLedger({ storage });
+  await prepare(first, admission({ environment: "production", client_requests_per_hour: 12 }));
+  const restarted = new AskCarbonUsageLedger({ storage });
+  const changed = await prepare(restarted, admission({
+    attempt_id: "attempt-2", client_id: "client-2", environment: "production",
+    client_requests_per_hour: 100,
+  }));
+  assert.equal(changed.status, 409);
+  assert.equal(changed.value.reason, "environment_policy_mismatch");
+});
+
+test("schema v2 migration preserves exposure and reconstructs environment abuse counters", async () => {
+  const admittedAt = Date.parse("2026-01-31T23:30:00Z");
+  const storage = new MemoryStorage(new Map([["ask-carbon-provider-budget:v2", {
+    schema_version: 2,
+    policy: {
+      monthly_limit_micro_usd: MONTHLY_LIMIT,
+      concurrency_limit: 2,
+      daily_request_limit: 100,
+      client_requests_per_hour: 100,
+      pilot_requests_per_session: 8,
+      client_counter_retention_ms: 86_400_000,
+      legacy_closed_authority_period: "2026-09",
+      legacy_closed_authority_scope_id: "bakeoff",
+      legacy_closed_authority_exposure_micro_usd: 80_831,
+    },
+    scope_policies: { staging: { limit_micro_usd: MONTHLY_LIMIT, first_environment: "staging", created_at_ms: admittedAt } },
+    attempts: {
+      old: {
+        attempt_id: "old", client_id: "client-1", session_id: "session-1", mode: "GENERAL_QA",
+        environment: "staging", scope_id: "staging", admission_period: "2026-01",
+        admitted_at_ms: admittedAt, expires_at_ms: admittedAt + 60_000,
+        reserved_cost_micro_usd: 2_000, scope_limit_micro_usd: MONTHLY_LIMIT,
+        model_config_id: "gpt-5.6-luna:low:v1", pricing_id: "openai-standard-2026-09-16:gpt-5.6-luna",
+        state: "settled", actual_cost_micro_usd: 777,
+      },
+    },
+    days: { "2026-01-31": { requests: 1 } },
+    clients: { "client-1": { hour: "2026-01-31T23", requests: 1, last_seen_ms: admittedAt } },
+    pilot_sessions: {},
+  }]]));
+  const ledger = new AskCarbonUsageLedger({ storage });
+  const state = await snapshot(ledger, admittedAt + 1);
+  assert.equal(state.value.schema_version, 3);
+  assert.equal(state.value.months["2026-01"].settled_micro_usd, 777);
+  assert.equal(state.value.environment_days.staging["2026-01-31"].requests, 1);
+  assert.equal(state.value.clients["staging:client-1"].requests, 1);
+  assert.equal(state.value.policy.client_requests_per_hour, undefined);
+});
+
 test("a durable scope cap cannot be raised by a later environment or restart", async () => {
   const storage = new MemoryStorage();
   const first = new AskCarbonUsageLedger({ storage });
