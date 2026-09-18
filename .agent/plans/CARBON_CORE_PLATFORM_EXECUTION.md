@@ -97,6 +97,7 @@ slices; these are not declared delivered by this checkpoint.
 | Miner Julia public TRAIN study through MCP | Actual public study, persisted result/reconnect, one 7283 ms numerical charge, two trajectories/invocations, 22154 retained bytes, no provider calls | Sweeps, training-support approval and isolated authored scripts |
 | Workbench Julia study | C-CORE-04 existing UI/private-service consumer implemented; actual draft-bound Julia browser and HTTP studies, save/reopen/replay/stale rejection and expired-grant cleanup observed locally | Canonical delivery; operating-envelope sweeps; private customer inputs; production host authentication |
 | GPU/TPU research and reconstruction | Named profiles and environment preparation in progress | Actual hardware numerical and isolation acceptance |
+| Miner portable logical research state | C-CORE-06 wraps unchanged checkpoints with source placement and a new-operation continuation binding; two actual CPU workers transported state and matched a fresh CPU control, with replay/accounting/cleanup verified | Canonical delivery; actual GPU/TPU transport and retraining comparison; sharded state |
 | CPU compiled-update experiment | C-CORE-05 opt-in helper; ten actual JAX tests passed; short fixed-work observation favored existing compile-plus-train total | Default unchanged; larger workloads, accelerator timing and prospective execution-profile integration |
 
 The actual miner study reached horizon 20 with 2405 coarse and 9548 fine steps;
@@ -113,6 +114,15 @@ image command is `bash scripts/dev/julia_worker_image.sh`. Missing accelerator
 authority and prepared recovery commands are consolidated in
 `.agent/plans/CORE_PLATFORM_RESOURCE_REQUEST.md`, REQUESTED_NOT_GRANTED. Existing
 campaign provider allowances have not been reused for this programme.
+
+C-CORE-06 uses the existing admitted Python research action with explicitly staged
+public helper and checkpoint bytes. It does not change the installed analysis
+image, grant, ledger or strict historical checkpoint-resume API. Its CPU service
+fixture consumed two research trials, 23,037 numerical milliseconds and 136,747
+retained bytes, with no provider/reference calls. Backend-changing continuation
+has a prospective new-operation contract; only CPU-to-CPU execution has empirical
+evidence. See `carbon/reconstruction/PORTABLE_RESEARCH_STATE.md`. Fresh validator
+reconstruction and cross-backend scientific calibration remain separate.
 
 V3 COMPILED-UPDATE EXPERIMENT CHECKPOINT (2026-09-17, C-CORE-05 candidate)
 
