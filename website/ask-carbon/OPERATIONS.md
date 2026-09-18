@@ -54,11 +54,11 @@ Git, browser bundles, issues or retained evaluation output.
 
 The retained WEB-QA-03 homepage live-evaluation transcripts remain pinned to
 knowledge `ask-carbon-staging-2026-09-16.1`. The release candidate advances
-to `ask-carbon-release-candidate-2026-09-18.1` under the server-owned
+to `ask-carbon-release-candidate-2026-09-18.2` under the server-owned
 reviewed-card selection contract and refreshes the dated progress explanation
-against the same pinned, digest-matched Wave source. A two-candidate
-compatibility smoke was run on that successor; it does not rewrite the prior
-bakeoff source basis or constitute the pending frozen final evaluation.
+against the same pinned, digest-matched Wave source. The frozen two-candidate
+release split, affected-case rerun and exact pilot run are retained in
+`evidence/WEB-QA-04.md`; prior evidence keeps its original source basis.
 
 The release candidate remains `STAGING_REVIEWED`, has
 `public_activation_allowed:false`, and is not retroactively substituted into
@@ -83,14 +83,21 @@ also include approved origins, an exact model/configuration registry, daily
 request limits, global and per-client concurrency/rate limits, and bounded
 pilot-design requests per session. Attempt states are:
 
+Financial exposure and global concurrency are shared across environments.
+Schema v3 stores immutable daily, per-client and pilot-session policies by
+environment so private staging and production can use stricter abuse limits
+without creating a second budget or changing the shared ceiling. The v2-to-v3
+migration reconstructs counters from retained attempts and preserves every
+settled and unresolved financial entry.
+
 The closed concurrent `carbon-ask-budget-authority` history recorded 80,831
 micro-USD of September `bakeoff` exposure: 13,151 settled and 67,680 unresolved.
 That script is no longer an admission authority. The canonical ledger policy
 durably reserves the full 80,831 micro-USD in period `2026-09` and scope
 `bakeoff`, so neither a restart nor a caller migration can recreate the spent
-allowance. After the WEB-QA-04 compatibility work and combining the two
-historical ledgers, September application exposure is 299,802 micro-USD and
-the nested evaluation balance is 4,700,198 micro-USD. Do not remove or reduce
+allowance. After the complete WEB-QA-04 evaluation and combining the two
+historical ledgers, September application exposure is 453,479 micro-USD and
+the nested evaluation balance is 4,546,521 micro-USD. Do not remove or reduce
 this offset; later exact reconciliation may
 replace uncertain exposure only through a separately reviewed, idempotent
 accounting migration.
@@ -218,6 +225,47 @@ Production needs a separate exact owner authorization after the staging report:
 4. bind only `/api/ask-carbon*`, preserving `/` and `/workbench/`;
 5. verify inactive health, route behavior, cache withdrawal and all ceilings;
 6. explicitly enable activation and observe the first bounded requests.
+
+## Incident disable and rollback procedure
+
+The named production incident owner and the named operator allowed to run these
+commands are still owner inputs. Do not infer either identity from repository
+access. Until they are recorded, public activation stays disabled.
+
+The first response to a suspected disclosure, spend, provider, source or
+answer-integrity incident is a fail-closed Worker deployment from the reviewed
+release checkout:
+
+```sh
+cd website/ask-carbon
+npx wrangler deploy --config wrangler.public-release-candidate.toml
+curl --fail-with-body --silent --show-error \
+  -H 'Origin: https://carbonphysics.ai' \
+  https://carbonphysics.ai/api/ask-carbon/health
+```
+
+The committed candidate sets `ASK_CARBON_ACTIVATION=disabled`; the health body
+must report inactive before any further investigation. Do not put a secret in
+the command line or shell history. If the API route itself must be withdrawn,
+the named Cloudflare operator removes only the two `/api/ask-carbon*` route
+bindings in the Dashboard or rolls back `ask-carbon-public` to its recorded
+inactive version. This must not delete or replace the shared
+`ask-carbon-budget-authority` Durable Object.
+
+If the homepage bundle must be withdrawn, select the recorded prior
+`carbonwebsite` deployment in Cloudflare or run the exact reviewed equivalent:
+
+```sh
+npx wrangler rollback b99c37f0-c2d2-432b-842a-00b9fb518d96 \
+  --name carbonwebsite
+```
+
+That version is the immediate predecessor observed during release preparation;
+the owner must still provide the latest uploaded website ZIP/source so its
+relationship to the Dashboard deployment and asset set can be reconciled
+before production mutation. After rollback, verify both approved hostnames,
+`/workbench/`, CSP/assets, API inactivity and the preserved ledger snapshot.
+Worker/static rollback never means Durable Object rollback.
 
 ## Rollback
 

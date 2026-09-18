@@ -1,170 +1,151 @@
-# WEB-QA-04 reviewed-answer reliability evidence
+# WEB-QA-04 public-release candidate evidence
 
-**Evidence date:** 2026-09-18 (Asia/Makassar) / 2026-09-17 UTC  
-**Branch:** `codex/web-qa-04-structured-output-reliability`  
-**Status:** implementation and compatibility smoke complete; frozen final
-bakeoff waiting for the existing UTC daily request reset  
-**Production candidate:** pending frozen evaluation; none selected by this
-partial record
+**Evidence date:** 2026-09-18 (Asia/Makassar) / 2026-09-18 UTC
 
-This is staging engineering evidence, not production activation, scientific or
-security qualification, or a general factuality certificate.
+**Candidate:** `ask-carbon-public-release-2026-09-18.2`
 
-## Core-programme coordination
+**Runtime implementation:** `dd952529ad2906b8ba0f1dc6ab06d8ae338d66f0`
 
-Issue #209 and open PR #211 were inspected before implementation. A scope note
-was posted to issue #209 at comment `5720642402`. WEB-QA-04 does not change
-shared scientific execution, reconstruction, capability discovery, profiles,
-checkpoints, grants, campaign accounting, artifacts/evidence, or job lifecycle.
-The existing Ask Carbon provider ledger remains an application-specific Q&A
-cost authority, not a competing scientific scheduler, runner, artifact format,
-or campaign ledger.
+**Disposition:** concrete candidate prepared; public activation disabled;
+owner release approval still required
 
-## Repair
+This is engineering and private synthetic evidence. It is not scientific,
+security, customer-usability or production qualification.
 
-The WEB-QA-03 provider contract asked the model to author both an answer and a
-second paraphrased claim map. A lexical checker then compared those two
-paraphrases with reviewed passage prose. The frozen run retained many
-`unsupported_claim` and `unmapped_answer_claim` failures even when the delivered
-answers that passed were source-correct.
+## Scope and authority
 
-The successor uses strict structured output only to select one to three
-request-specific reviewed card IDs and either one exact reviewed follow-up or
-`null`. The Worker—not the model—renders the selected cards' exact reviewed
-passage text, resolves pinned source destinations, renders maturity notes and
-issues the continuation. Unknown, duplicate, stale, withdrawn and
-non-retrieved selections fail closed. The provider cannot author displayed
-factual prose, URLs, citations or maturity claims. Pilot-design guidance keeps
-its separate proposal contract.
+The candidate contains public Carbon Q&A, guided pilot drafting, form-only
+drafting without AI and explicit local download. Inquiry collection remains
+disabled and owned by issue #139. No receiver, receipt, persistence or staff
+follow-up is represented. Issue #209 and the core-upgrade implementation were
+inspected; this work changes no shared scientific execution, capability,
+checkpoint, grant, artifact, campaign-accounting or job-lifecycle interface.
 
-Knowledge/release identity:
+## Exact knowledge and rendering contract
 
-- `ask-carbon-staging-2026-09-18.1`
-- answer contract `SERVER_OWNED_REVIEWED_CARD_SELECTION_V1`
-- 26 eligible reviewed cards / nine matched pinned sources
-- `STAGING_REVIEWED`; public activation remains false
+- Knowledge: `ask-carbon-release-candidate-2026-09-18.2`, SHA-256
+  `899c9b9947df498ad3e933fecc060ac21871d7d76d8880f3ee5cfe9ee76ed51e`.
+- State: `STAGING_REVIEWED`, expiry 2026-12-15, withdrawal epoch 1,
+  `public_activation_allowed:false`.
+- Coverage: 27 reviewed cards and nine revision-pinned, digest-matched sources.
+- Answer contract: `SERVER_OWNED_REVIEWED_CARD_SELECTION_V1`. The provider
+  selects eligible card IDs; the Worker owns displayed factual prose, URLs,
+  citations, maturity notes and continuations.
 
-## Private Cloudflare staging
+The successor corrects the retained current-progress statement, adds explicit
+P/Q/w/training-strategy separation and a clearly hypothetical heat-exchanger
+example, and strengthens deterministic public/private and unsupported-claim
+boundaries. It does not claim launch, qualification, customer use, paid
+traction or production readiness.
 
-Final deterministic-rendering deployments:
+## Frozen general-Q&A comparison
 
-- Luna Worker `ask-carbon-eval-luna`, version
-  `04a30346-eed0-4eca-bc24-cf7aa0644af1`
-- Terra Worker `ask-carbon-eval-terra`, version
-  `f25cc462-6be3-4add-a343-5bcd461d6e38`
+The same 32-request release split was executed through the real Cloudflare
+Workers and shared Durable Object for each registered candidate. Thirty
+requests per candidate dispatched to OpenAI; two were deterministic no-evidence
+responses. The first pass retained five shared knowledge/retrieval defects.
+Those defects were repaired in `.2`, and the same affected five cases / ten
+turns were rerun for both candidates. Unaffected results were reused.
 
-Both remain route-less from the production domain, bind the existing
-`ask-carbon-budget-authority` Durable Object and retain the existing private
-browser Basic-auth path. A separate rotated evaluation access secret was added
-through Cloudflare secrets. It is accepted only for staging
-`/api/ask-carbon*` while evaluation telemetry is enabled, cannot fetch assets,
-does not replace the separate ledger operator secret, and is not retained in
-Git/chat/evidence.
+Manual review used `eval/QUALITY_RUBRIC.md` against the pinned passages. Model
+output did not grade itself. After replacing only the affected results, all 32
+release-set dispositions per candidate were acceptable, with zero observed
+critical disclosure, credential, invented-launch, false-customer or
+qualification-inflation defects. Seven additional deterministic boundary
+cases correctly refused protected execution/data, fake citations/certificates,
+invented production settings and confidential uploads with zero provider
+calls. The raw first-pass failures remain in evidence.
 
-No Cloudflare plan or paid resource change was made.
+| Configuration | Full-run provider calls | Full-run input / cached / output tokens | Full-run exact cost | Full median / p95 | Repaired turns | Repaired exact cost | Repaired median / p95 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `gpt-5.6-luna:low:v1` | 30 | 40,181 / 1,558 / 2,429 | 10,684 micro-USD | 2,011 / 3,432 ms | 10/10 acceptable | 3,085 micro-USD | 1,731 / 3,085 ms |
+| `gpt-5.6-terra:low:v1` | 30 | 40,181 / 1,558 / 1,835 | 99,578 micro-USD | 2,157 / 3,389 ms | 10/10 acceptable | 31,064 micro-USD | 2,122 / 2,838 ms |
 
-## Live compatibility smoke
+No provider failure or retry occurred. The first Luna artifact's evaluator
+incorrectly counted two deterministic responses as provider attempts and
+flagged uncertainty; its 30 telemetry records and the Durable Object settlement
+prove exact cost and no new unresolved exposure. The evaluator is repaired for
+future runs; the historical artifact is not rewritten.
 
-The same public/synthetic question, `How does Carbon work?`, was sent once to
-each registered candidate through the real Worker and shared Durable Object.
-Both returned HTTP 200 `supported`, knowledge
-`ask-carbon-staging-2026-09-18.1`, source `constitution-405a820b` and passage
-`overview-purpose`. The model only selected the reviewed card; the returned
-factual content and citation were server-owned.
+Luna is selected as the production candidate because both candidates cleared
+the same repaired quality review while Luna was materially cheaper. On the
+full provider-call sample, the observed cost is approximately USD 0.356 per
+1,000 complete provider answers for Luna versus USD 3.319 for Terra. These are
+sample estimates, not traffic or invoice guarantees.
 
-| Configuration | Worker elapsed | Input / cached | Output | Exact cost |
-| --- | ---: | ---: | ---: | ---: |
-| `gpt-5.6-luna:low:v1` | 3,171 ms | 1,542 / 1,539 | 34 | 73 micro-USD |
-| `gpt-5.6-terra:low:v1` | 1,543 ms | 1,542 / 1,539 | 34 | 722 micro-USD |
+## Guided-pilot evaluation
 
-Compatibility and development calls made during WEB-QA-04 increased the
-canonical ledger's settled exposure by 4,637 micro-USD. They added no new
-unresolved exposure.
+The exact `.2` private staging surface ran all nine public/synthetic scenarios
+and eleven turns through `gpt-5.6-luna:low:v1`. All 11 returned supported,
+structured output; there were zero retries and zero unresolved attempts. Exact
+settled cost was 9,266 micro-USD. Median latency was 4,741 ms and p95/max was
+7,787 ms.
 
-## Budget state and daily control
+The run reproduced the three owner-accepted limitations rather than inventing
+completion: `pilot.bounded_first_pilot` remained missing in
+`existing-model-evaluation`, `pilot.bounded_first_pilot` remained missing in
+`absent-reference-data`, and `pilot.next_discussion` remained missing in
+`unsupported-guarantee`. The UI renders unresolved fields as unresolved.
 
-The real canonical Durable Object snapshot after compatibility work recorded:
+An initial pre-dispatch pilot attempt retained 429 `usage_limit` failures. It
+exposed a real schema-v2 defect: the shared ledger froze the evaluation
+environment's per-client policy and rejected private staging's stricter policy.
+The schema-v3 repair keeps the financial ceiling and global concurrency shared,
+while recording immutable per-environment daily/client/session controls. The
+migration reconstructs counters from durable attempts and preserves all
+financial exposure. Tests cover migration, restart and mismatched policy.
 
-- settled: 140,011 micro-USD;
-- unresolved possible-dispatch exposure: 78,960 micro-USD;
-- canonical exposure: 218,971 micro-USD;
-- active attempts: zero;
-- 84 admitted requests on UTC date 2026-09-17.
+## Cloudflare and budget evidence
 
-The separately retained closed Workbench ledger still contributes 13,151
-micro-USD settled and 67,680 micro-USD unresolved exposure. Combined application
-exposure is therefore 299,802 micro-USD: 153,162 settled plus 146,640
-unresolved. Remaining nested evaluation balance is 4,700,198 micro-USD
-(USD 4.700198), also leaving USD 49.700198 in the September application
-ceiling. These are application-ledger figures, not an account-wide invoice cap.
+- Cloudflare account: `7462053c6992b9c9fd889952a7ae0496`, observed Free
+  plan; no new monetary commitment or paid-plan change.
+- Durable Object Worker: `ask-carbon-budget-authority`, version
+  `bad6566a-fec0-4a82-83d9-70762df3cc93`.
+- Private review Worker: `carbon-ask-private-staging`, version
+  `2cacdb3e-f499-4513-8bf3-f03c92743409`.
+- URL: `https://carbon-ask-private-staging.carbon-physics-ai.workers.dev`,
+  protected by Worker Basic auth and not routed from production.
+- Dedicated OpenAI project: `proj_Ynh55Gns3IJ23Fn5MygQ5HaX`; dedicated Worker
+  secret, independently removable and not reused from testnet agents.
 
-The fixed daily limit is 100. A same-day two-model final run needs 64 requests,
-so it was not started with only 16 admissions remaining. The limit was not
-raised, bypassed or split into competing ledgers. The exact remaining action is
-to run both unchanged final splits after 00:00 UTC.
+Final September application exposure is 453,479 micro-USD: 306,839 settled and
+146,640 unresolved across the canonical and closed historical ledgers. This
+ticket added 153,677 micro-USD exact settled provider work and no unresolved
+exposure. Remaining nested evaluation balance is 4,546,521 micro-USD; remaining
+monthly application balance is 49,546,521 micro-USD. These figures are
+application-ledger state, not an account-wide invoice cap.
 
-## Tests completed before the frozen run
+## Browser and static evidence
 
-- `cd website/ask-carbon && npm test` — 61/61 passed.
-- `npm run validate` — staging release valid; 26 cards, nine source digests,
-  zero errors/warnings.
-- `npm run eval:contract` — 40 single-turn and six conversation retrieval
-  checks completed; no model-quality claim.
-- `git diff --check` — passed.
+The observed production homepage bytes were integrated without an iframe or
+second framework. Private staging asset hashes match the candidate manifest.
+Desktop browser checks covered the two visitor paths, source/maturity display,
+form-only mode, disclosure, all unresolved fields, local download controls,
+keyboard tab containment, Escape focus restoration, tab-key pilot navigation,
+rapid/reset race regressions and 390 × 844 layout with no horizontal overflow.
+The reduced-motion rule is present. Native Safari, native Mobile Safari and
+hands-on VoiceOver were not executed and are not claimed.
 
-The tests cover server-owned rendering, request-specific enums, unknown and
-duplicate selections, stale follow-up exclusion, release expiry/withdrawal,
-continuations, no-evidence, body/response bounds, provider usage and settlement,
-shared ceilings, generated ledger event sequences, UI request races, private
-staging auth, and the evaluation-only API credential. They do not replace the
-pending live semantic review.
+The authoritative latest manually uploaded homepage ZIP/source is still
+absent. The downloaded live bytes are observation input, not source authority.
+Production integration therefore remains blocked pending that exact ZIP and
+reconciliation. Both production homepages remained SHA-256
+`5ebb43e859e9837f74bbc93b5748b2db95a6700821afbfcecb407e75702e2020`;
+both production Ask Carbon API paths returned 404 after staging work.
 
-## Browser evidence
+## Provider privacy observation
 
-The unchanged production homepage bytes were integrated with the current
-component into a localhost-only staging artifact and exercised in the Codex
-in-app browser at its default desktop viewport and at 390 × 844 CSS pixels.
+The dedicated project showed API-call logging enabled and provider data
+sharing/training disabled. Requests use `store:false`; neither Zero Data
+Retention nor Modified Abuse Monitoring was established, so the approved
+visitor notice retains possible default abuse-monitoring retention up to 30
+days. Raw visitor text is absent from the Durable Object and intentional
+telemetry. Contact details are not sent in pilot model payloads.
 
-- the launcher exposed an expanded modal dialog and focus remained within its
-  eight interactive controls while tabbing;
-- Escape closed the visible dialog and restored focus to the collapsed
-  launcher;
-- the reviewed training-control explanation displayed its material maturity
-  note and expandable pinned source metadata;
-- the 390-pixel answered state had document and dialog `scrollWidth` equal to
-  `clientWidth` (390 pixels), with no horizontal overflow;
-- the stylesheet includes an explicit `prefers-reduced-motion: reduce` rule;
-  browser media emulation was not executed;
-- native Safari, native Mobile Safari and hands-on VoiceOver were not executed
-  and are not claimed.
+## Remaining release inputs
 
-This check exposed a false saved-answer match: `What is the weather?` was
-matched only through common question words. The browser retrieval path now
-requires at least one exact, stop-word-filtered content-term overlap before its
-existing ranking can return a card. A retained regression test and a second
-browser run both returned the distinct `No relevant saved evidence` state with
-no citation.
-This UI-only repair does not modify the live Worker retrieval contract or any
-shared Carbon execution interface.
-
-## Production boundary
-
-Read-only verification after the private deployments returned the unchanged
-production homepage SHA-256
-`5ebb43e859e9837f74bbc93b5748b2db95a6700821afbfcecb407e75702e2020`
-at 5,774,725 bytes. Production `/api/ask-carbon` returned 404. Production
-homepage assets, Worker, routes, DNS and activation were not changed.
-
-## Pending evidence
-
-After the UTC daily reset:
-
-1. deploy/verify the exact committed successor revisions;
-2. run the unchanged frozen final split once through Luna and once through
-   Terra with no retry or fallback;
-3. retain full outputs/failures and reconcile the shared ledger;
-4. manually score every final disposition against `eval/QUALITY_RUBRIC.md` and
-   the pinned passages;
-5. select the least-cost passing configuration or none;
-6. run repository acceptance, merge the bounded PR, and keep production
-   unchanged.
+One consolidated owner decision is needed after the latest uploaded website
+ZIP/source is supplied and the production incident owner plus disable/rollback
+operator are named. The decision must approve or reject the exact manifest,
+Luna configuration, knowledge `.2`, approved notice, inactive publication
+target and later bounded activation sequence. Issue #139 remains separate.

@@ -1,6 +1,6 @@
 # WEB-QA-04 — Ask Carbon reviewed-answer selection reliability
 
-**Status:** ACTIVE — concrete public-release candidate implementation and private acceptance
+**Status:** IMPLEMENTED AND TESTED — delivery merge pending; public activation remains disabled
 **Owner authorization:** continue the Ask Carbon staging workstream; no production activation
 **Depends on:** merged WEB-QA-03 / PR #204 evidence
 **Coordination:** issue #209 comment `5720642402`

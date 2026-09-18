@@ -6,13 +6,13 @@ or proof of a production deployment.
 
 ## Current release state
 
-- Repository knowledge version: `ask-carbon-release-candidate-2026-09-18.1` (server-owned reviewed-answer selection successor; not production deployed)
+- Repository knowledge version: `ask-carbon-release-candidate-2026-09-18.2` (server-owned reviewed-answer selection successor; not production deployed)
 - Source release date: 2026-09-18
-- Private staging target: `carbon-ask-private-staging` (candidate deployment pending the bounded acceptance run)
+- Private staging target: `carbon-ask-private-staging`, version `2cacdb3e-f499-4513-8bf3-f03c92743409`
 - Retained homepage live-evaluation source basis: `ask-carbon-staging-2026-09-16.1`
 - Release: `STAGING_REVIEWED`
 - Public activation: disabled
-- Live provider calls: bounded WEB-QA-03 evaluation and WEB-QA-04 compatibility smoke only; no production calls
+- Live provider calls: bounded WEB-QA-03 and WEB-QA-04 private evaluations only; no production calls
 - Private synthetic provider calls: observed through the authenticated staging Worker
 - Homepage source-grounded answer review: complete for delivered supported answers
 - Owner human-quality disposition for the retained private pilot packet:
@@ -36,14 +36,14 @@ The recovered `Carbon_Ask_v1.zip` matched SHA-256
 `ca1e23c3a77ec813c384d893358fe1fe1959edd5989068a5711b04e2821120cb`.
 Its 31 cards and 40 single-turn/five-conversation evaluation plan were treated
 as draft input and reconciled against current sources, not copied as authority
-or retained as a count gate. The current repository collection contains 26
+or retained as a count gate. The current repository collection contains 27
 useful reviewed units backed by nine exact source revisions. The retained
 live-evaluation artifacts remain pinned to the preceding `2026-09-16.1`
 snapshot so their answers and source basis stay inspectable. The candidate
 private staging surface is prepared for
-`ask-carbon-release-candidate-2026-09-18.1`; it is not substituted into or
-represented as the already completed model bakeoff until a new bounded run
-records that exact identity.
+`ask-carbon-release-candidate-2026-09-18.2`; its changed cases were evaluated
+through both registered model candidates and its exact pilot surface was run
+through Luna. Prior artifacts remain pinned to their original identities.
 
 ## Components
 
@@ -150,19 +150,21 @@ accepting caller-provided prices:
 - `gpt-5.6-terra:low:v1`: USD 2.00/M input, 0.20/M cached input,
   12.00/M output.
 
-Prices were rechecked in official OpenAI model documentation on 2026-09-17.
+Prices were rechecked in official OpenAI model documentation on 2026-09-18.
 The code includes output reasoning tokens in billed output, rejects missing or
-negative usage, and rejects an unexpected returned model identity. These are
-configured candidates, not production winners. WEB-QA-03 evaluated both
-through the real staging Worker and shared ledger. Terra was more reliable, but
-neither cleared the frozen final quality gate, so no production candidate was
-selected. Direct unmetered provider evaluation remains prohibited.
+negative usage, and rejects an unexpected returned model identity. Both
+configurations passed the repaired source-grounded release set through the real
+staging Workers and shared ledger. Luna is the selected release candidate
+because it was materially cheaper and had no material quality or latency
+disadvantage in the retained measurements. This remains a candidate, not public
+activation authority. Direct unmetered provider evaluation remains prohibited.
 
 The separate guided-pilot evaluation used Luna through the authenticated
-Workbench review Worker. The owner approved that exact retained private packet
-and its visible limitations. This does not select the homepage general-Q&A
-model, approve the newer knowledge release, establish customer usability, or
-qualify Workbench output.
+private Worker. The owner approved the retained packet and its visible
+limitations; the `.2` successor reran all nine scenarios / eleven turns and
+reproduced the same three missing-field limitations. This does not approve the
+newer knowledge release, establish customer usability, or qualify Workbench
+output.
 
 ## Deployment boundary
 

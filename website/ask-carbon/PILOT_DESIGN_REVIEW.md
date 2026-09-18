@@ -17,7 +17,7 @@ acceptance, scientific qualification, or deployment authorization.
 
 The exact live evidence remains pinned to
 `ask-carbon-staging-2026-09-16.1` and `gpt-5.6-luna:low:v1`. The
-`ask-carbon-release-candidate-2026-09-18.1` manifest is newer,
+`ask-carbon-release-candidate-2026-09-18.2` manifest is newer,
 staging-reviewed, and not public-approved. The pilot source wording and Luna
 configuration used by the retained packet are unchanged; the candidate's
 dated progress card is handled as a separate changed-knowledge check. See
@@ -100,6 +100,12 @@ it. This implementation creates no second allowance.
   executed and retained in `evidence/pilot-design-live-2026-09-17-v3/` and
   `v4/`; the combined packet is
   `evidence/PILOT_DESIGN_PRIVATE_REVIEW_PACKET_2026-09-17.md`.
+- Exact release-candidate checkpoint: all nine scenarios / eleven turns were
+  rerun against knowledge `ask-carbon-release-candidate-2026-09-18.2` through
+  the repaired private Cloudflare Worker. All turns returned supported output,
+  settled 9,266 micro-USD exactly, added no unresolved exposure, and reproduced
+  the three previously accepted missing-field limitations. The raw artifact is
+  `evidence/pilot-design-live-2026-09-18.2.json`.
 - Owner quality disposition: **APPROVED_BOUNDED_PACKET** through explicit owner
   conversation direction after PR #203. Individual reviewer comments beyond
   that owner disposition are not claimed.
