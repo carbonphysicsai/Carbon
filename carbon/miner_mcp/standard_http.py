@@ -153,7 +153,13 @@ class BoundTokenVerifier:
             raise PermissionError("Carbon research authorization required")
 
 
-def create_http_app(adapter: ResearchToolAdapter, verifier: BoundTokenVerifier):
+def create_http_app(
+    adapter: ResearchToolAdapter,
+    verifier: BoundTokenVerifier,
+    *,
+    workbench=None,
+    authorize_workbench=None,
+):
     """Return a bounded stateful Streamable HTTP app; do not start a listener."""
     from mcp.server.auth.settings import AuthSettings
     from mcp.server.transport_security import TransportSecuritySettings
@@ -169,6 +175,8 @@ def create_http_app(adapter: ResearchToolAdapter, verifier: BoundTokenVerifier):
     server = _create_server(
         adapter,
         guard=verifier.check_context,
+        workbench=workbench,
+        authorize_workbench=authorize_workbench,
         token_verifier=verifier,
         auth=AuthSettings(
             issuer_url=binding.issuer,

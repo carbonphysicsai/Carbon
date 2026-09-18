@@ -1,5 +1,7 @@
 # Exact intentional repository fixtures. Four TAB-separated fields are required.
 # kind  path  exact matched value  durable reason
+text	carbon/miner_mcp/apps_ui/workbench.html	e.local	Pinned bundled Zod 4.6.5 JavaScript member access for the ISO datetime local option, not a hostname or network destination.
+text	carbon/miner_mcp/apps_ui/workbench.html	t.local	Pinned bundled Zod 4.6.5 JavaScript member access for datetime JSON-schema formatting, not a hostname or network destination.
 commit	608bc7aaba85e65c21a33ca8157f5a061892bd61	empty	Normal merge of accepted foundation main aff471a8; foundation content was already present, while the second parent records accepted dependency ancestry.
 commit	833097119310207e020dd1232793efd5145e594c	empty	Normal merge of accepted research main 54f8aff7; tested D4 content was already integrated in 5ef383fb, while the second parent records accepted dependency ancestry.
 text	.devcontainer/Dockerfile	/home/ubuntu	Pinned canonical container home, not a workstation path.

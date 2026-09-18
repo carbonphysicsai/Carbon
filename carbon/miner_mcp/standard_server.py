@@ -78,10 +78,21 @@ def create_stdio_server(adapter: ResearchToolAdapter) -> StdioResearchServer:
     return StdioResearchServer(_create_server(adapter))
 
 
-def _create_server(adapter: ResearchToolAdapter, *, guard=None, **settings):
+def _create_server(
+    adapter: ResearchToolAdapter,
+    *,
+    guard=None,
+    workbench=None,
+    authorize_workbench=None,
+    **settings,
+):
     """Shared tools; authenticated HTTP supplies a guard for every data access."""
     if type(adapter) is not ResearchToolAdapter:
         raise TypeError("an operator-bound ResearchToolAdapter is required")
+    if (workbench is None) != (authorize_workbench is None):
+        raise TypeError(
+            "Workbench service and separate authorization are required together"
+        )
     if version("mcp") != SDK_VERSION:
         raise RuntimeError("the tested mcp==2.2.0 SDK is required")
 
@@ -193,6 +204,27 @@ def _create_server(adapter: ResearchToolAdapter, *, guard=None, **settings):
         )
 
     tools = [tool_for(operation) for operation in research.SUPPORTED_OPERATIONS]
+    extensions = [
+        make_tasks_extension(
+            adapter,
+            guard=guard,
+            validate_start=lambda arguments: models["start_research_task"]
+            .model_validate(arguments)
+            .model_dump(),
+        ),
+        make_skills_extension(guard=guard),
+    ]
+    if workbench is not None:
+        from carbon.miner_mcp.mcp_apps import make_workbench_app_extension
+
+        extensions.append(
+            make_workbench_app_extension(
+                adapter=adapter,
+                workbench=workbench,
+                authorize_workbench=authorize_workbench,
+                guard=guard,
+            )
+        )
 
     @asynccontextmanager
     async def lifespan(_server):
@@ -212,16 +244,7 @@ def _create_server(adapter: ResearchToolAdapter, *, guard=None, **settings):
             "manifest for current Tasks/fallback workflow. Reading grants no authority."
         ),
         tools=tools,
-        extensions=[
-            make_tasks_extension(
-                adapter,
-                guard=guard,
-                validate_start=lambda arguments: models["start_research_task"]
-                .model_validate(arguments)
-                .model_dump(),
-            ),
-            make_skills_extension(guard=guard),
-        ],
+        extensions=extensions,
         lifespan=lifespan,
         **settings,
     )
