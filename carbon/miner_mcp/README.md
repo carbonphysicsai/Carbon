@@ -18,8 +18,9 @@ The installed console command is `carbon-mcp` with the same arguments. The
 profile is the existing private Launchpad runner profile for an already prepared,
 frozen, unfinished campaign. It must match its existing owner, current grant,
 accepted implementation, role roots and image identities. Preparation and
-authorization remain operator actions. A completed or expired campaign cannot
-be reopened by this command. The operator host needs the accepted checkout;
+authorization remain operator actions. Normal attachment rejects completed or
+expired campaigns; the cleanup-only mode below does not reopen research. The
+operator host needs the accepted checkout;
 an external MCP client needs only its configured command or private connection.
 
 Configure a stdio MCP client to launch the Python executable from that environment
@@ -114,8 +115,46 @@ ledger. Cancellation propagates to the controller and verified worker cleanup.
 It is a DEVELOPMENT diagnostic. Its output is not training support, accepted
 truth, a certified error bound or qualification. It cannot select hidden cases,
 a grader, arbitrary scripts or acceptance tolerances. The existing primary
-reference stays intact. General parameter sweeps and miner-authored Julia scripts
-remain separate implementation/containment work.
+reference stays intact. The bounded envelope task and authored research below
+retain their separate registered scopes and evidence-use limits.
+
+### Registered material selection
+
+The standard launcher checks the campaign's exact retained `scientific_tasks`
+documents against the registered factories before constructing a consumer.
+The following are the supported combinations; list order is part of the contract.
+These are operator-side grant bindings, not client-supplied task arguments.
+
+| Retained scientific scopes | Selected public material |
+| --- | --- |
+| Field absent | Existing legacy public material |
+| One exact `julia_burgers_scope(image, role_root)` | `julia_burgers_study_v1` |
+| Exact Burgers scope followed by `julia_envelope_scope(image, role_root)` | Burgers plus `julia_burgers_envelope_v2` |
+| One exact `advection_scope(authored_image)` | `julia_advection_study_v1` |
+
+An empty list, unknown or modified scope, reordered companion, extra scope or
+mixed task combination rejects attachment. Factories are defined in
+`carbon.development_session.julia_research`, `julia_envelope` and
+`advection_research`, respectively. A matching schema name alone is insufficient.
+
+Advection also requires the exact `authored_research` scope and the separately
+loaded `JuliaResearchImageIdentity` from the private authored-image record. That
+image must have the admitted public analysis image as its parent, and that
+analysis image must retain its accepted C-03 worker binding. The same authored
+image supplies the advection material and research executor; public reference and
+practice consumers keep their separately bound worker image. The advection study
+is public self-reported DEVELOPMENT evidence, with no validator or Workbench
+qualification implied by availability here.
+
+The envelope task reserves its complete bounded sequence before dispatch and
+retains uncertain claimed consumption during cancellation. Cleanup-only
+attachment can construct either consumer using the exact retained owner,
+generation, runtime and image after expiry. Every new capability/study call still
+checks fresh admission; cleanup attachment does not extend the grant.
+
+For isolated miner-authored `run_julia`, use the separate
+[authored Julia operator and client guide](../../docs/development/AUTHORED_JULIA_RESEARCH.md).
+Installing its image or starting an MCP client does not amend an existing grant.
 
 ## Private Streamable HTTP composition
 
