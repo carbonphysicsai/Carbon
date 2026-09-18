@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-18T00:50:26Z"
+  captured_at_utc: "2026-09-18T01:13:14Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "a416868bc951aed36b98515f36bcd5d163e695d4"
+  authority_snapshot_commit: "c8f8300b21581142cbd294978ee1d65c3f0e69b0"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -7875,6 +7875,19 @@ events:
       - "WAVE-M"
       - "WAVE-N"
     supersedes: null
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "adjustment"
+    event_id: "C-CORE-14-PUBLIC-GPU-DIAGNOSTIC"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    primary_detail: ".agent/tickets/C-CORE-14_public_gpu_diagnostic.md"
+    affects:
+      - "WAVE-C/C-02"
+      - "WAVE-C/C-03"
+      - "WAVE-C/C-08"
+    supersedes: null
+    summary: "A prospective public TRAIN GPU diagnostic compiles registered recipes against pinned GPU contracts and uses the existing research task, CampaignLedger, durable queue and C03 controller. Admission requires both exact campaign scope and the fixed private host grant. The consumer restricts controller storage to the owned campaign while preserving the fixed exclusive host lease. Discovery and results remain non-score, hardware-unverified observations; no CPU fallback, new campaign or hardware authority follows. Unknown dispatched work retains its reservation. Canonical delivery and actual accelerator acceptance remain required."
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"
