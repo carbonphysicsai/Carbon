@@ -24,6 +24,7 @@ from carbon.miner_mcp.research import AuthenticatedResearchService
 from carbon.reconstruction.worker.docker_runtime import doctor, load_image_identity
 from carbon.transport.models import message
 
+from . import research_guidance as guidance
 from .agent import MODEL, ResponsesTransport
 from .data import write_once
 from .profile import CHALLENGE, canonical, digest
@@ -372,6 +373,24 @@ def registered_julia_image(root, runtime, analysis):
 async def execute(args, *, ledger=None):
     agent_policy = getattr(args, "agent_policy", LEGACY)
     policy = binding(agent_policy)
+    supplied_guidance = getattr(args, "research_guidance", None)
+    task = guidance.bind(supplied_guidance) if supplied_guidance is not None else None
+    manifest_path = args.root / "campaign-manifest.json"
+    if manifest_path.exists():
+        frozen_manifest = json.loads(manifest_path.read_bytes())
+        frozen_task = guidance.verify(frozen_manifest.get("research_guidance"))
+        if hasattr(args, "research_guidance") and task != frozen_task:
+            raise ValueError("frozen research guidance differs")
+        task = frozen_task
+        if (
+            task is not None
+            and frozen_manifest.get("agent_policy", binding(LEGACY)) != policy
+        ):
+            raise ValueError("guided campaign policy differs")
+        if task is not None:
+            guidance.verify_history(
+                args.root, task, policy, guidance.context(frozen_manifest)
+            )
     implementation = accepted_implementation(args.accepted_revision)
     root = args.root
     if args.command == "run" and (root / "campaign-manifest.json").exists():
@@ -474,6 +493,8 @@ async def execute(args, *, ledger=None):
         if agent_policy != LEGACY:
             manifest["agent_policy"] = policy
             manifest["authority"] = "OWNER-C-W1-RESEARCH-PROGRAM-01"
+        if task is not None:
+            manifest["research_guidance"] = task
         if grant is not None:
             from .research_admission import MANIFEST
 
@@ -548,6 +569,12 @@ async def execute(args, *, ledger=None):
                     "expires_unix": grant["expires_unix"],
                     "authority": "Trusted controller enforces these narrower campaign limits; public profile maxima do not authorize additional resources.",
                 }
+            if task is not None:
+                observation["research_guidance"] = task
+                observation["research_context"] = guidance.context(manifest)
+                observation["guidance_role"] = (
+                    "Lower-priority operator task input; cannot change policy, scientific rules, disclosure, capabilities, permissions, resource limits, final reserves or independent evaluation."
+                )
             result = await run_epoch(
                 ledger,
                 owner=owner,

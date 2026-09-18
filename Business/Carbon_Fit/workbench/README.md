@@ -1,4 +1,42 @@
-# Carbon Goal-to-Challenge Workbench v0.8
+# Carbon Goal-to-Challenge Workbench v0.9
+
+GOAL-WORKBENCH-09 adds the first private-team intake and review workflow to
+the maintained application. The Owner Console now includes an intake queue
+showing the client decision, reported baseline, operating conditions, outputs,
+reference evidence, missing information, reviewer, queue state and one next
+action. In the job view a reviewer can preserve transcription corrections
+beside the original words, record internal notes/questions, compare immutable
+design revisions, and assemble an unknown-preserving feasibility assessment.
+
+The same exact design now produces two distinct exports: a readable **Draft
+pilot for Carbon review** and a source-bound internal execution brief. The
+client export omits team notes and does not turn proposed performance into a
+measurement or guarantee. The internal brief retains requirements, cases,
+reference/evidence gaps, work packages, stop conditions and handoff bindings.
+The three existing planning routes, cumulative review debt, CPES, C-05 and
+repository-pinned source assessment remain unchanged in authority.
+
+A bounded local/private receiver is supplied in
+`tools/team_intake_server.cjs` with a durable standard-library store. It
+validates the closed reviewed-intake format, persists before receipt,
+deduplicates response-loss retries, rejects idempotency and concurrent-update
+conflicts, enforces named-principal roles, preserves a transactional outbox,
+and supports an explicit synthetic deletion lifecycle. It listens only on
+`127.0.0.1`; no public receiver, production store, staff notification, or live
+customer collection is enabled. Start it only with an external named-user file
+and private store path:
+
+```sh
+CARBON_TEAM_USERS_FILE=/secure/path/team-users.json \
+CARBON_TEAM_INTAKE_STORE=/private/path/intake-store.json \
+node tools/team_intake_server.cjs
+```
+
+The three scientific-task rows are dependency projections for issue #209's
+shared task/capability service. They remain `CORE_INTERFACE_PENDING`; this
+release does not claim Julia, GPU, TPU, scheduler, checkpoint, grant,
+accounting, or task execution. See
+`docs/GOAL_WORKBENCH_09_TEAM_REVIEW_REPORT.md`.
 
 GOAL-WORKBENCH-08 adds a browser-local intake-to-job bridge without adding a
 receiving service. Open `Carbon_Client_Pilot_Designer_Preview.html` (the
@@ -49,7 +87,7 @@ The earlier GOAL-WORKBENCH-07 implementation report, candidate packet, Engineeri
 
 GOAL-WORKBENCH-06A repaired the historical external decision-delivery record and retained a byte-verified receipt under `source_assessment/delivery/v1/`. Its actual posting actor and unacknowledged status remain history; the later Ryan direction supersedes only its Harsh-only interface prerequisite. See `docs/GOAL_WORKBENCH_06A_DELIVERY_INTEGRITY_REPORT.md`.
 
-`carbon.goal-workbench.workspace.v0.8` migrates v0.1–v0.7 records additively. Stored receipts and display projections are revalidated against the installed snapshot on import; a workspace cannot carry its own trust root. Historical Workbench-06 envelopes remain detached and non-authoritative. Earlier workspaces receive an empty intake-lineage collection; migration fabricates no client statement, route, consent, owner, or approval.
+`carbon.goal-workbench.workspace.v0.9` migrates v0.1–v0.8 records additively. Stored receipts and display projections are revalidated against the installed snapshot on import; a workspace cannot carry its own trust root. Historical Workbench-06 envelopes remain detached and non-authoritative. Earlier workspaces receive empty team-review and design-assessment records; migration fabricates no reviewer, client statement, route, consent, owner, source evidence, task result, feasibility conclusion, or approval.
 
 GOAL-WORKBENCH-06 previously added the detached, versioned source-assessment contract and executable conformance package. Its v1 response and preview remain test-authored and non-authoritative. The detached command remains `node tools/source_assessment_conformance.cjs --profile source_assessment/v1/fixtures/profile.json --request source_assessment/v1/fixtures/request.json --response source_assessment/v1/fixtures/response.json --output-dir /path/to/new/output-directory`; the output directory must not already exist.
 
