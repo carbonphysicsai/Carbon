@@ -279,6 +279,32 @@ remain required before closing this ticket in its bounded engineering scope.
 
 OWNER DIRECTION AND SUPERSESSION
 
+V3 SECOND EXECUTABLE TEMPLATE (2026-09-17, C-CORE-11 candidate)
+
+One fixed public periodic-advection study now reuses the shared physical
+definition/views and existing admitted Julia carrier, research task service and
+campaign ledger. Its exact prospective scientific-task scope and Julia runtime
+grant bind the reviewed upwind/refinement method, public translating sine case,
+source, numerical inputs and image. The existing workspace `public_material`
+action discovers and executes `julia_advection_study_v1`; it accepts no grader,
+script path, user tolerance or replacement Challenge population.
+
+Seven distinct local isolated Julia cases exercised signed/zero transport,
+constant and analytical controls, conservation/refinement, requested-time order
+and repetition, malformed units, one-charge replay and the actual public task
+consumer. The 64/128-grid public control had analytic RMS 0.00159939/0.000798403,
+one trial and 3338 ledger numerical milliseconds; exact source/image identities
+and limitations are in `.agent/tickets/C-CORE-11_native_advection_reuse.md`.
+The existing Julia service acceptance script now requires this suite, sharing
+the operator-built authored image with its existing containment tests.
+
+This is locally tested DEVELOPMENT structural/numerical reuse evidence pending
+canonical checks and normal delivery. First-order diffusion and interpolation
+limitations remain explicit. Results retain MINER_SELF_REPORTED provenance;
+advection Challenge registration, Workbench/validator consumers, qualification
+and training-support permission remain open. No existing grant or Burgers
+reference identity changed; no paid model or cloud allocation was used.
+
 V3 AUTHORED JULIA IMPLEMENTATION CHECKPOINT (2026-09-17, C-CORE-07 candidate)
 
 Prospective `run_julia` now uses the existing admitted research carrier, durable
