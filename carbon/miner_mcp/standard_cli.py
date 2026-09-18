@@ -21,7 +21,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from carbon import research
-from carbon.development_session.profile import CHALLENGE
+from carbon.development_session.profile import CHALLENGE, canonical
 from carbon.development_session.research_admission import (
     MANIFEST,
     Admission,
@@ -163,11 +163,12 @@ def _runtime(profile):
         "images": [image.image_id, analysis.image_id],
     }
     role_root = profile.root / "private-roles"
-    if "scientific_tasks" in profile.manifest["runtime"]:
-        from carbon.development_session.julia_research import julia_burgers_scope
-
-        runtime["scientific_tasks"] = [julia_burgers_scope(image, role_root)]
     authored = _authored_image(profile, analysis)
+    _, scientific = _scientific_selection(
+        profile.manifest["runtime"], image, role_root, authored
+    )
+    if scientific is not None:
+        runtime["scientific_tasks"] = scientific
     if authored is not None:
         from carbon.development_session.julia_analysis import authored_julia_scope
 
@@ -309,25 +310,83 @@ class _AdmittedConnection:
         return await self.connection.check_registration()
 
 
-def _science(ledger, owner, image, role_root, *, cleanup_only=False):
+def _scientific_selection(runtime, image, role_root, authored=None):
+    """Recompute one closed registered combination; no schema label grants access."""
+    if "scientific_tasks" not in runtime:
+        return "legacy", None
+    scopes = runtime["scientific_tasks"]
+    if (
+        type(scopes) is not list
+        or not scopes
+        or any(type(s) is not dict for s in scopes)
+    ):
+        raise ValueError("closed registered scientific scopes required")
+    from carbon.development_session.advection_research import advection_scope
+    from carbon.development_session.julia_analysis import authored_julia_scope
+    from carbon.development_session.julia_envelope import julia_envelope_scope
+    from carbon.development_session.julia_research import julia_burgers_scope
+    from carbon.development_session.research_sequences import SCOPE as ENVELOPE_SCOPE
+
+    schemas = [s.get("schema") for s in scopes]
+    if schemas == ["carbon.public-advection-study.scope.v1"]:
+        expected_authored = [authored_julia_scope(authored)]
+        if (
+            canonical(runtime.get("authored_research")) != canonical(expected_authored)
+            or authored.parent.parent_image != image.image_id
+        ):
+            raise ValueError("separately bound advection analysis image required")
+        kind, expected = "advection", [advection_scope(authored)]
+    elif schemas == ["carbon.public-julia-study.scope.v1"]:
+        kind, expected = "burgers", [julia_burgers_scope(image, role_root)]
+    elif schemas == ["carbon.public-julia-study.scope.v1", ENVELOPE_SCOPE]:
+        kind, expected = "envelope", [
+            julia_burgers_scope(image, role_root),
+            julia_envelope_scope(image, role_root),
+        ]
+    else:
+        raise ValueError("unsupported scientific scope combination")
+    if canonical(scopes) != canonical(expected):
+        raise ValueError("registered scientific scope differs")
+    return kind, expected
+
+
+def _science(ledger, owner, image, role_root, *, cleanup_only=False, authored=None):
     from carbon.development_session.research_data import PublicReferenceData
     from carbon.development_session.research_provider import PublicPractice
 
+    runtime = (
+        ledger.admission.document["runtime"] if ledger.admission is not None else {}
+    )
+    kind, scopes = _scientific_selection(runtime, image, role_root, authored)
     data = PublicReferenceData(
         ledger=ledger, owner=owner, image=image, role_root=role_root
     )
     material = PublicMaterial(data)
-    if (
-        ledger.admission is not None
-        and "scientific_tasks" in ledger.admission.document["runtime"]
-    ):
+    if kind in {"burgers", "envelope"}:
         from carbon.development_session.julia_research import (
             JuliaPublicMaterial,
             PublicJuliaStudy,
         )
 
         material = JuliaPublicMaterial(
-            material, PublicJuliaStudy(data, cleanup=cleanup_only)
+            material,
+            PublicJuliaStudy(
+                data,
+                cleanup=cleanup_only,
+                envelope_scope=scopes[1] if kind == "envelope" else None,
+            ),
+        )
+        if kind == "envelope":
+            from carbon.development_session.julia_envelope import JuliaEnvelopeMaterial
+
+            material = JuliaEnvelopeMaterial(material, cleanup=cleanup_only)
+    elif kind == "advection":
+        from carbon.development_session.advection_research import (
+            PublicAdvectionMaterial,
+        )
+
+        material = PublicAdvectionMaterial(
+            material, ledger=ledger, owner=owner, image=authored, cleanup=cleanup_only
         )
     return material, PublicPractice(data=data, ledger=ledger, owner=owner, image=image)
 
@@ -370,16 +429,18 @@ async def serve(configuration: Path, *, cleanup_only=False):
         owner = await _requester(connection)
         if owner != profile.manifest.get("owner"):
             raise ValueError("authenticated campaign owner changed")
+        authored = _authored_image(profile, analysis)
         material, practice = _science(
             ledger,
             owner,
             image,
             role_root,
+            **({"authored": authored} if authored is not None else {}),
             **({"cleanup_only": True} if cleanup_only else {}),
         )
         composition = make_research_service(
             cleanup_only=cleanup_only,
-            julia_image=_authored_image(profile, analysis),
+            julia_image=authored,
             root=profile.root / "research-tasks",
             ledger=ledger,
             owner=owner,

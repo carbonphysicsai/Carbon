@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-18T02:06:29Z"
+  captured_at_utc: "2026-09-18T02:51:41Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "32e8ff98153f49bacd40ee42a87fc7f5e35816db"
+  authority_snapshot_commit: "4b64fe38aadf48398131e8f0e2498f3ea60003b8"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -2350,6 +2350,18 @@ change_paths:
     tickets:
       []
 events:
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "adjustment"
+    event_id: "C-CORE-13-REFERENCE-DIAGNOSTICS-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "Retain bounded exact public-TRAIN reference failure diagnostics from the existing synthetic final-service test. Preserve its original outcome, assertions, inputs and limits; the historical failed case cannot be reconstructed from its incomplete upload and remains unresolved. No solver change, retry, qualification or new execution authority follows."
+    primary_detail: ".agent/tickets/C-CORE-13_mcp_scientific_material_selection.md"
+    affects:
+      - "SYSTEM/CI"
+      - "WAVE-C/C-04"
+    supersedes: null
   -
     map_ref: "WAVE-B/B-03"
     event_type: "evidence"
@@ -7504,6 +7516,19 @@ events:
     affects:
       - "SYSTEM/AGENT-EXECUTION"
     supersedes: null
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "adjustment"
+    event_id: "C-CORE-13-EXACT-MCP-SCIENCE"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    primary_detail: ".agent/tickets/C-CORE-13_mcp_scientific_material_selection.md"
+    affects:
+      - "WAVE-C/C-04"
+      - "WAVE-C/C-08"
+      - "SYSTEM/CI"
+    supersedes: null
+    summary: "The normal MCP launcher now selects only an exact registered Burgers, ordered Burgers/envelope, or separately imaged advection material from retained campaign scopes. It rejects ambiguous combinations before attachment. Expired-owner cleanup construction retains exact scope and generation checks; every new material call still requires fresh admission. Fixture composition and rejection checks exercise the existing service and ledger without creating scientific or spending authority. Canonical delivery remains required."
   -
     map_ref: "SYSTEM/CI"
     event_type: "adjustment"
