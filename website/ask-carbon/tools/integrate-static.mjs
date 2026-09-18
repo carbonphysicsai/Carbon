@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 const KNOWN_LIVE_SHA256 = "5ebb43e859e9837f74bbc93b5748b2db95a6700821afbfcecb407e75702e2020";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, "..");
+const PILOT_DESIGNER = resolve(ROOT, "../../Business/Carbon_Fit/workbench/Carbon_Client_Pilot_Designer_Preview.html");
 
 const parseArgs = (argv) => {
   const result = { "asset-prefix": "./ask-carbon", "expected-sha256": KNOWN_LIVE_SHA256 };
@@ -31,6 +32,7 @@ export const integrateHtml = (html, {
   assetPrefix = "./ask-carbon",
   knowledgeUrl,
   apiUrl = "/api/ask-carbon",
+  pilotUrl,
   stagingPreview = false,
 } = {}) => {
   if (!/<\/head\s*>/i.test(html) || !/<\/body\s*>/i.test(html)) throw new Error("Input is not a complete HTML document.");
@@ -41,9 +43,10 @@ export const integrateHtml = (html, {
     throw new Error("Asset prefix must be a bounded relative or root-relative path.");
   }
   const resolvedKnowledgeUrl = knowledgeUrl ?? `${prefix}/public-knowledge.v1.json`;
+  const resolvedPilotUrl = pilotUrl ?? `${prefix}/pilot-designer.html`;
   const head = `  <link data-ask-carbon-integration rel="stylesheet" href="${escapeAttribute(prefix)}/ask-carbon.css">\n`;
   const body = [
-    `  <ask-carbon data-ask-carbon-integration knowledge-url="${escapeAttribute(resolvedKnowledgeUrl)}" api-url="${escapeAttribute(apiUrl)}"${stagingPreview ? " staging-preview" : ""}></ask-carbon>`,
+    `  <ask-carbon data-ask-carbon-integration knowledge-url="${escapeAttribute(resolvedKnowledgeUrl)}" api-url="${escapeAttribute(apiUrl)}" pilot-url="${escapeAttribute(resolvedPilotUrl)}"${stagingPreview ? " staging-preview" : ""}></ask-carbon>`,
     `  <script type="module" src="${escapeAttribute(prefix)}/ask-carbon.js"></script>`,
     "",
   ].join("\n");
@@ -71,6 +74,7 @@ const main = async () => {
     assetPrefix: args["asset-prefix"],
     knowledgeUrl: args["knowledge-url"],
     apiUrl: args["api-url"] ?? "/api/ask-carbon",
+    pilotUrl: args["pilot-url"],
     stagingPreview: args["staging-preview"] === true,
   });
   await mkdir(dirname(outputPath), { recursive: true });
@@ -82,6 +86,7 @@ const main = async () => {
     [join(ROOT, "public", "ask-carbon.js"), "ask-carbon.js"],
     [join(ROOT, "public", "release-contract.js"), "release-contract.js"],
     [join(ROOT, "knowledge", "public-knowledge.v1.json"), "public-knowledge.v1.json"],
+    [PILOT_DESIGNER, "pilot-designer.html"],
   ]) {
     await writeFile(join(assetDirectory, destination), await readFile(source), { flag: "wx" });
   }
