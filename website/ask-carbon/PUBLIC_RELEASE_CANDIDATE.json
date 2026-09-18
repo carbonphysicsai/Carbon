@@ -1,0 +1,87 @@
+{
+  "schema_version": "carbon.ask-carbon.public-release-candidate.v1",
+  "candidate_id": "ask-carbon-public-release-2026-09-18.2",
+  "status": "PENDING_OWNER_RELEASE_APPROVAL",
+  "public_activation_allowed": false,
+  "runtime_implementation_revision": "dd952529ad2906b8ba0f1dc6ab06d8ae338d66f0",
+  "knowledge": {
+    "version": "ask-carbon-release-candidate-2026-09-18.2",
+    "release_status": "STAGING_REVIEWED",
+    "source_release_date": "2026-09-18",
+    "expires_at": "2026-12-15T00:00:00Z",
+    "withdrawal_epoch": 1,
+    "sha256": "899c9b9947df498ad3e933fecc060ac21871d7d76d8880f3ee5cfe9ee76ed51e",
+    "eligible_cards": 27,
+    "pinned_sources": 9
+  },
+  "model": {
+    "selected_configuration": "gpt-5.6-luna:low:v1",
+    "pricing_identity": "openai-standard-2026-09-16:gpt-5.6-luna",
+    "request_model": "gpt-5.6-luna",
+    "reasoning_effort": "low",
+    "selection_basis": "Both registered candidates passed the repaired source-grounded release cases; Luna was less expensive and no slower in the retained median measurements.",
+    "fallback": null,
+    "automatic_retry": false
+  },
+  "first_release_scope": {
+    "public_carbon_q_and_a": true,
+    "guided_pilot_drafting": true,
+    "form_only_drafting_without_ai": true,
+    "explicit_local_download": true,
+    "inquiry_collection_issue_139": false,
+    "customer_or_private_data": false,
+    "scientific_execution": false
+  },
+  "privacy": {
+    "state": "OWNER_APPROVED_BOUNDED_VISITOR_POSTURE",
+    "notice_sha256": "35cc6f0349bfe04823b9380c810f1e7c6b228878e59a9a078fe2a3237cdbe8ed",
+    "provider_request_store": false,
+    "zero_data_retention_established": false,
+    "modified_abuse_monitoring_established": false,
+    "provider_default_abuse_monitoring_retention_may_be_days": 30
+  },
+  "static_integration": {
+    "source_authority": "BLOCKED_LATEST_UPLOADED_WEBSITE_ZIP_REQUIRED",
+    "observed_live_input_sha256": "5ebb43e859e9837f74bbc93b5748b2db95a6700821afbfcecb407e75702e2020",
+    "integrated_index_sha256": "6c6bdcffb82487202d05ba8cbea63305fe0fdacde1516a4cdca6beb50d430017",
+    "component_js_sha256": "6a098c0ab3c22bc347519bab0c54183828f1de3ed3646130817f9f3ef307fa0d",
+    "component_css_sha256": "fa02c7eac7d8aa6166dd51c3c651c3776431c4cd21f2a4c5f5981f44dcc97f58",
+    "pilot_html_sha256": "57ef27d9e219479ff382a9612ad438910febad6ad8053106c1de3a45973d1c10",
+    "release_contract_sha256": "3b91dca55ad7dc787902d307930f8ed018cce42821fdd2fdae42278531ce2329"
+  },
+  "cloudflare": {
+    "account_id": "7462053c6992b9c9fd889952a7ae0496",
+    "plan_observed": "Free",
+    "new_monetary_commitment": false,
+    "production_static_worker": "carbonwebsite",
+    "production_current_version": "5a44ab03-ce7c-4100-ae42-71843b07246a",
+    "production_rollback_version": "b99c37f0-c2d2-432b-842a-00b9fb518d96",
+    "production_hostnames": ["carbonphysics.ai", "www.carbonphysics.ai"],
+    "production_api_routes": ["carbonphysics.ai/api/ask-carbon*", "www.carbonphysics.ai/api/ask-carbon*"],
+    "production_worker_candidate": "ask-carbon-public",
+    "production_activation": "disabled",
+    "private_staging_worker": "carbon-ask-private-staging",
+    "private_staging_version": "2cacdb3e-f499-4513-8bf3-f03c92743409",
+    "private_staging_url": "https://carbon-ask-private-staging.carbon-physics-ai.workers.dev",
+    "budget_authority_worker": "ask-carbon-budget-authority",
+    "budget_authority_version": "bad6566a-fec0-4a82-83d9-70762df3cc93"
+  },
+  "budget_snapshot_micro_usd": {
+    "period": "2026-09",
+    "monthly_limit": 50000000,
+    "evaluation_limit": 5000000,
+    "canonical_settled": 293688,
+    "canonical_unresolved": 78960,
+    "closed_historical_settled": 13151,
+    "closed_historical_unresolved": 67680,
+    "combined_exposure": 453479,
+    "evaluation_remaining": 4546521,
+    "monthly_remaining": 49546521
+  },
+  "required_before_production_mutation": [
+    "owner approval of this exact release package",
+    "authoritative latest uploaded website ZIP/source reconciled to the observed live bytes",
+    "named production incident owner",
+    "named disable and rollback operator"
+  ]
+}
