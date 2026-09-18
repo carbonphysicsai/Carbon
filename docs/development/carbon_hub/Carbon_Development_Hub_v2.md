@@ -116,6 +116,7 @@
 
 ## Map events
 
+- `C-CORE-13-REFERENCE-DIAGNOSTICS-01` — `SYSTEM/AGENT-EXECUTION` — Retain bounded exact public-TRAIN reference failure diagnostics from the existing synthetic final-service test. Preserve its original outcome, assertions, inputs and limits; the historical failed case cannot be reconstructed from its incomplete upload and remains unresolved. No solver change, retry, qualification or new execution authority follows.
 - `B-03-E1` — `WAVE-B/B-03` — PR #67 merged the B-03 working engineering contract and exact-main CI passed; runtime implementation remained selected and unstarted in the captured repository state.
 - `HUB-BUG-001` — `SYSTEM/DEVELOPMENT-HUB` — The v2 primary page was an empty JavaScript shell and appeared blank when inline scripts were suppressed; v2.1 replaces it with complete static semantic HTML.
 - `HUB-ADJ-001` — `SYSTEM/DEVELOPMENT-HUB` — The hub is integrated as a data-first repository surface with deterministic generation, maintenance instructions, drift validation, PR impact declaration, and owner-controlled publication support.
