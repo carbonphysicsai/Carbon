@@ -195,7 +195,7 @@ Route truth assets, primary and witness roles, uncertainty, access, typed failur
 
 ### Repository authority
 
-- [Julia truth-oracle runtime](https://github.com/carbonphysicsai/Carbon/blob/c8f8300b21581142cbd294978ee1d65c3f0e69b0/Design_Specs/Runtime_Julia_Truth_Oracle.md)
+- [Julia truth-oracle runtime](https://github.com/carbonphysicsai/Carbon/blob/fb3e7f10e3dfac54f09f9028cbb8f8492ab4329b/Design_Specs/Runtime_Julia_Truth_Oracle.md)
 - [Evidence and Envelope Standards](https://github.com/carbonphysicsai/Carbon/blob/4f84329cb1f91b89b3b11547d938867fd846417d/Design_Specs/Evidence_and_Envelope_Standards.md)
 
 > A successful solver run is not reference qualification. Missing or failed truth remains typed and fail closed.
@@ -290,7 +290,7 @@ Attach the defect to the ticket that owns the violated contract, then preserve t
 ### Repository authority
 
 - [Always-on invariants](https://github.com/carbonphysicsai/Carbon/blob/4f84329cb1f91b89b3b11547d938867fd846417d/.agent/INVARIANTS.md)
-- [Agent decisions log](https://github.com/carbonphysicsai/Carbon/blob/c8f8300b21581142cbd294978ee1d65c3f0e69b0/.agent/DECISIONS.md)
+- [Agent decisions log](https://github.com/carbonphysicsai/Carbon/blob/fb3e7f10e3dfac54f09f9028cbb8f8492ab4329b/.agent/DECISIONS.md)
 
 > Post-merge history stays intact. Record the correction or superseding decision rather than editing evidence to hide the original defect.
 
