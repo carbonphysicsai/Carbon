@@ -26,3 +26,20 @@ The browser runs use installed Google Chrome (Chromium), navigate the generated 
 The original v0.1 source input was independently verified before import: all 38 manifest payloads matched and its 39 Node tests passed. Those checks are input provenance, not v0.2 acceptance and are not added to current totals. The CPES PR's historical 14/52/208 sets likewise remain research provenance and are not application test counts.
 
 Repository runs `34789353024` and `34789634638` on earlier PR #156 candidates remain failed history. Their Hub fixture and dependency-boundary defects were repaired in separate maintenance PRs #159 and #160. After both repairs merged, PR #156 was reconciled with main `1a1a5ad4585caebd168725451ca255e06561f693`; the same 65 engine, 14 source/evidence/schema/build/package, and 40 actual-Chrome checks passed again. Final exact-head repository acceptance is recorded on PR #156 rather than retroactively attributed to an earlier artifact.
+
+# Workbench v0.9 acceptance notes
+
+GOAL-WORKBENCH-09 adds the private team intake queue, traceable review and
+assessment records, two same-design output projections, and a bounded
+file-backed receiver for synthetic/private testing. The local receiver uses
+externally supplied named principals and role-specific operations; no live
+customer route, store, notice, retention period, notification destination, or
+deployment approval is inferred.
+
+The final local candidate ran 265 JavaScript tests, including four complete
+synthetic journeys and private receiver recovery/authorization coverage. The
+generated v0.9 HTML passed the inherited 29-check Chrome goal journey and a
+new 13-check desktop/narrow team-review journey with network blocked. These
+are application and engineering checks, not scientific qualification,
+production security acceptance, customer usability evidence, or live
+collection approval. Safari/WebKit and VoiceOver were not executed.

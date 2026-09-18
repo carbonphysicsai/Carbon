@@ -258,6 +258,10 @@
     parent.append(section);
   }
   function renderResearch() {
+    const guidance = research.preflight.research_guidance;
+    $("research-guidance-review").hidden = !connected || !guidance;
+    $("research-guidance").value = connected && guidance ? guidance.text : "";
+    $("research-runtime").textContent = connected && guidance ? "Accepted runtime: " + research.preflight.runtime_revision + " · Task identity: " + guidance.digest : "";
     $("research-preflight").textContent = connected ? research.preflight.status.replaceAll("_", " ") + (research.preflight.available && research.preflight.ceilings ? " · Approved envelope: " + JSON.stringify(research.preflight.ceilings) + " · Expires: " + new Date(research.preflight.expires_unix * 1000).toLocaleString() : "") : "Reconnect to reconcile research state. Controls are disabled.";
     $("research-launch").disabled = !connected || busy || storageError || !research.preflight.available;
     $("research-launch").textContent = pendingResearch ? "Retry same research launch" : "Launch approved research";
@@ -267,6 +271,12 @@
       const title = document.createElement("h3"); title.textContent = run.id.slice(0, 10) + " · " + run.state;
       const description = document.createElement("p"); description.textContent = (run.agent || "Awaiting runtime") + " / " + (run.reasoning || "unavailable") + " / " + (run.compute || "unavailable") + " · Attempts: " + (run.attempted_experiments ?? 0) + " · Completed practice: " + (run.completed_experiments ?? 0);
       card.append(title, description);
+      if (run.research_guidance) {
+        const task = document.createElement("p"); task.className = "frozen-guidance";
+        task.textContent = "Frozen research task: " + run.research_guidance.text;
+        card.append(task);
+        researchNote(card, "Task identity: " + run.research_guidance.digest);
+      }
       if (run.current_hypothesis) researchNote(card, "Research hypothesis: " + (run.current_hypothesis.hypothesis || "unavailable"));
       const current = (run.operations || []).filter(op => op.state === "RESERVED");
       researchNote(card, current.length ? "Active reserved operations: " + current.map(op => op.phase + " / " + op.id).join(", ") : "No active reserved operation reported.");
@@ -298,7 +308,7 @@
       details.open = expandedResearch.has(run.id);
       details.addEventListener("toggle", () => { if (details.isConnected) { if (details.open) expandedResearch.add(run.id); else expandedResearch.delete(run.id); } });
       const record = document.createElement("pre"); record.style.whiteSpace = "pre-wrap"; record.style.overflowWrap = "anywhere";
-      record.textContent = JSON.stringify({agent_policy: run.agent_policy, hypothesis: run.current_hypothesis, hypotheses: run.hypotheses, decisions: run.decisions, outcomes: run.epoch_outcomes, usage: run.usage, experiments: run.experiments, operations: run.operations, freezes: run.candidate_freezes, development: run.final_results, capability_requests: run.capability_requests}, null, 2);
+      record.textContent = JSON.stringify({runtime_revision: run.runtime_revision, agent_policy: run.agent_policy, research_guidance: run.research_guidance, effective_research_inputs: run.effective_research_inputs, hypothesis: run.current_hypothesis, hypotheses: run.hypotheses, decisions: run.decisions, outcomes: run.epoch_outcomes, usage: run.usage, experiments: run.experiments, operations: run.operations, freezes: run.candidate_freezes, development: run.final_results, capability_requests: run.capability_requests}, null, 2);
       details.append(summary, record); card.append(controls, details); container.append(card);
     }
   }
@@ -319,6 +329,7 @@
     if (!connected || busy || storageError || !research.preflight.available) return;
     if (!pendingResearch) {
       pendingResearch = {key: crypto.randomUUID(), body: {profile: research.preflight.profile}};
+      if (research.preflight.review_digest) pendingResearch.body.review_digest = research.preflight.review_digest;
       try { sessionStorage.setItem(researchKey, JSON.stringify(pendingResearch)); }
       catch (_) { storageError = true; render(); return; }
     }

@@ -511,7 +511,7 @@
       "url": "https://github.com/carbonphysicsai/Carbon/blob/93a8c8a936dc84700851c99fb961afecce340845/docs/development/MINER_LAUNCHPAD_HANDOFF.md"
     },
     "miner_launchpad_research_ticket": {
-      "label": "C-MLP-02: finite-completion repair; adaptive acceptance remains incomplete",
+      "label": "C-MLP-02: immutable prelaunch guidance; adaptive acceptance remains incomplete",
       "url": "https://github.com/carbonphysicsai/Carbon/blob/93a8c8a936dc84700851c99fb961afecce340845/.agent/tickets/C-MLP-02_development_research_bridge.md"
     },
     "miner_launchpad_research_bridge": {
@@ -1981,7 +1981,8 @@
         "REJECTED_MANDATORY",
         "one practice experiment and six",
         "genuine multi-iteration acceptance remains selected",
-        "Finite-completion repair C-MLP-02-D5"
+        "Finite-completion repair C-MLP-02-D5",
+        "Prelaunch guidance repair C-MLP-02-D6"
       ]
     },
     {
