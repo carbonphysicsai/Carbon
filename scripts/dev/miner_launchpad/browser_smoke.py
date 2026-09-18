@@ -7,6 +7,7 @@ Reuses Carbon's dependency-free CDP transport. Missing browser is a failure.
 from __future__ import annotations
 
 import contextlib
+import hashlib
 import json
 import sqlite3
 import sys
@@ -106,6 +107,12 @@ class ResearchFixture:
     def __init__(self):
         self.record = None
         self.keys = set()
+        text = "UI ENGINEERING FIXTURE: initial trial → feedback → revision → feedback → revision.\nKeep <script> inert and retain earlier candidates."
+        self.guidance = {
+            "schema": "carbon.autoresearch.guidance.v1",
+            "text": text,
+            "digest": "sha256:" + hashlib.sha256(text.encode()).hexdigest(),
+        }
 
     def preflight(self):
         return {
@@ -124,16 +131,23 @@ class ResearchFixture:
                 "epochs": 2,
             },
             "expires_unix": 21600,
+            "research_guidance": self.guidance,
+            "review_digest": "fixture-review-pin",
+            "runtime_revision": "fixture-runtime-no-execution",
         }
 
     def launch(self, value, key):
-        assert value == {"profile": "engineering-fixture"}
+        assert value == {
+            "profile": "engineering-fixture",
+            "review_digest": "fixture-review-pin",
+        }
         self.keys.add(key)
         if self.record is None:
             self.record = {
                 "id": "engineering-research-fixture",
                 "state": "RUNNING",
                 "agent": "UI FIXTURE",
+                "research_guidance": dict(self.guidance),
                 "attempted_experiments": 1,
                 "completed_experiments": 1,
                 "experiments": [
@@ -296,6 +310,13 @@ def run():
                         raise OSError("injected research acknowledgement loss")
 
                     research.launch = lost_research_response
+                    wait(
+                        session,
+                        "document.getElementById('research-guidance').value.includes('UI ENGINEERING FIXTURE')",
+                    )
+                    assert session.evaluate(
+                        "document.getElementById('research-guidance').readOnly"
+                    )
                     click(session, "research-launch")
                     wait(
                         session,
@@ -468,6 +489,22 @@ def run():
                         assert session.evaluate(
                             "document.getElementById('stop').getBoundingClientRect().width >= 44"
                         ), width
+                        assert (
+                            session.evaluate(
+                                "document.getElementById('research-guidance').value"
+                            )
+                            == research.guidance["text"]
+                        )
+                        assert (
+                            session.evaluate(
+                                "document.querySelector('.frozen-guidance').textContent"
+                            )
+                            == "Frozen research task: "
+                            + research.record["research_guidance"]["text"]
+                        )
+                        assert not session.evaluate(
+                            "Boolean(document.querySelector('.frozen-guidance script'))"
+                        )
                     readback.valid = False
                     wait(
                         session,

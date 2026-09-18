@@ -15,6 +15,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from types import SimpleNamespace
 
+from carbon.development_session import research_guidance as guidance
 from carbon.development_session.profile import canonical, digest
 from carbon.development_session.research_admission import Admission, private_json
 from carbon.development_session.research_control import CampaignControl, DispatchStopped
@@ -47,6 +48,12 @@ class RunnerAdapter:
             db.execute(
                 "CREATE TABLE IF NOT EXISTS research_runs (id TEXT PRIMARY KEY, request_key TEXT UNIQUE NOT NULL, profile TEXT NOT NULL, principal TEXT NOT NULL, config_digest TEXT NOT NULL, grant_digest TEXT NOT NULL, campaign TEXT NOT NULL, state TEXT NOT NULL, created REAL NOT NULL, root TEXT NOT NULL, grant_record BLOB NOT NULL, grant_id TEXT UNIQUE NOT NULL)"
             )
+            if "research_guidance" not in {
+                r[1] for r in db.execute("PRAGMA table_info(research_runs)")
+            }:
+                db.execute(
+                    "ALTER TABLE research_runs ADD COLUMN research_guidance BLOB"
+                )
             roots = [
                 Path(r[0])
                 for r in db.execute(
@@ -84,7 +91,7 @@ class RunnerAdapter:
             raise ValueError("operator configuration absent")
         cfg = private_json(self.configuration)
         if (
-            set(cfg)
+            set(cfg) - {"research_guidance"}
             != {
                 "schema",
                 "profile_id",
@@ -98,6 +105,7 @@ class RunnerAdapter:
             or cfg["schema"] != "carbon.launchpad.runner-profile.v1"
         ):
             raise ValueError("closed operator configuration required")
+        guidance.configured(cfg)  # Validate before grant admission or dispatch.
         if set(cfg["paths"]) != PATH_FIELDS:
             raise ValueError("closed runner inputs required")
         if any(
@@ -126,7 +134,7 @@ class RunnerAdapter:
     def preflight(self):
         try:
             cfg, admission, _ = self.configured()
-            return {
+            value = {
                 "available": True,
                 "profile": cfg["profile_id"],
                 "mode": "LIVE_PRACTICE_RESEARCH",
@@ -138,6 +146,14 @@ class RunnerAdapter:
                 "expires_unix": admission.document["expires_unix"],
                 "status": "GRANT_CONFIGURED_RUNTIME_CHECK_AT_START",
             }
+            task = guidance.configured(cfg)
+            if task is not None:
+                value.update(
+                    research_guidance=task,
+                    review_digest=digest(canonical(cfg)),
+                    runtime_revision=cfg["accepted_revision"],
+                )
+            return value
         except Exception:  # noqa: BLE001 - private configuration errors stay private.
             return {
                 "available": False,
@@ -147,7 +163,10 @@ class RunnerAdapter:
             }
 
     def launch(self, value, key):
-        if type(value) is not dict or set(value) != {"profile"}:
+        if type(value) is not dict or set(value) not in (
+            {"profile"},
+            {"profile", "review_digest"},
+        ):
             raise Rejected("closed_research_launch_required")
         if (
             type(key) is not str
@@ -165,6 +184,11 @@ class RunnerAdapter:
             canonical([admission.document["campaign_id"], cfg["principal"]])
         )[7:39]
         config_pin = digest(canonical(cfg))
+        task = guidance.configured(cfg)
+        if (task is not None or "review_digest" in value) and value.get(
+            "review_digest"
+        ) != config_pin:
+            raise Rejected("research_review_changed", 409)
         with self.db() as db:
             db.execute("BEGIN IMMEDIATE")
             previous = db.execute(
@@ -185,7 +209,7 @@ class RunnerAdapter:
                     raise Rejected("research_launch_replay_conflict", 409)
             else:
                 db.execute(
-                    "INSERT INTO research_runs VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
+                    "INSERT INTO research_runs (id,request_key,profile,principal,config_digest,grant_digest,campaign,state,created,root,grant_record,grant_id,research_guidance) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
                     (
                         run_id,
                         key,
@@ -204,6 +228,7 @@ class RunnerAdapter:
                             }
                         ),
                         admission.document["grant_id"],
+                        canonical(task) if task is not None else None,
                     ),
                 )
         # A lost HTTP response cannot produce a second campaign. The identity is
@@ -227,6 +252,14 @@ class RunnerAdapter:
 
         generation = None
         try:
+            row, _, _ = self._bound(run_id)
+            task = guidance.verify(
+                json.loads(row["research_guidance"])
+                if row["research_guidance"] is not None
+                else None
+            )
+            if task != guidance.configured(cfg):
+                raise ValueError("frozen research guidance differs")
             with owner_lock(root):
                 ledger = CampaignLedger(root, admission=admission)
                 control = CampaignControl(ledger)
@@ -246,6 +279,7 @@ class RunnerAdapter:
                     accepted_revision=cfg["accepted_revision"],
                     principal=cfg["principal"],
                     agent_policy=AUTONOMOUS,
+                    research_guidance=task["text"] if task is not None else None,
                     command=(
                         "resume"
                         if (root / "campaign-manifest.json").exists()

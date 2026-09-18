@@ -40,9 +40,9 @@ C0 fixture integration only; no real scientific, security, network or production
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/9a8198b03a2aea67fc6be6f170e45e88376f48c1/.agent/tickets/NET-3_candidate_commitments.md)
-- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/9a8198b03a2aea67fc6be6f170e45e88376f48c1/.agent/evidence/wave_c/net-3.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/4ae5b8720172e30a5347a20566758a6aef47d49f/.agent/tickets/NET-3_candidate_commitments.md)
+- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/4ae5b8720172e30a5347a20566758a6aef47d49f/.agent/evidence/wave_c/net-3.md)
 - [Commitment contract](https://github.com/carbonphysicsai/Carbon/blob/4f84329cb1f91b89b3b11547d938867fd846417d/docs/development/CANDIDATE_COMMITMENTS.md)
-- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/9a8198b03a2aea67fc6be6f170e45e88376f48c1/.agent/WAVE_C.md)
+- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/4ae5b8720172e30a5347a20566758a6aef47d49f/.agent/WAVE_C.md)
 
 > Original receipt order and artifact identity survive restart; an interrupted process-local A7 attempt remains indeterminate.
