@@ -81,6 +81,23 @@ remote-service request with named accounts/hosts/devices, current rates, all cos
 cap, expiry and cleanup; continue permitted local work. AWS deferred, Hippius
 outside the critical path.
 
+V3 STANDARD LAUNCHER SCIENTIFIC MATERIALS (2026-09-17, C-CORE-13 candidate)
+
+The normal MCP launcher now recomputes the exact registered scientific material
+combination from the retained campaign: legacy when no scientific scope exists,
+single Burgers, ordered Burgers plus envelope, or advection with its separately
+bound authored Julia image. Empty, altered, reordered, extra or mixed scopes
+reject before reference-consumer construction. Cleanup-only attachment preserves
+exact owner, generation, runtime and image checks after expiry; subsequent calls
+still require fresh admission. It uses the existing service and operation ledger.
+
+The command remains `python -m carbon.miner_mcp.standard_cli --configuration
+<private-profile>`; `--cleanup-only` retains its existing purpose. Focused fixture
+and standard SDK stdio checks exercised selection, ownership, expiry, discovery
+and restart without new numerical or provider work. Detailed evidence is in
+`.agent/tickets/C-CORE-13_mcp_scientific_material_selection.md`. Canonical delivery
+remains required. No grant, image, scientific method or qualified state is added.
+
 V3 IMPLEMENTATION CHECKPOINT (2026-09-17, C-CORE-02 candidate)
 
 V3 MCP EXTENSIONS CHECKPOINT (2026-09-17, C-CORE-10 candidate)

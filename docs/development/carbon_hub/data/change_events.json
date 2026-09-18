@@ -5505,6 +5505,21 @@
         "SYSTEM/AGENT-EXECUTION"
       ],
       "supersedes": null
+    },
+    {
+      "map_ref": "SYSTEM/AGENT-EXECUTION",
+      "event_type": "adjustment",
+      "event_id": "C-CORE-13-EXACT-MCP-SCIENCE",
+      "owner_lane": "technical_lead",
+      "status": "implemented",
+      "primary_detail": ".agent/tickets/C-CORE-13_mcp_scientific_material_selection.md",
+      "affects": [
+        "WAVE-C/C-04",
+        "WAVE-C/C-08",
+        "SYSTEM/CI"
+      ],
+      "supersedes": null,
+      "summary": "The normal MCP launcher now selects only an exact registered Burgers, ordered Burgers/envelope, or separately imaged advection material from retained campaign scopes. It rejects ambiguous combinations before attachment. Expired-owner cleanup construction retains exact scope and generation checks; every new material call still requires fresh admission. Fixture composition and rejection checks exercise the existing service and ledger without creating scientific or spending authority. Canonical delivery remains required."
     }
   ]
 }

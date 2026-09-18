@@ -165,6 +165,7 @@ settlement, weight, or emission claim.
 - [Pinned accelerator image build and private host admission](https://github.com/carbonphysicsai/Carbon/blob/93a8c8a936dc84700851c99fb961afecce340845/.devcontainer/accelerators/README.md)
 - [C-CORE-09: pinned TPU worker, host dispatch unavailable](https://github.com/carbonphysicsai/Carbon/blob/93a8c8a936dc84700851c99fb961afecce340845/.agent/tickets/C-CORE-09_tpu_worker_preparation.md)
 - [TPU package inspection and missing host controls](https://github.com/carbonphysicsai/Carbon/blob/93a8c8a936dc84700851c99fb961afecce340845/.devcontainer/accelerators/TPU_PREPARATION.md)
+- [C-CORE-13: exact registered science through the standard MCP launcher](https://github.com/carbonphysicsai/Carbon/blob/93a8c8a936dc84700851c99fb961afecce340845/.agent/tickets/C-CORE-13_mcp_scientific_material_selection.md)
 
 Authority snapshot: `93a8c8a9` on `main`,
 captured 2026-09-17T23:56:49Z.

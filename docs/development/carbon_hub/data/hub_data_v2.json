@@ -605,6 +605,10 @@
     "core_platform_tpu_operator": {
       "label": "TPU package inspection and missing host controls",
       "url": "https://github.com/carbonphysicsai/Carbon/blob/93a8c8a936dc84700851c99fb961afecce340845/.devcontainer/accelerators/TPU_PREPARATION.md"
+    },
+    "core_platform_mcp_science_selection": {
+      "label": "C-CORE-13: exact registered science through the standard MCP launcher",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/93a8c8a936dc84700851c99fb961afecce340845/.agent/tickets/C-CORE-13_mcp_scientific_material_selection.md"
     }
   },
   "authority_source_checks": [
@@ -2106,6 +2110,16 @@
         "all 23 pinned distributions",
         "Hardware and scientific acceptance remain open"
       ]
+    },
+    {
+      "id": "core-platform-mcp-science-exact-scopes",
+      "path": ".agent/tickets/C-CORE-13_mcp_scientific_material_selection.md",
+      "required_markers": [
+        "Reject empty, mixed, unknown, reordered or extra scopes and image-role mismatch.",
+        "a schema label",
+        "every",
+        "actual material call still checks fresh grant authority"
+      ]
     }
   ],
   "authority_ceilings": {
@@ -2155,6 +2169,13 @@
       "launch/"
     ],
     "rules": [
+      {
+        "id": "core-platform-mcp-science-selection",
+        "match_type": "exact",
+        "path": ".agent/tickets/C-CORE-13_mcp_scientific_material_selection.md",
+        "impact_class": "map_structural",
+        "map_ref": "SYSTEM/AGENT-EXECUTION"
+      },
       {
         "id": "core-platform-compiled-update-observation",
         "match_type": "exact",
