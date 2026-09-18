@@ -47,11 +47,11 @@
           <pre id="summary-text"></pre><section class="pilot-card"><h3>Proposed pilot</h3><p id="pilot-text">Not yet proposed.</p><h3>Unresolved assumptions</h3><ul id="assumption-list"><li>Complete or skip fields; unknowns remain visible.</li></ul></section><p id="next-clarification" class="clarification"></p>
           <details><summary>Contact and review-package choices</summary><label>Name<input id="contact-name" autocomplete="name"></label><label>Email<input id="contact-email" type="email" autocomplete="email"></label><label>Organization<input id="contact-organization" autocomplete="organization"></label><label class="check"><input id="include-conversation" type="checkbox"> Include conversation history for Carbon's review</label><p class="field-note">Off by default. Permission to respond does not grant marketing, model-training, or cross-customer reuse rights.</p></details>
           <div class="boundary"><strong>Local review package only.</strong> Exporting downloads an unencrypted file. It does not submit an inquiry, promise contact, qualify Carbon, approve a pilot, or authorize execution.</div>
-          <button id="export-intake" type="button">Export reviewed brief</button><button type="button" class="quiet" disabled title="No approved receiver or private store is configured">Submit to Carbon · unavailable</button><p id="intake-status" role="status" aria-live="polite"></p>
+          <div class="actions"><button id="export-intake" type="button">Download reviewed draft</button><button id="reset-draft" type="button" class="quiet">Reset draft</button><button type="button" class="quiet" disabled title="No approved receiver or private store is configured">Submit to Carbon · unavailable</button></div><p id="intake-status" role="status" aria-live="polite"></p>
         </aside>
       </div>
     </main>
-    <footer>Live collection still requires the actual site and endpoint, private storage, staff access, approved notice, retention/deletion, abuse controls, incident ownership, and deployment authorization.</footer>
+    <footer>This release drafts and downloads a local review package only. Inquiry collection remains a separate issue #139 workstream and is unavailable here.</footer>
     <script>{{INTAKE}}</script><script>{{APP}}</script>
   </body>
 </html>
