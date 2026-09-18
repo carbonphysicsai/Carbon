@@ -65,6 +65,8 @@ class CampaignLedger:
                 CREATE TABLE IF NOT EXISTS campaign (id INTEGER PRIMARY KEY CHECK(id=1), manifest BLOB NOT NULL, digest TEXT NOT NULL, started REAL);
                 CREATE TABLE IF NOT EXISTS operations (id TEXT PRIMARY KEY, owner TEXT NOT NULL, phase TEXT NOT NULL, request_digest TEXT NOT NULL, state TEXT NOT NULL, reservation BLOB NOT NULL, actual BLOB, result BLOB, created REAL NOT NULL);
                 CREATE TABLE IF NOT EXISTS notes (sequence INTEGER PRIMARY KEY, owner TEXT NOT NULL, kind TEXT NOT NULL, body BLOB NOT NULL, created REAL NOT NULL);
+                CREATE TABLE IF NOT EXISTS operation_sequences (parent TEXT PRIMARY KEY, owner TEXT NOT NULL, document BLOB NOT NULL);
+                CREATE TABLE IF NOT EXISTS operation_sequence_claims (child TEXT PRIMARY KEY, generation INTEGER NOT NULL, claimed REAL NOT NULL);
             """)
             existing = db.execute("SELECT manifest FROM campaign WHERE id=1").fetchone()
             if existing:
@@ -313,6 +315,33 @@ class CampaignLedger:
             )
         return {"dispatch": True, "state": "RESERVED", "result": None}
 
+    def reserve_sequence(self, parent, *, owner, scope, children):
+        from .research_sequences import reserve_sequence
+
+        return reserve_sequence(
+            self, parent, owner=owner, scope=scope, children=children
+        )
+
+    def claim_sequence_child(self, parent, *, owner, ordinal):
+        from .research_sequences import claim_sequence_child
+
+        return claim_sequence_child(self, parent, owner=owner, ordinal=ordinal)
+
+    def cancel_sequence_held(self, parent, *, owner):
+        from .research_sequences import cancel_sequence_held
+
+        return cancel_sequence_held(self, parent, owner=owner)
+
+    def sequence_status(self, parent, *, owner):
+        from .research_sequences import sequence_status
+
+        return sequence_status(self, parent, owner=owner)
+
+    def settle_sequence(self, parent, *, owner):
+        from .research_sequences import settle_sequence
+
+        return settle_sequence(self, parent, owner=owner)
+
     def finish(self, identity, *, owner, state, actual, result):
         if state not in {"SUCCEEDED", "FAILED_INFRA", "CANCELLED"}:
             raise ValueError("terminal state required")
@@ -322,6 +351,10 @@ class CampaignLedger:
             raise ValueError("bounded result required")
         with self.db() as db:
             db.execute("BEGIN IMMEDIATE")
+            if db.execute(
+                "SELECT 1 FROM operation_sequences WHERE parent=?", (identity,)
+            ).fetchone():
+                raise ValueError("sequence parent requires child-derived settlement")
             old = db.execute(
                 "SELECT owner,state,reservation,actual,result FROM operations WHERE id=?",
                 (identity,),

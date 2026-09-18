@@ -121,7 +121,7 @@ class CampaignControl:
                     )
                     return
                 active = db.execute(
-                    "SELECT 1 FROM operations WHERE state='RESERVED' LIMIT 1"
+                    "SELECT 1 FROM operations WHERE state='RESERVED' AND id NOT IN (SELECT parent FROM operation_sequences) LIMIT 1"
                 ).fetchone()
                 db.execute(
                     "UPDATE launchpad_control SET observed=? WHERE id=1",
@@ -138,7 +138,7 @@ class CampaignControl:
             if current != generation:
                 raise DispatchStopped("stale completion ignored")
             active = db.execute(
-                "SELECT 1 FROM operations WHERE state='RESERVED' LIMIT 1"
+                "SELECT 1 FROM operations WHERE state IN ('RESERVED','HELD') LIMIT 1"
             ).fetchone()
             if active or not cleanup_verified:
                 state = "RECONCILIATION_REQUIRED"

@@ -95,7 +95,7 @@ slices; these are not declared delivered by this checkpoint.
 | Miner standard MCP | Python SDK 2.2.0 stdio and private HTTP; independent TypeScript client 2.0.0 wire test passed | Real agent host; remote authenticated deployment |
 | Validator Julia DEVELOPMENT diagnostic | Real Julia 1.13.0 C-04 worker, replay, deadline/cancel and verified cleanup | Scientific/reference/security qualification; protected use |
 | Miner Julia public TRAIN study through MCP | Actual public study, persisted result/reconnect, one 7283 ms numerical charge, two trajectories/invocations, 22154 retained bytes, no provider calls | Sweeps, training-support approval and isolated authored scripts |
-| Workbench Julia study | C-CORE-04 existing UI/private-service consumer implemented; actual draft-bound Julia browser and HTTP studies, save/reopen/replay/stale rejection and expired-grant cleanup observed locally | Canonical delivery; operating-envelope sweeps; private customer inputs; production host authentication |
+| Workbench Julia study | C-CORE-04 single-case feasibility and C-CORE-08 two-public-case envelope implemented in the existing private-service UI; actual Julia draft-bound HTTP/browser studies, saved/reopened lineage, partial results and HELD-capacity cleanup observed locally | Canonical delivery; arbitrary parameter sweeps or population coverage; private customer inputs; production host authentication |
 | GPU/TPU research and reconstruction | Named profiles and environment preparation in progress | Actual hardware numerical and isolation acceptance |
 | Miner portable logical research state | C-CORE-06 wraps unchanged checkpoints with source placement and a new-operation continuation binding; two actual CPU workers transported state and matched a fresh CPU control, with replay/accounting/cleanup verified | Canonical delivery; actual GPU/TPU transport and retraining comparison; sharded state |
 | CPU compiled-update experiment | C-CORE-05 opt-in helper; ten actual JAX tests passed; short fixed-work observation favored existing compile-plus-train total | Default unchanged; larger workloads, accelerator timing and prospective execution-profile integration |
@@ -183,6 +183,36 @@ sweep, modified case, private customer execution, paid agent campaign or
 accelerator execution is claimed. `UNASSESSED`/`NOT_QUALIFIED` and request-only
 challenge preparation persist. Build and composition commands live in
 `Business/Carbon_Fit/workbench/SCIENTIFIC_STUDIES_OPERATOR.md`.
+
+V3 PUBLIC OPERATING-ENVELOPE CONTRACT (2026-09-17, C-CORE-08 candidate)
+
+The first operating-envelope action is a descriptive comparison of baseline and
+one additional exact frozen public TRAIN case. Its prospective v2 grant binds
+the full cohort digest, ordered case/request digests, method, environment, image,
+units, axes and times. Combined Workbench service requires the exact unchanged
+v1 scope followed by the recomputed v2 scope; old v1 grants do not gain this
+authority. Arbitrary numerical mutation, new populations, private customer inputs,
+qualification and public-training handoff remain unavailable.
+
+One durable research task uses the existing CampaignLedger to reserve both child
+vectors atomically, preserving final-phase headroom. The parent has no separate
+allowance. HELD capacity is never-dispatched work; a transactional claim checks
+principal, current grant/generation, and observed cleanup before the second child.
+Expiry/cancellation releases only never-claimed capacity. Reconnect and saved
+study rereads preserve operation identity and partial result lineage, with no
+worker replay or new allowance. Reference feasibility and the two-case action
+retain distinct immutable export names and their separate scope metadata.
+
+The registered-draft two-case HTTP fixture observed 15,653 ms, four trajectories
+and four invocations, 44,311 retained bytes and zero provider use. Actual
+desktop/mobile Workbench observed two 13-by-64 outputs, saved/reopened and reread
+the same task, with 14,389 ms, four trajectories/invocations and 44,306 retained
+bytes; the local host stopped gracefully. Expiry after the first child and
+actual cancellation after C-04 controls verified that HELD capacity is released
+while unknown dispatched work remains charged. All observations are local
+engineering evidence on the existing Julia CPU image; canonical acceptance and
+scientific/security qualification remain separate. The 267-JS/49-Python
+Workbench check entrypoint and actual worker lane include this consumer.
 
 V3 TPU WORKER PREPARATION (C-CORE-09 candidate)
 

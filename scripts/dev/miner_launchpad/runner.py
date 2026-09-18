@@ -269,7 +269,7 @@ class RunnerAdapter:
                 # generation. Completed observations remain replayable by runner.
                 with ledger.db() as db:
                     pending = db.execute(
-                        "SELECT 1 FROM operations WHERE state='RESERVED' LIMIT 1"
+                        "SELECT 1 FROM operations WHERE state IN ('RESERVED','HELD') LIMIT 1"
                     ).fetchone()
                 if pending:
                     raise DispatchStopped("unresolved operation")
@@ -322,6 +322,18 @@ class RunnerAdapter:
         from carbon.reconstruction.worker.operator import _stores
 
         clean = True
+        # HELD is capacity, never a worker. Release through the same sequence
+        # transaction; dispatched children still need their actual domain journal.
+        with ledger.db() as db:
+            sequences = db.execute(
+                "SELECT parent,owner FROM operation_sequences"
+            ).fetchall()
+        for parent, owner in sequences:
+            try:
+                ledger.cancel_sequence_held(parent, owner=owner)
+                ledger.settle_sequence(parent, owner=owner)
+            except Exception:  # noqa: BLE001
+                clean = False
         with ledger.db() as db:
             rows = db.execute(
                 "SELECT id,owner,reservation FROM operations WHERE state='RESERVED'"
@@ -383,6 +395,7 @@ class RunnerAdapter:
         if action == "reconcile":
             with owner_lock(root):
                 generation = control.acquire()
+                ledger.generation = generation
                 control.settled(generation, cleanup_verified=self._cleanup(ledger))
         else:
             if action == "resume":
@@ -395,12 +408,18 @@ class RunnerAdapter:
                     raise ValueError("resume binding differs")
             control.request(action)
             if action == "stop":
+                ledger.generation = control.status()["generation"]
                 from carbon.development_session.research_carrier import request_cancel
 
                 with ledger.db() as db:
+                    sequences = db.execute(
+                        "SELECT parent,owner FROM operation_sequences"
+                    ).fetchall()
                     operations = db.execute(
                         "SELECT id,owner FROM operations WHERE state='RESERVED'"
                     ).fetchall()
+                for parent, owner in sequences:
+                    ledger.cancel_sequence_held(parent, owner=owner)
                 for operation, owner in operations:
                     request_cancel(ledger, owner=owner, identity=operation)
             if action == "resume":

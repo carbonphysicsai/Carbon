@@ -199,6 +199,8 @@ def _is_allowed_evaluation_consumer(path: Path, module_name: str) -> bool:
                 # C-CORE-02 public Julia diagnostics observe the same outcome
                 # enum; the symbol-level check below forbids evaluator access.
                 _CARBON_ROOT / "development_session" / "julia_research.py",
+                # C-CORE-08 observes only the same closed diagnostic outcome.
+                _CARBON_ROOT / "development_session" / "julia_envelope.py",
             }
             and module_name == "carbon.evaluation.enums"
         )
@@ -395,8 +397,8 @@ def test_d4_consumes_only_reference_identity_and_outcome_enum():
         assert not _is_allowed_evaluation_consumer(path, "carbon.evaluation.execution")
 
 
-def _assert_julia_outcome_import_only(tree):
-    path = _CARBON_ROOT / "development_session" / "julia_research.py"
+def _assert_julia_outcome_import_only(tree, filename="julia_research.py"):
+    path = _CARBON_ROOT / "development_session" / filename
     observed = [
         (module, line)
         for module, line in direct_import_modules(_REPOSITORY_ROOT, path, tree=tree)
@@ -427,6 +429,19 @@ def test_core02_julia_consumer_has_no_evaluator_or_truth_asset_authority():
         "carbon.evaluation.policy",
     ):
         assert not _is_allowed_evaluation_consumer(path, forbidden)
+
+
+def test_core08_envelope_has_no_evaluator_or_truth_asset_authority():
+    path = _CARBON_ROOT / "development_session" / "julia_envelope.py"
+    _assert_julia_outcome_import_only(_parse(path), path.name)
+    for source in (
+        "from carbon.evaluation.enums import ReferenceRunOutcome, ReferenceFailureReason",
+        "from carbon.evaluation.assets import TruthAsset",
+        "import carbon.evaluation.enums",
+    ):
+        with pytest.raises(AssertionError):
+            _assert_julia_outcome_import_only(ast.parse(source), path.name)
+    assert not _is_allowed_evaluation_consumer(path, "carbon.evaluation.execution")
 
 
 @pytest.mark.parametrize(

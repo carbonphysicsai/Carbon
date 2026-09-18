@@ -19,7 +19,7 @@ def render_status(ledger, *, owner):
         if value["started_unix"] is None
         else (
             "RECONCILIATION_REQUIRED"
-            if any(op["state"] == "RESERVED" for op in value["operations"])
+            if any(op["state"] in {"RESERVED", "HELD"} for op in value["operations"])
             else "IDLE"
         )
     )
@@ -65,6 +65,9 @@ def render_status(ledger, *, owner):
     )
     value["active_operations"] = [
         op["id"] for op in value["operations"] if op["state"] == "RESERVED"
+    ]
+    value["held_operations"] = [
+        op["id"] for op in value["operations"] if op["state"] == "HELD"
     ]
     value["current_hypothesis"] = next(
         (n["body"] for n in reversed(value["notes"]) if n["kind"] == "hypothesis"), None

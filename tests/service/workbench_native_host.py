@@ -23,6 +23,10 @@ sys.path[:0] = [str(REPOSITORY), str(REPOSITORY / "tests/cpu")]
 from test_julia_research import prepared
 from test_standard_mcp_cli import FixtureSigner, fixture_connection
 
+from carbon.development_session.julia_envelope import (
+    JuliaEnvelopeMaterial,
+    julia_envelope_scope,
+)
 from carbon.development_session.julia_research import (
     JuliaPublicMaterial,
     PublicJuliaStudy,
@@ -46,6 +50,7 @@ def main():
     for name in ("root", "manifest", "draft", "static"):
         parser.add_argument("--" + name, required=True, type=Path)
     parser.add_argument("--port", required=True, type=int)
+    parser.add_argument("--envelope", action="store_true")
     args = parser.parse_args()
     if (
         not args.root.is_absolute()
@@ -61,8 +66,15 @@ def main():
     connection = fixture_connection(args.root / "campaign")
     owner = asyncio.run(_requester(connection))
     image = load_image_identity(args.manifest)
-    data, ledger, _calls = prepared(args.root, monkeypatch, image=image, owner=owner)
-    material = JuliaPublicMaterial(PublicMaterial(data), PublicJuliaStudy(data))
+    data, ledger, _calls = prepared(
+        args.root, monkeypatch, image=image, owner=owner, envelope=args.envelope
+    )
+    scope = julia_envelope_scope(image, data.role_root) if args.envelope else None
+    material = JuliaPublicMaterial(
+        PublicMaterial(data), PublicJuliaStudy(data, envelope_scope=scope)
+    )
+    if args.envelope:
+        material = JuliaEnvelopeMaterial(material)
     composition = make_research_service(
         root=args.root / "tasks",
         ledger=ledger,
