@@ -88,6 +88,7 @@ if [[ " ${CARBON_UV_GROUPS:-} " == *" mcp "* ]]; then
   echo "==> pinned standard MCP external-client interoperability"
   "${python_bin}" -m pytest tests/service/test_standard_mcp_stdio.py \
     tests/service/test_standard_mcp_cli.py tests/service/test_standard_mcp_http.py \
+    tests/service/test_standard_mcp_apps.py tests/service/test_mcp_app_composition.py \
     tests/service/test_standard_mcp_extensions.py \
     tests/service/test_mcp_task_supervisor.py -q
   if [[ "${CARBON_REQUIRE_TYPESCRIPT_INTEROP:-}" == "1" ]]; then

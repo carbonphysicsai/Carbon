@@ -89,8 +89,10 @@ explicit = true
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["carbon*"]
+exclude = ["carbon.miner_mcp.apps_ui.node_modules*"]
 
 [tool.setuptools.package-data]
+"carbon.miner_mcp" = ["apps_ui/workbench.html", "apps_ui/manifest.json", "apps_ui/THIRD_PARTY_LICENSES.txt"]
 "carbon.reference_runtime.julia" = ["*.jl", "*.toml", "README.md"]
 "carbon.reconstruction._vendor.carbon_jax_lab" = [
     "licenses/*.md",

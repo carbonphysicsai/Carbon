@@ -81,6 +81,53 @@ remote-service request with named accounts/hosts/devices, current rates, all cos
 cap, expiry and cleanup; continue permitted local work. AWS deferred, Hippius
 outside the critical path.
 
+V3 INTEGRATED CAPABILITY BOUNDARY (2026-09-17, delivery candidates)
+
+This table records the integrated implementation boundary. Each ticket retains
+its exact source, image and test evidence; canonical acceptance and merge remain
+per-PR gates. Local diagnostics do not become canonical or scientific evidence by
+appearing together here. Installation, discovery and merge do not launch work or
+grant execution authority. Historical checkpoints below retain their original
+scope and observations.
+
+| Role and task | Language/backend and interface | Implementation / automated checks | Actual execution or interoperability | Remaining acceptance |
+| --- | --- | --- | --- | --- |
+| Miner and validator model reconstruction | Python control, JAX CPU; existing recipe/service and catalogue | Three exact implementations and target-free prediction contracts; no-Torch reconstruction tests | Actual CPU reconstruction; C-CORE-02 canonical acceptance | No repository-wide Torch-free or scientific qualification claim |
+| Miner GPU research and separate validator reconstruction | Python/JAX, named NVIDIA profile; existing controller | Versioned profile, pinned CUDA environment, worker protocol and numerical instrument | Image installation and isolated CPU/service checks; **no GPU numerical execution** | Admitted host/runtime, exclusive allocation, device memory/OOM, numerical and failure/cleanup evidence |
+| Miner TPU research and separate validator reconstruction | Python/JAX, named eight-chip v5e profile | Versioned request and pinned TPU image; unsupported dispatch rejects before staging | Image metadata/import-boundary checks; **no TPU numerical execution** | Selected host/account/runtime, supported host adapter, admitted allocation, numerical and cleanup evidence |
+| Miner public Burgers diagnostics and authored research | Julia CPU via Python service, CLI/MCP | Fixed method/scopes plus isolated authored-script route; typed bounded outputs and accounting | Real Burgers/refinement and authored-script/containment observations | Training-support eligibility, broader methods, real agent-host usefulness and security qualification |
+| Validator reference diagnostics | Julia CPU through registered C-04 policy-bound method | Fixed identities, analytic/refinement controls, failure separation | Actual registered Julia execution and observed cancellation cleanup | Accepted primary reference is unchanged; protected use and scientific qualification remain open |
+| Existing Workbench definition, feasibility and two-case studies | Python service and Julia CPU; existing desktop/mobile UI | Draft/physical-scope binding, atomic HELD sequence reservations, saved/reopened evidence and stale-result rejection | Actual public-source Julia browser/service studies; desktop/mobile diagnostics | Private customer processing, qualified operating envelope and production host authorization |
+| Second physical template | Native Julia CPU periodic advection; existing public material task | Fixed units/layout/time contract and reviewed development method; exact material allowlist | Real sine/constant/refinement controls and one-charge replay | Public self-reported development evidence only; no advection validator/Workbench or training qualification |
+| Portable state and update optimization | JAX logical state, CPU diagnostics | Parameter/optimizer/EMA/RNG/identity contract; same-backend continuation and bounded update chunks | Actual CPU continuation; short-workload sweep kept the accepted default | Actual cross-backend loading/retraining/calibration; no sharded execution or cross-backend score pooling |
+| Agent research access | Standard MCP stdio and authenticated HTTP; Tasks/Skills and fallbacks | Same operations, principal, grant, ledger and cleanup; strict schemas/direct authorization | Independent Python and TypeScript clients; real Julia Tasks reconnect/cancel diagnostics | Real agent-host learning and remote production authentication remain open |
+| Optional study view | MCP Apps over the same Workbench service | Separate Workbench authorization, fixed packaged UI, structured/text fallback | Official App/AppBridge deterministic desktop/mobile harness and fresh-wheel checks | This is not a paid agent-host or new scientific execution result |
+
+GPU/TPU hardware, cross-backend scientific comparison, eligible multi-device
+concurrency/sharding and a newly authorized finite agent-learning campaign remain
+open programme requirements. Prepared profiles or configuration cannot close
+them. CPU Julia across the three roles does not imply Julia support on either
+accelerator. No new scientific, security, commercial or production qualification
+is earned by this integration table.
+
+V3 OPTIONAL MCP APP CHECKPOINT (2026-09-17, C-CORE-12 candidate)
+
+The existing Workbench study service, request validation and numerical plot now
+have an optional MCP Apps view. Its trusted composition binds the exact research
+adapter and requires separate Workbench authorization for direct tool and resource
+access. The static view contains no solver, credentials or direct network client;
+plain clients retain structured/text results. Existing draft, grant, lineage and
+qualification boundaries continue to apply.
+
+Official SDK wire and desktop/mobile AppBridge fixtures exercised controls,
+including cancellation while start is waiting, without inferring cleanup from an
+acknowledgement. A fresh wheel served the exact fixed HTML/manifest/licenses while
+excluding installed JavaScript build dependencies. These are deterministic local
+interface/package observations, not native science, a paid agent-host campaign,
+customer-processing authority or security qualification. Commands and exact
+limits are in `.agent/tickets/C-CORE-12_mcp_workbench_apps.md` and
+`carbon/miner_mcp/apps_ui/README.md`. Canonical integrated delivery remains pending.
+
 V3 IMPLEMENTATION CHECKPOINT (2026-09-17, C-CORE-02 candidate)
 
 V3 MCP EXTENSIONS CHECKPOINT (2026-09-17, C-CORE-10 candidate)

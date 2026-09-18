@@ -228,7 +228,7 @@
       },
     });
   }
-  const api = Object.freeze({ TEMPLATE, REQUEST, RESPONSE, CAPABILITIES, ENVELOPE_REQUEST, ENVELOPE_RESPONSE, ENVELOPE_CAPABILITIES, BUNDLE, check, physical, scope, prepare, response, capabilities, digest, createAdapter, createController });
+  const api = Object.freeze({ TEMPLATE, REQUEST, RESPONSE, CAPABILITIES, ENVELOPE_REQUEST, ENVELOPE_RESPONSE, ENVELOPE_CAPABILITIES, BUNDLE, check, physical, scope, prepare, request, response, capabilities, digest, createAdapter, createController });
   root.CarbonScientificStudies = api;
   if (typeof module !== "undefined") module.exports = api;
 })(typeof globalThis !== "undefined" ? globalThis : this);

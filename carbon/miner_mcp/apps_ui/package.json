@@ -1,0 +1,15 @@
+{
+  "name": "carbon-workbench-mcp-app",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.19.0",
+  "engines": { "node": ">=20" },
+  "scripts": { "build": "node build.mjs" },
+  "dependencies": {
+    "@modelcontextprotocol/ext-apps": "2.0.0",
+    "@modelcontextprotocol/client": "2.0.0",
+    "zod": "4.6.5"
+  },
+  "devDependencies": { "esbuild": "0.28.2" }
+}
