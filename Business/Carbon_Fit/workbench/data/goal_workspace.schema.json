@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Carbon goal-to-Challenge workbench workspace v0.8",
+  "title": "Carbon goal-to-Challenge workbench workspace v0.9",
   "$comment": "Closed browser-local planning schema. Derived results are recomputed. It grants no scientific, security, rights, reuse, submission, execution, or launch authority.",
   "$defs": {
     "opportunity_workspace_v02": {
@@ -2627,16 +2627,16 @@
   "additionalProperties": false,
   "properties": {
     "schema_version": {
-      "const": "carbon.goal-workbench.workspace.v0.8"
+      "const": "carbon.goal-workbench.workspace.v0.9"
     },
     "application_version": {
-      "const": "Carbon Goal-to-Challenge Workbench v0.8"
+      "const": "Carbon Goal-to-Challenge Workbench v0.9"
     },
     "decision_id": {
-      "const": "GOAL-WORKBENCH-08"
+      "const": "GOAL-WORKBENCH-09"
     },
     "base_application_merge": {
-      "const": "94762b6a8932ac6834c731a416c3a45c4cbf6170"
+      "const": "4afb80566fc695a873d7154c203787991bb64267"
     },
     "opportunity_workspace": {
       "$ref": "#/$defs/opportunity_workspace_v02"
@@ -2745,6 +2745,204 @@
               "$ref": "#/$defs/intake_record"
             }
           },
+          "team_review": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "schema_version": {
+                "const": "carbon.goal-workbench.team-review.v1"
+              },
+              "queue_state": {
+                "enum": [
+                  "NEW",
+                  "READY_FOR_REVIEW",
+                  "UNDER_REVIEW",
+                  "NEEDS_CLIENT_CLARIFICATION",
+                  "READY_FOR_ROUTE",
+                  "PILOT_BRIEF_READY",
+                  "HANDOFF_READY",
+                  "PARKED",
+                  "CLOSED"
+                ]
+              },
+              "assigned_reviewer": {
+                "type": "string",
+                "maxLength": 300
+              },
+              "original_statement_corrections": {
+                "type": "array",
+                "maxItems": 128,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "correction_id": {
+                      "type": "string",
+                      "maxLength": 128
+                    },
+                    "field": {
+                      "type": "string",
+                      "maxLength": 300
+                    },
+                    "original": {
+                      "type": "string",
+                      "maxLength": 8000
+                    },
+                    "corrected": {
+                      "type": "string",
+                      "maxLength": 8000
+                    },
+                    "reason": {
+                      "type": "string",
+                      "maxLength": 1000
+                    },
+                    "recorded_by": {
+                      "type": "string",
+                      "maxLength": 300
+                    }
+                  },
+                  "required": [
+                    "correction_id",
+                    "field",
+                    "original",
+                    "corrected",
+                    "reason",
+                    "recorded_by"
+                  ]
+                }
+              },
+              "assessment_notes": {
+                "type": "array",
+                "maxItems": 256,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "record_id": {
+                      "type": "string",
+                      "maxLength": 128
+                    },
+                    "text": {
+                      "type": "string",
+                      "maxLength": 8000
+                    },
+                    "recorded_by": {
+                      "type": "string",
+                      "maxLength": 300
+                    },
+                    "provenance": {
+                      "const": "LOCAL_MANUAL_ASSERTION"
+                    }
+                  },
+                  "required": [
+                    "record_id",
+                    "text",
+                    "recorded_by",
+                    "provenance"
+                  ]
+                }
+              },
+              "outstanding_questions": {
+                "type": "array",
+                "maxItems": 128,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "record_id": {
+                      "type": "string",
+                      "maxLength": 128
+                    },
+                    "text": {
+                      "type": "string",
+                      "maxLength": 8000
+                    },
+                    "recorded_by": {
+                      "type": "string",
+                      "maxLength": 300
+                    },
+                    "provenance": {
+                      "const": "LOCAL_MANUAL_ASSERTION"
+                    }
+                  },
+                  "required": [
+                    "record_id",
+                    "text",
+                    "recorded_by",
+                    "provenance"
+                  ]
+                }
+              },
+              "service_receipts": {
+                "type": "array",
+                "maxItems": 64,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "receipt_id": {
+                      "type": "string",
+                      "maxLength": 128
+                    },
+                    "inquiry_id": {
+                      "type": "string",
+                      "maxLength": 128
+                    },
+                    "revision": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "raw_sha256": {
+                      "type": "string",
+                      "pattern": "^sha256:[0-9a-f]{64}$"
+                    },
+                    "status": {
+                      "const": "PERSISTED_PRIVATE_SYNTHETIC"
+                    },
+                    "observed_by": {
+                      "type": "string",
+                      "maxLength": 300
+                    }
+                  },
+                  "required": [
+                    "receipt_id",
+                    "inquiry_id",
+                    "revision",
+                    "raw_sha256",
+                    "status",
+                    "observed_by"
+                  ]
+                }
+              },
+              "current_action": {
+                "type": "string",
+                "maxLength": 2000
+              },
+              "next_restart_event": {
+                "type": "string",
+                "maxLength": 2000
+              },
+              "provenance": {
+                "enum": [
+                  "WORKBENCH_DERIVED",
+                  "LOCAL_MANUAL_ASSERTION",
+                  "IMPORTED_PRIVATE_RECEIPT"
+                ]
+              }
+            },
+            "required": [
+              "schema_version",
+              "queue_state",
+              "assigned_reviewer",
+              "original_statement_corrections",
+              "assessment_notes",
+              "outstanding_questions",
+              "service_receipts",
+              "current_action",
+              "next_restart_event",
+              "provenance"
+            ]
+          },
           "designs": {
             "type": "array",
             "maxItems": 64,
@@ -2753,7 +2951,7 @@
               "additionalProperties": false,
               "properties": {
                 "schema_version": {
-                  "const": "carbon.goal-workbench.design.v0.8"
+                  "const": "carbon.goal-workbench.design.v0.9"
                 },
                 "job_id": {
                   "type": "string",
@@ -6201,6 +6399,265 @@
                     "dispositions"
                   ]
                 },
+                "assessment": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "schema_version": {
+                      "const": "carbon.goal-workbench.team-assessment.v1"
+                    },
+                    "intended_engineering_decision": {
+                      "type": "string",
+                      "maxLength": 8000
+                    },
+                    "physical_problem": {
+                      "type": "string",
+                      "maxLength": 8000
+                    },
+                    "domain_and_units": {
+                      "type": "string",
+                      "maxLength": 8000
+                    },
+                    "operating_envelope": {
+                      "type": "string",
+                      "maxLength": 8000
+                    },
+                    "requested_observables": {
+                      "type": "string",
+                      "maxLength": 8000
+                    },
+                    "performance_requests": {
+                      "type": "string",
+                      "maxLength": 8000
+                    },
+                    "mandatory_physics": {
+                      "type": "string",
+                      "maxLength": 8000
+                    },
+                    "optional_objectives": {
+                      "type": "string",
+                      "maxLength": 8000
+                    },
+                    "diagnostics": {
+                      "type": "string",
+                      "maxLength": 8000
+                    },
+                    "available_data": {
+                      "type": "string",
+                      "maxLength": 8000
+                    },
+                    "data_rights_and_provenance": {
+                      "type": "string",
+                      "maxLength": 8000
+                    },
+                    "generator_requirements": {
+                      "type": "string",
+                      "maxLength": 8000
+                    },
+                    "sampling_requirements": {
+                      "type": "string",
+                      "maxLength": 8000
+                    },
+                    "reference_candidates": {
+                      "type": "string",
+                      "maxLength": 8000
+                    },
+                    "reference_gaps": {
+                      "type": "string",
+                      "maxLength": 8000
+                    },
+                    "measurement_requirements": {
+                      "type": "string",
+                      "maxLength": 8000
+                    },
+                    "uncertainty_requirements": {
+                      "type": "string",
+                      "maxLength": 8000
+                    },
+                    "acceptance_rule_requirements": {
+                      "type": "string",
+                      "maxLength": 8000
+                    },
+                    "implementation_work": {
+                      "type": "string",
+                      "maxLength": 8000
+                    },
+                    "dependencies": {
+                      "type": "string",
+                      "maxLength": 8000
+                    },
+                    "smallest_useful_pilot": {
+                      "type": "string",
+                      "maxLength": 8000
+                    },
+                    "stop_conditions": {
+                      "type": "string",
+                      "maxLength": 8000
+                    },
+                    "resource_scenarios": {
+                      "type": "array",
+                      "maxItems": 32,
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "scenario_id": {
+                            "type": "string",
+                            "maxLength": 128
+                          },
+                          "description": {
+                            "type": "string",
+                            "maxLength": 2000
+                          },
+                          "assumptions": {
+                            "type": "string",
+                            "maxLength": 2000
+                          },
+                          "cost": {
+                            "type": "string",
+                            "maxLength": 2000
+                          },
+                          "duration": {
+                            "type": "string",
+                            "maxLength": 2000
+                          },
+                          "status": {
+                            "const": "ASSUMPTION_ONLY"
+                          }
+                        },
+                        "required": [
+                          "scenario_id",
+                          "description",
+                          "assumptions",
+                          "cost",
+                          "duration",
+                          "status"
+                        ]
+                      }
+                    },
+                    "work_packages": {
+                      "type": "array",
+                      "maxItems": 64,
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "work_package_id": {
+                            "type": "string",
+                            "maxLength": 128
+                          },
+                          "title": {
+                            "type": "string",
+                            "maxLength": 2000
+                          },
+                          "owner": {
+                            "type": "string",
+                            "maxLength": 2000
+                          },
+                          "required_output": {
+                            "type": "string",
+                            "maxLength": 2000
+                          },
+                          "stop_condition": {
+                            "type": "string",
+                            "maxLength": 2000
+                          },
+                          "dependency": {
+                            "type": "string",
+                            "maxLength": 2000
+                          }
+                        },
+                        "required": [
+                          "work_package_id",
+                          "title",
+                          "owner",
+                          "required_output",
+                          "stop_condition",
+                          "dependency"
+                        ]
+                      }
+                    },
+                    "open_questions": {
+                      "type": "array",
+                      "maxItems": 128,
+                      "items": {
+                        "type": "string",
+                        "maxLength": 2000
+                      }
+                    },
+                    "scientific_task_dependencies": {
+                      "type": "array",
+                      "maxItems": 16,
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "task_kind": {
+                            "enum": [
+                              "PHYSICAL_DEFINITION_CHECK",
+                              "OPERATING_ENVELOPE_EXPLORATION",
+                              "REFERENCE_FEASIBILITY_AND_COST"
+                            ]
+                          },
+                          "availability": {
+                            "enum": [
+                              "CORE_INTERFACE_PENDING",
+                              "AVAILABLE_NOT_REQUESTED",
+                              "REQUEST_PREPARED",
+                              "RETURNED",
+                              "FAILED",
+                              "CANCELLED",
+                              "STALE"
+                            ]
+                          },
+                          "exact_design_binding": {
+                            "type": "string",
+                            "maxLength": 300
+                          },
+                          "note": {
+                            "type": "string",
+                            "maxLength": 2000
+                          }
+                        },
+                        "required": [
+                          "task_kind",
+                          "availability",
+                          "exact_design_binding",
+                          "note"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "schema_version",
+                    "intended_engineering_decision",
+                    "physical_problem",
+                    "domain_and_units",
+                    "operating_envelope",
+                    "requested_observables",
+                    "performance_requests",
+                    "mandatory_physics",
+                    "optional_objectives",
+                    "diagnostics",
+                    "available_data",
+                    "data_rights_and_provenance",
+                    "generator_requirements",
+                    "sampling_requirements",
+                    "reference_candidates",
+                    "reference_gaps",
+                    "measurement_requirements",
+                    "uncertainty_requirements",
+                    "acceptance_rule_requirements",
+                    "implementation_work",
+                    "dependencies",
+                    "smallest_useful_pilot",
+                    "stop_conditions",
+                    "resource_scenarios",
+                    "work_packages",
+                    "open_questions",
+                    "scientific_task_dependencies"
+                  ]
+                },
                 "handoffs": {
                   "type": "array",
                   "maxItems": 128,
@@ -6699,6 +7156,7 @@
                 "measurement_evidence",
                 "evidence_bindings",
                 "source_assessments",
+                "assessment",
                 "handoffs",
                 "responses",
                 "coordination",
@@ -6725,6 +7183,7 @@
           "working_design_id",
           "assignment",
           "intake_records",
+          "team_review",
           "designs",
           "created_from"
         ]
@@ -6770,7 +7229,8 @@
               "carbon.goal-workbench.workspace.v0.5",
               "carbon.goal-workbench.workspace.v0.6",
               "carbon.goal-workbench.workspace.v0.7",
-              "carbon.goal-workbench.workspace.v0.8"
+              "carbon.goal-workbench.workspace.v0.8",
+              "carbon.goal-workbench.workspace.v0.9"
             ]
           },
           "original_digest_status": {
