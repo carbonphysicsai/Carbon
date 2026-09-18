@@ -208,7 +208,7 @@ test("staging ledger snapshot requires the separate operator secret and returns 
   }), runtime.env);
   assert.equal(accepted.status, 200);
   const body = await accepted.json();
-  assert.equal(body.schema_version, 2);
+  assert.equal(body.schema_version, 3);
   assert.equal(JSON.stringify(body).includes("question"), false);
   assert.equal(JSON.stringify(body).includes("test-staging-operator-secret"), false);
 });

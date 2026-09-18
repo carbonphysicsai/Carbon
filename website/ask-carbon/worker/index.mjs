@@ -176,6 +176,7 @@ const readLedgerSummary = async (env) => {
   return {
     schema_version: result.body.schema_version,
     policy: result.body.policy,
+    environment_policies: result.body.environment_policies,
     scope_policies: result.body.scope_policies,
     months: result.body.months,
     scopes: result.body.scopes,
@@ -184,6 +185,9 @@ const readLedgerSummary = async (env) => {
     attempt_state_counts: stateCounts,
     model_attempt_counts: modelCounts,
     daily_request_counts: Object.fromEntries(Object.entries(result.body.days ?? {}).map(([day, value]) => [day, value.requests])),
+    environment_daily_request_counts: Object.fromEntries(Object.entries(result.body.environment_days ?? {}).map(
+      ([environment, days]) => [environment, Object.fromEntries(Object.entries(days).map(([day, value]) => [day, value.requests]))],
+    )),
   };
 };
 

@@ -145,10 +145,11 @@ const runLive = async (suite) => {
     ...singles.map((item) => item.body?.evaluation),
     ...conversations.flatMap((item) => item.turns.map((turn) => turn.evaluation)),
   ].filter(Boolean);
+  const noProviderStatuses = new Set(["insufficient_evidence", "out_of_scope", "service_information"]);
   const noProviderResponses = [
     ...singles.map((item) => item.body?.status),
     ...conversations.flatMap((item) => item.turns.map((turn) => turn.status)),
-  ].filter((status) => status === "insufficient_evidence").length;
+  ].filter((status) => noProviderStatuses.has(status)).length;
   const providerAttempts = allLatencies.length - noProviderResponses;
   const exactCostMicroUsd = allTelemetry.reduce((total, item) => total + item.actual_cost_micro_usd, 0);
   const inputTokens = allTelemetry.reduce((total, item) => total + item.usage.input_tokens, 0);
@@ -161,7 +162,7 @@ const runLive = async (suite) => {
     quality_evidence: "PENDING_HUMAN_RUBRIC_SCORING",
     http_requests: allLatencies.length,
     provider_attempts: providerAttempts,
-    no_provider_insufficient_evidence_responses: noProviderResponses,
+    no_provider_deterministic_responses: noProviderResponses,
     pacing_delay_ms: delayMs,
     latency_ms: { sample_count: allLatencies.length, median: percentile(allLatencies, 0.5), p95: percentile(allLatencies, 0.95), maximum: allLatencies.length ? Math.max(...allLatencies) : null },
     completed_telemetry: {
