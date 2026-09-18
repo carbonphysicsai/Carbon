@@ -577,6 +577,10 @@
     "core_platform_compiled_update_observation": {
       "label": "Local CPU source-bound update observation; not canonical timing evidence",
       "url": "https://github.com/carbonphysicsai/Carbon/blob/d14c352f7000999f36d3a77a9c2e22f5424c416e/.agent/evidence/wave_c/c-core-05-cpu-update-observation.json"
+    },
+    "web_qa_04_release_candidate": {
+      "label": "WEB-QA-04: Ask Carbon release-candidate boundary",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/d14c352f7000999f36d3a77a9c2e22f5424c416e/.agent/tickets/WEB-QA-04_ask_carbon_output_reliability.md"
     }
   },
   "authority_source_checks": [
@@ -1967,6 +1971,17 @@
       ]
     },
     {
+      "id": "core-platform-compiled-update-decision",
+      "path": ".agent/tickets/C-CORE-05_compiled_update_experiment.md",
+      "required_markers": [
+        "No execution profile selects this helper by installation.",
+        "Cold compilation outweighed warm savings",
+        "Keep the",
+        "existing default.",
+        "ten actual JAX tests in 47.5"
+      ]
+    },
+    {
       "id": "core-platform-workbench-candidate",
       "path": ".agent/tickets/C-CORE-04_workbench_scientific_studies.md",
       "required_markers": [
@@ -2018,14 +2033,12 @@
       ]
     },
     {
-      "id": "core-platform-compiled-update-decision",
-      "path": ".agent/tickets/C-CORE-05_compiled_update_experiment.md",
+      "id": "ask-carbon-public-release-candidate",
+      "path": ".agent/tickets/WEB-QA-04_ask_carbon_output_reliability.md",
       "required_markers": [
-        "No execution profile selects this helper by installation.",
-        "Cold compilation outweighed warm savings",
-        "Keep the",
-        "existing default.",
-        "ten actual JAX tests in 47.5"
+        "**Status:** IMPLEMENTED AND TESTED",
+        "public activation remains disabled",
+        "Inquiry collection, receipt, persistence and staff notification remain a"
       ]
     }
   ],
@@ -2082,6 +2095,13 @@
         "path": ".agent/evidence/wave_c/c-core-05-cpu-update-observation.json",
         "impact_class": "mapped_detail",
         "map_ref": "SYSTEM/AGENT-EXECUTION"
+      },
+      {
+        "id": "web-qa-04-public-release-candidate-ticket",
+        "match_type": "exact",
+        "path": ".agent/tickets/WEB-QA-04_ask_carbon_output_reliability.md",
+        "impact_class": "map_structural",
+        "map_ref": "SYSTEM/PUBLICATION-AUTHORITY"
       },
       {
         "id": "core-platform-compiled-updates",
