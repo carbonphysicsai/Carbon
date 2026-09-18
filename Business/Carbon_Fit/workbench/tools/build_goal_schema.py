@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the closed additive v0.8 goal-workbench and intake schemas."""
+"""Generate the closed additive v0.9 goal-workbench and intake schemas."""
 
 from __future__ import annotations
 
@@ -7,10 +7,10 @@ import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-DESIGN = "carbon.goal-workbench.design.v0.8"
-WORKSPACE = "carbon.goal-workbench.workspace.v0.8"
-APP = "Carbon Goal-to-Challenge Workbench v0.8"
-BASE = "94762b6a8932ac6834c731a416c3a45c4cbf6170"
+DESIGN = "carbon.goal-workbench.design.v0.9"
+WORKSPACE = "carbon.goal-workbench.workspace.v0.9"
+APP = "Carbon Goal-to-Challenge Workbench v0.9"
+BASE = "4afb80566fc695a873d7154c203787991bb64267"
 BLOCKERS = ["AT-09", "AT-16", "AT-19", "AT-22", "AT-30"]
 CONTROLS = [f"P{i}" for i in range(1, 9)]
 ROLES = ["MANDATORY", "SOFT", "DIAGNOSTIC", "DEPLOYMENT"]
@@ -801,6 +801,153 @@ assessment_state = obj(
         ),
     }
 )
+queue_states = [
+    "NEW",
+    "READY_FOR_REVIEW",
+    "UNDER_REVIEW",
+    "NEEDS_CLIENT_CLARIFICATION",
+    "READY_FOR_ROUTE",
+    "PILOT_BRIEF_READY",
+    "HANDOFF_READY",
+    "PARKED",
+    "CLOSED",
+]
+review_record = obj(
+    {
+        "record_id": string(128),
+        "text": string(),
+        "recorded_by": string(300),
+        "provenance": {"const": "LOCAL_MANUAL_ASSERTION"},
+    }
+)
+team_review = obj(
+    {
+        "schema_version": {"const": "carbon.goal-workbench.team-review.v1"},
+        "queue_state": {"enum": queue_states},
+        "assigned_reviewer": string(300),
+        "original_statement_corrections": array(
+            obj(
+                {
+                    "correction_id": string(128),
+                    "field": string(300),
+                    "original": string(),
+                    "corrected": string(),
+                    "reason": string(1_000),
+                    "recorded_by": string(300),
+                }
+            ),
+            128,
+        ),
+        "assessment_notes": array(review_record, 256),
+        "outstanding_questions": array(review_record, 128),
+        "service_receipts": array(
+            obj(
+                {
+                    "receipt_id": string(128),
+                    "inquiry_id": string(128),
+                    "revision": {"type": "integer", "minimum": 1},
+                    "raw_sha256": digest,
+                    "status": {"const": "PERSISTED_PRIVATE_SYNTHETIC"},
+                    "observed_by": string(300),
+                }
+            ),
+            64,
+        ),
+        "current_action": string(2_000),
+        "next_restart_event": string(2_000),
+        "provenance": {
+            "enum": [
+                "WORKBENCH_DERIVED",
+                "LOCAL_MANUAL_ASSERTION",
+                "IMPORTED_PRIVATE_RECEIPT",
+            ]
+        },
+    }
+)
+assessment_fields = [
+    "physical_problem",
+    "domain_and_units",
+    "operating_envelope",
+    "requested_observables",
+    "performance_requests",
+    "mandatory_physics",
+    "optional_objectives",
+    "diagnostics",
+    "available_data",
+    "data_rights_and_provenance",
+    "generator_requirements",
+    "sampling_requirements",
+    "reference_candidates",
+    "reference_gaps",
+    "measurement_requirements",
+    "uncertainty_requirements",
+    "acceptance_rule_requirements",
+    "implementation_work",
+    "dependencies",
+    "smallest_useful_pilot",
+    "stop_conditions",
+]
+team_assessment = obj(
+    {
+        "schema_version": {"const": "carbon.goal-workbench.team-assessment.v1"},
+        "intended_engineering_decision": string(),
+        **{field: string() for field in assessment_fields},
+        "resource_scenarios": array(
+            obj(
+                {
+                    "scenario_id": string(128),
+                    "description": string(2_000),
+                    "assumptions": string(2_000),
+                    "cost": string(2_000),
+                    "duration": string(2_000),
+                    "status": {"const": "ASSUMPTION_ONLY"},
+                }
+            ),
+            32,
+        ),
+        "work_packages": array(
+            obj(
+                {
+                    "work_package_id": string(128),
+                    "title": string(2_000),
+                    "owner": string(2_000),
+                    "required_output": string(2_000),
+                    "stop_condition": string(2_000),
+                    "dependency": string(2_000),
+                }
+            ),
+            64,
+        ),
+        "open_questions": array(string(2_000), 128),
+        "scientific_task_dependencies": array(
+            obj(
+                {
+                    "task_kind": {
+                        "enum": [
+                            "PHYSICAL_DEFINITION_CHECK",
+                            "OPERATING_ENVELOPE_EXPLORATION",
+                            "REFERENCE_FEASIBILITY_AND_COST",
+                        ]
+                    },
+                    "availability": {
+                        "enum": [
+                            "CORE_INTERFACE_PENDING",
+                            "AVAILABLE_NOT_REQUESTED",
+                            "REQUEST_PREPARED",
+                            "RETURNED",
+                            "FAILED",
+                            "CANCELLED",
+                            "STALE",
+                        ]
+                    },
+                    "exact_design_binding": string(300),
+                    "note": string(2_000),
+                }
+            ),
+            16,
+        ),
+    }
+)
 design = obj(
     {
         "schema_version": {"const": DESIGN},
@@ -856,6 +1003,7 @@ design = obj(
         "measurement_evidence": array(evidence_record, 64),
         "evidence_bindings": array(evidence_binding, 128),
         "source_assessments": assessment_state,
+        "assessment": team_assessment,
         "handoffs": array(handoff, 128),
         "responses": array(response, 256),
         "coordination": coordination,
@@ -899,6 +1047,7 @@ job = obj(
             }
         ),
         "intake_records": array({"$ref": "#/$defs/intake_record"}, 64),
+        "team_review": team_review,
         "designs": array(design, 64),
         "created_from": {"enum": ["DIRECT_INTAKE", "ASSISTED_INTAKE", "MIGRATED"]},
     }
@@ -1083,7 +1232,7 @@ intake_record = obj(
 )
 schema = {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "title": "Carbon goal-to-Challenge workbench workspace v0.8",
+    "title": "Carbon goal-to-Challenge workbench workspace v0.9",
     "$comment": (
         "Closed browser-local planning schema. Derived results are recomputed. "
         "It grants no scientific, security, rights, reuse, submission, execution, or launch authority."
@@ -1097,7 +1246,7 @@ schema = {
         {
             "schema_version": {"const": WORKSPACE},
             "application_version": {"const": APP},
-            "decision_id": {"const": "GOAL-WORKBENCH-08"},
+            "decision_id": {"const": "GOAL-WORKBENCH-09"},
             "base_application_merge": {"const": BASE},
             "opportunity_workspace": {"$ref": "#/$defs/opportunity_workspace_v02"},
             "jobs": array(job, 64),
@@ -1114,6 +1263,7 @@ schema = {
                                 "carbon.goal-workbench.workspace.v0.5",
                                 "carbon.goal-workbench.workspace.v0.6",
                                 "carbon.goal-workbench.workspace.v0.7",
+                                "carbon.goal-workbench.workspace.v0.8",
                                 WORKSPACE,
                             ]
                         },
@@ -1184,4 +1334,4 @@ constants = {
     + "\n",
     encoding="utf-8",
 )
-print("v0.8 goal-workbench and intake schemas generated")
+print("v0.9 goal-workbench and intake schemas generated")

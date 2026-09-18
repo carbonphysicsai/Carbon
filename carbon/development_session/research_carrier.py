@@ -396,7 +396,9 @@ def reconcile_worker(ledger, *, owner, identity):
             raise ValueError("owned operation unavailable")
         op = matches[0]
         if op["state"] == "HELD":
-            raise ValueError("never-claimed sequence capacity requires sequence cleanup")
+            raise ValueError(
+                "never-claimed sequence capacity requires sequence cleanup"
+            )
         if op["state"] != "RESERVED":
             return op["result"]
         if not op["reservation"].get("numerical_milliseconds"):
