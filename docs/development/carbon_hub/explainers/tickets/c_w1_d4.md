@@ -40,8 +40,8 @@ Public/synthetic DEVELOPMENT engineering only. No scientific/security/production
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/1215aab9127cda342642d9f4a2c1b83b4a1e3e5b/.agent/tickets/C-W1-D4_miner_autoresearch.md)
-- [Workspace contract](https://github.com/carbonphysicsai/Carbon/blob/1215aab9127cda342642d9f4a2c1b83b4a1e3e5b/.agent/plans/CW1_D4_RESEARCH_WORKSPACE_PROTOCOL.md)
-- [Operator path](https://github.com/carbonphysicsai/Carbon/blob/1215aab9127cda342642d9f4a2c1b83b4a1e3e5b/docs/development/CW1_MINER_AUTORESEARCH.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/190929def4d1586b63fe89aa38aa07cf952e004c/.agent/tickets/C-W1-D4_miner_autoresearch.md)
+- [Workspace contract](https://github.com/carbonphysicsai/Carbon/blob/190929def4d1586b63fe89aa38aa07cf952e004c/.agent/plans/CW1_D4_RESEARCH_WORKSPACE_PROTOCOL.md)
+- [Operator path](https://github.com/carbonphysicsai/Carbon/blob/190929def4d1586b63fe89aa38aa07cf952e004c/docs/development/CW1_MINER_AUTORESEARCH.md)
 
 > Public practice is adaptive learning material. Only the controller sees fresh final cases after recipe freeze; engineering controls do not count as agent inference.
