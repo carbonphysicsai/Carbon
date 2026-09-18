@@ -593,6 +593,10 @@
     "core_platform_tpu_operator": {
       "label": "TPU package inspection and missing host controls",
       "url": "https://github.com/carbonphysicsai/Carbon/blob/b9ac066725503e9de5d41f6f833f62402d6f1b37/.devcontainer/accelerators/TPU_PREPARATION.md"
+    },
+    "web_qa_04_release_candidate": {
+      "label": "WEB-QA-04: Ask Carbon release-candidate boundary",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/3fdcd90d67998c2fe9caf139c70bbfb4da4851a0/.agent/tickets/WEB-QA-04_ask_carbon_output_reliability.md"
     }
   },
   "authority_source_checks": [
@@ -2064,6 +2068,15 @@
         "all 23 pinned distributions",
         "Hardware and scientific acceptance remain open"
       ]
+    },
+    {
+      "id": "ask-carbon-public-release-candidate",
+      "path": ".agent/tickets/WEB-QA-04_ask_carbon_output_reliability.md",
+      "required_markers": [
+        "**Status:** IMPLEMENTED AND TESTED",
+        "public activation remains disabled",
+        "Inquiry collection, receipt, persistence and staff notification remain a"
+      ]
     }
   ],
   "authority_ceilings": {
@@ -2119,6 +2132,13 @@
         "path": ".agent/evidence/wave_c/c-core-05-cpu-update-observation.json",
         "impact_class": "mapped_detail",
         "map_ref": "SYSTEM/AGENT-EXECUTION"
+      },
+      {
+        "id": "web-qa-04-public-release-candidate-ticket",
+        "match_type": "exact",
+        "path": ".agent/tickets/WEB-QA-04_ask_carbon_output_reliability.md",
+        "impact_class": "map_structural",
+        "map_ref": "SYSTEM/PUBLICATION-AUTHORITY"
       },
       {
         "id": "authored-julia-guide",
