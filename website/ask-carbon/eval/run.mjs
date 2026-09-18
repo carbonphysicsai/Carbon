@@ -1,5 +1,5 @@
 import { performance } from "node:perf_hooks";
-import { readFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
@@ -17,12 +17,19 @@ const argument = (name, fallback = null) => {
 const provider = argument("provider", "contract");
 const suiteName = argument("suite", "general-qa");
 const split = argument("split", "all");
+const requestedCaseIds = argument("case-ids")?.split(",").map((value) => value.trim()).filter(Boolean) ?? [];
 const delayMs = Number.parseInt(argument("delay-ms", process.env.ASK_CARBON_EVAL_DELAY_MS ?? "3200"), 10);
 if (!Number.isSafeInteger(delayMs) || delayMs < 0) throw new Error("--delay-ms must be a non-negative integer.");
+const outputPath = argument("output");
+const emit = async (value) => {
+  const serialized = `${JSON.stringify(value, null, 2)}\n`;
+  if (outputPath) await writeFile(resolve(outputPath), serialized, { encoding: "utf8", flag: "wx" });
+  else process.stdout.write(serialized);
+};
 const percentile = (values, fraction) => values.length ? values.slice().sort((a, b) => a - b)[Math.min(values.length - 1, Math.ceil(values.length * fraction) - 1)] : null;
 const selectCases = (suite) => ({
-  singles: suite.single_turn_cases.filter((item) => split === "all" || item.split === split),
-  conversations: suite.conversation_cases.filter((item) => split === "all" || item.split === split),
+  singles: suite.single_turn_cases.filter((item) => (split === "all" || item.split === split) && (!requestedCaseIds.length || requestedCaseIds.includes(item.id))),
+  conversations: suite.conversation_cases.filter((item) => (split === "all" || item.split === split) && (!requestedCaseIds.length || requestedCaseIds.includes(item.id))),
 });
 
 const runContract = (knowledge, suite) => {
@@ -58,6 +65,9 @@ const accessHeaders = () => process.env.CF_ACCESS_CLIENT_ID && process.env.CF_AC
   "CF-Access-Client-Id": process.env.CF_ACCESS_CLIENT_ID,
   "CF-Access-Client-Secret": process.env.CF_ACCESS_CLIENT_SECRET,
 } : {};
+const evaluationAccessHeaders = () => process.env.ASK_CARBON_EVALUATION_ACCESS_SECRET ? {
+  "x-ask-carbon-evaluation-access": process.env.ASK_CARBON_EVALUATION_ACCESS_SECRET,
+} : {};
 const stagingAuthHeaders = () => process.env.ASK_CARBON_STAGING_BASIC_USER && process.env.ASK_CARBON_STAGING_BASIC_PASSWORD ? {
   authorization: `Basic ${Buffer.from(`${process.env.ASK_CARBON_STAGING_BASIC_USER}:${process.env.ASK_CARBON_STAGING_BASIC_PASSWORD}`).toString("base64")}`,
 } : {};
@@ -67,7 +77,7 @@ const readLedger = async (endpoint) => {
   if (!secret) throw new Error("Live evaluation requires ASK_CARBON_OPERATOR_READ_SECRET for aggregate Durable Object reconciliation.");
   const ledgerUrl = new URL("./internal/ledger", endpoint.endsWith("/") ? endpoint : `${endpoint}/`).href;
   const response = await fetch(ledgerUrl, {
-    headers: { ...accessHeaders(), ...stagingAuthHeaders(), "x-ask-carbon-operator-secret": secret },
+    headers: { ...accessHeaders(), ...evaluationAccessHeaders(), ...stagingAuthHeaders(), "x-ask-carbon-operator-secret": secret },
   });
   const body = await response.json().catch(() => null);
   if (!response.ok || !body) throw new Error("The staging Worker ledger readout is unavailable; no live evaluation was attempted.");
@@ -78,7 +88,7 @@ const postQuestion = async ({ endpoint, origin, question, continuation }) => {
   const started = performance.now();
   const response = await fetch(endpoint, {
     method: "POST",
-    headers: { "content-type": "application/json", origin, ...accessHeaders(), ...stagingAuthHeaders() },
+    headers: { "content-type": "application/json", origin, ...accessHeaders(), ...evaluationAccessHeaders(), ...stagingAuthHeaders() },
     body: JSON.stringify({ question, ...(continuation ? { continuation } : {}) }),
   });
   const body = await response.json().catch(() => null);
@@ -90,7 +100,7 @@ const runLive = async (suite) => {
   const origin = argument("origin", process.env.ASK_CARBON_EVAL_ORIGIN);
   if (!endpoint || !origin) throw new Error("Live evaluation requires --endpoint and --origin for a private staging Worker using the shared ledger. Direct provider evaluation is forbidden.");
   const healthUrl = new URL("./health", endpoint.endsWith("/") ? endpoint : `${endpoint}/`).href;
-  const healthResponse = await fetch(healthUrl, { headers: { origin, ...accessHeaders(), ...stagingAuthHeaders() } });
+  const healthResponse = await fetch(healthUrl, { headers: { origin, ...accessHeaders(), ...evaluationAccessHeaders(), ...stagingAuthHeaders() } });
   const health = await healthResponse.json().catch(() => null);
   if (!healthResponse.ok || !health?.active) throw new Error("The staging Worker health gate is not active; no live evaluation was attempted.");
   const ledgerBefore = await readLedger(endpoint);
@@ -135,6 +145,12 @@ const runLive = async (suite) => {
     ...singles.map((item) => item.body?.evaluation),
     ...conversations.flatMap((item) => item.turns.map((turn) => turn.evaluation)),
   ].filter(Boolean);
+  const noProviderStatuses = new Set(["insufficient_evidence", "out_of_scope", "service_information"]);
+  const noProviderResponses = [
+    ...singles.map((item) => item.body?.status),
+    ...conversations.flatMap((item) => item.turns.map((turn) => turn.status)),
+  ].filter((status) => noProviderStatuses.has(status)).length;
+  const providerAttempts = allLatencies.length - noProviderResponses;
   const exactCostMicroUsd = allTelemetry.reduce((total, item) => total + item.actual_cost_micro_usd, 0);
   const inputTokens = allTelemetry.reduce((total, item) => total + item.usage.input_tokens, 0);
   const cachedInputTokens = allTelemetry.reduce((total, item) => total + item.usage.cached_input_tokens, 0);
@@ -144,7 +160,9 @@ const runLive = async (suite) => {
     provider: "bounded_staging_worker",
     model_config_id: health.model_config_id,
     quality_evidence: "PENDING_HUMAN_RUBRIC_SCORING",
-    provider_attempts: allLatencies.length,
+    http_requests: allLatencies.length,
+    provider_attempts: providerAttempts,
+    no_provider_deterministic_responses: noProviderResponses,
     pacing_delay_ms: delayMs,
     latency_ms: { sample_count: allLatencies.length, median: percentile(allLatencies, 0.5), p95: percentile(allLatencies, 0.95), maximum: allLatencies.length ? Math.max(...allLatencies) : null },
     completed_telemetry: {
@@ -154,7 +172,7 @@ const runLive = async (suite) => {
       output_tokens: outputTokens,
       exact_cost_micro_usd: exactCostMicroUsd,
     },
-    uncertain_exposure_requires_ledger_snapshot: allTelemetry.length !== allLatencies.length,
+    uncertain_exposure_requires_ledger_snapshot: allTelemetry.length !== providerAttempts,
     ledger_before: ledgerBefore,
     ledger_after: ledgerAfter,
     note: "Completed response usage is provider-reported and settled by the Worker. Any failed or ambiguous attempt requires the shared Durable Object snapshot; the evaluator never infers missing usage as zero.",
@@ -182,16 +200,18 @@ const main = async () => {
           })
           : null;
     if (!result) throw new Error("Pilot-design provider must be plan, mock or live.");
-    process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+    await emit(result);
     return;
   }
   if (suiteName !== "general-qa") throw new Error("Suite must be general-qa or pilot-design.");
   const suite = JSON.parse(await readFile(resolve(HERE, "cases.public.json"), "utf8"));
   if (suite.single_turn_cases.length !== 40 || suite.conversation_cases.length !== 6) throw new Error("Frozen evaluation coverage changed unexpectedly.");
+  const knownCaseIds = new Set([...suite.single_turn_cases, ...suite.conversation_cases].map((item) => item.id));
+  if (requestedCaseIds.some((id) => !knownCaseIds.has(id)) || new Set(requestedCaseIds).size !== requestedCaseIds.length) throw new Error("General-Q&A case selection contains an unknown or duplicate case ID.");
   const knowledge = JSON.parse(await readFile(resolve(HERE, "../knowledge/public-knowledge.v1.json"), "utf8"));
   const result = provider === "contract" ? runContract(knowledge, suite) : provider === "live" ? await runLive(suite) : null;
   if (!result) throw new Error("Provider must be contract or live.");
-  process.stdout.write(`${JSON.stringify({ suite_status: suite.status, source_artifact_sha256: suite.source_artifact_sha256, split, ...result }, null, 2)}\n`);
+  await emit({ suite_status: suite.status, source_artifact_sha256: suite.source_artifact_sha256, split, ...result });
 };
 
 main().catch((error) => {

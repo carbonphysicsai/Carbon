@@ -37,25 +37,35 @@ the public homepage and route-less financial history are separate. No paid-plan
 change or incremental Cloudflare charge was observed, but Cloudflare charges
 remain outside the provider ledger and are not claimed as zero.
 
+The evaluation Workers additionally accept a rotated
+`ASK_CARBON_EVALUATION_ACCESS_SECRET` header only on
+`/api/ask-carbon*`, only in staging, and only while evaluation telemetry is
+enabled. It leaves the owner's browser Basic credential untouched and cannot
+read static assets. Aggregate ledger reads still require the independent
+operator secret. Rotate both evaluation secrets after a retained run or
+suspected exposure; never copy either into evidence, Git, chat or browser
+assets.
+
 The OpenAI project used for the synthetic run showed API-call logging enabled
 per call. No approved Zero Data Retention or Modified Abuse Monitoring control
 was established. Use public/synthetic inputs only; this is not customer-data
 processing authorization. Never place access or provider credentials in chat,
 Git, browser bundles, issues or retained evaluation output.
 
-The retained homepage live-evaluation transcripts remain pinned to knowledge
-`ask-carbon-staging-2026-09-16.1`. The reconciled private staging Workers now
-serve validated knowledge `ask-carbon-staging-2026-09-17.1`; that deployment
-does not rewrite the bakeoff source basis and no new paid model run was claimed
-for the newer snapshot.
+The retained WEB-QA-03 homepage live-evaluation transcripts remain pinned to
+knowledge `ask-carbon-staging-2026-09-16.1`. The release candidate advances
+to `ask-carbon-release-candidate-2026-09-18.2` under the server-owned
+reviewed-card selection contract and refreshes the dated progress explanation
+against the same pinned, digest-matched Wave source. The frozen two-candidate
+release split, affected-case rerun and exact pilot run are retained in
+`evidence/WEB-QA-04.md`; prior evidence keeps its original source basis.
 
-Current main now carries `ask-carbon-staging-2026-09-17.4`. It remains
-`STAGING_REVIEWED`, has `public_activation_allowed:false`, and was not silently
-substituted into either retained live-evaluation basis. The owner approved the
-bounded private pilot-quality packet after PR #203; that disposition does not
-approve this newer knowledge release, general-Q&A model selection, privacy or
-security, production routing, public activation, or inquiry collection. The
-exact next owner decisions are collected in
+The release candidate remains `STAGING_REVIEWED`, has
+`public_activation_allowed:false`, and is not retroactively substituted into
+retained evidence. The owner approved the prepared visitor privacy posture and
+the bounded private pilot-quality packet. Those approvals do not approve the
+new knowledge release, production route, public activation or inquiry
+collection. The exact release decision remains in
 `PUBLIC_RELEASE_DECISION_PACKET.md`.
 
 ## Shared monthly budget authority
@@ -73,14 +83,22 @@ also include approved origins, an exact model/configuration registry, daily
 request limits, global and per-client concurrency/rate limits, and bounded
 pilot-design requests per session. Attempt states are:
 
+Financial exposure and global concurrency are shared across environments.
+Schema v3 stores immutable daily, per-client and pilot-session policies by
+environment so private staging and production can use stricter abuse limits
+without creating a second budget or changing the shared ceiling. The v2-to-v3
+migration reconstructs counters from retained attempts and preserves every
+settled and unresolved financial entry.
+
 The closed concurrent `carbon-ask-budget-authority` history recorded 80,831
 micro-USD of September `bakeoff` exposure: 13,151 settled and 67,680 unresolved.
 That script is no longer an admission authority. The canonical ledger policy
 durably reserves the full 80,831 micro-USD in period `2026-09` and scope
 `bakeoff`, so neither a restart nor a caller migration can recreate the spent
-allowance. After combining the two historical ledgers, September application
-exposure is 295,165 micro-USD and the nested evaluation balance is 4,704,835
-micro-USD. Do not remove or reduce this offset; later exact reconciliation may
+allowance. After the complete WEB-QA-04 evaluation and combining the two
+historical ledgers, September application exposure is 453,479 micro-USD and
+the nested evaluation balance is 4,546,521 micro-USD. Do not remove or reduce
+this offset; later exact reconciliation may
 replace uncertain exposure only through a separately reviewed, idempotent
 accounting migration.
 
@@ -100,13 +118,15 @@ the reservation. Lease expiry releases scheduling concurrency, not financial
 exposure. Late usage settles idempotently against the admission month; duplicate
 attempt IDs and conflicting settlements reject.
 
-Before enabling public `PILOT_DESIGN`, accept the exact public notice and
-private inquiry receiver. The private synthetic project observation above does
-not settle that release decision. AI consent must precede the first request;
-form-only drafting must
-remain usable. Do not log abandoned raw conversation text for sales/research
-analysis. Inquiry response permission and optional broader reuse permission
-must remain separate.
+Public `PILOT_DESIGN` drafting requires the approved visitor notice, explicit
+AI enablement and the shared provider/abuse controls. It does **not** require an
+inquiry receiver because this release offers only local editing and download.
+Any future submit/receive control remains disabled until issue #139 supplies
+and accepts the private receiver, persistence, staff access, retention,
+notification and incident contracts. Form-only drafting must remain usable.
+Do not log abandoned raw conversation text for sales/research analysis.
+Inquiry response permission and optional broader reuse permission remain
+separate.
 
 ## Routing and activation order
 
@@ -151,6 +171,9 @@ continuations together.
    requests. A hashed IP remains pseudonymous, not anonymous.
 5. Provision the OpenAI key and continuation HMAC only as Worker secrets. Check
    the actual OpenAI project data controls; `store:false` is not zero retention.
+   Provision evaluation-only access and operator-read credentials through the
+   same secret mechanism; the live runner must not receive the browser Basic
+   credential.
 6. Run real Worker/DO tests: concurrent admission, restart, prepared and
    dispatched expiry, failed/late settlement, month rollover, source withdrawal,
    config/price mismatch and rollback. Preserve the ledger snapshot.
@@ -202,6 +225,47 @@ Production needs a separate exact owner authorization after the staging report:
 4. bind only `/api/ask-carbon*`, preserving `/` and `/workbench/`;
 5. verify inactive health, route behavior, cache withdrawal and all ceilings;
 6. explicitly enable activation and observe the first bounded requests.
+
+## Incident disable and rollback procedure
+
+The named production incident owner and the named operator allowed to run these
+commands are still owner inputs. Do not infer either identity from repository
+access. Until they are recorded, public activation stays disabled.
+
+The first response to a suspected disclosure, spend, provider, source or
+answer-integrity incident is a fail-closed Worker deployment from the reviewed
+release checkout:
+
+```sh
+cd website/ask-carbon
+npx wrangler deploy --config wrangler.public-release-candidate.toml
+curl --fail-with-body --silent --show-error \
+  -H 'Origin: https://carbonphysics.ai' \
+  https://carbonphysics.ai/api/ask-carbon/health
+```
+
+The committed candidate sets `ASK_CARBON_ACTIVATION=disabled`; the health body
+must report inactive before any further investigation. Do not put a secret in
+the command line or shell history. If the API route itself must be withdrawn,
+the named Cloudflare operator removes only the two `/api/ask-carbon*` route
+bindings in the Dashboard or rolls back `ask-carbon-public` to its recorded
+inactive version. This must not delete or replace the shared
+`ask-carbon-budget-authority` Durable Object.
+
+If the homepage bundle must be withdrawn, select the recorded prior
+`carbonwebsite` deployment in Cloudflare or run the exact reviewed equivalent:
+
+```sh
+npx wrangler rollback b99c37f0-c2d2-432b-842a-00b9fb518d96 \
+  --name carbonwebsite
+```
+
+That version is the immediate predecessor observed during release preparation;
+the owner must still provide the latest uploaded website ZIP/source so its
+relationship to the Dashboard deployment and asset set can be reconciled
+before production mutation. After rollback, verify both approved hostnames,
+`/workbench/`, CSP/assets, API inactivity and the preserved ledger snapshot.
+Worker/static rollback never means Durable Object rollback.
 
 ## Rollback
 

@@ -1,4 +1,3 @@
-import previewHtml from "../../../Business/Carbon_Fit/workbench/Carbon_Client_Pilot_Designer_Preview.html";
 import askCarbon from "./index.mjs";
 import { stagingRequestAuthorized } from "./staging-auth.mjs";
 
@@ -22,13 +21,11 @@ export default {
   async fetch(request, env, context) {
     if (!stagingRequestAuthorized(request, env)) return accessDenied();
     const url = new URL(request.url);
-    if (url.pathname === "/" || url.pathname === "/pilot") {
-      if (request.method !== "GET" && request.method !== "HEAD") {
-        return new Response("Method not allowed.", { status: 405, headers: previewHeaders });
-      }
-      return new Response(request.method === "HEAD" ? null : previewHtml, {
-        status: 200,
-        headers: previewHeaders,
+    if (url.pathname === "/pilot") {
+      if (request.method !== "GET" && request.method !== "HEAD") return new Response("Method not allowed.", { status: 405, headers: previewHeaders });
+      return new Response(null, {
+        status: 302,
+        headers: { ...previewHeaders, location: "/ask-carbon/pilot-designer.html" },
       });
     }
     return askCarbon.fetch(request, env, context);

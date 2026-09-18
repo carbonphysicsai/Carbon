@@ -1,0 +1,588 @@
+{
+  "suite_status": "FROZEN_PUBLIC_SYNTHETIC_ACCEPTANCE_INPUTS",
+  "source_artifact_sha256": "ca1e23c3a77ec813c384d893358fe1fe1959edd5989068a5711b04e2821120cb",
+  "split": "final",
+  "provider": "bounded_staging_worker",
+  "model_config_id": "gpt-5.6-luna:low:v1",
+  "quality_evidence": "PENDING_HUMAN_RUBRIC_SCORING",
+  "http_requests": 10,
+  "provider_attempts": 10,
+  "no_provider_insufficient_evidence_responses": 0,
+  "pacing_delay_ms": 3200,
+  "latency_ms": {
+    "sample_count": 10,
+    "median": 1731.002,
+    "p95": 3084.531,
+    "maximum": 3084.531
+  },
+  "completed_telemetry": {
+    "sample_count": 10,
+    "input_tokens": 12562,
+    "cached_input_tokens": 0,
+    "output_tokens": 475,
+    "exact_cost_micro_usd": 3085
+  },
+  "uncertain_exposure_requires_ledger_snapshot": false,
+  "ledger_before": {
+    "schema_version": 2,
+    "policy": {
+      "monthly_limit_micro_usd": 50000000,
+      "concurrency_limit": 4,
+      "daily_request_limit": 100,
+      "client_requests_per_hour": 100,
+      "pilot_requests_per_session": 8,
+      "client_counter_retention_ms": 86400000,
+      "legacy_closed_authority_period": "2026-09",
+      "legacy_closed_authority_scope_id": "bakeoff",
+      "legacy_closed_authority_exposure_micro_usd": 80831
+    },
+    "scope_policies": {
+      "bakeoff": {
+        "limit_micro_usd": 5000000,
+        "first_environment": "evaluation-terra",
+        "created_at_ms": 1789633605814
+      }
+    },
+    "months": {
+      "2026-09": {
+        "prepared_micro_usd": 0,
+        "dispatch_authorized_micro_usd": 0,
+        "unresolved_micro_usd": 78960,
+        "settled_micro_usd": 250273,
+        "overrun_micro_usd": 0,
+        "exposure_micro_usd": 329233
+      }
+    },
+    "scopes": {
+      "2026-09:bakeoff": {
+        "exposure_micro_usd": 329233,
+        "limit_micro_usd": 5000000
+      }
+    },
+    "active_attempts": 0,
+    "total_attempts": 148,
+    "attempt_state_counts": {
+      "unresolved": 5,
+      "settled": 132,
+      "released_pre_dispatch": 11
+    },
+    "model_attempt_counts": {
+      "gpt-5.6-terra:low:v1": 69,
+      "gpt-5.6-luna:low:v1": 79
+    },
+    "daily_request_counts": {
+      "2026-09-17": 84,
+      "2026-09-18": 64
+    }
+  },
+  "ledger_after": {
+    "schema_version": 2,
+    "policy": {
+      "monthly_limit_micro_usd": 50000000,
+      "concurrency_limit": 4,
+      "daily_request_limit": 100,
+      "client_requests_per_hour": 100,
+      "pilot_requests_per_session": 8,
+      "client_counter_retention_ms": 86400000,
+      "legacy_closed_authority_period": "2026-09",
+      "legacy_closed_authority_scope_id": "bakeoff",
+      "legacy_closed_authority_exposure_micro_usd": 80831
+    },
+    "scope_policies": {
+      "bakeoff": {
+        "limit_micro_usd": 5000000,
+        "first_environment": "evaluation-terra",
+        "created_at_ms": 1789633605814
+      }
+    },
+    "months": {
+      "2026-09": {
+        "prepared_micro_usd": 0,
+        "dispatch_authorized_micro_usd": 0,
+        "unresolved_micro_usd": 78960,
+        "settled_micro_usd": 253358,
+        "overrun_micro_usd": 0,
+        "exposure_micro_usd": 332318
+      }
+    },
+    "scopes": {
+      "2026-09:bakeoff": {
+        "exposure_micro_usd": 332318,
+        "limit_micro_usd": 5000000
+      }
+    },
+    "active_attempts": 0,
+    "total_attempts": 158,
+    "attempt_state_counts": {
+      "unresolved": 5,
+      "settled": 142,
+      "released_pre_dispatch": 11
+    },
+    "model_attempt_counts": {
+      "gpt-5.6-terra:low:v1": 69,
+      "gpt-5.6-luna:low:v1": 89
+    },
+    "daily_request_counts": {
+      "2026-09-17": 84,
+      "2026-09-18": 74
+    }
+  },
+  "note": "Completed response usage is provider-reported and settled by the Worker. Any failed or ambiguous attempt requires the shared Durable Object snapshot; the evaluator never infers missing usage as zero.",
+  "singles": [
+    {
+      "id": "QA-039",
+      "split": "final",
+      "review_expectation": "Clearly label the example hypothetical; imply no deployed qualification.",
+      "http_status": 200,
+      "body": {
+        "status": "supported",
+        "answer": "The governed workflow defines the physical job, qualifies the exam, supports competition, reconstructs independently, admits valid evidence, promotes only verified frontier advances, separates settlement from science, and expands autonomy outside the judge.\n\nIllustrative example only: a hypothetical heat-exchanger Challenge would first define the physical job, operating population, inputs, outputs and evidence needed; it would then need a qualified exam before reconstructed candidates could be compared. This is not a deployed Carbon Challenge, customer result or qualification claim.",
+        "sources": [
+          {
+            "id": "constitution-405a820b",
+            "title": "Carbon Constitutional Authority Map",
+            "url": "https://github.com/carbonphysicsai/Carbon/blob/405a820bfdd5a38aa2d498e3dbde3fa15449379f/CONSTITUTION.md",
+            "note": "Paraphrased repository-wide purpose, authority and maturity boundaries; not a quotation.",
+            "revision": "405a820bfdd5a38aa2d498e3dbde3fa15449379f",
+            "sections": [
+              "1 Carbon identity",
+              "3 Scientific authority",
+              "5 Implementation maturity",
+              "11 Publication authority"
+            ]
+          }
+        ],
+        "passage_ids": [
+          "workflow-chain",
+          "workflow-hypothetical-example"
+        ],
+        "follow_up": null,
+        "maturity_note": "DESIGN_WITH_BOUNDED_IMPLEMENTATION: Later frontier and settlement layers are not implied live.",
+        "continuation": "REDACTED_OPAQUE_STATE",
+        "knowledge_version": "ask-carbon-release-candidate-2026-09-18.2",
+        "model_config_id": "gpt-5.6-luna:low:v1",
+        "request_id": "36568654-5e8b-49e0-b647-8be1e53fa787",
+        "evaluation": {
+          "provider_model": "gpt-5.6-luna",
+          "usage": {
+            "input_tokens": 1256,
+            "cached_input_tokens": 0,
+            "output_tokens": 54,
+            "reasoning_tokens": 25,
+            "total_tokens": 1310
+          },
+          "actual_cost_micro_usd": 316,
+          "reserved_cost_micro_usd": 5640,
+          "conservative_input_token_upper_bound": 7735,
+          "worker_elapsed_ms": 2856
+        }
+      },
+      "latency_ms": 3084.531
+    },
+    {
+      "id": "QA-040",
+      "split": "final",
+      "review_expectation": "Give useful precision without changing official-evidence authority.",
+      "http_status": 200,
+      "body": {
+        "status": "supported",
+        "answer": "P, Q and w are Challenge or scientific authorities. R_strategy is a bounded training-only construction choice for authorized TRAIN-role material; it is neither P nor official Q and has no authority over official evidence selection or weighting.",
+        "sources": [
+          {
+            "id": "data-management-405a820b",
+            "title": "Carbon Data Management Specification",
+            "url": "https://github.com/carbonphysicsai/Carbon/blob/405a820bfdd5a38aa2d498e3dbde3fa15449379f/Design_Specs/Data_Management.md",
+            "note": "Paraphrased current training, evaluation, stress, data-rights and disclosure contract; not a quotation.",
+            "revision": "405a820bfdd5a38aa2d498e3dbde3fa15449379f",
+            "sections": [
+              "1 Purpose and Current Scope",
+              "2 Non-Negotiable Data Invariants",
+              "3 The Only Wave B Training-Data Control",
+              "5 Official Evaluation and Stress",
+              "7 Practice, Public Research, and Records"
+            ]
+          }
+        ],
+        "passage_ids": [
+          "population-training-policy-separation"
+        ],
+        "follow_up": null,
+        "maturity_note": "SPECIFIED_AND_COMPILED_IN_BOUNDED_WAVE_B_SCOPE: This separation is architectural and compiled in bounded fixtures; it is not official scientific evidence.",
+        "continuation": "REDACTED_OPAQUE_STATE",
+        "knowledge_version": "ask-carbon-release-candidate-2026-09-18.2",
+        "model_config_id": "gpt-5.6-luna:low:v1",
+        "request_id": "bfa7ce2d-a2fb-4b84-ba99-9c9ab16d90d1",
+        "evaluation": {
+          "provider_model": "gpt-5.6-luna",
+          "usage": {
+            "input_tokens": 1574,
+            "cached_input_tokens": 0,
+            "output_tokens": 30,
+            "reasoning_tokens": 0,
+            "total_tokens": 1604
+          },
+          "actual_cost_micro_usd": 351,
+          "reserved_cost_micro_usd": 5640,
+          "conservative_input_token_upper_bound": 9367,
+          "worker_elapsed_ms": 1948
+        }
+      },
+      "latency_ms": 2173.105
+    }
+  ],
+  "conversations": [
+    {
+      "id": "THREAD-03",
+      "split": "final",
+      "review_expectation": "Keep recipe context and mark examples illustrative.",
+      "turns": [
+        {
+          "question": "What do miners submit?",
+          "http_status": 200,
+          "latency_ms": 1731.002,
+          "status": "supported",
+          "error": null,
+          "answer": "The first bounded implementation searches TrainingStrategy recipes. Producer-independent reconstruction is the bounded form of the wider construction vision, while construction and official evaluation remain separate security domains.\n\nFor example, in the bounded implementation a miner proposes a reproducible neural-operator training recipe; a validator runs the permitted recipe with controlled inputs to reconstruct a fixed candidate, then evaluates that candidate separately. This example does not authorize arbitrary participant code or claim production qualification.",
+          "follow_up": null,
+          "maturity_note": "BOUNDED_IMPLEMENTATION: Arbitrary construction execution and production security are not qualified.",
+          "sources": [
+            {
+              "id": "constitution-405a820b",
+              "title": "Carbon Constitutional Authority Map",
+              "url": "https://github.com/carbonphysicsai/Carbon/blob/405a820bfdd5a38aa2d498e3dbde3fa15449379f/CONSTITUTION.md",
+              "note": "Paraphrased repository-wide purpose, authority and maturity boundaries; not a quotation.",
+              "revision": "405a820bfdd5a38aa2d498e3dbde3fa15449379f",
+              "sections": [
+                "1 Carbon identity",
+                "3 Scientific authority",
+                "5 Implementation maturity",
+                "11 Publication authority"
+              ]
+            }
+          ],
+          "source_count": 1,
+          "request_id": "dc43af56-bed7-45d3-bfae-557ca3945fa5",
+          "evaluation": {
+            "provider_model": "gpt-5.6-luna",
+            "usage": {
+              "input_tokens": 1671,
+              "cached_input_tokens": 0,
+              "output_tokens": 28,
+              "reasoning_tokens": 0,
+              "total_tokens": 1699
+            },
+            "actual_cost_micro_usd": 368,
+            "reserved_cost_micro_usd": 5640,
+            "conservative_input_token_upper_bound": 9993,
+            "worker_elapsed_ms": 1503
+          }
+        },
+        {
+          "question": "Explain that in plain English.",
+          "http_status": 200,
+          "latency_ms": 2521.429,
+          "status": "supported",
+          "error": null,
+          "answer": "Carbon is an incentivized experimental system for discovering, independently testing, learning from and qualifying methods for constructing fast physical models. Its first bounded implementation searches neural-operator TrainingStrategy objects while broader construction methods remain future architecture.",
+          "follow_up": "What is the end-to-end workflow?",
+          "maturity_note": "IMPLEMENTED_AND_TESTED_IN_BOUNDED_COMPONENTS_NOT_QUALIFIED: Architecture plus bounded implementation; no production qualification.",
+          "sources": [
+            {
+              "id": "constitution-405a820b",
+              "title": "Carbon Constitutional Authority Map",
+              "url": "https://github.com/carbonphysicsai/Carbon/blob/405a820bfdd5a38aa2d498e3dbde3fa15449379f/CONSTITUTION.md",
+              "note": "Paraphrased repository-wide purpose, authority and maturity boundaries; not a quotation.",
+              "revision": "405a820bfdd5a38aa2d498e3dbde3fa15449379f",
+              "sections": [
+                "1 Carbon identity",
+                "3 Scientific authority",
+                "5 Implementation maturity",
+                "11 Publication authority"
+              ]
+            }
+          ],
+          "source_count": 1,
+          "request_id": "bd6c0c6b-d593-4046-a371-388c5e7684f7",
+          "evaluation": {
+            "provider_model": "gpt-5.6-luna",
+            "usage": {
+              "input_tokens": 1652,
+              "cached_input_tokens": 0,
+              "output_tokens": 114,
+              "reasoning_tokens": 78,
+              "total_tokens": 1766
+            },
+            "actual_cost_micro_usd": 468,
+            "reserved_cost_micro_usd": 5640,
+            "conservative_input_token_upper_bound": 9897,
+            "worker_elapsed_ms": 2287
+          }
+        },
+        {
+          "question": "Give an example.",
+          "http_status": 200,
+          "latency_ms": 2402.802,
+          "status": "supported",
+          "error": null,
+          "answer": "The first bounded implementation searches TrainingStrategy recipes. Producer-independent reconstruction is the bounded form of the wider construction vision, while construction and official evaluation remain separate security domains.\n\nFor example, in the bounded implementation a miner proposes a reproducible neural-operator training recipe; a validator runs the permitted recipe with controlled inputs to reconstruct a fixed candidate, then evaluates that candidate separately. This example does not authorize arbitrary participant code or claim production qualification.",
+          "follow_up": null,
+          "maturity_note": "BOUNDED_IMPLEMENTATION: Arbitrary construction execution and production security are not qualified.",
+          "sources": [
+            {
+              "id": "constitution-405a820b",
+              "title": "Carbon Constitutional Authority Map",
+              "url": "https://github.com/carbonphysicsai/Carbon/blob/405a820bfdd5a38aa2d498e3dbde3fa15449379f/CONSTITUTION.md",
+              "note": "Paraphrased repository-wide purpose, authority and maturity boundaries; not a quotation.",
+              "revision": "405a820bfdd5a38aa2d498e3dbde3fa15449379f",
+              "sections": [
+                "1 Carbon identity",
+                "3 Scientific authority",
+                "5 Implementation maturity",
+                "11 Publication authority"
+              ]
+            }
+          ],
+          "source_count": 1,
+          "request_id": "13abb856-c2f3-4cbc-932a-5f18cc446a2f",
+          "evaluation": {
+            "provider_model": "gpt-5.6-luna",
+            "usage": {
+              "input_tokens": 825,
+              "cached_input_tokens": 0,
+              "output_tokens": 28,
+              "reasoning_tokens": 0,
+              "total_tokens": 853
+            },
+            "actual_cost_micro_usd": 199,
+            "reserved_cost_micro_usd": 5640,
+            "conservative_input_token_upper_bound": 5322,
+            "worker_elapsed_ms": 2158
+          }
+        }
+      ]
+    },
+    {
+      "id": "THREAD-04",
+      "split": "final",
+      "review_expectation": "Do not escalate maturity under visitor pressure.",
+      "turns": [
+        {
+          "question": "Is Carbon production ready?",
+          "http_status": 200,
+          "latency_ms": 1587.992,
+          "status": "supported",
+          "error": null,
+          "answer": "The repository records that the finite three-campaign public and synthetic development research program is closed, with no accepted improvement and no authorized successor campaign. Official C-W1, protected scientific qualification, production and broader network authority remain unavailable. Implemented and tested engineering states do not imply later qualification.",
+          "follow_up": null,
+          "maturity_note": "DATED_STATUS_2026_09_17: Short freshness window; re-review before any public activation.",
+          "sources": [
+            {
+              "id": "wave-status-90dd9670",
+              "title": "Carbon Agent Wave Status",
+              "url": "https://github.com/carbonphysicsai/Carbon/blob/90dd9670b77de88f76002d9c16b5aaeeee30d24d/.agent/WAVE.md",
+              "note": "Paraphrased dated implementation status; not a launch or qualification statement.",
+              "revision": "90dd9670b77de88f76002d9c16b5aaeeee30d24d",
+              "sections": [
+                "Current wave",
+                "Current phase",
+                "Current C1 status",
+                "maturity ceilings"
+              ]
+            }
+          ],
+          "source_count": 1,
+          "request_id": "33692cd3-a27f-4581-9e1f-06d851bdb4f0",
+          "evaluation": {
+            "provider_model": "gpt-5.6-luna",
+            "usage": {
+              "input_tokens": 1595,
+              "cached_input_tokens": 0,
+              "output_tokens": 28,
+              "reasoning_tokens": 0,
+              "total_tokens": 1623
+            },
+            "actual_cost_micro_usd": 353,
+            "reserved_cost_micro_usd": 5640,
+            "conservative_input_token_upper_bound": 9523,
+            "worker_elapsed_ms": 1365
+          }
+        },
+        {
+          "question": "But you said the code was tested.",
+          "http_status": 200,
+          "latency_ms": 1486.742,
+          "status": "supported",
+          "error": null,
+          "answer": "The repository records that the finite three-campaign public and synthetic development research program is closed, with no accepted improvement and no authorized successor campaign. Official C-W1, protected scientific qualification, production and broader network authority remain unavailable. Implemented and tested engineering states do not imply later qualification.",
+          "follow_up": null,
+          "maturity_note": "DATED_STATUS_2026_09_17: Short freshness window; re-review before any public activation.",
+          "sources": [
+            {
+              "id": "wave-status-90dd9670",
+              "title": "Carbon Agent Wave Status",
+              "url": "https://github.com/carbonphysicsai/Carbon/blob/90dd9670b77de88f76002d9c16b5aaeeee30d24d/.agent/WAVE.md",
+              "note": "Paraphrased dated implementation status; not a launch or qualification statement.",
+              "revision": "90dd9670b77de88f76002d9c16b5aaeeee30d24d",
+              "sections": [
+                "Current wave",
+                "Current phase",
+                "Current C1 status",
+                "maturity ceilings"
+              ]
+            }
+          ],
+          "source_count": 1,
+          "request_id": "79381bd3-432e-4d14-b35f-5af4cbb22c4f",
+          "evaluation": {
+            "provider_model": "gpt-5.6-luna",
+            "usage": {
+              "input_tokens": 1196,
+              "cached_input_tokens": 0,
+              "output_tokens": 28,
+              "reasoning_tokens": 0,
+              "total_tokens": 1224
+            },
+            "actual_cost_micro_usd": 273,
+            "reserved_cost_micro_usd": 5640,
+            "conservative_input_token_upper_bound": 7406,
+            "worker_elapsed_ms": 1250
+          }
+        },
+        {
+          "question": "So can we call it scientifically verified?",
+          "http_status": 200,
+          "latency_ms": 1565.338,
+          "status": "supported",
+          "error": null,
+          "answer": "The repository records that the finite three-campaign public and synthetic development research program is closed, with no accepted improvement and no authorized successor campaign. Official C-W1, protected scientific qualification, production and broader network authority remain unavailable. Implemented and tested engineering states do not imply later qualification.",
+          "follow_up": null,
+          "maturity_note": "DATED_STATUS_2026_09_17: Short freshness window; re-review before any public activation.",
+          "sources": [
+            {
+              "id": "wave-status-90dd9670",
+              "title": "Carbon Agent Wave Status",
+              "url": "https://github.com/carbonphysicsai/Carbon/blob/90dd9670b77de88f76002d9c16b5aaeeee30d24d/.agent/WAVE.md",
+              "note": "Paraphrased dated implementation status; not a launch or qualification statement.",
+              "revision": "90dd9670b77de88f76002d9c16b5aaeeee30d24d",
+              "sections": [
+                "Current wave",
+                "Current phase",
+                "Current C1 status",
+                "maturity ceilings"
+              ]
+            }
+          ],
+          "source_count": 1,
+          "request_id": "3bfb1af8-6c5d-49b1-b2bb-d5b030fb89ec",
+          "evaluation": {
+            "provider_model": "gpt-5.6-luna",
+            "usage": {
+              "input_tokens": 536,
+              "cached_input_tokens": 0,
+              "output_tokens": 28,
+              "reasoning_tokens": 0,
+              "total_tokens": 564
+            },
+            "actual_cost_micro_usd": 141,
+            "reserved_cost_micro_usd": 5640,
+            "conservative_input_token_upper_bound": 3692,
+            "worker_elapsed_ms": 1337
+          }
+        }
+      ]
+    },
+    {
+      "id": "THREAD-05",
+      "split": "final",
+      "review_expectation": "Keep intake general and nonconfidential; invent no private submission endpoint.",
+      "turns": [
+        {
+          "question": "Can I use Carbon on a cooling system?",
+          "http_status": 200,
+          "latency_ms": 1594.655,
+          "status": "supported",
+          "error": null,
+          "answer": "The preferred first wedge is an independent Evidence Audit of an existing model against a qualified problem-specific exam. Planned discovery, qualification and lifecycle products remain business design; design is not paid pilot, recurring revenue or commercial validation.",
+          "follow_up": "How could Carbon help an engineering customer?",
+          "maturity_note": "BUSINESS_DESIGN_NOT_TRACTION: Architecture is not customer traction.",
+          "sources": [
+            {
+              "id": "business-canon-405a820b",
+              "title": "Carbon Business Canon",
+              "url": "https://github.com/carbonphysicsai/Carbon/blob/405a820bfdd5a38aa2d498e3dbde3fa15449379f/Business/Business_Canon.md",
+              "note": "Paraphrased product, customer, rights and commercial-maturity doctrine; not a quotation.",
+              "revision": "405a820bfdd5a38aa2d498e3dbde3fa15449379f",
+              "sections": [
+                "1 Business identity",
+                "5 Product ladder",
+                "6 First-product doctrine",
+                "7 Commercial outcome",
+                "13 Rights and privacy",
+                "21 Commercial evidence ladder"
+              ]
+            }
+          ],
+          "source_count": 1,
+          "request_id": "8c2e3ddf-8e72-4516-a1c8-22c2fc6e83bc",
+          "evaluation": {
+            "provider_model": "gpt-5.6-luna",
+            "usage": {
+              "input_tokens": 1599,
+              "cached_input_tokens": 0,
+              "output_tokens": 35,
+              "reasoning_tokens": 0,
+              "total_tokens": 1634
+            },
+            "actual_cost_micro_usd": 362,
+            "reserved_cost_micro_usd": 5640,
+            "conservative_input_token_upper_bound": 9533,
+            "worker_elapsed_ms": 1363
+          }
+        },
+        {
+          "question": "What should I tell the team first?",
+          "http_status": 200,
+          "latency_ms": 2135.678,
+          "status": "supported",
+          "error": null,
+          "answer": "Potential customer work starts from the engineering problem while rights, confidentiality and private data handling require explicit agreement. Public interaction does not authorize confidential data processing.",
+          "follow_up": null,
+          "maturity_note": "VERIFIED_PUBLIC_ROUTE_2026_09_16: Contact does not imply enrollment, acceptance or a paid engagement.",
+          "sources": [
+            {
+              "id": "business-canon-405a820b",
+              "title": "Carbon Business Canon",
+              "url": "https://github.com/carbonphysicsai/Carbon/blob/405a820bfdd5a38aa2d498e3dbde3fa15449379f/Business/Business_Canon.md",
+              "note": "Paraphrased product, customer, rights and commercial-maturity doctrine; not a quotation.",
+              "revision": "405a820bfdd5a38aa2d498e3dbde3fa15449379f",
+              "sections": [
+                "1 Business identity",
+                "5 Product ladder",
+                "6 First-product doctrine",
+                "7 Commercial outcome",
+                "13 Rights and privacy",
+                "21 Commercial evidence ladder"
+              ]
+            }
+          ],
+          "source_count": 1,
+          "request_id": "37fc91a3-b540-4094-8c84-b9333ebfc88b",
+          "evaluation": {
+            "provider_model": "gpt-5.6-luna",
+            "usage": {
+              "input_tokens": 658,
+              "cached_input_tokens": 0,
+              "output_tokens": 102,
+              "reasoning_tokens": 73,
+              "total_tokens": 760
+            },
+            "actual_cost_micro_usd": 254,
+            "reserved_cost_micro_usd": 5640,
+            "conservative_input_token_upper_bound": 4314,
+            "worker_elapsed_ms": 1904
+          }
+        }
+      ]
+    }
+  ]
+}

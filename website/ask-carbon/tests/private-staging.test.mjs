@@ -15,10 +15,11 @@ test("private staging credential check fails closed and is exact", () => {
   }), env), false);
 });
 
-test("private staging entrypoint gates every route before serving the maintained preview or API", async () => {
+test("private staging entrypoint gates every route before serving the integrated candidate or API", async () => {
   const source = await readFile(new URL("../worker/private-staging.mjs", import.meta.url), "utf8");
   assert.match(source, /if \(!stagingRequestAuthorized\(request, env\)\) return accessDenied\(\);/);
-  assert.ok(source.indexOf("stagingRequestAuthorized") < source.indexOf("url.pathname === \"/\""));
-  assert.match(source, /Carbon_Client_Pilot_Designer_Preview\.html/);
+  assert.ok(source.indexOf("stagingRequestAuthorized") < source.indexOf("url.pathname === \"/pilot\""));
+  assert.match(source, /location: "\/ask-carbon\/pilot-designer\.html"/);
+  assert.match(source, /return askCarbon\.fetch\(request, env, context\)/);
   assert.match(source, /x-robots-tag/);
 });

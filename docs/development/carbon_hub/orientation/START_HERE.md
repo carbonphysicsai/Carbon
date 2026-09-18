@@ -168,6 +168,7 @@ settlement, weight, or emission claim.
 - [C-CORE-13: exact registered science through the standard MCP launcher](https://github.com/carbonphysicsai/Carbon/blob/a416868bc951aed36b98515f36bcd5d163e695d4/.agent/tickets/C-CORE-13_mcp_scientific_material_selection.md)
 - [C-CORE-12: optional separately authorized Workbench MCP App](https://github.com/carbonphysicsai/Carbon/blob/a416868bc951aed36b98515f36bcd5d163e695d4/.agent/tickets/C-CORE-12_mcp_workbench_apps.md)
 - [Workbench MCP App composition, fixed assets and host-harness limits](https://github.com/carbonphysicsai/Carbon/blob/a416868bc951aed36b98515f36bcd5d163e695d4/carbon/miner_mcp/apps_ui/README.md)
+- [WEB-QA-04: Ask Carbon release-candidate boundary](https://github.com/carbonphysicsai/Carbon/blob/32e8ff98153f49bacd40ee42a87fc7f5e35816db/.agent/tickets/WEB-QA-04_ask_carbon_output_reliability.md)
 
 Authority snapshot: `a416868b` on `main`,
 captured 2026-09-18T00:50:26Z.
