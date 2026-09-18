@@ -198,6 +198,29 @@ def test_prospective_grant_required_before_dispatch(tmp_path, monkeypatch):
     assert ledger.status(owner=data.owner)["operations"] == []
 
 
+def test_expired_companion_scope_allows_owned_cleanup_but_never_execution(
+    tmp_path, monkeypatch
+):
+    from carbon.development_session.julia_envelope import julia_envelope_scope
+
+    data, ledger, calls = prepared(tmp_path, monkeypatch, envelope=True)
+    scope = julia_envelope_scope(data.image, data.role_root)
+    ledger.clock = lambda: 50001
+    with pytest.raises(ValueError, match="expired"):
+        julia.PublicJuliaStudy(data, envelope_scope=scope)
+    study = julia.PublicJuliaStudy(data, envelope_scope=scope, cleanup=True)
+    with pytest.raises(ValueError, match="expired"):
+        study(object())
+    with pytest.raises(ValueError, match="companion envelope scope differs"):
+        julia.PublicJuliaStudy(data, envelope_scope={}, cleanup=True)
+    ledger.generation += 1
+    with pytest.raises(ValueError, match="ownership changed"):
+        julia.PublicJuliaStudy(data, envelope_scope=scope, cleanup=True)
+    assert calls == []
+    with ledger.db() as db:
+        assert db.execute("SELECT COUNT(*) FROM operations").fetchone()[0] == 0
+
+
 def test_replay_across_tasks_one_charge_owned_portable_artifacts(tmp_path, monkeypatch):
     data, ledger, calls = prepared(tmp_path, monkeypatch)
     workspace = ResearchWorkspace(ledger, data.owner)

@@ -37,6 +37,8 @@ class AuthenticatedResearchService:
             raise ValueError("research service cannot be shared between requesters")
         self.gateway = gateway
         self._services = dict(services)
+        self._active = {}
+        self._closing = False
 
     async def _receive(self, body, headers):
         received = await self.gateway.receive(body, headers)
@@ -73,7 +75,7 @@ class AuthenticatedResearchService:
         _owner, service, decoded = await self._receive(body, headers)
         return canonical_bytes(service.call(decoded))
 
-    async def supervised_call(self, body, headers, compositions):
+    async def supervised_call(self, body, headers, compositions, *, task_mode=None):
         """D4 local envelope; the nominal twelve-operation v2 reply is retained.
 
         The trusted supervisor supplies compositions, never the caller. Waits
@@ -89,6 +91,47 @@ class AuthenticatedResearchService:
             or not service.binds_research_task_provider(composition.tasks)
         ):
             raise ValueError("exact authenticated research composition required")
+        if task_mode not in {None, "start", "observe", "cancel"}:
+            raise ValueError("unsupported trusted task mode")
+        if task_mode in {"observe", "cancel"}:
+            expected = (
+                "get_research_result"
+                if task_mode == "observe"
+                else "cancel_research_task"
+            )
+            if decoded.operation != expected:
+                raise ValueError("task observation operation differs")
+            request = decoded.request
+            if task_mode == "cancel":
+                composition.tasks.cancel_observed_task(
+                    request.task_id, request.challenge_key
+                )
+            operation_id, reply, task = composition.tasks.task_observation(
+                request.task_id, request.challenge_key, count=task_mode == "observe"
+            )
+            from carbon.research.model import GetResearchResultRequest
+
+            projected = service.project_task_observation(
+                GetResearchResultRequest(request.challenge_key, request.task_id, 0),
+                task,
+                provider=composition.tasks,
+            )
+            if projected.status is not ReplyStatus.OK:
+                raise ValueError("task observation disclosure rejected")
+            initial = service.project_task_observation(
+                GetResearchResultRequest(request.challenge_key, request.task_id, 0),
+                reply.result.task,
+                provider=composition.tasks,
+            )
+            if initial.status is not ReplyStatus.OK:
+                raise ValueError("retained start disclosure rejected")
+            return self._envelope(
+                reply, projected.result.task, composition, operation_id=operation_id
+            )
+        if self._closing or (
+            task_mode == "start" and decoded.operation != "start_research_task"
+        ):
+            raise ValueError("research supervisor is not accepting work")
         reply = service.call(decoded)
         task = None
         projection = None
@@ -98,13 +141,32 @@ class AuthenticatedResearchService:
             CancelResearchTaskResult,
         }:
             task = reply.result.task
+            if type(reply.result) is StartResearchTaskResult and hasattr(
+                composition.tasks, "bind_task_observation"
+            ):
+                composition.tasks.bind_task_observation(reply)
             if (
                 decoded.operation == "start_research_task"
                 and task.state is ResearchTaskState.QUEUED
             ):
-                task = await asyncio.to_thread(
-                    composition.tasks.run_queued_task, task.task_id
-                )
+                key = (owner, task.task_id)
+                if key not in self._active:
+                    self._active[key] = (
+                        composition,
+                        asyncio.create_task(
+                            asyncio.to_thread(
+                                composition.tasks.run_queued_task, task.task_id
+                            )
+                        ),
+                    )
+                if task_mode is None:
+                    task = await asyncio.shield(self._active[key][1])
+            projection = composition.executor.public_result(task)
+        return self._envelope(reply, task, composition, projection=projection)
+
+    @staticmethod
+    def _envelope(reply, task, composition, *, operation_id=None, projection=None):
+        if task is not None and projection is None:
             projection = composition.executor.public_result(task)
         return {
             "schema": "carbon.autoresearch.supervised-reply.v1",
@@ -121,4 +183,40 @@ class AuthenticatedResearchService:
             and task.state
             in {ResearchTaskState.RUNNING, ResearchTaskState.CANCEL_REQUESTED},
             "official_eligible": False,
+            **(
+                {"original_operation_id": operation_id}
+                if operation_id is not None
+                else {}
+            ),
         }
+
+    async def shutdown_tasks(self):
+        """Stop owned admission, request domain cancellation, and await workers."""
+        self._closing = True
+        active = tuple(self._active.items())
+        errors = []
+        for (_owner, task_id), (composition, future) in active:
+            if not future.done():
+                try:
+                    composition.tasks.cancel_observed_task(
+                        task_id, self.gateway.challenge
+                    )
+                except Exception as exc:  # noqa: BLE001
+                    errors.append(exc)
+        if active:
+            joined = asyncio.gather(
+                *(future for _, (_, future) in active), return_exceptions=True
+            )
+            interrupted = False
+            while not joined.done():
+                try:
+                    await asyncio.shield(joined)
+                except asyncio.CancelledError:
+                    interrupted = True
+            outcomes = joined.result()
+            if errors or any(isinstance(value, BaseException) for value in outcomes):
+                raise ValueError("owned task supervision requires reconciliation")
+            self._active.clear()
+            if interrupted:
+                raise asyncio.CancelledError
+        self._active.clear()

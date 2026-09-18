@@ -11,6 +11,7 @@ import dataclasses
 import enum
 import json
 import time
+from contextvars import ContextVar
 
 from carbon import research
 from carbon.chain.auth import BittensorMessageSigner
@@ -19,6 +20,7 @@ from carbon.transport.models import message
 from .profile import CHALLENGE, canonical, digest
 
 PREFIX = "carbon_research_v2__"
+_TASK_MODE = ContextVar("carbon_trusted_task_mode", default=None)
 PROMPT = """You are an authenticated Carbon DEVELOPMENT miner researcher. Your job
 is to learn a stronger reconstructable recipe, not just make a valid submission.
 Discover the public objective, capability catalog and unexecuted scaffold. Obtain
@@ -301,6 +303,28 @@ class ResearchMinerTools:
             c.discovery.manifest.practice_scope_ref,
         )
 
+    async def task_call(self, mode, args, identity):
+        """Trusted extension entry, retaining signing, admission and accounting."""
+        if mode not in {"start", "observe", "cancel"}:
+            raise ValueError("closed task mode required")
+        import uuid
+
+        token = _TASK_MODE.set(mode)
+        try:
+            operation = {
+                "start": "start_research_task",
+                "observe": "get_research_result",
+                "cancel": "cancel_research_task",
+            }[mode]
+            return await self.call(
+                PREFIX + operation,
+                args,
+                identity,
+                transport_request_id="mcp-task-" + uuid.uuid4().hex,
+            )
+        finally:
+            _TASK_MODE.reset(token)
+
     async def call(self, name, args, identity, *, transport_request_id=None):
         """Keep business identity stable while optionally renewing transmission.
 
@@ -310,6 +334,12 @@ class ResearchMinerTools:
         A fresh signature/request never grants another numerical allowance.
         """
         from .research_carrier import PRECHARGED_TRIAL
+
+        if name == PREFIX + "start_research_task" and (
+            getattr(getattr(self.composition, "executor", None), "cleanup_only", False)
+            or getattr(self.wrapper, "_closing", False)
+        ):
+            raise ValueError("research admission is closed")
 
         if transport_request_id is not None and (
             type(transport_request_id) is not str
@@ -435,7 +465,8 @@ class ResearchMinerTools:
         )
         observed = await (
             cleanup_registration()
-            if operation == "cancel_research_task" and callable(cleanup_registration)
+            if (operation == "cancel_research_task" or _TASK_MODE.get() == "observe")
+            and callable(cleanup_registration)
             else self.connection.check_registration()
         )
         if operation == "start_research_task":
@@ -467,8 +498,12 @@ class ResearchMinerTools:
         headers = BittensorMessageSigner(self.connection.miner_key).sign(
             body, receiver=self.connection.publisher, nonce_ns=time.time_ns()
         )
+        mode = _TASK_MODE.get()
         result = await self.wrapper.supervised_call(
-            body, headers, {self.owner: self.composition}
+            body,
+            headers,
+            {self.owner: self.composition},
+            **({"task_mode": mode} if mode is not None else {}),
         )
         if unavailable:
             value = {
@@ -515,4 +550,9 @@ class ResearchMinerTools:
             ),
             "public_result": result["public_result"],
             "requires_reconciliation": result["requires_reconciliation"],
+            **(
+                {"original_operation_id": result["original_operation_id"]}
+                if "original_operation_id" in result
+                else {}
+            ),
         }

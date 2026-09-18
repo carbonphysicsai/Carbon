@@ -9,6 +9,7 @@ the installed SDK matches the version used by the wire interoperability tests.
 from __future__ import annotations
 
 import json
+from contextlib import asynccontextmanager
 from importlib.metadata import version
 from typing import Annotated, Literal
 
@@ -23,6 +24,7 @@ from carbon.miner_mcp.standard import (
 SDK_VERSION = "2.2.0"
 CAPABILITIES_URI = "carbon://research/v1/capabilities"
 GUIDANCE_URI = "carbon://research/v1/guidance"
+CURRENT_GUIDANCE_URI = "carbon://research/v2/guidance"
 GUIDANCE = """Carbon DEVELOPMENT research workflow v1
 
 Start with get_challenge_info, get_interaction_manifest and get_mock_scaffold.
@@ -83,12 +85,15 @@ def _create_server(adapter: ResearchToolAdapter, *, guard=None, **settings):
     if version("mcp") != SDK_VERSION:
         raise RuntimeError("the tested mcp==2.2.0 SDK is required")
 
+    import anyio
     from mcp.server import MCPServer
     from mcp.server.mcpserver.exceptions import ToolError
     from mcp.server.mcpserver.tools import Tool
     from mcp.server.mcpserver.utilities.func_metadata import ArgModelBase, FuncMetadata
     from pydantic import BaseModel, ConfigDict, Field, JsonValue, create_model
 
+    from carbon.miner_mcp.mcp_extensions import make_tasks_extension
+    from carbon.miner_mcp.mcp_skills import SKILL_URI, WORKFLOW, make_skills_extension
     from carbon.reconstruction.catalogue import capability_projection
 
     class StrictArguments(ArgModelBase):
@@ -138,6 +143,8 @@ def _create_server(adapter: ResearchToolAdapter, *, guard=None, **settings):
         "expected_effect": (Annotated[str, Field(min_length=1, max_length=2048)], ...),
     }
 
+    models = {}
+
     def tool_for(operation):
         parameters = {"operation_id": fields["operation_id"]}
         for name in FIELDS[operation]:
@@ -150,6 +157,7 @@ def _create_server(adapter: ResearchToolAdapter, *, guard=None, **settings):
         model = create_model(
             operation + "Arguments", __base__=StrictArguments, **parameters
         )
+        models[operation] = model
 
         async def invoke(**arguments):
             if guard is not None:
@@ -161,7 +169,8 @@ def _create_server(adapter: ResearchToolAdapter, *, guard=None, **settings):
                 )
             except AdapterFailure as exc:
                 raise ToolError(
-                    f"{exc.code.value}; dispatch_may_have_occurred={str(exc.dispatch_may_have_occurred).lower()}"
+                    f"{exc.code.value}; dispatch_may_have_occurred="
+                    f"{str(exc.dispatch_may_have_occurred).lower()}"
                 ) from None
             return Result(
                 operation=result.operation,
@@ -174,17 +183,46 @@ def _create_server(adapter: ResearchToolAdapter, *, guard=None, **settings):
         return Tool(
             fn=invoke,
             name=PREFIX + operation,
-            description=f"Call Carbon {operation} through the existing bound research controller. Reuse operation_id on retry.",
+            description=(
+                f"Call Carbon {operation} through the existing bound research "
+                "controller. Reuse operation_id on retry."
+            ),
             parameters=model.model_json_schema(),
             fn_metadata=ExactMetadata(arg_model=model, output_model=Result),
             is_async=True,
         )
 
+    tools = [tool_for(operation) for operation in research.SUPPORTED_OPERATIONS]
+
+    @asynccontextmanager
+    async def lifespan(_server):
+        try:
+            yield None
+        finally:
+            # Transport cancellation must not close the provider lease while
+            # its already admitted workers still require supervised cleanup.
+            with anyio.CancelScope(shield=True):
+                await adapter.shutdown_tasks()
+
     server = MCPServer(
         "Carbon DEVELOPMENT Research",
         version="1.0.0",
-        instructions=GUIDANCE,
-        tools=[tool_for(operation) for operation in research.SUPPORTED_OPERATIONS],
+        instructions=(
+            "Carbon DEVELOPMENT research: read " + SKILL_URI + " and its fixed "
+            "manifest for current Tasks/fallback workflow. Reading grants no authority."
+        ),
+        tools=tools,
+        extensions=[
+            make_tasks_extension(
+                adapter,
+                guard=guard,
+                validate_start=lambda arguments: models["start_research_task"]
+                .model_validate(arguments)
+                .model_dump(),
+            ),
+            make_skills_extension(guard=guard),
+        ],
+        lifespan=lifespan,
         **settings,
     )
 
@@ -194,15 +232,21 @@ def _create_server(adapter: ResearchToolAdapter, *, guard=None, **settings):
             guard()
         return json.dumps(capability_projection(audience="miner"), allow_nan=False)
 
-    @server.resource(GUIDANCE_URI, mime_type="text/plain")
+    @server.resource(
+        GUIDANCE_URI,
+        mime_type="text/plain",
+        description="Historical v1 fallback workflow; use v2 guidance for current Tasks behavior.",
+    )
     def guidance() -> str:
         if guard is not None:
             guard()
         return GUIDANCE + (
-            "\nProspectively admitted authored Julia: use kind=workspace, action=run_julia, "
-            "strategy=null and arguments {source,files,seconds,hypothesis,expected_effect}. "
+            "\nProspectively admitted authored Julia: use kind=workspace, "
+            "action=run_julia, strategy=null and arguments "
+            "{source,files,seconds,hypothesis,expected_effect}. "
             "Only named own/public files are staged. Julia 1.13.0 Base and installed "
-            "standard libraries execute in the isolated analysis image. Runtime package "
+            "standard libraries execute in the isolated analysis image. "
+            "Runtime package "
             "installation is unavailable. Save bounded exports under /scratch/output; "
             "results are MINER_SELF_REPORTED, not reference or training qualification."
             if adapter.authored_julia_available
@@ -214,5 +258,17 @@ def _create_server(adapter: ResearchToolAdapter, *, guard=None, **settings):
         if guard is not None:
             guard()
         return GUIDANCE
+
+    @server.resource(CURRENT_GUIDANCE_URI, mime_type="text/markdown")
+    def current_guidance() -> str:
+        if guard is not None:
+            guard()
+        return WORKFLOW
+
+    @server.prompt(name="carbon_research_workflow_v2")
+    def current_workflow() -> str:
+        if guard is not None:
+            guard()
+        return WORKFLOW
 
     return server

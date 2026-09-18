@@ -83,6 +83,30 @@ outside the critical path.
 
 V3 IMPLEMENTATION CHECKPOINT (2026-09-17, C-CORE-02 candidate)
 
+V3 MCP EXTENSIONS CHECKPOINT (2026-09-17, C-CORE-10 candidate)
+
+Negotiated MCP Tasks and Skills now wrap the same standard research adapter,
+durable provider, operation identity, ownership and accounting. Released Tasks
+2026-07-28 handles acknowledge before execution completes; direct get/cancel and
+bounded update enforce the existing principal. Fallback polling keeps its
+historical sequence. Missing protocol observation metadata after a crash is
+recovered without dispatch. Cleanup-only attachment and graceful stdio shutdown
+retain ownership until existing controller cleanup completes. A fixed Skill
+manifest and v2 guidance/resource prompt provide current workflow instructions;
+the original v1 remains historical compatibility material.
+
+Actual local standard-CLI/Julia execution returned early task handles and the
+same completed squares result across reconnects: one 2,488 ms/3,464-byte charge.
+Separate protocol cancellation and stdio EOF stopped real Julia/child workers
+and observed container cleanup, retaining unknown failed-work reservations.
+These explicit engineering fixtures are independent of paid agent-host evidence.
+Detailed bounds, image identity, commands and diagnostic tests are in
+`.agent/tickets/C-CORE-10_mcp_tasks_and_skills.md` and `carbon/miner_mcp/README.md`.
+Canonical delivery remains pending; no new campaign, cloud allocation,
+scientific/security qualification or protected authority follows.
+
+Retained C-CORE-02 checkpoint:
+
 The CPU scientific workflow now implements standard MCP over the existing
 research services, exact JAX implementation discovery, two bounded physical
 definition templates, and native Julia through the existing C-04 controller.

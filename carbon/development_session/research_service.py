@@ -124,7 +124,15 @@ class ResearchComposition:
 
 
 def make_research_service(
-    *, root, ledger, owner, image, public_material, practice, julia_image=None
+    *,
+    root,
+    ledger,
+    owner,
+    image,
+    public_material,
+    practice,
+    julia_image=None,
+    cleanup_only=False,
 ):
     from .julia_research import JuliaPublicMaterial
 
@@ -216,6 +224,7 @@ def make_research_service(
     discovery = Discovery(info, manifest)
     prior = NoPrior()
     executor = PublicResearchExecutor(
+        cleanup_only=cleanup_only,
         julia_image=julia_image,
         ledger=ledger,
         owner=owner,
