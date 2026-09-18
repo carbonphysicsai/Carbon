@@ -9,7 +9,7 @@ import pytest
 from test_miner_launchpad_admission import managed
 from test_miner_launchpad_runner import adapter
 
-from carbon.development_session.profile import canonical
+from carbon.development_session.profile import canonical, digest
 from scripts.dev.miner_launchpad.controller import Controller, Rejected, Server
 from scripts.dev.miner_launchpad.runner import PATH_FIELDS, RunnerAdapter
 
@@ -236,3 +236,38 @@ def test_pause_at_thread_handoff_never_enters_campaign(tmp_path, monkeypatch):
             db.execute("SELECT state FROM research_runs").fetchone()[0]
             == "RECONCILIATION_REQUIRED"
         )
+
+
+def test_guided_review_binds_grant_and_legacy_token_only_recovers_existing_run(
+    tmp_path, monkeypatch
+):
+    bridge, cfg, doc, ledger = configured_bridge(tmp_path, monkeypatch)
+    cfg.pop("disabled_reason")
+    cfg["enabled"] = True
+    bridge.configuration.write_bytes(canonical(cfg))
+    old_review = bridge.preflight()["review_digest"]
+    legacy = digest(canonical(cfg))
+    doc["ceilings"]["provider_attempts"] -= 1
+    ledger.admission.path.write_bytes(canonical(doc))
+    monkeypatch.setattr(bridge, "_start", lambda *args: None)
+    monkeypatch.setattr(bridge, "get", lambda identity: {"id": identity})
+    for stale in (old_review, legacy):
+        with pytest.raises(Rejected, match="research_review_changed"):
+            bridge.launch(
+                {"profile": cfg["profile_id"], "review_digest": stale},
+                "fixture-request-0001",
+            )
+    with bridge.db() as db:
+        assert db.execute("SELECT COUNT(*) FROM research_runs").fetchone()[0] == 0
+    fresh = bridge.preflight()["review_digest"]
+    assert fresh != old_review
+    first = bridge.launch(
+        {"profile": cfg["profile_id"], "review_digest": fresh}, "fixture-request-0001"
+    )
+    assert (
+        bridge.launch(
+            {"profile": cfg["profile_id"], "review_digest": legacy},
+            "fixture-request-0001",
+        )
+        == first
+    )

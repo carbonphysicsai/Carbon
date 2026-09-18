@@ -33,6 +33,11 @@ PATH_FIELDS = {
 }
 
 
+def review_pin(cfg, admission):
+    """Opaque v2 review: include the referenced grant, not only its path."""
+    return "review-v2:" + digest(canonical([cfg, admission.pin]))
+
+
 class RunnerAdapter:
     def __init__(self, database, *, configuration=None, principal=None):
         self.database = database
@@ -167,7 +172,7 @@ class RunnerAdapter:
             if task is not None:
                 value.update(
                     research_guidance=task,
-                    review_digest=digest(canonical(cfg)),
+                    review_digest=review_pin(cfg, admission),
                     runtime_revision=cfg["accepted_revision"],
                 )
             value["review"] = review(cfg, admission.document)
@@ -226,16 +231,19 @@ class RunnerAdapter:
         )[7:39]
         config_pin = digest(canonical(cfg))
         task = guidance.configured(cfg)
-        if (task is not None or "review_digest" in value) and value.get(
-            "review_digest"
-        ) != config_pin:
-            raise Rejected("research_review_changed", 409)
         with self.db() as db:
             db.execute("BEGIN IMMEDIATE")
             previous = db.execute(
                 "SELECT * FROM research_runs WHERE request_key=? OR id=? OR grant_id=?",
                 (key, run_id, admission.document["grant_id"]),
             ).fetchall()
+            if task is not None or "review_digest" in value:
+                supplied = value.get("review_digest")
+                # Legacy token retries only recover an already durable, exactly
+                # bound run. They can never admit a new campaign after upgrade.
+                legacy_retry = bool(previous) and supplied == config_pin
+                if supplied != review_pin(cfg, admission) and not legacy_retry:
+                    raise Rejected("research_review_changed", 409)
             if previous:
                 if len(previous) != 1 or any(
                     previous[0][k] != v

@@ -341,6 +341,12 @@ authorized export, stop and supported reconciliation remain available. The profi
 is not a global cancellation mechanism: an already-dispatched operation must use
 the existing durable pause/stop control and retain any unresolved consumption.
 
+For new guided launches, the opaque review token binds the referenced grant
+digest as well as the operator configuration. A grant changed after browser
+review requires a fresh review. Historical profile-only tokens only recover
+already-recorded runs whose original configuration and grant pins still match;
+they never admit a fresh campaign after this change.
+
 An authenticated disabled review retains guidance, configured runtime/image
 identities, catalogue/training controls, expected dependencies, grant expiry and
 the existing final reserve. Configured maxima and reserve requirements are not a

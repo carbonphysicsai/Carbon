@@ -29,6 +29,11 @@ operator configuration with a read-only review even when dispatch is disabled.
 The optional closed `disabled_reason=OWNER_EXPERIMENT_PAUSE` explains the existing
 `enabled=false` switch and is invalid with `enabled=true`. It grants no authority.
 Review does not open keys, initialize a backend, create a ledger or run a task.
+New guided review tokens bind the configuration plus referenced grant digest;
+changing grant contents after review rejects first launch. Legacy profile-only
+tokens may only recover an already recorded run with unchanged configuration and
+grant pins. They cannot admit a new campaign. This closes a review/admission seam
+without changing frozen campaign or grant formats.
 Launch/resume retain admission checks, and the thread handoff rechecks the same
 configuration before entering the runner. An unsupported extended runtime is
 rejected rather than executed through the CPU campaign by silent substitution.
