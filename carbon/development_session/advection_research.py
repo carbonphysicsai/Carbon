@@ -22,7 +22,7 @@ from .julia_analysis import (
     validate_julia_output,
 )
 from .profile import canonical, digest
-from .research_admission import MANIFEST
+from .research_admission import MANIFEST, verify_cleanup_owner
 from .research_carrier import ACTIVE_TASK, PRECHARGED_TRIAL, _run
 from .research_material import capabilities
 from .research_workspace import ResearchWorkspace
@@ -51,7 +51,7 @@ def advection_scope(image):
 class PublicAdvectionMaterial:
     """Trusted material composition; callers select no physics, script or tolerance."""
 
-    def __init__(self, primary, *, ledger, owner, image):
+    def __init__(self, primary, *, ledger, owner, image, cleanup=False):
         self.primary, self.ledger, self.owner, self.image = (
             primary,
             ledger,
@@ -59,13 +59,22 @@ class PublicAdvectionMaterial:
             image,
         )
         self.scope = advection_scope(image)
-        self._authorize()
+        # Only trusted attachment can request retained ownership verification.
+        # Do not store the flag: every callable still requires fresh admission.
+        self._authorize(cleanup=cleanup)
 
-    def _authorize(self):
-        authorize_julia(self.ledger, self.owner, self.image)
-        with self.ledger.db() as db:
-            row = db.execute("SELECT manifest FROM campaign WHERE id=1").fetchone()
-        manifest = json.loads(row[0]) if row else {}
+    def _authorize(self, *, cleanup=False):
+        if cleanup:
+            manifest = verify_cleanup_owner(self.ledger, self.owner)
+            if canonical(
+                manifest.get("runtime", {}).get("authored_research")
+            ) != canonical([authored_julia_scope(self.image)]):
+                raise ValueError("exact retained authored Julia scope required")
+        else:
+            authorize_julia(self.ledger, self.owner, self.image)
+            with self.ledger.db() as db:
+                row = db.execute("SELECT manifest FROM campaign WHERE id=1").fetchone()
+            manifest = json.loads(row[0]) if row else {}
         scopes = manifest.get("runtime", {}).get("scientific_tasks")
         if (
             manifest.get("schema") != MANIFEST
@@ -75,7 +84,8 @@ class PublicAdvectionMaterial:
             or self.scope != advection_scope(self.image)
         ):
             raise ValueError("exact prospective public advection scope required")
-        self.ledger._grant(manifest)
+        if not cleanup:
+            self.ledger._grant(manifest)
 
     def __call__(self, name, workspace):
         if name in (MATERIAL, "capabilities"):

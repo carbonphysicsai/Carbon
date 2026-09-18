@@ -79,11 +79,12 @@ def julia_envelope_scope(image, role_root):
 
 
 class PublicJuliaEnvelope:
-    def __init__(self, study):
+    def __init__(self, study, *, cleanup=False):
         if type(study) is not PublicJuliaStudy or study.envelope_scope is None:
             raise ValueError("explicit companion Julia study required")
         self.study, self.data, self.scope = study, study.data, study.envelope_scope
-        self._authorize()
+        # Trusted attachment only; callable execution always rechecks a fresh grant.
+        self._authorize(cleanup=cleanup)
 
     def _authorize(self, *, cleanup=False):
         self.study._authorize(cleanup=cleanup)
@@ -244,11 +245,11 @@ class PublicJuliaEnvelope:
 
 
 class JuliaEnvelopeMaterial:
-    def __init__(self, primary):
+    def __init__(self, primary, *, cleanup=False):
         if type(primary) is not JuliaPublicMaterial:
             raise ValueError("exact Julia public material required")
         self.primary, self.study = primary, primary.study
-        self.envelope = PublicJuliaEnvelope(self.study)
+        self.envelope = PublicJuliaEnvelope(self.study, cleanup=cleanup)
 
     def catalogue(self):
         return {
