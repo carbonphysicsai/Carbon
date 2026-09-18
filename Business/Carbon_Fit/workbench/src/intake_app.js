@@ -10,6 +10,18 @@
     workload_frequency: "Workload frequency",
     desired_accuracy: "Requested accuracy (unreviewed intent)",
   };
+  const pilotLabels = {
+    candidate_inputs: "candidate inputs",
+    candidate_outputs: "candidate outputs",
+    operating_envelope: "operating envelope",
+    evaluation_questions: "evaluation questions and observables",
+    requested_targets: "requested targets",
+    missing_evidence: "missing evidence",
+    implementation_work: "implementation work",
+    bounded_first_pilot: "bounded first pilot",
+    next_discussion: "next discussion",
+  };
+  const guidanceBoundaryHtml = $("guidance-boundary").innerHTML;
   const pilot = Object.fromEntries(I.PILOT_FIELDS.map((field) => [field, ""]));
   const provenance = new Map();
   const acceptedSuggestions = [];
@@ -21,7 +33,7 @@
   let guidanceAvailable = false;
   let consentedAt = null;
   let clearedLocally = false;
-  const sessionId = "pilot-" + crypto.randomUUID();
+  let sessionId = "pilot-" + crypto.randomUUID();
 
   $("quantity-fields").innerHTML = I.QUANTITY_FIELDS.map(
     (field) => `<div class="quantity-row" data-quantity-row="${field}"><label>${quantityLabels[field]}<select data-quantity-state="${field}"><option value="UNKNOWN">Unknown</option><option value="POINT">Point estimate</option><option value="RANGE">Supplied range</option></select></label><label data-quantity-unit-wrap="${field}" hidden>Unit<input data-quantity-unit="${field}" disabled></label><div class="quantity-values"><label class="point" data-quantity-point-wrap="${field}" hidden>Value<input type="number" step="any" data-quantity-value="${field}" disabled></label><label data-quantity-range-wrap="${field}" hidden>Minimum<input type="number" step="any" data-quantity-min="${field}" disabled></label><label data-quantity-range-wrap="${field}" hidden>Maximum<input type="number" step="any" data-quantity-max="${field}" disabled></label></div></div>`,
@@ -70,7 +82,9 @@
       $("pilot-text").textContent = pilot.bounded_first_pilot || "Not yet proposed.";
       const list = $("assumption-list");
       list.replaceChildren();
-      for (const text of unresolvedAssumptions.length ? unresolvedAssumptions : ["Complete or skip fields; unknowns remain visible."]) {
+      const missingPilotFields = I.PILOT_FIELDS.filter((field) => !pilot[field].trim()).map((field) => `Unresolved field: ${pilotLabels[field] || field.replaceAll("_", " ")}.`);
+      const visibleUnknowns = [...new Set([...unresolvedAssumptions, ...missingPilotFields])];
+      for (const text of visibleUnknowns.length ? visibleUnknowns : ["No unresolved pilot fields are currently recorded."]) {
         const item = document.createElement("li"); item.textContent = text; list.append(item);
       }
       $("brief-mode").textContent = acceptedSuggestions.length ? `${acceptedSuggestions.length} accepted suggestion${acceptedSuggestions.length === 1 ? "" : "s"}` : "client draft";
@@ -79,12 +93,14 @@
     } catch (error) { $("intake-status").textContent = error.message; }
   }
 
-  function setMode(mode) {
+  function setMode(mode, focusPanel = true) {
     const guided = mode === "guided";
     $("guided-panel").hidden = !guided; $("form-panel").hidden = guided;
     $("show-guided").setAttribute("aria-selected", String(guided));
     $("show-form").setAttribute("aria-selected", String(!guided));
-    if (!guided) document.querySelector("[data-text='intended_decision']").focus();
+    $("show-guided").tabIndex = guided ? 0 : -1;
+    $("show-form").tabIndex = guided ? -1 : 0;
+    if (!guided && focusPanel) document.querySelector("[data-text='intended_decision']").focus();
   }
 
   function addMessage(role, text) {
@@ -158,7 +174,13 @@
     addMessage("CLIENT", question); $("guidance-input").value = ""; $("guidance-input").disabled = true; $("send-guidance").disabled = true; $("guidance-status").textContent = "Preparing one bounded next step…";
     try {
       const response = await fetch(document.body.dataset.apiUrl, { method: "POST", credentials: "same-origin", headers: { "content-type": "application/json" }, body: JSON.stringify({ mode: "PILOT_DESIGN", session_id: sessionId, question, turns: turnPairs(), draft_context: guidanceContext() }) });
-      const body = await response.json().catch(() => ({})); if (!response.ok) throw Error(body.error?.message || "Guidance is temporarily unavailable.");
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        if (response.status === 429 || ["usage_limit", "edge_rate_limit"].includes(body.error?.code)) {
+          throw Error("AI guidance is unavailable because a shared usage limit has been reached. Your draft is preserved; continue with form-only drafting.");
+        }
+        throw Error(body.error?.message || "AI guidance is temporarily unavailable. Your draft is preserved; continue with form-only drafting.");
+      }
       addMessage("ASSISTANT", [body.message, body.next_question].filter(Boolean).join("\n\n"));
       pendingProposals = body.proposals || []; unresolvedAssumptions = [...new Set([...unresolvedAssumptions, ...(body.unresolved_assumptions || [])])]; renderProposals(); renderBrief();
       $("guidance-status").textContent = "Review each proposed change. Rejecting a suggestion leaves the brief unchanged.";
@@ -202,11 +224,35 @@
     provenance.set(field, { origin: node.value === "UNKNOWN" ? "UNKNOWN" : "CLIENT_TYPED", suggestion_id: null }); renderBrief();
   }));
   $("show-guided").onclick = () => setMode("guided"); $("show-form").onclick = () => setMode("form");
+  for (const tab of [$("show-guided"), $("show-form")]) tab.addEventListener("keydown", (event) => {
+    if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+    event.preventDefault();
+    const target = event.key === "ArrowLeft" || event.key === "Home" ? $("show-guided") : $("show-form");
+    setMode(target === $("show-guided") ? "guided" : "form", false); target.focus();
+  });
   $("show-consent").onclick = () => { $("consent-panel").hidden = false; renderBrief(); };
   $("consent-check").onchange = () => { $("enable-guidance").disabled = !$("consent-check").checked; };
   $("enable-guidance").onclick = enableGuidance; $("guidance-form").onsubmit = sendGuidance;
   $("clear-conversation").onclick = () => { conversation = []; pendingProposals = []; clearedLocally = true; $("conversation").innerHTML = '<article class="message assistant"><strong>Carbon</strong><p>Conversation cleared on this device. This does not delete provider records. Your accepted brief changes remain.</p></article>'; renderProposals(); renderBrief(); };
   $("undo-suggestion").onclick = () => { const item = undoStack.pop(); if (!item) return; setValue(item.proposal.field, item.previous); const index = acceptedSuggestions.findIndex((entry) => entry.suggestion_id === item.proposal.suggestion_id); if (index >= 0) acceptedSuggestions.splice(index, 1); provenance.set(item.proposal.field, { origin: item.previous ? "CLIENT_TYPED" : "UNKNOWN", suggestion_id: null }); $("undo-suggestion").disabled = !undoStack.length; renderBrief(); };
+  $("reset-draft").onclick = () => {
+    if (!confirm("Reset this local draft and conversation? Download first if you want to keep a copy.")) return;
+    document.querySelectorAll("[data-text],[data-pilot]").forEach((node) => { node.value = ""; });
+    for (const field of I.PILOT_FIELDS) pilot[field] = "";
+    for (const field of I.QUANTITY_FIELDS) {
+      const select = document.querySelector(`[data-quantity-state="${field}"]`); select.value = "UNKNOWN"; select.dispatchEvent(new Event("change"));
+      for (const selector of [`[data-quantity-unit="${field}"]`, `[data-quantity-value="${field}"]`, `[data-quantity-min="${field}"]`, `[data-quantity-max="${field}"]`]) document.querySelector(selector).value = "";
+    }
+    $("draft-id").value = "local-inquiry-001"; $("revision-id").value = "rev-001"; $("predecessor-revision").value = ""; $("predecessor-digest").value = "";
+    $("contact-name").value = ""; $("contact-email").value = ""; $("contact-organization").value = ""; $("include-conversation").checked = false;
+    acceptedSuggestions.length = 0; undoStack.length = 0; provenance.clear(); unresolvedAssumptions = []; pendingProposals = []; conversation = [];
+    guidanceEnabled = false; guidanceAvailable = false; consentedAt = null; clearedLocally = true; sessionId = "pilot-" + crypto.randomUUID();
+    $("consent-check").checked = false; $("enable-guidance").disabled = true; $("consent-panel").hidden = true; $("guidance-input").value = ""; $("guidance-input").disabled = true; $("send-guidance").disabled = true; $("undo-suggestion").disabled = true;
+    $("guidance-boundary").innerHTML = guidanceBoundaryHtml;
+    $("conversation").innerHTML = '<article class="message assistant"><strong>Carbon</strong><p>What engineering decision depends on the prediction or comparison you want to make?</p></article>';
+    $("guidance-status").textContent = "Draft reset locally. This does not delete provider records. Continue with the form or review AI data use again.";
+    renderProposals(); renderBrief(); setMode("guided"); $("show-guided").focus();
+  };
   $("export-intake").onclick = () => { try { const reviewed = reviewedPackage(); const blob = new Blob([JSON.stringify(reviewed, null, 2) + "\n"], { type: "application/json" }); const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = `${reviewed.brief.draft_id}_${reviewed.brief.revision_id}.carbon-intake.json`; link.click(); URL.revokeObjectURL(link.href); $("intake-status").textContent = "Reviewed brief downloaded locally. Nothing was transmitted to Carbon."; } catch (error) { $("intake-status").textContent = "Export blocked: " + error.message; } };
   renderBrief();
 })();

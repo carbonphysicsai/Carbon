@@ -2026,6 +2026,15 @@
         "all 23 pinned distributions",
         "Hardware and scientific acceptance remain open"
       ]
+    },
+    {
+      "id": "ask-carbon-public-release-candidate",
+      "path": ".agent/tickets/WEB-QA-04_ask_carbon_output_reliability.md",
+      "required_markers": [
+        "**Status:** IMPLEMENTED AND TESTED",
+        "public activation remains disabled",
+        "Inquiry collection, receipt, persistence and staff notification remain a"
+      ]
     }
   ],
   "authority_ceilings": {
@@ -3568,6 +3577,13 @@
         "path": ".agent/tickets/C-CORE-03_accelerator_reconstruction.md",
         "impact_class": "map_structural",
         "map_ref": "SYSTEM/AGENT-EXECUTION"
+      },
+      {
+        "id": "web-qa-04-public-release-candidate-ticket",
+        "match_type": "exact",
+        "path": ".agent/tickets/WEB-QA-04_ask_carbon_output_reliability.md",
+        "impact_class": "map_structural",
+        "map_ref": "SYSTEM/PUBLICATION-AUTHORITY"
       }
     ]
   },

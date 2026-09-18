@@ -15,6 +15,7 @@ export const validateKnowledge = async (knowledge, { mode = "staging", now = new
   const warnings = [];
   const sourceChecks = [];
   const passageIds = new Set();
+  const sourceIds = new Set((knowledge.sources ?? []).map((source) => source.id));
   for (const source of knowledge.sources ?? []) {
     if (!source.note?.toLowerCase().includes("paraphras")) warnings.push(`source_note_not_marked_paraphrase:${source.id}`);
     if (checkSourceBytes && source.repo_path) {
@@ -32,10 +33,12 @@ export const validateKnowledge = async (knowledge, { mode = "staging", now = new
     if (!Array.isArray(card.questions) || !card.questions.length || !card.answer || card.answer.length > 1800) errors.push(`invalid_card_text:${card.id}`);
     if (!Array.isArray(card.audiences) || !card.audiences.length || card.disclosure_class !== "PUBLIC" || !card.maturity || !card.scope_note) errors.push(`invalid_card_governance:${card.id}`);
     if (!Array.isArray(card.keywords) || !Array.isArray(card.related)) errors.push(`invalid_card_helpers:${card.id}`);
+    if (!Array.isArray(card.passages) || !card.passages.length) errors.push(`missing_answer_basis:${card.id}`);
     for (const passage of card.passages ?? []) {
       if (passageIds.has(passage.id)) errors.push(`duplicate_passage_id:${passage.id}`);
       passageIds.add(passage.id);
       if (passage.text.length > 900) errors.push(`passage_too_long:${passage.id}`);
+      if (!sourceIds.has(passage.source_id)) errors.push(`unknown_answer_source:${card.id}:${passage.source_id}`);
     }
   }
   if (knowledge.candidate_review?.artifact_sha256 !== "ca1e23c3a77ec813c384d893358fe1fe1959edd5989068a5711b04e2821120cb" ||

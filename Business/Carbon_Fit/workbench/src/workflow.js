@@ -5,15 +5,21 @@
   const I =
     root.CarbonClientIntake ||
     (typeof require !== "undefined" ? require("./intake.js") : null);
+  const T =
+    root.CarbonTeamReview ||
+    (typeof require !== "undefined" ? require("./team_review.js") : null);
   const S =
     root.CarbonSourceAssessment ||
     (typeof require !== "undefined" ? require("./source_assessment.js") : null);
   const R =
     root.CarbonGoalRouting ||
     (typeof require !== "undefined" ? require("./routing.js") : null);
-  const VERSION = "carbon.goal-workbench.design.v0.8",
-    WORKSPACE_VERSION = "carbon.goal-workbench.workspace.v0.8",
-    APP_VERSION = "Carbon Goal-to-Challenge Workbench v0.8";
+  const VERSION = "carbon.goal-workbench.design.v0.9",
+    WORKSPACE_VERSION = "carbon.goal-workbench.workspace.v0.9",
+    APP_VERSION = "Carbon Goal-to-Challenge Workbench v0.9";
+  const INTAKE_VERSION = "carbon.goal-workbench.design.v0.8",
+    INTAKE_WORKSPACE_VERSION = "carbon.goal-workbench.workspace.v0.8",
+    INTAKE_APP_VERSION = "Carbon Goal-to-Challenge Workbench v0.8";
   const ADMITTED_VERSION = "carbon.goal-workbench.design.v0.7",
     ADMITTED_WORKSPACE_VERSION = "carbon.goal-workbench.workspace.v0.7",
     ADMITTED_APP_VERSION = "Carbon Goal-to-Challenge Workbench v0.7";
@@ -221,6 +227,7 @@
       measurement_evidence: [],
       evidence_bindings: [],
       source_assessments: S.newState(),
+      assessment: T.newAssessment(),
       handoffs: [],
       responses: [],
       coordination: R.newCoordination(revision),
@@ -260,6 +267,7 @@
         next_owner_decision: "",
       },
       intake_records: [],
+      team_review: T.newTeamReview(),
       working_design_id: first.design_id,
       designs: [first],
       created_from: "DIRECT_INTAKE",
@@ -269,8 +277,8 @@
     return {
       schema_version: WORKSPACE_VERSION,
       application_version: APP_VERSION,
-      decision_id: "GOAL-WORKBENCH-08",
-      base_application_merge: "94762b6a8932ac6834c731a416c3a45c4cbf6170",
+      decision_id: "GOAL-WORKBENCH-09",
+      base_application_merge: "4afb80566fc695a873d7154c203787991bb64267",
       opportunity_workspace: clone(component),
       jobs: [],
       selected_job_id: null,
@@ -537,6 +545,7 @@
         "measurement_evidence",
         "evidence_bindings",
         "source_assessments",
+        "assessment",
         "handoffs",
         "responses",
         "coordination",
@@ -687,6 +696,7 @@
       (x) => R.validateStoredEvidenceBinding(x, bindingDesign, evidence),
     );
     S.validateState(d.source_assessments);
+    T.validateAssessment(d.assessment, d);
     list(d.handoffs, "handoffs", 128).forEach((x) => validateHandoff(x, d));
     list(d.responses, "responses", 256).forEach((x) => validateResponse(x, d));
     R.validateCoordination(d.coordination, d.revision);
@@ -762,6 +772,7 @@
         "working_design_id",
         "assignment",
         "intake_records",
+        "team_review",
         "designs",
         "created_from",
       ],
@@ -839,6 +850,7 @@
     );
     if (new Set(intakeIdentities).size !== intakeIdentities.length)
       throw Error("Duplicate intake revision identity");
+    T.validateTeamReview(j.team_review);
     enumValue(
       j.created_from,
       ["DIRECT_INTAKE", "ASSISTED_INTAKE", "MIGRATED"],
@@ -879,10 +891,10 @@
     if (
       w.schema_version !== WORKSPACE_VERSION ||
       w.application_version !== APP_VERSION ||
-      w.decision_id !== "GOAL-WORKBENCH-08"
+      w.decision_id !== "GOAL-WORKBENCH-09"
     )
       throw Error("Unsupported goal workspace version");
-    if (w.base_application_merge !== "94762b6a8932ac6834c731a416c3a45c4cbf6170")
+    if (w.base_application_merge !== "4afb80566fc695a873d7154c203787991bb64267")
       throw Error("Unsupported base application identity");
     const component = componentReader(JSON.stringify(w.opportunity_workspace));
     const jobs = list(w.jobs, "jobs", 64).map(validateJob);
@@ -1219,7 +1231,14 @@
   function migrateGoalWorkspace(value, digestStatus) {
     const w = clone(value),
       from = w.schema_version;
-    if (from === ADMITTED_WORKSPACE_VERSION) {
+    if (from === INTAKE_WORKSPACE_VERSION) {
+      if (
+        w.application_version !== INTAKE_APP_VERSION ||
+        w.decision_id !== "GOAL-WORKBENCH-08" ||
+        w.base_application_merge !== "94762b6a8932ac6834c731a416c3a45c4cbf6170"
+      )
+        throw Error("Unsupported v0.8 workspace identity");
+    } else if (from === ADMITTED_WORKSPACE_VERSION) {
       if (
         w.application_version !== ADMITTED_APP_VERSION ||
         w.decision_id !== "GOAL-WORKBENCH-07" ||
@@ -1257,14 +1276,39 @@
     } else throw Error("Unsupported goal workspace version");
     w.schema_version = WORKSPACE_VERSION;
     w.application_version = APP_VERSION;
-    w.decision_id = "GOAL-WORKBENCH-08";
-    w.base_application_merge = "94762b6a8932ac6834c731a416c3a45c4cbf6170";
+    w.decision_id = "GOAL-WORKBENCH-09";
+    w.base_application_merge = "4afb80566fc695a873d7154c203787991bb64267";
     for (const job of w.jobs) {
-      if (from === ADMITTED_WORKSPACE_VERSION) {
-        for (const design of job.designs) design.schema_version = VERSION;
+      if (from !== INTAKE_WORKSPACE_VERSION && Object.hasOwn(job, "team_review")) {
+        if (JSON.stringify(job.team_review) !== JSON.stringify(T.newTeamReview()))
+          throw Error("Declared legacy workspace contains non-empty future team-review state");
+        delete job.team_review;
+      }
+      if (from !== INTAKE_WORKSPACE_VERSION)
+        for (const design of job.designs)
+          if (Object.hasOwn(design, "assessment")) {
+            if (JSON.stringify(design.assessment) !== JSON.stringify(T.newAssessment()))
+              throw Error("Declared legacy workspace contains non-empty future assessment state");
+            delete design.assessment;
+          }
+      if (from === INTAKE_WORKSPACE_VERSION) {
+        for (const design of job.designs) {
+          if (design.schema_version !== INTAKE_VERSION)
+            throw Error("Invalid v0.8 design version");
+          design.schema_version = VERSION;
+          design.assessment = T.newAssessment();
+        }
+      } else if (from === ADMITTED_WORKSPACE_VERSION) {
+        for (const design of job.designs) {
+          design.schema_version = VERSION;
+          design.assessment = T.newAssessment();
+        }
         job.intake_records = [];
       } else if (from === ACCEPTED_WORKSPACE_VERSION) {
-        for (const design of job.designs) migrateAcceptedDesign(design);
+        for (const design of job.designs) {
+          migrateAcceptedDesign(design);
+          design.assessment = T.newAssessment();
+        }
         job.intake_records = [];
       } else if (from === PRIOR_WORKSPACE_VERSION) {
         exact(
@@ -1282,7 +1326,10 @@
           ],
           "v0.5 job",
         );
-        for (const design of job.designs) migratePriorDesign(design, job);
+        for (const design of job.designs) {
+          migratePriorDesign(design, job);
+          design.assessment = T.newAssessment();
+        }
         job.intake_records = [];
       } else {
         exact(
@@ -1301,12 +1348,15 @@
         );
         job.accountable_owner = "";
         job.intake_records = [];
-        for (const design of job.designs)
+        for (const design of job.designs) {
           migrateLegacyDesign(
             design,
             from === OLD_WORKSPACE_VERSION ? OLD_VERSION : LEGACY_VERSION,
           );
+          design.assessment = T.newAssessment();
+        }
       }
+      job.team_review = T.newTeamReview();
       const selected =
         w.selected_job_id === job.job_id
           ? job.designs.find(
@@ -1324,7 +1374,9 @@
       original_digest_status: digestStatus,
       semantic_changes: [
         "Preserved all earlier job, sealed-design, CPES, C-05, authoring, handoff, response and change-history bytes.",
-        from === ADMITTED_WORKSPACE_VERSION
+        from === INTAKE_WORKSPACE_VERSION
+          ? "Added an empty team-review queue and design-assessment record. No reviewer, feasibility conclusion, source evidence, task result, client approval or route was fabricated."
+          : from === ADMITTED_WORKSPACE_VERSION
           ? "Added an empty local-intake lineage collection; no client statement, route, owner, source assessment, consent or approval was fabricated. Existing source-assessment receipts remain subject to installed-snapshot revalidation."
           : from === ACCEPTED_WORKSPACE_VERSION
           ? "Added an empty repository-pinned source-assessment state. No migrated response, receipt, provenance label, or historical Workbench-06 fixture was admitted."
@@ -1342,6 +1394,7 @@
       return validateWorkspace(value, componentReader);
     if (
       value.schema_version === PRIOR_WORKSPACE_VERSION ||
+      value.schema_version === INTAKE_WORKSPACE_VERSION ||
       value.schema_version === ADMITTED_WORKSPACE_VERSION ||
       value.schema_version === ACCEPTED_WORKSPACE_VERSION ||
       value.schema_version === OLD_WORKSPACE_VERSION ||
@@ -1379,6 +1432,15 @@
     next.handoffs = [];
     next.responses = [];
     next.source_assessments = S.newState();
+    const retainedAssessment = next.assessment
+      ? clone(next.assessment)
+      : T.newAssessment();
+    next.assessment = T.newAssessment();
+    for (const key of ["intended_engineering_decision", ...T.ASSESSMENT_FIELDS])
+      next.assessment[key] = retainedAssessment[key];
+    next.assessment.resource_scenarios = clone(retainedAssessment.resource_scenarios);
+    next.assessment.work_packages = clone(retainedAssessment.work_packages);
+    next.assessment.open_questions = clone(retainedAssessment.open_questions);
     next.measurement_evidence = [];
     next.evidence_bindings = R.carryEvidenceBindings(found, next);
     next.route_plan = R.newRoutePlan();
@@ -1572,6 +1634,11 @@
       const target = workspace.jobs.find((item) => item.job_id === current.target_job_id);
       if (!target) throw Error("Intake target job is unavailable");
       target.intake_records.push(intakeRecordFrom(inspection, []));
+      target.team_review.queue_state = "READY_FOR_REVIEW";
+      target.team_review.current_action =
+        "Review the revised client brief and decide which design revision, if any, it changes.";
+      target.team_review.next_restart_event =
+        "A reviewer records the revision association or requests clarification.";
       return { action: current.action, job_id: target.job_id, changed: true };
     }
     const base =
@@ -1604,6 +1671,11 @@
       requirementIds.push(requirementId);
     });
     target.intake_records.push(intakeRecordFrom(inspection, requirementIds));
+    target.team_review.queue_state = "READY_FOR_REVIEW";
+    target.team_review.current_action =
+      "Assign one reviewer and assess the source-linked brief before selecting a route.";
+    target.team_review.next_restart_event =
+      "A reviewer is assigned or the client supplies a named clarification.";
     workspace.jobs.push(target);
     workspace.selected_job_id = target.job_id;
     workspace.selected_design_id = design.design_id;
@@ -2418,6 +2490,7 @@
       cpes_economics: economics(d),
       evidence_gaps: coverage(d),
       next_discussion: d.decision.next_action,
+      pilot_brief: T.clientPilotBrief(job, d),
       authority:
         "Planning summary only. Evidence reuse is not reference-answer reuse. Source measurements are public DEVELOPMENT evidence, not a score, pass/fail, qualification, submission, launch, protected reuse permission, or binding commercial claim. Local exports are unencrypted; keep them non-sensitive.",
     };
@@ -2432,6 +2505,8 @@
       coverage: coverage(d),
       conditional_economics: economics(d),
       launch_candidate: launchCandidate(d, job.native_task_id),
+      team_review: clone(job.team_review),
+      execution_brief: T.internalExecutionBrief(job, d),
       authority:
         "Requests source-owner review only. Cannot execute a solver, activate sharing, qualify science, grant rights, submit, register, or launch.",
     };
@@ -2555,6 +2630,22 @@
     nextRouteAction: R.nextAction,
     ownerSummary: R.ownerSummary,
     ownerConsole: R.ownerConsole,
+    teamQueue: (workspace) =>
+      workspace.jobs.map((job) => {
+        const selected =
+          job.designs.find((design) => design.design_id === job.working_design_id) ||
+          job.designs[0];
+        return T.queueProjection(job, selected);
+      }),
+    clientPilotBrief: T.clientPilotBrief,
+    internalExecutionBrief: T.internalExecutionBrief,
+    addReviewCorrection: T.addCorrection,
+    addAssessmentNote: (review, input) =>
+      T.addManualRecord(review, "assessment_notes", input),
+    addOutstandingQuestion: (review, input) =>
+      T.addManualRecord(review, "outstanding_questions", input),
+    QUEUE_STATES: T.QUEUE_STATES,
+    ASSESSMENT_FIELDS: T.ASSESSMENT_FIELDS,
   };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.CarbonGoalWorkflow = api;

@@ -12,11 +12,13 @@ const integer = (value, { min = 0 } = {}) => Number.isSafeInteger(value) && valu
 const text = (value, max = 200) => typeof value === "string" && value.length > 0 && value.length <= max;
 
 const emptyState = () => ({
-  schema_version: 2,
+  schema_version: 3,
   policy: null,
+  environment_policies: {},
   scope_policies: {},
   attempts: {},
   days: {},
+  environment_days: {},
   clients: {},
   pilot_sessions: {},
 });
@@ -72,6 +74,48 @@ const summarize = (state) => {
 
 const load = async (storage) => {
   const state = (await storage.get(STATE_KEY)) ?? emptyState();
+  if ((state.schema_version ?? 2) < 3) {
+    const legacyPilotSessions = state.pilot_sessions ?? {};
+    state.environment_policies = {};
+    state.environment_days = {};
+    state.clients = {};
+    state.pilot_sessions = Object.fromEntries(Object.entries(legacyPilotSessions)
+      .map(([key, value]) => [`legacy:${key}`, value]));
+    for (const attempt of Object.values(state.attempts ?? {})) {
+      const environment = attempt.environment;
+      if (!text(environment, 40) || !integer(attempt.admitted_at_ms, { min: 1 })) continue;
+      const day = dayOf(attempt.admitted_at_ms);
+      const environmentDays = state.environment_days[environment] ??= {};
+      const dayState = environmentDays[day] ??= { requests: 0 };
+      dayState.requests += 1;
+      const hour = hourOf(attempt.admitted_at_ms);
+      const clientKey = `${environment}:${attempt.client_id}`;
+      const clientState = state.clients[clientKey];
+      if (!clientState || clientState.hour !== hour) {
+        if (!clientState || clientState.hour < hour) {
+          state.clients[clientKey] = { hour, requests: 1, last_seen_ms: attempt.admitted_at_ms };
+        }
+      } else {
+        clientState.requests += 1;
+        clientState.last_seen_ms = Math.max(clientState.last_seen_ms, attempt.admitted_at_ms);
+      }
+      if (attempt.mode === "PILOT_DESIGN" && text(attempt.session_id)) {
+        const sessionKey = `${environment}:${monthOf(attempt.admitted_at_ms)}:${attempt.session_id}`;
+        const session = state.pilot_sessions[sessionKey] ??= { requests: 0, last_seen_ms: attempt.admitted_at_ms };
+        session.requests += 1;
+        session.last_seen_ms = Math.max(session.last_seen_ms, attempt.admitted_at_ms);
+      }
+    }
+    if (state.policy) {
+      delete state.policy.daily_request_limit;
+      delete state.policy.client_requests_per_hour;
+      delete state.policy.pilot_requests_per_session;
+      delete state.policy.client_counter_retention_ms;
+    }
+    state.schema_version = 3;
+  }
+  state.environment_policies ??= {};
+  state.environment_days ??= {};
   state.scope_policies ??= {};
   state.pilot_sessions ??= {};
   return state;
@@ -129,10 +173,6 @@ export class AskCarbonUsageLedger {
       }
       if (state.policy && (
         state.policy.concurrency_limit !== input.concurrency_limit ||
-        state.policy.daily_request_limit !== input.daily_request_limit ||
-        state.policy.client_requests_per_hour !== input.client_requests_per_hour ||
-        state.policy.pilot_requests_per_session !== input.pilot_requests_per_session ||
-        state.policy.client_counter_retention_ms !== input.client_counter_retention_ms ||
         state.policy.legacy_closed_authority_period !== input.legacy_closed_authority_period ||
         state.policy.legacy_closed_authority_scope_id !== input.legacy_closed_authority_scope_id ||
         state.policy.legacy_closed_authority_exposure_micro_usd !== input.legacy_closed_authority_exposure_micro_usd
@@ -142,14 +182,26 @@ export class AskCarbonUsageLedger {
       state.policy ??= {
         monthly_limit_micro_usd: OWNER_MONTHLY_LIMIT_MICRO_USD,
         concurrency_limit: input.concurrency_limit,
-        daily_request_limit: input.daily_request_limit,
-        client_requests_per_hour: input.client_requests_per_hour,
-        pilot_requests_per_session: input.pilot_requests_per_session,
-        client_counter_retention_ms: input.client_counter_retention_ms,
         legacy_closed_authority_period: input.legacy_closed_authority_period,
         legacy_closed_authority_scope_id: input.legacy_closed_authority_scope_id,
         legacy_closed_authority_exposure_micro_usd: input.legacy_closed_authority_exposure_micro_usd,
       };
+      const existingEnvironmentPolicy = state.environment_policies[input.environment];
+      const requestedEnvironmentPolicy = {
+        daily_request_limit: input.daily_request_limit,
+        client_requests_per_hour: input.client_requests_per_hour,
+        pilot_requests_per_session: input.pilot_requests_per_session,
+        client_counter_retention_ms: input.client_counter_retention_ms,
+      };
+      if (existingEnvironmentPolicy && Object.entries(requestedEnvironmentPolicy)
+        .some(([key, value]) => existingEnvironmentPolicy[key] !== value)) {
+        return json({ allowed: false, reason: "environment_policy_mismatch" }, 409);
+      }
+      state.environment_policies[input.environment] ??= {
+        ...requestedEnvironmentPolicy,
+        created_at_ms: input.now_ms,
+      };
+      const environmentPolicy = state.environment_policies[input.environment];
       const existingScopePolicy = state.scope_policies[input.scope_id];
       if (existingScopePolicy && existingScopePolicy.limit_micro_usd !== input.scope_limit_micro_usd) {
         return json({ allowed: false, reason: "scope_policy_mismatch" }, 409);
@@ -159,19 +211,25 @@ export class AskCarbonUsageLedger {
         first_environment: input.environment,
         created_at_ms: input.now_ms,
       };
-      const cutoff = input.now_ms - input.client_counter_retention_ms;
+      const cutoff = input.now_ms - environmentPolicy.client_counter_retention_ms;
       for (const [clientId, counter] of Object.entries(state.clients)) {
         if (counter.last_seen_ms < cutoff) delete state.clients[clientId];
       }
       const day = dayOf(input.now_ms);
       const dayState = state.days[day] ??= { requests: 0 };
+      const environmentDays = state.environment_days[input.environment] ??= {};
+      const environmentDayState = environmentDays[day] ??= { requests: 0 };
       const clientHour = hourOf(input.now_ms);
-      const clientState = state.clients[input.client_id];
+      const clientKey = `${input.environment}:${input.client_id}`;
+      const clientState = state.clients[clientKey];
       const clientRequests = clientState?.hour === clientHour ? clientState.requests : 0;
       const summary = summarize(state);
       const period = monthOf(input.now_ms);
-      const pilotSessionKey = `${period}:${input.session_id}`;
-      const pilotSessionRequests = state.pilot_sessions[pilotSessionKey]?.requests ?? 0;
+      const pilotSessionKey = `${input.environment}:${period}:${input.session_id}`;
+      const legacyPilotSessionKey = `legacy:${period}:${input.session_id}`;
+      const currentPilotSessionRequests = state.pilot_sessions[pilotSessionKey]?.requests ?? 0;
+      const pilotSessionRequests = currentPilotSessionRequests +
+        (state.pilot_sessions[legacyPilotSessionKey]?.requests ?? 0);
       const monthExposure = summary.months[period]?.exposure_micro_usd ?? 0;
       const scopeKey = `${period}:${input.scope_id}`;
       const scopeExposure = summary.scopes[scopeKey]?.exposure_micro_usd ?? 0;
@@ -184,11 +242,11 @@ export class AskCarbonUsageLedger {
       const clientActive = Object.values(state.attempts).filter((attempt) =>
         attempt.client_id === input.client_id && ["prepared", "dispatch_authorized"].includes(attempt.state)).length;
       let reason = null;
-      if (dayState.requests >= state.policy.daily_request_limit) reason = "daily_request_limit";
+      if (environmentDayState.requests >= environmentPolicy.daily_request_limit) reason = "daily_request_limit";
       else if (summary.active_attempts >= state.policy.concurrency_limit) reason = "global_concurrency_limit";
       else if (clientActive >= 2) reason = "client_concurrency_limit";
-      else if (clientRequests >= state.policy.client_requests_per_hour) reason = "client_hourly_limit";
-      else if (input.mode === "PILOT_DESIGN" && pilotSessionRequests >= state.policy.pilot_requests_per_session) reason = "pilot_session_limit";
+      else if (clientRequests >= environmentPolicy.client_requests_per_hour) reason = "client_hourly_limit";
+      else if (input.mode === "PILOT_DESIGN" && pilotSessionRequests >= environmentPolicy.pilot_requests_per_session) reason = "pilot_session_limit";
       else if (monthExposure + legacyExposure + input.reserved_cost_micro_usd > OWNER_MONTHLY_LIMIT_MICRO_USD) reason = "monthly_cost_limit";
       else if (scopeExposure + legacyScopeExposure + input.reserved_cost_micro_usd > (existingScopePolicy?.limit_micro_usd ?? state.scope_policies[input.scope_id].limit_micro_usd)) reason = "scope_cost_limit";
       if (reason) {
@@ -196,8 +254,9 @@ export class AskCarbonUsageLedger {
         return json({ allowed: false, reason }, 429);
       }
       dayState.requests += 1;
-      state.clients[input.client_id] = { hour: clientHour, requests: clientRequests + 1, last_seen_ms: input.now_ms };
-      if (input.mode === "PILOT_DESIGN") state.pilot_sessions[pilotSessionKey] = { requests: pilotSessionRequests + 1, last_seen_ms: input.now_ms };
+      environmentDayState.requests += 1;
+      state.clients[clientKey] = { hour: clientHour, requests: clientRequests + 1, last_seen_ms: input.now_ms };
+      if (input.mode === "PILOT_DESIGN") state.pilot_sessions[pilotSessionKey] = { requests: currentPilotSessionRequests + 1, last_seen_ms: input.now_ms };
       state.attempts[input.attempt_id] = {
         attempt_id: input.attempt_id,
         client_id: input.client_id,
@@ -319,8 +378,10 @@ export class AskCarbonUsageLedger {
       return json({
         schema_version: state.schema_version,
         policy: state.policy,
+        environment_policies: state.environment_policies,
         attempts: state.attempts,
         days: state.days,
+        environment_days: state.environment_days,
         clients: state.clients,
         pilot_sessions: state.pilot_sessions,
         scope_policies: state.scope_policies,

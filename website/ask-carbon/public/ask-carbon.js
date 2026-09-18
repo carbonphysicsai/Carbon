@@ -3,6 +3,13 @@ import { evaluateRelease } from "./release-contract.js";
 const MAX_QUESTION_LENGTH = 1200;
 const DEFAULT_KNOWLEDGE_URL = "/ask-carbon/public-knowledge.v1.json";
 const DEFAULT_API_URL = "/api/ask-carbon";
+const DEFAULT_PILOT_URL = "/ask-carbon/pilot-designer.html";
+const RETRIEVAL_STOP_WORDS = new Set(["a", "an", "and", "are", "as", "at", "be", "by", "can", "do", "does", "for", "from", "how", "i", "in", "is", "it", "of", "on", "or", "that", "the", "their", "this", "to", "was", "what", "when", "where", "which", "who", "why", "with", "you"]);
+
+const retrievalTokens = (value) => (String(value ?? "").toLowerCase().match(/[a-z0-9]+/g) ?? [])
+  .filter((word) => word.length > 1 && !RETRIEVAL_STOP_WORDS.has(word));
+
+export const shouldUseLiveAnswers = (liveStatus, visitorEnabled) => liveStatus?.active === true && visitorEnabled === true;
 
 const createElement = (documentRef, tag, options = {}) => {
   const element = documentRef.createElement(tag);
@@ -15,9 +22,12 @@ const createElement = (documentRef, tag, options = {}) => {
 };
 
 const scoreCard = (card, question) => {
-  const normalized = question.toLowerCase();
+  const normalized = question.trim().toLowerCase();
   const cardQuestions = card.questions ?? [card.question].filter(Boolean);
-  if (cardQuestions.some((item) => item.toLowerCase() === normalized.trim())) return 1000;
+  if (cardQuestions.some((item) => item.toLowerCase() === normalized)) return 1000;
+  const queryTerms = new Set(retrievalTokens(normalized));
+  const cardTerms = new Set(retrievalTokens(`${cardQuestions.join(" ")} ${(card.keywords ?? []).join(" ")}`));
+  if (![...queryTerms].some((term) => cardTerms.has(term))) return 0;
   const words = new Set(normalized.match(/[a-z0-9]+/g) ?? []);
   const keywordScore = (card.keywords ?? []).reduce(
     (score, keyword) => score + (words.has(keyword.toLowerCase()) ? 2 : normalized.includes(keyword.toLowerCase()) ? 1 : 0),
@@ -71,6 +81,7 @@ export class AskCarbonElement extends HTMLElementBase {
     this.knowledge = null;
     this.releaseStatus = null;
     this.liveStatus = { active: false };
+    this.liveEnabled = false;
     this.continuation = null;
     this.savedCardIds = [];
     this.guard = createThreadGuard();
@@ -211,16 +222,18 @@ export class AskCarbonElement extends HTMLElementBase {
 
   updateStatus() {
     const date = this.liveStatus.source_release_date || this.knowledge?.release?.source_release_date || "date unavailable";
-    if (this.liveStatus.active) {
+    if (shouldUseLiveAnswers(this.liveStatus, this.liveEnabled)) {
       this.status.textContent = `Live answers · Reviewed public sources dated ${date}.`;
       this.mode.textContent = "Live public answer";
       this.privacy.textContent = "Questions are sent to the approved AI provider. Do not paste confidential engineering or customer data.";
       return;
     }
     const staging = this.hasAttribute("staging-preview");
-    this.status.textContent = staging
-      ? `Private staging preview · Reviewed saved explanations, not live AI. Sources released ${date}.`
-      : `Saved public explanations · Sources released ${date}.`;
+    this.status.textContent = this.liveStatus.active
+      ? "Saved explanations ready · Live AI stays off until you review the data use and enable it."
+      : staging
+        ? `Private staging preview · Reviewed saved explanations, not live AI. Sources released ${date}.`
+        : `Saved public explanations · Sources released ${date}.`;
     this.mode.textContent = staging ? "Staging explanation" : "Saved explanation";
     this.privacy.textContent = "Saved explanations run in this page and send no question to an AI provider. Do not paste confidential data.";
   }
@@ -232,8 +245,52 @@ export class AskCarbonElement extends HTMLElementBase {
     const intro = createElement(doc, "section", { className: "ask-carbon-intro" });
     intro.append(
       createElement(doc, "h3", { text: "Understand how Carbon works." }),
-      createElement(doc, "p", { text: "Start with a question. Ask for more detail as you go." }),
+      createElement(doc, "p", { text: "Choose whether to learn about Carbon or draft a high-level pilot brief." }),
     );
+    const pathways = createElement(doc, "div", { className: "ask-carbon-pathways", attributes: { "aria-label": "Choose an Ask Carbon path" } });
+    const learn = createElement(doc, "button", { className: "ask-carbon-pathway", attributes: { type: "button" } });
+    learn.append(
+      createElement(doc, "span", { className: "ask-carbon-pathway-title", text: "Learn about Carbon" }),
+      createElement(doc, "span", { className: "ask-carbon-pathway-note", text: "Ask a public question and inspect the reviewed sources." }),
+    );
+    const pilot = createElement(doc, "a", {
+      className: "ask-carbon-pathway",
+      attributes: { href: this.getAttribute("pilot-url") || DEFAULT_PILOT_URL },
+    });
+    pilot.append(
+      createElement(doc, "span", { className: "ask-carbon-pathway-title", text: "Draft a pilot" }),
+      createElement(doc, "span", { className: "ask-carbon-pathway-note", text: "Use the local form, or affirmatively enable bounded AI guidance." }),
+    );
+    pathways.append(learn, pilot);
+    if (this.liveStatus.active && !this.liveEnabled) {
+      const disclosure = createElement(doc, "section", {
+        className: "ask-carbon-live-disclosure",
+        attributes: { "aria-labelledby": "ask-carbon-live-title" },
+      });
+      disclosure.append(
+        createElement(doc, "h4", { text: "Before enabling live AI answers", attributes: { id: "ask-carbon-live-title" } }),
+        createElement(doc, "p", { text: "Saved explanations send nothing to the AI provider. If enabled, your current question and bounded reviewed public passages are sent through Carbon’s server to the OpenAI API. Contact details are not requested or sent." }),
+        createElement(doc, "p", { text: "Requests use store:false, but Carbon has not established Zero Data Retention or Modified Abuse Monitoring. Prompts and responses may be retained by the provider for up to 30 days. Do not include confidential, personal, credential, solver, model, customer or protected-evaluation information." }),
+      );
+      const consentLabel = createElement(doc, "label", { className: "ask-carbon-consent" });
+      const consent = createElement(doc, "input", { attributes: { type: "checkbox" } });
+      consentLabel.append(consent, " I understand and want to enable live AI answers.");
+      const enable = createElement(doc, "button", {
+        className: "ask-carbon-enable-live",
+        text: "Enable live answers",
+        attributes: { type: "button", disabled: "" },
+      });
+      consent.addEventListener("change", () => { enable.disabled = !consent.checked; });
+      enable.addEventListener("click", () => {
+        if (!consent.checked) return;
+        this.liveEnabled = true;
+        this.updateStatus();
+        this.renderIntro();
+        this.input.focus();
+      });
+      disclosure.append(consentLabel, enable);
+      intro.append(disclosure);
+    }
     const topics = createElement(doc, "div", { className: "ask-carbon-topics" });
     const starterIds = ["overview", "training-control", "references", "current-progress"];
     for (const id of starterIds) {
@@ -256,7 +313,10 @@ export class AskCarbonElement extends HTMLElementBase {
       button.addEventListener("click", () => this.ask(card.questions[0]));
       topics.append(button);
     }
+    learn.addEventListener("click", () => topics.querySelector("button:not([disabled])")?.focus());
     intro.append(
+      pathways,
+      createElement(doc, "p", { className: "ask-carbon-section-label", text: "Start with a public question" }),
       topics,
       createElement(doc, "p", {
         className: "ask-carbon-hint",
@@ -340,11 +400,11 @@ export class AskCarbonElement extends HTMLElementBase {
     this.input.value = "";
     this.counter.textContent = `0 / ${MAX_QUESTION_LENGTH.toLocaleString()}`;
     this.setBusy(true);
-    this.status.textContent = this.liveStatus.active ? "Finding a supported answer from approved public sources…" : "Finding the closest saved public explanation…";
+    this.status.textContent = shouldUseLiveAnswers(this.liveStatus, this.liveEnabled) ? "Finding a supported answer from approved public sources…" : "Finding the closest saved public explanation…";
     const request = this.guard.begin();
     try {
       let answer;
-      if (this.liveStatus.active) {
+      if (shouldUseLiveAnswers(this.liveStatus, this.liveEnabled)) {
         answer = await this.askLive(question, request.signal);
       } else {
         const card = findSavedAnswer(this.knowledge, question, { eligibleCardIds: this.releaseStatus?.eligible_card_ids, priorCardIds: this.savedCardIds });
@@ -372,7 +432,7 @@ export class AskCarbonElement extends HTMLElementBase {
     } catch (error) {
       if (error.name !== "AbortError" && request.isCurrent()) {
         const fallback = findSavedAnswer(this.knowledge, question, { eligibleCardIds: this.releaseStatus?.eligible_card_ids, priorCardIds: this.savedCardIds });
-        if (this.liveStatus.active && fallback && this.releaseStatus?.valid) {
+        if (shouldUseLiveAnswers(this.liveStatus, this.liveEnabled) && fallback && this.releaseStatus?.valid) {
           this.addAnswer(thread, {
             status: "saved_explanation",
             answer: fallback.answer,
@@ -422,7 +482,7 @@ export class AskCarbonElement extends HTMLElementBase {
     this.renderIntro();
     this.input.value = "";
     this.counter.textContent = `0 / ${MAX_QUESTION_LENGTH.toLocaleString()}`;
-    this.status.textContent = "New chat started. " + (this.liveStatus.active ? "Live public answers are available." : "Saved explanations are ready.");
+    this.status.textContent = "New chat started. " + (shouldUseLiveAnswers(this.liveStatus, this.liveEnabled) ? "Live public answers remain enabled for this page." : "Saved explanations are ready.");
     this.input.focus();
   }
 
@@ -453,7 +513,7 @@ export class AskCarbonElement extends HTMLElementBase {
     }
     if (event.key !== "Tab") return;
     const focusable = [...this.dialog.querySelectorAll(
-      "button:not([disabled]), textarea:not([disabled]), a[href], details > summary",
+      "button:not([disabled]), textarea:not([disabled]), input:not([disabled]), a[href], details > summary",
     )].filter((node) => node.getClientRects().length > 0);
     if (!focusable.length) return;
     const first = focusable[0];

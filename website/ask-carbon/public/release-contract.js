@@ -9,6 +9,7 @@ export const evaluateRelease = (knowledge, { mode = "production", now = new Date
   const nowMs = now instanceof Date ? now.getTime() : Number(now);
   const release = knowledge?.release;
   if (knowledge?.schema_version !== 2) reasons.push("unsupported_schema_version");
+  if (knowledge?.answer_contract !== "SERVER_OWNED_REVIEWED_CARD_SELECTION_V1") reasons.push("unsupported_answer_contract");
   if (!release || typeof release !== "object") reasons.push("missing_release");
   if (!knowledge?.knowledge_version) reasons.push("missing_knowledge_version");
   if (!validDate(release?.source_release_date)) reasons.push("missing_source_release_date");
