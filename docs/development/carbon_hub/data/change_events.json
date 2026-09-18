@@ -5729,6 +5729,24 @@
         "WAVE-N"
       ],
       "supersedes": null
+    },
+    {
+      "map_ref": "SYSTEM/PUBLICATION-AUTHORITY",
+      "event_type": "evidence",
+      "event_id": "WEB-QA-05-D1",
+      "owner_lane": "owner",
+      "status": "implemented",
+      "summary": "The owner approved Ask Carbon release candidate 2026-09-18.2 for inactive publication, and the supplied homepage ZIP is now hash-reconciled to the deployed Workbench navigation source. The exact production-gated bundle is prepared and tested, but production remains unchanged until the incident owner and disable/rollback operator are named; public enablement remains a separate step.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/45db0b78bbe0d73610231ec91330e0ae81d43b30/.agent/tickets/WEB-QA-05_ask_carbon_inactive_publication.md",
+      "affects": [
+        "SYSTEM/BUSINESS-AUTHORITY",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/GOVERNANCE",
+        "SYSTEM/MATURITY",
+        "SYSTEM/PUBLICATION",
+        "SYSTEM/PUBLICATION-AUTHORITY"
+      ],
+      "supersedes": "WEB-QA-04-D1"
     }
   ]
 }

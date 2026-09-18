@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-18T01:53:55Z"
+  captured_at_utc: "2026-09-18T02:58:12Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "4ae5b8720172e30a5347a20566758a6aef47d49f"
+  authority_snapshot_commit: "45db0b78bbe0d73610231ec91330e0ae81d43b30"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -7721,6 +7721,22 @@ events:
       - "WAVE-M"
       - "WAVE-N"
     supersedes: null
+  -
+    map_ref: "SYSTEM/PUBLICATION-AUTHORITY"
+    event_type: "evidence"
+    event_id: "WEB-QA-05-D1"
+    owner_lane: "owner"
+    status: "implemented"
+    summary: "The owner approved Ask Carbon release candidate 2026-09-18.2 for inactive publication, and the supplied homepage ZIP is now hash-reconciled to the deployed Workbench navigation source. The exact production-gated bundle is prepared and tested, but production remains unchanged until the incident owner and disable/rollback operator are named; public enablement remains a separate step."
+    primary_detail: "https://github.com/carbonphysicsai/Carbon/blob/45db0b78bbe0d73610231ec91330e0ae81d43b30/.agent/tickets/WEB-QA-05_ask_carbon_inactive_publication.md"
+    affects:
+      - "SYSTEM/BUSINESS-AUTHORITY"
+      - "SYSTEM/DEVELOPMENT-HUB"
+      - "SYSTEM/GOVERNANCE"
+      - "SYSTEM/MATURITY"
+      - "SYSTEM/PUBLICATION"
+      - "SYSTEM/PUBLICATION-AUTHORITY"
+    supersedes: "WEB-QA-04-D1"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"
