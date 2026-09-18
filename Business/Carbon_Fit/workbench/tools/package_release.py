@@ -10,13 +10,14 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / "MANIFEST.json"
-ARCHIVE = ROOT / "Carbon_Physics_Goal_Workbench_v0_8.zip"
+ARCHIVE = ROOT / "Carbon_Physics_Goal_Workbench_v0_9.zip"
 EXCLUDED = {
     MANIFEST.name,
     ARCHIVE.name,
     "Carbon_Physics_Goal_Workbench_v0_5.zip",
     "Carbon_Physics_Goal_Workbench_v0_6.zip",
     "Carbon_Physics_Goal_Workbench_v0_7.zip",
+    "Carbon_Physics_Goal_Workbench_v0_8.zip",
     "Carbon_Physics_Goal_Workbench_v0_4.zip",
     "Carbon_Physics_Goal_Workbench_v0_3.zip",
     "Carbon_Physics_Opportunity_Workbench_v0_2.zip",
@@ -61,9 +62,9 @@ def build() -> tuple[Path, Path]:
     )
     files = payloads()
     manifest = {
-        "schema_version": "carbon.workbench.release-manifest.v0.8",
+        "schema_version": "carbon.workbench.release-manifest.v0.9",
         "status": "OFFLINE_DECISION_SUPPORT_NOT_PRODUCTION",
-        "application_version": "Carbon Goal-to-Challenge Workbench v0.8",
+        "application_version": "Carbon Goal-to-Challenge Workbench v0.9",
         "decision_ids": [
             "EXAM-PROTECT-WORKBENCH-01",
             "GOAL-WORKBENCH-02",
@@ -77,6 +78,7 @@ def build() -> tuple[Path, Path]:
             "OWNER-GW07-RYAN-SNAPSHOT-01-ADOPTION-001",
             "GOAL-WORKBENCH-07A",
             "GOAL-WORKBENCH-08",
+            "GOAL-WORKBENCH-09",
         ],
         "repository_base": "3681f7fb10be0c6e278f53d59ff9b022099ef12d",
         "integration_revision_at_packaging": integration_revision(),
@@ -179,6 +181,17 @@ def build() -> tuple[Path, Path]:
             "conversation_inclusion_default": False,
             "scope": "Local/synthetic DEVELOPMENT only; provider calls require explicit consent and configured activation; no submission, live collection, customer validation, source-assessment admission, qualification, rights grant, or launch.",
         },
+        "private_team_workflow": {
+            "queue_schema": "carbon.goal-workbench.team-review.v1",
+            "assessment_schema": "carbon.goal-workbench.team-assessment.v1",
+            "client_brief_schema": "carbon.goal-workbench.client-pilot-brief.v1",
+            "internal_brief_schema": "carbon.goal-workbench.internal-execution-brief.v1",
+            "store_schema": "carbon.private-team-intake.store.v1",
+            "receiver": "LOOPBACK_SYNTHETIC_ONLY",
+            "live_collection": "DISABLED",
+            "scientific_task_interface": "CORE_INTERFACE_PENDING_ISSUE_209",
+            "authority": "Queue, assessment and request preparation only; no science, rights, execution, score, protected use or launch authority.",
+        },
         "post_merge_review_input": {
             "archive_sha256": "85aa3633410ea41cad9029a5e864e42ca2134c4ff0ec9eb5caef638acd4e2f78",
             "routing_sha256": "cacc140b1e9f9904a2360ba7a798d6789619154b54a27ccdf4faf8adb18accf0",
@@ -230,7 +243,7 @@ def build() -> tuple[Path, Path]:
         ARCHIVE, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9
     ) as out:
         for path in sorted(archive_files):
-            name = "carbon_goal_workbench_v0_8/" + str(path.relative_to(ROOT))
+            name = "carbon_goal_workbench_v0_9/" + str(path.relative_to(ROOT))
             info = zipfile.ZipInfo(name, date_time=(2026, 9, 15, 0, 0, 0))
             info.compress_type = zipfile.ZIP_DEFLATED
             info.external_attr = (0o755 if path.suffix == ".py" else 0o644) << 16

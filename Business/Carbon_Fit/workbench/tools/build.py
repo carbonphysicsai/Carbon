@@ -41,6 +41,7 @@ def build():
     c05_evidence = (ROOT / "src/c05_evidence.js").read_text()
     source_assessment = (ROOT / "src/source_assessment.js").read_text()
     intake = (ROOT / "src/intake.js").read_text()
+    team_review = (ROOT / "src/team_review.js").read_text()
     workflow = (ROOT / "src/workflow.js").read_text()
     goal_app = (ROOT / "src/goal_app.js").read_text()
     atlas = data(ROOT / "data/atlas.json")
@@ -62,6 +63,7 @@ def build():
             c05_evidence,
             source_assessment,
             intake,
+            team_review,
             workflow,
             goal_app,
             atlas,
@@ -89,6 +91,7 @@ def build():
         "C05_EVIDENCE": c05_evidence,
         "SOURCE_ASSESSMENT": source_assessment,
         "INTAKE": intake,
+        "TEAM_REVIEW": team_review,
         "WORKFLOW": workflow,
         "GOAL_APP": goal_app,
     }.items():
