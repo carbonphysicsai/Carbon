@@ -49,6 +49,21 @@ _D4_GENERATOR_CONSUMERS = {
     },
 }
 
+# C-CORE-02/v3 adds these exact public-case consumers prospectively. Definitions
+# accept a causal CandidateQuery; the Julia diagnostic selects an existing public
+# TRAIN case. Neither consumer gains generation or protected-seed authority.
+_CORE02_GENERATOR_CONSUMERS = {
+    "development_session/julia_research.py": {
+        "carbon.generators.burgers_dynamics": {
+            "PublicDevelopmentRole",
+            "requested_times",
+        }
+    },
+    "scientific_tasks/definitions.py": {
+        "carbon.generators.burgers_dynamics": {"DOMAIN_LENGTH", "CandidateQuery"}
+    },
+}
+
 _EXPECTED_MODULE_PATHS = frozenset(
     {
         "__init__.py",
@@ -430,6 +445,8 @@ def test_existing_carbon_packages_do_not_reverse_import_generators() -> None:
             and path.name in _D4_GENERATOR_CONSUMERS
         ):
             continue
+        if path.relative_to(_CARBON_ROOT).as_posix() in _CORE02_GENERATOR_CONSUMERS:
+            continue
         violations.extend(
             f"{_relative(path)}:{line}" for line in _imports_generators(path)
         )
@@ -554,3 +571,70 @@ def test_d4_controller_consumers_import_only_exact_public_generator_symbols():
                         alias.name for alias in node.names
                     )
         assert observed == allowed
+
+
+def _assert_core02_generator_symbols(path, tree):
+    relative = path.relative_to(_CARBON_ROOT).as_posix()
+    assert relative in _CORE02_GENERATOR_CONSUMERS
+    observed = {}
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            assert not any(
+                alias.name == "carbon.generators"
+                or alias.name.startswith("carbon.generators.")
+                for alias in node.names
+            )
+        elif isinstance(node, ast.ImportFrom):
+            base = _from_module(path, node)
+            assert not (
+                base == "carbon"
+                and any(alias.name == "generators" for alias in node.names)
+            )
+            if base == "carbon.generators" or base.startswith("carbon.generators."):
+                observed.setdefault(base, set()).update(
+                    alias.name for alias in node.names
+                )
+    assert observed == _CORE02_GENERATOR_CONSUMERS[relative]
+
+
+def test_core02_consumers_import_only_exact_public_case_symbols():
+    for relative in _CORE02_GENERATOR_CONSUMERS:
+        path = _CARBON_ROOT / relative
+        _assert_core02_generator_symbols(path, _parse(path))
+
+
+@pytest.mark.parametrize(
+    "relative,source",
+    [
+        (
+            "development_session/julia_research.py",
+            "from carbon.generators.burgers_dynamics import PublicDevelopmentRole, requested_times, generate_development_case",
+        ),
+        (
+            "scientific_tasks/definitions.py",
+            "from carbon.generators.burgers_dynamics import DOMAIN_LENGTH, CandidateQuery, BurgersDevelopmentCase",
+        ),
+        (
+            "development_session/julia_research.py",
+            "from carbon.generators import GeneratorService",
+        ),
+        (
+            "scientific_tasks/definitions.py",
+            "from carbon.generators.burgers_dynamics import *",
+        ),
+        (
+            "scientific_tasks/definitions.py",
+            "import carbon.generators.burgers_dynamics as generator",
+        ),
+        ("scientific_tasks/definitions.py", "from carbon import generators"),
+        (
+            "scientific_tasks/other.py",
+            "from carbon.generators.burgers_dynamics import DOMAIN_LENGTH, CandidateQuery",
+        ),
+    ],
+)
+def test_core02_consumer_exceptions_do_not_admit_generation_or_module_imports(
+    relative, source
+):
+    with pytest.raises(AssertionError):
+        _assert_core02_generator_symbols(_CARBON_ROOT / relative, ast.parse(source))

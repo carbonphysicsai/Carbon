@@ -39,6 +39,12 @@ def test_package_is_exact_and_exports_no_official_or_network_surface() -> None:
         "model.py",
         "research.py",
         "service.py",
+        # C-CORE-02/v3 standard transports wrap the existing public service.
+        # This does not change the historical package-root exports below.
+        "standard.py",
+        "standard_cli.py",
+        "standard_server.py",
+        "standard_http.py",
         "store.py",
     }
     assert tuple(miner_mcp_exports) == (
@@ -81,7 +87,7 @@ def test_source_owners_do_not_depend_on_c08_and_c08_has_no_lateral_authority() -
     assert violations == []
 
 
-def test_c08_opens_no_listener_process_dynamic_code_or_pickle_surface() -> None:
+def _forbidden_runtime_surface(path, tree):
     forbidden_roots = {
         "ctypes",
         "http",
@@ -93,19 +99,68 @@ def test_c08_opens_no_listener_process_dynamic_code_or_pickle_surface() -> None:
         "urllib",
     }
     violations = []
-    for path in PACKAGE.glob("*.py"):
-        for module, line in direct_import_modules(ROOT, path):
-            if module.partition(".")[0] in forbidden_roots:
-                violations.append(f"{path.name}:{line}:{module}")
-        tree = ast.parse(path.read_text(encoding="utf-8"))
-        for node in ast.walk(tree):
-            if (
-                isinstance(node, ast.Call)
-                and isinstance(node.func, ast.Name)
-                and node.func.id in {"eval", "exec", "compile", "__import__"}
-            ):
-                violations.append(f"{path.name}:{node.lineno}:{node.func.id}")
+    for module, line in direct_import_modules(ROOT, path, tree=tree):
+        # The reviewed HTTP factory parses the operator's HTTPS issuer/resource
+        # identifiers. This exact symbol performs no request or listener work.
+        syntax_only = (
+            path == PACKAGE / "standard_http.py"
+            and module == "urllib.parse"
+            and any(
+                isinstance(node, ast.ImportFrom)
+                and node.lineno == line
+                and node.level == 0
+                and node.module == "urllib.parse"
+                and len(node.names) == 1
+                and node.names[0].name == "urlsplit"
+                and node.names[0].asname is None
+                for node in ast.walk(tree)
+            )
+        )
+        if module.partition(".")[0] in forbidden_roots and not syntax_only:
+            violations.append(f"{path.name}:{line}:{module}")
+    for node in ast.walk(tree):
+        if (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id in {"eval", "exec", "compile", "__import__"}
+        ):
+            violations.append(f"{path.name}:{node.lineno}:{node.func.id}")
+    return violations
+
+
+def test_c08_opens_no_listener_process_dynamic_code_or_pickle_surface() -> None:
+    violations = [
+        violation
+        for path in PACKAGE.glob("*.py")
+        for violation in _forbidden_runtime_surface(
+            path, ast.parse(path.read_text(encoding="utf-8"))
+        )
+    ]
     assert violations == []
+
+
+def test_core02_url_parser_exception_is_exact_and_has_no_network_authority():
+    tree = ast.parse("from urllib.parse import urlsplit")
+    assert _forbidden_runtime_surface(PACKAGE / "standard_http.py", tree) == []
+    assert _forbidden_runtime_surface(PACKAGE / "standard_cli.py", tree)
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        "from urllib.request import urlopen",
+        "from urllib import request",
+        "import urllib.parse",
+        "from urllib.parse import *",
+        "from urllib.parse import urlsplit, urljoin",
+        "from urllib.parse import urlsplit as parser",
+        "import subprocess",
+        "import socket",
+        "eval('untrusted')",
+    ],
+)
+def test_core02_url_parser_exception_keeps_network_and_dynamic_execution_denied(source):
+    assert _forbidden_runtime_surface(PACKAGE / "standard_http.py", ast.parse(source))
 
 
 def test_c08_projection_contains_only_literal_false_eligibility() -> None:
