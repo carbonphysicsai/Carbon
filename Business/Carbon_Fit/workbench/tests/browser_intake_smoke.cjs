@@ -25,8 +25,10 @@ async function saveDownload(page, selector, target) {
 
   const formOnly = await context.newPage();
   formOnly.on("pageerror", (error) => errors.push(String(error)));
+  formOnly.on("dialog", (dialog) => dialog.accept());
   await formOnly.goto("file://" + PREVIEW);
   check("local preview offers guided conversation and the same form", await formOnly.locator("#guided-panel").isVisible() && (await formOnly.locator("#show-form").count()) === 1);
+  check("missing pilot fields are visible rather than implied complete", await formOnly.locator("#assumption-list").innerText().then((text) => text.includes("bounded first pilot") && text.includes("next discussion")));
   const previewText = await formOnly.locator("body").innerText();
   check("preview states local-only boundary and has no enabled submit", previewText.includes("nothing is submitted") && !previewText.includes("Inquiry received") && (await formOnly.locator('button:has-text("Submit to Carbon"):not([disabled])').count()) === 0);
   await formOnly.locator("#show-form").click();
@@ -51,6 +53,8 @@ async function saveDownload(page, selector, target) {
   await formOnly.locator("#enable-guidance").click();
   await formOnly.waitForFunction(() => document.querySelector("#guidance-status").textContent.includes("Continue through the form"));
   check("unavailable AI preserves the draft and degrades to the form", await formOnly.locator("#form-panel").isVisible() && (await formOnly.locator('[data-text="intended_decision"]').inputValue()).includes("faster design comparisons"));
+  await formOnly.locator("#reset-draft").click();
+  check("explicit reset clears the local draft without claiming provider deletion", await formOnly.locator("#guidance-status").innerText().then((text) => text.includes("does not delete provider records")) && (await formOnly.locator('[data-text="intended_decision"]').inputValue()) === "");
 
   await context.addInitScript(() => {
     let guidanceCalls = 0;
@@ -75,6 +79,10 @@ async function saveDownload(page, selector, target) {
   const guided = await context.newPage();
   guided.on("pageerror", (error) => errors.push(String(error)));
   await guided.goto("file://" + PREVIEW);
+  await guided.locator("#show-guided").focus();
+  await guided.keyboard.press("ArrowRight");
+  check("pilot designer tabs support keyboard navigation", await guided.locator("#form-panel").isVisible() && (await guided.locator("#show-form").getAttribute("aria-selected")) === "true");
+  await guided.keyboard.press("ArrowLeft");
   await guided.locator("#show-consent").click();
   check("AI data disclosure appears before the first guidance request", await guided.locator("#consent-panel").isVisible() && (await guided.locator("#guidance-input").isDisabled()));
   await guided.locator("#consent-check").check();
