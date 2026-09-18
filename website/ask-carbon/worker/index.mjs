@@ -13,6 +13,7 @@ import {
   extractResponseText,
   makeContinuation,
   parsePositiveInteger,
+  publicBoundaryAnswer,
   publicSources,
   selectCards,
   sha256Hex,
@@ -362,7 +363,7 @@ const handleAsk = async (request, env, knowledgeManifest) => {
     const outOfScope = mode === "GENERAL_QA" ? detectOutOfScope(input.question) : null;
     if (outOfScope) {
       await requireLedgerTransition(prepared.ledger, "/release-pre-dispatch", { attempt_id: attemptId, now_ms: nowMs, reason: "out_of_scope" }, "accounting_release_failed");
-      return json({ status: "out_of_scope", answer: "That request is outside this public explainer. Ask about Carbon's public mechanisms, evidence boundaries or documented progress; do not send confidential material.", reason: outOfScope, sources: [], follow_up: null, maturity_note: null, knowledge_version: knowledgeManifest.knowledge_version, request_id: attemptId }, 200, headers);
+      return json({ status: outOfScope === "privacy_processing_question" ? "service_information" : "out_of_scope", answer: publicBoundaryAnswer(outOfScope), reason: outOfScope, sources: [], follow_up: null, maturity_note: null, knowledge_version: knowledgeManifest.knowledge_version, request_id: attemptId }, 200, headers);
     }
     if (mode === "GENERAL_QA" && retrieval.kind === "no_evidence") {
       await requireLedgerTransition(prepared.ledger, "/release-pre-dispatch", { attempt_id: attemptId, now_ms: nowMs, reason: "no_relevant_evidence" }, "accounting_release_failed");

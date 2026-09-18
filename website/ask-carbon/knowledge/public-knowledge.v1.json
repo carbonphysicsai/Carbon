@@ -1,9 +1,9 @@
 {
   "schema_version": 2,
   "answer_contract": "SERVER_OWNED_REVIEWED_CARD_SELECTION_V1",
-  "knowledge_version": "ask-carbon-release-candidate-2026-09-18.1",
+  "knowledge_version": "ask-carbon-release-candidate-2026-09-18.2",
   "release": {
-    "release_id": "ask-carbon-release-candidate-2026-09-18.1",
+    "release_id": "ask-carbon-release-candidate-2026-09-18.2",
     "status": "STAGING_REVIEWED",
     "source_release_date": "2026-09-18",
     "expires_at": "2026-12-15T00:00:00Z",
@@ -155,12 +155,15 @@
       "passages": [{ "id": "overview-purpose", "source_id": "constitution-405a820b", "section": "1 Carbon identity", "text": "Carbon is an incentivized experimental system for discovering, independently testing, learning from and qualifying methods for constructing fast physical models. Its first bounded implementation searches neural-operator TrainingStrategy objects while broader construction methods remain future architecture." }]
     },
     {
-      "id": "workflow", "topic": "The basics", "questions": ["What is the end-to-end workflow?", "What happens from problem to result?"],
+      "id": "workflow", "topic": "The basics", "questions": ["What is the end-to-end workflow?", "What happens from problem to result?", "Explain the process using a heat exchanger example."],
       "answer": "The intended chain is: define the physical job and population, qualify the exam, let miners propose reproducible strategies, reconstruct candidates independently, admit only valid evidence, compare candidates within that Challenge, and keep any later frontier, qualification or reward decision separate. Each link has its own authority and maturity gate.",
       "keywords": ["workflow", "process", "steps", "end", "result", "pipeline"], "related": ["challenge", "reconstruction", "evaluation-scoring", "qualification"],
       "audiences": ["newcomer", "engineer"], "disclosure_class": "PUBLIC", "maturity": "DESIGN_WITH_BOUNDED_IMPLEMENTATION", "scope_note": "Later frontier and settlement layers are not implied live.",
       "expires_at": "2026-12-15T00:00:00Z", "publication_status": "REVIEWED_PUBLIC_EXISTING", "withdrawn_at": null,
-      "passages": [{ "id": "workflow-chain", "source_id": "constitution-405a820b", "section": "13 Constitutional north star", "text": "The governed workflow defines the physical job, qualifies the exam, supports competition, reconstructs independently, admits valid evidence, promotes only verified frontier advances, separates settlement from science, and expands autonomy outside the judge." }]
+      "passages": [
+        { "id": "workflow-chain", "source_id": "constitution-405a820b", "section": "13 Constitutional north star", "text": "The governed workflow defines the physical job, qualifies the exam, supports competition, reconstructs independently, admits valid evidence, promotes only verified frontier advances, separates settlement from science, and expands autonomy outside the judge." },
+        { "id": "workflow-hypothetical-example", "source_id": "constitution-405a820b", "section": "13 Constitutional north star", "text": "Illustrative example only: a hypothetical heat-exchanger Challenge would first define the physical job, operating population, inputs, outputs and evidence needed; it would then need a qualified exam before reconstructed candidates could be compared. This is not a deployed Carbon Challenge, customer result or qualification claim." }
+      ]
     },
     {
       "id": "challenge", "topic": "Challenges", "questions": ["What is a Challenge?", "How do you turn a customer problem into a Challenge?"],
@@ -185,6 +188,14 @@
       "audiences": ["engineer", "customer"], "disclosure_class": "PUBLIC", "maturity": "SPECIFIED", "scope_note": "No universal production sample threshold is claimed.",
       "expires_at": "2026-12-15T00:00:00Z", "publication_status": "REVIEWED_PUBLIC_EXISTING", "withdrawn_at": null,
       "passages": [{ "id": "population-separation", "source_id": "distribution-405a820b", "section": "3 and 5", "text": "Target-population prevalence, sampling prevalence and score importance are distinct. A SamplingPlan prospectively binds budget, strata, tails, replication, queries, fidelity, stopping, duplicates, censoring and provenance for the specific Challenge." }]
+    },
+    {
+      "id": "population-training-separation", "topic": "Sampling", "questions": ["Explain target P, sampling Q, score weights and R_strategy."],
+      "answer": "P is the target population, Q is the finite official sampling plan, w is evidence or score weighting, and R_strategy is only a bounded training-policy choice. R_strategy cannot alter official evaluation selection or weights.",
+      "keywords": ["target", "population", "sampling", "score", "weights", "r", "strategy", "r_strategy", "policy"], "related": ["population-sampling", "training-control", "training-options"],
+      "audiences": ["engineer", "miner"], "disclosure_class": "PUBLIC", "maturity": "SPECIFIED_AND_COMPILED_IN_BOUNDED_WAVE_B_SCOPE", "scope_note": "This separation is architectural and compiled in bounded fixtures; it is not official scientific evidence.",
+      "expires_at": "2026-12-15T00:00:00Z", "publication_status": "REVIEWED_PUBLIC_EXISTING", "withdrawn_at": null,
+      "passages": [{ "id": "population-training-policy-separation", "source_id": "data-management-405a820b", "section": "1 and 3.1", "text": "P, Q and w are Challenge or scientific authorities. R_strategy is a bounded training-only construction choice for authorized TRAIN-role material; it is neither P nor official Q and has no authority over official evidence selection or weighting." }]
     },
     {
       "id": "training-roles", "topic": "Training", "questions": ["What is the difference between training, evaluation and stress?", "What are train eval and stress?"],
@@ -238,12 +249,15 @@
       "passages": [{ "id": "reference-failure-separation", "source_id": "reference-contract-405a820b", "section": "failure semantics", "text": "Unavailable, failed, disputed or inapplicable truth retains a typed reference or evidence outcome and must not become candidate failure. Corroboration follows a prospective policy and does not silently replace primary authority." }]
     },
     {
-      "id": "reconstruction", "topic": "Reconstruction", "questions": ["What do miners submit?", "Why reconstruct the model?", "Does Carbon just test submitted weights?"],
+      "id": "reconstruction", "topic": "Reconstruction", "questions": ["What do miners submit?", "Why reconstruct the model?", "Does Carbon just test submitted weights?", "Give an example."],
       "answer": "In the first bounded scope, miners submit reproducible neural-operator training strategies: recipes, not self-certified scores. Validators execute the permitted recipe with controlled inputs and randomness to reconstruct a fixed candidate before evaluation. Broader construction programs are future architecture and do not authorize arbitrary participant code in the official evaluator.",
       "keywords": ["submit", "miner", "reconstruct", "recipe", "weights", "strategy", "model"], "related": ["overview", "evaluation-scoring", "gaming"],
       "audiences": ["newcomer", "miner"], "disclosure_class": "PUBLIC", "maturity": "BOUNDED_IMPLEMENTATION", "scope_note": "Arbitrary construction execution and production security are not qualified.",
       "expires_at": "2026-12-15T00:00:00Z", "publication_status": "REVIEWED_PUBLIC_EXISTING", "withdrawn_at": null,
-      "passages": [{ "id": "reconstruction-boundary", "source_id": "constitution-405a820b", "section": "1 and 8", "text": "The first bounded implementation searches TrainingStrategy recipes. Producer-independent reconstruction is the bounded form of the wider construction vision, while construction and official evaluation remain separate security domains." }]
+      "passages": [
+        { "id": "reconstruction-boundary", "source_id": "constitution-405a820b", "section": "1 and 8", "text": "The first bounded implementation searches TrainingStrategy recipes. Producer-independent reconstruction is the bounded form of the wider construction vision, while construction and official evaluation remain separate security domains." },
+        { "id": "reconstruction-example", "source_id": "constitution-405a820b", "section": "1 and 8", "text": "For example, in the bounded implementation a miner proposes a reproducible neural-operator training recipe; a validator runs the permitted recipe with controlled inputs to reconstruct a fixed candidate, then evaluates that candidate separately. This example does not authorize arbitrary participant code or claim production qualification." }
+      ]
     },
     {
       "id": "evaluation-scoring", "topic": "Evaluation", "questions": ["How does scoring work?", "What makes a model win?", "Is score just average error?"],
@@ -270,7 +284,7 @@
       "passages": [{ "id": "exam-qualification", "source_id": "distribution-405a820b", "section": "20 qualification", "text": "A Validation Dossier assesses physical task, population, SamplingPlan, generator, reference, representation, measurement, statistical sufficiency, role separation and limitations. Exam qualification precedes candidate qualification, and product use has a separate bounded evidence path." }]
     },
     {
-      "id": "current-progress", "topic": "Progress", "questions": ["What has been proven?", "Is Carbon live?", "What stage is Carbon at?", "Is it production ready?"],
+      "id": "current-progress", "topic": "Progress", "questions": ["What has been proven?", "Is Carbon live?", "What stage is Carbon at?", "Is it production ready?", "But you said the code was tested.", "So can we call it scientifically verified?"],
       "answer": "As of the pinned 17 September 2026 repository status, Carbon has many implemented and tested bounded engineering components. A finite three-campaign public/synthetic development research program is closed: it produced no accepted improvement, and no successor campaign is authorized. Official scientific qualification, protected evaluation, production readiness and broader network authority remain unavailable. Engineering delivery is not evidence of a qualified production system, customer traction or measured network advantage.",
       "keywords": ["proven", "progress", "stage", "live", "production", "ready", "current", "launch"], "related": ["overview", "qualification", "customer-product"],
       "audiences": ["newcomer", "customer", "miner"], "disclosure_class": "PUBLIC", "maturity": "DATED_STATUS_2026_09_17", "scope_note": "Short freshness window; re-review before any public activation.",
@@ -302,7 +316,7 @@
       "passages": [{ "id": "science-settlement-separation", "source_id": "constitution-405a820b", "section": "3 and 10", "text": "Scientific winner determination and economic settlement are separate authorities. Treasury or network transport cannot create, erase or alter scientific merit, and public-network operation needs separate authority." }]
     },
     {
-      "id": "customer-product", "topic": "Customers", "questions": ["How could Carbon help an engineering customer?", "What is an Evidence Audit?", "Does Carbon have paying customers?"],
+      "id": "customer-product", "topic": "Customers", "questions": ["How could Carbon help an engineering customer?", "What is an Evidence Audit?", "Does Carbon have paying customers?", "Can I use Carbon on a cooling system?"],
       "answer": "Carbon's preferred first customer wedge is an Evidence Audit: independently test an existing fast physical model against a qualified, problem-specific exam and report what survives, where it fails, and what stronger evidence is needed. Sponsored discovery, qualification and lifecycle services are product architecture. The pinned sources do not establish paid customer delivery, recurring revenue or commercially validated demand.",
       "keywords": ["customer", "evidence", "audit", "product", "paying", "revenue", "commercial"], "related": ["qualification", "private-data", "contact"],
       "audiences": ["customer", "newcomer"], "disclosure_class": "PUBLIC", "maturity": "BUSINESS_DESIGN_NOT_TRACTION", "scope_note": "Architecture is not customer traction.",

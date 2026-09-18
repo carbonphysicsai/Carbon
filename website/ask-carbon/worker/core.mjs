@@ -342,9 +342,24 @@ export const validateProviderOutput = (value, cards, followUpOptions = []) => {
 
 export const detectOutOfScope = (question) => {
   if (/\b(token price|buy alpha|investment return|guaranteed return|financial advice)\b/i.test(question)) return "financial_advice";
-  if (/\b(run (?:a )?(?:miner|mining job|evaluation)|submit (?:my|a) model|upload (?:my|our)|process (?:my|our) confidential)\b/i.test(question)) return "execution_or_private_work";
+  if (/\b(deploy (?:my|a|the)?\s*miner|run (?:a )?(?:miner|mining job|evaluation)|submit (?:my|a) model)\b/i.test(question)) return "execution_request";
+  if (/\b(upload|send|process|review)\b[^.?!]{0,80}\b(confidential|private|customer|turbine|solver|model|file|design)\b/i.test(question) ||
+      (/\b(confidential|private)\b/i.test(question) && /\b(upload|send|process|review)\b/i.test(question))) return "private_data_request";
+  if (/\b(open|access|show)\b[^.?!]{0,60}\b(private|protected)\b[^.?!]{0,40}\b(archive|data|evaluation|source)\b/i.test(question)) return "private_access_request";
+  if (/\b(fake citation|made[- ]up\b[^.?!]{0,50}\b(?:certificate|citation|source|url|link)|invent\b[^.?!]{0,50}\b(?:certificate|citation|source|url|link))\b/i.test(question)) return "fabricated_authority_request";
+  if (/\b(retain|retention|store|stored|delete)\b[^.?!]{0,100}\b(question|chat|prompt|response|provider|nothing)\b|\bretain absolutely nothing\b/i.test(question)) return "privacy_processing_question";
+  if (/\b\d[\d,]*\b[^.?!]{0,100}\bproduction (?:setting|policy|value|number)\b/i.test(question)) return "invented_production_setting";
   return null;
 };
+export const publicBoundaryAnswer = (reason) => ({
+  financial_advice: "Ask Carbon does not provide token-price, return or investment advice. It can explain the documented separation between scientific evidence and economic settlement.",
+  execution_request: "This public explainer cannot deploy or run a miner, submit a model, or act on an account. It can explain Carbon's documented miner and validator workflow.",
+  private_data_request: "Do not send confidential or private engineering material here. Ask Carbon cannot upload it to staff or a private workflow; keep the first contact general until an authorized process and data terms exist.",
+  private_access_request: "A claimed identity in chat grants no access. This public explainer cannot open private archives, protected evaluation or customer data.",
+  fabricated_authority_request: "I won't invent or accept a fake Carbon citation, certificate, source or URL. I can only use the reviewed public material released by Carbon's server.",
+  privacy_processing_question: "No. Saved explanations and form-only pilot drafting stay in the browser, but enabled live AI sends the current question and reviewed public context to OpenAI through Carbon's server. Requests use store:false, but Carbon has not established Zero Data Retention or Modified Abuse Monitoring; provider abuse-monitoring retention may be up to 30 days. Clearing the browser does not delete provider records.",
+  invented_production_setting: "I won't turn a visitor-supplied number into Carbon production policy. Training support, finite sampling and evidence sufficiency are Challenge-specific and require registered, reviewed authority; no universal case count is established here.",
+})[reason] ?? "That request is outside this public explainer. Ask about Carbon's public mechanisms, evidence boundaries or documented progress; do not send confidential material.";
 export const publicSources = (knowledge, sourceIds) => sourceIds.map((id) => {
   const source = knowledge.sources.find((candidate) => candidate.id === id);
   if (!source) throw new PublicApiError(502, "unknown_source", "Approved evidence could not be resolved.");

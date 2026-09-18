@@ -40,7 +40,8 @@ test("CSP generation hashes existing inline code without unsafe-inline", () => {
 test("reviewed knowledge is staging-valid but deliberately not production releasable", async () => {
   const preview = await validateKnowledge(knowledge, { mode: "staging", now: new Date("2026-09-16T00:00:00Z") });
   assert.equal(preview.valid, true);
-  assert.equal(preview.card_count, 26);
+  assert.equal(preview.card_count, knowledge.cards.length);
+  assert.ok(knowledge.cards.some((card) => card.id === "population-training-separation"));
   assert.equal(preview.source_checks.filter((check) => check.matched).length, 9);
   const production = await validateKnowledge(knowledge, { mode: "production", now: new Date("2026-09-16T00:00:00Z") });
   assert.equal(production.valid, false);

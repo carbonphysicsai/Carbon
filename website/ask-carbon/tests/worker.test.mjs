@@ -288,6 +288,25 @@ test("no-evidence is distinct, cites nothing and makes no provider call", async 
   assert.equal(Object.values((await snapshot.json()).attempts)[0].state, "released_pre_dispatch");
 });
 
+test("public boundary answers are specific, cite nothing and release before provider dispatch", async () => {
+  const runtime = makeRuntime();
+  let calls = 0;
+  await withProvider(async () => { calls += 1; throw new Error("must not dispatch"); }, async () => {
+    const privacy = await ask(createWorker(knowledge), runtime.env, "Do you retain absolutely nothing when I ask a question?");
+    const privacyBody = await privacy.json();
+    assert.equal(privacyBody.status, "service_information");
+    assert.match(privacyBody.answer, /not established Zero Data Retention/);
+    assert.deepEqual(privacyBody.sources, []);
+    const execution = await ask(createWorker(knowledge), runtime.env, "Deploy my miner now.");
+    const executionBody = await execution.json();
+    assert.equal(executionBody.status, "out_of_scope");
+    assert.match(executionBody.answer, /cannot deploy or run a miner/);
+  });
+  assert.equal(calls, 0);
+  const snapshot = await runtime.ledger.fetch(new Request("https://ledger.test/snapshot", { method: "POST", body: JSON.stringify({ now_ms: Date.now() }) }));
+  assert.deepEqual(Object.values((await snapshot.json()).attempts).map((attempt) => attempt.state), ["released_pre_dispatch", "released_pre_dispatch"]);
+});
+
 test("edge rate limiting rejects before request parsing or provider reservation", async () => {
   const runtime = makeRuntime({ ASK_CARBON_EDGE_RATE_LIMITER: { limit: async () => ({ success: false }) } });
   let calls = 0;
