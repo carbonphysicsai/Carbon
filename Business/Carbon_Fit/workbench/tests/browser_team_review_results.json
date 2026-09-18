@@ -1,0 +1,19 @@
+{
+  "passed": 13,
+  "failed": 0,
+  "checks": [
+    "queue state is visible",
+    "original words remain visible",
+    "correction is separately visible",
+    "outputs bind the same design",
+    "client output contains bounded pilot",
+    "private note is excluded from client output",
+    "private note remains in internal workspace projection only",
+    "core task dependency is visibly pending",
+    "Owner Console intake queue contains job",
+    "Owner Console keeps reviewer and action",
+    "narrow Owner Console remains rendered",
+    "offline artifact made zero external requests",
+    "no browser page errors"
+  ]
+}

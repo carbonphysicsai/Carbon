@@ -328,6 +328,52 @@ model-driven validation still requires a new explicitly admitted experiment.
 
 ## Focused verification
 
+### Optional private research guidance
+
+Issue #223 adds `research_guidance` to the existing private runner-profile JSON.
+The operator supplies nonblank UTF-8 text, at most 4096 bytes; exact whitespace
+is retained. Omit the field for historical behavior. Empty/null/invalid/oversized
+values fail before campaign admission. Keep actual private objectives out of
+checked-in profiles and public reports.
+
+The authenticated browser reviews this configured task alongside the resource
+envelope and accepted revision. It is read-only: edit the private operator profile
+before launch, then refresh the review. A guidance launch binds an opaque
+`review_digest`; changed configuration is rejected. Browser requests still cannot
+provide task text, private paths, keys, executable commands or endpoints.
+
+The launch transaction persists the exact versioned text/digest in the existing
+run record before dispatch. The campaign manifest binds it to runtime and policy;
+the epoch plan binds the complete initial observation plus policy identity with
+an `effective_input_digest`. The policy's existing digest still pins its immutable
+instruction template. Guidance is separate user-role task input and has no
+authority over scientific gates, disclosure, construction, permissions, resource
+limits, final reserves or independent evaluation. Those remain enforced by the
+existing trusted services.
+
+Resume uses the persisted input and verifies digests, including retained epoch
+plans even for completed guided campaigns. Changed guidance/configuration fails
+closed. Legacy records without the optional field stay absent and retain their
+existing interpretation. The owner's readback/export includes frozen guidance and
+input digests; it does not expose the private epoch plan or model transcript.
+
+The deterministic test sequence of initial experiment and two revisions is an
+engineering information-flow fixture. It does not prove live-agent adaptation.
+Real acceptance separately counts completed experiments and measured updates,
+tracing previous practice feedback to a hypothesis, allowed strategy change and
+new result. Earlier practiced candidates remain selectable. A final mandatory
+rejection does not erase workflow evidence or become accepted improvement.
+
+Runtime rebinding for an unlaunched, explicitly authorized campaign is an operator
+action after accepted delivery. Preserve the original private grant and install
+a distinct successor file using the same existing closed grant schema and grant/
+campaign/root identities. Retain the authorizing record and old/new digests; only
+the explicitly approved runtime and matching images may change. Existing launch
+and manifest pins prohibit doing this to an admitted campaign. No automatic grant
+migration, renewal, cap increase or second campaign is implemented here.
+
+### Commands
+
 ```sh
 CARBON_UV_GROUPS="chain archive science-jax" ./scripts/dev/canonical.sh --focused \
   tests/cpu/test_miner_launchpad_development.py tests/cpu/test_miner_launchpad.py -q

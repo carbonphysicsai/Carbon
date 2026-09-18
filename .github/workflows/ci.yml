@@ -135,7 +135,7 @@ jobs:
     if: needs.preflight.outputs.change_scope == 'RUNTIME_FULL' && needs.preflight.outputs.dev_image_required == 'true'
     needs: preflight
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 60
     env:
       CARBON_DEV_IMAGE: carbon-dev:${{ needs.preflight.outputs.candidate_sha }}
       CARBON_UV_GROUPS: "chain archive science-jax"

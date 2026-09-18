@@ -2837,6 +2837,31 @@
       ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/139",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/main/Business/Carbon_Fit/workbench/docs/GOAL_WORKBENCH_08A_GUIDED_PILOT_REPORT.md"
+    },
+    {
+      "title": "Extend the Workbench with a private team intake and review queue",
+      "question": "How should Carbon move a reviewed client brief through team assessment, design alternatives and source-bound handoff without activating public collection or duplicating core scientific execution?",
+      "recommendation": "Extend the existing v0.8 records additively with a team queue and design-scoped assessment, derive client and internal briefs from the same exact design, and test a role-authorized durable receiver locally with synthetic records. Keep shared issue #209 scientific tasks visible as pending dependencies and leave public Submit disabled.",
+      "why": "The existing intake, routing, evidence, revision and handoff machinery already supplies the system of record. A bounded extension closes the staff review journey while exact lineage, unknown values, separate status axes and core ownership prevent the planning application from inventing scientific or deployment authority.",
+      "if_kept": "The team can accept a reviewed synthetic brief, recover a durable receipt, assign and assess it, compare revisions, export two consistent briefs and prepare one handoff. Live store/auth, notice, retention, notification, paid hosting and scientific-task activation remain explicit dependencies.",
+      "if_changed": "A production receiver, customer-record store, staff identity set, notification route, retention policy or shared science-task execution requires its own accepted target and authority. Existing local receipts, raw client words, revisions and source evidence remain historical records rather than being rewritten.",
+      "decision_id": "GOAL-WORKBENCH-09-TEAM-REVIEW-01",
+      "map_ref": "WAVE-G",
+      "wave": "G",
+      "ticket": "FIT-WEB-01 private team workflow",
+      "attention": "FOR_AWARENESS",
+      "status": "IMPLEMENTED_WORKING_DECISION",
+      "audience": "ryan",
+      "affects": [
+        "WAVE-G",
+        "SYSTEM/BUSINESS-AUTHORITY",
+        "SYSTEM/GOVERNANCE",
+        "SYSTEM/MATURITY",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+      ],
+      "response_url": "https://github.com/carbonphysicsai/Carbon/issues/139",
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/main/Business/Carbon_Fit/workbench/docs/GOAL_WORKBENCH_09_TEAM_REVIEW_REPORT.md"
     }
   ]
 }

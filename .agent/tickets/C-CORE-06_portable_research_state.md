@@ -92,3 +92,18 @@ absent after cleanup. The synthetic engineering fixture did not consume an owner
 campaign or authorize accelerator execution. The service case is required by
 `scripts/dev/c03_worker_service.sh`. Canonical acceptance, Hub and normal merge
 remain open.
+
+## C-CORE-06-D2: complete required CI within its job deadline
+
+CI run `35287598474` reached the 45-minute job deadline in both canonical job
+`105423332842` and clean-image job `105423332866`. The canonical log recorded
+6,185 CPU tests passed in 2,411 seconds, 88 package tests passed and 55 JAX tests
+passed in 203 seconds before cancellation at MCP startup. The image log recorded
+6,175 passed with 12 skips, then 88 package tests passed, before cancellation
+during JAX acceptance. These are partial run observations, not completed CI.
+
+Raise only those two job deadlines from 45 to 60 minutes so the unchanged
+required suites can finish. Preserve tests, classification, scientific thresholds,
+worker/campaign limits and every other job timeout. Primary Hub map_ref is
+`SYSTEM/CI`, affecting `SYSTEM/AGENT-EXECUTION`; this is a CI capacity repair,
+not new numerical evidence or an acceptance waiver.

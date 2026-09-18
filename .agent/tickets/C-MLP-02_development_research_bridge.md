@@ -237,7 +237,60 @@ canonical and Hub acceptance, separately from #215's observation dashboard.
 Primary map remains SYSTEM/AGENT-EXECUTION; batch its Hub impact before acceptance.
 This repair alone supplies no new empirical adaptive-research evidence or grant.
 
-## Earlier readback slice evidence
+## Prelaunch guidance repair C-MLP-02-D6 / issue #223
+
+The owner authorizes one narrow successor: optional immutable operator research
+guidance through the existing Launchpad/runner. Primary map remains
+SYSTEM/AGENT-EXECUTION; HUB_UPDATE_REQUIRED. Starting base is accepted main
+`4efaf18a338056cbc828870f17f20defc587ec37`, including #217's finite-completion
+repair. Core #209 acknowledged the configuration/input/projection seams; its
+HELD lifecycle/accounting changes and N1 remain separately owned.
+
+Decision: add optional `research_guidance` to the private operator profile.
+Accept nonblank UTF-8 text up to 4096 bytes, preserving exact whitespace. Reject
+bad types, encoding, controls other than tab/CR/LF, and oversize before admission.
+Freeze its versioned text/digest in the existing launch SQLite row before
+dispatch, then the private campaign manifest and existing epoch plan. Keep the
+policy template digest unchanged; task guidance is user-role input. Bind the
+effective input using the existing canonical serializer/digest. Resume verifies
+persisted bindings, and changed configuration or plan digests fail closed.
+
+The browser reviews the configured task, runtime and limits read-only. Its launch
+request carries an opaque review digest to reject a changed operator profile;
+it cannot author prompts or paths. After launch, only the authenticated owner's
+existing projection/export exposes the frozen task and input identities. No
+public log/report gains private guidance. Absent guidance preserves legacy
+records and behavior. No admission, scoring, construction or scientific rule is
+relaxed by text. This optional route is reversible without rewriting history.
+
+Working contract: https://github.com/carbonphysicsai/Carbon/issues/223#issuecomment-5722465089 .
+Alternatives rejected: editing the pinned policy, pre-seeding epoch files, or
+adding another prompt store/runner. Changes to this decision affect only the
+guidance helper, runner configuration/provenance, campaign/loop input binding,
+own projection and guidance UI. No human-reserved scientific value is selected.
+
+Plan and conditional completion: focused canonical legacy/guidance/admission
+tests; deterministic three-trial/two-revision fixture; real browser/server review,
+retry/reconnect and desktop/mobile; batched docs/Hub; applicable canonical CI and
+guarded merge. Passing fixtures earns engineering acceptance only. #223 may close
+after that delivery; C-MLP-02 remains open until actual adaptive evidence exists.
+
+The historical ticket asks for at least two genuine iterations. The current owner
+target is stronger: an initial completed experiment plus up to two measured
+feedback-driven updates. Two completed experiments establish at most one update;
+selection after one establishes none. Each update needs an evidence trace from
+previous feedback to hypothesis, allowed strategy change and subsequent result.
+Trial count alone is insufficient. Legitimate early stop and rejected final
+results remain valid outcomes without satisfying missing adaptive evidence.
+
+Any empirical continuation must use the accepted successor, preserve the previous
+authorization record, and install a linked successor through the existing private
+operator grant route. The owner's bounded runtime-reconciliation authorization
+does not renew expiry, change ceilings/reserves or admit another campaign. If
+that mechanism or remaining authority cannot support admission, keep execution
+disabled and report the precise blocker. No spending occurs during this repair.
+
+### Earlier readback diagnostics
 
 Continuation engineering diagnostics: 94 focused Linux tests passed. The initial
 canonical combined run found one new HTTP fixture token below the established
