@@ -5200,6 +5200,7 @@
       "summary": "Ask Carbon has a concrete production-disabled release candidate for public Q&A, guided pilot drafting, form-only drafting and local download. Luna and Terra passed the repaired private release set; Luna is selected for owner review on measured cost with no material quality disadvantage. The approved visitor notice, shared provider ceilings, private staging and rollback evidence remain bounded, inquiry collection stays disabled under issue #139, and carbonphysics.ai is unchanged.",
       "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/507926dd54d6446704ff5eca4c07ca6120df863b/.agent/tickets/WEB-QA-04_ask_carbon_output_reliability.md",
       "affects": [
+        "SYSTEM/BUSINESS-AUTHORITY",
         "SYSTEM/CI",
         "SYSTEM/DEVELOPMENT-HUB",
         "SYSTEM/DEVELOPMENT-HUB/VALIDATION",
