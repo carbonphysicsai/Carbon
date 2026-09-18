@@ -90,7 +90,11 @@ def test_external_sdk_stdio_discovery_tools_resources_and_restart(tmp_path, mode
     from mcp import Client
 
     from carbon import research
-    from carbon.miner_mcp.standard_server import CAPABILITIES_URI, GUIDANCE_URI
+    from carbon.miner_mcp.standard_server import (
+        CAPABILITIES_URI,
+        CURRENT_GUIDANCE_URI,
+        GUIDANCE_URI,
+    )
 
     async def exercise():
         async with Client(
@@ -108,13 +112,25 @@ def test_external_sdk_stdio_discovery_tools_resources_and_restart(tmp_path, mode
             resources = {
                 str(item.uri) for item in (await client.list_resources()).resources
             }
-            assert resources == {CAPABILITIES_URI, GUIDANCE_URI}
+            from carbon.miner_mcp.mcp_skills import SKILL_URI, WORKFLOW_URI
+
+            assert resources == {
+                CAPABILITIES_URI,
+                GUIDANCE_URI,
+                CURRENT_GUIDANCE_URI,
+                SKILL_URI,
+                WORKFLOW_URI,
+            }
             capabilities = await client.read_resource(CAPABILITIES_URI)
             assert json.loads(capabilities.contents[0].text)["audience"] == "miner"
             guidance = await client.read_resource(GUIDANCE_URI)
             assert "operation_id stable" in guidance.contents[0].text
             prompt = await client.get_prompt("carbon_research_workflow_v1")
             assert "DEVELOPMENT" in prompt.messages[0].content.text
+            current = await client.read_resource(CURRENT_GUIDANCE_URI)
+            assert "tasks/get" in current.contents[0].text
+            current_prompt = await client.get_prompt("carbon_research_workflow_v2")
+            assert current_prompt.messages[0].content.text == current.contents[0].text
 
             discovery = await client.call_tool(
                 PREFIX + "get_challenge_info", {"operation_id": OPERATION_ID}

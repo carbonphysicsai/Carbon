@@ -1,6 +1,7 @@
 # C-CORE-12: optional MCP App for existing Workbench studies
 
-Status: working contract; implementation in progress. Programme #209 section 7.
+Status: implemented with local diagnostics; canonical delivery pending.
+Programme #209 section 7.
 Base: C-CORE-08 `153494c0ed220ac1fbdbfc25b80799725ab7c368`; normal merge of
 C-CORE-10 precedes final integration. Primary Hub map_ref:
 `SYSTEM/AGENT-EXECUTION`; impact `map_structural`. Root integration owner batches
@@ -119,7 +120,10 @@ build sources or unexpanded shell. Outside the checkout, `packaged_app()` return
 the exact resource with optional SDK imports denied. This establishes package
 portability for the fixed view, not host deployment or security qualification.
 
-C-CORE-10 integration, canonical checks and normal delivery remain pending.
+C-CORE-10 integration retained the Tasks/Skills extensions, supervised shutdown,
+optional exact Workbench binding and all required service tests. The combined
+App/Tasks/Skills/stdio/HTTP and asset/boundary run passed 39 tests in 82.34 seconds.
+This native diagnostic does not replace canonical checks or normal delivery.
 No accelerator, native Julia, cloud, campaign, protected-data,
 scientific qualification or production security evidence is claimed by this App
 slice. Existing Workbench saved-file/lineage authority remains unchanged.

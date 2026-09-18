@@ -123,7 +123,17 @@ class ResearchComposition:
     measurements: object
 
 
-def make_research_service(*, root, ledger, owner, image, public_material, practice):
+def make_research_service(
+    *,
+    root,
+    ledger,
+    owner,
+    image,
+    public_material,
+    practice,
+    julia_image=None,
+    cleanup_only=False,
+):
     from .julia_research import JuliaPublicMaterial
 
     scaffold_catalog = (
@@ -134,6 +144,8 @@ def make_research_service(*, root, ledger, owner, image, public_material, practi
     implementation_files = sorted(Path(__file__).parent.glob("research_*.py"))
     if type(public_material) is JuliaPublicMaterial:
         implementation_files.append(Path(__file__).with_name("julia_research.py"))
+    if julia_image is not None:
+        implementation_files.append(Path(__file__).with_name("julia_analysis.py"))
     contracts = research_contracts()
     compiler = Compiler(
         candidate_assembly=contracts.assembly,
@@ -212,6 +224,8 @@ def make_research_service(*, root, ledger, owner, image, public_material, practi
     discovery = Discovery(info, manifest)
     prior = NoPrior()
     executor = PublicResearchExecutor(
+        cleanup_only=cleanup_only,
+        julia_image=julia_image,
         ledger=ledger,
         owner=owner,
         image=image,

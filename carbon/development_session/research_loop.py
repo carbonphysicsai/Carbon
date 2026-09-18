@@ -24,7 +24,7 @@ from .research_agent_policy import (
     stop_result,
 )
 from .research_catalog import compile_recipe
-from .research_tools import PREFIX, PROMPT, TOOLS, _json, _schema
+from .research_tools import PREFIX, PROMPT, _json, _schema, tools_for_sdk
 
 SELECT = "carbon_autoresearch_select_recipe"
 SELECTION_TOOL = {
@@ -70,7 +70,7 @@ async def run_epoch(
     policy = binding(agent_policy)
     autonomous = agent_policy == AUTONOMOUS
     prompt = AUTONOMOUS_PROMPT if autonomous else PROMPT
-    tools = TOOLS + [SELECTION_TOOL] + ([STOP_TOOL] if autonomous else [])
+    tools = tools_for_sdk(sdk) + [SELECTION_TOOL] + ([STOP_TOOL] if autonomous else [])
     plan = {
         "schema": "carbon.autoresearch.epoch-plan.v1",
         "epoch": epoch,

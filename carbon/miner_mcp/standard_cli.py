@@ -26,6 +26,7 @@ from carbon.development_session.research_admission import (
     MANIFEST,
     Admission,
     private_json,
+    verify_cleanup_owner,
 )
 from carbon.development_session.research_control import CampaignControl
 from carbon.development_session.research_ledger import CampaignLedger
@@ -44,9 +45,10 @@ class OperatorProfile:
     admission: Admission
     root: Path
     manifest: dict
+    cleanup_only: bool = False
 
 
-def load_profile(path: Path) -> OperatorProfile:
+def load_profile(path: Path, *, cleanup_only=False) -> OperatorProfile:
     """Read existing operator authority; no filesystem or accounting creation."""
     from scripts.dev.miner_launchpad.runner import PATH_FIELDS
 
@@ -76,14 +78,18 @@ def load_profile(path: Path) -> OperatorProfile:
     admission = Admission.load(Path(cfg["grant_file"]))
     grant = admission.document
     root = Path(grant["root"])
-    admission.verify(
-        root=root, principal=cfg["principal"], runtime=grant["runtime"], now=time.time()
-    )
+    if not cleanup_only:
+        admission.verify(
+            root=root,
+            principal=cfg["principal"],
+            runtime=grant["runtime"],
+            now=time.time(),
+        )
     if (
         cfg["account_ref"] != grant["account_ref"]
         or cfg["accepted_revision"] != grant["runtime"]["implementation"]["revision"]
         or not root.is_dir()
-        or (root / "campaign-complete.json").exists()
+        or (not cleanup_only and (root / "campaign-complete.json").exists())
         or not (root / "campaign.sqlite3").is_file()
         or (root / "campaign.sqlite3").is_symlink()
     ):
@@ -97,17 +103,22 @@ def load_profile(path: Path) -> OperatorProfile:
         or manifest.get("campaign_id") != grant["campaign_id"]
     ):
         raise ValueError("prepared campaign differs from operator grant")
-    return OperatorProfile(path, cfg, admission, root, manifest)
+    if cleanup_only:
+        meter = CampaignLedger(root, admission=admission)
+        meter.generation = CampaignControl(meter).status()["generation"]
+        if verify_cleanup_owner(meter, manifest["owner"]) != manifest:
+            raise ValueError("retained cleanup profile differs")
+    return OperatorProfile(path, cfg, admission, root, manifest, cleanup_only)
 
 
-def _prepared_tasks(root):
+def _prepared_tasks(root, *, cleanup_only=False):
     path = root / "research-tasks" / "research-tasks.sqlite3"
     if not path.is_file() or path.is_symlink():
         raise ValueError("existing prepared research tasks required")
     with sqlite3.connect(f"{path.as_uri()}?mode=ro", uri=True) as db:
         for (encoded,) in db.execute("SELECT view FROM tasks"):
             task = research.load_canonical(encoded, research.ResearchTaskView)
-            if task.state in {
+            if not cleanup_only and task.state in {
                 research.ResearchTaskState.RUNNING,
                 research.ResearchTaskState.CANCEL_REQUESTED,
             }:
@@ -138,7 +149,10 @@ def _runtime(profile):
     implementation = accepted_implementation(cfg["accepted_revision"])
     image = load_image_identity(paths["image_manifest"])
     verify_current_worker(image, implementation)
-    if not doctor(image_id=image.image_id, image_identity=image).eligible:
+    if (
+        not profile.cleanup_only
+        and not doctor(image_id=image.image_id, image_identity=image).eligible
+    ):
         raise ValueError("accepted numerical host unavailable")
     analysis = load_analysis_image(paths["analysis_image_manifest"])
     verify_image(analysis)
@@ -153,9 +167,22 @@ def _runtime(profile):
         from carbon.development_session.julia_research import julia_burgers_scope
 
         runtime["scientific_tasks"] = [julia_burgers_scope(image, role_root)]
-    grant = profile.admission.verify(
-        root=profile.root, principal=cfg["principal"], runtime=runtime, now=time.time()
-    )
+    authored = _authored_image(profile, analysis)
+    if authored is not None:
+        from carbon.development_session.julia_analysis import authored_julia_scope
+
+        runtime["authored_research"] = [authored_julia_scope(authored)]
+    if profile.cleanup_only:
+        if runtime != profile.manifest["runtime"]:
+            raise ValueError("retained runtime differs")
+        grant = profile.admission.document
+    else:
+        grant = profile.admission.verify(
+            root=profile.root,
+            principal=cfg["principal"],
+            runtime=runtime,
+            now=time.time(),
+        )
     if (
         profile.manifest.get("implementation") != implementation
         or profile.manifest.get("images") != runtime["images"]
@@ -186,6 +213,14 @@ def _runtime(profile):
         session, paths["image_manifest"], config.context, config.publisher_hotkey, key
     )
     return connection, image, analysis, role_root
+
+
+def _authored_image(profile, analysis):
+    if "authored_research" not in profile.manifest["runtime"]:
+        return None
+    from carbon.development_session.research_campaign import registered_julia_image
+
+    return registered_julia_image(profile.root, profile.manifest["runtime"], analysis)
 
 
 async def _requester(connection):
@@ -245,6 +280,8 @@ class _AdmittedConnection:
 
     async def check_registration(self):
         profile = self.profile
+        if profile.cleanup_only:
+            raise ValueError("cleanup-only attachment cannot admit research")
         if self.closed or private_json(profile.path) != profile.document:
             raise ValueError("operator profile changed or controller closed")
         now = self.ledger.clock()
@@ -272,7 +309,7 @@ class _AdmittedConnection:
         return await self.connection.check_registration()
 
 
-def _science(ledger, owner, image, role_root):
+def _science(ledger, owner, image, role_root, *, cleanup_only=False):
     from carbon.development_session.research_data import PublicReferenceData
     from carbon.development_session.research_provider import PublicPractice
 
@@ -289,39 +326,60 @@ def _science(ledger, owner, image, role_root):
             PublicJuliaStudy,
         )
 
-        material = JuliaPublicMaterial(material, PublicJuliaStudy(data))
+        material = JuliaPublicMaterial(
+            material, PublicJuliaStudy(data, cleanup=cleanup_only)
+        )
     return material, PublicPractice(data=data, ledger=ledger, owner=owner, image=image)
 
 
-async def serve(configuration: Path):
+async def serve(configuration: Path, *, cleanup_only=False):
     """Hold the existing campaign ownership lock for the whole stdio lifetime."""
     from scripts.dev.miner_launchpad.controller import owner_lock
     from scripts.dev.miner_launchpad.runner import RunnerAdapter
 
-    profile = load_profile(configuration)
+    profile = load_profile(configuration, cleanup_only=cleanup_only)
     with owner_lock(profile.root):
         ledger = CampaignLedger(profile.root, admission=profile.admission)
-        ledger.freeze(profile.manifest)  # Must match the existing immutable record.
+        if not cleanup_only:
+            ledger.freeze(profile.manifest)  # Must match the existing immutable record.
         with ledger.db() as db:
-            if db.execute(
-                "SELECT 1 FROM operations WHERE state='RESERVED' LIMIT 1"
-            ).fetchone():
+            if (
+                not cleanup_only
+                and db.execute(
+                    "SELECT 1 FROM operations WHERE state='RESERVED' LIMIT 1"
+                ).fetchone()
+            ):
                 raise ValueError("unresolved consumption requires reconciliation")
-        _prepared_tasks(profile.root)
+        _prepared_tasks(profile.root, cleanup_only=cleanup_only)
         control = CampaignControl(ledger)
         status = control.status()
-        if status["desired"] != "RUN" or status["state"] in {
-            "RECONCILIATION_REQUIRED",
-            "STOPPED",
-            "COMPLETED",
-        }:
+        if not cleanup_only and (
+            status["desired"] != "RUN"
+            or status["state"]
+            in {
+                "RECONCILIATION_REQUIRED",
+                "STOPPED",
+                "COMPLETED",
+            }
+        ):
             raise ValueError("campaign is not available for research")
+        ledger.generation = status["generation"] if cleanup_only else control.acquire()
+        if cleanup_only:
+            verify_cleanup_owner(ledger, profile.manifest["owner"])
         connection, image, analysis, role_root = _runtime(profile)
         owner = await _requester(connection)
         if owner != profile.manifest.get("owner"):
             raise ValueError("authenticated campaign owner changed")
-        material, practice = _science(ledger, owner, image, role_root)
+        material, practice = _science(
+            ledger,
+            owner,
+            image,
+            role_root,
+            **({"cleanup_only": True} if cleanup_only else {}),
+        )
         composition = make_research_service(
+            cleanup_only=cleanup_only,
+            julia_image=_authored_image(profile, analysis),
             root=profile.root / "research-tasks",
             ledger=ledger,
             owner=owner,
@@ -331,7 +389,6 @@ async def serve(configuration: Path):
         )
         bound = None
         try:
-            ledger.generation = control.acquire()
             bound = _AdmittedConnection(connection, profile, ledger, control)
             sdk = ResearchMinerTools(
                 connection=bound,
@@ -342,9 +399,11 @@ async def serve(configuration: Path):
                 ledger=ledger,
                 owner=owner,
             )
-            await create_stdio_server(
-                ResearchToolAdapter(sdk, principal=owner)
-            ).run_async()
+            adapter = ResearchToolAdapter(sdk, principal=owner)
+            try:
+                await create_stdio_server(adapter).run_async()
+            finally:
+                await adapter.shutdown_tasks()
         finally:
             try:
                 if bound is not None:
@@ -356,7 +415,15 @@ async def serve(configuration: Path):
                         await asyncio.get_running_loop().shutdown_default_executor()
                         clean = RunnerAdapter._cleanup(ledger)
                     finally:
-                        control.settled(ledger.generation, cleanup_verified=clean)
+                        if not cleanup_only or status["state"] not in {
+                            "STOPPED",
+                            "COMPLETED",
+                        }:
+                            control.settled(ledger.generation, cleanup_verified=clean)
+                        elif not clean:
+                            raise ValueError(
+                                "terminal campaign cleanup requires reconciliation"
+                            )
             finally:
                 composition.tasks.close()
 
@@ -364,9 +431,14 @@ async def serve(configuration: Path):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--configuration", required=True, type=Path)
+    parser.add_argument(
+        "--cleanup-only",
+        action="store_true",
+        help="Observe/cancel retained owned tasks; cannot start research",
+    )
     args = parser.parse_args(argv)
     try:
-        asyncio.run(serve(args.configuration))
+        asyncio.run(serve(args.configuration, cleanup_only=args.cleanup_only))
     except (Exception, KeyboardInterrupt):  # noqa: BLE001
         print(
             "Carbon MCP unavailable: verify the existing private profile, grant, prepared campaign, accepted runtime and reconciliation state.",

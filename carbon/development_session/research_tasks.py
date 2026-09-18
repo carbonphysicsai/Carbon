@@ -12,6 +12,7 @@ import json
 from carbon.authoring.model import EvidenceRole
 from carbon.research import (
     DevelopmentWorkspaceTaskSpecV1,
+    DevelopmentWorkspaceTaskSpecV2,
     PracticeTaskSpec,
     ResearchTaskKind,
     ResearchTaskState,
@@ -41,6 +42,8 @@ class PublicDevelopmentResearchTasks(DurableResearchTaskProvider):
     def _spec_parts(request):
         if type(request.task_spec) is DevelopmentWorkspaceTaskSpecV1:
             return ResearchTaskKind.DEVELOPMENT_WORKSPACE_V1, (), (), ()
+        if type(request.task_spec) is DevelopmentWorkspaceTaskSpecV2:
+            return ResearchTaskKind.DEVELOPMENT_WORKSPACE_V2, (), (), ()
         return DurableResearchTaskProvider._spec_parts(request)
 
     def cancel_research_task(self, request):
@@ -84,10 +87,30 @@ def _arguments(raw):
 class PublicResearchExecutor:
     """Trusted owner-bound composition; it receives no wallet or API key."""
 
-    def __init__(self, *, ledger, owner, image, public_material, practice):
+    def __init__(
+        self,
+        *,
+        ledger,
+        owner,
+        image,
+        public_material,
+        practice,
+        julia_image=None,
+        cleanup_only=False,
+    ):
         self.ledger, self.owner, self.image = ledger, owner, image
         self.workspace = ResearchWorkspace(ledger, owner)
         self.public_material, self.practice = public_material, practice
+        self.julia_image = julia_image
+        self.cleanup_only = cleanup_only
+        if cleanup_only:
+            from .research_admission import verify_cleanup_owner
+
+            verify_cleanup_owner(ledger, owner)
+        elif julia_image is not None:
+            from .julia_analysis import authorize_julia
+
+            authorize_julia(ledger, owner, julia_image)
         self.request_resolver = None
         with ledger.db() as db:
             db.execute(
@@ -110,10 +133,19 @@ class PublicResearchExecutor:
                 "hypothesis",
                 "expected_effect",
             },
+            "run_julia": {
+                "source",
+                "files",
+                "seconds",
+                "hypothesis",
+                "expected_effect",
+            },
         }[spec.action]
         if set(args) != expected:
             raise ValueError("workspace fields differ from registered action")
         if spec.action == "public_material":
+            from .advection_research import MATERIAL as ADVECTION_MATERIAL
+            from .advection_research import PublicAdvectionMaterial
             from .julia_envelope import MATERIAL as ENVELOPE
             from .julia_envelope import JuliaEnvelopeMaterial
             from .julia_research import MATERIAL, JuliaPublicMaterial
@@ -129,6 +161,8 @@ class PublicResearchExecutor:
             }
             if type(self.public_material) is JuliaPublicMaterial:
                 allowed.add(MATERIAL)
+            if type(self.public_material) is PublicAdvectionMaterial:
+                allowed.add(ADVECTION_MATERIAL)
             if type(self.public_material) is JuliaEnvelopeMaterial:
                 allowed.update({MATERIAL, ENVELOPE})
             if args["name"] not in allowed:
@@ -188,13 +222,18 @@ class PublicResearchExecutor:
                 "expected_effect": args["expected_effect"],
             },
         )
-        result = run_script(
+        runner, image = run_script, self.image
+        if spec.action == "run_julia":
+            from .julia_analysis import run_julia
+
+            runner, image = run_julia, self.julia_image
+        result = runner(
             self.ledger,
             owner=self.owner,
             identity=identity,
             source=args["source"],
             files=self.workspace.snapshot(args["files"]),
-            image=self.image,
+            image=image,
             seconds=args["seconds"],
         )
         # Import only the bounded validated export into the owner's scratch space.
@@ -221,6 +260,8 @@ class PublicResearchExecutor:
         request_cancel(self.ledger, owner=self.owner, identity=identity)
 
     def execute(self, attempt):
+        if self.cleanup_only:
+            raise ValueError("cleanup-only executor cannot admit research")
         token = ACTIVE_TASK.set(attempt.task_id.value)
         try:
             return self._execute(attempt)
@@ -231,7 +272,10 @@ class PublicResearchExecutor:
         request = self.request_resolver(attempt.task_id)
         spec = request.task_spec
         identity = attempt.task_id.value
-        if type(spec) is DevelopmentWorkspaceTaskSpecV1:
+        if type(spec) in (
+            DevelopmentWorkspaceTaskSpecV1,
+            DevelopmentWorkspaceTaskSpecV2,
+        ):
             result = self._workspace_action(spec, identity)
             evidence = ResearchEvidenceClass.STRUCTURAL_ONLY
         elif type(spec) is PracticeTaskSpec:

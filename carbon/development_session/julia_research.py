@@ -79,13 +79,13 @@ def julia_burgers_scope(image, role_root):
 
 
 class PublicJuliaStudy:
-    def __init__(self, data, *, envelope_scope=None):
+    def __init__(self, data, *, envelope_scope=None, cleanup=False):
         if type(data) is not PublicReferenceData or data.phase != "research":
             raise ValueError("public research data composition required")
         self.data = data
         self.scope = julia_burgers_scope(data.image, data.role_root)
         self.envelope_scope = envelope_scope
-        self._authorize()
+        self._authorize(cleanup=cleanup)
 
     def _authorize(self, *, cleanup=False):
         data = self.data

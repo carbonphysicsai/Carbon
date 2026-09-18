@@ -736,6 +736,27 @@ class LocalResearchService:
 
         return provider is self._context.research_task_provider
 
+    def project_task_observation(self, request, view, *, provider):
+        """Trusted observation retains the ordinary B-07 disclosure checks."""
+        if (
+            not self.binds_research_task_provider(provider)
+            or type(request) is not GetResearchResultRequest
+        ):
+            return _failure(ResearchServiceErrorCode.REQUEST_TYPE_INVALID)
+        if getattr(view, "task_id", None) != request.task_id:
+            return _failure(ResearchServiceErrorCode.REFERENCE_MISMATCH)
+        result = self._project(
+            OPERATION_CONTRACTS["get_research_result"],
+            request,
+            GetResearchResultResult(view),
+            None,
+        )
+        return (
+            result
+            if type(result) is ServiceReply
+            else ServiceReply(ReplyStatus.OK, result)
+        )
+
     def _preflight_capability(self, request: object) -> ServiceReply | None:
         if type(request) is GetPriorRequest:
             if type(request.selector) is NoPriorSelector:

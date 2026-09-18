@@ -32,8 +32,8 @@ resource release and consumption are established.
 ## Client workflow
 
 Read `carbon://research/v1/capabilities` and
-`carbon://research/v1/guidance`, or request the
-`carbon_research_workflow_v1` prompt. Tools have typed object arguments and
+`carbon://research/v2/guidance`, or request the
+`carbon_research_workflow_v2` prompt. Tools have typed object arguments and
 structured results with text fallback. Clients do not supply the principal or
 wrap arguments in undocumented JSON strings.
 
@@ -44,9 +44,57 @@ another numerical attempt. A client may propose hypotheses and stop within its
 grant; no second proposal or improvement is required.
 
 Python `mcp==2.2.0` and TypeScript `@modelcontextprotocol/client==2.0.0` are the
-tested independent client implementations. The server negotiates MCP rather
-than pretending an unsupported Tasks extension exists. Versioned start/status/
-result/cancel tools retain Carbon's durable identity and cleanup semantics.
+tested independent client implementations. Versioned start/status/result/cancel
+tools retain Carbon's durable identity and cleanup semantics. The prospective
+C-CORE-10 Tasks extension uses the released 2026-07-28 schema with Python SDK
+2.2.0; the existing TypeScript baseline does not establish Tasks support in that
+client or an agent host.
+
+## Negotiated Tasks and Skills
+
+Clients declaring `io.modelcontextprotocol/tasks` on a 2026-07-28 request receive
+a flat `resultType: "task"` handle for an admitted `start_research_task` before
+its supervised work finishes. `taskId` is Carbon's existing durable task ID.
+Use `tasks/get` with `{ "taskId": "rtsk_..." }`; a completed task contains the
+same typed tool result in `result`, including a `FAILED_INFRA` outcome when
+applicable. The original `operation_id` survives reconnects. Neither polling
+nor reconnecting redispatches uncertain work or consumes another trial.
+
+Use `tasks/cancel` with the same ID to request domain cancellation. Its empty
+acknowledgement is an intent, not proof of allocation release. Poll for observed
+state and retain unresolved accounting. `tasks/update` accepts typed responses
+but requests no client approval/grant values; responses to nonexistent input
+requests are ignored after ownership checks. These verbs require the extension
+on each request; HTTP clients must send `Mcp-Name: <taskId>` and the correct
+`Mcp-Method`. SDK requests should declare `name_param = "taskId"`. The original
+fallback tools and shared legacy `poll_sequence` remain available and unchanged;
+Tasks polling uses a separately bounded observation count in the same provider.
+
+Graceful server shutdown stops admission, requests cancellation of its owned
+workers and joins their supervised cleanup before the CLI closes its lease.
+Process loss cannot certify cleanup. The trusted operator may reattach using
+the existing CLI command plus `--cleanup-only` after grant expiry or pause;
+this permits owned status/cancel access, rejects new execution, and still
+requires valid external authentication. It does not extend the grant.
+
+The `io.modelcontextprotocol/skills` extension implements `skills/list` and
+`skills/get`. Its fixed entry is
+`skill://carbon/carbon-research-v1/SKILL.md`; the complete manifest includes
+`references/workflow.md`, exact UTF-8 byte sizes and SHA-256 digests. Read files
+through `resources/read`. Direct lookups require authorization even without
+prior discovery. Listings use private, zero-TTL caching. Directory reads,
+arbitrary filesystem access and nested activation are unavailable. Client
+hosts retain responsibility for verifying the originating server, manifests
+and skill-loading consent; reading guidance confers no execution authority.
+
+Released upstream contracts:
+[Tasks schema](https://github.com/modelcontextprotocol/ext-tasks/blob/main/schema/2026-07-28/schema.ts),
+[Skills stable specification](https://github.com/modelcontextprotocol/ext-skills/blob/main/specification/stable/skills.mdx),
+[Python SDK extensions](https://py.sdk.modelcontextprotocol.io/advanced/extensions/).
+The original v1 guidance resource/prompt remains available for compatibility.
+Current plain-client guidance is `carbon://research/v2/guidance` and the
+`carbon_research_workflow_v2` prompt; both serve the same current workflow as
+the Skill. No Skills support is needed to read them.
 
 ## Native Julia public study
 
