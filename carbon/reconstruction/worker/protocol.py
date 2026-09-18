@@ -19,6 +19,7 @@ from carbon.construction import (
 )
 from carbon.execution import ClaimedExecution, ExecutionAttemptRef, ExecutionScope
 from carbon.fees import AdmissionKind, SubmissionId
+from carbon.reconstruction.accelerators import require_reconstruction_profile_admission
 from carbon.reconstruction.model import (
     PublicTrainingArchive,
     ReconstructionFailure,
@@ -152,7 +153,9 @@ def _safe_relative(value: object) -> PurePosixPath:
     return path
 
 
-def _closed_json(path: Path, fields: frozenset[str]) -> dict[str, object]:
+def _closed_json(
+    path: Path, fields: frozenset[str], alternate: frozenset[str] | None = None
+) -> dict[str, object]:
     if path.is_symlink() or not path.is_file() or path.stat().st_size > CONTROL_BYTES:
         raise WorkerFailure(WorkerCode.INVALID)
 
@@ -174,7 +177,9 @@ def _closed_json(path: Path, fields: frozenset[str]) -> dict[str, object]:
         raise
     except (OSError, UnicodeError, ValueError, json.JSONDecodeError):
         raise WorkerFailure(WorkerCode.INVALID) from None
-    if type(value) is not dict or set(value) != fields:
+    if type(value) is not dict or (
+        set(value) != fields and (alternate is None or set(value) != alternate)
+    ):
         raise WorkerFailure(WorkerCode.INVALID)
     return value
 
@@ -411,6 +416,7 @@ def stage_request(
     if randomness_digest != replica.randomness_digest:
         raise WorkerFailure(WorkerCode.POLICY)
     profile = compile_development_profile(plan)
+    require_reconstruction_profile_admission(profile, worker_profile=worker_profile)
     if (
         profile.plan_digest != plan_ref.content_digest
         or claimed.binding.reconstruction_policy_digest != profile.profile_digest
@@ -490,6 +496,13 @@ def stage_request(
             },
             "continuation_split_step": continuation_split_step,
         }
+        if worker_profile.accelerator_profile_id is not None:
+            request["schema"] = "carbon.c03.worker-request.v2"
+            request["accelerator"] = {
+                "profile_id": worker_profile.accelerator_profile_id,
+                "grant_digest": worker_profile.accelerator_grant_digest,
+                "role": worker_profile.accelerator_role,
+            }
         payload = _canonical(request) + b"\n"
         if len(payload) > CONTROL_BYTES:
             raise WorkerFailure(WorkerCode.STAGING)
@@ -516,6 +529,30 @@ def stage_request(
         raise
 
 
+def _request_worker_profile(request):
+    replicate = request["replicate"]
+    accelerator = request.get("accelerator")
+    if accelerator is None:
+        return DevelopmentWorkerProfile(
+            replicate["policy_digest"], replicate["resource_class_digest"]
+        )
+    if type(accelerator) is not dict or set(accelerator) != {
+        "profile_id",
+        "grant_digest",
+        "role",
+    }:
+        raise WorkerFailure(WorkerCode.INVALID)
+    return DevelopmentWorkerProfile(
+        replicate["policy_digest"],
+        replicate["resource_class_digest"],
+        "carbon.c03.cuda.development.v1",
+        "1.0",
+        accelerator["profile_id"],
+        accelerator["grant_digest"],
+        accelerator["role"],
+    )
+
+
 def load_worker_request(
     input_directory: Path,
 ) -> tuple[
@@ -526,10 +563,19 @@ def load_worker_request(
     int | None,
 ]:
     """Decode one staged request inside the bounded worker."""
-    request = _closed_json(input_directory / "request.json", _REQUEST_FIELDS)
+    request = _closed_json(
+        input_directory / "request.json",
+        _REQUEST_FIELDS,
+        _REQUEST_FIELDS | {"accelerator"},
+    )
     try:
         if (
-            request["schema"] != "carbon.c03.worker-request.v1"
+            request["schema"]
+            != (
+                "carbon.c03.worker-request.v2"
+                if "accelerator" in request
+                else "carbon.c03.worker-request.v1"
+            )
             or request["scope"] != SCOPE
         ):
             raise WorkerFailure(WorkerCode.INVALID)
@@ -561,9 +607,7 @@ def load_worker_request(
             exact_digest(replicate[key])
         if type(replicate["id"]) is not str or not replicate["id"]:
             raise WorkerFailure(WorkerCode.INVALID)
-        expected_worker_profile = DevelopmentWorkerProfile(
-            replicate["policy_digest"], replicate["resource_class_digest"]
-        )
+        expected_worker_profile = _request_worker_profile(request)
         if expected_worker_profile.digest != request["worker_profile_digest"]:
             raise WorkerFailure(WorkerCode.POLICY)
         resolved = {
@@ -579,6 +623,9 @@ def load_worker_request(
             resolved["plan"].read_bytes(), expected_ref=plan_ref
         )
         profile = compile_development_profile(plan)
+        require_reconstruction_profile_admission(
+            profile, worker_profile=expected_worker_profile
+        )
         if profile.profile_digest != request["reconstruction_profile_digest"]:
             raise WorkerFailure(WorkerCode.POLICY)
         split = request["continuation_split_step"]
@@ -615,6 +662,13 @@ def run_staged_worker(input_directory: Path, scratch_directory: Path) -> int:
     """Fixed image entry point. It accepts no command or import path from input."""
     try:
         ref, plan, archive, seed, split = load_worker_request(input_directory)
+        worker_profile = _request_worker_profile(
+            _closed_json(
+                input_directory / "request.json",
+                _REQUEST_FIELDS,
+                _REQUEST_FIELDS | {"accelerator"},
+            )
+        )
         # This function is released by the existing controller only after
         # admission, deadline ownership and effective container controls. Never
         # initialize a backend in the controller or select one from miner input.
@@ -630,7 +684,11 @@ def run_staged_worker(input_directory: Path, scratch_directory: Path) -> int:
         try:
             probe_backend(
                 BackendRequest(
-                    Backend.CPU,
+                    (
+                        Backend.CPU
+                        if worker_profile.accelerator_profile_id is None
+                        else Backend.NVIDIA
+                    ),
                     local_device_count=1,
                     jax_version=dependencies["jax"],
                     jaxlib_version=dependencies["jaxlib"],
@@ -643,6 +701,7 @@ def run_staged_worker(input_directory: Path, scratch_directory: Path) -> int:
         if split is None:
             receipt = reconstruct(
                 execution_ref=ref,
+                worker_profile=worker_profile,
                 plan=plan,
                 training_archive=archive,
                 derived_seed=seed,
@@ -651,6 +710,7 @@ def run_staged_worker(input_directory: Path, scratch_directory: Path) -> int:
         else:
             partial = reconstruct(
                 execution_ref=ref,
+                worker_profile=worker_profile,
                 plan=plan,
                 training_archive=archive,
                 derived_seed=seed,
@@ -659,6 +719,7 @@ def run_staged_worker(input_directory: Path, scratch_directory: Path) -> int:
             )
             receipt = reconstruct(
                 execution_ref=ref,
+                worker_profile=worker_profile,
                 plan=plan,
                 training_archive=archive,
                 derived_seed=seed,

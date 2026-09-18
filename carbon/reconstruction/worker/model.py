@@ -118,10 +118,30 @@ class DevelopmentWorkerProfile:
     resource_class_digest: str
     profile_id: str = PROFILE_ID
     profile_version: str = PROFILE_VERSION
+    accelerator_profile_id: str | None = None
+    accelerator_grant_digest: str | None = None
+    accelerator_role: str | None = None
 
     def __post_init__(self) -> None:
-        if self.profile_id != PROFILE_ID or self.profile_version != PROFILE_VERSION:
-            raise WorkerFailure(WorkerCode.UNSUPPORTED)
+        if self.accelerator_profile_id is None:
+            if (
+                self.profile_id != PROFILE_ID
+                or self.profile_version != PROFILE_VERSION
+                or self.accelerator_grant_digest is not None
+                or self.accelerator_role is not None
+            ):
+                raise WorkerFailure(WorkerCode.UNSUPPORTED)
+        else:
+            from carbon.reconstruction.accelerators import GPU_PROFILE, AcceleratorRole
+
+            if (
+                self.accelerator_profile_id != GPU_PROFILE.profile_id
+                or self.profile_id != "carbon.c03.cuda.development.v1"
+                or self.profile_version != "1.0"
+                or self.accelerator_role not in [role.value for role in AcceleratorRole]
+            ):
+                raise WorkerFailure(WorkerCode.UNSUPPORTED)
+            exact_digest(self.accelerator_grant_digest)
         object.__setattr__(
             self,
             "research_resource_policy_digest",
@@ -133,7 +153,7 @@ class DevelopmentWorkerProfile:
 
     @property
     def body(self) -> dict[str, object]:
-        return {
+        result = {
             "schema": "carbon.c03.development-worker-profile.v1",
             "scope": SCOPE,
             "profile_id": self.profile_id,
@@ -171,6 +191,20 @@ class DevelopmentWorkerProfile:
                 "restart": "no",
             },
         }
+
+        if self.accelerator_profile_id is not None:
+            from carbon.reconstruction.accelerators import GPU_PROFILE
+
+            result["schema"] = "carbon.c03.development-worker-profile.v2"
+            result["accelerators"] = {
+                "profile_id": self.accelerator_profile_id,
+                "profile_digest": GPU_PROFILE.digest,
+                "grant_digest": self.accelerator_grant_digest,
+                "role": self.accelerator_role,
+                "device_uuid": GPU_PROFILE.device_uuid,
+                "allocation": "EXCLUSIVE_SINGLE_DEVICE",
+            }
+        return result
 
     @property
     def digest(self) -> str:
