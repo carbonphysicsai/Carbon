@@ -72,6 +72,16 @@ _CORE04_GENERATOR_CONSUMERS = {
     },
 }
 
+# C-CORE-08 reuses two exact frozen public TRAIN cases. No generation authority.
+_CORE08_GENERATOR_CONSUMERS = {
+    "development_session/julia_envelope.py": {
+        "carbon.generators.burgers_dynamics": {
+            "PublicDevelopmentRole",
+            "requested_times",
+        }
+    },
+}
+
 _EXPECTED_MODULE_PATHS = frozenset(
     {
         "__init__.py",
@@ -457,6 +467,8 @@ def test_existing_carbon_packages_do_not_reverse_import_generators() -> None:
             continue
         if path.relative_to(_CARBON_ROOT).as_posix() in _CORE04_GENERATOR_CONSUMERS:
             continue
+        if path.relative_to(_CARBON_ROOT).as_posix() in _CORE08_GENERATOR_CONSUMERS:
+            continue
         violations.extend(
             f"{_relative(path)}:{line}" for line in _imports_generators(path)
         )
@@ -660,6 +672,23 @@ def test_core04_workbench_imports_only_exact_public_case_symbols():
         _assert_registered_generator_symbols(
             path, _parse(path), _CORE04_GENERATOR_CONSUMERS
         )
+
+
+def test_core08_envelope_imports_only_exact_public_case_symbols():
+    for relative in _CORE08_GENERATOR_CONSUMERS:
+        path = _CARBON_ROOT / relative
+        _assert_registered_generator_symbols(
+            path, _parse(path), _CORE08_GENERATOR_CONSUMERS
+        )
+    for source in (
+        "from carbon.generators.burgers_dynamics import PublicDevelopmentRole, requested_times, generate_development_case",
+        "from carbon.generators.burgers_dynamics import *",
+        "from carbon import generators",
+    ):
+        with pytest.raises(AssertionError):
+            _assert_registered_generator_symbols(
+                path, ast.parse(source), _CORE08_GENERATOR_CONSUMERS
+            )
 
 
 @pytest.mark.parametrize(

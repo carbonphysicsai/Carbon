@@ -17,7 +17,7 @@ from .profile import CHALLENGE
 from .research_authoring import clause
 
 
-def resources(contracts, compiler):
+def resources(contracts, compiler, *, gpu=False):
     unit = clause("unit", "cpu_seconds")
     provenance = rp.FixtureResourceProvenance(
         clause("fixture_registration", "development_static_metadata_not_observation"),
@@ -36,7 +36,7 @@ def resources(contracts, compiler):
         rp.RESOURCE_POLICY_SCHEMA_VERSION,
         rp.RESOURCE_POLICY_CANONICALIZATION_PROFILE,
         CHALLENGE,
-        "autoresearch_linux_cpu",
+        "autoresearch_linux_gpu_diagnostic" if gpu else "autoresearch_linux_cpu",
         "1.0",
         contracts.assembly.environment_pins[0],
         contracts.assembly.environment_pins,
@@ -80,7 +80,7 @@ def resources(contracts, compiler):
         rp.RESOURCE_POLICY_SCHEMA_VERSION,
         rp.RESOURCE_POLICY_CANONICALIZATION_PROFILE,
         CHALLENGE,
-        "autoresearch_static_policy",
+        "autoresearch_gpu_static_policy" if gpu else "autoresearch_static_policy",
         "1.0",
         contracts.assembly.to_ref(),
         contracts.catalog.to_ref(candidate_assembly=contracts.assembly),

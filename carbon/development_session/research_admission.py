@@ -132,21 +132,24 @@ class Admission:
         return {"path": str(self.path), "digest": self.pin}
 
 
-def verify_cleanup_owner(ledger, owner):
+def verify_cleanup_owner(ledger, owner, *, db=None):
     """Authenticate retained campaign ownership without admitting further work.
 
     Expiration ends spending authority, not responsibility for already-owned
     cleanup. This proof never reserves resources, restarts a task, changes a
     grant, or substitutes for the caller's fresh external authentication.
     """
-    from .research_control import CampaignControl
-
     admission = ledger.admission
     if type(admission) is not Admission:
         raise ValueError("explicit retained campaign authority required")
     doc = private_json(admission.path)
-    with ledger.db() as db:
-        row = db.execute("SELECT manifest FROM campaign WHERE id=1").fetchone()
+    if db is None:
+        with ledger.db() as connection:
+            return verify_cleanup_owner(ledger, owner, db=connection)
+    row = db.execute("SELECT manifest FROM campaign WHERE id=1").fetchone()
+    control = db.execute(
+        "SELECT generation FROM launchpad_control WHERE id=1"
+    ).fetchone()
     if row is None:
         raise ValueError("frozen campaign required for cleanup")
     manifest = json.loads(row[0])
@@ -166,7 +169,8 @@ def verify_cleanup_owner(ledger, owner):
         or str(ledger.root) != doc.get("root")
         or ledger.root.resolve() != ledger.root
         or ledger.generation is None
-        or CampaignControl(ledger).status()["generation"] != ledger.generation
+        or control is None
+        or control[0] != ledger.generation
     ):
         raise ValueError("retained campaign ownership changed")
     return manifest

@@ -21,11 +21,12 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from carbon import research
-from carbon.development_session.profile import CHALLENGE
+from carbon.development_session.profile import CHALLENGE, canonical
 from carbon.development_session.research_admission import (
     MANIFEST,
     Admission,
     private_json,
+    verify_cleanup_owner,
 )
 from carbon.development_session.research_control import CampaignControl
 from carbon.development_session.research_ledger import CampaignLedger
@@ -44,9 +45,10 @@ class OperatorProfile:
     admission: Admission
     root: Path
     manifest: dict
+    cleanup_only: bool = False
 
 
-def load_profile(path: Path) -> OperatorProfile:
+def load_profile(path: Path, *, cleanup_only=False) -> OperatorProfile:
     """Read existing operator authority; no filesystem or accounting creation."""
     from scripts.dev.miner_launchpad.runner import PATH_FIELDS
 
@@ -76,14 +78,18 @@ def load_profile(path: Path) -> OperatorProfile:
     admission = Admission.load(Path(cfg["grant_file"]))
     grant = admission.document
     root = Path(grant["root"])
-    admission.verify(
-        root=root, principal=cfg["principal"], runtime=grant["runtime"], now=time.time()
-    )
+    if not cleanup_only:
+        admission.verify(
+            root=root,
+            principal=cfg["principal"],
+            runtime=grant["runtime"],
+            now=time.time(),
+        )
     if (
         cfg["account_ref"] != grant["account_ref"]
         or cfg["accepted_revision"] != grant["runtime"]["implementation"]["revision"]
         or not root.is_dir()
-        or (root / "campaign-complete.json").exists()
+        or (not cleanup_only and (root / "campaign-complete.json").exists())
         or not (root / "campaign.sqlite3").is_file()
         or (root / "campaign.sqlite3").is_symlink()
     ):
@@ -97,17 +103,22 @@ def load_profile(path: Path) -> OperatorProfile:
         or manifest.get("campaign_id") != grant["campaign_id"]
     ):
         raise ValueError("prepared campaign differs from operator grant")
-    return OperatorProfile(path, cfg, admission, root, manifest)
+    if cleanup_only:
+        meter = CampaignLedger(root, admission=admission)
+        meter.generation = CampaignControl(meter).status()["generation"]
+        if verify_cleanup_owner(meter, manifest["owner"]) != manifest:
+            raise ValueError("retained cleanup profile differs")
+    return OperatorProfile(path, cfg, admission, root, manifest, cleanup_only)
 
 
-def _prepared_tasks(root):
+def _prepared_tasks(root, *, cleanup_only=False):
     path = root / "research-tasks" / "research-tasks.sqlite3"
     if not path.is_file() or path.is_symlink():
         raise ValueError("existing prepared research tasks required")
     with sqlite3.connect(f"{path.as_uri()}?mode=ro", uri=True) as db:
         for (encoded,) in db.execute("SELECT view FROM tasks"):
             task = research.load_canonical(encoded, research.ResearchTaskView)
-            if task.state in {
+            if not cleanup_only and task.state in {
                 research.ResearchTaskState.RUNNING,
                 research.ResearchTaskState.CANCEL_REQUESTED,
             }:
@@ -138,7 +149,10 @@ def _runtime(profile):
     implementation = accepted_implementation(cfg["accepted_revision"])
     image = load_image_identity(paths["image_manifest"])
     verify_current_worker(image, implementation)
-    if not doctor(image_id=image.image_id, image_identity=image).eligible:
+    if (
+        not profile.cleanup_only
+        and not doctor(image_id=image.image_id, image_identity=image).eligible
+    ):
         raise ValueError("accepted numerical host unavailable")
     analysis = load_analysis_image(paths["analysis_image_manifest"])
     verify_image(analysis)
@@ -149,18 +163,32 @@ def _runtime(profile):
         "images": [image.image_id, analysis.image_id],
     }
     role_root = profile.root / "private-roles"
-    if "scientific_tasks" in profile.manifest["runtime"]:
-        from carbon.development_session.julia_research import julia_burgers_scope
-
-        runtime["scientific_tasks"] = [julia_burgers_scope(image, role_root)]
     authored = _authored_image(profile, analysis)
+    _, scientific = _scientific_selection(
+        profile.manifest["runtime"], image, role_root, authored
+    )
+    if scientific is not None:
+        runtime["scientific_tasks"] = scientific
     if authored is not None:
         from carbon.development_session.julia_analysis import authored_julia_scope
 
         runtime["authored_research"] = [authored_julia_scope(authored)]
-    grant = profile.admission.verify(
-        root=profile.root, principal=cfg["principal"], runtime=runtime, now=time.time()
-    )
+    gpu = _gpu_image(profile.root, profile.manifest["runtime"], role_root)
+    if gpu is not None:
+        from carbon.development_session.gpu_research import gpu_scope
+
+        runtime["gpu_research"] = [gpu_scope(gpu, role_root)]
+    if profile.cleanup_only:
+        if runtime != profile.manifest["runtime"]:
+            raise ValueError("retained runtime differs")
+        grant = profile.admission.document
+    else:
+        grant = profile.admission.verify(
+            root=profile.root,
+            principal=cfg["principal"],
+            runtime=runtime,
+            now=time.time(),
+        )
     if (
         profile.manifest.get("implementation") != implementation
         or profile.manifest.get("images") != runtime["images"]
@@ -199,6 +227,22 @@ def _authored_image(profile, analysis):
     from carbon.development_session.research_campaign import registered_julia_image
 
     return registered_julia_image(profile.root, profile.manifest["runtime"], analysis)
+
+
+def _gpu_image(root, runtime, role_root):
+    if "gpu_research" not in runtime:
+        return None
+    from carbon.development_session.gpu_research import gpu_scope
+    from carbon.development_session.research_campaign import private_file
+    from carbon.reconstruction.worker.docker_runtime import load_image_identity
+
+    path = private_file(root / "gpu-worker-image.json")
+    if path.resolve() != path or path.stat().st_size > 65536:
+        raise ValueError("fixed bounded GPU image record required")
+    image = load_image_identity(path)
+    if runtime["gpu_research"] != [gpu_scope(image, role_root)]:
+        raise ValueError("exact prospective GPU runtime scope required")
+    return image
 
 
 async def _requester(connection):
@@ -258,6 +302,8 @@ class _AdmittedConnection:
 
     async def check_registration(self):
         profile = self.profile
+        if profile.cleanup_only:
+            raise ValueError("cleanup-only attachment cannot admit research")
         if self.closed or private_json(profile.path) != profile.document:
             raise ValueError("operator profile changed or controller closed")
         now = self.ledger.clock()
@@ -285,57 +331,144 @@ class _AdmittedConnection:
         return await self.connection.check_registration()
 
 
-def _science(ledger, owner, image, role_root):
+def _scientific_selection(runtime, image, role_root, authored=None):
+    """Recompute one closed registered combination; no schema label grants access."""
+    if "scientific_tasks" not in runtime:
+        return "legacy", None
+    scopes = runtime["scientific_tasks"]
+    if (
+        type(scopes) is not list
+        or not scopes
+        or any(type(s) is not dict for s in scopes)
+    ):
+        raise ValueError("closed registered scientific scopes required")
+    from carbon.development_session.advection_research import advection_scope
+    from carbon.development_session.julia_analysis import authored_julia_scope
+    from carbon.development_session.julia_envelope import julia_envelope_scope
+    from carbon.development_session.julia_research import julia_burgers_scope
+    from carbon.development_session.research_sequences import SCOPE as ENVELOPE_SCOPE
+
+    schemas = [s.get("schema") for s in scopes]
+    if schemas == ["carbon.public-advection-study.scope.v1"]:
+        expected_authored = [authored_julia_scope(authored)]
+        if (
+            canonical(runtime.get("authored_research")) != canonical(expected_authored)
+            or authored.parent.parent_image != image.image_id
+        ):
+            raise ValueError("separately bound advection analysis image required")
+        kind, expected = "advection", [advection_scope(authored)]
+    elif schemas == ["carbon.public-julia-study.scope.v1"]:
+        kind, expected = "burgers", [julia_burgers_scope(image, role_root)]
+    elif schemas == ["carbon.public-julia-study.scope.v1", ENVELOPE_SCOPE]:
+        kind, expected = "envelope", [
+            julia_burgers_scope(image, role_root),
+            julia_envelope_scope(image, role_root),
+        ]
+    else:
+        raise ValueError("unsupported scientific scope combination")
+    if canonical(scopes) != canonical(expected):
+        raise ValueError("registered scientific scope differs")
+    return kind, expected
+
+
+def _science(ledger, owner, image, role_root, *, cleanup_only=False, authored=None):
     from carbon.development_session.research_data import PublicReferenceData
     from carbon.development_session.research_provider import PublicPractice
 
+    runtime = (
+        ledger.admission.document["runtime"] if ledger.admission is not None else {}
+    )
+    kind, scopes = _scientific_selection(runtime, image, role_root, authored)
     data = PublicReferenceData(
         ledger=ledger, owner=owner, image=image, role_root=role_root
     )
     material = PublicMaterial(data)
-    if (
-        ledger.admission is not None
-        and "scientific_tasks" in ledger.admission.document["runtime"]
-    ):
+    if kind in {"burgers", "envelope"}:
         from carbon.development_session.julia_research import (
             JuliaPublicMaterial,
             PublicJuliaStudy,
         )
 
-        material = JuliaPublicMaterial(material, PublicJuliaStudy(data))
+        material = JuliaPublicMaterial(
+            material,
+            PublicJuliaStudy(
+                data,
+                cleanup=cleanup_only,
+                envelope_scope=scopes[1] if kind == "envelope" else None,
+            ),
+        )
+        if kind == "envelope":
+            from carbon.development_session.julia_envelope import JuliaEnvelopeMaterial
+
+            material = JuliaEnvelopeMaterial(material, cleanup=cleanup_only)
+    elif kind == "advection":
+        from carbon.development_session.advection_research import (
+            PublicAdvectionMaterial,
+        )
+
+        material = PublicAdvectionMaterial(
+            material, ledger=ledger, owner=owner, image=authored, cleanup=cleanup_only
+        )
+    gpu = _gpu_image(ledger.root, runtime, role_root)
+    if gpu is not None:
+        from carbon.development_session.gpu_research import PublicGPUPractice
+
+        return material, PublicGPUPractice(
+            data=data, image=gpu, cleanup_only=cleanup_only
+        )
     return material, PublicPractice(data=data, ledger=ledger, owner=owner, image=image)
 
 
-async def serve(configuration: Path):
+async def serve(configuration: Path, *, cleanup_only=False):
     """Hold the existing campaign ownership lock for the whole stdio lifetime."""
     from scripts.dev.miner_launchpad.controller import owner_lock
     from scripts.dev.miner_launchpad.runner import RunnerAdapter
 
-    profile = load_profile(configuration)
+    profile = load_profile(configuration, cleanup_only=cleanup_only)
     with owner_lock(profile.root):
         ledger = CampaignLedger(profile.root, admission=profile.admission)
-        ledger.freeze(profile.manifest)  # Must match the existing immutable record.
+        if not cleanup_only:
+            ledger.freeze(profile.manifest)  # Must match the existing immutable record.
         with ledger.db() as db:
-            if db.execute(
-                "SELECT 1 FROM operations WHERE state='RESERVED' LIMIT 1"
-            ).fetchone():
+            if (
+                not cleanup_only
+                and db.execute(
+                    "SELECT 1 FROM operations WHERE state='RESERVED' LIMIT 1"
+                ).fetchone()
+            ):
                 raise ValueError("unresolved consumption requires reconciliation")
-        _prepared_tasks(profile.root)
+        _prepared_tasks(profile.root, cleanup_only=cleanup_only)
         control = CampaignControl(ledger)
         status = control.status()
-        if status["desired"] != "RUN" or status["state"] in {
-            "RECONCILIATION_REQUIRED",
-            "STOPPED",
-            "COMPLETED",
-        }:
+        if not cleanup_only and (
+            status["desired"] != "RUN"
+            or status["state"]
+            in {
+                "RECONCILIATION_REQUIRED",
+                "STOPPED",
+                "COMPLETED",
+            }
+        ):
             raise ValueError("campaign is not available for research")
+        ledger.generation = status["generation"] if cleanup_only else control.acquire()
+        if cleanup_only:
+            verify_cleanup_owner(ledger, profile.manifest["owner"])
         connection, image, analysis, role_root = _runtime(profile)
         owner = await _requester(connection)
         if owner != profile.manifest.get("owner"):
             raise ValueError("authenticated campaign owner changed")
-        material, practice = _science(ledger, owner, image, role_root)
+        authored = _authored_image(profile, analysis)
+        material, practice = _science(
+            ledger,
+            owner,
+            image,
+            role_root,
+            **({"authored": authored} if authored is not None else {}),
+            **({"cleanup_only": True} if cleanup_only else {}),
+        )
         composition = make_research_service(
-            julia_image=_authored_image(profile, analysis),
+            cleanup_only=cleanup_only,
+            julia_image=authored,
             root=profile.root / "research-tasks",
             ledger=ledger,
             owner=owner,
@@ -345,7 +478,6 @@ async def serve(configuration: Path):
         )
         bound = None
         try:
-            ledger.generation = control.acquire()
             bound = _AdmittedConnection(connection, profile, ledger, control)
             sdk = ResearchMinerTools(
                 connection=bound,
@@ -356,9 +488,11 @@ async def serve(configuration: Path):
                 ledger=ledger,
                 owner=owner,
             )
-            await create_stdio_server(
-                ResearchToolAdapter(sdk, principal=owner)
-            ).run_async()
+            adapter = ResearchToolAdapter(sdk, principal=owner)
+            try:
+                await create_stdio_server(adapter).run_async()
+            finally:
+                await adapter.shutdown_tasks()
         finally:
             try:
                 if bound is not None:
@@ -370,7 +504,15 @@ async def serve(configuration: Path):
                         await asyncio.get_running_loop().shutdown_default_executor()
                         clean = RunnerAdapter._cleanup(ledger)
                     finally:
-                        control.settled(ledger.generation, cleanup_verified=clean)
+                        if not cleanup_only or status["state"] not in {
+                            "STOPPED",
+                            "COMPLETED",
+                        }:
+                            control.settled(ledger.generation, cleanup_verified=clean)
+                        elif not clean:
+                            raise ValueError(
+                                "terminal campaign cleanup requires reconciliation"
+                            )
             finally:
                 composition.tasks.close()
 
@@ -378,9 +520,14 @@ async def serve(configuration: Path):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--configuration", required=True, type=Path)
+    parser.add_argument(
+        "--cleanup-only",
+        action="store_true",
+        help="Observe/cancel retained owned tasks; cannot start research",
+    )
     args = parser.parse_args(argv)
     try:
-        asyncio.run(serve(args.configuration))
+        asyncio.run(serve(args.configuration, cleanup_only=args.cleanup_only))
     except (Exception, KeyboardInterrupt):  # noqa: BLE001
         print(
             "Carbon MCP unavailable: verify the existing private profile, grant, prepared campaign, accepted runtime and reconciliation state.",

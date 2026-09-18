@@ -297,6 +297,8 @@
       if (run.current_hypothesis) researchNote(card, "Research hypothesis: " + (run.current_hypothesis.hypothesis || "unavailable"));
       const current = (run.operations || []).filter(op => op.state === "RESERVED");
       researchNote(card, current.length ? "Active reserved operations: " + current.map(op => op.phase + " / " + op.id).join(", ") : "No active reserved operation reported.");
+      const held = (run.operations || []).filter(op => op.state === "HELD");
+      if (held.length) researchNote(card, "Held capacity, never dispatched: " + held.map(op => op.phase + " / " + op.id).join(", "));
       if (run.usage) {
         const usage = document.createElement("div"); usage.className = "research-usage";
         for (const kind of ["available", "reserved", "reported", "uncertain"]) {

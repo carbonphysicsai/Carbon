@@ -88,13 +88,26 @@ class PublicResearchExecutor:
     """Trusted owner-bound composition; it receives no wallet or API key."""
 
     def __init__(
-        self, *, ledger, owner, image, public_material, practice, julia_image=None
+        self,
+        *,
+        ledger,
+        owner,
+        image,
+        public_material,
+        practice,
+        julia_image=None,
+        cleanup_only=False,
     ):
         self.ledger, self.owner, self.image = ledger, owner, image
         self.workspace = ResearchWorkspace(ledger, owner)
         self.public_material, self.practice = public_material, practice
         self.julia_image = julia_image
-        if julia_image is not None:
+        self.cleanup_only = cleanup_only
+        if cleanup_only:
+            from .research_admission import verify_cleanup_owner
+
+            verify_cleanup_owner(ledger, owner)
+        elif julia_image is not None:
             from .julia_analysis import authorize_julia
 
             authorize_julia(ledger, owner, julia_image)
@@ -131,6 +144,10 @@ class PublicResearchExecutor:
         if set(args) != expected:
             raise ValueError("workspace fields differ from registered action")
         if spec.action == "public_material":
+            from .advection_research import MATERIAL as ADVECTION_MATERIAL
+            from .advection_research import PublicAdvectionMaterial
+            from .julia_envelope import MATERIAL as ENVELOPE
+            from .julia_envelope import JuliaEnvelopeMaterial
             from .julia_research import MATERIAL, JuliaPublicMaterial
 
             # The bound material service owns the allowlist. No arbitrary path,
@@ -144,9 +161,18 @@ class PublicResearchExecutor:
             }
             if type(self.public_material) is JuliaPublicMaterial:
                 allowed.add(MATERIAL)
+            if type(self.public_material) is PublicAdvectionMaterial:
+                allowed.add(ADVECTION_MATERIAL)
+            if type(self.public_material) is JuliaEnvelopeMaterial:
+                allowed.update({MATERIAL, ENVELOPE})
             if args["name"] not in allowed:
                 raise ValueError("public material unavailable")
-            return self.public_material(args["name"], self.workspace)
+            result = self.public_material(args["name"], self.workspace)
+            from .gpu_research import PublicGPUPractice
+
+            if type(self.practice) is PublicGPUPractice:
+                result = self.practice.projection(args["name"], result, self.workspace)
+            return result
         if spec.action == "inventory":
             return {"files": self.workspace.inventory()}
         if spec.action == "read_file":
@@ -239,6 +265,8 @@ class PublicResearchExecutor:
         request_cancel(self.ledger, owner=self.owner, identity=identity)
 
     def execute(self, attempt):
+        if self.cleanup_only:
+            raise ValueError("cleanup-only executor cannot admit research")
         token = ACTIVE_TASK.set(attempt.task_id.value)
         try:
             return self._execute(attempt)

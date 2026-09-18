@@ -5,6 +5,9 @@
   const RESPONSE = "carbon.workbench.scientific-study.response.v1";
   const CAPABILITIES = "carbon.workbench.scientific-study.capabilities.v1";
   const BUNDLE = "carbon.workbench.scientific-study.bundle.v1";
+  const ENVELOPE_REQUEST = "carbon.workbench.scientific-study.request.v2";
+  const ENVELOPE_RESPONSE = "carbon.workbench.scientific-study.response.v2";
+  const ENVELOPE_CAPABILITIES = "carbon.workbench.scientific-study.capabilities.v2";
   const SCOPE = ["physics_family", "requested_goal", "inputs", "outputs", "units", "geometry", "conditions", "regime", "exclusions", "query_workload", "rights_scope"];
   const BUDGET = ["research_trials_remaining", "numerical_milliseconds_remaining", "reference_invocations_remaining"];
   const STATES = ["PENDING", "RUNNING", "COMPLETE", "FAILED", "CANCELLED", "CANCEL_REQUESTED", "REQUIRES_RECONCILIATION"];
@@ -86,9 +89,17 @@
   }
   function capabilities(v) {
     bounded(v);
-    exact(v, ["schema", "template_id", "physical", "method", "environment", "available"], "capabilities");
-    if (v.schema !== CAPABILITIES || v.template_id !== TEMPLATE || typeof v.available !== "boolean") throw Error("Unsupported study capability");
+    const envelope = v.schema === ENVELOPE_CAPABILITIES;
+    exact(v, ["schema", "template_id", "physical", "method", "environment", "available", ...(envelope ? ["envelope"] : [])], "capabilities");
+    if (![CAPABILITIES, ENVELOPE_CAPABILITIES].includes(v.schema) || v.template_id !== TEMPLATE || typeof v.available !== "boolean") throw Error("Unsupported study capability");
     physical(v.physical); text(v.method, "method", 300); text(v.environment, "environment", 300);
+    if (envelope) {
+      exact(v.envelope, ["scope_digest", "case_digests", "physical"], "envelope capability");
+      if (!/^sha256:[a-f0-9]{64}$/.test(v.envelope.scope_digest) || !Array.isArray(v.envelope.case_digests) || v.envelope.case_digests.length !== 2 || new Set(v.envelope.case_digests).size !== 2 || v.envelope.case_digests.some((pin) => !/^sha256:[a-f0-9]{64}$/.test(pin))) throw Error("Exact ordered envelope identities required");
+      if (!Array.isArray(v.envelope.physical) || v.envelope.physical.length !== 2) throw Error("Two envelope definitions required");
+      v.envelope.physical.forEach(physical);
+      if (!same(v.envelope.physical[0], v.physical)) throw Error("Envelope baseline differs from adopted source");
+    }
     return clone(v);
   }
   function binding(v) {
@@ -98,36 +109,60 @@
   }
   function request(v) {
     bounded(v);
-    exact(v, ["schema", "operation_id", "action", "binding", "template_id", "physical", "draft_scope", "rights_scope"], "study request");
-    if (v.schema !== REQUEST || v.action !== "REFERENCE_FEASIBILITY" || v.template_id !== TEMPLATE || v.rights_scope !== "SYNTHETIC_INTERNAL") throw Error("Unsupported scientific study request");
+    const envelope = v.schema === ENVELOPE_REQUEST;
+    exact(v, ["schema", "operation_id", "action", "binding", "template_id", "physical", "draft_scope", "rights_scope", ...(envelope ? ["envelope_scope_digest"] : [])], "study request");
+    if (v.schema !== (envelope ? ENVELOPE_REQUEST : REQUEST) || v.action !== (envelope ? "OPERATING_ENVELOPE" : "REFERENCE_FEASIBILITY") || v.template_id !== TEMPLATE || v.rights_scope !== "SYNTHETIC_INTERNAL") throw Error("Unsupported scientific study request");
+    if (envelope && !/^sha256:[a-f0-9]{64}$/.test(v.envelope_scope_digest)) throw Error("Envelope scope identity required");
     ident(v.operation_id); if (v.operation_id.length < 16 || v.operation_id.length > 114) throw Error("Invalid operation identity");
     binding(v.binding); physical(v.physical);
     exact(v.draft_scope, [...SCOPE, "reference_equation", "reference_method"], "draft scope");
     Object.values(v.draft_scope).forEach((s) => { if (typeof s !== "string" || s.length > 8000) throw Error("Invalid draft scope"); });
     return clone(v);
   }
-  async function prepare(d, p) {
+  async function prepare(d, p, envelopeScope = null) {
     const validated = physical(p), draftScope = scope(d), checked = check(d, p);
     if (checked.issues.length) throw Error(checked.issues.join(" "));
     const b = { job_id: ident(d.job_id), design_id: ident(d.design_id), design_revision: d.revision, physical_sha256: await digest({ template_id: TEMPLATE, physical: validated, draft_scope: draftScope }) };
-    return request({ schema: REQUEST, operation_id: "study-" + await digest(b), action: "REFERENCE_FEASIBILITY", binding: b, template_id: TEMPLATE, physical: validated, draft_scope: draftScope, rights_scope: "SYNTHETIC_INTERNAL" });
+    return request({ schema: envelopeScope ? ENVELOPE_REQUEST : REQUEST, operation_id: envelopeScope ? "envelope-" + await digest({ binding: b, scope_digest: envelopeScope }) : "study-" + await digest(b), action: envelopeScope ? "OPERATING_ENVELOPE" : "REFERENCE_FEASIBILITY", binding: b, template_id: TEMPLATE, physical: validated, draft_scope: draftScope, rights_scope: "SYNTHETIC_INTERNAL", ...(envelopeScope ? { envelope_scope_digest: envelopeScope } : {}) });
   }
   function response(v, r) {
     bounded(v);
     exact(v, ["schema", "operation_id", "task_id", "status", "binding", "remaining_budget", "method", "environment", "result", "official_eligible", "qualification"], "study response");
-    if (v.schema !== RESPONSE || v.operation_id !== r.operation_id || !same(v.binding, r.binding)) throw Error("Wrong study operation or draft binding");
+    const envelope = r.schema === ENVELOPE_REQUEST;
+    if (v.schema !== (envelope ? ENVELOPE_RESPONSE : RESPONSE) || v.operation_id !== r.operation_id || !same(v.binding, r.binding)) throw Error("Wrong study operation or draft binding");
     binding(v.binding); ident(v.task_id);
     if (!STATES.includes(v.status) || v.official_eligible !== false || v.qualification !== "NOT_QUALIFIED") throw Error("Study authority or status rejected");
     exact(v.remaining_budget, BUDGET, "remaining budget");
     Object.values(v.remaining_budget).forEach((n) => { if (n !== null && (!Number.isSafeInteger(n) || n < 0)) throw Error("Invalid remaining budget"); });
     text(v.method, "method", 300); text(v.environment, "environment", 300);
     if (v.result !== null) {
+      if (envelope) {
+        exact(v.result, ["metadata", "children"], "envelope result");
+        if (v.result.metadata?.scope_digest !== r.envelope_scope_digest || v.result.metadata?.parent !== v.task_id || v.result.metadata?.official_eligible !== false || v.result.metadata?.scientifically_qualified !== false || v.result.metadata?.training_support_eligible !== false) throw Error("Envelope result lineage differs");
+        if (!Array.isArray(v.result.children) || v.result.children.length !== 2) throw Error("Two ordered child states required");
+        v.result.children.forEach((child) => {
+          exact(child, ["operation_id", "case_digest", "state", "reservation", "actual", "result"], "envelope child");
+          ident(child.operation_id);
+          if (!["HELD", "RESERVED", "SUCCEEDED", "FAILED_INFRA", "CANCELLED"].includes(child.state)) throw Error("Unknown envelope child state");
+          if (child.result !== null) {
+            exact(child.result, ["metadata", "values"], "envelope numerical result");
+            if (child.state !== "SUCCEEDED" || child.result.metadata?.case_digest !== child.case_digest || child.result.metadata?.scope_digest !== r.envelope_scope_digest) throw Error("Envelope child provenance differs");
+            numerical(child.result.values);
+          }
+          if (v.status === "COMPLETE" && (child.state !== "SUCCEEDED" || child.result === null)) throw Error("Completed envelope needs both actual results");
+        });
+        if (new Set(v.result.children.map((c) => c.case_digest)).size !== 2) throw Error("Envelope children must be distinct");
+        return clone(v);
+      }
       exact(v.result, ["metadata", "values"], "study result");
       if (v.status !== "COMPLETE" || !v.result.metadata || Array.isArray(v.result.metadata) || typeof v.result.metadata !== "object") throw Error("Only completed studies carry numerical results");
-      if (!Array.isArray(v.result.values) || v.result.values.length !== 13) throw Error("Study time shape mismatch");
-      v.result.values.forEach((row) => { if (!Array.isArray(row) || row.length !== 64) throw Error("Study spatial shape mismatch"); row.forEach(finite); });
+      numerical(v.result.values);
     }
     return clone(v);
+  }
+  function numerical(values) {
+    if (!Array.isArray(values) || values.length !== 13) throw Error("Study time shape mismatch");
+    values.forEach((row) => { if (!Array.isArray(row) || row.length !== 64) throw Error("Study spatial shape mismatch"); row.forEach(finite); });
   }
   function createAdapter(fetcher = root.fetch.bind(root)) {
     async function call(name, value) {
@@ -145,16 +180,18 @@
   }
   function createController(adapter, currentDesign) {
     let cap = null, adopted = null, run = null, busy = false;
+    const retained = new Map();
     const snapshot = () => clone({ capabilities: cap, physical: adopted, run, busy });
     async function current(r) {
       const d = currentDesign();
       if (!d || !adopted) return false;
-      try { return same((await prepare(d, adopted)).binding, r.binding); } catch { return false; }
+      try { return same((await prepare(d, adopted, r.envelope_scope_digest || null)).binding, r.binding); } catch { return false; }
     }
     async function accept(value, sent) {
       const received = response(value, sent);
       if (!run || !same(run.request, sent)) throw Error("Study selection changed while request was in flight");
       if (!cap || received.method !== cap.method || received.environment !== cap.environment) throw Error("Study method or environment changed");
+      if (sent.schema === ENVELOPE_REQUEST && (!cap.envelope || sent.envelope_scope_digest !== cap.envelope.scope_digest || (received.result && !same(received.result.children.map((c) => c.case_digest), cap.envelope.case_digests)))) throw Error("Envelope source order changed");
       if (run.response && run.response.task_id !== received.task_id) throw Error("Study task identity changed");
       run.response = received;
       run.origin = "PRIVATE_SERVICE_RESPONSE";
@@ -177,21 +214,21 @@
     return Object.freeze({
       snapshot,
       async connect() { if (busy) throw Error("Study request already in flight"); if (!adapter) throw Error("Offline Workbench: private scientific service unavailable"); busy = true; try { cap = capabilities(await adapter.capabilities()); return snapshot(); } finally { busy = false; } },
-      async adopt() { if (busy) throw Error("Study request already in flight"); if (!cap?.available) throw Error("No available public source definition"); busy = true; try { const prepared = await prepare(currentDesign(), cap.physical); if (run && !same(run.request, prepared)) throw Error("Preserve the existing study and create a new design revision before adopting changed inputs"); adopted = clone(cap.physical); if (!run) run = { request: prepared, response: null, association: "CURRENT", origin: "NOT_EXECUTED" }; run.association = await current(prepared) ? "CURRENT" : "STALE"; return snapshot(); } finally { busy = false; } },
+      async adopt(action = "REFERENCE_FEASIBILITY") { if (busy) throw Error("Study request already in flight"); if (!cap?.available) throw Error("No available public source definition"); if (!["REFERENCE_FEASIBILITY", "OPERATING_ENVELOPE"].includes(action) || (action === "OPERATING_ENVELOPE" && !cap.envelope)) throw Error("Operating envelope unavailable in this grant"); busy = true; try { const prepared = await prepare(currentDesign(), cap.physical, action === "OPERATING_ENVELOPE" ? cap.envelope.scope_digest : null); const previous = retained.get(action) || (run?.request.action === action ? run : null); if (previous && !same(previous.request, prepared)) throw Error("Preserve the existing study and create a new design revision before adopting changed inputs"); if (run) retained.set(run.request.action, run); adopted = clone(cap.physical); run = previous || { request: prepared, response: null, association: "CURRENT", origin: "NOT_EXECUTED" }; run.association = await current(prepared) ? "CURRENT" : "STALE"; return snapshot(); } finally { busy = false; } },
       async refresh() { if (run) run.association = await current(run.request) ? "CURRENT" : "STALE"; return snapshot(); },
       start: () => execute("start"), status: () => execute("status"), cancel: () => execute("cancel"), result: () => execute("result"),
       save() { if (!run) throw Error("No study to save"); return clone({ schema: BUNDLE, request: run.request, response: run.response }); },
       async reopen(value) {
         if (busy) throw Error("Study request already in flight"); bounded(value); exact(value, ["schema", "request", "response"], "study bundle"); if (value.schema !== BUNDLE) throw Error("Unsupported study bundle");
         const r = request(value.request), received = value.response === null ? null : response(value.response, r);
-        const expected = await prepare(currentDesign(), r.physical);
+        const expected = await prepare(currentDesign(), r.physical, r.envelope_scope_digest || null);
         if (!same(expected, r)) throw Error("Saved study belongs to a different draft or physical definition");
         if (run && (!same(run.request, r) || (run.response !== null && !same(run.response, received)))) throw Error("Saved study conflicts with retained operation or response bytes");
         adopted = clone(r.physical); run = { request: r, response: received, association: "CURRENT", origin: "SAVED_UNVERIFIED" }; run.association = await current(r) ? "CURRENT" : "STALE"; return snapshot();
       },
     });
   }
-  const api = Object.freeze({ TEMPLATE, REQUEST, RESPONSE, CAPABILITIES, BUNDLE, check, physical, scope, prepare, response, capabilities, digest, createAdapter, createController });
+  const api = Object.freeze({ TEMPLATE, REQUEST, RESPONSE, CAPABILITIES, ENVELOPE_REQUEST, ENVELOPE_RESPONSE, ENVELOPE_CAPABILITIES, BUNDLE, check, physical, scope, prepare, request, response, capabilities, digest, createAdapter, createController });
   root.CarbonScientificStudies = api;
   if (typeof module !== "undefined") module.exports = api;
 })(typeof globalThis !== "undefined" ? globalThis : this);

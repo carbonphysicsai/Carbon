@@ -88,6 +88,7 @@ def project(row, root):
     reported = dict.fromkeys(status["ceilings"], 0)
     reserved = dict(reported)
     uncertain = dict(reported)
+    held = dict(reported)
     value["operations"] = []
     for op in status["operations"]:
         # Provider payloads, errors, numerical paths and final outputs stay private.
@@ -106,6 +107,8 @@ def project(row, root):
             op["actual"] if op["actual"] is not None else op["reservation"]
         ).items():
             target[key] += amount
+            if op["state"] == "HELD":
+                held[key] += amount
     value["usage"] = {
         "ceilings": status["ceilings"],
         "available": {
@@ -114,6 +117,7 @@ def project(row, root):
         "reserved": reserved,
         "reported": reported,
         "uncertain": uncertain,
+        "held_within_reserved": held,
         "cost_basis": "Integer nanodollars; published-rate estimates from provider token usage, not an invoice guarantee",
     }
     value["attempted_experiments"] = status["used"]["research_trials"]

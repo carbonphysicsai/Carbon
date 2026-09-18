@@ -19,8 +19,7 @@ OPERATION_ID = "http-operation-fixture-0001"
 PREFIX = "carbon_research_v2__"
 
 
-@pytest.fixture(scope="module")
-def keys():
+def make_keys():
     from cryptography.hazmat.primitives import serialization
     from cryptography.hazmat.primitives.asymmetric import rsa
 
@@ -29,6 +28,11 @@ def keys():
         serialization.Encoding.PEM, serialization.PublicFormat.SubjectPublicKeyInfo
     )
     return private, public
+
+
+@pytest.fixture(scope="module")
+def keys():
+    return make_keys()
 
 
 def token(keys, *, changes=None, omit=(), headers=None):
@@ -64,7 +68,7 @@ def verifier(keys):
     return BoundTokenVerifier(binding, public_keys={"fixture-key": keys[1]})
 
 
-def adapter(monkeypatch):
+def adapter(monkeypatch, *, meter=None):
     from carbon import research
     from carbon.development_session.research_tools import ResearchMinerTools
     from carbon.miner_mcp.standard import ResearchToolAdapter
@@ -87,7 +91,7 @@ def adapter(monkeypatch):
         connection=object(),
         wrapper=object(),
         composition=SimpleNamespace(executor=SimpleNamespace(owner="alice")),
-        ledger=None,
+        ledger=meter,
         owner="alice",
     )
     return ResearchToolAdapter(sdk, principal="alice"), calls
@@ -210,6 +214,16 @@ def test_http_direct_access_denied_and_transport_limits(keys, monkeypatch):
                 rpc("resources/read", {"uri": CAPABILITIES_URI}),
                 rpc("prompts/get", {"name": "carbon_research_workflow_v1"}),
                 rpc("tools/list"),
+                rpc("tasks/get", {"taskId": "rtsk_" + "a" * 64}),
+                rpc("tasks/cancel", {"taskId": "rtsk_" + "a" * 64}),
+                rpc("skills/list"),
+                rpc(
+                    "skills/get", {"uri": "skill://carbon/carbon-research-v1/SKILL.md"}
+                ),
+                rpc(
+                    "resources/read",
+                    {"uri": "skill://carbon/carbon-research-v1/SKILL.md"},
+                ),
             )
             for body in requests:
                 for unauthorized in (
