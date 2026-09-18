@@ -14,9 +14,12 @@
   const R =
     root.CarbonGoalRouting ||
     (typeof require !== "undefined" ? require("./routing.js") : null);
-  const VERSION = "carbon.goal-workbench.design.v0.9",
-    WORKSPACE_VERSION = "carbon.goal-workbench.workspace.v0.9",
-    APP_VERSION = "Carbon Goal-to-Challenge Workbench v0.9";
+  const VERSION = "carbon.goal-workbench.design.v0.10",
+    WORKSPACE_VERSION = "carbon.goal-workbench.workspace.v0.10",
+    APP_VERSION = "Carbon Goal-to-Challenge Workbench v0.10";
+  const TEAM_VERSION = "carbon.goal-workbench.design.v0.9",
+    TEAM_WORKSPACE_VERSION = "carbon.goal-workbench.workspace.v0.9",
+    TEAM_APP_VERSION = "Carbon Goal-to-Challenge Workbench v0.9";
   const INTAKE_VERSION = "carbon.goal-workbench.design.v0.8",
     INTAKE_WORKSPACE_VERSION = "carbon.goal-workbench.workspace.v0.8",
     INTAKE_APP_VERSION = "Carbon Goal-to-Challenge Workbench v0.8";
@@ -277,8 +280,8 @@
     return {
       schema_version: WORKSPACE_VERSION,
       application_version: APP_VERSION,
-      decision_id: "GOAL-WORKBENCH-09",
-      base_application_merge: "4afb80566fc695a873d7154c203787991bb64267",
+      decision_id: "GOAL-WORKBENCH-10",
+      base_application_merge: "fbd4a628a77e94efa449b08f7877470029968766",
       opportunity_workspace: clone(component),
       jobs: [],
       selected_job_id: null,
@@ -891,10 +894,10 @@
     if (
       w.schema_version !== WORKSPACE_VERSION ||
       w.application_version !== APP_VERSION ||
-      w.decision_id !== "GOAL-WORKBENCH-09"
+      w.decision_id !== "GOAL-WORKBENCH-10"
     )
       throw Error("Unsupported goal workspace version");
-    if (w.base_application_merge !== "4afb80566fc695a873d7154c203787991bb64267")
+    if (w.base_application_merge !== "fbd4a628a77e94efa449b08f7877470029968766")
       throw Error("Unsupported base application identity");
     const component = componentReader(JSON.stringify(w.opportunity_workspace));
     const jobs = list(w.jobs, "jobs", 64).map(validateJob);
@@ -1231,7 +1234,14 @@
   function migrateGoalWorkspace(value, digestStatus) {
     const w = clone(value),
       from = w.schema_version;
-    if (from === INTAKE_WORKSPACE_VERSION) {
+    if (from === TEAM_WORKSPACE_VERSION) {
+      if (
+        w.application_version !== TEAM_APP_VERSION ||
+        w.decision_id !== "GOAL-WORKBENCH-09" ||
+        w.base_application_merge !== "4afb80566fc695a873d7154c203787991bb64267"
+      )
+        throw Error("Unsupported v0.9 workspace identity");
+    } else if (from === INTAKE_WORKSPACE_VERSION) {
       if (
         w.application_version !== INTAKE_APP_VERSION ||
         w.decision_id !== "GOAL-WORKBENCH-08" ||
@@ -1276,22 +1286,33 @@
     } else throw Error("Unsupported goal workspace version");
     w.schema_version = WORKSPACE_VERSION;
     w.application_version = APP_VERSION;
-    w.decision_id = "GOAL-WORKBENCH-09";
-    w.base_application_merge = "4afb80566fc695a873d7154c203787991bb64267";
+    w.decision_id = "GOAL-WORKBENCH-10";
+    w.base_application_merge = "fbd4a628a77e94efa449b08f7877470029968766";
     for (const job of w.jobs) {
-      if (from !== INTAKE_WORKSPACE_VERSION && Object.hasOwn(job, "team_review")) {
+      if (
+        from !== TEAM_WORKSPACE_VERSION &&
+        from !== INTAKE_WORKSPACE_VERSION &&
+        Object.hasOwn(job, "team_review")
+      ) {
         if (JSON.stringify(job.team_review) !== JSON.stringify(T.newTeamReview()))
           throw Error("Declared legacy workspace contains non-empty future team-review state");
         delete job.team_review;
       }
-      if (from !== INTAKE_WORKSPACE_VERSION)
+      if (from !== TEAM_WORKSPACE_VERSION && from !== INTAKE_WORKSPACE_VERSION)
         for (const design of job.designs)
           if (Object.hasOwn(design, "assessment")) {
             if (JSON.stringify(design.assessment) !== JSON.stringify(T.newAssessment()))
               throw Error("Declared legacy workspace contains non-empty future assessment state");
             delete design.assessment;
           }
-      if (from === INTAKE_WORKSPACE_VERSION) {
+      if (from === TEAM_WORKSPACE_VERSION) {
+        for (const design of job.designs) {
+          if (design.schema_version !== TEAM_VERSION)
+            throw Error("Invalid v0.9 design version");
+          design.schema_version = VERSION;
+          design.assessment = T.migrateV1Assessment(design.assessment);
+        }
+      } else if (from === INTAKE_WORKSPACE_VERSION) {
         for (const design of job.designs) {
           if (design.schema_version !== INTAKE_VERSION)
             throw Error("Invalid v0.8 design version");
@@ -1356,7 +1377,7 @@
           design.assessment = T.newAssessment();
         }
       }
-      job.team_review = T.newTeamReview();
+      if (from !== TEAM_WORKSPACE_VERSION) job.team_review = T.newTeamReview();
       const selected =
         w.selected_job_id === job.job_id
           ? job.designs.find(
@@ -1374,7 +1395,9 @@
       original_digest_status: digestStatus,
       semantic_changes: [
         "Preserved all earlier job, sealed-design, CPES, C-05, authoring, handoff, response and change-history bytes.",
-        from === INTAKE_WORKSPACE_VERSION
+        from === TEAM_WORKSPACE_VERSION
+          ? "Migrated the v0.9 team assessment to the accepted C-CORE-04 dependency model. No historical placeholder became a returned observation; physical and public-reference actions are only available-not-requested."
+          : from === INTAKE_WORKSPACE_VERSION
           ? "Added an empty team-review queue and design-assessment record. No reviewer, feasibility conclusion, source evidence, task result, client approval or route was fabricated."
           : from === ADMITTED_WORKSPACE_VERSION
           ? "Added an empty local-intake lineage collection; no client statement, route, owner, source assessment, consent or approval was fabricated. Existing source-assessment receipts remain subject to installed-snapshot revalidation."
@@ -1393,6 +1416,7 @@
     if (value.schema_version === WORKSPACE_VERSION)
       return validateWorkspace(value, componentReader);
     if (
+      value.schema_version === TEAM_WORKSPACE_VERSION ||
       value.schema_version === PRIOR_WORKSPACE_VERSION ||
       value.schema_version === INTAKE_WORKSPACE_VERSION ||
       value.schema_version === ADMITTED_WORKSPACE_VERSION ||
@@ -1467,6 +1491,22 @@
     job.working_design_id = next.design_id;
     return next;
   }
+
+  async function recordPhysicalDefinitionCheck(design, studies) {
+    return T.recordPhysicalDefinitionCheck(design.assessment, design, studies);
+  }
+
+  async function revalidatePhysicalDefinitionChecks(workspace, studies) {
+    for (const job of workspace.jobs)
+      for (const design of job.designs)
+        await T.revalidatePhysicalDefinitionCheck(
+          design.assessment,
+          design,
+          studies,
+        );
+    return workspace;
+  }
+
   function recordImpact(d, field, note = "") {
     if (d.status !== "DRAFT") throw Error("Sealed design is immutable");
     const domains = R.applyChangeImpact(d, field),
@@ -1508,6 +1548,7 @@
     if (domains.some((x) => R.C05_DOMAINS.includes(x)))
       for (const evidence of d.measurement_evidence)
         evidence.binding_status = "STALE_DESIGN_CHANGED";
+    T.invalidatePhysicalDefinitionCheck(d.assessment, field);
     if (domains.includes("AUTHORING")) {
       d.authoring.compatibility = "UNASSESSED";
       d.authoring.semantic_receipt = null;
@@ -2598,6 +2639,8 @@
     validateJob,
     validateDesign,
     reviseDesign,
+    recordPhysicalDefinitionCheck,
+    revalidatePhysicalDefinitionChecks,
     applyChange,
     recordImpact,
     economics,

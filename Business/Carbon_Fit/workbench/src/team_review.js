@@ -35,6 +35,21 @@
     "smallest_useful_pilot",
     "stop_conditions",
   ];
+  const PHYSICAL_CHECK_PROFILE =
+    "C-CORE-04/LOCAL_STRUCTURAL_PHYSICAL_DEFINITION_V1";
+  const PHYSICAL_CHECK_SCOPE_FIELDS = [
+    "physics_family",
+    "requested_goal",
+    "inputs",
+    "outputs",
+    "units",
+    "geometry",
+    "conditions",
+    "regime",
+    "exclusions",
+    "query_workload",
+    "rights_scope",
+  ];
   const clone = (value) => JSON.parse(JSON.stringify(value));
 
   function text(value, label, maximum = 8000) {
@@ -86,7 +101,7 @@
 
   function newAssessment() {
     const result = {
-      schema_version: "carbon.goal-workbench.team-assessment.v1",
+      schema_version: "carbon.goal-workbench.team-assessment.v2",
       intended_engineering_decision: "",
     };
     for (const field of ASSESSMENT_FIELDS) result[field] = "";
@@ -96,21 +111,33 @@
     result.scientific_task_dependencies = [
       {
         task_kind: "PHYSICAL_DEFINITION_CHECK",
-        availability: "CORE_INTERFACE_PENDING",
+        availability: "AVAILABLE_NOT_REQUESTED",
         exact_design_binding: "",
-        note: "Issue #209 C-CORE-02 is accepted; use it only through the pending C-CORE-04 Workbench adapter. No local runner is implied.",
+        adapter_profile: PHYSICAL_CHECK_PROFILE,
+        check_id: "",
+        scope_digest: "",
+        result: null,
+        note: "C-CORE-04 is accepted for a local structural check. It runs no solver and supplies no scientific qualification.",
       },
       {
         task_kind: "OPERATING_ENVELOPE_EXPLORATION",
         availability: "CORE_INTERFACE_PENDING",
         exact_design_binding: "",
-        note: "Synthetic contract placeholder only until the C-CORE-04 Workbench adapter is accepted.",
+        adapter_profile: "ISSUE-209/OPERATING_ENVELOPE_PENDING",
+        check_id: "",
+        scope_digest: "",
+        result: null,
+        note: "Broader operating-envelope exploration remains owned by issue #209 and is not exposed by this Workbench release.",
       },
       {
         task_kind: "REFERENCE_FEASIBILITY_AND_COST",
-        availability: "CORE_INTERFACE_PENDING",
+        availability: "AVAILABLE_NOT_REQUESTED",
         exact_design_binding: "",
-        note: "No reference execution, cost result, or scientific conclusion is claimed.",
+        adapter_profile: "C-CORE-04/PUBLIC_BURGERS_REFERENCE_FEASIBILITY_V1",
+        check_id: "",
+        scope_digest: "",
+        result: null,
+        note: "The separate C-CORE-04 public-source study panel owns this granted action. No reference execution, cost result, or scientific conclusion is claimed here.",
       },
     ];
     return result;
@@ -202,7 +229,7 @@
       ],
       "team assessment",
     );
-    if (value.schema_version !== "carbon.goal-workbench.team-assessment.v1")
+    if (value.schema_version !== "carbon.goal-workbench.team-assessment.v2")
       throw Error("Unsupported team-assessment version");
     text(value.intended_engineering_decision, "assessment intended decision");
     for (const field of ASSESSMENT_FIELDS)
@@ -222,17 +249,213 @@
     });
     list(value.open_questions, "assessment open questions", 128).forEach((item) => text(item, "assessment open question", 2000));
     list(value.scientific_task_dependencies, "scientific task dependencies", 16).forEach((item) => {
-      exact(item, ["task_kind", "availability", "exact_design_binding", "note"], "scientific task dependency");
+      exact(item, ["task_kind", "availability", "exact_design_binding", "adapter_profile", "check_id", "scope_digest", "result", "note"], "scientific task dependency");
       if (!["PHYSICAL_DEFINITION_CHECK", "OPERATING_ENVELOPE_EXPLORATION", "REFERENCE_FEASIBILITY_AND_COST"].includes(item.task_kind))
         throw Error("Unknown scientific task kind");
       if (!["CORE_INTERFACE_PENDING", "AVAILABLE_NOT_REQUESTED", "REQUEST_PREPARED", "RETURNED", "FAILED", "CANCELLED", "STALE"].includes(item.availability))
         throw Error("Invalid scientific task availability");
       text(item.exact_design_binding, "scientific task binding", 300);
+      text(item.adapter_profile, "scientific task adapter profile", 300);
+      text(item.check_id, "scientific check ID", 128);
+      if (item.scope_digest && !/^sha256:[0-9a-f]{64}$/.test(item.scope_digest))
+        throw Error("Invalid scientific task scope digest");
+      if (item.result !== null) {
+        exact(
+          item.result,
+          ["schema_version", "status", "issues", "qualification", "authority_effect", "provenance", "limitations"],
+          "scientific task result",
+        );
+        if (item.result.schema_version !== "carbon.goal-workbench.physical-definition-observation.v1")
+          throw Error("Unsupported physical-definition observation");
+        if (!["STRUCTURALLY_CHECKED", "INPUTS_UNRESOLVED"].includes(item.result.status))
+          throw Error("Invalid physical-definition status");
+        list(item.result.issues, "physical-definition issues", 32).forEach((issue) =>
+          text(issue, "physical-definition issue", 2000),
+        );
+        if (
+          item.result.qualification !== "NOT_QUALIFIED" ||
+          item.result.authority_effect !== "NONE" ||
+          item.result.provenance !== "WORKBENCH_DERIVED"
+        )
+          throw Error("Physical-definition check cannot grant authority");
+        text(item.result.limitations, "physical-definition limitations", 2000);
+        if (
+          item.task_kind !== "PHYSICAL_DEFINITION_CHECK" ||
+          !item.check_id ||
+          !item.scope_digest ||
+          !["RETURNED", "STALE"].includes(item.availability)
+        )
+          throw Error("Physical-definition observation is not exactly bound");
+      } else if (item.check_id || item.scope_digest)
+        throw Error("Scientific task identity without a retained result");
       text(item.note, "scientific task note", 2000);
       if (item.exact_design_binding && item.exact_design_binding !== design.design_id + "@" + design.revision)
         throw Error("Scientific task binding is stale or for another design");
     });
     return clone(value);
+  }
+
+  function physicalCheckScope(design) {
+    const scope = {};
+    for (const field of PHYSICAL_CHECK_SCOPE_FIELDS)
+      scope[field] = text(design.scope[field], "physical check scope " + field);
+    scope.reference_equation = text(
+      design.reference_plan.equation,
+      "physical check reference equation",
+    );
+    scope.reference_method = text(
+      design.reference_plan.method,
+      "physical check reference method",
+    );
+    return scope;
+  }
+
+  async function physicalCheckIdentity(design, studies) {
+    if (!studies || typeof studies.digest !== "function")
+      throw Error("Accepted C-CORE-04 structural adapter is unavailable");
+    const binding = design.design_id + "@" + design.revision;
+    const scope_digest =
+      "sha256:" +
+      (await studies.digest({
+        adapter_profile: PHYSICAL_CHECK_PROFILE,
+        job_id: design.job_id,
+        design_id: design.design_id,
+        design_revision: design.revision,
+        draft_scope: physicalCheckScope(design),
+      }));
+    return {
+      binding,
+      scope_digest,
+      check_id: "gw10-physical-" + scope_digest.slice(7, 39),
+    };
+  }
+
+  function normalizePhysicalResult(value) {
+    exact(
+      value,
+      ["status", "issues", "qualification", "limitations"],
+      "C-CORE-04 structural result",
+    );
+    if (!["STRUCTURALLY_CHECKED", "INPUTS_UNRESOLVED"].includes(value.status))
+      throw Error("Unsupported C-CORE-04 structural status");
+    if (value.qualification !== "NOT_QUALIFIED")
+      throw Error("C-CORE-04 structural check cannot qualify a design");
+    return {
+      schema_version: "carbon.goal-workbench.physical-definition-observation.v1",
+      status: value.status,
+      issues: list(value.issues, "C-CORE-04 structural issues", 32).map((issue) =>
+        text(issue, "C-CORE-04 structural issue", 2000),
+      ),
+      qualification: "NOT_QUALIFIED",
+      authority_effect: "NONE",
+      provenance: "WORKBENCH_DERIVED",
+      limitations: text(value.limitations, "C-CORE-04 structural limitations", 2000),
+    };
+  }
+
+  async function recordPhysicalDefinitionCheck(assessment, design, studies) {
+    if (design.status !== "DRAFT")
+      throw Error("Sealed design is immutable; create a revision");
+    const dependency = assessment.scientific_task_dependencies.find(
+      (item) => item.task_kind === "PHYSICAL_DEFINITION_CHECK",
+    );
+    if (!dependency || dependency.adapter_profile !== PHYSICAL_CHECK_PROFILE)
+      throw Error("Accepted physical-definition dependency is unavailable");
+    const identity = await physicalCheckIdentity(design, studies);
+    const result = normalizePhysicalResult(studies.check(design));
+    Object.assign(dependency, {
+      availability: "RETURNED",
+      exact_design_binding: identity.binding,
+      check_id: identity.check_id,
+      scope_digest: identity.scope_digest,
+      result,
+      note:
+        result.status +
+        ": local structural C-CORE-04 observation for this exact design revision. No solver ran and authority effect is NONE.",
+    });
+    return clone(dependency);
+  }
+
+  function invalidatePhysicalDefinitionCheck(assessment, field) {
+    if (
+      !PHYSICAL_CHECK_SCOPE_FIELDS.includes(field) &&
+      field !== "reference"
+    )
+      return false;
+    const dependency = assessment.scientific_task_dependencies.find(
+      (item) => item.task_kind === "PHYSICAL_DEFINITION_CHECK",
+    );
+    if (!dependency?.result || dependency.availability === "STALE") return false;
+    dependency.availability = "STALE";
+    dependency.note =
+      "STALE: " + field + " changed after " + dependency.check_id +
+      ". The historical observation is retained; rerun the local structural check for the current draft.";
+    return true;
+  }
+
+  async function revalidatePhysicalDefinitionCheck(assessment, design, studies) {
+    const dependency = assessment.scientific_task_dependencies.find(
+      (item) => item.task_kind === "PHYSICAL_DEFINITION_CHECK",
+    );
+    if (!dependency?.result) return clone(dependency);
+    const identity = await physicalCheckIdentity(design, studies);
+    const expected = normalizePhysicalResult(studies.check(design));
+    if (
+      dependency.scope_digest === identity.scope_digest &&
+      (dependency.check_id !== identity.check_id ||
+        JSON.stringify(dependency.result) !== JSON.stringify(expected))
+    )
+      throw Error("Stored physical-definition observation failed deterministic revalidation");
+    if (dependency.scope_digest !== identity.scope_digest) {
+      dependency.availability = "STALE";
+      dependency.note =
+        "STALE: the retained C-CORE-04 observation belongs to " +
+        dependency.exact_design_binding +
+        "; the current physical scope differs.";
+    }
+    return clone(dependency);
+  }
+
+  function migrateV1Assessment(value) {
+    if (!value || value.schema_version !== "carbon.goal-workbench.team-assessment.v1")
+      throw Error("Unsupported v0.9 team assessment");
+    exact(
+      value,
+      [
+        "schema_version",
+        "intended_engineering_decision",
+        ...ASSESSMENT_FIELDS,
+        "resource_scenarios",
+        "work_packages",
+        "open_questions",
+        "scientific_task_dependencies",
+      ],
+      "v0.9 team assessment",
+    );
+    const next = newAssessment();
+    for (const key of ["intended_engineering_decision", ...ASSESSMENT_FIELDS])
+      next[key] = clone(value[key]);
+    for (const key of ["resource_scenarios", "work_packages", "open_questions"])
+      next[key] = clone(value[key]);
+    for (const historical of value.scientific_task_dependencies || []) {
+      exact(
+        historical,
+        ["task_kind", "availability", "exact_design_binding", "note"],
+        "v0.9 scientific task dependency",
+      );
+      const current = next.scientific_task_dependencies.find(
+        (item) => item.task_kind === historical.task_kind,
+      );
+      if (!current) continue;
+      if (
+        historical.availability !== "CORE_INTERFACE_PENDING" ||
+        historical.exact_design_binding
+      )
+        current.note +=
+          " Historical v0.9 projection " + historical.availability +
+          " was not a recoverable C-CORE-04 observation and was not promoted.";
+    }
+    return next;
   }
 
   function addCorrection(review, input) {
@@ -337,17 +560,25 @@
           ...item.rights_review_reasons.map((reason) => reason.reason_id),
         ]),
       ],
-      authority: "Internal preparation only. Shared core tasks remain unavailable unless their accepted interface and grant are present. No execution or scientific authority is created.",
+      authority: "Internal preparation only. The accepted C-CORE-04 structural check runs no solver; numerical study execution still requires its installed private service and grant. No scientific authority is created.",
     };
   }
 
   const api = {
     QUEUE_STATES,
     ASSESSMENT_FIELDS,
+    PHYSICAL_CHECK_PROFILE,
+    PHYSICAL_CHECK_SCOPE_FIELDS,
     newTeamReview,
     newAssessment,
     validateTeamReview,
     validateAssessment,
+    physicalCheckScope,
+    physicalCheckIdentity,
+    recordPhysicalDefinitionCheck,
+    invalidatePhysicalDefinitionCheck,
+    revalidatePhysicalDefinitionCheck,
+    migrateV1Assessment,
     addCorrection,
     addManualRecord,
     queueProjection,

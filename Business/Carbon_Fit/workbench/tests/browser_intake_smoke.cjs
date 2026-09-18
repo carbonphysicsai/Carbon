@@ -148,7 +148,7 @@ async function saveDownload(page, selector, target) {
   restored.on("dialog", (dialog) => dialog.accept());
   await restored.goto("file://" + WORKBENCH);
   await restored.locator("#goal-workspace-file").setInputFiles(sessionPath);
-  await restored.waitForFunction(() => document.querySelector("#toast").textContent.includes("Imported v0.8"));
+  await restored.waitForFunction(() => document.querySelector("#toast").textContent.includes("Imported v0.10"));
   await restored.locator('[data-tab="jobs"]').click();
   check("fresh-session save reload retains reviewed intake lineage and route", await restored.locator("#jobs-view").innerText().then((text) => text.includes("Source intake lineage (1)") && text.includes("USE_EXISTING_CAPABILITY")));
   await restored.locator("#intake-draft-file").setInputFiles(path.join(FIXTURES, "fresh_burgers_v1.json"));

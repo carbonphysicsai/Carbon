@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Carbon goal-to-Challenge workbench workspace v0.9",
+  "title": "Carbon goal-to-Challenge workbench workspace v0.10",
   "$comment": "Closed browser-local planning schema. Derived results are recomputed. It grants no scientific, security, rights, reuse, submission, execution, or launch authority.",
   "$defs": {
     "opportunity_workspace_v02": {
@@ -2627,16 +2627,16 @@
   "additionalProperties": false,
   "properties": {
     "schema_version": {
-      "const": "carbon.goal-workbench.workspace.v0.9"
+      "const": "carbon.goal-workbench.workspace.v0.10"
     },
     "application_version": {
-      "const": "Carbon Goal-to-Challenge Workbench v0.9"
+      "const": "Carbon Goal-to-Challenge Workbench v0.10"
     },
     "decision_id": {
-      "const": "GOAL-WORKBENCH-09"
+      "const": "GOAL-WORKBENCH-10"
     },
     "base_application_merge": {
-      "const": "4afb80566fc695a873d7154c203787991bb64267"
+      "const": "fbd4a628a77e94efa449b08f7877470029968766"
     },
     "opportunity_workspace": {
       "$ref": "#/$defs/opportunity_workspace_v02"
@@ -2951,7 +2951,7 @@
               "additionalProperties": false,
               "properties": {
                 "schema_version": {
-                  "const": "carbon.goal-workbench.design.v0.9"
+                  "const": "carbon.goal-workbench.design.v0.10"
                 },
                 "job_id": {
                   "type": "string",
@@ -6404,7 +6404,7 @@
                   "additionalProperties": false,
                   "properties": {
                     "schema_version": {
-                      "const": "carbon.goal-workbench.team-assessment.v1"
+                      "const": "carbon.goal-workbench.team-assessment.v2"
                     },
                     "intended_engineering_decision": {
                       "type": "string",
@@ -6614,6 +6614,70 @@
                             "type": "string",
                             "maxLength": 300
                           },
+                          "adapter_profile": {
+                            "type": "string",
+                            "maxLength": 300
+                          },
+                          "check_id": {
+                            "type": "string",
+                            "maxLength": 128
+                          },
+                          "scope_digest": {
+                            "type": "string",
+                            "maxLength": 71
+                          },
+                          "result": {
+                            "anyOf": [
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "properties": {
+                                  "schema_version": {
+                                    "const": "carbon.goal-workbench.physical-definition-observation.v1"
+                                  },
+                                  "status": {
+                                    "enum": [
+                                      "STRUCTURALLY_CHECKED",
+                                      "INPUTS_UNRESOLVED"
+                                    ]
+                                  },
+                                  "issues": {
+                                    "type": "array",
+                                    "maxItems": 32,
+                                    "items": {
+                                      "type": "string",
+                                      "maxLength": 2000
+                                    }
+                                  },
+                                  "qualification": {
+                                    "const": "NOT_QUALIFIED"
+                                  },
+                                  "authority_effect": {
+                                    "const": "NONE"
+                                  },
+                                  "provenance": {
+                                    "const": "WORKBENCH_DERIVED"
+                                  },
+                                  "limitations": {
+                                    "type": "string",
+                                    "maxLength": 2000
+                                  }
+                                },
+                                "required": [
+                                  "schema_version",
+                                  "status",
+                                  "issues",
+                                  "qualification",
+                                  "authority_effect",
+                                  "provenance",
+                                  "limitations"
+                                ]
+                              }
+                            ]
+                          },
                           "note": {
                             "type": "string",
                             "maxLength": 2000
@@ -6623,6 +6687,10 @@
                           "task_kind",
                           "availability",
                           "exact_design_binding",
+                          "adapter_profile",
+                          "check_id",
+                          "scope_digest",
+                          "result",
                           "note"
                         ]
                       }
@@ -7230,7 +7298,7 @@
               "carbon.goal-workbench.workspace.v0.6",
               "carbon.goal-workbench.workspace.v0.7",
               "carbon.goal-workbench.workspace.v0.8",
-              "carbon.goal-workbench.workspace.v0.9"
+              "carbon.goal-workbench.workspace.v0.10"
             ]
           },
           "original_digest_status": {

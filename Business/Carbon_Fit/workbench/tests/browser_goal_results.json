@@ -31,7 +31,7 @@
     "reimport resumes without retyping scope responses or malicious text",
     "narrow job view avoids document overflow",
     "keyboard navigation moves focus",
-    "interactive job fields retain labels",
+    "interactive job fields retain labels: ",
     "offline navigation remains usable and no outbound request occurred",
     "browser emitted no script exception"
   ],

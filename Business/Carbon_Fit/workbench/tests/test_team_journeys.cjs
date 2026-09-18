@@ -130,7 +130,10 @@ for (const scenario of scenarios) {
     assert.equal(handoff.status, "PREPARED");
     assert.equal(design.decision.scientific_qualification, "NOT_QUALIFIED");
     assert.equal(design.decision.security_rights, "UNRESOLVED");
-    assert.equal(design.assessment.scientific_task_dependencies.every((item) => item.availability === "CORE_INTERFACE_PENDING"), true);
+    assert.deepEqual(
+      design.assessment.scientific_task_dependencies.map((item) => item.availability),
+      ["AVAILABLE_NOT_REQUESTED", "CORE_INTERFACE_PENDING", "AVAILABLE_NOT_REQUESTED"],
+    );
     const client = G.clientPilotBrief(job, design), internal = G.internalExecutionBrief(job, design);
     assert.equal(client.design_id, internal.design_id);
     assert.equal(client.authority.includes("not feasibility"), true);

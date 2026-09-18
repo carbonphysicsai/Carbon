@@ -27,7 +27,24 @@ The original v0.1 source input was independently verified before import: all 38 
 
 Repository runs `34789353024` and `34789634638` on earlier PR #156 candidates remain failed history. Their Hub fixture and dependency-boundary defects were repaired in separate maintenance PRs #159 and #160. After both repairs merged, PR #156 was reconciled with main `1a1a5ad4585caebd168725451ca255e06561f693`; the same 65 engine, 14 source/evidence/schema/build/package, and 40 actual-Chrome checks passed again. Final exact-head repository acceptance is recorded on PR #156 rather than retroactively attributed to an earlier artifact.
 
-# Workbench v0.9 acceptance notes
+# Workbench v0.10 acceptance notes
+
+GOAL-WORKBENCH-10 binds the accepted C-CORE-04 local structural check to the
+existing team-assessment dependency row. Focused tests cover exact identity,
+no-authority output, material staleness, editorial preservation, child reset,
+v0.9 migration, deterministic import revalidation, tamper rejection, and the
+ordinary generated-browser export/reopen path. The check runs no solver; the
+broader issue #209 operating-envelope action remains pending.
+
+The pre-acceptance candidate ran 281 JavaScript tests and 27 Workbench
+source/package and authoring Python tests. The built Chrome suites passed 40
+legacy/CPES, 29 goal, 19 routing, 13 source-assessment, 31 intake, and 16
+team-review checks; the private/offline scientific-study fixture covered
+desktop, narrow, and no-network operation. The nine private-service CPU tests
+refused the non-canonical local dependency identities and are reserved for the
+required locked canonical job. Hub validation passed with no errors.
+
+# Historical Workbench v0.9 acceptance notes
 
 GOAL-WORKBENCH-09 adds the private team intake queue, traceable review and
 assessment records, two same-design output projections, and a bounded

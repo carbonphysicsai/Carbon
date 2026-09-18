@@ -6,6 +6,7 @@ if (!globalThis.crypto) globalThis.crypto = crypto.webcrypto;
 require("../src/engine.js");
 const G = require("../src/workflow.js");
 const T = require("../src/team_review.js");
+const S = require("../src/scientific_studies.js");
 
 function job() {
   const value = G.newJob("team-job-001", "Synthetic thermal inquiry");
@@ -53,23 +54,66 @@ test("client and internal outputs derive from the same exact design", () => {
   assert.equal(client.design_id, internal.design_id);
   assert.equal(client.design_revision, internal.design_revision);
   assert.match(client.authority, /not feasibility/);
-  assert.match(internal.authority, /No execution/);
+  assert.match(internal.authority, /runs no solver/);
   assert.equal(client.internal_notes, undefined);
   assert.equal(internal.assessment.smallest_useful_pilot, client.proposed_scope);
 });
 
-test("revision preserves assessment content but resets shared task execution claims", () => {
+test("accepted core check is exact-scope, non-qualifying, and stale after a physical edit", async () => {
+  const value = G.newJob("science-job-001", "Public Burgers definition");
+  const design = value.designs[0];
+  Object.assign(design.scope, {
+    physics_family: S.TEMPLATE,
+    requested_goal: "Dynamics",
+    inputs: "Source Fourier coefficients, viscosity and requested times",
+    outputs: "Full periodic field",
+    units: "Source nondimensional units",
+    geometry: "Periodic line",
+    conditions: "Unforced periodic boundary",
+    regime: "Public synthetic TRAIN source case",
+    exclusions: "No private or protected cases",
+    query_workload: "One local structural review",
+    rights_scope: "SYNTHETIC_INTERNAL",
+  });
+  design.reference_plan.equation = "u_t + d_x(u^2/2) = nu*u_xx";
+  design.reference_plan.method = "Registered public source method";
+  const first = await G.recordPhysicalDefinitionCheck(design, S);
+  const again = await G.recordPhysicalDefinitionCheck(design, S);
+  assert.equal(first.availability, "RETURNED");
+  assert.equal(first.result.status, "INPUTS_UNRESOLVED");
+  assert.match(first.result.issues.join(" "), /Adopt the private service/);
+  assert.equal(first.result.qualification, "NOT_QUALIFIED");
+  assert.equal(first.result.authority_effect, "NONE");
+  assert.equal(first.check_id, again.check_id);
+  assert.equal(first.exact_design_binding, design.design_id + "@1");
+  G.applyChange(design, "commercial_context", "Editorial note", "display only");
+  assert.equal(design.assessment.scientific_task_dependencies[0].availability, "RETURNED");
+  G.applyChange(design, "conditions", "Changed physical condition", "material");
+  assert.equal(design.assessment.scientific_task_dependencies[0].availability, "STALE");
+  assert.equal(design.decision.scientific_qualification, "NOT_QUALIFIED");
+});
+
+test("saved structural observations revalidate and tampered projections reject", async () => {
+  const value = job(), design = value.designs[0];
+  await G.recordPhysicalDefinitionCheck(design, S);
+  const workspace = G.newWorkspace({ schema_version: "carbon.fit.workspace.v0.2", application_version: "Carbon Fit Workbench v0.2", source_sha256: "a".repeat(64), evidence_catalog: [], drafts: [], shortlist: [], migration_receipts: [] });
+  workspace.jobs.push(value);
+  await G.revalidatePhysicalDefinitionChecks(workspace, S);
+  design.assessment.scientific_task_dependencies[0].result.status = "STRUCTURALLY_CHECKED";
+  await assert.rejects(
+    G.revalidatePhysicalDefinitionChecks(workspace, S),
+    /failed deterministic revalidation/,
+  );
+});
+
+test("revision preserves assessment content but resets shared task observations", async () => {
   const value = job(), design = value.designs[0];
   design.assessment.reference_gaps = "No usable independent reference identified.";
-  design.assessment.scientific_task_dependencies[0] = {
-    task_kind: "PHYSICAL_DEFINITION_CHECK",
-    availability: "RETURNED",
-    exact_design_binding: design.design_id + "@" + design.revision,
-    note: "Synthetic returned fixture, not scientific evidence.",
-  };
+  await G.recordPhysicalDefinitionCheck(design, S);
   const next = G.reviseDesign(value, design.design_id, "team-job-001-design-2");
   assert.equal(next.assessment.reference_gaps, design.assessment.reference_gaps);
-  assert.equal(next.assessment.scientific_task_dependencies[0].availability, "CORE_INTERFACE_PENDING");
+  assert.equal(next.assessment.scientific_task_dependencies[0].availability, "AVAILABLE_NOT_REQUESTED");
+  assert.equal(next.assessment.scientific_task_dependencies[0].result, null);
   assert.equal(next.decision.scientific_qualification, "NOT_QUALIFIED");
   assert.equal(design.status, "SEALED");
 });
@@ -88,6 +132,37 @@ test("assessment cannot claim an unrelated scientific task binding or measured c
     status: "MEASURED",
   });
   assert.throws(() => T.validateAssessment(design.assessment, design), /cannot claim measured/);
+});
+
+test("v0.9 workspace migration preserves review text without promoting placeholder task state", () => {
+  const workspace = G.newWorkspace({ component: "synthetic" });
+  const value = job();
+  value.team_review.assigned_reviewer = "Synthetic reviewer";
+  value.designs[0].assessment.reference_gaps = "Reference adequacy remains unknown.";
+  const old = value.designs[0].assessment;
+  old.schema_version = "carbon.goal-workbench.team-assessment.v1";
+  old.scientific_task_dependencies = old.scientific_task_dependencies.map((item) => ({
+    task_kind: item.task_kind,
+    availability: "CORE_INTERFACE_PENDING",
+    exact_design_binding: "",
+    note: "Historical v0.9 placeholder.",
+  }));
+  value.designs[0].schema_version = "carbon.goal-workbench.design.v0.9";
+  workspace.jobs.push(value);
+  workspace.schema_version = "carbon.goal-workbench.workspace.v0.9";
+  workspace.application_version = "Carbon Goal-to-Challenge Workbench v0.9";
+  workspace.decision_id = "GOAL-WORKBENCH-09";
+  workspace.base_application_merge = "4afb80566fc695a873d7154c203787991bb64267";
+  const migrated = G.readWorkspace(JSON.stringify(workspace), JSON.parse, "VERIFIED_WEB_CRYPTO");
+  const assessment = migrated.jobs[0].designs[0].assessment;
+  assert.equal(migrated.schema_version, "carbon.goal-workbench.workspace.v0.10");
+  assert.equal(migrated.jobs[0].team_review.assigned_reviewer, "Synthetic reviewer");
+  assert.equal(assessment.reference_gaps, "Reference adequacy remains unknown.");
+  assert.deepEqual(
+    assessment.scientific_task_dependencies.map((item) => item.availability),
+    ["AVAILABLE_NOT_REQUESTED", "CORE_INTERFACE_PENDING", "AVAILABLE_NOT_REQUESTED"],
+  );
+  assert.equal(assessment.scientific_task_dependencies[0].result, null);
 });
 
 test("private team notes never enter the client pilot brief", () => {

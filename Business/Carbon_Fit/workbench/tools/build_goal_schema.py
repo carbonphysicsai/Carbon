@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the closed additive v0.9 goal-workbench and intake schemas."""
+"""Generate the closed additive v0.10 goal-workbench and intake schemas."""
 
 from __future__ import annotations
 
@@ -7,10 +7,10 @@ import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-DESIGN = "carbon.goal-workbench.design.v0.9"
-WORKSPACE = "carbon.goal-workbench.workspace.v0.9"
-APP = "Carbon Goal-to-Challenge Workbench v0.9"
-BASE = "4afb80566fc695a873d7154c203787991bb64267"
+DESIGN = "carbon.goal-workbench.design.v0.10"
+WORKSPACE = "carbon.goal-workbench.workspace.v0.10"
+APP = "Carbon Goal-to-Challenge Workbench v0.10"
+BASE = "fbd4a628a77e94efa449b08f7877470029968766"
 BLOCKERS = ["AT-09", "AT-16", "AT-19", "AT-22", "AT-30"]
 CONTROLS = [f"P{i}" for i in range(1, 9)]
 ROLES = ["MANDATORY", "SOFT", "DIAGNOSTIC", "DEPLOYMENT"]
@@ -889,7 +889,7 @@ assessment_fields = [
 ]
 team_assessment = obj(
     {
-        "schema_version": {"const": "carbon.goal-workbench.team-assessment.v1"},
+        "schema_version": {"const": "carbon.goal-workbench.team-assessment.v2"},
         "intended_engineering_decision": string(),
         **{field: string() for field in assessment_fields},
         "resource_scenarios": array(
@@ -941,6 +941,29 @@ team_assessment = obj(
                         ]
                     },
                     "exact_design_binding": string(300),
+                    "adapter_profile": string(300),
+                    "check_id": string(128),
+                    "scope_digest": string(71),
+                    "result": nullable(
+                        obj(
+                            {
+                                "schema_version": {
+                                    "const": "carbon.goal-workbench.physical-definition-observation.v1"
+                                },
+                                "status": {
+                                    "enum": [
+                                        "STRUCTURALLY_CHECKED",
+                                        "INPUTS_UNRESOLVED",
+                                    ]
+                                },
+                                "issues": array(string(2_000), 32),
+                                "qualification": {"const": "NOT_QUALIFIED"},
+                                "authority_effect": {"const": "NONE"},
+                                "provenance": {"const": "WORKBENCH_DERIVED"},
+                                "limitations": string(2_000),
+                            }
+                        )
+                    ),
                     "note": string(2_000),
                 }
             ),
@@ -1232,7 +1255,7 @@ intake_record = obj(
 )
 schema = {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "title": "Carbon goal-to-Challenge workbench workspace v0.9",
+    "title": "Carbon goal-to-Challenge workbench workspace v0.10",
     "$comment": (
         "Closed browser-local planning schema. Derived results are recomputed. "
         "It grants no scientific, security, rights, reuse, submission, execution, or launch authority."
@@ -1246,7 +1269,7 @@ schema = {
         {
             "schema_version": {"const": WORKSPACE},
             "application_version": {"const": APP},
-            "decision_id": {"const": "GOAL-WORKBENCH-09"},
+            "decision_id": {"const": "GOAL-WORKBENCH-10"},
             "base_application_merge": {"const": BASE},
             "opportunity_workspace": {"$ref": "#/$defs/opportunity_workspace_v02"},
             "jobs": array(job, 64),
@@ -1334,4 +1357,4 @@ constants = {
     + "\n",
     encoding="utf-8",
 )
-print("v0.9 goal-workbench and intake schemas generated")
+print("v0.10 goal-workbench and intake schemas generated")

@@ -1,8 +1,8 @@
 {
-  "DESIGN_VERSION": "carbon.goal-workbench.design.v0.9",
-  "WORKSPACE_VERSION": "carbon.goal-workbench.workspace.v0.9",
-  "APP_VERSION": "Carbon Goal-to-Challenge Workbench v0.9",
-  "BASE_APPLICATION_MERGE": "4afb80566fc695a873d7154c203787991bb64267",
+  "DESIGN_VERSION": "carbon.goal-workbench.design.v0.10",
+  "WORKSPACE_VERSION": "carbon.goal-workbench.workspace.v0.10",
+  "APP_VERSION": "Carbon Goal-to-Challenge Workbench v0.10",
+  "BASE_APPLICATION_MERGE": "fbd4a628a77e94efa449b08f7877470029968766",
   "BLOCKERS": [
     "AT-09",
     "AT-16",

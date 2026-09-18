@@ -2862,6 +2862,31 @@
       ],
       "response_url": "https://github.com/carbonphysicsai/Carbon/issues/139",
       "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/main/Business/Carbon_Fit/workbench/docs/GOAL_WORKBENCH_09_TEAM_REVIEW_REPORT.md"
+    },
+    {
+      "title": "Use the accepted core structural check in Workbench team review",
+      "question": "How should the Workbench use the merged C-CORE-04 interface while later operating-envelope and MCP work remains concurrent?",
+      "recommendation": "Replace only the physical-definition placeholder with the accepted CarbonScientificStudies.check adapter, bind every observation to the exact design and physical scope, and keep operating-envelope exploration pending its successor core interface.",
+      "why": "PR #220 established the structural check and private Julia handoff without granting scientific qualification. An additive Workbench integration gives reviewers an executable local check now while keeping service execution, grants, accounting, and newer core interfaces in their owning workstreams.",
+      "if_kept": "A team reviewer can run, retain, revalidate, and stale an exact-scope structural observation from the existing assessment row. Relevant physical changes invalidate it; editorial changes do not. No solver execution or qualification is inferred.",
+      "if_changed": "Remove the adapter projection prospectively while retaining historical observations. Any operating-envelope execution, reference run, new service route, grant, ledger, or task lifecycle change remains owned by issue #209 and requires its accepted successor interface.",
+      "decision_id": "GOAL-WORKBENCH-10-PHYSICAL-DEFINITION-01",
+      "map_ref": "WAVE-G",
+      "wave": "G",
+      "ticket": "FIT-WEB-01 physical-definition integration",
+      "attention": "FOR_AWARENESS",
+      "status": "IMPLEMENTED_WORKING_DECISION",
+      "audience": "ryan",
+      "affects": [
+        "WAVE-G",
+        "SYSTEM/BUSINESS-AUTHORITY",
+        "SYSTEM/GOVERNANCE",
+        "SYSTEM/MATURITY",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+      ],
+      "response_url": "https://github.com/carbonphysicsai/Carbon/issues/139",
+      "technical_detail_url": "https://github.com/carbonphysicsai/Carbon/blob/main/Business/Carbon_Fit/workbench/docs/GOAL_WORKBENCH_10_PHYSICAL_DEFINITION_REPORT.md"
     }
   ]
 }
