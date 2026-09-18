@@ -497,7 +497,7 @@ def stage_request(
             "continuation_split_step": continuation_split_step,
         }
         if worker_profile.accelerator_profile_id is not None:
-            request["schema"] = "carbon.c03.worker-request.v2"
+            request["schema"] = _accelerator_request_schema(worker_profile)
             request["accelerator"] = {
                 "profile_id": worker_profile.accelerator_profile_id,
                 "grant_digest": worker_profile.accelerator_grant_digest,
@@ -529,6 +529,16 @@ def stage_request(
         raise
 
 
+def _accelerator_request_schema(profile):
+    from carbon.reconstruction.accelerators import TPU_PROFILE
+
+    return (
+        "carbon.c03.worker-request.v3"
+        if profile.accelerator_profile_id == TPU_PROFILE.profile_id
+        else "carbon.c03.worker-request.v2"
+    )
+
+
 def _request_worker_profile(request):
     replicate = request["replicate"]
     accelerator = request.get("accelerator")
@@ -542,15 +552,24 @@ def _request_worker_profile(request):
         "role",
     }:
         raise WorkerFailure(WorkerCode.INVALID)
-    return DevelopmentWorkerProfile(
+    from carbon.reconstruction.accelerators import TPU_PROFILE
+
+    profile = DevelopmentWorkerProfile(
         replicate["policy_digest"],
         replicate["resource_class_digest"],
-        "carbon.c03.cuda.development.v1",
+        (
+            "carbon.c03.tpu.preparation.v1"
+            if accelerator["profile_id"] == TPU_PROFILE.profile_id
+            else "carbon.c03.cuda.development.v1"
+        ),
         "1.0",
         accelerator["profile_id"],
         accelerator["grant_digest"],
         accelerator["role"],
     )
+    if request["schema"] != _accelerator_request_schema(profile):
+        raise WorkerFailure(WorkerCode.INVALID)
+    return profile
 
 
 def load_worker_request(
@@ -571,10 +590,10 @@ def load_worker_request(
     try:
         if (
             request["schema"]
-            != (
-                "carbon.c03.worker-request.v2"
+            not in (
+                ("carbon.c03.worker-request.v2", "carbon.c03.worker-request.v3")
                 if "accelerator" in request
-                else "carbon.c03.worker-request.v1"
+                else ("carbon.c03.worker-request.v1",)
             )
             or request["scope"] != SCOPE
         ):
