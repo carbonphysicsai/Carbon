@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-17T23:20:32Z"
+  captured_at_utc: "2026-09-18T00:40:39Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "2442b692e2c6dedc8f134dbdb9434c54a725d607"
+  authority_snapshot_commit: "507926dd54d6446704ff5eca4c07ca6120df863b"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -7198,6 +7198,23 @@ events:
       - "WAVE-M"
       - "WAVE-N"
     supersedes: null
+  -
+    map_ref: "SYSTEM/PUBLICATION-AUTHORITY"
+    event_type: "evidence"
+    event_id: "WEB-QA-04-D1"
+    owner_lane: "owner"
+    status: "implemented"
+    summary: "Ask Carbon has a concrete production-disabled release candidate for public Q&A, guided pilot drafting, form-only drafting and local download. Luna and Terra passed the repaired private release set; Luna is selected for owner review on measured cost with no material quality disadvantage. The approved visitor notice, shared provider ceilings, private staging and rollback evidence remain bounded, inquiry collection stays disabled under issue #139, and carbonphysics.ai is unchanged."
+    primary_detail: "https://github.com/carbonphysicsai/Carbon/blob/507926dd54d6446704ff5eca4c07ca6120df863b/.agent/tickets/WEB-QA-04_ask_carbon_output_reliability.md"
+    affects:
+      - "SYSTEM/CI"
+      - "SYSTEM/DEVELOPMENT-HUB"
+      - "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+      - "SYSTEM/GOVERNANCE"
+      - "SYSTEM/MATURITY"
+      - "SYSTEM/PUBLICATION"
+      - "SYSTEM/PUBLICATION-AUTHORITY"
+    supersedes: "WEB-QA-03-D1"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"
