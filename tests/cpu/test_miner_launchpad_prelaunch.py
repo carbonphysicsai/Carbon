@@ -204,3 +204,35 @@ def test_gpu_configuration_is_not_cpu_fallback_or_execution_evidence(
     bridge.configuration.write_bytes(canonical(cfg))
     with pytest.raises(Rejected, match="runtime_interface_unavailable"):
         bridge.launch({"profile": cfg["profile_id"]}, "fixture-request-0001")
+
+
+def test_pause_at_thread_handoff_never_enters_campaign(tmp_path, monkeypatch):
+    bridge, cfg, _, ledger = configured_bridge(tmp_path, monkeypatch)
+    cfg.pop("disabled_reason")
+    cfg["enabled"] = True
+    bridge.configuration.write_bytes(canonical(cfg))
+    # Retain the launch record without creating any numerical/model thread.
+    monkeypatch.setattr(bridge, "_start", lambda *args: None)
+    monkeypatch.setattr(bridge, "get", lambda identity: {"id": identity})
+    review = bridge.preflight()
+    run = bridge.launch(
+        {"profile": cfg["profile_id"], "review_digest": review["review_digest"]},
+        "fixture-request-0001",
+    )
+    from carbon.development_session import research_campaign
+
+    monkeypatch.setattr(
+        research_campaign,
+        "execute",
+        lambda *args, **kwargs: pytest.fail("paused dispatch"),
+    )
+    disabled = {**cfg, "enabled": False, "disabled_reason": "OWNER_EXPERIMENT_PAUSE"}
+    bridge.configuration.write_bytes(canonical(disabled))
+    before = ledger.status(owner="miner-requester")
+    bridge._run(run["id"], cfg, ledger.admission, ledger.root)
+    assert ledger.status(owner="miner-requester") == before
+    with bridge.db() as db:
+        assert (
+            db.execute("SELECT state FROM research_runs").fetchone()[0]
+            == "RECONCILIATION_REQUIRED"
+        )

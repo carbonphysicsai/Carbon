@@ -267,6 +267,7 @@
     const review = connected && research.preflight.review;
     if (review) {
       researchNote(reviewPanel, "Experiment pause: " + review.experiment_pause);
+      if (review.blockers?.length) researchNote(reviewPanel, "Launch unavailable: " + review.blockers.map(value => value.replaceAll("_", " ")).join("; "));
       researchNote(reviewPanel, "Challenge: " + review.challenge + " · " + review.reconstruction);
       researchNote(reviewPanel, "Execution profile: " + review.execution.profile + " · Backend: " + review.execution.backend + " · " + review.execution.basis);
       researchNote(reviewPanel, "Dependencies installed: " + review.execution.installed_dependencies + " · Device visibility: " + review.execution.device_visibility + " · Retained execution evidence: " + review.execution.runtime_evidence + " · Admission: " + review.execution.admission_readiness);
