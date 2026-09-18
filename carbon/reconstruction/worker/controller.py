@@ -8,6 +8,7 @@ import platform
 import shutil
 import tempfile
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -131,6 +132,122 @@ class IsolatedReconstructionController:
         training_archive: PublicTrainingArchive,
         derived_seed: DerivedSeed,
         continuation_split_step: int | None = None,
+        accelerator_role=None,
+        cancelled: Callable[[], bool] | None = None,
+    ) -> WorkerRunResult:
+        from carbon.reconstruction.accelerators import GPU_PROFILE, AcceleratorRole
+        from carbon.reconstruction.worker.accelerator_runtime import (
+            AcceleratorHostAdmission,
+            reject_existing_device_containers,
+            verify_image_and_toolkit,
+        )
+
+        if (
+            type(claimed) is not ClaimedExecution
+            or type(replica) is not DevelopmentReplica
+        ):
+            raise WorkerFailure(WorkerCode.INVALID)
+        if cancelled is not None and not callable(cancelled):
+            raise WorkerFailure(WorkerCode.INVALID)
+        self._check_cancelled(cancelled)
+        reconstruction = compile_development_profile(plan)
+        options = {
+            "claimed": claimed,
+            "repeat_plan": repeat_plan,
+            "replica": replica,
+            "plan": plan,
+            "training_archive": training_archive,
+            "derived_seed": derived_seed,
+            "continuation_split_step": continuation_split_step,
+        }
+        mapping = json.loads(reconstruction.mapping_receipt_json)
+        if "execution_profile" not in mapping:
+            if accelerator_role is not None:
+                raise WorkerFailure(WorkerCode.POLICY)
+            return self._execute_bound(**options, cancelled=cancelled)
+        if reconstruction.profile_id != GPU_PROFILE.profile_id:
+            raise WorkerFailure(WorkerCode.UNSUPPORTED)
+        if type(accelerator_role) is not AcceleratorRole:
+            raise WorkerFailure(WorkerCode.POLICY)
+        admission = AcceleratorHostAdmission.load()
+        principal = claimed.binding.requester_identity.value
+        admission.verify(
+            principal=principal,
+            state_root=self.state_root,
+            image=self.image,
+            role=accelerator_role,
+            now=float(time.time()),
+            dispatch=True,
+        )
+        identity = replica.binding.replicate_identity
+        if (
+            admission.document["resource_policy_digest"]
+            != identity.policy_ref.content_digest
+            or admission.document["resource_class_digest"]
+            != identity.resource_class_ref.content_digest
+        ):
+            raise WorkerFailure(WorkerCode.POLICY)
+        worker_profile = DevelopmentWorkerProfile(
+            identity.policy_ref.content_digest,
+            identity.resource_class_ref.content_digest,
+            "carbon.c03.cuda.development.v1",
+            "1.0",
+            GPU_PROFILE.profile_id,
+            admission.digest,
+            accelerator_role.value,
+        )
+
+        def still_owned():
+            admission.verify(
+                principal=principal,
+                state_root=self.state_root,
+                image=self.image,
+                role=accelerator_role,
+                now=float(time.time()),
+            )
+            if cancelled is None:
+                return False
+            return cancelled()
+
+        with admission.exclusive_lease():
+            still_owned()
+            verify_image_and_toolkit(cli=self.cli, image=self.image)
+            reject_existing_device_containers(cli=self.cli)
+            return self._execute_bound(
+                **options, worker_profile=worker_profile, cancelled=still_owned
+            )
+
+    @staticmethod
+    def _check_cancelled(cancelled):
+        if cancelled is not None:
+            value = cancelled()
+            if type(value) is not bool:
+                raise WorkerFailure(WorkerCode.INVALID)
+            if value:
+                raise WorkerFailure(WorkerCode.CANCELLED)
+
+    def _remove_stage(self, stage):
+        if stage.parent != self.state_root / "staging" or stage.is_symlink():
+            raise WorkerFailure(WorkerCode.CLEANUP)
+        if stage.exists():
+            try:
+                stage.chmod(0o700)
+                shutil.rmtree(stage)
+            except OSError:
+                raise WorkerFailure(WorkerCode.CLEANUP) from None
+
+    def _execute_bound(
+        self,
+        *,
+        claimed: ClaimedExecution,
+        repeat_plan: DevelopmentRepeatPlan,
+        replica: DevelopmentReplica,
+        plan: ResolvedConstructionPlan,
+        training_archive: PublicTrainingArchive,
+        derived_seed: DerivedSeed,
+        continuation_split_step: int | None = None,
+        worker_profile: DevelopmentWorkerProfile | None = None,
+        cancelled: Callable[[], bool] | None = None,
     ) -> WorkerRunResult:
         if (
             type(claimed) is not ClaimedExecution
@@ -139,10 +256,11 @@ class IsolatedReconstructionController:
         ):
             raise WorkerFailure(WorkerCode.INVALID)
         identity = replica.binding.replicate_identity
-        worker_profile = DevelopmentWorkerProfile(
-            identity.policy_ref.content_digest,
-            identity.resource_class_ref.content_digest,
-        )
+        if worker_profile is None:
+            worker_profile = DevelopmentWorkerProfile(
+                identity.policy_ref.content_digest,
+                identity.resource_class_ref.content_digest,
+            )
         started_unix = float(time.time())
         started_mono = float(time.monotonic())
         timing = WorkerTiming(
@@ -198,7 +316,7 @@ class IsolatedReconstructionController:
                 retained_payload.get(field) != candidate_payload[field]
                 for field in replay_fields
             ):
-                shutil.rmtree(stage, ignore_errors=True)
+                self._remove_stage(stage)
                 raise WorkerFailure(WorkerCode.CONFLICT)
             retained_status = self.store.raw_status(binding.execution_id)
             if (
@@ -209,7 +327,7 @@ class IsolatedReconstructionController:
                 or type(retained_status["output_snapshot_digest"]) is not str
                 or type(retained_status["container_id"]) is not str
             ):
-                shutil.rmtree(stage, ignore_errors=True)
+                self._remove_stage(stage)
                 raise WorkerFailure(WorkerCode.CONFLICT)
             snapshot = (
                 self.state_root / "snapshots" / retained_status["launch_digest"][7:]
@@ -218,7 +336,7 @@ class IsolatedReconstructionController:
             # bounded native-parser process. Rebuild the read-only stage only
             # for that validation; it creates no worker execution effect.
             receipt = validate_snapshot_bounded(snapshot, stage)
-            shutil.rmtree(stage, ignore_errors=True)
+            self._remove_stage(stage)
             return WorkerRunResult(
                 receipt,
                 retained_status["launch_digest"],
@@ -241,7 +359,7 @@ class IsolatedReconstructionController:
             if not self.store.claim_create(binding):
                 raise WorkerFailure(WorkerCode.CONFLICT)
         except BaseException:
-            shutil.rmtree(stage, ignore_errors=True)
+            self._remove_stage(stage)
             raise
         checked = doctor(
             image_id=self.image.image_id,
@@ -254,9 +372,17 @@ class IsolatedReconstructionController:
                 WorkerLaunchState.FAILED_INFRA,
                 terminal_code=checked.code,
             )
-            shutil.rmtree(stage, ignore_errors=True)
+            self._remove_stage(stage)
             raise WorkerFailure(WorkerCode.UNAVAILABLE)
         create_started = time.monotonic()
+        if worker_profile.accelerator_profile_id is not None:
+            from carbon.reconstruction.worker.accelerator_runtime import (
+                mark_device_allocation,
+            )
+
+            mark_device_allocation(
+                container_name=container_name, launch_digest=binding.launch_digest
+            )
         try:
             created = self.cli.run(
                 create_arguments(
@@ -304,7 +430,7 @@ class IsolatedReconstructionController:
                 deadline_unix=timing.productive_deadline_unix,
             )
             self.cli.run(["start", container_name], timeout=20)
-            self._wait_file(container_name, "/scratch/control-ready", timing)
+            self._wait_file(container_name, "/scratch/control-ready", timing, cancelled)
             controls_digest, controls = inspect_effective_controls(
                 cli=self.cli,
                 container_name=container_name,
@@ -319,6 +445,7 @@ class IsolatedReconstructionController:
                 WorkerLaunchState.CONTROLS_VERIFIED,
                 effective_controls_digest=controls_digest,
             )
+            self._check_cancelled(cancelled)
             self.execution_queue.mark_running(claimed.claim)
             execution_running = True
             self.cli.run(
@@ -334,7 +461,7 @@ class IsolatedReconstructionController:
             )
             self.store.transition(binding, WorkerLaunchState.RUNNING)
             numerical_started = time.monotonic()
-            self._wait_file(container_name, "/scratch/ready", timing)
+            self._wait_file(container_name, "/scratch/ready", timing, cancelled)
             numerical_seconds = time.monotonic() - numerical_started
             export_started = time.monotonic()
             raw_parent = Path(
@@ -399,7 +526,8 @@ class IsolatedReconstructionController:
             if receipt.status is not ReconstructionStatus.COMPLETE:
                 raise WorkerFailure(WorkerCode.OUTPUT)
             validation_seconds = time.monotonic() - validation_started
-            shutil.rmtree(stage, ignore_errors=True)
+            self._check_cancelled(cancelled)
+            self._remove_stage(stage)
             self.execution_queue.record_partial(
                 claimed.claim,
                 PartialWorkRef(
@@ -467,7 +595,7 @@ class IsolatedReconstructionController:
                 except WorkerFailure:
                     pass
                 raise WorkerFailure(WorkerCode.QUARANTINED) from None
-            shutil.rmtree(stage, ignore_errors=True)
+            self._remove_stage(stage)
             if execution_running:
                 try:
                     # C-01 admits a successor only from RETRYABLE_INFRA. This
@@ -499,14 +627,18 @@ class IsolatedReconstructionController:
                 pass
             raise
 
-    def _wait_file(self, container_name: str, path: str, timing: WorkerTiming) -> None:
+    def _wait_file(
+        self, container_name: str, path: str, timing: WorkerTiming, cancelled=None
+    ) -> None:
         while time.monotonic() < timing.productive_deadline_monotonic:
+            self._check_cancelled(cancelled)
             result = self.cli.run(
                 ["exec", container_name, "/usr/bin/test", "-f", path],
                 timeout=5,
                 accepted=(0, 1),
             )
             if result.returncode == 0:
+                self._check_cancelled(cancelled)
                 return
             state = self.cli.json(
                 ["inspect", container_name, "--format", "{{json .State}}"]

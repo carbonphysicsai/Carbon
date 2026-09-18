@@ -1,0 +1,10 @@
+{
+  "name": "carbon-mcp-typescript-interop",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.19.0",
+  "description": "Independent official SDK client fixture; no model calls or scientific qualification",
+  "engines": { "node": ">=20" },
+  "dependencies": { "@modelcontextprotocol/client": "2.0.0" }
+}

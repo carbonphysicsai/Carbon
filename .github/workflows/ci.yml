@@ -101,12 +101,21 @@ jobs:
           cache-dependency-glob: uv.lock
       - name: Bootstrap locked Carbon environment
         env:
-          CARBON_UV_GROUPS: "chain archive science-jax"
+          CARBON_UV_GROUPS: "chain archive science-jax mcp"
         run: ./scripts/dev/bootstrap.sh
+      - name: Install pinned independent MCP client runtime
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: "24.19.0"
+      - name: Install locked independent MCP client
+        run: |
+          npm install --global pnpm@11.19.0 --ignore-scripts
+          pnpm --dir tests/service/mcp_typescript install --frozen-lockfile --ignore-scripts
       - name: Run canonical local/CI command
         env:
-          CARBON_UV_GROUPS: "chain archive science-jax"
+          CARBON_UV_GROUPS: "chain archive science-jax mcp"
           CARBON_REQUIRE_CHAIN_SDK: "1"
+          CARBON_REQUIRE_TYPESCRIPT_INTEROP: "1"
           QUALITY_BASE_SHA: ${{ needs.preflight.outputs.base_sha }}
           CARBON_ARTIFACT_DIR: .carbon-artifacts
           # Ubuntu runners provide Docker; make wrapper integration fail instead
@@ -174,12 +183,19 @@ jobs:
           cache-dependency-glob: uv.lock
       - name: Bootstrap locked controller environment
         env:
-          CARBON_UV_GROUPS: "chain archive science-jax"
+          CARBON_UV_GROUPS: "chain archive science-jax mcp"
         run: ./scripts/dev/bootstrap.sh
       - name: Build exact worker image and manifest
         run: ./scripts/dev/c03_worker_image.sh
       - name: Run required service-backed controls and real numerical paths
         run: ./scripts/dev/c03_worker_service.sh
+      - name: Build pinned native Julia reference worker
+        run: bash ./scripts/dev/julia_worker_image.sh
+      - name: Exercise registered Julia study and observed cancellation cleanup
+        env:
+          CARBON_JULIA_WORKER_MANIFEST: .carbon-artifacts/julia-worker-image.json
+          CARBON_JULIA_TRACE_PATH: .carbon-artifacts/julia-service-traces.jsonl
+        run: bash ./scripts/dev/julia_worker_service.sh
       - name: Exercise the three retained owner commands
         run: |
           ./scripts/dev/c03_worker.sh doctor
@@ -194,6 +210,8 @@ jobs:
             .carbon-artifacts/c03-worker-image.json
             .carbon-artifacts/c03-service-junit.xml
             .carbon-artifacts/c03-service-traces.jsonl
+            .carbon-artifacts/julia-worker-image.json
+            .carbon-artifacts/julia-service-traces.jsonl
           if-no-files-found: error
 
   contract-authority:

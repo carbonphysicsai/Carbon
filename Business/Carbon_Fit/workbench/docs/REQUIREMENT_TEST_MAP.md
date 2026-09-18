@@ -1,6 +1,21 @@
-# GOAL-WORKBENCH-08B / GOAL-WORKBENCH-08 / GOAL-WORKBENCH-07A / GOAL-WORKBENCH-07 / GOAL-WORKBENCH-06 / GOAL-WORKBENCH-05A / GOAL-WORKBENCH-05 / GOAL-WORKBENCH-04 / GOAL-WORKBENCH-03 / GOAL-WORKBENCH-02 / EXAM-PROTECT-WORKBENCH-01 requirement-to-test map
+# GOAL-WORKBENCH-09 / GOAL-WORKBENCH-08B / GOAL-WORKBENCH-08 / GOAL-WORKBENCH-07A / GOAL-WORKBENCH-07 / GOAL-WORKBENCH-06 / GOAL-WORKBENCH-05A / GOAL-WORKBENCH-05 / GOAL-WORKBENCH-04 / GOAL-WORKBENCH-03 / GOAL-WORKBENCH-02 / EXAM-PROTECT-WORKBENCH-01 requirement-to-test map
 
 This map describes focused application acceptance. It does not relabel the CPES study's historical 14/52/208 runs as workbench tests.
+
+| GW09 private-team requirement | UI / data / service | Automated evidence | Remaining limitation |
+|---|---|---|---|
+| Reviewed brief enters a truthful intake queue | Owner Console queue; job `team_review` | `test_team_review.cjs`; `browser_team_review_smoke.cjs` | Local/manual reviewer assertions |
+| Original words survive transcription correction | immutable intake bytes plus correction record | unit and browser correction checks | No customer identity authentication |
+| Assessment preserves unknowns and exact revision | design `assessment` v1 | validation, revision/reset and four journey tests | Scientific adequacy remains external |
+| Client and internal outputs share one design | derived pilot/execution brief v1 | exact binding and private-note exclusion checks | Files are local and unencrypted |
+| Durable receipt before acknowledgment | `team_intake_store.cjs` atomic store | restart/response-loss retry test | Synthetic/local store only |
+| Idempotency and optimistic concurrency | idempotency map; expected version | conflict and stale update tests | No multi-region synchronization |
+| Named-user authorization and deletion | least-privilege principal roles; tombstone | unauthorized read/export/delete and lifecycle tests | Production staff/retention decisions pending |
+| Notification failure cannot lose inquiry | transactional outbox | failure then recovery test | No person-directed notification sent |
+| Four complete synthetic workflows | frozen GW09 scenario records | `test_team_journeys.cjs` | Not customer demand or usability evidence |
+| Core task integration does not duplicate runtime | three issue #209 dependency rows | exact-binding/availability validation; browser display | All rows remain `CORE_INTERFACE_PENDING` |
+| Generated desktop/narrow artifact stays offline | v0.9 standalone HTML | inherited 29 checks + focused 13 checks | Safari/WebKit/VoiceOver unexecuted |
+| Authority remains closed | UNASSESSED route; existing decisions and handoff v1 | inherited routing/state/source-assessment/CPES suites | No science, rights, execution, score or launch |
 
 | GW08B guided-evaluation requirement | Implementation / evidence | Automated coverage | Authority limitation |
 |---|---|---|---|

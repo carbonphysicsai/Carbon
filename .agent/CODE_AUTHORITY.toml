@@ -45,6 +45,7 @@ implementation_roots = [
     "carbon/resource_policy",
     "carbon/rewards",
     "carbon/schema",
+    "carbon/scientific_tasks",
     "carbon/scoring",
     "carbon/seeding",
     "carbon/traineval",

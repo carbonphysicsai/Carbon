@@ -1,0 +1,5 @@
+# The fixed instrument uses Julia Base only. No package resolution is required.
+julia_version = "1.13.0"
+manifest_format = "2.0"
+
+[deps]

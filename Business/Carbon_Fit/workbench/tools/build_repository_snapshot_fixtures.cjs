@@ -169,10 +169,27 @@ async function main() {
       conflicts_with_assessment_ids: [],
     }],
   };
-  write(path.join(CANDIDATE, "public_design.json"), design);
+  // These are the exact historical Workbench-07A bytes adopted by Ryan. The
+  // maintained Workbench can advance without rewriting that frozen subject.
+  const historicalDesign = clone(design);
+  historicalDesign.schema_version = "carbon.goal-workbench.design.v0.8";
+  delete historicalDesign.assessment;
+  const historicalWorkspace = clone(exampleWorkspace);
+  historicalWorkspace.schema_version = "carbon.goal-workbench.workspace.v0.8";
+  historicalWorkspace.application_version = "Carbon Goal-to-Challenge Workbench v0.8";
+  historicalWorkspace.decision_id = "GOAL-WORKBENCH-08";
+  historicalWorkspace.base_application_merge = "94762b6a8932ac6834c731a416c3a45c4cbf6170";
+  for (const historicalJob of historicalWorkspace.jobs) {
+    delete historicalJob.team_review;
+    for (const historical of historicalJob.designs) {
+      historical.schema_version = "carbon.goal-workbench.design.v0.8";
+      delete historical.assessment;
+    }
+  }
+  write(path.join(CANDIDATE, "public_design.json"), historicalDesign);
   write(path.join(CANDIDATE, "request.json"), request);
   write(path.join(CANDIDATE, "assessment_pending_adoption.json"), candidate);
-  write(path.join(CANDIDATE, "public_example_workspace.json"), exampleWorkspace);
+  write(path.join(CANDIDATE, "public_example_workspace.json"), historicalWorkspace);
   write(path.join(TEST, "profile.test-only.json"), profile);
   write(path.join(TEST, "approved_assessments.test-only.json"), testIndex);
   write(path.join(TEST, "assessment.test-only.json"), testResponse);

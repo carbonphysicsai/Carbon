@@ -124,6 +124,16 @@ class ResearchComposition:
 
 
 def make_research_service(*, root, ledger, owner, image, public_material, practice):
+    from .julia_research import JuliaPublicMaterial
+
+    scaffold_catalog = (
+        public_material.catalogue()
+        if type(public_material) is JuliaPublicMaterial
+        else public_catalog()
+    )
+    implementation_files = sorted(Path(__file__).parent.glob("research_*.py"))
+    if type(public_material) is JuliaPublicMaterial:
+        implementation_files.append(Path(__file__).with_name("julia_research.py"))
     contracts = research_contracts()
     compiler = Compiler(
         candidate_assembly=contracts.assembly,
@@ -188,7 +198,7 @@ def make_research_service(*, root, ledger, owner, image, public_material, practi
         ),
         (),
         research.PublicScaffoldCatalogRef(
-            CHALLENGE, content_digest=digest(canonical(public_catalog()))
+            CHALLENGE, content_digest=digest(canonical(scaffold_catalog))
         ),
         research.NoPriorAvailability(),
         inspection.policy_ref,
@@ -220,10 +230,7 @@ def make_research_service(*, root, ledger, owner, image, public_material, practi
         task_queue=Queue(),
         worker_implementation_digest=digest(
             canonical(
-                {
-                    name.name: digest(name.read_bytes())
-                    for name in sorted(Path(__file__).parent.glob("research_*.py"))
-                }
+                {name.name: digest(name.read_bytes()) for name in implementation_files}
             )
         ),
         environment_digest=contracts.assembly.environment_pins[0].content_digest,

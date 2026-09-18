@@ -84,6 +84,16 @@ if [[ " ${CARBON_UV_GROUPS:-} " == *" science-jax "* ]]; then
   "${python_bin}" -m pytest tests/science -q
 fi
 
+if [[ " ${CARBON_UV_GROUPS:-} " == *" mcp "* ]]; then
+  echo "==> pinned standard MCP external-client interoperability"
+  "${python_bin}" -m pytest tests/service/test_standard_mcp_stdio.py \
+    tests/service/test_standard_mcp_cli.py tests/service/test_standard_mcp_http.py -q
+  if [[ "${CARBON_REQUIRE_TYPESCRIPT_INTEROP:-}" == "1" ]]; then
+    "${python_bin}" -m pytest tests/service/test_standard_mcp_typescript.py -q
+    bash ./scripts/dev/workbench_science_checks.sh
+  fi
+fi
+
 echo "==> canonical/legacy authority boundary"
 "${python_bin}" -m pytest tests/cpu/test_code_authority.py -q
 
