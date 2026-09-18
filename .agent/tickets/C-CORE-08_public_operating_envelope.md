@@ -185,3 +185,14 @@ Maturity ceiling: implemented and locally tested public DEVELOPMENT consumer.
 Reference/Challenge scientific qualification, protected/private execution,
 arbitrary sweeps, real agent campaign usefulness, accelerator runtime and
 production authentication/deployment remain outside this bounded evidence.
+
+## Canonical delivery deadline repair
+
+The inherited carrier HELD rejection needed Black's multiline formatting; the
+repair changes no behavior. Separately, C-CORE-05 canonical job `105422127125`
+printed `Carbon canonical CI gates passed` before cancellation at its 45-minute
+job deadline. The integration owner authorized increasing only the canonical
+job limit to 60 minutes so setup, required checks and final artifact handling fit
+inside its deadline. All tests, classification rules, required gates and other
+job limits remain unchanged. A cancelled job remains failed acceptance evidence
+until the applicable repaired candidate or retry passes.

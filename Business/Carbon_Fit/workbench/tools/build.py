@@ -45,6 +45,7 @@ def build(*, private_science=False, output_directory=None):
     c05_evidence = (ROOT / "src/c05_evidence.js").read_text()
     source_assessment = (ROOT / "src/source_assessment.js").read_text()
     intake = (ROOT / "src/intake.js").read_text()
+    team_review = (ROOT / "src/team_review.js").read_text()
     workflow = (ROOT / "src/workflow.js").read_text()
     scientific_studies = (ROOT / "src/scientific_studies.js").read_text()
     scientific_studies_ui = (ROOT / "src/scientific_studies_ui.js").read_text()
@@ -68,6 +69,7 @@ def build(*, private_science=False, output_directory=None):
             c05_evidence,
             source_assessment,
             intake,
+            team_review,
             workflow,
             scientific_studies,
             scientific_studies_ui,
@@ -98,6 +100,7 @@ def build(*, private_science=False, output_directory=None):
         "C05_EVIDENCE": c05_evidence,
         "SOURCE_ASSESSMENT": source_assessment,
         "INTAKE": intake,
+        "TEAM_REVIEW": team_review,
         "WORKFLOW": workflow,
         "SCIENTIFIC_STUDIES": scientific_studies,
         "SCIENTIFIC_STUDIES_UI": scientific_studies_ui,
