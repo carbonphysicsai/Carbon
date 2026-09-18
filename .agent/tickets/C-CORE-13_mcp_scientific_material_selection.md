@@ -87,3 +87,32 @@ with fixture host/registration/transport and no worker launch.
 These are consumer-wiring diagnostics, not new native numerical, hardware,
 scientific qualification or production containment evidence. Canonical CI,
 programme/Hub integration and normal delivery checks remain pending.
+
+## Engineering reference-failure diagnostics
+
+Isolated CI run `35298266520`, job `105455282467`, stopped before judging the
+candidate when public TRAIN reference preparation returned a non-SUPPORTED
+result. The known parent identity is
+`sha256:6ec0da17760c9ff8c8e469311677c846a7f5a9dedee67dd443c5eb62d9eccfad`.
+Artifact `10528744427` retains the original JUnit failure, worker manifest and
+aggregate traces. It does not contain that request, its typed failure reason,
+controller journal or role entropy. Full inputs are unrecoverable from this
+retained evidence; the exact cause remains unresolved. Passing PR222/224 runs
+used the same relevant reference source, build recipe and dependency lock, but
+fresh random cases, so they do not reproduce or resolve this failed case.
+
+An owner-approved test-only wrapper now records a bounded failure entry into the
+existing uploaded C03 trace before preserving the original result/exception.
+Only request identities recomputed from this synthetic test's existing public
+TRAIN records are eligible. The trace retains exact query/method settings,
+parent/request/image/launch/snapshot identities, typed outcome/reason, diagnostics,
+selected controls/resources and timings. It excludes private paths and unrelated
+controller fields, limits nesting/counts/strings and record/file bytes, and never
+redraws inputs, retries work, alters solver limits or judges the candidate.
+Serialization failure preserves the original outcome and emits a bounded notice.
+
+Six focused diagnostic tests passed in 12.08 seconds without selecting the real
+numerical test; strict isolated Python 3.10 Ruff and Black passed. This is an
+observability repair, not evidence that the historical reference failure is fixed.
+New exact-head canonical acceptance remains required; no blind retry of the failed
+head, replacement solver or outcome-selected case is authorized by this repair.
