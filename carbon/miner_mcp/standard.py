@@ -177,6 +177,7 @@ def _arguments(operation, supplied):
                 "notebook",
                 "capability_request",
                 "run_python",
+                "run_julia",
             ):
                 _invalid()
             args["strategy_json"] = args.pop("strategy")
@@ -305,6 +306,22 @@ class ResearchToolAdapter:
             )
         ):
             raise AdapterFailure(AdapterCode.OWNER_BINDING)
+
+    @property
+    def authored_julia_available(self):
+        """Discovery reflects the bound operator grant; execution rechecks it."""
+        from carbon.development_session.julia_analysis import authorize_julia
+
+        self._check_binding()
+        try:
+            authorize_julia(
+                self._sdk.ledger,
+                self._principal,
+                getattr(self._sdk.composition.executor, "julia_image", None),
+            )
+        except (ValueError, TypeError, AttributeError):
+            return False
+        return True
 
     async def call(self, request: ResearchToolRequest) -> ResearchToolResult:
         self._check_binding()

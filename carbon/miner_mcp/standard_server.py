@@ -108,6 +108,17 @@ def _create_server(adapter: ResearchToolAdapter, *, guard=None, **settings):
         requires_reconciliation: bool
         official_eligible: Literal[False]
 
+    actions = [
+        "public_material",
+        "inventory",
+        "read_file",
+        "write_file",
+        "notebook",
+        "capability_request",
+        "run_python",
+    ]
+    if adapter.authored_julia_available:
+        actions.append("run_julia")
     fields = {
         "operation_id": (
             Annotated[str, Field(pattern=r"^[A-Za-z0-9._:-]{16,114}$")],
@@ -119,16 +130,7 @@ def _create_server(adapter: ResearchToolAdapter, *, guard=None, **settings):
         "poll_sequence": (Annotated[int, Field(ge=0, le=9999)], ...),
         "kind": (Literal["practice", "workspace"], ...),
         "action": (
-            Literal[
-                "public_material",
-                "inventory",
-                "read_file",
-                "write_file",
-                "notebook",
-                "capability_request",
-                "run_python",
-            ]
-            | None,
+            Literal[tuple(actions)] | None,
             ...,
         ),
         "arguments": (dict[str, JsonValue] | None, ...),
@@ -196,7 +198,16 @@ def _create_server(adapter: ResearchToolAdapter, *, guard=None, **settings):
     def guidance() -> str:
         if guard is not None:
             guard()
-        return GUIDANCE
+        return GUIDANCE + (
+            "\nProspectively admitted authored Julia: use kind=workspace, action=run_julia, "
+            "strategy=null and arguments {source,files,seconds,hypothesis,expected_effect}. "
+            "Only named own/public files are staged. Julia 1.13.0 Base and installed "
+            "standard libraries execute in the isolated analysis image. Runtime package "
+            "installation is unavailable. Save bounded exports under /scratch/output; "
+            "results are MINER_SELF_REPORTED, not reference or training qualification."
+            if adapter.authored_julia_available
+            else ""
+        )
 
     @server.prompt(name="carbon_research_workflow_v1")
     def workflow() -> str:
