@@ -1,0 +1,42 @@
+{
+  "schema_version": "carbon.goal-workbench.team-scenarios.v1",
+  "authority": "PUBLIC_SYNTHETIC_PRODUCT_TESTS_ONLY_NO_CUSTOMER_DEMAND_OR_SCIENTIFIC_RESULT",
+  "scenarios": [
+    {
+      "scenario_id": "GW09-EXISTING-MODEL-REFERENCE",
+      "source_fixture": "intake/fixtures/existing_method_v1.json",
+      "situation": "Client reports an existing model and comparison evidence.",
+      "route": "USE_EXISTING_CAPABILITY",
+      "assessment_focus": "Clarify whether the existing capability covers the intended use and deployment boundary.",
+      "next_question": "Which exact operating range and reference comparisons are permitted for a bounded applicability review?",
+      "stop_condition": "Stop after the intended-use and reference-access gaps are explicitly recorded."
+    },
+    {
+      "scenario_id": "GW09-OBJECTIVE-NO-USABLE-REFERENCE",
+      "source_fixture": "intake/fixtures/fresh_burgers_v1.json",
+      "situation": "Client has an objective but reference adequacy and access remain unresolved.",
+      "route": "ADAPT_SUPPORTED_CHALLENGE",
+      "assessment_focus": "Keep the supported-family hypothesis separate from reference feasibility.",
+      "next_question": "Can a source owner identify one permitted reference-feasibility check for this exact proposed scope?",
+      "stop_condition": "Stop without numerical execution when reference identity, rights, or allowance is absent."
+    },
+    {
+      "scenario_id": "GW09-UNSUPPORTED-COUPLED-PHYSICS",
+      "source_fixture": "intake/fixtures/unsupported_physics_v1.json",
+      "situation": "Synthetic coupled-physics request has no supported authoring route.",
+      "route": "DEVELOP_NEW_CAPABILITY",
+      "assessment_focus": "Define one bounded physical-definition compatibility question.",
+      "next_question": "Can the accepted core capability interface represent the requested coupled observable without changing its meaning?",
+      "stop_condition": "Stop after one compatibility finding or a precise unsupported result."
+    },
+    {
+      "scenario_id": "GW09-INCOMPLETE-UNKNOWN-REQUIREMENTS",
+      "source_fixture": null,
+      "situation": "Client states an objective but leaves outputs, conditions, reference, rights, and performance requirements unknown.",
+      "route": "DEVELOP_NEW_CAPABILITY",
+      "assessment_focus": "Preserve unknowns and ask for the single clarification that changes feasibility scope.",
+      "next_question": "Which engineering decision and observable must the first pilot inform?",
+      "stop_condition": "Stop after the client identifies one observable or confirms it remains unknown."
+    }
+  ]
+}
