@@ -621,6 +621,10 @@
     "core_platform_public_gpu_diagnostic": {
       "label": "C-CORE-14: public GPU recipe diagnostic through existing admission",
       "url": "https://github.com/carbonphysicsai/Carbon/blob/c8f8300b21581142cbd294978ee1d65c3f0e69b0/.agent/tickets/C-CORE-14_public_gpu_diagnostic.md"
+    },
+    "web_qa_04_release_candidate": {
+      "label": "WEB-QA-04: Ask Carbon release-candidate boundary",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/ebd5bad978393ef27b67b472f397918f29febc83/.agent/tickets/WEB-QA-04_ask_carbon_output_reliability.md"
     }
   },
   "authority_source_checks": [
@@ -2153,6 +2157,15 @@
         "official_eligible false",
         "Hardware"
       ]
+    },
+    {
+      "id": "ask-carbon-public-release-candidate",
+      "path": ".agent/tickets/WEB-QA-04_ask_carbon_output_reliability.md",
+      "required_markers": [
+        "**Status:** IMPLEMENTED AND TESTED",
+        "public activation remains disabled",
+        "Inquiry collection, receipt, persistence and staff notification remain a"
+      ]
     }
   ],
   "authority_ceilings": {
@@ -2203,17 +2216,24 @@
     ],
     "rules": [
       {
-        "id": "core-platform-public-gpu-diagnostic",
-        "match_type": "exact",
-        "path": ".agent/tickets/C-CORE-14_public_gpu_diagnostic.md",
-        "impact_class": "map_structural",
-        "map_ref": "SYSTEM/AGENT-EXECUTION"
-      },
-      {
         "id": "core-platform-compiled-update-observation",
         "match_type": "exact",
         "path": ".agent/evidence/wave_c/c-core-05-cpu-update-observation.json",
         "impact_class": "mapped_detail",
+        "map_ref": "SYSTEM/AGENT-EXECUTION"
+      },
+      {
+        "id": "web-qa-04-public-release-candidate-ticket",
+        "match_type": "exact",
+        "path": ".agent/tickets/WEB-QA-04_ask_carbon_output_reliability.md",
+        "impact_class": "map_structural",
+        "map_ref": "SYSTEM/PUBLICATION-AUTHORITY"
+      },
+      {
+        "id": "core-platform-public-gpu-diagnostic",
+        "match_type": "exact",
+        "path": ".agent/tickets/C-CORE-14_public_gpu_diagnostic.md",
+        "impact_class": "map_structural",
         "map_ref": "SYSTEM/AGENT-EXECUTION"
       },
       {

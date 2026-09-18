@@ -169,6 +169,7 @@ settlement, weight, or emission claim.
 - [C-CORE-12: optional separately authorized Workbench MCP App](https://github.com/carbonphysicsai/Carbon/blob/c8f8300b21581142cbd294978ee1d65c3f0e69b0/.agent/tickets/C-CORE-12_mcp_workbench_apps.md)
 - [Workbench MCP App composition, fixed assets and host-harness limits](https://github.com/carbonphysicsai/Carbon/blob/c8f8300b21581142cbd294978ee1d65c3f0e69b0/carbon/miner_mcp/apps_ui/README.md)
 - [C-CORE-14: public GPU recipe diagnostic through existing admission](https://github.com/carbonphysicsai/Carbon/blob/c8f8300b21581142cbd294978ee1d65c3f0e69b0/.agent/tickets/C-CORE-14_public_gpu_diagnostic.md)
+- [WEB-QA-04: Ask Carbon release-candidate boundary](https://github.com/carbonphysicsai/Carbon/blob/ebd5bad978393ef27b67b472f397918f29febc83/.agent/tickets/WEB-QA-04_ask_carbon_output_reliability.md)
 
 Authority snapshot: `c8f8300b` on `main`,
 captured 2026-09-18T01:13:14Z.

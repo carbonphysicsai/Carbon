@@ -810,7 +810,10 @@ Measure synchronized cold/warm execution, compilation, conversion/transfer,
 training, reference/measurement, idle and cleanup. Keep fixed-workload benchmarks
 separate from adaptive research usefulness. Retain method failures and uncertainty.
 
-Follow DELIVERY_PROTOCOL and applicable canonical, import, package, worker,
+Follow OWNER-DX-03 in DELIVERY_PROTOCOL. For this programme it supersedes older
+human-review, GPT-review and receipt delivery gates. Preserve their historical
+evidence and all human-reserved scientific, security, economic, legal, deployment
+and LIVE authority. Apply the required canonical, import, package, worker,
 scientific-boundary and Hub checks. No blanket CI exemption, test suppression,
 extra routine approval ceremony or mandatory bot subscription. Merge the tested
 head through the normal gate. An admission-disabled engineering merge may precede
