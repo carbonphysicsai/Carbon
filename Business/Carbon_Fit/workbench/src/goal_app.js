@@ -62,6 +62,7 @@
   function notify(x) {
     H.notify(x);
   }
+  const scientificStudies = CarbonScientificStudyUI.create({ getDesign: design, notify, download });
   function intakePreviewView() {
     if (!pendingIntake)
       return `<section class="panel"><div class="eyebrow">Local intake bridge</div><h3>Preview before creating a job</h3><p>Import a closed local intake draft. Nothing is transmitted, and the file cannot carry approvals, native receipts, trusted evidence, or a route.</p><button data-import-intake>Import intake draft</button></section>`;
@@ -997,6 +998,7 @@
     bindV05();
     bindTeamReview();
     renderOwnerConsole();
+    scientificStudies.mount($("jobs-view"));
   };
   async function digest(raw) {
     if (!crypto?.subtle) return "UNAVAILABLE";

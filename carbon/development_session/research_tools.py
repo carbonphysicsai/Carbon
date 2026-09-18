@@ -379,7 +379,14 @@ class ResearchMinerTools:
             return self.rejected(operation, args, identity)
         # Authentication and execution exceptions remain operational stops. Only
         # the pre-dispatch closed request validation above is repairable feedback.
-        observed = await self.connection.check_registration()
+        cleanup_registration = getattr(
+            self.connection, "check_cleanup_registration", None
+        )
+        observed = await (
+            cleanup_registration()
+            if operation == "cancel_research_task" and callable(cleanup_registration)
+            else self.connection.check_registration()
+        )
         if operation == "start_research_task":
             self.ledger.note(
                 owner=self.owner,

@@ -43,3 +43,6 @@
   #owner-console-view td:nth-child(5)::before { content: "Blocker / restart"; }
   #owner-console-view td:nth-child(6)::before { content: "Provenance"; }
 }
+.scientific-study-panel { overflow-wrap: anywhere; }
+.scientific-study-panel pre { max-height: 20rem; overflow: auto; white-space: pre-wrap; }
+.scientific-study-panel svg { display: block; width: 100%; max-width: 48rem; height: auto; border: 1px solid #d8e1dc; }

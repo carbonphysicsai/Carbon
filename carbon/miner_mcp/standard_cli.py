@@ -233,6 +233,16 @@ class _AdmittedConnection:
         )
         self.closed = False
 
+    async def check_cleanup_registration(self):
+        from carbon.development_session.research_admission import verify_cleanup_owner
+
+        if self.closed or private_json(self.profile.path) != self.profile.document:
+            raise ValueError("operator profile changed or controller closed")
+        retained = verify_cleanup_owner(self.ledger, self.profile.manifest["owner"])
+        if retained != self.profile.manifest:
+            raise ValueError("retained campaign differs from connection")
+        return await self.connection.check_registration()
+
     async def check_registration(self):
         profile = self.profile
         if self.closed or private_json(profile.path) != profile.document:
