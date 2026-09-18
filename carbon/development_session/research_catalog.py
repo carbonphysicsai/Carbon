@@ -111,7 +111,7 @@ def research_contracts() -> SessionContracts:
     return SessionContracts(assembly, catalog, origin, artifacts)
 
 
-def compile_recipe(strategy):
+def compile_recipe(strategy, *, contracts=None):
     """Static compiler plus actual backend configuration checks; no training."""
     from carbon.reconstruction._vendor.carbon_jax_lab.config import (
         ModelConfig,
@@ -119,7 +119,9 @@ def compile_recipe(strategy):
         TrainConfig,
     )
 
-    compiled = research_contracts().compile(strategy)
+    compiled = (research_contracts() if contracts is None else contracts).compile(
+        strategy
+    )
     if type(compiled) is not CompileAccepted:
         raise ValueError(
             "recipe rejected by B-02B: " + ",".join(i.code for i in compiled.issues)

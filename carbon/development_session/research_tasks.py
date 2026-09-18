@@ -167,7 +167,12 @@ class PublicResearchExecutor:
                 allowed.update({MATERIAL, ENVELOPE})
             if args["name"] not in allowed:
                 raise ValueError("public material unavailable")
-            return self.public_material(args["name"], self.workspace)
+            result = self.public_material(args["name"], self.workspace)
+            from .gpu_research import PublicGPUPractice
+
+            if type(self.practice) is PublicGPUPractice:
+                result = self.practice.projection(args["name"], result, self.workspace)
+            return result
         if spec.action == "inventory":
             return {"files": self.workspace.inventory()}
         if spec.action == "read_file":

@@ -81,6 +81,39 @@ remote-service request with named accounts/hosts/devices, current rates, all cos
 cap, expiry and cleanup; continue permitted local work. AWS deferred, Hippius
 outside the critical path.
 
+V3 PUBLIC GPU CONSUMER (2026-09-17, C-CORE-14 candidate)
+
+The standard research service now has a prospective registered-recipe GPU
+reconstruction diagnostic. GPU environment and dependency pins are selected
+before compilation; the existing CPU catalogue and defaults retain their meaning.
+The independent runtime.gpu_research scope must match the exact fixed private
+image and public TRAIN material, and a separate operator-installed host grant
+must authorize the principal, resource class, device and MINER_RESEARCH role.
+Discovery alone initializes no device and reports hardware acceptance as
+NOT_EXECUTED. No caller can select a grader, role, host path, image or grant.
+
+The consumer reuses the existing research task, proposal trial charge,
+CampaignLedger reservation, durable queue and C03 controller. Its journal lives
+inside the owning campaign, with disjoint operation storage, while the exclusive
+device lock remains at the fixed host root. Unknown dispatched work keeps its
+reservation and blocks duplicate admission. Existing C03 recovery can discover
+the contained journal; cleanup does not automatically reconcile unknown campaign
+consumption or mint a refund. The output is a bounded non-score diagnostic with
+artifact, progress, timing and resource observations and official_eligible false.
+
+Combined GPU/Julia discovery preserves the permitted scientific catalogue and
+binds the returned document to its saved bytes and digest. The normal command is
+still `python -m carbon.miner_mcp.standard_cli --configuration <private-profile>`.
+Operator setup and recovery are in
+`.agent/tickets/C-CORE-14_public_gpu_diagnostic.md`. Fixture tests exercise actual
+compilation, service and ledger behavior with the numerical worker replaced.
+They establish no GPU numerical, memory/OOM, isolation or validator acceptance.
+
+No GPU/TPU allocation, campaign, model call, host maintenance or scientific
+promotion follows. The existing consolidated resource request remains
+REQUESTED_NOT_GRANTED, and the owner's experiment pause remains in effect.
+Canonical acceptance and normal delivery of this candidate remain required.
+
 V3 STANDARD LAUNCHER SCIENTIFIC MATERIALS (2026-09-17, C-CORE-13 candidate)
 
 The normal MCP launcher now recomputes the exact registered scientific material
@@ -110,7 +143,7 @@ scope and observations.
 | Role and task | Language/backend and interface | Implementation / automated checks | Actual execution or interoperability | Remaining acceptance |
 | --- | --- | --- | --- | --- |
 | Miner and validator model reconstruction | Python control, JAX CPU; existing recipe/service and catalogue | Three exact implementations and target-free prediction contracts; no-Torch reconstruction tests | Actual CPU reconstruction; C-CORE-02 canonical acceptance | No repository-wide Torch-free or scientific qualification claim |
-| Miner GPU research and separate validator reconstruction | Python/JAX, named NVIDIA profile; existing controller | Versioned profile, pinned CUDA environment, worker protocol and numerical instrument | Image installation and isolated CPU/service checks; **no GPU numerical execution** | Admitted host/runtime, exclusive allocation, device memory/OOM, numerical and failure/cleanup evidence |
+| Miner GPU research and separate validator reconstruction | Python/JAX, named NVIDIA profile; existing controller | Versioned profile, pinned CUDA environment, worker protocol and numerical instrument; C-CORE-14 exact-grant public TRAIN consumer through existing research admission | Image installation and isolated CPU/service checks; **no GPU numerical execution** | Admitted host/runtime, exclusive allocation, device memory/OOM, numerical and failure/cleanup evidence |
 | Miner TPU research and separate validator reconstruction | Python/JAX, named eight-chip v5e profile | Versioned request and pinned TPU image; unsupported dispatch rejects before staging | Image metadata/import-boundary checks; **no TPU numerical execution** | Selected host/account/runtime, supported host adapter, admitted allocation, numerical and cleanup evidence |
 | Miner public Burgers diagnostics and authored research | Julia CPU via Python service, CLI/MCP | Fixed method/scopes plus isolated authored-script route; typed bounded outputs and accounting | Real Burgers/refinement and authored-script/containment observations | Training-support eligibility, broader methods, real agent-host usefulness and security qualification |
 | Validator reference diagnostics | Julia CPU through registered C-04 policy-bound method | Fixed identities, analytic/refinement controls, failure separation | Actual registered Julia execution and observed cancellation cleanup | Accepted primary reference is unchanged; protected use and scientific qualification remain open |
@@ -777,7 +810,10 @@ Measure synchronized cold/warm execution, compilation, conversion/transfer,
 training, reference/measurement, idle and cleanup. Keep fixed-workload benchmarks
 separate from adaptive research usefulness. Retain method failures and uncertainty.
 
-Follow DELIVERY_PROTOCOL and applicable canonical, import, package, worker,
+Follow OWNER-DX-03 in DELIVERY_PROTOCOL. For this programme it supersedes older
+human-review, GPT-review and receipt delivery gates. Preserve their historical
+evidence and all human-reserved scientific, security, economic, legal, deployment
+and LIVE authority. Apply the required canonical, import, package, worker,
 scientific-boundary and Hub checks. No blanket CI exemption, test suppression,
 extra routine approval ceremony or mandatory bot subscription. Merge the tested
 head through the normal gate. An admission-disabled engineering merge may precede

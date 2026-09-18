@@ -173,6 +173,11 @@ def _runtime(profile):
         from carbon.development_session.julia_analysis import authored_julia_scope
 
         runtime["authored_research"] = [authored_julia_scope(authored)]
+    gpu = _gpu_image(profile.root, profile.manifest["runtime"], role_root)
+    if gpu is not None:
+        from carbon.development_session.gpu_research import gpu_scope
+
+        runtime["gpu_research"] = [gpu_scope(gpu, role_root)]
     if profile.cleanup_only:
         if runtime != profile.manifest["runtime"]:
             raise ValueError("retained runtime differs")
@@ -222,6 +227,22 @@ def _authored_image(profile, analysis):
     from carbon.development_session.research_campaign import registered_julia_image
 
     return registered_julia_image(profile.root, profile.manifest["runtime"], analysis)
+
+
+def _gpu_image(root, runtime, role_root):
+    if "gpu_research" not in runtime:
+        return None
+    from carbon.development_session.gpu_research import gpu_scope
+    from carbon.development_session.research_campaign import private_file
+    from carbon.reconstruction.worker.docker_runtime import load_image_identity
+
+    path = private_file(root / "gpu-worker-image.json")
+    if path.resolve() != path or path.stat().st_size > 65536:
+        raise ValueError("fixed bounded GPU image record required")
+    image = load_image_identity(path)
+    if runtime["gpu_research"] != [gpu_scope(image, role_root)]:
+        raise ValueError("exact prospective GPU runtime scope required")
+    return image
 
 
 async def _requester(connection):
@@ -387,6 +408,13 @@ def _science(ledger, owner, image, role_root, *, cleanup_only=False, authored=No
 
         material = PublicAdvectionMaterial(
             material, ledger=ledger, owner=owner, image=authored, cleanup=cleanup_only
+        )
+    gpu = _gpu_image(ledger.root, runtime, role_root)
+    if gpu is not None:
+        from carbon.development_session.gpu_research import PublicGPUPractice
+
+        return material, PublicGPUPractice(
+            data=data, image=gpu, cleanup_only=cleanup_only
         )
     return material, PublicPractice(data=data, ledger=ledger, owner=owner, image=image)
 

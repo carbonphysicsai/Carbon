@@ -249,6 +249,7 @@ def test_integrated_material_allowlists_remain_separate_exact_types(monkeypatch,
     monkeypatch.setattr(cls, "__call__", lambda self, name, workspace: name)
     executor = object.__new__(PublicResearchExecutor)
     executor.workspace = None
+    executor.practice = None
     executor.public_material = object.__new__(cls)
     for name in {MATERIAL, ENVELOPE, ADVECTION}:
         spec = SimpleNamespace(
