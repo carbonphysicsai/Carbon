@@ -328,6 +328,61 @@ model-driven validation still requires a new explicitly admitted experiment.
 
 ## Focused verification
 
+### Paused prelaunch inspection
+
+Issue #223's immutable guidance repair is merged in #227. Its engineering
+acceptance is complete; real multi-iteration campaign acceptance remains open.
+The owner experiment pause remains active. Campaign 03 has not launched.
+
+The existing private runner profile can carry the optional explanatory field
+`"disabled_reason": "OWNER_EXPERIMENT_PAUSE"` only with `"enabled": false`.
+Launch and resume reject on the server, including direct HTTP calls. Status,
+authorized export, stop and supported reconciliation remain available. The profile
+is not a global cancellation mechanism: an already-dispatched operation must use
+the existing durable pause/stop control and retain any unresolved consumption.
+
+For new guided launches, the opaque review token binds the referenced grant
+digest as well as the operator configuration. A grant changed after browser
+review requires a fresh review. Historical profile-only tokens only recover
+already-recorded runs whose original configuration and grant pins still match;
+they never admit a fresh campaign after this change.
+
+An authenticated disabled review retains guidance, configured runtime/image
+identities, catalogue/training controls, expected dependencies, grant expiry and
+the existing final reserve. Configured maxima and reserve requirements are not a
+new reservation transaction or an assertion of remaining budget. CampaignLedger
+remains the source of actual consumption. No host probe runs during a review;
+installed dependencies, visible devices and runtime evidence stay explicitly
+unobserved/unattached. GPU runtime extensions remain unavailable to the existing
+CPU campaign adapter until the core-owned campaign composition is accepted.
+
+Start the private loopback control surface with a disabled operator profile:
+
+```sh
+python scripts/dev/miner_launchpad/controller.py --port 8788 \
+  --state-dir /absolute/private/launchpad-state \
+  --research-profile /absolute/private/disabled-runner-profile.json
+```
+
+Open `http://127.0.0.1:8788` and enter the locally printed session token. For a
+no-profile controller preview, omit `--research-profile`; research is unavailable.
+Do not reuse another campaign's state directory or enable an old grant. A new
+owner resumption decision and exact matching runtime/resource authority are still
+required; completion of core engineering never starts a campaign automatically.
+
+The core integration owner confirmed that C-CORE-14 / #233 exposes a public TRAIN
+GPU construction diagnostic with `score=None`, not a Launchpad GPU campaign or
+final comparison. The named prospective profile is
+`carbon_jax_cuda13_rtx3060_laptop_development_v1`. Core #209 owns the missing
+campaign/final-comparison composition. Local RTX 3060 device visibility is a
+historical observation; NVIDIA Container Toolkit maintenance approval, exclusive
+host admission and actual miner/validator hardware and cleanup evidence are still
+missing. Reuse `.agent/plans/CORE_PLATFORM_RESOURCE_REQUEST.md`; do not duplicate
+its request or infer access from device visibility. A prospective configuration
+must leave runtime/image, final-comparison and budget/grant bindings unresolved
+until those contracts exist. The existing CPU final reserve is a reference, not
+an invented GPU budget. No new campaign or grant is created by preparation.
+
 ### Optional private research guidance
 
 Issue #223 adds `research_guidance` to the existing private runner-profile JSON.

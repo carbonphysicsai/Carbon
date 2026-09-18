@@ -7,6 +7,56 @@ approved browser campaign is terminal without a candidate. Genuine multi-iterati
 campaign acceptance remains selected and incomplete; empirical repairs are active.
 Primary Hub map: `SYSTEM/AGENT-EXECUTION`; `HUB_UPDATE_REQUIRED`.
 Related map: `WAVE-C/C-W1`. Scientific WAVE selection remains separately owned.
+
+## Paused prelaunch review C-MLP-02-D7
+
+Issue #223 is complete: PR #227 merged as
+`0e34fa6d6e0bb4358042a527710673ba91038d30`, preserving tested head
+`c0f38ea32bf7027012b3e5320141e51b3e54601c`. Reuse its evidence. C-MLP-02's
+adaptive acceptance remains incomplete; Campaign 03 has not launched; the owner
+experiment pause is active; private hosted validation is not demonstrated.
+
+Owner direction authorizes independent Launchpad engineering, not experiments,
+model calls, hardware allocation, scientific trials, grant renewal or chain writes.
+Starting main: `7887c110a4f4b60d162c376b9c14efed237cda49`. Core #209/#210 retains
+scientific services, GPU composition, admission/accounting and lifecycle ownership.
+The core owner agreed Launchpad-only files for the read-only prelaunch projection,
+UI and disabled-dispatch regression tests. Integrate the supplied final #233
+dependency before batching Hub and final acceptance; do not race shared snapshots.
+
+Working decision: KEEP existing runner and CampaignLedger; WRAP the existing
+operator configuration with a read-only review even when dispatch is disabled.
+The optional closed `disabled_reason=OWNER_EXPERIMENT_PAUSE` explains the existing
+`enabled=false` switch and is invalid with `enabled=true`. It grants no authority.
+Review does not open keys, initialize a backend, create a ledger or run a task.
+New guided review tokens bind the configuration plus referenced grant digest;
+changing grant contents after review rejects first launch. Legacy profile-only
+tokens may only recover an already recorded run with unchanged configuration and
+grant pins. They cannot admit a new campaign. This closes a review/admission seam
+without changing frozen campaign or grant formats.
+Launch/resume retain admission checks, and the thread handoff rechecks the same
+configuration before entering the runner. An unsupported extended runtime is
+rejected rather than executed through the CPU campaign by silent substitution.
+Existing in-flight work still uses CampaignControl's supported pause/stop path;
+changing a profile is not a claim of cancellation or cleanup.
+
+The browser shows configured guidance/digest, challenge/rule, current legal
+catalogue, expected dependency identities, configured runtime/images, expiry and
+existing final reserve. These are not installed-dependency observations, device
+visibility, resource availability or retained execution evidence. Historical
+readers, frozen guidance, reports and accounting are unchanged. No compiled-update
+default changes; #219's CPU observations do not establish a GPU speedup.
+
+Alternative rejected: another scheduler, budget ledger, readiness Boolean or GPU
+dropdown that implies execution. This change is reversible in Launchpad files;
+the smallest supersession changes this decision and the projection/UI, without
+migrating historical campaigns. No scientific value is selected. Genuine GPU
+campaign composition/final-comparison evidence remains a core dependency.
+
+Acceptance: canonical affected Launchpad/admission/guidance regressions; real
+loopback HTTP pause/authentication tests; desktop/mobile browser review and
+reconnect; formatting/quality and policy-selected CI/Hub/Merge gate. Fixtures are
+engineering evidence only. No real campaign is part of this ticket slice.
 Starting revision: `c188bc8186a0a61e5c91ca377584a5d5ee4b12df` (PR #205).
 
 ## Authority and boundaries
