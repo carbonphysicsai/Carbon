@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-18T02:54:17Z"
+  captured_at_utc: "2026-09-18T03:20:00Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "2bf2344c1e24f51434732b8e53bdad78a2da7924"
+  authority_snapshot_commit: "08d480507048160ebbd56e6f4563d5bb00f7387b"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -2350,6 +2350,18 @@ change_paths:
     tickets:
       []
 events:
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "adjustment"
+    event_id: "C-MLP-02-PAUSED-REVIEW-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "The authenticated Launchpad keeps configured guidance, runtime and resource contracts visible while dispatch is disabled. New guided launch reviews bind grant contents; historical retry identities remain recoverable. Configuration is not device or execution evidence. The owner experiment pause stays active; Campaign03 is unlaunched, real adaptive acceptance remains incomplete, and core-owned GPU campaign/final-comparison and hardware dependencies remain explicit."
+    primary_detail: ".agent/tickets/C-MLP-02_development_research_bridge.md"
+    affects:
+      - "SYSTEM/CI"
+      - "WAVE-C/C-W1"
+    supersedes: null
   -
     map_ref: "SYSTEM/AGENT-EXECUTION"
     event_type: "adjustment"

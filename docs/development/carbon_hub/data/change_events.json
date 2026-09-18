@@ -4,12 +4,29 @@
     {
       "map_ref": "SYSTEM/AGENT-EXECUTION",
       "event_type": "adjustment",
+      "event_id": "C-MLP-02-PAUSED-REVIEW-01",
+      "owner_lane": "technical_lead",
+      "status": "implemented",
+      "summary": "The authenticated Launchpad keeps configured guidance, runtime and resource contracts visible while dispatch is disabled. New guided launch reviews bind grant contents; historical retry identities remain recoverable. Configuration is not device or execution evidence. The owner experiment pause stays active; Campaign03 is unlaunched, real adaptive acceptance remains incomplete, and core-owned GPU campaign/final-comparison and hardware dependencies remain explicit.",
+      "primary_detail": ".agent/tickets/C-MLP-02_development_research_bridge.md",
+      "affects": [
+        "SYSTEM/CI",
+        "WAVE-C/C-W1"
+      ],
+      "supersedes": null
+    },
+    {
+      "map_ref": "SYSTEM/AGENT-EXECUTION",
+      "event_type": "adjustment",
       "event_id": "C-CORE-13-REFERENCE-DIAGNOSTICS-01",
       "owner_lane": "technical_lead",
       "status": "implemented",
       "summary": "Retain bounded exact public-TRAIN reference failure diagnostics from the existing synthetic final-service test. Preserve its original outcome, assertions, inputs and limits; the historical failed case cannot be reconstructed from its incomplete upload and remains unresolved. No solver change, retry, qualification or new execution authority follows.",
       "primary_detail": ".agent/tickets/C-CORE-13_mcp_scientific_material_selection.md",
-      "affects": ["SYSTEM/CI", "WAVE-C/C-04"],
+      "affects": [
+        "SYSTEM/CI",
+        "WAVE-C/C-04"
+      ],
       "supersedes": null
     },
     {
