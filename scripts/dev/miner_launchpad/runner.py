@@ -86,12 +86,12 @@ class RunnerAdapter:
         finally:
             db.close()
 
-    def configured(self):
+    def _configuration(self):
         if self.configuration is None:
             raise ValueError("operator configuration absent")
         cfg = private_json(self.configuration)
         if (
-            set(cfg) - {"research_guidance"}
+            set(cfg) - {"research_guidance", "disabled_reason"}
             != {
                 "schema",
                 "profile_id",
@@ -106,6 +106,13 @@ class RunnerAdapter:
         ):
             raise ValueError("closed operator configuration required")
         guidance.configured(cfg)  # Validate before grant admission or dispatch.
+        if type(cfg["enabled"]) is not bool or (
+            "disabled_reason" in cfg
+            and (cfg["disabled_reason"] != "OWNER_EXPERIMENT_PAUSE" or cfg["enabled"])
+        ):
+            raise ValueError("invalid disabled profile explanation")
+        if cfg["principal"] != self.principal:
+            raise ValueError("operator principal mismatch")
         if set(cfg["paths"]) != PATH_FIELDS:
             raise ValueError("closed runner inputs required")
         if any(
@@ -113,8 +120,16 @@ class RunnerAdapter:
             for v in cfg["paths"].values()
         ):
             raise ValueError("operator paths must be absolute")
+        return cfg
+
+    def configured(self):
+        cfg = self._configuration()
+        if not cfg["enabled"]:
+            raise Rejected("research_dispatch_disabled", 409)
         admission = Admission.load(Path(cfg["grant_file"]))
         doc = admission.document
+        if set(doc["runtime"]) != {"implementation", "images"}:
+            raise Rejected("research_runtime_interface_unavailable", 409)
         root = Path(doc["root"])
         admission.verify(
             root=root,
@@ -132,6 +147,8 @@ class RunnerAdapter:
         return cfg, admission, root
 
     def preflight(self):
+        from scripts.dev.miner_launchpad.prelaunch import review
+
         try:
             cfg, admission, _ = self.configured()
             value = {
@@ -153,14 +170,36 @@ class RunnerAdapter:
                     review_digest=digest(canonical(cfg)),
                     runtime_revision=cfg["accepted_revision"],
                 )
+            value["review"] = review(cfg, admission.document)
             return value
         except Exception:  # noqa: BLE001 - private configuration errors stay private.
-            return {
-                "available": False,
-                "profile": None,
-                "status": "ADMISSION_DISABLED",
-                "reason": "A separate approved grant, existing miner and exact accepted runtime/images are required.",
-            }
+            try:
+                cfg = self._configuration()
+                admission = Admission.load(Path(cfg["grant_file"]))
+                inspected = review(cfg, admission.document)
+                paused = cfg.get("disabled_reason") == "OWNER_EXPERIMENT_PAUSE"
+                return {
+                    "available": False,
+                    "profile": cfg["profile_id"],
+                    "status": (
+                        "OWNER_EXPERIMENT_PAUSE" if paused else "ADMISSION_DISABLED"
+                    ),
+                    "reason": (
+                        "Owner experiment pause is active. New owner authorization is required before research can resume. Status, export, stop and reconciliation remain available."
+                        if paused
+                        else "Research dispatch is disabled or its grant/runtime binding is invalid. The operator must resolve the listed requirements."
+                    ),
+                    "research_guidance": guidance.configured(cfg),
+                    "runtime_revision": cfg["accepted_revision"],
+                    "review": inspected,
+                }
+            except Exception:  # noqa: BLE001 - no private paths or errors disclosed.
+                return {
+                    "available": False,
+                    "profile": None,
+                    "status": "ADMISSION_DISABLED",
+                    "reason": "A separate approved grant, existing miner and exact accepted runtime/images are required.",
+                }
 
     def launch(self, value, key):
         if type(value) is not dict or set(value) not in (
@@ -176,6 +215,8 @@ class RunnerAdapter:
             raise Rejected("invalid_idempotency_key")
         try:
             cfg, admission, root = self.configured()
+        except Rejected:
+            raise
         except Exception:  # noqa: BLE001
             raise Rejected("research_admission_unavailable", 409) from None
         if value["profile"] != cfg["profile_id"] or cfg["principal"] != self.principal:
@@ -252,6 +293,16 @@ class RunnerAdapter:
 
         generation = None
         try:
+            # Recheck a real operator profile at the thread handoff. A disabled
+            # profile must not slip through a previously queued HTTP request.
+            if self.configuration is not None:
+                current, current_admission, current_root = self.configured()
+                if (
+                    current != cfg
+                    or current_admission.pin != admission.pin
+                    or current_root != root
+                ):
+                    raise ValueError("dispatch configuration changed")
             row, _, _ = self._bound(run_id)
             task = guidance.verify(
                 json.loads(row["research_guidance"])
