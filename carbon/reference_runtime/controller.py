@@ -9,6 +9,7 @@ import shutil
 import stat
 import tempfile
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -137,6 +138,21 @@ class IsolatedBurgersReferenceController:
             path.mkdir(parents=True, exist_ok=True)
             path.chmod(0o700)
 
+    def _remove_stage(self, stage: Path) -> None:
+        """Remove only this controller's immutable, flat request staging directory."""
+
+        if stage.parent != self.state_root / "staging" or stage.is_symlink():
+            raise WorkerFailure(WorkerCode.CLEANUP)
+        if not stage.exists():
+            return
+        try:
+            # Staging is immutable while mounted; directory write permission is
+            # required to unlink its request after the exact worker is removed.
+            stage.chmod(0o700)
+            shutil.rmtree(stage)
+        except OSError:
+            raise WorkerFailure(WorkerCode.CLEANUP) from None
+
     def _journal(self, launch_digest: str, payload: dict[str, object]) -> None:
         path = self.state_root / "launches" / (launch_digest[7:] + ".json")
         temporary = path.with_suffix(".tmp")
@@ -169,8 +185,25 @@ class IsolatedBurgersReferenceController:
             raise WorkerFailure(WorkerCode.CONFLICT)
         return value
 
-    def _wait_file(self, container_name: str, path: str, deadline: float) -> None:
+    @staticmethod
+    def _check_cancelled(cancelled: Callable[[], bool] | None) -> None:
+        if cancelled is None:
+            return
+        value = cancelled()
+        if type(value) is not bool:
+            raise WorkerFailure(WorkerCode.INVALID)
+        if value:
+            raise WorkerFailure(WorkerCode.CANCELLED)
+
+    def _wait_file(
+        self,
+        container_name: str,
+        path: str,
+        deadline: float,
+        cancelled: Callable[[], bool] | None = None,
+    ) -> None:
         while time.monotonic() < deadline:
+            self._check_cancelled(cancelled)
             remaining = deadline - time.monotonic()
             status = self.cli.run(
                 ["exec", container_name, "/usr/bin/test", "-f", path],
@@ -178,6 +211,7 @@ class IsolatedBurgersReferenceController:
                 accepted=(0, 1),
             )
             if status.returncode == 0:
+                self._check_cancelled(cancelled)
                 return
             state = self.cli.json(
                 ["inspect", container_name, "--format", "{{json .State}}"],
@@ -188,9 +222,17 @@ class IsolatedBurgersReferenceController:
             time.sleep(0.1)
         raise WorkerFailure(WorkerCode.DEADLINE)
 
-    def execute(self, request: BurgersReferenceRequest) -> IsolatedReferenceResult:
+    def execute(
+        self,
+        request: BurgersReferenceRequest,
+        *,
+        cancelled: Callable[[], bool] | None = None,
+    ) -> IsolatedReferenceResult:
         if type(request) is not BurgersReferenceRequest:
             raise WorkerFailure(WorkerCode.INVALID)
+        if cancelled is not None and not callable(cancelled):
+            raise WorkerFailure(WorkerCode.INVALID)
+        self._check_cancelled(cancelled)
         started_unix = float(time.time())
         started_mono = float(time.monotonic())
         deadline_unix = started_unix + PRODUCTIVE_DEADLINE_SECONDS
@@ -225,7 +267,7 @@ class IsolatedBurgersReferenceController:
                 or type(retained.get("controls_digest")) is not str
                 or "artifact_digest" not in retained
             ):
-                shutil.rmtree(stage, ignore_errors=True)
+                self._remove_stage(stage)
                 raise WorkerFailure(WorkerCode.CONFLICT)
             snapshot = self.state_root / "snapshots" / launch_digest[7:]
             result = validate_reference_snapshot_bounded(snapshot, stage)
@@ -233,9 +275,9 @@ class IsolatedBurgersReferenceController:
                 _snapshot_digest(snapshot) != retained["snapshot_digest"]
                 or result.artifact_digest != retained["artifact_digest"]
             ):
-                shutil.rmtree(stage, ignore_errors=True)
+                self._remove_stage(stage)
                 raise WorkerFailure(WorkerCode.CONFLICT)
-            shutil.rmtree(stage, ignore_errors=True)
+            self._remove_stage(stage)
             return IsolatedReferenceResult(
                 result,
                 launch_digest,
@@ -256,7 +298,7 @@ class IsolatedBurgersReferenceController:
             descriptor = os.open(lock_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o400)
             os.close(descriptor)
         except OSError:
-            shutil.rmtree(stage, ignore_errors=True)
+            self._remove_stage(stage)
             raise WorkerFailure(WorkerCode.CONFLICT) from None
         journal = {
             "schema": "carbon.c04.reference-launch.v1",
@@ -280,10 +322,11 @@ class IsolatedBurgersReferenceController:
             journal["state"] = "FAILED_INFRA"
             journal["terminal_code"] = checked.code
             self._journal(launch_digest, journal)
-            shutil.rmtree(stage, ignore_errors=True)
+            self._remove_stage(stage)
             raise WorkerFailure(WorkerCode.UNAVAILABLE)
         container_created = False
         try:
+            self._check_cancelled(cancelled)
             create_started = time.monotonic()
             try:
                 created = self.cli.run(
@@ -320,8 +363,11 @@ class IsolatedBurgersReferenceController:
                 launch_digest=launch_digest,
                 deadline_unix=deadline_unix,
             )
+            self._check_cancelled(cancelled)
             self.cli.run(["start", container_name], timeout=20)
-            self._wait_file(container_name, "/scratch/control-ready", deadline_mono)
+            self._wait_file(
+                container_name, "/scratch/control-ready", deadline_mono, cancelled
+            )
             controls_digest, controls = inspect_effective_controls(
                 cli=self.cli,
                 container_name=container_name,
@@ -335,6 +381,7 @@ class IsolatedBurgersReferenceController:
                 {"state": "CONTROLS_VERIFIED", "controls_digest": controls_digest}
             )
             self._journal(launch_digest, journal)
+            self._check_cancelled(cancelled)
             self.cli.run(
                 [
                     "exec",
@@ -347,7 +394,7 @@ class IsolatedBurgersReferenceController:
                 timeout=10,
             )
             numerical_started = time.monotonic()
-            self._wait_file(container_name, "/scratch/ready", deadline_mono)
+            self._wait_file(container_name, "/scratch/ready", deadline_mono, cancelled)
             numerical_seconds = time.monotonic() - numerical_started
             export_started = time.monotonic()
             remaining = deadline_mono - time.monotonic()
@@ -387,6 +434,7 @@ class IsolatedBurgersReferenceController:
             resources = observe_effective_resources(
                 cli=self.cli, container_name=container_name
             )
+            self._check_cancelled(cancelled)
             files = tuple(item for item in snapshot.rglob("*") if item.is_file())
             resources["output_snapshot"] = {
                 "observed_bytes": sum(item.stat().st_size for item in files),
@@ -411,10 +459,12 @@ class IsolatedBurgersReferenceController:
             cleanup_seconds = time.monotonic() - cleanup_started
             journal["state"] = "TERMINATED"
             self._journal(launch_digest, journal)
+            self._check_cancelled(cancelled)
             validation_started = time.monotonic()
             result = validate_reference_snapshot_bounded(snapshot, stage)
             validation_seconds = time.monotonic() - validation_started
-            shutil.rmtree(stage, ignore_errors=True)
+            self._check_cancelled(cancelled)
+            self._remove_stage(stage)
             journal["state"] = "ASSOCIATED_DEVELOPMENT_ONLY"
             journal["artifact_digest"] = result.artifact_digest
             self._journal(launch_digest, journal)
@@ -465,7 +515,7 @@ class IsolatedBurgersReferenceController:
                     self._journal(launch_digest, journal)
                     raise WorkerFailure(WorkerCode.QUARANTINED) from None
             self._journal(launch_digest, journal)
-            shutil.rmtree(stage, ignore_errors=True)
+            self._remove_stage(stage)
             raise
 
 

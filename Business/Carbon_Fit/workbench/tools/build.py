@@ -22,7 +22,11 @@ def data(p):
     )
 
 
-def build():
+def build(*, private_science=False, output_directory=None):
+    destination = Path(output_directory).resolve() if output_directory else ROOT
+    if private_science and destination == ROOT.resolve():
+        raise ValueError("Private science builds require a separate output directory")
+    destination.mkdir(parents=True, exist_ok=True)
     subprocess.run(
         ["node", str(ROOT / "tools/check_repository_snapshot_admission.cjs")],
         cwd=ROOT,
@@ -41,7 +45,10 @@ def build():
     c05_evidence = (ROOT / "src/c05_evidence.js").read_text()
     source_assessment = (ROOT / "src/source_assessment.js").read_text()
     intake = (ROOT / "src/intake.js").read_text()
+    team_review = (ROOT / "src/team_review.js").read_text()
     workflow = (ROOT / "src/workflow.js").read_text()
+    scientific_studies = (ROOT / "src/scientific_studies.js").read_text()
+    scientific_studies_ui = (ROOT / "src/scientific_studies_ui.js").read_text()
     goal_app = (ROOT / "src/goal_app.js").read_text()
     atlas = data(ROOT / "data/atlas.json")
     studies = data(ROOT / "data/studies.json")
@@ -62,7 +69,10 @@ def build():
             c05_evidence,
             source_assessment,
             intake,
+            team_review,
             workflow,
+            scientific_studies,
+            scientific_studies_ui,
             goal_app,
             atlas,
             studies,
@@ -72,7 +82,8 @@ def build():
             assessment_index,
         ]
     )
-    csp = f"default-src 'none'; script-src {scripts}; style-src '{digest(style)}'; img-src data:; connect-src 'none'; form-action 'none'; base-uri 'none'; object-src 'none'"
+    connection_policy = "'self'" if private_science else "'none'"
+    csp = f"default-src 'none'; script-src {scripts}; style-src '{digest(style)}'; img-src data:; connect-src {connection_policy}; form-action 'none'; base-uri 'none'; object-src 'none'"
     html = (ROOT / "src/shell.html").read_text()
     for k, v in {
         "CSP": csp,
@@ -89,11 +100,15 @@ def build():
         "C05_EVIDENCE": c05_evidence,
         "SOURCE_ASSESSMENT": source_assessment,
         "INTAKE": intake,
+        "TEAM_REVIEW": team_review,
         "WORKFLOW": workflow,
+        "SCIENTIFIC_STUDIES": scientific_studies,
+        "SCIENTIFIC_STUDIES_UI": scientific_studies_ui,
+        "SCIENCE_MODE": "private" if private_science else "offline",
         "GOAL_APP": goal_app,
     }.items():
         html = html.replace("{{" + k + "}}", v)
-    (ROOT / "Carbon_Opportunity_Workbench.html").write_text(html)
+    (destination / "Carbon_Opportunity_Workbench.html").write_text(html)
     intake_style = (ROOT / "src/intake_styles.css").read_text()
     intake_app = (ROOT / "src/intake_app.js").read_text()
     intake_csp = (
@@ -111,10 +126,21 @@ def build():
         "APP": intake_app,
     }.items():
         preview = preview.replace("{{" + key + "}}", value)
-    (ROOT / "Carbon_Client_Intake_Preview.html").write_text(preview)
-    (ROOT / "Carbon_Client_Pilot_Designer_Preview.html").write_text(preview)
-    return ROOT / "Carbon_Opportunity_Workbench.html"
+    (destination / "Carbon_Client_Intake_Preview.html").write_text(preview)
+    (destination / "Carbon_Client_Pilot_Designer_Preview.html").write_text(preview)
+    return destination / "Carbon_Opportunity_Workbench.html"
 
 
 if __name__ == "__main__":
-    print(build())
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--private-science", action="store_true")
+    parser.add_argument("--output-directory", type=Path)
+    options = parser.parse_args()
+    print(
+        build(
+            private_science=options.private_science,
+            output_directory=options.output_directory,
+        )
+    )

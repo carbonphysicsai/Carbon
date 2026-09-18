@@ -1,4 +1,35 @@
-# Owner report — GOAL-WORKBENCH-08B / GOAL-WORKBENCH-08 / GOAL-WORKBENCH-07A / GOAL-WORKBENCH-07 / GOAL-WORKBENCH-06 / GOAL-WORKBENCH-05A / GOAL-WORKBENCH-05 / GOAL-WORKBENCH-04 / GOAL-WORKBENCH-03 / GOAL-WORKBENCH-02 / EXAM-PROTECT-WORKBENCH-01
+# Owner report — GOAL-WORKBENCH-09 / GOAL-WORKBENCH-08B / GOAL-WORKBENCH-08 / GOAL-WORKBENCH-07A / GOAL-WORKBENCH-07 / GOAL-WORKBENCH-06 / GOAL-WORKBENCH-05A / GOAL-WORKBENCH-05 / GOAL-WORKBENCH-04 / GOAL-WORKBENCH-03 / GOAL-WORKBENCH-02 / EXAM-PROTECT-WORKBENCH-01
+
+## v0.9 private team intake and review
+
+The existing Owner Console now includes a review queue over the accepted local
+intake lineage. It exposes the engineering objective, reported current
+workflow, operating conditions, outputs, reference evidence, missing
+information, assigned reviewer, queue state and one next action while retaining
+the separate workflow, evidence and customer-outcome axes.
+
+Each exact design revision has one traceable team assessment. Original client
+words remain immutable source content; transcription corrections, internal
+notes and outstanding questions are separate manual records. Unknown physical,
+reference, measurement, uncertainty, rights, resource and acceptance inputs
+remain empty or explicit rather than becoming zero or favorable defaults.
+Client and internal briefs derive from this same assessment and design.
+
+The local/private synthetic receiver provides durable acceptance, exact retry
+deduplication, idempotency conflict rejection, optimistic revision checks,
+named-principal access/export/update/deletion, and a transactional outbox whose
+failure cannot lose an inquiry. It is a loopback implementation and deployment
+proposal—not the issue #139 production receiver. Live collection, staff
+notification, retention policy, visitor notice, incident ownership and
+incremental Cloudflare cost remain pending named decisions.
+
+Four frozen synthetic journeys cover an existing model/reference, an objective
+without a usable reference, unsupported coupled physics, and an incomplete
+brief. Each reaches a durable receipt, queue assignment, assessment, route,
+client brief, internal handoff, restart/reload and deduplicated reimport without
+creating scientific qualification, rights, execution or launch authority.
+Issue #209 still owns the shared scientific-task service; Workbench rows are
+truthfully `CORE_INTERFACE_PENDING` and no competing runner was added.
 
 ## v0.8B executable guided-pilot evaluation
 

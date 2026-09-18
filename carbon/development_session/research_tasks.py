@@ -114,15 +114,20 @@ class PublicResearchExecutor:
         if set(args) != expected:
             raise ValueError("workspace fields differ from registered action")
         if spec.action == "public_material":
+            from .julia_research import MATERIAL, JuliaPublicMaterial
+
             # The bound material service owns the allowlist. No arbitrary path,
             # case coordinate, URL, evaluator query or hidden-role selector.
-            if args["name"] not in {
+            allowed = {
                 "objective",
                 "capabilities",
                 "training_data",
                 "practice_data",
                 "reference_method",
-            }:
+            }
+            if type(self.public_material) is JuliaPublicMaterial:
+                allowed.add(MATERIAL)
+            if args["name"] not in allowed:
                 raise ValueError("public material unavailable")
             return self.public_material(args["name"], self.workspace)
         if spec.action == "inventory":

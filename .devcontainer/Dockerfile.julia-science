@@ -1,0 +1,28 @@
+# syntax=docker/dockerfile:1
+# Immutable local accepted snapshots; no floating worker base is selected.
+# This derived DEVELOPMENT image is not a replacement accepted C-03 image.
+FROM carbon-canonical:d9bc9b882f702299@sha256:3dc42abf19b716a457c07358b481fbb405f852b0e8f502042b713f87e1edd84e AS julia-download
+USER root
+RUN curl --fail --silent --show-error --location --retry 2 \
+      https://julialang-s3.julialang.org/bin/linux/x64/1.13/julia-1.13.0-linux-x86_64.tar.gz \
+      --output /tmp/julia.tar.gz \
+    && echo '8975da61c128a5e5ded3e719e868da8c8781deb7ad7913d37fb99be02a81904b  /tmp/julia.tar.gz' | sha256sum --check - \
+    && mkdir -p /opt/carbon-julia \
+    && tar --extract --gzip --file /tmp/julia.tar.gz --directory /opt/carbon-julia --strip-components=1 \
+    && rm /tmp/julia.tar.gz \
+    && /opt/carbon-julia/bin/julia --startup-file=no --history-file=no --version
+
+FROM carbon-cw1d4-parent:3ccb400378635fbb3dc8dead5e0e958371b70864cec4eaa70675827b8622ffbc@sha256:3ccb400378635fbb3dc8dead5e0e958371b70864cec4eaa70675827b8622ffbc
+USER root
+COPY --from=julia-download /opt/carbon-julia /opt/carbon-julia
+COPY carbon/reference_runtime/julia /opt/carbon-worker/lib/python3.11/site-packages/carbon/reference_runtime/julia
+RUN chmod -R a-w /opt/carbon-julia /opt/carbon-worker/lib/python3.11/site-packages/carbon/reference_runtime/julia
+LABEL org.opencontainers.image.title="Carbon native Julia DEVELOPMENT science instrument" \
+      org.opencontainers.image.carbon.julia.version="1.13.0" \
+      org.opencontainers.image.carbon.julia.tarball="sha256:8975da61c128a5e5ded3e719e868da8c8781deb7ad7913d37fb99be02a81904b" \
+      org.opencontainers.image.carbon.julia.parent="sha256:3ccb400378635fbb3dc8dead5e0e958371b70864cec4eaa70675827b8622ffbc" \
+      org.opencontainers.image.carbon.julia.scope="DEVELOPMENT_DIAGNOSTICS_NOT_QUALIFIED"
+ENV HOME=/tmp TMPDIR=/tmp
+WORKDIR /
+USER 65532:65532
+ENTRYPOINT ["/opt/carbon-worker/bin/python", "-I"]

@@ -263,9 +263,25 @@ class ResearchMinerTools:
             c.discovery.manifest.practice_scope_ref,
         )
 
-    async def call(self, name, args, identity):
+    async def call(self, name, args, identity, *, transport_request_id=None):
+        """Keep business identity stable while optionally renewing transmission.
+
+        Legacy campaign calls retain their existing transport identity. External
+        adapters supply a fresh transport request ID on each transmission while
+        reusing ``identity`` for admission, task idempotency and cancellation.
+        A fresh signature/request never grants another numerical allowance.
+        """
         from .research_carrier import PRECHARGED_TRIAL
 
+        if transport_request_id is not None and (
+            type(transport_request_id) is not str
+            or not 1 <= len(transport_request_id) <= 128
+            or not all(
+                c.isascii() and (c.isalnum() or c in "_.:-")
+                for c in transport_request_id
+            )
+        ):
+            raise ValueError("bounded transport request identity required")
         numerical = (
             name == PREFIX + "start_research_task"
             and type(args) is dict
@@ -294,7 +310,9 @@ class ResearchMinerTools:
                 )
             token = PRECHARGED_TRIAL.set(identity)
         try:
-            return await self._call(name, args, identity)
+            return await self._call(
+                name, args, identity, transport_request_id=transport_request_id
+            )
         finally:
             if token is not None:
                 PRECHARGED_TRIAL.reset(token)
@@ -337,7 +355,7 @@ class ResearchMinerTools:
             result["correction"] = TASK_CORRECTIONS[correction]
         return result
 
-    async def _call(self, name, args, identity):
+    async def _call(self, name, args, identity, *, transport_request_id=None):
         operation = name.removeprefix(PREFIX)
         if (
             name != PREFIX + operation
@@ -361,7 +379,14 @@ class ResearchMinerTools:
             return self.rejected(operation, args, identity)
         # Authentication and execution exceptions remain operational stops. Only
         # the pre-dispatch closed request validation above is repairable feedback.
-        observed = await self.connection.check_registration()
+        cleanup_registration = getattr(
+            self.connection, "check_cleanup_registration", None
+        )
+        observed = await (
+            cleanup_registration()
+            if operation == "cancel_research_task" and callable(cleanup_registration)
+            else self.connection.check_registration()
+        )
         if operation == "start_research_task":
             self.ledger.note(
                 owner=self.owner,
@@ -380,7 +405,7 @@ class ResearchMinerTools:
             observed.snapshot_id,
             CHALLENGE,
             session="carbon-autoresearch",
-            request=identity,
+            request=identity if transport_request_id is None else transport_request_id,
             tool=research.RESEARCH_NAMESPACE,
             fields={
                 "call_base64": base64.b64encode(research.canonical_bytes(call)).decode(

@@ -4,8 +4,8 @@
 > is not a universal truth oracle, and this file does not grant any solver
 > scientific authority.
 
-**Version:** 2.1
-**Status:** Julia integration required; native runtime and qualification pending
+**Version:** 2.2
+**Status:** Bounded native CPU integration implemented and locally tested; canonical delivery and qualification pending
 **Audience:** SciML, protocol, operations, security, and implementation teams
 **Controlling science:** `SCIENTIFIC_REFERENCE_CANON_V4_MASTER.md`,
 `Evidence_and_Envelope_Standards.md`, and the ratified
@@ -14,7 +14,7 @@
 **Sequencing:** `.agent/WAVE_C.md` and owner programme #209, with
 `.agent/plans/CARBON_CORE_PLATFORM_EXECUTION.md` controlling its bounded upgrade.
 
-**Current-status reconciliation (C-CORE-01-D3, DOCUMENTATION_LAG):** B-04's
+**Historical reconciliation (C-CORE-01-D3, DOCUMENTATION_LAG):** B-04's
 reference contract is ratified and its infrastructure implemented. C-04/PR #154
 adds real public-candidate Python Burgers primary, witness and cross-check methods
 under `carbon/reference_runtime`, with existing isolated worker supervision.
@@ -24,6 +24,21 @@ implemented or qualified runtime merely because this specification requires it.
 Earlier Wave-B fixture-only language below is historical sequencing context,
 superseded for this owner-authorized work. Existing methods/evidence retain their
 identities; no accepted reference or score rule changes here.
+
+**Current-status reconciliation (C-CORE-04, DOCUMENTATION_LAG):** C-CORE-02
+implements the pinned Julia 1.13.0 closed task protocol and reviewed public
+Burgers CPU method through `carbon/reference_runtime/julia` and the existing
+C-04 isolated controller. Validator DEVELOPMENT diagnostics and miner public
+TRAIN studies have executed locally. C-CORE-04 connects that same admitted
+task to the existing Workbench's registered draft, private service, plots and
+saved evidence. Actual local browser/HTTP studies and owned-worker cleanup
+after grant expiry have been observed; the respective tickets own commands,
+accounting and bounded evidence. Canonical acceptance and normal delivery
+remain pending for the candidate, and neither scientific reference nor
+production security qualification follows. Modified/private cases, operating-
+envelope sweeps and Julia accelerator execution remain outside this implemented
+profile. The earlier C-CORE-01 paragraph records its historical checkpoint;
+it is not the current runtime implementation status.
 
 ---
 
@@ -72,7 +87,7 @@ select the official case, set a gate, or decide a winner.
 | Target Julia reference interface described | Yes |
 | Exact B-04 contract ratified | Yes, bounded reference-policy infrastructure |
 | Public Python reference runtime | C-04 implemented; code and ticket own evidence |
-| Native Julia runtime integrated | Pending programme #209 implementation |
+| Native Julia CPU runtime integrated | C-CORE-02/C-CORE-04 implemented and locally tested across miner, validator DEVELOPMENT and Workbench roles; canonical delivery pending |
 | Reference method scientifically qualified | No |
 | Production security or operations qualified | No |
 | Universal ground-truth oracle exists | No, by design |

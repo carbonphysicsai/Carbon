@@ -31,6 +31,9 @@ from carbon.generators.burgers_dynamics import (
 )
 
 SCHEMA = "carbon.c04.burgers-reference.v1"
+JULIA_SCHEMA = "carbon.c04.burgers-reference.v2"
+JULIA_METHOD_VARIANT = "julia_v1"
+JULIA_POLICY_ID = "carbon.burgers.reference.diagnostic.julia.v1"
 POLICY_ID = "carbon.burgers.reference.candidate.v1"
 POLICY_VERSION = "1.0"
 SCOPE = "PUBLIC_QUALIFICATION_CANDIDATE_ONLY"
@@ -170,7 +173,7 @@ class BurgersReferenceSettings:
 
 
 def reference_settings(
-    role: BurgersReferenceRole, output_points: int
+    role: BurgersReferenceRole, output_points: int, *, method_variant: str = "python_v1"
 ) -> BurgersReferenceSettings:
     """Return the closed C-04 DEVELOPMENT settings for one nominal role."""
 
@@ -178,6 +181,12 @@ def reference_settings(
         raise ValueError("invalid settings request")
     if not 32 <= output_points <= MAX_POINTS or output_points & (output_points - 1):
         raise ValueError("output grid must be a supported power of two")
+    if method_variant == JULIA_METHOD_VARIANT:
+        if role is not BurgersReferenceRole.DEVELOPMENT_CROSSCHECK:
+            raise ValueError("Julia is registered only as a DEVELOPMENT diagnostic")
+        return BurgersReferenceSettings(max(64, output_points), 0.35, 0)
+    if method_variant != "python_v1":
+        raise ValueError("unregistered reference implementation")
     grid = max(256, output_points)
     if role is BurgersReferenceRole.CANDIDATE_PRIMARY:
         return BurgersReferenceSettings(max(1024, 4 * grid), 0.25, 0)
@@ -210,6 +219,8 @@ class BurgersReferenceRequest:
     development_only: bool = True
     protected_execution_eligible: bool = False
     score_eligible: bool = False
+    method_variant: str = "python_v1"
+    units: str | None = None
 
     def __post_init__(self) -> None:
         points = _finite_tuple(
@@ -221,16 +232,35 @@ class BurgersReferenceRequest:
         if (
             self.challenge_id != "burgers-dynamics-v1"
             or self.challenge_version != "1.0"
-            or self.policy_id != POLICY_ID
+            or self.policy_id
+            != (
+                JULIA_POLICY_ID
+                if self.method_variant == JULIA_METHOD_VARIANT
+                else POLICY_ID
+            )
             or self.policy_version != POLICY_VERSION
             or type(self.role) is not BurgersReferenceRole
+            or type(self.method_variant) is not str
+            or self.method_variant not in ("python_v1", JULIA_METHOD_VARIANT)
+            or (
+                self.method_variant == JULIA_METHOD_VARIANT
+                and (
+                    self.role is not BurgersReferenceRole.DEVELOPMENT_CROSSCHECK
+                    or type(self.units) is not str
+                    or self.units != "dimensionless"
+                )
+            )
+            or (self.method_variant == "python_v1" and self.units is not None)
             or self.precision != "float64"
             or self.output_semantics != OUTPUT_SEMANTICS
             or self.development_only is not True
             or self.protected_execution_eligible is not False
             or self.score_eligible is not False
             or type(self.settings) is not BurgersReferenceSettings
-            or self.settings != reference_settings(self.role, len(points))
+            or self.settings
+            != reference_settings(
+                self.role, len(points), method_variant=self.method_variant
+            )
             or not self.case_digest.startswith("sha256:")
             or len(self.case_digest) != 71
             or not self.environment_digest.startswith("sha256:")
@@ -272,10 +302,31 @@ class BurgersReferenceRequest:
 
     @property
     def method_id(self) -> str:
-        return _METHODS[self.role][0]
+        return self.method_descriptor[0]
+
+    @property
+    def method_descriptor(self) -> tuple[str, str, str]:
+        if self.method_variant == JULIA_METHOD_VARIANT:
+            from carbon.reference_runtime.julia.protocol import METHOD_ID
+
+            return METHOD_ID, "1.0", "NUMERICAL"
+        return _METHODS[self.role]
 
     @property
     def implementation_digest(self) -> str:
+        if self.method_variant == JULIA_METHOD_VARIANT:
+            from carbon.reference_runtime.julia.protocol import source_digest
+
+            return _digest(
+                _canonical(
+                    {
+                        "method": self.method_id,
+                        "version": "1.0",
+                        "source": "carbon.reference_runtime.julia.burgers",
+                        "source_digest": source_digest(),
+                    }
+                )
+            )
         return _digest(
             _canonical(
                 {
@@ -291,8 +342,10 @@ class BurgersReferenceRequest:
         return _digest(_canonical(self.settings.document()))
 
     def document(self) -> dict[str, object]:
-        return {
-            "schema": SCHEMA,
+        result = {
+            "schema": (
+                JULIA_SCHEMA if self.method_variant == JULIA_METHOD_VARIANT else SCHEMA
+            ),
             "scope": SCOPE,
             "challenge": {
                 "id": self.challenge_id,
@@ -302,9 +355,9 @@ class BurgersReferenceRequest:
             "policy": {"id": self.policy_id, "version": self.policy_version},
             "role": self.role.value,
             "method": {
-                "evidence_kind": _METHODS[self.role][2],
+                "evidence_kind": self.method_descriptor[2],
                 "id": self.method_id,
-                "version": _METHODS[self.role][1],
+                "version": self.method_descriptor[1],
                 "implementation_digest": self.implementation_digest,
                 "environment_digest": self.environment_digest,
                 "precision": self.precision,
@@ -328,6 +381,9 @@ class BurgersReferenceRequest:
                 "scientifically_qualified": False,
             },
         }
+        if self.method_variant == JULIA_METHOD_VARIANT:
+            result["query"]["units"] = self.units
+        return result
 
     @property
     def request_digest(self) -> str:
@@ -384,8 +440,9 @@ def decode_reference_request(document: object) -> BurgersReferenceRequest:
     method = document["method"]
     query = document["query"]
     eligibility = document["eligibility"]
+    julia = document["schema"] == JULIA_SCHEMA
     if (
-        document["schema"] != SCHEMA
+        document["schema"] not in (SCHEMA, JULIA_SCHEMA)
         or document["scope"] != SCOPE
         or type(challenge) is not dict
         or set(challenge) != {"id", "version"}
@@ -405,16 +462,19 @@ def decode_reference_request(document: object) -> BurgersReferenceRequest:
         }
         or type(query) is not dict
         or set(query)
-        != {
-            "cosine_coefficients",
-            "domain_length",
-            "mean",
-            "output_semantics",
-            "requested_times",
-            "sine_coefficients",
-            "spatial_points",
-            "viscosity",
-        }
+        != (
+            {
+                "cosine_coefficients",
+                "domain_length",
+                "mean",
+                "output_semantics",
+                "requested_times",
+                "sine_coefficients",
+                "spatial_points",
+                "viscosity",
+            }
+            | ({"units"} if julia else set())
+        )
         or eligibility
         != {
             "development_only": True,
@@ -458,10 +518,12 @@ def decode_reference_request(document: object) -> BurgersReferenceRequest:
             policy_version=policy["version"],
             precision=method["precision"],
             output_semantics=query["output_semantics"],
+            method_variant=JULIA_METHOD_VARIANT if julia else "python_v1",
+            units=query.get("units"),
         )
     except (KeyError, TypeError, ValueError):
         raise ValueError("invalid reference request document") from None
-    expected = _METHODS[role]
+    expected = result.method_descriptor
     if (
         method["id"] != expected[0]
         or method["version"] != expected[1]
@@ -777,7 +839,12 @@ def execute_reference(request: BurgersReferenceRequest) -> BurgersReferenceRun:
     if type(request) is not BurgersReferenceRequest:
         raise TypeError("request must be an exact BurgersReferenceRequest")
     try:
-        observed_environment = runtime_environment_digest()
+        if request.method_variant == JULIA_METHOD_VARIANT:
+            from carbon.reference_runtime.julia.adapter import julia_environment_digest
+
+            observed_environment = julia_environment_digest()
+        else:
+            observed_environment = runtime_environment_digest()
     except RuntimeError:
         observed_environment = None
     if request.environment_digest != observed_environment:
@@ -790,6 +857,10 @@ def execute_reference(request: BurgersReferenceRequest) -> BurgersReferenceRun:
             diagnostics=(("environment", "MISMATCH_OR_UNAVAILABLE"),),
         )
     try:
+        if request.method_variant == JULIA_METHOD_VARIANT:
+            from carbon.reference_runtime.julia.adapter import execute_julia_reference
+
+            return execute_julia_reference(request)
         if request.role is BurgersReferenceRole.CANDIDATE_PRIMARY:
             values, diagnostics = _cole_hopf(request)
         elif request.role is BurgersReferenceRole.INDEPENDENT_WITNESS:
