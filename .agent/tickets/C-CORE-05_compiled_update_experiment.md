@@ -79,3 +79,12 @@ are native WSL diagnostics, not canonical acceptance. Preserve the observation's
 source hashes as recorded; no commit identity or isolated timing distribution
 is inferred from them. Completion remains conditional on the full required
 canonical scope, package and Hub checks and normal tested-head delivery.
+
+Integrated acceptance repair: the first exact-head canonical job in run
+35287194537 reached the end of its checks but was cancelled at the 45-minute
+job deadline; the targeted retry passed. The portable-state candidate's
+canonical and clean-image jobs in run 35287598474 also exhausted that deadline.
+The two job limits are now 60 minutes, retaining the full test commands,
+classification, isolated-worker limits and all acceptance assertions. This
+provides room for the existing full regression and teardown; it is not a test
+exemption or authority to extend numerical worker/campaign budgets.
