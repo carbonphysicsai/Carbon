@@ -370,6 +370,19 @@ Do not reuse another campaign's state directory or enable an old grant. A new
 owner resumption decision and exact matching runtime/resource authority are still
 required; completion of core engineering never starts a campaign automatically.
 
+The core integration owner confirmed that C-CORE-14 / #233 exposes a public TRAIN
+GPU construction diagnostic with `score=None`, not a Launchpad GPU campaign or
+final comparison. The named prospective profile is
+`carbon_jax_cuda13_rtx3060_laptop_development_v1`. Core #209 owns the missing
+campaign/final-comparison composition. Local RTX 3060 device visibility is a
+historical observation; NVIDIA Container Toolkit maintenance approval, exclusive
+host admission and actual miner/validator hardware and cleanup evidence are still
+missing. Reuse `.agent/plans/CORE_PLATFORM_RESOURCE_REQUEST.md`; do not duplicate
+its request or infer access from device visibility. A prospective configuration
+must leave runtime/image, final-comparison and budget/grant bindings unresolved
+until those contracts exist. The existing CPU final reserve is a reference, not
+an invented GPU budget. No new campaign or grant is created by preparation.
+
 ### Optional private research guidance
 
 Issue #223 adds `research_guidance` to the existing private runner-profile JSON.
