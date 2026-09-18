@@ -128,3 +128,16 @@ canonical/quality/invariant/package/Hub acceptance and normal delivery. Hardware
 execution, exclusive allocation, device-memory behavior, GPU/TPU comparisons,
 fresh validator hardware execution and scientific/security qualification remain
 open. A passing fixture is not a hardware acceptance result.
+
+## Canonical fixture repair
+
+Canonical run `35294650329`, job `105444628139`, found three failures in the
+existing exact-type material allowlist fixture after 6,300 other CPU tests passed.
+That fixture deliberately bypasses the executor constructor and had not populated
+its non-GPU practice callback. Set `executor.practice = None` in the fixture;
+production code and all allowlist/subclass rejection assertions remain unchanged.
+The affected advection file plus the two public GPU material/scaffold projection
+checks passed 15 tests in 14.49 seconds as native diagnostics. Strict isolated
+Python 3.10 Ruff and Black passed for the repaired file. No numerical worker,
+accelerator, provider call or campaign was executed. Canonical acceptance remains
+required on the resulting delivery head.
