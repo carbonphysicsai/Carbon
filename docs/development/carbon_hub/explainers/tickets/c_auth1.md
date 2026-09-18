@@ -40,10 +40,10 @@ Bounded public-development authoring engineering only; supplied evidence, refere
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/d14c352f7000999f36d3a77a9c2e22f5424c416e/.agent/tickets/C-AUTH1_burgers_authoring.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/4ae5b8720172e30a5347a20566758a6aef47d49f/.agent/tickets/C-AUTH1_burgers_authoring.md)
 - [Program authority](https://github.com/carbonphysicsai/Carbon/blob/4f84329cb1f91b89b3b11547d938867fd846417d/.agent/plans/C1_C2_BURGERS_PROGRAM.md)
-- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/d14c352f7000999f36d3a77a9c2e22f5424c416e/.agent/evidence/wave_c/c-auth1.md)
+- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/4ae5b8720172e30a5347a20566758a6aef47d49f/.agent/evidence/wave_c/c-auth1.md)
 - [Integration design](https://github.com/carbonphysicsai/Carbon/blob/4f84329cb1f91b89b3b11547d938867fd846417d/Design_Specs/Goal_Driven_Authoring_and_Burgers_Dynamics_V1.md)
-- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/d14c352f7000999f36d3a77a9c2e22f5424c416e/.agent/WAVE_C.md)
+- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/4ae5b8720172e30a5347a20566758a6aef47d49f/.agent/WAVE_C.md)
 
 > The verified workbench is an input artifact, not a second lifecycle owner or a protected scientific exam.
