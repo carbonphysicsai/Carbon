@@ -25,6 +25,7 @@ jobs:
       change_scope: ${{ steps.delivery.outputs.change_scope }}
       dev_image_required: ${{ steps.delivery.outputs.dev_image_required }}
       c03_worker_required: ${{ steps.delivery.outputs.c03_worker_required }}
+      workbench_required: ${{ steps.delivery.outputs.workbench_required }}
     steps:
       - name: Resolve the current exact candidate
         id: candidate
@@ -214,6 +215,34 @@ jobs:
             .carbon-artifacts/julia-service-traces.jsonl
           if-no-files-found: error
 
+  workbench:
+    name: Workbench release and application acceptance
+    if: needs.preflight.outputs.workbench_required == 'true'
+    needs: preflight
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Check out exact classified candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.preflight.outputs.candidate_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Install pinned uv
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: "0.12.7"
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - name: Bootstrap locked Carbon environment
+        run: ./scripts/dev/bootstrap.sh
+      - name: Install pinned Workbench Node runtime
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: "24.19.0"
+      - name: Run required Workbench release and application checks
+        run: ./scripts/dev/workbench_release_checks.sh
+
   contract-authority:
     name: Contract and authority acceptance
     if: needs.preflight.outputs.change_scope == 'CONTRACT_AUTHORITY'
@@ -309,7 +338,7 @@ jobs:
   merge-gate:
     name: Merge gate
     if: always() && github.event.pull_request.draft == false
-    needs: [preflight, canonical, dev-image, c03-worker, contract-authority, hub-validation, derived-documentation]
+    needs: [preflight, canonical, dev-image, c03-worker, workbench, contract-authority, hub-validation, derived-documentation]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
@@ -340,6 +369,7 @@ jobs:
           PREFLIGHT_SCOPE: ${{ needs.preflight.outputs.change_scope }}
           PREFLIGHT_IMAGE: ${{ needs.preflight.outputs.dev_image_required }}
           PREFLIGHT_C03: ${{ needs.preflight.outputs.c03_worker_required }}
+          PREFLIGHT_WORKBENCH: ${{ needs.preflight.outputs.workbench_required }}
           BOOTSTRAP_BASE_SHA: a20d9eece054e7f8b02538527221f6aea022aade
         run: |
           set -euo pipefail
@@ -431,6 +461,33 @@ jobs:
           else
             [[ "${{ needs.c03-worker.result }}" == skipped ]] \
               || { echo "Unexpected C-03 worker service result." >&2; exit 1; }
+          fi
+          # Derived from the candidate's own module. classify_changes.py and
+          # development_scope.py stay byte-identical to their owner-pinned
+          # digests, so this requirement cannot re-authorise that migration.
+          derived_workbench=
+          workbench_scope=.carbon-gate-candidate/scripts/dev/workbench_scope.py
+          if [[ -f "${workbench_scope}" ]]; then
+            workbench_output="${RUNNER_TEMP}/carbon-gate-workbench.txt"
+            : > "${workbench_output}"
+            python3 "${workbench_scope}"               --repository .carbon-gate-candidate               --base "${BASE_SHA}"               --github-output "${workbench_output}"
+            while IFS='=' read -r key value; do
+              if [[ "${key}" == "workbench_required" ]]; then
+                [[ -z "${derived_workbench}" ]] || { echo "Duplicate Workbench requirement." >&2; exit 2; }
+                derived_workbench="${value}"
+              fi
+            done < "${workbench_output}"
+          fi
+          # Candidates older than this requirement carry no module.
+          if [[ -z "${derived_workbench}" ]]; then
+            derived_workbench=false
+          fi
+          [[ "${derived_workbench}" == true || "${derived_workbench}" == false ]]
+          [[ "${PREFLIGHT_WORKBENCH:-false}" == "${derived_workbench}" ]]
+          if [[ "${derived_workbench}" == true ]]; then
+            [[ "${{ needs.workbench.result }}" == success ]] || { echo "Workbench release acceptance did not succeed." >&2; exit 1; }
+          else
+            [[ "${{ needs.workbench.result }}" == skipped ]] || { echo "Unexpected Workbench release acceptance result." >&2; exit 1; }
           fi
           image_args=()
           if [[ "${derived_scope}" == "RUNTIME_FULL" && "${derived_image}" == false ]]; then

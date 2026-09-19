@@ -16,10 +16,10 @@ function check(name, condition) {
   const browser = await chromium.launch({
     headless: true,
     executablePath:
-      "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+      (process.env.CARBON_BROWSER_EXECUTABLE || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"),
   });
   const page = await browser.newPage({
-    viewport: { width: 1440, height: 1000 },
+    viewport: process.env.CARBON_MOBILE === "1" ? { width: 390, height: 844 } : { width: 1440, height: 1000 },
     acceptDownloads: true,
   });
   page.setDefaultTimeout(12000);

@@ -25,7 +25,7 @@ async function pageText(page, selector) {
   const errors = [], outbound = [];
   const browser = await chromium.launch({
     headless: true,
-    executablePath: "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+    executablePath: (process.env.CARBON_BROWSER_EXECUTABLE || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"),
   });
   const context = await browser.newContext({ acceptDownloads: true });
   context.on("request", (request) => {

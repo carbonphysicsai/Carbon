@@ -1,6 +1,15 @@
-# GOAL-WORKBENCH-10 / GOAL-WORKBENCH-09 / GOAL-WORKBENCH-08B / GOAL-WORKBENCH-08 / GOAL-WORKBENCH-07A / GOAL-WORKBENCH-07 / GOAL-WORKBENCH-06 / GOAL-WORKBENCH-05A / GOAL-WORKBENCH-05 / GOAL-WORKBENCH-04 / GOAL-WORKBENCH-03 / GOAL-WORKBENCH-02 / EXAM-PROTECT-WORKBENCH-01 requirement-to-test map
+# GOAL-WORKBENCH-11 / GOAL-WORKBENCH-10 / GOAL-WORKBENCH-09 / GOAL-WORKBENCH-08B / GOAL-WORKBENCH-08 / GOAL-WORKBENCH-07A / GOAL-WORKBENCH-07 / GOAL-WORKBENCH-06 / GOAL-WORKBENCH-05A / GOAL-WORKBENCH-05 / GOAL-WORKBENCH-04 / GOAL-WORKBENCH-03 / GOAL-WORKBENCH-02 / EXAM-PROTECT-WORKBENCH-01 requirement-to-test map
 
 This map describes focused application acceptance. It does not relabel the CPES study's historical 14/52/208 runs as workbench tests.
+
+| GW11 requirement | Implementation / evidence | Automated coverage | Authority limitation |
+|---|---|---|---|
+| Detect a stale tracked release | `tools/check_release_freshness.py` regenerates tracked sources in a throwaway tree | source-change, edited-artifact, missing-artifact and archive-drift cases | Byte agreement only; no scientific or packaging approval is implied |
+| Never repair in place | staged comparison outside the repository | failure leaves the artifact and its expected digests untouched | A passing gate is not evidence the release was reviewed |
+| Keep provenance acyclic | packaging revision normalised on both sides and inside the archive | altered `integration_revision_at_packaging` still passes | Provenance records the packaging commit, not artifact correctness |
+| Keep local files out of a release | `payloads()` excludes dot-directories and `node_modules`; the gate stages only tracked paths | untracked files are absent from the regenerated archive | Member set unchanged at 205; no packaging contract is redefined |
+| Require the product lane by its inputs | `scripts/dev/workbench_scope.py` and `scripts/dev/workbench_release_checks.sh` | required/not-required path cases and CLI fail-closed cases | Scope requirement only; no classification or existing gate is relaxed |
+| Preserve the owner classifier pin | requirement kept out of `classify_changes.py` | pinned digests asserted against the workflow | `OWNER-CW1-DEVELOPMENT-CI-01` remains owner-reserved |
 
 | GW10 requirement | Implementation / evidence | Automated coverage | Authority limitation |
 |---|---|---|---|
