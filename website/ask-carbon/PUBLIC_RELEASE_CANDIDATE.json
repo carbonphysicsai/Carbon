@@ -1,12 +1,30 @@
 {
   "schema_version": "carbon.ask-carbon.public-release-candidate.v1",
   "candidate_id": "ask-carbon-public-release-2026-09-18.2",
-  "status": "OWNER_APPROVED_INACTIVE_PUBLICATION_PENDING_REQUIRED_OPERATORS",
+  "status": "OWNER_APPROVED_INACTIVE_PUBLICATION_OPERATORS_NAMED",
   "public_activation_allowed": false,
   "owner_authorization": {
     "decision": "APPROVED_INACTIVE_PRODUCTION_PUBLICATION",
     "recorded_at": "2026-09-18",
     "scope": "public Q&A, guided pilot drafting, form-only drafting and local download; inquiry collection disabled; activation remains a separate recorded step"
+  },
+  "named_operators": {
+    "decision": "WEB-QA-05-D2",
+    "recorded_at": "2026-09-19",
+    "source": ".agent/DECISIONS.md",
+    "production_incident_owners": ["Ryan Bequette", "Nick Fitzpatrick"],
+    "disable_and_rollback_operators": ["Ryan Bequette", "Nick Fitzpatrick"],
+    "either_operator_may_act_independently": true,
+    "joint_action_required": false
+  },
+  "public_activation_authorization": {
+    "decision": "WEB-QA-05-D2",
+    "recorded_at": "2026-09-19",
+    "authorized": true,
+    "audience": "any website visitor",
+    "conditions": "after inactive publication and its production verification succeed; subject to the existing approved request, abuse, concurrency and spending controls",
+    "owned_by_successor_ticket": true,
+    "activation_state_in_this_candidate": "disabled"
   },
   "runtime_implementation_revision": "dd952529ad2906b8ba0f1dc6ab06d8ae338d66f0",
   "knowledge": {
@@ -87,8 +105,12 @@
     "evaluation_remaining": 4546521,
     "monthly_remaining": 49546521
   },
-  "required_before_production_mutation": [
-    "named production incident owner",
-    "named disable and rollback operator"
+  "required_before_production_mutation": [],
+  "required_before_production_mutation_satisfied": {
+    "named production incident owner": "WEB-QA-05-D2 (2026-09-19)",
+    "named disable and rollback operator": "WEB-QA-05-D2 (2026-09-19)"
+  },
+  "remaining_execution_inputs": [
+    "Cloudflare deployment credentials for account 7462053c6992b9c9fd889952a7ae0496, provisioned through the approved operator release process"
   ]
 }

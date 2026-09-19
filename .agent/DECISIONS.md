@@ -14689,3 +14689,39 @@ the affected deployment remains fail closed while repository preparation and
 testing continue. The smallest reversal restores the recorded prior
 `carbonwebsite` version and removes only the two Ask Carbon routes while
 preserving Durable Object financial history.
+
+## 2026-09-19 — WEB-QA-05-D2: named Ask Carbon production operators and authorized public activation
+
+**Authority.** The repository owner supplied the two operational identities
+that WEB-QA-05-D1 recorded as the remaining production-mutation gate, and
+separately authorized public activation of the accepted release after its
+inactive deployment and production checks succeed.
+
+**Named production incident owners.** Ryan Bequette and Nick Fitzpatrick.
+
+**Authorized disable and rollback operators.** Ryan Bequette and Nick
+Fitzpatrick. Either named operator may independently disable or roll back Ask
+Carbon. Joint action is not required and must not be represented as required.
+
+**Effect.** The `required_before_production_mutation` gate in
+`PUBLIC_RELEASE_CANDIDATE.json` is satisfied. The approved inactive
+publication may proceed, and a separate bounded successor ticket owns public
+activation and live verification. This decision names operators and authorizes
+activation of the exact accepted release; it does not widen the release scope.
+
+**Scope preserved unchanged.** Public Carbon Q&A, guided pilot drafting,
+form-only drafting without AI, and explicit local download. Issue #139 inquiry
+submission and collection remain disabled. No customer or private-data intake,
+Workbench live intake, scientific execution, miner execution, protected
+evaluation access, qualification authority, arbitrary tools or URLs, new DNS,
+paid-plan change, new provider budget authority, model substitution, automatic
+fallback, or increased ceiling is authorized. `gpt-5.6-luna:low:v1` and the
+existing shared USD 50 UTC-month authority with its nested USD 5 evaluation
+scope remain controlling.
+
+**Maturity boundary.** Naming operators and authorizing a public test creates
+no security, scientific, production or commercial qualification.
+
+**Reversibility.** The owner may withdraw either identity or the activation
+authorization prospectively; retained evidence and recorded historical state
+are not rewritten.

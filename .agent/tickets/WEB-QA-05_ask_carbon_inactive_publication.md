@@ -1,7 +1,9 @@
 # WEB-QA-05 — Ask Carbon inactive production publication
 
-**Status:** IN PROGRESS — exact static package prepared; production mutation
-blocked only on the two required named operator roles
+**Status:** IN PROGRESS — exact static package prepared and reconciled against
+current main; both required operator roles are now named, so the operator gate
+is satisfied; the production mutation itself has not been executed because no
+Cloudflare deployment credential is reachable from the executing environment
 
 **Owner authorization:** approve `ask-carbon-public-release-2026-09-18.2` for
 inactive production publication against the reconciled uploaded website source;
@@ -53,3 +55,41 @@ existing application-specific provider ledger binding. It does not change the
 issue #209 shared execution, scientific-task, capability, checkpoint, grant,
 artifact, accounting or job-lifecycle interfaces, so no core implementation
 coordination is required for this bounded work.
+
+## Named production operators (2026-09-19)
+
+Recorded by the owner as `WEB-QA-05-D2` in `.agent/DECISIONS.md`:
+
+- production incident owners: Ryan Bequette, Nick Fitzpatrick;
+- authorized disable/rollback operators: Ryan Bequette, Nick Fitzpatrick.
+
+Either named operator may act independently. Acceptance item 4 is satisfied.
+
+## Reconciliation and current execution state (2026-09-19)
+
+The candidate was reconciled against main `48ed47fc`, which includes the
+complete C-CORE-01..14 core programme and Launchpad #235. Every Hub conflict
+was resolved by preserving main's reconciled records and reapplying only the
+WEB-QA-05 entries; no historical event was rewritten.
+
+Re-verified owner source authority, unchanged since the original
+reconciliation:
+
+- owner archive `Carbon_Automotive_Cloudflare.zip` SHA-256
+  `d85cfc5cf79d8d6fffa403975dd768ebe69d9874b65d11e511e78b7f2606f125`;
+- live `https://carbonphysics.ai/` and `https://www.carbonphysics.ai/` both
+  SHA-256 `5ebb43e859e9837f74bbc93b5748b2db95a6700821afbfcecb407e75702e2020`,
+  exactly the pinned `observed_live_input_sha256`.
+
+Observed production baseline before any mutation:
+
+- homepage 200 on both hostnames at the pinned hash;
+- `/workbench/` 200 and unchanged;
+- `/api/ask-carbon/health` 404 — the route is not bound;
+- `/ask-carbon/ask-carbon.js` and `.css` 404 — not published.
+
+Acceptance item 5 (publish and verify in production) is **not executed**. No
+Cloudflare credential, `wrangler`, `npm` or `node` is available to the
+executing environment, so the approved mutation cannot be performed here. This
+is an access blocker, not a repository defect; the prepared bundle, hashes,
+rollback target and named operators are all resolved and unchanged.

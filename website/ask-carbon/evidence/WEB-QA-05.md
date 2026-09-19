@@ -42,9 +42,98 @@ the production Worker remains configured `ASK_CARBON_ACTIVATION=disabled`.
 Publishing this artifact therefore does not perform the separately required
 enable step.
 
+## Named production operators (2026-09-19)
+
+The owner recorded both required identities as `WEB-QA-05-D2` in
+`.agent/DECISIONS.md`:
+
+- production incident owners: Ryan Bequette, Nick Fitzpatrick;
+- authorized disable/rollback operators: Ryan Bequette, Nick Fitzpatrick.
+
+Either named operator may act independently; joint action is not required.
+The operator gate that previously blocked production mutation is satisfied.
+
+## Source re-verification (2026-09-19)
+
+Re-checked before reconciling the candidate against main `48ed47fc`:
+
+- owner archive `Carbon_Automotive_Cloudflare.zip` recomputed SHA-256
+  `d85cfc5cf79d8d6fffa403975dd768ebe69d9874b65d11e511e78b7f2606f125`,
+  matching the recorded identity;
+- `https://carbonphysics.ai/` and `https://www.carbonphysics.ai/` each
+  returned HTTP 200 and SHA-256
+  `5ebb43e859e9837f74bbc93b5748b2db95a6700821afbfcecb407e75702e2020`,
+  exactly the recorded `observed_live_input_sha256`.
+
+Production has therefore not changed since the original reconciliation, and
+no expected hash was repinned.
+
+## Observed pre-mutation production baseline (2026-09-19)
+
+| Probe | Observation |
+| --- | --- |
+| `https://carbonphysics.ai/` | 200, pinned reconciled hash |
+| `https://www.carbonphysics.ai/` | 200, same pinned hash |
+| `/workbench/` | 200, present and unchanged |
+| `/api/ask-carbon/health` | 404 — route not bound |
+| `/ask-carbon/ask-carbon.js` | 404 — not published |
+| `/ask-carbon/ask-carbon.css` | 404 — not published |
+
+This is the recovery reference for the inactive publication: Ask Carbon is
+currently absent from production, and the rollback target is the recorded
+prior `carbonwebsite` deployment.
+
 ## Current blocker
 
-Repository operations require the production incident owner and the authorized
-disable/rollback operator to be named before any production mutation. Neither
-identity is inferred from repository or account access. All other source and
-package inputs are resolved.
+Production mutation has **not** been performed. The executing environment has
+no reachable Cloudflare credential and no `node`, `npm` or `wrangler`
+installation, so the approved static upload, route binding and inactive
+health verification could not be executed. Every repository-side input —
+source authority, reconciliation, bundle hashes, rollback target, named
+operators — is resolved.
+
+Nothing about this blocker is a repository defect, and it does not weaken any
+release gate: the candidate still carries `public_activation_allowed:false`
+and `ASK_CARBON_ACTIVATION=disabled`.
+
+## Defect found and repaired during reconciliation (2026-09-19)
+
+**Destructive static publication.** The recorded production sequence built the
+upload directory with `integrate-static.mjs`, which writes only `index.html`
+and the `ask-carbon/` assets, and then deployed that directory to the
+`carbonwebsite` static-assets Worker. Because such a deployment replaces the
+entire asset set, running the recorded command would have withdrawn every
+other live path.
+
+Enumerated from the live site on 2026-09-19, all returning HTTP 200 and all
+absent from the tool's output directory:
+
+- `assets/carbon-66e3549179d4.png`, `assets/carbon-f7ea9506b7b9.png`
+- `workbench/index.html`, `workbench/app.js`, `workbench/assist-contract.js`,
+  `workbench/assist-ui.js`, `workbench/atlas.js`, `workbench/cooling-v02.js`,
+  `workbench/engine.js`, `workbench/styles.css`
+
+This directly contradicts the ticket boundary "preserve the existing homepage,
+Workbench links, routes and unrelated assets".
+
+**Repair.** `tools/integrate-static.mjs` now pins the required production path
+set, accepts `--existing-site DIR` to fold a complete current-site copy into
+the bundle, reports `deployable_to_carbonwebsite` plus
+`missing_production_paths`, warns on an incomplete bundle, and fails closed
+under `--require-complete-bundle`. `OPERATIONS.md` records the corrected
+sequence and a post-deploy re-verification of `/workbench/` and `/assets/*`.
+Three regression tests in `tests/integration.test.mjs` cover the required path
+set, the incomplete Ask-Carbon-only bundle, and the complete bundle.
+
+No prepared artifact hash changed; this repair constrains how the bundle is
+assembled and deployed, not what the integrated homepage contains.
+
+## Local verification note
+
+The Windows working tree checks out CRLF, so `validate-knowledge` reports
+`source_changed` for all nine pinned sources when run against it. The
+committed LF bytes match the pinned digests exactly — for example
+`CONSTITUTION.md` hashes to
+`7e088fa32805768453900102446c6691198ad46721469594c5992506357feab5` as
+recorded. No pinned source hash was repinned. Canonical Linux CI is the
+authoritative run.

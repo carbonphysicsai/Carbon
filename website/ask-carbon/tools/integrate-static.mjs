@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { access, cp, mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -9,6 +9,43 @@ const OWNER_UPLOAD_RECONCILIATION = "owner-upload-2026-09-18-plus-workbench-navi
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, "..");
 const PILOT_DESIGNER = resolve(ROOT, "../../Business/Carbon_Fit/workbench/Carbon_Client_Pilot_Designer_Preview.html");
+
+// `carbonwebsite` is a Cloudflare static-assets Worker: a deployment replaces
+// the whole asset set, so any path missing from the uploaded directory is
+// removed from production. These are the non-Ask-Carbon paths observed live on
+// 2026-09-19 at https://carbonphysics.ai. Deploying a directory that lacks any
+// of them would silently withdraw the existing homepage assets or the
+// Workbench route, so production bundles must fail closed instead.
+export const REQUIRED_PRODUCTION_PATHS = Object.freeze([
+  "index.html",
+  "assets/carbon-66e3549179d4.png",
+  "assets/carbon-f7ea9506b7b9.png",
+  "workbench/index.html",
+  "workbench/app.js",
+  "workbench/assist-contract.js",
+  "workbench/assist-ui.js",
+  "workbench/atlas.js",
+  "workbench/cooling-v02.js",
+  "workbench/engine.js",
+  "workbench/styles.css",
+]);
+
+const exists = async (path) => {
+  try {
+    await access(path);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+export const missingProductionPaths = async (directory, probe = exists) => {
+  const missing = [];
+  for (const relative of REQUIRED_PRODUCTION_PATHS) {
+    if (!(await probe(join(directory, relative)))) missing.push(relative);
+  }
+  return missing;
+};
 
 const parseArgs = (argv) => {
   const result = { "asset-prefix": "./ask-carbon", "expected-sha256": KNOWN_LIVE_SHA256 };
@@ -26,11 +63,15 @@ const parseArgs = (argv) => {
       result["reconcile-owner-upload"] = true;
       continue;
     }
+    if (argument === "--require-complete-bundle") {
+      result["require-complete-bundle"] = true;
+      continue;
+    }
     if (!argument.startsWith("--") || !argv[index + 1]) throw new Error(`Invalid argument: ${argument}`);
     result[argument.slice(2)] = argv[index + 1];
     index += 1;
   }
-  if (!result.input || !result.output) throw new Error("Usage: integrate-static.mjs --input PATH --output PATH [--asset-prefix PREFIX] [--reconcile-owner-upload]");
+  if (!result.input || !result.output) throw new Error("Usage: integrate-static.mjs --input PATH --output PATH [--asset-prefix PREFIX] [--reconcile-owner-upload] [--existing-site DIR] [--require-complete-bundle]");
   return result;
 };
 
@@ -123,6 +164,15 @@ const main = async () => {
     stagingPreview: args["staging-preview"] === true,
   });
   await mkdir(dirname(outputPath), { recursive: true });
+  if (args["existing-site"]) {
+    const existingSite = resolve(args["existing-site"]);
+    const absentFromSource = await missingProductionPaths(existingSite);
+    if (absentFromSource.length) {
+      throw new Error(`--existing-site ${existingSite} is not a complete current production copy. Missing: ${absentFromSource.join(", ")}. Fetch the complete deployed asset set before building a production bundle.`);
+    }
+    // index.html is replaced by the integrated homepage written below.
+    await cp(existingSite, dirname(outputPath), { recursive: true, force: false, errorOnExist: false, filter: (source) => resolve(source) !== join(existingSite, "index.html") });
+  }
   await writeFile(outputPath, integrated, { flag: "wx" });
   const assetDirectory = join(dirname(outputPath), args["asset-prefix"].replace(/^\.\//, "").replace(/^\//, ""));
   await mkdir(assetDirectory, { recursive: true });
@@ -135,6 +185,12 @@ const main = async () => {
   ]) {
     await writeFile(join(assetDirectory, destination), await readFile(source), { flag: "wx" });
   }
+  const bundleRoot = dirname(outputPath);
+  const incompleteBundle = await missingProductionPaths(bundleRoot);
+  const deployable = incompleteBundle.length === 0;
+  if (args["require-complete-bundle"] && !deployable) {
+    throw new Error(`Refusing to report a deployable production bundle: ${bundleRoot} is missing ${incompleteBundle.join(", ")}. Deploying it to carbonwebsite would delete those paths from production. Rebuild with --existing-site pointing at a complete copy of the current deployed site.`);
+  }
   process.stdout.write(`${JSON.stringify({
     input: inputPath,
     supplied_input_sha256: suppliedInputSha256,
@@ -143,7 +199,13 @@ const main = async () => {
     output: outputPath,
     output_sha256: sha256(Buffer.from(integrated)),
     asset_directory: assetDirectory,
+    bundle_root: bundleRoot,
+    deployable_to_carbonwebsite: deployable,
+    missing_production_paths: incompleteBundle,
   }, null, 2)}\n`);
+  if (!deployable) {
+    process.stderr.write(`WARNING: ${bundleRoot} is not a complete carbonwebsite asset set. Deploying it would remove ${incompleteBundle.join(", ")} from production. This output is a preview/inspection artifact only.\n`);
+  }
 };
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

@@ -240,8 +240,55 @@ node website/ask-carbon/tools/integrate-static.mjs \
 
 The output `index.html` must hash to
 `d897118ebd16a602994f3498ae8084f4a9ba908cee4aa6a7b8ef1650cc25da55`.
-The current `carbonwebsite` Worker uses compatibility date `2026-09-12`; retain
-it for this asset-only update:
+
+### The upload directory must be the complete site, not just the homepage
+
+`carbonwebsite` is a Cloudflare **static-assets** Worker. A deployment replaces
+the entire asset set: any path absent from the uploaded directory is withdrawn
+from production. `integrate-static.mjs` writes only `index.html` and the
+`ask-carbon/` assets, so deploying its output directory on its own would
+delete the live Workbench route and the shared homepage images.
+
+The paths observed live on 2026-09-19, all of which must survive the upload,
+are pinned as `REQUIRED_PRODUCTION_PATHS` in `tools/integrate-static.mjs`:
+
+```text
+index.html
+assets/carbon-66e3549179d4.png
+assets/carbon-f7ea9506b7b9.png
+workbench/index.html
+workbench/app.js
+workbench/assist-contract.js
+workbench/assist-ui.js
+workbench/atlas.js
+workbench/cooling-v02.js
+workbench/engine.js
+workbench/styles.css
+```
+
+Obtain a complete copy of the currently deployed asset set first — from the
+owner's current website source, or by downloading every path above from
+production — into `/tmp/ask-carbon-current`. Then build the bundle so it is a
+**superset** of the live site, and require the completeness check to pass:
+
+```sh
+node website/ask-carbon/tools/integrate-static.mjs \
+  --input /path/to/extracted/index.html \
+  --output /tmp/ask-carbon-production/index.html \
+  --asset-prefix ./ask-carbon \
+  --reconcile-owner-upload \
+  --existing-site /tmp/ask-carbon-current \
+  --require-complete-bundle
+```
+
+`--existing-site` copies the current deployed assets in and leaves the
+integrated homepage authoritative for `index.html`;
+`--require-complete-bundle` refuses to report a deployable bundle while any
+required path is missing. The emitted JSON must show
+`"deployable_to_carbonwebsite": true` and an empty `missing_production_paths`
+before deployment. Confirm the same paths are present on disk, then deploy.
+The current `carbonwebsite` Worker uses compatibility date `2026-09-12`;
+retain it for this asset-only update:
 
 ```sh
 npx wrangler deploy \
@@ -250,15 +297,36 @@ npx wrangler deploy \
   --compatibility-date 2026-09-12
 ```
 
-Do not run either production deployment until the incident owner and authorized
-disable/rollback operator are recorded. Static publication does not authorize
-the separate activation step.
+After deploying, re-verify `/`, `/workbench/` and both `/assets/*.png` on both
+hostnames before treating the publication as complete. A 404 on any of them
+means the upload was incomplete; roll back immediately.
+
+The incident owner and authorized disable/rollback operator are recorded under
+"Named production operators" below, so this deployment is unblocked. Static
+publication still does not authorize the separate activation step.
 
 ## Incident disable and rollback procedure
 
-The named production incident owner and the named operator allowed to run these
-commands are still owner inputs. Do not infer either identity from repository
-access. Until they are recorded, public activation stays disabled.
+### Named production operators
+
+The repository owner recorded these identities on 2026-09-19 in
+`.agent/DECISIONS.md` as `WEB-QA-05-D2`. They are owner-supplied, not inferred
+from repository or Cloudflare account access.
+
+| Role | Named people |
+| --- | --- |
+| Production incident owner | Ryan Bequette, Nick Fitzpatrick |
+| Authorized disable and rollback operator | Ryan Bequette, Nick Fitzpatrick |
+
+**Either named operator may act independently.** Disabling or rolling back Ask
+Carbon does not require both people, a quorum, or a second approval. Neither
+identity may be substituted or extended by an unnamed holder of account
+access, and these roles authorize only this Ask Carbon release.
+
+This satisfies the `required_before_production_mutation` gate in
+`PUBLIC_RELEASE_CANDIDATE.json`. Publication of the inactive bundle is
+therefore unblocked; the separate public enable step remains its own recorded
+decision.
 
 The first response to a suspected disclosure, spend, provider, source or
 answer-integrity incident is a fail-closed Worker deployment from the reviewed

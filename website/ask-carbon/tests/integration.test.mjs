@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { integrateHtml, reconcileOwnerUploadedHomepage } from "../tools/integrate-static.mjs";
+import { REQUIRED_PRODUCTION_PATHS, integrateHtml, missingProductionPaths, reconcileOwnerUploadedHomepage } from "../tools/integrate-static.mjs";
 import { buildCsp } from "../tools/csp-report.mjs";
 import { validateKnowledge } from "../tools/validate-knowledge.mjs";
 import knowledge from "../knowledge/public-knowledge.v1.json" with { type: "json" };
@@ -89,4 +89,33 @@ test("production candidate is inactive, path-bounded, and excludes staging Basic
   assert.match(config, /pattern = "www\.carbonphysics\.ai\/api\/ask-carbon\*"/);
   assert.match(config, /script_name = "ask-carbon-budget-authority"/);
   assert.match(config, /ASK_CARBON_MONTHLY_LIMIT_MICRO_USD = "50000000"/);
+});
+
+test("the required production path set covers the Workbench route and shared homepage assets", () => {
+  // Regression: a carbonwebsite deployment replaces the entire asset set, so a
+  // bundle containing only the integrated homepage would withdraw /workbench/
+  // and the shared /assets images from production.
+  assert.ok(REQUIRED_PRODUCTION_PATHS.includes("index.html"));
+  assert.ok(REQUIRED_PRODUCTION_PATHS.includes("workbench/index.html"));
+  assert.ok(REQUIRED_PRODUCTION_PATHS.includes("workbench/app.js"));
+  assert.ok(REQUIRED_PRODUCTION_PATHS.includes("workbench/styles.css"));
+  assert.ok(REQUIRED_PRODUCTION_PATHS.includes("assets/carbon-66e3549179d4.png"));
+  assert.ok(REQUIRED_PRODUCTION_PATHS.includes("assets/carbon-f7ea9506b7b9.png"));
+  assert.ok(REQUIRED_PRODUCTION_PATHS.every((path) => !path.startsWith("/") && !path.includes("..")));
+  assert.equal(new Set(REQUIRED_PRODUCTION_PATHS).size, REQUIRED_PRODUCTION_PATHS.length);
+});
+
+test("an Ask-Carbon-only bundle is reported as an incomplete production asset set", async () => {
+  const present = new Set(["/bundle/index.html", "/bundle/ask-carbon/ask-carbon.js"]);
+  const missing = await missingProductionPaths("/bundle", async (path) => present.has(path.split("\\").join("/")));
+  assert.ok(missing.includes("workbench/index.html"));
+  assert.ok(missing.includes("workbench/app.js"));
+  assert.ok(missing.includes("assets/carbon-66e3549179d4.png"));
+  assert.ok(!missing.includes("index.html"));
+});
+
+test("a complete current-site copy plus the integrated homepage reports no missing production path", async () => {
+  const present = new Set(REQUIRED_PRODUCTION_PATHS.map((path) => `/bundle/${path}`));
+  const missing = await missingProductionPaths("/bundle", async (path) => present.has(path.split("\\").join("/")));
+  assert.deepEqual(missing, []);
 });

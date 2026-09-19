@@ -4,8 +4,11 @@
 
 **Candidate:** `ask-carbon-public-release-2026-09-18.2`
 
-**Status:** owner-approved for inactive publication; activation disabled;
-production mutation awaits the two required named operator roles
+**Status:** owner-approved for inactive publication; activation disabled in
+this candidate; both required operator roles are named, so the operator gate
+is satisfied. Public activation of this exact accepted release is separately
+authorized by `WEB-QA-05-D2` and is owned by the successor activation ticket,
+not by this candidate.
 
 ## Proposed first release
 
@@ -103,10 +106,17 @@ Workbench link in each navigation. The deterministic reconciliation produces
 the observed production SHA-256
 `5ebb43e859e9837f74bbc93b5748b2db95a6700821afbfcecb407e75702e2020`.
 
-Two names remain required before any production mutation:
+Both previously required names were recorded by the owner on 2026-09-19 as
+`WEB-QA-05-D2` in `.agent/DECISIONS.md`:
 
-1. the production incident owner; and
-2. the operator authorized to disable and roll back the release.
+1. production incident owners: Ryan Bequette and Nick Fitzpatrick;
+2. authorized disable/rollback operators: Ryan Bequette and Nick Fitzpatrick.
+
+Either named operator may act independently; joint action is not required.
+No production source input remains outstanding. On 2026-09-19 both production
+hostnames still served exactly the pinned reconciled source
+`5ebb43e859e9837f74bbc93b5748b2db95a6700821afbfcecb407e75702e2020`, so the
+recorded reconciliation remains current and no hash was repinned.
 
 ## Recorded owner decision
 
