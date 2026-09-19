@@ -151,6 +151,53 @@ def test_duplicate_requirement_output_fails(tmp_path: Path) -> None:
     assert "Duplicate Workbench requirement" in result.stderr
 
 
+@pytest.mark.parametrize("second", ["false", "true"], ids=["then-false", "then-true"])
+def test_empty_first_record_does_not_hide_a_duplicate(
+    tmp_path: Path, second: str
+) -> None:
+    """Duplicate detection must key on the record, not on its value.
+
+    Keying it on "is the stored value still empty?" lets an empty first record
+    wave a second one through, and the gate then acts on a decision drawn from
+    output it should have refused outright.
+    """
+    result = invoke(
+        tmp_path,
+        payload=f"workbench_required=\nworkbench_required={second}\n",
+        workbench_result="success" if second == "true" else "skipped",
+        preflight=second,
+    )
+    assert result.returncode == 2, result.stdout + result.stderr
+    assert "Duplicate Workbench requirement" in result.stderr
+
+
+def test_unterminated_final_record_is_not_dropped(tmp_path: Path) -> None:
+    """A final line without a newline must still be read.
+
+    A plain ``while read`` loop stops before the body runs for an unterminated
+    line, so a trailing duplicate would go unexamined.
+    """
+    result = invoke(
+        tmp_path,
+        payload="workbench_required=false\nworkbench_required=true",
+        workbench_result="skipped",
+        preflight="false",
+    )
+    assert result.returncode == 2, result.stdout + result.stderr
+    assert "Duplicate Workbench requirement" in result.stderr
+
+
+def test_unterminated_single_record_is_honoured(tmp_path: Path) -> None:
+    """Reading the unterminated line means acting on it, not merely rejecting."""
+    result = invoke(
+        tmp_path,
+        payload="workbench_required=true",
+        workbench_result="success",
+        preflight="true",
+    )
+    assert result.returncode == 0, result.stderr
+
+
 def test_nonzero_scope_module_fails(tmp_path: Path) -> None:
     """A zero exit is the only basis for trusting the emitted decision."""
     result = invoke(

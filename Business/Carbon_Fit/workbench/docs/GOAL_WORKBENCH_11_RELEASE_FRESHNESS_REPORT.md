@@ -193,6 +193,14 @@ the module is genuinely absent, and an absent module may not accompany a
 preflight requirement. The live run did execute and pass the Workbench job; this
 was a negative case the gate should reject.
 
+A follow-up review found the first version of that requirement parser still
+accepted two malformed emissions. Duplicate detection keyed on whether the
+stored value was still empty, so an empty first record let a second one
+through, and the read loop dropped a final line written without a trailing
+newline, leaving a trailing duplicate unexamined. Both reproduced at exit 0.
+Record presence is now tracked independently of the value, and an unterminated
+final line is read and acted on rather than discarded.
+
 The acyclic provenance exception is unchanged in scope: only
 `integration_revision_at_packaging` is excluded from equality, and its shape is
 now validated rather than accepted unread.

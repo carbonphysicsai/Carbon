@@ -476,15 +476,22 @@ jobs:
             workbench_output="${RUNNER_TEMP}/carbon-gate-workbench.txt"
             : > "${workbench_output}"
             python3 "${workbench_scope}"               --repository .carbon-gate-candidate               --base "${BASE_SHA}"               --github-output "${workbench_output}"
-            while IFS='=' read -r key value; do
+            workbench_seen=0
+            # Record presence is tracked separately from the value: keying the
+            # duplicate check on an empty value would let an empty first record
+            # wave a second one through. The trailing clause processes a final
+            # line written without a newline instead of dropping it.
+            while IFS='=' read -r key value || [[ -n "${key}" ]]; do
               if [[ "${key}" == "workbench_required" ]]; then
-                [[ -z "${derived_workbench}" ]] || { echo "Duplicate Workbench requirement." >&2; exit 2; }
+                (( workbench_seen == 0 )) || { echo "Duplicate Workbench requirement." >&2; exit 2; }
+                workbench_seen=1
                 derived_workbench="${value}"
               fi
             done < "${workbench_output}"
             # A present module must reach an explicit decision. Treating a
             # missing, empty or malformed emission as "not required" would let a
             # broken scope module silently disable the job it exists to demand.
+            (( workbench_seen == 1 ))               || { echo "Workbench scope module produced no explicit requirement." >&2; exit 2; }
             [[ "${derived_workbench}" == true || "${derived_workbench}" == false ]]               || { echo "Workbench scope module produced no explicit requirement." >&2; exit 2; }
             [[ "${PREFLIGHT_WORKBENCH:-}" == true || "${PREFLIGHT_WORKBENCH:-}" == false ]]               || { echo "Preflight produced no explicit Workbench requirement." >&2; exit 2; }
             [[ "${PREFLIGHT_WORKBENCH}" == "${derived_workbench}" ]]               || { echo "Preflight and protected Workbench requirements disagree." >&2; exit 2; }
