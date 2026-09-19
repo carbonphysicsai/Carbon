@@ -1,21 +1,24 @@
 #!/usr/bin/env python3
 """Read-only freshness gate for the current Workbench release artifacts.
 
-The existing determinism test proves that repeating a build reproduces its own
-output. It cannot prove that the artifacts tracked in the repository were built
-from the sources tracked beside them, because it runs a build before capturing
-its first comparison bytes and therefore overwrites the very artifact under
-test. A stale artifact that rebuilds identically twice still passes it.
+The determinism test proves that repeating a build reproduces its own output.
+It cannot prove that the artifacts tracked in the repository were built from the
+sources tracked beside them, because it runs a build before capturing its first
+comparison bytes and therefore overwrites the very artifact under test. A stale
+artifact that rebuilds identically twice still passes it.
 
 This gate supplies the missing condition:
 
     tracked artifact bytes == output generated from the tracked source inputs
 
-It stages the tracked Workbench sources into a throwaway directory outside the
-repository, regenerates there, and compares. It never writes to a tracked file,
-so a failure reports staleness instead of quietly repairing it.
+The expected bytes are captured from the repository first and never written to.
+Only the *source* inputs are staged into a throwaway directory outside the
+repository, so a generator that exits zero without writing cannot be credited
+with the artifact that was already there: the file is simply absent and the run
+fails. Every declared artifact must also be tracked, so a stray file on disk is
+never mistaken for release content.
 
-Exit status: 0 fresh, 1 stale, 2 the check could not run.
+Exit status: 0 current, 1 stale, 2 the check could not run.
 """
 
 from __future__ import annotations
@@ -23,7 +26,9 @@ from __future__ import annotations
 import argparse
 import io
 import json
+import re
 import shutil
+import stat
 import subprocess
 import sys
 import tempfile
@@ -32,35 +37,72 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
-# Artifacts generated from tracked sources, with the generator that emits them.
-GENERATED: dict[str, str] = {
-    "Carbon_Opportunity_Workbench.html": "tools/build.py",
-    "Carbon_Client_Intake_Preview.html": "tools/build.py",
-    "Carbon_Client_Pilot_Designer_Preview.html": "tools/build.py",
-    "data/goal_workspace.schema.json": "tools/build_goal_schema.py",
-    "data/goal_constants.json": "tools/build_goal_schema.py",
-    "MANIFEST.json": "tools/package_release.py",
-    "Carbon_Physics_Goal_Workbench_v0_10.zip": "tools/package_release.py",
-}
-
-GENERATORS = (
-    "tools/build.py",
-    "tools/build_goal_schema.py",
-    "tools/package_release.py",
+# Generators in dependency order, with the artifacts each one must produce.
+# Packaging globs the tree, so the HTML and schema must exist before it runs.
+GENERATOR_OUTPUTS: tuple[tuple[str, tuple[str, ...]], ...] = (
+    (
+        "tools/build.py",
+        (
+            "Carbon_Opportunity_Workbench.html",
+            "Carbon_Client_Intake_Preview.html",
+            "Carbon_Client_Pilot_Designer_Preview.html",
+        ),
+    ),
+    (
+        "tools/build_goal_schema.py",
+        (
+            "data/goal_workspace.schema.json",
+            "data/goal_constants.json",
+        ),
+    ),
+    (
+        "tools/package_release.py",
+        (
+            "MANIFEST.json",
+            "Carbon_Physics_Goal_Workbench_v0_10.zip",
+        ),
+    ),
 )
+
+GENERATED: dict[str, str] = {
+    artifact: generator
+    for generator, artifacts in GENERATOR_OUTPUTS
+    for artifact in artifacts
+}
 
 MANIFEST_NAME = "MANIFEST.json"
 ARCHIVE_NAME = "Carbon_Physics_Goal_Workbench_v0_10.zip"
+ARCHIVE_PREFIX = "carbon_goal_workbench_v0_10/"
+ARCHIVE_MANIFEST = ARCHIVE_PREFIX + MANIFEST_NAME
 
 # package_release.py records the Git HEAD that packaged the release. A commit
-# cannot contain its own hash, so this field is packaging provenance and never
-# evidence of staleness. Comparing it would demand a self-referential repin on
-# every commit, so it is normalised on both sides instead.
-PROVENANCE_FIELDS = ("integration_revision_at_packaging",)
+# cannot contain its own hash, so this one field is packaging provenance and is
+# never evidence of staleness. Its value is excluded from equality; its shape is
+# still validated. Nothing else is normalised.
+PROVENANCE_FIELD = "integration_revision_at_packaging"
+PROVENANCE_PLACEHOLDER = "<normalised-for-comparison>"
+PROVENANCE_SHAPE = re.compile(r"\A(?:[0-9a-f]{40}|UNAVAILABLE)\Z")
+
+# The packager writes permission bits only, leaving the file-type field clear.
+# Any other type (symlink, directory, device) changes what extraction produces.
+ARCHIVE_TYPE_MASK = 0o170000
 
 
 class FreshnessError(RuntimeError):
     """The gate could not establish a trustworthy comparison."""
+
+
+def _git(*args: str) -> str:
+    try:
+        return subprocess.run(
+            ["git", *args],
+            cwd=ROOT,
+            check=True,
+            text=True,
+            capture_output=True,
+        ).stdout
+    except (OSError, subprocess.CalledProcessError) as error:
+        raise FreshnessError(f"git {' '.join(args)} failed: {error}")
 
 
 def tracked_sources() -> list[str]:
@@ -72,25 +114,41 @@ def tracked_sources() -> list[str]:
     set to tracked paths keeps the check reproducible and keeps stray files out
     of the regenerated archive.
     """
-    try:
-        result = subprocess.run(
-            ["git", "ls-files", "-z", "--", "."],
-            cwd=ROOT,
-            check=True,
-            text=True,
-            capture_output=True,
-        )
-    except (OSError, subprocess.CalledProcessError) as error:
-        raise FreshnessError(f"could not list tracked Workbench sources: {error}")
-    paths = [entry for entry in result.stdout.split("\0") if entry]
+    paths = [entry for entry in _git("ls-files", "-z", "--", ".").split("\0") if entry]
     if not paths:
         raise FreshnessError("no tracked Workbench sources were found")
     return paths
 
 
+def expected_artifacts(tracked: set[str]) -> dict[str, bytes]:
+    """Read the artifacts under test before anything is generated.
+
+    Membership is established from Git, not from the filesystem, so a file that
+    merely exists on disk is never treated as tracked release content.
+    """
+    expected: dict[str, bytes] = {}
+    for relative in sorted(GENERATED):
+        if relative not in tracked:
+            raise FreshnessError(
+                f"{relative} is a declared release artifact but is not tracked"
+            )
+        path = ROOT / relative
+        if not path.is_file():
+            raise FreshnessError(f"tracked release artifact {relative} is missing")
+        expected[relative] = path.read_bytes()
+    return expected
+
+
 def stage(destination: Path, sources: list[str]) -> None:
-    """Copy tracked sources into a throwaway tree outside the repository."""
+    """Copy the tracked *source* inputs into a throwaway tree.
+
+    The declared artifacts are deliberately not copied. If they were, a
+    generator that exits zero without writing would leave the previous file in
+    place and the comparison would credit it as freshly produced.
+    """
     for relative in sources:
+        if relative in GENERATED:
+            continue
         source = ROOT / relative
         if not source.is_file():
             continue
@@ -100,8 +158,8 @@ def stage(destination: Path, sources: list[str]) -> None:
 
 
 def generate(destination: Path) -> None:
-    """Run each generator inside the staged copy."""
-    for generator in GENERATORS:
+    """Run each generator in order and require the outputs it declares."""
+    for generator, artifacts in GENERATOR_OUTPUTS:
         script = destination / generator
         if not script.is_file():
             raise FreshnessError(f"generator {generator} is not tracked")
@@ -118,101 +176,147 @@ def generate(destination: Path) -> None:
                 f"{generator} exited {completed.returncode}: "
                 f"{(completed.stderr or completed.stdout).strip()[:400]}"
             )
+        # A zero exit is not evidence of output. Require each declared artifact
+        # to exist as a regular file before anything downstream consumes it.
+        for artifact in artifacts:
+            produced = destination / artifact
+            if not produced.is_file() or produced.is_symlink():
+                raise FreshnessError(
+                    f"{generator} exited 0 but did not produce {artifact} "
+                    "as a regular file"
+                )
 
 
-def normalise_manifest(raw: bytes) -> bytes:
-    """Blank packaging provenance so the comparison stays acyclic."""
+def _load_manifest(raw: bytes, label: str) -> dict:
     try:
         document = json.loads(raw.decode("utf-8"))
     except (UnicodeDecodeError, json.JSONDecodeError) as error:
-        raise FreshnessError(f"manifest is not readable JSON: {error}")
-    for field in PROVENANCE_FIELDS:
-        if field in document:
-            document[field] = "<normalised-for-comparison>"
+        raise FreshnessError(f"{label} is not readable JSON: {error}")
+    if not isinstance(document, dict):
+        raise FreshnessError(f"{label} is not a JSON object")
+    return document
+
+
+def normalise_manifest(raw: bytes, label: str = "manifest") -> bytes:
+    """Blank packaging provenance so the comparison stays acyclic.
+
+    The field's shape is still validated; only its value is excluded.
+    """
+    document = _load_manifest(raw, label)
+    if PROVENANCE_FIELD in document:
+        value = document[PROVENANCE_FIELD]
+        if not isinstance(value, str) or not PROVENANCE_SHAPE.match(value):
+            raise FreshnessError(
+                f"{label} {PROVENANCE_FIELD} must be an exact lowercase commit "
+                f"SHA or UNAVAILABLE, not {value!r}"
+            )
+        document[PROVENANCE_FIELD] = PROVENANCE_PLACEHOLDER
     return json.dumps(document, indent=2, sort_keys=True).encode("utf-8")
 
 
-def archive_members(raw: bytes) -> dict[str, bytes]:
-    """Return archive members, with the embedded manifest normalised."""
-    members: dict[str, bytes] = {}
+def archive_members(raw: bytes, label: str) -> dict[str, tuple[int, bytes]]:
+    """Validate archive structure, then return each member's mode and payload.
+
+    Reducing an archive to a name/payload mapping read through ``namelist`` hides
+    two things that change what extraction produces: a duplicated member name,
+    where only one entry survives the mapping, and a member re-typed as a link
+    while its bytes stay identical. Entries are therefore walked through
+    ``infolist`` and validated before any comparison.
+    """
+    members: dict[str, tuple[int, bytes]] = {}
     with zipfile.ZipFile(io.BytesIO(raw)) as bundle:
-        for name in sorted(bundle.namelist()):
-            payload = bundle.read(name)
-            if name.endswith("/" + MANIFEST_NAME):
-                payload = normalise_manifest(payload)
-            members[name] = payload
+        for info in bundle.infolist():
+            name = info.filename
+            if name in members:
+                raise FreshnessError(f"{label} repeats the member name {name!r}")
+            if info.is_dir():
+                raise FreshnessError(f"{label} contains a directory entry {name!r}")
+            if not name.startswith(ARCHIVE_PREFIX):
+                raise FreshnessError(
+                    f"{label} member {name!r} is outside {ARCHIVE_PREFIX!r}"
+                )
+            pure = Path(name)
+            if pure.is_absolute() or ".." in pure.parts or "\\" in name:
+                raise FreshnessError(f"{label} member {name!r} is not a safe path")
+            mode = info.external_attr >> 16
+            if mode & ARCHIVE_TYPE_MASK:
+                raise FreshnessError(
+                    f"{label} member {name!r} is not a regular file "
+                    f"(mode {stat.filemode(mode)})"
+                )
+            payload = bundle.read(info)
+            if name == ARCHIVE_MANIFEST:
+                payload = normalise_manifest(payload, f"{label} {MANIFEST_NAME}")
+            members[name] = (mode, payload)
+    if ARCHIVE_MANIFEST not in members:
+        raise FreshnessError(f"{label} does not contain {ARCHIVE_MANIFEST}")
     return members
 
 
-def describe_archive_drift(tracked: bytes, rebuilt: bytes) -> list[str]:
+def describe_archive_drift(
+    tracked: dict[str, tuple[int, bytes]], rebuilt: dict[str, tuple[int, bytes]]
+) -> list[str]:
     """Explain how two archives differ, member by member."""
-    before, after = archive_members(tracked), archive_members(rebuilt)
-    missing = sorted(set(before) - set(after))
-    added = sorted(set(after) - set(before))
-    changed = sorted(
-        name for name in set(before) & set(after) if before[name] != after[name]
-    )
-    detail: list[str] = []
-    for name in missing:
-        detail.append(f"    no longer generated: {name}")
-    for name in added:
-        detail.append(f"    missing from the tracked archive: {name}")
-    for name in changed:
-        detail.append(f"    content differs: {name}")
+    missing = sorted(set(tracked) - set(rebuilt))
+    added = sorted(set(rebuilt) - set(tracked))
+    detail = [f"    no longer generated: {name}" for name in missing]
+    detail += [f"    missing from the tracked archive: {name}" for name in added]
+    for name in sorted(set(tracked) & set(rebuilt)):
+        before, after = tracked[name], rebuilt[name]
+        if before[0] != after[0]:
+            detail.append(
+                f"    member mode differs: {name} "
+                f"({stat.filemode(before[0])} -> {stat.filemode(after[0])})"
+            )
+        elif before[1] != after[1]:
+            detail.append(f"    content differs: {name}")
     return detail
 
 
-def compare(destination: Path) -> list[str]:
+def compare(expected: dict[str, bytes], destination: Path) -> list[str]:
     """Return a report of every stale artifact; empty means fresh."""
     stale: list[str] = []
     for relative, generator in sorted(GENERATED.items()):
-        tracked_path = ROOT / relative
+        tracked_bytes = expected[relative]
         rebuilt_path = destination / relative
+        # generate() already required this, so absence here is a broken run.
         if not rebuilt_path.is_file():
-            stale.append(f"  {relative}: {generator} did not generate it")
-            continue
-        if not tracked_path.is_file():
-            stale.append(f"  {relative}: generated but not tracked ({generator})")
-            continue
-        tracked_bytes = tracked_path.read_bytes()
+            raise FreshnessError(f"{generator} output {relative} disappeared")
         rebuilt_bytes = rebuilt_path.read_bytes()
+        detail: list[str] = []
         if relative == ARCHIVE_NAME:
-            # The archive embeds the manifest, so raw bytes carry the packaging
-            # provenance field. Compare member payloads with that field
-            # normalised, or every commit would look stale.
-            equal = archive_members(tracked_bytes) == archive_members(rebuilt_bytes)
+            before = archive_members(tracked_bytes, "the tracked archive")
+            after = archive_members(rebuilt_bytes, "the regenerated archive")
+            equal = before == after
+            if not equal:
+                detail = describe_archive_drift(before, after)
         elif relative == MANIFEST_NAME:
-            equal = normalise_manifest(tracked_bytes) == normalise_manifest(
-                rebuilt_bytes
-            )
+            equal = normalise_manifest(
+                tracked_bytes, "the tracked manifest"
+            ) == normalise_manifest(rebuilt_bytes, "the regenerated manifest")
         else:
             equal = tracked_bytes == rebuilt_bytes
         if equal:
             continue
         entry = (
             f"  {relative}: tracked bytes differ from {generator} output "
-            f"({tracked_path.stat().st_size} tracked, "
-            f"{rebuilt_path.stat().st_size} rebuilt)"
+            f"({len(tracked_bytes)} tracked, {len(rebuilt_bytes)} rebuilt)"
         )
-        if relative == ARCHIVE_NAME:
-            detail = describe_archive_drift(
-                tracked_path.read_bytes(), rebuilt_path.read_bytes()
-            )
-            entry = "\n".join([entry, *detail])
-        stale.append(entry)
+        stale.append("\n".join([entry, *detail]) if detail else entry)
     return stale
 
 
 def check(keep: bool = False) -> list[str]:
-    """Stage, regenerate and compare without touching a tracked file."""
+    """Capture, stage, regenerate and compare without touching a tracked file."""
     sources = tracked_sources()
+    expected = expected_artifacts(set(sources))
     # Outside the repository, so the generators cannot resolve its Git HEAD and
     # cannot reach files that are not part of the staged source set.
     destination = Path(tempfile.mkdtemp(prefix="carbon-workbench-freshness-"))
     try:
         stage(destination, sources)
         generate(destination)
-        return compare(destination)
+        return compare(expected, destination)
     finally:
         if keep:
             print(f"staged comparison tree retained at {destination}")

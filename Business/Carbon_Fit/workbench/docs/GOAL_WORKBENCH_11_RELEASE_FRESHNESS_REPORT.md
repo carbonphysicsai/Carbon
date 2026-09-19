@@ -75,7 +75,16 @@ python Business/Carbon_Fit/workbench/tools/check_release_freshness.py
 Exit status is 0 current, 1 stale with the offending paths listed, 2 when the
 check could not run. Archive drift is reported member by member.
 
-Two design points are load-bearing:
+The expected bytes are captured from the repository before anything runs, and
+only the *source* inputs are staged. The declared artifacts are deliberately not
+copied into the comparison tree: if they were, a generator that exits zero
+without writing would leave the previous file in place and the comparison would
+credit it as freshly produced. Each generator must produce the artifacts it
+declares, as regular files, before anything downstream consumes them, and
+membership is established from Git so a stray file on disk is never treated as
+release content.
+
+Three design points are load-bearing:
 
 - **Packaging provenance is normalised, not compared.** `package_release.py`
   records the Git HEAD that packaged the release. A commit cannot contain its
@@ -87,6 +96,14 @@ Two design points are load-bearing:
   globbing the workbench directory, so generating from the working tree would
   let untracked scratch files reach the comparison. Restricting the source set
   to tracked paths also keeps a developer's local files out of a release.
+
+- **Archive structure is validated, not just member payloads.** Reducing an
+  archive to a name/payload mapping read through `namelist` hides two things
+  that change what extraction produces: a duplicated member name, where only one
+  entry survives the mapping, and a member re-typed as a link while its bytes
+  stay identical. Entries are walked through `infolist`, duplicate names,
+  directory entries, unsafe paths and non-regular member types are rejected, and
+  each member's mode participates in the comparison.
 
 `tools/package_release.py` now excludes dot-directories and `node_modules` from
 the payload glob. The current release contains no such path, so the member set
@@ -141,3 +158,41 @@ protected reuse, score, execution or launch. The default offline build remains
 offline and the private-service build remains a separate output. The repository
 release is not a deployment; publishing the site remains separate and blocked
 on its own owner route.
+
+## Review repairs
+
+Three findings were raised against the first revision of this repair. All three
+reproduced against the reviewed checker and are closed here.
+
+**A generator that exited zero without writing could pass.** The comparison tree
+was staged with the existing artifacts copied in, so a no-output generator left
+the previous file in place and it was compared against itself. Reproduced by
+changing a source, replacing the HTML generator with one that exits zero writing
+nothing, and regenerating the manifest and archive: the checker reported
+`Workbench release artifacts are current` with exit 0 while the tracked HTML did
+not match the changed source. The gate now captures the expected bytes first,
+stages only source inputs, and requires every declared artifact to exist as a
+regular file after its generator runs.
+
+**Archive comparison dropped structure.** `archive_members` read by filename
+into a dictionary, so duplicate entries collapsed and member metadata was
+ignored. Both reproductions compared equal to the legitimate archive: two
+entries sharing one path with different payloads, and a regular file re-typed
+with symlink metadata and identical bytes. Neither claims the committed archive
+is malicious; they show the integrity gate accepted structurally altered input.
+Entries are now validated before comparison and original bytes are preserved
+when validation fails.
+
+**A missing CI requirement read as "not required".** The Merge gate defaulted an
+empty derived value to false even when the scope module was present, and
+compared against `${PREFLIGHT_WORKBENCH:-false}`, conflating an explicit false
+with an absent decision. A present module must now produce exactly one explicit
+boolean from both preflight and the independent gate derivation; missing, empty,
+malformed or duplicate output fails. The compatibility path applies only when
+the module is genuinely absent, and an absent module may not accompany a
+preflight requirement. The live run did execute and pass the Workbench job; this
+was a negative case the gate should reject.
+
+The acyclic provenance exception is unchanged in scope: only
+`integration_revision_at_packaging` is excluded from equality, and its shape is
+now validated rather than accepted unread.

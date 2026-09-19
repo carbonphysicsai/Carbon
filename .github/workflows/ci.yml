@@ -465,6 +465,11 @@ jobs:
           # Derived from the candidate's own module. classify_changes.py and
           # development_scope.py stay byte-identical to their owner-pinned
           # digests, so this requirement cannot re-authorise that migration.
+          workbench_result="${{ needs.workbench.result }}"
+          # WORKBENCH-REQUIREMENT BEGIN
+          # Derived from the candidate's own module. classify_changes.py and
+          # development_scope.py stay byte-identical to their owner-pinned
+          # digests, so this requirement cannot re-authorise that migration.
           derived_workbench=
           workbench_scope=.carbon-gate-candidate/scripts/dev/workbench_scope.py
           if [[ -f "${workbench_scope}" ]]; then
@@ -477,18 +482,23 @@ jobs:
                 derived_workbench="${value}"
               fi
             done < "${workbench_output}"
-          fi
-          # Candidates older than this requirement carry no module.
-          if [[ -z "${derived_workbench}" ]]; then
-            derived_workbench=false
-          fi
-          [[ "${derived_workbench}" == true || "${derived_workbench}" == false ]]
-          [[ "${PREFLIGHT_WORKBENCH:-false}" == "${derived_workbench}" ]]
-          if [[ "${derived_workbench}" == true ]]; then
-            [[ "${{ needs.workbench.result }}" == success ]] || { echo "Workbench release acceptance did not succeed." >&2; exit 1; }
+            # A present module must reach an explicit decision. Treating a
+            # missing, empty or malformed emission as "not required" would let a
+            # broken scope module silently disable the job it exists to demand.
+            [[ "${derived_workbench}" == true || "${derived_workbench}" == false ]]               || { echo "Workbench scope module produced no explicit requirement." >&2; exit 2; }
+            [[ "${PREFLIGHT_WORKBENCH:-}" == true || "${PREFLIGHT_WORKBENCH:-}" == false ]]               || { echo "Preflight produced no explicit Workbench requirement." >&2; exit 2; }
+            [[ "${PREFLIGHT_WORKBENCH}" == "${derived_workbench}" ]]               || { echo "Preflight and protected Workbench requirements disagree." >&2; exit 2; }
           else
-            [[ "${{ needs.workbench.result }}" == skipped ]] || { echo "Unexpected Workbench release acceptance result." >&2; exit 1; }
+            # Only a candidate that genuinely predates the module may omit it.
+            derived_workbench=false
+            [[ -z "${PREFLIGHT_WORKBENCH:-}" || "${PREFLIGHT_WORKBENCH:-}" == false ]]               || { echo "Preflight required the Workbench job but the candidate has no scope module." >&2; exit 2; }
           fi
+          if [[ "${derived_workbench}" == true ]]; then
+            [[ "${workbench_result}" == success ]] || { echo "Workbench release acceptance did not succeed." >&2; exit 1; }
+          else
+            [[ "${workbench_result}" == skipped ]] || { echo "Unexpected Workbench release acceptance result." >&2; exit 1; }
+          fi
+          # WORKBENCH-REQUIREMENT END
           image_args=()
           if [[ "${derived_scope}" == "RUNTIME_FULL" && "${derived_image}" == false ]]; then
             image_args=(--dev-image-required false)

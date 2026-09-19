@@ -10,6 +10,9 @@ This map describes focused application acceptance. It does not relabel the CPES 
 | Keep local files out of a release | `payloads()` excludes dot-directories and `node_modules`; the gate stages only tracked paths | untracked files are absent from the regenerated archive | Member set unchanged at 205; no packaging contract is redefined |
 | Require the product lane by its inputs | `scripts/dev/workbench_scope.py` and `scripts/dev/workbench_release_checks.sh` | required/not-required path cases and CLI fail-closed cases | Scope requirement only; no classification or existing gate is relaxed |
 | Preserve the owner classifier pin | requirement kept out of `classify_changes.py` | pinned digests asserted against the workflow | `OWNER-CW1-DEVELOPMENT-CI-01` remains owner-reserved |
+| Require produced output, not inherited | expected bytes captured first; only sources staged; declared outputs required | no-output generator, partial generator, untracked artifact | Presence of a file is not evidence a generator wrote it |
+| Validate archive structure | `infolist` walk rejecting duplicates, directory entries, unsafe paths and non-regular types | duplicate member, link-typed member, traversal member | Structural validity only; no claim about archive contents' meaning |
+| Reach an explicit CI decision | present scope module must emit one boolean to preflight and the gate | success/failure/cancel/skip, explicit false, missing, duplicate, malformed, absent module | Scope decision only; no classification is relaxed |
 
 | GW10 requirement | Implementation / evidence | Automated coverage | Authority limitation |
 |---|---|---|---|

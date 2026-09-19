@@ -9,6 +9,7 @@ failure reports staleness instead of silently repairing it.
 
 from __future__ import annotations
 
+import io
 import json
 import os
 import shutil
@@ -23,6 +24,7 @@ TOOL = "tools/check_release_freshness.py"
 HTML = "Carbon_Opportunity_Workbench.html"
 MANIFEST = "MANIFEST.json"
 ARCHIVE = "Carbon_Physics_Goal_Workbench_v0_10.zip"
+ARCHIVE_PREFIX = "carbon_goal_workbench_v0_10/"
 SCIENTIFIC_STUDIES = "src/scientific_studies.js"
 
 GENERATORS = (
@@ -217,10 +219,12 @@ class FreshnessGateTest(unittest.TestCase):
         )
 
     def test_missing_generated_artifact_fails(self):
+        """A tracked artifact that is absent stops the comparison outright."""
         tree = self.fresh_tree()
         (tree / HTML).unlink()
         result = _gate(tree)
-        self.assertEqual(result.returncode, 1, result.stdout)
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        self.assertIn("missing", result.stderr)
         self.assertIn(HTML, result.stderr)
 
     # --- manifest and archive integrity ------------------------------------
@@ -304,6 +308,148 @@ class FreshnessGateTest(unittest.TestCase):
         html = (tree / HTML).read_text(encoding="utf-8", errors="ignore")
         self.assertIn("NOT_QUALIFIED", html)
         self.assertNotIn("SCIENTIFICALLY_QUALIFIED", html)
+
+    # --- a zero exit is not evidence of output ------------------------------
+
+    def test_generator_exiting_zero_without_output_fails(self):
+        """The artifact under test must be produced, not inherited.
+
+        Staging the existing artifacts into the comparison tree would let a
+        generator that writes nothing be credited with the file that was
+        already there, and the run would compare that file against itself.
+        """
+        tree = self.fresh_tree()
+        (tree / SCIENTIFIC_STUDIES).write_text(
+            (tree / SCIENTIFIC_STUDIES).read_text(encoding="utf-8")
+            + "\n// upstream change never built\n",
+            encoding="utf-8",
+        )
+        (tree / "tools/build.py").write_text(
+            "import sys\nsys.exit(0)\n", encoding="utf-8"
+        )
+        before = (tree / HTML).read_bytes()
+        result = _gate(tree)
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        self.assertIn("did not produce", result.stderr)
+        self.assertIn(HTML, result.stderr)
+        self.assertEqual(
+            (tree / HTML).read_bytes(), before, "the gate rewrote the artifact"
+        )
+
+    def test_generator_producing_only_some_outputs_fails(self):
+        """A partial generator must fail on the output it skipped."""
+        tree = self.fresh_tree()
+        (tree / "tools/build.py").write_text(
+            "from pathlib import Path\n"
+            "Path('Carbon_Opportunity_Workbench.html').write_text('partial')\n",
+            encoding="utf-8",
+        )
+        result = _gate(tree)
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        self.assertIn("Carbon_Client_Intake_Preview.html", result.stderr)
+
+    def test_untracked_artifact_on_disk_is_not_release_content(self):
+        """Membership comes from Git, not from the filesystem."""
+        tree = self.fresh_tree()
+        _git(tree, "rm", "--cached", "-q", HTML)
+        _git(
+            tree,
+            "-c",
+            "user.email=t@t",
+            "-c",
+            "user.name=t",
+            "commit",
+            "--quiet",
+            "-m",
+            "untrack the artifact",
+        )
+        result = _gate(tree)
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        self.assertIn("not tracked", result.stderr)
+
+    # --- archive structure, not just member payloads ------------------------
+
+    def _rewrite_archive(self, tree: Path, mutate) -> bytes:
+        archive = tree / ARCHIVE
+        original = archive.read_bytes()
+        buffer = io.BytesIO()
+        with (
+            zipfile.ZipFile(io.BytesIO(original)) as source,
+            zipfile.ZipFile(buffer, "w", compression=zipfile.ZIP_DEFLATED) as out,
+        ):
+            mutate(source, out)
+        archive.write_bytes(buffer.getvalue())
+        return original
+
+    def test_duplicate_archive_member_is_rejected(self):
+        """Reading by name collapses duplicates and hides the first entry."""
+        tree = self.fresh_tree()
+        victim = ARCHIVE_PREFIX + "src/team_review.js"
+
+        def mutate(source, out):
+            for info in source.infolist():
+                data = source.read(info.filename)
+                if info.filename == victim:
+                    out.writestr(info.filename, b"// tampered first entry\n")
+                out.writestr(info.filename, data)
+
+        original = self._rewrite_archive(tree, mutate)
+        result = _gate(tree)
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        self.assertIn("repeats the member name", result.stderr)
+        self.assertNotEqual((tree / ARCHIVE).read_bytes(), original)
+
+    def test_link_typed_archive_member_is_rejected(self):
+        """Identical bytes, different extraction meaning."""
+        tree = self.fresh_tree()
+        victim = ARCHIVE_PREFIX + "src/team_review.js"
+
+        def mutate(source, out):
+            for info in source.infolist():
+                data = source.read(info.filename)
+                if info.filename == victim:
+                    link = zipfile.ZipInfo(info.filename, date_time=info.date_time)
+                    link.create_system = 3
+                    link.external_attr = 0o120777 << 16
+                    link.compress_type = zipfile.ZIP_DEFLATED
+                    out.writestr(link, data)
+                    continue
+                out.writestr(info, data)
+
+        self._rewrite_archive(tree, mutate)
+        result = _gate(tree)
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        self.assertIn("not a regular file", result.stderr)
+
+    def test_archive_member_outside_the_release_prefix_is_rejected(self):
+        tree = self.fresh_tree()
+
+        def mutate(source, out):
+            for info in source.infolist():
+                out.writestr(info, source.read(info.filename))
+            out.writestr("../escape.txt", b"traversal\n")
+
+        self._rewrite_archive(tree, mutate)
+        result = _gate(tree)
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        self.assertIn("outside", result.stderr)
+
+    def test_archive_passes_with_only_the_allowed_provenance_difference(self):
+        """A legitimately regenerated archive differs only in that one field."""
+        result = _gate(self.fresh_tree())
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_malformed_packaging_provenance_is_rejected(self):
+        """The excluded field's shape is still checked."""
+        tree = self.fresh_tree()
+        manifest = json.loads((tree / MANIFEST).read_text(encoding="utf-8"))
+        manifest["integration_revision_at_packaging"] = "not-a-commit"
+        (tree / MANIFEST).write_text(
+            json.dumps(manifest, indent=2) + "\n", encoding="utf-8"
+        )
+        result = _gate(tree)
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        self.assertIn("integration_revision_at_packaging", result.stderr)
 
 
 if __name__ == "__main__":

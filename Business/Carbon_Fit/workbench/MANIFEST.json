@@ -19,7 +19,7 @@
     "GOAL-WORKBENCH-10"
   ],
   "repository_base": "3681f7fb10be0c6e278f53d59ff9b022099ef12d",
-  "integration_revision_at_packaging": "28264d6e51e14fdcd6fc37791b9e3de293732198",
+  "integration_revision_at_packaging": "0a2408e3d26f5b1b63c8a034ea6b66c1a2e2c24f",
   "integration_revision_note": "The checksum manifest describes exact packaged bytes. A commit cannot contain its own digest; final PR/head identity is reported by delivery.",
   "pinned_research_revision": "ca904dfee93d3574df4e56b99981a6ed3b138e80",
   "accepted_research_head": "0a5690270dc449ea19c941280203987d37db5283",
@@ -363,8 +363,8 @@
       "sha256": "bda172b8bd00420d38936c00dd14cc24c4b88e5dd5634ef9027a74e082d064ac"
     },
     "docs/GOAL_WORKBENCH_11_RELEASE_FRESHNESS_REPORT.md": {
-      "bytes": 6808,
-      "sha256": "e79c574bfc803d6e54a33a04a08446451e8d008ca6d07b0790d8669e81f427cf"
+      "bytes": 10142,
+      "sha256": "06142cea000b0f072f9df72f3e37c22133dd2612f37f0e85825babad91714768"
     },
     "docs/OWNER_REPORT.md": {
       "bytes": 27626,
@@ -375,8 +375,8 @@
       "sha256": "bb05526a6408f70efa32a12ade140305a0cfd2c6d07f3827cc36b16f086eb149"
     },
     "docs/REQUIREMENT_TEST_MAP.md": {
-      "bytes": 28869,
-      "sha256": "4135579ad3f155c2323d90430a177e74552c2459d76770b07bc67f19012fe4d4"
+      "bytes": 29610,
+      "sha256": "b4133c059e81ef1445f89f0d674dfe49728c0c5034278e6e7e2c98ac28f044ae"
     },
     "docs/SPECIFICATION.md": {
       "bytes": 14254,
@@ -867,8 +867,8 @@
       "sha256": "e9286584e80db14fd2a9e5c80dd5c740beda8964081e8a4d6ddf891d80810a55"
     },
     "tests/test_release_freshness.py": {
-      "bytes": 10781,
-      "sha256": "fa3de894c2c0d1c52c9b617f5d8175452dc175e583c46341645636f53ee5f0a0"
+      "bytes": 16981,
+      "sha256": "f61fa92f670bc265c67ac1ac7a7eb13f3b322ff78c45f8f5a2386960a5e3bf70"
     },
     "tests/test_repository_snapshot_assessment.cjs": {
       "bytes": 23216,
@@ -955,8 +955,8 @@
       "sha256": "1afa474ce4d04e939456fe27831961fbdc27376b2a070b84c9e6097747d574df"
     },
     "tools/check_release_freshness.py": {
-      "bytes": 9859,
-      "sha256": "4a0e9eda61733b07dd5b4b0fcee6355c02e151cb08e4196ca81c8d705f4e6802"
+      "bytes": 14264,
+      "sha256": "a8b89d215918da92cc33b489ea8641e8f5068a0348122edf9bda087d24fb0445"
     },
     "tools/check_repository_snapshot_admission.cjs": {
       "bytes": 12658,
