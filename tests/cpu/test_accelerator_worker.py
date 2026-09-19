@@ -221,6 +221,10 @@ def test_observation_rejects_other_gpu_display_driver_and_foreign_compute(change
     row = row.replace("581.95", "580.00") if change == "driver" else row
 
     def run(command, **kwargs):
+        # Answer the capability query with an established reading so each case
+        # still fails for the identity/foreign-process reason it names.
+        if "--query-gpu=driver_model.current" in command:
+            return SimpleNamespace(stdout=b"N/A")
         output = (
             (b"123, GPU-foreign" if change == "compute" else b"")
             if "--query-compute-apps=pid,gpu_uuid" in command

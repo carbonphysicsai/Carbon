@@ -165,6 +165,28 @@ def device_request() -> dict[str, object]:
     }
 
 
+# Driver models whose compute-process enumeration may be read as complete.
+# "N/A" is the Linux reading of a Windows-only field; TCC is the Windows compute
+# driver model. Anything else, including an absent or malformed reading, stays
+# unestablished, so this allowlist fails closed by construction.
+ESTABLISHED_ENUMERATION_DRIVER_MODELS = frozenset({"N/A", "TCC"})
+
+
+def process_enumeration_established(driver_model: object) -> bool:
+    """Whether an empty compute-process list may be read as an idle device.
+
+    An unsupported query and a genuinely idle device both return nothing, so
+    emptiness alone is never evidence of exclusivity. NVIDIA documents WDDM/WSL
+    NVML process enumeration as incomplete and reports per-process memory as
+    unavailable under WDDM, so no WDDM observation can carry the exclusivity
+    this contract requires. Capability is read from the observing source, never
+    asserted by an operator document, a grant field or a caller argument.
+    """
+    if type(driver_model) is not str:
+        return False
+    return driver_model.strip().upper() in ESTABLISHED_ENUMERATION_DRIVER_MODELS
+
+
 def inspect_gpu_device(*, cli, container_name: str) -> dict[str, object]:
     """Observe the fixed device from the bounded container before authorization."""
     result = cli.run(
@@ -189,6 +211,23 @@ def inspect_gpu_device(*, cli, container_name: str) -> dict[str, object]:
             or values[3] != "6144"
             or values[4].lower() != "disabled"
         ):
+            raise ValueError()
+        model = cli.run(
+            [
+                "exec",
+                container_name,
+                "/usr/bin/nvidia-smi",
+                "--query-gpu=driver_model.current",
+                "--format=csv,noheader,nounits",
+            ],
+            timeout=10,
+        )
+        if not process_enumeration_established(
+            model.stdout.decode("ascii", "strict").strip()
+        ):
+            # Refuse rather than record an empty foreign-process list: this
+            # source cannot be shown to enumerate compute processes, so its
+            # silence is unestablished, not observed exclusivity.
             raise ValueError()
         processes = cli.run(
             [
@@ -322,6 +361,20 @@ def verify_device_release() -> None:
             raise WorkerFailure(WorkerCode.CLEANUP)
         command = [str(binary), "--id=" + GPU_PROFILE.device_uuid]
         environment = {"PATH": "/usr/bin:/bin"}
+        model = _bounded_capture(
+            command
+            + ["--query-gpu=driver_model.current", "--format=csv,noheader,nounits"],
+            environment=environment,
+            timeout=10,
+            maximum=4096,
+        )
+        # An unestablished source cannot certify a released device either, so
+        # this stays unreconciled and keeps the existing quarantine behaviour
+        # rather than reporting a verified whole-device release.
+        if model.returncode != 0 or not process_enumeration_established(
+            model.stdout.decode("ascii", "replace").strip()
+        ):
+            raise WorkerFailure(WorkerCode.CLEANUP)
         processes = _bounded_capture(
             command
             + ["--query-compute-apps=pid,gpu_uuid", "--format=csv,noheader,nounits"],
