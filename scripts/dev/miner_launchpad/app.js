@@ -261,8 +261,26 @@
     const guidance = research.preflight.research_guidance;
     $("research-guidance-review").hidden = !connected || !guidance;
     $("research-guidance").value = connected && guidance ? guidance.text : "";
-    $("research-runtime").textContent = connected && guidance ? "Accepted runtime: " + research.preflight.runtime_revision + " · Task identity: " + guidance.digest : "";
-    $("research-preflight").textContent = connected ? research.preflight.status.replaceAll("_", " ") + (research.preflight.available && research.preflight.ceilings ? " · Approved envelope: " + JSON.stringify(research.preflight.ceilings) + " · Expires: " + new Date(research.preflight.expires_unix * 1000).toLocaleString() : "") : "Reconnect to reconcile research state. Controls are disabled.";
+    $("research-runtime").textContent = connected && guidance ? "Configured runtime: " + research.preflight.runtime_revision + " · Task identity (frozen on launch): " + guidance.digest : "";
+    $("research-preflight").textContent = connected ? research.preflight.status.replaceAll("_", " ") + (research.preflight.reason ? " · " + research.preflight.reason : "") + (research.preflight.available && research.preflight.ceilings ? " · Approved envelope: " + JSON.stringify(research.preflight.ceilings) + " · Expires: " + new Date(research.preflight.expires_unix * 1000).toLocaleString() : "") : "Reconnect to reconcile research state. Controls are disabled.";
+    const reviewPanel = $("research-review"); reviewPanel.replaceChildren();
+    const review = connected && research.preflight.review;
+    if (review) {
+      researchNote(reviewPanel, "Experiment pause: " + review.experiment_pause);
+      if (review.blockers?.length) researchNote(reviewPanel, "Launch unavailable: " + review.blockers.map(value => value.replaceAll("_", " ")).join("; "));
+      researchNote(reviewPanel, "Challenge: " + review.challenge + " · " + review.reconstruction);
+      researchNote(reviewPanel, "Execution profile: " + review.execution.profile + " · Backend: " + review.execution.backend + " · " + review.execution.basis);
+      researchNote(reviewPanel, "Dependencies installed: " + review.execution.installed_dependencies + " · Device visibility: " + review.execution.device_visibility + " · Retained execution evidence: " + review.execution.runtime_evidence + " · Admission: " + review.execution.admission_readiness);
+      researchNote(reviewPanel, "Model capabilities: " + review.capabilities.backbones.join(", ") + " · " + review.capabilities.selection);
+      researchNote(reviewPanel, "Training: " + review.capabilities.training);
+      researchNote(reviewPanel, "Grant: " + review.grant.status + (review.grant.expired ? " · EXPIRED" : " · Before configured expiry") + " · " + new Date(review.grant.expires_unix * 1000).toLocaleString());
+      researchNote(reviewPanel, review.resources.basis);
+      const details = document.createElement("details");
+      const label = document.createElement("summary"); label.textContent = "Exact configured identities, capabilities and resource limits";
+      const data = document.createElement("pre"); data.textContent = JSON.stringify(review, null, 2);
+      data.style.whiteSpace = "pre-wrap"; data.style.overflowWrap = "anywhere";
+      details.append(label, data); reviewPanel.append(details);
+    }
     $("research-launch").disabled = !connected || busy || storageError || !research.preflight.available;
     $("research-launch").textContent = pendingResearch ? "Retry same research launch" : "Launch approved research";
     const container = $("research-runs"); container.replaceChildren();
@@ -280,6 +298,8 @@
       if (run.current_hypothesis) researchNote(card, "Research hypothesis: " + (run.current_hypothesis.hypothesis || "unavailable"));
       const current = (run.operations || []).filter(op => op.state === "RESERVED");
       researchNote(card, current.length ? "Active reserved operations: " + current.map(op => op.phase + " / " + op.id).join(", ") : "No active reserved operation reported.");
+      const held = (run.operations || []).filter(op => op.state === "HELD");
+      if (held.length) researchNote(card, "Held capacity, never dispatched: " + held.map(op => op.phase + " / " + op.id).join(", "));
       if (run.usage) {
         const usage = document.createElement("div"); usage.className = "research-usage";
         for (const kind of ["available", "reserved", "reported", "uncertain"]) {
@@ -299,7 +319,7 @@
       const controls = document.createElement("div"); controls.className = "controls";
       for (const action of ["pause", "resume", "stop", "reconcile", "export"]) {
         const button = document.createElement("button"); button.type = "button"; button.textContent = action;
-        button.disabled = !connected || busy || (action !== "export" && ["COMPLETED", "STOPPED", "READBACK_UNAVAILABLE"].includes(run.state));
+        button.disabled = !connected || busy || (action === "resume" && !research.preflight.available) || (action !== "export" && ["COMPLETED", "STOPPED", "READBACK_UNAVAILABLE"].includes(run.state));
         button.addEventListener("click", () => researchAction(run.id, action)); controls.append(button);
       }
       const details = document.createElement("details"); const summary = document.createElement("summary"); summary.textContent = "Research, usage, candidate and independent result";

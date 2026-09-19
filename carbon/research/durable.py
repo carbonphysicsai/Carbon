@@ -15,13 +15,18 @@ import sqlite3
 from contextlib import contextmanager
 
 from .canonical import canonical_bytes, load_canonical
-from .lifecycle import InMemoryResearchTaskProvider, _Task
+from .errors import ResearchServiceErrorCode
+from .lifecycle import InMemoryResearchTaskProvider, ResearchTaskProviderError, _Task
 from .model import (
+    CancelResearchTaskRequest,
     GetResearchResultResult,
     InfrastructureFailureClass,
+    ReplyStatus,
     ResearchTaskState,
     ResearchTaskView,
+    ServiceReply,
     StartResearchTaskRequest,
+    StartResearchTaskResult,
 )
 from .records import InfrastructureExecutionFailure
 
@@ -103,6 +108,7 @@ class DurableResearchTaskProvider(InMemoryResearchTaskProvider):
                 db.executescript("""
                     CREATE TABLE IF NOT EXISTS binding (id INTEGER PRIMARY KEY CHECK(id=1), identity TEXT NOT NULL, entropy BLOB NOT NULL);
                     CREATE TABLE IF NOT EXISTS tasks (id TEXT PRIMARY KEY, request BLOB NOT NULL, view BLOB NOT NULL, cancellation TEXT, poll INTEGER, reply BLOB);
+                    CREATE TABLE IF NOT EXISTS task_observations (id TEXT PRIMARY KEY REFERENCES tasks(id), initial_reply BLOB NOT NULL, queries INTEGER NOT NULL CHECK(queries BETWEEN 0 AND 10000));
                 """)
                 row = db.execute(
                     "SELECT identity,entropy FROM binding WHERE id=1"
@@ -236,6 +242,78 @@ class DurableResearchTaskProvider(InMemoryResearchTaskProvider):
         if self._lease.closed:
             raise ValueError("research supervisor closed")
         return super().run_queued_task(task_id)
+
+    def bind_task_observation(self, reply):
+        """Retain the public start envelope alongside the existing durable task."""
+        if (
+            type(reply) is not ServiceReply
+            or type(reply.result) is not StartResearchTaskResult
+        ):
+            raise ValueError("public start reply required")
+        task_id = reply.result.task.task_id
+        with self._lock:
+            task = self._tasks.get(task_id)
+            if task is None or task.bindings != reply.result.task.immutable_bindings:
+                raise ValueError("owned task binding required")
+            with self._db() as db:
+                db.execute(
+                    "INSERT OR IGNORE INTO task_observations VALUES(?,?,0)",
+                    (task_id.value, canonical_bytes(reply)),
+                )
+
+    def task_observation(self, task_id, challenge, *, count=True):
+        """Current owned public view; never advances the legacy polling cursor."""
+        with self._lock:
+            task = self._tasks.get(task_id)
+            if task is None or task.challenge_key != challenge:
+                raise ResearchTaskProviderError(ResearchServiceErrorCode.TASK_NOT_FOUND)
+            with self._db() as db:
+                db.execute("BEGIN IMMEDIATE")
+                row = db.execute(
+                    "SELECT initial_reply,queries FROM task_observations WHERE id=?",
+                    (task_id.value,),
+                ).fetchone()
+                if row is None:
+                    # Pre-extension tasks and a crash between task persistence
+                    # and reply binding retain their original operation identity.
+                    # This is an observation of existing work, never a claim that
+                    # this client created it or a replacement historical receipt.
+                    observed = ServiceReply(
+                        ReplyStatus.OK, StartResearchTaskResult(False, self._view(task))
+                    )
+                    row = (canonical_bytes(observed), 0)
+                    db.execute(
+                        "INSERT INTO task_observations VALUES(?,?,0)",
+                        (task_id.value, row[0]),
+                    )
+                if count:
+                    if row[1] >= 10000:
+                        raise ResearchTaskProviderError(
+                            ResearchServiceErrorCode.BOUND_EXCEEDED
+                        )
+                    db.execute(
+                        "UPDATE task_observations SET queries=queries+1 WHERE id=?",
+                        (task_id.value,),
+                    )
+            request = load_canonical(self._requests[task_id], StartResearchTaskRequest)
+            initial = load_canonical(row[0], ServiceReply)
+            if (
+                type(initial.result) is not StartResearchTaskResult
+                or initial.result.task.task_id != task_id
+                or initial.result.task.immutable_bindings != task.bindings
+            ):
+                raise ValueError("retained public task reply conflict")
+            return request.idempotency_key, initial, self._view(task)
+
+    def cancel_observed_task(self, task_id, challenge):
+        """Reuse an accepted cancellation identity across protocol surfaces."""
+        with self._lock:
+            self.task_observation(task_id, challenge, count=False)
+            task = self._tasks[task_id]
+            cancellation = task.cancellation_id or "mcp-cancel-" + task_id.value
+            return self.cancel_research_task(
+                CancelResearchTaskRequest(challenge, task_id, cancellation)
+            )
 
     def queued_tasks(self):
         """Trusted supervisor resumes only tasks never marked RUNNING."""

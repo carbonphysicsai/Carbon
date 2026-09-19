@@ -18,8 +18,9 @@ The installed console command is `carbon-mcp` with the same arguments. The
 profile is the existing private Launchpad runner profile for an already prepared,
 frozen, unfinished campaign. It must match its existing owner, current grant,
 accepted implementation, role roots and image identities. Preparation and
-authorization remain operator actions. A completed or expired campaign cannot
-be reopened by this command. The operator host needs the accepted checkout;
+authorization remain operator actions. Normal attachment rejects completed or
+expired campaigns; the cleanup-only mode below does not reopen research. The
+operator host needs the accepted checkout;
 an external MCP client needs only its configured command or private connection.
 
 Configure a stdio MCP client to launch the Python executable from that environment
@@ -32,8 +33,8 @@ resource release and consumption are established.
 ## Client workflow
 
 Read `carbon://research/v1/capabilities` and
-`carbon://research/v1/guidance`, or request the
-`carbon_research_workflow_v1` prompt. Tools have typed object arguments and
+`carbon://research/v2/guidance`, or request the
+`carbon_research_workflow_v2` prompt. Tools have typed object arguments and
 structured results with text fallback. Clients do not supply the principal or
 wrap arguments in undocumented JSON strings.
 
@@ -44,9 +45,57 @@ another numerical attempt. A client may propose hypotheses and stop within its
 grant; no second proposal or improvement is required.
 
 Python `mcp==2.2.0` and TypeScript `@modelcontextprotocol/client==2.0.0` are the
-tested independent client implementations. The server negotiates MCP rather
-than pretending an unsupported Tasks extension exists. Versioned start/status/
-result/cancel tools retain Carbon's durable identity and cleanup semantics.
+tested independent client implementations. Versioned start/status/result/cancel
+tools retain Carbon's durable identity and cleanup semantics. The prospective
+C-CORE-10 Tasks extension uses the released 2026-07-28 schema with Python SDK
+2.2.0; the existing TypeScript baseline does not establish Tasks support in that
+client or an agent host.
+
+## Negotiated Tasks and Skills
+
+Clients declaring `io.modelcontextprotocol/tasks` on a 2026-07-28 request receive
+a flat `resultType: "task"` handle for an admitted `start_research_task` before
+its supervised work finishes. `taskId` is Carbon's existing durable task ID.
+Use `tasks/get` with `{ "taskId": "rtsk_..." }`; a completed task contains the
+same typed tool result in `result`, including a `FAILED_INFRA` outcome when
+applicable. The original `operation_id` survives reconnects. Neither polling
+nor reconnecting redispatches uncertain work or consumes another trial.
+
+Use `tasks/cancel` with the same ID to request domain cancellation. Its empty
+acknowledgement is an intent, not proof of allocation release. Poll for observed
+state and retain unresolved accounting. `tasks/update` accepts typed responses
+but requests no client approval/grant values; responses to nonexistent input
+requests are ignored after ownership checks. These verbs require the extension
+on each request; HTTP clients must send `Mcp-Name: <taskId>` and the correct
+`Mcp-Method`. SDK requests should declare `name_param = "taskId"`. The original
+fallback tools and shared legacy `poll_sequence` remain available and unchanged;
+Tasks polling uses a separately bounded observation count in the same provider.
+
+Graceful server shutdown stops admission, requests cancellation of its owned
+workers and joins their supervised cleanup before the CLI closes its lease.
+Process loss cannot certify cleanup. The trusted operator may reattach using
+the existing CLI command plus `--cleanup-only` after grant expiry or pause;
+this permits owned status/cancel access, rejects new execution, and still
+requires valid external authentication. It does not extend the grant.
+
+The `io.modelcontextprotocol/skills` extension implements `skills/list` and
+`skills/get`. Its fixed entry is
+`skill://carbon/carbon-research-v1/SKILL.md`; the complete manifest includes
+`references/workflow.md`, exact UTF-8 byte sizes and SHA-256 digests. Read files
+through `resources/read`. Direct lookups require authorization even without
+prior discovery. Listings use private, zero-TTL caching. Directory reads,
+arbitrary filesystem access and nested activation are unavailable. Client
+hosts retain responsibility for verifying the originating server, manifests
+and skill-loading consent; reading guidance confers no execution authority.
+
+Released upstream contracts:
+[Tasks schema](https://github.com/modelcontextprotocol/ext-tasks/blob/main/schema/2026-07-28/schema.ts),
+[Skills stable specification](https://github.com/modelcontextprotocol/ext-skills/blob/main/specification/stable/skills.mdx),
+[Python SDK extensions](https://py.sdk.modelcontextprotocol.io/advanced/extensions/).
+The original v1 guidance resource/prompt remains available for compatibility.
+Current plain-client guidance is `carbon://research/v2/guidance` and the
+`carbon_research_workflow_v2` prompt; both serve the same current workflow as
+the Skill. No Skills support is needed to read them.
 
 ## Native Julia public study
 
@@ -66,8 +115,46 @@ ledger. Cancellation propagates to the controller and verified worker cleanup.
 It is a DEVELOPMENT diagnostic. Its output is not training support, accepted
 truth, a certified error bound or qualification. It cannot select hidden cases,
 a grader, arbitrary scripts or acceptance tolerances. The existing primary
-reference stays intact. General parameter sweeps and miner-authored Julia scripts
-remain separate implementation/containment work.
+reference stays intact. The bounded envelope task and authored research below
+retain their separate registered scopes and evidence-use limits.
+
+### Registered material selection
+
+The standard launcher checks the campaign's exact retained `scientific_tasks`
+documents against the registered factories before constructing a consumer.
+The following are the supported combinations; list order is part of the contract.
+These are operator-side grant bindings, not client-supplied task arguments.
+
+| Retained scientific scopes | Selected public material |
+| --- | --- |
+| Field absent | Existing legacy public material |
+| One exact `julia_burgers_scope(image, role_root)` | `julia_burgers_study_v1` |
+| Exact Burgers scope followed by `julia_envelope_scope(image, role_root)` | Burgers plus `julia_burgers_envelope_v2` |
+| One exact `advection_scope(authored_image)` | `julia_advection_study_v1` |
+
+An empty list, unknown or modified scope, reordered companion, extra scope or
+mixed task combination rejects attachment. Factories are defined in
+`carbon.development_session.julia_research`, `julia_envelope` and
+`advection_research`, respectively. A matching schema name alone is insufficient.
+
+Advection also requires the exact `authored_research` scope and the separately
+loaded `JuliaResearchImageIdentity` from the private authored-image record. That
+image must have the admitted public analysis image as its parent, and that
+analysis image must retain its accepted C-03 worker binding. The same authored
+image supplies the advection material and research executor; public reference and
+practice consumers keep their separately bound worker image. The advection study
+is public self-reported DEVELOPMENT evidence, with no validator or Workbench
+qualification implied by availability here.
+
+The envelope task reserves its complete bounded sequence before dispatch and
+retains uncertain claimed consumption during cancellation. Cleanup-only
+attachment can construct either consumer using the exact retained owner,
+generation, runtime and image after expiry. Every new capability/study call still
+checks fresh admission; cleanup attachment does not extend the grant.
+
+For isolated miner-authored `run_julia`, use the separate
+[authored Julia operator and client guide](../../docs/development/AUTHORED_JULIA_RESEARCH.md).
+Installing its image or starting an MCP client does not amend an existing grant.
 
 ## Private Streamable HTTP composition
 

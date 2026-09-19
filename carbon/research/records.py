@@ -566,9 +566,10 @@ class ExperimentRecord:
                 raise ValueError(f"{label} must exactly bind the record Challenge")
         from .model import ResearchTaskKind
 
-        workspace_only = (
-            self.task_bindings.task_kind is ResearchTaskKind.DEVELOPMENT_WORKSPACE_V1
-        )
+        workspace_only = self.task_bindings.task_kind in {
+            ResearchTaskKind.DEVELOPMENT_WORKSPACE_V1,
+            ResearchTaskKind.DEVELOPMENT_WORKSPACE_V2,
+        }
         if workspace_only and (
             self.resolved_strategies != ()
             or self.evidence_class is not ResearchEvidenceClass.STRUCTURAL_ONLY

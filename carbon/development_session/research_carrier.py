@@ -178,10 +178,19 @@ def _run_locked(
     provenance,
     extra_resources,
     phase="research",
+    program_name="program.py",
+    bootstrap=BOOTSTRAP,
+    execution_contract=None,
+    output_validator=None,
 ):
     if type(seconds) is not int or not 40 <= seconds <= 600:
         raise ValueError("bounded worker wall allowance required")
-    if type(files) is not dict or len(files) > MAX_FILES or "program.py" in files:
+    if (
+        type(files) is not dict
+        or len(files) > MAX_FILES
+        or "program.py" in files
+        or program_name in files
+    ):
         raise ValueError("bounded closed stage required")
     for name, body in files.items():
         ResearchWorkspace.name(name)
@@ -196,6 +205,10 @@ def _run_locked(
         "seconds": seconds,
         "provenance": provenance,
     }
+    if execution_contract is not None:
+        # Prospective language routes bind their complete reviewed environment.
+        # Leaving this absent preserves historical Python operation identities.
+        request["execution_contract"] = execution_contract
     launch = digest(
         canonical({"owner": owner, "identity": identity, "request": request})
     )
@@ -224,16 +237,20 @@ def _run_locked(
     stage = operation / "input"
     stage.mkdir(parents=True, mode=0o755)
     stage.chmod(0o755)
-    for name, body in {**files, "program.py": source.encode()}.items():
+    for name, body in {**files, program_name: source.encode()}.items():
         path = stage / name
         write_once(path, body)
         path.chmod(0o444)
     name = "carbon-d4-" + launch[7:31]
     cli = DockerCLI()
     if provenance == "MINER_SELF_REPORTED":
+        from .julia_analysis import JuliaResearchImageIdentity, verify_julia_image
         from .research_image import verify_image
 
-        verify_image(image, cli)
+        if type(image) is JuliaResearchImageIdentity:
+            verify_julia_image(image, cli)
+        else:
+            verify_image(image, cli)
         checked = doctor(image_id=image.image_id, cli=cli)
     else:
         checked = doctor(image_id=image.image_id, image_identity=image, cli=cli)
@@ -290,7 +307,7 @@ def _run_locked(
             worker_profile=worker,
         )
         cli.stream_to_file(
-            ["exec", name, "/opt/carbon-worker/bin/python", "-I", "-c", BOOTSTRAP],
+            ["exec", name, "/opt/carbon-worker/bin/python", "-I", "-c", bootstrap],
             operation / "stdout.txt",
             maximum=1024**2,
             timeout=max(1, seconds - 45 - (time.monotonic() - started)),
@@ -334,6 +351,8 @@ def _run_locked(
     _check_cancel(ledger, owner, identity)
     snapshot = operation / "snapshot"
     decode_output_stream(output, snapshot)
+    if output_validator is not None:
+        output_validator(snapshot)
     result = {
         "schema": "carbon.autoresearch.worker-result.v1",
         "provenance": provenance,
@@ -376,6 +395,10 @@ def reconcile_worker(ledger, *, owner, identity):
         if len(matches) != 1:
             raise ValueError("owned operation unavailable")
         op = matches[0]
+        if op["state"] == "HELD":
+            raise ValueError(
+                "never-claimed sequence capacity requires sequence cleanup"
+            )
         if op["state"] != "RESERVED":
             return op["result"]
         if not op["reservation"].get("numerical_milliseconds"):

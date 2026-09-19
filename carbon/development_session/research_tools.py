@@ -11,6 +11,7 @@ import dataclasses
 import enum
 import json
 import time
+from contextvars import ContextVar
 
 from carbon import research
 from carbon.chain.auth import BittensorMessageSigner
@@ -19,6 +20,7 @@ from carbon.transport.models import message
 from .profile import CHALLENGE, canonical, digest
 
 PREFIX = "carbon_research_v2__"
+_TASK_MODE = ContextVar("carbon_trusted_task_mode", default=None)
 PROMPT = """You are an authenticated Carbon DEVELOPMENT miner researcher. Your job
 is to learn a stronger reconstructable recipe, not just make a valid submission.
 Discover the public objective, capability catalog and unexecuted scaffold. Obtain
@@ -162,6 +164,32 @@ def _json(raw):
     return value
 
 
+def tools_for_sdk(sdk):
+    """Prospective discovery only; historical campaign tool schemas are immutable."""
+    image = getattr(
+        getattr(getattr(sdk, "composition", None), "executor", None),
+        "julia_image",
+        None,
+    )
+    if image is None:
+        return TOOLS
+    from .julia_analysis import authorize_julia
+
+    authorize_julia(sdk.ledger, sdk.owner, image)
+    result = json.loads(canonical(TOOLS))
+    tool = next(
+        item for item in result if item["name"] == PREFIX + "start_research_task"
+    )
+    tool["parameters"]["properties"]["action"]["enum"].append("run_julia")
+    tool["description"] += (
+        " Prospectively admitted run_julia uses the same workspace arguments as run_python "
+        "and the isolated Julia 1.13.0 Base/standard-library image. No runtime package "
+        "installation. Exports: finite .json, little-endian finite .f64le, UTF-8 .txt, "
+        "at most 8 MiB each. All output remains MINER_SELF_REPORTED."
+    )
+    return result
+
+
 def public_wire(value):
     """Only called on B-07's already projected public wire records."""
     if dataclasses.is_dataclass(value):
@@ -245,8 +273,20 @@ class ResearchMinerTools:
         elif args["kind"] == "workspace":
             if args["strategy_json"] is not None:
                 raise TaskContractMismatch("workspace_recipe_forbidden")
-            spec = research.DevelopmentWorkspaceTaskSpecV1(
+            constructor, version = (
+                research.DevelopmentWorkspaceTaskSpecV1,
                 "carbon.autoresearch.workspace.v1",
+            )
+            if args["action"] == "run_julia":
+                from .julia_analysis import authorize_julia
+
+                authorize_julia(self.ledger, self.owner, c.executor.julia_image)
+                constructor, version = (
+                    research.DevelopmentWorkspaceTaskSpecV2,
+                    "carbon.autoresearch.workspace.v2",
+                )
+            spec = constructor(
+                version,
                 args["action"],
                 canonical(_json(args["arguments_json"])).decode(),
             )
@@ -263,6 +303,28 @@ class ResearchMinerTools:
             c.discovery.manifest.practice_scope_ref,
         )
 
+    async def task_call(self, mode, args, identity):
+        """Trusted extension entry, retaining signing, admission and accounting."""
+        if mode not in {"start", "observe", "cancel"}:
+            raise ValueError("closed task mode required")
+        import uuid
+
+        token = _TASK_MODE.set(mode)
+        try:
+            operation = {
+                "start": "start_research_task",
+                "observe": "get_research_result",
+                "cancel": "cancel_research_task",
+            }[mode]
+            return await self.call(
+                PREFIX + operation,
+                args,
+                identity,
+                transport_request_id="mcp-task-" + uuid.uuid4().hex,
+            )
+        finally:
+            _TASK_MODE.reset(token)
+
     async def call(self, name, args, identity, *, transport_request_id=None):
         """Keep business identity stable while optionally renewing transmission.
 
@@ -273,6 +335,12 @@ class ResearchMinerTools:
         """
         from .research_carrier import PRECHARGED_TRIAL
 
+        if name == PREFIX + "start_research_task" and (
+            getattr(getattr(self.composition, "executor", None), "cleanup_only", False)
+            or getattr(self.wrapper, "_closing", False)
+        ):
+            raise ValueError("research admission is closed")
+
         if transport_request_id is not None and (
             type(transport_request_id) is not str
             or not 1 <= len(transport_request_id) <= 128
@@ -282,10 +350,23 @@ class ResearchMinerTools:
             )
         ):
             raise ValueError("bounded transport request identity required")
+        if (
+            name == PREFIX + "start_research_task"
+            and type(args) is dict
+            and args.get("action") == "run_julia"
+        ):
+            from .julia_analysis import authorize_julia
+
+            authorize_julia(
+                self.ledger, self.owner, self.composition.executor.julia_image
+            )
         numerical = (
             name == PREFIX + "start_research_task"
             and type(args) is dict
-            and (args.get("kind") == "practice" or args.get("action") == "run_python")
+            and (
+                args.get("kind") == "practice"
+                or args.get("action") in {"run_python", "run_julia"}
+            )
         )
         token = None
         if numerical:
@@ -384,7 +465,8 @@ class ResearchMinerTools:
         )
         observed = await (
             cleanup_registration()
-            if operation == "cancel_research_task" and callable(cleanup_registration)
+            if (operation == "cancel_research_task" or _TASK_MODE.get() == "observe")
+            and callable(cleanup_registration)
             else self.connection.check_registration()
         )
         if operation == "start_research_task":
@@ -416,8 +498,12 @@ class ResearchMinerTools:
         headers = BittensorMessageSigner(self.connection.miner_key).sign(
             body, receiver=self.connection.publisher, nonce_ns=time.time_ns()
         )
+        mode = _TASK_MODE.get()
         result = await self.wrapper.supervised_call(
-            body, headers, {self.owner: self.composition}
+            body,
+            headers,
+            {self.owner: self.composition},
+            **({"task_mode": mode} if mode is not None else {}),
         )
         if unavailable:
             value = {
@@ -464,4 +550,9 @@ class ResearchMinerTools:
             ),
             "public_result": result["public_result"],
             "requires_reconciliation": result["requires_reconciliation"],
+            **(
+                {"original_operation_id": result["original_operation_id"]}
+                if "original_operation_id" in result
+                else {}
+            ),
         }

@@ -134,6 +134,34 @@ class ResearchFixture:
             "research_guidance": self.guidance,
             "review_digest": "fixture-review-pin",
             "runtime_revision": "fixture-runtime-no-execution",
+            "review": {
+                "experiment_pause": "ENGINEERING_FIXTURE_ONLY",
+                "challenge": "fixture-challenge",
+                "reconstruction": "Unexecuted fixture",
+                "execution": {
+                    "profile": "carbon_jax_cuda13_rtx3060_laptop_development_v1",
+                    "backend": "cuda",
+                    "basis": "CONFIGURATION_ONLY",
+                    "installed_dependencies": "NOT_INSPECTED",
+                    "device_visibility": "NOT_OBSERVED",
+                    "runtime_evidence": "NOT_ATTACHED",
+                    "admission_readiness": "NOT_ESTABLISHED_BY_REVIEW",
+                },
+                "capabilities": {
+                    "backbones": ["fixture-fno"],
+                    "selection": "Unselected",
+                    "training": "Unexecuted fixture",
+                },
+                "grant": {
+                    "status": "REQUESTED_NOT_GRANTED",
+                    "expired": True,
+                    "expires_unix": 21600,
+                },
+                "resources": {
+                    "basis": "Fixture limits only; not remaining balance",
+                    "final_evaluation_reserve": {"provider_nanodollars": 163840000},
+                },
+            },
         }
 
     def launch(self, value, key):
@@ -304,6 +332,34 @@ def run():
                     research = ResearchFixture()
                     server.research_runner = research
                     research_launch = research.launch
+                    original_preflight = research.preflight
+                    research.preflight = lambda: {
+                        **original_preflight(),
+                        "available": False,
+                        "status": "OWNER_EXPERIMENT_PAUSE",
+                        "reason": "Owner experiment pause is active. New owner authorization is required.",
+                    }
+                    wait(
+                        session,
+                        "document.getElementById('research-preflight').textContent.includes('Owner experiment pause is active')",
+                    )
+                    assert session.evaluate(
+                        "document.getElementById('research-launch').disabled && document.getElementById('research-guidance').value.includes('UI ENGINEERING FIXTURE')"
+                    )
+                    load(session, origin)
+                    connect(session, token)
+                    wait(
+                        session,
+                        "document.getElementById('research-preflight').textContent.includes('Owner experiment pause is active')",
+                    )
+                    assert not research.keys
+                    assert session.evaluate(
+                        "document.getElementById('research-review').textContent.includes('NOT_OBSERVED') && document.getElementById('research-review').textContent.includes('REQUESTED_NOT_GRANTED')"
+                    )
+                    research.preflight = original_preflight
+                    wait(
+                        session, "!document.getElementById('research-launch').disabled"
+                    )
 
                     def lost_research_response(value, key):
                         research_launch(value, key)

@@ -27,7 +27,7 @@ class Compiler(research.B02BCompilationProvider):
             != self._assembly.training_support_ref
         ):
             raise ValueError("research compilation binding differs")
-        return compile_recipe(request.strategy)[0]
+        return getattr(self, "recipe_compiler", compile_recipe)(request.strategy)[0]
 
 
 class Discovery:
@@ -123,9 +123,23 @@ class ResearchComposition:
     measurements: object
 
 
-def make_research_service(*, root, ledger, owner, image, public_material, practice):
+def make_research_service(
+    *,
+    root,
+    ledger,
+    owner,
+    image,
+    public_material,
+    practice,
+    julia_image=None,
+    cleanup_only=False,
+):
+    from .gpu_research import PublicGPUPractice, gpu_catalog
     from .julia_research import JuliaPublicMaterial
 
+    gpu = type(practice) is PublicGPUPractice
+    if gpu and (practice.data.ledger is not ledger or practice.data.owner != owner):
+        raise ValueError("GPU callback principal/ledger differs")
     scaffold_catalog = (
         public_material.catalogue()
         if type(public_material) is JuliaPublicMaterial
@@ -134,7 +148,27 @@ def make_research_service(*, root, ledger, owner, image, public_material, practi
     implementation_files = sorted(Path(__file__).parent.glob("research_*.py"))
     if type(public_material) is JuliaPublicMaterial:
         implementation_files.append(Path(__file__).with_name("julia_research.py"))
-    contracts = research_contracts()
+    if julia_image is not None:
+        implementation_files.append(Path(__file__).with_name("julia_analysis.py"))
+    if gpu:
+        from .advection_research import PublicAdvectionMaterial
+        from .julia_envelope import JuliaEnvelopeMaterial
+
+        scientific_catalogue = (
+            public_material.catalogue()
+            if type(public_material) in (JuliaPublicMaterial, JuliaEnvelopeMaterial)
+            else None
+        )
+        if type(public_material) is PublicAdvectionMaterial:
+            scientific_catalogue = {"scientific_tasks": [public_material.scope]}
+        scaffold_catalog = {
+            "schema": "carbon.gpu-scientific-scaffold.v1",
+            "recipes": gpu_catalog(),
+            "scientific_catalogue": scientific_catalogue,
+        }
+        practice.scaffold_digest = digest(canonical(scaffold_catalog))
+        implementation_files.append(Path(__file__).with_name("gpu_research.py"))
+    contracts = practice.contracts if gpu else research_contracts()
     compiler = Compiler(
         candidate_assembly=contracts.assembly,
         candidate_assembly_ref=contracts.assembly.to_ref(),
@@ -147,12 +181,23 @@ def make_research_service(*, root, ledger, owner, image, public_material, practi
         compiler_identity=SUPPORTED_COMPILER_IDENTITY,
         strategy_limits=strategy_limits(),
     )
-    inspection, forecast, _policy, _resource = resources(contracts, compiler)
+    if gpu:
+        compiler.recipe_compiler = practice.compile
+    inspection, forecast, _policy, _resource = resources(contracts, compiler, gpu=gpu)
+    if gpu:
+        practice.inspection = inspection
     population, sampling = population_and_sampling()
     measurements = measurement_contract()
     measure_ref = measurement.measurement_ref(measurements)
     score = research.PublicScorePolicyRef(
-        CHALLENGE, content_digest=digest(canonical(document()["objective_math"]))
+        CHALLENGE,
+        content_digest=digest(
+            canonical(
+                {"score": None, "scope": practice.scope}
+                if gpu
+                else document()["objective_math"]
+            )
+        ),
     )
     info = research.ChallengeInfo(
         research.RESEARCH_SCHEMA_VERSION,
@@ -180,7 +225,10 @@ def make_research_service(*, root, ledger, owner, image, public_material, practi
         info.public_score_policy_ref,
         contracts.assembly.to_ref(),
         research.StrategySchemaRef(
-            CHALLENGE, content_digest=digest(canonical(public_catalog()))
+            CHALLENGE,
+            content_digest=digest(
+                canonical(gpu_catalog() if gpu else public_catalog())
+            ),
         ),
         contracts.catalog.to_ref(candidate_assembly=contracts.assembly),
         research.CompilerIdentity(
@@ -212,6 +260,8 @@ def make_research_service(*, root, ledger, owner, image, public_material, practi
     discovery = Discovery(info, manifest)
     prior = NoPrior()
     executor = PublicResearchExecutor(
+        cleanup_only=cleanup_only,
+        julia_image=julia_image,
         ledger=ledger,
         owner=owner,
         image=image,

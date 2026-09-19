@@ -33,6 +33,11 @@ PATH_FIELDS = {
 }
 
 
+def review_pin(cfg, admission):
+    """Opaque v2 review: include the referenced grant, not only its path."""
+    return "review-v2:" + digest(canonical([cfg, admission.pin]))
+
+
 class RunnerAdapter:
     def __init__(self, database, *, configuration=None, principal=None):
         self.database = database
@@ -86,12 +91,12 @@ class RunnerAdapter:
         finally:
             db.close()
 
-    def configured(self):
+    def _configuration(self):
         if self.configuration is None:
             raise ValueError("operator configuration absent")
         cfg = private_json(self.configuration)
         if (
-            set(cfg) - {"research_guidance"}
+            set(cfg) - {"research_guidance", "disabled_reason"}
             != {
                 "schema",
                 "profile_id",
@@ -106,6 +111,13 @@ class RunnerAdapter:
         ):
             raise ValueError("closed operator configuration required")
         guidance.configured(cfg)  # Validate before grant admission or dispatch.
+        if type(cfg["enabled"]) is not bool or (
+            "disabled_reason" in cfg
+            and (cfg["disabled_reason"] != "OWNER_EXPERIMENT_PAUSE" or cfg["enabled"])
+        ):
+            raise ValueError("invalid disabled profile explanation")
+        if cfg["principal"] != self.principal:
+            raise ValueError("operator principal mismatch")
         if set(cfg["paths"]) != PATH_FIELDS:
             raise ValueError("closed runner inputs required")
         if any(
@@ -113,8 +125,16 @@ class RunnerAdapter:
             for v in cfg["paths"].values()
         ):
             raise ValueError("operator paths must be absolute")
+        return cfg
+
+    def configured(self):
+        cfg = self._configuration()
+        if not cfg["enabled"]:
+            raise Rejected("research_dispatch_disabled", 409)
         admission = Admission.load(Path(cfg["grant_file"]))
         doc = admission.document
+        if set(doc["runtime"]) != {"implementation", "images"}:
+            raise Rejected("research_runtime_interface_unavailable", 409)
         root = Path(doc["root"])
         admission.verify(
             root=root,
@@ -132,6 +152,8 @@ class RunnerAdapter:
         return cfg, admission, root
 
     def preflight(self):
+        from scripts.dev.miner_launchpad.prelaunch import review
+
         try:
             cfg, admission, _ = self.configured()
             value = {
@@ -150,17 +172,39 @@ class RunnerAdapter:
             if task is not None:
                 value.update(
                     research_guidance=task,
-                    review_digest=digest(canonical(cfg)),
+                    review_digest=review_pin(cfg, admission),
                     runtime_revision=cfg["accepted_revision"],
                 )
+            value["review"] = review(cfg, admission.document)
             return value
         except Exception:  # noqa: BLE001 - private configuration errors stay private.
-            return {
-                "available": False,
-                "profile": None,
-                "status": "ADMISSION_DISABLED",
-                "reason": "A separate approved grant, existing miner and exact accepted runtime/images are required.",
-            }
+            try:
+                cfg = self._configuration()
+                admission = Admission.load(Path(cfg["grant_file"]))
+                inspected = review(cfg, admission.document)
+                paused = cfg.get("disabled_reason") == "OWNER_EXPERIMENT_PAUSE"
+                return {
+                    "available": False,
+                    "profile": cfg["profile_id"],
+                    "status": (
+                        "OWNER_EXPERIMENT_PAUSE" if paused else "ADMISSION_DISABLED"
+                    ),
+                    "reason": (
+                        "Owner experiment pause is active. New owner authorization is required before research can resume. Status, export, stop and reconciliation remain available."
+                        if paused
+                        else "Research dispatch is disabled or its grant/runtime binding is invalid. The operator must resolve the listed requirements."
+                    ),
+                    "research_guidance": guidance.configured(cfg),
+                    "runtime_revision": cfg["accepted_revision"],
+                    "review": inspected,
+                }
+            except Exception:  # noqa: BLE001 - no private paths or errors disclosed.
+                return {
+                    "available": False,
+                    "profile": None,
+                    "status": "ADMISSION_DISABLED",
+                    "reason": "A separate approved grant, existing miner and exact accepted runtime/images are required.",
+                }
 
     def launch(self, value, key):
         if type(value) is not dict or set(value) not in (
@@ -176,6 +220,8 @@ class RunnerAdapter:
             raise Rejected("invalid_idempotency_key")
         try:
             cfg, admission, root = self.configured()
+        except Rejected:
+            raise
         except Exception:  # noqa: BLE001
             raise Rejected("research_admission_unavailable", 409) from None
         if value["profile"] != cfg["profile_id"] or cfg["principal"] != self.principal:
@@ -185,16 +231,19 @@ class RunnerAdapter:
         )[7:39]
         config_pin = digest(canonical(cfg))
         task = guidance.configured(cfg)
-        if (task is not None or "review_digest" in value) and value.get(
-            "review_digest"
-        ) != config_pin:
-            raise Rejected("research_review_changed", 409)
         with self.db() as db:
             db.execute("BEGIN IMMEDIATE")
             previous = db.execute(
                 "SELECT * FROM research_runs WHERE request_key=? OR id=? OR grant_id=?",
                 (key, run_id, admission.document["grant_id"]),
             ).fetchall()
+            if task is not None or "review_digest" in value:
+                supplied = value.get("review_digest")
+                # Legacy token retries only recover an already durable, exactly
+                # bound run. They can never admit a new campaign after upgrade.
+                legacy_retry = bool(previous) and supplied == config_pin
+                if supplied != review_pin(cfg, admission) and not legacy_retry:
+                    raise Rejected("research_review_changed", 409)
             if previous:
                 if len(previous) != 1 or any(
                     previous[0][k] != v
@@ -252,6 +301,16 @@ class RunnerAdapter:
 
         generation = None
         try:
+            # Recheck a real operator profile at the thread handoff. A disabled
+            # profile must not slip through a previously queued HTTP request.
+            if self.configuration is not None:
+                current, current_admission, current_root = self.configured()
+                if (
+                    current != cfg
+                    or current_admission.pin != admission.pin
+                    or current_root != root
+                ):
+                    raise ValueError("dispatch configuration changed")
             row, _, _ = self._bound(run_id)
             task = guidance.verify(
                 json.loads(row["research_guidance"])
@@ -269,7 +328,7 @@ class RunnerAdapter:
                 # generation. Completed observations remain replayable by runner.
                 with ledger.db() as db:
                     pending = db.execute(
-                        "SELECT 1 FROM operations WHERE state='RESERVED' LIMIT 1"
+                        "SELECT 1 FROM operations WHERE state IN ('RESERVED','HELD') LIMIT 1"
                     ).fetchone()
                 if pending:
                     raise DispatchStopped("unresolved operation")
@@ -322,6 +381,18 @@ class RunnerAdapter:
         from carbon.reconstruction.worker.operator import _stores
 
         clean = True
+        # HELD is capacity, never a worker. Release through the same sequence
+        # transaction; dispatched children still need their actual domain journal.
+        with ledger.db() as db:
+            sequences = db.execute(
+                "SELECT parent,owner FROM operation_sequences"
+            ).fetchall()
+        for parent, owner in sequences:
+            try:
+                ledger.cancel_sequence_held(parent, owner=owner)
+                ledger.settle_sequence(parent, owner=owner)
+            except Exception:  # noqa: BLE001
+                clean = False
         with ledger.db() as db:
             rows = db.execute(
                 "SELECT id,owner,reservation FROM operations WHERE state='RESERVED'"
@@ -383,6 +454,7 @@ class RunnerAdapter:
         if action == "reconcile":
             with owner_lock(root):
                 generation = control.acquire()
+                ledger.generation = generation
                 control.settled(generation, cleanup_verified=self._cleanup(ledger))
         else:
             if action == "resume":
@@ -395,12 +467,18 @@ class RunnerAdapter:
                     raise ValueError("resume binding differs")
             control.request(action)
             if action == "stop":
+                ledger.generation = control.status()["generation"]
                 from carbon.development_session.research_carrier import request_cancel
 
                 with ledger.db() as db:
+                    sequences = db.execute(
+                        "SELECT parent,owner FROM operation_sequences"
+                    ).fetchall()
                     operations = db.execute(
                         "SELECT id,owner FROM operations WHERE state='RESERVED'"
                     ).fetchall()
+                for parent, owner in sequences:
+                    ledger.cancel_sequence_held(parent, owner=owner)
                 for operation, owner in operations:
                     request_cancel(ledger, owner=owner, identity=operation)
             if action == "resume":
