@@ -18,7 +18,7 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 SCRIPT_ROOT = REPOSITORY_ROOT / "scripts/dev"
 sys.path.insert(0, str(SCRIPT_ROOT))
 
-from workbench_scope import workbench_required  # noqa: E402
+from workbench_scope import workbench_required
 
 
 @pytest.mark.parametrize(
@@ -113,6 +113,7 @@ def test_cli_reports_the_requirement_for_the_repository() -> None:
         ],
         capture_output=True,
         text=True,
+        check=False,
     )
     assert result.returncode == 0, result.stderr
     assert "Workbench acceptance required:" in result.stdout
@@ -134,6 +135,7 @@ def test_cli_writes_the_github_output_key(tmp_path: Path) -> None:
         ],
         capture_output=True,
         text=True,
+        check=False,
     )
     assert result.returncode == 0, result.stderr
     written = output.read_text(encoding="utf-8")
@@ -153,5 +155,6 @@ def test_cli_fails_closed_on_an_unusable_base() -> None:
         ],
         capture_output=True,
         text=True,
+        check=False,
     )
     assert result.returncode == 2

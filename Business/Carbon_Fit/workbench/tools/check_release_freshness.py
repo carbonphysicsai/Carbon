@@ -110,6 +110,7 @@ def generate(destination: Path) -> None:
             cwd=destination,
             text=True,
             capture_output=True,
+            check=False,
         )
         # Report the real child status rather than trusting a shell pipeline.
         if completed.returncode != 0:
@@ -254,9 +255,7 @@ def main() -> int:
             file=sys.stderr,
         )
         return 1
-    print(
-        f"Workbench release artifacts are current: {len(GENERATED)} generated files."
-    )
+    print(f"Workbench release artifacts are current: {len(GENERATED)} generated files.")
     return 0
 
 

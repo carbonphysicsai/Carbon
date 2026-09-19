@@ -64,7 +64,11 @@ def _git(tree: Path, *args: str) -> None:
         check=True,
         capture_output=True,
         text=True,
-        env={**os.environ, "GIT_CONFIG_GLOBAL": "/dev/null", "GIT_CONFIG_SYSTEM": "/dev/null"},
+        env={
+            **os.environ,
+            "GIT_CONFIG_GLOBAL": "/dev/null",
+            "GIT_CONFIG_SYSTEM": "/dev/null",
+        },
     )
 
 
@@ -81,7 +85,17 @@ def _stage(tree: Path) -> None:
         shutil.copy2(source, target)
     _git(tree, "init", "--quiet")
     _git(tree, "add", "-A")
-    _git(tree, "-c", "user.email=t@t", "-c", "user.name=t", "commit", "--quiet", "-m", "staged")
+    _git(
+        tree,
+        "-c",
+        "user.email=t@t",
+        "-c",
+        "user.name=t",
+        "commit",
+        "--quiet",
+        "-m",
+        "staged",
+    )
 
 
 def _regenerate(tree: Path) -> None:
@@ -101,6 +115,7 @@ def _gate(tree: Path) -> subprocess.CompletedProcess[str]:
         cwd=tree,
         capture_output=True,
         text=True,
+        check=False,
     )
 
 

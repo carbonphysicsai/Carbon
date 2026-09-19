@@ -19,7 +19,7 @@
     "GOAL-WORKBENCH-10"
   ],
   "repository_base": "3681f7fb10be0c6e278f53d59ff9b022099ef12d",
-  "integration_revision_at_packaging": "ab3e922e09b942c84018416688f89b9493474b85",
+  "integration_revision_at_packaging": "28264d6e51e14fdcd6fc37791b9e3de293732198",
   "integration_revision_note": "The checksum manifest describes exact packaged bytes. A commit cannot contain its own digest; final PR/head identity is reported by delivery.",
   "pinned_research_revision": "ca904dfee93d3574df4e56b99981a6ed3b138e80",
   "accepted_research_head": "0a5690270dc449ea19c941280203987d37db5283",
@@ -867,8 +867,8 @@
       "sha256": "e9286584e80db14fd2a9e5c80dd5c740beda8964081e8a4d6ddf891d80810a55"
     },
     "tests/test_release_freshness.py": {
-      "bytes": 10634,
-      "sha256": "7609cf337779b819a908b5c322a7341ecb01c382515eb3d2390fefad93bbd9c7"
+      "bytes": 10781,
+      "sha256": "fa3de894c2c0d1c52c9b617f5d8175452dc175e583c46341645636f53ee5f0a0"
     },
     "tests/test_repository_snapshot_assessment.cjs": {
       "bytes": 23216,
@@ -955,8 +955,8 @@
       "sha256": "1afa474ce4d04e939456fe27831961fbdc27376b2a070b84c9e6097747d574df"
     },
     "tools/check_release_freshness.py": {
-      "bytes": 9848,
-      "sha256": "00162229be362738f425f94cc0d95f95c8521832a4dfc4aeb0bae8060e2b9136"
+      "bytes": 9859,
+      "sha256": "4a0e9eda61733b07dd5b4b0fcee6355c02e151cb08e4196ca81c8d705f4e6802"
     },
     "tools/check_repository_snapshot_admission.cjs": {
       "bytes": 12658,
