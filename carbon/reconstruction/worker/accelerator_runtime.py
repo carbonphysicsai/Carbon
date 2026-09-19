@@ -165,7 +165,61 @@ def device_request() -> dict[str, object]:
     }
 
 
-def inspect_gpu_device(*, cli, container_name: str) -> dict[str, object]:
+# Driver models whose compute-process enumeration NVIDIA documents as
+# incomplete. Rejected before any contract is consulted.
+UNSUPPORTED_DRIVER_MODELS = frozenset({"WDDM"})
+
+# Observation sources whose compute-process enumeration has been established as
+# complete for this contract, by contract identifier.
+#
+# Deliberately empty. No source has been established, so strict admission and
+# verified device release are currently unavailable on every host. Registering a
+# contract here is a separate owner decision that needs its own evidence about
+# that source's visibility and the controls around it.
+#
+# A driver-model reading is explicitly NOT that evidence. "N/A" only reports
+# that a Windows-only field does not apply to the observing platform, and NVIDIA
+# also uses it for unavailable information; "TCC" names a compute-oriented
+# Windows driver model. Neither shows that every process holding this device is
+# visible from the controller's observation point.
+ESTABLISHED_OBSERVATION_CONTRACTS: frozenset[str] = frozenset()
+
+ENUMERATION_UNSUPPORTED = "UNSUPPORTED"
+ENUMERATION_UNESTABLISHED = "UNESTABLISHED"
+ENUMERATION_ESTABLISHED = "ESTABLISHED"
+
+
+def enumeration_capability(driver_model, *, observation_contract=None) -> str:
+    """Classify whether an empty compute-process list is evidence of an idle device.
+
+    An unsupported query and a genuinely idle device return identical empty
+    output, so emptiness is never evidence on its own. Three outcomes, never a
+    Boolean shortcut:
+
+    UNSUPPORTED   the observing platform is documented as unable to enumerate.
+    UNESTABLISHED nothing shows this source enumerates every relevant process.
+    ESTABLISHED   a registered observation contract covers this source.
+
+    Only ESTABLISHED may support an exclusivity or device-release conclusion.
+    Capability is decided here and never by an operator document, a grant field
+    or a caller argument: those identify which contract is being claimed, while
+    registration in ESTABLISHED_OBSERVATION_CONTRACTS is what certifies it.
+    """
+    if type(driver_model) is not str:
+        return ENUMERATION_UNESTABLISHED
+    if driver_model.strip().upper() in UNSUPPORTED_DRIVER_MODELS:
+        return ENUMERATION_UNSUPPORTED
+    if (
+        type(observation_contract) is str
+        and observation_contract in ESTABLISHED_OBSERVATION_CONTRACTS
+    ):
+        return ENUMERATION_ESTABLISHED
+    return ENUMERATION_UNESTABLISHED
+
+
+def inspect_gpu_device(
+    *, cli, container_name: str, observation_contract: str | None = None
+) -> dict[str, object]:
     """Observe the fixed device from the bounded container before authorization."""
     result = cli.run(
         [
@@ -189,6 +243,25 @@ def inspect_gpu_device(*, cli, container_name: str) -> dict[str, object]:
             or values[3] != "6144"
             or values[4].lower() != "disabled"
         ):
+            raise ValueError()
+        model = cli.run(
+            [
+                "exec",
+                container_name,
+                "/usr/bin/nvidia-smi",
+                "--query-gpu=driver_model.current",
+                "--format=csv,noheader,nounits",
+            ],
+            timeout=10,
+        )
+        capability = enumeration_capability(
+            model.stdout.decode("ascii", "strict").strip(),
+            observation_contract=observation_contract,
+        )
+        if capability != ENUMERATION_ESTABLISHED:
+            # Refuse rather than record an empty foreign-process list. Whether
+            # this source is documented incomplete or merely unestablished, its
+            # silence is not observed exclusivity, so neither may admit.
             raise ValueError()
         processes = cli.run(
             [
@@ -306,7 +379,7 @@ def admission_document(admission: AcceleratorHostAdmission) -> dict[str, object]
     }
 
 
-def verify_device_release() -> None:
+def verify_device_release(*, observation_contract: str | None = None) -> None:
     """Observe host-owned GPU release after exact container removal.
 
     No host install or device reset is performed. Unavailable telemetry remains
@@ -322,6 +395,25 @@ def verify_device_release() -> None:
             raise WorkerFailure(WorkerCode.CLEANUP)
         command = [str(binary), "--id=" + GPU_PROFILE.device_uuid]
         environment = {"PATH": "/usr/bin:/bin"}
+        model = _bounded_capture(
+            command
+            + ["--query-gpu=driver_model.current", "--format=csv,noheader,nounits"],
+            environment=environment,
+            timeout=10,
+            maximum=4096,
+        )
+        # An unestablished source cannot certify a released device either, so
+        # this stays unreconciled and keeps the existing quarantine behaviour
+        # rather than reporting a verified whole-device release.
+        if (
+            model.returncode != 0
+            or enumeration_capability(
+                model.stdout.decode("ascii", "replace").strip(),
+                observation_contract=observation_contract,
+            )
+            != ENUMERATION_ESTABLISHED
+        ):
+            raise WorkerFailure(WorkerCode.CLEANUP)
         processes = _bounded_capture(
             command
             + ["--query-compute-apps=pid,gpu_uuid", "--format=csv,noheader,nounits"],
