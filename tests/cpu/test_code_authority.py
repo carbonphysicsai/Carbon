@@ -1038,6 +1038,7 @@ def test_default_workflow_delegates_all_semantics_to_repository_scripts() -> Non
         "canonical",
         "dev-image",
         "c03-worker",
+        "workbench",
         "contract-authority",
         "hub-validation",
         "derived-documentation",
@@ -1053,6 +1054,11 @@ def test_default_workflow_delegates_all_semantics_to_repository_scripts() -> Non
     assert _yaml_scalar(jobs["canonical"], "needs") == "preflight"
     assert _yaml_scalar(jobs["dev-image"], "needs") == "preflight"
     assert _yaml_scalar(jobs["c03-worker"], "needs") == "preflight"
+    assert (
+        _yaml_scalar(jobs["workbench"], "name")
+        == "Workbench release and application acceptance"
+    )
+    assert _yaml_scalar(jobs["workbench"], "needs") == "preflight"
 
     assert _inline_run_commands(jobs["preflight"]) == ("./scripts/dev/ci_preflight.sh",)
     assert _inline_run_commands(jobs["canonical"]) == (
@@ -1069,6 +1075,10 @@ def test_default_workflow_delegates_all_semantics_to_repository_scripts() -> Non
         "bash ./scripts/dev/julia_worker_image.sh",
         "bash ./scripts/dev/julia_worker_service.sh",
     )
+    assert _inline_run_commands(jobs["workbench"]) == (
+        "./scripts/dev/bootstrap.sh",
+        "./scripts/dev/workbench_release_checks.sh",
+    )
     assert 'CARBON_UV_GROUPS: "chain archive science-jax mcp"' in jobs["c03-worker"]
     assert 'CARBON_UV_GROUPS: "archive"' in jobs["contract-authority"]
     required_repository_commands = (
@@ -1081,6 +1091,7 @@ def test_default_workflow_delegates_all_semantics_to_repository_scripts() -> Non
         "./scripts/dev/c03_worker.sh doctor",
         "./scripts/dev/c03_worker.sh smoke",
         "./scripts/dev/c03_worker.sh reconcile",
+        "./scripts/dev/workbench_release_checks.sh",
         "./scripts/dev/ci_contract_authority.sh",
         "./scripts/dev/ci_hub.sh",
         "./scripts/dev/ci_derived_documentation.sh",
@@ -1128,9 +1139,9 @@ def test_default_workflow_delegates_all_semantics_to_repository_scripts() -> Non
     assert 'gh api "${endpoint}" --jq .base.sha' in workflow
     assert '"${candidate_sha}" != "${EVENT_PR_HEAD}"' in workflow
     assert "ref: ${{ steps.candidate.outputs.candidate_sha }}" in workflow
-    assert workflow.count("ref: ${{ needs.preflight.outputs.candidate_sha }}") == 7
-    assert workflow.count("fetch-depth: 0") == 8
-    assert workflow.count("persist-credentials: false") == 9
+    assert workflow.count("ref: ${{ needs.preflight.outputs.candidate_sha }}") == 8
+    assert workflow.count("fetch-depth: 0") == 9
+    assert workflow.count("persist-credentials: false") == 10
     assert "Install pinned uv" not in jobs["preflight"]
     assert "github.event.pull_request.draft == false" in jobs["preflight"]
     assert "dev_image_required == 'true'" in jobs["dev-image"]

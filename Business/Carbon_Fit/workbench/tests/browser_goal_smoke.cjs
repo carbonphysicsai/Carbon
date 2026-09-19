@@ -9,7 +9,9 @@ const assert = require("node:assert/strict"),
 const ROOT = path.resolve(__dirname, ".."),
   REPO = path.resolve(ROOT, "../../.."),
   ARTIFACT = path.join(ROOT, "Carbon_Opportunity_Workbench.html"),
-  PYTHON = "/private/tmp/carbon-c04-science-env/bin/python";
+  PYTHON =
+    process.env.CARBON_SCIENCE_PYTHON ||
+    "/private/tmp/carbon-c04-science-env/bin/python";
 const F = require("../src/engine.js"),
   A = JSON.parse(fs.readFileSync(path.join(ROOT, "data/atlas.json"))),
   checks = [];
@@ -57,9 +59,9 @@ function response(request) {
   const browser = await chromium.launch({
       headless: true,
       executablePath:
-        "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+        (process.env.CARBON_BROWSER_EXECUTABLE || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"),
     }),
-    page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+    page = await browser.newPage({ viewport: process.env.CARBON_MOBILE === "1" ? { width: 390, height: 844 } : { width: 1440, height: 1000 } });
   page.setDefaultTimeout(12000);
   page.on("pageerror", (error) => errors.push(String(error)));
   page.on("request", (request) => {

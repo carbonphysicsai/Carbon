@@ -19,8 +19,8 @@ async function saveDownload(page, selector, target) {
 (async () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "carbon-intake-browser-"));
   const errors = [], outbound = [];
-  const browser = await chromium.launch({ headless: true, executablePath: "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" });
-  const context = await browser.newContext({ acceptDownloads: true, viewport: { width: 1440, height: 1000 } });
+  const browser = await chromium.launch({ headless: true, executablePath: (process.env.CARBON_BROWSER_EXECUTABLE || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome") });
+  const context = await browser.newContext({ acceptDownloads: true, viewport: process.env.CARBON_MOBILE === "1" ? { width: 390, height: 844 } : { width: 1440, height: 1000 } });
   context.on("request", (request) => { if (/^(https?|wss?):/.test(request.url())) outbound.push(request.url()); });
 
   const formOnly = await context.newPage();

@@ -43,12 +43,18 @@ def integration_revision() -> str:
 
 
 def payloads() -> list[Path]:
+    # The payload set is a directory glob, so anything sitting in the workbench
+    # tree ships. Local Git metadata, virtualenvs, editor state and installed
+    # packages are never release content; excluding them keeps a developer's
+    # working directory out of the archive.
     return sorted(
         p
         for p in ROOT.rglob("*")
         if p.is_file()
         and p.name not in EXCLUDED
         and "__pycache__" not in p.parts
+        and "node_modules" not in p.parts
+        and not any(part.startswith(".") for part in p.relative_to(ROOT).parts)
         and not p.name.endswith(".pyc")
     )
 
