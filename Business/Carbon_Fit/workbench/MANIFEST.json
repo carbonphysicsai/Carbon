@@ -19,7 +19,7 @@
     "GOAL-WORKBENCH-10"
   ],
   "repository_base": "3681f7fb10be0c6e278f53d59ff9b022099ef12d",
-  "integration_revision_at_packaging": "20037f6c8f5fff306185b6cec632aa120ef7b7b1",
+  "integration_revision_at_packaging": "d463bcd6177b7fc77746a8b5ca2b6fd3e8c4021f",
   "integration_revision_note": "The checksum manifest describes exact packaged bytes. A commit cannot contain its own digest; final PR/head identity is reported by delivery.",
   "pinned_research_revision": "ca904dfee93d3574df4e56b99981a6ed3b138e80",
   "accepted_research_head": "0a5690270dc449ea19c941280203987d37db5283",
@@ -359,8 +359,8 @@
       "sha256": "e7768cb201813cc24e971c768f6323e290d0fab0e0506f91414ad3a0a6e4eb7e"
     },
     "docs/GOAL_WORKBENCH_10_PHYSICAL_DEFINITION_REPORT.md": {
-      "bytes": 4515,
-      "sha256": "8d40fcbeecb79a7a02cf2ca85f784fe505f7085b77acb1f490963e3ceef63463"
+      "bytes": 4674,
+      "sha256": "bda172b8bd00420d38936c00dd14cc24c4b88e5dd5634ef9027a74e082d064ac"
     },
     "docs/OWNER_REPORT.md": {
       "bytes": 27626,
@@ -371,8 +371,8 @@
       "sha256": "bb05526a6408f70efa32a12ade140305a0cfd2c6d07f3827cc36b16f086eb149"
     },
     "docs/REQUIREMENT_TEST_MAP.md": {
-      "bytes": 27348,
-      "sha256": "e4e534b8a681462e7436d712ec6c829f5f30c5f82eee9094864752f1a9a2d3da"
+      "bytes": 27354,
+      "sha256": "90f45e47ce6bf68bc142929e759da9d74ef5647ac4df45ceff4a67eca8f2542b"
     },
     "docs/SPECIFICATION.md": {
       "bytes": 14254,

@@ -9,7 +9,7 @@ This map describes focused application acceptance. It does not relabel the CPES 
 | Preserve cumulative state | retained result plus `STALE` relation | material edit, editorial control, child revision, save/reopen | Rerun does not resolve scientific or rights review |
 | Preserve authority separation | `WORKBENCH_DERIVED`, `NOT_QUALIFIED`, effect `NONE` | pure and browser export assertions | No solver execution, reference qualification, rights, score, or launch |
 | Migrate v0.9 without promotion | additive v0.10 migration receipt | populated review and placeholder migration | Placeholder never becomes returned evidence |
-| Keep open core work visible | operating envelope remains pending; reference action uses separate panel | dependency-state assertions | Open issue #209/PR #226 scope is not absorbed |
+| Keep open core work visible | operating envelope remains pending; reference action uses separate panel | dependency-state assertions | Issue #209 and merged PR #226 scope is not absorbed |
 
 | GW09 private-team requirement | UI / data / service | Automated evidence | Remaining limitation |
 |---|---|---|---|

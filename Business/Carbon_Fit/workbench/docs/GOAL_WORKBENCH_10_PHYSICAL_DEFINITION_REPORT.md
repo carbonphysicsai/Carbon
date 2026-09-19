@@ -40,10 +40,12 @@ observations.
 
 ## Core coordination and open scope
 
-Issue #209 remains the core owner. Open PR #226 owns broader public
-operating-envelope work and PR #231 owns an optional MCP App; this change does
-not edit their controller, ledger, Julia, MCP, or shared scientific-service
-files. The operating-envelope row therefore remains `CORE_INTERFACE_PENDING`.
+Issue #209 remains the core owner. PR #226 (broader public operating-envelope
+work) and PR #231 (an optional MCP App) have since merged; this change still
+does not edit their controller, ledger, Julia, MCP, or shared scientific-service
+files, and it reuses the merged `CarbonScientificStudies` surface unchanged.
+The operating-envelope row therefore remains `CORE_INTERFACE_PENDING`: issue
+#209 still owns that exploration and this release exposes none of it.
 The public Burgers reference action is shown as available but continues to
 require the installed private service, an exact registered draft, rights, and
 an existing grant.
