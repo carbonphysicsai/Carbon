@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-18T03:20:00Z"
+  captured_at_utc: "2026-09-19T16:05:44Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "08d480507048160ebbd56e6f4563d5bb00f7387b"
+  authority_snapshot_commit: "88dafe7fff1effbd6ebb1581a8e11ba36af417c3"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -8111,6 +8111,38 @@ events:
       - "WAVE-L"
       - "WAVE-M"
       - "WAVE-N"
+    supersedes: null
+  -
+    map_ref: "SYSTEM/PUBLICATION-AUTHORITY"
+    event_type: "evidence"
+    event_id: "WEB-QA-05-D1"
+    owner_lane: "owner"
+    status: "implemented"
+    summary: "The owner approved Ask Carbon release candidate 2026-09-18.2 for inactive publication, and the supplied homepage ZIP is now hash-reconciled to the deployed Workbench navigation source. The exact production-gated bundle is prepared and tested, but production remains unchanged until the incident owner and disable/rollback operator are named; public enablement remains a separate step."
+    primary_detail: "https://github.com/carbonphysicsai/Carbon/blob/45db0b78bbe0d73610231ec91330e0ae81d43b30/.agent/tickets/WEB-QA-05_ask_carbon_inactive_publication.md"
+    affects:
+      - "SYSTEM/BUSINESS-AUTHORITY"
+      - "SYSTEM/DEVELOPMENT-HUB"
+      - "SYSTEM/GOVERNANCE"
+      - "SYSTEM/MATURITY"
+      - "SYSTEM/PUBLICATION"
+      - "SYSTEM/PUBLICATION-AUTHORITY"
+    supersedes: "WEB-QA-04-D1"
+  -
+    map_ref: "SYSTEM/PUBLICATION-AUTHORITY"
+    event_type: "decision"
+    event_id: "WEB-QA-05-D2"
+    owner_lane: "owner"
+    status: "implemented"
+    summary: "The owner named Ryan Bequette and Nick Fitzpatrick as production incident owners and as disable/rollback operators, either acting independently, which clears the last recorded gate on the approved inactive Ask Carbon publication and separately authorizes public activation of the exact accepted release through a successor ticket. Reconciling against current main also found and repaired a destructive-publication defect: the recorded carbonwebsite deploy directory omitted the live Workbench route and shared homepage assets. Inquiry collection under issue #139 stays disabled and no qualification is claimed."
+    primary_detail: "https://github.com/carbonphysicsai/Carbon/blob/88dafe7fff1effbd6ebb1581a8e11ba36af417c3/.agent/tickets/WEB-QA-05_ask_carbon_inactive_publication.md"
+    affects:
+      - "SYSTEM/BUSINESS-AUTHORITY"
+      - "SYSTEM/DEVELOPMENT-HUB"
+      - "SYSTEM/GOVERNANCE"
+      - "SYSTEM/MATURITY"
+      - "SYSTEM/PUBLICATION"
+      - "SYSTEM/PUBLICATION-AUTHORITY"
     supersedes: null
 event_schema:
   map_ref: "WAVE-B/B-04"

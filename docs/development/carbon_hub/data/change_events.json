@@ -6170,6 +6170,24 @@
         "SYSTEM/PUBLICATION-AUTHORITY"
       ],
       "supersedes": "WEB-QA-04-D1"
+    },
+    {
+      "map_ref": "SYSTEM/PUBLICATION-AUTHORITY",
+      "event_type": "decision",
+      "event_id": "WEB-QA-05-D2",
+      "owner_lane": "owner",
+      "status": "implemented",
+      "summary": "The owner named Ryan Bequette and Nick Fitzpatrick as production incident owners and as disable/rollback operators, either acting independently, which clears the last recorded gate on the approved inactive Ask Carbon publication and separately authorizes public activation of the exact accepted release through a successor ticket. Reconciling against current main also found and repaired a destructive-publication defect: the recorded carbonwebsite deploy directory omitted the live Workbench route and shared homepage assets. Inquiry collection under issue #139 stays disabled and no qualification is claimed.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/88dafe7fff1effbd6ebb1581a8e11ba36af417c3/.agent/tickets/WEB-QA-05_ask_carbon_inactive_publication.md",
+      "affects": [
+        "SYSTEM/BUSINESS-AUTHORITY",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "SYSTEM/GOVERNANCE",
+        "SYSTEM/MATURITY",
+        "SYSTEM/PUBLICATION",
+        "SYSTEM/PUBLICATION-AUTHORITY"
+      ],
+      "supersedes": null
     }
   ]
 }
