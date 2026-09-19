@@ -8194,6 +8194,17 @@ events:
       - "WAVE-C/NET-5R"
       - "WAVE-C/NET-6"
     supersedes: null
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "adjustment"
+    event_id: "C-CORE-17-TELEMETRY-CAPABILITY"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    primary_detail: ".agent/tickets/C-CORE-17_gpu_telemetry_capability.md"
+    affects:
+      - "WAVE-C/C-03"
+    supersedes: null
+    summary: "Accelerator host observation no longer reads an empty compute-process query as proof of an idle device. An unsupported query and a genuinely idle device return identical empty output, so strict admission recorded an empty foreign-process list and device release reported a verified release on evidence that could not carry either conclusion. Capability is now classified UNSUPPORTED, UNESTABLISHED or ESTABLISHED; documented incomplete platforms are rejected outright and every other reading is unestablished by default. ESTABLISHED requires a registered observation contract, and that registry ships empty, so strict admission and verified release are currently unavailable on every host. A grant field or caller argument names a claimed contract but cannot certify it. Existing controller, grant, lease, quarantine, CPU and TPU boundaries are unchanged; no observation contract is proposed and no host profile, hardware acceptance or exception is established."
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"

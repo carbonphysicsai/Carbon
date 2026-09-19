@@ -44,23 +44,32 @@ role, grant and expiry boundary. Introduce no second controller or ledger.
 REPAIR the two observation sites so an observing source whose compute-process
 enumeration is not established cannot pass the strict contract:
 
-- `process_enumeration_established()` reads capability from the observing
-  source's reported driver model, by allowlist, failing closed on anything
-  absent, malformed or unrecognized. Capability is never accepted from an
-  operator document, a grant field or a caller argument.
+- `enumeration_capability()` returns `UNSUPPORTED`, `UNESTABLISHED` or
+  `ESTABLISHED`, never a Boolean. `WDDM` is `UNSUPPORTED` before any contract is
+  consulted, because NVIDIA documents WSL NVML process enumeration as incomplete
+  and reports per-process memory as unavailable under that driver model. Every
+  other reading is `UNESTABLISHED` by default.
+- `ESTABLISHED` requires a contract registered in
+  `ESTABLISHED_OBSERVATION_CONTRACTS`, which ships **empty**. A grant field or
+  caller argument names which contract is claimed; registration in reviewed code
+  is what certifies it, so an operator assertion still cannot.
 - Strict admission refuses instead of recording an empty foreign-process list.
 - Device release stays unreconciled and keeps the existing quarantine behaviour
   instead of reporting a verified whole-device release.
 
-WDDM is excluded because NVIDIA documents WSL NVML process enumeration as
-incomplete and reports per-process memory as unavailable under that driver model.
+A driver-model reading is explicitly **not** capability evidence. An earlier
+revision of this ticket allowlisted `N/A` and `TCC`; that was withdrawn before
+merge because it substituted one unsupported positive assumption for another.
+`N/A` reports only that a Windows-only field does not apply, and is also used
+for unavailable information.
 
 ## Explicitly out of scope
 
-This does not create a working secure WSL host profile and does not add an
-exception around the existing checks. No WSL observation source is established
-by this ticket. Adding trustworthy WSL support later requires a prospective
-contract and its own evidence.
+Because the registry is empty, strict admission and verified device release are
+currently unavailable on **every** host. That is the intended fail-closed state.
+Registering the first observation contract is a separate owner decision needing
+its own evidence about that source's visibility and the controls around it; this
+ticket proposes none and establishes no WSL profile or exception.
 
 Whether an already-admitted engineering run on an unestablished source should
 quarantine on cleanup, rather than never being admitted, is a security-contract

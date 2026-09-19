@@ -212,7 +212,9 @@ def test_image_lock_labels_and_toolkit_are_all_required(host_grant):
 
 
 @pytest.mark.parametrize("change", ["uuid", "display", "driver", "compute"])
-def test_observation_rejects_other_gpu_display_driver_and_foreign_compute(change):
+def test_observation_rejects_other_gpu_display_driver_and_foreign_compute(
+    change, monkeypatch
+):
     row = (
         f"{GPU_PROFILE.device_uuid}, {GPU_PROFILE.device_kind}, 581.95, 6144, Disabled"
     )
@@ -220,9 +222,15 @@ def test_observation_rejects_other_gpu_display_driver_and_foreign_compute(change
     row = row.replace("Disabled", "Enabled") if change == "display" else row
     row = row.replace("581.95", "580.00") if change == "driver" else row
 
+    # Register one synthetic observation contract so every case still fails for
+    # the identity or foreign-process reason it names, rather than stopping at
+    # the capability gate. This asserts nothing about any real source.
+    contract = "synthetic-test-only-observation-contract"
+    monkeypatch.setattr(
+        runtime, "ESTABLISHED_OBSERVATION_CONTRACTS", frozenset({contract})
+    )
+
     def run(command, **kwargs):
-        # Answer the capability query with an established reading so each case
-        # still fails for the identity/foreign-process reason it names.
         if "--query-gpu=driver_model.current" in command:
             return SimpleNamespace(stdout=b"N/A")
         output = (
@@ -234,7 +242,9 @@ def test_observation_rejects_other_gpu_display_driver_and_foreign_compute(change
 
     with pytest.raises(WorkerFailure):
         runtime.inspect_gpu_device(
-            cli=SimpleNamespace(run=run), container_name="fixture"
+            cli=SimpleNamespace(run=run),
+            container_name="fixture",
+            observation_contract=contract,
         )
 
 

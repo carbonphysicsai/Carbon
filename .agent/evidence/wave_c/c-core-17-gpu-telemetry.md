@@ -32,21 +32,26 @@ be attributed to clean main. They ran with `PYTHONPATH` bound to worktree
 files. That tree is preserved unchanged and was not staged, reset, renamed,
 committed or cleaned.
 
-A CPU-only provenance run (`JAX_PLATFORMS=cpu`, no device attached) enumerated
-the 78 `carbon.*` modules actually imported by those scripts and hashed each.
-**None of the three modified files** (`artifact_validator.py`, `controller.py`,
-`protocol.py`) was imported. Execution-time digests of the imported set are
-retained in the private packet (§7). Representative entries:
+**No execution-time module digests exist.** What is retained instead is a
+**later CPU-only import replay** (`JAX_PLATFORMS=cpu`, no device attached) that
+re-imported the same entry points those scripts used, listed the 78 `carbon.*`
+modules that replay loaded, and hashed each from the tree as it stands now.
+Digests from that replay are in the private packet (§7). Representative entries:
 
-| Imported module | sha256 |
+| Module loaded by the replay | sha256 (read after the fact) |
 | --- | --- |
 | `carbon/reconstruction/accelerators.py` | `1207316b91da9c25ef1fec7e061b8fd250e7114af2a9bd550ee8d56438bdb1b8` |
 | `carbon/reconstruction/compiled_updates.py` | `0cadd1ccd0a9ff5978dacaa31f760834992832e5e03894b49a684ec45c01c6b9` |
 | `carbon/reconstruction/_vendor/carbon_jax_lab/training.py` | `d99dd51ec3333378dbd5a704617818fededb49b6f55f01dc40171ffc71f79532` |
 | `carbon/reconstruction/worker/backend_probe.py` | `7b3d02b725395c4d40b895f0103817341b7f1ea580a227890f5949054c8d4dbe` |
 
-Those digests are captured post hoc from a tree verified unchanged since
-execution, not captured at execution time. Recorded as such; not upgraded.
+Two limits apply, and neither is upgraded anywhere in this packet. The digests
+were read after the fact from a tree verified unchanged by `git status`, not
+captured while the original runs executed. And the replay shows what **the
+replay** imported on CPU; it is not a record of every module the original GPU
+runs loaded, since no such record was kept. In particular, the statement that
+the three modified files were not imported holds **for the replay**, and is
+consistent with — but does not prove — their absence from the original runs.
 
 ## 3. Corrections to the 2026-09-19 report
 
@@ -115,13 +120,33 @@ observation above is the evidence relied on, and the two are kept distinct.
 
 ### Repair
 
-`driver_model.current` is observable from inside the bounded container — the
-exact vantage point the controller already uses — and reads `WDDM` here. The
-repair adds `process_enumeration_established()`, an allowlist over that reading
-(`N/A` for Linux, `TCC` for the Windows compute driver model), failing closed on
-anything absent, malformed or unrecognized. Capability is read from the
-observing source, never asserted by an operator document, grant field or caller
-argument.
+#### A rejected first attempt, recorded
+
+The first revision of this repair allowlisted the `driver_model.current` reading
+(`N/A`, `TCC`) as establishing enumeration capability. **That was wrong and was
+withdrawn before merge.** It replaced one unsupported positive assumption — that
+an empty list means an idle device — with another: that a driver-model string
+certifies visibility. It does not. `N/A` reports only that a Windows-only field
+does not apply to the observing platform, and NVIDIA also uses `N/A` for
+information that is unavailable; `TCC` names a driver model, not a guarantee
+that every process holding the device is visible from the controller's
+observation point. The replacement below carries no such inference.
+
+#### The delivered rule
+
+`enumeration_capability()` returns one of three outcomes, never a Boolean:
+
+| Outcome | Meaning |
+| --- | --- |
+| `UNSUPPORTED` | The observing platform is documented as unable to enumerate. `WDDM` is rejected here, before any contract is consulted, and no contract can override it. |
+| `UNESTABLISHED` | Nothing shows this source enumerates every relevant process. This is the default, including for `N/A`, `TCC`, absent, malformed and unrecognized readings. |
+| `ESTABLISHED` | A registered observation contract covers this source. |
+
+Only `ESTABLISHED` may support an exclusivity or device-release conclusion.
+`ESTABLISHED_OBSERVATION_CONTRACTS` ships **empty**, and a grant field or caller
+argument only names which contract is claimed — registration in that set, which
+is reviewed code, is what certifies it. An operator assertion still cannot
+certify capability.
 
 - `inspect_gpu_device()` refuses instead of recording `other_compute_processes: []`.
 - `verify_device_release()` stays unreconciled and preserves the existing
@@ -134,16 +159,21 @@ device reset was performed.
 
 ### Remaining limitation
 
-This creates no working secure WSL host profile and adds no exception. No WSL
-observation source is established. On this host the strict contract now refuses
-rather than silently passing, which is the intended fail-closed outcome, not a
-capability. Trustworthy WSL support requires a prospective contract and its own
-evidence.
+Because the registry is empty, **strict admission and verified device release
+are currently unavailable on every host**, not only this one. That is the
+intended fail-closed state, not a capability and not a regression to work
+around: no source has yet been shown to enumerate completely, so none may
+certify exclusivity.
+
+Registering the first contract is a separate owner decision requiring its own
+evidence about that source's visibility and the controls around it. This packet
+does not propose one, and nothing here establishes a working secure WSL profile.
 
 **Returned for owner decision:** whether an engineering-grant run on an
 unestablished source should be admitted at all (current repair: no) or admitted
 and quarantined at cleanup. That is a security-contract definition, so it was
-not decided here.
+not decided here. Note that quarantine can only prevent reuse after an uncertain
+cleanup; it cannot establish that the required conditions held before a run.
 
 ## 6. GPU worker image
 
