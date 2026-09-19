@@ -173,4 +173,4 @@ settlement, weight, or emission claim.
 - [WEB-QA-05: reconciled inactive Ask Carbon publication](https://github.com/carbonphysicsai/Carbon/blob/88dafe7fff1effbd6ebb1581a8e11ba36af417c3/.agent/tickets/WEB-QA-05_ask_carbon_inactive_publication.md)
 
 Authority snapshot: `88dafe7f` on `main`,
-captured 2026-09-19T16:05:44Z.
+captured 2026-09-19T16:21:35Z.

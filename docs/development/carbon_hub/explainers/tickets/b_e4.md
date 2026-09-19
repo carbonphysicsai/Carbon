@@ -41,7 +41,7 @@ B-E4 is specified, implemented, and tested only for bounded fixture semantics, n
 ## Repository detail
 
 - [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/88dafe7fff1effbd6ebb1581a8e11ba36af417c3/.agent/tickets/B-E4_agent_gauntlet.md)
-- [Wave B controlling board](https://github.com/carbonphysicsai/Carbon/blob/88dafe7fff1effbd6ebb1581a8e11ba36af417c3/.agent/WAVE_B.md)
+- [Wave B controlling board](https://github.com/carbonphysicsai/Carbon/blob/4f84329cb1f91b89b3b11547d938867fd846417d/.agent/WAVE_B.md)
 - [B-E4 implementation plan](https://github.com/carbonphysicsai/Carbon/blob/88dafe7fff1effbd6ebb1581a8e11ba36af417c3/.agent/plans/B-E4_agent_gauntlet.md)
 - [B-E4 stable evidence](https://github.com/carbonphysicsai/Carbon/blob/88dafe7fff1effbd6ebb1581a8e11ba36af417c3/.agent/evidence/wave_b/b-e4.md)
 - [B-E4 successor validation regressions](https://github.com/carbonphysicsai/Carbon/blob/88dafe7fff1effbd6ebb1581a8e11ba36af417c3/tests/cpu/test_be4_successor_validation_repair.py)
@@ -49,7 +49,7 @@ B-E4 is specified, implemented, and tested only for bounded fixture semantics, n
 - [Historical v2 owner decision pack](https://github.com/carbonphysicsai/Carbon/blob/88dafe7fff1effbd6ebb1581a8e11ba36af417c3/docs/context/B_E4_PREREGISTRATION_OWNER_DECISION_PACK_2026-09-08.md)
 - [v3 STILL_BLOCKED execution-readiness proposal](https://github.com/carbonphysicsai/Carbon/blob/88dafe7fff1effbd6ebb1581a8e11ba36af417c3/.agent/preregistrations/B-E4_recommended_design_v3.json)
 - [v4 STILL_BLOCKED post-calibration proposal](https://github.com/carbonphysicsai/Carbon/blob/88dafe7fff1effbd6ebb1581a8e11ba36af417c3/.agent/preregistrations/B-E4_recommended_design_v4.json)
-- [Historical owner-unapproved autonomous-agent pilot-v1 proposal](https://github.com/carbonphysicsai/Carbon/blob/88dafe7fff1effbd6ebb1581a8e11ba36af417c3/.agent/preregistrations/B-E4_autonomous_agent_pilot_v1.json)
+- [Historical owner-unapproved autonomous-agent pilot-v1 proposal](https://github.com/carbonphysicsai/Carbon/blob/4f84329cb1f91b89b3b11547d938867fd846417d/.agent/preregistrations/B-E4_autonomous_agent_pilot_v1.json)
 - [Historical pilot-v2 design underlying the DEVELOPMENT envelope](https://github.com/carbonphysicsai/Carbon/blob/88dafe7fff1effbd6ebb1581a8e11ba36af417c3/.agent/preregistrations/B-E4_autonomous_agent_pilot_v2.json)
 - [Current corrected DEVELOPMENT execution request v3](https://github.com/carbonphysicsai/Carbon/blob/88dafe7fff1effbd6ebb1581a8e11ba36af417c3/.agent/preregistrations/B-E4_development_execution_request_v3.json)
 - [Current corrected development-only owner decisions v2](https://github.com/carbonphysicsai/Carbon/blob/88dafe7fff1effbd6ebb1581a8e11ba36af417c3/.agent/preregistrations/B-E4_development_owner_decisions_v2.json)
@@ -61,7 +61,7 @@ B-E4 is specified, implemented, and tested only for bounded fixture semantics, n
 - [Execution-readiness owner decision pack](https://github.com/carbonphysicsai/Carbon/blob/88dafe7fff1effbd6ebb1581a8e11ba36af417c3/docs/context/B_E4_EXECUTION_READINESS_OWNER_DECISION_PACK_2026-09-08.md)
 - [Non-qualifying preflight calibration manifest](https://github.com/carbonphysicsai/Carbon/blob/88dafe7fff1effbd6ebb1581a8e11ba36af417c3/.agent/evidence/wave_b/b-e4-preflight-calibration-v1.json)
 - [Frozen full-lifecycle calibration manifest](https://github.com/carbonphysicsai/Carbon/blob/88dafe7fff1effbd6ebb1581a8e11ba36af417c3/.agent/evidence/wave_b/b-e4-full-lifecycle-calibration-v1.json)
-- [Full-lifecycle calibration generator](https://github.com/carbonphysicsai/Carbon/blob/88dafe7fff1effbd6ebb1581a8e11ba36af417c3/scripts/dev/generate_be4_full_lifecycle_calibration.py)
+- [Full-lifecycle calibration generator](https://github.com/carbonphysicsai/Carbon/blob/4f84329cb1f91b89b3b11547d938867fd846417d/scripts/dev/generate_be4_full_lifecycle_calibration.py)
 - [Full-lifecycle calibration regressions](https://github.com/carbonphysicsai/Carbon/blob/88dafe7fff1effbd6ebb1581a8e11ba36af417c3/tests/cpu/test_be4_full_lifecycle_calibration.py)
 - [Execution-readiness integration](https://github.com/carbonphysicsai/Carbon/blob/88dafe7fff1effbd6ebb1581a8e11ba36af417c3/carbon/gauntlet/execution.py)
 - [Complete non-qualifying lifecycle](https://github.com/carbonphysicsai/Carbon/blob/88dafe7fff1effbd6ebb1581a8e11ba36af417c3/carbon/gauntlet/lifecycle.py)
