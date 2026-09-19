@@ -1,6 +1,15 @@
-# GOAL-WORKBENCH-09 / GOAL-WORKBENCH-08B / GOAL-WORKBENCH-08 / GOAL-WORKBENCH-07A / GOAL-WORKBENCH-07 / GOAL-WORKBENCH-06 / GOAL-WORKBENCH-05A / GOAL-WORKBENCH-05 / GOAL-WORKBENCH-04 / GOAL-WORKBENCH-03 / GOAL-WORKBENCH-02 / EXAM-PROTECT-WORKBENCH-01 requirement-to-test map
+# GOAL-WORKBENCH-10 / GOAL-WORKBENCH-09 / GOAL-WORKBENCH-08B / GOAL-WORKBENCH-08 / GOAL-WORKBENCH-07A / GOAL-WORKBENCH-07 / GOAL-WORKBENCH-06 / GOAL-WORKBENCH-05A / GOAL-WORKBENCH-05 / GOAL-WORKBENCH-04 / GOAL-WORKBENCH-03 / GOAL-WORKBENCH-02 / EXAM-PROTECT-WORKBENCH-01 requirement-to-test map
 
 This map describes focused application acceptance. It does not relabel the CPES study's historical 14/52/208 runs as workbench tests.
+
+| GW10 requirement | Implementation / evidence | Automated coverage | Authority limitation |
+|---|---|---|---|
+| Reuse the accepted core adapter | Existing `CarbonScientificStudies.check`; v2 team assessment row | pure invocation and generated-browser control | No duplicate runner, scheduler, ledger, or evaluator |
+| Bind the observation exactly | adapter profile, design binding, deterministic check ID and scope digest | repeat identity, tamper rejection, import revalidation | Digest is local association, not scientific truth or live identity |
+| Preserve cumulative state | retained result plus `STALE` relation | material edit, editorial control, child revision, save/reopen | Rerun does not resolve scientific or rights review |
+| Preserve authority separation | `WORKBENCH_DERIVED`, `NOT_QUALIFIED`, effect `NONE` | pure and browser export assertions | No solver execution, reference qualification, rights, score, or launch |
+| Migrate v0.9 without promotion | additive v0.10 migration receipt | populated review and placeholder migration | Placeholder never becomes returned evidence |
+| Keep open core work visible | operating envelope remains pending; reference action uses separate panel | dependency-state assertions | Issue #209 and merged PR #226 scope is not absorbed |
 
 | GW09 private-team requirement | UI / data / service | Automated evidence | Remaining limitation |
 |---|---|---|---|
@@ -13,8 +22,8 @@ This map describes focused application acceptance. It does not relabel the CPES 
 | Named-user authorization and deletion | least-privilege principal roles; tombstone | unauthorized read/export/delete and lifecycle tests | Production staff/retention decisions pending |
 | Notification failure cannot lose inquiry | transactional outbox | failure then recovery test | No person-directed notification sent |
 | Four complete synthetic workflows | frozen GW09 scenario records | `test_team_journeys.cjs` | Not customer demand or usability evidence |
-| Core task integration does not duplicate runtime | three issue #209 dependency rows | exact-binding/availability validation; browser display | All rows remain `CORE_INTERFACE_PENDING` |
-| Generated desktop/narrow artifact stays offline | v0.9 standalone HTML | inherited 29 checks + focused 13 checks | Safari/WebKit/VoiceOver unexecuted |
+| Core task integration does not duplicate runtime | three issue #209 dependency rows | exact-binding/availability validation; browser display | v0.9 kept all rows pending; v0.10 changes only the accepted bounded adapter |
+| Generated desktop/narrow artifact stays offline | v0.10 standalone HTML | inherited and focused Chrome journeys | Safari/WebKit/VoiceOver unexecuted |
 | Authority remains closed | UNASSESSED route; existing decisions and handoff v1 | inherited routing/state/source-assessment/CPES suites | No science, rights, execution, score or launch |
 
 | GW08B guided-evaluation requirement | Implementation / evidence | Automated coverage | Authority limitation |

@@ -387,7 +387,7 @@ function response(request) {
   );
   await page.locator("#goal-workspace-file").setInputFiles(workspacePath);
   await page.waitForFunction(() =>
-    document.querySelector("#toast").textContent.includes("Imported v0.8"),
+    document.querySelector("#toast").textContent.includes("Imported v0.10"),
   );
   check(
     "reimport resumes without retyping scope responses or malicious text",
@@ -413,14 +413,14 @@ function response(request) {
       () => document.activeElement && document.activeElement !== document.body,
     ),
   );
-  check(
-    "interactive job fields retain labels",
-    await page
-      .locator("#jobs-view input,#jobs-view select,#jobs-view textarea")
-      .evaluateAll((elements) =>
-        elements.every((element) => element.labels && element.labels.length),
-      ),
-  );
+  const unlabeledFields = await page
+    .locator("#jobs-view input:not([hidden]),#jobs-view select,#jobs-view textarea")
+    .evaluateAll((elements) =>
+      elements
+        .filter((element) => !element.labels || !element.labels.length)
+        .map((element) => element.id || element.getAttribute("data-assessment") || element.getAttribute("data-scope") || element.tagName),
+    );
+  check("interactive job fields retain labels: " + unlabeledFields.join(", "), unlabeledFields.length === 0);
   await page.route(/^https?:/, (route) => route.abort());
   await page.locator('[data-tab="atlas"]').click();
   await page.locator('[data-tab="jobs"]').click();

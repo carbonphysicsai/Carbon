@@ -1,4 +1,18 @@
-# Owner report — GOAL-WORKBENCH-09 / GOAL-WORKBENCH-08B / GOAL-WORKBENCH-08 / GOAL-WORKBENCH-07A / GOAL-WORKBENCH-07 / GOAL-WORKBENCH-06 / GOAL-WORKBENCH-05A / GOAL-WORKBENCH-05 / GOAL-WORKBENCH-04 / GOAL-WORKBENCH-03 / GOAL-WORKBENCH-02 / EXAM-PROTECT-WORKBENCH-01
+# Owner report — GOAL-WORKBENCH-10 / GOAL-WORKBENCH-09 / GOAL-WORKBENCH-08B / GOAL-WORKBENCH-08 / GOAL-WORKBENCH-07A / GOAL-WORKBENCH-07 / GOAL-WORKBENCH-06 / GOAL-WORKBENCH-05A / GOAL-WORKBENCH-05 / GOAL-WORKBENCH-04 / GOAL-WORKBENCH-03 / GOAL-WORKBENCH-02 / EXAM-PROTECT-WORKBENCH-01
+
+## v0.10 accepted structural physical-definition check
+
+The existing team assessment now invokes C-CORE-04's deterministic structural
+check from its `PHYSICAL_DEFINITION_CHECK` row. The result is bound to the
+exact design revision and scope digest, retained across save/reopen, made stale
+by relevant scope changes, and excluded from the client brief. Its provenance
+is Workbench-derived, its qualification is `NOT_QUALIFIED`, and its authority
+effect is `NONE`. Offline use runs no Julia worker or reference calculation.
+
+The broader operating-envelope action remains pending under issue #209. The
+separate public-source reference action remains subject to the accepted private
+service, installed draft, rights, and grant. See
+`GOAL_WORKBENCH_10_PHYSICAL_DEFINITION_REPORT.md`.
 
 ## v0.9 private team intake and review
 

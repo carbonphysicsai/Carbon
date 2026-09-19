@@ -1,4 +1,23 @@
-# Carbon Goal-to-Challenge Workbench v0.9
+# Carbon Goal-to-Challenge Workbench v0.10
+
+GOAL-WORKBENCH-10 replaces the v0.9 placeholder for
+`PHYSICAL_DEFINITION_CHECK` with the accepted C-CORE-04 local structural
+adapter. A reviewer can run the check from the existing scientific-task row;
+the Workbench records a deterministic check ID, exact design revision, scope
+digest, issues, and an explicit `NOT_QUALIFIED` / authority-effect `NONE`
+result. No solver, Julia worker, grant, GPU, TPU, reference calculation, or
+scientific acceptance is implied.
+
+Material edits to the bound physical or reference scope make the retained
+observation `STALE`; commercial/editorial edits do not. A child revision starts
+with a fresh available-not-requested row, while the sealed parent keeps its
+history. Workspace import recomputes the observation through the same accepted
+C-CORE-04 check and rejects a tampered exact-scope projection. v0.9 workspaces
+migrate without promoting historical placeholders. The separate public-source
+reference-feasibility panel remains governed by its private service and grant;
+the operating-envelope dependency is still pending under issue #209.
+
+See `docs/GOAL_WORKBENCH_10_PHYSICAL_DEFINITION_REPORT.md`.
 
 GOAL-WORKBENCH-09 adds the first private-team intake and review workflow to
 the maintained application. The Owner Console now includes an intake queue
@@ -32,10 +51,9 @@ CARBON_TEAM_INTAKE_STORE=/private/path/intake-store.json \
 node tools/team_intake_server.cjs
 ```
 
-The three scientific-task rows are dependency projections for issue #209's
-shared task/capability service. They remain `CORE_INTERFACE_PENDING`; this
-release does not claim Julia, GPU, TPU, scheduler, checkpoint, grant,
-accounting, or task execution. See
+The three scientific-task rows began as dependency projections for issue
+#209's shared task/capability service. v0.9 did not claim Julia, GPU, TPU,
+scheduler, checkpoint, grant, accounting, or task execution. See
 `docs/GOAL_WORKBENCH_09_TEAM_REVIEW_REPORT.md`.
 
 GOAL-WORKBENCH-08 adds a browser-local intake-to-job bridge without adding a
@@ -87,7 +105,7 @@ The earlier GOAL-WORKBENCH-07 implementation report, candidate packet, Engineeri
 
 GOAL-WORKBENCH-06A repaired the historical external decision-delivery record and retained a byte-verified receipt under `source_assessment/delivery/v1/`. Its actual posting actor and unacknowledged status remain history; the later Ryan direction supersedes only its Harsh-only interface prerequisite. See `docs/GOAL_WORKBENCH_06A_DELIVERY_INTEGRITY_REPORT.md`.
 
-`carbon.goal-workbench.workspace.v0.9` migrates v0.1–v0.8 records additively. Stored receipts and display projections are revalidated against the installed snapshot on import; a workspace cannot carry its own trust root. Historical Workbench-06 envelopes remain detached and non-authoritative. Earlier workspaces receive empty team-review and design-assessment records; migration fabricates no reviewer, client statement, route, consent, owner, source evidence, task result, feasibility conclusion, or approval.
+`carbon.goal-workbench.workspace.v0.10` migrates v0.1–v0.9 records additively. Stored receipts and display projections are revalidated against the installed snapshot on import; a workspace cannot carry its own trust root. Historical Workbench-06 envelopes remain detached and non-authoritative. Earlier workspaces receive empty team-review and design-assessment records; migration fabricates no reviewer, client statement, route, consent, owner, source evidence, task result, feasibility conclusion, or approval. A v0.9 scientific-task placeholder is not converted into a returned C-CORE-04 observation.
 
 GOAL-WORKBENCH-06 previously added the detached, versioned source-assessment contract and executable conformance package. Its v1 response and preview remain test-authored and non-authoritative. The detached command remains `node tools/source_assessment_conformance.cjs --profile source_assessment/v1/fixtures/profile.json --request source_assessment/v1/fixtures/request.json --response source_assessment/v1/fixtures/response.json --output-dir /path/to/new/output-directory`; the output directory must not already exist.
 

@@ -41,7 +41,7 @@ async function downloaded(page,button,tmp,name){const promise=page.waitForEvent(
  await page.locator('#evidence-file').setInputFiles(claimPath);await page.waitForFunction(()=>document.querySelector('#toast').textContent.includes('unreviewed'));
  check('self-authored hash-matching claim cannot change A baseline',await page.locator('#library-view').innerText().then(t=>t.includes('RETAIN A')));
  check('later user version coexists visibly without becoming qualified',await page.locator('[data-imported-study]').count()===1&&await page.locator('#library-view').innerText().then(t=>t.includes('Qualified Carbon evidence: none')));
- await page.locator('[data-imported-study]').click();check('user version can be deliberately associated without selection',await page.locator('#toast').innerText().then(t=>t.includes('calculations and baseline are unchanged')));
+ await page.locator('[data-imported-study]').click();await page.waitForFunction(()=>document.querySelector('#toast').textContent.includes('calculations and baseline are unchanged'));check('user version can be deliberately associated without selection',true);
  await page.locator('#evidence-file').setInputFiles(claimPath);await page.waitForFunction(()=>document.querySelector('#toast').textContent.includes('deduplicated'));
  check('exact duplicate evidence claim deduplicates',await page.locator('#toast').innerText().then(t=>t.includes('deduplicated')));
  fs.writeFileSync(claimPath,JSON.stringify({...claim,authority:'APPROVED'}));await page.locator('#evidence-file').setInputFiles(claimPath);await page.waitForFunction(()=>document.querySelector('#toast').textContent.includes('rejected'));
