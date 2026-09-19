@@ -14659,3 +14659,69 @@ does not address this observed failure. Context/analysis changes are deferred un
 their value is evidenced. Reversible by selecting v1 for new campaigns; existing
 v2 plans remain immutable. Superseding changes require new policy binding and
 fresh campaign. No human-reserved scientific value is selected here.
+
+## 2026-09-18 — WEB-QA-05-D1: inactive Ask Carbon publication from reconciled owner source
+
+**Authority and scope.** The owner approved
+`ask-carbon-public-release-2026-09-18.2` for inactive production publication
+against the reconciled uploaded website source. The approved scope is public
+Carbon Q&A, guided pilot drafting, form-only drafting and explicit local
+download using `gpt-5.6-luna:low:v1`, the approved visitor notice and the
+existing shared ceilings. Inquiry collection remains disabled under issue
+#139. Public enablement is a separate recorded step; no scientific, testnet,
+private-data, DNS, paid-plan or qualification authority is created.
+
+**Source and integration decision.** The owner-supplied ZIP contains one safe
+regular `index.html`. Its only difference from the live production bytes is the
+already-deployed Workbench navigation change: one responsive CSS rule and two
+links. Keep the uploaded file as source authority, deterministically reapply
+that exact hash-pinned delta, require the result to equal the observed live
+homepage hash, and then inject the existing dependency-free Ask Carbon assets.
+Do not substitute an unreconciled download or replace the homepage. The
+production-gated bundle omits `staging-preview`; the prior candidate hash is
+retained explicitly as the staging-preview hash rather than mislabeled as the
+production artifact.
+
+**Operational boundary.** Production mutation still requires a named incident
+owner and named disable/rollback operator because current operations authority
+forbids inferring either identity from account access. Until both are recorded,
+the affected deployment remains fail closed while repository preparation and
+testing continue. The smallest reversal restores the recorded prior
+`carbonwebsite` version and removes only the two Ask Carbon routes while
+preserving Durable Object financial history.
+
+## 2026-09-19 — WEB-QA-05-D2: named Ask Carbon production operators and authorized public activation
+
+**Authority.** The repository owner supplied the two operational identities
+that WEB-QA-05-D1 recorded as the remaining production-mutation gate, and
+separately authorized public activation of the accepted release after its
+inactive deployment and production checks succeed.
+
+**Named production incident owners.** Ryan Bequette and Nick Fitzpatrick.
+
+**Authorized disable and rollback operators.** Ryan Bequette and Nick
+Fitzpatrick. Either named operator may independently disable or roll back Ask
+Carbon. Joint action is not required and must not be represented as required.
+
+**Effect.** The `required_before_production_mutation` gate in
+`PUBLIC_RELEASE_CANDIDATE.json` is satisfied. The approved inactive
+publication may proceed, and a separate bounded successor ticket owns public
+activation and live verification. This decision names operators and authorizes
+activation of the exact accepted release; it does not widen the release scope.
+
+**Scope preserved unchanged.** Public Carbon Q&A, guided pilot drafting,
+form-only drafting without AI, and explicit local download. Issue #139 inquiry
+submission and collection remain disabled. No customer or private-data intake,
+Workbench live intake, scientific execution, miner execution, protected
+evaluation access, qualification authority, arbitrary tools or URLs, new DNS,
+paid-plan change, new provider budget authority, model substitution, automatic
+fallback, or increased ceiling is authorized. `gpt-5.6-luna:low:v1` and the
+existing shared USD 50 UTC-month authority with its nested USD 5 evaluation
+scope remain controlling.
+
+**Maturity boundary.** Naming operators and authorizing a public test creates
+no security, scientific, production or commercial qualification.
+
+**Reversibility.** The owner may withdraw either identity or the activation
+authorization prospectively; retained evidence and recorded historical state
+are not rewritten.

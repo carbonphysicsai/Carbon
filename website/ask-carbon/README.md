@@ -140,6 +140,22 @@ It refuses a homepage whose SHA differs from the inspected source unless an
 operator explicitly uses `--allow-changed-source` after reviewing the change.
 Omitting `--staging-preview` preserves the production release gate.
 
+The 18 September owner upload predates the already-deployed Workbench
+navigation links. Reproduce the reviewed production input and inactive bundle
+directly from its extracted `index.html` with:
+
+```sh
+node website/ask-carbon/tools/integrate-static.mjs \
+  --input /path/to/extracted/index.html \
+  --output /tmp/ask-carbon-production/index.html \
+  --asset-prefix ./ask-carbon \
+  --reconcile-owner-upload
+```
+
+That flag accepts only the pinned owner-upload SHA, applies only the exact
+Workbench navigation delta, and then requires the reconciled bytes to equal the
+reviewed live-source SHA before integration. It does not enable Ask Carbon.
+
 ## Provider configurations
 
 The candidate registry pins exact application configurations rather than
