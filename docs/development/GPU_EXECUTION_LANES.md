@@ -74,8 +74,36 @@ correct, already implemented, and must not be routed around.
 The only engineering requirement is **to stop blocking it**: a validator may run
 GPU reconstruction and have the result report honestly as unqualified.
 
-This document **takes no position on validator exclusivity.** Whether device
-contention perturbs numerical outcomes is empirical and MQ-008 owns it.
+### Qualification attaches to a backend profile, not to a provider
+
+A validator may run wherever they choose. Carbon is provider agnostic on **both**
+sides, and qualification is what constrains validator compute - not where the
+machine is rented or who owns it. Any provider offering a qualified backend
+profile is usable; no provider is prescribed and no host ownership model is
+required.
+
+Exclusivity is a separate question. Whether device contention perturbs numerical
+outcomes is empirical, MQ-008 owns it, and a finding there would constrain the
+run conditions of a profile - never the choice of provider.
+
+### The prescribed exam environment must be defined and disclosed
+
+Miner hardware is unconstrained, because a miner submits a design rather than a
+result. The corollary is an obligation on Carbon, and it is a **disclosure**
+requirement, not an execution constraint:
+
+> A miner must be able to see what the validator will use for the exam.
+
+Two deliverables, neither of them yet built:
+
+1. **Define** the prescribed exam environment - which backend profile, pinned
+   versions, precision and allocator policy, and resource envelope a validator
+   runs reconstruction under.
+2. **Publish** it where a miner can consult it before submitting.
+
+Neither depends on MQ-008. Defining and disclosing the environment is
+independent of qualifying it, and disclosure constrains nothing about the
+hardware a miner used to reach their design.
 
 ---
 
@@ -177,7 +205,8 @@ spending, because attempts do not come back.
 | Decision | Owner |
 | --- | --- |
 | Backend qualification under R0/R1/R2, and any tolerance | SCI + SRE, via MQ-008 at G4 |
-| Whether validator hosts must be dedicated | Owner + SRE |
+| Whether device contention perturbs numerics, and any run-condition constraint | MQ-008, empirically; never a provider restriction |
+| The contents of the prescribed exam environment | Owner + SRE; disclosure is required either way |
 | Whether a telemetry observation source is ever established | Owner; the registry stays empty until then |
 | Where paid provider spend sits - launchpad product vs this programme | Owner |
 | Miner lane admission requirements | this document |
