@@ -137,6 +137,8 @@ Implemented and tested today in
 | --- | --- |
 | Concurrency | one diagnostic at a time; the existing single shared host slot is not duplicated |
 | Deadline | enforced independently of the workload, per process and for the whole task |
+| Batch time | a fixed span from first admission, including the gaps between attempts; neither a pause nor a restart rewinds it |
+| Batch output | summed across every attempt, at the reserved worst case unless the run's own output was observed |
 | Interruption | cancellation observed at existing chunk/step boundaries; no destructive host action |
 | Failure accounting | a failed or unknown dispatch retains its reservation; no refund is fabricated |
 | Crash / restart | a restart may not create a second slot or reset the record of consumed work |
@@ -177,6 +179,7 @@ a failure, not a result.
 | Max training steps | 32 | matches the registered small recipe shape |
 | Per-process wall deadline | 600 s | existing scope `productive_seconds` |
 | Whole-task wall deadline | 1800 s | conservative DEVELOPMENT proposal covering startup, the run and cleanup |
+| Whole-batch wall window | 3600 s from first admission | envelope value; idle time between attempts counts |
 | Cleanup reserve | 120 s | existing scope `validation_cleanup_seconds` |
 | Max output bytes | 64 MiB | conservative DEVELOPMENT proposal |
 | Host RAM ceiling | worker container limited well below the 15 GiB visible to WSL | conservative DEVELOPMENT proposal |

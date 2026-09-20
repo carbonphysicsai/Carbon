@@ -40,6 +40,11 @@ def _limits(**overrides):
     return values
 
 
+# The controls a run is actually executed under, which is what the batch is
+# charged against. Resolved once, the same way the controller resolves them.
+CONTROLS = dev.effective_controls(_limits())
+
+
 DEVICE_UUID = accelerator_host.HOSTS[accelerator_host.DEFAULT_SHAPE]["device_uuid"]
 
 
@@ -290,7 +295,7 @@ def test_incoherent_limits_are_refused(approval, limits):
 def test_reserve_consumes_budget_durably(host):
     journal = dev.DevelopmentAttemptJournal(host)
     assert journal.consumed() == 0
-    journal.reserve(nonce=NONCE, plan_digest=PLAN, budget=4, now=1.0)
+    journal.reserve(nonce=NONCE, plan_digest=PLAN, budget=4, controls=CONTROLS, now=1.0)
     assert journal.consumed() == 1
     # A brand new journal object sees the same durable state.
     assert dev.DevelopmentAttemptJournal(host).consumed() == 1
@@ -298,10 +303,12 @@ def test_reserve_consumes_budget_durably(host):
 
 def test_replayed_nonce_cannot_consume_a_second_attempt(host):
     journal = dev.DevelopmentAttemptJournal(host)
-    journal.reserve(nonce=NONCE, plan_digest=PLAN, budget=4, now=1.0)
+    journal.reserve(nonce=NONCE, plan_digest=PLAN, budget=4, controls=CONTROLS, now=1.0)
     journal.settle(nonce=NONCE, state=dev.ATTEMPT_COMPLETED)
     with pytest.raises(WorkerFailure) as error:
-        journal.reserve(nonce=NONCE, plan_digest=PLAN, budget=4, now=2.0)
+        journal.reserve(
+            nonce=NONCE, plan_digest=PLAN, budget=4, controls=CONTROLS, now=2.0
+        )
     assert error.value.code is WorkerCode.CONFLICT
     assert journal.consumed() == 1
 
@@ -310,17 +317,21 @@ def test_budget_is_enforced_including_failed_attempts(host):
     journal = dev.DevelopmentAttemptJournal(host)
     for index in range(4):
         nonce = f"{index:032x}"
-        journal.reserve(nonce=nonce, plan_digest=PLAN, budget=4, now=float(index))
+        journal.reserve(
+            nonce=nonce, plan_digest=PLAN, budget=4, controls=CONTROLS, now=float(index)
+        )
         journal.settle(nonce=nonce, state=dev.ATTEMPT_COMPLETED)
     assert journal.consumed() == 4
     with pytest.raises(WorkerFailure):
-        journal.reserve(nonce=OTHER_NONCE, plan_digest=PLAN, budget=4, now=9.0)
+        journal.reserve(
+            nonce=OTHER_NONCE, plan_digest=PLAN, budget=4, controls=CONTROLS, now=9.0
+        )
 
 
 def test_a_new_directory_does_not_reset_the_budget(host):
     """A different output path must not create a second allowance."""
     journal = dev.DevelopmentAttemptJournal(host)
-    journal.reserve(nonce=NONCE, plan_digest=PLAN, budget=4, now=1.0)
+    journal.reserve(nonce=NONCE, plan_digest=PLAN, budget=4, controls=CONTROLS, now=1.0)
     journal.settle(nonce=NONCE, state=dev.ATTEMPT_COMPLETED)
     assert dev.DevelopmentAttemptJournal(host).consumed() == 1
 
@@ -328,33 +339,39 @@ def test_a_new_directory_does_not_reset_the_budget(host):
 def test_unsettled_attempt_blocks_the_next_launch(host):
     """A crash between reserve and settle leaves the slot unreconciled."""
     journal = dev.DevelopmentAttemptJournal(host)
-    journal.reserve(nonce=NONCE, plan_digest=PLAN, budget=4, now=1.0)
+    journal.reserve(nonce=NONCE, plan_digest=PLAN, budget=4, controls=CONTROLS, now=1.0)
     assert journal.blocking_attempt() is not None
     with pytest.raises(WorkerFailure) as error:
-        journal.reserve(nonce=OTHER_NONCE, plan_digest=PLAN, budget=4, now=2.0)
+        journal.reserve(
+            nonce=OTHER_NONCE, plan_digest=PLAN, budget=4, controls=CONTROLS, now=2.0
+        )
     assert error.value.code is WorkerCode.CONFLICT
 
 
 def test_ambiguous_attempt_keeps_blocking(host):
     journal = dev.DevelopmentAttemptJournal(host)
-    journal.reserve(nonce=NONCE, plan_digest=PLAN, budget=4, now=1.0)
+    journal.reserve(nonce=NONCE, plan_digest=PLAN, budget=4, controls=CONTROLS, now=1.0)
     journal.settle(nonce=NONCE, state=dev.ATTEMPT_AMBIGUOUS)
     assert journal.blocking_attempt() is not None
     with pytest.raises(WorkerFailure):
-        journal.reserve(nonce=OTHER_NONCE, plan_digest=PLAN, budget=4, now=2.0)
+        journal.reserve(
+            nonce=OTHER_NONCE, plan_digest=PLAN, budget=4, controls=CONTROLS, now=2.0
+        )
 
 
 def test_completed_attempt_does_not_block(host):
     journal = dev.DevelopmentAttemptJournal(host)
-    journal.reserve(nonce=NONCE, plan_digest=PLAN, budget=4, now=1.0)
+    journal.reserve(nonce=NONCE, plan_digest=PLAN, budget=4, controls=CONTROLS, now=1.0)
     journal.settle(nonce=NONCE, state=dev.ATTEMPT_COMPLETED)
     assert journal.blocking_attempt() is None
-    journal.reserve(nonce=OTHER_NONCE, plan_digest=PLAN, budget=4, now=2.0)
+    journal.reserve(
+        nonce=OTHER_NONCE, plan_digest=PLAN, budget=4, controls=CONTROLS, now=2.0
+    )
 
 
 def test_settle_cannot_invent_a_refund_or_rewrite_a_terminal_state(host):
     journal = dev.DevelopmentAttemptJournal(host)
-    journal.reserve(nonce=NONCE, plan_digest=PLAN, budget=4, now=1.0)
+    journal.reserve(nonce=NONCE, plan_digest=PLAN, budget=4, controls=CONTROLS, now=1.0)
     journal.settle(nonce=NONCE, state=dev.ATTEMPT_AMBIGUOUS)
     with pytest.raises(WorkerFailure):
         journal.settle(nonce=NONCE, state=dev.ATTEMPT_COMPLETED)
@@ -364,7 +381,7 @@ def test_settle_cannot_invent_a_refund_or_rewrite_a_terminal_state(host):
 @pytest.mark.parametrize("state", ["RESERVED", "", "DELETED", None, 1])
 def test_invalid_settle_states_are_refused(host, state):
     journal = dev.DevelopmentAttemptJournal(host)
-    journal.reserve(nonce=NONCE, plan_digest=PLAN, budget=4, now=1.0)
+    journal.reserve(nonce=NONCE, plan_digest=PLAN, budget=4, controls=CONTROLS, now=1.0)
     with pytest.raises(WorkerFailure):
         journal.settle(nonce=NONCE, state=state)
 
@@ -373,12 +390,16 @@ def test_invalid_settle_states_are_refused(host, state):
 def test_malformed_nonce_is_refused(host, nonce):
     journal = dev.DevelopmentAttemptJournal(host)
     with pytest.raises(WorkerFailure):
-        journal.reserve(nonce=nonce, plan_digest=PLAN, budget=4, now=1.0)
+        journal.reserve(
+            nonce=nonce, plan_digest=PLAN, budget=4, controls=CONTROLS, now=1.0
+        )
 
 
 def test_marker_is_private_and_canonical(host):
     journal = dev.DevelopmentAttemptJournal(host)
-    path = journal.reserve(nonce=NONCE, plan_digest=PLAN, budget=4, now=1.0)
+    path = journal.reserve(
+        nonce=NONCE, plan_digest=PLAN, budget=4, controls=CONTROLS, now=1.0
+    )
     assert path.stat().st_mode & 0o077 == 0
     assert json.loads(path.read_bytes())["state"] == dev.ATTEMPT_RESERVED
     assert canonical(json.loads(path.read_bytes())) == path.read_bytes()

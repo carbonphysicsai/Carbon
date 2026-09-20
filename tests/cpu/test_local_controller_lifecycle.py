@@ -64,6 +64,11 @@ def _limits():
     }
 
 
+# The controls a run is actually executed under, which is what the batch is
+# charged against. Resolved once, the same way the controller resolves them.
+CONTROLS = dev.effective_controls(_limits())
+
+
 class _Harness:
     def __init__(self, **values):
         self.__dict__.update(values)

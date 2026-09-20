@@ -60,6 +60,11 @@ def _limits():
     }
 
 
+# The controls a run is actually executed under, which is what the batch is
+# charged against. Resolved once, the same way the controller resolves them.
+CONTROLS = dev.effective_controls(_limits())
+
+
 DEVICE_UUID = accelerator_host.HOSTS[accelerator_host.DEFAULT_SHAPE]["device_uuid"]
 
 
@@ -504,7 +509,9 @@ def test_an_existing_strict_quarantine_blocks_local_work(approved, monkeypatch):
 
 def test_an_unreconciled_previous_attempt_blocks_a_new_launch(approved, monkeypatch):
     journal = dev.DevelopmentAttemptJournal(approved.host)
-    journal.reserve(nonce="b" * 32, plan_digest=PLAN_DIGEST, budget=4, now=1.0)
+    journal.reserve(
+        nonce="b" * 32, plan_digest=PLAN_DIGEST, budget=4, controls=CONTROLS, now=1.0
+    )
     controller = _controller(approved, monkeypatch)
     with pytest.raises(WorkerFailure) as error:
         _run(controller, approved, monkeypatch)
@@ -515,7 +522,9 @@ def test_the_exhausted_budget_blocks_a_new_launch(approved, monkeypatch):
     journal = dev.DevelopmentAttemptJournal(approved.host)
     for index in range(4):
         nonce = f"{index:032x}"
-        journal.reserve(nonce=nonce, plan_digest=PLAN_DIGEST, budget=4, now=1.0)
+        journal.reserve(
+            nonce=nonce, plan_digest=PLAN_DIGEST, budget=4, controls=CONTROLS, now=1.0
+        )
         journal.settle(nonce=nonce, state=dev.ATTEMPT_COMPLETED)
     controller = _controller(approved, monkeypatch)
     with pytest.raises(WorkerFailure):

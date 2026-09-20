@@ -18,7 +18,7 @@ Synthetic host roots throughout. No device is attached and no container exists.
 import time
 
 import pytest
-from test_local_controller_lifecycle import NONCE
+from test_local_controller_lifecycle import CONTROLS, NONCE
 from test_local_controller_lifecycle import harness as _lifecycle_harness
 
 from carbon.reconstruction.worker import development_admission as dev
@@ -71,6 +71,7 @@ def test_a_failed_run_with_confirmed_cleanup_does_not_block_the_next_attempt(
         nonce=SECOND_NONCE,
         plan_digest=harness.derived,
         budget=4,
+        controls=CONTROLS,
         now=float(time.time()),
     )
     assert journal.consumed() == 2
@@ -175,6 +176,7 @@ def test_the_budget_still_bounds_the_total_after_settlement(harness):
             nonce=f"{index:032x}",
             plan_digest=harness.derived,
             budget=4,
+            controls=CONTROLS,
             now=float(time.time()),
         )
         journal.settle(nonce=f"{index:032x}", state=dev.ATTEMPT_RECONCILED)
@@ -184,6 +186,7 @@ def test_the_budget_still_bounds_the_total_after_settlement(harness):
             nonce="f" * 32,
             plan_digest=harness.derived,
             budget=4,
+            controls=CONTROLS,
             now=float(time.time()),
         )
 

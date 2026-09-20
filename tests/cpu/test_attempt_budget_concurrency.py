@@ -8,6 +8,7 @@ state roots only; no accelerator is initialized and no device is attached.
 import json
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 import pytest
@@ -18,6 +19,21 @@ from carbon.reconstruction.worker.model import WorkerCode, WorkerFailure
 
 REPO = Path(__file__).resolve().parents[2]
 PLAN = _sha("5")
+
+# The batch a contending child is admitted against. The bound under test
+# here is the attempt count; the batch bounds have their own tests.
+LIMITS = {
+    "productive_seconds": 600,
+    "cleanup_seconds": 120,
+    "attempt_seconds": 1800,
+    "batch_seconds": 3600,
+    "host_ram_bytes": 8 * 1024**3,
+    "output_bytes": 64 * 1024**2,
+    "batch_output_bytes": 256 * 1024**2,
+    "training_steps": 32,
+    "worker_network": "DISABLED",
+}
+CONTROLS = dev.effective_controls(LIMITS)
 
 _CHILD = """
 import json, sys, time
@@ -35,7 +51,13 @@ journal = dev.DevelopmentAttemptJournal(root)
 while time.time() < start:
     time.sleep(0.001)
 try:
-    journal.reserve(nonce=nonce, plan_digest={plan!r}, budget=budget, now=time.time())
+    journal.reserve(
+        nonce=nonce,
+        plan_digest={plan!r},
+        budget=budget,
+        controls=dev.effective_controls({limits!r}),
+        now=time.time(),
+    )
     print(json.dumps({{"outcome": "reserved"}}))
 except WorkerFailure as failure:
     print(json.dumps({{"outcome": "refused", "code": failure.code.value}}))
@@ -44,10 +66,8 @@ except WorkerFailure as failure:
 
 def _race(root, nonces, budget, delay=1.5):
     """Launch one process per nonce, all releasing at the same wall-clock time."""
-    import time
-
     start = time.time() + delay
-    source = _CHILD.format(repo=str(REPO), plan=PLAN)
+    source = _CHILD.format(repo=str(REPO), plan=PLAN, limits=LIMITS)
     processes = [
         subprocess.Popen(
             [sys.executable, "-c", source, str(root), nonce, str(budget), str(start)],
@@ -77,7 +97,13 @@ def test_two_different_nonces_cannot_both_take_the_last_attempt(root):
     journal = dev.DevelopmentAttemptJournal(root)
     for index in range(3):
         nonce = f"{index:032x}"
-        journal.reserve(nonce=nonce, plan_digest=PLAN, budget=4, now=float(index))
+        journal.reserve(
+            nonce=nonce,
+            plan_digest=PLAN,
+            budget=4,
+            controls=CONTROLS,
+            now=time.time(),
+        )
         journal.settle(nonce=nonce, state=dev.ATTEMPT_COMPLETED)
     assert journal.consumed() == 3
 
@@ -93,7 +119,13 @@ def test_a_full_budget_refuses_every_racing_process(root):
     journal = dev.DevelopmentAttemptJournal(root)
     for index in range(4):
         nonce = f"{index:032x}"
-        journal.reserve(nonce=nonce, plan_digest=PLAN, budget=4, now=float(index))
+        journal.reserve(
+            nonce=nonce,
+            plan_digest=PLAN,
+            budget=4,
+            controls=CONTROLS,
+            now=time.time(),
+        )
         journal.settle(nonce=nonce, state=dev.ATTEMPT_COMPLETED)
 
     results = _race(root, ["a" * 32, "b" * 32], budget=4)
@@ -111,7 +143,7 @@ def test_the_same_nonce_replayed_across_processes_takes_one_attempt(root):
 def test_a_second_process_cannot_start_while_one_is_unreconciled(root):
     """An unsettled attempt blocks a new launch from any process."""
     dev.DevelopmentAttemptJournal(root).reserve(
-        nonce="d" * 32, plan_digest=PLAN, budget=4, now=1.0
+        nonce="d" * 32, plan_digest=PLAN, budget=4, controls=CONTROLS, now=time.time()
     )
     results = _race(root, ["e" * 32], budget=4)
     assert results[0]["outcome"] == "refused"
@@ -123,19 +155,31 @@ def test_a_different_directory_does_not_grant_a_fresh_budget(root, tmp_path):
     journal = dev.DevelopmentAttemptJournal(root)
     for index in range(4):
         nonce = f"{index:032x}"
-        journal.reserve(nonce=nonce, plan_digest=PLAN, budget=4, now=float(index))
+        journal.reserve(
+            nonce=nonce,
+            plan_digest=PLAN,
+            budget=4,
+            controls=CONTROLS,
+            now=time.time(),
+        )
         journal.settle(nonce=nonce, state=dev.ATTEMPT_COMPLETED)
     # The journal is bound to the host record's parent, not to a caller path.
     assert dev.DevelopmentAttemptJournal(root).consumed() == 4
     with pytest.raises(WorkerFailure):
         dev.DevelopmentAttemptJournal(root).reserve(
-            nonce="f" * 32, plan_digest=PLAN, budget=4, now=9.0
+            nonce="f" * 32,
+            plan_digest=PLAN,
+            budget=4,
+            controls=CONTROLS,
+            now=time.time(),
         )
 
 
 def test_a_restart_sees_the_same_consumed_total(root):
     journal = dev.DevelopmentAttemptJournal(root)
-    journal.reserve(nonce="a" * 32, plan_digest=PLAN, budget=4, now=1.0)
+    journal.reserve(
+        nonce="a" * 32, plan_digest=PLAN, budget=4, controls=CONTROLS, now=1.0
+    )
     journal.settle(nonce="a" * 32, state=dev.ATTEMPT_COMPLETED)
     source = (
         f"import sys; sys.path.insert(0, {str(REPO)!r});"
@@ -153,7 +197,9 @@ def test_a_restart_sees_the_same_consumed_total(root):
 def test_an_interrupted_marker_write_does_not_grant_a_free_attempt(root):
     """A truncated marker is unreadable, so it blocks rather than vanishing."""
     journal = dev.DevelopmentAttemptJournal(root)
-    path = journal.reserve(nonce="a" * 32, plan_digest=PLAN, budget=4, now=1.0)
+    path = journal.reserve(
+        nonce="a" * 32, plan_digest=PLAN, budget=4, controls=CONTROLS, now=1.0
+    )
     path.chmod(0o600)
     path.write_bytes(b"{partial")
     path.chmod(0o600)

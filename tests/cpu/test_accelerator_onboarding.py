@@ -19,7 +19,24 @@ from carbon.reconstruction.host_inventory import (
     HostDeviceRecord,
     require_host_device,
 )
+from carbon.reconstruction.worker.development_admission import effective_controls
 from carbon.reconstruction.worker.model import WorkerCode, WorkerFailure
+
+# What a reserved attempt is charged against. Synthetic, like every other value
+# here; reserving one is how the doctor and status checks get something to read.
+CONTROLS = effective_controls(
+    {
+        "productive_seconds": 600,
+        "cleanup_seconds": 120,
+        "attempt_seconds": 1800,
+        "batch_seconds": 3600,
+        "host_ram_bytes": 8 * 1024**3,
+        "output_bytes": 64 * 1024**2,
+        "batch_output_bytes": 256 * 1024**2,
+        "training_steps": 32,
+        "worker_network": "DISABLED",
+    }
+)
 
 # One observation per host shape, in the form the vendor tool reports. Synthetic
 # values throughout; none of these is a claim that such a host works.
@@ -349,7 +366,11 @@ def test_doctor_reports_an_unreconciled_attempt(root):
 
     accelerator_host.install(root)
     DevelopmentAttemptJournal(root).reserve(
-        nonce="a" * 32, plan_digest="sha256:" + "5" * 64, budget=4, now=1.0
+        nonce="a" * 32,
+        plan_digest="sha256:" + "5" * 64,
+        budget=4,
+        controls=CONTROLS,
+        now=1.0,
     )
     report = onboarding.doctor_report(root=root, cli=_CLI(info={}))
     finding = _by_check(report)["attempt_accounting"]
@@ -363,13 +384,24 @@ def test_status_is_read_only_and_reports_consumption(root, tmp_path):
 
     accelerator_host.install(root)
     journal = DevelopmentAttemptJournal(root)
-    journal.reserve(nonce="a" * 32, plan_digest="sha256:" + "5" * 64, budget=4, now=1.0)
+    journal.reserve(
+        nonce="a" * 32,
+        plan_digest="sha256:" + "5" * 64,
+        budget=4,
+        controls=CONTROLS,
+        now=1.0,
+    )
     journal.settle(nonce="a" * 32, state="COMPLETED")
     before = sorted(path.name for path in root.rglob("*"))
     report = onboarding.status_report(root=root, state_root=tmp_path / "controller")
     assert report["attempts_consumed"] == 1
     assert report["unreconciled_attempt"] is None
     assert report["device_quarantined"] is False
+    # The batch allowances are reported separately from the attempt count,
+    # because attempts can remain while the batch's time or output is spent.
+    batch = report["batch_consumption"]
+    assert batch["charged_output_bytes"] == CONTROLS["output_bytes"]
+    assert batch["first_admission_unix"] == 1.0
     assert sorted(path.name for path in root.rglob("*")) == before
 
 

@@ -9,8 +9,11 @@ That is the whole point of the split below, so it is worth stating plainly:
 - **The workload profile** says what the work needs — backend, device and
   process counts, topology, dtypes, precision, and a pinned environment. It
   lives in the repository, is byte-identical on every machine, and must stay
-  that way. It is also what lets two runs on different hosts share one profile
-  digest and remain comparable.
+  that way, so two runs on different hosts can state that they requested the
+  same configuration. That is all a shared digest establishes. It does **not**
+  make their results comparable: the device, driver, allocator, thermal
+  behaviour and contention still differ, and comparability is a scientific
+  judgement about specific measurements, not a property a digest confers.
 - **The host device record** says what *your* device is — its identifier, its
   marketed name, driver version and model, compute capability, memory, display
   state, platform, container runtime and provider. It is installed by you, on

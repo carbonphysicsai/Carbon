@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import platform
 import shutil
 import tempfile
@@ -80,6 +81,26 @@ def _host_id() -> str:
         for character in raw
     )
     return safe[:128] or "development-host"
+
+
+def _observed_output_bytes(result: object) -> int | None:
+    """The output this run actually retained, or None if it was never observed.
+
+    Read from the snapshot observation the export already records, so the batch
+    is charged with the same number the run reports rather than a second,
+    separately derived one. None - not zero - when the observation is absent:
+    an unobserved output keeps the attempt's reserved worst case.
+    """
+    observation = getattr(result, "resource_observation", None)
+    if type(observation) is not dict:
+        return None
+    snapshot = observation.get("output_snapshot")
+    if type(snapshot) is not dict:
+        return None
+    observed = snapshot.get("observed_bytes")
+    if type(observed) is not int or isinstance(observed, bool) or observed < 0:
+        return None
+    return observed
 
 
 @dataclass(frozen=True, slots=True)
@@ -325,8 +346,15 @@ class IsolatedReconstructionController:
             nonce=local_diagnostic.nonce,
             plan_digest=derived_digest,
             budget=approval.document["attempt_budget"],
+            controls=controls,
             now=float(time.time()),
         )
+        # The attempt's clock starts at its reservation, so everything the
+        # attempt holds the host for - the shared slot, image verification, the
+        # run and its cleanup - is charged to the batch, not just the part
+        # spent inside the container.
+        attempt_started = time.monotonic()
+        attempt_seconds = controls["attempt_seconds"]
 
         worker_profile = DevelopmentWorkerProfile(
             identity.policy_ref.content_digest,
@@ -352,6 +380,19 @@ class IsolatedReconstructionController:
                 input_digest=archive.content_digest,
                 now=float(time.time()),
             )
+            # The whole-attempt deadline, as distinct from the per-process one
+            # the watchdog owns. Without it only the productive window was ever
+            # bounded, so staging, export and cleanup could carry an attempt
+            # past the limit it was admitted under - and past the batch window,
+            # which is admitted on the promise that an attempt ends by then.
+            #
+            # Observed at the boundaries the existing cancellation channel is
+            # already consulted at, so it interrupts the same non-destructive
+            # way. It raises its own code rather than reporting itself as a
+            # cancellation, because an operator stopping a run and a run
+            # outliving its deadline are not the same event.
+            if time.monotonic() - attempt_started > attempt_seconds:
+                raise WorkerFailure(WorkerCode.DEADLINE)
             if cancelled is None:
                 return False
             return cancelled()
@@ -373,16 +414,26 @@ class IsolatedReconstructionController:
                 )
             except BaseException:
                 self._reconcile_local_attempt(
-                    journal, local_diagnostic.nonce, succeeded=False
+                    journal,
+                    local_diagnostic.nonce,
+                    succeeded=False,
+                    elapsed=time.monotonic() - attempt_started,
+                    observed_output_bytes=None,
                 )
                 raise
             self._reconcile_local_attempt(
-                journal, local_diagnostic.nonce, succeeded=True
+                journal,
+                local_diagnostic.nonce,
+                succeeded=True,
+                elapsed=time.monotonic() - attempt_started,
+                observed_output_bytes=_observed_output_bytes(result),
             )
             return result
 
     @staticmethod
-    def _reconcile_local_attempt(journal, nonce, *, succeeded):
+    def _reconcile_local_attempt(
+        journal, nonce, *, succeeded, elapsed, observed_output_bytes
+    ):
         """Settle one development attempt from observed host state.
 
         Deliberately not an unconditional settlement. The attempt is reconciled
@@ -418,7 +469,14 @@ class IsolatedReconstructionController:
                 # Cleaned up, but it produced no result. Recording this as
                 # COMPLETED would claim science that did not happen.
                 state = ATTEMPT_RECONCILED
-            journal.settle(nonce=nonce, state=state)
+            # Rounded up, never down: a partial second the batch really spent
+            # is charged as a whole one rather than discarded.
+            journal.settle(
+                nonce=nonce,
+                state=state,
+                observed_seconds=math.ceil(elapsed),
+                observed_output_bytes=observed_output_bytes,
+            )
         except (WorkerFailure, OSError):
             return
 

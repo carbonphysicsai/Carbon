@@ -70,6 +70,23 @@ replayed nonce; ambiguous cleanup blocking the next run without touching strict
 quarantine; and the absence of any promotion path into official or strict
 acceptance.
 
+Batch accounting is enforced, not only declared. The batch's output total is
+summed across attempts and its time bound is a wall-clock window from first
+admission, so a pause, a restart, a new worktree or a fresh output directory
+cannot rewind either. Failed and ambiguous attempts keep their reserved worst
+case; only a measurement taken from the run's own observation may reduce a
+charge. A marker whose charge this journal cannot read - an older schema or a
+malformed field - blocks the next attempt rather than counting as zero, which
+keeps the older record's meaning intact while failing closed.
+
+The whole-attempt deadline is enforced with it. Previously only
+`productive_seconds` reached execution, so staging, image verification, export
+and cleanup fell outside every deadline - and the batch window cannot be
+honestly admitted on the promise that an attempt ends by a time nothing
+enforces. It is observed at the same boundaries as the existing cancellation
+channel and raises its own code, so an operator stopping a run and a run
+outliving its deadline stay distinguishable.
+
 Two guard tests assert that this preparation leaves the strict contract
 untouched: `ESTABLISHED_OBSERVATION_CONTRACTS` remains empty and
 `require_accelerator_admission()` still refuses.

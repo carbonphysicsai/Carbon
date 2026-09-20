@@ -84,6 +84,26 @@ ATTEMPT_AMBIGUOUS = "AMBIGUOUS"
 ATTEMPT_BLOCKING = frozenset({ATTEMPT_RESERVED, ATTEMPT_AMBIGUOUS})
 ATTEMPT_TERMINAL = frozenset({ATTEMPT_COMPLETED, ATTEMPT_RECONCILED, ATTEMPT_AMBIGUOUS})
 
+# Attempt markers carry what the attempt charged against the batch, so the
+# schema that carries them is identified. A marker written under an older schema
+# recorded no charge; it is read as *unknown* consumption rather than as zero,
+# which keeps its historical meaning intact and fails towards refusing a launch.
+ATTEMPT_SCHEMA = "carbon.accelerator-development-attempt.v2"
+CHARGE_OUTPUT_BYTES = "charged_output_bytes"
+OBSERVED_SECONDS = "observed_seconds"
+
+# How a marker's output charge was arrived at. Only an observed charge may be
+# lower than the reservation; the basis records which of the two this is.
+CHARGE_RESERVED = "RESERVED_WORST_CASE"
+CHARGE_OBSERVED = "OBSERVED"
+
+# The two batch bounds are enforced differently because they mean different
+# things. Output accumulates, so it is summed across attempts. Time does not
+# accumulate the same way: the envelope bounds the batch at a fixed span *from
+# first admission*, including the gaps between attempts, so idling between runs
+# consumes the batch exactly as running does and neither a pause nor a restart
+# rewinds it. Summing per-attempt durations would silently permit both.
+
 _DIGEST = re.compile(r"sha256:[0-9a-f]{64}")
 _NONCE = re.compile(r"[0-9a-f]{32}")
 
@@ -132,6 +152,13 @@ REQUIRED_LIMITS = frozenset(
 
 def _positive_int(value: object) -> int:
     if type(value) is not int or isinstance(value, bool) or value <= 0:
+        raise WorkerFailure(WorkerCode.POLICY)
+    return value
+
+
+def _charge_int(value: object) -> int:
+    """A recorded charge. Zero is a real measurement; a bool or a float is not."""
+    if type(value) is not int or isinstance(value, bool) or value < 0:
         raise WorkerFailure(WorkerCode.POLICY)
     return value
 
@@ -392,6 +419,41 @@ class DevelopmentAttemptJournal:
         """Every reserved attempt counts, including failed and ambiguous ones."""
         return len(self._markers())
 
+    def _batch_state(self) -> tuple[float | None, int]:
+        """When this batch was first admitted, and what its attempts have charged.
+
+        Read from the markers rather than accumulated in memory, for the same
+        reason the attempt count is: a new process, worktree or output directory
+        must not be able to present a batch as less consumed than it is. The
+        first admission is the earliest reservation on record, so a later
+        process cannot restart the window by forgetting the earlier one.
+
+        A marker this cannot read - an older schema, a missing or malformed
+        field - raises rather than contributing zero. Treating an unreadable
+        record as no consumption would let exactly the attempt that lost its
+        accounting be the one that widens the batch.
+        """
+        first: float | None = None
+        output = 0
+        for marker in self._markers():
+            document = self._read(marker)
+            if document.get("schema") != ATTEMPT_SCHEMA:
+                raise WorkerFailure(WorkerCode.POLICY)
+            reserved = document.get("reserved_unix")
+            if type(reserved) is not float or not math.isfinite(reserved):
+                raise WorkerFailure(WorkerCode.POLICY)
+            first = reserved if first is None else min(first, reserved)
+            output += _charge_int(document.get(CHARGE_OUTPUT_BYTES))
+        return first, output
+
+    def batch_consumption(self) -> dict[str, object]:
+        """What the batch has consumed. Output is worst case where unobserved."""
+        first, output = self._batch_state()
+        return {
+            "first_admission_unix": first,
+            CHARGE_OUTPUT_BYTES: output,
+        }
+
     def blocking_attempt(self) -> dict[str, object] | None:
         """An unreconciled attempt blocks the next launch until an operator acts."""
         for path in self._markers():
@@ -409,8 +471,28 @@ class DevelopmentAttemptJournal:
             return None
         return self._read(path)
 
-    def reserve(self, *, nonce: str, plan_digest: str, budget: int, now: float) -> Path:
-        """Atomically consume one attempt. Conservative: reserved before dispatch."""
+    def reserve(
+        self,
+        *,
+        nonce: str,
+        plan_digest: str,
+        budget: int,
+        controls: dict,
+        now: float,
+    ) -> Path:
+        """Atomically consume one attempt. Conservative: reserved before dispatch.
+
+        Three separate allowances bind here, and an attempt must satisfy all of
+        them: the attempt count, the batch's time window, and the batch's total
+        output. The count alone never bounded the batch - four attempts each
+        inside a per-attempt deadline can still run far past the whole-batch
+        one, and each would have looked individually compliant.
+
+        The output charge is the attempt's own worst case, taken before
+        dispatch, because what the attempt will actually write is not knowable
+        yet; ``settle`` reduces it to what was observed. The time bound needs no
+        charge: it is the span since this batch was first admitted.
+        """
         from carbon.development_session.profile import canonical
 
         if type(nonce) is not str or not _NONCE.fullmatch(nonce):
@@ -418,6 +500,14 @@ class DevelopmentAttemptJournal:
         if type(plan_digest) is not str or not _DIGEST.fullmatch(plan_digest):
             raise WorkerFailure(WorkerCode.POLICY)
         _positive_int(budget)
+        if type(controls) is not dict or set(controls) != REQUIRED_LIMITS:
+            # The resolved controls, not the raw approval: the batch must be
+            # charged against the limits the run will actually execute under.
+            raise WorkerFailure(WorkerCode.POLICY)
+        attempt_seconds = _positive_int(controls["attempt_seconds"])
+        charge_output = _positive_int(controls["output_bytes"])
+        batch_seconds = _positive_int(controls["batch_seconds"])
+        batch_output = _positive_int(controls["batch_output_bytes"])
         if type(now) is not float or not math.isfinite(now):
             raise WorkerFailure(WorkerCode.POLICY)
 
@@ -429,11 +519,14 @@ class DevelopmentAttemptJournal:
         path = self.root / f"{nonce}.json"
         payload = canonical(
             {
-                "schema": "carbon.accelerator-development-attempt.v1",
+                "schema": ATTEMPT_SCHEMA,
                 "nonce": nonce,
                 "plan_digest": plan_digest,
                 "reserved_unix": float(now),
                 "state": ATTEMPT_RESERVED,
+                CHARGE_OUTPUT_BYTES: charge_output,
+                "charge_basis": CHARGE_RESERVED,
+                OBSERVED_SECONDS: None,
             }
         )
         with self._accounting_lock():
@@ -443,6 +536,24 @@ class DevelopmentAttemptJournal:
                 raise WorkerFailure(WorkerCode.CONFLICT)
             if self.consumed() >= budget:
                 raise WorkerFailure(WorkerCode.POLICY)
+            first, spent_output = self._batch_state()
+            # Read and decided under the one lock that already serializes the
+            # count, so two different nonces cannot each observe the same
+            # remaining batch allowance and both take it.
+            if spent_output + charge_output > batch_output:
+                raise WorkerFailure(WorkerCode.POLICY)
+            if first is not None:
+                if now < first:
+                    # The window is wall-clock, so a clock that moved backwards
+                    # leaves it unestablished. Refusing is the only reading that
+                    # cannot be used to rewind a batch that is already spent.
+                    raise WorkerFailure(WorkerCode.POLICY)
+                # Admitted only if the attempt can *finish* inside the window.
+                # Admitting one that is still permitted to run for its full
+                # deadline past the batch bound would leave that bound
+                # unenforceable at exactly the moment it starts to bind.
+                if now + attempt_seconds > first + batch_seconds:
+                    raise WorkerFailure(WorkerCode.POLICY)
             try:
                 descriptor = os.open(
                     path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600
@@ -466,12 +577,33 @@ class DevelopmentAttemptJournal:
             raise WorkerFailure(WorkerCode.UNAVAILABLE) from None
         return path
 
-    def settle(self, *, nonce: str, state: str) -> None:
+    def settle(
+        self,
+        *,
+        nonce: str,
+        state: str,
+        observed_seconds: int | None = None,
+        observed_output_bytes: int | None = None,
+    ) -> None:
         """Record a terminal outcome. Never removes the attempt from the budget.
 
         Only a RESERVED attempt may be settled, so a settled record cannot be
         rewritten - in particular an AMBIGUOUS marker cannot be relabelled to
         obtain another launch.
+
+        The reserved output charge is reduced to an observed one, and only to
+        that. A value that was not observed stays at its worst case, so the safe
+        direction is also the default: a caller that measures nothing, or a
+        process that dies before settling, leaves the batch fully charged.
+
+        An AMBIGUOUS attempt keeps its reservation whatever was measured. An
+        uncertain cleanup has not established that the attempt stopped
+        consuming, and a measurement taken while that is unresolved would be
+        reporting a floor as a total.
+
+        The observed duration is recorded as evidence about this attempt. It is
+        deliberately not what bounds the batch: the batch's time bound is the
+        span since first admission, which no per-attempt measurement can shorten.
         """
         from carbon.development_session.profile import canonical
 
@@ -483,7 +615,17 @@ class DevelopmentAttemptJournal:
         document = dict(self._read(path))
         if document.get("state") != ATTEMPT_RESERVED:
             raise WorkerFailure(WorkerCode.POLICY)
+        if document.get("schema") != ATTEMPT_SCHEMA:
+            raise WorkerFailure(WorkerCode.POLICY)
         document["state"] = state
+        if observed_seconds is not None:
+            # Recorded as measured even when it exceeds the attempt's deadline.
+            # An overrun is a fact about the run; rounding it back to the bound
+            # it broke would erase the evidence that it did.
+            document[OBSERVED_SECONDS] = _charge_int(observed_seconds)
+        if state != ATTEMPT_AMBIGUOUS and observed_output_bytes is not None:
+            document[CHARGE_OUTPUT_BYTES] = _charge_int(observed_output_bytes)
+            document["charge_basis"] = CHARGE_OBSERVED
         try:
             descriptor = os.open(path, os.O_WRONLY | os.O_TRUNC | os.O_NOFOLLOW)
             with os.fdopen(descriptor, "wb") as handle:

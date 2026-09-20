@@ -485,10 +485,19 @@ def status_report(*, root: Path, state_root: Path | None = None) -> dict:
         blocking = journal.blocking_attempt()
     except WorkerFailure:
         consumed, blocking = None, None
+    try:
+        # Reported separately from the attempt count, and null rather than zero
+        # when it cannot be established, because the two allowances are
+        # independent: attempts can remain while the batch's time or output is
+        # already spent.
+        batch = journal.batch_consumption()
+    except WorkerFailure:
+        batch = None
     result = {
         "schema": "carbon.accelerator-host-status.v1",
         "host_root": str(root),
         "attempts_consumed": consumed,
+        "batch_consumption": batch,
         "unreconciled_attempt": None if blocking is None else str(blocking),
         "device_quarantined": (root / "device-quarantined").exists(),
     }
