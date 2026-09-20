@@ -2230,6 +2230,20 @@
     ],
     "rules": [
       {
+        "id": "core-platform-gpu-lane-plans",
+        "match_type": "prefix",
+        "path": ".agent/plans/C-CORE-19_",
+        "impact_class": "mapped_detail",
+        "map_ref": "SYSTEM/AGENT-EXECUTION"
+      },
+      {
+        "id": "core-platform-gpu-lane-evidence",
+        "match_type": "prefix",
+        "path": ".agent/evidence/wave_c/c-core-19-",
+        "impact_class": "mapped_detail",
+        "map_ref": "SYSTEM/AGENT-EXECUTION"
+      },
+      {
         "id": "core-platform-local-gpu-diagnostic-plan",
         "match_type": "exact",
         "path": ".agent/plans/C-CORE-18_local_gpu_diagnostic_contract.md",
