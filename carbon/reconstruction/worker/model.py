@@ -120,6 +120,27 @@ LOCAL_DEVELOPMENT_AUTHORITY = "LOCAL_DEVELOPMENT_APPROVAL"
 MINER_HOST_AUTHORITY = "MINER_HOST_SELF_SERVICE"
 
 
+def registered_run_controls() -> dict[str, object]:
+    """The bounds the worker implementation itself enforces, with nothing added.
+
+    The miner lane has no approval to narrow anything, so resolving its controls
+    means reading what the worker is already built to apply - the same bounds the
+    CPU lane runs under. Every value here is a registered constant.
+
+    The fields an approval would add are **absent rather than defaulted**: a
+    whole-attempt deadline, a batch window and a training-step ceiling are all
+    batch authority, and the implementation registers no value for them. Giving
+    them an invented number here would publish a bound nobody set and that
+    nothing enforces.
+    """
+    return {
+        "productive_seconds": PRODUCTIVE_DEADLINE_SECONDS,
+        "host_ram_bytes": MEMORY_BYTES,
+        "output_bytes": OUTPUT_BYTES,
+        "worker_network": "DISABLED",
+    }
+
+
 @dataclass(frozen=True, slots=True)
 class DevelopmentWorkerProfile:
     """One exact B-02C-bound worker policy; not a production resource class."""

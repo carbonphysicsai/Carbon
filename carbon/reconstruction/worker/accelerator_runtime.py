@@ -174,6 +174,48 @@ def shared_host_lease():
         raise WorkerFailure(WorkerCode.CONFLICT) from None
 
 
+@contextmanager
+def miner_device_lease(device_uuid: str):
+    """Plain mutual exclusion between one host's own miner runs.
+
+    Deliberately not the shared Carbon slot. That lock carries strict semantics -
+    quarantine, verified whole-device release - which this lane does not have and
+    must not appear to have. This one exists for a narrower reason: a miner's two
+    concurrent runs on the same device would corrupt each other's scratch and
+    accounting, which is a correctness problem on their own machine.
+
+    It establishes nothing about any other process, Carbon or otherwise, and it
+    is not an exclusivity claim. What actually blocks a launch that would collide
+    with retained Carbon work is `reject_existing_device_containers`, which is
+    checked separately and looks at Carbon's own device label.
+    """
+    from carbon.reconstruction.worker.model import exact_token
+
+    token = exact_token(device_uuid.replace(":", "-"))
+    try:
+        HOST_ROOT.mkdir(mode=0o700, parents=True, exist_ok=True)
+        descriptor = os.open(
+            HOST_ROOT / f"miner-device-{token}.lock", os.O_RDWR | os.O_CREAT, 0o600
+        )
+    except OSError:
+        raise WorkerFailure(WorkerCode.UNAVAILABLE) from None
+    import fcntl
+
+    try:
+        try:
+            fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except OSError:
+            # Another run of this miner's own holds the device. A conflict, not
+            # a quarantine: nothing is marked, and the next attempt is free.
+            raise WorkerFailure(WorkerCode.CONFLICT) from None
+        yield
+    finally:
+        try:
+            fcntl.flock(descriptor, fcntl.LOCK_UN)
+        finally:
+            os.close(descriptor)
+
+
 def verify_image_and_toolkit(*, cli, image: WorkerImageIdentity) -> None:
     """Read daemon/image metadata only; never initialize a numerical backend."""
     if image.lock_digest != GPU_PROFILE.environment_lock_digest:
