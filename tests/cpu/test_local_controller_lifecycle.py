@@ -14,11 +14,18 @@ Two things are replaced, both because they leave this process:
     control the controller failed to request is genuinely absent; and
   * `spawn_watchdog`, which starts a separate deadline-owning process.
 
-What is therefore NOT covered here: the terminal success path. Reaching
-ASSOCIATED needs a genuine trained checkpoint that the bounded native validator
-accepts, which no fixture can fabricate. These cover reaching RUNNING, and every
-way a run can end short of success. Nothing here is a hardware result, a device
-attachment or an acceptance.
+What is therefore NOT covered here: the terminal success path. These cover
+reaching RUNNING, and every way a run can end short of success.
+
+Reaching ASSOCIATED needs a genuine trained checkpoint that the bounded native
+validator accepts. No fixture can fabricate one - but one can be *generated*, and
+`tests/science/test_worker_success_path.py` does exactly that: it trains a real
+artifact with the real `reconstruct()` and carries it through the real validator
+to ASSOCIATED. It is a CPU-lane run, because training here is what makes the
+artifact genuine. Reaching ASSOCIATED under a GPU profile additionally requires
+the device and remains uncovered until an authorized attempt runs.
+
+Nothing here is a hardware result, a device attachment or an acceptance.
 
 Synthetic host roots throughout. No device is attached, no real grant or
 approval storage is touched, and no container is created.
