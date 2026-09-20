@@ -8316,6 +8316,17 @@ events:
       - "WAVE-C/NET-5R"
       - "WAVE-C/NET-6"
     supersedes: null
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "decision"
+    event_id: "C-CORE-18-LOCAL-GPU-DIAGNOSTIC-PREPARATION"
+    owner_lane: "technical_lead"
+    status: "proposed"
+    primary_detail: ".agent/plans/C-CORE-18_local_gpu_diagnostic_contract.md"
+    affects:
+      - "WAVE-C/C-03"
+    supersedes: null
+    summary: "Prepared, as a proposal only, a bounded development-only local GPU diagnostic contract and one finite first run plan over the existing registered public recipe and the registered Trainer.fit path, plus a host-side plan validator whose dispatch refuses unconditionally. The proposal records whole-device exclusivity, memory enforcement and device release as unestablished on the observed WDDM host rather than asserting them, fixes official_eligible false with no promotion path into strict acceptance, and refuses protected input phases and any caller-supplied execution control. It identifies the exact seam returned for owner decision: a local diagnostic cannot reuse strict admission without redefining that contract, because enumeration capability is UNSUPPORTED on this host and UNESTABLISHED everywhere while the registry is empty. The narrow versioned development observation outcome is described and deliberately not implemented. Nothing is activated: no contract is registered, no grant installed, no lease or quarantine touched, no image rebuilt and no GPU attached."
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"

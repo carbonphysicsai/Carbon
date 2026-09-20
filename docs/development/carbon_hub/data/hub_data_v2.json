@@ -2230,6 +2230,13 @@
     ],
     "rules": [
       {
+        "id": "core-platform-local-gpu-diagnostic-plan",
+        "match_type": "exact",
+        "path": ".agent/plans/C-CORE-18_local_gpu_diagnostic_contract.md",
+        "impact_class": "map_structural",
+        "map_ref": "SYSTEM/AGENT-EXECUTION"
+      },
+      {
         "id": "core-platform-gpu-image-preparation-evidence",
         "match_type": "exact",
         "path": ".agent/evidence/wave_c/c-core-17-gpu-image-preparation.md",
