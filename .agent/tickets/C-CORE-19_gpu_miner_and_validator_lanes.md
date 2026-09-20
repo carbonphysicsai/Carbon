@@ -161,8 +161,11 @@ acceptance prerequisites.
 
 ## Completion work package W1-W5
 
-Executed under `docs/development/GPU_COMPLETION_WORK_PACKAGE.md`. W6, the first
-GPU attempt, is gated and not started.
+Executed under `docs/development/GPU_COMPLETION_WORK_PACKAGE.md`. W6 is
+**withdrawn**: no attempt is planned on the owner's device, because a laptop GPU
+under WSL2 verifies neither the launchpad nor a validator backend profile, and
+spending attempts on it would repeat in evidence the mistake that demoting
+`RTX3060_LAPTOP_PROFILE` corrected in the registry.
 
 | | Item | Result |
 | --- | --- | --- |
@@ -171,7 +174,7 @@ GPU attempt, is gated and not started.
 | W3 | CPU determinism across configurations | Measured. `.agent/evidence/wave_c/c-core-19-cpu-determinism-across-configurations.md`. |
 | W4 | Prescribed exam environment | Declared and published: `docs/development/VALIDATOR_EXAM_ENVIRONMENT.md`. Declared, not qualified. |
 | W5 | Gate margin analysis | `.agent/evidence/wave_c/c-core-19-gate-margin-analysis.md`. No threshold changed. |
-| W6 | First GPU attempt | **Not started.** Prepared in `.agent/plans/C-CORE-19_first_gpu_attempt_preparation.md`. 0 of 4 attempts consumed. |
+| W6 | First GPU attempt | **Withdrawn — none planned.** `.agent/plans/C-CORE-19_no_local_gpu_attempt.md`. 0 of 4 attempts consumed. |
 
 **W3 returned a finding that outranks the GPU programme.** The same registered
 strategy under identical R0 identities produces different trained weights
