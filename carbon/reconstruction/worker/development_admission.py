@@ -29,7 +29,7 @@ import math
 import os
 import re
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 from pathlib import Path
 
 from carbon.reconstruction.accelerators import GPU_PROFILE, AcceleratorRole
@@ -54,6 +54,8 @@ ATTEMPT_DIRECTORY = "development-attempts"
 DEVELOPMENT_ALLOCATION = "TASK_OWNED_NOT_EXCLUSIVE"
 DEVELOPMENT_HOST_USE = "SHARED_HOST_EXCLUSIVITY_UNESTABLISHED"
 DEVELOPMENT_CLEANUP = "TASK_OWNED_RESOURCE_REMOVAL_ONLY"
+
+REGISTERED_OPERATIONS = frozenset({"registered_trainer_fit"})
 
 ATTEMPT_RESERVED = "RESERVED"
 ATTEMPT_COMPLETED = "COMPLETED"
@@ -80,6 +82,7 @@ REQUIRED_FIELDS = frozenset(
         "image_id",
         "plan_digest",
         "input_digest",
+        "operation",
         "expires_unix",
         "attempt_budget",
         "limits",
@@ -197,6 +200,9 @@ class DevelopmentHostApproval:
 
         exact_digest(doc["plan_digest"])
         exact_digest(doc["input_digest"])
+        # The approved operation is part of the authority, not a caller choice.
+        if doc["operation"] not in REGISTERED_OPERATIONS:
+            raise WorkerFailure(WorkerCode.POLICY)
         _positive_int(doc["attempt_budget"])
 
         limits = doc["limits"]
@@ -415,3 +421,72 @@ class LocalDiagnosticRequest:
         if self.plan_digest == self.input_digest:
             # Two distinct identities; one may never stand in for the other.
             raise WorkerFailure(WorkerCode.POLICY)
+
+
+DIAGNOSTIC_PLAN_SCHEMA = "carbon.accelerator-development-diagnostic-plan.v1"
+
+
+def diagnostic_plan_identity(
+    *,
+    construction_plan_digest: str,
+    training_archive_digest: str,
+    training_archive_provenance: str,
+    training_archive_role: str,
+    image: WorkerImageIdentity,
+    profile_digest: str,
+    role: AcceleratorRole,
+    operation: str,
+    limits: dict,
+) -> tuple[str, dict]:
+    """Derive the diagnostic-plan identity from the work itself.
+
+    The digest is computed from validated execution content and the resolved
+    controls, never from a caller-supplied string. A selector that merely echoes
+    a well-formed digest cannot authorize work whose recipe, inputs, image, role,
+    operation or limits differ, because a different body yields a different
+    identity.
+
+    This is deliberately distinct from the construction-plan digest, which
+    identifies the scientific recipe, and from the approval-record digest, which
+    identifies the authority. The construction-plan digest is an *input* here.
+    """
+    from carbon.development_session.profile import canonical
+
+    if type(image) is not WorkerImageIdentity:
+        raise WorkerFailure(WorkerCode.POLICY)
+    if type(role) is not AcceleratorRole:
+        raise WorkerFailure(WorkerCode.POLICY)
+    if operation not in REGISTERED_OPERATIONS:
+        raise WorkerFailure(WorkerCode.POLICY)
+    for value in (construction_plan_digest, training_archive_digest, profile_digest):
+        if type(value) is not str or not _DIGEST.fullmatch(value):
+            raise WorkerFailure(WorkerCode.POLICY)
+    if type(training_archive_provenance) is not str or not training_archive_provenance:
+        raise WorkerFailure(WorkerCode.POLICY)
+    if training_archive_role != "TRAIN":
+        # A local diagnostic never reads an evaluation or protected cohort.
+        raise WorkerFailure(WorkerCode.POLICY)
+    if type(limits) is not dict or set(limits) != REQUIRED_LIMITS:
+        raise WorkerFailure(WorkerCode.POLICY)
+
+    body = {
+        "schema": DIAGNOSTIC_PLAN_SCHEMA,
+        "construction_plan_digest": construction_plan_digest,
+        "training_archive": {
+            "digest": training_archive_digest,
+            "provenance": training_archive_provenance,
+            "role": training_archive_role,
+        },
+        # The whole image identity, not a chosen subset: binding only image_id
+        # would assume it already covers the component digests, and a record
+        # carrying the same id with a different wheel or entrypoint would pass.
+        "image": {
+            field.name: getattr(image, field.name)
+            for field in sorted(fields(image), key=lambda f: f.name)
+        },
+        "profile_digest": profile_digest,
+        "role": role.value,
+        "operation": operation,
+        "limits": {key: limits[key] for key in sorted(limits)},
+    }
+    return tagged_sha256(canonical(body)), body

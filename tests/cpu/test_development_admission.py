@@ -67,6 +67,7 @@ def _document(root, image, **overrides):
         "image_id": image.image_id,
         "plan_digest": PLAN,
         "input_digest": INPUT,
+        "operation": "registered_trainer_fit",
         "expires_unix": 100000.0,
         "attempt_budget": 4,
         "limits": _limits(),

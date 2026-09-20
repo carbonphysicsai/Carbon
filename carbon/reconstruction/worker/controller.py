@@ -258,6 +258,7 @@ class IsolatedReconstructionController:
             DevelopmentAttemptJournal,
             DevelopmentHostApproval,
             LocalDiagnosticRequest,
+            diagnostic_plan_identity,
             require_development_approval,
         )
         from carbon.reconstruction.worker.model import LOCAL_DEVELOPMENT_AUTHORITY
@@ -267,15 +268,40 @@ class IsolatedReconstructionController:
 
         approval = require_development_approval(DevelopmentHostApproval.load())
         principal = claimed.binding.requester_identity.value
+
+        # Derive the diagnostic-plan identity from the work actually about to
+        # run, not from the selector's string. A selector that echoes a
+        # well-formed digest cannot authorize a different recipe, input archive,
+        # image, role, operation or limit set, because the derived body differs.
+        plan = options.get("plan")
+        archive = options.get("training_archive")
+        if plan is None or archive is None:
+            raise WorkerFailure(WorkerCode.INVALID)
+        derived_digest, _ = diagnostic_plan_identity(
+            construction_plan_digest=plan.to_ref().content_digest,
+            training_archive_digest=archive.content_digest,
+            training_archive_provenance=archive.provenance,
+            training_archive_role=archive.role,
+            image=self.image,
+            profile_digest=GPU_PROFILE.digest,
+            role=accelerator_role,
+            operation=approval.document["operation"],
+            limits=approval.document["limits"],
+        )
+        # The selector, the approval and the real work must all agree.
+        if derived_digest != local_diagnostic.plan_digest:
+            raise WorkerFailure(WorkerCode.POLICY)
         approval.verify(
             principal=principal,
             state_root=self.state_root,
             image=self.image,
             role=accelerator_role,
-            plan_digest=local_diagnostic.plan_digest,
-            input_digest=local_diagnostic.input_digest,
+            plan_digest=derived_digest,
+            input_digest=archive.content_digest,
             now=float(time.time()),
         )
+        if local_diagnostic.input_digest != archive.content_digest:
+            raise WorkerFailure(WorkerCode.POLICY)
         identity = replica.binding.replicate_identity
 
         # Reserve the attempt durably before any container can be created, so a
@@ -283,7 +309,7 @@ class IsolatedReconstructionController:
         journal = DevelopmentAttemptJournal()
         journal.reserve(
             nonce=local_diagnostic.nonce,
-            plan_digest=local_diagnostic.plan_digest,
+            plan_digest=derived_digest,
             budget=approval.document["attempt_budget"],
             now=float(time.time()),
         )
@@ -297,7 +323,7 @@ class IsolatedReconstructionController:
             approval.digest,
             accelerator_role.value,
             LOCAL_DEVELOPMENT_AUTHORITY,
-            local_diagnostic.plan_digest,
+            derived_digest,
         )
 
         def still_owned():
@@ -306,8 +332,8 @@ class IsolatedReconstructionController:
                 state_root=self.state_root,
                 image=self.image,
                 role=accelerator_role,
-                plan_digest=local_diagnostic.plan_digest,
-                input_digest=local_diagnostic.input_digest,
+                plan_digest=derived_digest,
+                input_digest=archive.content_digest,
                 now=float(time.time()),
             )
             if cancelled is None:

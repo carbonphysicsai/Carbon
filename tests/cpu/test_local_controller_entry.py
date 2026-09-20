@@ -19,11 +19,14 @@ from dataclasses import replace
 from pathlib import Path
 from types import SimpleNamespace
 
+import c02_fixtures
 import pytest
+from test_accelerator_worker import _gpu_fixture
 from test_c03_worker_contract import _image, _sha
 
 from carbon.development_session.profile import canonical
 from carbon.reconstruction.accelerators import GPU_PROFILE, AcceleratorRole
+from carbon.reconstruction.model import PublicTrainingArchive
 from carbon.reconstruction.worker import accelerator_runtime as runtime
 from carbon.reconstruction.worker import development_admission as dev
 from carbon.reconstruction.worker.model import (
@@ -31,6 +34,11 @@ from carbon.reconstruction.worker.model import (
     WorkerCode,
     WorkerFailure,
 )
+
+# Captured at import, before any fixture patches it: `_gpu_fixture` *appends*
+# accelerator pins to whatever is installed, so a second call inside a test
+# must start from the pristine list or the plan gets duplicate pins.
+PRISTINE_DEPENDENCY_SPECS = c02_fixtures.DEPENDENCY_SPECS
 
 PLAN_DIGEST = _sha("5")
 INPUT_DIGEST = _sha("6")
@@ -61,11 +69,26 @@ def host(tmp_path, monkeypatch):
 
 
 @pytest.fixture
-def approved(host, tmp_path):
-    """An installed development approval, and no strict grant anywhere."""
+def approved(host, tmp_path, monkeypatch):
+    """An installed development approval bound to real work, and no strict grant."""
     image = replace(_image(), lock_digest=GPU_PROFILE.environment_lock_digest)
+    work_root = tmp_path / "work"
+    work_root.mkdir(parents=True, exist_ok=True)
+    _, _, _, plan, archive, _, _ = _gpu_fixture(work_root, monkeypatch)
+    work = {"plan": plan, "training_archive": archive}
     controller_root = (tmp_path / "controller").resolve()
     controller_root.mkdir(parents=True, exist_ok=True)
+    derived, _ = dev.diagnostic_plan_identity(
+        construction_plan_digest=plan.to_ref().content_digest,
+        training_archive_digest=archive.content_digest,
+        training_archive_provenance=archive.provenance,
+        training_archive_role=archive.role,
+        image=image,
+        profile_digest=GPU_PROFILE.digest,
+        role=AcceleratorRole.MINER_RESEARCH,
+        operation="registered_trainer_fit",
+        limits=_limits(),
+    )
     document = {
         "schema": dev.DEVELOPMENT_SCHEMA,
         "status": "APPROVED",
@@ -81,8 +104,9 @@ def approved(host, tmp_path):
         "execution_profile_digest": GPU_PROFILE.digest,
         "environment_lock_digest": GPU_PROFILE.environment_lock_digest,
         "image_id": image.image_id,
-        "plan_digest": PLAN_DIGEST,
-        "input_digest": INPUT_DIGEST,
+        "plan_digest": derived,
+        "input_digest": archive.content_digest,
+        "operation": "registered_trainer_fit",
         # The controller uses real wall-clock time, so the approval must be
         # valid now and for the whole attempt it authorizes.
         "expires_unix": time.time() + 7200.0,
@@ -97,14 +121,24 @@ def approved(host, tmp_path):
     path.chmod(0o600)
     assert not (host / "grant.json").exists()
     return SimpleNamespace(
-        host=host, image=image, controller_root=controller_root, document=document
+        host=host,
+        image=image,
+        controller_root=controller_root,
+        document=document,
+        work=work,
+        derived=derived,
     )
 
 
-def _request(**overrides):
+def _request(approved=None, **overrides):
+    """The selector an operator tool would build, echoing the derived identity."""
     values = {
-        "plan_digest": PLAN_DIGEST,
-        "input_digest": INPUT_DIGEST,
+        "plan_digest": approved.derived if approved else PLAN_DIGEST,
+        "input_digest": (
+            approved.work["training_archive"].content_digest
+            if approved
+            else INPUT_DIGEST
+        ),
         "nonce": NONCE,
     }
     values.update(overrides)
@@ -156,11 +190,15 @@ def _claimed_and_replica():
     return claimed, replica
 
 
-def _run(controller, approved, monkeypatch, request=None, role=None):
+def _run(controller, approved, monkeypatch, request=None, role=None, work=None):
     claimed, replica = _claimed_and_replica()
     return controller._execute_local_diagnostic(
-        options={},
-        local_diagnostic=request if request is not None else _request(),
+        options=work if work is not None else getattr(approved, "work", {}),
+        local_diagnostic=(
+            request
+            if request is not None
+            else _request(approved if getattr(approved, "work", None) else None)
+        ),
         accelerator_role=role or AcceleratorRole.MINER_RESEARCH,
         claimed=claimed,
         replica=replica,
@@ -177,9 +215,11 @@ def test_valid_local_approval_reaches_the_launch_handoff(approved, monkeypatch):
         _run(controller, approved, monkeypatch)
     profile = reached.value.args[0]["worker_profile"]
     assert profile.accelerator_authority == LOCAL_DEVELOPMENT_AUTHORITY
-    assert profile.accelerator_plan_digest == PLAN_DIGEST
+    # The plan digest the worker sees is the one derived from the real work,
+    # not a value the caller supplied.
+    assert profile.accelerator_plan_digest == approved.derived
     # The authority record digest, distinct from the plan it authorizes.
-    assert profile.accelerator_grant_digest != PLAN_DIGEST
+    assert profile.accelerator_grant_digest != approved.derived
     assert not (approved.host / "grant.json").exists()
 
 
@@ -229,14 +269,150 @@ def test_a_missing_approval_rejects(host, tmp_path, monkeypatch):
         {"input_digest": _sha("7")},
     ],
 )
-def test_cross_plan_or_cross_input_binding_rejects(
-    approved, monkeypatch, request_override
-):
-    """A correctly formatted digest is not authority; it must match the record."""
+def test_a_mismatched_selector_rejects(approved, monkeypatch, request_override):
+    """A correctly formatted digest is not authority; it must match the work."""
     controller = _controller(approved, monkeypatch)
     with pytest.raises(WorkerFailure) as error:
-        _run(controller, approved, monkeypatch, request=_request(**request_override))
+        _run(
+            controller,
+            approved,
+            monkeypatch,
+            request=_request(approved, **request_override),
+        )
     assert error.value.code is WorkerCode.POLICY
+    assert dev.DevelopmentAttemptJournal(approved.host).consumed() == 0
+
+
+def _other_plan(root):
+    """A genuinely different recipe: the catalog's other admissible backbone.
+
+    `deeponet` is an allowed row of the same closed compatibility table as the
+    fixture's `fno`, so this is a real accepted compile, not a mutated object.
+    The outer fixture's accelerator dependency pins stay installed, so the
+    resolved plan differs only in the work it describes.
+    """
+    return c02_fixtures.compile_c02_plan(
+        root, backbone="deeponet", environment_digest=GPU_PROFILE.digest
+    )
+
+
+def _other_archive(root, *, payload, provenance):
+    source = root / f"train-{provenance}-{len(payload)}.npz"
+    source.write_bytes(payload)
+    return PublicTrainingArchive.from_file(source, provenance=provenance)
+
+
+@pytest.mark.parametrize("substitute", ["recipe", "input_bytes", "provenance"])
+def test_substituted_real_work_rejects_with_approval_and_selector_unchanged(
+    approved, monkeypatch, tmp_path, substitute
+):
+    """The §4 case: hold authority and selector fixed, change the real work.
+
+    Every substitution here is a real compiled plan or a real archive built from
+    real bytes, not a stand-in, so the rejection is the controller's own
+    derivation disagreeing with the approved identity.
+    """
+    other_root = tmp_path / "other-work"
+    other_root.mkdir(parents=True, exist_ok=True)
+    approved_archive = approved.work["training_archive"]
+    work = dict(approved.work)
+
+    if substitute == "recipe":
+        work["plan"] = _other_plan(other_root)
+        assert (
+            work["plan"].to_ref().content_digest
+            != approved.work["plan"].to_ref().content_digest
+        ), "the substitution must be genuinely different work"
+    elif substitute == "input_bytes":
+        work["training_archive"] = _other_archive(
+            other_root,
+            payload=b"different public synthetic TRAIN bytes",
+            provenance=approved_archive.provenance,
+        )
+        assert (
+            work["training_archive"].content_digest != approved_archive.content_digest
+        )
+    else:
+        # The sharpest case: byte-identical input, different provenance. The
+        # selector's input digest still matches, so only the derived plan
+        # identity can catch it.
+        work["training_archive"] = _other_archive(
+            other_root,
+            payload=b"public synthetic TRAIN bytes",
+            provenance="other_public_fixture",
+        )
+        assert (
+            work["training_archive"].content_digest == approved_archive.content_digest
+        )
+        assert work["training_archive"].provenance != approved_archive.provenance
+
+    controller = _controller(approved, monkeypatch)
+    with pytest.raises(WorkerFailure) as error:
+        _run(controller, approved, monkeypatch, work=work)
+    assert error.value.code is WorkerCode.POLICY
+    assert dev.DevelopmentAttemptJournal(approved.host).consumed() == 0
+
+
+@pytest.mark.parametrize(
+    "swap",
+    [
+        # image_id and config_digest are constrained to match, so a different
+        # built image moves both.
+        {"image_id": _sha("9"), "config_digest": _sha("9")},
+        {"source_tree_digest": _sha("9")},
+        {"lock_digest": _sha("9")},
+        {"wheel_digest": _sha("9")},
+        {"base_image_digest": _sha("9")},
+        {"build_recipe_digest": _sha("9")},
+        {"entrypoint_digest": _sha("9")},
+    ],
+)
+def test_a_substituted_image_rejects_before_any_reservation(
+    approved, monkeypatch, swap
+):
+    """The image is bound into the identity, so a swapped build cannot run."""
+    swapped = replace(approved.image, **swap)
+    assert swapped != approved.image, "the swap must change the image"
+    controller = _controller(approved, monkeypatch)
+    object.__setattr__(controller, "image", swapped)
+    with pytest.raises(WorkerFailure) as error:
+        _run(controller, approved, monkeypatch)
+    assert error.value.code is WorkerCode.POLICY
+    assert dev.DevelopmentAttemptJournal(approved.host).consumed() == 0
+
+
+def test_altered_limits_break_the_derived_identity(approved, monkeypatch):
+    """Relaxing a limit in the record changes what the record authorizes."""
+    limits = {**_limits(), "training_steps": 64}
+    document = {**approved.document, "limits": limits}
+    path = approved.host / dev.DEVELOPMENT_RECORD
+    path.write_bytes(canonical(document))
+    path.chmod(0o600)
+    controller = _controller(approved, monkeypatch)
+    with pytest.raises(WorkerFailure) as error:
+        _run(controller, approved, monkeypatch)
+    assert error.value.code is WorkerCode.POLICY
+    assert dev.DevelopmentAttemptJournal(approved.host).consumed() == 0
+
+
+def test_an_unregistered_operation_is_refused_at_load(approved, monkeypatch):
+    """The operation is part of the authority, not a caller-selected string."""
+    document = {**approved.document, "operation": "arbitrary_python"}
+    path = approved.host / dev.DEVELOPMENT_RECORD
+    path.write_bytes(canonical(document))
+    path.chmod(0o600)
+    controller = _controller(approved, monkeypatch)
+    with pytest.raises(WorkerFailure) as error:
+        _run(controller, approved, monkeypatch)
+    assert error.value.code is WorkerCode.POLICY
+    assert dev.DevelopmentAttemptJournal(approved.host).consumed() == 0
+
+
+def test_missing_work_rejects_before_any_reservation(approved, monkeypatch):
+    controller = _controller(approved, monkeypatch)
+    with pytest.raises(WorkerFailure) as error:
+        _run(controller, approved, monkeypatch, work={})
+    assert error.value.code is WorkerCode.INVALID
     assert dev.DevelopmentAttemptJournal(approved.host).consumed() == 0
 
 
