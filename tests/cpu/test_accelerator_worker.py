@@ -5,19 +5,27 @@ from dataclasses import replace
 from pathlib import Path
 from types import SimpleNamespace
 
+import accelerator_host
 import pytest
 from test_c03_worker_contract import _fixture, _image, _sha
 
 from carbon.development_session.profile import canonical
-from carbon.reconstruction.accelerators import GPU_PROFILE, AcceleratorRole
+from carbon.reconstruction.accelerators import (
+    GPU_PROFILE,
+    RTX3060_LAPTOP_PROFILE,
+    AcceleratorRole,
+)
 from carbon.reconstruction.worker import accelerator_runtime as runtime
 from carbon.reconstruction.worker.controller import IsolatedReconstructionController
 from carbon.reconstruction.worker.docker_runtime import create_arguments
 from carbon.reconstruction.worker.model import (
+    STRICT_HOST_GRANT_AUTHORITY,
     DevelopmentWorkerProfile,
     WorkerCode,
     WorkerFailure,
 )
+
+DEVICE_UUID = accelerator_host.HOSTS[accelerator_host.DEFAULT_SHAPE]["device_uuid"]
 
 
 def _profile():
@@ -29,14 +37,19 @@ def _profile():
         GPU_PROFILE.profile_id,
         _sha("4"),
         AcceleratorRole.MINER_RESEARCH.value,
+        None,
+        None,
+        DEVICE_UUID,
     )
 
 
 @pytest.fixture
 def host_grant(tmp_path, monkeypatch):
     root = tmp_path / "host"
-    root.mkdir(mode=0o700)
+    root.mkdir(mode=0o700, exist_ok=True)
     monkeypatch.setattr(runtime, "HOST_ROOT", root)
+    # Which device this host has is installed evidence, not a source constant.
+    accelerator_host.install(root)
     image = replace(_image(), lock_digest=GPU_PROFILE.environment_lock_digest)
     document = {
         "schema": runtime.GRANT_SCHEMA,
@@ -47,7 +60,7 @@ def host_grant(tmp_path, monkeypatch):
         "controller_root": str(tmp_path / "controller"),
         "principal": "fixture-principal",
         "roles": [AcceleratorRole.MINER_RESEARCH.value],
-        "device_uuid": GPU_PROFILE.device_uuid,
+        "device_uuid": DEVICE_UUID,
         "execution_profile_digest": GPU_PROFILE.digest,
         "image_id": image.image_id,
         "resource_policy_digest": _sha("2"),
@@ -118,7 +131,11 @@ def test_quarantine_survives_new_admission_object(host_grant):
 def test_allocation_intent_survives_controller_loss_and_only_exact_cleanup_clears_it(
     host_grant, monkeypatch
 ):
-    runtime.mark_device_allocation(container_name="fixture", launch_digest=_sha("1"))
+    runtime.mark_device_allocation(
+        container_name="fixture",
+        launch_digest=_sha("1"),
+        authority=STRICT_HOST_GRANT_AUTHORITY,
+    )
     with pytest.raises(WorkerFailure):
         runtime.reject_existing_device_containers(cli=SimpleNamespace())
     assert runtime.owns_device_allocation(
@@ -141,7 +158,11 @@ def test_watchdog_reconciles_removed_container_before_releasing_device_intent(
 ):
     from carbon.reconstruction.worker.docker_runtime import remove_exact_container
 
-    runtime.mark_device_allocation(container_name="fixture", launch_digest=_sha("1"))
+    runtime.mark_device_allocation(
+        container_name="fixture",
+        launch_digest=_sha("1"),
+        authority=STRICT_HOST_GRANT_AUTHORITY,
+    )
     observed = []
 
     def absent(command):
@@ -164,7 +185,12 @@ def test_watchdog_reconciles_removed_container_before_releasing_device_intent(
     assert not (host_grant[0].parent / "active-allocation.json").exists()
 
 
-def test_device_requests_are_exact_and_cpu_remains_without_devices(tmp_path):
+def test_device_requests_are_exact_and_cpu_remains_without_devices(
+    tmp_path, monkeypatch
+):
+    root = tmp_path / "host"
+    monkeypatch.setattr(runtime, "HOST_ROOT", root)
+    accelerator_host.install(root)
     options = {
         "container_name": "fixture",
         "image_id": _image().image_id,
@@ -177,12 +203,25 @@ def test_device_requests_are_exact_and_cpu_remains_without_devices(tmp_path):
     )
     gpu = create_arguments(**options, worker_profile=_profile())
     assert "--gpus" not in cpu and "--runtime" not in cpu
-    assert "device=" + GPU_PROFILE.device_uuid in gpu
+    assert "device=" + DEVICE_UUID in gpu
     assert "JAX_PLATFORMS=cuda" in gpu
     assert "JAX_PLATFORMS=cpu" not in gpu
     assert "--network" in gpu and gpu[gpu.index("--network") + 1] == "none"
-    assert runtime.device_request()["DeviceIDs"] == [GPU_PROFILE.device_uuid]
+    assert runtime.device_request()["DeviceIDs"] == [DEVICE_UUID]
     assert _profile().body["schema"] == "carbon.c03.development-worker-profile.v2"
+
+    # A launch bound to a device this host does not have is refused, so a
+    # profile carried over from another machine cannot dispatch here.
+    from dataclasses import replace as _replace
+
+    elsewhere = _replace(
+        _profile(),
+        accelerator_device_uuid=accelerator_host.HOSTS["workstation_linux"][
+            "device_uuid"
+        ],
+    )
+    with pytest.raises(WorkerFailure):
+        create_arguments(**options, worker_profile=elsewhere)
 
 
 class MetadataCLI:
@@ -215,10 +254,8 @@ def test_image_lock_labels_and_toolkit_are_all_required(host_grant):
 def test_observation_rejects_other_gpu_display_driver_and_foreign_compute(
     change, monkeypatch
 ):
-    row = (
-        f"{GPU_PROFILE.device_uuid}, {GPU_PROFILE.device_kind}, 581.95, 6144, Disabled"
-    )
-    row = row.replace(GPU_PROFILE.device_uuid, "GPU-other") if change == "uuid" else row
+    row = accelerator_host.identity_row()
+    row = row.replace(DEVICE_UUID, "GPU-other") if change == "uuid" else row
     row = row.replace("Disabled", "Enabled") if change == "display" else row
     row = row.replace("581.95", "580.00") if change == "driver" else row
 
@@ -303,9 +340,54 @@ def test_closed_gpu_protocol_roundtrip_and_cpu_request_schema(tmp_path, monkeypa
     )
     _, loaded_plan, _, _, _ = load_worker_request(stage)
     request = json.loads((stage / "request.json").read_bytes())
-    assert request["schema"] == "carbon.c03.worker-request.v2"
+    # Naming the device is a different accelerator body, so it is a different
+    # request version. v2 is not reused for it: see the test below, which is
+    # the shape v2 was accepted with.
+    assert request["schema"] == "carbon.c03.worker-request.v5"
+    assert set(request["accelerator"]) == {
+        "profile_id",
+        "grant_digest",
+        "role",
+        "device_uuid",
+    }
     assert request["accelerator"]["role"] == AcceleratorRole.MINER_RESEARCH.value
     assert loaded_plan.to_ref() == plan.to_ref()
+
+
+def test_new_work_cannot_be_staged_under_a_retained_profile(tmp_path, monkeypatch):
+    """Retention lets an old record be read. It does not let new work be made.
+
+    A request already written under the historical profile still loads - that is
+    covered against main's own bytes in
+    `tests/cpu/test_accelerator_baseline_compatibility.py`. Staging is the other
+    direction: producing new work, which a retained profile must never do.
+    """
+    from carbon.reconstruction.model import ReconstructionFailure
+    from carbon.reconstruction.worker.protocol import stage_request
+
+    claimed, repeat, replica, plan, archive, seed, _ = _gpu_fixture(
+        tmp_path, monkeypatch
+    )
+    retained = DevelopmentWorkerProfile(
+        _sha("2"),
+        _sha("3"),
+        "carbon.c03.cuda.development.v1",
+        "1.0",
+        RTX3060_LAPTOP_PROFILE.profile_id,
+        _sha("4"),
+        AcceleratorRole.MINER_RESEARCH.value,
+    )
+    with pytest.raises((ReconstructionFailure, WorkerFailure, ValueError)):
+        stage_request(
+            stage_root=tmp_path / "staging",
+            claimed=claimed,
+            repeat_plan=repeat,
+            replica=replica,
+            plan=plan,
+            training_archive=archive,
+            derived_seed=seed,
+            worker_profile=retained,
+        )
 
 
 def test_controller_routes_only_matching_private_grant_under_exclusive_lease(

@@ -19,7 +19,7 @@ from carbon.construction import (
 )
 from carbon.execution import ClaimedExecution, ExecutionAttemptRef, ExecutionScope
 from carbon.fees import AdmissionKind, SubmissionId
-from carbon.reconstruction.accelerators import require_reconstruction_profile_admission
+from carbon.reconstruction.accelerators import require_profile_admission
 from carbon.reconstruction.model import (
     PublicTrainingArchive,
     ReconstructionFailure,
@@ -416,7 +416,7 @@ def stage_request(
     if randomness_digest != replica.randomness_digest:
         raise WorkerFailure(WorkerCode.POLICY)
     profile = compile_development_profile(plan)
-    require_reconstruction_profile_admission(profile, worker_profile=worker_profile)
+    require_profile_admission(profile, worker_profile=worker_profile)
     if (
         profile.plan_digest != plan_ref.content_digest
         or claimed.binding.reconstruction_policy_digest != profile.profile_digest
@@ -498,11 +498,33 @@ def stage_request(
         }
         if worker_profile.accelerator_profile_id is not None:
             request["schema"] = _accelerator_request_schema(worker_profile)
-            request["accelerator"] = {
-                "profile_id": worker_profile.accelerator_profile_id,
-                "grant_digest": worker_profile.accelerator_grant_digest,
-                "role": worker_profile.accelerator_role,
-            }
+            from carbon.reconstruction.worker.model import (
+                LOCAL_DEVELOPMENT_AUTHORITY,
+            )
+
+            if worker_profile.accelerator_authority == LOCAL_DEVELOPMENT_AUTHORITY:
+                # Distinct key and authority: a staged local request can never be
+                # read as a strict one by a consumer looking for grant_digest.
+                request["accelerator"] = {
+                    "profile_id": worker_profile.accelerator_profile_id,
+                    "authority": LOCAL_DEVELOPMENT_AUTHORITY,
+                    "approval_digest": worker_profile.accelerator_grant_digest,
+                    "diagnostic_plan_digest": worker_profile.accelerator_plan_digest,
+                    "role": worker_profile.accelerator_role,
+                    "device_uuid": worker_profile.accelerator_device_uuid,
+                }
+            else:
+                request["accelerator"] = {
+                    "profile_id": worker_profile.accelerator_profile_id,
+                    "grant_digest": worker_profile.accelerator_grant_digest,
+                    "role": worker_profile.accelerator_role,
+                }
+                # The TPU preparation profile dispatches nothing and is bound to
+                # no device, so its block stays exactly as it was.
+                if worker_profile.accelerator_device_uuid is not None:
+                    request["accelerator"][
+                        "device_uuid"
+                    ] = worker_profile.accelerator_device_uuid
         payload = _canonical(request) + b"\n"
         if len(payload) > CONTROL_BYTES:
             raise WorkerFailure(WorkerCode.STAGING)
@@ -529,14 +551,49 @@ def stage_request(
         raise
 
 
+def _permitted_request_schemas(request):
+    """Pair the request schema with the authority its accelerator block declares.
+
+    The pairing is closed in both directions: a CPU request is v1, a strict
+    accelerator request is v2 (historical, device-free), v3 (TPU) or v5 (with a
+    named device), and a local development request is v4. A local block
+    presented under a strict schema, or a strict block under the local schema,
+    matches nothing and is refused.
+    """
+    from carbon.reconstruction.worker.model import LOCAL_DEVELOPMENT_AUTHORITY
+
+    accelerator = request.get("accelerator")
+    if accelerator is None:
+        return ("carbon.c03.worker-request.v1",)
+    if (
+        type(accelerator) is dict
+        and accelerator.get("authority") == LOCAL_DEVELOPMENT_AUTHORITY
+    ):
+        return ("carbon.c03.worker-request.v4",)
+    return (
+        "carbon.c03.worker-request.v2",
+        "carbon.c03.worker-request.v3",
+        "carbon.c03.worker-request.v5",
+    )
+
+
 def _accelerator_request_schema(profile):
     from carbon.reconstruction.accelerators import TPU_PROFILE
+    from carbon.reconstruction.worker.model import LOCAL_DEVELOPMENT_AUTHORITY
 
-    return (
-        "carbon.c03.worker-request.v3"
-        if profile.accelerator_profile_id == TPU_PROFILE.profile_id
-        else "carbon.c03.worker-request.v2"
-    )
+    if profile.accelerator_profile_id == TPU_PROFILE.profile_id:
+        return "carbon.c03.worker-request.v3"
+    if profile.accelerator_authority == LOCAL_DEVELOPMENT_AUTHORITY:
+        # A closed, separately versioned request form.
+        return "carbon.c03.worker-request.v4"
+    if profile.accelerator_device_uuid is not None:
+        # Naming the device added a field to the strict block. That is a
+        # different body, so it gets a different version rather than being
+        # served under v2 - a reader that accepts v2 must keep getting what v2
+        # meant when it was accepted.
+        return "carbon.c03.worker-request.v5"
+    # The strict block exactly as main accepted it: profile, grant and role.
+    return "carbon.c03.worker-request.v2"
 
 
 def _request_worker_profile(request):
@@ -546,27 +603,78 @@ def _request_worker_profile(request):
         return DevelopmentWorkerProfile(
             replicate["policy_digest"], replicate["resource_class_digest"]
         )
-    if type(accelerator) is not dict or set(accelerator) != {
-        "profile_id",
-        "grant_digest",
-        "role",
-    }:
-        raise WorkerFailure(WorkerCode.INVALID)
     from carbon.reconstruction.accelerators import TPU_PROFILE
+    from carbon.reconstruction.worker.model import LOCAL_DEVELOPMENT_AUTHORITY
 
-    profile = DevelopmentWorkerProfile(
-        replicate["policy_digest"],
-        replicate["resource_class_digest"],
-        (
-            "carbon.c03.tpu.preparation.v1"
-            if accelerator["profile_id"] == TPU_PROFILE.profile_id
-            else "carbon.c03.cuda.development.v1"
-        ),
-        "1.0",
-        accelerator["profile_id"],
-        accelerator["grant_digest"],
-        accelerator["role"],
-    )
+    if type(accelerator) is not dict:
+        raise WorkerFailure(WorkerCode.INVALID)
+    local_fields = {
+        "profile_id",
+        "authority",
+        "approval_digest",
+        "diagnostic_plan_digest",
+        "role",
+        "device_uuid",
+    }
+    # Two closed strict shapes, paired with the profile below: a device-backed
+    # GPU launch names its device, and the device-free TPU preparation profile
+    # must not be able to name one.
+    strict_device_fields = {"profile_id", "grant_digest", "role", "device_uuid"}
+    strict_fields = {"profile_id", "grant_digest", "role"}
+    if set(accelerator) == local_fields:
+        if accelerator["authority"] != LOCAL_DEVELOPMENT_AUTHORITY:
+            raise WorkerFailure(WorkerCode.INVALID)
+        profile = DevelopmentWorkerProfile(
+            replicate["policy_digest"],
+            replicate["resource_class_digest"],
+            "carbon.c03.cuda.development.v1",
+            "1.0",
+            accelerator["profile_id"],
+            accelerator["approval_digest"],
+            accelerator["role"],
+            LOCAL_DEVELOPMENT_AUTHORITY,
+            accelerator["diagnostic_plan_digest"],
+            accelerator["device_uuid"],
+        )
+    elif set(accelerator) == strict_device_fields:
+        # The device-naming strict shape. The device-free TPU preparation
+        # profile must not be able to name a device.
+        if accelerator["profile_id"] == TPU_PROFILE.profile_id:
+            raise WorkerFailure(WorkerCode.INVALID)
+        profile = DevelopmentWorkerProfile(
+            replicate["policy_digest"],
+            replicate["resource_class_digest"],
+            "carbon.c03.cuda.development.v1",
+            "1.0",
+            accelerator["profile_id"],
+            accelerator["grant_digest"],
+            accelerator["role"],
+            None,
+            None,
+            accelerator["device_uuid"],
+        )
+    elif set(accelerator) == strict_fields:
+        # The historical strict block, accepted on main for both the TPU
+        # preparation profile and a GPU launch. A GPU request in this shape
+        # names no device and is read as exactly what it was: a strict launch
+        # that predates the device field. It is not upgraded, not given a
+        # device, and not reclassified as a development request.
+        is_tpu = accelerator["profile_id"] == TPU_PROFILE.profile_id
+        profile = DevelopmentWorkerProfile(
+            replicate["policy_digest"],
+            replicate["resource_class_digest"],
+            (
+                "carbon.c03.tpu.preparation.v1"
+                if is_tpu
+                else "carbon.c03.cuda.development.v1"
+            ),
+            "1.0",
+            accelerator["profile_id"],
+            accelerator["grant_digest"],
+            accelerator["role"],
+        )
+    else:
+        raise WorkerFailure(WorkerCode.INVALID)
     if request["schema"] != _accelerator_request_schema(profile):
         raise WorkerFailure(WorkerCode.INVALID)
     return profile
@@ -588,15 +696,9 @@ def load_worker_request(
         _REQUEST_FIELDS | {"accelerator"},
     )
     try:
-        if (
-            request["schema"]
-            not in (
-                ("carbon.c03.worker-request.v2", "carbon.c03.worker-request.v3")
-                if "accelerator" in request
-                else ("carbon.c03.worker-request.v1",)
-            )
-            or request["scope"] != SCOPE
-        ):
+        if request["schema"] not in _permitted_request_schemas(request):
+            raise WorkerFailure(WorkerCode.INVALID)
+        if request["scope"] != SCOPE:
             raise WorkerFailure(WorkerCode.INVALID)
         paths = request["paths"]
         execution = request["execution"]
@@ -642,9 +744,7 @@ def load_worker_request(
             resolved["plan"].read_bytes(), expected_ref=plan_ref
         )
         profile = compile_development_profile(plan)
-        require_reconstruction_profile_admission(
-            profile, worker_profile=expected_worker_profile
-        )
+        require_profile_admission(profile, worker_profile=expected_worker_profile)
         if profile.profile_digest != request["reconstruction_profile_digest"]:
             raise WorkerFailure(WorkerCode.POLICY)
         split = request["continuation_split_step"]

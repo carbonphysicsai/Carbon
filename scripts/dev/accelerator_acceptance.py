@@ -168,6 +168,31 @@ def _exercise_training(
     return result
 
 
+def _proposed_environment(profile, role):
+    """The overlay this host would get, or why it cannot be shown.
+
+    The device-dependent part of the overlay comes from the installed host
+    record. Without one there is nothing to report and nothing to guess, so this
+    says so instead of printing a device identity from the source tree - there
+    is no longer one to print.
+    """
+    from carbon.reconstruction.host_inventory import (
+        HostDeviceRecord,
+        require_host_device,
+    )
+    from carbon.reconstruction.worker.accelerator_runtime import HOST_ROOT
+    from carbon.reconstruction.worker.model import WorkerFailure
+
+    try:
+        record = require_host_device(HostDeviceRecord.load(HOST_ROOT), profile)
+    except WorkerFailure:
+        return {
+            "status": "UNAVAILABLE_NO_BOUND_HOST_DEVICE_RECORD",
+            "host_device_record": str(HOST_ROOT / "host-device.json"),
+        }, None
+    return worker_environment(profile, role, host_device=record), record
+
+
 def run_registered_acceptance(profile_id: str, role: AcceleratorRole) -> None:
     """Fail before numerical imports until the existing controller admits this profile."""
     require_accelerator_admission(resolve_profile(profile_id), role)
@@ -184,13 +209,15 @@ def main(argv=None) -> int:
     args = parser.parse_args(argv)
     profile = resolve_profile(args.profile)
     role = AcceleratorRole(args.role)
+    environment, record = _proposed_environment(profile, role)
     print(
         json.dumps(
             {
                 "profile": profile.document(),
                 "profile_digest": profile.digest,
                 "role": role.value,
-                "proposed_worker_environment": worker_environment(profile, role),
+                "host_device_record_digest": None if record is None else record.digest,
+                "proposed_worker_environment": environment,
                 "dispatch": "DISABLED",
                 "existing_owner": "carbon.reconstruction.worker.controller",
                 "remaining": [

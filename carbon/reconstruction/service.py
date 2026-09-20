@@ -14,7 +14,7 @@ from pathlib import Path
 
 from carbon.construction import ResolvedConstructionPlan
 from carbon.execution import ExecutionAttemptRef
-from carbon.reconstruction.accelerators import require_reconstruction_profile_admission
+from carbon.reconstruction.accelerators import require_profile_admission
 from carbon.reconstruction.model import (
     EnvironmentEligibility,
     PredictionReceipt,
@@ -477,7 +477,7 @@ def reconstruct(
     if not isinstance(artifact_path, Path) or not artifact_path.is_absolute():
         raise ReconstructionFailure("reconstruction.artifact.path_invalid")
     profile = compile_development_profile(plan)
-    require_reconstruction_profile_admission(profile, worker_profile=worker_profile)
+    require_profile_admission(profile, worker_profile=worker_profile)
     accelerator = _mapped_accelerator(json.loads(profile.mapping_receipt_json))
     key_material = derived_seed.as_backend_bytes()
     randomness_digest = _tagged(key_material)
@@ -550,12 +550,19 @@ def reconstruct(
         from carbon.reconstruction.worker.backend_probe import probe_backend
 
         observation = probe_backend(accelerator.backend_request)
+        # Which device kind this run is bound to is stated by the controller
+        # from the installed host record. A worker that cannot see it must not
+        # fall back to accepting whatever the backend reports.
+        expected_device_kind = os.environ.get("CARBON_ACCELERATOR_DEVICE_KIND", "")
+        if not expected_device_kind:
+            raise ReconstructionFailure("reconstruction.runtime.environment_ineligible")
         validate_worker_observation(
             accelerator,
             observation,
             global_device_count=jax.device_count(backend=accelerator.backend.value),
             process_count=jax.process_count(backend=accelerator.backend.value),
             matmul_precision=jax.config.jax_default_matmul_precision,
+            expected_device_kind=expected_device_kind,
         )
         if any(
             importlib.metadata.version(name) != version

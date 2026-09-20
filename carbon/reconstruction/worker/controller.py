@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import platform
 import shutil
 import tempfile
@@ -40,9 +41,7 @@ from carbon.reconstruction.worker.docker_runtime import (
 )
 from carbon.reconstruction.worker.model import (
     CONTROL_BYTES,
-    OUTPUT_BYTES,
     OUTPUT_MEMBERS,
-    PRODUCTIVE_DEADLINE_SECONDS,
     DevelopmentWorkerProfile,
     WorkerCode,
     WorkerFailure,
@@ -82,6 +81,26 @@ def _host_id() -> str:
         for character in raw
     )
     return safe[:128] or "development-host"
+
+
+def _observed_output_bytes(result: object) -> int | None:
+    """The output this run actually retained, or None if it was never observed.
+
+    Read from the snapshot observation the export already records, so the batch
+    is charged with the same number the run reports rather than a second,
+    separately derived one. None - not zero - when the observation is absent:
+    an unobserved output keeps the attempt's reserved worst case.
+    """
+    observation = getattr(result, "resource_observation", None)
+    if type(observation) is not dict:
+        return None
+    snapshot = observation.get("output_snapshot")
+    if type(snapshot) is not dict:
+        return None
+    observed = snapshot.get("observed_bytes")
+    if type(observed) is not int or isinstance(observed, bool) or observed < 0:
+        return None
+    return observed
 
 
 @dataclass(frozen=True, slots=True)
@@ -133,6 +152,7 @@ class IsolatedReconstructionController:
         derived_seed: DerivedSeed,
         continuation_split_step: int | None = None,
         accelerator_role=None,
+        local_diagnostic=None,
         cancelled: Callable[[], bool] | None = None,
     ) -> WorkerRunResult:
         from carbon.reconstruction.accelerators import GPU_PROFILE, AcceleratorRole
@@ -169,6 +189,19 @@ class IsolatedReconstructionController:
             raise WorkerFailure(WorkerCode.UNSUPPORTED)
         if type(accelerator_role) is not AcceleratorRole:
             raise WorkerFailure(WorkerCode.POLICY)
+        if local_diagnostic is not None:
+            # Explicit operator-only entry, taken before the strict-only loader
+            # and never reached by falling back from a refused strict admission.
+            # The caller must present a typed selector, which no public, miner,
+            # customer or evaluator route can construct.
+            return self._execute_local_diagnostic(
+                options=options,
+                local_diagnostic=local_diagnostic,
+                accelerator_role=accelerator_role,
+                claimed=claimed,
+                replica=replica,
+                cancelled=cancelled,
+            )
         admission = AcceleratorHostAdmission.load()
         principal = claimed.binding.requester_identity.value
         admission.verify(
@@ -187,6 +220,10 @@ class IsolatedReconstructionController:
             != identity.resource_class_ref.content_digest
         ):
             raise WorkerFailure(WorkerCode.POLICY)
+        # The device this launch is bound to comes from the installed host
+        # record, checked against the grant, so the same code runs on any host.
+        from carbon.reconstruction.worker.accelerator_runtime import host_device
+
         worker_profile = DevelopmentWorkerProfile(
             identity.policy_ref.content_digest,
             identity.resource_class_ref.content_digest,
@@ -195,6 +232,9 @@ class IsolatedReconstructionController:
             GPU_PROFILE.profile_id,
             admission.digest,
             accelerator_role.value,
+            None,
+            None,
+            host_device().device_uuid,
         )
 
         def still_owned():
@@ -216,6 +256,229 @@ class IsolatedReconstructionController:
             return self._execute_bound(
                 **options, worker_profile=worker_profile, cancelled=still_owned
             )
+
+    def _execute_local_diagnostic(
+        self,
+        *,
+        options,
+        local_diagnostic,
+        accelerator_role,
+        claimed,
+        replica,
+        cancelled,
+    ):
+        """Run one approved local diagnostic. Never a relaxed strict execution.
+
+        Reuses the existing image verification, shared host slot, allocation
+        ownership and supervised worker path. What differs is the authority: a
+        private development approval instead of a strict host grant, an attempt
+        reserved durably before anything can attach the device, and an
+        observation that claims no exclusivity.
+        """
+        from carbon.reconstruction.accelerators import GPU_PROFILE
+        from carbon.reconstruction.worker.accelerator_runtime import (
+            reject_existing_device_containers,
+            verify_image_and_toolkit,
+        )
+        from carbon.reconstruction.worker.development_admission import (
+            DevelopmentAttemptJournal,
+            DevelopmentHostApproval,
+            LocalDiagnosticRequest,
+            diagnostic_plan_identity,
+            effective_controls,
+            require_development_approval,
+        )
+        from carbon.reconstruction.worker.model import LOCAL_DEVELOPMENT_AUTHORITY
+
+        if type(local_diagnostic) is not LocalDiagnosticRequest:
+            raise WorkerFailure(WorkerCode.POLICY)
+
+        from carbon.reconstruction.worker.accelerator_runtime import host_device
+
+        approval = require_development_approval(DevelopmentHostApproval.load())
+        principal = claimed.binding.requester_identity.value
+
+        # Derive the diagnostic-plan identity from the work actually about to
+        # run, not from the selector's string. A selector that echoes a
+        # well-formed digest cannot authorize a different recipe, input archive,
+        # image, role, operation or limit set, because the derived body differs.
+        plan = options.get("plan")
+        archive = options.get("training_archive")
+        if plan is None or archive is None:
+            raise WorkerFailure(WorkerCode.INVALID)
+        derived_digest, _ = diagnostic_plan_identity(
+            construction_plan_digest=plan.to_ref().content_digest,
+            training_archive_digest=archive.content_digest,
+            training_archive_provenance=archive.provenance,
+            training_archive_role=archive.role,
+            image=self.image,
+            profile_digest=GPU_PROFILE.digest,
+            role=accelerator_role,
+            operation=approval.document["operation"],
+            limits=approval.document["limits"],
+        )
+        # The selector, the approval and the real work must all agree.
+        if derived_digest != local_diagnostic.plan_digest:
+            raise WorkerFailure(WorkerCode.POLICY)
+        approval.verify(
+            principal=principal,
+            state_root=self.state_root,
+            image=self.image,
+            role=accelerator_role,
+            plan_digest=derived_digest,
+            input_digest=archive.content_digest,
+            now=float(time.time()),
+        )
+        if local_diagnostic.input_digest != archive.content_digest:
+            raise WorkerFailure(WorkerCode.POLICY)
+        # Resolve the controls this run will actually execute under, before any
+        # reservation or attachment. An approved limit that never leaves the
+        # record is not a limit, and an unrepresentable one is refused here
+        # rather than rounded up to something the implementation happens to
+        # allow.
+        controls = effective_controls(approval.document["limits"])
+        identity = replica.binding.replicate_identity
+
+        # Reserve the attempt durably before any container can be created, so a
+        # crash, restart or new output directory cannot recover the allowance.
+        journal = DevelopmentAttemptJournal()
+        journal.reserve(
+            nonce=local_diagnostic.nonce,
+            plan_digest=derived_digest,
+            budget=approval.document["attempt_budget"],
+            controls=controls,
+            now=float(time.time()),
+        )
+        # The attempt's clock starts at its reservation, so everything the
+        # attempt holds the host for - the shared slot, image verification, the
+        # run and its cleanup - is charged to the batch, not just the part
+        # spent inside the container.
+        attempt_started = time.monotonic()
+        attempt_seconds = controls["attempt_seconds"]
+
+        worker_profile = DevelopmentWorkerProfile(
+            identity.policy_ref.content_digest,
+            identity.resource_class_ref.content_digest,
+            "carbon.c03.cuda.development.v1",
+            "1.0",
+            GPU_PROFILE.profile_id,
+            approval.digest,
+            accelerator_role.value,
+            LOCAL_DEVELOPMENT_AUTHORITY,
+            derived_digest,
+            host_device().device_uuid,
+            controls,
+        )
+
+        def still_owned():
+            approval.verify(
+                principal=principal,
+                state_root=self.state_root,
+                image=self.image,
+                role=accelerator_role,
+                plan_digest=derived_digest,
+                input_digest=archive.content_digest,
+                now=float(time.time()),
+            )
+            # The whole-attempt deadline, as distinct from the per-process one
+            # the watchdog owns. Without it only the productive window was ever
+            # bounded, so staging, export and cleanup could carry an attempt
+            # past the limit it was admitted under - and past the batch window,
+            # which is admitted on the promise that an attempt ends by then.
+            #
+            # Observed at the boundaries the existing cancellation channel is
+            # already consulted at, so it interrupts the same non-destructive
+            # way. It raises its own code rather than reporting itself as a
+            # cancellation, because an operator stopping a run and a run
+            # outliving its deadline are not the same event.
+            if time.monotonic() - attempt_started > attempt_seconds:
+                raise WorkerFailure(WorkerCode.DEADLINE)
+            if cancelled is None:
+                return False
+            return cancelled()
+
+        # The same shared Carbon device slot as strict work, not a parallel one.
+        with approval.exclusive_lease():
+            still_owned()
+            verify_image_and_toolkit(cli=self.cli, image=self.image)
+            reject_existing_device_containers(cli=self.cli)
+            # Reconcile the attempt on both exits. An attempt that stays
+            # RESERVED after its container is gone consumes one attempt and then
+            # blocks every remaining one in the budget, so the terminal side of
+            # the journal is not optional bookkeeping.
+            try:
+                result = self._execute_bound(
+                    **options,
+                    worker_profile=worker_profile,
+                    cancelled=still_owned,
+                )
+            except BaseException:
+                self._reconcile_local_attempt(
+                    journal,
+                    local_diagnostic.nonce,
+                    succeeded=False,
+                    elapsed=time.monotonic() - attempt_started,
+                    observed_output_bytes=None,
+                )
+                raise
+            self._reconcile_local_attempt(
+                journal,
+                local_diagnostic.nonce,
+                succeeded=True,
+                elapsed=time.monotonic() - attempt_started,
+                observed_output_bytes=_observed_output_bytes(result),
+            )
+            return result
+
+    @staticmethod
+    def _reconcile_local_attempt(
+        journal, nonce, *, succeeded, elapsed, observed_output_bytes
+    ):
+        """Settle one development attempt from observed host state.
+
+        Deliberately not an unconditional settlement. The attempt is reconciled
+        only when this host no longer holds resources this launch owned; if the
+        allocation record survives or a strict quarantine exists, the attempt is
+        recorded AMBIGUOUS and keeps blocking until an operator reconciles it.
+        Unknown cleanup is not a free attempt.
+
+        If this process dies before reaching here the marker stays RESERVED,
+        which also blocks. Both defaults fail towards blocking rather than
+        towards another launch.
+
+        A settlement failure never replaces the run's own outcome: an unsettled
+        marker is the safe direction, and masking the real error with a
+        bookkeeping one would lose the reason the run ended.
+        """
+        from carbon.reconstruction.worker.accelerator_runtime import HOST_ROOT
+        from carbon.reconstruction.worker.development_admission import (
+            ATTEMPT_AMBIGUOUS,
+            ATTEMPT_COMPLETED,
+            ATTEMPT_RECONCILED,
+        )
+
+        try:
+            unresolved = (HOST_ROOT / "active-allocation.json").exists() or (
+                HOST_ROOT / "device-quarantined"
+            ).exists()
+            if unresolved:
+                state = ATTEMPT_AMBIGUOUS
+            elif succeeded:
+                state = ATTEMPT_COMPLETED
+            else:
+                # Cleaned up, but it produced no result. Recording this as
+                # COMPLETED would claim science that did not happen.
+                state = ATTEMPT_RECONCILED
+            # Rounded up, never down: a partial second the batch really spent
+            # is charged as a whole one rather than discarded.
+            journal.settle(
+                nonce=nonce,
+                state=state,
+                observed_seconds=math.ceil(elapsed),
+                observed_output_bytes=observed_output_bytes,
+            )
+        except (WorkerFailure, OSError):
+            return
 
     @staticmethod
     def _check_cancelled(cancelled):
@@ -265,9 +528,10 @@ class IsolatedReconstructionController:
         started_mono = float(time.monotonic())
         timing = WorkerTiming(
             started_unix,
-            started_unix + PRODUCTIVE_DEADLINE_SECONDS,
+            started_unix + worker_profile.effective_deadline_seconds,
             started_mono,
             _boot_id(),
+            worker_profile.effective_deadline_seconds,
         )
         stage_started = time.monotonic()
         stage, stage_digest = stage_request(
@@ -380,8 +644,12 @@ class IsolatedReconstructionController:
                 mark_device_allocation,
             )
 
+            # The authority is recorded with the allocation so cleanup can
+            # complete it under the same rules it was created under.
             mark_device_allocation(
-                container_name=container_name, launch_digest=binding.launch_digest
+                container_name=container_name,
+                launch_digest=binding.launch_digest,
+                authority=worker_profile.accelerator_authority,
             )
         try:
             created = self.cli.run(
@@ -481,7 +749,7 @@ class IsolatedReconstructionController:
                     "carbon.reconstruction.worker.exporter",
                 ],
                 framed,
-                maximum=OUTPUT_BYTES + 2 * CONTROL_BYTES,
+                maximum=worker_profile.effective_output_bytes + 2 * CONTROL_BYTES,
                 timeout=30,
             )
             decode_output_stream(framed, raw)
@@ -504,7 +772,7 @@ class IsolatedReconstructionController:
                     member.stat().st_size for member in output_members
                 ),
                 "observed_members": len(output_members),
-                "bounded_bytes": OUTPUT_BYTES,
+                "bounded_bytes": worker_profile.effective_output_bytes,
                 "bounded_members": OUTPUT_MEMBERS,
             }
             self.store.transition(
@@ -573,7 +841,7 @@ class IsolatedReconstructionController:
             failure_observation["terminal"] = {
                 "worker_code": terminal_code.value,
                 "elapsed_seconds": float(time.monotonic() - started_mono),
-                "admitted_deadline_seconds": PRODUCTIVE_DEADLINE_SECONDS,
+                "admitted_deadline_seconds": worker_profile.effective_deadline_seconds,
                 "consumption": "OBSERVED_PARTIAL_OR_UNKNOWN",
                 "replacement_authority": "NONE",
             }

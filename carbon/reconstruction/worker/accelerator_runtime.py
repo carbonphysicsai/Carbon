@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import math
 import os
+import re
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
@@ -26,6 +27,28 @@ from carbon.reconstruction.worker.model import (
 
 HOST_ROOT = Path("/var/lib/carbon/accelerators")
 GRANT_SCHEMA = "carbon.accelerator-host-grant.v1"
+_EXACT_DIGEST = re.compile(r"sha256:[0-9a-f]{64}")
+
+
+def host_device():
+    """The installed description of this host's accelerator.
+
+    Read from operator-owned storage on each use rather than cached: the record
+    can be replaced or withdrawn between launches, and a cached copy would let a
+    withdrawn record keep supplying the device identity used to build labels,
+    device requests and cleanup commands.
+
+    A missing or malformed record fails closed. Carbon never infers the host's
+    hardware from whatever happens to be visible at dispatch time, and it never
+    falls back to a device identity compiled into the source tree - there is no
+    longer one to fall back to.
+    """
+    from carbon.reconstruction.host_inventory import (
+        HostDeviceRecord,
+        require_host_device,
+    )
+
+    return require_host_device(HostDeviceRecord.load(HOST_ROOT), GPU_PROFILE)
 
 
 @dataclass(frozen=True, slots=True)
@@ -101,7 +124,7 @@ class AcceleratorHostAdmission:
                 for value in doc["roles"]
             )
             or role.value not in doc["roles"]
-            or doc["device_uuid"] != GPU_PROFILE.device_uuid
+            or doc["device_uuid"] != host_device().device_uuid
             or doc["execution_profile_digest"] != GPU_PROFILE.digest
             or type(image) is not WorkerImageIdentity
             or doc["image_id"] != image.image_id
@@ -126,15 +149,29 @@ class AcceleratorHostAdmission:
 
     @contextmanager
     def exclusive_lease(self):
-        from carbon.development_session.research_carrier import _numerical_lease
+        with shared_host_lease():
+            yield
 
-        # The installed private grant's parent is the sole shared host lock root.
-        # No request, output directory or caller-selected path can create a slot.
-        try:
-            with _numerical_lease(SimpleNamespace(root=HOST_ROOT)):
-                yield
-        except (OSError, ValueError):
-            raise WorkerFailure(WorkerCode.CONFLICT) from None
+
+@contextmanager
+def shared_host_lease():
+    """The single Carbon device slot, shared by strict and development work.
+
+    The installed private record's parent is the sole shared host lock root. No
+    request, output directory or caller-selected path can create a second slot,
+    and a development run takes exactly this lock rather than a parallel one, so
+    two Carbon jobs can never hold the device at once.
+
+    This excludes other *Carbon* work. It establishes nothing about applications
+    outside Carbon, which this host cannot observe.
+    """
+    from carbon.development_session.research_carrier import _numerical_lease
+
+    try:
+        with _numerical_lease(SimpleNamespace(root=HOST_ROOT)):
+            yield
+    except (OSError, ValueError):
+        raise WorkerFailure(WorkerCode.CONFLICT) from None
 
 
 def verify_image_and_toolkit(*, cli, image: WorkerImageIdentity) -> None:
@@ -159,7 +196,7 @@ def device_request() -> dict[str, object]:
     return {
         "Driver": "nvidia",
         "Count": 0,
-        "DeviceIDs": [GPU_PROFILE.device_uuid],
+        "DeviceIDs": [host_device().device_uuid],
         "Capabilities": [["gpu"]],
         "Options": {},
     }
@@ -217,10 +254,16 @@ def enumeration_capability(driver_model, *, observation_contract=None) -> str:
     return ENUMERATION_UNESTABLISHED
 
 
-def inspect_gpu_device(
-    *, cli, container_name: str, observation_contract: str | None = None
-) -> dict[str, object]:
-    """Observe the fixed device from the bounded container before authorization."""
+OBSERVATION_MODE_STRICT = "STRICT"
+OBSERVATION_MODE_DEVELOPMENT = "DEVELOPMENT"
+
+STRICT_EVIDENCE = "OBSERVED_NOT_SECURITY_QUALIFIED"
+DEVELOPMENT_EVIDENCE = "DEVELOPMENT_ONLY_NOT_SECURITY_QUALIFIED"
+DEVELOPMENT_EXCLUSIVITY = "UNESTABLISHED_DEVELOPMENT_OBSERVATION"
+
+
+def _identity_values(*, cli, container_name: str) -> list[str]:
+    """Fixed-device identity, required identically by both observation modes."""
     result = cli.run(
         [
             "exec",
@@ -231,52 +274,117 @@ def inspect_gpu_device(
         ],
         timeout=10,
     )
-    try:
-        rows = result.stdout.decode("ascii", "strict").strip().splitlines()
-        values = [part.strip() for part in rows[0].split(",")]
-        if (
-            len(rows) != 1
-            or len(values) != 5
-            or values[0] != GPU_PROFILE.device_uuid
-            or values[1] != GPU_PROFILE.device_kind
-            or values[2] != GPU_PROFILE.host_driver
-            or values[3] != "6144"
-            or values[4].lower() != "disabled"
+    record = host_device()
+    rows = result.stdout.decode("ascii", "strict").strip().splitlines()
+    values = [part.strip() for part in rows[0].split(",")]
+    if (
+        len(rows) != 1
+        or len(values) != 5
+        or values[0] != record.device_uuid
+        or values[1] != record.device_kind
+        or values[2] != record.driver_version
+        or values[3] != str(record.device_memory_mib)
+        # Not taken from the record: a record must not be able to authorize
+        # running on a device that is also driving a display.
+        or values[4].lower() != "disabled"
+    ):
+        raise ValueError()
+    return values
+
+
+def _compute_app_rows(*, cli, container_name: str) -> list[str]:
+    processes = cli.run(
+        [
+            "exec",
+            container_name,
+            "/usr/bin/nvidia-smi",
+            "--query-compute-apps=pid,gpu_uuid",
+            "--format=csv,noheader,nounits",
+        ],
+        timeout=10,
+    )
+    return processes.stdout.decode("ascii", "replace").splitlines()
+
+
+def inspect_gpu_device(
+    *,
+    cli,
+    container_name: str,
+    observation_contract: str | None = None,
+    development_plan_digest: str | None = None,
+) -> dict[str, object]:
+    """Observe the fixed device from the bounded container before authorization.
+
+    Two outcomes that are never interchangeable. The strict outcome requires
+    established compute-process enumeration and asserts that no foreign process
+    holds the device. The development outcome, reachable only when the caller
+    supplies an owner-approved development plan digest, asserts nothing of the
+    kind: it records exclusivity as unestablished and its foreign-process list
+    as unknown, and `require_strict_observation` refuses it.
+
+    A positively reported foreign process blocks both. Absence of evidence is
+    not evidence of absence, but counter-evidence is still counter-evidence.
+    """
+    if development_plan_digest is not None:
+        if observation_contract is not None:
+            # Two different claims about one observation; refuse rather than
+            # silently resolve to either the weaker or the stronger outcome.
+            raise WorkerFailure(WorkerCode.POLICY)
+        if type(development_plan_digest) is not str or not _EXACT_DIGEST.fullmatch(
+            development_plan_digest
         ):
-            raise ValueError()
-        model = cli.run(
-            [
-                "exec",
-                container_name,
-                "/usr/bin/nvidia-smi",
-                "--query-gpu=driver_model.current",
-                "--format=csv,noheader,nounits",
-            ],
-            timeout=10,
-        )
-        capability = enumeration_capability(
-            model.stdout.decode("ascii", "strict").strip(),
-            observation_contract=observation_contract,
-        )
-        if capability != ENUMERATION_ESTABLISHED:
-            # Refuse rather than record an empty foreign-process list. Whether
-            # this source is documented incomplete or merely unestablished, its
-            # silence is not observed exclusivity, so neither may admit.
-            raise ValueError()
-        processes = cli.run(
-            [
-                "exec",
-                container_name,
-                "/usr/bin/nvidia-smi",
-                "--query-compute-apps=pid,gpu_uuid",
-                "--format=csv,noheader,nounits",
-            ],
-            timeout=10,
-        )
-        if processes.stdout.strip():
-            raise ValueError()
+            raise WorkerFailure(WorkerCode.POLICY)
+
+    try:
+        values = _identity_values(cli=cli, container_name=container_name)
+        if development_plan_digest is None:
+            model = cli.run(
+                [
+                    "exec",
+                    container_name,
+                    "/usr/bin/nvidia-smi",
+                    "--query-gpu=driver_model.current",
+                    "--format=csv,noheader,nounits",
+                ],
+                timeout=10,
+            )
+            capability = enumeration_capability(
+                model.stdout.decode("ascii", "strict").strip(),
+                observation_contract=observation_contract,
+            )
+            if capability != ENUMERATION_ESTABLISHED:
+                # Refuse rather than record an empty foreign-process list.
+                # Whether this source is documented incomplete or merely
+                # unestablished, its silence is not observed exclusivity.
+                raise ValueError()
+            if any(
+                row.strip()
+                for row in _compute_app_rows(cli=cli, container_name=container_name)
+            ):
+                raise ValueError()
+        else:
+            for row in _compute_app_rows(cli=cli, container_name=container_name):
+                if row.split(",", 1)[0].strip().isdigit():
+                    raise ValueError()
     except (UnicodeError, ValueError, IndexError):
         raise WorkerFailure(WorkerCode.POLICY) from None
+
+    if development_plan_digest is not None:
+        return {
+            "uuid": values[0],
+            "name": values[1],
+            "driver": values[2],
+            "memory_capacity_mib": 6144,
+            "display_active": False,
+            # Unknown, never an empty list: this mode cannot enumerate.
+            "other_compute_processes": None,
+            "exclusivity": DEVELOPMENT_EXCLUSIVITY,
+            "device_memory_cap": "NOT_ENFORCED_BY_THIS_OBSERVATION",
+            "observation_mode": OBSERVATION_MODE_DEVELOPMENT,
+            "development_plan_digest": development_plan_digest,
+            "official_eligible": False,
+            "evidence": DEVELOPMENT_EVIDENCE,
+        }
     return {
         "uuid": values[0],
         "name": values[1],
@@ -285,8 +393,28 @@ def inspect_gpu_device(
         "display_active": False,
         "other_compute_processes": [],
         "device_memory_cap": "EXCLUSIVE_ALLOCATION_NOT_HOST_CGROUP",
-        "evidence": "OBSERVED_NOT_SECURITY_QUALIFIED",
+        "observation_mode": OBSERVATION_MODE_STRICT,
+        "evidence": STRICT_EVIDENCE,
     }
+
+
+def require_strict_observation(observation: object) -> dict[str, object]:
+    """Accept only a strict observation; a development one can never pass.
+
+    Strict callers use this instead of trusting a returned mapping, so a weaker
+    development outcome cannot be promoted by being passed along.
+    """
+    if type(observation) is not dict:
+        raise WorkerFailure(WorkerCode.POLICY)
+    if (
+        observation.get("observation_mode") != OBSERVATION_MODE_STRICT
+        or observation.get("evidence") != STRICT_EVIDENCE
+        or observation.get("other_compute_processes") != []
+        or "development_plan_digest" in observation
+        or "exclusivity" in observation
+    ):
+        raise WorkerFailure(WorkerCode.POLICY)
+    return observation
 
 
 def reject_existing_device_containers(*, cli) -> None:
@@ -302,7 +430,7 @@ def reject_existing_device_containers(*, cli) -> None:
             "ps",
             "--all",
             "--filter",
-            f"label=carbon.accelerator.device={GPU_PROFILE.device_uuid}",
+            f"label=carbon.accelerator.device={host_device().device_uuid}",
             "--format",
             "{{json .ID}}",
         ],
@@ -312,14 +440,30 @@ def reject_existing_device_containers(*, cli) -> None:
         raise WorkerFailure(WorkerCode.CONFLICT)
 
 
-def mark_device_allocation(*, container_name: str, launch_digest: str) -> None:
-    """Persist ownership before create, including an uncertain create response."""
-    from carbon.development_session.profile import canonical
-    from carbon.reconstruction.worker.model import exact_token
+def mark_device_allocation(
+    *, container_name: str, launch_digest: str, authority: str
+) -> None:
+    """Persist ownership before create, including an uncertain create response.
 
+    The authority that created the allocation is recorded with it, because the
+    two authorities complete differently: a strict allocation is only finished
+    after verified whole-device release, and a development allocation never
+    makes that claim. Without this the cleanup path cannot tell them apart, and
+    would have to apply one rule to both.
+    """
+    from carbon.development_session.profile import canonical
+    from carbon.reconstruction.worker.model import (
+        LOCAL_DEVELOPMENT_AUTHORITY,
+        STRICT_HOST_GRANT_AUTHORITY,
+        exact_token,
+    )
+
+    if authority not in (STRICT_HOST_GRANT_AUTHORITY, LOCAL_DEVELOPMENT_AUTHORITY):
+        raise WorkerFailure(WorkerCode.POLICY)
     payload = {
         "container_name": exact_token(container_name),
         "launch_digest": exact_digest(launch_digest),
+        "authority": authority,
     }
     try:
         path = HOST_ROOT / "active-allocation.json"
@@ -337,25 +481,79 @@ def mark_device_allocation(*, container_name: str, launch_digest: str) -> None:
         raise WorkerFailure(WorkerCode.CONFLICT) from None
 
 
-def owns_device_allocation(*, container_name: str, launch_digest: str) -> bool:
+def _allocation_document() -> dict | None:
     from carbon.development_session.research_admission import private_json
 
     path = HOST_ROOT / "active-allocation.json"
     if not path.exists():
-        return False
+        return None
     try:
-        return private_json(path) == {
-            "container_name": container_name,
-            "launch_digest": launch_digest,
-        }
+        document = private_json(path)
     except (OSError, ValueError):
         raise WorkerFailure(WorkerCode.CLEANUP) from None
+    from carbon.reconstruction.worker.model import (
+        LOCAL_DEVELOPMENT_AUTHORITY,
+        STRICT_HOST_GRANT_AUTHORITY,
+    )
+
+    if type(document) is not dict:
+        raise WorkerFailure(WorkerCode.CLEANUP)
+    fields = set(document)
+    if fields == {"container_name", "launch_digest"}:
+        # A record retained from before the authority was written down. Only
+        # the strict path could create an allocation then, so that is what it
+        # is, and reading it any other way would be inventing history.
+        #
+        # This matters most in the direction that is easy to get wrong: a legacy
+        # allocation must NOT be read as a development one. The development path
+        # completes without claiming whole-device release, so reclassifying an
+        # old record would quietly discharge a strict cleanup obligation that
+        # was never satisfied. Refusing outright is no better - it strands a
+        # host that still holds a real allocation, with no way to finish it.
+        document = {**document, "authority": STRICT_HOST_GRANT_AUTHORITY}
+        fields = set(document)
+    if fields != {"container_name", "launch_digest", "authority"}:
+        raise WorkerFailure(WorkerCode.CLEANUP)
+    if document["authority"] not in (
+        STRICT_HOST_GRANT_AUTHORITY,
+        LOCAL_DEVELOPMENT_AUTHORITY,
+    ):
+        raise WorkerFailure(WorkerCode.CLEANUP)
+    return document
+
+
+def owns_device_allocation(*, container_name: str, launch_digest: str) -> bool:
+    document = _allocation_document()
+    if document is None:
+        return False
+    return (
+        document["container_name"] == container_name
+        and document["launch_digest"] == launch_digest
+    )
+
+
+def allocation_authority(*, container_name: str, launch_digest: str) -> str | None:
+    """Which authority created the allocation this launch owns, if it owns one."""
+    document = _allocation_document()
+    if document is None:
+        return None
+    if (
+        document["container_name"] != container_name
+        or document["launch_digest"] != launch_digest
+    ):
+        return None
+    return str(document["authority"])
 
 
 def finish_device_allocation(*, container_name: str, launch_digest: str) -> None:
-    if not owns_device_allocation(
-        container_name=container_name, launch_digest=launch_digest
+    from carbon.reconstruction.worker.model import STRICT_HOST_GRANT_AUTHORITY
+
+    if (
+        allocation_authority(container_name=container_name, launch_digest=launch_digest)
+        != STRICT_HOST_GRANT_AUTHORITY
     ):
+        # A development allocation must not be completed by the strict path,
+        # and a launch may only finish its own allocation.
         raise WorkerFailure(WorkerCode.CLEANUP)
     verify_device_release()
     try:
@@ -369,13 +567,52 @@ def finish_device_allocation(*, container_name: str, launch_digest: str) -> None
         raise WorkerFailure(WorkerCode.CLEANUP) from None
 
 
+LOCAL_RELEASE_UNVERIFIED = "TASK_OWNED_REMOVAL_ONLY_WHOLE_DEVICE_RELEASE_UNESTABLISHED"
+
+
+def finish_local_device_allocation(*, container_name: str, launch_digest: str) -> str:
+    """Complete a development allocation without claiming whole-device release.
+
+    This establishes exactly one thing: the task-owned allocation record for this
+    launch was removed. It deliberately does **not** call
+    `verify_device_release()`, which requires established enumeration and can
+    create quarantine, because a development run never had the evidence that
+    check demands.
+
+    It therefore never writes, clears or reinterprets strict quarantine, and it
+    never reports the device as released. The returned label records what was
+    and was not established, so a caller cannot mistake it for the strict
+    outcome. Ownership is still required: a launch may only finish its own
+    allocation, and only one created under the same authority. A development run
+    must never be able to complete a strict allocation, which would skip the
+    verified release that allocation is owed.
+    """
+    from carbon.reconstruction.worker.model import LOCAL_DEVELOPMENT_AUTHORITY
+
+    if (
+        allocation_authority(container_name=container_name, launch_digest=launch_digest)
+        != LOCAL_DEVELOPMENT_AUTHORITY
+    ):
+        raise WorkerFailure(WorkerCode.CLEANUP)
+    try:
+        (HOST_ROOT / "active-allocation.json").unlink()
+        descriptor = os.open(HOST_ROOT, os.O_DIRECTORY)
+        try:
+            os.fsync(descriptor)
+        finally:
+            os.close(descriptor)
+    except OSError:
+        raise WorkerFailure(WorkerCode.CLEANUP) from None
+    return LOCAL_RELEASE_UNVERIFIED
+
+
 def admission_document(admission: AcceleratorHostAdmission) -> dict[str, object]:
     # Only identity is staged/recorded; the grant path and operator document never
     # enter the worker. External credential/authority records remain host-owned.
     return {
         "grant_digest": admission.digest,
         "profile_digest": GPU_PROFILE.digest,
-        "device_uuid": GPU_PROFILE.device_uuid,
+        "device_uuid": host_device().device_uuid,
     }
 
 
@@ -393,7 +630,8 @@ def verify_device_release(*, observation_contract: str | None = None) -> None:
         binary = next((path for path in candidates if path.is_file()), None)
         if binary is None:
             raise WorkerFailure(WorkerCode.CLEANUP)
-        command = [str(binary), "--id=" + GPU_PROFILE.device_uuid]
+        record = host_device()
+        command = [str(binary), "--id=" + record.device_uuid]
         environment = {"PATH": "/usr/bin:/bin"}
         model = _bounded_capture(
             command
@@ -438,7 +676,7 @@ def verify_device_release(*, observation_contract: str | None = None) -> None:
             processes.returncode != 0
             or processes.stdout.strip()
             or memory.returncode != 0
-            or fields != [GPU_PROFILE.device_uuid, "0", "Disabled"]
+            or fields != [record.device_uuid, "0", "Disabled"]
         ):
             raise WorkerFailure(WorkerCode.CLEANUP)
     except (WorkerFailure, OSError, UnicodeError):

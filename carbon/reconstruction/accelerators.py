@@ -31,15 +31,32 @@ class AcceleratorUnavailable(RuntimeError):
 
 @dataclass(frozen=True, slots=True)
 class AcceleratorProfile:
+    """What the work needs, identically on every machine.
+
+    This carries no device UUID, no marketed device name, no driver version and
+    no provider. Those describe one host and live in an operator-installed
+    `HostDeviceRecord`, so a miner runs Carbon on their own hardware by
+    installing a record rather than by editing this file. Keeping them out is
+    also what lets two runs on different machines share one profile digest and
+    stay comparable.
+    """
+
     profile_id: str
     backend: Backend
-    device_kind: str
     local_device_count: int
     global_device_count: int
     process_count: int
     topology: str
     environment_file: str
     environment_lock_digest: str
+    # Retained because profiles accepted on main pinned a host's device into the
+    # profile itself, and their documents are already recorded under
+    # `carbon.accelerator-profile.v1`. Dropping the three keys would have changed
+    # what that schema serializes without changing what it is called, moving
+    # every one of those digests. A portable profile leaves all three None, which
+    # is the honest statement that it pins no device: the host's hardware is
+    # installed evidence, not a field of the workload.
+    device_kind: str | None = None
     device_uuid: str | None = None
     host_driver: str | None = None
 
@@ -53,10 +70,34 @@ class AcceleratorProfile:
     def backend_request(self) -> BackendRequest:
         return BackendRequest(self.backend, self.local_device_count, "0.10.2", "0.10.2")
 
+    @property
+    def host_pinned(self) -> bool:
+        """Whether this profile names a host's hardware in the workload itself."""
+        return any(
+            value is not None
+            for value in (self.device_kind, self.device_uuid, self.host_driver)
+        )
+
     def document(self) -> dict[str, object]:
+        """The serialized profile, in the shape its version actually defines.
+
+        Two shapes, two versions, because they are two different bodies. `v1`
+        carries the device a profile pins - it is what every accepted record was
+        written under, and it keeps that exact key set so those digests do not
+        move. `v2` is the portable shape and omits those keys entirely rather
+        than writing them as null: a workload profile that names no device
+        should not have somewhere to put one.
+        """
+        fields = asdict(self)
+        if self.host_pinned:
+            schema = "carbon.accelerator-profile.v1"
+        else:
+            schema = "carbon.accelerator-profile.v2"
+            for key in ("device_kind", "device_uuid", "host_driver"):
+                fields.pop(key)
         return {
-            "schema": "carbon.accelerator-profile.v1",
-            **asdict(self),
+            "schema": schema,
+            **fields,
             "backend": self.backend.value,
             "python": "3.11.16",
             "jax": "0.10.2",
@@ -84,53 +125,108 @@ class AcceleratorProfile:
 
 
 GPU_PROFILE = AcceleratorProfile(
-    "carbon_jax_cuda13_rtx3060_laptop_development_v1",
+    "carbon_jax_cuda13_nvidia_development_v1",
     Backend.NVIDIA,
-    "NVIDIA GeForce RTX 3060 Laptop GPU",
     1,
     1,
     1,
     "single-device",
     ".devcontainer/accelerators/cuda13-py311.txt",
     "sha256:a197af534a061636ba77e4f97f7e9be508b795d58883b6774fde74a5135ad434",
-    "GPU-31e88d04-75ff-89b2-9160-4b923dd7eb81",
-    "581.95",
 )
 TPU_PROFILE = AcceleratorProfile(
     "carbon_jax_tpu_v5e_8_development_v1",
     Backend.TPU,
-    "TPU v5 lite",
     8,
     8,
     1,
     "2x4; provisioning SKU and observed topology pending",
     ".devcontainer/accelerators/tpu-py311.txt",
     "sha256:f42354e5eaec6c995fbee84407b095529b201ce82c04ea78b37777581d7bb3b2",
+    device_kind="TPU v5 lite",
 )
+
+# The GPU profile accepted on main, which pinned one laptop's device into the
+# workload. The portable profile above replaces it for new work, but replacing
+# it in the registry would have made every record naming it unresolvable - a
+# record does not stop meaning what it meant because a better profile exists.
+# It is retained with its original body, and therefore its original digest.
+#
+# Retention is interpretation, not permission: it is deliberately absent from
+# PROFILES, so `_registered` refuses it and it can never be dispatched, given a
+# worker environment, or admitted. Old records keep their identity and their
+# assurance level; they do not acquire the portable profile's.
+RTX3060_LAPTOP_PROFILE = AcceleratorProfile(
+    "carbon_jax_cuda13_rtx3060_laptop_development_v1",
+    Backend.NVIDIA,
+    1,
+    1,
+    1,
+    "single-device",
+    ".devcontainer/accelerators/cuda13-py311.txt",
+    "sha256:a197af534a061636ba77e4f97f7e9be508b795d58883b6774fde74a5135ad434",
+    device_kind="NVIDIA GeForce RTX 3060 Laptop GPU",
+    device_uuid="GPU-31e88d04-75ff-89b2-9160-4b923dd7eb81",
+    host_driver="581.95",
+)
+
 PROFILES = (GPU_PROFILE, TPU_PROFILE)
+HISTORICAL_PROFILES = (RTX3060_LAPTOP_PROFILE,)
 
 
 def resolve_profile(profile_id: str) -> AcceleratorProfile:
+    """Interpret a profile identity, current or historical.
+
+    Reading an old record is not running it. A historical profile resolves here
+    so its document, digest and meaning stay recoverable, and is refused by
+    `_registered` wherever execution is actually decided.
+    """
     if type(profile_id) is str:
-        for profile in PROFILES:
+        for profile in PROFILES + HISTORICAL_PROFILES:
             if profile.profile_id == profile_id:
                 return profile
     raise ValueError("unregistered accelerator profile")
 
 
+def dispatchable(profile: object) -> bool:
+    """Whether this profile may be executed, as opposed to merely understood."""
+    return type(profile) is AcceleratorProfile and profile in PROFILES
+
+
 def _registered(profile: AcceleratorProfile) -> None:
-    if type(profile) is not AcceleratorProfile or profile not in PROFILES:
+    """The dispatch gate. Only a current profile may be executed."""
+    if not dispatchable(profile):
+        raise ValueError("exact registered accelerator profile required")
+
+
+def _known(profile: AcceleratorProfile) -> None:
+    """The interpretation gate: a profile this repository can still describe.
+
+    Wider than `_registered` on purpose, and only for reading. Verifying what a
+    retained plan pinned means computing what its profile required, which is a
+    statement about a record rather than a step towards running it. An unknown
+    profile is still refused, so this is not an escape from the registry - it is
+    the difference between understanding a record and executing one.
+    """
+    if type(profile) is not AcceleratorProfile or profile not in (
+        PROFILES + HISTORICAL_PROFILES
+    ):
         raise ValueError("exact registered accelerator profile required")
 
 
 def worker_environment(
-    profile: AcceleratorProfile, role: AcceleratorRole
+    profile: AcceleratorProfile, role: AcceleratorRole, *, host_device=None
 ) -> dict[str, str]:
     """Proposed closed worker overlay, never applied to the control plane.
 
     The controller still owns the complete environment and role/principal-bound
     scratch mount. No persistent compilation cache crosses worker boundaries.
     Disabling preallocation is not a GPU memory cap or partition policy.
+
+    `host_device` supplies which device this host exposes. It is required for a
+    device-backed backend and must be the record already bound to `profile`, so
+    the visible device comes from installed host evidence rather than from a
+    constant compiled into Carbon.
     """
     _registered(profile)
     if type(role) is not AcceleratorRole:
@@ -143,9 +239,18 @@ def worker_environment(
         "JAX_COMPILATION_CACHE_DIR": f"/scratch/{role.value.lower()}/jax-cache",
     }
     if profile.backend is Backend.NVIDIA:
+        from carbon.reconstruction.host_inventory import require_host_device
+
+        require_host_device(host_device, profile)
         result.update(
             {
-                "CUDA_VISIBLE_DEVICES": profile.device_uuid,
+                "CUDA_VISIBLE_DEVICES": host_device.device_uuid,
+                # The worker cannot read the host record - it is operator-owned
+                # storage outside the container - so the controller states which
+                # device kind the run is bound to. The worker then checks what
+                # the numerical backend reports against this, and refuses if the
+                # variable is missing rather than skipping the check.
+                "CARBON_ACCELERATOR_DEVICE_KIND": host_device.device_kind,
                 "XLA_PYTHON_CLIENT_PREALLOCATE": "false",
                 "XLA_PYTHON_CLIENT_ALLOCATOR": "platform",
             }
@@ -160,6 +265,7 @@ def validate_worker_observation(
     global_device_count: int,
     process_count: int,
     matmul_precision: str,
+    expected_device_kind: str,
 ) -> None:
     """Check exact numerical observations; not physical-device attestation.
 
@@ -167,6 +273,11 @@ def validate_worker_observation(
     need independent supervisor observations; JAX's device kind cannot prove them.
     """
     _registered(profile)
+    # The expected device kind comes from the host record the controller bound
+    # this run to, not from a model name compiled into Carbon. The check is as
+    # exact as it was; only its anchor moved off this machine.
+    if type(expected_device_kind) is not str or not expected_device_kind:
+        raise ValueError("expected device kind required")
     validate_observation(profile.backend_request, observation)
     if (
         type(global_device_count) is not int
@@ -177,7 +288,7 @@ def validate_worker_observation(
         or observation.x64_enabled
         or matmul_precision != "highest"
         or any(
-            device.device_kind != profile.device_kind for device in observation.devices
+            device.device_kind != expected_device_kind for device in observation.devices
         )
     ):
         raise ValueError("accelerator topology, device or precision mismatch")
@@ -198,8 +309,14 @@ def require_accelerator_admission(
 def accelerator_dependency_specs(
     profile: AcceleratorProfile,
 ) -> tuple[tuple[str, str, str], ...]:
-    """Add explicit plugin pins; the profile also binds the entire resolved lock."""
-    _registered(profile)
+    """Add explicit plugin pins; the profile also binds the entire resolved lock.
+
+    Interpretation, not dispatch: this is how a retained plan's pinned
+    dependency set is recomputed in order to verify it. Admission, the worker
+    overlay and the observation check remain `_registered`, so a historical
+    profile can be described here and still never reach a device.
+    """
+    _known(profile)
     pins = (
         (("jax-cuda13-plugin", "0.10.2"), ("jax-cuda13-pjrt", "0.10.2"))
         if profile.backend is Backend.NVIDIA
@@ -261,9 +378,93 @@ def require_reconstruction_profile_admission(profile, *, worker_profile=None) ->
     if selected is TPU_PROFILE:
         raise ReconstructionFailure("reconstruction.accelerator.admission_disabled")
 
+    from carbon.reconstruction.worker.model import STRICT_HOST_GRANT_AUTHORITY
+
+    # A local development approval never satisfies strict admission, however it
+    # is labelled: its authority is checked, not merely the presence of a digest
+    # in the field a strict grant would have occupied.
     if (
         type(worker_profile) is not DevelopmentWorkerProfile
         or worker_profile.accelerator_profile_id != selected.profile_id
         or worker_profile.accelerator_grant_digest is None
+        or worker_profile.accelerator_authority != STRICT_HOST_GRANT_AUTHORITY
     ):
         raise ReconstructionFailure("reconstruction.accelerator.admission_disabled")
+
+
+def require_local_diagnostic_profile_admission(profile, *, worker_profile=None) -> None:
+    """Admit an operator-only LOCAL development profile.
+
+    This is a parallel authority, never a relaxation of the strict one and never
+    reached by falling back from a refused strict admission. A caller selects it
+    by presenting a worker profile whose typed authority is the local variant;
+    anything else belongs to `require_reconstruction_profile_admission`, which
+    continues to reject local profiles at every strict entry point.
+    """
+    from carbon.reconstruction.model import ReconstructionFailure, ReconstructionProfile
+    from carbon.reconstruction.worker.model import (
+        LOCAL_DEVELOPMENT_AUTHORITY,
+        DevelopmentWorkerProfile,
+    )
+
+    if (
+        type(worker_profile) is not DevelopmentWorkerProfile
+        or worker_profile.accelerator_authority != LOCAL_DEVELOPMENT_AUTHORITY
+    ):
+        raise ReconstructionFailure("reconstruction.accelerator.admission_disabled")
+    # Deliberately self-contained rather than sharing the strict helper's body:
+    # the strict control stays exactly as written and reviewed. A drift test
+    # asserts both refuse the same malformed and TPU profiles.
+    if type(profile) is not ReconstructionProfile:
+        raise ReconstructionFailure("reconstruction.profile.invalid")
+    try:
+        mapping = json.loads(profile.mapping_receipt_json)
+    except (TypeError, ValueError):
+        raise ReconstructionFailure("reconstruction.profile.invalid") from None
+    if type(mapping) is not dict or "execution_profile" not in mapping:
+        # A CPU plan carries no accelerator, so a local authority is meaningless.
+        raise ReconstructionFailure("reconstruction.accelerator.admission_disabled")
+    try:
+        selected = resolve_profile(profile.profile_id)
+        if (
+            profile.profile_version != "4.0"
+            or profile.environment_digest != selected.digest
+            or mapping["execution_profile"] != selected.document()
+            or mapping.get("execution_profile_digest") != selected.digest
+        ):
+            raise ValueError()
+    except (TypeError, ValueError):
+        raise ReconstructionFailure(
+            "reconstruction.accelerator.profile_mismatch"
+        ) from None
+    # The local variant exists only for the GPU profile. A TPU request is
+    # refused here as it is on the strict path.
+    if (
+        selected is not GPU_PROFILE
+        or worker_profile.accelerator_profile_id != selected.profile_id
+        or worker_profile.accelerator_grant_digest is None
+        or worker_profile.accelerator_plan_digest is None
+    ):
+        raise ReconstructionFailure("reconstruction.accelerator.admission_disabled")
+
+
+def require_profile_admission(profile, *, worker_profile=None) -> None:
+    """Route to the authority the worker profile declares, never as a fallback.
+
+    Staging and the worker-side reader accept both variants, so they dispatch on
+    the typed authority rather than trying strict first and retrying local.
+    """
+    from carbon.reconstruction.worker.model import (
+        LOCAL_DEVELOPMENT_AUTHORITY,
+        DevelopmentWorkerProfile,
+    )
+
+    if (
+        type(worker_profile) is DevelopmentWorkerProfile
+        and worker_profile.accelerator_authority == LOCAL_DEVELOPMENT_AUTHORITY
+    ):
+        require_local_diagnostic_profile_admission(
+            profile, worker_profile=worker_profile
+        )
+        return
+    require_reconstruction_profile_admission(profile, worker_profile=worker_profile)

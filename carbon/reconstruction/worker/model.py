@@ -110,6 +110,10 @@ def exact_token(value: object, *, maximum: int = 256) -> str:
     return value
 
 
+STRICT_HOST_GRANT_AUTHORITY = "STRICT_HOST_GRANT"
+LOCAL_DEVELOPMENT_AUTHORITY = "LOCAL_DEVELOPMENT_APPROVAL"
+
+
 @dataclass(frozen=True, slots=True)
 class DevelopmentWorkerProfile:
     """One exact B-02C-bound worker policy; not a production resource class."""
@@ -121,6 +125,31 @@ class DevelopmentWorkerProfile:
     accelerator_profile_id: str | None = None
     accelerator_grant_digest: str | None = None
     accelerator_role: str | None = None
+    accelerator_authority: str | None = None
+    accelerator_plan_digest: str | None = None
+    # Which device on THIS host the launch is bound to. Supplied per run from
+    # the installed host record, never from a constant in the source tree.
+    accelerator_device_uuid: str | None = None
+    # The resolved effective controls for this run, when an authority narrowed
+    # them. Absent means the registered implementation constants apply, which is
+    # the case for every CPU and strict launch, so their bodies are unchanged.
+    accelerator_controls: dict | None = None
+
+    @property
+    def effective_deadline_seconds(self) -> int:
+        """The productive deadline this launch is actually run under."""
+        controls = self.accelerator_controls
+        if not controls:
+            return PRODUCTIVE_DEADLINE_SECONDS
+        return int(controls["productive_seconds"])
+
+    @property
+    def effective_output_bytes(self) -> int:
+        """The output ceiling this launch's collection is actually bounded by."""
+        controls = self.accelerator_controls
+        if not controls:
+            return OUTPUT_BYTES
+        return int(controls["output_bytes"])
 
     def __post_init__(self) -> None:
         if self.accelerator_profile_id is None:
@@ -129,26 +158,83 @@ class DevelopmentWorkerProfile:
                 or self.profile_version != PROFILE_VERSION
                 or self.accelerator_grant_digest is not None
                 or self.accelerator_role is not None
+                or self.accelerator_authority is not None
+                or self.accelerator_plan_digest is not None
+                or self.accelerator_device_uuid is not None
             ):
                 raise WorkerFailure(WorkerCode.UNSUPPORTED)
         else:
             from carbon.reconstruction.accelerators import (
                 GPU_PROFILE,
+                HISTORICAL_PROFILES,
                 TPU_PROFILE,
                 AcceleratorRole,
             )
 
+            permitted = {
+                (GPU_PROFILE.profile_id, "carbon.c03.cuda.development.v1"),
+                (TPU_PROFILE.profile_id, "carbon.c03.tpu.preparation.v1"),
+            }
+            # Retained GPU profiles, which pinned their own device and so were
+            # paired with the same worker profile. A record naming one stays
+            # readable; it does not become runnable. `_registered` refuses a
+            # historical profile wherever execution is actually decided, and the
+            # local development authority is refused for it below.
+            permitted |= {
+                (profile.profile_id, "carbon.c03.cuda.development.v1")
+                for profile in HISTORICAL_PROFILES
+            }
             if (
-                (self.accelerator_profile_id, self.profile_id)
-                not in (
-                    (GPU_PROFILE.profile_id, "carbon.c03.cuda.development.v1"),
-                    (TPU_PROFILE.profile_id, "carbon.c03.tpu.preparation.v1"),
-                )
+                (self.accelerator_profile_id, self.profile_id) not in permitted
                 or self.profile_version != "1.0"
                 or self.accelerator_role not in [role.value for role in AcceleratorRole]
             ):
                 raise WorkerFailure(WorkerCode.UNSUPPORTED)
+            # An omitted authority means the historical strict grant, so every
+            # existing profile keeps its exact previous meaning and digest.
+            if self.accelerator_authority is None:
+                object.__setattr__(
+                    self, "accelerator_authority", STRICT_HOST_GRANT_AUTHORITY
+                )
+            if self.accelerator_authority not in (
+                STRICT_HOST_GRANT_AUTHORITY,
+                LOCAL_DEVELOPMENT_AUTHORITY,
+            ):
+                raise WorkerFailure(WorkerCode.UNSUPPORTED)
+            # The local development variant exists only for the GPU profile; a
+            # TPU request is rejected before this and never becomes local.
+            if (
+                self.accelerator_authority == LOCAL_DEVELOPMENT_AUTHORITY
+                and self.accelerator_profile_id != GPU_PROFILE.profile_id
+            ):
+                raise WorkerFailure(WorkerCode.UNSUPPORTED)
             exact_digest(self.accelerator_grant_digest)
+            # Two distinct identities. accelerator_grant_digest is the authority
+            # record (a strict grant, or a local approval record). The approved
+            # diagnostic plan is a separate digest carried only by the local
+            # variant, and neither may stand in for the other.
+            if self.accelerator_authority == LOCAL_DEVELOPMENT_AUTHORITY:
+                exact_digest(self.accelerator_plan_digest)
+                if self.accelerator_plan_digest == self.accelerator_grant_digest:
+                    raise WorkerFailure(WorkerCode.UNSUPPORTED)
+            elif self.accelerator_plan_digest is not None:
+                raise WorkerFailure(WorkerCode.UNSUPPORTED)
+            # A launch under the portable profile must name the device it is
+            # bound to, because that profile pins none. The TPU preparation
+            # profile dispatches nothing and carries none, and a historical
+            # profile already names its own device, so for both the field must
+            # be absent rather than supplied a second time.
+            if self.accelerator_profile_id == GPU_PROFILE.profile_id:
+                from carbon.reconstruction.host_inventory import NVIDIA_DEVICE_UUID
+
+                if (
+                    type(self.accelerator_device_uuid) is not str
+                    or NVIDIA_DEVICE_UUID.fullmatch(self.accelerator_device_uuid)
+                    is None
+                ):
+                    raise WorkerFailure(WorkerCode.UNSUPPORTED)
+            elif self.accelerator_device_uuid is not None:
+                raise WorkerFailure(WorkerCode.UNSUPPORTED)
         object.__setattr__(
             self,
             "research_resource_policy_digest",
@@ -177,7 +263,7 @@ class DevelopmentWorkerProfile:
             "input": {"bytes": INPUT_BYTES, "expanded_bytes": EXPANDED_INPUT_BYTES},
             "control_bytes": CONTROL_BYTES,
             "output": {
-                "bytes": OUTPUT_BYTES,
+                "bytes": self.effective_output_bytes,
                 "expanded_bytes": EXPANDED_OUTPUT_BYTES,
                 "members": OUTPUT_MEMBERS,
             },
@@ -185,7 +271,7 @@ class DevelopmentWorkerProfile:
             "nofile_per_process": NOFILE_LIMIT,
             "core_dumps": False,
             "accelerators": "NOT_APPLICABLE",
-            "deadline_seconds": PRODUCTIVE_DEADLINE_SECONDS,
+            "deadline_seconds": self.effective_deadline_seconds,
             "graceful_cancellation_seconds": GRACEFUL_CANCELLATION_SECONDS,
             "cleanup_confirmation_seconds": CLEANUP_CONFIRMATION_SECONDS,
             "security": {
@@ -215,14 +301,52 @@ class DevelopmentWorkerProfile:
                     "allocation": "EXCLUSIVE_TPU_HOST_REQUIRED_NOT_VERIFIED",
                     "host_dispatch": "UNAVAILABLE",
                 }
-            else:
-                result["schema"] = "carbon.c03.development-worker-profile.v2"
+            elif self.accelerator_authority == LOCAL_DEVELOPMENT_AUTHORITY:
+                # Deliberately not "grant_digest": a development approval must
+                # never acquire strict authority by occupying the old key.
+                result["schema"] = "carbon.c03.development-worker-profile.v4"
                 result["accelerators"] = {
                     "profile_id": self.accelerator_profile_id,
                     "profile_digest": GPU_PROFILE.digest,
+                    "authority": LOCAL_DEVELOPMENT_AUTHORITY,
+                    "approval_digest": self.accelerator_grant_digest,
+                    "diagnostic_plan_digest": self.accelerator_plan_digest,
+                    "role": self.accelerator_role,
+                    "device_uuid": self.accelerator_device_uuid,
+                    "allocation": "TASK_OWNED_NOT_EXCLUSIVE",
+                    "device_memory_cap": "NOT_ENFORCED_BY_THIS_AUTHORITY",
+                    "official_eligible": False,
+                    # The controls this run is executed under, resolved from the
+                    # approval and the registered implementation ceilings. They
+                    # live in the development block, not at the top level, so
+                    # accepted CPU and strict bodies stay byte-identical.
+                    "effective_controls": dict(
+                        sorted((self.accelerator_controls or {}).items())
+                    ),
+                }
+            else:
+                from carbon.reconstruction.accelerators import resolve_profile
+
+                # The profile this launch actually names, which is not always
+                # the current one. Stamping the current profile's digest onto a
+                # launch that names an earlier profile restates history instead
+                # of recording it, and it moves the body - and therefore the
+                # digest - of a request that was already accepted.
+                named = resolve_profile(self.accelerator_profile_id)
+                result["schema"] = "carbon.c03.development-worker-profile.v2"
+                result["accelerators"] = {
+                    "profile_id": self.accelerator_profile_id,
+                    "profile_digest": named.digest,
                     "grant_digest": self.accelerator_grant_digest,
                     "role": self.accelerator_role,
-                    "device_uuid": GPU_PROFILE.device_uuid,
+                    # A profile that pins its own device supplies it. The
+                    # portable profile pins none, so the launch supplies it
+                    # and is required above to do so.
+                    "device_uuid": (
+                        named.device_uuid
+                        if self.accelerator_device_uuid is None
+                        else self.accelerator_device_uuid
+                    ),
                     "allocation": "EXCLUSIVE_SINGLE_DEVICE",
                 }
         return result
@@ -265,6 +389,11 @@ class WorkerTiming:
     productive_deadline_unix: float
     launch_started_monotonic: float
     boot_id: str
+    # The productive window this launch was admitted for. Defaults to the
+    # registered maximum, so every existing CPU and strict launch is unchanged.
+    # An authority may narrow it; nothing may widen it past the registered
+    # ceiling, which is what the worker is actually built to enforce.
+    deadline_seconds: int = PRODUCTIVE_DEADLINE_SECONDS
 
     def __post_init__(self) -> None:
         if any(
@@ -277,8 +406,14 @@ class WorkerTiming:
         ):
             raise WorkerFailure(WorkerCode.INVALID)
         if (
+            type(self.deadline_seconds) is not int
+            or isinstance(self.deadline_seconds, bool)
+            or not 0 < self.deadline_seconds <= PRODUCTIVE_DEADLINE_SECONDS
+        ):
+            raise WorkerFailure(WorkerCode.INVALID)
+        if (
             self.productive_deadline_unix
-            != self.launch_started_unix + PRODUCTIVE_DEADLINE_SECONDS
+            != self.launch_started_unix + self.deadline_seconds
         ):
             raise WorkerFailure(WorkerCode.INVALID)
         exact_token(self.boot_id)
@@ -287,7 +422,7 @@ class WorkerTiming:
     def productive_deadline_monotonic(self) -> float:
         """Same-boot live deadline; never compare this value across boot IDs."""
 
-        return self.launch_started_monotonic + PRODUCTIVE_DEADLINE_SECONDS
+        return self.launch_started_monotonic + self.deadline_seconds
 
 
 __all__ = [

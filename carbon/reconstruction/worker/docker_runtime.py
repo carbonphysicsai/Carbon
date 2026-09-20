@@ -417,6 +417,31 @@ def _require_supported_device_adapter(profile: DevelopmentWorkerProfile) -> None
         raise WorkerFailure(WorkerCode.UNSUPPORTED)
 
 
+STRICT_GRANT_LABEL = "carbon.accelerator.grant"
+LOCAL_APPROVAL_LABEL = "carbon.accelerator.approval"
+
+
+def _authority_label_key(worker_profile) -> str:
+    """Which container label carries this profile's accelerator authority."""
+    from carbon.reconstruction.worker.model import LOCAL_DEVELOPMENT_AUTHORITY
+
+    if worker_profile.accelerator_authority == LOCAL_DEVELOPMENT_AUTHORITY:
+        return LOCAL_APPROVAL_LABEL
+    return STRICT_GRANT_LABEL
+
+
+def _other_authority_label_key(worker_profile) -> str:
+    """The label this profile must NOT carry, so the two can never be confused."""
+    if _authority_label_key(worker_profile) == STRICT_GRANT_LABEL:
+        return LOCAL_APPROVAL_LABEL
+    return STRICT_GRANT_LABEL
+
+
+def _accelerator_authority_label(worker_profile) -> str:
+    key = _authority_label_key(worker_profile)
+    return f"{key}={worker_profile.accelerator_grant_digest}"
+
+
 def create_arguments(
     *,
     container_name: str,
@@ -525,9 +550,18 @@ def create_arguments(
             AcceleratorRole,
             worker_environment,
         )
+        from carbon.reconstruction.worker.accelerator_runtime import host_device
 
+        # The device comes from the launch's own profile, which the controller
+        # filled from the installed host record. Nothing here reads a device
+        # identity compiled into Carbon.
+        device = worker_profile.accelerator_device_uuid
+        if device != host_device().device_uuid:
+            raise WorkerFailure(WorkerCode.POLICY)
         replacements = worker_environment(
-            GPU_PROFILE, AcceleratorRole(worker_profile.accelerator_role)
+            GPU_PROFILE,
+            AcceleratorRole(worker_profile.accelerator_role),
+            host_device=host_device(),
         )
         for index, value in enumerate(arguments):
             if index and arguments[index - 1] == "--env":
@@ -538,18 +572,18 @@ def create_arguments(
             "--runtime",
             "nvidia",
             "--gpus",
-            f"device={GPU_PROFILE.device_uuid}",
+            f"device={device}",
             "--label",
-            f"carbon.accelerator.device={GPU_PROFILE.device_uuid}",
+            f"carbon.accelerator.device={device}",
             "--label",
-            f"carbon.accelerator.grant={worker_profile.accelerator_grant_digest}",
+            _accelerator_authority_label(worker_profile),
         ]
         for key, value in replacements.items():
             extras.extend(["--env", f"{key}={value}"])
         extras.extend(
             [
                 "--env",
-                f"NVIDIA_VISIBLE_DEVICES={GPU_PROFILE.device_uuid}",
+                f"NVIDIA_VISIBLE_DEVICES={device}",
                 "--env",
                 "NVIDIA_DRIVER_CAPABILITIES=compute,utility",
             ]
@@ -667,14 +701,23 @@ def inspect_effective_controls(
             AcceleratorRole,
             worker_environment,
         )
-        from carbon.reconstruction.worker.accelerator_runtime import inspect_gpu_device
+        from carbon.reconstruction.worker.accelerator_runtime import (
+            host_device,
+            inspect_gpu_device,
+        )
 
+        record = host_device()
+        device = worker_profile.accelerator_device_uuid
+        if device != record.device_uuid:
+            raise WorkerFailure(WorkerCode.POLICY)
         env = dict(item.split("=", 1) for item in config.get("Env", []) if "=" in item)
         required = worker_environment(
-            GPU_PROFILE, AcceleratorRole(worker_profile.accelerator_role)
+            GPU_PROFILE,
+            AcceleratorRole(worker_profile.accelerator_role),
+            host_device=record,
         )
         required.update(
-            NVIDIA_VISIBLE_DEVICES=GPU_PROFILE.device_uuid,
+            NVIDIA_VISIBLE_DEVICES=device,
             NVIDIA_DRIVER_CAPABILITIES="compute,utility",
         )
         if (
@@ -682,13 +725,32 @@ def inspect_effective_controls(
             or any(env.get(k) != v for k, v in required.items())
             or env.get("LD_LIBRARY_PATH")
             or env.get("JAX_SKIP_CUDA_CONSTRAINTS_CHECK")
-            or config.get("Labels", {}).get("carbon.accelerator.grant")
+            or (config.get("Labels") or {}).get("carbon.accelerator.device") != device
+            or (config.get("Labels") or {}).get(_authority_label_key(worker_profile))
             != worker_profile.accelerator_grant_digest
-            or config.get("Labels", {}).get("carbon.accelerator.device")
-            != GPU_PROFILE.device_uuid
+            # A local container must not also carry a strict grant label, and a
+            # strict container must not carry a local approval label.
+            or (config.get("Labels") or {}).get(
+                _other_authority_label_key(worker_profile)
+            )
+            is not None
         ):
             raise WorkerFailure(WorkerCode.POLICY)
-        gpu_observation = inspect_gpu_device(cli=cli, container_name=container_name)
+        from carbon.reconstruction.worker.model import LOCAL_DEVELOPMENT_AUTHORITY
+
+        gpu_observation = inspect_gpu_device(
+            cli=cli,
+            container_name=container_name,
+            # The approved diagnostic plan, not the approval record digest.
+            # accelerator_grant_digest identifies the authority record; the plan
+            # it authorizes is a separate identity and the observation records
+            # that one.
+            development_plan_digest=(
+                worker_profile.accelerator_plan_digest
+                if worker_profile.accelerator_authority == LOCAL_DEVELOPMENT_AUTHORITY
+                else None
+            ),
+        )
     status = cli.run(
         ["exec", container_name, "/bin/cat", "/proc/1/status"], timeout=10
     ).stdout.decode("ascii", "replace")
@@ -886,13 +948,40 @@ def remove_exact_container(
 ) -> None:
     """Stop/remove only the exact launch-labeled container and confirm absence."""
     from carbon.reconstruction.worker.accelerator_runtime import (
-        finish_device_allocation,
+        allocation_authority,
         owns_device_allocation,
     )
+    from carbon.reconstruction.worker.model import LOCAL_DEVELOPMENT_AUTHORITY
 
     owns_accelerator = owns_device_allocation(
         container_name=container_name, launch_digest=launch_digest
     )
+
+    def finish_allocation() -> None:
+        """Complete the allocation under the authority that created it.
+
+        A development allocation is completed without claiming whole-device
+        release, because it never had the evidence that claim needs. A strict
+        allocation still goes through verified release. Neither may complete
+        the other's allocation.
+        """
+        from carbon.reconstruction.worker.accelerator_runtime import (
+            finish_device_allocation,
+            finish_local_device_allocation,
+        )
+
+        authority = allocation_authority(
+            container_name=container_name, launch_digest=launch_digest
+        )
+        if authority == LOCAL_DEVELOPMENT_AUTHORITY:
+            finish_local_device_allocation(
+                container_name=container_name, launch_digest=launch_digest
+            )
+            return
+        finish_device_allocation(
+            container_name=container_name, launch_digest=launch_digest
+        )
+
     try:
         value = cli.json(["inspect", container_name, "--format", "{{json .}}"])
     except WorkerFailure:
@@ -912,9 +1001,7 @@ def remove_exact_container(
             )
             if remaining.stdout.strip():
                 raise WorkerFailure(WorkerCode.CLEANUP)
-            finish_device_allocation(
-                container_name=container_name, launch_digest=launch_digest
-            )
+            finish_allocation()
         return
     if (
         type(value) is not dict
@@ -939,13 +1026,13 @@ def remove_exact_container(
         result = cli.run(["inspect", container_name], timeout=5, accepted=(0, 1))
         if result.returncode != 0:
             if accelerator is not None:
-                from carbon.reconstruction.accelerators import GPU_PROFILE
-
-                if accelerator != GPU_PROFILE.device_uuid:
-                    raise WorkerFailure(WorkerCode.CLEANUP)
-                finish_device_allocation(
-                    container_name=container_name, launch_digest=launch_digest
+                from carbon.reconstruction.worker.accelerator_runtime import (
+                    host_device,
                 )
+
+                if accelerator != host_device().device_uuid:
+                    raise WorkerFailure(WorkerCode.CLEANUP)
+                finish_allocation()
             return
         time.sleep(0.1)
     raise WorkerFailure(WorkerCode.CLEANUP)
