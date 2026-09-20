@@ -55,15 +55,20 @@ locally at all.
 **This needs nothing new from engineering.** It needs the existing worker, the
 existing backend profile, and the qualification path that already exists.
 
-`carbon/reproducibility/harness.py::compare_r1` returns `INDETERMINATE` unless
-`identity.backend_support is BackendProfileSupport.SUPPORTED`, and again when the
-qualification's `backend_profile_ref` does not match. A GPU backend profile is
+`carbon/reproducibility/harness.py::compare_r1` returns `BACKEND_UNSUPPORTED`
+while `identity.backend_support` is not `SUPPORTED`, and `INDETERMINATE` when a
+comparison procedure is absent or its qualification does not match. The backend
+check runs first, and returns no deltas - so an unqualified backend produces no
+measurements at all. A GPU backend profile is
 therefore a candidate whose support status stays unqualified until evidence
 exists.
 
 **MQ-008** - *"Qualify narrow backend/hardware profile under R0/R1/R2"* - is
 `EVIDENCE_REQUIRED`, owned by SCI + SRE at gate G4. Until it resolves, validator
-GPU runs are development evidence and R1 comparison is `INDETERMINATE`. That is
+GPU runs are development evidence and R1 comparison is `BACKEND_UNSUPPORTED`.
+That gate does not self-resolve: it computes nothing, so waiting produces no
+evidence. Only a deliberate measurement campaign can resolve MQ-008 - see
+`GPU_INITIAL_POLICY.md`. That is
 correct, already implemented, and must not be routed around.
 
 The only engineering requirement is **to stop blocking it**: a validator may run
