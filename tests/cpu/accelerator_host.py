@@ -26,7 +26,7 @@ HOSTS = {
     # laptop GPU reached through WSL2 and Docker Desktop, where the driver model
     # is WDDM and compute-process enumeration is therefore unsupported.
     "laptop_wsl2": {
-        "record_id": "laptop-wsl2",
+        "record_id": "wsl2-consumer-gpu",
         "device_uuid": "GPU-00000000-1111-2222-3333-444444444444",
         "device_kind": "NVIDIA GeForce RTX 3060 Laptop GPU",
         "driver_version": "581.95",
