@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { REQUIRED_PRODUCTION_PATHS, integrateHtml, missingProductionPaths, reconcileOwnerUploadedHomepage } from "../tools/integrate-static.mjs";
+import { REQUIRED_PRODUCTION_PATHS, integrateHtml, reconcileOwnerUploadedHomepage } from "../tools/integrate-static.mjs";
 import { buildCsp } from "../tools/csp-report.mjs";
 import { validateKnowledge } from "../tools/validate-knowledge.mjs";
 import knowledge from "../knowledge/public-knowledge.v1.json" with { type: "json" };
@@ -105,17 +105,7 @@ test("the required production path set covers the Workbench route and shared hom
   assert.equal(new Set(REQUIRED_PRODUCTION_PATHS).size, REQUIRED_PRODUCTION_PATHS.length);
 });
 
-test("an Ask-Carbon-only bundle is reported as an incomplete production asset set", async () => {
-  const present = new Set(["/bundle/index.html", "/bundle/ask-carbon/ask-carbon.js"]);
-  const missing = await missingProductionPaths("/bundle", async (path) => present.has(path.split("\\").join("/")));
-  assert.ok(missing.includes("workbench/index.html"));
-  assert.ok(missing.includes("workbench/app.js"));
-  assert.ok(missing.includes("assets/carbon-66e3549179d4.png"));
-  assert.ok(!missing.includes("index.html"));
-});
-
-test("a complete current-site copy plus the integrated homepage reports no missing production path", async () => {
-  const present = new Set(REQUIRED_PRODUCTION_PATHS.map((path) => `/bundle/${path}`));
-  const missing = await missingProductionPaths("/bundle", async (path) => present.has(path.split("\\").join("/")));
-  assert.deepEqual(missing, []);
-});
+// Bundle-guard behaviour is covered in bundle-guard.test.mjs, which exercises
+// real temporary files and real CLI child processes. The injected-probe tests
+// that used to live here could not observe empty files, wrong content,
+// directories at file paths, symlinks, or stale destination content.
