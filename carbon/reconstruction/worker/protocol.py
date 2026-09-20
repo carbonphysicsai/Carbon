@@ -498,11 +498,25 @@ def stage_request(
         }
         if worker_profile.accelerator_profile_id is not None:
             request["schema"] = _accelerator_request_schema(worker_profile)
-            request["accelerator"] = {
-                "profile_id": worker_profile.accelerator_profile_id,
-                "grant_digest": worker_profile.accelerator_grant_digest,
-                "role": worker_profile.accelerator_role,
-            }
+            from carbon.reconstruction.worker.model import (
+                LOCAL_DEVELOPMENT_AUTHORITY,
+            )
+
+            if worker_profile.accelerator_authority == LOCAL_DEVELOPMENT_AUTHORITY:
+                # Distinct key and authority: a staged local request can never be
+                # read as a strict one by a consumer looking for grant_digest.
+                request["accelerator"] = {
+                    "profile_id": worker_profile.accelerator_profile_id,
+                    "authority": LOCAL_DEVELOPMENT_AUTHORITY,
+                    "approval_digest": worker_profile.accelerator_grant_digest,
+                    "role": worker_profile.accelerator_role,
+                }
+            else:
+                request["accelerator"] = {
+                    "profile_id": worker_profile.accelerator_profile_id,
+                    "grant_digest": worker_profile.accelerator_grant_digest,
+                    "role": worker_profile.accelerator_role,
+                }
         payload = _canonical(request) + b"\n"
         if len(payload) > CONTROL_BYTES:
             raise WorkerFailure(WorkerCode.STAGING)

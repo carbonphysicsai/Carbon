@@ -417,6 +417,31 @@ def _require_supported_device_adapter(profile: DevelopmentWorkerProfile) -> None
         raise WorkerFailure(WorkerCode.UNSUPPORTED)
 
 
+STRICT_GRANT_LABEL = "carbon.accelerator.grant"
+LOCAL_APPROVAL_LABEL = "carbon.accelerator.approval"
+
+
+def _authority_label_key(worker_profile) -> str:
+    """Which container label carries this profile's accelerator authority."""
+    from carbon.reconstruction.worker.model import LOCAL_DEVELOPMENT_AUTHORITY
+
+    if worker_profile.accelerator_authority == LOCAL_DEVELOPMENT_AUTHORITY:
+        return LOCAL_APPROVAL_LABEL
+    return STRICT_GRANT_LABEL
+
+
+def _other_authority_label_key(worker_profile) -> str:
+    """The label this profile must NOT carry, so the two can never be confused."""
+    if _authority_label_key(worker_profile) == STRICT_GRANT_LABEL:
+        return LOCAL_APPROVAL_LABEL
+    return STRICT_GRANT_LABEL
+
+
+def _accelerator_authority_label(worker_profile) -> str:
+    key = _authority_label_key(worker_profile)
+    return f"{key}={worker_profile.accelerator_grant_digest}"
+
+
 def create_arguments(
     *,
     container_name: str,
@@ -542,7 +567,7 @@ def create_arguments(
             "--label",
             f"carbon.accelerator.device={GPU_PROFILE.device_uuid}",
             "--label",
-            f"carbon.accelerator.grant={worker_profile.accelerator_grant_digest}",
+            _accelerator_authority_label(worker_profile),
         ]
         for key, value in replacements.items():
             extras.extend(["--env", f"{key}={value}"])
@@ -682,13 +707,29 @@ def inspect_effective_controls(
             or any(env.get(k) != v for k, v in required.items())
             or env.get("LD_LIBRARY_PATH")
             or env.get("JAX_SKIP_CUDA_CONSTRAINTS_CHECK")
-            or config.get("Labels", {}).get("carbon.accelerator.grant")
-            != worker_profile.accelerator_grant_digest
-            or config.get("Labels", {}).get("carbon.accelerator.device")
+            or (config.get("Labels") or {}).get("carbon.accelerator.device")
             != GPU_PROFILE.device_uuid
+            or (config.get("Labels") or {}).get(_authority_label_key(worker_profile))
+            != worker_profile.accelerator_grant_digest
+            # A local container must not also carry a strict grant label, and a
+            # strict container must not carry a local approval label.
+            or (config.get("Labels") or {}).get(
+                _other_authority_label_key(worker_profile)
+            )
+            is not None
         ):
             raise WorkerFailure(WorkerCode.POLICY)
-        gpu_observation = inspect_gpu_device(cli=cli, container_name=container_name)
+        from carbon.reconstruction.worker.model import LOCAL_DEVELOPMENT_AUTHORITY
+
+        gpu_observation = inspect_gpu_device(
+            cli=cli,
+            container_name=container_name,
+            development_plan_digest=(
+                worker_profile.accelerator_grant_digest
+                if worker_profile.accelerator_authority == LOCAL_DEVELOPMENT_AUTHORITY
+                else None
+            ),
+        )
     status = cli.run(
         ["exec", container_name, "/bin/cat", "/proc/1/status"], timeout=10
     ).stdout.decode("ascii", "replace")

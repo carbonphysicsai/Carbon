@@ -261,9 +261,15 @@ def require_reconstruction_profile_admission(profile, *, worker_profile=None) ->
     if selected is TPU_PROFILE:
         raise ReconstructionFailure("reconstruction.accelerator.admission_disabled")
 
+    from carbon.reconstruction.worker.model import STRICT_HOST_GRANT_AUTHORITY
+
+    # A local development approval never satisfies strict admission, however it
+    # is labelled: its authority is checked, not merely the presence of a digest
+    # in the field a strict grant would have occupied.
     if (
         type(worker_profile) is not DevelopmentWorkerProfile
         or worker_profile.accelerator_profile_id != selected.profile_id
         or worker_profile.accelerator_grant_digest is None
+        or worker_profile.accelerator_authority != STRICT_HOST_GRANT_AUTHORITY
     ):
         raise ReconstructionFailure("reconstruction.accelerator.admission_disabled")

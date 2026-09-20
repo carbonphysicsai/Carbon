@@ -110,6 +110,10 @@ def exact_token(value: object, *, maximum: int = 256) -> str:
     return value
 
 
+STRICT_HOST_GRANT_AUTHORITY = "STRICT_HOST_GRANT"
+LOCAL_DEVELOPMENT_AUTHORITY = "LOCAL_DEVELOPMENT_APPROVAL"
+
+
 @dataclass(frozen=True, slots=True)
 class DevelopmentWorkerProfile:
     """One exact B-02C-bound worker policy; not a production resource class."""
@@ -121,6 +125,7 @@ class DevelopmentWorkerProfile:
     accelerator_profile_id: str | None = None
     accelerator_grant_digest: str | None = None
     accelerator_role: str | None = None
+    accelerator_authority: str | None = None
 
     def __post_init__(self) -> None:
         if self.accelerator_profile_id is None:
@@ -129,6 +134,7 @@ class DevelopmentWorkerProfile:
                 or self.profile_version != PROFILE_VERSION
                 or self.accelerator_grant_digest is not None
                 or self.accelerator_role is not None
+                or self.accelerator_authority is not None
             ):
                 raise WorkerFailure(WorkerCode.UNSUPPORTED)
         else:
@@ -146,6 +152,24 @@ class DevelopmentWorkerProfile:
                 )
                 or self.profile_version != "1.0"
                 or self.accelerator_role not in [role.value for role in AcceleratorRole]
+            ):
+                raise WorkerFailure(WorkerCode.UNSUPPORTED)
+            # An omitted authority means the historical strict grant, so every
+            # existing profile keeps its exact previous meaning and digest.
+            if self.accelerator_authority is None:
+                object.__setattr__(
+                    self, "accelerator_authority", STRICT_HOST_GRANT_AUTHORITY
+                )
+            if self.accelerator_authority not in (
+                STRICT_HOST_GRANT_AUTHORITY,
+                LOCAL_DEVELOPMENT_AUTHORITY,
+            ):
+                raise WorkerFailure(WorkerCode.UNSUPPORTED)
+            # The local development variant exists only for the GPU profile; a
+            # TPU request is rejected before this and never becomes local.
+            if (
+                self.accelerator_authority == LOCAL_DEVELOPMENT_AUTHORITY
+                and self.accelerator_profile_id != GPU_PROFILE.profile_id
             ):
                 raise WorkerFailure(WorkerCode.UNSUPPORTED)
             exact_digest(self.accelerator_grant_digest)
@@ -214,6 +238,21 @@ class DevelopmentWorkerProfile:
                     "process_count": TPU_PROFILE.process_count,
                     "allocation": "EXCLUSIVE_TPU_HOST_REQUIRED_NOT_VERIFIED",
                     "host_dispatch": "UNAVAILABLE",
+                }
+            elif self.accelerator_authority == LOCAL_DEVELOPMENT_AUTHORITY:
+                # Deliberately not "grant_digest": a development approval must
+                # never acquire strict authority by occupying the old key.
+                result["schema"] = "carbon.c03.development-worker-profile.v4"
+                result["accelerators"] = {
+                    "profile_id": self.accelerator_profile_id,
+                    "profile_digest": GPU_PROFILE.digest,
+                    "authority": LOCAL_DEVELOPMENT_AUTHORITY,
+                    "approval_digest": self.accelerator_grant_digest,
+                    "role": self.accelerator_role,
+                    "device_uuid": GPU_PROFILE.device_uuid,
+                    "allocation": "TASK_OWNED_NOT_EXCLUSIVE",
+                    "device_memory_cap": "NOT_ENFORCED_BY_THIS_AUTHORITY",
+                    "official_eligible": False,
                 }
             else:
                 result["schema"] = "carbon.c03.development-worker-profile.v2"
