@@ -25,7 +25,7 @@ import math
 import re
 from dataclasses import dataclass
 
-SCHEMA = "carbon.local-gpu-diagnostic-plan.v1"
+SCHEMA = "carbon.gpu-development-diagnostic-plan.v1"
 STATUS = "PROPOSED_NOT_ACTIVATED"
 
 # Exclusivity is not claimed by a development diagnostic.
