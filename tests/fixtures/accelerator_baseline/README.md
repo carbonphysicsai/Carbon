@@ -25,6 +25,15 @@ still read as what it meant. Only bytes that predate the change can show that.
 The profile it names pinned one host's device into the workload itself, which is
 why the request carries no device field: the device came from the profile.
 
+## Why the archive is base64
+
+`train.npz` is stored as `train.npz.base64`. The repository forbids committing a
+numpy payload anywhere under `tests/`, and that invariant is not worth bending
+for a fixture. The encoded bytes are the originals - `sha256:5fd001963ab0c59c…`,
+28 bytes - and the test decodes them and checks that digest against the one the
+frozen request itself names, so a mistake in the encoding fails loudly instead
+of quietly substituting a different archive.
+
 ## Rules
 
 **Do not regenerate these files, and do not update the expected values in the
