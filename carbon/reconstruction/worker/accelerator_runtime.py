@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import math
 import os
+import re
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
@@ -26,6 +27,7 @@ from carbon.reconstruction.worker.model import (
 
 HOST_ROOT = Path("/var/lib/carbon/accelerators")
 GRANT_SCHEMA = "carbon.accelerator-host-grant.v1"
+_EXACT_DIGEST = re.compile(r"sha256:[0-9a-f]{64}")
 
 
 @dataclass(frozen=True, slots=True)
@@ -217,10 +219,16 @@ def enumeration_capability(driver_model, *, observation_contract=None) -> str:
     return ENUMERATION_UNESTABLISHED
 
 
-def inspect_gpu_device(
-    *, cli, container_name: str, observation_contract: str | None = None
-) -> dict[str, object]:
-    """Observe the fixed device from the bounded container before authorization."""
+OBSERVATION_MODE_STRICT = "STRICT"
+OBSERVATION_MODE_DEVELOPMENT = "DEVELOPMENT"
+
+STRICT_EVIDENCE = "OBSERVED_NOT_SECURITY_QUALIFIED"
+DEVELOPMENT_EVIDENCE = "DEVELOPMENT_ONLY_NOT_SECURITY_QUALIFIED"
+DEVELOPMENT_EXCLUSIVITY = "UNESTABLISHED_DEVELOPMENT_OBSERVATION"
+
+
+def _identity_values(*, cli, container_name: str) -> list[str]:
+    """Fixed-device identity, required identically by both observation modes."""
     result = cli.run(
         [
             "exec",
@@ -231,52 +239,114 @@ def inspect_gpu_device(
         ],
         timeout=10,
     )
-    try:
-        rows = result.stdout.decode("ascii", "strict").strip().splitlines()
-        values = [part.strip() for part in rows[0].split(",")]
-        if (
-            len(rows) != 1
-            or len(values) != 5
-            or values[0] != GPU_PROFILE.device_uuid
-            or values[1] != GPU_PROFILE.device_kind
-            or values[2] != GPU_PROFILE.host_driver
-            or values[3] != "6144"
-            or values[4].lower() != "disabled"
+    rows = result.stdout.decode("ascii", "strict").strip().splitlines()
+    values = [part.strip() for part in rows[0].split(",")]
+    if (
+        len(rows) != 1
+        or len(values) != 5
+        or values[0] != GPU_PROFILE.device_uuid
+        or values[1] != GPU_PROFILE.device_kind
+        or values[2] != GPU_PROFILE.host_driver
+        or values[3] != "6144"
+        or values[4].lower() != "disabled"
+    ):
+        raise ValueError()
+    return values
+
+
+def _compute_app_rows(*, cli, container_name: str) -> list[str]:
+    processes = cli.run(
+        [
+            "exec",
+            container_name,
+            "/usr/bin/nvidia-smi",
+            "--query-compute-apps=pid,gpu_uuid",
+            "--format=csv,noheader,nounits",
+        ],
+        timeout=10,
+    )
+    return processes.stdout.decode("ascii", "replace").splitlines()
+
+
+def inspect_gpu_device(
+    *,
+    cli,
+    container_name: str,
+    observation_contract: str | None = None,
+    development_plan_digest: str | None = None,
+) -> dict[str, object]:
+    """Observe the fixed device from the bounded container before authorization.
+
+    Two outcomes that are never interchangeable. The strict outcome requires
+    established compute-process enumeration and asserts that no foreign process
+    holds the device. The development outcome, reachable only when the caller
+    supplies an owner-approved development plan digest, asserts nothing of the
+    kind: it records exclusivity as unestablished and its foreign-process list
+    as unknown, and `require_strict_observation` refuses it.
+
+    A positively reported foreign process blocks both. Absence of evidence is
+    not evidence of absence, but counter-evidence is still counter-evidence.
+    """
+    if development_plan_digest is not None:
+        if observation_contract is not None:
+            # Two different claims about one observation; refuse rather than
+            # silently resolve to either the weaker or the stronger outcome.
+            raise WorkerFailure(WorkerCode.POLICY)
+        if type(development_plan_digest) is not str or not _EXACT_DIGEST.fullmatch(
+            development_plan_digest
         ):
-            raise ValueError()
-        model = cli.run(
-            [
-                "exec",
-                container_name,
-                "/usr/bin/nvidia-smi",
-                "--query-gpu=driver_model.current",
-                "--format=csv,noheader,nounits",
-            ],
-            timeout=10,
-        )
-        capability = enumeration_capability(
-            model.stdout.decode("ascii", "strict").strip(),
-            observation_contract=observation_contract,
-        )
-        if capability != ENUMERATION_ESTABLISHED:
-            # Refuse rather than record an empty foreign-process list. Whether
-            # this source is documented incomplete or merely unestablished, its
-            # silence is not observed exclusivity, so neither may admit.
-            raise ValueError()
-        processes = cli.run(
-            [
-                "exec",
-                container_name,
-                "/usr/bin/nvidia-smi",
-                "--query-compute-apps=pid,gpu_uuid",
-                "--format=csv,noheader,nounits",
-            ],
-            timeout=10,
-        )
-        if processes.stdout.strip():
-            raise ValueError()
+            raise WorkerFailure(WorkerCode.POLICY)
+
+    try:
+        values = _identity_values(cli=cli, container_name=container_name)
+        if development_plan_digest is None:
+            model = cli.run(
+                [
+                    "exec",
+                    container_name,
+                    "/usr/bin/nvidia-smi",
+                    "--query-gpu=driver_model.current",
+                    "--format=csv,noheader,nounits",
+                ],
+                timeout=10,
+            )
+            capability = enumeration_capability(
+                model.stdout.decode("ascii", "strict").strip(),
+                observation_contract=observation_contract,
+            )
+            if capability != ENUMERATION_ESTABLISHED:
+                # Refuse rather than record an empty foreign-process list.
+                # Whether this source is documented incomplete or merely
+                # unestablished, its silence is not observed exclusivity.
+                raise ValueError()
+            if any(
+                row.strip()
+                for row in _compute_app_rows(cli=cli, container_name=container_name)
+            ):
+                raise ValueError()
+        else:
+            for row in _compute_app_rows(cli=cli, container_name=container_name):
+                if row.split(",", 1)[0].strip().isdigit():
+                    raise ValueError()
     except (UnicodeError, ValueError, IndexError):
         raise WorkerFailure(WorkerCode.POLICY) from None
+
+    if development_plan_digest is not None:
+        return {
+            "uuid": values[0],
+            "name": values[1],
+            "driver": values[2],
+            "memory_capacity_mib": 6144,
+            "display_active": False,
+            # Unknown, never an empty list: this mode cannot enumerate.
+            "other_compute_processes": None,
+            "exclusivity": DEVELOPMENT_EXCLUSIVITY,
+            "device_memory_cap": "NOT_ENFORCED_BY_THIS_OBSERVATION",
+            "observation_mode": OBSERVATION_MODE_DEVELOPMENT,
+            "development_plan_digest": development_plan_digest,
+            "official_eligible": False,
+            "evidence": DEVELOPMENT_EVIDENCE,
+        }
     return {
         "uuid": values[0],
         "name": values[1],
@@ -285,8 +355,28 @@ def inspect_gpu_device(
         "display_active": False,
         "other_compute_processes": [],
         "device_memory_cap": "EXCLUSIVE_ALLOCATION_NOT_HOST_CGROUP",
-        "evidence": "OBSERVED_NOT_SECURITY_QUALIFIED",
+        "observation_mode": OBSERVATION_MODE_STRICT,
+        "evidence": STRICT_EVIDENCE,
     }
+
+
+def require_strict_observation(observation: object) -> dict[str, object]:
+    """Accept only a strict observation; a development one can never pass.
+
+    Strict callers use this instead of trusting a returned mapping, so a weaker
+    development outcome cannot be promoted by being passed along.
+    """
+    if type(observation) is not dict:
+        raise WorkerFailure(WorkerCode.POLICY)
+    if (
+        observation.get("observation_mode") != OBSERVATION_MODE_STRICT
+        or observation.get("evidence") != STRICT_EVIDENCE
+        or observation.get("other_compute_processes") != []
+        or "development_plan_digest" in observation
+        or "exclusivity" in observation
+    ):
+        raise WorkerFailure(WorkerCode.POLICY)
+    return observation
 
 
 def reject_existing_device_containers(*, cli) -> None:
