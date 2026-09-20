@@ -1,8 +1,13 @@
-"""A local diagnostic request survives staging and the real worker-side reader.
+"""Unit behaviour of the accelerator-block encoder, decoder and admission dispatch.
 
-This exercises the production writer and decoder, not a helper standing in for
-them. Synthetic fixtures only; no accelerator is initialized, no container is
-created and no device is attached.
+SCOPE: these build the accelerator block as a dictionary and call
+`_request_worker_profile` directly. That is the inner profile decoder, not the
+full staged request reader, and no file is written. The real
+`stage_request` -> `load_worker_request` boundary is covered by
+`test_local_staged_request_reader.py`.
+
+Synthetic fixtures only; no accelerator is initialized, no container is created
+and no device is attached.
 """
 
 import json

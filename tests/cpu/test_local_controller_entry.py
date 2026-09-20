@@ -1,9 +1,17 @@
-"""The real controller's local entry, exercised without a device.
+"""Approval and admission behaviour of the controller's local entry method.
 
-These drive `IsolatedReconstructionController.execute` itself rather than a
-stand-in, stopping at the launch handoff. Synthetic host roots throughout: the
-real grant and quarantine storage are never touched, no container is created and
-no accelerator is initialized.
+SCOPE, stated precisely because it is narrower than end to end. These call
+`_execute_local_diagnostic` directly, not the public `execute`. The controller is
+built with `__new__` rather than its real initializer, `claimed` and `replica` are
+SimpleNamespace stand-ins, `options` is empty, and `_execute_bound`, image
+verification and existing-container rejection are replaced. They therefore cover
+approval verification, attempt reservation, quarantine and selector typing. They
+do NOT cover public entry, real staging, the full worker reader, numerical
+dispatch, results or cleanup; `test_local_staged_request_reader.py` covers the
+real staging and reader boundary.
+
+Synthetic host roots throughout: the real grant and quarantine storage are never
+touched, no container is created and no accelerator is initialized.
 """
 
 import time

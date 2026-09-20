@@ -544,6 +544,27 @@ def stage_request(
         raise
 
 
+def _permitted_request_schemas(request):
+    """Pair the request schema with the authority its accelerator block declares.
+
+    The pairing is closed in both directions: a CPU request is v1, a strict or
+    TPU accelerator request is v2/v3, and a local development request is v4. A
+    local block presented under a strict schema, or a strict block under the
+    local schema, matches nothing and is refused.
+    """
+    from carbon.reconstruction.worker.model import LOCAL_DEVELOPMENT_AUTHORITY
+
+    accelerator = request.get("accelerator")
+    if accelerator is None:
+        return ("carbon.c03.worker-request.v1",)
+    if (
+        type(accelerator) is dict
+        and accelerator.get("authority") == LOCAL_DEVELOPMENT_AUTHORITY
+    ):
+        return ("carbon.c03.worker-request.v4",)
+    return ("carbon.c03.worker-request.v2", "carbon.c03.worker-request.v3")
+
+
 def _accelerator_request_schema(profile):
     from carbon.reconstruction.accelerators import TPU_PROFILE
     from carbon.reconstruction.worker.model import LOCAL_DEVELOPMENT_AUTHORITY
@@ -628,15 +649,9 @@ def load_worker_request(
         _REQUEST_FIELDS | {"accelerator"},
     )
     try:
-        if (
-            request["schema"]
-            not in (
-                ("carbon.c03.worker-request.v2", "carbon.c03.worker-request.v3")
-                if "accelerator" in request
-                else ("carbon.c03.worker-request.v1",)
-            )
-            or request["scope"] != SCOPE
-        ):
+        if request["schema"] not in _permitted_request_schemas(request):
+            raise WorkerFailure(WorkerCode.INVALID)
+        if request["scope"] != SCOPE:
             raise WorkerFailure(WorkerCode.INVALID)
         paths = request["paths"]
         execution = request["execution"]
