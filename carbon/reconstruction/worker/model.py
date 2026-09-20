@@ -166,16 +166,26 @@ class DevelopmentWorkerProfile:
         else:
             from carbon.reconstruction.accelerators import (
                 GPU_PROFILE,
+                HISTORICAL_PROFILES,
                 TPU_PROFILE,
                 AcceleratorRole,
             )
 
+            permitted = {
+                (GPU_PROFILE.profile_id, "carbon.c03.cuda.development.v1"),
+                (TPU_PROFILE.profile_id, "carbon.c03.tpu.preparation.v1"),
+            }
+            # Retained GPU profiles, which pinned their own device and so were
+            # paired with the same worker profile. A record naming one stays
+            # readable; it does not become runnable. `_registered` refuses a
+            # historical profile wherever execution is actually decided, and the
+            # local development authority is refused for it below.
+            permitted |= {
+                (profile.profile_id, "carbon.c03.cuda.development.v1")
+                for profile in HISTORICAL_PROFILES
+            }
             if (
-                (self.accelerator_profile_id, self.profile_id)
-                not in (
-                    (GPU_PROFILE.profile_id, "carbon.c03.cuda.development.v1"),
-                    (TPU_PROFILE.profile_id, "carbon.c03.tpu.preparation.v1"),
-                )
+                (self.accelerator_profile_id, self.profile_id) not in permitted
                 or self.profile_version != "1.0"
                 or self.accelerator_role not in [role.value for role in AcceleratorRole]
             ):
@@ -209,8 +219,11 @@ class DevelopmentWorkerProfile:
                     raise WorkerFailure(WorkerCode.UNSUPPORTED)
             elif self.accelerator_plan_digest is not None:
                 raise WorkerFailure(WorkerCode.UNSUPPORTED)
-            # A device-backed launch must name the device it is bound to. The
-            # TPU preparation profile dispatches nothing, so it carries none.
+            # A launch under the portable profile must name the device it is
+            # bound to, because that profile pins none. The TPU preparation
+            # profile dispatches nothing and carries none, and a historical
+            # profile already names its own device, so for both the field must
+            # be absent rather than supplied a second time.
             if self.accelerator_profile_id == GPU_PROFILE.profile_id:
                 from carbon.reconstruction.host_inventory import NVIDIA_DEVICE_UUID
 
@@ -312,13 +325,28 @@ class DevelopmentWorkerProfile:
                     ),
                 }
             else:
+                from carbon.reconstruction.accelerators import resolve_profile
+
+                # The profile this launch actually names, which is not always
+                # the current one. Stamping the current profile's digest onto a
+                # launch that names an earlier profile restates history instead
+                # of recording it, and it moves the body - and therefore the
+                # digest - of a request that was already accepted.
+                named = resolve_profile(self.accelerator_profile_id)
                 result["schema"] = "carbon.c03.development-worker-profile.v2"
                 result["accelerators"] = {
                     "profile_id": self.accelerator_profile_id,
-                    "profile_digest": GPU_PROFILE.digest,
+                    "profile_digest": named.digest,
                     "grant_digest": self.accelerator_grant_digest,
                     "role": self.accelerator_role,
-                    "device_uuid": self.accelerator_device_uuid,
+                    # A profile that pins its own device supplies it. The
+                    # portable profile pins none, so the launch supplies it
+                    # and is required above to do so.
+                    "device_uuid": (
+                        named.device_uuid
+                        if self.accelerator_device_uuid is None
+                        else self.accelerator_device_uuid
+                    ),
                     "allocation": "EXCLUSIVE_SINGLE_DEVICE",
                 }
         return result

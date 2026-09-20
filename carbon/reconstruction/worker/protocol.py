@@ -554,10 +554,11 @@ def stage_request(
 def _permitted_request_schemas(request):
     """Pair the request schema with the authority its accelerator block declares.
 
-    The pairing is closed in both directions: a CPU request is v1, a strict or
-    TPU accelerator request is v2/v3, and a local development request is v4. A
-    local block presented under a strict schema, or a strict block under the
-    local schema, matches nothing and is refused.
+    The pairing is closed in both directions: a CPU request is v1, a strict
+    accelerator request is v2 (historical, device-free), v3 (TPU) or v5 (with a
+    named device), and a local development request is v4. A local block
+    presented under a strict schema, or a strict block under the local schema,
+    matches nothing and is refused.
     """
     from carbon.reconstruction.worker.model import LOCAL_DEVELOPMENT_AUTHORITY
 
@@ -569,7 +570,11 @@ def _permitted_request_schemas(request):
         and accelerator.get("authority") == LOCAL_DEVELOPMENT_AUTHORITY
     ):
         return ("carbon.c03.worker-request.v4",)
-    return ("carbon.c03.worker-request.v2", "carbon.c03.worker-request.v3")
+    return (
+        "carbon.c03.worker-request.v2",
+        "carbon.c03.worker-request.v3",
+        "carbon.c03.worker-request.v5",
+    )
 
 
 def _accelerator_request_schema(profile):
@@ -579,9 +584,15 @@ def _accelerator_request_schema(profile):
     if profile.accelerator_profile_id == TPU_PROFILE.profile_id:
         return "carbon.c03.worker-request.v3"
     if profile.accelerator_authority == LOCAL_DEVELOPMENT_AUTHORITY:
-        # A closed, separately versioned request form. The historical strict
-        # representation keeps v2 byte for byte.
+        # A closed, separately versioned request form.
         return "carbon.c03.worker-request.v4"
+    if profile.accelerator_device_uuid is not None:
+        # Naming the device added a field to the strict block. That is a
+        # different body, so it gets a different version rather than being
+        # served under v2 - a reader that accepts v2 must keep getting what v2
+        # meant when it was accepted.
+        return "carbon.c03.worker-request.v5"
+    # The strict block exactly as main accepted it: profile, grant and role.
     return "carbon.c03.worker-request.v2"
 
 
@@ -626,6 +637,8 @@ def _request_worker_profile(request):
             accelerator["device_uuid"],
         )
     elif set(accelerator) == strict_device_fields:
+        # The device-naming strict shape. The device-free TPU preparation
+        # profile must not be able to name a device.
         if accelerator["profile_id"] == TPU_PROFILE.profile_id:
             raise WorkerFailure(WorkerCode.INVALID)
         profile = DevelopmentWorkerProfile(
@@ -641,12 +654,20 @@ def _request_worker_profile(request):
             accelerator["device_uuid"],
         )
     elif set(accelerator) == strict_fields:
-        if accelerator["profile_id"] != TPU_PROFILE.profile_id:
-            raise WorkerFailure(WorkerCode.INVALID)
+        # The historical strict block, accepted on main for both the TPU
+        # preparation profile and a GPU launch. A GPU request in this shape
+        # names no device and is read as exactly what it was: a strict launch
+        # that predates the device field. It is not upgraded, not given a
+        # device, and not reclassified as a development request.
+        is_tpu = accelerator["profile_id"] == TPU_PROFILE.profile_id
         profile = DevelopmentWorkerProfile(
             replicate["policy_digest"],
             replicate["resource_class_digest"],
-            "carbon.c03.tpu.preparation.v1",
+            (
+                "carbon.c03.tpu.preparation.v1"
+                if is_tpu
+                else "carbon.c03.cuda.development.v1"
+            ),
             "1.0",
             accelerator["profile_id"],
             accelerator["grant_digest"],

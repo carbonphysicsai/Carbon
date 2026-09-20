@@ -49,6 +49,16 @@ class AcceleratorProfile:
     topology: str
     environment_file: str
     environment_lock_digest: str
+    # Retained because profiles accepted on main pinned a host's device into the
+    # profile itself, and their documents are already recorded under
+    # `carbon.accelerator-profile.v1`. Dropping the three keys would have changed
+    # what that schema serializes without changing what it is called, moving
+    # every one of those digests. A portable profile leaves all three None, which
+    # is the honest statement that it pins no device: the host's hardware is
+    # installed evidence, not a field of the workload.
+    device_kind: str | None = None
+    device_uuid: str | None = None
+    host_driver: str | None = None
 
     @property
     def admission_enabled(self) -> bool:
@@ -60,10 +70,34 @@ class AcceleratorProfile:
     def backend_request(self) -> BackendRequest:
         return BackendRequest(self.backend, self.local_device_count, "0.10.2", "0.10.2")
 
+    @property
+    def host_pinned(self) -> bool:
+        """Whether this profile names a host's hardware in the workload itself."""
+        return any(
+            value is not None
+            for value in (self.device_kind, self.device_uuid, self.host_driver)
+        )
+
     def document(self) -> dict[str, object]:
+        """The serialized profile, in the shape its version actually defines.
+
+        Two shapes, two versions, because they are two different bodies. `v1`
+        carries the device a profile pins - it is what every accepted record was
+        written under, and it keeps that exact key set so those digests do not
+        move. `v2` is the portable shape and omits those keys entirely rather
+        than writing them as null: a workload profile that names no device
+        should not have somewhere to put one.
+        """
+        fields = asdict(self)
+        if self.host_pinned:
+            schema = "carbon.accelerator-profile.v1"
+        else:
+            schema = "carbon.accelerator-profile.v2"
+            for key in ("device_kind", "device_uuid", "host_driver"):
+                fields.pop(key)
         return {
-            "schema": "carbon.accelerator-profile.v1",
-            **asdict(self),
+            "schema": schema,
+            **fields,
             "backend": self.backend.value,
             "python": "3.11.16",
             "jax": "0.10.2",
@@ -109,20 +143,74 @@ TPU_PROFILE = AcceleratorProfile(
     "2x4; provisioning SKU and observed topology pending",
     ".devcontainer/accelerators/tpu-py311.txt",
     "sha256:f42354e5eaec6c995fbee84407b095529b201ce82c04ea78b37777581d7bb3b2",
+    device_kind="TPU v5 lite",
 )
+
+# The GPU profile accepted on main, which pinned one laptop's device into the
+# workload. The portable profile above replaces it for new work, but replacing
+# it in the registry would have made every record naming it unresolvable - a
+# record does not stop meaning what it meant because a better profile exists.
+# It is retained with its original body, and therefore its original digest.
+#
+# Retention is interpretation, not permission: it is deliberately absent from
+# PROFILES, so `_registered` refuses it and it can never be dispatched, given a
+# worker environment, or admitted. Old records keep their identity and their
+# assurance level; they do not acquire the portable profile's.
+RTX3060_LAPTOP_PROFILE = AcceleratorProfile(
+    "carbon_jax_cuda13_rtx3060_laptop_development_v1",
+    Backend.NVIDIA,
+    1,
+    1,
+    1,
+    "single-device",
+    ".devcontainer/accelerators/cuda13-py311.txt",
+    "sha256:a197af534a061636ba77e4f97f7e9be508b795d58883b6774fde74a5135ad434",
+    device_kind="NVIDIA GeForce RTX 3060 Laptop GPU",
+    device_uuid="GPU-31e88d04-75ff-89b2-9160-4b923dd7eb81",
+    host_driver="581.95",
+)
+
 PROFILES = (GPU_PROFILE, TPU_PROFILE)
+HISTORICAL_PROFILES = (RTX3060_LAPTOP_PROFILE,)
 
 
 def resolve_profile(profile_id: str) -> AcceleratorProfile:
+    """Interpret a profile identity, current or historical.
+
+    Reading an old record is not running it. A historical profile resolves here
+    so its document, digest and meaning stay recoverable, and is refused by
+    `_registered` wherever execution is actually decided.
+    """
     if type(profile_id) is str:
-        for profile in PROFILES:
+        for profile in PROFILES + HISTORICAL_PROFILES:
             if profile.profile_id == profile_id:
                 return profile
     raise ValueError("unregistered accelerator profile")
 
 
+def dispatchable(profile: object) -> bool:
+    """Whether this profile may be executed, as opposed to merely understood."""
+    return type(profile) is AcceleratorProfile and profile in PROFILES
+
+
 def _registered(profile: AcceleratorProfile) -> None:
-    if type(profile) is not AcceleratorProfile or profile not in PROFILES:
+    """The dispatch gate. Only a current profile may be executed."""
+    if not dispatchable(profile):
+        raise ValueError("exact registered accelerator profile required")
+
+
+def _known(profile: AcceleratorProfile) -> None:
+    """The interpretation gate: a profile this repository can still describe.
+
+    Wider than `_registered` on purpose, and only for reading. Verifying what a
+    retained plan pinned means computing what its profile required, which is a
+    statement about a record rather than a step towards running it. An unknown
+    profile is still refused, so this is not an escape from the registry - it is
+    the difference between understanding a record and executing one.
+    """
+    if type(profile) is not AcceleratorProfile or profile not in (
+        PROFILES + HISTORICAL_PROFILES
+    ):
         raise ValueError("exact registered accelerator profile required")
 
 
@@ -221,8 +309,14 @@ def require_accelerator_admission(
 def accelerator_dependency_specs(
     profile: AcceleratorProfile,
 ) -> tuple[tuple[str, str, str], ...]:
-    """Add explicit plugin pins; the profile also binds the entire resolved lock."""
-    _registered(profile)
+    """Add explicit plugin pins; the profile also binds the entire resolved lock.
+
+    Interpretation, not dispatch: this is how a retained plan's pinned
+    dependency set is recomputed in order to verify it. Admission, the worker
+    overlay and the observation check remain `_registered`, so a historical
+    profile can be described here and still never reach a device.
+    """
+    _known(profile)
     pins = (
         (("jax-cuda13-plugin", "0.10.2"), ("jax-cuda13-pjrt", "0.10.2"))
         if profile.backend is Backend.NVIDIA

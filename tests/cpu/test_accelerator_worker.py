@@ -10,7 +10,11 @@ import pytest
 from test_c03_worker_contract import _fixture, _image, _sha
 
 from carbon.development_session.profile import canonical
-from carbon.reconstruction.accelerators import GPU_PROFILE, AcceleratorRole
+from carbon.reconstruction.accelerators import (
+    GPU_PROFILE,
+    RTX3060_LAPTOP_PROFILE,
+    AcceleratorRole,
+)
 from carbon.reconstruction.worker import accelerator_runtime as runtime
 from carbon.reconstruction.worker.controller import IsolatedReconstructionController
 from carbon.reconstruction.worker.docker_runtime import create_arguments
@@ -336,9 +340,54 @@ def test_closed_gpu_protocol_roundtrip_and_cpu_request_schema(tmp_path, monkeypa
     )
     _, loaded_plan, _, _, _ = load_worker_request(stage)
     request = json.loads((stage / "request.json").read_bytes())
-    assert request["schema"] == "carbon.c03.worker-request.v2"
+    # Naming the device is a different accelerator body, so it is a different
+    # request version. v2 is not reused for it: see the test below, which is
+    # the shape v2 was accepted with.
+    assert request["schema"] == "carbon.c03.worker-request.v5"
+    assert set(request["accelerator"]) == {
+        "profile_id",
+        "grant_digest",
+        "role",
+        "device_uuid",
+    }
     assert request["accelerator"]["role"] == AcceleratorRole.MINER_RESEARCH.value
     assert loaded_plan.to_ref() == plan.to_ref()
+
+
+def test_new_work_cannot_be_staged_under_a_retained_profile(tmp_path, monkeypatch):
+    """Retention lets an old record be read. It does not let new work be made.
+
+    A request already written under the historical profile still loads - that is
+    covered against main's own bytes in
+    `tests/cpu/test_accelerator_baseline_compatibility.py`. Staging is the other
+    direction: producing new work, which a retained profile must never do.
+    """
+    from carbon.reconstruction.model import ReconstructionFailure
+    from carbon.reconstruction.worker.protocol import stage_request
+
+    claimed, repeat, replica, plan, archive, seed, _ = _gpu_fixture(
+        tmp_path, monkeypatch
+    )
+    retained = DevelopmentWorkerProfile(
+        _sha("2"),
+        _sha("3"),
+        "carbon.c03.cuda.development.v1",
+        "1.0",
+        RTX3060_LAPTOP_PROFILE.profile_id,
+        _sha("4"),
+        AcceleratorRole.MINER_RESEARCH.value,
+    )
+    with pytest.raises((ReconstructionFailure, WorkerFailure, ValueError)):
+        stage_request(
+            stage_root=tmp_path / "staging",
+            claimed=claimed,
+            repeat_plan=repeat,
+            replica=replica,
+            plan=plan,
+            training_archive=archive,
+            derived_seed=seed,
+            worker_profile=retained,
+        )
 
 
 def test_controller_routes_only_matching_private_grant_under_exclusive_lease(

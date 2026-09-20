@@ -87,6 +87,52 @@ enforces. It is observed at the same boundaries as the existing cancellation
 channel and raises its own code, so an operator stopping a run and a run
 outliving its deadline stay distinguishable.
 
+## Compatibility with records accepted on main
+
+The portable-host change was the right direction and it rewrote accepted
+contracts to reach it. Compared against `0a9dbaaf` - the merge of PR #240, on
+`main` - five records changed meaning without changing name. Each is repaired by
+versioning the new shape and retaining a bounded read path for the old one, not
+by restating the old expectation:
+
+1. The registered RTX-3060 profile was replaced in `PROFILES`, so a record
+   naming it no longer resolved at all. It is retained as `HISTORICAL_PROFILES`
+   with its original body and therefore its original digest
+   (`sha256:8408adc8…`). Retention is interpretation: `resolve_profile` finds
+   it, and `_registered` refuses it wherever execution is decided, so it cannot
+   be dispatched, given a worker overlay, admitted, or staged into new work.
+2. The common profile body dropped three serialized keys while still calling
+   itself `carbon.accelerator-profile.v1`, which moved the TPU digest under an
+   unchanged profile id. The host-pinned shape keeps `v1` and its exact key set;
+   the portable shape is `carbon.accelerator-profile.v2` and omits those keys
+   rather than writing them as null. The TPU profile is back to
+   `sha256:b88d9f6f…`.
+3. The worker reader stopped accepting the three-field strict accelerator block
+   `{profile_id, grant_digest, role}` for a GPU profile, while reusing the
+   `worker-request.v2` label for a new four-field body. v2 is restored to the
+   body it was accepted with; naming a device is `worker-request.v5`.
+4. The active-allocation decoder began requiring an `authority` key that
+   retained records do not carry, which stranded any host still holding a real
+   allocation. A two-field record is read as the strict allocation it was -
+   deliberately not as a development one, which would discharge a whole-device
+   release obligation that was never satisfied. An unrecognised shape still
+   fails closed.
+5. Surfaced by the frozen fixture rather than by inspection: the worker profile
+   body stamped the current profile's digest and the launch's device onto a
+   request that named an earlier profile, moving `worker_profile_digest` for an
+   already-accepted request. It now derives both from the profile the request
+   actually names.
+
+The evidence is `tests/fixtures/accelerator_baseline/`: a complete staged worker
+request produced by `0a9dbaaf`'s own `stage_request`, frozen as bytes. Two
+constructors from the current implementation compared against each other cannot
+show historical compatibility; only bytes that predate the change can. No
+historical expected digest was updated to make a new serialization pass.
+
+The documentation claim that a shared workload-profile digest leaves two runs
+comparable is also corrected. It establishes that they requested the same
+configuration; comparability is a scientific judgement about measurements.
+
 Two guard tests assert that this preparation leaves the strict contract
 untouched: `ESTABLISHED_OBSERVATION_CONTRACTS` remains empty and
 `require_accelerator_admission()` still refuses.

@@ -18,6 +18,7 @@ from test_c03_worker_contract import _sha
 
 from carbon.reconstruction.accelerators import (
     GPU_PROFILE,
+    RTX3060_LAPTOP_PROFILE,
     require_local_diagnostic_profile_admission,
     require_profile_admission,
     require_reconstruction_profile_admission,
@@ -109,13 +110,49 @@ def _request(profile):
 # --- the local form is closed and separately versioned ------------------------
 
 
-def test_local_and_strict_requests_use_different_schemas():
-    assert _accelerator_request_schema(_strict_profile()) == (
+def _historical_strict_profile():
+    """The strict shape as main accepted it: no device field.
+
+    It names the profile that pinned its own device, because that is what such a
+    request named. The portable profile pins none, so a launch under it must
+    supply one and cannot take this shape.
+    """
+    return DevelopmentWorkerProfile(
+        POLICY_DIGEST,
+        RESOURCE_CLASS_DIGEST,
+        "carbon.c03.cuda.development.v1",
+        "1.0",
+        RTX3060_LAPTOP_PROFILE.profile_id,
+        APPROVAL_DIGEST,
+        "MINER_RESEARCH",
+    )
+
+
+def test_each_accelerator_body_has_its_own_request_version():
+    """Three bodies, three versions. None of them shares another's number.
+
+    Naming the device added a field to the strict block, so it is v5 rather than
+    a second thing served under v2. A reader that accepts v2 keeps getting what
+    v2 meant when it was accepted.
+    """
+    assert _accelerator_request_schema(_historical_strict_profile()) == (
         "carbon.c03.worker-request.v2"
+    )
+    assert _accelerator_request_schema(_strict_profile()) == (
+        "carbon.c03.worker-request.v5"
     )
     assert _accelerator_request_schema(_local_profile()) == (
         "carbon.c03.worker-request.v4"
     )
+    versions = {
+        _accelerator_request_schema(profile)
+        for profile in (
+            _historical_strict_profile(),
+            _strict_profile(),
+            _local_profile(),
+        )
+    }
+    assert len(versions) == 3
 
 
 def test_the_real_reader_round_trips_a_local_request():

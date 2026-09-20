@@ -496,11 +496,23 @@ def _allocation_document() -> dict | None:
         STRICT_HOST_GRANT_AUTHORITY,
     )
 
-    if type(document) is not dict or set(document) != {
-        "container_name",
-        "launch_digest",
-        "authority",
-    }:
+    if type(document) is not dict:
+        raise WorkerFailure(WorkerCode.CLEANUP)
+    fields = set(document)
+    if fields == {"container_name", "launch_digest"}:
+        # A record retained from before the authority was written down. Only
+        # the strict path could create an allocation then, so that is what it
+        # is, and reading it any other way would be inventing history.
+        #
+        # This matters most in the direction that is easy to get wrong: a legacy
+        # allocation must NOT be read as a development one. The development path
+        # completes without claiming whole-device release, so reclassifying an
+        # old record would quietly discharge a strict cleanup obligation that
+        # was never satisfied. Refusing outright is no better - it strands a
+        # host that still holds a real allocation, with no way to finish it.
+        document = {**document, "authority": STRICT_HOST_GRANT_AUTHORITY}
+        fields = set(document)
+    if fields != {"container_name", "launch_digest", "authority"}:
         raise WorkerFailure(WorkerCode.CLEANUP)
     if document["authority"] not in (
         STRICT_HOST_GRANT_AUTHORITY,

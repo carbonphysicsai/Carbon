@@ -93,10 +93,19 @@ def test_local_request_round_trips_through_the_real_reader(tmp_path, monkeypatch
     assert loaded_plan.to_ref() == plan.to_ref()
 
 
-def test_strict_request_still_round_trips_unchanged(tmp_path, monkeypatch):
+def test_the_device_naming_strict_request_round_trips_under_its_own_version(
+    tmp_path, monkeypatch
+):
+    """Not v2: this block carries a device field that v2 never carried.
+
+    That a request already written under v2 still loads is covered by
+    `tests/cpu/test_accelerator_baseline_compatibility.py`, against bytes main
+    produced - which is the only thing that can show it.
+    """
     stage, plan = _stage(tmp_path, monkeypatch, _strict_profile())
     request = json.loads((stage / "request.json").read_bytes())
-    assert request["schema"] == "carbon.c03.worker-request.v2"
+    assert request["schema"] == "carbon.c03.worker-request.v5"
+    assert request["accelerator"]["device_uuid"] == DEVICE_UUID
     assert request["accelerator"]["grant_digest"] == APPROVAL_DIGEST
     assert "authority" not in request["accelerator"]
     _, loaded_plan, _, _, _ = load_worker_request(stage)
