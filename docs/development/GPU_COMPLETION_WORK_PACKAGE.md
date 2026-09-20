@@ -7,8 +7,8 @@ changes two things you were told earlier.
 
 The owner wants the GPU setup **complete**. W1 to W5 need no GPU attempt, no
 hardware authority and no spend, and they are everything that can be finished
-without consuming something that cannot be returned. W6 is the attempt itself and
-is gated - see the bottom.
+without consuming something that cannot be returned. No attempt is planned on
+the owner's device at all - W6 records why.
 
 ---
 
@@ -34,14 +34,14 @@ keys instead.
 
 ## W1. Close stage 1
 
-A full CPU acceptance run is in flight at `b0b04d44` on
-`agent/core-platform-19-gpu-lane-split`, logging to
-`/tmp/carbon-acceptance.log`, started from a clean worktree with the revision
-recorded in the log header. **Do not edit that worktree while it runs** - an
-edit mid-run invalidates it, which has already happened once.
+**Done.** The full CPU acceptance suite passed at `b0b04d44` on
+`agent/core-platform-19-gpu-lane-split`: 6882 passed, 10 skipped, exit 0, in
+1859.86s. The worktree was clean at start and at finish and the revision was
+unchanged across the run, so it is a valid acceptance against a fixed revision.
+The log is `/tmp/carbon-acceptance.log`.
 
-When it lands: if green, build the matching worker image against that revision
-and land PR #247 and PR #249. If red, the failures are the work.
+Remaining: build the matching worker image against that revision, then land
+PR #247 and PR #249.
 
 ## W2. Draft the MQ-008 evidence specification
 
@@ -112,20 +112,34 @@ Do not change a threshold. Report.
 
 ---
 
-## W6. The first GPU attempt - gated, do not start
+## W6. No attempt is planned on the owner's device
 
-Reaching `ASSOCIATED` under a GPU profile is the one thing still uncovered, and
-it needs the device. It is also irreversible: attempts do not come back, and
-`/var/lib/carbon/accelerators` is currently absent, so **0 of 4 are consumed.**
+**Withdrawn.** An earlier revision of this package had you prepare a local GPU
+attempt. Do not. Zero of four attempts stay consumed.
 
-`GPU_INITIAL_POLICY.md` P7 holds: no attempt is spent until a written evidence
-specification exists and the MQ-008 owners have accepted it. W2 produces that
-specification. **Stop when W2 is drafted and W1, W3, W4 and W5 are done, and
-report.** The owner decides whether to spend, and how many.
+The device available here is a laptop GPU under WSL2, and it serves neither goal.
+It does not verify the launchpad, which rents arbitrary hardware and is verified
+by starting the worker on rented hardware - one known laptop in an environment
+where compute-process enumeration returns empty is the least representative case
+available. It does not qualify validator GPU either, because MQ-008 qualifies a
+narrow backend profile and validators run datacenter Linux GPUs; divergence
+measured here would qualify this laptop and nothing else.
 
-Prepare everything that does not consume an attempt: the plan, the command, the
-expected record, what you would capture, and what would count as a failed
-attempt worth not repeating.
+That is the mistake the registry already corrected. `RTX3060_LAPTOP_PROFILE` was
+demoted to `HISTORICAL_PROFILES` precisely because pinning one laptop into the
+workload was wrong. Spending attempts to measure that same laptop would repeat
+it in a new form.
+
+What a local run would buy is narrower than it looks: free crash discovery
+before paying for cloud time, and a qualitative read on whether GPU training is
+run-to-run deterministic at all. Both are engineering convenience. If they are
+ever wanted, they are a debugging run under an explicit owner decision, framed
+as development evidence and never as qualification - not a spend of the envelope
+built for MQ-008.
+
+W2 still produces the evidence specification. It is drafted against the hardware
+validators will actually use, and the owner decides when and where to spend
+against it.
 
 ---
 
