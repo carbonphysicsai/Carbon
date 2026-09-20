@@ -58,9 +58,28 @@ DEVELOPMENT_CLEANUP = "TASK_OWNED_RESOURCE_REMOVAL_ONLY"
 
 REGISTERED_OPERATIONS = frozenset({"registered_trainer_fit"})
 
+# Attempt outcomes. Two independent questions decide these, and conflating them
+# is how an attempt journal starts lying: did the work produce a result, and are
+# this launch's host resources known to be released?
+#
+#   RESERVED    in flight, or the controller died before it could reconcile.
+#               Blocks, because an unfinished attempt may still hold the device.
+#   COMPLETED   the work produced its result and cleanup was confirmed.
+#   RECONCILED  the work did not succeed - it failed, or was cancelled - but
+#               cleanup was confirmed. Distinct from COMPLETED on purpose: this
+#               record must never read as science that did not happen.
+#   AMBIGUOUS   cleanup could not be established. Blocks until an operator
+#               reconciles it.
+#
+# Every one of these counts against the budget. None of them is a refund.
 ATTEMPT_RESERVED = "RESERVED"
 ATTEMPT_COMPLETED = "COMPLETED"
+ATTEMPT_RECONCILED = "RECONCILED_NOT_SUCCESSFUL"
 ATTEMPT_AMBIGUOUS = "AMBIGUOUS"
+
+# The states that keep the single Carbon host slot closed to a new launch.
+ATTEMPT_BLOCKING = frozenset({ATTEMPT_RESERVED, ATTEMPT_AMBIGUOUS})
+ATTEMPT_TERMINAL = frozenset({ATTEMPT_COMPLETED, ATTEMPT_RECONCILED, ATTEMPT_AMBIGUOUS})
 
 _DIGEST = re.compile(r"sha256:[0-9a-f]{64}")
 _NONCE = re.compile(r"[0-9a-f]{32}")
@@ -299,9 +318,18 @@ class DevelopmentAttemptJournal:
         """An unreconciled attempt blocks the next launch until an operator acts."""
         for path in self._markers():
             document = self._read(path)
-            if document.get("state") in (ATTEMPT_RESERVED, ATTEMPT_AMBIGUOUS):
+            if document.get("state") in ATTEMPT_BLOCKING:
                 return document
         return None
+
+    def attempt(self, *, nonce: str) -> dict[str, object] | None:
+        """The recorded marker for one nonce, or None if it was never reserved."""
+        if type(nonce) is not str or not _NONCE.fullmatch(nonce):
+            raise WorkerFailure(WorkerCode.POLICY)
+        path = self.root / f"{nonce}.json"
+        if not path.exists():
+            return None
+        return self._read(path)
 
     def reserve(self, *, nonce: str, plan_digest: str, budget: int, now: float) -> Path:
         """Atomically consume one attempt. Conservative: reserved before dispatch."""
@@ -361,10 +389,15 @@ class DevelopmentAttemptJournal:
         return path
 
     def settle(self, *, nonce: str, state: str) -> None:
-        """Record a terminal outcome. Never removes the attempt from the budget."""
+        """Record a terminal outcome. Never removes the attempt from the budget.
+
+        Only a RESERVED attempt may be settled, so a settled record cannot be
+        rewritten - in particular an AMBIGUOUS marker cannot be relabelled to
+        obtain another launch.
+        """
         from carbon.development_session.profile import canonical
 
-        if state not in (ATTEMPT_COMPLETED, ATTEMPT_AMBIGUOUS):
+        if state not in ATTEMPT_TERMINAL:
             raise WorkerFailure(WorkerCode.POLICY)
         if type(nonce) is not str or not _NONCE.fullmatch(nonce):
             raise WorkerFailure(WorkerCode.POLICY)

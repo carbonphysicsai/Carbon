@@ -355,11 +355,66 @@ class IsolatedReconstructionController:
             still_owned()
             verify_image_and_toolkit(cli=self.cli, image=self.image)
             reject_existing_device_containers(cli=self.cli)
-            return self._execute_bound(
-                **options,
-                worker_profile=worker_profile,
-                cancelled=still_owned,
+            # Reconcile the attempt on both exits. An attempt that stays
+            # RESERVED after its container is gone consumes one attempt and then
+            # blocks every remaining one in the budget, so the terminal side of
+            # the journal is not optional bookkeeping.
+            try:
+                result = self._execute_bound(
+                    **options,
+                    worker_profile=worker_profile,
+                    cancelled=still_owned,
+                )
+            except BaseException:
+                self._reconcile_local_attempt(
+                    journal, local_diagnostic.nonce, succeeded=False
+                )
+                raise
+            self._reconcile_local_attempt(
+                journal, local_diagnostic.nonce, succeeded=True
             )
+            return result
+
+    @staticmethod
+    def _reconcile_local_attempt(journal, nonce, *, succeeded):
+        """Settle one development attempt from observed host state.
+
+        Deliberately not an unconditional settlement. The attempt is reconciled
+        only when this host no longer holds resources this launch owned; if the
+        allocation record survives or a strict quarantine exists, the attempt is
+        recorded AMBIGUOUS and keeps blocking until an operator reconciles it.
+        Unknown cleanup is not a free attempt.
+
+        If this process dies before reaching here the marker stays RESERVED,
+        which also blocks. Both defaults fail towards blocking rather than
+        towards another launch.
+
+        A settlement failure never replaces the run's own outcome: an unsettled
+        marker is the safe direction, and masking the real error with a
+        bookkeeping one would lose the reason the run ended.
+        """
+        from carbon.reconstruction.worker.accelerator_runtime import HOST_ROOT
+        from carbon.reconstruction.worker.development_admission import (
+            ATTEMPT_AMBIGUOUS,
+            ATTEMPT_COMPLETED,
+            ATTEMPT_RECONCILED,
+        )
+
+        try:
+            unresolved = (HOST_ROOT / "active-allocation.json").exists() or (
+                HOST_ROOT / "device-quarantined"
+            ).exists()
+            if unresolved:
+                state = ATTEMPT_AMBIGUOUS
+            elif succeeded:
+                state = ATTEMPT_COMPLETED
+            else:
+                # Cleaned up, but it produced no result. Recording this as
+                # COMPLETED would claim science that did not happen.
+                state = ATTEMPT_RECONCILED
+            journal.settle(nonce=nonce, state=state)
+        except (WorkerFailure, OSError):
+            return
 
     @staticmethod
     def _check_cancelled(cancelled):

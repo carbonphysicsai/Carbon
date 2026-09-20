@@ -230,26 +230,55 @@ def test_valid_local_approval_reaches_the_launch_handoff(approved, monkeypatch):
 
 
 def test_the_attempt_is_reserved_before_the_handoff(approved, monkeypatch):
-    """Conservative accounting: the attempt is durable before any attachment."""
+    """Conservative accounting: the attempt is durable before any attachment.
+
+    Checked at the handoff itself, not afterwards. By the time the exception has
+    propagated the controller has reconciled the attempt, so a later assertion
+    would be reading the terminal state and could not tell whether the
+    reservation had preceded the launch at all.
+    """
     controller = _controller(approved, monkeypatch)
     journal = dev.DevelopmentAttemptJournal(approved.host)
     assert journal.consumed() == 0
+
+    observed = {}
+
+    def at_handoff(**kwargs):
+        observed["consumed"] = journal.consumed()
+        observed["blocking"] = journal.blocking_attempt()
+        raise _Handoff(kwargs)
+
+    from carbon.reconstruction.worker.controller import (
+        IsolatedReconstructionController,
+    )
+
+    monkeypatch.setattr(
+        IsolatedReconstructionController, "_execute_bound", staticmethod(at_handoff)
+    )
     with pytest.raises(_Handoff):
         _run(controller, approved, monkeypatch)
+
+    # Durable before the launch could have attached anything.
+    assert observed["consumed"] == 1
+    assert observed["blocking"] is not None
+    # And still spent afterwards: reconciling an attempt never refunds it.
     assert journal.consumed() == 1
-    assert journal.blocking_attempt() is not None
 
 
 def test_a_replayed_nonce_cannot_launch_again(approved, monkeypatch):
+    """A settled nonce is spent. Replaying it wins no second launch."""
     controller = _controller(approved, monkeypatch)
+    journal = dev.DevelopmentAttemptJournal(approved.host)
     with pytest.raises(_Handoff):
         _run(controller, approved, monkeypatch)
-    dev.DevelopmentAttemptJournal(approved.host).settle(
-        nonce=NONCE, state=dev.ATTEMPT_COMPLETED
-    )
+    # The controller reconciles its own attempt; nothing here settles it by hand.
+    assert journal.blocking_attempt() is None
+    assert journal.attempt(nonce=NONCE)["state"] == dev.ATTEMPT_RECONCILED
+
     with pytest.raises(WorkerFailure) as error:
         _run(controller, approved, monkeypatch)
     assert error.value.code is WorkerCode.CONFLICT
+    assert journal.consumed() == 1, "a refused replay consumes nothing extra"
 
 
 # --- rejection happens before anything could attach ---------------------------
