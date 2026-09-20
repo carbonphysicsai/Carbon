@@ -130,6 +130,26 @@ class DevelopmentWorkerProfile:
     # Which device on THIS host the launch is bound to. Supplied per run from
     # the installed host record, never from a constant in the source tree.
     accelerator_device_uuid: str | None = None
+    # The resolved effective controls for this run, when an authority narrowed
+    # them. Absent means the registered implementation constants apply, which is
+    # the case for every CPU and strict launch, so their bodies are unchanged.
+    accelerator_controls: dict | None = None
+
+    @property
+    def effective_deadline_seconds(self) -> int:
+        """The productive deadline this launch is actually run under."""
+        controls = self.accelerator_controls
+        if not controls:
+            return PRODUCTIVE_DEADLINE_SECONDS
+        return int(controls["productive_seconds"])
+
+    @property
+    def effective_output_bytes(self) -> int:
+        """The output ceiling this launch's collection is actually bounded by."""
+        controls = self.accelerator_controls
+        if not controls:
+            return OUTPUT_BYTES
+        return int(controls["output_bytes"])
 
     def __post_init__(self) -> None:
         if self.accelerator_profile_id is None:
@@ -230,7 +250,7 @@ class DevelopmentWorkerProfile:
             "input": {"bytes": INPUT_BYTES, "expanded_bytes": EXPANDED_INPUT_BYTES},
             "control_bytes": CONTROL_BYTES,
             "output": {
-                "bytes": OUTPUT_BYTES,
+                "bytes": self.effective_output_bytes,
                 "expanded_bytes": EXPANDED_OUTPUT_BYTES,
                 "members": OUTPUT_MEMBERS,
             },
@@ -238,7 +258,7 @@ class DevelopmentWorkerProfile:
             "nofile_per_process": NOFILE_LIMIT,
             "core_dumps": False,
             "accelerators": "NOT_APPLICABLE",
-            "deadline_seconds": PRODUCTIVE_DEADLINE_SECONDS,
+            "deadline_seconds": self.effective_deadline_seconds,
             "graceful_cancellation_seconds": GRACEFUL_CANCELLATION_SECONDS,
             "cleanup_confirmation_seconds": CLEANUP_CONFIRMATION_SECONDS,
             "security": {
@@ -283,6 +303,13 @@ class DevelopmentWorkerProfile:
                     "allocation": "TASK_OWNED_NOT_EXCLUSIVE",
                     "device_memory_cap": "NOT_ENFORCED_BY_THIS_AUTHORITY",
                     "official_eligible": False,
+                    # The controls this run is executed under, resolved from the
+                    # approval and the registered implementation ceilings. They
+                    # live in the development block, not at the top level, so
+                    # accepted CPU and strict bodies stay byte-identical.
+                    "effective_controls": dict(
+                        sorted((self.accelerator_controls or {}).items())
+                    ),
                 }
             else:
                 result["schema"] = "carbon.c03.development-worker-profile.v2"
@@ -334,6 +361,11 @@ class WorkerTiming:
     productive_deadline_unix: float
     launch_started_monotonic: float
     boot_id: str
+    # The productive window this launch was admitted for. Defaults to the
+    # registered maximum, so every existing CPU and strict launch is unchanged.
+    # An authority may narrow it; nothing may widen it past the registered
+    # ceiling, which is what the worker is actually built to enforce.
+    deadline_seconds: int = PRODUCTIVE_DEADLINE_SECONDS
 
     def __post_init__(self) -> None:
         if any(
@@ -346,8 +378,14 @@ class WorkerTiming:
         ):
             raise WorkerFailure(WorkerCode.INVALID)
         if (
+            type(self.deadline_seconds) is not int
+            or isinstance(self.deadline_seconds, bool)
+            or not 0 < self.deadline_seconds <= PRODUCTIVE_DEADLINE_SECONDS
+        ):
+            raise WorkerFailure(WorkerCode.INVALID)
+        if (
             self.productive_deadline_unix
-            != self.launch_started_unix + PRODUCTIVE_DEADLINE_SECONDS
+            != self.launch_started_unix + self.deadline_seconds
         ):
             raise WorkerFailure(WorkerCode.INVALID)
         exact_token(self.boot_id)
@@ -356,7 +394,7 @@ class WorkerTiming:
     def productive_deadline_monotonic(self) -> float:
         """Same-boot live deadline; never compare this value across boot IDs."""
 
-        return self.launch_started_monotonic + PRODUCTIVE_DEADLINE_SECONDS
+        return self.launch_started_monotonic + self.deadline_seconds
 
 
 __all__ = [

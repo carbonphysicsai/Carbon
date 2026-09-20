@@ -39,6 +39,9 @@ from carbon.reconstruction.worker.accelerator_runtime import (
     shared_host_lease,
 )
 from carbon.reconstruction.worker.model import (
+    MEMORY_BYTES,
+    OUTPUT_BYTES,
+    PRODUCTIVE_DEADLINE_SECONDS,
     WorkerCode,
     WorkerFailure,
     WorkerImageIdentity,
@@ -131,6 +134,81 @@ def _positive_int(value: object) -> int:
     if type(value) is not int or isinstance(value, bool) or value <= 0:
         raise WorkerFailure(WorkerCode.POLICY)
     return value
+
+
+# Ceilings the worker implementation actually enforces, by limit name. An
+# approval may ask for less than these; it can never ask for more, because these
+# are what the container, the deadline owner and the export are built to apply.
+#
+# `training_steps` is deliberately absent: the implementation registers no
+# independent step ceiling, so the approval's value is the controlling one and is
+# carried to the worker rather than being clamped against an invented constant.
+REGISTERED_CONTROL_CEILINGS = {
+    "productive_seconds": PRODUCTIVE_DEADLINE_SECONDS,
+    "output_bytes": OUTPUT_BYTES,
+    "host_ram_bytes": MEMORY_BYTES,
+}
+
+# Limits that bound one invocation and must be represented as positive integers
+# before anything is reserved.
+_BOUNDED_CONTROLS = frozenset(
+    {
+        "productive_seconds",
+        "cleanup_seconds",
+        "attempt_seconds",
+        "batch_seconds",
+        "host_ram_bytes",
+        "output_bytes",
+        "batch_output_bytes",
+        "training_steps",
+    }
+)
+
+
+def effective_controls(limits: dict) -> dict:
+    """Resolve the limits this run will actually be executed under.
+
+    An approved limit that never reaches the container, the deadline owner or the
+    export is not a limit; it is a claim in a record. This resolves one closed
+    object, before any reservation, that satisfies *both* the installed approval
+    and the registered implementation policy.
+
+    Neither side may relax the other. Where the approval is tighter it wins, so a
+    narrower approval genuinely narrows the run. Where the implementation's
+    registered ceiling is tighter that ceiling wins, so an approval cannot widen
+    what the worker is built to enforce - the existing 4 GiB worker memory cap
+    stays controlling even against an 8 GiB approval.
+
+    A limit that cannot be represented is refused here rather than rounded into
+    something supportable. Rounding an unenforceable request up to a value the
+    implementation happens to allow would be the precise failure this exists to
+    prevent.
+    """
+    if type(limits) is not dict or set(limits) != REQUIRED_LIMITS:
+        raise WorkerFailure(WorkerCode.POLICY)
+    resolved: dict[str, object] = {}
+    for name in sorted(_BOUNDED_CONTROLS):
+        value = _positive_int(limits[name])
+        ceiling = REGISTERED_CONTROL_CEILINGS.get(name)
+        resolved[name] = value if ceiling is None else min(value, ceiling)
+    network = limits["worker_network"]
+    if network != "DISABLED":
+        # The worker network is not a dial. The registered implementation runs
+        # with no network, so an approval asking for anything else is asking for
+        # a run this worker cannot perform.
+        raise WorkerFailure(WorkerCode.POLICY)
+    resolved["worker_network"] = network
+    # Coherence, checked once here rather than assumed at each use.
+    if (
+        resolved["productive_seconds"] + resolved["cleanup_seconds"]
+        > resolved["attempt_seconds"]
+    ):
+        raise WorkerFailure(WorkerCode.POLICY)
+    if resolved["attempt_seconds"] > resolved["batch_seconds"]:
+        raise WorkerFailure(WorkerCode.POLICY)
+    if resolved["output_bytes"] > resolved["batch_output_bytes"]:
+        raise WorkerFailure(WorkerCode.POLICY)
+    return resolved
 
 
 @dataclass(frozen=True, slots=True)

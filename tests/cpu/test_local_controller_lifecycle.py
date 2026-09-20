@@ -187,6 +187,9 @@ def harness(tmp_path, monkeypatch):
         seed=seed,
         derived=derived,
         spawned=spawned,
+        # The installed approval, so a test can reinstall a variant of it rather
+        # than rebuild the whole fixture to change one approved limit.
+        document=document,
         selector=dev.LocalDiagnosticRequest(
             plan_digest=derived,
             input_digest=archive.content_digest,

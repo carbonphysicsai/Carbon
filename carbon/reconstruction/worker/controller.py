@@ -40,9 +40,7 @@ from carbon.reconstruction.worker.docker_runtime import (
 )
 from carbon.reconstruction.worker.model import (
     CONTROL_BYTES,
-    OUTPUT_BYTES,
     OUTPUT_MEMBERS,
-    PRODUCTIVE_DEADLINE_SECONDS,
     DevelopmentWorkerProfile,
     WorkerCode,
     WorkerFailure,
@@ -266,6 +264,7 @@ class IsolatedReconstructionController:
             DevelopmentHostApproval,
             LocalDiagnosticRequest,
             diagnostic_plan_identity,
+            effective_controls,
             require_development_approval,
         )
         from carbon.reconstruction.worker.model import LOCAL_DEVELOPMENT_AUTHORITY
@@ -311,6 +310,12 @@ class IsolatedReconstructionController:
         )
         if local_diagnostic.input_digest != archive.content_digest:
             raise WorkerFailure(WorkerCode.POLICY)
+        # Resolve the controls this run will actually execute under, before any
+        # reservation or attachment. An approved limit that never leaves the
+        # record is not a limit, and an unrepresentable one is refused here
+        # rather than rounded up to something the implementation happens to
+        # allow.
+        controls = effective_controls(approval.document["limits"])
         identity = replica.binding.replicate_identity
 
         # Reserve the attempt durably before any container can be created, so a
@@ -334,6 +339,7 @@ class IsolatedReconstructionController:
             LOCAL_DEVELOPMENT_AUTHORITY,
             derived_digest,
             host_device().device_uuid,
+            controls,
         )
 
         def still_owned():
@@ -464,9 +470,10 @@ class IsolatedReconstructionController:
         started_mono = float(time.monotonic())
         timing = WorkerTiming(
             started_unix,
-            started_unix + PRODUCTIVE_DEADLINE_SECONDS,
+            started_unix + worker_profile.effective_deadline_seconds,
             started_mono,
             _boot_id(),
+            worker_profile.effective_deadline_seconds,
         )
         stage_started = time.monotonic()
         stage, stage_digest = stage_request(
@@ -684,7 +691,7 @@ class IsolatedReconstructionController:
                     "carbon.reconstruction.worker.exporter",
                 ],
                 framed,
-                maximum=OUTPUT_BYTES + 2 * CONTROL_BYTES,
+                maximum=worker_profile.effective_output_bytes + 2 * CONTROL_BYTES,
                 timeout=30,
             )
             decode_output_stream(framed, raw)
@@ -707,7 +714,7 @@ class IsolatedReconstructionController:
                     member.stat().st_size for member in output_members
                 ),
                 "observed_members": len(output_members),
-                "bounded_bytes": OUTPUT_BYTES,
+                "bounded_bytes": worker_profile.effective_output_bytes,
                 "bounded_members": OUTPUT_MEMBERS,
             }
             self.store.transition(
@@ -776,7 +783,7 @@ class IsolatedReconstructionController:
             failure_observation["terminal"] = {
                 "worker_code": terminal_code.value,
                 "elapsed_seconds": float(time.monotonic() - started_mono),
-                "admitted_deadline_seconds": PRODUCTIVE_DEADLINE_SECONDS,
+                "admitted_deadline_seconds": worker_profile.effective_deadline_seconds,
                 "consumption": "OBSERVED_PARTIAL_OR_UNKNOWN",
                 "replacement_authority": "NONE",
             }

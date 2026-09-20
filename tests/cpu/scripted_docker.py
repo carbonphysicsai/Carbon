@@ -91,6 +91,7 @@ class ScriptedDocker:
         self.fail_on = set(fail_on)
         self.exporter = exporter
         self.existing_containers = b""
+        self.export_bounds: list[dict] = []
         self._waits = 0
 
     # --- json responses -------------------------------------------------------
@@ -373,6 +374,10 @@ class ScriptedDocker:
 
     def stream_to_file(self, command, destination, *, maximum=None, timeout=None):
         self.commands.append(list(command))
+        # Recorded because the byte bound the controller applies to worker output
+        # is an enforced limit, and a test needs to read the value actually used
+        # rather than the value some record claims.
+        self.export_bounds.append({"maximum": maximum, "timeout": timeout})
         if "export" in self.fail_on:
             raise WorkerFailure(WorkerCode.RUNTIME)
         if self.exporter is None:
