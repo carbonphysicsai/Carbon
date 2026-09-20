@@ -2230,6 +2230,13 @@
     ],
     "rules": [
       {
+        "id": "core-platform-gpu-image-preparation-evidence",
+        "match_type": "exact",
+        "path": ".agent/evidence/wave_c/c-core-17-gpu-image-preparation.md",
+        "impact_class": "mapped_detail",
+        "map_ref": "SYSTEM/AGENT-EXECUTION"
+      },
+      {
         "id": "core-platform-telemetry-capability-evidence",
         "match_type": "exact",
         "path": ".agent/evidence/wave_c/c-core-17-gpu-telemetry.md",

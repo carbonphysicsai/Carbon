@@ -8255,6 +8255,17 @@ events:
       - "WAVE-C/NET-5R"
       - "WAVE-C/NET-6"
     supersedes: null
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "evidence"
+    event_id: "C-CORE-17-GPU-IMAGE-PREPARATION"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    primary_detail: ".agent/evidence/wave_c/c-core-17-gpu-image-preparation.md"
+    affects:
+      - "WAVE-C/C-03"
+    supersedes: null
+    summary: "Under a prospective owner exception lifting only the recorded new-image-build pause, the accepted accelerator builder produced the pinned NVIDIA DEVELOPMENT worker image from a clean checkout of the current main, and the result was inspected without initializing an accelerator. Lock bytes inside the image, the repository lock and the registered profile environment lock agree; profile, base-image, source-tree and entrypoint labels agree with the parent manifest and source; all pinned distributions are installed at their locked versions including the CUDA plugin packages; the image runs as a non-root user with read-only worker paths and the fixed entrypoint. No GPU was attached, no numerical backend imported, no host grant installed, no lease or journal created, and no observation contract registered. The empty registry still leaves strict admission and verified device release unavailable on every host. Image construction and package inspection are not accelerator execution, isolation evidence or hardware acceptance, and the rest of the GPU pause remains in force."
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"
