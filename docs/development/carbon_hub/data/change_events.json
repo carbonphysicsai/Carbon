@@ -6555,7 +6555,7 @@
       "owner_lane": "owner",
       "status": "implemented",
       "summary": "Advanced the Hub authority snapshot to the revision carrying the C-CORE-19 completion record for work package items W1 to W5, and repointed the authority source-check blob links to it so every authority link resolves against one exact revision. Links already recorded against older revisions keep their historical pins. Snapshot reconciliation only: no ticket status, maturity, sequencing or activation state changed, no hardware is qualified and no attempt is authorized.",
-      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/530e40d455805d741cb0e21e10b13be7dd14f25b/docs/development/carbon_hub/data/hub_data_v2.json",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/a2408270e1704269f3ac085a860e653e6593c026/docs/development/carbon_hub/data/hub_data_v2.json",
       "affects": [
         "SYSTEM/AGENT-EXECUTION",
         "SYSTEM/DEVELOPMENT-HUB",

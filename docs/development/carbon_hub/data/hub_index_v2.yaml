@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-20T22:33:19Z"
+  captured_at_utc: "2026-09-20T22:39:42Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "530e40d455805d741cb0e21e10b13be7dd14f25b"
+  authority_snapshot_commit: "a2408270e1704269f3ac085a860e653e6593c026"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -8486,7 +8486,7 @@ events:
     owner_lane: "owner"
     status: "implemented"
     summary: "Advanced the Hub authority snapshot to the revision carrying the C-CORE-19 completion record for work package items W1 to W5, and repointed the authority source-check blob links to it so every authority link resolves against one exact revision. Links already recorded against older revisions keep their historical pins. Snapshot reconciliation only: no ticket status, maturity, sequencing or activation state changed, no hardware is qualified and no attempt is authorized."
-    primary_detail: "https://github.com/carbonphysicsai/Carbon/blob/530e40d455805d741cb0e21e10b13be7dd14f25b/docs/development/carbon_hub/data/hub_data_v2.json"
+    primary_detail: "https://github.com/carbonphysicsai/Carbon/blob/a2408270e1704269f3ac085a860e653e6593c026/docs/development/carbon_hub/data/hub_data_v2.json"
     affects:
       - "SYSTEM/AGENT-EXECUTION"
       - "SYSTEM/DEVELOPMENT-HUB"
