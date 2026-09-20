@@ -12,6 +12,7 @@ and no device is attached.
 
 import json
 
+import accelerator_host
 import pytest
 from test_c03_worker_contract import _sha
 
@@ -39,6 +40,9 @@ APPROVAL_DIGEST = _sha("4")
 DIAGNOSTIC_PLAN_DIGEST = _sha("5")
 POLICY_DIGEST = _sha("2")
 RESOURCE_CLASS_DIGEST = _sha("3")
+# Which device on this host the launch is bound to; installed evidence in real
+# use, a fixture value here.
+DEVICE_UUID = accelerator_host.HOSTS[accelerator_host.DEFAULT_SHAPE]["device_uuid"]
 
 
 def _local_profile(**overrides):
@@ -52,6 +56,7 @@ def _local_profile(**overrides):
         "accelerator_role": "MINER_RESEARCH",
         "accelerator_authority": LOCAL_DEVELOPMENT_AUTHORITY,
         "accelerator_plan_digest": DIAGNOSTIC_PLAN_DIGEST,
+        "accelerator_device_uuid": DEVICE_UUID,
     }
     values.update(overrides)
     return DevelopmentWorkerProfile(**values)
@@ -66,6 +71,9 @@ def _strict_profile():
         GPU_PROFILE.profile_id,
         APPROVAL_DIGEST,
         "MINER_RESEARCH",
+        None,
+        None,
+        DEVICE_UUID,
     )
 
 
@@ -78,6 +86,7 @@ def _request(profile):
             "approval_digest": profile.accelerator_grant_digest,
             "diagnostic_plan_digest": profile.accelerator_plan_digest,
             "role": profile.accelerator_role,
+            "device_uuid": profile.accelerator_device_uuid,
         }
     else:
         accelerator = {
@@ -85,6 +94,8 @@ def _request(profile):
             "grant_digest": profile.accelerator_grant_digest,
             "role": profile.accelerator_role,
         }
+        if profile.accelerator_device_uuid is not None:
+            accelerator["device_uuid"] = profile.accelerator_device_uuid
     return {
         "schema": _accelerator_request_schema(profile),
         "replicate": {

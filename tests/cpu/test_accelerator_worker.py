@@ -15,6 +15,7 @@ from carbon.reconstruction.worker import accelerator_runtime as runtime
 from carbon.reconstruction.worker.controller import IsolatedReconstructionController
 from carbon.reconstruction.worker.docker_runtime import create_arguments
 from carbon.reconstruction.worker.model import (
+    STRICT_HOST_GRANT_AUTHORITY,
     DevelopmentWorkerProfile,
     WorkerCode,
     WorkerFailure,
@@ -126,7 +127,11 @@ def test_quarantine_survives_new_admission_object(host_grant):
 def test_allocation_intent_survives_controller_loss_and_only_exact_cleanup_clears_it(
     host_grant, monkeypatch
 ):
-    runtime.mark_device_allocation(container_name="fixture", launch_digest=_sha("1"))
+    runtime.mark_device_allocation(
+        container_name="fixture",
+        launch_digest=_sha("1"),
+        authority=STRICT_HOST_GRANT_AUTHORITY,
+    )
     with pytest.raises(WorkerFailure):
         runtime.reject_existing_device_containers(cli=SimpleNamespace())
     assert runtime.owns_device_allocation(
@@ -149,7 +154,11 @@ def test_watchdog_reconciles_removed_container_before_releasing_device_intent(
 ):
     from carbon.reconstruction.worker.docker_runtime import remove_exact_container
 
-    runtime.mark_device_allocation(container_name="fixture", launch_digest=_sha("1"))
+    runtime.mark_device_allocation(
+        container_name="fixture",
+        launch_digest=_sha("1"),
+        authority=STRICT_HOST_GRANT_AUTHORITY,
+    )
     observed = []
 
     def absent(command):

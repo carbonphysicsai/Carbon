@@ -524,8 +524,12 @@ class IsolatedReconstructionController:
                 mark_device_allocation,
             )
 
+            # The authority is recorded with the allocation so cleanup can
+            # complete it under the same rules it was created under.
             mark_device_allocation(
-                container_name=container_name, launch_digest=binding.launch_digest
+                container_name=container_name,
+                launch_digest=binding.launch_digest,
+                authority=worker_profile.accelerator_authority,
             )
         try:
             created = self.cli.run(

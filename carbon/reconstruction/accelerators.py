@@ -157,6 +157,12 @@ def worker_environment(
         result.update(
             {
                 "CUDA_VISIBLE_DEVICES": host_device.device_uuid,
+                # The worker cannot read the host record - it is operator-owned
+                # storage outside the container - so the controller states which
+                # device kind the run is bound to. The worker then checks what
+                # the numerical backend reports against this, and refuses if the
+                # variable is missing rather than skipping the check.
+                "CARBON_ACCELERATOR_DEVICE_KIND": host_device.device_kind,
                 "XLA_PYTHON_CLIENT_PREALLOCATE": "false",
                 "XLA_PYTHON_CLIENT_ALLOCATOR": "platform",
             }
@@ -171,7 +177,7 @@ def validate_worker_observation(
     global_device_count: int,
     process_count: int,
     matmul_precision: str,
-    host_device,
+    expected_device_kind: str,
 ) -> None:
     """Check exact numerical observations; not physical-device attestation.
 
@@ -179,12 +185,11 @@ def validate_worker_observation(
     need independent supervisor observations; JAX's device kind cannot prove them.
     """
     _registered(profile)
-    from carbon.reconstruction.host_inventory import require_host_device
-
-    # The observed device kind is checked against installed host evidence, not
-    # against a model name compiled into Carbon. The check is as exact as it
-    # was; only its anchor moved off this machine.
-    require_host_device(host_device, profile)
+    # The expected device kind comes from the host record the controller bound
+    # this run to, not from a model name compiled into Carbon. The check is as
+    # exact as it was; only its anchor moved off this machine.
+    if type(expected_device_kind) is not str or not expected_device_kind:
+        raise ValueError("expected device kind required")
     validate_observation(profile.backend_request, observation)
     if (
         type(global_device_count) is not int
@@ -195,8 +200,7 @@ def validate_worker_observation(
         or observation.x64_enabled
         or matmul_precision != "highest"
         or any(
-            device.device_kind != host_device.device_kind
-            for device in observation.devices
+            device.device_kind != expected_device_kind for device in observation.devices
         )
     ):
         raise ValueError("accelerator topology, device or precision mismatch")

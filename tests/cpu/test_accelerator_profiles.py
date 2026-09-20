@@ -106,7 +106,7 @@ def test_exact_topology_and_precision_are_required(profile, host_record):
         "global_device_count": profile.global_device_count,
         "process_count": 1,
         "matmul_precision": "highest",
-        "host_device": host_record,
+        "expected_device_kind": host_record.device_kind,
     }
     validate_worker_observation(profile, value, **options)
     for key, wrong in (
@@ -125,9 +125,12 @@ def test_exact_topology_and_precision_are_required(profile, host_record):
     ):
         with pytest.raises((ValueError, BackendProbeError)):
             validate_worker_observation(profile, wrong, **options)
-    # An observation cannot be validated without installed host evidence.
-    with pytest.raises((ValueError, WorkerFailure)):
-        validate_worker_observation(profile, value, **{**options, "host_device": None})
+    # An observation cannot be validated without a stated expectation.
+    for missing in (None, "", 1):
+        with pytest.raises((ValueError, WorkerFailure)):
+            validate_worker_observation(
+                profile, value, **{**options, "expected_device_kind": missing}
+            )
 
 
 def test_lock_files_bind_complete_separate_worker_environments():

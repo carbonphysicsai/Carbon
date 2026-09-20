@@ -10,7 +10,12 @@ import pytest
 from test_c03_worker_contract import _sha
 
 from carbon.reconstruction.worker import accelerator_runtime as runtime
-from carbon.reconstruction.worker.model import WorkerCode, WorkerFailure
+from carbon.reconstruction.worker.model import (
+    LOCAL_DEVELOPMENT_AUTHORITY,
+    STRICT_HOST_GRANT_AUTHORITY,
+    WorkerCode,
+    WorkerFailure,
+)
 
 LAUNCH = _sha("1")
 OTHER_LAUNCH = _sha("2")
@@ -25,8 +30,12 @@ def host(tmp_path, monkeypatch):
     return root
 
 
-def _allocate(host, container=CONTAINER, launch=LAUNCH):
-    runtime.mark_device_allocation(container_name=container, launch_digest=launch)
+def _allocate(
+    host, container=CONTAINER, launch=LAUNCH, authority=LOCAL_DEVELOPMENT_AUTHORITY
+):
+    runtime.mark_device_allocation(
+        container_name=container, launch_digest=launch, authority=authority
+    )
     assert (host / "active-allocation.json").is_file()
 
 
@@ -114,7 +123,7 @@ def test_strict_completion_still_performs_the_release_check(host, monkeypatch):
     monkeypatch.setattr(
         runtime, "verify_device_release", lambda **kwargs: called.append(True)
     )
-    _allocate(host)
+    _allocate(host, authority=STRICT_HOST_GRANT_AUTHORITY)
     runtime.finish_device_allocation(container_name=CONTAINER, launch_digest=LAUNCH)
     assert called == [True]
 
@@ -125,8 +134,43 @@ def test_local_and_strict_share_one_allocation_record(host):
     document = json.loads((host / "active-allocation.json").read_bytes())
     assert document["container_name"] == CONTAINER
     assert document["launch_digest"] == LAUNCH
+    assert document["authority"] == LOCAL_DEVELOPMENT_AUTHORITY
     # The same shared record is what a second launch would collide with.
     with pytest.raises(WorkerFailure):
         runtime.mark_device_allocation(
-            container_name="second-container", launch_digest=OTHER_LAUNCH
+            container_name="second-container",
+            launch_digest=OTHER_LAUNCH,
+            authority=LOCAL_DEVELOPMENT_AUTHORITY,
         )
+
+
+def test_neither_authority_may_complete_the_other_s_allocation(host, monkeypatch):
+    """A development run must not skip the release a strict allocation is owed."""
+    released = []
+    monkeypatch.setattr(
+        runtime, "verify_device_release", lambda **kwargs: released.append(True)
+    )
+    _allocate(host, authority=STRICT_HOST_GRANT_AUTHORITY)
+    with pytest.raises(WorkerFailure) as error:
+        runtime.finish_local_device_allocation(
+            container_name=CONTAINER, launch_digest=LAUNCH
+        )
+    assert error.value.code is WorkerCode.CLEANUP
+    assert released == [], "the strict allocation is still unreleased"
+    assert (host / "active-allocation.json").is_file()
+
+    (host / "active-allocation.json").unlink()
+    _allocate(host, authority=LOCAL_DEVELOPMENT_AUTHORITY)
+    with pytest.raises(WorkerFailure) as error:
+        runtime.finish_device_allocation(container_name=CONTAINER, launch_digest=LAUNCH)
+    assert error.value.code is WorkerCode.CLEANUP
+    assert (host / "active-allocation.json").is_file()
+
+
+@pytest.mark.parametrize("authority", ["", "OTHER", None, 1])
+def test_an_unknown_allocation_authority_is_refused(host, authority):
+    with pytest.raises(WorkerFailure):
+        runtime.mark_device_allocation(
+            container_name=CONTAINER, launch_digest=LAUNCH, authority=authority
+        )
+    assert not (host / "active-allocation.json").exists()

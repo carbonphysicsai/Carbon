@@ -3,6 +3,7 @@
 Synthetic fixtures only; no accelerator is initialized and no device is touched.
 """
 
+import accelerator_host
 import pytest
 from test_c03_worker_contract import _sha
 
@@ -20,6 +21,9 @@ GPU_PROFILE_ID = "carbon.c03.cuda.development.v1"
 APPROVAL_DIGEST = _sha("4")
 DIAGNOSTIC_PLAN_DIGEST = _sha("5")
 DIGEST = APPROVAL_DIGEST
+# Which device on this host the launch is bound to; installed evidence in real
+# use, a fixture value here.
+DEVICE_UUID = accelerator_host.HOSTS[accelerator_host.DEFAULT_SHAPE]["device_uuid"]
 
 
 def _profile(**overrides):
@@ -31,6 +35,7 @@ def _profile(**overrides):
         "accelerator_profile_id": GPU_PROFILE.profile_id,
         "accelerator_grant_digest": DIGEST,
         "accelerator_role": "MINER_RESEARCH",
+        "accelerator_device_uuid": DEVICE_UUID,
     }
     if overrides.get("accelerator_authority") == LOCAL_DEVELOPMENT_AUTHORITY:
         values["accelerator_plan_digest"] = DIAGNOSTIC_PLAN_DIGEST

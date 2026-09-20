@@ -948,13 +948,40 @@ def remove_exact_container(
 ) -> None:
     """Stop/remove only the exact launch-labeled container and confirm absence."""
     from carbon.reconstruction.worker.accelerator_runtime import (
-        finish_device_allocation,
+        allocation_authority,
         owns_device_allocation,
     )
+    from carbon.reconstruction.worker.model import LOCAL_DEVELOPMENT_AUTHORITY
 
     owns_accelerator = owns_device_allocation(
         container_name=container_name, launch_digest=launch_digest
     )
+
+    def finish_allocation() -> None:
+        """Complete the allocation under the authority that created it.
+
+        A development allocation is completed without claiming whole-device
+        release, because it never had the evidence that claim needs. A strict
+        allocation still goes through verified release. Neither may complete
+        the other's allocation.
+        """
+        from carbon.reconstruction.worker.accelerator_runtime import (
+            finish_device_allocation,
+            finish_local_device_allocation,
+        )
+
+        authority = allocation_authority(
+            container_name=container_name, launch_digest=launch_digest
+        )
+        if authority == LOCAL_DEVELOPMENT_AUTHORITY:
+            finish_local_device_allocation(
+                container_name=container_name, launch_digest=launch_digest
+            )
+            return
+        finish_device_allocation(
+            container_name=container_name, launch_digest=launch_digest
+        )
+
     try:
         value = cli.json(["inspect", container_name, "--format", "{{json .}}"])
     except WorkerFailure:
@@ -974,9 +1001,7 @@ def remove_exact_container(
             )
             if remaining.stdout.strip():
                 raise WorkerFailure(WorkerCode.CLEANUP)
-            finish_device_allocation(
-                container_name=container_name, launch_digest=launch_digest
-            )
+            finish_allocation()
         return
     if (
         type(value) is not dict
@@ -1007,9 +1032,7 @@ def remove_exact_container(
 
                 if accelerator != host_device().device_uuid:
                     raise WorkerFailure(WorkerCode.CLEANUP)
-                finish_device_allocation(
-                    container_name=container_name, launch_digest=launch_digest
-                )
+                finish_allocation()
             return
         time.sleep(0.1)
     raise WorkerFailure(WorkerCode.CLEANUP)

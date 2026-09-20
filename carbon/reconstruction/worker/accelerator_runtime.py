@@ -440,14 +440,30 @@ def reject_existing_device_containers(*, cli) -> None:
         raise WorkerFailure(WorkerCode.CONFLICT)
 
 
-def mark_device_allocation(*, container_name: str, launch_digest: str) -> None:
-    """Persist ownership before create, including an uncertain create response."""
-    from carbon.development_session.profile import canonical
-    from carbon.reconstruction.worker.model import exact_token
+def mark_device_allocation(
+    *, container_name: str, launch_digest: str, authority: str
+) -> None:
+    """Persist ownership before create, including an uncertain create response.
 
+    The authority that created the allocation is recorded with it, because the
+    two authorities complete differently: a strict allocation is only finished
+    after verified whole-device release, and a development allocation never
+    makes that claim. Without this the cleanup path cannot tell them apart, and
+    would have to apply one rule to both.
+    """
+    from carbon.development_session.profile import canonical
+    from carbon.reconstruction.worker.model import (
+        LOCAL_DEVELOPMENT_AUTHORITY,
+        STRICT_HOST_GRANT_AUTHORITY,
+        exact_token,
+    )
+
+    if authority not in (STRICT_HOST_GRANT_AUTHORITY, LOCAL_DEVELOPMENT_AUTHORITY):
+        raise WorkerFailure(WorkerCode.POLICY)
     payload = {
         "container_name": exact_token(container_name),
         "launch_digest": exact_digest(launch_digest),
+        "authority": authority,
     }
     try:
         path = HOST_ROOT / "active-allocation.json"
@@ -465,25 +481,67 @@ def mark_device_allocation(*, container_name: str, launch_digest: str) -> None:
         raise WorkerFailure(WorkerCode.CONFLICT) from None
 
 
-def owns_device_allocation(*, container_name: str, launch_digest: str) -> bool:
+def _allocation_document() -> dict | None:
     from carbon.development_session.research_admission import private_json
 
     path = HOST_ROOT / "active-allocation.json"
     if not path.exists():
-        return False
+        return None
     try:
-        return private_json(path) == {
-            "container_name": container_name,
-            "launch_digest": launch_digest,
-        }
+        document = private_json(path)
     except (OSError, ValueError):
         raise WorkerFailure(WorkerCode.CLEANUP) from None
+    from carbon.reconstruction.worker.model import (
+        LOCAL_DEVELOPMENT_AUTHORITY,
+        STRICT_HOST_GRANT_AUTHORITY,
+    )
+
+    if type(document) is not dict or set(document) != {
+        "container_name",
+        "launch_digest",
+        "authority",
+    }:
+        raise WorkerFailure(WorkerCode.CLEANUP)
+    if document["authority"] not in (
+        STRICT_HOST_GRANT_AUTHORITY,
+        LOCAL_DEVELOPMENT_AUTHORITY,
+    ):
+        raise WorkerFailure(WorkerCode.CLEANUP)
+    return document
+
+
+def owns_device_allocation(*, container_name: str, launch_digest: str) -> bool:
+    document = _allocation_document()
+    if document is None:
+        return False
+    return (
+        document["container_name"] == container_name
+        and document["launch_digest"] == launch_digest
+    )
+
+
+def allocation_authority(*, container_name: str, launch_digest: str) -> str | None:
+    """Which authority created the allocation this launch owns, if it owns one."""
+    document = _allocation_document()
+    if document is None:
+        return None
+    if (
+        document["container_name"] != container_name
+        or document["launch_digest"] != launch_digest
+    ):
+        return None
+    return str(document["authority"])
 
 
 def finish_device_allocation(*, container_name: str, launch_digest: str) -> None:
-    if not owns_device_allocation(
-        container_name=container_name, launch_digest=launch_digest
+    from carbon.reconstruction.worker.model import STRICT_HOST_GRANT_AUTHORITY
+
+    if (
+        allocation_authority(container_name=container_name, launch_digest=launch_digest)
+        != STRICT_HOST_GRANT_AUTHORITY
     ):
+        # A development allocation must not be completed by the strict path,
+        # and a launch may only finish its own allocation.
         raise WorkerFailure(WorkerCode.CLEANUP)
     verify_device_release()
     try:
@@ -513,10 +571,15 @@ def finish_local_device_allocation(*, container_name: str, launch_digest: str) -
     never reports the device as released. The returned label records what was
     and was not established, so a caller cannot mistake it for the strict
     outcome. Ownership is still required: a launch may only finish its own
-    allocation.
+    allocation, and only one created under the same authority. A development run
+    must never be able to complete a strict allocation, which would skip the
+    verified release that allocation is owed.
     """
-    if not owns_device_allocation(
-        container_name=container_name, launch_digest=launch_digest
+    from carbon.reconstruction.worker.model import LOCAL_DEVELOPMENT_AUTHORITY
+
+    if (
+        allocation_authority(container_name=container_name, launch_digest=launch_digest)
+        != LOCAL_DEVELOPMENT_AUTHORITY
     ):
         raise WorkerFailure(WorkerCode.CLEANUP)
     try:
