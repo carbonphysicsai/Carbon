@@ -129,6 +129,15 @@ machinery, and do not argue for it either.
   `main`, unknown records fail closed, and no historical allocation reclassified
   to escape its strict cleanup obligation.
 
+## Known follow-up, deliberately not done here
+
+`PublicGPUPractice` in `carbon/development_session/gpu_research.py` is the one
+production caller that already ran the controller with `MINER_RESEARCH`, and it
+still loads a strict host grant through `AcceleratorHostAdmission.load()` before
+it gets there. Under the split that requirement no longer applies to its role.
+It is left alone in this ticket rather than changed in passing: it is a working,
+tested path, and rewiring it is its own change with its own evidence.
+
 ## The local development approval
 
 The miner lane subsumes it. **Two lanes, not three.** The owner's four-attempt
@@ -162,3 +171,15 @@ C-CORE-18 compatibility guards still passing.
 
 Host metadata is not a compatibility or security certificate. No accelerator is
 initialized and no device is attached by this ticket's tests.
+
+## Why `run` claims rather than assembles
+
+The launch manifest carries **materials**, not identity. Which execution a run
+is, who requested it and what seed it is pinned to already exist in the durable
+queue, put there by whoever admitted the work - and the seed pin could not be
+carried in a file even if that were wanted, because `EvaluationBinding` is
+deliberately opaque and exposes no accessor. `run` therefore claims an admitted
+execution and checks the manifest's plan, profile and policy digests against the
+binding that execution already committed to, so materials for different work are
+refused rather than run. Reconstructing identity host-side would have meant
+inventing a second, weaker version of it beside the real one.

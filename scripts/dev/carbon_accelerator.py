@@ -12,6 +12,9 @@ so running Carbon on your own hardware never means editing Carbon.
     authorize  install a grant or approval the owner authored
     doctor     check host readiness and report every blocker
     status     what has been consumed and what is outstanding
+    run        start one miner-lane run on this host
+    cancel     ask a running launch to stop
+    recover    remove containers unfinished launches still own
 
 What these commands do NOT do, deliberately:
 
@@ -175,6 +178,58 @@ def command_status(args) -> int:
     )
 
 
+def command_run(args) -> int:
+    """Start one miner-lane run, through the controller that already exists."""
+    from carbon.reconstruction.miner_launch import MinerLaunchRequest, launch
+
+    result = launch(
+        request=MinerLaunchRequest.load(Path(args.manifest)),
+        state_root=Path(args.state_root),
+    )
+    return _emit(
+        {
+            "schema": "carbon.accelerator-miner-run.v1",
+            "status": "COMPLETE",
+            "launch_digest": result.launch_digest,
+            "output_snapshot_digest": result.output_snapshot_digest,
+            "effective_controls": result.effective_controls,
+            "timings": result.timings,
+            # Said plainly at the point a miner reads it: this ran, and that is
+            # all it establishes.
+            "lane": "MINER_CONTAINED",
+            "official_eligible": False,
+            "authority": "MINER_LANE_RUN_NOT_EVIDENCE",
+        }
+    )
+
+
+def command_cancel(args) -> int:
+    from carbon.reconstruction.miner_launch import request_cancel
+
+    path = request_cancel(
+        state_root=Path(args.state_root), execution_id=args.execution_id
+    )
+    return _emit(
+        {
+            "schema": "carbon.accelerator-miner-cancel.v1",
+            "status": "REQUESTED",
+            "execution_id": args.execution_id,
+            "request": str(path),
+            # A request, not a kill: the run stops at its own next boundary and
+            # performs its own cleanup.
+            "authority": "COOPERATIVE_STOP_REQUEST_NOT_TERMINATION",
+        }
+    )
+
+
+def command_recover(args) -> int:
+    from carbon.reconstruction.miner_launch import recover
+
+    report = recover(state_root=Path(args.state_root), dry_run=args.dry_run)
+    _emit(report)
+    return 0 if all(entry.get("removed", True) for entry in report["launches"]) else 1
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="carbon-accelerator",
@@ -218,6 +273,29 @@ def build_parser() -> argparse.ArgumentParser:
     status = subparsers.add_parser("status")
     status.add_argument("--state-root", help="the controller state directory")
     status.set_defaults(handler=command_status)
+
+    run = subparsers.add_parser("run")
+    run.add_argument("manifest", help="the launch manifest for this run")
+    run.add_argument(
+        "--state-root", required=True, help="the controller state directory"
+    )
+    run.set_defaults(handler=command_run)
+
+    cancel = subparsers.add_parser("cancel")
+    cancel.add_argument("execution_id", help="which launch to stop")
+    cancel.add_argument(
+        "--state-root", required=True, help="the controller state directory"
+    )
+    cancel.set_defaults(handler=command_cancel)
+
+    recover = subparsers.add_parser("recover")
+    recover.add_argument(
+        "--state-root", required=True, help="the controller state directory"
+    )
+    recover.add_argument(
+        "--dry-run", action="store_true", help="report without removing anything"
+    )
+    recover.set_defaults(handler=command_recover)
     return parser
 
 

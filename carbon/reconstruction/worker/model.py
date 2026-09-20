@@ -119,6 +119,14 @@ LOCAL_DEVELOPMENT_AUTHORITY = "LOCAL_DEVELOPMENT_APPROVAL"
 # execution model.
 MINER_HOST_AUTHORITY = "MINER_HOST_SELF_SERVICE"
 
+# The authorities whose cleanup is task-owned: they remove exactly what their
+# own launch created and never assert that the whole device was released,
+# because neither ever had the evidence that claim requires. The strict grant is
+# deliberately absent - its allocation is owed a verified release, and letting a
+# weaker authority complete it would skip exactly that.
+TASK_OWNED_AUTHORITIES = (LOCAL_DEVELOPMENT_AUTHORITY, MINER_HOST_AUTHORITY)
+ALLOCATION_AUTHORITIES = (STRICT_HOST_GRANT_AUTHORITY, *TASK_OWNED_AUTHORITIES)
+
 
 def registered_run_controls() -> dict[str, object]:
     """The bounds the worker implementation itself enforces, with nothing added.
