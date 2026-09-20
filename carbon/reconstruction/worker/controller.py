@@ -133,6 +133,7 @@ class IsolatedReconstructionController:
         derived_seed: DerivedSeed,
         continuation_split_step: int | None = None,
         accelerator_role=None,
+        local_diagnostic=None,
         cancelled: Callable[[], bool] | None = None,
     ) -> WorkerRunResult:
         from carbon.reconstruction.accelerators import GPU_PROFILE, AcceleratorRole
@@ -169,6 +170,19 @@ class IsolatedReconstructionController:
             raise WorkerFailure(WorkerCode.UNSUPPORTED)
         if type(accelerator_role) is not AcceleratorRole:
             raise WorkerFailure(WorkerCode.POLICY)
+        if local_diagnostic is not None:
+            # Explicit operator-only entry, taken before the strict-only loader
+            # and never reached by falling back from a refused strict admission.
+            # The caller must present a typed selector, which no public, miner,
+            # customer or evaluator route can construct.
+            return self._execute_local_diagnostic(
+                options=options,
+                local_diagnostic=local_diagnostic,
+                accelerator_role=accelerator_role,
+                claimed=claimed,
+                replica=replica,
+                cancelled=cancelled,
+            )
         admission = AcceleratorHostAdmission.load()
         principal = claimed.binding.requester_identity.value
         admission.verify(
@@ -215,6 +229,100 @@ class IsolatedReconstructionController:
             reject_existing_device_containers(cli=self.cli)
             return self._execute_bound(
                 **options, worker_profile=worker_profile, cancelled=still_owned
+            )
+
+    def _execute_local_diagnostic(
+        self,
+        *,
+        options,
+        local_diagnostic,
+        accelerator_role,
+        claimed,
+        replica,
+        cancelled,
+    ):
+        """Run one approved local diagnostic. Never a relaxed strict execution.
+
+        Reuses the existing image verification, shared host slot, allocation
+        ownership and supervised worker path. What differs is the authority: a
+        private development approval instead of a strict host grant, an attempt
+        reserved durably before anything can attach the device, and an
+        observation that claims no exclusivity.
+        """
+        from carbon.reconstruction.accelerators import GPU_PROFILE
+        from carbon.reconstruction.worker.accelerator_runtime import (
+            reject_existing_device_containers,
+            verify_image_and_toolkit,
+        )
+        from carbon.reconstruction.worker.development_admission import (
+            DevelopmentAttemptJournal,
+            DevelopmentHostApproval,
+            LocalDiagnosticRequest,
+            require_development_approval,
+        )
+        from carbon.reconstruction.worker.model import LOCAL_DEVELOPMENT_AUTHORITY
+
+        if type(local_diagnostic) is not LocalDiagnosticRequest:
+            raise WorkerFailure(WorkerCode.POLICY)
+
+        approval = require_development_approval(DevelopmentHostApproval.load())
+        principal = claimed.binding.requester_identity.value
+        approval.verify(
+            principal=principal,
+            state_root=self.state_root,
+            image=self.image,
+            role=accelerator_role,
+            plan_digest=local_diagnostic.plan_digest,
+            input_digest=local_diagnostic.input_digest,
+            now=float(time.time()),
+        )
+        identity = replica.binding.replicate_identity
+
+        # Reserve the attempt durably before any container can be created, so a
+        # crash, restart or new output directory cannot recover the allowance.
+        journal = DevelopmentAttemptJournal()
+        journal.reserve(
+            nonce=local_diagnostic.nonce,
+            plan_digest=local_diagnostic.plan_digest,
+            budget=approval.document["attempt_budget"],
+            now=float(time.time()),
+        )
+
+        worker_profile = DevelopmentWorkerProfile(
+            identity.policy_ref.content_digest,
+            identity.resource_class_ref.content_digest,
+            "carbon.c03.cuda.development.v1",
+            "1.0",
+            GPU_PROFILE.profile_id,
+            approval.digest,
+            accelerator_role.value,
+            LOCAL_DEVELOPMENT_AUTHORITY,
+            local_diagnostic.plan_digest,
+        )
+
+        def still_owned():
+            approval.verify(
+                principal=principal,
+                state_root=self.state_root,
+                image=self.image,
+                role=accelerator_role,
+                plan_digest=local_diagnostic.plan_digest,
+                input_digest=local_diagnostic.input_digest,
+                now=float(time.time()),
+            )
+            if cancelled is None:
+                return False
+            return cancelled()
+
+        # The same shared Carbon device slot as strict work, not a parallel one.
+        with approval.exclusive_lease():
+            still_owned()
+            verify_image_and_toolkit(cli=self.cli, image=self.image)
+            reject_existing_device_containers(cli=self.cli)
+            return self._execute_bound(
+                **options,
+                worker_profile=worker_profile,
+                cancelled=still_owned,
             )
 
     @staticmethod

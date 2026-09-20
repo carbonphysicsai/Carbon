@@ -358,3 +358,29 @@ def require_development_approval(approval: object) -> DevelopmentHostApproval:
     ):
         raise WorkerFailure(WorkerCode.POLICY)
     return approval
+
+
+@dataclass(frozen=True, slots=True)
+class LocalDiagnosticRequest:
+    """Operator-only selector for the local development route.
+
+    A typed object, deliberately not a Boolean or a string: a public, miner,
+    customer or evaluator route has no way to construct one, so it cannot select
+    the local entry by setting a flag on a request it controls. Holding one
+    grants nothing on its own; the controller still verifies the private
+    approval, and every identity here must equal the approved record.
+    """
+
+    plan_digest: str
+    input_digest: str
+    nonce: str
+
+    def __post_init__(self) -> None:
+        for value in (self.plan_digest, self.input_digest):
+            if type(value) is not str or not _DIGEST.fullmatch(value):
+                raise WorkerFailure(WorkerCode.POLICY)
+        if type(self.nonce) is not str or not _NONCE.fullmatch(self.nonce):
+            raise WorkerFailure(WorkerCode.POLICY)
+        if self.plan_digest == self.input_digest:
+            # Two distinct identities; one may never stand in for the other.
+            raise WorkerFailure(WorkerCode.POLICY)
