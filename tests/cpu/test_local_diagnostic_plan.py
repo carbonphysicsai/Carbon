@@ -114,17 +114,20 @@ def test_plan_claims_no_exclusivity_and_no_memory_enforcement():
 def test_preparation_dispatches_no_gpu_task(monkeypatch):
     """Validation must not import a numerical backend or shell out."""
     import subprocess
+    import sys
 
     def refuse(*args, **kwargs):  # pragma: no cover - must never run
         raise AssertionError("preparation attempted to execute a command")
 
     monkeypatch.setattr(subprocess, "run", refuse)
     monkeypatch.setattr(subprocess, "Popen", refuse)
+    # Another suite in the same session may already have imported jax, so the
+    # property under test is that this path imports nothing new, not that the
+    # interpreter is globally free of it.
+    before = "jax" in sys.modules
     pinned = _pinned()
     validate_plan(_document(pinned), pinned=pinned)
-    import sys
-
-    assert "jax" not in sys.modules
+    assert ("jax" in sys.modules) is before
 
 
 # --- identity binding ---------------------------------------------------------
