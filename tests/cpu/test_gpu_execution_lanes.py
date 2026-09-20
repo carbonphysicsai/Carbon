@@ -373,3 +373,51 @@ def test_the_development_approval_is_still_its_own_authority():
     )
     assert local.body["schema"] == "carbon.c03.development-worker-profile.v4"
     assert local.body["accelerators"]["official_eligible"] is False
+
+
+# --- the admission functions themselves do not fall through -------------------
+
+
+def _reconstruction_profile(plan):
+    from carbon.reconstruction.profile import compile_development_profile
+
+    return compile_development_profile(plan)
+
+
+def test_each_admission_function_accepts_only_its_own_authority(harness):
+    """Routing is not the only guard; each check refuses the others directly."""
+    from carbon.reconstruction.accelerators import (
+        require_miner_lane_profile_admission,
+        require_profile_admission,
+        require_reconstruction_profile_admission,
+    )
+    from carbon.reconstruction.model import ReconstructionFailure
+
+    profile = _reconstruction_profile(harness.plan)
+    miner = _profile(AcceleratorRole.MINER_RESEARCH, MINER_HOST_AUTHORITY)
+    strict = _profile(AcceleratorRole.VALIDATOR_RECONSTRUCTION, None)
+
+    # A miner profile never satisfies strict admission.
+    with pytest.raises(ReconstructionFailure):
+        require_reconstruction_profile_admission(profile, worker_profile=miner)
+    # And a strict profile never satisfies the miner check.
+    with pytest.raises(ReconstructionFailure):
+        require_miner_lane_profile_admission(profile, worker_profile=strict)
+
+    # The router sends each to its own, rather than trying one and retrying.
+    require_profile_admission(profile, worker_profile=miner)
+    require_profile_admission(profile, worker_profile=strict)
+
+
+def test_the_miner_check_requires_a_named_device(harness):
+    """The portable profile pins no device, so the launch must name one."""
+    from carbon.reconstruction.accelerators import require_miner_lane_profile_admission
+    from carbon.reconstruction.model import ReconstructionFailure
+
+    profile = _reconstruction_profile(harness.plan)
+    with pytest.raises(WorkerFailure):
+        # The model refuses it before admission is even reached.
+        _profile(AcceleratorRole.MINER_RESEARCH, MINER_HOST_AUTHORITY, device=None)
+
+    with pytest.raises(ReconstructionFailure):
+        require_miner_lane_profile_admission(profile, worker_profile=None)
