@@ -459,6 +459,40 @@ def finish_device_allocation(*, container_name: str, launch_digest: str) -> None
         raise WorkerFailure(WorkerCode.CLEANUP) from None
 
 
+LOCAL_RELEASE_UNVERIFIED = "TASK_OWNED_REMOVAL_ONLY_WHOLE_DEVICE_RELEASE_UNESTABLISHED"
+
+
+def finish_local_device_allocation(*, container_name: str, launch_digest: str) -> str:
+    """Complete a development allocation without claiming whole-device release.
+
+    This establishes exactly one thing: the task-owned allocation record for this
+    launch was removed. It deliberately does **not** call
+    `verify_device_release()`, which requires established enumeration and can
+    create quarantine, because a development run never had the evidence that
+    check demands.
+
+    It therefore never writes, clears or reinterprets strict quarantine, and it
+    never reports the device as released. The returned label records what was
+    and was not established, so a caller cannot mistake it for the strict
+    outcome. Ownership is still required: a launch may only finish its own
+    allocation.
+    """
+    if not owns_device_allocation(
+        container_name=container_name, launch_digest=launch_digest
+    ):
+        raise WorkerFailure(WorkerCode.CLEANUP)
+    try:
+        (HOST_ROOT / "active-allocation.json").unlink()
+        descriptor = os.open(HOST_ROOT, os.O_DIRECTORY)
+        try:
+            os.fsync(descriptor)
+        finally:
+            os.close(descriptor)
+    except OSError:
+        raise WorkerFailure(WorkerCode.CLEANUP) from None
+    return LOCAL_RELEASE_UNVERIFIED
+
+
 def admission_document(admission: AcceleratorHostAdmission) -> dict[str, object]:
     # Only identity is staged/recorded; the grant path and operator document never
     # enter the worker. External credential/authority records remain host-owned.
