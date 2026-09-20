@@ -24,9 +24,11 @@ never cleared here, and it never becomes a verified whole-device release.
 
 from __future__ import annotations
 
+import fcntl
 import math
 import os
 import re
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -255,6 +257,33 @@ class DevelopmentAttemptJournal:
         except (OSError, ValueError):
             raise WorkerFailure(WorkerCode.POLICY) from None
 
+    @contextmanager
+    def _accounting_lock(self):
+        """Serialize count-then-create so the budget cannot be overspent.
+
+        Per-nonce O_EXCL only stops the *same* nonce being created twice. Two
+        different nonces could each observe the last free attempt and then both
+        create their marker, taking five attempts from a budget of four. This
+        lock closes that window.
+
+        It guards accounting only. It is not a device slot, it never gates access
+        to the GPU, and it is a different file from the shared host lease, so a
+        caller that takes the lease afterwards cannot deadlock against it.
+        """
+        try:
+            self.root.mkdir(mode=0o700, exist_ok=True)
+            descriptor = os.open(self.root / ".lock", os.O_RDWR | os.O_CREAT, 0o600)
+        except OSError:
+            raise WorkerFailure(WorkerCode.UNAVAILABLE) from None
+        try:
+            fcntl.flock(descriptor, fcntl.LOCK_EX)
+            yield
+        finally:
+            try:
+                fcntl.flock(descriptor, fcntl.LOCK_UN)
+            finally:
+                os.close(descriptor)
+
     def consumed(self) -> int:
         """Every reserved attempt counts, including failed and ambiguous ones."""
         return len(self._markers())
@@ -284,11 +313,6 @@ class DevelopmentAttemptJournal:
         except OSError:
             raise WorkerFailure(WorkerCode.UNAVAILABLE) from None
 
-        if self.blocking_attempt() is not None:
-            raise WorkerFailure(WorkerCode.CONFLICT)
-        if self.consumed() >= budget:
-            raise WorkerFailure(WorkerCode.POLICY)
-
         path = self.root / f"{nonce}.json"
         payload = canonical(
             {
@@ -299,15 +323,22 @@ class DevelopmentAttemptJournal:
                 "state": ATTEMPT_RESERVED,
             }
         )
-        try:
-            descriptor = os.open(
-                path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600
-            )
-        except FileExistsError:
-            # A replayed nonce never consumes a second attempt or dispatches.
-            raise WorkerFailure(WorkerCode.CONFLICT) from None
-        except OSError:
-            raise WorkerFailure(WorkerCode.UNAVAILABLE) from None
+        with self._accounting_lock():
+            # Checked and created under one lock, so a concurrent caller with a
+            # different nonce cannot also observe the last free attempt.
+            if self.blocking_attempt() is not None:
+                raise WorkerFailure(WorkerCode.CONFLICT)
+            if self.consumed() >= budget:
+                raise WorkerFailure(WorkerCode.POLICY)
+            try:
+                descriptor = os.open(
+                    path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600
+                )
+            except FileExistsError:
+                # A replayed nonce never consumes a second attempt or dispatches.
+                raise WorkerFailure(WorkerCode.CONFLICT) from None
+            except OSError:
+                raise WorkerFailure(WorkerCode.UNAVAILABLE) from None
         try:
             with os.fdopen(descriptor, "wb") as handle:
                 handle.write(payload)
