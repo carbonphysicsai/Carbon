@@ -273,3 +273,81 @@ def require_reconstruction_profile_admission(profile, *, worker_profile=None) ->
         or worker_profile.accelerator_authority != STRICT_HOST_GRANT_AUTHORITY
     ):
         raise ReconstructionFailure("reconstruction.accelerator.admission_disabled")
+
+
+def require_local_diagnostic_profile_admission(profile, *, worker_profile=None) -> None:
+    """Admit an operator-only LOCAL development profile.
+
+    This is a parallel authority, never a relaxation of the strict one and never
+    reached by falling back from a refused strict admission. A caller selects it
+    by presenting a worker profile whose typed authority is the local variant;
+    anything else belongs to `require_reconstruction_profile_admission`, which
+    continues to reject local profiles at every strict entry point.
+    """
+    from carbon.reconstruction.model import ReconstructionFailure, ReconstructionProfile
+    from carbon.reconstruction.worker.model import (
+        LOCAL_DEVELOPMENT_AUTHORITY,
+        DevelopmentWorkerProfile,
+    )
+
+    if (
+        type(worker_profile) is not DevelopmentWorkerProfile
+        or worker_profile.accelerator_authority != LOCAL_DEVELOPMENT_AUTHORITY
+    ):
+        raise ReconstructionFailure("reconstruction.accelerator.admission_disabled")
+    # Deliberately self-contained rather than sharing the strict helper's body:
+    # the strict control stays exactly as written and reviewed. A drift test
+    # asserts both refuse the same malformed and TPU profiles.
+    if type(profile) is not ReconstructionProfile:
+        raise ReconstructionFailure("reconstruction.profile.invalid")
+    try:
+        mapping = json.loads(profile.mapping_receipt_json)
+    except (TypeError, ValueError):
+        raise ReconstructionFailure("reconstruction.profile.invalid") from None
+    if type(mapping) is not dict or "execution_profile" not in mapping:
+        # A CPU plan carries no accelerator, so a local authority is meaningless.
+        raise ReconstructionFailure("reconstruction.accelerator.admission_disabled")
+    try:
+        selected = resolve_profile(profile.profile_id)
+        if (
+            profile.profile_version != "4.0"
+            or profile.environment_digest != selected.digest
+            or mapping["execution_profile"] != selected.document()
+            or mapping.get("execution_profile_digest") != selected.digest
+        ):
+            raise ValueError()
+    except (TypeError, ValueError):
+        raise ReconstructionFailure(
+            "reconstruction.accelerator.profile_mismatch"
+        ) from None
+    # The local variant exists only for the GPU profile. A TPU request is
+    # refused here as it is on the strict path.
+    if (
+        selected is not GPU_PROFILE
+        or worker_profile.accelerator_profile_id != selected.profile_id
+        or worker_profile.accelerator_grant_digest is None
+        or worker_profile.accelerator_plan_digest is None
+    ):
+        raise ReconstructionFailure("reconstruction.accelerator.admission_disabled")
+
+
+def require_profile_admission(profile, *, worker_profile=None) -> None:
+    """Route to the authority the worker profile declares, never as a fallback.
+
+    Staging and the worker-side reader accept both variants, so they dispatch on
+    the typed authority rather than trying strict first and retrying local.
+    """
+    from carbon.reconstruction.worker.model import (
+        LOCAL_DEVELOPMENT_AUTHORITY,
+        DevelopmentWorkerProfile,
+    )
+
+    if (
+        type(worker_profile) is DevelopmentWorkerProfile
+        and worker_profile.accelerator_authority == LOCAL_DEVELOPMENT_AUTHORITY
+    ):
+        require_local_diagnostic_profile_admission(
+            profile, worker_profile=worker_profile
+        )
+        return
+    require_reconstruction_profile_admission(profile, worker_profile=worker_profile)

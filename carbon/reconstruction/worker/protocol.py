@@ -19,7 +19,7 @@ from carbon.construction import (
 )
 from carbon.execution import ClaimedExecution, ExecutionAttemptRef, ExecutionScope
 from carbon.fees import AdmissionKind, SubmissionId
-from carbon.reconstruction.accelerators import require_reconstruction_profile_admission
+from carbon.reconstruction.accelerators import require_profile_admission
 from carbon.reconstruction.model import (
     PublicTrainingArchive,
     ReconstructionFailure,
@@ -416,7 +416,7 @@ def stage_request(
     if randomness_digest != replica.randomness_digest:
         raise WorkerFailure(WorkerCode.POLICY)
     profile = compile_development_profile(plan)
-    require_reconstruction_profile_admission(profile, worker_profile=worker_profile)
+    require_profile_admission(profile, worker_profile=worker_profile)
     if (
         profile.plan_digest != plan_ref.content_digest
         or claimed.binding.reconstruction_policy_digest != profile.profile_digest
@@ -509,6 +509,7 @@ def stage_request(
                     "profile_id": worker_profile.accelerator_profile_id,
                     "authority": LOCAL_DEVELOPMENT_AUTHORITY,
                     "approval_digest": worker_profile.accelerator_grant_digest,
+                    "diagnostic_plan_digest": worker_profile.accelerator_plan_digest,
                     "role": worker_profile.accelerator_role,
                 }
             else:
@@ -545,12 +546,15 @@ def stage_request(
 
 def _accelerator_request_schema(profile):
     from carbon.reconstruction.accelerators import TPU_PROFILE
+    from carbon.reconstruction.worker.model import LOCAL_DEVELOPMENT_AUTHORITY
 
-    return (
-        "carbon.c03.worker-request.v3"
-        if profile.accelerator_profile_id == TPU_PROFILE.profile_id
-        else "carbon.c03.worker-request.v2"
-    )
+    if profile.accelerator_profile_id == TPU_PROFILE.profile_id:
+        return "carbon.c03.worker-request.v3"
+    if profile.accelerator_authority == LOCAL_DEVELOPMENT_AUTHORITY:
+        # A closed, separately versioned request form. The historical strict
+        # representation keeps v2 byte for byte.
+        return "carbon.c03.worker-request.v4"
+    return "carbon.c03.worker-request.v2"
 
 
 def _request_worker_profile(request):
@@ -560,27 +564,49 @@ def _request_worker_profile(request):
         return DevelopmentWorkerProfile(
             replicate["policy_digest"], replicate["resource_class_digest"]
         )
-    if type(accelerator) is not dict or set(accelerator) != {
-        "profile_id",
-        "grant_digest",
-        "role",
-    }:
-        raise WorkerFailure(WorkerCode.INVALID)
     from carbon.reconstruction.accelerators import TPU_PROFILE
+    from carbon.reconstruction.worker.model import LOCAL_DEVELOPMENT_AUTHORITY
 
-    profile = DevelopmentWorkerProfile(
-        replicate["policy_digest"],
-        replicate["resource_class_digest"],
-        (
-            "carbon.c03.tpu.preparation.v1"
-            if accelerator["profile_id"] == TPU_PROFILE.profile_id
-            else "carbon.c03.cuda.development.v1"
-        ),
-        "1.0",
-        accelerator["profile_id"],
-        accelerator["grant_digest"],
-        accelerator["role"],
-    )
+    if type(accelerator) is not dict:
+        raise WorkerFailure(WorkerCode.INVALID)
+    local_fields = {
+        "profile_id",
+        "authority",
+        "approval_digest",
+        "diagnostic_plan_digest",
+        "role",
+    }
+    strict_fields = {"profile_id", "grant_digest", "role"}
+    if set(accelerator) == local_fields:
+        if accelerator["authority"] != LOCAL_DEVELOPMENT_AUTHORITY:
+            raise WorkerFailure(WorkerCode.INVALID)
+        profile = DevelopmentWorkerProfile(
+            replicate["policy_digest"],
+            replicate["resource_class_digest"],
+            "carbon.c03.cuda.development.v1",
+            "1.0",
+            accelerator["profile_id"],
+            accelerator["approval_digest"],
+            accelerator["role"],
+            LOCAL_DEVELOPMENT_AUTHORITY,
+            accelerator["diagnostic_plan_digest"],
+        )
+    elif set(accelerator) == strict_fields:
+        profile = DevelopmentWorkerProfile(
+            replicate["policy_digest"],
+            replicate["resource_class_digest"],
+            (
+                "carbon.c03.tpu.preparation.v1"
+                if accelerator["profile_id"] == TPU_PROFILE.profile_id
+                else "carbon.c03.cuda.development.v1"
+            ),
+            "1.0",
+            accelerator["profile_id"],
+            accelerator["grant_digest"],
+            accelerator["role"],
+        )
+    else:
+        raise WorkerFailure(WorkerCode.INVALID)
     if request["schema"] != _accelerator_request_schema(profile):
         raise WorkerFailure(WorkerCode.INVALID)
     return profile
@@ -656,9 +682,7 @@ def load_worker_request(
             resolved["plan"].read_bytes(), expected_ref=plan_ref
         )
         profile = compile_development_profile(plan)
-        require_reconstruction_profile_admission(
-            profile, worker_profile=expected_worker_profile
-        )
+        require_profile_admission(profile, worker_profile=expected_worker_profile)
         if profile.profile_digest != request["reconstruction_profile_digest"]:
             raise WorkerFailure(WorkerCode.POLICY)
         split = request["continuation_split_step"]

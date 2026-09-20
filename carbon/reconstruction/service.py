@@ -14,7 +14,7 @@ from pathlib import Path
 
 from carbon.construction import ResolvedConstructionPlan
 from carbon.execution import ExecutionAttemptRef
-from carbon.reconstruction.accelerators import require_reconstruction_profile_admission
+from carbon.reconstruction.accelerators import require_profile_admission
 from carbon.reconstruction.model import (
     EnvironmentEligibility,
     PredictionReceipt,
@@ -477,7 +477,7 @@ def reconstruct(
     if not isinstance(artifact_path, Path) or not artifact_path.is_absolute():
         raise ReconstructionFailure("reconstruction.artifact.path_invalid")
     profile = compile_development_profile(plan)
-    require_reconstruction_profile_admission(profile, worker_profile=worker_profile)
+    require_profile_admission(profile, worker_profile=worker_profile)
     accelerator = _mapped_accelerator(json.loads(profile.mapping_receipt_json))
     key_material = derived_seed.as_backend_bytes()
     randomness_digest = _tagged(key_material)

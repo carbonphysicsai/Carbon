@@ -126,6 +126,7 @@ class DevelopmentWorkerProfile:
     accelerator_grant_digest: str | None = None
     accelerator_role: str | None = None
     accelerator_authority: str | None = None
+    accelerator_plan_digest: str | None = None
 
     def __post_init__(self) -> None:
         if self.accelerator_profile_id is None:
@@ -135,6 +136,7 @@ class DevelopmentWorkerProfile:
                 or self.accelerator_grant_digest is not None
                 or self.accelerator_role is not None
                 or self.accelerator_authority is not None
+                or self.accelerator_plan_digest is not None
             ):
                 raise WorkerFailure(WorkerCode.UNSUPPORTED)
         else:
@@ -173,6 +175,16 @@ class DevelopmentWorkerProfile:
             ):
                 raise WorkerFailure(WorkerCode.UNSUPPORTED)
             exact_digest(self.accelerator_grant_digest)
+            # Two distinct identities. accelerator_grant_digest is the authority
+            # record (a strict grant, or a local approval record). The approved
+            # diagnostic plan is a separate digest carried only by the local
+            # variant, and neither may stand in for the other.
+            if self.accelerator_authority == LOCAL_DEVELOPMENT_AUTHORITY:
+                exact_digest(self.accelerator_plan_digest)
+                if self.accelerator_plan_digest == self.accelerator_grant_digest:
+                    raise WorkerFailure(WorkerCode.UNSUPPORTED)
+            elif self.accelerator_plan_digest is not None:
+                raise WorkerFailure(WorkerCode.UNSUPPORTED)
         object.__setattr__(
             self,
             "research_resource_policy_digest",
@@ -248,6 +260,7 @@ class DevelopmentWorkerProfile:
                     "profile_digest": GPU_PROFILE.digest,
                     "authority": LOCAL_DEVELOPMENT_AUTHORITY,
                     "approval_digest": self.accelerator_grant_digest,
+                    "diagnostic_plan_digest": self.accelerator_plan_digest,
                     "role": self.accelerator_role,
                     "device_uuid": GPU_PROFILE.device_uuid,
                     "allocation": "TASK_OWNED_NOT_EXCLUSIVE",

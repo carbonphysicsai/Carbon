@@ -15,7 +15,11 @@ from carbon.reconstruction.worker.model import (
 )
 
 GPU_PROFILE_ID = "carbon.c03.cuda.development.v1"
-DIGEST = _sha("4")
+# Three deliberately different identities, so a test cannot pass by
+# accidentally carrying one value where another is meant.
+APPROVAL_DIGEST = _sha("4")
+DIAGNOSTIC_PLAN_DIGEST = _sha("5")
+DIGEST = APPROVAL_DIGEST
 
 
 def _profile(**overrides):
@@ -28,6 +32,8 @@ def _profile(**overrides):
         "accelerator_grant_digest": DIGEST,
         "accelerator_role": "MINER_RESEARCH",
     }
+    if overrides.get("accelerator_authority") == LOCAL_DEVELOPMENT_AUTHORITY:
+        values["accelerator_plan_digest"] = DIAGNOSTIC_PLAN_DIGEST
     values.update(overrides)
     return DevelopmentWorkerProfile(**values)
 
@@ -68,7 +74,9 @@ def test_local_body_publishes_an_approval_not_a_grant():
     accelerators = local.body["accelerators"]
     assert local.body["schema"] == "carbon.c03.development-worker-profile.v4"
     assert accelerators["authority"] == LOCAL_DEVELOPMENT_AUTHORITY
-    assert accelerators["approval_digest"] == DIGEST
+    assert accelerators["approval_digest"] == APPROVAL_DIGEST
+    assert accelerators["diagnostic_plan_digest"] == DIAGNOSTIC_PLAN_DIGEST
+    assert accelerators["approval_digest"] != accelerators["diagnostic_plan_digest"]
     assert "grant_digest" not in accelerators
     assert accelerators["allocation"] == "TASK_OWNED_NOT_EXCLUSIVE"
     assert accelerators["device_memory_cap"] == "NOT_ENFORCED_BY_THIS_AUTHORITY"
@@ -187,3 +195,41 @@ def test_container_labels_are_distinct_per_authority():
     assert _accelerator_authority_label(strict) == f"{STRICT_GRANT_LABEL}={DIGEST}"
     assert _accelerator_authority_label(local) == f"{LOCAL_APPROVAL_LABEL}={DIGEST}"
     assert STRICT_GRANT_LABEL != LOCAL_APPROVAL_LABEL
+
+
+# --- the two digest identities must not be interchanged -----------------------
+
+
+def test_a_local_profile_requires_a_distinct_plan_digest():
+    """The approval record digest is not the approved diagnostic plan digest."""
+    with pytest.raises(WorkerFailure):
+        DevelopmentWorkerProfile(
+            research_resource_policy_digest=_sha("2"),
+            resource_class_digest=_sha("3"),
+            profile_id=GPU_PROFILE_ID,
+            profile_version="1.0",
+            accelerator_profile_id=GPU_PROFILE.profile_id,
+            accelerator_grant_digest=APPROVAL_DIGEST,
+            accelerator_role="MINER_RESEARCH",
+            accelerator_authority=LOCAL_DEVELOPMENT_AUTHORITY,
+        )
+
+
+def test_the_same_value_cannot_serve_as_both_identities():
+    with pytest.raises(WorkerFailure):
+        DevelopmentWorkerProfile(
+            research_resource_policy_digest=_sha("2"),
+            resource_class_digest=_sha("3"),
+            profile_id=GPU_PROFILE_ID,
+            profile_version="1.0",
+            accelerator_profile_id=GPU_PROFILE.profile_id,
+            accelerator_grant_digest=APPROVAL_DIGEST,
+            accelerator_role="MINER_RESEARCH",
+            accelerator_authority=LOCAL_DEVELOPMENT_AUTHORITY,
+            accelerator_plan_digest=APPROVAL_DIGEST,
+        )
+
+
+def test_a_strict_profile_may_not_carry_a_plan_digest():
+    with pytest.raises(WorkerFailure):
+        _profile(accelerator_plan_digest=DIAGNOSTIC_PLAN_DIGEST)

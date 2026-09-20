@@ -724,8 +724,12 @@ def inspect_effective_controls(
         gpu_observation = inspect_gpu_device(
             cli=cli,
             container_name=container_name,
+            # The approved diagnostic plan, not the approval record digest.
+            # accelerator_grant_digest identifies the authority record; the plan
+            # it authorizes is a separate identity and the observation records
+            # that one.
             development_plan_digest=(
-                worker_profile.accelerator_grant_digest
+                worker_profile.accelerator_plan_digest
                 if worker_profile.accelerator_authority == LOCAL_DEVELOPMENT_AUTHORITY
                 else None
             ),
