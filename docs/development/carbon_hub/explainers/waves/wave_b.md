@@ -81,8 +81,8 @@ Wave B does not include real miner training, production reconstruction, authenti
 ## Repository detail
 
 - [Wave B controlling board](https://github.com/carbonphysicsai/Carbon/blob/4f84329cb1f91b89b3b11547d938867fd846417d/.agent/WAVE_B.md)
-- [Current wave register](https://github.com/carbonphysicsai/Carbon/blob/a676e509f3aa9eb36358144860d66b698578e3c7/.agent/WAVE.md)
-- [C1 dependency graph](https://github.com/carbonphysicsai/Carbon/blob/a676e509f3aa9eb36358144860d66b698578e3c7/.agent/plans/C1_DEPENDENCY_GRAPH.md)
+- [Current wave register](https://github.com/carbonphysicsai/Carbon/blob/530e40d455805d741cb0e21e10b13be7dd14f25b/.agent/WAVE.md)
+- [C1 dependency graph](https://github.com/carbonphysicsai/Carbon/blob/530e40d455805d741cb0e21e10b13be7dd14f25b/.agent/plans/C1_DEPENDENCY_GRAPH.md)
 - [Agentic Development Master Plan](https://github.com/carbonphysicsai/Carbon/blob/4f84329cb1f91b89b3b11547d938867fd846417d/Design_Specs/Agentic_Development_Master_Plan.md)
 
 > Orientation boundary: repository authority owns exact semantics, implementation, review, evidence, and activation.

@@ -6532,6 +6532,21 @@
         "WAVE-C/C-09"
       ],
       "supersedes": null
+    },
+    {
+      "map_ref": "SYSTEM/AGENT-EXECUTION",
+      "event_type": "evidence",
+      "event_id": "C-CORE-19-COMPLETION-01",
+      "owner_lane": "core_platform",
+      "status": "implemented",
+      "summary": "Recorded completion of items W1 to W5 of the GPU completion work package, with W6 - the first GPU attempt - gated and not started; zero of four authorized attempts are consumed. CPU acceptance is green at b0b04d44 with 6882 passed and zero modified paths at start and finish, and the worker image was rebuilt against the revision so its accelerator profile label matches the current profile digest. The measurement returned a finding that is not about GPUs: the same registered strategy under identical R0 identities produces different trained weights depending on the CPU instruction-set level, while every identity Carbon records - observed environment, environment, profile and plan digests - is identical across the divergent runs, so two hosts that compute different numerics record the same environment. It is latent only because compare_r1 short-circuits while no backend profile is qualified. The MQ-008 evidence specification is drafted for SCI and SRE acceptance and sets no tolerance; the validator exam environment is declared and published without being qualified; the gate margin analysis reports that no production Score Pack exists to measure a margin against and changes no threshold. No hardware is qualified and no attempt is authorized.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/530e40d455805d741cb0e21e10b13be7dd14f25b/.agent/tickets/C-CORE-19_gpu_miner_and_validator_lanes.md",
+      "affects": [
+        "SYSTEM/AGENT-EXECUTION",
+        "WAVE-C/C-03",
+        "WAVE-C/C-09"
+      ],
+      "supersedes": null
     }
   ]
 }
