@@ -40,7 +40,7 @@ Authentic descriptive DEVELOPMENT comparison implemented and exercised. Accepted
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/1b393902234b899f86e887e50e5eaa3ab968371f/.agent/tickets/C-W1-D2_development_comparison.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/e144f4942a8bb8b0d55c14eba4353957c42f8dcc/.agent/tickets/C-W1-D2_development_comparison.md)
 - [Frozen comparison contract](https://github.com/carbonphysicsai/Carbon/blob/4f84329cb1f91b89b3b11547d938867fd846417d/docs/development/CW1_DEVELOPMENT_COMPARISON.md)
 - [Observed results](https://github.com/carbonphysicsai/Carbon/blob/4f84329cb1f91b89b3b11547d938867fd846417d/docs/development/CW1_DEVELOPMENT_COMPARISON_RESULTS.md)
 
