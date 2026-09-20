@@ -23,20 +23,38 @@ set -euo pipefail
 usage() {
   cat <<'EOF'
 Usage:
-  ./scripts/dev/workspace_preflight.sh [--quiet] [--no-doctor]
+  ./scripts/dev/workspace_preflight.sh [--quiet] [--no-doctor] [--workspace DIR]
 
-  --quiet      Print only failures and the final verdict.
-  --no-doctor  Skip the canonical environment check (scripts/dev/doctor.sh).
-               Use only when doctor has already run in this same workspace.
+  --quiet          Print only failures and the final verdict.
+  --no-doctor      Skip the canonical environment check (scripts/dev/doctor.sh).
+                   Use only when doctor has already run in this same workspace.
+  --workspace DIR  Check DIR instead of this script's own repository.
+
+By default the checked workspace is the repository this script lives in. That is
+the common case and it is deliberate: a preflight that silently checked somewhere
+else would be worse than none.
+
+--workspace exists because a reviewed copy of this script lives on one branch
+while the work happens in another linked worktree. Copying the script into the
+working tree to check that tree would mean running an unreviewed script, so point
+the reviewed one at the workspace instead. The checked workspace is reported in
+the output either way, so it is never ambiguous which tree passed.
 EOF
 }
 
 quiet=0
 run_doctor=1
+workspace=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --quiet) quiet=1 ;;
     --no-doctor) run_doctor=0 ;;
+    --workspace)
+      shift
+      [[ $# -gt 0 ]] || { printf '%s\n' 'workspace preflight: --workspace needs a directory' >&2; exit 2; }
+      workspace="$1"
+      ;;
+    --workspace=*) workspace="${1#--workspace=}" ;;
     -h|--help) usage; exit 0 ;;
     *) printf 'workspace preflight: unknown argument %s\n' "$1" >&2; usage >&2; exit 2 ;;
   esac
@@ -126,8 +144,25 @@ require_native_storage() {
 }
 
 script_dir="$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
-repo_root="$(CDPATH= cd -- "${script_dir}/../.." && pwd -P)"
+own_root="$(CDPATH= cd -- "${script_dir}/../.." && pwd -P)"
+
+if [[ -n "${workspace}" ]]; then
+  if [[ ! -d "${workspace}" ]]; then
+    bad "the requested workspace does not exist: ${workspace}"
+    printf '\nworkspace preflight: refused (%d problem(s))\n' "${failures}" >&2
+    exit 2
+  fi
+  repo_root="$(CDPATH= cd -- "${workspace}" && pwd -P)"
+else
+  repo_root="${own_root}"
+fi
 cd "${repo_root}"
+
+# Always stated, so a passing report can never be read against the wrong tree.
+ok "checking workspace: ${repo_root}"
+if [[ "${repo_root}" != "${own_root}" ]]; then
+  note "(this script is running from ${own_root})"
+fi
 
 require_native_storage "source root" "${repo_root}"
 
@@ -278,16 +313,28 @@ if command -v gh >/dev/null 2>&1; then
 fi
 
 # --- 8. canonical environment -------------------------------------------------
+#
+# The dependency groups are the caller's declaration, passed through untouched.
+# Guessing them here would be the wrong kind of helpful: doctor would then report
+# an environment nobody asked for, and a suite needing another group would fail
+# later with a missing import rather than here with a clear reason. The groups
+# actually checked are printed, so a passing report states its own scope.
 
 if [[ "${run_doctor}" -eq 1 ]]; then
-  if [[ -x scripts/dev/doctor.sh ]] || [[ -f scripts/dev/doctor.sh ]]; then
+  if [[ -f scripts/dev/doctor.sh ]]; then
+    ok "dependency groups checked: dev${CARBON_UV_GROUPS:+ ${CARBON_UV_GROUPS}}"
+    [[ -n "${CARBON_UV_GROUPS:-}" ]] || note \
+      "(set CARBON_UV_GROUPS for a suite that needs more than the dev group)"
     if bash scripts/dev/doctor.sh >/tmp/carbon-preflight-doctor.$$ 2>&1; then
       ok "canonical environment: scripts/dev/doctor.sh passed"
       [[ "${quiet}" -eq 1 ]] || sed 's/^/      /' /tmp/carbon-preflight-doctor.$$ \
-        | grep -E 'OS:|Python:|uv:|repository:' || true
+        | grep -E 'OS:|Python:|uv:|repository:|lock/groups:' || true
     else
       bad "scripts/dev/doctor.sh failed:"
       sed 's/^/      /' /tmp/carbon-preflight-doctor.$$ >&2 || true
+      note "If it reports an outdated environment, the installed groups and the"
+      note "checked groups differ. Set CARBON_UV_GROUPS to the groups this suite"
+      note "actually needs; do not sync the environment down to silence it."
     fi
     rm -f /tmp/carbon-preflight-doctor.$$
   else
