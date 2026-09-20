@@ -5,6 +5,7 @@ import time
 from dataclasses import asdict, replace
 from types import SimpleNamespace
 
+import accelerator_host
 import pytest
 from test_c03_worker_contract import _image
 from test_julia_research import prepared
@@ -59,6 +60,8 @@ def fixture(tmp_path, monkeypatch, *, scope=True, host=True, fail=False, julia=F
     host_root = tmp_path / "host"
     host_root.mkdir(mode=0o700)
     monkeypatch.setattr(accelerator_runtime, "HOST_ROOT", host_root)
+    # Which device this host has is installed evidence, not a source constant.
+    accelerator_host.install(host_root)
     if not scope:
         return data, ledger, image, calls
     practice = gpu.PublicGPUPractice(data=data, image=image)
@@ -88,7 +91,9 @@ def fixture(tmp_path, monkeypatch, *, scope=True, host=True, fail=False, julia=F
             "controller_root": str(ledger.root / "gpu-controller"),
             "principal": data.owner,
             "roles": [gpu.AcceleratorRole.MINER_RESEARCH.value],
-            "device_uuid": gpu.GPU_PROFILE.device_uuid,
+            "device_uuid": accelerator_host.HOSTS[accelerator_host.DEFAULT_SHAPE][
+                "device_uuid"
+            ],
             "execution_profile_digest": gpu.GPU_PROFILE.digest,
             "image_id": image.image_id,
             "resource_policy_digest": composition.inspection.policy_ref.content_digest,

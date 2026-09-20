@@ -511,6 +511,7 @@ def stage_request(
                     "approval_digest": worker_profile.accelerator_grant_digest,
                     "diagnostic_plan_digest": worker_profile.accelerator_plan_digest,
                     "role": worker_profile.accelerator_role,
+                    "device_uuid": worker_profile.accelerator_device_uuid,
                 }
             else:
                 request["accelerator"] = {
@@ -518,6 +519,12 @@ def stage_request(
                     "grant_digest": worker_profile.accelerator_grant_digest,
                     "role": worker_profile.accelerator_role,
                 }
+                # The TPU preparation profile dispatches nothing and is bound to
+                # no device, so its block stays exactly as it was.
+                if worker_profile.accelerator_device_uuid is not None:
+                    request["accelerator"][
+                        "device_uuid"
+                    ] = worker_profile.accelerator_device_uuid
         payload = _canonical(request) + b"\n"
         if len(payload) > CONTROL_BYTES:
             raise WorkerFailure(WorkerCode.STAGING)
@@ -596,7 +603,12 @@ def _request_worker_profile(request):
         "approval_digest",
         "diagnostic_plan_digest",
         "role",
+        "device_uuid",
     }
+    # Two closed strict shapes, paired with the profile below: a device-backed
+    # GPU launch names its device, and the device-free TPU preparation profile
+    # must not be able to name one.
+    strict_device_fields = {"profile_id", "grant_digest", "role", "device_uuid"}
     strict_fields = {"profile_id", "grant_digest", "role"}
     if set(accelerator) == local_fields:
         if accelerator["authority"] != LOCAL_DEVELOPMENT_AUTHORITY:
@@ -611,16 +623,30 @@ def _request_worker_profile(request):
             accelerator["role"],
             LOCAL_DEVELOPMENT_AUTHORITY,
             accelerator["diagnostic_plan_digest"],
+            accelerator["device_uuid"],
         )
-    elif set(accelerator) == strict_fields:
+    elif set(accelerator) == strict_device_fields:
+        if accelerator["profile_id"] == TPU_PROFILE.profile_id:
+            raise WorkerFailure(WorkerCode.INVALID)
         profile = DevelopmentWorkerProfile(
             replicate["policy_digest"],
             replicate["resource_class_digest"],
-            (
-                "carbon.c03.tpu.preparation.v1"
-                if accelerator["profile_id"] == TPU_PROFILE.profile_id
-                else "carbon.c03.cuda.development.v1"
-            ),
+            "carbon.c03.cuda.development.v1",
+            "1.0",
+            accelerator["profile_id"],
+            accelerator["grant_digest"],
+            accelerator["role"],
+            None,
+            None,
+            accelerator["device_uuid"],
+        )
+    elif set(accelerator) == strict_fields:
+        if accelerator["profile_id"] != TPU_PROFILE.profile_id:
+            raise WorkerFailure(WorkerCode.INVALID)
+        profile = DevelopmentWorkerProfile(
+            replicate["policy_digest"],
+            replicate["resource_class_digest"],
+            "carbon.c03.tpu.preparation.v1",
             "1.0",
             accelerator["profile_id"],
             accelerator["grant_digest"],

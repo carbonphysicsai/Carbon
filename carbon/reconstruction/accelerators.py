@@ -31,17 +31,24 @@ class AcceleratorUnavailable(RuntimeError):
 
 @dataclass(frozen=True, slots=True)
 class AcceleratorProfile:
+    """What the work needs, identically on every machine.
+
+    This carries no device UUID, no marketed device name, no driver version and
+    no provider. Those describe one host and live in an operator-installed
+    `HostDeviceRecord`, so a miner runs Carbon on their own hardware by
+    installing a record rather than by editing this file. Keeping them out is
+    also what lets two runs on different machines share one profile digest and
+    stay comparable.
+    """
+
     profile_id: str
     backend: Backend
-    device_kind: str
     local_device_count: int
     global_device_count: int
     process_count: int
     topology: str
     environment_file: str
     environment_lock_digest: str
-    device_uuid: str | None = None
-    host_driver: str | None = None
 
     @property
     def admission_enabled(self) -> bool:
@@ -84,22 +91,18 @@ class AcceleratorProfile:
 
 
 GPU_PROFILE = AcceleratorProfile(
-    "carbon_jax_cuda13_rtx3060_laptop_development_v1",
+    "carbon_jax_cuda13_nvidia_development_v1",
     Backend.NVIDIA,
-    "NVIDIA GeForce RTX 3060 Laptop GPU",
     1,
     1,
     1,
     "single-device",
     ".devcontainer/accelerators/cuda13-py311.txt",
     "sha256:a197af534a061636ba77e4f97f7e9be508b795d58883b6774fde74a5135ad434",
-    "GPU-31e88d04-75ff-89b2-9160-4b923dd7eb81",
-    "581.95",
 )
 TPU_PROFILE = AcceleratorProfile(
     "carbon_jax_tpu_v5e_8_development_v1",
     Backend.TPU,
-    "TPU v5 lite",
     8,
     8,
     1,
@@ -124,13 +127,18 @@ def _registered(profile: AcceleratorProfile) -> None:
 
 
 def worker_environment(
-    profile: AcceleratorProfile, role: AcceleratorRole
+    profile: AcceleratorProfile, role: AcceleratorRole, *, host_device=None
 ) -> dict[str, str]:
     """Proposed closed worker overlay, never applied to the control plane.
 
     The controller still owns the complete environment and role/principal-bound
     scratch mount. No persistent compilation cache crosses worker boundaries.
     Disabling preallocation is not a GPU memory cap or partition policy.
+
+    `host_device` supplies which device this host exposes. It is required for a
+    device-backed backend and must be the record already bound to `profile`, so
+    the visible device comes from installed host evidence rather than from a
+    constant compiled into Carbon.
     """
     _registered(profile)
     if type(role) is not AcceleratorRole:
@@ -143,9 +151,12 @@ def worker_environment(
         "JAX_COMPILATION_CACHE_DIR": f"/scratch/{role.value.lower()}/jax-cache",
     }
     if profile.backend is Backend.NVIDIA:
+        from carbon.reconstruction.host_inventory import require_host_device
+
+        require_host_device(host_device, profile)
         result.update(
             {
-                "CUDA_VISIBLE_DEVICES": profile.device_uuid,
+                "CUDA_VISIBLE_DEVICES": host_device.device_uuid,
                 "XLA_PYTHON_CLIENT_PREALLOCATE": "false",
                 "XLA_PYTHON_CLIENT_ALLOCATOR": "platform",
             }
@@ -160,6 +171,7 @@ def validate_worker_observation(
     global_device_count: int,
     process_count: int,
     matmul_precision: str,
+    host_device,
 ) -> None:
     """Check exact numerical observations; not physical-device attestation.
 
@@ -167,6 +179,12 @@ def validate_worker_observation(
     need independent supervisor observations; JAX's device kind cannot prove them.
     """
     _registered(profile)
+    from carbon.reconstruction.host_inventory import require_host_device
+
+    # The observed device kind is checked against installed host evidence, not
+    # against a model name compiled into Carbon. The check is as exact as it
+    # was; only its anchor moved off this machine.
+    require_host_device(host_device, profile)
     validate_observation(profile.backend_request, observation)
     if (
         type(global_device_count) is not int
@@ -177,7 +195,8 @@ def validate_worker_observation(
         or observation.x64_enabled
         or matmul_precision != "highest"
         or any(
-            device.device_kind != profile.device_kind for device in observation.devices
+            device.device_kind != host_device.device_kind
+            for device in observation.devices
         )
     ):
         raise ValueError("accelerator topology, device or precision mismatch")

@@ -550,9 +550,18 @@ def create_arguments(
             AcceleratorRole,
             worker_environment,
         )
+        from carbon.reconstruction.worker.accelerator_runtime import host_device
 
+        # The device comes from the launch's own profile, which the controller
+        # filled from the installed host record. Nothing here reads a device
+        # identity compiled into Carbon.
+        device = worker_profile.accelerator_device_uuid
+        if device != host_device().device_uuid:
+            raise WorkerFailure(WorkerCode.POLICY)
         replacements = worker_environment(
-            GPU_PROFILE, AcceleratorRole(worker_profile.accelerator_role)
+            GPU_PROFILE,
+            AcceleratorRole(worker_profile.accelerator_role),
+            host_device=host_device(),
         )
         for index, value in enumerate(arguments):
             if index and arguments[index - 1] == "--env":
@@ -563,9 +572,9 @@ def create_arguments(
             "--runtime",
             "nvidia",
             "--gpus",
-            f"device={GPU_PROFILE.device_uuid}",
+            f"device={device}",
             "--label",
-            f"carbon.accelerator.device={GPU_PROFILE.device_uuid}",
+            f"carbon.accelerator.device={device}",
             "--label",
             _accelerator_authority_label(worker_profile),
         ]
@@ -574,7 +583,7 @@ def create_arguments(
         extras.extend(
             [
                 "--env",
-                f"NVIDIA_VISIBLE_DEVICES={GPU_PROFILE.device_uuid}",
+                f"NVIDIA_VISIBLE_DEVICES={device}",
                 "--env",
                 "NVIDIA_DRIVER_CAPABILITIES=compute,utility",
             ]
@@ -692,14 +701,23 @@ def inspect_effective_controls(
             AcceleratorRole,
             worker_environment,
         )
-        from carbon.reconstruction.worker.accelerator_runtime import inspect_gpu_device
+        from carbon.reconstruction.worker.accelerator_runtime import (
+            host_device,
+            inspect_gpu_device,
+        )
 
+        record = host_device()
+        device = worker_profile.accelerator_device_uuid
+        if device != record.device_uuid:
+            raise WorkerFailure(WorkerCode.POLICY)
         env = dict(item.split("=", 1) for item in config.get("Env", []) if "=" in item)
         required = worker_environment(
-            GPU_PROFILE, AcceleratorRole(worker_profile.accelerator_role)
+            GPU_PROFILE,
+            AcceleratorRole(worker_profile.accelerator_role),
+            host_device=record,
         )
         required.update(
-            NVIDIA_VISIBLE_DEVICES=GPU_PROFILE.device_uuid,
+            NVIDIA_VISIBLE_DEVICES=device,
             NVIDIA_DRIVER_CAPABILITIES="compute,utility",
         )
         if (
@@ -707,8 +725,7 @@ def inspect_effective_controls(
             or any(env.get(k) != v for k, v in required.items())
             or env.get("LD_LIBRARY_PATH")
             or env.get("JAX_SKIP_CUDA_CONSTRAINTS_CHECK")
-            or (config.get("Labels") or {}).get("carbon.accelerator.device")
-            != GPU_PROFILE.device_uuid
+            or (config.get("Labels") or {}).get("carbon.accelerator.device") != device
             or (config.get("Labels") or {}).get(_authority_label_key(worker_profile))
             != worker_profile.accelerator_grant_digest
             # A local container must not also carry a strict grant label, and a
@@ -984,9 +1001,11 @@ def remove_exact_container(
         result = cli.run(["inspect", container_name], timeout=5, accepted=(0, 1))
         if result.returncode != 0:
             if accelerator is not None:
-                from carbon.reconstruction.accelerators import GPU_PROFILE
+                from carbon.reconstruction.worker.accelerator_runtime import (
+                    host_device,
+                )
 
-                if accelerator != GPU_PROFILE.device_uuid:
+                if accelerator != host_device().device_uuid:
                     raise WorkerFailure(WorkerCode.CLEANUP)
                 finish_device_allocation(
                     container_name=container_name, launch_digest=launch_digest

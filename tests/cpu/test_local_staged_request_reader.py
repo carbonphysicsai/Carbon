@@ -8,6 +8,7 @@ accelerator is initialized.
 
 import json
 
+import accelerator_host
 import pytest
 from test_accelerator_worker import _gpu_fixture
 from test_c03_worker_contract import _sha
@@ -22,6 +23,7 @@ from carbon.reconstruction.worker.model import (
 )
 from carbon.reconstruction.worker.protocol import load_worker_request, stage_request
 
+DEVICE_UUID = accelerator_host.HOSTS[accelerator_host.DEFAULT_SHAPE]["device_uuid"]
 APPROVAL_DIGEST = _sha("4")
 DIAGNOSTIC_PLAN_DIGEST = _sha("5")
 
@@ -37,6 +39,7 @@ def _local_profile(**overrides):
         "accelerator_role": AcceleratorRole.MINER_RESEARCH.value,
         "accelerator_authority": LOCAL_DEVELOPMENT_AUTHORITY,
         "accelerator_plan_digest": DIAGNOSTIC_PLAN_DIGEST,
+        "accelerator_device_uuid": DEVICE_UUID,
     }
     values.update(overrides)
     return DevelopmentWorkerProfile(**values)
@@ -51,6 +54,9 @@ def _strict_profile():
         GPU_PROFILE.profile_id,
         APPROVAL_DIGEST,
         AcceleratorRole.MINER_RESEARCH.value,
+        None,
+        None,
+        DEVICE_UUID,
     )
 
 
@@ -162,6 +168,10 @@ def test_a_cpu_request_may_not_claim_an_accelerator_schema(tmp_path, monkeypatch
     [
         lambda r: r["accelerator"].pop("diagnostic_plan_digest"),
         lambda r: r["accelerator"].pop("authority"),
+        lambda r: r["accelerator"].pop("device_uuid"),
+        lambda r: r["accelerator"].update(
+            device_uuid="GPU-99999999-9999-9999-9999-999999999999"
+        ),
         lambda r: r["accelerator"].update(grant_digest=APPROVAL_DIGEST),
         lambda r: r["accelerator"].update(authority=STRICT_HOST_GRANT_AUTHORITY),
         lambda r: r["accelerator"].update(approval_digest=_sha("7")),

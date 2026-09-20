@@ -373,7 +373,7 @@ required; completion of core engineering never starts a campaign automatically.
 The core integration owner confirmed that C-CORE-14 / #233 exposes a public TRAIN
 GPU construction diagnostic with `score=None`, not a Launchpad GPU campaign or
 final comparison. The named prospective profile is
-`carbon_jax_cuda13_rtx3060_laptop_development_v1`. Core #209 owns the missing
+`carbon_jax_cuda13_nvidia_development_v1`. Core #209 owns the missing
 campaign/final-comparison composition. Local RTX 3060 device visibility is a
 historical observation; NVIDIA Container Toolkit maintenance approval, exclusive
 host admission and actual miner/validator hardware and cleanup evidence are still

@@ -7,6 +7,7 @@ no real host grant or quarantine storage is used.
 import hashlib
 from types import SimpleNamespace
 
+import accelerator_host
 import pytest
 
 from carbon.reconstruction.accelerators import GPU_PROFILE
@@ -16,10 +17,9 @@ from carbon.reconstruction.worker.model import WorkerCode, WorkerFailure
 PLAN_DIGEST = "sha256:" + hashlib.sha256(b"synthetic-plan").hexdigest()
 SYNTHETIC_CONTRACT = "synthetic-test-only-observation-contract"
 
-IDENTITY_ROW = (
-    f"{GPU_PROFILE.device_uuid}, {GPU_PROFILE.device_kind}, "
-    f"{GPU_PROFILE.host_driver}, 6144, Disabled"
-)
+# What this host reports comes from the installed record, not from Carbon.
+DEVICE_UUID = accelerator_host.HOSTS[accelerator_host.DEFAULT_SHAPE]["device_uuid"]
+IDENTITY_ROW = accelerator_host.identity_row()
 
 
 def _cli(driver_model=b"WDDM", *, processes=b""):
@@ -31,6 +31,19 @@ def _cli(driver_model=b"WDDM", *, processes=b""):
         return SimpleNamespace(stdout=IDENTITY_ROW.encode())
 
     return SimpleNamespace(run=run)
+
+
+@pytest.fixture(autouse=True)
+def installed_host(tmp_path, monkeypatch):
+    """A synthetic host root with a device record, as an operator would install.
+
+    `_identity_values` compares what the container reports against this record,
+    so the comparison is against installed evidence rather than a constant.
+    """
+    root = tmp_path / "host"
+    monkeypatch.setattr(runtime, "HOST_ROOT", root)
+    accelerator_host.install(root)
+    return root
 
 
 @pytest.fixture
@@ -74,7 +87,7 @@ def test_development_observation_works_on_the_unsupported_host():
 
 
 def test_development_observation_still_verifies_device_identity():
-    stale = IDENTITY_ROW.replace(GPU_PROFILE.device_uuid, "GPU-other").encode()
+    stale = IDENTITY_ROW.replace(DEVICE_UUID, "GPU-other").encode()
 
     def run(command, **kwargs):
         if "--query-compute-apps=pid,gpu_uuid" in command:

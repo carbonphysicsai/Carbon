@@ -30,6 +30,27 @@ GRANT_SCHEMA = "carbon.accelerator-host-grant.v1"
 _EXACT_DIGEST = re.compile(r"sha256:[0-9a-f]{64}")
 
 
+def host_device():
+    """The installed description of this host's accelerator.
+
+    Read from operator-owned storage on each use rather than cached: the record
+    can be replaced or withdrawn between launches, and a cached copy would let a
+    withdrawn record keep supplying the device identity used to build labels,
+    device requests and cleanup commands.
+
+    A missing or malformed record fails closed. Carbon never infers the host's
+    hardware from whatever happens to be visible at dispatch time, and it never
+    falls back to a device identity compiled into the source tree - there is no
+    longer one to fall back to.
+    """
+    from carbon.reconstruction.host_inventory import (
+        HostDeviceRecord,
+        require_host_device,
+    )
+
+    return require_host_device(HostDeviceRecord.load(HOST_ROOT), GPU_PROFILE)
+
+
 @dataclass(frozen=True, slots=True)
 class AcceleratorHostAdmission:
     """Immutable reference to an operator-installed, revocable host grant."""
@@ -103,7 +124,7 @@ class AcceleratorHostAdmission:
                 for value in doc["roles"]
             )
             or role.value not in doc["roles"]
-            or doc["device_uuid"] != GPU_PROFILE.device_uuid
+            or doc["device_uuid"] != host_device().device_uuid
             or doc["execution_profile_digest"] != GPU_PROFILE.digest
             or type(image) is not WorkerImageIdentity
             or doc["image_id"] != image.image_id
@@ -175,7 +196,7 @@ def device_request() -> dict[str, object]:
     return {
         "Driver": "nvidia",
         "Count": 0,
-        "DeviceIDs": [GPU_PROFILE.device_uuid],
+        "DeviceIDs": [host_device().device_uuid],
         "Capabilities": [["gpu"]],
         "Options": {},
     }
@@ -253,15 +274,18 @@ def _identity_values(*, cli, container_name: str) -> list[str]:
         ],
         timeout=10,
     )
+    record = host_device()
     rows = result.stdout.decode("ascii", "strict").strip().splitlines()
     values = [part.strip() for part in rows[0].split(",")]
     if (
         len(rows) != 1
         or len(values) != 5
-        or values[0] != GPU_PROFILE.device_uuid
-        or values[1] != GPU_PROFILE.device_kind
-        or values[2] != GPU_PROFILE.host_driver
-        or values[3] != "6144"
+        or values[0] != record.device_uuid
+        or values[1] != record.device_kind
+        or values[2] != record.driver_version
+        or values[3] != str(record.device_memory_mib)
+        # Not taken from the record: a record must not be able to authorize
+        # running on a device that is also driving a display.
         or values[4].lower() != "disabled"
     ):
         raise ValueError()
@@ -406,7 +430,7 @@ def reject_existing_device_containers(*, cli) -> None:
             "ps",
             "--all",
             "--filter",
-            f"label=carbon.accelerator.device={GPU_PROFILE.device_uuid}",
+            f"label=carbon.accelerator.device={host_device().device_uuid}",
             "--format",
             "{{json .ID}}",
         ],
@@ -513,7 +537,7 @@ def admission_document(admission: AcceleratorHostAdmission) -> dict[str, object]
     return {
         "grant_digest": admission.digest,
         "profile_digest": GPU_PROFILE.digest,
-        "device_uuid": GPU_PROFILE.device_uuid,
+        "device_uuid": host_device().device_uuid,
     }
 
 
@@ -531,7 +555,8 @@ def verify_device_release(*, observation_contract: str | None = None) -> None:
         binary = next((path for path in candidates if path.is_file()), None)
         if binary is None:
             raise WorkerFailure(WorkerCode.CLEANUP)
-        command = [str(binary), "--id=" + GPU_PROFILE.device_uuid]
+        record = host_device()
+        command = [str(binary), "--id=" + record.device_uuid]
         environment = {"PATH": "/usr/bin:/bin"}
         model = _bounded_capture(
             command
@@ -576,7 +601,7 @@ def verify_device_release(*, observation_contract: str | None = None) -> None:
             processes.returncode != 0
             or processes.stdout.strip()
             or memory.returncode != 0
-            or fields != [GPU_PROFILE.device_uuid, "0", "Disabled"]
+            or fields != [record.device_uuid, "0", "Disabled"]
         ):
             raise WorkerFailure(WorkerCode.CLEANUP)
     except (WorkerFailure, OSError, UnicodeError):

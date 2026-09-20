@@ -42,7 +42,7 @@ Print a non-executing acceptance plan from the repository root:
 
 ```sh
 python -m scripts.dev.accelerator_acceptance \
-  --profile carbon_jax_cuda13_rtx3060_laptop_development_v1 \
+  --profile carbon_jax_cuda13_nvidia_development_v1 \
   --role MINER_RESEARCH
 python -m scripts.dev.accelerator_acceptance \
   --profile carbon_jax_tpu_v5e_8_development_v1 \

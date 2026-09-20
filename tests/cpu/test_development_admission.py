@@ -8,6 +8,7 @@ import json
 import os
 from pathlib import Path
 
+import accelerator_host
 import pytest
 from test_c03_worker_contract import _image, _sha
 
@@ -39,6 +40,9 @@ def _limits(**overrides):
     return values
 
 
+DEVICE_UUID = accelerator_host.HOSTS[accelerator_host.DEFAULT_SHAPE]["device_uuid"]
+
+
 @pytest.fixture
 def host(tmp_path, monkeypatch):
     """A synthetic HOST_ROOT. The real one is never touched."""
@@ -46,6 +50,8 @@ def host(tmp_path, monkeypatch):
     root.mkdir(mode=0o700)
     monkeypatch.setattr(runtime, "HOST_ROOT", root)
     monkeypatch.setattr(dev, "HOST_ROOT", root)
+    # Which device this host has is installed evidence, not a source constant.
+    accelerator_host.install(root)
     return root
 
 
@@ -61,7 +67,7 @@ def _document(root, image, **overrides):
         "controller_root": str((root.parent / "controller").resolve()),
         "principal": "fixture-principal",
         "roles": [AcceleratorRole.MINER_RESEARCH.value],
-        "device_uuid": GPU_PROFILE.device_uuid,
+        "device_uuid": DEVICE_UUID,
         "execution_profile_digest": GPU_PROFILE.digest,
         "environment_lock_digest": GPU_PROFILE.environment_lock_digest,
         "image_id": image.image_id,

@@ -201,6 +201,10 @@ class IsolatedReconstructionController:
             != identity.resource_class_ref.content_digest
         ):
             raise WorkerFailure(WorkerCode.POLICY)
+        # The device this launch is bound to comes from the installed host
+        # record, checked against the grant, so the same code runs on any host.
+        from carbon.reconstruction.worker.accelerator_runtime import host_device
+
         worker_profile = DevelopmentWorkerProfile(
             identity.policy_ref.content_digest,
             identity.resource_class_ref.content_digest,
@@ -209,6 +213,9 @@ class IsolatedReconstructionController:
             GPU_PROFILE.profile_id,
             admission.digest,
             accelerator_role.value,
+            None,
+            None,
+            host_device().device_uuid,
         )
 
         def still_owned():
@@ -265,6 +272,8 @@ class IsolatedReconstructionController:
 
         if type(local_diagnostic) is not LocalDiagnosticRequest:
             raise WorkerFailure(WorkerCode.POLICY)
+
+        from carbon.reconstruction.worker.accelerator_runtime import host_device
 
         approval = require_development_approval(DevelopmentHostApproval.load())
         principal = claimed.binding.requester_identity.value
@@ -324,6 +333,7 @@ class IsolatedReconstructionController:
             accelerator_role.value,
             LOCAL_DEVELOPMENT_AUTHORITY,
             derived_digest,
+            host_device().device_uuid,
         )
 
         def still_owned():

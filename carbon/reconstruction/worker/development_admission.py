@@ -35,6 +35,7 @@ from pathlib import Path
 from carbon.reconstruction.accelerators import GPU_PROFILE, AcceleratorRole
 from carbon.reconstruction.worker.accelerator_runtime import (
     HOST_ROOT,
+    host_device,
     shared_host_lease,
 )
 from carbon.reconstruction.worker.model import (
@@ -184,7 +185,7 @@ class DevelopmentHostApproval:
             or not doc["roles"]
             or any(v not in [r.value for r in AcceleratorRole] for v in doc["roles"])
             or role.value not in doc["roles"]
-            or doc["device_uuid"] != GPU_PROFILE.device_uuid
+            or doc["device_uuid"] != host_device().device_uuid
             or doc["execution_profile_digest"] != GPU_PROFILE.digest
             or doc["environment_lock_digest"] != GPU_PROFILE.environment_lock_digest
             or image.lock_digest != GPU_PROFILE.environment_lock_digest

@@ -19,6 +19,7 @@ from dataclasses import replace
 from pathlib import Path
 from types import SimpleNamespace
 
+import accelerator_host
 import c02_fixtures
 import pytest
 from test_accelerator_worker import _gpu_fixture
@@ -59,12 +60,17 @@ def _limits():
     }
 
 
+DEVICE_UUID = accelerator_host.HOSTS[accelerator_host.DEFAULT_SHAPE]["device_uuid"]
+
+
 @pytest.fixture
 def host(tmp_path, monkeypatch):
     root = tmp_path / "host"
     root.mkdir(mode=0o700)
     monkeypatch.setattr(runtime, "HOST_ROOT", root)
     monkeypatch.setattr(dev, "HOST_ROOT", root)
+    # Which device this host has is installed evidence, not a source constant.
+    accelerator_host.install(root)
     return root
 
 
@@ -100,7 +106,7 @@ def approved(host, tmp_path, monkeypatch):
         "controller_root": str(controller_root),
         "principal": "fixture-principal",
         "roles": [AcceleratorRole.MINER_RESEARCH.value],
-        "device_uuid": GPU_PROFILE.device_uuid,
+        "device_uuid": DEVICE_UUID,
         "execution_profile_digest": GPU_PROFILE.digest,
         "environment_lock_digest": GPU_PROFILE.environment_lock_digest,
         "image_id": image.image_id,

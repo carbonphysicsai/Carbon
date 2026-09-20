@@ -139,7 +139,7 @@ class ResearchFixture:
                 "challenge": "fixture-challenge",
                 "reconstruction": "Unexecuted fixture",
                 "execution": {
-                    "profile": "carbon_jax_cuda13_rtx3060_laptop_development_v1",
+                    "profile": "carbon_jax_cuda13_nvidia_development_v1",
                     "backend": "cuda",
                     "basis": "CONFIGURATION_ONLY",
                     "installed_dependencies": "NOT_INSPECTED",

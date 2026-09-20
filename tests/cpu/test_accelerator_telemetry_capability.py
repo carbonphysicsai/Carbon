@@ -13,10 +13,10 @@ that any actual host, driver model or platform is established.
 from pathlib import Path
 from types import SimpleNamespace
 
+import accelerator_host
 import pytest
 import test_accelerator_worker
 
-from carbon.reconstruction.accelerators import GPU_PROFILE
 from carbon.reconstruction.worker import accelerator_runtime as runtime
 from carbon.reconstruction.worker.model import WorkerCode, WorkerFailure
 
@@ -24,10 +24,22 @@ host_grant = test_accelerator_worker.host_grant
 
 SYNTHETIC_CONTRACT = "synthetic-test-only-observation-contract"
 
-IDENTITY_ROW = (
-    f"{GPU_PROFILE.device_uuid}, {GPU_PROFILE.device_kind}, "
-    f"{GPU_PROFILE.host_driver}, 6144, Disabled"
-)
+# What this host reports comes from the installed record, not from Carbon.
+DEVICE_UUID = accelerator_host.HOSTS[accelerator_host.DEFAULT_SHAPE]["device_uuid"]
+IDENTITY_ROW = accelerator_host.identity_row()
+
+
+@pytest.fixture(autouse=True)
+def installed_host(tmp_path, monkeypatch):
+    """A synthetic host root with a device record, as an operator would install.
+
+    `_identity_values` compares what the container reports against this record,
+    so the comparison is against installed evidence rather than a constant.
+    """
+    root = tmp_path / "host"
+    monkeypatch.setattr(runtime, "HOST_ROOT", root)
+    accelerator_host.install(root)
+    return root
 
 
 @pytest.fixture
@@ -137,7 +149,7 @@ def test_established_source_still_admits_and_reports_no_foreign_processes(
         container_name="fixture",
         observation_contract=registered_contract,
     )
-    assert observation["uuid"] == GPU_PROFILE.device_uuid
+    assert observation["uuid"] == DEVICE_UUID
     assert observation["other_compute_processes"] == []
     assert observation["evidence"] == "OBSERVED_NOT_SECURITY_QUALIFIED"
     assert observation["device_memory_cap"] == "EXCLUSIVE_ALLOCATION_NOT_HOST_CGROUP"
@@ -167,7 +179,7 @@ def test_capability_query_failure_is_not_swallowed_into_a_pass():
 
 
 def test_wrong_device_identity_still_refuses_before_capability(registered_contract):
-    stale = IDENTITY_ROW.replace(GPU_PROFILE.device_uuid, "GPU-other").encode()
+    stale = IDENTITY_ROW.replace(DEVICE_UUID, "GPU-other").encode()
 
     def run(command, **kwargs):
         if "--query-gpu=driver_model.current" in command:
@@ -189,7 +201,7 @@ def _release_capture(monkeypatch, driver_model, *, processes=b"", memory=None):
     from carbon.reconstruction.worker import docker_runtime
 
     if memory is None:
-        memory = f"{GPU_PROFILE.device_uuid}, 0, Disabled".encode()
+        memory = f"{DEVICE_UUID}, 0, Disabled".encode()
     monkeypatch.setattr(Path, "is_file", lambda self: True)
 
     def capture(command, **kwargs):

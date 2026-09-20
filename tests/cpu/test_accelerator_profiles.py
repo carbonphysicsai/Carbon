@@ -3,6 +3,7 @@
 from dataclasses import replace
 from pathlib import Path
 
+import accelerator_host
 import pytest
 
 from carbon.reconstruction.accelerators import (
@@ -21,6 +22,7 @@ from carbon.reconstruction.worker.backend_probe import (
     BackendProbeError,
     DeviceObservation,
 )
+from carbon.reconstruction.worker.model import WorkerFailure
 
 
 @pytest.mark.parametrize("profile", PROFILES)
@@ -41,10 +43,22 @@ def test_unregistered_backend_aliases_are_rejected(name):
         resolve_profile(name)
 
 
+@pytest.fixture
+def host_record(request, tmp_path):
+    """One installed host record; the device identity is never a constant."""
+    profile = getattr(request, "param", None) or request.getfixturevalue("profile")
+    return accelerator_host.for_profile(tmp_path / "host", profile)
+
+
 @pytest.mark.parametrize("profile", PROFILES)
-def test_environment_is_explicit_and_mutable_caches_do_not_cross_roles(profile):
-    miner = worker_environment(profile, AcceleratorRole.MINER_RESEARCH)
-    validator = worker_environment(profile, AcceleratorRole.VALIDATOR_RECONSTRUCTION)
+def test_environment_is_explicit_and_mutable_caches_do_not_cross_roles(
+    profile, host_record
+):
+    options = {"host_device": host_record}
+    miner = worker_environment(profile, AcceleratorRole.MINER_RESEARCH, **options)
+    validator = worker_environment(
+        profile, AcceleratorRole.VALIDATOR_RECONSTRUCTION, **options
+    )
     assert miner["JAX_PLATFORMS"] == profile.backend.value
     assert miner["JAX_ENABLE_X64"] == "false"
     assert miner["JAX_DEFAULT_MATMUL_PRECISION"] == "highest"
@@ -53,11 +67,21 @@ def test_environment_is_explicit_and_mutable_caches_do_not_cross_roles(profile):
     assert not {"LD_LIBRARY_PATH", "JAX_SKIP_CUDA_CONSTRAINTS_CHECK"} & set(miner)
     with pytest.raises(ValueError):
         worker_environment(
-            replace(profile, global_device_count=123), AcceleratorRole.MINER_RESEARCH
+            replace(profile, global_device_count=123),
+            AcceleratorRole.MINER_RESEARCH,
+            **options,
         )
+    if profile is GPU_PROFILE:
+        assert miner["CUDA_VISIBLE_DEVICES"] == host_record.device_uuid
+        # A device-backed overlay cannot be built without installed evidence.
+        for missing in (None, "GPU-00000000-1111-2222-3333-444444444444"):
+            with pytest.raises((ValueError, WorkerFailure)):
+                worker_environment(
+                    profile, AcceleratorRole.MINER_RESEARCH, host_device=missing
+                )
 
 
-def observation(profile):
+def observation(profile, device_kind):
     return BackendObservation(
         profile.backend,
         "0.10.2",
@@ -66,7 +90,7 @@ def observation(profile):
         False,
         tuple(
             DeviceObservation(
-                i, 0, "gpu" if profile is GPU_PROFILE else "tpu", profile.device_kind
+                i, 0, "gpu" if profile is GPU_PROFILE else "tpu", device_kind
             )
             for i in range(profile.local_device_count)
         ),
@@ -74,12 +98,15 @@ def observation(profile):
 
 
 @pytest.mark.parametrize("profile", PROFILES)
-def test_exact_topology_and_precision_are_required(profile):
-    value = observation(profile)
+def test_exact_topology_and_precision_are_required(profile, host_record):
+    # The expected device kind comes from the installed record, so this check
+    # is as exact as before while naming no hardware in the source tree.
+    value = observation(profile, host_record.device_kind)
     options = {
         "global_device_count": profile.global_device_count,
         "process_count": 1,
         "matmul_precision": "highest",
+        "host_device": host_record,
     }
     validate_worker_observation(profile, value, **options)
     for key, wrong in (
@@ -93,9 +120,14 @@ def test_exact_topology_and_precision_are_required(profile):
         replace(value, x64_enabled=True),
         replace(value, jax_version="0.10.1"),
         replace(value, devices=(DeviceObservation(0, 0, "cpu", "cpu"),)),
+        # A device whose kind is not the one this host recorded.
+        observation(profile, "NVIDIA Some Other Device"),
     ):
         with pytest.raises((ValueError, BackendProbeError)):
             validate_worker_observation(profile, wrong, **options)
+    # An observation cannot be validated without installed host evidence.
+    with pytest.raises((ValueError, WorkerFailure)):
+        validate_worker_observation(profile, value, **{**options, "host_device": None})
 
 
 def test_lock_files_bind_complete_separate_worker_environments():

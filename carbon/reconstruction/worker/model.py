@@ -127,6 +127,9 @@ class DevelopmentWorkerProfile:
     accelerator_role: str | None = None
     accelerator_authority: str | None = None
     accelerator_plan_digest: str | None = None
+    # Which device on THIS host the launch is bound to. Supplied per run from
+    # the installed host record, never from a constant in the source tree.
+    accelerator_device_uuid: str | None = None
 
     def __post_init__(self) -> None:
         if self.accelerator_profile_id is None:
@@ -137,6 +140,7 @@ class DevelopmentWorkerProfile:
                 or self.accelerator_role is not None
                 or self.accelerator_authority is not None
                 or self.accelerator_plan_digest is not None
+                or self.accelerator_device_uuid is not None
             ):
                 raise WorkerFailure(WorkerCode.UNSUPPORTED)
         else:
@@ -184,6 +188,19 @@ class DevelopmentWorkerProfile:
                 if self.accelerator_plan_digest == self.accelerator_grant_digest:
                     raise WorkerFailure(WorkerCode.UNSUPPORTED)
             elif self.accelerator_plan_digest is not None:
+                raise WorkerFailure(WorkerCode.UNSUPPORTED)
+            # A device-backed launch must name the device it is bound to. The
+            # TPU preparation profile dispatches nothing, so it carries none.
+            if self.accelerator_profile_id == GPU_PROFILE.profile_id:
+                from carbon.reconstruction.host_inventory import NVIDIA_DEVICE_UUID
+
+                if (
+                    type(self.accelerator_device_uuid) is not str
+                    or NVIDIA_DEVICE_UUID.fullmatch(self.accelerator_device_uuid)
+                    is None
+                ):
+                    raise WorkerFailure(WorkerCode.UNSUPPORTED)
+            elif self.accelerator_device_uuid is not None:
                 raise WorkerFailure(WorkerCode.UNSUPPORTED)
         object.__setattr__(
             self,
@@ -262,7 +279,7 @@ class DevelopmentWorkerProfile:
                     "approval_digest": self.accelerator_grant_digest,
                     "diagnostic_plan_digest": self.accelerator_plan_digest,
                     "role": self.accelerator_role,
-                    "device_uuid": GPU_PROFILE.device_uuid,
+                    "device_uuid": self.accelerator_device_uuid,
                     "allocation": "TASK_OWNED_NOT_EXCLUSIVE",
                     "device_memory_cap": "NOT_ENFORCED_BY_THIS_AUTHORITY",
                     "official_eligible": False,
@@ -274,7 +291,7 @@ class DevelopmentWorkerProfile:
                     "profile_digest": GPU_PROFILE.digest,
                     "grant_digest": self.accelerator_grant_digest,
                     "role": self.accelerator_role,
-                    "device_uuid": GPU_PROFILE.device_uuid,
+                    "device_uuid": self.accelerator_device_uuid,
                     "allocation": "EXCLUSIVE_SINGLE_DEVICE",
                 }
         return result
