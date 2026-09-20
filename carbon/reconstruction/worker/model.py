@@ -112,6 +112,12 @@ def exact_token(value: object, *, maximum: int = 256) -> str:
 
 STRICT_HOST_GRANT_AUTHORITY = "STRICT_HOST_GRANT"
 LOCAL_DEVELOPMENT_AUTHORITY = "LOCAL_DEVELOPMENT_APPROVAL"
+# A miner admitting their own host from local policy. No human signs a record
+# per run: that model cannot work for a network of miners, and the CPU lane has
+# never required it. Two lanes, three authorities - the owner-approved
+# development batch is a miner-lane run under an additional bound, not a third
+# execution model.
+MINER_HOST_AUTHORITY = "MINER_HOST_SELF_SERVICE"
 
 
 @dataclass(frozen=True, slots=True)
@@ -199,13 +205,24 @@ class DevelopmentWorkerProfile:
             if self.accelerator_authority not in (
                 STRICT_HOST_GRANT_AUTHORITY,
                 LOCAL_DEVELOPMENT_AUTHORITY,
+                MINER_HOST_AUTHORITY,
             ):
                 raise WorkerFailure(WorkerCode.UNSUPPORTED)
-            # The local development variant exists only for the GPU profile; a
-            # TPU request is rejected before this and never becomes local.
+            # Neither weaker variant exists for anything but the portable GPU
+            # profile; a TPU request is rejected before this and never becomes
+            # one, and a retained profile is not an execution route.
             if (
-                self.accelerator_authority == LOCAL_DEVELOPMENT_AUTHORITY
+                self.accelerator_authority
+                in (LOCAL_DEVELOPMENT_AUTHORITY, MINER_HOST_AUTHORITY)
                 and self.accelerator_profile_id != GPU_PROFILE.profile_id
+            ):
+                raise WorkerFailure(WorkerCode.UNSUPPORTED)
+            # The miner lane is the miner role. It is reached by being that
+            # role, not by presenting a weaker authority, so a validator
+            # reconstruction can never carry it.
+            if (
+                self.accelerator_authority == MINER_HOST_AUTHORITY
+                and self.accelerator_role != AcceleratorRole.MINER_RESEARCH.value
             ):
                 raise WorkerFailure(WorkerCode.UNSUPPORTED)
             exact_digest(self.accelerator_grant_digest)
@@ -320,6 +337,34 @@ class DevelopmentWorkerProfile:
                     # approval and the registered implementation ceilings. They
                     # live in the development block, not at the top level, so
                     # accepted CPU and strict bodies stay byte-identical.
+                    "effective_controls": dict(
+                        sorted((self.accelerator_controls or {}).items())
+                    ),
+                }
+            elif self.accelerator_authority == MINER_HOST_AUTHORITY:
+                from carbon.reconstruction.accelerators import (
+                    AcceleratorLane,
+                    miner_lane_assurance,
+                )
+
+                result["schema"] = "carbon.c03.development-worker-profile.v5"
+                result["accelerators"] = {
+                    "profile_id": self.accelerator_profile_id,
+                    "profile_digest": GPU_PROFILE.digest,
+                    "lane": AcceleratorLane.MINER_CONTAINED.value,
+                    "authority": MINER_HOST_AUTHORITY,
+                    # Deliberately not "grant_digest". There is no grant on this
+                    # lane, and a consumer looking for one must not find a miner
+                    # record sitting in the key a strict grant would occupy.
+                    # What binds the run is the exact installed host record, so
+                    # a replaced or withdrawn record does not keep admitting.
+                    "host_record_digest": self.accelerator_grant_digest,
+                    "role": self.accelerator_role,
+                    "device_uuid": self.accelerator_device_uuid,
+                    # Task-owned, and saying so. Nothing here claims the device
+                    # is exclusively this run's, because nothing established it.
+                    "allocation": "TASK_OWNED_NOT_EXCLUSIVE",
+                    "assurance": miner_lane_assurance(),
                     "effective_controls": dict(
                         sorted((self.accelerator_controls or {}).items())
                     ),

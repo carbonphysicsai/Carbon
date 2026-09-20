@@ -25,6 +25,114 @@ class AcceleratorRole(str, Enum):
     VALIDATOR_RECONSTRUCTION = "VALIDATOR_RECONSTRUCTION"
 
 
+class AcceleratorLane(str, Enum):
+    """Which requirements apply, decided by the role rather than by a grant.
+
+    Both roles have existed from the beginning and both were routed through one
+    admission path written to validator requirements: a host grant asserting
+    exclusive use of a dedicated device. Dispatch was disabled, so nobody had to
+    find out whether a miner could satisfy that. When one common platform turned
+    out to be unable to enumerate compute processes at all, every miner host was
+    blocked by a requirement that had never been argued for on the miner side.
+
+    The CPU lane is the decisive comparison: a miner runs CPU reconstruction with
+    no grant, no lease, and no proof that nothing else is using their CPU.
+    Containment, input binding and validator reconstruction carry the trust
+    there. The GPU lane matches that model plus a device rather than inventing a
+    stricter one.
+
+    So the two lanes rest on different things. A miner is given nothing secret -
+    a public plan and public TRAIN material - so device side-channels protect
+    nothing, and the real question is whether this miner computed what they
+    submitted, which content binding and downstream reconstruction answer. A
+    validator is the arbiter and may hold protected material, where
+    contamination, nondeterminism and side channels matter and exclusivity earns
+    its cost.
+    """
+
+    #: Containment and attribution. Never claims exclusivity.
+    MINER_CONTAINED = "MINER_CONTAINED"
+    #: Isolation and determinism. The existing strict contract, unchanged.
+    VALIDATOR_ISOLATED = "VALIDATOR_ISOLATED"
+
+
+def lane_for_role(role: AcceleratorRole) -> AcceleratorLane:
+    """The lane a role runs in. Not selectable, and not inferred from a grant."""
+    if role is AcceleratorRole.MINER_RESEARCH:
+        return AcceleratorLane.MINER_CONTAINED
+    if role is AcceleratorRole.VALIDATOR_RECONSTRUCTION:
+        return AcceleratorLane.VALIDATOR_ISOLATED
+    raise ValueError("exact execution role required")
+
+
+ASSURANCE_SCHEMA = "carbon.accelerator-assurance.v1"
+
+# What a miner-lane result does and does not carry. Stated as a closed record
+# rather than as prose, so a consumer can reject it on its own terms instead of
+# having to know which lane produced it.
+#
+# Nothing here is a weaker version of the strict claims. The strict claims are
+# absent, and their absence is written down.
+MINER_LANE_ASSURANCE = {
+    "schema": ASSURANCE_SCHEMA,
+    "lane": AcceleratorLane.MINER_CONTAINED.value,
+    "established": (
+        "TASK_OWNED_CONTAINER_IDENTITY_AND_EXIT",
+        "PINNED_IMAGE_AND_ENVIRONMENT_LOCK",
+        "INPUT_AND_PLAN_CONTENT_BINDING",
+        "PER_RUN_DEVICE_BINDING_FROM_INSTALLED_RECORD",
+        "TASK_OWNED_RESOURCE_REMOVAL",
+        "BOUNDED_DEADLINE_MEMORY_AND_OUTPUT",
+    ),
+    "not_established": (
+        "WHOLE_DEVICE_EXCLUSIVITY",
+        "FOREIGN_COMPUTE_PROCESS_ABSENCE",
+        "DEVICE_MEMORY_SANITIZATION_BETWEEN_TENANTS",
+        "WHOLE_DEVICE_RELEASE_AFTER_RUN",
+    ),
+    # A candidate submission, verified downstream exactly as a CPU result is.
+    "verification": "DOWNSTREAM_VALIDATOR_RECONSTRUCTION",
+    "official_eligible": False,
+    "validator_grade": False,
+    "strict_equivalent": False,
+}
+
+
+def miner_lane_assurance() -> dict[str, object]:
+    """A fresh copy of the miner assurance label, with tuples as lists.
+
+    Returned rather than exported directly so a caller cannot mutate the record
+    every other caller reads.
+    """
+    return {
+        key: list(value) if type(value) is tuple else value
+        for key, value in MINER_LANE_ASSURANCE.items()
+    }
+
+
+def assurance_permits_official_use(assurance: object) -> bool:
+    """Whether a result's own label permits official or strict use.
+
+    False for every miner-lane label, and false for an absent, malformed or
+    unrecognised one: a consumer that cannot tell what produced a result must
+    not treat it as the strongest thing it could have been.
+
+    **This is not the enforcement boundary.** Whether a launch actually ran
+    under the strict contract is decided by its typed authority at admission,
+    which is not something a record can assert about itself - a forged label
+    changes what a record claims, never what it was permitted to do. This reads
+    the claim, for a consumer deciding how to treat evidence it has been handed.
+    Both exist because they answer different questions.
+    """
+    if type(assurance) is not dict or assurance.get("schema") != ASSURANCE_SCHEMA:
+        return False
+    return (
+        assurance.get("official_eligible") is True
+        and assurance.get("validator_grade") is True
+        and assurance.get("lane") == AcceleratorLane.VALIDATOR_ISOLATED.value
+    )
+
+
 class AcceleratorUnavailable(RuntimeError):
     """A prepared profile is not an admitted execution or a resource grant."""
 
@@ -448,23 +556,93 @@ def require_local_diagnostic_profile_admission(profile, *, worker_profile=None) 
         raise ReconstructionFailure("reconstruction.accelerator.admission_disabled")
 
 
-def require_profile_admission(profile, *, worker_profile=None) -> None:
-    """Route to the authority the worker profile declares, never as a fallback.
+def require_miner_lane_profile_admission(profile, *, worker_profile=None) -> None:
+    """Admit a miner-lane accelerator profile.
 
-    Staging and the worker-side reader accept both variants, so they dispatch on
-    the typed authority rather than trying strict first and retrying local.
+    A parallel authority, never a relaxation of the strict one and never reached
+    by falling back from a refused strict admission. A caller selects it by
+    presenting a worker profile whose typed authority is the miner variant.
+
+    What it does not require is the point: no host grant, no exclusive lease, no
+    compute-process enumeration and no exclusivity claim. A miner receives a
+    public plan and public TRAIN material, so there is nothing on their host to
+    leak and device side-channels protect nothing. Whether they computed what
+    they submitted is answered by content binding and downstream validator
+    reconstruction, exactly as it is for a CPU submission.
+
+    What it does require is containment, which is checked elsewhere and bound
+    here: the pinned image and environment lock, the named device from the
+    installed host record, and the resolved effective controls.
     """
+    from carbon.reconstruction.model import ReconstructionFailure, ReconstructionProfile
     from carbon.reconstruction.worker.model import (
-        LOCAL_DEVELOPMENT_AUTHORITY,
+        MINER_HOST_AUTHORITY,
         DevelopmentWorkerProfile,
     )
 
     if (
-        type(worker_profile) is DevelopmentWorkerProfile
-        and worker_profile.accelerator_authority == LOCAL_DEVELOPMENT_AUTHORITY
+        type(worker_profile) is not DevelopmentWorkerProfile
+        or worker_profile.accelerator_authority != MINER_HOST_AUTHORITY
     ):
-        require_local_diagnostic_profile_admission(
-            profile, worker_profile=worker_profile
-        )
-        return
+        raise ReconstructionFailure("reconstruction.accelerator.admission_disabled")
+    # Deliberately self-contained rather than sharing the strict helper's body,
+    # for the same reason the local variant is: the strict control stays exactly
+    # as written and reviewed. A drift test asserts all three refuse the same
+    # malformed and TPU profiles.
+    if type(profile) is not ReconstructionProfile:
+        raise ReconstructionFailure("reconstruction.profile.invalid")
+    try:
+        mapping = json.loads(profile.mapping_receipt_json)
+    except (TypeError, ValueError):
+        raise ReconstructionFailure("reconstruction.profile.invalid") from None
+    if type(mapping) is not dict or "execution_profile" not in mapping:
+        # A CPU plan carries no accelerator, so a miner lane is meaningless.
+        raise ReconstructionFailure("reconstruction.accelerator.admission_disabled")
+    try:
+        selected = resolve_profile(profile.profile_id)
+        if (
+            profile.profile_version != "4.0"
+            or profile.environment_digest != selected.digest
+            or mapping["execution_profile"] != selected.document()
+            or mapping.get("execution_profile_digest") != selected.digest
+        ):
+            raise ValueError()
+    except (TypeError, ValueError):
+        raise ReconstructionFailure(
+            "reconstruction.accelerator.profile_mismatch"
+        ) from None
+    # The miner lane exists only for the portable GPU profile. A TPU request is
+    # refused here as it is on every other path, and a retained profile is not
+    # an execution route however a caller labels it.
+    if (
+        selected is not GPU_PROFILE
+        or worker_profile.accelerator_profile_id != selected.profile_id
+        or worker_profile.accelerator_device_uuid is None
+    ):
+        raise ReconstructionFailure("reconstruction.accelerator.admission_disabled")
+
+
+def require_profile_admission(profile, *, worker_profile=None) -> None:
+    """Route to the authority the worker profile declares, never as a fallback.
+
+    Staging and the worker-side reader accept every variant, so they dispatch on
+    the typed authority rather than trying strict first and retrying something
+    weaker. A refused strict admission does not become a miner run, and a miner
+    run is not presentable as strict: each authority reaches exactly one check.
+    """
+    from carbon.reconstruction.worker.model import (
+        LOCAL_DEVELOPMENT_AUTHORITY,
+        MINER_HOST_AUTHORITY,
+        DevelopmentWorkerProfile,
+    )
+
+    if type(worker_profile) is DevelopmentWorkerProfile:
+        if worker_profile.accelerator_authority == LOCAL_DEVELOPMENT_AUTHORITY:
+            require_local_diagnostic_profile_admission(
+                profile, worker_profile=worker_profile
+            )
+            return
+        if worker_profile.accelerator_authority == MINER_HOST_AUTHORITY:
+            require_miner_lane_profile_admission(profile, worker_profile=worker_profile)
+            return
     require_reconstruction_profile_admission(profile, worker_profile=worker_profile)

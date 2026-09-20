@@ -500,9 +500,20 @@ def stage_request(
             request["schema"] = _accelerator_request_schema(worker_profile)
             from carbon.reconstruction.worker.model import (
                 LOCAL_DEVELOPMENT_AUTHORITY,
+                MINER_HOST_AUTHORITY,
             )
 
-            if worker_profile.accelerator_authority == LOCAL_DEVELOPMENT_AUTHORITY:
+            if worker_profile.accelerator_authority == MINER_HOST_AUTHORITY:
+                # Its own keys, like the local variant: no consumer looking for
+                # grant_digest can find a miner request occupying it.
+                request["accelerator"] = {
+                    "profile_id": worker_profile.accelerator_profile_id,
+                    "authority": MINER_HOST_AUTHORITY,
+                    "host_record_digest": worker_profile.accelerator_grant_digest,
+                    "role": worker_profile.accelerator_role,
+                    "device_uuid": worker_profile.accelerator_device_uuid,
+                }
+            elif worker_profile.accelerator_authority == LOCAL_DEVELOPMENT_AUTHORITY:
                 # Distinct key and authority: a staged local request can never be
                 # read as a strict one by a consumer looking for grant_digest.
                 request["accelerator"] = {
@@ -556,20 +567,24 @@ def _permitted_request_schemas(request):
 
     The pairing is closed in both directions: a CPU request is v1, a strict
     accelerator request is v2 (historical, device-free), v3 (TPU) or v5 (with a
-    named device), and a local development request is v4. A local block
-    presented under a strict schema, or a strict block under the local schema,
-    matches nothing and is refused.
+    named device), a local development request is v4, and a miner-lane request
+    is v6. A block presented under another authority's schema, or a schema
+    presented with another authority's block, matches nothing and is refused.
     """
-    from carbon.reconstruction.worker.model import LOCAL_DEVELOPMENT_AUTHORITY
+    from carbon.reconstruction.worker.model import (
+        LOCAL_DEVELOPMENT_AUTHORITY,
+        MINER_HOST_AUTHORITY,
+    )
 
     accelerator = request.get("accelerator")
     if accelerator is None:
         return ("carbon.c03.worker-request.v1",)
-    if (
-        type(accelerator) is dict
-        and accelerator.get("authority") == LOCAL_DEVELOPMENT_AUTHORITY
-    ):
-        return ("carbon.c03.worker-request.v4",)
+    if type(accelerator) is dict:
+        declared = accelerator.get("authority")
+        if declared == LOCAL_DEVELOPMENT_AUTHORITY:
+            return ("carbon.c03.worker-request.v4",)
+        if declared == MINER_HOST_AUTHORITY:
+            return ("carbon.c03.worker-request.v6",)
     return (
         "carbon.c03.worker-request.v2",
         "carbon.c03.worker-request.v3",
@@ -579,13 +594,18 @@ def _permitted_request_schemas(request):
 
 def _accelerator_request_schema(profile):
     from carbon.reconstruction.accelerators import TPU_PROFILE
-    from carbon.reconstruction.worker.model import LOCAL_DEVELOPMENT_AUTHORITY
+    from carbon.reconstruction.worker.model import (
+        LOCAL_DEVELOPMENT_AUTHORITY,
+        MINER_HOST_AUTHORITY,
+    )
 
     if profile.accelerator_profile_id == TPU_PROFILE.profile_id:
         return "carbon.c03.worker-request.v3"
     if profile.accelerator_authority == LOCAL_DEVELOPMENT_AUTHORITY:
         # A closed, separately versioned request form.
         return "carbon.c03.worker-request.v4"
+    if profile.accelerator_authority == MINER_HOST_AUTHORITY:
+        return "carbon.c03.worker-request.v6"
     if profile.accelerator_device_uuid is not None:
         # Naming the device added a field to the strict block. That is a
         # different body, so it gets a different version rather than being
@@ -604,10 +624,20 @@ def _request_worker_profile(request):
             replicate["policy_digest"], replicate["resource_class_digest"]
         )
     from carbon.reconstruction.accelerators import TPU_PROFILE
-    from carbon.reconstruction.worker.model import LOCAL_DEVELOPMENT_AUTHORITY
+    from carbon.reconstruction.worker.model import (
+        LOCAL_DEVELOPMENT_AUTHORITY,
+        MINER_HOST_AUTHORITY,
+    )
 
     if type(accelerator) is not dict:
         raise WorkerFailure(WorkerCode.INVALID)
+    miner_fields = {
+        "profile_id",
+        "authority",
+        "host_record_digest",
+        "role",
+        "device_uuid",
+    }
     local_fields = {
         "profile_id",
         "authority",
@@ -621,7 +651,22 @@ def _request_worker_profile(request):
     # must not be able to name one.
     strict_device_fields = {"profile_id", "grant_digest", "role", "device_uuid"}
     strict_fields = {"profile_id", "grant_digest", "role"}
-    if set(accelerator) == local_fields:
+    if set(accelerator) == miner_fields:
+        if accelerator["authority"] != MINER_HOST_AUTHORITY:
+            raise WorkerFailure(WorkerCode.INVALID)
+        profile = DevelopmentWorkerProfile(
+            replicate["policy_digest"],
+            replicate["resource_class_digest"],
+            "carbon.c03.cuda.development.v1",
+            "1.0",
+            accelerator["profile_id"],
+            accelerator["host_record_digest"],
+            accelerator["role"],
+            MINER_HOST_AUTHORITY,
+            None,
+            accelerator["device_uuid"],
+        )
+    elif set(accelerator) == local_fields:
         if accelerator["authority"] != LOCAL_DEVELOPMENT_AUTHORITY:
             raise WorkerFailure(WorkerCode.INVALID)
         profile = DevelopmentWorkerProfile(
