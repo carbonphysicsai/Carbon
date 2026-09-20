@@ -159,6 +159,29 @@ restart reset, worker RAM at the lower registered ceiling, 64 MiB per attempt an
 spending. Hardware still requires its existing implementation, image and
 acceptance prerequisites.
 
+## Completion work package W1-W5
+
+Executed under `docs/development/GPU_COMPLETION_WORK_PACKAGE.md`. W6, the first
+GPU attempt, is gated and not started.
+
+| | Item | Result |
+| --- | --- | --- |
+| W1 | Close stage 1 | CPU acceptance green at `b0b04d44`: 6882 passed, 10 skipped, exit 0, 0 modified paths at start and finish. Log retained. Worker image rebuilt against the revision. |
+| W2 | MQ-008 evidence specification | Drafted for SCI + SRE acceptance: `docs/development/MQ008_EVIDENCE_SPECIFICATION.md`. Not accepted; sets no tolerance. |
+| W3 | CPU determinism across configurations | Measured. `.agent/evidence/wave_c/c-core-19-cpu-determinism-across-configurations.md`. |
+| W4 | Prescribed exam environment | Declared and published: `docs/development/VALIDATOR_EXAM_ENVIRONMENT.md`. Declared, not qualified. |
+| W5 | Gate margin analysis | `.agent/evidence/wave_c/c-core-19-gate-margin-analysis.md`. No threshold changed. |
+| W6 | First GPU attempt | **Not started.** Prepared in `.agent/plans/C-CORE-19_first_gpu_attempt_preparation.md`. 0 of 4 attempts consumed. |
+
+**W3 returned a finding that outranks the GPU programme.** The same registered
+strategy under identical R0 identities produces different trained weights
+depending on the CPU instruction-set level the backend compiles to, and every
+identity Carbon records - `observed_environment_digest`, `environment_digest`,
+`profile_digest`, `plan_digest` - is identical across the divergent runs. This is
+a cross-host reproducibility question on CPU, independent of any device. It is
+recorded with the owner decisions it raises; nothing was changed in response to
+it here.
+
 ## Acceptance
 
 Role dispatch in both directions with no fallback; miner admission without a
