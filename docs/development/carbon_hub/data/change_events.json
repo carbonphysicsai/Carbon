@@ -6517,6 +6517,21 @@
         "WAVE-C/C-09"
       ],
       "supersedes": null
+    },
+    {
+      "map_ref": "SYSTEM/AGENT-EXECUTION",
+      "event_type": "decision",
+      "event_id": "C-CORE-19-LANES-01",
+      "owner_lane": "owner",
+      "status": "implemented",
+      "summary": "Recorded the owner decision that GPU execution splits by AcceleratorRole, and its bounded engineering scope as C-CORE-19. Accelerator admission had applied validator requirements to miners: a host grant asserting exclusive use of a dedicated device, on a role whose output never enters the scientific record. The miner lane now requires what the CPU lane requires plus a device - pinned image, containment, content-bound inputs, an installed host device record, doctor passing, resolved controls and task-owned cleanup - and no longer requires exclusivity, compute-process enumeration, an owner-signed grant, verified whole-device release or global quarantine. The validator lane is unchanged and is NOT qualified here: it continues to depend on MQ-008 under R0/R1/R2 at G4, owned by SCI and SRE, and no position is taken on validator exclusivity. run, cancel and recover give the lane an operator entry point over the existing controller. ESTABLISHED_OBSERVATION_CONTRACTS stays empty, the owner's four-attempt batch authority is unchanged, no hardware is qualified, no tolerance is set and nothing about what evaluation accepts changes. Authority: docs/development/GPU_EXECUTION_LANES.md (PR #248).",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/a676e509f3aa9eb36358144860d66b698578e3c7/.agent/tickets/C-CORE-19_gpu_miner_and_validator_lanes.md",
+      "affects": [
+        "SYSTEM/AGENT-EXECUTION",
+        "WAVE-C/C-03",
+        "WAVE-C/C-09"
+      ],
+      "supersedes": null
     }
   ]
 }
