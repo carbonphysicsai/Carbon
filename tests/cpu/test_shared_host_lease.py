@@ -31,7 +31,8 @@ def test_a_held_lease_blocks_a_second_holder(host):
     """One Carbon job at a time, whichever variant asked first."""
     with (
         runtime.shared_host_lease(),
-        pytest.raises(WorkerFailure) as error,runtime.shared_host_lease()
+        pytest.raises(WorkerFailure) as error,
+        runtime.shared_host_lease(),
     ):
         pass  # pragma: no cover - must not be reached
     assert error.value.code is WorkerCode.CONFLICT
