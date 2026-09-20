@@ -31,7 +31,10 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from carbon.reconstruction.accelerators import GPU_PROFILE, AcceleratorRole
-from carbon.reconstruction.worker.accelerator_runtime import HOST_ROOT
+from carbon.reconstruction.worker.accelerator_runtime import (
+    HOST_ROOT,
+    shared_host_lease,
+)
 from carbon.reconstruction.worker.model import (
     WorkerCode,
     WorkerFailure,
@@ -220,6 +223,10 @@ class DevelopmentHostApproval:
             or now + limits["attempt_seconds"] > expiry
         ):
             raise WorkerFailure(WorkerCode.DEADLINE)
+
+    def exclusive_lease(self):
+        """Take the one shared Carbon device slot, not a parallel local one."""
+        return shared_host_lease()
 
 
 class DevelopmentAttemptJournal:

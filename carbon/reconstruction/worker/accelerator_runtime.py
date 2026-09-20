@@ -128,15 +128,29 @@ class AcceleratorHostAdmission:
 
     @contextmanager
     def exclusive_lease(self):
-        from carbon.development_session.research_carrier import _numerical_lease
+        with shared_host_lease():
+            yield
 
-        # The installed private grant's parent is the sole shared host lock root.
-        # No request, output directory or caller-selected path can create a slot.
-        try:
-            with _numerical_lease(SimpleNamespace(root=HOST_ROOT)):
-                yield
-        except (OSError, ValueError):
-            raise WorkerFailure(WorkerCode.CONFLICT) from None
+
+@contextmanager
+def shared_host_lease():
+    """The single Carbon device slot, shared by strict and development work.
+
+    The installed private record's parent is the sole shared host lock root. No
+    request, output directory or caller-selected path can create a second slot,
+    and a development run takes exactly this lock rather than a parallel one, so
+    two Carbon jobs can never hold the device at once.
+
+    This excludes other *Carbon* work. It establishes nothing about applications
+    outside Carbon, which this host cannot observe.
+    """
+    from carbon.development_session.research_carrier import _numerical_lease
+
+    try:
+        with _numerical_lease(SimpleNamespace(root=HOST_ROOT)):
+            yield
+    except (OSError, ValueError):
+        raise WorkerFailure(WorkerCode.CONFLICT) from None
 
 
 def verify_image_and_toolkit(*, cli, image: WorkerImageIdentity) -> None:
