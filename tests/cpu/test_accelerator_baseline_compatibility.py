@@ -25,6 +25,7 @@ decided, and that is asserted below.
 Synthetic roots throughout. No device is attached and no container exists.
 """
 
+import base64
 import json
 import shutil
 from pathlib import Path
@@ -139,10 +140,32 @@ def test_the_portable_profile_names_no_host_hardware():
 
 @pytest.fixture
 def staged(tmp_path):
-    """The frozen main-written request, copied where the loader can read it."""
+    """The frozen main-written request, copied where the loader can read it.
+
+    The training archive is stored base64-encoded rather than as a `.npz`,
+    because the repository forbids committing a numpy payload anywhere under
+    `tests/` and that invariant is not worth bending for a fixture. The decoded
+    bytes are the originals: the request's own `training.digest` is checked
+    against them below, so an encoding mistake fails loudly rather than
+    silently substituting a different archive.
+    """
     destination = tmp_path / "stage"
     shutil.copytree(BASELINE, destination)
+    encoded = destination / "train.npz.base64"
+    (destination / "train.npz").write_bytes(
+        base64.b64decode(encoded.read_text().strip(), validate=True)
+    )
+    encoded.unlink()
     return destination
+
+
+def test_the_encoded_archive_decodes_to_the_bytes_the_request_names(staged):
+    """Guards the encoding itself, not just the request that references it."""
+    from carbon.reconstruction.worker.model import tagged_sha256
+
+    request = json.loads((staged / "request.json").read_bytes())
+    archive = (staged / "train.npz").read_bytes()
+    assert tagged_sha256(archive) == request["training"]["digest"]
 
 
 def test_the_frozen_request_is_the_shape_main_wrote(staged):
