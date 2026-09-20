@@ -6435,6 +6435,73 @@
         "WAVE-C/NET-6"
       ],
       "supersedes": null
+    },
+    {
+      "map_ref": "SYSTEM/AGENT-EXECUTION",
+      "event_type": "adjustment",
+      "event_id": "C-CORE-18-PORTABLE-01",
+      "owner_lane": "owner",
+      "status": "implemented",
+      "summary": "Removed one machine's hardware from the accelerator source tree. The workload profile now describes only the work and is identical on every host; the device identifier, marketed name, driver version and model, memory, display state, platform, container runtime and provider move into an operator-installed host device record, so running Carbon on other hardware needs no source edit. The workload profile identifier and digest change as a result, and the pinned worker image was rebuilt to match. Every check is re-anchored to installed host evidence rather than relaxed. Portability only: no device was attached, no grant or approval installed, no attempt consumed, no host qualified, and no scientific evaluation, comparability rule or ticket status changed.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/e144f4942a8bb8b0d55c14eba4353957c42f8dcc/carbon/reconstruction/host_inventory.py",
+      "affects": [
+        "SYSTEM/AGENT-EXECUTION",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "WAVE-C/C-03"
+      ],
+      "supersedes": null
+    },
+    {
+      "map_ref": "SYSTEM/DEVELOPMENT-HUB",
+      "event_type": "evidence",
+      "event_id": "C-CORE-18-SNAPSHOT-02",
+      "owner_lane": "owner",
+      "status": "implemented",
+      "summary": "Advanced the Hub authority snapshot from 1b393902234b to e144f4942a8b, the first revision containing the accelerator operator note for the host-independent workload profile identifier, and repointed the authority source-check blob links to it so every authority link resolves against one exact revision. Links already recorded against older revisions keep their historical pins. Snapshot reconciliation only: no ticket status, maturity, sequencing or activation state changed.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/e144f4942a8bb8b0d55c14eba4353957c42f8dcc/docs/development/carbon_hub/data/hub_data_v2.json",
+      "affects": [
+        "SYSTEM/AGENT-EXECUTION",
+        "SYSTEM/DEVELOPMENT-HUB",
+        "WAVE-A",
+        "WAVE-B",
+        "WAVE-B/B-01F",
+        "WAVE-B/B-03",
+        "WAVE-B/B-04",
+        "WAVE-B/B-E4",
+        "WAVE-B/B-GATE",
+        "WAVE-C",
+        "WAVE-C/C-01",
+        "WAVE-C/C-02",
+        "WAVE-C/C-03",
+        "WAVE-C/C-04",
+        "WAVE-C/C-05",
+        "WAVE-C/C-06",
+        "WAVE-C/C-07",
+        "WAVE-C/C-08",
+        "WAVE-C/C-09",
+        "WAVE-C/C-10",
+        "WAVE-C/C-AUTH1",
+        "WAVE-C/C-EA0",
+        "WAVE-C/C-EA1",
+        "WAVE-C/C-EA2",
+        "WAVE-C/C-EP1",
+        "WAVE-C/C-EP2",
+        "WAVE-C/C-EP3",
+        "WAVE-C/C-REWARD",
+        "WAVE-C/C-W1",
+        "WAVE-C/C-W1-D2",
+        "WAVE-C/C-W1-D3",
+        "WAVE-C/C-W1-D4",
+        "WAVE-C/NET-1",
+        "WAVE-C/NET-2",
+        "WAVE-C/NET-3",
+        "WAVE-C/NET-4A",
+        "WAVE-C/NET-4B",
+        "WAVE-C/NET-5",
+        "WAVE-C/NET-5R",
+        "WAVE-C/NET-6"
+      ],
+      "supersedes": null
     }
   ]
 }
