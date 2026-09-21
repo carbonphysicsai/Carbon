@@ -1,5 +1,12 @@
 # Work package: the most deterministic GPU reconstruction achievable, as validator policy
 
+> **Controlling section: Amendment 3.** It withdraws the coordinate-wise median
+> fallback in E3, withdraws the ladder that made the registered scientific
+> requirements a last resort, and corrects several overstated claims. Where any
+> earlier clause in this file conflicts with Amendment 3, **Amendment 3 governs.**
+> Do not act on E3, or on any impossibility claim about cross-device agreement,
+> without reading it. Earlier text is preserved as history rather than rewritten.
+
 Owner direction, 20 September 2026: *test and solve for the most deterministic
 way possible to run fair training (reconstruction) runs on GPUs, and make that
 the validator policy.*
