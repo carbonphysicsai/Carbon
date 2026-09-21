@@ -1,0 +1,301 @@
+"use strict";
+// Real HTTP against the real private receiver, its real durable store and its
+// real role checks. Nothing here is a public receiver, a delivered notification
+// or a live customer submission.
+const test = require("node:test");
+const assert = require("node:assert/strict");
+const crypto = require("node:crypto");
+const fs = require("node:fs");
+const os = require("node:os");
+const path = require("node:path");
+if (!globalThis.crypto) globalThis.crypto = crypto.webcrypto;
+const { DurableIntakeStore } = require("../tools/team_intake_store.cjs");
+const { createIntakeServer, loadUsers } = require("../tools/team_intake_server.cjs");
+const ROOT = path.resolve(__dirname, "..");
+const I = require("../src/intake.js");
+
+const TOKENS = {
+  receiver: "receiver-token-0000000000000000",
+  reviewer: "reviewer-token-0000000000000000",
+  steward: "steward-token-0000000000000000",
+  notifier: "notifier-token-0000000000000000",
+  stranger: "stranger-token-0000000000000000",
+};
+const digest = (value) => crypto.createHash("sha256").update(value).digest("hex");
+
+const USERS = [
+  { principal: "ryan", roles: ["INTAKE_RECEIVER"], token_sha256: digest(TOKENS.receiver) },
+  { principal: "nick", roles: ["TEAM_REVIEWER"], token_sha256: digest(TOKENS.reviewer) },
+  { principal: "harsh", roles: ["DATA_STEWARD"], token_sha256: digest(TOKENS.steward) },
+  {
+    principal: "operations",
+    roles: ["NOTIFICATION_OPERATOR"],
+    token_sha256: digest(TOKENS.notifier),
+  },
+  { principal: "stranger", roles: [], token_sha256: digest(TOKENS.stranger) },
+];
+
+function reviewedRaw() {
+  const brief = JSON.parse(
+    fs.readFileSync(path.join(ROOT, "intake/fixtures/existing_method_v1.json"), "utf8"),
+  );
+  return JSON.stringify({
+    schema_version: I.REVIEW_VERSION,
+    brief,
+    pilot: {
+      label: "Draft pilot for Carbon review",
+      ...Object.fromEntries(I.PILOT_FIELDS.map((field) => [field, ""])),
+      bounded_first_pilot: "Compare the reported baseline over an agreed synthetic range.",
+    },
+    field_provenance: [
+      ...I.TEXT_FIELDS,
+      ...I.QUANTITY_FIELDS,
+      ...I.PILOT_FIELDS.map((field) => "pilot." + field),
+    ].map((field) => ({
+      field,
+      origin: field === "pilot.bounded_first_pilot" ? "CLIENT_TYPED" : "UNKNOWN",
+      suggestion_id: null,
+    })),
+    accepted_suggestions: [],
+    unresolved_assumptions: ["Reference adequacy is unknown."],
+    ai_guidance: {
+      enabled: false,
+      provider: null,
+      guidance_version: I.GUIDANCE_VERSION,
+      notice_version: null,
+      consented_at: null,
+      cleared_locally: false,
+    },
+    sharing: { include_conversation: false, conversation: [] },
+    contact: { name: "", email: "", organization: "" },
+    local_scope: I.REVIEW_SCOPE,
+  });
+}
+
+async function started() {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "carbon-intake-server-"));
+  const usersFile = path.join(directory, "users.json");
+  fs.writeFileSync(usersFile, JSON.stringify(USERS));
+  const store = new DurableIntakeStore(path.join(directory, "store.json"), {
+    destination: "Hello@carbonphysics.ai",
+  });
+  const server = createIntakeServer({ store, users: loadUsers(usersFile) });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const base = `http://127.0.0.1:${server.address().port}`;
+  const call = (method, route, { token, body, headers } = {}) =>
+    fetch(base + route, {
+      method,
+      headers: {
+        ...(token ? { authorization: "Bearer " + token } : {}),
+        ...(body ? { "content-type": "application/json" } : {}),
+        ...headers,
+      },
+      body,
+    });
+  return { directory, store, server, call, close: () => server.close() };
+}
+
+test("one inquiry and one notification intent survive a lost response and a restart", async () => {
+  const fixture = await started();
+  try {
+    const raw = reviewedRaw();
+    const first = await fixture.call("POST", "/private/intake", {
+      token: TOKENS.receiver,
+      body: raw,
+      headers: { "idempotency-key": "submit-001" },
+    });
+    assert.equal(first.status, 201);
+    const receipt = await first.json();
+    assert.equal(receipt.disposition, "ACCEPTED");
+    assert.equal(receipt.status, "PERSISTED_PRIVATE_SYNTHETIC");
+
+    // The client never saw the first response and retried the same bytes.
+    const retry = await fixture.call("POST", "/private/intake", {
+      token: TOKENS.receiver,
+      body: raw,
+      headers: { "idempotency-key": "submit-001" },
+    });
+    const retried = await retry.json();
+    assert.equal(retried.disposition, "DEDUPLICATED");
+    assert.equal(retried.inquiry_id, receipt.inquiry_id);
+
+    // The same key with different bytes is a conflict, not a second record.
+    const conflict = await fixture.call("POST", "/private/intake", {
+      token: TOKENS.receiver,
+      body: raw + " ",
+      headers: { "idempotency-key": "submit-001" },
+    });
+    assert.equal(conflict.status, 409);
+
+    const reopened = new DurableIntakeStore(fixture.store.filePath);
+    assert.equal(Object.keys(reopened.state.inquiries).length, 1);
+    assert.equal(Object.keys(reopened.state.outbox).length, 1);
+  } finally {
+    fixture.close();
+  }
+});
+
+test("every endpoint checks the caller's role and denies an unrelated principal", async () => {
+  const fixture = await started();
+  try {
+    const accepted = await (
+      await fixture.call("POST", "/private/intake", {
+        token: TOKENS.receiver,
+        body: reviewedRaw(),
+        headers: { "idempotency-key": "submit-002" },
+      })
+    ).json();
+    const id = accepted.inquiry_id;
+    const denied = [
+      ["POST", "/private/intake", TOKENS.reviewer],
+      ["GET", `/private/intake/${id}`, TOKENS.stranger],
+      ["GET", `/private/intake/${id}/export`, TOKENS.receiver],
+      ["PATCH", `/private/intake/${id}`, TOKENS.receiver],
+      ["DELETE", `/private/intake/${id}`, TOKENS.reviewer],
+      ["GET", "/private/outbox", TOKENS.reviewer],
+      [
+        "POST",
+        `/private/outbox/notify-${id}/attempt`,
+        TOKENS.reviewer,
+      ],
+    ];
+    for (const [method, route, token] of denied) {
+      const result = await fixture.call(method, route, {
+        token,
+        body: method === "POST" || method === "PATCH" ? "{}" : undefined,
+      });
+      assert.equal(result.status, 403, `${method} ${route}`);
+    }
+    // No credential at all is refused before anything is read.
+    assert.equal((await fixture.call("GET", `/private/intake/${id}`)).status, 403);
+    assert.equal(
+      (await fixture.call("GET", `/private/intake/${id}`, { token: "not-a-known-token-000000" })).status,
+      403,
+    );
+    // The allowed roles still work.
+    assert.equal(
+      (await fixture.call("GET", `/private/intake/${id}`, { token: TOKENS.reviewer })).status,
+      200,
+    );
+    assert.equal(
+      (await fixture.call("GET", `/private/intake/${id}/export`, { token: TOKENS.reviewer })).status,
+      200,
+    );
+  } finally {
+    fixture.close();
+  }
+});
+
+test("a triage revision is append-only over HTTP and a stale version conflicts", async () => {
+  const fixture = await started();
+  try {
+    const accepted = await (
+      await fixture.call("POST", "/private/intake", {
+        token: TOKENS.receiver,
+        body: reviewedRaw(),
+        headers: { "idempotency-key": "submit-003" },
+      })
+    ).json();
+    const id = accepted.inquiry_id;
+    const patch = (version, note, queue_state) =>
+      fixture.call("PATCH", `/private/intake/${id}`, {
+        token: TOKENS.reviewer,
+        headers: { "if-match": String(version) },
+        body: JSON.stringify({ assigned_reviewer: "Nick", note, queue_state }),
+      });
+    const first = await (await patch(1, "First reading.", "UNDER_REVIEW")).json();
+    assert.equal(first.version, 2);
+    const second = await (await patch(2, "Corrected.", "READY_FOR_ROUTE")).json();
+    assert.equal(second.version, 3);
+    assert.equal(
+      second.assessments.at(-1).superseded_team_fields.note,
+      "First reading.",
+    );
+    assert.equal((await patch(2, "stale", "PARKED")).status, 409);
+    const current = await (
+      await fixture.call("GET", `/private/intake/${id}`, { token: TOKENS.reviewer })
+    ).json();
+    assert.equal(current.team_fields.note, "Corrected.");
+    assert.equal(current.assessments.length, 2);
+  } finally {
+    fixture.close();
+  }
+});
+
+test("the outbox is observable and a failed attempt is never reported as delivery", async () => {
+  const fixture = await started();
+  try {
+    const accepted = await (
+      await fixture.call("POST", "/private/intake", {
+        token: TOKENS.receiver,
+        body: reviewedRaw(),
+        headers: { "idempotency-key": "submit-004" },
+      })
+    ).json();
+    const listed = await (
+      await fixture.call("GET", "/private/outbox", { token: TOKENS.notifier })
+    ).json();
+    assert.equal(listed.events.length, 1);
+    assert.equal(listed.events[0].destination, "Hello@carbonphysics.ai");
+    assert.equal(listed.events[0].status, "PENDING");
+    assert.equal(
+      listed.events[0].notification.record_path,
+      "/private/intake/" + accepted.inquiry_id,
+    );
+    // No client words leave the receiver in the notification projection.
+    assert.equal(
+      JSON.stringify(listed.events[0]).includes("Compare the reported baseline"),
+      false,
+    );
+
+    const attempt = await fixture.call(
+      "POST",
+      `/private/outbox/notify-${accepted.inquiry_id}/attempt`,
+      { token: TOKENS.notifier },
+    );
+    assert.equal(attempt.status, 502);
+    const event = await attempt.json();
+    assert.equal(event.status, "PENDING");
+    assert.equal(event.attempts, 1);
+    assert.match(event.last_error, /No notification transport is configured/);
+    // The inquiry is unaffected by the undeliverable notification.
+    assert.equal(
+      (await fixture.call("GET", `/private/intake/${accepted.inquiry_id}`, { token: TOKENS.reviewer })).status,
+      200,
+    );
+  } finally {
+    fixture.close();
+  }
+});
+
+test("hostile request bodies and unknown routes reject without storing anything", async () => {
+  const fixture = await started();
+  try {
+    const hostile = [
+      ["not json at all", "submit-005"],
+      [JSON.stringify({ schema_version: "carbon.client-intake.draft.v1" }), "submit-006"],
+      [reviewedRaw(), "../../escape"],
+      ["x".repeat(140_000), "submit-007"],
+    ];
+    for (const [body, key] of hostile) {
+      const result = await fixture.call("POST", "/private/intake", {
+        token: TOKENS.receiver,
+        body,
+        headers: { "idempotency-key": key },
+      });
+      assert.equal(result.status >= 400, true, key);
+    }
+    assert.equal(
+      (await fixture.call("GET", "/private/unknown", { token: TOKENS.reviewer })).status,
+      404,
+    );
+    assert.equal(
+      (await fixture.call("GET", "/private/intake/inquiry-absent", { token: TOKENS.reviewer })).status,
+      404,
+    );
+    const reopened = new DurableIntakeStore(fixture.store.filePath);
+    assert.deepEqual(Object.keys(reopened.state.inquiries), []);
+  } finally {
+    fixture.close();
+  }
+});

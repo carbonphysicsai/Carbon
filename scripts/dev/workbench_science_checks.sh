@@ -29,12 +29,15 @@ ln -s "${repo_root}/carbon" "${scratch}/carbon"
 workbench="${scratch}/Business/Carbon_Fit/workbench"
 
 node --test "${workbench}"/tests/test_*.cjs
+# The service modules import ``test_workbench_science`` by name, so the tests/cpu
+# modules must stay ahead of them in this single invocation.
 "${python}" -m pytest -q \
   "${workbench}/tests/test_sources.py" \
   "${workbench}/tests/test_authoring_bridge.py" \
   "${repo_root}/tests/cpu/test_workbench_science.py" \
   "${repo_root}/tests/cpu/test_julia_envelope.py" \
-  "${repo_root}/tests/service/test_workbench_science_http.py"
+  "${repo_root}/tests/service/test_workbench_science_http.py" \
+  "${repo_root}/tests/service/test_workbench_host.py"
 "${python}" "${workbench}/tools/build.py" \
   --output-directory "${scratch}/artifacts/offline"
 "${python}" "${workbench}/tools/build.py" --private-science \

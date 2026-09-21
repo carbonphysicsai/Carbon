@@ -1,5 +1,33 @@
 # Carbon Goal-to-Challenge Workbench v0.10
 
+GOAL-WORKBENCH-12 makes the connected internal workflow startable as one
+product. `carbon.scientific_tasks.workbench_host` composes the existing
+admitted research campaign, the registered public Julia material,
+`WorkbenchScience`, the fixed `/api/scientific-studies/*` routes and the
+reviewed private build behind a single `serve` command, reusing the same
+campaign attachment the research MCP command uses so ownership, generation,
+reconciliation and cleanup keep one implementation. `check` reports each
+capability as `ENABLED`, `CONFIGURED_UNAVAILABLE`, `FIXTURE_ONLY` or
+`UNSUPPORTED` without starting a container or probing an accelerator.
+`register-draft` installs a reviewed design revision into a private registry
+bound to the exact granted physical definition; a newer revision leaves earlier
+ones stale but still cancellable, and a browser still cannot register a draft.
+Named staff tokens record who opened a session and grant nothing further. See
+`PRIVATE_SERVICE_RUNBOOK.md` for start, check, stop and recover.
+
+The private team receiver gained the durability and provenance its receipt
+implies. An accepted inquiry is flushed to disk before its receipt is returned,
+a storage failure returns no receipt, and team triage is append-only: a
+correction adds a revision and retains the superseded assessment, its author and
+who superseded it. `carbon.private-team-intake.store.v2` migrates a v1 store
+without inventing a history it never retained. The outbox is now observable and
+retryable over `GET /private/outbox` and `POST /private/outbox/{id}/attempt`; a
+queued notification carries only the inquiry identity, canonical digest, queue
+state, an authenticated record path and a minimal count summary. With no
+configured transport an attempt is recorded as a failure and is never reported
+as a delivery. No public host, sender, mailbox credential, notice, consent,
+retention decision or live customer collection is enabled or authorized.
+
 GOAL-WORKBENCH-10 replaces the v0.9 placeholder for
 `PHYSICAL_DEFINITION_CHECK` with the accepted C-CORE-04 local structural
 adapter. A reviewer can run the check from the existing scientific-task row;
@@ -235,6 +263,7 @@ node tools/build_repository_snapshot_fixtures.cjs
 node tools/check_repository_snapshot_admission.cjs
 python3 tools/build.py
 node --test tests/test_engine.cjs tests/test_workflow.cjs
+node --test tests/test_team_intake_store.cjs tests/test_team_intake_server.cjs
 node --test tests/test_routing.cjs tests/test_state_integrity.cjs tests/test_c05_evidence.cjs tests/test_source_assessment.cjs tests/test_repository_snapshot_assessment.cjs
 env PYTHONPATH=../../.. python3 -m pytest tests/test_authoring_bridge.py ../../../tests/cpu/test_cauth1_goal_authoring.py -q
 python3 tests/test_sources.py

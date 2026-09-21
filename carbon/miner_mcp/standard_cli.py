@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import base64
+import contextlib
 import json
 import sqlite3
 import sys
@@ -410,8 +411,14 @@ def _science(ledger, owner, image, role_root, *, cleanup_only=False, authored=No
     return material, PublicPractice(data=data, ledger=ledger, owner=owner, image=image)
 
 
-async def serve(configuration: Path, *, cleanup_only=False):
-    """Hold the existing campaign ownership lock for the whole stdio lifetime."""
+@contextlib.asynccontextmanager
+async def attached(configuration: Path, *, cleanup_only=False):
+    """Hold the existing campaign ownership lock for the whole attachment.
+
+    Yields ``(adapter, profile)``. The caller chooses the surface it is served
+    through; this owns the lock, generation, reconciliation and cleanup, so no
+    second consumer reimplements campaign ownership.
+    """
     from scripts.dev.miner_launchpad.controller import owner_lock
     from scripts.dev.miner_launchpad.runner import RunnerAdapter
 
@@ -481,7 +488,7 @@ async def serve(configuration: Path, *, cleanup_only=False):
             )
             adapter = ResearchToolAdapter(sdk, principal=owner)
             try:
-                await create_stdio_server(adapter).run_async()
+                yield adapter, profile
             finally:
                 await adapter.shutdown_tasks()
         finally:
@@ -506,6 +513,12 @@ async def serve(configuration: Path, *, cleanup_only=False):
                             )
             finally:
                 composition.tasks.close()
+
+
+async def serve(configuration: Path, *, cleanup_only=False):
+    """Hold the existing campaign ownership lock for the whole stdio lifetime."""
+    async with attached(configuration, cleanup_only=cleanup_only) as (adapter, _):
+        await create_stdio_server(adapter).run_async()
 
 
 def main(argv=None):
