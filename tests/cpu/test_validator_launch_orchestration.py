@@ -189,7 +189,7 @@ def test_the_launch_carries_the_registered_image_not_a_submitted_one(
 ):
     """The execution class is Carbon's. The manifest has no say in it."""
     _register_image(harness)
-    observed, run = _run(harness, tmp_path, monkeypatch)
+    _, run = _run(harness, tmp_path, monkeypatch)
     with pytest.raises(WorkerFailure):
         run()
     registered = registered_image(host_root=harness.host)

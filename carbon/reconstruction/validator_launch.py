@@ -59,8 +59,8 @@ from carbon.reconstruction.accelerators import AcceleratorLane, AcceleratorRole
 from carbon.reconstruction.miner_launch import (
     _closed,
     _within,
-    clear_cancel,
     cancel_requested,
+    clear_cancel,
 )
 from carbon.reconstruction.miner_launch import recover as _recover_launches
 from carbon.reconstruction.miner_launch import request_cancel as _request_cancel
