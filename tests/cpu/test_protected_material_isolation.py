@@ -190,3 +190,63 @@ def test_the_refusal_is_at_construction_not_at_use(tmp_path):
     archive.write_bytes(b"fixture")
     with pytest.raises(ReconstructionFailure):
         PublicTrainingArchive(archive, "sha256:" + "1" * 64, "fixture", "EVAL")
+
+
+# --- 4. the validator orchestration added by C-CORE-20 -------------------------
+#
+# The validator lane is the side that holds protected material at all, so the
+# module that now constructs those runs is checked directly rather than only
+# through the package-level scan above.
+
+
+def test_the_validator_orchestration_imports_no_protected_package():
+    """Named per package, so a failure says which boundary was crossed."""
+    path = REPOSITORY / "carbon" / "reconstruction" / "validator_launch.py"
+    assert path.is_file(), "the scan target moved; this test is not checking"
+    imported = _imports(path)
+    for package in PROTECTED_PACKAGES:
+        crossed = sorted(
+            name
+            for name in imported
+            if name == package or name.startswith(f"{package}.")
+        )
+        assert not crossed, f"validator_launch reached {package}: {crossed}"
+
+
+def test_the_validator_orchestration_takes_only_public_training_data():
+    """Its single data input is type-enforced public at construction.
+
+    A manifest cannot point the validator path at protected material, which
+    matters more here than on the miner path: this is the host that has some.
+    """
+    import inspect
+
+    from carbon.reconstruction import validator_launch
+
+    source = inspect.getsource(validator_launch.ValidatorLaunchRequest)
+    assert "PublicTrainingArchive.from_file" in source
+    assert "EvaluationArchive" not in source
+    assert "protected" not in source.lower().replace("protected material", "")
+
+
+def test_the_validator_orchestration_records_no_protected_value():
+    """Its outputs carry identities and states, never evaluation content.
+
+    The recover report and the cancel record are written to operator-readable
+    files, so what they may contain is a disclosure question rather than a
+    formatting one.
+    """
+    import json
+    import tempfile
+    from pathlib import Path as _Path
+
+    from carbon.reconstruction.validator_launch import (
+        CANCEL_SCHEMA,
+        request_cancel,
+    )
+
+    root = _Path(tempfile.mkdtemp())
+    path = request_cancel(state_root=root, execution_id="fixture-execution-1")
+    document = json.loads(path.read_text())
+    assert set(document) == {"schema", "execution_id"}
+    assert document["schema"] == CANCEL_SCHEMA
