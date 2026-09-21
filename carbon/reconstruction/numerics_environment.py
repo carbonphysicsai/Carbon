@@ -30,7 +30,26 @@ from __future__ import annotations
 import os
 import re
 
-NUMERICS_SCHEMA = "carbon.reconstruction.numerics-environment.v1"
+NUMERICS_SCHEMA = "carbon.reconstruction.numerics-environment.v2"
+# v1 is the same record without the contention block. It is still readable and
+# unchanged in meaning: a v1 record does not assert that the device was idle, it
+# predates anyone asking.
+NUMERICS_SCHEMA_V1 = "carbon.reconstruction.numerics-environment.v1"
+
+# How a contention fact was obtained, which is not the same as what it says.
+#
+# The distinction is the whole point of this block. The owner decision of
+# 2026-09-21 declined to require exclusivity; it did not claim contention is
+# harmless. Making that checkable later means recording what was on the device -
+# and, where that cannot be seen, recording that it could not be seen.
+#
+# Compute-process enumeration is genuinely unavailable under WDDM, which is what
+# blocked every miner host under the old strict apparatus. UNAVAILABLE must
+# never be collapsed into "nothing else was running": one is an absence of
+# evidence, the other is evidence of absence, and only the second would license
+# a conclusion about contention.
+OBSERVED = "OBSERVED"
+UNAVAILABLE = "UNAVAILABLE"
 
 # Ordered weakest to strongest. The effective level is the strongest the hardware
 # advertises, capped by any XLA instruction-set ceiling in force - because a cap
@@ -125,6 +144,78 @@ def _accelerator_numerics() -> dict[str, object]:
     return record
 
 
+def _contention_facts() -> dict[str, object]:
+    """What else was on the device, and how hard it was being used.
+
+    Every field defaults to unread. `device_process_enumeration` starts at
+    UNAVAILABLE and becomes OBSERVED only when the query genuinely succeeded, so
+    a host that cannot enumerate - WDDM cannot - records that it could not look
+    rather than recording that it looked and found nothing.
+
+    Under OBSERVED, a count of zero does mean zero. That is exactly why the two
+    states must stay distinct.
+    """
+    record: dict[str, object] = {
+        "device_memory_bytes_in_use": None,
+        "device_memory_bytes_limit": None,
+        "device_process_enumeration": UNAVAILABLE,
+        "device_compute_process_count": None,
+    }
+
+    try:
+        import jax
+
+        devices = jax.devices()
+    except Exception:  # noqa: BLE001 - an unreadable backend is recorded as such
+        return record
+
+    if devices:
+        try:
+            stats = devices[0].memory_stats()
+        except Exception:  # noqa: BLE001 - not every backend implements it
+            stats = None
+        if type(stats) is dict:
+            for field, key in (
+                ("device_memory_bytes_in_use", "bytes_in_use"),
+                ("device_memory_bytes_limit", "bytes_limit"),
+            ):
+                value = stats.get(key)
+                record[field] = int(value) if type(value) is int else None
+
+    # Enumeration is a separate question from memory, and fails separately.
+    try:
+        import subprocess
+
+        completed = subprocess.run(
+            [
+                "nvidia-smi",
+                "--query-compute-apps=pid",
+                "--format=csv,noheader",
+            ],
+            capture_output=True,
+            timeout=10,
+            check=False,
+        )
+    except Exception:  # noqa: BLE001 - absent binary, permission, timeout
+        return record
+    if completed.returncode != 0:
+        return record
+    text = completed.stdout.decode("ascii", "replace").strip()
+    # A successful query with empty output is a real observation of no compute
+    # apps. An unparseable line is not, and leaves the whole fact unavailable
+    # rather than producing a count nobody can defend.
+    if text:
+        lines = [line.strip() for line in text.splitlines() if line.strip()]
+        if not all(line.split(",")[0].strip().isdigit() for line in lines):
+            return record
+        count = len(lines)
+    else:
+        count = 0
+    record["device_process_enumeration"] = OBSERVED
+    record["device_compute_process_count"] = count
+    return record
+
+
 def numerics_environment() -> dict[str, object]:
     """The determinism-relevant facts about this process and this host.
 
@@ -158,6 +249,7 @@ def numerics_environment() -> dict[str, object]:
     }
     if backend == "gpu":
         record.update(_accelerator_numerics())
+        record.update(_contention_facts())
     else:
         record.update(
             {
@@ -166,6 +258,15 @@ def numerics_environment() -> dict[str, object]:
                 "cuda_version": None,
                 "cudnn_version": None,
                 "driver_version": None,
+                # Not UNAVAILABLE: there is no device to contend for, so the
+                # question does not arise. NOT_APPLICABLE and UNAVAILABLE are
+                # different answers and a reader must be able to tell them
+                # apart - one says nothing could be seen, the other says there
+                # was nothing to see.
+                "device_memory_bytes_in_use": None,
+                "device_memory_bytes_limit": None,
+                "device_process_enumeration": "NOT_APPLICABLE",
+                "device_compute_process_count": None,
             }
         )
     return record

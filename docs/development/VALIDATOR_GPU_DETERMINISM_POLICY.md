@@ -63,6 +63,18 @@ would freeze a performance decision under the name of determinism.
 **Same-device reproducibility across processes.** Three independent sessions,
 nine runs, one weight digest. Measured on one device; see §5.
 
+**This is the mechanism, and it is worth being explicit about what it displaced.**
+The owner decision of 2026-09-21 (ticket C-CORE-19) removed the exclusive-lease
+requirement from GPU `VALIDATOR_RECONSTRUCTION`, and this measurement is the
+reason it could. Exclusivity was assumed to be what delivered reproducibility.
+It was not: pinning the execution configuration is. A validator that applies this
+policy has the reproducibility the lease was thought to provide; a validator that
+holds a device exclusively and does *not* apply it has four digests from four
+sessions.
+
+Applying it is the operator's step. Admission does not apply it, and nothing
+refuses an unpinned launch.
+
 ## 4. What it does not deliver
 
 **Cross-device agreement is not established, in either direction.** These
@@ -126,6 +138,20 @@ This policy constrains the **configuration**, not where it runs. Per D3 of the
 owner's recorded decisions, a validator may use whatever provider they choose,
 and qualification attaches to a backend profile rather than to a provider or a
 host. Nothing here prescribes a machine, a datacenter or an ownership model.
+
+The admission decision of 2026-09-21 follows the same principle to its
+conclusion: one owner-signed grant per validator host cannot coexist with
+validators free to choose a provider, so GPU `VALIDATOR_RECONSTRUCTION` now
+admits through the installed host record and `doctor`. See
+`VALIDATOR_DEPLOYMENT_PATH.md` §7.
+
+**And it does not claim contention is harmless.** Declining to require
+exclusivity is not a finding that nothing else on the device matters; that
+remains MQ-008's empirical question. What was done instead is to make it
+checkable later: the numerics record carries device memory pressure and a
+compute-process count, and distinguishes `OBSERVED` from `UNAVAILABLE` so that a
+host which could not be asked is never recorded as a host where nothing was
+running.
 
 ## 8. Scope of the measurement behind it
 

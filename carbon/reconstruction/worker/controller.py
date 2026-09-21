@@ -202,18 +202,26 @@ class IsolatedReconstructionController:
                 replica=replica,
                 cancelled=cancelled,
             )
-        # Dispatch on the role, which has carried both values all along. The two
-        # roles do different things: a miner searches privately for a better
-        # strategy and submits a declarative recipe, so nothing they compute
-        # locally enters the scientific record; a validator reconstructs and
-        # trains from scratch, and that training is the record.
+        # Both GPU roles admit through the installed host record and `doctor`,
+        # by the owner decision of 2026-09-21 (ticket C-CORE-19). Exclusivity
+        # was never the mechanism delivering reproducibility - pinning the
+        # execution configuration was, measured under D3 - and the grant it
+        # required is a self-asserted file on the host it describes, so it
+        # constrains accident rather than an adversary.
         #
-        # There is no fallback in either direction. A refused strict admission
-        # does not become a miner run, and a miner run is not presentable as
-        # strict - each role reaches exactly one path, chosen before either
-        # admission is attempted.
-        if accelerator_role is AcceleratorRole.MINER_RESEARCH:
-            return self._execute_miner_lane(
+        # The roles still differ in what they are for and in what a result may
+        # be used as, which the lane and the assurance label carry. What no
+        # longer differs is how the host gets in.
+        #
+        # The strict path below stays in the tree and is no longer reached by
+        # either role. It is not removed and not built on, and there is still no
+        # fallback in either direction: a role reaches exactly one path, chosen
+        # before any admission is attempted.
+        if accelerator_role in (
+            AcceleratorRole.MINER_RESEARCH,
+            AcceleratorRole.VALIDATOR_RECONSTRUCTION,
+        ):
+            return self._execute_self_service_lane(
                 options=options,
                 accelerator_role=accelerator_role,
                 replica=replica,
@@ -447,7 +455,7 @@ class IsolatedReconstructionController:
             )
             return result
 
-    def _execute_miner_lane(
+    def _execute_self_service_lane(
         self,
         *,
         options,
@@ -455,23 +463,37 @@ class IsolatedReconstructionController:
         replica,
         cancelled,
     ):
-        """Run one miner-lane accelerator attempt.
+        """Run one accelerator attempt admitted from this host's own record.
 
-        The CPU lane's requirements plus a device, and nothing beyond them. A
+        The CPU lane's requirements plus a device, and nothing beyond them.
+        Since the owner decision of 2026-09-21 this serves both GPU roles.
+
+        For a miner the argument is that there is nothing here to protect: a
         miner receives a public construction plan and public TRAIN material,
         submits a declarative strategy rather than a trained checkpoint, and
-        nothing they compute here is submitted, verified or scored. There is
-        nothing on this host to protect, so device side-channels defend nothing
-        and exclusivity buys nothing.
+        nothing computed here is submitted, verified or scored.
 
-        What it does require is what makes a local run *faithful* - the same
-        pinned image, the same containment, the same content-bound inputs, the
-        same bounds - so that exercising a strategy here predicts what a
-        validator will get. That is the reason the tooling exists.
+        For a validator the argument is different and had to be made separately.
+        A validator *is* the arbiter, so the question is not whether anything
+        leaks but whether the result is reproducible - and exclusivity was never
+        what delivered that. D3 measured that pinning the execution
+        configuration does: three sessions, nine runs, one digest. N2 is the
+        first direct evidence on contention and points the same way. The grant
+        exclusivity required is self-asserted, so requiring it bought no
+        adversarial guarantee, and requiring one signed record per validator
+        host does not scale to the provider freedom validators are promised.
+
+        What it does require is what makes a run *faithful* - the same pinned
+        image, the same containment, the same content-bound inputs, the same
+        bounds.
 
         What it deliberately does not do: load a host grant, take the shared
         Carbon slot, enumerate compute processes, claim exclusivity, verify
         whole-device release, or create quarantine.
+
+        **Admission is not qualification.** This produces development evidence.
+        `compare_r1` still returns BACKEND_UNSUPPORTED while the backend profile
+        is not SUPPORTED, and MQ-008 at G4 owns that.
         """
         from carbon.reconstruction.accelerators import GPU_PROFILE
         from carbon.reconstruction.onboarding import doctor_report, miner_lane_blockers
@@ -483,7 +505,7 @@ class IsolatedReconstructionController:
             verify_image_and_toolkit,
         )
         from carbon.reconstruction.worker.model import (
-            MINER_HOST_AUTHORITY,
+            SELF_SERVICE_HOST_AUTHORITY,
             registered_run_controls,
         )
 
@@ -493,10 +515,12 @@ class IsolatedReconstructionController:
         device = host_device()
 
         # Readiness is checked, not assumed, and it is the same read-only report
-        # the operator runs. Only the findings this lane actually requires can
-        # block it - see `MINER_LANE_REQUIRED_CHECKS`, which names what is left
-        # out and why. Unknown telemetry stays unknown instead of stopping a
-        # miner, which is the point of the lane.
+        # the operator runs. Only the findings this admission actually requires
+        # can block it - see `MINER_LANE_REQUIRED_CHECKS`, which names what is
+        # left out and why. Unknown telemetry stays unknown rather than becoming
+        # a blocker, which is the point: compute-process enumeration is simply
+        # unavailable on some hosts, and treating unreadable as failed would
+        # block them for a fact nobody established.
         if miner_lane_blockers(doctor_report(root=HOST_ROOT, cli=self.cli)):
             raise WorkerFailure(WorkerCode.POLICY)
 
@@ -509,17 +533,19 @@ class IsolatedReconstructionController:
             GPU_PROFILE.profile_id,
             device.digest,
             accelerator_role.value,
-            MINER_HOST_AUTHORITY,
+            SELF_SERVICE_HOST_AUTHORITY,
             None,
             device.device_uuid,
             registered_run_controls(),
         )
 
-        # This miner's own concurrent runs, not a claim about the device.
+        # This host's own concurrent runs, not a claim about the device. Plain
+        # mutual exclusion: it stops one operator's two launches corrupting each
+        # other, and asserts nothing about what else holds the GPU.
         with miner_device_lease(device.device_uuid):
             verify_image_and_toolkit(cli=self.cli, image=self.image)
             # Retained Carbon work on this device still blocks, by Carbon's own
-            # label. Other work on the GPU is the miner's business.
+            # label. Other work on the GPU is the operator's business.
             reject_existing_device_containers(cli=self.cli)
             return self._execute_bound(
                 **options,

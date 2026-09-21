@@ -112,12 +112,21 @@ def exact_token(value: object, *, maximum: int = 256) -> str:
 
 STRICT_HOST_GRANT_AUTHORITY = "STRICT_HOST_GRANT"
 LOCAL_DEVELOPMENT_AUTHORITY = "LOCAL_DEVELOPMENT_APPROVAL"
-# A miner admitting their own host from local policy. No human signs a record
-# per run: that model cannot work for a network of miners, and the CPU lane has
-# never required it. Two lanes, three authorities - the owner-approved
-# development batch is a miner-lane run under an additional bound, not a third
-# execution model.
+# A host admitting itself from local policy and its installed record. No human
+# signs a record per run: that model cannot work for a network of miners, and
+# the CPU lane has never required it.
+#
+# Since the owner decision of 2026-09-21 (ticket C-CORE-19) this is also how a
+# validator's GPU reconstruction is admitted. The value names *how the host was
+# admitted*, not who ran - the role is carried separately and is what decides
+# the lane. The string is unchanged so that every record written before that
+# decision keeps its exact previous meaning and digest.
 MINER_HOST_AUTHORITY = "MINER_HOST_SELF_SERVICE"
+# The same value under a name that does not imply a role, for the paths that now
+# serve both. Not a second authority: an alias, deliberately identical, because
+# a "validator self-service" authority distinct from this one would be exactly
+# the relaxed variant of the strict grant that the decision forbids inventing.
+SELF_SERVICE_HOST_AUTHORITY = MINER_HOST_AUTHORITY
 
 # The authorities whose cleanup is task-owned: they remove exactly what their
 # own launch created and never assert that the whole device was released,
@@ -246,12 +255,19 @@ class DevelopmentWorkerProfile:
                 and self.accelerator_profile_id != GPU_PROFILE.profile_id
             ):
                 raise WorkerFailure(WorkerCode.UNSUPPORTED)
-            # The miner lane is the miner role. It is reached by being that
-            # role, not by presenting a weaker authority, so a validator
-            # reconstruction can never carry it.
-            if (
-                self.accelerator_authority == MINER_HOST_AUTHORITY
-                and self.accelerator_role != AcceleratorRole.MINER_RESEARCH.value
+            # Self-service host admission now serves both GPU roles, by the
+            # owner decision of 2026-09-21 (ticket C-CORE-19). It is still
+            # reached by being a role rather than by presenting a weaker
+            # authority: the role decides the lane, and neither role can select
+            # the other's by choosing an authority value.
+            #
+            # A third role, if one is ever added, does not get this by default.
+            if self.accelerator_authority == MINER_HOST_AUTHORITY and (
+                self.accelerator_role
+                not in (
+                    AcceleratorRole.MINER_RESEARCH.value,
+                    AcceleratorRole.VALIDATOR_RECONSTRUCTION.value,
+                )
             ):
                 raise WorkerFailure(WorkerCode.UNSUPPORTED)
             exact_digest(self.accelerator_grant_digest)
@@ -372,15 +388,33 @@ class DevelopmentWorkerProfile:
                 }
             elif self.accelerator_authority == MINER_HOST_AUTHORITY:
                 from carbon.reconstruction.accelerators import (
-                    AcceleratorLane,
+                    AcceleratorRole,
+                    lane_for_role,
                     miner_lane_assurance,
+                    validator_self_service_assurance,
                 )
 
-                result["schema"] = "carbon.c03.development-worker-profile.v5"
+                # The lane follows the role and is never hardcoded here. Before
+                # the 2026-09-21 decision only a miner could reach this branch,
+                # so a literal was indistinguishable from the rule; now the two
+                # differ and only the rule is correct.
+                role = AcceleratorRole(self.accelerator_role)
+                lane = lane_for_role(role)
+                miner = role is AcceleratorRole.MINER_RESEARCH
+                # A separate version for the validator body. v5 has only ever
+                # meant a miner-lane run, and every v5 record already written is
+                # one; widening it in place would silently change what those
+                # records assert to a consumer that reads the version. A miner
+                # run stays byte-identical.
+                result["schema"] = (
+                    "carbon.c03.development-worker-profile.v5"
+                    if miner
+                    else "carbon.c03.development-worker-profile.v6"
+                )
                 result["accelerators"] = {
                     "profile_id": self.accelerator_profile_id,
                     "profile_digest": GPU_PROFILE.digest,
-                    "lane": AcceleratorLane.MINER_CONTAINED.value,
+                    "lane": lane.value,
                     "authority": MINER_HOST_AUTHORITY,
                     # Deliberately not "grant_digest". There is no grant on this
                     # lane, and a consumer looking for one must not find a miner
@@ -393,7 +427,15 @@ class DevelopmentWorkerProfile:
                     # Task-owned, and saying so. Nothing here claims the device
                     # is exclusively this run's, because nothing established it.
                     "allocation": "TASK_OWNED_NOT_EXCLUSIVE",
-                    "assurance": miner_lane_assurance(),
+                    # Same admission, so the same established and not-established
+                    # facts; different standing, so a different label. The
+                    # validator label does not claim official eligibility -
+                    # admission is not qualification.
+                    "assurance": (
+                        miner_lane_assurance()
+                        if miner
+                        else validator_self_service_assurance()
+                    ),
                     "effective_controls": dict(
                         sorted((self.accelerator_controls or {}).items())
                     ),

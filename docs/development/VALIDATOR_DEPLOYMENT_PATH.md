@@ -35,7 +35,7 @@ host.** If you are sizing a validator, you are sizing reconstruction.
 
 ## 1. Prerequisites
 
-### For CPU reconstruction - the fully deployable path today
+### For CPU reconstruction
 
 1. Linux with a working **Docker daemon** the operator can reach. This is a hard
    requirement, not a preference: the worker's containment (network `none`,
@@ -56,11 +56,20 @@ admission ceremony on this path and never was.
    the daemon does not list an `nvidia` runtime.
 5. An installed `HostDeviceRecord` describing the device (§2).
 
+**And nothing else.** Since the owner decision of 2026-09-21 (§7) a GPU
+reconstruction in either role needs no owner-signed grant, no exclusive lease and
+no admission ceremony - the same four prerequisites as the CPU path, plus a
+device and a runtime that exposes it.
+
 The driver build is not pinned by Carbon and is not part of the declared
 execution class. State it honestly in any evidence: a GPU result is
 reproducible-so-far against the driver it ran on, and
 `VALIDATOR_GPU_DETERMINISM_POLICY.md` documents what pinning does and does not
 achieve.
+
+For a validator specifically, apply that policy's pinned configuration. Admission
+does not apply it for you, and an unpinned GPU reconstruction is not reproducible
+across processes - D3 measured four sessions producing four digests.
 
 ---
 
@@ -94,8 +103,18 @@ it. Nothing machine-specific belongs in Carbon's source: it goes in this record,
 which is why running Carbon on new hardware never means editing Carbon.
 
 > **`doctor` reports `installed_authority: BLOCKED` when no grant or development
-> approval is installed.** On the CPU path this finding is irrelevant - that path
-> consults no authority record. See §7 for what it means on the GPU path.
+> approval is installed, and this does not block either reconstruction path.**
+> The CPU path consults no authority record at all. The GPU path admits through
+> the host record, and only four findings can block it -
+> `MINER_LANE_REQUIRED_CHECKS`: `host_device_record`, `container_daemon`,
+> `container_runtime`, `container_device_runtime`. `installed_authority`,
+> `compute_process_enumeration`, `display_output` and `device_quarantine` are
+> reported and do not block.
+>
+> That is deliberate rather than lenient. An `UNKNOWN` finding never blocks,
+> because telemetry a host cannot produce must stay unknown instead of stopping a
+> run; a *required* check that cannot be read is reported `BLOCKED`, not
+> `UNKNOWN`.
 
 ### Sizing
 
@@ -143,6 +162,18 @@ scripts/dev/carbon_accelerator.py status --state-root <dir>
 no second scheduler - and cross-checks the manifest's digests against the claim's
 binding before executing. It returns the launch digest, the output snapshot
 digest, the effective controls and the timings.
+
+> **`run` is the miner-lane launcher, and deliberately only that.** Its role is
+> fixed to `MINER_RESEARCH` and is not a parameter, because a caller that could
+> choose the role could choose the lane. A validator's reconstructions come from
+> its own queue processing, which calls the same controller with
+> `VALIDATOR_RECONSTRUCTION`.
+>
+> **No shipped caller constructs that role yet.** The 2026-09-21 decision
+> unblocked admission for it; the orchestration that would drive it is separate
+> work and is not in this tree. So §1 to §3 and §6 apply to a validator host
+> today, and §4's command does not - stated here rather than left for an operator
+> to discover by running it and getting a miner-lane record.
 
 It also returns, on every run:
 
@@ -201,35 +232,80 @@ a production cost bug before it was anything else.
 
 ---
 
-## 7. The one thing this document cannot tell you to do
+## 7. GPU admission, and why it looks like the miner's
 
-N4's instruction is that the deployment path carries **no host grant, no
-exclusivity and no admission ceremony**. That is satisfied end to end for CPU
-reconstruction, which is the fully deployable path today.
+> **Owner decision, 2026-09-21, programme #209, ticket C-CORE-19:** GPU
+> `VALIDATOR_RECONSTRUCTION` admits through the host record and `doctor`, the
+> same path the miner lane uses. It does not require an owner-signed grant or an
+> exclusive lease.
+>
+> Recorded in `docs/development/GPU_VALIDATOR_ADMISSION_DECISION.md` on
+> `agent/gpu-execution-lane-design` (PR #248), which is the authority. What
+> changed in this tree is recorded in
+> `.agent/evidence/wave_c/c-core-19-validator-admission.md`.
 
-It is **not** satisfied for a GPU reconstruction carrying
-`AcceleratorRole.VALIDATOR_RECONSTRUCTION`. That role still dispatches through
-`AcceleratorHostAdmission.load()` and `exclusive_lease()` in
-`controller.execute()` - the strict apparatus, requiring an owner-signed grant
-and an exclusive device lease.
+An earlier revision of this document classified this as
+`NEW_OWNER_DECISION_REQUIRED` and stated the smallest decision. It is decided,
+and §1 to §6 above are now the whole path for both backends.
 
-This is recorded as a seam rather than resolved, because resolving it either way
-is outside what this work package authorizes:
+The reasoning, because an operator following a sequence should know what it rests
+on:
 
-- Removing the strict gate from the validator role would be building validator-
-  side machinery, which the scope correction explicitly forbids, and would take a
-  position on validator exclusivity that MQ-008 owns empirically.
-- Documenting the grant ceremony as the validator path would contradict N4 and
-  would build on the strict apparatus, also forbidden.
+- **Exclusivity was never the mechanism delivering reproducibility.** D3 measured
+  that pinning the execution configuration is: three sessions, nine runs, one
+  digest. Exclusivity was assumed to carry a guarantee it did not carry.
+- **N2 is the first direct evidence on contention**, and it points away from
+  exclusivity: eighteen runs across nine configurations, including two
+  simultaneous runs on disjoint core sets, produced one weight digest. That is
+  CPU, and GPU contention remains untested.
+- **The grant was self-asserted** - an unsigned file on the host it describes. It
+  constrains accident, not an adversary, so requiring it bought no adversarial
+  guarantee.
+- **It pre-empted a deferred question.** Whether contention perturbs numerical
+  outcomes is empirical and MQ-008 owns it. A grant asserting
+  `EXCLUSIVE_SINGLE_DEVICE` answered it by decree.
+- **It does not scale to provider freedom.** One owner-signed record per
+  validator host cannot work for validators free to choose a provider.
 
-**Classification:** `NEW_OWNER_DECISION_REQUIRED`.
+### What the decision does not do
 
-**Smallest decision required:** whether `VALIDATOR_RECONSTRUCTION` on a GPU should
-continue to require an owner-signed grant and an exclusive lease, or whether it
-should use the same host-record-plus-`doctor` admission the miner lane uses. Until
-that is decided, a GPU validator deployment is blocked at admission by design, and
-no operator sequence can route around it. CPU reconstruction and scoring are
-unaffected and complete.
+**Admission is not qualification.** `compare_r1` still returns
+`BACKEND_UNSUPPORTED` while the backend profile is not `SUPPORTED`, and MQ-008 at
+G4 still owns that. A GPU validator run produces **development evidence**. Its
+record says so on its face: the worker profile carries
+`carbon.c03.development-worker-profile.v6` with
+`verification: BACKEND_QUALIFICATION_REQUIRED_MQ008`, `official_eligible: false`
+and `validator_grade: false`.
+
+**Exclusivity remains MQ-008's empirical question.** The decision declines to
+assert an answer. It does not assert the opposite one, and the run record says
+what was *not* established - `WHOLE_DEVICE_EXCLUSIVITY`,
+`FOREIGN_COMPUTE_PROCESS_ABSENCE`, `DEVICE_MEMORY_SANITIZATION_BETWEEN_TENANTS`,
+`WHOLE_DEVICE_RELEASE_AFTER_RUN` - rather than leaving a reader to assume.
+
+**The strict apparatus is unchanged.** It stays in the tree, is no longer reached
+by either role, and was neither removed nor built upon.
+
+### Contention is recorded, not required away
+
+Because the decision declines to require exclusivity without claiming contention
+is harmless, the numerics record
+(`carbon.reconstruction.numerics-environment.v2`) carries what the host can
+supply: device memory in use and limit, and a compute-process count.
+
+The part that matters is the third field, `device_process_enumeration`:
+
+| Value | Means |
+| --- | --- |
+| `OBSERVED` | The query succeeded. A count of zero here does mean zero. |
+| `UNAVAILABLE` | The host could not be asked. WDDM cannot enumerate at all. |
+| `NOT_APPLICABLE` | No device; the question does not arise. |
+
+`UNAVAILABLE` is never collapsed into "nothing else was running". An absence of
+evidence is not evidence of absence, and only the second would license a
+conclusion about contention. Under anything but `OBSERVED` the count is absent
+rather than zero. This is provenance, not attestation -
+`ESTABLISHED_OBSERVATION_CONTRACTS` stays empty.
 
 ---
 

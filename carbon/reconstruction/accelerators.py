@@ -46,13 +46,22 @@ class AcceleratorLane(str, Enum):
     nothing, and the real question is whether this miner computed what they
     submitted, which content binding and downstream reconstruction answer. A
     validator is the arbiter and may hold protected material, where
-    contamination, nondeterminism and side channels matter and exclusivity earns
-    its cost.
+    contamination, nondeterminism and side channels matter.
+
+    **The lane is not the admission.** Under the owner decision of 2026-09-21
+    (ticket C-CORE-19) both lanes admit the same way, through the installed host
+    record and `doctor`. What still differs is what the lane is for, and what a
+    result from it may be used as - which is what these values name. Exclusivity
+    was never what delivered reproducibility; pinning the execution configuration
+    was, measured under D3. Requiring exclusivity of validators bought a cost
+    without the guarantee it was assumed to carry.
     """
 
     #: Containment and attribution. Never claims exclusivity.
     MINER_CONTAINED = "MINER_CONTAINED"
-    #: Isolation and determinism. The existing strict contract, unchanged.
+    #: The arbiter's own reconstruction. Since the 2026-09-21 decision, admission
+    #: requires no owner-signed grant and no exclusive lease. This value never
+    #: asserted either: it names the role a result belongs to.
     VALIDATOR_ISOLATED = "VALIDATOR_ISOLATED"
 
 
@@ -96,6 +105,46 @@ MINER_LANE_ASSURANCE = {
     "validator_grade": False,
     "strict_equivalent": False,
 }
+
+
+# What a validator-lane result carries when the host admitted itself through the
+# installed record rather than an owner-signed grant.
+#
+# The established and not-established facts are identical to the miner lane's,
+# because the admission is identical. Claiming anything more here would assert
+# the guarantee the 2026-09-21 decision explicitly declined to require.
+#
+# What differs is standing, and the difference runs the other way from what the
+# lane name suggests. `official_eligible` and `validator_grade` are False and
+# must stay False: admission is not qualification. `compare_r1` returns
+# BACKEND_UNSUPPORTED while the backend profile is not SUPPORTED, and MQ-008 at
+# G4 owns that. A run under this label is development evidence.
+VALIDATOR_SELF_SERVICE_ASSURANCE = {
+    "schema": ASSURANCE_SCHEMA,
+    "lane": AcceleratorLane.VALIDATOR_ISOLATED.value,
+    "established": MINER_LANE_ASSURANCE["established"],
+    "not_established": MINER_LANE_ASSURANCE["not_established"],
+    # Deliberately not "DOWNSTREAM_VALIDATOR_RECONSTRUCTION". A validator's own
+    # run is not verified by someone re-running it downstream; there is no
+    # downstream. What this result's standing waits on is a backend
+    # qualification it does not have.
+    "verification": "BACKEND_QUALIFICATION_REQUIRED_MQ008",
+    "official_eligible": False,
+    "validator_grade": False,
+    "strict_equivalent": False,
+}
+
+
+def validator_self_service_assurance() -> dict[str, object]:
+    """A fresh copy of the validator self-service assurance label.
+
+    Returned rather than exported directly, for the same reason the miner copy
+    is: a caller must not be able to mutate the record every other caller reads.
+    """
+    return {
+        key: list(value) if type(value) is tuple else value
+        for key, value in VALIDATOR_SELF_SERVICE_ASSURANCE.items()
+    }
 
 
 def miner_lane_assurance() -> dict[str, object]:
