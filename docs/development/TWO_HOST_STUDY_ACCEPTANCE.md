@@ -146,3 +146,108 @@ nothing more. It does not qualify the backend, does not make `compare_r1` return
 If they diverge, that is the finding, and it outranks the schedule. Diagnose it as
 an incident with cause unestablished. Do not average it, do not select a
 favourable repeat, and do not choose a tolerance to make the classes agree.
+
+---
+
+# Amendment 1 to the acceptance - single chassis before two hosts
+
+**Recorded 2026-09-21. Owner decision, programme #209.**
+
+The accepted study went straight to two hosts. It now runs in two stages, **B
+gated on A**. Bounds in section 7 of the acceptance are unchanged: the USD 30
+ceiling and the four stop conditions cover both stages together.
+
+## Why - two questions were being conflated
+
+| | Question | Right instrument |
+| --- | --- | --- |
+| **Q1** | Do two same-class GPUs produce the same result, *all else equal*? | one chassis, two devices |
+| **Q2** | Do two validators on **different hosts** agree? | two hosts |
+
+A two-host test answers Q2 with every confound present at once - different host
+CPUs, different drivers, different everything. **W3 established that CPU
+instruction-set level changes the weights**, so a two-host disagreement would be
+genuinely ambiguous between device, CPU and driver, and no analysis afterwards
+separates them.
+
+A 2-GPU pod answers Q1 almost exactly: same chassis, same host CPU, same driver,
+same OS, two physically distinct dies of one model. Every confound is removed
+except the device itself.
+
+**Q1 is a precondition for Q2.** If two devices in one chassis disagree, two
+hosts certainly will, and that is learned cheaply with nothing to disentangle. If
+they agree, then any two-host disagreement is **attributable to host
+differences** - which is actionable, because the response is to pin CPU class or
+driver in the execution class rather than to guess.
+
+This is the same sequencing that has paid off repeatedly here: CPU determinism
+before GPU, same-device before representative scale, representative scale before
+cross-device. Single chassis belongs between the last two.
+
+## Stage A - single chassis
+
+One 2-GPU pod per class, both devices in one chassis. The declared class
+(**L40S**) and the second class (**A40**), as before.
+
+Everything else is unchanged: the same orchestration through
+`validator_launch.launch()`, the same pinned image by digest, the same fresh
+processes with compilation never shared between sessions, the same comparison at
+every layer through to gate outcomes and candidate ranking, and the same `delta`
+values fixed in section 5 of the acceptance.
+
+**What stage A establishes.** Whether two same-class devices agree when nothing
+else differs.
+
+**What it does not.** It is **not** a two-host test and must never be reported as
+one. It says nothing about host CPU or driver variation, which is precisely what
+it removes, and nothing about whether validators on different machines agree.
+
+## Stage B - two hosts
+
+The study as originally accepted: two separate single-GPU hosts per class,
+co-located in one datacenter.
+
+**Gated on stage A.** If stage A shows disagreement, **stop and report**. A
+two-host study whose devices do not agree in one chassis would be measuring
+several things at once and could not attribute any of them.
+
+## Two pre-run checks, both hard
+
+1. **Driver builds must match** across the compared units, as already required.
+2. **Availability is re-verified at provisioning time, never trusted from a
+   report.** Stock is live and moves between reads - an earlier report of no
+   CUDA 13 A100 PCIe hosts was contradicted within the same session. Confirm at
+   the moment of provisioning or do not provision.
+
+## A known unknown, carried rather than assumed
+
+Availability work proved that **two or more units exist** in the named
+datacenters, by confirming the API will serve a 2-GPU pod there. That two
+*separate single-GPU pods* can be **held simultaneously** in one datacenter is
+likely but **unconfirmed**, because confirming it requires provisioning, which
+spends.
+
+Stage A does not depend on that fact. Stage B does. Treat it as a stage B
+precondition to be established at provisioning, not as an established fact.
+
+## Availability as measured
+
+| Class | $/hr | CUDA 13 datacenters with a co-located pair |
+| --- | --- | --- |
+| A40 | 0.49 | CA-MTL-1, EU-SE-1 |
+| L40S | 1.09 | EUR-IS-2, OC-AU-1, US-MO-1, US-TX-4 |
+
+A40 and L40S share no datacenter. That does not matter: each pair needs only its
+own two co-located units, and the comparison is within class.
+
+**No stop condition is triggered.** The declared class has co-located pairs
+available, and the earlier "thin, LOW everywhere" reading was drawn from stock
+grade, which was the wrong instrument.
+
+## Unchanged
+
+Ceiling USD 30 across both stages. The four stop conditions stand. No
+qualification, no tolerance, no change to `compare_r1`, scoring, gates or
+thresholds. The four-attempt strict batch remains untouched at zero consumed.
+`compare_r1` still returns `BACKEND_UNSUPPORTED`, and success at either stage is
+evidence toward MQ-008 and nothing more.
