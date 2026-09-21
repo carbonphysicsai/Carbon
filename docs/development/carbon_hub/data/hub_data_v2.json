@@ -2272,6 +2272,13 @@
         "map_ref": "SYSTEM/PUBLICATION-AUTHORITY"
       },
       {
+        "id": "goal-workbench-private-service",
+        "match_type": "exact",
+        "path": ".agent/tickets/GOAL-WORKBENCH-12_private_service_composition.md",
+        "impact_class": "mapped_detail",
+        "map_ref": "SYSTEM/BUSINESS-AUTHORITY"
+      },
+      {
         "id": "core-platform-public-gpu-diagnostic",
         "match_type": "exact",
         "path": ".agent/tickets/C-CORE-14_public_gpu_diagnostic.md",
