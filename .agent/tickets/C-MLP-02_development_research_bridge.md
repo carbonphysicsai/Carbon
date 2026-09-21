@@ -556,3 +556,46 @@ The key rule is structural and absolute: no Launchpad or MCP surface accepts or
 emits a private key, seed phrase or mnemonic, and no signing capability exists
 in the codebase - not disabled, not guarded, absent. Testnet only; mainnet
 enablement remains a separate owner decision and is not authorized here.
+
+### Access tiers and the proxy-submission prohibition
+
+The owner confirmed the gate on 21 September 2026 and set the tiers. The headline
+is that participation is the price of the tooling.
+
+Open to an unregistered visitor:
+
+- the published validator exam-environment disclosure;
+- the registration onboarding flow itself;
+- capability discovery and guidance;
+- read-only inspection of the legal strategy surface.
+
+Registered: everything else.
+
+The boundary is stated as a rule rather than a list of endpoints, because a list
+drifts and a rule can be checked: **nothing in the open tier creates a campaign,
+consumes compute or touches the ledger.** That is testable directly against
+`CampaignLedger` and the task services, and it is the property that matters -
+the open tier exists so the onboarding flow can reach the audience it is for,
+not as a free sample of the research environment.
+
+#### Proxy submission is not built, and will not be
+
+Carbon does not hold miner slots on behalf of non-miners, and no surface offers
+to submit on someone else's behalf. The reasoning is recorded because the idea
+reads as a convenience and will otherwise be rediscovered:
+
+1. **It puts the exam author on both sides of the exam.** Carbon would hold
+   slots whose submissions Carbon's own validator grades. That is the separation
+   the miner/validator lane split exists to protect, and no amount of internal
+   care substitutes for not being on both sides.
+2. **It inverts private-by-default for users who never opted in.** A registered
+   miner accepts the disclosure terms that come with participating. Someone
+   submitting through a Carbon-held slot never made that choice, so their
+   research would sit under terms they were never offered.
+3. **Reward attribution becomes an off-chain financial relationship.** On chain,
+   a slot's rewards belong to the slot holder. Passing them onward is a private
+   arrangement Carbon would be administering - a different business, with
+   different obligations, arrived at sideways rather than decided.
+
+The prohibition is not merely conservative. It is the difference between gating
+access to tooling and intermediating an economy.
