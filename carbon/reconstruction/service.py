@@ -28,6 +28,37 @@ from carbon.reconstruction.profile import compile_development_profile
 from carbon.reconstruction.scaling import BurgersPhysicalScaling
 from carbon.seeding import DerivedSeed
 
+# The artifact manifest's field set is unchanged, but one of its fields now
+# carries more: `observed_environment` gained a `numerics` block recording what
+# actually determines the result - effective CPU instruction set, XLA flags, and
+# the device, driver and TF32 facts on a GPU.
+#
+# That is a different body, so it gets a different version rather than being
+# served under the old one. The previous versions stay readable and keep their
+# exact meaning: an artifact written as v3 or v4 recorded no numerics block and
+# is not retrospectively treated as though it did.
+#
+# `observed_environment_digest` therefore changes for everything produced from
+# here on. Records already accepted are unaffected - their digest is recomputed
+# from the dictionary they actually carry, not from today's environment - so
+# they continue to validate exactly as before.
+CPU_ARTIFACT_SCHEMAS = (
+    "carbon.c02.reconstruction-artifact.v3",
+    "carbon.c02.reconstruction-artifact.v5",
+)
+ACCELERATOR_ARTIFACT_SCHEMAS = (
+    "carbon.c02.reconstruction-artifact.v4",
+    "carbon.c02.reconstruction-artifact.v6",
+)
+# The versions that must carry the numerics block. A record claiming one of
+# these without it is malformed rather than merely old.
+NUMERICS_ARTIFACT_SCHEMAS = frozenset(
+    {
+        "carbon.c02.reconstruction-artifact.v5",
+        "carbon.c02.reconstruction-artifact.v6",
+    }
+)
+
 _MANIFEST_FIELDS = frozenset(
     {
         "schema",
@@ -269,15 +300,19 @@ def _validate_artifact(
             )
         manifest = _read_json(path / "manifest.json")
         accelerator = _mapped_accelerator(manifest["mapping_receipt"])
-        artifact_schema = (
-            "carbon.c02.reconstruction-artifact.v3"
+        artifact_schemas = (
+            CPU_ARTIFACT_SCHEMAS
             if accelerator is None
-            else "carbon.c02.reconstruction-artifact.v4"
+            else ACCELERATOR_ARTIFACT_SCHEMAS
         )
-        if manifest["schema"] != artifact_schema:
+        if manifest["schema"] not in artifact_schemas:
             raise ReconstructionFailure(
                 "reconstruction.artifact.reconciliation_required"
             )
+        # Which of the permitted versions this record actually claims. The
+        # membership test above is the check; this carries the answer into the
+        # expected-field comparison so a v3 record is compared as a v3.
+        artifact_schema = manifest["schema"]
         if manifest["scope"] != "UNQUALIFIED_PUBLIC_DEVELOPMENT":
             raise ReconstructionFailure(
                 "reconstruction.artifact.reconciliation_required"
@@ -326,6 +361,14 @@ def _validate_artifact(
             _exact_digest(manifest[field])
         observed = manifest["observed_environment"]
         if type(observed) is not dict:
+            raise ReconstructionFailure(
+                "reconstruction.artifact.reconciliation_required"
+            )
+        # Required at the versions that declare it, and refused at the versions
+        # that predate it - so neither an old record nor a new one can be read
+        # as the other.
+        has_numerics = type(observed.get("numerics")) is dict
+        if has_numerics != (manifest["schema"] in NUMERICS_ARTIFACT_SCHEMAS):
             raise ReconstructionFailure(
                 "reconstruction.artifact.reconciliation_required"
             )
@@ -379,7 +422,15 @@ def _validate_artifact(
             "training_data": manifest["training_fingerprint"],
             "u_scale": manifest["normalization_scale"],
             "step": manifest["completed_steps"],
-            "environment": observed,
+            # The checkpoint records the *installed* environment, which is
+            # what it was written with and what reopening it compares against.
+            # The manifest records that plus the numerics block, so the two are
+            # compared on the part they share rather than being required to be
+            # the same dictionary - which is what lets the manifest carry more
+            # without making every existing checkpoint unreadable.
+            "environment": {
+                key: value for key, value in observed.items() if key != "numerics"
+            },
             "runtime_key_digest": manifest["randomness_digest"][7:],
             "source_id": manifest["source_digest"][7:],
             "physical_scaling_digest": manifest["physical_scaling_digest"],
@@ -631,13 +682,20 @@ def reconstruct(
         checkpoint = staging / "checkpoint"
         save_checkpoint(trainer, checkpoint)
         checkpoint_digest = _tree_digest(checkpoint)
-        observed = observed_environment()
+        from carbon.reconstruction.numerics_environment import numerics_environment
+
+        # Composed here rather than inside `environment()`, deliberately. That
+        # function is compared for exact equality when a checkpoint is reopened,
+        # so widening it would make every checkpoint written before this change
+        # unloadable. The manifest gets the richer record; the checkpoint's own
+        # environment keeps the shape it was written with.
+        observed = {**observed_environment(), "numerics": numerics_environment()}
         eligibility = _environment_eligibility(observed, accelerator=accelerator)
         manifest = {
             "schema": (
-                "carbon.c02.reconstruction-artifact.v3"
+                CPU_ARTIFACT_SCHEMAS[-1]
                 if accelerator is None
-                else "carbon.c02.reconstruction-artifact.v4"
+                else ACCELERATOR_ARTIFACT_SCHEMAS[-1]
             ),
             "scope": "UNQUALIFIED_PUBLIC_DEVELOPMENT",
             "execution_id": execution_id,

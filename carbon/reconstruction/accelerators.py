@@ -322,6 +322,66 @@ def _known(profile: AcceleratorProfile) -> None:
         raise ValueError("exact registered accelerator profile required")
 
 
+# The determinism configuration for GPU reconstruction.
+#
+# Every flag here was verified against the pinned build rather than recalled: a
+# deliberately invented flag is refused by XLA with "Unknown flag in XLA_FLAGS",
+# and each of these was accepted by `jaxlib` 0.10.2 inside the pinned worker
+# image. Note that `--help` on this build lists only the flags marked stable, so
+# absence from that list is not evidence a flag does not exist - acceptance is.
+#
+# What each one is for:
+#
+#   xla_gpu_deterministic_ops          orders reductions and selects kernels
+#                                      deterministically rather than by whatever
+#                                      the scheduler happened to do.
+#   xla_gpu_exclude_nondeterministic_ops
+#                                      refuses an op that has no deterministic
+#                                      implementation instead of silently using
+#                                      a nondeterministic one. This can make a
+#                                      workload fail that would otherwise have
+#                                      produced a number; that is the intended
+#                                      trade. A run that cannot be reproduced is
+#                                      not evidence, and failing loudly is worth
+#                                      more than a result nobody can defend.
+#   xla_gpu_autotune_level=0           stops kernel choice depending on timing
+#                                      measurements taken per device and
+#                                      sometimes per run, which is the single
+#                                      largest source of run-to-run variation on
+#                                      a GPU.
+#
+# Considered and deliberately not pinned: `xla_gpu_enable_cublaslt` and
+# `xla_gpu_triton_gemm_any`, both accepted by this build. They select which GEMM
+# implementation is used rather than whether it is deterministic, so pinning them
+# would freeze a performance decision under the name of determinism. If a future
+# measurement shows the choice itself varies run to run, that is the evidence to
+# revisit them on.
+GPU_DETERMINISM_XLA_FLAGS = (
+    "--xla_gpu_deterministic_ops=true",
+    "--xla_gpu_exclude_nondeterministic_ops=true",
+    "--xla_gpu_autotune_level=0",
+)
+
+# Controls that live outside XLA and are honoured by the CUDA libraries.
+#
+#   NVIDIA_TF32_OVERRIDE=0     TF32 silently drops mantissa bits on matmuls from
+#                              Ampere onward. JAX_DEFAULT_MATMUL_PRECISION is
+#                              already pinned to "highest", which covers matmuls
+#                              routed through JAX; this covers the paths that are
+#                              not, including convolutions inside cuDNN.
+#   CUBLAS_WORKSPACE_CONFIG    cuBLAS requires a fixed workspace before it will
+#                              guarantee deterministic results across runs.
+#
+# Neither could be verified to take effect here, because this host's jaxlib is
+# CPU-only and no device has been attached. They are pinned on the documented
+# behaviour of the libraries, and whether they function is exactly what a
+# determinism test on real hardware would establish.
+GPU_DETERMINISM_ENVIRONMENT = {
+    "NVIDIA_TF32_OVERRIDE": "0",
+    "CUBLAS_WORKSPACE_CONFIG": ":4096:8",
+}
+
+
 def worker_environment(
     profile: AcceleratorProfile, role: AcceleratorRole, *, host_device=None
 ) -> dict[str, str]:
@@ -361,6 +421,14 @@ def worker_environment(
                 "CARBON_ACCELERATOR_DEVICE_KIND": host_device.device_kind,
                 "XLA_PYTHON_CLIENT_PREALLOCATE": "false",
                 "XLA_PYTHON_CLIENT_ALLOCATOR": "platform",
+                # Pinned, not left to the machine. An unpinned GPU may not
+                # reproduce its own run - same host, same seed, same plan - and
+                # R1 asks precisely whether a repeat execution reproduces the
+                # numbers. No tolerance rescues that, so the configuration is
+                # part of the environment rather than an optimisation applied
+                # later.
+                "XLA_FLAGS": " ".join(GPU_DETERMINISM_XLA_FLAGS),
+                **GPU_DETERMINISM_ENVIRONMENT,
             }
         )
     return result

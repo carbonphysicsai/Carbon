@@ -185,6 +185,36 @@ a cross-host reproducibility question on CPU, independent of any device. It is
 recorded with the owner decisions it raises; nothing was changed in response to
 it here.
 
+## Determinism work package D1-D5
+
+Executed under `docs/development/GPU_DETERMINISM_WORK_PACKAGE.md`, on the owner's
+device under the owner's explicit authorization to spend GPU attempts for Carbon
+development testing.
+
+| | Item | Result |
+| --- | --- | --- |
+| D1 | Record what determines numerics | `carbon/reconstruction/numerics_environment.py`; artifact manifest versioned v3/v4 -> v5/v6 with the old versions still readable. |
+| D2 | Achievable determinism configuration | Pinned in `worker_environment()`; every flag verified against the pinned build, not recalled. |
+| D3 | Test it on the device | `.agent/evidence/wave_c/c-core-19-gpu-determinism.md` and its raw per-session records. |
+| D4 | Validator policy | `docs/development/VALIDATOR_GPU_DETERMINISM_POLICY.md` - declared, not qualified. |
+| D5 | Gate robustness options | `.agent/evidence/wave_c/c-core-19-gate-robustness-options.md` - **implemented nowhere**. |
+
+**The measurement.** An unpinned GPU reconstruction does not reproduce across
+processes: four sessions of the same registered strategy under identical R0
+identities produced four different weight digests, each session internally
+bit-identical. Under the pinned configuration, three sessions produced one
+digest. Pinning also changes the numbers, and costs about +1.0 s of compile time
+(+63%) with execution overhead unmeasurable at this workload size.
+
+It qualifies nothing. A laptop GPU under WSL2 qualifies no hardware, and this was
+a determinism check rather than MQ-008 evidence. It does verify that the settings
+function, which is a claim about the settings and transfers.
+
+It also verified D1 directly: the pinned and unpinned runs computed different
+weights and now record different environments, differing in exactly the three
+keys responsible. Before D1 they would have been indistinguishable - the same
+failure the CPU instruction-set finding exposed, reproduced on a GPU.
+
 ## Acceptance
 
 Role dispatch in both directions with no fallback; miner admission without a
