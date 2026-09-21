@@ -202,6 +202,39 @@ else differs.
 one. It says nothing about host CPU or driver variation, which is precisely what
 it removes, and nothing about whether validators on different machines agree.
 
+### Blocked: the accepted orchestration cannot run on the chosen provider
+
+`validator_launch.launch()` spawns a container - it goes through `DockerCLI` and
+`load_image_identity` in `worker.docker_runtime` - and so requires a Docker
+daemon on the host. RunPod pods **are** containers, built from a custom image,
+and cannot build or run containers. The provider's own documentation says so.
+The two requirements are therefore incompatible: on RunPod, stage A cannot be
+run through `validator_launch.launch()` at all.
+
+This is a documentation lag rather than a discovered defect - the acceptance was
+written before the provider constraint was known - but it is not one an executor
+may resolve by quietly running something else, because it changes what stage A
+demonstrates.
+
+**What the deviation would cost is narrower than it sounds.** The pod-native
+path was measured against the containerised path on the same device and produces
+the **identical weights digest**, so the numerics stage A compares are unchanged.
+What it does not exercise is the layer around them: admission, the worker
+profile, the device lease, task-owned cleanup, and Carbon's containment - no
+`--network none`, no read-only root, no dropped capabilities, no cgroup ceiling.
+Stage A run this way would establish **whether two same-class devices agree**,
+and would say nothing about whether the validator orchestration agrees.
+
+**Smallest owner decision required.** Either:
+
+1. accept stage A by the pod-native path, with the deviation recorded in those
+   words wherever the result is reported; or
+2. hold stage A until a host that owns a Docker daemon is chosen, which is a
+   different provider and a different quote.
+
+Until that is answered this sub-scope is **blocked and fail closed**: nothing is
+provisioned and nothing is spent. The rest of the acceptance is unaffected.
+
 ## Stage B - two hosts
 
 The study as originally accepted: two separate single-GPU hosts per class,
