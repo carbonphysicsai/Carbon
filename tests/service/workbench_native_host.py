@@ -15,6 +15,8 @@ from pathlib import Path
 
 import pytest
 import uvicorn
+from starlette.responses import Response
+from starlette.routing import Route
 from starlette.staticfiles import StaticFiles
 
 REPOSITORY = Path(__file__).resolve().parents[2]
@@ -147,6 +149,19 @@ def main():
         authorize=principals.resolve,
         allowed_origin=origin,
     )
+    # Serve the build's entry point at the origin root, exactly as the supported
+    # host does. Without it the fixture 404s at "/" while the real host does not,
+    # so a browser journey cannot start where an operator would start it.
+    page = (args.static / "Carbon_Opportunity_Workbench.html").read_bytes()
+
+    async def index(request):
+        return Response(
+            page,
+            media_type="text/html; charset=utf-8",
+            headers={"Cache-Control": "no-store", "X-Content-Type-Options": "nosniff"},
+        )
+
+    app.router.routes.append(Route("/", index, methods=["GET"]))
     app.mount("/", StaticFiles(directory=args.static, html=True))
     print(
         json.dumps(
