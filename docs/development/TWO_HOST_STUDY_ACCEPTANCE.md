@@ -251,3 +251,72 @@ qualification, no tolerance, no change to `compare_r1`, scoring, gates or
 thresholds. The four-attempt strict batch remains untouched at zero consumed.
 `compare_r1` still returns `BACKEND_UNSUPPORTED`, and success at either stage is
 evidence toward MQ-008 and nothing more.
+
+---
+
+# Amendment 2 to the acceptance - stage A runs pod-native
+
+**Recorded 2026-09-21. Owner decision, programme #209.**
+
+Section 7 of this acceptance, and the plan's execution-class table, name
+`validator_launch.launch()` as the orchestration. **Stage A cannot satisfy that on
+RunPod**, and the reason is a platform constraint rather than a preference:
+`validator_launch` spawns a container through `DockerCLI` and
+`load_image_identity`, a RunPod pod *is* a container, and RunPod's documentation
+states that a pod cannot build or run containers.
+
+**Decided: stage A runs pod-native, with the deviation recorded.**
+
+## What this costs, and what it does not
+
+**It does not change the numbers.** The pod-native path reproduces the
+containerised path's weights digest exactly on the same device. That is a
+measurement, not an argument, and it is why the deviation is acceptable: the
+quantities stage A compares are unchanged.
+
+**What is lost is the layer around them.** Admission, the worker profile, the
+device lease, task-owned cleanup, and Carbon's containment - no `--network none`,
+no read-only root, no dropped capabilities, no seccomp profile, no cgroup
+ceiling. The provider's runtime supplies whatever isolation the pod has.
+
+So, stated exactly:
+
+> **Stage A establishes whether two same-class devices agree. It establishes
+> nothing about whether the validator orchestration agrees.**
+
+Those were always different questions. Stage A's is the numerics one, and
+pod-native answers it. Do not report it as the other.
+
+## The execution class is amended to describe what runs
+
+Record the path in these words, which are the runner's own:
+
+> **direct execution inside the pinned image; not `validator_launch`;
+> containment from the provider's runtime**
+
+A study that measured a different path than it claims is not an exact replay of
+anything. Both pins still apply - the image digest **and** the Carbon revision -
+because the image predates the current code.
+
+## Scope
+
+**This covers stage A only.** Stage B's hosts are not yet chosen. If they are
+pods, the same constraint applies and the same deviation is recorded. If a host
+with a container runtime the validator controls is chosen instead,
+`validator_launch` becomes available and stage B should use it - that would make
+stage B strictly stronger than stage A, which is the right direction.
+
+## A consequence to carry, not to bury
+
+`validator_launch` remains **`HARDWARE_EXERCISED: no`**. C-CORE-20 is implemented
+and engineering-tested, and no real run exercises it. This decision does not
+change that and should not be read as having done so. Whenever a host with a
+daemon is available, exercising it is outstanding work.
+
+## Unchanged
+
+Ceiling USD 30 across both stages. The four stop conditions stand. Pre-run checks
+unchanged: re-verify availability at the moment of provisioning, and confirm
+driver builds match across compared units. Nothing is qualified,
+`compare_r1` still returns `BACKEND_UNSUPPORTED`, and success is evidence toward
+MQ-008 and nothing more.
