@@ -163,9 +163,37 @@ this build, this workload. Whether the result holds on another device, driver or
 jaxlib build is untested: a one-device experiment establishes a result for that
 configuration only.
 
-The reference workload is small: two training steps on a 4,696-parameter model. A
-larger workload exercises reduction sizes and op mixes this one does not, and
-could behave differently.
+### The workload scope, widened under C-CORE-21
+
+This section previously ended by recording that the reference workload was small
+- two training steps on a 4,696-parameter model - and that a larger workload
+exercising different reduction sizes and op mixes could behave differently.
+
+**That was measured rather than left open, and the configuration held.**
+
+| Condition | Shape | Across 3 fresh processes |
+| --- | --- | --- |
+| **Pinned** | `width=32`, `n_modes=16`, 32 steps, **100,680 parameters** | **1 weight digest**, 9/9 runs |
+| Unpinned | same | 3 digests, one per session |
+| Baseline control | `width=8`, `n_modes=8`, 2 steps | reproduces this policy's own pinned digest exactly |
+
+The baseline control is what makes the comparison sound: it establishes the
+harness was unchanged, so the result at the larger shape is attributable to the
+shape.
+
+**Why the shape mattered more than the length.** With
+`--xla_gpu_autotune_level=0` pinned - which this policy requires - the kernel is
+fixed *per shape*. A larger step count runs the same kernel more times; a
+different width or mode count selects a **different fixed kernel**. So this is
+the widening that could have broken the policy, and it did not.
+
+The compile overhead did not grow with shape either: 2.63 s at the larger shape
+against 2.44 s at the baseline.
+
+**Still outside the measurement.** Training length remains 16x below the
+registered catalog's default of 512 steps, model depth is unchanged at 1 against
+a catalog default of 2, and everything here is still one device. Evidence:
+`.agent/evidence/wave_c/c-core-21-representative-scale-determinism.md`.
 
 ## 9. What would change this policy
 
