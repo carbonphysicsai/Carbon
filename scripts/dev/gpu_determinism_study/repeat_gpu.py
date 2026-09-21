@@ -82,6 +82,64 @@ record = {
     "numerics": numerics_environment(),
     "runs": [],
 }
+
+# Verify the pinned configuration took effect, rather than assuming it did.
+#
+# Under `docker run` the flags arrived as `-e` arguments the daemon applied, so
+# a missing one showed up as a failed container. On a pod there is no daemon and
+# no container to fail: whoever starts the process exports the variables, and if
+# they are absent the run proceeds perfectly happily - unpinned, and looking
+# pinned in every respect except the numbers.
+#
+# That is the failure this guards. An unpinned run recorded as pinned would put
+# process-level divergence into a cross-device comparison and invite attributing
+# it to the device. So the record is read back and checked against what the
+# validator determinism policy requires, and a mismatch stops the run before any
+# reconstruction rather than being discovered in the digests afterwards.
+if os.environ.get("STUDY_REQUIRE_PINNED") == "1":
+    numerics = record["numerics"]
+    flags = numerics.get("xla_flags") or ""
+    missing = [
+        flag
+        for flag in (
+            "--xla_gpu_deterministic_ops=true",
+            "--xla_gpu_exclude_nondeterministic_ops=true",
+            "--xla_gpu_autotune_level=0",
+        )
+        if flag not in flags
+    ]
+    problems = [f"XLA flag not in effect: {flag}" for flag in missing]
+    if numerics.get("nvidia_tf32_override") != "0":
+        problems.append(
+            f"NVIDIA_TF32_OVERRIDE is {numerics.get('nvidia_tf32_override')!r}, not '0'"
+        )
+    if numerics.get("cublas_workspace_config") != ":4096:8":
+        problems.append(
+            "CUBLAS_WORKSPACE_CONFIG is "
+            f"{numerics.get('cublas_workspace_config')!r}, not ':4096:8'"
+        )
+    if record["backend"] != "gpu":
+        problems.append(f"backend is {record['backend']!r}, not 'gpu'")
+    if problems:
+        print("RECORD_BEGIN")
+        print(
+            json.dumps(
+                {
+                    "label": label,
+                    "status": "REFUSED_UNPINNED",
+                    "problems": problems,
+                    "numerics": numerics,
+                },
+                indent=1,
+                sort_keys=True,
+            )
+        )
+        print("RECORD_END")
+        raise SystemExit(
+            "refusing to run: the pinned determinism configuration is not in "
+            "effect. " + "; ".join(problems)
+        )
+
 for index in range(runs):
     target = Path("/work") / f"{label}-{index}"
     entry = {"index": index}
