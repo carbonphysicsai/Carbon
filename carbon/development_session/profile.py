@@ -6,6 +6,7 @@ import hashlib
 import json
 import math
 
+from carbon.chain.models import CARBON_NETUID
 from carbon.registry import ChallengeKey
 
 CHALLENGE = ChallengeKey("burgers-dynamics-v1", "1.0")
@@ -139,7 +140,7 @@ def profile_document() -> dict[str, object]:
             "operator cancellation",
         ],
         "chain_profile": "carbon.public-synthetic-testnet.development.v1",
-        "chain_netuid": 567,
+        "chain_netuid": CARBON_NETUID,
         "publication": "separately authorized all-burn only",
     }
 
