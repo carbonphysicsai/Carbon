@@ -27,7 +27,6 @@ from __future__ import annotations
 
 from carbon.reconstruction import profile as reconstruction_profile
 from carbon.reconstruction.worker import model as worker
-from carbon.reproducibility.enums import BackendProfileSupport
 
 SCHEMA = "carbon.public-validator-exam-environment.v1"
 
@@ -36,11 +35,19 @@ AUTHORITY = "docs/development/VALIDATOR_EXAM_ENVIRONMENT.md"
 
 #: Declared by the authority document, not computed here.
 #:
-#: There is no registry of qualified backends to read: support is carried per
-#: R1 identity, and `compare_r1` returns `BACKEND_UNSUPPORTED` while it is not
-#: `SUPPORTED`. Deriving a status from the absence of a registry would be
-#: inventing one, so the declared value is reported and attributed.
-DECLARED_SUPPORT = BackendProfileSupport.UNRESOLVED
+#: The one value in this module that is a literal rather than read from the
+#: runtime, and deliberately so on both counts. There is no registry of
+#: qualified backends to read: support is carried per R1 identity, and
+#: comparison reports `BACKEND_UNSUPPORTED` while it is not `SUPPORTED`.
+#: Deriving a status from the absence of a registry would be inventing one, so
+#: the declared value is reported and attributed to the document above.
+#:
+#: It is also not imported from `carbon.reproducibility`, whose enum spells the
+#: same word. B-E1 holds that a completed package does not reach into that one,
+#: and borrowing a name for a value this module does not compute would buy
+#: nothing and cross that boundary for decoration.
+#: See `tests/invariants/test_be1_reproducibility_boundaries.py`.
+DECLARED_SUPPORT = "UNRESOLVED"
 
 
 def _containment() -> dict[str, object]:
@@ -98,7 +105,7 @@ def exam_environment() -> dict[str, object]:
         "qualification": {
             "declared": True,
             "qualified": False,
-            "backend_support": DECLARED_SUPPORT.value,
+            "backend_support": DECLARED_SUPPORT,
             "owner": "MQ-008 under R0/R1/R2 at gate G4, owned by SCI and SRE",
             "basis": "Declaring an environment is not qualifying it. Until MQ-008 qualifies a profile, comparison returns BACKEND_UNSUPPORTED.",
         },
