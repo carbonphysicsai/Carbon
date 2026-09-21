@@ -35,6 +35,28 @@ def _decode(raw):
     return value
 
 
+def check_private_origin(request, *, allowed_origin, netloc, expected_method):
+    """Shared same-origin guard for a private host's own bounded routes.
+
+    Returns a fixed error code, or None when the request may proceed. It grants
+    nothing: the caller still owns authentication and every scientific check.
+    """
+    if request.method != expected_method or request.url.query:
+        return "METHOD_OR_PATH_DENIED"
+    # Reject duplicate routing/security headers rather than accept whichever
+    # a proxy or application happened to choose. No forwarded-host override.
+    if request.headers.getlist("host") != [netloc]:
+        return "ORIGIN_DENIED"
+    incoming = request.headers.getlist("origin")
+    if (expected_method == "POST" and incoming != [allowed_origin]) or (
+        expected_method == "GET" and incoming not in ([], [allowed_origin])
+    ):
+        return "ORIGIN_DENIED"
+    if request.headers.get("sec-fetch-site") not in (None, "same-origin", "none"):
+        return "ORIGIN_DENIED"
+    return None
+
+
 def create_workbench_app(service, *, authorize, allowed_origin):
     """Mount only after operator review; authorize(request) returns one principal.
 
@@ -74,19 +96,14 @@ def create_workbench_app(service, *, authorize, allowed_origin):
     async def endpoint(request: Request):
         action = request.url.path.rsplit("/", 1)[-1]
         expected_method = "GET" if action == "capabilities" else "POST"
-        if request.method != expected_method or request.url.query:
-            return failed(405, "METHOD_OR_PATH_DENIED")
-        # Reject duplicate routing/security headers rather than accept whichever
-        # a proxy or application happened to choose. No forwarded-host override.
-        if request.headers.getlist("host") != [origin.netloc]:
-            return failed(403, "ORIGIN_DENIED")
-        incoming = request.headers.getlist("origin")
-        if (request.method == "POST" and incoming != [allowed_origin]) or (
-            request.method == "GET" and incoming not in ([], [allowed_origin])
-        ):
-            return failed(403, "ORIGIN_DENIED")
-        if request.headers.get("sec-fetch-site") not in (None, "same-origin", "none"):
-            return failed(403, "ORIGIN_DENIED")
+        denied = check_private_origin(
+            request,
+            allowed_origin=allowed_origin,
+            netloc=origin.netloc,
+            expected_method=expected_method,
+        )
+        if denied is not None:
+            return failed(405 if denied == "METHOD_OR_PATH_DENIED" else 403, denied)
         try:
             principal = authorize(request)
             if inspect.isawaitable(principal):
