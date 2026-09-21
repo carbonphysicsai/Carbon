@@ -64,10 +64,45 @@ different things**. Neither may be erased to make a comparison pass.
 | Parameter dtype | float32, `x64` off, matmul precision `highest` |
 | Determinism flags | `--xla_gpu_deterministic_ops=true`, `--xla_gpu_exclude_nondeterministic_ops=true`, `--xla_gpu_autotune_level=0` |
 | Environment | `NVIDIA_TF32_OVERRIDE=0`, `CUBLAS_WORKSPACE_CONFIG=:4096:8` |
-| Worker image | one digest, **byte-identical on both hosts**, verified by label |
-| Device model / class | `HUMAN_INPUT` |
-| Driver version | `HUMAN_INPUT` - recorded per host; not pinned by Carbon |
-| Orchestration | `validator_launch.launch()` (C-CORE-20) |
+| Worker image | `ghcr.io/carbonphysicsai/carbon-accelerator-worker@sha256:e4a2014daa9abc4e3df0bb890bc031a6a859ae21f42d4bec0a0494e25d949794` - public, pullable with no credential, **by digest never by tag** |
+| Carbon revision | `HUMAN_INPUT` - **recorded separately**; the image digest does not pin it (see below) |
+| Device model / class | **L40S** declared, **A40** as second class (`TWO_HOST_STUDY_ACCEPTANCE.md` §3, §7) |
+| Driver version | `HUMAN_INPUT` - recorded per host; not pinned by Carbon; **must match across compared units** |
+| Orchestration | see below - **not** `validator_launch.launch()` on a container-as-a-service provider |
+
+### Two things the image digest does not settle
+
+**It does not pin the Carbon code.** The published image was built from source
+tree `sha256:16709159…`, which predates C-CORE-20 and does not contain
+`validator_launch`. A run that mounts a repository and sets `PYTHONPATH` executes
+the mounted code, not the image's copy - which is what the C-CORE-21 same-device
+measurement did. So the execution class records the **image digest and the Carbon
+revision**, and a comparison is only like-for-like when both match.
+
+**It does not settle how the container is launched, and on a rented pod neither
+delivered path is available.** `validator_launch.launch()` spawns a container
+through the Docker CLI, and the study harness is itself `docker run`. RunPod
+pods use custom images and cannot build or run containers, so on that provider
+**the pod image is the execution vehicle** and the reconstruction runs directly
+inside it.
+
+What that preserves is what this study measures: the pinned numerics environment
+(XLA flags, TF32 override, cuBLAS workspace, matmul precision, device selection),
+the image bytes, the plan, archive and seed identities, and `reconstruct()`
+itself. What it does not preserve is Carbon's containment - network isolation,
+read-only root, dropped capabilities, seccomp, cgroup limits - nor admission, the
+worker profile, the device lease or task-owned cleanup, all of which come from
+the provider's runtime instead.
+
+> **Record the path actually used**, in these words where they apply: *direct
+> execution inside the pinned image; not `validator_launch`; containment from the
+> provider's runtime.* A study that measured a different path than the one it
+> claims is not an exact replay of anything.
+
+This is a constraint on Carbon's deployment design and worth stating as such:
+**the worker assumes its host can spawn containers**, so container-as-a-service
+providers cannot host a Carbon validator as currently built. That bears on the
+provider freedom D3 promises, and it is not a finding about this study.
 
 **The CPU side must be matched or recorded as differing.** W3 established that
 the host CPU instruction-set level changes the weights. A two-host GPU study run
@@ -84,7 +119,7 @@ device and would be a wasted study. Either match the CPU ISA across hosts, or pi
 | Provider | standardized datacenter hardware — **not a heterogeneous marketplace** (see below) |
 | Region / partition | `HUMAN_INPUT` |
 | Host count | **2 per class**, same declared class within a pair |
-| Declared class | `HUMAN_INPUT` — pricing informs this choice, it does not make it |
+| Declared class | **L40S**, with **A40** as the second class (`TWO_HOST_STUDY_ACCEPTANCE.md` §3, §7). Availability of a co-located pair re-verified at provisioning, never trusted from an earlier read |
 | Host CPU model and ISA level | `HUMAN_INPUT`, per host — **matched or recorded as differing** |
 | Driver build | `HUMAN_INPUT`, per host — **verified identical before running** |
 | Host memory, cores allocated | `HUMAN_INPUT`, per host |

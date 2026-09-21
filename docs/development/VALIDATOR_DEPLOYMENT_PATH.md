@@ -133,16 +133,48 @@ Details in `.agent/evidence/wave_c/c-core-19-host-resource-allocation.md`.
 
 ## 3. Obtain and verify the image
 
+**Pull by digest. This is the canonical route.**
+
+```bash
+docker pull ghcr.io/carbonphysicsai/carbon-accelerator-worker@sha256:e4a2014daa9abc4e3df0bb890bc031a6a859ae21f42d4bec0a0494e25d949794
+```
+
+The package is public, so this needs **no credential** - verified by fetching the
+manifest with an anonymous registry token and no Docker login present. A
+validator does not need a registry secret, and rented infrastructure does not
+need one placed on it.
+
+**Always by digest, never by tag.** The tag `de7fa60b` currently resolves to the
+same image, but a tag is a mutable pointer and a digest is the image. Everything
+that references this image - the execution class, the evidence, a pod
+specification - uses `@sha256:…`.
+
+### Building it instead
+
 ```bash
 scripts/dev/accelerator_worker_image.sh     # GPU worker (builds the CPU parent first)
 scripts/dev/c03_worker_image.sh             # CPU worker alone
 ```
+
+These remain the **reproducibility check**, not the distribution mechanism: they
+let you confirm that the published bytes are the ones this source tree produces.
+Nothing here claims an independently built image is unsafe - whether an
+independent build reproduces the published digest is **unmeasured**, and that is
+a question worth answering rather than assuming in either direction.
 
 The build writes a manifest to `.carbon-artifacts/`. Verification is **not
 optional and not manual**: `verify_image_and_toolkit()` compares the image's
 labels against the profile a launch is admitted under, and refuses a mismatch.
 This is why the image had to be rebuilt when the portable profile's digest moved
 - the retained image carried the old digest and was correctly refused.
+
+> **The image digest does not pin the Carbon code that runs.** The published
+> image was built from source tree
+> `sha256:16709159fbabd48accff0fe1e34c9737de41af293d561e6217a86a9cde478dde`,
+> which predates C-CORE-20 - `carbon.reconstruction.validator_launch` is absent
+> from it. Any run that mounts a repository and sets `PYTHONPATH` executes the
+> mounted code in preference to the image's copy. So a record that pins only the
+> image digest has not pinned the code; the revision must be recorded beside it.
 
 Check the manifest's `image_id`, `source_tree_digest` and accelerator profile
 label match the revision you intend to run. A worker image is immutable and its
