@@ -82,6 +82,138 @@ record = {
     "numerics": numerics_environment(),
     "runs": [],
 }
+
+# Verify this is the declared execution environment, rather than assuming it.
+#
+# Under `docker run` the image was named by digest in the command, so the daemon
+# enforced it. On a pod the image is whatever was selected at provisioning, and a
+# tag instead of a digest, or a mis-selected template, resolves to something else
+# silently - the same failure shape as an unpinned run: correct in every respect,
+# numbers from a different CUDA or jaxlib stack, divergence blamed on the device.
+#
+# **This is strictly weaker than comparing the image digest, and deliberately so.**
+# A container cannot read its own image digest: labels and digests are registry
+# and daemon metadata, not filesystem. So this checks the *properties the digest
+# was pinning* - interpreter, jax and jaxlib versions, CUDA major - against what
+# the profile declares. It catches the realistic failure. It does not establish
+# byte identity with the published image and must never be recorded as if it had.
+#
+# It runs on both conditions, not only the pinned one: an unpinned contrast run
+# on the wrong image would make the contrast meaningless.
+if os.environ.get("STUDY_REQUIRE_IMAGE") == "1":
+    import platform
+
+    from carbon.reconstruction.environment_guard import (
+        DECLARED_PROPERTIES,
+        environment_check_record,
+        environment_problems,
+        nothing_was_verified,
+    )
+
+    declared = GPU_PROFILE.document()
+    numerics = record["numerics"]
+    found = {
+        "python": platform.python_version(),
+        "jax": getattr(jax, "__version__", None),
+    }
+    try:
+        import jaxlib
+
+        found["jaxlib"] = getattr(jaxlib, "__version__", None)
+    except Exception:  # noqa: BLE001
+        found["jaxlib"] = None
+    assert set(found) == set(DECLARED_PROPERTIES)
+
+    mismatched, unverifiable, verified = environment_problems(
+        declared=declared, found=found, cuda_version=numerics.get("cuda_version")
+    )
+    record["environment_check"] = environment_check_record(verified, unverifiable)
+    # A guard that checked nothing is not a guard that passed. On a rented pod
+    # the image is the least certain thing in the run, so this refuses rather
+    # than recording an inert check and proceeding.
+    if nothing_was_verified(verified, unverifiable):
+        mismatched = [
+            "UNVERIFIED_ENVIRONMENT: no declared property could be compared - "
+            + "; ".join(unverifiable)
+        ]
+    if mismatched:
+        print("RECORD_BEGIN")
+        print(
+            json.dumps(
+                {
+                    "label": label,
+                    "status": "REFUSED_WRONG_ENVIRONMENT",
+                    "checked": record["environment_check"]["note"],
+                    "problems": mismatched,
+                    "numerics": numerics,
+                },
+                indent=1,
+                sort_keys=True,
+            )
+        )
+        print("RECORD_END")
+        raise SystemExit(
+            "refusing to run: this is not the declared execution environment. "
+            + "; ".join(mismatched)
+        )
+
+# Verify the pinned configuration took effect, rather than assuming it did.
+#
+# Under `docker run` the flags arrived as `-e` arguments the daemon applied, so
+# a missing one showed up as a failed container. On a pod there is no daemon and
+# no container to fail: whoever starts the process exports the variables, and if
+# they are absent the run proceeds perfectly happily - unpinned, and looking
+# pinned in every respect except the numbers.
+#
+# That is the failure this guards. An unpinned run recorded as pinned would put
+# process-level divergence into a cross-device comparison and invite attributing
+# it to the device. So the record is read back and checked against what the
+# validator determinism policy requires, and a mismatch stops the run before any
+# reconstruction rather than being discovered in the digests afterwards.
+if os.environ.get("STUDY_REQUIRE_PINNED") == "1":
+    numerics = record["numerics"]
+    flags = numerics.get("xla_flags") or ""
+    missing = [
+        flag
+        for flag in (
+            "--xla_gpu_deterministic_ops=true",
+            "--xla_gpu_exclude_nondeterministic_ops=true",
+            "--xla_gpu_autotune_level=0",
+        )
+        if flag not in flags
+    ]
+    problems = [f"XLA flag not in effect: {flag}" for flag in missing]
+    if numerics.get("nvidia_tf32_override") != "0":
+        problems.append(
+            f"NVIDIA_TF32_OVERRIDE is {numerics.get('nvidia_tf32_override')!r}, not '0'"
+        )
+    if numerics.get("cublas_workspace_config") != ":4096:8":
+        problems.append(
+            "CUBLAS_WORKSPACE_CONFIG is "
+            f"{numerics.get('cublas_workspace_config')!r}, not ':4096:8'"
+        )
+    if record["backend"] != "gpu":
+        problems.append(f"backend is {record['backend']!r}, not 'gpu'")
+    if problems:
+        print("RECORD_BEGIN")
+        print(
+            json.dumps(
+                {
+                    "label": label,
+                    "status": "REFUSED_UNPINNED",
+                    "problems": problems,
+                    "numerics": numerics,
+                },
+                indent=1,
+                sort_keys=True,
+            )
+        )
+        print("RECORD_END")
+        raise SystemExit(
+            "refusing to run: the pinned determinism configuration is not in "
+            "effect. " + "; ".join(problems)
+        )
+
 for index in range(runs):
     target = Path("/work") / f"{label}-{index}"
     entry = {"index": index}

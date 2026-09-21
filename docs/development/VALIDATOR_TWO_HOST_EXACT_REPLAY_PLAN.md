@@ -65,7 +65,7 @@ different things**. Neither may be erased to make a comparison pass.
 | Determinism flags | `--xla_gpu_deterministic_ops=true`, `--xla_gpu_exclude_nondeterministic_ops=true`, `--xla_gpu_autotune_level=0` |
 | Environment | `NVIDIA_TF32_OVERRIDE=0`, `CUBLAS_WORKSPACE_CONFIG=:4096:8` |
 | Worker image | `ghcr.io/carbonphysicsai/carbon-accelerator-worker@sha256:e4a2014daa9abc4e3df0bb890bc031a6a859ae21f42d4bec0a0494e25d949794` - public, pullable with no credential, **by digest never by tag** |
-| Carbon revision | `HUMAN_INPUT` - **recorded separately**; the image digest does not pin it (see below) |
+| Carbon revision | recorded per run, and **must contain `scripts/dev/gpu_determinism_study/run_on_pod.sh`**; the image digest does not pin it (see below). Not `6d630d4f` - that is the C-CORE-21 merge and predates the pod-native runner, so a study run at it could not have executed on a pod at all |
 | Device model / class | **L40S** declared, **A40** as second class (`TWO_HOST_STUDY_ACCEPTANCE.md` §3, §7) |
 | Driver version | `HUMAN_INPUT` - recorded per host; not pinned by Carbon; **must match across compared units** |
 | Orchestration | see below - **not** `validator_launch.launch()` on a container-as-a-service provider |
@@ -80,7 +80,7 @@ measurement did. So the execution class records the **image digest and the Carbo
 revision**, and a comparison is only like-for-like when both match.
 
 **It does not settle how the container is launched, and on a rented pod neither
-delivered path is available.** `validator_launch.launch()` spawns a container
+docker-based path is available.** `validator_launch.launch()` spawns a container
 through the Docker CLI, and the study harness is itself `docker run`. RunPod
 pods use custom images and cannot build or run containers, so on that provider
 **the pod image is the execution vehicle** and the reconstruction runs directly
@@ -93,6 +93,46 @@ itself. What it does not preserve is Carbon's containment - network isolation,
 read-only root, dropped capabilities, seccomp, cgroup limits - nor admission, the
 worker profile, the device lease or task-owned cleanup, all of which come from
 the provider's runtime instead.
+
+**The pod-native runner exists.** `scripts/dev/gpu_determinism_study/run_on_pod.sh`
+runs a session directly inside the pod image with no daemon: it exports the
+numerics environment, pins the device, checks the Carbon checkout is the exact
+revision the execution class names and is clean, and executes the same
+`repeat_gpu.py` the docker path uses.
+
+**It refuses to run unpinned.** Under `docker run` the determinism flags arrived
+as `-e` arguments the daemon applied, so a missing one produced a failed
+container. On a pod there is no daemon and nothing fails - the run proceeds
+unpinned and looks pinned in every respect except the numbers, which would put
+process-level divergence into a cross-device comparison and invite blaming the
+device. So the run reads its own numerics record back and stops before any
+reconstruction if the three XLA flags, `NVIDIA_TF32_OVERRIDE=0`,
+`CUBLAS_WORKSPACE_CONFIG=:4096:8` or the GPU backend are not actually in effect,
+emitting a `REFUSED_UNPINNED` record naming each one.
+
+**It also refuses the wrong environment, by properties rather than by digest.**
+Under `docker run` the image was named by digest in the command, so the daemon
+enforced it. On a pod it is whatever was selected at provisioning, and a tag
+instead of a digest resolves to something else silently. So the run checks the
+interpreter, `jax` and `jaxlib` versions and the CUDA line against what the
+profile declares, and refuses with `REFUSED_WRONG_ENVIRONMENT` on a mismatch.
+
+**This is strictly weaker than comparing the image digest and must be recorded in
+those words.** A container cannot read its own image digest - labels and digests
+are registry and daemon metadata, not filesystem - so what is checked are the
+properties the digest was pinning, never byte identity with the published image.
+Where a property cannot be read at all, as the CUDA runtime version cannot be on
+some plugin builds, the run records it as **unverifiable** and proceeds rather
+than refusing: treating "could not check" as "wrong" would be the same error as
+treating "could not observe" as "nothing was there". The record carries which
+properties were verified and which were not, so the evidence never implies a
+check that did not happen.
+
+**Materials are derived in the pod**, from the pinned revision, rather than
+shipped in. Copying them would introduce a third thing to trust - the machine
+that staged them - whose state is not part of the execution class and is recorded
+nowhere. Deriving them in place means the execution class already describes them,
+and the plan digest is asserted either way.
 
 > **Record the path actually used**, in these words where they apply: *direct
 > execution inside the pinned image; not `validator_launch`; containment from the

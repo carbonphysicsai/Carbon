@@ -93,6 +93,13 @@ if [[ " ${CARBON_UV_GROUPS:-} " == *" mcp "* ]]; then
     tests/service/test_mcp_task_supervisor.py -q
   if [[ "${CARBON_REQUIRE_TYPESCRIPT_INTEROP:-}" == "1" ]]; then
     "${python_bin}" -m pytest tests/service/test_standard_mcp_typescript.py -q
+    # The MCP conformance suite is not collected by the default testpaths, so it
+    # runs here beside the interoperability client it was promoted from. Its
+    # controls are required rather than skipped: a conformance suite that is
+    # shipped but never executed manufactures the confidence it exists to test.
+    pnpm --dir tests/conformance/mcp install --frozen-lockfile --ignore-scripts
+    CARBON_REQUIRE_MCP_CONFORMANCE=1 \
+      "${python_bin}" -m pytest tests/conformance/mcp -q
     bash ./scripts/dev/workbench_science_checks.sh
   fi
 fi

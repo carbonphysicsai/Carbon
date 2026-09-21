@@ -1,0 +1,10 @@
+{
+  "name": "carbon-mcp-conformance",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Independent conformance runner for a Carbon MCP research endpoint.",
+  "bin": { "carbon-mcp-conformance": "./conformance.mjs" },
+  "scripts": { "conformance": "node conformance.mjs" },
+  "dependencies": { "@modelcontextprotocol/client": "2.0.0" }
+}
