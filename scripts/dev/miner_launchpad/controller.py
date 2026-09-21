@@ -266,6 +266,73 @@ class Controller:
             return [self.project(db, row) for row in rows]
 
 
+def research_compute_choices() -> list:
+    """Where a miner may run their own research, and what each actually needs.
+
+    Destinations, not a provider dropdown. Carbon has no per-provider branch:
+    what differs between a laptop, a workstation and a rented instance lives in
+    the host device record the operator installs, which carries the provider as
+    a token and nothing else. So `attach-existing-remote` is not a separate
+    integration - it is the same path with the record written on that host.
+
+    Provisioning a host *for* a miner is a different thing, and none is
+    implemented. Those stay in `unavailable` with the reason each is missing,
+    rather than appearing here as choices that would fail when selected.
+    """
+    from carbon.development_session.exam_environment import exam_environment
+
+    graded_on = exam_environment()["backend_profile"]["profile_id"]
+    return [
+        {
+            "id": "local-cpu",
+            "available": True,
+            "requires": ["CONTAINER_DAEMON", "PINNED_CPU_WORKER_IMAGE"],
+            "summary": "This machine, CPU only. No accelerator record needed.",
+        },
+        {
+            "id": "local-gpu",
+            "available": True,
+            "requires": [
+                "INSTALLED_HOST_DEVICE_RECORD_COMPATIBLE_WITH_THE_GPU_PROFILE",
+                "CONTAINER_DEVICE_RUNTIME",
+                "PINNED_GPU_WORKER_IMAGE",
+                "CAMPAIGN_GRANT_DECLARING_GPU_RESEARCH",
+            ],
+            "not_required": [
+                "STRICT_HOST_GRANT",
+                "WHOLE_DEVICE_EXCLUSIVITY",
+                "COMPUTE_PROCESS_ENUMERATION",
+                "DISPLAY_DISABLED_ON_THE_DEVICE",
+            ],
+            "summary": "This machine's GPU, on the miner lane. It may be driving your display or shared with your own work.",
+        },
+        {
+            "id": "attach-existing-remote",
+            "available": True,
+            "requires": [
+                "A_HOST_YOU_ALREADY_CONTROL",
+                "CARBON_ACCELERATOR_PREPARE_RUN_ON_THAT_HOST",
+            ],
+            "not_required": ["CARBON_HELD_PROVIDER_CREDENTIALS"],
+            "summary": "A compatible machine you already have, anywhere. Carbon does not provision or bill it, and never terminates a resource this campaign does not own.",
+        },
+        {
+            "id": "external-byo",
+            "available": True,
+            "requires": [],
+            "summary": "Research entirely off-platform with any tools and compute you like, then submit a strategy. Carbon neither meters nor certifies it, and no Carbon-run training job is required to submit.",
+        },
+        {
+            "id": "graded-on",
+            "available": False,
+            "selectable": False,
+            "reason": "not_a_research_destination",
+            "profile_id": graded_on,
+            "summary": "What the validator runs the exam under. Shown so you can read it; it is not a compute choice and your research runtime does not change it.",
+        },
+    ]
+
+
 def capability_catalog() -> dict:
     return {
         "schema": SCHEMA,
@@ -273,6 +340,10 @@ def capability_catalog() -> dict:
         "launch_enabled": True,
         "supported": CHOICES,
         "limits": {"active_runs": 4, "max_steps": 100, "max_seconds": 600},
+        # Readable without a configured research profile, a grant, a model key
+        # or an agent identity. Inspecting what the exam runs on is not a step a
+        # miner should have to buy their way into.
+        "research_compute": research_compute_choices(),
         "unavailable": [
             {
                 "id": "carbon-burgers-development",
@@ -393,6 +464,15 @@ class Handler(BaseHTTPRequestHandler):
             self.check(authenticated=True)
             if self.path == "/api/v1/capabilities":
                 self.reply(200, capability_catalog())
+            elif self.path == "/api/v1/exam-environment":
+                # Available with no research profile, grant or agent configured.
+                # A miner deciding whether to take part is entitled to read what
+                # the exam runs on first.
+                from carbon.development_session.exam_environment import (
+                    exam_environment,
+                )
+
+                self.reply(200, exam_environment())
             elif self.path == "/api/v1/runs":
                 self.reply(200, {"runs": self.server.controller.recent()})
             elif self.path == "/api/v1/development":
