@@ -75,6 +75,21 @@ The image is public; no registry credential is required. Mount the volume
 read-only. Re-verify availability at the moment of provisioning - stock is live
 and an earlier read is not evidence.
 
+**Pin the host CUDA line to 13.0.** The accelerator profile is
+`carbon_jax_cuda13_nvidia_development_v1`, so the host must serve CUDA 13, and a
+read of Secure Cloud availability on 2026-09-21 showed **L40S offers 13.0 only** -
+12.8 and 13.2 were both UNAVAILABLE - while A40 offered 12.8, 13.0 and 13.2. So
+13.0 is the one line both classes can serve, and selecting it for both keeps the
+host CUDA identical across classes rather than leaving it to whatever the
+provider allocates. Requesting a line a class cannot serve simply fails to
+provision, which wastes an attempt rather than money.
+
+That read also showed **both classes at `Low` stock**, at `$2.18/hr` for the
+2-GPU L40S pod and `$0.98/hr` for the 2-GPU A40 pod. Those figures are the whole
+pod, not per device. They are recorded as a planning estimate and **not** as
+availability: stock is live, `Low` moves, and the acceptance requires confirming
+it at the moment of provisioning.
+
 Before running anything, confirm the pod is what was asked for: two devices, the
 expected class, and **matching driver builds across both**.
 
