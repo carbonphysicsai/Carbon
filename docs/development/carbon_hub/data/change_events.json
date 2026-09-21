@@ -2638,7 +2638,7 @@
       "event_id": "OWNER-C1-BURGERS-ALPHA-01",
       "owner_lane": "repository_owner",
       "status": "active",
-      "summary": "The owner selects C-03 prerequisite hardening and a sequential public-data Burgers vertical, with a trusted Carbon single-tenant host, three replicas in new working profiles, explicit Cole–Hopf/witness/ETDRK4 roles and prospective private archive targets. C-04 is next after the current merge; protected admission, independent review acceptance, scientific sufficiency, real archive acknowledgement, public-network operation and LIVE remain unavailable.",
+      "summary": "The owner selects C-03 prerequisite hardening and a sequential public-data Burgers vertical, with a trusted Carbon single-tenant host, three replicas in new working profiles, explicit Cole\u2013Hopf/witness/ETDRK4 roles and prospective private archive targets. C-04 is next after the current merge; protected admission, independent review acceptance, scientific sufficiency, real archive acknowledgement, public-network operation and LIVE remain unavailable.",
       "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/0a57b13ae97056d722930ab95a9604077af8520d/.agent/plans/C1_ALPHA_VERTICAL_CONTINUATION.md",
       "affects": [
         "WAVE-B",
@@ -2694,7 +2694,7 @@
       "event_id": "C-04-I1",
       "owner_lane": "scientific_reference_execution_engineering",
       "status": "implemented",
-      "summary": "The C-04 candidate implements role-explicit Cole–Hopf primary, conservative finite-volume witness and ETDRK4 development cross-check paths under the C-03 boundary, plus a frozen twelve-cell public D-03/D-04 prerequisite harness. Required exact-head Linux service acceptance is pending; no tolerance, TruthAsset, protected admission, score or scientific/security qualification is asserted.",
+      "summary": "The C-04 candidate implements role-explicit Cole\u2013Hopf primary, conservative finite-volume witness and ETDRK4 development cross-check paths under the C-03 boundary, plus a frozen twelve-cell public D-03/D-04 prerequisite harness. Required exact-head Linux service acceptance is pending; no tolerance, TruthAsset, protected admission, score or scientific/security qualification is asserted.",
       "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/cce53ae3ef12d2140c23ae3a1ef60e968aabe0dd/.agent/evidence/wave_c/c-04.md",
       "affects": [
         "WAVE-B",
@@ -7156,6 +7156,20 @@
         "WAVE-C/NET-6"
       ],
       "supersedes": "C-CORE-21-SNAPSHOT-02"
+    },
+    {
+      "map_ref": "SYSTEM/DEVELOPMENT-SEQUENCING",
+      "event_type": "decision",
+      "event_id": "DELIVERY-CONSTRUCTION-STANDARD-01",
+      "owner_lane": "technical_lead",
+      "status": "implemented",
+      "summary": "Delivery protocol gains section 1.1: prefer properties enforced by construction over properties checked at the point of use, recorded as the question that surfaced them - what establishes this property, and what happens when someone constructs the object differently - rather than only the conclusion. Three workstreams reached it independently on 2026-09-21 by three different routes, none by agreeing with the principle in advance. Includes the check that tells whether a design achieved it, and two recurring corollaries: the generic-error branch is where unvalidated input goes to be logged, and a closed schema and a positive format check answer different questions. Explicitly an engineering standard and not a delivery gate: it adds no required review, check or approval, introduces no new authority, and blocks no merge.",
+      "primary_detail": ".agent/DELIVERY_PROTOCOL.md",
+      "affects": [
+        "SYSTEM/AGENT-EXECUTION",
+        "SYSTEM/CI"
+      ],
+      "supersedes": null
     }
   ]
 }
