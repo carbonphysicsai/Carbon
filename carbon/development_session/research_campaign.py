@@ -371,6 +371,26 @@ def registered_julia_image(root, runtime, analysis):
     return verify_julia_image(image)
 
 
+def research_practice(root, manifest, *, data, role_root, ledger, owner, image):
+    """Which runtime the miner's own research runs on.
+
+    Named rather than inlined because it is the one place a campaign decides
+    between the CPU and GPU research callbacks, and the decision is worth being
+    able to test on its own.
+
+    The choice is made by the frozen manifest's runtime and nothing else: a
+    campaign that declares no GPU runtime gets exactly the callback it always
+    got. It also decides *only* this. The final DEVELOPMENT comparison keeps its
+    own CPU worker image, reference material and accounting, so a miner choosing
+    a GPU to research with never chooses or rewrites the evaluator that judges
+    the result.
+    """
+    gpu_image = registered_gpu_image(root, manifest.get("runtime", {}), role_root)
+    if gpu_image is None:
+        return PublicPractice(data=data, ledger=ledger, owner=owner, image=image)
+    return PublicGPUPractice(data=data, image=gpu_image)
+
+
 async def execute(args, *, ledger=None):
     agent_policy = getattr(args, "agent_policy", LEGACY)
     policy = binding(agent_policy)
@@ -539,16 +559,14 @@ async def execute(args, *, ledger=None):
         data = PublicReferenceData(
             ledger=ledger, owner=owner, image=image, role_root=role_root
         )
-        # Which runtime the miner's *research* runs on. The final DEVELOPMENT
-        # comparison below is deliberately not switched with it: it keeps its own
-        # CPU worker image, reference material and accounting, so choosing a GPU
-        # to research with never chooses or rewrites the evaluator that judges
-        # the result. A campaign that declares no GPU runtime is unchanged.
-        gpu_image = registered_gpu_image(root, manifest.get("runtime", {}), role_root)
-        practice = (
-            PublicPractice(data=data, ledger=ledger, owner=owner, image=image)
-            if gpu_image is None
-            else PublicGPUPractice(data=data, image=gpu_image)
+        practice = research_practice(
+            root,
+            manifest,
+            data=data,
+            role_root=role_root,
+            ledger=ledger,
+            owner=owner,
+            image=image,
         )
         composition = make_research_service(
             julia_image=authored,

@@ -404,6 +404,45 @@ def test_registered_gpu_image_binds_the_campaign_material(tmp_path, monkeypatch)
     c.tasks.close()
 
 
+def test_campaign_selects_the_research_runtime_its_manifest_declares(
+    tmp_path, monkeypatch
+):
+    """The browser campaign can finally assemble what it could only describe.
+
+    A grant declaring `runtime.gpu_research` used to reach a runner that refused
+    the key outright, so no campaign could ever compose the GPU callback. This
+    drives the campaign's own selection, both ways.
+    """
+    from carbon.development_session.research_campaign import research_practice
+    from carbon.development_session.research_provider import PublicPractice
+
+    data, ledger, image, _calls, c = fixture(tmp_path, monkeypatch)
+    runtime = ledger.admission.document["runtime"]
+    path = ledger.root / gpu.GPU_IMAGE_RECORD
+    path.write_bytes(
+        canonical({"schema": "carbon.c03.worker-image.v1", **asdict(image)})
+    )
+    path.chmod(0o600)
+    selected = {
+        "data": data,
+        "role_root": data.role_root,
+        "ledger": ledger,
+        "owner": data.owner,
+        "image": data.image,
+    }
+
+    chosen = research_practice(ledger.root, {"runtime": runtime}, **selected)
+    assert type(chosen) is gpu.PublicGPUPractice
+    assert chosen.scope == c.executor.practice.scope
+
+    # A campaign that declares no GPU runtime gets exactly what it always got.
+    for manifest in ({"runtime": {"implementation": {}, "images": []}}, {}):
+        assert type(research_practice(ledger.root, manifest, **selected)) is (
+            PublicPractice
+        )
+    c.tasks.close()
+
+
 @pytest.mark.parametrize("relative", [".", "child", ".."])
 def test_controller_storage_cannot_overlap_operation(tmp_path, relative):
     directory = tmp_path / "operation"
