@@ -236,6 +236,37 @@ count summary — no client words, contact details or reviewed package.
 ```
 
 Run the release checks before any suite that regenerates artifacts in place.
+These two are different scopes and neither is a browser journey:
+`workbench_release_checks.sh` begins with the read-only freshness gate;
+`workbench_science_checks.sh` does not run that gate and adds the
+scientific-service, HTTP and host suites plus both builds.
+
+### Browser suites
+
+The browser suites are operator-run: neither check script nor CI invokes them.
+They use Playwright's own bundled Chromium by default, so on a supported Linux
+host with Playwright installed they need no configuration:
+
+```bash
+cd Business/Carbon_Fit/workbench
+node tests/browser_smoke.cjs
+node tests/browser_goal_smoke.cjs
+node tests/browser_routing_smoke.cjs
+node tests/browser_intake_smoke.cjs
+node tests/browser_source_assessment_smoke.cjs
+node tests/browser_team_review_smoke.cjs
+node tests/browser_scientific_studies_smoke.cjs <private.html> <offline.html>
+```
+
+`CARBON_BROWSER_EXECUTABLE` selects a different Chromium-family binary,
+`CARBON_SCIENCE_PYTHON` a different interpreter for the authoring bridge, and
+`CARBON_MOBILE=1` runs a 390px viewport. If Chromium fails to start with a
+missing `libnspr4`, `libnss3` or `libasound.so.2`, install those system
+packages; the suites deliberately will not fall back to an HTML parser and
+claim browser coverage they did not obtain.
+
+This is Chromium at desktop and narrow widths. It is not Mobile Safari and not
+hands-on assistive-technology acceptance; do not record it as either.
 
 ## Not enabled here
 
