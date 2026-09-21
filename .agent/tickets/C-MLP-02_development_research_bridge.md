@@ -502,3 +502,57 @@ Still not closed by this slice: the genuine multi-iteration browser-launched
 adaptive campaign, its independent DEVELOPMENT comparison and verified cleanup.
 No grant is created, no existing pause or allowance is consumed or renewed, and
 no device, model or provider call was made.
+
+## Registration as the research-environment gate C-MLP-02-D10
+
+Owner decision, 21 September 2026, forwarded to this session. It resolves an
+question the recovered questionnaire left open and the handoff carried forward
+as unresolved: OD-20, from batch H answer 8 - "I'm not sure if we should allow
+carbon mining to just be used as a research platform without participating. I
+think we need to draw a line as far as what was built here stays here. But in
+the right and proper legal way."
+
+**Decision: registration on the subnet is the gate for Carbon's research
+environment.** The line is drawn around the tooling Carbon operates, not around
+the competition.
+
+Access model:
+
+- Open to an unregistered visitor: the published validator exam-environment
+  disclosure, and the onboarding flow itself. These have to be open, or the
+  onboarding flow cannot reach the audience it exists for. Neither exposes
+  seeds, hidden datasets, answer keys or credentials.
+- Requires registration: compute selection, campaigns, research services and
+  submission.
+
+What this deliberately does not do, consistent with OD-20's prohibitions:
+
+- It creates no forced participation. A miner who does not want Carbon's tooling
+  is unaffected.
+- It is not an export ban and not a fee wall. Off-platform research with any
+  tools and compute the miner chooses, and submission of a strategy arrived at
+  that way, remain available and ungated by this decision.
+- It assigns no ownership and imposes no IP restriction. It gates access to a
+  service Carbon runs; it makes no claim over what a miner produces.
+
+The scientific boundary is untouched. Registration is an access fact, never
+scientific evidence: it does not enter a score, does not qualify a candidate,
+and does not change that the validator reconstructs a submitted strategy
+independently under its own declared environment.
+
+Slice 2 implements this as one onboarding service behind both front doors, with
+the deliberately narrow scope the owner set:
+
+- `requirements` states burned registration on testnet netuid 567 and that the
+  miner's own wallet shows the current cost at signing. No hyperparameter query
+  and no figure displayed; the cost is reported as not read, which is a
+  different claim from unknown and is the truthful one when Carbon does not ask.
+- `status` uses the existing `check_registration` read path. No new chain read.
+- `prepare` produces a validated, fully described, unsigned registration the
+  miner executes in their own tooling.
+- `confirm` re-queries status and unlocks the environment.
+
+The key rule is structural and absolute: no Launchpad or MCP surface accepts or
+emits a private key, seed phrase or mnemonic, and no signing capability exists
+in the codebase - not disabled, not guarded, absent. Testnet only; mainnet
+enablement remains a separate owner decision and is not authorized here.
