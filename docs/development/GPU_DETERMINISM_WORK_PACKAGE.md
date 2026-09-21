@@ -425,3 +425,194 @@ work, it does not belong in this path.
 
 State the prerequisites honestly, including the Docker daemon and the driver
 floor from the declared class.
+
+---
+
+# Amendment 3 - corrections from external review of `fd958377`
+
+The exactness-first strategy stands. These corrections replace specific claims in
+sections E, A and D that were wrong or overstated. **Where this conflicts with an
+earlier clause in this document, this section governs.**
+
+D1 and D2 are untouched and should not stop.
+
+## C1. E3 is withdrawn - deterministic median aggregation is not a second line
+
+Verified counterexample. Three complete runs, three normalized measurements each,
+requirement that all are at most 1. Illustrative values, not Carbon thresholds:
+
+```
+run A: (0.99, 0.99, 1.01)   fails
+run B: (0.99, 1.01, 0.99)   fails
+run C: (1.01, 0.99, 0.99)   fails
+coordinate-wise median: (0.99, 0.99, 0.99)   passes all three
+```
+
+Every run fails a mandatory gate. The median passes all of them, **and the median
+is not any run that happened.** Coordinate-wise aggregation manufactures a
+measurement record no candidate produced, and it does not preserve a conjunctive
+requirement.
+
+The claim that this "costs protocol machinery rather than scientific
+qualification" was wrong. Aggregating evidence is an evidence-use change with
+scientific content: it does not establish the reports' correctness, remove common
+bias, or establish cross-hardware comparability, and it must never pool
+incomparable or failed mandatory evidence into a positive result.
+
+**A refinement the counterexample does not reach, recorded so it is not
+rediscovered as a rescue.** Selecting one actual run deterministically - a medoid
+rather than a synthesized vector - does preserve record integrity and is immune to
+the example above. It fails for a different reason: the outcome still depends on
+whose hardware ran the selected run, so a candidate near a threshold still passes
+or fails by hardware, only deterministically. Both variants are out, for different
+reasons.
+
+**Do not implement any aggregator.** If adjudication is ever wanted it is a
+separate scientific, protocol and security design, with its own treatment of
+membership, deadlines, missingness, equivocation and weights.
+
+## C2. Execution exactness is not scientific reproducibility
+
+The E1/E3/E4 ladder implied that the registered scientific requirements are a
+last resort reached only after deterministic execution fails. That is wrong and
+the ladder is withdrawn as a ladder.
+
+Exact same-input arithmetic can remove **run-to-run computational disagreement**
+within its established scope. It does nothing about reference error, finite-case
+sampling, model inadequacy, or variation across independently prescribed training
+seeds. Those are different quantities and the existing R0/R1/R2, reference and
+reconstruction-evidence contracts address them **at all times**, not as a
+fallback.
+
+Avoiding ad hoc per-Challenge GPU epsilons is fully compatible with keeping every
+one of those requirements. The thing being avoided is a tolerance invented to make
+hardware agree - not scientific uncertainty accounting.
+
+## C3. An in-class mismatch is an incident with cause unestablished
+
+Section E called divergence within a class "a detectable misconfiguration." It is
+not, by itself. An in-class mismatch violates the proposed reproducibility
+requirement and blocks the affected comparison. It is recorded as a
+**reproducibility or execution incident with the cause unestablished**, because an
+incomplete class definition, compiler or library behaviour, an application defect
+or an omitted input can each produce it.
+
+Diagnose it. Do not average it away and do not select a favourable repeat.
+
+## C4. D1 is provenance, not attestation
+
+Recorded settings are what the process reports about itself. **An operator-supplied
+environment string, or its digest, is not proof of execution.**
+
+D1 makes misconfiguration visible among honest operators. It is not an
+anti-cheating mechanism and must not be described as one. Keep intended settings,
+effective settings and observations distinct, and retain missing or unsupported
+observations as missing rather than inventing a value. Version the added fields;
+preserve historical records as originally recorded, including fields that were
+unavailable then.
+
+## C5. Withdraw the impossibility claims
+
+Two overstatements to remove.
+
+**"Different GPU models will still produce different weights, and no setting
+changes that."** Not established. JAX declining to *guarantee* cross-platform
+numerics is not proof that no configuration can produce agreement. Whether two
+models agree under the pinned configuration is exactly what a matched two-host
+test would measure.
+
+**"On an unpinned GPU a validator may not reproduce its own run"** is correct with
+the "may". Any stronger form is not: unpinned execution *may* diverge, and need
+not diverge on every workload. A supported unpinned baseline that happens to
+reproduce is a valid observation - do not force a divergent baseline to make the
+experiment look sharper.
+
+Likewise, a failed one-device experiment establishes a result for that
+configuration only.
+
+## C6. The four moves are not a theorem
+
+E0 framed drive-divergence-to-zero, make-the-decision-continuous, compute-it-once
+and accept-a-band as exhausting the design space. They are the four families in
+view, not a proof that no other implementation or contract design exists -
+redesigning the measured quantity so it is exactly computable is at least a fifth,
+outside the frame as stated.
+
+The narrower claim does hold and is the one to rely on: **rounding, quantising or
+grid-aligning thresholds relocates a discontinuity rather than removing it**, so
+none of those alone stabilises decisions for unrestricted values near a hard
+threshold.
+
+## C7. The ScoreStatus gap is not moot
+
+Section E claimed exactness makes the closed-enum problem disappear. It does not.
+Exactness changes the *cause* of a blocked comparison from uncertainty to an
+incident; it does not remove the need to represent a blocked or unresolved
+outcome.
+
+**Do not widen `ScoreStatus` speculatively.** Use an existing truthful upstream
+incident or evidence outcome where one applies, and otherwise report the exact
+integration gap. Never record an execution incident as
+`MANDATORY_GATE_FAILED` or as a successful score merely because the enum is
+closed - that would state a physics failure that did not occur.
+
+## C8. Class identity, driver builds, and per-run identity
+
+- Pin an **exact driver build** for first characterization, or an explicitly
+  tested allowlist. A driver *minimum* is a compatibility rule and is not
+  evidence of identical numerics on newer builds. E1's "driver floor" is
+  corrected to this.
+- The class must cover the whole measured path, including host-side
+  preprocessing, initialization, inference and measurement. Identical GPU models
+  do not control a CPU-sensitive calculation elsewhere on that path.
+- Keep **class-defining identity separate from per-run observation identity**.
+  Two hosts may satisfy one class while retaining different device UUIDs and host
+  records. Never erase those differences, and never relax an existing R0 check, to
+  make a cross-host comparison pass. A cross-host study needs its own declared
+  comparison design.
+- Provider neutrality means a conforming deployment may be offered by any
+  provider. A matching SKU does not qualify that provider's isolation, protected
+  data handling or scientific results.
+
+## C9. Fixed-step is one part of fixed-work equivalence
+
+A4 claimed the equal-prescribed-work requirement is already met because
+`completed_steps == steps` gates `COMPLETE`. Step-count equality is **one**
+component. Data content and ordering, precision, operation semantics, stopping
+conditions and recipe semantics are also part of it and are not established by
+that check.
+
+## C10. Do not generalise the parameter-to-prediction ratio
+
+The roughly five-hundred-fold gap between parameter and prediction divergence is
+one measurement, at two steps, on one backbone, under one comparison. It is not a
+universal fairness-risk factor and must not be used as a conversion constant.
+Preserve W3 and W5 values with the exact definitions and provenance they were
+recorded under.
+
+## C11. Batching repeats does not relax the envelope
+
+D3 suggested preferring repeats within a single admission to economise attempts.
+That remains sensible for admission count **only**. Invocations, repeats, elapsed
+time, output bytes, failures and admissions each stay within the applicable
+envelope, and putting many repeats inside one admission does not remove any of
+those limits. State the full resource profile, not just the admission count.
+
+## C12. No comparative cost claim without a quote
+
+The suggestion that two matched rentals are "a far cheaper purchase" than a
+cross-device study was asserted without a quote or workload estimate. A second
+machine needs an actual available host and a finite all-in proposal: device and
+partition, host and CPU conditions, exact software, run coverage, provisioning,
+download, setup, idle and cleanup charges.
+
+**Nothing here authorizes a rental, a paid model call or a GPU run.** P7 still
+requires the evidence specification, explicit attempt and repeat counts, and the
+owner and domain acceptance before anything is spent. This review is not that
+acceptance.
+
+## C13. Keep the states distinct
+
+Report SPECIFIED, IMPLEMENTED, TESTED, CHARACTERIZED and QUALIFIED as different
+states, and do not let a passing stage imply the next one. A passing stage grants
+neither resources nor scientific qualification automatically.
