@@ -1,0 +1,18 @@
+=== Carbon CPU acceptance run ===
+revision: b0b04d4400a7c9b6560d8936c2c82cf85a107872
+branch:   agent/core-platform-19-gpu-lane-split
+modified: 0 paths
+started:  2026-09-20T16:57:34-05:00
+================================
+........................................................................ [  1%]
+........................................................................ [  2%]
+
+[per-test progress output removed; summary and footer retained verbatim]
+
+=============================== warnings summary ===============================
+6882 passed, 10 skipped, 1 warning in 1859.86s (0:30:59)
+finished: 2026-09-20T17:28:36-05:00
+exit:     0
+revision at finish: b0b04d4400a7c9b6560d8936c2c82cf85a107872
+modified at finish: 0 paths
+================================

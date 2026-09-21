@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import json
 import re
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from carbon.development_session.research_tools import PREFIX
 from carbon.miner_mcp.standard import AdapterFailure, ResearchToolRequest
@@ -62,9 +62,7 @@ def task_projection(result, *, detailed):
         micros = view[field]
         if type(micros) is not int:
             raise ValueError("invalid public task timestamp")
-        instant = datetime(1970, 1, 1, tzinfo=timezone.utc) + timedelta(
-            microseconds=micros
-        )
+        instant = datetime(1970, 1, 1, tzinfo=UTC) + timedelta(microseconds=micros)
         return instant.isoformat(timespec="microseconds").replace("+00:00", "Z")
 
     task = {

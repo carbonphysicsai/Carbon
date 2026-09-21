@@ -112,6 +112,50 @@ def exact_token(value: object, *, maximum: int = 256) -> str:
 
 STRICT_HOST_GRANT_AUTHORITY = "STRICT_HOST_GRANT"
 LOCAL_DEVELOPMENT_AUTHORITY = "LOCAL_DEVELOPMENT_APPROVAL"
+# A host admitting itself from local policy and its installed record. No human
+# signs a record per run: that model cannot work for a network of miners, and
+# the CPU lane has never required it.
+#
+# Since the owner decision of 2026-09-21 (ticket C-CORE-19) this is also how a
+# validator's GPU reconstruction is admitted. The value names *how the host was
+# admitted*, not who ran - the role is carried separately and is what decides
+# the lane. The string is unchanged so that every record written before that
+# decision keeps its exact previous meaning and digest.
+MINER_HOST_AUTHORITY = "MINER_HOST_SELF_SERVICE"
+# The same value under a name that does not imply a role, for the paths that now
+# serve both. Not a second authority: an alias, deliberately identical, because
+# a "validator self-service" authority distinct from this one would be exactly
+# the relaxed variant of the strict grant that the decision forbids inventing.
+SELF_SERVICE_HOST_AUTHORITY = MINER_HOST_AUTHORITY
+
+# The authorities whose cleanup is task-owned: they remove exactly what their
+# own launch created and never assert that the whole device was released,
+# because neither ever had the evidence that claim requires. The strict grant is
+# deliberately absent - its allocation is owed a verified release, and letting a
+# weaker authority complete it would skip exactly that.
+TASK_OWNED_AUTHORITIES = (LOCAL_DEVELOPMENT_AUTHORITY, MINER_HOST_AUTHORITY)
+ALLOCATION_AUTHORITIES = (STRICT_HOST_GRANT_AUTHORITY, *TASK_OWNED_AUTHORITIES)
+
+
+def registered_run_controls() -> dict[str, object]:
+    """The bounds the worker implementation itself enforces, with nothing added.
+
+    The miner lane has no approval to narrow anything, so resolving its controls
+    means reading what the worker is already built to apply - the same bounds the
+    CPU lane runs under. Every value here is a registered constant.
+
+    The fields an approval would add are **absent rather than defaulted**: a
+    whole-attempt deadline, a batch window and a training-step ceiling are all
+    batch authority, and the implementation registers no value for them. Giving
+    them an invented number here would publish a bound nobody set and that
+    nothing enforces.
+    """
+    return {
+        "productive_seconds": PRODUCTIVE_DEADLINE_SECONDS,
+        "host_ram_bytes": MEMORY_BYTES,
+        "output_bytes": OUTPUT_BYTES,
+        "worker_network": "DISABLED",
+    }
 
 
 @dataclass(frozen=True, slots=True)
@@ -199,13 +243,31 @@ class DevelopmentWorkerProfile:
             if self.accelerator_authority not in (
                 STRICT_HOST_GRANT_AUTHORITY,
                 LOCAL_DEVELOPMENT_AUTHORITY,
+                MINER_HOST_AUTHORITY,
             ):
                 raise WorkerFailure(WorkerCode.UNSUPPORTED)
-            # The local development variant exists only for the GPU profile; a
-            # TPU request is rejected before this and never becomes local.
+            # Neither weaker variant exists for anything but the portable GPU
+            # profile; a TPU request is rejected before this and never becomes
+            # one, and a retained profile is not an execution route.
             if (
-                self.accelerator_authority == LOCAL_DEVELOPMENT_AUTHORITY
+                self.accelerator_authority
+                in (LOCAL_DEVELOPMENT_AUTHORITY, MINER_HOST_AUTHORITY)
                 and self.accelerator_profile_id != GPU_PROFILE.profile_id
+            ):
+                raise WorkerFailure(WorkerCode.UNSUPPORTED)
+            # Self-service host admission now serves both GPU roles, by the
+            # owner decision of 2026-09-21 (ticket C-CORE-19). It is still
+            # reached by being a role rather than by presenting a weaker
+            # authority: the role decides the lane, and neither role can select
+            # the other's by choosing an authority value.
+            #
+            # A third role, if one is ever added, does not get this by default.
+            if self.accelerator_authority == MINER_HOST_AUTHORITY and (
+                self.accelerator_role
+                not in (
+                    AcceleratorRole.MINER_RESEARCH.value,
+                    AcceleratorRole.VALIDATOR_RECONSTRUCTION.value,
+                )
             ):
                 raise WorkerFailure(WorkerCode.UNSUPPORTED)
             exact_digest(self.accelerator_grant_digest)
@@ -320,6 +382,60 @@ class DevelopmentWorkerProfile:
                     # approval and the registered implementation ceilings. They
                     # live in the development block, not at the top level, so
                     # accepted CPU and strict bodies stay byte-identical.
+                    "effective_controls": dict(
+                        sorted((self.accelerator_controls or {}).items())
+                    ),
+                }
+            elif self.accelerator_authority == MINER_HOST_AUTHORITY:
+                from carbon.reconstruction.accelerators import (
+                    AcceleratorRole,
+                    lane_for_role,
+                    miner_lane_assurance,
+                    validator_self_service_assurance,
+                )
+
+                # The lane follows the role and is never hardcoded here. Before
+                # the 2026-09-21 decision only a miner could reach this branch,
+                # so a literal was indistinguishable from the rule; now the two
+                # differ and only the rule is correct.
+                role = AcceleratorRole(self.accelerator_role)
+                lane = lane_for_role(role)
+                miner = role is AcceleratorRole.MINER_RESEARCH
+                # A separate version for the validator body. v5 has only ever
+                # meant a miner-lane run, and every v5 record already written is
+                # one; widening it in place would silently change what those
+                # records assert to a consumer that reads the version. A miner
+                # run stays byte-identical.
+                result["schema"] = (
+                    "carbon.c03.development-worker-profile.v5"
+                    if miner
+                    else "carbon.c03.development-worker-profile.v6"
+                )
+                result["accelerators"] = {
+                    "profile_id": self.accelerator_profile_id,
+                    "profile_digest": GPU_PROFILE.digest,
+                    "lane": lane.value,
+                    "authority": MINER_HOST_AUTHORITY,
+                    # Deliberately not "grant_digest". There is no grant on this
+                    # lane, and a consumer looking for one must not find a miner
+                    # record sitting in the key a strict grant would occupy.
+                    # What binds the run is the exact installed host record, so
+                    # a replaced or withdrawn record does not keep admitting.
+                    "host_record_digest": self.accelerator_grant_digest,
+                    "role": self.accelerator_role,
+                    "device_uuid": self.accelerator_device_uuid,
+                    # Task-owned, and saying so. Nothing here claims the device
+                    # is exclusively this run's, because nothing established it.
+                    "allocation": "TASK_OWNED_NOT_EXCLUSIVE",
+                    # Same admission, so the same established and not-established
+                    # facts; different standing, so a different label. The
+                    # validator label does not claim official eligibility -
+                    # admission is not qualification.
+                    "assurance": (
+                        miner_lane_assurance()
+                        if miner
+                        else validator_self_service_assurance()
+                    ),
                     "effective_controls": dict(
                         sorted((self.accelerator_controls or {}).items())
                     ),

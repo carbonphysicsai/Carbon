@@ -59,7 +59,7 @@ def host_grant(tmp_path, monkeypatch):
         "host_root": str(root),
         "controller_root": str(tmp_path / "controller"),
         "principal": "fixture-principal",
-        "roles": [AcceleratorRole.MINER_RESEARCH.value],
+        "roles": [AcceleratorRole.VALIDATOR_RECONSTRUCTION.value],
         "device_uuid": DEVICE_UUID,
         "execution_profile_digest": GPU_PROFILE.digest,
         "image_id": image.image_id,
@@ -77,7 +77,7 @@ def host_grant(tmp_path, monkeypatch):
         "principal": "fixture-principal",
         "state_root": tmp_path / "controller",
         "image": image,
-        "role": AcceleratorRole.MINER_RESEARCH,
+        "role": AcceleratorRole.VALIDATOR_RECONSTRUCTION,
         "now": 1000.0,
         "dispatch": True,
     }
@@ -91,7 +91,9 @@ def test_private_host_grant_is_revocable_and_not_relocatable(host_grant):
     for change in (
         {"principal": "other"},
         {"state_root": path.parent / "other"},
-        {"role": AcceleratorRole.VALIDATOR_RECONSTRUCTION},
+        # A grant is a validator instrument. It cannot be pointed at the miner
+        # lane, which does not use grants at all.
+        {"role": AcceleratorRole.MINER_RESEARCH},
         {"image": _image()},
     ):
         with pytest.raises(WorkerFailure):
@@ -430,18 +432,28 @@ def test_controller_routes_only_matching_private_grant_under_exclusive_lease(
         "training_archive": archive,
         "derived_seed": seed,
     }
+    role = AcceleratorRole.VALIDATOR_RECONSTRUCTION
     with pytest.raises(WorkerFailure):
-        controller.execute(**request, accelerator_role="MINER_RESEARCH")
+        controller.execute(**request, accelerator_role="VALIDATOR_RECONSTRUCTION")
     assert not observed
-    assert (
-        controller.execute(**request, accelerator_role=AcceleratorRole.MINER_RESEARCH)
-        == "mocked-existing-worker-boundary"
-    )
-    assert observed[0].accelerator_profile_id == GPU_PROFILE.profile_id
-    path.unlink()
+
+    # Since the owner decision of 2026-09-21 (ticket C-CORE-19) the validator
+    # role no longer routes to strict admission, so this can no longer assert
+    # that it does. What it asserts instead is stronger, and is the reason the
+    # test was kept rather than deleted: a *valid, matching, unexpired* grant is
+    # installed at `path` right now, and the role still does not take the strict
+    # path. A reversion would be visible here as a dispatch that suddenly
+    # succeeds again.
     with pytest.raises(WorkerFailure):
-        controller.execute(**request, accelerator_role=AcceleratorRole.MINER_RESEARCH)
-    assert len(observed) == 1
+        controller.execute(**request, accelerator_role=role)
+    assert not observed, "the validator role must not reach strict dispatch"
+
+    # The strict apparatus itself is unchanged and stays directly covered -
+    # revocation, relocation, expiry, lease sharing and release, quarantine
+    # survival, image lock labels and failed-release quarantine all exercise it
+    # through `host_grant` rather than through role dispatch. What is no longer
+    # covered here, because it no longer exists, is a role that reaches it.
+    assert path.exists()
 
 
 def test_cancellation_requires_boolean_and_never_silently_ignores_stop():

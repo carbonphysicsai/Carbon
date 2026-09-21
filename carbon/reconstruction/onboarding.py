@@ -438,6 +438,50 @@ def _authority_finding(root: Path) -> dict:
     )
 
 
+# The doctor findings a miner-lane launch actually requires.
+#
+# Stated as an allow-list rather than "everything must be READY", because the
+# miner lane is defined by what it does *not* require and a deny-list would
+# silently re-acquire a requirement the next time doctor gains a check.
+#
+# Deliberately absent, each for a stated reason:
+#
+#   compute_process_enumeration - removed for this role. It is unavailable under
+#       the WDDM driver model, and it only ever supported an exclusivity claim
+#       this lane does not make.
+#   installed_authority - there is no owner-signed grant on this lane. Admission
+#       is self-service, because no human can sign a record per run for a
+#       network of miners.
+#   device_quarantine - global quarantine is not a miner concern. What blocks a
+#       miner's next launch is their own unreconciled task-owned cleanup, which
+#       the controller checks directly.
+#   display_output - a miner may have a monitor on this GPU, and may game or
+#       render on it. That is their business and it harms no one else.
+#   attempt_accounting - the development batch journal belongs to the owner's
+#       authorised hardware batch, not to ordinary miner operation.
+MINER_LANE_REQUIRED_CHECKS = (
+    "host_device_record",
+    "container_daemon",
+    "container_runtime",
+    "container_device_runtime",
+)
+
+
+def miner_lane_blockers(report: dict) -> list[str]:
+    """The required findings that block a miner-lane launch, if any.
+
+    An UNKNOWN finding does not block. This lane exists so that telemetry a host
+    cannot produce stays unknown instead of stopping a miner, and a required
+    check that cannot be read is reported as BLOCKED rather than UNKNOWN.
+    """
+    required = set(MINER_LANE_REQUIRED_CHECKS)
+    return sorted(
+        finding["check"]
+        for finding in report["findings"]
+        if finding["check"] in required and finding["state"] == BLOCKED
+    )
+
+
 def _attempt_finding(root: Path) -> dict:
     from carbon.reconstruction.worker.development_admission import (
         DevelopmentAttemptJournal,

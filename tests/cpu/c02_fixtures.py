@@ -50,7 +50,16 @@ def compile_c02_plan(
     foundax: bool = False,
     challenge_key=None,
 ):
-    fixture = make_compile_fixture(tmp_path, challenge_key=challenge_key)
+    if type(steps) is not int or steps < 1:
+        raise ValueError("steps must be a positive integer")
+    # The step count is pinned in three places, and all three have to move
+    # together: the parameter domain, the compatibility rows, and the training
+    # support contract's resource lookup. Missing any one of them fails the
+    # compile rather than silently producing a plan with the wrong step count.
+    sampling_levels = tuple(range(1, max(steps, 2) + 1))
+    fixture = make_compile_fixture(
+        tmp_path, challenge_key=challenge_key, sampling_levels=sampling_levels
+    )
     old_option = fixture.assembly.backbone_surface.options[0]
     environment = EnvironmentPin(
         ENVIRONMENT_ID, ENVIRONMENT_VERSION, environment_digest
@@ -120,7 +129,7 @@ def compile_c02_plan(
     training = replace(
         entries["fixture_sampling_level"],
         consumer_target=step_target,
-        domain=UInt64RangeDomain(1, 2),
+        domain=UInt64RangeDomain(sampling_levels[0], sampling_levels[-1]),
     )
     old_rule = fixture.catalog.compatibility_rules[0]
     rows = tuple(
@@ -128,7 +137,10 @@ def compile_c02_plan(
             ValueCompatibilityCell(
                 SurfaceValue(SurfaceValueType.BACKBONE_SELECTOR, selector)
             ),
-            ValueCompatibilityCell(SurfaceValue(SurfaceValueType.UINT64, 2)),
+            # The requested level only. Admitting every level in the domain
+            # would change the catalog for callers asking for the default, and
+            # with it every plan digest derived from it.
+            ValueCompatibilityCell(SurfaceValue(SurfaceValueType.UINT64, steps)),
         )
         for selector in ("fno", "deeponet")
     )

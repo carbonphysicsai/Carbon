@@ -1,0 +1,54 @@
+{
+ "backend": "gpu",
+ "bit_identical": true,
+ "devices": [
+  "cuda:0"
+ ],
+ "distinct_weight_digests": 1,
+ "label": "unpinned_s3",
+ "numerics": {
+  "backend": "gpu",
+  "cpu_effective_isa": "AVX2",
+  "cpu_isa_ceiling": null,
+  "cublas_workspace_config": null,
+  "cuda_version": null,
+  "cudnn_version": null,
+  "default_matmul_precision": "highest",
+  "device_count": 1,
+  "device_kind": "NVIDIA GeForce RTX 3060 Laptop GPU",
+  "driver_version": null,
+  "nvidia_tf32_override": null,
+  "schema": "carbon.reconstruction.numerics-environment.v1",
+  "xla_flags": null
+ },
+ "runs": [
+  {
+   "checkpoint_digest": "sha256:aefc01f305e2058561e1deefb67f003862d5d079a8395c273d72ace0493e3b24",
+   "compile_seconds": 2.566604138999537,
+   "completed_steps": 2,
+   "index": 0,
+   "status": "COMPLETE",
+   "train_execution_seconds": 0.3276106799967238,
+   "weights_sha256": "7efe63f71b8532e3824d1bae41d298b4ab557bd11ddd2890fef72914436e261e"
+  },
+  {
+   "checkpoint_digest": "sha256:aefc01f305e2058561e1deefb67f003862d5d079a8395c273d72ace0493e3b24",
+   "compile_seconds": 1.5730686649985728,
+   "completed_steps": 2,
+   "index": 1,
+   "status": "COMPLETE",
+   "train_execution_seconds": 0.03114290800294839,
+   "weights_sha256": "7efe63f71b8532e3824d1bae41d298b4ab557bd11ddd2890fef72914436e261e"
+  },
+  {
+   "checkpoint_digest": "sha256:aefc01f305e2058561e1deefb67f003862d5d079a8395c273d72ace0493e3b24",
+   "compile_seconds": 1.614266371994745,
+   "completed_steps": 2,
+   "index": 2,
+   "status": "COMPLETE",
+   "train_execution_seconds": 0.04505956600041827,
+   "weights_sha256": "7efe63f71b8532e3824d1bae41d298b4ab557bd11ddd2890fef72914436e261e"
+  }
+ ],
+ "successful_runs": 3
+}
