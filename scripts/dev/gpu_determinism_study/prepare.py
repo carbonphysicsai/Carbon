@@ -23,8 +23,14 @@ import sys
 import uuid
 from pathlib import Path
 
-sys.path.insert(0, "tests/cpu")
-sys.path.insert(0, ".")
+# Resolved from this file rather than from the working directory. The relative
+# form worked only when the script happened to be run from the repository root,
+# which is true on a development host and false in a pod, where the checkout is
+# mounted somewhere else entirely and the process starts wherever the entrypoint
+# leaves it.
+_REPO = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(_REPO / "tests" / "cpu"))
+sys.path.insert(0, str(_REPO))
 
 import c02_fixtures
 import numpy as np
