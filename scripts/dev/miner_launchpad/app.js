@@ -151,6 +151,8 @@
         const reason = document.createElement("p"); reason.textContent = item.reason.replaceAll("_", " ");
         card.append(title, reason); $("integrations").append(card);
       }
+      renderComputeChoices(catalog.research_compute || []);
+      await renderExamEnvironment();
       message("Connected. Records persist on this machine. Research dispatch requires the separate approved profile shown below.");
       await refresh();
       if (storageError) message("Browser retry storage is unavailable. Launch is disabled to preserve duplicate protection.", true);
@@ -215,6 +217,56 @@
     } catch (error) { message("Export not confirmed: " + error.message, true); }
     finally { busy = false; render(); }
   });
+  function renderComputeChoices(choices) {
+    // Where the miner may run their own research. Rendered beside the exam
+    // environment on purpose: they choose the first and are told the second.
+    const panel = $("exam-environment");
+    if (!choices.length) return;
+    const heading = document.createElement("h3");
+    heading.textContent = "Your research compute";
+    panel.append(heading);
+    for (const choice of choices.filter(entry => entry.selectable !== false)) {
+      const card = document.createElement("div"); card.className = "integration";
+      const title = document.createElement("strong");
+      title.textContent = choice.id.replaceAll("-", " ");
+      const summary = document.createElement("p"); summary.textContent = choice.summary;
+      card.append(title, summary);
+      if (choice.requires?.length) {
+        researchNote(card, "Needs: " + choice.requires.map(value => value.replaceAll("_", " ").toLowerCase()).join("; "));
+      }
+      if (choice.not_required?.length) {
+        researchNote(card, "Not needed: " + choice.not_required.map(value => value.replaceAll("_", " ").toLowerCase()).join("; "));
+      }
+      panel.append(card);
+    }
+  }
+
+  async function renderExamEnvironment() {
+    const panel = $("exam-environment");
+    panel.replaceChildren();
+    let contract;
+    try {
+      contract = await api("/api/v1/exam-environment");
+    } catch (error) {
+      researchNote(panel, "The published exam environment could not be read. It is a disclosure, not a launch requirement; research and submission are unaffected.");
+      return;
+    }
+    researchNote(panel, "Backend profile: " + contract.backend_profile.profile_id + " · " + contract.backend_profile.backend + " · " + contract.backend_profile.scope);
+    // Declared is not qualified, and the page says which this is.
+    researchNote(panel, "Qualification: declared, not qualified · Backend support " + contract.qualification.backend_support + " · " + contract.qualification.basis);
+    researchNote(panel, "You submit: " + contract.submission.accepted.replaceAll("_", " ").toLowerCase() + ". Not accepted: " + contract.submission.not_accepted.map(value => value.replaceAll("_", " ").toLowerCase()).join("; ") + ".");
+    researchNote(panel, "Your research hardware is not constrained by this contract and does not have to match it. No provider is prescribed, for you or for a validator.");
+    for (const limitation of contract.known_limitations || []) {
+      researchNote(panel, "Disclosed limitation · " + limitation.statement + " " + limitation.consequence);
+    }
+    const details = document.createElement("details");
+    const label = document.createElement("summary");
+    label.textContent = "Pinned versions, resource envelope and containment";
+    const data = document.createElement("pre"); data.textContent = JSON.stringify(contract, null, 2);
+    data.style.whiteSpace = "pre-wrap"; data.style.overflowWrap = "anywhere";
+    details.append(label, data); panel.append(details);
+  }
+
   function researchNote(parent, text, className = "") {
     const note = document.createElement("p"); note.textContent = text; note.className = className; parent.append(note);
   }
@@ -269,7 +321,21 @@
       researchNote(reviewPanel, "Experiment pause: " + review.experiment_pause);
       if (review.blockers?.length) researchNote(reviewPanel, "Launch unavailable: " + review.blockers.map(value => value.replaceAll("_", " ")).join("; "));
       researchNote(reviewPanel, "Challenge: " + review.challenge + " · " + review.reconstruction);
-      researchNote(reviewPanel, "Execution profile: " + review.execution.profile + " · Backend: " + review.execution.backend + " · " + review.execution.basis);
+      researchNote(reviewPanel, "Your research runs on: " + review.execution.profile + " · Backend: " + review.execution.backend + " · Lane: " + review.execution.lane + " · " + review.execution.basis);
+      // Stated before launch rather than discovered afterwards. Choosing a GPU
+      // to research with never selects or rewrites the evaluator.
+      if (review.final_evaluation) {
+        researchNote(reviewPanel, "Independent DEVELOPMENT comparison runs on: " + review.final_evaluation.profile + " · Backend: " + review.final_evaluation.backend + " · " + review.final_evaluation.basis);
+      }
+      if (review.execution.assurance) {
+        researchNote(reviewPanel, "This research lane establishes: " + review.execution.assurance.established.map(value => value.replaceAll("_", " ").toLowerCase()).join("; ") + ". It does not establish: " + review.execution.assurance.not_established.map(value => value.replaceAll("_", " ").toLowerCase()).join("; ") + ".");
+      }
+      if (review.readiness) {
+        // Distinct states, never one green badge.
+        const states = Object.entries(review.readiness).filter(([name]) => name !== "basis");
+        researchNote(reviewPanel, "Readiness · " + states.map(([name, value]) => name.replaceAll("_", " ") + ": " + value).join(" · "));
+        researchNote(reviewPanel, review.readiness.basis);
+      }
       researchNote(reviewPanel, "Dependencies installed: " + review.execution.installed_dependencies + " · Device visibility: " + review.execution.device_visibility + " · Retained execution evidence: " + review.execution.runtime_evidence + " · Admission: " + review.execution.admission_readiness);
       researchNote(reviewPanel, "Model capabilities: " + review.capabilities.backbones.join(", ") + " · " + review.capabilities.selection);
       researchNote(reviewPanel, "Training: " + review.capabilities.training);

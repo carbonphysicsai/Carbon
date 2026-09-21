@@ -9,6 +9,7 @@ from __future__ import annotations
 import math
 import time
 
+from carbon.development_session.exam_environment import exam_environment
 from carbon.development_session.profile import CHALLENGE
 from carbon.development_session.research_admission import PROFILE, SCHEMA
 from carbon.development_session.research_catalog import public_catalog
@@ -202,6 +203,11 @@ def review(cfg, doc):
             {"name": name, "version": version, "identity": identity}
             for name, version, identity in DEPENDENCY_SPECS
         ],
+        # What the design will be graded on, published beside what the miner
+        # chose to research with. The two are deliberately adjacent and
+        # deliberately separate: the miner picks the left one and is told the
+        # right one.
+        "validator_exam_environment": exam_environment(),
         "challenge": PROFILE,
         "challenge_identity": {
             "id": CHALLENGE.challenge_id,

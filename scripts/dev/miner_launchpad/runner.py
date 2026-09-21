@@ -194,7 +194,14 @@ class RunnerAdapter:
                 "challenge": admission.document["profile"],
                 "agent": "carbon-autoresearch",
                 "reasoning": "gpt-5-mini-2025-08-07",
-                "compute": "local-isolated-cpu",
+                # Reported from the runtime this grant actually declares rather
+                # than fixed to CPU, which was accurate only while no other
+                # composition could be assembled.
+                "compute": (
+                    "local-isolated-gpu"
+                    if "gpu_research" in admission.document["runtime"]
+                    else "local-isolated-cpu"
+                ),
                 "ceilings": admission.document["ceilings"],
                 "expires_unix": admission.document["expires_unix"],
                 "status": "GRANT_CONFIGURED_RUNTIME_CHECK_AT_START",
