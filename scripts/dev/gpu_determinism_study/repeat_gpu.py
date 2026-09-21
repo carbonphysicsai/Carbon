@@ -103,6 +103,12 @@ record = {
 if os.environ.get("STUDY_REQUIRE_IMAGE") == "1":
     import platform
 
+    from carbon.reconstruction.environment_guard import (
+        DECLARED_PROPERTIES,
+        environment_check_record,
+        environment_problems,
+    )
+
     declared = GPU_PROFILE.document()
     numerics = record["numerics"]
     found = {
@@ -115,43 +121,12 @@ if os.environ.get("STUDY_REQUIRE_IMAGE") == "1":
         found["jaxlib"] = getattr(jaxlib, "__version__", None)
     except Exception:  # noqa: BLE001
         found["jaxlib"] = None
+    assert set(found) == set(DECLARED_PROPERTIES)
 
-    mismatched = [
-        f"{name}: running {found[name]!r}, profile declares {declared.get(name)!r}"
-        for name in ("python", "jax", "jaxlib")
-        if found[name] != declared.get(name)
-    ]
-    # The profile id names the CUDA line the image is built against; the numerics
-    # record reports what the runtime offers - when it can. Those version readers
-    # are optional and vary by plugin build, so an unreadable value is `None`.
-    #
-    # `None` is *not* a mismatch. Refusing on it would treat "could not check"
-    # as "wrong", which is the same error as treating "could not observe" as
-    # "nothing was there - and it would refuse every run on a build whose
-    # readers are absent, including this one. What it does instead is record the
-    # check as unperformed, so the evidence never implies a verification that
-    # did not happen.
-    unverifiable = []
-    cuda = numerics.get("cuda_version")
-    if "cuda13" in declared.get("profile_id", ""):
-        if isinstance(cuda, int):
-            if cuda // 1000 != 13:
-                mismatched.append(
-                    f"CUDA runtime major is {cuda // 1000}, profile declares cuda13"
-                )
-        else:
-            unverifiable.append(
-                "CUDA runtime version is unreadable on this build; "
-                "the cuda13 line was not verified"
-            )
-    # Carried in the record rather than printed: the record is what the evidence
-    # reads, and an incomplete check has to be visible there rather than in a log
-    # someone may not keep.
-    record["environment_check"] = {
-        "verified": ["python", "jax", "jaxlib"],
-        "unverifiable": unverifiable,
-        "note": "declared properties only, NOT the image digest",
-    }
+    mismatched, unverifiable = environment_problems(
+        declared=declared, found=found, cuda_version=numerics.get("cuda_version")
+    )
+    record["environment_check"] = environment_check_record(unverifiable)
     if mismatched:
         print("RECORD_BEGIN")
         print(
@@ -159,7 +134,7 @@ if os.environ.get("STUDY_REQUIRE_IMAGE") == "1":
                 {
                     "label": label,
                     "status": "REFUSED_WRONG_ENVIRONMENT",
-                    "checked": "declared properties only, NOT the image digest",
+                    "checked": record["environment_check"]["note"],
                     "problems": mismatched,
                     "numerics": numerics,
                 },
