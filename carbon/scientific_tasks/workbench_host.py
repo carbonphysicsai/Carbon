@@ -108,8 +108,8 @@ def _private_write(path: Path, payload: bytes):
         dir=directory, prefix=".workbench-", suffix=".tmp"
     )
     try:
-        os.fchmod(handle, 0o600)
         with os.fdopen(handle, "wb") as stream:
+            os.fchmod(stream.fileno(), 0o600)
             stream.write(payload)
             stream.flush()
             os.fsync(stream.fileno())
@@ -341,7 +341,7 @@ class RegisteredDraftStore:
                 ),
             }
         )
-        return self._persist(document, designs)
+        return self._persist(designs)
 
     def revoke(self, *, job_id, design_id, revision=None) -> dict:
         """Remove one revision, or the whole design when no revision is named.
@@ -371,9 +371,9 @@ class RegisteredDraftStore:
             designs.append({**design, "current_revision": current, "revisions": kept})
         if not found:
             raise ValueError("no such registered draft")
-        return self._persist(document, designs)
+        return self._persist(designs)
 
-    def _persist(self, document, designs) -> dict:
+    def _persist(self, designs) -> dict:
         document = {
             "schema": DRAFT_REGISTRY,
             "principal": self.principal,
@@ -596,7 +596,6 @@ def create_host_app(
         allowed_origin=allowed_origin,
     )
     netloc = urlsplit(allowed_origin).netloc
-    document = page.read_bytes()
     headers = {"Cache-Control": "no-store", "X-Content-Type-Options": "nosniff"}
     if draining is not None and not callable(draining):
         raise ValueError("draining must be a predicate")
@@ -646,8 +645,10 @@ def create_host_app(
         )
         if denied is not None:
             return failed(405 if denied == "METHOD_OR_PATH_DENIED" else 403, denied)
+        # Read per request, exactly as the static mount serves the other
+        # artifacts, so "/" cannot quietly disagree with its own file name.
         return Response(
-            document, media_type="text/html; charset=utf-8", headers=headers
+            page.read_bytes(), media_type="text/html; charset=utf-8", headers=headers
         )
 
     app.router.routes.append(Route("/", index, methods=["GET"]))

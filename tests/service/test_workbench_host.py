@@ -791,3 +791,53 @@ def test_operator_commands_reject_an_open_draft_and_report_without_secrets(
         assert service.adapter.principal not in printed
     finally:
         composition.tasks.close()
+
+
+def test_a_malformed_draft_scope_never_reaches_the_registry(tmp_path, monkeypatch):
+    service, request, _records, _ledger, _executions, _calls, composition = configured(
+        tmp_path, monkeypatch
+    )
+    try:
+        physical = asyncio.run(service.capabilities())["physical"]
+        store = store_for(tmp_path, service.adapter.principal)
+        install_from(store, request, physical)
+        before = store.path.read_bytes()
+        rejected = [
+            {**request["draft_scope"], "extra_field": "x"},
+            {k: v for k, v in request["draft_scope"].items() if k != "units"},
+            {**request["draft_scope"], "units": ""},
+            {**request["draft_scope"], "units": "u" * 8001},
+            {**request["draft_scope"], "units": 3},
+        ]
+        for scope in rejected:
+            with pytest.raises((ValueError, TypeError)):
+                store.install(
+                    job_id="job-two",
+                    design_id="design-two",
+                    revision=1,
+                    draft_scope=scope,
+                    physical=physical,
+                )
+        for revision in (0, -1, 1.5, True, "1"):
+            with pytest.raises(ValueError):
+                store.install(
+                    job_id="job-two",
+                    design_id="design-two",
+                    revision=revision,
+                    draft_scope=request["draft_scope"],
+                    physical=physical,
+                )
+        for job in ("", "job two", "../escape", "x" * 200):
+            with pytest.raises(ValueError):
+                store.install(
+                    job_id=job,
+                    design_id="design-two",
+                    revision=1,
+                    draft_scope=request["draft_scope"],
+                    physical=physical,
+                )
+        # Nothing was written: the earlier registry is byte-identical.
+        assert store.path.read_bytes() == before
+        assert store.summary() == {"designs": 1, "revisions": 1}
+    finally:
+        composition.tasks.close()
