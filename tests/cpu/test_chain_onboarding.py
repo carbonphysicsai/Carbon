@@ -353,19 +353,49 @@ def test_anything_that_is_not_an_address_is_refused(supplied):
 
 
 def test_only_a_validated_address_is_recordable():
-    """The per-call record cannot be handed unvalidated input.
+    """Structural, not a re-check: a bare string is the wrong kind of thing.
 
-    Written before the logging surface exists, because retrofitting redaction
-    onto a log that already captures arguments is how secrets end up retained.
+    The sharpest expression of it is that a *valid* address still cannot be
+    recorded as a plain string. Nothing about that value is wrong - it is
+    refused because it did not come through validation, which is the property
+    a re-check inside this function could never establish. A flag would survive
+    until someone set it by hand; a type that cannot be constructed from
+    unvalidated input has nothing to set.
     """
-    record = onboarding.call_record("status", address=HOTKEY, outcome="REGISTERED")
+    validated = onboarding._address(HOTKEY)
+    assert type(validated) is onboarding.PublicAddress
+
+    record = onboarding.call_record("status", address=validated, outcome="REGISTERED")
     assert record["address"] == HOTKEY
     assert record["arguments"] == "NOT_RECORDED"
 
+    # A perfectly valid address, unvalidated, is still not recordable.
+    with pytest.raises(onboarding.OnboardingFailure) as caught:
+        onboarding.call_record("status", address=HOTKEY, outcome="REGISTERED")
+    assert caught.value.reason == "UNRECORDABLE"
+
+    # And a phrase never becomes the right kind of thing in the first place.
+    with pytest.raises(onboarding.OnboardingFailure):
+        onboarding.PublicAddress(MNEMONIC)
     with pytest.raises(onboarding.OnboardingFailure) as caught:
         onboarding.call_record("status", address=MNEMONIC, outcome="REFUSED")
     assert caught.value.reason == "UNRECORDABLE"
     assert MNEMONIC.split()[0] not in str(caught.value.body())
+
+
+def test_construction_is_validation_so_there_is_no_unvalidated_instance():
+    """There is no way to hold a PublicAddress that did not pass the check."""
+    for bad in (
+        MNEMONIC,
+        "5Grwva",
+        "",
+        None,
+        5,
+        "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKut0O",
+    ):
+        with pytest.raises(onboarding.OnboardingFailure):
+            onboarding.PublicAddress(bad)
+    assert onboarding.PublicAddress(HOTKEY) == HOTKEY
 
 
 def test_a_refused_call_records_its_reason_and_no_input():

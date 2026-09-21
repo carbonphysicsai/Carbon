@@ -31,6 +31,8 @@ anticipates one.
 
 from __future__ import annotations
 
+from typing import Self
+
 from carbon.chain.models import CARBON_NETUID, CARBON_NETWORK
 
 SCHEMA = "carbon.chain-onboarding.v1"
@@ -90,7 +92,8 @@ def _phrase_shaped(value: str) -> bool:
     what their wallet showed them, and wallets render phrases space-separated,
     newline-separated, comma-separated and numbered. Only the first was caught
     before, and the rest fell through to the generic refusal - which is the path
-    least likely to be handled carefully downstream.
+    least likely to be handled carefully downstream, and the one a logger would
+    most naturally record its input on.
 
     Deliberately shape-only: no dictionary, no entropy check, no attempt to
     decide whether it is a *valid* phrase. The question is whether to refuse it
@@ -102,26 +105,59 @@ def _phrase_shaped(value: str) -> bool:
     return len(words) >= 4 and all(3 <= len(w) <= 8 for w in words)
 
 
-def _address(value: object) -> str:
+class PublicAddress(str):
+    """An ss58 address that has been validated. Construction *is* validation.
+
+    A distinct type rather than a string plus a flag, for the same reason a
+    verification-only type beats a boolean: a flag is a convention that survives
+    until someone constructs the object differently, while a type that cannot be
+    built from unvalidated input fails at the point of the mistake with nothing
+    to flip.
+
+    That is what makes `call_record` structural. It requires this type, so an
+    unvalidated string is not merely rejected - it is not the right kind of
+    thing, and the error lands where the mistake was made rather than wherever
+    the value eventually gets written.
+
+    It subclasses `str` so that everything downstream - the metagraph lookup,
+    the JSON response - keeps treating it as the address it is, while the one
+    place that must not accept a bare string can still tell the difference.
+    """
+
+    __slots__ = ()
+
+    def __new__(cls, value: object) -> Self:
+        if type(value) not in (str, cls):
+            raise OnboardingFailure(
+                "INVALID_ADDRESS",
+                next_action=(
+                    "Supply the ss58 address of the hotkey you want registered."
+                ),
+            )
+        if not 46 <= len(value) <= 50 or any(
+            character not in BASE58 for character in value
+        ):
+            raise OnboardingFailure(
+                "INVALID_ADDRESS",
+                next_action=(
+                    "Supply the ss58 address of the hotkey you want registered."
+                ),
+            )
+        return super().__new__(cls, value)
+
+
+def _address(value: object) -> PublicAddress:
     """An ss58 address is public. Anything key-shaped is refused on sight.
 
-    Validated positively: base58 alphabet and length, so the accepted set is
-    described rather than merely filtered. That ordering matters beyond
-    tidiness - a value that passes here is a public address by construction, so
-    it is the only thing downstream is ever handed, and anything that does not
-    pass is refused before it can reach a record, a store or a message.
+    Phrase shape is checked first so that a pasted recovery phrase earns the
+    specific refusal rather than the generic one. Everything that survives that
+    is handed to `PublicAddress`, whose construction is the validation - so a
+    value returned from here is a public address by construction, and it is the
+    only thing anything downstream is ever given.
 
-    No branch echoes its input. A miner who pastes a recovery phrase into the
-    address box gets a refusal that names the mistake and repeats none of it.
+    No branch echoes its input.
     """
-    if type(value) is not str:
-        raise OnboardingFailure(
-            "INVALID_ADDRESS",
-            next_action="Supply the ss58 address of the hotkey you want registered.",
-        )
-    if 46 <= len(value) <= 50 and all(character in BASE58 for character in value):
-        return value
-    if _phrase_shaped(value):
+    if type(value) is str and _phrase_shaped(value):
         raise OnboardingFailure(
             "REFUSED_KEY_MATERIAL",
             next_action=(
@@ -130,39 +166,38 @@ def _address(value: object) -> str:
                 "ss58 address of your hotkey."
             ),
         )
-    raise OnboardingFailure(
-        "INVALID_ADDRESS",
-        next_action="Supply the ss58 address of the hotkey you want registered.",
-    )
+    return PublicAddress(value)
 
 
-def call_record(operation: str, *, address: str | None, outcome: str) -> dict:
+def call_record(operation: str, *, address: PublicAddress | None, outcome: str) -> dict:
     """The per-call record for an onboarding call, safe by construction.
 
-    Written now, before the logging surface that will consume it exists.
+    Written before the logging surface that will consume it exists.
     Retrofitting redaction onto a log that already captures arguments is how
     secrets end up in retained records - the log is written, the arguments look
     innocuous, and the one caller who pasted the wrong thing is already
     persisted by the time anyone looks.
 
     So the contract is not "redact the bad values" but "only validated values
-    are ever recordable". `address` is accepted here only after `_address` has
-    returned it, which makes it a public ss58 address by construction. A refused
-    call records its reason code and no input at all, because there is nothing
+    are recordable", and it is enforced by the type rather than by a re-check
+    here. A bare string is refused because it is the wrong kind of thing, not
+    because this function inspected it and disapproved.
+
+    A refused call records its reason code and no input at all: there is nothing
     about the input worth keeping and something about it worth never keeping.
     """
-    if address is not None and (
-        not 46 <= len(address) <= 50
-        or any(character not in BASE58 for character in address)
-    ):
+    if address is not None and type(address) is not PublicAddress:
         raise OnboardingFailure(
             "UNRECORDABLE",
-            next_action="Only a validated public address is recordable.",
+            next_action=(
+                "Only a validated public address is recordable. Pass the value "
+                "returned by validation, not the caller's input."
+            ),
         )
     return {
         "schema": SCHEMA,
         "operation": operation,
-        "address": address,
+        "address": str(address) if address is not None else None,
         "outcome": outcome,
         "arguments": "NOT_RECORDED",
     }
