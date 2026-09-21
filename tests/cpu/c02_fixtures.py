@@ -45,13 +45,54 @@ def compile_c02_plan(
     *,
     backbone: str = "fno",
     steps: int = 2,
+    width: int | None = None,
+    n_modes: int | None = None,
     wheel_digest: str = UPSTREAM_WHEEL_DIGEST,
     environment_digest: str = ENVIRONMENT_DIGEST,
     foundax: bool = False,
     challenge_key=None,
 ):
+    """Compile one C-02 development plan.
+
+    `steps` widens the training length (C-CORE-19 item N3). `width` and
+    `n_modes` widen the *model*, and they are the dimension that decides tensor
+    shapes rather than how many times a shape is reused.
+
+    That distinction is why they are here. With `--xla_gpu_autotune_level=0`
+    pinned, the kernel is fixed **per shape**: a new width or mode count selects
+    a different fixed kernel whose determinism has never been measured, while a
+    larger step count runs the *same* kernel more times. A determinism result at
+    `width=8, n_modes=8` therefore says little about the kernels a real workload
+    would take.
+
+    All three are opt-in and default to the values the catalog has always
+    carried, so a caller that does not ask gets a byte-identical contract and an
+    unchanged plan digest. `width` and `n_modes` add surfaces to the parameter
+    catalog when requested, which necessarily changes the digest - that is the
+    point of making them opt-in rather than always present.
+
+    Bounds and evenness follow `carbon.burgers-autoresearch-recipes.v1`
+    (`research_catalog.SURFACES`): width 2-128, n_modes 2-64, both even. Odd
+    `n_modes` alias the preceding even value in the installed FNO, and odd width
+    is incompatible with the C-02 head count, so both are refused here rather
+    than silently producing a model the caller did not ask for.
+    """
     if type(steps) is not int or steps < 1:
         raise ValueError("steps must be a positive integer")
+    for name, value, ceiling in (("width", width, 128), ("n_modes", n_modes, 64)):
+        if value is None:
+            continue
+        if type(value) is not int or not 2 <= value <= ceiling or value % 2:
+            raise ValueError(
+                f"{name} must be an even integer within 2..{ceiling}; "
+                "the registered catalog rejects odd values as an ignored "
+                "degree of freedom"
+            )
+    if (width is None) != (n_modes is None):
+        # Both or neither. Widening one alone would produce a model shape no
+        # registered recipe describes, and would make the resulting digest hard
+        # to attribute to anything.
+        raise ValueError("width and n_modes must be widened together")
     # The step count is pinned in three places, and all three have to move
     # together: the parameter domain, the compatibility rows, and the training
     # support contract's resource lookup. Missing any one of them fails the
@@ -131,6 +172,51 @@ def compile_c02_plan(
         consumer_target=step_target,
         domain=UInt64RangeDomain(sampling_levels[0], sampling_levels[-1]),
     )
+    # The model surfaces, derived from the training one rather than written
+    # afresh: same entry shape, same authority plumbing, retargeted at the model
+    # component. Built only when asked for, so the default catalog is unchanged.
+    model_entries: tuple = ()
+    model_columns: tuple = ()
+    model_cells: dict[str, object] = {}
+    if width is not None:
+        from carbon.construction import (
+            DiscreteLookupResourceContribution,
+            ResourceLookupCase,
+        )
+
+        for surface_id, field, value in (
+            ("fixture_model_width", "width", width),
+            ("fixture_model_modes", "n_modes", n_modes),
+        ):
+            model_entries += (
+                replace(
+                    entries["fixture_sampling_level"],
+                    surface_id=surface_id,
+                    consumer_target=ConsumerTarget("carbon_jax_lab_model", field),
+                    domain=UInt64RangeDomain(2, value),
+                    static_resource_contributions=(
+                        DiscreteLookupResourceContribution(
+                            "abstract_units",
+                            entries["fixture_sampling_level"]
+                            .static_resource_contributions[0]
+                            .unit_ref,
+                            surface_id,
+                            (
+                                ResourceLookupCase(
+                                    SurfaceValue(SurfaceValueType.UINT64, value),
+                                    4 * value,
+                                ),
+                            ),
+                            ("sampling_impact",),
+                        ),
+                    ),
+                ),
+            )
+            model_columns += (surface_id,)
+            model_cells[surface_id] = ValueCompatibilityCell(
+                SurfaceValue(SurfaceValueType.UINT64, value)
+            )
+
     old_rule = fixture.catalog.compatibility_rules[0]
     rows = tuple(
         (
@@ -141,25 +227,30 @@ def compile_c02_plan(
             # would change the catalog for callers asking for the default, and
             # with it every plan digest derived from it.
             ValueCompatibilityCell(SurfaceValue(SurfaceValueType.UINT64, steps)),
+            *(model_cells[name] for name in model_columns),
         )
         for selector in ("fno", "deeponet")
     )
     compatibility = replace(
         old_rule,
-        surface_ids=("strategy_backbone", "fixture_sampling_level"),
+        surface_ids=("strategy_backbone", "fixture_sampling_level", *model_columns),
         allowed_rows=rows,
     )
     catalog = replace(
         fixture.catalog,
         candidate_assembly_ref=assembly.to_ref(),
-        entries=(top, training),
+        entries=(top, training, *model_entries),
         compatibility_rules=(compatibility,),
     )
+    parameters = {"fixture_sampling_level": steps}
+    if width is not None:
+        parameters["fixture_model_width"] = width
+        parameters["fixture_model_modes"] = n_modes
     strategy = {
         "schema_version": "1.0",
         "challenge_id": fixture.key.challenge_id,
         "backbone": backbone,
-        "parameters": {"fixture_sampling_level": steps},
+        "parameters": parameters,
     }
     result = compile_strategy(
         strategy,

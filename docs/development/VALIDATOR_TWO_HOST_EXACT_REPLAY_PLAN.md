@@ -17,23 +17,35 @@ result?** - is unmeasured. Not small, not bounded, not estimated. Unmeasured.
 
 ---
 
-## 0. Run this only after the cheaper study
+## 0. The cheaper study ran first, and it passed
 
-`GPU_NEXT_EXPERIMENTS_SPECIFICATION.md` experiment 2 repeats the same-device
-determinism characterization at the scale N3 unblocked. **It should run first.**
+This plan required same-device determinism to be re-measured at a representative
+workload before cross-device agreement was worth paying to measure. **That has
+now been done and pinned determinism held.**
 
-Everything below assumes pinned determinism holds at a representative workload.
-It has only been shown at two training steps on 4,696 parameters. If it fails at
-scale, the validator policy's central claim weakens and this study is premature -
-you would be measuring cross-device agreement of a configuration that is not
-even reproducible on one device. That result would outrank this study and should
-stop it.
+C-CORE-21, on the owner's device, at `width=32`, `n_modes=16`, 32 steps -
+**100,680 parameters against the 4,696 every prior result used**, and therefore
+different tensor shapes and different fixed kernels under
+`--xla_gpu_autotune_level=0`:
 
-The CPU scale measurement is a direct warning against assuming scale is
-uneventful: over 2 to 32 steps, absolute divergence grew about 5x while
-**relative divergence did not grow monotonically**, and at 32 steps the parameter
-figure was *below* its 2-step value. Scale did not behave as the earlier evidence
-assumed. There is no reason to expect a GPU to be more obliging.
+| Condition | Runs | Across 3 fresh processes |
+| --- | --- | --- |
+| **Pinned** | 9/9 | **1 weight digest** |
+| Unpinned | 9/9 | 3 digests, one per session |
+| Baseline control, `width=8`/`n_modes=8`/2 steps | 3/3 | reproduces D3's pinned digest exactly |
+
+The baseline control matters: it establishes the harness was unchanged, so the
+scale result is a comparison rather than an artefact of a rebuilt rig.
+
+So the precondition is satisfied and this study is no longer premature. Had it
+failed, that result would have outranked this study and stopped it.
+
+The warning that motivated running it first still stands as a caution about
+extrapolation generally: on CPU, over 2 to 32 steps, absolute divergence grew
+about 5x while **relative divergence did not grow monotonically**, and at 32
+steps the parameter figure was *below* its 2-step value. Scale did not behave as
+the earlier evidence assumed. Cross-device behaviour is likewise not predictable
+from same-device behaviour, which is the entire reason this study exists.
 
 ---
 
@@ -69,16 +81,48 @@ device and would be a wasted study. Either match the CPU ISA across hosts, or pi
 
 | Field | Value |
 | --- | --- |
-| Provider | `HUMAN_INPUT` |
+| Provider | standardized datacenter hardware — **not a heterogeneous marketplace** (see below) |
 | Region / partition | `HUMAN_INPUT` |
-| Host count | **2**, same declared class |
-| Host CPU model and ISA level | `HUMAN_INPUT`, per host |
+| Host count | **2 per class**, same declared class within a pair |
+| Declared class | `HUMAN_INPUT` — pricing informs this choice, it does not make it |
+| Host CPU model and ISA level | `HUMAN_INPUT`, per host — **matched or recorded as differing** |
+| Driver build | `HUMAN_INPUT`, per host — **verified identical before running** |
 | Host memory, cores allocated | `HUMAN_INPUT`, per host |
 | Container runtime and version | `HUMAN_INPUT`, per host |
 | Device count per host | 1 |
 
 A host that does not match its declared class on arrival is **released, not
 substituted**, and the class is not adjusted to fit what arrived.
+
+### The provider constraint, and why it is a design constraint
+
+Procurement research found that a heterogeneous GPU marketplace is the wrong
+instrument for this study, on evidence rather than on preference. One
+Bittensor-native provider lists two pods of the *same* GPU at the *same* price
+whose **host CPUs differ** — an EPYC 9355 in one region, an EPYC 9335 in another.
+
+W3 established that the host CPU instruction-set level changes the weights. A
+pair like that confounds precisely the question this study exists to answer: a
+difference could be the GPU, the CPU, or both, and the design could not separate
+them. So the requirement in §1 that the CPU side be matched or recorded is not
+satisfiable by picking two listings of the same GPU model.
+
+**Two mitigations, and they are complementary rather than alternatives.**
+
+1. **Procure standardized hardware** where GPU model *and* host configuration are
+   specified. This removes the confound at the source.
+2. **Pin `--xla_cpu_max_isa` identically on both hosts** regardless. This is
+   cheap, works even where host CPUs differ, and should be done in addition —
+   procurement can be wrong about what it delivered, and a pinned ceiling makes
+   that visible instead of silent.
+
+This constrains how Carbon procures **its own evidence**. It does not narrow
+validator provider freedom, which is about who may run Carbon.
+
+**Driver builds are recorded, not pinned**, so verify both hosts report the same
+build before running. If they differ, re-provision or record it as a named
+limitation — otherwise a driver difference is indistinguishable from a device
+difference.
 
 ---
 
@@ -179,7 +223,7 @@ invent a threshold to make layers 4 and 5 computable.
 | --- | --- |
 | Wall-clock per invocation | ≤ 600 s productive, 120 s cleanup reserve |
 | Wall-clock per session | ≤ 1800 s |
-| Total wall-clock per host | `REQUIRES_QUOTE` once instance speed is known |
+| Total wall-clock per host | ~54 min run time, ~4 h billed with margin (§6, estimated) |
 | Output per invocation | ≤ 64 MiB |
 | Output per host | ≤ 256 MiB |
 | Retained | every weight digest, every numerics record, every manifest, per-layer comparison tables, and the full identity set per run |
@@ -192,23 +236,76 @@ between stages.
 
 ---
 
-## 6. Costs - no comparative claim without a quote
+## 6. Costs - quoted rates and an estimated runtime
 
-| Line | Amount |
-| --- | --- |
-| Provisioning, per host | `REQUIRES_QUOTE` |
-| Image transfer / download | `REQUIRES_QUOTE` |
-| Setup time, billed | `REQUIRES_QUOTE` |
-| Productive compute | `REQUIRES_QUOTE` |
-| Idle between stages | `REQUIRES_QUOTE` |
-| Cleanup and teardown | `REQUIRES_QUOTE` |
-| Storage and egress | `REQUIRES_QUOTE` |
-| **All-in total** | `REQUIRES_QUOTE` |
+Quoted 2026-09-21 from RunPod Secure Cloud list prices. **Observed list prices,
+not commitments**, superseded by whatever is actually offered at purchase.
 
-No provider is named and no figure is estimated here, in either direction. **No
-comparative cost claim may be made without a quote** - including that one option
-is cheaper than another, and including any claim that the cost is small.
-Obtaining quotes is an owner action. This document authorizes no rental.
+| Class | VRAM | $/hr | 2 hosts x 4 h |
+| --- | --- | --- | --- |
+| RTX A5000 | 24 GB | 0.27 | $2.16 |
+| A40 | 48 GB | 0.49 | $3.92 |
+| L4 | 24 GB | 0.49 | $3.92 |
+| RTX 3090 | 24 GB | 0.50 | $4.00 |
+| RTX A6000 | 48 GB | 0.53 | $4.24 |
+| RTX 4090 | 24 GB | 0.74 | $5.92 |
+| L40S | 48 GB | 1.09 | $8.72 |
+| A100 PCIe / SXM | 80 GB | 1.59 | $12.72 |
+
+Container disk at $0.10/GB/month is negligible at these durations.
+
+### Runtime: estimated, not quoted
+
+Derived from the stage-1 same-device measurements - compile median 2.63 s pinned,
+training median 0.467 s at width 32 / modes 16 / 32 steps - so the compute line is
+measured and everything around it is an estimate.
+
+| Line | Estimate | Basis |
+| --- | --- | --- |
+| Compute per invocation | ~3.1 s | **measured** |
+| Container lifecycle per invocation | ~30-45 s | estimated |
+| Invocations per host | 72 | this plan's matrix |
+| Run time per host | ~54 min | 72 x 45 s |
+| Image pull and verify | 10-25 min | image size not yet measured |
+| Setup, verification, recover, release | ~30 min | estimated |
+| **Billed per host, with margin** | **~4 h** | includes idle, which bills both hosts |
+
+**The dominant cost is container lifecycle and idle, not compute.** The science
+occupies about **3.7 minutes per host**; everything else is overhead. Worth
+knowing before optimising the wrong thing.
+
+### Two classes rather than one
+
+Agreement on a single class establishes that those two devices agree. Agreement
+across **two classes** is materially stronger evidence that the pinned
+configuration delivers cross-device reproducibility as a *property* rather than
+as a coincidence of one kernel set - the same reasoning that made the stage-1
+width and modes increase worth doing, since changing shape changed which fixed
+kernels ran.
+
+**A40 plus L40S: $3.92 + $8.72 = $12.64**, four hosts at four billed hours.
+
+> A source quote document gave this as "~$11". It is **$12.64**. Immaterial to
+> the decision; corrected because an uncorrected cost figure propagates.
+
+A 50% runtime overrun moves these by a few dollars. **The study is not
+cost-constrained at any class** - which is the useful finding, because it means
+the class should be chosen by which one the declared exam environment ought to
+be, not by price.
+
+### Still not quoted
+
+- Image size, so transfer time is a range rather than a figure.
+- Whether a provider can guarantee two simultaneously available units of one
+  class in one region at purchase time.
+- Human time between stages, which bills both hosts.
+
+**The declared class remains `HUMAN_INPUT` and pricing does not decide it.** If
+the exam environment is eventually an L40S or A100 class, the study should
+include that class rather than infer it from a cheaper one.
+
+No comparative cost claim is made beyond the quoted arithmetic above. This
+document authorizes no rental.
 
 ---
 
@@ -244,18 +341,29 @@ explicitly rejects broadening hardware support by loosening tolerances.
 
 ## 9. Required acceptance before any spend
 
-1. Owner acceptance of this specification.
-2. MQ-008 domain acceptance (SCI + SRE).
-3. Same-device representative-scale determinism completed and reported.
-4. Quotes obtained, so the cost table contains numbers rather than
-   `REQUIRES_QUOTE`.
-5. δ stated for every candidate pair, and the smallest effect this study could
-   detect stated with it.
+| | Gate | State |
+| --- | --- | --- |
+| 1 | Owner acceptance of this specification | **outstanding** |
+| 2 | MQ-008 domain acceptance (SCI + SRE) | **outstanding** |
+| 3 | Same-device representative-scale determinism completed and reported | **satisfied** - C-CORE-21, §0 |
+| 4 | Quotes obtained, so costs are numbers rather than `REQUIRES_QUOTE` | **satisfied** - §6 |
+| 5 | Declared class chosen | **outstanding** - `HUMAN_INPUT`, and pricing does not decide it |
+| 6 | Matched-hardware provider identified, driver builds verified equal | **outstanding** - §2 |
+| 7 | δ stated for every candidate pair, with the smallest detectable effect | **outstanding**, and it must come from prior evidence, never from this study's own results |
+
+Gates 3 and 4 are met. **The five that remain are human decisions, and none of
+them is engineering work.** P7 governs: no attempt is spent until gates 1 and 2
+are satisfied, and neither the quote document nor this plan is that acceptance.
 
 ## 10. Status
 
-`SPECIFIED`. Not implemented, not accepted, not funded, not run.
+`SPECIFIED`, and **quoted**. Not accepted, not funded, not run.
+
+Two of the seven acceptance gates are now met: the same-device precondition was
+measured and passed, and the costs are numbers. The remaining five are human
+decisions rather than engineering work - owner acceptance, domain acceptance,
+the declared class, a matched-hardware provider, and the candidate separations.
 
 No formal journaled C-CORE accelerator attempt has been consumed against this
 study, and this study is not one of the four authorized attempts - it would need
-its own authority, its own quotes and its own acceptance.
+its own authority and its own acceptance. Nothing has been rented or reserved.

@@ -114,6 +114,29 @@ paid spend. Pinned image, labels verified. Local host only.
 
 # Experiment 2 — Representative workload, same device
 
+> **RUN AND COMPLETE under C-CORE-21, 2026-09-21. Pinned determinism held.**
+>
+> Nine runs across three fresh processes at `width=32`, `n_modes=16`, 32 steps -
+> **100,680 parameters** against the 4,696 this section was written about -
+> produced **one weight digest**. The unpinned condition still gave three, one
+> per session, and a baseline control reproduced D3's pinned digest exactly,
+> establishing the harness was unchanged.
+>
+> The design below was extended in one respect before running: it proposed
+> repeating at 8 and 32 *steps*, and step count turned out to be the weaker axis.
+> With `--xla_gpu_autotune_level=0` the kernel is fixed **per shape**, so more
+> steps run the *same* kernel more times while a different width or mode count
+> selects a **different fixed kernel**. The fixture was widened to express model
+> shape first, and the run varied shape rather than only length.
+>
+> Evidence:
+> `.agent/evidence/wave_c/c-core-21-representative-scale-determinism.md`.
+> Target and its justification: `docs/development/REPRESENTATIVE_SCALE_TARGET.md`.
+> Harness: `scripts/dev/gpu_determinism_study/`.
+>
+> **Still open:** training length remains 16x below the catalog default of 512
+> steps, and depth is unchanged at 1 against a catalog default of 2.
+
 **Priority 2.** Tests the assumption the current policy rests on.
 
 ## Why
