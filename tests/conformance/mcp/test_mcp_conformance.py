@@ -249,3 +249,42 @@ def test_the_conformance_lane_is_actually_wired():
     assert (
         'CARBON_REQUIRE_TYPESCRIPT_INTEROP: "1"' in workflow
     ), "the canonical job no longer sets the flag the conformance lane sits behind"
+
+
+def test_the_leak_stub_still_leaks_without_a_literal_host_path():
+    """Satisfying the hygiene scanner must not defang the stub.
+
+    The leak fixture assembles its host path at runtime because the delivery
+    hygiene scanner cannot distinguish a deliberate fixture from a real slip.
+    Both halves are asserted here: that the source carries no literal host path,
+    so the scanner stays useful for genuine slips, and that the value it builds
+    is still something the conformance leak check detects. Fixing only the first
+    would quietly turn the negative control into a no-op.
+    """
+    import importlib.util
+    import re
+
+    source_path = STUBS / "error_leaks_internals.py"
+    source = source_path.read_text(encoding="utf-8")
+    assert not re.search(
+        r"(?<![A-Za-z0-9_.-])/(?:Users|home)[\\/]+\w", source
+    ), "the stub reintroduced a literal host path, which the hygiene scanner rejects"
+
+    specification = importlib.util.spec_from_file_location(
+        "conformance_leak_stub", source_path
+    )
+    module = importlib.util.module_from_spec(specification)
+    sys.path.insert(0, str(STUBS))
+    try:
+        specification.loader.exec_module(module)
+    finally:
+        sys.path.remove(str(STUBS))
+
+    # The same patterns the runner judges refusals against.
+    assert re.search(
+        r"/(?:home|Users|root|private|var/folders)/", module.LEAKED_PATH
+    ), "the assembled path is no longer a detectable host-path leak"
+    assert re.search(
+        r"\b(Bearer|token|secret|password|api[_-]?key)\b\s*[:=]\s*\S+",
+        module.LEAKED_CREDENTIAL,
+    ), "the assembled credential is no longer a detectable credential leak"
