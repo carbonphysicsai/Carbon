@@ -51,6 +51,31 @@ def test_every_published_value_is_read_from_the_runtime_it_describes():
     ] == list(reconstruction_profile.DEPENDENCY_SPECS)
 
 
+def test_envelope_tracks_the_accepted_host_allocation_change():
+    """C-CORE-19 replaced a literal cpuset with one resolved from the host.
+
+    Before it, the cpuset was the exact string "0,1", so two reconstructions
+    could never run at once on any host. The published envelope said
+    "concurrency: 1" as a flat literal, which would now understate what a
+    validator can do. This asserts the disclosure moved with the runtime rather
+    than being left behind, since a hardcoded field is exactly what the
+    read-from-source drift test cannot catch.
+    """
+    envelope = exam_environment()["resource_envelope"]
+    assert envelope["concurrency_per_launch"] == 1
+    assert envelope["concurrent_launches_possible"] is True
+    assert envelope["cpu_allocation"] == "QUOTA_FIXED_CPUSET_RESOLVED_FROM_HOST"
+    assert "concurrency" not in envelope, "the flat literal must not linger"
+
+
+def test_resource_sizing_claim_carries_its_scope_limit():
+    """A measured result published without its limits is a bigger claim."""
+    sizing = exam_environment()["resource_sizing"]
+    assert sizing["affects_numerical_result"] is False
+    assert "one host" in sizing["scope_limit"].lower()
+    assert sizing["evidence"].startswith(".agent/evidence/")
+
+
 def test_declared_is_never_served_as_qualified():
     value = exam_environment()
     assert value["qualification"]["declared"] is True

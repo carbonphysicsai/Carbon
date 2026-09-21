@@ -66,8 +66,15 @@ def _containment() -> dict[str, object]:
 
 def _envelope() -> dict[str, object]:
     return {
-        "concurrency": 1,
+        # Per launch. Until C-CORE-19 the cpuset was the literal "0,1", so two
+        # reconstructions could never run at once on any host - both demanded
+        # those exact cores. The cpuset is now resolved from the host, so a
+        # validator working through a queue is no longer serialised by a string
+        # literal. The per-launch quota below is unchanged.
+        "concurrency_per_launch": 1,
+        "concurrent_launches_possible": True,
         "cpu_count": worker.CPU_COUNT,
+        "cpu_allocation": "QUOTA_FIXED_CPUSET_RESOLVED_FROM_HOST",
         "memory_bytes": worker.MEMORY_BYTES,
         "swap_bytes": worker.SWAP_BYTES,
         "pids_limit": worker.PIDS_LIMIT,
@@ -160,4 +167,17 @@ def exam_environment() -> dict[str, object]:
             "ANY_TOLERANCE_OR_ACCEPTANCE_THRESHOLD",
             "GPU_BACKEND_COVERAGE",
         ],
+        # Measured under N2 and reported because it bears on what a miner can
+        # infer from the envelope above: varying usable cores (1, 2, 4, 8) and
+        # the memory ceiling (2, 4, 8 GiB), and running two simultaneous
+        # reconstructions on disjoint cpusets, left the trained weights
+        # byte-identical across eighteen runs. Sizing is therefore a cost and
+        # throughput question on that evidence, not a reproducibility one - on
+        # one host, one backbone, at two steps, which is the whole of it.
+        "resource_sizing": {
+            "affects_numerical_result": False,
+            "basis": "N2: eighteen runs across core counts, memory ceilings and two simultaneous disjoint-cpuset runs produced byte-identical weights.",
+            "scope_limit": "One host, one backbone, two training steps. Not a cross-host or general claim.",
+            "evidence": ".agent/evidence/wave_c/c-core-19-host-resource-allocation.md",
+        },
     }

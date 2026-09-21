@@ -443,6 +443,157 @@ def test_campaign_selects_the_research_runtime_its_manifest_declares(
     c.tasks.close()
 
 
+def _install_gpu_record(root, image, *, name=None, padding=0):
+    """Write the operator's fixed GPU image record, as an operator tool would."""
+    path = root / (name or gpu.GPU_IMAGE_RECORD)
+    document = {"schema": "carbon.c03.worker-image.v1", **asdict(image)}
+    if padding:
+        document["padding"] = "x" * padding
+    path.write_bytes(canonical(document))
+    path.chmod(0o600)
+    return path
+
+
+def test_gpu_record_positive_control_resolves(tmp_path, monkeypatch):
+    """The control for the three guard cases below.
+
+    Without a case that is *supposed* to succeed, a guard test proves only that
+    something failed, not that the guard is what failed it.
+    """
+    data, ledger, image, _calls, c = fixture(tmp_path, monkeypatch)
+    runtime = ledger.admission.document["runtime"]
+    _install_gpu_record(ledger.root, image)
+    assert gpu.registered_gpu_image(ledger.root, runtime, data.role_root) == image
+    c.tasks.close()
+
+
+def test_gpu_record_refuses_an_aliased_path(tmp_path, monkeypatch):
+    """`path.resolve() != path` - the record itself, and its parent directory.
+
+    A general `private_file` test does not exercise this: `private_file` checks
+    absoluteness, symlink-ness and permissions, and this call site adds a
+    separate identity condition on top of it. Both aliases are covered because
+    a parent alias resolves differently while the leaf is an ordinary file.
+    """
+    data, ledger, image, _calls, c = fixture(tmp_path, monkeypatch)
+    runtime = ledger.admission.document["runtime"]
+
+    # The record's own path is a symlink to a valid record elsewhere.
+    real = _install_gpu_record(ledger.root, image, name="real-gpu-image.json")
+    link = ledger.root / gpu.GPU_IMAGE_RECORD
+    link.symlink_to(real)
+    with pytest.raises(ValueError):
+        gpu.registered_gpu_image(ledger.root, runtime, data.role_root)
+    link.unlink()
+
+    # The directory the record is read through is an alias of the campaign root.
+    _install_gpu_record(ledger.root, image)
+    aliased_root = tmp_path / "campaign-alias"
+    aliased_root.symlink_to(ledger.root)
+    with pytest.raises(ValueError):
+        gpu.registered_gpu_image(aliased_root, runtime, data.role_root)
+
+    # Control: through the real path it still resolves.
+    assert gpu.registered_gpu_image(ledger.root, runtime, data.role_root) == image
+    c.tasks.close()
+
+
+def test_gpu_record_refuses_an_oversized_record_before_parsing_it(
+    tmp_path, monkeypatch
+):
+    """`stat().st_size > 65536`, and it must refuse *before* the image parser.
+
+    The size bound exists so an unbounded operator file never reaches the
+    parser. Asserting only that it raises would pass even if the parser ran
+    first, so the parser is replaced with one that fails the test if called.
+    """
+    data, ledger, image, _calls, c = fixture(tmp_path, monkeypatch)
+    runtime = ledger.admission.document["runtime"]
+    _install_gpu_record(ledger.root, image, padding=70000)
+    assert (ledger.root / gpu.GPU_IMAGE_RECORD).stat().st_size > 65536
+
+    from carbon.reconstruction.worker import docker_runtime
+
+    monkeypatch.setattr(
+        docker_runtime,
+        "load_image_identity",
+        lambda *a, **k: pytest.fail("oversized record reached the image parser"),
+    )
+    with pytest.raises(ValueError, match="fixed bounded GPU image record"):
+        gpu.registered_gpu_image(ledger.root, runtime, data.role_root)
+    c.tasks.close()
+
+
+def test_gpu_record_refuses_a_wellformed_record_bound_to_other_material(
+    tmp_path, monkeypatch
+):
+    """The scope is recomputed, so an individually valid record is not enough.
+
+    The record here parses, the declared scope passes the shape check, and the
+    two still describe different material. Only recomputation catches that.
+    """
+    data, ledger, image, _calls, c = fixture(tmp_path, monkeypatch)
+    runtime = ledger.admission.document["runtime"]
+    _install_gpu_record(ledger.root, image)
+
+    altered = dict(runtime["gpu_research"][0])
+    altered["public_train_digest"] = "sha256:" + "0" * 64
+    assert gpu.declared_gpu_runtime({"gpu_research": [altered]}) == [altered]
+    with pytest.raises(ValueError, match="exact prospective GPU"):
+        gpu.registered_gpu_image(
+            ledger.root, {"gpu_research": [altered]}, data.role_root
+        )
+
+    # A different but individually well-formed image record, same declared
+    # scope. image_id and config_digest move together because the identity
+    # refuses to construct otherwise - the record has to be genuinely valid for
+    # this to isolate the scope binding rather than the parser.
+    identity = "sha256:" + "9" * 64
+    other = replace(image, image_id=identity, config_digest=identity)
+    _install_gpu_record(ledger.root, other)
+    (ledger.root / gpu.GPU_IMAGE_RECORD).chmod(0o600)
+    with pytest.raises(ValueError, match="exact prospective GPU"):
+        gpu.registered_gpu_image(ledger.root, runtime, data.role_root)
+    c.tasks.close()
+
+
+def test_cli_and_campaign_reach_the_same_checked_resolver(tmp_path, monkeypatch):
+    """Both composition routes delegate; neither carries its own copy."""
+    from carbon.development_session.research_campaign import research_practice
+
+    data, ledger, image, _calls, c = fixture(tmp_path, monkeypatch)
+    runtime = ledger.admission.document["runtime"]
+    _install_gpu_record(ledger.root, image)
+
+    seen = []
+    original = gpu.registered_gpu_image
+
+    def recording(*args, **kwargs):
+        seen.append(args[:1])
+        return original(*args, **kwargs)
+
+    # Patched in both namespaces: the campaign binds the name at import, so
+    # patching only the defining module would silently miss that route and the
+    # assertion below would be measuring the wrong thing.
+    from carbon.development_session import research_campaign as campaign
+
+    monkeypatch.setattr(gpu, "registered_gpu_image", recording)
+    monkeypatch.setattr(campaign, "registered_gpu_image", recording)
+    assert _gpu_image(ledger.root, runtime, data.role_root) == image
+    chosen = research_practice(
+        ledger.root,
+        {"runtime": runtime},
+        data=data,
+        role_root=data.role_root,
+        ledger=ledger,
+        owner=data.owner,
+        image=data.image,
+    )
+    assert type(chosen) is gpu.PublicGPUPractice
+    assert len(seen) == 2, "both routes must reach the shared resolver"
+    c.tasks.close()
+
+
 @pytest.mark.parametrize("relative", [".", "child", ".."])
 def test_controller_storage_cannot_overlap_operation(tmp_path, relative):
     directory = tmp_path / "operation"

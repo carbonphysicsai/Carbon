@@ -151,8 +151,10 @@
         const reason = document.createElement("p"); reason.textContent = item.reason.replaceAll("_", " ");
         card.append(title, reason); $("integrations").append(card);
       }
-      renderComputeChoices(catalog.research_compute || []);
+      // Order matters: renderExamEnvironment clears the panel before filling
+      // it, so the compute choices are appended after it rather than before.
       await renderExamEnvironment();
+      renderComputeChoices(catalog.research_compute || []);
       message("Connected. Records persist on this machine. Research dispatch requires the separate approved profile shown below.");
       await refresh();
       if (storageError) message("Browser retry storage is unavailable. Launch is disabled to preserve duplicate protection.", true);

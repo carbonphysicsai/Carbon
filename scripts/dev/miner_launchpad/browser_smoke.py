@@ -256,6 +256,36 @@ def run():
                     assert session.evaluate(
                         "document.getElementById('research-launch').disabled"
                     )
+
+                    # The public exam disclosure and the miner's own compute
+                    # choices, rendered by the page from its own fetches. No
+                    # research profile, grant, model key or agent is configured
+                    # on this server, which is the point: reading what the exam
+                    # runs on must not be gated behind any of them.
+                    wait(
+                        session,
+                        "document.getElementById('exam-environment')"
+                        ".textContent.includes('carbon.c03.linux-x86_64-cpu.development.v1')",
+                    )
+                    exam = session.evaluate(
+                        "document.getElementById('exam-environment').textContent"
+                    )
+                    # Declared, and never dressed up as qualified.
+                    assert "declared, not qualified" in exam, exam[:400]
+                    assert "UNRESOLVED" in exam
+                    # The owner's direction, visible to the miner reading it.
+                    assert "does not have to match it" in exam
+                    assert "declarative training strategy" in exam
+                    # Destinations the miner may actually pick.
+                    for choice in ("local cpu", "local gpu", "attach existing remote"):
+                        assert choice in exam, choice
+                    # What a miner is explicitly not held to.
+                    assert "strict host grant" in exam
+                    assert "whole device exclusivity" in exam
+                    # Nothing private reaches the page.
+                    for forbidden in ("/var/lib/carbon", "Bearer", "seed"):
+                        assert forbidden not in exam, forbidden
+
                     click(session, "launch-button")
                     state(session, "QUEUED")
                     run_id = store.recent()[0]["id"]
@@ -606,7 +636,7 @@ def run():
             finally:
                 session.close()
     print(
-        "Launchpad browser/server smoke passed: connect, launch, lost-response/reload retry, pause/resume/stop, export, storage failure, restart, expiry, desktop/mobile, fixture readback/export invalidation. No scientific campaign ran."
+        "Launchpad browser/server smoke passed: connect, public exam disclosure and research compute choices without a grant or agent, launch, lost-response/reload retry, pause/resume/stop, export, storage failure, restart, expiry, desktop/mobile, fixture readback/export invalidation. No scientific campaign ran."
     )
 
 
