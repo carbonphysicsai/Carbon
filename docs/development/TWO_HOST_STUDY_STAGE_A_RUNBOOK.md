@@ -34,7 +34,33 @@ The volume must carry two things:
 | Item | Why |
 |---|---|
 | The Carbon checkout at the study revision | the image predates C-CORE-20 and does not contain the current code |
-| `pytest`, importable | material derivation reaches a test module: `prepare.py` -> `c02_fixtures` -> `b02b_fixtures` -> `test_b02a_contract_models` -> `pytest`. The tree digest covers `tests/`, so this dependency is pinned rather than loose, but the interpreter still has to find the package |
+| `pytest`, importable | material derivation reaches a test module: `prepare.py` -> `c02_fixtures` -> `b02b_fixtures` -> `test_b02a_contract_models` -> `pytest`. The interpreter has to find the package, and the pinned image has no `pytest` |
+
+### Which revision, exactly
+
+**The study revision must contain all three of** `run_on_pod.sh`,
+`stage_manifest.py` and `device_identity.py`, not only the runner. This is not
+hypothetical: a revision exists with the runner and without its helpers, and
+staging it would produce a session that fails on the first line of the revision
+check, on a rented pod, having proved nothing. Confirm all three are present in
+the checkout before terminating the staging pod.
+
+So the revision is a **merged commit on `main` at or after the pod-path fix**,
+recorded in the execution class alongside the image digest. Neither pin
+substitutes for the other: the image predates the current code, so the digest
+does not pin what executed, and the revision does not pin the interpreter or the
+CUDA stack.
+
+### What the tree digest does not cover
+
+`stage_manifest` digests the **checkout**. It does not digest `/vol/site-packages`,
+so the `pytest` installed beside it is outside the pin: a different `pytest`
+would not move the tree digest and would not be refused. Install a pinned version
+rather than a floating one, and record which. The pod-path verification that
+produced the digests in the plan used **pytest 9.1.1**, so that is the version
+pinned below; changing it changes an input the manifest cannot see. This is a real limit of the
+provenance claim and is stated here rather than left for a reader to assume the
+digest covers everything importable.
 
 ## Step 1 - network volume
 
@@ -45,11 +71,18 @@ Same datacenter as the GPU pod, or it cannot be mounted.
 
 Cheapest CPU pod on a standard image with `git`. Mount the volume read-write.
 
+The repository is public, so this needs **no credential** - which matters,
+because it means no token is written to a rented machine.
+
 ```bash
 git clone https://github.com/carbonphysicsai/Carbon.git /vol/carbon
 git -C /vol/carbon checkout <STUDY_REVISION>
+
+# All three must be present, or the GPU pod cannot run.
+ls /vol/carbon/scripts/dev/gpu_determinism_study/{run_on_pod.sh,stage_manifest.py,device_identity.py}
+
 rm -rf /vol/carbon/.git          # not part of the tree under test
-pip install --target /vol/site-packages pytest
+pip install --target /vol/site-packages 'pytest==9.1.1'   # pin it; see above
 
 python /vol/carbon/scripts/dev/gpu_determinism_study/stage_manifest.py \
     write /vol/carbon <STUDY_REVISION>
