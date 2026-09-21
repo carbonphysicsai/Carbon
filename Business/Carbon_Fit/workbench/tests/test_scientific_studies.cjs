@@ -100,7 +100,41 @@ test("service denial and transport uncertainty do not become candidate scientifi
   assert.equal(ctx.controller.snapshot().run.response, null); assert.equal(ctx.controller.snapshot().busy, false);
   assert.equal(ctx.design().decision.scientific_qualification, "NOT_QUALIFIED");
 });
-test("same-origin adapter has fixed endpoints, no redirect or explicit credential input", async () => {
-  const seen = [], adapter = S.createAdapter(async (url, options) => { seen.push([url, options]); return { ok: true, text: async () => JSON.stringify(capability()) }; });
-  await adapter.capabilities(); assert.equal(seen[0][0], "/api/scientific-studies/capabilities"); assert.equal(seen[0][1].credentials, "same-origin"); assert.equal(seen[0][1].redirect, "error");
+const TOKEN = "staff-token-for-tests-0000000000000000";
+test("same-origin adapter has fixed endpoints, no redirect, and carries the staff credential", async () => {
+  const seen = [], adapter = S.createAdapter(async (url, options) => { seen.push([url, options]); return { ok: true, text: async () => JSON.stringify(capability()) }; }, () => TOKEN);
+  await adapter.capabilities();
+  assert.equal(seen[0][0], "/api/scientific-studies/capabilities"); assert.equal(seen[0][1].credentials, "same-origin"); assert.equal(seen[0][1].redirect, "error");
+  // The private host authenticates every scientific route. The adapter itself
+  // must send the credential; a test that supplies the header proves nothing.
+  assert.equal(seen[0][1].headers.Authorization, "Bearer " + TOKEN);
+  const request = { schema: S.REQUEST, operation_id: "op" };
+  await adapter.start(request);
+  assert.equal(seen[1][0], "/api/scientific-studies/start");
+  assert.equal(seen[1][1].headers.Authorization, "Bearer " + TOKEN);
+  assert.equal(seen[1][1].headers["Content-Type"], "application/json");
+  // The credential never reaches a URL or a request body.
+  for (const [url, options] of seen) {
+    assert.equal(url.includes(TOKEN), false);
+    assert.equal(String(options.body ?? "").includes(TOKEN), false);
+  }
+});
+test("adapter refuses to call the private service without a usable staff credential", async () => {
+  let called = false;
+  const fetcher = async () => { called = true; return { ok: true, text: async () => "{}" }; };
+  for (const supply of [() => null, () => "", () => "too-short", () => "has spaces in it and is long enough to pass length", () => 12345]) {
+    const adapter = S.createAdapter(fetcher, supply);
+    await assert.rejects(() => adapter.capabilities(), /staff access token/);
+  }
+  const missing = S.createAdapter(fetcher);
+  await assert.rejects(() => missing.capabilities(), /staff access token/);
+  assert.equal(called, false, "no request may leave the browser without a credential");
+});
+test("a rejected credential is reported as a credential problem, not a dead service", async () => {
+  const adapter = S.createAdapter(async () => ({ ok: false, status: 401, text: async () => "" }), () => TOKEN);
+  await assert.rejects(() => adapter.capabilities(), /rejected this staff credential/);
+  const denied = S.createAdapter(async () => ({ ok: false, status: 403, text: async () => "" }), () => TOKEN);
+  await assert.rejects(() => denied.capabilities(), /rejected this staff credential/);
+  const broken = S.createAdapter(async () => ({ ok: false, status: 500, text: async () => "" }), () => TOKEN);
+  await assert.rejects(() => broken.capabilities(), /unavailable or request denied/);
 });

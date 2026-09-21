@@ -85,3 +85,38 @@ is relabelled to reach a service it has no rights to.
 
 W-C deployment acceptance is out of scope and remains blocked on external
 authority. This ticket delivers W-A and the engineering half of W-B.
+
+## Successor repairs (GOAL-WORKBENCH-13)
+
+Review of the merged implementation found three defects. Each was reproduced
+from the current source before any change, and each repair keeps a regression
+that fails against the merged code.
+
+**F1 — the browser could not authenticate.** Adding a bearer requirement to the
+scientific routes without giving the browser study adapter a credential left the
+real browser connection returning 401 on every route. The API-level tests set the
+header themselves, so the suite passed with the browser path broken. A staff
+member now enters their own operator-issued token in the study panel; the adapter
+sends it on every scientific route and refuses to call without one. The token is
+held in memory for that browser tab only and is never embedded in the build,
+stored, placed in a URL, or written into an export or saved study. The loopback
+fixture host now authenticates through the same `StaffPrincipals` record instead
+of trusting any loopback client, so a fixture run can no longer pass while the
+real credential path is broken.
+
+**F2 — a completing notification could erase concurrent writes.** Outbox
+completion persisted a store snapshot captured before its await, so an assessment
+filed, an attempt recorded or an inquiry deleted during the delivery window was
+overwritten, and a deleted record could be resurrected. Completion now merges
+into current state and refuses to revive an event removed while its delivery was
+in flight.
+
+**F3 — one failed write blocked the store permanently.** A write or flush failure
+left the fixed PID-named temporary file behind, and every later write failed
+`EEXIST` against the exclusive create. The temporary name is now unique per
+attempt and is removed on every failure path.
+
+Acceptance scopes are reported separately: `workbench_science_checks.sh` is not
+the read-only release-freshness gate and neither is a product-browser journey.
+The browser suites were not executed in this session; the development host has no
+usable Chromium.
