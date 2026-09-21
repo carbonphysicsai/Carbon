@@ -110,6 +110,30 @@ reconstruction if the three XLA flags, `NVIDIA_TF32_OVERRIDE=0`,
 `CUBLAS_WORKSPACE_CONFIG=:4096:8` or the GPU backend are not actually in effect,
 emitting a `REFUSED_UNPINNED` record naming each one.
 
+**It also refuses the wrong environment, by properties rather than by digest.**
+Under `docker run` the image was named by digest in the command, so the daemon
+enforced it. On a pod it is whatever was selected at provisioning, and a tag
+instead of a digest resolves to something else silently. So the run checks the
+interpreter, `jax` and `jaxlib` versions and the CUDA line against what the
+profile declares, and refuses with `REFUSED_WRONG_ENVIRONMENT` on a mismatch.
+
+**This is strictly weaker than comparing the image digest and must be recorded in
+those words.** A container cannot read its own image digest - labels and digests
+are registry and daemon metadata, not filesystem - so what is checked are the
+properties the digest was pinning, never byte identity with the published image.
+Where a property cannot be read at all, as the CUDA runtime version cannot be on
+some plugin builds, the run records it as **unverifiable** and proceeds rather
+than refusing: treating "could not check" as "wrong" would be the same error as
+treating "could not observe" as "nothing was there". The record carries which
+properties were verified and which were not, so the evidence never implies a
+check that did not happen.
+
+**Materials are derived in the pod**, from the pinned revision, rather than
+shipped in. Copying them would introduce a third thing to trust - the machine
+that staged them - whose state is not part of the execution class and is recorded
+nowhere. Deriving them in place means the execution class already describes them,
+and the plan digest is asserted either way.
+
 > **Record the path actually used**, in these words where they apply: *direct
 > execution inside the pinned image; not `validator_launch`; containment from the
 > provider's runtime.* A study that measured a different path than the one it

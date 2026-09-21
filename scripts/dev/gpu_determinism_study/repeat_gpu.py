@@ -83,6 +83,96 @@ record = {
     "runs": [],
 }
 
+# Verify this is the declared execution environment, rather than assuming it.
+#
+# Under `docker run` the image was named by digest in the command, so the daemon
+# enforced it. On a pod the image is whatever was selected at provisioning, and a
+# tag instead of a digest, or a mis-selected template, resolves to something else
+# silently - the same failure shape as an unpinned run: correct in every respect,
+# numbers from a different CUDA or jaxlib stack, divergence blamed on the device.
+#
+# **This is strictly weaker than comparing the image digest, and deliberately so.**
+# A container cannot read its own image digest: labels and digests are registry
+# and daemon metadata, not filesystem. So this checks the *properties the digest
+# was pinning* - interpreter, jax and jaxlib versions, CUDA major - against what
+# the profile declares. It catches the realistic failure. It does not establish
+# byte identity with the published image and must never be recorded as if it had.
+#
+# It runs on both conditions, not only the pinned one: an unpinned contrast run
+# on the wrong image would make the contrast meaningless.
+if os.environ.get("STUDY_REQUIRE_IMAGE") == "1":
+    import platform
+
+    declared = GPU_PROFILE.document()
+    numerics = record["numerics"]
+    found = {
+        "python": platform.python_version(),
+        "jax": getattr(jax, "__version__", None),
+    }
+    try:
+        import jaxlib
+
+        found["jaxlib"] = getattr(jaxlib, "__version__", None)
+    except Exception:  # noqa: BLE001
+        found["jaxlib"] = None
+
+    mismatched = [
+        f"{name}: running {found[name]!r}, profile declares {declared.get(name)!r}"
+        for name in ("python", "jax", "jaxlib")
+        if found[name] != declared.get(name)
+    ]
+    # The profile id names the CUDA line the image is built against; the numerics
+    # record reports what the runtime offers - when it can. Those version readers
+    # are optional and vary by plugin build, so an unreadable value is `None`.
+    #
+    # `None` is *not* a mismatch. Refusing on it would treat "could not check"
+    # as "wrong", which is the same error as treating "could not observe" as
+    # "nothing was there - and it would refuse every run on a build whose
+    # readers are absent, including this one. What it does instead is record the
+    # check as unperformed, so the evidence never implies a verification that
+    # did not happen.
+    unverifiable = []
+    cuda = numerics.get("cuda_version")
+    if "cuda13" in declared.get("profile_id", ""):
+        if isinstance(cuda, int):
+            if cuda // 1000 != 13:
+                mismatched.append(
+                    f"CUDA runtime major is {cuda // 1000}, profile declares cuda13"
+                )
+        else:
+            unverifiable.append(
+                "CUDA runtime version is unreadable on this build; "
+                "the cuda13 line was not verified"
+            )
+    # Carried in the record rather than printed: the record is what the evidence
+    # reads, and an incomplete check has to be visible there rather than in a log
+    # someone may not keep.
+    record["environment_check"] = {
+        "verified": ["python", "jax", "jaxlib"],
+        "unverifiable": unverifiable,
+        "note": "declared properties only, NOT the image digest",
+    }
+    if mismatched:
+        print("RECORD_BEGIN")
+        print(
+            json.dumps(
+                {
+                    "label": label,
+                    "status": "REFUSED_WRONG_ENVIRONMENT",
+                    "checked": "declared properties only, NOT the image digest",
+                    "problems": mismatched,
+                    "numerics": numerics,
+                },
+                indent=1,
+                sort_keys=True,
+            )
+        )
+        print("RECORD_END")
+        raise SystemExit(
+            "refusing to run: this is not the declared execution environment. "
+            + "; ".join(mismatched)
+        )
+
 # Verify the pinned configuration took effect, rather than assuming it did.
 #
 # Under `docker run` the flags arrived as `-e` arguments the daemon applied, so

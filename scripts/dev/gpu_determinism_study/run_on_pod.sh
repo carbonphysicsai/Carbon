@@ -39,7 +39,7 @@
 set -euo pipefail
 LABEL="${1:?usage: run_on_pod.sh <label>}"
 
-: "${STUDY_MATERIALS:?set STUDY_MATERIALS to the staged materials directory}"
+: "${STUDY_MATERIALS:?set STUDY_MATERIALS to the materials directory}"
 : "${STUDY_RESULTS:?set STUDY_RESULTS to a writable results directory}"
 : "${CARBON_REPO:?set CARBON_REPO to the Carbon checkout to run from}"
 : "${CARBON_REVISION:?set CARBON_REVISION to the revision CARBON_REPO should be at}"
@@ -65,6 +65,25 @@ KIND="$(nvidia-smi --query-gpu=name --format=csv,noheader | head -1)"
 SCRATCH="${STUDY_SCRATCH:-/work}"
 mkdir -p "${SCRATCH}/tmp" "${STUDY_RESULTS}"
 
+# Materials are derived here, in the pod, from the pinned revision - not shipped
+# in. `prepare.py` reads no external data: it needs the repository and nothing
+# else, and the repository is already required to be at CARBON_REVISION and
+# clean.
+#
+# That is better than a transfer rather than merely easier. Copying materials in
+# introduces a third thing to trust - the machine that staged them - whose state
+# is not part of the execution class and is recorded nowhere. Deriving them in
+# place means the execution class already describes them, and the plan digest is
+# asserted, so a compilation that somehow differed is found rather than carried.
+if [ ! -f "${STUDY_MATERIALS}/materials.json" ]; then
+  echo "staging materials in-pod from ${CARBON_REVISION}"
+  STUDY_OUT="${STUDY_MATERIALS}" \
+    "${STUDY_PYTHON:-python3}" \
+    "${CARBON_REPO}/scripts/dev/gpu_determinism_study/prepare.py"
+fi
+[ -f "${STUDY_MATERIALS}/materials.json" ] || {
+  echo "materials were not produced at ${STUDY_MATERIALS}" >&2; exit 2; }
+
 # Exported before python starts: XLA reads these at import, so setting them
 # afterwards would be silently too late. `repeat_gpu.py` reads the numerics
 # record back and refuses the run if they did not take effect, which is the only
@@ -84,6 +103,10 @@ export D3_RESULTS="${STUDY_RESULTS}/${LABEL}.json"
 export D3_LABEL="${LABEL}"
 export D3_RUNS="${RUNS}"
 export D3_DEVICE_UUID="${UUID}"
+
+# Checked on both conditions. An unpinned contrast run on the wrong image would
+# make the contrast meaningless, so this is not gated on PINNED.
+export STUDY_REQUIRE_IMAGE=1
 
 if [ "${PINNED}" = "1" ]; then
   export XLA_FLAGS="--xla_gpu_deterministic_ops=true --xla_gpu_exclude_nondeterministic_ops=true --xla_gpu_autotune_level=0"
