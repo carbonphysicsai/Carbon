@@ -1,5 +1,18 @@
 # Carbon Goal-to-Challenge Workbench v0.10
 
+GOAL-WORKBENCH-13 repairs three defects found in review of the merged
+GOAL-WORKBENCH-12. The browser study adapter never sent the bearer credential
+the private host requires, so the real browser connection failed while the
+API-level tests, which set the header themselves, passed; a staff member now
+enters their own token in the study panel, the adapter sends it on every
+scientific route, and it is held in memory for that tab only. Completing a
+notification persisted a store snapshot captured before its await, so an
+assessment filed or an inquiry deleted during delivery could be erased or
+resurrected; completion now merges into current state. A failed write or flush
+left a fixed PID-named temporary file behind and every later write failed
+`EEXIST`; the temporary name is unique per attempt and removed on every failure
+path. Each defect has a regression that fails against the previous code.
+
 GOAL-WORKBENCH-12 makes the connected internal workflow startable as one
 product. `carbon.scientific_tasks.workbench_host` composes the existing
 admitted research campaign, the registered public Julia material,

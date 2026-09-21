@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
-import { access, cp, mkdir, readFile, writeFile } from "node:fs/promises";
-import { dirname, join, resolve } from "node:path";
+import { lstat, mkdir, mkdtemp, opendir, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { basename, dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const KNOWN_LIVE_SHA256 = "5ebb43e859e9837f74bbc93b5748b2db95a6700821afbfcecb407e75702e2020";
@@ -9,13 +9,36 @@ const OWNER_UPLOAD_RECONCILIATION = "owner-upload-2026-09-18-plus-workbench-navi
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, "..");
 const PILOT_DESIGNER = resolve(ROOT, "../../Business/Carbon_Fit/workbench/Carbon_Client_Pilot_Designer_Preview.html");
+const DEFAULT_BASELINE_MANIFEST = resolve(ROOT, "production-baseline.manifest.json");
 
-// `carbonwebsite` is a Cloudflare static-assets Worker: a deployment replaces
-// the whole asset set, so any path missing from the uploaded directory is
-// removed from production. These are the non-Ask-Carbon paths observed live on
-// 2026-09-19 at https://carbonphysics.ai. Deploying a directory that lacks any
-// of them would silently withdraw the existing homepage assets or the
-// Workbench route, so production bundles must fail closed instead.
+// The homepage the bundle publishes is the integrated document, not the
+// baseline copy of the currently deployed homepage.
+const REPLACED_BY_INTEGRATION = "index.html";
+
+const sha256 = (buffer) => createHash("sha256").update(buffer).digest("hex");
+
+export const loadBaselineManifest = async (path = DEFAULT_BASELINE_MANIFEST) => {
+  const manifest = JSON.parse(await readFile(path, "utf8"));
+  if (!Array.isArray(manifest.assets) || manifest.assets.length === 0) {
+    throw new Error(`Baseline manifest ${path} lists no assets.`);
+  }
+  const seen = new Set();
+  for (const asset of manifest.assets) {
+    if (typeof asset.path !== "string" || !asset.path) throw new Error(`Baseline manifest ${path} has an asset without a path.`);
+    if (asset.path.startsWith("/") || asset.path.split("/").some((part) => !part || part === "." || part === "..")) {
+      throw new Error(`Baseline manifest ${path} has an unbounded asset path: ${asset.path}`);
+    }
+    if (!/^[0-9a-f]{64}$/.test(asset.sha256 ?? "")) throw new Error(`Baseline manifest ${path} has no SHA-256 for ${asset.path}.`);
+    if (!Number.isInteger(asset.bytes) || asset.bytes <= 0) throw new Error(`Baseline manifest ${path} has no positive byte size for ${asset.path}.`);
+    if (seen.has(asset.path)) throw new Error(`Baseline manifest ${path} lists ${asset.path} twice.`);
+    seen.add(asset.path);
+  }
+  return manifest;
+};
+
+// Retained as regression coverage of the paths observed live on 2026-09-19/20.
+// This list is a floor, never a proof of a complete inventory: completeness is
+// asserted only by `manifest.inventory_complete`.
 export const REQUIRED_PRODUCTION_PATHS = Object.freeze([
   "index.html",
   "assets/carbon-66e3549179d4.png",
@@ -25,26 +48,130 @@ export const REQUIRED_PRODUCTION_PATHS = Object.freeze([
   "workbench/assist-contract.js",
   "workbench/assist-ui.js",
   "workbench/atlas.js",
+  "workbench/atlas-source.json",
   "workbench/cooling-v02.js",
   "workbench/engine.js",
   "workbench/styles.css",
 ]);
 
-const exists = async (path) => {
-  try {
-    await access(path);
-    return true;
-  } catch {
-    return false;
+/**
+ * Verify real regular-file contents against trusted digests.
+ *
+ * `fs.access` was insufficient: it accepts empty files, wrong content,
+ * directories standing in for files, and symlinks. Every expectation here is
+ * checked against the bytes actually on disk.
+ *
+ * @returns {Promise<Array<{path:string,problem:string,expected?:string,actual?:string}>>}
+ */
+export const verifyAssetContents = async (directory, expectations) => {
+  const problems = [];
+  for (const expected of expectations) {
+    const absolute = join(directory, expected.path);
+    let stats;
+    try {
+      stats = await lstat(absolute);
+    } catch {
+      problems.push({ path: expected.path, problem: "missing" });
+      continue;
+    }
+    if (stats.isSymbolicLink()) {
+      problems.push({ path: expected.path, problem: "unsupported_symlink" });
+      continue;
+    }
+    if (stats.isDirectory()) {
+      problems.push({ path: expected.path, problem: "directory_at_file_path" });
+      continue;
+    }
+    if (!stats.isFile()) {
+      problems.push({ path: expected.path, problem: "not_a_regular_file" });
+      continue;
+    }
+    if (stats.size !== expected.bytes) {
+      problems.push({ path: expected.path, problem: "size_mismatch", expected: String(expected.bytes), actual: String(stats.size) });
+      continue;
+    }
+    const actual = sha256(await readFile(absolute));
+    if (actual !== expected.sha256) {
+      problems.push({ path: expected.path, problem: "digest_mismatch", expected: expected.sha256, actual });
+    }
+  }
+  return problems;
+};
+
+export const describeProblems = (problems) => problems
+  .map((problem) => {
+    const detail = problem.expected ? ` (expected ${problem.expected}, found ${problem.actual})` : "";
+    return `${problem.path}: ${problem.problem}${detail}`;
+  })
+  .join("; ");
+
+/**
+ * Copy a tree into a fresh destination, refusing anything we cannot vouch for.
+ *
+ * `fs.cp` with `force: false, errorOnExist: false` silently preserved stale
+ * destination files. This copy targets an empty staging directory and treats
+ * any pre-existing destination entry as a hard conflict.
+ */
+export const copyTreeStrict = async (source, destination, { skip = () => false, base = source } = {}) => {
+  await mkdir(destination, { recursive: true });
+  const directory = await opendir(source);
+  for await (const entry of directory) {
+    const from = join(source, entry.name);
+    const to = join(destination, entry.name);
+    const relativePath = relative(base, from).split(sep).join("/");
+    if (skip(relativePath)) continue;
+    if (entry.isSymbolicLink()) throw new Error(`Refusing to copy unsupported symlink ${relativePath} from ${base}.`);
+    if (entry.isDirectory()) {
+      await copyTreeStrict(from, to, { skip, base });
+      continue;
+    }
+    if (!entry.isFile()) throw new Error(`Refusing to copy ${relativePath}: not a regular file.`);
+    let conflict = null;
+    try {
+      conflict = await lstat(to);
+    } catch {
+      conflict = null;
+    }
+    if (conflict) throw new Error(`Destination conflict: ${relativePath} already exists in the staging tree.`);
+    await writeFile(to, await readFile(from), { flag: "wx" });
   }
 };
 
-export const missingProductionPaths = async (directory, probe = exists) => {
-  const missing = [];
-  for (const relative of REQUIRED_PRODUCTION_PATHS) {
-    if (!(await probe(join(directory, relative)))) missing.push(relative);
+/** Enumerate the staged bytes so the bundle has one verifiable identity. */
+export const inventoryDirectory = async (directory, base = directory) => {
+  const entries = [];
+  const handle = await opendir(directory);
+  for await (const entry of handle) {
+    const absolute = join(directory, entry.name);
+    const relativePath = relative(base, absolute).split(sep).join("/");
+    if (entry.isSymbolicLink()) throw new Error(`Staged bundle contains an unsupported symlink: ${relativePath}`);
+    if (entry.isDirectory()) {
+      entries.push(...await inventoryDirectory(absolute, base));
+      continue;
+    }
+    if (!entry.isFile()) throw new Error(`Staged bundle contains a non-regular file: ${relativePath}`);
+    const bytes = await readFile(absolute);
+    entries.push({ path: relativePath, sha256: sha256(bytes), bytes: bytes.length });
   }
-  return missing;
+  return entries.sort((left, right) => (left.path < right.path ? -1 : left.path > right.path ? 1 : 0));
+};
+
+export const bundleIdentity = (inventory) => sha256(Buffer.from(inventory.map((entry) => `${entry.sha256}  ${entry.bytes}  ${entry.path}\n`).join("")));
+
+const isEmptyOrAbsent = async (directory) => {
+  let stats;
+  try {
+    stats = await lstat(directory);
+  } catch {
+    return true;
+  }
+  if (!stats.isDirectory()) throw new Error(`Output bundle root ${directory} exists and is not a directory.`);
+  const handle = await opendir(directory);
+  try {
+    return (await handle.read()) === null;
+  } finally {
+    await handle.close().catch(() => {});
+  }
 };
 
 const parseArgs = (argv) => {
@@ -71,7 +198,7 @@ const parseArgs = (argv) => {
     result[argument.slice(2)] = argv[index + 1];
     index += 1;
   }
-  if (!result.input || !result.output) throw new Error("Usage: integrate-static.mjs --input PATH --output PATH [--asset-prefix PREFIX] [--reconcile-owner-upload] [--existing-site DIR] [--require-complete-bundle]");
+  if (!result.input || !result.output) throw new Error("Usage: integrate-static.mjs --input PATH --output PATH [--asset-prefix PREFIX] [--reconcile-owner-upload] [--existing-site DIR] [--baseline-manifest PATH] [--require-complete-bundle]");
   return result;
 };
 
@@ -129,8 +256,6 @@ export const integrateHtml = (html, {
   return html.replace(/<\/head\s*>/i, `${head}</head>`).replace(/<\/body\s*>/i, `${body}</body>`);
 };
 
-const sha256 = (buffer) => createHash("sha256").update(buffer).digest("hex");
-
 const escapeAttribute = (value) => String(value)
   .replaceAll("&", "&amp;")
   .replaceAll('"', "&quot;")
@@ -141,6 +266,14 @@ const main = async () => {
   const args = parseArgs(process.argv.slice(2));
   const inputPath = resolve(args.input);
   const outputPath = resolve(args.output);
+  const bundleRoot = dirname(outputPath);
+  const outputName = basename(outputPath);
+  const manifest = await loadBaselineManifest(args["baseline-manifest"] ? resolve(args["baseline-manifest"]) : undefined);
+
+  // Preview and changed-source builds are inspection artifacts. They never
+  // establish production authorization, so they may not claim deployability.
+  const previewOnly = args["staging-preview"] === true || args["allow-changed-source"] === true;
+
   const suppliedInput = await readFile(inputPath);
   const suppliedInputSha256 = sha256(suppliedInput);
   let input = suppliedInput;
@@ -156,55 +289,114 @@ const main = async () => {
   if (!args["allow-changed-source"] && inputSha256 !== args["expected-sha256"]) {
     throw new Error(`Static source SHA-256 ${inputSha256} does not match reviewed source ${args["expected-sha256"]}. Review the changed homepage before integrating.`);
   }
-  const integrated = integrateHtml(input.toString("utf8"), {
+  const integrated = Buffer.from(integrateHtml(input.toString("utf8"), {
     assetPrefix: args["asset-prefix"],
     knowledgeUrl: args["knowledge-url"],
     apiUrl: args["api-url"] ?? "/api/ask-carbon",
     pilotUrl: args["pilot-url"],
     stagingPreview: args["staging-preview"] === true,
-  });
-  await mkdir(dirname(outputPath), { recursive: true });
-  if (args["existing-site"]) {
-    const existingSite = resolve(args["existing-site"]);
-    const absentFromSource = await missingProductionPaths(existingSite);
-    if (absentFromSource.length) {
-      throw new Error(`--existing-site ${existingSite} is not a complete current production copy. Missing: ${absentFromSource.join(", ")}. Fetch the complete deployed asset set before building a production bundle.`);
+  }));
+  const integratedSha256 = sha256(integrated);
+
+  // Fresh isolated output construction. We never write into a directory that
+  // already holds content, and we never delete an existing user directory.
+  if (!(await isEmptyOrAbsent(bundleRoot))) {
+    throw new Error(`Refusing to build into a non-empty output directory: ${bundleRoot}. Stale files there can survive assembly and be published. Choose a fresh --output directory; remove the old one yourself if you no longer need it.`);
+  }
+  const parent = dirname(bundleRoot);
+  await mkdir(parent, { recursive: true });
+  const staging = await mkdtemp(join(parent, ".ask-carbon-staging-"));
+  try {
+    if (args["existing-site"]) {
+      const existingSite = resolve(args["existing-site"]);
+      const baselineProblems = await verifyAssetContents(existingSite, manifest.assets);
+      if (baselineProblems.length) {
+        throw new Error(`--existing-site ${existingSite} is not a verified copy of the current production asset set. ${describeProblems(baselineProblems)}. Obtain the authoritative current assets before building a production bundle; do not create placeholder files to satisfy this check.`);
+      }
+      // index.html is replaced by the integrated homepage written below.
+      await copyTreeStrict(existingSite, staging, { skip: (path) => path === REPLACED_BY_INTEGRATION });
     }
-    // index.html is replaced by the integrated homepage written below.
-    await cp(existingSite, dirname(outputPath), { recursive: true, force: false, errorOnExist: false, filter: (source) => resolve(source) !== join(existingSite, "index.html") });
-  }
-  await writeFile(outputPath, integrated, { flag: "wx" });
-  const assetDirectory = join(dirname(outputPath), args["asset-prefix"].replace(/^\.\//, "").replace(/^\//, ""));
-  await mkdir(assetDirectory, { recursive: true });
-  for (const [source, destination] of [
-    [join(ROOT, "public", "ask-carbon.css"), "ask-carbon.css"],
-    [join(ROOT, "public", "ask-carbon.js"), "ask-carbon.js"],
-    [join(ROOT, "public", "release-contract.js"), "release-contract.js"],
-    [join(ROOT, "knowledge", "public-knowledge.v1.json"), "public-knowledge.v1.json"],
-    [PILOT_DESIGNER, "pilot-designer.html"],
-  ]) {
-    await writeFile(join(assetDirectory, destination), await readFile(source), { flag: "wx" });
-  }
-  const bundleRoot = dirname(outputPath);
-  const incompleteBundle = await missingProductionPaths(bundleRoot);
-  const deployable = incompleteBundle.length === 0;
-  if (args["require-complete-bundle"] && !deployable) {
-    throw new Error(`Refusing to report a deployable production bundle: ${bundleRoot} is missing ${incompleteBundle.join(", ")}. Deploying it to carbonwebsite would delete those paths from production. Rebuild with --existing-site pointing at a complete copy of the current deployed site.`);
-  }
-  process.stdout.write(`${JSON.stringify({
-    input: inputPath,
-    supplied_input_sha256: suppliedInputSha256,
-    source_reconciliation: sourceReconciliation,
-    integration_input_sha256: inputSha256,
-    output: outputPath,
-    output_sha256: sha256(Buffer.from(integrated)),
-    asset_directory: assetDirectory,
-    bundle_root: bundleRoot,
-    deployable_to_carbonwebsite: deployable,
-    missing_production_paths: incompleteBundle,
-  }, null, 2)}\n`);
-  if (!deployable) {
-    process.stderr.write(`WARNING: ${bundleRoot} is not a complete carbonwebsite asset set. Deploying it would remove ${incompleteBundle.join(", ")} from production. This output is a preview/inspection artifact only.\n`);
+    await writeFile(join(staging, outputName), integrated, { flag: "wx" });
+    const assetRelative = args["asset-prefix"].replace(/^\.\//, "").replace(/^\//, "");
+    const assetDirectory = join(staging, assetRelative);
+    await mkdir(assetDirectory, { recursive: true });
+    const askCarbonAssets = [];
+    for (const [source, destination] of [
+      [join(ROOT, "public", "ask-carbon.css"), "ask-carbon.css"],
+      [join(ROOT, "public", "ask-carbon.js"), "ask-carbon.js"],
+      [join(ROOT, "public", "release-contract.js"), "release-contract.js"],
+      [join(ROOT, "knowledge", "public-knowledge.v1.json"), "public-knowledge.v1.json"],
+      [PILOT_DESIGNER, "pilot-designer.html"],
+    ]) {
+      const bytes = await readFile(source);
+      await writeFile(join(assetDirectory, destination), bytes, { flag: "wx" });
+      askCarbonAssets.push({ path: `${assetRelative}/${destination}`, sha256: sha256(bytes), bytes: bytes.length });
+    }
+
+    // Verify the bytes that were actually staged, not the bytes we intended.
+    const stagedExpectations = [
+      ...manifest.assets.filter((asset) => asset.path !== REPLACED_BY_INTEGRATION),
+      { path: outputName, sha256: integratedSha256, bytes: integrated.length },
+      ...askCarbonAssets,
+    ];
+    const stagedProblems = args["existing-site"]
+      ? await verifyAssetContents(staging, stagedExpectations)
+      : await verifyAssetContents(staging, stagedExpectations.filter((asset) => !manifest.assets.some((baseline) => baseline.path === asset.path)));
+    if (stagedProblems.length) {
+      throw new Error(`Staged bundle verification failed after assembly: ${describeProblems(stagedProblems)}.`);
+    }
+
+    const inventory = await inventoryDirectory(staging);
+    const identity = bundleIdentity(inventory);
+    const baselinePreserved = args["existing-site"]
+      ? manifest.assets.filter((asset) => asset.path !== REPLACED_BY_INTEGRATION).every((asset) => inventory.some((entry) => entry.path === asset.path && entry.sha256 === asset.sha256))
+      : false;
+    const inventoryComplete = manifest.inventory_complete === true;
+    const deployable = baselinePreserved && inventoryComplete && !previewOnly;
+
+    if (args["require-complete-bundle"] && !deployable) {
+      const reasons = [];
+      if (!args["existing-site"]) reasons.push("no --existing-site baseline was supplied, so no existing production asset is preserved");
+      else if (!baselinePreserved) reasons.push("the staged bundle does not reproduce every verified baseline asset");
+      if (!inventoryComplete) reasons.push(`the baseline manifest is "${manifest.inventory_status}": ${manifest.inventory_status_reason ?? "the deployed asset set has not been enumerated"}`);
+      if (previewOnly) reasons.push("--staging-preview/--allow-changed-source builds are inspection artifacts and never carry production authorization");
+      throw new Error(`Refusing to certify a deployable production bundle: ${reasons.join("; ")}. Deploying an incomplete asset set to carbonwebsite would withdraw the missing paths from production.`);
+    }
+
+    await rename(staging, bundleRoot);
+
+    process.stdout.write(`${JSON.stringify({
+      input: inputPath,
+      supplied_input_sha256: suppliedInputSha256,
+      source_reconciliation: sourceReconciliation,
+      integration_input_sha256: inputSha256,
+      output: outputPath,
+      output_sha256: integratedSha256,
+      asset_directory: join(bundleRoot, assetRelative),
+      bundle_root: bundleRoot,
+      bundle_identity_sha256: identity,
+      staged_file_count: inventory.length,
+      baseline_manifest_status: manifest.inventory_status,
+      baseline_inventory_complete: inventoryComplete,
+      baseline_assets_preserved: baselinePreserved,
+      preview_only: previewOnly,
+      deployable_to_carbonwebsite: deployable,
+      release_authorized: false,
+      release_authorization_note: "Asset preservation is not release authorization. Publication and public activation remain governed by the release decision packet and named-operator authority.",
+      staged_inventory: inventory,
+    }, null, 2)}\n`);
+
+    if (!deployable) {
+      const why = !inventoryComplete
+        ? `the baseline manifest is "${manifest.inventory_status}" — the deployed asset set has not been enumerated under authenticated access`
+        : !baselinePreserved
+          ? "the staged bundle does not reproduce every verified baseline asset"
+          : "this is a preview/changed-source build";
+      process.stderr.write(`WARNING: ${bundleRoot} is NOT certified as a complete carbonwebsite asset set because ${why}. This output is a preview/inspection artifact only; deploying it could withdraw live paths from production.\n`);
+    }
+  } catch (error) {
+    await rm(staging, { recursive: true, force: true }).catch(() => {});
+    throw error;
   }
 };
 

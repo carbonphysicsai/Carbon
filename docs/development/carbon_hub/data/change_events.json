@@ -2638,7 +2638,7 @@
       "event_id": "OWNER-C1-BURGERS-ALPHA-01",
       "owner_lane": "repository_owner",
       "status": "active",
-      "summary": "The owner selects C-03 prerequisite hardening and a sequential public-data Burgers vertical, with a trusted Carbon single-tenant host, three replicas in new working profiles, explicit Cole\u2013Hopf/witness/ETDRK4 roles and prospective private archive targets. C-04 is next after the current merge; protected admission, independent review acceptance, scientific sufficiency, real archive acknowledgement, public-network operation and LIVE remain unavailable.",
+      "summary": "The owner selects C-03 prerequisite hardening and a sequential public-data Burgers vertical, with a trusted Carbon single-tenant host, three replicas in new working profiles, explicit Cole–Hopf/witness/ETDRK4 roles and prospective private archive targets. C-04 is next after the current merge; protected admission, independent review acceptance, scientific sufficiency, real archive acknowledgement, public-network operation and LIVE remain unavailable.",
       "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/0a57b13ae97056d722930ab95a9604077af8520d/.agent/plans/C1_ALPHA_VERTICAL_CONTINUATION.md",
       "affects": [
         "WAVE-B",
@@ -2694,7 +2694,7 @@
       "event_id": "C-04-I1",
       "owner_lane": "scientific_reference_execution_engineering",
       "status": "implemented",
-      "summary": "The C-04 candidate implements role-explicit Cole\u2013Hopf primary, conservative finite-volume witness and ETDRK4 development cross-check paths under the C-03 boundary, plus a frozen twelve-cell public D-03/D-04 prerequisite harness. Required exact-head Linux service acceptance is pending; no tolerance, TruthAsset, protected admission, score or scientific/security qualification is asserted.",
+      "summary": "The C-04 candidate implements role-explicit Cole–Hopf primary, conservative finite-volume witness and ETDRK4 development cross-check paths under the C-03 boundary, plus a frozen twelve-cell public D-03/D-04 prerequisite harness. Required exact-head Linux service acceptance is pending; no tolerance, TruthAsset, protected admission, score or scientific/security qualification is asserted.",
       "primary_detail": "https://github.com/carbonphysicsai/Carbon/blob/cce53ae3ef12d2140c23ae3a1ef60e968aabe0dd/.agent/evidence/wave_c/c-04.md",
       "affects": [
         "WAVE-B",
@@ -6966,6 +6966,20 @@
         "WAVE-C/NET-5",
         "WAVE-C/NET-5R",
         "WAVE-C/NET-6"
+      ],
+      "supersedes": null
+    },
+    {
+      "map_ref": "SYSTEM/BUSINESS-AUTHORITY",
+      "event_type": "bug",
+      "event_id": "GOAL-WORKBENCH-13-D1",
+      "owner_lane": "business_tooling_engineering",
+      "status": "implemented",
+      "summary": "PR #252 repairs three defects that review found in the merged GOAL-WORKBENCH-12, each of which the merged suite passed with. The browser study adapter never sent the bearer credential the private host requires, so every real browser call returned 401 while the API-level tests supplied the header themselves; a staff member now enters their operator-issued token in the study panel, the adapter sends it on every scientific route and refuses to call without one, and the token is held in memory for that browser tab only rather than embedded in the build, stored, or written into a URL, export or saved study. Outbox completion persisted a store snapshot captured before its await, so an assessment filed or an inquiry deleted during delivery could be erased or resurrected; completion now merges into current state. A failed write or flush left a fixed PID-named temporary file behind and every later write failed EEXIST; the name is unique per attempt and removed on every failure path. The coverage rule changed with the code: the adapter's own emitted headers are asserted at the fetch boundary and the loopback fixture host authenticates through the same record as the supported host. Defect repair only: no physics, reference, rights, security or deployment state changed, study results remain NOT_QUALIFIED, and the browser suites were not executed in that session.",
+      "primary_detail": "https://github.com/carbonphysicsai/Carbon/pull/252",
+      "affects": [
+        "SYSTEM/BUSINESS-AUTHORITY",
+        "SYSTEM/GOVERNANCE"
       ],
       "supersedes": null
     }

@@ -270,3 +270,114 @@ test("a storage failure returns no receipt and stores no partial inquiry", async
   assert.equal(receipt.disposition, "ACCEPTED");
   assert.equal(fs.readdirSync(fixture.directory).filter((n) => n.includes(".tmp-")).length, 0);
 });
+
+test("completing a notification keeps writes made during the await window", async () => {
+  const fixture = temporaryStore();
+  const receipt = await fixture.store.accept(reviewedRaw(), "retry-key-014", roles.receiver);
+  const other = JSON.parse(reviewedRaw());
+  other.brief.draft_id = "synthetic-second-inquiry";
+  const second = await fixture.store.accept(
+    JSON.stringify(other),
+    "retry-key-015",
+    roles.receiver,
+  );
+  assert.notEqual(second.inquiry_id, receipt.inquiry_id);
+  let release;
+  const opened = new Promise((resolve) => {
+    release = resolve;
+  });
+  // The operator's transport is slow. A reviewer files an assessment and a
+  // steward deletes a different inquiry while that delivery is still in flight.
+  const delivering = fixture.store.processOutbox(
+    "notify-" + receipt.inquiry_id,
+    () => opened,
+    roles.notifier,
+  );
+  fixture.store.update(
+    receipt.inquiry_id,
+    1,
+    { assigned_reviewer: "Ryan", queue_state: "UNDER_REVIEW", note: "Filed mid-delivery." },
+    roles.reviewer,
+  );
+  fixture.store.delete(second.inquiry_id, roles.steward);
+  release();
+  const event = await delivering;
+  assert.equal(event.status, "DELIVERED");
+
+  // Neither concurrent write may be erased by the completing notification.
+  const current = fixture.store.read(receipt.inquiry_id, roles.reviewer);
+  assert.equal(current.team_fields.note, "Filed mid-delivery.");
+  assert.equal(current.version, 2);
+  assert.equal(current.assessments.length, 1);
+  assert.throws(() => fixture.store.read(second.inquiry_id, roles.reviewer), /not found/);
+  assert.equal(Boolean(fixture.store.state.tombstones[second.inquiry_id]), true);
+  // The same must hold on disk, not only in memory.
+  const restarted = new DurableIntakeStore(fixture.file);
+  assert.equal(restarted.read(receipt.inquiry_id, roles.reviewer).team_fields.note, "Filed mid-delivery.");
+  assert.equal(restarted.state.outbox["notify-" + receipt.inquiry_id].status, "DELIVERED");
+  assert.equal(restarted.state.inquiries[second.inquiry_id], undefined);
+});
+
+test("a transient flush failure does not block every later write", async () => {
+  const fixture = temporaryStore();
+  await fixture.store.accept(reviewedRaw(), "retry-key-016", roles.receiver);
+  const realFsync = fs.fsyncSync;
+  let injected = false;
+  fs.fsyncSync = (fd) => {
+    if (!injected) {
+      injected = true;
+      throw Object.assign(Error("synthetic flush failure"), { code: "EIO" });
+    }
+    return realFsync(fd);
+  };
+  try {
+    assert.throws(
+      () =>
+        fixture.store.update(
+          Object.keys(fixture.store.state.inquiries)[0],
+          1,
+          { assigned_reviewer: "Ryan", queue_state: "UNDER_REVIEW", note: "blocked" },
+          roles.reviewer,
+        ),
+      /synthetic flush failure/,
+    );
+  } finally {
+    fs.fsyncSync = realFsync;
+  }
+  // The transient error has cleared. The store must not be wedged by a
+  // leftover temporary file from the failed attempt.
+  assert.deepEqual(
+    fs.readdirSync(fixture.directory).filter((name) => name.includes(".tmp-")),
+    [],
+  );
+  const inquiryId = Object.keys(fixture.store.state.inquiries)[0];
+  const updated = fixture.store.update(
+    inquiryId,
+    1,
+    { assigned_reviewer: "Ryan", queue_state: "UNDER_REVIEW", note: "recovered" },
+    roles.reviewer,
+  );
+  assert.equal(updated.team_fields.note, "recovered");
+  assert.equal(new DurableIntakeStore(fixture.file).read(inquiryId, roles.reviewer).team_fields.note, "recovered");
+});
+
+test("a delivery in flight cannot resurrect an inquiry deleted during its await", async () => {
+  const fixture = temporaryStore();
+  const receipt = await fixture.store.accept(reviewedRaw(), "retry-key-017", roles.receiver);
+  const eventId = "notify-" + receipt.inquiry_id;
+  let release;
+  const opened = new Promise((resolve) => {
+    release = resolve;
+  });
+  const delivering = fixture.store.processOutbox(eventId, () => opened, roles.notifier);
+  // The steward exercises the deletion lifecycle while delivery is in flight.
+  fixture.store.delete(receipt.inquiry_id, roles.steward);
+  release();
+  await assert.rejects(() => delivering, /removed while its delivery was in flight/);
+  assert.equal(fixture.store.state.outbox[eventId], undefined);
+  assert.equal(fixture.store.state.inquiries[receipt.inquiry_id], undefined);
+  const restarted = new DurableIntakeStore(fixture.file);
+  assert.equal(restarted.state.outbox[eventId], undefined);
+  assert.equal(restarted.state.inquiries[receipt.inquiry_id], undefined);
+  assert.equal(Boolean(restarted.state.tombstones[receipt.inquiry_id]), true);
+});
