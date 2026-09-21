@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-21T20:59:32Z"
+  captured_at_utc: "2026-09-21T20:50:36Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "51eaccc8d2d70c767517ef3f4b6b59ad264fff1b"
+  authority_snapshot_commit: "61115f36591491569e245c4ccd23be55de7bd09d"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -9053,14 +9053,15 @@ events:
       - "WAVE-C/NET-6"
     supersedes: "C-CORE-21-SNAPSHOT-02"
   -
-    map_ref: "SYSTEM/AGENT-EXECUTION"
+    map_ref: "SYSTEM/DEVELOPMENT-SEQUENCING"
     event_type: "decision"
-    event_id: "C-MLP-02-ONBOARDING-01"
+    event_id: "DELIVERY-CONSTRUCTION-STANDARD-01"
     owner_lane: "technical_lead"
     status: "implemented"
-    summary: "Registration on testnet subnet 567 is recorded as the gate for Carbon's research environment (C-MLP-02-D10), resolving the OD-20 question the questionnaire left open, with the line drawn around the tooling Carbon operates rather than the competition: the exam disclosure and the onboarding flow stay open to an unregistered visitor, and the tier boundary is stated as a checkable rule - nothing in the open tier creates a campaign, consumes compute or touches the ledger. Proxy submission is prohibited with its reasoning recorded. One chain onboarding service provides requirements, status, prepare and confirm behind two front doors; status uses the existing read path and introduces no new chain query, and the registration cost is reported as not read rather than unknown because Carbon does not ask for it. No signing capability exists in the codebase and no surface accepts key material. Off-platform research and strategy submission are unaffected; registration is an access fact and never scientific evidence. Testnet only; mainnet enablement remains a separate owner decision."
-    primary_detail: ".agent/tickets/C-MLP-02_development_research_bridge.md"
+    summary: "Delivery protocol gains section 1.1: prefer properties enforced by construction over properties checked at the point of use, recorded as the question that surfaced them - what establishes this property, and what happens when someone constructs the object differently - rather than only the conclusion. Three workstreams reached it independently on 2026-09-21 by three different routes, none by agreeing with the principle in advance. Includes the check that tells whether a design achieved it, and two recurring corollaries: the generic-error branch is where unvalidated input goes to be logged, and a closed schema and a positive format check answer different questions. Explicitly an engineering standard and not a delivery gate: it adds no required review, check or approval, introduces no new authority, and blocks no merge."
+    primary_detail: ".agent/DELIVERY_PROTOCOL.md"
     affects:
+      - "SYSTEM/AGENT-EXECUTION"
       - "SYSTEM/CI"
       - "SYSTEM/DEVELOPMENT-HUB"
       - "WAVE-A"
