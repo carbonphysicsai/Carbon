@@ -14,8 +14,6 @@ and a test for a shape nobody has chosen would fix that shape in place.
 import pathlib
 import re
 
-import pytest
-
 from carbon.chain import CARBON_NETUID, CARBON_NETWORK
 
 REPOSITORY = pathlib.Path(__file__).resolve().parents[2]
@@ -77,17 +75,15 @@ def test_the_declaring_module_stays_dependency_free():
     assert not [line for line in imports if "carbon" in line], imports
 
 
-@pytest.mark.parametrize(
-    "module",
-    [
-        "carbon.development_session.research_campaign",
-        "carbon.development_session.profile",
-        "carbon.development_session.service",
-        "carbon.development_session.__main__",
-        "carbon.miner_mcp.standard_cli",
-    ],
-)
-def test_every_former_holder_now_imports_the_constant(module):
-    import importlib
+def test_every_former_holder_still_imports_cleanly():
+    """The five modules that held a copy still load with the shared constant.
 
-    assert importlib.import_module(module) is not None
+    Imported statically rather than through importlib: `test_code_authority`
+    keeps a pinned allow-list of every dynamic-import site so that each one is
+    deliberate, and a convenience test is not a good reason to lengthen it.
+    """
+    from carbon.development_session import __main__, profile, research_campaign, service
+    from carbon.miner_mcp import standard_cli
+
+    for module in (research_campaign, profile, service, __main__, standard_cli):
+        assert module is not None
