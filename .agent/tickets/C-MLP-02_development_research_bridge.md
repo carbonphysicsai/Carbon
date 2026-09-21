@@ -365,3 +365,88 @@ returned the existing `COMPLETE_UNRESOLVED` public projection, seven completed
 stages and all eligibility flags false. This was historical receipt inspection,
 not a newly executed Launchpad campaign. Native Windows source-fixture diagnostics
 failed at the existing Linux-only secure registry I/O boundary; no guard was weakened.
+
+## Miner research compute continuation C-MLP-02-D8
+
+Owner direction, forwarded to this session as an execution handoff and recorded
+here as owner instruction rather than as a resource grant or a fresh scientific
+approval:
+
+> "why the GPU restrictions for launchpad when it's a completely open choice of
+> the miner, we are just providing the wiring into our environment. The compute
+> they choose does not effect Carbon. They just need to know what the validators
+> are running."
+
+This restates the earlier questionnaire answer that the miner submits a design,
+so what they used to reach it does not matter, and what Carbon owes them is the
+validator's exam environment. It resolves a product question; it does not
+reopen any scientific, security or qualification decision.
+
+Starting base is accepted main `c734bd76`, merged with the C-CORE-19 candidate
+`376e7763` (PR #249) as an identified dependency integration. PR #249 explicitly
+assigns `PublicGPUPractice`'s rewiring to the Launchpad executor as its own
+change with its own evidence; this is that change. Core retains the worker
+protocol, numerics, validator class and determinism work. Primary Hub map
+remains `SYSTEM/AGENT-EXECUTION`; `HUB_UPDATE_REQUIRED`.
+
+Decision: KEEP the campaign runner, CampaignLedger, admission, freeze,
+accounting and cleanup semantics. REPAIR the public research consumer so the
+miner lane is selected by the trusted service role rather than by loading a
+strict `AcceleratorHostAdmission`, with no strict-then-local fallback. Resolve
+controller storage from the validated campaign root instead of an operator
+grant field. Version the request identity that used to include `host_grant` to
+`carbon.public-gpu-reconstruction.request.v2`, binding the per-run installed
+device record in its place, and version the result body to `.result.v2` where
+it now carries the miner-lane assurance label.
+
+Legacy v1 request records are deliberately not replayed through the callback.
+They cannot be re-derived once their grant is gone, and the ledger's existing
+replay check already gives the correct answer for both a legacy record and a
+changed recipe: a different request for the same task, refused without dispatch
+or charge. Those records keep their read and recovery path through the existing
+campaign status, report and export projections, which key on the operation
+rather than on its request identity. No record is upgraded, re-run, re-charged
+or relabelled onto the new lane.
+
+WRAP the campaign runtime composition so a grant declaring `runtime.gpu_research`
+can actually be assembled instead of being described and then refused. The scope
+is checked in two separately named places: `declared_gpu_runtime` for shape,
+before role generation is charged for, and `registered_gpu_image` plus
+`PublicGPUPractice._authorize` for the real binding to this campaign's public
+TRAIN material once it exists. A malformed scope advertises nothing.
+
+ADD a read-only, versioned projection of the declared validator exam
+environment, derived from the live reconstruction constants and served without a
+grant, profile, model key or agent identity. This is a disclosure obligation,
+not an eligibility test, and it reports declared-not-qualified with MQ-008 named
+as the owner of backend support. It selects no scientific value, sets no
+tolerance and changes nothing about what evaluation accepts.
+
+Research runtime and final DEVELOPMENT evaluation remain separately described. A
+GPU research selection must not select or rewrite the evaluator; the final
+comparison keeps its CPU route and the review states that before launch.
+
+Alternatives rejected: installing a strict grant to appease the old reader;
+relaxing strict or official admission to make the miner path pass; adding a
+provider broker or provisioning adapter that does not exist; changing the
+`gpu_scope` schema, which the lane split already makes unnecessary because the
+lane is derived from the role rather than declared as a field. Reversing this
+decision changes the research consumer, the campaign composition, the runner and
+review, and this ticket - not scoring, reconstruction or comparison semantics.
+
+Old tests asserting the superseded miner requirement moved with the explicitly
+changed contract and gained replacement assertions for the intended boundary: a
+valid personal-research request with no strict grant reaches its external launch
+boundary while strict admission is shown to be unsatisfiable; unknown
+whole-device telemetry and a display-active GPU do not block; and an absent,
+incompatible or swapped device record still fails before anything is charged.
+Strict and validator tests are untouched and still pass. No test was disabled
+and no invariant weakened.
+
+This slice claims engineering acceptance only. C-MLP-02's genuine multi-iteration
+browser-launched adaptive campaign, its independent DEVELOPMENT comparison and
+verified cleanup remain selected and explicitly incomplete, and no grant is
+created by this decision. Local browser acceptance could not run in this session:
+the environment's Chromium binaries fail to launch for a missing system library
+and installing it requires host privileges this session does not hold. The CI
+browser lane retains that coverage.

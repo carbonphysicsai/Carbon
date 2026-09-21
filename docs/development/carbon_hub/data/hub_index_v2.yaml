@@ -8594,6 +8594,30 @@ events:
       - "WAVE-C/NET-5R"
       - "WAVE-C/NET-6"
     supersedes: null
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "decision"
+    event_id: "C-MLP-02-MINER-LANE-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "The Launchpad's public research consumer now selects the C-CORE-19 miner lane by its trusted service role instead of loading a strict validator host grant, with no fallback in either direction. Controller storage resolves from the campaign root rather than an operator grant field, and the request identity that carried the grant digest is versioned to bind the per-run installed device record; legacy records stay readable through the existing status, report and export projections and are never replayed, re-charged or relabelled. A grant declaring runtime.gpu_research can now actually be assembled, with shape checked before role generation is charged for and the real scope binding recomputed from the campaign's own public TRAIN material. Research runtime and the independent DEVELOPMENT comparison remain separately described; a GPU research selection neither selects nor rewrites the evaluator, which keeps its CPU route. Strict, validator and official admission are unchanged and their tests untouched. Engineering scope only: no hardware is qualified, no grant is created, no tolerance is set, and C-MLP-02's genuine multi-iteration browser campaign, independent comparison and verified cleanup remain selected and incomplete."
+    primary_detail: ".agent/tickets/C-MLP-02_development_research_bridge.md"
+    affects:
+      - "SYSTEM/CI"
+      - "WAVE-C/C-W1"
+    supersedes: null
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "adjustment"
+    event_id: "C-MLP-02-EXAM-DISCLOSURE-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "Carbon now publishes the declared validator exam environment to miners as a versioned read-only projection, served without a grant, research profile, model-provider key or agent identity, and rendered in the browser beside the miner's own compute choices. Every value is read from the constants reconstruction runs under rather than restated, and a test asserts that binding so the disclosure cannot drift from the environment it describes. It reports declared-not-qualified with MQ-008 named as the owner of backend support, discloses the measured CPU instruction-set divergence rather than omitting it, and carries no seed, case, credential or private path. Compute selection offers destinations rather than a provider dropdown; unimplemented provisioning adapters stay listed as unavailable with their reasons, and no provider quote, SKU or integration is claimed. This discharges a disclosure obligation and establishes no qualification, tolerance or eligibility rule."
+    primary_detail: "docs/development/MINER_LAUNCHPAD_RESEARCH_BRIDGE.md"
+    affects:
+      - "SYSTEM/CI"
+      - "WAVE-C/C-W1"
+    supersedes: null
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"
