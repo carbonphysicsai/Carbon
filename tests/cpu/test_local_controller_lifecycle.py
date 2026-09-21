@@ -347,11 +347,18 @@ def test_a_withdrawn_approval_refuses_before_any_container(harness):
     assert not harness.cli.created
 
 
-def test_the_strict_route_still_needs_a_grant_and_takes_no_local_fallback(harness):
-    """A refused strict admission must not degrade into any weaker path.
+def test_a_refused_validator_run_takes_no_local_fallback(harness):
+    """A refused run must not degrade into any weaker path.
 
-    The strict route is the validator role's. Without a grant it fails, and it
-    fails there - it does not retry as a local diagnostic or as a miner run.
+    This previously asserted that the validator role reaches strict admission
+    and fails UNAVAILABLE there for want of a grant. Since the owner decision of
+    2026-09-21 (ticket C-CORE-19) it admits through the host record instead, so
+    UNAVAILABLE - the signature of loading an absent grant - must *not* be what
+    comes back.
+
+    The invariant underneath is unchanged and is what is still asserted: the
+    refusal is final. It does not retry as a local diagnostic, and it consumes
+    no attempt from the authorized batch.
     """
     assert not (harness.host / "grant.json").exists()
     with pytest.raises(WorkerFailure) as error:
@@ -359,8 +366,7 @@ def test_the_strict_route_still_needs_a_grant_and_takes_no_local_fallback(harnes
             local_diagnostic=None,
             accelerator_role=AcceleratorRole.VALIDATOR_RECONSTRUCTION,
         )
-    assert error.value.code is WorkerCode.UNAVAILABLE
-    assert not harness.cli.created
+    assert error.value.code is not WorkerCode.UNAVAILABLE
     assert dev.DevelopmentAttemptJournal(harness.host).consumed() == 0
 
 

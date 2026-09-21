@@ -64,8 +64,8 @@ recorded in a reconstruction's `observed_environment`:
 
 | | |
 | --- | --- |
-| Concurrency | 1 |
-| CPU | 2 (quota and cpuset) |
+| Concurrency | 1 per launch; concurrent launches now possible (see below) |
+| CPU | 2 (quota); cpuset resolved from the host |
 | Memory | 4 GiB, swap 0 |
 | PIDs | 256 |
 | Scratch | 512 MiB, 8192 inodes |
@@ -73,6 +73,17 @@ recorded in a reconstruction's `observed_environment`:
 | Productive deadline | 600 s |
 | Graceful cancellation | 5 s |
 | Cleanup confirmation | 30 s |
+
+Until C-CORE-19 the cpuset was required to be exactly cores `0,1`, which made
+two concurrent reconstructions impossible on any host - both demanded the same
+two cores. The cpuset is now resolved from the host, so a validator scoring a
+queue is no longer serialised by a string literal. The per-launch quota is
+unchanged at 2 CPUs and 4 GiB.
+
+Measured under N2: usable core count (1, 2, 4, 8), memory ceiling (2, 4, 8 GiB)
+and two simultaneous runs on disjoint cpusets produced byte-identical weights
+across eighteen runs. Sizing is therefore a cost and throughput question on this
+evidence, not a reproducibility one - on one host, one backbone, at two steps.
 
 ### Containment
 

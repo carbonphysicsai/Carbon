@@ -67,17 +67,32 @@ two are not interchangeable.
 
 D2 asks for the number rather than an assurance that it is small.
 
-| | Unpinned (median) | Pinned (median) | Difference |
+| | Unpinned | Pinned | Difference |
 | --- | --- | --- | --- |
-| Compile | 1.55 - 1.61 s | 2.44 - 2.56 s | **about +1.0 s, +63%** |
-| Train execution | 0.040 s | 0.041 s | +0.001 s, +2.6% |
+| Compile, median of 9 runs | 1.610 s | 2.536 s | **+0.93 s, +58%** |
+| Compile, mean of 9 runs | 1.860 s | 2.504 s | +0.65 s, +35% |
+| Train execution, median | 0.0451 s | 0.0412 s | **not resolvable** |
+| Train execution, mean | 0.1358 s | 0.1368 s | **not resolvable** |
+
+Nine runs per condition, three sessions of three.
 
 The compile cost is where disabling autotuning lands, and it is substantial in
-relative terms. It is also a fixed per-run overhead: at a realistic training
-length it amortises, while the execution overhead is the one that scales. The
-+2.6% execution figure is measured on a two-step run and is **not** a reliable
-estimate of the cost at a real workload size. SCI should treat the compile number
-as solid and the execution number as indicative only.
+relative terms. It is a fixed per-run overhead: at a realistic training length it
+amortises, while the execution overhead is the one that scales.
+
+**The execution cost is not resolvable at this sample size.** The median is 8.6%
+*lower* pinned and the mean is 0.7% higher - the two disagree in sign, because
+both are dominated by first-run warm-up in each session. Nothing here supports a
+figure for the execution overhead, in either direction.
+
+> An earlier revision of this table reported `+1.0 s, +63%` for compile and
+> `+0.001 s, +2.6%` for execution. The `+63%` came from comparing the lowest
+> unpinned session median (1.55 s) against a high pinned value, which is the most
+> favourable pair of endpoints rather than a like-for-like statistic; over all 9
+> runs per condition the median difference is +58% and the mean difference +35%,
+> the gap between them caused by one unpinned run that compiled in 2.567 s. The
+> `+2.6%` execution figure does not reproduce at all and has been withdrawn
+> rather than restated.
 
 ## 5. It confirms D1 was necessary
 

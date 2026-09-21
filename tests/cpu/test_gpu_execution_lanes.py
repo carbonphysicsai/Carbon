@@ -89,11 +89,26 @@ def test_each_role_has_exactly_one_lane():
             lane_for_role(value)
 
 
-def test_the_miner_authority_is_the_miner_role_only():
-    """The lane is reached by being that role, not by presenting an authority."""
-    _profile(AcceleratorRole.MINER_RESEARCH, MINER_HOST_AUTHORITY)
-    with pytest.raises(WorkerFailure):
-        _profile(AcceleratorRole.VALIDATOR_RECONSTRUCTION, MINER_HOST_AUTHORITY)
+def test_self_service_admission_serves_both_gpu_roles_and_no_others():
+    """The lane is reached by being a role, not by presenting an authority.
+
+    Until the owner decision of 2026-09-21 this asserted that a validator could
+    never carry the self-service authority. That restriction is repealed: both
+    GPU roles now admit the same way. What it still asserts is the part that was
+    always load-bearing - neither role can select the *other's* lane by choosing
+    an authority value.
+
+    That a role nobody has decided about gets nothing is asserted in
+    `test_validator_self_service_admission.py`, which can build a profile from a
+    raw role string; the helper here takes the enum.
+    """
+    for role in (
+        AcceleratorRole.MINER_RESEARCH,
+        AcceleratorRole.VALIDATOR_RECONSTRUCTION,
+    ):
+        body = _profile(role, MINER_HOST_AUTHORITY).body["accelerators"]
+        assert body["role"] == role.value
+        assert body["lane"] == lane_for_role(role).value
 
 
 # --- no fallback, in either direction ------------------------------------------
@@ -114,15 +129,30 @@ def test_a_miner_run_never_loads_a_host_grant(harness):
     assert error.value.code is not WorkerCode.UNAVAILABLE
 
 
-def test_a_refused_strict_admission_does_not_become_a_miner_run(harness):
+def test_a_validator_run_no_longer_loads_a_host_grant(harness):
+    """The 2026-09-21 decision, asserted where it takes effect.
+
+    This previously asserted the opposite: that a validator with no grant fails
+    UNAVAILABLE trying to load one. The validator role no longer reaches strict
+    admission at all, so it must *not* fail that way - it fails on the
+    self-service admission's own checks, as a miner does on this same harness.
+
+    Same evidence as the miner test above, read the same way: UNAVAILABLE is
+    what loading an absent grant produces, so its absence proves the strict path
+    was not entered rather than that it forgave something.
+    """
     assert not (harness.host / "grant.json").exists()
     with pytest.raises(WorkerFailure) as error:
         harness.run(
             local_diagnostic=None,
             accelerator_role=AcceleratorRole.VALIDATOR_RECONSTRUCTION,
         )
-    assert error.value.code is WorkerCode.UNAVAILABLE
-    assert not harness.cli.created, "a refused strict run must build nothing"
+    assert error.value.code is not WorkerCode.UNAVAILABLE
+    # No assertion about `harness.cli.created` here any more. It belonged to the
+    # old behaviour: strict admission refused the run before anything was built.
+    # A self-service run is refused by its own later checks, exactly as the miner
+    # run above is, so the two roles now fail at the same point - which is the
+    # thing being asserted.
 
 
 # --- what the miner lane requires, and what it refuses to require --------------

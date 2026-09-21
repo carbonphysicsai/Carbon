@@ -436,16 +436,24 @@ def test_controller_routes_only_matching_private_grant_under_exclusive_lease(
     with pytest.raises(WorkerFailure):
         controller.execute(**request, accelerator_role="VALIDATOR_RECONSTRUCTION")
     assert not observed
-    assert (
-        controller.execute(**request, accelerator_role=role)
-        == "mocked-existing-worker-boundary"
-    )
-    assert observed[0].accelerator_profile_id == GPU_PROFILE.profile_id
-    assert observed[0].accelerator_authority == STRICT_HOST_GRANT_AUTHORITY
-    path.unlink()
+
+    # Since the owner decision of 2026-09-21 (ticket C-CORE-19) the validator
+    # role no longer routes to strict admission, so this can no longer assert
+    # that it does. What it asserts instead is stronger, and is the reason the
+    # test was kept rather than deleted: a *valid, matching, unexpired* grant is
+    # installed at `path` right now, and the role still does not take the strict
+    # path. A reversion would be visible here as a dispatch that suddenly
+    # succeeds again.
     with pytest.raises(WorkerFailure):
         controller.execute(**request, accelerator_role=role)
-    assert len(observed) == 1
+    assert not observed, "the validator role must not reach strict dispatch"
+
+    # The strict apparatus itself is unchanged and stays directly covered -
+    # revocation, relocation, expiry, lease sharing and release, quarantine
+    # survival, image lock labels and failed-release quarantine all exercise it
+    # through `host_grant` rather than through role dispatch. What is no longer
+    # covered here, because it no longer exists, is a role that reaches it.
+    assert path.exists()
 
 
 def test_cancellation_requires_boolean_and_never_silently_ignores_stop():

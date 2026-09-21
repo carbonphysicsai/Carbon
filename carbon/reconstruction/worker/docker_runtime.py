@@ -305,6 +305,9 @@ def doctor(
     cli: DockerCLI | None = None,
 ) -> DockerDoctor:
     """Read-only eligibility check; never changes daemon or host configuration."""
+    from carbon.reconstruction.host_execution import resolve_cpuset
+    from carbon.reconstruction.worker.accelerator_runtime import HOST_ROOT
+
     cli = cli or DockerCLI()
     docker_host = os.environ.get("DOCKER_HOST", "")
     if docker_host.startswith("tcp://") and os.environ.get("DOCKER_TLS_VERIFY") != "1":
@@ -404,7 +407,11 @@ def doctor(
             "logical_cpus": ncpu,
             "memory_bytes": memory,
         },
-        "0,1",
+        # Resolved from this host, and from an operator-installed execution
+        # record when one exists, rather than named here. A literal in this file
+        # is the defect this replaces, and writing a different literal would
+        # only respell it.
+        resolve_cpuset(logical_cpus=ncpu, root=HOST_ROOT),
     )
 
 
@@ -455,11 +462,14 @@ def create_arguments(
     exact_digest(image_id)
     exact_digest(launch_digest)
     _require_supported_device_adapter(worker_profile)
-    if (
-        cpuset != "0,1"
-        or not input_directory.is_absolute()
-        or input_directory.is_symlink()
-    ):
+    from carbon.reconstruction.host_execution import parse_cpuset
+
+    # Well-formed, not a specific pair of cores. Requiring the literal "0,1"
+    # made two concurrent reconstructions impossible on any host, because both
+    # demanded the same two cores. Which cores a worker gets is resolved from
+    # the host; that it is a real, non-empty, non-repeating set is checked here.
+    parse_cpuset(cpuset)  # refuses a malformed or empty set
+    if not input_directory.is_absolute() or input_directory.is_symlink():
         raise WorkerFailure(WorkerCode.INVALID)
     source = str(input_directory)
     if "," in source or "\n" in source:
@@ -773,18 +783,21 @@ def inspect_effective_controls(
             ["exec", container_name, "/bin/cat", f"/sys/fs/cgroup/{name}"], timeout=10
         )
         cgroup[name] = result.stdout.decode("ascii", "replace").strip()
+    from carbon.reconstruction.host_execution import parse_cpuset
+
     cpu_quota = cgroup["cpu.max"].split()
-    eligible = {str(item) for item in range(2)}
-    observed_cpuset = set()
-    for group in cgroup["cpuset.cpus.effective"].split(","):
-        if "-" in group:
-            start, end = (int(item) for item in group.split("-", 1))
-            observed_cpuset.update(str(item) for item in range(start, end + 1))
-        elif group:
-            observed_cpuset.add(group)
+    # What the kernel reports must equal what this launch actually asked for -
+    # not a fixed pair of cores. Both sides are parsed into the set they denote,
+    # so an equivalent spelling compares equal and a different allocation does
+    # not, and the quota is checked against the size of that allocation.
+    eligible = set(parse_cpuset(cpuset))
+    try:
+        observed_cpuset = set(parse_cpuset(cgroup["cpuset.cpus.effective"]))
+    except WorkerFailure:
+        raise WorkerFailure(WorkerCode.POLICY) from None
     if (
         len(cpu_quota) != 2
-        or int(cpu_quota[0]) != CPU_COUNT * int(cpu_quota[1])
+        or int(cpu_quota[0]) != len(eligible) * int(cpu_quota[1])
         or observed_cpuset != eligible
         or cgroup["memory.max"] != str(MEMORY_BYTES)
         or cgroup["memory.swap.max"] != "0"
