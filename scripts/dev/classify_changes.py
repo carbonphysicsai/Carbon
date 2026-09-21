@@ -12,7 +12,11 @@ from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path, PurePosixPath
 
-from development_scope import DEVELOPMENT_DOCS, DEVELOPMENT_PUBLIC_DATA
+from development_scope import (
+    DEVELOPMENT_DOC_RE,
+    DEVELOPMENT_DOCS,
+    DEVELOPMENT_PUBLIC_DATA,
+)
 
 
 class ChangeScope(StrEnum):
@@ -226,6 +230,16 @@ def classify_path(raw_path: str) -> PathClassification:
         return PathClassification(path, ChangeScope.RUNTIME_FULL, "runtime exact path")
     if path.startswith(_RUNTIME_PREFIXES):
         return PathClassification(path, ChangeScope.RUNTIME_FULL, "runtime prefix")
+    # Deliberately after the runtime checks above: docs/DEVELOPMENT.md and
+    # docs/development/ENVIRONMENT.md are named runtime paths on purpose and
+    # keep full acceptance. Everything else at the top level of
+    # docs/development/ is prose about the system rather than the system, and
+    # lands on the same CONTRACT_AUTHORITY lane the owner already chose for the
+    # CW1 development rule documents.
+    if DEVELOPMENT_DOC_RE.fullmatch(path):
+        return PathClassification(
+            path, ChangeScope.CONTRACT_AUTHORITY, "top-level development documentation"
+        )
     if re.fullmatch(r"requirements(?:[-_.][^/]*)?\.txt", path, re.IGNORECASE):
         return PathClassification(path, ChangeScope.RUNTIME_FULL, "dependency manifest")
     if path in _DERIVED_EXACT:

@@ -14847,3 +14847,49 @@ items are unchanged and unauthorized: no public host, sender, mailbox credential
 notice or consent text, retention decision or live collection follows. The
 browser suites now assert the credential path but were not executed in this
 session; that acceptance remains outstanding and is reported as such.
+
+## 2026-09-21 — CI-DOC-SCOPE-01: a development document is not the system it documents
+
+**Authority source and scope.** Ryan asked for CI savings where they are safe.
+This changes only how changed paths are classified for acceptance. It alters no
+test, no invariant, no scientific or security boundary, and no owner decision.
+
+**What it does.** A top-level `docs/development/*.md` file now classifies as
+`CONTRACT_AUTHORITY` instead of failing closed to `RUNTIME_FULL`. That is the
+lane the owner already chose for the four `CW1_DEVELOPMENT_SCORING_*` documents,
+so this generalises an existing precedent rather than inventing a scope. Fifty-
+five documents move. Measured across all 1,934 tracked paths, nothing else does.
+
+**The Hub is excluded structurally, not by blacklist.** The pattern is
+`docs/development/[^/]+\.md`, and `[^/]+` cannot span a separator, so
+`docs/development/carbon_hub/` never matches and keeps its heavier lane. A
+blacklist would have to be remembered each time a Hub document is added; this
+cannot be forgotten. Documents in other subdirectories also keep their lane.
+
+**Named runtime documents keep full acceptance.** The check is placed after the
+runtime rules on purpose, so `docs/DEVELOPMENT.md` and
+`docs/development/ENVIRONMENT.md` remain `RUNTIME_FULL`. Placing it earlier
+would have silently downgraded two paths that were named deliberately.
+
+**What the OWNER-CW1-DEVELOPMENT-CI-01 digests actually do.** They are checked
+only when the pull request's base is exactly
+`d1d07bb408a2b68efed70baf7e11ec22bb180c9d`, so for every current base that block
+does not execute and the digests are never compared. They are updated here as
+hygiene, so the block stays truthful and a future rebase onto that base does not
+fail for a reason unrelated to its content. They are **not** the protection, and
+a reader who infers otherwise will derive the wrong constraint.
+
+The protection is the scope comparison in the Merge gate: the scope derived from
+the **protected base** classifier must equal the scope preflight derived from the
+**candidate** classifier. A pull request therefore cannot reclassify itself. The
+consequence for this change is a constraint rather than a blocker: a classifier
+change is safe in one pull request provided it touches no path the two versions
+would score differently. This one touches `scripts/`, `.github/workflows/` and
+`.agent/`, which score identically under both, and deliberately carries no
+top-level `docs/development/*.md` edit.
+
+**Trust boundary.** Acceptance still runs for every reclassified document; it
+runs the contract and authority lane rather than the full runtime lane. A
+document that genuinely needs runtime acceptance can be named in the existing
+runtime list, which is the same mechanism that protects `ENVIRONMENT.md`. The
+smallest reversal is deleting the pattern and restoring the two digests.
