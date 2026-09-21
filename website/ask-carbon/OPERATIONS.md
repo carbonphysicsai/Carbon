@@ -249,57 +249,152 @@ from production. `integrate-static.mjs` writes only `index.html` and the
 `ask-carbon/` assets, so deploying its output directory on its own would
 delete the live Workbench route and the shared homepage images.
 
-The paths observed live on 2026-09-19, all of which must survive the upload,
-are pinned as `REQUIRED_PRODUCTION_PATHS` in `tools/integrate-static.mjs`:
+#### The asset inventory is not yet established
 
-```text
-index.html
-assets/carbon-66e3549179d4.png
-assets/carbon-f7ea9506b7b9.png
-workbench/index.html
-workbench/app.js
-workbench/assist-contract.js
-workbench/assist-ui.js
-workbench/atlas.js
-workbench/cooling-v02.js
-workbench/engine.js
-workbench/styles.css
-```
+`production-baseline.manifest.json` records the SHA-256 digest and byte size of
+every asset currently known to be deployed. It is marked
+`"inventory_status": "incomplete"`, and `--require-complete-bundle` therefore
+**refuses to certify any production bundle** until that changes.
 
-Obtain a complete copy of the currently deployed asset set first — from the
-owner's current website source, or by downloading every path above from
-production — into `/tmp/ask-carbon-current`. Then build the bundle so it is a
-**superset** of the live site, and require the completeness check to pass:
+That refusal is correct and must not be worked around. Downloading a list of
+known public URLs retrieves verified bytes for the paths you already know; it
+is a transport, **not an enumeration**. It cannot show that no other asset
+exists. Two concrete demonstrations of why the previous wording was unsafe:
+
+- `https://carbonphysics.ai/index.html` returns **307 → `/`** with an empty
+  body, and `workbench/index.html` returns **307 → `/workbench/`**. A recipe
+  that downloads the literal listed paths writes a **zero-byte `index.html`**,
+  which the previous presence-only `fs.access` check accepted as "present".
+- `workbench/atlas-source.json` (156,568 bytes, HTTP 200) is a live production
+  asset that the old hard-coded path list omitted entirely. A bundle built
+  against that list would have withdrawn it from production while reporting
+  `"deployable_to_carbonwebsite": true`.
+
+To complete the inventory, obtain the deployed asset set from the authoritative
+source — the owner's current website source, or an authenticated
+`carbonwebsite` asset enumeration after Cloudflare login. Capture the deployed
+headers, redirects and asset-routing configuration as configuration, not as
+inferred observations. Then set `inventory_status` to `"verified-complete"`
+and record how it was established. Do not mark it complete by assumption, and
+do not create placeholder files to satisfy the check.
+
+Homepage source authority stays separate from these read-only production
+observations: the homepage published by this bundle is the owner-supplied
+upload reconciled by `--reconcile-owner-upload`, not the copy downloaded from
+production.
+
+#### Building the bundle
+
+Place the verified current asset set in `/tmp/ask-carbon-current`. The
+`--output` directory must be **fresh** — the tool refuses to build into a
+directory that already contains anything, because stale files there can
+survive assembly and be published. Use a new timestamped directory each time:
 
 ```sh
+OUT=/tmp/ask-carbon-production-$(date -u +%Y%m%dT%H%M%SZ)
 node website/ask-carbon/tools/integrate-static.mjs \
   --input /path/to/extracted/index.html \
-  --output /tmp/ask-carbon-production/index.html \
+  --output "$OUT/index.html" \
   --asset-prefix ./ask-carbon \
   --reconcile-owner-upload \
   --existing-site /tmp/ask-carbon-current \
   --require-complete-bundle
 ```
 
-`--existing-site` copies the current deployed assets in and leaves the
-integrated homepage authoritative for `index.html`;
-`--require-complete-bundle` refuses to report a deployable bundle while any
-required path is missing. The emitted JSON must show
-`"deployable_to_carbonwebsite": true` and an empty `missing_production_paths`
-before deployment. Confirm the same paths are present on disk, then deploy.
+The tool verifies `--existing-site` against the manifest by exact content
+digest and file metadata, rejecting missing files, empty files, content
+mismatches, directories standing in for files and symlinks. It assembles into
+an isolated staging directory, re-verifies the bytes actually staged, and only
+then moves the result into `$OUT`. A failed build leaves no partial bundle.
+
+Deployment requires the emitted JSON to show all of:
+
+```text
+"baseline_inventory_complete": true
+"baseline_assets_preserved":   true
+"deployable_to_carbonwebsite": true
+```
+
+`bundle_identity_sha256` is the identity of the staged bytes; record it and
+re-derive it from disk before deploying. `--staging-preview` and
+`--allow-changed-source` produce inspection artifacts only: they always report
+`"deployable_to_carbonwebsite": false` and are never deployable.
+
 The current `carbonwebsite` Worker uses compatibility date `2026-09-12`;
 retain it for this asset-only update:
 
 ```sh
 npx wrangler deploy \
   --name carbonwebsite \
-  --assets /tmp/ask-carbon-production \
+  --assets "$OUT" \
   --compatibility-date 2026-09-12
 ```
 
-After deploying, re-verify `/`, `/workbench/` and both `/assets/*.png` on both
-hostnames before treating the publication as complete. A 404 on any of them
-means the upload was incomplete; roll back immediately.
+After deploying, re-verify `/`, `/workbench/`, both `/assets/*.png` and
+`/workbench/atlas-source.json` on both hostnames before treating the
+publication as complete. A 404 on any of them means the upload was incomplete;
+roll back immediately.
+
+### Deployment prerequisites are separate gates
+
+The named-owner gate below is satisfied. That gate alone does **not** make this
+deployment ready. Each of the following is a distinct prerequisite with its own
+evidence:
+
+| Prerequisite | Status as of 2026-09-20 |
+| --- | --- |
+| Named incident/rollback owner recorded | Satisfied (`WEB-QA-05-D2`) |
+| Cloudflare deployment credentials for the Carbon account | Satisfied — OAuth session for `carbon.physics.ai@gmail.com`, account `7462053c6992b9c9fd889952a7ae0496`, with `workers`/`workers_scripts`/`workers_routes` write |
+| Pinned deployment tool | Satisfied — Wrangler `4.134.0` (see below) |
+| Complete verified production asset inventory | **Not established** — `inventory_status: "incomplete"`; needs the owner's website archive |
+| Required Worker secrets present and bound | **Not verified** |
+| CI / release verification for the repaired revision | Per `.agent/DELIVERY_PROTOCOL.md` |
+| Recorded pre-deployment rollback target | **Must be re-captured immediately before deploying** |
+
+Satisfying the owner gate does not satisfy any of the others, and asset
+completeness is not release authorization: publication and public activation
+remain governed by `PUBLIC_RELEASE_CANDIDATE.json` and the recorded owner
+decisions.
+
+### Deployment tooling
+
+The deployment CLI is pinned and installed outside the repository, so it never
+enters the public asset tree and never alters the repository's own dependency
+pins:
+
+```sh
+# ~/.local/lib/carbon-wrangler/package.json pins "wrangler": "4.134.0"
+WRANGLER="$HOME/.local/lib/carbon-wrangler/node_modules/.bin/wrangler"
+"$WRANGLER" --version   # 4.134.0
+"$WRANGLER" whoami      # verify the account before any mutation
+```
+
+`4.134.0` matches the version already used against this account. Do not
+substitute an implicit `latest`, and do not change the Worker's accepted
+compatibility date merely to satisfy a newer CLI.
+
+Wrangler stores its OAuth credentials in the user configuration directory
+(`~/Library/Preferences/.wrangler/config/` on macOS). Never copy that file, a
+token, or a device code into the repository, a PR, or any evidence record.
+
+### The remaining owner action
+
+One thing is outstanding before a production deployment can be certified:
+
+> **Supply the website archive most recently uploaded to the `carbonwebsite`
+> Cloudflare Dashboard.**
+
+The live version (`5a44ab03-ce7c-4100-ae42-71843b07246a`, version 17) has
+`source: "dash"`, so it was uploaded through the Dashboard rather than built
+from repository state. That archive is therefore the authoritative asset set.
+Cloudflare login does not substitute for it: Wrangler 4.134.0 provides no
+command that lists a static-assets Worker's deployed files, so the deployed set
+cannot be enumerated from the platform side. This is a capability gap, not a
+credentials gap.
+
+Once the archive is supplied, reconcile it against the verified digests in
+`production-baseline.manifest.json`, add every additional path it contains,
+and only then set `inventory_complete` to `true`.
 
 The incident owner and authorized disable/rollback operator are recorded under
 "Named production operators" below, so this deployment is unblocked. Static
@@ -348,18 +443,37 @@ bindings in the Dashboard or rolls back `ask-carbon-public` to its recorded
 inactive version. This must not delete or replace the shared
 `ask-carbon-budget-authority` Durable Object.
 
-If the homepage bundle must be withdrawn, select the recorded prior
-`carbonwebsite` deployment in Cloudflare or run the exact reviewed equivalent:
+If the homepage bundle must be withdrawn, roll back to the version that was
+actually live immediately before this deployment. **Capture that version ID as
+a pre-deployment step** — do not reuse an ID written in an older revision of
+this runbook, which may no longer be the current predecessor:
 
 ```sh
-npx wrangler rollback b99c37f0-c2d2-432b-842a-00b9fb518d96 \
+# BEFORE deploying: record the current live version as the rollback target.
+npx wrangler deployments list --name carbonwebsite
+```
+
+Record the resulting version ID and the configuration in force with it
+(compatibility date, routes, asset set) alongside the build's
+`bundle_identity_sha256`. Roll back to that captured ID:
+
+```sh
+npx wrangler rollback <captured-pre-deployment-version-id> \
   --name carbonwebsite
 ```
 
-That version is the immediate predecessor observed during release preparation;
-the owner must still provide the latest uploaded website ZIP/source so its
-relationship to the Dashboard deployment and asset set can be reconciled
-before production mutation. After rollback, verify both approved hostnames,
+Authenticated inspection on 2026-09-20 showed the version actually serving
+100% of traffic is **`5a44ab03-ce7c-4100-ae42-71843b07246a`** (version 17,
+created 2026-09-12, compatibility date `2026-09-12`, no bindings).
+
+`b99c37f0-c2d2-432b-842a-00b9fb518d96` was recorded in an earlier revision of
+this runbook as the rollback target. It is **two deployments older** than the
+live version and is **not** the current predecessor. It is retained as
+historical evidence only. This is exactly why the target must be re-captured at
+deploy time rather than read from a document — including from this paragraph. The owner must still
+provide the latest uploaded website ZIP/source so its relationship to the
+Dashboard deployment and asset set can be reconciled before production
+mutation. After rollback, verify both approved hostnames,
 `/workbench/`, CSP/assets, API inactivity and the preserved ledger snapshot.
 Worker/static rollback never means Durable Object rollback.
 
