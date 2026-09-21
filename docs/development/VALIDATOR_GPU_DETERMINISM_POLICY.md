@@ -65,12 +65,16 @@ nine runs, one weight digest. Measured on one device; see §5.
 
 ## 4. What it does not deliver
 
-**Different GPU models will still produce different weights, and no setting
-changes that.** Determinism settings fix the *order* of operations on one device.
-They do not make two devices with different streaming-multiprocessor counts,
-different memory hierarchies or different instruction sets compute the same
-floating-point result. Anyone reading this policy as a guarantee of cross-device
-agreement has read it wrong.
+**Cross-device agreement is not established, in either direction.** These
+settings fix the order of operations within one device. Whether two devices with
+different streaming-multiprocessor counts, memory hierarchies or instruction sets
+compute the same floating-point result under this configuration is
+**unmeasured**, and it is exactly what a matched two-host test would determine.
+
+Two things follow. This policy is not a guarantee of cross-device agreement, and
+nothing here is proof that agreement is unachievable - JAX declining to
+*guarantee* cross-platform numerics is not proof that no configuration delivers
+them. Until that test runs, plan for divergence without asserting it.
 
 **It also changes the numbers.** The pinned configuration produced a different
 result from every unpinned run. Artifacts produced under it are not
@@ -94,9 +98,11 @@ rather than an assurance that the cost is small.
 
 ## 6. What it means for fairness
 
-Two validators on different devices compute different weights. The continuous
-score legs absorb that proportionally - a small numeric difference moves a score
-by a small amount.
+Two validators on different devices may compute different weights; §4 records
+that this remains unmeasured. Where they do, the continuous score legs absorb the
+difference smoothly - a small numeric difference moves a score by a small amount.
+How small is a property of each metric, and is not a fixed ratio carried over
+from any earlier measurement.
 
 **A mandatory hard gate does not.** It is a step function: a value on one side
 passes and on the other the submission is rejected entirely with
@@ -119,9 +125,11 @@ host. Nothing here prescribes a machine, a datacenter or an ownership model.
 
 One device: NVIDIA GeForce RTX 3060 Laptop GPU, driver 581.95, CUDA 13, under
 WSL2, `jax`/`jaxlib` 0.10.2, inside the pinned worker image. A laptop GPU
-qualifies nothing, and this measurement was never intended to - it establishes
-that the settings *function*, which is a claim about the settings and transfers,
-rather than a claim about the device, which would not.
+qualifies nothing, and this measurement was never intended to. It establishes
+that the settings function **on this configuration** - this device, this driver,
+this build, this workload. Whether the result holds on another device, driver or
+jaxlib build is untested: a one-device experiment establishes a result for that
+configuration only.
 
 The reference workload is small: two training steps on a 4,696-parameter model. A
 larger workload exercises reduction sizes and op mixes this one does not, and

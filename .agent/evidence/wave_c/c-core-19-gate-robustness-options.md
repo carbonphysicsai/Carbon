@@ -74,18 +74,40 @@ Evaluate mandatory gates from a single reference run, or from a consensus median
 across validators, and have every validator apply that admissibility decision
 rather than computing it independently.
 
-*For.* Removes the flip entirely. Every validator reaches the same admissibility
-answer because there is only one, and the continuous legs - which absorb
-divergence gracefully - stay per-validator where they belong. It also needs no
-divergence measurement to be correct.
+*For.* Every validator reaches the same admissibility answer because there is
+only one, and the continuous legs - which absorb divergence gracefully - stay
+per-validator where they belong.
 
-*Against.* It is a real protocol change with its own failure modes. A reference
-run is a trust concentration: whoever produces it decides admissibility, which is
-exactly the centralisation independent reconstruction exists to avoid. A
-consensus median needs enough validators, a tie-break rule, and a defence against
-a minority steering the median. And it changes what a validator *is* for this one
-decision, which is a scientific question about what independent verification
-means, not an implementation detail.
+*Against.* The two forms fail differently, and neither is a transparent fix.
+
+**A coordinate-wise median is unsound for conjunctive requirements.**
+Illustrative values only, not Carbon thresholds: require three normalized
+measurements to be at most 1, and let three complete runs report
+`(0.99, 0.99, 1.01)`, `(0.99, 1.01, 0.99)` and `(1.01, 0.99, 0.99)`. Every run
+fails a mandatory gate. The coordinate-wise median is `(0.99, 0.99, 0.99)` and
+passes all three - and it is **not any run that happened**. Aggregating
+coordinates manufactures a measurement record no candidate produced. Any
+aggregation must preserve reference failure, incomplete evidence, artifact and
+replicate identity, and the existing mandatory-pack rules; this one does not.
+
+**Selecting a single actual run avoids that and fails elsewhere.** A medoid, or a
+designated reference run, never synthesizes a vector, so the example above does
+not reach it. But admissibility then still depends on whose hardware ran the
+selected run - a near-threshold candidate passes or fails by device, only
+deterministically. It is also a trust concentration: whoever produces it decides
+admissibility, which is the centralisation independent reconstruction exists to
+avoid.
+
+Beyond both, aggregation is an **evidence-use change with scientific content**,
+not protocol machinery. Agreeing on a fixed set of reports and an arithmetic
+rule yields one agreed result; it does not establish those reports' correctness,
+remove common bias, or establish cross-hardware comparability. A median routine
+does not by itself settle membership, deadlines, missingness, equivocation or
+weights, each of which needs its own design and failure assumptions.
+
+And it changes what a validator *is* for this one decision - a scientific
+question about what independent verification means, not an implementation
+detail.
 
 ## 5. Option C - make gates tolerant by construction
 
