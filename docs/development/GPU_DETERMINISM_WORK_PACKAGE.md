@@ -152,3 +152,162 @@ decision for the owner and SCI.
 5. **Do not build on the strict host apparatus.** Leave it; do not remove it.
 6. Do not edit a worktree while a suite runs against it.
 7. Zero paid spend. Nothing here requires renting anything.
+
+---
+
+# Amendment 1 - staged experiments, decision-layer criteria, and exactness by construction
+
+Added after external review. D1 and D2 are unchanged and in progress. This
+replaces D3's experiment design, adds a criterion to D4, and adds section E,
+which is the strategy the measurements are meant to serve.
+
+## A1. D3 is restaged
+
+The original D3 asked one question - do repeats diverge unpinned, and stop
+diverging pinned. That detects divergence without locating it, and a single
+"the checkpoint differs" result does not distinguish an arithmetic difference
+from a reproducibility bug from packaging metadata.
+
+Run these as separate stages, in order, and stop at the first that fails:
+
+| Stage | Held fixed | What it isolates |
+| --- | --- | --- |
+| 1. Replay from a saved state | Exact parameters, inputs, measurement code. No training. | Whether inference or measurement varies at all. |
+| 2. First updates | Initial parameters, optimiser state, keys, data, precision. | Where divergence first appears in training. |
+| 3. Same-seed reconstruction, fresh processes | Recipe, data, initialisation, prescribed work. Separate compilation. | Whether a full run reproduces on one configuration. |
+| 4. Matched execution, second machine | The same intended experiment; host differences recorded, never erased. | Whether another machine changes results or decisions. |
+| 5. Independent reconstruction repeats | Registered method; training randomness varied per policy. | Reconstruction variability the comparison must account for. |
+
+Stages 1 to 3 need one device. Stage 4 needs a second and is the one this host
+cannot supply.
+
+**Distinguish numerical state from packaging metadata.** Two archives can differ
+because run metadata differs - the determinism baseline already established that
+`artifact_digest` covers wall-clock timings. Explain such a difference; never
+resolve it by weakening an integrity check.
+
+## A2. Weights are not the acceptance criterion
+
+Report divergence at every layer it passes through, because the magnitudes differ
+by orders of magnitude and only the last two decide anything:
+
+parameters, then predictions, then the physical measurements a Score Pack
+consumes, then gate outcomes, then the ranking between candidates.
+
+W5 already showed predictions diverging about five hundred times less than
+parameters. A criterion stated on parameters would overstate the risk by roughly
+that factor; one stated on gate outcomes is the only one that means anything.
+
+## A3. Candidate-by-hardware interaction
+
+Neither W3 nor W5 tests this and it is the sharpest version of the fairness
+question:
+
+> Two devices may agree on a reference model and still favour *different
+> submitted strategies*.
+
+Repeated runs of one convenient baseline cannot detect it. Any hardware
+qualification study must include several admissible strategies, including
+difficult ones, and report whether the **ranking between candidates** changes -
+not only whether each candidate's numbers move.
+
+A study that fails to find a difference is not evidence of absence. State what
+difference the study was capable of detecting; a study that could not have
+detected a decision-changing effect has not ruled one out.
+
+## A4. Already settled, do not re-litigate
+
+`carbon/reconstruction/service.py:416` makes the status `COMPLETE` if and only if
+`completed_steps == steps`. Reconstruction is **fixed-step today**: a faster
+device finishes sooner, it does not train longer and earn a better result. The
+fairness requirement that prescribed work be equal is already met. A host that
+cannot finish yields an infrastructure outcome, not a partially trained model
+presented as comparable.
+
+---
+
+# E. The strategy: exactness by construction, divergence as a fault
+
+Owner direction: find a solution that does not rely on per-challenge uncertainty.
+Use uncertainty only if forced.
+
+## E0. Why the cheap fixes do not work
+
+A mandatory gate is a discontinuous function of a host-dependent input. Rounding,
+quantising, or aligning thresholds to a grid **relocates the boundary; it does not
+remove it.** Values near the new boundary still flip. No transformation of the
+output makes a discrete decision robust to noise in its input.
+
+That leaves four moves, and only four: drive divergence to zero, make the
+decision continuous, compute the decision once, or accept an indeterminate band.
+Making the decision continuous changes the science. The band is the thing to
+avoid. So: zero, or once.
+
+## E1. First line - one declared execution class per challenge
+
+The exam environment declares a single execution class: device class, driver
+floor, library versions, and the determinism configuration from D2. Every
+validator scoring that challenge runs that class.
+
+**This does not cost provider freedom.** A class is a specification, the way
+x86-64 is. Any provider offering it qualifies, and D3's guarantee is about
+provider choice, not about device interchangeability. It is what MQ-008's
+"narrow backend/hardware profile" already points at.
+
+The property being bought is that **two validators in the class produce identical
+metrics**, so a gate cannot flip between them and no tolerance is needed.
+
+## E2. What makes it enforceable rather than aspirational
+
+1. **Fail loud.** `--xla_gpu_exclude_nondeterministic_ops=true` rejects a
+   computation that has no deterministic implementation, at compile time. Keep
+   it. **Never relax it to let a run through** - that converts a loud failure
+   into silent divergence, which is strictly worse than not having the flag.
+2. **Provenance makes the class checkable.** D1 is what turns "validators run the
+   declared class" into something verifiable. Today divergent runs record
+   identical `observed_environment_digest`, so out-of-class execution is
+   invisible and unrejectable.
+3. **Divergence in class is an incident.** Two in-class runs disagreeing is a
+   fault: recorded, investigated, and blocking for that comparison. It is never
+   averaged away and never absorbed into a tolerance.
+
+If E1 and E2 hold, the `ScoreStatus` gap is moot. Gates do not flip, so nothing
+needs a "too close to call" disposition and no closed scientific enum has to be
+widened.
+
+## E3. Second line - compute the decision once
+
+If same-class exactness does not hold, the next option is still not a
+per-challenge epsilon. It is to evaluate the gate on **one agreed value**: a
+deterministic consensus over validator-reported metrics, with exact tie-breaking
+so every validator computes the same consensus from the same inputs.
+
+Gates then act on a single number and cannot flip. Hardware stays entirely
+unconstrained, so this is the option that preserves the most provider freedom. It
+costs protocol machinery rather than scientific qualification, and it carries
+game-theoretic questions - collusion, fabricated reports, minority robustness -
+that belong to the owner and SCI, not to engineering.
+
+## E4. Third line - registered uncertainty, only where forced
+
+Only where E1 and E3 are shown not to work for a specific challenge. Declared for
+that challenge, never a default, never chosen to make hardware agree, and never
+by widening a physics threshold or averaging away a failed mandatory condition.
+
+## E5. What to measure, and in what order
+
+1. **Stage 3 on one device, determinism pinned.** Does a full run reproduce on
+   one configuration? If not, E1 fails immediately and nothing further matters
+   until it is fixed.
+2. **Stage 4 across two devices of the same class.** This is the load-bearing
+   measurement for E1 and it is the one that needs hardware this host does not
+   have. Two identical instances is a far cheaper purchase than a cross-device
+   study, and it answers the question the entire strategy rests on.
+3. **Stage 4 across classes**, only to size how wrong it goes when the class
+   requirement is violated - which justifies enforcement, and is not a step
+   toward tolerating it.
+4. **A3's candidate-by-hardware test**, at whichever classes survive.
+
+**Report and stop before spending.** State which stages need a device, how many
+attempts each needs, and whether the request is a determinism check or
+qualification evidence. They are not the same and P7 gates them differently.
