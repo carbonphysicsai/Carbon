@@ -87,41 +87,76 @@ That is the finding. It is not a GPU problem, and it exists today.
 
 ## 4. Magnitude
 
-Between AVX2 and SSE4_2, on the `fno` backbone after the fixture's two training
-steps:
+Between AVX2 and SSE4_2, on the `fno` backbone, at three training lengths. The
+2-step row is the original W3 measurement; the 8- and 32-step rows were added
+after N3 made the C-02 fixture able to express a step count other than two.
 
-| Quantity | Differing | Max absolute | Max relative |
-| --- | --- | --- | --- |
-| Trained parameters | 2660 of 4696 (56.6%) | `2.086e-07` | `6.105e-04` |
-| Model predictions | 11 of 64 | `1.746e-10` | `1.264e-06` |
+| Steps | Quantity | Differing | Max absolute | Max relative |
+| --- | --- | --- | --- | --- |
+| 2 | Trained parameters | 2660 of 4696 (56.6%) | `2.086e-07` | `6.105e-04` |
+| 2 | Model predictions | 9 of 64 (14.1%) | `1.746e-10` | `1.264e-06` |
+| 8 | Trained parameters | 3109 of 4696 (66.2%) | `2.384e-07` | `8.929e-05` |
+| 8 | Model predictions | 9 of 64 (14.1%) | `2.328e-10` | `1.151e-05` |
+| 32 | Trained parameters | 3529 of 4696 (75.1%) | `1.132e-06` | `3.072e-04` |
+| 32 | Model predictions | 12 of 64 (18.8%) | `9.313e-10` | `4.474e-06` |
 
-Both are reported because they answer different questions. Parameter divergence
-says the training diverged. Prediction divergence is what any downstream metric
-actually inherits, and it is about five hundred times smaller at this training
-length - the predictions are still dominated by the shared initialisation after
-two steps. Anything reasoning about score thresholds must use the second row;
-using the first would overstate the effect by that factor.
+Both quantities are reported because they answer different questions. Parameter
+divergence says the training diverged. Prediction divergence is what any
+downstream metric actually inherits, and it is two to three orders of magnitude
+smaller at every length measured. Anything reasoning about score thresholds must
+use the prediction rows.
 
-**This is a floor, not a bound.** It is measured at the shortest run the fixture
-permits. Divergence of this kind compounds with step count, and the authorized
-envelope allows 32 steps per invocation - sixteen times longer. The magnitude at
-32 steps is **not measured here**: the C-02 compile fixture pins its step count
-to 2 through both its parameter domain and its static resource table, and
-widening it is a fixture change that was out of scope for this measurement.
-Whoever needs the number should close that gap deliberately rather than
-extrapolate from this one.
+> An earlier revision of this section reported `11 of 64` differing predictions
+> beside a max relative of `1.264e-06`. Those came from two different pairs -
+> the count from AVX2-vs-AVX, the magnitude from AVX2-vs-SSE4_2. The table above
+> is AVX2-vs-SSE4_2 throughout.
+
+### What the step count does, and does not, do
+
+An earlier revision of this section asserted that the two-step figure was **a
+floor** because "divergence of this kind compounds with step count". That was an
+assumption, not a measurement. It is now measured, and it is half right:
+
+- **Absolute divergence grows**, monotonically and substantially: parameters
+  `2.086e-07` -> `2.384e-07` -> `1.132e-06`, predictions `1.746e-10` ->
+  `2.328e-10` -> `9.313e-10`. Roughly 5x over a 16x increase in length.
+- **The share of affected values grows**, monotonically: 56.6% -> 66.2% ->
+  75.1% of parameters.
+- **Relative divergence does not grow.** Parameter max-relative at 32 steps
+  (`3.072e-04`) is *below* its value at 2 steps (`6.105e-04`). Prediction
+  max-relative peaks at 8 steps (`1.151e-05`) and falls again by 32
+  (`4.474e-06`).
+
+The two are consistent: the magnitudes of the parameters and predictions
+themselves change as training proceeds, so a growing absolute difference need
+not be a growing relative one. The "compounds" intuition was right about
+absolute divergence and wrong about the relative figure the margin rule is
+actually stated in - and the margin rule was stated in the relative figure.
+
+Consequently the two-step prediction figure is **not a floor**. It is
+approximately 9x *lower* than the largest value observed across the measured
+range. The largest observed prediction relative divergence is **`1.151e-05`, at
+8 steps**, and that - not `1.264e-06` - is the number a margin argument should
+carry.
+
+**The measured range is 2 to 32 steps.** 32 is the authorized envelope's maximum
+per invocation, so the envelope is now covered end to end. Real training runs are
+far longer, the trend across this range is not monotone in the relative figure,
+and nothing here licenses extrapolating past 32.
 
 ## 5. What this does and does not establish
 
 **Established.** Reduction order changes the result; the instruction set is one
 live source of that change; the effect is reproducible, affects both registered
-backbones, and is invisible to every identity Carbon records.
+backbones, and is invisible to every identity Carbon records. Across 2 to 32
+steps the absolute divergence and the share of affected values both grow, while
+the relative divergence does not grow monotonically.
 
 **Not established.** That two real hosts in production would differ - this
 simulates a narrower feature set on one machine rather than measuring a second
 machine. Nor whether a host with AVX-512 available would differ again; this host
-does not have it. The magnitude at realistic step counts. Any behaviour on a GPU. Any
-tolerance, for anything.
+does not have it. The magnitude beyond 32 steps, which is where real training
+runs live. Any behaviour on a GPU. Any tolerance, for anything.
 
 **Not concluded.** That AVX2 is safe to assume. It is near-universal on x86-64
 since 2013, but D3 gives validators provider freedom explicitly, and a provider

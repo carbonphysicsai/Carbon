@@ -63,32 +63,45 @@ From W3, between CPU instruction-set levels, on identical R0 identities. A gate
 acts on a metric computed from model **output**, not on parameters, so both were
 measured and the output figure is the one that governs:
 
-| Level | Differing | Max absolute | Max relative |
-| --- | --- | --- | --- |
-| Trained parameters | 2660 / 4696 (56.6%) | `2.086e-07` | `6.105e-04` |
-| **Model predictions** | 11 / 64 | **`1.746e-10`** | **`1.264e-06`** |
+AVX2 vs SSE4_2, at each training length the fixture can now express:
 
-The output divergence is roughly five hundred times smaller than the parameter
-divergence. That is expected at this training length — after two steps the
-predictions are still dominated by the shared initialisation — and it is the
-reason the parameter figure must not be used as the margin yardstick. Quoting
-`6.1e-4` as the metric noise would overstate the risk by about that factor.
+| Steps | Quantity | Differing | Max absolute | Max relative |
+| --- | --- | --- | --- | --- |
+| 2 | Trained parameters | 2660 / 4696 (56.6%) | `2.086e-07` | `6.105e-04` |
+| 2 | **Model predictions** | 9 / 64 | `1.746e-10` | `1.264e-06` |
+| 8 | Trained parameters | 3109 / 4696 (66.2%) | `2.384e-07` | `8.929e-05` |
+| 8 | **Model predictions** | 9 / 64 | **`2.328e-10`** | **`1.151e-05`** |
+| 32 | Trained parameters | 3529 / 4696 (75.1%) | `1.132e-06` | `3.072e-04` |
+| 32 | **Model predictions** | 12 / 64 | `9.313e-10` | `4.474e-06` |
 
-Both figures are measured after **two training steps**, the shortest run the
-fixture permits, so both are **floors**. Parameter divergence compounds with step
-count and output divergence follows it; the envelope allows 32 steps, sixteen
-times longer, and that measurement is not available (see W3 §4).
+The output divergence is two to three orders of magnitude smaller than the
+parameter divergence at every length, which is the reason the parameter figure
+must not be used as the margin yardstick. Quoting `6.1e-4` as the metric noise
+would overstate the risk by roughly that factor.
 
-The usable rule, stated against the quantity that matters:
+**Correction to an earlier revision.** This section previously carried only the
+2-step row and called both figures **floors**, on the stated ground that
+"parameter divergence compounds with step count and output divergence follows
+it". N3 widened the C-02 fixture and the claim was measured rather than assumed.
+It does not hold as stated: relative divergence does **not** grow monotonically,
+and at 32 steps the parameter figure (`3.072e-04`) is *below* its 2-step value.
+What does grow monotonically is absolute divergence and the share of affected
+values. Since the margin rule is expressed in relative terms, the "floor"
+framing was wrong for the rule it was supporting. See W3 §4.
 
-> **A mandatory threshold is unsafe if typical inputs sit within roughly `1e-6`
-> relative of it — and that is a lower bound from the shortest possible run, not
-> a safe margin.**
+The two-step figure was nonetheless an **under**statement for predictions, by
+about 9x — just not for the reason given. The governing number is the largest
+observed across the range:
 
-What this does *not* license is the conclusion that the risk is negligible. A
-floor measured at two steps says little about a real training run, and the
-mechanism — a step function acting on a host-dependent quantity — is unchanged by
-the magnitude.
+> **A mandatory threshold is unsafe if typical inputs sit within roughly `1e-5`
+> relative of it.** That is the largest prediction divergence observed between
+> CPU instruction-set levels over 2–32 steps, on one backbone, on one host.
+
+What this does *not* license is the conclusion that the risk is negligible, nor
+that `1e-5` is a bound. The measured range stops at 32 steps because that is the
+authorized envelope's per-invocation maximum, not because divergence was shown to
+settle there; real training runs are far longer. The mechanism — a step function
+acting on a host-dependent quantity — is unchanged by the magnitude.
 
 Two validators on hosts with different CPU feature levels would then disagree not
 by a fraction of a score, but on whether the submission is admissible at all.

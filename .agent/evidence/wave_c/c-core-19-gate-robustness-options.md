@@ -39,10 +39,12 @@ That is the asymmetry. Divergence is noise in the legs and unfairness at a gate.
 
 ## 2. What is and is not measured
 
-Measured: cross-instruction-set divergence on CPU - `6.105e-04` relative on
-trained parameters, `1.264e-06` on model predictions, both at a two-step
-workload, both floors. Cross-session GPU divergence unpinned, eliminated by
-pinning on one device.
+Measured: cross-instruction-set divergence on CPU, at 2, 8 and 32 steps. The
+largest relative figures observed across that range are `6.105e-04` on trained
+parameters and `1.151e-05` on model predictions. Neither is a floor - relative
+divergence does not grow monotonically with step count, though absolute
+divergence does (see W3 §4). Cross-session GPU divergence unpinned, eliminated
+by pinning on one device.
 
 **Not measured**: divergence between two *different* GPU models, which is the
 quantity these options are really about. It cannot be measured under a zero-spend

@@ -88,13 +88,19 @@ create it.
 
 | | Unpinned | Pinned | Difference |
 | --- | --- | --- | --- |
-| Compile | 1.55 - 1.61 s | 2.44 - 2.56 s | **+1.0 s, +63%** |
-| Train execution | 0.040 s | 0.041 s | +0.001 s, +2.6% |
+| Compile, median of 9 runs | 1.610 s | 2.536 s | **+0.93 s, +58%** |
+| Compile, mean of 9 runs | 1.860 s | 2.504 s | +0.65 s, +35% |
+| Train execution, median | 0.0451 s | 0.0412 s | **not resolvable** |
+| Train execution, mean | 0.1358 s | 0.1368 s | **not resolvable** |
 
-Measured on a two-step reference workload. The compile figure is a fixed per-run
-overhead and amortises over a real training length; the execution figure is the
-one that scales and is **indicative only** at this size. The number is given
-rather than an assurance that the cost is small.
+Measured on a two-step reference workload, nine runs per condition.
+
+The compile figure is a fixed per-run overhead and amortises over a real training
+length. The execution overhead is the one that scales, and at this sample size it
+is **not resolvable**: median and mean disagree in sign, both dominated by
+per-session warm-up. No execution figure is given, because the measurement does
+not support one. Experiment 2 of `GPU_NEXT_EXPERIMENTS_SPECIFICATION.md` is where
+it should be measured at a scale that can resolve it.
 
 ## 6. What it means for fairness
 

@@ -100,9 +100,35 @@ def strategy_limits(**overrides: object) -> SubmissionResourceLimits:
 
 
 def make_compile_fixture(
-    tmp_path: Path, *, challenge_key: ChallengeKey | None = None
+    tmp_path: Path,
+    *,
+    challenge_key: ChallengeKey | None = None,
+    sampling_levels: tuple[int, ...] = (1, 2),
 ) -> CompileFixture:
+    """The shared compile fixture.
+
+    `sampling_levels` widens the sampling parameter's domain and its resource
+    lookup. It defaults to the two levels this fixture has always carried, so
+    every existing caller gets a byte-identical contract and an unchanged
+    digest; only a caller that asks for more steps gets a wider one.
+
+    That opt-in matters. The levels are part of the training support contract,
+    so changing them changes its digest and therefore every plan digest derived
+    from it. Widening unconditionally would have rewritten identities for
+    callers that never asked for more steps.
+    """
     del tmp_path
+    # The element check precedes the ordering check on purpose: sorting a tuple
+    # of mixed types raises TypeError before this function can say what is
+    # actually wrong with the argument.
+    if (
+        type(sampling_levels) is not tuple
+        or not sampling_levels
+        or any(type(level) is not int or level < 1 for level in sampling_levels)
+        or sorted(sampling_levels) != list(sampling_levels)
+        or len(set(sampling_levels)) != len(sampling_levels)
+    ):
+        raise ValueError("sampling levels must be ascending distinct positive ints")
     key = (
         ChallengeKey("fixture_authoring", "1.0")
         if challenge_key is None
@@ -347,7 +373,7 @@ def make_compile_fixture(
         sampling_target,
         SurfaceValueType.UINT64,
         BoundUnit(unit_ref),
-        UInt64RangeDomain(1, 2),
+        UInt64RangeDomain(sampling_levels[0], sampling_levels[-1]),
         (),
         AlwaysApplicable(pinned("applicability", "fixture_sampling_surface")),
         RequiredSurface(),
@@ -357,9 +383,13 @@ def make_compile_fixture(
                 "abstract_units",
                 unit_ref,
                 "fixture_sampling_level",
-                (
-                    ResourceLookupCase(SurfaceValue(SurfaceValueType.UINT64, 1), 4),
-                    ResourceLookupCase(SurfaceValue(SurfaceValueType.UINT64, 2), 8),
+                # Four abstract units per level, which is the rule the two
+                # original cases (1 -> 4, 2 -> 8) already followed.
+                tuple(
+                    ResourceLookupCase(
+                        SurfaceValue(SurfaceValueType.UINT64, level), 4 * level
+                    )
+                    for level in sampling_levels
                 ),
                 ("sampling_impact",),
             ),
