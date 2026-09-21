@@ -311,3 +311,117 @@ by widening a physics threshold or averaging away a failed mandatory condition.
 **Report and stop before spending.** State which stages need a device, how many
 attempts each needs, and whether the request is a determinism check or
 qualification evidence. They are not the same and P7 gates them differently.
+
+---
+
+# Amendment 2 - make a validator deployment easy and efficient
+
+Owner direction: the validator experience should be as easy and efficient as it
+can be. That sits in tension with section E, which pins execution to make
+agreement exact, so the organising principle is stated first.
+
+## V0. Pin the minimum, optimise everything else
+
+> **The execution class is the smallest set of pins that delivers exactness.
+> Anything measured not to change the numbers stays free to optimise.**
+
+Over-pinning costs throughput and buys nothing. Under-pinning costs exactness.
+Neither is settled by preference - each candidate pin is a measurement, and a
+setting is pinned only once it is shown to move the numbers.
+
+This is what lets a validator be both exact and fast: the pinned set is small
+and justified, and everything outside it is the operator's to tune.
+
+## V1. Unpin the cpuset
+
+`carbon/reconstruction/worker/docker_runtime.py` rejects any allocation that is
+not exactly cores 0 and 1:
+
+```python
+if (cpuset != "0,1" or ...):
+    raise WorkerFailure(WorkerCode.INVALID)
+```
+
+This is the same defect class the portability work already removed for device
+identity: a host-specific constant compiled into Carbon. `HostDeviceRecord` and
+`require_host_device()` are the pattern to follow.
+
+Three consequences for a validator, all real:
+
+- Cores 0 and 1 are typically the busiest on a Linux host.
+- Cloud instances vary in topology, and a VM may not present those cores as
+  usable in the way this assumes.
+- **Two concurrent reconstructions are impossible**, because both demand the
+  same two cores. A validator scoring a queue of submissions is limited to one
+  at a time by a hardcoded string.
+
+Resolve the allocation from the host, and let concurrent runs receive disjoint
+sets. Do not replace one hardcoded constant with another.
+
+## V2. Measure what is numerically load-bearing, before sizing anything
+
+**This gates V1 and V3.** There is no point choosing a core count until it is
+known whether the count changes the result.
+
+W3 established that `OMP_NUM_THREADS` at 1, 2, 4 and 8 leaves weights unchanged,
+because these operations do not go through the OpenMP or BLAS pools, and that
+XLA's Eigen threading *mode* does change them. What it did not vary is **Eigen's
+thread-pool size**, which tracks the cores actually available to the process.
+
+So the open question is precise:
+
+> Does the number of usable cores change `checkpoint/state.npz`?
+
+If it does, core count joins the declared execution class and a validator cannot
+be sized freely - which is a significant constraint and needs to be known now,
+not discovered later. If it does not, validators can be given as many cores as
+the host has, and this whole tension disappears.
+
+Free, local, no device, no attempt. Run it early.
+
+Apply the same test to anything else a deployment would want to vary: memory
+ceiling, container concurrency, and whether two simultaneous in-class runs on one
+host affect each other.
+
+## V3. Size the validator envelope from evidence
+
+`CPU_COUNT = 2` and `MEMORY_BYTES = 4 GiB` are a **development diagnostic**
+envelope carried over from the local lane. They are not a validator workload
+envelope and were never chosen as one.
+
+Once V2 says what may vary, propose an envelope for validator reconstruction and
+record the throughput it delivers. Include the cost of the D2 determinism
+settings in that number - `--xla_gpu_autotune_level=0` and deterministic kernels
+are not free, and the owner should see the price of exactness as a measurement
+rather than an assurance.
+
+## V4. Scoring is a separate deployment, and should be documented as one
+
+The worker does not score. It has no scoring imports at all: it reconstructs and
+exports an artifact. A5 scoring is dependency-free Python over float64 and runs
+outside the container, which is exactly why scoring is hardware-independent while
+training is not.
+
+That is good design and should not change. But it means "run a validator" is two
+pieces, and only one of them is the image. Document both:
+
+| Piece | Needs | Envelope |
+| --- | --- | --- |
+| Reconstruction | GPU, the pinned image, the declared execution class | V3 |
+| Scoring | No GPU, no accelerator libraries | negligible |
+
+## V5. The path a validator actually follows
+
+Write it as the operator sequence it is, end to end: check the host, obtain the
+image, verify it, run a reconstruction, score it, recover from an interruption.
+`carbon_accelerator.py` already provides `doctor`, `status`, `run`, `cancel` and
+`recover`; what is missing is the documented path through them and what a
+validator needs installed before the first command.
+
+**No host grant, no exclusivity, no admission ceremony.** The strict apparatus
+stays out of the validator lane exactly as it stays out of the miner lane. If a
+step exists only to assert something about the host rather than to make the run
+work, it does not belong in this path.
+
+State the prerequisites honestly, including the Docker daemon and the driver
+floor from the declared class.
