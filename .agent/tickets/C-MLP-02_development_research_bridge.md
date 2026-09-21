@@ -450,3 +450,55 @@ created by this decision. Local browser acceptance could not run in this session
 the environment's Chromium binaries fail to launch for a missing system library
 and installing it requires host privileges this session does not hold. The CI
 browser lane retains that coverage.
+
+## Dependency integration and browser acceptance C-MLP-02-D9
+
+#249 was accepted and merged to main as `dbfaec1d`, carrying the C-CORE-19
+miner/validator lane split at its final revision together with #250's Workbench
+delivery. This branch integrated that main by normal merge, so its earlier
+dependency revision `376e7763` is retained in history and the newer accepted
+core is added beside it rather than replacing it.
+
+The Hub was reconciled as source, not as a file set. All 213 event ids shared
+between the two sides were compared and agree exactly, so none required
+adjudication. Main's integrated `hub_data_v2.json` and its authority snapshot
+are the base, because the core owner repinned them when #249 was accepted; this
+branch's two events append to main's 217 for 219 total, and
+`GOAL-WORKBENCH-12-D1`, `C-CORE-19-ALLOCATION-01` and `C-CORE-19-SNAPSHOT-03`
+are preserved. This branch's earlier repin to its own commit is dropped in
+favour of main's, so no stale pin survives. Derived outputs were regenerated
+from the agreed sources.
+
+Semantic compatibility was checked against the transitive path rather than
+inferred from unchanged imported names. The registered envelope constants this
+projection reads are unchanged, but the authority document's declared envelope
+moved: the literal cpuset `0,1` became a host-resolved allocation, so concurrent
+launches are now possible where previously two reconstructions could never run
+at once. The published exam environment carried `concurrency: 1` as a literal
+and therefore could not track that through the read-from-source drift test. It
+now reports concurrency per launch, that concurrent launches are possible, and
+the host-resolved cpuset, with the N2 sizing result carried together with its
+scope limit. No qualification, tolerance or acceptance threshold is implied.
+
+Targeted regressions were added for `registered_gpu_image`'s separate path and
+size conditions, which a general `private_file` test does not exercise: an
+aliased record and an aliased parent, an oversized record proven refused before
+the image parser, an individually well-formed record bound to other material,
+and both composition routes reaching the same resolver, each with a positive
+control. Removing the path and size condition fails exactly those tests.
+
+Browser acceptance was performed rather than deferred. The pinned Chromium
+required `libnss3` and `libasound2t64`, obtained user-locally without modifying
+the host or any asset tree. `scripts/dev/miner_launchpad/browser_smoke.py`
+drives the real page and now also covers the public exam disclosure and the
+miner's compute choices rendering with no research profile, grant, model key or
+agent configured. That run found a defect in this branch's own UI - the exam
+panel cleared the container after the compute choices were appended - which is
+repaired with the assertion that caught it retained. The Hub browser and route
+checks are Hub tests and are reported separately; they are not Launchpad
+product acceptance.
+
+Still not closed by this slice: the genuine multi-iteration browser-launched
+adaptive campaign, its independent DEVELOPMENT comparison and verified cleanup.
+No grant is created, no existing pause or allowance is consumed or renewed, and
+no device, model or provider call was made.
