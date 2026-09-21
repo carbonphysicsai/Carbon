@@ -4,6 +4,8 @@ No prefix-based runtime exemption. Shared scientific/official, worker, reference
 reward-core, lifecycle and dependency changes retain their existing full scopes.
 """
 
+import re
+
 DEVELOPMENT_RUNTIME = frozenset(
     {
         "carbon/audit/derivation.py",
@@ -65,6 +67,13 @@ DEVELOPMENT_SUPPORT = frozenset(
         "tests/invariants/test_c07_orchestration_boundaries.py",
     }
 )
+
+# A top-level development document. ``[^/]+`` cannot span a separator, so
+# docs/development/carbon_hub/ never matches and the Hub keeps its heavier lane:
+# that is the surface Hub validation exists for, and excluding it structurally
+# means a new Hub document cannot be added to the light lane by forgetting a
+# blacklist entry. Documents in other subdirectories also keep their lane.
+DEVELOPMENT_DOC_RE = re.compile(r"docs/development/[^/]+\.md\Z")
 
 DEVELOPMENT_DOCS = frozenset(
     {
