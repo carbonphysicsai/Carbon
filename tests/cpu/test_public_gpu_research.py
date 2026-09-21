@@ -165,14 +165,62 @@ def test_cpu_campaign_scope_cannot_enable_gpu(tmp_path, monkeypatch):
     assert not calls and not ledger.status(owner=data.owner)["operations"]
 
 
-def test_missing_host_grant_blocks_before_numerical_reservation(tmp_path, monkeypatch):
-    data, ledger, _gpu_image, calls, composition = fixture(
-        tmp_path, monkeypatch, host=False
+def test_personal_research_reaches_dispatch_without_any_strict_host_grant(
+    tmp_path, monkeypatch
+):
+    """The superseded requirement, inverted.
+
+    This case previously asserted that a miner with no owner-signed host grant
+    was blocked before reservation. That requirement was written for the
+    validator lane and applied to both; the miner lane does not make the claim
+    it supported, so its absence is no longer an error.
+
+    The negative boundary is asserted alongside it rather than assumed: strict
+    admission really is unsatisfiable here - there is no grant to load - and the
+    run reaches its proper external launch boundary anyway, carrying the miner
+    role.
+    """
+    data, ledger, _gpu_image, calls, c = fixture(tmp_path, monkeypatch, host=False)
+    with pytest.raises(WorkerFailure):
+        accelerator_runtime.AcceleratorHostAdmission.load()
+
+    result = invoke(c.executor.practice)
+
+    assert len(calls) == 1
+    assert calls[0]["accelerator_role"] is gpu.AcceleratorRole.MINER_RESEARCH
+    assert result["lane"] == "MINER_CONTAINED"
+    assert result["assurance"]["not_established"] == [
+        "WHOLE_DEVICE_EXCLUSIVITY",
+        "FOREIGN_COMPUTE_PROCESS_ABSENCE",
+        "DEVICE_MEMORY_SANITIZATION_BETWEEN_TENANTS",
+        "WHOLE_DEVICE_RELEASE_AFTER_RUN",
+    ]
+    assert result["score"] is None and result["official_eligible"] is False
+    assert ledger.status(owner=data.owner)["used"]["research_trials"] == 1
+    c.tasks.close()
+
+
+def test_unknown_whole_device_telemetry_is_not_a_personal_research_error(
+    tmp_path, monkeypatch
+):
+    """An empty enumeration registry blocks nothing on this lane.
+
+    The platform that prompted the split cannot enumerate compute processes at
+    all. That telemetry only ever supported an exclusivity claim the miner lane
+    does not make, so it stays unknown instead of stopping a miner.
+    """
+    data, ledger, _gpu_image, calls, c = fixture(tmp_path, monkeypatch, host=False)
+
+    assert accelerator_runtime.ESTABLISHED_OBSERVATION_CONTRACTS == frozenset()
+    result = invoke(c.executor.practice)
+    assert len(calls) == 1
+    assert result["observations"]["device_memory_peak_bytes"] is None
+    assert (
+        result["observations"]["device_memory_peak_status"]
+        == "NOT_MEASURED_BY_THIS_PROJECTION"
     )
-    with pytest.raises(WorkerFailure, match="worker operation failed"):
-        invoke(composition.executor.practice)
-    assert not calls and not ledger.status(owner=data.owner)["operations"]
-    composition.tasks.close()
+    assert ledger.status(owner=data.owner)["operations"][0]["state"] == "SUCCEEDED"
+    c.tasks.close()
 
 
 def test_real_service_task_non_score_result_replay_and_precharged_trial(
@@ -252,19 +300,297 @@ def test_cli_fixed_record_requires_exact_scope(tmp_path, monkeypatch):
 
 
 @pytest.mark.parametrize("outside", [True, False])
-def test_outside_campaign_host_root_is_not_an_admissible_consumer(
+def test_operator_record_cannot_redirect_campaign_controller_storage(
     tmp_path, monkeypatch, outside
 ):
-    data, ledger, _image, calls, c = fixture(tmp_path, monkeypatch)
+    """Where controller state lives is the campaign's, not an operator field's.
+
+    This case previously installed a `controller_root` into the host grant and
+    asserted the campaign rejected one pointing outside itself. The miner lane
+    reads no such field, so the stronger property is asserted instead: the
+    location is derived from the campaign root, and an operator record carrying
+    a competing path changes nothing.
+    """
+    _data, ledger, _image, calls, c = fixture(tmp_path, monkeypatch)
     path = accelerator_runtime.HOST_ROOT / "grant.json"
     record = json.loads(path.read_bytes())
     record["controller_root"] = str(
         tmp_path / "unrelated-controller" if outside else ledger.root
     )
     path.write_bytes(canonical(record))
-    with pytest.raises(ValueError, match="exact campaign"):
-        invoke(c.executor.practice)
-    assert not calls and not ledger.status(owner=data.owner)["operations"]
+
+    invoke(c.executor.practice)
+
+    assert len(calls) == 1
+    assert calls[0]["claimed"] is not None
+    assert gpu._controller_root(ledger) == ledger.root / gpu.CONTROLLER_DIRECTORY
+    assert not (tmp_path / "unrelated-controller").exists()
+    from carbon.reconstruction.worker.operator import _stores
+
+    assert ledger.root / "gpu-controller" / "launches.sqlite3" in _stores(ledger.root)
+    c.tasks.close()
+
+
+def test_campaign_controller_storage_refuses_a_relocated_or_symlinked_root(tmp_path):
+    """The containment check survives the grant it used to be checked against."""
+    root = tmp_path / "campaign"
+    root.mkdir(mode=0o700)
+    ledger = SimpleNamespace(root=root)
+    assert gpu._controller_root(ledger) == root / gpu.CONTROLLER_DIRECTORY
+
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir(mode=0o700)
+    linked = tmp_path / "linked"
+    linked.mkdir(mode=0o700)
+    (linked / gpu.CONTROLLER_DIRECTORY).symlink_to(elsewhere)
+    with pytest.raises(ValueError, match="must not be a symlink"):
+        gpu._controller_root(SimpleNamespace(root=linked))
+
+
+@pytest.mark.parametrize(
+    "scopes",
+    [
+        None,
+        [],
+        [{"schema": gpu.SCHEMA}] * 2,
+        [{"schema": "carbon.other.v1"}],
+        # A declared scope claiming the validator role, or claiming to be worth
+        # something official, is refused as malformed rather than accepted and
+        # then quietly downgraded.
+        [{"schema": gpu.SCHEMA, "role": "VALIDATOR_RECONSTRUCTION"}],
+        [{"schema": gpu.SCHEMA, "role": "MINER_RESEARCH", "official_eligible": True}],
+    ],
+)
+def test_declared_gpu_runtime_refuses_a_shape_no_runner_could_assemble(scopes):
+    with pytest.raises(ValueError, match="exact prospective GPU"):
+        gpu.declared_gpu_runtime({"gpu_research": scopes})
+
+
+def test_declared_gpu_runtime_is_shape_only_and_copies_what_it_returns():
+    """It must not be mistaken for the binding check, nor alias the grant."""
+    declared = {
+        "schema": gpu.SCHEMA,
+        "role": "MINER_RESEARCH",
+        "official_eligible": False,
+        "score": None,
+    }
+    runtime = {"gpu_research": [declared]}
+    returned = gpu.declared_gpu_runtime(runtime)
+    assert returned == [declared]
+    returned[0]["role"] = "VALIDATOR_RECONSTRUCTION"
+    assert runtime["gpu_research"][0]["role"] == "MINER_RESEARCH"
+
+
+def test_registered_gpu_image_binds_the_campaign_material(tmp_path, monkeypatch):
+    """The real check: the scope is recomputed, never believed as declared."""
+    data, ledger, image, _calls, c = fixture(tmp_path, monkeypatch)
+    runtime = ledger.admission.document["runtime"]
+    assert gpu.registered_gpu_image(ledger.root, {}, data.role_root) is None
+    path = ledger.root / gpu.GPU_IMAGE_RECORD
+    path.write_bytes(
+        canonical({"schema": "carbon.c03.worker-image.v1", **asdict(image)})
+    )
+    path.chmod(0o600)
+    assert gpu.registered_gpu_image(ledger.root, runtime, data.role_root) == image
+    # A structurally valid scope that does not describe this campaign's material
+    # is refused, which is what `declared_gpu_runtime` deliberately cannot do.
+    altered = dict(runtime["gpu_research"][0])
+    altered["public_train_digest"] = "sha256:" + "0" * 64
+    assert gpu.declared_gpu_runtime({"gpu_research": [altered]}) == [altered]
+    with pytest.raises(ValueError, match="exact prospective GPU"):
+        gpu.registered_gpu_image(
+            ledger.root, {"gpu_research": [altered]}, data.role_root
+        )
+    c.tasks.close()
+
+
+def test_campaign_selects_the_research_runtime_its_manifest_declares(
+    tmp_path, monkeypatch
+):
+    """The browser campaign can finally assemble what it could only describe.
+
+    A grant declaring `runtime.gpu_research` used to reach a runner that refused
+    the key outright, so no campaign could ever compose the GPU callback. This
+    drives the campaign's own selection, both ways.
+    """
+    from carbon.development_session.research_campaign import research_practice
+    from carbon.development_session.research_provider import PublicPractice
+
+    data, ledger, image, _calls, c = fixture(tmp_path, monkeypatch)
+    runtime = ledger.admission.document["runtime"]
+    path = ledger.root / gpu.GPU_IMAGE_RECORD
+    path.write_bytes(
+        canonical({"schema": "carbon.c03.worker-image.v1", **asdict(image)})
+    )
+    path.chmod(0o600)
+    selected = {
+        "data": data,
+        "role_root": data.role_root,
+        "ledger": ledger,
+        "owner": data.owner,
+        "image": data.image,
+    }
+
+    chosen = research_practice(ledger.root, {"runtime": runtime}, **selected)
+    assert type(chosen) is gpu.PublicGPUPractice
+    assert chosen.scope == c.executor.practice.scope
+
+    # A campaign that declares no GPU runtime gets exactly what it always got.
+    for manifest in ({"runtime": {"implementation": {}, "images": []}}, {}):
+        assert type(research_practice(ledger.root, manifest, **selected)) is (
+            PublicPractice
+        )
+    c.tasks.close()
+
+
+def _install_gpu_record(root, image, *, name=None, padding=0):
+    """Write the operator's fixed GPU image record, as an operator tool would."""
+    path = root / (name or gpu.GPU_IMAGE_RECORD)
+    document = {"schema": "carbon.c03.worker-image.v1", **asdict(image)}
+    if padding:
+        document["padding"] = "x" * padding
+    path.write_bytes(canonical(document))
+    path.chmod(0o600)
+    return path
+
+
+def test_gpu_record_positive_control_resolves(tmp_path, monkeypatch):
+    """The control for the three guard cases below.
+
+    Without a case that is *supposed* to succeed, a guard test proves only that
+    something failed, not that the guard is what failed it.
+    """
+    data, ledger, image, _calls, c = fixture(tmp_path, monkeypatch)
+    runtime = ledger.admission.document["runtime"]
+    _install_gpu_record(ledger.root, image)
+    assert gpu.registered_gpu_image(ledger.root, runtime, data.role_root) == image
+    c.tasks.close()
+
+
+def test_gpu_record_refuses_an_aliased_path(tmp_path, monkeypatch):
+    """`path.resolve() != path` - the record itself, and its parent directory.
+
+    A general `private_file` test does not exercise this: `private_file` checks
+    absoluteness, symlink-ness and permissions, and this call site adds a
+    separate identity condition on top of it. Both aliases are covered because
+    a parent alias resolves differently while the leaf is an ordinary file.
+    """
+    data, ledger, image, _calls, c = fixture(tmp_path, monkeypatch)
+    runtime = ledger.admission.document["runtime"]
+
+    # The record's own path is a symlink to a valid record elsewhere.
+    real = _install_gpu_record(ledger.root, image, name="real-gpu-image.json")
+    link = ledger.root / gpu.GPU_IMAGE_RECORD
+    link.symlink_to(real)
+    with pytest.raises(ValueError):
+        gpu.registered_gpu_image(ledger.root, runtime, data.role_root)
+    link.unlink()
+
+    # The directory the record is read through is an alias of the campaign root.
+    _install_gpu_record(ledger.root, image)
+    aliased_root = tmp_path / "campaign-alias"
+    aliased_root.symlink_to(ledger.root)
+    with pytest.raises(ValueError):
+        gpu.registered_gpu_image(aliased_root, runtime, data.role_root)
+
+    # Control: through the real path it still resolves.
+    assert gpu.registered_gpu_image(ledger.root, runtime, data.role_root) == image
+    c.tasks.close()
+
+
+def test_gpu_record_refuses_an_oversized_record_before_parsing_it(
+    tmp_path, monkeypatch
+):
+    """`stat().st_size > 65536`, and it must refuse *before* the image parser.
+
+    The size bound exists so an unbounded operator file never reaches the
+    parser. Asserting only that it raises would pass even if the parser ran
+    first, so the parser is replaced with one that fails the test if called.
+    """
+    data, ledger, image, _calls, c = fixture(tmp_path, monkeypatch)
+    runtime = ledger.admission.document["runtime"]
+    _install_gpu_record(ledger.root, image, padding=70000)
+    assert (ledger.root / gpu.GPU_IMAGE_RECORD).stat().st_size > 65536
+
+    from carbon.reconstruction.worker import docker_runtime
+
+    monkeypatch.setattr(
+        docker_runtime,
+        "load_image_identity",
+        lambda *a, **k: pytest.fail("oversized record reached the image parser"),
+    )
+    with pytest.raises(ValueError, match="fixed bounded GPU image record"):
+        gpu.registered_gpu_image(ledger.root, runtime, data.role_root)
+    c.tasks.close()
+
+
+def test_gpu_record_refuses_a_wellformed_record_bound_to_other_material(
+    tmp_path, monkeypatch
+):
+    """The scope is recomputed, so an individually valid record is not enough.
+
+    The record here parses, the declared scope passes the shape check, and the
+    two still describe different material. Only recomputation catches that.
+    """
+    data, ledger, image, _calls, c = fixture(tmp_path, monkeypatch)
+    runtime = ledger.admission.document["runtime"]
+    _install_gpu_record(ledger.root, image)
+
+    altered = dict(runtime["gpu_research"][0])
+    altered["public_train_digest"] = "sha256:" + "0" * 64
+    assert gpu.declared_gpu_runtime({"gpu_research": [altered]}) == [altered]
+    with pytest.raises(ValueError, match="exact prospective GPU"):
+        gpu.registered_gpu_image(
+            ledger.root, {"gpu_research": [altered]}, data.role_root
+        )
+
+    # A different but individually well-formed image record, same declared
+    # scope. image_id and config_digest move together because the identity
+    # refuses to construct otherwise - the record has to be genuinely valid for
+    # this to isolate the scope binding rather than the parser.
+    identity = "sha256:" + "9" * 64
+    other = replace(image, image_id=identity, config_digest=identity)
+    _install_gpu_record(ledger.root, other)
+    (ledger.root / gpu.GPU_IMAGE_RECORD).chmod(0o600)
+    with pytest.raises(ValueError, match="exact prospective GPU"):
+        gpu.registered_gpu_image(ledger.root, runtime, data.role_root)
+    c.tasks.close()
+
+
+def test_cli_and_campaign_reach_the_same_checked_resolver(tmp_path, monkeypatch):
+    """Both composition routes delegate; neither carries its own copy."""
+    from carbon.development_session.research_campaign import research_practice
+
+    data, ledger, image, _calls, c = fixture(tmp_path, monkeypatch)
+    runtime = ledger.admission.document["runtime"]
+    _install_gpu_record(ledger.root, image)
+
+    seen = []
+    original = gpu.registered_gpu_image
+
+    def recording(*args, **kwargs):
+        seen.append(args[:1])
+        return original(*args, **kwargs)
+
+    # Patched in both namespaces: the campaign binds the name at import, so
+    # patching only the defining module would silently miss that route and the
+    # assertion below would be measuring the wrong thing.
+    from carbon.development_session import research_campaign as campaign
+
+    monkeypatch.setattr(gpu, "registered_gpu_image", recording)
+    monkeypatch.setattr(campaign, "registered_gpu_image", recording)
+    assert _gpu_image(ledger.root, runtime, data.role_root) == image
+    chosen = research_practice(
+        ledger.root,
+        {"runtime": runtime},
+        data=data,
+        role_root=data.role_root,
+        ledger=ledger,
+        owner=data.owner,
+        image=data.image,
+    )
+    assert type(chosen) is gpu.PublicGPUPractice
+    assert len(seen) == 2, "both routes must reach the shared resolver"
     c.tasks.close()
 
 
@@ -328,14 +654,74 @@ def test_combined_julia_gpu_capability_digest_matches_manifest_and_saved_bytes(
         ("host_use", "DISPLAY_ACTIVE"),
     ],
 )
-def test_host_authority_rejections_precede_dispatch(
+def test_strict_grant_conditions_no_longer_block_personal_research(
     tmp_path, monkeypatch, field, value
 ):
+    """Each of these used to stop a miner. None of them is a miner-lane fact.
+
+    An expired or wrong-principal grant, a grant scoped to the validator role, a
+    stale resource digest, an unrelated image id - and, pointedly, a GPU driving
+    a display. The owner's direction is explicit that a miner may have a monitor
+    on the GPU they research with, so `DISPLAY_ACTIVE` is in this list rather
+    than in the one below.
+
+    The strict lane keeps every one of these checks; `tests/cpu/
+    test_gpu_execution_lanes.py` owns that side and is untouched here.
+    """
     data, ledger, _gpu_image, calls, c = fixture(tmp_path, monkeypatch)
     path = accelerator_runtime.HOST_ROOT / "grant.json"
     record = json.loads(path.read_bytes())
     record[field] = value
     path.write_bytes(canonical(record))
+
+    invoke(c.executor.practice)
+
+    assert len(calls) == 1
+    assert ledger.status(owner=data.owner)["operations"][0]["state"] == "SUCCEEDED"
+    c.tasks.close()
+
+
+@pytest.mark.parametrize(
+    "shape,overrides,reason",
+    [
+        # A device this workload profile does not serve. Compatibility is an
+        # engineering fact and still decides whether the software can run.
+        ("tpu_host", {}, "incompatible device"),
+        # A record describing a different workload profile than the one this
+        # campaign compiled against.
+        (None, {"workload_profile_id": "carbon.c03.other.v1"}, "wrong profile"),
+    ],
+)
+def test_miner_lane_rejections_still_precede_dispatch(
+    tmp_path, monkeypatch, shape, overrides, reason
+):
+    """What does block a miner, and it blocks before anything is charged."""
+    data, ledger, _gpu_image, calls, c = fixture(tmp_path, monkeypatch)
+    if shape is None:
+        accelerator_host.install(
+            accelerator_runtime.HOST_ROOT, accelerator_host.document(**overrides)
+        )
+    else:
+        accelerator_host.install(
+            accelerator_runtime.HOST_ROOT, accelerator_host.document(shape, **overrides)
+        )
+    with pytest.raises((WorkerFailure, ValueError)):
+        invoke(c.executor.practice)
+    assert not calls, reason
+    assert not ledger.status(owner=data.owner)["operations"]
+    c.tasks.close()
+
+
+def test_absent_device_record_fails_before_the_miner_is_charged(tmp_path, monkeypatch):
+    """A withdrawn record costs nothing.
+
+    The controller reads the record too, but by then the ledger has reserved.
+    Reading it before the reservation is what keeps an unrunnable launch free.
+    """
+    data, ledger, _gpu_image, calls, c = fixture(tmp_path, monkeypatch)
+    from carbon.reconstruction.host_inventory import HOST_DEVICE_RECORD
+
+    (accelerator_runtime.HOST_ROOT / HOST_DEVICE_RECORD).unlink()
     with pytest.raises((WorkerFailure, ValueError)):
         invoke(c.executor.practice)
     assert not calls and not ledger.status(owner=data.owner)["operations"]
@@ -391,38 +777,37 @@ def test_plain_public_result_projection_keeps_gpu_score_absent(tmp_path, monkeyp
     c.tasks.close()
 
 
-def test_replaced_host_grant_rejects_before_numerical_work_and_keeps_reservation(
+def test_replaced_device_record_rejects_before_dispatch_and_keeps_its_reservation(
     tmp_path, monkeypatch
 ):
-    data, ledger, image, calls, c = fixture(tmp_path, monkeypatch)
-    path = accelerator_runtime.HOST_ROOT / "grant.json"
-    original = accelerator_runtime.AcceleratorHostAdmission.load()
-    reached = []
+    """The binding that replaced the grant is rechecked in the same place.
 
-    def execute(self, **kwargs):
-        assert (
-            ledger.status(owner=data.owner)["used"]["numerical_milliseconds"] == 720000
-        )
-        replacement = dict(original.document, grant_id="gpu-fixture-replacement")
-        path.write_bytes(canonical(replacement))
-        fresh = accelerator_runtime.AcceleratorHostAdmission.load()
-        fresh.verify(
-            principal=data.owner,
-            state_root=self.state_root,
-            image=image,
-            role=gpu.AcceleratorRole.MINER_RESEARCH,
-            now=float(time.time()),
-        )
-        reached.append("valid replacement installed")
-        kwargs["cancelled"]()
-        pytest.fail("replaced grant reached numerical execution")
+    A record swapped between building the request and taking the numerical lease
+    stops the launch. The reservation it already made is deliberately kept:
+    unknown consumption is not refunded, and a stopped launch is not a free one.
+    """
+    _data, ledger, _image, calls, c = fixture(tmp_path, monkeypatch)
+    original = gpu.PublicGPUPractice._device
+    reads = []
 
-    monkeypatch.setattr(gpu.IsolatedReconstructionController, "execute", execute)
-    with pytest.raises(WorkerFailure):
+    def device(self):
+        if not reads:
+            record = original(self)
+        else:
+            # A different, individually valid record installed underneath the run.
+            accelerator_host.install(
+                accelerator_runtime.HOST_ROOT,
+                accelerator_host.document("workstation_linux"),
+            )
+            record = original(self)
+        reads.append(record.digest)
+        return record
+
+    monkeypatch.setattr(gpu.PublicGPUPractice, "_device", device)
+    with pytest.raises(ValueError, match="device record changed"):
         invoke(c.executor.practice)
-    assert reached == ["valid replacement installed"]
+    assert len(reads) == 2 and reads[0] != reads[1]
     assert not calls
-    assert ledger.status(owner=data.owner)["used"]["numerical_milliseconds"] == 720000
     assert not list(ledger.root.glob("gpu-*/result.json"))
     c.tasks.close()
 

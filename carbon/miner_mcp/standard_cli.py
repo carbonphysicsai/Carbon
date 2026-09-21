@@ -231,19 +231,10 @@ def _authored_image(profile, analysis):
 
 
 def _gpu_image(root, runtime, role_root):
-    if "gpu_research" not in runtime:
-        return None
-    from carbon.development_session.gpu_research import gpu_scope
-    from carbon.development_session.research_campaign import private_file
-    from carbon.reconstruction.worker.docker_runtime import load_image_identity
+    """One resolver, shared with the campaign runner that now also composes this."""
+    from carbon.development_session.gpu_research import registered_gpu_image
 
-    path = private_file(root / "gpu-worker-image.json")
-    if path.resolve() != path or path.stat().st_size > 65536:
-        raise ValueError("fixed bounded GPU image record required")
-    image = load_image_identity(path)
-    if runtime["gpu_research"] != [gpu_scope(image, role_root)]:
-        raise ValueError("exact prospective GPU runtime scope required")
-    return image
+    return registered_gpu_image(root, runtime, role_root)
 
 
 async def _requester(connection):

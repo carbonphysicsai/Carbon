@@ -365,3 +365,140 @@ returned the existing `COMPLETE_UNRESOLVED` public projection, seven completed
 stages and all eligibility flags false. This was historical receipt inspection,
 not a newly executed Launchpad campaign. Native Windows source-fixture diagnostics
 failed at the existing Linux-only secure registry I/O boundary; no guard was weakened.
+
+## Miner research compute continuation C-MLP-02-D8
+
+Owner direction, forwarded to this session as an execution handoff and recorded
+here as owner instruction rather than as a resource grant or a fresh scientific
+approval:
+
+> "why the GPU restrictions for launchpad when it's a completely open choice of
+> the miner, we are just providing the wiring into our environment. The compute
+> they choose does not effect Carbon. They just need to know what the validators
+> are running."
+
+This restates the earlier questionnaire answer that the miner submits a design,
+so what they used to reach it does not matter, and what Carbon owes them is the
+validator's exam environment. It resolves a product question; it does not
+reopen any scientific, security or qualification decision.
+
+Starting base is accepted main `c734bd76`, merged with the C-CORE-19 candidate
+`376e7763` (PR #249) as an identified dependency integration. PR #249 explicitly
+assigns `PublicGPUPractice`'s rewiring to the Launchpad executor as its own
+change with its own evidence; this is that change. Core retains the worker
+protocol, numerics, validator class and determinism work. Primary Hub map
+remains `SYSTEM/AGENT-EXECUTION`; `HUB_UPDATE_REQUIRED`.
+
+Decision: KEEP the campaign runner, CampaignLedger, admission, freeze,
+accounting and cleanup semantics. REPAIR the public research consumer so the
+miner lane is selected by the trusted service role rather than by loading a
+strict `AcceleratorHostAdmission`, with no strict-then-local fallback. Resolve
+controller storage from the validated campaign root instead of an operator
+grant field. Version the request identity that used to include `host_grant` to
+`carbon.public-gpu-reconstruction.request.v2`, binding the per-run installed
+device record in its place, and version the result body to `.result.v2` where
+it now carries the miner-lane assurance label.
+
+Legacy v1 request records are deliberately not replayed through the callback.
+They cannot be re-derived once their grant is gone, and the ledger's existing
+replay check already gives the correct answer for both a legacy record and a
+changed recipe: a different request for the same task, refused without dispatch
+or charge. Those records keep their read and recovery path through the existing
+campaign status, report and export projections, which key on the operation
+rather than on its request identity. No record is upgraded, re-run, re-charged
+or relabelled onto the new lane.
+
+WRAP the campaign runtime composition so a grant declaring `runtime.gpu_research`
+can actually be assembled instead of being described and then refused. The scope
+is checked in two separately named places: `declared_gpu_runtime` for shape,
+before role generation is charged for, and `registered_gpu_image` plus
+`PublicGPUPractice._authorize` for the real binding to this campaign's public
+TRAIN material once it exists. A malformed scope advertises nothing.
+
+ADD a read-only, versioned projection of the declared validator exam
+environment, derived from the live reconstruction constants and served without a
+grant, profile, model key or agent identity. This is a disclosure obligation,
+not an eligibility test, and it reports declared-not-qualified with MQ-008 named
+as the owner of backend support. It selects no scientific value, sets no
+tolerance and changes nothing about what evaluation accepts.
+
+Research runtime and final DEVELOPMENT evaluation remain separately described. A
+GPU research selection must not select or rewrite the evaluator; the final
+comparison keeps its CPU route and the review states that before launch.
+
+Alternatives rejected: installing a strict grant to appease the old reader;
+relaxing strict or official admission to make the miner path pass; adding a
+provider broker or provisioning adapter that does not exist; changing the
+`gpu_scope` schema, which the lane split already makes unnecessary because the
+lane is derived from the role rather than declared as a field. Reversing this
+decision changes the research consumer, the campaign composition, the runner and
+review, and this ticket - not scoring, reconstruction or comparison semantics.
+
+Old tests asserting the superseded miner requirement moved with the explicitly
+changed contract and gained replacement assertions for the intended boundary: a
+valid personal-research request with no strict grant reaches its external launch
+boundary while strict admission is shown to be unsatisfiable; unknown
+whole-device telemetry and a display-active GPU do not block; and an absent,
+incompatible or swapped device record still fails before anything is charged.
+Strict and validator tests are untouched and still pass. No test was disabled
+and no invariant weakened.
+
+This slice claims engineering acceptance only. C-MLP-02's genuine multi-iteration
+browser-launched adaptive campaign, its independent DEVELOPMENT comparison and
+verified cleanup remain selected and explicitly incomplete, and no grant is
+created by this decision. Local browser acceptance could not run in this session:
+the environment's Chromium binaries fail to launch for a missing system library
+and installing it requires host privileges this session does not hold. The CI
+browser lane retains that coverage.
+
+## Dependency integration and browser acceptance C-MLP-02-D9
+
+#249 was accepted and merged to main as `dbfaec1d`, carrying the C-CORE-19
+miner/validator lane split at its final revision together with #250's Workbench
+delivery. This branch integrated that main by normal merge, so its earlier
+dependency revision `376e7763` is retained in history and the newer accepted
+core is added beside it rather than replacing it.
+
+The Hub was reconciled as source, not as a file set. All 213 event ids shared
+between the two sides were compared and agree exactly, so none required
+adjudication. Main's integrated `hub_data_v2.json` and its authority snapshot
+are the base, because the core owner repinned them when #249 was accepted; this
+branch's two events append to main's 217 for 219 total, and
+`GOAL-WORKBENCH-12-D1`, `C-CORE-19-ALLOCATION-01` and `C-CORE-19-SNAPSHOT-03`
+are preserved. This branch's earlier repin to its own commit is dropped in
+favour of main's, so no stale pin survives. Derived outputs were regenerated
+from the agreed sources.
+
+Semantic compatibility was checked against the transitive path rather than
+inferred from unchanged imported names. The registered envelope constants this
+projection reads are unchanged, but the authority document's declared envelope
+moved: the literal cpuset `0,1` became a host-resolved allocation, so concurrent
+launches are now possible where previously two reconstructions could never run
+at once. The published exam environment carried `concurrency: 1` as a literal
+and therefore could not track that through the read-from-source drift test. It
+now reports concurrency per launch, that concurrent launches are possible, and
+the host-resolved cpuset, with the N2 sizing result carried together with its
+scope limit. No qualification, tolerance or acceptance threshold is implied.
+
+Targeted regressions were added for `registered_gpu_image`'s separate path and
+size conditions, which a general `private_file` test does not exercise: an
+aliased record and an aliased parent, an oversized record proven refused before
+the image parser, an individually well-formed record bound to other material,
+and both composition routes reaching the same resolver, each with a positive
+control. Removing the path and size condition fails exactly those tests.
+
+Browser acceptance was performed rather than deferred. The pinned Chromium
+required `libnss3` and `libasound2t64`, obtained user-locally without modifying
+the host or any asset tree. `scripts/dev/miner_launchpad/browser_smoke.py`
+drives the real page and now also covers the public exam disclosure and the
+miner's compute choices rendering with no research profile, grant, model key or
+agent configured. That run found a defect in this branch's own UI - the exam
+panel cleared the container after the compute choices were appended - which is
+repaired with the assertion that caught it retained. The Hub browser and route
+checks are Hub tests and are reported separately; they are not Launchpad
+product acceptance.
+
+Still not closed by this slice: the genuine multi-iteration browser-launched
+adaptive campaign, its independent DEVELOPMENT comparison and verified cleanup.
+No grant is created, no existing pause or allowance is consumed or renewed, and
+no device, model or provider call was made.

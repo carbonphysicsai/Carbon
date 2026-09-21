@@ -291,6 +291,56 @@ def test_capabilities_do_not_claim_external_execution():
     }
 
 
+def test_research_compute_offers_destinations_not_a_provider_dropdown():
+    """Every offered choice is one Carbon can actually take.
+
+    A provisioning adapter that does not exist stays in `unavailable` with its
+    reason rather than appearing here, so selecting a listed choice never fails
+    on an integration nobody wrote.
+    """
+    choices = {entry["id"]: entry for entry in launchpad.research_compute_choices()}
+    assert {"local-cpu", "local-gpu", "attach-existing-remote", "external-byo"} <= set(
+        choices
+    )
+    for name in ("local-cpu", "local-gpu", "attach-existing-remote", "external-byo"):
+        assert choices[name]["available"] is True
+    # No Carbon-run training job is a precondition for submitting a design.
+    assert choices["external-byo"]["requires"] == []
+    # The requirements a miner is explicitly NOT held to.
+    assert "STRICT_HOST_GRANT" in choices["local-gpu"]["not_required"]
+    assert "WHOLE_DEVICE_EXCLUSIVITY" in choices["local-gpu"]["not_required"]
+    assert "COMPUTE_PROCESS_ENUMERATION" in choices["local-gpu"]["not_required"]
+    assert "DISPLAY_DISABLED_ON_THE_DEVICE" in choices["local-gpu"]["not_required"]
+    # Carbon does not hold a provider account to attach a remote host.
+    assert (
+        "CARBON_HELD_PROVIDER_CREDENTIALS"
+        in choices["attach-existing-remote"]["not_required"]
+    )
+    # The exam environment is shown, but it is not somewhere to run research.
+    assert choices["graded-on"]["selectable"] is False
+    unavailable = {
+        entry["id"] for entry in launchpad.capability_catalog()["unavailable"]
+    }
+    assert unavailable.isdisjoint(set(choices) - {"graded-on"})
+
+
+def test_exam_environment_is_readable_without_a_grant_or_agent(server):
+    """Reading what the exam runs on costs nothing and requires nothing.
+
+    No research profile, grant, model-provider key or agent identity is
+    configured on this server, which is the point: inspecting the contract must
+    not be gated behind any of them.
+    """
+    assert request(server, "/api/v1/exam-environment")[0] == 401
+    code, _headers, body = request(server, "/api/v1/exam-environment", headers=auth())
+    assert code == 200
+    value = json.loads(body)
+    assert value["schema"] == "carbon.public-validator-exam-environment.v1"
+    assert value["qualification"]["qualified"] is False
+    assert value["miner_research_hardware"]["must_match_validator"] is False
+    assert server.research_runner is None
+
+
 @pytest.fixture
 def server(controller):
     server = launchpad.Server(controller, "x" * 40, port=0)

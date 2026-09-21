@@ -440,3 +440,151 @@ The browser test uses a real local HTTP server and Chromium. Its deliberately
 injected readback records exercise rendering/export/invalidation only. Canonical
 Python tests separately resolve signed authenticated engineering sources through
 the actual Carbon owners, including revocation and corruption failures.
+
+## Miner-lane research compute and the published exam environment
+
+The owner's direction is that a miner's research compute is their own choice,
+and that Carbon's obligation is to tell them what the validator will run the
+exam under. This section records how the bridge implements that and what it
+deliberately does not change.
+
+### Why the launchpad required a validator's grant, and no longer does
+
+Accelerator admission was built as a single path written to validator
+requirements: an owner-signed host grant asserting exclusive use of a dedicated
+device. It was applied to both roles because there was only one path. Dispatch
+was disabled, so nothing forced the question of whether a miner could satisfy
+it; when a real host appeared it could not, because compute-process enumeration
+is unavailable under that host's driver model.
+
+C-CORE-19 split the lanes and repaired the controller. `PublicGPUPractice`, the
+launchpad's public research consumer, still loaded the strict grant above it and
+was deliberately left to this change. It no longer does.
+
+What replaces the grant is not a weaker version of it. The strict claims are
+absent, and their absence is recorded on every result through the miner-lane
+assurance label: task-owned container identity and exit, pinned image and
+environment lock, input and plan content binding, per-run device binding from
+the installed record, task-owned removal and bounded deadline, memory and
+output - and, explicitly not established, whole-device exclusivity, foreign
+compute-process absence, device memory sanitisation between tenants, and
+whole-device release after the run.
+
+The reason this is safe is specific to what a miner receives. A miner is given a
+public construction plan and public TRAIN material, so device side-channels
+defend nothing, and whether the miner computed what they submitted is answered
+by content binding and independent validator reconstruction - exactly as it is
+for a CPU submission, which has never required a grant, a lease, or proof that
+nothing else was using the CPU.
+
+### What still stops a miner-lane launch
+
+Compatibility is an engineering fact, not a grading privilege, and these are
+checked before the ledger charges anything:
+
+- an approved campaign grant whose runtime declares this GPU scope;
+- an installed host device record compatible with the GPU workload profile,
+  read before the reservation and reread under the numerical lease so a record
+  swapped underneath a run stops it;
+- the pinned GPU worker image and a container device runtime.
+
+A missing strict grant, unknown whole-device telemetry, an empty established
+enumeration registry, and a GPU that is driving a display or shared with the
+miner's own work are **not** among them.
+
+### Controller storage and request identity
+
+Controller state is resolved from the campaign root that already owns every
+other artifact a run writes, rather than from a `controller_root` field inside
+an operator-authored grant. The request identity changed with it: the strict
+grant digest gave way to the per-run device binding, so it is versioned to
+`carbon.public-gpu-reconstruction.request.v2` rather than quietly reshaped.
+
+A record written under v1 cannot be re-derived once the grant it was built from
+is gone, and is deliberately not replayed through the callback. The ledger sees
+a different request for the same task and refuses - the same answer it gives for
+a changed recipe, and the right one for both, because neither is the work the
+current request describes. Those records stay readable and recoverable through
+the campaign status, report and export projections, which key on the operation
+rather than on its request identity. Reading one never re-runs it, re-charges it
+or moves it onto the new lane.
+
+The result schema moves to `carbon.public-gpu-reconstruction.result.v2` because
+the body now carries the lane label. A v1 result recorded no lane and is not
+retrospectively read as though it had.
+
+### Campaign runtime composition
+
+A grant declaring `runtime.gpu_research` previously reached a runner that
+refused the key outright, while the prelaunch review displayed a CUDA backend
+beside a blocker saying the campaign composition was unavailable. A miner could
+not tell which statement to believe. The campaign runner now assembles the
+composition, so the two no longer contradict each other.
+
+The declared scope is checked in two clearly separated places, and the names
+say which is which:
+
+- `declared_gpu_runtime` checks **shape only**. A campaign must compare the
+  runtime it can compose against the runtime it was granted before it may charge
+  for generating role material, but the scope binds that very material, so its
+  content cannot be recomputed yet.
+- `registered_gpu_image` is the **binding** check. It recomputes the scope from
+  the operator's image record and this campaign's own public TRAIN cases once
+  they exist, and `PublicGPUPractice._authorize` refuses to construct a callback
+  whose recomputed scope differs from the frozen manifest.
+
+A grant that passes the first has not yet been believed. A malformed scope now
+advertises nothing: the review reports the composition as unavailable and leaves
+the described research runtime CPU rather than showing a CUDA backend the runner
+would refuse.
+
+### Research runtime and final evaluation stay separate
+
+Choosing a GPU to research with does not choose the evaluator. The independent
+DEVELOPMENT comparison keeps its own CPU worker image, reference material and
+accounting, and the review states this before launch rather than leaving it to
+be discovered afterwards. Julia scientific tasks keep their own CPU route; no
+Julia-on-GPU capability is inferred from the JAX GPU selection.
+
+The review reports readiness as distinct states - connection configured,
+dependencies inspected, compatible runtime available, consent active, task
+admitted, device execution observed, task completed, cleanup verified,
+independent evaluation available, official qualification - rather than one
+green badge. Personal research does not require official qualification; a
+missing runtime really does prevent a managed job from executing.
+
+### The published exam environment
+
+`carbon.public-validator-exam-environment.v1` is served at
+`/api/v1/exam-environment` and rendered in the browser. It projects
+`docs/development/VALIDATOR_EXAM_ENVIRONMENT.md`, reading every value from the
+constants reconstruction actually runs under rather than restating them, so a
+change to the real envelope that is not reflected in the disclosure fails a test
+instead of leaving miners reading a contract Carbon no longer honours.
+
+It is readable with no grant, research profile, model-provider key or agent
+identity: deciding whether to take part should not be gated behind any of them.
+
+It carries the backend profile, pinned dependencies, precision, resource
+envelope, containment, the accepted submission object, and the statement that
+miner research hardware is unconstrained and no provider is prescribed. It
+reports qualification as **declared, not qualified**, names MQ-008 as the owner
+of backend support, and discloses the measured CPU instruction-set divergence
+rather than omitting it. It contains no seed, draw, case, credential or private
+path, and a test asserts that.
+
+### Compute choices
+
+The launchpad offers destinations rather than a provider dropdown: this machine
+on CPU, this machine's GPU on the miner lane, a compatible host the miner
+already controls, and fully off-platform research followed by submission. No
+Carbon-run training job is required to submit a design.
+
+Carbon has no per-provider branch - what differs between a laptop, a
+workstation and a rented instance lives in the installed host device record,
+which carries the provider as a token - so attaching a remote host is the same
+path rather than a separate integration. Provisioning a host *for* a miner is a
+different thing, and none is implemented; those remain listed as unavailable
+with the reason each is missing, rather than appearing as choices that would
+fail when selected. No provider quote, GPU SKU or working provider integration
+is claimed anywhere.
