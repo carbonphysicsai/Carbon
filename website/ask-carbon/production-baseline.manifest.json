@@ -1,0 +1,123 @@
+{
+  "manifest_version": 1,
+  "target": "carbonwebsite",
+  "target_kind": "cloudflare-static-assets-worker",
+  "observed_utc": "2026-09-20T00:00:00Z",
+  "inventory_status": "incomplete",
+  "inventory_complete": false,
+  "inventory_status_reason": "The 12 entries below are verified bytes for the paths that are KNOWN to be deployed; each digest was captured by download and is trustworthy for those paths. They are still not an enumeration of the deployed asset set. Authenticated Cloudflare access is available (see deployment_target_observed), but neither Wrangler 4.134.0 nor an accessible API route exposes a listing of a static-assets Worker's deployed files, so the set cannot be enumerated from the platform side. The live version was uploaded from the Cloudflare Dashboard (source: \"dash\"), which means the authoritative asset set is the owner's uploaded website archive. Until that archive is supplied and reconciled, inventory_complete stays false and --require-complete-bundle refuses to certify a production bundle.",
+  "completion_requires": [
+    "The owner's current website upload archive (the ZIP most recently uploaded to the carbonwebsite Dashboard), which is the authoritative asset set for the live version.",
+    "Reconciliation of that archive against the 12 verified digests below, so the archive is confirmed to be the deployed revision and not an older or newer one.",
+    "Addition of every archive path not already listed here, with its digest and byte size.",
+    "Then set inventory_status to \"verified-complete\" and inventory_complete to true, recording the archive's own digest as the provenance."
+  ],
+  "homepage_source_authority": {
+    "note": "Homepage source authority is the owner-supplied upload reconciled by --reconcile-owner-upload. It is deliberately kept separate from these read-only production observations. The index.html entry below records the CURRENT LIVE bytes so that an --existing-site copy can be verified; the production bundle intentionally REPLACES index.html with the integrated homepage.",
+    "current_live_index_matches_reviewed_source_pin": true
+  },
+  "release_authorization": {
+    "note": "Asset completeness is NOT release authorization. This manifest says only which bytes must survive a deployment. Publication and public activation remain governed by the release decision packet and the owner's named-operator authority."
+  },
+  "assets": [
+    {
+      "path": "index.html",
+      "sha256": "5ebb43e859e9837f74bbc93b5748b2db95a6700821afbfcecb407e75702e2020",
+      "bytes": 5774725,
+      "transport": "GET https://carbonphysics.ai/ (the asset stored as index.html; /index.html 307-redirects to /)"
+    },
+    {
+      "path": "assets/carbon-66e3549179d4.png",
+      "sha256": "66e3549179d499fdce28dfa48cd782a4226ce39f6a18852adcd6e266e1affaf7",
+      "bytes": 16989,
+      "transport": "GET https://carbonphysics.ai/assets/carbon-66e3549179d4.png"
+    },
+    {
+      "path": "assets/carbon-f7ea9506b7b9.png",
+      "sha256": "f7ea9506b7b987ddae89f609a635d40e4b30973831cf6465862ef0808686d669",
+      "bytes": 80781,
+      "transport": "GET https://carbonphysics.ai/assets/carbon-f7ea9506b7b9.png"
+    },
+    {
+      "path": "workbench/index.html",
+      "sha256": "f53fbba2bd3331d1719345654ed73aacd7c62f600c7e25ec060a281c8bcecf02",
+      "bytes": 17574,
+      "transport": "GET https://carbonphysics.ai/workbench/ (the asset stored as workbench/index.html)"
+    },
+    {
+      "path": "workbench/app.js",
+      "sha256": "5ad2c249fe5acf2b58ce7af62e679bbb7e4098c0eecfd77b60acbdc4c060b1dc",
+      "bytes": 38459,
+      "transport": "GET https://carbonphysics.ai/workbench/app.js"
+    },
+    {
+      "path": "workbench/assist-contract.js",
+      "sha256": "fc9d05ee4da65e15dbe5e153b455f0809163e7216e7bc190790538ea454ab85b",
+      "bytes": 3871,
+      "transport": "GET https://carbonphysics.ai/workbench/assist-contract.js"
+    },
+    {
+      "path": "workbench/assist-ui.js",
+      "sha256": "765966584774affcaf1748ad5917ebc19414185fcce5be82798ffa16e7794a8b",
+      "bytes": 9630,
+      "transport": "GET https://carbonphysics.ai/workbench/assist-ui.js"
+    },
+    {
+      "path": "workbench/atlas.js",
+      "sha256": "155eda1a2c96bb40167292b7ce3a3b9fc3e7c495e4834f17d660e1c7d640bdc1",
+      "bytes": 134448,
+      "transport": "GET https://carbonphysics.ai/workbench/atlas.js"
+    },
+    {
+      "path": "workbench/atlas-source.json",
+      "sha256": "450068990094bc07d49b7bf7ea6106ef35c7c7213cdeaa43f5dc80f04fb9671a",
+      "bytes": 156568,
+      "transport": "GET https://carbonphysics.ai/workbench/atlas-source.json"
+    },
+    {
+      "path": "workbench/cooling-v02.js",
+      "sha256": "199a93b595a13b563a8fc47209089f7e2c4b750de61d45fe7f5aed3b43c0dca3",
+      "bytes": 6925,
+      "transport": "GET https://carbonphysics.ai/workbench/cooling-v02.js"
+    },
+    {
+      "path": "workbench/engine.js",
+      "sha256": "32caeaf50bf6477c0af4dbefdc197f4c9c791036bd7f2ce324ebcdf1b1a5acf3",
+      "bytes": 49400,
+      "transport": "GET https://carbonphysics.ai/workbench/engine.js"
+    },
+    {
+      "path": "workbench/styles.css",
+      "sha256": "685b96b5676e18c6a46ce33d5d755a9b7a10e05575ea4efd006cbb2c5ea67f54",
+      "bytes": 30066,
+      "transport": "GET https://carbonphysics.ai/workbench/styles.css"
+    }
+  ],
+  "deployment_target_observed": {
+    "source": "wrangler 4.134.0, authenticated as carbon.physics.ai@gmail.com (account 7462053c6992b9c9fd889952a7ae0496) on 2026-09-20",
+    "worker": "carbonwebsite",
+    "live_version_id": "5a44ab03-ce7c-4100-ae42-71843b07246a",
+    "live_version_number": 17,
+    "live_version_created": "2026-09-12T04:05:02.383745Z",
+    "live_version_source": "dash",
+    "compatibility_date": "2026-09-12",
+    "bindings": [],
+    "rollback_target_note": "5a44ab03-ce7c-4100-ae42-71843b07246a is the version currently serving 100% of traffic and is therefore the rollback target for any deployment made now. The runbook previously named b99c37f0-c2d2-432b-842a-00b9fb518d96 (2026-09-09), which is two deployments older and is NOT the current predecessor. Re-capture the live version immediately before deploying; do not reuse either ID from a document."
+  },
+  "routing_configuration": {
+    "source": "authenticated `wrangler versions view --json` on carbonwebsite version 5a44ab03-ce7c-4100-ae42-71843b07246a (2026-09-20)",
+    "authoritative": true,
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "none",
+    "serve_directly": true,
+    "raw_run_worker_first": false,
+    "implication": "auto-trailing-slash is why /index.html 307-redirects to / and /workbench/index.html 307-redirects to /workbench/. Any preservation recipe that downloads the literal path \"index.html\" captures an empty redirect body. not_found_handling \"none\" is why favicon.ico, robots.txt, _headers, _redirects and _routes.json all return 404: they are absent assets, not routing rules."
+  },
+  "routing_observed_note": "Superseded by routing_configuration above, which was read from the deployed version rather than inferred from responses.",
+  "routing_observed_html_handling_307": "/index.html 307-redirects to /, and /workbench/index.html 307-redirects to /workbench/.",
+  "blocked_on": {
+    "what": "Enumeration of the complete deployed asset set.",
+    "why_not_resolved_by_login": "Cloudflare authentication is present and sufficient for deployment (workers / workers_scripts / workers_routes write). The gap is capability, not credentials: there is no Wrangler command that lists a static-assets Worker's deployed files.",
+    "owner_action": "Supply the website archive most recently uploaded to the carbonwebsite Cloudflare Dashboard."
+  }
+}

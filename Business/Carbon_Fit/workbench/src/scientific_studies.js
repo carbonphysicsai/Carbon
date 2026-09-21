@@ -164,11 +164,20 @@
     if (!Array.isArray(values) || values.length !== 13) throw Error("Study time shape mismatch");
     values.forEach((row) => { if (!Array.isArray(row) || row.length !== 64) throw Error("Study spatial shape mismatch"); row.forEach(finite); });
   }
-  function createAdapter(fetcher = root.fetch.bind(root)) {
+  const TOKEN = /^[A-Za-z0-9._~-]{32,300}$/;
+  function createAdapter(fetcher = root.fetch.bind(root), credential = () => null) {
+    // The private host authenticates every scientific route with the operator's
+    // own named staff token. It is read at call time from the page's in-memory
+    // state: it is never embedded in the build, written to storage, put in a
+    // URL or placed in a request body.
     async function call(name, value) {
+      const token = typeof credential === "function" ? credential() : null;
+      if (typeof token !== "string" || !TOKEN.test(token))
+        throw Error("Enter your staff access token before using the private scientific service.");
       const abort = new AbortController(), timer = setTimeout(() => abort.abort(), 30000);
       try {
-      const result = await fetcher("/api/scientific-studies/" + name, { method: value === undefined ? "GET" : "POST", credentials: "same-origin", redirect: "error", signal: abort.signal, headers: value === undefined ? {} : { "Content-Type": "application/json" }, ...(value === undefined ? {} : { body: JSON.stringify(value) }) });
+      const result = await fetcher("/api/scientific-studies/" + name, { method: value === undefined ? "GET" : "POST", credentials: "same-origin", redirect: "error", signal: abort.signal, headers: { Authorization: "Bearer " + token, ...(value === undefined ? {} : { "Content-Type": "application/json" }) }, ...(value === undefined ? {} : { body: JSON.stringify(value) }) });
+      if (result.status === 401 || result.status === 403) throw Error("The private scientific service rejected this staff credential (" + result.status + "). Check the token with the operator, then reconnect.");
       if (!result.ok) throw Error("Private scientific service unavailable or request denied (" + result.status + ").");
       const raw = await result.text();
       if (new TextEncoder().encode(raw).length > 131072) throw Error("Study response byte limit");

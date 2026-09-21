@@ -15,8 +15,9 @@ function check(name, condition) {
     outbound = [];
   const browser = await chromium.launch({
     headless: true,
-    executablePath:
-      (process.env.CARBON_BROWSER_EXECUTABLE || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"),
+    ...(process.env.CARBON_BROWSER_EXECUTABLE
+      ? { executablePath: process.env.CARBON_BROWSER_EXECUTABLE }
+      : {}),
   });
   const page = await browser.newPage({
     viewport: process.env.CARBON_MOBILE === "1" ? { width: 390, height: 844 } : { width: 1440, height: 1000 },
