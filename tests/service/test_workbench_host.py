@@ -515,6 +515,19 @@ def test_host_serves_science_status_and_the_private_build_in_one_composition(
             page = await client.get("/")
             assert page.status_code == 200
             assert 'data-scientific-service="private"' in page.text
+            # The static mount serves the build's other artifacts and nothing else.
+            named = await client.get("/Carbon_Client_Intake_Preview.html")
+            assert named.status_code == 200 and "<html>" in named.text
+            assert (
+                await client.get("/Carbon_Opportunity_Workbench.html")
+            ).status_code == 200
+            for absent in (
+                "/staff.json",
+                "/drafts.json",
+                "/../drafts.json",
+                "/index.html",
+            ):
+                assert (await client.get(absent)).status_code in {403, 404}, absent
 
             # The real scientific route, through the real registry-backed service.
             science = await client.get(PREFIX + "capabilities", headers=auth)
