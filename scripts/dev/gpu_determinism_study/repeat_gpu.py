@@ -17,13 +17,32 @@ materials = Path(os.environ["D3_MATERIALS"])
 runs = int(os.environ.get("D3_RUNS", "3"))
 label = os.environ.get("D3_LABEL", "unlabelled")
 out = Path(os.environ["D3_RESULTS"])
+# Where reconstruction writes its artifacts. `/work` is the tmpfs the container
+# path mounts, and it is a default rather than a constant because on a pod there
+# is no daemon to mount it: the filesystem is the image's, and only /tmp is
+# writable by the nonroot user. Hardcoding it made every in-pod reconstruction
+# fail at `mkdir` before any numerics ran - a difference between the two paths
+# that the study would have discovered on rented hardware.
+artifacts = Path(os.environ.get("D3_ARTIFACTS", "/work"))
 
 # ptxas writes intermediates under TMPDIR; the worker's scratch is a fresh
 # tmpfs, so the directory has to exist before the first compilation.
-for _scratch in (os.environ.get("TMPDIR"), "/scratch/tmp", "/work/tmp"):
-    if _scratch:
+#
+# TMPDIR is required and created; the others are best-effort. Under `docker run`
+# both are tmpfs mounts this process owns, and in a pod neither exists and the
+# filesystem is read-only to the nonroot user the image runs as - so creating
+# them unconditionally turned a convenience into a crash in the one environment
+# the study actually runs in.
+_tmpdir = os.environ.get("TMPDIR") or "/tmp/carbon-study/tmp"
+os.makedirs(_tmpdir, exist_ok=True)
+os.environ["TMPDIR"] = _tmpdir
+for _scratch in ("/scratch/tmp", "/work/tmp"):
+    try:
         os.makedirs(_scratch, exist_ok=True)
-os.environ.setdefault("TMPDIR", "/work/tmp")
+    except OSError:
+        # Absent and unwritable is the normal case on a pod, and TMPDIR above is
+        # what ptxas actually uses.
+        pass
 
 import jax
 
@@ -215,7 +234,7 @@ if os.environ.get("STUDY_REQUIRE_PINNED") == "1":
         )
 
 for index in range(runs):
-    target = Path("/work") / f"{label}-{index}"
+    target = artifacts / f"{label}-{index}"
     entry = {"index": index}
     try:
         receipt = reconstruct(
