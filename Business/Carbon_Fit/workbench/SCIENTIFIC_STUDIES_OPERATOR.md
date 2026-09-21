@@ -77,8 +77,12 @@ research admission, operation identity, budgets and cancellation still govern
 every numerical request. Do not use the deterministic fixture host's identity
 resolver for production authentication.
 
-In the existing design view, connect to the service and explicitly adopt its
-allowed public source definition before checking or running. Start, status,
+In the existing design view, enter your own staff access token, connect to the
+service, and explicitly adopt its allowed public source definition before
+checking or running. The browser sends that token as the bearer credential on
+every scientific route and holds it in memory for the tab only; it is never
+embedded in the build, stored, put in a URL, or written into an export or saved
+study. Without a credential the panel states the next action and sends nothing. Start, status,
 cancel and results use the same operation and bound draft fingerprint. A cancel
 request is pending until worker cleanup is observed. Unknown budgets display as
 unknown. Save/reopen uses a separate versioned study bundle; an imported result

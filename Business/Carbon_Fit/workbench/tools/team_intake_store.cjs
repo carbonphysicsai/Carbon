@@ -151,17 +151,21 @@ class DurableIntakeStore {
     // in-memory write followed by an acknowledgement is not a durable save.
     const directory = path.dirname(this.filePath);
     fs.mkdirSync(directory, { recursive: true, mode: 0o700 });
-    const temporary = this.filePath + ".tmp-" + process.pid;
-    const handle = fs.openSync(temporary, "wx", 0o600);
+    // The name is unique per attempt and the file is removed on every failure
+    // path. A fixed name plus an exclusive create meant that one failed write
+    // left a file behind that blocked every later write with EEXIST.
+    const temporary =
+      this.filePath + ".tmp-" + process.pid + "-" + crypto.randomUUID();
     try {
-      fs.writeFileSync(handle, JSON.stringify(next, null, 2) + "\n", {
-        encoding: "utf8",
-      });
-      fs.fsyncSync(handle);
-    } finally {
-      fs.closeSync(handle);
-    }
-    try {
+      const handle = fs.openSync(temporary, "wx", 0o600);
+      try {
+        fs.writeFileSync(handle, JSON.stringify(next, null, 2) + "\n", {
+          encoding: "utf8",
+        });
+        fs.fsyncSync(handle);
+      } finally {
+        fs.closeSync(handle);
+      }
       fs.renameSync(temporary, this.filePath);
     } catch (error) {
       fs.rmSync(temporary, { force: true });
@@ -338,18 +342,29 @@ class DurableIntakeStore {
           "No notification transport is configured; delivery is not attempted",
         );
       };
-    const next = clone(this.state);
-    next.outbox[eventId].attempts += 1;
+    const attempted = clone(event);
+    attempted.attempts += 1;
+    let status, failure;
     try {
-      await handler(clone(next.outbox[eventId]));
-      next.outbox[eventId].status = "DELIVERED";
-      next.outbox[eventId].last_error = "";
+      await handler(clone(attempted));
+      status = "DELIVERED";
+      failure = "";
     } catch (error) {
-      next.outbox[eventId].status = "PENDING";
-      next.outbox[eventId].last_error = String(error.message || error).slice(0, 500);
+      status = "PENDING";
+      failure = String(error.message || error).slice(0, 500);
     }
+    // Merge into the state as it is now. A snapshot taken before the await
+    // would erase any assessment, deletion or attempt written while the
+    // delivery was in flight.
+    const next = clone(this.state);
+    const current = next.outbox[eventId];
+    if (!current)
+      throw Error("Outbox event was removed while its delivery was in flight");
+    current.attempts += 1;
+    current.status = status;
+    current.last_error = failure;
     this.persist(next);
-    return clone(next.outbox[eventId]);
+    return clone(current);
   }
 }
 

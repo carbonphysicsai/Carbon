@@ -26,7 +26,12 @@ async function save(page, button, destination) { const pending = page.waitForEve
       await page.locator("#goal-workspace-file").setInputFiles(workspaceFile);
       await page.locator("#scientific-study-panel").waitFor({ state: "attached" });
       await page.locator('[data-tab="jobs"]').click();
-      await page.locator("#science-connect").click(); await page.locator("#science-adopt").click(); await page.locator("#science-run:not([disabled])").waitFor(); await page.locator(envelope ? "#science-envelope" : "#science-run").click();
+      // The loopback host authenticates like the supported host, so the
+      // operator's fixture token must be entered before connecting.
+      const token = process.env.CARBON_FIXTURE_STAFF_TOKEN;
+      if (!token) throw Error("Set CARBON_FIXTURE_STAFF_TOKEN from the native host's startup record");
+      await page.locator("#science-token").fill(token);
+      await page.locator("#science-connect").click(); await page.locator("#science-credential-state").waitFor(); await page.locator("#science-adopt:not([disabled])").waitFor(); await page.locator("#science-adopt").click(); await page.locator("#science-run:not([disabled])").waitFor(); await page.locator(envelope ? "#science-envelope" : "#science-run").click();
       for (let poll = 0; poll < 30; poll++) {
         await page.locator("#science-status:not([disabled])").waitFor();
         const state = await page.locator("#science-state").textContent();

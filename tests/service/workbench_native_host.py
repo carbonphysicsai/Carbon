@@ -39,7 +39,39 @@ from carbon.miner_mcp.standard import ResearchToolAdapter
 from carbon.miner_mcp.standard_cli import _requester
 from carbon.reconstruction.worker.docker_runtime import load_image_identity
 from carbon.scientific_tasks.workbench import RegisteredWorkbenchDraft, WorkbenchScience
+from carbon.scientific_tasks.workbench_host import StaffPrincipals
 from carbon.scientific_tasks.workbench_http import create_workbench_app
+
+FIXTURE_TOKEN = "local-fixture-staff-token-000000000000"
+
+
+def _fixture_principals(root, owner):
+    """One synthetic named credential in the disposable fixture root.
+
+    It authorizes nothing beyond this loopback process and is not a production
+    authentication implementation or a staff account.
+    """
+    from hashlib import sha256
+
+    from carbon.development_session.profile import canonical
+
+    path = root / "fixture-principals.json"
+    path.write_bytes(
+        canonical(
+            {
+                "schema": "carbon.workbench.host-principals.v1",
+                "campaign_principal": owner,
+                "staff": [
+                    {
+                        "name": "LOCAL_FIXTURE_OPERATOR",
+                        "token_sha256": sha256(FIXTURE_TOKEN.encode()).hexdigest(),
+                    }
+                ],
+            }
+        )
+    )
+    path.chmod(0o600)
+    return StaffPrincipals.load(path)
 
 
 def main():
@@ -106,11 +138,13 @@ def main():
         *key, draft["current_revision"], draft["scope"], physical, "SYNTHETIC_INTERNAL"
     )
     origin = "http://127.0.0.1:" + str(args.port)
+    # Authenticate exactly as the supported host does. Trusting any loopback
+    # client would let this fixture pass while the real browser credential path
+    # is broken, which is precisely the gap that hid a defect once already.
+    principals = _fixture_principals(args.root, owner)
     app = create_workbench_app(
         service,
-        authorize=lambda request: (
-            owner if request.client.host in {"127.0.0.1", "::1"} else None
-        ),
+        authorize=principals.resolve,
         allowed_origin=origin,
     )
     app.mount("/", StaticFiles(directory=args.static, html=True))
@@ -119,6 +153,7 @@ def main():
             {
                 "fixture": "LOCAL_SYNTHETIC_OPERATOR_AUTH_ONLY",
                 "origin": origin,
+                "staff_token": FIXTURE_TOKEN,
                 "image": image.image_id,
                 "root": str(args.root),
             }
