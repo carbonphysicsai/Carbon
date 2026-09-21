@@ -6,8 +6,19 @@ const path = require("node:path");
 const F = require("../src/engine.js");
 const I = require("../src/intake.js");
 
-const STORE_VERSION = "carbon.private-team-intake.store.v1";
+const STORE_VERSION = "carbon.private-team-intake.store.v2";
+const LEGACY_STORE_VERSION = "carbon.private-team-intake.store.v1";
 const RECEIPT_VERSION = "carbon.private-team-intake.receipt.v1";
+const NOTIFICATION_VERSION = "carbon.private-team-intake.notification.v1";
+const QUEUE_STATES = [
+  "READY_FOR_REVIEW",
+  "UNDER_REVIEW",
+  "NEEDS_CLIENT_CLARIFICATION",
+  "READY_FOR_ROUTE",
+  "PARKED",
+  "CLOSED",
+];
+const TEAM_FIELDS = ["assigned_reviewer", "note", "queue_state"];
 const clone = (value) => JSON.parse(JSON.stringify(value));
 const sha256 = (value) =>
   "sha256:" + crypto.createHash("sha256").update(value).digest("hex");
@@ -54,18 +65,75 @@ function validatePrincipal(principal, action) {
 function validateStore(value) {
   if (
     !value ||
-    value.schema_version !== STORE_VERSION ||
+    ![STORE_VERSION, LEGACY_STORE_VERSION].includes(value.schema_version) ||
     !value.inquiries ||
     !value.idempotency ||
     !value.outbox ||
     !value.tombstones
   )
     throw Error("Invalid private intake store");
+  if (value.schema_version === LEGACY_STORE_VERSION) return migrate(value);
+  for (const record of Object.values(value.inquiries)) {
+    if (!Array.isArray(record.assessments))
+      throw Error("Invalid retained assessment history");
+    // The history is append-only: one entry per recorded team revision. A store
+    // whose history does not account for its own version has been edited.
+    const accounted = record.assessments.length + 1;
+    if (record.history_origin === "NATIVE" && accounted !== record.version)
+      throw Error("Retained assessment history does not match the record version");
+  }
   return value;
 }
 
+function migrate(value) {
+  // A v1 store retained no per-revision history. Record that honestly rather
+  // than inventing a reviewer, a time or an assessment that was never written.
+  const next = clone(value);
+  next.schema_version = STORE_VERSION;
+  for (const record of Object.values(next.inquiries)) {
+    record.assessments = [];
+    record.history_origin = "MIGRATED_V1_NO_RETAINED_HISTORY";
+  }
+  return next;
+}
+
+function notification(inquiryId, record) {
+  // The permitted minimal summary and an authenticated record path. No client
+  // words, contact details, scientific content or reviewed package travel here;
+  // a recipient must authenticate to the private receiver to read the record.
+  const brief = record.validated_draft || {};
+  return {
+    schema_version: NOTIFICATION_VERSION,
+    inquiry_id: inquiryId,
+    canonical_digest: record.canonical_digest,
+    record_path: "/private/intake/" + inquiryId,
+    queue_state: record.team_fields.queue_state,
+    summary: {
+      has_contact_details: Boolean(
+        record.reviewed_package &&
+          record.reviewed_package.contact &&
+          Object.values(record.reviewed_package.contact).some((v) => v),
+      ),
+      unresolved_assumption_count: Array.isArray(
+        record.reviewed_package && record.reviewed_package.unresolved_assumptions,
+      )
+        ? record.reviewed_package.unresolved_assumptions.length
+        : 0,
+      unknown_field_count: Object.values(brief).filter((v) => v === "" || v === null)
+        .length,
+    },
+    authority: "NOTIFICATION_ONLY_NOT_A_COMMITMENT_OR_SCIENTIFIC_RESULT",
+  };
+}
+
 class DurableIntakeStore {
-  constructor(filePath) {
+  constructor(filePath, options = {}) {
+    // A destination is configuration, not consent to send. With none set the
+    // outbox stays observable and every attempt fails closed and says why.
+    const destination = options.destination;
+    if (destination !== undefined && (typeof destination !== "string" || !destination))
+      throw Error("Notification destination must be a non-empty string");
+    this.destination = destination || "UNCONFIGURED_SYNTHETIC";
     this.filePath = path.resolve(filePath);
     this.state = fs.existsSync(this.filePath)
       ? validateStore(
@@ -78,15 +146,33 @@ class DurableIntakeStore {
   }
 
   persist(next) {
+    // A receipt the team can act on must survive power loss, so the replacement
+    // file and its directory entry both reach the disk before this returns. An
+    // in-memory write followed by an acknowledgement is not a durable save.
     const directory = path.dirname(this.filePath);
     fs.mkdirSync(directory, { recursive: true, mode: 0o700 });
     const temporary = this.filePath + ".tmp-" + process.pid;
-    fs.writeFileSync(temporary, JSON.stringify(next, null, 2) + "\n", {
-      encoding: "utf8",
-      mode: 0o600,
-      flag: "w",
-    });
-    fs.renameSync(temporary, this.filePath);
+    const handle = fs.openSync(temporary, "wx", 0o600);
+    try {
+      fs.writeFileSync(handle, JSON.stringify(next, null, 2) + "\n", {
+        encoding: "utf8",
+      });
+      fs.fsyncSync(handle);
+    } finally {
+      fs.closeSync(handle);
+    }
+    try {
+      fs.renameSync(temporary, this.filePath);
+    } catch (error) {
+      fs.rmSync(temporary, { force: true });
+      throw error;
+    }
+    const directoryHandle = fs.openSync(directory, "r");
+    try {
+      fs.fsyncSync(directoryHandle);
+    } finally {
+      fs.closeSync(directoryHandle);
+    }
     this.state = next;
   }
 
@@ -136,6 +222,10 @@ class DurableIntakeStore {
         queue_state: "READY_FOR_REVIEW",
         note: "",
       },
+      // Append-only: every later team assessment is added here and no entry is
+      // ever rewritten, so an engineer's revision history survives a correction.
+      assessments: [],
+      history_origin: "NATIVE",
       retention: {
         policy: "LOCAL_SYNTHETIC_DELETE_ON_REQUEST",
         production_period: null,
@@ -150,7 +240,8 @@ class DurableIntakeStore {
       status: "PENDING",
       attempts: 0,
       last_error: "",
-      destination: "UNCONFIGURED_SYNTHETIC",
+      destination: this.destination,
+      notification: notification(inquiryId, record),
     };
     this.persist(next);
     return { ...clone(receipt), disposition: "ACCEPTED" };
@@ -172,25 +263,39 @@ class DurableIntakeStore {
     if (!Number.isSafeInteger(expectedVersion) || expectedVersion !== record.version)
       throw Error("Concurrent inquiry update conflict");
     const keys = Object.keys(patch || {}).sort();
-    if (JSON.stringify(keys) !== JSON.stringify(["assigned_reviewer", "note", "queue_state"].sort()))
+    if (JSON.stringify(keys) !== JSON.stringify([...TEAM_FIELDS].sort()))
       throw Error("Unsupported team update fields");
     if (typeof patch.assigned_reviewer !== "string" || patch.assigned_reviewer.length > 300)
       throw Error("Invalid assigned reviewer");
     if (typeof patch.note !== "string" || patch.note.length > 8000)
       throw Error("Invalid team note");
-    if (!["READY_FOR_REVIEW", "UNDER_REVIEW", "NEEDS_CLIENT_CLARIFICATION", "READY_FOR_ROUTE", "PARKED", "CLOSED"].includes(patch.queue_state))
+    if (!QUEUE_STATES.includes(patch.queue_state))
       throw Error("Invalid private queue state");
     const next = clone(this.state);
-    next.inquiries[inquiryId].version += 1;
-    next.inquiries[inquiryId].last_updated_by = actor;
-    next.inquiries[inquiryId].team_fields = clone(patch);
+    const updated = next.inquiries[inquiryId];
+    // Retain the superseded assessment beside the new one. A correction adds a
+    // revision; it never rewrites what an engineer previously recorded.
+    updated.assessments.push({
+      revision: updated.version,
+      superseded_team_fields: clone(updated.team_fields),
+      recorded_by: updated.last_updated_by,
+      superseded_by: actor,
+    });
+    updated.version += 1;
+    updated.last_updated_by = actor;
+    updated.team_fields = clone(patch);
     this.persist(next);
-    return clone(next.inquiries[inquiryId]);
+    return clone(updated);
   }
 
   export(inquiryId, principal) {
+    // Checked as its own action. Never widen the caller's roles to satisfy the
+    // read check: a later export role must not become a read grant by accident.
     validatePrincipal(principal, "export");
-    return this.read(inquiryId, { ...principal, roles: [...new Set([...principal.roles, "TEAM_REVIEWER"])] });
+    safeKey(inquiryId, "inquiry ID");
+    const record = this.state.inquiries[inquiryId];
+    if (!record) throw Error("Inquiry not found");
+    return clone(record);
   }
 
   delete(inquiryId, principal) {
@@ -214,12 +319,25 @@ class DurableIntakeStore {
     return clone(next.tombstones[inquiryId]);
   }
 
+  listOutbox(principal) {
+    validatePrincipal(principal, "outbox");
+    return Object.values(clone(this.state.outbox)).sort((a, b) =>
+      a.event_id < b.event_id ? -1 : a.event_id > b.event_id ? 1 : 0,
+    );
+  }
+
   async processOutbox(eventId, handler, principal) {
     validatePrincipal(principal, "outbox");
     safeKey(eventId, "outbox event ID");
     const event = this.state.outbox[eventId];
     if (!event) throw Error("Outbox event not found");
     if (event.status === "DELIVERED") return clone(event);
+    if (typeof handler !== "function")
+      handler = async () => {
+        throw Error(
+          "No notification transport is configured; delivery is not attempted",
+        );
+      };
     const next = clone(this.state);
     next.outbox[eventId].attempts += 1;
     try {
@@ -237,7 +355,11 @@ class DurableIntakeStore {
 
 module.exports = {
   STORE_VERSION,
+  LEGACY_STORE_VERSION,
   RECEIPT_VERSION,
+  NOTIFICATION_VERSION,
+  QUEUE_STATES,
+  notification,
   DurableIntakeStore,
   emptyStore,
   validatePrincipal,

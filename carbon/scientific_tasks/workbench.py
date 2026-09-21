@@ -90,6 +90,25 @@ def wire_digest(value):
     return hashlib.sha256(body).hexdigest()
 
 
+def granted_physical(role_root):
+    """The one granted public TRAIN definition this bounded adapter will accept.
+
+    An operator tool that registers a draft must bind the same definition the
+    service will check, so the definition has exactly one implementation here.
+    """
+    case = decode_public_case(public_cases(role_root, "research-train")[0])
+    return {
+        "domain_length": DOMAIN_LENGTH,
+        "viscosity": case.viscosity,
+        "mean": case.mean,
+        "cosine_coefficients": list(case.cosine_coefficients),
+        "sine_coefficients": list(case.sine_coefficients),
+        "requested_times": list(requested_times(case, 4)),
+        "output_points": 64,
+        "units": "dimensionless",
+    }
+
+
 @dataclass(frozen=True)
 class RegisteredWorkbenchDraft:
     """Returned only by the host's trusted draft/rights resolver, never a POST.
@@ -131,18 +150,7 @@ class WorkbenchScience:
         self.adapter, self.resolver, self.material = adapter, draft_resolver, material
 
     def _physical(self):
-        data = self.material.study.data
-        case = decode_public_case(public_cases(data.role_root, "research-train")[0])
-        return {
-            "domain_length": DOMAIN_LENGTH,
-            "viscosity": case.viscosity,
-            "mean": case.mean,
-            "cosine_coefficients": list(case.cosine_coefficients),
-            "sine_coefficients": list(case.sine_coefficients),
-            "requested_times": list(requested_times(case, 4)),
-            "output_points": 64,
-            "units": "dimensionless",
-        }
+        return granted_physical(self.material.study.data.role_root)
 
     async def _access(self, *, cleanup=False):
         self.adapter._check_binding()

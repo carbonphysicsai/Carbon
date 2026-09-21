@@ -8453,6 +8453,19 @@ events:
       - "WAVE-C/C-03"
       - "WAVE-C/C-09"
     supersedes: null
+  -
+    map_ref: "SYSTEM/BUSINESS-AUTHORITY"
+    event_type: "decision"
+    event_id: "GOAL-WORKBENCH-12-D1"
+    owner_lane: "business_tooling_engineering"
+    status: "implemented"
+    summary: "PR #250 makes the Workbench's connected internal workflow startable as one product. A supported launcher composes the existing admitted research campaign, the registered public Julia material, WorkbenchScience, the unchanged fixed scientific routes and the reviewed private build, and reuses the same campaign attachment as the research MCP command so ownership, generation, reconciliation and cleanup keep one implementation. A capability check reports each capability as enabled, configured but unavailable, fixture-only or unsupported without starting a container or probing an accelerator, and a registered draft becomes a durable operator installation bound by digest to the exact granted physical definition, with newer revisions leaving earlier ones stale but still cancellable. The private team receiver now flushes an accepted inquiry before acknowledging it, returns no receipt on a storage failure, retains superseded team assessments instead of overwriting them, and exposes an observable retryable outbox whose queued notification carries only an identity, digest, queue state, authenticated record path and count summary. The impact policy gains one bounded mapped-detail owner for this ticket record, declared ahead of the generic ticket rule that would otherwise match it. Engineering composition and durability only: no physics, reference, rights, security or deployment state changed, no public host, sender or customer collection is enabled, and study results remain NOT_QUALIFIED."
+    primary_detail: "https://github.com/carbonphysicsai/Carbon/pull/250"
+    affects:
+      - "SYSTEM/BUSINESS-AUTHORITY"
+      - "SYSTEM/AGENT-EXECUTION"
+      - "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+    supersedes: null
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"

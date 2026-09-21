@@ -150,3 +150,123 @@ test("private export requires the export role and preserves reviewed source byte
   assert.equal(exported.raw_sha256, receipt.raw_sha256);
   assert.equal(exported.team_fields.queue_state, "READY_FOR_REVIEW");
 });
+
+test("team assessments are append-only and retain every superseded revision", async () => {
+  const fixture = temporaryStore();
+  const receipt = await fixture.store.accept(reviewedRaw(), "retry-key-007", roles.receiver);
+  const first = fixture.store.update(
+    receipt.inquiry_id,
+    1,
+    { assigned_reviewer: "Ryan", queue_state: "UNDER_REVIEW", note: "First reading." },
+    roles.reviewer,
+  );
+  // The record's own opening state is a revision too, so it is retained first.
+  assert.equal(first.assessments.length, 1);
+  assert.equal(first.assessments[0].superseded_team_fields.queue_state, "READY_FOR_REVIEW");
+  assert.equal(first.assessments[0].recorded_by, "synthetic-receiver");
+  const second = fixture.store.update(
+    receipt.inquiry_id,
+    2,
+    { assigned_reviewer: "Nick", queue_state: "READY_FOR_ROUTE", note: "Corrected." },
+    { id: "synthetic-second-reviewer", roles: ["TEAM_REVIEWER"] },
+  );
+  assert.equal(second.version, 3);
+  assert.equal(second.assessments.length, 2);
+  // The correction adds a revision; the earlier words are still readable.
+  assert.equal(second.assessments[1].superseded_team_fields.note, "First reading.");
+  assert.equal(second.assessments[1].superseded_team_fields.assigned_reviewer, "Ryan");
+  assert.equal(second.assessments[1].recorded_by, "synthetic-reviewer");
+  assert.equal(second.assessments[1].superseded_by, "synthetic-second-reviewer");
+  assert.equal(second.team_fields.note, "Corrected.");
+  const restarted = new DurableIntakeStore(fixture.file);
+  assert.equal(restarted.read(receipt.inquiry_id, roles.reviewer).assessments.length, 2);
+});
+
+test("a v1 store migrates without inventing a history it never retained", async () => {
+  const fixture = temporaryStore();
+  const receipt = await fixture.store.accept(reviewedRaw(), "retry-key-008", roles.receiver);
+  const legacy = JSON.parse(fs.readFileSync(fixture.file, "utf8"));
+  legacy.schema_version = "carbon.private-team-intake.store.v1";
+  for (const record of Object.values(legacy.inquiries)) {
+    record.version = 4;
+    delete record.assessments;
+    delete record.history_origin;
+  }
+  fs.writeFileSync(fixture.file, JSON.stringify(legacy, null, 2) + "\n");
+  const migrated = new DurableIntakeStore(fixture.file);
+  const record = migrated.read(receipt.inquiry_id, roles.reviewer);
+  assert.deepEqual(record.assessments, []);
+  assert.equal(record.history_origin, "MIGRATED_V1_NO_RETAINED_HISTORY");
+  assert.equal(record.version, 4);
+});
+
+test("a native store whose retained history was edited is refused", async () => {
+  const fixture = temporaryStore();
+  await fixture.store.accept(reviewedRaw(), "retry-key-009", roles.receiver);
+  const tampered = JSON.parse(fs.readFileSync(fixture.file, "utf8"));
+  for (const record of Object.values(tampered.inquiries)) record.version = 9;
+  fs.writeFileSync(fixture.file, JSON.stringify(tampered, null, 2) + "\n");
+  assert.throws(() => new DurableIntakeStore(fixture.file), /does not match the record version/);
+});
+
+test("the queued notification carries a minimal summary and no client content", async () => {
+  const fixture = temporaryStore();
+  const receipt = await fixture.store.accept(reviewedRaw(), "retry-key-010", roles.receiver);
+  const events = fixture.store.listOutbox(roles.notifier);
+  assert.equal(events.length, 1);
+  const event = events[0];
+  assert.equal(event.destination, "UNCONFIGURED_SYNTHETIC");
+  assert.equal(event.notification.record_path, "/private/intake/" + receipt.inquiry_id);
+  assert.equal(event.notification.canonical_digest, receipt.canonical_digest);
+  assert.equal(typeof event.notification.summary.unresolved_assumption_count, "number");
+  // No reviewed package, client words, contact details or raw bytes travel.
+  const body = JSON.stringify(event);
+  assert.equal(body.includes("Compare the reported baseline"), false);
+  assert.equal(body.includes("Reference adequacy is unknown."), false);
+  assert.equal(body.includes(fixture.store.read(receipt.inquiry_id, roles.reviewer).raw_json), false);
+  assert.throws(() => fixture.store.listOutbox(roles.reviewer), /not authorized/);
+});
+
+test("with no configured transport an attempt fails observably and never claims delivery", async () => {
+  const fixture = temporaryStore();
+  const receipt = await fixture.store.accept(reviewedRaw(), "retry-key-011", roles.receiver);
+  const eventId = "notify-" + receipt.inquiry_id;
+  const attempted = await fixture.store.processOutbox(eventId, null, roles.notifier);
+  assert.equal(attempted.status, "PENDING");
+  assert.equal(attempted.attempts, 1);
+  assert.match(attempted.last_error, /No notification transport is configured/);
+  const retried = await fixture.store.processOutbox(eventId, null, roles.notifier);
+  assert.equal(retried.attempts, 2);
+  assert.equal(retried.status, "PENDING");
+  // The inquiry survives every failed notification attempt.
+  assert.equal(fixture.store.read(receipt.inquiry_id, roles.reviewer).lifecycle, "ACTIVE");
+});
+
+test("a configured destination is recorded without opening any connection", async () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "carbon-team-intake-"));
+  const store = new DurableIntakeStore(path.join(directory, "store.json"), {
+    destination: "Hello@carbonphysics.ai",
+  });
+  const receipt = await store.accept(reviewedRaw(), "retry-key-012", roles.receiver);
+  assert.equal(store.listOutbox(roles.notifier)[0].destination, "Hello@carbonphysics.ai");
+  assert.equal(store.listOutbox(roles.notifier)[0].status, "PENDING");
+  assert.equal(store.read(receipt.inquiry_id, roles.reviewer).lifecycle, "ACTIVE");
+});
+
+test("a storage failure returns no receipt and stores no partial inquiry", async () => {
+  const fixture = temporaryStore();
+  fs.chmodSync(fixture.directory, 0o500);
+  try {
+    await assert.rejects(() =>
+      fixture.store.accept(reviewedRaw(), "retry-key-013", roles.receiver),
+    );
+  } finally {
+    fs.chmodSync(fixture.directory, 0o700);
+  }
+  assert.equal(fs.existsSync(fixture.file), false);
+  assert.deepEqual(Object.keys(fixture.store.state.inquiries), []);
+  // The same key succeeds once storage recovers; no phantom record blocks it.
+  const receipt = await fixture.store.accept(reviewedRaw(), "retry-key-013", roles.receiver);
+  assert.equal(receipt.disposition, "ACCEPTED");
+  assert.equal(fs.readdirSync(fixture.directory).filter((n) => n.includes(".tmp-")).length, 0);
+});
