@@ -228,20 +228,39 @@ def _cancel_path(state_root: Path, execution_id: str) -> Path:
     return Path(state_root) / CANCEL_DIRECTORY / f"{exact_token(execution_id)}.json"
 
 
-def request_cancel(*, state_root: Path, execution_id: str) -> Path:
+def request_cancel(
+    *, state_root: Path, execution_id: str, schema: str = CANCEL_SCHEMA
+) -> Path:
     """Ask a running launch to stop. Durable, and destroys nothing itself.
 
     Writing a request is all this does. The run observes it at the boundaries
     the controller already checks and then performs its own ordinary cleanup, so
     a cancel never removes a container out from under the code responsible for
     confirming its removal.
+
+    Cancelling is a property of the host and the execution, not of the lane, so
+    the validator entry point shares this implementation rather than growing a
+    second one that could drift.
+
+    **That lane-independence is deliberate and is part of the contract.** The
+    request is keyed by execution id alone, so either entry point can stop a
+    launch of either lane on the same host. An execution id already names exactly
+    one admitted execution, which ran in exactly one lane, so putting the lane in
+    the key would disambiguate nothing and would only create a way for a correct
+    cancel to silently miss - the dangerous failure for a stop whose purpose is
+    halting spend.
+
+    `schema` only labels the written record with the tool that produced it. It
+    does not select a lane or a role, does not convert work between lanes, and
+    does not touch any durable execution identity; the request is located and
+    observed by execution id either way.
     """
     from carbon.development_session.profile import canonical
 
     path = _cancel_path(state_root, execution_id)
     try:
         path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
-        payload = canonical({"schema": CANCEL_SCHEMA, "execution_id": execution_id})
+        payload = canonical({"schema": schema, "execution_id": execution_id})
         descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
         with os.fdopen(descriptor, "wb") as handle:
             handle.write(payload)
@@ -381,12 +400,23 @@ def launch(
         clear_cancel(state_root=state_root, execution_id=execution_id)
 
 
-def recover(*, state_root: Path, cli=None, dry_run: bool = False) -> dict:
+def recover(
+    *,
+    state_root: Path,
+    cli=None,
+    dry_run: bool = False,
+    schema: str = "carbon.accelerator-miner-recover.v1",
+) -> dict:
     """Remove containers this host's unfinished launches still own.
 
     Cost control, on a rented instance. A launch that ended without reaching a
     terminal state may still own a running container, and nothing reclaims it on
     its own.
+
+    Reclaiming is a property of the host and its launch store rather than of the
+    lane a launch ran in, so the validator entry point shares this
+    implementation. `schema` names the tool that produced the report and changes
+    nothing about what is reclaimed.
 
     Scoped to exactly those containers: the store supplies each launch's own
     name and digest, and removal confirms that exact container is gone. Nothing
@@ -431,7 +461,7 @@ def recover(*, state_root: Path, cli=None, dry_run: bool = False) -> dict:
         ).value
         outcomes.append(entry)
     return {
-        "schema": "carbon.accelerator-miner-recover.v1",
+        "schema": schema,
         "state_root": str(state_root),
         "dry_run": dry_run,
         "outstanding": len(outcomes),

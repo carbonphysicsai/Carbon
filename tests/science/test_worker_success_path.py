@@ -378,3 +378,82 @@ def test_a_result_claiming_a_digest_the_artifact_does_not_have_is_refused(
         controller.store.raw_status(execution_id)["state"]
         != WorkerLaunchState.ASSOCIATED.value
     )
+
+
+# --- the validator lane: exactly how far it goes without a device --------------
+#
+# C-CORE-20 added the orchestration that constructs a VALIDATOR_RECONSTRUCTION
+# run. The three tests above reach ASSOCIATED on the CPU lane with a genuinely
+# trained artifact. The question this section answers is the one the ticket asks
+# to isolate rather than hand-wave: which single step of the validator path still
+# needs hardware?
+
+
+def test_the_validator_lane_refuses_a_cpu_plan_rather_than_substituting(
+    tmp_path, trained, monkeypatch
+):
+    """The answer, and the guard that makes it safe.
+
+    The artifact above is genuinely trained, but under a CPU plan. Presenting it
+    with an accelerator role is refused - it does not quietly reconstruct on CPU
+    and record a result under a role that implies otherwise, and it does not
+    reach ASSOCIATED.
+
+    So the step that requires a device is precise and small: a plan pinning the
+    GPU execution profile, trained on that device, producing the artifact the
+    real validator then accepts. Everything before it - claiming admitted work,
+    binding materials to the committed identities, resolving the registered
+    execution class, reaching the controller with the validator role and lane -
+    is covered device-free by `test_validator_launch_orchestration.py`.
+
+    Nothing here is HARDWARE_EXERCISED, and this test does not become a GPU
+    result by mentioning one.
+    """
+    from carbon.reconstruction.accelerators import AcceleratorRole
+    from carbon.reconstruction.worker.model import WorkerCode, WorkerFailure
+
+    controller, claimed, _ = _controller(
+        tmp_path, trained, monkeypatch, exporter=trained["exporter"]
+    )
+    with pytest.raises(WorkerFailure) as error:
+        controller.execute(
+            claimed=claimed,
+            repeat_plan=trained["repeat"],
+            replica=trained["replica"],
+            plan=trained["plan"],
+            training_archive=trained["archive"],
+            derived_seed=trained["seed"],
+            accelerator_role=AcceleratorRole.VALIDATOR_RECONSTRUCTION,
+        )
+    assert error.value.code is WorkerCode.POLICY
+
+    execution_id = (
+        f"{claimed.claim.ref.submission_id.value}:{claimed.claim.ref.attempt_number}"
+    )
+    status = controller.store.raw_status(execution_id)
+    assert status is None or status["state"] != WorkerLaunchState.ASSOCIATED.value
+
+
+def test_the_cpu_lane_still_reaches_associated_beside_it(
+    tmp_path, trained, monkeypatch
+):
+    """The contrast that gives the test above its meaning.
+
+    Without this, the refusal could be caused by anything about the fixture. The
+    same trained artifact, the same controller and the same validator reach
+    ASSOCIATED when no accelerator role is presented, so what the refusal
+    isolates is the role, not the setup.
+    """
+    controller, claimed, _ = _controller(
+        tmp_path, trained, monkeypatch, exporter=trained["exporter"]
+    )
+    result = _run(controller, claimed, trained)
+    assert result.receipt.status is ReconstructionStatus.COMPLETE
+
+    execution_id = (
+        f"{claimed.claim.ref.submission_id.value}:{claimed.claim.ref.attempt_number}"
+    )
+    assert (
+        controller.store.raw_status(execution_id)["state"]
+        == WorkerLaunchState.ASSOCIATED.value
+    )
