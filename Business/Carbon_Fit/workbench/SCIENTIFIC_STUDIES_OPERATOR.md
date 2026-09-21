@@ -26,7 +26,36 @@ Do not overwrite the tracked generated HTML or publish the private artifact.
 
 ## Compose with the existing private service
 
-The host supplies these existing Python boundaries:
+The normal operator journey no longer assembles these objects by hand. One
+supported launcher composes them and serves the private build:
+
+```bash
+.venv/bin/python -m carbon.scientific_tasks.workbench_host check \
+  --configuration /private/carbon-workbench/runner-profile.json \
+  --draft-registry /private/carbon-workbench/drafts.json
+.venv/bin/python -m carbon.scientific_tasks.workbench_host serve \
+  --configuration /private/carbon-workbench/runner-profile.json \
+  --draft-registry /private/carbon-workbench/drafts.json \
+  --principals /private/carbon-workbench/staff.json \
+  --static /path/to/workbench-private \
+  --origin http://127.0.0.1:8770 --port 8770
+```
+
+It reuses the same admitted campaign attachment the research MCP command uses,
+so campaign ownership, generation, reconciliation and cleanup have exactly one
+implementation. `check` starts no container and probes no accelerator; it
+reports each capability as `ENABLED`, `CONFIGURED_UNAVAILABLE`, `FIXTURE_ONLY`
+or `UNSUPPORTED`. A reviewed draft is installed with `register-draft` into a
+private registry that binds it to the exact granted physical definition; a
+browser still cannot register a draft, choose a principal or grant rights.
+`/api/workbench-host/health` and `/api/workbench-host/capabilities` report
+composition state only and carry no physical definition or result.
+
+See `PRIVATE_SERVICE_RUNBOOK.md` for the start/check/stop/recover sequence from
+a fresh checkout, including the named staff token file and the recovery table.
+
+The launcher composes these existing Python boundaries, which remain the
+supported interface for any other reviewed host:
 
 1. `ResearchToolAdapter` over its authenticated research service and trusted
    principal, with the registered public Julia material and valid task grant.

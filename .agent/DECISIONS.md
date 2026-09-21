@@ -14725,3 +14725,77 @@ no security, scientific, production or commercial qualification.
 **Reversibility.** The owner may withdraw either identity or the activation
 authorization prospectively; retained evidence and recorded historical state
 are not rewritten.
+
+## 2026-09-20 — GOAL-WORKBENCH-12-D1: one campaign attachment, one draft registry
+
+**Authority source and scope.** The repository owner forwarded a Workbench
+completion handoff on 2026-09-20 selecting the existing Goal-to-Challenge
+Workbench and its accepted services. It authorizes finishing the internal
+connected workflow and the engineering a later deployment would need. It
+authorizes no public deployment, live customer collection, real customer
+notification, paid resource, security qualification or scientific
+qualification. Recorded as owner instruction forwarded with that handoff, not
+as a resource grant or a fresh scientific approval.
+
+**Implementation decision.** Extract the existing admitted-campaign attachment
+in `carbon/miner_mcp/standard_cli.py` into one `attached()` context manager and
+have both the research MCP command and the new
+`carbon/scientific_tasks/workbench_host.py` consume it. The alternative —
+composing the campaign a second time for the Workbench — would have duplicated
+the ownership lock, generation acquisition, reserved-consumption check, worker
+reconciliation and `control.settled` cleanup, and a divergence between the two
+copies would be invisible until a study failed to settle. Campaign ownership
+now has one implementation; the launcher chooses only the surface it is served
+through.
+
+**Registered drafts are a durable operator installation.** The registry stores
+the granted physical definition's digest, never a definition of its own, and
+the resolver is bound to the live definition the composed service reports. A
+registry written against a different grant therefore fails closed instead of
+binding a study to a definition the service would reject. Installing a revision
+makes it current and leaves earlier revisions installed but stale: a stale
+revision can still be cancelled so its worker is cleaned up, and it can no
+longer start, poll or claim a result. The file is re-read on every resolution,
+so a revocation takes effect on the next request without a restart. A browser
+still cannot register a draft, choose a principal or grant rights.
+
+**Named staff tokens are accountability, not authority.** The host reads the
+operator's own private, owner-only token file and resolves a valid bearer token
+to the single admitted campaign principal, because the scientific routes act as
+that one identity by construction. The named entry records who opened the
+session. It confers no scientific, rights or economic authority, and the
+capability report contains no token, path, principal or physical value. This
+reuses the bearer-token mechanism already accepted in the private team
+receiver rather than introducing an identity provider.
+
+**Capability status is reported, not inferred.** `check` reads the already
+verified profile and campaign manifest, starts no container and probes no
+accelerator, and reports each capability as exactly one of `ENABLED`,
+`CONFIGURED_UNAVAILABLE`, `FIXTURE_ONLY` or `UNSUPPORTED`. A missing local
+input is reported separately from an unregistered scope, so "we did not
+configure it" is never displayed as "the campaign cannot do it". GPU and
+authored research remain `UNSUPPORTED` for the Workbench.
+
+**Receiver repairs.** A receipt the team can act on must survive power loss, so
+the private store now flushes the replacement file and its directory entry
+before acknowledging; a storage failure returns no receipt and leaves no
+partial record. Team assessment became append-only: a correction adds a
+revision and retains the superseded fields, their author and who superseded
+them. `carbon.private-team-intake.store.v2` migrates a v1 store with an empty
+history marked `MIGRATED_V1_NO_RETAINED_HISTORY` rather than fabricating a
+reviewer, a time or an assessment that was never written. The outbox gained an
+observable, retryable surface whose queued notification carries only the
+inquiry identity, canonical digest, queue state, an authenticated record path
+and a minimal count summary. With no configured transport an attempt is
+recorded as a failure and is never reported as a delivery.
+
+**Trust and successor boundary.** A started host is not a deployment and not a
+qualification: study results remain `NOT_QUALIFIED` and `official_eligible`
+false. A configured destination is not a mailbox credential, a sender, or
+permission to contact anyone. Public activation still requires the exact host,
+storage, authenticated identities, sender, notice/consent, retention, abuse
+handling and incident/rollback decisions recorded under issue #139, and those
+remain Ryan's and Nick's with legal support. The smallest reversal is removing
+the launcher module and the receiver's outbox routes while retaining the
+registry file format, the retained assessment history and every existing
+scientific contract.
