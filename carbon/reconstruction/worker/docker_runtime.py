@@ -951,7 +951,7 @@ def remove_exact_container(
         allocation_authority,
         owns_device_allocation,
     )
-    from carbon.reconstruction.worker.model import LOCAL_DEVELOPMENT_AUTHORITY
+    from carbon.reconstruction.worker.model import TASK_OWNED_AUTHORITIES
 
     owns_accelerator = owns_device_allocation(
         container_name=container_name, launch_digest=launch_digest
@@ -960,10 +960,10 @@ def remove_exact_container(
     def finish_allocation() -> None:
         """Complete the allocation under the authority that created it.
 
-        A development allocation is completed without claiming whole-device
-        release, because it never had the evidence that claim needs. A strict
-        allocation still goes through verified release. Neither may complete
-        the other's allocation.
+        A task-owned allocation - development or miner lane - completes without
+        claiming whole-device release, because neither ever had the evidence
+        that claim needs. A strict allocation still goes through verified
+        release. Neither may complete the other's allocation.
         """
         from carbon.reconstruction.worker.accelerator_runtime import (
             finish_device_allocation,
@@ -973,7 +973,7 @@ def remove_exact_container(
         authority = allocation_authority(
             container_name=container_name, launch_digest=launch_digest
         )
-        if authority == LOCAL_DEVELOPMENT_AUTHORITY:
+        if authority in TASK_OWNED_AUTHORITIES:
             finish_local_device_allocation(
                 container_name=container_name, launch_digest=launch_digest
             )

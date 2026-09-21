@@ -17,6 +17,7 @@ from types import SimpleNamespace
 
 from carbon.reconstruction.accelerators import GPU_PROFILE, AcceleratorRole
 from carbon.reconstruction.worker.model import (
+    ALLOCATION_AUTHORITIES,
     PRODUCTIVE_DEADLINE_SECONDS,
     WorkerCode,
     WorkerFailure,
@@ -172,6 +173,48 @@ def shared_host_lease():
             yield
     except (OSError, ValueError):
         raise WorkerFailure(WorkerCode.CONFLICT) from None
+
+
+@contextmanager
+def miner_device_lease(device_uuid: str):
+    """Plain mutual exclusion between one host's own miner runs.
+
+    Deliberately not the shared Carbon slot. That lock carries strict semantics -
+    quarantine, verified whole-device release - which this lane does not have and
+    must not appear to have. This one exists for a narrower reason: a miner's two
+    concurrent runs on the same device would corrupt each other's scratch and
+    accounting, which is a correctness problem on their own machine.
+
+    It establishes nothing about any other process, Carbon or otherwise, and it
+    is not an exclusivity claim. What actually blocks a launch that would collide
+    with retained Carbon work is `reject_existing_device_containers`, which is
+    checked separately and looks at Carbon's own device label.
+    """
+    from carbon.reconstruction.worker.model import exact_token
+
+    token = exact_token(device_uuid.replace(":", "-"))
+    try:
+        HOST_ROOT.mkdir(mode=0o700, parents=True, exist_ok=True)
+        descriptor = os.open(
+            HOST_ROOT / f"miner-device-{token}.lock", os.O_RDWR | os.O_CREAT, 0o600
+        )
+    except OSError:
+        raise WorkerFailure(WorkerCode.UNAVAILABLE) from None
+    import fcntl
+
+    try:
+        try:
+            fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except OSError:
+            # Another run of this miner's own holds the device. A conflict, not
+            # a quarantine: nothing is marked, and the next attempt is free.
+            raise WorkerFailure(WorkerCode.CONFLICT) from None
+        yield
+    finally:
+        try:
+            fcntl.flock(descriptor, fcntl.LOCK_UN)
+        finally:
+            os.close(descriptor)
 
 
 def verify_image_and_toolkit(*, cli, image: WorkerImageIdentity) -> None:
@@ -453,12 +496,10 @@ def mark_device_allocation(
     """
     from carbon.development_session.profile import canonical
     from carbon.reconstruction.worker.model import (
-        LOCAL_DEVELOPMENT_AUTHORITY,
-        STRICT_HOST_GRANT_AUTHORITY,
         exact_token,
     )
 
-    if authority not in (STRICT_HOST_GRANT_AUTHORITY, LOCAL_DEVELOPMENT_AUTHORITY):
+    if authority not in ALLOCATION_AUTHORITIES:
         raise WorkerFailure(WorkerCode.POLICY)
     payload = {
         "container_name": exact_token(container_name),
@@ -492,7 +533,6 @@ def _allocation_document() -> dict | None:
     except (OSError, ValueError):
         raise WorkerFailure(WorkerCode.CLEANUP) from None
     from carbon.reconstruction.worker.model import (
-        LOCAL_DEVELOPMENT_AUTHORITY,
         STRICT_HOST_GRANT_AUTHORITY,
     )
 
@@ -514,10 +554,7 @@ def _allocation_document() -> dict | None:
         fields = set(document)
     if fields != {"container_name", "launch_digest", "authority"}:
         raise WorkerFailure(WorkerCode.CLEANUP)
-    if document["authority"] not in (
-        STRICT_HOST_GRANT_AUTHORITY,
-        LOCAL_DEVELOPMENT_AUTHORITY,
-    ):
+    if document["authority"] not in ALLOCATION_AUTHORITIES:
         raise WorkerFailure(WorkerCode.CLEANUP)
     return document
 
@@ -571,27 +608,27 @@ LOCAL_RELEASE_UNVERIFIED = "TASK_OWNED_REMOVAL_ONLY_WHOLE_DEVICE_RELEASE_UNESTAB
 
 
 def finish_local_device_allocation(*, container_name: str, launch_digest: str) -> str:
-    """Complete a development allocation without claiming whole-device release.
+    """Complete a task-owned allocation without claiming whole-device release.
 
     This establishes exactly one thing: the task-owned allocation record for this
     launch was removed. It deliberately does **not** call
     `verify_device_release()`, which requires established enumeration and can
-    create quarantine, because a development run never had the evidence that
-    check demands.
+    create quarantine, because neither a development run nor a miner-lane run
+    ever had the evidence that check demands.
 
     It therefore never writes, clears or reinterprets strict quarantine, and it
     never reports the device as released. The returned label records what was
     and was not established, so a caller cannot mistake it for the strict
     outcome. Ownership is still required: a launch may only finish its own
-    allocation, and only one created under the same authority. A development run
-    must never be able to complete a strict allocation, which would skip the
-    verified release that allocation is owed.
+    allocation, and only one created under a task-owned authority. Neither may
+    complete a strict allocation, which would skip the verified release that
+    allocation is owed.
     """
-    from carbon.reconstruction.worker.model import LOCAL_DEVELOPMENT_AUTHORITY
+    from carbon.reconstruction.worker.model import TASK_OWNED_AUTHORITIES
 
     if (
         allocation_authority(container_name=container_name, launch_digest=launch_digest)
-        != LOCAL_DEVELOPMENT_AUTHORITY
+        not in TASK_OWNED_AUTHORITIES
     ):
         raise WorkerFailure(WorkerCode.CLEANUP)
     try:

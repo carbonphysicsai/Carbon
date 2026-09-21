@@ -14,11 +14,18 @@ Two things are replaced, both because they leave this process:
     control the controller failed to request is genuinely absent; and
   * `spawn_watchdog`, which starts a separate deadline-owning process.
 
-What is therefore NOT covered here: the terminal success path. Reaching
-ASSOCIATED needs a genuine trained checkpoint that the bounded native validator
-accepts, which no fixture can fabricate. These cover reaching RUNNING, and every
-way a run can end short of success. Nothing here is a hardware result, a device
-attachment or an acceptance.
+What is therefore NOT covered here: the terminal success path. These cover
+reaching RUNNING, and every way a run can end short of success.
+
+Reaching ASSOCIATED needs a genuine trained checkpoint that the bounded native
+validator accepts. No fixture can fabricate one - but one can be *generated*, and
+`tests/science/test_worker_success_path.py` does exactly that: it trains a real
+artifact with the real `reconstruct()` and carries it through the real validator
+to ASSOCIATED. It is a CPU-lane run, because training here is what makes the
+artifact genuine. Reaching ASSOCIATED under a GPU profile additionally requires
+the device and remains uncovered until an authorized attempt runs.
+
+Nothing here is a hardware result, a device attachment or an acceptance.
 
 Synthetic host roots throughout. No device is attached, no real grant or
 approval storage is touched, and no container is created.
@@ -341,12 +348,38 @@ def test_a_withdrawn_approval_refuses_before_any_container(harness):
 
 
 def test_the_strict_route_still_needs_a_grant_and_takes_no_local_fallback(harness):
-    """A refused strict admission must not degrade into the local path."""
+    """A refused strict admission must not degrade into any weaker path.
+
+    The strict route is the validator role's. Without a grant it fails, and it
+    fails there - it does not retry as a local diagnostic or as a miner run.
+    """
     assert not (harness.host / "grant.json").exists()
     with pytest.raises(WorkerFailure) as error:
-        harness.run(local_diagnostic=None)
+        harness.run(
+            local_diagnostic=None,
+            accelerator_role=AcceleratorRole.VALIDATOR_RECONSTRUCTION,
+        )
     assert error.value.code is WorkerCode.UNAVAILABLE
     assert not harness.cli.created
+    assert dev.DevelopmentAttemptJournal(harness.host).consumed() == 0
+
+
+def test_the_miner_role_never_reaches_strict_admission(harness):
+    """The other direction: a miner run is not a strict run that was let off.
+
+    A miner host has no grant and never will. If the miner role reached strict
+    admission at all it would fail UNAVAILABLE trying to load one, so the code
+    below proves the strict path was not entered rather than that it forgave
+    something.
+    """
+    assert not (harness.host / "grant.json").exists()
+    with pytest.raises(WorkerFailure) as error:
+        harness.run(
+            local_diagnostic=None, accelerator_role=AcceleratorRole.MINER_RESEARCH
+        )
+    assert error.value.code is not WorkerCode.UNAVAILABLE
+    # And it consumed nothing of the owner's authorised batch, which is a
+    # different authority from this lane.
     assert dev.DevelopmentAttemptJournal(harness.host).consumed() == 0
 
 

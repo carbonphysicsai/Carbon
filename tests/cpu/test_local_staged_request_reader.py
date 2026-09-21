@@ -194,3 +194,89 @@ def test_tampered_local_accelerator_blocks_are_refused(tmp_path, monkeypatch, mu
     _rewrite(stage, mutate)
     with pytest.raises(WorkerFailure):
         load_worker_request(stage)
+
+
+# --- the miner lane must survive the same real writer and reader ---------------
+
+
+def _miner_profile(**overrides):
+    """A miner-lane worker profile: a host record digest, no grant, no plan."""
+    from carbon.reconstruction.worker.model import MINER_HOST_AUTHORITY
+
+    values = {
+        "research_resource_policy_digest": _sha("2"),
+        "resource_class_digest": _sha("3"),
+        "profile_id": "carbon.c03.cuda.development.v1",
+        "profile_version": "1.0",
+        "accelerator_profile_id": GPU_PROFILE.profile_id,
+        # The installed host record is what admitted this run; there is no grant.
+        "accelerator_grant_digest": APPROVAL_DIGEST,
+        "accelerator_role": AcceleratorRole.MINER_RESEARCH.value,
+        "accelerator_authority": MINER_HOST_AUTHORITY,
+        "accelerator_plan_digest": None,
+        "accelerator_device_uuid": DEVICE_UUID,
+    }
+    values.update(overrides)
+    return DevelopmentWorkerProfile(**values)
+
+
+def test_the_miner_request_round_trips_through_the_real_reader(tmp_path, monkeypatch):
+    """The lane is only real if the protocol carries it, not just the model."""
+    from carbon.reconstruction.worker.model import MINER_HOST_AUTHORITY
+
+    stage, plan = _stage(tmp_path, monkeypatch, _miner_profile(), name="miner")
+    request = json.loads((stage / "request.json").read_bytes())
+
+    assert request["schema"] == "carbon.c03.worker-request.v6"
+    assert set(request["accelerator"]) == {
+        "profile_id",
+        "authority",
+        "host_record_digest",
+        "role",
+        "device_uuid",
+    }
+    assert request["accelerator"]["authority"] == MINER_HOST_AUTHORITY
+    # No grant key at all. A consumer looking for one must not find a miner
+    # request sitting in the place a strict grant would occupy.
+    assert "grant_digest" not in request["accelerator"]
+
+    _, loaded_plan, _, _, _ = load_worker_request(stage)
+    assert loaded_plan.to_ref() == plan.to_ref()
+
+
+def test_the_miner_request_decodes_back_to_the_miner_authority(tmp_path, monkeypatch):
+    """Read as what it is: not strict, and not a development approval."""
+    from carbon.reconstruction.worker.model import (
+        LOCAL_DEVELOPMENT_AUTHORITY,
+        MINER_HOST_AUTHORITY,
+        STRICT_HOST_GRANT_AUTHORITY,
+    )
+    from carbon.reconstruction.worker.protocol import _request_worker_profile
+
+    stage, _ = _stage(tmp_path, monkeypatch, _miner_profile(), name="miner")
+    request = json.loads((stage / "request.json").read_bytes())
+    decoded = _request_worker_profile(request)
+
+    assert decoded.accelerator_authority == MINER_HOST_AUTHORITY
+    assert decoded.accelerator_authority != STRICT_HOST_GRANT_AUTHORITY
+    assert decoded.accelerator_authority != LOCAL_DEVELOPMENT_AUTHORITY
+    assert decoded.accelerator_device_uuid == DEVICE_UUID
+    assert decoded.accelerator_plan_digest is None
+    assert decoded.digest == _miner_profile().digest
+
+
+def test_a_miner_block_under_another_lanes_schema_is_refused(tmp_path, monkeypatch):
+    """The pairing is closed in both directions, as it is for every other lane."""
+    from carbon.reconstruction.worker.protocol import _permitted_request_schemas
+
+    stage, _ = _stage(tmp_path, monkeypatch, _miner_profile(), name="miner")
+    request = json.loads((stage / "request.json").read_bytes())
+    permitted = _permitted_request_schemas(request)
+    assert permitted == ("carbon.c03.worker-request.v6",)
+    for other in (
+        "carbon.c03.worker-request.v1",
+        "carbon.c03.worker-request.v2",
+        "carbon.c03.worker-request.v4",
+        "carbon.c03.worker-request.v5",
+    ):
+        assert other not in permitted

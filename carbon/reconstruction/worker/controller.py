@@ -202,6 +202,23 @@ class IsolatedReconstructionController:
                 replica=replica,
                 cancelled=cancelled,
             )
+        # Dispatch on the role, which has carried both values all along. The two
+        # roles do different things: a miner searches privately for a better
+        # strategy and submits a declarative recipe, so nothing they compute
+        # locally enters the scientific record; a validator reconstructs and
+        # trains from scratch, and that training is the record.
+        #
+        # There is no fallback in either direction. A refused strict admission
+        # does not become a miner run, and a miner run is not presentable as
+        # strict - each role reaches exactly one path, chosen before either
+        # admission is attempted.
+        if accelerator_role is AcceleratorRole.MINER_RESEARCH:
+            return self._execute_miner_lane(
+                options=options,
+                accelerator_role=accelerator_role,
+                replica=replica,
+                cancelled=cancelled,
+            )
         admission = AcceleratorHostAdmission.load()
         principal = claimed.binding.requester_identity.value
         admission.verify(
@@ -429,6 +446,86 @@ class IsolatedReconstructionController:
                 observed_output_bytes=_observed_output_bytes(result),
             )
             return result
+
+    def _execute_miner_lane(
+        self,
+        *,
+        options,
+        accelerator_role,
+        replica,
+        cancelled,
+    ):
+        """Run one miner-lane accelerator attempt.
+
+        The CPU lane's requirements plus a device, and nothing beyond them. A
+        miner receives a public construction plan and public TRAIN material,
+        submits a declarative strategy rather than a trained checkpoint, and
+        nothing they compute here is submitted, verified or scored. There is
+        nothing on this host to protect, so device side-channels defend nothing
+        and exclusivity buys nothing.
+
+        What it does require is what makes a local run *faithful* - the same
+        pinned image, the same containment, the same content-bound inputs, the
+        same bounds - so that exercising a strategy here predicts what a
+        validator will get. That is the reason the tooling exists.
+
+        What it deliberately does not do: load a host grant, take the shared
+        Carbon slot, enumerate compute processes, claim exclusivity, verify
+        whole-device release, or create quarantine.
+        """
+        from carbon.reconstruction.accelerators import GPU_PROFILE
+        from carbon.reconstruction.onboarding import doctor_report, miner_lane_blockers
+        from carbon.reconstruction.worker.accelerator_runtime import (
+            HOST_ROOT,
+            host_device,
+            miner_device_lease,
+            reject_existing_device_containers,
+            verify_image_and_toolkit,
+        )
+        from carbon.reconstruction.worker.model import (
+            MINER_HOST_AUTHORITY,
+            registered_run_controls,
+        )
+
+        # The device comes from the operator-installed record, which fails
+        # closed when it is missing or malformed. Carbon never infers a host's
+        # hardware from whatever happens to be visible at dispatch time.
+        device = host_device()
+
+        # Readiness is checked, not assumed, and it is the same read-only report
+        # the operator runs. Only the findings this lane actually requires can
+        # block it - see `MINER_LANE_REQUIRED_CHECKS`, which names what is left
+        # out and why. Unknown telemetry stays unknown instead of stopping a
+        # miner, which is the point of the lane.
+        if miner_lane_blockers(doctor_report(root=HOST_ROOT, cli=self.cli)):
+            raise WorkerFailure(WorkerCode.POLICY)
+
+        identity = replica.binding.replicate_identity
+        worker_profile = DevelopmentWorkerProfile(
+            identity.policy_ref.content_digest,
+            identity.resource_class_ref.content_digest,
+            "carbon.c03.cuda.development.v1",
+            "1.0",
+            GPU_PROFILE.profile_id,
+            device.digest,
+            accelerator_role.value,
+            MINER_HOST_AUTHORITY,
+            None,
+            device.device_uuid,
+            registered_run_controls(),
+        )
+
+        # This miner's own concurrent runs, not a claim about the device.
+        with miner_device_lease(device.device_uuid):
+            verify_image_and_toolkit(cli=self.cli, image=self.image)
+            # Retained Carbon work on this device still blocks, by Carbon's own
+            # label. Other work on the GPU is the miner's business.
+            reject_existing_device_containers(cli=self.cli)
+            return self._execute_bound(
+                **options,
+                worker_profile=worker_profile,
+                cancelled=cancelled,
+            )
 
     @staticmethod
     def _reconcile_local_attempt(
