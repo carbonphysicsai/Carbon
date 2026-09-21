@@ -8,6 +8,22 @@ from enum import Enum
 from typing import Protocol
 from urllib.parse import urlsplit
 
+#: The network and subnet Carbon runs on.
+#:
+#: Testnet only, and deliberately a constant rather than configuration. There is
+#: no mainnet netuid yet, so a network-switching abstraction would be a shape
+#: built around a value nobody has chosen - and the wrong shape is harder to
+#: remove than the missing one is to add.
+#:
+#: What this does replace is six copies of the same literal asserted
+#: independently across `development_session` and `miner_mcp`. A mainnet subnet
+#: will exist eventually, and scattered copies of the number are where that
+#: goes wrong: one of them gets updated and the others keep guarding the old
+#: network. Consolidating now costs nothing and removes that failure mode
+#: without pretending to solve the switch.
+CARBON_NETWORK = "testnet"
+CARBON_NETUID = 567
+
 
 class FailureCode(str, Enum):
     UNAVAILABLE = "PROVIDER_UNAVAILABLE"
