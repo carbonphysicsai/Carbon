@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-21T13:10:06Z"
+  captured_at_utc: "2026-09-21T15:06:50Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "7c6539d8de02f70e7df1b9a9049a55984be7e35e"
+  authority_snapshot_commit: "623d3dc48779f1567427c49149704303da7cf3e6"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -8829,7 +8829,7 @@ events:
     event_id: "C-MLP-02-INTEGRATION-01"
     owner_lane: "technical_lead"
     status: "implemented"
-    summary: "Launchpad workstream: integrated accepted main carrying the C-CORE-19 miner/validator lane split and the Workbench delivery, and reconciled the Hub as source rather than by replacing a file set. All 213 event ids shared between the two sides were compared and agree exactly, so none required adjudication; main's integrated data and authority snapshot are the base and this workstream's two C-MLP-02 events append to them, with GOAL-WORKBENCH-12-D1, C-CORE-19-ALLOCATION-01 and C-CORE-19-SNAPSHOT-03 preserved and this branch's earlier self-repin dropped so no stale pin survives. The snapshot is repinned to the commit carrying the C-MLP-02-D9 decision; 248 current-role links move with it and 232 historical pins stay frozen. Derived outputs regenerated from the agreed sources. Snapshot and reconciliation only: no ticket status, maturity, sequencing or activation state changed, and no execution or qualification authority is granted."
+    summary: "Launchpad workstream: integrated accepted main carrying the C-CORE-19 miner/validator lane split, the C-CORE-20 validator orchestration, the GPU execution lane design and the Workbench delivery, and reconciled the Hub as source rather than by replacing a file set. Main advanced three times during the integration, and each time every event id shared with this branch was compared and agreed exactly, so none required adjudication; main's integrated data and authority snapshot are the base and this workstream's events append to them, preserving GOAL-WORKBENCH-12-D1, C-CORE-19-ALLOCATION-01, C-CORE-19-SNAPSHOT-03, C-CORE-20-ORCHESTRATION-01 and C-CORE-20-SNAPSHOT-01, with this branch's earlier self-repin dropped so no stale pin survives. The snapshot is repinned to the commit carrying the C-MLP-02-D9 decision; current-role links move with it and historical pins stay frozen. Derived outputs regenerated from the agreed sources. Snapshot and reconciliation only: no ticket status, maturity, sequencing or activation state changed, and no execution or qualification authority is granted."
     primary_detail: ".agent/tickets/C-MLP-02_development_research_bridge.md"
     affects:
       - "SYSTEM/AGENT-EXECUTION"
