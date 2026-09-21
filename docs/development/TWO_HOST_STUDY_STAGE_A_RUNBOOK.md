@@ -5,12 +5,12 @@ Executable procedure for the stage A comparison defined in
 `VALIDATOR_TWO_HOST_EXACT_REPLAY_PLAN.md`, which was exercised inside the pinned
 image before any hardware was rented.
 
-> **Do not start.** Stage A is currently **blocked** on one owner decision: the
-> acceptance requires orchestration through `validator_launch.launch()`, which
-> needs a Docker daemon the provider does not give a pod. See *"Blocked: the
-> accepted orchestration cannot run on the chosen provider"* in the acceptance.
-> This runbook is what becomes executable if that deviation is accepted; it is
-> not authority to run.
+> **Authorized by amendment 2** to `TWO_HOST_STUDY_ACCEPTANCE.md`, recorded
+> 2026-09-21: stage A runs pod-native, with the deviation recorded. The
+> acceptance's original orchestration through `validator_launch.launch()` needs a
+> Docker daemon the provider does not give a pod. Read the amendment before
+> running anything - it fixes the words the result must be reported in, and this
+> runbook is procedure, not authority.
 
 ## What this path is, in the words the result must carry
 
@@ -138,8 +138,12 @@ and a run that was forced past a guard costs the whole study's credibility.
 ## Reporting
 
 Stage A establishes **whether two same-class devices agree when nothing else
-differs**. It is **not** a two-host test, says nothing about host CPU or driver
-variation, and says nothing about whether validators on different machines agree.
-Report it in those words. If the devices disagree, **stop and report**: stage B
+differs**. It establishes **nothing about whether the validator orchestration
+agrees** - amendment 2 fixes that wording and it is not to be softened. It is
+also **not** a two-host test, says nothing about host CPU or driver variation,
+and says nothing about whether validators on different machines agree.
+
+`validator_launch` remains **`HARDWARE_EXERCISED: no`**. Running stage A does not
+change that, and no stage A result may be read as having exercised it. If the devices disagree, **stop and report**: stage B
 is gated on stage A, and a two-host study whose devices do not agree in one
 chassis would be measuring several things at once.
