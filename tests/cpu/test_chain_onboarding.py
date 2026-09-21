@@ -298,3 +298,83 @@ def test_confirm_is_the_same_observation_as_status():
     assert {k: v for k, v in confirmed.items() if k in observed} == {
         k: v for k, v in observed.items() if k in confirmed
     } or confirmed["uid"] == observed["uid"]
+
+
+# --- the rule is five verbs, not one: held, transmitted, stored, logged, requested
+
+
+MNEMONIC = "bottom drive obey lake curtain smoke basket hold race lonely fit walk"
+
+
+@pytest.mark.parametrize(
+    "separator,label",
+    [
+        (" ", "spaces, as a wallet usually renders it"),
+        ("\n", "newlines, as a wallet sometimes renders it"),
+        (",", "commas, as a spreadsheet paste would"),
+        ("-", "hyphens, as a numbered list might"),
+        ("  ", "collapsed double spaces"),
+    ],
+)
+def test_a_phrase_is_refused_however_it_was_separated(separator, label):
+    """Only the space-separated form was caught before.
+
+    The others fell through to the generic INVALID_ADDRESS, which is the branch
+    least likely to be handled carefully downstream - and the one a future
+    logger would be most tempted to record the input on.
+    """
+    pasted = separator.join(MNEMONIC.split())
+    with pytest.raises(onboarding.OnboardingFailure) as caught:
+        onboarding._address(pasted)
+    assert caught.value.reason == "REFUSED_KEY_MATERIAL", label
+    rendered = str(caught.value.body())
+    for word in MNEMONIC.split():
+        assert word not in rendered, label
+
+
+def test_a_real_address_is_not_mistaken_for_a_phrase():
+    """The positive validator must not refuse the thing it exists to accept."""
+    assert onboarding._address(HOTKEY) == HOTKEY
+    assert onboarding._address(COLDKEY) == COLDKEY
+
+
+@pytest.mark.parametrize(
+    "supplied",
+    [
+        "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKut0O",  # 0 and O are not base58
+        "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQYEXTRA",  # too long
+        "5Grwva",  # too short
+        "",
+    ],
+)
+def test_anything_that_is_not_an_address_is_refused(supplied):
+    with pytest.raises(onboarding.OnboardingFailure):
+        onboarding._address(supplied)
+
+
+def test_only_a_validated_address_is_recordable():
+    """The per-call record cannot be handed unvalidated input.
+
+    Written before the logging surface exists, because retrofitting redaction
+    onto a log that already captures arguments is how secrets end up retained.
+    """
+    record = onboarding.call_record("status", address=HOTKEY, outcome="REGISTERED")
+    assert record["address"] == HOTKEY
+    assert record["arguments"] == "NOT_RECORDED"
+
+    with pytest.raises(onboarding.OnboardingFailure) as caught:
+        onboarding.call_record("status", address=MNEMONIC, outcome="REFUSED")
+    assert caught.value.reason == "UNRECORDABLE"
+    assert MNEMONIC.split()[0] not in str(caught.value.body())
+
+
+def test_a_refused_call_records_its_reason_and_no_input():
+    record = onboarding.call_record(
+        "status", address=None, outcome="REFUSED_KEY_MATERIAL"
+    )
+    assert record["address"] is None
+    assert record["arguments"] == "NOT_RECORDED"
+    import json
+
+    for word in MNEMONIC.split():
+        assert word not in json.dumps(record)

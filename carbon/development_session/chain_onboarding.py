@@ -77,38 +77,95 @@ class OnboardingFailure(Exception):
         }
 
 
+#: The base58 alphabet an ss58 address is written in. Excludes 0, O, I and l,
+#: which is why a validator can be positive rather than merely "not obviously
+#: wrong": anything outside this set is not an address, whatever else it is.
+BASE58 = frozenset("123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz")
+
+
+def _phrase_shaped(value: str) -> bool:
+    """Does this look like a recovery phrase, however it was separated?
+
+    Checked on separators generally rather than on spaces alone. A miner pastes
+    what their wallet showed them, and wallets render phrases space-separated,
+    newline-separated, comma-separated and numbered. Only the first was caught
+    before, and the rest fell through to the generic refusal - which is the path
+    least likely to be handled carefully downstream.
+
+    Deliberately shape-only: no dictionary, no entropy check, no attempt to
+    decide whether it is a *valid* phrase. The question is whether to refuse it
+    untouched, and word-shaped input in an address field earns that either way.
+    """
+    import re
+
+    words = [w for w in re.split(r"[^A-Za-z]+", value) if w]
+    return len(words) >= 4 and all(3 <= len(w) <= 8 for w in words)
+
+
 def _address(value: object) -> str:
     """An ss58 address is public. Anything key-shaped is refused on sight.
 
-    The length and alphabet bounds are ordinary input validation. The mnemonic
-    check is not: it exists so that a miner who pastes the wrong thing into the
-    wrong box gets a refusal instead of having their seed phrase travel into a
-    request, a log or an error message. It refuses on shape alone and never
-    echoes what it saw.
+    Validated positively: base58 alphabet and length, so the accepted set is
+    described rather than merely filtered. That ordering matters beyond
+    tidiness - a value that passes here is a public address by construction, so
+    it is the only thing downstream is ever handed, and anything that does not
+    pass is refused before it can reach a record, a store or a message.
+
+    No branch echoes its input. A miner who pastes a recovery phrase into the
+    address box gets a refusal that names the mistake and repeats none of it.
     """
     if type(value) is not str:
         raise OnboardingFailure(
             "INVALID_ADDRESS",
             next_action="Supply the ss58 address of the hotkey you want registered.",
         )
-    # Shape-checked before the length bound, deliberately. A recovery phrase is
-    # longer than an address, so checking length first would answer a pasted
-    # seed phrase with a generic "invalid address" - and the specific refusal is
-    # the entire point of this branch.
-    if len(value.split()) > 1:
+    if 46 <= len(value) <= 50 and all(character in BASE58 for character in value):
+        return value
+    if _phrase_shaped(value):
         raise OnboardingFailure(
             "REFUSED_KEY_MATERIAL",
             next_action=(
-                "That looks like a seed phrase. Carbon never accepts one. "
-                "Supply only the public ss58 address."
+                "That looks like a recovery phrase. Carbon never accepts one, "
+                "and it has not been stored or logged. Supply only the public "
+                "ss58 address of your hotkey."
             ),
         )
-    if not 32 <= len(value) <= 64 or not value.isalnum():
+    raise OnboardingFailure(
+        "INVALID_ADDRESS",
+        next_action="Supply the ss58 address of the hotkey you want registered.",
+    )
+
+
+def call_record(operation: str, *, address: str | None, outcome: str) -> dict:
+    """The per-call record for an onboarding call, safe by construction.
+
+    Written now, before the logging surface that will consume it exists.
+    Retrofitting redaction onto a log that already captures arguments is how
+    secrets end up in retained records - the log is written, the arguments look
+    innocuous, and the one caller who pasted the wrong thing is already
+    persisted by the time anyone looks.
+
+    So the contract is not "redact the bad values" but "only validated values
+    are ever recordable". `address` is accepted here only after `_address` has
+    returned it, which makes it a public ss58 address by construction. A refused
+    call records its reason code and no input at all, because there is nothing
+    about the input worth keeping and something about it worth never keeping.
+    """
+    if address is not None and (
+        not 46 <= len(address) <= 50
+        or any(character not in BASE58 for character in address)
+    ):
         raise OnboardingFailure(
-            "INVALID_ADDRESS",
-            next_action="Supply the ss58 address of the hotkey you want registered.",
+            "UNRECORDABLE",
+            next_action="Only a validated public address is recordable.",
         )
-    return value
+    return {
+        "schema": SCHEMA,
+        "operation": operation,
+        "address": address,
+        "outcome": outcome,
+        "arguments": "NOT_RECORDED",
+    }
 
 
 def requirements() -> dict[str, object]:
