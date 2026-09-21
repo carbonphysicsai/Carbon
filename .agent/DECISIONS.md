@@ -14799,3 +14799,51 @@ remain Ryan's and Nick's with legal support. The smallest reversal is removing
 the launcher module and the receiver's outbox routes while retaining the
 registry file format, the retained assessment history and every existing
 scientific contract.
+
+## 2026-09-21 — GOAL-WORKBENCH-13-D1: repair three reviewed defects in the merged host
+
+**Authority source and scope.** The repository owner forwarded a review addendum
+to the Workbench completion handoff on 2026-09-21, naming three defects found in
+review of merged PR #250. It renews no campaign, authorizes no spending, opens no
+live collection and adds no qualification requirement. Recorded as owner
+instruction forwarded with that addendum.
+
+**What the defects had in common.** Each passed the merged suite. The browser
+credential defect is the clearest: the tests that exercised the scientific routes
+supplied the `Authorization` header themselves, so they proved the host accepted a
+credential while proving nothing about whether the browser ever sent one. The
+repair is therefore not only the missing header but the coverage rule — the
+adapter's own emitted headers are asserted at the fetch boundary, the browser
+fixture server rejects an unauthenticated request, and the loopback fixture host
+authenticates through the same `StaffPrincipals` record as the supported host
+rather than trusting any loopback client.
+
+**Credential handling decision.** The private build is a static artifact that the
+operator serves, so a token cannot be embedded in it. Browser storage was also
+rejected: a credential in `localStorage` outlives the session, survives a shared
+machine and is readable by anything running on that origin. The staff member
+enters the operator-issued token in the study panel; it lives in a closure for
+that tab, is never rendered back into the document, and is absent from every URL,
+export and saved study. Clearing the tab or pressing **Clear credential** removes
+it. Each named token records who opened the session; the scientific routes still
+act as the single admitted campaign principal and the token grants nothing more.
+
+**Concurrency decision.** Outbox completion now merges into the state as it is at
+completion time rather than persisting a snapshot taken before the await. The
+alternative — holding a lock across the delivery — would have blocked every
+assessment and deletion for the duration of an external transport, which is the
+one part of the flow with no bounded latency. An event removed while its delivery
+was in flight is reported as removed rather than revived.
+
+**Durability decision.** The temporary file is named uniquely per attempt and
+removed on every failure path. Cleanup alone would have satisfied the reported
+defect; the unique name additionally prevents a leftover from an external cause,
+such as a process killed mid-write, from wedging the store behind the exclusive
+create.
+
+**Trust and successor boundary.** No physics, reference, rights, security or
+deployment state changes. Study results remain `NOT_QUALIFIED`. W-C activation
+items are unchanged and unauthorized: no public host, sender, mailbox credential,
+notice or consent text, retention decision or live collection follows. The
+browser suites now assert the credential path but were not executed in this
+session; that acceptance remains outstanding and is reported as such.

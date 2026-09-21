@@ -11,13 +11,13 @@
     "carbon/miner_mcp/apps_ui/build.mjs": "4a8cb98abbeee8f71d10b5f9bce1ff67b6204165158671beab6614bc73e81a6b",
     "carbon/miner_mcp/apps_ui/package.json": "e7e1cbf78f4118b4c2f6e97abd7fd9fe9171b520d1f9a8ad0198210462f02c56",
     "carbon/miner_mcp/apps_ui/pnpm-lock.yaml": "aa1439b2f4da8c2229797c71aeca11b60c16a92efc8c7687ca2cde2674ad8eac",
-    "Business/Carbon_Fit/workbench/src/scientific_studies.js": "146b11e58a5a20eb455f04b4e3360dc27dc11dd93bc1298bb57641668bcb5e69",
-    "Business/Carbon_Fit/workbench/src/scientific_studies_ui.js": "edc8af966c1d2d8fc65440563bdf6c1e48cb0abe70b6c519b3f3abc90c8ffeba"
+    "Business/Carbon_Fit/workbench/src/scientific_studies.js": "67f2153ed56e31e3cee55a14398427754c26fd0c08d94bf45a3cdad99f169f86",
+    "Business/Carbon_Fit/workbench/src/scientific_studies_ui.js": "6fd8985c5091f20433e53009e9bff0092f986922ef74535fc316f1f38568ef15"
   },
   "artifact": {
     "name": "workbench.html",
-    "sha256": "d03ffda3c0fbd5fd6b70ebd8de72ca604e7e947e9fce3389ea1495301d8b99d0",
-    "bytes": 588963
+    "sha256": "0a0ae6b824cc22e479a5f4e84c5dda02565e0b573cdaa4d504e2bdd633543ff5",
+    "bytes": 590102
   },
   "licenses": {
     "name": "THIRD_PARTY_LICENSES.txt",

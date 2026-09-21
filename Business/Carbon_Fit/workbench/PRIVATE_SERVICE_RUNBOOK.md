@@ -144,8 +144,16 @@ restart.
 
 **Open `http://127.0.0.1:8770/`.** That serves the private build's
 `Carbon_Opportunity_Workbench.html`. Begin in **Owner Console**, open the job's
-design view, connect to the scientific service, adopt the allowed public source
-definition, run the physical-definition check, then start a study.
+design view, then in the study panel enter your own staff access token and press
+**Connect private service**. Adopt the allowed public source definition, run the
+physical-definition check, then start a study.
+
+The token is the one handed to you out of band in section 2. The page holds it
+in memory for that browser tab only: it is never embedded in the build, written
+to storage, placed in a URL, or included in an export or saved study file.
+Reloading the tab clears it, and **Clear credential** removes it immediately.
+Each staff member uses their own token, which records who opened the session;
+the scientific routes still act as the single admitted campaign principal.
 
 Plain HTTP is accepted only for a loopback origin. For any other host, pass the
 exact `https://…` origin your reviewed TLS terminator serves and keep the
@@ -186,6 +194,8 @@ a running study running and its result retrievable on reconnect.
 | a cancel stays pending | worker cleanup has not been observed yet | wait for the controller's observation; a browser acknowledgement is not cleanup |
 | every scientific request is refused | no current registered draft for that job/design/revision | `list-drafts`, then `register-draft` the reviewed revision |
 | the host refuses the static directory | it is an offline build, or it holds a file that is not a build artifact | rebuild with `--private-science` into an empty directory |
+| the panel says to enter a staff access token | no credential is held in this tab | enter your token and connect; nothing is sent until you do |
+| the panel reports a rejected staff credential | the token is not in the operator's principals file | confirm the token with the operator; a 401/403 is a credential problem, not a dead service |
 
 Cancellation after expiry releases only capacity that was never claimed. Claimed
 consumption of unknown size stays charged. A reconnect never creates another
@@ -226,6 +236,37 @@ count summary — no client words, contact details or reviewed package.
 ```
 
 Run the release checks before any suite that regenerates artifacts in place.
+These two are different scopes and neither is a browser journey:
+`workbench_release_checks.sh` begins with the read-only freshness gate;
+`workbench_science_checks.sh` does not run that gate and adds the
+scientific-service, HTTP and host suites plus both builds.
+
+### Browser suites
+
+The browser suites are operator-run: neither check script nor CI invokes them.
+They use Playwright's own bundled Chromium by default, so on a supported Linux
+host with Playwright installed they need no configuration:
+
+```bash
+cd Business/Carbon_Fit/workbench
+node tests/browser_smoke.cjs
+node tests/browser_goal_smoke.cjs
+node tests/browser_routing_smoke.cjs
+node tests/browser_intake_smoke.cjs
+node tests/browser_source_assessment_smoke.cjs
+node tests/browser_team_review_smoke.cjs
+node tests/browser_scientific_studies_smoke.cjs <private.html> <offline.html>
+```
+
+`CARBON_BROWSER_EXECUTABLE` selects a different Chromium-family binary,
+`CARBON_SCIENCE_PYTHON` a different interpreter for the authoring bridge, and
+`CARBON_MOBILE=1` runs a 390px viewport. If Chromium fails to start with a
+missing `libnspr4`, `libnss3` or `libasound.so.2`, install those system
+packages; the suites deliberately will not fall back to an HTML parser and
+claim browser coverage they did not obtain.
+
+This is Chromium at desktop and narrow widths. It is not Mobile Safari and not
+hands-on assistive-technology acceptance; do not record it as either.
 
 ## Not enabled here
 

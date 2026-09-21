@@ -9,9 +9,10 @@ const assert = require("node:assert/strict"),
 const ROOT = path.resolve(__dirname, ".."),
   REPO = path.resolve(ROOT, "../../.."),
   ARTIFACT = path.join(ROOT, "Carbon_Opportunity_Workbench.html"),
+  // The repository's canonical locked environment, not an absolute path from
+  // another operating system. CARBON_SCIENCE_PYTHON still overrides it.
   PYTHON =
-    process.env.CARBON_SCIENCE_PYTHON ||
-    "/private/tmp/carbon-c04-science-env/bin/python";
+    process.env.CARBON_SCIENCE_PYTHON || path.join(REPO, ".venv/bin/python");
 const F = require("../src/engine.js"),
   A = JSON.parse(fs.readFileSync(path.join(ROOT, "data/atlas.json"))),
   checks = [];
@@ -58,8 +59,9 @@ function response(request) {
     outbound = [];
   const browser = await chromium.launch({
       headless: true,
-      executablePath:
-        (process.env.CARBON_BROWSER_EXECUTABLE || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"),
+      ...(process.env.CARBON_BROWSER_EXECUTABLE
+      ? { executablePath: process.env.CARBON_BROWSER_EXECUTABLE }
+      : {}),
     }),
     page = await browser.newPage({ viewport: process.env.CARBON_MOBILE === "1" ? { width: 390, height: 844 } : { width: 1440, height: 1000 } });
   page.setDefaultTimeout(12000);
