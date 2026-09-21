@@ -22,6 +22,7 @@ from carbon.reconstruction.environment_guard import (
     NOT_A_DIGEST_CHECK,
     environment_check_record,
     environment_problems,
+    nothing_was_verified,
 )
 
 DECLARED = {
@@ -35,7 +36,7 @@ CUDA_13 = 13000
 
 
 def test_the_declared_environment_passes():
-    mismatched, unverifiable = environment_problems(
+    mismatched, unverifiable, _ = environment_problems(
         declared=DECLARED, found=MATCHING, cuda_version=CUDA_13
     )
     assert mismatched == []
@@ -54,7 +55,7 @@ def test_a_readable_but_different_version_is_a_mismatch(name):
     build - and it must refuse rather than proceed.
     """
     found = {**MATCHING, name: "9.9.9"}
-    mismatched, unverifiable = environment_problems(
+    mismatched, unverifiable, _ = environment_problems(
         declared=DECLARED, found=found, cuda_version=CUDA_13
     )
     assert len(mismatched) == 1
@@ -67,14 +68,14 @@ def test_a_readable_but_different_version_is_a_mismatch(name):
 def test_several_mismatches_are_all_reported():
     """A caller should not have to re-run to discover the second problem."""
     found = {"python": "3.12.0", "jax": "0.11.0", "jaxlib": "0.10.2"}
-    mismatched, _ = environment_problems(
+    mismatched, _, _ = environment_problems(
         declared=DECLARED, found=found, cuda_version=CUDA_13
     )
     assert len(mismatched) == 2
 
 
 def test_a_different_cuda_line_is_a_mismatch():
-    mismatched, unverifiable = environment_problems(
+    mismatched, unverifiable, _ = environment_problems(
         declared=DECLARED, found=MATCHING, cuda_version=12080
     )
     assert len(mismatched) == 1
@@ -94,7 +95,7 @@ def test_an_unreadable_cuda_version_is_unverifiable_not_mismatched(unreadable):
     unreadable CUDA version as a mismatch and refused every run on a build whose
     readers are absent - including correct ones.
     """
-    mismatched, unverifiable = environment_problems(
+    mismatched, unverifiable, _ = environment_problems(
         declared=DECLARED, found=MATCHING, cuda_version=unreadable
     )
     assert mismatched == []
@@ -105,7 +106,7 @@ def test_an_unreadable_cuda_version_is_unverifiable_not_mismatched(unreadable):
 def test_an_unreadable_cuda_version_does_not_mask_a_real_mismatch():
     """Unverifiable is not a free pass for the properties that *can* be read."""
     found = {**MATCHING, "jaxlib": "0.9.0"}
-    mismatched, unverifiable = environment_problems(
+    mismatched, unverifiable, _ = environment_problems(
         declared=DECLARED, found=found, cuda_version=None
     )
     assert len(mismatched) == 1
@@ -114,7 +115,7 @@ def test_an_unreadable_cuda_version_does_not_mask_a_real_mismatch():
 
 def test_a_non_cuda_profile_raises_no_cuda_question():
     declared = {**DECLARED, "profile_id": "carbon_jax_cpu_v1"}
-    mismatched, unverifiable = environment_problems(
+    mismatched, unverifiable, _ = environment_problems(
         declared=declared, found=MATCHING, cuda_version=None
     )
     assert mismatched == []
@@ -130,17 +131,18 @@ def test_the_record_says_it_is_not_a_digest_check():
     Without this the note is one careless edit from implying byte identity with
     the published image, which nothing here establishes.
     """
-    record = environment_check_record([])
+    record = environment_check_record(list(DECLARED_PROPERTIES), [])
     assert record["note"] == NOT_A_DIGEST_CHECK
     assert "NOT the image digest" in record["note"]
     assert record["verified"] == list(DECLARED_PROPERTIES)
+    assert record["any_verification_performed"] is True
 
 
 def test_the_record_carries_what_was_not_checked():
-    _, unverifiable = environment_problems(
+    _, unverifiable, verified = environment_problems(
         declared=DECLARED, found=MATCHING, cuda_version=None
     )
-    record = environment_check_record(unverifiable)
+    record = environment_check_record(verified, unverifiable)
     assert record["unverifiable"] == unverifiable
     assert record["unverifiable"], "an incomplete check must be visible in the record"
 
@@ -148,6 +150,84 @@ def test_the_record_carries_what_was_not_checked():
 def test_the_record_cannot_be_mutated_through_its_source():
     """Callers share this record; one caller must not edit another's."""
     unverifiable = ["something unreadable"]
-    record = environment_check_record(unverifiable)
+    verified = ["python"]
+    record = environment_check_record(verified, unverifiable)
     unverifiable.append("added later")
+    verified.append("jax")
     assert record["unverifiable"] == ["something unreadable"]
+    assert record["verified"] == ["python"]
+
+
+# --- the degenerate case: a guard that checked nothing -------------------------
+#
+# The mirrored rule says *could not check this* must not become *this is wrong*.
+# It is silent on *could not check anything*, which is a different claim - and
+# the case where the guard goes inert precisely where it is most needed.
+
+
+def test_verified_is_reported_not_asserted():
+    """An earlier version listed all three unconditionally.
+
+    It claimed verification of properties it had not compared - and said so even
+    while refusing, which is the worse half: a refusal record asserting three
+    verified properties alongside three mismatches.
+    """
+    mismatched, _, verified = environment_problems(
+        declared=DECLARED,
+        found={"python": None, "jax": None, "jaxlib": None},
+        cuda_version=CUDA_13,
+    )
+    assert verified == []
+    assert mismatched == []
+
+
+def test_absent_on_both_sides_does_not_trivially_match():
+    """`None == None` would pass an equality test and verify nothing.
+
+    A profile that fails to declare a property and a reader that cannot read it
+    would agree, and the record would claim a verification that never happened.
+    """
+    _, unverifiable, verified = environment_problems(
+        declared={}, found={}, cuda_version=None
+    )
+    assert verified == []
+    assert len(unverifiable) == len(DECLARED_PROPERTIES)
+
+
+@pytest.mark.parametrize(
+    "declared,found",
+    [
+        ({}, {}),
+        (DECLARED, {"python": None, "jax": None, "jaxlib": None}),
+        ({"profile_id": DECLARED["profile_id"]}, MATCHING),
+    ],
+)
+def test_nothing_verified_is_its_own_condition(declared, found):
+    """Not a mismatch, and not an ordinary incomplete check."""
+    mismatched, unverifiable, verified = environment_problems(
+        declared=declared, found=found, cuda_version=None
+    )
+    assert mismatched == []
+    assert verified == []
+    assert nothing_was_verified(verified, unverifiable) is True
+    assert (
+        environment_check_record(verified, unverifiable)["any_verification_performed"]
+        is False
+    )
+
+
+def test_a_partial_check_is_not_the_degenerate_case():
+    """Four of five verified and none verified are different states."""
+    _, unverifiable, verified = environment_problems(
+        declared=DECLARED, found=MATCHING, cuda_version=None
+    )
+    assert verified == list(DECLARED_PROPERTIES)
+    assert unverifiable, "the CUDA line was not verified"
+    assert nothing_was_verified(verified, unverifiable) is False
+
+
+def test_a_clean_full_check_is_not_the_degenerate_case():
+    _, unverifiable, verified = environment_problems(
+        declared=DECLARED, found=MATCHING, cuda_version=CUDA_13
+    )
+    assert nothing_was_verified(verified, unverifiable) is False

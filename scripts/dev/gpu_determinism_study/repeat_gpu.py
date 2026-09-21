@@ -107,6 +107,7 @@ if os.environ.get("STUDY_REQUIRE_IMAGE") == "1":
         DECLARED_PROPERTIES,
         environment_check_record,
         environment_problems,
+        nothing_was_verified,
     )
 
     declared = GPU_PROFILE.document()
@@ -123,10 +124,18 @@ if os.environ.get("STUDY_REQUIRE_IMAGE") == "1":
         found["jaxlib"] = None
     assert set(found) == set(DECLARED_PROPERTIES)
 
-    mismatched, unverifiable = environment_problems(
+    mismatched, unverifiable, verified = environment_problems(
         declared=declared, found=found, cuda_version=numerics.get("cuda_version")
     )
-    record["environment_check"] = environment_check_record(unverifiable)
+    record["environment_check"] = environment_check_record(verified, unverifiable)
+    # A guard that checked nothing is not a guard that passed. On a rented pod
+    # the image is the least certain thing in the run, so this refuses rather
+    # than recording an inert check and proceeding.
+    if nothing_was_verified(verified, unverifiable):
+        mismatched = [
+            "UNVERIFIED_ENVIRONMENT: no declared property could be compared - "
+            + "; ".join(unverifiable)
+        ]
     if mismatched:
         print("RECORD_BEGIN")
         print(
