@@ -27,6 +27,7 @@ from carbon.transport.models import message
 from . import research_guidance as guidance
 from .agent import MODEL, ResponsesTransport
 from .data import write_once
+from .gpu_research import PublicGPUPractice, registered_gpu_image
 from .profile import CHALLENGE, canonical, digest
 from .research_agent_policy import AUTONOMOUS, LEGACY, binding
 from .research_catalog import compile_recipe
@@ -370,6 +371,26 @@ def registered_julia_image(root, runtime, analysis):
     return verify_julia_image(image)
 
 
+def research_practice(root, manifest, *, data, role_root, ledger, owner, image):
+    """Which runtime the miner's own research runs on.
+
+    Named rather than inlined because it is the one place a campaign decides
+    between the CPU and GPU research callbacks, and the decision is worth being
+    able to test on its own.
+
+    The choice is made by the frozen manifest's runtime and nothing else: a
+    campaign that declares no GPU runtime gets exactly the callback it always
+    got. It also decides *only* this. The final DEVELOPMENT comparison keeps its
+    own CPU worker image, reference material and accounting, so a miner choosing
+    a GPU to research with never chooses or rewrites the evaluator that judges
+    the result.
+    """
+    gpu_image = registered_gpu_image(root, manifest.get("runtime", {}), role_root)
+    if gpu_image is None:
+        return PublicPractice(data=data, ledger=ledger, owner=owner, image=image)
+    return PublicGPUPractice(data=data, image=gpu_image)
+
+
 async def execute(args, *, ledger=None):
     agent_policy = getattr(args, "agent_policy", LEGACY)
     policy = binding(agent_policy)
@@ -423,6 +444,16 @@ async def execute(args, *, ledger=None):
             from .julia_analysis import authored_julia_scope
 
             runtime["authored_research"] = [authored_julia_scope(authored)]
+        if "gpu_research" in ledger.admission.document["runtime"]:
+            from .gpu_research import declared_gpu_runtime
+
+            # Shape only, and only so the composed runtime can be compared with
+            # the granted one before role generation is charged for. The scope's
+            # content binds this campaign's public TRAIN material, so it is
+            # recomputed and checked further down, once that material exists.
+            runtime["gpu_research"] = declared_gpu_runtime(
+                ledger.admission.document["runtime"]
+            )
         grant = ledger.admission.verify(
             root=root,
             principal=args.principal,
@@ -528,6 +559,15 @@ async def execute(args, *, ledger=None):
         data = PublicReferenceData(
             ledger=ledger, owner=owner, image=image, role_root=role_root
         )
+        practice = research_practice(
+            root,
+            manifest,
+            data=data,
+            role_root=role_root,
+            ledger=ledger,
+            owner=owner,
+            image=image,
+        )
         composition = make_research_service(
             julia_image=authored,
             root=root / "research-tasks",
@@ -535,7 +575,7 @@ async def execute(args, *, ledger=None):
             owner=owner,
             image=analysis,
             public_material=PublicMaterial(data),
-            practice=PublicPractice(data=data, ledger=ledger, owner=owner, image=image),
+            practice=practice,
         )
         wrapper = AuthenticatedResearchService(
             connection.service.gateway, {owner: composition.service}

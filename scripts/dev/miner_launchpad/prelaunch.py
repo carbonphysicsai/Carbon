@@ -9,12 +9,17 @@ from __future__ import annotations
 import math
 import time
 
+from carbon.development_session.exam_environment import exam_environment
 from carbon.development_session.profile import CHALLENGE
 from carbon.development_session.research_admission import PROFILE, SCHEMA
 from carbon.development_session.research_catalog import public_catalog
 from carbon.development_session.research_ledger import CEILINGS, FINAL_RESERVE
 from carbon.reconstruction.profile import DEPENDENCY_SPECS, ENVIRONMENT_ID
 from carbon.scoring.development import rule_digest
+from scripts.dev.miner_launchpad.runner import (
+    REQUIRED_RUNTIME_KEYS,
+    SUPPORTED_RUNTIME_KEYS,
+)
 
 
 def review(cfg, doc):
@@ -82,16 +87,30 @@ def review(cfg, doc):
         blockers.append("RUNTIME_REVISION_MISMATCH")
     if cfg.get("account_ref") != doc.get("account_ref"):
         blockers.append("ACCOUNT_BINDING_MISMATCH")
-    if set(runtime) != {"implementation", "images"}:
+    if not set(runtime) <= SUPPORTED_RUNTIME_KEYS:
         blockers.append("LAUNCHPAD_CAMPAIGN_RUNTIME_COMPOSITION_UNAVAILABLE")
-    requested = {"profile": ENVIRONMENT_ID, "backend": "cpu"}
+    if not REQUIRED_RUNTIME_KEYS <= set(runtime):
+        blockers.append("LAUNCHPAD_CAMPAIGN_RUNTIME_COMPOSITION_UNAVAILABLE")
+    research_execution = {"profile": ENVIRONMENT_ID, "backend": "cpu"}
+    assurance = None
     if "gpu_research" in runtime:
-        from carbon.reconstruction.accelerators import GPU_PROFILE
+        from carbon.development_session.gpu_research import declared_gpu_runtime
+        from carbon.reconstruction.accelerators import GPU_PROFILE, miner_lane_assurance
 
-        requested = {
-            "profile": GPU_PROFILE.profile_id,
-            "backend": GPU_PROFILE.backend.value,
-        }
+        try:
+            declared_gpu_runtime(runtime)
+        except ValueError:
+            # A declared GPU runtime whose scope is malformed is not a GPU
+            # campaign. Reviewing it as one would show a miner a cuda backend
+            # the runner would refuse to assemble, which is the mismatch this
+            # projection exists to prevent.
+            blockers.append("LAUNCHPAD_CAMPAIGN_RUNTIME_COMPOSITION_UNAVAILABLE")
+        else:
+            research_execution = {
+                "profile": GPU_PROFILE.profile_id,
+                "backend": GPU_PROFILE.backend.value,
+            }
+            assurance = miner_lane_assurance()
     return {
         "schema": "carbon.launchpad.prelaunch-review.v1",
         "experiment_pause": (
@@ -120,26 +139,75 @@ def review(cfg, doc):
             "images": images,
             "basis": "CONFIGURATION_ONLY; exact accepted revision and images checked at execution",
         },
+        # Two separately described runtimes, deliberately not merged into one
+        # badge. The miner chooses where their research runs; they do not choose
+        # what judges it. Showing a GPU here while the comparison below stays CPU
+        # is the accurate picture, not an inconsistency.
         "execution": {
-            **requested,
-            "basis": "CONFIGURATION_ONLY; current Launchpad campaign composition is CPU",
+            **research_execution,
+            "scope": "MINER_RESEARCH_ONLY",
+            "lane": (
+                "MINER_CONTAINED" if assurance is not None else "CPU_NO_ACCELERATOR"
+            ),
+            "assurance": assurance,
+            "basis": (
+                "CONFIGURATION_ONLY; this is the runtime the miner's own research runs on"
+            ),
             "installed_dependencies": "NOT_INSPECTED",
             "device_visibility": "NOT_OBSERVED",
             "runtime_evidence": "NOT_ATTACHED",
             "admission_readiness": "NOT_ESTABLISHED_BY_REVIEW",
             "compiled_updates": "DEFAULT_UNCHANGED; no GPU speedup inferred",
         },
+        "final_evaluation": {
+            # Stated before launch rather than discovered afterwards. A GPU
+            # research selection neither selects nor rewrites this.
+            "profile": ENVIRONMENT_ID,
+            "backend": "cpu",
+            "route": "INDEPENDENT_DEVELOPMENT_RECONSTRUCTION",
+            "selected_by_research_runtime": False,
+            "basis": "The independent DEVELOPMENT comparison runs on the accepted CPU reconstruction route regardless of the research runtime chosen above. It is not a GPU-qualified official result.",
+        },
+        # Recomputed from the runtime actually selected, so an option existing in
+        # the interface never by itself advertises a capability.
         "capabilities": {
             "catalog_version": catalog["version"],
             "backbones": catalog["backbones"],
             "training": catalog["training"],
             "surfaces": list(catalog["surfaces"]),
+            "julia_scientific_tasks": "authored_research" in runtime,
+            # What was actually validated, not which option exists. A malformed
+            # GPU scope advertises nothing.
+            "gpu_research": assurance is not None,
+            # Julia research stays on its own CPU route; nothing about the JAX
+            # GPU selection extends to it.
+            "julia_on_gpu": False,
             "selection": "Agent selects a legal strategy during research; no trained model selected at prelaunch",
+        },
+        # Distinct states, never collapsed into one green badge. Review reads
+        # configuration; it observes no host, device, dependency or capacity.
+        "readiness": {
+            "connection_configured": cfg.get("enabled") is True,
+            "dependencies_inspected": False,
+            "compatible_runtime_available": "NOT_OBSERVED_BY_REVIEW",
+            "user_consent_active": status == "APPROVED" and time.time() < expiry,
+            "task_admitted": False,
+            "device_execution_observed": False,
+            "task_completed": False,
+            "cleanup_verified": False,
+            "independent_development_evaluation_available": "RESOLVED_AT_FINAL_PHASE",
+            "official_qualification": False,
+            "basis": "Each state is established by its own evidence. Personal research does not require official qualification; a missing runtime does prevent a managed job from executing.",
         },
         "expected_dependencies": [
             {"name": name, "version": version, "identity": identity}
             for name, version, identity in DEPENDENCY_SPECS
         ],
+        # What the design will be graded on, published beside what the miner
+        # chose to research with. The two are deliberately adjacent and
+        # deliberately separate: the miner picks the left one and is told the
+        # right one.
+        "validator_exam_environment": exam_environment(),
         "challenge": PROFILE,
         "challenge_identity": {
             "id": CHALLENGE.challenge_id,
