@@ -32,6 +32,21 @@ PATH_FIELDS = {
     "quarantine_journal",
 }
 
+# The runtime compositions this runner can actually assemble and dispatch.
+#
+# `implementation` and `images` are what every campaign runs on. The rest are
+# optional research compositions the campaign runner knows how to build: an
+# authored Julia analysis image, the scientific task selection, and GPU research
+# on the miner lane. A key outside this set means the grant describes something
+# this runner cannot assemble, which is refused before launch rather than
+# discovered after the grant has been spent.
+REQUIRED_RUNTIME_KEYS = frozenset({"implementation", "images"})
+SUPPORTED_RUNTIME_KEYS = REQUIRED_RUNTIME_KEYS | {
+    "authored_research",
+    "scientific_tasks",
+    "gpu_research",
+}
+
 
 def review_pin(cfg, admission):
     """Opaque v2 review: include the referenced grant, not only its path."""
@@ -133,8 +148,24 @@ class RunnerAdapter:
             raise Rejected("research_dispatch_disabled", 409)
         admission = Admission.load(Path(cfg["grant_file"]))
         doc = admission.document
-        if set(doc["runtime"]) != {"implementation", "images"}:
+        if not set(doc["runtime"]) <= SUPPORTED_RUNTIME_KEYS:
+            # Closed rather than permissive: a runtime naming a composition this
+            # runner cannot actually assemble is refused here instead of being
+            # carried to a campaign that would fail after the grant was spent.
             raise Rejected("research_runtime_interface_unavailable", 409)
+        if not REQUIRED_RUNTIME_KEYS <= set(doc["runtime"]):
+            raise Rejected("research_runtime_interface_unavailable", 409)
+        if "gpu_research" in doc["runtime"]:
+            from carbon.development_session.gpu_research import declared_gpu_runtime
+
+            # Shape, here. The scope's binding to this campaign's own public
+            # TRAIN material is recomputed inside the campaign once that
+            # material exists; this only refuses a grant the runner could never
+            # assemble, before the launch is recorded.
+            try:
+                declared_gpu_runtime(doc["runtime"])
+            except ValueError:
+                raise Rejected("research_runtime_interface_unavailable", 409) from None
         root = Path(doc["root"])
         admission.verify(
             root=root,

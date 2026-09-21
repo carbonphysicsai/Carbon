@@ -194,7 +194,13 @@ def test_gpu_configuration_is_not_cpu_fallback_or_execution_evidence(
     ledger.admission.path.write_bytes(canonical(doc))
     result = bridge.preflight()
     assert not result["available"]
-    assert result["review"]["execution"]["backend"] == "cuda"
+    # A malformed scope is no longer reviewed as a GPU campaign. Advertising a
+    # cuda backend the runner refuses to assemble is exactly the mismatch this
+    # projection exists to prevent, so the review reports the composition as
+    # unavailable and leaves the described research runtime CPU.
+    assert result["review"]["execution"]["backend"] == "cpu"
+    assert result["review"]["execution"]["assurance"] is None
+    assert result["review"]["capabilities"]["gpu_research"] is False
     assert (
         "LAUNCHPAD_CAMPAIGN_RUNTIME_COMPOSITION_UNAVAILABLE"
         in result["review"]["blockers"]
@@ -204,6 +210,89 @@ def test_gpu_configuration_is_not_cpu_fallback_or_execution_evidence(
     bridge.configuration.write_bytes(canonical(cfg))
     with pytest.raises(Rejected, match="runtime_interface_unavailable"):
         bridge.launch({"profile": cfg["profile_id"]}, "fixture-request-0001")
+
+
+def _well_formed_gpu_scope():
+    """A structurally valid declared scope, not a bound one.
+
+    Binding the scope to real public TRAIN material needs a generated campaign;
+    what this exercises is the review and runner path, which check shape and
+    must stop claiming the composition is unavailable once the shape is right.
+    """
+    from carbon.development_session.gpu_research import SCHEMA
+
+    return {
+        "schema": SCHEMA,
+        "profile_digest": "sha256:" + "e" * 64,
+        "image": "sha256:" + "f" * 64,
+        "image_manifest_digest": "sha256:" + "1" * 64,
+        "assembly": "sha256:" + "2" * 64,
+        "catalogue": "sha256:" + "3" * 64,
+        "public_train_digest": "sha256:" + "4" * 64,
+        "role": "MINER_RESEARCH",
+        "productive_seconds": 600,
+        "validation_cleanup_seconds": 120,
+        "score": None,
+        "official_eligible": False,
+    }
+
+
+def test_declared_gpu_research_is_reviewed_as_its_own_runtime(tmp_path, monkeypatch):
+    """The composition banner and the described runtime finally agree.
+
+    Before this, a grant declaring GPU research was shown with a cuda backend
+    *and* a blocker saying the campaign composition was unavailable, because no
+    runner could assemble one. A miner could not tell which of the two to
+    believe. Now the runner assembles it, so neither statement contradicts the
+    other.
+    """
+    bridge, _cfg, doc, ledger = configured_bridge(tmp_path, monkeypatch)
+    doc["runtime"]["gpu_research"] = [_well_formed_gpu_scope()]
+    ledger.admission.path.write_bytes(canonical(doc))
+
+    review = bridge.preflight()["review"]
+
+    assert (
+        "LAUNCHPAD_CAMPAIGN_RUNTIME_COMPOSITION_UNAVAILABLE" not in review["blockers"]
+    )
+    assert review["execution"]["backend"] == "cuda"
+    assert review["execution"]["lane"] == "MINER_CONTAINED"
+    assert review["execution"]["scope"] == "MINER_RESEARCH_ONLY"
+    assert review["capabilities"]["gpu_research"] is True
+    # The owner's direction, made checkable: research compute is the miner's
+    # choice, and choosing it neither selects nor rewrites the evaluator.
+    assert review["final_evaluation"]["backend"] == "cpu"
+    assert review["final_evaluation"]["selected_by_research_runtime"] is False
+    assert review["execution"]["assurance"]["validator_grade"] is False
+    assert review["execution"]["assurance"]["official_eligible"] is False
+    # A GPU research selection says nothing about Julia, which keeps its own
+    # CPU route.
+    assert review["capabilities"]["julia_on_gpu"] is False
+
+
+def test_review_keeps_readiness_states_distinct(tmp_path, monkeypatch):
+    """No single green badge. Each state carries its own evidence."""
+    bridge, _cfg, _doc, _ledger = configured_bridge(tmp_path, monkeypatch)
+    readiness = bridge.preflight()["review"]["readiness"]
+    assert readiness["connection_configured"] is False
+    assert readiness["device_execution_observed"] is False
+    assert readiness["task_admitted"] is False
+    assert readiness["cleanup_verified"] is False
+    assert readiness["official_qualification"] is False
+    assert readiness["compatible_runtime_available"] == "NOT_OBSERVED_BY_REVIEW"
+    # Review inspects configuration; it is not permitted to claim observations.
+    assert set(readiness) >= {
+        "connection_configured",
+        "dependencies_inspected",
+        "compatible_runtime_available",
+        "user_consent_active",
+        "task_admitted",
+        "device_execution_observed",
+        "task_completed",
+        "cleanup_verified",
+        "independent_development_evaluation_available",
+        "official_qualification",
+    }
 
 
 def test_pause_at_thread_handoff_never_enters_campaign(tmp_path, monkeypatch):

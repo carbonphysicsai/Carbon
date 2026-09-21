@@ -27,6 +27,7 @@ from carbon.transport.models import message
 from . import research_guidance as guidance
 from .agent import MODEL, ResponsesTransport
 from .data import write_once
+from .gpu_research import PublicGPUPractice, registered_gpu_image
 from .profile import CHALLENGE, canonical, digest
 from .research_agent_policy import AUTONOMOUS, LEGACY, binding
 from .research_catalog import compile_recipe
@@ -423,6 +424,16 @@ async def execute(args, *, ledger=None):
             from .julia_analysis import authored_julia_scope
 
             runtime["authored_research"] = [authored_julia_scope(authored)]
+        if "gpu_research" in ledger.admission.document["runtime"]:
+            from .gpu_research import declared_gpu_runtime
+
+            # Shape only, and only so the composed runtime can be compared with
+            # the granted one before role generation is charged for. The scope's
+            # content binds this campaign's public TRAIN material, so it is
+            # recomputed and checked further down, once that material exists.
+            runtime["gpu_research"] = declared_gpu_runtime(
+                ledger.admission.document["runtime"]
+            )
         grant = ledger.admission.verify(
             root=root,
             principal=args.principal,
@@ -528,6 +539,17 @@ async def execute(args, *, ledger=None):
         data = PublicReferenceData(
             ledger=ledger, owner=owner, image=image, role_root=role_root
         )
+        # Which runtime the miner's *research* runs on. The final DEVELOPMENT
+        # comparison below is deliberately not switched with it: it keeps its own
+        # CPU worker image, reference material and accounting, so choosing a GPU
+        # to research with never chooses or rewrites the evaluator that judges
+        # the result. A campaign that declares no GPU runtime is unchanged.
+        gpu_image = registered_gpu_image(root, manifest.get("runtime", {}), role_root)
+        practice = (
+            PublicPractice(data=data, ledger=ledger, owner=owner, image=image)
+            if gpu_image is None
+            else PublicGPUPractice(data=data, image=gpu_image)
+        )
         composition = make_research_service(
             julia_image=authored,
             root=root / "research-tasks",
@@ -535,7 +557,7 @@ async def execute(args, *, ledger=None):
             owner=owner,
             image=analysis,
             public_material=PublicMaterial(data),
-            practice=PublicPractice(data=data, ledger=ledger, owner=owner, image=image),
+            practice=practice,
         )
         wrapper = AuthenticatedResearchService(
             connection.service.gateway, {owner: composition.service}
