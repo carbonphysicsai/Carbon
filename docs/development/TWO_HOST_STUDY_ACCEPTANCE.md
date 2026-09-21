@@ -202,6 +202,20 @@ else differs.
 one. It says nothing about host CPU or driver variation, which is precisely what
 it removes, and nothing about whether validators on different machines agree.
 
+### The accepted orchestration cannot run on the chosen provider
+
+`validator_launch.launch()` spawns a container - it goes through `DockerCLI` and
+`load_image_identity` in `worker.docker_runtime` - and so requires a Docker
+daemon on the host. RunPod pods **are** containers, built from a custom image,
+and cannot build or run containers. The provider's own documentation says so.
+The two requirements are incompatible: on RunPod, stage A cannot be run through
+`validator_launch.launch()` at all.
+
+**Resolved by amendment 2 at the end of this document**, which decides that stage
+A runs pod-native with the deviation recorded. Read it before running anything:
+it fixes the words the result must be reported in, and it is the authority for
+the deviation.
+
 ## Stage B - two hosts
 
 The study as originally accepted: two separate single-GPU hosts per class,
