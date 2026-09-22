@@ -364,11 +364,24 @@ def capability_catalog() -> dict:
             },
             {"id": "hermes", "reason": "adapter_not_implemented"},
             {
-                # Fourth revision of this reason, and the first three were all
-                # wrong in ways worth not repeating: an absent bridge that
-                # exists, a grant coupling that is only a stale docstring, and
-                # an undecided authorization server that has since been decided
+                # READ THIS FIELD AS LOAD-BEARING. These reasons are what a
+                # miner and a planner act on: a wrong one sends someone to build
+                # a bridge that exists, or manufactures an owner decision nobody
+                # needed to make. Both of those happened here.
+                #
+                # Fourth revision, and the first three were each wrong in a
+                # different way: an absent bridge that exists; a grant coupling
+                # that turned out to be nothing but a stale docstring, which was
+                # then relayed upward as fact by two people who had both read
+                # the docstring rather than the code; and an undecided
+                # authorization server that had in fact been decided
                 # (CARBON-D-MCP-REMOTE-AUTH: Cloudflare Access is the issuer).
+                #
+                # The lesson that produced three wrong entries: a reason is a
+                # claim about current code, and claims decay. Re-read the code
+                # it describes before repeating it, and check the date on
+                # whatever asserts it - one of these blockers was contradicted
+                # by constants committed a week before it was written down.
                 #
                 # What is actually left is the claim contract. Access emits no
                 # `client_id` and no `scope`, both of which `verify_token`
