@@ -18,7 +18,7 @@
         <p>Carbon builds fast physical models. Before anyone can say whether that is possible for your problem, the problem has to be defined precisely enough to check. This page asks the questions Carbon would ask, runs the same structural check the internal Workbench runs, and shows you exactly what is missing.</p>
         <p class="muted">You can stop at any point and download what you have. It is a draft for a conversation, not a result: it qualifies no physics and commits Carbon to nothing.</p>
         <div class="actions">
-          <button id="open-all" type="button" class="quiet">Show every question at once</button>
+          <button id="open-all" type="button" class="quiet" disabled>Show every question at once</button>
           <span id="stage-progress" class="chip">Stage 1 of 5</span>
         </div>
       </section>
@@ -26,6 +26,23 @@
         <section class="work-panel" aria-labelledby="questions-title">
           <h2 id="questions-title" class="visually-hidden">Problem definition questions</h2>
           <form id="public-form" autocomplete="off"></form>
+          <noscript>
+            <div class="boundary">
+              <strong>The questions need JavaScript, and that is the reason nothing is sent anywhere.</strong>
+              The structural check runs in your own browser rather than on a
+              Carbon server, so with scripting disabled there is nothing to run
+              it. This file makes no network request either way.
+              <p>What it asks about, in this order:</p>
+              <ol class="stage-outline">
+                <li>What are you trying to predict?</li>
+                <li>What goes in, and what comes out?</li>
+                <li>Where does it have to hold?</li>
+                <li>What do you compare against today?</li>
+                <li>What are we allowed to use?</li>
+              </ol>
+              <p>Enable JavaScript for this file, or write the same answers in an email. The questions are the point; this page is one way of asking them.</p>
+            </div>
+          </noscript>
         </section>
         <aside class="status-panel" aria-labelledby="status-title">
           <div class="panel-heading">
@@ -51,8 +68,8 @@
             <strong>Nothing leaves this page.</strong> There is no network capability in this file at all. Exporting writes a file to your own computer; sending it to Carbon is your decision and happens elsewhere.
           </div>
           <div class="actions">
-            <button id="export-draft" type="button">Download my draft</button>
-            <button id="reset-draft" type="button" class="quiet">Start again</button>
+            <button id="export-draft" type="button" disabled>Download my draft</button>
+            <button id="reset-draft" type="button" class="quiet" disabled>Start again</button>
           </div>
           <p id="export-status" role="status" aria-live="polite"></p>
           <details>

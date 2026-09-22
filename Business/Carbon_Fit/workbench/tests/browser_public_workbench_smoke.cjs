@@ -197,6 +197,67 @@ const check = (name, value) => {
       }
     }));
 
+  // --- a browser that withholds WebCrypto from a local file -----------------
+  // The draft's fingerprint is a WebCrypto digest, and a browser that does not
+  // expose crypto.subtle to a file:// page cannot compute one. This cannot be
+  // observed in Chromium, which does expose it, so the capability is removed
+  // before any script runs. What must survive is the part that matters — the
+  // questions and the check — and what must not happen is reporting a complete
+  // draft as incomplete, which sends a visitor to fix the wrong thing.
+  const withheld = await browser.newContext({
+    viewport: narrow ? { width: 390, height: 844 } : { width: 1440, height: 1000 },
+  });
+  withheld.on("request", (request) => {
+    if (/^(https?|wss?):/.test(request.url())) outbound.push(request.url());
+  });
+  const degraded = await withheld.newPage();
+  await degraded.addInitScript(() => {
+    try {
+      Object.defineProperty(window.crypto, "subtle", { get: () => undefined });
+    } catch (error) {
+      /* a browser that refuses the redefinition is already the normal case */
+    }
+  });
+  degraded.on("pageerror", (error) => errors.push("degraded: " + String(error)));
+  await degraded.goto("file://" + PUBLIC);
+  await degraded.locator("#open-all").click();
+  await degraded.locator('[data-field="units"]').fill("dimensionless");
+  check("without WebCrypto the questions and the check still work",
+    (await degraded.locator("#yours-list li:not(.clear)").count()) > 0);
+  await degraded.locator("#export-draft").click();
+  const degradedStatus = await degraded.locator("#export-status").innerText();
+  check("the refusal names the browser capability, not the draft",
+    /cryptographic digest/.test(degradedStatus) && !/not yet exportable/.test(degradedStatus));
+  check("and it says where the answers can still go",
+    /http\(s\)|email/.test(degradedStatus));
+  await withheld.close();
+
+  // --- the same file with scripting disabled --------------------------------
+  // A public page that promises questions and then shows none is worse than
+  // one that says why. The check runs in the visitor's browser, which is the
+  // reason nothing is sent anywhere, so it is also the reason the page needs
+  // scripting at all — and that is what the fallback says.
+  const quiet = await browser.newContext({
+    javaScriptEnabled: false,
+    viewport: narrow ? { width: 390, height: 844 } : { width: 1440, height: 1000 },
+  });
+  quiet.on("request", (request) => {
+    if (/^(https?|wss?):/.test(request.url())) outbound.push(request.url());
+  });
+  const withoutScript = await quiet.newPage();
+  await withoutScript.goto("file://" + PUBLIC);
+  const fallback = await withoutScript.locator("body").innerText();
+  check("without scripting the page says why the questions are missing",
+    /need JavaScript/.test(fallback));
+  check("it still states that nothing is sent",
+    /makes no network request/.test(fallback));
+  check("it lists what it would have asked",
+    (await withoutScript.locator(".stage-outline li").count()) === 5);
+  check("no control is offered that cannot work",
+    (await withoutScript.locator("button:not([disabled])").count()) === 0);
+  check("and nothing left the page without scripting either", outbound.length === 0);
+  await quiet.close();
+
   const after = crypto.createHash("sha256").update(fs.readFileSync(PUBLIC)).digest("hex");
   check("the artifact under test was not rebuilt by this run", before === after);
 

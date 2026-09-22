@@ -58,6 +58,18 @@
     );
   }
 
+  // The export's fingerprint is a WebCrypto digest, and a browser that does
+  // not expose `crypto.subtle` to a local file cannot compute one. The
+  // questions and the structural check do not need it, so that case loses the
+  // download and nothing else — provided it says so rather than reporting the
+  // draft as incomplete, which is a different problem with a different fix.
+  const DIGEST_UNAVAILABLE =
+    "This browser does not give a local file the cryptographic digest this " +
+    "draft is fingerprinted with, so it cannot be downloaded from here. The " +
+    "questions and the check above still work. Open this file over http(s), " +
+    "or copy your answers into an email — they are what matters.";
+  const canDigest = () => Boolean(root.crypto && root.crypto.subtle);
+
   // Created in install(), so requiring this module has no side effect.
   let draft = null;
   let revealed = 1;
@@ -148,6 +160,10 @@
     // Only appears when the check says something this page has no note for,
     // which is the case that must never be silent.
     $("unclassified-section").hidden = view.unclassified === 0;
+    if (!canDigest()) {
+      $("artifact-preview").textContent = DIGEST_UNAVAILABLE;
+      return null;
+    }
     try {
       const artifact = await P.exportWorkspace(draft, result, S);
       $("artifact-preview").textContent = JSON.stringify(artifact, null, 2);
@@ -194,6 +210,10 @@
     };
     $("export-draft").onclick = async () => {
       try {
+        if (!canDigest()) {
+          $("export-status").textContent = DIGEST_UNAVAILABLE;
+          return;
+        }
         const artifact = await renderStatus();
         if (!artifact) throw Error("the draft is not yet exportable");
         download(artifact);
@@ -214,6 +234,11 @@
       $("export-status").textContent = "Draft cleared. Nothing was stored.";
     };
     draft = P.emptyDraft(identity());
+    // The controls ship disabled so that a visitor without scripting sees
+    // controls that plainly do not work rather than three that silently do
+    // nothing. They are enabled here, which is the moment they start working.
+    for (const id of ["open-all", "export-draft", "reset-draft"])
+      $(id).removeAttribute("disabled");
     renderForm();
     renderStatus();
   }

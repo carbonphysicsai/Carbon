@@ -382,3 +382,30 @@ test("the emitted bundle is exactly its declared sources", () => {
   }
   assert(others.length >= 8, "too few internal modules to make that meaningful");
 });
+
+test("the no-JavaScript outline cannot drift from the questions it promises", () => {
+  // The fallback lists the stages in static markup, which is a duplicate of
+  // something that already exists in code — the exact shape that goes stale.
+  // It is asserted against STAGES rather than maintained, so a renamed or
+  // reordered stage fails here instead of leaving a public page promising
+  // questions it no longer asks.
+  const shell = fs.readFileSync(path.join(ROOT, "src/public_shell.html"), "utf8");
+  const outline = [...shell.matchAll(/<li>([^<]+)<\/li>/g)].map((m) => m[1].trim());
+  assert.deepEqual(outline, P.STAGES.map((stage) => stage.title));
+
+  const bundle = fs.readFileSync(BUNDLE, "utf8");
+  assert(bundle.includes("<noscript>"), "the emitted bundle has no fallback");
+  assert(
+    bundle.includes("need JavaScript"),
+    "the fallback does not say why the questions are missing",
+  );
+  // The controls ship disabled, so a visitor without scripting is not offered
+  // three buttons that silently do nothing.
+  for (const id of ["open-all", "export-draft", "reset-draft"]) {
+    const tag = bundle.match(new RegExp('<button id="' + id + '"[^>]*>'))[0];
+    assert(tag.includes("disabled"), id + " is not disabled in the static markup");
+  }
+  // And the app is what enables them.
+  const app = fs.readFileSync(path.join(ROOT, "src/public_app.js"), "utf8");
+  assert(app.includes('removeAttribute("disabled")'));
+});
