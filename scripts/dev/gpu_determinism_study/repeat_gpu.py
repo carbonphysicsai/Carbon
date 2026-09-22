@@ -52,6 +52,7 @@ from carbon.construction import (
 )
 from carbon.execution import ExecutionAttemptRef
 from carbon.fees import SubmissionId
+from carbon.reconstruction._vendor.carbon_jax_lab.data import Trajectories
 from carbon.reconstruction.accelerators import GPU_PROFILE
 from carbon.reconstruction.model import PublicTrainingArchive
 from carbon.reconstruction.numerics_environment import numerics_environment
@@ -246,6 +247,28 @@ for index in range(runs):
             worker_profile=worker_profile,
         )
         weights = target / "checkpoint" / "state.npz"
+        # Predictions, when the divergence measurement asked for them. A digest
+        # establishes *different* and not *how different*, and the quantity the
+        # study reasons about is prediction divergence rather than parameter
+        # divergence - two to three orders of magnitude apart on the CPU work.
+        #
+        # Produced through the registered `predict()` rather than a forward pass
+        # written here, and from the same archive inputs on every run, so what
+        # differs between two runs is the reconstruction and nothing else.
+        if os.environ.get("STUDY_PREDICTIONS") == "1":
+            import numpy as _np
+
+            from carbon.reconstruction.service import predict as _predict
+
+            _traj = Trajectories.load(materials / "train.npz")
+            _preds, _ = _predict(
+                receipt,
+                initial=_traj.initial,
+                viscosity=_traj.viscosity,
+                requested_times=_traj.times,
+                positions=_traj.positions,
+            )
+            _np.save(target / "predictions.npy", _np.asarray(_preds))
         entry.update(
             {
                 "status": receipt.status.value,

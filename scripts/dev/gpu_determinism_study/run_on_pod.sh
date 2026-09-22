@@ -130,7 +130,11 @@ export CARBON_ACCELERATOR_DEVICE_KIND="${KIND}"
 export D3_MATERIALS="${STUDY_MATERIALS}"
 # The container path mounts /work as a tmpfs; here there is no daemon to mount
 # anything, so reconstruction writes under the same scratch as everything else.
-export D3_ARTIFACTS="${SCRATCH}/artifacts"
+# Defaulted, not assigned. A caller that needs the reconstruction artifacts to
+# survive - the divergence measurement does, because a digest says *different*
+# and not *how different* - points this somewhere durable, and an unconditional
+# assignment silently sent them to the scratch tmpfs instead.
+export D3_ARTIFACTS="${D3_ARTIFACTS:-${SCRATCH}/artifacts}"
 export D3_RESULTS="${STUDY_RESULTS}/${LABEL}.json"
 export D3_LABEL="${LABEL}"
 export D3_RUNS="${RUNS}"
