@@ -115,6 +115,23 @@ Migrated records carry `MIGRATED_TEAM_UNASSIGNED`, which no account can hold,
 so they are readable by nobody until an owner assigns them. That is intentional
 and must not be "fixed" by assigning them to whichever team asks.
 
+Routes, all authenticated and role-checked in the store rather than in the
+route, which is what keeps "every endpoint is checked" true as routes are added:
+
+| Route | Method | Role |
+|---|---|---|
+| `/private/intake` | POST | `INTAKE_RECEIVER` |
+| `/private/intake?archived=include` | GET | `TEAM_REVIEWER` or `INTAKE_RECEIVER` |
+| `/private/intake/<id>` | GET / PATCH / DELETE | reviewer / reviewer / steward |
+| `/private/intake/<id>/export?archived=include` | GET | `TEAM_REVIEWER` |
+| `/private/intake/<id>/archive` and `/restore` | POST | `DATA_STEWARD` |
+| `/private/intake/<id>/deletion-exception` | POST | `DATA_STEWARD` |
+| `/private/outbox` and `/private/outbox/<event>/attempt` | GET / POST | `NOTIFICATION_OPERATOR` |
+
+A deletion exception names its approver in the request body. It is not taken
+from the authenticated caller: who approved a deletion and who carried it out
+are different facts, and conflating them is how an approval disappears.
+
 ### 3.4 Retention
 
 *Precondition: the retention decision — period, legal basis, approver.*

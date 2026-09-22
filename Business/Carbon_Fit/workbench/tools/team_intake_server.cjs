@@ -73,10 +73,49 @@ function createIntakeServer({ store, users }) {
         const event = await store.processOutbox(outboxMatch[1], null, principal);
         return send(response, event.status === "DELIVERED" ? 200 : 502, event);
       }
+      if (request.method === "GET" && url.pathname === "/private/intake")
+        return send(response, 200, {
+          inquiries: store.search(principal, {
+            includeArchived: url.searchParams.get("archived") === "include",
+          }),
+        });
+      const retentionMatch =
+        /^\/private\/intake\/([A-Za-z0-9._:-]+)\/(archive|restore|deletion-exception)$/
+          .exec(url.pathname);
+      if (retentionMatch && request.method === "POST") {
+        const [, inquiryId, action] = retentionMatch;
+        if (action === "archive")
+          return send(response, 200, store.archive(inquiryId, principal));
+        if (action === "restore")
+          return send(response, 200, store.restore(inquiryId, principal));
+        // Deletion is the exception to archival retention, so the approval is
+        // its own request with its own role. Without this route the delete
+        // endpoint below is unreachable, which is the shape of the problem:
+        // a precondition added at one layer and not served at the other.
+        const approval = F.strictJsonParse(await body(request), {
+          maxBytes: 8_000,
+          maxDepth: 4,
+        });
+        return send(
+          response,
+          201,
+          store.approveDeletionException(
+            inquiryId,
+            { approver: approval.approver, reason: approval.reason },
+            principal,
+          ),
+        );
+      }
       const exportMatch =
         /^\/private\/intake\/([A-Za-z0-9._:-]+)\/export$/.exec(url.pathname);
       if (exportMatch && request.method === "GET")
-        return send(response, 200, store.export(exportMatch[1], principal));
+        return send(
+          response,
+          200,
+          store.export(exportMatch[1], principal, {
+            includeArchived: url.searchParams.get("archived") === "include",
+          }),
+        );
       const match = /^\/private\/intake\/([A-Za-z0-9._:-]+)$/.exec(url.pathname);
       if (match && request.method === "GET")
         return send(response, 200, store.read(match[1], principal));

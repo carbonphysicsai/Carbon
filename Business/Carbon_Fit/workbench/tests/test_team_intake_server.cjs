@@ -336,3 +336,106 @@ test("hostile request bodies and unknown routes reject without storing anything"
     fixture.close();
   }
 });
+
+test("the retention lifecycle is reachable over HTTP and each step checks its own role", async () => {
+  const fixture = await started();
+  try {
+    const accepted = await (
+      await fixture.call("POST", "/private/intake", {
+        token: TOKENS.receiver,
+        body: reviewedRaw(),
+        headers: { "idempotency-key": "submit-retention-001" },
+      })
+    ).json();
+    const id = accepted.inquiry_id;
+
+    // Deletion without an approved exception is refused, and the refusal is
+    // about retention rather than about the caller's role.
+    const premature = await fixture.call("DELETE", `/private/intake/${id}`, {
+      token: TOKENS.steward,
+    });
+    assert.equal(premature.status, 400);
+    assert.match((await premature.json()).error, /approved retention exception/);
+
+    // Every retention route refuses a caller without the steward role.
+    for (const [method, route, body] of [
+      ["POST", `/private/intake/${id}/archive`, "{}"],
+      ["POST", `/private/intake/${id}/restore`, "{}"],
+      ["POST", `/private/intake/${id}/deletion-exception`, JSON.stringify({ approver: "Ryan Bequette", reason: "Synthetic cleanup." })],
+    ])
+      assert.equal(
+        (await fixture.call(method, route, { token: TOKENS.reviewer, body })).status,
+        403,
+        `${method} ${route}`,
+      );
+
+    const archived = await fixture.call("POST", `/private/intake/${id}/archive`, {
+      token: TOKENS.steward, body: "{}",
+    });
+    assert.equal(archived.status, 200);
+    assert.equal((await archived.json()).lifecycle, "ARCHIVED");
+
+    // Out of the working set, and an export of it has to be asked for.
+    assert.deepEqual(
+      (await (await fixture.call("GET", "/private/intake", { token: TOKENS.reviewer })).json()).inquiries,
+      [],
+    );
+    assert.equal(
+      (await (await fixture.call("GET", "/private/intake?archived=include", { token: TOKENS.reviewer })).json()).inquiries.length,
+      1,
+    );
+    assert.equal(
+      (await fixture.call("GET", `/private/intake/${id}/export`, { token: TOKENS.reviewer })).status,
+      400,
+    );
+    assert.equal(
+      (await fixture.call("GET", `/private/intake/${id}/export?archived=include`, { token: TOKENS.reviewer })).status,
+      200,
+    );
+
+    const exception = await fixture.call("POST", `/private/intake/${id}/deletion-exception`, {
+      token: TOKENS.steward,
+      body: JSON.stringify({ approver: "Ryan Bequette", reason: "Synthetic fixture cleanup only." }),
+    });
+    assert.equal(exception.status, 201);
+    assert.equal((await exception.json()).approver, "Ryan Bequette");
+    // An approval with no named approver is refused rather than attributed to
+    // the authenticated caller: who approved a deletion and who carried it out
+    // are different facts, and conflating them is how an approval disappears.
+    assert.equal(
+      (await fixture.call("POST", `/private/intake/${id}/deletion-exception`, {
+        token: TOKENS.steward, body: JSON.stringify({ reason: "Synthetic cleanup." }),
+      })).status,
+      400,
+    );
+
+    const deleted = await fixture.call("DELETE", `/private/intake/${id}`, { token: TOKENS.steward });
+    assert.equal(deleted.status, 200);
+    const tombstone = await deleted.json();
+    assert.equal(tombstone.approved_by, "Ryan Bequette");
+    assert.equal(tombstone.deleted_by, "steward-account");
+    assert.deepEqual(tombstone.did_not_reach, ["RETAINED_ARCHIVE", "PRIOR_EXPORTS", "PROVIDER_RECORDS"]);
+    assert.equal(
+      (await fixture.call("GET", `/private/intake/${id}`, { token: TOKENS.reviewer })).status,
+      404,
+    );
+  } finally {
+    fixture.close();
+  }
+});
+
+test("the receiver holds no state of its own and mints no identity", () => {
+  // The role checks live in the store, and this is what makes "every endpoint
+  // is checked" true for routes as well: a route has nothing to read except
+  // through a store method that validates its principal. A route that reached
+  // into `store.state` would bypass every one of them, and a route that built
+  // its own principal would bypass authentication, so neither may appear here.
+  const source = fs.readFileSync(path.join(ROOT, "tools/team_intake_server.cjs"), "utf8");
+  assert.equal(/store\.state/.test(source), false);
+  assert.equal(/new StaffPrincipal|ISSUED_BY_AUTHENTICATION/.test(source), false);
+  // Exactly one place resolves an identity, and it is the directory.
+  assert.equal((source.match(/directory\.authenticate/g) || []).length, 1);
+  // Falsification: the same reading applied to a source that does reach in.
+  const reaching = source.replace("store.search(principal", "store.state.inquiries; store.search(principal");
+  assert.equal(/store\.state/.test(reaching), true);
+});
