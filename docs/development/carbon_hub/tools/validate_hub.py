@@ -3106,6 +3106,98 @@ class Validator:
             )
         return result
 
+    def ledger_event_ids_at(self, ref: str) -> set[str] | None:
+        """Every event id recorded at a git ref, in whichever shape it used.
+
+        Reads the shared array and, if the tree has one, the per-event files.
+        Written to work before and after the ledger migration so this check does
+        not depend on it, and so it keeps working during the period when both
+        shapes are in use.
+        """
+        found: set[str] = set()
+        seen_anything = False
+        array = self.git(
+            "show",
+            f"{ref}:{HUB_RELATIVE.as_posix()}/data/change_events.json",
+            allow_failure=True,
+        )
+        if array.returncode == 0:
+            seen_anything = True
+            try:
+                value = json.loads(array.stdout)
+            except json.JSONDecodeError:
+                return None
+            for item in value.get("events", []):
+                if isinstance(item, dict) and isinstance(item.get("event_id"), str):
+                    found.add(item["event_id"])
+        listing = self.git(
+            "ls-tree",
+            "--name-only",
+            f"{ref}:{HUB_RELATIVE.as_posix()}/data/events",
+            allow_failure=True,
+        )
+        if listing.returncode == 0:
+            seen_anything = True
+            for name in listing.stdout.split("\n"):
+                name = name.strip()
+                if name.endswith(".json"):
+                    # The file is named for the event it holds, so the ids are
+                    # readable from the listing without fetching 200 blobs.
+                    found.add(name[: -len(".json")])
+        return found if seen_anything else None
+
+    def validate_merge_parent_events(self, current_ids: set[str]) -> None:
+        """No merge in this candidate may drop an event either side recorded.
+
+        The immutability comparison above faces the PR base, so it catches an
+        event lost after it reached main and says nothing about a sibling
+        branch's event that never did. That is not a smaller case: every ledger
+        incident this week sat in it, and the only thing separating a loud
+        rebase from a silent loss was when the other branch happened to land.
+
+        So every merge commit in this candidate's own range is checked against
+        each of its parents. A merge that resolved a ledger conflict by keeping
+        one side fails here, at the commit where the event was dropped, whether
+        or not the other side had merged to main first.
+        """
+        if not self.diff_base_sha:
+            return
+        merges = self.git(
+            "rev-list", "--merges", f"{self.diff_base_sha}..HEAD", allow_failure=True
+        )
+        if merges.returncode != 0:
+            return
+        for commit in [
+            line.strip() for line in merges.stdout.split("\n") if line.strip()
+        ]:
+            recorded = self.ledger_event_ids_at(commit)
+            if recorded is None:
+                continue
+            parents = self.git(
+                "rev-list", "--parents", "-n", "1", commit, allow_failure=True
+            )
+            if parents.returncode != 0:
+                continue
+            for parent in parents.stdout.split()[1:]:
+                inherited = self.ledger_event_ids_at(parent)
+                if inherited is None:
+                    continue
+                lost = sorted(inherited - recorded)
+                if lost:
+                    self.fail(
+                        f"Merge {commit[:12]} dropped change events that one of "
+                        f"its parents recorded: {', '.join(lost)}. The ledger's "
+                        "semantics are per-event and git merges text, so a "
+                        "conflict resolved by keeping one side destroys the "
+                        "other. Restore them from "
+                        f"{parent[:12]} rather than re-recording them, so the "
+                        "original wording and identity survive."
+                    )
+            # An event the merge invented, present in neither parent, is a
+            # different mistake and is left to the immutability comparison,
+            # which is where a new event is supposed to be judged.
+        _ = current_ids
+
     def validate_snapshot_metadata(self) -> None:
         meta = self.data.get("meta", {})
         commit = str(meta.get("authority_snapshot_commit", ""))
@@ -3748,6 +3840,7 @@ class Validator:
                     f"event instead of rewriting: {rewritten_ids}"
                 )
             self.new_event_ids = current_ids - prior_ids
+            self.validate_merge_parent_events(current_ids)
 
             prior_data = self.git(
                 "show",
