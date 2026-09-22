@@ -17,7 +17,7 @@ from carbon.seeding import EvaluationBinding, MockContext, MockEntropy, SeedPin
 
 from .data import write_once
 from .profile import CHALLENGE, canonical, digest, profile_document
-from .research_ledger import CEILINGS, ELAPSED_SECONDS
+from .research_ledger import DEVELOPMENT_CEILINGS, DEVELOPMENT_ELAPSED_SECONDS
 
 PROFILE = "carbon.burgers-autoresearch-development.v1"
 ROLE_ROOTS = ("research-train", "research-validation", "final-epoch-1", "final-epoch-2")
@@ -71,8 +71,8 @@ def document():
         },
         "selection": "agent freezes one reproducible eligible recipe per epoch using research observations only; every trial retained; no best-replica final selection",
         "replicas": "three new controller-derived independent reconstruction seeds per construction; same fresh final cohort for control/challenger; all replicas retained",
-        "budgets": dict(CEILINGS),
-        "elapsed_seconds": ELAPSED_SECONDS,
+        "budgets": dict(DEVELOPMENT_CEILINGS),
+        "elapsed_seconds": DEVELOPMENT_ELAPSED_SECONDS,
         "final_worker": {
             "cpu": 2,
             "memory_bytes": 4 * 1024**3,

@@ -17,9 +17,9 @@ from carbon.development_session.research_admission import (
 )
 from carbon.development_session.research_control import CampaignControl, DispatchStopped
 from carbon.development_session.research_ledger import (
-    CEILINGS,
-    ELAPSED_SECONDS,
-    FINAL_RESERVE,
+    DEVELOPMENT_CEILINGS,
+    DEVELOPMENT_ELAPSED_SECONDS,
+    SUGGESTED_FINAL_RESERVE,
     CampaignLedger,
 )
 
@@ -42,8 +42,8 @@ def managed(tmp_path, *, ceilings=None):
         "provider": "openai-responses",
         "account_ref": "fixture-no-credential",
         "campaign_count": 1,
-        "ceilings": dict(CEILINGS if ceilings is None else ceilings),
-        "elapsed_seconds": ELAPSED_SECONDS,
+        "ceilings": dict(DEVELOPMENT_CEILINGS if ceilings is None else ceilings),
+        "elapsed_seconds": DEVELOPMENT_ELAPSED_SECONDS,
         "expires_unix": 50000,
         "cleanup": "all-campaign-owned-work; unresolved-reservations-retained",
         "retry_allowance": 0,
@@ -63,7 +63,7 @@ def managed(tmp_path, *, ceilings=None):
         "runtime": document["runtime"],
         "grant": admission.binding(),
         "ceilings": document["ceilings"],
-        "elapsed_seconds": ELAPSED_SECONDS,
+        "elapsed_seconds": DEVELOPMENT_ELAPSED_SECONDS,
         "implementation": "fixture",
         "objective": "fixture",
         "sampling": "fixture",
@@ -88,7 +88,7 @@ def reserve(value, identity="op", resources=None):
 
 def test_d4_original_manifest_and_limits_preserved(tmp_path):
     value = old_ledger(tmp_path)
-    assert value.status(owner="alice")["ceilings"] == CEILINGS
+    assert value.status(owner="alice")["budget"] == DEVELOPMENT_CEILINGS
     assert value.reserve(
         "old",
         owner="alice",
@@ -221,12 +221,15 @@ def test_stop_before_dispatch_and_cleanup_failure_never_claim_stopped(tmp_path):
 
 def test_final_reserve_and_exhaustion(tmp_path):
     value, _, _ = managed(tmp_path)
-    with pytest.raises(ValueError, match="resource admission"):
+    with pytest.raises(ValueError, match="miner budget"):
         reserve(
-            value, resources={"provider_nanodollars": CEILINGS["provider_nanodollars"]}
+            value,
+            resources={
+                "provider_nanodollars": DEVELOPMENT_CEILINGS["provider_nanodollars"]
+            },
         )
     reserve(value, resources={"research_trials": 16})
-    with pytest.raises(ValueError, match="resource admission"):
+    with pytest.raises(ValueError, match="miner budget"):
         reserve(value, "extra")
 
 
@@ -298,7 +301,7 @@ def test_pause_race_retries_admission_without_consumption(tmp_path, monkeypatch)
 def test_expired_original_deadline_cannot_resume(tmp_path):
     value, control, _ = managed(tmp_path)
     reserve(value)
-    value.clock = lambda: 1000 + ELAPSED_SECONDS
+    value.clock = lambda: 1000 + DEVELOPMENT_ELAPSED_SECONDS
     control.request("pause")
     with pytest.raises(DispatchStopped, match="deadline"):
         value.checkpoint()
@@ -383,8 +386,8 @@ def test_charged_final_slots_are_not_reserved_twice_for_managed_research(tmp_pat
     value, _, _ = managed(
         tmp_path,
         ceilings={
-            **CEILINGS,
-            "numerical_milliseconds": FINAL_RESERVE["numerical_milliseconds"],
+            **DEVELOPMENT_CEILINGS,
+            "numerical_milliseconds": SUGGESTED_FINAL_RESERVE["numerical_milliseconds"],
         },
     )
     for index in range(6):
@@ -424,7 +427,9 @@ def test_narrowed_trial_grant_uses_existing_selection_call_admission(tmp_path):
 
     from carbon.development_session.research_loop import run_epoch
 
-    value, _, _ = managed(tmp_path, ceilings={**CEILINGS, "research_trials": 1})
+    value, _, _ = managed(
+        tmp_path, ceilings={**DEVELOPMENT_CEILINGS, "research_trials": 1}
+    )
     reserve(value, resources={"research_trials": 1})
     value.finish(
         "op",

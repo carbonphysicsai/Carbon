@@ -328,14 +328,20 @@ model-driven validation still requires a new explicitly admitted experiment.
 
 ## Focused verification
 
-### Paused prelaunch inspection
+### Prelaunch inspection and the pause switch
 
 Issue #223's immutable guidance repair is merged in #227. Its engineering
 acceptance is complete; real multi-iteration campaign acceptance remains open.
-The owner experiment pause remains active. Campaign 03 has not launched.
+Campaign 03 has not launched.
 
-The existing private runner profile can carry the optional explanatory field
-`"disabled_reason": "OWNER_EXPERIMENT_PAUSE"` only with `"enabled": false`.
+**The owner experiment pause was lifted in full on 22 September 2026.** No class
+of campaign is withheld by it and no current configuration asserts it. It is not
+a reason to stop before a campaign runs.
+
+The switch itself stays, because lifting a pause is not a reason to delete the
+means of pausing. The existing private runner profile can carry the optional
+explanatory field `"disabled_reason": "OWNER_EXPERIMENT_PAUSE"` only with
+`"enabled": false`.
 Launch and resume reject on the server, including direct HTTP calls. Status,
 authorized export, stop and supported reconciliation remain available. The profile
 is not a global cancellation mechanism: an already-dispatched operation must use

@@ -14,7 +14,11 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from .profile import canonical, digest
-from .research_ledger import CEILINGS, ELAPSED_SECONDS, FINAL_RESERVE
+from .research_ledger import (
+    DEVELOPMENT_CEILINGS,
+    DEVELOPMENT_ELAPSED_SECONDS,
+    SUGGESTED_FINAL_RESERVE,
+)
 
 SCHEMA = "carbon.launchpad.research-grant.v1"
 MANIFEST = "carbon.autoresearch.campaign.v2"
@@ -113,17 +117,17 @@ class Admission:
         ):
             raise ValueError("grant expired or invalid")
         caps = doc["ceilings"]
-        if type(caps) is not dict or set(caps) != set(CEILINGS):
+        if type(caps) is not dict or set(caps) != set(DEVELOPMENT_CEILINGS):
             raise ValueError("all resource dimensions required")
-        for key, maximum in CEILINGS.items():
+        for key, maximum in DEVELOPMENT_CEILINGS.items():
             if (
                 type(caps[key]) is not int
-                or not FINAL_RESERVE.get(key, 0) <= caps[key] <= maximum
+                or not SUGGESTED_FINAL_RESERVE.get(key, 0) <= caps[key] <= maximum
             ):
                 raise ValueError("grant outside supported envelope")
         if (
             type(doc["elapsed_seconds"]) is not int
-            or not 1 <= doc["elapsed_seconds"] <= ELAPSED_SECONDS
+            or not 1 <= doc["elapsed_seconds"] <= DEVELOPMENT_ELAPSED_SECONDS
         ):
             raise ValueError("bounded original deadline required")
         return doc

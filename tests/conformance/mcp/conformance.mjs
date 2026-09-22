@@ -12,6 +12,14 @@ import { Client } from "@modelcontextprotocol/client";
 import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 
 const PREFIX = "carbon_research_v2__";
+const CATALOGUE_URI = "carbon://research/v1/catalogue";
+const CAPABILITIES_URI = "carbon://research/v1/capabilities";
+// A coded refusal as it appears on the wire. The slug is what a client branches
+// on, so it is extracted rather than pattern-matched against a fixed list: a
+// server may declare a vocabulary this runner has never heard of, and the
+// requirement is that it declares whatever it emits.
+const REFUSAL_SLUG =
+  /([A-Z][A-Z_]{3,39}); ?dispatch_may_have_occurred=(true|false)(?:; ?next_action=([^"\\]*))?/g;
 const OPERATION_ID_PATTERN = /^[A-Za-z0-9._:-]{16,114}$/;
 const TASK_ID_PATTERN = /^rtsk_[a-f0-9]{64}$/;
 const ERROR_PATTERN =
@@ -81,6 +89,9 @@ const mutating = (name) => MUTATE === name;
 // mutating the expectation. A check with neither is asserted but not shown
 // falsifiable, and a PASS on it is weaker evidence.
 const MUTATION_CONTROLLED = new Set([
+  "surface_catalogue_is_versioned",
+  "surface_catalogue_separates_surface_from_science",
+  "record_policy_is_declared",
   "catalogue_prefix_and_strict_schemas",
   "catalogue_rejects_caller_supplied_principal",
   "catalogue_uses_objects_not_json_envelopes",
@@ -89,6 +100,10 @@ const MUTATION_CONTROLLED = new Set([
   "adapter_error_contract",
 ]);
 const STUB_CONTROLLED = new Set([
+  "surface_catalogue_matches_served_tools",
+  "refusal_vocabulary_is_declared",
+  "refusal_next_action_is_fixed_and_declared",
+  "capacity_bound_is_declared_and_honoured",
   "operation_identity_replay_does_not_redispatch",
   "operation_identity_conflict_is_refused",
   "cancellation_is_a_request_not_a_release",
@@ -146,6 +161,23 @@ function identity(value) {
   return JSON.stringify(structured);
 }
 
+/** Every coded refusal the run has seen, as {slug, dispatch, nextAction}. */
+function refusals(observed) {
+  const found = [];
+  for (const text of observed) {
+    // The wire text arrives JSON-encoded inside the tool result, so the
+    // next_action runs to the end of the encoded string rather than to a
+    // delimiter this runner gets to choose.
+    for (const match of text.matchAll(REFUSAL_SLUG))
+      found.push({
+        slug: match[1],
+        dispatch: match[2] === "true",
+        nextAction: (match[3] ?? "").replace(/\s+$/, "") || null,
+      });
+  }
+  return found;
+}
+
 export async function run(target) {
   const stamp = "conformance-" + Date.now().toString(36).padStart(10, "0");
   let client = await connect(target);
@@ -153,9 +185,18 @@ export async function run(target) {
   // conforming server, so every refusal seen during the run is collected and
   // the error contract is judged against whatever the server actually emitted.
   const observedErrors = [];
+  // The call that produced each refusal, so a refusal can be provoked a second
+  // time without the runner having to know which probe on which fixture
+  // happens to trigger a coded failure. Guessing that would make the suite
+  // depend on a server's internal state machine, which is the opposite of what
+  // a consumer-side suite is for.
+  const refusingCalls = [];
   const call = async (operation, args) => {
     const result = await client.callTool({ name: PREFIX + operation, arguments: args });
-    if (result.isError) observedErrors.push(JSON.stringify(result.content ?? ""));
+    if (result.isError) {
+      observedErrors.push(JSON.stringify(result.content ?? ""));
+      refusingCalls.push({ operation, args });
+    }
     return result;
   };
 
@@ -407,6 +448,290 @@ export async function run(target) {
             text.slice(0, 160),
         );
       return `${coded.length} adapter failure(s) carried a code and dispatch flag`;
+    },
+  );
+
+  // --- the versioned surface catalogue, and the refusal guidance with it -----
+  //
+  // These cover what landed in #269: a catalogue describing the server rather
+  // than the science, and a next step attached to every refusal. The runner
+  // never hardcodes Carbon's wording. It requires the server to be internally
+  // consistent with what it publishes, which is the only thing a third party
+  // pinning the document can actually rely on.
+  let surface = null;
+
+  const readJson = async (uri) => {
+    const read = await client.readResource({ uri });
+    const text = read?.contents?.[0]?.text;
+    if (typeof text !== "string") throw Error(`resource ${uri} returned no text`);
+    return JSON.parse(text);
+  };
+
+  await check(
+    "surface_catalogue_is_versioned",
+    "The surface catalogue is served, versioned, and claims no official standing",
+    async () => {
+      let document;
+      try {
+        document = await readJson(CATALOGUE_URI);
+      } catch (error) {
+        throw Error(
+          `${CATALOGUE_URI} could not be read as JSON: ${String(error.message).slice(0, 160)}`,
+        );
+      }
+      surface = document;
+      const versioned =
+        typeof document.schema === "string" && document.schema.length > 0;
+      assert(
+        mutating("catalogue_unversioned") ? !versioned : versioned,
+        "catalogue schema version did not match the expectation",
+      );
+      assert(
+        typeof document.sdk_version === "string",
+        "catalogue carries no sdk_version, so a client cannot tell builds apart",
+      );
+      // A surface description must not be readable as a claim of standing.
+      assert.equal(
+        document.official_eligible,
+        false,
+        "catalogue did not declare official_eligible=false",
+      );
+      return `catalogue ${document.schema} at sdk ${document.sdk_version}`;
+    },
+  );
+
+  await check(
+    "surface_catalogue_matches_served_tools",
+    "The catalogue describes exactly the operations the server serves",
+    async () => {
+      if (!surface) throw undetermined("the surface catalogue could not be read");
+      const { tools } = await client.listTools();
+      const served = new Set(tools.map((tool) => tool.name));
+      const advertised = new Set(surface.operations ?? []);
+      const missing = [...advertised].filter((name) => !served.has(name));
+      const undeclared = [...served].filter((name) => !advertised.has(name));
+      assert.deepEqual(
+        missing,
+        [],
+        `catalogue advertises operations the server does not serve: ${missing}`,
+      );
+      assert.deepEqual(
+        undeclared,
+        [],
+        `server serves operations the catalogue omits: ${undeclared}`,
+      );
+      return `${advertised.size} advertised operations all served, none undeclared`;
+    },
+  );
+
+  await check(
+    "surface_catalogue_separates_surface_from_science",
+    "The surface catalogue and the scientific capabilities are distinct documents",
+    async () => {
+      if (!surface) throw undetermined("the surface catalogue could not be read");
+      const capabilities = await readJson(CAPABILITIES_URI);
+      // The separation is what lets a client tell a surface change from a
+      // science change instead of rediscovering one as the other.
+      const separate =
+        JSON.stringify(capabilities) !== JSON.stringify(surface) &&
+        typeof surface.limits === "object" &&
+        surface.limits !== null;
+      assert(
+        mutating("catalogue_conflates_surface") ? !separate : separate,
+        "surface/science separation did not match the expectation",
+      );
+      for (const uri of [CAPABILITIES_URI, CATALOGUE_URI])
+        assert(
+          (surface.resources ?? []).includes(uri),
+          `catalogue omits ${uri} from the resources it says it serves`,
+        );
+      return "surface catalogue and capabilities are separate, and both are listed";
+    },
+  );
+
+  await check(
+    "record_policy_is_declared",
+    "The catalogue states what a per-call record keeps about the caller",
+    async () => {
+      if (!surface) throw undetermined("the surface catalogue could not be read");
+      const records = surface.records ?? {};
+      assert(
+        typeof records.schema === "string" && records.schema.length > 0,
+        "catalogue declares no record schema, so a miner cannot pin what is kept",
+      );
+      const withholds = records.arguments_recorded === false;
+      assert(
+        mutating("records_claim_arguments") ? !withholds : withholds,
+        "record argument policy did not match the expectation",
+      );
+      // Stated plainly because the runner cannot see the server's own logs: a
+      // declaration is what a client can check, and it is not the same as
+      // evidence that arguments are absent from the records themselves. The
+      // other half of that evidence is server-side and by construction -
+      // `call_record` has no parameter for arguments - so the detail points at
+      // it rather than leaving a reader to conclude nobody checked.
+      return (
+        `records ${records.schema}, arguments_recorded=${records.arguments_recorded} ` +
+        "(declared, not observed; the absence is enforced server-side by " +
+        "construction and tested there - see reference \u00a710)"
+      );
+    },
+  );
+
+  await check(
+    "refusal_vocabulary_is_declared",
+    "Every refusal code the server emits appears in the vocabulary it publishes",
+    async () => {
+      if (!surface) throw undetermined("the surface catalogue could not be read");
+      const declared = surface.refusals ?? {};
+      const slugs = Object.keys(declared);
+      assert(slugs.length > 0, "catalogue publishes no refusal vocabulary");
+      for (const slug of slugs) {
+        const action = declared[slug]?.next_action;
+        assert(
+          typeof action === "string" && action.trim().length > 0,
+          `declared refusal ${slug} has no next_action: a client learns what ` +
+            "happened and not what now",
+        );
+      }
+      const emitted = [...new Set(refusals(observedErrors).map((r) => r.slug))];
+      const outside = emitted.filter((slug) => !slugs.includes(slug));
+      assert.deepEqual(
+        outside,
+        [],
+        `server emitted refusal codes it never declared: ${outside}`,
+      );
+      return `${slugs.length} declared, ${emitted.length} observed, none undeclared`;
+    },
+  );
+
+  await check(
+    "refusal_next_action_is_fixed_and_declared",
+    "A refusal carries the next step its catalogue declares, identically each time",
+    async () => {
+      if (!surface) throw undetermined("the surface catalogue could not be read");
+      const declared = surface.refusals ?? {};
+      // One sample cannot show that the text is fixed, so every call that was
+      // refused during this run is re-issued once under a fresh operation id.
+      // Some will succeed the second time; any that refuses again is a genuine
+      // second sample of the same guidance.
+      let repeated = 0;
+      for (const [index, previous] of [...refusingCalls].entries()) {
+        if (typeof previous.args?.operation_id !== "string") continue;
+        const again = await call(previous.operation, {
+          ...previous.args,
+          operation_id: `${stamp}-again-${index}`,
+        });
+        if (again.isError) repeated += 1;
+      }
+      const observed = refusals(observedErrors).filter((r) => r.nextAction);
+      if (!observed.length)
+        throw undetermined(
+          "no coded refusal carrying a next_action occurred during this run",
+        );
+      const byslug = new Map();
+      for (const refusal of observed) {
+        assert(
+          declared[refusal.slug],
+          `refusal ${refusal.slug} carried guidance but is not in the catalogue`,
+        );
+        assert.equal(
+          refusal.nextAction,
+          declared[refusal.slug].next_action,
+          `refusal ${refusal.slug} carried guidance that disagrees with the ` +
+            "catalogue, so a client cannot pin what it was promised",
+        );
+        const seen = byslug.get(refusal.slug) ?? new Set();
+        seen.add(refusal.nextAction);
+        byslug.set(refusal.slug, seen);
+      }
+      for (const [slug, texts] of byslug)
+        assert.equal(
+          texts.size,
+          1,
+          `refusal ${slug} carried ${texts.size} different next steps across ` +
+            "this run; provider text on the wire is how internal detail escapes",
+        );
+      // Said precisely: matching the catalogue is shown for every sample, while
+      // "fixed across calls" is only shown for a slug seen more than once.
+      const stable = [...byslug.entries()].filter(([, texts]) => texts.size >= 1);
+      const multiple = [...byslug.keys()].filter(
+        (slug) => observed.filter((r) => r.slug === slug).length > 1,
+      );
+      return (
+        `${observed.length} refusal(s) across ${stable.length} slug(s) matched the ` +
+        `catalogue exactly; ${repeated} refusal(s) provoked again; fixed text ` +
+        `demonstrated for ${multiple.length} slug(s) seen more than once` +
+        (multiple.length ? "" : " (none, so stability is asserted not shown)")
+      );
+    },
+  );
+
+  await check(
+    "capacity_bound_is_declared_and_honoured",
+    "The concurrency bound is published, and refusing for it claims no dispatch",
+    async () => {
+      if (!surface) throw undetermined("the surface catalogue could not be read");
+      const limits = surface.limits ?? {};
+      const limit = limits.max_concurrent_calls;
+      const deadline = limits.queue_deadline_seconds;
+      assert(
+        Number.isInteger(limit) && limit > 0,
+        "catalogue publishes no positive max_concurrent_calls",
+      );
+      assert(
+        typeof deadline === "number" && deadline > 0,
+        "catalogue publishes no positive queue_deadline_seconds",
+      );
+      // Push past the published bound. A conforming server may serve all of
+      // these or refuse some for capacity; what it may not do is leave one
+      // neither served nor refused, or refuse for capacity while saying work
+      // may have been dispatched.
+      const before = observedErrors.length;
+      const started = Date.now();
+      const settled = await Promise.race([
+        Promise.allSettled(
+          Array.from({ length: limit + 2 }, (_, index) =>
+            call("dry_validate", {
+              operation_id: `${stamp}-capacity-${index}`,
+              strategy: { parameters: { steps: 1 } },
+            }),
+          ),
+        ),
+        new Promise((resolve) =>
+          setTimeout(() => resolve(null), (deadline + 60) * 1000),
+        ),
+      ]);
+      assert(
+        settled !== null,
+        `${limit + 2} concurrent calls did not all settle within the published ` +
+          `${deadline}s queue deadline plus a minute`,
+      );
+      const rejected = settled.filter((outcome) => outcome.status === "rejected");
+      assert.equal(
+        rejected.length,
+        0,
+        `a call past the published bound failed at the transport rather than ` +
+          `being refused: ${String(rejected[0]?.reason?.message).slice(0, 160)}`,
+      );
+      const capacity = refusals(observedErrors.slice(before)).filter(
+        (refusal) => /CAPACITY/.test(refusal.slug),
+      );
+      for (const refusal of capacity)
+        assert.equal(
+          refusal.dispatch,
+          false,
+          `${refusal.slug} claimed work may have been dispatched; nothing is ` +
+            "dispatched before capacity is granted, and claiming otherwise " +
+            "manufactures a reconciliation-required state",
+        );
+      return capacity.length
+        ? `${capacity.length} capacity refusal(s), all claiming no dispatch`
+        : `bound of ${limit} published and honoured; ${limit + 2} concurrent ` +
+          "calls all settled without a capacity refusal, so that path was " +
+          "declared but not exercised - a limit of this harness, which will " +
+          "not dispatch real research to fill the concurrency, not a doubt " +
+          "about the bound";
     },
   );
 

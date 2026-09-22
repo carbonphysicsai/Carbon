@@ -11,8 +11,8 @@ from carbon.development_session.profile import canonical
 from carbon.development_session.research_admission import PROFILE, SCHEMA, Admission
 from carbon.development_session.research_control import CampaignControl
 from carbon.development_session.research_ledger import (
-    CEILINGS,
-    ELAPSED_SECONDS,
+    DEVELOPMENT_CEILINGS,
+    DEVELOPMENT_ELAPSED_SECONDS,
     CampaignLedger,
 )
 
@@ -39,8 +39,8 @@ def setup_campaign(tmp_path, monkeypatch, epochs):
             "provider": "openai-responses",
             "account_ref": "fixture-no-credential",
             "campaign_count": 1,
-            "ceilings": {**CEILINGS, "epochs": epochs},
-            "elapsed_seconds": ELAPSED_SECONDS,
+            "ceilings": {**DEVELOPMENT_CEILINGS, "epochs": epochs},
+            "elapsed_seconds": DEVELOPMENT_ELAPSED_SECONDS,
             "expires_unix": 50000,
             "cleanup": "all-campaign-owned-work; unresolved-reservations-retained",
             "retry_allowance": 0,

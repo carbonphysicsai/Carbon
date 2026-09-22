@@ -1,7 +1,28 @@
-"""Durable finite-campaign admission; unknown consumption keeps its reservation.
+"""Durable campaign accounting; unknown consumption keeps its reservation.
 
 Trusted controller only. Never mounted into a miner worker. Integer units avoid
 floating point underspend; timestamps are operational, not scientific evidence.
+
+**Carbon does not cap a miner's own resources.** A miner may set a budget, and
+if they do it binds exactly where they set it, because a budget that does not
+bind is worse than none - it tells them they are protected when they are not.
+A miner who sets no budget has no budget, and that is a supported state rather
+than a default ceiling or an error.
+
+So "no cap" is `NO_BUDGET`, a first-class state and deliberately not a very
+large number. A large number would read as a limit to the next person and would
+be wrong, and it would silently answer a comparison that should never have been
+asked. `NO_BUDGET` is not an integer and supports no ordering, so a code path
+that forgets to skip the check raises rather than quietly admitting work.
+
+Two things here are not miner spending control and stay:
+
+- `SERVICE_LIMITS` bound Carbon's own shared reference service. They are
+  infrastructure capacity, never a cap on the miner's resources, and they are
+  reported under their own name so the two cannot be confused.
+- The development grant envelope in `research_admission`, which exists so a
+  founder can cap Carbon's spend on Carbon's accounts in a bounded experiment.
+  It is test machinery and is unreachable from any product surface.
 """
 
 from __future__ import annotations
@@ -16,7 +37,76 @@ from pathlib import Path
 from .profile import canonical, digest
 
 VERSION = "carbon.autoresearch.campaign.v1"
-CEILINGS = {
+
+
+class Unbounded:
+    """No cap. A state, not a number.
+
+    Supports no ordering and no arithmetic on purpose. `used + want > NO_BUDGET`
+    is a `TypeError`, not `False`, so a branch that forgets to skip the headroom
+    check fails loudly at the point of the mistake instead of admitting work
+    against a limit that was never meant to exist.
+    """
+
+    __slots__ = ()
+
+    def __repr__(self):
+        return "NO_BUDGET"
+
+    def __bool__(self):
+        # Refused rather than answered: neither True nor False is honest about
+        # "no cap", and every caller should be branching on identity instead.
+        raise TypeError("NO_BUDGET is not a truth value; test `is NO_BUDGET`")
+
+
+NO_BUDGET = Unbounded()
+
+#: Everything the ledger accounts for. Accounting is not a spending control:
+#: a miner can always see what they have spent, capped or not.
+DIMENSIONS = (
+    "epochs",
+    "research_trials",
+    "final_replicas",
+    "provider_attempts",
+    "provider_nanodollars",
+    "numerical_milliseconds",
+    "reference_trajectories",
+    "reference_invocations",
+    "retained_bytes",
+)
+
+#: Carbon's shared reference service, which runs on Carbon's infrastructure and
+#: not on the miner's account. `retained_bytes` is deliberately not here:
+#: `check_storage` measures the campaign root on the executing host - the
+#: miner's own machine or their rented box - and no retained byte is accounted
+#: against Carbon's side anywhere, so the storage is theirs and Carbon sets no
+#: cap on it. These are service capacity limits and are named
+#: as such wherever they are reported. They are not a miner budget and must
+#: never be presented as a cap on the miner's own resources.
+SERVICE_LIMITS = {
+    "reference_trajectories": 512,
+    "reference_invocations": 2048,
+}
+
+#: Offered, never imposed. Holding back part of a final phase is useful when a
+#: miner wants to be sure the run can finish, but deciding that for them would
+#: be Carbon allocating their money. Applied only to dimensions the miner
+#: actually capped, and only when they asked for a reserve.
+SUGGESTED_FINAL_RESERVE = {
+    "final_replicas": 12,
+    "provider_attempts": 8,
+    "provider_nanodollars": 8 * 20480000,
+    "numerical_milliseconds": 12 * 720000,
+    "reference_trajectories": 48,
+    "reference_invocations": 144,
+    "retained_bytes": 2 * 1024**3,
+}
+
+#: The development grant envelope. Carbon's owner capping Carbon's spend on
+#: Carbon's accounts for a bounded experiment - the provider cap is one dollar
+#: and the wall clock is eight hours. These are development fixtures and bound
+#: no miner; `research_admission` is the only module that may read them.
+DEVELOPMENT_CEILINGS = {
     "epochs": 2,
     "research_trials": 16,
     "final_replicas": 12,
@@ -27,22 +117,72 @@ CEILINGS = {
     "reference_invocations": 2048,
     "retained_bytes": 10 * 1024**3,
 }
-ELAPSED_SECONDS = 8 * 3600
-# Reserve the unspent final phase before admitting exploratory work. These are
-# admission reservations, not promises of sufficient runtime or quality.
-FINAL_RESERVE = {
-    "final_replicas": 12,
-    "provider_attempts": 8,
-    "provider_nanodollars": 8 * 20480000,
-    "numerical_milliseconds": 12 * 720000,
-    "reference_trajectories": 48,
-    "reference_invocations": 144,
-    "retained_bytes": 2 * 1024**3,
-}
+DEVELOPMENT_ELAPSED_SECONDS = 8 * 3600
+
+
+def _caps(manifest):
+    """The miner's budget, as a mapping of dimension to cap or NO_BUDGET.
+
+    `null` on the wire becomes `NO_BUDGET` in memory, and a dimension the miner
+    never mentioned is uncapped. Both spellings mean the same thing and neither
+    is a number, so nothing downstream can compare against them by accident.
+    """
+    ceilings = manifest.get("ceilings")
+    if ceilings is None:
+        return {}
+    return {
+        key: (NO_BUDGET if value is None else value) for key, value in ceilings.items()
+    }
+
+
+def _elapsed(manifest):
+    """The miner's wall-clock budget, or NO_BUDGET if they set none."""
+    value = manifest.get("elapsed_seconds")
+    return NO_BUDGET if value is None else value
+
+
+def _final_reserve(manifest):
+    """Hold back a final phase only where the miner asked for it.
+
+    Reserving is useful when someone wants to be sure a run can finish, and it
+    is theirs to decline: deciding it for them would be Carbon allocating their
+    money. A manifest that says nothing gets no reserve.
+    """
+    if manifest.get("final_reserve") is True:
+        return SUGGESTED_FINAL_RESERVE
+    if manifest["schema"] != VERSION:
+        # The development grant path keeps the reserve it was built with.
+        return SUGGESTED_FINAL_RESERVE
+    return {}
+
+
+def _check_budget(manifest):
+    """Validate a miner-authored budget without imposing one.
+
+    There is no lower bound and no upper bound. A cap is whatever number the
+    miner chose, and the absence of a cap is not an error - so this rejects
+    incoherent input (a negative cap, an unknown dimension) and nothing else.
+    """
+    ceilings = manifest.get("ceilings")
+    if ceilings is None:
+        pass
+    elif type(ceilings) is not dict or set(ceilings) - set(DIMENSIONS):
+        raise ValueError("budget names an unknown resource")
+    else:
+        for key, value in ceilings.items():
+            if value is None:
+                continue
+            if type(value) is not int or value < 0:
+                raise ValueError("budget must be a nonnegative whole number: " + key)
+    elapsed = manifest.get("elapsed_seconds")
+    if elapsed is not None and (type(elapsed) is not int or elapsed < 1):
+        raise ValueError("elapsed budget must be a positive whole number")
+    if manifest.get("final_reserve") not in (None, True, False):
+        raise ValueError("final_reserve is the miner's choice, true or false")
 
 
 def _vector(value):
-    if type(value) is not dict or set(value) - set(CEILINGS):
+    if type(value) is not dict or set(value) - set(DIMENSIONS):
         raise ValueError("unknown resource dimension")
     if any(type(v) is not int or v < 0 for v in value.values()):
         raise ValueError("nonnegative integer accounting required")
@@ -102,9 +242,13 @@ class CampaignLedger:
         # Leave one MiB for SQLite pages and cancellation/status metadata.
         with self.db() as db:
             row = db.execute("SELECT manifest FROM campaign WHERE id=1").fetchone()
-        limits = json.loads(row[0])["ceilings"] if row else CEILINGS
-        if size + additional + 1024**2 > limits["retained_bytes"]:
-            raise ValueError("physical campaign retained-data ceiling")
+        # The default matters: a budget that never mentions storage has no
+        # storage cap, and `.get` without it would hand a None to the
+        # comparison below.
+        caps = _caps(json.loads(row[0])) if row else {}
+        cap = caps.get("retained_bytes", NO_BUDGET)
+        if cap is not NO_BUDGET and size + additional + 1024**2 > cap:
+            raise ValueError("miner budget: retained_bytes")
         return size
 
     def freeze(self, manifest):
@@ -118,11 +262,8 @@ class CampaignLedger:
         self._check_admission_mode(manifest)
         if manifest["schema"] == MANIFEST:
             self._grant(manifest)
-        elif (
-            manifest.get("ceilings") != CEILINGS
-            or manifest.get("elapsed_seconds") != ELAPSED_SECONDS
-        ):
-            raise ValueError("owner envelope differs")
+        else:
+            _check_budget(manifest)
         for key in (
             "campaign_id",
             "implementation",
@@ -181,7 +322,7 @@ class CampaignLedger:
             CampaignControl(self).checkpoint(self.generation)
 
     def _usage(self, db):
-        used = dict.fromkeys(CEILINGS, 0)
+        used = dict.fromkeys(DIMENSIONS, 0)
         for reserved, actual in db.execute("SELECT reservation,actual FROM operations"):
             # A reconciled final actual vector replaces, never adds to, reservation.
             for key, value in json.loads(
@@ -230,7 +371,7 @@ class CampaignLedger:
                 raise ValueError("freeze before dispatch")
             manifest = json.loads(frozen[0])
             self._check_admission_mode(manifest)
-            caps, elapsed = manifest["ceilings"], manifest["elapsed_seconds"]
+            caps, elapsed = _caps(manifest), _elapsed(manifest)
             expiry = None
             if manifest["schema"] != VERSION:
                 from .research_control import CampaignControl
@@ -259,8 +400,15 @@ class CampaignLedger:
             started = frozen[1]
             if started is None:
                 started = now
-            deadline = min(started + elapsed, expiry) if expiry else started + elapsed
-            if now < started or now >= deadline:
+            if elapsed is NO_BUDGET:
+                # An uncapped campaign has no wall clock of its own; a
+                # development grant's expiry, where one exists, still applies.
+                deadline = expiry
+            else:
+                deadline = (
+                    min(started + elapsed, expiry) if expiry else started + elapsed
+                )
+            if now < started or (deadline is not None and now >= deadline):
                 raise ValueError("campaign elapsed-time exhausted or clock regressed")
             if manifest["schema"] != VERSION and resources.get("provider_attempts", 0):
                 if now + 120 > deadline:
@@ -290,14 +438,28 @@ class CampaignLedger:
                 ):
                     raise ValueError("one numerical worker; reconcile active operation")
             used = self._usage(db)
-            for key, cap in caps.items():
-                headroom = FINAL_RESERVE.get(key, 0) if phase == "research" else 0
+            reserve = _final_reserve(manifest)
+            for key in DIMENSIONS:
+                want = resources.get(key, 0)
+                # Carbon's own shared reference service. Always applied, because
+                # it protects Carbon's infrastructure rather than the miner's
+                # money, and reported under its own name so the two are never
+                # confused for one another.
+                service = SERVICE_LIMITS.get(key)
+                if service is not None and used[key] + want > service:
+                    raise ValueError("carbon service capacity: " + key)
+                cap = caps.get(key, NO_BUDGET)
+                if cap is NO_BUDGET:
+                    # No budget is a supported state, so the check is skipped
+                    # rather than satisfied against a stand-in number.
+                    continue
+                headroom = reserve.get(key, 0) if phase == "research" else 0
                 if manifest["schema"] != VERSION and key == "final_replicas":
                     # Preserve unspent final slots; consumed slots are already in
                     # used. Numerical and monetary reserves remain conservative.
                     headroom = max(0, headroom - used[key])
-                if used[key] + resources.get(key, 0) + headroom > cap:
-                    raise ValueError("campaign resource admission: " + key)
+                if used[key] + want + headroom > cap:
+                    raise ValueError("miner budget: " + key)
             db.execute("UPDATE campaign SET started=? WHERE id=1", (started,))
             db.execute(
                 "INSERT INTO operations VALUES(?,?,?,?,?,?,?,?,?)",
@@ -442,14 +604,17 @@ class CampaignLedger:
             return {
                 "campaign_digest": campaign[0] if campaign else None,
                 "started_unix": campaign[1] if campaign else None,
-                "ceilings": (
-                    json.loads(campaign[2])["ceilings"] if campaign else dict(CEILINGS)
+                # The miner's own budget, reported as they set it. `None` means
+                # they set none, which is a state rather than a missing value.
+                "budget": (
+                    json.loads(campaign[2]).get("ceilings") if campaign else None
                 ),
                 "elapsed_limit_seconds": (
-                    json.loads(campaign[2])["elapsed_seconds"]
-                    if campaign
-                    else ELAPSED_SECONDS
+                    json.loads(campaign[2]).get("elapsed_seconds") if campaign else None
                 ),
+                # Carbon's infrastructure capacity, named separately so it can
+                # never read as a cap on the miner's own resources.
+                "carbon_service_limits": dict(SERVICE_LIMITS),
                 "used": self._usage(db),
                 "operations": operations,
                 "notes": notes,

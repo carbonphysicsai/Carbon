@@ -370,6 +370,31 @@ class ResearchMinerTools:
         )
         token = None
         if numerical:
+            if self.ledger is None:
+                # The one thing dispatch genuinely needs. Registration opens the
+                # research environment; a campaign is what work is dispatched
+                # *into*, and there is no way to account for a trial without
+                # one. Deliberately not a budget check - a miner who set no
+                # budget is not blocked from anything.
+                #
+                # Written for an agent, because only an agent can reach it:
+                # `ResearchMinerTools.call` is entered solely through
+                # `carbon.miner_mcp.standard`, and the browser never touches the
+                # sdk. A human filling the launch wizard gets a campaign as a
+                # consequence of launching; if a person ever saw this, the
+                # surface offered dispatch before the thing dispatch requires,
+                # and the repair is upstream of this message.
+                #
+                # It names no tool to call because none exists yet: no MCP
+                # operation creates a campaign. Saying so is more useful than
+                # inventing an instruction the caller cannot follow.
+                raise ValueError(
+                    "no campaign: this server has no campaign to account "
+                    "against, and no operation on it creates one; "
+                    "next_action=Reconnect to a server with a campaign "
+                    "attached, then retry with the same operation_id. A budget "
+                    "is optional and is never what is missing here."
+                )
             reservation = {"research_trials": 1}
             admission = self.ledger.reserve(
                 "trial-attempt-" + identity,
@@ -398,6 +423,21 @@ class ResearchMinerTools:
             if token is not None:
                 PRECHARGED_TRIAL.reset(token)
 
+    def _journal(self, kind, body):
+        """Record against the campaign journal, when there is a campaign.
+
+        A journal entry belongs to a campaign. A miner who has not started one
+        has nothing to write to, and that is a supported state rather than a
+        missing dependency - registration gates the research environment, a
+        campaign does not gate learning why a request was refused.
+
+        The caller's feedback never depends on this. Every site that journals
+        also returns the same record to the requester, so skipping the write
+        loses the durable copy and nothing the miner was told.
+        """
+        if self.ledger is not None:
+            self.ledger.note(owner=self.owner, kind=kind, body=body)
+
     def rejected(
         self,
         operation,
@@ -424,7 +464,7 @@ class ResearchMinerTools:
         }
         if correction in TASK_CORRECTIONS:
             record["minimal_safe_design"] = TASK_CORRECTIONS[correction]
-        self.ledger.note(owner=self.owner, kind="capability_request", body=record)
+        self._journal("capability_request", record)
         result = {
             "status": "REJECTED_BEFORE_DISPATCH",
             "reason": reason,
@@ -513,7 +553,7 @@ class ResearchMinerTools:
                 "detail": "No registered public prior pack; no alignment computation occurred",
                 "authority_granted": False,
             }
-            self.ledger.note(owner=self.owner, kind="capability_request", body=value)
+            self._journal("capability_request", value)
             return value
         reply = research.load_canonical(
             base64.b64decode(result["protocol_reply_base64"]), research.ServiceReply

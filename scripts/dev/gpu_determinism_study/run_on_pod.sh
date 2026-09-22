@@ -112,7 +112,12 @@ fi
 # afterwards would be silently too late. `repeat_gpu.py` reads the numerics
 # record back and refuses the run if they did not take effect, which is the only
 # check that survives the absence of a daemon.
-export PYTHONPATH="${CARBON_REPO}"
+# Prepended, not assigned. An inherited PYTHONPATH is how the interpreter finds
+# packages that are not in the image's own site-packages - `pytest`, which the
+# material derivation reaches through the fixture chain, and `pynvml`. Replacing
+# it outright dropped them, which worked only because the checkout happened to be
+# staged beside them on the same volume.
+export PYTHONPATH="${CARBON_REPO}${PYTHONPATH:+:${PYTHONPATH}}"
 export TMPDIR="${SCRATCH}/tmp"
 export JAX_PLATFORMS=cuda
 export JAX_ENABLE_X64=false

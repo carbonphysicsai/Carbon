@@ -62,6 +62,25 @@ pinned below; changing it changes an input the manifest cannot see. This is a re
 provenance claim and is stated here rather than left for a reader to assume the
 digest covers everything importable.
 
+## Step 0 - the datacenter must support a network volume
+
+**Check this before anything else, because stock does not imply it.** A network
+volume exists only in a datacenter that offers one, and the datacenter with the
+GPUs may not. `EUR-IS-2` had a live L40S 2-GPU pod at 2026-09-22T11:51Z and
+reports `networkVolumeTypes: []`: no volume can be created there at all, by a
+staging pod or by the S3 API. Provisioning on stock alone would have bought a
+pod whose mount could never exist.
+
+So the pre-provisioning check is a conjunction, not a single read:
+
+1. the class is available at 2 GPUs on the required CUDA line, **and**
+2. that same datacenter appears in `list-data-centers` with a
+   `networkVolumeTypes` entry.
+
+On the evidence to date the two do not intersect for either declared class. See
+`TWO_HOST_STUDY_AVAILABILITY_WATCH.md`, which records the watch, its fixed
+expiry, and the fallback decided in advance.
+
 ## Step 1 - network volume
 
 One volume, smallest size that holds the checkout plus `pytest` (10 GB is ample).
@@ -69,7 +88,18 @@ Same datacenter as the GPU pod, or it cannot be mounted.
 
 ## Step 2 - staging pod
 
+**Prefer the S3-compatible API and skip this pod entirely.** RunPod's
+S3-compatible API populates a network volume with no compute running, so the
+volume can be filled before any GPU window opens - which matters because windows
+here have closed inside an hour, and because a stager needs its own availability
+in the same datacenter. It uses S3 credentials, which are the owner's to hold
+and are not handled here.
+
+The staging pod below remains the route where the S3 API is unavailable.
+
 Cheapest CPU pod on a standard image with `git`. Mount the volume read-write.
+**Check the datacenter offers CPU pods**: `EUR-IS-2` offered none even while its
+L40S 2-GPU was live, so the stager would have needed a GPU in-region.
 
 The repository is public, so this needs **no credential** - which matters,
 because it means no token is written to a rented machine.

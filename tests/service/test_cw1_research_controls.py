@@ -11,8 +11,8 @@ from carbon.development_session.profile import canonical
 from carbon.development_session.research_carrier import _run
 from carbon.development_session.research_catalog import SURFACES, compile_recipe
 from carbon.development_session.research_ledger import (
-    CEILINGS,
-    ELAPSED_SECONDS,
+    DEVELOPMENT_CEILINGS,
+    DEVELOPMENT_ELAPSED_SECONDS,
     VERSION,
     CampaignLedger,
 )
@@ -151,8 +151,8 @@ def test_advertised_controls_change_actual_execution_as_registered(tmp_path):
     ledger.freeze(
         {
             "schema": VERSION,
-            "ceilings": CEILINGS,
-            "elapsed_seconds": ELAPSED_SECONDS,
+            "ceilings": DEVELOPMENT_CEILINGS,
+            "elapsed_seconds": DEVELOPMENT_ELAPSED_SECONDS,
             **{
                 name: "engineering-controls-only"
                 for name in (

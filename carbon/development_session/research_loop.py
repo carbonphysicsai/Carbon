@@ -118,9 +118,12 @@ async def run_epoch(
         ledger.checkpoint()
         status = ledger.status(owner=owner)
         trials = status["used"]["research_trials"] - trial_start
+        # Eight per epoch regardless; a miner's budget can only lower it, and
+        # its absence is not a reason to invent a different number.
+        budgeted = (status.get("budget") or {}).get("research_trials")
         trial_limit = (
-            min(8, max(0, status["ceilings"]["research_trials"] - trial_start))
-            if ledger.admission is not None
+            min(8, max(0, budgeted - trial_start))
+            if ledger.admission is not None and budgeted is not None
             else 8
         )
         call_id = f"epoch-{epoch}-provider-{index:03d}"

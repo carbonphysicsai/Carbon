@@ -6,8 +6,8 @@ import pytest
 from carbon.development_session import research_carrier as carrier
 from carbon.development_session.profile import canonical, digest
 from carbon.development_session.research_ledger import (
-    CEILINGS,
-    ELAPSED_SECONDS,
+    DEVELOPMENT_CEILINGS,
+    DEVELOPMENT_ELAPSED_SECONDS,
     VERSION,
     CampaignLedger,
 )
@@ -18,8 +18,8 @@ def setup(tmp_path):
     ledger.freeze(
         {
             "schema": VERSION,
-            "ceilings": CEILINGS,
-            "elapsed_seconds": ELAPSED_SECONDS,
+            "ceilings": DEVELOPMENT_CEILINGS,
+            "elapsed_seconds": DEVELOPMENT_ELAPSED_SECONDS,
             "campaign_id": "fixture",
             "implementation": "fixture",
             "objective": "fixture",

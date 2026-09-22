@@ -20,8 +20,8 @@ from carbon.development_session.research_admission import (
 from carbon.development_session.research_control import CampaignControl
 from carbon.development_session.research_image import ResearchImageIdentity
 from carbon.development_session.research_ledger import (
-    CEILINGS,
-    ELAPSED_SECONDS,
+    DEVELOPMENT_CEILINGS,
+    DEVELOPMENT_ELAPSED_SECONDS,
     CampaignLedger,
 )
 
@@ -59,9 +59,9 @@ def prepared(
         "provider": "openai-responses",
         "account_ref": "fixture-no-credentials",
         "campaign_count": 1,
-        "ceilings": dict(CEILINGS),
-        "elapsed_seconds": ELAPSED_SECONDS,
-        "expires_unix": clock() + ELAPSED_SECONDS,
+        "ceilings": dict(DEVELOPMENT_CEILINGS),
+        "elapsed_seconds": DEVELOPMENT_ELAPSED_SECONDS,
+        "expires_unix": clock() + DEVELOPMENT_ELAPSED_SECONDS,
         "cleanup": "all-campaign-owned-work; unresolved-reservations-retained",
         "retry_allowance": 0,
     }
@@ -81,7 +81,7 @@ def prepared(
             "runtime": runtime,
             "grant": admission.binding(),
             "ceilings": grant["ceilings"],
-            "elapsed_seconds": ELAPSED_SECONDS,
+            "elapsed_seconds": DEVELOPMENT_ELAPSED_SECONDS,
             **{
                 key: "fixture"
                 for key in (
@@ -202,7 +202,7 @@ def test_ungranted_authored_code_never_reaches_carrier(
             canonical(dict(ledger.admission.document, status="REQUESTED_NOT_GRANTED"))
         )
     if violation == "expired":
-        ledger.clock = lambda: 1000 + ELAPSED_SECONDS + 1
+        ledger.clock = lambda: 1000 + DEVELOPMENT_ELAPSED_SECONDS + 1
     with pytest.raises(ValueError):
         julia.run_julia(
             ledger,

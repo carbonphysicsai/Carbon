@@ -98,11 +98,14 @@ def request_model(
     # the remaining elapsed envelope; replay remains permitted after expiry.
     with ledger.db() as db:
         old = db.execute("SELECT id FROM operations WHERE id=?", (identity,)).fetchone()
-        campaign = db.execute("SELECT started FROM campaign WHERE id=1").fetchone()
+        campaign = db.execute(
+            "SELECT started,manifest FROM campaign WHERE id=1"
+        ).fetchone()
     if old is None and campaign is not None and campaign[0] is not None:
-        from .research_ledger import ELAPSED_SECONDS
+        from .research_ledger import NO_BUDGET, _elapsed
 
-        if ledger.clock() + 120 > campaign[0] + ELAPSED_SECONDS:
+        elapsed = _elapsed(json.loads(campaign[1]))
+        if elapsed is not NO_BUDGET and ledger.clock() + 120 > campaign[0] + elapsed:
             raise ValueError("provider timeout cannot fit remaining campaign time")
     request_digest = digest(payload)
     directory = ledger.root / ("model-" + digest(canonical([owner, identity]))[7:])
