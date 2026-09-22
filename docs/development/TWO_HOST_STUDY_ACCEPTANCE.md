@@ -520,6 +520,81 @@ agreement, and `validator_launch` remains `HARDWARE_EXERCISED: no`.
 
 ---
 
+---
+
+# Amendment 5 - preliminary divergence convention, pending ratification
+
+**Recorded 2026-09-22. Owner decision, PROVISIONAL.**
+
+Amendment 4 names Harshdeep Sharma as the MQ-008 scientific holder and moves
+`delta` to a GPU measurement. Two questions the measurement cannot answer for
+itself - the denominator convention, and whether `delta` is absolute or relative -
+are his. **They are decided here provisionally so work continues, and they are
+subject to his ratification.**
+
+**This is safe to decide provisionally for one specific reason:** the emitter
+prints sufficient statistics - max, mean and L2 absolute difference, differing
+count and fraction, both candidate denominators, and the values at the position
+of the largest difference. **Every convention is derivable afterwards from a
+completed run.** A different ratification costs a recomputation, not a pod.
+
+## 1. Denominator convention - provisional
+
+| Figure | Definition | Role |
+| --- | --- | --- |
+| **Headline** | relative **L2** over the prediction field | comparable to the model family's literature |
+| **Companion** | **max** `|a-b| / max(|a|,|b|)` | worst-case, gate sensitivity |
+
+**Why relative L2 as the headline.** It is the conventional error metric for
+neural-operator surrogates, which is the model family this study trains, and it is
+the figure the scientific holder's own parity work reports. A number stated in the
+field's own convention is easier to ratify or reject than one invented here.
+
+**Why a max companion, not L2 alone.** L2 averages over the field and can hide a
+single element diverging badly. A mandatory gate acts on a scalar metric that may
+be dominated by a worst case, so the worst case is reported beside the aggregate
+rather than folded into it.
+
+**Why `max(|a|,|b|)` rather than `|a|`.** The comparison is device against device.
+Neither run is the reference, so a denominator that privileges one is wrong on its
+face; `max` is symmetric and stays bounded where one side approaches zero.
+
+## 2. Absolute or relative - provisional: both
+
+Report both, always, and never one alone.
+
+- **Absolute** is the form the implementation records. `NumericalDelta` carries
+  `absolute_delta`, an observed per-output difference, so the absolute figure is
+  what any future connection to `compare_r1` would be expressed in.
+- **Relative** is the form the study reasons in, and the only form comparable
+  across workload scales and model sizes.
+
+Reporting both costs nothing, defers nothing, and keeps the seam visible -
+implementation records absolute while the study reasons relative - rather than
+resolving it silently in favour of whichever was convenient.
+
+## 3. What this does not decide
+
+**No `delta` value is set here.** The measurement produces figures; the holder
+sets `delta`. The provisional `1e-5`, marked CPU-derived in Amendment 4, stands
+until replaced.
+
+**Flagged for the holder, from local sanity figures and not a conclusion.** Two
+unpinned RTX 3060 sessions gave max absolute `5.96e-08` and L2 `9.49e-08` against
+denominators near 0.98 and 6.13 - relative figures around `1e-7` to `1e-8`, **two
+to three orders of magnitude below the CPU-derived `1e-5`.**
+
+If the A40 measurement agrees, the CPU proxy was **too loose** rather than too
+tight, and that matters more than a refinement: the power condition states that a
+`delta` much larger than the observed divergence makes the study report *"no
+ranking change" by construction*. A `delta` of `1e-5` against a real divergence
+near `1e-7` is that failure. **The holder should see this alongside the
+convention question, because it bears directly on what he is choosing.**
+
+One device is not a finding. The A40 run settles whether it holds.
+
+---
+
 # Amendment 6 - the scientific holder is off the development critical path
 
 **Recorded 2026-09-22. Owner decision.**
