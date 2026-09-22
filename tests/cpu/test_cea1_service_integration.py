@@ -13,6 +13,7 @@ import uuid
 from pathlib import Path
 
 import pytest
+from tamper_support import tampered_bytes
 
 from carbon.evidence_archive import (
     ALPHA_LOGICAL_QUOTA_BYTES,
@@ -366,7 +367,11 @@ def test_service_backed_missing_corrupt_object_and_schema_version_fail_closed(se
     storage_digest = hashlib.sha256(object_key.encode("ascii")).hexdigest()
     stored_file = objects.root / "objects" / storage_digest[:2] / storage_digest[2:]
     original = stored_file.read_bytes()
-    stored_file.write_bytes(original[:-1] + b"x")
+    stored_file.write_bytes(tampered_bytes(original))
+    # The write is read back and asserted to have landed. The test's whole
+    # claim is that verification rejects changed bytes, which says nothing
+    # unless the bytes on disk actually changed.
+    assert stored_file.read_bytes() != original
     acknowledgement, _ = archive.verify_current(
         result.entry,
         synthetic_capture_profile(),

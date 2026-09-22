@@ -4,6 +4,7 @@ import json
 from dataclasses import replace
 
 import pytest
+from tamper_support import tampered_bytes
 
 from carbon import qualification
 from carbon.registry import ChallengeKey
@@ -138,7 +139,7 @@ def test_noncanonical_and_duplicate_or_tampered_documents_fail_closed() -> None:
         qualification.load_canonical_document(duplicate)
     assert caught.value.code is qualification.DossierInputCode.DUPLICATE_IDENTITY
     with pytest.raises(qualification.DossierCanonicalError):
-        qualification.load_canonical_document(encoded[:-1] + b"x")
+        qualification.load_canonical_document(tampered_bytes(encoded))
 
 
 @pytest.mark.parametrize(
