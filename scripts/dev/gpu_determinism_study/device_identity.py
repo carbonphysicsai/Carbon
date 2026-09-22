@@ -73,6 +73,22 @@ def device_uuids() -> list[dict]:
     if library.nvmlInit_v2() != 0:
         return []
     try:
+        # The host's driver build. Read here rather than in its own function
+        # because NVML requires nvmlInit first, and a call made outside this
+        # block returns nothing while looking exactly like an unreadable driver.
+        #
+        # The acceptance requires the driver build recorded per device and
+        # confirmed matching across compared units. In one chassis it is a
+        # host-level property, so one read describes both devices - but it is
+        # attached to each and reported rather than assumed, because "same
+        # chassis therefore same driver" is the kind of inference this study
+        # exists to avoid.
+        driver = ctypes.create_string_buffer(96)
+        build = (
+            driver.value.decode("ascii", "replace")
+            if library.nvmlSystemGetDriverVersion(driver, 96) == 0
+            else None
+        )
         count = ctypes.c_uint()
         if library.nvmlDeviceGetCount_v2(ctypes.byref(count)) != 0:
             return []
@@ -92,6 +108,7 @@ def device_uuids() -> list[dict]:
                     # and finds None must refuse, not invent one.
                     "uuid": uuid.value.decode("ascii", "replace") if got_uuid else None,
                     "name": name.value.decode("ascii", "replace") if got_name else None,
+                    "driver_version": build,
                 }
             )
         return devices
