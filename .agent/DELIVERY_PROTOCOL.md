@@ -119,6 +119,57 @@ The remedy is structural rather than a handled edge case. Build the basis into
 the success path, and treat a read that returned nothing as *no information*
 rather than as a pass. This is an engineering standard, not a delivery gate.
 
+### 1.3 A wait that cannot say what it is waiting for is not waiting
+
+> **An unsatisfiable wait presents as patience.**
+
+A watcher pinned to a SHA that is no longer the head polls forever. From outside,
+"not yet" and "never" look identical: no error, no failure, just a pull request
+that quietly does not merge. The expected-head guard worked exactly as designed;
+the watcher's silence was the defect.
+
+The transferable part is a question, asked before the wait starts and again each
+time the wait is reported:
+
+> **Can the thing I am waiting for still become true? If I cannot answer that, I
+> am not waiting - I am stuck.**
+
+What follows from it:
+
+- State the condition before waiting, in terms that can be *evaluated* rather
+  than described.
+- A pinned identifier that no longer exists is a **reported condition, not a
+  continued wait**. Say so and stop.
+- When the blocker is someone else, verify that they are actually the blocker.
+  Re-read the state; do not infer it from the last thing that was known.
+- A report that says "waiting" must say what for, and how its arrival would be
+  recognised. A report that says only "waiting" cannot be distinguished from one
+  that should say "stuck".
+
+Three instances on 2026-09-22, and the shape is only visible once they are put
+beside each other: **six pull requests green and unmerged** across two lanes,
+because their watchers held stale SHAs copied from a template; **a pull request
+reported as waiting on two other workstreams** while it was red on a single Ruff
+diagnostic, so it was waiting on its own author and nobody checked; and
+**sessions idle for two hours after ending a turn**, which from outside is
+indistinguishable from sessions working.
+
+Each looked like patience, which is why none of them raised an alarm. A failure
+that announces itself gets fixed; this one is quiet by construction, and the
+quiet is the symptom.
+
+The remedy is the same shape as 1.1: make the unsatisfiable wait impossible to
+express rather than remembering not to write one. A waiter should re-read the
+condition it pinned, and stop with a report the moment that condition becomes
+unreachable - a head that moved, a pull request already merged or closed, a
+check that completed without success. `scripts/dev/merge_on_green.py` is the
+worked version for the case that produced these, and its decision function is
+tested against each terminal state precisely because "still waiting" is the one
+answer that must never be returned for a condition that cannot come true.
+
+This is an engineering standard, not a delivery gate. It adds no required check
+and blocks no merge.
+
 ## 2. Validation budget
 
 
