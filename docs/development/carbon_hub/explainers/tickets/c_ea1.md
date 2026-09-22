@@ -40,10 +40,10 @@ Synthetic acknowledgement remains tested only in its accepted fixture scope. The
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/ca8f78daded6a6fca017733effa001bb920b9ae9/.agent/tickets/C-EA1_durable_evidence_archive.md)
-- [Evidence capture contract](https://github.com/carbonphysicsai/Carbon/blob/ca8f78daded6a6fca017733effa001bb920b9ae9/Design_Specs/Evidence_Archive_and_Custody.md)
-- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/ca8f78daded6a6fca017733effa001bb920b9ae9/.agent/WAVE_C.md)
-- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/ca8f78daded6a6fca017733effa001bb920b9ae9/.agent/evidence/wave_c/c-ea1.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/6ee3a1a06cd78afcc52346dbecfcc765e5e0bf6f/.agent/tickets/C-EA1_durable_evidence_archive.md)
+- [Evidence capture contract](https://github.com/carbonphysicsai/Carbon/blob/6ee3a1a06cd78afcc52346dbecfcc765e5e0bf6f/Design_Specs/Evidence_Archive_and_Custody.md)
+- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/6ee3a1a06cd78afcc52346dbecfcc765e5e0bf6f/.agent/WAVE_C.md)
+- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/6ee3a1a06cd78afcc52346dbecfcc765e5e0bf6f/.agent/evidence/wave_c/c-ea1.md)
 - [Synthetic archive runbook](https://github.com/carbonphysicsai/Carbon/blob/4f84329cb1f91b89b3b11547d938867fd846417d/docs/development/EVIDENCE_ARCHIVE_SYNTHETIC.md)
 - [Private-alpha preparation runbook](https://github.com/carbonphysicsai/Carbon/blob/4f84329cb1f91b89b3b11547d938867fd846417d/docs/development/EVIDENCE_ARCHIVE_ALPHA_PROFILE.md)
 - [AWS private-alpha package](https://github.com/carbonphysicsai/Carbon/blob/4f84329cb1f91b89b3b11547d938867fd846417d/docs/development/EVIDENCE_ARCHIVE_AWS_PRIVATE_ALPHA.md)
