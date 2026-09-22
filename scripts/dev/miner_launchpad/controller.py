@@ -296,9 +296,10 @@ def research_compute_choices() -> list:
                 "INSTALLED_HOST_DEVICE_RECORD_COMPATIBLE_WITH_THE_GPU_PROFILE",
                 "CONTAINER_DEVICE_RUNTIME",
                 "PINNED_GPU_WORKER_IMAGE",
-                "CAMPAIGN_GRANT_DECLARING_GPU_RESEARCH",
             ],
             "not_required": [
+                # Carbon approves nobody's access to their own GPU.
+                "CAMPAIGN_GRANT_DECLARING_GPU_RESEARCH",
                 "STRICT_HOST_GRANT",
                 "WHOLE_DEVICE_EXCLUSIVITY",
                 "COMPUTE_PROCESS_ENUMERATION",
@@ -363,8 +364,12 @@ def capability_catalog() -> dict:
             },
             {"id": "hermes", "reason": "adapter_not_implemented"},
             {
+                # Not unbuilt: `carbon.miner_mcp.standard_http` is an
+                # authenticated MCP resource server today. What it is bound to
+                # is one existing principal *and grant*, so an ordinary miner
+                # cannot reach it. The gap is the coupling, not the bridge.
                 "id": "personal-agent",
-                "reason": "authenticated_mcp_bridge_not_implemented",
+                "reason": "mcp_bridge_bound_to_a_development_grant",
             },
             {"id": "mira", "reason": "integration_interface_unverified"},
             {
@@ -377,8 +382,14 @@ def capability_catalog() -> dict:
             },
             {"id": "engy", "reason": "inference_adapter_not_implemented"},
             {
+                # The previous reason named a design the key rule forbids.
+                # Carbon will never hold transaction authority or operate a
+                # signing wallet adapter: `chain_onboarding` prepares an
+                # unsigned registration the miner executes in their own tooling,
+                # and that shipped. What is actually missing is a chain endpoint
+                # for this deployment, without which the reads cannot run.
                 "id": "testnet-registration",
-                "reason": "wallet_adapter_and_transaction_authority_required",
+                "reason": "chain_endpoint_not_configured_for_this_deployment",
             },
         ],
     }
@@ -670,7 +681,11 @@ def main() -> None:
     parser.add_argument(
         "--research-profile",
         type=Path,
-        help="Private operator configuration; requires a separate approved grant",
+        help=(
+            "Development only: a private operator configuration carrying a "
+            "development grant, for Carbon's own bounded experiments. A miner "
+            "needs no such record and no approval to use their own compute."
+        ),
     )
     parser.add_argument(
         "--development-source",

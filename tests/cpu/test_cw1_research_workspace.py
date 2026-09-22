@@ -2,7 +2,7 @@
 
 import pytest
 
-from carbon.development_session.research_ledger import CampaignLedger
+from carbon.development_session.research_ledger import DIMENSIONS, CampaignLedger
 from carbon.development_session.research_workspace import (
     CAPABILITY_FIELDS,
     ResearchWorkspace,
@@ -42,9 +42,10 @@ def test_request_cannot_choose_its_disposition_or_grant(tmp_path):
     request["reason"] = "missing_adapter"
     result = request_capability(ledger, owner="alice", request=request)
     assert result["authority_granted"] is False
-    assert ledger.status(owner="alice")["used"] == dict.fromkeys(
-        ledger.status(owner="alice")["ceilings"], 0
-    )
+    # Every dimension at zero. Enumerated from DIMENSIONS rather than from the
+    # budget, because the claim is that nothing was consumed - which holds
+    # whether or not the miner set a budget at all.
+    assert ledger.status(owner="alice")["used"] == dict.fromkeys(DIMENSIONS, 0)
     with pytest.raises(ValueError):
         request_capability(
             ledger, owner="alice", request={**request, "disposition": "approved"}

@@ -130,13 +130,14 @@ def test_disabled_resume_keeps_status_stop_and_reconciliation(tmp_path, monkeypa
 
 def test_final_reserve_projection_uses_existing_ledger_contract(tmp_path, monkeypatch):
     bridge, _, doc, _ = configured_bridge(tmp_path, monkeypatch)
-    from carbon.development_session.research_ledger import FINAL_RESERVE
+    from carbon.development_session.research_ledger import SUGGESTED_FINAL_RESERVE
 
     review = bridge.preflight()["review"]["resources"]
-    assert review["final_evaluation_reserve"] == FINAL_RESERVE
+    assert review["final_evaluation_reserve"] == SUGGESTED_FINAL_RESERVE
     for dimension, ceiling in doc["ceilings"].items():
         assert (
-            review["maximum_exploration"][dimension] + FINAL_RESERVE.get(dimension, 0)
+            review["maximum_exploration"][dimension]
+            + SUGGESTED_FINAL_RESERVE.get(dimension, 0)
             == ceiling
         )
 

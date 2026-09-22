@@ -23,7 +23,7 @@ from carbon.development_session.julia_envelope import JuliaEnvelopeMaterial, _re
 from carbon.development_session.julia_research import MATERIAL, JuliaPublicMaterial
 from carbon.development_session.profile import CHALLENGE, canonical, digest
 from carbon.development_session.research_data import decode_public_case
-from carbon.development_session.research_ledger import FINAL_RESERVE
+from carbon.development_session.research_ledger import NO_BUDGET
 from carbon.development_session.research_profile import public_cases
 from carbon.generators.burgers_dynamics import DOMAIN_LENGTH, requested_times
 from carbon.miner_mcp.standard import ResearchToolAdapter, ResearchToolRequest
@@ -130,6 +130,19 @@ class RegisteredWorkbenchDraft:
 def _ident(value):
     if type(value) is not str or _IDENT.fullmatch(value) is None:
         raise ValueError("bounded study identity required")
+
+
+def _remaining(cap, used):
+    """What is left of a budget, or None when there is no budget.
+
+    None rather than a large number: a miner who set no cap has nothing
+    remaining *of*, and reporting a figure would invent a limit they never set.
+    """
+    if cap is None or cap is NO_BUDGET:
+        return None
+    # No reserve is subtracted here: holding back a final phase is the miner's
+    # choice now, so it belongs to whoever applies it, not to this report.
+    return max(0, cap - used)
 
 
 class WorkbenchScience:
@@ -399,14 +412,9 @@ class WorkbenchScience:
             ):
                 raise ValueError("study result provenance differs")
             result = self._numerical(metadata)
+        budget = observed.get("budget") or {}
         remaining = {
-            key
-            + "_remaining": max(
-                0,
-                observed["ceilings"][key]
-                - observed["used"][key]
-                - FINAL_RESERVE.get(key, 0),
-            )
+            key + "_remaining": _remaining(budget.get(key), observed["used"][key])
             for key in (
                 "research_trials",
                 "numerical_milliseconds",

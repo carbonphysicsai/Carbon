@@ -21,8 +21,8 @@ from carbon.development_session.research_control import (
     DispatchStopped,
 )
 from carbon.development_session.research_ledger import (
-    CEILINGS,
-    FINAL_RESERVE,
+    DEVELOPMENT_CEILINGS,
+    SUGGESTED_FINAL_RESERVE,
     CampaignLedger,
 )
 from carbon.development_session.research_report import render_status
@@ -66,7 +66,7 @@ def prepared(tmp_path, *, ceilings=None, scope=SCOPE_DOCUMENT):
         "provider": "openai-responses",
         "account_ref": "no-credentials",
         "campaign_count": 1,
-        "ceilings": dict(CEILINGS if ceilings is None else ceilings),
+        "ceilings": dict(DEVELOPMENT_CEILINGS if ceilings is None else ceilings),
         "elapsed_seconds": 28800,
         "expires_unix": 50000,
         "cleanup": "all-campaign-owned-work; unresolved-reservations-retained",
@@ -153,8 +153,9 @@ def test_atomic_aggregate_final_reserve_and_replay(tmp_path):
 
 def test_no_partial_rows_when_only_one_child_fits(tmp_path):
     caps = {
-        **CEILINGS,
-        "numerical_milliseconds": FINAL_RESERVE["numerical_milliseconds"] + 720000,
+        **DEVELOPMENT_CEILINGS,
+        "numerical_milliseconds": SUGGESTED_FINAL_RESERVE["numerical_milliseconds"]
+        + 720000,
     }
     ledger = prepared(tmp_path, ceilings=caps)
     with pytest.raises(ValueError, match="aggregate"):
