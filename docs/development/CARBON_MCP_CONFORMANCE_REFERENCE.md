@@ -360,6 +360,37 @@ stub list is asserted against the stubs actually shipped, and the mutation list
 against the mutations actually exercised. A reader can lean on a stub-controlled
 PASS more heavily than a mutation-controlled one.
 
+### An exclusion check needs a specimen
+
+The controlled/uncontrolled split above is one instance of a property that
+applies to every negative assertion, one level down from whole checks to
+individual assertions. A test that asserts something is **absent** — a forbidden
+string is not in a bundle, an error carries no credential, a malformed input is
+refused — passes identically whether the subject is clean or the check is
+incapable of failing. A typo in the pattern, a renamed constant, a marker that
+never existed, and a genuinely clean subject all produce the same green.
+
+> **You cannot show that "X is absent from here" means anything unless you also
+> show the check finds X where X really is.**
+
+So a marker is asserted absent from the subject *and present in a specimen*, in
+the same test. Three defects on this repository's own surfaces had that one
+shape, each found only by looking for the specimen rather than by reading the
+assertion:
+
+- A leak check that probed only malformed input, which the schema layer refuses
+  before the adapter, so an adapter-level leak passed it.
+- A falsification harness whose predicate accepted any `Error`, so a
+  `ReferenceError` inside the deliberately broken variant counted as the variant
+  being caught.
+- Exclusion markers for a public bundle, two of which matched nothing anywhere:
+  one string appears in no default build, the other never existed. Pairing each
+  marker against the bundle that does contain it failed immediately; without the
+  pairing both would have shipped as confident green assertions.
+
+This is an authoring standard for anyone extending this suite, not a further
+gate. It adds no required check and blocks nothing.
+
 ## Verifying a server
 
 ```sh
