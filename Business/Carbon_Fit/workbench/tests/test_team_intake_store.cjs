@@ -1039,3 +1039,59 @@ test("an archived record cannot be revised until it is restored", async () => {
     ["ARCHIVED", "RESTORED"],
   );
 });
+
+test("each endpoint admits exactly the roles it is supposed to", async () => {
+  // The enumeration above proves every endpoint refuses a caller that was never
+  // authenticated. It says nothing about which authenticated callers each one
+  // admits, so an endpoint wired to the wrong role would pass it. This is that
+  // matrix, written out so a change to the roles map has to change a table
+  // somebody reads rather than only a line somebody edits.
+  const MATRIX = {
+    accept: ["receiver"],
+    read: ["reviewer", "receiver"],
+    update: ["reviewer"],
+    export: ["reviewer"],
+    search: ["reviewer", "receiver"],
+    archive: ["steward"],
+    restore: ["steward"],
+    approveDeletionException: ["steward"],
+    delete: ["steward"],
+    pendingWriteDebris: ["steward"],
+    listOutbox: ["notifier"],
+    processOutbox: ["notifier"],
+  };
+  const everyone = ["receiver", "reviewer", "second_reviewer", "steward", "notifier"];
+
+  for (const [endpoint, permitted] of Object.entries(MATRIX)) {
+    for (const name of everyone) {
+      const fixture = temporaryStore();
+      const receipt = await fixture.store.accept(reviewedRaw(), "matrix", roles.receiver);
+      approveDeletion(fixture.store, receipt.inquiry_id);
+      const id = receipt.inquiry_id;
+      const call = {
+        accept: (p) => fixture.store.accept(reviewedRaw(), "matrix-2", p),
+        read: (p) => fixture.store.read(id, p),
+        update: (p) => fixture.store.update(id, 1, { assigned_reviewer: "", note: "", queue_state: "PARKED" }, p),
+        export: (p) => fixture.store.export(id, p),
+        search: (p) => fixture.store.search(p),
+        archive: (p) => fixture.store.archive(id, p),
+        restore: (p) => fixture.store.restore(id, p),
+        approveDeletionException: (p) => fixture.store.approveDeletionException(id, { approver: "Ryan Bequette", reason: "Synthetic cleanup." }, p),
+        delete: (p) => fixture.store.delete(id, p),
+        pendingWriteDebris: (p) => fixture.store.pendingWriteDebris(p),
+        listOutbox: (p) => fixture.store.listOutbox(p),
+        processOutbox: (p) => fixture.store.processOutbox("notify-" + id, async () => {}, p),
+      }[endpoint];
+
+      // A reviewer is two accounts, so "reviewer" in the table covers both.
+      const allowed = permitted.includes(name) ||
+        (permitted.includes("reviewer") && name === "second_reviewer");
+      let refusal = null;
+      try { await call(roles[name]); } catch (error) { refusal = error.message; }
+      if (allowed)
+        assert.equal(/not authorized/.test(refusal || ""), false, `${endpoint} refused ${name}: ${refusal}`);
+      else
+        assert.match(refusal || "", /not authorized for/, `${endpoint} admitted ${name}`);
+    }
+  }
+});
