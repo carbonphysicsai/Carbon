@@ -29,15 +29,15 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from test_standard_mcp_adapter import make_adapter  # noqa: E402
+from test_standard_mcp_adapter import make_adapter
 
-from carbon.miner_mcp import serving  # noqa: E402
-from carbon.miner_mcp.standard import (  # noqa: E402
+from carbon.miner_mcp import serving
+from carbon.miner_mcp.standard import (
     AdapterCode,
     AdapterFailure,
     ResearchToolResult,
 )
-from carbon.miner_mcp.standard_server import PREFIX, _create_server  # noqa: E402
+from carbon.miner_mcp.standard_server import PREFIX, _create_server
 
 OPERATION_ID = "external-operation-0001"
 HYPOTHESIS = "a hypothesis the miner would not want written to a log"
