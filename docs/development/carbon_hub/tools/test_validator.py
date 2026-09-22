@@ -6,6 +6,7 @@ from __future__ import annotations
 import copy
 import json
 import os
+import shutil
 import subprocess
 import tempfile
 import unittest
@@ -106,6 +107,9 @@ class DiffValidator(validate_hub.Validator):
         self.commands.append(args)
         if args[:2] == ("rev-parse", "--verify"):
             return subprocess.CompletedProcess(args, 0, BASE_SHA + "\n", "")
+        if args[:2] == ("rev-list", "--merges"):
+            # This scenario has no merge commits in its range.
+            return subprocess.CompletedProcess(args, 0, "", "")
         if args and args[0] == "diff":
             output = (
                 ".agent/evidence/wave_b/removed.md\0"
@@ -132,6 +136,8 @@ class PushDiffValidator(validate_hub.Validator):
         del allow_failure
         if args[:2] == ("rev-parse", "--verify"):
             return subprocess.CompletedProcess(args, 0, BASE_SHA + "\n", "")
+        if args[:2] == ("rev-list", "--merges"):
+            return subprocess.CompletedProcess(args, 0, "", "")
         if args and args[0] == "diff":
             output = "carbon/runtime.py\0" if "...HEAD" in " ".join(args) else ""
             return subprocess.CompletedProcess(args, 0, output, "")
@@ -3384,3 +3390,179 @@ class OwnerDeliveryPolicyTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class MergeParentLedgerTests(unittest.TestCase):
+    """A merge may not drop an event either of its parents recorded.
+
+    The immutability comparison faces the PR base, so it catches an event lost
+    after it reached main and says nothing about a sibling branch's event that
+    never did. These cover the case it cannot see.
+    """
+
+    MERGE = "a" * 40
+    PARENT_MINE = "b" * 40
+    PARENT_SIBLING = "c" * 40
+
+    def seam(
+        self, ledgers: dict[str, list[str]], trees: dict[str, list[str]] | None = None
+    ):
+        outer = self
+
+        class MergeSeam(validate_hub.Validator):
+            def __init__(self) -> None:
+                super().__init__(Path("."))
+                self.diff_base_sha = BASE_SHA
+
+            def git(self, *args: str, allow_failure: bool = False):
+                del allow_failure
+                if args[:2] == ("rev-list", "--merges"):
+                    return subprocess.CompletedProcess(args, 0, outer.MERGE + "\n", "")
+                if args[:3] == ("rev-list", "--parents", "-n"):
+                    return subprocess.CompletedProcess(
+                        args,
+                        0,
+                        f"{outer.MERGE} {outer.PARENT_MINE} {outer.PARENT_SIBLING}\n",
+                        "",
+                    )
+                if args and args[0] == "show":
+                    ref = args[1].split(":", 1)[0]
+                    if ref not in ledgers:
+                        return subprocess.CompletedProcess(args, 128, "", "no ledger")
+                    events = [{"event_id": name} for name in ledgers[ref]]
+                    return subprocess.CompletedProcess(
+                        args, 0, json.dumps({"events": events}), ""
+                    )
+                if args and args[0] == "ls-tree":
+                    ref = args[2].split(":", 1)[0]
+                    names = (trees or {}).get(ref)
+                    if names is None:
+                        return subprocess.CompletedProcess(
+                            args, 128, "", "no directory"
+                        )
+                    return subprocess.CompletedProcess(
+                        args, 0, "\n".join(f"{name}.json" for name in names), ""
+                    )
+                raise AssertionError(f"Unexpected Git command: {args}")
+
+        return MergeSeam()
+
+    def test_a_merge_keeping_both_sides_passes(self) -> None:
+        validator = self.seam(
+            {
+                self.MERGE: ["EVENT-MINE", "EVENT-SIBLING"],
+                self.PARENT_MINE: ["EVENT-MINE"],
+                self.PARENT_SIBLING: ["EVENT-SIBLING"],
+            }
+        )
+        validator.validate_merge_parent_events({"EVENT-MINE", "EVENT-SIBLING"})
+        self.assertEqual(validator.errors, [])
+
+    def test_a_merge_that_dropped_a_siblings_event_fails(self) -> None:
+        # The case the base comparison cannot see: the sibling's event never
+        # reached main, so the base never had it and its absence looks like it
+        # was never written.
+        validator = self.seam(
+            {
+                self.MERGE: ["EVENT-MINE"],
+                self.PARENT_MINE: ["EVENT-MINE"],
+                self.PARENT_SIBLING: ["EVENT-SIBLING"],
+            }
+        )
+        validator.validate_merge_parent_events({"EVENT-MINE"})
+        self.assertTrue(
+            any("EVENT-SIBLING" in error for error in validator.errors),
+            f"the dropped sibling event was not reported: {validator.errors}",
+        )
+        self.assertTrue(
+            any("dropped change events" in error for error in validator.errors)
+        )
+        # It names where to restore from, because re-recording an event loses
+        # the original wording and identity.
+        self.assertTrue(any("Restore them from" in error for error in validator.errors))
+
+    def test_a_merge_that_dropped_its_own_side_fails_too(self) -> None:
+        validator = self.seam(
+            {
+                self.MERGE: ["EVENT-SIBLING"],
+                self.PARENT_MINE: ["EVENT-MINE"],
+                self.PARENT_SIBLING: ["EVENT-SIBLING"],
+            }
+        )
+        validator.validate_merge_parent_events({"EVENT-SIBLING"})
+        self.assertTrue(any("EVENT-MINE" in error for error in validator.errors))
+
+    def test_events_recorded_as_files_are_read_too(self) -> None:
+        # The check must work before, during and after the ledger migration, so
+        # it reads the array and the per-event directory at each ref.
+        validator = self.seam(
+            {self.MERGE: [], self.PARENT_MINE: [], self.PARENT_SIBLING: []},
+            {
+                self.MERGE: ["EVENT-MINE"],
+                self.PARENT_MINE: ["EVENT-MINE"],
+                self.PARENT_SIBLING: ["EVENT-SIBLING"],
+            },
+        )
+        validator.validate_merge_parent_events({"EVENT-MINE"})
+        self.assertTrue(
+            any("EVENT-SIBLING" in error for error in validator.errors),
+            "an event recorded as a file was not seen by the parent comparison",
+        )
+
+    def test_it_catches_the_loss_in_a_real_repository(self) -> None:
+        """The seam above is canned. This one is git.
+
+        Two sibling branches each record an event, one merges the other and
+        resolves the conflict by keeping its own side, and the check must fail
+        at the merge that dropped it.
+        """
+        root = Path(tempfile.mkdtemp(prefix="carbon-merge-parents-"))
+        self.addCleanup(shutil.rmtree, root, True)
+        hub = root / "docs/development/carbon_hub/data"
+        hub.mkdir(parents=True)
+
+        def git(*args: str) -> subprocess.CompletedProcess:
+            return subprocess.run(
+                ["git", "-c", "user.email=t@local", "-c", "user.name=t", *args],
+                cwd=root,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+        def write(ids: list[str]) -> None:
+            (hub / "change_events.json").write_text(
+                json.dumps(
+                    {"schema_version": "1.0", "events": [{"event_id": i} for i in ids]},
+                    indent=2,
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+
+        write([])
+        git("init", "-q", ".")
+        git("add", "-A")
+        git("commit", "-qm", "base")
+        base = git("rev-parse", "HEAD").stdout.strip()
+        head = git("rev-parse", "--abbrev-ref", "HEAD").stdout.strip()
+
+        git("checkout", "-q", "-b", "sibling")
+        write(["EVENT-SIBLING"])
+        git("commit", "-qam", "sibling records its event")
+        git("checkout", "-q", head)
+        write(["EVENT-MINE"])
+        git("commit", "-qam", "mine records its event")
+        git("merge", "--no-edit", "sibling")
+        # Resolve by keeping our side, which is what destroys the other event.
+        write(["EVENT-MINE"])
+        git("add", "-A")
+        git("commit", "-qm", "resolve the ledger conflict")
+
+        validator = validate_hub.Validator(root, skip_pr_contract=True)
+        validator.diff_base_sha = base
+        validator.validate_merge_parent_events({"EVENT-MINE"})
+        self.assertTrue(
+            any("EVENT-SIBLING" in error for error in validator.errors),
+            f"real git: the dropped event was not reported: {validator.errors}",
+        )

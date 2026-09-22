@@ -71,7 +71,18 @@ function createIntakeServer({ store, users }) {
         // Retried by the operator and observable either way. With no configured
         // transport the attempt is recorded as a failure rather than a delivery.
         const event = await store.processOutbox(outboxMatch[1], null, principal);
-        return send(response, event.status === "DELIVERED" ? 200 : 502, event);
+        // 502 says a gateway was reached and misbehaved. With no destination
+        // configured nothing was reached, and answering 502 sends an operator
+        // looking for a network fault that does not exist. 501 says this
+        // server cannot perform the delivery at all, which is the true state
+        // and is distinguishable from a real upstream failure later.
+        const status =
+          event.last_outcome === "DELIVERED"
+            ? 200
+            : event.last_outcome === "NOT_ATTEMPTED_NO_TRANSPORT"
+              ? 501
+              : 502;
+        return send(response, status, event);
       }
       if (request.method === "GET" && url.pathname === "/private/capacity")
         return send(response, 200, store.capacity(principal));
@@ -171,6 +182,21 @@ function main() {
   const store = new DurableIntakeStore(storePath, {
     destination: process.env.CARBON_TEAM_NOTIFY_DESTINATION,
   });
+  // Exactly one receiver process per store file. Every accepted inquiry
+  // rewrites the whole file, so a second process would not interleave with
+  // this one, it would overwrite its records. Refused here, before the port is
+  // bound, so the failure is a start that did not happen rather than two
+  // receivers quietly disagreeing about the contents of one file.
+  store.acquireWriterLock();
+  const release = () => {
+    store.releaseWriterLock();
+  };
+  process.on("exit", release);
+  for (const signal of ["SIGINT", "SIGTERM"])
+    process.on(signal, () => {
+      release();
+      process.exit(0);
+    });
   const port = Number(process.env.CARBON_TEAM_INTAKE_PORT || "8789");
   createIntakeServer({ store, users: loadUsers(usersPath) }).listen(
     port,

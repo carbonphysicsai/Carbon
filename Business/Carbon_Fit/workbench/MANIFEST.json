@@ -19,7 +19,7 @@
     "GOAL-WORKBENCH-10"
   ],
   "repository_base": "3681f7fb10be0c6e278f53d59ff9b022099ef12d",
-  "integration_revision_at_packaging": "d1954cc76bbc72b7193cd6c8908ea134631b1dc2",
+  "integration_revision_at_packaging": "3aadbda9968609439d8c1aa528f49f691f1a8f99",
   "integration_revision_note": "The checksum manifest describes exact packaged bytes. A commit cannot contain its own digest; final PR/head identity is reported by delivery.",
   "pinned_research_revision": "ca904dfee93d3574df4e56b99981a6ed3b138e80",
   "accepted_research_head": "0a5690270dc449ea19c941280203987d37db5283",
@@ -363,8 +363,8 @@
       "sha256": "e4f5ebd532b8142f151b4dbb215aadc2a3a89b0f2fdef611fcc3add2b389deb4"
     },
     "docs/GOAL_WORKBENCH_09_PRIVATE_DEPLOYMENT_RUNBOOK.md": {
-      "bytes": 12402,
-      "sha256": "e172acf58e104c33dd8af1316f60521a71f6c2241ba24b60ea7fe9ea2883612d"
+      "bytes": 18892,
+      "sha256": "97d7c85ddcf7d74a8f9fe55339a90fb3518936e4fb16d5f588ebb3aae02abe30"
     },
     "docs/GOAL_WORKBENCH_09_TEAM_REVIEW_REPORT.md": {
       "bytes": 8494,
@@ -939,12 +939,12 @@
       "sha256": "291e6d981d1cd58e51e9afd9acb4b4346ab8a57a648a04b4d3cca32beb8a0c95"
     },
     "tests/test_team_intake_server.cjs": {
-      "bytes": 19799,
-      "sha256": "46c4b90c2dbfc37f71033102ed49f708e846006a982af878fdeacc73a415b2fc"
+      "bytes": 20180,
+      "sha256": "7cf7037545c0aa6a76f275d64b9d0d24ce4a00b0d3e40d85a40deb5a1c78a7d7"
     },
     "tests/test_team_intake_store.cjs": {
-      "bytes": 59160,
-      "sha256": "ad653fd80565538834656c42b91d8305baa03f16fcc9d4fdc8d38019fdc89e09"
+      "bytes": 64522,
+      "sha256": "25fa6ed143d9c099c18bda9cacb12de0eb3ededecd99db104a82cfe4e2ec1bdf"
     },
     "tests/test_team_journeys.cjs": {
       "bytes": 7933,
@@ -1035,12 +1035,12 @@
       "sha256": "bc61484adbc14012cf3f50ac3440c1d7fc0bc84ef84a43d55d995de454157b44"
     },
     "tools/team_intake_server.cjs": {
-      "bytes": 7497,
-      "sha256": "e6d58992732913750fa2a329f2bdb73e26106dd0d8d4a626ad0afeac83042b80"
+      "bytes": 8652,
+      "sha256": "f4ec85b7f3eb1d137e888c999a2e789d8579bd551a5433aad182dc95c259a804"
     },
     "tools/team_intake_store.cjs": {
-      "bytes": 29811,
-      "sha256": "eed44893b1a09af7cae0296dc2cde36c24e3bdfa09502ed66606774f7086f527"
+      "bytes": 35226,
+      "sha256": "997ab2e748a17c2f1f2369b8f814d84f2c6d9b371ccda5db1b34eb54966966ce"
     },
     "tools/team_staff_directory.cjs": {
       "bytes": 5991,

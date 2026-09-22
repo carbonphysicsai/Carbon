@@ -150,6 +150,12 @@ function validateStore(value) {
     throw Error("Invalid private intake store");
   if ([LEGACY_STORE_VERSION, STORE_VERSION_V2].includes(value.schema_version))
     return migrate(value);
+  for (const event of Object.values(value.outbox)) {
+    // Written before the outcome was recorded separately from the queue state.
+    // Defaulted rather than guessed: an existing attempt count is real, and
+    // what its last call did is simply not known for those events.
+    if (typeof event.last_outcome !== "string") event.last_outcome = "UNRECORDED";
+  }
   for (const record of Object.values(value.inquiries)) {
     if (!Array.isArray(record.assessments))
       throw Error("Invalid retained assessment history");
@@ -217,6 +223,41 @@ function appendRetentionEvent(record, action, actor, detail = {}) {
   return record.retention_events[record.retention_events.length - 1];
 }
 
+function processStartTime(pid) {
+  // Field 22 of /proc/<pid>/stat, after the comm field, which can itself
+  // contain spaces and parentheses.
+  const stat = fs.readFileSync("/proc/" + pid + "/stat", "utf8");
+  return stat.slice(stat.lastIndexOf(")") + 2).split(" ")[19];
+}
+
+function processIsAlive(pid, startTime) {
+  if (!Number.isSafeInteger(pid) || pid <= 0) return false;
+  try {
+    process.kill(pid, 0);
+  } catch (error) {
+    // EPERM means it exists and is not ours, which still counts as alive.
+    if (error.code !== "EPERM") return false;
+  }
+  try {
+    // A pid can be reused. Same pid at a different start time is a different
+    // process, and the lock it left behind is stale.
+    return processStartTime(pid) === startTime;
+  } catch {
+    return false;
+  }
+}
+
+function readLockHolder(lockPath) {
+  try {
+    const value = JSON.parse(fs.readFileSync(lockPath, "utf8"));
+    if (typeof value.pid !== "number") return null;
+    return value;
+  } catch {
+    // An unreadable lock records no live holder, so it does not block a start.
+    return null;
+  }
+}
+
 function notification(inquiryId, record) {
   // The permitted minimal summary and an authenticated record path. No client
   // words, contact details, scientific content or reviewed package travel here;
@@ -279,6 +320,74 @@ class DurableIntakeStore {
           }),
         )
       : emptyStore();
+  }
+
+  /** Take the single-writer lock for this store file, or refuse to start.
+   *
+   * The adopted stage-1 decision says exactly one receiver process per store
+   * file. Every write rewrites the whole file, so two processes would not
+   * interleave badly, they would lose each other's records wholesale. Left as
+   * an operational rule that is a thing a reader must remember; held as a lock
+   * it is a thing the second process cannot do.
+   *
+   * Real `flock(2)` would be the cleanest mechanism and needs no staleness
+   * logic, but Node exposes no binding for it, and holding it through a
+   * `flock(1)` helper on an inherited descriptor does not survive the helper
+   * exiting — measured on 2026-09-22 in this environment, where a second
+   * process acquired the lock while it was supposedly held. So the holder is
+   * recorded instead, and staleness is *detected* rather than assumed: a lock
+   * is stale only when its pid is gone, or is alive but started at a different
+   * time, which is what distinguishes a crashed holder from a reused pid.
+   *
+   * Linux, which is what the adopted stage-1 environment is.
+   */
+  acquireWriterLock() {
+    const lockPath = this.filePath + ".writer.lock";
+    const mine = JSON.stringify(
+      {
+        pid: process.pid,
+        start_time: processStartTime(process.pid),
+        acquired_at: new Date().toISOString(),
+      },
+      null,
+      2,
+    );
+    fs.mkdirSync(path.dirname(lockPath), { recursive: true, mode: 0o700 });
+    try {
+      const handle = fs.openSync(lockPath, "wx", 0o600);
+      fs.writeFileSync(handle, mine + "\n");
+      fs.closeSync(handle);
+    } catch (error) {
+      if (error.code !== "EEXIST") throw error;
+      const holder = readLockHolder(lockPath);
+      if (holder && processIsAlive(holder.pid, holder.start_time))
+        throw Error(
+          "Another receiver already holds this store: process " +
+            holder.pid +
+            " since " +
+            holder.acquired_at +
+            ". Exactly one receiver process per store file; stop that one " +
+            "first, or point this one at a different store.",
+        );
+      // The recorded holder is gone, or its pid has been reused by a process
+      // that started at a different time. Either way nothing is writing here.
+      const replacement = lockPath + ".tmp-" + process.pid;
+      fs.writeFileSync(replacement, mine + "\n", { mode: 0o600 });
+      fs.renameSync(replacement, lockPath);
+    }
+    this.writerLockPath = lockPath;
+    return lockPath;
+  }
+
+  /** Release the lock, but only while it still records this process. */
+  releaseWriterLock() {
+    if (!this.writerLockPath) return false;
+    const holder = readLockHolder(this.writerLockPath);
+    const path_ = this.writerLockPath;
+    this.writerLockPath = null;
+    if (!holder || holder.pid !== process.pid) return false;
+    fs.rmSync(path_, { force: true });
+    return true;
   }
 
   /** Bytes used, the ceiling, and what is left.
@@ -460,6 +569,10 @@ class DurableIntakeStore {
       status: "PENDING",
       attempts: 0,
       last_error: "",
+      // What happened on the last call, as distinct from what the queue state
+      // is. A pending event that was never attempted and one whose delivery
+      // was refused are both PENDING and need different things done about them.
+      last_outcome: "NOT_ATTEMPTED",
       destination: this.destination,
       notification: notification(inquiryId, record),
     };
@@ -665,22 +778,35 @@ class DurableIntakeStore {
     if (!event || event.owner_team !== principal.team)
       throw Error("Outbox event not found");
     if (event.status === "DELIVERED") return clone(event);
-    if (typeof handler !== "function")
-      handler = async () => {
-        throw Error(
-          "No notification transport is configured; delivery is not attempted",
-        );
-      };
-    const attempted = clone(event);
-    attempted.attempts += 1;
-    let status, failure;
-    try {
-      await handler(clone(attempted));
-      status = "DELIVERED";
-      failure = "";
-    } catch (error) {
+    // Nothing configured is not a delivery that failed.
+    //
+    // This used to run a default handler that threw, so an unconfigured
+    // receiver recorded an attempt and a failure for a delivery nobody tried.
+    // An operator polling it saw a rising attempt count and an error string,
+    // and could not tell "tried seven times and the remote refused" from
+    // "asked seven times with nothing to ask". The two need different actions,
+    // so they are now different outcomes: `attempts` counts attempts that
+    // actually happened, and the one that did not is typed rather than
+    // inferred from an error message.
+    const configured = typeof handler === "function";
+    let status, failure, outcome;
+    if (!configured) {
       status = "PENDING";
-      failure = String(error.message || error).slice(0, 500);
+      failure = "";
+      outcome = "NOT_ATTEMPTED_NO_TRANSPORT";
+    } else {
+      const attempted = clone(event);
+      attempted.attempts += 1;
+      try {
+        await handler(clone(attempted));
+        status = "DELIVERED";
+        failure = "";
+        outcome = "DELIVERED";
+      } catch (error) {
+        status = "PENDING";
+        failure = String(error.message || error).slice(0, 500);
+        outcome = "ATTEMPT_FAILED";
+      }
     }
     // Merge into the state as it is now. A snapshot taken before the await
     // would erase any assessment, deletion or attempt written while the
@@ -689,9 +815,10 @@ class DurableIntakeStore {
     const current = next.outbox[eventId];
     if (!current)
       throw Error("Outbox event was removed while its delivery was in flight");
-    current.attempts += 1;
+    if (configured) current.attempts += 1;
     current.status = status;
     current.last_error = failure;
+    current.last_outcome = outcome;
     this.persist(next);
     return clone(current);
   }
