@@ -81,6 +81,44 @@ Two corollaries that recur:
 This is an engineering standard, not a new delivery gate. It adds no required
 review, check, or approval, and nothing here blocks a merge.
 
+### 1.2 A claim must report its basis
+
+**A green that cannot say what it checked is not a result.** When a check,
+report, or monitor concludes success, it should also carry what it examined -
+how many items, which properties were compared, which could not be - so that a
+conclusion drawn from nothing reads as drawn from nothing instead of as a pass.
+
+The defect this prevents is an **absence of evidence converted into evidence of
+a conclusion**. It runs in both directions, which is why each instance looks like
+a different bug rather than like the last one:
+
+```text
+observing    "cannot see"      must not become   "nothing is there"
+verifying    "cannot check"    must not become   "mismatched"
+reporting    "nothing failed"  must not become   "passed"
+```
+
+Seven instances were found on 2026-09-21 across two executors, and the surfaces
+were unrelated enough that none resembled its predecessor: a decision recorded in
+an authority document reported as implemented; a verification record listing
+properties as verified because the list was hardcoded rather than compared; a
+comparison where absent-on-both-sides matched; a pod runner tested on a
+development host that supplied binaries the target image lacks; a local validator
+reporting zero errors for a block it had skipped; four hub-impact declarations
+satisfied by an incidental marker word rather than by their stated reason; and a
+status watcher reporting a pull request green from an API response that contained
+no checks at all.
+
+Every one produced a conclusion with no attached basis, and every one was true as
+stated. That is what makes the failure mode durable: it survives review by people
+looking for false statements, because nothing said is false. The question to ask
+is not "is this true?" but **"what is this true *of*, and is that the thing being
+claimed?"**
+
+The remedy is structural rather than a handled edge case. Build the basis into
+the success path, and treat a read that returned nothing as *no information*
+rather than as a pass. This is an engineering standard, not a delivery gate.
+
 ## 2. Validation budget
 
 
@@ -142,6 +180,26 @@ Draft PR updates do not start acceptance. Marking a draft ready starts its
 first acceptance run. Ready PR code pushes start acceptance for that revision.
 PR title/body edits, review submissions, and comments do not start full CI.
 The standalone Hub workflow is manual; CI owns normal Hub acceptance once.
+
+A local `validate_hub.py` run is **partial by default**, and it still prints
+`Validation passed`. The diff and change-event coverage is skipped without
+`HUB_DIFF_BASE_SHA`, and the live pull-request block - which checks the PR body's
+hub-impact declaration and binds it to the exact checked-out head - is skipped
+without `GITHUB_EVENT_PATH` and `HUB_LIVE_PR_PATH`. Each skip is announced as a
+warning, not an error, so a local pass is evidence only about the checks that
+ran; reporting it as a clean Hub result while CI fails states a true fact about a
+different validation run. To reproduce a CI Hub failure, check out the exact PR
+head and supply all three variables, building the live-PR and event payloads from
+the real pull request. See 1.2.
+
+A `HUB_IMPACT_NONE` declaration must state **why the hub's semantics remain
+accurate**, not which paths are untracked. The validator requires a concrete
+scoped reason and looks for reason markers in the text, so a declaration arguing
+only about path coverage can pass on an incidental word while expressing the
+wrong claim. Write the reason the hub's purpose, placement, status, dependencies,
+boundaries, maturity and primary links are unchanged, and confirm that a passing
+check passed for that reason. `HUB_IMPACT_NONE` is unavailable on a
+`map_structural` path regardless of the reason given.
 Main smoke checks detect integration failures after merge; they are not a
 second full acceptance or a ticket-closeout ceremony.
 

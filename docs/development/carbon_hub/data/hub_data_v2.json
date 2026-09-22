@@ -1767,7 +1767,9 @@
         "scripts/dev/development_scope.py",
         "Mixed official/shared scientific",
         "### 1.1 Enforce properties by construction",
-        "not a new delivery gate"
+        "not a new delivery gate",
+        "### 1.2 A claim must report its basis",
+        "cannot say what it checked is not a result"
       ]
     },
     {
