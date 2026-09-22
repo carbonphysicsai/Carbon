@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Z/IVPtVuMePO5VoUOYQndUwm/QwI2Uv0Wjza2Z8Wn4Y=' 'sha256-fHBJlAtHoikkiwAjIkrbl2I2wGgfXC1syHScph4cSvU=' 'sha256-QoU8b6ftUwvxUp/w70lDe0kNkPXFvJHs+d5zSCDURzM='; style-src 'sha256-gqB3/w4IqLhFtPxXif5VoAnSIa0u1/RuZrjeTBZBbSU='; img-src data:; connect-src 'none'; form-action 'none'; base-uri 'none'; object-src 'none'">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Z/IVPtVuMePO5VoUOYQndUwm/QwI2Uv0Wjza2Z8Wn4Y=' 'sha256-fHBJlAtHoikkiwAjIkrbl2I2wGgfXC1syHScph4cSvU=' 'sha256-S99vg6wqu11SmxXu49zKkvwLPZnp1C1qRaHr3SKGnQg='; style-src 'sha256-pcI8daTWrMBGzj7tQ+3S2WUqda16mKhSB2I8uhD3Y7k='; img-src data:; connect-src 'none'; form-action 'none'; base-uri 'none'; object-src 'none'">
     <title>Carbon · Define your engineering problem</title><style>/* Public onboarding edition. Self-contained: the internal stylesheets carry
    selectors for the owner console, evidence tables and source-assessment
    surfaces that this edition deliberately does not ship. */
@@ -67,6 +67,9 @@ button {
   background: var(--accent); color: #fff; cursor: pointer;
 }
 button.quiet { background: var(--panel); color: var(--accent); }
+.stage-outline { margin: 0.3rem 0 0.6rem 1.1rem; padding: 0; }
+.stage-outline li { margin: 0.15rem 0; }
+button[disabled] { opacity: 0.55; cursor: not-allowed; }
 .issue-list { list-style: none; margin: 0.4rem 0 0; padding: 0; }
 .issue-list li { border-left: 3px solid var(--warn); padding: 0.4rem 0 0.4rem 0.7rem; margin: 0 0 0.6rem; }
 .issue-list li.clear { border-left-color: var(--clear); color: var(--muted); }
@@ -95,7 +98,7 @@ footer { max-width: 1180px; margin: 0 auto; padding: 0 1.25rem 2.5rem; color: va
         <p>Carbon builds fast physical models. Before anyone can say whether that is possible for your problem, the problem has to be defined precisely enough to check. This page asks the questions Carbon would ask, runs the same structural check the internal Workbench runs, and shows you exactly what is missing.</p>
         <p class="muted">You can stop at any point and download what you have. It is a draft for a conversation, not a result: it qualifies no physics and commits Carbon to nothing.</p>
         <div class="actions">
-          <button id="open-all" type="button" class="quiet">Show every question at once</button>
+          <button id="open-all" type="button" class="quiet" disabled>Show every question at once</button>
           <span id="stage-progress" class="chip">Stage 1 of 5</span>
         </div>
       </section>
@@ -103,6 +106,23 @@ footer { max-width: 1180px; margin: 0 auto; padding: 0 1.25rem 2.5rem; color: va
         <section class="work-panel" aria-labelledby="questions-title">
           <h2 id="questions-title" class="visually-hidden">Problem definition questions</h2>
           <form id="public-form" autocomplete="off"></form>
+          <noscript>
+            <div class="boundary">
+              <strong>The questions need JavaScript, and that is the reason nothing is sent anywhere.</strong>
+              The structural check runs in your own browser rather than on a
+              Carbon server, so with scripting disabled there is nothing to run
+              it. This file makes no network request either way.
+              <p>What it asks about, in this order:</p>
+              <ol class="stage-outline">
+                <li>What are you trying to predict?</li>
+                <li>What goes in, and what comes out?</li>
+                <li>Where does it have to hold?</li>
+                <li>What do you compare against today?</li>
+                <li>What are we allowed to use?</li>
+              </ol>
+              <p>Enable JavaScript for this file, or write the same answers in an email. The questions are the point; this page is one way of asking them.</p>
+            </div>
+          </noscript>
         </section>
         <aside class="status-panel" aria-labelledby="status-title">
           <div class="panel-heading">
@@ -128,8 +148,8 @@ footer { max-width: 1180px; margin: 0 auto; padding: 0 1.25rem 2.5rem; color: va
             <strong>Nothing leaves this page.</strong> There is no network capability in this file at all. Exporting writes a file to your own computer; sending it to Carbon is your decision and happens elsewhere.
           </div>
           <div class="actions">
-            <button id="export-draft" type="button">Download my draft</button>
-            <button id="reset-draft" type="button" class="quiet">Start again</button>
+            <button id="export-draft" type="button" disabled>Download my draft</button>
+            <button id="reset-draft" type="button" class="quiet" disabled>Start again</button>
           </div>
           <p id="export-status" role="status" aria-live="polite"></p>
           <details>
@@ -923,6 +943,11 @@ footer { max-width: 1180px; margin: 0 auto; padding: 0 1.25rem 2.5rem; color: va
       $("export-status").textContent = "Draft cleared. Nothing was stored.";
     };
     draft = P.emptyDraft(identity());
+    // The controls ship disabled so that a visitor without scripting sees
+    // controls that plainly do not work rather than three that silently do
+    // nothing. They are enabled here, which is the moment they start working.
+    for (const id of ["open-all", "export-draft", "reset-draft"])
+      $(id).removeAttribute("disabled");
     renderForm();
     renderStatus();
   }

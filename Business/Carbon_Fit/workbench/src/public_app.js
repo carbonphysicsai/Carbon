@@ -214,6 +214,11 @@
       $("export-status").textContent = "Draft cleared. Nothing was stored.";
     };
     draft = P.emptyDraft(identity());
+    // The controls ship disabled so that a visitor without scripting sees
+    // controls that plainly do not work rather than three that silently do
+    // nothing. They are enabled here, which is the moment they start working.
+    for (const id of ["open-all", "export-draft", "reset-draft"])
+      $(id).removeAttribute("disabled");
     renderForm();
     renderStatus();
   }

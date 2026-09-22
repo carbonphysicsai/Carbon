@@ -19,7 +19,7 @@
     "GOAL-WORKBENCH-10"
   ],
   "repository_base": "3681f7fb10be0c6e278f53d59ff9b022099ef12d",
-  "integration_revision_at_packaging": "c043dd8d74ec6ab933140a40871b9b79dd67f187",
+  "integration_revision_at_packaging": "609f3f74614cd4e6ecf09bb29aeb2acd87ecdb11",
   "integration_revision_note": "The checksum manifest describes exact packaged bytes. A commit cannot contain its own digest; final PR/head identity is reported by delivery.",
   "pinned_research_revision": "ca904dfee93d3574df4e56b99981a6ed3b138e80",
   "accepted_research_head": "0a5690270dc449ea19c941280203987d37db5283",
@@ -191,8 +191,8 @@
       "sha256": "5346c1073125296cac63fa53a5c4eece34b151fd1b519c9e7949ef8f21750186"
     },
     "Carbon_Public_Workbench_Onboarding.html": {
-      "bytes": 52440,
-      "sha256": "b25602907feafc5927410c987e22c66e36b61b44a246b2e9aeaf6c8f887257b9"
+      "bytes": 53953,
+      "sha256": "a40c30282aef793c0ee91671a3f087ff788a4f86ecd465d66e96e6fb13f5de7b"
     },
     "PRIVATE_SERVICE_RUNBOOK.md": {
       "bytes": 13998,
@@ -739,16 +739,16 @@
       "sha256": "70121859183125363fe7986c7514ffd6b95e6164a038bab068b64748951f93b2"
     },
     "src/public_app.js": {
-      "bytes": 9914,
-      "sha256": "42853c6fa7ed530bf1529ff0ef49437b490d90f5c5bc91ecf9de734820d44733"
+      "bytes": 10251,
+      "sha256": "4bdf6f83ac2abb5d529b15eee3dcca92fc0b3d99e9d42d6a45a1ebdd22869d08"
     },
     "src/public_shell.html": {
-      "bytes": 4320,
-      "sha256": "32cb11093a60d42e1d7650c6ca8c52cc4dcc4c4599a185986ba4bc202abf61e1"
+      "bytes": 5335,
+      "sha256": "dd7009c564f388d9feaf5c6dd4cb66c72d9b158a7bf3da0c855f4aa258c1614b"
     },
     "src/public_styles.css": {
-      "bytes": 4258,
-      "sha256": "82a077ff0e08a8b845b4fc5789fe55a009d221ad2ed7f46e66b8de4c16416d25"
+      "bytes": 4419,
+      "sha256": "a5c23c75a4d6acc046ce3eed43edd2d9652a75ad7a98a85207623cba10f763b9"
     },
     "src/public_workbench.js": {
       "bytes": 12878,
@@ -807,8 +807,8 @@
       "sha256": "f2aea8c0eb5a7b8e5a0c9f9c71cde13463f5f51e4d0e63e804c0ec7bb926a393"
     },
     "tests/browser_public_workbench_smoke.cjs": {
-      "bytes": 10574,
-      "sha256": "36172b500b35dfdd579cf040cf67dcfda1bfc861165fdfec5da493d4fe0c3a13"
+      "bytes": 11955,
+      "sha256": "49d76c636dd1e81a4e92c148596336eb5f8b3bb3f99969f0bba6ab3e64008634"
     },
     "tests/browser_results.json": {
       "bytes": 2662,
@@ -895,8 +895,8 @@
       "sha256": "76fdd8c3be85d7c61d1bd9a80604cd1564eb0f4821dec99fba591db9478380c4"
     },
     "tests/test_public_workbench.cjs": {
-      "bytes": 18519,
-      "sha256": "419297797ef46af84c7e6ce7fa7f313e6d2600fb2245b1b1c28d8822fd00414f"
+      "bytes": 19961,
+      "sha256": "f2b49d9f14c50b18d6fa7cbbaf900184378e58c8eaf7c2d5fbf2d46f90bc17b9"
     },
     "tests/test_rehearsal.cjs": {
       "bytes": 6197,
