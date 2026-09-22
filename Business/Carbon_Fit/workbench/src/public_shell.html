@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta http-equiv="Content-Security-Policy" content="{{CSP}}">
+    <title>Carbon · Define your engineering problem</title><style>{{STYLE}}</style>
+  </head>
+  <body>
+    <a class="skip" href="#public-main">Skip to the questions</a>
+    <header class="public-header">
+      <div class="brand">CARBON <span>PROBLEM DEFINITION</span></div>
+      <p class="scope">Runs entirely in this browser · nothing is sent anywhere · no account</p>
+    </header>
+    <main id="public-main" class="page">
+      <section class="intro">
+        <p class="eyebrow">Onboarding draft</p>
+        <h1>Describe the prediction you need, and see what is still undefined</h1>
+        <p>Carbon builds fast physical models. Before anyone can say whether that is possible for your problem, the problem has to be defined precisely enough to check. This page asks the questions Carbon would ask, runs the same structural check the internal Workbench runs, and shows you exactly what is missing.</p>
+        <p class="muted">You can stop at any point and download what you have. It is a draft for a conversation, not a result: it qualifies no physics and commits Carbon to nothing.</p>
+        <div class="actions">
+          <button id="open-all" type="button" class="quiet">Show every question at once</button>
+          <span id="stage-progress" class="chip">Stage 1 of 5</span>
+        </div>
+      </section>
+      <div class="public-layout">
+        <section class="work-panel" aria-labelledby="questions-title">
+          <h2 id="questions-title" class="visually-hidden">Problem definition questions</h2>
+          <form id="public-form" autocomplete="off"></form>
+        </section>
+        <aside class="status-panel" aria-labelledby="status-title">
+          <div class="panel-heading">
+            <div><p class="eyebrow">Structural check</p><h2 id="status-title">What is still undefined</h2></div>
+            <span id="check-status" class="chip">not yet run</span>
+          </div>
+          <p id="check-limitations" class="muted"></p>
+          <section aria-labelledby="yours-title">
+            <h3 id="yours-title">Yours to close <span id="yours-count" class="count"></span></h3>
+            <ul id="yours-list" class="issue-list" aria-live="polite"></ul>
+          </section>
+          <section aria-labelledby="carbon-title">
+            <h3 id="carbon-title">Carbon's to close <span id="carbon-count" class="count"></span></h3>
+            <p class="muted">These do not mean your draft is wrong. They are things only Carbon can resolve, and they are resolved when the team imports your draft.</p>
+            <ul id="carbon-list" class="issue-list" aria-live="polite"></ul>
+          </section>
+          <section id="unclassified-section" aria-labelledby="unclassified-title" hidden>
+            <h3 id="unclassified-title">Reported without a plain-language note</h3>
+            <p class="muted">The check returned something this page has no guidance for. Its own wording is shown unchanged rather than hidden.</p>
+            <ul id="unclassified-list" class="issue-list" aria-live="polite"></ul>
+          </section>
+          <div class="boundary">
+            <strong>Nothing leaves this page.</strong> There is no network capability in this file at all. Exporting writes a file to your own computer; sending it to Carbon is your decision and happens elsewhere.
+          </div>
+          <div class="actions">
+            <button id="export-draft" type="button">Download my draft</button>
+            <button id="reset-draft" type="button" class="quiet">Start again</button>
+          </div>
+          <p id="export-status" role="status" aria-live="polite"></p>
+          <details>
+            <summary>What the file contains</summary>
+            <pre id="artifact-preview" class="preview">Fill in anything above to see the exact file.</pre>
+          </details>
+        </aside>
+      </div>
+    </main>
+    <footer>A client-authored scoping draft. It qualifies no physics, measures nothing, and commits Carbon to no capability, cost or timeline.</footer>
+    <script>{{SCIENTIFIC_STUDIES}}</script><script>{{PUBLIC_WORKBENCH}}</script><script>{{APP}}</script>
+  </body>
+</html>

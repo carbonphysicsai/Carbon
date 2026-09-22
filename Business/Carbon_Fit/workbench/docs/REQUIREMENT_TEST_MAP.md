@@ -23,6 +23,16 @@ This map describes focused application acceptance. It does not relabel the CPES 
 | Migrate v0.9 without promotion | additive v0.10 migration receipt | populated review and placeholder migration | Placeholder never becomes returned evidence |
 | Keep open core work visible | operating envelope remains pending; reference action uses separate panel | dependency-state assertions | Issue #209 and merged PR #226 scope is not absorbed |
 
+| GW14 public onboarding requirement | Implementation | Automated evidence | Remaining limitation |
+|---|---|---|---|
+| A visitor defines a physical problem without help | `src/public_shell.html`, `src/public_app.js`; progressive disclosure over the internal design's own scope fields | field-coverage, stage and cold-visitor journeys | Chromium at two widths only; no Safari, Mobile Safari or assistive technology |
+| The accepted structural check runs, unchanged | `src/scientific_studies.js` shared verbatim; `createAdapter` never called | round-trip and bundle-content tests | The check has one source template, so a visitor's own physics is recorded rather than checked |
+| Every returned issue is shown in plain language | `GUIDANCE` table in `src/public_workbench.js` | pass-through, unmatched-issue and no-rewrite tests | An issue with no note is shown unclassified, which is deliberate |
+| Nothing leaves the browser | emitted CSP `connect-src 'none'`, `form-action 'none'` | freshness-gate offline test; zero-outbound browser check | Phase 1 only; assistance and a receiver are separate phases |
+| Export is canonical and deterministic | `carbon.public-workbench.workspace.v1` with its own digest | determinism, tamper and closed-field tests | Local file only; no submission path exists |
+| The internal Workbench imports it as the same draft | `importPublicScoping` via the existing `newDesign` | identity, recomputed-check and validator tests in Node and in the browser | Creates one unassessed job; no assessment or qualification follows |
+| The public bundle carries nothing internal | explicit `PUBLIC_SOURCES` allow-list in `tools/build.py` | content markers paired against the internal bundle | Bundle content, not a deployment audit |
+
 | GW09 private-team requirement | UI / data / service | Automated evidence | Remaining limitation |
 |---|---|---|---|
 | Reviewed brief enters a truthful intake queue | Owner Console queue; job `team_review` | `test_team_review.cjs`; `browser_team_review_smoke.cjs` | Local/manual reviewer assertions |

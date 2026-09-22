@@ -1,0 +1,940 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Z/IVPtVuMePO5VoUOYQndUwm/QwI2Uv0Wjza2Z8Wn4Y=' 'sha256-fHBJlAtHoikkiwAjIkrbl2I2wGgfXC1syHScph4cSvU=' 'sha256-QoU8b6ftUwvxUp/w70lDe0kNkPXFvJHs+d5zSCDURzM='; style-src 'sha256-gqB3/w4IqLhFtPxXif5VoAnSIa0u1/RuZrjeTBZBbSU='; img-src data:; connect-src 'none'; form-action 'none'; base-uri 'none'; object-src 'none'">
+    <title>Carbon · Define your engineering problem</title><style>/* Public onboarding edition. Self-contained: the internal stylesheets carry
+   selectors for the owner console, evidence tables and source-assessment
+   surfaces that this edition deliberately does not ship. */
+:root {
+  --ink: #10151c;
+  --muted: #55606d;
+  --line: #d9dee5;
+  --panel: #ffffff;
+  --page: #f5f7fa;
+  --accent: #0b5f73;
+  --warn: #8a4b08;
+  --clear: #1c6b3f;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font: 16px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+.skip { position: absolute; left: -9999px; }
+.skip:focus { left: 1rem; top: 1rem; background: var(--panel); padding: 0.5rem 0.75rem; z-index: 5; }
+.visually-hidden {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap;
+}
+.public-header {
+  display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; align-items: baseline;
+  padding: 1rem 1.25rem; background: var(--ink); color: #f3f6f9;
+}
+.brand { font-weight: 700; letter-spacing: 0.08em; }
+.brand span { font-weight: 400; opacity: 0.75; letter-spacing: 0.12em; font-size: 0.8rem; }
+.public-header .scope { margin: 0; font-size: 0.85rem; opacity: 0.85; }
+.page { max-width: 1180px; margin: 0 auto; padding: 1.5rem 1.25rem 3rem; }
+.intro { max-width: 62ch; }
+.eyebrow { margin: 0; font-size: 0.78rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); }
+h1 { font-size: clamp(1.5rem, 4vw, 2.1rem); line-height: 1.2; margin: 0.35rem 0 0.75rem; }
+h2 { font-size: 1.1rem; margin: 0.2rem 0; }
+h3 { font-size: 0.95rem; margin: 1.1rem 0 0.35rem; }
+.muted { color: var(--muted); }
+.chip {
+  display: inline-block; padding: 0.15rem 0.6rem; border: 1px solid var(--line);
+  border-radius: 999px; background: var(--panel); font-size: 0.8rem; color: var(--muted);
+}
+.public-layout { display: grid; gap: 1.25rem; margin-top: 1.5rem; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); align-items: start; }
+.work-panel, .status-panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 1.1rem; }
+.status-panel { position: sticky; top: 1rem; }
+.panel-heading { display: flex; gap: 0.75rem; justify-content: space-between; align-items: start; }
+.stage { border: 1px solid var(--line); border-radius: 8px; margin: 0 0 1rem; padding: 0.9rem 1rem 1rem; }
+.stage legend { padding: 0 0.4rem; font-weight: 650; }
+.field { display: block; margin: 0.85rem 0 0; }
+.prompt { display: block; font-weight: 600; }
+.note { display: block; color: var(--muted); font-size: 0.85rem; margin: 0.1rem 0 0.3rem; }
+textarea {
+  width: 100%; font: inherit; padding: 0.5rem 0.6rem; border: 1px solid var(--line);
+  border-radius: 6px; background: #fcfdfe; color: inherit; resize: vertical;
+}
+textarea:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.actions { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-top: 1rem; }
+button {
+  font: inherit; padding: 0.5rem 0.9rem; border-radius: 6px; border: 1px solid var(--accent);
+  background: var(--accent); color: #fff; cursor: pointer;
+}
+button.quiet { background: var(--panel); color: var(--accent); }
+.issue-list { list-style: none; margin: 0.4rem 0 0; padding: 0; }
+.issue-list li { border-left: 3px solid var(--warn); padding: 0.4rem 0 0.4rem 0.7rem; margin: 0 0 0.6rem; }
+.issue-list li.clear { border-left-color: var(--clear); color: var(--muted); }
+.issue { display: block; font-weight: 600; font-size: 0.92rem; }
+.plain { display: block; color: var(--muted); font-size: 0.88rem; margin-top: 0.15rem; }
+.count { color: var(--muted); font-weight: 400; }
+.boundary { border: 1px solid var(--line); border-left: 3px solid var(--accent); background: #f7fbfc; padding: 0.7rem 0.8rem; margin: 1.1rem 0 0; font-size: 0.9rem; }
+.preview { max-height: 20rem; overflow: auto; background: #0f1720; color: #e6edf3; padding: 0.7rem; border-radius: 6px; font-size: 0.78rem; }
+footer { max-width: 1180px; margin: 0 auto; padding: 0 1.25rem 2.5rem; color: var(--muted); font-size: 0.85rem; }
+@media (max-width: 900px) {
+  .public-layout { grid-template-columns: minmax(0, 1fr); }
+  .status-panel { position: static; }
+}
+</style>
+  </head>
+  <body>
+    <a class="skip" href="#public-main">Skip to the questions</a>
+    <header class="public-header">
+      <div class="brand">CARBON <span>PROBLEM DEFINITION</span></div>
+      <p class="scope">Runs entirely in this browser · nothing is sent anywhere · no account</p>
+    </header>
+    <main id="public-main" class="page">
+      <section class="intro">
+        <p class="eyebrow">Onboarding draft</p>
+        <h1>Describe the prediction you need, and see what is still undefined</h1>
+        <p>Carbon builds fast physical models. Before anyone can say whether that is possible for your problem, the problem has to be defined precisely enough to check. This page asks the questions Carbon would ask, runs the same structural check the internal Workbench runs, and shows you exactly what is missing.</p>
+        <p class="muted">You can stop at any point and download what you have. It is a draft for a conversation, not a result: it qualifies no physics and commits Carbon to nothing.</p>
+        <div class="actions">
+          <button id="open-all" type="button" class="quiet">Show every question at once</button>
+          <span id="stage-progress" class="chip">Stage 1 of 5</span>
+        </div>
+      </section>
+      <div class="public-layout">
+        <section class="work-panel" aria-labelledby="questions-title">
+          <h2 id="questions-title" class="visually-hidden">Problem definition questions</h2>
+          <form id="public-form" autocomplete="off"></form>
+        </section>
+        <aside class="status-panel" aria-labelledby="status-title">
+          <div class="panel-heading">
+            <div><p class="eyebrow">Structural check</p><h2 id="status-title">What is still undefined</h2></div>
+            <span id="check-status" class="chip">not yet run</span>
+          </div>
+          <p id="check-limitations" class="muted"></p>
+          <section aria-labelledby="yours-title">
+            <h3 id="yours-title">Yours to close <span id="yours-count" class="count"></span></h3>
+            <ul id="yours-list" class="issue-list" aria-live="polite"></ul>
+          </section>
+          <section aria-labelledby="carbon-title">
+            <h3 id="carbon-title">Carbon's to close <span id="carbon-count" class="count"></span></h3>
+            <p class="muted">These do not mean your draft is wrong. They are things only Carbon can resolve, and they are resolved when the team imports your draft.</p>
+            <ul id="carbon-list" class="issue-list" aria-live="polite"></ul>
+          </section>
+          <section id="unclassified-section" aria-labelledby="unclassified-title" hidden>
+            <h3 id="unclassified-title">Reported without a plain-language note</h3>
+            <p class="muted">The check returned something this page has no guidance for. Its own wording is shown unchanged rather than hidden.</p>
+            <ul id="unclassified-list" class="issue-list" aria-live="polite"></ul>
+          </section>
+          <div class="boundary">
+            <strong>Nothing leaves this page.</strong> There is no network capability in this file at all. Exporting writes a file to your own computer; sending it to Carbon is your decision and happens elsewhere.
+          </div>
+          <div class="actions">
+            <button id="export-draft" type="button">Download my draft</button>
+            <button id="reset-draft" type="button" class="quiet">Start again</button>
+          </div>
+          <p id="export-status" role="status" aria-live="polite"></p>
+          <details>
+            <summary>What the file contains</summary>
+            <pre id="artifact-preview" class="preview">Fill in anything above to see the exact file.</pre>
+          </details>
+        </aside>
+      </div>
+    </main>
+    <footer>A client-authored scoping draft. It qualifies no physics, measures nothing, and commits Carbon to no capability, cost or timeline.</footer>
+    <script>(function (root) {
+  "use strict";
+  const TEMPLATE = "periodic_viscous_burgers_1d_v1";
+  const REQUEST = "carbon.workbench.scientific-study.request.v1";
+  const RESPONSE = "carbon.workbench.scientific-study.response.v1";
+  const CAPABILITIES = "carbon.workbench.scientific-study.capabilities.v1";
+  const BUNDLE = "carbon.workbench.scientific-study.bundle.v1";
+  const ENVELOPE_REQUEST = "carbon.workbench.scientific-study.request.v2";
+  const ENVELOPE_RESPONSE = "carbon.workbench.scientific-study.response.v2";
+  const ENVELOPE_CAPABILITIES = "carbon.workbench.scientific-study.capabilities.v2";
+  const SCOPE = ["physics_family", "requested_goal", "inputs", "outputs", "units", "geometry", "conditions", "regime", "exclusions", "query_workload", "rights_scope"];
+  const BUDGET = ["research_trials_remaining", "numerical_milliseconds_remaining", "reference_invocations_remaining"];
+  const STATES = ["PENDING", "RUNNING", "COMPLETE", "FAILED", "CANCELLED", "CANCEL_REQUESTED", "REQUIRES_RECONCILIATION"];
+  const clone = (v) => JSON.parse(JSON.stringify(v));
+  function exact(v, keys, label) {
+    if (!v || typeof v !== "object" || Array.isArray(v) || ![Object.prototype, null].includes(Object.getPrototypeOf(v)) || Object.keys(v).sort().join("|") !== [...keys].sort().join("|")) throw Error(label + ": closed fields required");
+    return v;
+  }
+  function text(v, label, max = 8000) {
+    if (typeof v !== "string" || !v.length || v.length > max) throw Error(label + ": bounded text required");
+    return v;
+  }
+  function ident(v) { if (typeof v !== "string" || !/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(v)) throw Error("Invalid identity"); return v; }
+  function finite(v) { if (typeof v !== "number" || !Number.isFinite(v)) throw Error("Finite numerical value required"); return v; }
+  function plain(v, depth = 0) {
+    if (depth > 12) throw Error("Study data nesting limit");
+    if (v === null || typeof v === "boolean" || typeof v === "string") return;
+    if (typeof v === "number") return finite(v);
+    if (Array.isArray(v)) { if (v.length > 2048) throw Error("Study array limit"); v.forEach((x) => plain(x, depth + 1)); return; }
+    if (v && [Object.prototype, null].includes(Object.getPrototypeOf(v))) {
+      Object.entries(v).forEach(([k, x]) => { if (["__proto__", "constructor", "prototype"].includes(k)) throw Error("Unsafe study key"); plain(x, depth + 1); }); return;
+    }
+    throw Error("Plain JSON study data required");
+  }
+  function bounded(v) { plain(v); if (new TextEncoder().encode(JSON.stringify(v)).length > 131072) throw Error("Study byte limit"); return v; }
+  function canonical(v) {
+    if (Array.isArray(v)) return v.map(canonical);
+    if (v && typeof v === "object") return Object.fromEntries(Object.keys(v).sort().map((k) => [k, canonical(v[k])]));
+    return v;
+  }
+  function same(a, b) { return JSON.stringify(canonical(a)) === JSON.stringify(canonical(b)); }
+  function digestValue(v) {
+    if (typeof v === "number") {
+      finite(v);
+      const buffer = new ArrayBuffer(8); new DataView(buffer).setFloat64(0, v, false);
+      return { $f64: Array.from(new Uint8Array(buffer), (n) => n.toString(16).padStart(2, "0")).join("") };
+    }
+    if (Array.isArray(v)) return v.map(digestValue);
+    if (v && typeof v === "object") return Object.fromEntries(Object.keys(v).sort().map((k) => [k, digestValue(v[k])]));
+    return v;
+  }
+  async function digest(v) {
+    const bytes = new TextEncoder().encode(JSON.stringify(digestValue(v)));
+    const hash = await root.crypto.subtle.digest("SHA-256", bytes);
+    return Array.from(new Uint8Array(hash), (n) => n.toString(16).padStart(2, "0")).join("");
+  }
+  function physical(v) {
+    exact(v, ["domain_length", "viscosity", "mean", "cosine_coefficients", "sine_coefficients", "requested_times", "output_points", "units"], "physical definition");
+    if (finite(v.domain_length) <= 0 || finite(v.viscosity) <= 0) throw Error("Positive domain length and viscosity required");
+    finite(v.mean);
+    for (const k of ["cosine_coefficients", "sine_coefficients"]) {
+      if (!Array.isArray(v[k]) || v[k].length !== 12) throw Error("Twelve Fourier coefficients required");
+      v[k].forEach(finite);
+    }
+    if (!Array.isArray(v.requested_times) || v.requested_times.length !== 13) throw Error("Thirteen requested times required");
+    v.requested_times.forEach((t) => { if (finite(t) < 0) throw Error("Nonnegative time required"); });
+    if (v.output_points !== 64 || v.units !== "dimensionless") throw Error("Only source-owned 64 point dimensionless layout is supported");
+    return clone(v);
+  }
+  function scope(d) {
+    const result = Object.fromEntries(SCOPE.map((key) => [key, d.scope[key]]));
+    result.reference_equation = d.reference_plan.equation;
+    result.reference_method = d.reference_plan.method;
+    Object.values(result).forEach((v) => { if (typeof v !== "string" || v.length > 8000) throw Error("Invalid draft scope"); });
+    return result;
+  }
+  function check(d, p = null) {
+    const issues = [];
+    if (d.scope.physics_family !== TEMPLATE) issues.push("Only the public periodic Burgers source template is available.");
+    if (d.scope.requested_goal !== "Dynamics") issues.push("The source template requires the Dynamics goal.");
+    if (d.scope.rights_scope !== "SYNTHETIC_INTERNAL") issues.push("Private or unresolved rights are unavailable for this public-source study.");
+    for (const key of ["inputs", "outputs", "units", "geometry", "conditions"]) if (!d.scope[key]) issues.push("Missing " + key + ".");
+    if (/\b(SI|dimensional|metres|meters|seconds)\b/i.test(d.scope.units)) issues.push("The draft names dimensional units; the available source study uses dimensionless variables and cannot convert them.");
+    if (/\b(dirichlet|neumann|nonperiodic|non-periodic|forced)\b/i.test(d.scope.conditions)) issues.push("The draft names a boundary or forcing condition outside the unforced periodic source template.");
+    if (!d.reference_plan.equation) issues.push("Missing governing equation.");
+    if (p !== null) { try { physical(p); } catch (error) { issues.push(error.message); } }
+    else issues.push("Adopt the private service's exact public-source physical definition.");
+    return { status: issues.length ? "INPUTS_UNRESOLVED" : "STRUCTURALLY_CHECKED", issues, qualification: "NOT_QUALIFIED", limitations: "Structural DEVELOPMENT checks only. Free text, units and boundary conditions need source-owner binding; the service must reject an unregistered or changed draft." };
+  }
+  function capabilities(v) {
+    bounded(v);
+    const envelope = v.schema === ENVELOPE_CAPABILITIES;
+    exact(v, ["schema", "template_id", "physical", "method", "environment", "available", ...(envelope ? ["envelope"] : [])], "capabilities");
+    if (![CAPABILITIES, ENVELOPE_CAPABILITIES].includes(v.schema) || v.template_id !== TEMPLATE || typeof v.available !== "boolean") throw Error("Unsupported study capability");
+    physical(v.physical); text(v.method, "method", 300); text(v.environment, "environment", 300);
+    if (envelope) {
+      exact(v.envelope, ["scope_digest", "case_digests", "physical"], "envelope capability");
+      if (!/^sha256:[a-f0-9]{64}$/.test(v.envelope.scope_digest) || !Array.isArray(v.envelope.case_digests) || v.envelope.case_digests.length !== 2 || new Set(v.envelope.case_digests).size !== 2 || v.envelope.case_digests.some((pin) => !/^sha256:[a-f0-9]{64}$/.test(pin))) throw Error("Exact ordered envelope identities required");
+      if (!Array.isArray(v.envelope.physical) || v.envelope.physical.length !== 2) throw Error("Two envelope definitions required");
+      v.envelope.physical.forEach(physical);
+      if (!same(v.envelope.physical[0], v.physical)) throw Error("Envelope baseline differs from adopted source");
+    }
+    return clone(v);
+  }
+  function binding(v) {
+    exact(v, ["job_id", "design_id", "design_revision", "physical_sha256"], "study binding");
+    ident(v.job_id); ident(v.design_id);
+    if (!Number.isSafeInteger(v.design_revision) || v.design_revision < 1 || !/^[a-f0-9]{64}$/.test(v.physical_sha256)) throw Error("Invalid study binding");
+  }
+  function request(v) {
+    bounded(v);
+    const envelope = v.schema === ENVELOPE_REQUEST;
+    exact(v, ["schema", "operation_id", "action", "binding", "template_id", "physical", "draft_scope", "rights_scope", ...(envelope ? ["envelope_scope_digest"] : [])], "study request");
+    if (v.schema !== (envelope ? ENVELOPE_REQUEST : REQUEST) || v.action !== (envelope ? "OPERATING_ENVELOPE" : "REFERENCE_FEASIBILITY") || v.template_id !== TEMPLATE || v.rights_scope !== "SYNTHETIC_INTERNAL") throw Error("Unsupported scientific study request");
+    if (envelope && !/^sha256:[a-f0-9]{64}$/.test(v.envelope_scope_digest)) throw Error("Envelope scope identity required");
+    ident(v.operation_id); if (v.operation_id.length < 16 || v.operation_id.length > 114) throw Error("Invalid operation identity");
+    binding(v.binding); physical(v.physical);
+    exact(v.draft_scope, [...SCOPE, "reference_equation", "reference_method"], "draft scope");
+    Object.values(v.draft_scope).forEach((s) => { if (typeof s !== "string" || s.length > 8000) throw Error("Invalid draft scope"); });
+    return clone(v);
+  }
+  async function prepare(d, p, envelopeScope = null) {
+    const validated = physical(p), draftScope = scope(d), checked = check(d, p);
+    if (checked.issues.length) throw Error(checked.issues.join(" "));
+    const b = { job_id: ident(d.job_id), design_id: ident(d.design_id), design_revision: d.revision, physical_sha256: await digest({ template_id: TEMPLATE, physical: validated, draft_scope: draftScope }) };
+    return request({ schema: envelopeScope ? ENVELOPE_REQUEST : REQUEST, operation_id: envelopeScope ? "envelope-" + await digest({ binding: b, scope_digest: envelopeScope }) : "study-" + await digest(b), action: envelopeScope ? "OPERATING_ENVELOPE" : "REFERENCE_FEASIBILITY", binding: b, template_id: TEMPLATE, physical: validated, draft_scope: draftScope, rights_scope: "SYNTHETIC_INTERNAL", ...(envelopeScope ? { envelope_scope_digest: envelopeScope } : {}) });
+  }
+  function response(v, r) {
+    bounded(v);
+    exact(v, ["schema", "operation_id", "task_id", "status", "binding", "remaining_budget", "method", "environment", "result", "official_eligible", "qualification"], "study response");
+    const envelope = r.schema === ENVELOPE_REQUEST;
+    if (v.schema !== (envelope ? ENVELOPE_RESPONSE : RESPONSE) || v.operation_id !== r.operation_id || !same(v.binding, r.binding)) throw Error("Wrong study operation or draft binding");
+    binding(v.binding); ident(v.task_id);
+    if (!STATES.includes(v.status) || v.official_eligible !== false || v.qualification !== "NOT_QUALIFIED") throw Error("Study authority or status rejected");
+    exact(v.remaining_budget, BUDGET, "remaining budget");
+    Object.values(v.remaining_budget).forEach((n) => { if (n !== null && (!Number.isSafeInteger(n) || n < 0)) throw Error("Invalid remaining budget"); });
+    text(v.method, "method", 300); text(v.environment, "environment", 300);
+    if (v.result !== null) {
+      if (envelope) {
+        exact(v.result, ["metadata", "children"], "envelope result");
+        if (v.result.metadata?.scope_digest !== r.envelope_scope_digest || v.result.metadata?.parent !== v.task_id || v.result.metadata?.official_eligible !== false || v.result.metadata?.scientifically_qualified !== false || v.result.metadata?.training_support_eligible !== false) throw Error("Envelope result lineage differs");
+        if (!Array.isArray(v.result.children) || v.result.children.length !== 2) throw Error("Two ordered child states required");
+        v.result.children.forEach((child) => {
+          exact(child, ["operation_id", "case_digest", "state", "reservation", "actual", "result"], "envelope child");
+          ident(child.operation_id);
+          if (!["HELD", "RESERVED", "SUCCEEDED", "FAILED_INFRA", "CANCELLED"].includes(child.state)) throw Error("Unknown envelope child state");
+          if (child.result !== null) {
+            exact(child.result, ["metadata", "values"], "envelope numerical result");
+            if (child.state !== "SUCCEEDED" || child.result.metadata?.case_digest !== child.case_digest || child.result.metadata?.scope_digest !== r.envelope_scope_digest) throw Error("Envelope child provenance differs");
+            numerical(child.result.values);
+          }
+          if (v.status === "COMPLETE" && (child.state !== "SUCCEEDED" || child.result === null)) throw Error("Completed envelope needs both actual results");
+        });
+        if (new Set(v.result.children.map((c) => c.case_digest)).size !== 2) throw Error("Envelope children must be distinct");
+        return clone(v);
+      }
+      exact(v.result, ["metadata", "values"], "study result");
+      if (v.status !== "COMPLETE" || !v.result.metadata || Array.isArray(v.result.metadata) || typeof v.result.metadata !== "object") throw Error("Only completed studies carry numerical results");
+      numerical(v.result.values);
+    }
+    return clone(v);
+  }
+  function numerical(values) {
+    if (!Array.isArray(values) || values.length !== 13) throw Error("Study time shape mismatch");
+    values.forEach((row) => { if (!Array.isArray(row) || row.length !== 64) throw Error("Study spatial shape mismatch"); row.forEach(finite); });
+  }
+  const TOKEN = /^[A-Za-z0-9._~-]{32,300}$/;
+  function createAdapter(fetcher = root.fetch.bind(root), credential = () => null) {
+    // The private host authenticates every scientific route with the operator's
+    // own named staff token. It is read at call time from the page's in-memory
+    // state: it is never embedded in the build, written to storage, put in a
+    // URL or placed in a request body.
+    async function call(name, value) {
+      const token = typeof credential === "function" ? credential() : null;
+      if (typeof token !== "string" || !TOKEN.test(token))
+        throw Error("Enter your staff access token before using the private scientific service.");
+      const abort = new AbortController(), timer = setTimeout(() => abort.abort(), 30000);
+      try {
+      const result = await fetcher("/api/scientific-studies/" + name, { method: value === undefined ? "GET" : "POST", credentials: "same-origin", redirect: "error", signal: abort.signal, headers: { Authorization: "Bearer " + token, ...(value === undefined ? {} : { "Content-Type": "application/json" }) }, ...(value === undefined ? {} : { body: JSON.stringify(value) }) });
+      if (result.status === 401 || result.status === 403) throw Error("The private scientific service rejected this staff credential (" + result.status + "). Check the token with the operator, then reconnect.");
+      if (!result.ok) throw Error("Private scientific service unavailable or request denied (" + result.status + ").");
+      const raw = await result.text();
+      if (new TextEncoder().encode(raw).length > 131072) throw Error("Study response byte limit");
+      const parser = root.CarbonFit || (typeof require !== "undefined" ? require("./engine.js") : null);
+      return parser.strictJsonParse(raw, { maxBytes: 131072, maxDepth: 12 });
+      } finally { clearTimeout(timer); }
+    }
+    return Object.freeze({ capabilities: () => call("capabilities"), start: (r) => call("start", r), status: (r) => call("status", r), cancel: (r) => call("cancel", r), result: (r) => call("result", r) });
+  }
+  function createController(adapter, currentDesign) {
+    let cap = null, adopted = null, run = null, busy = false;
+    const retained = new Map();
+    const snapshot = () => clone({ capabilities: cap, physical: adopted, run, busy });
+    async function current(r) {
+      const d = currentDesign();
+      if (!d || !adopted) return false;
+      try { return same((await prepare(d, adopted, r.envelope_scope_digest || null)).binding, r.binding); } catch { return false; }
+    }
+    async function accept(value, sent) {
+      const received = response(value, sent);
+      if (!run || !same(run.request, sent)) throw Error("Study selection changed while request was in flight");
+      if (!cap || received.method !== cap.method || received.environment !== cap.environment) throw Error("Study method or environment changed");
+      if (sent.schema === ENVELOPE_REQUEST && (!cap.envelope || sent.envelope_scope_digest !== cap.envelope.scope_digest || (received.result && !same(received.result.children.map((c) => c.case_digest), cap.envelope.case_digests)))) throw Error("Envelope source order changed");
+      if (run.response && run.response.task_id !== received.task_id) throw Error("Study task identity changed");
+      run.response = received;
+      run.origin = "PRIVATE_SERVICE_RESPONSE";
+      run.association = await current(sent) ? "CURRENT" : "STALE";
+      if (run.association === "STALE") throw Error("Late result retained for its original draft; current physical definition changed");
+      return snapshot();
+    }
+    async function execute(action) {
+      if (busy) throw Error("Study request already in flight");
+      if (!adapter || !cap?.available || !run) throw Error("Connect and adopt the public source before execution");
+      if (!same(adopted, cap.physical)) throw Error("Saved inputs differ from the admitted public source definition");
+      busy = true;
+      const sent = clone(run.request);
+      try {
+        if (!(await current(sent)) && action !== "cancel") { run.association = "STALE"; throw Error("Study is stale for this draft"); }
+        return await accept(await adapter[action](sent), sent);
+      }
+      finally { busy = false; }
+    }
+    return Object.freeze({
+      snapshot,
+      async connect() { if (busy) throw Error("Study request already in flight"); if (!adapter) throw Error("Offline Workbench: private scientific service unavailable"); busy = true; try { cap = capabilities(await adapter.capabilities()); return snapshot(); } finally { busy = false; } },
+      async adopt(action = "REFERENCE_FEASIBILITY") { if (busy) throw Error("Study request already in flight"); if (!cap?.available) throw Error("No available public source definition"); if (!["REFERENCE_FEASIBILITY", "OPERATING_ENVELOPE"].includes(action) || (action === "OPERATING_ENVELOPE" && !cap.envelope)) throw Error("Operating envelope unavailable in this grant"); busy = true; try { const prepared = await prepare(currentDesign(), cap.physical, action === "OPERATING_ENVELOPE" ? cap.envelope.scope_digest : null); const previous = retained.get(action) || (run?.request.action === action ? run : null); if (previous && !same(previous.request, prepared)) throw Error("Preserve the existing study and create a new design revision before adopting changed inputs"); if (run) retained.set(run.request.action, run); adopted = clone(cap.physical); run = previous || { request: prepared, response: null, association: "CURRENT", origin: "NOT_EXECUTED" }; run.association = await current(prepared) ? "CURRENT" : "STALE"; return snapshot(); } finally { busy = false; } },
+      async refresh() { if (run) run.association = await current(run.request) ? "CURRENT" : "STALE"; return snapshot(); },
+      start: () => execute("start"), status: () => execute("status"), cancel: () => execute("cancel"), result: () => execute("result"),
+      save() { if (!run) throw Error("No study to save"); return clone({ schema: BUNDLE, request: run.request, response: run.response }); },
+      async reopen(value) {
+        if (busy) throw Error("Study request already in flight"); bounded(value); exact(value, ["schema", "request", "response"], "study bundle"); if (value.schema !== BUNDLE) throw Error("Unsupported study bundle");
+        const r = request(value.request), received = value.response === null ? null : response(value.response, r);
+        const expected = await prepare(currentDesign(), r.physical, r.envelope_scope_digest || null);
+        if (!same(expected, r)) throw Error("Saved study belongs to a different draft or physical definition");
+        if (run && (!same(run.request, r) || (run.response !== null && !same(run.response, received)))) throw Error("Saved study conflicts with retained operation or response bytes");
+        adopted = clone(r.physical); run = { request: r, response: received, association: "CURRENT", origin: "SAVED_UNVERIFIED" }; run.association = await current(r) ? "CURRENT" : "STALE"; return snapshot();
+      },
+    });
+  }
+  const api = Object.freeze({ TEMPLATE, REQUEST, RESPONSE, CAPABILITIES, ENVELOPE_REQUEST, ENVELOPE_RESPONSE, ENVELOPE_CAPABILITIES, BUNDLE, check, physical, scope, prepare, request, response, capabilities, digest, createAdapter, createController });
+  root.CarbonScientificStudies = api;
+  if (typeof module !== "undefined") module.exports = api;
+})(typeof globalThis !== "undefined" ? globalThis : this);
+</script><script>(function (root) {
+  "use strict";
+  // The public onboarding edition's own workspace identity.
+  //
+  // Deliberately not the internal goal workspace. That schema pins
+  // `source_sha256` constants to the internal build, so a public edition
+  // carrying it would either be lying about which build produced it or would
+  // have to be regenerated every time the internal bundle moved. A separate
+  // identity also keeps the two import paths honest: the internal Workbench can
+  // tell a visitor's draft from its own workspace without inspecting content.
+  const WORKSPACE = "carbon.public-workbench.workspace.v1";
+
+  // Every scope field the internal design carries. The structural check reads
+  // eleven of them; the design requires all eighteen, so a draft that supplies
+  // all eighteen can be imported without the internal side inventing values.
+  const SCOPE_FIELDS = [
+    "physics_family",
+    "requested_goal",
+    "intended_use",
+    "inputs",
+    "outputs",
+    "units",
+    "geometry",
+    "conditions",
+    "regime",
+    "exclusions",
+    "query_workload",
+    "turnaround",
+    "failure_consequences",
+    "data_access",
+    "rights_scope",
+    "commercial_context",
+    "disclosure_scope",
+    "deployment_environment",
+  ];
+  // The two reference-plan fields the check reads. The internal plan has ten;
+  // the rest are Carbon's to fill and a visitor is not asked to guess them.
+  const REFERENCE_FIELDS = ["equation", "method"];
+
+  // What a visitor is asked first, and what only appears once the shape of the
+  // problem is known. Progressive disclosure is an ordering over the same
+  // fields, not a reduced set: an expert can open every stage at once and fill
+  // them directly, and nothing is withheld from someone who asks for it.
+  const STAGES = [
+    {
+      id: "problem",
+      title: "What are you trying to predict?",
+      fields: ["requested_goal", "physics_family", "intended_use"],
+    },
+    {
+      id: "physical",
+      title: "What goes in, and what comes out?",
+      fields: ["inputs", "outputs", "units", "geometry", "conditions"],
+    },
+    {
+      id: "operating",
+      title: "Where does it have to hold?",
+      fields: ["regime", "exclusions", "query_workload", "turnaround"],
+    },
+    {
+      id: "reference",
+      title: "What do you compare against today?",
+      fields: ["reference_plan.equation", "reference_plan.method"],
+    },
+    {
+      id: "constraints",
+      title: "What are we allowed to use?",
+      fields: [
+        "rights_scope",
+        "data_access",
+        "failure_consequences",
+        "commercial_context",
+        "disclosure_scope",
+        "deployment_environment",
+      ],
+    },
+  ];
+
+  // Plain-language help for the issues the accepted check returns.
+  //
+  // This is presentation only. Each entry is matched against the check's own
+  // text and adds a sentence about what to do; the check's wording is always
+  // shown as well, and an issue this table does not recognise is surfaced
+  // unchanged rather than dropped. No issue class is invented here, none is
+  // reworded into something weaker, and none is suppressed.
+  const GUIDANCE = [
+    {
+      match: /^Missing (inputs|outputs|units|geometry|conditions)\.$/,
+      owner: "VISITOR",
+      plain: (m) =>
+        ({
+          inputs: "Say what the model would be given: the quantities you can supply for each prediction.",
+          outputs: "Say what the model would return, and at what points or times.",
+          units: "State the units, or say the problem is dimensionless. Ambiguous units cannot be checked.",
+          geometry: "Describe the domain: its shape, extent and whether it repeats.",
+          conditions: "Describe the boundary and initial conditions. Without them the problem is not determined.",
+        })[m[1]],
+    },
+    {
+      match: /^Missing governing equation\.$/,
+      owner: "VISITOR",
+      plain: () =>
+        "Name the equation you believe governs this, even approximately. A named equation Carbon disagrees with is more useful than none.",
+    },
+    {
+      match: /dimensional units/,
+      owner: "VISITOR",
+      plain: () =>
+        "The available source study is dimensionless. Either restate the scope in dimensionless terms or expect a conversion step that Carbon has not yet built.",
+    },
+    {
+      match: /boundary or forcing condition outside/,
+      owner: "VISITOR",
+      plain: () =>
+        "The available source study is unforced and periodic. A different condition is a real problem to discuss, not one this template can check.",
+    },
+    {
+      match: /^Only the public periodic Burgers source template is available\.$/,
+      owner: "CARBON",
+      plain: () =>
+        "Carbon has one source study available today, so this draft cannot be checked against your physics yet. Send it anyway: the scope is what the conversation needs.",
+    },
+    {
+      match: /^The source template requires the Dynamics goal\.$/,
+      owner: "CARBON",
+      plain: () =>
+        "The one available source study answers a dynamics question. A different goal is recorded and discussed rather than checked.",
+    },
+    {
+      match: /rights are unavailable for this public-source study/,
+      owner: "VISITOR",
+      plain: () =>
+        "State whether the data involved is synthetic, internal, or third-party. Unresolved rights stop a study before any physics does.",
+    },
+    {
+      match: /^Adopt the private service's exact public-source physical definition\.$/,
+      owner: "CARBON",
+      plain: () =>
+        "The exact numerical definition of the source study is held by Carbon and is attached when the team imports this draft. Nothing you can type closes this one.",
+    },
+  ];
+
+  const clone = (value) => JSON.parse(JSON.stringify(value));
+
+  function identity(value, label) {
+    if (typeof value !== "string" || !/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(value))
+      throw Error("Invalid " + label);
+    return value;
+  }
+
+  function boundedText(value, label) {
+    // The internal design's own bound. A public draft that exceeded it would be
+    // rejected on import, which is a worse place to learn about it.
+    if (typeof value !== "string" || value.length > 8000)
+      throw Error("Invalid " + label);
+    return value;
+  }
+
+  function emptyDraft(designId, revision = 1) {
+    return {
+      schema_version: WORKSPACE,
+      design_id: identity(designId, "design ID"),
+      revision: revision,
+      scope: Object.fromEntries(SCOPE_FIELDS.map((field) => [field, ""])),
+      reference_plan: Object.fromEntries(REFERENCE_FIELDS.map((field) => [field, ""])),
+    };
+  }
+
+  /** The design-shaped value the accepted structural check reads.
+   *
+   * The check is given exactly what it asks for and nothing else, so the public
+   * edition cannot influence its result by supplying extra state.
+   */
+  function checkable(draft) {
+    return {
+      scope: clone(draft.scope),
+      reference_plan: clone(draft.reference_plan),
+    };
+  }
+
+  /** Run the accepted check and attach plain language to what it returned.
+   *
+   * The returned `status`, `issues`, `qualification` and `limitations` are the
+   * check's own values, passed through untouched. `explained` is a parallel view
+   * for a non-expert: same length, same order, every issue present.
+   */
+  function explain(result) {
+    const explained = result.issues.map((issue) => {
+      for (const entry of GUIDANCE) {
+        const matched = entry.match.exec(issue);
+        if (matched) return { issue, owner: entry.owner, plain: entry.plain(matched) };
+      }
+      // An issue this table has never seen. It is shown with its own wording and
+      // marked as nobody's to close, because guessing an owner for it would be
+      // the moment a real blocker started looking like a formality.
+      return { issue, owner: "UNCLASSIFIED", plain: issue };
+    });
+    return {
+      status: result.status,
+      qualification: result.qualification,
+      limitations: result.limitations,
+      issues: [...result.issues],
+      explained,
+      // What the visitor can still do something about, and what they cannot.
+      // A count, not a verdict: the status above is the check's.
+      open_for_visitor: explained.filter((item) => item.owner === "VISITOR").length,
+      held_by_carbon: explained.filter((item) => item.owner === "CARBON").length,
+      unclassified: explained.filter((item) => item.owner === "UNCLASSIFIED").length,
+    };
+  }
+
+  function canonical(value) {
+    if (Array.isArray(value)) return value.map(canonical);
+    if (value && typeof value === "object")
+      return Object.fromEntries(
+        Object.keys(value)
+          .sort()
+          .map((key) => [key, canonical(value[key])]),
+      );
+    return value;
+  }
+
+  /** Export the draft as a canonical artifact carrying its own digest.
+   *
+   * Deterministic: the same draft content, identity and revision produce the
+   * same bytes, so two exports can be compared without interpreting them. The
+   * digest is computed with the accepted study module's own digest function
+   * rather than a second implementation.
+   */
+  async function exportWorkspace(draft, result, studies) {
+    validateDraft(draft);
+    const body = {
+      schema_version: WORKSPACE,
+      design_id: draft.design_id,
+      revision: draft.revision,
+      scope: clone(draft.scope),
+      reference_plan: clone(draft.reference_plan),
+      // The check result as the check returned it, so the internal side can
+      // compare rather than take the artifact's word for it.
+      structural_check: {
+        status: result.status,
+        issues: [...result.issues],
+        qualification: result.qualification,
+      },
+      // Said in the artifact itself, because an artifact travels away from the
+      // page that produced it and arrives without its context.
+      authority: {
+        effect: "NONE",
+        qualification: "NOT_QUALIFIED",
+        statement:
+          "A client-authored scoping draft. It qualifies no physics, measures " +
+          "nothing, and commits Carbon to no capability, cost or timeline.",
+      },
+    };
+    const digest = await studies.digest(canonical(body));
+    return { ...canonical(body), digest: "sha256:" + digest };
+  }
+
+  function validateDraft(draft) {
+    if (!draft || typeof draft !== "object") throw Error("Invalid public draft");
+    if (draft.schema_version !== WORKSPACE) throw Error("Unsupported public workspace version");
+    identity(draft.design_id, "design ID");
+    if (!Number.isSafeInteger(draft.revision) || draft.revision < 1)
+      throw Error("Invalid design revision");
+    const scopeKeys = Object.keys(draft.scope || {}).sort();
+    if (scopeKeys.join("|") !== [...SCOPE_FIELDS].sort().join("|"))
+      throw Error("Public draft scope fields are closed");
+    for (const field of SCOPE_FIELDS) boundedText(draft.scope[field], "scope " + field);
+    const referenceKeys = Object.keys(draft.reference_plan || {}).sort();
+    if (referenceKeys.join("|") !== [...REFERENCE_FIELDS].sort().join("|"))
+      throw Error("Public draft reference fields are closed");
+    for (const field of REFERENCE_FIELDS)
+      boundedText(draft.reference_plan[field], "reference " + field);
+    return draft;
+  }
+
+  /** Validate an exported artifact, including its own digest. */
+  async function validateArtifact(value, studies) {
+    if (!value || typeof value !== "object") throw Error("Invalid public workspace artifact");
+    const keys = Object.keys(value).sort().join("|");
+    const expected = [
+      "authority",
+      "design_id",
+      "digest",
+      "reference_plan",
+      "revision",
+      "schema_version",
+      "scope",
+      "structural_check",
+    ].join("|");
+    if (keys !== expected) throw Error("Public workspace artifact fields are closed");
+    validateDraft({
+      schema_version: value.schema_version,
+      design_id: value.design_id,
+      revision: value.revision,
+      scope: value.scope,
+      reference_plan: value.reference_plan,
+    });
+    if (value.authority.effect !== "NONE" || value.authority.qualification !== "NOT_QUALIFIED")
+      throw Error("A public artifact carries no authority and cannot claim any");
+    if (!/^sha256:[a-f0-9]{64}$/.test(value.digest)) throw Error("Invalid artifact digest");
+    const { digest, ...body } = value;
+    const recomputed = "sha256:" + (await studies.digest(canonical(body)));
+    if (recomputed !== value.digest) throw Error("Artifact digest does not match its content");
+    return clone(value);
+  }
+
+  const api = Object.freeze({
+    WORKSPACE,
+    SCOPE_FIELDS,
+    REFERENCE_FIELDS,
+    STAGES,
+    GUIDANCE,
+    emptyDraft,
+    checkable,
+    explain,
+    exportWorkspace,
+    validateDraft,
+    validateArtifact,
+    canonical,
+  });
+  root.CarbonPublicWorkbench = api;
+  if (typeof module !== "undefined") module.exports = api;
+})(typeof globalThis !== "undefined" ? globalThis : this);
+</script><script>(function (root) {
+  "use strict";
+  // Resolved the way every other module here resolves its siblings: from the
+  // page when the shell loaded them in order, or by require under a test.
+  const S =
+    root.CarbonScientificStudies ||
+    (typeof require !== "undefined" ? require("./scientific_studies.js") : null);
+  const P =
+    root.CarbonPublicWorkbench ||
+    (typeof require !== "undefined" ? require("./public_workbench.js") : null);
+  const $ = (id) => root.document.getElementById(id);
+
+  // Question text for a visitor who has never written a scope field. The field
+  // identities are the internal design's; only the prompts are new, so an
+  // export needs no translation on the way in.
+  const PROMPTS = {
+    requested_goal: ["What kind of answer do you need?", "For example: Dynamics — how a field evolves over time."],
+    physics_family: ["What kind of physics is this?", "Name it however you would say it out loud. Carbon will tell you whether it has a matching source study."],
+    intended_use: ["What decision would this prediction feed?", "What changes at your end once you can predict it."],
+    inputs: ["What would you give the model, every time you ask it?", "The quantities you can actually supply."],
+    outputs: ["What should it give back?", "Which quantities, at which points or times."],
+    units: ["What units are these in?", "Or say dimensionless. Ambiguity here cannot be checked."],
+    geometry: ["What is the domain?", "Its shape and extent, and whether it repeats."],
+    conditions: ["What are the boundary and initial conditions?", "Without these the problem is not determined, however well the rest is described."],
+    regime: ["Over what range does it have to hold?", "Speeds, temperatures, pressures — wherever the behaviour changes."],
+    exclusions: ["What is explicitly out of scope?", "What you are not asking for is as useful as what you are."],
+    query_workload: ["How often would you ask it?", "Per day, per design iteration, per anything."],
+    turnaround: ["How fast does an answer have to come back?", "For the decision it feeds, not in the abstract."],
+    failure_consequences: ["What happens if it is wrong?", "The consequence, not the error metric."],
+    data_access: ["What data could Carbon use?", "And what you cannot share."],
+    rights_scope: ["Who owns the data involved?", "Synthetic, internal, or third-party. Unresolved rights stop a study before any physics does."],
+    commercial_context: ["What is the commercial setting?", "Optional, and it changes no technical answer."],
+    disclosure_scope: ["What may Carbon say about this work?", "Optional."],
+    deployment_environment: ["Where would the finished model run?", "Optional."],
+    "reference_plan.equation": ["What equation governs this, as far as you know?", "An approximate or uncertain answer is far better than none."],
+    "reference_plan.method": ["What do you compute it with today?", "The solver, tool or measurement you compare against."],
+  };
+
+  // A field is either on the draft's scope or on its reference plan. One
+  // accessor pair, so the form cannot drift from the exported shape.
+  const read = (draft, field) =>
+    field.startsWith("reference_plan.")
+      ? draft.reference_plan[field.slice("reference_plan.".length)]
+      : draft.scope[field];
+  const write = (draft, field, value) => {
+    if (field.startsWith("reference_plan."))
+      draft.reference_plan[field.slice("reference_plan.".length)] = value;
+    else draft.scope[field] = value;
+  };
+
+  function identity() {
+    // Local and disposable. It exists so both sides can name the same draft,
+    // not to identify a person, and it is generated in the browser.
+    const random = root.crypto.getRandomValues(new Uint8Array(8));
+    return (
+      "public-draft-" +
+      Array.from(random, (n) => n.toString(16).padStart(2, "0")).join("")
+    );
+  }
+
+  // Created in install(), so requiring this module has no side effect.
+  let draft = null;
+  let revealed = 1;
+  let everything = false;
+
+  const escape = (value) =>
+    String(value).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+
+  function stageComplete(stage) {
+    return stage.fields.some((field) => read(draft, field).trim().length > 0);
+  }
+
+  function renderForm() {
+    const html = P.STAGES.map((stage, index) => {
+      const open = everything || index < revealed;
+      const fields = stage.fields
+        .map((field) => {
+          const [prompt, note] = PROMPTS[field] || [field, ""];
+          return (
+            '<label class="field"><span class="prompt">' +
+            escape(prompt) +
+            "</span>" +
+            (note ? '<span class="note">' + escape(note) + "</span>" : "") +
+            '<textarea data-field="' +
+            escape(field) +
+            '" rows="2" maxlength="8000">' +
+            escape(read(draft, field)) +
+            "</textarea></label>"
+          );
+        })
+        .join("");
+      return (
+        '<fieldset class="stage" data-stage="' +
+        escape(stage.id) +
+        '"' +
+        (open ? "" : " hidden") +
+        "><legend>" +
+        escape(stage.title) +
+        "</legend>" +
+        fields +
+        "</fieldset>"
+      );
+    }).join("");
+    $("public-form").innerHTML = html;
+    for (const node of $("public-form").querySelectorAll("textarea"))
+      node.addEventListener("input", onInput);
+    $("stage-progress").textContent = everything
+      ? P.STAGES.length + " stages open"
+      : "Stage " + Math.min(revealed, P.STAGES.length) + " of " + P.STAGES.length;
+  }
+
+  function issueItem(item) {
+    // The check's own wording first, then the plain-language note. Showing the
+    // original is what keeps this a presentation layer: a visitor and an
+    // engineer are looking at the same sentence.
+    return (
+      '<li><span class="issue">' +
+      escape(item.issue) +
+      '</span><span class="plain">' +
+      escape(item.plain) +
+      "</span></li>"
+    );
+  }
+
+  async function renderStatus() {
+    const result = S.check(P.checkable(draft));
+    const view = P.explain(result);
+    $("check-status").textContent =
+      view.status === "STRUCTURALLY_CHECKED"
+        ? "structurally checked · still NOT_QUALIFIED"
+        : view.open_for_visitor === 0
+          ? "everything you can close is closed"
+          : view.open_for_visitor + " left for you";
+    $("check-limitations").textContent = view.limitations;
+    const groups = [
+      ["yours", "VISITOR"],
+      ["carbon", "CARBON"],
+      ["unclassified", "UNCLASSIFIED"],
+    ];
+    for (const [name, owner] of groups) {
+      const items = view.explained.filter((item) => item.owner === owner);
+      $(name + "-list").innerHTML = items.length
+        ? items.map(issueItem).join("")
+        : '<li class="clear">Nothing outstanding here.</li>';
+      const count = $(name + "-count");
+      if (count) count.textContent = items.length ? String(items.length) : "";
+    }
+    // Only appears when the check says something this page has no note for,
+    // which is the case that must never be silent.
+    $("unclassified-section").hidden = view.unclassified === 0;
+    try {
+      const artifact = await P.exportWorkspace(draft, result, S);
+      $("artifact-preview").textContent = JSON.stringify(artifact, null, 2);
+      return artifact;
+    } catch (error) {
+      $("artifact-preview").textContent = "Draft not exportable yet: " + error.message;
+      return null;
+    }
+  }
+
+  function onInput(event) {
+    write(draft, event.target.dataset.field, event.target.value);
+    const index = P.STAGES.findIndex((stage) =>
+      stage.fields.includes(event.target.dataset.field),
+    );
+    // Progressive disclosure: answering anything in the current stage opens the
+    // next one. Nothing is ever closed again, and nothing is withheld from a
+    // visitor who asked for everything.
+    if (index === revealed - 1 && stageComplete(P.STAGES[index]) && revealed < P.STAGES.length) {
+      revealed += 1;
+      renderForm();
+      const opened = $("public-form").querySelector('[data-stage="' + P.STAGES[revealed - 1].id + '"]');
+      if (opened) opened.scrollIntoView({ block: "nearest" });
+    }
+    renderStatus();
+  }
+
+  function download(artifact) {
+    const blob = new root.Blob([JSON.stringify(artifact, null, 2) + "\n"], {
+      type: "application/json",
+    });
+    const link = root.document.createElement("a");
+    link.href = root.URL.createObjectURL(blob);
+    link.download = artifact.design_id + ".carbon-public-workbench.json";
+    link.click();
+    root.URL.revokeObjectURL(link.href);
+  }
+
+  function install() {
+    $("open-all").onclick = () => {
+      everything = true;
+      renderForm();
+      renderStatus();
+    };
+    $("export-draft").onclick = async () => {
+      try {
+        const artifact = await renderStatus();
+        if (!artifact) throw Error("the draft is not yet exportable");
+        download(artifact);
+        $("export-status").textContent =
+          "Saved to your computer as " +
+          artifact.design_id +
+          ".carbon-public-workbench.json. Nothing was sent.";
+      } catch (error) {
+        $("export-status").textContent = "Export blocked: " + error.message;
+      }
+    };
+    $("reset-draft").onclick = () => {
+      draft = P.emptyDraft(identity());
+      revealed = 1;
+      everything = false;
+      renderForm();
+      renderStatus();
+      $("export-status").textContent = "Draft cleared. Nothing was stored.";
+    };
+    draft = P.emptyDraft(identity());
+    renderForm();
+    renderStatus();
+  }
+
+  if (root.document) {
+    if (root.document.readyState === "loading")
+      root.document.addEventListener("DOMContentLoaded", install);
+    else install();
+  }
+  root.CarbonPublicWorkbenchApp = Object.freeze({ PROMPTS });
+  if (typeof module !== "undefined") module.exports = { PROMPTS };
+})(typeof globalThis !== "undefined" ? globalThis : this);
+</script>
+  </body>
+</html>
