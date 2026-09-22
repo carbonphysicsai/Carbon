@@ -382,14 +382,20 @@ def capability_catalog() -> dict:
             },
             {"id": "engy", "reason": "inference_adapter_not_implemented"},
             {
-                # The previous reason named a design the key rule forbids.
-                # Carbon will never hold transaction authority or operate a
-                # signing wallet adapter: `chain_onboarding` prepares an
-                # unsigned registration the miner executes in their own tooling,
-                # and that shipped. What is actually missing is a chain endpoint
-                # for this deployment, without which the reads cannot run.
+                # Two earlier reasons here were wrong in different ways. The
+                # first named a signing wallet adapter, which the key rule
+                # forbids and Carbon will never build: `chain_onboarding`
+                # prepares an unsigned registration the miner executes in their
+                # own tooling. The second named a missing chain endpoint, which
+                # turned out to be settled already in
+                # `carbon.development_testnet.operator` and merely unread by
+                # these doors; both now default to it.
+                #
+                # What remains is not Carbon's to implement. A registration
+                # spends the miner's own funds and is signed in their own
+                # wallet, so the flow is complete and the execution is theirs.
                 "id": "testnet-registration",
-                "reason": "chain_endpoint_not_configured_for_this_deployment",
+                "reason": "flow_implemented_execution_is_the_miners_own",
             },
         ],
     }

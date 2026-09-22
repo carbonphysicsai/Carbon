@@ -97,15 +97,32 @@ def call(server, path, body=None, token=TOKEN):
     return response.status, (json.loads(payload) if payload else None)
 
 
-def test_requirements_answers_with_no_chain_and_no_registration(server):
+def test_requirements_answers_for_an_unregistered_visitor(server):
     """The first thing an unregistered visitor meets has to work for them."""
     status, body = call(server, "/api/v1/onboarding/requirements")
     assert status == 200
     assert body["mechanism"] == "BURNED_REGISTRATION"
     assert body["netuid"] == CARBON_NETUID
     assert body["cost"]["value"] == "NOT_READ"
-    assert body["chain_reads_available"] is False
     assert not server.research_runner, "no research profile is configured here"
+
+
+def test_the_door_defaults_to_carbons_actual_testnet(tmp_path):
+    """Replaces an assertion that the chain was unconfigured.
+
+    It was, and it did not need to be: the endpoint, genesis hash and chain id
+    were already settled constants in `carbon.development_testnet.operator`,
+    and this door simply was not reading them. Reporting CHAIN_NOT_CONFIGURED
+    for want of a decision that had already been made is the wrong kind of
+    honest - truthful about the door, misleading about the deployment.
+    """
+    from scripts.dev.miner_launchpad.onboarding import BrowserOnboarding
+
+    door = BrowserOnboarding()
+    assert door.chain_configured is True
+    assert door.context.netuid == CARBON_NETUID
+    assert door.context.network == CARBON_NETWORK
+    assert door.context.endpoint.startswith("wss://")
 
 
 def test_requirements_shows_no_cost_figure(server):
@@ -125,13 +142,27 @@ def test_the_onboarding_door_still_requires_the_session_token(server):
     )
 
 
-def test_reads_report_an_unconfigured_chain_as_actionable(server):
-    """Absent is a supported state, not an error, and it says what to do."""
-    status, body = call(server, "/api/v1/onboarding/status", {"address": HOTKEY})
-    assert status == 409
-    assert body["reason"] == "CHAIN_NOT_CONFIGURED"
-    assert "your own wallet tooling" in body["next_action"]
-    assert body["ok"] is False
+def test_an_unconfigured_chain_is_still_a_supported_state():
+    """The refusal still exists; the browser door just no longer needs it.
+
+    Kept at the service, where it remains reachable, because an operator can
+    still construct a door without a chain and the answer must stay actionable
+    rather than becoming an error. Asserted here so removing the path would
+    fail rather than pass quietly.
+    """
+    import asyncio
+
+    from carbon.development_session.chain_onboarding import OnboardingFailure
+    from carbon.miner_mcp.mcp_onboarding import onboarding_records
+
+    # The check is the adapter's, not the service's: the service is handed a
+    # reader and a context and assumes both, which is why asserting it here
+    # rather than one layer down is the truthful placement.
+    run = onboarding_records(None, None)
+    with pytest.raises(OnboardingFailure) as raised:
+        asyncio.run(run("status", HOTKEY))
+    assert raised.value.reason == "CHAIN_NOT_CONFIGURED"
+    assert "your own wallet tooling" in raised.value.next_action
 
 
 @pytest.mark.parametrize("server", [_Reader()], indirect=True)
