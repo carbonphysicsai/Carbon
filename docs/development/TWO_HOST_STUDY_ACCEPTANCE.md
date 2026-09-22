@@ -415,3 +415,105 @@ re-verified at the moment of provisioning. Stage A reports **device agreement
 and explicitly not orchestration agreement**; `validator_launch` remains
 `HARDWARE_EXERCISED: no`. Nothing is qualified, `compare_r1` still returns
 `BACKEND_UNSUPPORTED`, and success is evidence toward MQ-008 and nothing more.
+
+---
+
+# Amendment 4 - domain holders named, delta measured on GPU, four classes
+
+**Recorded 2026-09-22. Owner decision, programme #209.**
+
+Three changes, following the A40 stage A result and its review.
+
+## 1. MQ-008 domain holders are named
+
+Section 2 of this acceptance recorded domain acceptance as *"accepted by the
+owner in the absence of named domain holders"*, with a condition: the roles are
+filled and the acceptance revisited before Gate 1. **That condition is now
+discharged for the scientific half.**
+
+| Role | Holder |
+| --- | --- |
+| MQ-008 scientific (SciML) | **Harshdeep Sharma** |
+| Deputy, in his absence | **Ryan Bequette** (owner) |
+| MQ-008 infrastructure | **Ryan Bequette**, for now, stated as a gap rather than a decision |
+
+Harshdeep reviewed the A40 stage A result and approved it. The scientific half of
+MQ-008 is therefore held by a named person with relevant domain work - his Burgers
+v1 FNO parity note covers the model family this study trains.
+
+**The infrastructure half remains thin.** It concerns whether the declared
+execution environment is operationally sound, which is a different question from
+whether the science is. Recording the owner as holder is accurate and is not the
+same as having an SRE. Revisit before Gate 1.
+
+**What a holder does, so the role is not just a name.** Accept the evidence
+specification - which quantities, how many repeats, what constitutes adequate
+evidence, and what a negative result looks like - and then judge the evidence
+against it. Approving a result is not the same act and does not substitute.
+
+## 2. Delta is derived from GPU measurement, not a CPU proxy
+
+Section 5 fixed the near-margin `delta` at **1e-5**, taken from the peak
+prediction relative divergence in the CPU instruction-set work, and recorded
+plainly that CPU cross-instruction-set divergence is a **proxy** for GPU
+cross-device divergence rather than a prediction of it.
+
+**The owner has directed that the value be measured on GPU.** GPU is the platform
+Carbon validates on, and a borrowed CPU figure is the weakest link in the study's
+design.
+
+**What that requires, because the obvious source does not exist.** Pinned GPU
+divergence measured **zero** - identical digests across both A40 devices, and
+identical to the RTX 3060's. There is no pinned epsilon to size `delta` against.
+The GPU-native figure must come from the **unpinned** runs, which produced five
+distinct digests across six sessions.
+
+A digest establishes *different*, not *how different*. `delta` needs
+prediction-level magnitude, and the retention rule keeps one representative
+artifact per cell rather than all of them. **So this requires a short re-run of
+the unpinned cells with full artifact retention**, from which the prediction
+relative divergence is computed.
+
+Until that run completes, `delta` remains 1e-5 **marked as provisional and
+CPU-derived**. It is replaced by the measured GPU figure before any further class
+is run, so the remaining classes are evaluated against the right value.
+
+Unchanged: `delta` is fixed before the comparison it governs, is never derived
+from the results being tested, and calibration uses public or synthetic
+DEVELOPMENT material only.
+
+## 3. The class set is four, chosen by architecture generation
+
+Sections 3 and 7 named two classes. **The owner has directed reproduction across
+two further classes.** They are chosen by architecture generation rather than by
+price or availability, because the claim worth having is about the configuration
+rather than about a hardware list.
+
+| Class | Generation | State |
+| --- | --- | --- |
+| A40 | Ampere | **done** - two devices agree, pinned |
+| L40S | Ada | pending stock |
+| **H100 SXM** | **Hopper** | added |
+| **B200** *or* **RTX PRO 6000 SE** | **Blackwell** | added |
+
+Both additions showed CUDA 13 with a co-located pair in the recorded survey.
+Choose between B200 and RTX PRO 6000 SE on availability; either supplies the
+Blackwell generation.
+
+**Why generation rather than count.** Four cards agreeing is evidence about four
+cards. Four *generations* agreeing under one pinned configuration is evidence
+that the configuration carries the determinism, which is the claim that would let
+Carbon qualify a configuration instead of maintaining a hardware list. The A40
+result already points this way - it matched a laptop RTX 3060 across both device
+class and host instruction set.
+
+## Unchanged
+
+**Ceiling stays USD 30.** Four classes plus the retention run are estimated near
+USD 3-4 at observed rates, against USD 0.14 spent. The four stop conditions
+stand. Class order is not scientifically load-bearing for a single-chassis
+comparison; run whichever class stock offers, and record why.
+
+Nothing here qualifies anything. `compare_r1` still returns
+`BACKEND_UNSUPPORTED`. Stage A establishes device agreement and not orchestration
+agreement, and `validator_launch` remains `HARDWARE_EXERCISED: no`.
