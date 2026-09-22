@@ -37,9 +37,23 @@ request.
 request. The `CF_Authorization` cookie is browser-only and explicitly not
 guaranteed; an MCP client is not a browser, so the cookie is never read.
 
-This door is a Carbon-hosted convenience with a Carbon-issued credential. stdio
-remains open and ungated: it takes no binding, no keys and nothing issued by
-Carbon, and none of this module is on that path.
+**Two credential procedures that look alike and are not.** Binding on
+`common_name` means the mapping keys on the service token's Client ID, and
+Cloudflare documents that rotating a token's *secret* leaves the Client ID
+unchanged - so routine rotation needs nothing from Carbon and the mapping keeps
+working, with both secrets valid during the grace period. *Revoking and
+re-issuing* a token produces a new Client ID, so the mapping must be updated or
+the miner is locked out with a perfectly valid credential. Rotate and re-issue
+are therefore different operations with different Carbon-side consequences, and
+conflating them looks like an outage.
+
+**What each door costs.** stdio is open and ungated: it takes no binding, no
+keys and nothing issued by Carbon, and none of this module is on that path, so
+it scales to any number of miners without Carbon doing anything. This remote
+door is a Carbon-hosted convenience with a Carbon-issued credential, which means
+an issuance step per miner who wants it. That is workable for a bounded set and
+does not scale to open participation, and it should be said wherever the two are
+offered so nobody plans around remote MCP as the general path.
 """
 
 from __future__ import annotations

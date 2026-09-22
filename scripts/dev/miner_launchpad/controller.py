@@ -381,6 +381,12 @@ def capability_catalog() -> dict:
                 # Scope note: this is the *remote* door only. A miner bringing
                 # their own agent over stdio needs no Cloudflare credential and
                 # nothing issued by Carbon, and can connect today.
+                #
+                # The two doors also differ in what they cost to offer. stdio
+                # scales to any number of miners with no Carbon action at all.
+                # The remote door needs a service token issued per miner, which
+                # suits a bounded set and does not suit open participation - so
+                # remote MCP is a convenience, never the general path.
                 "id": "personal-agent",
                 "reason": "access_assertion_claim_contract_not_implemented",
             },
