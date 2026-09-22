@@ -137,8 +137,9 @@ are different facts, and conflating them is how an approval disappears.
 *Precondition: the retention decision — period, legal basis, approver.*
 
 Until it is made: the default disposition is archive, archived records leave the
-active index and search, exporting one requires an explicit request, and
-deletion requires an approved exception naming an approver and a reason.
+active index and search, exporting one requires an explicit request, a revision
+cannot land on one until it is restored, and deletion requires an approved
+exception naming an approver and a reason.
 
 A deletion reaches the active record, the active index and pending
 notifications. It does not reach retained archives, prior exports or any

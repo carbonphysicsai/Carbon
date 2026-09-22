@@ -1015,3 +1015,27 @@ test("a retention history with an entry removed is refused", async () => {
   assert.equal(new DurableIntakeStore(fixture.file)
     .read(receipt.inquiry_id, roles.reviewer).retention_events.length, 3);
 });
+
+test("an archived record cannot be revised until it is restored", async () => {
+  const fixture = temporaryStore();
+  const receipt = await fixture.store.accept(reviewedRaw(), "archive-update-001", roles.receiver);
+  const patch = { assigned_reviewer: "Ryan", queue_state: "UNDER_REVIEW", note: "Synthetic." };
+  fixture.store.archive(receipt.inquiry_id, roles.steward);
+
+  assert.throws(
+    () => fixture.store.update(receipt.inquiry_id, 1, patch, roles.reviewer),
+    /until it is restored/,
+  );
+  // The refusal is about the archive, not a version conflict: the version the
+  // caller holds is the current one.
+  assert.equal(fixture.store.read(receipt.inquiry_id, roles.reviewer).version, 1);
+  assert.equal(fixture.store.read(receipt.inquiry_id, roles.reviewer).assessments.length, 0);
+
+  fixture.store.restore(receipt.inquiry_id, roles.steward);
+  assert.equal(fixture.store.update(receipt.inquiry_id, 1, patch, roles.reviewer).version, 2);
+  // And the restore that made it possible is on the record.
+  assert.deepEqual(
+    fixture.store.read(receipt.inquiry_id, roles.reviewer).retention_events.map((e) => e.action),
+    ["ARCHIVED", "RESTORED"],
+  );
+});

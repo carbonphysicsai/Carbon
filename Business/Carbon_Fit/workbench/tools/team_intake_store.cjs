@@ -392,6 +392,12 @@ class DurableIntakeStore {
   update(inquiryId, expectedVersion, patch, principal) {
     const actor = validatePrincipal(principal, "update");
     const record = ownedRecord(this, inquiryId, principal);
+    // An archived record was deliberately taken out of the working set. Letting
+    // a revision land on it anyway would make the archive a label rather than a
+    // state, and would append assessment history to a record nobody is
+    // reviewing. Restore it first, which is recorded.
+    if (record.lifecycle === "ARCHIVED")
+      throw Error("Archived inquiry cannot be revised until it is restored");
     if (!Number.isSafeInteger(expectedVersion) || expectedVersion !== record.version)
       throw Error("Concurrent inquiry update conflict");
     const keys = Object.keys(patch || {}).sort();
