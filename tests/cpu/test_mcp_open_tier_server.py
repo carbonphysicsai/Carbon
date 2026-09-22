@@ -23,17 +23,17 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from test_standard_mcp_adapter import make_adapter  # noqa: E402
+from test_standard_mcp_adapter import make_adapter
 
-from carbon.miner_mcp.mcp_onboarding import PREFIX as ONBOARDING_PREFIX  # noqa: E402
-from carbon.miner_mcp.open_tier import (  # noqa: E402
+from carbon.miner_mcp.mcp_onboarding import PREFIX as ONBOARDING_PREFIX
+from carbon.miner_mcp.open_tier import (
     OPEN_TIER,
     CampaignAlreadyAttached,
     _assert_strict,
     attach_campaign,
     create_open_tier_server,
 )
-from carbon.miner_mcp.standard_server import PREFIX as RESEARCH_PREFIX  # noqa: E402
+from carbon.miner_mcp.standard_server import PREFIX as RESEARCH_PREFIX
 
 ONBOARDING = {
     ONBOARDING_PREFIX + name
