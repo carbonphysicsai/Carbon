@@ -4,15 +4,17 @@
   "knowledge_version": "ask-carbon-release-candidate-2026-09-18.2",
   "release": {
     "release_id": "ask-carbon-release-candidate-2026-09-18.2",
-    "status": "STAGING_REVIEWED",
+    "status": "APPROVED_PUBLIC",
     "source_release_date": "2026-09-18",
     "expires_at": "2026-12-15T00:00:00Z",
     "withdrawn_at": null,
     "withdrawal_epoch": 1,
     "staging_activation_allowed": true,
-    "public_activation_allowed": false,
-    "approval_basis": "OWNER_PUBLIC_ELIGIBILITY_DIRECTION_WITH_REPOSITORY_DISCLOSURE_REVIEW",
-    "notice": "Reviewed staging explanations from public repository authority. This is not a production or public activation approval."
+    "public_activation_allowed": true,
+    "approval_basis": "OWNER_PUBLIC_CONTENT_APPROVAL_2026_09_22_WEB_QA_07_D1",
+    "approval_note": "The owner approved the 27 reviewed answer cards and 9 pinned sources for public display on 2026-09-22, after the inactive publication was deployed and verified. This approves the content only. Serving it still requires ASK_CARBON_ACTIVATION=enabled, which the committed release-candidate config deliberately leaves disabled so that redeploying it remains the fail-closed incident response.",
+    "content_unchanged_since": "The card and source content is byte-identical to the 2026-09-18 staging-reviewed set; only the release approval status changed. release_id and knowledge_version are therefore deliberately unchanged, so existing source pins and historical evidence records stay valid.",
+    "notice": "Reviewed public explanations approved for public display. Approval covers the pinned reviewed content only; it is not a scientific, security, production or commercial qualification."
   },
   "candidate_review": {
     "artifact_sha256": "ca1e23c3a77ec813c384d893358fe1fe1959edd5989068a5711b04e2821120cb",

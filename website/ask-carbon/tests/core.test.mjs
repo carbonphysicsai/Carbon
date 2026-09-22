@@ -52,9 +52,21 @@ const activeEnv = () => ({
 test("one release contract gates staging, production, expiry, withdrawal and individual card freshness", () => {
   const now = new Date("2026-09-16T12:00:00Z");
   assert.equal(evaluateRelease(knowledge, { mode: "staging", now }).valid, true);
+  // The release was approved for public display on 2026-09-22 (WEB-QA-07-D1).
   const production = evaluateRelease(knowledge, { mode: "production", now });
-  assert.equal(production.valid, false);
-  assert.ok(production.reasons.includes("release_not_approved_public"));
+  assert.equal(production.valid, true);
+  // The production gate itself must still reject an unapproved release, or the
+  // approval above would be indistinguishable from the gate being broken.
+  const notApproved = structuredClone(knowledge);
+  notApproved.release.status = "STAGING_REVIEWED";
+  const rejected = evaluateRelease(notApproved, { mode: "production", now });
+  assert.equal(rejected.valid, false);
+  assert.ok(rejected.reasons.includes("release_not_approved_public"));
+  const activationWithheld = structuredClone(knowledge);
+  activationWithheld.release.public_activation_allowed = false;
+  const withheld = evaluateRelease(activationWithheld, { mode: "production", now });
+  assert.equal(withheld.valid, false);
+  assert.ok(withheld.reasons.includes("public_activation_not_allowed"));
   const oneExpired = structuredClone(knowledge);
   oneExpired.cards.find((card) => card.id === "overview").expires_at = "2026-09-15T00:00:00Z";
   const partial = evaluateRelease(oneExpired, { mode: "staging", now });

@@ -40,15 +40,20 @@
   "deployment_target_observed": {
     "source": "Cloudflare Dashboard (authenticated as the account owner) on 2026-09-22; version id to be captured by `npx wrangler deployments list --name carbonwebsite` immediately before the next deployment, per OPERATIONS.md",
     "worker": "carbonwebsite",
-    "live_version_id": "6b339116-ee62-43ac-bda8-cf3baa674551",
+    "live_version_id": "dc5212bb-c84b-4051-9724-74cb21c16711",
     "live_version_source": "dash",
     "live_version_note": "The redesigned site went live on 2026-09-22 via a Dashboard upload of carbon-site-upload.zip. That version supersedes 5a44ab03-ce7c-4100-ae42-71843b07246a (version 17, 2026-09-12) as the rollback target. Its id must be read from wrangler at deploy time and written here; do not deploy while this field still reads CAPTURE_BEFORE_DEPLOY.",
     "compatibility_date": "2026-09-12",
     "bindings": [],
-    "live_version_created": "2026-09-22T07:16:20.686Z",
+    "live_version_created": "2026-09-22T10:13:44.044Z",
     "live_version_captured_utc": "2026-09-22",
     "live_version_capture_method": "wrangler 4.134.0 `deployments status --name carbonwebsite`, authenticated as carbon.physics.ai@gmail.com; the version reported as serving 100% of traffic.",
-    "rollback_target_note": "6b339116-ee62-43ac-bda8-cf3baa674551 is the version serving 100% of traffic at capture time (the 2026-09-22 Dashboard upload of the redesign, before Ask Carbon integration) and is therefore the rollback target for the deployment this manifest describes. It supersedes 5a44ab03-ce7c-4100-ae42-71843b07246a (2026-09-12) and b99c37f0-c2d2-432b-842a-00b9fb518d96 (2026-09-09), both retained only as historical evidence. If the bundle is not deployed promptly, re-capture before deploying rather than trusting this value."
+    "rollback_target_note": "dc5212bb-c84b-4051-9724-74cb21c16711 is the version serving 100% of traffic at capture time (2026-09-22T10:13Z): the inactive Ask Carbon publication. It is the rollback target for the ACTIVATION deployment this manifest now describes; rolling back to it restores the site with Ask Carbon present but inactive, which is the desired failure state for an activation problem. It supersedes 6b339116-ee62-43ac-bda8-cf3baa674551 (the pre-integration redesign, 2026-09-22T07:16Z), 5a44ab03-ce7c-4100-ae42-71843b07246a (2026-09-12) and b99c37f0-c2d2-432b-842a-00b9fb518d96 (2026-09-09), all retained as historical evidence only. Note that the rollback_target_captured guard checks only that this field holds a real version id, NOT that it is still the live one: re-capture immediately before every deployment rather than trusting a value written earlier.",
+    "superseded_rollback_targets": [
+      { "version_id": "6b339116-ee62-43ac-bda8-cf3baa674551", "was_live_until": "2026-09-22T10:13Z", "description": "redesign before Ask Carbon integration" },
+      { "version_id": "5a44ab03-ce7c-4100-ae42-71843b07246a", "was_live_until": "2026-09-22T07:16Z", "description": "pre-redesign single-file homepage" },
+      { "version_id": "b99c37f0-c2d2-432b-842a-00b9fb518d96", "was_live_until": "2026-09-12T04:05Z", "description": "named in an earlier runbook revision as the rollback target; already stale when written" }
+    ]
   },
   "routing_configuration": {
     "source": "authenticated `wrangler versions view --json` on carbonwebsite version 5a44ab03-ce7c-4100-ae42-71843b07246a (2026-09-20); the 2026-09-22 dashboard upload kept the same asset configuration",

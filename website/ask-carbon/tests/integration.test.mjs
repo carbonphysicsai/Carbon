@@ -55,16 +55,34 @@ test("CSP generation hashes existing inline code without unsafe-inline", () => {
   assert.throws(() => buildCsp("<button onclick=\"alert(1)\">Bad</button>"), /Inline event handlers/);
 });
 
-test("reviewed knowledge is staging-valid but deliberately not production releasable", async () => {
+test("reviewed knowledge is approved for public display and production releasable", async () => {
   const preview = await validateKnowledge(knowledge, { mode: "staging", now: new Date("2026-09-16T00:00:00Z") });
   assert.equal(preview.valid, true);
   assert.equal(preview.card_count, knowledge.cards.length);
   assert.ok(knowledge.cards.some((card) => card.id === "population-training-separation"));
   assert.equal(preview.source_checks.filter((check) => check.matched).length, 9);
+  // Approved for public display on 2026-09-22 under WEB-QA-07-D1. The card and
+  // source content is unchanged from the staging-reviewed set; only the
+  // release approval status changed, so the version pin stays valid.
+  assert.equal(knowledge.release.status, "APPROVED_PUBLIC");
+  assert.equal(knowledge.release.public_activation_allowed, true);
+  assert.equal(knowledge.knowledge_version, "ask-carbon-release-candidate-2026-09-18.2");
   const production = await validateKnowledge(knowledge, { mode: "production", now: new Date("2026-09-16T00:00:00Z") });
-  assert.equal(production.valid, false);
-  assert.ok(production.errors.includes("release_not_approved_public"));
-  assert.ok(production.errors.includes("public_activation_not_allowed"));
+  assert.equal(production.valid, true);
+});
+
+test("content approval alone does not serve answers: the worker activation flag is separate", async () => {
+  // Three gates must agree before a visitor gets an answer. Two are in the
+  // knowledge release record above; the third is the Worker's own flag, and
+  // the committed release-candidate config must keep it disabled so that
+  // redeploying that config stays the fail-closed incident response.
+  const candidate = await readFile(new URL("../wrangler.public-release-candidate.toml", import.meta.url), "utf8");
+  assert.match(candidate, /ASK_CARBON_ACTIVATION = "disabled"/);
+  const active = await readFile(new URL("../wrangler.public-release-active.toml", import.meta.url), "utf8");
+  assert.match(active, /ASK_CARBON_ACTIVATION = "enabled"/);
+  // The two configs must not drift apart in anything except that one flag.
+  const strip = (text) => text.split("\n").filter((line) => !line.trimStart().startsWith("#")).join("\n").replace(/ASK_CARBON_ACTIVATION = "(disabled|enabled)"/, "ASK_CARBON_ACTIVATION = <flag>").trim();
+  assert.equal(strip(candidate), strip(active), "the activated config must differ from the candidate only in ASK_CARBON_ACTIVATION");
 });
 
 test("knowledge validation rejects answer cards without a reviewed server-owned evidence basis", async () => {

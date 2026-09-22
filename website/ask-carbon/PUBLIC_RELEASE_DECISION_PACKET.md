@@ -27,9 +27,15 @@ private/customer data, scientific execution, qualification or testnet action.
 
 - Manifest: `PUBLIC_RELEASE_CANDIDATE.json`.
 - Knowledge: `ask-carbon-release-candidate-2026-09-18.2`, SHA-256
-  `899c9b9947df498ad3e933fecc060ac21871d7d76d8880f3ee5cfe9ee76ed51e`;
+  `3f22f87a7eee903e74ce58b4c944cbfadab40a62020ea6299610ee1cc4ef671c`;
   27 reviewed cards, nine pinned sources, expiry 2026-12-15, withdrawal epoch
-  1, currently `STAGING_REVIEWED` and not public-approved.
+  1, `APPROVED_PUBLIC` under WEB-QA-07-D1 (2026-09-22).
+  The card and source content is unchanged from the staging-reviewed set; only
+  the release approval block changed, which is why the version identifier is
+  the same and the digest is not. The prior digest
+  `899c9b9947df498ad3e933fecc060ac21871d7d76d8880f3ee5cfe9ee76ed51e` remains
+  correct in `evidence/WEB-QA-04.md` and `evidence/WEB-QA-05.md`, which record
+  what was true when those checks ran and are not restated here.
 - Model: `gpt-5.6-luna:low:v1`, pricing identity
   `openai-standard-2026-09-16:gpt-5.6-luna`, no automatic retry or fallback.
 - Privacy: the bounded visitor posture in `PRIVACY_AND_RETENTION.md`, already
