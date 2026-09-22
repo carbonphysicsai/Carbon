@@ -99,8 +99,12 @@ test("the required production path set covers the Workbench route and shared hom
   assert.ok(REQUIRED_PRODUCTION_PATHS.includes("workbench/index.html"));
   assert.ok(REQUIRED_PRODUCTION_PATHS.includes("workbench/app.js"));
   assert.ok(REQUIRED_PRODUCTION_PATHS.includes("workbench/styles.css"));
-  assert.ok(REQUIRED_PRODUCTION_PATHS.includes("assets/carbon-66e3549179d4.png"));
-  assert.ok(REQUIRED_PRODUCTION_PATHS.includes("assets/carbon-f7ea9506b7b9.png"));
+  assert.ok(REQUIRED_PRODUCTION_PATHS.includes("site.css"));
+  assert.ok(REQUIRED_PRODUCTION_PATHS.includes("customers/index.html"));
+  assert.ok(REQUIRED_PRODUCTION_PATHS.includes("assets/neue-0.otf"));
+  assert.ok(REQUIRED_PRODUCTION_PATHS.includes("workbench/atlas-source.json"));
+  // The ChatGPT-era homepage images were retired with the 2026-09-22 redesign.
+  assert.ok(!REQUIRED_PRODUCTION_PATHS.includes("assets/carbon-66e3549179d4.png"));
   assert.ok(REQUIRED_PRODUCTION_PATHS.every((path) => !path.startsWith("/") && !path.includes("..")));
   assert.equal(new Set(REQUIRED_PRODUCTION_PATHS).size, REQUIRED_PRODUCTION_PATHS.length);
 });

@@ -226,6 +226,30 @@ Production needs a separate exact owner authorization after the staging report:
 5. verify inactive health, route behavior, cache withdrawal and all ceilings;
 6. explicitly enable activation and observe the first bounded requests.
 
+> **Rebaseline, 2026-09-22.** The owner replaced the live site with the
+> multi-page redesign on 2026-09-22 (Dashboard upload, 97 paths verified). The
+> 18 September candidate's homepage pin (`5ebb43e8…`) and
+> `--reconcile-owner-upload` no longer apply. Candidate
+> `ask-carbon-public-release-2026-09-22.1` pins the redesigned homepage
+> (`99be1318…`) and ships a **complete** baseline manifest generated from the
+> site build directory `carbon-site-upload-v2.zip`. Build with:
+>
+> ```sh
+> OUT=/tmp/ask-carbon-production-$(date -u +%Y%m%dT%H%M%SZ)
+> node website/ask-carbon/tools/integrate-static.mjs \
+>   --input /path/to/carbon-site-v2/index.html \
+>   --output "$OUT/index.html" \
+>   --asset-prefix ./ask-carbon \
+>   --existing-site /path/to/carbon-site-v2 \
+>   --require-complete-bundle
+> ```
+>
+> The tool now also refuses `--require-complete-bundle` until
+> `deployment_target_observed.live_version_id` in the manifest is the version
+> id captured from `wrangler deployments list --name carbonwebsite`. The
+> sections below describe the superseded 18 September procedure and are kept
+> for the record.
+
 For the approved 18 September inactive-publication candidate, extract the
 owner-supplied ZIP into a temporary directory, verify its recorded archive and
 `index.html` hashes, and build the static artifact with the repository tool:

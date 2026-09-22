@@ -1,7 +1,7 @@
 {
   "schema_version": "carbon.ask-carbon.public-release-candidate.v1",
-  "candidate_id": "ask-carbon-public-release-2026-09-18.2",
-  "status": "OWNER_APPROVED_INACTIVE_PUBLICATION_OPERATORS_NAMED",
+  "candidate_id": "ask-carbon-public-release-2026-09-22.1",
+  "status": "STAGING_REVIEWED_PENDING_OWNER_REAPPROVAL_FOR_REBASELINED_STATIC_INTEGRATION",
   "public_activation_allowed": false,
   "owner_authorization": {
     "decision": "APPROVED_INACTIVE_PRODUCTION_PUBLICATION",
@@ -12,8 +12,14 @@
     "decision": "WEB-QA-05-D2",
     "recorded_at": "2026-09-19",
     "source": ".agent/DECISIONS.md",
-    "production_incident_owners": ["Ryan Bequette", "Nick Fitzpatrick"],
-    "disable_and_rollback_operators": ["Ryan Bequette", "Nick Fitzpatrick"],
+    "production_incident_owners": [
+      "Ryan Bequette",
+      "Nick Fitzpatrick"
+    ],
+    "disable_and_rollback_operators": [
+      "Ryan Bequette",
+      "Nick Fitzpatrick"
+    ],
     "either_operator_may_act_independently": true,
     "joint_action_required": false
   },
@@ -64,15 +70,15 @@
     "provider_default_abuse_monitoring_retention_may_be_days": 30
   },
   "static_integration": {
-    "source_authority": "OWNER_UPLOADED_ZIP_RECONCILED_TO_CURRENT_PRODUCTION_WITH_WORKBENCH_NAVIGATION_DELTA",
-    "owner_uploaded_zip_sha256": "d85cfc5cf79d8d6fffa403975dd768ebe69d9874b65d11e511e78b7f2606f125",
-    "owner_uploaded_index_sha256": "546fb89d7df7de98f191ae9585d9952db773eedff4bf33c069f9c6b29f6efb7b",
-    "reconciliation_id": "owner-upload-2026-09-18-plus-workbench-navigation-v1",
-    "observed_live_input_sha256": "5ebb43e859e9837f74bbc93b5748b2db95a6700821afbfcecb407e75702e2020",
-    "integrated_index_sha256": "d897118ebd16a602994f3498ae8084f4a9ba908cee4aa6a7b8ef1650cc25da55",
-    "staging_preview_index_sha256": "6c6bdcffb82487202d05ba8cbea63305fe0fdacde1516a4cdca6beb50d430017",
+    "source_authority": "REDESIGNED_SITE_BUILD_DIRECTORY_2026_09_22 (carbon-site-upload-v2.zip); the build directory is the reviewed source and needs no owner-upload reconciliation",
+    "upload_archive_sha256": "850f85a7bab5eb99ee0190974b9a486264e2a179a4d62b3529484ae27b55379c",
+    "previous_live_upload_archive_sha256": "76ec8def33dcca11212e5d383e7a5d6da06bee9f03a92fb4e6e4654dcc198dad",
+    "reconciliation_id": null,
+    "reviewed_source_index_sha256": "99be1318deb88923a92d40f07b70779d71c76930478086be0df501e5c8bc9c5b",
+    "integrated_index_sha256": "TO_BE_RECORDED_FROM_TOOL_OUTPUT_AT_BUILD",
+    "launcher_scope": "homepage only (index.html); other pages link to /?ask-carbon=open via the header and mobile sheet",
     "component_js_sha256": "6a098c0ab3c22bc347519bab0c54183828f1de3ed3646130817f9f3ef307fa0d",
-    "component_css_sha256": "fa02c7eac7d8aa6166dd51c3c651c3776431c4cd21f2a4c5f5981f44dcc97f58",
+    "component_css_sha256": "52b6ae6670735774f1db19c1a76b130ca5e5292bd79063edf79e362cd59663a9",
     "pilot_html_sha256": "57ef27d9e219479ff382a9612ad438910febad6ad8053106c1de3a45973d1c10",
     "release_contract_sha256": "3b91dca55ad7dc787902d307930f8ed018cce42821fdd2fdae42278531ce2329"
   },
@@ -81,10 +87,16 @@
     "plan_observed": "Free",
     "new_monetary_commitment": false,
     "production_static_worker": "carbonwebsite",
-    "production_current_version": "5a44ab03-ce7c-4100-ae42-71843b07246a",
-    "production_rollback_version": "b99c37f0-c2d2-432b-842a-00b9fb518d96",
-    "production_hostnames": ["carbonphysics.ai", "www.carbonphysics.ai"],
-    "production_api_routes": ["carbonphysics.ai/api/ask-carbon*", "www.carbonphysics.ai/api/ask-carbon*"],
+    "production_current_version": "CAPTURE_BEFORE_DEPLOY (wrangler deployments list --name carbonwebsite; the 2026-09-22 dashboard upload superseded 5a44ab03-ce7c-4100-ae42-71843b07246a)",
+    "production_rollback_version": "same as production_current_version once captured",
+    "production_hostnames": [
+      "carbonphysics.ai",
+      "www.carbonphysics.ai"
+    ],
+    "production_api_routes": [
+      "carbonphysics.ai/api/ask-carbon*",
+      "www.carbonphysics.ai/api/ask-carbon*"
+    ],
     "production_worker_candidate": "ask-carbon-public",
     "production_activation": "disabled",
     "private_staging_worker": "carbon-ask-private-staging",
@@ -105,12 +117,17 @@
     "evaluation_remaining": 4546521,
     "monthly_remaining": 49546521
   },
-  "required_before_production_mutation": [],
+  "required_before_production_mutation": [
+    "Owner re-approval of inactive publication recorded against candidate ask-carbon-public-release-2026-09-22.1",
+    "Live carbonwebsite version id captured into production-baseline.manifest.json deployment_target_observed.live_version_id"
+  ],
   "required_before_production_mutation_satisfied": {
     "named production incident owner": "WEB-QA-05-D2 (2026-09-19)",
     "named disable and rollback operator": "WEB-QA-05-D2 (2026-09-19)"
   },
   "remaining_execution_inputs": [
     "Cloudflare deployment credentials for account 7462053c6992b9c9fd889952a7ae0496, provisioned through the approved operator release process"
-  ]
+  ],
+  "supersedes_candidate_id": "ask-carbon-public-release-2026-09-18.2",
+  "rebaseline_note": "The 2026-09-18.2 candidate was owner-approved for inactive publication against the previous single-file homepage. On 2026-09-22 the owner replaced the live site with the multi-page redesign (carbon-site-upload.zip \u2192 carbonwebsite, verified 97/97 paths), which invalidated that candidate's static-integration pins. This candidate carries the SAME runtime, model, knowledge, privacy, budget and activation posture and changes only: (a) the static-integration source pin and complete baseline manifest, (b) the launcher/panel stylesheet restyled to the site's type system (Montreal, square corners, 600 weight), and (c) the site header/footer gaining an `Ask Carbon` link that opens the homepage panel. The owner's inactive-publication approval must be re-recorded against this candidate before deployment."
 }

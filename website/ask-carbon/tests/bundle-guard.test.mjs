@@ -54,13 +54,27 @@ const writeFixture = async (root, path, contents) => {
  * manifest that describes it. `extra` lets a test add a legitimate asset that
  * is absent from the old hard-coded REQUIRED_PRODUCTION_PATHS list.
  */
-const buildBaseline = async ({ complete = true, extra = null } = {}) => {
+const buildBaseline = async ({ complete = true, extra = null, rollback = "0f1e2d3c-4b5a-4978-8765-43210fedcba9" } = {}) => {
   const root = await workspace();
   const site = join(root, "current");
   const files = [
     ["index.html", "<html><head></head><body>live homepage</body></html>"],
-    ["assets/carbon-66e3549179d4.png", "PNG-A-bytes"],
-    ["assets/carbon-f7ea9506b7b9.png", "PNG-B-bytes"],
+    ["404.html", "<html><head></head><body>not found</body></html>"],
+    ["site.css", "body{background:#f5f5f0}"],
+    ["favicon.svg", "<svg xmlns='http://www.w3.org/2000/svg'/>"],
+    ["robots.txt", "User-agent: *\nAllow: /\n"],
+    ["sitemap.xml", "<urlset/>"],
+    ["about/index.html", "<html><head></head><body>about</body></html>"],
+    ["customers/index.html", "<html><head></head><body>customers</body></html>"],
+    ["investors/index.html", "<html><head></head><body>investors</body></html>"],
+    ["miners/index.html", "<html><head></head><body>miners</body></html>"],
+    ["papers/index.html", "<html><head></head><body>papers</body></html>"],
+    ["validators/index.html", "<html><head></head><body>validators</body></html>"],
+    ["assets/brand-1.svg", "<svg xmlns='http://www.w3.org/2000/svg'><title>brand-1</title></svg>"],
+    ["assets/brand-2.svg", "<svg xmlns='http://www.w3.org/2000/svg'><title>brand-2</title></svg>"],
+    ["assets/neue-0.otf", "OTF-400-bytes"],
+    ["assets/neue-1.otf", "OTF-600-bytes"],
+    ["assets/og-carbon.png", "PNG-OG-bytes"],
     ["workbench/index.html", "<html><head></head><body>workbench</body></html>"],
     ["workbench/app.js", "export const app = 'real';"],
     ["workbench/assist-contract.js", "export const contract = 1;"],
@@ -84,6 +98,7 @@ const buildBaseline = async ({ complete = true, extra = null } = {}) => {
     inventory_status: complete ? "verified-complete" : "incomplete",
     inventory_complete: complete,
     inventory_status_reason: complete ? "fixture" : "fixture: deployed asset set not enumerated",
+    deployment_target_observed: { worker: "carbonwebsite", live_version_id: rollback },
     assets,
   }, null, 2));
   const input = join(root, "input.html");
@@ -235,28 +250,50 @@ test("an unenumerated inventory refuses certification even when every known asse
   assert.doesNotMatch(result.stdout, /"deployable_to_carbonwebsite": true/);
 });
 
-test("the shipped baseline manifest is honest about its own incompleteness", async () => {
+test("the shipped baseline manifest is a complete, self-consistent inventory of the redesigned site", async () => {
   const manifest = await loadBaselineManifest();
-  assert.equal(manifest.inventory_complete, false);
-  assert.equal(manifest.inventory_status, "incomplete");
+  assert.equal(manifest.inventory_complete, true);
+  assert.equal(manifest.inventory_status, "verified-complete");
   assert.ok(manifest.inventory_status_reason.length > 0);
-  assert.ok(Array.isArray(manifest.completion_requires) && manifest.completion_requires.length > 0);
-  // Every observed path is covered, plus the asset the old list missed.
+  // Every path in the regression floor is covered.
   for (const path of REQUIRED_PRODUCTION_PATHS) {
     assert.ok(manifest.assets.some((asset) => asset.path === path), `${path} must be in the baseline manifest`);
   }
   assert.ok(manifest.assets.some((asset) => asset.path === "workbench/atlas-source.json"));
+  // The retired ChatGPT-era homepage images must not be resurrected.
+  assert.ok(!manifest.assets.some((asset) => asset.path.startsWith("assets/carbon-")));
   // No entry may be an empty file: /index.html 307-redirects to /, so a naive
   // download of the listed paths yields a zero-byte homepage.
   assert.ok(manifest.assets.every((asset) => asset.bytes > 0));
-  // The authenticated routing configuration explains the redirect trap.
+  // The upload archive is the provenance and must match the entry count.
+  assert.equal(manifest.upload_archive.file_count, manifest.assets.length);
+  assert.match(manifest.upload_archive.sha256, /^[0-9a-f]{64}$/);
+  // The reviewed homepage source pin in the manifest is the entry the bundle replaces.
+  const index = manifest.assets.find((asset) => asset.path === "index.html");
+  assert.equal(manifest.homepage_source_authority.reviewed_source_index_sha256, index.sha256);
+  assert.equal(manifest.homepage_source_authority.reconciliation_required, false);
+  // The change set against the previous live version is explicit and additive-free.
+  assert.deepEqual(manifest.changes_since_previous_live.added_paths, []);
+  assert.deepEqual(manifest.changes_since_previous_live.removed_paths, []);
+  assert.ok(manifest.changes_since_previous_live.changed_paths.includes("index.html"));
+  // The routing configuration explains the redirect trap.
   assert.equal(manifest.routing_configuration.html_handling, "auto-trailing-slash");
   assert.equal(manifest.routing_configuration.authoritative, true);
   assert.match(manifest.routing_configuration.implication, /307/);
-  // The rollback target must be the version actually live, not a documented one.
-  assert.equal(manifest.deployment_target_observed.live_version_id, "5a44ab03-ce7c-4100-ae42-71843b07246a");
-  assert.match(manifest.deployment_target_observed.rollback_target_note, /b99c37f0-c2d2-432b-842a-00b9fb518d96/);
-  assert.ok(manifest.blocked_on.owner_action.length > 0);
+  // The rollback target is either a captured version id or the explicit
+  // capture marker; the tool refuses certification on the marker.
+  const target = manifest.deployment_target_observed.live_version_id;
+  assert.ok(/^[0-9a-f-]{36}$/.test(target) || target === "CAPTURE_BEFORE_DEPLOY");
+  assert.notEqual(target, "5a44ab03-ce7c-4100-ae42-71843b07246a", "the 2026-09-12 version was superseded on 2026-09-22");
+});
+
+test("a complete baseline without a captured rollback target refuses certification", async () => {
+  const fixture = await buildBaseline({ rollback: "CAPTURE_BEFORE_DEPLOY" });
+  const output = join(fixture.root, "fresh", "index.html");
+  const result = await runCli(productionArgs(fixture, output, ["--require-complete-bundle"]));
+  assert.notEqual(result.code, 0);
+  assert.match(result.stderr, /rollback target/);
+  await assert.rejects(readFile(output), /ENOENT/);
 });
 
 // --- completeness is not authorization --------------------------------------
