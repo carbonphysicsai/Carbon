@@ -15,6 +15,7 @@ from carbon.reconstruction.model import ReconstructionFailure
 from carbon.reconstruction.profile import compile_development_profile
 from carbon.reconstruction.worker.model import (
     DevelopmentWorkerProfile,
+    RequestDerivedWorkerProfile,
     WorkerCode,
     WorkerFailure,
 )
@@ -54,7 +55,12 @@ def test_prepared_tpu_profile_is_distinct_and_role_bound(role):
             "role": role.value,
         },
     }
-    assert _request_worker_profile(request) == profile
+    # The reader returns its narrowed, verification-only profile rather than the
+    # full one: it carries the digest the comparison needs and the identity
+    # fields admission routes on, and deliberately no bound. Comparing against
+    # the narrowing of the expected profile asserts the same identity as before
+    # and additionally that the narrowing happened.
+    assert _request_worker_profile(request) == RequestDerivedWorkerProfile.of(profile)
     for schema in ("carbon.c03.worker-request.v1", "carbon.c03.worker-request.v2"):
         with pytest.raises(WorkerFailure):
             _request_worker_profile({**request, "schema": schema})
@@ -130,8 +136,9 @@ def test_package_instrument_reconciles_uncertain_create_and_rejects_foreign_owne
         json=lambda command: {
             "Config": {"Labels": {"carbon.package.instrument": name}}
         },
-        run=lambda command, **kwargs: calls.append(command)
-        or SimpleNamespace(stdout=b""),
+        run=lambda command, **kwargs: (
+            calls.append(command) or SimpleNamespace(stdout=b"")
+        ),
     )
     _cleanup_instrument(cli, name)
     assert calls[0] == ["rm", "--force", name]
