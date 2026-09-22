@@ -415,4 +415,3 @@ re-verified at the moment of provisioning. Stage A reports **device agreement
 and explicitly not orchestration agreement**; `validator_launch` remains
 `HARDWARE_EXERCISED: no`. Nothing is qualified, `compare_r1` still returns
 `BACKEND_UNSUPPORTED`, and success is evidence toward MQ-008 and nothing more.
-

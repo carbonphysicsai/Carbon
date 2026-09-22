@@ -107,4 +107,3 @@ whether L40S appears at 2 GPUs **anywhere**. If a week of checks records no
 sighting in any of EUR-IS-2, OC-AU-1, US-MO-1 or US-TX-4, that is a different
 finding from the one resolved here - it would mean the declared class is broadly
 unobtainable at 2 GPUs on this provider, which no image change addresses.
-
