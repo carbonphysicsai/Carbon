@@ -334,3 +334,85 @@ unchanged: re-verify availability at the moment of provisioning, and confirm
 driver builds match across compared units. Nothing is qualified,
 `compare_r1` still returns `BACKEND_UNSUPPORTED`, and success is evidence toward
 MQ-008 and nothing more.
+
+---
+
+# Amendment 3 to the acceptance - stage A runs from a study image
+
+**Recorded 2026-09-22. Owner decision.**
+
+Amendment 2 settled that stage A runs pod-native. This settles what it runs
+*from*, and it is an owner decision rather than an executor's: it changes a pin
+the acceptance fixes.
+
+## Why the volume path had nowhere to run
+
+The pod needs the Carbon checkout, and the pinned worker image cannot fetch it -
+no `git`, no `curl`, no `wget`, no CA bundle. A network volume was the route, and
+a network volume exists only in a datacenter that offers one.
+
+`EUR-IS-2` carried a live L40S 2-GPU pod at 2026-09-22T11:51Z and reports
+`networkVolumeTypes: []`. No volume can be created there at all, by a staging pod
+or by the S3 API. On the acceptance's own datacenter survey the declared classes
+and the thirteen volume-capable datacenters **do not intersect**, and the
+volume-capable sites are different numbered facilities in the same metros as the
+GPU-dense ones. RunPod's documentation acknowledges the tension directly, so the
+exclusion is treated as structural rather than momentary.
+
+## Decided: build the study image from the pinned digest
+
+`ghcr.io/carbonphysicsai/carbon-determinism-study`, built `FROM` the pinned
+worker digest with the Carbon checkout, `pytest` and `pynvml` added and the
+entrypoint replaced. No volume, no S3, no staging pod, no template.
+
+**This collapses the two pins into one.** The execution class previously
+recorded an image digest *and* a Carbon revision, because the published image
+predated the code; the study image's digest now pins both. That is the end state
+the plan already names - circumstance moved it earlier, and it is the opposite of
+the entrypoint-only wrapper rejected before Amendment 2, which would have added
+a second digest for nothing.
+
+**The declared class was not refitted to a storage constraint.** L40S remains
+the declared class and A40 the second, chosen on validator-realism grounds.
+
+## Verified before publication, not argued
+
+Two gates, both run on the merge commit rather than a branch head:
+
+| Gate | Result |
+|---|---|
+| The pinned image's layers survive unchanged | all **10** preserved; 3 added on top |
+| The numerics are unchanged | reproduced `83e523384fd44db6207583cede3294bd3f2f8b690802b11f661ade1eb825f10a` |
+
+The base's own `site-packages` is untouched - the two added packages live in
+their own directory on `PYTHONPATH` - so "only Carbon and two packages are
+added" is checkable rather than asserted.
+
+```text
+image   ghcr.io/carbonphysicsai/carbon-determinism-study@sha256:3ebfe68571f2396b1b32259fd5263daac1cce256ebe9e37ba7373f62b0234e52
+carbon  74ff35ead1e5e571e6ac47601ea3f7780676a155   (pinned by the image digest above)
+```
+
+## Supersedes the volume-capability pre-check
+
+The runbook's step 0 required a conjunction: the class available **and** that
+same datacenter volume-capable. With no volume, **the condition is class
+availability alone.** The conjunction is superseded rather than deleted, because
+it remains correct for any future variant that mounts a volume.
+
+## Outstanding before a run
+
+The published package is `internal`, so an anonymous pull is refused and RunPod
+cannot fetch it without a registry credential - which this study does not use.
+Making it public is an organization package setting. **Until that is done the
+image exists and cannot be run**, and that is recorded here rather than
+discovered at provisioning.
+
+## Unchanged
+
+Ceiling USD 30 across both stages. The four stop conditions stand. Availability
+re-verified at the moment of provisioning. Stage A reports **device agreement
+and explicitly not orchestration agreement**; `validator_launch` remains
+`HARDWARE_EXERCISED: no`. Nothing is qualified, `compare_r1` still returns
+`BACKEND_UNSUPPORTED`, and success is evidence toward MQ-008 and nothing more.
+
