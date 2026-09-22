@@ -725,3 +725,78 @@ Ceiling USD 30. Stop conditions unchanged. Stage A remains **device agreement an
 explicitly not orchestration agreement**; `validator_launch` remains
 `HARDWARE_EXERCISED: no`; nothing is qualified and `compare_r1` still returns
 `BACKEND_UNSUPPORTED`.
+
+---
+
+# Amendment 8 - within-generation substitution, and the MIG exclusion
+
+**Recorded 2026-09-22. Owner decision.**
+
+Amendment 4 named four classes by architecture generation. Two ran and agreed -
+A40 (Ampere) and H100 SXM (Hopper). L40S (Ada) and every non-MIG Blackwell part
+have been `Out` at every check since, across a full day.
+
+## The declared classes serve two purposes, and they separate
+
+**Validator realism.** L40S was chosen partly because a validator would
+plausibly deploy it. **Generation coverage.** A different architecture brings a
+different kernel set, and the claim under test is that one pinned configuration
+holds across them.
+
+For generation coverage **any card of the generation proves the same thing**.
+For validator realism it does not. Those purposes come apart when the declared
+part is unobtainable, and this amendment trades the second for the first rather
+than pretending they are the same.
+
+## Decided: substitute within the generation, and say what was traded
+
+| Generation | Declared | Substitute permitted |
+| --- | --- | --- |
+| Ada | L40S | RTX 6000 Ada, L40, **L4**, RTX 4090 |
+| Blackwell | B200 / RTX PRO 6000 SE | B300, RTX PRO 6000 **non-MIG** |
+
+**A datacenter part is preferred over a consumer one** where both are available,
+because it retains more of the realism being traded. L4 over RTX 4090 for that
+reason, not on price.
+
+**Every write-up must carry both facts.** An Ada substitute establishes that Ada
+kernels agree under the pinned configuration. It establishes **nothing about
+what a validator would deploy**. Reporting only the first would convert a
+generalisation result into a deployment claim, which is the collapse this
+acceptance exists to prevent.
+
+**Substitution is within a generation only.** Across generations it is not
+substitution - it is dropping a class, and the generation coverage is the point.
+
+## Named exclusion: MIG slices are not two devices
+
+`RTX PRO 6000 Blackwell Server Edition MIG 1g.24gb` and `MIG 2g.48gb` have shown
+stock while every non-MIG Blackwell part was `Out`. **They are excluded, and the
+exclusion is recorded here so it is not re-derived from a stock listing.**
+
+A MIG instance is a partition of one physical GPU. Two instances are two
+partitions of the **same silicon**, so a two-device comparison across them
+answers a different question from the one stage A asks, and would very likely
+agree trivially - producing a number that reads exactly like device agreement
+while establishing nothing about two devices.
+
+That failure mode is worse than an absent result, because it looks like a
+present one.
+
+## The waiting has an end
+
+If a generation is still unobtainable - declared part or substitute - by
+**2026-09-29**, the study is written up with **two generations** and the gap
+named explicitly. Ampere and Hopper agreeing, across a datacenter and a
+datacenter-adjacent part, is already direct evidence that the pinned
+configuration carries the determinism rather than the hardware.
+
+Waiting past a stated date would trade a known, reportable result for an
+unbounded one.
+
+## Unchanged
+
+Ceiling USD 30. Stop conditions unchanged. Stage A reports **device agreement
+and explicitly not orchestration agreement**; `validator_launch` remains
+`HARDWARE_EXERCISED: no`; nothing is qualified and `compare_r1` still returns
+`BACKEND_UNSUPPORTED`.
