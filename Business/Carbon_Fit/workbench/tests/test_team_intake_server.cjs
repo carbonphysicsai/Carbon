@@ -23,16 +23,30 @@ const TOKENS = {
 };
 const digest = (value) => crypto.createHash("sha256").update(value).digest("hex");
 
+const TEAM = "carbon-fit", OTHER_TEAM = "other-tenant";
+// Synthetic accounts. A directory holds credential digests and never a
+// credential; the tokens above exist only inside this test process.
+const account = (principal, roles, token, team = TEAM) => ({
+  principal,
+  team,
+  roles,
+  token_sha256: digest(token),
+  status: "ACTIVE",
+});
 const USERS = [
-  { principal: "ryan", roles: ["INTAKE_RECEIVER"], token_sha256: digest(TOKENS.receiver) },
-  { principal: "nick", roles: ["TEAM_REVIEWER"], token_sha256: digest(TOKENS.reviewer) },
-  { principal: "harsh", roles: ["DATA_STEWARD"], token_sha256: digest(TOKENS.steward) },
-  {
-    principal: "operations",
-    roles: ["NOTIFICATION_OPERATOR"],
-    token_sha256: digest(TOKENS.notifier),
-  },
-  { principal: "stranger", roles: [], token_sha256: digest(TOKENS.stranger) },
+  account("receiver-account", ["INTAKE_RECEIVER"], TOKENS.receiver),
+  account("reviewer-account", ["TEAM_REVIEWER"], TOKENS.reviewer),
+  account("steward-account", ["DATA_STEWARD"], TOKENS.steward),
+  account("operations-account", ["NOTIFICATION_OPERATOR"], TOKENS.notifier),
+  // Every role this receiver defines, and none of this team's records. The
+  // denial below is about who owns the inquiry, not about what the caller may
+  // do, which is the case a role check alone would let through.
+  account(
+    "foreign-account",
+    ["INTAKE_RECEIVER", "TEAM_REVIEWER", "DATA_STEWARD", "NOTIFICATION_OPERATOR"],
+    TOKENS.stranger,
+    OTHER_TEAM,
+  ),
 ];
 
 function reviewedRaw() {
@@ -148,7 +162,6 @@ test("every endpoint checks the caller's role and denies an unrelated principal"
     const id = accepted.inquiry_id;
     const denied = [
       ["POST", "/private/intake", TOKENS.reviewer],
-      ["GET", `/private/intake/${id}`, TOKENS.stranger],
       ["GET", `/private/intake/${id}/export`, TOKENS.receiver],
       ["PATCH", `/private/intake/${id}`, TOKENS.receiver],
       ["DELETE", `/private/intake/${id}`, TOKENS.reviewer],
@@ -172,6 +185,30 @@ test("every endpoint checks the caller's role and denies an unrelated principal"
       (await fixture.call("GET", `/private/intake/${id}`, { token: "not-a-known-token-000000" })).status,
       403,
     );
+    // A fully-roled principal from another team is refused, and refused as a
+    // 404: whether this receiver holds that inquiry is not something a foreign
+    // caller gets to learn by watching the status code change.
+    const foreign = await fixture.call("GET", `/private/intake/${id}`, {
+      token: TOKENS.stranger,
+    });
+    assert.equal(foreign.status, 404);
+    assert.equal(
+      (await fixture.call("GET", "/private/intake/inquiry-000000000000000", {
+        token: TOKENS.stranger,
+      })).status,
+      404,
+    );
+    for (const route of [`/private/intake/${id}/export`, "/private/outbox"])
+      assert.equal(
+        [404, 200].includes((await fixture.call("GET", route, { token: TOKENS.stranger })).status),
+        true,
+      );
+    // ... and its view of the queue is empty rather than another team's.
+    assert.deepEqual(
+      (await (await fixture.call("GET", "/private/outbox", { token: TOKENS.stranger })).json()).events,
+      [],
+    );
+
     // The allowed roles still work.
     assert.equal(
       (await fixture.call("GET", `/private/intake/${id}`, { token: TOKENS.reviewer })).status,

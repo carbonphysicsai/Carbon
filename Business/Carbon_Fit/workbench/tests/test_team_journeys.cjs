@@ -15,7 +15,17 @@ const atlas = JSON.parse(fs.readFileSync(path.join(ROOT, "data/atlas.json"), "ut
 const scenarios = JSON.parse(fs.readFileSync(path.join(ROOT, "data/goal_workbench_09_team_scenarios_v1.json"), "utf8")).scenarios;
 const component = () => ({ schema_version: F.WORKSPACE_VERSION, application_version: F.APP_VERSION, source_sha256: atlas.source.sha256, evidence_catalog: [], drafts: [], shortlist: [], migration_receipts: [] });
 const reader = (raw) => F.readWorkspace(raw, atlas.opportunities.map((item) => item.id), atlas.source.sha256);
-const receiver = { id: "synthetic-receiver", roles: ["INTAKE_RECEIVER"] };
+const { StaffDirectory } = require("../tools/team_staff_directory.cjs");
+// Synthetic and local. The journey needs a real authenticated identity because
+// the receiver no longer accepts a principal the caller describes for itself.
+const RECEIVER_TOKEN = "synthetic-journey-receiver-0001";
+const receiver = new StaffDirectory([{
+  principal: "synthetic-receiver",
+  team: "carbon-fit",
+  roles: ["INTAKE_RECEIVER"],
+  token_sha256: crypto.createHash("sha256").update(RECEIVER_TOKEN).digest("hex"),
+  status: "ACTIVE",
+}]).authenticate("Bearer " + RECEIVER_TOKEN);
 
 function draftFor(scenario) {
   if (scenario.source_fixture)

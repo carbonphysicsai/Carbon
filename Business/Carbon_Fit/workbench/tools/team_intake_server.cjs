@@ -6,32 +6,18 @@ const http = require("node:http");
 const path = require("node:path");
 const F = require("../src/engine.js");
 const { DurableIntakeStore } = require("./team_intake_store.cjs");
+const { StaffDirectory } = require("./team_staff_directory.cjs");
 
 function loadUsers(usersPath) {
-  const users = JSON.parse(fs.readFileSync(path.resolve(usersPath), "utf8"));
-  if (!Array.isArray(users) || !users.length) throw Error("Named users are required");
-  return users;
+  return StaffDirectory.load(usersPath);
 }
 
 function authenticator(users) {
-  return function authenticate(request) {
-    const match = /^Bearer ([A-Za-z0-9._~-]{20,300})$/.exec(
-      request.headers.authorization || "",
-    );
-    if (!match) throw Error("Authentication required");
-    const digest = crypto.createHash("sha256").update(match[1]).digest("hex");
-    const user = users.find(
-      (candidate) =>
-        typeof candidate.token_sha256 === "string" &&
-        /^[0-9a-f]{64}$/.test(candidate.token_sha256) &&
-        crypto.timingSafeEqual(
-          Buffer.from(candidate.token_sha256),
-          Buffer.from(digest),
-        ),
-    );
-    if (!user) throw Error("Authentication failed");
-    return { id: user.principal, roles: user.roles };
-  };
+  // The directory issues the principal. This function no longer builds one,
+  // which is the point: there is now no code path that produces a principal
+  // without a credential that matched an account.
+  const directory = users instanceof StaffDirectory ? users : new StaffDirectory(users);
+  return (request) => directory.authenticate(request.headers.authorization);
 }
 
 function body(request) {
