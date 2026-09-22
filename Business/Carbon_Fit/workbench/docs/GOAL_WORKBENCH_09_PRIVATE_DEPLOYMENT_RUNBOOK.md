@@ -28,7 +28,9 @@ exercised by `tests/test_team_intake_store.cjs`,
   from a maintained list;
 - cross-team denial that refuses a foreign principal exactly as it refuses an
   identifier that was never issued, so the endpoint is not an existence oracle;
-- append-only assessment and revision history under optimistic `If-Match`;
+- append-only assessment and revision history under optimistic `If-Match`, and
+  an append-only retention history: current state is overwritten by a restore,
+  so on its own it cannot say who archived a record that was later restored;
 - versioned retention with archive, restore, search, index and export effects,
   and deletion gated on a named, reasoned, recorded exception;
 - a transactional outbox that retains the inquiry and the pending event when a

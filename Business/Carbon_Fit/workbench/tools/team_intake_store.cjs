@@ -127,6 +127,11 @@ function validateStore(value) {
     const accounted = record.assessments.length + 1;
     if (record.history_origin === "NATIVE" && accounted !== record.version)
       throw Error("Retained assessment history does not match the record version");
+    // An append-only list that is missing an entry from its middle looks
+    // perfectly ordinary. The sequence numbers are what make a removal visible.
+    const events = record.retention_events || [];
+    if (events.some((event, index) => event.seq !== index + 1))
+      throw Error("Retention history is not a contiguous append-only sequence");
   }
   return value;
 }
@@ -153,6 +158,9 @@ function migrate(value) {
     // construction, so a migrated record is unreachable until an owner assigns
     // it rather than quietly readable by whoever asks first.
     if (!record.owner_team) record.owner_team = "MIGRATED_TEAM_UNASSIGNED";
+    // Empty rather than a reconstructed history. Nothing was retained, and an
+    // invented entry would be indistinguishable from one that was recorded.
+    if (!Array.isArray(record.retention_events)) record.retention_events = [];
     record.retention = {
       schema_version: RETENTION_VERSION,
       policy_id: RETENTION_POLICY.policy_id,
@@ -164,6 +172,18 @@ function migrate(value) {
     };
   }
   return next;
+}
+
+function appendRetentionEvent(record, action, actor, detail = {}) {
+  record.retention_events = record.retention_events || [];
+  record.retention_events.push({
+    seq: record.retention_events.length + 1,
+    action,
+    actor,
+    at: new Date().toISOString(),
+    ...detail,
+  });
+  return record.retention_events[record.retention_events.length - 1];
 }
 
 function notification(inquiryId, record) {
@@ -337,6 +357,12 @@ class DurableIntakeStore {
         exception_id: null,
         production_period: RETENTION_POLICY.production_period,
       },
+      // Append-only, like the assessment history. The retention block above is
+      // current state and is overwritten — a restore clears the archive fields
+      // — so on its own it loses who archived a record that was later restored
+      // and archived again. "Who did what to this inquiry" is the question
+      // asked afterwards, and current state cannot answer it.
+      retention_events: [],
     };
     const next = clone(this.state);
     next.inquiries[inquiryId] = record;
@@ -435,6 +461,7 @@ class DurableIntakeStore {
       archived_at: new Date().toISOString(),
       archived_by: actor,
     };
+    appendRetentionEvent(archived, "ARCHIVED", actor);
     this.persist(next);
     return clone(archived);
   }
@@ -455,6 +482,7 @@ class DurableIntakeStore {
       restored_by: actor,
       restored_at: new Date().toISOString(),
     };
+    appendRetentionEvent(restored, "RESTORED", actor);
     this.persist(next);
     return clone(restored);
   }
@@ -490,6 +518,10 @@ class DurableIntakeStore {
       ...next.inquiries[inquiryId].retention,
       exception_id: exceptionId,
     };
+    appendRetentionEvent(next.inquiries[inquiryId], "DELETION_EXCEPTION_APPROVED", actor, {
+      exception_id: exceptionId,
+      approver: next.exceptions[exceptionId].approver,
+    });
     this.persist(next);
     return clone(next.exceptions[exceptionId]);
   }

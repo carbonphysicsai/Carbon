@@ -962,3 +962,56 @@ test("a failed write leaves the previous committed state readable", async () => 
     "Ryan Bequette",
   );
 });
+
+test("the retention lifecycle is append-only across an archive and restore cycle", async () => {
+  const fixture = temporaryStore();
+  const receipt = await fixture.store.accept(reviewedRaw(), "provenance-001", roles.receiver);
+  fixture.store.archive(receipt.inquiry_id, roles.steward);
+  fixture.store.restore(receipt.inquiry_id, roles.steward);
+  fixture.store.archive(receipt.inquiry_id, roles.steward);
+  approveDeletion(fixture.store, receipt.inquiry_id);
+
+  const record = fixture.store.read(receipt.inquiry_id, roles.reviewer);
+  assert.deepEqual(record.retention_events.map((event) => event.action),
+    ["ARCHIVED", "RESTORED", "ARCHIVED", "DELETION_EXCEPTION_APPROVED"]);
+  assert.deepEqual(record.retention_events.map((event) => event.seq), [1, 2, 3, 4]);
+  for (const event of record.retention_events) assert.equal(event.actor, "synthetic-steward");
+  assert.equal(record.retention_events[3].approver, "Ryan Bequette");
+  // Current state cannot answer this on its own: the restore cleared the first
+  // archive's fields, so without the history the first archive never happened.
+  assert.equal(record.retention.archived_by, "synthetic-steward");
+  assert.equal(record.retention_events.filter((e) => e.action === "ARCHIVED").length, 2);
+  assert.equal(new DurableIntakeStore(fixture.file).read(receipt.inquiry_id, roles.reviewer)
+    .retention_events.length, 4);
+});
+
+test("a retention history with an entry removed is refused", async () => {
+  const fixture = temporaryStore();
+  const receipt = await fixture.store.accept(reviewedRaw(), "provenance-002", roles.receiver);
+  fixture.store.archive(receipt.inquiry_id, roles.steward);
+  fixture.store.restore(receipt.inquiry_id, roles.steward);
+  fixture.store.archive(receipt.inquiry_id, roles.steward);
+
+  const good = JSON.parse(fs.readFileSync(fixture.file, "utf8"));
+  // Removing the middle entry leaves a list that reads perfectly naturally:
+  // archived, then archived again. The sequence numbers are what make the
+  // removal visible, which is the only reason they are written down.
+  const edited = JSON.parse(JSON.stringify(good));
+  edited.inquiries[receipt.inquiry_id].retention_events.splice(1, 1);
+  fs.writeFileSync(fixture.file, JSON.stringify(edited, null, 2) + "\n");
+  assert.throws(() => new DurableIntakeStore(fixture.file), /contiguous append-only sequence/);
+
+  // A truncation from the end is not detected here, and this says so rather
+  // than implying the check is stronger than it is: a local JSON file has no
+  // authority over an operator with write access, and the append-only property
+  // is enforced against the code, not against the disk.
+  const truncated = JSON.parse(JSON.stringify(good));
+  truncated.inquiries[receipt.inquiry_id].retention_events.pop();
+  fs.writeFileSync(fixture.file, JSON.stringify(truncated, null, 2) + "\n");
+  assert.equal(new DurableIntakeStore(fixture.file)
+    .read(receipt.inquiry_id, roles.reviewer).retention_events.length, 2);
+
+  fs.writeFileSync(fixture.file, JSON.stringify(good, null, 2) + "\n");
+  assert.equal(new DurableIntakeStore(fixture.file)
+    .read(receipt.inquiry_id, roles.reviewer).retention_events.length, 3);
+});
