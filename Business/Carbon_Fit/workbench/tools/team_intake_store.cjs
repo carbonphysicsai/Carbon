@@ -150,6 +150,12 @@ function validateStore(value) {
     throw Error("Invalid private intake store");
   if ([LEGACY_STORE_VERSION, STORE_VERSION_V2].includes(value.schema_version))
     return migrate(value);
+  for (const event of Object.values(value.outbox)) {
+    // Written before the outcome was recorded separately from the queue state.
+    // Defaulted rather than guessed: an existing attempt count is real, and
+    // what its last call did is simply not known for those events.
+    if (typeof event.last_outcome !== "string") event.last_outcome = "UNRECORDED";
+  }
   for (const record of Object.values(value.inquiries)) {
     if (!Array.isArray(record.assessments))
       throw Error("Invalid retained assessment history");
@@ -460,6 +466,10 @@ class DurableIntakeStore {
       status: "PENDING",
       attempts: 0,
       last_error: "",
+      // What happened on the last call, as distinct from what the queue state
+      // is. A pending event that was never attempted and one whose delivery
+      // was refused are both PENDING and need different things done about them.
+      last_outcome: "NOT_ATTEMPTED",
       destination: this.destination,
       notification: notification(inquiryId, record),
     };
@@ -665,22 +675,35 @@ class DurableIntakeStore {
     if (!event || event.owner_team !== principal.team)
       throw Error("Outbox event not found");
     if (event.status === "DELIVERED") return clone(event);
-    if (typeof handler !== "function")
-      handler = async () => {
-        throw Error(
-          "No notification transport is configured; delivery is not attempted",
-        );
-      };
-    const attempted = clone(event);
-    attempted.attempts += 1;
-    let status, failure;
-    try {
-      await handler(clone(attempted));
-      status = "DELIVERED";
-      failure = "";
-    } catch (error) {
+    // Nothing configured is not a delivery that failed.
+    //
+    // This used to run a default handler that threw, so an unconfigured
+    // receiver recorded an attempt and a failure for a delivery nobody tried.
+    // An operator polling it saw a rising attempt count and an error string,
+    // and could not tell "tried seven times and the remote refused" from
+    // "asked seven times with nothing to ask". The two need different actions,
+    // so they are now different outcomes: `attempts` counts attempts that
+    // actually happened, and the one that did not is typed rather than
+    // inferred from an error message.
+    const configured = typeof handler === "function";
+    let status, failure, outcome;
+    if (!configured) {
       status = "PENDING";
-      failure = String(error.message || error).slice(0, 500);
+      failure = "";
+      outcome = "NOT_ATTEMPTED_NO_TRANSPORT";
+    } else {
+      const attempted = clone(event);
+      attempted.attempts += 1;
+      try {
+        await handler(clone(attempted));
+        status = "DELIVERED";
+        failure = "";
+        outcome = "DELIVERED";
+      } catch (error) {
+        status = "PENDING";
+        failure = String(error.message || error).slice(0, 500);
+        outcome = "ATTEMPT_FAILED";
+      }
     }
     // Merge into the state as it is now. A snapshot taken before the await
     // would erase any assessment, deletion or attempt written while the
@@ -689,9 +712,10 @@ class DurableIntakeStore {
     const current = next.outbox[eventId];
     if (!current)
       throw Error("Outbox event was removed while its delivery was in flight");
-    current.attempts += 1;
+    if (configured) current.attempts += 1;
     current.status = status;
     current.last_error = failure;
+    current.last_outcome = outcome;
     this.persist(next);
     return clone(current);
   }

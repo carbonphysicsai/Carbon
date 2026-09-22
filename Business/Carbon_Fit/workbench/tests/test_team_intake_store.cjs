@@ -292,11 +292,32 @@ test("with no configured transport an attempt fails observably and never claims 
   const eventId = "notify-" + receipt.inquiry_id;
   const attempted = await fixture.store.processOutbox(eventId, null, roles.notifier);
   assert.equal(attempted.status, "PENDING");
-  assert.equal(attempted.attempts, 1);
-  assert.match(attempted.last_error, /No notification transport is configured/);
+  // Nothing was attempted, so nothing is counted as an attempt. This used to
+  // record an attempt and an error for a delivery nobody tried, which left an
+  // operator unable to tell a refused delivery from an unconfigured one.
+  assert.equal(attempted.attempts, 0);
+  assert.equal(attempted.last_outcome, "NOT_ATTEMPTED_NO_TRANSPORT");
+  assert.equal(attempted.last_error, "");
   const retried = await fixture.store.processOutbox(eventId, null, roles.notifier);
-  assert.equal(retried.attempts, 2);
+  assert.equal(retried.attempts, 0);
   assert.equal(retried.status, "PENDING");
+  assert.equal(retried.last_outcome, "NOT_ATTEMPTED_NO_TRANSPORT");
+
+  // A transport that exists and refuses is the other outcome, and it is the
+  // one that counts: an attempt happened, it failed, and the reason is kept.
+  const refused = await fixture.store.processOutbox(
+    eventId,
+    async () => {
+      throw Error("synthetic transport refused the notification");
+    },
+    roles.notifier,
+  );
+  assert.equal(refused.attempts, 1);
+  assert.equal(refused.status, "PENDING");
+  assert.equal(refused.last_outcome, "ATTEMPT_FAILED");
+  assert.match(refused.last_error, /synthetic transport refused/);
+  // And the two are distinguishable afterwards, which is the whole point.
+  assert.notEqual(attempted.last_outcome, refused.last_outcome);
   // The inquiry survives every failed notification attempt.
   assert.equal(fixture.store.read(receipt.inquiry_id, roles.reviewer).lifecycle, "ACTIVE");
 });

@@ -71,7 +71,18 @@ function createIntakeServer({ store, users }) {
         // Retried by the operator and observable either way. With no configured
         // transport the attempt is recorded as a failure rather than a delivery.
         const event = await store.processOutbox(outboxMatch[1], null, principal);
-        return send(response, event.status === "DELIVERED" ? 200 : 502, event);
+        // 502 says a gateway was reached and misbehaved. With no destination
+        // configured nothing was reached, and answering 502 sends an operator
+        // looking for a network fault that does not exist. 501 says this
+        // server cannot perform the delivery at all, which is the true state
+        // and is distinguishable from a real upstream failure later.
+        const status =
+          event.last_outcome === "DELIVERED"
+            ? 200
+            : event.last_outcome === "NOT_ATTEMPTED_NO_TRANSPORT"
+              ? 501
+              : 502;
+        return send(response, status, event);
       }
       if (request.method === "GET" && url.pathname === "/private/capacity")
         return send(response, 200, store.capacity(principal));

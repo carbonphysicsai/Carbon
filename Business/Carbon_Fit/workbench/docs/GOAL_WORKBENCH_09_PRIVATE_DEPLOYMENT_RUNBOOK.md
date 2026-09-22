@@ -192,8 +192,19 @@ it reached.
 
 *Precondition: sender credential and authorized sender identity.*
 
-With no transport configured, every attempt fails observably and the event stays
-`PENDING`. Configuring `CARBON_TEAM_NOTIFY_DESTINATION` records where a
+With no transport configured, nothing is attempted and the event stays
+`PENDING` with `last_outcome: NOT_ATTEMPTED_NO_TRANSPORT` and an attempt count
+of **zero**. That distinction is deliberate: an unconfigured receiver used to
+record an attempt and an error for a delivery nobody tried, which left an
+operator unable to tell a refused delivery from an absent one, and those need
+different actions.
+
+The route answers **501**, not 502. A 502 says a gateway was reached and
+misbehaved, which would send an operator after a network fault that does not
+exist. A real transport failure records `ATTEMPT_FAILED`, counts the attempt,
+keeps the reason and answers 502 — a path exercised at the store level and
+**unreachable over HTTP today**, because no transport implementation exists for
+the route to call. Configuring `CARBON_TEAM_NOTIFY_DESTINATION` records where a
 notification would go; it is not a mailbox credential and not permission to
 contact anyone. The queued payload carries an inquiry identifier, a digest, a
 queue state and counts — no client words, contact details or scientific content.
