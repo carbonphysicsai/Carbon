@@ -14962,3 +14962,77 @@ scientific, production or commercial qualification.
 named operator may roll back `carbonwebsite` to the recorded target
 independently. Retained evidence and recorded historical state are not
 rewritten.
+
+## 2026-09-22 — WEB-QA-07-D1: public content approval and activation of Ask Carbon
+
+**Authority.** The repository owner (Nick Fitzpatrick, a named production
+incident owner under `WEB-QA-05-D2`) approved the Ask Carbon answer content for
+public display on 2026-09-22, after the inactive publication was deployed and
+verified. `WEB-QA-05-D2` already authorized public activation of the accepted
+release; this decision supplies the separate content approval that the release
+contract independently requires.
+
+**Why two approvals were needed.** `public/release-contract.js` gates
+production on the knowledge record, not only on the Worker's activation flag.
+Three conditions must hold before a visitor receives an answer:
+
+| Gate | Location | Governed by |
+| --- | --- | --- |
+| `ASK_CARBON_ACTIVATION = "enabled"` | Worker config | `WEB-QA-05-D2` |
+| `release.status = "APPROVED_PUBLIC"` | knowledge record | this decision |
+| `release.public_activation_allowed = true` | knowledge record | this decision |
+
+The inactive deployment reported all three as unmet. Authorizing a release is
+not the same as approving what it will say, and the contract was deliberately
+built to require both.
+
+**Approved content.** The 27 reviewed answer cards and 9 pinned sources in
+`ask-carbon-release-candidate-2026-09-18.2`. The card and source content is
+byte-identical to the staging-reviewed set approved on 2026-09-18; only the
+release approval block changed. The version identifier is therefore
+deliberately unchanged so existing source pins and historical evidence remain
+valid, while the file digest moves from `899c9b99…` to `3f22f87a…`.
+`evidence/WEB-QA-04.md` and `evidence/WEB-QA-05.md` keep the prior digest,
+which is what was true when those checks ran.
+
+**Exact accepted artifact.**
+
+| Identity | Value |
+| --- | --- |
+| Bundle identity | `93bffeec03af9297dbf2d84427ed26c5494263e20c470ed7dc1176c6006f46a8` |
+| Integrated homepage | `b1e8e7cdbea3d13d1ea2237e55db279bc962937a6a2cf2a65491dcf8255afd47` (unchanged) |
+| Knowledge digest | `3f22f87a7eee903e74ce58b4c944cbfadab40a62020ea6299610ee1cc4ef671c` |
+| Activation config | `wrangler.public-release-active.toml` |
+| Rollback target | `carbonwebsite` version `dc5212bb-c84b-4051-9724-74cb21c16711` |
+
+This is a different bundle identity from the one `WEB-QA-06-D1` approved
+(`14e85a87…`), because the knowledge asset changed. That decision required a
+fresh approval for any other identity; this decision supplies it.
+
+**Fail-closed path preserved.** `wrangler.public-release-candidate.toml` is
+deliberately NOT edited to enable activation. Redeploying it remains the
+one-command fail-closed incident response in `OPERATIONS.md`. Activation
+deploys the separate `wrangler.public-release-active.toml`, which differs from
+the candidate in exactly one line, asserted by test.
+
+**Rollback.** Rolling `carbonwebsite` back to `dc5212bb` restores the site with
+Ask Carbon present but inactive. Disabling the API is a separate and faster
+action: redeploy the candidate config. Either named operator may do either
+independently.
+
+**Scope preserved unchanged.** Public Carbon Q&A, guided pilot drafting,
+form-only drafting and local download. Issue #139 inquiry submission and
+collection remain disabled. Model `gpt-5.6-luna:low:v1`, the shared USD 50
+UTC-month authority with its nested USD 5 evaluation scope, and all request,
+abuse and concurrency ceilings are unchanged. No customer or private-data
+intake, scientific execution, qualification authority, paid-plan change,
+provider substitution or increased ceiling is authorized.
+
+**Maturity boundary.** Approving content for public display and activating a
+public test creates no scientific, security, production or commercial
+qualification.
+
+**Reversibility.** The owner may withdraw this approval prospectively. The
+content approval can be revoked by returning `release.status` to
+`STAGING_REVIEWED`, which fails the release contract closed without touching
+the Worker. Retained evidence and recorded historical state are not rewritten.

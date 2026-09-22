@@ -2,7 +2,8 @@
   "schema_version": "carbon.ask-carbon.public-release-candidate.v1",
   "candidate_id": "ask-carbon-public-release-2026-09-22.1",
   "status": "OWNER_APPROVED_INACTIVE_PRODUCTION_PUBLICATION",
-  "public_activation_allowed": false,
+  "public_activation_allowed": true,
+  "public_activation_allowed_decision": "WEB-QA-07-D1 (2026-09-22) for the content; WEB-QA-05-D2 (2026-09-19) for the activation itself. Serving answers additionally requires deploying wrangler.public-release-active.toml; the committed candidate config stays disabled as the fail-closed incident response.",
   "owner_authorization": {
     "decision": "WEB-QA-06-D1",
     "recorded_at": "2026-09-22",
@@ -46,16 +47,31 @@
     "audience": "any website visitor",
     "conditions": "after inactive publication and its production verification succeed; subject to the existing approved request, abuse, concurrency and spending controls",
     "owned_by_successor_ticket": true,
-    "activation_state_in_this_candidate": "disabled"
+    "activation_state_in_this_candidate": "disabled",
+    "conditions_met": {
+      "inactive_publication_deployed": "carbonwebsite version dc5212bb-c84b-4051-9724-74cb21c16711 and ask-carbon-public version 224a38d1-2e15-43da-a208-3a8bad132d1d, 2026-09-22",
+      "production_verification": "102/102 paths verified by digest on both approved hostnames; health 503 inactive with no missing-secret reasons; POST refused with not_active and no provider dispatch"
+    }
+  },
+  "public_content_approval": {
+    "decision": "WEB-QA-07-D1",
+    "recorded_at": "2026-09-22",
+    "source": ".agent/DECISIONS.md",
+    "approved_by": "Nick Fitzpatrick (named production incident owner under WEB-QA-05-D2)",
+    "scope": "the 27 reviewed answer cards and 9 pinned sources in ask-carbon-release-candidate-2026-09-18.2, approved for public display",
+    "note": "Content approval is distinct from the activation authorization above. WEB-QA-05-D2 authorized activating the release; this records that the answers themselves are approved to be shown to the public. Both were required because the release contract gates on the knowledge record as well as the Worker flag."
   },
   "runtime_implementation_revision": "dd952529ad2906b8ba0f1dc6ab06d8ae338d66f0",
   "knowledge": {
     "version": "ask-carbon-release-candidate-2026-09-18.2",
-    "release_status": "STAGING_REVIEWED",
+    "release_status": "APPROVED_PUBLIC",
+    "release_status_decision": "WEB-QA-07-D1 (2026-09-22)",
     "source_release_date": "2026-09-18",
     "expires_at": "2026-12-15T00:00:00Z",
     "withdrawal_epoch": 1,
-    "sha256": "899c9b9947df498ad3e933fecc060ac21871d7d76d8880f3ee5cfe9ee76ed51e",
+    "sha256": "3f22f87a7eee903e74ce58b4c944cbfadab40a62020ea6299610ee1cc4ef671c",
+    "superseded_sha256": "899c9b9947df498ad3e933fecc060ac21871d7d76d8880f3ee5cfe9ee76ed51e",
+    "sha256_change_note": "Only the release approval block changed. The 27 cards and 9 pinned sources are byte-identical to the staging-reviewed set, so the version identifier is deliberately unchanged and existing source pins remain valid. The superseded digest stays correct in evidence/WEB-QA-04.md and evidence/WEB-QA-05.md.",
     "eligible_cards": 27,
     "pinned_sources": 9
   },
@@ -108,8 +124,9 @@
     "plan_observed": "Free",
     "new_monetary_commitment": false,
     "production_static_worker": "carbonwebsite",
-    "production_current_version": "6b339116-ee62-43ac-bda8-cf3baa674551",
-    "production_rollback_version": "6b339116-ee62-43ac-bda8-cf3baa674551",
+    "production_current_version": "dc5212bb-c84b-4051-9724-74cb21c16711",
+    "production_rollback_version": "dc5212bb-c84b-4051-9724-74cb21c16711",
+    "production_version_note": "dc5212bb is the inactive Ask Carbon publication deployed and verified on 2026-09-22T10:13Z. It replaced 6b339116 (the pre-integration redesign), which remains recorded in owner_authorization.attaches_to as the rollback target WEB-QA-06-D1 attached to. Rolling back to dc5212bb restores the site with Ask Carbon present but inactive. Re-capture immediately before any further deployment.",
     "production_hostnames": [
       "carbonphysics.ai",
       "www.carbonphysics.ai"
@@ -148,7 +165,8 @@
     "named production incident owner": "WEB-QA-05-D2 (2026-09-19)",
     "named disable and rollback operator": "WEB-QA-05-D2 (2026-09-19)",
     "owner re-approval against candidate ask-carbon-public-release-2026-09-22.1": "WEB-QA-06-D1 (2026-09-22)",
-    "live carbonwebsite version id captured as rollback target": "6b339116-ee62-43ac-bda8-cf3baa674551, captured 2026-09-22 into production-baseline.manifest.json deployment_target_observed.live_version_id"
+    "live carbonwebsite version id captured as rollback target": "dc5212bb-c84b-4051-9724-74cb21c16711, re-captured 2026-09-22T10:13Z for the activation deployment. The earlier capture 6b339116-ee62-43ac-bda8-cf3baa674551 satisfied this gate for the inactive publication and is retained in owner_authorization.attaches_to.",
+    "public content approved for display": "WEB-QA-07-D1 (2026-09-22)"
   },
   "deployment_order": {
     "decision": "Deploy the inactive ask-carbon-public API Worker BEFORE publishing the carbonwebsite assets.",

@@ -445,6 +445,63 @@ The incident owner and authorized disable/rollback operator are recorded under
 "Named production operators" below, so this deployment is unblocked. Static
 publication still does not authorize the separate activation step.
 
+## Activation: three gates, two files
+
+Activation is not one flag. A visitor receives an answer only when all three
+of these hold, and the inactive publication deliberately fails all three:
+
+| Gate | Where | Inactive value |
+| --- | --- | --- |
+| `ASK_CARBON_ACTIVATION` | Worker config `[vars]` | `disabled` |
+| `release.status` | `knowledge/public-knowledge.v1.json` | `STAGING_REVIEWED` |
+| `release.public_activation_allowed` | same file | `false` |
+
+The two knowledge gates are enforced by `public/release-contract.js`. They
+exist so that authorizing a *release* cannot by itself publish *answers*: the
+content needs its own recorded approval. Check them by reading the health
+body, which lists every unmet gate by name:
+
+```sh
+curl -s https://carbonphysics.ai/api/ask-carbon/health
+```
+
+`"reasons": ["activation_disabled"]` alone means the content is approved and
+only the Worker flag is holding it back. Additional `release_not_approved_public`
+or `public_activation_not_allowed` entries mean the knowledge record has not
+been approved for public display.
+
+### Do not enable activation in the candidate config
+
+`wrangler.public-release-candidate.toml` must keep `ASK_CARBON_ACTIVATION =
+"disabled"`, because redeploying it is the fail-closed incident response in the
+next section. Editing it to enable activation would silently turn the emergency
+disable command into a no-op.
+
+Activation deploys a separate file instead:
+
+```sh
+cd website/ask-carbon
+npx wrangler deploy --config wrangler.public-release-active.toml
+```
+
+The two configs differ in exactly one line, which a test asserts. Changing the
+knowledge record additionally changes the bundle, so the static assets must be
+rebuilt and redeployed as well; the resulting bundle identity will not match a
+bundle approved before the knowledge changed, and needs its own decision.
+
+### To disable again
+
+Redeploying the candidate config is the fastest disable and does not touch the
+static assets:
+
+```sh
+npx wrangler deploy --config wrangler.public-release-candidate.toml
+```
+
+Rolling the static bundle back is a separate action with a different effect:
+it restores the previous asset set, including whichever knowledge record that
+bundle carried.
+
 ## Incident disable and rollback procedure
 
 ### Named production operators
