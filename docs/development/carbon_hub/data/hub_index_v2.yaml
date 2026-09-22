@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-22T14:52:11Z"
+  captured_at_utc: "2026-09-22T17:45:43Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "fa269bc5b01b65446e66f727bf8058c48b0c774b"
+  authority_snapshot_commit: "ca8f78daded6a6fca017733effa001bb920b9ae9"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -9417,6 +9417,18 @@ events:
     status: "implemented"
     summary: "Adds a public Workbench onboarding edition built from the existing Workbench sources: one generated artifact that runs entirely in a visitor's browser with connect-src 'none', guides a non-expert through the internal design's own scope fields, runs the accepted structural check unchanged, and exports a carbon.public-workbench.workspace.v1 artifact the internal Workbench imports as the same draft through a new adapter over the existing newDesign constructor. The check is shared verbatim rather than reimplemented; its only network-reaching function is createAdapter, which the public edition never calls and the emitted CSP could not permit. Because that check currently has one source template whose numerical definition is held by the private service, a visitor's best outcome is every issue that is theirs closed and one that only Carbon can close, reported as Carbon's and leaving the check's own INPUTS_UNRESOLVED status intact. Phase 1 only: no AI assistance, no network call, no account, no receiver, no customer data and no deployment. The live /workbench/ page is not in this repository and is unchanged. Engineering delivery in a bounded scope; no scientific qualification, security acceptance, publication or deployment authority is created or implied. The impact-policy map gains one bounded ownership rule for this ticket's own authority path, which is why hub validation is listed as affected; no validator logic, gate or existing rule changed."
     primary_detail: "Business/Carbon_Fit/workbench/README.md"
+    affects:
+      - "SYSTEM/BUSINESS-AUTHORITY"
+      - "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+    supersedes: null
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "decision"
+    event_id: "C-MLP-02-CHAIN-CONTEXT-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "Both onboarding doors now read the chain Carbon actually runs on. They had reported CHAIN_NOT_CONFIGURED, and that was relayed upward as an unsettled owner decision about an endpoint and genesis hash; it was neither unsettled nor a decision. Those values have been constants in carbon.development_testnet.operator since before the work began, with the operator config validating a context against them exactly, and the doors were simply not reading them. The claim was true of the door and false of the deployment, and the two are indistinguishable in a status line - a blocker asserted once and then inherited without anyone re-reading the code. carbon_testnet_context() sources those constants rather than restating them, so the doors and the operator path cannot drift into describing two different chains. Both doors keep their injection points, so tests supply a device-free stub and none reaches the network; a test now asserts that rather than trusting the defaults, after the live default silently broke a file whose docstring promised no chain is contacted and produced an intermittent failure under random ordering. The registration cost remains NOT_READ: MetagraphSnapshot carries no subnet hyperparameters, so reading it would need a separate query rather than riding on the status read. The swarm accounting model is completed as assertions - distinct agents under one principal share one ledger, a second session does not multiply a budget, a replayed operation charges once, and a different principal cannot consume another's campaign. Two unavailable reasons are corrected from code rather than docstrings. No signing capability, chain write, or network authority is added, and no scientific or qualification state changes."
+    primary_detail: "carbon/development_session/chain_onboarding.py"
     affects:
       - "SYSTEM/BUSINESS-AUTHORITY"
       - "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
