@@ -854,3 +854,59 @@ def test_a_malformed_draft_scope_never_reaches_the_registry(tmp_path, monkeypatc
         assert store.summary() == {"designs": 1, "revisions": 1}
     finally:
         composition.tasks.close()
+
+
+def test_capability_states_are_not_readable_from_the_co_served_client_surface(
+    tmp_path, monkeypatch
+):
+    """The client intake preview shares this origin, so the four capability
+    states must cost a staff credential to read.
+
+    The preview deliberately collapses "unreachable" and "misconfigured" into one
+    unavailable state: the customer's next action is the same either way, and
+    distinguishing them would disclose operator configuration to an external
+    party. That withholding only means something if the distinction is not
+    available from the same origin without authentication -- and the preview is
+    co-served, because verify_private_build requires it to be present.
+    """
+    app, _request, _executions, _calls, composition, _store = composed(
+        tmp_path, monkeypatch
+    )
+
+    async def run():
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=app), base_url=ORIGIN
+        ) as client:
+            # The preview really is served from this origin.
+            preview = await client.get("/Carbon_Client_Intake_Preview.html")
+            assert preview.status_code == 200, "the client preview is not co-served"
+
+            # Reading it must not also hand over the capability states.
+            refused = await client.get(HOST_PREFIX + "capabilities")
+            assert refused.status_code == 401, (
+                "the four capability states are readable from the co-served "
+                "client origin without a credential, so the preview's collapsed "
+                "unavailable state is cosmetic rather than a boundary"
+            )
+            body = refused.text
+            for state in ("ENABLED", "CONFIGURED_UNAVAILABLE", "FIXTURE_ONLY"):
+                assert state not in body, f"refusal leaked the {state} vocabulary"
+
+            # Health is unauthenticated on purpose and must stay uninformative
+            # about configuration.
+            health = await client.get(HOST_PREFIX + "health")
+            assert health.status_code == 200
+            text = json.dumps(health.json())
+            for leaked in (
+                "CONFIGURED_UNAVAILABLE",
+                "FIXTURE_ONLY",
+                "UNSUPPORTED",
+                "provider",
+                "token",
+            ):
+                assert leaked not in text, f"health disclosed {leaked}"
+
+    try:
+        asyncio.run(run())
+    finally:
+        composition.tasks.close()

@@ -252,3 +252,112 @@ test("existing-capability handoff reuses intake decision without execution autho
   assert.equal(design.authoring.request_id, "");
   assert.equal(design.decision.scientific_qualification, "NOT_QUALIFIED");
 });
+
+// --- assistance guarantees while assistance is absent ------------------------
+// The properties below are the ones that rot unnoticed while a feature is
+// switched off in development, which is the configuration the product is in
+// today. Each is asserted against a variant that violates it, so a guarantee
+// that stopped holding would fail rather than pass quietly.
+
+test("a consent record cannot claim more than the client granted", async () => {
+  const brief = JSON.parse(fixtureRaw("fresh_burgers_v1.json"));
+  const consented = {
+    enabled: true,
+    provider: "OPENAI_API",
+    guidance_version: I.GUIDANCE_VERSION,
+    notice_version: "carbon.ask-guidance.notice.v1-2026-09-16",
+    consented_at: "2026-09-16T12:00:00.000Z",
+    cleared_locally: false,
+  };
+  const accepted = reviewed(brief);
+  accepted.ai_guidance = { ...consented };
+  await inspect(JSON.stringify(accepted));
+
+  // Enabled without the details that make consent meaningful.
+  for (const missing of ["provider", "notice_version", "consented_at"]) {
+    const value = reviewed(brief);
+    value.ai_guidance = { ...consented, [missing]: null };
+    await assert.rejects(
+      () => inspect(JSON.stringify(value)),
+      /Enabled AI guidance requires provider and consent details/,
+      `enabled guidance without ${missing} was accepted`,
+    );
+  }
+
+  // The forgery direction: consent asserted while assistance is off. This is the
+  // half that a client which lies would exploit, and it is enforced on the
+  // package rather than in the interface, so it survives a hostile client.
+  for (const forged of ["provider", "notice_version", "consented_at"]) {
+    const value = reviewed(brief);
+    value.ai_guidance = {
+      enabled: false,
+      provider: null,
+      guidance_version: I.GUIDANCE_VERSION,
+      notice_version: null,
+      consented_at: null,
+      cleared_locally: false,
+      [forged]: forged === "provider" ? "OPENAI_API" : "2026-09-16T12:00:00.000Z",
+    };
+    await assert.rejects(
+      () => inspect(JSON.stringify(value)),
+      /Disabled AI guidance cannot claim consent/,
+      `disabled guidance claiming ${forged} was accepted`,
+    );
+  }
+});
+
+test("assistance is off unless the client turned it on", async () => {
+  // The default a package carries when nobody enabled anything.
+  const brief = JSON.parse(fixtureRaw("fresh_burgers_v1.json"));
+  const value = reviewed(brief);
+  assert.equal(value.ai_guidance.enabled, false);
+  const inspection = await inspect(JSON.stringify(value));
+  assert.equal(inspection.review_package.ai_guidance.enabled, false);
+  assert.equal(inspection.review_package.ai_guidance.consented_at, null);
+  assert.equal(inspection.review_package.accepted_suggestions.length, 0);
+
+  // The interface starts in the same state, so a build cannot ship default-on
+  // through configuration drift. Asserted against the source the build inlines.
+  const source = fs.readFileSync(path.join(ROOT, "src/intake_app.js"), "utf8");
+  assert.match(source, /let guidanceEnabled = false;/);
+  assert.match(source, /let guidanceAvailable = false;/);
+  assert.equal(/let guidanceEnabled = true/.test(source), false);
+});
+
+test("attribution cannot disagree with the record in either direction", async () => {
+  // enabled-but-unavailable: consent is complete and valid, and nothing was
+  // reached. What separates that from a package where assistance worked is the
+  // attribution, so a package claiming a suggestion it never received must not
+  // pass as a well-formed one.
+  const brief = JSON.parse(fixtureRaw("fresh_burgers_v1.json"));
+  const value = reviewed(brief);
+  value.ai_guidance = {
+    enabled: true,
+    provider: "OPENAI_API",
+    guidance_version: I.GUIDANCE_VERSION,
+    notice_version: "carbon.ask-guidance.notice.v1-2026-09-16",
+    consented_at: "2026-09-16T12:00:00.000Z",
+    cleared_locally: false,
+  };
+  const honest = await inspect(JSON.stringify(value));
+  assert.equal(honest.review_package.accepted_suggestions.length, 0);
+  assert.equal(
+    honest.review_package.field_provenance.every(
+      (item) => item.origin !== "AI_SUGGESTED_CLIENT_ACCEPTED",
+    ),
+    true,
+  );
+
+  // An attribution with no accepted suggestion behind it must be refused.
+  const orphaned = JSON.parse(JSON.stringify(value));
+  const provenance = orphaned.field_provenance.find(
+    (item) => item.field === "pilot.evaluation_questions",
+  );
+  provenance.origin = "AI_SUGGESTED_CLIENT_ACCEPTED";
+  provenance.suggestion_id = "suggestion-never-received";
+  await assert.rejects(
+    () => inspect(JSON.stringify(orphaned)),
+    undefined,
+    "an AI attribution with no accepted suggestion behind it was accepted",
+  );
+});
