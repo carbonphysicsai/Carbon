@@ -49,10 +49,11 @@ const USERS = [
   ),
 ];
 
-function reviewedRaw() {
+function reviewedRaw(distinct = false) {
   const brief = JSON.parse(
     fs.readFileSync(path.join(ROOT, "intake/fixtures/existing_method_v1.json"), "utf8"),
   );
+  if (distinct) brief.draft_id = "synthetic-second-draft";
   return JSON.stringify({
     schema_version: I.REVIEW_VERSION,
     brief,
@@ -438,4 +439,62 @@ test("the receiver holds no state of its own and mints no identity", () => {
   // Falsification: the same reading applied to a source that does reach in.
   const reaching = source.replace("store.search(principal", "store.state.inquiries; store.search(principal");
   assert.equal(/store\.state/.test(reaching), true);
+});
+
+test("a store with no room refuses with insufficient storage, not bad request", async () => {
+  // A relayed export the store had no room for was not a bad request. Reporting
+  // 400 would send the relaying receiver to correct a package that is correct.
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "carbon-team-capacity-"));
+  const usersFile = path.join(directory, "users.json");
+  fs.writeFileSync(usersFile, JSON.stringify(USERS));
+  const storePath = path.join(directory, "store.json");
+  const roomy = new DurableIntakeStore(storePath);
+  const first = await roomy.accept(reviewedRaw(), "capacity-001", loadUsers(usersFile).authenticate("Bearer " + TOKENS.receiver));
+
+  const store = new DurableIntakeStore(storePath, {
+    writeCeilingBytes: fs.statSync(storePath).size + 32,
+  });
+  const server = createIntakeServer({ store, users: loadUsers(usersFile) });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const port = server.address().port;
+  try {
+    const result = await fetch(`http://127.0.0.1:${port}/private/intake`, {
+      method: "POST",
+      headers: {
+        authorization: "Bearer " + TOKENS.receiver,
+        "idempotency-key": "capacity-002",
+        "content-type": "application/json",
+      },
+      body: reviewedRaw(true),
+    });
+    assert.equal(result.status, 507);
+    assert.match((await result.json()).error, /byte ceiling/);
+
+    // The capacity route is how an operator sees this coming.
+    const capacity = await fetch(`http://127.0.0.1:${port}/private/capacity`, {
+      headers: { authorization: "Bearer " + TOKENS.steward },
+    });
+    assert.equal(capacity.status, 200);
+    const report = await capacity.json();
+    assert.equal(report.inquiries, 1);
+    assert(report.remaining_bytes < 64);
+    assert(report.read_limit_bytes > report.ceiling_bytes);
+    // Reading capacity is a steward action like the other recovery endpoints.
+    assert.equal(
+      (await fetch(`http://127.0.0.1:${port}/private/capacity`, {
+        headers: { authorization: "Bearer " + TOKENS.reviewer },
+      })).status,
+      403,
+    );
+
+    // And the record that was already accepted is still readable, because the
+    // refusal wrote nothing.
+    const read = await fetch(`http://127.0.0.1:${port}/private/intake/${first.inquiry_id}`, {
+      headers: { authorization: "Bearer " + TOKENS.reviewer },
+    });
+    assert.equal(read.status, 200);
+  } finally {
+    server.close();
+    fs.rmSync(directory, { recursive: true, force: true });
+  }
 });
