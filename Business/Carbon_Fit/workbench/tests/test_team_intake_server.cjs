@@ -291,12 +291,17 @@ test("the outbox is observable and a failed attempt is never reported as deliver
       `/private/outbox/notify-${accepted.inquiry_id}/attempt`,
       { token: TOKENS.notifier },
     );
-    assert.equal(attempt.status, 502);
-    const event = await attempt.json();
-    assert.equal(event.status, "PENDING");
-    assert.equal(event.attempts, 1);
-    assert.match(event.last_error, /No notification transport is configured/);
-    // The inquiry is unaffected by the undeliverable notification.
+    // No transport exists at all: the route always calls the store without a
+    // handler. 502 would say a gateway was reached and misbehaved, sending an
+    // operator after a network fault that does not exist. 501 says this server
+    // cannot perform the delivery, which is the true state.
+    assert.equal(attempt.status, 501);
+    const attempted = await attempt.json();
+    assert.equal(attempted.last_outcome, "NOT_ATTEMPTED_NO_TRANSPORT");
+    assert.equal(attempted.status, "PENDING");
+    assert.equal(attempted.attempts, 0, "an attempt was counted for a delivery nobody tried");
+    assert.equal(attempted.last_error, "");
+    // The inquiry is untouched by any of this.
     assert.equal(
       (await fixture.call("GET", `/private/intake/${accepted.inquiry_id}`, { token: TOKENS.reviewer })).status,
       200,
