@@ -65,6 +65,12 @@ def test_package_is_exact_and_exports_no_official_or_network_surface() -> None:
         # records it builds structurally cannot contain a caller's arguments or
         # a caller-supplied identity. No official, network-writing or signing
         # surface is introduced.
+        # Cloudflare Access verification for the remote door. It adds no
+        # capability: Access authenticates a credential and this maps it onto an
+        # existing Carbon principal, so the rights come from Carbon's model and
+        # never from a claim. It issues nothing, signs nothing, and is not on
+        # the stdio path, which stays ungated.
+        "access_auth.py",
         "serving.py",
         "mcp_skills.py",
         "store.py",

@@ -73,6 +73,16 @@ def adapter(monkeypatch, *, meter=None):
     from carbon.development_session.research_tools import ResearchMinerTools
     from carbon.miner_mcp.standard import ResearchToolAdapter
 
+    # Moved with the contract. A research operation now refuses at the entry
+    # when there is no campaign to account against, rather than failing deeper
+    # with a message about a campaign that does not exist - so a tool call
+    # succeeding implies a campaign, and these transport-interop cases have to
+    # stand up something to be a campaign even though `_call` is substituted
+    # below. A bare object suffices: nothing here reserves, and giving it a real
+    # ledger would make a transport test depend on campaign accounting.
+    if meter is None:
+        meter = object()
+
     calls = []
 
     async def reply(self, name, arguments, identity, *, transport_request_id=None):

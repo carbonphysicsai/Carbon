@@ -190,7 +190,13 @@ def test_dispatch_without_a_campaign_refuses_with_a_next_action(tmp_path):
         ledger=None,
         owner=OWNER,
     )
-    with pytest.raises(ValueError) as raised:
+    from carbon.development_session.research_tools import PreDispatchRefusal
+
+    # Moved with the contract. This asserted a ValueError carrying everything in
+    # its message; the refusal is now a distinct type so the transport can tell
+    # "nothing was dispatched" from "something might have been", and the next
+    # action is a field rather than prose to be parsed back out.
+    with pytest.raises(PreDispatchRefusal) as raised:
         asyncio.run(
             sdk.call(
                 PREFIX + "start_research_task",
@@ -198,13 +204,11 @@ def test_dispatch_without_a_campaign_refuses_with_a_next_action(tmp_path):
                 "operation-without-a-campaign",
             )
         )
-    message = str(raised.value)
-    assert "no campaign" in message
-    assert "next_action=" in message
-    assert "budget is optional" in message.lower()
+    assert raised.value.reason == "NO_CAMPAIGN"
     # It names no tool, because no operation creates a campaign. An instruction
     # the caller cannot follow is worse than saying so.
-    assert "creates one" in message
+    assert "creates one" in raised.value.next_action
+    assert "budget is optional" in raised.value.next_action.lower()
 
 
 def test_refused_feedback_is_journalled_only_when_a_campaign_exists(tmp_path):
