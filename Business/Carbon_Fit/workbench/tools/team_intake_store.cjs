@@ -29,6 +29,37 @@ const RETENTION_POLICY = Object.freeze({
   deletion_reaches: ["ACTIVE_RECORD", "ACTIVE_INDEX", "PENDING_NOTIFICATIONS"],
   deletion_cannot_reach: ["RETAINED_ARCHIVE", "PRIOR_EXPORTS", "PROVIDER_RECORDS"],
 });
+// The store ceiling, and why there are two numbers rather than one.
+//
+// The reader used to parse with a 10 MB limit while persist() enforced nothing.
+// A running receiver therefore wrote past the reader's limit and failed only on
+// the NEXT open, and the runbook's remedy — restore the backup — could not help,
+// because the backup was a copy of the same unopenable file. Archive does not
+// shrink the file and deletion needs an approved exception, so that state was
+// terminal for the store.
+//
+// The fix is not a bigger number. It is that a file this class writes is always
+// a file this class can read, which needs the write limit to be provably below
+// the read limit rather than coincidentally below it. The constructor refuses a
+// configuration where that does not hold, so the asymmetry cannot reappear by
+// someone changing one of the two.
+//
+// Basis for the default write ceiling, measured on 2026-09-22 rather than
+// guessed. A reviewed package is capped at 120 KB by `accept`; a stored record
+// costs about 2.88 times its package, because the raw bytes, the validated
+// draft and the reviewed package are all retained. So the worst case is roughly
+// 346 KB per inquiry, and 32 MB holds about 92 of those, or about 1,380
+// fixture-sized ones. The binding cost is not parsing — a 72 MB store parses in
+// ~570 ms — it is that every accepted inquiry rewrites the whole file, so the
+// ceiling sits where a write stays comfortably sub-second.
+//
+// An operator may raise it deliberately; the same symmetry check applies.
+const DEFAULT_WRITE_CEILING_BYTES = 32 * 1024 * 1024;
+
+// A sanity bound on what will be parsed at all, far above any permitted write
+// ceiling, so that anything written under any accepted configuration opens.
+const READ_LIMIT_BYTES = 256 * 1024 * 1024;
+
 const RECEIPT_VERSION = "carbon.private-team-intake.receipt.v1";
 const NOTIFICATION_VERSION = "carbon.private-team-intake.notification.v1";
 const QUEUE_STATES = [
@@ -223,15 +254,54 @@ class DurableIntakeStore {
     if (destination !== undefined && (typeof destination !== "string" || !destination))
       throw Error("Notification destination must be a non-empty string");
     this.destination = destination || "UNCONFIGURED_SYNTHETIC";
+    const ceiling =
+      options.writeCeilingBytes === undefined
+        ? DEFAULT_WRITE_CEILING_BYTES
+        : options.writeCeilingBytes;
+    if (!Number.isSafeInteger(ceiling) || ceiling <= 0)
+      throw Error("Store write ceiling must be a positive byte count");
+    // The invariant, checked where it can still be acted on: a file this class
+    // is willing to write must be a file it is willing to read. Configuring a
+    // ceiling above the read limit is the old defect, so it is refused here
+    // rather than discovered on a later open.
+    if (ceiling > READ_LIMIT_BYTES)
+      throw Error(
+        "Store write ceiling exceeds the read limit; a store written under it " +
+          "could not be opened again",
+      );
+    this.writeCeilingBytes = ceiling;
     this.filePath = path.resolve(filePath);
     this.state = fs.existsSync(this.filePath)
       ? validateStore(
           F.strictJsonParse(fs.readFileSync(this.filePath, "utf8"), {
-            maxBytes: 10_000_000,
+            maxBytes: READ_LIMIT_BYTES,
             maxDepth: 18,
           }),
         )
       : emptyStore();
+  }
+
+  /** Bytes used, the ceiling, and what is left.
+   *
+   * The ceiling exists so a store cannot wedge itself, but a refusal on the
+   * next accepted inquiry is a poor way to learn how close it was. This is what
+   * the runbook's capacity step reads.
+   */
+  capacity(principal) {
+    validatePrincipal(principal, "recover");
+    const used = fs.existsSync(this.filePath) ? fs.statSync(this.filePath).size : 0;
+    const remaining = Math.max(0, this.writeCeilingBytes - used);
+    return {
+      used_bytes: used,
+      ceiling_bytes: this.writeCeilingBytes,
+      read_limit_bytes: READ_LIMIT_BYTES,
+      remaining_bytes: remaining,
+      // At the worst case this class can actually be handed: a 120 KB package
+      // retained three ways. Deliberately pessimistic, because the number an
+      // operator needs is the one that cannot surprise them.
+      worst_case_inquiries_remaining: Math.floor(remaining / (120_000 * 2.88)),
+      inquiries: Object.keys(this.state.inquiries).length,
+    };
   }
 
   /** Interrupted write attempts left beside the store file.
@@ -268,14 +338,28 @@ class DurableIntakeStore {
     // The name is unique per attempt and the file is removed on every failure
     // path. A fixed name plus an exclusive create meant that one failed write
     // left a file behind that blocked every later write with EEXIST.
+    const serialised = JSON.stringify(next, null, 2) + "\n";
+    // Refused before a temporary file exists, so a refusal writes nothing at
+    // all and the committed store stays exactly as it was — and stays openable,
+    // which is the whole point of having a ceiling.
+    const size = Buffer.byteLength(serialised, "utf8");
+    if (size > this.writeCeilingBytes)
+      throw Error(
+        "Store write refused: " +
+          size +
+          " bytes exceeds the " +
+          this.writeCeilingBytes +
+          " byte ceiling. The store on disk is unchanged and still openable. " +
+          "Export and rotate to a new store file, or raise the ceiling " +
+          "deliberately; archiving does not shrink the file and deletion needs " +
+          "an approved retention exception.",
+      );
     const temporary =
       this.filePath + ".tmp-" + process.pid + "-" + crypto.randomUUID();
     try {
       const handle = fs.openSync(temporary, "wx", 0o600);
       try {
-        fs.writeFileSync(handle, JSON.stringify(next, null, 2) + "\n", {
-          encoding: "utf8",
-        });
+        fs.writeFileSync(handle, serialised, { encoding: "utf8" });
         fs.fsyncSync(handle);
       } finally {
         fs.closeSync(handle);
@@ -614,6 +698,8 @@ class DurableIntakeStore {
 }
 
 module.exports = {
+  DEFAULT_WRITE_CEILING_BYTES,
+  READ_LIMIT_BYTES,
   STORE_VERSION,
   RETENTION_VERSION,
   RETENTION_POLICY,

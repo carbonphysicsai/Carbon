@@ -7,6 +7,7 @@ const os = require("node:os");
 const path = require("node:path");
 if (!globalThis.crypto) globalThis.crypto = crypto.webcrypto;
 const I = require("../src/intake.js");
+const F = require("../src/engine.js");
 const { DurableIntakeStore, STORE_VERSION } = require("../tools/team_intake_store.cjs");
 const ROOT = path.resolve(__dirname, "..");
 
@@ -49,10 +50,11 @@ const roles = {
   foreign: as("foreign"),
 };
 
-function reviewedRaw() {
+function reviewedRaw(distinct = false) {
   const brief = JSON.parse(
     fs.readFileSync(path.join(ROOT, "intake/fixtures/existing_method_v1.json"), "utf8"),
   );
+  if (distinct) brief.draft_id = "synthetic-second-draft";
   return JSON.stringify({
     schema_version: I.REVIEW_VERSION,
     brief,
@@ -1057,6 +1059,7 @@ test("each endpoint admits exactly the roles it is supposed to", async () => {
     approveDeletionException: ["steward"],
     delete: ["steward"],
     pendingWriteDebris: ["steward"],
+    capacity: ["steward"],
     listOutbox: ["notifier"],
     processOutbox: ["notifier"],
   };
@@ -1079,6 +1082,7 @@ test("each endpoint admits exactly the roles it is supposed to", async () => {
         approveDeletionException: (p) => fixture.store.approveDeletionException(id, { approver: "Ryan Bequette", reason: "Synthetic cleanup." }, p),
         delete: (p) => fixture.store.delete(id, p),
         pendingWriteDebris: (p) => fixture.store.pendingWriteDebris(p),
+        capacity: (p) => fixture.store.capacity(p),
         listOutbox: (p) => fixture.store.listOutbox(p),
         processOutbox: (p) => fixture.store.processOutbox("notify-" + id, async () => {}, p),
       }[endpoint];
@@ -1094,4 +1098,142 @@ test("each endpoint admits exactly the roles it is supposed to", async () => {
         assert.match(refusal || "", /not authorized for/, `${endpoint} admitted ${name}`);
     }
   }
+});
+
+// --- the store ceiling (GW09-D3 structural half) ------------------------------
+//
+// The reader parsed with a 10 MB limit while persist() enforced nothing, so a
+// running receiver wrote past the reader's limit and failed on the next open —
+// with the documented remedy, restoring the backup, unable to help, because the
+// backup was a copy of the same unopenable file.
+
+test("a file this store writes is provably a file it can read", () => {
+  const { DEFAULT_WRITE_CEILING_BYTES, READ_LIMIT_BYTES } = require("../tools/team_intake_store.cjs");
+  assert(DEFAULT_WRITE_CEILING_BYTES < READ_LIMIT_BYTES);
+  // The invariant is checked where it can still be acted on, not discovered on
+  // a later open. This is the configuration that used to be possible.
+  assert.throws(
+    () => new DurableIntakeStore(temporaryStore().file, { writeCeilingBytes: READ_LIMIT_BYTES + 1 }),
+    /could not be opened again/,
+  );
+  for (const bad of [0, -1, 1.5, "32mb", null])
+    assert.throws(
+      () => new DurableIntakeStore(temporaryStore().file, { writeCeilingBytes: bad }),
+      /positive byte count/,
+    );
+});
+
+test("the specimen: a store past the old reader limit really was unopenable", () => {
+  // Without this, "the ceiling is now enforced" is a claim about a failure
+  // nobody has seen. The old limit is applied to a file that exceeds it, and
+  // the refusal is the wedge the decision describes.
+  const fixture = temporaryStore();
+  const oversize = JSON.stringify({ padding: "x".repeat(11_000_000) });
+  assert.throws(
+    () => F.strictJsonParse(oversize, { maxBytes: 10_000_000, maxDepth: 18 }),
+    /bytes|size|large/i,
+    "the old 10 MB reader limit did not refuse an 11 MB document, so the " +
+      "wedge this test exists to demonstrate did not exist",
+  );
+  // The same bytes under the current read limit parse, which is why a store
+  // written under any accepted ceiling can always be opened again.
+  assert.equal(
+    typeof F.strictJsonParse(oversize, {
+      maxBytes: require("../tools/team_intake_store.cjs").READ_LIMIT_BYTES,
+      maxDepth: 18,
+    }),
+    "object",
+  );
+  assert.equal(fs.existsSync(fixture.file), false);
+});
+
+test("a write that would breach the ceiling is refused and changes nothing", async () => {
+  const fixture = temporaryStore();
+  const receipt = await fixture.store.accept(reviewedRaw(), "ceiling-001", roles.receiver);
+  const before = fs.readFileSync(fixture.file);
+  const digest = crypto.createHash("sha256").update(before).digest("hex");
+
+  // A ceiling below what the store already holds: the next write must refuse.
+  // Exercised through the option rather than by generating 32 MB, which tests
+  // the same code path and keeps the suite honest about what it ran.
+  const tight = new DurableIntakeStore(fixture.file, { writeCeilingBytes: before.length + 64 });
+  await assert.rejects(
+    () => tight.accept(reviewedRaw(true), "ceiling-002", roles.receiver),
+    /exceeds the .* byte ceiling/,
+  );
+
+  // Nothing was written: not a partial record, not a temporary file.
+  assert.equal(
+    crypto.createHash("sha256").update(fs.readFileSync(fixture.file)).digest("hex"),
+    digest,
+  );
+  assert.deepEqual(tight.pendingWriteDebris(roles.steward), []);
+  // And the committed store is still openable, which is the property the
+  // ceiling exists to protect.
+  const reopened = new DurableIntakeStore(fixture.file);
+  assert.equal(reopened.read(receipt.inquiry_id, roles.reviewer).inquiry_id, receipt.inquiry_id);
+
+  // The backup is independently openable, because the live file never grew
+  // past what can be read. Copying it and opening the copy is the runbook's
+  // remedy, and it now works.
+  const backup = path.join(fixture.directory, "store.backup.json");
+  fs.copyFileSync(fixture.file, backup);
+  assert.equal(
+    new DurableIntakeStore(backup).read(receipt.inquiry_id, roles.reviewer).inquiry_id,
+    receipt.inquiry_id,
+  );
+});
+
+test("the refusal says what to do, and the alternatives it rules out", async () => {
+  const fixture = temporaryStore();
+  await fixture.store.accept(reviewedRaw(), "ceiling-003", roles.receiver);
+  const tight = new DurableIntakeStore(fixture.file, {
+    writeCeilingBytes: fs.statSync(fixture.file).size + 32,
+  });
+  let message = "";
+  try {
+    await tight.accept(reviewedRaw(true), "ceiling-004", roles.receiver);
+  } catch (error) {
+    message = error.message;
+  }
+  // Archiving does not shrink the file and deletion needs an approved
+  // exception, so an operator told only "full" would try two things that
+  // cannot work. The refusal names them.
+  assert.match(message, /unchanged and still openable/);
+  assert.match(message, /rotate/);
+  assert.match(message, /archiving does not shrink/);
+  assert.match(message, /approved retention exception/);
+});
+
+test("capacity reports headroom before the wall rather than at it", async () => {
+  const fixture = temporaryStore();
+  const empty = fixture.store.capacity(roles.steward);
+  assert.equal(empty.used_bytes, 0);
+  assert.equal(empty.ceiling_bytes, 32 * 1024 * 1024);
+  assert(empty.read_limit_bytes > empty.ceiling_bytes);
+  assert(empty.worst_case_inquiries_remaining > 80, "headroom is implausibly small");
+
+  await fixture.store.accept(reviewedRaw(), "ceiling-005", roles.receiver);
+  const used = fixture.store.capacity(roles.steward);
+  assert(used.used_bytes > 0);
+  assert.equal(used.inquiries, 1);
+  assert(used.remaining_bytes < empty.remaining_bytes);
+  // Pessimistic on purpose: the figure an operator plans against is the one a
+  // 120 KB brief cannot surprise them with.
+  assert(used.worst_case_inquiries_remaining <= empty.worst_case_inquiries_remaining);
+  assert.throws(() => fixture.store.capacity(roles.reviewer), /not authorized/);
+});
+
+test("the adopted retention scope is not narrowed", () => {
+  const { RETENTION_POLICY } = require("../tools/team_intake_store.cjs");
+  // GW09-D3 adopted the structural half only and says plainly not to narrow
+  // this list. Asserted so a later edit has to argue with a test.
+  assert.deepEqual(RETENTION_POLICY.deletion_cannot_reach, [
+    "RETAINED_ARCHIVE",
+    "PRIOR_EXPORTS",
+    "PROVIDER_RECORDS",
+  ]);
+  assert.equal(RETENTION_POLICY.legal_basis, null);
+  assert.equal(RETENTION_POLICY.production_period, null);
+  assert.equal(RETENTION_POLICY.approved_by, null);
 });

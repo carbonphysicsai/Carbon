@@ -73,6 +73,8 @@ function createIntakeServer({ store, users }) {
         const event = await store.processOutbox(outboxMatch[1], null, principal);
         return send(response, event.status === "DELIVERED" ? 200 : 502, event);
       }
+      if (request.method === "GET" && url.pathname === "/private/capacity")
+        return send(response, 200, store.capacity(principal));
       if (request.method === "GET" && url.pathname === "/private/intake")
         return send(response, 200, {
           inquiries: store.search(principal, {
@@ -143,7 +145,12 @@ function createIntakeServer({ store, users }) {
             ? 404
             : /conflict/i.test(message)
               ? 409
-              : 400);
+              : // A relayed export that the store had no room for was not a bad
+                // request, and telling the relaying receiver it was sends them
+                // to correct a package that is fine.
+                /byte ceiling/.test(message)
+                ? 507
+                : 400);
       // A refused oversized body leaves the request unread. Answer first, then
       // release the connection, so the caller always sees why it was refused.
       if (!request.readableEnded)

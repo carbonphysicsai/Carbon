@@ -88,6 +88,45 @@ fsync, a rename and a directory fsync. Its directory is created `0700` and the
 file `0600`. Back it up as a whole file; a partial copy will be refused on
 open, which is the intended behaviour.
 
+**The ceiling, and why the earlier version of this section was wrong.** The
+store used to be readable up to 10 MB while writes were unbounded, so a running
+receiver could write a file it could never open again — and the remedy this
+section gave, restoring the backup, could not help, because the backup was a
+copy of the same unopenable file. Archiving does not shrink the file and
+deletion requires an approved retention exception, so that state was terminal.
+
+Writes are now refused above a ceiling that is provably below the read limit,
+and the constructor refuses a configuration where it is not, so the two cannot
+drift apart again. A refused write happens before any temporary file exists:
+the committed store is unchanged, still openable, and its backup is
+independently openable. Under GW09-D3 the structural half of retention is
+adopted; the period, legal basis and approver remain Ryan's, Nick's and
+counsel's under OD-25, and `legal_basis` stays `null`.
+
+Default ceiling 32 MB, from measurement rather than preference: a reviewed
+package is capped at 120 KB, a stored record costs about 2.88× its package
+because the raw bytes, the validated draft and the reviewed package are all
+retained, so the worst case is about 346 KB per inquiry — roughly 92 worst-case
+inquiries or about 1,380 fixture-sized ones. The binding cost is not parsing (a
+72 MB store parses in about 570 ms) but that every accepted inquiry rewrites the
+whole file, so the ceiling sits where a write stays comfortably sub-second.
+
+**Check headroom before it matters**, rather than discovering it on a refusal:
+
+```sh
+curl -s -H "authorization: Bearer $STEWARD_TOKEN" \
+  http://127.0.0.1:8789/private/capacity
+```
+
+It reports bytes used, the ceiling, the read limit, bytes remaining and a
+deliberately pessimistic worst-case inquiry count. A `DATA_STEWARD` credential
+reads it; a reviewer is refused.
+
+**When the ceiling is reached**, the receiver answers `507` and writes nothing.
+Two options, both deliberate: export the records and rotate to a new store file,
+or raise `writeCeilingBytes` with a documented basis, which keeps the same
+symmetry check. Do not expect archiving or deletion to recover space.
+
 ### 3.3 Staff accounts
 
 *Precondition: accounts, roles and the issuance procedure decided.*
@@ -120,6 +159,7 @@ route, which is what keeps "every endpoint is checked" true as routes are added:
 
 | Route | Method | Role |
 |---|---|---|
+| `/private/capacity` | GET | `DATA_STEWARD` |
 | `/private/intake` | POST | `INTAKE_RECEIVER` |
 | `/private/intake?archived=include` | GET | `TEAM_REVIEWER` or `INTAKE_RECEIVER` |
 | `/private/intake/<id>` | GET / PATCH / DELETE | reviewer / reviewer / steward |
