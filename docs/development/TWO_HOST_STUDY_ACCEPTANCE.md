@@ -725,4 +725,3 @@ Ceiling USD 30. Stop conditions unchanged. Stage A remains **device agreement an
 explicitly not orchestration agreement**; `validator_launch` remains
 `HARDWARE_EXERCISED: no`; nothing is qualified and `compare_r1` still returns
 `BACKEND_UNSUPPORTED`.
-
