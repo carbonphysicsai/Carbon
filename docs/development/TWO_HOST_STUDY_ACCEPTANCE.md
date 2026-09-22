@@ -643,3 +643,86 @@ That property is what makes the holder's decision deferrable without making the
 evidence provisional in any way that costs money to correct. If it ever stops
 being true - if a future measurement bakes a convention into what is retained -
 this amendment must be revisited, because the deferral rests on it.
+
+---
+
+# Amendment 7 - delta set from the GPU measurement
+
+**Recorded 2026-09-22. Owner decision, under the deputy clause.**
+
+Amendment 4 moved `delta` from CPU proxy to GPU measurement and required the
+measured value before any further class runs. Amendment 6 put that decision in
+the owner's hands so no class waits on a ratification. The measurement is done.
+
+## What was measured
+
+Eight unpinned sessions on 2x A40, four per device, each a fresh process, twelve
+pairs. Predictions produced through the registered `predict()` from identical
+archive inputs, compared under Amendment 5's convention.
+
+| Quantity, predictions (128 elements) | Device 0 | Device 1 |
+| --- | --- | --- |
+| Differing elements | 24-29 of 128 | 24-29 of 128 |
+| `max abs difference` | `5.960e-08` | `5.960e-08` |
+| Relative L2 (headline) | `2.008e-08` | `2.006e-08` |
+| `max/max(abs)` (companion) | `6.080e-08` | `6.080e-08` |
+
+**Unpinned divergence is a single float32 ulp.** `5.9604644775390625e-08` is
+exactly `2^-24`, and the field's max magnitude is `0.9803`, in `[0.5, 1)` where
+one float32 ulp is exactly `2^-24`. Every pair, both devices, the same value.
+The runs agree to the last representable bit and differ only in which elements
+land on which side of a rounding boundary - the smallest nonzero disagreement
+float32 can express, and qualitatively unlike the CPU instruction-set divergence,
+which moved values by more than an ulp.
+
+## Decided
+
+| Pair | `delta` (relative) | Basis |
+| --- | --- | --- |
+| **Near-margin** | **`1e-07`** | measured max-relative `6.080e-08`, one significant figure above |
+| Control | `1e-05` | 100x |
+| Control | `1e-04` | 1000x |
+
+**Sized to the companion rather than the headline.** Relative L2 is `2.0e-08`
+and max-relative is `6.08e-08`. A mandatory gate acts on a scalar that a single
+worst element can dominate, so the worst case is what could flip it; the
+companion is the gate-relevant figure even though L2 is the headline.
+
+**`1e-07` rather than `6e-08`.** The power condition wants `delta` *on the order
+of* epsilon - not below it, which manufactures findings, and not far above, which
+manufactures nulls. One significant figure just above the measured maximum keeps
+the near-margin pair inside the noise band while staying a round number.
+
+**The controls scale with it**, preserving the 100x and 1000x structure the
+original `delta` carried. Left at the old `1e-05`, the first control would now
+sit *below* the near-margin value and invert its purpose.
+
+## Carried with it
+
+**Provisional and owner-set**, exactly as the convention in Amendment 5 is. The
+MQ-008 scientific review still happens before launch and nothing here discharges
+it.
+
+**A40 only, and unpinned.** One class, one chassis. The three remaining classes
+may differ, and pinned divergence measured exactly *zero* - so this sizes the
+noise that pinning removes, not a residual under pinning. `delta` is insurance:
+it makes stage B able to detect divergence if pinning ever partially fails,
+which is the only circumstance in which it matters.
+
+**The CPU proxy was conservative by roughly 500x**, not understated. Had stage B
+run on `1e-5`, the near-margin pair would have sat two to three orders outside
+the real noise and the study would have returned a confident null that ruled out
+nothing. That is the failure the power condition exists to catch, caught before
+it cost anything.
+
+**Recomputable.** The emitter retains sufficient statistics, so a later
+ratification under a different convention is a recomputation from the retained
+numbers rather than new hardware time.
+
+## Unchanged
+
+Ceiling USD 30. Stop conditions unchanged. Stage A remains **device agreement and
+explicitly not orchestration agreement**; `validator_launch` remains
+`HARDWARE_EXERCISED: no`; nothing is qualified and `compare_r1` still returns
+`BACKEND_UNSUPPORTED`.
+
