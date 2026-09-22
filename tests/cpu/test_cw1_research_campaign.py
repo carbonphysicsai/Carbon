@@ -169,12 +169,12 @@ def test_old_worker_image_is_rejected_before_campaign_dispatch():
 def test_provider_timeout_must_fit_remaining_elapsed_envelope(tmp_path):
     from carbon.development_session.agent import MAX_OUTPUT_TOKENS, MODEL
     from carbon.development_session.research_agent import request_model
-    from carbon.development_session.research_ledger import ELAPSED_SECONDS
+    from carbon.development_session.research_ledger import DEVELOPMENT_ELAPSED_SECONDS
 
     meter = ledger(tmp_path, clock=lambda: 1000)
     meter.reserve("start", owner="alice", phase="selection", request={}, resources={})
     meter.finish("start", owner="alice", state="SUCCEEDED", actual={}, result={})
-    meter.clock = lambda: 1000 + ELAPSED_SECONDS - 119
+    meter.clock = lambda: 1000 + DEVELOPMENT_ELAPSED_SECONDS - 119
     request = {
         "model": MODEL,
         "instructions": "test",

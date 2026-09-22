@@ -36,7 +36,12 @@ from .research_data import PublicReferenceData
 from .research_final import prepare_final_inputs
 from .research_generation import generate_roles
 from .research_image import load_analysis_image, verify_image
-from .research_ledger import CEILINGS, ELAPSED_SECONDS, VERSION, CampaignLedger
+from .research_ledger import (
+    DEVELOPMENT_CEILINGS,
+    DEVELOPMENT_ELAPSED_SECONDS,
+    VERSION,
+    CampaignLedger,
+)
 from .research_loop import run_epoch
 from .research_material import PublicMaterial, capabilities, objective
 from .research_numerical import CampaignDerivedMeasurements
@@ -502,8 +507,8 @@ async def execute(args, *, ledger=None):
             "recorded_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
             "owner": owner,
             "implementation": implementation,
-            "ceilings": CEILINGS,
-            "elapsed_seconds": ELAPSED_SECONDS,
+            "ceilings": DEVELOPMENT_CEILINGS,
+            "elapsed_seconds": DEVELOPMENT_ELAPSED_SECONDS,
             "objective": document(),
             "sampling": document()["sampling"],
             "control": CONTROL,

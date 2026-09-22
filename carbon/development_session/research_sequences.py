@@ -11,7 +11,14 @@ import math
 from pathlib import PurePosixPath
 
 from .profile import canonical, digest
-from .research_ledger import FINAL_RESERVE, _vector
+from .research_ledger import (
+    DIMENSIONS,
+    NO_BUDGET,
+    SERVICE_LIMITS,
+    _caps,
+    _final_reserve,
+    _vector,
+)
 
 SCOPE = "carbon.public-julia-envelope.scope.v2"
 
@@ -111,12 +118,22 @@ def reserve_sequence(ledger, parent, *, owner, scope, children):
         if ledger.clock() + total["numerical_milliseconds"] / 1000 > deadline:
             raise ValueError("complete sequence cannot fit remaining grant")
         used = ledger._usage(db)
-        for key, cap in manifest["ceilings"].items():
-            headroom = FINAL_RESERVE.get(key, 0)
+        caps, reserve = _caps(manifest), _final_reserve(manifest)
+        for key in DIMENSIONS:
+            want = total.get(key, 0)
+            service = SERVICE_LIMITS.get(key)
+            if service is not None and used[key] + want > service:
+                raise ValueError("carbon service capacity: " + key)
+            cap = caps.get(key, NO_BUDGET)
+            if cap is NO_BUDGET:
+                continue
+            headroom = reserve.get(key, 0)
             if key == "final_replicas":
                 headroom = max(0, headroom - used[key])
-            if used[key] + total.get(key, 0) + headroom > cap:
-                raise ValueError("sequence aggregate admission: " + key)
+            if used[key] + want + headroom > cap:
+                # Names the aggregate, because a sequence can fit child by
+                # child and still not fit as a whole.
+                raise ValueError("miner budget, sequence aggregate: " + key)
         now = ledger.clock()
         db.execute("UPDATE campaign SET started=? WHERE id=1", (started,))
         db.execute(

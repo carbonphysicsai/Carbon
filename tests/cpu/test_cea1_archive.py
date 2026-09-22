@@ -6,6 +6,7 @@ import threading
 from pathlib import Path
 
 import pytest
+from tamper_support import tampered_bytes
 
 from carbon.evidence_archive import (
     SYNTHETIC_FIXTURE_PREFIX,
@@ -575,8 +576,7 @@ def test_duplicate_converges_conflict_tamper_and_wrong_key_fail_closed(
         record.object_key for record in first.manifest.artifacts if record.object_key
     )
     original_object = objects.values[object_key]
-    mutated_object = original_object[:-1] + bytes([original_object[-1] ^ 1])
-    assert mutated_object != original_object
+    mutated_object = tampered_bytes(original_object)
     objects.values[object_key] = mutated_object
     tampered, _ = archive.verify_current(
         first.entry, synthetic_capture_profile(), first.manifest, key
@@ -738,7 +738,7 @@ def test_aead_wrong_digest_and_metadata_tampering_fail() -> None:
     from carbon.evidence_archive import decrypt_artifact
 
     for changed in (
-        dataclasses.replace(envelope, ciphertext=envelope.ciphertext[:-1] + b"x"),
+        dataclasses.replace(envelope, ciphertext=tampered_bytes(envelope.ciphertext)),
         dataclasses.replace(envelope, nonce_hex=(b"m" * 12).hex()),
     ):
         with pytest.raises(ArchiveFailure):

@@ -5,8 +5,8 @@ from pathlib import Path
 
 from carbon.development_session.research_generation import generate_roles
 from carbon.development_session.research_ledger import (
-    CEILINGS,
-    ELAPSED_SECONDS,
+    DEVELOPMENT_CEILINGS,
+    DEVELOPMENT_ELAPSED_SECONDS,
     VERSION,
     CampaignLedger,
 )
@@ -25,8 +25,8 @@ def test_isolated_generation_matches_registered_roles_and_replays_without_redraw
     ledger.freeze(
         {
             "schema": VERSION,
-            "ceilings": CEILINGS,
-            "elapsed_seconds": ELAPSED_SECONDS,
+            "ceilings": DEVELOPMENT_CEILINGS,
+            "elapsed_seconds": DEVELOPMENT_ELAPSED_SECONDS,
             **{
                 name: "engineering-only"
                 for name in (

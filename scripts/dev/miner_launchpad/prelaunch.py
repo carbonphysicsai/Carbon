@@ -13,7 +13,10 @@ from carbon.development_session.exam_environment import exam_environment
 from carbon.development_session.profile import CHALLENGE
 from carbon.development_session.research_admission import PROFILE, SCHEMA
 from carbon.development_session.research_catalog import public_catalog
-from carbon.development_session.research_ledger import CEILINGS, FINAL_RESERVE
+from carbon.development_session.research_ledger import (
+    DEVELOPMENT_CEILINGS,
+    SUGGESTED_FINAL_RESERVE,
+)
 from carbon.reconstruction.profile import DEPENDENCY_SPECS, ENVIRONMENT_ID
 from carbon.scoring.development import rule_digest
 from scripts.dev.miner_launchpad.runner import (
@@ -30,9 +33,10 @@ def review(cfg, doc):
     caps = doc["ceilings"]
     if (
         type(caps) is not dict
-        or set(caps) != set(CEILINGS)
+        or set(caps) != set(DEVELOPMENT_CEILINGS)
         or any(
-            type(v) is not int or not FINAL_RESERVE.get(k, 0) <= v <= CEILINGS[k]
+            type(v) is not int
+            or not SUGGESTED_FINAL_RESERVE.get(k, 0) <= v <= DEVELOPMENT_CEILINGS[k]
             for k, v in caps.items()
         )
     ):
@@ -128,11 +132,11 @@ def review(cfg, doc):
         },
         "resources": {
             "configured_ceilings": caps,
-            "final_evaluation_reserve": dict(FINAL_RESERVE),
+            "final_evaluation_reserve": dict(SUGGESTED_FINAL_RESERVE),
             "maximum_exploration": {
-                k: v - FINAL_RESERVE.get(k, 0) for k, v in caps.items()
+                k: v - SUGGESTED_FINAL_RESERVE.get(k, 0) for k, v in caps.items()
             },
-            "basis": "Configured limits, not remaining balance or a reservation transaction. CampaignLedger owns actual usage and reservations.",
+            "basis": "A development grant envelope - Carbon's owner capping Carbon's spend on Carbon's accounts for a bounded experiment. Not a miner budget and not a cap on a miner's own resources. CampaignLedger owns actual usage and reservations.",
         },
         "runtime": {
             "implementation": identities,

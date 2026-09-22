@@ -15,8 +15,8 @@ from carbon.development_session import research_training
 from carbon.development_session.profile import canonical, digest
 from carbon.development_session.research_carrier import _run
 from carbon.development_session.research_ledger import (
-    CEILINGS,
-    ELAPSED_SECONDS,
+    DEVELOPMENT_CEILINGS,
+    DEVELOPMENT_ELAPSED_SECONDS,
     VERSION,
     CampaignLedger,
 )
@@ -35,8 +35,8 @@ def test_actual_jax_learning_curve_checkpoint_and_physical_mean(tmp_path):
     ledger.freeze(
         {
             "schema": VERSION,
-            "ceilings": CEILINGS,
-            "elapsed_seconds": ELAPSED_SECONDS,
+            "ceilings": DEVELOPMENT_CEILINGS,
+            "elapsed_seconds": DEVELOPMENT_ELAPSED_SECONDS,
             "campaign_id": "engineering-practice-program",
             "implementation": "candidate",
             "objective": "synthetic-engineering",

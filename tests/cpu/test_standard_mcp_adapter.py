@@ -392,16 +392,16 @@ def test_real_authenticated_workspace_survives_adapter_reconnect(
     )
     owner = asyncio.run(gateway.receive(body, _headers(body, NOW))).requester.value
     from carbon.development_session.research_ledger import (
-        CEILINGS,
-        ELAPSED_SECONDS,
+        DEVELOPMENT_CEILINGS,
+        DEVELOPMENT_ELAPSED_SECONDS,
         VERSION,
     )
 
     ledger.freeze(
         {
             "schema": VERSION,
-            "ceilings": CEILINGS,
-            "elapsed_seconds": ELAPSED_SECONDS,
+            "ceilings": DEVELOPMENT_CEILINGS,
+            "elapsed_seconds": DEVELOPMENT_ELAPSED_SECONDS,
             "campaign_id": "test-only",
             "implementation": "test-only",
             "owner": owner,

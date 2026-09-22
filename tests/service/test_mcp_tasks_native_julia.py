@@ -44,8 +44,8 @@ from carbon.development_session.research_admission import (
     Admission,
 )
 from carbon.development_session.research_ledger import (
-    CEILINGS,
-    ELAPSED_SECONDS,
+    DEVELOPMENT_CEILINGS,
+    DEVELOPMENT_ELAPSED_SECONDS,
     CampaignLedger,
 )
 from carbon.development_session.research_material import PublicMaterial
@@ -94,9 +94,9 @@ def prepare_native(root, worker, monkeypatch):
         "provider": "openai-responses",
         "account_ref": "fixture-no-paid-calls",
         "campaign_count": 1,
-        "ceilings": dict(CEILINGS),
-        "elapsed_seconds": ELAPSED_SECONDS,
-        "expires_unix": time.time() + ELAPSED_SECONDS,
+        "ceilings": dict(DEVELOPMENT_CEILINGS),
+        "elapsed_seconds": DEVELOPMENT_ELAPSED_SECONDS,
+        "expires_unix": time.time() + DEVELOPMENT_ELAPSED_SECONDS,
         "cleanup": "all-campaign-owned-work; unresolved-reservations-retained",
         "retry_allowance": 0,
     }
@@ -111,8 +111,8 @@ def prepare_native(root, worker, monkeypatch):
         "owner": owner,
         "runtime": runtime,
         "grant": admission.binding(),
-        "ceilings": dict(CEILINGS),
-        "elapsed_seconds": ELAPSED_SECONDS,
+        "ceilings": dict(DEVELOPMENT_CEILINGS),
+        "elapsed_seconds": DEVELOPMENT_ELAPSED_SECONDS,
         "implementation": runtime["implementation"],
         "images": runtime["images"],
         **dict.fromkeys(

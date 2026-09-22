@@ -26,8 +26,8 @@ from carbon.development_session.research_data import (
 )
 from carbon.development_session.research_generation import generate_roles
 from carbon.development_session.research_ledger import (
-    CEILINGS,
-    ELAPSED_SECONDS,
+    DEVELOPMENT_CEILINGS,
+    DEVELOPMENT_ELAPSED_SECONDS,
     VERSION,
     CampaignLedger,
 )
@@ -225,8 +225,8 @@ def test_real_fresh_final_sources_compare_and_resume_without_redispatch(
     ledger.freeze(
         {
             "schema": VERSION,
-            "ceilings": CEILINGS,
-            "elapsed_seconds": ELAPSED_SECONDS,
+            "ceilings": DEVELOPMENT_CEILINGS,
+            "elapsed_seconds": DEVELOPMENT_ELAPSED_SECONDS,
             **{
                 name: owner
                 for name in (
