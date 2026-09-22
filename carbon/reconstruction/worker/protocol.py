@@ -547,9 +547,9 @@ def stage_request(
                 # The TPU preparation profile dispatches nothing and is bound to
                 # no device, so its block stays exactly as it was.
                 if worker_profile.accelerator_device_uuid is not None:
-                    request["accelerator"]["device_uuid"] = (
-                        worker_profile.accelerator_device_uuid
-                    )
+                    request["accelerator"][
+                        "device_uuid"
+                    ] = worker_profile.accelerator_device_uuid
         payload = _canonical(request) + b"\n"
         if len(payload) > CONTROL_BYTES:
             raise WorkerFailure(WorkerCode.STAGING)
