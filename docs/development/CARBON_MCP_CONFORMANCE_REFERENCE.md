@@ -117,11 +117,20 @@ occurred. The message text is validator-shaped and is not part of the contract.
 `isError` with a message of the form:
 
 ```
-<CODE>; dispatch_may_have_occurred=<true|false>
+<CODE>; dispatch_may_have_occurred=<true|false>; next_action=<text>
 ```
 
 `CODE` is one of `INVALID_ARGUMENT`, `OWNER_BINDING`, `OPERATIONAL_STOP`,
-`INVALID_RESULT`.
+`INVALID_RESULT`, or `CAPACITY_UNAVAILABLE` when the server refuses for want of
+concurrent capacity. A server MAY publish a different vocabulary; what it may
+not do is emit a code it did not publish (§10).
+
+`next_action` is the step a client should take, and it is **fixed per code**,
+not a provider message. A client may therefore pin it. Two requirements follow:
+the text MUST equal the text the surface catalogue declares for that code, and
+it MUST be identical across calls. Provider-supplied text here is the route by
+which unbounded internal detail reaches an external wire, so a server that
+varies it is non-conforming even when the text it varies to is harmless.
 
 `dispatch_may_have_occurred` is the field a client acts on. When `true`, work may
 already be running and the client MUST reconcile rather than retry. In
@@ -193,6 +202,52 @@ guarantee that an artifact name is dereferenceable through this interface.
 A client MUST treat an artifact name as an opaque token to hand back to the
 domain, and MUST NOT construct a path from it.
 
+## 10. The surface catalogue
+
+`carbon://research/v1/catalogue` describes **the server**. It is distinct from
+`carbon://research/v1/capabilities`, which projects the **scientific**
+catalogue — what a miner may attempt. The separation is the point: it lets a
+client tell a surface change from a science change instead of rediscovering one
+as the other. A server that serves one document for both is non-conforming.
+
+The document carries:
+
+| Field | Meaning |
+|---|---|
+| `schema` | Version of this description. A client that pins, pins this. |
+| `sdk_version` | Build identity of the serving side. |
+| `operations` | Exactly the tool names served — no more, no fewer. |
+| `resources` | The resource URIs the server serves, including both catalogues. |
+| `limits` | Concurrency bound, queue deadline, call budget and its enforcement. |
+| `refusals` | The refusal vocabulary, each code with its fixed `next_action`. |
+| `records` | What a per-call record keeps, including `arguments_recorded`. |
+| `official_eligible` | Always `false`; a surface description confers no standing. |
+
+**Operations must match.** Advertising an operation the server does not serve is
+a conformance failure for the same reason an unreadable resource is: a client
+plans against discovery, and finds out at the moment it mattered.
+
+**Refusal codes must be declared.** A client branches on the vocabulary. A code
+outside it lands in whatever the client does with the unexpected, which is the
+path nobody designs.
+
+**The call budget is recorded, not enforced by cancellation.** A call that has
+started is never cancelled to meet the budget: cancelling an in-flight ledger
+reservation would create precisely the reconciliation-required state the budget
+exists to avoid. An overrun is recorded and the call finishes. A client MUST NOT
+infer that exceeding `call_budget_seconds` terminates work.
+
+**Capacity refusals claim no dispatch.** Refusing for want of capacity happens
+before any work is handed on, so such a refusal MUST carry
+`dispatch_may_have_occurred=false`.
+
+**The record policy is a declaration.** `records.arguments_recorded` states
+whether call arguments are kept. A client can verify that the server *says*
+`false`; it cannot verify from outside that the records themselves are free of
+arguments. The conformance suite checks the declaration and says so in its
+report. Treat the absence of arguments from records as a stated policy backed by
+the server's own tests, not as something this interface demonstrates.
+
 ## Undefined — do not infer these from the current implementation
 
 These are genuinely unfixed. A client that depends on them depends on an
@@ -210,18 +265,37 @@ accident, and a future server may differ without breaking conformance.
 6. **HTTP credential issuance, rotation and rejection shape.** How a token is
    obtained, how it expires, and the exact refusal for a bad token are not
    specified here.
-7. **Concurrency.** Whether concurrent calls on one connection are permitted, and
-   any per-caller limit, is not specified.
-8. **Ordering and delivery guarantees** for notifications and task updates.
-9. **Artifact retention.** How long an artifact name stays resolvable.
+7. **Provoking a capacity refusal.** The bound and the queue deadline are
+   published, but no portable input is guaranteed to exhaust capacity on a
+   server doing no other work. A conformance run may legitimately verify the
+   declaration without ever observing the refusal, and the report says which of
+   the two it did.
+8. **Stability of `next_action` across versions.** The text is fixed for a given
+   server, and a client may pin it. Whether it survives an `sdk_version` change
+   is not specified; compare against the catalogue rather than a literal.
+9. **What a client should do with an undeclared code.** A server must not emit
+   one. What a client does when one arrives anyway is its own decision, and this
+   document does not prescribe a fallback that would make the violation
+   survivable in silence.
+10. **Per-caller identity beyond owner binding.** Whether a deployment
+   distinguishes callers within one owner, and what it exposes about that, is not
+   specified here.
+11. **Ordering and delivery guarantees** for notifications and task updates.
+12. **Artifact retention.** How long an artifact name stays resolvable.
 
-### Known to be changing
+### Landed since the first revision
 
-The Launchpad workstream is actively changing the **error envelope**, adding a
-**versioned catalogue resource**, **per-caller identity**, **bounded
-concurrency** and **per-call structured records**. Sections 4, 2 and 8 will need
-revision when that lands. This document describes `main` as of writing and does
-not anticipate that design.
+The Launchpad workstream's `next_action` error field, versioned catalogue
+resource, bounded concurrency and per-call records **landed in `#269`**, and
+§4 and §10 above describe them as served rather than as anticipated. The suite
+was extended after they landed, not before: a conformance suite written against
+a design still being decided encodes a guess, and a guess that later turns out
+right is indistinguishable from one that does not.
+
+Still in flight on the serving side, and deliberately not covered here:
+per-caller identity beyond owner binding, and whatever the onboarding surfaces
+settle into. A server change is a reason to extend this document; a server
+intention is not.
 
 ## How far each check is demonstrated falsifiable
 
@@ -239,6 +313,10 @@ requirement is shipped alongside the suite, and a test requires that this check
 - `errors_do_not_leak_internals`
 - `capability_discovery_is_performable`
 - `durable_identity_survives_reconnect`
+- `surface_catalogue_matches_served_tools`
+- `refusal_vocabulary_is_declared`
+- `refusal_next_action_is_fixed_and_declared`
+- `capacity_bound_is_declared_and_honoured`
 
 **Proven by expectation mutation (shape).** The check's own expectation is
 inverted and the conforming server must then fail it. If it still passes, the
@@ -250,6 +328,9 @@ check is not reading what it claims to read.
 - `strict_inputs_reject_encoded_objects`
 - `schema_rejection_precedes_dispatch`
 - `adapter_error_contract`
+- `surface_catalogue_is_versioned`
+- `surface_catalogue_separates_surface_from_science`
+- `record_policy_is_declared`
 
 Mutation is the weaker of the two. It shows a check discriminates; it does not
 show that a realistically non-conforming server is caught. Behavioural

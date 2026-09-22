@@ -23,6 +23,21 @@ from mcp.server.mcpserver.utilities.func_metadata import ArgModelBase, FuncMetad
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, create_model
 
 PREFIX = "carbon_research_v2__"
+CATALOGUE_URI = "carbon://research/v1/catalogue"
+CAPABILITIES_URI = "carbon://research/v1/capabilities"
+
+#: The refusal vocabulary and its next steps, written here the way a third
+#: party implementing against the reference specification would write them -
+#: from the document, not by importing Carbon. A stub that imported the server's
+#: own table could not disagree with it, and disagreeing on purpose is the whole
+#: job of these files.
+NEXT_ACTION = {
+    "INVALID_ARGUMENT": "Correct the arguments against the tool schema and call again with a new operation_id.",
+    "OWNER_BINDING": "Reconnect with the profile that owns this campaign; do not retry.",
+    "OPERATIONAL_STOP": "Check task and reconciliation state before retrying.",
+    "INVALID_RESULT": "Do not retry; report it with the operation_id you used.",
+    "CAPACITY_UNAVAILABLE": "Nothing was dispatched. Retry the same operation_id shortly.",
+}
 OPERATIONS = (
     "get_challenge_info",
     "get_interaction_manifest",
@@ -54,6 +69,47 @@ FIELDS = {
     "get_research_result": ("task_id", "poll_sequence"),
     "cancel_research_task": ("task_id",),
 }
+
+
+def catalogue_document(
+    *,
+    operations=None,
+    refusals=None,
+    resources=None,
+    schema="carbon.mcp.catalogue.v1",
+    arguments_recorded=False,
+    limits=None,
+):
+    """A conforming surface catalogue, so a stub fails only its own check."""
+    import json as _json
+
+    return _json.dumps(
+        {
+            "schema": schema,
+            "sdk_version": "stub-0.0.0",
+            "operations": sorted(
+                PREFIX + name for name in (operations or OPERATIONS)
+            ),
+            "extensions": [],
+            "resources": sorted(resources or [CAPABILITIES_URI, CATALOGUE_URI]),
+            "limits": limits
+            or {
+                "max_concurrent_calls": 4,
+                "queue_deadline_seconds": 30.0,
+                "call_budget_seconds": 900.0,
+                "call_budget_enforcement": "RECORDED_NOT_CANCELLED",
+            },
+            "refusals": {
+                slug: {"next_action": action}
+                for slug, action in sorted((refusals or NEXT_ACTION).items())
+            },
+            "records": {
+                "schema": "carbon.mcp.call-record.v1",
+                "arguments_recorded": arguments_recorded,
+            },
+            "official_eligible": False,
+        }
+    )
 
 
 class StrictArguments(ArgModelBase):
@@ -162,7 +218,9 @@ def build(handler, *, name="carbon-nonconforming-stub", resources=None, identity
     server = MCPServer(name, version="0.0.0", tools=tools)
     from mcp.server.mcpserver.resources import FunctionResource
 
-    for uri, text in (resources or {"carbon://research/v1/capabilities": "{}"}).items():
+    if resources is None:
+        resources = {CAPABILITIES_URI: "{}", CATALOGUE_URI: catalogue_document()}
+    for uri, text in resources.items():
         server.add_resource(
             FunctionResource(
                 uri=uri, name=uri, mime_type="text/plain", fn=(lambda _t=text: _t)
@@ -175,6 +233,15 @@ def serve(server):
     asyncio.run(server.run_stdio_async())
 
 
-def refuse(code, dispatch):
-    """Raise the coded failure shape the published error contract requires."""
-    raise ToolError(f"{code}; dispatch_may_have_occurred={str(dispatch).lower()}")
+def refuse(code, dispatch, next_action=None):
+    """Raise the coded failure shape the published error contract requires.
+
+    The next step is included by default and taken from the table above, so a
+    stub whose violation is something else does not also fail the next-action
+    check and muddy what its rejection proves.
+    """
+    action = NEXT_ACTION[code] if next_action is None else next_action
+    raise ToolError(
+        f"{code}; dispatch_may_have_occurred={str(dispatch).lower()}; "
+        f"next_action={action}"
+    )
