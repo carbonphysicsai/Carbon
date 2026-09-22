@@ -1,12 +1,28 @@
 {
   "schema_version": "carbon.ask-carbon.public-release-candidate.v1",
   "candidate_id": "ask-carbon-public-release-2026-09-22.1",
-  "status": "STAGING_REVIEWED_PENDING_OWNER_REAPPROVAL_FOR_REBASELINED_STATIC_INTEGRATION",
+  "status": "OWNER_APPROVED_INACTIVE_PRODUCTION_PUBLICATION",
   "public_activation_allowed": false,
   "owner_authorization": {
+    "decision": "WEB-QA-06-D1",
+    "recorded_at": "2026-09-22",
+    "source": ".agent/DECISIONS.md",
+    "authorization": "APPROVED_INACTIVE_PRODUCTION_PUBLICATION",
+    "approved_by": "Nick Fitzpatrick (named production incident owner under WEB-QA-05-D2)",
+    "scope": "public Q&A, guided pilot drafting, form-only drafting and local download; inquiry collection disabled; activation remains a separate recorded step",
+    "attaches_to": {
+      "bundle_identity_sha256": "14e85a87aeda68b3b5ce2cfb7dce610441a47645836d2f9f866a88bf0c12c8ac",
+      "integrated_index_sha256": "b1e8e7cdbea3d13d1ea2237e55db279bc962937a6a2cf2a65491dcf8255afd47",
+      "upload_archive_sha256": "850f85a7bab5eb99ee0190974b9a486264e2a179a4d62b3529484ae27b55379c",
+      "rollback_target_version_id": "6b339116-ee62-43ac-bda8-cf3baa674551"
+    },
+    "note": "Approval attaches to the exact digests above. A rebuild producing a different bundle identity is not the accepted artifact and requires a fresh decision. This approves inactive publication only; ASK_CARBON_ACTIVATION remains disabled and public activation is a separate recorded decision."
+  },
+  "owner_authorization_superseded_2026_09_18": {
     "decision": "APPROVED_INACTIVE_PRODUCTION_PUBLICATION",
     "recorded_at": "2026-09-18",
-    "scope": "public Q&A, guided pilot drafting, form-only drafting and local download; inquiry collection disabled; activation remains a separate recorded step"
+    "scope": "public Q&A, guided pilot drafting, form-only drafting and local download; inquiry collection disabled; activation remains a separate recorded step",
+    "note": "Recorded against candidate ask-carbon-public-release-2026-09-18.2, whose static-integration pins the 2026-09-22 redesign invalidated. Retained as historical evidence."
   },
   "named_operators": {
     "decision": "WEB-QA-05-D2",
@@ -130,11 +146,23 @@
   ],
   "required_before_production_mutation_satisfied": {
     "named production incident owner": "WEB-QA-05-D2 (2026-09-19)",
-    "named disable and rollback operator": "WEB-QA-05-D2 (2026-09-19)"
+    "named disable and rollback operator": "WEB-QA-05-D2 (2026-09-19)",
+    "owner re-approval against candidate ask-carbon-public-release-2026-09-22.1": "WEB-QA-06-D1 (2026-09-22)",
+    "live carbonwebsite version id captured as rollback target": "6b339116-ee62-43ac-bda8-cf3baa674551, captured 2026-09-22 into production-baseline.manifest.json deployment_target_observed.live_version_id"
+  },
+  "deployment_order": {
+    "decision": "Deploy the inactive ask-carbon-public API Worker BEFORE publishing the carbonwebsite assets.",
+    "recorded_at": "2026-09-22",
+    "reason": "The integrated homepage fetches ${api-url}/health on load (public/ask-carbon.js). Publishing the static assets first would make every homepage visitor request a route that does not exist yet, producing 404s for the whole gap between the two deployments and making 'not deployed' indistinguishable from 'deployed and inactive' during the window the inactive verification is meant to check. Deploying the inactive Worker first means the health endpoint answers correctly from the moment the homepage ships. The Worker binds only /api/ask-carbon*, which returns 404 today, so adding it early is low-risk and reversible.",
+    "supersedes": "The handoff brief's step 6 ordering, which listed carbonwebsite first."
   },
   "remaining_execution_inputs": [
-    "Cloudflare deployment credentials for account 7462053c6992b9c9fd889952a7ae0496, provisioned through the approved operator release process"
+    "Provision ASK_CARBON_OPENAI_API_KEY and ASK_CARBON_CONTINUATION_SIGNING_SECRET on ask-carbon-public through the Cloudflare secret mechanism after the Worker is first deployed. The Worker does not yet exist on the account, so no secret can be bound before then."
   ],
+  "execution_inputs_satisfied": {
+    "Cloudflare deployment access": "Existing authorized OAuth session for account 7462053c6992b9c9fd889952a7ae0496 with workers / workers_scripts / workers_routes write, verified 2026-09-22. No new credential was requested, created or stored.",
+    "Pinned deployment tool": "Wrangler 4.134.0, installed outside the repository and outside the public asset tree."
+  },
   "supersedes_candidate_id": "ask-carbon-public-release-2026-09-18.2",
   "rebaseline_note": "The 2026-09-18.2 candidate was owner-approved for inactive publication against the previous single-file homepage. On 2026-09-22 the owner replaced the live site with the multi-page redesign (carbon-site-upload.zip → carbonwebsite, verified 97/97 paths), which invalidated that candidate's static-integration pins. This candidate carries the SAME runtime, model, knowledge, privacy, budget and activation posture and changes only: (a) the static-integration source pin and complete baseline manifest, (b) the launcher/panel stylesheet restyled to the site's type system (Montreal, square corners, 600 weight), and (c) the site header/footer gaining an `Ask Carbon` link that opens the homepage panel. The owner's inactive-publication approval must be re-recorded against this candidate before deployment."
 }

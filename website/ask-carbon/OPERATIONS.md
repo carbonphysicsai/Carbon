@@ -344,8 +344,29 @@ re-derive it from disk before deploying. `--staging-preview` and
 `--allow-changed-source` produce inspection artifacts only: they always report
 `"deployable_to_carbonwebsite": false` and are never deployable.
 
-The current `carbonwebsite` Worker uses compatibility date `2026-09-12`;
-retain it for this asset-only update:
+#### Deploy the inactive API Worker first
+
+**Order matters.** Deploy the inactive `ask-carbon-public` Worker *before*
+publishing the `carbonwebsite` assets, not after.
+
+The integrated homepage fetches `${api-url}/health` on load (see
+`public/ask-carbon.js`). Publishing the static assets first means every
+homepage visitor requests a route that does not exist yet, so the whole gap
+between the two deployments produces 404s — and during exactly the window the
+inactive verification is meant to check, "not deployed" is indistinguishable
+from "deployed and inactive". Deploying the Worker first means the health
+endpoint answers correctly from the moment the homepage ships.
+
+The Worker binds only `/api/ask-carbon*`, which returns 404 today, so adding
+it ahead of the homepage is low-risk and reversible. This supersedes any
+earlier sequence that listed `carbonwebsite` first.
+
+```sh
+npx wrangler deploy --config wrangler.public-release-candidate.toml
+```
+
+Then publish the assets. The current `carbonwebsite` Worker uses compatibility
+date `2026-09-12`; retain it for this asset-only update:
 
 ```sh
 npx wrangler deploy \
