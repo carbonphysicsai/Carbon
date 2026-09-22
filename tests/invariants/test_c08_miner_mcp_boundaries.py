@@ -54,6 +54,12 @@ def test_package_is_exact_and_exports_no_official_or_network_surface() -> None:
         # a module to this package should be a deliberate act, which is what
         # this assertion is for.
         "mcp_onboarding.py",
+        # The open-tier server mode. It composes existing surfaces rather than
+        # adding one: the onboarding tools above, the published exam
+        # environment, and - only once a campaign is attached - the tools the
+        # standard server already builds. It creates no campaign and no ledger
+        # of its own, and adds no official or network-writing capability.
+        "open_tier.py",
         "mcp_skills.py",
         "store.py",
     }

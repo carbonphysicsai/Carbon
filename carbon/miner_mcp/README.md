@@ -14,6 +14,41 @@ CARBON_UV_GROUPS='chain archive science-jax mcp' ./scripts/dev/bootstrap.sh
 python -m carbon.miner_mcp.standard_cli --configuration /absolute/private/runner-profile.json
 ```
 
+## Starting without a campaign
+
+A miner who has not registered yet has no profile, no grant and no campaign, so
+`--configuration` is optional. Omitted, the server carries the open tier alone:
+
+```sh
+python -m carbon.miner_mcp.standard_cli
+```
+
+That serves the four `carbon_onboarding_*` tools and the published validator
+exam environment, and nothing else. The research tools are *absent* rather than
+present-and-refusing, which is what the registration gate (C-MLP-02-D10) is
+worth: the tier is a property of what exists, not a check inside each tool.
+Nothing reachable here creates a campaign, consumes compute or touches the
+ledger, and no tool signs or accepts key material.
+
+`carbon.miner_mcp.open_tier.attach_campaign` adds the registered tier to a
+running server, so a miner who registers mid-session keeps their connection
+instead of tearing it down at the moment they have just done the one
+irreversible thing. One server owns one campaign; a second attachment is
+refused rather than replacing the first.
+
+Two limitations worth knowing before building on this:
+
+- **No chain endpoint is configured.** `carbon_onboarding_requirements` answers
+  in full - it needs no chain - while the reads report `CHAIN_NOT_CONFIGURED`
+  with the next usable step rather than guessing an endpoint. The browser door
+  is in the same position for the same reason.
+- **The pinned SDK sends no list-changed notification.** A client sees the
+  registered tier on its next `tools/list`, not before. This is a property of
+  the SDK, not of how attachment is implemented: its own `add_tool` has no
+  notification path either.
+
+## The prepared-campaign profile
+
 The installed console command is `carbon-mcp` with the same arguments. The
 profile is the existing private Launchpad runner profile for an already prepared,
 frozen, unfinished campaign. It must match its existing owner, current grant,
