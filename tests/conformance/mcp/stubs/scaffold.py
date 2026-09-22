@@ -87,9 +87,7 @@ def catalogue_document(
         {
             "schema": schema,
             "sdk_version": "stub-0.0.0",
-            "operations": sorted(
-                PREFIX + name for name in (operations or OPERATIONS)
-            ),
+            "operations": sorted(PREFIX + name for name in (operations or OPERATIONS)),
             "extensions": [],
             "resources": sorted(resources or [CAPABILITIES_URI, CATALOGUE_URI]),
             "limits": limits

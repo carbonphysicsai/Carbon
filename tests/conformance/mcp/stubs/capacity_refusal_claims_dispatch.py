@@ -24,6 +24,4 @@ def handler(operation, operation_id, arguments):
 
 
 if __name__ == "__main__":
-    scaffold.serve(
-        scaffold.build(handler, name="carbon-stub-capacity-claims-dispatch")
-    )
+    scaffold.serve(scaffold.build(handler, name="carbon-stub-capacity-claims-dispatch"))
