@@ -19,7 +19,7 @@
     "GOAL-WORKBENCH-10"
   ],
   "repository_base": "3681f7fb10be0c6e278f53d59ff9b022099ef12d",
-  "integration_revision_at_packaging": "557ee200d4a2a3f619d8c100efd0f227cd58cf90",
+  "integration_revision_at_packaging": "c043dd8d74ec6ab933140a40871b9b79dd67f187",
   "integration_revision_note": "The checksum manifest describes exact packaged bytes. A commit cannot contain its own digest; final PR/head identity is reported by delivery.",
   "pinned_research_revision": "ca904dfee93d3574df4e56b99981a6ed3b138e80",
   "accepted_research_head": "0a5690270dc449ea19c941280203987d37db5283",
@@ -176,7 +176,7 @@
     "use": "Operating conformance only; no Grok/account integration is claimed."
   },
   "authority": "No runtime sharing, qualification, protected-use approval, answer publication, submission, registration, execution, launch, deployment, or rights authority is conveyed.",
-  "file_count": 210,
+  "file_count": 217,
   "files": {
     "Carbon_Client_Intake_Preview.html": {
       "bytes": 56634,
@@ -187,16 +187,20 @@
       "sha256": "0da0f15475bd87760e32c596db6e6d1fcca798858b7117e5aad30860d03da128"
     },
     "Carbon_Opportunity_Workbench.html": {
-      "bytes": 785607,
-      "sha256": "6a439e82b6fcf5225652cf029b7293807d53414488dfda2b17a803f4a00625c3"
+      "bytes": 801233,
+      "sha256": "5346c1073125296cac63fa53a5c4eece34b151fd1b519c9e7949ef8f21750186"
+    },
+    "Carbon_Public_Workbench_Onboarding.html": {
+      "bytes": 52440,
+      "sha256": "b25602907feafc5927410c987e22c66e36b61b44a246b2e9aeaf6c8f887257b9"
     },
     "PRIVATE_SERVICE_RUNBOOK.md": {
       "bytes": 13998,
       "sha256": "47abcf30e9cf9ddd1b8914f183ced084b38955552c181a1df178f3130fac17de"
     },
     "README.md": {
-      "bytes": 26827,
-      "sha256": "5efe06dcc9dee9750045ebcb0988c0c904a921acf2b56b3aec85a2126ceacf72"
+      "bytes": 27942,
+      "sha256": "16ea1d86a33d0e8bfea4b8bb3bffb5caeef008a05132cb4b1cb38a363da6ec76"
     },
     "SCIENTIFIC_STUDIES_OPERATOR.md": {
       "bytes": 9904,
@@ -383,8 +387,8 @@
       "sha256": "bb05526a6408f70efa32a12ade140305a0cfd2c6d07f3827cc36b16f086eb149"
     },
     "docs/REQUIREMENT_TEST_MAP.md": {
-      "bytes": 30787,
-      "sha256": "ed88491f64cbfd9a5ec53859182dd8ae9a699fb310504686bc6e6e3b19c6428d"
+      "bytes": 32541,
+      "sha256": "0d9fd081a0dd9c2370c3a3f48f7c713e5543c268fa2a2c34eb69d6210cef5041"
     },
     "docs/SPECIFICATION.md": {
       "bytes": 14254,
@@ -734,6 +738,22 @@
       "bytes": 4938,
       "sha256": "70121859183125363fe7986c7514ffd6b95e6164a038bab068b64748951f93b2"
     },
+    "src/public_app.js": {
+      "bytes": 9914,
+      "sha256": "42853c6fa7ed530bf1529ff0ef49437b490d90f5c5bc91ecf9de734820d44733"
+    },
+    "src/public_shell.html": {
+      "bytes": 4320,
+      "sha256": "32cb11093a60d42e1d7650c6ca8c52cc4dcc4c4599a185986ba4bc202abf61e1"
+    },
+    "src/public_styles.css": {
+      "bytes": 4258,
+      "sha256": "82a077ff0e08a8b845b4fc5789fe55a009d221ad2ed7f46e66b8de4c16416d25"
+    },
+    "src/public_workbench.js": {
+      "bytes": 12878,
+      "sha256": "7c7049940b47a229248b0023224adb976236c0681f5c2d6cc8749ca61e1c4af5"
+    },
     "src/routing.js": {
       "bytes": 49880,
       "sha256": "fbbca4c197a5076070c51329c7da716d4a92707aebe01093979aa22a3b37f6dd"
@@ -747,8 +767,8 @@
       "sha256": "6fd8985c5091f20433e53009e9bff0092f986922ef74535fc316f1f38568ef15"
     },
     "src/shell.html": {
-      "bytes": 5796,
-      "sha256": "fd69e46c129c790ba9fd4be91300ec2723d024418d6fd9a368b6971f1f3fff91"
+      "bytes": 5838,
+      "sha256": "b03ac85c61b43acc85ac54718cccbf29e2c576f9c2b3748253f273cfc3e61eea"
     },
     "src/source_assessment.js": {
       "bytes": 40974,
@@ -763,8 +783,8 @@
       "sha256": "e6ab28fd9692b48ae31fffd7918a566a424b60a9d650c4c2302423fa020f2c3c"
     },
     "src/workflow.js": {
-      "bytes": 95273,
-      "sha256": "8b5e13fcd8d6527bd4e05cdaf8330380f84bd7fa6808205da821265705183cdc"
+      "bytes": 97945,
+      "sha256": "32810466aa3ae3322b86acbed7ccb3334d3c83dfbb6dead2f0e7e240a02fedbf"
     },
     "tests/TEST_NOTES.md": {
       "bytes": 6132,
@@ -785,6 +805,10 @@
     "tests/browser_intake_smoke.cjs": {
       "bytes": 20946,
       "sha256": "f2aea8c0eb5a7b8e5a0c9f9c71cde13463f5f51e4d0e63e804c0ec7bb926a393"
+    },
+    "tests/browser_public_workbench_smoke.cjs": {
+      "bytes": 10574,
+      "sha256": "36172b500b35dfdd579cf040cf67dcfda1bfc861165fdfec5da493d4fe0c3a13"
     },
     "tests/browser_results.json": {
       "bytes": 2662,
@@ -870,13 +894,17 @@
       "bytes": 20660,
       "sha256": "76fdd8c3be85d7c61d1bd9a80604cd1564eb0f4821dec99fba591db9478380c4"
     },
+    "tests/test_public_workbench.cjs": {
+      "bytes": 18519,
+      "sha256": "419297797ef46af84c7e6ce7fa7f313e6d2600fb2245b1b1c28d8822fd00414f"
+    },
     "tests/test_rehearsal.cjs": {
       "bytes": 6197,
       "sha256": "e9286584e80db14fd2a9e5c80dd5c740beda8964081e8a4d6ddf891d80810a55"
     },
     "tests/test_release_freshness.py": {
-      "bytes": 16981,
-      "sha256": "f61fa92f670bc265c67ac1ac7a7eb13f3b322ff78c45f8f5a2386960a5e3bf70"
+      "bytes": 18427,
+      "sha256": "4eb2e6ba8c2e75a8ea64510910f8cb2ba7ac69fb5b497c448e4ac197aa798434"
     },
     "tests/test_repository_snapshot_assessment.cjs": {
       "bytes": 23216,
@@ -935,8 +963,8 @@
       "sha256": "1ee61a97a9703c72a4b2b08bb631668e06ae2c105e4d1c21e896d021c649fc31"
     },
     "tools/build.py": {
-      "bytes": 5283,
-      "sha256": "fbc0bca5297cdf6e9a78726891e580dc8dbd351b68235aa692121685b66aa143"
+      "bytes": 8130,
+      "sha256": "1a6d6392c8b08bae894a669c0ba66756426b8df5e5d6591977ef99eb3f8da2c8"
     },
     "tools/build_c05_saved_fixture_index.cjs": {
       "bytes": 1933,
@@ -967,8 +995,8 @@
       "sha256": "1afa474ce4d04e939456fe27831961fbdc27376b2a070b84c9e6097747d574df"
     },
     "tools/check_release_freshness.py": {
-      "bytes": 14264,
-      "sha256": "a8b89d215918da92cc33b489ea8641e8f5068a0348122edf9bda087d24fb0445"
+      "bytes": 14319,
+      "sha256": "16225d8bc45cfaced7e9065676e6f4fc8c39aae1b8f6d36eef91e550c2bc90e6"
     },
     "tools/check_repository_snapshot_admission.cjs": {
       "bytes": 12658,

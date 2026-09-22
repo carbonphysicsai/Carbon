@@ -25,6 +25,15 @@ from workbench_scope import workbench_required
     "path",
     [
         "Business/Carbon_Fit/workbench/src/scientific_studies.js",
+        # GOAL-WORKBENCH-14: the public onboarding edition's own sources and
+        # its emitted artifact. The prefix rule already covers them, and this
+        # asserts the coverage rather than leaving it to inspection.
+        "Business/Carbon_Fit/workbench/src/public_workbench.js",
+        "Business/Carbon_Fit/workbench/src/public_app.js",
+        "Business/Carbon_Fit/workbench/src/public_shell.html",
+        "Business/Carbon_Fit/workbench/src/public_styles.css",
+        "Business/Carbon_Fit/workbench/Carbon_Public_Workbench_Onboarding.html",
+        "Business/Carbon_Fit/workbench/tests/test_public_workbench.cjs",
         "Business/Carbon_Fit/workbench/src/team_review.js",
         "Business/Carbon_Fit/workbench/tools/build.py",
         "Business/Carbon_Fit/workbench/tools/package_release.py",

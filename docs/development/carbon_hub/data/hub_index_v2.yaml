@@ -9305,6 +9305,18 @@ events:
       - "WAVE-C/NET-5R"
       - "WAVE-C/NET-6"
     supersedes: null
+  -
+    map_ref: "SYSTEM/BUSINESS-AUTHORITY"
+    event_type: "evidence"
+    event_id: "GOAL-WORKBENCH-14-PUBLIC-ONBOARDING-01"
+    owner_lane: "business_authority"
+    status: "implemented"
+    summary: "Adds a public Workbench onboarding edition built from the existing Workbench sources: one generated artifact that runs entirely in a visitor's browser with connect-src 'none', guides a non-expert through the internal design's own scope fields, runs the accepted structural check unchanged, and exports a carbon.public-workbench.workspace.v1 artifact the internal Workbench imports as the same draft through a new adapter over the existing newDesign constructor. The check is shared verbatim rather than reimplemented; its only network-reaching function is createAdapter, which the public edition never calls and the emitted CSP could not permit. Because that check currently has one source template whose numerical definition is held by the private service, a visitor's best outcome is every issue that is theirs closed and one that only Carbon can close, reported as Carbon's and leaving the check's own INPUTS_UNRESOLVED status intact. Phase 1 only: no AI assistance, no network call, no account, no receiver, no customer data and no deployment. The live /workbench/ page is not in this repository and is unchanged. Engineering delivery in a bounded scope; no scientific qualification, security acceptance, publication or deployment authority is created or implied. The impact-policy map gains one bounded ownership rule for this ticket's own authority path, which is why hub validation is listed as affected; no validator logic, gate or existing rule changed."
+    primary_detail: "Business/Carbon_Fit/workbench/README.md"
+    affects:
+      - "SYSTEM/BUSINESS-AUTHORITY"
+      - "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+    supersedes: null
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"

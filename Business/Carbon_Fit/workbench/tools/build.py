@@ -46,6 +46,10 @@ def build(*, private_science=False, output_directory=None):
     source_assessment = (ROOT / "src/source_assessment.js").read_text()
     intake = (ROOT / "src/intake.js").read_text()
     team_review = (ROOT / "src/team_review.js").read_text()
+    # Shared with the public onboarding edition. The internal side needs it to
+    # import a public artifact, and sharing one module is what makes the two
+    # sides agree on the draft rather than on a description of it.
+    public_workbench = (ROOT / "src/public_workbench.js").read_text()
     workflow = (ROOT / "src/workflow.js").read_text()
     scientific_studies = (ROOT / "src/scientific_studies.js").read_text()
     scientific_studies_ui = (ROOT / "src/scientific_studies_ui.js").read_text()
@@ -70,6 +74,7 @@ def build(*, private_science=False, output_directory=None):
             source_assessment,
             intake,
             team_review,
+            public_workbench,
             workflow,
             scientific_studies,
             scientific_studies_ui,
@@ -101,6 +106,7 @@ def build(*, private_science=False, output_directory=None):
         "SOURCE_ASSESSMENT": source_assessment,
         "INTAKE": intake,
         "TEAM_REVIEW": team_review,
+        "PUBLIC_WORKBENCH": public_workbench,
         "WORKFLOW": workflow,
         "SCIENTIFIC_STUDIES": scientific_studies,
         "SCIENTIFIC_STUDIES_UI": scientific_studies_ui,
@@ -128,7 +134,66 @@ def build(*, private_science=False, output_directory=None):
         preview = preview.replace("{{" + key + "}}", value)
     (destination / "Carbon_Client_Intake_Preview.html").write_text(preview)
     (destination / "Carbon_Client_Pilot_Designer_Preview.html").write_text(preview)
+    # Not emitted into a private-science build. The connected host verifies that
+    # its static directory holds only the artifacts it serves, and the public
+    # onboarding edition is not one of them: it has no business on a private
+    # origin, and adding it to that allow-list would widen what the host serves
+    # to buy nothing. The freshness gate regenerates without --private-science,
+    # so the tracked artifact is still covered.
+    if not private_science:
+        build_public_onboarding(destination)
     return destination / "Carbon_Opportunity_Workbench.html"
+
+
+# The public onboarding edition's entire contents, named rather than excluded.
+#
+# An exclusion list is the wrong shape for this: it is correct only while
+# somebody remembers to extend it, and the thing being excluded is client
+# evidence. This is the whole bundle, and a test asserts the emitted file
+# contains nothing else.
+PUBLIC_SOURCES = (
+    "src/public_shell.html",
+    "src/public_styles.css",
+    "src/scientific_studies.js",
+    "src/public_workbench.js",
+    "src/public_app.js",
+)
+
+
+def build_public_onboarding(destination):
+    """Emit the client-facing onboarding edition.
+
+    Shares `scientific_studies.js` with the internal bundle unchanged, so the
+    structural check a visitor sees is the accepted one rather than a public
+    re-implementation of it. `createAdapter` is the only part of that module
+    that reaches the network, and nothing here calls it, so the emitted CSP
+    grants no connection at all.
+    """
+    style = (ROOT / "src/public_styles.css").read_text()
+    scientific_studies = (ROOT / "src/scientific_studies.js").read_text()
+    public_workbench = (ROOT / "src/public_workbench.js").read_text()
+    app = (ROOT / "src/public_app.js").read_text()
+    scripts = " ".join(
+        "'" + digest(source) + "'"
+        for source in [scientific_studies, public_workbench, app]
+    )
+    csp = (
+        f"default-src 'none'; script-src {scripts}; style-src '{digest(style)}'; "
+        "img-src data:; connect-src 'none'; form-action 'none'; base-uri 'none'; "
+        "object-src 'none'"
+    )
+    html = (ROOT / "src/public_shell.html").read_text()
+    for key, value in {
+        "CSP": csp,
+        "STYLE": style,
+        "SCIENTIFIC_STUDIES": scientific_studies,
+        "PUBLIC_WORKBENCH": public_workbench,
+        "APP": app,
+    }.items():
+        html = html.replace("{{" + key + "}}", value)
+    output = destination / "Carbon_Public_Workbench_Onboarding.html"
+    output.write_text(html)
+    return output
 
 
 if __name__ == "__main__":
