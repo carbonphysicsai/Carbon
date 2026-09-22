@@ -166,6 +166,39 @@ def main(argv: list[str]) -> int:
             }
         report["cells"][name] = entry
 
+    # The compact summary is printed *before* the JSON, and that ordering is the
+    # point rather than a preference. A pod's log is read back through a bounded
+    # window, and the full report is larger than that window: on the H100 class
+    # run the body scrolled past and the figures could not be recovered from a
+    # completed, correct measurement. A summary after the body would be cut by
+    # the same bound. A few lines first survive any window that begins at the
+    # report.
+    #
+    # The relative figures here apply the convention amendment 5 fixed. The raw
+    # statistics below remain the record, so a different ratification is still a
+    # recomputation rather than another run.
+    print("DIVERGENCE_SUMMARY_BEGIN")
+    for name, kinds in sorted(report["cells"].items()):
+        pairs = kinds.get("predictions", {}).get("pairs", [])
+        usable = [p for p in pairs if "max_abs_difference" in p]
+        if not usable:
+            print(f"{name}\tpredictions\tpairs=0\tno comparable runs retained")
+            continue
+        rel_l2 = max(p["l2_abs_difference"] / p["l2_a"] for p in usable if p["l2_a"])
+        rel_max = max(
+            p["max_abs_difference"] / max(p["max_abs_a"], p["max_abs_b"])
+            for p in usable
+            if max(p["max_abs_a"], p["max_abs_b"])
+        )
+        print(
+            f"{name}\tpredictions\tpairs={len(usable)}"
+            f"\tdiffering={min(p['differing_elements'] for p in usable)}"
+            f"-{max(p['differing_elements'] for p in usable)}"
+            f"/{usable[0]['elements']}"
+            f"\tmax_abs={max(p['max_abs_difference'] for p in usable):.9g}"
+            f"\trel_l2={rel_l2:.6g}\tmax_rel={rel_max:.6g}"
+        )
+    print("DIVERGENCE_SUMMARY_END")
     print("DIVERGENCE_BEGIN")
     print(json.dumps(report, indent=1, sort_keys=True))
     print("DIVERGENCE_END")
