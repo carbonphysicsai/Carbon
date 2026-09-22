@@ -241,12 +241,27 @@ infer that exceeding `call_budget_seconds` terminates work.
 before any work is handed on, so such a refusal MUST carry
 `dispatch_may_have_occurred=false`.
 
-**The record policy is a declaration.** `records.arguments_recorded` states
-whether call arguments are kept. A client can verify that the server *says*
-`false`; it cannot verify from outside that the records themselves are free of
-arguments. The conformance suite checks the declaration and says so in its
-report. Treat the absence of arguments from records as a stated policy backed by
-the server's own tests, not as something this interface demonstrates.
+**The record policy is a declaration, and the property is evidenced elsewhere.**
+`records.arguments_recorded` states whether call arguments are kept. A client can
+verify that the server *says* `false`; it cannot verify from outside that the
+records themselves are free of arguments, and the conformance report says
+`declared, not observed` for exactly that reason.
+
+That is a division of labour, not a gap, and a reader should know where the
+other half lives. On the serving side the property is enforced by construction
+rather than by policy: `carbon.miner_mcp.serving.call_record` has **no parameter
+for arguments**, so no call site can pass them and no later edit can add one
+without changing the signature and failing
+`tests/cpu/test_mcp_serving_gaps.py::test_call_record_has_no_parameter_for_arguments`.
+The caller's `operation_id` is stored as a short digest rather than verbatim, and
+the principal is a `BoundPrincipal`, whose only accepted constructor argument is
+an owner-bound adapter — a caller-supplied string is a `TypeError`, so a record
+cannot attribute a call to an identity the ledger does not already agree with.
+
+The rule this follows generally: **a conformance suite verifies what a client can
+observe from outside, and a server-side invariant needs a server-side test.** A
+reader of a conformance report should be able to tell which of the two a given
+claim rests on, rather than concluding that nobody checked.
 
 ## Undefined — do not infer these from the current implementation
 
@@ -269,7 +284,10 @@ accident, and a future server may differ without breaking conformance.
    published, but no portable input is guaranteed to exhaust capacity on a
    server doing no other work. A conformance run may legitimately verify the
    declaration without ever observing the refusal, and the report says which of
-   the two it did.
+   the two it did. This is a limit of the harness rather than of the server: a
+   suite that refuses to dispatch real research cannot occupy the concurrency it
+   would need to fill. It is listed here as undefined *for a client*, not as a
+   doubt about the bound.
 8. **Stability of `next_action` across versions.** The text is fixed for a given
    server, and a client may pin it. Whether it survives an `sdk_version` change
    is not specified; compare against the catalogue rather than a literal.

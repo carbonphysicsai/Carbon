@@ -566,8 +566,15 @@ export async function run(target) {
       );
       // Stated plainly because the runner cannot see the server's own logs: a
       // declaration is what a client can check, and it is not the same as
-      // evidence that arguments are absent from the records themselves.
-      return `records ${records.schema}, arguments_recorded=${records.arguments_recorded} (declared, not observed)`;
+      // evidence that arguments are absent from the records themselves. The
+      // other half of that evidence is server-side and by construction -
+      // `call_record` has no parameter for arguments - so the detail points at
+      // it rather than leaving a reader to conclude nobody checked.
+      return (
+        `records ${records.schema}, arguments_recorded=${records.arguments_recorded} ` +
+        "(declared, not observed; the absence is enforced server-side by " +
+        "construction and tested there - see reference \u00a710)"
+      );
     },
   );
 
@@ -722,7 +729,9 @@ export async function run(target) {
         ? `${capacity.length} capacity refusal(s), all claiming no dispatch`
         : `bound of ${limit} published and honoured; ${limit + 2} concurrent ` +
           "calls all settled without a capacity refusal, so that path was " +
-          "declared but not exercised";
+          "declared but not exercised - a limit of this harness, which will " +
+          "not dispatch real research to fill the concurrency, not a doubt " +
+          "about the bound";
     },
   );
 
