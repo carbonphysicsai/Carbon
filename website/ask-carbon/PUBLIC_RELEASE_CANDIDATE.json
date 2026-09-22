@@ -75,20 +75,25 @@
     "previous_live_upload_archive_sha256": "76ec8def33dcca11212e5d383e7a5d6da06bee9f03a92fb4e6e4654dcc198dad",
     "reconciliation_id": null,
     "reviewed_source_index_sha256": "99be1318deb88923a92d40f07b70779d71c76930478086be0df501e5c8bc9c5b",
-    "integrated_index_sha256": "TO_BE_RECORDED_FROM_TOOL_OUTPUT_AT_BUILD",
+    "integrated_index_sha256": "b1e8e7cdbea3d13d1ea2237e55db279bc962937a6a2cf2a65491dcf8255afd47",
     "launcher_scope": "homepage only (index.html); other pages link to /?ask-carbon=open via the header and mobile sheet",
     "component_js_sha256": "6a098c0ab3c22bc347519bab0c54183828f1de3ed3646130817f9f3ef307fa0d",
     "component_css_sha256": "52b6ae6670735774f1db19c1a76b130ca5e5292bd79063edf79e362cd59663a9",
-    "pilot_html_sha256": "57ef27d9e219479ff382a9612ad438910febad6ad8053106c1de3a45973d1c10",
-    "release_contract_sha256": "3b91dca55ad7dc787902d307930f8ed018cce42821fdd2fdae42278531ce2329"
+    "pilot_html_sha256": "0da0f15475bd87760e32c596db6e6d1fcca798858b7117e5aad30860d03da128",
+    "release_contract_sha256": "3b91dca55ad7dc787902d307930f8ed018cce42821fdd2fdae42278531ce2329",
+    "pilot_html_sha256_note": "Corrected 2026-09-22. The 2026-09-22.1 candidate initially carried 57ef27d9… over unchanged from candidate 2026-09-18.2. That digest was superseded on 2026-09-21 by commit f9635e0b (\"Workbench: guarantee the assistance-absent path, and close a forgery it rested on\"), which is present at this candidate's base 81c4d385. The value recorded here is the digest of the file actually staged into the bundle.",
+    "bundle_identity_sha256": "14e85a87aeda68b3b5ce2cfb7dce610441a47645836d2f9f866a88bf0c12c8ac",
+    "staged_file_count": 102,
+    "build_certified_utc": "2026-09-22",
+    "build_certification_note": "Built with --require-complete-bundle against the verified 97-path baseline; the tool reported baseline_assets_preserved, rollback_target_captured and baseline_inventory_complete all true, and release_authorized false. Certification is asset preservation only and is not release authorization."
   },
   "cloudflare": {
     "account_id": "7462053c6992b9c9fd889952a7ae0496",
     "plan_observed": "Free",
     "new_monetary_commitment": false,
     "production_static_worker": "carbonwebsite",
-    "production_current_version": "CAPTURE_BEFORE_DEPLOY (wrangler deployments list --name carbonwebsite; the 2026-09-22 dashboard upload superseded 5a44ab03-ce7c-4100-ae42-71843b07246a)",
-    "production_rollback_version": "same as production_current_version once captured",
+    "production_current_version": "6b339116-ee62-43ac-bda8-cf3baa674551",
+    "production_rollback_version": "6b339116-ee62-43ac-bda8-cf3baa674551",
     "production_hostnames": [
       "carbonphysics.ai",
       "www.carbonphysics.ai"
@@ -103,7 +108,9 @@
     "private_staging_version": "2cacdb3e-f499-4513-8bf3-f03c92743409",
     "private_staging_url": "https://carbon-ask-private-staging.carbon-physics-ai.workers.dev",
     "budget_authority_worker": "ask-carbon-budget-authority",
-    "budget_authority_version": "bad6566a-fec0-4a82-83d9-70762df3cc93"
+    "budget_authority_version": "bad6566a-fec0-4a82-83d9-70762df3cc93",
+    "production_current_version_created": "2026-09-22T07:16:20.686Z",
+    "production_current_version_note": "Captured 2026-09-22 from the live carbonwebsite deployment. This is the pre-Ask-Carbon redesign upload; rolling back to it withdraws the integrated homepage and restores the site exactly as it stands before this release."
   },
   "budget_snapshot_micro_usd": {
     "period": "2026-09",
@@ -129,5 +136,5 @@
     "Cloudflare deployment credentials for account 7462053c6992b9c9fd889952a7ae0496, provisioned through the approved operator release process"
   ],
   "supersedes_candidate_id": "ask-carbon-public-release-2026-09-18.2",
-  "rebaseline_note": "The 2026-09-18.2 candidate was owner-approved for inactive publication against the previous single-file homepage. On 2026-09-22 the owner replaced the live site with the multi-page redesign (carbon-site-upload.zip \u2192 carbonwebsite, verified 97/97 paths), which invalidated that candidate's static-integration pins. This candidate carries the SAME runtime, model, knowledge, privacy, budget and activation posture and changes only: (a) the static-integration source pin and complete baseline manifest, (b) the launcher/panel stylesheet restyled to the site's type system (Montreal, square corners, 600 weight), and (c) the site header/footer gaining an `Ask Carbon` link that opens the homepage panel. The owner's inactive-publication approval must be re-recorded against this candidate before deployment."
+  "rebaseline_note": "The 2026-09-18.2 candidate was owner-approved for inactive publication against the previous single-file homepage. On 2026-09-22 the owner replaced the live site with the multi-page redesign (carbon-site-upload.zip → carbonwebsite, verified 97/97 paths), which invalidated that candidate's static-integration pins. This candidate carries the SAME runtime, model, knowledge, privacy, budget and activation posture and changes only: (a) the static-integration source pin and complete baseline manifest, (b) the launcher/panel stylesheet restyled to the site's type system (Montreal, square corners, 600 weight), and (c) the site header/footer gaining an `Ask Carbon` link that opens the homepage panel. The owner's inactive-publication approval must be re-recorded against this candidate before deployment."
 }

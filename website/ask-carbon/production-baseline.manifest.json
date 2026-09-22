@@ -30,7 +30,7 @@
     "file_count": 97
   },
   "homepage_source_authority": {
-    "note": "The homepage source is the redesigned site's own index.html (entry below, sha256 99be1318\u2026). It needs no owner-upload reconciliation: the build directory is the reviewed source. The production bundle intentionally REPLACES index.html with the integrated homepage; every other entry must survive byte-for-byte.",
+    "note": "The homepage source is the redesigned site's own index.html (entry below, sha256 99be1318…). It needs no owner-upload reconciliation: the build directory is the reviewed source. The production bundle intentionally REPLACES index.html with the integrated homepage; every other entry must survive byte-for-byte.",
     "reviewed_source_index_sha256": "99be1318deb88923a92d40f07b70779d71c76930478086be0df501e5c8bc9c5b",
     "reconciliation_required": false
   },
@@ -40,11 +40,15 @@
   "deployment_target_observed": {
     "source": "Cloudflare Dashboard (authenticated as the account owner) on 2026-09-22; version id to be captured by `npx wrangler deployments list --name carbonwebsite` immediately before the next deployment, per OPERATIONS.md",
     "worker": "carbonwebsite",
-    "live_version_id": "CAPTURE_BEFORE_DEPLOY",
+    "live_version_id": "6b339116-ee62-43ac-bda8-cf3baa674551",
     "live_version_source": "dash",
     "live_version_note": "The redesigned site went live on 2026-09-22 via a Dashboard upload of carbon-site-upload.zip. That version supersedes 5a44ab03-ce7c-4100-ae42-71843b07246a (version 17, 2026-09-12) as the rollback target. Its id must be read from wrangler at deploy time and written here; do not deploy while this field still reads CAPTURE_BEFORE_DEPLOY.",
     "compatibility_date": "2026-09-12",
-    "bindings": []
+    "bindings": [],
+    "live_version_created": "2026-09-22T07:16:20.686Z",
+    "live_version_captured_utc": "2026-09-22",
+    "live_version_capture_method": "wrangler 4.134.0 `deployments status --name carbonwebsite`, authenticated as carbon.physics.ai@gmail.com; the version reported as serving 100% of traffic.",
+    "rollback_target_note": "6b339116-ee62-43ac-bda8-cf3baa674551 is the version serving 100% of traffic at capture time (the 2026-09-22 Dashboard upload of the redesign, before Ask Carbon integration) and is therefore the rollback target for the deployment this manifest describes. It supersedes 5a44ab03-ce7c-4100-ae42-71843b07246a (2026-09-12) and b99c37f0-c2d2-432b-842a-00b9fb518d96 (2026-09-09), both retained only as historical evidence. If the bundle is not deployed promptly, re-capture before deploying rather than trusting this value."
   },
   "routing_configuration": {
     "source": "authenticated `wrangler versions view --json` on carbonwebsite version 5a44ab03-ce7c-4100-ae42-71843b07246a (2026-09-20); the 2026-09-22 dashboard upload kept the same asset configuration",

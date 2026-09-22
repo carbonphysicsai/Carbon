@@ -356,3 +356,27 @@ test("a build that fails verification emits no deployment-ready result at all", 
   assert.doesNotMatch(result.stdout, /deployable_to_carbonwebsite/);
   assert.doesNotMatch(result.stdout, /"release_authorized"/);
 });
+
+// --- release record vs the bytes it claims to describe ----------------------
+
+test("the release candidate's recorded asset digests match the files actually shipped", async () => {
+  // Regression: candidate 2026-09-22.1 was authored by carrying static_integration
+  // over from 2026-09-18.2, which left pilot_html_sha256 pointing at a revision
+  // superseded on 2026-09-21 by f9635e0b. A recorded digest that no longer
+  // matches the file on disk describes a bundle nobody is building.
+  const candidate = JSON.parse(await readFile(new URL("../PUBLIC_RELEASE_CANDIDATE.json", import.meta.url), "utf8"));
+  const recorded = candidate.static_integration;
+  const sources = [
+    ["component_css_sha256", new URL("../public/ask-carbon.css", import.meta.url)],
+    ["component_js_sha256", new URL("../public/ask-carbon.js", import.meta.url)],
+    ["release_contract_sha256", new URL("../public/release-contract.js", import.meta.url)],
+    ["pilot_html_sha256", new URL("../../../Business/Carbon_Fit/workbench/Carbon_Client_Pilot_Designer_Preview.html", import.meta.url)],
+  ];
+  for (const [key, url] of sources) {
+    const actual = sha256(await readFile(url));
+    assert.equal(recorded[key], actual, `${key} must equal the digest of the file it names`);
+  }
+  // The reviewed homepage pin must be the source the bundle is actually built from.
+  assert.match(recorded.integrated_index_sha256, /^[0-9a-f]{64}$/);
+  assert.match(recorded.bundle_identity_sha256, /^[0-9a-f]{64}$/);
+});
