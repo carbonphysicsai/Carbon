@@ -1,7 +1,10 @@
 # Development Hub source shape: proposal and migration plan
 
-Status: **proposal, for objection.** Nothing is migrated. No tool, schema,
-gate or Hub source is changed by this document.
+Status: **proposal, answered.** Nothing is migrated by this document, which
+changes no tool, schema, gate or Hub source. Core platform responded in full,
+ran the reproduction, and measured the `repo_links` claim independently; every
+question §8 asked is now settled, and the resolutions are recorded inline below.
+Launchpad has not responded. Stage 1 is implemented in a follow-up change.
 
 Owner authority: the owner-forwarded assignment of 2026-09-22 to take
 Launchpad's proposed restructure — one file per event or marker, assembled at
@@ -139,6 +142,13 @@ measurement no longer asks for.
 
 ### Order, which the split forces into the open
 
+**Settled: authored `recorded_at` with `event_id` as tiebreak**, on core
+platform's argument, which is better than either option below. Commit-date
+ordering would make the render a function of git history, so a shallow
+checkout, an export or an archive would render a *different document* — which
+would quietly break the byte-identical control this very migration is proved
+safe by. Order stays a function of content.
+
 Order is array position today. Once the array is gone it has to come from the
 data, and an author-assigned integer reintroduces exactly the collision being
 removed — in the verification above, both branches independently assigned
@@ -159,6 +169,13 @@ on git history, which a shallow checkout does not have.
 3. **Meaning is unchanged** — `render_hub.py` output is **byte-identical**
    before and after the migration. If a rendered page differs, the migration
    changed what the Hub says, and the migration is wrong.
+3a. **For Stage 2, added by core platform: the rendered URL set is
+   byte-identical.** On current main, 73 tickets carry 362 `repo_links` with
+   exactly two distinct pins — 202 deliberately frozen, 127 the current
+   snapshot — and **33 links with no blob pin at all**, being `pull/`, `issues/`
+   and `actions/` URLs. A `{label, path, pin}` schema applied uniformly would
+   either mangle those or invent pins for them, and URL-set equality catches it
+   automatically where a schema assertion would not.
 4. **Removal still fails** — deleting an event file fails validation exactly as
    removing an array entry does today.
 5. **Every event survives the migration** — the set of event ids before equals
@@ -167,7 +184,28 @@ on git history, which a shallow checkout does not have.
 Control 3 is the one that matters most: it is the difference between moving the
 source and editing it.
 
-## 6. Available now, independent of any restructure
+## 6. What this proposal cost to write, which is the same problem
+
+The reproduction script lives at `docs/development/hub_source_shape_reproduction.py`
+and the classifier scores it `RUNTIME_FULL` under "unknown path fails closed".
+`#260` taught the classifier about top-level `docs/development/*.md`; it knows
+nothing about a `.py` file there. So a read-only script that touches no runtime
+pays a full Canonical run every time it changes.
+
+Moving it does not help. `docs/development/carbon_hub/tools/` — where it would
+most naturally live, beside the tools it exercises — is itself `RUNTIME_FULL` by
+an explicit rule, so the Hub's own validator and renderer already pay the same
+price. And `classify_changes.py` is digest-pinned by
+`OWNER-CW1-DEVELOPMENT-CI-01`, so narrowing this is not a change this workstream
+can make.
+
+Recorded because it is the same class of cost as the one this document is about:
+a rule that was correct when written, applied to a file shape nobody had then,
+with the expense landing on whoever happens to touch it. The decision of whether
+a documentation-directory script should be classified as runtime belongs to the
+owner and core platform, not here.
+
+## 7. Available now, independent of any restructure
 
 The sibling-branch hole in §2 can be closed without moving a single file:
 compare the ledger against **both merge parents** rather than only the PR base.
@@ -175,7 +213,7 @@ A candidate that merged a sibling branch and lost its events would fail, today,
 under the current shape. It is a smaller change than the restructure, it is
 core's file, and it is worth doing whether or not the restructure proceeds.
 
-## 7. What is being asked
+## 8. What is being asked
 
 Launchpad and core platform, please object to any of these before migration:
 
