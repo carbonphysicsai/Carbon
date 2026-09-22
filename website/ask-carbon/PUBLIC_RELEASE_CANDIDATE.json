@@ -1,19 +1,41 @@
 {
   "schema_version": "carbon.ask-carbon.public-release-candidate.v1",
-  "candidate_id": "ask-carbon-public-release-2026-09-18.2",
-  "status": "OWNER_APPROVED_INACTIVE_PUBLICATION_OPERATORS_NAMED",
+  "candidate_id": "ask-carbon-public-release-2026-09-22.1",
+  "status": "OWNER_APPROVED_INACTIVE_PRODUCTION_PUBLICATION",
   "public_activation_allowed": false,
   "owner_authorization": {
+    "decision": "WEB-QA-06-D1",
+    "recorded_at": "2026-09-22",
+    "source": ".agent/DECISIONS.md",
+    "authorization": "APPROVED_INACTIVE_PRODUCTION_PUBLICATION",
+    "approved_by": "Nick Fitzpatrick (named production incident owner under WEB-QA-05-D2)",
+    "scope": "public Q&A, guided pilot drafting, form-only drafting and local download; inquiry collection disabled; activation remains a separate recorded step",
+    "attaches_to": {
+      "bundle_identity_sha256": "14e85a87aeda68b3b5ce2cfb7dce610441a47645836d2f9f866a88bf0c12c8ac",
+      "integrated_index_sha256": "b1e8e7cdbea3d13d1ea2237e55db279bc962937a6a2cf2a65491dcf8255afd47",
+      "upload_archive_sha256": "850f85a7bab5eb99ee0190974b9a486264e2a179a4d62b3529484ae27b55379c",
+      "rollback_target_version_id": "6b339116-ee62-43ac-bda8-cf3baa674551"
+    },
+    "note": "Approval attaches to the exact digests above. A rebuild producing a different bundle identity is not the accepted artifact and requires a fresh decision. This approves inactive publication only; ASK_CARBON_ACTIVATION remains disabled and public activation is a separate recorded decision."
+  },
+  "owner_authorization_superseded_2026_09_18": {
     "decision": "APPROVED_INACTIVE_PRODUCTION_PUBLICATION",
     "recorded_at": "2026-09-18",
-    "scope": "public Q&A, guided pilot drafting, form-only drafting and local download; inquiry collection disabled; activation remains a separate recorded step"
+    "scope": "public Q&A, guided pilot drafting, form-only drafting and local download; inquiry collection disabled; activation remains a separate recorded step",
+    "note": "Recorded against candidate ask-carbon-public-release-2026-09-18.2, whose static-integration pins the 2026-09-22 redesign invalidated. Retained as historical evidence."
   },
   "named_operators": {
     "decision": "WEB-QA-05-D2",
     "recorded_at": "2026-09-19",
     "source": ".agent/DECISIONS.md",
-    "production_incident_owners": ["Ryan Bequette", "Nick Fitzpatrick"],
-    "disable_and_rollback_operators": ["Ryan Bequette", "Nick Fitzpatrick"],
+    "production_incident_owners": [
+      "Ryan Bequette",
+      "Nick Fitzpatrick"
+    ],
+    "disable_and_rollback_operators": [
+      "Ryan Bequette",
+      "Nick Fitzpatrick"
+    ],
     "either_operator_may_act_independently": true,
     "joint_action_required": false
   },
@@ -64,34 +86,47 @@
     "provider_default_abuse_monitoring_retention_may_be_days": 30
   },
   "static_integration": {
-    "source_authority": "OWNER_UPLOADED_ZIP_RECONCILED_TO_CURRENT_PRODUCTION_WITH_WORKBENCH_NAVIGATION_DELTA",
-    "owner_uploaded_zip_sha256": "d85cfc5cf79d8d6fffa403975dd768ebe69d9874b65d11e511e78b7f2606f125",
-    "owner_uploaded_index_sha256": "546fb89d7df7de98f191ae9585d9952db773eedff4bf33c069f9c6b29f6efb7b",
-    "reconciliation_id": "owner-upload-2026-09-18-plus-workbench-navigation-v1",
-    "observed_live_input_sha256": "5ebb43e859e9837f74bbc93b5748b2db95a6700821afbfcecb407e75702e2020",
-    "integrated_index_sha256": "d897118ebd16a602994f3498ae8084f4a9ba908cee4aa6a7b8ef1650cc25da55",
-    "staging_preview_index_sha256": "6c6bdcffb82487202d05ba8cbea63305fe0fdacde1516a4cdca6beb50d430017",
+    "source_authority": "REDESIGNED_SITE_BUILD_DIRECTORY_2026_09_22 (carbon-site-upload-v2.zip); the build directory is the reviewed source and needs no owner-upload reconciliation",
+    "upload_archive_sha256": "850f85a7bab5eb99ee0190974b9a486264e2a179a4d62b3529484ae27b55379c",
+    "previous_live_upload_archive_sha256": "76ec8def33dcca11212e5d383e7a5d6da06bee9f03a92fb4e6e4654dcc198dad",
+    "reconciliation_id": null,
+    "reviewed_source_index_sha256": "99be1318deb88923a92d40f07b70779d71c76930478086be0df501e5c8bc9c5b",
+    "integrated_index_sha256": "b1e8e7cdbea3d13d1ea2237e55db279bc962937a6a2cf2a65491dcf8255afd47",
+    "launcher_scope": "homepage only (index.html); other pages link to /?ask-carbon=open via the header and mobile sheet",
     "component_js_sha256": "6a098c0ab3c22bc347519bab0c54183828f1de3ed3646130817f9f3ef307fa0d",
-    "component_css_sha256": "fa02c7eac7d8aa6166dd51c3c651c3776431c4cd21f2a4c5f5981f44dcc97f58",
-    "pilot_html_sha256": "57ef27d9e219479ff382a9612ad438910febad6ad8053106c1de3a45973d1c10",
-    "release_contract_sha256": "3b91dca55ad7dc787902d307930f8ed018cce42821fdd2fdae42278531ce2329"
+    "component_css_sha256": "52b6ae6670735774f1db19c1a76b130ca5e5292bd79063edf79e362cd59663a9",
+    "pilot_html_sha256": "0da0f15475bd87760e32c596db6e6d1fcca798858b7117e5aad30860d03da128",
+    "release_contract_sha256": "3b91dca55ad7dc787902d307930f8ed018cce42821fdd2fdae42278531ce2329",
+    "pilot_html_sha256_note": "Corrected 2026-09-22. The 2026-09-22.1 candidate initially carried 57ef27d9… over unchanged from candidate 2026-09-18.2. That digest was superseded on 2026-09-21 by commit f9635e0b (\"Workbench: guarantee the assistance-absent path, and close a forgery it rested on\"), which is present at this candidate's base 81c4d385. The value recorded here is the digest of the file actually staged into the bundle.",
+    "bundle_identity_sha256": "14e85a87aeda68b3b5ce2cfb7dce610441a47645836d2f9f866a88bf0c12c8ac",
+    "staged_file_count": 102,
+    "build_certified_utc": "2026-09-22",
+    "build_certification_note": "Built with --require-complete-bundle against the verified 97-path baseline; the tool reported baseline_assets_preserved, rollback_target_captured and baseline_inventory_complete all true, and release_authorized false. Certification is asset preservation only and is not release authorization."
   },
   "cloudflare": {
     "account_id": "7462053c6992b9c9fd889952a7ae0496",
     "plan_observed": "Free",
     "new_monetary_commitment": false,
     "production_static_worker": "carbonwebsite",
-    "production_current_version": "5a44ab03-ce7c-4100-ae42-71843b07246a",
-    "production_rollback_version": "b99c37f0-c2d2-432b-842a-00b9fb518d96",
-    "production_hostnames": ["carbonphysics.ai", "www.carbonphysics.ai"],
-    "production_api_routes": ["carbonphysics.ai/api/ask-carbon*", "www.carbonphysics.ai/api/ask-carbon*"],
+    "production_current_version": "6b339116-ee62-43ac-bda8-cf3baa674551",
+    "production_rollback_version": "6b339116-ee62-43ac-bda8-cf3baa674551",
+    "production_hostnames": [
+      "carbonphysics.ai",
+      "www.carbonphysics.ai"
+    ],
+    "production_api_routes": [
+      "carbonphysics.ai/api/ask-carbon*",
+      "www.carbonphysics.ai/api/ask-carbon*"
+    ],
     "production_worker_candidate": "ask-carbon-public",
     "production_activation": "disabled",
     "private_staging_worker": "carbon-ask-private-staging",
     "private_staging_version": "2cacdb3e-f499-4513-8bf3-f03c92743409",
     "private_staging_url": "https://carbon-ask-private-staging.carbon-physics-ai.workers.dev",
     "budget_authority_worker": "ask-carbon-budget-authority",
-    "budget_authority_version": "bad6566a-fec0-4a82-83d9-70762df3cc93"
+    "budget_authority_version": "bad6566a-fec0-4a82-83d9-70762df3cc93",
+    "production_current_version_created": "2026-09-22T07:16:20.686Z",
+    "production_current_version_note": "Captured 2026-09-22 from the live carbonwebsite deployment. This is the pre-Ask-Carbon redesign upload; rolling back to it withdraws the integrated homepage and restores the site exactly as it stands before this release."
   },
   "budget_snapshot_micro_usd": {
     "period": "2026-09",
@@ -105,12 +140,29 @@
     "evaluation_remaining": 4546521,
     "monthly_remaining": 49546521
   },
-  "required_before_production_mutation": [],
+  "required_before_production_mutation": [
+    "Owner re-approval of inactive publication recorded against candidate ask-carbon-public-release-2026-09-22.1",
+    "Live carbonwebsite version id captured into production-baseline.manifest.json deployment_target_observed.live_version_id"
+  ],
   "required_before_production_mutation_satisfied": {
     "named production incident owner": "WEB-QA-05-D2 (2026-09-19)",
-    "named disable and rollback operator": "WEB-QA-05-D2 (2026-09-19)"
+    "named disable and rollback operator": "WEB-QA-05-D2 (2026-09-19)",
+    "owner re-approval against candidate ask-carbon-public-release-2026-09-22.1": "WEB-QA-06-D1 (2026-09-22)",
+    "live carbonwebsite version id captured as rollback target": "6b339116-ee62-43ac-bda8-cf3baa674551, captured 2026-09-22 into production-baseline.manifest.json deployment_target_observed.live_version_id"
+  },
+  "deployment_order": {
+    "decision": "Deploy the inactive ask-carbon-public API Worker BEFORE publishing the carbonwebsite assets.",
+    "recorded_at": "2026-09-22",
+    "reason": "The integrated homepage fetches ${api-url}/health on load (public/ask-carbon.js). Publishing the static assets first would make every homepage visitor request a route that does not exist yet, producing 404s for the whole gap between the two deployments and making 'not deployed' indistinguishable from 'deployed and inactive' during the window the inactive verification is meant to check. Deploying the inactive Worker first means the health endpoint answers correctly from the moment the homepage ships. The Worker binds only /api/ask-carbon*, which returns 404 today, so adding it early is low-risk and reversible.",
+    "supersedes": "The handoff brief's step 6 ordering, which listed carbonwebsite first."
   },
   "remaining_execution_inputs": [
-    "Cloudflare deployment credentials for account 7462053c6992b9c9fd889952a7ae0496, provisioned through the approved operator release process"
-  ]
+    "Provision ASK_CARBON_OPENAI_API_KEY and ASK_CARBON_CONTINUATION_SIGNING_SECRET on ask-carbon-public through the Cloudflare secret mechanism after the Worker is first deployed. The Worker does not yet exist on the account, so no secret can be bound before then."
+  ],
+  "execution_inputs_satisfied": {
+    "Cloudflare deployment access": "Existing authorized OAuth session for account 7462053c6992b9c9fd889952a7ae0496 with workers / workers_scripts / workers_routes write, verified 2026-09-22. No new credential was requested, created or stored.",
+    "Pinned deployment tool": "Wrangler 4.134.0, installed outside the repository and outside the public asset tree."
+  },
+  "supersedes_candidate_id": "ask-carbon-public-release-2026-09-18.2",
+  "rebaseline_note": "The 2026-09-18.2 candidate was owner-approved for inactive publication against the previous single-file homepage. On 2026-09-22 the owner replaced the live site with the multi-page redesign (carbon-site-upload.zip → carbonwebsite, verified 97/97 paths), which invalidated that candidate's static-integration pins. This candidate carries the SAME runtime, model, knowledge, privacy, budget and activation posture and changes only: (a) the static-integration source pin and complete baseline manifest, (b) the launcher/panel stylesheet restyled to the site's type system (Montreal, square corners, 600 weight), and (c) the site header/footer gaining an `Ask Carbon` link that opens the homepage panel. The owner's inactive-publication approval must be re-recorded against this candidate before deployment."
 }

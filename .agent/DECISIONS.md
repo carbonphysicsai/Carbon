@@ -14893,3 +14893,72 @@ runs the contract and authority lane rather than the full runtime lane. A
 document that genuinely needs runtime acceptance can be named in the existing
 runtime list, which is the same mechanism that protects `ENVIRONMENT.md`. The
 smallest reversal is deleting the pattern and restoring the two digests.
+
+## 2026-09-22 — WEB-QA-06-D1: inactive publication approved for ask-carbon-public-release-2026-09-22.1
+
+**Authority.** The repository owner (Nick Fitzpatrick, a named production
+incident owner under `WEB-QA-05-D2`) approved inactive publication of the
+re-baselined Ask Carbon release candidate on 2026-09-22, after the candidate
+was rebuilt against the redesigned site and its bundle was certified.
+
+**Approved candidate.** `ask-carbon-public-release-2026-09-22.1`, superseding
+`ask-carbon-public-release-2026-09-18.2`.
+
+**Exact accepted artifact.**
+
+| Identity | Value |
+| --- | --- |
+| Bundle identity | `14e85a87aeda68b3b5ce2cfb7dce610441a47645836d2f9f866a88bf0c12c8ac` |
+| Integrated homepage | `b1e8e7cdbea3d13d1ea2237e55db279bc962937a6a2cf2a65491dcf8255afd47` |
+| Reviewed source homepage | `99be1318deb88923a92d40f07b70779d71c76930478086be0df501e5c8bc9c5b` |
+| Upload archive | `carbon-site-upload-v2.zip`, `850f85a7bab5eb99ee0190974b9a486264e2a179a4d62b3529484ae27b55379c`, 97 files |
+| Staged file count | 102 (97 baseline assets, homepage replaced by the integrated document, plus five `ask-carbon/` assets) |
+| Rollback target | `carbonwebsite` version `6b339116-ee62-43ac-bda8-cf3baa674551` (2026-09-22T07:16:20Z) |
+
+Approval attaches to these digests. A rebuild producing a different bundle
+identity is not the accepted artifact and requires a fresh decision.
+
+**Site-side changes included.** This publication is not widget-only. The
+approved archive also changes nine text files against the currently live
+revision: `404.html`, `about/index.html`, `customers/index.html`,
+`index.html`, `investors/index.html`, `miners/index.html`,
+`papers/index.html`, `site.css` and `validators/index.html`. Those changes add
+the header and footer "Ask Carbon" utility link pointing at
+`/?ask-carbon=open` and retarget "Start a Project" to `/workbench/`. Nothing
+is added or removed. Rolling back to the recorded target withdraws these site
+changes together with the integration.
+
+**Effect.** The accepted bundle may be published to `carbonwebsite`, and the
+`ask-carbon-public` API Worker may be deployed in its committed inactive
+configuration. Required Worker secrets may be provisioned through the
+Cloudflare secret mechanism without exposing values.
+
+**Not authorized by this decision.** Public activation. `ASK_CARBON_ACTIVATION`
+remains `disabled`, and enabling it is a separate recorded decision after
+inactive verification passes. Asset preservation and bundle certification are
+not release authorization; the tooling continues to report
+`release_authorized: false` for every build.
+
+**Scope preserved unchanged.** Runtime mode, model configuration
+(`gpt-5.6-luna:low:v1`), knowledge set, privacy mode, budget authority and the
+existing shared USD 50 UTC-month ceiling with its nested USD 5 evaluation
+scope are unchanged from `WEB-QA-05-D2`. Issue #139 inquiry submission and
+collection remain disabled. No customer or private-data intake, scientific
+execution, qualification authority, paid-plan change, provider substitution or
+increased ceiling is authorized.
+
+**Correction recorded during certification.** The candidate initially carried
+`static_integration.pilot_html_sha256` over unchanged from
+`ask-carbon-public-release-2026-09-18.2`, leaving it at `57ef27d9…`. That
+revision was superseded on 2026-09-21 by commit `f9635e0b`, which is present at
+this candidate's base `81c4d385`. The digest was corrected to the file actually
+staged, `0da0f154…`, and a regression test now asserts that every recorded
+`static_integration` digest equals the digest of the file it names.
+
+**Maturity boundary.** Publishing an inactive release creates no security,
+scientific, production or commercial qualification.
+
+**Reversibility.** The owner may withdraw this approval prospectively. Either
+named operator may roll back `carbonwebsite` to the recorded target
+independently. Retained evidence and recorded historical state are not
+rewritten.

@@ -3,7 +3,14 @@ import { lstat, mkdir, mkdtemp, opendir, readFile, rename, rm, writeFile } from 
 import { basename, dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const KNOWN_LIVE_SHA256 = "5ebb43e859e9837f74bbc93b5748b2db95a6700821afbfcecb407e75702e2020";
+// Reviewed homepage source: the redesigned site's index.html (build 2026-09-22,
+// carbon-site-upload-v2.zip). The redesign replaced the ChatGPT-era single-file
+// homepage (5ebb43e8…, 5.7 MB) with a multi-page static site whose source
+// directory is itself the reviewed artifact, so no owner-upload reconciliation
+// applies to it.
+const KNOWN_LIVE_SHA256 = "99be1318deb88923a92d40f07b70779d71c76930478086be0df501e5c8bc9c5b";
+// Retained for the superseded 2026-09-18 candidate only. `--reconcile-owner-upload`
+// still verifies against this pin and therefore cannot be applied to the redesign.
 const OWNER_UPLOADED_SHA256 = "546fb89d7df7de98f191ae9585d9952db773eedff4bf33c069f9c6b29f6efb7b";
 const OWNER_UPLOAD_RECONCILIATION = "owner-upload-2026-09-18-plus-workbench-navigation-v1";
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -36,13 +43,29 @@ export const loadBaselineManifest = async (path = DEFAULT_BASELINE_MANIFEST) => 
   return manifest;
 };
 
-// Retained as regression coverage of the paths observed live on 2026-09-19/20.
-// This list is a floor, never a proof of a complete inventory: completeness is
-// asserted only by `manifest.inventory_complete`.
+// Regression floor for the redesigned site (live since 2026-09-22): the page
+// documents, the shared stylesheet, the brand assets the header/footer load,
+// the self-hosted fonts, and the public Workbench. This list is a floor, never
+// a proof of a complete inventory: completeness is asserted only by
+// `manifest.inventory_complete`.
 export const REQUIRED_PRODUCTION_PATHS = Object.freeze([
   "index.html",
-  "assets/carbon-66e3549179d4.png",
-  "assets/carbon-f7ea9506b7b9.png",
+  "404.html",
+  "site.css",
+  "favicon.svg",
+  "robots.txt",
+  "sitemap.xml",
+  "about/index.html",
+  "customers/index.html",
+  "investors/index.html",
+  "miners/index.html",
+  "papers/index.html",
+  "validators/index.html",
+  "assets/brand-1.svg",
+  "assets/brand-2.svg",
+  "assets/neue-0.otf",
+  "assets/neue-1.otf",
+  "assets/og-carbon.png",
   "workbench/index.html",
   "workbench/app.js",
   "workbench/assist-contract.js",
@@ -352,13 +375,16 @@ const main = async () => {
       ? manifest.assets.filter((asset) => asset.path !== REPLACED_BY_INTEGRATION).every((asset) => inventory.some((entry) => entry.path === asset.path && entry.sha256 === asset.sha256))
       : false;
     const inventoryComplete = manifest.inventory_complete === true;
-    const deployable = baselinePreserved && inventoryComplete && !previewOnly;
+    const rollbackTarget = manifest.deployment_target_observed?.live_version_id;
+    const rollbackCaptured = typeof rollbackTarget === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(rollbackTarget);
+    const deployable = baselinePreserved && inventoryComplete && rollbackCaptured && !previewOnly;
 
     if (args["require-complete-bundle"] && !deployable) {
       const reasons = [];
       if (!args["existing-site"]) reasons.push("no --existing-site baseline was supplied, so no existing production asset is preserved");
       else if (!baselinePreserved) reasons.push("the staged bundle does not reproduce every verified baseline asset");
       if (!inventoryComplete) reasons.push(`the baseline manifest is "${manifest.inventory_status}": ${manifest.inventory_status_reason ?? "the deployed asset set has not been enumerated"}`);
+      if (!rollbackCaptured) reasons.push("the baseline manifest does not record the live carbonwebsite version id (deployment_target_observed.live_version_id) as the rollback target; capture it with `wrangler deployments list --name carbonwebsite` before building");
       if (previewOnly) reasons.push("--staging-preview/--allow-changed-source builds are inspection artifacts and never carry production authorization");
       throw new Error(`Refusing to certify a deployable production bundle: ${reasons.join("; ")}. Deploying an incomplete asset set to carbonwebsite would withdraw the missing paths from production.`);
     }
@@ -379,6 +405,8 @@ const main = async () => {
       baseline_manifest_status: manifest.inventory_status,
       baseline_inventory_complete: inventoryComplete,
       baseline_assets_preserved: baselinePreserved,
+      rollback_target_captured: rollbackCaptured,
+      rollback_target_version_id: rollbackCaptured ? rollbackTarget : null,
       preview_only: previewOnly,
       deployable_to_carbonwebsite: deployable,
       release_authorized: false,
@@ -391,7 +419,9 @@ const main = async () => {
         ? `the baseline manifest is "${manifest.inventory_status}" — the deployed asset set has not been enumerated under authenticated access`
         : !baselinePreserved
           ? "the staged bundle does not reproduce every verified baseline asset"
-          : "this is a preview/changed-source build";
+          : !rollbackCaptured
+            ? "the baseline manifest does not record the live version id as the rollback target"
+            : "this is a preview/changed-source build";
       process.stderr.write(`WARNING: ${bundleRoot} is NOT certified as a complete carbonwebsite asset set because ${why}. This output is a preview/inspection artifact only; deploying it could withdraw live paths from production.\n`);
     }
   } catch (error) {

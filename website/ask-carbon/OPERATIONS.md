@@ -226,6 +226,30 @@ Production needs a separate exact owner authorization after the staging report:
 5. verify inactive health, route behavior, cache withdrawal and all ceilings;
 6. explicitly enable activation and observe the first bounded requests.
 
+> **Rebaseline, 2026-09-22.** The owner replaced the live site with the
+> multi-page redesign on 2026-09-22 (Dashboard upload, 97 paths verified). The
+> 18 September candidate's homepage pin (`5ebb43e8…`) and
+> `--reconcile-owner-upload` no longer apply. Candidate
+> `ask-carbon-public-release-2026-09-22.1` pins the redesigned homepage
+> (`99be1318…`) and ships a **complete** baseline manifest generated from the
+> site build directory `carbon-site-upload-v2.zip`. Build with:
+>
+> ```sh
+> OUT=/tmp/ask-carbon-production-$(date -u +%Y%m%dT%H%M%SZ)
+> node website/ask-carbon/tools/integrate-static.mjs \
+>   --input /path/to/carbon-site-v2/index.html \
+>   --output "$OUT/index.html" \
+>   --asset-prefix ./ask-carbon \
+>   --existing-site /path/to/carbon-site-v2 \
+>   --require-complete-bundle
+> ```
+>
+> The tool now also refuses `--require-complete-bundle` until
+> `deployment_target_observed.live_version_id` in the manifest is the version
+> id captured from `wrangler deployments list --name carbonwebsite`. The
+> sections below describe the superseded 18 September procedure and are kept
+> for the record.
+
 For the approved 18 September inactive-publication candidate, extract the
 owner-supplied ZIP into a temporary directory, verify its recorded archive and
 `index.html` hashes, and build the static artifact with the repository tool:
@@ -320,8 +344,29 @@ re-derive it from disk before deploying. `--staging-preview` and
 `--allow-changed-source` produce inspection artifacts only: they always report
 `"deployable_to_carbonwebsite": false` and are never deployable.
 
-The current `carbonwebsite` Worker uses compatibility date `2026-09-12`;
-retain it for this asset-only update:
+#### Deploy the inactive API Worker first
+
+**Order matters.** Deploy the inactive `ask-carbon-public` Worker *before*
+publishing the `carbonwebsite` assets, not after.
+
+The integrated homepage fetches `${api-url}/health` on load (see
+`public/ask-carbon.js`). Publishing the static assets first means every
+homepage visitor requests a route that does not exist yet, so the whole gap
+between the two deployments produces 404s — and during exactly the window the
+inactive verification is meant to check, "not deployed" is indistinguishable
+from "deployed and inactive". Deploying the Worker first means the health
+endpoint answers correctly from the moment the homepage ships.
+
+The Worker binds only `/api/ask-carbon*`, which returns 404 today, so adding
+it ahead of the homepage is low-risk and reversible. This supersedes any
+earlier sequence that listed `carbonwebsite` first.
+
+```sh
+npx wrangler deploy --config wrangler.public-release-candidate.toml
+```
+
+Then publish the assets. The current `carbonwebsite` Worker uses compatibility
+date `2026-09-12`; retain it for this asset-only update:
 
 ```sh
 npx wrangler deploy \

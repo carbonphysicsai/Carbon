@@ -1,123 +1,644 @@
 {
-  "manifest_version": 1,
+  "manifest_version": 2,
   "target": "carbonwebsite",
   "target_kind": "cloudflare-static-assets-worker",
-  "observed_utc": "2026-09-20T00:00:00Z",
-  "inventory_status": "incomplete",
-  "inventory_complete": false,
-  "inventory_status_reason": "The 12 entries below are verified bytes for the paths that are KNOWN to be deployed; each digest was captured by download and is trustworthy for those paths. They are still not an enumeration of the deployed asset set. Authenticated Cloudflare access is available (see deployment_target_observed), but neither Wrangler 4.134.0 nor an accessible API route exposes a listing of a static-assets Worker's deployed files, so the set cannot be enumerated from the platform side. The live version was uploaded from the Cloudflare Dashboard (source: \"dash\"), which means the authoritative asset set is the owner's uploaded website archive. Until that archive is supplied and reconciled, inventory_complete stays false and --require-complete-bundle refuses to certify a production bundle.",
-  "completion_requires": [
-    "The owner's current website upload archive (the ZIP most recently uploaded to the carbonwebsite Dashboard), which is the authoritative asset set for the live version.",
-    "Reconciliation of that archive against the 12 verified digests below, so the archive is confirmed to be the deployed revision and not an older or newer one.",
-    "Addition of every archive path not already listed here, with its digest and byte size.",
-    "Then set inventory_status to \"verified-complete\" and inventory_complete to true, recording the archive's own digest as the provenance."
-  ],
+  "observed_utc": "2026-09-22T07:40:00Z",
+  "inventory_status": "verified-complete",
+  "inventory_complete": true,
+  "inventory_status_reason": "The 97 entries below are the complete asset set of the redesigned carbonphysics.ai site (build 2026-09-22, upload archive carbon-site-upload-v2.zip). Completeness is established by construction rather than by platform enumeration: the archive IS the directory handed to `wrangler deploy --assets`, and a static-assets deployment publishes exactly that directory. Provenance chain: (1) the previous live version (dashboard upload carbon-site-upload.zip, 2026-09-22) was verified path-by-path by authenticated download against the same build inventory (97/97 digests matched, 0 mismatches, 0 errors); (2) this revision changes exactly nine text files against that verified set (listed in `changes_since_previous_live`) and adds or removes no path; (3) after deployment the runbook re-verifies every path below by GET on both hostnames.",
+  "changes_since_previous_live": {
+    "previous_live_upload_archive_sha256": "76ec8def33dcca11212e5d383e7a5d6da06bee9f03a92fb4e6e4654dcc198dad",
+    "changed_paths": [
+      "404.html",
+      "about/index.html",
+      "customers/index.html",
+      "index.html",
+      "investors/index.html",
+      "miners/index.html",
+      "papers/index.html",
+      "site.css",
+      "validators/index.html"
+    ],
+    "added_paths": [],
+    "removed_paths": [],
+    "change_summary": "Header/footer: `Ask Carbon` utility link (desktop right cluster and mobile sheet) pointing at /?ask-carbon=open with an in-place open on the homepage; `Start a Project` now targets /workbench/. Inline site script gained the launcher click handler. No other content changed."
+  },
+  "upload_archive": {
+    "name": "carbon-site-upload-v2.zip",
+    "sha256": "850f85a7bab5eb99ee0190974b9a486264e2a179a4d62b3529484ae27b55379c",
+    "bytes": 8250396,
+    "file_count": 97
+  },
   "homepage_source_authority": {
-    "note": "Homepage source authority is the owner-supplied upload reconciled by --reconcile-owner-upload. It is deliberately kept separate from these read-only production observations. The index.html entry below records the CURRENT LIVE bytes so that an --existing-site copy can be verified; the production bundle intentionally REPLACES index.html with the integrated homepage.",
-    "current_live_index_matches_reviewed_source_pin": true
+    "note": "The homepage source is the redesigned site's own index.html (entry below, sha256 99be1318…). It needs no owner-upload reconciliation: the build directory is the reviewed source. The production bundle intentionally REPLACES index.html with the integrated homepage; every other entry must survive byte-for-byte.",
+    "reviewed_source_index_sha256": "99be1318deb88923a92d40f07b70779d71c76930478086be0df501e5c8bc9c5b",
+    "reconciliation_required": false
   },
   "release_authorization": {
     "note": "Asset completeness is NOT release authorization. This manifest says only which bytes must survive a deployment. Publication and public activation remain governed by the release decision packet and the owner's named-operator authority."
   },
+  "deployment_target_observed": {
+    "source": "Cloudflare Dashboard (authenticated as the account owner) on 2026-09-22; version id to be captured by `npx wrangler deployments list --name carbonwebsite` immediately before the next deployment, per OPERATIONS.md",
+    "worker": "carbonwebsite",
+    "live_version_id": "6b339116-ee62-43ac-bda8-cf3baa674551",
+    "live_version_source": "dash",
+    "live_version_note": "The redesigned site went live on 2026-09-22 via a Dashboard upload of carbon-site-upload.zip. That version supersedes 5a44ab03-ce7c-4100-ae42-71843b07246a (version 17, 2026-09-12) as the rollback target. Its id must be read from wrangler at deploy time and written here; do not deploy while this field still reads CAPTURE_BEFORE_DEPLOY.",
+    "compatibility_date": "2026-09-12",
+    "bindings": [],
+    "live_version_created": "2026-09-22T07:16:20.686Z",
+    "live_version_captured_utc": "2026-09-22",
+    "live_version_capture_method": "wrangler 4.134.0 `deployments status --name carbonwebsite`, authenticated as carbon.physics.ai@gmail.com; the version reported as serving 100% of traffic.",
+    "rollback_target_note": "6b339116-ee62-43ac-bda8-cf3baa674551 is the version serving 100% of traffic at capture time (the 2026-09-22 Dashboard upload of the redesign, before Ask Carbon integration) and is therefore the rollback target for the deployment this manifest describes. It supersedes 5a44ab03-ce7c-4100-ae42-71843b07246a (2026-09-12) and b99c37f0-c2d2-432b-842a-00b9fb518d96 (2026-09-09), both retained only as historical evidence. If the bundle is not deployed promptly, re-capture before deploying rather than trusting this value."
+  },
+  "routing_configuration": {
+    "source": "authenticated `wrangler versions view --json` on carbonwebsite version 5a44ab03-ce7c-4100-ae42-71843b07246a (2026-09-20); the 2026-09-22 dashboard upload kept the same asset configuration",
+    "authoritative": true,
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "none",
+    "implication": "auto-trailing-slash is why /index.html 307-redirects to / and /workbench/index.html 307-redirects to /workbench/; a preservation recipe must fetch the directory URL, never the literal index.html path. not_found_handling \"none\" means the site's 404.html is not yet served for unknown paths; switching to \"404-page\" is a separate, optional change via wrangler.carbonwebsite.toml."
+  },
   "assets": [
     {
+      "path": "404.html",
+      "sha256": "2f555675ec55a990fe50a7d810df3dd732173f146dd47e0d3adbfbf5eee55f87",
+      "bytes": 9178,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "about/index.html",
+      "sha256": "8f0a0a10c8d91fdd427454e6c4dccd0a86a57d0573294eb807c2d6b082714848",
+      "bytes": 12443,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/Carbon_Litepaper_v2.pdf",
+      "sha256": "f167c0769b9867930a72714976c22797ee549544c5bb68ff16fe04c2c3bb15cf",
+      "bytes": 220067,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/Carbon_Whitepaper_v2.0.pdf",
+      "sha256": "fab7b772ea133ca94185a018409e9fd025d6b76eb1f91c22a3699c483ae196f6",
+      "bytes": 616205,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/aerospace-mono.webp",
+      "sha256": "fcb1da7b13b394b3adde44e9294e3a86802abfa9c9867514799f9526e7b8a8e9",
+      "bytes": 18428,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/aerospace.webp",
+      "sha256": "44efaba1301a099706edee0319718e5a3100bb45d8d5f3cf3bcbf75c504a8df4",
+      "bytes": 17914,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/automotive.webp",
+      "sha256": "b5f96884963d879e85b73c43ba321bfa4942d5d4bade14ee4e4a859b2105163a",
+      "bytes": 52558,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/brand-1.svg",
+      "sha256": "b8e76cf15c68f32b77021db5632e3cc807ac7736227cf468ffbb2b6d3da05a26",
+      "bytes": 3393,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/brand-2.svg",
+      "sha256": "98cd406e21141304bee9085918dd7d6d41383a70d2c929964d64717c2655f276",
+      "bytes": 3393,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/cover-litepaper.webp",
+      "sha256": "8f68c1c465edaa3a6ddb7852b9e21d0aff80a6903980eb34fd39b172b12c00df",
+      "bytes": 163122,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/cover-whitepaper.webp",
+      "sha256": "baea5d3b07430cefdb2f3f04994bb7911b877b7b511e9a2985c2b45baa334aea",
+      "bytes": 164776,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/engineers-mono.webp",
+      "sha256": "c265f2bde9eb06fc75c395d5bdd6afa2709aa4914b52c943a83027fe3538c2d9",
+      "bytes": 138736,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/flow-field.webp",
+      "sha256": "9c00779885be75b36e2912a8434a0672fc8762028ac09eb537542845a129328f",
+      "bytes": 49990,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/globe-frame.webp",
+      "sha256": "8ae3640bd70f8715b0c2e4c338c8bf2cabc3a8daf845c84efc59531bb1035c24",
+      "bytes": 145428,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/hero-car.webp",
+      "sha256": "b5f96884963d879e85b73c43ba321bfa4942d5d4bade14ee4e4a859b2105163a",
+      "bytes": 52558,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/industrial.webp",
+      "sha256": "4b64f87a7092974f0f0cccdd2d31a0a3484557e94f4b68a3b63714cf84cae63a",
+      "bytes": 90066,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/logo-boeing.png",
+      "sha256": "b83e62cabb4234ceeecf1559eae8aef20b4b001bb24bbfe0215ec782ea51d7e1",
+      "bytes": 43300,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/logo-usaf.png",
+      "sha256": "5aba293966ae1666da189f393a0e72f6fc06d80c7acd0c5e5bf995f54f7f5fef",
+      "bytes": 4564,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/logo-virgin-galactic.svg",
+      "sha256": "4b4068252dc653aaa1d2a8d8fcc91ba8a01b3dc62aa727975f35fb301d896db7",
+      "bytes": 134294,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/neue-0.otf",
+      "sha256": "69bcecee993d4564980d8e082d4f15a461fd1f7e8ebbc36e8533d9e95f0131f8",
+      "bytes": 196112,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/neue-1.otf",
+      "sha256": "437ad49efdf9812ec50df7440fab56f66f1c8311ce9f276c1473919b63a1050d",
+      "bytes": 213064,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/og-carbon.png",
+      "sha256": "298bc55377cd2f8e40231f3086d0df560f9156f783d8a75773f38a23db484cec",
+      "bytes": 25341,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/pages/lp-01.webp",
+      "sha256": "18d1596e19a3d17c6355f4aefe9d9bff62d6cbad5e5fb69b25e4bdd10cce2b4b",
+      "bytes": 146310,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/pages/lp-02.webp",
+      "sha256": "27a5e630a4e4c34216a9e9405b8ff3c47944e709d58e0a76e0e8d4d1c6d6dc54",
+      "bytes": 114542,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/pages/lp-03.webp",
+      "sha256": "647af0a875ca6026dfd7cc3ae529e21f713a5c921293364f851dfa7098e162f9",
+      "bytes": 124414,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/pages/lp-04.webp",
+      "sha256": "22f6e2c08cbfe1d1e586c734677614aef491e5e2f67e8f85edfd395fc9db0782",
+      "bytes": 117842,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/pages/lp-05.webp",
+      "sha256": "63430c9bdf2e6204d5abcef84b1fa01009abf29a94717e257fe8f539da709e50",
+      "bytes": 109176,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/pages/lp-06.webp",
+      "sha256": "39f476d03d57a098e39a3f19dbec0bcafb0864c416f8300c50c9a402b2b41e61",
+      "bytes": 116690,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/pages/lp-07.webp",
+      "sha256": "e2a6b5704fde8ac9facede5e96ffb85008b5ec77293c5f77f40e949120907607",
+      "bytes": 112458,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/pages/lp-08.webp",
+      "sha256": "47dd7816dbc3d990710083d06e44199d11a736f387679b1af355f7a69429fa45",
+      "bytes": 123656,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/pages/lp-09.webp",
+      "sha256": "8d7a5ebad4a4e4ce9badbcaf6d2438539afa0b11a69eab763cf68f7c3e3e6b60",
+      "bytes": 115224,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/pages/lp-10.webp",
+      "sha256": "0e2180ce975d2cad3b6a168403aa98fc94438dd9d723940e37a02fa16b71ce47",
+      "bytes": 103620,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/pages/lp-11.webp",
+      "sha256": "221c9e37883fb6d613e0f3ec26a2225325b03eb1d301c6b0210e3fe9bf4a800b",
+      "bytes": 113594,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/pages/lp-12.webp",
+      "sha256": "d3fb396a1c48cf6d30faa95516789979875f1082471530011949c75bb4734248",
+      "bytes": 16662,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/pages/wp-01.webp",
+      "sha256": "53b2fce062e963af4b6a1e50ad3c5b757bb34a8bd3197b856ebc70e8fd886801",
+      "bytes": 143422,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/pages/wp-02.webp",
+      "sha256": "f8241ac03895c98c59665f6ecda74e9e99493d26cb22e2c08947e3530ba44d59",
+      "bytes": 167398,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/pages/wp-03.webp",
+      "sha256": "08a763dfe26620a80daf8b69c246df9d85203be45597399b1a7749a7b705cfab",
+      "bytes": 131162,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/pages/wp-04.webp",
+      "sha256": "137bf3211d6486dc66e2191d20d6fd63fa2af4c7ab1cf2758188550f67f7c87d",
+      "bytes": 38038,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/pages/wp-05.webp",
+      "sha256": "a51fdcd270b5f520339d713ab7b50623a7ae6ad065f317a4eec3bf56dd804eb1",
+      "bytes": 103774,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/pages/wp-06.webp",
+      "sha256": "b377f9ae1d80a25450af2daee10d56a2319b06eec5e9f9eb7c960a5c6ae7a602",
+      "bytes": 132560,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/pages/wp-07.webp",
+      "sha256": "23e765d99341319b4eb967be4899e19b609d8ae3e32c9bbcc66baa8dbc4b6b8f",
+      "bytes": 141466,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/pages/wp-08.webp",
+      "sha256": "c696d482d164e58bb6ab375504a0bf7c22dd22031158236592df6c2636616dfa",
+      "bytes": 64392,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/pages/wp-09.webp",
+      "sha256": "b90476b0b8530917e20cb24edfeba033f5627175050035d80527a13ebc44d7c7",
+      "bytes": 137930,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/pages/wp-10.webp",
+      "sha256": "04961cea5e332d503000d8dc99607d01830e913cd08fbacd5043542b5a9d958e",
+      "bytes": 122056,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/pages/wp-11.webp",
+      "sha256": "cbb5ff48468afbac06eb0b51a0b300b1b218c7b72cc0b8528ff74e0cf139f088",
+      "bytes": 62208,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/pages/wp-12.webp",
+      "sha256": "83687663f2f4362937db5d916293dc53e6336ae62c63ef5663a89b86ba445deb",
+      "bytes": 106328,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/pages/wp-13.webp",
+      "sha256": "82dcdbedf85f3b2f027adefe75ead16fede57ba46fa491777dcf0d6b4121290d",
+      "bytes": 118468,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/pages/wp-14.webp",
+      "sha256": "a1f888f3187d9055c250ab397ebf1d32f25b69b0f4d39acec90364c8385dafcb",
+      "bytes": 136614,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/pages/wp-15.webp",
+      "sha256": "b89a63dbc369de8f27b98d151b36e9eac8efeabc95079b291c5fbde00bea7787",
+      "bytes": 129462,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/pages/wp-16.webp",
+      "sha256": "ab7d14971d94c8828a2649c4ea4f62c52644f44b21f270d442a64580eb76ebc9",
+      "bytes": 125592,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/pages/wp-17.webp",
+      "sha256": "9d70248122a8a2cf370c5a4de1aff6b8e7927aaa107f684e4c81d185ecf8ad2f",
+      "bytes": 122994,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/pages/wp-18.webp",
+      "sha256": "d4303f297aca23ae7abf95d5532ba1bf88705cd40027e2eec249b7a96cea74e0",
+      "bytes": 120002,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/pages/wp-19.webp",
+      "sha256": "c6502775c9bb2e78953b06d158ed30a4d733532188e709bd3845360ba3698778",
+      "bytes": 7102,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/pages/wp-20.webp",
+      "sha256": "431dafad07e7a04bff987b8ada6d6622d785b2583535ab61a07914f7d5c68546",
+      "bytes": 124854,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/pages/wp-21.webp",
+      "sha256": "af116755f8c5a663bafa2bf41f0a17f77a13cd18c74f99a5f808580809947c6b",
+      "bytes": 99184,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/pages/wp-22.webp",
+      "sha256": "981f5bf6cb263f9d38df1e1d284d3fa6ee583c0cbbc482afcf2c1bafc23f9839",
+      "bytes": 126180,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/pages/wp-23.webp",
+      "sha256": "da35a8896bdac00ca0b19f22c0a3d230ee7f83ddcbc799dde39ca8d4b6ec93b1",
+      "bytes": 13438,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/pages/wp-24.webp",
+      "sha256": "d00304ba96a726661c7b463a4995e340903625c0f4a836237f0a4dac8614623d",
+      "bytes": 111296,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/pages/wp-25.webp",
+      "sha256": "4b68ed1f767103db10cc6626d590c03cf7e0300a1d37e688b1f675ac219e150b",
+      "bytes": 131862,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/pages/wp-26.webp",
+      "sha256": "c223a6cfab825416e0f35f3a8c425e2808a0b1a1c1e56c83a7e10f7841d66be4",
+      "bytes": 133034,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/pages/wp-27.webp",
+      "sha256": "32f5f67fe4daf3b28be61bf602d8133c048fe59136b8436a656b5503b530e58d",
+      "bytes": 135002,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/pages/wp-28.webp",
+      "sha256": "388f1e02ab550c959f444fab3491e5c671b41b20b77007f0307fc2dab662f5cf",
+      "bytes": 121248,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/pages/wp-29.webp",
+      "sha256": "659bb6e1bc3050a6d6d0010db915be740aa336df43a1174acfb15d17130cb6c4",
+      "bytes": 136810,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/pages/wp-30.webp",
+      "sha256": "6c980c6b11b1e10cccd404f2269ac610b848b22bd42d11d11ba4445b94aaa64d",
+      "bytes": 105382,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/pages/wp-31.webp",
+      "sha256": "0b3eddebaa2c7790c6547c7891dc4200ee98749ea8959b9ebed40f54781be406",
+      "bytes": 125968,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/pages/wp-32.webp",
+      "sha256": "347f81280393e942d66c6b4bc1aa98d322524604d4c0d5a44ca7317d1a22c0e9",
+      "bytes": 121004,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/pages/wp-33.webp",
+      "sha256": "88977954ef407d56e42b4251f1ae809664784dbdda9dbc093d09295921184912",
+      "bytes": 153098,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/pages/wp-34.webp",
+      "sha256": "7dacdf9dde9eaf1b942c0584b6af6bfbea206b467432eeb85a1104af44fa9e09",
+      "bytes": 115794,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/pages/wp-35.webp",
+      "sha256": "c0099e87d275fe2edacca534968aad740dd3ca646949bf67c9e760c92c26387b",
+      "bytes": 84976,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/pages/wp-36.webp",
+      "sha256": "1e9b34c94a5c6c1179579f10487fff5ef038980363c06f3f83e21d1574e2134b",
+      "bytes": 93334,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/pages/wp-37.webp",
+      "sha256": "624a759e679468ae7f2427e570f82dabf6cda27e6bf5b23f229eb749ef9bb501",
+      "bytes": 114878,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/pages/wp-38.webp",
+      "sha256": "f24ab8b96aa4fa40dfead80fb321697f561fa14bff8fae5897749befb96c0116",
+      "bytes": 139790,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/pages/wp-39.webp",
+      "sha256": "5e3b7f222e8f9b217a53969ac7d642660279ff3c05ea6643665ae806c6042eb3",
+      "bytes": 144448,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/team-harshdeep.webp",
+      "sha256": "a5a8b2ed466e473582d29ec68a41b94163abf9cd81df9ec612aeeee0c56347f6",
+      "bytes": 72304,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/team-nick.webp",
+      "sha256": "70fb5380e57335810829d03eef571997d8dcb58cca8058d1c2774799c84a340e",
+      "bytes": 58960,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/team-ryan.webp",
+      "sha256": "96da3aa9755a4558bbcfa9e1bfdcb1695f9fdfadf04bbe2604cb6894d2b48e2f",
+      "bytes": 49580,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/turbine-blade.webp",
+      "sha256": "fb685a8e9982e984fd73f723e6ce6bf68d82d261bfa1a8589785ecf02651d991",
+      "bytes": 180900,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "assets/x-logo.png",
+      "sha256": "955a1f2d23b14d3ef2802e7d8e46c35f94fc4e94a0f3a315a9c7eceb56a23642",
+      "bytes": 2478,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "customers/index.html",
+      "sha256": "7dd2062fd4030015b64cbaaa5654dea5798fdc55e2bddcb0be09aa4dd4164e22",
+      "bytes": 21298,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "favicon.svg",
+      "sha256": "87209026227c1a427c72879815e7b714e69e493a556b139213956e9d6e6d8598",
+      "bytes": 1032,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
       "path": "index.html",
-      "sha256": "5ebb43e859e9837f74bbc93b5748b2db95a6700821afbfcecb407e75702e2020",
-      "bytes": 5774725,
-      "transport": "GET https://carbonphysics.ai/ (the asset stored as index.html; /index.html 307-redirects to /)"
+      "sha256": "99be1318deb88923a92d40f07b70779d71c76930478086be0df501e5c8bc9c5b",
+      "bytes": 17096,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
     },
     {
-      "path": "assets/carbon-66e3549179d4.png",
-      "sha256": "66e3549179d499fdce28dfa48cd782a4226ce39f6a18852adcd6e266e1affaf7",
-      "bytes": 16989,
-      "transport": "GET https://carbonphysics.ai/assets/carbon-66e3549179d4.png"
+      "path": "investors/index.html",
+      "sha256": "2eb018bd3dc128b693726e8a0b4db38d0eeca799ee66cda7241b8f8e768317f0",
+      "bytes": 31878,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
     },
     {
-      "path": "assets/carbon-f7ea9506b7b9.png",
-      "sha256": "f7ea9506b7b987ddae89f609a635d40e4b30973831cf6465862ef0808686d669",
-      "bytes": 80781,
-      "transport": "GET https://carbonphysics.ai/assets/carbon-f7ea9506b7b9.png"
+      "path": "miners/index.html",
+      "sha256": "88517c7c62c1743f2cd4628e4bf583fd86160fd3ab1f2ac02f7cee3d4ccafe43",
+      "bytes": 22975,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
     },
     {
-      "path": "workbench/index.html",
-      "sha256": "f53fbba2bd3331d1719345654ed73aacd7c62f600c7e25ec060a281c8bcecf02",
-      "bytes": 17574,
-      "transport": "GET https://carbonphysics.ai/workbench/ (the asset stored as workbench/index.html)"
+      "path": "papers/index.html",
+      "sha256": "5348812e54aaf69dd4573b56a5c307c5d38cfc80e4dbfd0e7b1ac27827f772c1",
+      "bytes": 10865,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "robots.txt",
+      "sha256": "031d34df7fb5a940fd62c983c3775ec792ddf7a431ae22ed7b17fa6b0a2fc012",
+      "bytes": 69,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "site.css",
+      "sha256": "f5d9649021426958b87262691e4c3e46740df53deeeb96b5d173a6f382f4c2cd",
+      "bytes": 87761,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "sitemap.xml",
+      "sha256": "18a8b1638e93ad1eb4222beb42e8001f7823ce7f6c03eeaae4ca619b13f3fc6c",
+      "bytes": 511,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "validators/index.html",
+      "sha256": "d76340edf1ae78d85894017fcf7914f053aadc72884d6a7bc27b53ca98ca138c",
+      "bytes": 22780,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
     },
     {
       "path": "workbench/app.js",
       "sha256": "5ad2c249fe5acf2b58ce7af62e679bbb7e4098c0eecfd77b60acbdc4c060b1dc",
       "bytes": 38459,
-      "transport": "GET https://carbonphysics.ai/workbench/app.js"
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
     },
     {
       "path": "workbench/assist-contract.js",
       "sha256": "fc9d05ee4da65e15dbe5e153b455f0809163e7216e7bc190790538ea454ab85b",
       "bytes": 3871,
-      "transport": "GET https://carbonphysics.ai/workbench/assist-contract.js"
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
     },
     {
       "path": "workbench/assist-ui.js",
       "sha256": "765966584774affcaf1748ad5917ebc19414185fcce5be82798ffa16e7794a8b",
       "bytes": 9630,
-      "transport": "GET https://carbonphysics.ai/workbench/assist-ui.js"
-    },
-    {
-      "path": "workbench/atlas.js",
-      "sha256": "155eda1a2c96bb40167292b7ce3a3b9fc3e7c495e4834f17d660e1c7d640bdc1",
-      "bytes": 134448,
-      "transport": "GET https://carbonphysics.ai/workbench/atlas.js"
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
     },
     {
       "path": "workbench/atlas-source.json",
       "sha256": "450068990094bc07d49b7bf7ea6106ef35c7c7213cdeaa43f5dc80f04fb9671a",
       "bytes": 156568,
-      "transport": "GET https://carbonphysics.ai/workbench/atlas-source.json"
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "workbench/atlas.js",
+      "sha256": "155eda1a2c96bb40167292b7ce3a3b9fc3e7c495e4834f17d660e1c7d640bdc1",
+      "bytes": 134448,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
     },
     {
       "path": "workbench/cooling-v02.js",
       "sha256": "199a93b595a13b563a8fc47209089f7e2c4b750de61d45fe7f5aed3b43c0dca3",
       "bytes": 6925,
-      "transport": "GET https://carbonphysics.ai/workbench/cooling-v02.js"
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
     },
     {
       "path": "workbench/engine.js",
       "sha256": "32caeaf50bf6477c0af4dbefdc197f4c9c791036bd7f2ce324ebcdf1b1a5acf3",
       "bytes": 49400,
-      "transport": "GET https://carbonphysics.ai/workbench/engine.js"
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
+    },
+    {
+      "path": "workbench/index.html",
+      "sha256": "05018e5c0a13219ddb70906b49c5637464f77356bd93b4852ff3e043b8073d3d",
+      "bytes": 38076,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
     },
     {
       "path": "workbench/styles.css",
-      "sha256": "685b96b5676e18c6a46ce33d5d755a9b7a10e05575ea4efd006cbb2c5ea67f54",
-      "bytes": 30066,
-      "transport": "GET https://carbonphysics.ai/workbench/styles.css"
+      "sha256": "269f2a0fb4934a46acbbc4fbeb92ec9fe890f3ec2fc3bfd545cec653d29cde3a",
+      "bytes": 41054,
+      "transport": "site build directory carbon-site-upload-v2 (deployed by the wrangler command in the runbook; re-verified by GET after deployment)"
     }
-  ],
-  "deployment_target_observed": {
-    "source": "wrangler 4.134.0, authenticated as carbon.physics.ai@gmail.com (account 7462053c6992b9c9fd889952a7ae0496) on 2026-09-20",
-    "worker": "carbonwebsite",
-    "live_version_id": "5a44ab03-ce7c-4100-ae42-71843b07246a",
-    "live_version_number": 17,
-    "live_version_created": "2026-09-12T04:05:02.383745Z",
-    "live_version_source": "dash",
-    "compatibility_date": "2026-09-12",
-    "bindings": [],
-    "rollback_target_note": "5a44ab03-ce7c-4100-ae42-71843b07246a is the version currently serving 100% of traffic and is therefore the rollback target for any deployment made now. The runbook previously named b99c37f0-c2d2-432b-842a-00b9fb518d96 (2026-09-09), which is two deployments older and is NOT the current predecessor. Re-capture the live version immediately before deploying; do not reuse either ID from a document."
-  },
-  "routing_configuration": {
-    "source": "authenticated `wrangler versions view --json` on carbonwebsite version 5a44ab03-ce7c-4100-ae42-71843b07246a (2026-09-20)",
-    "authoritative": true,
-    "html_handling": "auto-trailing-slash",
-    "not_found_handling": "none",
-    "serve_directly": true,
-    "raw_run_worker_first": false,
-    "implication": "auto-trailing-slash is why /index.html 307-redirects to / and /workbench/index.html 307-redirects to /workbench/. Any preservation recipe that downloads the literal path \"index.html\" captures an empty redirect body. not_found_handling \"none\" is why favicon.ico, robots.txt, _headers, _redirects and _routes.json all return 404: they are absent assets, not routing rules."
-  },
-  "routing_observed_note": "Superseded by routing_configuration above, which was read from the deployed version rather than inferred from responses.",
-  "routing_observed_html_handling_307": "/index.html 307-redirects to /, and /workbench/index.html 307-redirects to /workbench/.",
-  "blocked_on": {
-    "what": "Enumeration of the complete deployed asset set.",
-    "why_not_resolved_by_login": "Cloudflare authentication is present and sufficient for deployment (workers / workers_scripts / workers_routes write). The gap is capability, not credentials: there is no Wrangler command that lists a static-assets Worker's deployed files.",
-    "owner_action": "Supply the website archive most recently uploaded to the carbonwebsite Cloudflare Dashboard."
-  }
+  ]
 }
