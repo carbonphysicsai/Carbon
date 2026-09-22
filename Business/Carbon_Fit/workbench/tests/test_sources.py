@@ -500,3 +500,54 @@ class SourceTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class AssistanceDefaultTests(unittest.TestCase):
+    """Assistance must not become default-on through a build variant.
+
+    The private-science flag exists to let the Workbench reach its operator's
+    scientific service. It must not, as a side effect, change anything about the
+    client intake preview, which is the surface a customer sees and the one that
+    would carry assistance if it were ever switched on by configuration.
+    """
+
+    def test_the_client_preview_is_identical_in_both_build_variants(self):
+        import tempfile
+
+        builder = module("builder", ROOT / "tools/build.py")
+        with tempfile.TemporaryDirectory() as directory:
+            offline = Path(directory) / "offline"
+            private = Path(directory) / "private"
+            builder.build(output_directory=offline)
+            builder.build(private_science=True, output_directory=private)
+
+            for name in (
+                "Carbon_Client_Intake_Preview.html",
+                "Carbon_Client_Pilot_Designer_Preview.html",
+            ):
+                self.assertEqual(
+                    (offline / name).read_bytes(),
+                    (private / name).read_bytes(),
+                    f"{name} differs between build variants, so a variant could "
+                    "change client-facing assistance behaviour",
+                )
+
+            # The variant does change the Workbench artifact, so the comparison
+            # above is a real constraint rather than a comparison of two
+            # identical builds.
+            workbench = "Carbon_Opportunity_Workbench.html"
+            self.assertNotEqual(
+                (offline / workbench).read_bytes(),
+                (private / workbench).read_bytes(),
+            )
+
+            # Neither variant ships assistance enabled.
+            for variant in (offline, private):
+                preview = (variant / "Carbon_Client_Intake_Preview.html").read_text(
+                    encoding="utf-8"
+                )
+                self.assertIn("let guidanceEnabled = false;", preview)
+                self.assertIn("let guidanceAvailable = false;", preview)
+                self.assertNotIn("let guidanceEnabled = true", preview)
+                # The preview may not reach a provider without being asked to.
+                self.assertIn("connect-src 'self'", preview)

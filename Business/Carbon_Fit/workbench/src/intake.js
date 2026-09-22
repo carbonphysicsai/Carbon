@@ -296,6 +296,23 @@
         : brief.answers[item.field]?.value;
       if (current !== item.proposed_value) throw Error("Accepted suggestion does not match the current field value");
     }
+    // The reverse direction. Every accepted suggestion is matched to its
+    // provenance above; without this, a provenance entry could claim an AI
+    // suggested a field when no suggestion was ever received.
+    //
+    // Together the two checks establish that attribution cannot disagree with
+    // the record in either direction: a suggestion cannot be recorded as typed
+    // by the client, and AI involvement cannot be claimed where none was
+    // received. They do not establish that assistance did or did not run. A
+    // client that fabricates both sides consistently produces an
+    // indistinguishable package, and proving otherwise would need evidence this
+    // interface does not have -- client JSON is a hostile input, not authority.
+    // The existing label carries the right weight: client-reviewed input, not
+    // Carbon evidence.
+    for (const item of value.field_provenance) {
+      if (item.origin === "AI_SUGGESTED_CLIENT_ACCEPTED" && !suggestionIds.has(item.suggestion_id))
+        throw Error("Accepted AI provenance has no matching accepted suggestion");
+    }
     if (!Array.isArray(value.unresolved_assumptions) || value.unresolved_assumptions.length > 32 || value.unresolved_assumptions.some((item) => typeof item !== "string" || !item.trim() || item.length > 1200))
       throw Error("Invalid unresolved assumptions");
     exact(value.ai_guidance, ["enabled", "provider", "guidance_version", "notice_version", "consented_at", "cleared_locally"], "AI guidance record");

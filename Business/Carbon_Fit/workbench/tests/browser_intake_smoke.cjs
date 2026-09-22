@@ -55,6 +55,57 @@ async function saveDownload(page, selector, target) {
   await formOnly.locator("#enable-guidance").click();
   await formOnly.waitForFunction(() => document.querySelector("#guidance-status").textContent.includes("Continue through the form"));
   check("unavailable AI preserves the draft and degrades to the form", await formOnly.locator("#form-panel").isVisible() && (await formOnly.locator('[data-text="intended_decision"]').inputValue()).includes("faster design comparisons"));
+  // enabled-but-unavailable is the configuration the product is actually in
+  // today, and it is the one the enablement invariant cannot see: the consent
+  // record is valid and complete while nothing was ever reached. What separates
+  // it from a package where assistance worked is the attribution, so assert
+  // exactly that rather than the enablement flag.
+  const unavailablePath = path.join(tmp, "enabled-but-unavailable-intake.json");
+  await saveDownload(formOnly, "#export-intake", unavailablePath);
+  const unavailable = JSON.parse(fs.readFileSync(unavailablePath, "utf8"));
+  check("enabled-but-unavailable export records consent and claims no AI contribution",
+    unavailable.ai_guidance.enabled === true
+      && unavailable.ai_guidance.consented_at !== null
+      && unavailable.ai_guidance.notice_version !== null
+      && unavailable.accepted_suggestions.length === 0
+      && unavailable.field_provenance.every((item) => item.origin !== "AI_SUGGESTED_CLIENT_ACCEPTED")
+      && unavailable.field_provenance.every((item) => item.suggestion_id === null)
+      && unavailable.sharing.conversation.length === 0);
+  // The client's next action is identical whether the endpoint is unreachable or
+  // misconfigured, and distinguishing them would tell an external party about
+  // operator configuration. One bit plus a usable next step is the boundary; the
+  // four-state vocabulary belongs on the operator's own capability surface.
+  const unavailableText = await formOnly.locator("#guidance-boundary, #guidance-status").allInnerTexts().then((parts) => parts.join(" "));
+  check("the unavailable message names the next action without disclosing why it failed",
+    /continue|form/i.test(unavailableText)
+      && !/\b(401|403|404|429|500|502|503|ECONNREFUSED|ENOTFOUND|fetch failed)\b/i.test(unavailableText)
+      && !/localhost|127\.0\.0\.1|https?:\/\//i.test(unavailableText)
+      && !/\bapi[_-]?key|token|secret|provider key\b/i.test(unavailableText));
+  // The meaningful assertion is that nothing left the device at all. A filter
+  // naming the provider path would be trivially true here: the preview is loaded
+  // from file://, so a relative fetch never matches the http(s) tracker and the
+  // check would pass whatever the page did.
+  check("drafting, enabling and exporting caused no off-device request",
+    outbound.length === 0);
+  // Prove the tracker can fail, so the assertion above is not vacuous. It has to
+  // run from a page without the preview's policy: inside the preview the request
+  // never becomes a network request at all, which is the next check.
+  const detector = await context.newPage();
+  await detector.goto("about:blank");
+  await detector.evaluate(() => fetch("http://127.0.0.1:9/carbon-outbound-detector").catch(() => {}));
+  await detector.waitForTimeout(250);
+  check("the off-device request tracker detects a request when one is made",
+    outbound.some((url) => url.includes("carbon-outbound-detector")));
+  await detector.close();
+  // The preview does not merely decline to call out; its policy forbids it, so a
+  // future edit that added a call would be blocked rather than silently allowed.
+  const blocked = await formOnly.evaluate(async () => {
+    try { await fetch("http://127.0.0.1:9/carbon-policy-probe"); return "allowed"; }
+    catch (error) { return String(error); }
+  });
+  check("the preview's connect policy blocks an off-device request outright",
+    blocked !== "allowed" && !outbound.some((url) => url.includes("carbon-policy-probe")));
+  outbound.length = 0;
   await formOnly.locator("#reset-draft").click();
   check("explicit reset clears the local draft without claiming provider deletion", await formOnly.locator("#guidance-status").innerText().then((text) => text.includes("does not delete provider records")) && (await formOnly.locator('[data-text="intended_decision"]').inputValue()) === "");
 
