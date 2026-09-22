@@ -23,7 +23,11 @@ from collections.abc import Iterable
 from datetime import UTC, datetime
 from html.parser import HTMLParser
 from pathlib import Path, PurePosixPath
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 from typing import Any
+
+import event_sources
 
 HUB_RELATIVE = Path("docs/development/carbon_hub")
 EXPECTED_WAVES = list("ABCDEFGHIJKLMN")
@@ -515,6 +519,10 @@ class Validator:
         self.live_pr_loaded = False
         self.changed_paths: set[str] | None = None
         self.deleted_paths: set[str] = set()
+        # Which ledger events came from the shared array rather than from a
+        # per-event file. Declared here because the immutability checks read it
+        # and are reachable without load_sources having run.
+        self.array_event_ids: set[str] = set()
         self.new_event_ids: set[str] = set()
         self.diff_base_sha: str | None = None
         self.base_hub_data: dict[str, Any] | None = None
@@ -1211,14 +1219,15 @@ class Validator:
         self.event_bundle = self.load_json_object(
             self.hub_root / "data/change_events.json", "data/change_events.json"
         )
-        events = self.event_bundle.get("events", [])
-        if not isinstance(events, list) or not all(
-            isinstance(item, dict) for item in events
-        ):
-            self.fail("data/change_events.json must contain an events array of objects")
+        # The ledger is the array plus one file per event. Assembled by the same
+        # module render_hub.py uses, so the validator and the renderer cannot
+        # disagree about what the ledger contains or what order it is in.
+        try:
+            self.event_bundle, self.events = event_sources.assemble(self.hub_root)
+            self.array_event_ids = event_sources.array_event_ids(self.event_bundle)
+        except event_sources.EventSourceError as error:
+            self.fail(str(error))
             self.events = []
-        else:
-            self.events = events
         if self.event_bundle.get("schema_version") != "1.0":
             self.fail("data/change_events.json schema_version must be '1.0'")
 
@@ -3748,6 +3757,23 @@ class Validator:
                     f"event instead of rewriting: {rewritten_ids}"
                 )
             self.new_event_ids = current_ids - prior_ids
+            # A new event appended to the array is refused, because a
+            # transition that permits both paths indefinitely never completes
+            # and the array is the thing that collides. Historical entries stay
+            # exactly where they are: this refuses additions, never existing
+            # records.
+            appended_to_array = sorted(self.new_event_ids & self.array_event_ids)
+            if appended_to_array:
+                self.fail(
+                    "New change events belong in one file each, not in the "
+                    "shared array: "
+                    + ", ".join(appended_to_array)
+                    + ". Move each to docs/development/carbon_hub/data/events/"
+                    "<event_id>.json with a recorded_at, and remove it from "
+                    "data/change_events.json. Two workstreams adding files "
+                    "never conflict; two appending to the array do, and the "
+                    "conflict can silently drop an event."
+                )
 
             prior_data = self.git(
                 "show",

@@ -19,6 +19,10 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 DATA_PATH = ROOT / "data" / "hub_data_v2.json"
 EVENTS_PATH = ROOT / "data" / "change_events.json"
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import event_sources
+
 TEMPLATE_PATH = ROOT / "tools" / "templates" / "interactive_template.html"
 NEWCOMER_WAVE_PATH = ROOT / "data" / "newcomer_projection_v1.json"
 NEWCOMER_TICKET_PATHS = tuple(
@@ -1106,7 +1110,13 @@ def write_if_changed(path: Path, content: str) -> bool:
 
 def run(*, check: bool, data_path: Path, events_path: Path) -> int:
     data = load_json(data_path)
-    event_bundle = load_json(events_path)
+    # The ledger is the array plus one file per event, assembled in a fixed
+    # order that depends on content rather than on git history. Shared with
+    # validate_hub.py so the two cannot disagree about what the ledger is.
+    try:
+        _, assembled_events = event_sources.assemble(events_path.parent.parent)
+    except event_sources.EventSourceError as error:
+        raise SystemExit(str(error)) from None
     required = (
         "meta",
         "current",
@@ -1121,9 +1131,7 @@ def run(*, check: bool, data_path: Path, events_path: Path) -> int:
     missing = [key for key in required if key not in data]
     if missing:
         raise SystemExit(f"Missing hub-data keys: {', '.join(missing)}")
-    events = event_bundle.get("events")
-    if not isinstance(events, list):
-        raise SystemExit("change_events.json must contain an events array")
+    events = assembled_events
     outputs = collect_outputs(data, events)
     extras = generated_extras(set(outputs))
     if check:
