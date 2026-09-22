@@ -197,6 +197,41 @@ const check = (name, value) => {
       }
     }));
 
+  // --- a browser that withholds WebCrypto from a local file -----------------
+  // The draft's fingerprint is a WebCrypto digest, and a browser that does not
+  // expose crypto.subtle to a file:// page cannot compute one. This cannot be
+  // observed in Chromium, which does expose it, so the capability is removed
+  // before any script runs. What must survive is the part that matters — the
+  // questions and the check — and what must not happen is reporting a complete
+  // draft as incomplete, which sends a visitor to fix the wrong thing.
+  const withheld = await browser.newContext({
+    viewport: narrow ? { width: 390, height: 844 } : { width: 1440, height: 1000 },
+  });
+  withheld.on("request", (request) => {
+    if (/^(https?|wss?):/.test(request.url())) outbound.push(request.url());
+  });
+  const degraded = await withheld.newPage();
+  await degraded.addInitScript(() => {
+    try {
+      Object.defineProperty(window.crypto, "subtle", { get: () => undefined });
+    } catch (error) {
+      /* a browser that refuses the redefinition is already the normal case */
+    }
+  });
+  degraded.on("pageerror", (error) => errors.push("degraded: " + String(error)));
+  await degraded.goto("file://" + PUBLIC);
+  await degraded.locator("#open-all").click();
+  await degraded.locator('[data-field="units"]').fill("dimensionless");
+  check("without WebCrypto the questions and the check still work",
+    (await degraded.locator("#yours-list li:not(.clear)").count()) > 0);
+  await degraded.locator("#export-draft").click();
+  const degradedStatus = await degraded.locator("#export-status").innerText();
+  check("the refusal names the browser capability, not the draft",
+    /cryptographic digest/.test(degradedStatus) && !/not yet exportable/.test(degradedStatus));
+  check("and it says where the answers can still go",
+    /http\(s\)|email/.test(degradedStatus));
+  await withheld.close();
+
   // --- the same file with scripting disabled --------------------------------
   // A public page that promises questions and then shows none is worse than
   // one that says why. The check runs in the visitor's browser, which is the

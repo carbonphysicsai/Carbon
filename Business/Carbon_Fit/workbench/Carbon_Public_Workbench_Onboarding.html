@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Z/IVPtVuMePO5VoUOYQndUwm/QwI2Uv0Wjza2Z8Wn4Y=' 'sha256-fHBJlAtHoikkiwAjIkrbl2I2wGgfXC1syHScph4cSvU=' 'sha256-S99vg6wqu11SmxXu49zKkvwLPZnp1C1qRaHr3SKGnQg='; style-src 'sha256-pcI8daTWrMBGzj7tQ+3S2WUqda16mKhSB2I8uhD3Y7k='; img-src data:; connect-src 'none'; form-action 'none'; base-uri 'none'; object-src 'none'">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Z/IVPtVuMePO5VoUOYQndUwm/QwI2Uv0Wjza2Z8Wn4Y=' 'sha256-fHBJlAtHoikkiwAjIkrbl2I2wGgfXC1syHScph4cSvU=' 'sha256-15+7NnT7g236G/X4ecjcoiKjByK/A6HyhLm6yurGFwU='; style-src 'sha256-pcI8daTWrMBGzj7tQ+3S2WUqda16mKhSB2I8uhD3Y7k='; img-src data:; connect-src 'none'; form-action 'none'; base-uri 'none'; object-src 'none'">
     <title>Carbon · Define your engineering problem</title><style>/* Public onboarding edition. Self-contained: the internal stylesheets carry
    selectors for the owner console, evidence tables and source-assessment
    surfaces that this edition deliberately does not ship. */
@@ -787,6 +787,18 @@ footer { max-width: 1180px; margin: 0 auto; padding: 0 1.25rem 2.5rem; color: va
     );
   }
 
+  // The export's fingerprint is a WebCrypto digest, and a browser that does
+  // not expose `crypto.subtle` to a local file cannot compute one. The
+  // questions and the structural check do not need it, so that case loses the
+  // download and nothing else — provided it says so rather than reporting the
+  // draft as incomplete, which is a different problem with a different fix.
+  const DIGEST_UNAVAILABLE =
+    "This browser does not give a local file the cryptographic digest this " +
+    "draft is fingerprinted with, so it cannot be downloaded from here. The " +
+    "questions and the check above still work. Open this file over http(s), " +
+    "or copy your answers into an email — they are what matters.";
+  const canDigest = () => Boolean(root.crypto && root.crypto.subtle);
+
   // Created in install(), so requiring this module has no side effect.
   let draft = null;
   let revealed = 1;
@@ -877,6 +889,10 @@ footer { max-width: 1180px; margin: 0 auto; padding: 0 1.25rem 2.5rem; color: va
     // Only appears when the check says something this page has no note for,
     // which is the case that must never be silent.
     $("unclassified-section").hidden = view.unclassified === 0;
+    if (!canDigest()) {
+      $("artifact-preview").textContent = DIGEST_UNAVAILABLE;
+      return null;
+    }
     try {
       const artifact = await P.exportWorkspace(draft, result, S);
       $("artifact-preview").textContent = JSON.stringify(artifact, null, 2);
@@ -923,6 +939,10 @@ footer { max-width: 1180px; margin: 0 auto; padding: 0 1.25rem 2.5rem; color: va
     };
     $("export-draft").onclick = async () => {
       try {
+        if (!canDigest()) {
+          $("export-status").textContent = DIGEST_UNAVAILABLE;
+          return;
+        }
         const artifact = await renderStatus();
         if (!artifact) throw Error("the draft is not yet exportable");
         download(artifact);
