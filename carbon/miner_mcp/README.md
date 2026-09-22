@@ -65,6 +65,42 @@ the existing exclusive campaign owner lock and runs normal interruption cleanup
 on disconnect. An interrupted task may remain reconciliation-required until
 resource release and consumption are established.
 
+## What this server bounds, records and refuses
+
+Read `carbon://research/v1/catalogue`. It describes the *server* - operations,
+bounds, refusal vocabulary and record policy, with its own schema version - as
+distinct from `carbon://research/v1/capabilities`, which projects the scientific
+catalogue of what a miner may attempt. Keeping them apart is what lets a client
+tell a surface change from a science change instead of rediscovering one as the
+other.
+
+**Records.** Each call records the operation, the owner-bound principal, a
+digest of the operation id, an outcome and a duration. It never records the
+arguments. A research argument carries the miner's hypothesis, their strategy
+parameters and their file contents - their work - so `call_record` has no
+parameter for them and no call site can supply one. The principal is a
+`BoundPrincipal`, derivable only from an adapter that re-verifies its own owner
+binding, so a record cannot attribute a call to a caller-named identity even by
+mistake. Records go wherever the operator injects them, and nowhere by default.
+
+**Refusals** carry a stable slug and the next usable step, for example
+`OPERATIONAL_STOP; dispatch_may_have_occurred=false; next_action=...`. The slug
+is the adapter's own enum value so it cannot drift, and the next action is fixed
+text per slug rather than a provider message, because provider text is how
+unbounded internal detail reaches an external wire.
+
+**Capacity.** Concurrent calls are bounded, and waiting for capacity has a
+deadline: exceeding it returns `CAPACITY_UNAVAILABLE` with
+`dispatch_may_have_occurred=false`, because nothing was dispatched.
+
+A call that has already started is never cancelled to meet its budget; it is
+recorded as `OVERRAN` and allowed to finish. Cancelling an in-flight
+`adapter.call` would abandon a ledger reservation whose outcome nobody knows,
+which is the `requires_reconciliation` state the campaign model exists to
+prevent - a transport timeout would be manufacturing the failure it was added to
+contain. The work itself is bounded by the `seconds` argument and task
+supervision.
+
 ## Client workflow
 
 Read `carbon://research/v1/capabilities` and
