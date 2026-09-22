@@ -60,6 +60,12 @@ def test_package_is_exact_and_exports_no_official_or_network_surface() -> None:
         # standard server already builds. It creates no campaign and no ledger
         # of its own, and adds no official or network-writing capability.
         "open_tier.py",
+        # Per-call records, the concurrency bound and the surface catalogue. It
+        # adds no capability: it wraps the existing single call path, and the
+        # records it builds structurally cannot contain a caller's arguments or
+        # a caller-supplied identity. No official, network-writing or signing
+        # surface is introduced.
+        "serving.py",
         "mcp_skills.py",
         "store.py",
     }
