@@ -35,6 +35,32 @@ from typing import Self
 
 from carbon.chain.models import CARBON_NETUID, CARBON_NETWORK
 
+
+def carbon_testnet_context():
+    """The chain context Carbon's testnet deployment actually uses.
+
+    Not a new decision and not a guess: the endpoint, genesis hash and chain id
+    are already settled constants in `carbon.development_testnet.operator`,
+    where the operator config validates against them exactly. Reading them here
+    rather than restating them means the onboarding doors and the operator path
+    cannot drift into describing two different chains.
+
+    This is why the reads no longer have to report CHAIN_NOT_CONFIGURED for want
+    of an endpoint nobody had chosen - one had been chosen, in a module these
+    doors were not looking at.
+    """
+    from carbon.chain.models import ChainContext
+    from carbon.development_testnet.operator import DEFAULT_ENDPOINT, TESTNET_GENESIS
+
+    return ChainContext(
+        network=CARBON_NETWORK,
+        endpoint=DEFAULT_ENDPOINT,
+        provider="bittensor-official-test",
+        genesis_hash=TESTNET_GENESIS,
+        netuid=CARBON_NETUID,
+    )
+
+
 SCHEMA = "carbon.chain-onboarding.v1"
 
 #: How registration happens on this subnet.

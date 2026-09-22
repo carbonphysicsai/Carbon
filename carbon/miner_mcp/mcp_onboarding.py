@@ -121,6 +121,14 @@ def make_onboarding_tools(*, reader=None, context=None, guard=None, sink=None):
         payload: dict[str, JsonValue]
         official_eligible: bool = False
 
+    # Same default as the browser door, for the same reason: the chain Carbon
+    # runs on is settled, and both doors must describe the same one.
+    if context is None:
+        context = service.carbon_testnet_context()
+    if reader is None:
+        from carbon.chain.sdk import BittensorReader
+
+        reader = BittensorReader()
     run = onboarding_records(reader, context, sink=sink)
 
     # Bounded before it reaches anything: an ss58 address is 46-50 characters,

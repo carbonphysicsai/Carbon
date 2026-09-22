@@ -33,6 +33,18 @@ class BrowserOnboarding:
     """
 
     def __init__(self, *, reader=None, context=None):
+        # Defaults to Carbon's actual testnet rather than to nothing. The
+        # endpoint, genesis hash and chain id were already settled constants in
+        # `carbon.development_testnet.operator`; this door simply was not
+        # looking at them, and reported an unconfigured chain for want of a
+        # decision that had already been made. Both stay injectable so a test
+        # can supply a device-free stub and no test reaches the network.
+        if context is None:
+            context = service.carbon_testnet_context()
+        if reader is None:
+            from carbon.chain.sdk import BittensorReader
+
+            reader = BittensorReader()
         self.reader = reader
         self.context = context
 

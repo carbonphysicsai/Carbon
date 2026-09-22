@@ -364,12 +364,19 @@ def capability_catalog() -> dict:
             },
             {"id": "hermes", "reason": "adapter_not_implemented"},
             {
-                # Not unbuilt: `carbon.miner_mcp.standard_http` is an
-                # authenticated MCP resource server today. What it is bound to
-                # is one existing principal *and grant*, so an ordinary miner
-                # cannot reach it. The gap is the coupling, not the bridge.
+                # Read from the code rather than its docstring, which still
+                # says "principal/grant": nothing in `standard_http` touches a
+                # grant. `create_http_app` needs a principal-bound adapter and
+                # a `BoundTokenVerifier` over pinned RS256 public keys from an
+                # authorization server the operator supplies. Carbon runs no
+                # such server, and whose it should be is undecided.
+                #
+                # Scope note: this is the *remote authenticated* door. A miner
+                # bringing their own agent over stdio needs none of it and can
+                # connect today, so the BYO guarantee is not what is blocked
+                # here.
                 "id": "personal-agent",
-                "reason": "mcp_bridge_bound_to_a_development_grant",
+                "reason": "no_authorization_server_for_remote_authenticated_mcp",
             },
             {"id": "mira", "reason": "integration_interface_unverified"},
             {
@@ -382,14 +389,20 @@ def capability_catalog() -> dict:
             },
             {"id": "engy", "reason": "inference_adapter_not_implemented"},
             {
-                # The previous reason named a design the key rule forbids.
-                # Carbon will never hold transaction authority or operate a
-                # signing wallet adapter: `chain_onboarding` prepares an
-                # unsigned registration the miner executes in their own tooling,
-                # and that shipped. What is actually missing is a chain endpoint
-                # for this deployment, without which the reads cannot run.
+                # Two earlier reasons here were wrong in different ways. The
+                # first named a signing wallet adapter, which the key rule
+                # forbids and Carbon will never build: `chain_onboarding`
+                # prepares an unsigned registration the miner executes in their
+                # own tooling. The second named a missing chain endpoint, which
+                # turned out to be settled already in
+                # `carbon.development_testnet.operator` and merely unread by
+                # these doors; both now default to it.
+                #
+                # What remains is not Carbon's to implement. A registration
+                # spends the miner's own funds and is signed in their own
+                # wallet, so the flow is complete and the execution is theirs.
                 "id": "testnet-registration",
-                "reason": "chain_endpoint_not_configured_for_this_deployment",
+                "reason": "flow_implemented_execution_is_the_miners_own",
             },
         ],
     }

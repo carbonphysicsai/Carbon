@@ -64,12 +64,14 @@ def _context():
 def server(tmp_path, request):
     from scripts.dev.miner_launchpad.onboarding import BrowserOnboarding
 
-    reader = getattr(request, "param", None)
-    onboarding = (
-        BrowserOnboarding(reader=reader, context=_context())
-        if reader is not None
-        else BrowserOnboarding()
-    )
+    # Always a stub, never the default live reader. The door now defaults to
+    # Carbon's real testnet, which is right for a deployment and wrong for a
+    # test: without this the unparameterised cases would make actual network
+    # attempts, and their results would depend on whether testnet answered.
+    # That is what this file's "no chain is contacted" promise means, and it
+    # has to be kept here rather than relied on from the door's defaults.
+    reader = getattr(request, "param", None) or _Reader()
+    onboarding = BrowserOnboarding(reader=reader, context=_context())
     controller = launchpad.Controller(tmp_path / "runs.sqlite3")
     server = launchpad.Server(controller, TOKEN, port=0, onboarding=onboarding)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
@@ -97,15 +99,32 @@ def call(server, path, body=None, token=TOKEN):
     return response.status, (json.loads(payload) if payload else None)
 
 
-def test_requirements_answers_with_no_chain_and_no_registration(server):
+def test_requirements_answers_for_an_unregistered_visitor(server):
     """The first thing an unregistered visitor meets has to work for them."""
     status, body = call(server, "/api/v1/onboarding/requirements")
     assert status == 200
     assert body["mechanism"] == "BURNED_REGISTRATION"
     assert body["netuid"] == CARBON_NETUID
     assert body["cost"]["value"] == "NOT_READ"
-    assert body["chain_reads_available"] is False
     assert not server.research_runner, "no research profile is configured here"
+
+
+def test_the_door_defaults_to_carbons_actual_testnet(tmp_path):
+    """Replaces an assertion that the chain was unconfigured.
+
+    It was, and it did not need to be: the endpoint, genesis hash and chain id
+    were already settled constants in `carbon.development_testnet.operator`,
+    and this door simply was not reading them. Reporting CHAIN_NOT_CONFIGURED
+    for want of a decision that had already been made is the wrong kind of
+    honest - truthful about the door, misleading about the deployment.
+    """
+    from scripts.dev.miner_launchpad.onboarding import BrowserOnboarding
+
+    door = BrowserOnboarding()
+    assert door.chain_configured is True
+    assert door.context.netuid == CARBON_NETUID
+    assert door.context.network == CARBON_NETWORK
+    assert door.context.endpoint.startswith("wss://")
 
 
 def test_requirements_shows_no_cost_figure(server):
@@ -125,13 +144,27 @@ def test_the_onboarding_door_still_requires_the_session_token(server):
     )
 
 
-def test_reads_report_an_unconfigured_chain_as_actionable(server):
-    """Absent is a supported state, not an error, and it says what to do."""
-    status, body = call(server, "/api/v1/onboarding/status", {"address": HOTKEY})
-    assert status == 409
-    assert body["reason"] == "CHAIN_NOT_CONFIGURED"
-    assert "your own wallet tooling" in body["next_action"]
-    assert body["ok"] is False
+def test_an_unconfigured_chain_is_still_a_supported_state():
+    """The refusal still exists; the browser door just no longer needs it.
+
+    Kept at the service, where it remains reachable, because an operator can
+    still construct a door without a chain and the answer must stay actionable
+    rather than becoming an error. Asserted here so removing the path would
+    fail rather than pass quietly.
+    """
+    import asyncio
+
+    from carbon.development_session.chain_onboarding import OnboardingFailure
+    from carbon.miner_mcp.mcp_onboarding import onboarding_records
+
+    # The check is the adapter's, not the service's: the service is handed a
+    # reader and a context and assumes both, which is why asserting it here
+    # rather than one layer down is the truthful placement.
+    run = onboarding_records(None, None)
+    with pytest.raises(OnboardingFailure) as raised:
+        asyncio.run(run("status", HOTKEY))
+    assert raised.value.reason == "CHAIN_NOT_CONFIGURED"
+    assert "your own wallet tooling" in raised.value.next_action
 
 
 @pytest.mark.parametrize("server", [_Reader()], indirect=True)
@@ -207,3 +240,18 @@ def test_the_open_tier_creates_no_campaign_and_touches_no_ledger(server, tmp_pat
     assert server.controller.recent() == [], "no run was created"
     assert list(tmp_path.glob("**/campaign.sqlite3")) == []
     assert list(tmp_path.glob("**/campaign-manifest.json")) == []
+
+
+def test_no_test_in_this_file_contacts_a_chain(server):
+    """The promise in this file's docstring, made checkable.
+
+    The door defaults to a live reader against Carbon's testnet, which is
+    correct for a deployment. A test inheriting that default would make real
+    network calls and pass or fail on whether testnet answered - so the fixture
+    injects a stub, and this asserts it did rather than trusting that it will
+    keep doing so.
+    """
+    from carbon.chain.sdk import BittensorReader
+
+    assert type(server.onboarding.reader) is _Reader
+    assert not isinstance(server.onboarding.reader, BittensorReader)
