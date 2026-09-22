@@ -595,7 +595,7 @@ def require_reconstruction_profile_admission(profile, *, worker_profile=None) ->
         raise ReconstructionFailure(
             "reconstruction.accelerator.profile_mismatch"
         ) from None
-    from carbon.reconstruction.worker.model import DevelopmentWorkerProfile
+    from carbon.reconstruction.worker.model import LaunchAuthorityBearing
 
     # A prospective TPU request/profile is not a validated TPU host adapter.
     # Keep this before staging, numerical imports and backend initialization,
@@ -608,8 +608,14 @@ def require_reconstruction_profile_admission(profile, *, worker_profile=None) ->
     # A local development approval never satisfies strict admission, however it
     # is labelled: its authority is checked, not merely the presence of a digest
     # in the field a strict grant would have occupied.
+    #
+    # The type test is `isinstance` for the same reason as the weaker lanes, and
+    # it matters here too: a *strict* request read back by the worker arrives as
+    # the reader's narrowed profile, and an exact-class test refused it. Nothing
+    # is relaxed - the authority, the profile id and the grant digest are still
+    # all required, and they are what a local approval fails.
     if (
-        type(worker_profile) is not DevelopmentWorkerProfile
+        not isinstance(worker_profile, LaunchAuthorityBearing)
         or worker_profile.accelerator_profile_id != selected.profile_id
         or worker_profile.accelerator_grant_digest is None
         or worker_profile.accelerator_authority != STRICT_HOST_GRANT_AUTHORITY
@@ -629,11 +635,15 @@ def require_local_diagnostic_profile_admission(profile, *, worker_profile=None) 
     from carbon.reconstruction.model import ReconstructionFailure, ReconstructionProfile
     from carbon.reconstruction.worker.model import (
         LOCAL_DEVELOPMENT_AUTHORITY,
-        DevelopmentWorkerProfile,
+        LaunchAuthorityBearing,
     )
 
+    # Declaring the authority is what selects this lane, not being one exact
+    # class. The worker-side reader rebuilds a narrower profile from the staged
+    # request - deliberately unable to supply a bound - and it is staged under
+    # this same authority, so it must reach this same check.
     if (
-        type(worker_profile) is not DevelopmentWorkerProfile
+        not isinstance(worker_profile, LaunchAuthorityBearing)
         or worker_profile.accelerator_authority != LOCAL_DEVELOPMENT_AUTHORITY
     ):
         raise ReconstructionFailure("reconstruction.accelerator.admission_disabled")
@@ -694,11 +704,14 @@ def require_miner_lane_profile_admission(profile, *, worker_profile=None) -> Non
     from carbon.reconstruction.model import ReconstructionFailure, ReconstructionProfile
     from carbon.reconstruction.worker.model import (
         MINER_HOST_AUTHORITY,
-        DevelopmentWorkerProfile,
+        LaunchAuthorityBearing,
     )
 
+    # As in the local variant: the declared authority selects the lane. An exact
+    # class check refused the reader's own rebuilt profile, which is how both
+    # weaker lanes were unable to complete a dispatch.
     if (
-        type(worker_profile) is not DevelopmentWorkerProfile
+        not isinstance(worker_profile, LaunchAuthorityBearing)
         or worker_profile.accelerator_authority != MINER_HOST_AUTHORITY
     ):
         raise ReconstructionFailure("reconstruction.accelerator.admission_disabled")
@@ -750,10 +763,17 @@ def require_profile_admission(profile, *, worker_profile=None) -> None:
     from carbon.reconstruction.worker.model import (
         LOCAL_DEVELOPMENT_AUTHORITY,
         MINER_HOST_AUTHORITY,
-        DevelopmentWorkerProfile,
+        LaunchAuthorityBearing,
     )
 
-    if type(worker_profile) is DevelopmentWorkerProfile:
+    # Dispatch on *declaring an authority*, not on one exact class. This was
+    # `type(worker_profile) is DevelopmentWorkerProfile`, which sent any sibling
+    # type to the strict check by falling out of the block - fail-closed and
+    # loud, but it breaks both weaker lanes and contradicts this function's own
+    # promise that each authority reaches exactly one check. A profile the reader
+    # rebuilt from a staged request declares the same authority the controller
+    # staged it under and must reach the same check.
+    if isinstance(worker_profile, LaunchAuthorityBearing):
         if worker_profile.accelerator_authority == LOCAL_DEVELOPMENT_AUTHORITY:
             require_local_diagnostic_profile_admission(
                 profile, worker_profile=worker_profile

@@ -38,9 +38,11 @@ from carbon.reconstruction.worker.model import (
     SCOPE,
     VALIDATION_WALL_SECONDS,
     DevelopmentWorkerProfile,
+    RequestDerivedWorkerProfile,
     WorkerCode,
     WorkerFailure,
     exact_digest,
+    registered_run_controls,
     tagged_sha256,
 )
 from carbon.registry import ChallengeKey
@@ -513,6 +515,14 @@ def stage_request(
                     "role": worker_profile.accelerator_role,
                     "device_uuid": worker_profile.accelerator_device_uuid,
                 }
+                # The controls the controller resolved. Without them the reader
+                # rebuilds a profile that differs from the one the writer
+                # digested, and every dispatch on this lane fails its own
+                # integrity check - which is what it did.
+                if worker_profile.accelerator_controls is not None:
+                    request["accelerator"]["controls"] = dict(
+                        worker_profile.accelerator_controls
+                    )
             elif worker_profile.accelerator_authority == LOCAL_DEVELOPMENT_AUTHORITY:
                 # Distinct key and authority: a staged local request can never be
                 # read as a strict one by a consumer looking for grant_digest.
@@ -524,6 +534,10 @@ def stage_request(
                     "role": worker_profile.accelerator_role,
                     "device_uuid": worker_profile.accelerator_device_uuid,
                 }
+                if worker_profile.accelerator_controls is not None:
+                    request["accelerator"]["controls"] = dict(
+                        worker_profile.accelerator_controls
+                    )
             else:
                 request["accelerator"] = {
                     "profile_id": worker_profile.accelerator_profile_id,
@@ -533,9 +547,9 @@ def stage_request(
                 # The TPU preparation profile dispatches nothing and is bound to
                 # no device, so its block stays exactly as it was.
                 if worker_profile.accelerator_device_uuid is not None:
-                    request["accelerator"][
-                        "device_uuid"
-                    ] = worker_profile.accelerator_device_uuid
+                    request["accelerator"]["device_uuid"] = (
+                        worker_profile.accelerator_device_uuid
+                    )
         payload = _canonical(request) + b"\n"
         if len(payload) > CONTROL_BYTES:
             raise WorkerFailure(WorkerCode.STAGING)
@@ -567,9 +581,15 @@ def _permitted_request_schemas(request):
 
     The pairing is closed in both directions: a CPU request is v1, a strict
     accelerator request is v2 (historical, device-free), v3 (TPU) or v5 (with a
-    named device), a local development request is v4, and a miner-lane request
-    is v6. A block presented under another authority's schema, or a schema
-    presented with another authority's block, matches nothing and is refused.
+    named device), a local development request is v4 and v8 when it carries
+    resolved controls, and a miner-lane request is v6 and v7 when it does. A
+    block presented under another authority's schema, or a schema presented with
+    another authority's block, matches nothing and is refused.
+
+    Carrying controls is part of the pairing rather than an option within a
+    version, so a v6 body with a controls block and a v7 body without one are
+    both refused. Each (authority, carries-controls) pair has exactly one schema,
+    which is what keeps "closed in both directions" true after the addition.
     """
     from carbon.reconstruction.worker.model import (
         LOCAL_DEVELOPMENT_AUTHORITY,
@@ -581,9 +601,14 @@ def _permitted_request_schemas(request):
         return ("carbon.c03.worker-request.v1",)
     if type(accelerator) is dict:
         declared = accelerator.get("authority")
+        carries_controls = "controls" in accelerator
         if declared == LOCAL_DEVELOPMENT_AUTHORITY:
+            if carries_controls:
+                return ("carbon.c03.worker-request.v8",)
             return ("carbon.c03.worker-request.v4",)
         if declared == MINER_HOST_AUTHORITY:
+            if carries_controls:
+                return ("carbon.c03.worker-request.v7",)
             return ("carbon.c03.worker-request.v6",)
     return (
         "carbon.c03.worker-request.v2",
@@ -602,9 +627,16 @@ def _accelerator_request_schema(profile):
     if profile.accelerator_profile_id == TPU_PROFILE.profile_id:
         return "carbon.c03.worker-request.v3"
     if profile.accelerator_authority == LOCAL_DEVELOPMENT_AUTHORITY:
-        # A closed, separately versioned request form.
+        # A closed, separately versioned request form. Carrying the resolved
+        # controls adds a field, which is a different body and therefore a
+        # different version - a reader that accepts v4 keeps getting what v4
+        # meant, exactly as naming the device got v5 rather than widening v2.
+        if profile.accelerator_controls is not None:
+            return "carbon.c03.worker-request.v8"
         return "carbon.c03.worker-request.v4"
     if profile.accelerator_authority == MINER_HOST_AUTHORITY:
+        if profile.accelerator_controls is not None:
+            return "carbon.c03.worker-request.v7"
         return "carbon.c03.worker-request.v6"
     if profile.accelerator_device_uuid is not None:
         # Naming the device added a field to the strict block. That is a
@@ -616,12 +648,44 @@ def _accelerator_request_schema(profile):
     return "carbon.c03.worker-request.v2"
 
 
+_CONTROL_FIELDS = {
+    "productive_seconds",
+    "host_ram_bytes",
+    "output_bytes",
+    "worker_network",
+}
+
+
+def _request_controls(accelerator):
+    """The resolved controls from a staged accelerator block, or None.
+
+    A closed shape validated at the hostile decode boundary: exact keys, exact
+    types, and no negative or zero bound. `bool` is excluded explicitly because
+    it is an `int` subclass, so `True` would otherwise read as a one-second
+    deadline.
+    """
+    if "controls" not in accelerator:
+        return None
+    controls = accelerator["controls"]
+    if type(controls) is not dict or set(controls) != _CONTROL_FIELDS:
+        raise WorkerFailure(WorkerCode.INVALID)
+    for key in ("productive_seconds", "host_ram_bytes", "output_bytes"):
+        value = controls[key]
+        if type(value) is not int or value <= 0:
+            raise WorkerFailure(WorkerCode.INVALID)
+    if type(controls["worker_network"]) is not str:
+        raise WorkerFailure(WorkerCode.INVALID)
+    return dict(controls)
+
+
 def _request_worker_profile(request):
     replicate = request["replicate"]
     accelerator = request.get("accelerator")
     if accelerator is None:
-        return DevelopmentWorkerProfile(
-            replicate["policy_digest"], replicate["resource_class_digest"]
+        return RequestDerivedWorkerProfile.of(
+            DevelopmentWorkerProfile(
+                replicate["policy_digest"], replicate["resource_class_digest"]
+            )
         )
     from carbon.reconstruction.accelerators import TPU_PROFILE
     from carbon.reconstruction.worker.model import (
@@ -646,14 +710,28 @@ def _request_worker_profile(request):
         "role",
         "device_uuid",
     }
+    # Both weaker lanes may carry the controls the controller resolved. The
+    # shapes without them stay exactly as they were, so a body written before
+    # this change still reads as what it meant.
+    miner_controls_fields = miner_fields | {"controls"}
+    local_controls_fields = local_fields | {"controls"}
     # Two closed strict shapes, paired with the profile below: a device-backed
     # GPU launch names its device, and the device-free TPU preparation profile
     # must not be able to name one.
     strict_device_fields = {"profile_id", "grant_digest", "role", "device_uuid"}
     strict_fields = {"profile_id", "grant_digest", "role"}
-    if set(accelerator) == miner_fields:
+    if set(accelerator) in (miner_fields, miner_controls_fields):
         if accelerator["authority"] != MINER_HOST_AUTHORITY:
             raise WorkerFailure(WorkerCode.INVALID)
+        controls = _request_controls(accelerator)
+        # The one check on this path whose expected value is not read from the
+        # request. The miner lane has no approval to narrow anything, so its
+        # controls are `registered_run_controls()` - registered constants,
+        # computable from code - and anything else is refused. That preserves by
+        # intent what the absent field preserved by accident: no caller-supplied
+        # bound is trusted on this lane.
+        if controls is not None and controls != registered_run_controls():
+            raise WorkerFailure(WorkerCode.POLICY)
         profile = DevelopmentWorkerProfile(
             replicate["policy_digest"],
             replicate["resource_class_digest"],
@@ -665,10 +743,16 @@ def _request_worker_profile(request):
             MINER_HOST_AUTHORITY,
             None,
             accelerator["device_uuid"],
+            controls,
         )
-    elif set(accelerator) == local_fields:
+    elif set(accelerator) in (local_fields, local_controls_fields):
         if accelerator["authority"] != LOCAL_DEVELOPMENT_AUTHORITY:
             raise WorkerFailure(WorkerCode.INVALID)
+        # The local lane's controls come from the approval, whose values are not
+        # computable here, so this carries them and does not verify them. The
+        # approval digest is in the block and the staging boundary is what the
+        # lane's admission already rests on; the digest adds integrity against
+        # corruption and no trust the host did not already have.
         profile = DevelopmentWorkerProfile(
             replicate["policy_digest"],
             replicate["resource_class_digest"],
@@ -680,6 +764,7 @@ def _request_worker_profile(request):
             LOCAL_DEVELOPMENT_AUTHORITY,
             accelerator["diagnostic_plan_digest"],
             accelerator["device_uuid"],
+            _request_controls(accelerator),
         )
     elif set(accelerator) == strict_device_fields:
         # The device-naming strict shape. The device-free TPU preparation
@@ -722,7 +807,13 @@ def _request_worker_profile(request):
         raise WorkerFailure(WorkerCode.INVALID)
     if request["schema"] != _accelerator_request_schema(profile):
         raise WorkerFailure(WorkerCode.INVALID)
-    return profile
+    # Narrowed before it leaves. Everything above needs the full profile - the
+    # digest is computed over it and the schema is paired with it - and nothing
+    # downstream does: the digest comparison needs `.digest`, and admission
+    # routes on identity fields alone. Returning the wide type let a bound
+    # resolved from request bytes travel out of the reader, which is what
+    # `run_staged_worker` passes onward into `reconstruct`.
+    return RequestDerivedWorkerProfile.of(profile)
 
 
 def load_worker_request(

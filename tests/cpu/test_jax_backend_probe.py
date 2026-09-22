@@ -321,7 +321,13 @@ def test_staged_worker_probes_pinned_cpu_before_reconstruction(
 
     def reconstruct(**kwargs):
         calls.append("reconstruct")
-        assert kwargs["worker_profile"] == profile
+        # `run_staged_worker` passes the reader's narrowed profile, not the full
+        # one, so that a bound resolved from request bytes cannot travel into
+        # reconstruction. Same identity, asserted through the narrowing.
+        from carbon.reconstruction.worker.model import RequestDerivedWorkerProfile
+
+        assert kwargs["worker_profile"] == RequestDerivedWorkerProfile.of(profile)
+        assert not hasattr(kwargs["worker_profile"], "effective_deadline_seconds")
         assert profile.accelerator_profile_id is None
         raise protocol.ReconstructionFailure("test.stop.after.probe")
 
