@@ -364,12 +364,19 @@ def capability_catalog() -> dict:
             },
             {"id": "hermes", "reason": "adapter_not_implemented"},
             {
-                # Not unbuilt: `carbon.miner_mcp.standard_http` is an
-                # authenticated MCP resource server today. What it is bound to
-                # is one existing principal *and grant*, so an ordinary miner
-                # cannot reach it. The gap is the coupling, not the bridge.
+                # Read from the code rather than its docstring, which still
+                # says "principal/grant": nothing in `standard_http` touches a
+                # grant. `create_http_app` needs a principal-bound adapter and
+                # a `BoundTokenVerifier` over pinned RS256 public keys from an
+                # authorization server the operator supplies. Carbon runs no
+                # such server, and whose it should be is undecided.
+                #
+                # Scope note: this is the *remote authenticated* door. A miner
+                # bringing their own agent over stdio needs none of it and can
+                # connect today, so the BYO guarantee is not what is blocked
+                # here.
                 "id": "personal-agent",
-                "reason": "mcp_bridge_bound_to_a_development_grant",
+                "reason": "no_authorization_server_for_remote_authenticated_mcp",
             },
             {"id": "mira", "reason": "integration_interface_unverified"},
             {

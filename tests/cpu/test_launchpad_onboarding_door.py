@@ -64,12 +64,14 @@ def _context():
 def server(tmp_path, request):
     from scripts.dev.miner_launchpad.onboarding import BrowserOnboarding
 
-    reader = getattr(request, "param", None)
-    onboarding = (
-        BrowserOnboarding(reader=reader, context=_context())
-        if reader is not None
-        else BrowserOnboarding()
-    )
+    # Always a stub, never the default live reader. The door now defaults to
+    # Carbon's real testnet, which is right for a deployment and wrong for a
+    # test: without this the unparameterised cases would make actual network
+    # attempts, and their results would depend on whether testnet answered.
+    # That is what this file's "no chain is contacted" promise means, and it
+    # has to be kept here rather than relied on from the door's defaults.
+    reader = getattr(request, "param", None) or _Reader()
+    onboarding = BrowserOnboarding(reader=reader, context=_context())
     controller = launchpad.Controller(tmp_path / "runs.sqlite3")
     server = launchpad.Server(controller, TOKEN, port=0, onboarding=onboarding)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
@@ -238,3 +240,18 @@ def test_the_open_tier_creates_no_campaign_and_touches_no_ledger(server, tmp_pat
     assert server.controller.recent() == [], "no run was created"
     assert list(tmp_path.glob("**/campaign.sqlite3")) == []
     assert list(tmp_path.glob("**/campaign-manifest.json")) == []
+
+
+def test_no_test_in_this_file_contacts_a_chain(server):
+    """The promise in this file's docstring, made checkable.
+
+    The door defaults to a live reader against Carbon's testnet, which is
+    correct for a deployment. A test inheriting that default would make real
+    network calls and pass or fail on whether testnet answered - so the fixture
+    injects a stub, and this asserts it did rather than trusting that it will
+    keep doing so.
+    """
+    from carbon.chain.sdk import BittensorReader
+
+    assert type(server.onboarding.reader) is _Reader
+    assert not isinstance(server.onboarding.reader, BittensorReader)
