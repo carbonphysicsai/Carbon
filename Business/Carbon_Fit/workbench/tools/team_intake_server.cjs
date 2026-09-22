@@ -6,32 +6,18 @@ const http = require("node:http");
 const path = require("node:path");
 const F = require("../src/engine.js");
 const { DurableIntakeStore } = require("./team_intake_store.cjs");
+const { StaffDirectory } = require("./team_staff_directory.cjs");
 
 function loadUsers(usersPath) {
-  const users = JSON.parse(fs.readFileSync(path.resolve(usersPath), "utf8"));
-  if (!Array.isArray(users) || !users.length) throw Error("Named users are required");
-  return users;
+  return StaffDirectory.load(usersPath);
 }
 
 function authenticator(users) {
-  return function authenticate(request) {
-    const match = /^Bearer ([A-Za-z0-9._~-]{20,300})$/.exec(
-      request.headers.authorization || "",
-    );
-    if (!match) throw Error("Authentication required");
-    const digest = crypto.createHash("sha256").update(match[1]).digest("hex");
-    const user = users.find(
-      (candidate) =>
-        typeof candidate.token_sha256 === "string" &&
-        /^[0-9a-f]{64}$/.test(candidate.token_sha256) &&
-        crypto.timingSafeEqual(
-          Buffer.from(candidate.token_sha256),
-          Buffer.from(digest),
-        ),
-    );
-    if (!user) throw Error("Authentication failed");
-    return { id: user.principal, roles: user.roles };
-  };
+  // The directory issues the principal. This function no longer builds one,
+  // which is the point: there is now no code path that produces a principal
+  // without a credential that matched an account.
+  const directory = users instanceof StaffDirectory ? users : new StaffDirectory(users);
+  return (request) => directory.authenticate(request.headers.authorization);
 }
 
 function body(request) {
@@ -87,10 +73,49 @@ function createIntakeServer({ store, users }) {
         const event = await store.processOutbox(outboxMatch[1], null, principal);
         return send(response, event.status === "DELIVERED" ? 200 : 502, event);
       }
+      if (request.method === "GET" && url.pathname === "/private/intake")
+        return send(response, 200, {
+          inquiries: store.search(principal, {
+            includeArchived: url.searchParams.get("archived") === "include",
+          }),
+        });
+      const retentionMatch =
+        /^\/private\/intake\/([A-Za-z0-9._:-]+)\/(archive|restore|deletion-exception)$/
+          .exec(url.pathname);
+      if (retentionMatch && request.method === "POST") {
+        const [, inquiryId, action] = retentionMatch;
+        if (action === "archive")
+          return send(response, 200, store.archive(inquiryId, principal));
+        if (action === "restore")
+          return send(response, 200, store.restore(inquiryId, principal));
+        // Deletion is the exception to archival retention, so the approval is
+        // its own request with its own role. Without this route the delete
+        // endpoint below is unreachable, which is the shape of the problem:
+        // a precondition added at one layer and not served at the other.
+        const approval = F.strictJsonParse(await body(request), {
+          maxBytes: 8_000,
+          maxDepth: 4,
+        });
+        return send(
+          response,
+          201,
+          store.approveDeletionException(
+            inquiryId,
+            { approver: approval.approver, reason: approval.reason },
+            principal,
+          ),
+        );
+      }
       const exportMatch =
         /^\/private\/intake\/([A-Za-z0-9._:-]+)\/export$/.exec(url.pathname);
       if (exportMatch && request.method === "GET")
-        return send(response, 200, store.export(exportMatch[1], principal));
+        return send(
+          response,
+          200,
+          store.export(exportMatch[1], principal, {
+            includeArchived: url.searchParams.get("archived") === "include",
+          }),
+        );
       const match = /^\/private\/intake\/([A-Za-z0-9._:-]+)$/.exec(url.pathname);
       if (match && request.method === "GET")
         return send(response, 200, store.read(match[1], principal));

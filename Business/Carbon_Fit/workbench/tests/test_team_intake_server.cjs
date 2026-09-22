@@ -23,16 +23,30 @@ const TOKENS = {
 };
 const digest = (value) => crypto.createHash("sha256").update(value).digest("hex");
 
+const TEAM = "carbon-fit", OTHER_TEAM = "other-tenant";
+// Synthetic accounts. A directory holds credential digests and never a
+// credential; the tokens above exist only inside this test process.
+const account = (principal, roles, token, team = TEAM) => ({
+  principal,
+  team,
+  roles,
+  token_sha256: digest(token),
+  status: "ACTIVE",
+});
 const USERS = [
-  { principal: "ryan", roles: ["INTAKE_RECEIVER"], token_sha256: digest(TOKENS.receiver) },
-  { principal: "nick", roles: ["TEAM_REVIEWER"], token_sha256: digest(TOKENS.reviewer) },
-  { principal: "harsh", roles: ["DATA_STEWARD"], token_sha256: digest(TOKENS.steward) },
-  {
-    principal: "operations",
-    roles: ["NOTIFICATION_OPERATOR"],
-    token_sha256: digest(TOKENS.notifier),
-  },
-  { principal: "stranger", roles: [], token_sha256: digest(TOKENS.stranger) },
+  account("receiver-account", ["INTAKE_RECEIVER"], TOKENS.receiver),
+  account("reviewer-account", ["TEAM_REVIEWER"], TOKENS.reviewer),
+  account("steward-account", ["DATA_STEWARD"], TOKENS.steward),
+  account("operations-account", ["NOTIFICATION_OPERATOR"], TOKENS.notifier),
+  // Every role this receiver defines, and none of this team's records. The
+  // denial below is about who owns the inquiry, not about what the caller may
+  // do, which is the case a role check alone would let through.
+  account(
+    "foreign-account",
+    ["INTAKE_RECEIVER", "TEAM_REVIEWER", "DATA_STEWARD", "NOTIFICATION_OPERATOR"],
+    TOKENS.stranger,
+    OTHER_TEAM,
+  ),
 ];
 
 function reviewedRaw() {
@@ -148,7 +162,6 @@ test("every endpoint checks the caller's role and denies an unrelated principal"
     const id = accepted.inquiry_id;
     const denied = [
       ["POST", "/private/intake", TOKENS.reviewer],
-      ["GET", `/private/intake/${id}`, TOKENS.stranger],
       ["GET", `/private/intake/${id}/export`, TOKENS.receiver],
       ["PATCH", `/private/intake/${id}`, TOKENS.receiver],
       ["DELETE", `/private/intake/${id}`, TOKENS.reviewer],
@@ -172,6 +185,30 @@ test("every endpoint checks the caller's role and denies an unrelated principal"
       (await fixture.call("GET", `/private/intake/${id}`, { token: "not-a-known-token-000000" })).status,
       403,
     );
+    // A fully-roled principal from another team is refused, and refused as a
+    // 404: whether this receiver holds that inquiry is not something a foreign
+    // caller gets to learn by watching the status code change.
+    const foreign = await fixture.call("GET", `/private/intake/${id}`, {
+      token: TOKENS.stranger,
+    });
+    assert.equal(foreign.status, 404);
+    assert.equal(
+      (await fixture.call("GET", "/private/intake/inquiry-000000000000000", {
+        token: TOKENS.stranger,
+      })).status,
+      404,
+    );
+    for (const route of [`/private/intake/${id}/export`, "/private/outbox"])
+      assert.equal(
+        [404, 200].includes((await fixture.call("GET", route, { token: TOKENS.stranger })).status),
+        true,
+      );
+    // ... and its view of the queue is empty rather than another team's.
+    assert.deepEqual(
+      (await (await fixture.call("GET", "/private/outbox", { token: TOKENS.stranger })).json()).events,
+      [],
+    );
+
     // The allowed roles still work.
     assert.equal(
       (await fixture.call("GET", `/private/intake/${id}`, { token: TOKENS.reviewer })).status,
@@ -298,4 +335,107 @@ test("hostile request bodies and unknown routes reject without storing anything"
   } finally {
     fixture.close();
   }
+});
+
+test("the retention lifecycle is reachable over HTTP and each step checks its own role", async () => {
+  const fixture = await started();
+  try {
+    const accepted = await (
+      await fixture.call("POST", "/private/intake", {
+        token: TOKENS.receiver,
+        body: reviewedRaw(),
+        headers: { "idempotency-key": "submit-retention-001" },
+      })
+    ).json();
+    const id = accepted.inquiry_id;
+
+    // Deletion without an approved exception is refused, and the refusal is
+    // about retention rather than about the caller's role.
+    const premature = await fixture.call("DELETE", `/private/intake/${id}`, {
+      token: TOKENS.steward,
+    });
+    assert.equal(premature.status, 400);
+    assert.match((await premature.json()).error, /approved retention exception/);
+
+    // Every retention route refuses a caller without the steward role.
+    for (const [method, route, body] of [
+      ["POST", `/private/intake/${id}/archive`, "{}"],
+      ["POST", `/private/intake/${id}/restore`, "{}"],
+      ["POST", `/private/intake/${id}/deletion-exception`, JSON.stringify({ approver: "Ryan Bequette", reason: "Synthetic cleanup." })],
+    ])
+      assert.equal(
+        (await fixture.call(method, route, { token: TOKENS.reviewer, body })).status,
+        403,
+        `${method} ${route}`,
+      );
+
+    const archived = await fixture.call("POST", `/private/intake/${id}/archive`, {
+      token: TOKENS.steward, body: "{}",
+    });
+    assert.equal(archived.status, 200);
+    assert.equal((await archived.json()).lifecycle, "ARCHIVED");
+
+    // Out of the working set, and an export of it has to be asked for.
+    assert.deepEqual(
+      (await (await fixture.call("GET", "/private/intake", { token: TOKENS.reviewer })).json()).inquiries,
+      [],
+    );
+    assert.equal(
+      (await (await fixture.call("GET", "/private/intake?archived=include", { token: TOKENS.reviewer })).json()).inquiries.length,
+      1,
+    );
+    assert.equal(
+      (await fixture.call("GET", `/private/intake/${id}/export`, { token: TOKENS.reviewer })).status,
+      400,
+    );
+    assert.equal(
+      (await fixture.call("GET", `/private/intake/${id}/export?archived=include`, { token: TOKENS.reviewer })).status,
+      200,
+    );
+
+    const exception = await fixture.call("POST", `/private/intake/${id}/deletion-exception`, {
+      token: TOKENS.steward,
+      body: JSON.stringify({ approver: "Ryan Bequette", reason: "Synthetic fixture cleanup only." }),
+    });
+    assert.equal(exception.status, 201);
+    assert.equal((await exception.json()).approver, "Ryan Bequette");
+    // An approval with no named approver is refused rather than attributed to
+    // the authenticated caller: who approved a deletion and who carried it out
+    // are different facts, and conflating them is how an approval disappears.
+    assert.equal(
+      (await fixture.call("POST", `/private/intake/${id}/deletion-exception`, {
+        token: TOKENS.steward, body: JSON.stringify({ reason: "Synthetic cleanup." }),
+      })).status,
+      400,
+    );
+
+    const deleted = await fixture.call("DELETE", `/private/intake/${id}`, { token: TOKENS.steward });
+    assert.equal(deleted.status, 200);
+    const tombstone = await deleted.json();
+    assert.equal(tombstone.approved_by, "Ryan Bequette");
+    assert.equal(tombstone.deleted_by, "steward-account");
+    assert.deepEqual(tombstone.did_not_reach, ["RETAINED_ARCHIVE", "PRIOR_EXPORTS", "PROVIDER_RECORDS"]);
+    assert.equal(
+      (await fixture.call("GET", `/private/intake/${id}`, { token: TOKENS.reviewer })).status,
+      404,
+    );
+  } finally {
+    fixture.close();
+  }
+});
+
+test("the receiver holds no state of its own and mints no identity", () => {
+  // The role checks live in the store, and this is what makes "every endpoint
+  // is checked" true for routes as well: a route has nothing to read except
+  // through a store method that validates its principal. A route that reached
+  // into `store.state` would bypass every one of them, and a route that built
+  // its own principal would bypass authentication, so neither may appear here.
+  const source = fs.readFileSync(path.join(ROOT, "tools/team_intake_server.cjs"), "utf8");
+  assert.equal(/store\.state/.test(source), false);
+  assert.equal(/new StaffPrincipal|ISSUED_BY_AUTHENTICATION/.test(source), false);
+  // Exactly one place resolves an identity, and it is the directory.
+  assert.equal((source.match(/directory\.authenticate/g) || []).length, 1);
+  // Falsification: the same reading applied to a source that does reach in.
+  const reaching = source.replace("store.search(principal", "store.state.inquiries; store.search(principal");
+  assert.equal(/store\.state/.test(reaching), true);
 });
