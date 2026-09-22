@@ -12,6 +12,7 @@ from pathlib import Path
 from carbon import audit, mcp
 from carbon.chain import ChainContext
 from carbon.chain.auth import BittensorHotkeyVerifier, BittensorMessageSigner
+from carbon.chain.models import CARBON_NETUID, CARBON_NETWORK
 from carbon.chain.sdk import BittensorReader
 from carbon.construction import CompileAccepted
 from carbon.execution import DurableExecutionQueue, ExecutionScope
@@ -227,8 +228,11 @@ class LocalMinerConnection:
         self.development_comparison_feedback[submission] = ref
 
     def __post_init__(self):
-        if self.chain_context.netuid != 567 or self.chain_context.network != "testnet":
-            raise ValueError("public testnet 567 required")
+        if (
+            self.chain_context.netuid != CARBON_NETUID
+            or self.chain_context.network != CARBON_NETWORK
+        ):
+            raise ValueError(f"public {CARBON_NETWORK} {CARBON_NETUID} required")
         if self.miner_key.ss58_address == self.publisher:
             raise ValueError("distinct miner hotkey required")
         if self.research_inputs is not None:

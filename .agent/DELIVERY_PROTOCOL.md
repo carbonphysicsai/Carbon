@@ -41,6 +41,46 @@ human-reserved decision can stop the affected work. A review receipt, prose
 formatting issue, bot outage, or incomplete historical ceremony cannot.
 Never suppress a failing test, invent a pass, or relabel qualification.
 
+### 1.1 Enforce properties by construction
+
+When a value must satisfy a property before it is used, prefer a design where an
+object that does not satisfy it cannot be constructed, over one that checks the
+property at the point of use. A check is a thing that can be incomplete or
+bypassed; a type that cannot be built from unvalidated input has nothing to get
+wrong later, and its error lands where the mistake was made rather than wherever
+the value is eventually written.
+
+The transferable part is a question to ask, not a pattern to apply:
+
+> **What establishes this property, and what happens when someone constructs the
+> object differently?**
+
+If the answer is a flag, a naming convention, a comment, or a re-check inside the
+consumer, the property is true but unenforced. Three workstreams reached this
+independently on 2026-09-21, each by a different route: a second call site found
+by tracing (`#256`), a hand-maintained list found by going stale (`#258`), and a
+validator found by a test failing on the wrong branch (`#257` lineage). None was
+found by agreeing with the principle in advance.
+
+A useful check on whether a design actually achieved it: a *valid* value, passed
+in its raw underlying form, should still be refused. Nothing about that value is
+wrong; it is refused because it did not come through validation, which is exactly
+the property a check at the point of use cannot establish.
+
+Two corollaries that recur:
+
+- **The generic-error branch is the highest-risk surface in a validator.** It is
+  the path nobody designs, so it is where unvalidated input goes to be logged or
+  echoed. Prefer a specific refusal that names the mistake, and inspect what the
+  catch-all does with what it was handed.
+- **A closed schema and a positive format check answer different questions.** A
+  closed shape is a complete structural guarantee against a hostile caller and
+  says nothing about an honest user making the most natural mistake available to
+  them. Passing one is not evidence about the other.
+
+This is an engineering standard, not a new delivery gate. It adds no required
+review, check, or approval, and nothing here blocks a merge.
+
 ## 2. Validation budget
 
 

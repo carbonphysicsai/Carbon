@@ -65,7 +65,7 @@ different things**. Neither may be erased to make a comparison pass.
 | Determinism flags | `--xla_gpu_deterministic_ops=true`, `--xla_gpu_exclude_nondeterministic_ops=true`, `--xla_gpu_autotune_level=0` |
 | Environment | `NVIDIA_TF32_OVERRIDE=0`, `CUBLAS_WORKSPACE_CONFIG=:4096:8` |
 | Worker image | `ghcr.io/carbonphysicsai/carbon-accelerator-worker@sha256:e4a2014daa9abc4e3df0bb890bc031a6a859ae21f42d4bec0a0494e25d949794` - public, pullable with no credential, **by digest never by tag** |
-| Carbon revision | `HUMAN_INPUT` - **recorded separately**; the image digest does not pin it (see below) |
+| Carbon revision | recorded per run, and **must contain `scripts/dev/gpu_determinism_study/run_on_pod.sh`**; the image digest does not pin it (see below). Not `6d630d4f` - that is the C-CORE-21 merge and predates the pod-native runner, so a study run at it could not have executed on a pod at all |
 | Device model / class | **L40S** declared, **A40** as second class (`TWO_HOST_STUDY_ACCEPTANCE.md` §3, §7) |
 | Driver version | `HUMAN_INPUT` - recorded per host; not pinned by Carbon; **must match across compared units** |
 | Orchestration | see below - **not** `validator_launch.launch()` on a container-as-a-service provider |
@@ -80,7 +80,7 @@ measurement did. So the execution class records the **image digest and the Carbo
 revision**, and a comparison is only like-for-like when both match.
 
 **It does not settle how the container is launched, and on a rented pod neither
-delivered path is available.** `validator_launch.launch()` spawns a container
+docker-based path is available.** `validator_launch.launch()` spawns a container
 through the Docker CLI, and the study harness is itself `docker run`. RunPod
 pods use custom images and cannot build or run containers, so on that provider
 **the pod image is the execution vehicle** and the reconstruction runs directly
@@ -94,10 +94,101 @@ read-only root, dropped capabilities, seccomp, cgroup limits - nor admission, th
 worker profile, the device lease or task-owned cleanup, all of which come from
 the provider's runtime instead.
 
+**The pod-native runner exists.** `scripts/dev/gpu_determinism_study/run_on_pod.sh`
+runs a session directly inside the pod image with no daemon: it exports the
+numerics environment, names and pins the device, checks the Carbon checkout is
+the exact revision the execution class names, and executes the same
+`repeat_gpu.py` the docker path uses.
+
+**The revision check does not use `git`, because the image has none.** Nor does
+it have `curl`, `wget` or a CA bundle, so the checkout cannot be fetched from
+inside either: an HTTPS download could complete only with certificate
+verification disabled, which would mean taking the revision over a channel it
+cannot authenticate, in a study whose subject is provenance. The checkout
+therefore arrives on a mounted volume staged by a separate pod that has `git` and
+runs no part of the study, and `stage_manifest.py verify` recomputes a digest of
+the tree and compares it. That is stronger than the `git rev-parse` and
+`git diff --quiet` it replaces, which asked git's opinion of the working tree
+where this reads the tree.
+
+**Device identity is read through `libnvidia-ml`.** `nvidia-smi` is absent and
+JAX exposes no UUID, PCI address or serial - only an index and a model name - so
+a study recording "device 0" and "device 1" would be recording two indices whose
+mapping to hardware is preserved nowhere, which is not an answer to a per-device
+question. An unnameable device stops the session rather than being recorded under
+its index.
+
+**It refuses to run unpinned.** Under `docker run` the determinism flags arrived
+as `-e` arguments the daemon applied, so a missing one produced a failed
+container. On a pod there is no daemon and nothing fails - the run proceeds
+unpinned and looks pinned in every respect except the numbers, which would put
+process-level divergence into a cross-device comparison and invite blaming the
+device. So the run reads its own numerics record back and stops before any
+reconstruction if the three XLA flags, `NVIDIA_TF32_OVERRIDE=0`,
+`CUBLAS_WORKSPACE_CONFIG=:4096:8` or the GPU backend are not actually in effect,
+emitting a `REFUSED_UNPINNED` record naming each one.
+
+**It also refuses the wrong environment, by properties rather than by digest.**
+Under `docker run` the image was named by digest in the command, so the daemon
+enforced it. On a pod it is whatever was selected at provisioning, and a tag
+instead of a digest resolves to something else silently. So the run checks the
+interpreter, `jax` and `jaxlib` versions and the CUDA line against what the
+profile declares, and refuses with `REFUSED_WRONG_ENVIRONMENT` on a mismatch.
+
+**This is strictly weaker than comparing the image digest and must be recorded in
+those words.** A container cannot read its own image digest - labels and digests
+are registry and daemon metadata, not filesystem - so what is checked are the
+properties the digest was pinning, never byte identity with the published image.
+Where a property cannot be read at all, as the CUDA runtime version cannot be on
+some plugin builds, the run records it as **unverifiable** and proceeds rather
+than refusing: treating "could not check" as "wrong" would be the same error as
+treating "could not observe" as "nothing was there". The record carries which
+properties were verified and which were not, so the evidence never implies a
+check that did not happen.
+
+**Materials are derived in the pod**, from the pinned revision, rather than
+shipped in. Copying them would introduce a third thing to trust - the machine
+that staged them - whose state is not part of the execution class and is recorded
+nowhere. Deriving them in place means the execution class already describes them,
+and the plan digest is asserted either way.
+
 > **Record the path actually used**, in these words where they apply: *direct
 > execution inside the pinned image; not `validator_launch`; containment from the
 > provider's runtime.* A study that measured a different path than the one it
 > claims is not an exact replay of anything.
+
+### The pod path was exercised in the pinned image before anything was rented
+
+Not on the pod - on the development host, running the pinned image with the
+volume simulated by a read-only mount, a `tmpfs` at `/tmp` and nothing else
+writable, which is the shape the pod presents. This is what the check is for: the
+runner's first draft assumed a Docker host in four places, and each one would
+have been discovered on rented hardware at rented prices.
+
+| Checked | Result |
+|---|---|
+| Staged-revision verification | passes on the staged tree; refuses a wrong revision and a tree edited after staging, exit 2, before any device work |
+| Device identity | UUID read through `libnvidia-ml` where `nvidia-smi` is absent |
+| In-pod material derivation | plan digest reproduced the host's exactly |
+| Pinned, 3 fresh sessions | **1 digest**, `83e523384fd44db6…` |
+| Unpinned, 3 fresh sessions | **3 digests**, one per session |
+| Agreement with the container path | the pinned digest is the one the `docker run` path produces on the same device |
+
+The last row is the one that matters: the pod path is not merely
+self-consistent, it produces the *same weights* as the containerised path, so the
+two are the same execution with different containment.
+
+**`STUDY_RUNS` repeats inside one process, and that is not the same experiment as
+repeating the script.** Measured here: unpinned, the autotuner chooses kernels
+once per process and reuses them, so two in-session repeats reproduced
+bit-identically on a device where three fresh processes gave three different
+answers. A session is one invocation of the runner. Running it once with
+`STUDY_RUNS=9` would produce a confident, worthless result.
+
+**Two limits this did not clear.** The development host's GPU is not the rented
+class, so nothing here is evidence about an L40S or an A40; and the CUDA runtime
+version was unreadable on this build, so the environment check recorded it as
+unverifiable rather than verified. Both are recorded in the run records as such.
 
 This is a constraint on Carbon's deployment design and worth stating as such:
 **the worker assumes its host can spawn containers**, so container-as-a-service

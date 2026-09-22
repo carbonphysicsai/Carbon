@@ -396,9 +396,20 @@ jobs:
           fi
 
           # OWNER-CW1-DEVELOPMENT-CI-01 BEGIN
+          # Read this before deriving a constraint from the digests below.
+          # This block is conditional on one historical base commit, so for every
+          # current base it does not execute and the digests are never checked.
+          # They are kept truthful as hygiene, not because they are the
+          # protection: a stale pin would fail a PR that rebased onto that base
+          # for reasons unrelated to its content.
+          # The actual protection against a pull request reclassifying itself is
+          # the comparison further down, where the scope derived from the
+          # protected BASE classifier must equal the scope preflight derived from
+          # the CANDIDATE classifier. A change to the classifier therefore has to
+          # avoid touching any path the two versions would score differently.
           if [[ "${BASE_SHA}" == "d1d07bb408a2b68efed70baf7e11ec22bb180c9d" ]]; then
-            printf '%s\n' "0e13891e2ed9023650aafdc2456672a6eecc2fc1c4b32dbe257ae57a01b4bc9d  .carbon-gate-candidate/scripts/dev/classify_changes.py" | sha256sum --check --strict
-            printf '%s\n' "74ba0d15136cc85c06ff6d143293f37ea4d18388a5fc6ca8b1720cf019ad887d  .carbon-gate-candidate/scripts/dev/development_scope.py" | sha256sum --check --strict
+            printf '%s\n' "7718c70b39bfc269bafe7e308243a866a9184095a36d8dfa551ab5161a187c0e  .carbon-gate-candidate/scripts/dev/classify_changes.py" | sha256sum --check --strict
+            printf '%s\n' "8f061b9f5f7ce705d8824358ef34d38e1578b17c5965b088fa81e945ce2b987a  .carbon-gate-candidate/scripts/dev/development_scope.py" | sha256sum --check --strict
             classifier=.carbon-gate-candidate/scripts/dev/classify_changes.py
             echo "Using owner-authorized exact DEVELOPMENT classifier migration; protected-base Merge gate retained."
           fi

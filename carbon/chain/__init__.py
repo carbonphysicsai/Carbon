@@ -2,6 +2,8 @@
 
 from .adapter import ReadOnlyChainAdapter
 from .models import (
+    CARBON_NETUID,
+    CARBON_NETWORK,
     ChainAdapter,
     ChainContext,
     ChainFailure,
@@ -12,6 +14,8 @@ from .models import (
 from .sdk import BittensorReader
 
 __all__ = [
+    "CARBON_NETUID",
+    "CARBON_NETWORK",
     "BittensorReader",
     "ChainAdapter",
     "ChainContext",
