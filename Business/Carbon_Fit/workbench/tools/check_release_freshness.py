@@ -46,6 +46,7 @@ GENERATOR_OUTPUTS: tuple[tuple[str, tuple[str, ...]], ...] = (
             "Carbon_Opportunity_Workbench.html",
             "Carbon_Client_Intake_Preview.html",
             "Carbon_Client_Pilot_Designer_Preview.html",
+            "Carbon_Public_Workbench_Onboarding.html",
         ),
     ),
     (

@@ -303,6 +303,37 @@ class FreshnessGateTest(unittest.TestCase):
                     "the default build must not reference an external origin",
                 )
 
+    def test_the_public_edition_is_a_declared_artifact_and_stays_offline(self):
+        """GOAL-WORKBENCH-14: a stale public bundle must fail like any other.
+
+        The public onboarding edition is generated, so it can go stale, and it
+        is the one artifact a prospective client would be handed. It is declared
+        to this gate for exactly that reason.
+        """
+        tree = self.fresh_tree()
+        page = tree / "Carbon_Public_Workbench_Onboarding.html"
+        self.assertTrue(page.is_file())
+        html = page.read_text(encoding="utf-8", errors="ignore")
+        # Phase 1 has no network capability of any kind.
+        self.assertIn("connect-src 'none'", html)
+        self.assertIn("form-action 'none'", html)
+        for scheme in ("http://", "https://"):
+            for marker in ("src=", "href=", "fetch("):
+                self.assertNotIn(marker + '"' + scheme, html)
+        # And it claims nothing.
+        self.assertIn("NOT_QUALIFIED", html)
+        self.assertNotIn("SCIENTIFICALLY_QUALIFIED", html)
+
+    def test_a_stale_public_edition_is_reported(self):
+        tree = self.fresh_tree()
+        source = tree / "src/public_app.js"
+        source.write_text(
+            source.read_text(encoding="utf-8") + "\n// drift\n", encoding="utf-8"
+        )
+        result = _gate(tree)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("Carbon_Public_Workbench_Onboarding.html", result.stderr)
+
     def test_regeneration_does_not_promote_qualification_or_launch(self):
         tree = self.fresh_tree()
         html = (tree / HTML).read_text(encoding="utf-8", errors="ignore")

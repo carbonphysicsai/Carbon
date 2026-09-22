@@ -10,7 +10,7 @@ from __future__ import annotations
 import math
 import os
 import re
-from contextlib import contextmanager
+from contextlib import ExitStack, contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 from types import SimpleNamespace
@@ -168,11 +168,23 @@ def shared_host_lease():
     """
     from carbon.development_session.research_carrier import _numerical_lease
 
+    lease = _numerical_lease(SimpleNamespace(root=HOST_ROOT))
+    # Only acquisition is translated. `yield` used to sit inside this `try`, so
+    # an OSError or ValueError raised by the *body* propagated into the
+    # generator here and was caught beside a genuine lock failure - and the
+    # caller was told CONFLICT, which asserts that another holder has the single
+    # Carbon device slot. A workload error reported as contention sends an
+    # operator to diagnose a slot that is not contended, and hides the real
+    # error in attempt accounting.
     try:
-        with _numerical_lease(SimpleNamespace(root=HOST_ROOT)):
-            yield
+        lease.__enter__()
     except (OSError, ValueError):
         raise WorkerFailure(WorkerCode.CONFLICT) from None
+    # Release stays guaranteed, and the exception reaches `__exit__` intact
+    # rather than as None: a lease that inspects what went wrong still can.
+    with ExitStack() as stack:
+        stack.push(lease)
+        yield
 
 
 @contextmanager

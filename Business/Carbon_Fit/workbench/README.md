@@ -1,5 +1,23 @@
 # Carbon Goal-to-Challenge Workbench v0.10
 
+GOAL-WORKBENCH-14 adds a public onboarding edition,
+`Carbon_Public_Workbench_Onboarding.html`. It is built from the same sources as
+the internal bundle, runs entirely in a visitor's browser with
+`connect-src 'none'`, guides a non-expert through the internal design's own
+scope fields, runs the accepted structural check unchanged, and exports a
+`carbon.public-workbench.workspace.v1` artifact that the internal Workbench
+imports as the same draft through `CarbonGoalWorkflow.importPublicScoping`.
+
+It is an onboarding and scoping aid. It qualifies no physics, measures nothing
+and commits Carbon to nothing, and because the accepted check currently has one
+source template whose numerical definition is held by the private service, a
+visitor's best outcome is every issue that is theirs closed and one issue
+remaining that only Carbon can close. That is reported as Carbon's rather than
+presented as the visitor's failure, and the status stays the check's own
+`INPUTS_UNRESOLVED`. Phase 1 has no AI assistance, no receiver and no
+deployment; the live `/workbench/` page is not in this repository and is
+unchanged.
+
 GOAL-WORKBENCH-13 repairs three defects found in review of the merged
 GOAL-WORKBENCH-12. The browser study adapter never sent the bearer credential
 the private host requires, so the real browser connection failed while the

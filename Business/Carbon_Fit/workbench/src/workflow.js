@@ -14,6 +14,9 @@
   const R =
     root.CarbonGoalRouting ||
     (typeof require !== "undefined" ? require("./routing.js") : null);
+  const PUB =
+    root.CarbonPublicWorkbench ||
+    (typeof require !== "undefined" ? require("./public_workbench.js") : null);
   const VERSION = "carbon.goal-workbench.design.v0.10",
     WORKSPACE_VERSION = "carbon.goal-workbench.workspace.v0.10",
     APP_VERSION = "Carbon Goal-to-Challenge Workbench v0.10";
@@ -1569,6 +1572,67 @@
     return recordImpact(d, field, note);
   }
 
+  /** Build one unassessed job from a public onboarding artifact.
+   *
+   * The artifact is a client assertion about their own problem and nothing
+   * more. It is imported through the same `newDesign` constructor every other
+   * draft uses, so every field the client does not own keeps its unresolved
+   * default — rights `UNRESOLVED`, qualification `NOT_QUALIFIED`, no cases, no
+   * evidence, no assessment — and the result is validated rather than trusted.
+   *
+   * The scope arrives through `applyChange`, which is the same path an analyst
+   * editing the design uses, so the change log records where each value came
+   * from instead of the values appearing with no history.
+   *
+   * This adds an import path; it changes none. The accepted intake import and
+   * its preview/commit semantics are untouched.
+   */
+  function importPublicScoping(artifact, options = {}) {
+    if (!PUB) throw Error("Public onboarding module unavailable");
+    PUB.validateDraft({
+      schema_version: artifact.schema_version,
+      design_id: artifact.design_id,
+      revision: artifact.revision,
+      scope: artifact.scope,
+      reference_plan: artifact.reference_plan,
+    });
+    const jobId = ident(options.jobId || artifact.design_id + "-job", "job ID");
+    const job = newJob(
+      jobId,
+      str(
+        options.title || "Public onboarding draft " + artifact.design_id,
+        "job title",
+        300,
+        false,
+      ),
+    );
+    // The client's own design identity and revision, not a fresh one. The
+    // point of the artifact is that both sides can name the same draft.
+    const design = newDesign(jobId, artifact.design_id, artifact.revision);
+    for (const field of PUB.SCOPE_FIELDS)
+      applyChange(
+        design,
+        field,
+        artifact.scope[field],
+        "Client-authored public onboarding draft " + artifact.digest,
+      );
+    for (const field of PUB.REFERENCE_FIELDS)
+      design.reference_plan[field] = str(
+        artifact.reference_plan[field],
+        "reference " + field,
+      );
+    job.designs = [design];
+    job.working_design_id = design.design_id;
+    // The client authored this themselves with no assistance, which is what
+    // DIRECT_INTAKE means here. Recording it as ASSISTED would claim an
+    // assistance step that Phase 1 does not have.
+    job.created_from = "DIRECT_INTAKE";
+    job.assignment.client_source =
+      "Public Workbench onboarding edition, artifact " + artifact.digest;
+    validateJob(job);
+    return { job, design };
+  }
+
   function intakeRecordFrom(inspection, mappedRequirementIds) {
     return {
       draft_id: inspection.draft.draft_id,
@@ -2652,6 +2716,7 @@
     extensionRequest,
     semanticCompare,
     importAuthoringResult,
+    importPublicScoping,
     handoff,
     markExported,
     validateResponse,
