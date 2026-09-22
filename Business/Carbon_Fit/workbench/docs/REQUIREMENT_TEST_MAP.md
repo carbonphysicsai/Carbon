@@ -32,6 +32,11 @@ This map describes focused application acceptance. It does not relabel the CPES 
 | Durable receipt before acknowledgment | `team_intake_store.cjs` atomic store | restart/response-loss retry test | Synthetic/local store only |
 | Idempotency and optimistic concurrency | idempotency map; expected version | conflict and stale update tests | No multi-region synchronization |
 | Named-user authorization and deletion | least-privilege principal roles; tombstone | unauthorized read/export/delete and lifecycle tests | Production staff/retention decisions pending |
+| Staff identity is authenticated, not asserted | `team_staff_directory.cjs` issues every principal; the store accepts no other value | forged-literal, prototype-forgery and per-endpoint enumeration tests | Real accounts, credentials and rotation remain owner input |
+| One team's records stay inside that team | owning team taken from the authenticated identity | cross-team denial matched against the not-found refusal | Single-tenant synthetic fixtures only |
+| Retention is versioned, and deletion is the exception | `RETENTION_POLICY` v1; archive/restore/search/export effects; approved exception | retention guarantees, each with a store built to violate it | Period, legal basis and approver are `null` pending OD-25 |
+| Deletion states what it did not reach | tombstone `reached` / `did_not_reach` | tombstone scope test and its violating variant | Retained archives, prior exports and provider records are out of reach by design |
+| A damaged or interrupted store does not start empty | unique temporary write, fsync, rename; open refuses damaged bytes | restart, damaged-file and failed-rename recovery tests | Single-file local store; no multi-writer coordination |
 | Notification failure cannot lose inquiry | transactional outbox | failure then recovery test | No person-directed notification sent |
 | Four complete synthetic workflows | frozen GW09 scenario records | `test_team_journeys.cjs` | Not customer demand or usability evidence |
 | Core task integration does not duplicate runtime | three issue #209 dependency rows | exact-binding/availability validation; browser display | v0.9 kept all rows pending; v0.10 changes only the accepted bounded adapter |

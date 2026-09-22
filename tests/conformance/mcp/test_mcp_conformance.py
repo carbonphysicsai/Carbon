@@ -38,6 +38,9 @@ MUTATION_CONTROLS = {
     "encoded_accepted": "strict_inputs_reject_encoded_objects",
     "schema_claims_dispatch": "schema_rejection_precedes_dispatch",
     "impossible_code": "adapter_error_contract",
+    "catalogue_unversioned": "surface_catalogue_is_versioned",
+    "catalogue_conflates_surface": "surface_catalogue_separates_surface_from_science",
+    "records_claim_arguments": "record_policy_is_declared",
 }
 
 # Each stub violates one requirement and must fail that requirement's check.
@@ -48,6 +51,10 @@ NEGATIVE_CONTROLS = {
     "error_leaks_internals": "errors_do_not_leak_internals",
     "advertises_unperformable": "capability_discovery_is_performable",
     "loses_task_identity": "durable_identity_survives_reconnect",
+    "catalogue_drifts_from_tools": "surface_catalogue_matches_served_tools",
+    "refuses_outside_declared_vocabulary": "refusal_vocabulary_is_declared",
+    "next_action_varies_per_call": "refusal_next_action_is_fixed_and_declared",
+    "capacity_refusal_claims_dispatch": "capacity_bound_is_declared_and_honoured",
 }
 
 
