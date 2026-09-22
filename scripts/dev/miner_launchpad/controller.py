@@ -333,6 +333,18 @@ def research_compute_choices() -> list:
     ]
 
 
+def _default_onboarding():
+    """A browser door onto the shared service, with no chain configured.
+
+    Kept absent rather than invented: `requirements` answers without a chain,
+    and the reads say plainly that the operator configured no endpoint instead
+    of guessing one.
+    """
+    from scripts.dev.miner_launchpad.onboarding import BrowserOnboarding
+
+    return BrowserOnboarding()
+
+
 def capability_catalog() -> dict:
     return {
         "schema": SCHEMA,
@@ -383,12 +395,17 @@ class Server(ThreadingHTTPServer):
         *,
         development_sources=None,
         research_runner=None,
+        onboarding=None,
     ):
         if len(token) < 32:
             raise ValueError("A generated local session token is required")
         self.controller = controller
         self.development_sources = development_sources
         self.research_runner = research_runner
+        # Open tier: available without a research profile, a grant or a
+        # registered hotkey, because onboarding exists for people who have none
+        # of those yet.
+        self.onboarding = onboarding or _default_onboarding()
         self.token = token
         self.assets = Path(__file__).parent
         self.request_slots = threading.BoundedSemaphore(16)
@@ -464,6 +481,9 @@ class Handler(BaseHTTPRequestHandler):
             self.check(authenticated=True)
             if self.path == "/api/v1/capabilities":
                 self.reply(200, capability_catalog())
+            elif self.path == "/api/v1/onboarding/requirements":
+                # Open tier. No campaign, no compute, no ledger.
+                self.reply(200, self.server.onboarding.requirements())
             elif self.path == "/api/v1/exam-environment":
                 # Available with no research profile, grant or agent configured.
                 # A miner deciding whether to take part is entitled to read what
@@ -540,7 +560,24 @@ class Handler(BaseHTTPRequestHandler):
             if len(body) != length:
                 raise Rejected("incomplete_body")
             value = parse_json(body)
-            if self.path == "/api/v1/research":
+            if self.path.startswith("/api/v1/onboarding/"):
+                action = self.path.removeprefix("/api/v1/onboarding/")
+                if action not in {"status", "prepare", "confirm"}:
+                    raise Rejected("unknown_onboarding_action", 404)
+                if type(value) is not dict or set(value) != {"address"}:
+                    raise Rejected("closed_onboarding_request_required")
+                from carbon.development_session.chain_onboarding import (
+                    OnboardingFailure,
+                )
+
+                try:
+                    result = getattr(self.server.onboarding, action)(value["address"])
+                except OnboardingFailure as failure:
+                    # Actionable and closed: a reason a client can branch on and
+                    # the next usable step, never a provider message or a trace.
+                    self.reply(409, failure.body())
+                    return
+            elif self.path == "/api/v1/research":
                 runner = self.server.research_runner
                 if runner is None:
                     raise Rejected("research_admission_unavailable", 409)

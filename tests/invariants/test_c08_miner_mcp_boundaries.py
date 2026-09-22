@@ -47,6 +47,13 @@ def test_package_is_exact_and_exports_no_official_or_network_surface() -> None:
         "standard_http.py",
         "mcp_apps.py",
         "mcp_extensions.py",
+        # Chain onboarding is the open tier: it carries no adapter, no campaign
+        # and no ledger, and adds no official or network-writing surface. Its
+        # chain access is read-only through an injected reader, and no function
+        # in it signs or accepts key material. Listed explicitly because adding
+        # a module to this package should be a deliberate act, which is what
+        # this assertion is for.
+        "mcp_onboarding.py",
         "mcp_skills.py",
         "store.py",
     }
