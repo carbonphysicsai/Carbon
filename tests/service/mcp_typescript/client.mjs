@@ -43,6 +43,9 @@ await connected(async (client) => {
   const { resources } = await client.listResources();
   assert.deepEqual(resources.map((item) => item.uri).sort(), [
     'carbon://research/v1/capabilities',
+    // The surface catalogue: what this server is, as distinct from the
+    // scientific capabilities above. Sorted, so it sits here.
+    'carbon://research/v1/catalogue',
     'carbon://research/v1/guidance',
     'carbon://research/v2/guidance',
     'skill://carbon/carbon-research-v1/SKILL.md',

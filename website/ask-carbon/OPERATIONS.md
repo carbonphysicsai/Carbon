@@ -226,6 +226,30 @@ Production needs a separate exact owner authorization after the staging report:
 5. verify inactive health, route behavior, cache withdrawal and all ceilings;
 6. explicitly enable activation and observe the first bounded requests.
 
+> **Rebaseline, 2026-09-22.** The owner replaced the live site with the
+> multi-page redesign on 2026-09-22 (Dashboard upload, 97 paths verified). The
+> 18 September candidate's homepage pin (`5ebb43e8…`) and
+> `--reconcile-owner-upload` no longer apply. Candidate
+> `ask-carbon-public-release-2026-09-22.1` pins the redesigned homepage
+> (`99be1318…`) and ships a **complete** baseline manifest generated from the
+> site build directory `carbon-site-upload-v2.zip`. Build with:
+>
+> ```sh
+> OUT=/tmp/ask-carbon-production-$(date -u +%Y%m%dT%H%M%SZ)
+> node website/ask-carbon/tools/integrate-static.mjs \
+>   --input /path/to/carbon-site-v2/index.html \
+>   --output "$OUT/index.html" \
+>   --asset-prefix ./ask-carbon \
+>   --existing-site /path/to/carbon-site-v2 \
+>   --require-complete-bundle
+> ```
+>
+> The tool now also refuses `--require-complete-bundle` until
+> `deployment_target_observed.live_version_id` in the manifest is the version
+> id captured from `wrangler deployments list --name carbonwebsite`. The
+> sections below describe the superseded 18 September procedure and are kept
+> for the record.
+
 For the approved 18 September inactive-publication candidate, extract the
 owner-supplied ZIP into a temporary directory, verify its recorded archive and
 `index.html` hashes, and build the static artifact with the repository tool:
@@ -320,8 +344,29 @@ re-derive it from disk before deploying. `--staging-preview` and
 `--allow-changed-source` produce inspection artifacts only: they always report
 `"deployable_to_carbonwebsite": false` and are never deployable.
 
-The current `carbonwebsite` Worker uses compatibility date `2026-09-12`;
-retain it for this asset-only update:
+#### Deploy the inactive API Worker first
+
+**Order matters.** Deploy the inactive `ask-carbon-public` Worker *before*
+publishing the `carbonwebsite` assets, not after.
+
+The integrated homepage fetches `${api-url}/health` on load (see
+`public/ask-carbon.js`). Publishing the static assets first means every
+homepage visitor requests a route that does not exist yet, so the whole gap
+between the two deployments produces 404s — and during exactly the window the
+inactive verification is meant to check, "not deployed" is indistinguishable
+from "deployed and inactive". Deploying the Worker first means the health
+endpoint answers correctly from the moment the homepage ships.
+
+The Worker binds only `/api/ask-carbon*`, which returns 404 today, so adding
+it ahead of the homepage is low-risk and reversible. This supersedes any
+earlier sequence that listed `carbonwebsite` first.
+
+```sh
+npx wrangler deploy --config wrangler.public-release-candidate.toml
+```
+
+Then publish the assets. The current `carbonwebsite` Worker uses compatibility
+date `2026-09-12`; retain it for this asset-only update:
 
 ```sh
 npx wrangler deploy \
@@ -399,6 +444,63 @@ and only then set `inventory_complete` to `true`.
 The incident owner and authorized disable/rollback operator are recorded under
 "Named production operators" below, so this deployment is unblocked. Static
 publication still does not authorize the separate activation step.
+
+## Activation: three gates, two files
+
+Activation is not one flag. A visitor receives an answer only when all three
+of these hold, and the inactive publication deliberately fails all three:
+
+| Gate | Where | Inactive value |
+| --- | --- | --- |
+| `ASK_CARBON_ACTIVATION` | Worker config `[vars]` | `disabled` |
+| `release.status` | `knowledge/public-knowledge.v1.json` | `STAGING_REVIEWED` |
+| `release.public_activation_allowed` | same file | `false` |
+
+The two knowledge gates are enforced by `public/release-contract.js`. They
+exist so that authorizing a *release* cannot by itself publish *answers*: the
+content needs its own recorded approval. Check them by reading the health
+body, which lists every unmet gate by name:
+
+```sh
+curl -s https://carbonphysics.ai/api/ask-carbon/health
+```
+
+`"reasons": ["activation_disabled"]` alone means the content is approved and
+only the Worker flag is holding it back. Additional `release_not_approved_public`
+or `public_activation_not_allowed` entries mean the knowledge record has not
+been approved for public display.
+
+### Do not enable activation in the candidate config
+
+`wrangler.public-release-candidate.toml` must keep `ASK_CARBON_ACTIVATION =
+"disabled"`, because redeploying it is the fail-closed incident response in the
+next section. Editing it to enable activation would silently turn the emergency
+disable command into a no-op.
+
+Activation deploys a separate file instead:
+
+```sh
+cd website/ask-carbon
+npx wrangler deploy --config wrangler.public-release-active.toml
+```
+
+The two configs differ in exactly one line, which a test asserts. Changing the
+knowledge record additionally changes the bundle, so the static assets must be
+rebuilt and redeployed as well; the resulting bundle identity will not match a
+bundle approved before the knowledge changed, and needs its own decision.
+
+### To disable again
+
+Redeploying the candidate config is the fastest disable and does not touch the
+static assets:
+
+```sh
+npx wrangler deploy --config wrangler.public-release-candidate.toml
+```
+
+Rolling the static bundle back is a separate action with a different effect:
+it restores the previous asset set, including whichever knowledge record that
+bundle carried.
 
 ## Incident disable and rollback procedure
 

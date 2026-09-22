@@ -14,6 +14,41 @@ CARBON_UV_GROUPS='chain archive science-jax mcp' ./scripts/dev/bootstrap.sh
 python -m carbon.miner_mcp.standard_cli --configuration /absolute/private/runner-profile.json
 ```
 
+## Starting without a campaign
+
+A miner who has not registered yet has no profile, no grant and no campaign, so
+`--configuration` is optional. Omitted, the server carries the open tier alone:
+
+```sh
+python -m carbon.miner_mcp.standard_cli
+```
+
+That serves the four `carbon_onboarding_*` tools and the published validator
+exam environment, and nothing else. The research tools are *absent* rather than
+present-and-refusing, which is what the registration gate (C-MLP-02-D10) is
+worth: the tier is a property of what exists, not a check inside each tool.
+Nothing reachable here creates a campaign, consumes compute or touches the
+ledger, and no tool signs or accepts key material.
+
+`carbon.miner_mcp.open_tier.attach_campaign` adds the registered tier to a
+running server, so a miner who registers mid-session keeps their connection
+instead of tearing it down at the moment they have just done the one
+irreversible thing. One server owns one campaign; a second attachment is
+refused rather than replacing the first.
+
+Two limitations worth knowing before building on this:
+
+- **No chain endpoint is configured.** `carbon_onboarding_requirements` answers
+  in full - it needs no chain - while the reads report `CHAIN_NOT_CONFIGURED`
+  with the next usable step rather than guessing an endpoint. The browser door
+  is in the same position for the same reason.
+- **The pinned SDK sends no list-changed notification.** A client sees the
+  registered tier on its next `tools/list`, not before. This is a property of
+  the SDK, not of how attachment is implemented: its own `add_tool` has no
+  notification path either.
+
+## The prepared-campaign profile
+
 The installed console command is `carbon-mcp` with the same arguments. The
 profile is the existing private Launchpad runner profile for an already prepared,
 frozen, unfinished campaign. It must match its existing owner, current grant,
@@ -29,6 +64,42 @@ out of research prompts, artifacts and exported client examples. The CLI obtains
 the existing exclusive campaign owner lock and runs normal interruption cleanup
 on disconnect. An interrupted task may remain reconciliation-required until
 resource release and consumption are established.
+
+## What this server bounds, records and refuses
+
+Read `carbon://research/v1/catalogue`. It describes the *server* - operations,
+bounds, refusal vocabulary and record policy, with its own schema version - as
+distinct from `carbon://research/v1/capabilities`, which projects the scientific
+catalogue of what a miner may attempt. Keeping them apart is what lets a client
+tell a surface change from a science change instead of rediscovering one as the
+other.
+
+**Records.** Each call records the operation, the owner-bound principal, a
+digest of the operation id, an outcome and a duration. It never records the
+arguments. A research argument carries the miner's hypothesis, their strategy
+parameters and their file contents - their work - so `call_record` has no
+parameter for them and no call site can supply one. The principal is a
+`BoundPrincipal`, derivable only from an adapter that re-verifies its own owner
+binding, so a record cannot attribute a call to a caller-named identity even by
+mistake. Records go wherever the operator injects them, and nowhere by default.
+
+**Refusals** carry a stable slug and the next usable step, for example
+`OPERATIONAL_STOP; dispatch_may_have_occurred=false; next_action=...`. The slug
+is the adapter's own enum value so it cannot drift, and the next action is fixed
+text per slug rather than a provider message, because provider text is how
+unbounded internal detail reaches an external wire.
+
+**Capacity.** Concurrent calls are bounded, and waiting for capacity has a
+deadline: exceeding it returns `CAPACITY_UNAVAILABLE` with
+`dispatch_may_have_occurred=false`, because nothing was dispatched.
+
+A call that has already started is never cancelled to meet its budget; it is
+recorded as `OVERRAN` and allowed to finish. Cancelling an in-flight
+`adapter.call` would abandon a ledger reservation whose outcome nobody knows,
+which is the `requires_reconciliation` state the campaign model exists to
+prevent - a transport timeout would be manufacturing the failure it was added to
+contain. The work itself is bounded by the `seconds` argument and task
+supervision.
 
 ## Client workflow
 

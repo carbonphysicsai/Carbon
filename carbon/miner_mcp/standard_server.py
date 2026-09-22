@@ -73,9 +73,13 @@ class StdioResearchServer:
         await self._server.run_stdio_async()
 
 
-def create_stdio_server(adapter: ResearchToolAdapter) -> StdioResearchServer:
+def create_stdio_server(
+    adapter: ResearchToolAdapter, *, capacity=None, record_sink=None
+) -> StdioResearchServer:
     """Bind one trusted adapter to exact typed tools, resources and guidance."""
-    return StdioResearchServer(_create_server(adapter))
+    return StdioResearchServer(
+        _create_server(adapter, capacity=capacity, record_sink=record_sink)
+    )
 
 
 def _create_server(
@@ -84,6 +88,8 @@ def _create_server(
     guard=None,
     workbench=None,
     authorize_workbench=None,
+    capacity=None,
+    record_sink=None,
     **settings,
 ):
     """Shared tools; authenticated HTTP supplies a guard for every data access."""
@@ -103,8 +109,10 @@ def _create_server(
     from mcp.server.mcpserver.utilities.func_metadata import ArgModelBase, FuncMetadata
     from pydantic import BaseModel, ConfigDict, Field, JsonValue, create_model
 
+    from carbon.miner_mcp import serving
     from carbon.miner_mcp.mcp_extensions import make_tasks_extension
     from carbon.miner_mcp.mcp_skills import SKILL_URI, WORKFLOW, make_skills_extension
+    from carbon.miner_mcp.serving import BoundPrincipal
     from carbon.reconstruction.catalogue import capability_projection
 
     class StrictArguments(ArgModelBase):
@@ -155,6 +163,13 @@ def _create_server(
     }
 
     models = {}
+    capacity = capacity or serving.Capacity()
+
+    def emit(record):
+        # Injected, so this module never decides where records go: a logging
+        # surface, a test, or nowhere at all if the operator supplies nothing.
+        if record_sink is not None:
+            record_sink(record)
 
     def tool_for(operation):
         parameters = {"operation_id": fields["operation_id"]}
@@ -174,15 +189,68 @@ def _create_server(
             if guard is not None:
                 guard()
             operation_id = arguments.pop("operation_id")
-            try:
-                result = await adapter.call(
-                    ResearchToolRequest(operation, operation_id, arguments)
+
+            # Derived from the adapter, never from the call. The adapter
+            # re-verifies its owner binding on the way, so a record can only
+            # ever name the identity the campaign ledger already agrees with.
+            principal = BoundPrincipal(adapter)
+
+            if not await capacity.acquire():
+                # Refused before dispatch, which is the only point at which a
+                # deadline can refuse without leaving a reservation behind.
+                emit(
+                    serving.call_record(
+                        operation,
+                        principal=principal,
+                        operation_id=operation_id,
+                        outcome="CAPACITY_UNAVAILABLE",
+                        duration_ms=0,
+                        reason="CAPACITY_UNAVAILABLE",
+                    )
                 )
+                raise ToolError(
+                    "CAPACITY_UNAVAILABLE; dispatch_may_have_occurred=false; "
+                    "next_action=" + serving.NEXT_ACTION["CAPACITY_UNAVAILABLE"]
+                )
+            clock = serving.timed()
+            try:
+                with clock:
+                    result = await adapter.call(
+                        ResearchToolRequest(operation, operation_id, arguments)
+                    )
             except AdapterFailure as exc:
+                emit(
+                    serving.call_record(
+                        operation,
+                        principal=principal,
+                        operation_id=operation_id,
+                        outcome="REFUSED",
+                        duration_ms=clock.duration_ms,
+                        reason=exc.code.value,
+                    )
+                )
+                # A stable slug a client can branch on, and the next usable
+                # step. The next action is fixed per slug: a provider message
+                # here is how unbounded internal detail reaches the wire.
                 raise ToolError(
                     f"{exc.code.value}; dispatch_may_have_occurred="
-                    f"{str(exc.dispatch_may_have_occurred).lower()}"
+                    f"{str(exc.dispatch_may_have_occurred).lower()}; "
+                    f"next_action={serving.NEXT_ACTION[exc.code.value]}"
                 ) from None
+            finally:
+                capacity.release()
+
+            emit(
+                serving.call_record(
+                    operation,
+                    principal=principal,
+                    operation_id=operation_id,
+                    outcome=(
+                        "OVERRAN" if capacity.overran(clock.duration_ms) else "OK"
+                    ),
+                    duration_ms=clock.duration_ms,
+                )
+            )
             return Result(
                 operation=result.operation,
                 operation_id=result.operation_id,
@@ -254,6 +322,33 @@ def _create_server(
         if guard is not None:
             guard()
         return json.dumps(capability_projection(audience="miner"), allow_nan=False)
+
+    @server.resource(serving.CATALOGUE_URI, mime_type="application/json")
+    def surface_catalogue() -> str:
+        """What this *server* is, as distinct from what a miner may attempt.
+
+        `capabilities` above projects the scientific catalogue. This describes
+        the surface: its operations, its bounds and its refusal vocabulary, so a
+        client can tell a surface change from a science change rather than
+        rediscovering one as the other.
+        """
+        if guard is not None:
+            guard()
+        return json.dumps(
+            serving.catalogue(
+                operations=[PREFIX + name for name in research.SUPPORTED_OPERATIONS],
+                extensions=[type(extension).__name__ for extension in extensions],
+                resources=[
+                    CAPABILITIES_URI,
+                    GUIDANCE_URI,
+                    CURRENT_GUIDANCE_URI,
+                    serving.CATALOGUE_URI,
+                ],
+                capacity=capacity,
+                sdk_version=SDK_VERSION,
+            ),
+            allow_nan=False,
+        )
 
     @server.resource(
         GUIDANCE_URI,

@@ -158,8 +158,71 @@ def registered_run_controls() -> dict[str, object]:
     }
 
 
+class LaunchAuthorityBearing:
+    """Anything that declares which launch authority a run was staged under.
+
+    Admission dispatches on this rather than on an exact type. The exact-type
+    check it replaces routed any sibling to the strict authority by falling out
+    of the block, which is fail-closed but breaks the weaker lanes and quietly
+    contradicts the promise that each authority reaches exactly one check.
+    """
+
+    __slots__ = ()
+
+    accelerator_authority: str | None
+
+
 @dataclass(frozen=True, slots=True)
-class DevelopmentWorkerProfile:
+class RequestDerivedWorkerProfile(LaunchAuthorityBearing):
+    """A worker profile rebuilt from staged request bytes, for verification only.
+
+    The reader rebuilds a profile from `request.json` to check it against the
+    digest the writer recorded. That rebuilt object used to be an ordinary
+    `DevelopmentWorkerProfile`, which meant it could answer
+    `effective_deadline_seconds` and `effective_output_bytes` - bounds derived
+    from bytes the reader was in the middle of verifying. Nothing read them that
+    way, and `run_staged_worker` passes exactly such an object onward, so the
+    property held by habit rather than by construction.
+
+    This type holds **no controls and no bounds at all**, so it cannot supply one
+    however it is used. It carries the digest the comparison needs and the
+    identity fields admission routes on, and nothing else. Asking it for a
+    deadline or an output ceiling is an `AttributeError` at the reader rather
+    than a bound taken from a request.
+
+    That is the whole of what it establishes. It does not make a staged request
+    authentic: a request is exactly as trustworthy as the host that wrote the
+    staging directory, and this type changes nothing about that.
+    """
+
+    digest: str
+    accelerator_authority: str | None
+    accelerator_profile_id: str | None
+    accelerator_grant_digest: str | None
+    accelerator_plan_digest: str | None
+    accelerator_device_uuid: str | None
+    accelerator_role: str | None
+
+    @classmethod
+    def of(cls, rebuilt: DevelopmentWorkerProfile) -> RequestDerivedWorkerProfile:
+        """Narrow a rebuilt profile to what verification and admission may see.
+
+        The rebuilt profile is consumed here and not retained, so its controls
+        do not survive into anything the reader passes on.
+        """
+        return cls(
+            rebuilt.digest,
+            rebuilt.accelerator_authority,
+            rebuilt.accelerator_profile_id,
+            rebuilt.accelerator_grant_digest,
+            rebuilt.accelerator_plan_digest,
+            rebuilt.accelerator_device_uuid,
+            rebuilt.accelerator_role,
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class DevelopmentWorkerProfile(LaunchAuthorityBearing):
     """One exact B-02C-bound worker policy; not a production resource class."""
 
     research_resource_policy_digest: str

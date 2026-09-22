@@ -47,6 +47,25 @@ def test_package_is_exact_and_exports_no_official_or_network_surface() -> None:
         "standard_http.py",
         "mcp_apps.py",
         "mcp_extensions.py",
+        # Chain onboarding is the open tier: it carries no adapter, no campaign
+        # and no ledger, and adds no official or network-writing surface. Its
+        # chain access is read-only through an injected reader, and no function
+        # in it signs or accepts key material. Listed explicitly because adding
+        # a module to this package should be a deliberate act, which is what
+        # this assertion is for.
+        "mcp_onboarding.py",
+        # The open-tier server mode. It composes existing surfaces rather than
+        # adding one: the onboarding tools above, the published exam
+        # environment, and - only once a campaign is attached - the tools the
+        # standard server already builds. It creates no campaign and no ledger
+        # of its own, and adds no official or network-writing capability.
+        "open_tier.py",
+        # Per-call records, the concurrency bound and the surface catalogue. It
+        # adds no capability: it wraps the existing single call path, and the
+        # records it builds structurally cannot contain a caller's arguments or
+        # a caller-supplied identity. No official, network-writing or signing
+        # surface is introduced.
+        "serving.py",
         "mcp_skills.py",
         "store.py",
     }

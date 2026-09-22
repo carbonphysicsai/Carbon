@@ -90,6 +90,7 @@ def test_external_sdk_stdio_discovery_tools_resources_and_restart(tmp_path, mode
     from mcp import Client
 
     from carbon import research
+    from carbon.miner_mcp.serving import CATALOGUE_URI
     from carbon.miner_mcp.standard_server import (
         CAPABILITIES_URI,
         CURRENT_GUIDANCE_URI,
@@ -116,6 +117,10 @@ def test_external_sdk_stdio_discovery_tools_resources_and_restart(tmp_path, mode
 
             assert resources == {
                 CAPABILITIES_URI,
+                # The surface catalogue: what this server is, as distinct from
+                # the scientific capabilities above. An addition to the
+                # discovered set, so existing clients are unaffected.
+                CATALOGUE_URI,
                 GUIDANCE_URI,
                 CURRENT_GUIDANCE_URI,
                 SKILL_URI,

@@ -522,20 +522,57 @@ async def serve(configuration: Path, *, cleanup_only=False):
         await create_stdio_server(adapter).run_async()
 
 
+async def serve_open_tier():
+    """Serve the open tier alone: no profile, no grant, no campaign, no lock.
+
+    Deliberately not a degraded version of `serve`. It takes no ownership lock
+    because it owns nothing, and it reconciles nothing because it consumes
+    nothing - which is the same statement as the tier rule that nothing here
+    creates a campaign, consumes compute or touches the ledger.
+
+    No chain endpoint is configured, so `requirements` answers in full - it is
+    what an unregistered visitor needs first and needs no chain - and the reads
+    report `CHAIN_NOT_CONFIGURED` with the next usable step rather than guessing
+    an endpoint. The browser door is in the same position for the same reason.
+    """
+    from carbon.miner_mcp.open_tier import create_open_tier_server
+
+    await create_open_tier_server().run_async()
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--configuration", required=True, type=Path)
+    parser.add_argument(
+        "--configuration",
+        type=Path,
+        help=(
+            "An existing private operator profile. Omit it to serve the open "
+            "tier alone: registration onboarding and the published validator "
+            "exam environment, with no campaign and no research tools."
+        ),
+    )
     parser.add_argument(
         "--cleanup-only",
         action="store_true",
         help="Observe/cancel retained owned tasks; cannot start research",
     )
     args = parser.parse_args(argv)
+    if args.configuration is None and args.cleanup_only:
+        parser.error("--cleanup-only needs the campaign it would clean up")
     try:
-        asyncio.run(serve(args.configuration, cleanup_only=args.cleanup_only))
+        if args.configuration is None:
+            asyncio.run(serve_open_tier())
+        else:
+            asyncio.run(serve(args.configuration, cleanup_only=args.cleanup_only))
     except (Exception, KeyboardInterrupt):  # noqa: BLE001
+        # The open tier has no profile, grant or campaign to verify, so it must
+        # not be told to go and check them.
         print(
-            "Carbon MCP unavailable: verify the existing private profile, grant, prepared campaign, accepted runtime and reconciliation state.",
+            (
+                "Carbon MCP unavailable: verify the existing private profile, grant, prepared campaign, accepted runtime and reconciliation state."
+                if args.configuration is not None
+                else "Carbon MCP unavailable."
+            ),
             file=sys.stderr,
         )
         return 2

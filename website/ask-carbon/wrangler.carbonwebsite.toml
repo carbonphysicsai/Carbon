@@ -1,0 +1,16 @@
+# OPTIONAL follow-up config for the `carbonwebsite` static-assets Worker.
+# NOT used by the 2026-09-22 rebaseline deployment, which keeps the runbook's
+# proven CLI form (`npx wrangler deploy --name carbonwebsite --assets "$OUT"
+# --compatibility-date 2026-09-12`). This file exists so the site's 404.html
+# can later be served for unknown paths (not_found_handling = "404-page"),
+# which the CLI flags cannot express. Before first use: replace __BUNDLE_DIR__
+# with the verified bundle directory, deploy to a preview Worker name first,
+# and confirm the custom domains survive.
+name = "carbonwebsite"
+account_id = "7462053c6992b9c9fd889952a7ae0496"
+compatibility_date = "2026-09-12"
+
+[assets]
+directory = "__BUNDLE_DIR__"
+html_handling = "auto-trailing-slash"
+not_found_handling = "404-page"
