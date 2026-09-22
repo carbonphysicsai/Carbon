@@ -22,6 +22,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from carbon import research
+from carbon.chain.models import CARBON_NETUID
 from carbon.development_session.profile import CHALLENGE, canonical
 from carbon.development_session.research_admission import (
     MANIFEST,
@@ -203,8 +204,8 @@ def _runtime(profile):
     config = load_config(paths["operator_config"])
     public = json.loads(private_file(paths["miner_public"]).read_bytes())
     if (
-        public["netuid"] != 567
-        or config.netuid != 567
+        public["netuid"] != CARBON_NETUID
+        or config.netuid != CARBON_NETUID
         or public["hotkey"] != grant["miner_identity"]
     ):
         raise ValueError("existing miner differs from grant")

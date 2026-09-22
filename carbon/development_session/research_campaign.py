@@ -19,6 +19,7 @@ from pathlib import Path
 
 from carbon import research
 from carbon.chain.auth import BittensorMessageSigner, open_external_hotkey
+from carbon.chain.models import CARBON_NETUID
 from carbon.development_testnet.operator import load_config
 from carbon.miner_mcp.research import AuthenticatedResearchService
 from carbon.reconstruction.worker.docker_runtime import doctor, load_image_identity
@@ -464,8 +465,8 @@ async def execute(args, *, ledger=None):
     ResponsesTransport(args.api_key_file)
     config = load_config(args.operator_config)
     public = json.loads(private_file(args.miner_public).read_bytes())
-    if public["netuid"] != 567 or config.netuid != 567:
-        raise ValueError("existing subnet 567 context required")
+    if public["netuid"] != CARBON_NETUID or config.netuid != CARBON_NETUID:
+        raise ValueError(f"existing subnet {CARBON_NETUID} context required")
     if grant is not None and public["hotkey"] != grant["miner_identity"]:
         raise ValueError("grant miner identity differs")
     key = open_external_hotkey(

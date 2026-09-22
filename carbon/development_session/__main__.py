@@ -5,6 +5,7 @@ import asyncio
 import json
 from pathlib import Path
 
+from carbon.chain.models import CARBON_NETUID
 from carbon.development_testnet.operator import load_config
 
 from .agent import proposal, run
@@ -49,8 +50,8 @@ def main():
         write_once(root / "model-run-proposal.json", canonical(proposal()))
         if args.operator_config:
             config = load_config(args.operator_config)
-            if config.netuid != 567:
-                parser.error("operator config must bind subnet 567")
+            if config.netuid != CARBON_NETUID:
+                parser.error(f"operator config must bind subnet {CARBON_NETUID}")
             raw = json.loads(args.operator_config.read_bytes())
             raw["execution"]["resource_policy_digest"] = profile_digest()
             raw["retention"]["root"] = str(root)
@@ -101,7 +102,7 @@ def main():
         key = open_external_hotkey(
             Path(public["key_file"]), args.miner_password_file, public["hotkey"]
         )
-        if key.ss58_address != public["hotkey"] or public["netuid"] != 567:
+        if key.ss58_address != public["hotkey"] or public["netuid"] != CARBON_NETUID:
             raise ValueError("miner identity mismatch")
         connection = LocalMinerConnection(
             root, args.image_manifest, config.context, config.publisher_hotkey, key
