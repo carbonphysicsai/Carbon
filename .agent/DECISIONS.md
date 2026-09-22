@@ -15036,3 +15036,75 @@ qualification.
 content approval can be revoked by returning `release.status` to
 `STAGING_REVIEWED`, which fails the release contract closed without touching
 the Worker. Retained evidence and recorded historical state are not rewritten.
+
+## 2026-09-22 — GOAL-WORKBENCH-09-STAGE1: three W-C setup decisions adopted on delegation, and stage 1 stood up
+
+**Authority source and scope.** The repository owner asked for optimal W-C setup
+decisions to be made and said he would review them as sole authority. Three were
+adopted on that delegation and are recorded here pending his review. Each is
+reversible, none commits money, activates anything public, or writes a legal
+conclusion. This authorizes no deployment, no client-facing collection, no
+security qualification and no spending.
+
+**GW09-D1 — host and environment, stage 1, internal only.** The private team
+intake receiver runs as an ordinary long-lived foreground process on the
+supported Linux environment, bound to loopback, with no DNS record, route,
+reverse proxy, tunnel, container platform or paid resource, exactly one receiver
+process per store file, internal and synthetic fixtures only, and the
+notification destination left unset so the store records
+`UNCONFIGURED_SYNTHETIC`. Stage 2 is not adopted: any reachability beyond that
+machine requires the storage row resolved, a reviewed TLS terminator with the
+process still behind loopback, named-user access control, the rate limiting,
+lockout and escalation path the runbook records as absent, and a security review
+of the deployed surface. This resolves one precondition of nine. **A working
+internal host is not a deployment and is not W-C progressing.**
+
+**GW09-D-INGRESS — client intake by relayed export.** A client downloads the
+reviewed package and sends it to Carbon; a named `INTAKE_RECEIVER` relays it into
+the receiver with an idempotency key. No public submission endpoint is built.
+The path already exists end to end and preserves exact idempotency, canonical
+identity, a durable write before receipt and team-scoped access, so it needs no
+second package version, consent block, notice registry, allowlist, public
+endpoint or rate limiting on an intake POST. Reversible: a public endpoint
+remains additive later, and building one is a separate decision that reopens the
+notice, consent and abuse-handling rows at full size.
+
+**GW09-D3 — the store ceiling, structural half only.** The reader parsed with a
+10 MB limit while writes were unbounded, so a running receiver could write a file
+it would never open again, and the documented remedy of restoring the backup
+could not help because the backup was a copy of the same unopenable file.
+Archiving does not shrink the file and deletion requires an approved exception,
+so that state was terminal. The write ceiling is now provably below the read
+limit and the constructor refuses a configuration where it is not, so the
+asymmetry cannot return by someone changing one side. The ceiling is 32 MB from
+measurement: a package is capped at 120 KB, a stored record costs about 2.88
+times its package because the raw bytes, the validated draft and the reviewed
+package are all retained, and the binding cost is that every accepted inquiry
+rewrites the whole file rather than that a large file parses slowly.
+
+**Not adopted, and not decided here.** Retention period, legal basis and
+approver remain Ryan's, Nick's and counsel's under OD-25; `legal_basis` stays
+`null` and `deletion_cannot_reach` is not narrowed. Storage location and
+jurisdiction, notice and consent text, incident ownership and rollback
+authority, and the money for counsel and a security review are unresolved, and
+nothing legal can start until the last of those is answered.
+
+**Recording constraint.** The repository is public. Staff rosters, credential
+digests, personal contact details, incident records and access decisions are not
+recorded here or anywhere else in the repository. The shape is recorded in the
+repository and the instances live in the private operator configuration that
+already exists for them, outside the checkout, at mode 0600 in a 0700 directory.
+A decision record that names a role is fine; one that names a person's
+credential, contact detail or account is not.
+
+**Single-writer enforcement.** "Exactly one receiver process per store file" was
+an operational rule with nothing enforcing it, and because every accepted
+inquiry rewrites the whole file, a second process would have overwritten the
+first's records rather than interleaving with them. The receiver now takes a
+writer lock before binding its port. `flock(2)` would be the cleanest mechanism
+and would need no staleness logic, but Node exposes no binding for it and
+holding it through a `flock(1)` helper on an inherited descriptor does not
+survive the helper exiting — measured, not assumed, in this environment. The
+holder is recorded instead and staleness is detected rather than presumed: a
+lock is stale only when its pid is gone, or is alive but started at a different
+time, which separates a crashed holder from a reused pid.

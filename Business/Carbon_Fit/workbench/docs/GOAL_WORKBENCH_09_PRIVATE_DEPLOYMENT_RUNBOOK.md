@@ -49,12 +49,12 @@ engineer, and none is filled in below.
 
 | Field | Owner | Current value | What it blocks |
 |---|---|---|---|
-| Host and environment | Ryan | unresolved | every step in §3 |
+| Host and environment | Ryan | **resolved: GW09-D1, stage 1 internal only** | — |
 | Storage location and its jurisdiction | Ryan, Nick | unresolved | §3.2; the retention decision depends on it |
 | Authenticated staff accounts (who, which roles, which team) | Ryan | unresolved | §3.3 |
 | Staff credential issuance and rotation procedure | Ryan | unresolved | §3.3 |
 | Sender credential and authorized sender identity | Ryan | unresolved | §3.5; until then no notification is attempted |
-| Notice and consent text shown to a client before submission | Ryan, Nick | unresolved | §3.6 and any public collection |
+| Notice and consent text shown to a client before submission | Ryan, Nick, counsel | unresolved | §3.6 and any public collection |
 | Retention decision: period, legal basis, approver | Ryan, Nick (OD-25) | unresolved; the code carries `null` | §3.4 |
 | Abuse handling: rate limits, refusal and escalation path | Ryan | unresolved | §3.7 |
 | Incident ownership and rollback authority | Ryan | unresolved | §3.8 |
@@ -72,12 +72,89 @@ not to be performed, worked around, or approximated with a test value.
 
 ### 3.1 Host
 
-*Precondition: host and environment decided.*
+*Precondition: host and environment decided — **resolved by GW09-D1**, stage 1,
+internal only.*
 
 Run `tools/team_intake_server.cjs` with `CARBON_TEAM_INTAKE_STORE`,
 `CARBON_TEAM_USERS_FILE` and optionally `CARBON_TEAM_NOTIFY_DESTINATION`. It
 binds `127.0.0.1` and opens no outbound connection. Reaching it from anywhere
 else is the host decision, not a code change.
+
+GW09-D1 adopts stage 1 only: an ordinary long-lived foreground process on the
+supported Linux environment, bound to loopback, with no DNS record, route,
+reverse proxy, tunnel, container platform or paid resource, exactly one
+receiver process per store file, internal and synthetic fixtures only, and
+`CARBON_TEAM_NOTIFY_DESTINATION` left unset. **Stage 2 is not adopted**, and a
+working internal host is not a deployment, not a security qualification and not
+authorization for client-facing collection.
+
+Stage 1 covers check, register-draft, serving the private build and the
+receiver. It does **not** cover running studies: the Workbench host is excluded
+from stage-1 study execution.
+
+#### The sequence as actually run
+
+Store and credentials live in a private directory outside the checkout and
+outside every worktree. The repository is public (§4 of the adopted
+decisions), so the directory holds the instances and this document holds only
+the shape: `users.json` carries credential **digests**, `tokens.env` carries the
+credentials themselves at mode 0600, and neither is ever committed.
+
+**Start.**
+
+```sh
+PRIV="$HOME/.carbon/private/stage1"          # outside the checkout
+export CARBON_TEAM_INTAKE_STORE="$PRIV/store.json"
+export CARBON_TEAM_USERS_FILE="$PRIV/users.json"
+export CARBON_TEAM_INTAKE_PORT=8789
+unset CARBON_TEAM_NOTIFY_DESTINATION          # deliberately unset
+node Business/Carbon_Fit/workbench/tools/team_intake_server.cjs
+# Carbon private synthetic intake listening on http://127.0.0.1:8789
+```
+
+**Check.** Each of these was run and the result recorded:
+
+| Check | Observed |
+|---|---|
+| Bound to loopback only | `ss -ltn` shows `127.0.0.1:8789`, not `0.0.0.0` |
+| Unreachable off loopback | `curl http://<lan-ip>:8789/…` → connection refused (exit 7) |
+| Unauthenticated request | `403` |
+| A second receiver on the same store | refuses, names the holding pid, and **never binds its port** |
+| Relay a reviewed export | `201`, `disposition: ACCEPTED` |
+| Relay the identical bytes again | `disposition: DEDUPLICATED` |
+| Read it back as `TEAM_REVIEWER` | `200`, `ACTIVE`, `owner_team` set, `ARCHIVE_INDEFINITE` |
+| Outbox with no destination | `UNCONFIGURED_SYNTHETIC`, `PENDING` |
+| Attempt a delivery | `502`, stays `PENDING`, "no notification transport is configured" |
+| Capacity | used, ceiling, and a worst-case inquiry count |
+
+**Stop.** `kill -TERM <pid>`. The listener goes, and the writer lock is
+released — verified by the lock file being absent afterwards.
+
+**Recover.** Start again with the same command. The accepted record is read
+back at the same identity and revision, with its raw bytes retained.
+
+#### One receiver process per store file
+
+Enforced, not merely documented. Every accepted inquiry rewrites the whole
+store file, so a second process would not interleave with the first, it would
+overwrite its records. The receiver takes a writer lock **before binding its
+port**, so a second start fails as a start that did not happen:
+
+```
+Error: Another receiver already holds this store: process 1581732 since
+2026-09-22T20:01:10.223Z. Exactly one receiver process per store file; stop
+that one first, or point this one at a different store.
+```
+
+`flock(2)` would be the cleanest mechanism and would need no staleness logic,
+but Node exposes no binding for it, and holding it through a `flock(1)` helper
+on an inherited descriptor **does not survive the helper exiting** — measured
+in this environment, where a second process acquired the lock while it was
+supposedly held. So the holder is recorded instead, and staleness is *detected*
+rather than assumed: a lock is stale only when its pid is gone, or is alive but
+started at a different time, which is what separates a crashed holder from a
+reused pid. A crashed receiver therefore does not wedge the next start, and
+releasing never removes a lock this process does not hold.
 
 ### 3.2 Storage
 
@@ -202,6 +279,14 @@ queue state and counts — no client words, contact details or scientific conten
 
 *Precondition: reviewed notice and consent text.*
 
+**The intake path is settled: GW09-D-INGRESS, Path A, relayed export.** A client
+downloads the reviewed package and sends it to Carbon; a named `INTAKE_RECEIVER`
+relays it into the receiver with an idempotency key. No public submission
+endpoint is built, which is why this section is still waiting on notice text
+rather than on a consent block, a notice registry, an allowlist or rate limiting
+on a public POST. Building a public endpoint is a separate decision that reopens
+those at full size.
+
 Public submission stays disabled until this exists. The client-side notice and
 the consent record are separate from anything in this receiver; do not write
 placeholder text into a live surface.
@@ -237,7 +322,32 @@ Recovery from an interrupted write:
    be producing that exact file right now. Confirm no writer is running, then
    remove them.
 
-## 4. What would make this deployable
+## 4. What the adopted decisions did and did not resolve
+
+Adopted on owner delegation, 22 September, pending owner review. Every one is
+reversible and none commits money, activates anything public, or writes a legal
+conclusion.
+
+| Adopted | Resolves |
+|---|---|
+| GW09-D1 — stage 1, internal only | §3.1, and nothing else |
+| GW09-D-INGRESS — Path A, relayed export | the intake path §3.6 was gated on |
+| GW09-D3 — the ceiling, structural half | the store wedge, not retention policy |
+
+Still blocked, and by which row: **§3.2** storage location and jurisdiction
+(Nick, plus a jurisdiction and entity only Ryan can supply); **§3.3** staff
+accounts and credential issuance; **§3.4** retention period, legal basis and
+approver (Ryan, Nick, counsel under OD-25 — `legal_basis` stays `null`);
+**§3.5** sender credential, which stays unset; **§3.6** notice and consent text;
+**§3.7** rate limiting, lockout and escalation, which remain absent; **§3.8**
+incident ownership and rollback authority. Money for counsel and for the §5
+security review is unanswered, and nothing legal can start until it is.
+
+**§3.1 being resolved is not W-C progressing.** A working internal host on
+loopback with synthetic fixtures is one precondition of nine, and the eight that
+remain are the ones that involve a client.
+
+## 5. What would make this deployable
 
 Every row in §2 resolved, then a security review of the deployed surface rather
 than of this repository's tests. Passing tests are not a security

@@ -171,6 +171,21 @@ function main() {
   const store = new DurableIntakeStore(storePath, {
     destination: process.env.CARBON_TEAM_NOTIFY_DESTINATION,
   });
+  // Exactly one receiver process per store file. Every accepted inquiry
+  // rewrites the whole file, so a second process would not interleave with
+  // this one, it would overwrite its records. Refused here, before the port is
+  // bound, so the failure is a start that did not happen rather than two
+  // receivers quietly disagreeing about the contents of one file.
+  store.acquireWriterLock();
+  const release = () => {
+    store.releaseWriterLock();
+  };
+  process.on("exit", release);
+  for (const signal of ["SIGINT", "SIGTERM"])
+    process.on(signal, () => {
+      release();
+      process.exit(0);
+    });
   const port = Number(process.env.CARBON_TEAM_INTAKE_PORT || "8789");
   createIntakeServer({ store, users: loadUsers(usersPath) }).listen(
     port,

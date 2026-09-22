@@ -777,7 +777,17 @@ test("every store endpoint refuses a caller that was never authenticated", async
   // Enumerated from the prototype rather than listed by hand, so an endpoint
   // added later is covered without anyone remembering to add it here. A list
   // maintained by hand is the thing that goes stale.
-  const exempt = new Set(["constructor", "persist"]);
+  // Exempt, with the reason stated rather than assumed. The lock is taken by
+  // the process at startup, before any credential has been presented and
+  // before any staff identity exists, so there is no principal to check and
+  // requiring one would be theatre. Everything a caller can reach over the
+  // wire is below.
+  const exempt = new Set([
+    "constructor",
+    "persist",
+    "acquireWriterLock",
+    "releaseWriterLock",
+  ]);
   const endpoints = Object.getOwnPropertyNames(DurableIntakeStore.prototype)
     .filter((name) => !exempt.has(name) && typeof fixture.store[name] === "function");
   assert.equal(endpoints.length >= 10, true, "endpoint enumeration found almost nothing");
@@ -1236,4 +1246,93 @@ test("the adopted retention scope is not narrowed", () => {
   assert.equal(RETENTION_POLICY.legal_basis, null);
   assert.equal(RETENTION_POLICY.production_period, null);
   assert.equal(RETENTION_POLICY.approved_by, null);
+});
+
+// --- one receiver process per store file (adopted stage-1 §1) ----------------
+
+test("a second process cannot start on a store another process is writing", async () => {
+  const fixture = temporaryStore();
+  await fixture.store.accept(reviewedRaw(), "lock-001", roles.receiver);
+  const lockPath = fixture.store.acquireWriterLock();
+  assert.equal(fs.existsSync(lockPath), true);
+  const holder = JSON.parse(fs.readFileSync(lockPath, "utf8"));
+  assert.equal(holder.pid, process.pid);
+
+  // A genuinely separate process, not a second object in this one: the rule is
+  // about processes, so proving it with an in-process call would prove nothing.
+  const probe = require("node:child_process").spawnSync(
+    process.execPath,
+    [
+      "-e",
+      `const {DurableIntakeStore}=require(${JSON.stringify(path.join(ROOT, "tools/team_intake_store.cjs"))});
+       const s=new DurableIntakeStore(${JSON.stringify(fixture.file)});
+       try { s.acquireWriterLock(); console.log("ACQUIRED"); }
+       catch (error) { console.log("REFUSED:" + error.message); }`,
+    ],
+    { encoding: "utf8" },
+  );
+  assert.match(probe.stdout, /^REFUSED:/, "a second process took the lock");
+  assert.match(probe.stdout, /Another receiver already holds this store/);
+  assert.match(probe.stdout, new RegExp("process " + process.pid));
+  assert.match(probe.stdout, /Exactly one receiver process per store file/);
+
+  // Released, the same second process starts.
+  assert.equal(fixture.store.releaseWriterLock(), true);
+  assert.equal(fs.existsSync(lockPath), false);
+  const after = require("node:child_process").spawnSync(
+    process.execPath,
+    [
+      "-e",
+      `const {DurableIntakeStore}=require(${JSON.stringify(path.join(ROOT, "tools/team_intake_store.cjs"))});
+       new DurableIntakeStore(${JSON.stringify(fixture.file)}).acquireWriterLock();
+       console.log("ACQUIRED");`,
+    ],
+    { encoding: "utf8" },
+  );
+  assert.match(after.stdout, /ACQUIRED/);
+});
+
+test("a lock left by a dead process does not wedge the next start", async () => {
+  const fixture = temporaryStore();
+  await fixture.store.accept(reviewedRaw(), "lock-002", roles.receiver);
+  const lockPath = fixture.file + ".writer.lock";
+
+  // A crashed holder: a pid that is gone. Staleness is detected, not assumed,
+  // so this reclaims rather than requiring an operator to delete a file.
+  fs.writeFileSync(
+    lockPath,
+    JSON.stringify({ pid: 999999, start_time: "1", acquired_at: "2026-01-01T00:00:00Z" }),
+  );
+  assert.equal(typeof fixture.store.acquireWriterLock(), "string");
+  assert.equal(JSON.parse(fs.readFileSync(lockPath, "utf8")).pid, process.pid);
+  fixture.store.releaseWriterLock();
+
+  // A live pid that started at a different time is a reused pid, not the
+  // holder. Using this process with a wrong start time is exactly that case.
+  fs.writeFileSync(
+    lockPath,
+    JSON.stringify({ pid: process.pid, start_time: "0", acquired_at: "2026-01-01T00:00:00Z" }),
+  );
+  assert.equal(typeof fixture.store.acquireWriterLock(), "string");
+  fixture.store.releaseWriterLock();
+
+  // An unreadable lock records no live holder and must not block a start.
+  fs.writeFileSync(lockPath, "not json at all");
+  assert.equal(typeof fixture.store.acquireWriterLock(), "string");
+  fixture.store.releaseWriterLock();
+});
+
+test("releasing never removes a lock this process does not hold", async () => {
+  const fixture = temporaryStore();
+  const lockPath = fixture.file + ".writer.lock";
+  fixture.store.acquireWriterLock();
+  // Someone else's lock, written over ours while we believe we hold it.
+  fs.writeFileSync(
+    lockPath,
+    JSON.stringify({ pid: 424242, start_time: "1", acquired_at: "2026-01-01T00:00:00Z" }),
+  );
+  assert.equal(fixture.store.releaseWriterLock(), false);
+  assert.equal(fs.existsSync(lockPath), true, "released another process's lock");
+  assert.equal(JSON.parse(fs.readFileSync(lockPath, "utf8")).pid, 424242);
+  fs.rmSync(lockPath, { force: true });
 });
