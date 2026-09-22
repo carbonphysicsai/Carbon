@@ -46,28 +46,47 @@ def test_the_lease_is_released_after_use(host):
 
 
 def test_a_failure_inside_the_lease_still_releases_it(host):
-    """The lock must not leak when the body fails, whatever it reports."""
-    with pytest.raises(WorkerFailure):  # noqa: SIM117
+    """The lock must not leak when the body fails, whatever it reports.
+
+    The expected type changed with the repair and the intent did not: the body
+    error now propagates as itself rather than as CONFLICT. Release is what this
+    asserts, and if it leaked the next acquisition would report CONFLICT -
+    turning the repair into a worse version of the bug it fixes.
+    """
+    with pytest.raises(ValueError, match="workload failed"):  # noqa: SIM117
         with runtime.shared_host_lease():
             raise ValueError("workload failed")
     with runtime.shared_host_lease():
         pass
 
 
-def test_a_body_value_error_is_currently_reported_as_a_conflict(host):
-    """Documents existing behaviour, unchanged by extracting this helper.
+def test_a_body_value_error_propagates_instead_of_becoming_a_conflict(host):
+    """The repair. A workload error is not device contention.
 
-    `yield` sits inside the `try`, so a ValueError raised by the *body* is
-    caught alongside a genuine lock-acquisition failure and reported as
-    CONFLICT. That misattributes a workload error to device contention. This
-    test pins the current behaviour so the extraction is provably
-    behaviour-preserving; narrowing the catch is a separate decision, since it
-    changes strict error semantics too.
+    `yield` used to sit inside the `try`, so an exception from the *body*
+    propagated into the generator and was caught beside a genuine lock failure.
+    The caller was then told CONFLICT, which asserts another holder has the
+    single Carbon device slot - sending an operator to diagnose a slot that is
+    not contended, and hiding the real error in attempt accounting.
     """
-    with pytest.raises(WorkerFailure) as error:  # noqa: SIM117
+    with pytest.raises(ValueError, match="a workload error"):  # noqa: SIM117
         with runtime.shared_host_lease():
             raise ValueError("a workload error, not a lock conflict")
-    assert error.value.code is WorkerCode.CONFLICT
+
+
+def test_a_body_os_error_propagates_too(host):
+    """The other type the acquisition catch names, so both are covered."""
+    with pytest.raises(OSError, match="a workload failure"):  # noqa: SIM117
+        with runtime.shared_host_lease():
+            raise OSError("a workload failure, not a lock conflict")
+
+
+def test_a_worker_failure_from_the_body_is_not_relabelled(host):
+    """A body failure that is already typed keeps its own code."""
+    with pytest.raises(WorkerFailure) as error:  # noqa: SIM117
+        with runtime.shared_host_lease():
+            raise WorkerFailure(WorkerCode.DEADLINE)
+    assert error.value.code is WorkerCode.DEADLINE
 
 
 def test_strict_admission_lease_delegates_to_the_shared_lock(host):
