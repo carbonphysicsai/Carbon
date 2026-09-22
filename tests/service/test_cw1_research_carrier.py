@@ -7,8 +7,8 @@ from pathlib import Path
 from carbon.development_session.research_carrier import run_script
 from carbon.development_session.research_image import build_analysis_image
 from carbon.development_session.research_ledger import (
-    CEILINGS,
-    ELAPSED_SECONDS,
+    DEVELOPMENT_CEILINGS,
+    DEVELOPMENT_ELAPSED_SECONDS,
     VERSION,
     CampaignLedger,
 )
@@ -21,8 +21,8 @@ def test_script_has_only_public_stage_and_cleanup_reaps_background_child(tmp_pat
     ledger.freeze(
         {
             "schema": VERSION,
-            "ceilings": CEILINGS,
-            "elapsed_seconds": ELAPSED_SECONDS,
+            "ceilings": DEVELOPMENT_CEILINGS,
+            "elapsed_seconds": DEVELOPMENT_ELAPSED_SECONDS,
             "campaign_id": "engineering-isolation-test",
             "implementation": "candidate",
             "objective": "test-only",
@@ -120,8 +120,8 @@ def test_cancel_live_script_removes_container_and_retains_charge(tmp_path):
     ledger.freeze(
         {
             "schema": VERSION,
-            "ceilings": CEILINGS,
-            "elapsed_seconds": ELAPSED_SECONDS,
+            "ceilings": DEVELOPMENT_CEILINGS,
+            "elapsed_seconds": DEVELOPMENT_ELAPSED_SECONDS,
             "campaign_id": "engineering-cancel-test",
             "implementation": "candidate",
             "objective": "test-only",

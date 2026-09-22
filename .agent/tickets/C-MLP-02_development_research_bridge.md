@@ -13,8 +13,10 @@ Related map: `WAVE-C/C-W1`. Scientific WAVE selection remains separately owned.
 Issue #223 is complete: PR #227 merged as
 `0e34fa6d6e0bb4358042a527710673ba91038d30`, preserving tested head
 `c0f38ea32bf7027012b3e5320141e51b3e54601c`. Reuse its evidence. C-MLP-02's
-adaptive acceptance remains incomplete; Campaign 03 has not launched; the owner
-experiment pause is active; private hosted validation is not demonstrated.
+adaptive acceptance remains incomplete; Campaign 03 has not launched; private
+hosted validation is not demonstrated. The owner experiment pause was lifted in
+full on 22 September 2026 and withholds no class of campaign; the pause
+machinery remains available and unasserted.
 
 Owner direction authorizes independent Launchpad engineering, not experiments,
 model calls, hardware allocation, scientific trials, grant renewal or chain writes.
@@ -577,6 +579,38 @@ consumes compute or touches the ledger.** That is testable directly against
 `CampaignLedger` and the task services, and it is the property that matters -
 the open tier exists so the onboarding flow can reach the audience it is for,
 not as a free sample of the research environment.
+
+#### Amended 22 September 2026: three tiers, and a budget is not one of them
+
+The owner amended the tiers after deciding that Carbon does not control a
+miner's spending. Two changes, and the second is the one that would otherwise be
+got wrong by anyone reading the earlier draft.
+
+**Open, no registration.** Wider than first stated: the published exam
+contract, capability *and agent* discovery, **compute options**, guidance, and
+the registration flow itself. Compute options and agent discovery moved here
+because a visitor deciding whether to register needs to know what they would be
+bringing and what Carbon can talk to. Reading a menu spends nothing.
+
+**Registered.** The control center, the MCP connection, saved configuration,
+templates, and their own history and artifacts.
+
+**A budget is not a tier.** An earlier draft had "LIMITS SET" as a third tier
+gating launch and dispatch. That is withdrawn. A budget is optional, a miner who
+sets none has none, and its absence blocks nothing:
+
+> **Dispatch requires registration, never a budget.**
+
+The distinction matters because a tier is a gate and a budget is a tool. Making
+spending a precondition would have reintroduced Carbon deciding how a miner uses
+their own resources, by the back door of an access model, immediately after
+deciding it would not. A miner who wants to start work without thinking about
+money is entitled to, and the surface must not ask them to price their own run
+before it will do anything.
+
+The placement rule is unchanged and still decides the rest: **nothing that opens
+a door may sit behind it.** Registration cannot require the control center;
+connecting MCP cannot require a spend envelope.
 
 #### Proxy submission is not built, and will not be
 

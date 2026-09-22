@@ -9,7 +9,7 @@ from carbon.development_session.profile import digest
 from carbon.development_session.research_agent_policy import LEGACY, binding
 from carbon.development_session.research_control import CampaignControl
 from carbon.development_session.research_guidance import context, verify, verify_history
-from carbon.development_session.research_ledger import CampaignLedger
+from carbon.development_session.research_ledger import DIMENSIONS, CampaignLedger
 from carbon.development_session.research_workspace import CAPABILITY_FIELDS
 
 
@@ -85,7 +85,7 @@ def project(row, root):
             else None
         ),
     )
-    reported = dict.fromkeys(status["ceilings"], 0)
+    reported = dict.fromkeys(DIMENSIONS, 0)
     reserved = dict(reported)
     uncertain = dict(reported)
     held = dict(reported)
@@ -109,11 +109,19 @@ def project(row, root):
             target[key] += amount
             if op["state"] == "HELD":
                 held[key] += amount
+    budget = status.get("budget") or {}
     value["usage"] = {
-        "ceilings": status["ceilings"],
+        # What the miner chose, reported as they set it. An empty budget means
+        # they set none, which is a supported state and not a missing value.
+        "budget": budget,
+        # Only meaningful where a budget exists: without one there is nothing
+        # remaining *of*, and a figure here would imply a cap they never set.
         "available": {
-            k: cap - status["used"][k] for k, cap in status["ceilings"].items()
+            key: (None if cap is None else cap - status["used"][key])
+            for key, cap in budget.items()
         },
+        # Carbon's infrastructure capacity, never the miner's money.
+        "carbon_service_limits": status.get("carbon_service_limits", {}),
         "reserved": reserved,
         "reported": reported,
         "uncertain": uncertain,

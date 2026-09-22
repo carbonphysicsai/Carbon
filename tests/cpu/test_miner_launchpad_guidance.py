@@ -17,7 +17,7 @@ from carbon.development_session.research_agent_policy import (
     AUTONOMOUS_PROMPT,
     binding,
 )
-from carbon.development_session.research_ledger import CEILINGS
+from carbon.development_session.research_ledger import DEVELOPMENT_CEILINGS
 from carbon.development_session.research_loop import SELECT, run_epoch
 from carbon.development_session.research_tools import PREFIX
 from scripts.dev.miner_launchpad.controller import Rejected
@@ -156,7 +156,9 @@ def test_legacy_rows_and_input_stay_absent(tmp_path, monkeypatch):
 
 
 def test_scripted_three_trial_information_flow_and_earlier_selection(tmp_path):
-    meter, _, _ = managed(tmp_path, ceilings={**CEILINGS, "research_trials": 3})
+    meter, _, _ = managed(
+        tmp_path, ceilings={**DEVELOPMENT_CEILINGS, "research_trials": 3}
+    )
     owner = "miner-requester"
     recipes = [
         {
@@ -286,7 +288,7 @@ def test_scripted_three_trial_information_flow_and_earlier_selection(tmp_path):
         initial["research_context"],
     ) == [{"epoch": 1, "digest": plan["effective_input_digest"]}]
     assert asyncio.run(run_epoch(meter, **args)) == result and len(calls) == 4
-    with pytest.raises(ValueError, match="resource admission"):
+    with pytest.raises(ValueError, match="miner budget"):
         meter.reserve(
             "overrun",
             owner=owner,

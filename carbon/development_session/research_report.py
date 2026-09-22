@@ -58,9 +58,12 @@ def render_status(ledger, *, owner):
             else 0
         )
     )
+    # None when the miner set no wall-clock budget: a campaign with no deadline
+    # has no time remaining *until* anything.
     value["remaining_elapsed_seconds"] = (
         max(0, value["elapsed_limit_seconds"] - value["elapsed_seconds"])
         if value["elapsed_seconds"] is not None
+        and value["elapsed_limit_seconds"] is not None
         else None
     )
     value["active_operations"] = [
@@ -104,7 +107,13 @@ def render_status(ledger, *, owner):
     ]
     value["chain_transactions"] = 0
     value["eligibility"] = "DEVELOPMENT_ONLY; no scientific qualification or payment"
-    value["remaining"] = {k: value["ceilings"][k] - v for k, v in value["used"].items()}
+    # None where the miner set no budget: there is nothing remaining of a cap
+    # that does not exist, and a number would invent one.
+    budget = value.get("budget") or {}
+    value["remaining"] = {
+        key: (None if budget.get(key) is None else budget[key] - used)
+        for key, used in value["used"].items()
+    }
     return value
 
 

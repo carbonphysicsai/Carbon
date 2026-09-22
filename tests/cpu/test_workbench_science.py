@@ -174,7 +174,10 @@ def test_same_task_and_ledger_results_across_workbench_reconnect(tmp_path, monke
         )
         assert (
             first["remaining_budget"]["reference_invocations_remaining"]
-            == 2048 - 144 - 2
+            # 2048 service capacity less the 2 consumed. The former 144
+            # final reserve is no longer withheld: reserving is the
+            # miner's choice, not a standing deduction.
+            == 2048 - 2
         )
         assert (
             first["official_eligible"] is False

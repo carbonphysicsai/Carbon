@@ -28,8 +28,8 @@ from carbon.development_session.research_admission import (
     Admission,
 )
 from carbon.development_session.research_ledger import (
-    CEILINGS,
-    ELAPSED_SECONDS,
+    DEVELOPMENT_CEILINGS,
+    DEVELOPMENT_ELAPSED_SECONDS,
     CampaignLedger,
 )
 from carbon.development_session.research_material import PublicMaterial
@@ -121,8 +121,8 @@ def prepare(root, monkeypatch):
         "provider": "openai-responses",
         "account_ref": "no-paid-calls-fixture",
         "campaign_count": 1,
-        "ceilings": CEILINGS,
-        "elapsed_seconds": ELAPSED_SECONDS,
+        "ceilings": DEVELOPMENT_CEILINGS,
+        "elapsed_seconds": DEVELOPMENT_ELAPSED_SECONDS,
         "expires_unix": time.time() + 3600,
         "cleanup": "all-campaign-owned-work; unresolved-reservations-retained",
         "retry_allowance": 0,
@@ -138,8 +138,8 @@ def prepare(root, monkeypatch):
         "owner": owner,
         "runtime": runtime,
         "grant": admission.binding(),
-        "ceilings": CEILINGS,
-        "elapsed_seconds": ELAPSED_SECONDS,
+        "ceilings": DEVELOPMENT_CEILINGS,
+        "elapsed_seconds": DEVELOPMENT_ELAPSED_SECONDS,
         "implementation": runtime["implementation"],
         "images": runtime["images"],
         "objective": "test-only",
@@ -361,7 +361,7 @@ def test_established_connection_rechecks_authority_on_each_call(
         with ledger.db() as db:
             db.execute(
                 "UPDATE campaign SET started=? WHERE id=1",
-                (time.time() - ELAPSED_SECONDS - 1,),
+                (time.time() - DEVELOPMENT_ELAPSED_SECONDS - 1,),
             )
     with pytest.raises(ValueError):
         asyncio.run(bound.check_registration())

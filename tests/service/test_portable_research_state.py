@@ -11,8 +11,8 @@ from pathlib import Path
 from carbon.development_session.research_carrier import run_script
 from carbon.development_session.research_image import build_analysis_image
 from carbon.development_session.research_ledger import (
-    CEILINGS,
-    ELAPSED_SECONDS,
+    DEVELOPMENT_CEILINGS,
+    DEVELOPMENT_ELAPSED_SECONDS,
     VERSION,
     CampaignLedger,
 )
@@ -62,8 +62,8 @@ def test_two_admitted_cpu_research_operations_transport_state_and_replay(tmp_pat
     ledger.freeze(
         {
             "schema": VERSION,
-            "ceilings": CEILINGS,
-            "elapsed_seconds": ELAPSED_SECONDS,
+            "ceilings": DEVELOPMENT_CEILINGS,
+            "elapsed_seconds": DEVELOPMENT_ELAPSED_SECONDS,
             "campaign_id": "engineering-portable-state",
             "implementation": "candidate",
             "objective": "synthetic-state-transport-only",
