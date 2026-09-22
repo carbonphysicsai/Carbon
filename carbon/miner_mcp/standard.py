@@ -25,6 +25,7 @@ from carbon.development_session.research_tools import (
     FIELDS,
     PREFIX,
     TASK_CORRECTIONS,
+    PreDispatchRefusal,
     ResearchMinerTools,
 )
 
@@ -48,6 +49,11 @@ class AdapterCode(str, Enum):
     OWNER_BINDING = "OWNER_BINDING"
     OPERATIONAL_STOP = "OPERATIONAL_STOP"
     INVALID_RESULT = "INVALID_RESULT"
+    # Refused before anything could be dispatched. Distinct from
+    # OPERATIONAL_STOP, which is a campaign declining work: this one means there
+    # is no campaign, so the miner has nothing to reconcile and should not be
+    # sent looking for consumption that cannot exist.
+    NO_CAMPAIGN = "NO_CAMPAIGN"
 
 
 class AdapterFailure(ValueError):
@@ -342,6 +348,16 @@ class ResearchToolAdapter:
                 request.operation_id,
                 transport_request_id="mcp-" + uuid.uuid4().hex,
             )
+        except PreDispatchRefusal:
+            # Caught before the blanket handler below, and reported with
+            # dispatch_may_have_occurred=False. That is a fact here rather than
+            # an optimistic default: the refusal is raised at the top of the
+            # call, before any reservation is possible. Folding it into the
+            # conservative case would tell a miner their work may have started
+            # when nothing could have.
+            raise AdapterFailure(
+                AdapterCode.NO_CAMPAIGN, dispatch_may_have_occurred=False
+            ) from None
         except Exception:  # noqa: BLE001
             # The controller retains ambiguous reservations and dispatch intents.
             # Never label an authentication/execution failure as candidate failure.

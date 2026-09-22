@@ -364,19 +364,25 @@ def capability_catalog() -> dict:
             },
             {"id": "hermes", "reason": "adapter_not_implemented"},
             {
-                # Read from the code rather than its docstring, which still
-                # says "principal/grant": nothing in `standard_http` touches a
-                # grant. `create_http_app` needs a principal-bound adapter and
-                # a `BoundTokenVerifier` over pinned RS256 public keys from an
-                # authorization server the operator supplies. Carbon runs no
-                # such server, and whose it should be is undecided.
+                # Fourth revision of this reason, and the first three were all
+                # wrong in ways worth not repeating: an absent bridge that
+                # exists, a grant coupling that is only a stale docstring, and
+                # an undecided authorization server that has since been decided
+                # (CARBON-D-MCP-REMOTE-AUTH: Cloudflare Access is the issuer).
                 #
-                # Scope note: this is the *remote authenticated* door. A miner
-                # bringing their own agent over stdio needs none of it and can
-                # connect today, so the BYO guarantee is not what is blocked
-                # here.
+                # What is actually left is the claim contract. Access emits no
+                # `client_id` and no `scope`, both of which `verify_token`
+                # requires; its `aud` is the application AUD tag rather than a
+                # resource URL; its `sub` is empty for the service tokens a
+                # programmatic caller uses, with the identity in `common_name`;
+                # and its signing key rotates on a six-week cycle, which a key
+                # set fixed at construction cannot follow.
+                #
+                # Scope note: this is the *remote* door only. A miner bringing
+                # their own agent over stdio needs no Cloudflare credential and
+                # nothing issued by Carbon, and can connect today.
                 "id": "personal-agent",
-                "reason": "no_authorization_server_for_remote_authenticated_mcp",
+                "reason": "access_assertion_claim_contract_not_implemented",
             },
             {"id": "mira", "reason": "integration_interface_unverified"},
             {

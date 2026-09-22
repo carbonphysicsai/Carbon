@@ -78,6 +78,12 @@ NEXT_ACTION = {
         "The controller returned a result this server will not forward. Do not "
         "retry; report it with the operation_id you used."
     ),
+    AdapterCode.NO_CAMPAIGN.value: (
+        "This server has no campaign to account against, and no operation on it "
+        "creates one. Reconnect to a server with a campaign attached, then "
+        "retry with the same operation_id. Nothing was dispatched, so there is "
+        "nothing to reconcile, and a budget is never what is missing here."
+    ),
     "CAPACITY_UNAVAILABLE": (
         "This server is at its concurrent-call bound. Nothing was dispatched. "
         "Retry the same operation_id shortly."
