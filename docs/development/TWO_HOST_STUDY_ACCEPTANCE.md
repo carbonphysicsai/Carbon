@@ -517,3 +517,54 @@ comparison; run whichever class stock offers, and record why.
 Nothing here qualifies anything. `compare_r1` still returns
 `BACKEND_UNSUPPORTED`. Stage A establishes device agreement and not orchestration
 agreement, and `validator_launch` remains `HARDWARE_EXERCISED: no`.
+
+---
+
+# Amendment 6 - the scientific holder is off the development critical path
+
+**Recorded 2026-09-22. Owner decision.**
+
+Amendment 4 requires the measured `delta` to replace the provisional one **before
+any further class runs**, and Amendment 5 leaves `delta` to the scientific holder.
+Chained, those put Harshdeep Sharma between one completed class and the remaining
+three - so an open stock window could close while a decision waits.
+
+**Decided: he is removed from the development critical path.**
+
+## What changes
+
+**The owner sets `delta` from the measurement**, under the deputy clause Amendment
+4 already records, and the remaining classes run on it. No class waits on a
+ratification.
+
+`delta` set this way is **provisional and owner-set**, recorded as such in the
+evidence, exactly as the convention in Amendment 5 is.
+
+## What does not change, and must not be read as changed
+
+**The MQ-008 scientific review still happens, before launch.** The owner will work
+through final implementation with the holder ahead of it. This amendment moves
+that review out of the development sequence; **it does not remove it.**
+
+**The Gate 1 condition stands.** Section 2 of this acceptance records domain
+acceptance as granted in the owner's own hand pending named holders, with the
+condition that it is revisited before the first authoritative Challenge or LIVE
+planning. Naming Harshdeep discharged the naming. **The review itself is still
+owed, and nothing here discharges it.**
+
+**Nothing becomes qualified.** `compare_r1` still returns `BACKEND_UNSUPPORTED`.
+Stage A remains device agreement and not orchestration agreement, and
+`validator_launch` remains `HARDWARE_EXERCISED: no`. This changes who decides a
+development parameter and when - not what the evidence establishes.
+
+## Why this is safe
+
+The emitter records **sufficient statistics**, so every convention and every
+`delta` in Amendment 5's scheme is derivable from the retained numbers of a
+completed run. A later ratification that differs is a **recomputation, not new
+hardware time**, and no class has to be re-run to honour it.
+
+That property is what makes the holder's decision deferrable without making the
+evidence provisional in any way that costs money to correct. If it ever stops
+being true - if a future measurement bakes a convention into what is retained -
+this amendment must be revisited, because the deferral rests on it.
