@@ -91,3 +91,19 @@ it had not, when looked at.
 | 2026-09-22T11:51Z | L40S, A40 @ 2 GPU, CUDA 13.0/13.2, SECURE | L40S **LOW in EUR-IS-2** at $2.18/hr; A40 Out. EUR-IS-2 later found volume-incapable. |
 | 2026-09-22T13:2xZ | L40S, A40 @ 2 GPU, CUDA 13.0/13.2/12.8, SECURE, global | both **Out** on every line |
 | 2026-09-22T13:39Z | volume-capable datacenter list, GPU availability | no L40S or A40 in any of the thirteen |
+| 2026-09-22T13:5xZ | L40S, A40 @ 2 GPU, 13.0/13.2, SECURE | both **Out** |
+| 2026-09-22T14:1xZ | volume-capable datacenters, GPU availability | no L40S or A40 among the thirteen |
+| 2026-09-22T15:0xZ | L40S, A40 @ 2 GPU, 13.0/13.2, SECURE | both **Out** |
+
+## Resolved by amendment 3, and why this watch continues anyway
+
+The watch's question - *does either class appear in a volume-capable
+datacenter?* - **no longer gates the study.** Amendment 3 builds the checkout
+into the image, so no volume is needed and the condition reduces to class
+availability in any of the class's own datacenters.
+
+The rows continue because the remaining question is narrower and still open:
+whether L40S appears at 2 GPUs **anywhere**. If a week of checks records no
+sighting in any of EUR-IS-2, OC-AU-1, US-MO-1 or US-TX-4, that is a different
+finding from the one resolved here - it would mean the declared class is broadly
+unobtainable at 2 GPUs on this provider, which no image change addresses.
