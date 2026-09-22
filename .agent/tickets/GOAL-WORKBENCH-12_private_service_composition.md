@@ -83,8 +83,39 @@ GPU and authored research stay `UNSUPPORTED` for the Workbench: no Workbench
 solver is invented, no backend is substituted for another, and no customer task
 is relabelled to reach a service it has no rights to.
 
-W-C deployment acceptance is out of scope and remains blocked on external
-authority. This ticket delivers W-A and the engineering half of W-B.
+W-C deployment acceptance is out of scope. This ticket delivers W-A and the
+engineering half of W-B.
+
+**The blocker is not external.** An earlier revision of this line said W-C
+"remains blocked on external authority", which records that a blocker exists
+and gives nobody anything to act on. Named precisely, so it can be decided
+rather than cited:
+
+| What is needed | Whose it is | What changes the day it is granted |
+|---|---|---|
+| Money for counsel and for a security review of the deployed surface | **Ryan** | Unblocks every legal item below; nothing legal can start until this is answered |
+| Storage location and jurisdiction | **Nick**, plus a jurisdiction and entity only **Ryan** can supply | §3.2 proceeds; records that matter may be written |
+| Retention period, legal basis, approver (OD-25) | **Ryan and Nick with counsel** | `legal_basis` stops being `null`; deletion stops being exception-only by default |
+| Notice and consent text | **Ryan and Nick with counsel** | Client-facing collection becomes possible at all |
+| Sender credential and authorised sender identity | **Ryan** | Notifications may be attempted; today every attempt reports that none is configured |
+| Named staff accounts and credential issuance | **Ryan** | Real identities replace the synthetic stage-1 directory |
+| Incident ownership and rollback authority | **Nick** | An operator exists to page |
+| Rate limiting, lockout and escalation | engineering, gated on the security review above | The abuse controls the runbook records as absent get built |
+
+Every row is Ryan's or Nick's. Nothing here is external to Carbon, and nothing
+is waiting on a third party.
+
+**What is already prepared against them.** Stage 1 runs today on loopback with
+one receiver process per store file, a store ceiling that cannot write a file it
+cannot read, authenticated staff identity with cross-team denial, versioned
+retention with an approved-exception deletion model, and a transactional outbox
+that reports what it did not do. The runbook records the start, check, stop and
+recover sequence as actually run. The engineering is not what is waiting.
+
+**What §3.1 being resolved does not mean.** A working internal host with
+synthetic fixtures is one precondition of nine. The eight that remain are the
+ones with a client on the other end, and a host is not a deployment, a security
+qualification, or authorisation for client-facing collection.
 
 ## Successor repairs (GOAL-WORKBENCH-13)
 
