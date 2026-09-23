@@ -333,14 +333,28 @@ def authored_julia_scope(image):
 
 
 def authorize_julia(ledger, owner, image):
+    """Admit authored Julia for this campaign's owner.
+
+    A product campaign (C-MLP-02-D11) may use Julia at any time the host has a
+    built image: nothing is declared at launch, because each run's execution
+    contract records exactly which image, scope and environment ran. A
+    development grant campaign keeps the frozen-scope rule it was built under.
+    """
+    from .research_ledger import PRODUCT
+
+    if type(image) is not JuliaResearchImageIdentity:
+        raise ValueError("separate authored Julia image required")
     with ledger.db() as db:
         row = db.execute("SELECT manifest FROM campaign WHERE id=1").fetchone()
     manifest = json.loads(row[0]) if row else {}
+    declared = manifest.get("runtime", {}).get("authored_research")
     if (
         not ledger.controlled(manifest)
         or manifest.get("owner") != owner
-        or manifest.get("runtime", {}).get("authored_research")
-        != [authored_julia_scope(image)]
+        or (
+            declared != [authored_julia_scope(image)]
+            and not (manifest.get("schema") == PRODUCT and declared is None)
+        )
     ):
         raise ValueError("explicit prospective authored Julia scope required")
     ledger.authority(manifest)

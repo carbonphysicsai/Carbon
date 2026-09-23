@@ -385,6 +385,21 @@ def registered_julia_image(root, runtime, analysis):
     return verify_julia_image(image)
 
 
+def available_julia_image(root, analysis):
+    """The Julia image installed for this campaign, if any, verified."""
+    from .julia_analysis import load_julia_analysis_image, verify_julia_image
+    from .private_records import private_json
+
+    path = root / "authored-julia-image.json"
+    if not path.exists():
+        return None
+    private_json(path)
+    image = load_julia_analysis_image(path)
+    if image.parent != analysis:
+        raise ValueError("authored Julia image does not extend this analysis image")
+    return verify_julia_image(image)
+
+
 def research_practice(root, manifest, *, data, role_root, ledger, owner, image):
     """Which runtime the miner's own research runs on.
 
@@ -472,6 +487,11 @@ async def execute(args, *, ledger=None):
             from .julia_analysis import authored_julia_scope
 
             runtime["authored_research"] = [authored_julia_scope(authored)]
+        else:
+            # Anytime: a product campaign uses whichever Julia image the host
+            # has installed for it, declared or not. It is not part of the
+            # frozen runtime; each run's contract records exactly what ran.
+            authored = available_julia_image(root, analysis)
         if "gpu_research" in declared:
             from .gpu_research import declared_gpu_runtime
 

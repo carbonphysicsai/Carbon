@@ -577,14 +577,32 @@ def julia_profile(tmp_path, *, declare=True, name=True):
     return cfg, record
 
 
-@pytest.mark.parametrize("declare,name", [(True, False), (False, True)])
-def test_a_julia_record_is_named_exactly_when_julia_is_declared(
-    tmp_path, declare, name
-):
+def test_a_declared_composition_needs_its_record(tmp_path):
     from scripts.dev.miner_launchpad.runner import validated_profile
 
-    cfg, _ = julia_profile(tmp_path, declare=declare, name=name)
+    cfg, _ = julia_profile(tmp_path, declare=True, name=False)
     with pytest.raises(ValueError, match="authored_julia_image"):
+        validated_profile(cfg)
+
+
+def test_julia_needs_no_declaration_at_all(tmp_path):
+    """Anytime: a profile naming a built Julia image is valid with nothing
+    declared in the runtime; every campaign can use it."""
+    from scripts.dev.miner_launchpad.runner import validated_profile
+
+    cfg, _ = julia_profile(tmp_path, declare=False, name=True)
+    assert validated_profile(cfg) == cfg
+
+
+def test_a_gpu_record_still_pairs_with_its_declaration(tmp_path):
+    """GPU research binds its scope to the campaign's own material, so a GPU
+    record with nothing declared is refused - the specimen that the pairing
+    check still bites where it applies."""
+    from scripts.dev.miner_launchpad.runner import validated_profile
+
+    cfg, _ = julia_profile(tmp_path, declare=False, name=False)
+    cfg["gpu_image"] = str(tmp_path / "gpu-record.json")
+    with pytest.raises(ValueError, match="gpu_image"):
         validated_profile(cfg)
 
 
@@ -619,14 +637,21 @@ def test_julia_needs_no_grant_only_the_profile(tmp_path, monkeypatch):
     assert (root / "authored-julia-image.json").stat().st_mode & 0o777 == 0o600
 
 
-def test_a_resumed_campaign_keeps_the_record_it_was_launched_with(tmp_path):
+def test_a_rebuilt_image_reaches_a_running_campaign(tmp_path):
+    """Anytime: a newer record replaces the installed one on the next launch,
+    resume or attach. Nothing trusts the record's history; each run records
+    the image it actually used."""
     from scripts.dev.miner_launchpad.runner import install_research_images
 
     cfg, record = julia_profile(tmp_path)
     root = tmp_path / "campaign"
     root.mkdir(mode=0o700)
     install_research_images(cfg, root)
-    install_research_images(cfg, root)  # Idempotent across resume.
-    record.write_bytes(canonical({"schema": "fixture-record", "image": "other"}))
-    with pytest.raises(ValueError, match="different image record"):
-        install_research_images(cfg, root)
+    install_research_images(cfg, root)  # Unchanged: nothing rewritten.
+    rebuilt = canonical({"schema": "fixture-record", "image": "rebuilt"})
+    record.write_bytes(rebuilt)
+    install_research_images(cfg, root)
+    installed = root / "authored-julia-image.json"
+    assert installed.read_bytes() == rebuilt
+    assert installed.stat().st_mode & 0o777 == 0o600
+    assert not (root / "authored-julia-image.json.installing").exists()
