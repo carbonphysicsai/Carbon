@@ -193,7 +193,7 @@ FROM {tag}
 USER 0:0
 COPY --from=packages {ANALYSIS_ROOT} {ANALYSIS_ROOT}
 RUN export JULIA_DEPOT_PATH={ANALYSIS_ROOT}/depot JULIA_PKG_OFFLINE=true \\
-      JULIA_PKG_SERVER= JULIA_CPU_TARGET='{CPU_TARGET}' HOME=/tmp TMPDIR=/tmp \\
+      JULIA_CPU_TARGET='{CPU_TARGET}' HOME=/tmp TMPDIR=/tmp \\
     && {precompile} \\
     && rm -rf {ANALYSIS_ROOT}/depot/logs {ANALYSIS_ROOT}/depot/scratchspaces \\
     && chmod -R a+rX,a-w {ANALYSIS_ROOT}
