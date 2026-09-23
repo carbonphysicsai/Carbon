@@ -49,10 +49,18 @@ The grouping does not follow generation, class or price - a consumer laptop GPU
 shares a digest with two datacenter cards, while two other datacenter cards each
 stand alone. Nothing measured predicts which parts will coincide.
 
-**The consequence is concrete.** Validators on the same generation will agree with
-each other. Validators on different generations may not. Before a first
-authoritative Challenge, either the generation validators must run is specified,
-or scoring tolerates the difference.
+**The consequence is concrete.** Validators on the same **part** will agree with
+each other. Validators on different parts may not, including parts of one
+generation. Before a first authoritative Challenge, either the compute validators
+must run is specified, or scoring tolerates the difference.
+
+> **Corrected 2026-09-23.** This paragraph originally said validators on the same
+> *generation* will agree. That overstated the evidence: agreement was measured
+> between identical parts, and only one same-generation, different-part pair was
+> ever observed (A40 and RTX 3060, incidentally). A100 against A40, L40S against
+> L4 and B200 against RTX PRO 6000 were never compared. **Decided under
+> Amendment 10:** validator compute requires the same part, qualified for the four
+> parts measured, as the owner's provisional qualification in the holder's place.
 
 **That is a scientific decision and it is yours.** This study measured the
 phenomenon and does not resolve it. Note that it cuts against the provider freedom
@@ -60,6 +68,10 @@ the design otherwise promises, so the two have to be reconciled deliberately
 rather than by default.
 
 ## 3. Two questions still awaiting your ratification
+
+> **Ratified provisionally 2026-09-23 under Amendment 10**, by the owner as deputy
+> for the holder: both provisional answers below, and `delta = 1e-07`. The
+> holder's own review is still owed.
 
 Routed to you on issue #42. Both are measurement-definition questions the
 measurement cannot answer for itself.
@@ -123,9 +135,11 @@ looks like a present one.
 - **H100 and Blackwell were each measured on one host only**, and their digests
   are distinct from the shared one, so neither is shown to reproduce across hosts.
 - **The driver-match precondition was not enforced for stage B.** The compared
-  hosts differed - `580.159.03` against `580.159.04` - which strengthens the
-  result but was discovered afterwards rather than verified in advance, and the
-  instrument cannot check it across pods.
+  hosts differed - `580.159.03` against `580.159.04`. Recorded as a deviation
+  and applied retroactively under Amendment 9: it shows the pinned configuration
+  held across a driver difference, but a patch-level one, one pair, discovered
+  rather than chosen. The instrument gap is closed for future runs
+  (`compare_units.py`); it does not reach back and verify stage B in advance.
 
 ## 6. Collection gaps
 

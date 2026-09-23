@@ -9647,6 +9647,20 @@ events:
   -
     map_ref: "SYSTEM/AGENT-EXECUTION"
     event_type: "evidence"
+    event_id: "C-CORE-21-STAGE-AB-01"
+    owner_lane: "core_platform"
+    status: "implemented"
+    summary: "Recorded the two-host determinism study's results, merged in PR #308 without a Hub event, and closed the instrument gap that study reported. Stage A: within one chassis, two identical devices produced bit-identical weights under the pinned determinism configuration and diverged without it, across four architecture generations, eight devices and 144 reconstructions with zero refused cells. Ada ran on L4 and Blackwell on RTX PRO 6000 SE as permitted substitutes under Amendment 8, which establishes that those kernel sets agree and nothing about what a validator would deploy. Across classes agreement was not universal: A40, L4 and a consumer RTX 3060 shared one digest while H100 and Blackwell each produced their own, which leaves a cross-generation decision with the MQ-008 holder. Unpinned divergence was one float32 ulp. Stage B: two separate single-GPU A40 hosts in one datacenter produced the same digest under the pinned configuration. They ran driver builds 580.159.03 and 580.159.04 against a hard pre-run check that builds match, which nothing enforced across pods; Amendment 9 records that as a deviation applied retroactively to the published result, and reports both what it bought, namely that the pinned configuration held across a driver difference, and what it did not, since the builds differ in the patch component only, as one pair discovered rather than chosen. The gap is closed by construction: each pod session record now carries the NVML driver build and a session without it is refused, a preflight refuses differing builds across pods before any run, and a comparison of differing builds is refused rather than reported as disagreement unless a recorded deviation names exactly those builds, which is then written into the result. The published stage B pair is the test specimen for each refusal and acceptance. This is device agreement and not orchestration agreement: validator_launch remains never hardware-exercised, containment was the provider's runtime, H100 and Blackwell were each measured on one host, backend comparison still reports the backend unsupported, and the MQ-008 review is still owed. No ticket status, sequencing, maturity or authority changes, no hardware is qualified, no tolerance is set, and no spend occurred."
+    primary_detail: "docs/development/MQ008_EVIDENCE_PACKAGE.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "WAVE-C/C-03"
+      - "WAVE-C/C-09"
+    supersedes: null
+    recorded_at: "2026-09-23T15:03:00Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "evidence"
     event_id: "C-MLP-02-ACCESS-DOOR-SERVED-01"
     owner_lane: "technical_lead"
     status: "implemented"
@@ -9707,6 +9721,18 @@ events:
     supersedes: null
     recorded_at: "2026-09-23T16:30:00Z"
   -
+    map_ref: "SYSTEM/BUSINESS-AUTHORITY"
+    event_type: "evidence"
+    event_id: "GOAL-WORKBENCH-15-E8-01"
+    owner_lane: "business_authority"
+    status: "implemented"
+    summary: "Opens GOAL-WORKBENCH-15 for the nine client-data engineering changes the owner approved on 2026-09-23 and delivers the first, E8: no Workbench client material reaches the subnet or the public Ask Carbon assistant, with no opt-in and no flag. A route map found the authoring bridge compiled a design's free-text intended use and identifiers into a Challenge proposal behind a rights label anyone can set; it now compiles only source-owned constants, the closed goal enum and a digest-derived identifier. The study route already admitted only the granted public physical definition and a digest, and is now pinned. Ask Carbon knowledge sources are contained to the public repository, symlinks included. Sentinel tests plant client text in every field, drive each real route and search everything that crossed, each paired with a specimen that fails against a leaking variant; the assistant runtime is shown to import nothing outside its own tree. A new module reading a client record by path is stated as the residual E1 closes. One open owner question is recorded: whether E8 extends to what a visitor types into the public Pilot Designer before Carbon receives anything. GOAL-WORKBENCH-12's line that the engineering was not what W-C waits on is corrected. The impact-policy map gains one bounded ownership rule for this ticket. Registering it hit the per-event ledger defect that #316 fixed independently on main; this change takes that fix and adds no validator change of its own. No W-C precondition advances, and no collection, deployment, spend, security acceptance or qualification is authorized."
+    primary_detail: ".agent/tickets/GOAL-WORKBENCH-15_client_data_engineering.md"
+    affects:
+      - "SYSTEM/BUSINESS-AUTHORITY"
+    supersedes: null
+    recorded_at: "2026-09-23T16:40:00Z"
+  -
     map_ref: "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
     event_type: "evidence"
     event_id: "HUB-LEDGER-STRUCTURAL-SATISFIABLE-01"
@@ -9731,6 +9757,20 @@ events:
       - "SYSTEM/AGENT-EXECUTION"
     supersedes: null
     recorded_at: "2026-09-23T17:30:00Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "decision"
+    event_id: "MQ-008-SAME-PART-01"
+    owner_lane: "core_platform"
+    status: "implemented"
+    summary: "Recorded the owner's provisional qualification, as deputy for the MQ-008 scientific holder, of the validator compute rule and the comparison conventions. The holder answered through the owner that validator compute must be the same generation; the evidence package had said validators on the same generation will agree, which overstated what was measured, since agreement was measured between identical parts and only one same-generation, different-part pair was ever observed, incidentally. The owner ruled at the measured granularity: validators whose results are compared must run the same GPU part, qualified per part for the four parts measured, A40, H100 SXM, L4 and RTX PRO 6000 SE, on fixture_authoring 1.0, the C-02 development fixture at the representative scale; a part not listed is not qualified whatever its generation. The R1 numerical tolerance is bit-exact, which is what was measured, and the qualification is DEVELOPMENT-typed because the only measured material is a test fixture rather than a registered Challenge. The provisional divergence conventions were ratified, relative L2 as headline with the max-normalised companion and absolute always reported, delta both absolute and relative, and delta of 1e-07 near-margin with controls of 1e-05 and 1e-04, which is a decision-stability margin and not the R1 tolerance. The evidence package was corrected in place with a dated note. This is the owner's qualification in the holder's place and the holder's review is still owed. It qualifies no other part or Challenge, no containment, and not validator_launch, which remains never hardware-exercised; it is not security or production qualification, activates no Challenge and creates no LIVE authority. The fixture-only boundary is deliberately not migrated, since a non-fixture qualification bound to a fixture Challenge would record fixture evidence as real authority; backend comparison reports the backend unsupported until the development qualification is implemented separately."
+    primary_detail: "docs/development/TWO_HOST_STUDY_ACCEPTANCE.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "WAVE-C/C-03"
+      - "WAVE-C/C-09"
+    supersedes: null
+    recorded_at: "2026-09-23T18:10:08Z"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"
