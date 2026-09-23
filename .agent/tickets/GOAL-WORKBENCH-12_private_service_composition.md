@@ -161,3 +161,49 @@ Acceptance scopes are reported separately: `workbench_science_checks.sh` is not
 the read-only release-freshness gate and neither is a product-browser journey.
 The browser suites were not executed in this session; the development host has no
 usable Chromium.
+
+## Handoff §10 acceptance, re-audited 2026-09-23
+
+The Workbench completion handoff's §10 lists fourteen required cases. The table
+marking each one was only ever written in a session transcript. It was re-marked
+there on 2026-09-21, and that update was then lost when the conversation was
+compacted, so later reports kept saying "four partials" after two had closed.
+The four rows below are recorded here so that cannot happen again. All four now close. The other ten
+were marked covered on 2026-09-21 and are not re-audited here.
+
+| Case | Status | Evidence |
+|---|---|---|
+| 7. Real composition reaches `WorkbenchScience` and the registered task; single-case, two-case, partial completion, expiry and cancellation | **Covered** | `tests/service/test_julia_workbench.py` (single case through the HTTP routes, saved replay, stale draft, cancellation after grant expiry) and `tests/service/test_julia_envelope_worker.py` (two cases, partial completion, held capacity after expiry, cancellation of a running envelope), on a real Julia worker. Re-run on 2026-09-23 against a worker rebuilt from the current tree: 6 of 6. |
+| 8. Stop, reconnect and controller restart observe task-owned cleanup and conservative charges, with no new grant or duplicate numerical work | **Covered** | `tests/service/test_mcp_tasks_native_julia.py`: three server processes, each one a controller restart, replay with no duplicate trial, a double cancel, cleanup on stdio EOF, nothing left `RESERVED`. `tests/service/test_workbench_host_process.py` does the same for the Workbench launcher: `SIGTERM` reconciles to `INTERRUPTED`, and a restart or `SIGKILL` recovery replays the study with unchanged usage. |
+| 11. One desktop and narrow-mobile team journey saves and reopens the same inquiry, study and assessment | **Covered** | `tests/service/workbench_team_journey.py` drives `Business/Carbon_Fit/workbench/tests/browser_team_journey_launcher.cjs` through one browser session against `workbench_host serve` and the stage-1 receiver. The client downloads a package from the preview the launcher serves, and an operator relays it into the receiver, which stores the same bytes. The team imports what the receiver stored, records an assessment on that job, and runs a real-worker study on its design after `register-draft`. The page then saves, is reloaded, reopens the saved bytes, and finds the inquiry's words, the assessment and the study, which the service rereads. 14 of 14 checks at 1440 px and at 390 px on 2026-09-23, with nothing off-origin and no page errors. Operator-run, like the other Workbench browser journeys: CI installs no browser. |
+| 12. Fresh checkout, bootstrap, build, startup, shutdown and recovery work on supported Linux | **Covered** | `tests/service/test_workbench_host_process.py` runs the private build, `check`, `register-draft` and `serve` as the operator runs them, as separate processes, then stops with `SIGTERM`, restarts, crashes with `SIGKILL` and restarts again. The campaign is test-owned and synthetic under handoff §G. Only the external hotkey and testnet runtime is substituted. |
+
+**Where this evidence runs.** These are real-worker tests in
+`scripts/dev/julia_worker_service.sh`, which CI runs in the isolated service job.
+The pinned classifier (`scripts/dev/classify_changes.py`, owner-pinned) selects
+that job only when the C-03 worker boundary changes. A change to the Workbench
+launcher, its tests or that script does not select it, so none of these tests
+ran in CI on the change that added the launcher test. The 2026-09-23 results
+above are native-host runs on the supported Linux environment. They are
+diagnostics, not canonical acceptance. Making the job follow the Workbench paths
+is a classifier change, and that is the owner's to make.
+
+**The stated precondition was the wrong one.** Cases 7, 8 and 12 were held on
+"an admitted campaign with its grant". Handoff §G permits a test-owned synthetic
+grant in a temporary root, so that was never required. #282 did not remove the
+grant from this path either: `load_profile` still requires it. What actually
+kept case 12 open was that no test ran the launcher as a process. The first run
+that did found two defects, each of which made the supported host unusable. Both
+are fixed on the branch that records this:
+
+- **`serve` never reconciled on the documented stop.** uvicorn raises SIGTERM
+  again once it has shut down, and the default action ended the process inside
+  the campaign attachment, before worker cleanup, controller settlement and
+  task-store close. It now exits `0` with the campaign `INTERRUPTED`. The
+  process test fails with `-15` against the old code.
+- **`register-draft` wrote a registry that `serve` could never read.** The
+  operator commands keyed the registry on the profile's `principal`, the operator
+  named in the grant, while `serve` keys it on the authenticated campaign owner.
+  With any real profile, every study was refused as `DRAFT_BINDING_DENIED`. The
+  in-process tests hid this by setting the two identities equal. They now differ
+  as they do in a real profile, and the operator test fails against the old code.

@@ -19,7 +19,7 @@
     "GOAL-WORKBENCH-10"
   ],
   "repository_base": "3681f7fb10be0c6e278f53d59ff9b022099ef12d",
-  "integration_revision_at_packaging": "44425d74d7c184681ae684e658c22c394e90ae7a",
+  "integration_revision_at_packaging": "e90500f76662808a75d08b4d318beb9af30046a9",
   "integration_revision_note": "The checksum manifest describes exact packaged bytes. A commit cannot contain its own digest; final PR/head identity is reported by delivery.",
   "pinned_research_revision": "ca904dfee93d3574df4e56b99981a6ed3b138e80",
   "accepted_research_head": "0a5690270dc449ea19c941280203987d37db5283",
@@ -176,7 +176,7 @@
     "use": "Operating conformance only; no Grok/account integration is claimed."
   },
   "authority": "No runtime sharing, qualification, protected-use approval, answer publication, submission, registration, execution, launch, deployment, or rights authority is conveyed.",
-  "file_count": 217,
+  "file_count": 218,
   "files": {
     "Carbon_Client_Intake_Preview.html": {
       "bytes": 56634,
@@ -195,8 +195,8 @@
       "sha256": "5e56ffa28a57a1672a0faf9a0ac9ded1ff20152d051c49c27c8fddb5887040e7"
     },
     "PRIVATE_SERVICE_RUNBOOK.md": {
-      "bytes": 13998,
-      "sha256": "47abcf30e9cf9ddd1b8914f183ced084b38955552c181a1df178f3130fac17de"
+      "bytes": 15276,
+      "sha256": "3ce03aa096074fafcb5f62336a92328ebc0e1a5d9012f06142c3cf22fdd36b88"
     },
     "README.md": {
       "bytes": 27942,
@@ -841,6 +841,10 @@
     "tests/browser_source_assessment_smoke.cjs": {
       "bytes": 7225,
       "sha256": "a5b2caebcc5f1d07ba63ffb9398e1b6714c3c92f68b74c9f793fa588698ee276"
+    },
+    "tests/browser_team_journey_launcher.cjs": {
+      "bytes": 9628,
+      "sha256": "5212092183dd41c65e65f54cd151fa07f95b49e4ac0fcf41ead1b796347e6d55"
     },
     "tests/browser_team_review_results.json": {
       "bytes": 819,
