@@ -268,15 +268,13 @@ def requirements() -> dict[str, object]:
     }
 
 
-async def status(reader, context, address: object) -> dict[str, object]:
-    """Is this address registered on the subnet, and as which UID.
-
-    Read-only, on public chain state, through the existing reader. No new query
-    is introduced and nothing is written.
+async def _observe(reader, context):
+    """One finalized metagraph observation on the configured subnet, or a
+    closed failure naming why there is none. Shared by every read here, so a
+    status answer and an admission decision cannot come from different reads.
     """
     from carbon.chain.models import ChainFailure
 
-    hotkey = _address(address)
     if context.netuid != CARBON_NETUID or context.network != CARBON_NETWORK:
         raise OnboardingFailure(
             "WRONG_NETWORK",
@@ -286,7 +284,7 @@ async def status(reader, context, address: object) -> dict[str, object]:
             ),
         )
     try:
-        observed = await reader.capture(context)
+        return await reader.capture(context)
     except ChainFailure as failure:
         raise OnboardingFailure(
             "CHAIN_UNAVAILABLE",
@@ -295,6 +293,104 @@ async def status(reader, context, address: object) -> dict[str, object]:
                 "changed and no registration was attempted."
             ),
         ) from failure
+
+
+class RegisteredMiner:
+    """A hotkey observed registered on Carbon's subnet. Construction is the check.
+
+    Registration is the only thing that admits a miner to Carbon's research
+    environment (C-MLP-02-D11), so a launch takes one of these rather than an
+    address and a flag. It can be built only from a finalized metagraph
+    observation of the configured subnet in which the hotkey resolves. A valid,
+    correctly spelled address that was never observed registered is still
+    refused: not because anything about it is wrong, but because it did not come
+    through the read.
+
+    It records what was observed, for the campaign manifest to carry. It is an
+    access fact, never scientific evidence: nothing here enters a score.
+    """
+
+    __slots__ = (
+        "hotkey",
+        "observed_block",
+        "registered_at_block",
+        "snapshot_id",
+        "uid",
+    )
+
+    def __init__(self, observation, hotkey: PublicAddress):
+        from carbon.chain.models import MetagraphSnapshot
+
+        if type(hotkey) is not PublicAddress:
+            raise TypeError("RegisteredMiner requires a validated PublicAddress")
+        if type(observation) is not MetagraphSnapshot:
+            raise TypeError("RegisteredMiner requires a finalized metagraph snapshot")
+        if (
+            observation.context.netuid != CARBON_NETUID
+            or observation.context.network != CARBON_NETWORK
+        ):
+            raise OnboardingFailure(
+                "WRONG_NETWORK",
+                next_action=(
+                    f"Point the operator configuration at {CARBON_NETWORK} "
+                    f"subnet {CARBON_NETUID}."
+                ),
+            )
+        participant = observation.resolve(hotkey)
+        if participant is None:
+            raise OnboardingFailure(
+                "NOT_REGISTERED",
+                next_action=(
+                    "This hotkey is not registered on the subnet, and "
+                    "registration is what opens Carbon's research environment. "
+                    "Register it in your own wallet tooling, then confirm. "
+                    "Nothing was recorded and nothing was started."
+                ),
+            )
+        for name, value in (
+            ("hotkey", hotkey),
+            ("uid", participant.uid),
+            ("registered_at_block", participant.registered_at),
+            ("observed_block", observation.finalized_block),
+            ("snapshot_id", observation.snapshot_id),
+        ):
+            object.__setattr__(self, name, value)
+
+    def __setattr__(self, name, value):
+        raise AttributeError("RegisteredMiner is immutable")
+
+    def record(self) -> dict[str, object]:
+        """What the campaign manifest carries about how it was admitted."""
+        return {
+            "admission": "SUBNET_REGISTRATION",
+            "network": CARBON_NETWORK,
+            "netuid": CARBON_NETUID,
+            "hotkey": str(self.hotkey),
+            "uid": self.uid,
+            "registered_at_block": self.registered_at_block,
+            "observed_block": self.observed_block,
+            "snapshot_id": self.snapshot_id,
+        }
+
+
+async def registered_miner(reader, context, address: object) -> RegisteredMiner:
+    """Read the chain and return the registered miner, or refuse.
+
+    The admission read. It is the same observation `status` answers from, so a
+    miner shown REGISTERED is admitted by the same fact.
+    """
+    hotkey = _address(address)
+    return RegisteredMiner(await _observe(reader, context), hotkey)
+
+
+async def status(reader, context, address: object) -> dict[str, object]:
+    """Is this address registered on the subnet, and as which UID.
+
+    Read-only, on public chain state, through the existing reader. No new query
+    is introduced and nothing is written.
+    """
+    hotkey = _address(address)
+    observed = await _observe(reader, context)
     participant = observed.resolve(hotkey)
     if participant is None:
         return {
