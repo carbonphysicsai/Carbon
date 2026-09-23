@@ -10,6 +10,7 @@ import argparse
 import asyncio
 import base64
 import dataclasses
+import itertools
 import json
 import os
 import subprocess
@@ -39,6 +40,7 @@ from .research_image import load_analysis_image, verify_image
 from .research_ledger import (
     DEVELOPMENT_CEILINGS,
     DEVELOPMENT_ELAPSED_SECONDS,
+    PRODUCT,
     VERSION,
     CampaignLedger,
 )
@@ -438,7 +440,39 @@ async def execute(args, *, ledger=None):
         raise ValueError("analysis/trusted image parent differs")
     grant = None
     authored = None
-    if ledger.admission is not None:
+    product = getattr(args, "product", None)
+    frozen_product = None
+    if manifest_path.exists():
+        existing = json.loads(manifest_path.read_bytes())
+        if existing.get("schema") == PRODUCT:
+            frozen_product = existing
+    if product is not None or frozen_product is not None:
+        # A product campaign (C-MLP-02-D11): admitted by registration, never by
+        # a grant. The runtime is the one the miner's profile declared - read
+        # from the launch the first time and from the frozen manifest after -
+        # and the composed runtime must equal it exactly, as it had to equal a
+        # grant's.
+        if ledger.admission is not None:
+            raise ValueError("a product campaign never consumes a development grant")
+        declared = (
+            frozen_product["runtime"] if frozen_product is not None else product.runtime
+        )
+        runtime = {
+            "implementation": implementation,
+            "images": [image.image_id, analysis.image_id],
+        }
+        authored = registered_julia_image(root, declared, analysis)
+        if authored is not None:
+            from .julia_analysis import authored_julia_scope
+
+            runtime["authored_research"] = [authored_julia_scope(authored)]
+        if "gpu_research" in declared:
+            from .gpu_research import declared_gpu_runtime
+
+            runtime["gpu_research"] = declared_gpu_runtime(declared)
+        if runtime != declared:
+            raise ValueError("configured runtime differs from the accepted runtime")
+    elif ledger.admission is not None:
         runtime = {
             "implementation": implementation,
             "images": [image.image_id, analysis.image_id],
@@ -474,6 +508,13 @@ async def execute(args, *, ledger=None):
         raise ValueError(f"existing subnet {CARBON_NETUID} context required")
     if grant is not None and public["hotkey"] != grant["miner_identity"]:
         raise ValueError("grant miner identity differs")
+    registered = (
+        frozen_product["admission"]["hotkey"]
+        if frozen_product is not None
+        else (str(product.miner.hotkey) if product is not None else None)
+    )
+    if registered is not None and public["hotkey"] != registered:
+        raise ValueError("the registered miner differs from this hotkey")
     key = open_external_hotkey(
         Path(public["key_file"]),
         private_file(args.miner_password_file),
@@ -532,6 +573,11 @@ async def execute(args, *, ledger=None):
             manifest["authority"] = "OWNER-C-W1-RESEARCH-PROGRAM-01"
         if task is not None:
             manifest["research_guidance"] = task
+        if product is not None:
+            # No development ceiling and no development deadline: a product
+            # manifest carries the miner's budget or none at all.
+            del manifest["ceilings"], manifest["elapsed_seconds"]
+            manifest.update(product.manifest_fields())
         if grant is not None:
             from .research_admission import MANIFEST
 
@@ -596,7 +642,11 @@ async def execute(args, *, ledger=None):
         feedback = None
         # freeze() validates the immutable limit: v1 remains two epochs, while
         # a narrower v2 grant must finish without preparing an inadmissible epoch.
-        for epoch in range(1, manifest["ceilings"]["epochs"] + 1):
+        # With no epochs budget there is no epoch count: the agent runs until
+        # it stops selecting or the miner stops the campaign (C-MLP-02-D11).
+        epoch_cap = (manifest.get("ceilings") or {}).get("epochs")
+        epochs = itertools.count(1) if epoch_cap is None else range(1, epoch_cap + 1)
+        for epoch in epochs:
             ledger.checkpoint()
             observation = {
                 "objective": objective(),
@@ -615,6 +665,17 @@ async def execute(args, *, ledger=None):
                     "expires_unix": grant["expires_unix"],
                     "authority": "Trusted controller enforces these narrower campaign limits; public profile maxima do not authorize additional resources.",
                 }
+            if manifest["schema"] == PRODUCT:
+                observation["miner_budget"] = {
+                    key: manifest[key]
+                    for key in ("ceilings", "elapsed_seconds", "final_reserve")
+                    if key in manifest
+                } or None
+                observation["miner_budget_basis"] = (
+                    "The miner's own budget, enforced by the controller. None "
+                    "means the miner set none: there is no limit to infer, and "
+                    "the miner may stop the campaign at any time."
+                )
             if task is not None:
                 observation["research_guidance"] = task
                 observation["research_context"] = guidance.context(manifest)
@@ -698,6 +759,11 @@ def main():
     parser.add_argument("--root", type=Path, required=True)
     parser.add_argument("--accepted-revision")
     parser.add_argument("--agent-policy", choices=(LEGACY, AUTONOMOUS), default=LEGACY)
+    # The development path only. A founder capping Carbon's spend on Carbon's
+    # accounts for a bounded experiment; no product surface reaches this
+    # (C-MLP-02-D11). The principal is what the grant binds.
+    parser.add_argument("--grant-file", type=Path)
+    parser.add_argument("--principal")
     for name in (
         "image-manifest",
         "analysis-image-manifest",
@@ -733,8 +799,15 @@ def main():
         parser.error(
             "execution requires accepted revision, both images, existing operator/miner/credential files, and quarantine journal"
         )
+    ledger = None
+    if args.grant_file is not None:
+        if not args.principal:
+            parser.error("--grant-file requires the --principal the grant binds")
+        from .research_admission import Admission
+
+        ledger = CampaignLedger(args.root, admission=Admission.load(args.grant_file))
     try:
-        asyncio.run(execute(args))
+        asyncio.run(execute(args, ledger=ledger))
     except Exception:  # noqa: BLE001
         # Never echo provider/authentication exception text or private input values.
         print(

@@ -1,9 +1,11 @@
-"""Real gateway/domain services over stdio using explicit engineering grants.
+"""Real gateway/domain services over stdio for a registration-admitted campaign.
 
 Only external host, registration observation and signing are fixtures. Public
-discovery, recipe compilation, material tasks, persistence and grant/control
-checks execute their real implementations. No paid provider or numerical worker
-is invoked; this is interoperability evidence, not scientific execution evidence.
+discovery, recipe compilation, material tasks, persistence and admission/control
+checks execute their real implementations. The campaign is a product campaign
+(C-MLP-02-D11): admitted by a recorded registration, never by a grant. No paid
+provider or numerical worker is invoked; this is interoperability evidence, not
+scientific execution evidence.
 """
 
 from __future__ import annotations
@@ -21,22 +23,14 @@ REPOSITORY = Path(__file__).resolve().parents[2]
 sys.path[:0] = [str(REPOSITORY), str(REPOSITORY / "tests" / "cpu")]
 
 from carbon.development_session.profile import CHALLENGE, canonical
-from carbon.development_session.research_admission import (
-    MANIFEST,
-    PROFILE,
-    SCHEMA,
-    Admission,
-)
-from carbon.development_session.research_ledger import (
-    DEVELOPMENT_CEILINGS,
-    DEVELOPMENT_ELAPSED_SECONDS,
-    CampaignLedger,
-)
+from carbon.development_session.research_admission import MANIFEST as GRANT_MANIFEST
+from carbon.development_session.research_ledger import PRODUCT, CampaignLedger
 from carbon.development_session.research_material import PublicMaterial
 from carbon.development_session.research_service import make_research_service
 from carbon.miner_mcp import standard_cli
 
 PREFIX = "carbon_research_v2__"
+CAMPAIGN = "c" * 32
 
 
 def private_write(path, value):
@@ -93,13 +87,17 @@ def unavailable_practice(*args):
     raise ValueError("engineering test has no numerical worker")
 
 
-def prepare(root, monkeypatch):
+def prepare(root, monkeypatch, *, budget=None):
+    from test_miner_launchpad_runner import registered
+
     import carbon.chain.auth
     from scripts.dev.miner_launchpad.runner import PATH_FIELDS
 
     monkeypatch.setattr(carbon.chain.auth, "BittensorMessageSigner", FixtureSigner)
     root.chmod(0o700)
-    campaign = root / "campaign"
+    campaigns = root / "campaigns"
+    campaigns.mkdir(mode=0o700)
+    campaign = campaigns / CAMPAIGN
     campaign.mkdir(mode=0o700)
     connection = fixture_connection(campaign)
     owner = asyncio.run(standard_cli._requester(connection))
@@ -107,39 +105,14 @@ def prepare(root, monkeypatch):
         "implementation": {"revision": "f" * 40},
         "images": ["fixture-cpu", "fixture-analysis"],
     }
-    grant = {
-        "schema": SCHEMA,
-        "status": "APPROVED",
-        "authority": "ENGINEERING_FIXTURE_ONLY",
-        "grant_id": "mcp-stdio-fixture",
-        "campaign_id": "mcp-stdio-campaign",
-        "root": str(campaign),
-        "principal": "operator-alice",
-        "miner_identity": "fixture-miner",
-        "profile": PROFILE,
-        "runtime": runtime,
-        "provider": "openai-responses",
-        "account_ref": "no-paid-calls-fixture",
-        "campaign_count": 1,
-        "ceilings": DEVELOPMENT_CEILINGS,
-        "elapsed_seconds": DEVELOPMENT_ELAPSED_SECONDS,
-        "expires_unix": time.time() + 3600,
-        "cleanup": "all-campaign-owned-work; unresolved-reservations-retained",
-        "retry_allowance": 0,
-    }
-    grant_file = root / "grant.json"
-    private_write(grant_file, grant)
-    admission = Admission.load(grant_file)
     manifest = {
-        "schema": MANIFEST,
-        "campaign_id": grant["campaign_id"],
-        "authority": grant["authority"],
-        "principal": grant["principal"],
+        "schema": PRODUCT,
+        "authority": "C-MLP-02-D11",
+        "campaign_id": "cmp-" + CAMPAIGN,
+        "principal": "operator-alice",
         "owner": owner,
         "runtime": runtime,
-        "grant": admission.binding(),
-        "ceilings": DEVELOPMENT_CEILINGS,
-        "elapsed_seconds": DEVELOPMENT_ELAPSED_SECONDS,
+        "admission": registered().record(),
         "implementation": runtime["implementation"],
         "images": runtime["images"],
         "objective": "test-only",
@@ -148,8 +121,9 @@ def prepare(root, monkeypatch):
         "selection": "test-only",
         "replica_policy": "test-only",
         "provider": "test-only",
+        **(budget or {}),
     }
-    ledger = CampaignLedger(campaign, admission=admission)
+    ledger = CampaignLedger(campaign)
     ledger.freeze(manifest)
     private_write(campaign / "campaign-manifest.json", manifest)
     composition = make_research_service(
@@ -162,14 +136,14 @@ def prepare(root, monkeypatch):
     )
     composition.tasks.close()
     profile = {
-        "schema": "carbon.launchpad.runner-profile.v1",
+        "schema": "carbon.launchpad.runner-profile.v2",
         "profile_id": "fixture-profile",
-        "principal": grant["principal"],
-        "grant_file": str(grant_file),
-        "account_ref": grant["account_ref"],
+        "principal": "operator-alice",
         "enabled": True,
         "paths": {name: str(root / (name + ".json")) for name in PATH_FIELDS},
         "accepted_revision": runtime["implementation"]["revision"],
+        "campaigns_root": str(campaigns),
+        "runtime": runtime,
     }
     path = root / "profile.json"
     private_write(path, profile)
@@ -189,7 +163,9 @@ def serve_fixture(path):
         profile.root,
     )
     standard_cli._science = lambda *args: (PublicMaterial(None), unavailable_practice)
-    raise SystemExit(standard_cli.main(["--configuration", str(path)]))
+    raise SystemExit(
+        standard_cli.main(["--configuration", str(path), "--campaign", CAMPAIGN])
+    )
 
 
 def parameters(path):
@@ -284,7 +260,15 @@ def test_actual_gateway_public_workflow_and_restart_over_stdio(tmp_path, monkeyp
 
 
 @pytest.mark.parametrize(
-    "failure", ["disabled", "not_granted", "expired", "missing_campaign", "unresolved"]
+    "failure",
+    [
+        "disabled",
+        "retired_profile",
+        "grant_campaign",
+        "another_principal",
+        "missing_campaign",
+        "unresolved",
+    ],
 )
 def test_missing_authority_or_reconciliation_fails_closed(
     tmp_path, monkeypatch, failure, capsys
@@ -293,15 +277,19 @@ def test_missing_authority_or_reconciliation_fails_closed(
     profile = json.loads(path.read_bytes())
     if failure == "disabled":
         private_write(path, {**profile, "enabled": False})
-    elif failure in {"not_granted", "expired"}:
-        grant_path = Path(profile["grant_file"])
-        grant = json.loads(grant_path.read_bytes())
-        grant.update(
-            {"status": "REQUESTED_NOT_GRANTED"}
-            if failure == "not_granted"
-            else {"expires_unix": 1}
+    elif failure == "retired_profile":
+        private_write(path, {**profile, "schema": "carbon.launchpad.runner-profile.v1"})
+    elif failure in {"grant_campaign", "another_principal"}:
+        # A campaign this profile did not launch - one admitted under the
+        # retired grant, or another principal's - is never attached to.
+        manifest_path = ledger.root / "campaign-manifest.json"
+        manifest = json.loads(manifest_path.read_bytes())
+        manifest.update(
+            {"schema": GRANT_MANIFEST}
+            if failure == "grant_campaign"
+            else {"principal": "operator-bob"}
         )
-        private_write(grant_path, grant)
+        private_write(manifest_path, manifest)
     elif failure == "missing_campaign":
         (ledger.root / "campaign-manifest.json").unlink()
     else:
@@ -320,7 +308,9 @@ def test_missing_authority_or_reconciliation_fails_closed(
         "_runtime",
         lambda *_: pytest.fail("unavailable admission reached runtime"),
     )
-    assert standard_cli.main(["--configuration", str(path)]) == 2
+    assert (
+        standard_cli.main(["--configuration", str(path), "--campaign", CAMPAIGN]) == 2
+    )
     output = capsys.readouterr()
     assert output.out == ""
     assert str(tmp_path) not in output.err
@@ -334,52 +324,74 @@ def test_cli_help_does_not_require_secrets_or_runtime(capsys):
     assert "--configuration" in capsys.readouterr().out
 
 
-@pytest.mark.parametrize("change", ["profile", "grant", "generation", "elapsed"])
+@pytest.mark.parametrize(
+    "change", ["profile", "unregistered", "generation", "elapsed", "stopped"]
+)
 def test_established_connection_rechecks_authority_on_each_call(
     tmp_path, monkeypatch, change
 ):
     from carbon.development_session.research_control import CampaignControl
 
+    path, ledger, _owner = prepare(
+        tmp_path, monkeypatch, budget={"elapsed_seconds": 60}
+    )
+    profile = standard_cli.load_profile(path, CAMPAIGN)
+    control = CampaignControl(ledger)
+    ledger.generation = control.acquire()
+    connection = fixture_connection(ledger.root)
+    bound = standard_cli._AdmittedConnection(connection, profile, ledger, control)
+    asyncio.run(bound.check_registration())
+    if change == "profile":
+        private_write(path, {**profile.document, "enabled": False})
+    elif change == "unregistered":
+
+        async def deregistered():
+            raise ValueError(
+                "distinct miner registration required before authenticated session"
+            )
+
+        connection.check_registration = deregistered
+    elif change == "generation":
+        control.acquire()
+    elif change == "elapsed":
+        with ledger.db() as db:
+            db.execute("UPDATE campaign SET started=? WHERE id=1", (time.time() - 61,))
+    else:
+        control.request("stop")
+    with pytest.raises(ValueError):
+        asyncio.run(bound.check_registration())
+
+
+def test_with_no_elapsed_budget_there_is_no_deadline(tmp_path, monkeypatch):
+    """The specimen for the elapsed case above: the same start time a day ago,
+    with no budget set, is not a deadline."""
+    from carbon.development_session.research_control import CampaignControl
+
     path, ledger, _owner = prepare(tmp_path, monkeypatch)
-    profile = standard_cli.load_profile(path)
+    profile = standard_cli.load_profile(path, CAMPAIGN)
     control = CampaignControl(ledger)
     ledger.generation = control.acquire()
     bound = standard_cli._AdmittedConnection(
         fixture_connection(ledger.root), profile, ledger, control
     )
+    with ledger.db() as db:
+        db.execute("UPDATE campaign SET started=? WHERE id=1", (time.time() - 86400,))
     asyncio.run(bound.check_registration())
-    if change == "profile":
-        private_write(path, {**profile.document, "enabled": False})
-    elif change == "grant":
-        private_write(
-            profile.admission.path,
-            {**profile.admission.document, "status": "REQUESTED_NOT_GRANTED"},
-        )
-    elif change == "generation":
-        control.acquire()
-    else:
-        with ledger.db() as db:
-            db.execute(
-                "UPDATE campaign SET started=? WHERE id=1",
-                (time.time() - DEVELOPMENT_ELAPSED_SECONDS - 1,),
-            )
-    with pytest.raises(ValueError):
-        asyncio.run(bound.check_registration())
 
 
-def test_cleanup_registration_retains_expired_grant_owner_but_not_new_admission(
+def test_cleanup_registration_retains_the_owner_but_admits_nothing_new(
     tmp_path, monkeypatch
 ):
     from carbon.development_session.research_control import CampaignControl
 
     path, ledger, owner = prepare(tmp_path, monkeypatch)
-    profile = standard_cli.load_profile(path)
+    profile = standard_cli.load_profile(path, CAMPAIGN)
     control = CampaignControl(ledger)
     ledger.generation = control.acquire()
     connection = fixture_connection(ledger.root)
     bound = standard_cli._AdmittedConnection(connection, profile, ledger, control)
-    ledger.clock = lambda: profile.admission.document["expires_unix"] + 1
-    with pytest.raises(ValueError, match="expired"):
+    control.request("stop")
+    with pytest.raises(ValueError, match="admission stopped"):
         asyncio.run(bound.check_registration())
     before = ledger.status(owner=owner)["used"]
     asyncio.run(bound.check_cleanup_registration())

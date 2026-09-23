@@ -206,9 +206,9 @@ def gpu_contracts():
 def gpu_catalog():
     value = public_catalog(GPU_BACKBONES)
     value["version"] = "carbon.burgers-gpu-diagnostic-recipes.v1"
-    value["constraints"][-1] = (
-        "existing C03 host controls, the campaign grant and the installed host device record dominate parameter bounds"
-    )
+    value["constraints"][
+        -1
+    ] = "existing C03 host controls, the campaign grant and the installed host device record dominate parameter bounds"
     value["execution"] = {
         "profile": GPU_PROFILE.profile_id,
         "backend": "cuda",

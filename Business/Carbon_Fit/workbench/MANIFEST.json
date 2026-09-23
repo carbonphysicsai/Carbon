@@ -19,7 +19,7 @@
     "GOAL-WORKBENCH-10"
   ],
   "repository_base": "3681f7fb10be0c6e278f53d59ff9b022099ef12d",
-  "integration_revision_at_packaging": "5059b0ad198298bb36756891a33816101a14809b",
+  "integration_revision_at_packaging": "a30cc9cbcea74e5534f89bf34a3c0d8416b97146",
   "integration_revision_note": "The checksum manifest describes exact packaged bytes. A commit cannot contain its own digest; final PR/head identity is reported by delivery.",
   "pinned_research_revision": "ca904dfee93d3574df4e56b99981a6ed3b138e80",
   "accepted_research_head": "0a5690270dc449ea19c941280203987d37db5283",
@@ -176,7 +176,7 @@
     "use": "Operating conformance only; no Grok/account integration is claimed."
   },
   "authority": "No runtime sharing, qualification, protected-use approval, answer publication, submission, registration, execution, launch, deployment, or rights authority is conveyed.",
-  "file_count": 234,
+  "file_count": 237,
   "files": {
     "Carbon_Client_Intake_Preview.html": {
       "bytes": 56634,
@@ -295,8 +295,8 @@
       "sha256": "5a4cd2f7f90bf6acbc20c6e7e40affd18552e98ed0c9ae78f90ff69ba1b01679"
     },
     "docs/E6_INTAKE_ENCRYPTION_PROPOSAL.md": {
-      "bytes": 5686,
-      "sha256": "d935e50e4d02d4f115ed99daacc60808aaa3758a9d35c732234892b8128558d4"
+      "bytes": 6014,
+      "sha256": "611c54a0fb09549c89542ef4c0b4aa82aaad6cf7ad02b9f2de6aa660ebda4350"
     },
     "docs/GOAL_WORKBENCH_03_NEXT_INTEGRATION.md": {
       "bytes": 1851,
@@ -367,8 +367,8 @@
       "sha256": "e4f5ebd532b8142f151b4dbb215aadc2a3a89b0f2fdef611fcc3add2b389deb4"
     },
     "docs/GOAL_WORKBENCH_09_PRIVATE_DEPLOYMENT_RUNBOOK.md": {
-      "bytes": 37097,
-      "sha256": "26450efc65f15c9bf98005695d9aa3169c97570916ebed0ef16a2f2ec34b1f82"
+      "bytes": 38098,
+      "sha256": "d0d495738f5ac5873d35a459e63e3ec1012007eca3b60c06948f7e434ae80b90"
     },
     "docs/GOAL_WORKBENCH_09_TEAM_REVIEW_REPORT.md": {
       "bytes": 8494,
@@ -734,6 +734,10 @@
       "bytes": 20139,
       "sha256": "0f2b1aaae39a0acbbc6eb7b8f9879032161023db48ba6597200ee1d5a86cb570"
     },
+    "src/intake_seal.js": {
+      "bytes": 5815,
+      "sha256": "0969081d8e1906e86782fb8231b33daf11d0d731a6350421ddc925cb7fc915ba"
+    },
     "src/intake_shell.html": {
       "bytes": 9687,
       "sha256": "5c83552987c5d570c2dcefe563cc1b00a9ae7f9c50a0cbf96506959bfc31846f"
@@ -906,6 +910,10 @@
       "bytes": 20660,
       "sha256": "76fdd8c3be85d7c61d1bd9a80604cd1564eb0f4821dec99fba591db9478380c4"
     },
+    "tests/test_intake_seal.cjs": {
+      "bytes": 4750,
+      "sha256": "46571330994ad51eb93ae53f4e4e9bb3c38f5ff1275229e6a466730d96d6fa01"
+    },
     "tests/test_public_workbench.cjs": {
       "bytes": 19961,
       "sha256": "f2b49d9f14c50b18d6fa7cbbaf900184378e58c8eaf7c2d5fbf2d46f90bc17b9"
@@ -1073,6 +1081,10 @@
     "tools/import_cpes_evidence.py": {
       "bytes": 15755,
       "sha256": "0e45668f1249f4e232c1a0a5aadb9a3706daa825521b96fc80fe1d72f112cde3"
+    },
+    "tools/intake_key.cjs": {
+      "bytes": 3224,
+      "sha256": "0be71a0816fc93bc4ab5b175c8ab278f0cdddd086456b8df76f4861a1719f06d"
     },
     "tools/package_release.py": {
       "bytes": 14076,

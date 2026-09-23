@@ -1,15 +1,15 @@
 """An MCP server a miner can start before they have anything.
 
 The tools in `mcp_onboarding` were reachable only by someone who no longer
-needed them. `standard_cli.load_profile` requires a closed operator profile with
-a grant, an account reference and a prepared, frozen campaign; an unregistered
-miner has none of those, so they could not start the server that would tell them
-how to register. The browser had no such problem - its controller takes the
+needed them. `standard_cli.load_profile` requires a closed runner profile and a
+prepared, frozen campaign admitted by registration; an unregistered miner has
+neither, so they could not start the server that would tell them how to
+register. The browser had no such problem - its controller takes the
 research profile as an optional flag - which left MCP strictly less capable than
 the browser for the very first step, the exact inverse of the browser being a
 client of the MCP layer.
 
-So this starts with nothing: no profile, no grant, no campaign, no ledger.
+So this starts with nothing: no profile, no campaign, no ledger.
 
 **Attachment adds tools rather than unlocking them.** The registered tier could
 have been exposed from the start with every research tool refusing until a

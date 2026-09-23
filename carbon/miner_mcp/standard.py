@@ -144,9 +144,7 @@ def _arguments(operation, supplied):
         (
             "strategy"
             if key == "strategy_json"
-            else "arguments"
-            if key == "arguments_json"
-            else key
+            else "arguments" if key == "arguments_json" else key
         )
         for key in FIELDS[operation]
     }
