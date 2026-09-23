@@ -3390,10 +3390,6 @@ class OwnerDeliveryPolicyTests(unittest.TestCase):
             self.assertEqual(validator.errors, [])
 
 
-if __name__ == "__main__":
-    unittest.main()
-
-
 class MergeParentLedgerTests(unittest.TestCase):
     """A merge may not drop an event either of its parents recorded.
 
@@ -3751,3 +3747,90 @@ class LedgerSourceShapeTests(unittest.TestCase):
         self.assertEqual(
             sorted(event["event_id"] for event in events), ["WS-A", "WS-B"]
         )
+
+
+class LedgerChangeRequirementTests(unittest.TestCase):
+    """A map-structural change is satisfiable under the per-event ledger.
+
+    HUB-LEDGER-PER-EVENT-01 refuses new events appended to the array, so a new
+    file under data/events/ is the only way the ledger can gain a record. The
+    diff checks asked only whether the array changed, which made every
+    map-structural change - any Wave C ticket edit, for one - impossible to
+    pass. Each acceptance here is paired with the same change refused when the
+    record is absent, so the relaxation cannot be wider than the file.
+    """
+
+    EVENT_FILE = "docs/development/carbon_hub/data/events/HUB-TEST-FILE-01.json"
+    HUB_DATA = "docs/development/carbon_hub/data/hub_data_v2.json"
+
+    def setUp(self) -> None:
+        fixture_scope = isolated_expected_change_scope()
+        fixture_scope.__enter__()
+        self.addCleanup(fixture_scope.__exit__, None, None, None)
+
+    def structural(self, *extra: str, deleted: tuple[str, ...] = ()):
+        validator = validate_hub.Validator(REPO_ROOT)
+        validator.data = json.loads(HUB_DATA_PATH.read_text(encoding="utf-8"))
+        validator.changed_paths = {"CONSTITUTION.md", self.HUB_DATA, *extra}
+        validator.deleted_paths = set(deleted)
+        validator.semantic_data_changed = True
+        validator.base_hub_data = None
+        validator.events = [
+            {
+                "event_id": "HUB-TEST-FILE-01",
+                "map_ref": "SYSTEM/GOVERNANCE",
+                "affects": [],
+            }
+        ]
+        validator.new_event_ids = {"HUB-TEST-FILE-01"}
+        validator.validate_structural_diff()
+        return [
+            error
+            for error in validator.errors
+            if "new change event" in error or "appended immutable" in error
+        ]
+
+    def test_a_new_event_file_satisfies_the_ledger_requirement(self) -> None:
+        self.assertEqual(self.structural(self.EVENT_FILE), [])
+
+    def test_without_any_new_record_the_requirement_still_bites(self) -> None:
+        """Specimen: the same structural change with no ledger record fails."""
+        errors = self.structural()
+        self.assertTrue(any("new change event" in error for error in errors), errors)
+        self.assertTrue(any("appended immutable" in error for error in errors), errors)
+
+    def test_a_deleted_event_file_is_not_a_new_record(self) -> None:
+        errors = self.structural(self.EVENT_FILE, deleted=(self.EVENT_FILE,))
+        self.assertTrue(errors, "a deletion must not satisfy the ledger")
+
+    def test_the_array_still_counts_for_history(self) -> None:
+        self.assertEqual(
+            self.structural("docs/development/carbon_hub/data/change_events.json"),
+            [],
+        )
+
+    def test_hub_impact_none_cannot_accompany_a_new_event_file(self) -> None:
+        validator = validate_hub.Validator(Path("."))
+        validator.github_event = {
+            "pull_request": {
+                "body": (
+                    "HUB_IMPACT_NONE: presentation only because nothing the Hub "
+                    "projects changed."
+                )
+            }
+        }
+        validator.data = {"current": {"wave": "B"}}
+        validator.changed_paths = {self.EVENT_FILE}
+        validator.deleted_paths = set()
+        validator.validate_pr_declaration()
+        self.assertTrue(
+            any(
+                "HUB_IMPACT_NONE cannot accompany" in error
+                for error in validator.errors
+            ),
+            validator.errors,
+        )
+
+
+if __name__ == "__main__":
+    unittest.main()
