@@ -162,3 +162,172 @@ held, has no route to the assistant either way.
 **Values:** the limits are engineering defaults in `DEFAULT_LIMITS`, for the
 review to change. Escalation and abuse response are policy, and stay behind the
 review.
+
+## E1 — delivered (#318)
+
+**Built:**
+- Every record's client content is sealed on disk with AES-256-GCM, under a key
+  that belongs to that record alone, bound to the record's identity.
+- A store cannot be opened without a keyring, and the receiver will not start
+  without one. The keyring is refused inside the store's directory.
+- An approved deletion destroys the key first. Every copy of the record, in the
+  store and in any backup, is then unreadable, and opens as
+  `ARCHIVE_KEY_DESTROYED` (`410`).
+- Keyring handles merge rather than overwrite, and a destruction always wins.
+
+**Pinned by:** `tests/test_team_archive_encryption.cjs`. No client text reaches
+the disk or a backup, with an in-memory specimen. A backup taken before
+deletion becomes unreadable for that record while its other records still
+read. Moved ciphertext is refused. The receiver will not start without a
+keyring.
+
+**For the review:**
+- Key material sits in the clear in a `0600` file.
+- Freed filesystem blocks are not scrubbed.
+- A backup of the keyring is not reached by key destruction.
+
+## E4 — delivered (#318)
+
+**Built:**
+- The store accepts only a basis the record-basis module issued, and it issues
+  one only for a complete set of references: a mutual NDA for SCOPING, or an
+  MSA and an Order Form for STUDY. A record without an agreement reference
+  cannot be built, and a copied literal is refused.
+- `retention.legal_basis` is `contract:<reference>`.
+- The same bytes under a different agreement are a conflict.
+- SCOPING is promoted to STUDY once, append-only.
+- Records written before E4 answer `409` until a steward attaches their basis.
+
+**Pinned by:** `tests/test_team_record_basis.cjs`.
+
+## E5 — delivered (#318)
+
+**Built:**
+- An export names its recipient and purpose, or releases nothing. The entry is
+  durable before the content is returned.
+- A copy sent onward by hand is recorded with its digest.
+- Entries hold digests and references, never content, so they outlive the
+  record. A deletion tombstone names every prior release.
+- A pre-E5 store records `PRE_E5_RELEASES_NOT_LOGGED`.
+
+**Pinned by:** `tests/test_team_release_log.cjs`.
+
+**Limit:** a copy leaving the local Workbench that nobody records is invisible
+to the log.
+
+## E6 — delivered, except the client-side format (#318)
+
+**Built:**
+- The transport copy is recorded in two states that are never collapsed:
+  `MOVED_TO_TRASH`, with `purge_expected_by`, then `PERMANENTLY_REMOVED`. They
+  move forward only, and each is marked `RECEIVER_ATTESTATION`.
+- A relay states its channel and how the package arrived. A `PLAINTEXT` arrival
+  records `PERMANENTLY_REMOVED_WITHOUT_DELAY`.
+- A standard-library STARTTLS SMTP transport, configured by the operator only
+  and sending only to the sender's own domain.
+- A missing credential (`NOT_ATTEMPTED_NO_CREDENTIAL`, `501`) is distinct from a
+  rejected one (`CREDENTIAL_REJECTED`, `502`).
+- The credential is sent only after TLS verifies, and only reply codes are kept.
+  The outbox's catch-all no longer records an unexpected error's text.
+
+**Pinned by:**
+- `tests/test_team_transport_copy.cjs`.
+- `tests/test_team_mail_transport.cjs`, whose leak test uses the credential as
+  its own specimen. The servers provably received it, one echoes it back, and
+  it appears in no record, response, export, log or error.
+
+**Proposed, not built:** the client-side encryption format, key custody,
+plaintext handling and key publication. See
+`Business/Carbon_Fit/workbench/docs/E6_INTAKE_ENCRYPTION_PROPOSAL.md`.
+
+**Known limitations:**
+- No Vault, so there is no retention rule and no legal hold on mail.
+- A possible administrator restore window has not been verified.
+- A full intake mailbox bounces unobserved.
+
+## E3 — delivered (#318)
+
+**Built:**
+- `retention.v2`: `closure_event`, `active_period`, `archive_period` and
+  `scoping_expiry` replace `production_period`, all null. Each record has a
+  `closure` slot.
+- A STUDY record reads `NOT_APPLICABLE_STUDY_RECORD` for the scoping expiry.
+- v1 records migrate, keeping their archive facts and inventing nothing. A v1
+  record that ever carried a non-null `production_period` stops the store from
+  opening.
+
+**Pinned by:** `tests/test_team_retention_schema.cjs`.
+
+## E2 — delivered (#318)
+
+**Built:** the job reads counsel's values from operator configuration
+(`CARBON_TEAM_RETENTION_VALUES_FILE`), never from literals.
+
+**Null behaviour, demonstrated in `tests/test_team_scheduled_destruction.cjs`:**
+- With no values, the plan and the run are `REFUSED` and all four missing values
+  are named. Nothing is computed, applied or skipped, and the refusal is
+  recorded.
+- With some values set, the run is still refused, while the plan shows what the
+  set values would do.
+- A record with an unknown receipt time stops the run.
+- With every value set, which is synthetic and tests only: SCOPING expiry,
+  archive at the end of the active period, and destruction at the end of the
+  archive period (key first) each happen when due and not before. An open study
+  is kept.
+
+**Proposed, not built:** a record-level hold that both destruction paths
+refuse, to be decided before any period is set.
+
+## E7 — delivered (#318)
+
+**Built:**
+- Content (read, export, update, archive, restore) is reachable only by an
+  account screened under the configured standard, and only once the record
+  carries an export-control reference.
+- The standard is counsel's (`CARBON_TEAM_SCREENING_STANDARD`). **While it is
+  unset, no record's content is reachable by anyone.**
+- A screening names its standard, so changing the standard invalidates earlier
+  screenings.
+- The reference is recorded once and never replaced. Records written before E7
+  are unreachable until they have one.
+
+**Pinned by:** `tests/test_team_screened_access.cjs`. Each refusal is paired with
+its configured success.
+
+## Working decisions under the owner's delegation (2026-09-23)
+
+The owner asked for these four to be settled by engineering judgement, on what
+makes the Workbench most effective for Carbon and its clients while development
+and testing continue. They stand unless the owner objects. None of them settles
+a legal question, and none authorizes deployment or collection.
+
+1. **E8 and the public Pilot Designer.** The exclusion starts when Carbon
+   receives material, so the public assist stays. It will receive only the
+   written answers and never the quantity fields (ranges, units, operating
+   values). The consent text will tell visitors not to enter confidential values
+   there, and the Data Handling Statement will say the same.
+2. **E6 section 3.** The proposal is approved as written:
+   - the in-browser *Download encrypted for Carbon* button, using P-256 ECDH
+     with AES-256-GCM, with OpenPGP only on request;
+   - on a plaintext arrival: relay it, record it, delete the mail permanently at
+     once, and reply with the encryption steps;
+   - the intake key is generated by the owner on the internal machine, with one
+     encrypted offline backup in the owner's password manager.
+
+   The button stays unreleased until the owner has generated the real key.
+3. **E2 record hold.** Build it now: a steward-set hold, append-only, that both
+   the scheduled destruction job and the key destruction on an approved deletion
+   refuse. Whether a hold is legally required remains counsel's question.
+4. **E7 before counsel's standard.** A synthetic development standard may be
+   configured so development and testing continue. While it is in force, only
+   records whose agreement reference is synthetic are reachable, and a real
+   agreement reference is refused. Real client records stay unreachable until
+   counsel's standard replaces it.
+
+Items 1 to 4 are built in the PR that follows #318.
+
+## Open questions that remain
+
+- **Counsel:** the retention values (E2, E3), the screening standard (E7), and
+  whether a legal hold is ever required.
+- **Owner:** the security review's spend figure, and generating the intake key.

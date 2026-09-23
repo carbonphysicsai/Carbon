@@ -1,4 +1,5 @@
 "use strict";
+const { RELEASE_HEADERS, SCOPING_HEADERS, SCREENING_STANDARD, exportRef, mailed, openStore, scoping } = require("./staff_fixture.cjs");
 // Real HTTP against the real private receiver, its real durable store and its
 // real role checks. Nothing here is a public receiver, a delivered notification
 // or a live customer submission.
@@ -50,6 +51,8 @@ const account = (principal, roles, token, team = TEAM) => ({
   token_sha256: digest(token),
   totp_secret: secretFor(token),
   status: "ACTIVE",
+  // E7: screened under the synthetic standard the test stores are configured with.
+  screening: { standard: SCREENING_STANDARD, ref: "synthetic-screening-" + principal },
 });
 
 // A principal for direct store calls, obtained the only way there is: a session
@@ -121,7 +124,7 @@ async function started() {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), "carbon-intake-server-"));
   const usersFile = path.join(directory, "users.json");
   fs.writeFileSync(usersFile, JSON.stringify(USERS));
-  const store = new DurableIntakeStore(path.join(directory, "store.json"), {
+  const store = openStore(path.join(directory, "store.json"), {
     destination: "Hello@carbonphysics.ai",
   });
   const server = createIntakeServer({ store, users: loadUsers(usersFile) });
@@ -142,12 +145,16 @@ async function started() {
     }
     return sessions.get(token);
   };
+  // A relay carries its agreement basis in headers (E4). Supplied by default
+  // here so every other test reads as before; a test about the basis sets its own.
   const call = async (method, route, { token, body, headers } = {}) =>
     fetch(base + route, {
       method,
       headers: {
         ...(token ? { authorization: "Bearer " + (await sessionFor(token)) } : {}),
         ...(body ? { "content-type": "application/json" } : {}),
+        ...(method === "POST" && route === "/private/intake" ? SCOPING_HEADERS : {}),
+        ...(method === "GET" && /\/export(\?|$)/.test(route) ? RELEASE_HEADERS : {}),
         ...headers,
       },
       body,
@@ -187,7 +194,7 @@ test("one inquiry and one notification intent survive a lost response and a rest
     });
     assert.equal(conflict.status, 409);
 
-    const reopened = new DurableIntakeStore(fixture.store.filePath);
+    const reopened = openStore(fixture.store.filePath);
     assert.equal(Object.keys(reopened.state.inquiries).length, 1);
     assert.equal(Object.keys(reopened.state.outbox).length, 1);
   } finally {
@@ -383,7 +390,7 @@ test("hostile request bodies and unknown routes reject without storing anything"
       (await fixture.call("GET", "/private/intake/inquiry-absent", { token: TOKENS.reviewer })).status,
       404,
     );
-    const reopened = new DurableIntakeStore(fixture.store.filePath);
+    const reopened = openStore(fixture.store.filePath);
     assert.deepEqual(Object.keys(reopened.state.inquiries), []);
   } finally {
     fixture.close();
@@ -501,10 +508,10 @@ test("a store with no room refuses with insufficient storage, not bad request", 
   const usersFile = path.join(directory, "users.json");
   fs.writeFileSync(usersFile, JSON.stringify(USERS));
   const storePath = path.join(directory, "store.json");
-  const roomy = new DurableIntakeStore(storePath);
-  const first = await roomy.accept(reviewedRaw(), "capacity-001", principalFor(loadUsers(usersFile), TOKENS.receiver));
+  const roomy = openStore(storePath);
+  const first = await roomy.accept(reviewedRaw(), "capacity-001", principalFor(loadUsers(usersFile), TOKENS.receiver), scoping(), mailed(), exportRef());
 
-  const store = new DurableIntakeStore(storePath, {
+  const store = openStore(storePath, {
     writeCeilingBytes: fs.statSync(storePath).size + 32,
   });
   const server = createIntakeServer({ store, users: loadUsers(usersFile) });
@@ -529,6 +536,7 @@ test("a store with no room refuses with insufficient storage, not bad request", 
         authorization: "Bearer " + (await session(TOKENS.receiver)),
         "idempotency-key": "capacity-002",
         "content-type": "application/json",
+        ...SCOPING_HEADERS,
       },
       body: reviewedRaw(true),
     });

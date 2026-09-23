@@ -5,7 +5,10 @@ const fs = require("node:fs");
 const http = require("node:http");
 const path = require("node:path");
 const F = require("../src/engine.js");
-const { DurableIntakeStore } = require("./team_intake_store.cjs");
+const { DurableIntakeStore, runRetention, transportAtRelay } = require("./team_intake_store.cjs");
+const { ArchiveKeyring } = require("./team_archive_keyring.cjs");
+const { basisFromHeaders } = require("./team_record_basis.cjs");
+const { smtpConfigFrom, smtpTransport } = require("./team_smtp_transport.cjs");
 const { AccessControl, StaffDirectory } = require("./team_staff_directory.cjs");
 
 function loadUsers(usersPath) {
@@ -44,7 +47,7 @@ function send(response, status, value) {
   response.end(JSON.stringify(value) + "\n");
 }
 
-function createIntakeServer({ store, users, clock, limits }) {
+function createIntakeServer({ store, users, clock, limits, transport = null }) {
   // E9: a staff credential alone reaches nothing. It opens a session together
   // with a current second-factor code, and only a live session resolves to a
   // principal. Rate limiting and lockout are applied where that happens.
@@ -73,10 +76,35 @@ function createIntakeServer({ store, users, clock, limits }) {
       }
       const principal = access.authenticate(request.headers.authorization);
       if (request.method === "POST" && url.pathname === "/private/intake") {
+        // E4: the agreement basis comes from the relay's headers; the body is
+        // the client's package and is stored byte for byte.
+        const basis = basisFromHeaders(request.headers);
+        // E6: how the package arrived is stated at relay, beside it.
+        const transport = transportAtRelay(request.headers);
         const raw = await body(request);
         const key = request.headers["idempotency-key"];
-        return send(response, 201, await store.accept(raw, key, principal));
+        // E7: the export-control reference, when the relay has it; otherwise
+        // the record is unreachable until a data steward records one.
+        const exportControl = request.headers["x-carbon-export-control-ref"] || null;
+        return send(response, 201, await store.accept(raw, key, principal, basis, transport, exportControl));
       }
+      const exportControlMatch = /^\/private\/intake\/([A-Za-z0-9._:-]+)\/export-control$/.exec(url.pathname);
+      if (exportControlMatch && request.method === "POST") {
+        const offered = F.strictJsonParse(await body(request), { maxBytes: 1_000, maxDepth: 2 });
+        if (!offered || typeof offered !== "object" || Object.keys(offered).join() !== "ref")
+          throw Object.assign(Error("An export-control record carries exactly one field, ref"), { status: 400 });
+        return send(response, 200, store.recordExportControl(exportControlMatch[1], offered.ref, principal));
+      }
+      const transportMatch = /^\/private\/intake\/([A-Za-z0-9._:-]+)\/transport-copy$/.exec(url.pathname);
+      if (transportMatch && request.method === "POST") {
+        const offered = F.strictJsonParse(await body(request), { maxBytes: 1_000, maxDepth: 2 });
+        if (!offered || typeof offered !== "object" || Object.keys(offered).join() !== "state")
+          throw Object.assign(Error("A transport-copy record carries exactly one field, state"), { status: 400 });
+        return send(response, 200, store.recordTransportCopy(transportMatch[1], offered.state, principal));
+      }
+      const basisMatch = /^\/private\/intake\/([A-Za-z0-9._:-]+)\/basis$/.exec(url.pathname);
+      if (basisMatch && request.method === "POST")
+        return send(response, 200, store.attachBasis(basisMatch[1], basisFromHeaders(request.headers), principal));
       if (request.method === "GET" && url.pathname === "/private/outbox")
         return send(response, 200, { events: store.listOutbox(principal) });
       const outboxMatch =
@@ -84,7 +112,7 @@ function createIntakeServer({ store, users, clock, limits }) {
       if (outboxMatch && request.method === "POST") {
         // Retried by the operator and observable either way. With no configured
         // transport the attempt is recorded as a failure rather than a delivery.
-        const event = await store.processOutbox(outboxMatch[1], null, principal);
+        const event = await store.processOutbox(outboxMatch[1], transport, principal);
         // 502 says a gateway was reached and misbehaved. With no destination
         // configured nothing was reached, and answering 502 sends an operator
         // looking for a network fault that does not exist. 501 says this
@@ -93,8 +121,10 @@ function createIntakeServer({ store, users, clock, limits }) {
         const status =
           event.last_outcome === "DELIVERED"
             ? 200
-            : event.last_outcome === "NOT_ATTEMPTED_NO_TRANSPORT"
-              ? 501
+            : event.last_outcome.startsWith("NOT_ATTEMPTED")
+              ? // No transport, no credential, or an unsafe one: nothing was
+                // reached. A server that was reached and refused is 502 below.
+                501
               : 502;
         return send(response, status, event);
       }
@@ -141,8 +171,29 @@ function createIntakeServer({ store, users, clock, limits }) {
           200,
           store.export(exportMatch[1], principal, {
             includeArchived: url.searchParams.get("archived") === "include",
+            // E5: who the export is for, and why, are required and logged
+            // before anything is returned.
+            recipient: {
+              kind: request.headers["x-carbon-release-recipient-kind"],
+              ref: request.headers["x-carbon-release-recipient-ref"],
+            },
+            purpose: request.headers["x-carbon-release-purpose"],
           }),
         );
+      const releasesMatch = /^\/private\/intake\/([A-Za-z0-9._:-]+)\/releases$/.exec(url.pathname);
+      if (releasesMatch && request.method === "POST") {
+        const offered = F.strictJsonParse(await body(request), { maxBytes: 4_000, maxDepth: 3 });
+        return send(response, 201, store.recordRelease(releasesMatch[1], offered, principal));
+      }
+      // E2: what the scheduled job would do, and a steward-triggered run.
+      if (request.method === "GET" && url.pathname === "/private/retention/plan")
+        return send(response, 200, store.retentionPlan(principal));
+      if (request.method === "POST" && url.pathname === "/private/retention/run")
+        return send(response, 200, store.runScheduledDestruction(principal));
+      if (request.method === "GET" && url.pathname === "/private/releases")
+        return send(response, 200, {
+          releases: store.releases(principal, { inquiryId: url.searchParams.get("inquiry") || undefined }),
+        });
       const match = /^\/private\/intake\/([A-Za-z0-9._:-]+)$/.exec(url.pathname);
       if (match && request.method === "GET")
         return send(response, 200, store.read(match[1], principal));
@@ -194,8 +245,22 @@ function main() {
   // Configuring a destination records where a notification would go. It is not a
   // mailbox credential, a sender, or permission to contact anyone; this process
   // never opens an outbound connection.
+  // E1: the archive keyring is required, and it must live outside the store's
+  // directory so that backing up the store never backs up its keys.
+  const keyringPath = process.env.CARBON_TEAM_ARCHIVE_KEYRING;
+  if (!keyringPath)
+    throw Error("Set CARBON_TEAM_ARCHIVE_KEYRING: client records are encrypted from the first one");
+  // E2: counsel's retention values are operator configuration. Absent, the
+  // scheduled job refuses every run and records that it did.
+  const valuesFile = process.env.CARBON_TEAM_RETENTION_VALUES_FILE;
+  const retentionValues = valuesFile ? JSON.parse(fs.readFileSync(valuesFile, "utf8")) : null;
   const store = new DurableIntakeStore(storePath, {
+    retentionValues,
+    // E7: counsel's screening standard, as operator configuration. Unset, no
+    // client record's content is reachable by anyone.
+    screeningStandard: process.env.CARBON_TEAM_SCREENING_STANDARD || null,
     destination: process.env.CARBON_TEAM_NOTIFY_DESTINATION,
+    keyring: ArchiveKeyring.open(path.resolve(keyringPath), { storePath }),
   });
   // Exactly one receiver process per store file. Every accepted inquiry
   // rewrites the whole file, so a second process would not interleave with
@@ -203,6 +268,20 @@ function main() {
   // bound, so the failure is a start that did not happen rather than two
   // receivers quietly disagreeing about the contents of one file.
   store.acquireWriterLock();
+  // A store written before E1 is sealed now, under the lock, rather than at
+  // whatever write happens to come next. Earlier plaintext copies of it remain.
+  if (store.sealAtRest()) process.stdout.write("Sealed a pre-E1 plaintext store at rest.\n");
+  // E2: the scheduled run, once a day, inside this process because it holds
+  // the store's writer lock. A timer cannot present a second factor, so it runs
+  // as a named system actor and every run, refused or not, is recorded.
+  const scheduled = setInterval(() => {
+    try {
+      runRetention(store, "scheduled-retention-job", Date.now());
+    } catch {
+      process.stderr.write("Scheduled retention run failed; see the store's retention_runs.\n");
+    }
+  }, 24 * 60 * 60 * 1000);
+  scheduled.unref();
   const release = () => {
     store.releaseWriterLock();
   };
@@ -213,7 +292,10 @@ function main() {
       process.exit(0);
     });
   const port = Number(process.env.CARBON_TEAM_INTAKE_PORT || "8789");
-  createIntakeServer({ store, users: loadUsers(usersPath) }).listen(
+  // E6: a mail transport only when the operator configured one. The credential
+  // is read from its file at send time and never here.
+  const transport = smtpTransport(smtpConfigFrom(process.env));
+  createIntakeServer({ store, users: loadUsers(usersPath), transport }).listen(
     port,
     "127.0.0.1",
     () => {
