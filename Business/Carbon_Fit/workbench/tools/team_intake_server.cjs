@@ -149,8 +149,24 @@ function createIntakeServer({ store, users, clock, limits }) {
           200,
           store.export(exportMatch[1], principal, {
             includeArchived: url.searchParams.get("archived") === "include",
+            // E5: who the export is for, and why, are required and logged
+            // before anything is returned.
+            recipient: {
+              kind: request.headers["x-carbon-release-recipient-kind"],
+              ref: request.headers["x-carbon-release-recipient-ref"],
+            },
+            purpose: request.headers["x-carbon-release-purpose"],
           }),
         );
+      const releasesMatch = /^\/private\/intake\/([A-Za-z0-9._:-]+)\/releases$/.exec(url.pathname);
+      if (releasesMatch && request.method === "POST") {
+        const offered = F.strictJsonParse(await body(request), { maxBytes: 4_000, maxDepth: 3 });
+        return send(response, 201, store.recordRelease(releasesMatch[1], offered, principal));
+      }
+      if (request.method === "GET" && url.pathname === "/private/releases")
+        return send(response, 200, {
+          releases: store.releases(principal, { inquiryId: url.searchParams.get("inquiry") || undefined }),
+        });
       const match = /^\/private\/intake\/([A-Za-z0-9._:-]+)$/.exec(url.pathname);
       if (match && request.method === "GET")
         return send(response, 200, store.read(match[1], principal));

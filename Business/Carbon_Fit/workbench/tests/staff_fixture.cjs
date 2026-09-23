@@ -68,4 +68,12 @@ const scoping = () => scopingBasis({ nda: "synthetic-nda-0001" });
 /** The same basis as a relay sends it, in headers beside the package. */
 const SCOPING_HEADERS = Object.freeze({ "x-carbon-record-class": "SCOPING", "x-carbon-nda-ref": "synthetic-nda-0001" });
 
-module.exports = { SCOPING_HEADERS, enrolled, keyringFor, openStore, principalFor, scoping, secretFor };
+/** A synthetic release: to a named member of Carbon staff, for review. */
+const RELEASE = Object.freeze({ recipient: { kind: "CARBON_STAFF", ref: "synthetic-reviewer" }, purpose: "Team review" });
+const RELEASE_HEADERS = Object.freeze({
+  "x-carbon-release-recipient-kind": "CARBON_STAFF",
+  "x-carbon-release-recipient-ref": "synthetic-reviewer",
+  "x-carbon-release-purpose": "Team review",
+});
+
+module.exports = { RELEASE, RELEASE_HEADERS, SCOPING_HEADERS, enrolled, keyringFor, openStore, principalFor, scoping, secretFor };

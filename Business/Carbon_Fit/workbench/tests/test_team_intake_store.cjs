@@ -16,7 +16,7 @@ const {
 const ROOT = path.resolve(__dirname, "..");
 
 const { StaffDirectory, StaffPrincipal } = require("../tools/team_staff_directory.cjs");
-const { enrolled, keyringFor, openStore, principalFor, scoping } = require("./staff_fixture.cjs");
+const { RELEASE, enrolled, keyringFor, openStore, principalFor, scoping } = require("./staff_fixture.cjs");
 
 // Principals are authenticated rather than declared. The literals these
 // replaced asserted their own roles, which meant the store was trusting its
@@ -208,7 +208,7 @@ test("private export requires the export role and preserves reviewed source byte
     () => fixture.store.export(receipt.inquiry_id, roles.receiver),
     /not authorized/,
   );
-  const exported = fixture.store.export(receipt.inquiry_id, roles.reviewer);
+  const exported = fixture.store.export(receipt.inquiry_id, roles.reviewer, RELEASE);
   assert.equal(exported.raw_json, raw);
   assert.equal(exported.raw_sha256, receipt.raw_sha256);
   assert.equal(exported.team_fields.queue_state, "READY_FOR_REVIEW");
@@ -504,11 +504,11 @@ test("archiving retains the record and removes it from the working set", async (
 
   // Export of an archived record is a separate decision.
   assert.throws(
-    () => fixture.store.export(receipt.inquiry_id, roles.reviewer),
+    () => fixture.store.export(receipt.inquiry_id, roles.reviewer, RELEASE),
     /requires an explicit archive request/,
   );
   assert.equal(
-    fixture.store.export(receipt.inquiry_id, roles.reviewer, { includeArchived: true }).raw_sha256,
+    fixture.store.export(receipt.inquiry_id, roles.reviewer, { includeArchived: true, ...RELEASE }).raw_sha256,
     receipt.raw_sha256,
   );
 
@@ -638,7 +638,7 @@ const RETENTION_GUARANTEES = [
     name: "exporting an archived record is a separate explicit decision",
     async check(store, receipt) {
       store.archive(receipt.inquiry_id, roles.steward);
-      assert.throws(() => store.export(receipt.inquiry_id, roles.reviewer), /explicit archive request/);
+      assert.throws(() => store.export(receipt.inquiry_id, roles.reviewer, RELEASE), /explicit archive request/);
     },
     violate: {
       export(inquiryId) {
@@ -860,7 +860,7 @@ test("a principal from another team is refused as if the inquiry did not exist",
   // alone would let all of this through.
   for (const attempt of [
     (p) => fixture.store.read(receipt.inquiry_id, p),
-    (p) => fixture.store.export(receipt.inquiry_id, p),
+    (p) => fixture.store.export(receipt.inquiry_id, p, RELEASE),
     (p) => fixture.store.update(receipt.inquiry_id, 1, { assigned_reviewer: "x", note: "", queue_state: "PARKED" }, p),
     (p) => fixture.store.archive(receipt.inquiry_id, p),
     (p) => fixture.store.restore(receipt.inquiry_id, p),
@@ -1120,7 +1120,7 @@ test("each endpoint admits exactly the roles it is supposed to", async () => {
         accept: (p) => fixture.store.accept(reviewedRaw(), "matrix-2", p, scoping()),
         read: (p) => fixture.store.read(id, p),
         update: (p) => fixture.store.update(id, 1, { assigned_reviewer: "", note: "", queue_state: "PARKED" }, p),
-        export: (p) => fixture.store.export(id, p),
+        export: (p) => fixture.store.export(id, p, RELEASE),
         search: (p) => fixture.store.search(p),
         archive: (p) => fixture.store.archive(id, p),
         restore: (p) => fixture.store.restore(id, p),

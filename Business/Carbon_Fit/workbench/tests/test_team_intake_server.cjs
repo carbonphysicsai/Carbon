@@ -1,5 +1,5 @@
 "use strict";
-const { SCOPING_HEADERS, openStore, scoping } = require("./staff_fixture.cjs");
+const { RELEASE_HEADERS, SCOPING_HEADERS, openStore, scoping } = require("./staff_fixture.cjs");
 // Real HTTP against the real private receiver, its real durable store and its
 // real role checks. Nothing here is a public receiver, a delivered notification
 // or a live customer submission.
@@ -152,6 +152,7 @@ async function started() {
         ...(token ? { authorization: "Bearer " + (await sessionFor(token)) } : {}),
         ...(body ? { "content-type": "application/json" } : {}),
         ...(method === "POST" && route === "/private/intake" ? SCOPING_HEADERS : {}),
+        ...(method === "GET" && /\/export(\?|$)/.test(route) ? RELEASE_HEADERS : {}),
         ...headers,
       },
       body,

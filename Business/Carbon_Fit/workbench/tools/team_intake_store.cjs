@@ -90,7 +90,29 @@ function emptyStore() {
     outbox: {},
     tombstones: {},
     exceptions: {},
+    // E5: every release of a record, kept past the record's own deletion.
+    releases: {},
+    release_log: { since: new Date().toISOString(), origin: "NATIVE" },
   };
+}
+
+// E5. A release is anything that leaves the receiver with a record's content:
+// an export through it, or a copy sent onward and recorded by the person who
+// sent it. Prior exports are one of the things deletion cannot reach, and this
+// log is what lets Carbon find every copy it released and ask for its
+// destruction. An entry names who released what, to whom, when and why; it
+// carries digests, never the content, so it can outlive the record.
+const RECIPIENT_KINDS = ["CARBON_STAFF", "CLIENT", "CONTRACTOR", "OTHER"];
+const RECIPIENT_REF = /^[A-Za-z0-9][A-Za-z0-9._:\/@-]{2,127}$/;
+
+function releaseTerms({ recipient, purpose } = {}) {
+  if (!recipient || typeof recipient !== "object" || !RECIPIENT_KINDS.includes(recipient.kind))
+    throw Error("A release names its recipient: kind " + RECIPIENT_KINDS.join(" | ") + ", with a reference");
+  if (typeof recipient.ref !== "string" || !RECIPIENT_REF.test(recipient.ref))
+    throw Error("A release names its recipient by an opaque reference");
+  if (typeof purpose !== "string" || purpose.trim().length < 3 || purpose.length > 200)
+    throw Error("A release states its purpose in 3 to 200 characters");
+  return { recipient: { kind: recipient.kind, ref: recipient.ref }, purpose: purpose.trim() };
 }
 
 function safeKey(value, label) {
@@ -120,6 +142,8 @@ function validatePrincipal(principal, action) {
     recover: ["DATA_STEWARD"],
     delete: ["DATA_STEWARD"],
     attach_basis: ["DATA_STEWARD"],
+    record_release: ["TEAM_REVIEWER", "DATA_STEWARD"],
+    releases: ["DATA_STEWARD"],
     search: ["TEAM_REVIEWER", "INTAKE_RECEIVER"],
     outbox: ["NOTIFICATION_OPERATOR"],
   }[action];
@@ -214,6 +238,12 @@ function validateStore(value) {
     throw Error("Invalid private intake store");
   if (value.schema_version === STORE_VERSION && !value.exceptions)
     throw Error("Invalid private intake store");
+  // Written before E5: nothing was logged, and the log says so rather than
+  // implying that an empty list means nothing was ever released.
+  if (!value.releases) {
+    value.releases = {};
+    value.release_log = { since: new Date().toISOString(), origin: "PRE_E5_RELEASES_NOT_LOGGED" };
+  }
   if ([LEGACY_STORE_VERSION, STORE_VERSION_V2].includes(value.schema_version))
     return migrate(value);
   for (const event of Object.values(value.outbox)) {
@@ -359,6 +389,28 @@ function notification(inquiryId, record) {
     authority: "NOTIFICATION_ONLY_NOT_A_COMMITMENT_OR_SCIENTIFIC_RESULT",
   };
 }
+
+// Not a store method, so it is not an endpoint: every caller is a method that
+// has already authenticated its principal.
+function logRelease(store, record, actor, entry) {
+  const next = clone(store.state);
+  const seq = Object.keys(next.releases).length + 1;
+  const releaseId = "release-" + String(seq).padStart(6, "0") + "-" + crypto.randomBytes(4).toString("hex");
+  next.releases[releaseId] = {
+    release_id: releaseId,
+    seq,
+    inquiry_id: record.inquiry_id,
+    owner_team: record.owner_team,
+    record_version: record.version,
+    raw_sha256: record.raw_sha256,
+    released_at: new Date().toISOString(),
+    released_by: actor,
+    ...entry,
+  };
+  store.persist(next);
+  return clone(next.releases[releaseId]);
+}
+
 
 class DurableIntakeStore {
   constructor(filePath, options = {}) {
@@ -735,16 +787,46 @@ class DurableIntakeStore {
     return clone(updated);
   }
 
-  export(inquiryId, principal, { includeArchived = false } = {}) {
+  export(inquiryId, principal, { includeArchived = false, recipient, purpose } = {}) {
     // Checked as its own action. Never widen the caller's roles to satisfy the
     // read check: a later export role must not become a read grant by accident.
-    validatePrincipal(principal, "export");
+    const actor = validatePrincipal(principal, "export");
     const record = ownedRecord(this, inquiryId, principal);
     // An archived record has been taken out of the working set deliberately.
     // Exporting one is a separate decision, so it has to be asked for.
     if (record.lifecycle === "ARCHIVED" && !includeArchived)
       throw Error("Archived inquiry export requires an explicit archive request");
-    return clone(record);
+    // E5: the release is logged, durably, before the content is handed over.
+    // An export that returned first and logged afterwards could leave a copy
+    // nobody knows to ask about.
+    const terms = releaseTerms({ recipient, purpose });
+    const exported = clone(record);
+    logRelease(this, record, actor, {
+      ...terms,
+      channel: "RECEIVER_EXPORT",
+      artifact_sha256: sha256(JSON.stringify(exported)),
+    });
+    return exported;
+  }
+
+  /** Record a release made outside the receiver: a copy sent onward by hand. */
+  recordRelease(inquiryId, { recipient, purpose, artifact_sha256: artifact } = {}, principal) {
+    const actor = validatePrincipal(principal, "record_release");
+    const record = ownedRecord(this, inquiryId, principal);
+    const terms = releaseTerms({ recipient, purpose });
+    if (typeof artifact !== "string" || !/^sha256:[0-9a-f]{64}$/.test(artifact))
+      throw Error("A recorded release names the artifact it released by its sha256 digest");
+    return logRelease(this, record, actor, { ...terms, channel: "RECORDED_EXTERNAL", artifact_sha256: artifact });
+  }
+
+  /** Every release of an inquiry, including one that has since been deleted. */
+  releases(principal, { inquiryId } = {}) {
+    validatePrincipal(principal, "releases");
+    return Object.values(this.state.releases)
+      .filter((entry) => entry.owner_team === principal.team)
+      .filter((entry) => inquiryId === undefined || entry.inquiry_id === inquiryId)
+      .sort((a, b) => a.seq - b.seq)
+      .map(clone);
   }
 
   /** Search the active index. Archived records are out of it by design. */
@@ -920,6 +1002,11 @@ class DurableIntakeStore {
       did_not_reach: [...exception.cannot_reach],
       // The retained archive's bytes are not reached. Its key is, which is what
       // makes those bytes unreadable; the two statements are both true.
+      // Deletion cannot reach prior releases. It can name them, so each one
+      // can be followed up with a request to destroy that copy.
+      prior_releases: Object.values(next.releases)
+        .filter((entry) => entry.inquiry_id === inquiryId)
+        .map((entry) => entry.release_id),
       archive_key: keyDestroyed ? "DESTROYED" : "NONE_HELD",
       archive_key_destroyed_at: keyDestroyed ? keyDestroyed.destroyed_at : null,
     };

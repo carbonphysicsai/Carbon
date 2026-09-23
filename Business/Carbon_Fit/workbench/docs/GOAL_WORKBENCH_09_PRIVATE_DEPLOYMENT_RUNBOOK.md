@@ -332,6 +332,31 @@ them. They answer `409` until a steward attaches the real one.
 The 60-day SCOPING expiry is a retention value and belongs to E3. It stays null
 until counsel confirms it, and a null does not delete anything.
 
+**Every release is logged (E5).** An export names who it is for and why, or it
+releases nothing:
+
+```sh
+curl -s http://127.0.0.1:8789/private/intake/$ID/export -H "authorization: Bearer $SESSION" \
+  -H 'x-carbon-release-recipient-kind: CARBON_STAFF' -H 'x-carbon-release-recipient-ref: <opaque ref>' \
+  -H 'x-carbon-release-purpose: Team review'
+```
+
+The entry is written durably **before** the content is returned: when, by whom,
+to whom (`CARBON_STAFF`, `CLIENT`, `CONTRACTOR` or `OTHER`, with an opaque
+reference), why, which record version, and the exported artifact's digest. A
+copy sent onward by hand, such as a brief downloaded from the Workbench and
+emailed, is recorded with `POST /private/intake/<id>/releases` and its artifact
+digest. A data steward reads the log at `GET /private/releases?inquiry=<id>`.
+
+Entries carry digests and references, never the client's content, so they
+outlive the record. On deletion the tombstone lists every prior release by id.
+`PRIOR_EXPORTS` stays in `did_not_reach`, because deletion cannot reach those
+copies. The log is what lets Carbon ask for each one to be destroyed. A store
+written before E5 records `PRE_E5_RELEASES_NOT_LOGGED`, rather than letting an
+empty list claim that nothing was ever released. The log's limit is what it
+cannot see: a copy that leaves the local Workbench and is never recorded does
+not appear in it.
+
 A deletion exception names its approver in the request body. It is not taken
 from the authenticated caller: who approved a deletion and who carried it out
 are different facts, and conflating them is how an approval disappears.
