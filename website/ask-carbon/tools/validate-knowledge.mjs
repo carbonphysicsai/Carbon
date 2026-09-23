@@ -9,10 +9,38 @@ const REPO_ROOT = resolve(HERE, "../../..");
 const DEFAULT_PATH = resolve(HERE, "../knowledge/public-knowledge.v1.json");
 const sha256 = (bytes) => createHash("sha256").update(bytes).digest("hex");
 
+// Reviewed thresholds, not flags. An expiry exists to force a content review, and
+// the runtime only notices once it has passed, when the card simply stops
+// answering. Surfacing it here, ahead of time, is what makes that review happen.
+export const EXPIRY_WARN_DAYS = 30;
+export const EXPIRY_FAIL_DAYS = 7;
+const DAY_MS = 86_400_000;
+
+// Returns the finding for one expiry, or null when it is outside both windows.
+// An expired or unreadable expiry is not handled here: the release contract
+// already reports it, and a card's is reported by the caller.
+const expiryFinding = (expiresAt, nowMs) => {
+  const remainingMs = Date.parse(expiresAt) - nowMs;
+  if (!Number.isFinite(remainingMs) || remainingMs <= 0) return null;
+  if (remainingMs <= EXPIRY_FAIL_DAYS * DAY_MS) return "error";
+  if (remainingMs <= EXPIRY_WARN_DAYS * DAY_MS) return "warning";
+  return null;
+};
+
 export const validateKnowledge = async (knowledge, { mode = "staging", now = new Date(), checkSourceBytes = true } = {}) => {
   const release = evaluateRelease(knowledge, { mode, now });
   const errors = [...release.reasons];
   const warnings = [];
+  const nowMs = now instanceof Date ? now.getTime() : Number(now);
+  const expiring = [];
+  const noteExpiry = (scope, id, expiresAt) => {
+    const finding = expiryFinding(expiresAt, nowMs);
+    if (!finding) return;
+    const code = finding === "error" ? `${scope}_expires_within_${EXPIRY_FAIL_DAYS}d` : `${scope}_expires_within_${EXPIRY_WARN_DAYS}d`;
+    (finding === "error" ? errors : warnings).push(id ? `${code}:${id}` : code);
+    expiring.push({ scope, id: id ?? null, expires_at: expiresAt, days_left: Math.floor((Date.parse(expiresAt) - nowMs) / DAY_MS), finding });
+  };
+  noteExpiry("release", null, knowledge.release?.expires_at);
   const sourceChecks = [];
   const passageIds = new Set();
   const sourceIds = new Set((knowledge.sources ?? []).map((source) => source.id));
@@ -34,6 +62,12 @@ export const validateKnowledge = async (knowledge, { mode = "staging", now = new
     if (!Array.isArray(card.audiences) || !card.audiences.length || card.disclosure_class !== "PUBLIC" || !card.maturity || !card.scope_note) errors.push(`invalid_card_governance:${card.id}`);
     if (!Array.isArray(card.keywords) || !Array.isArray(card.related)) errors.push(`invalid_card_helpers:${card.id}`);
     if (!Array.isArray(card.passages) || !card.passages.length) errors.push(`missing_answer_basis:${card.id}`);
+    // At runtime an expired card fails closed on its own and the rest keep
+    // answering, which is right there and is exactly why nobody notices. Here it
+    // is stale committed content and fails the check.
+    const cardExpiry = card.expires_at;
+    if (typeof cardExpiry !== "string" || !(Date.parse(cardExpiry) > nowMs)) errors.push(`card_expired_or_invalid:${card.id}`);
+    else noteExpiry("card", card.id, cardExpiry);
     for (const passage of card.passages ?? []) {
       if (passageIds.has(passage.id)) errors.push(`duplicate_passage_id:${passage.id}`);
       passageIds.add(passage.id);
@@ -54,6 +88,7 @@ export const validateKnowledge = async (knowledge, { mode = "staging", now = new
     eligible_card_count: release.eligible_card_ids.length,
     errors: [...new Set(errors)].sort(),
     warnings: [...new Set(warnings)].sort(),
+    expiring: expiring.sort((a, b) => a.expires_at.localeCompare(b.expires_at) || String(a.id).localeCompare(String(b.id))),
     source_checks: sourceChecks,
   };
 };
