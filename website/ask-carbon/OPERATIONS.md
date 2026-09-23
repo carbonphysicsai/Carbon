@@ -60,9 +60,13 @@ against the same pinned, digest-matched Wave source. The frozen two-candidate
 release split, affected-case rerun and exact pilot run are retained in
 `evidence/WEB-QA-04.md`; prior evidence keeps its original source basis.
 
-The release candidate remains `STAGING_REVIEWED`, has
-`public_activation_allowed:false`, and is not retroactively substituted into
-retained evidence. The owner approved the prepared visitor privacy posture and
+The release record is now `APPROVED_PUBLIC` with
+`public_activation_allowed: true`, on owner approval basis
+`OWNER_PUBLIC_CONTENT_APPROVAL_2026_09_22_WEB_QA_07_D1`, and is not
+retroactively substituted into retained evidence. That is a statement about the
+release record in this repository and about nothing else: the third gate,
+`ASK_CARBON_ACTIVATION`, is Worker configuration, and **what is deployed is read
+from `/health`** rather than inferred from a committed file. The owner approved the prepared visitor privacy posture and
 the bounded private pilot-quality packet. Those approvals do not approve the
 new knowledge release, production route, public activation or inquiry
 collection. The exact release decision remains in
@@ -453,7 +457,7 @@ of these hold, and the inactive publication deliberately fails all three:
 | Gate | Where | Inactive value |
 | --- | --- | --- |
 | `ASK_CARBON_ACTIVATION` | Worker config `[vars]` | `disabled` |
-| `release.status` | `knowledge/public-knowledge.v1.json` | `STAGING_REVIEWED` |
+| `release.status` | `knowledge/public-knowledge.v1.json` | `STAGING_REVIEWED` before owner approval; now `APPROVED_PUBLIC` |
 | `release.public_activation_allowed` | same file | `false` |
 
 The two knowledge gates are enforced by `public/release-contract.js`. They
