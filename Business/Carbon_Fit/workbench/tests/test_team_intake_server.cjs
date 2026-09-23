@@ -1,5 +1,5 @@
 "use strict";
-const { openStore } = require("./staff_fixture.cjs");
+const { SCOPING_HEADERS, openStore, scoping } = require("./staff_fixture.cjs");
 // Real HTTP against the real private receiver, its real durable store and its
 // real role checks. Nothing here is a public receiver, a delivered notification
 // or a live customer submission.
@@ -143,12 +143,15 @@ async function started() {
     }
     return sessions.get(token);
   };
+  // A relay carries its agreement basis in headers (E4). Supplied by default
+  // here so every other test reads as before; a test about the basis sets its own.
   const call = async (method, route, { token, body, headers } = {}) =>
     fetch(base + route, {
       method,
       headers: {
         ...(token ? { authorization: "Bearer " + (await sessionFor(token)) } : {}),
         ...(body ? { "content-type": "application/json" } : {}),
+        ...(method === "POST" && route === "/private/intake" ? SCOPING_HEADERS : {}),
         ...headers,
       },
       body,
@@ -503,7 +506,7 @@ test("a store with no room refuses with insufficient storage, not bad request", 
   fs.writeFileSync(usersFile, JSON.stringify(USERS));
   const storePath = path.join(directory, "store.json");
   const roomy = openStore(storePath);
-  const first = await roomy.accept(reviewedRaw(), "capacity-001", principalFor(loadUsers(usersFile), TOKENS.receiver));
+  const first = await roomy.accept(reviewedRaw(), "capacity-001", principalFor(loadUsers(usersFile), TOKENS.receiver), scoping());
 
   const store = openStore(storePath, {
     writeCeilingBytes: fs.statSync(storePath).size + 32,
@@ -530,6 +533,7 @@ test("a store with no room refuses with insufficient storage, not bad request", 
         authorization: "Bearer " + (await session(TOKENS.receiver)),
         "idempotency-key": "capacity-002",
         "content-type": "application/json",
+        ...SCOPING_HEADERS,
       },
       body: reviewedRaw(true),
     });

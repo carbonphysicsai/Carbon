@@ -298,14 +298,39 @@ route, which is what keeps "every endpoint is checked" true as routes are added:
 
 | Route | Method | Role |
 |---|---|---|
+| `/private/session` | POST / DELETE | credential + second factor / the session itself |
 | `/private/capacity` | GET | `DATA_STEWARD` |
-| `/private/intake` | POST | `INTAKE_RECEIVER` |
+| `/private/intake` | POST, with the agreement basis in headers | `INTAKE_RECEIVER` |
+| `/private/intake/<id>/basis` | POST, with the basis in headers | `DATA_STEWARD` |
 | `/private/intake?archived=include` | GET | `TEAM_REVIEWER` or `INTAKE_RECEIVER` |
 | `/private/intake/<id>` | GET / PATCH / DELETE | reviewer / reviewer / steward |
 | `/private/intake/<id>/export?archived=include` | GET | `TEAM_REVIEWER` |
 | `/private/intake/<id>/archive` and `/restore` | POST | `DATA_STEWARD` |
 | `/private/intake/<id>/deletion-exception` | POST | `DATA_STEWARD` |
 | `/private/outbox` and `/private/outbox/<event>/attempt` | GET / POST | `NOTIFICATION_OPERATOR` |
+
+**Every record is received under an agreement (E4).** No record can be created
+without an agreement reference: the store accepts only a basis issued for a
+complete set of references, so a record without one cannot be built, not merely
+rejected later. The relay sends the basis in headers beside the package, because
+the package bytes are the client's and are stored exactly:
+
+| Class | When | Headers |
+|---|---|---|
+| `SCOPING` | Received under a mutual NDA, before any contract, so a client can get a quote | `x-carbon-record-class: SCOPING`, `x-carbon-nda-ref` |
+| `STUDY` | Only after a countersigned MSA and an Order Form | `x-carbon-record-class: STUDY`, `x-carbon-msa-ref`, `x-carbon-order-form-ref` |
+
+References are opaque identifiers for agreements held elsewhere. No agreement
+text, party or term is stored with the record, and no reference is ever written
+into the repository. The record's `retention.legal_basis` is
+`contract:<reference>`, so it is enforced rather than filled in by hand. When the
+Order Form is signed, a data steward moves a record from SCOPING to STUDY
+through `/basis`. A STUDY record never goes back, and the history is
+append-only. Records written before E4 carry no basis, and none is invented for
+them. They answer `409` until a steward attaches the real one.
+
+The 60-day SCOPING expiry is a retention value and belongs to E3. It stays null
+until counsel confirms it, and a null does not delete anything.
 
 A deletion exception names its approver in the request body. It is not taken
 from the authenticated caller: who approved a deletion and who carried it out

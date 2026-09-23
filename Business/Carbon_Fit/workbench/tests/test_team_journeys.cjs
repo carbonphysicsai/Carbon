@@ -19,7 +19,7 @@ const { StaffDirectory } = require("../tools/team_staff_directory.cjs");
 // Synthetic and local. The journey needs a real authenticated identity because
 // the receiver no longer accepts a principal the caller describes for itself.
 const RECEIVER_TOKEN = "synthetic-journey-receiver-0001";
-const { enrolled, openStore, principalFor } = require("./staff_fixture.cjs");
+const { enrolled, openStore, principalFor, scoping } = require("./staff_fixture.cjs");
 const receiver = principalFor(
   new StaffDirectory([enrolled("synthetic-receiver", "carbon-fit", ["INTAKE_RECEIVER"], RECEIVER_TOKEN)]),
   RECEIVER_TOKEN,
@@ -73,7 +73,7 @@ for (const scenario of scenarios) {
     const raw = JSON.stringify(reviewed(draftFor(scenario), scenario));
     const directory = fs.mkdtempSync(path.join(os.tmpdir(), "gw09-journey-"));
     const store = openStore(path.join(directory, "store.json"));
-    const receipt = await store.accept(raw, "key-" + scenario.scenario_id, receiver);
+    const receipt = await store.accept(raw, "key-" + scenario.scenario_id, receiver, scoping());
     const inspection = await I.inspect(raw, F.strictJsonParse);
     const workspace = G.newWorkspace(component());
     G.commitIntakeImport(workspace, inspection, G.previewIntakeImport(workspace, inspection));

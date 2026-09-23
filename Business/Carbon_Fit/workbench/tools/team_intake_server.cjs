@@ -7,6 +7,7 @@ const path = require("node:path");
 const F = require("../src/engine.js");
 const { DurableIntakeStore } = require("./team_intake_store.cjs");
 const { ArchiveKeyring } = require("./team_archive_keyring.cjs");
+const { basisFromHeaders } = require("./team_record_basis.cjs");
 const { AccessControl, StaffDirectory } = require("./team_staff_directory.cjs");
 
 function loadUsers(usersPath) {
@@ -74,10 +75,16 @@ function createIntakeServer({ store, users, clock, limits }) {
       }
       const principal = access.authenticate(request.headers.authorization);
       if (request.method === "POST" && url.pathname === "/private/intake") {
+        // E4: the agreement basis comes from the relay's headers; the body is
+        // the client's package and is stored byte for byte.
+        const basis = basisFromHeaders(request.headers);
         const raw = await body(request);
         const key = request.headers["idempotency-key"];
-        return send(response, 201, await store.accept(raw, key, principal));
+        return send(response, 201, await store.accept(raw, key, principal, basis));
       }
+      const basisMatch = /^\/private\/intake\/([A-Za-z0-9._:-]+)\/basis$/.exec(url.pathname);
+      if (basisMatch && request.method === "POST")
+        return send(response, 200, store.attachBasis(basisMatch[1], basisFromHeaders(request.headers), principal));
       if (request.method === "GET" && url.pathname === "/private/outbox")
         return send(response, 200, { events: store.listOutbox(principal) });
       const outboxMatch =

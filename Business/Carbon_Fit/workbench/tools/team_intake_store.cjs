@@ -7,6 +7,7 @@ const F = require("../src/engine.js");
 const { ArchiveKeyDestroyed, ArchiveKeyring } = require("./team_archive_keyring.cjs");
 const I = require("../src/intake.js");
 const { isAuthenticatedPrincipal } = require("./team_staff_directory.cjs");
+const { isRecordBasis, stored: storedBasis } = require("./team_record_basis.cjs");
 
 const STORE_VERSION = "carbon.private-team-intake.store.v3";
 // On disk only. The file carries the v3 state with every record's client content
@@ -118,6 +119,7 @@ function validatePrincipal(principal, action) {
     approve_exception: ["DATA_STEWARD"],
     recover: ["DATA_STEWARD"],
     delete: ["DATA_STEWARD"],
+    attach_basis: ["DATA_STEWARD"],
     search: ["TEAM_REVIEWER", "INTAKE_RECEIVER"],
     outbox: ["NOTIFICATION_OPERATOR"],
   }[action];
@@ -141,6 +143,14 @@ function ownedRecord(store, inquiryId, principal) {
   // by nobody. It is refused here, for every action, rather than returned empty.
   if (record.lifecycle === KEY_DESTROYED)
     throw Object.assign(Error("Inquiry content is unreadable: its archive key was destroyed"), { status: 410 });
+  // E4: a record held without an agreement reference is not used. One written
+  // before E4 carries none, and none is invented for it; a data steward
+  // attaches the real one first.
+  if (!record.basis)
+    throw Object.assign(
+      Error("Inquiry has no recorded agreement basis; a data steward must attach one before it can be used"),
+      { status: 409 },
+    );
   return record;
 }
 
@@ -225,6 +235,13 @@ function validateStore(value) {
     const events = record.retention_events || [];
     if (events.some((event, index) => event.seq !== index + 1))
       throw Error("Retention history is not a contiguous append-only sequence");
+    // Written before E4: no agreement reference was recorded, and none is
+    // invented. The record stays unreachable until a steward attaches one.
+    if (record.basis === undefined) {
+      record.basis = null;
+      record.basis_history = [];
+      record.basis_origin = "PRE_E4_NONE_RECORDED";
+    }
   }
   return value;
 }
@@ -567,8 +584,13 @@ class DurableIntakeStore {
     this.state = next;
   }
 
-  async accept(raw, idempotencyKey, principal) {
+  async accept(raw, idempotencyKey, principal, basis) {
     const actor = validatePrincipal(principal, "accept");
+    // E4: the agreement basis is checked before anything else is read. Only a
+    // basis the record-basis module issued is accepted, so a record without a
+    // complete agreement reference cannot be constructed at all.
+    if (!isRecordBasis(basis)) throw Error("A record cannot be created without an agreement reference");
+    const recordBasis = storedBasis(basis);
     safeKey(idempotencyKey, "idempotency key");
     if (typeof raw !== "string" || Buffer.byteLength(raw) > 120_000)
       throw Error("Reviewed intake exceeds 120 KB");
@@ -578,6 +600,9 @@ class DurableIntakeStore {
       const prior = this.state.inquiries[priorId];
       if (!prior || prior.raw_sha256 !== rawDigest)
         throw Error("Idempotency key conflict");
+      // The same bytes relayed under a different agreement are not a retry.
+      if (!prior.basis || prior.basis.legal_basis !== recordBasis.legal_basis)
+        throw Error("Idempotency key conflict: the same package under a different agreement basis");
       return { ...clone(prior.receipt), disposition: "DEDUPLICATED" };
     }
     const inspected = await I.inspect(raw, F.strictJsonParse);
@@ -611,6 +636,10 @@ class DurableIntakeStore {
       // The owning team is taken from the authenticated identity, never from
       // the submission or the caller's argument list.
       owner_team: principal.team,
+      // E4: the agreement this record is held under. Plain metadata: opaque
+      // references, never agreement text.
+      basis: recordBasis,
+      basis_history: [{ seq: 1, event: "RECEIVED", ...recordBasis, by: actor, at: new Date().toISOString() }],
       team_fields: {
         assigned_reviewer: "",
         queue_state: "READY_FOR_REVIEW",
@@ -628,6 +657,9 @@ class DurableIntakeStore {
         archived_by: null,
         // Set only by an approved exception; never inferred.
         exception_id: null,
+        // The lawful basis the record is held on, enforced rather than filled
+        // in: it is the agreement reference, and a record cannot exist without it.
+        legal_basis: recordBasis.legal_basis,
         production_period: RETENTION_POLICY.production_period,
       },
       // Append-only, like the assessment history. The retention block above is
@@ -731,6 +763,37 @@ class DurableIntakeStore {
   }
 
   /** Retain the record and take it out of the active index. Nothing is erased. */
+  /**
+   * Attach or change a record's agreement basis. A data steward attaches the
+   * real basis to a record written before E4, or moves a SCOPING record to
+   * STUDY once its MSA and Order Form exist. Nothing else: a STUDY record does
+   * not go back, and a basis is never removed. The history is append-only.
+   */
+  attachBasis(inquiryId, basis, principal) {
+    const actor = validatePrincipal(principal, "attach_basis");
+    if (!isRecordBasis(basis)) throw Error("A record cannot be held without an agreement reference");
+    const incoming = storedBasis(basis);
+    safeKey(inquiryId, "inquiry ID");
+    const current = this.state.inquiries[inquiryId];
+    if (!current || current.owner_team !== principal.team) throw Error("Inquiry not found");
+    if (current.lifecycle === KEY_DESTROYED)
+      throw Object.assign(Error("Inquiry content is unreadable: its archive key was destroyed"), { status: 410 });
+    let event;
+    if (!current.basis) event = "ATTACHED_PRE_E4";
+    else if (current.basis.record_class === "SCOPING" && incoming.record_class === "STUDY") event = "PROMOTED_TO_STUDY";
+    else throw Error("Agreement basis conflict: only a missing basis may be attached, or SCOPING promoted to STUDY");
+    const next = clone(this.state);
+    const record = next.inquiries[inquiryId];
+    record.basis = incoming;
+    record.retention.legal_basis = incoming.legal_basis;
+    record.basis_history = [
+      ...(record.basis_history || []),
+      { seq: (record.basis_history || []).length + 1, event, ...incoming, by: actor, at: new Date().toISOString() },
+    ];
+    this.persist(next);
+    return clone(record.basis);
+  }
+
   archive(inquiryId, principal) {
     const actor = validatePrincipal(principal, "archive");
     const record = ownedRecord(this, inquiryId, principal);

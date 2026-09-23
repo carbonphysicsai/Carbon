@@ -8,6 +8,7 @@ const os = require("node:os");
 const path = require("node:path");
 const { AccessControl, totp } = require("../tools/team_staff_directory.cjs");
 const { ArchiveKeyring } = require("../tools/team_archive_keyring.cjs");
+const { scopingBasis } = require("../tools/team_record_basis.cjs");
 
 const BASE32 = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
 
@@ -62,4 +63,9 @@ function openStore(storePath, options = {}) {
   return new DurableIntakeStore(storePath, { ...options, keyring: keyringFor(storePath) });
 }
 
-module.exports = { enrolled, keyringFor, openStore, principalFor, secretFor };
+/** A synthetic SCOPING basis: a record received under a (synthetic) NDA. */
+const scoping = () => scopingBasis({ nda: "synthetic-nda-0001" });
+/** The same basis as a relay sends it, in headers beside the package. */
+const SCOPING_HEADERS = Object.freeze({ "x-carbon-record-class": "SCOPING", "x-carbon-nda-ref": "synthetic-nda-0001" });
+
+module.exports = { SCOPING_HEADERS, enrolled, keyringFor, openStore, principalFor, scoping, secretFor };

@@ -16,7 +16,7 @@ const {
 const ROOT = path.resolve(__dirname, "..");
 
 const { StaffDirectory, StaffPrincipal } = require("../tools/team_staff_directory.cjs");
-const { enrolled, keyringFor, openStore, principalFor } = require("./staff_fixture.cjs");
+const { enrolled, keyringFor, openStore, principalFor, scoping } = require("./staff_fixture.cjs");
 
 // Principals are authenticated rather than declared. The literals these
 // replaced asserted their own roles, which meant the store was trusting its
@@ -114,11 +114,11 @@ function temporaryStore() {
 
 test("accepted inquiry is durable before receipt and exact response-loss retry deduplicates", async () => {
   const fixture = temporaryStore(), raw = reviewedRaw();
-  const first = await fixture.store.accept(raw, "retry-key-001", roles.receiver);
+  const first = await fixture.store.accept(raw, "retry-key-001", roles.receiver, scoping());
   assert.equal(first.disposition, "ACCEPTED");
   assert.equal(fs.existsSync(fixture.file), true);
   const restarted = openStore(fixture.file);
-  const second = await restarted.accept(raw, "retry-key-001", roles.receiver);
+  const second = await restarted.accept(raw, "retry-key-001", roles.receiver, scoping());
   assert.equal(second.disposition, "DEDUPLICATED");
   assert.equal(Object.keys(restarted.state.inquiries).length, 1);
   assert.equal(Object.keys(restarted.state.outbox).length, 1);
@@ -126,10 +126,10 @@ test("accepted inquiry is durable before receipt and exact response-loss retry d
 
 test("idempotency conflict and unauthorized access reject without mutation", async () => {
   const fixture = temporaryStore(), raw = reviewedRaw();
-  await fixture.store.accept(raw, "retry-key-002", roles.receiver);
+  await fixture.store.accept(raw, "retry-key-002", roles.receiver, scoping());
   const before = JSON.stringify(fixture.store.state);
   await assert.rejects(
-    () => fixture.store.accept(raw + " ", "retry-key-002", roles.receiver),
+    () => fixture.store.accept(raw + " ", "retry-key-002", roles.receiver, scoping()),
     /conflict/,
   );
   assert.throws(
@@ -149,7 +149,7 @@ test("idempotency conflict and unauthorized access reject without mutation", asy
 
 test("optimistic updates preserve revisions and reject concurrent overwrite", async () => {
   const fixture = temporaryStore();
-  const receipt = await fixture.store.accept(reviewedRaw(), "retry-key-003", roles.receiver);
+  const receipt = await fixture.store.accept(reviewedRaw(), "retry-key-003", roles.receiver, scoping());
   const updated = fixture.store.update(
     receipt.inquiry_id,
     1,
@@ -171,7 +171,7 @@ test("optimistic updates preserve revisions and reject concurrent overwrite", as
 
 test("notification failure preserves inquiry and pending outbox for recovery", async () => {
   const fixture = temporaryStore();
-  const receipt = await fixture.store.accept(reviewedRaw(), "retry-key-004", roles.receiver);
+  const receipt = await fixture.store.accept(reviewedRaw(), "retry-key-004", roles.receiver, scoping());
   const eventId = "notify-" + receipt.inquiry_id;
   const failed = await fixture.store.processOutbox(
     eventId,
@@ -186,7 +186,7 @@ test("notification failure preserves inquiry and pending outbox for recovery", a
 
 test("authorized deletion removes data and retains only a synthetic tombstone", async () => {
   const fixture = temporaryStore();
-  const receipt = await fixture.store.accept(reviewedRaw(), "retry-key-005", roles.receiver);
+  const receipt = await fixture.store.accept(reviewedRaw(), "retry-key-005", roles.receiver, scoping());
   assert.throws(() => fixture.store.delete(receipt.inquiry_id, roles.reviewer), /not authorized/);
   // Archival retention is the default, so removal needs an approved exception.
   assert.throws(
@@ -203,7 +203,7 @@ test("authorized deletion removes data and retains only a synthetic tombstone", 
 test("private export requires the export role and preserves reviewed source bytes", async () => {
   const fixture = temporaryStore();
   const raw = reviewedRaw();
-  const receipt = await fixture.store.accept(raw, "retry-key-006", roles.receiver);
+  const receipt = await fixture.store.accept(raw, "retry-key-006", roles.receiver, scoping());
   assert.throws(
     () => fixture.store.export(receipt.inquiry_id, roles.receiver),
     /not authorized/,
@@ -216,7 +216,7 @@ test("private export requires the export role and preserves reviewed source byte
 
 test("team assessments are append-only and retain every superseded revision", async () => {
   const fixture = temporaryStore();
-  const receipt = await fixture.store.accept(reviewedRaw(), "retry-key-007", roles.receiver);
+  const receipt = await fixture.store.accept(reviewedRaw(), "retry-key-007", roles.receiver, scoping());
   const first = fixture.store.update(
     receipt.inquiry_id,
     1,
@@ -247,7 +247,7 @@ test("team assessments are append-only and retain every superseded revision", as
 
 test("a v1 store migrates without inventing a history it never retained", async () => {
   const fixture = temporaryStore();
-  const receipt = await fixture.store.accept(reviewedRaw(), "retry-key-008", roles.receiver);
+  const receipt = await fixture.store.accept(reviewedRaw(), "retry-key-008", roles.receiver, scoping());
   const legacy = JSON.parse(fs.readFileSync(fixture.file, "utf8"));
   legacy.schema_version = "carbon.private-team-intake.store.v1";
   for (const record of Object.values(legacy.inquiries)) {
@@ -265,7 +265,7 @@ test("a v1 store migrates without inventing a history it never retained", async 
 
 test("a native store whose retained history was edited is refused", async () => {
   const fixture = temporaryStore();
-  await fixture.store.accept(reviewedRaw(), "retry-key-009", roles.receiver);
+  await fixture.store.accept(reviewedRaw(), "retry-key-009", roles.receiver, scoping());
   const tampered = JSON.parse(fs.readFileSync(fixture.file, "utf8"));
   for (const record of Object.values(tampered.inquiries)) record.version = 9;
   fs.writeFileSync(fixture.file, JSON.stringify(tampered, null, 2) + "\n");
@@ -274,7 +274,7 @@ test("a native store whose retained history was edited is refused", async () => 
 
 test("the queued notification carries a minimal summary and no client content", async () => {
   const fixture = temporaryStore();
-  const receipt = await fixture.store.accept(reviewedRaw(), "retry-key-010", roles.receiver);
+  const receipt = await fixture.store.accept(reviewedRaw(), "retry-key-010", roles.receiver, scoping());
   const events = fixture.store.listOutbox(roles.notifier);
   assert.equal(events.length, 1);
   const event = events[0];
@@ -292,7 +292,7 @@ test("the queued notification carries a minimal summary and no client content", 
 
 test("with no configured transport an attempt fails observably and never claims delivery", async () => {
   const fixture = temporaryStore();
-  const receipt = await fixture.store.accept(reviewedRaw(), "retry-key-011", roles.receiver);
+  const receipt = await fixture.store.accept(reviewedRaw(), "retry-key-011", roles.receiver, scoping());
   const eventId = "notify-" + receipt.inquiry_id;
   const attempted = await fixture.store.processOutbox(eventId, null, roles.notifier);
   assert.equal(attempted.status, "PENDING");
@@ -331,7 +331,7 @@ test("a configured destination is recorded without opening any connection", asyn
   const store = openStore(path.join(directory, "store.json"), {
     destination: "Hello@carbonphysics.ai",
   });
-  const receipt = await store.accept(reviewedRaw(), "retry-key-012", roles.receiver);
+  const receipt = await store.accept(reviewedRaw(), "retry-key-012", roles.receiver, scoping());
   assert.equal(store.listOutbox(roles.notifier)[0].destination, "Hello@carbonphysics.ai");
   assert.equal(store.listOutbox(roles.notifier)[0].status, "PENDING");
   assert.equal(store.read(receipt.inquiry_id, roles.reviewer).lifecycle, "ACTIVE");
@@ -342,7 +342,7 @@ test("a storage failure returns no receipt and stores no partial inquiry", async
   fs.chmodSync(fixture.directory, 0o500);
   try {
     await assert.rejects(() =>
-      fixture.store.accept(reviewedRaw(), "retry-key-013", roles.receiver),
+      fixture.store.accept(reviewedRaw(), "retry-key-013", roles.receiver, scoping()),
     );
   } finally {
     fs.chmodSync(fixture.directory, 0o700);
@@ -350,21 +350,21 @@ test("a storage failure returns no receipt and stores no partial inquiry", async
   assert.equal(fs.existsSync(fixture.file), false);
   assert.deepEqual(Object.keys(fixture.store.state.inquiries), []);
   // The same key succeeds once storage recovers; no phantom record blocks it.
-  const receipt = await fixture.store.accept(reviewedRaw(), "retry-key-013", roles.receiver);
+  const receipt = await fixture.store.accept(reviewedRaw(), "retry-key-013", roles.receiver, scoping());
   assert.equal(receipt.disposition, "ACCEPTED");
   assert.equal(fs.readdirSync(fixture.directory).filter((n) => n.includes(".tmp-")).length, 0);
 });
 
 test("completing a notification keeps writes made during the await window", async () => {
   const fixture = temporaryStore();
-  const receipt = await fixture.store.accept(reviewedRaw(), "retry-key-014", roles.receiver);
+  const receipt = await fixture.store.accept(reviewedRaw(), "retry-key-014", roles.receiver, scoping());
   const other = JSON.parse(reviewedRaw());
   other.brief.draft_id = "synthetic-second-inquiry";
   const second = await fixture.store.accept(
     JSON.stringify(other),
     "retry-key-015",
-    roles.receiver,
-  );
+    roles.receiver, scoping(),
+);
   assert.notEqual(second.inquiry_id, receipt.inquiry_id);
   let release;
   const opened = new Promise((resolve) => {
@@ -405,7 +405,7 @@ test("completing a notification keeps writes made during the await window", asyn
 
 test("a transient flush failure does not block every later write", async () => {
   const fixture = temporaryStore();
-  await fixture.store.accept(reviewedRaw(), "retry-key-016", roles.receiver);
+  await fixture.store.accept(reviewedRaw(), "retry-key-016", roles.receiver, scoping());
   const realFsync = fs.fsyncSync;
   let injected = false;
   fs.fsyncSync = (fd) => {
@@ -448,7 +448,7 @@ test("a transient flush failure does not block every later write", async () => {
 
 test("a delivery in flight cannot resurrect an inquiry deleted during its await", async () => {
   const fixture = temporaryStore();
-  const receipt = await fixture.store.accept(reviewedRaw(), "retry-key-017", roles.receiver);
+  const receipt = await fixture.store.accept(reviewedRaw(), "retry-key-017", roles.receiver, scoping());
   const eventId = "notify-" + receipt.inquiry_id;
   let release;
   const opened = new Promise((resolve) => {
@@ -486,7 +486,7 @@ test("the retention policy is versioned and leaves the legal fields unresolved",
 
 test("archiving retains the record and removes it from the working set", async () => {
   const fixture = temporaryStore();
-  const receipt = await fixture.store.accept(reviewedRaw(), "retention-001", roles.receiver);
+  const receipt = await fixture.store.accept(reviewedRaw(), "retention-001", roles.receiver, scoping());
   assert.equal(fixture.store.search(roles.reviewer).length, 1);
 
   assert.throws(() => fixture.store.archive(receipt.inquiry_id, roles.reviewer), /not authorized/);
@@ -521,7 +521,7 @@ test("archiving retains the record and removes it from the working set", async (
 
 test("a deletion exception is named, reasoned and bounded", async () => {
   const fixture = temporaryStore();
-  const receipt = await fixture.store.accept(reviewedRaw(), "retention-002", roles.receiver);
+  const receipt = await fixture.store.accept(reviewedRaw(), "retention-002", roles.receiver, scoping());
 
   assert.throws(
     () => fixture.store.approveDeletionException(receipt.inquiry_id, { approver: "", reason: "Synthetic cleanup." }, roles.steward),
@@ -544,7 +544,7 @@ test("a deletion exception is named, reasoned and bounded", async () => {
 
 test("a tombstone states what the deletion did not reach", async () => {
   const fixture = temporaryStore();
-  const receipt = await fixture.store.accept(reviewedRaw(), "retention-003", roles.receiver);
+  const receipt = await fixture.store.accept(reviewedRaw(), "retention-003", roles.receiver, scoping());
   approveDeletion(fixture.store, receipt.inquiry_id);
   const tombstone = fixture.store.delete(receipt.inquiry_id, roles.steward);
 
@@ -559,7 +559,7 @@ test("a tombstone states what the deletion did not reach", async () => {
 
 test("a v2 store migrates to versioned retention without back-dating an archive", async () => {
   const fixture = temporaryStore();
-  const receipt = await fixture.store.accept(reviewedRaw(), "retention-004", roles.receiver);
+  const receipt = await fixture.store.accept(reviewedRaw(), "retention-004", roles.receiver, scoping());
   // A v2 store predates E1, so it is plaintext: built from the in-memory state.
   const legacy = JSON.parse(JSON.stringify(fixture.store.state));
   legacy.schema_version = "carbon.private-team-intake.store.v2";
@@ -686,11 +686,11 @@ const RETENTION_GUARANTEES = [
 test("every retention guarantee fails against a store built to violate it", async () => {
   for (const guarantee of RETENTION_GUARANTEES) {
     const control = temporaryStore();
-    const receipt = await control.store.accept(reviewedRaw(), "control", roles.receiver);
+    const receipt = await control.store.accept(reviewedRaw(), "control", roles.receiver, scoping());
     await guarantee.check(control.store, receipt);
 
     const subject = temporaryStore();
-    const other = await subject.store.accept(reviewedRaw(), "variant", roles.receiver);
+    const other = await subject.store.accept(reviewedRaw(), "variant", roles.receiver, scoping());
     // Specifically an assertion failure. Any other error means the variant
     // broke before it reached the behaviour, and the control proved nothing.
     await assert.rejects(
@@ -709,7 +709,7 @@ test("the migration check rejects a store that back-dates an archive", async () 
   // never archived — the plausible mistake, since the accepted time is sitting
   // right there and would make the field look populated and correct.
   const fixture = temporaryStore();
-  const receipt = await fixture.store.accept(reviewedRaw(), "retention-005", roles.receiver);
+  const receipt = await fixture.store.accept(reviewedRaw(), "retention-005", roles.receiver, scoping());
   const forged = JSON.parse(fs.readFileSync(fixture.file, "utf8"));
   const record = forged.inquiries[receipt.inquiry_id];
   record.retention = { ...record.retention, archived_at: record.accepted_at, archived_by: "migration" };
@@ -728,7 +728,7 @@ test("the negative-control harness itself fails when nothing is violated", async
   // that was never given a violating store to run against.
   for (const guarantee of RETENTION_GUARANTEES) {
     const fixture = temporaryStore();
-    const receipt = await fixture.store.accept(reviewedRaw(), "meta", roles.receiver);
+    const receipt = await fixture.store.accept(reviewedRaw(), "meta", roles.receiver, scoping());
     await assert.rejects(
       assert.rejects(
         Promise.resolve().then(() => guarantee.check(variantStore(fixture.file, {}), receipt)),
@@ -803,7 +803,7 @@ test("a directory refuses accounts that would make provenance ambiguous", () => 
 
 test("every store endpoint refuses a caller that was never authenticated", async () => {
   const fixture = temporaryStore();
-  const receipt = await fixture.store.accept(reviewedRaw(), "role-001", roles.receiver);
+  const receipt = await fixture.store.accept(reviewedRaw(), "role-001", roles.receiver, scoping());
   approveDeletion(fixture.store, receipt.inquiry_id);
 
   // Enumerated from the prototype rather than listed by hand, so an endpoint
@@ -853,7 +853,7 @@ test("every store endpoint refuses a caller that was never authenticated", async
 
 test("a principal from another team is refused as if the inquiry did not exist", async () => {
   const fixture = temporaryStore();
-  const receipt = await fixture.store.accept(reviewedRaw(), "role-002", roles.receiver);
+  const receipt = await fixture.store.accept(reviewedRaw(), "role-002", roles.receiver, scoping());
   const missing = "inquiry-000000000000000";
 
   // The foreign principal holds every role this receiver defines. Role checks
@@ -893,7 +893,7 @@ test("a principal from another team is refused as if the inquiry did not exist",
 
 test("a migrated record has no owning team and is reachable by nobody", async () => {
   const fixture = temporaryStore();
-  const receipt = await fixture.store.accept(reviewedRaw(), "role-003", roles.receiver);
+  const receipt = await fixture.store.accept(reviewedRaw(), "role-003", roles.receiver, scoping());
   // A v2 store predates E1, so it is plaintext: built from the in-memory state.
   const legacy = JSON.parse(JSON.stringify(fixture.store.state));
   legacy.schema_version = "carbon.private-team-intake.store.v2";
@@ -917,7 +917,7 @@ test("a migrated record has no owning team and is reachable by nobody", async ()
 
 test("a store interrupted before its rename restarts on the last good state", async () => {
   const fixture = temporaryStore();
-  const receipt = await fixture.store.accept(reviewedRaw(), "recover-001", roles.receiver);
+  const receipt = await fixture.store.accept(reviewedRaw(), "recover-001", roles.receiver, scoping());
   fixture.store.update(
     receipt.inquiry_id, 1,
     { assigned_reviewer: "Ryan", queue_state: "UNDER_REVIEW", note: "Committed." },
@@ -956,7 +956,7 @@ test("a store interrupted before its rename restarts on the last good state", as
 
 test("a damaged store refuses to open rather than starting empty", async () => {
   const fixture = temporaryStore();
-  const receipt = await fixture.store.accept(reviewedRaw(), "recover-002", roles.receiver);
+  const receipt = await fixture.store.accept(reviewedRaw(), "recover-002", roles.receiver, scoping());
   const good = fs.readFileSync(fixture.file, "utf8");
 
   // Starting empty is the dangerous recovery: every accepted inquiry silently
@@ -979,14 +979,14 @@ test("a damaged store refuses to open rather than starting empty", async () => {
   assert.equal(reopened.read(receipt.inquiry_id, roles.reviewer).inquiry_id, receipt.inquiry_id);
   // The idempotency index survived, so the client's retry still deduplicates.
   assert.equal(
-    (await reopened.accept(reviewedRaw(), "recover-002", roles.receiver)).disposition,
+    (await reopened.accept(reviewedRaw(), "recover-002", roles.receiver, scoping())).disposition,
     "DEDUPLICATED",
   );
 });
 
 test("a failed write leaves the previous committed state readable", async () => {
   const fixture = temporaryStore();
-  const first = await fixture.store.accept(reviewedRaw(), "recover-003", roles.receiver);
+  const first = await fixture.store.accept(reviewedRaw(), "recover-003", roles.receiver, scoping());
   approveDeletion(fixture.store, first.inquiry_id);
 
   const realRename = fs.renameSync;
@@ -1012,7 +1012,7 @@ test("a failed write leaves the previous committed state readable", async () => 
 
 test("the retention lifecycle is append-only across an archive and restore cycle", async () => {
   const fixture = temporaryStore();
-  const receipt = await fixture.store.accept(reviewedRaw(), "provenance-001", roles.receiver);
+  const receipt = await fixture.store.accept(reviewedRaw(), "provenance-001", roles.receiver, scoping());
   fixture.store.archive(receipt.inquiry_id, roles.steward);
   fixture.store.restore(receipt.inquiry_id, roles.steward);
   fixture.store.archive(receipt.inquiry_id, roles.steward);
@@ -1034,7 +1034,7 @@ test("the retention lifecycle is append-only across an archive and restore cycle
 
 test("a retention history with an entry removed is refused", async () => {
   const fixture = temporaryStore();
-  const receipt = await fixture.store.accept(reviewedRaw(), "provenance-002", roles.receiver);
+  const receipt = await fixture.store.accept(reviewedRaw(), "provenance-002", roles.receiver, scoping());
   fixture.store.archive(receipt.inquiry_id, roles.steward);
   fixture.store.restore(receipt.inquiry_id, roles.steward);
   fixture.store.archive(receipt.inquiry_id, roles.steward);
@@ -1065,7 +1065,7 @@ test("a retention history with an entry removed is refused", async () => {
 
 test("an archived record cannot be revised until it is restored", async () => {
   const fixture = temporaryStore();
-  const receipt = await fixture.store.accept(reviewedRaw(), "archive-update-001", roles.receiver);
+  const receipt = await fixture.store.accept(reviewedRaw(), "archive-update-001", roles.receiver, scoping());
   const patch = { assigned_reviewer: "Ryan", queue_state: "UNDER_REVIEW", note: "Synthetic." };
   fixture.store.archive(receipt.inquiry_id, roles.steward);
 
@@ -1113,11 +1113,11 @@ test("each endpoint admits exactly the roles it is supposed to", async () => {
   for (const [endpoint, permitted] of Object.entries(MATRIX)) {
     for (const name of everyone) {
       const fixture = temporaryStore();
-      const receipt = await fixture.store.accept(reviewedRaw(), "matrix", roles.receiver);
+      const receipt = await fixture.store.accept(reviewedRaw(), "matrix", roles.receiver, scoping());
       approveDeletion(fixture.store, receipt.inquiry_id);
       const id = receipt.inquiry_id;
       const call = {
-        accept: (p) => fixture.store.accept(reviewedRaw(), "matrix-2", p),
+        accept: (p) => fixture.store.accept(reviewedRaw(), "matrix-2", p, scoping()),
         read: (p) => fixture.store.read(id, p),
         update: (p) => fixture.store.update(id, 1, { assigned_reviewer: "", note: "", queue_state: "PARKED" }, p),
         export: (p) => fixture.store.export(id, p),
@@ -1194,7 +1194,7 @@ test("the specimen: a store past the old reader limit really was unopenable", ()
 
 test("a write that would breach the ceiling is refused and changes nothing", async () => {
   const fixture = temporaryStore();
-  const receipt = await fixture.store.accept(reviewedRaw(), "ceiling-001", roles.receiver);
+  const receipt = await fixture.store.accept(reviewedRaw(), "ceiling-001", roles.receiver, scoping());
   const before = fs.readFileSync(fixture.file);
   const digest = crypto.createHash("sha256").update(before).digest("hex");
 
@@ -1203,7 +1203,7 @@ test("a write that would breach the ceiling is refused and changes nothing", asy
   // the same code path and keeps the suite honest about what it ran.
   const tight = openStore(fixture.file, { writeCeilingBytes: before.length + 64 });
   await assert.rejects(
-    () => tight.accept(reviewedRaw(true), "ceiling-002", roles.receiver),
+    () => tight.accept(reviewedRaw(true), "ceiling-002", roles.receiver, scoping()),
     /exceeds the .* byte ceiling/,
   );
 
@@ -1231,13 +1231,13 @@ test("a write that would breach the ceiling is refused and changes nothing", asy
 
 test("the refusal says what to do, and the alternatives it rules out", async () => {
   const fixture = temporaryStore();
-  await fixture.store.accept(reviewedRaw(), "ceiling-003", roles.receiver);
+  await fixture.store.accept(reviewedRaw(), "ceiling-003", roles.receiver, scoping());
   const tight = openStore(fixture.file, {
     writeCeilingBytes: fs.statSync(fixture.file).size + 32,
   });
   let message = "";
   try {
-    await tight.accept(reviewedRaw(true), "ceiling-004", roles.receiver);
+    await tight.accept(reviewedRaw(true), "ceiling-004", roles.receiver, scoping());
   } catch (error) {
     message = error.message;
   }
@@ -1260,7 +1260,7 @@ test("capacity reports headroom before the wall rather than at it", async () => 
   // pessimistic count is about 72 where it was about 97 before.
   assert(empty.worst_case_inquiries_remaining > 60, "headroom is implausibly small");
 
-  await fixture.store.accept(reviewedRaw(), "ceiling-005", roles.receiver);
+  await fixture.store.accept(reviewedRaw(), "ceiling-005", roles.receiver, scoping());
   const used = fixture.store.capacity(roles.steward);
   assert(used.used_bytes > 0);
   assert.equal(used.inquiries, 1);
@@ -1289,7 +1289,7 @@ test("the adopted retention scope is not narrowed", () => {
 
 test("a second process cannot start on a store another process is writing", async () => {
   const fixture = temporaryStore();
-  await fixture.store.accept(reviewedRaw(), "lock-001", roles.receiver);
+  await fixture.store.accept(reviewedRaw(), "lock-001", roles.receiver, scoping());
   const lockPath = fixture.store.acquireWriterLock();
   assert.equal(fs.existsSync(lockPath), true);
   const holder = JSON.parse(fs.readFileSync(lockPath, "utf8"));
@@ -1331,7 +1331,7 @@ test("a second process cannot start on a store another process is writing", asyn
 
 test("a lock left by a dead process does not wedge the next start", async () => {
   const fixture = temporaryStore();
-  await fixture.store.accept(reviewedRaw(), "lock-002", roles.receiver);
+  await fixture.store.accept(reviewedRaw(), "lock-002", roles.receiver, scoping());
   const lockPath = fixture.file + ".writer.lock";
 
   // A crashed holder: a pid that is gone. Staleness is detected, not assumed,

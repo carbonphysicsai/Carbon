@@ -166,7 +166,14 @@ def relay(base, work: Path, request):
         "/private/intake",
         RELAY_TOKEN,
         raw,
-        {"idempotency-key": "journey-001", "content-type": "application/json"},
+        {
+            "idempotency-key": "journey-001",
+            "content-type": "application/json",
+            # E4: the agreement basis travels beside the package, never in it.
+            # A synthetic reference; no real agreement is named anywhere here.
+            "x-carbon-record-class": "SCOPING",
+            "x-carbon-nda-ref": "synthetic-journey-nda-0001",
+        },
     )
     assert status == 201 and receipt["disposition"] == "ACCEPTED", receipt
     _, record = receiver_request(
