@@ -21,6 +21,10 @@ REPRODUCIBILITY_ROOT = CARBON_ROOT / "reproducibility"
 EXPECTED_MODULES = {
     "__init__.py",
     "canonical.py",
+    # The owner's DEVELOPMENT qualification of R1 (Amendment 10), admitted by
+    # name. Fixture-origin like everything else here; it adds a registered
+    # procedure, not a path out of the fixture boundary.
+    "development.py",
     "enums.py",
     "errors.py",
     "harness.py",
