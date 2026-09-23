@@ -18,38 +18,38 @@ python scripts/dev/build_julia_analysis_image.py \
 
 This build reuses the checksum-pinned Julia 1.13.0 binary already in its parent.
 Both analysis layers build with network disabled. It prints an image manifest
-and `REQUESTED_NOT_GRANTED` scope; building grants no execution authority.
+and the `runtime_authored_research` scope to declare; building grants no
+execution authority by itself.
 The build pins the parent image, Julia archive, empty external-package manifest,
 project, source and bootstrap. The closed environment contains Base and the
 standard libraries shipped in that exact distribution. The controller performs
 no request-time package resolution or installation; package addition is unavailable.
 
-For a **new, explicitly approved** campaign, include the exact printed scope
-as the single `runtime.authored_research` entry. Preserve the existing frozen
-principal, root, implementation, images, grant limits and final reserve. Install
-the printed image manifest as the private, canonical operator record
-`<campaign-root>/authored-julia-image.json`. Existing grants and historical
-Python campaigns remain unchanged and cannot acquire this capability by
-installing an image or copying a grant to a new directory.
+No grant is needed (C-MLP-02-D11). Put the printed `runtime_authored_research`
+list in your runner profile's `runtime.authored_research`, and the printed
+manifest path in the profile's `authored_julia_image`. The two are required
+together. When you launch, after registration is read, the runner installs the
+record into the new campaign's root; a resumed campaign must still hold the same
+record, and a different one is refused rather than swapped under it. The same
+pattern applies to GPU research through `gpu_image`.
 
-The standard operator command stays:
+The MCP command attaches to one of your campaigns:
 
 ```sh
-carbon-mcp --configuration /private/operator-profile.json
+carbon-mcp --configuration /private/runner-profile.json --campaign <campaign id>
 ```
 
 It checks the exact private image record against the admitted analysis parent
-and runtime scope. Client discovery offers `run_julia` only for that bound
-grant. Every direct start and reconnect rechecks authorization; discovery is
-not authorization. Existing domain task, transport identity, campaign ownership,
-lease, watchdog, cancellation, artifact and accounting services remain shared.
+and runtime scope. Client discovery offers `run_julia` only when the campaign's
+frozen runtime declares it. Every direct start and reconnect rechecks
+authorization; discovery is not authorization. Existing domain task, transport
+identity, campaign ownership, lease, watchdog, cancellation, artifact and
+accounting services remain shared.
 
-The existing Launchpad research campaign runner reads the same fixed operator
-record when its explicit grant contains this scope, then freezes a copied tool
-schema that includes `run_julia`. Its stopping rules, final reconstruction
-reserve and provider accounting are unchanged. Preparing this image does not
-authorize a campaign or model call; an existing Python-only frozen campaign
-cannot be upgraded in place.
+The Launchpad research runner freezes a copied tool schema that includes
+`run_julia` for such a campaign. Its stopping rules and provider accounting are
+unchanged, and any budget is the miner's own. An existing Python-only frozen
+campaign cannot be upgraded in place: declare Julia in a new campaign.
 
 ## Client request
 
@@ -113,7 +113,7 @@ CARBON_JULIA_WORKER_MANIFEST=.carbon-artifacts/julia-worker-image.json \
   python -m pytest tests/service/test_authored_julia_service.py -q
 ```
 
-The service cases use explicit nonpaying engineering grants, actual Julia and
+The service cases use registration-admitted fixture campaigns, actual Julia and
 Docker, and an external stdio client with fixture signing/registration. They do
 not establish paid-agent usefulness, production authentication/security
 qualification, physical reference qualification, accelerator Julia support,

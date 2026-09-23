@@ -359,7 +359,13 @@ async def final_epoch(
 
 
 def registered_julia_image(root, runtime, analysis):
-    """Read the fixed operator image record; the caller still verifies its grant."""
+    """Read the campaign's image record; the caller still verifies its authority.
+
+    A product campaign's record is installed at launch from the miner's own
+    profile; a development grant campaign's is written by its operator. Either
+    way the record grants nothing: the declared runtime must name this exact
+    scope, and the campaign's authority is re-read on every call.
+    """
     if "authored_research" not in runtime:
         return None
     from .julia_analysis import (
@@ -367,7 +373,7 @@ def registered_julia_image(root, runtime, analysis):
         load_julia_analysis_image,
         verify_julia_image,
     )
-    from .research_admission import private_json
+    from .private_records import private_json
 
     path = root / "authored-julia-image.json"
     private_json(path)

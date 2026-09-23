@@ -237,7 +237,10 @@ def test_admitted_route_binds_language_bootstrap_and_existing_trial_charge(
     )
     assert observed[0]["program_name"] == "program.jl"
     assert observed[0]["bootstrap"] == julia.BOOTSTRAP
-    assert observed[0]["execution_contract"] == julia.authored_julia_scope(image)
+    assert observed[0]["execution_contract"] == {
+        **julia.authored_julia_scope(image),
+        "selected_environment": "current",
+    }
     assert observed[0]["extra_resources"] == {"research_trials": 1}
     token = research_carrier.PRECHARGED_TRIAL.set("original-trial")
     try:
@@ -336,3 +339,40 @@ def test_finite_portable_exports_are_self_report_only(tmp_path):
     (tmp_path / "notes.txt").write_text("observed hypothesis")
     julia.validate_julia_output(tmp_path)
     assert julia.authored_julia_scope(fixture_image())["official_eligible"] is False
+
+
+def test_the_miner_chooses_an_environment_and_nothing_else(tmp_path, monkeypatch):
+    """`pde` runs the pde bootstrap and records that it did; any other name is
+    refused before the carrier is reached. The environment is a name from a
+    closed set, never a path, project or flag."""
+    ledger, image = prepared(tmp_path)
+    from carbon.development_session import research_carrier
+
+    observed = []
+    monkeypatch.setattr(
+        research_carrier, "_run", lambda *args, **kwargs: observed.append(kwargs) or {}
+    )
+    arguments = dict(
+        owner="test-miner", identity="pde", source="1+1", files={}, image=image
+    )
+    julia.run_julia(ledger, environment="pde", **arguments)
+    assert observed[0]["bootstrap"] == julia.bootstrap_for("pde")
+    assert "/opt/carbon-julia-analysis/pde" in observed[0]["bootstrap"]
+    assert observed[0]["execution_contract"]["selected_environment"] == "pde"
+    for refused in ("/opt/elsewhere", "current;rm", "", None):
+        with pytest.raises(ValueError, match="environment"):
+            julia.run_julia(ledger, environment=refused, **arguments)
+    assert len(observed) == 1
+
+
+def test_every_environment_is_a_committed_pinned_manifest():
+    """The runtime identity binds each environment's exact manifest bytes."""
+    document = julia.runtime_document(fixture_image().parent)
+    assert set(document["environments"]) == set(julia.ENVIRONMENTS)
+    for name in julia.ENVIRONMENTS:
+        project, manifest = julia.environment_files(name)
+        assert b'julia_version = "1.13.0"' in manifest
+        assert document["environments"][name]["manifest"] == digest(manifest)
+    scope = julia.authored_julia_scope(fixture_image())
+    assert scope["schema"] == "carbon.authored-julia.scope.v2"
+    assert set(scope["bootstrap"]) == set(julia.ENVIRONMENTS)

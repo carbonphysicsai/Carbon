@@ -236,6 +236,8 @@ def test_gpu_configuration_is_not_cpu_fallback_or_execution_evidence(
 ):
     bridge, cfg = configured_bridge(tmp_path, monkeypatch)
     cfg["runtime"]["gpu_research"] = []  # Deliberately incomplete engineering fixture.
+    # A declared GPU runtime names the miner's built record (C-MLP-02-D11).
+    cfg["gpu_image"] = str(tmp_path / "gpu-image-record.json")
     write(bridge, cfg)
     result = bridge.preflight()
     assert not result["available"]
@@ -291,6 +293,8 @@ def test_declared_gpu_research_is_reviewed_as_its_own_runtime(tmp_path, monkeypa
     """
     bridge, cfg = configured_bridge(tmp_path, monkeypatch)
     cfg["runtime"]["gpu_research"] = [_well_formed_gpu_scope()]
+    # A declared GPU runtime names the miner's built record (C-MLP-02-D11).
+    cfg["gpu_image"] = str(tmp_path / "gpu-image-record.json")
     write(bridge, cfg)
 
     review = bridge.preflight()["review"]

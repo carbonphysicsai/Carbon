@@ -57,7 +57,23 @@ PROFILE_FIELDS = {
     "campaigns_root",
     "runtime",
 }
-OPTIONAL_PROFILE_FIELDS = {"research_guidance", "disabled_reason"}
+OPTIONAL_PROFILE_FIELDS = {
+    "research_guidance",
+    "disabled_reason",
+    "authored_julia_image",
+    "gpu_image",
+}
+
+#: Image records a campaign's runtime can require, keyed by the profile field
+#: that names the miner's built record. Under the grant each had to be written
+#: by hand into one campaign's root; a product campaign's root is created at
+#: launch, so the runner installs the record there from the miner's profile.
+#: A record grants nothing by existing - the runtime still has to declare the
+#: composition, and the campaign recomputes and checks the scope itself.
+RESEARCH_IMAGE_RECORDS = {
+    "authored_julia_image": ("authored_research", "authored-julia-image.json"),
+    "gpu_image": ("gpu_research", "gpu-worker-image.json"),
+}
 
 # The runtime compositions this runner can actually assemble and dispatch.
 #
@@ -130,7 +146,44 @@ def validated_profile(cfg):
         or runtime["implementation"].get("revision") != cfg["accepted_revision"]
     ):
         raise ValueError("the runtime must name the accepted revision")
+    for field, (composition, _name) in RESEARCH_IMAGE_RECORDS.items():
+        # Named exactly when the runtime declares the composition: a record
+        # with nothing to run is a setting that does nothing, and a declared
+        # composition with no record would fail after the miner had launched.
+        if (field in cfg) != (composition in runtime):
+            raise ValueError(
+                f"{field} is required exactly when the runtime declares {composition}"
+            )
+        if field in cfg and (
+            type(cfg[field]) is not str or not Path(cfg[field]).is_absolute()
+        ):
+            raise ValueError("operator paths must be absolute")
     return cfg
+
+
+def install_research_images(cfg, root):
+    """Put the miner's built image records where the campaign looks for them.
+
+    Idempotent across resume, and refuses a record that differs from the one
+    the campaign already holds rather than swapping the image under it.
+    """
+    import os
+
+    for field, (_composition, name) in RESEARCH_IMAGE_RECORDS.items():
+        if field not in cfg:
+            continue
+        source = Path(cfg[field])
+        if source.is_symlink() or not source.is_file() or source.stat().st_size > 65536:
+            raise ValueError(f"{field} must be a bounded image record file")
+        data = source.read_bytes()
+        target = root / name
+        if target.exists():
+            if target.is_symlink() or target.read_bytes() != data:
+                raise ValueError("the campaign already holds a different image record")
+            continue
+        handle = os.open(target, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        with os.fdopen(handle, "wb") as record:
+            record.write(data)
 
 
 class RunnerAdapter:
@@ -453,6 +506,7 @@ class RunnerAdapter:
                     ).fetchone()
                 if pending:
                     raise DispatchStopped("unresolved operation")
+                install_research_images(cfg, root)
                 args = SimpleNamespace(
                     **{k: Path(v) for k, v in cfg["paths"].items()},
                     root=root,

@@ -1,6 +1,8 @@
-"""Prospective authored Julia analysis image and existing-carrier admission.
+"""Authored Julia analysis image and existing-carrier admission.
 
-Only explicitly approved, frozen public research grants admit this language.
+A campaign admits this language when its frozen runtime declares the exact
+scope - a product campaign admitted by registration (C-MLP-02-D11) or a
+development grant campaign alike. No grant is required.
 This image has no evaluator modules; arbitrary source remains hostile and all
 outputs remain miner self-report. No installation runs in the request path.
 """
@@ -22,25 +24,64 @@ from .research_image import ResearchImageIdentity, build_analysis_image, verify_
 SCHEMA = "carbon.authored-julia.analysis-image.v1"
 VERSION = "1.13.0"
 ARCHIVE = "sha256:8975da61c128a5e5ded3e719e868da8c8781deb7ad7913d37fb99be02a81904b"
-PROJECT = '[compat]\njulia = "=1.13.0"\n'
-MANIFEST_TEXT = 'julia_version = "1.13.0"\nmanifest_format = "2.0"\n\n[deps]\n'
-BOOTSTRAP = """import os,shutil
+
+#: Two pinned package environments, because the newest SciML core cannot yet
+#: coexist with the packages that have not migrated to it (owner decision,
+#: 23 September 2026). `current` carries the newest core - ModelingToolkit 11,
+#: Symbolics 7, OrdinaryDiffEq 7, SciMLBase 3 - and everything compatible with
+#: it; `pde` carries NeuralPDE, MethodOfLines and DataDrivenDiffEq on the prior
+#: core. Each is a committed Project.toml and Manifest.toml: every package and
+#: binary artifact pinned by content hash, installed and precompiled when the
+#: image is built, never at request time.
+ENVIRONMENTS = ("current", "pde")
+DEFAULT_ENVIRONMENT = "current"
+ENVIRONMENT_ROOT = Path(__file__).resolve().parent / "julia_environments"
+ANALYSIS_ROOT = "/opt/carbon-julia-analysis"
+
+#: Precompiled once for a portable set of x86-64 targets - Julia's own release
+#: target - so one image serves every miner's host rather than the builder's.
+CPU_TARGET = "generic;sandybridge,-xsaveopt,clone_all;haswell,-rdrnd,base(1)"
+
+
+def environment_files(name):
+    """The committed Project.toml and Manifest.toml bytes for one environment."""
+    if name not in ENVIRONMENTS:
+        raise ValueError("unknown authored Julia environment")
+    directory = ENVIRONMENT_ROOT / name
+    return (
+        (directory / "Project.toml").read_bytes(),
+        (directory / "Manifest.toml").read_bytes(),
+    )
+
+
+def bootstrap_for(name):
+    """The fixed worker bootstrap for one environment. The miner chooses which
+    environment, never a path, project, depot or flag."""
+    if name not in ENVIRONMENTS:
+        raise ValueError("unknown authored Julia environment")
+    project = f"{ANALYSIS_ROOT}/{name}"
+    return f"""import os,shutil
 from pathlib import Path
 work=Path('/scratch/workspace');work.mkdir()
 Path('/scratch/output').mkdir()
 for item in Path('/input').iterdir():
     if item.name!='program.jl':shutil.copyfile(item,work/item.name)
 os.chdir(work)
-env={'PATH':'/opt/carbon-julia/bin:/usr/bin:/bin','HOME':'/scratch/home',
-     'TMPDIR':'/scratch/tmp','LANG':'C.UTF-8','JULIA_DEPOT_PATH':'/opt/carbon-julia-analysis/depot',
-     'JULIA_LOAD_PATH':'/opt/carbon-julia-analysis:@stdlib',
-     'JULIA_PROJECT':'/opt/carbon-julia-analysis','JULIA_PKG_OFFLINE':'true',
+env={{'PATH':'/opt/carbon-julia/bin:/usr/bin:/bin','HOME':'/scratch/home',
+     'TMPDIR':'/scratch/tmp','LANG':'C.UTF-8','JULIA_DEPOT_PATH':'{ANALYSIS_ROOT}/depot',
+     'JULIA_LOAD_PATH':'{project}:@stdlib',
+     'JULIA_PROJECT':'{project}','JULIA_PKG_OFFLINE':'true',
      'JULIA_PKG_SERVER':'','JULIA_PKG_PRECOMPILE_AUTO':'0',
-     'JULIA_NUM_THREADS':'1','OPENBLAS_NUM_THREADS':'1','OMP_NUM_THREADS':'1'}
+     'JULIA_NUM_THREADS':'1','OPENBLAS_NUM_THREADS':'1','OMP_NUM_THREADS':'1'}}
 os.execve('/opt/carbon-julia/bin/julia',['julia','--startup-file=no',
-    '--history-file=no','--project=/opt/carbon-julia-analysis',
+    '--history-file=no','--project={project}',
     '--compiled-modules=existing','--threads=1','--','/input/program.jl'],env)
 """
+
+
+#: The default environment's bootstrap, for the registered routes that run
+#: authored Julia without a miner choosing an environment.
+BOOTSTRAP = bootstrap_for(DEFAULT_ENVIRONMENT)
 
 
 @dataclass(frozen=True)
@@ -59,11 +100,17 @@ def runtime_document(parent):
         "parent_runtime": parent.runtime_digest,
         "julia_version": VERSION,
         "julia_archive": ARCHIVE,
-        "project": digest(PROJECT.encode()),
-        "manifest": digest(MANIFEST_TEXT.encode()),
-        "bootstrap": digest(BOOTSTRAP.encode()),
+        "environments": {
+            name: {
+                "project": digest(environment_files(name)[0]),
+                "manifest": digest(environment_files(name)[1]),
+                "bootstrap": digest(bootstrap_for(name).encode()),
+            }
+            for name in ENVIRONMENTS
+        },
+        "cpu_target": CPU_TARGET,
         "builder": digest(Path(__file__).read_bytes()),
-        "package_artifacts": [],
+        "package_artifacts": "PINNED_BY_MANIFEST_CONTENT_HASHES",
         "scope": "PUBLIC_MINER_AUTHORED_JULIA_NO_EVALUATOR",
         "qualification": False,
     }
@@ -121,10 +168,6 @@ def build_julia_analysis_image(parent_manifest, root):
     manifest = directory / "julia-analysis-image.json"
     if manifest.exists():
         return verify_julia_image(load_julia_analysis_image(manifest), cli)
-    context = directory / "build-context"
-    context.mkdir(mode=0o700, exist_ok=True)
-    write_once(context / "Project.toml", PROJECT.encode())
-    write_once(context / "Manifest.toml", MANIFEST_TEXT.encode())
     tag = "carbon-authored-julia-parent:" + parent.image_id[7:]
     cli.run(["tag", parent.image_id, tag])
     if (
@@ -132,10 +175,28 @@ def build_julia_analysis_image(parent_manifest, root):
         != parent.image_id
     ):
         raise ValueError("Julia analysis parent tag changed")
-    recipe = f"""FROM {tag}
+    fetched = _fetch_environments(cli, directory, tag)
+    context = directory / "build-context"
+    context.mkdir(mode=0o700, exist_ok=True)
+    precompile = " && ".join(
+        f"JULIA_PROJECT={ANALYSIS_ROOT}/{name} /opt/carbon-julia/bin/julia "
+        "--startup-file=no --history-file=no --threads=1 "
+        "-e 'using Pkg; Pkg.precompile(; strict=true)'"
+        for name in ENVIRONMENTS
+    )
+    # Network off for the image itself. The packages arrive from the fetch
+    # image, where each was verified against its manifest's content hash; this
+    # step only compiles them, for the portable CPU target, with the flags the
+    # runtime uses, and then makes the whole environment read-only.
+    recipe = f"""FROM {fetched} AS packages
+FROM {tag}
 USER 0:0
-COPY Project.toml Manifest.toml /opt/carbon-julia-analysis/
-RUN mkdir /opt/carbon-julia-analysis/depot && chmod -R a+rX,a-w /opt/carbon-julia-analysis && /opt/carbon-julia/bin/julia --startup-file=no --history-file=no --version
+COPY --from=packages {ANALYSIS_ROOT} {ANALYSIS_ROOT}
+RUN export JULIA_DEPOT_PATH={ANALYSIS_ROOT}/depot JULIA_PKG_OFFLINE=true \\
+      JULIA_PKG_SERVER= JULIA_CPU_TARGET='{CPU_TARGET}' HOME=/tmp TMPDIR=/tmp \\
+    && {precompile} \\
+    && rm -rf {ANALYSIS_ROOT}/depot/logs {ANALYSIS_ROOT}/depot/scratchspaces \\
+    && chmod -R a+rX,a-w {ANALYSIS_ROOT}
 LABEL org.opencontainers.image.carbon.authored-julia.runtime="{fingerprint}"
 USER 65532:65532
 """
@@ -149,7 +210,7 @@ USER 65532:65532
             "-q",
             str(context),
         ],
-        timeout=600,
+        timeout=4 * 3600,
     )
     image = JuliaResearchImageIdentity(
         built.stdout.decode().strip(), parent, fingerprint
@@ -174,6 +235,46 @@ USER 65532:65532
     return image
 
 
+def _fetch_environments(cli, directory, tag):
+    """Install every pinned package and binary artifact; compile nothing.
+
+    The one step with network. Pkg verifies each package's tree hash and each
+    artifact's SHA-256 against the committed manifests, so what arrives is
+    exactly what the manifests name. Returns the fetch image's id, which the
+    network-off build copies from.
+    """
+    context = directory / "fetch-context"
+    context.mkdir(mode=0o700, exist_ok=True)
+    for name in ENVIRONMENTS:
+        project, manifest = environment_files(name)
+        (context / name).mkdir(mode=0o700, exist_ok=True)
+        write_once(context / name / "Project.toml", project)
+        write_once(context / name / "Manifest.toml", manifest)
+    instantiate = " && ".join(
+        f"JULIA_PROJECT={ANALYSIS_ROOT}/{name} /opt/carbon-julia/bin/julia "
+        "--startup-file=no --history-file=no "
+        "-e 'using Pkg; Pkg.instantiate(; allow_autoprecomp=false)'"
+        for name in ENVIRONMENTS
+    )
+    copies = "\n".join(
+        f"COPY {name}/Project.toml {name}/Manifest.toml {ANALYSIS_ROOT}/{name}/"
+        for name in ENVIRONMENTS
+    )
+    recipe = f"""FROM {tag}
+USER 0:0
+{copies}
+RUN export JULIA_DEPOT_PATH={ANALYSIS_ROOT}/depot JULIA_PKG_PRECOMPILE_AUTO=0 \\
+      HOME=/tmp TMPDIR=/tmp \\
+    && {instantiate}
+"""
+    write_once(context / "Dockerfile", recipe.encode())
+    built = cli.run(
+        ["build", "--pull=false", "--platform=linux/amd64", "-q", str(context)],
+        timeout=2 * 3600,
+    )
+    return built.stdout.decode().strip()
+
+
 def load_julia_analysis_image(path):
     if path.is_symlink() or path.stat().st_size > 8192:
         raise ValueError("bounded authored Julia manifest required")
@@ -191,12 +292,15 @@ def authored_julia_scope(image):
     if type(image) is not JuliaResearchImageIdentity:
         raise ValueError("separate authored Julia image required")
     return {
-        "schema": "carbon.authored-julia.scope.v1",
+        "schema": "carbon.authored-julia.scope.v2",
         "language": "julia",
         "action": "run_julia",
         "image": image.image_id,
         "environment": image.runtime_digest,
-        "bootstrap": digest(BOOTSTRAP.encode()),
+        "package_environments": list(ENVIRONMENTS),
+        "bootstrap": {
+            name: digest(bootstrap_for(name).encode()) for name in ENVIRONMENTS
+        },
         "provenance": "MINER_SELF_REPORTED",
         "official_eligible": False,
     }
@@ -258,10 +362,22 @@ def validate_julia_output(snapshot):
             raise ValueError("undeclared authored Julia output type")
 
 
-def run_julia(ledger, *, owner, identity, source, files, image, seconds=600):
+def run_julia(
+    ledger,
+    *,
+    owner,
+    identity,
+    source,
+    files,
+    image,
+    seconds=600,
+    environment=DEFAULT_ENVIRONMENT,
+):
     from .research_carrier import PRECHARGED_TRIAL, _run
 
     authorize_julia(ledger, owner, image)
+    if environment not in ENVIRONMENTS:
+        raise ValueError("unknown authored Julia environment")
     if type(source) is not str or not 1 <= len(source.encode()) <= 65536:
         raise ValueError("bounded authored Julia source required")
     return _run(
@@ -277,7 +393,12 @@ def run_julia(ledger, *, owner, identity, source, files, image, seconds=600):
             {} if PRECHARGED_TRIAL.get() is not None else {"research_trials": 1}
         ),
         program_name="program.jl",
-        bootstrap=BOOTSTRAP,
-        execution_contract=authored_julia_scope(image),
+        bootstrap=bootstrap_for(environment),
+        # The chosen environment is part of what ran, so it is part of the
+        # operation's identity: a retry naming another environment conflicts.
+        execution_contract={
+            **authored_julia_scope(image),
+            "selected_environment": environment,
+        },
         output_validator=validate_julia_output,
     )

@@ -183,9 +183,13 @@ def tools_for_sdk(sdk):
     tool["parameters"]["properties"]["action"]["enum"].append("run_julia")
     tool["description"] += (
         " Prospectively admitted run_julia uses the same workspace arguments as run_python "
-        "and the isolated Julia 1.13.0 Base/standard-library image. No runtime package "
-        "installation. Exports: finite .json, little-endian finite .f64le, UTF-8 .txt, "
-        "at most 8 MiB each. All output remains MINER_SELF_REPORTED."
+        "plus optional environment: current (default; newest SciML core - "
+        "ModelingToolkit, Symbolics, OrdinaryDiffEq/DifferentialEquations, Lux, Enzyme, "
+        "Zygote, Optimization, SymbolicRegression, NeuralOperators, FFTW, Turing and "
+        "more) or pde (NeuralPDE, MethodOfLines, DataDrivenDiffEq on the prior core). "
+        "Julia 1.13.0, packages pinned and precompiled in the isolated image; no runtime "
+        "package installation. Exports: finite .json, little-endian finite .f64le, "
+        "UTF-8 .txt, at most 8 MiB each. All output remains MINER_SELF_REPORTED."
     )
     return result
 
