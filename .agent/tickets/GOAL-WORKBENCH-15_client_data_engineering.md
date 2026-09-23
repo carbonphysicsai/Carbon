@@ -324,7 +324,7 @@ a legal question, and none authorizes deployment or collection.
    agreement reference is refused. Real client records stay unreachable until
    counsel's standard replaces it.
 
-Items 1 to 4 are built in the PR that follows #318.
+Items 3 and 4 are built: the record hold (`tests/test_team_record_hold.cjs`) and the synthetic development standard (`tests/test_team_synthetic_standard.cjs`). Items 1 and 2 change the public Pilot Designer page, whose exact bytes are pinned by Ask Carbon's public release candidate. They therefore go through a new release candidate, and the owner's publication approval, as their own change. Item 2 also waits for the owner to generate the intake key. One correction to item 1 as first written: the assist already never received the quantity fields. The exposure is the free-text `operating_envelope` and `requested_targets` pilot fields, which is what item 1 will withhold.
 
 ## Open questions that remain
 
