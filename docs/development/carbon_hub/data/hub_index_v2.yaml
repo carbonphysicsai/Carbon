@@ -9656,6 +9656,19 @@ events:
       - "SYSTEM/AGENT-EXECUTION"
     supersedes: null
     recorded_at: "2026-09-23T16:00:00Z"
+  -
+    map_ref: "SYSTEM/BUSINESS-AUTHORITY"
+    event_type: "evidence"
+    event_id: "GOAL-WORKBENCH-15-E8-01"
+    owner_lane: "business_authority"
+    status: "implemented"
+    summary: "Opens GOAL-WORKBENCH-15 for the nine client-data engineering changes the owner approved on 2026-09-23 and delivers the first, E8: no Workbench client material reaches the subnet or the public Ask Carbon assistant, with no opt-in and no flag. A route map found the authoring bridge compiled a design's free-text intended use and identifiers into a Challenge proposal behind a rights label anyone can set; it now compiles only source-owned constants, the closed goal enum and a digest-derived identifier. The study route already admitted only the granted public physical definition and a digest, and is now pinned. Ask Carbon knowledge sources are contained to the public repository, symlinks included. Sentinel tests plant client text in every field, drive each real route and search everything that crossed, each paired with a specimen that fails against a leaking variant; the assistant runtime is shown to import nothing outside its own tree. A new module reading a client record by path is stated as the residual E1 closes. One open owner question is recorded: whether E8 extends to what a visitor types into the public Pilot Designer before Carbon receives anything. GOAL-WORKBENCH-12's line that the engineering was not what W-C waits on is corrected. The impact-policy map gains one bounded ownership rule for this ticket, and registering it exposed a defect left by the per-event ledger migration: the diff rules still required data/change_events.json in the diff while the array refused new events, so no semantic Hub change could pass, and HUB_IMPACT_NONE did not see an event file as an event source. Both rules now recognise an event file, with tests that fail against the previous validator and a specimen that still refuses a change recording no event. No W-C precondition advances, and no collection, deployment, spend, security acceptance or qualification is authorized."
+    primary_detail: ".agent/tickets/GOAL-WORKBENCH-15_client_data_engineering.md"
+    affects:
+      - "SYSTEM/BUSINESS-AUTHORITY"
+      - "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+    supersedes: null
+    recorded_at: "2026-09-23T16:40:00Z"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"

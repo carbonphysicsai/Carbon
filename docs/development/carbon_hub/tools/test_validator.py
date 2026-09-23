@@ -3390,6 +3390,63 @@ class OwnerDeliveryPolicyTests(unittest.TestCase):
             self.assertEqual(validator.errors, [])
 
 
+class PerEventRecordingTests(unittest.TestCase):
+    """A change that must record an event can record it as a file.
+
+    After the ledger became one file per event, the diff rules still asked for
+    data/change_events.json while the array refused new events, so a semantic
+    Hub change could satisfy neither. These pin that an event file counts, and
+    that the rule still bites when no event is recorded at all.
+    """
+
+    HUB_DATA = "docs/development/carbon_hub/data/hub_data_v2.json"
+    EVENT_FILE = "docs/development/carbon_hub/data/events/PER-EVENT-RULE-01.json"
+
+    def validator(self, changed: set[str]) -> validate_hub.Validator:
+        validator = validate_hub.Validator(REPO_ROOT)
+        validator.data = ValidatorContractTests.load_hub_data()
+        validator.changed_paths = changed
+        validator.semantic_data_changed = True
+        validator.new_event_ids = (
+            {"PER-EVENT-RULE-01"} if self.EVENT_FILE in changed else set()
+        )
+        return validator
+
+    def event_errors(self, validator: validate_hub.Validator) -> list[str]:
+        return [
+            error
+            for error in validator.errors
+            if "change event" in error or "change_events.json" in error
+        ]
+
+    def test_a_semantic_change_recorded_as_an_event_file_passes(self) -> None:
+        validator = self.validator({self.HUB_DATA, self.EVENT_FILE})
+        validator.validate_structural_diff()
+        self.assertEqual(self.event_errors(validator), [])
+
+    def test_a_semantic_change_with_no_event_still_fails(self) -> None:
+        # Specimen for the test above: the same rule, given no event, refuses.
+        validator = self.validator({self.HUB_DATA})
+        validator.validate_structural_diff()
+        self.assertTrue(self.event_errors(validator), validator.errors)
+
+    def test_an_event_file_cannot_accompany_hub_impact_none(self) -> None:
+        validator = self.validator({self.EVENT_FILE})
+        validator.github_event = {
+            "pull_request": {
+                "body": (
+                    "HUB_IMPACT_NONE: SYSTEM/DEVELOPMENT-HUB detail is unchanged "
+                    "because this only adds tests and comments."
+                )
+            }
+        }
+        validator.validate_pr_declaration()
+        self.assertTrue(
+            any("event source records" in error for error in validator.errors),
+            validator.errors,
+        )
+
+
 if __name__ == "__main__":
     unittest.main()
 
