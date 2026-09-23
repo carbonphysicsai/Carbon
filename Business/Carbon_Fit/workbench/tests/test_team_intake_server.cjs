@@ -1,5 +1,5 @@
 "use strict";
-const { RELEASE_HEADERS, SCOPING_HEADERS, mailed, openStore, scoping } = require("./staff_fixture.cjs");
+const { RELEASE_HEADERS, SCOPING_HEADERS, SCREENING_STANDARD, exportRef, mailed, openStore, scoping } = require("./staff_fixture.cjs");
 // Real HTTP against the real private receiver, its real durable store and its
 // real role checks. Nothing here is a public receiver, a delivered notification
 // or a live customer submission.
@@ -51,6 +51,8 @@ const account = (principal, roles, token, team = TEAM) => ({
   token_sha256: digest(token),
   totp_secret: secretFor(token),
   status: "ACTIVE",
+  // E7: screened under the synthetic standard the test stores are configured with.
+  screening: { standard: SCREENING_STANDARD, ref: "synthetic-screening-" + principal },
 });
 
 // A principal for direct store calls, obtained the only way there is: a session
@@ -507,7 +509,7 @@ test("a store with no room refuses with insufficient storage, not bad request", 
   fs.writeFileSync(usersFile, JSON.stringify(USERS));
   const storePath = path.join(directory, "store.json");
   const roomy = openStore(storePath);
-  const first = await roomy.accept(reviewedRaw(), "capacity-001", principalFor(loadUsers(usersFile), TOKENS.receiver), scoping(), mailed());
+  const first = await roomy.accept(reviewedRaw(), "capacity-001", principalFor(loadUsers(usersFile), TOKENS.receiver), scoping(), mailed(), exportRef());
 
   const store = openStore(storePath, {
     writeCeilingBytes: fs.statSync(storePath).size + 32,

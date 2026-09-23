@@ -12,7 +12,7 @@ if (!globalThis.crypto) globalThis.crypto = crypto.webcrypto;
 const { RETENTION_POLICY, RETENTION_VERSION, RETENTION_VERSION_V1, SCOPING_EXPIRY_NOT_APPLICABLE } = require("../tools/team_intake_store.cjs");
 const { studyBasis } = require("../tools/team_record_basis.cjs");
 const { StaffDirectory } = require("../tools/team_staff_directory.cjs");
-const { enrolled, mailed, openStore, principalFor, scoping } = require("./staff_fixture.cjs");
+const { enrolled, exportRef, mailed, openStore, principalFor, scoping } = require("./staff_fixture.cjs");
 const I = require("../src/intake.js");
 
 const ROOT = path.resolve(__dirname, "..");
@@ -45,7 +45,7 @@ const fresh = () => openStore(path.join(fs.mkdtempSync(path.join(os.tmpdir(), "c
 
 test("a new record carries the v2 shape, every value null and no production_period", async () => {
   const store = fresh();
-  const receipt = await store.accept(raw(), "ret-001", as("receiver"), scoping(), mailed());
+  const receipt = await store.accept(raw(), "ret-001", as("receiver"), scoping(), mailed(), exportRef());
   const retention = store.read(receipt.inquiry_id, as("reviewer")).retention;
   assert.equal(retention.schema_version, RETENTION_VERSION);
   assert.equal("production_period" in retention, false);
@@ -58,10 +58,10 @@ test("a new record carries the v2 shape, every value null and no production_peri
 
 test("a STUDY record says the scoping expiry does not apply, which is not the same as unset", async () => {
   const store = fresh();
-  const direct = await store.accept(raw(), "ret-002", as("receiver"), study(), mailed());
+  const direct = await store.accept(raw(), "ret-002", as("receiver"), study(), mailed(), exportRef());
   assert.equal(store.read(direct.inquiry_id, as("reviewer")).retention.scoping_expiry, SCOPING_EXPIRY_NOT_APPLICABLE);
   // A promoted SCOPING record says the same once it becomes STUDY.
-  const promoted = await store.accept(raw(), "ret-003", as("receiver"), scoping(), mailed());
+  const promoted = await store.accept(raw(), "ret-003", as("receiver"), scoping(), mailed(), exportRef());
   assert.equal(store.read(promoted.inquiry_id, as("reviewer")).retention.scoping_expiry, null);
   store.attachBasis(promoted.inquiry_id, study(), as("steward"));
   assert.equal(store.read(promoted.inquiry_id, as("reviewer")).retention.scoping_expiry, SCOPING_EXPIRY_NOT_APPLICABLE);
@@ -69,7 +69,7 @@ test("a STUDY record says the scoping expiry does not apply, which is not the sa
 
 test("a v1 retention record migrates, keeping what it recorded and inventing nothing", async () => {
   const store = fresh();
-  const receipt = await store.accept(raw(), "ret-004", as("receiver"), scoping(), mailed());
+  const receipt = await store.accept(raw(), "ret-004", as("receiver"), scoping(), mailed(), exportRef());
   store.archive(receipt.inquiry_id, as("steward"));
   const archived = store.state.inquiries[receipt.inquiry_id].retention;
   const legacy = JSON.parse(JSON.stringify(store.state));
@@ -101,7 +101,7 @@ test("a v1 retention record migrates, keeping what it recorded and inventing not
 
 test("a v1 record that carries a production_period is refused rather than reinterpreted", async () => {
   const store = fresh();
-  const receipt = await store.accept(raw(), "ret-005", as("receiver"), scoping(), mailed());
+  const receipt = await store.accept(raw(), "ret-005", as("receiver"), scoping(), mailed(), exportRef());
   const legacy = JSON.parse(JSON.stringify(store.state));
   legacy.inquiries[receipt.inquiry_id].retention = { schema_version: RETENTION_VERSION_V1, policy_id: "x", disposition: "ARCHIVE_INDEFINITE", archived_at: null, archived_by: null, exception_id: null, production_period: "P1Y" };
   fs.writeFileSync(store.filePath, JSON.stringify(legacy));

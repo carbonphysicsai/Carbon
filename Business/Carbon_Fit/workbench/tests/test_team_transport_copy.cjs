@@ -13,7 +13,7 @@ if (!globalThis.crypto) globalThis.crypto = crypto.webcrypto;
 const { StaffDirectory, totp } = require("../tools/team_staff_directory.cjs");
 const { createIntakeServer } = require("../tools/team_intake_server.cjs");
 const { TRASH_PURGE_DAYS, transportAtRelay } = require("../tools/team_intake_store.cjs");
-const { SCOPING_HEADERS, enrolled, mailed, openStore, principalFor, scoping, secretFor } = require("./staff_fixture.cjs");
+const { SCOPING_HEADERS, enrolled, exportRef, mailed, openStore, principalFor, scoping, secretFor } = require("./staff_fixture.cjs");
 const I = require("../src/intake.js");
 
 const ROOT = path.resolve(__dirname, "..");
@@ -49,14 +49,14 @@ test("a relay states its channel and how the package arrived, or nothing is stor
   assert.throws(() => transportAtRelay({}), /states its intake channel/);
   assert.throws(() => transportAtRelay({ "x-carbon-intake-channel": "MAIL_INTAKE" }), /states how it arrived/);
   const store = fresh();
-  await assert.rejects(store.accept(raw(), "copy-001", as("receiver"), scoping(), undefined), /states how its package arrived/);
+  await assert.rejects(store.accept(raw(), "copy-001", as("receiver"), scoping(), undefined, exportRef()), /states how its package arrived/);
   await assert.rejects(
-    store.accept(raw(), "copy-001", as("receiver"), scoping(), { channel: "MAIL_INTAKE", arrival: "ENCRYPTED", copy_state: "PERMANENTLY_REMOVED", history: [] }),
+    store.accept(raw(), "copy-001", as("receiver"), scoping(), { channel: "MAIL_INTAKE", arrival: "ENCRYPTED", copy_state: "PERMANENTLY_REMOVED", history: [] }, exportRef()),
     /states how its package arrived/,
   );
   assert.deepEqual(Object.keys(store.state.inquiries), []);
   // Specimen: a complete statement is recorded as it was given.
-  const receipt = await store.accept(raw(), "copy-001", as("receiver"), scoping(), mailed());
+  const receipt = await store.accept(raw(), "copy-001", as("receiver"), scoping(), mailed(), exportRef());
   const transport = store.read(receipt.inquiry_id, as("reviewer")).transport;
   assert.deepEqual(
     { channel: transport.channel, arrival: transport.arrival, copy_state: transport.copy_state },
@@ -68,7 +68,7 @@ test("a relay states its channel and how the package arrived, or nothing is stor
 
 test("Trash and permanent removal are two states, in that order, each the receiver's attestation", async () => {
   const store = fresh();
-  const receipt = await store.accept(raw(), "copy-002", as("receiver"), scoping(), mailed());
+  const receipt = await store.accept(raw(), "copy-002", as("receiver"), scoping(), mailed(), exportRef());
   const before = Date.now();
   const trashed = store.recordTransportCopy(receipt.inquiry_id, "MOVED_TO_TRASH", as("receiver"));
   assert.equal(trashed.copy_state, "MOVED_TO_TRASH");
@@ -88,7 +88,7 @@ test("Trash and permanent removal are two states, in that order, each the receiv
   assert.equal(removed.history[1].purge_expected_by, null);
   assert.throws(() => store.recordTransportCopy(receipt.inquiry_id, "PERMANENTLY_REMOVED", as("receiver")), /cannot move/);
   // Only the receiver who holds the mailbox records what happened in it.
-  const other = await store.accept(raw(), "copy-003", as("receiver"), scoping(), mailed());
+  const other = await store.accept(raw(), "copy-003", as("receiver"), scoping(), mailed(), exportRef());
   assert.throws(() => store.recordTransportCopy(other.inquiry_id, "MOVED_TO_TRASH", as("reviewer")), /not authorized/);
   // Specimen: permanent removal straight from the mailbox is a valid single step.
   assert.equal(store.recordTransportCopy(other.inquiry_id, "PERMANENTLY_REMOVED", as("receiver")).copy_state, "PERMANENTLY_REMOVED");
@@ -97,7 +97,7 @@ test("Trash and permanent removal are two states, in that order, each the receiv
 test("a plaintext arrival records that its copy is to be removed without delay", async () => {
   const store = fresh();
   const plaintext = transportAtRelay({ "x-carbon-intake-channel": "MAIL_INTAKE", "x-carbon-transport-arrival": "PLAINTEXT" });
-  const receipt = await store.accept(raw(), "copy-004", as("receiver"), scoping(), plaintext);
+  const receipt = await store.accept(raw(), "copy-004", as("receiver"), scoping(), plaintext, exportRef());
   const transport = store.read(receipt.inquiry_id, as("reviewer")).transport;
   assert.equal(transport.arrival, "PLAINTEXT");
   assert.equal(transport.required_disposition, "PERMANENTLY_REMOVED_WITHOUT_DELAY");
@@ -107,7 +107,7 @@ test("a plaintext arrival records that its copy is to be removed without delay",
 
 test("a direct handover has no transport copy to record against", async () => {
   const store = fresh();
-  const receipt = await store.accept(raw(), "copy-005", as("receiver"), scoping(), transportAtRelay({ "x-carbon-intake-channel": "DIRECT_HANDOVER" }));
+  const receipt = await store.accept(raw(), "copy-005", as("receiver"), scoping(), transportAtRelay({ "x-carbon-intake-channel": "DIRECT_HANDOVER" }), exportRef());
   assert.throws(() => store.recordTransportCopy(receipt.inquiry_id, "MOVED_TO_TRASH", as("receiver")), /cannot move from NO_TRANSPORT_COPY/);
 });
 

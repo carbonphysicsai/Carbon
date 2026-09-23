@@ -125,6 +125,11 @@ def start_receiver(root: Path):
                     "token_sha256": hashlib.sha256(token.encode()).hexdigest(),
                     "totp_secret": totp_secret(token),
                     "status": "ACTIVE",
+                    # E7: screened under the synthetic standard configured below.
+                    "screening": {
+                        "standard": "synthetic-journey-screening-standard",
+                        "ref": "synthetic-screening-" + principal,
+                    },
                 }
                 for principal, roles, token in (
                     ("journey-receiver", ["INTAKE_RECEIVER"], RELAY_TOKEN),
@@ -140,6 +145,8 @@ def start_receiver(root: Path):
         # E1: the keyring lives outside the store's directory.
         "CARBON_TEAM_INTAKE_STORE": str(root / "receiver-store" / "store.json"),
         "CARBON_TEAM_ARCHIVE_KEYRING": str(root / "receiver-keys" / "keyring.json"),
+        # E7: a synthetic standard; the real one is counsel's.
+        "CARBON_TEAM_SCREENING_STANDARD": "synthetic-journey-screening-standard",
         "CARBON_TEAM_USERS_FILE": str(users),
         "CARBON_TEAM_INTAKE_PORT": str(port),
     }
@@ -175,6 +182,8 @@ def relay(base, work: Path, request):
             "x-carbon-nda-ref": "synthetic-journey-nda-0001",
             # E6: how the package arrived. The journey hands it over directly.
             "x-carbon-intake-channel": "DIRECT_HANDOVER",
+            # E7: the export-control determination, by opaque reference.
+            "x-carbon-export-control-ref": "synthetic-journey-ec-0001",
         },
     )
     assert status == 201 and receipt["disposition"] == "ACCEPTED", receipt

@@ -15,7 +15,7 @@ const { retentionValuesFrom } = require("../tools/team_intake_store.cjs");
 const { studyBasis } = require("../tools/team_record_basis.cjs");
 const { StaffDirectory, totp } = require("../tools/team_staff_directory.cjs");
 const { createIntakeServer } = require("../tools/team_intake_server.cjs");
-const { enrolled, keyringFor, mailed, openStore, principalFor, scoping, secretFor } = require("./staff_fixture.cjs");
+const { enrolled, exportRef, keyringFor, mailed, openStore, principalFor, scoping, secretFor } = require("./staff_fixture.cjs");
 const I = require("../src/intake.js");
 
 const ROOT = path.resolve(__dirname, "..");
@@ -59,7 +59,7 @@ function world(retentionValues) {
 
 test("with no values the job refuses, names every missing value and touches nothing", async () => {
   const w = world(null);
-  const receipt = await w.store.accept(raw(), "sched-001", as("receiver"), scoping(), mailed());
+  const receipt = await w.store.accept(raw(), "sched-001", as("receiver"), scoping(), mailed(), exportRef());
   w.advance(10_000 * DAY); // long after any plausible expiry
   const plan = w.store.retentionPlan(as("steward"));
   assert.equal(plan.status, "REFUSED");
@@ -78,7 +78,7 @@ test("with no values the job refuses, names every missing value and touches noth
 
 test("with some values set the job still refuses, though the plan shows what they would do", async () => {
   const w = world({ closure_events: null, active_period: null, archive_period: null, scoping_expiry: "P5D" });
-  const receipt = await w.store.accept(raw(), "sched-002", as("receiver"), scoping(), mailed());
+  const receipt = await w.store.accept(raw(), "sched-002", as("receiver"), scoping(), mailed(), exportRef());
   w.advance(6 * DAY);
   const plan = w.store.retentionPlan(as("steward"));
   assert.equal(plan.status, "REFUSED");
@@ -90,11 +90,11 @@ test("with some values set the job still refuses, though the plan shows what the
 
 test("with every value set, each record is handled when it is due and not before", async () => {
   const w = world(COMPLETE);
-  const expiring = await w.store.accept(raw(), "sched-003", as("receiver"), scoping(), mailed());
+  const expiring = await w.store.accept(raw(), "sched-003", as("receiver"), scoping(), mailed(), exportRef());
   w.advance(3 * DAY);
-  const fresh = await w.store.accept(raw(), "sched-004", as("receiver"), scoping(), mailed());
-  const open = await w.store.accept(raw(), "sched-005", as("receiver"), study(), mailed());
-  const closed = await w.store.accept(raw(), "sched-006", as("receiver"), study(), mailed());
+  const fresh = await w.store.accept(raw(), "sched-004", as("receiver"), scoping(), mailed(), exportRef());
+  const open = await w.store.accept(raw(), "sched-005", as("receiver"), study(), mailed(), exportRef());
+  const closed = await w.store.accept(raw(), "sched-006", as("receiver"), study(), mailed(), exportRef());
   w.store.recordClosure(closed.inquiry_id, { event: "SYNTHETIC_DELIVERABLE_ACCEPTED", at: new Date(w.now()).toISOString() }, as("steward"));
   const keyId = w.store.state.inquiries[expiring.inquiry_id].archive_key_id;
 
@@ -126,14 +126,14 @@ test("with every value set, each record is handled when it is due and not before
 
 test("a closure needs a configured event, a STUDY record and a time that has passed", async () => {
   const unset = world(null);
-  const a = await unset.store.accept(raw(), "sched-007", as("receiver"), study(), mailed());
+  const a = await unset.store.accept(raw(), "sched-007", as("receiver"), study(), mailed(), exportRef());
   assert.throws(
     () => unset.store.recordClosure(a.inquiry_id, { event: "SYNTHETIC_DELIVERABLE_ACCEPTED", at: new Date(START).toISOString() }, as("steward")),
     /closure_event is counsel's and is unset/,
   );
   const set = world(COMPLETE);
-  const b = await set.store.accept(raw(), "sched-008", as("receiver"), study(), mailed());
-  const s = await set.store.accept(raw(), "sched-009", as("receiver"), scoping(), mailed());
+  const b = await set.store.accept(raw(), "sched-008", as("receiver"), study(), mailed(), exportRef());
+  const s = await set.store.accept(raw(), "sched-009", as("receiver"), scoping(), mailed(), exportRef());
   const at = new Date(START).toISOString();
   assert.throws(() => set.store.recordClosure(b.inquiry_id, { event: "INVENTED_EVENT", at }, as("steward")), /Not a configured closure event/);
   assert.throws(() => set.store.recordClosure(s.inquiry_id, { event: "SYNTHETIC_DELIVERABLE_ACCEPTED", at }, as("steward")), /Only a STUDY record closes/);
@@ -146,7 +146,7 @@ test("a closure needs a configured event, a STUDY record and a time that has pas
 
 test("a record whose receipt time is unknown stops the job rather than being guessed at", async () => {
   const w = world(COMPLETE);
-  const receipt = await w.store.accept(raw(), "sched-010", as("receiver"), scoping(), mailed());
+  const receipt = await w.store.accept(raw(), "sched-010", as("receiver"), scoping(), mailed(), exportRef());
   const legacy = JSON.parse(JSON.stringify(w.store.state));
   delete legacy.inquiries[receipt.inquiry_id].received_at;
   legacy.inquiries[receipt.inquiry_id].basis_history = [];

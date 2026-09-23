@@ -12,7 +12,7 @@ const path = require("node:path");
 if (!globalThis.crypto) globalThis.crypto = crypto.webcrypto;
 const { StaffDirectory, totp } = require("../tools/team_staff_directory.cjs");
 const { createIntakeServer } = require("../tools/team_intake_server.cjs");
-const { RELEASE, RELEASE_HEADERS, SCOPING_HEADERS, enrolled, mailed, openStore, principalFor, scoping, secretFor } = require("./staff_fixture.cjs");
+const { RELEASE, RELEASE_HEADERS, SCOPING_HEADERS, enrolled, exportRef, mailed, openStore, principalFor, scoping, secretFor } = require("./staff_fixture.cjs");
 const I = require("../src/intake.js");
 
 const ROOT = path.resolve(__dirname, "..");
@@ -54,7 +54,7 @@ const fresh = () => openStore(path.join(fs.mkdtempSync(path.join(os.tmpdir(), "c
 
 test("an export names its recipient and purpose, or releases nothing", async () => {
   const store = fresh();
-  const receipt = await store.accept(raw(), "release-001", as("receiver"), scoping(), mailed());
+  const receipt = await store.accept(raw(), "release-001", as("receiver"), scoping(), mailed(), exportRef());
   for (const terms of [{}, { purpose: "Team review" }, { recipient: { kind: "CARBON_STAFF" }, purpose: "Team review" }, { recipient: { kind: "ANYONE", ref: "someone-1" }, purpose: "Team review" }, { recipient: RELEASE.recipient, purpose: "x" }])
     assert.throws(() => store.export(receipt.inquiry_id, as("reviewer"), terms), /A release (names|states)/);
   assert.deepEqual(store.releases(as("steward")), []);
@@ -73,7 +73,7 @@ test("an export names its recipient and purpose, or releases nothing", async () 
 
 test("the log carries digests and names, never the client's content", async () => {
   const store = fresh();
-  const receipt = await store.accept(raw(SENTINEL + " operating range"), "release-002", as("receiver"), scoping(), mailed());
+  const receipt = await store.accept(raw(SENTINEL + " operating range"), "release-002", as("receiver"), scoping(), mailed(), exportRef());
   const exported = store.export(receipt.inquiry_id, as("reviewer"), RELEASE);
   // Specimen: the export itself holds the client's words.
   assert.ok(JSON.stringify(exported).includes(SENTINEL));
@@ -82,7 +82,7 @@ test("the log carries digests and names, never the client's content", async () =
 
 test("the log outlives the record, and the tombstone names every prior release", async () => {
   const store = fresh();
-  const receipt = await store.accept(raw(), "release-003", as("receiver"), scoping(), mailed());
+  const receipt = await store.accept(raw(), "release-003", as("receiver"), scoping(), mailed(), exportRef());
   const first = store.export(receipt.inquiry_id, as("reviewer"), RELEASE);
   const second = store.recordRelease(
     receipt.inquiry_id,
@@ -100,7 +100,7 @@ test("the log outlives the record, and the tombstone names every prior release",
 
 test("a recorded release needs its artifact digest, and only the team may record or list", async () => {
   const store = fresh();
-  const receipt = await store.accept(raw(), "release-004", as("receiver"), scoping(), mailed());
+  const receipt = await store.accept(raw(), "release-004", as("receiver"), scoping(), mailed(), exportRef());
   assert.throws(
     () => store.recordRelease(receipt.inquiry_id, { ...RELEASE, artifact_sha256: "not-a-digest" }, as("reviewer")),
     /by its sha256 digest/,
@@ -116,7 +116,7 @@ test("a recorded release needs its artifact digest, and only the team may record
 
 test("a store written before E5 says its earlier releases were not logged", async () => {
   const store = fresh();
-  await store.accept(raw(), "release-005", as("receiver"), scoping(), mailed());
+  await store.accept(raw(), "release-005", as("receiver"), scoping(), mailed(), exportRef());
   assert.equal(store.state.release_log.origin, "NATIVE");
   const legacy = JSON.parse(JSON.stringify(store.state));
   delete legacy.releases;

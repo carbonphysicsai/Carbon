@@ -83,7 +83,17 @@ function createIntakeServer({ store, users, clock, limits, transport = null }) {
         const transport = transportAtRelay(request.headers);
         const raw = await body(request);
         const key = request.headers["idempotency-key"];
-        return send(response, 201, await store.accept(raw, key, principal, basis, transport));
+        // E7: the export-control reference, when the relay has it; otherwise
+        // the record is unreachable until a data steward records one.
+        const exportControl = request.headers["x-carbon-export-control-ref"] || null;
+        return send(response, 201, await store.accept(raw, key, principal, basis, transport, exportControl));
+      }
+      const exportControlMatch = /^\/private\/intake\/([A-Za-z0-9._:-]+)\/export-control$/.exec(url.pathname);
+      if (exportControlMatch && request.method === "POST") {
+        const offered = F.strictJsonParse(await body(request), { maxBytes: 1_000, maxDepth: 2 });
+        if (!offered || typeof offered !== "object" || Object.keys(offered).join() !== "ref")
+          throw Object.assign(Error("An export-control record carries exactly one field, ref"), { status: 400 });
+        return send(response, 200, store.recordExportControl(exportControlMatch[1], offered.ref, principal));
       }
       const transportMatch = /^\/private\/intake\/([A-Za-z0-9._:-]+)\/transport-copy$/.exec(url.pathname);
       if (transportMatch && request.method === "POST") {
@@ -246,6 +256,9 @@ function main() {
   const retentionValues = valuesFile ? JSON.parse(fs.readFileSync(valuesFile, "utf8")) : null;
   const store = new DurableIntakeStore(storePath, {
     retentionValues,
+    // E7: counsel's screening standard, as operator configuration. Unset, no
+    // client record's content is reachable by anyone.
+    screeningStandard: process.env.CARBON_TEAM_SCREENING_STANDARD || null,
     destination: process.env.CARBON_TEAM_NOTIFY_DESTINATION,
     keyring: ArchiveKeyring.open(path.resolve(keyringPath), { storePath }),
   });

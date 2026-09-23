@@ -30,8 +30,19 @@ function secretFor(token) {
 const digest = (value) => crypto.createHash("sha256").update(value).digest("hex");
 
 /** A directory account for a token, enrolled in a second factor. */
-function enrolled(principal, team, roles, token, status = "ACTIVE") {
-  return { principal, team, roles, token_sha256: digest(token), totp_secret: secretFor(token), status };
+/** The synthetic screening standard the test stores are configured with (E7). */
+const SCREENING_STANDARD = "synthetic-screening-standard";
+
+function enrolled(principal, team, roles, token, status = "ACTIVE", { screened = true } = {}) {
+  return {
+    principal,
+    team,
+    roles,
+    token_sha256: digest(token),
+    totp_secret: secretFor(token),
+    status,
+    ...(screened ? { screening: { standard: SCREENING_STANDARD, ref: "synthetic-screening-" + principal } } : {}),
+  };
 }
 
 /** A principal for direct store calls, through a real session. */
@@ -60,7 +71,7 @@ function keyringFor(storePath) {
 /** A store opened the only way a store can be: with its archive keyring. */
 function openStore(storePath, options = {}) {
   const { DurableIntakeStore } = require("../tools/team_intake_store.cjs");
-  return new DurableIntakeStore(storePath, { ...options, keyring: keyringFor(storePath) });
+  return new DurableIntakeStore(storePath, { screeningStandard: SCREENING_STANDARD, ...options, keyring: keyringFor(storePath) });
 }
 
 /** A synthetic SCOPING basis: a record received under a (synthetic) NDA. */
@@ -72,6 +83,8 @@ const SCOPING_HEADERS = Object.freeze({
   // E6: a mailed, encrypted package is the ordinary case.
   "x-carbon-intake-channel": "MAIL_INTAKE",
   "x-carbon-transport-arrival": "ENCRYPTED",
+  // E7: the export-control determination the record is held under.
+  "x-carbon-export-control-ref": "synthetic-ec-0001",
 });
 
 /** A synthetic release: to a named member of Carbon staff, for review. */
@@ -88,4 +101,7 @@ const mailed = () => {
   return transportAtRelay(SCOPING_HEADERS);
 };
 
-module.exports = { mailed, RELEASE, RELEASE_HEADERS, SCOPING_HEADERS, enrolled, keyringFor, openStore, principalFor, scoping, secretFor };
+/** A synthetic export-control reference for direct store calls (E7). */
+const exportRef = () => "synthetic-ec-0001";
+
+module.exports = { SCREENING_STANDARD, exportRef, mailed, RELEASE, RELEASE_HEADERS, SCOPING_HEADERS, enrolled, keyringFor, openStore, principalFor, scoping, secretFor };

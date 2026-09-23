@@ -16,7 +16,7 @@ if (!globalThis.crypto) globalThis.crypto = crypto.webcrypto;
 const { StaffDirectory, totp } = require("../tools/team_staff_directory.cjs");
 const { createIntakeServer } = require("../tools/team_intake_server.cjs");
 const { smtpConfigFrom, smtpTransport } = require("../tools/team_smtp_transport.cjs");
-const { RELEASE, enrolled, mailed, openStore, principalFor, scoping, secretFor } = require("./staff_fixture.cjs");
+const { RELEASE, enrolled, exportRef, mailed, openStore, principalFor, scoping, secretFor } = require("./staff_fixture.cjs");
 const I = require("../src/intake.js");
 
 const ROOT = path.resolve(__dirname, "..");
@@ -154,7 +154,7 @@ function packageWith(words) {
 
 async function pendingEvent() {
   const store = openStore(path.join(fs.mkdtempSync(path.join(os.tmpdir(), "carbon-mail-store-")), "store.json"), { destination: "team-synthetic@example.test" });
-  const receipt = await store.accept(packageWith(CLIENT_WORDS), "mail-" + crypto.randomBytes(4).toString("hex"), as("receiver"), scoping(), mailed());
+  const receipt = await store.accept(packageWith(CLIENT_WORDS), "mail-" + crypto.randomBytes(4).toString("hex"), as("receiver"), scoping(), mailed(), exportRef());
   return { store, eventId: "notify-" + receipt.inquiry_id, receipt };
 }
 

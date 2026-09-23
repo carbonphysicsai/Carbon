@@ -194,6 +194,7 @@ function validatePrincipal(principal, action) {
     record_release: ["TEAM_REVIEWER", "DATA_STEWARD"],
     record_transport: ["INTAKE_RECEIVER"],
     retention: ["DATA_STEWARD"],
+    export_control: ["DATA_STEWARD"],
     releases: ["DATA_STEWARD"],
     search: ["TEAM_REVIEWER", "INTAKE_RECEIVER"],
     outbox: ["NOTIFICATION_OPERATOR"],
@@ -226,6 +227,32 @@ function ownedRecord(store, inquiryId, principal) {
       Error("Inquiry has no recorded agreement basis; a data steward must attach one before it can be used"),
       { status: 409 },
     );
+  return record;
+}
+
+/**
+ * E7: a client record's content is reachable only by staff screened under the
+ * configured standard, and only once the record carries its export-control
+ * reference. The standard is counsel's. While it is unset nobody is screened
+ * under it, so no content is reachable: unreachable, not reachable by default.
+ */
+const EXPORT_CONTROL_REF = /^[A-Za-z0-9][A-Za-z0-9._:\/-]{2,127}$/;
+function exportControlBlock(ref, actor) {
+  if (ref === null || ref === undefined) return { ref: null, recorded_by: null, recorded_at: null };
+  if (typeof ref !== "string" || !EXPORT_CONTROL_REF.test(ref))
+    throw Error("An export-control reference is an opaque identifier for a determination held elsewhere");
+  return { ref, recorded_by: actor, recorded_at: new Date().toISOString() };
+}
+
+function reachRecord(store, inquiryId, principal) {
+  const record = ownedRecord(store, inquiryId, principal);
+  const denied = (message) => Object.assign(Error(message), { status: 403 });
+  if (!store.screeningStandard)
+    throw denied("Client records are reachable only by screened staff, and the screening standard (counsel's) is unset");
+  if (!principal.screening || principal.screening.standard !== store.screeningStandard)
+    throw denied("This account is not screened under the configured standard");
+  if (!record.export_control || !record.export_control.ref)
+    throw denied("This record has no export-control reference recorded; a data steward must record one first");
   return record;
 }
 
@@ -324,6 +351,8 @@ function validateStore(value) {
       record.basis_origin = "PRE_E4_NONE_RECORDED";
     }
     if (record.lifecycle !== KEY_DESTROYED) migrateRetention(record);
+    // Written before E7: no determination was recorded, and none is invented.
+    if (record.export_control === undefined) record.export_control = { ref: null, recorded_by: null, recorded_at: null };
   }
   return value;
 }
@@ -692,6 +721,10 @@ class DurableIntakeStore {
     // E2: counsel's values as operator configuration, or null. Never a literal.
     this.retentionValues = retentionValuesFrom(options.retentionValues);
     this.clock = typeof options.clock === "function" ? options.clock : Date.now;
+    // E7: the screening standard is counsel's and operator configuration.
+    if (options.screeningStandard !== undefined && options.screeningStandard !== null && (typeof options.screeningStandard !== "string" || !options.screeningStandard))
+      throw Error("A screening standard is a non-empty reference, or null");
+    this.screeningStandard = options.screeningStandard || null;
     const onDisk = fs.existsSync(this.filePath)
       ? F.strictJsonParse(fs.readFileSync(this.filePath, "utf8"), {
           maxBytes: READ_LIMIT_BYTES,
@@ -885,7 +918,7 @@ class DurableIntakeStore {
     this.state = next;
   }
 
-  async accept(raw, idempotencyKey, principal, basis, transport) {
+  async accept(raw, idempotencyKey, principal, basis, transport, exportControlRef = null) {
     const actor = validatePrincipal(principal, "accept");
     // E4: the agreement basis is checked before anything else is read. Only a
     // basis the record-basis module issued is accepted, so a record without a
@@ -954,6 +987,9 @@ class DurableIntakeStore {
       basis: recordBasis,
       // E6: how the package arrived, and what became of its transport copy.
       transport: clone(transport),
+      // E7: the export-control determination this record is held under, as an
+      // opaque reference. Absent, the record is unreachable until one is recorded.
+      export_control: exportControlBlock(exportControlRef, actor),
       basis_history: [{ seq: 1, event: "RECEIVED", ...recordBasis, by: actor, at: new Date().toISOString() }],
       team_fields: {
         assigned_reviewer: "",
@@ -997,13 +1033,13 @@ class DurableIntakeStore {
 
   read(inquiryId, principal) {
     validatePrincipal(principal, "read");
-    const record = ownedRecord(this, inquiryId, principal);
+    const record = reachRecord(this, inquiryId, principal);
     return clone(record);
   }
 
   update(inquiryId, expectedVersion, patch, principal) {
     const actor = validatePrincipal(principal, "update");
-    const record = ownedRecord(this, inquiryId, principal);
+    const record = reachRecord(this, inquiryId, principal);
     // An archived record was deliberately taken out of the working set. Letting
     // a revision land on it anyway would make the archive a label rather than a
     // state, and would append assessment history to a record nobody is
@@ -1042,7 +1078,7 @@ class DurableIntakeStore {
     // Checked as its own action. Never widen the caller's roles to satisfy the
     // read check: a later export role must not become a read grant by accident.
     const actor = validatePrincipal(principal, "export");
-    const record = ownedRecord(this, inquiryId, principal);
+    const record = reachRecord(this, inquiryId, principal);
     // An archived record has been taken out of the working set deliberately.
     // Exporting one is a separate decision, so it has to be asked for.
     if (record.lifecycle === "ARCHIVED" && !includeArchived)
@@ -1158,9 +1194,23 @@ class DurableIntakeStore {
     return clone(record.transport);
   }
 
+  /** Record a record's export-control reference, once. It is never replaced. */
+  recordExportControl(inquiryId, ref, principal) {
+    const actor = validatePrincipal(principal, "export_control");
+    const record = ownedRecord(this, inquiryId, principal);
+    if (record.export_control && record.export_control.ref)
+      throw Error("This record's export-control reference is already recorded");
+    const block = exportControlBlock(ref, actor);
+    if (!block.ref) throw Error("An export-control reference is required");
+    const next = clone(this.state);
+    next.inquiries[inquiryId].export_control = block;
+    this.persist(next);
+    return clone(block);
+  }
+
   archive(inquiryId, principal) {
     const actor = validatePrincipal(principal, "archive");
-    const record = ownedRecord(this, inquiryId, principal);
+    const record = reachRecord(this, inquiryId, principal);
     if (record.lifecycle === "ARCHIVED") return clone(record);
     const next = clone(this.state);
     const archived = next.inquiries[inquiryId];
@@ -1178,7 +1228,7 @@ class DurableIntakeStore {
 
   restore(inquiryId, principal) {
     const actor = validatePrincipal(principal, "restore");
-    const record = ownedRecord(this, inquiryId, principal);
+    const record = reachRecord(this, inquiryId, principal);
     const next = clone(this.state);
     const restored = next.inquiries[inquiryId];
     restored.lifecycle = "ACTIVE";

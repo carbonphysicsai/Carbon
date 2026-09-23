@@ -332,6 +332,32 @@ them. They answer `409` until a steward attaches the real one.
 The 60-day SCOPING expiry is a retention value and belongs to E3. It stays null
 until counsel confirms it, and a null does not delete anything.
 
+**Only screened people reach client records (E7).** A record's content is
+reachable only by an account screened under the configured standard, and only
+once the record carries its export-control reference. This covers reading,
+exporting, updating, archiving and restoring, because each of those returns the
+content.
+
+- The standard is counsel's. It is set by `CARBON_TEAM_SCREENING_STANDARD`, as an
+  opaque reference. **While it is unset, no record's content is reachable by
+  anyone.** Nobody can have been screened under a standard that does not exist.
+  That is fail closed as intended, and until counsel decides, the receiver
+  serves no content.
+- Each account that may reach records carries
+  `"screening": {"standard": "<the standard>", "ref": "<the screening record>"}`
+  in the staff directory. A screening under a different standard does not count,
+  so changing the standard invalidates every earlier screening.
+- A record's export-control reference arrives with the relay as
+  `x-carbon-export-control-ref`, or a data steward records it once at
+  `POST /private/intake/<id>/export-control`. It is never replaced. A record
+  without one, including every record written before E7, is unreachable until
+  it has one.
+- Actions that disclose no content stay available: the queue, retention
+  planning, closure recording and the release log.
+
+The screening records and determinations themselves live outside this store;
+only their references are kept here.
+
 **Every release is logged (E5).** An export names who it is for and why, or it
 releases nothing:
 
