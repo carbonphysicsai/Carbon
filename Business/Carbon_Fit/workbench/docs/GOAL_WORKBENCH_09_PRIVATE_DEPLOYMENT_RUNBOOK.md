@@ -358,6 +358,15 @@ content.
 The screening records and determinations themselves live outside this store;
 only their references are kept here.
 
+**Before counsel names the standard,** development and testing can use a
+synthetic one: set `CARBON_TEAM_SCREENING_STANDARD` to a value beginning
+`SYNTHETIC-DEVELOPMENT-` and screen the development accounts under it. While it
+is in force, a record is reachable only if every one of its agreement references
+and its export-control reference begins `synthetic-`. A real client's record
+stays unreachable until counsel's standard replaces this one. This is a
+restriction the configuration makes visible. It is not a check that can tell
+counsel's standard from any other value an operator configures.
+
 **Every release is logged (E5).** An export names who it is for and why, or it
 releases nothing:
 

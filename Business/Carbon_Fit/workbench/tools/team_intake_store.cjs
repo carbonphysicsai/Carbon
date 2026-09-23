@@ -237,6 +237,8 @@ function ownedRecord(store, inquiryId, principal) {
  * reference. The standard is counsel's. While it is unset nobody is screened
  * under it, so no content is reachable: unreachable, not reachable by default.
  */
+const SYNTHETIC_STANDARD_PREFIX = "SYNTHETIC-DEVELOPMENT-";
+const SYNTHETIC_REFERENCE_PREFIX = "synthetic-";
 const EXPORT_CONTROL_REF = /^[A-Za-z0-9][A-Za-z0-9._:\/-]{2,127}$/;
 function exportControlBlock(ref, actor) {
   if (ref === null || ref === undefined) return { ref: null, recorded_by: null, recorded_at: null };
@@ -254,6 +256,18 @@ function reachRecord(store, inquiryId, principal) {
     throw denied("This account is not screened under the configured standard");
   if (!record.export_control || !record.export_control.ref)
     throw denied("This record has no export-control reference recorded; a data steward must record one first");
+  // A synthetic development standard (owner-delegated decision, 2026-09-23)
+  // lets development and testing continue before counsel names the real one.
+  // It reaches synthetic records only: every agreement reference and the
+  // export-control reference must be synthetic, so a real client's record
+  // stays unreachable until counsel's standard replaces this one. This is an
+  // opt-in restriction the configuration makes visible, not a check that could
+  // tell counsel's standard from any other string an operator might configure.
+  if (store.screeningStandard.startsWith(SYNTHETIC_STANDARD_PREFIX)) {
+    const references = [...Object.values((record.basis && record.basis.agreements) || {}), record.export_control.ref];
+    if (!references.length || references.some((ref) => !String(ref).startsWith(SYNTHETIC_REFERENCE_PREFIX)))
+      throw denied("A synthetic development standard reaches synthetic records only; this record carries a real reference");
+  }
   return record;
 }
 
@@ -1475,6 +1489,7 @@ class DurableIntakeStore {
 }
 
 module.exports = {
+  SYNTHETIC_STANDARD_PREFIX,
   runRetention,
   retentionValuesFrom,
   transportAtRelay,
