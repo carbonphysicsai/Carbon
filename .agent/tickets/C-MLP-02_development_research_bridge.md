@@ -633,3 +633,87 @@ reads as a convenience and will otherwise be rediscovered:
 
 The prohibition is not merely conservative. It is the difference between gating
 access to tooling and intermediating an economy.
+
+## Registration is the only product admission gate C-MLP-02-D11
+
+Owner decision, 23 September 2026, restated as final: "There's no 'grant'
+needed. It's their space and their spend. ... 'grants' are for test purposes
+NOT production products!" and "We are not controlling a miner's spending inside
+the environment other than letting them set a budget if they want to."
+
+**The seam.** #282 made the ledger budget-optional and documented the
+development grant as "unreachable from any product surface". It was not: both
+product surfaces required one. The browser research launch (`runner.configured`)
+and the MCP registered tier (`standard_cli.load_profile`) each loaded an
+operator-installed `APPROVED` grant, and nothing else in the repository
+constructed one. The grant was therefore the *only* way into product research.
+It also supplied the campaign's identity, root, miner identity, runtime,
+ceilings, deadline and expiry, so it cannot simply be deleted.
+
+This is slice 1a of B1 (OD-13 / E1 / E4: "keep standard interfaces and human
+control paths; test representative independent clients and honest agent/human
+journeys"). Slice 1b adds the shared operations table with freeze and submit.
+
+Working decisions (agent-authorized under the delegated decision protocol; none
+is human-reserved - the owner decision above settles the policy):
+
+1. **Registration is constructed, not checked.** `chain_onboarding` gains
+   `RegisteredMiner`, which can only be built from a chain observation in which
+   the hotkey resolves on the configured subnet. The product launch requires
+   one, so an unregistered miner cannot reach a code path that writes a durable
+   record. It is read **before** any durable write, which closes the gap where
+   the browser recorded a launch and returned 200 before any registration read.
+   The existing per-call `check_registration` inside the campaign stays.
+2. **The product campaign has its own identity.** A launch creates a campaign
+   whose id is derived from the principal and the launch's idempotency key, under
+   the miner's configured `campaigns_root`. A lost response replays the same
+   campaign; a different request under the same key is a conflict. The miner may
+   run more than one campaign; "one grant, one campaign" was a founder spend cap.
+3. **The budget is the miner's, optional, and closed.** The launch request may
+   carry a budget in the ledger's existing miner-budget shape (`ceilings`,
+   `elapsed_seconds`, `final_reserve`). Absent means none. Its absence blocks
+   nothing, and **with no `epochs` budget the autonomous agent runs epochs until
+   it stops selecting or the miner stops it** - Carbon imposes no epoch count.
+4. **Product manifests say how they were admitted.** They use the existing
+   `carbon.autoresearch.campaign.v1` schema, never the grant manifest, and carry
+   `admission: SUBNET_REGISTRATION` with the registration observation. No
+   development ceiling appears in a product manifest.
+5. **Runner profile v2** drops `grant_file` and `account_ref` and adds
+   `campaigns_root` and the declared runtime composition that the grant used to
+   carry. v1 profiles are refused with a message naming the change.
+6. **The development grant stays in the development path.** `research_admission`
+   and the ledger's grant manifest are unchanged, and the development CLI
+   (`python -m carbon.development_session.research_campaign`) gains
+   `--grant-file` so a founder can still cap Carbon's spend on Carbon's accounts.
+   A test forbids any product-surface module (`scripts/dev/miner_launchpad/`,
+   `carbon/miner_mcp/`) from importing `research_admission`, with a specimen
+   that the development module does.
+7. **Campaigns launched under a grant remain readable.** Their records are
+   kept; observe, pause, stop and reconcile still work. Resume is refused with
+   `retired_grant_campaign`, because resuming would need the grant this decision
+   retires. Historical evidence is not rewritten.
+
+**Delivered in two pull requests.** The grant reached further than the two
+product surfaces: the ledger's `reserve` and `checkpoint`, campaign control, and
+every advanced research capability (sequences, authored Julia, GPU research,
+public scientific tasks) authorized dispatch by re-verifying the grant. A
+campaign admitted by registration alone could therefore reach none of them. So:
+
+- **1a-i, the ledger.** A third campaign kind, `carbon.launchpad.campaign.v1`
+  (`PRODUCT`): controlled - owner-bound, fenced by pause and stop - exactly as a
+  grant campaign is, admitted by the registration record its manifest carries,
+  with no expiry and only the limits its miner set. `CampaignLedger.authority`
+  and `retained_owner` answer for both kinds, and the research modules ask the
+  ledger rather than importing the grant module. Grant campaigns behave exactly
+  as before. It also fixes a latent fault: with no elapsed budget the worker-fit
+  check compared a time against `None` and raised.
+- **1a-ii, the product surfaces.** The browser runner and the MCP registered
+  tier launch and attach product campaigns, with the registration read before
+  any durable write, and stop importing the grant module.
+
+If a lead disagrees: `chain_onboarding.RegisteredMiner`,
+`scripts/dev/miner_launchpad/runner.py`, `carbon/miner_mcp/standard_cli.py` and
+`research_campaign.execute` hold the whole change; decision 3's unbounded epochs
+is the one to revisit first if anyone reads it as Carbon failing to protect a
+miner, and the answer recorded here is that protection is the budget they may
+set.
