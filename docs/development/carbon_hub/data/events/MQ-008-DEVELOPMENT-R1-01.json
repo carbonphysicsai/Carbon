@@ -1,0 +1,16 @@
+{
+  "map_ref": "SYSTEM/AGENT-EXECUTION",
+  "event_type": "evidence",
+  "event_id": "MQ-008-DEVELOPMENT-R1-01",
+  "owner_lane": "core_platform",
+  "status": "implemented",
+  "summary": "Implemented the owner's DEVELOPMENT qualification of the R1 numerical comparison recorded in Amendment 10, so the reproducibility harness now decides reproducible or not reproducible for development evidence on the four qualified GPU parts instead of reporting every backend unsupported. Each of A40, H100 SXM, L4 and RTX PRO 6000 SE has its own registered backend profile under the pinned determinism configuration on the fixture Challenge fixture_authoring 1.0, so two captures from different parts differ in identity and never reach a numerical comparison, which is how the same-part rule is enforced; a part the ruling did not name has no profile and is refused. The comparison is bit-exact by equality rather than by a threshold, so no tolerance value is embedded, and one float32 ulp is shown to be refused. The procedure can only be obtained from a factory that binds it to a named part, and its qualification carries the digest of Amendment 10's recorded text, which a test recomputes from the repository so the qualification cannot outlive an edit to the ruling. Every record is fixture-origin through the existing B-E1 types: the fixture-only boundary is deliberately not migrated, the new module is admitted to the B-E1 invariant by name, and nothing here can enter official or LIVE authority. It is not yet reachable from a real run: no runtime path builds an R1 capture from a reconstruction, and matching a running device to a profile needs the NVML names of the four parts, which were never recorded. The validator exam environment's own profile remains unresolved, validator_launch remains never hardware-exercised, and the MQ-008 holder's review is still owed.",
+  "primary_detail": "carbon/reproducibility/development.py",
+  "affects": [
+    "SYSTEM/AGENT-EXECUTION",
+    "WAVE-C/C-03",
+    "WAVE-C/C-09"
+  ],
+  "supersedes": null,
+  "recorded_at": "2026-09-23T18:32:39Z"
+}
