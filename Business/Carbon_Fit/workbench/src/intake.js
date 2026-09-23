@@ -38,6 +38,23 @@
   ];
   const clone = (value) => JSON.parse(JSON.stringify(value));
 
+  // What the optional public AI assist never receives (owner-delegated
+  // decision, 2026-09-23). In an engineering brief the values are the secret,
+  // and these two pilot fields are where a visitor writes them: operating
+  // ranges and target figures. The assist gets the words of the problem, not
+  // its numbers; the fields are sent as null so the request keeps its shape.
+  // The quantity fields were never sent.
+  const GUIDANCE_WITHHELD = Object.freeze(["operating_envelope", "requested_targets"]);
+
+  function guidanceContextFrom(draft, pilot, unresolvedAssumptions) {
+    return {
+      version: "carbon.client-intake.guidance-context.v1",
+      answers: Object.fromEntries(TEXT_FIELDS.map((field) => [field, draft.answers[field].state === "VALUE" ? draft.answers[field].value : null])),
+      pilot: Object.fromEntries(PILOT_FIELDS.map((field) => [field, GUIDANCE_WITHHELD.includes(field) ? null : (pilot && pilot[field]) || null])),
+      unresolved_assumptions: [...unresolvedAssumptions],
+    };
+  }
+
   function exact(value, keys, label) {
     const proto = value && Object.getPrototypeOf(value);
     if (!value || (proto !== Object.prototype && proto !== null))
@@ -462,6 +479,8 @@
     validateReviewedPackage,
     draftFromTransport,
     canonical,
+    GUIDANCE_WITHHELD,
+    guidanceContextFrom,
     inspect,
     mapDraft,
     sha256,

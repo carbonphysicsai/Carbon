@@ -65,13 +65,7 @@
   }
 
   function guidanceContext() {
-    const draft = currentDraft();
-    return {
-      version: "carbon.client-intake.guidance-context.v1",
-      answers: Object.fromEntries(I.TEXT_FIELDS.map((field) => [field, draft.answers[field].state === "VALUE" ? draft.answers[field].value : null])),
-      pilot: Object.fromEntries(I.PILOT_FIELDS.map((field) => [field, pilot[field] || null])),
-      unresolved_assumptions: [...unresolvedAssumptions],
-    };
+    return I.guidanceContextFrom(currentDraft(), pilot, unresolvedAssumptions);
   }
 
   function renderBrief() {
