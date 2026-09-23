@@ -123,9 +123,11 @@ looks like a present one.
 - **H100 and Blackwell were each measured on one host only**, and their digests
   are distinct from the shared one, so neither is shown to reproduce across hosts.
 - **The driver-match precondition was not enforced for stage B.** The compared
-  hosts differed - `580.159.03` against `580.159.04` - which strengthens the
-  result but was discovered afterwards rather than verified in advance, and the
-  instrument cannot check it across pods.
+  hosts differed - `580.159.03` against `580.159.04`. Recorded as a deviation
+  and applied retroactively under Amendment 9: it shows the pinned configuration
+  held across a driver difference, but a patch-level one, one pair, discovered
+  rather than chosen. The instrument gap is closed for future runs
+  (`compare_units.py`); it does not reach back and verify stage B in advance.
 
 ## 6. Collection gaps
 

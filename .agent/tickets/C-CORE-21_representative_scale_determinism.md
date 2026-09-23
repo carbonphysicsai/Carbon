@@ -85,3 +85,15 @@ one device is evidence toward that decision and is not that decision.
 ## Kept separate
 
 #242, #246, #251, #252. #248 merged during this work and is integrated normally.
+
+## Stage B driver deviation and cross-pod enforcement (2026-09-23)
+
+Approved by the owner on 2026-09-23 as the follow-up the stage B result named.
+Stage B's hosts ran `580.159.03` and `580.159.04` against the acceptance's hard
+driver-match check, which nothing enforced across pods. Amendment 9 to
+`docs/development/TWO_HOST_STUDY_ACCEPTANCE.md` applies the deviation
+retroactively (`docs/development/GPU_DETERMINISM_STAGE_B_DRIVER_DEVIATION.json`)
+and `scripts/dev/gpu_determinism_study/compare_units.py` enforces the check
+before and after a run; tests in `tests/cpu/test_study_compare_units.py` use the
+published stage B pair as the specimen. No device time, no spend, nothing
+qualified. Hub event `C-CORE-21-STAGE-AB-01`, the ticket's first per-event file.
