@@ -11,7 +11,7 @@ if (!globalThis.crypto) globalThis.crypto = crypto.webcrypto;
 const { RecordBasis, basisFromHeaders, isRecordBasis, scopingBasis, studyBasis } = require("../tools/team_record_basis.cjs");
 const { StaffDirectory, totp } = require("../tools/team_staff_directory.cjs");
 const { createIntakeServer } = require("../tools/team_intake_server.cjs");
-const { SCOPING_HEADERS, enrolled, openStore, principalFor, scoping, secretFor } = require("./staff_fixture.cjs");
+const { SCOPING_HEADERS, enrolled, mailed, openStore, principalFor, scoping, secretFor } = require("./staff_fixture.cjs");
 const I = require("../src/intake.js");
 
 const ROOT = path.resolve(__dirname, "..");
@@ -52,11 +52,11 @@ test("a record cannot be built without an issued agreement basis", async () => {
   const store = fresh();
   const forged = [undefined, null, { ...scoping() }, { record_class: "SCOPING", agreements: { nda: "synthetic-nda-0001" }, legal_basis: "contract:synthetic-nda-0001" }, Object.create(RecordBasis.prototype)];
   for (const basis of forged)
-    await assert.rejects(store.accept(raw(), "basis-001", as("receiver"), basis), /cannot be created without an agreement reference/);
+    await assert.rejects(store.accept(raw(), "basis-001", as("receiver"), basis, mailed()), /cannot be created without an agreement reference/);
   assert.deepEqual(Object.keys(store.state.inquiries), []);
   assert.throws(() => new RecordBasis(Symbol("guess"), {}), /can only be issued/);
   // Specimen: an issued basis is accepted, and the record carries it.
-  const receipt = await store.accept(raw(), "basis-001", as("receiver"), scoping());
+  const receipt = await store.accept(raw(), "basis-001", as("receiver"), scoping(), mailed());
   const record = store.read(receipt.inquiry_id, as("reviewer"));
   assert.equal(record.basis.record_class, "SCOPING");
   assert.equal(record.basis.legal_basis, "contract:synthetic-nda-0001");
@@ -82,18 +82,18 @@ test("each class requires its own complete set of references", () => {
 
 test("the same package under a different agreement is not a retry", async () => {
   const store = fresh();
-  await store.accept(raw(), "basis-002", as("receiver"), scoping());
-  const again = await store.accept(raw(), "basis-002", as("receiver"), scoping());
+  await store.accept(raw(), "basis-002", as("receiver"), scoping(), mailed());
+  const again = await store.accept(raw(), "basis-002", as("receiver"), scoping(), mailed());
   assert.equal(again.disposition, "DEDUPLICATED");
   await assert.rejects(
-    store.accept(raw(), "basis-002", as("receiver"), studyBasis({ msa: "synthetic-msa-0001", order_form: "synthetic-of-0001" })),
+    store.accept(raw(), "basis-002", as("receiver"), studyBasis({ msa: "synthetic-msa-0001", order_form: "synthetic-of-0001" }), mailed()),
     /different agreement basis/,
   );
 });
 
 test("a record written before E4 is unusable until a steward attaches its basis", async () => {
   const store = fresh();
-  const receipt = await store.accept(raw(), "basis-003", as("receiver"), scoping());
+  const receipt = await store.accept(raw(), "basis-003", as("receiver"), scoping(), mailed());
   // A pre-E4 store: the same state with no basis recorded, as it was written.
   const legacy = JSON.parse(JSON.stringify(store.state));
   for (const record of Object.values(legacy.inquiries)) {
@@ -115,7 +115,7 @@ test("a record written before E4 is unusable until a steward attaches its basis"
 
 test("SCOPING is promoted to STUDY once, and never goes back", async () => {
   const store = fresh();
-  const receipt = await store.accept(raw(), "basis-004", as("receiver"), scoping());
+  const receipt = await store.accept(raw(), "basis-004", as("receiver"), scoping(), mailed());
   assert.throws(() => store.attachBasis(receipt.inquiry_id, scoping(), as("steward")), /only a missing basis may be attached/);
   const study = studyBasis({ msa: "synthetic-msa-0001", order_form: "synthetic-of-0001" });
   store.attachBasis(receipt.inquiry_id, study, as("steward"));

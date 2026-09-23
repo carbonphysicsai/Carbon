@@ -173,6 +173,8 @@ def relay(base, work: Path, request):
             # A synthetic reference; no real agreement is named anywhere here.
             "x-carbon-record-class": "SCOPING",
             "x-carbon-nda-ref": "synthetic-journey-nda-0001",
+            # E6: how the package arrived. The journey hands it over directly.
+            "x-carbon-intake-channel": "DIRECT_HANDOVER",
         },
     )
     assert status == 201 and receipt["disposition"] == "ACCEPTED", receipt

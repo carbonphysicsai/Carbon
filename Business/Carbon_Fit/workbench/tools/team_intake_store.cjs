@@ -102,6 +102,37 @@ function emptyStore() {
 // log is what lets Carbon find every copy it released and ask for its
 // destruction. An entry names who released what, to whom, when and why; it
 // carries digests, never the content, so it can outlive the record.
+// E6. The transport copy: the package as it arrived in the intake mailbox,
+// before the receiver relayed it here. Two deletion states, never collapsed.
+// In Gmail, deleting moves a message to Trash, where it stays for up to 30 days
+// before it is purged; "deleted" while it sits in Trash would be a claim that
+// cannot say what it checked. So MOVED_TO_TRASH and PERMANENTLY_REMOVED are
+// different states, reached in that order, and each entry says its basis: the
+// receiver's own attestation, because the mailbox step is a human one.
+const TRANSPORT_CHANNELS = ["MAIL_INTAKE", "DIRECT_HANDOVER"];
+const TRANSPORT_ARRIVALS = ["ENCRYPTED", "PLAINTEXT"];
+const TRANSPORT_STEPS = { PRESENT_IN_MAILBOX: ["MOVED_TO_TRASH", "PERMANENTLY_REMOVED"], MOVED_TO_TRASH: ["PERMANENTLY_REMOVED"], PERMANENTLY_REMOVED: [] };
+const TRASH_PURGE_DAYS = 30;
+
+function transportAtRelay(headers = {}) {
+  const channel = headers["x-carbon-intake-channel"];
+  if (!TRANSPORT_CHANNELS.includes(channel))
+    throw Error("A relay states its intake channel: " + TRANSPORT_CHANNELS.join(" | "));
+  if (channel === "DIRECT_HANDOVER") return { channel, arrival: null, copy_state: "NO_TRANSPORT_COPY", history: [] };
+  const arrival = headers["x-carbon-transport-arrival"];
+  if (!TRANSPORT_ARRIVALS.includes(arrival))
+    throw Error("A mailed package states how it arrived: " + TRANSPORT_ARRIVALS.join(" | "));
+  return {
+    channel,
+    arrival,
+    // A package that arrived in plaintext was readable in the mailbox. Its copy
+    // is to be removed permanently, not left in Trash; the record says so.
+    required_disposition: arrival === "PLAINTEXT" ? "PERMANENTLY_REMOVED_WITHOUT_DELAY" : "PERMANENTLY_REMOVED",
+    copy_state: "PRESENT_IN_MAILBOX",
+    history: [],
+  };
+}
+
 const RECIPIENT_KINDS = ["CARBON_STAFF", "CLIENT", "CONTRACTOR", "OTHER"];
 const RECIPIENT_REF = /^[A-Za-z0-9][A-Za-z0-9._:\/@-]{2,127}$/;
 
@@ -143,6 +174,7 @@ function validatePrincipal(principal, action) {
     delete: ["DATA_STEWARD"],
     attach_basis: ["DATA_STEWARD"],
     record_release: ["TEAM_REVIEWER", "DATA_STEWARD"],
+    record_transport: ["INTAKE_RECEIVER"],
     releases: ["DATA_STEWARD"],
     search: ["TEAM_REVIEWER", "INTAKE_RECEIVER"],
     outbox: ["NOTIFICATION_OPERATOR"],
@@ -636,13 +668,23 @@ class DurableIntakeStore {
     this.state = next;
   }
 
-  async accept(raw, idempotencyKey, principal, basis) {
+  async accept(raw, idempotencyKey, principal, basis, transport) {
     const actor = validatePrincipal(principal, "accept");
     // E4: the agreement basis is checked before anything else is read. Only a
     // basis the record-basis module issued is accepted, so a record without a
     // complete agreement reference cannot be constructed at all.
     if (!isRecordBasis(basis)) throw Error("A record cannot be created without an agreement reference");
     const recordBasis = storedBasis(basis);
+    // E6: how the package arrived is required too; there is no default.
+    if (
+      !transport ||
+      !TRANSPORT_CHANNELS.includes(transport.channel) ||
+      (transport.channel === "MAIL_INTAKE" && !TRANSPORT_ARRIVALS.includes(transport.arrival)) ||
+      !["PRESENT_IN_MAILBOX", "NO_TRANSPORT_COPY"].includes(transport.copy_state) ||
+      !Array.isArray(transport.history) ||
+      transport.history.length
+    )
+      throw Error("A record states how its package arrived: use transportAtRelay");
     safeKey(idempotencyKey, "idempotency key");
     if (typeof raw !== "string" || Buffer.byteLength(raw) > 120_000)
       throw Error("Reviewed intake exceeds 120 KB");
@@ -691,6 +733,8 @@ class DurableIntakeStore {
       // E4: the agreement this record is held under. Plain metadata: opaque
       // references, never agreement text.
       basis: recordBasis,
+      // E6: how the package arrived, and what became of its transport copy.
+      transport: clone(transport),
       basis_history: [{ seq: 1, event: "RECEIVED", ...recordBasis, by: actor, at: new Date().toISOString() }],
       team_fields: {
         assigned_reviewer: "",
@@ -876,6 +920,36 @@ class DurableIntakeStore {
     return clone(record.basis);
   }
 
+  /**
+   * Record what the receiver did with the transport copy in the mailbox. The
+   * states move forward only, and each entry is the receiver's attestation:
+   * this store cannot see the mailbox, and says so rather than implying it can.
+   */
+  recordTransportCopy(inquiryId, state, principal) {
+    const actor = validatePrincipal(principal, "record_transport");
+    const current = ownedRecord(this, inquiryId, principal);
+    const transport = current.transport || {};
+    const allowed = TRANSPORT_STEPS[transport.copy_state] || [];
+    if (!allowed.includes(state))
+      throw Error(`The transport copy cannot move from ${transport.copy_state || "unrecorded"} to ${state}`);
+    const next = clone(this.state);
+    const record = next.inquiries[inquiryId];
+    const now = new Date();
+    const entry = {
+      seq: record.transport.history.length + 1,
+      state,
+      at: now.toISOString(),
+      by: actor,
+      basis: "RECEIVER_ATTESTATION",
+      purge_expected_by:
+        state === "MOVED_TO_TRASH" ? new Date(now.getTime() + TRASH_PURGE_DAYS * 86_400_000).toISOString() : null,
+    };
+    record.transport.copy_state = state;
+    record.transport.history.push(entry);
+    this.persist(next);
+    return clone(record.transport);
+  }
+
   archive(inquiryId, principal) {
     const actor = validatePrincipal(principal, "archive");
     const record = ownedRecord(this, inquiryId, principal);
@@ -1042,6 +1116,7 @@ class DurableIntakeStore {
     // inferred from an error message.
     const configured = typeof handler === "function";
     let status, failure, outcome;
+    let attemptedHere = configured;
     if (!configured) {
       status = "PENDING";
       failure = "";
@@ -1056,8 +1131,20 @@ class DurableIntakeStore {
         outcome = "DELIVERED";
       } catch (error) {
         status = "PENDING";
-        failure = String(error.message || error).slice(0, 500);
-        outcome = "ATTEMPT_FAILED";
+        // Only a typed outcome's own fixed message is kept. An error nobody
+        // anticipated is recorded as such and its text is not: the catch-all
+        // is where a credential or a server's echo would otherwise be written
+        // into the record, because it is the branch nobody designed.
+        if (error && typeof error.outcome === "string" && /^[A-Z_]+$/.test(error.outcome)) {
+          outcome = error.outcome;
+          failure = String(error.message).slice(0, 300);
+          // A transport that refused before trying (no credential, an unsafe
+          // one) did not attempt a delivery, and the count says so.
+          if (error.attempted === false) attemptedHere = false;
+        } else {
+          outcome = "ATTEMPT_FAILED";
+          failure = "The transport failed in an unexpected way; its error is not recorded";
+        }
       }
     }
     // Merge into the state as it is now. A snapshot taken before the await
@@ -1067,7 +1154,7 @@ class DurableIntakeStore {
     const current = next.outbox[eventId];
     if (!current)
       throw Error("Outbox event was removed while its delivery was in flight");
-    if (configured) current.attempts += 1;
+    if (attemptedHere) current.attempts += 1;
     current.status = status;
     current.last_error = failure;
     current.last_outcome = outcome;
@@ -1077,6 +1164,8 @@ class DurableIntakeStore {
 }
 
 module.exports = {
+  transportAtRelay,
+  TRASH_PURGE_DAYS,
   SEALED_STORE_VERSION,
   DEFAULT_WRITE_CEILING_BYTES,
   READ_LIMIT_BYTES,

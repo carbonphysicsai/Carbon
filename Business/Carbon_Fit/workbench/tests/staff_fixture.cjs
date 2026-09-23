@@ -66,7 +66,13 @@ function openStore(storePath, options = {}) {
 /** A synthetic SCOPING basis: a record received under a (synthetic) NDA. */
 const scoping = () => scopingBasis({ nda: "synthetic-nda-0001" });
 /** The same basis as a relay sends it, in headers beside the package. */
-const SCOPING_HEADERS = Object.freeze({ "x-carbon-record-class": "SCOPING", "x-carbon-nda-ref": "synthetic-nda-0001" });
+const SCOPING_HEADERS = Object.freeze({
+  "x-carbon-record-class": "SCOPING",
+  "x-carbon-nda-ref": "synthetic-nda-0001",
+  // E6: a mailed, encrypted package is the ordinary case.
+  "x-carbon-intake-channel": "MAIL_INTAKE",
+  "x-carbon-transport-arrival": "ENCRYPTED",
+});
 
 /** A synthetic release: to a named member of Carbon staff, for review. */
 const RELEASE = Object.freeze({ recipient: { kind: "CARBON_STAFF", ref: "synthetic-reviewer" }, purpose: "Team review" });
@@ -76,4 +82,10 @@ const RELEASE_HEADERS = Object.freeze({
   "x-carbon-release-purpose": "Team review",
 });
 
-module.exports = { RELEASE, RELEASE_HEADERS, SCOPING_HEADERS, enrolled, keyringFor, openStore, principalFor, scoping, secretFor };
+/** How a synthetic package arrived: mailed, encrypted, still in the mailbox. */
+const mailed = () => {
+  const { transportAtRelay } = require("../tools/team_intake_store.cjs");
+  return transportAtRelay(SCOPING_HEADERS);
+};
+
+module.exports = { mailed, RELEASE, RELEASE_HEADERS, SCOPING_HEADERS, enrolled, keyringFor, openStore, principalFor, scoping, secretFor };

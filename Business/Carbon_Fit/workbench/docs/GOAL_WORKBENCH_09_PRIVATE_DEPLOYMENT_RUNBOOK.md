@@ -377,26 +377,104 @@ a client as complete erasure; the system cannot enforce that, and the tombstone
 is deliberately written so that nobody has to take an engineer's word for what
 it reached.
 
-### 3.5 Notification
+### 3.5 Notification and the intake mailbox (E6)
 
-*Precondition: sender credential and authorized sender identity.*
+*The sender identity and mailbox now exist as operator configuration. The
+credential lives in the owner's password manager and is supplied at runtime.*
 
-With no transport configured, nothing is attempted and the event stays
-`PENDING` with `last_outcome: NOT_ATTEMPTED_NO_TRANSPORT` and an attempt count
-of **zero**. That distinction is deliberate: an unconfigured receiver used to
-record an attempt and an error for a delivery nobody tried, which left an
-operator unable to tell a refused delivery from an absent one, and those need
-different actions.
+**Configuration.** Everything is operator configuration, read at start. None of
+it is in this repository, and none of it has a default:
 
-The route answers **501**, not 502. A 502 says a gateway was reached and
-misbehaved, which would send an operator after a network fault that does not
-exist. A real transport failure records `ATTEMPT_FAILED`, counts the attempt,
-keeps the reason and answers 502 — a path exercised at the store level and
-**unreachable over HTTP today**, because no transport implementation exists for
-the route to call. Configuring `CARBON_TEAM_NOTIFY_DESTINATION` records where a
-notification would go; it is not a mailbox credential and not permission to
-contact anyone. The queued payload carries an inquiry identifier, a digest, a
-queue state and counts — no client words, contact details or scientific content.
+| Variable | Holds |
+|---|---|
+| `CARBON_TEAM_SMTP_HOST`, `CARBON_TEAM_SMTP_PORT` | the submission server; port 587 with STARTTLS |
+| `CARBON_TEAM_SMTP_USER` | the intake account |
+| `CARBON_TEAM_SMTP_FROM` | the sending identity |
+| `CARBON_TEAM_NOTIFY_DESTINATION` | where notifications go; **must be on the sender's own domain** or the receiver will not start |
+| `CARBON_TEAM_SMTP_CREDENTIAL_FILE` | the path to a file holding the app password, mode `0600`, outside the checkout |
+
+With none of the SMTP variables set, no transport exists. Each attempt then
+answers **501** with `NOT_ATTEMPTED_NO_TRANSPORT`, zero attempts counted, as
+before. A partial configuration is refused at start, and the error names what
+is missing.
+
+**The credential.** It is read from its file at send time and at no other
+point. It is never taken from the repository, from a default or from the
+environment's value. It is sent only after the connection has upgraded to TLS.
+If the server offers no STARTTLS, or its certificate does not verify, the result
+is `TRANSPORT_REFUSED_NO_TLS` and the credential is not sent. Every failure is a
+typed outcome with a fixed message, and only a server reply's code is ever
+kept, never its text. A server that echoes the credential in its refusal, as
+the test server deliberately does, still cannot get it into a record. An error
+nobody anticipated is recorded as such, and its text is not.
+
+| Situation | Outcome | Attempts | Route answers |
+|---|---|---|---|
+| no transport configured | `NOT_ATTEMPTED_NO_TRANSPORT` | 0 | 501 |
+| transport configured, credential file unset, missing or empty | `NOT_ATTEMPTED_NO_CREDENTIAL` | 0 | 501 |
+| credential file readable by anyone but its owner | `NOT_ATTEMPTED_CREDENTIAL_UNSAFE` | 0 | 501 |
+| server offers no STARTTLS or its TLS fails to verify | `TRANSPORT_REFUSED_NO_TLS` | 1 | 502 |
+| credential rejected (535) | `CREDENTIAL_REJECTED` | 1 | 502 |
+| server unreachable or refused a step | `TRANSPORT_FAILED` | 1 | 502 |
+| delivered | `DELIVERED` | 1 | 200 |
+
+A missing credential and a rejected one are different outcomes. The first means
+restoring a configuration; the second means checking the credential itself.
+
+A notification carries the inquiry identifier, a digest, the queue state and
+counts. It never carries the client's words, contact details or scientific
+content, and it goes only to the sender's own domain. **A configured sender is
+not permission to contact anyone.** Nothing here sends mail outside Carbon.
+
+**The sequence as run.** The real receiver process, driven against a local
+synthetic SMTP server with a throwaway certificate and a synthetic credential
+on 2026-09-23. No real mail server, account or credential was used. The first
+run with the real credential is the owner's.
+
+| Step | Observed |
+|---|---|
+| Start with the transport configured and no credential file | listening |
+| Relay a package (`MAIL_INTAKE`, `ENCRYPTED`) | `201` |
+| Attempt the notification | `501`, `NOT_ATTEMPTED_NO_CREDENTIAL`, attempts `0`, the message names the missing variable |
+| Record the mailbox steps | `MOVED_TO_TRASH` with `purge_expected_by` 30 days later, then `PERMANENTLY_REMOVED`; both `RECEIVER_ATTESTATION` |
+| Stop (`SIGTERM`) | exit `0` |
+| Recover: start again with the credential file set | the event is still `PENDING`, `NOT_ATTEMPTED_NO_CREDENTIAL`, attempts `0` |
+| Attempt again | `200`, `DELIVERED`, attempts `1`; the server saw authentication over TLS and one message |
+| Start with a wrong credential; relay a `PLAINTEXT` arrival; attempt | `502`, `CREDENTIAL_REJECTED`, attempts `1` |
+| Search the store and keyring files for the credential | absent; the store on disk is sealed |
+
+**The mailbox step, by hand.** The deletion claim starts here, with a person, so
+the record says exactly what that person did and on whose word:
+
+1. Open the package from the intake mailbox. Decrypt it on the internal machine,
+   **not** in the mailbox.
+2. Relay it with the record class and agreement headers, plus
+   `x-carbon-intake-channel: MAIL_INTAKE` and `x-carbon-transport-arrival:
+   ENCRYPTED` or `PLAINTEXT`, stating how it actually arrived.
+3. Delete the message. In Gmail this **moves it to Trash**, and it is purged up
+   to 30 days later. Record `MOVED_TO_TRASH` at
+   `POST /private/intake/<id>/transport-copy`.
+4. Empty it from Trash: open Trash, select the message, *Delete forever*. Only
+   then record `PERMANENTLY_REMOVED`. A plaintext arrival is recorded as
+   `required_disposition: PERMANENTLY_REMOVED_WITHOUT_DELAY`, so do step 4 at
+   once.
+
+The record moves forward only, with no `DELETED` state that would blur the two.
+Each entry is `RECEIVER_ATTESTATION`, because this store cannot see the mailbox
+and does not claim to.
+
+**Known limits, recorded rather than built around:**
+
+- The workspace edition has no Vault, so there is **no retention rule** that
+  keeps a message after deletion. That is what makes the record above honest.
+  It also means there is **no legal hold on mail**. If counsel requires one, it
+  is an edition upgrade and an owner decision, not an engineering change.
+- An administrator may be able to restore purged mail for a further window.
+  This has not been verified against the account, and until it is, "permanently
+  removed" means "permanently removed from the mailbox as its user sees it".
+- The intake mailbox shares a pooled storage allowance. When it fills, mail
+  **bounces and nobody is told**. Check the mailbox's storage when relaying.
+  Nothing in the receiver watches it.
 
 ### 3.6 Notice and consent
 

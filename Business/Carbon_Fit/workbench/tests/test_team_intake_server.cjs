@@ -1,5 +1,5 @@
 "use strict";
-const { RELEASE_HEADERS, SCOPING_HEADERS, openStore, scoping } = require("./staff_fixture.cjs");
+const { RELEASE_HEADERS, SCOPING_HEADERS, mailed, openStore, scoping } = require("./staff_fixture.cjs");
 // Real HTTP against the real private receiver, its real durable store and its
 // real role checks. Nothing here is a public receiver, a delivered notification
 // or a live customer submission.
@@ -507,7 +507,7 @@ test("a store with no room refuses with insufficient storage, not bad request", 
   fs.writeFileSync(usersFile, JSON.stringify(USERS));
   const storePath = path.join(directory, "store.json");
   const roomy = openStore(storePath);
-  const first = await roomy.accept(reviewedRaw(), "capacity-001", principalFor(loadUsers(usersFile), TOKENS.receiver), scoping());
+  const first = await roomy.accept(reviewedRaw(), "capacity-001", principalFor(loadUsers(usersFile), TOKENS.receiver), scoping(), mailed());
 
   const store = openStore(storePath, {
     writeCeilingBytes: fs.statSync(storePath).size + 32,

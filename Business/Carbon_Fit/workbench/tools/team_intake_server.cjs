@@ -5,9 +5,10 @@ const fs = require("node:fs");
 const http = require("node:http");
 const path = require("node:path");
 const F = require("../src/engine.js");
-const { DurableIntakeStore } = require("./team_intake_store.cjs");
+const { DurableIntakeStore, transportAtRelay } = require("./team_intake_store.cjs");
 const { ArchiveKeyring } = require("./team_archive_keyring.cjs");
 const { basisFromHeaders } = require("./team_record_basis.cjs");
+const { smtpConfigFrom, smtpTransport } = require("./team_smtp_transport.cjs");
 const { AccessControl, StaffDirectory } = require("./team_staff_directory.cjs");
 
 function loadUsers(usersPath) {
@@ -46,7 +47,7 @@ function send(response, status, value) {
   response.end(JSON.stringify(value) + "\n");
 }
 
-function createIntakeServer({ store, users, clock, limits }) {
+function createIntakeServer({ store, users, clock, limits, transport = null }) {
   // E9: a staff credential alone reaches nothing. It opens a session together
   // with a current second-factor code, and only a live session resolves to a
   // principal. Rate limiting and lockout are applied where that happens.
@@ -78,9 +79,18 @@ function createIntakeServer({ store, users, clock, limits }) {
         // E4: the agreement basis comes from the relay's headers; the body is
         // the client's package and is stored byte for byte.
         const basis = basisFromHeaders(request.headers);
+        // E6: how the package arrived is stated at relay, beside it.
+        const transport = transportAtRelay(request.headers);
         const raw = await body(request);
         const key = request.headers["idempotency-key"];
-        return send(response, 201, await store.accept(raw, key, principal, basis));
+        return send(response, 201, await store.accept(raw, key, principal, basis, transport));
+      }
+      const transportMatch = /^\/private\/intake\/([A-Za-z0-9._:-]+)\/transport-copy$/.exec(url.pathname);
+      if (transportMatch && request.method === "POST") {
+        const offered = F.strictJsonParse(await body(request), { maxBytes: 1_000, maxDepth: 2 });
+        if (!offered || typeof offered !== "object" || Object.keys(offered).join() !== "state")
+          throw Object.assign(Error("A transport-copy record carries exactly one field, state"), { status: 400 });
+        return send(response, 200, store.recordTransportCopy(transportMatch[1], offered.state, principal));
       }
       const basisMatch = /^\/private\/intake\/([A-Za-z0-9._:-]+)\/basis$/.exec(url.pathname);
       if (basisMatch && request.method === "POST")
@@ -92,7 +102,7 @@ function createIntakeServer({ store, users, clock, limits }) {
       if (outboxMatch && request.method === "POST") {
         // Retried by the operator and observable either way. With no configured
         // transport the attempt is recorded as a failure rather than a delivery.
-        const event = await store.processOutbox(outboxMatch[1], null, principal);
+        const event = await store.processOutbox(outboxMatch[1], transport, principal);
         // 502 says a gateway was reached and misbehaved. With no destination
         // configured nothing was reached, and answering 502 sends an operator
         // looking for a network fault that does not exist. 501 says this
@@ -101,8 +111,10 @@ function createIntakeServer({ store, users, clock, limits }) {
         const status =
           event.last_outcome === "DELIVERED"
             ? 200
-            : event.last_outcome === "NOT_ATTEMPTED_NO_TRANSPORT"
-              ? 501
+            : event.last_outcome.startsWith("NOT_ATTEMPTED")
+              ? // No transport, no credential, or an unsafe one: nothing was
+                // reached. A server that was reached and refused is 502 below.
+                501
               : 502;
         return send(response, status, event);
       }
@@ -246,7 +258,10 @@ function main() {
       process.exit(0);
     });
   const port = Number(process.env.CARBON_TEAM_INTAKE_PORT || "8789");
-  createIntakeServer({ store, users: loadUsers(usersPath) }).listen(
+  // E6: a mail transport only when the operator configured one. The credential
+  // is read from its file at send time and never here.
+  const transport = smtpTransport(smtpConfigFrom(process.env));
+  createIntakeServer({ store, users: loadUsers(usersPath), transport }).listen(
     port,
     "127.0.0.1",
     () => {

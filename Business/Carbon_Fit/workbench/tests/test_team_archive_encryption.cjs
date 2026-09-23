@@ -13,7 +13,7 @@ if (!globalThis.crypto) globalThis.crypto = crypto.webcrypto;
 const { ArchiveKeyring } = require("../tools/team_archive_keyring.cjs");
 const { DurableIntakeStore, SEALED_STORE_VERSION } = require("../tools/team_intake_store.cjs");
 const { StaffDirectory } = require("../tools/team_staff_directory.cjs");
-const { enrolled, keyringFor, openStore, principalFor, scoping } = require("./staff_fixture.cjs");
+const { enrolled, keyringFor, mailed, openStore, principalFor, scoping } = require("./staff_fixture.cjs");
 const I = require("../src/intake.js");
 
 const ROOT = path.resolve(__dirname, "..");
@@ -62,7 +62,7 @@ function fresh() {
 
 test("client content never reaches the disk in the clear, in the store or a copy of it", async () => {
   const f = fresh();
-  const receipt = await f.store.accept(packageWith(SENTINEL + " confidential operating range"), "e1-001", as("receiver"), scoping());
+  const receipt = await f.store.accept(packageWith(SENTINEL + " confidential operating range"), "e1-001", as("receiver"), scoping(), mailed());
   f.store.update(receipt.inquiry_id, 1, { assigned_reviewer: "Reviewer", queue_state: "UNDER_REVIEW", note: SENTINEL + " team note" }, as("reviewer"));
   // Specimen: the sentinel really is in the record, as the team reads it.
   const read = f.store.read(receipt.inquiry_id, as("reviewer"));
@@ -101,8 +101,8 @@ test("a store cannot be opened without a keyring, and a keyring cannot live besi
 
 test("an approved deletion destroys the key first, and every earlier copy becomes unreadable", async () => {
   const f = fresh();
-  const doomed = await f.store.accept(packageWith(SENTINEL + " to be deleted", "archive-doomed"), "e1-002", as("receiver"), scoping());
-  const kept = await f.store.accept(packageWith("a record that stays", "archive-kept"), "e1-003", as("receiver"), scoping());
+  const doomed = await f.store.accept(packageWith(SENTINEL + " to be deleted", "archive-doomed"), "e1-002", as("receiver"), scoping(), mailed());
+  const kept = await f.store.accept(packageWith("a record that stays", "archive-kept"), "e1-003", as("receiver"), scoping(), mailed());
   // The retained archive: a copy of the store taken before the deletion.
   const archive = path.join(f.directory, "store.archive.json");
   fs.copyFileSync(f.file, archive);
@@ -135,8 +135,8 @@ test("an approved deletion destroys the key first, and every earlier copy become
 
 test("a sealed record cannot be moved onto another record", async () => {
   const f = fresh();
-  const a = await f.store.accept(packageWith("record a", "archive-a"), "e1-004", as("receiver"), scoping());
-  const b = await f.store.accept(packageWith("record b", "archive-b"), "e1-005", as("receiver"), scoping());
+  const a = await f.store.accept(packageWith("record a", "archive-a"), "e1-004", as("receiver"), scoping(), mailed());
+  const b = await f.store.accept(packageWith("record b", "archive-b"), "e1-005", as("receiver"), scoping(), mailed());
   const onDisk = JSON.parse(fs.readFileSync(f.file, "utf8"));
   onDisk.inquiries[b.inquiry_id].sealed = onDisk.inquiries[a.inquiry_id].sealed;
   fs.writeFileSync(f.file, JSON.stringify(onDisk));
@@ -145,7 +145,7 @@ test("a sealed record cannot be moved onto another record", async () => {
 
 test("a store written before E1 is sealed at rest, and says what it could not reach", async () => {
   const f = fresh();
-  const receipt = await f.store.accept(packageWith(SENTINEL + " pre-E1 plaintext", "archive-legacy"), "e1-006", as("receiver"), scoping());
+  const receipt = await f.store.accept(packageWith(SENTINEL + " pre-E1 plaintext", "archive-legacy"), "e1-006", as("receiver"), scoping(), mailed());
   // A pre-E1 store: the plaintext v3 state, as the receiver wrote it before E1.
   const legacy = JSON.parse(JSON.stringify(f.store.state));
   for (const record of Object.values(legacy.inquiries)) delete record.archive_key_id;
