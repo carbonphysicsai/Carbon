@@ -64,11 +64,16 @@ def bootstrap_for(name):
 from pathlib import Path
 work=Path('/scratch/workspace');work.mkdir()
 Path('/scratch/output').mkdir()
+# A writable per-run depot first: packages such as GPUCompiler (under Enzyme)
+# create scratch space when they load. The image depot stays read-only and
+# still supplies every pinned, precompiled package.
+Path('/scratch/julia-depot').mkdir()
 for item in Path('/input').iterdir():
     if item.name!='program.jl':shutil.copyfile(item,work/item.name)
 os.chdir(work)
 env={{'PATH':'/opt/carbon-julia/bin:/usr/bin:/bin','HOME':'/scratch/home',
-     'TMPDIR':'/scratch/tmp','LANG':'C.UTF-8','JULIA_DEPOT_PATH':'{ANALYSIS_ROOT}/depot',
+     'TMPDIR':'/scratch/tmp','LANG':'C.UTF-8',
+     'JULIA_DEPOT_PATH':'/scratch/julia-depot:{ANALYSIS_ROOT}/depot',
      'JULIA_LOAD_PATH':'{project}:@stdlib',
      'JULIA_PROJECT':'{project}','JULIA_PKG_OFFLINE':'true',
      'JULIA_PKG_SERVER':'','JULIA_PKG_PRECOMPILE_AUTO':'0',

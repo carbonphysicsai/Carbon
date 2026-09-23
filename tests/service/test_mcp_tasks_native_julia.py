@@ -114,10 +114,15 @@ def prepare_native(root, worker, monkeypatch):
         practice=unavailable_practice,
     )
     prepared.tasks.close()
+    # The runner profile names the image record it installs at every attach,
+    # as a real Launchpad profile does when it declares authored research.
+    record = root / "authored-julia-image-record.json"
+    private_write(record, {"schema": IMAGE_SCHEMA, **asdict(worker)})
     path = root / "profile.json"
     private_write(
         path,
         {
+            "authored_julia_image": str(record),
             "schema": "carbon.launchpad.runner-profile.v2",
             "profile_id": "fixture-profile",
             "principal": "fixture-operator",
