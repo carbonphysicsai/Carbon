@@ -3,7 +3,6 @@ AbstractGPs = "99985d1d-32ba-4be9-9821-2ec096f28918"
 ApproxFun = "28f2ccd6-bb30-5033-b560-165f7b14dc2f"
 Arpack = "7d9fca2a-8960-54d3-9f78-7d1dccf2cb97"
 BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
-BoundaryValueDiffEq = "764a87c0-6b3e-53db-9096-fe964310641d"
 CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
 ComponentArrays = "b0b7db55-cfe3-40fc-9ded-d10e2dbeff66"
 DataDrivenDiffEq = "2445eb08-9709-466a-b3fc-47e12bd697a2"
@@ -81,6 +80,4 @@ Turing = "fce5fe82-541a-59a6-adf8-730c64b5f9a0"
 Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 
 [compat]
-# Distributions 0.25.127 made @check_args strict, which the newest
-# DistributionsAD (0.6.58, required by Turing here) does not yet satisfy.
 Distributions = "0.25.0 - 0.25.126"
