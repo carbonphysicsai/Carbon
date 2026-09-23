@@ -697,11 +697,48 @@ def _origin(value: str, port: int) -> str:
     return value
 
 
+def _attached_server_class():
+    import signal
+    import threading
+    from contextlib import contextmanager
+
+    import uvicorn
+
+    class AttachedServer(uvicorn.Server):
+        """A server that stops on SIGINT/SIGTERM without ending the process.
+
+        uvicorn re-raises the captured signal once it has shut down, and
+        SIGTERM's default action then ends the process right there, inside the
+        campaign attachment, before it reconciles workers, settles the
+        controller generation and closes the task store. The documented stop
+        must finish that, so the signal ends serving and is not raised again.
+        """
+
+        @contextmanager
+        def capture_signals(self):
+            if threading.current_thread() is not threading.main_thread():
+                yield
+                return
+            previous = {
+                sig: signal.signal(sig, self.handle_exit)
+                for sig in (signal.SIGINT, signal.SIGTERM)
+            }
+            try:
+                yield
+            finally:
+                for sig, handler in previous.items():
+                    signal.signal(sig, handler)
+
+    return AttachedServer
+
+
 async def serve(args) -> int:
     """Serve the composed private host for as long as the campaign is attached."""
     import uvicorn
 
     from carbon.miner_mcp.standard_cli import attached
+
+    _AttachedServer = _attached_server_class()
 
     origin = _origin(args.origin, args.port)
     principals = StaffPrincipals.load(args.principals)
@@ -723,7 +760,7 @@ async def serve(args) -> int:
                 holder.get("server") and holder["server"].should_exit
             ),
         )
-        server = uvicorn.Server(
+        server = _AttachedServer(
             uvicorn.Config(
                 app,
                 host=args.bind_host,
@@ -765,12 +802,24 @@ def _print_report(report, *, origin=None, staff=()):
     )
 
 
+def _campaign_principal(profile) -> str:
+    """The identity the served scientific routes act as, read without attaching.
+
+    ``serve`` keys the registry on the authenticated campaign owner, and the
+    attachment refuses to start unless that owner equals the prepared
+    manifest's. The profile's own ``principal`` is the operator named in the
+    grant, a different identity: a registry keyed on it is one ``serve`` can
+    never read, so every study would be refused as an unregistered draft.
+    """
+    return profile.manifest["owner"]
+
+
 def _registry_for(args):
     from carbon.miner_mcp.standard_cli import load_profile
 
     profile = load_profile(args.configuration)
     registry = RegisteredDraftStore(
-        args.draft_registry, principal=profile.document["principal"]
+        args.draft_registry, principal=_campaign_principal(profile)
     )
     return profile, registry
 
@@ -822,7 +871,7 @@ def main(argv=None) -> int:
             profile = load_profile(args.configuration)
             registry = (
                 RegisteredDraftStore(
-                    args.draft_registry, principal=profile.document["principal"]
+                    args.draft_registry, principal=_campaign_principal(profile)
                 )
                 if args.draft_registry is not None
                 else None

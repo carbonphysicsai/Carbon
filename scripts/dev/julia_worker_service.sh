@@ -15,4 +15,5 @@ export CARBON_AUTHORED_JULIA_IMAGE_ROOT="${CARBON_AUTHORED_JULIA_IMAGE_ROOT:-${r
 "${repo_root}/.venv/bin/python" -m pytest tests/service/test_mcp_tasks_native_julia.py -q
 "${repo_root}/.venv/bin/python" -m pytest tests/service/test_advection_science_service.py -q
 "${repo_root}/.venv/bin/python" -m pytest tests/service/test_julia_workbench.py -q
+"${repo_root}/.venv/bin/python" -m pytest tests/service/test_workbench_host_process.py -q
 "${repo_root}/.venv/bin/python" -m pytest tests/service/test_julia_envelope_worker.py -q

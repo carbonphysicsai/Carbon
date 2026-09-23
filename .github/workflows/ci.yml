@@ -192,6 +192,10 @@ jobs:
         run: ./scripts/dev/c03_worker_service.sh
       - name: Build pinned native Julia reference worker
         run: bash ./scripts/dev/julia_worker_image.sh
+      - name: Install pinned Node for the Workbench private build
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: "24.19.0"
       - name: Exercise registered Julia study and observed cancellation cleanup
         env:
           CARBON_JULIA_WORKER_MANIFEST: .carbon-artifacts/julia-worker-image.json
