@@ -118,7 +118,7 @@ node Business/Carbon_Fit/workbench/tools/team_intake_server.cjs
 |---|---|
 | Bound to loopback only | `ss -ltn` shows `127.0.0.1:8789`, not `0.0.0.0` |
 | Unreachable off loopback | `curl http://<lan-ip>:8789/…` → connection refused (exit 7) |
-| Unauthenticated request | `403` |
+| Unauthenticated request | `403` (as run on 2026-09-22; since E9 an unauthenticated request is `401`, and a staff credential alone opens nothing) |
 | A second receiver on the same store | refuses, names the holding pid, and **never binds its port** |
 | Relay a reviewed export | `201`, `disposition: ACCEPTED` |
 | Relay the identical bytes again | `disposition: DEDUPLICATED` |
@@ -212,7 +212,26 @@ The directory file is a JSON array of accounts:
 
 ```json
 [{ "principal": "<account-id>", "team": "<team>", "roles": ["TEAM_REVIEWER"],
-   "token_sha256": "<sha256 of the credential>", "status": "ACTIVE" }]
+   "token_sha256": "<sha256 of the credential>",
+   "totp_secret": "<base32 TOTP secret, at least 160 bits>", "status": "ACTIVE" }]
+```
+
+**Every active account is enrolled in a second factor (E9).** The directory
+refuses to load an `ACTIVE` account without a `totp_secret`. The secret is the
+one thing in this file that is not a digest, because checking a TOTP code needs
+it, so the file stays mode 0600 in the private directory and is never
+committed. The person enrols the same secret in their own authenticator app
+(RFC 6238: SHA-1, 30-second steps, six digits).
+
+**A credential alone opens nothing.** Staff open a session with the credential
+and a current code, then present the session on every other route:
+
+```sh
+curl -s -X POST http://127.0.0.1:8789/private/session \
+  -H "authorization: Bearer $CREDENTIAL" -H 'content-type: application/json' \
+  -d '{"code":"123456"}'            # -> {"session_token": "...", "expires_at": "..."}
+curl -s http://127.0.0.1:8789/private/intake -H "authorization: Bearer $SESSION"
+curl -s -X DELETE http://127.0.0.1:8789/private/session -H "authorization: Bearer $SESSION"
 ```
 
 It holds credential **digests** and never a credential. A credential is issued
@@ -308,9 +327,31 @@ placeholder text into a live surface.
 
 Present today: a 130 KB body limit that answers before closing the connection,
 a closed input schema, no file, geometry, executable content or URL fetching,
-and an identical refusal for a missing and a wrong credential. Absent: rate
-limiting, lockout and an escalation path. Absent is absent — do not read the
-list of present controls as an abuse posture.
+and an identical refusal for a missing and a wrong credential.
+
+**Mechanical controls, E9, built before the security review so the reviewer has
+something to test.** Their numbers are engineering defaults in
+`tools/team_staff_directory.cjs` (`DEFAULT_LIMITS`). They are not reviewed
+values, and the review may change them:
+
+| Control | Default | Refusal |
+|---|---|---|
+| Second factor on every active account | TOTP, ±1 step | `401` |
+| A used code cannot open a second session | per account | `401` |
+| Session-opening attempts per source address | 10 per 5 minutes | `429` + `Retry-After` |
+| Consecutive second-factor failures before lockout | 5 | `423` + `Retry-After` |
+| Lockout period | 15 minutes; a correct code is refused while locked, and live sessions end | `423` |
+| Requests per session | 120 per minute | `429` + `Retry-After` |
+| Session lifetime | 8 hours | `401` |
+
+Limits: sessions, lockouts and counters live in the receiver process, so a
+restart clears them, which is a reason not to restart a receiver under attack. A
+wrong credential names no account and is limited per source only.
+
+**Still absent: the escalation and abuse-response path** (who is told, what
+happens after repeated lockouts, how an account is investigated). That is
+policy, and it stays behind the security review. Absent is absent: do not read
+the controls above as an abuse posture.
 
 ### 3.8 Incident and rollback
 

@@ -19,13 +19,11 @@ const { StaffDirectory } = require("../tools/team_staff_directory.cjs");
 // Synthetic and local. The journey needs a real authenticated identity because
 // the receiver no longer accepts a principal the caller describes for itself.
 const RECEIVER_TOKEN = "synthetic-journey-receiver-0001";
-const receiver = new StaffDirectory([{
-  principal: "synthetic-receiver",
-  team: "carbon-fit",
-  roles: ["INTAKE_RECEIVER"],
-  token_sha256: crypto.createHash("sha256").update(RECEIVER_TOKEN).digest("hex"),
-  status: "ACTIVE",
-}]).authenticate("Bearer " + RECEIVER_TOKEN);
+const { enrolled, principalFor } = require("./staff_fixture.cjs");
+const receiver = principalFor(
+  new StaffDirectory([enrolled("synthetic-receiver", "carbon-fit", ["INTAKE_RECEIVER"], RECEIVER_TOKEN)]),
+  RECEIVER_TOKEN,
+);
 
 function draftFor(scenario) {
   if (scenario.source_fixture)

@@ -97,14 +97,20 @@ class CampaignControl:
                     "SELECT manifest,started FROM campaign WHERE id=1"
                 ).fetchone()
                 if frozen is not None:
+                    from .research_ledger import NO_BUDGET, _elapsed
+
                     manifest = json.loads(frozen[0])
-                    grant = self.ledger._grant(manifest)
-                    deadline = grant["expires_unix"]
-                    if frozen[1] is not None:
-                        deadline = min(
-                            deadline, frozen[1] + manifest["elapsed_seconds"]
-                        )
-                    if self.ledger.clock() >= deadline:
+                    authority = self.ledger.authority(manifest)
+                    # Either bound may be absent: a product campaign has no
+                    # expiry, and a miner who set no elapsed budget has no
+                    # wall clock. Absent is no deadline, never a default one.
+                    bounds = []
+                    if authority["expires_unix"] is not None:
+                        bounds.append(authority["expires_unix"])
+                    elapsed = _elapsed(manifest)
+                    if frozen[1] is not None and elapsed is not NO_BUDGET:
+                        bounds.append(frozen[1] + elapsed)
+                    if bounds and self.ledger.clock() >= min(bounds):
                         raise DispatchStopped("original campaign deadline reached")
                 current, desired, state = db.execute(
                     "SELECT generation,desired,observed FROM launchpad_control WHERE id=1"

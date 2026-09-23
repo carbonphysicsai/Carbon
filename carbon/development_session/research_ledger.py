@@ -38,6 +38,16 @@ from .profile import canonical, digest
 
 VERSION = "carbon.autoresearch.campaign.v1"
 
+#: A product campaign: launched by a miner through a product surface, admitted
+#: by subnet registration alone (C-MLP-02-D11), and controlled - pause, stop,
+#: owner binding - exactly as a development grant campaign is, but with no
+#: grant, no expiry and no limit the miner did not set.
+PRODUCT = "carbon.launchpad.campaign.v1"
+
+#: The admission a product manifest records. Registration is an access fact,
+#: never scientific evidence.
+PRODUCT_ADMISSION = "SUBNET_REGISTRATION"
+
 
 class Unbounded:
     """No cap. A state, not a number.
@@ -150,7 +160,7 @@ def _final_reserve(manifest):
     """
     if manifest.get("final_reserve") is True:
         return SUGGESTED_FINAL_RESERVE
-    if manifest["schema"] != VERSION:
+    if manifest["schema"] not in (VERSION, PRODUCT):
         # The development grant path keeps the reserve it was built with.
         return SUGGESTED_FINAL_RESERVE
     return {}
@@ -179,6 +189,37 @@ def _check_budget(manifest):
         raise ValueError("elapsed budget must be a positive whole number")
     if manifest.get("final_reserve") not in (None, True, False):
         raise ValueError("final_reserve is the miner's choice, true or false")
+
+
+def _check_product(manifest):
+    """A product manifest records how it was admitted, and nothing else admits it.
+
+    Closed on the admission record so a manifest cannot claim registration in a
+    shape nothing produced. The record is what `RegisteredMiner.record()`
+    returns; the per-call registration read happens on the connection.
+    """
+    admission = manifest.get("admission")
+    if (
+        type(admission) is not dict
+        or admission.get("admission") != PRODUCT_ADMISSION
+        or set(admission)
+        != {
+            "admission",
+            "network",
+            "netuid",
+            "hotkey",
+            "uid",
+            "registered_at_block",
+            "observed_block",
+            "snapshot_id",
+        }
+    ):
+        raise ValueError("product campaign must record its registration admission")
+    for key in ("principal", "runtime", "owner", "campaign_id"):
+        if not manifest.get(key):
+            raise ValueError("incomplete product campaign manifest")
+    if "grant" in manifest:
+        raise ValueError("a product campaign never carries a development grant")
 
 
 def _vector(value):
@@ -219,6 +260,77 @@ class CampaignLedger:
         if self.admission is not None and manifest.get("schema") != MANIFEST:
             raise ValueError("legacy campaign cannot consume a Launchpad grant")
 
+    @staticmethod
+    def controlled(manifest) -> bool:
+        """Owner-bound and fenced by campaign control: pause, stop, generation.
+
+        Both a development grant campaign and a product campaign are. The
+        development CLI's own campaign (VERSION) is not - it has no control
+        surface and runs to completion under the operator's hand.
+        """
+        from .research_admission import MANIFEST
+
+        return manifest.get("schema") in (MANIFEST, PRODUCT)
+
+    def authority(self, manifest) -> dict:
+        """What admits this controlled campaign to dispatch, re-read now.
+
+        A development grant campaign is admitted by its grant, re-verified on
+        every call, and carries the grant's expiry. A product campaign is
+        admitted by the registration its manifest records; it has no expiry,
+        and the only limits on it are the ones its miner set. Registration
+        itself is re-read per call by the connection, not here: this is the
+        campaign's own authority, and a product campaign's is its manifest.
+        """
+        from .research_admission import MANIFEST
+
+        schema = manifest.get("schema")
+        if schema == MANIFEST:
+            return {"kind": "DEVELOPMENT_GRANT", **self._grant(manifest)}
+        if schema == PRODUCT:
+            _check_product(manifest)
+            if self.admission is not None:
+                raise ValueError(
+                    "a product campaign never consumes a development grant"
+                )
+            return {"kind": PRODUCT_ADMISSION, "expires_unix": None}
+        raise ValueError("controlled campaign authority required")
+
+    def retained_owner(self, owner, *, db=None):
+        """Prove retained ownership for cleanup, admitting no further work.
+
+        Expiry or revocation ends the right to spend, never the duty to clean
+        up what was already started. For a grant campaign this is the grant's
+        own proof; for a product campaign it is the frozen manifest's owner and
+        the live control generation.
+        """
+        from .research_admission import MANIFEST, verify_cleanup_owner
+
+        if db is None:
+            with self.db() as connection:
+                return self.retained_owner(owner, db=connection)
+        row = db.execute("SELECT manifest FROM campaign WHERE id=1").fetchone()
+        if row is None:
+            raise ValueError("frozen campaign required for cleanup")
+        manifest = json.loads(row[0])
+        if manifest.get("schema") == MANIFEST:
+            return verify_cleanup_owner(self, owner, db=db)
+        control = db.execute(
+            "SELECT generation FROM launchpad_control WHERE id=1"
+        ).fetchone()
+        if (
+            manifest.get("schema") != PRODUCT
+            or manifest.get("owner") != owner
+            or self.admission is not None
+            or self.root.resolve() != self.root
+            or self.generation is None
+            or control is None
+            or control[0] != self.generation
+        ):
+            raise ValueError("retained campaign ownership changed")
+        _check_product(manifest)
+        return manifest
+
     @contextmanager
     def db(self):
         db = sqlite3.connect(self.path, timeout=10)
@@ -257,6 +369,7 @@ class CampaignLedger:
         if type(manifest) is not dict or manifest.get("schema") not in {
             VERSION,
             MANIFEST,
+            PRODUCT,
         }:
             raise ValueError("versioned campaign manifest required")
         self._check_admission_mode(manifest)
@@ -264,6 +377,12 @@ class CampaignLedger:
             self._grant(manifest)
         else:
             _check_budget(manifest)
+        if manifest["schema"] == PRODUCT:
+            if self.admission is not None:
+                raise ValueError(
+                    "a product campaign never consumes a development grant"
+                )
+            _check_product(manifest)
         for key in (
             "campaign_id",
             "implementation",
@@ -315,10 +434,10 @@ class CampaignLedger:
             row = db.execute("SELECT manifest FROM campaign WHERE id=1").fetchone()
         if row:
             self._check_admission_mode(json.loads(row[0]))
-        if row and json.loads(row[0])["schema"] != VERSION:
+        if row and self.controlled(json.loads(row[0])):
             from .research_control import CampaignControl
 
-            self._grant(json.loads(row[0]))
+            self.authority(json.loads(row[0]))
             CampaignControl(self).checkpoint(self.generation)
 
     def _usage(self, db):
@@ -373,10 +492,11 @@ class CampaignLedger:
             self._check_admission_mode(manifest)
             caps, elapsed = _caps(manifest), _elapsed(manifest)
             expiry = None
-            if manifest["schema"] != VERSION:
+            controlled = self.controlled(manifest)
+            if controlled:
                 from .research_control import CampaignControl
 
-                grant = self._grant(manifest)
+                grant = self.authority(manifest)
                 if owner != manifest["owner"]:
                     raise ValueError("authenticated campaign owner differs")
                 # Same transaction as the dispatch reservation: a concurrent
@@ -410,8 +530,8 @@ class CampaignLedger:
                 )
             if now < started or (deadline is not None and now >= deadline):
                 raise ValueError("campaign elapsed-time exhausted or clock regressed")
-            if manifest["schema"] != VERSION and resources.get("provider_attempts", 0):
-                if now + 120 > deadline:
+            if controlled and resources.get("provider_attempts", 0):
+                if deadline is not None and now + 120 > deadline:
                     raise ValueError("provider timeout cannot fit remaining grant")
                 pending = db.execute(
                     "SELECT reservation FROM operations WHERE state='RESERVED'"
@@ -427,7 +547,12 @@ class CampaignLedger:
                     "per-worker productive plus validation/cleanup ceiling"
                 )
             if resources.get("numerical_milliseconds", 0) > 0:
-                if now + resources["numerical_milliseconds"] / 1000 > deadline:
+                # No deadline is a supported state: a miner who set no elapsed
+                # budget has no wall clock for a worker to fit inside.
+                if (
+                    deadline is not None
+                    and now + resources["numerical_milliseconds"] / 1000 > deadline
+                ):
                     raise ValueError("worker cannot fit remaining elapsed time")
                 active = db.execute(
                     "SELECT reservation FROM operations WHERE state='RESERVED'"
@@ -454,7 +579,7 @@ class CampaignLedger:
                     # rather than satisfied against a stand-in number.
                     continue
                 headroom = reserve.get(key, 0) if phase == "research" else 0
-                if manifest["schema"] != VERSION and key == "final_replicas":
+                if controlled and key == "final_replicas":
                     # Preserve unspent final slots; consumed slots are already in
                     # used. Numerical and monetary reserves remain conservative.
                     headroom = max(0, headroom - used[key])
