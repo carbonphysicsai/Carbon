@@ -31,7 +31,7 @@ from carbon.reconstruction.worker.protocol import decode_output_stream
 
 from .data import write_once
 from .profile import canonical, digest
-from .research_workspace import MAX_FILES, MAX_WORKSPACE_BYTES, ResearchWorkspace
+from .research_workspace import ResearchWorkspace
 
 PRECHARGED_TRIAL = ContextVar("carbon_precharged_trial", default=None)
 
@@ -185,19 +185,12 @@ def _run_locked(
 ):
     if type(seconds) is not int or not 40 <= seconds <= 600:
         raise ValueError("bounded worker wall allowance required")
-    if (
-        type(files) is not dict
-        or len(files) > MAX_FILES
-        or "program.py" in files
-        or program_name in files
-    ):
-        raise ValueError("bounded closed stage required")
+    if type(files) is not dict or "program.py" in files or program_name in files:
+        raise ValueError("closed stage required")
     for name, body in files.items():
         ResearchWorkspace.name(name)
         if type(body) is not bytes:
             raise ValueError("stage accepts bytes, never paths")
-    if sum(map(len, files.values())) > MAX_WORKSPACE_BYTES:
-        raise ValueError("aggregate input cap")
     request = {
         "source": digest(source.encode()),
         "files": {n: digest(b) for n, b in files.items()},

@@ -50,3 +50,47 @@ def test_request_cannot_choose_its_disposition_or_grant(tmp_path):
         request_capability(
             ledger, owner="alice", request={**request, "disposition": "approved"}
         )
+
+
+def _uncapped_workspace(tmp_path):
+    from carbon.development_session.research_ledger import CampaignLedger
+    from carbon.development_session.research_workspace import ResearchWorkspace
+
+    tmp_path.chmod(0o700)
+    return ResearchWorkspace(CampaignLedger(tmp_path / "campaign"), "miner")
+
+
+def test_a_checkpoint_of_any_size_persists_on_disk_not_in_the_ledger(tmp_path):
+    """No Carbon cap: 40 MiB is five times the old 8 MiB per-file limit."""
+    workspace = _uncapped_workspace(tmp_path)
+    body = bytes(range(256)) * (40 * 4096)
+    fingerprint = workspace.put("checkpoint.bin", body)
+    assert workspace.get("checkpoint.bin") == body
+    assert workspace.inventory() == [
+        {"name": "checkpoint.bin", "bytes": len(body), "digest": fingerprint}
+    ]
+    stored = workspace.objects / fingerprint.removeprefix("sha256:")
+    assert stored.stat().st_size == len(body) and stored.stat().st_mode & 0o777 == 0o600
+    with workspace.ledger.db() as db:
+        assert db.execute("SELECT LENGTH(body) FROM workspace").fetchone()[0] == 0
+
+
+def test_a_blob_written_by_the_earlier_layout_still_reads(tmp_path):
+    from carbon.development_session.profile import digest
+
+    workspace = _uncapped_workspace(tmp_path)
+    with workspace.ledger.db() as db:
+        db.execute(
+            "INSERT INTO workspace VALUES(?,?,?,?)",
+            ("miner", "legacy.json", b"{}", digest(b"{}")),
+        )
+    assert workspace.get("legacy.json") == b"{}"
+    assert workspace.inventory()[0]["bytes"] == 2
+
+
+def test_a_tampered_object_is_refused_not_returned(tmp_path):
+    workspace = _uncapped_workspace(tmp_path)
+    fingerprint = workspace.put("weights.bin", b"real weights")
+    (workspace.objects / fingerprint.removeprefix("sha256:")).write_bytes(b"swapped")
+    with pytest.raises(ValueError, match="unavailable"):
+        workspace.get("weights.bin")
