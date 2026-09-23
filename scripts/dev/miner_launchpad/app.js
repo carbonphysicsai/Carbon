@@ -421,7 +421,7 @@
     $("research-guidance-review").hidden = !connected || !guidance;
     $("research-guidance").value = connected && guidance ? guidance.text : "";
     $("research-runtime").textContent = connected && guidance ? "Configured runtime: " + research.preflight.runtime_revision + " · Task identity (frozen on launch): " + guidance.digest : "";
-    $("research-preflight").textContent = connected ? research.preflight.status.replaceAll("_", " ") + (research.preflight.reason ? " · " + research.preflight.reason : "") + (research.preflight.available && research.preflight.ceilings ? " · Approved envelope: " + JSON.stringify(research.preflight.ceilings) + " · Expires: " + new Date(research.preflight.expires_unix * 1000).toLocaleString() : "") : "Reconnect to reconcile research state. Controls are disabled.";
+    $("research-preflight").textContent = connected ? research.preflight.status.replaceAll("_", " ") + (research.preflight.reason ? " · " + research.preflight.reason : "") + (research.preflight.available ? " · Admission: your subnet registration, read at launch · Budget: yours to set, or none" : "") : "Reconnect to reconcile research state. Controls are disabled.";
     const reviewPanel = $("research-review"); reviewPanel.replaceChildren();
     const review = connected && research.preflight.review;
     if (review) {
@@ -446,7 +446,7 @@
       researchNote(reviewPanel, "Dependencies installed: " + review.execution.installed_dependencies + " · Device visibility: " + review.execution.device_visibility + " · Retained execution evidence: " + review.execution.runtime_evidence + " · Admission: " + review.execution.admission_readiness);
       researchNote(reviewPanel, "Model capabilities: " + review.capabilities.backbones.join(", ") + " · " + review.capabilities.selection);
       researchNote(reviewPanel, "Training: " + review.capabilities.training);
-      researchNote(reviewPanel, "Grant: " + review.grant.status + (review.grant.expired ? " · EXPIRED" : " · Before configured expiry") + " · " + new Date(review.grant.expires_unix * 1000).toLocaleString());
+      researchNote(reviewPanel, "Admission: " + review.admission.gate.replaceAll("_", " ").toLowerCase() + " · " + review.admission.basis);
       researchNote(reviewPanel, review.resources.basis);
       const details = document.createElement("details");
       const label = document.createElement("summary"); label.textContent = "Exact configured identities, capabilities and resource limits";
@@ -455,7 +455,7 @@
       details.append(label, data); reviewPanel.append(details);
     }
     $("research-launch").disabled = !connected || busy || storageError || !research.preflight.available;
-    $("research-launch").textContent = pendingResearch ? "Retry same research launch" : "Launch approved research";
+    $("research-launch").textContent = pendingResearch ? "Retry same research launch" : "Launch research";
     const container = $("research-runs"); container.replaceChildren();
     for (const run of research.runs) {
       const card = document.createElement("div"); card.className = "integration";

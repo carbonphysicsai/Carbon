@@ -64,7 +64,14 @@ def project(row, root):
     ):
         raise ValueError("campaign projection association differs")
     status = ledger.status(owner=manifest["owner"])
-    grant = json.loads(row["grant_record"])["document"]
+    # A product campaign (C-MLP-02-D11) has no expiry and, unless its miner set
+    # one, no elapsed budget; a retired-grant campaign keeps its grant's expiry.
+    # Absent bounds are no deadline, never a default one.
+    bounds = []
+    if row.get("grant_record") is not None:
+        bounds.append(json.loads(row["grant_record"])["document"]["expires_unix"])
+    if status["started_unix"] and manifest.get("elapsed_seconds") is not None:
+        bounds.append(status["started_unix"] + manifest["elapsed_seconds"])
     value.update(
         agent="carbon-autoresearch",
         reasoning=manifest["provider"]["model"],
@@ -76,13 +83,11 @@ def project(row, root):
             {"version", "prompt_digest", "stop_tool_digest"},
         ),
         started_unix=status["started_unix"],
-        deadline_unix=(
-            min(
-                status["started_unix"] + manifest["elapsed_seconds"],
-                grant["expires_unix"],
-            )
-            if status["started_unix"]
-            else None
+        deadline_unix=min(bounds) if status["started_unix"] and bounds else None,
+        admission=(
+            "RETIRED_DEVELOPMENT_GRANT"
+            if row.get("grant_record") is not None
+            else "SUBNET_REGISTRATION"
         ),
     )
     reported = dict.fromkeys(DIMENSIONS, 0)

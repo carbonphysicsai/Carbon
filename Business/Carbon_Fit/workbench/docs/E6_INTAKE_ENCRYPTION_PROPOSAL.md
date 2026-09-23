@@ -1,6 +1,10 @@
 # E6: encrypting the package before it is sent — a proposal
 
-Status: **proposed, not implemented.** This is the only part of E6 that asks
+Status: **approved under the owner's delegation, 2026-09-23 (GOAL-WORKBENCH-15).**
+The sealing format, key tool and unseal tool are built (`src/intake_seal.js`,
+`tools/intake_key.cjs`). The Pilot Designer button is not wired in yet: it waits
+for the owner's real key and a new Ask Carbon release candidate. The earlier
+status line read **proposed, not implemented.** This is the only part of E6 that asks
 someone outside Carbon to do something, so it waits for the owner. Nothing here
 changes the public Pilot Designer until the owner has seen the client steps.
 

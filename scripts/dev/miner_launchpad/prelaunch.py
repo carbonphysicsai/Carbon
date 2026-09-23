@@ -1,4 +1,8 @@
-"""Read-only, allow-listed review of configured authority, never admission.
+"""Read-only, allow-listed review of a miner's configured campaign, never admission.
+
+Admission is subnet registration, read at launch (C-MLP-02-D11). This review
+reports that it will be read; it does not read it, and a clean review is not a
+registration.
 
 No backend initialization, key access, ledger creation or task execution occurs.
 Expected dependencies and configured identities are not observations or evidence.
@@ -6,17 +10,11 @@ Expected dependencies and configured identities are not observations or evidence
 
 from __future__ import annotations
 
-import math
-import time
-
 from carbon.development_session.exam_environment import exam_environment
 from carbon.development_session.profile import CHALLENGE
-from carbon.development_session.research_admission import PROFILE, SCHEMA
 from carbon.development_session.research_catalog import public_catalog
-from carbon.development_session.research_ledger import (
-    DEVELOPMENT_CEILINGS,
-    SUGGESTED_FINAL_RESERVE,
-)
+from carbon.development_session.research_ledger import SERVICE_LIMITS
+from carbon.development_session.research_profile import PROFILE
 from carbon.reconstruction.profile import DEPENDENCY_SPECS, ENVIRONMENT_ID
 from carbon.scoring.development import rule_digest
 from scripts.dev.miner_launchpad.runner import (
@@ -25,29 +23,10 @@ from scripts.dev.miner_launchpad.runner import (
 )
 
 
-def review(cfg, doc):
-    if doc.get("schema") != SCHEMA or doc.get("profile") != PROFILE:
+def review(cfg):
+    runtime = cfg.get("runtime")
+    if type(runtime) is not dict:
         raise ValueError("unsupported review contract")
-    if doc.get("principal") != cfg.get("principal"):
-        raise ValueError("review owner mismatch")
-    caps = doc["ceilings"]
-    if (
-        type(caps) is not dict
-        or set(caps) != set(DEVELOPMENT_CEILINGS)
-        or any(
-            type(v) is not int
-            or not SUGGESTED_FINAL_RESERVE.get(k, 0) <= v <= DEVELOPMENT_CEILINGS[k]
-            for k, v in caps.items()
-        )
-    ):
-        raise ValueError("invalid review resource bounds")
-    expiry = doc["expires_unix"]
-    if type(expiry) not in (int, float) or not math.isfinite(expiry):
-        raise ValueError("invalid review expiry")
-    status = doc["status"]
-    if status not in {"APPROVED", "REQUESTED_NOT_GRANTED", "REVOKED"}:
-        raise ValueError("unknown grant state")
-    runtime = doc["runtime"]
     # Historical engineering fixtures may have nominal runtime values. These
     # do not become asserted image identities in the new review projection.
     implementation = runtime.get("implementation")
@@ -81,16 +60,10 @@ def review(cfg, doc):
         blockers.append("OWNER_EXPERIMENT_PAUSE")
     if cfg.get("enabled") is not True:
         blockers.append("OPERATOR_DISPATCH_DISABLED")
-    if status != "APPROVED":
-        blockers.append("GRANT_NOT_APPROVED")
-    if time.time() >= expiry:
-        blockers.append("GRANT_EXPIRED")
     if type(implementation) is dict and cfg.get(
         "accepted_revision"
     ) != implementation.get("revision"):
         blockers.append("RUNTIME_REVISION_MISMATCH")
-    if cfg.get("account_ref") != doc.get("account_ref"):
-        blockers.append("ACCOUNT_BINDING_MISMATCH")
     if not set(runtime) <= SUPPORTED_RUNTIME_KEYS:
         blockers.append("LAUNCHPAD_CAMPAIGN_RUNTIME_COMPOSITION_UNAVAILABLE")
     if not REQUIRED_RUNTIME_KEYS <= set(runtime):
@@ -124,19 +97,15 @@ def review(cfg, doc):
         ),
         "dispatch_enabled": cfg.get("enabled") is True,
         "blockers": blockers,
-        "grant": {
-            "status": status,
-            "expired": time.time() >= expiry,
-            "expires_unix": expiry,
-            "validity": "RECHECKED_BY_ADMISSION_ON_DISPATCH",
+        "admission": {
+            "gate": "SUBNET_REGISTRATION",
+            "checked": "AT_LAUNCH_BEFORE_ANYTHING_IS_RECORDED",
+            "basis": "Registration on the subnet is the only thing that admits a campaign. It is read from the chain when you launch, and again on every research call. No grant or approval exists on this path.",
         },
         "resources": {
-            "configured_ceilings": caps,
-            "final_evaluation_reserve": dict(SUGGESTED_FINAL_RESERVE),
-            "maximum_exploration": {
-                k: v - SUGGESTED_FINAL_RESERVE.get(k, 0) for k, v in caps.items()
-            },
-            "basis": "A development grant envelope - Carbon's owner capping Carbon's spend on Carbon's accounts for a bounded experiment. Not a miner budget and not a cap on a miner's own resources. CampaignLedger owns actual usage and reservations.",
+            "miner_budget": "SET_AT_LAUNCH_OR_NONE",
+            "carbon_service_limits": dict(SERVICE_LIMITS),
+            "basis": "Your budget is yours to set when you launch, per dimension, or not at all; with none set, nothing is capped and nothing is blocked. Carbon's service limits bound Carbon's own shared reference service, never your resources. CampaignLedger owns actual usage and reservations.",
         },
         "runtime": {
             "implementation": identities,
@@ -194,7 +163,7 @@ def review(cfg, doc):
             "connection_configured": cfg.get("enabled") is True,
             "dependencies_inspected": False,
             "compatible_runtime_available": "NOT_OBSERVED_BY_REVIEW",
-            "user_consent_active": status == "APPROVED" and time.time() < expiry,
+            "registration_checked": "AT_LAUNCH",
             "task_admitted": False,
             "device_execution_observed": False,
             "task_completed": False,

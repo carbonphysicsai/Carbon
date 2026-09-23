@@ -165,18 +165,8 @@ class ResearchFixture:
             "available": True,
             "profile": "engineering-fixture",
             "status": "ENGINEERING_FIXTURE_ONLY",
-            "ceilings": {
-                "provider_nanodollars": 500000000,
-                "provider_attempts": 24,
-                "research_trials": 4,
-                "final_replicas": 12,
-                "numerical_milliseconds": 14400000,
-                "reference_trajectories": 512,
-                "reference_invocations": 2048,
-                "retained_bytes": 10737418240,
-                "epochs": 2,
-            },
-            "expires_unix": 21600,
+            "admission": "SUBNET_REGISTRATION_CHECKED_AT_LAUNCH",
+            "budget": "SET_BY_MINER_AT_LAUNCH_OR_NONE",
             "research_guidance": self.guidance,
             "review_digest": "fixture-review-pin",
             "runtime_revision": "fixture-runtime-no-execution",
@@ -198,14 +188,15 @@ class ResearchFixture:
                     "selection": "Unselected",
                     "training": "Unexecuted fixture",
                 },
-                "grant": {
-                    "status": "REQUESTED_NOT_GRANTED",
-                    "expired": True,
-                    "expires_unix": 21600,
+                "admission": {
+                    "gate": "SUBNET_REGISTRATION",
+                    "checked": "AT_LAUNCH_BEFORE_ANYTHING_IS_RECORDED",
+                    "basis": "Fixture: registration is read at launch.",
                 },
                 "resources": {
-                    "basis": "Fixture limits only; not remaining balance",
-                    "final_evaluation_reserve": {"provider_nanodollars": 163840000},
+                    "miner_budget": "SET_AT_LAUNCH_OR_NONE",
+                    "carbon_service_limits": {"reference_trajectories": 512},
+                    "basis": "Fixture: your budget, or none.",
                 },
             },
         }
@@ -565,13 +556,22 @@ def run():
                         "document.getElementById('research-preflight').textContent.includes('Owner experiment pause is active')",
                     )
                     assert not research.keys
+                    # Registration is the gate a miner is told about, in rendered
+                    # text; no grant is named anywhere in the research panel.
                     assert session.evaluate(
-                        "document.getElementById('research-review').textContent.includes('NOT_OBSERVED') && document.getElementById('research-review').textContent.includes('REQUESTED_NOT_GRANTED')"
+                        "document.getElementById('research-review').textContent.includes('NOT_OBSERVED') && document.getElementById('research-review').textContent.includes('Admission: subnet registration')"
                     )
                     research.preflight = original_preflight
                     wait(
                         session, "!document.getElementById('research-launch').disabled"
                     )
+                    assert session.evaluate(
+                        "document.getElementById('research-preflight').textContent.includes('your subnet registration, read at launch') && document.getElementById('research-launch').textContent === 'Launch research'"
+                    )
+                    panel = session.evaluate(
+                        "document.getElementById('research-heading').closest('section').textContent"
+                    )
+                    assert "grant" not in panel.lower(), panel[:300]
 
                     def lost_research_response(value, key):
                         research_launch(value, key)
@@ -818,7 +818,7 @@ def run():
             finally:
                 session.close()
     print(
-        "Launchpad browser/server smoke passed: connect, public exam disclosure and research compute choices without a grant or agent, launch, lost-response/reload retry, pause/resume/stop, export, storage failure, restart, expiry, desktop/mobile, fixture readback/export invalidation. No scientific campaign ran."
+        "Launchpad browser/server smoke passed: connect, public exam disclosure and research compute choices without a grant or agent, registration onboarding (coldkey warning, requirements, refused recovery phrase), research admission shown as subnet registration with no grant named, launch, lost-response/reload retry, pause/resume/stop, export, storage failure, restart, expiry, desktop/mobile, fixture readback/export invalidation. No scientific campaign ran."
     )
 
 
