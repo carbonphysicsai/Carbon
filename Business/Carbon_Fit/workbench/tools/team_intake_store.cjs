@@ -4,10 +4,16 @@ const crypto = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");
 const F = require("../src/engine.js");
+const { ArchiveKeyDestroyed, ArchiveKeyring } = require("./team_archive_keyring.cjs");
 const I = require("../src/intake.js");
 const { isAuthenticatedPrincipal } = require("./team_staff_directory.cjs");
 
 const STORE_VERSION = "carbon.private-team-intake.store.v3";
+// On disk only. The file carries the v3 state with every record's client content
+// sealed under that record's own archive key (E1); in memory the store is v3.
+const SEALED_STORE_VERSION = "carbon.private-team-intake.store.v4-sealed";
+const SEALED_FIELDS = ["raw_json", "validated_draft", "reviewed_package", "team_fields", "assessments"];
+const KEY_DESTROYED = "ARCHIVE_KEY_DESTROYED";
 const STORE_VERSION_V2 = "carbon.private-team-intake.store.v2";
 const LEGACY_STORE_VERSION = "carbon.private-team-intake.store.v1";
 const RETENTION_VERSION = "carbon.private-team-intake.retention.v1";
@@ -131,7 +137,57 @@ function ownedRecord(store, inquiryId, principal) {
   safeKey(inquiryId, "inquiry ID");
   const record = store.state.inquiries[inquiryId];
   if (!record || record.owner_team !== principal.team) throw Error("Inquiry not found");
+  // A record whose archive key was destroyed is present as bytes and readable
+  // by nobody. It is refused here, for every action, rather than returned empty.
+  if (record.lifecycle === KEY_DESTROYED)
+    throw Object.assign(Error("Inquiry content is unreadable: its archive key was destroyed"), { status: 410 });
   return record;
+}
+
+const sealContext = (inquiryId) => "carbon.private-team-intake:" + inquiryId;
+
+/** The on-disk form: every record's client content sealed under its own key. */
+function sealStore(state, keyring) {
+  const out = clone(state);
+  out.schema_version = SEALED_STORE_VERSION;
+  for (const [id, record] of Object.entries(out.inquiries)) {
+    if (record.lifecycle === KEY_DESTROYED) {
+      const { unreadable_sealed: sealed = null, assessments: _a, ...metadata } = record;
+      out.inquiries[id] = { ...metadata, sealed };
+      continue;
+    }
+    const content = Object.fromEntries(SEALED_FIELDS.map((field) => [field, record[field]]));
+    const metadata = Object.fromEntries(Object.entries(record).filter(([field]) => !SEALED_FIELDS.includes(field)));
+    out.inquiries[id] = { ...metadata, sealed: keyring.seal(record.archive_key_id, content, sealContext(id)) };
+  }
+  return out;
+}
+
+/** Back to the v3 state. A record whose key is gone stays, unreadable. */
+function unsealStore(value, keyring) {
+  // Read the keyring as it is now, so a key destroyed through another handle
+  // is seen as destroyed here too.
+  keyring.refresh();
+  const out = clone(value);
+  out.schema_version = STORE_VERSION;
+  for (const [id, record] of Object.entries(out.inquiries)) {
+    const { sealed, ...metadata } = record;
+    if (sealed === undefined) throw Error("Invalid private intake store: an unsealed record in a sealed store");
+    try {
+      if (sealed === null) throw new ArchiveKeyDestroyed(record.archive_key_id);
+      out.inquiries[id] = { ...metadata, ...keyring.open(sealed, sealContext(id)) };
+    } catch (error) {
+      if (!(error instanceof ArchiveKeyDestroyed)) throw error;
+      out.inquiries[id] = {
+        ...metadata,
+        lifecycle: KEY_DESTROYED,
+        history_origin: KEY_DESTROYED,
+        assessments: [],
+        unreadable_sealed: sealed,
+      };
+    }
+  }
+  return out;
 }
 
 function validateStore(value) {
@@ -312,14 +368,32 @@ class DurableIntakeStore {
       );
     this.writeCeilingBytes = ceiling;
     this.filePath = path.resolve(filePath);
-    this.state = fs.existsSync(this.filePath)
-      ? validateStore(
-          F.strictJsonParse(fs.readFileSync(this.filePath, "utf8"), {
-            maxBytes: READ_LIMIT_BYTES,
-            maxDepth: 18,
-          }),
-        )
+    // E1: client records are encrypted from the first one. A store without a
+    // keyring cannot be opened at all, so there is no path that writes a
+    // plaintext record and encrypts it later.
+    if (!(options.keyring instanceof ArchiveKeyring))
+      throw Error("A private intake store requires an archive keyring: client records are encrypted from the first one");
+    this.keyring = options.keyring;
+    const onDisk = fs.existsSync(this.filePath)
+      ? F.strictJsonParse(fs.readFileSync(this.filePath, "utf8"), {
+          maxBytes: READ_LIMIT_BYTES,
+          maxDepth: 18,
+        })
+      : null;
+    // A store written before E1 holds plaintext. It is opened as it is and
+    // sealed by the next write, which `sealAtRest` makes happen immediately.
+    this.plaintextAtRest = Boolean(onDisk && onDisk.schema_version !== SEALED_STORE_VERSION && Object.keys(onDisk.inquiries || {}).length);
+    this.state = onDisk
+      ? validateStore(onDisk.schema_version === SEALED_STORE_VERSION ? unsealStore(onDisk, this.keyring) : onDisk)
       : emptyStore();
+  }
+
+  /** Rewrite a pre-E1 plaintext store sealed. Earlier plaintext copies remain. */
+  sealAtRest() {
+    if (!this.plaintextAtRest) return false;
+    this.persist(clone(this.state));
+    this.plaintextAtRest = false;
+    return true;
   }
 
   /** Take the single-writer lock for this store file, or refuse to start.
@@ -406,9 +480,11 @@ class DurableIntakeStore {
       read_limit_bytes: READ_LIMIT_BYTES,
       remaining_bytes: remaining,
       // At the worst case this class can actually be handed: a 120 KB package
-      // retained three ways. Deliberately pessimistic, because the number an
-      // operator needs is the one that cannot surprise them.
-      worst_case_inquiries_remaining: Math.floor(remaining / (120_000 * 2.88)),
+      // retained three ways (measured at 2.88 times its size), then sealed,
+      // which base64 expands by a further 4/3. Deliberately pessimistic,
+      // because the number an operator needs is the one that cannot surprise
+      // them.
+      worst_case_inquiries_remaining: Math.floor(remaining / ((120_000 * 2.88 * 4) / 3)),
       inquiries: Object.keys(this.state.inquiries).length,
     };
   }
@@ -447,7 +523,11 @@ class DurableIntakeStore {
     // The name is unique per attempt and the file is removed on every failure
     // path. A fixed name plus an exclusive create meant that one failed write
     // left a file behind that blocked every later write with EEXIST.
-    const serialised = JSON.stringify(next, null, 2) + "\n";
+    // Every record gets its own key the first time it is written, and the key
+    // is durable before the store that depends on it.
+    for (const record of Object.values(next.inquiries))
+      if (!record.archive_key_id && record.lifecycle !== KEY_DESTROYED) record.archive_key_id = this.keyring.create();
+    const serialised = JSON.stringify(sealStore(next, this.keyring), null, 2) + "\n";
     // Refused before a temporary file exists, so a refusal writes nothing at
     // all and the committed store stays exactly as it was — and stays openable,
     // which is the whole point of having a ceiling.
@@ -739,6 +819,24 @@ class DurableIntakeStore {
       throw Error(
         "Deletion requires an approved retention exception for this inquiry",
       );
+    // The key goes first. Once it is destroyed every copy of this record, the
+    // store file and any backup or archive copy of it, is unreadable, even
+    // though those bytes remain. If the write below then failed, the record
+    // would still be present and still unreadable, which is the safe side.
+    const keyDestroyed = existing.archive_key_id
+      ? this.keyring.destroy(existing.archive_key_id, { reason: exception.exception_id })
+      : null;
+    if (keyDestroyed)
+      this.state.inquiries[inquiryId] = {
+        inquiry_id: inquiryId,
+        owner_team: existing.owner_team,
+        archive_key_id: existing.archive_key_id,
+        lifecycle: KEY_DESTROYED,
+        history_origin: KEY_DESTROYED,
+        assessments: [],
+        version: existing.version,
+        unreadable_sealed: null,
+      };
     const next = clone(this.state);
     delete next.inquiries[inquiryId];
     for (const [key, value] of Object.entries(next.idempotency))
@@ -757,6 +855,10 @@ class DurableIntakeStore {
       // be a promise this store cannot keep.
       reached: [...exception.reaches],
       did_not_reach: [...exception.cannot_reach],
+      // The retained archive's bytes are not reached. Its key is, which is what
+      // makes those bytes unreadable; the two statements are both true.
+      archive_key: keyDestroyed ? "DESTROYED" : "NONE_HELD",
+      archive_key_destroyed_at: keyDestroyed ? keyDestroyed.destroyed_at : null,
     };
     this.persist(next);
     return clone(next.tombstones[inquiryId]);
@@ -825,6 +927,7 @@ class DurableIntakeStore {
 }
 
 module.exports = {
+  SEALED_STORE_VERSION,
   DEFAULT_WRITE_CEILING_BYTES,
   READ_LIMIT_BYTES,
   STORE_VERSION,

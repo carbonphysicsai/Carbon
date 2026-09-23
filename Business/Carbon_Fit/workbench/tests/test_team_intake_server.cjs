@@ -1,4 +1,5 @@
 "use strict";
+const { openStore } = require("./staff_fixture.cjs");
 // Real HTTP against the real private receiver, its real durable store and its
 // real role checks. Nothing here is a public receiver, a delivered notification
 // or a live customer submission.
@@ -121,7 +122,7 @@ async function started() {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), "carbon-intake-server-"));
   const usersFile = path.join(directory, "users.json");
   fs.writeFileSync(usersFile, JSON.stringify(USERS));
-  const store = new DurableIntakeStore(path.join(directory, "store.json"), {
+  const store = openStore(path.join(directory, "store.json"), {
     destination: "Hello@carbonphysics.ai",
   });
   const server = createIntakeServer({ store, users: loadUsers(usersFile) });
@@ -187,7 +188,7 @@ test("one inquiry and one notification intent survive a lost response and a rest
     });
     assert.equal(conflict.status, 409);
 
-    const reopened = new DurableIntakeStore(fixture.store.filePath);
+    const reopened = openStore(fixture.store.filePath);
     assert.equal(Object.keys(reopened.state.inquiries).length, 1);
     assert.equal(Object.keys(reopened.state.outbox).length, 1);
   } finally {
@@ -383,7 +384,7 @@ test("hostile request bodies and unknown routes reject without storing anything"
       (await fixture.call("GET", "/private/intake/inquiry-absent", { token: TOKENS.reviewer })).status,
       404,
     );
-    const reopened = new DurableIntakeStore(fixture.store.filePath);
+    const reopened = openStore(fixture.store.filePath);
     assert.deepEqual(Object.keys(reopened.state.inquiries), []);
   } finally {
     fixture.close();
@@ -501,10 +502,10 @@ test("a store with no room refuses with insufficient storage, not bad request", 
   const usersFile = path.join(directory, "users.json");
   fs.writeFileSync(usersFile, JSON.stringify(USERS));
   const storePath = path.join(directory, "store.json");
-  const roomy = new DurableIntakeStore(storePath);
+  const roomy = openStore(storePath);
   const first = await roomy.accept(reviewedRaw(), "capacity-001", principalFor(loadUsers(usersFile), TOKENS.receiver));
 
-  const store = new DurableIntakeStore(storePath, {
+  const store = openStore(storePath, {
     writeCeilingBytes: fs.statSync(storePath).size + 32,
   });
   const server = createIntakeServer({ store, users: loadUsers(usersFile) });

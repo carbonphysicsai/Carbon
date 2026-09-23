@@ -106,6 +106,7 @@ credentials themselves at mode 0600, and neither is ever committed.
 PRIV="$HOME/.carbon/private/stage1"          # outside the checkout
 export CARBON_TEAM_INTAKE_STORE="$PRIV/store.json"
 export CARBON_TEAM_USERS_FILE="$PRIV/users.json"
+export CARBON_TEAM_ARCHIVE_KEYRING="$HOME/.carbon/private/stage1-keys/keyring.json"  # E1: outside the store's directory
 export CARBON_TEAM_INTAKE_PORT=8789
 unset CARBON_TEAM_NOTIFY_DESTINATION          # deliberately unset
 node Business/Carbon_Fit/workbench/tools/team_intake_server.cjs
@@ -187,6 +188,48 @@ retained, so the worst case is about 346 KB per inquiry — roughly 92 worst-cas
 inquiries or about 1,380 fixture-sized ones. The binding cost is not parsing (a
 72 MB store parses in about 570 ms) but that every accepted inquiry rewrites the
 whole file, so the ceiling sits where a write stays comfortably sub-second.
+
+With sealing (E1, below) a record costs a further 4/3 on disk, because its
+sealed content is base64. The worst case is then about 461 KB per inquiry, or
+roughly 72 worst-case inquiries under the same ceiling. The ceiling itself is
+unchanged. The 92 above is the plaintext figure it was set from.
+
+**Encryption at rest and key destruction (E1).** Every record's client content
+(the raw package, the validated draft, the reviewed package, the team fields and
+the assessment history) is sealed on disk with AES-256-GCM, under a key that
+belongs to that record alone. No key is shared, so no key spans two clients. The
+seal is bound to the record's identity, so sealed content moved onto another
+record is refused on open. In memory the running receiver holds plaintext. On
+disk, and in every backup or archive copy of the file, there is only
+ciphertext.
+
+The keys live in a separate keyring file, set by `CARBON_TEAM_ARCHIVE_KEYRING`.
+The receiver will not start without one, and a store cannot be opened without
+one, so there is no path that writes a plaintext record and encrypts it later.
+**The keyring must not be backed up with the store.** A backup holding both the
+ciphertext and its keys is a plaintext backup. So the keyring is refused inside
+the store's directory, and it has to be excluded from whatever backs the store up.
+
+On an approved deletion exception, the record's key is destroyed **first**.
+Only its tombstone remains, and it is written durably before the record is
+removed. Every copy of that record, in the store and in any backup or archive,
+is then unreadable, although the bytes remain. Opening such a copy shows the
+record as `ARCHIVE_KEY_DESTROYED`, and every action on it answers `410`. The
+tombstone keeps `RETAINED_ARCHIVE` in `did_not_reach`, because the bytes are not
+reached, and records `archive_key: DESTROYED`: both statements are true.
+
+A store written before E1 is sealed when the receiver starts. Copies of it made
+before that are plaintext and stay plaintext.
+
+**For the security review, not settled here:**
+
+- The keyring holds key material in the clear, in a `0600` file. There is no key
+  wrapping, HSM or KMS.
+- A destroyed key is removed by rewriting the file. Blocks the filesystem once
+  held are not scrubbed.
+- A keyring that was backed up carries its keys into that backup. Destroying a
+  key does not reach a backup of the keyring.
+- The running process holds plaintext in memory.
 
 **Check headroom before it matters**, rather than discovering it on a refusal:
 

@@ -137,7 +137,9 @@ def start_receiver(root: Path):
     port = free_port()
     environment = {
         **os.environ,
-        "CARBON_TEAM_INTAKE_STORE": str(root / "receiver-store.json"),
+        # E1: the keyring lives outside the store's directory.
+        "CARBON_TEAM_INTAKE_STORE": str(root / "receiver-store" / "store.json"),
+        "CARBON_TEAM_ARCHIVE_KEYRING": str(root / "receiver-keys" / "keyring.json"),
         "CARBON_TEAM_USERS_FILE": str(users),
         "CARBON_TEAM_INTAKE_PORT": str(port),
     }

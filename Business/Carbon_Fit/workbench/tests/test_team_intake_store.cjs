@@ -8,11 +8,15 @@ const path = require("node:path");
 if (!globalThis.crypto) globalThis.crypto = crypto.webcrypto;
 const I = require("../src/intake.js");
 const F = require("../src/engine.js");
-const { DurableIntakeStore, STORE_VERSION } = require("../tools/team_intake_store.cjs");
+const {
+  DurableIntakeStore,
+  STORE_VERSION,
+  SEALED_STORE_VERSION,
+} = require("../tools/team_intake_store.cjs");
 const ROOT = path.resolve(__dirname, "..");
 
 const { StaffDirectory, StaffPrincipal } = require("../tools/team_staff_directory.cjs");
-const { enrolled, principalFor } = require("./staff_fixture.cjs");
+const { enrolled, keyringFor, openStore, principalFor } = require("./staff_fixture.cjs");
 
 // Principals are authenticated rather than declared. The literals these
 // replaced asserted their own roles, which meant the store was trusting its
@@ -104,7 +108,7 @@ function temporaryStore() {
   return {
     directory,
     file: path.join(directory, "store.json"),
-    store: new DurableIntakeStore(path.join(directory, "store.json")),
+    store: openStore(path.join(directory, "store.json")),
   };
 }
 
@@ -113,7 +117,7 @@ test("accepted inquiry is durable before receipt and exact response-loss retry d
   const first = await fixture.store.accept(raw, "retry-key-001", roles.receiver);
   assert.equal(first.disposition, "ACCEPTED");
   assert.equal(fs.existsSync(fixture.file), true);
-  const restarted = new DurableIntakeStore(fixture.file);
+  const restarted = openStore(fixture.file);
   const second = await restarted.accept(raw, "retry-key-001", roles.receiver);
   assert.equal(second.disposition, "DEDUPLICATED");
   assert.equal(Object.keys(restarted.state.inquiries).length, 1);
@@ -237,7 +241,7 @@ test("team assessments are append-only and retain every superseded revision", as
   assert.equal(second.assessments[1].recorded_by, "synthetic-reviewer");
   assert.equal(second.assessments[1].superseded_by, "synthetic-second-reviewer");
   assert.equal(second.team_fields.note, "Corrected.");
-  const restarted = new DurableIntakeStore(fixture.file);
+  const restarted = openStore(fixture.file);
   assert.equal(restarted.read(receipt.inquiry_id, roles.reviewer).assessments.length, 2);
 });
 
@@ -252,7 +256,7 @@ test("a v1 store migrates without inventing a history it never retained", async 
     delete record.history_origin;
   }
   fs.writeFileSync(fixture.file, JSON.stringify(legacy, null, 2) + "\n");
-  const migrated = new DurableIntakeStore(fixture.file);
+  const migrated = openStore(fixture.file);
   const record = migrated.read(receipt.inquiry_id, roles.reviewer);
   assert.deepEqual(record.assessments, []);
   assert.equal(record.history_origin, "MIGRATED_V1_NO_RETAINED_HISTORY");
@@ -265,7 +269,7 @@ test("a native store whose retained history was edited is refused", async () => 
   const tampered = JSON.parse(fs.readFileSync(fixture.file, "utf8"));
   for (const record of Object.values(tampered.inquiries)) record.version = 9;
   fs.writeFileSync(fixture.file, JSON.stringify(tampered, null, 2) + "\n");
-  assert.throws(() => new DurableIntakeStore(fixture.file), /does not match the record version/);
+  assert.throws(() => openStore(fixture.file), /does not match the record version/);
 });
 
 test("the queued notification carries a minimal summary and no client content", async () => {
@@ -324,7 +328,7 @@ test("with no configured transport an attempt fails observably and never claims 
 
 test("a configured destination is recorded without opening any connection", async () => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), "carbon-team-intake-"));
-  const store = new DurableIntakeStore(path.join(directory, "store.json"), {
+  const store = openStore(path.join(directory, "store.json"), {
     destination: "Hello@carbonphysics.ai",
   });
   const receipt = await store.accept(reviewedRaw(), "retry-key-012", roles.receiver);
@@ -393,7 +397,7 @@ test("completing a notification keeps writes made during the await window", asyn
   assert.throws(() => fixture.store.read(second.inquiry_id, roles.reviewer), /not found/);
   assert.equal(Boolean(fixture.store.state.tombstones[second.inquiry_id]), true);
   // The same must hold on disk, not only in memory.
-  const restarted = new DurableIntakeStore(fixture.file);
+  const restarted = openStore(fixture.file);
   assert.equal(restarted.read(receipt.inquiry_id, roles.reviewer).team_fields.note, "Filed mid-delivery.");
   assert.equal(restarted.state.outbox["notify-" + receipt.inquiry_id].status, "DELIVERED");
   assert.equal(restarted.state.inquiries[second.inquiry_id], undefined);
@@ -439,7 +443,7 @@ test("a transient flush failure does not block every later write", async () => {
     roles.reviewer,
   );
   assert.equal(updated.team_fields.note, "recovered");
-  assert.equal(new DurableIntakeStore(fixture.file).read(inquiryId, roles.reviewer).team_fields.note, "recovered");
+  assert.equal(openStore(fixture.file).read(inquiryId, roles.reviewer).team_fields.note, "recovered");
 });
 
 test("a delivery in flight cannot resurrect an inquiry deleted during its await", async () => {
@@ -458,7 +462,7 @@ test("a delivery in flight cannot resurrect an inquiry deleted during its await"
   await assert.rejects(() => delivering, /removed while its delivery was in flight/);
   assert.equal(fixture.store.state.outbox[eventId], undefined);
   assert.equal(fixture.store.state.inquiries[receipt.inquiry_id], undefined);
-  const restarted = new DurableIntakeStore(fixture.file);
+  const restarted = openStore(fixture.file);
   assert.equal(restarted.state.outbox[eventId], undefined);
   assert.equal(restarted.state.inquiries[receipt.inquiry_id], undefined);
   assert.equal(Boolean(restarted.state.tombstones[receipt.inquiry_id]), true);
@@ -512,7 +516,7 @@ test("archiving retains the record and removes it from the working set", async (
   assert.equal(restored.lifecycle, "ACTIVE");
   assert.equal(restored.retention.restored_by, "synthetic-steward");
   assert.equal(fixture.store.search(roles.reviewer).length, 1);
-  assert.equal(new DurableIntakeStore(fixture.file).read(receipt.inquiry_id, roles.reviewer).lifecycle, "ACTIVE");
+  assert.equal(openStore(fixture.file).read(receipt.inquiry_id, roles.reviewer).lifecycle, "ACTIVE");
 });
 
 test("a deletion exception is named, reasoned and bounded", async () => {
@@ -550,20 +554,21 @@ test("a tombstone states what the deletion did not reach", async () => {
   // be a promise this store cannot keep, so the tombstone says so instead.
   assert.deepEqual(tombstone.did_not_reach, ["RETAINED_ARCHIVE", "PRIOR_EXPORTS", "PROVIDER_RECORDS"]);
   assert.equal(JSON.stringify(fixture.store.state).includes("Compare the reported baseline"), false);
-  assert.equal(new DurableIntakeStore(fixture.file).state.tombstones[receipt.inquiry_id].did_not_reach.length, 3);
+  assert.equal(openStore(fixture.file).state.tombstones[receipt.inquiry_id].did_not_reach.length, 3);
 });
 
 test("a v2 store migrates to versioned retention without back-dating an archive", async () => {
   const fixture = temporaryStore();
   const receipt = await fixture.store.accept(reviewedRaw(), "retention-004", roles.receiver);
-  const legacy = JSON.parse(fs.readFileSync(fixture.file, "utf8"));
+  // A v2 store predates E1, so it is plaintext: built from the in-memory state.
+  const legacy = JSON.parse(JSON.stringify(fixture.store.state));
   legacy.schema_version = "carbon.private-team-intake.store.v2";
   delete legacy.exceptions;
   for (const record of Object.values(legacy.inquiries))
     record.retention = { policy: "LOCAL_SYNTHETIC_DELETE_ON_REQUEST", production_period: null };
   fs.writeFileSync(fixture.file, JSON.stringify(legacy, null, 2) + "\n");
 
-  const migrated = new DurableIntakeStore(fixture.file);
+  const migrated = openStore(fixture.file);
   const record = migrated.read(receipt.inquiry_id, roles.reviewer);
   assert.equal(record.retention.schema_version, "carbon.private-team-intake.retention.v1");
   assert.equal(record.retention.disposition, "ARCHIVE_INDEFINITE");
@@ -591,7 +596,7 @@ const clone = (value) => JSON.parse(JSON.stringify(value));
 function variantStore(file, overrides) {
   class NonConforming extends DurableIntakeStore {}
   Object.assign(NonConforming.prototype, overrides);
-  return new NonConforming(file);
+  return new NonConforming(file, { keyring: keyringFor(file) });
 }
 
 const RETENTION_GUARANTEES = [
@@ -710,7 +715,7 @@ test("the migration check rejects a store that back-dates an archive", async () 
   record.retention = { ...record.retention, archived_at: record.accepted_at, archived_by: "migration" };
   fs.writeFileSync(fixture.file, JSON.stringify(forged, null, 2) + "\n");
 
-  const reopened = new DurableIntakeStore(fixture.file);
+  const reopened = openStore(fixture.file);
   assert.throws(() => {
     assert.equal(reopened.read(receipt.inquiry_id, roles.reviewer).retention.archived_at, null);
   });
@@ -814,6 +819,9 @@ test("every store endpoint refuses a caller that was never authenticated", async
     "persist",
     "acquireWriterLock",
     "releaseWriterLock",
+    // Seals a pre-E1 plaintext store at startup, under the writer lock, before
+    // any staff identity exists. It discloses nothing and returns a boolean.
+    "sealAtRest",
   ]);
   const endpoints = Object.getOwnPropertyNames(DurableIntakeStore.prototype)
     .filter((name) => !exempt.has(name) && typeof fixture.store[name] === "function");
@@ -886,13 +894,14 @@ test("a principal from another team is refused as if the inquiry did not exist",
 test("a migrated record has no owning team and is reachable by nobody", async () => {
   const fixture = temporaryStore();
   const receipt = await fixture.store.accept(reviewedRaw(), "role-003", roles.receiver);
-  const legacy = JSON.parse(fs.readFileSync(fixture.file, "utf8"));
+  // A v2 store predates E1, so it is plaintext: built from the in-memory state.
+  const legacy = JSON.parse(JSON.stringify(fixture.store.state));
   legacy.schema_version = "carbon.private-team-intake.store.v2";
   delete legacy.exceptions;
   for (const record of Object.values(legacy.inquiries)) delete record.owner_team;
   fs.writeFileSync(fixture.file, JSON.stringify(legacy, null, 2) + "\n");
 
-  const migrated = new DurableIntakeStore(fixture.file);
+  const migrated = openStore(fixture.file);
   // Not a guessed team, and not a team at all: the placeholder is upper case
   // and a directory team cannot be, so no account can ever match it.
   assert.equal(migrated.state.inquiries[receipt.inquiry_id].owner_team, "MIGRATED_TEAM_UNASSIGNED");
@@ -919,12 +928,12 @@ test("a store interrupted before its rename restarts on the last good state", as
   // exist and the directory entry never moved, so the committed state is the
   // one before them — including a revision the dead process was mid-way
   // through, which must not be half-applied.
-  const doomed = JSON.parse(fs.readFileSync(fixture.file, "utf8"));
+  const doomed = JSON.parse(JSON.stringify(fixture.store.state));
   doomed.inquiries[receipt.inquiry_id].team_fields.note = "Never committed.";
   doomed.inquiries[receipt.inquiry_id].version = 99;
   fs.writeFileSync(fixture.file + ".tmp-" + process.pid + "-interrupted", JSON.stringify(doomed));
 
-  const restarted = new DurableIntakeStore(fixture.file);
+  const restarted = openStore(fixture.file);
   const record = restarted.read(receipt.inquiry_id, roles.reviewer);
   assert.equal(record.team_fields.note, "Committed.");
   assert.equal(record.version, 2);
@@ -942,7 +951,7 @@ test("a store interrupted before its rename restarts on the last good state", as
     roles.reviewer,
   );
   assert.equal(updated.version, 3);
-  assert.equal(new DurableIntakeStore(fixture.file).read(receipt.inquiry_id, roles.reviewer).version, 3);
+  assert.equal(openStore(fixture.file).read(receipt.inquiry_id, roles.reviewer).version, 3);
 });
 
 test("a damaged store refuses to open rather than starting empty", async () => {
@@ -958,15 +967,15 @@ test("a damaged store refuses to open rather than starting empty", async () => {
     ["empty", ""],
     ["not json", "recovered from backup?"],
     ["json but not a store", JSON.stringify({ inquiries: {} })],
-    ["unknown schema", good.replace(STORE_VERSION, "carbon.private-team-intake.store.v9")],
+    ["unknown schema", good.replace(SEALED_STORE_VERSION, "carbon.private-team-intake.store.v9")],
   ]) {
     fs.writeFileSync(fixture.file, bytes);
-    assert.throws(() => new DurableIntakeStore(fixture.file), Error, name);
+    assert.throws(() => openStore(fixture.file), Error, name);
   }
 
   // The operator restores the file; nothing about the refusals damaged it.
   fs.writeFileSync(fixture.file, good);
-  const reopened = new DurableIntakeStore(fixture.file);
+  const reopened = openStore(fixture.file);
   assert.equal(reopened.read(receipt.inquiry_id, roles.reviewer).inquiry_id, receipt.inquiry_id);
   // The idempotency index survived, so the client's retry still deduplicates.
   assert.equal(
@@ -990,7 +999,7 @@ test("a failed write leaves the previous committed state readable", async () => 
 
   // The deletion did not happen and does not half-happen: no tombstone, the
   // record intact, and no debris from the attempt.
-  const reopened = new DurableIntakeStore(fixture.file);
+  const reopened = openStore(fixture.file);
   assert.deepEqual(Object.keys(reopened.state.tombstones), []);
   assert.equal(reopened.read(first.inquiry_id, roles.reviewer).inquiry_id, first.inquiry_id);
   assert.deepEqual(reopened.pendingWriteDebris(roles.steward), []);
@@ -1019,7 +1028,7 @@ test("the retention lifecycle is append-only across an archive and restore cycle
   // archive's fields, so without the history the first archive never happened.
   assert.equal(record.retention.archived_by, "synthetic-steward");
   assert.equal(record.retention_events.filter((e) => e.action === "ARCHIVED").length, 2);
-  assert.equal(new DurableIntakeStore(fixture.file).read(receipt.inquiry_id, roles.reviewer)
+  assert.equal(openStore(fixture.file).read(receipt.inquiry_id, roles.reviewer)
     .retention_events.length, 4);
 });
 
@@ -1037,7 +1046,7 @@ test("a retention history with an entry removed is refused", async () => {
   const edited = JSON.parse(JSON.stringify(good));
   edited.inquiries[receipt.inquiry_id].retention_events.splice(1, 1);
   fs.writeFileSync(fixture.file, JSON.stringify(edited, null, 2) + "\n");
-  assert.throws(() => new DurableIntakeStore(fixture.file), /contiguous append-only sequence/);
+  assert.throws(() => openStore(fixture.file), /contiguous append-only sequence/);
 
   // A truncation from the end is not detected here, and this says so rather
   // than implying the check is stronger than it is: a local JSON file has no
@@ -1046,11 +1055,11 @@ test("a retention history with an entry removed is refused", async () => {
   const truncated = JSON.parse(JSON.stringify(good));
   truncated.inquiries[receipt.inquiry_id].retention_events.pop();
   fs.writeFileSync(fixture.file, JSON.stringify(truncated, null, 2) + "\n");
-  assert.equal(new DurableIntakeStore(fixture.file)
+  assert.equal(openStore(fixture.file)
     .read(receipt.inquiry_id, roles.reviewer).retention_events.length, 2);
 
   fs.writeFileSync(fixture.file, JSON.stringify(good, null, 2) + "\n");
-  assert.equal(new DurableIntakeStore(fixture.file)
+  assert.equal(openStore(fixture.file)
     .read(receipt.inquiry_id, roles.reviewer).retention_events.length, 3);
 });
 
@@ -1149,12 +1158,12 @@ test("a file this store writes is provably a file it can read", () => {
   // The invariant is checked where it can still be acted on, not discovered on
   // a later open. This is the configuration that used to be possible.
   assert.throws(
-    () => new DurableIntakeStore(temporaryStore().file, { writeCeilingBytes: READ_LIMIT_BYTES + 1 }),
+    () => openStore(temporaryStore().file, { writeCeilingBytes: READ_LIMIT_BYTES + 1 }),
     /could not be opened again/,
   );
   for (const bad of [0, -1, 1.5, "32mb", null])
     assert.throws(
-      () => new DurableIntakeStore(temporaryStore().file, { writeCeilingBytes: bad }),
+      () => openStore(temporaryStore().file, { writeCeilingBytes: bad }),
       /positive byte count/,
     );
 });
@@ -1192,7 +1201,7 @@ test("a write that would breach the ceiling is refused and changes nothing", asy
   // A ceiling below what the store already holds: the next write must refuse.
   // Exercised through the option rather than by generating 32 MB, which tests
   // the same code path and keeps the suite honest about what it ran.
-  const tight = new DurableIntakeStore(fixture.file, { writeCeilingBytes: before.length + 64 });
+  const tight = openStore(fixture.file, { writeCeilingBytes: before.length + 64 });
   await assert.rejects(
     () => tight.accept(reviewedRaw(true), "ceiling-002", roles.receiver),
     /exceeds the .* byte ceiling/,
@@ -1206,7 +1215,7 @@ test("a write that would breach the ceiling is refused and changes nothing", asy
   assert.deepEqual(tight.pendingWriteDebris(roles.steward), []);
   // And the committed store is still openable, which is the property the
   // ceiling exists to protect.
-  const reopened = new DurableIntakeStore(fixture.file);
+  const reopened = openStore(fixture.file);
   assert.equal(reopened.read(receipt.inquiry_id, roles.reviewer).inquiry_id, receipt.inquiry_id);
 
   // The backup is independently openable, because the live file never grew
@@ -1215,7 +1224,7 @@ test("a write that would breach the ceiling is refused and changes nothing", asy
   const backup = path.join(fixture.directory, "store.backup.json");
   fs.copyFileSync(fixture.file, backup);
   assert.equal(
-    new DurableIntakeStore(backup).read(receipt.inquiry_id, roles.reviewer).inquiry_id,
+    openStore(backup).read(receipt.inquiry_id, roles.reviewer).inquiry_id,
     receipt.inquiry_id,
   );
 });
@@ -1223,7 +1232,7 @@ test("a write that would breach the ceiling is refused and changes nothing", asy
 test("the refusal says what to do, and the alternatives it rules out", async () => {
   const fixture = temporaryStore();
   await fixture.store.accept(reviewedRaw(), "ceiling-003", roles.receiver);
-  const tight = new DurableIntakeStore(fixture.file, {
+  const tight = openStore(fixture.file, {
     writeCeilingBytes: fs.statSync(fixture.file).size + 32,
   });
   let message = "";
@@ -1247,7 +1256,9 @@ test("capacity reports headroom before the wall rather than at it", async () => 
   assert.equal(empty.used_bytes, 0);
   assert.equal(empty.ceiling_bytes, 32 * 1024 * 1024);
   assert(empty.read_limit_bytes > empty.ceiling_bytes);
-  assert(empty.worst_case_inquiries_remaining > 80, "headroom is implausibly small");
+  // Sealing (E1) costs base64's 4/3 on top of the measured 2.88, so the
+  // pessimistic count is about 72 where it was about 97 before.
+  assert(empty.worst_case_inquiries_remaining > 60, "headroom is implausibly small");
 
   await fixture.store.accept(reviewedRaw(), "ceiling-005", roles.receiver);
   const used = fixture.store.capacity(roles.steward);
@@ -1290,8 +1301,8 @@ test("a second process cannot start on a store another process is writing", asyn
     process.execPath,
     [
       "-e",
-      `const {DurableIntakeStore}=require(${JSON.stringify(path.join(ROOT, "tools/team_intake_store.cjs"))});
-       const s=new DurableIntakeStore(${JSON.stringify(fixture.file)});
+      `const {openStore}=require(${JSON.stringify(path.join(ROOT, "tests/staff_fixture.cjs"))});
+       const s=openStore(${JSON.stringify(fixture.file)});
        try { s.acquireWriterLock(); console.log("ACQUIRED"); }
        catch (error) { console.log("REFUSED:" + error.message); }`,
     ],
@@ -1309,8 +1320,8 @@ test("a second process cannot start on a store another process is writing", asyn
     process.execPath,
     [
       "-e",
-      `const {DurableIntakeStore}=require(${JSON.stringify(path.join(ROOT, "tools/team_intake_store.cjs"))});
-       new DurableIntakeStore(${JSON.stringify(fixture.file)}).acquireWriterLock();
+      `const {openStore}=require(${JSON.stringify(path.join(ROOT, "tests/staff_fixture.cjs"))});
+       openStore(${JSON.stringify(fixture.file)}).acquireWriterLock();
        console.log("ACQUIRED");`,
     ],
     { encoding: "utf8" },

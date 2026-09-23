@@ -6,6 +6,7 @@ const http = require("node:http");
 const path = require("node:path");
 const F = require("../src/engine.js");
 const { DurableIntakeStore } = require("./team_intake_store.cjs");
+const { ArchiveKeyring } = require("./team_archive_keyring.cjs");
 const { AccessControl, StaffDirectory } = require("./team_staff_directory.cjs");
 
 function loadUsers(usersPath) {
@@ -194,8 +195,14 @@ function main() {
   // Configuring a destination records where a notification would go. It is not a
   // mailbox credential, a sender, or permission to contact anyone; this process
   // never opens an outbound connection.
+  // E1: the archive keyring is required, and it must live outside the store's
+  // directory so that backing up the store never backs up its keys.
+  const keyringPath = process.env.CARBON_TEAM_ARCHIVE_KEYRING;
+  if (!keyringPath)
+    throw Error("Set CARBON_TEAM_ARCHIVE_KEYRING: client records are encrypted from the first one");
   const store = new DurableIntakeStore(storePath, {
     destination: process.env.CARBON_TEAM_NOTIFY_DESTINATION,
+    keyring: ArchiveKeyring.open(path.resolve(keyringPath), { storePath }),
   });
   // Exactly one receiver process per store file. Every accepted inquiry
   // rewrites the whole file, so a second process would not interleave with
@@ -203,6 +210,9 @@ function main() {
   // bound, so the failure is a start that did not happen rather than two
   // receivers quietly disagreeing about the contents of one file.
   store.acquireWriterLock();
+  // A store written before E1 is sealed now, under the lock, rather than at
+  // whatever write happens to come next. Earlier plaintext copies of it remain.
+  if (store.sealAtRest()) process.stdout.write("Sealed a pre-E1 plaintext store at rest.\n");
   const release = () => {
     store.releaseWriterLock();
   };
