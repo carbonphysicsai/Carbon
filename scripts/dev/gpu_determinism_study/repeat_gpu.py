@@ -100,6 +100,14 @@ record = {
     "backend": jax.default_backend(),
     "devices": [str(d) for d in jax.devices()],
     "numerics": numerics_environment(),
+    # The NVML identity of the device, driver build included, as `run_on_pod.sh`
+    # read it. `compare_units.py` refuses a record without it. Absent when run
+    # some other way, which is recorded as absent rather than filled in.
+    "device_identity": (
+        json.loads(os.environ["D3_DEVICE_IDENTITY"])
+        if os.environ.get("D3_DEVICE_IDENTITY")
+        else None
+    ),
     "runs": [],
 }
 

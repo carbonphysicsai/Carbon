@@ -1,0 +1,16 @@
+{
+  "map_ref": "SYSTEM/AGENT-EXECUTION",
+  "event_type": "evidence",
+  "event_id": "C-CORE-21-STAGE-AB-01",
+  "owner_lane": "core_platform",
+  "status": "implemented",
+  "summary": "Recorded the two-host determinism study's results, merged in PR #308 without a Hub event, and closed the instrument gap that study reported. Stage A: within one chassis, two identical devices produced bit-identical weights under the pinned determinism configuration and diverged without it, across four architecture generations, eight devices and 144 reconstructions with zero refused cells. Ada ran on L4 and Blackwell on RTX PRO 6000 SE as permitted substitutes under Amendment 8, which establishes that those kernel sets agree and nothing about what a validator would deploy. Across classes agreement was not universal: A40, L4 and a consumer RTX 3060 shared one digest while H100 and Blackwell each produced their own, which leaves a cross-generation decision with the MQ-008 holder. Unpinned divergence was one float32 ulp. Stage B: two separate single-GPU A40 hosts in one datacenter produced the same digest under the pinned configuration. They ran driver builds 580.159.03 and 580.159.04 against a hard pre-run check that builds match, which nothing enforced across pods; Amendment 9 records that as a deviation applied retroactively to the published result, and reports both what it bought, namely that the pinned configuration held across a driver difference, and what it did not, since the builds differ in the patch component only, as one pair discovered rather than chosen. The gap is closed by construction: each pod session record now carries the NVML driver build and a session without it is refused, a preflight refuses differing builds across pods before any run, and a comparison of differing builds is refused rather than reported as disagreement unless a recorded deviation names exactly those builds, which is then written into the result. The published stage B pair is the test specimen for each refusal and acceptance. This is device agreement and not orchestration agreement: validator_launch remains never hardware-exercised, containment was the provider's runtime, H100 and Blackwell were each measured on one host, backend comparison still reports the backend unsupported, and the MQ-008 review is still owed. No ticket status, sequencing, maturity or authority changes, no hardware is qualified, no tolerance is set, and no spend occurred.",
+  "primary_detail": "docs/development/MQ008_EVIDENCE_PACKAGE.md",
+  "affects": [
+    "SYSTEM/AGENT-EXECUTION",
+    "WAVE-C/C-03",
+    "WAVE-C/C-09"
+  ],
+  "supersedes": null,
+  "recorded_at": "2026-09-23T15:03:00Z"
+}

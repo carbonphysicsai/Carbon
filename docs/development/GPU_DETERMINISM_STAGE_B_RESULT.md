@@ -3,6 +3,17 @@
 Two hosts, one class, one datacenter. **Device agreement across hosts**, not
 orchestration agreement, and nothing here is qualified.
 
+> **Driver deviation, applied retroactively under Amendment 9 (2026-09-23).**
+> The two hosts ran `580.159.03` and `580.159.04` against a hard pre-run check
+> that they match. Recorded in
+> [`GPU_DETERMINISM_STAGE_B_DRIVER_DEVIATION.json`](GPU_DETERMINISM_STAGE_B_DRIVER_DEVIATION.json).
+> **What it bought:** the pinned configuration held across a driver difference -
+> two builds, one digest - which a matched-driver agreement could not show.
+> **What it did not:** the builds differ in the patch component only, one pair,
+> discovered rather than chosen; nothing here speaks to a wider driver
+> difference. Cross-pod comparison now refuses differing builds unless a
+> deviation names them exactly (`compare_units.py`).
+
 ## The result
 
 | | Host 1 | Host 2 |
@@ -43,6 +54,12 @@ stage B. That is a real gap in the instrument, not a footnote about this run, an
 it should be closed before any stage B result is relied on: a future pair could
 differ in driver *and* disagree, and nothing would have stopped the comparison or
 flagged the confound.
+
+**Closed under Amendment 9.** `run_on_pod.sh` now writes the NVML driver build
+into every session record and refuses to run when it is unreadable;
+`compare_units.py --preflight` refuses differing builds across pods before any
+run; and a comparison of session records returns `REFUSED_DRIVER_MISMATCH`
+unless a recorded deviation names exactly the builds observed.
 
 ## The precondition that was confirmed
 
