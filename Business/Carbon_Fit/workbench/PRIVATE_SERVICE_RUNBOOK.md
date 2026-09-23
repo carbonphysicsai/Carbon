@@ -49,7 +49,11 @@ generated HTML, and never publish the private artifact:
 
 Create it under a private, owner-only directory (`chmod 700` on the directory,
 `chmod 600` on the file). It must be canonical JSON — sorted keys, no spaces,
-no trailing newline — and it must name the campaign principal:
+no trailing newline — and it must name the campaign principal. That is the
+`owner` recorded in the prepared campaign's `campaign-manifest.json`, the
+identity the service authenticates as, **not** the `principal` in the runner
+profile, which names the operator in the grant. The host refuses to start with
+a file naming anyone else:
 
 ```bash
 install -d -m 700 /private/carbon-workbench
@@ -177,8 +181,17 @@ routes, behind `WorkbenchScience`.
 Send `SIGINT` or `SIGTERM` (Ctrl-C). The process drains, `health` reports
 `DRAINING`, and the campaign attachment then runs its existing reconciliation:
 admitted workers are settled, the controller generation is released and the task
-store is closed. Do not `SIGKILL` a host with a running study — that skips
+store is closed. The process then exits `0` and the campaign records
+`INTERRUPTED`. Do not `SIGKILL` a host with a running study — that skips
 reconciliation and leaves the campaign requiring recovery.
+
+This sequence is exercised as processes, not described:
+`tests/service/test_workbench_host_process.py` runs the build, `check`,
+`register-draft` and `serve` as separate commands against a real Julia worker,
+stops with `SIGTERM`, restarts, crashes the host with `SIGKILL` and starts it
+again. A restart returns the saved study from the campaign's records and does no
+new numerical work. Only the external hotkey and testnet runtime is substituted,
+and the campaign is a test-owned synthetic one.
 
 A closed browser tab is not a stop. Controller and task ownership are held by
 this process, not by the browser, so a disconnect, reload or laptop sleep leaves
