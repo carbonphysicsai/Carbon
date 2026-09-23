@@ -1,10 +1,16 @@
-"""Serve an existing admitted Carbon research campaign over standard MCP stdio.
+"""Serve an existing Carbon research campaign over standard MCP stdio.
 
-The operator supplies the existing private Launchpad runner profile. This command
-attaches to its prepared, frozen campaign; it never creates a grant, starts the
-paid agent loop, generates cohorts, or runs final evaluation. The operator host
-needs the exact accepted checkout and prepared worker images. Clients need only
-the MCP command/connection, not access to that checkout or its private records.
+The miner supplies their private runner profile (v2) and names one of their
+campaigns. This command attaches to that prepared, frozen campaign; it never
+starts the paid agent loop, generates cohorts, or runs final evaluation.
+
+Registration is the only admission gate (C-MLP-02-D11): the campaign was
+admitted by the registration its manifest records, and every research call
+re-reads that registration from the chain. No grant exists on this path.
+
+The host needs the exact accepted checkout and prepared worker images. Clients
+need only the MCP command/connection, not access to that checkout or its
+private records.
 """
 
 from __future__ import annotations
@@ -23,15 +29,10 @@ from pathlib import Path
 
 from carbon import research
 from carbon.chain.models import CARBON_NETUID
+from carbon.development_session.private_records import private_json
 from carbon.development_session.profile import CHALLENGE, canonical
-from carbon.development_session.research_admission import (
-    MANIFEST,
-    Admission,
-    private_json,
-    verify_cleanup_owner,
-)
 from carbon.development_session.research_control import CampaignControl
-from carbon.development_session.research_ledger import CampaignLedger
+from carbon.development_session.research_ledger import PRODUCT, CampaignLedger
 from carbon.development_session.research_material import PublicMaterial
 from carbon.development_session.research_service import make_research_service
 from carbon.development_session.research_tools import ResearchMinerTools
@@ -42,75 +43,66 @@ from carbon.miner_mcp.standard_server import create_stdio_server
 
 @dataclass(frozen=True)
 class OperatorProfile:
+    """One attachable campaign and the profile that names it.
+
+    `development_grant` is None for every campaign this door loads: a miner's
+    campaign is admitted by registration (C-MLP-02-D11). It is set only by a
+    development loader outside this package - Carbon's internal Workbench
+    service on Carbon's own granted campaign - which this module neither
+    imports nor calls; `load_profile` below can never produce one.
+    """
+
     path: Path
     document: dict
-    admission: Admission
+    campaign: str
     root: Path
     manifest: dict
     cleanup_only: bool = False
+    development_grant: object = None
+
+    @property
+    def registered_hotkey(self) -> str:
+        if self.development_grant is not None:
+            return self.development_grant.document["miner_identity"]
+        return self.manifest["admission"]["hotkey"]
 
 
-def load_profile(path: Path, *, cleanup_only=False) -> OperatorProfile:
-    """Read existing operator authority; no filesystem or accounting creation."""
-    from scripts.dev.miner_launchpad.runner import PATH_FIELDS
+def load_profile(path: Path, campaign: str, *, cleanup_only=False) -> OperatorProfile:
+    """Read the miner's profile and one of their campaigns; create nothing."""
+    from scripts.dev.miner_launchpad.runner import validated_profile
 
-    cfg = private_json(path)
-    if (
-        set(cfg)
-        != {
-            "schema",
-            "profile_id",
-            "principal",
-            "grant_file",
-            "account_ref",
-            "enabled",
-            "paths",
-            "accepted_revision",
-        }
-        or cfg["schema"] != "carbon.launchpad.runner-profile.v1"
-        or cfg["enabled"] is not True
-        or type(cfg["paths"]) is not dict
-        or set(cfg["paths"]) != PATH_FIELDS
-        or any(
-            type(v) is not str or not Path(v).is_absolute()
-            for v in cfg["paths"].values()
-        )
-    ):
+    cfg = validated_profile(private_json(path))
+    if cfg["enabled"] is not True and not cleanup_only:
         raise ValueError("closed enabled operator profile required")
-    admission = Admission.load(Path(cfg["grant_file"]))
-    grant = admission.document
-    root = Path(grant["root"])
-    if not cleanup_only:
-        admission.verify(
-            root=root,
-            principal=cfg["principal"],
-            runtime=grant["runtime"],
-            now=time.time(),
-        )
     if (
-        cfg["account_ref"] != grant["account_ref"]
-        or cfg["accepted_revision"] != grant["runtime"]["implementation"]["revision"]
-        or not root.is_dir()
+        type(campaign) is not str
+        or len(campaign) != 32
+        or any(c not in "0123456789abcdef" for c in campaign)
+    ):
+        raise ValueError("a campaign id from this profile's campaigns is required")
+    root = Path(cfg["campaigns_root"]) / campaign
+    if (
+        not root.is_dir()
         or (not cleanup_only and (root / "campaign-complete.json").exists())
         or not (root / "campaign.sqlite3").is_file()
         or (root / "campaign.sqlite3").is_symlink()
     ):
-        raise ValueError("existing unfinished admitted campaign required")
+        raise ValueError("existing unfinished campaign required")
     manifest = private_json(root / "campaign-manifest.json")
     if (
-        manifest.get("schema") != MANIFEST
+        manifest.get("schema") != PRODUCT
         or manifest.get("principal") != cfg["principal"]
-        or manifest.get("runtime") != grant["runtime"]
-        or manifest.get("grant") != admission.binding()
-        or manifest.get("campaign_id") != grant["campaign_id"]
+        or manifest.get("campaign_id") != "cmp-" + campaign
+        or manifest.get("implementation", {}).get("revision")
+        != cfg["accepted_revision"]
     ):
-        raise ValueError("prepared campaign differs from operator grant")
+        raise ValueError("the campaign differs from this profile")
     if cleanup_only:
-        meter = CampaignLedger(root, admission=admission)
+        meter = CampaignLedger(root)
         meter.generation = CampaignControl(meter).status()["generation"]
-        if verify_cleanup_owner(meter, manifest["owner"]) != manifest:
+        if meter.retained_owner(manifest["owner"]) != manifest:
             raise ValueError("retained cleanup profile differs")
-    return OperatorProfile(path, cfg, admission, root, manifest, cleanup_only)
+    return OperatorProfile(path, cfg, campaign, root, manifest, cleanup_only)
 
 
 def _prepared_tasks(root, *, cleanup_only=False):
@@ -180,17 +172,10 @@ def _runtime(profile):
         from carbon.development_session.gpu_research import gpu_scope
 
         runtime["gpu_research"] = [gpu_scope(gpu, role_root)]
-    if profile.cleanup_only:
-        if runtime != profile.manifest["runtime"]:
-            raise ValueError("retained runtime differs")
-        grant = profile.admission.document
-    else:
-        grant = profile.admission.verify(
-            root=profile.root,
-            principal=cfg["principal"],
-            runtime=runtime,
-            now=time.time(),
-        )
+    # The runtime the campaign was admitted with, exactly - as it once had to
+    # equal a grant's.
+    if runtime != profile.manifest["runtime"]:
+        raise ValueError("campaign runtime differs from the accepted runtime")
     if (
         profile.manifest.get("implementation") != implementation
         or profile.manifest.get("images") != runtime["images"]
@@ -206,9 +191,9 @@ def _runtime(profile):
     if (
         public["netuid"] != CARBON_NETUID
         or config.netuid != CARBON_NETUID
-        or public["hotkey"] != grant["miner_identity"]
+        or public["hotkey"] != profile.registered_hotkey
     ):
-        raise ValueError("existing miner differs from grant")
+        raise ValueError("existing miner differs from the registered miner")
     key = open_external_hotkey(
         Path(public["key_file"]),
         private_file(paths["miner_password_file"]),
@@ -284,11 +269,9 @@ class _AdmittedConnection:
         self.closed = False
 
     async def check_cleanup_registration(self):
-        from carbon.development_session.research_admission import verify_cleanup_owner
-
         if self.closed or private_json(self.profile.path) != self.profile.document:
             raise ValueError("operator profile changed or controller closed")
-        retained = verify_cleanup_owner(self.ledger, self.profile.manifest["owner"])
+        retained = self.ledger.retained_owner(self.profile.manifest["owner"])
         if retained != self.profile.manifest:
             raise ValueError("retained campaign differs from connection")
         return await self.connection.check_registration()
@@ -300,20 +283,17 @@ class _AdmittedConnection:
         if self.closed or private_json(profile.path) != profile.document:
             raise ValueError("operator profile changed or controller closed")
         now = self.ledger.clock()
-        profile.admission.verify(
-            root=profile.root,
-            principal=profile.document["principal"],
-            runtime=profile.manifest["runtime"],
-            now=now,
-        )
+        self.ledger.authority(profile.manifest)
         with self.ledger.db() as db:
             started = db.execute("SELECT started FROM campaign WHERE id=1").fetchone()[
                 0
             ]
+        # The miner's own elapsed budget, if they set one; none is no deadline.
+        elapsed = profile.manifest.get("elapsed_seconds")
         if started is not None and (
-            now < started or now >= started + profile.manifest["elapsed_seconds"]
+            now < started or (elapsed is not None and now >= started + elapsed)
         ):
-            raise ValueError("original campaign elapsed deadline reached")
+            raise ValueError("campaign elapsed budget reached")
         status = self.control.status()
         if (
             status["generation"] != self.ledger.generation
@@ -368,9 +348,11 @@ def _science(ledger, owner, image, role_root, *, cleanup_only=False, authored=No
     from carbon.development_session.research_data import PublicReferenceData
     from carbon.development_session.research_provider import PublicPractice
 
-    runtime = (
-        ledger.admission.document["runtime"] if ledger.admission is not None else {}
-    )
+    # The runtime the campaign was frozen with - never a grant's, which no
+    # product campaign has.
+    with ledger.db() as db:
+        row = db.execute("SELECT manifest FROM campaign WHERE id=1").fetchone()
+    runtime = json.loads(row[0]).get("runtime", {}) if row else {}
     kind, scopes = _scientific_selection(runtime, image, role_root, authored)
     data = PublicReferenceData(
         ledger=ledger, owner=owner, image=image, role_root=role_root
@@ -413,7 +395,18 @@ def _science(ledger, owner, image, role_root, *, cleanup_only=False, authored=No
 
 
 @contextlib.asynccontextmanager
-async def attached(configuration: Path, *, cleanup_only=False):
+async def attached(configuration: Path, campaign: str, *, cleanup_only=False):
+    """Attach to one of the miner's own campaigns, named by its id.
+
+    Yields ``(adapter, profile)``; see `attached_profile`.
+    """
+    profile = load_profile(configuration, campaign, cleanup_only=cleanup_only)
+    async with attached_profile(profile) as attachment:
+        yield attachment
+
+
+@contextlib.asynccontextmanager
+async def attached_profile(profile: OperatorProfile):
     """Hold the existing campaign ownership lock for the whole attachment.
 
     Yields ``(adapter, profile)``. The caller chooses the surface it is served
@@ -423,9 +416,11 @@ async def attached(configuration: Path, *, cleanup_only=False):
     from scripts.dev.miner_launchpad.controller import owner_lock
     from scripts.dev.miner_launchpad.runner import RunnerAdapter
 
-    profile = load_profile(configuration, cleanup_only=cleanup_only)
+    if type(profile) is not OperatorProfile:
+        raise TypeError("a loaded operator profile is required")
+    cleanup_only = profile.cleanup_only
     with owner_lock(profile.root):
-        ledger = CampaignLedger(profile.root, admission=profile.admission)
+        ledger = CampaignLedger(profile.root, admission=profile.development_grant)
         if not cleanup_only:
             ledger.freeze(profile.manifest)  # Must match the existing immutable record.
         with ledger.db() as db:
@@ -451,7 +446,7 @@ async def attached(configuration: Path, *, cleanup_only=False):
             raise ValueError("campaign is not available for research")
         ledger.generation = status["generation"] if cleanup_only else control.acquire()
         if cleanup_only:
-            verify_cleanup_owner(ledger, profile.manifest["owner"])
+            ledger.retained_owner(profile.manifest["owner"])
         connection, image, analysis, role_root = _runtime(profile)
         owner = await _requester(connection)
         if owner != profile.manifest.get("owner"):
@@ -516,9 +511,12 @@ async def attached(configuration: Path, *, cleanup_only=False):
                 composition.tasks.close()
 
 
-async def serve(configuration: Path, *, cleanup_only=False):
+async def serve(configuration: Path, campaign: str, *, cleanup_only=False):
     """Hold the existing campaign ownership lock for the whole stdio lifetime."""
-    async with attached(configuration, cleanup_only=cleanup_only) as (adapter, _):
+    async with attached(configuration, campaign, cleanup_only=cleanup_only) as (
+        adapter,
+        _,
+    ):
         await create_stdio_server(adapter).run_async()
 
 
@@ -552,24 +550,32 @@ def main(argv=None):
         ),
     )
     parser.add_argument(
+        "--campaign",
+        help="Which of your campaigns to attach to (its id under campaigns_root).",
+    )
+    parser.add_argument(
         "--cleanup-only",
         action="store_true",
         help="Observe/cancel retained owned tasks; cannot start research",
     )
     args = parser.parse_args(argv)
-    if args.configuration is None and args.cleanup_only:
-        parser.error("--cleanup-only needs the campaign it would clean up")
+    if args.configuration is None and (args.cleanup_only or args.campaign):
+        parser.error("--campaign and --cleanup-only need your runner profile")
+    if args.configuration is not None and not args.campaign:
+        parser.error("--configuration needs the --campaign to attach to")
     try:
         if args.configuration is None:
             asyncio.run(serve_open_tier())
         else:
-            asyncio.run(serve(args.configuration, cleanup_only=args.cleanup_only))
+            asyncio.run(
+                serve(args.configuration, args.campaign, cleanup_only=args.cleanup_only)
+            )
     except (Exception, KeyboardInterrupt):  # noqa: BLE001
         # The open tier has no profile, grant or campaign to verify, so it must
         # not be told to go and check them.
         print(
             (
-                "Carbon MCP unavailable: verify the existing private profile, grant, prepared campaign, accepted runtime and reconciliation state."
+                "Carbon MCP unavailable: verify your runner profile, the campaign named, your subnet registration, the accepted runtime and reconciliation state."
                 if args.configuration is not None
                 else "Carbon MCP unavailable."
             ),

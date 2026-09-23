@@ -1,55 +1,163 @@
-"""Runner bridge fixtures test control/disclosure only; never adaptive evidence."""
+"""Runner bridge fixtures test control/disclosure only; never adaptive evidence.
+
+Registration is the only admission gate (C-MLP-02-D11): these campaigns are
+admitted by a real `RegisteredMiner`, built from a real metagraph snapshot, and
+no grant appears anywhere on the path. Campaigns launched under the retired
+development grant are covered at the end - readable, stoppable and cleanable,
+never resumable.
+"""
 
 import http.client
 import json
 import threading
+from pathlib import Path
 
 import pytest
 from test_miner_launchpad_admission import managed, reserve
 
-from carbon.development_session.profile import canonical
+from carbon.chain.models import MetagraphSnapshot, Participant
+from carbon.development_session.chain_onboarding import (
+    OnboardingFailure,
+    PublicAddress,
+    RegisteredMiner,
+    carbon_testnet_context,
+)
+from carbon.development_session.profile import canonical, digest
+from carbon.development_session.research_control import CampaignControl
+from carbon.development_session.research_ledger import PRODUCT, CampaignLedger
 from scripts.dev.miner_launchpad.controller import Controller, Rejected, Server
 from scripts.dev.miner_launchpad.runner import RunnerAdapter
 
+HOTKEY = "5F3sa2TJAWMqDhXG6jhV4N8ko9SxwGy8TpaNS1repo5EYjQX"
+KEY = "request-key-000001"
+REVISION = "a" * 40
+RUNTIME = {
+    "implementation": {
+        "revision": REVISION,
+        "tree": "b" * 40,
+        "source_tree_digest": "sha256:" + "c" * 64,
+    },
+    "images": ["sha256:" + "d" * 64],
+}
 
-def adapter(tmp_path, monkeypatch):
-    value, control, manifest = managed(tmp_path)
-    bridge = RunnerAdapter(tmp_path / "browser.sqlite3", principal="alice")
-    cfg = {"profile_id": "opaque-profile", "principal": "alice"}
-    monkeypatch.setattr(
-        bridge, "configured", lambda: (cfg, value.admission, value.root)
+
+def registered():
+    return RegisteredMiner(
+        MetagraphSnapshot(
+            context=carbon_testnet_context(),
+            finalized_block=100,
+            block_hash="0x" + "cd" * 32,
+            timestamp_ms=1,
+            participants=(
+                Participant(
+                    uid=0, hotkey=HOTKEY, coldkey="5" + "C" * 47, registered_at=1
+                ),
+            ),
+        ),
+        PublicAddress(HOTKEY),
     )
+
+
+def run_id(key=KEY, principal="alice"):
+    return digest(canonical([principal, key]))[7:39]
+
+
+def product_campaign(root, identity):
+    """A product campaign ledger at the root a launch under `identity` uses."""
+    value = CampaignLedger(root, clock=lambda: 1000)
+    control = CampaignControl(value)
+    value.generation = control.acquire()
+    manifest = {
+        "schema": PRODUCT,
+        "authority": "C-MLP-02-D11",
+        "campaign_id": "cmp-" + identity,
+        "principal": "alice",
+        "owner": "miner-requester",
+        "runtime": RUNTIME,
+        "admission": registered().record(),
+        "implementation": RUNTIME["implementation"],
+        "images": RUNTIME["images"],
+        "objective": "fixture",
+        "sampling": "fixture",
+        "control": "fixture",
+        "selection": "fixture",
+        "replica_policy": "three",
+        "provider": {"model": "fixture-model"},
+    }
+    value.freeze(manifest)
+    return value, control, manifest
+
+
+class Chain:
+    """Counts admission reads, so a test can say when the chain was consulted."""
+
+    def __init__(self, answer=None, failure=None):
+        self.reads, self.answer, self.failure = 0, answer, failure
+
+    def __call__(self, cfg):
+        self.reads += 1
+        if self.failure is not None:
+            raise OnboardingFailure(self.failure, next_action="fixture")
+        return self.answer or registered()
+
+
+def configured(tmp_path):
+    campaigns = tmp_path / "campaigns"
+    campaigns.mkdir(mode=0o700, exist_ok=True)
+    return {
+        "profile_id": "opaque-profile",
+        "principal": "alice",
+        "campaigns_root": str(campaigns),
+        "runtime": RUNTIME,
+        "accepted_revision": REVISION,
+    }
+
+
+def adapter(tmp_path, monkeypatch, *, chain=None):
+    tmp_path.chmod(0o700)
+    cfg = configured(tmp_path)
+    value, control, _ = product_campaign(
+        Path(cfg["campaigns_root"]) / run_id(), run_id()
+    )
+    chain = chain or Chain()
+    bridge = RunnerAdapter(
+        tmp_path / "browser.sqlite3", principal="alice", registration=chain
+    )
+    monkeypatch.setattr(bridge, "configured", lambda: cfg)
     monkeypatch.setattr(bridge, "_start", lambda *args: None)
-    manifest["provider"] = {"model": "fixture-model"}
-    manifest["implementation"] = {"revision": "fixture-revision"}
-    manifest["images"] = ["fixture-image"]
-    with value.db() as db:
-        db.execute("UPDATE campaign SET manifest=? WHERE id=1", (canonical(manifest),))
     return bridge, value, control
 
 
 def test_disabled_profile_has_no_fallback_or_side_effect(tmp_path):
     bridge = RunnerAdapter(tmp_path / "browser.sqlite3")
     assert bridge.preflight()["available"] is False
-    with pytest.raises(Rejected, match="admission"):
+    with pytest.raises(Rejected, match="profile_unavailable"):
         bridge.launch({"profile": "anything"}, "request-key-000001")
     assert bridge.recent() == []
 
 
-def test_opaque_launch_replay_and_another_key_share_grant_identity(
+def test_opaque_launch_replays_and_another_key_is_another_campaign(
     tmp_path, monkeypatch
 ):
+    """A miner may run more than one campaign; a lost response is still one.
+
+    Under the grant, every key collapsed onto the grant's single campaign - a
+    founder's spend cap. Registration admits the miner, not one campaign.
+    """
     bridge, _, _ = adapter(tmp_path, monkeypatch)
     first = bridge.launch({"profile": "opaque-profile"}, "request-key-000001")
     assert (
         bridge.launch({"profile": "opaque-profile"}, "request-key-000001")["id"]
         == first["id"]
     )
-    assert (
-        bridge.launch({"profile": "opaque-profile"}, "request-key-000002")["id"]
-        == first["id"]
-    )
-    assert len(bridge.recent()) == 1
+    second = bridge.launch({"profile": "opaque-profile"}, "request-key-000002")
+    assert second["id"] != first["id"] == run_id()
+    assert len(bridge.recent()) == 2
+    with pytest.raises(Rejected, match="replay_conflict"):
+        bridge.launch(
+            {"profile": "opaque-profile", "budget": {"elapsed_seconds": 60}},
+            "request-key-000001",
+        )
     for body in (
         {"profile": "wrong"},
         {"profile": "opaque-profile", "command": "arbitrary"},
@@ -140,9 +248,7 @@ def test_completed_epoch_can_stop_without_candidate_or_improvement(
     ]
 
 
-def test_adapter_selects_accepted_policy_without_inheriting_program_grant(
-    tmp_path, monkeypatch
-):
+def test_adapter_dispatches_the_product_launch_with_no_grant(tmp_path, monkeypatch):
     from carbon.development_session import research_campaign
     from carbon.development_session.research_agent_policy import AUTONOMOUS
     from scripts.dev.miner_launchpad.runner import PATH_FIELDS
@@ -153,27 +259,28 @@ def test_adapter_selects_accepted_policy_without_inheriting_program_grant(
 
     async def entry(args, *, ledger):
         observed.update(
-            policy=args.agent_policy, authority=ledger.admission.document["authority"]
+            policy=args.agent_policy, product=args.product, grant=ledger.admission
         )
 
     monkeypatch.setattr(research_campaign, "execute", entry)
     monkeypatch.setattr(bridge, "_cleanup", lambda ledger: True)
     cfg = {
+        **configured(tmp_path),
         "paths": {key: str(tmp_path / key) for key in PATH_FIELDS},
-        "accepted_revision": "fixture-revision",
-        "principal": "alice",
     }
-    bridge._run(identity, cfg, value.admission, value.root)
-    assert observed == {"policy": AUTONOMOUS, "authority": "ENGINEERING_FIXTURE_ONLY"}
+    product = object()
+    bridge._run(identity, cfg, value.root, product)
+    assert observed == {"policy": AUTONOMOUS, "product": product, "grant": None}
     result = bridge.get(identity)
     assert result["state"] == "INTERRUPTED"
     assert result["final_results"] == []
 
 
-def test_revoked_grant_still_allows_stop_and_retained_readback(tmp_path, monkeypatch):
-    bridge, value, control = adapter(tmp_path, monkeypatch)
-    identity = bridge.launch({"profile": "opaque-profile"}, "request-key-000001")["id"]
-    value.admission.path.unlink()
+def test_stop_and_retained_readback_need_no_chain_read(tmp_path, monkeypatch):
+    chain = Chain()
+    bridge, _value, control = adapter(tmp_path, monkeypatch, chain=chain)
+    identity = bridge.launch({"profile": "opaque-profile"}, KEY)["id"]
+    chain.failure = "CHAIN_UNAVAILABLE"
     assert bridge.control(identity, "stop")["state"] == "STOPPING"
     assert control.status()["desired"] == "STOP"
     assert bridge.get(identity)["id"] == identity
@@ -270,3 +377,174 @@ def test_another_configured_principal_cannot_read_control_or_recover_campaign(
     with pytest.raises(Rejected, match="unavailable"):
         other.control(identity, "stop")
     assert control.status() == before
+
+
+# --- registration is the gate, and it is read before anything durable -------
+
+
+@pytest.mark.parametrize(
+    "failure,code",
+    (
+        ("NOT_REGISTERED", "registration_required"),
+        ("CHAIN_UNAVAILABLE", "registration_unreadable"),
+        ("WRONG_NETWORK", "registration_wrong_network"),
+    ),
+)
+def test_an_unadmitted_launch_writes_nothing(tmp_path, monkeypatch, failure, code):
+    """No row, no campaign directory, no thread - and the specimen shows the
+    same launch writes all three once registration reads true."""
+    chain = Chain(failure=failure)
+    bridge, _, _ = adapter(tmp_path, monkeypatch, chain=chain)
+    started = []
+    monkeypatch.setattr(bridge, "_start", lambda *args: started.append(args))
+    fresh = "request-key-unadmitted"
+    with pytest.raises(Rejected, match=code):
+        bridge.launch({"profile": "opaque-profile"}, fresh)
+    campaigns = Path(configured(tmp_path)["campaigns_root"])
+    assert bridge.recent() == [] and started == []
+    assert not (campaigns / run_id(fresh)).exists()
+
+    chain.failure = None
+    admitted = bridge.launch({"profile": "opaque-profile"}, fresh)
+    assert admitted["id"] == run_id(fresh)
+    assert len(bridge.recent()) == 1 and len(started) == 1
+
+
+def test_the_launch_carries_the_registration_and_no_grant(tmp_path, monkeypatch):
+    bridge, _, _ = adapter(tmp_path, monkeypatch)
+    started = []
+    monkeypatch.setattr(bridge, "_start", lambda *args: started.append(args))
+    bridge.launch({"profile": "opaque-profile"}, KEY)
+    _identity, _cfg, root, product = started[0]
+    assert root == Path(configured(tmp_path)["campaigns_root"]) / run_id()
+    assert product.miner.hotkey == HOTKEY
+    assert product.budget == {}
+    fields = product.manifest_fields()
+    assert fields["schema"] == PRODUCT
+    assert fields["admission"]["admission"] == "SUBNET_REGISTRATION"
+    assert "grant" not in fields and "ceilings" not in fields
+    with bridge.db() as db:
+        row = db.execute("SELECT * FROM launchpad_campaigns").fetchone()
+    assert json.loads(row["admission"])["hotkey"] == HOTKEY
+    assert json.loads(row["budget"]) == {}
+
+
+def test_a_replayed_launch_reads_no_chain(tmp_path, monkeypatch):
+    """Admitted when it was recorded; a lost response is not a second admission."""
+    chain = Chain()
+    bridge, _, _ = adapter(tmp_path, monkeypatch, chain=chain)
+    bridge.launch({"profile": "opaque-profile"}, KEY)
+    assert chain.reads == 1
+    chain.failure = "CHAIN_UNAVAILABLE"
+    assert bridge.launch({"profile": "opaque-profile"}, KEY)["id"] == run_id()
+    assert chain.reads == 1
+
+
+def test_the_budget_is_the_miners_exactly_or_none(tmp_path, monkeypatch):
+    bridge, _, _ = adapter(tmp_path, monkeypatch)
+    started = []
+    monkeypatch.setattr(bridge, "_start", lambda *args: started.append(args))
+    chosen = {"ceilings": {"research_trials": 3}, "elapsed_seconds": 900}
+    bridge.launch(
+        {"profile": "opaque-profile", "budget": chosen}, "request-key-budgeted"
+    )
+    assert started[0][3].budget == chosen
+    assert started[0][3].manifest_fields()["ceilings"] == {"research_trials": 3}
+    for incoherent in (
+        {"ceilings": {"research_trials": -1}},
+        {"ceilings": {"not_a_dimension": 1}},
+        {"spend_cap_set_by_carbon": 1},
+        [],
+    ):
+        with pytest.raises(Rejected, match="invalid_budget"):
+            bridge.launch(
+                {"profile": "opaque-profile", "budget": incoherent},
+                "request-key-incoherent",
+            )
+
+
+# --- campaigns launched under the retired development grant -----------------
+
+
+def retired(tmp_path, bridge):
+    """A campaign launched under a grant before C-MLP-02-D11, as recorded then."""
+    legacy = tmp_path / "legacy"
+    legacy.mkdir(mode=0o700)
+    value, control, manifest = managed(legacy)
+    # The shape a real launch recorded; the shared grant fixture leaves these
+    # as bare strings.
+    manifest.update(
+        provider={"model": "fixture-model"},
+        implementation={"revision": "fixture-revision"},
+        images=["fixture-image"],
+    )
+    with value.db() as db:
+        db.execute("UPDATE campaign SET manifest=? WHERE id=1", (canonical(manifest),))
+    with bridge.db() as db:
+        db.execute(
+            "INSERT INTO research_runs (id,request_key,profile,principal,config_digest,grant_digest,campaign,state,created,root,grant_record,grant_id) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
+            (
+                "retired-grant-campaign",
+                "retired-request-key",
+                "opaque-profile",
+                "alice",
+                "retired-config",
+                value.admission.pin,
+                manifest["campaign_id"],
+                "INTERRUPTED",
+                1.0,
+                str(value.root),
+                canonical(
+                    {
+                        "path": str(value.admission.path),
+                        "document": value.admission.document,
+                    }
+                ),
+                "fixture-grant",
+            ),
+        )
+    return value, control
+
+
+def test_a_retired_grant_campaign_stays_readable_and_stoppable(tmp_path, monkeypatch):
+    bridge, _, _ = adapter(tmp_path, monkeypatch)
+    _value, control = retired(tmp_path, bridge)
+    assert bridge.get("retired-grant-campaign")["admission"] == (
+        "RETIRED_DEVELOPMENT_GRANT"
+    )
+    assert "retired-grant-campaign" in {run["id"] for run in bridge.recent()}
+    assert bridge.control("retired-grant-campaign", "stop")["state"] == "STOPPING"
+    assert control.status()["desired"] == "STOP"
+
+
+def test_a_retired_grant_campaign_is_never_resumed(tmp_path, monkeypatch):
+    """Resuming would dispatch new work under a grant, which no product surface
+    may do. The specimen: a product campaign resumes through the same call."""
+    bridge, _, _ = adapter(tmp_path, monkeypatch)
+    retired(tmp_path, bridge)
+    with pytest.raises(Rejected, match="retired_grant_campaign"):
+        bridge.control("retired-grant-campaign", "resume")
+    identity = bridge.launch({"profile": "opaque-profile"}, KEY)["id"]
+    with bridge.db() as db:
+        db.execute(
+            "UPDATE launchpad_campaigns SET config_digest=?",
+            (digest(canonical(configured(tmp_path))),),
+        )
+    bridge.control(identity, "pause")
+    assert bridge.control(identity, "resume")["id"] == identity
+
+
+def test_a_retired_grant_is_held_only_for_cleanup(tmp_path, monkeypatch):
+    """Structural, not a remembered check: the only grant a product surface can
+    hold refuses every admission, while its ownership proof still holds."""
+    from carbon.development_session.research_admission import RetainedGrant
+
+    bridge, _, _ = adapter(tmp_path, monkeypatch)
+    retired(tmp_path, bridge)
+    row, kind, root = bridge._bound("retired-grant-campaign")
+    ledger = bridge._ledger(row, kind, root)
+    assert type(ledger.admission) is RetainedGrant
+    ledger.generation = CampaignControl(ledger).status()["generation"]
+    assert ledger.retained_owner("miner-requester")["owner"] == "miner-requester"
+    with pytest.raises(ValueError, match="admits no new work"):
+        reserve(ledger, "after-retirement")

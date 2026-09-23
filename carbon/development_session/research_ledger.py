@@ -22,7 +22,11 @@ Two things here are not miner spending control and stay:
   reported under their own name so the two cannot be confused.
 - The development grant envelope in `research_admission`, which exists so a
   founder can cap Carbon's spend on Carbon's accounts in a bounded experiment.
-  It is test machinery and is unreachable from any product surface.
+  It is development machinery (C-MLP-02-D11): reached through the development
+  CLI's `--grant-file` and Carbon's internal Workbench service, and from no
+  product surface - `tests/invariants/test_product_surfaces_hold_no_grant.py`
+  enforces that, allowing only the cleanup-only `RetainedGrant`, which admits
+  no new work.
 """
 
 from __future__ import annotations
