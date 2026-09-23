@@ -149,4 +149,3 @@ separate catalog reads and gone at provisioning each time, including two create
 calls seconds after a `Low` reading. That is the evidence behind amendment 8's
 substitution, and it is why the substitution was necessary rather than
 convenient.
-
