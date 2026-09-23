@@ -65,10 +65,9 @@ def prepare_scratch(directory: Path) -> Path:
     user cannot chown to without root; its parent is the owner-only campaign
     root, so no other host user can reach it.
     """
+    # Empty: the worker's entrypoint creates home, tmp and caches itself and
+    # refuses to start if they already exist, and the bootstrap creates output.
     directory.mkdir(mode=0o700)
-    for name in ("output", "home", "tmp", "cache", "jax-cache"):
-        (directory / name).mkdir(mode=0o777)
-        (directory / name).chmod(0o777)
     directory.chmod(0o777)
     return directory
 

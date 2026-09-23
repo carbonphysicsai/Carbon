@@ -418,8 +418,8 @@ def run_julia(
     authorize_julia(ledger, owner, image)
     if environment not in ENVIRONMENTS:
         raise ValueError("unknown authored Julia environment")
-    if type(source) is not str or not 1 <= len(source.encode()) <= 65536:
-        raise ValueError("bounded authored Julia source required")
+    if type(source) is not str or not source:
+        raise ValueError("authored Julia source required")
     return _run(
         ledger,
         owner=owner,

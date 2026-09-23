@@ -653,7 +653,7 @@ class CampaignLedger:
             ).fetchone():
                 raise ValueError("sequence parent requires child-derived settlement")
             old = db.execute(
-                "SELECT owner,state,reservation,actual,result FROM operations WHERE id=?",
+                "SELECT owner,state,reservation,actual,result,phase FROM operations WHERE id=?",
                 (identity,),
             ).fetchone()
             if old is None or old[0] != owner:
@@ -667,7 +667,16 @@ class CampaignLedger:
                 raise ValueError(
                     "reconcile every reserved dimension; unknown is not zero"
                 )
-            if any(actual[k] > reserved[k] for k in actual):
+            # The miner's own research is metered, not capped (owner
+            # direction): its time and retained bytes are recorded as used,
+            # however large. Everything else - Carbon's evaluation work, and
+            # every attempt counter - still may not exceed its reservation.
+            metered = (
+                {"numerical_milliseconds", "retained_bytes"}
+                if old[5] == "research"
+                else set()
+            )
+            if any(actual[k] > reserved[k] for k in actual if k not in metered):
                 raise ValueError(
                     "reservation exceeded; retain unresolved charge and stop"
                 )

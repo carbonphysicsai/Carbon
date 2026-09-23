@@ -55,8 +55,8 @@ def run_script(ledger, *, owner, identity, source, files, image, seconds=600):
 
     if type(image) is not ResearchImageIdentity:
         raise ValueError("miner scripts require the separate analysis image")
-    if type(source) is not str or len(source.encode()) > 65536:
-        raise ValueError("bounded research source required")
+    if type(source) is not str or not source:
+        raise ValueError("research source required")
     return _run(
         ledger,
         owner=owner,
@@ -190,6 +190,12 @@ def _run_locked(
     if miner_lane:
         if seconds is not None and (type(seconds) is not int or seconds < 1):
             raise ValueError("a positive wall allowance, or none")
+        if seconds is None and _has_time_budget(ledger):
+            # The miner's own budget still binds where they set one: a run
+            # with no allowance could not be reserved against it.
+            raise ValueError(
+                "you set a compute-time budget; give this run a wall allowance"
+            )
     elif type(seconds) is not int or not 40 <= seconds <= 600:
         raise ValueError("bounded worker wall allowance required")
     if type(files) is not dict or "program.py" in files or program_name in files:
@@ -519,6 +525,19 @@ def _run_miner_lane(
         identity, owner=owner, state="SUCCEEDED", actual=actual, result=result
     )
     return result
+
+
+def _has_time_budget(ledger):
+    from .research_ledger import NO_BUDGET, _caps
+
+    with ledger.db() as db:
+        row = db.execute("SELECT manifest FROM campaign WHERE id=1").fetchone()
+    if row is None:
+        return False
+    return (
+        _caps(json.loads(row[0])).get("numerical_milliseconds", NO_BUDGET)
+        is not NO_BUDGET
+    )
 
 
 def _file_digest(path):
