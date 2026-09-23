@@ -107,3 +107,45 @@ whether L40S appears at 2 GPUs **anywhere**. If a week of checks records no
 sighting in any of EUR-IS-2, OC-AU-1, US-MO-1 or US-TX-4, that is a different
 finding from the one resolved here - it would mean the declared class is broadly
 unobtainable at 2 GPUs on this provider, which no image change addresses.
+
+---
+
+# Closed: satisfied, expiry never reached
+
+**Closed 2026-09-23.** All four generations ran and agreed. The watch is recorded
+as **satisfied**, and its 2026-09-29 expiry was never reached.
+
+## The probe list was the blocker, not the stock
+
+Every check row above probes **L40S and A40 only**, and by 15:0xZ that pair had
+stopped describing the question. A40 had already run and agreed at ~17:10Z, so
+half of each probe asked about a class that needed nothing. Amendment 8 merged at
+21:22Z and widened the permitted set to any Ada or Blackwell part, and these rows
+were never updated to match.
+
+So the rows record **"L40S is Out"** across eight hours while the live question
+was **"is any Ada part obtainable"**. Those are different findings, and the first
+was accumulating as though it were the second.
+
+This is standard 1.3 turned on the watch itself. The question is not whether the
+watch was running but whether the thing it waited for could still become true -
+and the thing the *study* needed had changed while the thing the *watch* probed
+had not. A widened permission that the probe never exercises is a permission that
+does nothing.
+
+**The correction dissolved the blocker immediately.** Re-probing under the full
+permitted set found L4 at `Low` and, later, RTX PRO 6000 SE non-MIG at `Medium`
+on CUDA 13.2. Ada ran within the hour; Blackwell within four. Nothing about stock
+had to improve.
+
+The reasoning is recorded because it matters more than the outcome: the blocker
+was a stale probe, and a stale probe is invisible precisely because it keeps
+returning a true answer to a question nobody is asking any more.
+
+## What the rows are still good for
+
+They establish that **L40S at two GPUs was genuinely scarce** - visible in three
+separate catalog reads and gone at provisioning each time, including two create
+calls seconds after a `Low` reading. That is the evidence behind amendment 8's
+substitution, and it is why the substitution was necessary rather than
+convenient.
