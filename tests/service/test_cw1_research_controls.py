@@ -143,8 +143,12 @@ def test_advertised_controls_change_actual_execution_as_registered(tmp_path):
             first["parameters"].pop("depth")
             first["parameters"].pop("n_modes")
             first["parameters"]["branch_points"] = 4
+        # A supplied field must reach what is rebuilt: the physics ramp needs a
+        # PDE term, and EMA weights reach predictions only through EMA inference.
         if name == "physics_warmup_steps":
             first["parameters"]["pde_weight"] = 0.001
+        if name == "ema_decay":
+            first["parameters"]["inference_weights"] = "ema"
         second = {**first, "parameters": {**first["parameters"], name: value}}
         cases[name] = [config(first), config(second)]
     ledger = CampaignLedger(tmp_path / "ledger")

@@ -9785,6 +9785,19 @@ events:
       - "WAVE-C/C-09"
     supersedes: null
     recorded_at: "2026-09-23T18:32:39Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "evidence"
+    event_id: "CONSTRUCTION-DECLARATIVE-D0-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "Implemented D0 of the declarative construction plan (OWNER-CONSTRUCTION-DECLARATIVE-01): a recipe Carbon cannot rebuild exactly as submitted is now refused with each field and rule named, and the refusal reaches the miner. Before this, the development compiler turned every B-02B rejection and backend rule into a bare exception that the research service reported as a generic INTERNAL_FAILURE; it now returns the compiler's own CompileRejected, so compile_strategy answers accepted=false with each issue's code and path. Two fields that were accepted while changing nothing are refused when the miner supplies them: physics_warmup_steps without a positive pde_weight (the ramp scales only the PDE term), and ema_decay without EMA inference (EMA weights otherwise never reach a prediction); defaulted values are Carbon's choice and are not refused. Odd n_modes and odd width are reported as domain mismatches naming their field, and all rebuild issues are reported at once. Each refusal is paired with the same value accepted where it acts. The B-02B compiler itself, its issue registry and its non-echoing paths are unchanged, so an unknown key is still not repeated back. No capability, scoring rule, exam, tolerance or resource envelope is added or changed, and nothing here is qualified."
+    primary_detail: "carbon/development_session/research_catalog.py"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "WAVE-C/C-W1-D4"
+    supersedes: null
+    recorded_at: "2026-09-23T20:48:30Z"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"

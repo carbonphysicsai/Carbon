@@ -8,6 +8,7 @@ import pytest
 from carbon import construction as c
 from carbon.development_session.contracts import build_contracts
 from carbon.development_session.research_catalog import (
+    RecipeRejected,
     compile_recipe,
     research_contracts,
 )
@@ -154,3 +155,108 @@ def test_resolved_plan_training_exception_rejects_altered_consumer():
                 changed if s is surface else s for s in plan.resolved_surfaces
             ),
         )
+
+
+def named(parameters, backbone="fno"):
+    """The (code, path) pairs a rejected recipe names."""
+    with pytest.raises(RecipeRejected) as caught:
+        compile_recipe(recipe(backbone, **parameters))
+    return {(i.code, i.path) for i in caught.value.rejected.issues}
+
+
+@pytest.mark.parametrize(
+    "refused,accepted,issue",
+    [
+        # The physics ramp multiplies only the PDE term.
+        (
+            {"physics_warmup_steps": 5},
+            {"physics_warmup_steps": 5, "pde_weight": 0.1},
+            ("parameter.dependency_unsatisfied", "/parameters/physics_warmup_steps"),
+        ),
+        # EMA weights reach predictions only through EMA inference.
+        (
+            {"ema_decay": 0.9},
+            {"ema_decay": 0.9, "inference_weights": "ema"},
+            ("parameter.dependency_unsatisfied", "/parameters/ema_decay"),
+        ),
+        (
+            {"ema_decay": 0.9, "inference_weights": "params"},
+            {"ema_decay": 0.9, "inference_weights": "ema"},
+            ("parameter.dependency_unsatisfied", "/parameters/ema_decay"),
+        ),
+    ],
+)
+def test_a_supplied_field_that_would_be_ignored_is_refused_by_name(
+    refused, accepted, issue
+):
+    """Specimen for each refusal: the same value is accepted where it acts."""
+    assert named(refused) == {issue}
+    compile_recipe(recipe(**accepted))
+
+
+def test_the_defaults_are_not_refused_for_what_the_miner_did_not_supply():
+    """Defaulted values with no effect are Carbon's choice, not the miner's."""
+    _, profile = compile_recipe(recipe())
+    train = json.loads(profile.train_config_json)
+    assert train["pde_weight"] == 0 and train["inference_weights"] == "params"
+
+
+@pytest.mark.parametrize(
+    "parameters,issue",
+    [
+        ({"n_modes": 7}, ("parameter.domain_mismatch", "/parameters/n_modes")),
+        ({"width": 7}, ("parameter.domain_mismatch", "/parameters/width")),
+    ],
+)
+def test_backend_rules_name_their_field(parameters, issue):
+    assert named(parameters) == {issue}
+
+
+def test_every_rebuild_issue_is_reported_at_once():
+    assert named({"n_modes": 7, "width": 7, "ema_decay": 0.5}) == {
+        ("parameter.domain_mismatch", "/parameters/n_modes"),
+        ("parameter.domain_mismatch", "/parameters/width"),
+        ("parameter.dependency_unsatisfied", "/parameters/ema_decay"),
+    }
+
+
+def test_a_rejected_recipe_reaches_the_miner_as_named_issues_not_a_failure():
+    """The research protocol's compile result carries each issue's code and path."""
+    from carbon import research
+    from carbon.construction.compiler import SUPPORTED_COMPILER_IDENTITY
+    from carbon.development_session.contracts import strategy_limits
+    from carbon.development_session.profile import CHALLENGE
+    from carbon.development_session.research_service import Compiler
+
+    contracts = research_contracts()
+    compiler = Compiler(
+        candidate_assembly=contracts.assembly,
+        candidate_assembly_ref=contracts.assembly.to_ref(),
+        parameter_catalog=contracts.catalog,
+        parameter_catalog_ref=contracts.catalog.to_ref(
+            candidate_assembly=contracts.assembly
+        ),
+        authoring_origin=contracts.origin,
+        authoring_artifacts=contracts.artifacts,
+        compiler_identity=SUPPORTED_COMPILER_IDENTITY,
+        strategy_limits=strategy_limits(),
+    )
+
+    def compile_(strategy):
+        return compiler.compile_strategy(
+            research.CompileStrategyRequest(
+                CHALLENGE, strategy, contracts.assembly.training_support_ref
+            )
+        )
+
+    result = compile_(recipe(ema_decay=0.9))
+    assert result.accepted is False
+    assert [(i.code, i.path) for i in result.issues] == [
+        ("parameter.dependency_unsatisfied", ("parameters", "ema_decay"))
+    ]
+    # B-02B's own rejections arrive the same way.
+    unknown = compile_(recipe(curriculum=1))
+    assert unknown.accepted is False
+    assert [i.code for i in unknown.issues] == ["parameter.unknown"]
+    # Specimen: the repaired recipe compiles.
+    assert compile_(recipe(ema_decay=0.9, inference_weights="ema")).accepted
