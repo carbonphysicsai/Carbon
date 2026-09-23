@@ -142,11 +142,20 @@ def test_invalid_scope_is_rejected_before_reference_attachment(monkeypatch):
         pytest.fail("invalid scope reached the reference consumer constructor")
 
     monkeypatch.setattr(research_data, "PublicReferenceData", forbidden)
-    ledger = SimpleNamespace(
-        admission=SimpleNamespace(document={"runtime": {"scientific_tasks": []}})
-    )
+    import contextlib
+
+    class FrozenCampaign:
+        """Only the frozen manifest `_science` reads its runtime from."""
+
+        @contextlib.contextmanager
+        def db(self):
+            row = (json.dumps({"runtime": {"scientific_tasks": []}}),)
+            yield SimpleNamespace(
+                execute=lambda *_: SimpleNamespace(fetchone=lambda: row)
+            )
+
     with pytest.raises(ValueError, match="closed registered"):
-        cli._science(ledger, "test-miner", None, None)
+        cli._science(FrozenCampaign(), "test-miner", None, None)
 
 
 @pytest.mark.parametrize("kind", ["burgers", "envelope", "advection"])
@@ -200,8 +209,16 @@ def test_normal_stdio_factory_attaches_exact_material_and_shared_image(
     document = {"principal": manifest["principal"]}
     profile_path.write_bytes(canonical(document))
     profile_path.chmod(0o600)
+    # A granted campaign attaches only through the development path's profile
+    # (C-MLP-02-D11); the shared attach lifecycle is what this exercises.
     profile = cli.OperatorProfile(
-        profile_path, document, ledger.admission, ledger.root, manifest, cleanup
+        profile_path,
+        document,
+        "c" * 32,
+        ledger.root,
+        manifest,
+        cleanup,
+        development_grant=ledger.admission,
     )
     initial = make_research_service(
         root=ledger.root / "research-tasks",
@@ -270,5 +287,5 @@ def test_normal_stdio_factory_attaches_exact_material_and_shared_image(
     monkeypatch.setattr(cli, "_requester", requester)
     monkeypatch.setattr(cli, "_authored_image", lambda *a: authored)
     monkeypatch.setattr(cli, "create_stdio_server", server)
-    asyncio.run(cli.serve(profile_path, cleanup_only=cleanup))
+    asyncio.run(cli.serve(profile_path, "c" * 32, cleanup_only=cleanup))
     assert seen == [kind]

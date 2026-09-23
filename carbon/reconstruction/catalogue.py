@@ -45,7 +45,9 @@ class ReconstructionCapability:
     prediction_contract: str = (
         "target-free requested physical times; [case,time,point] float32"
     )
-    applicability: str = "1D periodic viscous Burgers; uniform endpoint-excluded grid; carbon_burgers_native_v1"
+    applicability: str = (
+        "1D periodic viscous Burgers; uniform endpoint-excluded grid; carbon_burgers_native_v1"
+    )
     precision: str = (
         "float32 model and prediction; physical scaling must be representable"
     )
