@@ -10,7 +10,12 @@ import json
 from dataclasses import replace
 
 from carbon import construction as c
-from carbon.construction.compiler import CompileAccepted
+from carbon.construction.compiler import (
+    CompileAccepted,
+    CompileIssue,
+    CompileRejected,
+)
+from carbon.construction.model import SelectedSurface
 from carbon.reconstruction.profile import compile_development_profile
 
 from .contracts import SessionContracts, build_contracts, semantic
@@ -111,8 +116,63 @@ def research_contracts() -> SessionContracts:
     return SessionContracts(assembly, catalog, origin, artifacts)
 
 
+class RecipeRejected(ValueError):
+    """A recipe Carbon cannot rebuild, with every reason named.
+
+    Carries the compiler's own `CompileRejected`, so a miner asking "can I
+    submit this?" learns which field and which rule, never a generic failure.
+    """
+
+    def __init__(self, rejected):
+        if type(rejected) is not CompileRejected:
+            raise TypeError("exact CompileRejected required")
+        self.rejected = rejected
+        super().__init__(
+            "recipe rejected: "
+            + ",".join(f"{i.code}@{i.path}" for i in rejected.issues)
+        )
+
+
+def _issue(code, surface):
+    from carbon.construction.compiler import _ISSUE_MESSAGES
+
+    return CompileIssue(code, f"/parameters/{surface}", _ISSUE_MESSAGES[code])
+
+
+def rebuild_issues(plan, model, train):
+    """Rules the installed backend imposes beyond B-02B's closed tables.
+
+    B-02B compatibility rules are finite allowed-row tables and cannot say
+    "this needs a positive weight" over a continuous range, so these live here.
+    Each names its field. A field the miner supplies must change what Carbon
+    rebuilds: one that would be ignored is refused, never silently accepted.
+    """
+    supplied = {
+        s.surface_id for s in plan.resolved_surfaces if type(s) is SelectedSurface
+    }
+    issues = []
+    # n_modes uses floor(n/2)+1 bins: odd values alias the preceding even one.
+    if model["kind"] == "fno1d" and model["n_modes"] % 2:
+        issues.append(_issue("parameter.domain_mismatch", "n_modes"))
+    if model["width"] % model["heads"]:
+        issues.append(_issue("parameter.domain_mismatch", "width"))
+    # The physics ramp multiplies only the PDE term.
+    if "physics_warmup_steps" in supplied and train["pde_weight"] == 0:
+        issues.append(
+            _issue("parameter.dependency_unsatisfied", "physics_warmup_steps")
+        )
+    # EMA weights reach predictions only when inference uses them.
+    if "ema_decay" in supplied and train["inference_weights"] != "ema":
+        issues.append(_issue("parameter.dependency_unsatisfied", "ema_decay"))
+    return tuple(issues)
+
+
 def compile_recipe(strategy, *, contracts=None):
-    """Static compiler plus actual backend configuration checks; no training."""
+    """Static compiler plus actual backend configuration checks; no training.
+
+    Raises `RecipeRejected`, carrying every named issue, for a recipe Carbon
+    cannot rebuild exactly as submitted.
+    """
     from carbon.reconstruction._vendor.carbon_jax_lab.config import (
         ModelConfig,
         TaskConfig,
@@ -123,9 +183,7 @@ def compile_recipe(strategy, *, contracts=None):
         strategy
     )
     if type(compiled) is not CompileAccepted:
-        raise ValueError(
-            "recipe rejected by B-02B: " + ",".join(i.code for i in compiled.issues)
-        )
+        raise RecipeRejected(compiled)
     profile = compile_development_profile(compiled.construction_plan)
     model, task, train = (
         json.loads(s)
@@ -135,14 +193,12 @@ def compile_recipe(strategy, *, contracts=None):
             profile.train_config_json,
         )
     )
+    issues = rebuild_issues(compiled.construction_plan, model, train)
+    if issues:
+        raise RecipeRejected(CompileRejected(issues))
     ModelConfig(**model)
     TaskConfig(**task)
     TrainConfig(**train)
-    # n_modes uses floor(n/2)+1: odd values alias the preceding even value.
-    if model["kind"] == "fno1d" and model["n_modes"] % 2:
-        raise ValueError(
-            "FNO n_modes must be even; odd values would be an ignored degree of freedom"
-        )
     return compiled, profile
 
 

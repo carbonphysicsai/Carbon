@@ -80,9 +80,9 @@ def capabilities():
             "enforce_mean": "project each predicted spatial field to the permitted initial mean; no accuracy credit by itself",
             "h1_weight": "spatial-derivative training error; requires additional derivative work",
             "pde_weight": "autodifferential Burgers residual training loss, not a weak-form evaluator; additional derivative cost",
-            "inference_weights": "params or EMA; selected weights retained in frozen reconstruction",
+            "inference_weights": "params or EMA; selected weights retained in frozen reconstruction. Supplying ema_decay requires EMA inference, since otherwise it would change nothing",
             "steps": "target updates; choose a recipe that completes within the operative final limit. Incomplete reconstruction is retained and cannot be accepted",
-            "warmup_steps_physics_warmup_steps": "each must be strictly less than steps; physics warmup changes behavior only when pde_weight is positive",
+            "warmup_steps_physics_warmup_steps": "each must be strictly less than steps; supplying physics_warmup_steps requires a positive pde_weight, since the ramp scales only the PDE term. A recipe Carbon cannot rebuild exactly as submitted is refused with each field and rule named",
         },
         "workspace_actions": [
             "public_material",
