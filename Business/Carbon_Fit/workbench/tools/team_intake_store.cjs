@@ -195,6 +195,7 @@ function validatePrincipal(principal, action) {
     record_transport: ["INTAKE_RECEIVER"],
     retention: ["DATA_STEWARD"],
     export_control: ["DATA_STEWARD"],
+    hold: ["DATA_STEWARD"],
     releases: ["DATA_STEWARD"],
     search: ["TEAM_REVIEWER", "INTAKE_RECEIVER"],
     outbox: ["NOTIFICATION_OPERATOR"],
@@ -529,6 +530,10 @@ function logRelease(store, record, actor, entry) {
 // E1 and E2 share one way to destroy a record: the key first, then the record.
 function destroyRecord(store, inquiryId, actor, { reason, status, authority, reaches, cannotReach }) {
   const existing = store.state.inquiries[inquiryId];
+  // Every destruction path passes through here, so the hold is checked here as
+  // well as at each caller: a new path cannot forget it.
+  if (existing.hold && existing.hold.active)
+    throw Object.assign(Error("This record is under hold; it cannot be destroyed"), { status: 409 });
   // The key goes first. Once it is destroyed every copy of this record, the
   // store file and any backup or archive copy of it, is unreadable, even
   // though those bytes remain. If the write below then failed, the record
@@ -624,8 +629,15 @@ function retentionPlan(store, nowMs) {
   );
   const blockers = [];
   const actions = [];
+  const held = [];
   for (const record of Object.values(store.state.inquiries)) {
     if (record.lifecycle === KEY_DESTROYED) continue;
+    // A record under hold is never acted on, and says so rather than vanishing
+    // from the plan.
+    if (record.hold && record.hold.active) {
+      held.push({ inquiry_id: record.inquiry_id, hold_id: record.hold.hold_id });
+      continue;
+    }
     if (!record.basis) {
       blockers.push({ inquiry_id: record.inquiry_id, reason: "NO_AGREEMENT_BASIS" });
       continue;
@@ -649,6 +661,7 @@ function retentionPlan(store, nowMs) {
     status: runnable ? "READY" : "REFUSED",
     missing_values: missing,
     blockers,
+    held,
     // Shown even when the job will not run, so an operator can see what the
     // configured values would do. Nothing is applied from a refused plan.
     would_apply: actions,
@@ -1194,6 +1207,48 @@ class DurableIntakeStore {
     return clone(record.transport);
   }
 
+  /**
+   * Place a hold on a record. While it is active the record cannot be
+   * destroyed by any path: the scheduled job lists it as held, and an approved
+   * deletion is refused. Whether a hold is legally required is counsel's
+   * question; this only makes the answer enforceable. History is append-only.
+   */
+  placeHold(inquiryId, { reason } = {}, principal) {
+    const actor = validatePrincipal(principal, "hold");
+    ownedRecord(this, inquiryId, principal);
+    if (typeof reason !== "string" || reason.trim().length < 3 || reason.length > 200)
+      throw Error("A hold states its reason in 3 to 200 characters");
+    const next = clone(this.state);
+    const record = next.inquiries[inquiryId];
+    if (record.hold && record.hold.active) throw Error("This record is already under hold");
+    const history = (record.hold && record.hold.history) || [];
+    const holdId = "hold-" + crypto.randomBytes(6).toString("hex");
+    record.hold = {
+      active: true,
+      hold_id: holdId,
+      history: [...history, { seq: history.length + 1, event: "PLACED", hold_id: holdId, reason: reason.trim(), by: actor, at: new Date(this.clock()).toISOString() }],
+    };
+    this.persist(next);
+    return clone(record.hold);
+  }
+
+  liftHold(inquiryId, { reason } = {}, principal) {
+    const actor = validatePrincipal(principal, "hold");
+    ownedRecord(this, inquiryId, principal);
+    if (typeof reason !== "string" || reason.trim().length < 3 || reason.length > 200)
+      throw Error("Lifting a hold states its reason in 3 to 200 characters");
+    const next = clone(this.state);
+    const record = next.inquiries[inquiryId];
+    if (!record.hold || !record.hold.active) throw Error("This record is not under hold");
+    record.hold = {
+      active: false,
+      hold_id: null,
+      history: [...record.hold.history, { seq: record.hold.history.length + 1, event: "LIFTED", hold_id: record.hold.hold_id, reason: reason.trim(), by: actor, at: new Date(this.clock()).toISOString() }],
+    };
+    this.persist(next);
+    return clone(record.hold);
+  }
+
   /** Record a record's export-control reference, once. It is never replaced. */
   recordExportControl(inquiryId, ref, principal) {
     const actor = validatePrincipal(principal, "export_control");
@@ -1291,6 +1346,10 @@ class DurableIntakeStore {
     const existing = ownedRecord(this, inquiryId, principal);
     // Archival retention is the default disposition, so removal is the
     // exception and needs an approved one on record.
+    // A record under hold is not destroyed, even with an approved exception:
+    // the hold is the later, narrower decision and it wins until lifted.
+    if (existing.hold && existing.hold.active)
+      throw Object.assign(Error("This record is under hold; it cannot be deleted until the hold is lifted"), { status: 409 });
     const exception = this.state.exceptions[existing.retention.exception_id];
     if (!exception)
       throw Error(

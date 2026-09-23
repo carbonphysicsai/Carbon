@@ -88,6 +88,14 @@ function createIntakeServer({ store, users, clock, limits, transport = null }) {
         const exportControl = request.headers["x-carbon-export-control-ref"] || null;
         return send(response, 201, await store.accept(raw, key, principal, basis, transport, exportControl));
       }
+      const holdMatch = /^\/private\/intake\/([A-Za-z0-9._:-]+)\/hold\/(place|lift)$/.exec(url.pathname);
+      if (holdMatch && request.method === "POST") {
+        const offered = F.strictJsonParse(await body(request), { maxBytes: 1_000, maxDepth: 2 });
+        if (!offered || typeof offered !== "object" || Object.keys(offered).join() !== "reason")
+          throw Object.assign(Error("A hold request carries exactly one field, reason"), { status: 400 });
+        const act = holdMatch[2] === "place" ? store.placeHold.bind(store) : store.liftHold.bind(store);
+        return send(response, 200, act(holdMatch[1], offered, principal));
+      }
       const exportControlMatch = /^\/private\/intake\/([A-Za-z0-9._:-]+)\/export-control$/.exec(url.pathname);
       if (exportControlMatch && request.method === "POST") {
         const offered = F.strictJsonParse(await body(request), { maxBytes: 1_000, maxDepth: 2 });
