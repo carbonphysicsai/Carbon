@@ -252,7 +252,12 @@ class SessionContracts:
         )
 
 
-def build_contracts() -> SessionContracts:
+#: The historical session's backbones. A wider catalog passes its own tuple;
+#: the default keeps this catalog's identity byte-for-byte.
+SESSION_BACKBONES = ("fno", "deeponet")
+
+
+def build_contracts(backbones=SESSION_BACKBONES) -> SessionContracts:
     physical, candidate, training = authored_contracts()
     source = semantic("provenance", "prospective_session_profile")
     unqualified = FixtureAuthoringCapability().issue_origin(
@@ -327,7 +332,7 @@ def build_contracts() -> SessionContracts:
             (),
             (),
         )
-        for selector in ("fno", "deeponet")
+        for selector in backbones
     )
     backbone_target = c.ConsumerTarget("carbon_jax_lab_model", "kind")
     common = {
@@ -384,7 +389,7 @@ def build_contracts() -> SessionContracts:
             "strategy_backbone",
             backbone_target,
             c.SurfaceValueType.BACKBONE_SELECTOR,
-            c.ChoiceDomain(("fno", "deeponet")),
+            c.ChoiceDomain(tuple(backbones)),
             c.RequiredSurface(),
             top=True,
         )

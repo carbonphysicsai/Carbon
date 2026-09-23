@@ -71,6 +71,8 @@ from .research_data import PublicReferenceData
 from .research_profile import _context, public_cases
 
 SCHEMA = "carbon.public-gpu-reconstruction.scope.v1"
+#: The families the GPU diagnostic lane rebuilds.
+GPU_BACKBONES = ("fno", "deeponet")
 # The result body gained the miner-lane assurance label, so it is served under a
 # new version rather than under the old one. A v1 result recorded no lane and is
 # not retrospectively read as though it had; existing records stay readable and
@@ -172,7 +174,9 @@ def _observations(run):
 
 def gpu_contracts():
     """Change authoring pins before compilation, never a compiled CPU plan."""
-    old = research_contracts()
+    # The GPU lane's own admitted families; widening the CPU research catalog
+    # does not widen it.
+    old = research_contracts(GPU_BACKBONES)
     env = c.EnvironmentPin(GPU_PROFILE.profile_id, "1.0", GPU_PROFILE.digest)
     deps = old.assembly.dependency_pins + tuple(
         c.DependencyPin(*s) for s in accelerator_dependency_specs(GPU_PROFILE)
@@ -200,11 +204,11 @@ def gpu_contracts():
 
 
 def gpu_catalog():
-    value = public_catalog()
+    value = public_catalog(GPU_BACKBONES)
     value["version"] = "carbon.burgers-gpu-diagnostic-recipes.v1"
-    value["constraints"][
-        -1
-    ] = "existing C03 host controls, the campaign grant and the installed host device record dominate parameter bounds"
+    value["constraints"][-1] = (
+        "existing C03 host controls, the campaign grant and the installed host device record dominate parameter bounds"
+    )
     value["execution"] = {
         "profile": GPU_PROFILE.profile_id,
         "backend": "cuda",

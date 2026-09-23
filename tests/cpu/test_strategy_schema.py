@@ -21,7 +21,7 @@ import pytest
 
 from carbon.schema import ValidationIssue, ValidationResult, dry_validate
 
-SUPPORTED_BACKBONES = ("deeponet", "fno", "physicsnemo_fno", "uno")
+SUPPORTED_BACKBONES = ("deeponet", "fno", "physics_attention", "physicsnemo_fno", "uno")
 REQUIRED_FIELDS = ("schema_version", "challenge_id", "backbone", "parameters")
 
 

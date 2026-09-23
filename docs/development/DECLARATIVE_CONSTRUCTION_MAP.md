@@ -71,13 +71,14 @@ Status key:
 |---|---|---|---|
 | Model family | FNO (`fno1d`) | E | lab `models.py`; `profile.py` `_BACKBONES` |
 | | DeepONet (`deeponet1d`) | E | same |
-| | Physics attention (`physics_attention1d`, Transolver-style) | I | lab `models.py`, `config.py`; conformance-tested |
+| | Physics attention (`physics_attention1d`, Transolver-style) | E (D1) | backbone `physics_attention` in the research catalog only; the session and GPU catalogs are unchanged |
 | | Haar wavelet operator (`haar_operator1d`) | I | lab `models.py`; needs a grid-divisibility rule at compile time |
 | | Graph operators (`gno1d`, `gino1d`) | I | lab `models.py`; O(N²) cost needs a resource forecast |
 | | Foundax FNO (`foundax_fno1d`) | I | `foundax_adapter.py`; different schedule semantics (see defects) |
 | | `uno`, `physicsnemo_fno` | A | accepted by `dry_validate`, then refused at compile |
 | Architecture | width, depth, n_modes, branch_points, remat | E | `research_catalog.py` SURFACES |
-| | heads, slices, expansion, wavelet_levels, graph_radius, latent_points | I | fixed values in `profile.py` |
+| | heads, slices, expansion | E (D1) | attention only; width must divide across heads |
+| | wavelet_levels, graph_radius, latent_points | I | fixed values in `profile.py` |
 | | DeepONet branch and trunk depth | A | hard-coded three-layer MLP |
 | Objective | normalised data MSE | E | always on |
 | | relative loss, H1 weight, Burgers PDE residual weight | E | lab `training.py` |
@@ -126,7 +127,7 @@ shape as compile issues.
 
 ## Expansion plan, in order
 
-**D0: an honest answer to "can I submit this?"**
+**D0: an honest answer to "can I submit this?"** (delivered in part: defects 1 and 2 are refused by name, and compile now reports every issue with its code and field. Still open: `dry_validate` remains a structural check that accepts unknown backbones, and defects 3 to 5 remain)
 - Add a structured `SubmissionAssessment`, returned by an export-and-validate
   operation:
   - the canonical design;
@@ -142,7 +143,7 @@ shape as compile issues.
 
 No new capability is added in this step.
 
-**D1: expose what already exists (about 3 to 5 days)**, in this order:
+**D1: expose what already exists (about 3 to 5 days)**, in this order (physics attention delivered):
 1. physics attention, with `heads`, `slices` and `expansion`;
 2. the Haar wavelet operator, with `wavelet_levels`;
 3. graph operators, with `graph_radius` and `latent_points` and a resource

@@ -260,3 +260,70 @@ def test_a_rejected_recipe_reaches_the_miner_as_named_issues_not_a_failure():
     assert [i.code for i in unknown.issues] == ["parameter.unknown"]
     # Specimen: the repaired recipe compiles.
     assert compile_(recipe(ema_decay=0.9, inference_weights="ema")).accepted
+
+
+def test_physics_attention_is_rebuilt_with_every_field_it_accepts():
+    parameters = {
+        "width": 32,
+        "depth": 3,
+        "heads": 4,
+        "slices": 8,
+        "expansion": 3,
+        "remat": True,
+    }
+    _, profile = compile_recipe(recipe("physics_attention", **parameters))
+    model = json.loads(profile.model_config_json)
+    assert model["kind"] == "physics_attention1d"
+    for key, value in parameters.items():
+        assert model[key] == value
+
+
+@pytest.mark.parametrize(
+    "backbone,field",
+    [
+        ("fno", "heads"),
+        ("fno", "slices"),
+        ("deeponet", "expansion"),
+        ("physics_attention", "n_modes"),
+        ("physics_attention", "branch_points"),
+    ],
+)
+def test_a_field_of_another_family_is_refused_by_name(backbone, field):
+    assert named({field: 4}, backbone) == {
+        ("parameter.not_applicable", f"/parameters/{field}")
+    }
+
+
+def test_attention_width_must_split_across_its_heads():
+    assert named({"width": 30, "heads": 4}, "physics_attention") == {
+        ("parameter.dependency_unsatisfied", "/parameters/heads")
+    }
+    # Specimen: the same heads with a divisible width compiles.
+    compile_recipe(recipe("physics_attention", width=32, heads=4))
+
+
+def test_widening_the_research_catalog_leaves_the_other_catalogs_unchanged():
+    """The session and GPU catalogs keep their own backbones; the research one
+    is the only one that offers attention."""
+    from carbon.development_session.gpu_research import gpu_catalog, gpu_contracts
+
+    def backbones(contracts):
+        entry = next(
+            e for e in contracts.catalog.entries if e.surface_id == "strategy_backbone"
+        )
+        return tuple(entry.domain.allowed_ids), {
+            o.selector_token for o in contracts.assembly.backbone_surface.options
+        }
+
+    assert backbones(build_contracts()) == (
+        ("fno", "deeponet"),
+        {"fno", "deeponet"},
+    )
+    assert backbones(gpu_contracts())[1] == {"fno", "deeponet"}
+    assert gpu_catalog()["backbones"] == ["fno", "deeponet"]
+    assert "heads" not in gpu_catalog()["surfaces"]
+    # Specimen: the research catalog does offer it, and its fields.
+    assert "physics_attention" in backbones(research_contracts())[0]
+    from carbon.development_session.research_catalog import public_catalog
+
+    assert public_catalog()["surfaces"]["heads"]["architecture"] == "physics_attention"

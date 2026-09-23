@@ -24,13 +24,21 @@ CATALOG_VERSION = "carbon.burgers-autoresearch-recipes.v1"
 # Bounds are engineering admission bounds, not quality or scientific claims.
 # Actual CPU/memory/time admission is authoritative even inside these bounds.
 # name: group, type, minimum/choices, maximum, default, architecture
+#: Every backbone this catalog rebuilds end to end: public definition,
+#: registered lab implementation, profile mapping and executed controls test.
+RESEARCH_BACKBONES = ("fno", "deeponet", "physics_attention")
+FNO, DEEPONET, ATTENTION = ("fno",), ("deeponet",), ("physics_attention",)
+# name: group, type, minimum/choices, maximum, default, backbones (None = all)
 SURFACES = {
     "steps": ("train", "uint", 2, 1000000, 512, None),
     "width": ("model", "uint", 2, 128, 24, None),
-    "depth": ("model", "uint", 1, 8, 2, "fno"),
-    "n_modes": ("model", "uint", 2, 64, 16, "fno"),
-    "branch_points": ("model", "uint", 2, 64, 32, "deeponet"),
-    "remat": ("model", "bool", None, None, False, "fno"),
+    "depth": ("model", "uint", 1, 8, 2, FNO + ATTENTION),
+    "n_modes": ("model", "uint", 2, 64, 16, FNO),
+    "branch_points": ("model", "uint", 2, 64, 32, DEEPONET),
+    "heads": ("model", "uint", 1, 16, 2, ATTENTION),
+    "slices": ("model", "uint", 1, 64, 4, ATTENTION),
+    "expansion": ("model", "uint", 1, 8, 2, ATTENTION),
+    "remat": ("model", "bool", None, None, False, FNO + ATTENTION),
     "hard_initial_condition": ("task", "bool", None, None, True, None),
     "enforce_mean": ("task", "bool", None, None, True, None),
     "batch_size": ("train", "uint", 1, 64, 8, None),
@@ -52,10 +60,10 @@ SURFACES = {
 }
 
 
-def research_contracts() -> SessionContracts:
+def research_contracts(backbones=RESEARCH_BACKBONES) -> SessionContracts:
     from .research_authoring import training_graph
 
-    old = build_contracts()
+    old = build_contracts(backbones)
     training, origin, artifacts, provenance = training_graph()
     assembly = replace(
         old.assembly,
@@ -73,6 +81,10 @@ def research_contracts() -> SessionContracts:
         "choice": c.SurfaceValueType.CANONICAL_CHOICE,
     }
     for name, (group, kind, low, high, default, architecture) in SURFACES.items():
+        if architecture is not None:
+            architecture = tuple(a for a in architecture if a in backbones)
+            if not architecture:
+                continue  # a field for a backbone this catalog does not offer
         value_type = types[kind]
         if kind == "uint":
             domain = c.UInt64RangeDomain(low, high)
@@ -87,7 +99,10 @@ def research_contracts() -> SessionContracts:
             applicability = c.WhenSurfaceIn(
                 semantic("applicability", "autoresearch_" + name),
                 "strategy_backbone",
-                (c.SurfaceValue(c.SurfaceValueType.BACKBONE_SELECTOR, architecture),),
+                tuple(
+                    c.SurfaceValue(c.SurfaceValueType.BACKBONE_SELECTOR, a)
+                    for a in architecture
+                ),
                 semantic("applicability_reason", "unused_by_other_architecture"),
             )
         entries.append(
@@ -154,7 +169,12 @@ def rebuild_issues(plan, model, train):
     # n_modes uses floor(n/2)+1 bins: odd values alias the preceding even one.
     if model["kind"] == "fno1d" and model["n_modes"] % 2:
         issues.append(_issue("parameter.domain_mismatch", "n_modes"))
-    if model["width"] % model["heads"]:
+    if model["kind"] == "physics_attention1d":
+        # Attention splits the width evenly across its heads.
+        if model["width"] % model["heads"]:
+            issues.append(_issue("parameter.dependency_unsatisfied", "heads"))
+    elif model["width"] % model["heads"]:
+        # The installed configuration fixes two heads for every other family.
         issues.append(_issue("parameter.domain_mismatch", "width"))
     # The physics ramp multiplies only the PDE term.
     if "physics_warmup_steps" in supplied and train["pde_weight"] == 0:
@@ -202,10 +222,19 @@ def compile_recipe(strategy, *, contracts=None):
     return compiled, profile
 
 
-def public_catalog():
+def _offered(architecture, backbones):
+    """The backbones a field applies to among those offered: None for all, a
+    name for one (the catalog's original form), a list for several."""
+    if architecture is None:
+        return None
+    offered = [a for a in architecture if a in backbones]
+    return offered[0] if len(offered) == 1 else offered
+
+
+def public_catalog(backbones=RESEARCH_BACKBONES):
     return {
         "version": CATALOG_VERSION,
-        "backbones": ["fno", "deeponet"],
+        "backbones": list(backbones),
         "surfaces": {
             name: {
                 "group": g,
@@ -213,12 +242,22 @@ def public_catalog():
                 "minimum_or_choices": lo,
                 "maximum": hi,
                 "default": d,
-                "architecture": a,
+                "architecture": _offered(a, backbones),
             }
             for name, (g, t, lo, hi, d, a) in SURFACES.items()
+            if a is None or set(a) & set(backbones)
         },
         "constraints": [
-            "width is even (installed configuration requires divisibility by two)",
+            *(
+                [
+                    "FNO and DeepONet width is even (installed configuration fixes two heads)",
+                    "physics_attention width is divisible by heads",
+                ]
+                if "physics_attention" in backbones
+                else [
+                    "width is even (installed configuration requires divisibility by two)"
+                ]
+            ),
             "FNO n_modes is even; allocated Fourier modes=n_modes/2+1",
             "both warmup counts must be strictly below steps",
             "only architecture-applicable fields may be supplied",

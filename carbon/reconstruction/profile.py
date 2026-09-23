@@ -63,6 +63,7 @@ DEPENDENCY_SPECS = (
 _BACKBONES = {
     "fno": ("carbon_jax_fno1d", "fno1d"),
     "deeponet": ("carbon_jax_deeponet1d", "deeponet1d"),
+    "physics_attention": ("carbon_jax_physics_attention1d", "physics_attention1d"),
 }
 _MODEL_DEFAULTS = {
     "width": 8,

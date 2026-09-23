@@ -44,9 +44,7 @@ class ReconstructionCapability:
     prediction_contract: str = (
         "target-free requested physical times; [case,time,point] float32"
     )
-    applicability: str = (
-        "1D periodic viscous Burgers; uniform endpoint-excluded grid; carbon_burgers_native_v1"
-    )
+    applicability: str = "1D periodic viscous Burgers; uniform endpoint-excluded grid; carbon_burgers_native_v1"
     precision: str = (
         "float32 model and prediction; physical scaling must be representable"
     )
@@ -78,6 +76,24 @@ _CAPABILITIES = (
         "carbon_jax_deeponet1d",
         "1.0",
         "deeponet1d",
+        profile.IMPLEMENTATION_ID,
+        profile.IMPLEMENTATION_VERSION,
+        profile.UPSTREAM_WHEEL_DIGEST,
+        "carbon_c02_jax_development",
+        "3.0",
+        (
+            "TRAIN RMS normalized squared error",
+            "optional relative data loss",
+            "optional H1 spectral derivative loss",
+            "optional Burgers PDE residual loss",
+        ),
+        True,
+    ),
+    ReconstructionCapability(
+        "physics_attention",
+        "carbon_jax_physics_attention1d",
+        "1.0",
+        "physics_attention1d",
         profile.IMPLEMENTATION_ID,
         profile.IMPLEMENTATION_VERSION,
         profile.UPSTREAM_WHEEL_DIGEST,
