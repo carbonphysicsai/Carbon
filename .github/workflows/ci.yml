@@ -123,6 +123,13 @@ jobs:
           # of silently skipping when that required service is unavailable.
           CARBON_REQUIRE_DOCKER_TESTS: "1"
         run: ./scripts/dev/ci.sh
+      - name: Run the Launchpad real-browser smoke
+        # The Launchpad browser test had no execution home: no browser on the
+        # development host, and no CI step ran it, so assertions added to it
+        # would have been coverage that never executes. The Hub smoke already
+        # relies on the runner's preinstalled Chrome the same way.
+        run: python3 scripts/dev/miner_launchpad/browser_smoke.py
+
       - name: Upload quality inventory
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
