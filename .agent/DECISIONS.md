@@ -15135,3 +15135,77 @@ controls, and the money for counsel and a security review all remain open and
 are unaffected by this entry. Rollback itself is unchanged: stop the process and
 leave the store file in place, because the store is the evidence and a deletion
 still requires an approved retention exception.
+
+## 2026-09-22 — WEB-QA-07-D2: the current-progress card is refreshed by date, not rewritten
+
+**Authority.** The repository owner approved Option A of
+`website/ask-carbon/CURRENT_PROGRESS_REFRESH_PROPOSAL.md` on 2026-09-22, with a
+new expiry of `2026-10-16T00:00:00Z`, and authorized applying and deploying it.
+`WEB-QA-07-D1` approved the content set this card belongs to; this decision
+covers the dated refresh of one card within it.
+
+**What expiry would have cost.** Verified in `public/release-contract.js`
+rather than assumed: an expired *card* pushes `expired_or_invalid` into
+`ineligibleCards` and never reaches `reasons`. The release stays eligible, the
+component keeps rendering, and the other 26 cards keep answering. What is lost
+is the ability to answer "what is Carbon working on now", which for a
+pre-launch project is plausibly the most common question a visitor arrives
+with. It was a content deadline, not an outage.
+
+**Why this is a date change and not a rewrite.** The card rests on one pinned
+source, `.agent/WAVE.md`. That file is byte-identical at the pinned revision
+`90dd9670`, at `40174f92` and at current `main` — 61,798 bytes, sha256
+`543f8d99b72c55cc18c686e0111879b7b79aaa8f2abe851792a0915189e12097`, matching
+the digest recorded in the knowledge file. `Current phase` still reads
+`C-W1-D5 finite research program closed`, the three campaign slots are still
+consumed, no successor is selected, and official C-W1 is still
+`future_reserved`. No sentence in the card had become false; it was expiring on
+its freshness window, not on its accuracy. Establishing that first is what made
+this a small decision.
+
+**Approved change — these fields and no others.**
+
+| Field | From | To |
+| --- | --- | --- |
+| `expires_at` | `2026-09-25T00:00:00Z` | `2026-10-16T00:00:00Z` |
+| `maturity` | `DATED_STATUS_2026_09_17` | `DATED_STATUS_2026_09_22` |
+| answer, first clause | "pinned 17 September 2026" | "pinned 22 September 2026" |
+| source `revision` / `url` | `90dd9670` | `40174f92` |
+
+The source `sha256` is unchanged, because the bytes it pins are unchanged. The
+re-point records that the pin was re-verified today rather than merely still
+passing. The passage text, questions, keywords, audiences, disclosure class and
+every qualification statement are untouched; the qualification language is the
+point of the card.
+
+**Why 2026-10-16.** It aligns this card with the five others already on that
+date, so one refresh pass covers six cards instead of a staggered series of
+separate deadlines. The trade is roughly three and a half weeks of drift on a
+card about current progress, accepted deliberately.
+
+**Option B declined for now, not rejected on the merits.** It corrects nothing,
+and pinning new sources from pull requests under a 48-hour clock is how a bad
+pin gets in. It can be proposed properly without a deadline.
+
+**Exact accepted artifact.**
+
+| Identity | Value |
+| --- | --- |
+| `release_id` / `knowledge_version` | `ask-carbon-release-candidate-2026-09-18.2`, deliberately unchanged |
+| knowledge digest before | `3f22f87a7eee903e74ce58b4c944cbfadab40a62020ea6299610ee1cc4ef671c` |
+| knowledge digest after | `d937e9cabb1b39003bfd00bc14665ab90c5ba59c2e70729fdd46476e9da30804` |
+| source re-point | `.agent/WAVE.md` at `40174f92aba47000e9d254a48930f92f5088b226` |
+
+`release_id` and `knowledge_version` stay unchanged for the reason
+`WEB-QA-07-D1` gave: existing source pins and historical evidence records stay
+valid, and the digest records the actual bytes. Evidence records written before
+this entry keep the prior digest, which is what was true when those checks ran.
+One consequence is recorded plainly: two contents now share one
+`knowledge_version`, distinguished only by digest. That follows the precedent
+set by `WEB-QA-07-D1` and is worth revisiting deliberately rather than at a
+deadline.
+
+**Not covered by this entry.** No claim, capability, qualification, timeline or
+commercial statement is added or altered. No activation flag changes. Deploying
+the refreshed release is a separate act and is recorded where the deployment is
+recorded, not here.

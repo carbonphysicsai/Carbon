@@ -11,9 +11,9 @@
     "withdrawal_epoch": 1,
     "staging_activation_allowed": true,
     "public_activation_allowed": true,
-    "approval_basis": "OWNER_PUBLIC_CONTENT_APPROVAL_2026_09_22_WEB_QA_07_D1",
-    "approval_note": "The owner approved the 27 reviewed answer cards and 9 pinned sources for public display on 2026-09-22, after the inactive publication was deployed and verified. This approves the content only. Serving it still requires ASK_CARBON_ACTIVATION=enabled, which the committed release-candidate config deliberately leaves disabled so that redeploying it remains the fail-closed incident response.",
-    "content_unchanged_since": "The card and source content is byte-identical to the 2026-09-18 staging-reviewed set; only the release approval status changed. release_id and knowledge_version are therefore deliberately unchanged, so existing source pins and historical evidence records stay valid.",
+    "approval_basis": "OWNER_PUBLIC_CONTENT_APPROVAL_2026_09_22_WEB_QA_07_D2",
+    "approval_note": "The owner approved the 27 reviewed answer cards and 9 pinned sources for public display on 2026-09-22 (WEB-QA-07-D1), and on the same day approved a dated refresh of the current-progress card (WEB-QA-07-D2): its expiry moves to 2026-10-16, its maturity label becomes DATED_STATUS_2026_09_22, and its answer restates the pinned date as 22 September 2026. No claim, passage, qualification or disclosure class changed. This approves the content only. Serving it still requires ASK_CARBON_ACTIVATION=enabled, which the committed release-candidate config deliberately leaves disabled so that redeploying it remains the fail-closed incident response.",
+    "content_unchanged_since": "Every card and source remains byte-identical to the 2026-09-18 staging-reviewed set except the current-progress card, whose expiry, maturity label and pinned-date clause were refreshed under WEB-QA-07-D2, and its wave-status source, whose revision and url were re-pointed from 90dd9670 to 40174f92 while its sha256 stayed identical because .agent/WAVE.md is byte-identical at both revisions. release_id and knowledge_version are deliberately unchanged, following WEB-QA-07-D1, so existing source pins and historical evidence records stay valid; the file digest moves and is recorded in the decision entry instead.",
     "notice": "Reviewed public explanations approved for public display. Approval covers the pinned reviewed content only; it is not a scientific, security, production or commercial qualification."
   },
   "candidate_review": {
@@ -121,9 +121,9 @@
       "title": "Carbon Agent Wave Status",
       "repo_path": ".agent/WAVE.md",
       "sections": ["Current wave", "Current phase", "Current C1 status", "maturity ceilings"],
-      "revision": "90dd9670b77de88f76002d9c16b5aaeeee30d24d",
+      "revision": "40174f92aba47000e9d254a48930f92f5088b226",
       "sha256": "543f8d99b72c55cc18c686e0111879b7b79aaa8f2abe851792a0915189e12097",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/90dd9670b77de88f76002d9c16b5aaeeee30d24d/.agent/WAVE.md",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/40174f92aba47000e9d254a48930f92f5088b226/.agent/WAVE.md",
       "publication_status": "REVIEWED_PUBLIC_EXISTING",
       "integrity_status": "MATCHED_AT_BUILD",
       "withdrawn_at": null,
@@ -287,10 +287,10 @@
     },
     {
       "id": "current-progress", "topic": "Progress", "questions": ["What has been proven?", "Is Carbon live?", "What stage is Carbon at?", "Is it production ready?", "But you said the code was tested.", "So can we call it scientifically verified?"],
-      "answer": "As of the pinned 17 September 2026 repository status, Carbon has many implemented and tested bounded engineering components. A finite three-campaign public/synthetic development research program is closed: it produced no accepted improvement, and no successor campaign is authorized. Official scientific qualification, protected evaluation, production readiness and broader network authority remain unavailable. Engineering delivery is not evidence of a qualified production system, customer traction or measured network advantage.",
+      "answer": "As of the pinned 22 September 2026 repository status, Carbon has many implemented and tested bounded engineering components. A finite three-campaign public/synthetic development research program is closed: it produced no accepted improvement, and no successor campaign is authorized. Official scientific qualification, protected evaluation, production readiness and broader network authority remain unavailable. Engineering delivery is not evidence of a qualified production system, customer traction or measured network advantage.",
       "keywords": ["proven", "progress", "stage", "live", "production", "ready", "current", "launch"], "related": ["overview", "qualification", "customer-product"],
-      "audiences": ["newcomer", "customer", "miner"], "disclosure_class": "PUBLIC", "maturity": "DATED_STATUS_2026_09_17", "scope_note": "Short freshness window; re-review before any public activation.",
-      "expires_at": "2026-09-25T00:00:00Z", "publication_status": "REVIEWED_PUBLIC_EXISTING", "withdrawn_at": null,
+      "audiences": ["newcomer", "customer", "miner"], "disclosure_class": "PUBLIC", "maturity": "DATED_STATUS_2026_09_22", "scope_note": "Short freshness window; re-review before any public activation.",
+      "expires_at": "2026-10-16T00:00:00Z", "publication_status": "REVIEWED_PUBLIC_EXISTING", "withdrawn_at": null,
       "passages": [{ "id": "current-wave-status", "source_id": "wave-status-90dd9670", "section": "Current phase and status", "text": "The repository records that the finite three-campaign public and synthetic development research program is closed, with no accepted improvement and no authorized successor campaign. Official C-W1, protected scientific qualification, production and broader network authority remain unavailable. Implemented and tested engineering states do not imply later qualification." }]
     },
     {
