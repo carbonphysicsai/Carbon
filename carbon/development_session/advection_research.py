@@ -22,7 +22,6 @@ from .julia_analysis import (
     validate_julia_output,
 )
 from .profile import canonical, digest
-from .research_admission import MANIFEST, verify_cleanup_owner
 from .research_carrier import ACTIVE_TASK, PRECHARGED_TRIAL, _run
 from .research_material import capabilities
 from .research_workspace import ResearchWorkspace
@@ -65,7 +64,7 @@ class PublicAdvectionMaterial:
 
     def _authorize(self, *, cleanup=False):
         if cleanup:
-            manifest = verify_cleanup_owner(self.ledger, self.owner)
+            manifest = self.ledger.retained_owner(self.owner)
             if canonical(
                 manifest.get("runtime", {}).get("authored_research")
             ) != canonical([authored_julia_scope(self.image)]):
@@ -77,7 +76,7 @@ class PublicAdvectionMaterial:
             manifest = json.loads(row[0]) if row else {}
         scopes = manifest.get("runtime", {}).get("scientific_tasks")
         if (
-            manifest.get("schema") != MANIFEST
+            not self.ledger.controlled(manifest)
             or manifest.get("owner") != self.owner
             or type(scopes) is not list
             or scopes.count(self.scope) != 1
@@ -85,7 +84,7 @@ class PublicAdvectionMaterial:
         ):
             raise ValueError("exact prospective public advection scope required")
         if not cleanup:
-            self.ledger._grant(manifest)
+            self.ledger.authority(manifest)
 
     def __call__(self, name, workspace):
         if name in (MATERIAL, "capabilities"):

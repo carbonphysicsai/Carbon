@@ -60,7 +60,6 @@ from carbon.seeding import DerivedSeed
 from .contracts import SessionContracts
 from .data import write_once
 from .profile import canonical, digest
-from .research_admission import MANIFEST, verify_cleanup_owner
 from .research_carrier import (
     ACTIVE_TASK,
     PRECHARGED_TRIAL,
@@ -368,16 +367,16 @@ class PublicGPUPractice:
             row = db.execute("SELECT manifest FROM campaign WHERE id=1").fetchone()
         manifest = json.loads(row[0]) if row else {}
         if (
-            manifest.get("schema") != MANIFEST
+            not self.data.ledger.controlled(manifest)
             or manifest.get("owner") != self.data.owner
             or manifest.get("runtime", {}).get("gpu_research") != [self.scope]
             or self.scope != gpu_scope(self.image, self.data.role_root)
         ):
             raise ValueError("exact prospective GPU campaign scope required")
         if cleanup:
-            verify_cleanup_owner(self.data.ledger, self.data.owner)
+            self.data.ledger.retained_owner(self.data.owner)
         else:
-            self.data.ledger._grant(manifest)
+            self.data.ledger.authority(manifest)
         return manifest
 
     def _device(self):
