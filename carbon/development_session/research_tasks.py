@@ -141,7 +141,12 @@ class PublicResearchExecutor:
         }[spec.action]
         # `environment` is run_julia's one optional field: which pinned package
         # environment to run in. Every other field remains exactly required.
+        # Optional fields: which Julia environment, and - for the miner's own
+        # scripts - a wall allowance, which may be omitted for none at all.
         optional = {"environment"} if spec.action == "run_julia" else set()
+        if spec.action in {"run_python", "run_julia"}:
+            expected = expected - {"seconds"}
+            optional = optional | {"seconds"}
         if not expected <= set(args) <= expected | optional:
             raise ValueError("workspace fields differ from registered action")
         if spec.action == "public_material":
@@ -246,7 +251,7 @@ class PublicResearchExecutor:
             source=args["source"],
             files=self.workspace.snapshot(args["files"]),
             image=image,
-            seconds=args["seconds"],
+            seconds=args.get("seconds"),
             **selection,
         )
         # Import only the bounded validated export into the owner's scratch space.

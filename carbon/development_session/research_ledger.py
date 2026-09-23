@@ -546,7 +546,13 @@ class CampaignLedger:
                     raise ValueError(
                         "unknown provider metering; reconcile before dispatch"
                     )
-            if resources.get("numerical_milliseconds", 0) > 720000:
+            # Carbon's own evaluation work keeps its per-worker ceiling. The
+            # miner's research has none (owner direction): its only bounds are
+            # the ones the miner set, applied below.
+            if (
+                phase != "research"
+                and resources.get("numerical_milliseconds", 0) > 720000
+            ):
                 raise ValueError(
                     "per-worker productive plus validation/cleanup ceiling"
                 )
