@@ -13,8 +13,10 @@ import unittest
 from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import ClassVar
 from unittest.mock import patch
 
+import event_sources
 import render_hub
 import validate_hub
 
@@ -3565,4 +3567,187 @@ class MergeParentLedgerTests(unittest.TestCase):
         self.assertTrue(
             any("EVENT-SIBLING" in error for error in validator.errors),
             f"real git: the dropped event was not reported: {validator.errors}",
+        )
+
+
+class LedgerSourceShapeTests(unittest.TestCase):
+    """One file per event, and the loss it removes.
+
+    The array and the per-event directory are one ledger. These cover what the
+    assembled source accepts, what it refuses, and the property the whole change
+    exists for: two workstreams recording an event never contend for the same
+    bytes.
+    """
+
+    EVENT: ClassVar[dict] = {
+        "map_ref": "SYSTEM/DEVELOPMENT-HUB",
+        "event_type": "evidence",
+        "event_id": "LEDGER-SHAPE-TEST-01",
+        "owner_lane": "documentation_maintenance",
+        "status": "implemented",
+        "summary": "Synthetic event for the ledger source-shape tests.",
+        "primary_detail": "docs/development/carbon_hub/README.md",
+        "affects": ["SYSTEM/DEVELOPMENT-HUB"],
+        "supersedes": None,
+        "recorded_at": "2026-09-22T21:00:00Z",
+    }
+
+    def hub(self, files: dict[str, dict] | None = None, array_extra=None) -> Path:
+        root = Path(tempfile.mkdtemp(prefix="carbon-ledger-"))
+        self.addCleanup(shutil.rmtree, root, True)
+        (root / "data").mkdir(parents=True)
+        bundle = {"schema_version": "1.0", "events": list(array_extra or [])}
+        (root / "data/change_events.json").write_text(
+            json.dumps(bundle, indent=2) + "\n", encoding="utf-8"
+        )
+        for name, value in (files or {}).items():
+            directory = root / event_sources.EVENTS_DIRECTORY
+            directory.mkdir(parents=True, exist_ok=True)
+            (directory / name).write_text(
+                json.dumps(value, indent=2) + "\n", encoding="utf-8"
+            )
+        return root
+
+    def test_an_event_file_is_part_of_the_ledger(self) -> None:
+        root = self.hub({"LEDGER-SHAPE-TEST-01.json": self.EVENT})
+        _, events = event_sources.assemble(root)
+        self.assertEqual(
+            [event["event_id"] for event in events], ["LEDGER-SHAPE-TEST-01"]
+        )
+
+    def test_the_array_keeps_its_order_and_files_follow_it(self) -> None:
+        # The existing array is not moved, so its recorded order is preserved
+        # exactly and file events are appended after it. That is what makes the
+        # rendered output identical on the day this lands.
+        older = {
+            **self.EVENT,
+            "event_id": "FILE-B",
+            "recorded_at": "2026-09-23T00:00:00Z",
+        }
+        newer = {
+            **self.EVENT,
+            "event_id": "FILE-A",
+            "recorded_at": "2026-09-22T00:00:00Z",
+        }
+        root = self.hub(
+            {"FILE-B.json": older, "FILE-A.json": newer},
+            array_extra=[
+                {**self.EVENT, "event_id": "ARRAY-2"},
+                {**self.EVENT, "event_id": "ARRAY-1"},
+            ],
+        )
+        _, events = event_sources.assemble(root)
+        self.assertEqual(
+            [event["event_id"] for event in events],
+            ["ARRAY-2", "ARRAY-1", "FILE-A", "FILE-B"],
+        )
+
+    def test_ordering_is_a_function_of_content_not_of_the_filesystem(self) -> None:
+        # Same events, written in the opposite order, on a directory whose
+        # natural listing differs. Order must not move.
+        first = {
+            **self.EVENT,
+            "event_id": "ZZZ-EARLY",
+            "recorded_at": "2026-01-01T00:00:00Z",
+        }
+        second = {
+            **self.EVENT,
+            "event_id": "AAA-LATE",
+            "recorded_at": "2026-12-31T00:00:00Z",
+        }
+        forward = self.hub({"ZZZ-EARLY.json": first, "AAA-LATE.json": second})
+        backward = self.hub({"AAA-LATE.json": second, "ZZZ-EARLY.json": first})
+        self.assertEqual(
+            [event["event_id"] for event in event_sources.assemble(forward)[1]],
+            [event["event_id"] for event in event_sources.assemble(backward)[1]],
+        )
+        self.assertEqual(
+            [event["event_id"] for event in event_sources.assemble(forward)[1]],
+            ["ZZZ-EARLY", "AAA-LATE"],
+        )
+
+    def test_a_shared_timestamp_still_orders_deterministically(self) -> None:
+        same = "2026-09-22T21:00:00Z"
+        a = {**self.EVENT, "event_id": "SAME-B", "recorded_at": same}
+        b = {**self.EVENT, "event_id": "SAME-A", "recorded_at": same}
+        root = self.hub({"SAME-B.json": a, "SAME-A.json": b})
+        self.assertEqual(
+            [event["event_id"] for event in event_sources.assemble(root)[1]],
+            ["SAME-A", "SAME-B"],
+        )
+
+    def test_a_file_must_be_named_for_the_event_it_holds(self) -> None:
+        # Not tidiness: it makes two files claiming one event impossible to
+        # create, and lets a reader see which event a file holds without
+        # opening it.
+        root = self.hub({"SOMETHING-ELSE.json": self.EVENT})
+        with self.assertRaises(event_sources.EventSourceError) as caught:
+            event_sources.assemble(root)
+        self.assertIn("named for the event it contains", str(caught.exception))
+
+    def test_an_event_without_recorded_at_is_refused(self) -> None:
+        without = {
+            key: value for key, value in self.EVENT.items() if key != "recorded_at"
+        }
+        root = self.hub({"LEDGER-SHAPE-TEST-01.json": without})
+        with self.assertRaises(event_sources.EventSourceError) as caught:
+            event_sources.assemble(root)
+        # recorded_at is what orders it, so an event without one has no place.
+        self.assertIn("recorded_at", str(caught.exception))
+
+    def test_one_event_cannot_be_recorded_twice(self) -> None:
+        root = self.hub(
+            {"LEDGER-SHAPE-TEST-01.json": self.EVENT}, array_extra=[self.EVENT]
+        )
+        with self.assertRaises(event_sources.EventSourceError) as caught:
+            event_sources.assemble(root)
+        self.assertIn("can only be recorded once", str(caught.exception))
+
+    def test_two_workstreams_recording_an_event_never_contend(self) -> None:
+        """The property the whole change exists for, against real git.
+
+        Under the array these two events conflict, git interleaves them field
+        by field inside one object, and a mechanical resolution can drop either
+        or both while leaving valid JSON. As files there is no contested region.
+        """
+        root = Path(tempfile.mkdtemp(prefix="carbon-ledger-merge-"))
+        self.addCleanup(shutil.rmtree, root, True)
+        (root / "data" / "events").mkdir(parents=True)
+        (root / "data/change_events.json").write_text(
+            json.dumps({"schema_version": "1.0", "events": []}, indent=2) + "\n",
+            encoding="utf-8",
+        )
+
+        def git(*args: str) -> subprocess.CompletedProcess:
+            return subprocess.run(
+                ["git", "-c", "user.email=t@local", "-c", "user.name=t", *args],
+                cwd=root,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+        git("init", "-q", ".")
+        git("add", "-A")
+        git("commit", "-qm", "base")
+        head = git("rev-parse", "--abbrev-ref", "HEAD").stdout.strip()
+        for name, event_id in (("workstream-a", "WS-A"), ("workstream-b", "WS-B")):
+            git("checkout", "-q", head)
+            git("checkout", "-q", "-b", name)
+            event = {**self.EVENT, "event_id": event_id}
+            # git does not track an empty directory, so the base commit has no
+            # events directory and the first event file on a branch creates it.
+            # That is also what happens the first real time.
+            (root / "data/events").mkdir(parents=True, exist_ok=True)
+            (root / "data/events" / f"{event_id}.json").write_text(
+                json.dumps(event, indent=2) + "\n", encoding="utf-8"
+            )
+            git("add", "-A")
+            git("commit", "-qm", f"{name} records its event")
+        git("checkout", "-q", "workstream-a")
+        merged = git("merge", "--no-edit", "workstream-b")
+        self.assertNotIn("CONFLICT", merged.stdout + merged.stderr)
+        _, events = event_sources.assemble(root)
+        self.assertEqual(
+            sorted(event["event_id"] for event in events), ["WS-A", "WS-B"]
         )

@@ -1,0 +1,15 @@
+{
+  "map_ref": "SYSTEM/DEVELOPMENT-HUB/VALIDATION",
+  "event_type": "evidence",
+  "event_id": "HUB-LEDGER-PER-EVENT-01",
+  "owner_lane": "documentation_maintenance",
+  "status": "implemented",
+  "summary": "Makes the change ledger one file per event, assembled at render time alongside the existing array, so two workstreams recording an event no longer contend for the same bytes. Git merges text while the ledger's semantics are per-event: two appended events conflict, git interleaves them field by field inside a single object rather than presenting two records, and a mechanical resolution can drop one or both while leaving valid JSON behind. The immutability check compares the candidate against the PR base, so it catches the loss of an event that already reached main and reports nothing for a sibling branch's event that never did, which is where every incident this week sat. The existing array is deliberately not moved: rewriting its history would conflict with every in-flight branch that appends an event, which is the cost this change exists to remove, so history stays in its recorded order, new events are files, and the rendered output was byte-identical on the day this landed. A new event appended to the array is now refused with the fix named, because a transition permitting both paths indefinitely never completes. Ordering is a function of content and never of history: the array in its recorded order, then files by recorded_at with event_id as a total tiebreak. Commit-date ordering was rejected on core platform's argument that it would make the render depend on git history, so a shallow checkout or an export would render a different document and would break the byte-identical control used to prove this migration safe; an author-assigned sequence number was rejected because it reintroduces the collision, two independent branches having both chosen 236 in the verification. This is the first event recorded as a file. No ticket status, sequencing, maturity, dependency, ownership or authority changes, and no scientific, security, qualification or deployment authority is created or implied.",
+  "primary_detail": "docs/development/carbon_hub/tools/event_sources.py",
+  "affects": [
+    "SYSTEM/DEVELOPMENT-HUB",
+    "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+  ],
+  "supersedes": null,
+  "recorded_at": "2026-09-22T21:20:00Z"
+}
