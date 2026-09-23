@@ -1,7 +1,19 @@
 """Loopback control adapter over Carbon's existing finite research runner.
 
-Only the local operator supplies configuration/paths. Browser callers select an
-opaque profile. No scientific loop, evaluator or consumption ledger lives here.
+Only the local operator - the miner, on their own machine - supplies
+configuration and paths. Browser callers select an opaque profile. No
+scientific loop, evaluator or consumption ledger lives here.
+
+**Registration is the only admission gate (C-MLP-02-D11).** A launch reads the
+chain for the miner's hotkey *before* anything durable is written, and admits
+the campaign with the `RegisteredMiner` that read produced. There is no grant
+anywhere on this path: the development grant is development machinery, and the
+only form of it this module may hold is `RetainedGrant`, which proves ownership
+of a campaign launched under one before the decision so it can still be cleaned
+up, and structurally admits no new work.
+
+A budget is the miner's to set, at launch, or not at all. Its absence blocks
+nothing.
 """
 
 from __future__ import annotations
@@ -16,11 +28,14 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from carbon.development_session import research_guidance as guidance
+from carbon.development_session.private_records import private_json
 from carbon.development_session.profile import canonical, digest
-from carbon.development_session.research_admission import Admission, private_json
 from carbon.development_session.research_control import CampaignControl, DispatchStopped
 from carbon.development_session.research_ledger import CampaignLedger
 from scripts.dev.miner_launchpad.controller import Rejected, owner_lock
+
+PROFILE_SCHEMA = "carbon.launchpad.runner-profile.v2"
+RETIRED_PROFILE_SCHEMA = "carbon.launchpad.runner-profile.v1"
 
 PATH_FIELDS = {
     "image_manifest",
@@ -32,14 +47,26 @@ PATH_FIELDS = {
     "quarantine_journal",
 }
 
+PROFILE_FIELDS = {
+    "schema",
+    "profile_id",
+    "principal",
+    "enabled",
+    "paths",
+    "accepted_revision",
+    "campaigns_root",
+    "runtime",
+}
+OPTIONAL_PROFILE_FIELDS = {"research_guidance", "disabled_reason"}
+
 # The runtime compositions this runner can actually assemble and dispatch.
 #
 # `implementation` and `images` are what every campaign runs on. The rest are
 # optional research compositions the campaign runner knows how to build: an
 # authored Julia analysis image, the scientific task selection, and GPU research
-# on the miner lane. A key outside this set means the grant describes something
-# this runner cannot assemble, which is refused before launch rather than
-# discovered after the grant has been spent.
+# on the miner lane. A key outside this set means the profile describes
+# something this runner cannot assemble, which is refused before launch rather
+# than discovered after the miner has started spending.
 REQUIRED_RUNTIME_KEYS = frozenset({"implementation", "images"})
 SUPPORTED_RUNTIME_KEYS = REQUIRED_RUNTIME_KEYS | {
     "authored_research",
@@ -48,13 +75,68 @@ SUPPORTED_RUNTIME_KEYS = REQUIRED_RUNTIME_KEYS | {
 }
 
 
-def review_pin(cfg, admission):
-    """Opaque v2 review: include the referenced grant, not only its path."""
-    return "review-v2:" + digest(canonical([cfg, admission.pin]))
+def review_pin(cfg):
+    """Opaque v3 review: the profile the miner reviewed, nothing else."""
+    return "review-v3:" + digest(canonical(cfg))
+
+
+def chain_registration(cfg):
+    """The admission read: is the configured hotkey registered, right now.
+
+    The same read the onboarding `status` answers from, through the operator's
+    configured chain context. Returns a `RegisteredMiner` or raises the closed
+    onboarding failure that says why not.
+    """
+    from carbon.chain.sdk import BittensorReader
+    from carbon.development_session.chain_onboarding import registered_miner
+    from carbon.development_testnet.operator import load_config
+
+    config = load_config(Path(cfg["paths"]["operator_config"]))
+    public = json.loads(Path(cfg["paths"]["miner_public"]).read_bytes())
+    return asyncio.run(
+        registered_miner(BittensorReader(), config.context, public["hotkey"])
+    )
+
+
+def validated_profile(cfg):
+    """A runner profile v2, closed, or the reason it is not one.
+
+    Shared by both front doors - this runner and the MCP registered tier - so
+    the two cannot disagree about what a miner's profile is.
+    """
+    if cfg.get("schema") == RETIRED_PROFILE_SCHEMA:
+        raise Rejected("runner_profile_v1_retired", 409)
+    if set(cfg) - OPTIONAL_PROFILE_FIELDS != PROFILE_FIELDS or (
+        cfg["schema"] != PROFILE_SCHEMA
+    ):
+        raise ValueError("closed operator configuration required")
+    guidance.configured(cfg)  # Validate before registration or dispatch.
+    if type(cfg["enabled"]) is not bool or (
+        "disabled_reason" in cfg
+        and (cfg["disabled_reason"] != "OWNER_EXPERIMENT_PAUSE" or cfg["enabled"])
+    ):
+        raise ValueError("invalid disabled profile explanation")
+    if type(cfg["paths"]) is not dict or set(cfg["paths"]) != PATH_FIELDS:
+        raise ValueError("closed runner inputs required")
+    if any(
+        type(v) is not str or not Path(v).is_absolute()
+        for v in [*cfg["paths"].values(), cfg["campaigns_root"]]
+    ):
+        raise ValueError("operator paths must be absolute")
+    runtime = cfg["runtime"]
+    if (
+        type(runtime) is not dict
+        or type(runtime.get("implementation")) is not dict
+        or runtime["implementation"].get("revision") != cfg["accepted_revision"]
+    ):
+        raise ValueError("the runtime must name the accepted revision")
+    return cfg
 
 
 class RunnerAdapter:
-    def __init__(self, database, *, configuration=None, principal=None):
+    def __init__(
+        self, database, *, configuration=None, principal=None, registration=None
+    ):
         self.database = database
         self.configuration = configuration
         self.principal = (
@@ -62,9 +144,18 @@ class RunnerAdapter:
             if configuration is not None
             else principal
         )
+        # Injectable so a test reads a device-free stub chain; the default is
+        # the real read against the operator's configured context.
+        self.registration = registration or chain_registration
         self.threads = {}
         self.lock = threading.RLock()
         with self.db() as db:
+            db.execute(
+                "CREATE TABLE IF NOT EXISTS launchpad_campaigns (id TEXT PRIMARY KEY, request_key TEXT UNIQUE NOT NULL, request_digest TEXT NOT NULL, profile TEXT NOT NULL, principal TEXT NOT NULL, config_digest TEXT NOT NULL, campaign TEXT NOT NULL, state TEXT NOT NULL, created REAL NOT NULL, root TEXT NOT NULL, admission BLOB NOT NULL, budget BLOB NOT NULL, research_guidance BLOB)"
+            )
+            # Campaigns launched under the retired development grant. Kept so
+            # their evidence stays readable and their work can be cleaned up;
+            # nothing new is ever written here.
             db.execute(
                 "CREATE TABLE IF NOT EXISTS research_runs (id TEXT PRIMARY KEY, request_key TEXT UNIQUE NOT NULL, profile TEXT NOT NULL, principal TEXT NOT NULL, config_digest TEXT NOT NULL, grant_digest TEXT NOT NULL, campaign TEXT NOT NULL, state TEXT NOT NULL, created REAL NOT NULL, root TEXT NOT NULL, grant_record BLOB NOT NULL, grant_id TEXT UNIQUE NOT NULL)"
             )
@@ -76,8 +167,9 @@ class RunnerAdapter:
                 )
             roots = [
                 Path(r[0])
+                for table in ("launchpad_campaigns", "research_runs")
                 for r in db.execute(
-                    "SELECT root FROM research_runs WHERE principal=?",
+                    f"SELECT root FROM {table} WHERE principal=?",
                     (self.principal,),
                 )
             ]
@@ -109,146 +201,123 @@ class RunnerAdapter:
     def _configuration(self):
         if self.configuration is None:
             raise ValueError("operator configuration absent")
-        cfg = private_json(self.configuration)
-        if (
-            set(cfg) - {"research_guidance", "disabled_reason"}
-            != {
-                "schema",
-                "profile_id",
-                "principal",
-                "grant_file",
-                "account_ref",
-                "enabled",
-                "paths",
-                "accepted_revision",
-            }
-            or cfg["schema"] != "carbon.launchpad.runner-profile.v1"
-        ):
-            raise ValueError("closed operator configuration required")
-        guidance.configured(cfg)  # Validate before grant admission or dispatch.
-        if type(cfg["enabled"]) is not bool or (
-            "disabled_reason" in cfg
-            and (cfg["disabled_reason"] != "OWNER_EXPERIMENT_PAUSE" or cfg["enabled"])
-        ):
-            raise ValueError("invalid disabled profile explanation")
+        cfg = validated_profile(private_json(self.configuration))
         if cfg["principal"] != self.principal:
             raise ValueError("operator principal mismatch")
-        if set(cfg["paths"]) != PATH_FIELDS:
-            raise ValueError("closed runner inputs required")
-        if any(
-            type(v) is not str or not Path(v).is_absolute()
-            for v in cfg["paths"].values()
-        ):
-            raise ValueError("operator paths must be absolute")
         return cfg
 
     def configured(self):
         cfg = self._configuration()
         if not cfg["enabled"]:
             raise Rejected("research_dispatch_disabled", 409)
-        admission = Admission.load(Path(cfg["grant_file"]))
-        doc = admission.document
-        if not set(doc["runtime"]) <= SUPPORTED_RUNTIME_KEYS:
+        runtime = cfg["runtime"]
+        if not set(runtime) <= SUPPORTED_RUNTIME_KEYS:
             # Closed rather than permissive: a runtime naming a composition this
             # runner cannot actually assemble is refused here instead of being
-            # carried to a campaign that would fail after the grant was spent.
+            # carried to a campaign that would fail after the miner had started.
             raise Rejected("research_runtime_interface_unavailable", 409)
-        if not REQUIRED_RUNTIME_KEYS <= set(doc["runtime"]):
+        if not REQUIRED_RUNTIME_KEYS <= set(runtime):
             raise Rejected("research_runtime_interface_unavailable", 409)
-        if "gpu_research" in doc["runtime"]:
+        if "gpu_research" in runtime:
             from carbon.development_session.gpu_research import declared_gpu_runtime
 
             # Shape, here. The scope's binding to this campaign's own public
             # TRAIN material is recomputed inside the campaign once that
-            # material exists; this only refuses a grant the runner could never
-            # assemble, before the launch is recorded.
+            # material exists; this only refuses a runtime the runner could
+            # never assemble, before the launch is recorded.
             try:
-                declared_gpu_runtime(doc["runtime"])
+                declared_gpu_runtime(runtime)
             except ValueError:
                 raise Rejected("research_runtime_interface_unavailable", 409) from None
-        root = Path(doc["root"])
-        admission.verify(
-            root=root,
-            principal=cfg["principal"],
-            runtime=doc["runtime"],
-            now=time.time(),
-        )
-        if (
-            cfg["enabled"] is not True
-            or cfg["principal"] != self.principal
-            or cfg["account_ref"] != doc["account_ref"]
-            or cfg["accepted_revision"] != doc["runtime"]["implementation"]["revision"]
-        ):
-            raise ValueError("admission disabled or runtime/account mismatch")
-        return cfg, admission, root
+        return cfg
 
     def preflight(self):
         from scripts.dev.miner_launchpad.prelaunch import review
 
         try:
-            cfg, admission, _ = self.configured()
+            cfg = self.configured()
             value = {
                 "available": True,
                 "profile": cfg["profile_id"],
                 "mode": "LIVE_PRACTICE_RESEARCH",
-                "challenge": admission.document["profile"],
+                "challenge": "carbon.burgers-autoresearch-development.v1",
                 "agent": "carbon-autoresearch",
                 "reasoning": "gpt-5-mini-2025-08-07",
-                # Reported from the runtime this grant actually declares rather
-                # than fixed to CPU, which was accurate only while no other
-                # composition could be assembled.
                 "compute": (
                     "local-isolated-gpu"
-                    if "gpu_research" in admission.document["runtime"]
+                    if "gpu_research" in cfg["runtime"]
                     else "local-isolated-cpu"
                 ),
-                "ceilings": admission.document["ceilings"],
-                "expires_unix": admission.document["expires_unix"],
-                "status": "GRANT_CONFIGURED_RUNTIME_CHECK_AT_START",
+                # Registration is read at launch, before anything is recorded.
+                # A budget is the miner's to set at launch or not at all.
+                "admission": "SUBNET_REGISTRATION_CHECKED_AT_LAUNCH",
+                "budget": "SET_BY_MINER_AT_LAUNCH_OR_NONE",
+                "status": "PROFILE_CONFIGURED_REGISTRATION_CHECK_AT_LAUNCH",
+                "review_digest": review_pin(cfg),
             }
             task = guidance.configured(cfg)
             if task is not None:
                 value.update(
                     research_guidance=task,
-                    review_digest=review_pin(cfg, admission),
                     runtime_revision=cfg["accepted_revision"],
                 )
-            value["review"] = review(cfg, admission.document)
+            value["review"] = review(cfg)
             return value
-        except Exception:  # noqa: BLE001 - private configuration errors stay private.
-            try:
-                cfg = self._configuration()
-                admission = Admission.load(Path(cfg["grant_file"]))
-                inspected = review(cfg, admission.document)
-                paused = cfg.get("disabled_reason") == "OWNER_EXPERIMENT_PAUSE"
-                return {
-                    "available": False,
-                    "profile": cfg["profile_id"],
-                    "status": (
-                        "OWNER_EXPERIMENT_PAUSE" if paused else "ADMISSION_DISABLED"
-                    ),
-                    "reason": (
-                        "Owner experiment pause is active. New owner authorization is required before research can resume. Status, export, stop and reconciliation remain available."
-                        if paused
-                        else "Research dispatch is disabled or its grant/runtime binding is invalid. The operator must resolve the listed requirements."
-                    ),
-                    "research_guidance": guidance.configured(cfg),
-                    "runtime_revision": cfg["accepted_revision"],
-                    "review": inspected,
-                }
-            except Exception:  # noqa: BLE001 - no private paths or errors disclosed.
+        except Rejected as refused:
+            if refused.code == "runner_profile_v1_retired":
                 return {
                     "available": False,
                     "profile": None,
-                    "status": "ADMISSION_DISABLED",
-                    "reason": "A separate approved grant, existing miner and exact accepted runtime/images are required.",
+                    "status": "PROFILE_V1_RETIRED",
+                    "reason": "This profile names a development grant. Launching needs only subnet registration now: replace grant_file and account_ref with campaigns_root and the runtime your campaign runs on (runner-profile v2).",
                 }
+            return self._unavailable()
+        except Exception:  # noqa: BLE001 - private configuration errors stay private.
+            return self._unavailable()
+
+    def _unavailable(self):
+        try:
+            cfg = self._configuration()
+            paused = cfg.get("disabled_reason") == "OWNER_EXPERIMENT_PAUSE"
+            return {
+                "available": False,
+                "profile": cfg["profile_id"],
+                "status": ("OWNER_EXPERIMENT_PAUSE" if paused else "DISPATCH_DISABLED"),
+                "reason": (
+                    "Owner experiment pause is active. New owner authorization is required before research can resume. Status, export, stop and reconciliation remain available."
+                    if paused
+                    else "Research dispatch is disabled in this profile, or its runtime is one this runner cannot assemble."
+                ),
+                "research_guidance": guidance.configured(cfg),
+                "runtime_revision": cfg["accepted_revision"],
+                "review": self._review(cfg),
+            }
+        except Exception:  # noqa: BLE001 - no private paths or errors disclosed.
+            return {
+                "available": False,
+                "profile": None,
+                "status": "DISPATCH_DISABLED",
+                "reason": "A runner profile with your registered miner and the exact accepted runtime and images is required.",
+            }
+
+    @staticmethod
+    def _review(cfg):
+        from scripts.dev.miner_launchpad.prelaunch import review
+
+        return review(cfg)
 
     def launch(self, value, key):
-        if type(value) is not dict or set(value) not in (
-            {"profile"},
-            {"profile", "review_digest"},
-        ):
+        from carbon.development_session.chain_onboarding import OnboardingFailure
+        from carbon.development_session.product_campaign import (
+            ProductLaunch,
+            miner_budget,
+        )
+
+        if type(value) is not dict or not {"profile"} <= set(value) <= {
+            "profile",
+            "review_digest",
+            "budget",
+        }:
             raise Rejected("closed_research_launch_required")
         if (
             type(key) is not str
@@ -257,99 +326,113 @@ class RunnerAdapter:
         ):
             raise Rejected("invalid_idempotency_key")
         try:
-            cfg, admission, root = self.configured()
+            budget = miner_budget(value.get("budget"))
+        except ValueError:
+            raise Rejected("invalid_budget") from None
+        try:
+            cfg = self.configured()
         except Rejected:
             raise
         except Exception:  # noqa: BLE001
-            raise Rejected("research_admission_unavailable", 409) from None
+            raise Rejected("research_profile_unavailable", 409) from None
         if value["profile"] != cfg["profile_id"] or cfg["principal"] != self.principal:
             raise Rejected("research_profile_mismatch", 409)
-        run_id = digest(
-            canonical([admission.document["campaign_id"], cfg["principal"]])
-        )[7:39]
-        config_pin = digest(canonical(cfg))
         task = guidance.configured(cfg)
+        if (task is not None or "review_digest" in value) and value.get(
+            "review_digest"
+        ) != review_pin(cfg):
+            raise Rejected("research_review_changed", 409)
+        run_id = digest(canonical([cfg["principal"], key]))[7:39]
+        request = digest(canonical(value))
+        config_pin = digest(canonical(cfg))
+        with self.db() as db:
+            previous = db.execute(
+                "SELECT * FROM launchpad_campaigns WHERE request_key=? OR id=?",
+                (key, run_id),
+            ).fetchall()
+        if previous:
+            # A lost response replays the campaign it created. It was admitted
+            # when it was recorded; replaying it reads no chain and starts
+            # nothing new.
+            if len(previous) != 1 or any(
+                previous[0][k] != v
+                for k, v in {
+                    "id": run_id,
+                    "request_digest": request,
+                    "principal": cfg["principal"],
+                    "config_digest": config_pin,
+                }.items()
+            ):
+                raise Rejected("research_launch_replay_conflict", 409)
+            return self.get(run_id)
+        # Registration, before anything durable. An unregistered miner reaches
+        # no code path that writes a record, starts a thread or reserves work.
+        try:
+            miner = self.registration(cfg)
+        except OnboardingFailure as failure:
+            code = {
+                "NOT_REGISTERED": ("registration_required", 403),
+                "CHAIN_UNAVAILABLE": ("registration_unreadable", 503),
+                "WRONG_NETWORK": ("registration_wrong_network", 409),
+            }.get(failure.reason, ("registration_unreadable", 503))
+            raise Rejected(*code) from None
+        root = Path(cfg["campaigns_root"]) / run_id
+        product = ProductLaunch(
+            campaign_id="cmp-" + run_id,
+            principal=cfg["principal"],
+            miner=miner,
+            runtime=cfg["runtime"],
+            budget=budget,
+        )
         with self.db() as db:
             db.execute("BEGIN IMMEDIATE")
-            previous = db.execute(
-                "SELECT * FROM research_runs WHERE request_key=? OR id=? OR grant_id=?",
-                (key, run_id, admission.document["grant_id"]),
-            ).fetchall()
-            if task is not None or "review_digest" in value:
-                supplied = value.get("review_digest")
-                # Legacy token retries only recover an already durable, exactly
-                # bound run. They can never admit a new campaign after upgrade.
-                legacy_retry = bool(previous) and supplied == config_pin
-                if supplied != review_pin(cfg, admission) and not legacy_retry:
-                    raise Rejected("research_review_changed", 409)
-            if previous:
-                if len(previous) != 1 or any(
-                    previous[0][k] != v
-                    for k, v in {
-                        "id": run_id,
-                        "profile": cfg["profile_id"],
-                        "principal": cfg["principal"],
-                        "config_digest": config_pin,
-                        "grant_digest": admission.pin,
-                    }.items()
-                ):
-                    raise Rejected("research_launch_replay_conflict", 409)
-            else:
+            try:
                 db.execute(
-                    "INSERT INTO research_runs (id,request_key,profile,principal,config_digest,grant_digest,campaign,state,created,root,grant_record,grant_id,research_guidance) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                    "INSERT INTO launchpad_campaigns (id,request_key,request_digest,profile,principal,config_digest,campaign,state,created,root,admission,budget,research_guidance) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
                     (
                         run_id,
                         key,
+                        request,
                         cfg["profile_id"],
                         cfg["principal"],
                         config_pin,
-                        admission.pin,
-                        admission.document["campaign_id"],
+                        product.campaign_id,
                         "QUEUED",
                         time.time(),
                         str(root),
-                        canonical(
-                            {
-                                "path": str(admission.path),
-                                "document": admission.document,
-                            }
-                        ),
-                        admission.document["grant_id"],
+                        canonical(miner.record()),
+                        canonical(budget),
                         canonical(task) if task is not None else None,
                     ),
                 )
-        # A lost HTTP response cannot produce a second campaign. The identity is
-        # grant-derived; its original root and OS lease are independent of this DB.
-        self._start(run_id, cfg, admission, root)
+            except sqlite3.IntegrityError:
+                raise Rejected("research_launch_replay_conflict", 409) from None
+        self._start(run_id, cfg, root, product)
         return self.get(run_id)
 
-    def _start(self, run_id, cfg, admission, root):
+    def _start(self, run_id, cfg, root, product=None):
         with self.lock:
             if run_id in self.threads and self.threads[run_id].is_alive():
                 return
             thread = threading.Thread(
-                target=self._run, args=(run_id, cfg, admission, root), daemon=True
+                target=self._run, args=(run_id, cfg, root, product), daemon=True
             )
             self.threads[run_id] = thread
             thread.start()
 
-    def _run(self, run_id, cfg, admission, root):
+    def _run(self, run_id, cfg, root, product):
         from carbon.development_session.research_agent_policy import AUTONOMOUS
         from carbon.development_session.research_campaign import execute
 
         generation = None
         try:
-            # Recheck a real operator profile at the thread handoff. A disabled
-            # profile must not slip through a previously queued HTTP request.
-            if self.configuration is not None:
-                current, current_admission, current_root = self.configured()
-                if (
-                    current != cfg
-                    or current_admission.pin != admission.pin
-                    or current_root != root
-                ):
-                    raise ValueError("dispatch configuration changed")
-            row, _, _ = self._bound(run_id)
+            # Recheck the real operator profile at the thread handoff. A
+            # disabled profile must not slip through a queued HTTP request.
+            if self.configuration is not None and self.configured() != cfg:
+                raise ValueError("dispatch configuration changed")
+            row, kind, _ = self._bound(run_id)
+            if kind != "product":
+                raise ValueError("a retired grant campaign is never dispatched")
             task = guidance.verify(
                 json.loads(row["research_guidance"])
                 if row["research_guidance"] is not None
@@ -358,7 +441,7 @@ class RunnerAdapter:
             if task != guidance.configured(cfg):
                 raise ValueError("frozen research guidance differs")
             with owner_lock(root):
-                ledger = CampaignLedger(root, admission=admission)
+                ledger = CampaignLedger(root)
                 control = CampaignControl(ledger)
                 generation = control.acquire()
                 ledger.generation = generation
@@ -376,6 +459,7 @@ class RunnerAdapter:
                     accepted_revision=cfg["accepted_revision"],
                     principal=cfg["principal"],
                     agent_policy=AUTONOMOUS,
+                    product=product,
                     research_guidance=task["text"] if task is not None else None,
                     command=(
                         "resume"
@@ -386,11 +470,7 @@ class RunnerAdapter:
                 try:
                     asyncio.run(execute(args, ledger=ledger))
                 except Exception:  # noqa: BLE001 - never publish provider/key errors.
-                    with self.db() as db:
-                        db.execute(
-                            "UPDATE research_runs SET state='INTERRUPTED' WHERE id=?",
-                            (run_id,),
-                        )
+                    self._state(run_id, "INTERRUPTED")
                 finally:
                     clean = self._cleanup(ledger)
                     control.settled(
@@ -399,13 +479,17 @@ class RunnerAdapter:
                         cleanup_verified=clean,
                     )
         except Exception:  # noqa: BLE001
-            with self.db() as db:
-                db.execute(
-                    "UPDATE research_runs SET state='RECONCILIATION_REQUIRED' WHERE id=?",
-                    (run_id,),
-                )
+            self._state(run_id, "RECONCILIATION_REQUIRED")
             if generation is not None:
                 control.settled(generation, cleanup_verified=False)
+
+    def _state(self, run_id, state):
+        with self.db() as db:
+            for table in ("launchpad_campaigns", "research_runs"):
+                db.execute(
+                    f"UPDATE {table} SET state=? WHERE id=?",
+                    (state, run_id),
+                )
 
     @staticmethod
     def _cleanup(ledger):
@@ -471,23 +555,44 @@ class RunnerAdapter:
         return clean
 
     def _bound(self, identity):
+        """The campaign row, which kind it is, and its root.
+
+        Product campaigns and retired-grant campaigns are separate records, so
+        a retired one can never be mistaken for something to dispatch.
+        """
         with self.db() as db:
             row = db.execute(
-                "SELECT * FROM research_runs WHERE id=?", (identity,)
+                "SELECT * FROM launchpad_campaigns WHERE id=?", (identity,)
             ).fetchone()
+            kind = "product"
+            if row is None:
+                row = db.execute(
+                    "SELECT * FROM research_runs WHERE id=?", (identity,)
+                ).fetchone()
+                kind = "retired_grant"
         if row is None or row["principal"] != self.principal:
             raise Rejected("research_run_unavailable", 404)
-        # Expiry/revocation never removes access to stop or original evidence.
-        # Retained trusted associations cannot redirect to a changed grant root.
-        record = json.loads(row["grant_record"])
-        admission = Admission(
-            Path(record["path"]), row["grant_digest"], record["document"]
+        return row, kind, Path(row["root"])
+
+    def _ledger(self, row, kind, root):
+        """The campaign's ledger. A retired grant is held only for cleanup."""
+        if kind == "product":
+            return CampaignLedger(root)
+        from carbon.development_session.research_admission import (
+            retained_grant_ledger,
         )
-        return row, admission, Path(row["root"])
+
+        return retained_grant_ledger(
+            root, json.loads(row["grant_record"]), row["grant_digest"]
+        )
 
     def control(self, identity, action):
-        row, admission, root = self._bound(identity)
-        ledger = CampaignLedger(root, admission=admission)
+        row, kind, root = self._bound(identity)
+        if action == "resume" and kind != "product":
+            # Resuming would dispatch new work under a grant, which no product
+            # surface may do. Observe, pause, stop and reconcile still work.
+            raise Rejected("retired_grant_campaign", 409)
+        ledger = self._ledger(row, kind, root)
         control = CampaignControl(ledger)
         if action == "reconcile":
             with owner_lock(root):
@@ -496,12 +601,8 @@ class RunnerAdapter:
                 control.settled(generation, cleanup_verified=self._cleanup(ledger))
         else:
             if action == "resume":
-                cfg, current, current_root = self.configured()
-                if (
-                    digest(canonical(cfg)) != row["config_digest"]
-                    or current.pin != admission.pin
-                    or current_root != root
-                ):
+                cfg = self.configured()
+                if digest(canonical(cfg)) != row["config_digest"]:
                     raise ValueError("resume binding differs")
             control.request(action)
             if action == "stop":
@@ -520,7 +621,9 @@ class RunnerAdapter:
                 for operation, owner in operations:
                     request_cancel(ledger, owner=owner, identity=operation)
             if action == "resume":
-                self._start(identity, cfg, admission, root)
+                # Resumes the frozen campaign; its manifest carries everything
+                # the launch admitted, so no new admission is constructed.
+                self._start(identity, cfg, root)
         return self.get(identity)
 
     def get(self, identity):
@@ -534,8 +637,8 @@ class RunnerAdapter:
             ids = [
                 r[0]
                 for r in db.execute(
-                    "SELECT id FROM research_runs WHERE principal=? ORDER BY created DESC LIMIT 100",
-                    (self.principal,),
+                    "SELECT id FROM (SELECT id,created FROM launchpad_campaigns WHERE principal=? UNION ALL SELECT id,created FROM research_runs WHERE principal=?) ORDER BY created DESC LIMIT 100",
+                    (self.principal, self.principal),
                 )
             ]
         result = []
@@ -558,10 +661,6 @@ class RunnerAdapter:
                 try:
                     self.control(identity, "stop")
                 except Exception:  # noqa: BLE001
-                    with self.db() as db:
-                        db.execute(
-                            "UPDATE research_runs SET state='RECONCILIATION_REQUIRED' WHERE id=?",
-                            (identity,),
-                        )
+                    self._state(identity, "RECONCILIATION_REQUIRED")
         for thread in tuple(self.threads.values()):
             thread.join(timeout=1)

@@ -66,6 +66,26 @@ and browser readback fixtures do not satisfy that predicate.
 
 ## Trusted runner adapter
 
+> **Superseded for new launches by C-MLP-02-D11 (23 September 2026).**
+> Registration is the only product admission gate. `--research-profile` now
+> takes a `carbon.launchpad.runner-profile.v2` record: `schema`, `profile_id`,
+> `principal`, `enabled`, `paths` (the same seven inputs), `accepted_revision`,
+> `campaigns_root` and `runtime` (the composition the grant used to declare),
+> plus the optional `research_guidance` and `disabled_reason`. There is no
+> `grant_file` and no `account_ref`. A launch reads the chain for the miner's
+> hotkey **before anything is recorded** and admits a
+> `carbon.launchpad.campaign.v1` campaign with the resulting registration; the
+> launch may carry the miner's own budget (`ceilings`, `elapsed_seconds`,
+> `final_reserve`), and with none there is no limit - including no epoch count.
+> Each launch key is its own campaign under `campaigns_root`. A v1 profile is
+> refused with `PROFILE_V1_RETIRED` and a message naming the change. Campaigns
+> launched under a grant stay readable, pausable, stoppable and reconcilable -
+> held only as a `RetainedGrant`, which admits no new work - and are never
+> resumed. The development grant remains on the development path: the
+> development CLI's `--grant-file`, and Carbon's internal Workbench service on
+> Carbon's own campaign. The text below records the grant-era contract as it
+> was.
+
 `--research-profile /absolute/private/profile.json` installs an operator-only
 `carbon.launchpad.runner-profile.v1` record. Without it, research admission is
 disabled. The record has exactly `schema`, `profile_id`, `principal`, `grant_file`,
