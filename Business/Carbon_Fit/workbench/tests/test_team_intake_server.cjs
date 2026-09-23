@@ -11,6 +11,7 @@ const path = require("node:path");
 if (!globalThis.crypto) globalThis.crypto = crypto.webcrypto;
 const { DurableIntakeStore } = require("../tools/team_intake_store.cjs");
 const { createIntakeServer, loadUsers } = require("../tools/team_intake_server.cjs");
+const { AccessControl, totp } = require("../tools/team_staff_directory.cjs");
 const ROOT = path.resolve(__dirname, "..");
 const I = require("../src/intake.js");
 
@@ -26,13 +27,42 @@ const digest = (value) => crypto.createHash("sha256").update(value).digest("hex"
 const TEAM = "carbon-fit", OTHER_TEAM = "other-tenant";
 // Synthetic accounts. A directory holds credential digests and never a
 // credential; the tokens above exist only inside this test process.
+// Each account's second-factor secret, derived from its token so every
+// fixture account is enrolled. A synthetic secret, local to this process.
+const secretFor = (token) => {
+  const bytes = crypto.createHash("sha256").update("totp:" + token).digest().subarray(0, 20);
+  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+  let bits = 0, value = 0, out = "";
+  for (const byte of bytes) {
+    value = (value << 8) | byte;
+    bits += 8;
+    while (bits >= 5) {
+      out += alphabet[(value >>> (bits - 5)) & 31];
+      bits -= 5;
+    }
+  }
+  return out;
+};
 const account = (principal, roles, token, team = TEAM) => ({
   principal,
   team,
   roles,
   token_sha256: digest(token),
+  totp_secret: secretFor(token),
   status: "ACTIVE",
 });
+
+// A principal for direct store calls, obtained the only way there is: a session
+// opened with the credential and a current second factor.
+function principalFor(directory, token) {
+  const access = new AccessControl(directory);
+  const { session_token } = access.openSession({
+    authorization: "Bearer " + token,
+    code: totp(secretFor(token), Date.now()),
+    source: "test",
+  });
+  return access.authenticate("Bearer " + session_token);
+}
 const USERS = [
   account("receiver-account", ["INTAKE_RECEIVER"], TOKENS.receiver),
   account("reviewer-account", ["TEAM_REVIEWER"], TOKENS.reviewer),
@@ -97,11 +127,26 @@ async function started() {
   const server = createIntakeServer({ store, users: loadUsers(usersFile) });
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
   const base = `http://127.0.0.1:${server.address().port}`;
-  const call = (method, route, { token, body, headers } = {}) =>
+  // Each staff token opens one real session, with its second factor, through
+  // the receiver's own session route; every call then presents that session.
+  const sessions = new Map();
+  const sessionFor = async (token) => {
+    if (!sessions.has(token)) {
+      const opened = await fetch(base + "/private/session", {
+        method: "POST",
+        headers: { authorization: "Bearer " + token, "content-type": "application/json" },
+        body: JSON.stringify({ code: totp(secretFor(token), Date.now()) }),
+      });
+      if (opened.status !== 201) return token; // an unknown token stays unknown
+      sessions.set(token, (await opened.json()).session_token);
+    }
+    return sessions.get(token);
+  };
+  const call = async (method, route, { token, body, headers } = {}) =>
     fetch(base + route, {
       method,
       headers: {
-        ...(token ? { authorization: "Bearer " + token } : {}),
+        ...(token ? { authorization: "Bearer " + (await sessionFor(token)) } : {}),
         ...(body ? { "content-type": "application/json" } : {}),
         ...headers,
       },
@@ -180,11 +225,13 @@ test("every endpoint checks the caller's role and denies an unrelated principal"
       });
       assert.equal(result.status, 403, `${method} ${route}`);
     }
-    // No credential at all is refused before anything is read.
-    assert.equal((await fixture.call("GET", `/private/intake/${id}`)).status, 403);
+    // No credential at all is refused before anything is read. It is 401,
+    // authenticate first, which is distinct from the 403 above: authenticated,
+    // but not permitted.
+    assert.equal((await fixture.call("GET", `/private/intake/${id}`)).status, 401);
     assert.equal(
       (await fixture.call("GET", `/private/intake/${id}`, { token: "not-a-known-token-000000" })).status,
-      403,
+      401,
     );
     // A fully-roled principal from another team is refused, and refused as a
     // 404: whether this receiver holds that inquiry is not something a foreign
@@ -439,8 +486,9 @@ test("the receiver holds no state of its own and mints no identity", () => {
   const source = fs.readFileSync(path.join(ROOT, "tools/team_intake_server.cjs"), "utf8");
   assert.equal(/store\.state/.test(source), false);
   assert.equal(/new StaffPrincipal|ISSUED_BY_AUTHENTICATION/.test(source), false);
-  // Exactly one place resolves an identity, and it is the directory.
-  assert.equal((source.match(/directory\.authenticate/g) || []).length, 1);
+  // Exactly one place resolves an identity, and it is the session authority.
+  assert.equal((source.match(/access\.authenticate/g) || []).length, 1);
+  assert.equal(/directory\.authenticate/.test(source), false);
   // Falsification: the same reading applied to a source that does reach in.
   const reaching = source.replace("store.search(principal", "store.state.inquiries; store.search(principal");
   assert.equal(/store\.state/.test(reaching), true);
@@ -454,7 +502,7 @@ test("a store with no room refuses with insufficient storage, not bad request", 
   fs.writeFileSync(usersFile, JSON.stringify(USERS));
   const storePath = path.join(directory, "store.json");
   const roomy = new DurableIntakeStore(storePath);
-  const first = await roomy.accept(reviewedRaw(), "capacity-001", loadUsers(usersFile).authenticate("Bearer " + TOKENS.receiver));
+  const first = await roomy.accept(reviewedRaw(), "capacity-001", principalFor(loadUsers(usersFile), TOKENS.receiver));
 
   const store = new DurableIntakeStore(storePath, {
     writeCeilingBytes: fs.statSync(storePath).size + 32,
@@ -462,11 +510,23 @@ test("a store with no room refuses with insufficient storage, not bad request", 
   const server = createIntakeServer({ store, users: loadUsers(usersFile) });
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
   const port = server.address().port;
+  const opened = new Map();
+  const session = async (token) => {
+    if (!opened.has(token)) {
+      const response = await fetch(`http://127.0.0.1:${port}/private/session`, {
+        method: "POST",
+        headers: { authorization: "Bearer " + token, "content-type": "application/json" },
+        body: JSON.stringify({ code: totp(secretFor(token), Date.now()) }),
+      });
+      opened.set(token, (await response.json()).session_token);
+    }
+    return opened.get(token);
+  };
   try {
     const result = await fetch(`http://127.0.0.1:${port}/private/intake`, {
       method: "POST",
       headers: {
-        authorization: "Bearer " + TOKENS.receiver,
+        authorization: "Bearer " + (await session(TOKENS.receiver)),
         "idempotency-key": "capacity-002",
         "content-type": "application/json",
       },
@@ -477,7 +537,7 @@ test("a store with no room refuses with insufficient storage, not bad request", 
 
     // The capacity route is how an operator sees this coming.
     const capacity = await fetch(`http://127.0.0.1:${port}/private/capacity`, {
-      headers: { authorization: "Bearer " + TOKENS.steward },
+      headers: { authorization: "Bearer " + (await session(TOKENS.steward)) },
     });
     assert.equal(capacity.status, 200);
     const report = await capacity.json();
@@ -487,7 +547,7 @@ test("a store with no room refuses with insufficient storage, not bad request", 
     // Reading capacity is a steward action like the other recovery endpoints.
     assert.equal(
       (await fetch(`http://127.0.0.1:${port}/private/capacity`, {
-        headers: { authorization: "Bearer " + TOKENS.reviewer },
+        headers: { authorization: "Bearer " + (await session(TOKENS.reviewer)) },
       })).status,
       403,
     );
@@ -495,7 +555,7 @@ test("a store with no room refuses with insufficient storage, not bad request", 
     // And the record that was already accepted is still readable, because the
     // refusal wrote nothing.
     const read = await fetch(`http://127.0.0.1:${port}/private/intake/${first.inquiry_id}`, {
-      headers: { authorization: "Bearer " + TOKENS.reviewer },
+      headers: { authorization: "Bearer " + (await session(TOKENS.reviewer)) },
     });
     assert.equal(read.status, 200);
   } finally {
