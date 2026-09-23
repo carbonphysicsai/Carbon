@@ -118,7 +118,9 @@ one receiver process per store file, a store ceiling that cannot write a file it
 cannot read, authenticated staff identity with cross-team denial, versioned
 retention with an approved-exception deletion model, and a transactional outbox
 that reports what it did not do. The runbook records the start, check, stop and
-recover sequence as actually run. The engineering is not what is waiting.
+recover sequence as actually run.
+
+**The engineering is not complete.** An earlier revision of this paragraph ended "the engineering is not what is waiting". That was true of the system as designed. It is not true of the system the owner's v1 client-data position describes: on 2026-09-23 the owner approved nine engineering changes, E1–E9, and they are tracked in GOAL-WORKBENCH-15. Building them does not advance W-C's preconditions. It changes what "the engineering is ready" means, which is a different claim.
 
 **What §3.1 being resolved does not mean.** A working internal host with
 synthetic fixtures is one precondition of nine. The eight that remain are the

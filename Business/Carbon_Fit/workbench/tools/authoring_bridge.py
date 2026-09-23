@@ -23,6 +23,34 @@ REQUEST_SCHEMA = "carbon.goal-workbench.authoring-request.v1"
 RESULT_SCHEMA = "carbon.goal-workbench.authoring-result.v1"
 TEMPLATE = "periodic_viscous_burgers_1d_v1"
 GOALS = frozenset(("Dynamics", "Transport", "Front Resolution", "Dissipation"))
+
+# E8: nothing typed into the Workbench reaches a Challenge proposal. A proposal
+# is what the subnet is eventually shown, and a Workbench design can hold
+# client material, so the compiled input is built only from source-owned
+# constants, the closed goal enum, and an identifier derived by digest. The
+# design's own text, including its ids, is never read into it.
+#
+# This is not a sanitiser and must not become one. In an engineering brief the
+# parameters are the secret, so filtering either leaves the secret in or leaves
+# nothing worth compiling, and an opt-in would invite exactly the pressure it
+# exists to resist. The owner closed that question (counsel brief v1, 8.1 item
+# 2): absolute exclusion, no opt-in, no flag. Reopening it is an owner decision
+# taken with counsel, not a change to this function.
+TEMPLATE_INTENDED_USE = (
+    "Demonstrate exact technical expressibility for the public DEVELOPMENT "
+    "Burgers Dynamics profile without scientific suitability, customer-use, "
+    "rights, qualification, or launch claims."
+)
+
+
+def _opaque_challenge_id(request: dict[str, object]) -> str:
+    identity = json.dumps(
+        [request["job_id"], request["design_id"], request["design_revision"]],
+        separators=(",", ":"),
+    )
+    return "workbench-" + hashlib.sha256(identity.encode("utf-8")).hexdigest()[:24]
+
+
 MAX_BYTES = 1_048_576
 MAX_DEPTH = 24
 MAX_COLLECTION = 256
@@ -252,11 +280,12 @@ def compile_request(request_path: Path, output_directory: Path) -> Path:
     output_directory.mkdir(parents=True, exist_ok=True)
     if output_directory.is_symlink() or not output_directory.is_dir():
         raise ValueError("invalid output directory")
+    challenge_id = _opaque_challenge_id(request)
     native_input = goals.supported_burgers_development_intake(
         requested_goal=str(request["requested_goal"]),
-        challenge_id=str(request["design_id"]),
-        title=f"Workbench design {request['design_id']}",
-        intended_use=str(request["intended_use"]),
+        challenge_id=challenge_id,
+        title=f"Workbench design {challenge_id}",
+        intended_use=TEMPLATE_INTENDED_USE,
     )
     input_bytes = _canonical(native_input)
     input_digest = _sha(input_bytes)
