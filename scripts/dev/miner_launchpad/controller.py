@@ -390,8 +390,9 @@ def capability_catalog() -> dict:
                 # against the live Access JWKS. What is left is that nothing
                 # hosts it: the app starts no listener, no origin serves it, and
                 # the origin's shape is undecided - a Python ASGI app cannot run
-                # on the Workers custom domain the echo test used. No real
-                # Access assertion has yet been verified against it either.
+                # on the Workers custom domain the echo test used. A real
+                # Access-minted assertion has been verified against it, so
+                # authentication is not what is missing.
                 #
                 # Scope note: this is the *remote* door only. A miner bringing
                 # their own agent over stdio needs no Cloudflare credential and
