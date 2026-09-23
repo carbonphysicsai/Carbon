@@ -139,6 +139,15 @@ class PublicMaterial:
                 "reference_failure": "stop; never replace a difficult case",
                 "final_reference_check": "separate controller-owned refinement indicators required by balanced-v2",
                 "quality": "unqualified numerical reference; primary-only practice has no measured uncertainty bound",
+                # The same generator and solvers, in the research sandbox, for
+                # generating and labelling as much training data as wanted.
+                "challenge_kit": {
+                    "python": "from carbon.challenge_kit.burgers import dataset, generate, solve",
+                    "julia": "include(readchomp(`/opt/carbon-worker/bin/python -I -c \"import carbon.challenge_kit as k,pathlib;print(pathlib.Path(k.__file__).parent/'CarbonBurgers.jl')\"`)); data = CarbonBurgers.dataset(rand(UInt8, 32), 1000)",
+                    "command": "python -m carbon.challenge_kit.burgers generate --root-hex <64 hex> --count N --out train.npz [--role train|eval|stress] [--method cole_hopf|finite_volume|etdrk4]",
+                    "what": "the challenge's own public generator and C-04 reference solvers, byte-identical to the validator's; your own seed roots; any number of cases",
+                    "not": "the exam: final cases come from private roots that never leave the controller; everything computed is self-reported",
+                },
             }
         else:
             raise ValueError("material outside public allowlist")
