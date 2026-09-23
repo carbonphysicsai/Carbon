@@ -416,14 +416,21 @@ def run():
                         "document.getElementById('token').focus();"
                         "document.getElementById('token').blur()"
                     )
-                    order = keyboard_reaches(session, "research-launch")
+                    # Targets an enabled control. `research-launch` is
+                    # disabled here by design - no research profile is
+                    # configured - and a browser correctly skips disabled
+                    # elements in the tab order, so asserting reachability of
+                    # one would demand the page break its own semantics. The
+                    # registration controls are the ones a miner actually
+                    # reaches first, and they are enabled once connected.
+                    order = keyboard_reaches(session, "onboarding-status")
                     assert order, "tab order was empty; focus never moved"
                     # Focus must be visible to whoever is driving it. An
                     # outline removed for aesthetics makes the keyboard path
                     # technically present and practically unusable.
                     assert session.evaluate(
                         "(() => {"
-                        " const node = document.getElementById('research-launch');"
+                        " const node = document.getElementById('onboarding-status');"
                         " node.focus();"
                         " const style = getComputedStyle(node);"
                         " return style.outlineStyle !== 'none'"
