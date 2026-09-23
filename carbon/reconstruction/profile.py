@@ -63,7 +63,10 @@ DEPENDENCY_SPECS = (
 _BACKBONES = {
     "fno": ("carbon_jax_fno1d", "fno1d"),
     "deeponet": ("carbon_jax_deeponet1d", "deeponet1d"),
-    "physics_attention": ("carbon_jax_physics_attention1d", "physics_attention1d"),
+    "transolver": ("carbon_jax_transolver1d", "physics_attention1d"),
+    "haar_operator": ("carbon_jax_haar_operator1d", "haar_operator1d"),
+    "gno": ("carbon_jax_gno1d", "gno1d"),
+    "gino": ("carbon_jax_gino1d", "gino1d"),
 }
 _MODEL_DEFAULTS = {
     "width": 8,
@@ -109,6 +112,10 @@ _TRAIN_DEFAULTS = {
 }
 _TARGETS = {
     **{("carbon_jax_lab_model", field): ("model", field) for field in _MODEL_DEFAULTS},
+    # The public name for the lab's graph_radius: "graph" is reserved by
+    # B-02B's guard against participant composition graphs, and this field is
+    # a neighbourhood radius, not a graph a miner composes.
+    ("carbon_jax_lab_model", "neighborhood_radius"): ("model", "graph_radius"),
     **{("carbon_jax_lab_task", field): ("task", field) for field in _TASK_DEFAULTS},
     **{
         ("carbon_jax_lab_train", field): ("train", field)

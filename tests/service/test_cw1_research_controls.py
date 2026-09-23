@@ -45,7 +45,7 @@ def fit(config):
 passed={}
 for name,pair in cases.items():
     a,b=pair
-    if name in ('width','depth','n_modes','branch_points','heads','slices','expansion'):
+    if name in ('width','depth','n_modes','branch_points','heads','slices','expansion','wavelet_levels'):
         left,right=trainer(a),trainer(b)
         assert [v.shape for v in jax.tree.leaves(left.state.params)] != [v.shape for v in jax.tree.leaves(right.state.params)],name
         passed[name]='actual parameter shapes changed'
@@ -108,6 +108,9 @@ def test_advertised_controls_change_actual_execution_as_registered(tmp_path):
         "heads": 4,
         "slices": 8,
         "expansion": 3,
+        "wavelet_levels": 3,
+        "neighborhood_radius": 0.4,
+        "latent_points": 8,
         "remat": True,
         "hard_initial_condition": True,
         "enforce_mean": True,
@@ -147,8 +150,14 @@ def test_advertised_controls_change_actual_execution_as_registered(tmp_path):
             first["parameters"].pop("n_modes")
             first["parameters"]["branch_points"] = 4
         if name in ("heads", "slices", "expansion"):
-            first["backbone"] = "physics_attention"
+            first["backbone"] = "transolver"
             first["parameters"].pop("n_modes")
+        if name == "wavelet_levels":
+            first["backbone"] = "haar_operator"
+            first["parameters"].pop("n_modes")
+        if name in ("neighborhood_radius", "latent_points"):
+            # GINO carries both, and its 4 modes fit either latent grid.
+            first["backbone"] = "gino"
         # A supplied field must reach what is rebuilt: the physics ramp needs a
         # PDE term, and EMA weights reach predictions only through EMA inference.
         if name == "physics_warmup_steps":

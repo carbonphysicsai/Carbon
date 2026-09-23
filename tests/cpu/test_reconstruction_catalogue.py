@@ -65,7 +65,10 @@ def test_only_registered_implementations_and_current_research_selection() -> Non
     assert {item.backbone_id for item in entries} == {
         "carbon_jax_fno1d",
         "carbon_jax_deeponet1d",
-        "carbon_jax_physics_attention1d",
+        "carbon_jax_transolver1d",
+        "carbon_jax_haar_operator1d",
+        "carbon_jax_gno1d",
+        "carbon_jax_gino1d",
         "foundax_fno1d",
     }
     assert {
@@ -73,7 +76,10 @@ def test_only_registered_implementations_and_current_research_selection() -> Non
     } == {
         "carbon_jax_fno1d",
         "carbon_jax_deeponet1d",
-        "carbon_jax_physics_attention1d",
+        "carbon_jax_transolver1d",
+        "carbon_jax_haar_operator1d",
+        "carbon_jax_gno1d",
+        "carbon_jax_gino1d",
     }
     assert all(item.backend == "cpu" for item in entries)
     assert all(item.host_availability == "NOT_OBSERVED" for item in entries)
@@ -130,7 +136,7 @@ class RejectRuntime(importlib.abc.MetaPathFinder):
             raise AssertionError('discovery imported runtime: ' + fullname)
 sys.meta_path.insert(0, RejectRuntime())
 from carbon.reconstruction.catalogue import capability_projection
-assert len(capability_projection(audience='miner')['implementations']) == 4
+assert len(capability_projection(audience='miner')['implementations']) == 7
 assert not attempted, attempted
 assert not any(name.split('.')[0] in blocked for name in sys.modules)
 """,

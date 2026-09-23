@@ -119,11 +119,12 @@ def compile_c02_plan(
         InterfaceDirection.OUTPUT,
     )
     backbone_target = ConsumerTarget("carbon_jax_lab_model", "kind")
-    # Attention is registered only when asked for, like width and n_modes, so a
-    # caller that does not ask gets the byte-identical two-backbone contract.
+    # Another lab family is registered only when asked for, like width and
+    # n_modes, so a caller that does not ask gets the byte-identical
+    # two-backbone contract.
     selectors = ("fno", "deeponet")
-    if backbone == "physics_attention":
-        selectors += ("physics_attention",)
+    if backbone not in selectors:
+        selectors += (backbone,)
 
     def option(selector: str, backbone_id: str, *, is_foundax: bool = False):
         source_digest = FOUNDAX_WHEEL_DIGEST if is_foundax else wheel_digest
@@ -155,11 +156,7 @@ def compile_c02_plan(
                 is_foundax=foundax,
             ),
             option("deeponet", "carbon_jax_deeponet1d"),
-            *(
-                option(s, f"carbon_jax_{s}1d")
-                for s in selectors
-                if s == "physics_attention"
-            ),
+            *(option(s, f"carbon_jax_{s}1d") for s in selectors[2:]),
         ),
     )
     assembly = replace(

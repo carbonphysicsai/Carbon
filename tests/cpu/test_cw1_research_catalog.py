@@ -262,7 +262,8 @@ def test_a_rejected_recipe_reaches_the_miner_as_named_issues_not_a_failure():
     assert compile_(recipe(ema_decay=0.9, inference_weights="ema")).accepted
 
 
-def test_physics_attention_is_rebuilt_with_every_field_it_accepts():
+def test_transolver_is_rebuilt_with_every_field_it_accepts():
+    """Transolver is rebuilt by the lab's physics_attention1d implementation."""
     parameters = {
         "width": 32,
         "depth": 3,
@@ -271,7 +272,7 @@ def test_physics_attention_is_rebuilt_with_every_field_it_accepts():
         "expansion": 3,
         "remat": True,
     }
-    _, profile = compile_recipe(recipe("physics_attention", **parameters))
+    _, profile = compile_recipe(recipe("transolver", **parameters))
     model = json.loads(profile.model_config_json)
     assert model["kind"] == "physics_attention1d"
     for key, value in parameters.items():
@@ -284,8 +285,8 @@ def test_physics_attention_is_rebuilt_with_every_field_it_accepts():
         ("fno", "heads"),
         ("fno", "slices"),
         ("deeponet", "expansion"),
-        ("physics_attention", "n_modes"),
-        ("physics_attention", "branch_points"),
+        ("transolver", "n_modes"),
+        ("transolver", "branch_points"),
     ],
 )
 def test_a_field_of_another_family_is_refused_by_name(backbone, field):
@@ -295,11 +296,11 @@ def test_a_field_of_another_family_is_refused_by_name(backbone, field):
 
 
 def test_attention_width_must_split_across_its_heads():
-    assert named({"width": 30, "heads": 4}, "physics_attention") == {
+    assert named({"width": 30, "heads": 4}, "transolver") == {
         ("parameter.dependency_unsatisfied", "/parameters/heads")
     }
     # Specimen: the same heads with a divisible width compiles.
-    compile_recipe(recipe("physics_attention", width=32, heads=4))
+    compile_recipe(recipe("transolver", width=32, heads=4))
 
 
 def test_widening_the_research_catalog_leaves_the_other_catalogs_unchanged():
@@ -323,7 +324,55 @@ def test_widening_the_research_catalog_leaves_the_other_catalogs_unchanged():
     assert gpu_catalog()["backbones"] == ["fno", "deeponet"]
     assert "heads" not in gpu_catalog()["surfaces"]
     # Specimen: the research catalog does offer it, and its fields.
-    assert "physics_attention" in backbones(research_contracts())[0]
+    assert "transolver" in backbones(research_contracts())[0]
     from carbon.development_session.research_catalog import public_catalog
 
-    assert public_catalog()["surfaces"]["heads"]["architecture"] == "physics_attention"
+    assert public_catalog()["surfaces"]["heads"]["architecture"] == "transolver"
+
+
+@pytest.mark.parametrize(
+    "backbone,parameters,kind,lab",
+    [
+        (
+            "haar_operator",
+            {"width": 16, "depth": 2, "wavelet_levels": 3, "remat": True},
+            "haar_operator1d",
+            {},
+        ),
+        ("gno", {"depth": 2, "neighborhood_radius": 0.1}, "gno1d", {}),
+        (
+            "gino",
+            {"n_modes": 8, "latent_points": 16, "neighborhood_radius": 0.25},
+            "gino1d",
+            {},
+        ),
+    ],
+)
+def test_each_lab_family_is_rebuilt_with_every_field_it_accepts(
+    backbone, parameters, kind, lab
+):
+    _, profile = compile_recipe(recipe(backbone, **parameters))
+    model = json.loads(profile.model_config_json)
+    assert model["kind"] == kind
+    for key, value in parameters.items():
+        # The public neighborhood_radius is the lab's graph_radius.
+        field = "graph_radius" if key == "neighborhood_radius" else key
+        assert model[field] == value
+
+
+def test_graph_radius_travels_under_a_name_the_graph_guard_admits():
+    """The token graph is reserved against participant composition graphs; the lab's
+    neighbourhood radius is exposed as neighborhood_radius instead."""
+    from carbon.construction.catalog import _forbidden_authority_code
+
+    assert _forbidden_authority_code("graph_radius") is not None
+    assert _forbidden_authority_code("neighborhood_radius") is None
+    assert named({"graph_radius": 0.1}, "gno") == {("parameter.unknown", "/parameters")}
+
+
+def test_gino_modes_must_fit_its_latent_grid():
+    assert named({"n_modes": 16, "latent_points": 8}, "gino") == {
+        ("parameter.dependency_unsatisfied", "/parameters/n_modes")
+    }
+    # Specimen: the same modes on a latent grid that holds them compile.
+    compile_recipe(recipe("gino", n_modes=16, latent_points=16))
