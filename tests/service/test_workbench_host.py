@@ -679,7 +679,11 @@ def operator_profile(service, tmp_path):
     profile = profile_for(
         tmp_path / "profile", {"scientific_tasks": [{"schema": _JULIA_SCOPE}]}
     )
-    profile.document["principal"] = service.adapter.principal
+    # As in a real profile, the grant's operator is not the campaign owner the
+    # served routes act as. Making them equal here once hid a registry that
+    # `serve` could never read.
+    profile.document["principal"] = "fixture-operator"
+    profile.manifest["owner"] = service.adapter.principal
     profile.root = tmp_path / "campaign-root"
     if not (profile.root / "private-roles").exists():
         shutil.copytree(data.role_root, profile.root / "private-roles")

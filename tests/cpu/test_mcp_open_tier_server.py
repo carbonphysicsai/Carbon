@@ -53,8 +53,8 @@ def read(server, uri):
 def test_the_server_starts_with_no_profile_campaign_or_ledger():
     """The failure this module exists to fix.
 
-    `standard_cli.load_profile` needs a closed operator profile, a grant and a
-    frozen campaign. An unregistered miner has none, so the tools telling them
+    `standard_cli.load_profile` needs a closed runner profile and a frozen
+    campaign admitted by registration. An unregistered miner has none, so the tools telling them
     how to register were reachable only once they no longer needed them.
     """
     server = create_open_tier_server()

@@ -56,12 +56,18 @@ def mint(key, kid="k1", **overrides):
 
     claims = {
         "iss": ISSUER,
-        "aud": [AUD],
+        # The shape observed in a real Cloudflare-minted service-token
+        # assertion captured on 23 September 2026: `aud` a plain string (the
+        # AUD tag, not a list and not a URL), `sub` present and empty,
+        # `common_name` the full Client ID including `.access`, no `client_id`
+        # or `scope`, and two claims Cloudflare does not document.
+        "aud": AUD,
         "exp": int(time.time()) + 300,
         "iat": int(time.time()),
-        "sub": "",  # a service token's sub, per Cloudflare's token documentation
+        "sub": "",
         "common_name": CLIENT,
         "type": "app",
+        "h_INTERNAL_DO_NOT_USE": "opaque",
     }
     claims.update(overrides)
     return jwt.encode(claims, key, algorithm="RS256", headers={"kid": kid})
@@ -120,6 +126,35 @@ def test_the_token_cannot_enlarge_its_own_rights():
     token = run(verify.verify_token(mint(key, scope="carbon:admin carbon:everything")))
     assert token.scopes == ["carbon:research"]
     assert "carbon:admin" not in token.scopes
+
+
+@pytest.mark.parametrize("aud", (AUD, [AUD]), ids=("observed-string", "list"))
+def test_the_audience_matches_as_a_string_or_a_list(aud):
+    """A plain string is what Access actually sent; a list is what the JWT
+    specification also permits, so a change of shape is not an outage."""
+    key, verify, _keys, _calls = verifier()
+    assert run(verify.verify_token(mint(key, aud=aud))) is not None
+    assert run(verify.verify_token(mint(key, aud="1" * 64))) is None
+
+
+def test_undocumented_claims_neither_break_verification_nor_pass_through():
+    """Cloudflare ships internal claims without notice.
+
+    `h_INTERNAL_DO_NOT_USE` and `type` were present in the real assertion and
+    appear in no documentation. They must not fail verification, and nothing
+    from them may reach the token Carbon builds: its claims are Carbon's.
+    """
+    import jwt
+
+    key, verify, _keys, _calls = verifier()
+    raw = mint(key, h_INTERNAL_DO_NOT_USE="opaque", type="app", unheard_of={"x": 1})
+    # Specimen: the claims really are in what was verified.
+    presented = jwt.decode(raw, options={"verify_signature": False})
+    assert {"h_INTERNAL_DO_NOT_USE", "type", "unheard_of"} <= set(presented)
+
+    token = run(verify.verify_token(raw))
+    assert token is not None
+    assert set(token.claims) == {"iss", "carbon_principal"}
 
 
 # --- an absent or empty claim cannot be a match ------------------------------
