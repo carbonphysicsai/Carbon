@@ -255,3 +255,140 @@ def test_no_test_in_this_file_contacts_a_chain(server):
 
     assert type(server.onboarding.reader) is _Reader
     assert not isinstance(server.onboarding.reader, BittensorReader)
+
+
+def test_the_coldkey_requirement_appears_where_a_miner_reads_it():
+    """The first thing a new miner gets wrong, put in front of them.
+
+    `requirements()` has always said the balance must be on the coldkey, but it
+    said it inside a returned list. "My hotkey has funds" is the natural
+    misreading - the transaction is signed for the hotkey being registered and
+    the balance is taken from the coldkey that owns it - so the word has to be
+    in the surface a person looks at, not only in the payload behind it.
+
+    Asserted on the page rather than on the payload for exactly that reason: a
+    test against `requirements()` would have passed all along while no miner
+    could see it.
+    """
+    from pathlib import Path
+
+    page = Path("scripts/dev/miner_launchpad/index.html").read_text()
+    assert "COLDKEY" in page.upper()
+    assert "onboarding-panel" in page, "the registration step needs a surface"
+    # The distinction, not merely the word: hotkey and coldkey named together
+    # where the difference is what matters.
+    coldkey_notice = page[page.index("onboarding-coldkey") :][:600]
+    assert "hotkey" in coldkey_notice.lower()
+
+
+def test_the_browser_actually_calls_the_onboarding_endpoints():
+    """The endpoints existed and nothing a miner looked at reached them.
+
+    A human with no agent could not begin the journey, which is the extreme the
+    agent step is required to work at. Asserted over the script rather than
+    through a browser, because no browser runs in this suite - so this proves
+    the wiring exists, not that it renders.
+    """
+    from pathlib import Path
+
+    script = Path("scripts/dev/miner_launchpad/app.js").read_text()
+    for action in ("requirements", "status", "prepare", "confirm"):
+        assert "/api/v1/onboarding/" in script
+        assert action in script, action
+    assert "onboardingRequirements()" in script, "defined but never invoked"
+
+
+def test_an_unconfigured_chain_and_an_unreachable_one_stay_distinct():
+    """Two different facts that a single reason code would merge.
+
+    CHAIN_NOT_CONFIGURED means this deployment was never pointed at a chain;
+    CHAIN_UNAVAILABLE means it was and the chain did not answer. The first is
+    Carbon's to fix and the second is not, so collapsing them would send a
+    miner to the wrong place. Asserted as distinct refusals rather than as
+    distinct strings.
+    """
+    import asyncio
+
+    from carbon.development_session.chain_onboarding import OnboardingFailure
+    from carbon.miner_mcp.mcp_onboarding import onboarding_records
+
+    unconfigured = onboarding_records(None, None)
+    with pytest.raises(OnboardingFailure) as absent:
+        asyncio.run(unconfigured("status", HOTKEY))
+    assert absent.value.reason == "CHAIN_NOT_CONFIGURED"
+
+    class _Unreachable:
+        async def capture(self, context):
+            from carbon.chain.models import ChainFailure, FailureCode
+
+            raise ChainFailure(FailureCode.UNSUPPORTED)
+
+    reachable_config = onboarding_records(_Unreachable(), _context())
+    with pytest.raises(OnboardingFailure) as unreachable:
+        asyncio.run(reachable_config("status", HOTKEY))
+    assert unreachable.value.reason == "CHAIN_UNAVAILABLE"
+    assert unreachable.value.reason != absent.value.reason
+
+
+def test_locked_is_a_gate_and_not_a_label():
+    """LOCKED has to mean a refusal happens, not that a string says so.
+
+    An unregistered address reports LOCKED; the property that matters is that
+    nothing downstream treats it as admitted. Asserted by checking the
+    registered flag the gate is derived from, so a surface that printed LOCKED
+    while admitting the caller would fail here.
+    """
+    import asyncio
+
+    from carbon.development_session.chain_onboarding import status
+
+    unregistered = asyncio.run(status(_Reader(), _context(), HOTKEY))
+    assert unregistered["research_environment"] == "LOCKED"
+    assert unregistered["registered"] is False
+    assert unregistered.get("uid") is None
+
+    registered = asyncio.run(
+        status(
+            _Reader(
+                (Participant(uid=0, hotkey=HOTKEY, coldkey=COLDKEY, registered_at=42),)
+            ),
+            _context(),
+            HOTKEY,
+        )
+    )
+    assert registered["research_environment"] == "UNLOCKED"
+    assert registered["registered"] is True and registered["uid"] == 0
+
+
+def test_the_registration_panel_obeys_the_pages_connection_state():
+    """A control that ignores the connection state fails as a raw 401.
+
+    Every other control on this page is disabled until the browser connects and
+    every handler returns early while a request is in flight. The registration
+    panel was wired without either, so a click before connecting produced an
+    authorization error rather than an explanation, and a double click issued
+    concurrent requests.
+
+    Asserted over the script because no browser runs in this suite: this proves
+    the panel participates in the same state machine, not that it renders.
+    """
+    from pathlib import Path
+
+    script = Path("scripts/dev/miner_launchpad/app.js").read_text()
+
+    assert "renderOnboarding();" in script, "the panel must re-render with the page"
+    for control in (
+        "onboarding-address",
+        "onboarding-status",
+        "onboarding-prepare",
+        "onboarding-confirm",
+    ):
+        assert control in script, control
+    assert "!connected || busy" in script, "controls must disable when disconnected"
+
+    # The handler guard, in the same form the rest of the file uses.
+    guarded = script[script.index("async function onboardingCall") :][:200]
+    assert "if (busy || !connected) return;" in guarded
+
+    # A disconnected page explains itself rather than showing an empty list.
+    assert "local session token" in script

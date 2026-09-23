@@ -40,6 +40,7 @@
   }
   function render() {
     renderResearch();
+    renderOnboarding();
     const sources = $("development-sources");
     sources.replaceChildren();
     if (!connected || !developmentSources.length) {
@@ -115,10 +116,114 @@
       events.append(item);
     }
   }
+  // Registration. The panel exists because the endpoints were reachable and the
+  // page was not: a human with no agent could not begin the journey at all.
+  function onboardingLine(text, kind) {
+    const node = document.createElement("p");
+    node.className = kind === "error" ? "notice" : "hint";
+    node.textContent = text;
+    return node;
+  }
+
+  function showOnboarding(nodes) {
+    const target = $("onboarding-result");
+    target.replaceChildren(...nodes);
+  }
+
+  function renderOnboarding() {
+    for (const control of ["onboarding-address", "onboarding-status",
+                           "onboarding-prepare", "onboarding-confirm"]) {
+      $(control).disabled = !connected || busy;
+    }
+    if (!connected) {
+      $("onboarding-facts").replaceChildren();
+      showOnboarding([onboardingLine(
+        "Connect this browser to read the current registration requirements. "
+        + "Registration itself needs no Carbon account - this page just needs "
+        + "its local session token."
+      )]);
+    }
+  }
+
+  async function onboardingRequirements() {
+    try {
+      const value = await api("/api/v1/onboarding/requirements");
+      const facts = $("onboarding-facts");
+      facts.replaceChildren();
+      // The cost is shown as Carbon actually knows it. NOT_READ is a different
+      // claim from unknown, and neither is a figure to plan around.
+      const rows = [
+        ["Network", value.network + " \u00b7 netuid " + value.netuid],
+        ["Mechanism", value.mechanism],
+        ["Recycle amount", value.cost && value.cost.value === "NOT_READ"
+          ? "Not read by Carbon \u2014 your wallet shows it at signing"
+          : String((value.cost || {}).value)],
+        ["Carbon signs", "Never"]
+      ];
+      for (const [label, detail] of rows) {
+        const key = document.createElement("dt");
+        key.textContent = label;
+        const definition = document.createElement("dd");
+        definition.textContent = detail;
+        facts.append(key, definition);
+      }
+      const listed = [
+        ["You need", value.you_need || []],
+        ["Carbon never", value.carbon_never || []]
+      ];
+      for (const [label, items] of listed) {
+        const key = document.createElement("dt");
+        key.textContent = label;
+        facts.append(key);
+        for (const item of items) {
+          const definition = document.createElement("dd");
+          definition.textContent = item;
+          facts.append(definition);
+        }
+      }
+    } catch (error) {
+      showOnboarding([onboardingLine("Could not read the registration requirements: " + error.message, "error")]);
+    }
+  }
+
+  async function onboardingCall(action) {
+    if (busy || !connected) return;
+    const address = $("onboarding-address").value.trim();
+    if (!address) {
+      showOnboarding([onboardingLine("Enter the hotkey address you want to register.", "error")]);
+      return;
+    }
+    try {
+      const value = await api("/api/v1/onboarding/" + action, {address});
+      const lines = [];
+      if (action === "status" || action === "confirm") {
+        lines.push(onboardingLine(
+          value.registered
+            ? "Registered. UID " + value.uid + " at block " + (value.observed_block ?? "unknown") + "."
+            : "Not registered on netuid " + value.netuid + " yet."
+        ));
+        lines.push(onboardingLine("Research environment: " + value.research_environment));
+      } else {
+        lines.push(onboardingLine("Prepared an UNSIGNED " + value.extrinsic + ". Carbon has not signed and will not submit it."));
+        lines.push(onboardingLine("Execute it in " + value.execute_in + ". The recycle amount comes from your coldkey."));
+      }
+      showOnboarding(lines);
+    } catch (error) {
+      // Refusals carry a reason and a next action; show both rather than a
+      // generic failure, because the reason is what tells a miner what to do.
+      showOnboarding([onboardingLine(error.message, "error")]);
+    }
+  }
+
+  $("onboarding-status").addEventListener("click", () => onboardingCall("status"));
+  $("onboarding-prepare").addEventListener("click", () => onboardingCall("prepare"));
+  $("onboarding-confirm").addEventListener("click", () => onboardingCall("confirm"));
+
   async function refresh() {
     if (!token || polling) return;
     polling = true;
     try {
+      await onboardingRequirements();
       runs = (await api("/api/v1/runs")).runs;
       developmentSources = (await api("/api/v1/development")).sources;
       research = await api("/api/v1/research");

@@ -15,6 +15,16 @@
     <section id="connect-panel" class="connect panel"><div><h2>Connect this browser</h2><p>Paste the local session token printed by the server. We keep it in this tab's memory.</p></div><form id="connect-form"><label for="token">Local session token</label><div class="inline"><input id="token" type="password" autocomplete="off" spellcheck="false" required><button type="submit">Connect</button></div></form></section>
     <p id="message" class="message" role="status" aria-live="polite">Start the local server to use this page.</p>
     <noscript><p class="notice">Enable JavaScript to connect to the local controller. No run will start without it.</p></noscript>
+    <section id="onboarding-panel" class="panel setup"><div class="panel-heading"><h2>Register on the subnet</h2><span class="small-tag">00 / Join</span></div>
+      <p class="hint">Registration is how you reach Carbon's research environment. You execute it in your own wallet &mdash; Carbon never asks for, holds or transmits a private key, seed phrase or mnemonic, and nothing here signs on your behalf.</p>
+      <p id="onboarding-coldkey" class="notice"><strong>The recycle amount is spent from your COLDKEY, not your hotkey.</strong> Funding the hotkey is the most common way a first registration fails: the transaction is signed for the hotkey you are registering, and the balance is taken from the coldkey that owns it.</p>
+      <dl id="onboarding-facts" class="integration-grid"></dl>
+      <label for="onboarding-address">Your hotkey address (ss58)</label>
+      <div class="inline"><input id="onboarding-address" type="text" autocomplete="off" spellcheck="false" minlength="46" maxlength="50" placeholder="5..."><button id="onboarding-status" type="button">Check status</button></div>
+      <p class="hint">Paste an address only. This field rejects anything phrase-shaped before it is read, and no request body records what you typed.</p>
+      <div id="onboarding-result" class="events" aria-live="polite"></div>
+      <div class="controls"><button id="onboarding-prepare" type="button">Prepare an unsigned registration</button><button id="onboarding-confirm" type="button">I have registered &mdash; confirm</button></div>
+    </section>
     <div class="layout">
       <section class="panel setup"><div class="panel-heading"><h2>New run</h2><span class="small-tag">01 / Configure</span></div>
         <form id="launch-form"><fieldset id="launch-fields" disabled>
