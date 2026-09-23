@@ -1,0 +1,10 @@
+{
+ "schema": "carbon.study.driver-deviation.v1",
+ "applies_to": "docs/development/GPU_DETERMINISM_STAGE_B_RESULT.md",
+ "builds": [
+  "580.159.03",
+  "580.159.04"
+ ],
+ "recorded_in": "docs/development/TWO_HOST_STUDY_ACCEPTANCE.md, Amendment 9",
+ "reason": "Stage B's two A40 hosts in CA-MTL-1 ran driver builds 580.159.03 and 580.159.04, against the acceptance's hard pre-run check that builds match. Not verified in advance: the instrument compared drivers only within one chassis. Applied retroactively so the published result carries the deviation in the same record as its digest. Both hosts produced 83e523384fd44db6 under the pinned configuration, so the configuration held across this driver difference; that is one pair of builds differing in the patch component, not evidence about wider driver differences."
+}

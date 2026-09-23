@@ -18,7 +18,7 @@ const {
 } = require("../tools/team_staff_directory.cjs");
 const { createIntakeServer } = require("../tools/team_intake_server.cjs");
 const { DurableIntakeStore } = require("../tools/team_intake_store.cjs");
-const { enrolled, secretFor } = require("./staff_fixture.cjs");
+const { enrolled, openStore, secretFor } = require("./staff_fixture.cjs");
 
 const TOKEN = "synthetic-access-control-token-0001";
 const OTHER = "synthetic-access-control-token-0002";
@@ -148,7 +148,7 @@ test("a session expires, and a disabled account loses its live session", () => {
 
 test("over HTTP, lockout and rate limiting answer 423 and 429 with Retry-After", async () => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), "carbon-access-http-"));
-  const store = new DurableIntakeStore(path.join(directory, "store.json"));
+  const store = openStore(path.join(directory, "store.json"));
   const server = createIntakeServer({
     store,
     users: [enrolled("reviewer-one", "carbon-fit", ["TEAM_REVIEWER"], TOKEN)],

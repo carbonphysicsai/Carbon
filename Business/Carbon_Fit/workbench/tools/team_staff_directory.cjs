@@ -52,6 +52,7 @@ class StaffPrincipal {
     this.id = account.principal;
     this.team = account.team;
     this.roles = Object.freeze([...account.roles]);
+    this.screening = account.screening ? Object.freeze({ ...account.screening }) : null;
     this.authenticated_at = new Date().toISOString();
     Object.freeze(this);
     ISSUED.add(this);
@@ -84,6 +85,19 @@ function validateAccount(account, seenIds, seenDigests) {
   if (account.totp_secret !== undefined || account.status === "ACTIVE") {
     if (typeof account.totp_secret !== "string" || decodeBase32(account.totp_secret).length < 20)
       throw Error("Staff account requires an enrolled second factor (a base32 TOTP secret of at least 160 bits)");
+  }
+  // E7: a screening performed for this person, named by the standard it was
+  // performed under. Optional here: an unscreened account simply reaches no
+  // client record. A screening under a different standard does not count.
+  if (account.screening !== undefined) {
+    const screening = account.screening;
+    if (
+      !screening || typeof screening !== "object" ||
+      Object.keys(screening).sort().join() !== "ref,standard" ||
+      !/^[A-Za-z0-9][A-Za-z0-9._:\/-]{2,127}$/.test(screening.standard) ||
+      !/^[A-Za-z0-9][A-Za-z0-9._:\/-]{2,127}$/.test(screening.ref)
+    )
+      throw Error("A staff screening names its standard and a reference to the screening record");
   }
   if (seenIds.has(account.principal)) throw Error("Duplicate staff account identifier");
   // Two accounts sharing a digest means one credential resolves to two

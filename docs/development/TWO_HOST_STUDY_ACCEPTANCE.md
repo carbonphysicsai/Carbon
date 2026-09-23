@@ -803,6 +803,81 @@ and explicitly not orchestration agreement**; `validator_launch` remains
 
 ---
 
+# Amendment 9 - the stage B driver deviation, applied retroactively, and enforced from here on
+
+**Recorded 2026-09-23. Owner decision.**
+
+Section 4 makes one pre-run check hard: **both hosts must report the same driver
+build.** Stage B's two A40 hosts in CA-MTL-1 did not - `580.159.03` against
+`580.159.04` - and nothing stopped the comparison. The stage A matrix refused
+differing builds across devices in one chassis; nothing compared builds across
+pods, which is where stage B needed it. The mismatch was found afterwards, by
+reading two records side by side.
+
+## The deviation and the gap are separate facts, and both are recorded
+
+**What happened.** A run whose precondition was not met. That is a deviation, and
+it is recorded as one against the result that carries it rather than left in the
+prose of a write-up.
+
+**Why it could happen.** An instrument that enforced the check in one place and
+not the other. That is a gap in the tooling, and it is closed rather than
+explained.
+
+## Decided: apply the deviation retroactively, and say what it bought
+
+`docs/development/GPU_DETERMINISM_STAGE_B_DRIVER_DEVIATION.json` records the
+deviation against the published stage B result, naming exactly the two builds.
+The stage B result now carries it at the top, not only in its body.
+
+**What the difference bought.** Two hosts, two driver builds, one digest
+(`83e523384fd44db6…`) under the pinned configuration. That is evidence the
+pinned configuration held **across a driver difference**, which a matched-driver
+agreement could not show: with the driver held constant, agreement says nothing
+about whether the driver is one of the things the configuration has to hold
+against. Here it was varied and the digest did not move.
+
+**What it did not buy.** The two builds differ in the **patch component only**,
+within one driver branch. This is one pair. It establishes nothing about a
+different branch, a different major version, or any driver difference that
+changes kernel selection, and it was **not chosen** - it was discovered. A
+deliberate driver-variation arm would be a different study.
+
+**Every write-up must carry both facts.** Reporting only the first would turn a
+patch-level coincidence into a claim of driver independence, which is the
+collapse this acceptance exists to prevent. Reporting only the second would
+discard a real observation.
+
+## Decided: enforced by construction from here on
+
+`scripts/dev/gpu_determinism_study/compare_units.py`:
+
+- **Before any run**, `--preflight` takes `device_identity.py` output from every
+  pod and refuses differing or unreadable builds. It refuses even when a
+  deviation exists: a deviation records a decision about a run that has
+  happened, and is not a way to start one on differing drivers without deciding
+  to.
+- **After the runs**, a session can only enter a comparison if its record
+  carries the driver build NVML reported, which `run_on_pod.sh` now writes into
+  every session record and refuses to run without. Differing builds return
+  `REFUSED_DRIVER_MISMATCH` - not `DISAGREE`, because nothing was compared -
+  unless a recorded deviation names **exactly** the builds observed. An
+  accepted deviation is written into the comparison result beside the digest.
+
+The published stage B pair is the test specimen: refused without the deviation,
+admitted with it, and refused under a deviation naming any other builds.
+
+## Unchanged
+
+Ceiling USD 30. Stop conditions unchanged. Stage B reports **device agreement
+across hosts and explicitly not orchestration agreement**; `validator_launch`
+remains `HARDWARE_EXERCISED: no`; nothing is qualified and `compare_r1` still
+returns `BACKEND_UNSUPPORTED`. H100 and Blackwell remain measured on one host
+each. This amendment changes what the stage B result is recorded as having met,
+not what it measured.
+
+---
+
 # Amendment 10 - validator compute requires the same part, and the provisional conventions are ratified
 
 **Recorded 2026-09-23. Owner decision, as deputy for the MQ-008 scientific
