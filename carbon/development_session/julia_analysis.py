@@ -272,7 +272,15 @@ RUN export JULIA_DEPOT_PATH={ANALYSIS_ROOT}/depot JULIA_PKG_PRECOMPILE_AUTO=0 \\
         ["build", "--pull=false", "--platform=linux/amd64", "-q", str(context)],
         timeout=2 * 3600,
     )
-    return built.stdout.decode().strip()
+    image = built.stdout.decode().strip()
+    # BuildKit resolves a bare image id in FROM as a registry name and tries to
+    # pull it, so the local fetch image is addressed by a tag that embeds its
+    # id - the same treatment the parent gets - and the tag is checked.
+    tag = "carbon-authored-julia-packages:" + image.removeprefix("sha256:")
+    cli.run(["tag", image, tag])
+    if cli.json(["image", "inspect", tag, "--format", "{{json .}}"])["Id"] != image:
+        raise ValueError("Julia package image tag changed")
+    return tag
 
 
 def load_julia_analysis_image(path):
