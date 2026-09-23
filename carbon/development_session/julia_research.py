@@ -26,7 +26,6 @@ from carbon.reference_runtime.model import (
 )
 
 from .profile import canonical, digest
-from .research_admission import MANIFEST, verify_cleanup_owner
 from .research_carrier import ACTIVE_TASK, _cancel_path, _check_cancel, _numerical_lease
 from .research_catalog import public_catalog
 from .research_data import PublicReferenceData, decode_public_case
@@ -102,7 +101,7 @@ class PublicJuliaStudy:
                 raise ValueError("registered companion envelope scope differs")
             scopes.append(self.envelope_scope)
         if (
-            manifest.get("schema") != MANIFEST
+            not data.ledger.controlled(manifest)
             or manifest.get("owner") != data.owner
             or manifest.get("runtime", {}).get("scientific_tasks") != scopes
             or self.scope != julia_burgers_scope(data.image, data.role_root)
@@ -111,9 +110,9 @@ class PublicJuliaStudy:
         # Rechecks the pinned operator grant, expiry, principal and root. Budget
         # and live ownership are checked transactionally by the same ledger.
         if cleanup:
-            verify_cleanup_owner(data.ledger, data.owner)
+            data.ledger.retained_owner(data.owner)
         else:
-            data.ledger._grant(manifest)
+            data.ledger.authority(manifest)
 
     def __call__(self, workspace):
         self._authorize()

@@ -17,7 +17,6 @@ from carbon.reconstruction.worker.docker_runtime import DockerCLI
 
 from .data import write_once
 from .profile import canonical, digest
-from .research_admission import MANIFEST
 from .research_image import ResearchImageIdentity, build_analysis_image, verify_image
 
 SCHEMA = "carbon.authored-julia.analysis-image.v1"
@@ -208,13 +207,13 @@ def authorize_julia(ledger, owner, image):
         row = db.execute("SELECT manifest FROM campaign WHERE id=1").fetchone()
     manifest = json.loads(row[0]) if row else {}
     if (
-        manifest.get("schema") != MANIFEST
+        not ledger.controlled(manifest)
         or manifest.get("owner") != owner
         or manifest.get("runtime", {}).get("authored_research")
         != [authored_julia_scope(image)]
     ):
         raise ValueError("explicit prospective authored Julia scope required")
-    ledger._grant(manifest)
+    ledger.authority(manifest)
 
 
 def validate_julia_output(snapshot):

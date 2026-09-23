@@ -29,15 +29,15 @@ def _identity(value):
 
 
 def _context(ledger, db, owner, scope, *, cleanup=False):
-    from .research_admission import MANIFEST, verify_cleanup_owner
     from .research_control import CampaignControl
+    from .research_ledger import NO_BUDGET, _elapsed
 
     row = db.execute("SELECT manifest,started FROM campaign WHERE id=1").fetchone()
     if row is None:
         raise ValueError("freeze before sequence admission")
     manifest = json.loads(row[0])
     if (
-        manifest.get("schema") != MANIFEST
+        not ledger.controlled(manifest)
         or manifest.get("owner") != owner
         or type(scope) is not dict
         or scope.get("schema") != SCOPE
@@ -46,14 +46,25 @@ def _context(ledger, db, owner, scope, *, cleanup=False):
         raise ValueError("explicit prospective sequence grant required")
     ledger._check_admission_mode(manifest)
     if cleanup:
-        verify_cleanup_owner(ledger, owner, db=db)
+        ledger.retained_owner(owner, db=db)
         return manifest, row[1], None
-    grant = ledger._grant(manifest)
+    authority = ledger.authority(manifest)
     CampaignControl.assert_dispatch(db, ledger.generation)
     now = ledger.clock()
     started = now if row[1] is None else row[1]
-    deadline = min(started + manifest["elapsed_seconds"], grant["expires_unix"])
-    if not math.isfinite(now) or now < started or now >= deadline:
+    # Absent bounds are no deadline: a product campaign has no expiry, and a
+    # miner who set no elapsed budget has no wall clock.
+    bounds = []
+    if authority["expires_unix"] is not None:
+        bounds.append(authority["expires_unix"])
+    if _elapsed(manifest) is not NO_BUDGET:
+        bounds.append(started + _elapsed(manifest))
+    deadline = min(bounds) if bounds else None
+    if (
+        not math.isfinite(now)
+        or now < started
+        or (deadline is not None and now >= deadline)
+    ):
         raise ValueError("sequence deadline exhausted")
     return manifest, started, deadline
 
@@ -115,8 +126,11 @@ def reserve_sequence(ledger, parent, *, owner, scope, children):
             if old != (owner, payload):
                 raise ValueError("sequence replay conflict")
             return {"dispatch": False, "children": [c["id"] for c in normalized]}
-        if ledger.clock() + total["numerical_milliseconds"] / 1000 > deadline:
-            raise ValueError("complete sequence cannot fit remaining grant")
+        if (
+            deadline is not None
+            and ledger.clock() + total["numerical_milliseconds"] / 1000 > deadline
+        ):
+            raise ValueError("complete sequence cannot fit remaining time")
         used = ledger._usage(db)
         caps, reserve = _caps(manifest), _final_reserve(manifest)
         for key in DIMENSIONS:
@@ -234,10 +248,11 @@ def claim_sequence_child(ledger, parent, *, owner, ordinal):
         if any(json.loads(row[0]).get("numerical_milliseconds", 0) for row in active):
             raise ValueError("one numerical worker; reconcile active operation")
         if (
-            ledger.clock() + child["resources"]["numerical_milliseconds"] / 1000
+            deadline is not None
+            and ledger.clock() + child["resources"]["numerical_milliseconds"] / 1000
             > deadline
         ):
-            raise ValueError("child cannot fit remaining grant")
+            raise ValueError("child cannot fit remaining time")
         db.execute("UPDATE operations SET state='RESERVED' WHERE id=?", (child["id"],))
         db.execute(
             "INSERT INTO operation_sequence_claims VALUES(?,?,?)",
