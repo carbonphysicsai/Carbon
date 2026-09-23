@@ -4362,6 +4362,28 @@ class Validator:
                 "current sequencing authority file at candidate HEAD"
             )
 
+    def ledger_changed(self) -> bool:
+        """Whether the change-event ledger gained or changed a record.
+
+        The ledger is the historical array plus one file per event (HUB-LEDGER-
+        PER-EVENT-01), and a new event appended to the array is refused. So a
+        new file under ``data/events/`` is how the ledger changes now; asking
+        only whether the array changed makes every map-structural change
+        unsatisfiable, because the one record that would satisfy it cannot be
+        written.
+        """
+        if self.changed_paths is None:
+            return False
+        events_path = f"{HUB_RELATIVE.as_posix()}/data/change_events.json"
+        events_dir = f"{HUB_RELATIVE.as_posix()}/data/events/"
+        deleted = self.deleted_paths or set()
+        return events_path in self.changed_paths or any(
+            path.startswith(events_dir)
+            and path.endswith(".json")
+            and path not in deleted
+            for path in self.changed_paths
+        )
+
     def validate_structural_diff(self) -> None:
         if self.changed_paths is None:
             return
@@ -4388,7 +4410,6 @@ class Validator:
         if not structural and not self.semantic_data_changed:
             return
         hub_data_path = f"{HUB_RELATIVE.as_posix()}/data/hub_data_v2.json"
-        events_path = f"{HUB_RELATIVE.as_posix()}/data/change_events.json"
         if structural and hub_data_path not in self.changed_paths:
             self.fail(
                 "Map-structural repository changes require an updated data/hub_data_v2.json"
@@ -4398,16 +4419,17 @@ class Validator:
                 "Map-structural repository changes require a semantic Hub-data delta; "
                 "snapshot pins or timestamps alone are not reconciliation"
             )
-        if structural and events_path not in self.changed_paths:
+        if structural and not self.ledger_changed():
             self.fail(
-                "Map-structural repository changes require an updated data/change_events.json"
+                "Map-structural repository changes require a new change event: a "
+                "file under data/events/ (or, historically, data/change_events.json)"
             )
         if self.semantic_data_changed and hub_data_path not in self.changed_paths:
             self.fail(
                 "Semantic hub-data reconciliation differs from HUB_DIFF_BASE_SHA but "
                 "data/hub_data_v2.json is not in the diff"
             )
-        if self.semantic_data_changed and events_path not in self.changed_paths:
+        if self.semantic_data_changed and not self.ledger_changed():
             self.fail(
                 "Semantic hub_data_v2.json changes require an appended immutable "
                 "change event"
@@ -4557,7 +4579,9 @@ class Validator:
                 "HUB_IMPACT_NONE is forbidden when these structural paths change: "
                 + ", ".join(structural)
             )
-        if kind == "HUB_IMPACT_NONE" and source_records & self.changed_paths:
+        if kind == "HUB_IMPACT_NONE" and (
+            source_records & self.changed_paths or self.ledger_changed()
+        ):
             self.fail(
                 "HUB_IMPACT_NONE cannot accompany changes to the hub's semantic "
                 "data or event source records"
@@ -4732,7 +4756,10 @@ class Validator:
                     "Semantic hub-data updates must declare an event ID or both "
                     "a map_ref and changed semantic source record"
                 )
-            missing = sorted(source_records - self.changed_paths)
+            present = set(self.changed_paths)
+            if self.ledger_changed():
+                present.add(events_path)
+            missing = sorted(source_records - present)
             if structural and missing:
                 self.fail(
                     "Map-structural repository changes require both hub source records; "

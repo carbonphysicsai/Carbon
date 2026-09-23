@@ -1,0 +1,15 @@
+{
+  "map_ref": "SYSTEM/DEVELOPMENT-HUB/VALIDATION",
+  "event_type": "evidence",
+  "event_id": "HUB-LEDGER-STRUCTURAL-SATISFIABLE-01",
+  "owner_lane": "documentation_maintenance",
+  "status": "implemented",
+  "summary": "Completes HUB-LEDGER-PER-EVENT-01 in the diff checks, and makes its tests run. The migration refused new events appended to the array and required them as files under data/events/, but the diff checks still asked only whether data/change_events.json had changed. Every map-structural change - any edit to a Wave C ticket, for example - therefore required a ledger record that could not be written, and none has landed since the migration; the first attempt found it. A new, undeleted event file now satisfies each check that asked about the array, the array still counts for history, and HUB_IMPACT_NONE cannot accompany a new event file. Separately, test_validator.py called unittest.main() before its last three test classes were defined, and CI runs the file as a script, so the merge-parent and ledger-shape cases added with the migration and its predecessor never ran in CI: 85 of 98 ran. The entry point now sits at the end of the file, and all 103 cases pass, including the 13 that had not run before and specimens showing the relaxed requirement still refuses a structural change with no record at all. No ticket status, sequencing, maturity, dependency, ownership or authority changes, and no scientific, security, qualification or deployment authority is created or implied.",
+  "primary_detail": "docs/development/carbon_hub/tools/validate_hub.py",
+  "affects": [
+    "SYSTEM/DEVELOPMENT-HUB",
+    "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
+  ],
+  "supersedes": null,
+  "recorded_at": "2026-09-23T17:00:00Z"
+}
