@@ -20,10 +20,10 @@
       <p id="onboarding-coldkey" class="notice"><strong>The recycle amount is spent from your COLDKEY, not your hotkey.</strong> Funding the hotkey is the most common way a first registration fails: the transaction is signed for the hotkey you are registering, and the balance is taken from the coldkey that owns it.</p>
       <dl id="onboarding-facts" class="integration-grid"></dl>
       <label for="onboarding-address">Your hotkey address (ss58)</label>
-      <div class="inline"><input id="onboarding-address" type="text" autocomplete="off" spellcheck="false" minlength="46" maxlength="50" placeholder="5..."><button id="onboarding-status" type="button">Check status</button></div>
+      <div class="inline"><input id="onboarding-address" type="text" autocomplete="off" spellcheck="false" minlength="46" maxlength="50" placeholder="5..." disabled><button id="onboarding-status" type="button" disabled>Check status</button></div>
       <p class="hint">Paste an address only. This field rejects anything phrase-shaped before it is read, and no request body records what you typed.</p>
       <div id="onboarding-result" class="events" aria-live="polite"></div>
-      <div class="controls"><button id="onboarding-prepare" type="button">Prepare an unsigned registration</button><button id="onboarding-confirm" type="button">I have registered &mdash; confirm</button></div>
+      <div class="controls"><button id="onboarding-prepare" type="button" disabled>Prepare an unsigned registration</button><button id="onboarding-confirm" type="button" disabled>I have registered &mdash; confirm</button></div>
     </section>
     <div class="layout">
       <section class="panel setup"><div class="panel-heading"><h2>New run</h2><span class="small-tag">01 / Configure</span></div>

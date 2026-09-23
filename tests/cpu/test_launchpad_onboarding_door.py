@@ -392,3 +392,35 @@ def test_the_registration_panel_obeys_the_pages_connection_state():
 
     # A disconnected page explains itself rather than showing an empty list.
     assert "local session token" in script
+
+
+def test_the_registration_controls_are_disabled_before_any_script_runs():
+    """The browser caught this; source assertions had passed.
+
+    `renderOnboarding()` disables the controls whenever the page is
+    disconnected, but nothing calls `render()` before the first connect - so
+    between first paint and connecting they were live, and a click produced the
+    raw 401 the state-machine wiring was supposed to prevent.
+
+    The page's own convention is the markup attribute, as `launch-fields`
+    already does. Asserted here because a JS-only guard is a guard that has not
+    run yet, and that distinction is invisible to a test that reads the script.
+    """
+    import re
+    from pathlib import Path
+
+    page = Path("scripts/dev/miner_launchpad/index.html").read_text()
+    for control in (
+        "onboarding-address",
+        "onboarding-status",
+        "onboarding-prepare",
+        "onboarding-confirm",
+    ):
+        element = re.search(r"<(?:input|button) id=\"" + control + r"\"[^>]*>", page)
+        assert element, control
+        assert "disabled" in element.group(0), control
+
+    # And the script must still be the thing that releases them, or they would
+    # stay disabled forever.
+    script = Path("scripts/dev/miner_launchpad/app.js").read_text()
+    assert "!connected || busy" in script
