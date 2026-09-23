@@ -61,6 +61,10 @@ never from anything the miner used.
 
 ## Capability map
 
+The live source of every capability's status is
+`carbon/reconstruction/capability_registry.py`, and the catalogs are derived
+from it. The table below is the original survey and is kept for its citations.
+
 Status key:
 - **E**: exposed end to end.
 - **I**: implemented in the vendored lab but not exposed.

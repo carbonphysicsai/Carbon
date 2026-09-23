@@ -16,6 +16,10 @@ from carbon.construction.compiler import (
     CompileRejected,
 )
 from carbon.construction.model import SelectedSurface
+from carbon.reconstruction.capability_registry import (
+    catalog_surfaces,
+    rebuildable_families,
+)
 from carbon.reconstruction.profile import compile_development_profile
 
 from .contracts import SessionContracts, build_contracts, semantic
@@ -27,58 +31,11 @@ RESEARCH_GRID_POINTS = 64
 # Bounds are engineering admission bounds, not quality or scientific claims.
 # Actual CPU/memory/time admission is authoritative even inside these bounds.
 # name: group, type, minimum/choices, maximum, default, architecture
-#: Every backbone this catalog rebuilds end to end: public definition,
-#: registered lab implementation, profile mapping and executed controls test.
-RESEARCH_BACKBONES = (
-    "fno",
-    "deeponet",
-    "transolver",
-    "haar_operator",
-    "gno",
-    "gino",
-)
-FNO, DEEPONET, TRANSOLVER = ("fno",), ("deeponet",), ("transolver",)
-HAAR, GNO, GINO = ("haar_operator",), ("gno",), ("gino",)
-#: Families built from stacked blocks over a grid: depth and remat apply.
-BLOCKED = FNO + TRANSOLVER + HAAR + GNO + GINO
+#: Every backbone this catalog rebuilds end to end, and every field, derived
+#: from the construction capability registry so the two cannot drift apart.
+RESEARCH_BACKBONES = tuple(selector for selector, _ in rebuildable_families())
 # name: group, type, minimum/choices, maximum, default, backbones (None = all)
-SURFACES = {
-    "steps": ("train", "uint", 2, 1000000, 512, None),
-    "width": ("model", "uint", 2, 128, 24, None),
-    "depth": ("model", "uint", 1, 8, 2, BLOCKED),
-    "n_modes": ("model", "uint", 2, 64, 16, FNO + GINO),
-    "branch_points": ("model", "uint", 2, 64, 32, DEEPONET),
-    "heads": ("model", "uint", 1, 16, 2, TRANSOLVER),
-    "slices": ("model", "uint", 1, 64, 4, TRANSOLVER),
-    "expansion": ("model", "uint", 1, 8, 2, TRANSOLVER),
-    # Haar levels are bounded by the 64-point TRAIN grid (2**6); checked again
-    # against RESEARCH_GRID_POINTS at compile time.
-    "wavelet_levels": ("model", "uint", 1, 6, 2, HAAR),
-    # The lab's graph_radius, under a name B-02B's composition-graph guard
-    # admits; the profile maps it back. Periodic unit coordinates; the lower
-    # bound is one grid spacing (1/64).
-    "neighborhood_radius": ("model", "float", 0.015625, 0.5, 0.2, GNO + GINO),
-    "latent_points": ("model", "uint", 2, 64, 12, GINO),
-    "remat": ("model", "bool", None, None, False, BLOCKED),
-    "hard_initial_condition": ("task", "bool", None, None, True, None),
-    "enforce_mean": ("task", "bool", None, None, True, None),
-    "batch_size": ("train", "uint", 1, 64, 8, None),
-    "microbatches": ("train", "uint", 1, 8, 1, None),
-    "learning_rate": ("train", "float", 0.000001, 0.05, 0.002, None),
-    "min_learning_rate_ratio": ("train", "float", 0.0, 1.0, 0.1, None),
-    "warmup_steps": ("train", "uint", 0, 100000, 0, None),
-    "weight_decay": ("train", "float", 0.0, 0.1, 0.0001, None),
-    "clip_norm": ("train", "float", 0.001, 100.0, 1.0, None),
-    "beta1": ("train", "float", 0.0, 0.9999, 0.9, None),
-    "beta2": ("train", "float", 0.0, 0.99999, 0.999, None),
-    "adam_epsilon": ("train", "float", 1e-12, 0.01, 1e-8, None),
-    "ema_decay": ("train", "float", 0.0, 0.99999, 0.99, None),
-    "relative_loss": ("train", "bool", None, None, False, None),
-    "h1_weight": ("train", "float", 0.0, 10.0, 0.0, None),
-    "pde_weight": ("train", "float", 0.0, 10.0, 0.0, None),
-    "physics_warmup_steps": ("train", "uint", 0, 100000, 0, None),
-    "inference_weights": ("train", "choice", ("params", "ema"), None, "params", None),
-}
+SURFACES = catalog_surfaces()
 
 
 def research_contracts(backbones=RESEARCH_BACKBONES) -> SessionContracts:
