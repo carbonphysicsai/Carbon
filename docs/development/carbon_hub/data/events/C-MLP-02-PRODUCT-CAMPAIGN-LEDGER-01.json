@@ -1,0 +1,14 @@
+{
+  "map_ref": "SYSTEM/AGENT-EXECUTION",
+  "event_type": "evidence",
+  "event_id": "C-MLP-02-PRODUCT-CAMPAIGN-LEDGER-01",
+  "owner_lane": "technical_lead",
+  "status": "implemented",
+  "summary": "First half of C-MLP-02-D11, the owner's final decision that subnet registration is the only admission gate on a product surface and that grants are development machinery. The development grant was not only what the two product surfaces required; it was what every controlled campaign rested on. The ledger's reserve and checkpoint, campaign control, and each advanced research capability - two-worker sequences, authored Julia, GPU research, public scientific tasks - authorized dispatch by re-verifying the grant, so a campaign admitted by registration alone could reach none of them. The ledger now knows a third campaign kind, carbon.launchpad.campaign.v1: owner-bound and fenced by pause and stop exactly as a grant campaign is, admitted by the registration record its manifest carries, with no expiry and no limit its miner did not set. That record can only come from RegisteredMiner, a type constructible solely from a finalized metagraph observation of the configured subnet in which the hotkey resolves, so a correctly spelled but unobserved address is refused. CampaignLedger.authority and retained_owner answer for both kinds and the research modules ask the ledger instead of importing the grant module. Grant campaigns behave exactly as before, and a latent fault is fixed: with no elapsed budget the worker-fit check compared a time against None and raised. The product surfaces still launch through the grant until the second half lands; no surface, status, authority or maturity changes here, and registration remains an access fact that enters no score.",
+  "primary_detail": "carbon/development_session/research_ledger.py",
+  "affects": [
+    "SYSTEM/AGENT-EXECUTION"
+  ],
+  "supersedes": null,
+  "recorded_at": "2026-09-23T16:30:00Z"
+}
