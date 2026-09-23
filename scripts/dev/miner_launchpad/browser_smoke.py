@@ -60,9 +60,10 @@ def stub_onboarding():
     # this directory is what is on sys.path here. The dotted `scripts.dev...`
     # form resolves only when the repository root is also on the path, which is
     # true of the test suite and not of this script.
+    from onboarding import BrowserOnboarding
+
     from carbon.chain.models import ChainContext
     from carbon.development_session.chain_onboarding import carbon_testnet_context
-    from onboarding import BrowserOnboarding
 
     live = carbon_testnet_context()
     return BrowserOnboarding(
