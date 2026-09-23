@@ -6,18 +6,10 @@ const http = require("node:http");
 const path = require("node:path");
 const F = require("../src/engine.js");
 const { DurableIntakeStore } = require("./team_intake_store.cjs");
-const { StaffDirectory } = require("./team_staff_directory.cjs");
+const { AccessControl, StaffDirectory } = require("./team_staff_directory.cjs");
 
 function loadUsers(usersPath) {
   return StaffDirectory.load(usersPath);
-}
-
-function authenticator(users) {
-  // The directory issues the principal. This function no longer builds one,
-  // which is the point: there is now no code path that produces a principal
-  // without a credential that matched an account.
-  const directory = users instanceof StaffDirectory ? users : new StaffDirectory(users);
-  return (request) => directory.authenticate(request.headers.authorization);
 }
 
 function body(request) {
@@ -52,12 +44,34 @@ function send(response, status, value) {
   response.end(JSON.stringify(value) + "\n");
 }
 
-function createIntakeServer({ store, users }) {
-  const authenticate = authenticator(users);
+function createIntakeServer({ store, users, clock, limits }) {
+  // E9: a staff credential alone reaches nothing. It opens a session together
+  // with a current second-factor code, and only a live session resolves to a
+  // principal. Rate limiting and lockout are applied where that happens.
+  const directory = users instanceof StaffDirectory ? users : new StaffDirectory(users);
+  const access = new AccessControl(directory, { clock, limits });
   return http.createServer(async (request, response) => {
     try {
-      const principal = authenticate(request);
       const url = new URL(request.url, "http://127.0.0.1");
+      if (url.pathname === "/private/session" && request.method === "POST") {
+        const offered = F.strictJsonParse(await body(request), { maxBytes: 1_000, maxDepth: 2 });
+        if (!offered || typeof offered !== "object" || Object.keys(offered).join() !== "code")
+          throw Object.assign(Error("A session request carries exactly one field, code"), { status: 400 });
+        return send(
+          response,
+          201,
+          access.openSession({
+            authorization: request.headers.authorization,
+            code: offered.code,
+            source: request.socket.remoteAddress,
+          }),
+        );
+      }
+      if (url.pathname === "/private/session" && request.method === "DELETE") {
+        access.closeSession(request.headers.authorization);
+        return send(response, 200, { closed: true });
+      }
+      const principal = access.authenticate(request.headers.authorization);
       if (request.method === "POST" && url.pathname === "/private/intake") {
         const raw = await body(request);
         const key = request.headers["idempotency-key"];
@@ -148,6 +162,7 @@ function createIntakeServer({ store, users }) {
       send(response, 404, { error: "NOT_FOUND" });
     } catch (error) {
       const message = String(error.message || error);
+      if (error.retryAfterSeconds) response.setHeader("retry-after", String(error.retryAfterSeconds));
       const status =
         error.status ||
         (/Authentication|authorized/.test(message)

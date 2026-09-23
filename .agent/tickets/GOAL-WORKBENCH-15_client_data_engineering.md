@@ -52,7 +52,7 @@ No retention period, entity name, agreement reference, account identifier,
 staff roster, intake address or jurisdiction-specific text is written into the
 repository. Shape here, instances in private operator configuration.
 
-## E8 — delivered
+## E8 — delivered (#314)
 
 **What was found.** A read-only map of every route from Workbench client
 material toward the subnet or the public assistant found:
@@ -135,3 +135,30 @@ anything already launched. The owner may read "the parameters are the secret"
 more broadly. The single identifier concerned is named in the invariant test, so
 it cannot widen silently. The internal Workbench, where received material is
 held, has no route to the assistant either way.
+
+## E9 — delivered (#315)
+
+**Built:**
+- The receiver is the one server that returns client records. The Workbench
+  host returns no draft text, so its staff tokens are not in scope. The basis:
+  a study response carries the binding and the result, never `draft_scope`.
+- A staff credential alone opens nothing. The single-factor `authenticate` is
+  removed. A principal is issued only by the access control that owns the
+  brand, for a live session, and a session opens only with the credential and a
+  current RFC 6238 code.
+- An `ACTIVE` account without an enrolled second factor makes the directory
+  refuse to load.
+- Rate limiting per source, lockout per account (which refuses even a correct
+  code and ends live sessions), rejection of a replayed code, a per-session
+  request rate, and a session lifetime.
+- `401`, `423` and `429` with `Retry-After`.
+
+**Pinned by:**
+- `tests/test_team_access_control.cjs`: RFC 6238 vectors, and every refusal
+  paired with its success.
+- The structural assertion in `test_team_intake_server.cjs`: identity is
+  resolved only through `access.authenticate`.
+
+**Values:** the limits are engineering defaults in `DEFAULT_LIMITS`, for the
+review to change. Escalation and abuse response are policy, and stay behind the
+review.

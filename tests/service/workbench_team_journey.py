@@ -23,10 +23,13 @@ Nothing here is a deployment, a real user, or a scientific result.
 from __future__ import annotations
 
 import argparse
+import base64
 import hashlib
+import hmac
 import json
 import os
 import signal
+import struct
 import subprocess
 import sys
 import tempfile
@@ -62,7 +65,44 @@ RELAY_TOKEN = "journey-receiver-token-" + "c" * 20
 REVIEW_TOKEN = "journey-reviewer-token-" + "d" * 20
 
 
+def totp_secret(token: str) -> str:
+    """A synthetic 160-bit base32 second-factor secret for a test credential."""
+    return base64.b32encode(
+        hashlib.sha256(("totp:" + token).encode()).digest()[:20]
+    ).decode()
+
+
+def totp(secret: str, now: float) -> str:
+    """RFC 6238 TOTP: HMAC-SHA1, 30-second steps, six digits."""
+    counter = struct.pack(">Q", int(now // 30))
+    mac = hmac.new(base64.b32decode(secret), counter, "sha1").digest()
+    offset = mac[-1] & 0x0F
+    code = (int.from_bytes(mac[offset : offset + 4], "big") & 0x7FFFFFFF) % 10**6
+    return f"{code:06d}"
+
+
+SESSIONS: dict[str, str] = {}
+
+
+def session_for(base, token):
+    """Open one real session per credential, with its second factor (E9)."""
+    if token not in SESSIONS:
+        request = urllib.request.Request(
+            base + "/private/session",
+            data=json.dumps({"code": totp(totp_secret(token), time.time())}).encode(),
+            method="POST",
+            headers={
+                "authorization": "Bearer " + token,
+                "content-type": "application/json",
+            },
+        )
+        with urllib.request.urlopen(request, timeout=30) as response:
+            SESSIONS[token] = json.loads(response.read())["session_token"]
+    return SESSIONS[token]
+
+
 def receiver_request(base, method, route, token, body=None, headers=None):
+    token = session_for(base, token)
     request = urllib.request.Request(
         base + route,
         data=body,
@@ -83,6 +123,7 @@ def start_receiver(root: Path):
                     "team": "carbon-fit",
                     "roles": roles,
                     "token_sha256": hashlib.sha256(token.encode()).hexdigest(),
+                    "totp_secret": totp_secret(token),
                     "status": "ACTIVE",
                 }
                 for principal, roles, token in (

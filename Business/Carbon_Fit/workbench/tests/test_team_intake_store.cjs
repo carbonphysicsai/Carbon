@@ -12,6 +12,7 @@ const { DurableIntakeStore, STORE_VERSION } = require("../tools/team_intake_stor
 const ROOT = path.resolve(__dirname, "..");
 
 const { StaffDirectory, StaffPrincipal } = require("../tools/team_staff_directory.cjs");
+const { enrolled, principalFor } = require("./staff_fixture.cjs");
 
 // Principals are authenticated rather than declared. The literals these
 // replaced asserted their own roles, which meant the store was trusting its
@@ -27,20 +28,19 @@ const TOKENS = {
 };
 const digest = (value) => crypto.createHash("sha256").update(value).digest("hex");
 const DIRECTORY = new StaffDirectory([
-  { principal: "synthetic-receiver", team: TEAM, roles: ["INTAKE_RECEIVER"], token_sha256: digest(TOKENS.receiver), status: "ACTIVE" },
-  { principal: "synthetic-reviewer", team: TEAM, roles: ["TEAM_REVIEWER"], token_sha256: digest(TOKENS.reviewer), status: "ACTIVE" },
-  { principal: "synthetic-second-reviewer", team: TEAM, roles: ["TEAM_REVIEWER"], token_sha256: digest(TOKENS.second_reviewer), status: "ACTIVE" },
-  { principal: "synthetic-steward", team: TEAM, roles: ["DATA_STEWARD"], token_sha256: digest(TOKENS.steward), status: "ACTIVE" },
-  { principal: "synthetic-notifier", team: TEAM, roles: ["NOTIFICATION_OPERATOR"], token_sha256: digest(TOKENS.notifier), status: "ACTIVE" },
-  {
-    principal: "synthetic-foreign",
-    team: OTHER_TEAM,
-    roles: ["INTAKE_RECEIVER", "TEAM_REVIEWER", "DATA_STEWARD", "NOTIFICATION_OPERATOR"],
-    token_sha256: digest(TOKENS.foreign),
-    status: "ACTIVE",
-  },
+  enrolled("synthetic-receiver", TEAM, ["INTAKE_RECEIVER"], TOKENS.receiver),
+  enrolled("synthetic-reviewer", TEAM, ["TEAM_REVIEWER"], TOKENS.reviewer),
+  enrolled("synthetic-second-reviewer", TEAM, ["TEAM_REVIEWER"], TOKENS.second_reviewer),
+  enrolled("synthetic-steward", TEAM, ["DATA_STEWARD"], TOKENS.steward),
+  enrolled("synthetic-notifier", TEAM, ["NOTIFICATION_OPERATOR"], TOKENS.notifier),
+  enrolled(
+    "synthetic-foreign",
+    OTHER_TEAM,
+    ["INTAKE_RECEIVER", "TEAM_REVIEWER", "DATA_STEWARD", "NOTIFICATION_OPERATOR"],
+    TOKENS.foreign,
+  ),
 ]);
-const as = (name) => DIRECTORY.authenticate("Bearer " + TOKENS[name]);
+const as = (name) => principalFor(DIRECTORY, TOKENS[name]);
 const roles = {
   receiver: as("receiver"),
   reviewer: as("reviewer"),
@@ -740,10 +740,10 @@ test("a principal cannot be constructed without authenticating an account", () =
   assert.throws(() => new StaffPrincipal(Symbol("guess"), {
     principal: "synthetic-steward", team: TEAM, roles: ["DATA_STEWARD"],
   }), /issued by authenticating/);
-  assert.throws(() => DIRECTORY.authenticate("Bearer not-a-real-token-000000"), /Authentication failed/);
-  // A missing credential and a wrong one are refused identically.
-  assert.throws(() => DIRECTORY.authenticate(""), /Authentication failed/);
-  assert.throws(() => DIRECTORY.authenticate(null), /Authentication failed/);
+  // The directory itself issues nothing: the single-factor path is gone, and
+  // a credential only ever names an account for the session authority.
+  assert.equal(typeof DIRECTORY.authenticate, "undefined");
+  assert.equal(DIRECTORY.accountForCredential("not-a-real-token-000000"), null);
 
   // The two forgeries that a class check accepts. Both hold the prototype;
   // neither was ever issued, and the spread copy even carries the real id,
@@ -767,7 +767,7 @@ test("a principal cannot be constructed without authenticating an account", () =
 });
 
 test("a directory refuses accounts that would make provenance ambiguous", () => {
-  const ok = { principal: "a-steward", team: TEAM, roles: ["DATA_STEWARD"], token_sha256: digest("t-1"), status: "ACTIVE" };
+  const ok = enrolled("a-steward", TEAM, ["DATA_STEWARD"], "t-1-synthetic-credential");
   const refused = [
     [{ ...ok, token_sha256: "plaintext-token" }, /credential digest, never a credential/],
     [{ ...ok, team: undefined }, /named owning team/],
@@ -785,9 +785,15 @@ test("a directory refuses accounts that would make provenance ambiguous", () => 
     /Duplicate staff credential digest/,
   );
   assert.throws(() => new StaffDirectory([ok, { ...ok, token_sha256: digest("t-2") }]), /Duplicate staff account/);
+  // An active account without a second factor is refused when the directory
+  // loads, so no session can ever be opened for it.
+  assert.throws(() => new StaffDirectory([{ ...ok, totp_secret: undefined }]), /enrolled second factor/);
+  assert.throws(() => new StaffDirectory([{ ...ok, totp_secret: "SHORT" }]), /enrolled second factor/);
   // A disabled account holds its roles and still cannot act.
   const disabled = new StaffDirectory([{ ...ok, status: "DISABLED" }]);
-  assert.throws(() => disabled.authenticate("Bearer t-1"), /Authentication failed/);
+  assert.throws(() => principalFor(disabled, "t-1-synthetic-credential"), /AUTHENTICATION_FAILED/);
+  // Specimen: the same account, active, does authenticate.
+  assert.equal(principalFor(new StaffDirectory([ok]), "t-1-synthetic-credential").id, "a-steward");
 });
 
 test("every store endpoint refuses a caller that was never authenticated", async () => {
@@ -893,10 +899,9 @@ test("a migrated record has no owning team and is reachable by nobody", async ()
   // Principals that hold the read role, so a refusal here is about ownership.
   for (const principal of [roles.reviewer, roles.receiver, roles.foreign])
     assert.throws(() => migrated.read(receipt.inquiry_id, principal), /Inquiry not found/);
-  assert.throws(() => new StaffDirectory([{
-    principal: "a-steward", team: "MIGRATED_TEAM_UNASSIGNED", roles: ["DATA_STEWARD"],
-    token_sha256: digest("t-3"), status: "ACTIVE",
-  }]), /named owning team/);
+  assert.throws(() => new StaffDirectory([
+    enrolled("a-steward", "MIGRATED_TEAM_UNASSIGNED", ["DATA_STEWARD"], "t-3-synthetic-credential"),
+  ]), /named owning team/);
 });
 
 // --- restart and storage-failure recovery ------------------------------------
