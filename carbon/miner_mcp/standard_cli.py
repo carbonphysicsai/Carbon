@@ -353,10 +353,13 @@ def _scientific_selection(runtime, image, role_root, authored=None):
     elif schemas == ["carbon.public-julia-study.scope.v1"]:
         kind, expected = "burgers", [julia_burgers_scope(image, role_root)]
     elif schemas == ["carbon.public-julia-study.scope.v1", ENVELOPE_SCOPE]:
-        kind, expected = "envelope", [
-            julia_burgers_scope(image, role_root),
-            julia_envelope_scope(image, role_root),
-        ]
+        kind, expected = (
+            "envelope",
+            [
+                julia_burgers_scope(image, role_root),
+                julia_envelope_scope(image, role_root),
+            ],
+        )
     else:
         raise ValueError("unsupported scientific scope combination")
     if canonical(scopes) != canonical(expected):
@@ -465,9 +468,14 @@ async def attached(configuration: Path, *, cleanup_only=False):
             **({"authored": authored} if authored is not None else {}),
             **({"cleanup_only": True} if cleanup_only else {}),
         )
+        from carbon.development_session.capability_demand import DemandStore
+
         composition = make_research_service(
             cleanup_only=cleanup_only,
             julia_image=authored,
+            # Capability demand on this host: registry ids and miner digests
+            # only. On a miner's machine it stays theirs.
+            demand=DemandStore(profile.root / "capability-demand.sqlite"),
             root=profile.root / "research-tasks",
             ledger=ledger,
             owner=owner,
