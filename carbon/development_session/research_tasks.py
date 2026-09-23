@@ -104,9 +104,7 @@ class PublicResearchExecutor:
         self.julia_image = julia_image
         self.cleanup_only = cleanup_only
         if cleanup_only:
-            from .research_admission import verify_cleanup_owner
-
-            verify_cleanup_owner(ledger, owner)
+            ledger.retained_owner(owner)
         elif julia_image is not None:
             from .julia_analysis import authorize_julia
 

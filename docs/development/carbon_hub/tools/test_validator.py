@@ -3390,67 +3390,6 @@ class OwnerDeliveryPolicyTests(unittest.TestCase):
             self.assertEqual(validator.errors, [])
 
 
-class PerEventRecordingTests(unittest.TestCase):
-    """A change that must record an event can record it as a file.
-
-    After the ledger became one file per event, the diff rules still asked for
-    data/change_events.json while the array refused new events, so a semantic
-    Hub change could satisfy neither. These pin that an event file counts, and
-    that the rule still bites when no event is recorded at all.
-    """
-
-    HUB_DATA = "docs/development/carbon_hub/data/hub_data_v2.json"
-    EVENT_FILE = "docs/development/carbon_hub/data/events/PER-EVENT-RULE-01.json"
-
-    def validator(self, changed: set[str]) -> validate_hub.Validator:
-        validator = validate_hub.Validator(REPO_ROOT)
-        validator.data = ValidatorContractTests.load_hub_data()
-        validator.changed_paths = changed
-        validator.semantic_data_changed = True
-        validator.new_event_ids = (
-            {"PER-EVENT-RULE-01"} if self.EVENT_FILE in changed else set()
-        )
-        return validator
-
-    def event_errors(self, validator: validate_hub.Validator) -> list[str]:
-        return [
-            error
-            for error in validator.errors
-            if "change event" in error or "change_events.json" in error
-        ]
-
-    def test_a_semantic_change_recorded_as_an_event_file_passes(self) -> None:
-        validator = self.validator({self.HUB_DATA, self.EVENT_FILE})
-        validator.validate_structural_diff()
-        self.assertEqual(self.event_errors(validator), [])
-
-    def test_a_semantic_change_with_no_event_still_fails(self) -> None:
-        # Specimen for the test above: the same rule, given no event, refuses.
-        validator = self.validator({self.HUB_DATA})
-        validator.validate_structural_diff()
-        self.assertTrue(self.event_errors(validator), validator.errors)
-
-    def test_an_event_file_cannot_accompany_hub_impact_none(self) -> None:
-        validator = self.validator({self.EVENT_FILE})
-        validator.github_event = {
-            "pull_request": {
-                "body": (
-                    "HUB_IMPACT_NONE: SYSTEM/DEVELOPMENT-HUB detail is unchanged "
-                    "because this only adds tests and comments."
-                )
-            }
-        }
-        validator.validate_pr_declaration()
-        self.assertTrue(
-            any("event source records" in error for error in validator.errors),
-            validator.errors,
-        )
-
-
-if __name__ == "__main__":
-    unittest.main()
-
-
 class MergeParentLedgerTests(unittest.TestCase):
     """A merge may not drop an event either of its parents recorded.
 
@@ -3808,3 +3747,90 @@ class LedgerSourceShapeTests(unittest.TestCase):
         self.assertEqual(
             sorted(event["event_id"] for event in events), ["WS-A", "WS-B"]
         )
+
+
+class LedgerChangeRequirementTests(unittest.TestCase):
+    """A map-structural change is satisfiable under the per-event ledger.
+
+    HUB-LEDGER-PER-EVENT-01 refuses new events appended to the array, so a new
+    file under data/events/ is the only way the ledger can gain a record. The
+    diff checks asked only whether the array changed, which made every
+    map-structural change - any Wave C ticket edit, for one - impossible to
+    pass. Each acceptance here is paired with the same change refused when the
+    record is absent, so the relaxation cannot be wider than the file.
+    """
+
+    EVENT_FILE = "docs/development/carbon_hub/data/events/HUB-TEST-FILE-01.json"
+    HUB_DATA = "docs/development/carbon_hub/data/hub_data_v2.json"
+
+    def setUp(self) -> None:
+        fixture_scope = isolated_expected_change_scope()
+        fixture_scope.__enter__()
+        self.addCleanup(fixture_scope.__exit__, None, None, None)
+
+    def structural(self, *extra: str, deleted: tuple[str, ...] = ()):
+        validator = validate_hub.Validator(REPO_ROOT)
+        validator.data = json.loads(HUB_DATA_PATH.read_text(encoding="utf-8"))
+        validator.changed_paths = {"CONSTITUTION.md", self.HUB_DATA, *extra}
+        validator.deleted_paths = set(deleted)
+        validator.semantic_data_changed = True
+        validator.base_hub_data = None
+        validator.events = [
+            {
+                "event_id": "HUB-TEST-FILE-01",
+                "map_ref": "SYSTEM/GOVERNANCE",
+                "affects": [],
+            }
+        ]
+        validator.new_event_ids = {"HUB-TEST-FILE-01"}
+        validator.validate_structural_diff()
+        return [
+            error
+            for error in validator.errors
+            if "new change event" in error or "appended immutable" in error
+        ]
+
+    def test_a_new_event_file_satisfies_the_ledger_requirement(self) -> None:
+        self.assertEqual(self.structural(self.EVENT_FILE), [])
+
+    def test_without_any_new_record_the_requirement_still_bites(self) -> None:
+        """Specimen: the same structural change with no ledger record fails."""
+        errors = self.structural()
+        self.assertTrue(any("new change event" in error for error in errors), errors)
+        self.assertTrue(any("appended immutable" in error for error in errors), errors)
+
+    def test_a_deleted_event_file_is_not_a_new_record(self) -> None:
+        errors = self.structural(self.EVENT_FILE, deleted=(self.EVENT_FILE,))
+        self.assertTrue(errors, "a deletion must not satisfy the ledger")
+
+    def test_the_array_still_counts_for_history(self) -> None:
+        self.assertEqual(
+            self.structural("docs/development/carbon_hub/data/change_events.json"),
+            [],
+        )
+
+    def test_hub_impact_none_cannot_accompany_a_new_event_file(self) -> None:
+        validator = validate_hub.Validator(Path("."))
+        validator.github_event = {
+            "pull_request": {
+                "body": (
+                    "HUB_IMPACT_NONE: presentation only because nothing the Hub "
+                    "projects changed."
+                )
+            }
+        }
+        validator.data = {"current": {"wave": "B"}}
+        validator.changed_paths = {self.EVENT_FILE}
+        validator.deleted_paths = set()
+        validator.validate_pr_declaration()
+        self.assertTrue(
+            any(
+                "HUB_IMPACT_NONE cannot accompany" in error
+                for error in validator.errors
+            ),
+            validator.errors,
+        )
+
+
+if __name__ == "__main__":
+    unittest.main()
