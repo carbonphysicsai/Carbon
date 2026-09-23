@@ -9812,6 +9812,19 @@ events:
       - "WAVE-C/C-W1-D4"
     supersedes: null
     recorded_at: "2026-09-23T21:23:34Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "evidence"
+    event_id: "CONSTRUCTION-CHECK-DESIGN-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "Implemented the check-design verdict, the second step of the construction registry plan: a miner can ask whether Carbon can rebuild a design before training it. The new workspace action check_design takes a strategy and, optionally, registry capability ids for choices Carbon may not rebuild yet, and answers per choice from the construction capability registry - supported, not yet rebuildable (engineering), needs an owner decision (with its trigger), excluded (with its trigger), or refused (unrecognized, or a field another family owns, naming that family). The overall verdict is the most restrictive item's. Only when every choice is rebuildable does it compile, with the validator's own compiler, returning the canonical design with each value marked selected or defaulted and the implementation identity (backbone id, lab kind, implementation digest, profile and plan digests), or each named rebuild issue; a research-only design is never compiled as the nearest supported recipe. Text a miner supplied that Carbon does not recognize is never repeated: it is identified by position with registered suggestions, shown by a test in which a private marker is absent while a registered name in the same check is present. The check is compile-only: it charges no research trial and executes nothing. The workspace action list now has one canonical definition in the research protocol model that the MCP adapters, tool schema, executor and public material all read. The verdict is DEVELOPMENT engineering state, not qualification or admission."
+    primary_detail: "carbon/development_session/design_check.py"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "WAVE-C/C-W1-D4"
+    supersedes: null
+    recorded_at: "2026-09-23T21:37:29Z"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"

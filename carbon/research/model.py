@@ -81,6 +81,18 @@ Int64 = Annotated[int, "int64"]
 TrainingStrategy: TypeAlias = dict[str, object]
 
 RESEARCH_NAMESPACE = "carbon_research_v2"
+#: Every public DEVELOPMENT workspace action (v1 task spec). The one list: the
+#: MCP adapters, tool schemas, executor and public material read it from here.
+DEVELOPMENT_WORKSPACE_ACTIONS = (
+    "public_material",
+    "inventory",
+    "read_file",
+    "write_file",
+    "notebook",
+    "capability_request",
+    "check_design",
+    "run_python",
+)
 OFFICIAL_V1_NAMESPACE = "carbon_protocol_v1"
 
 
@@ -568,15 +580,7 @@ def _validate_semantics(value: _ExactRecord) -> None:
     elif type(value) is DevelopmentWorkspaceTaskSpecV1:
         if value.version != "carbon.autoresearch.workspace.v1":
             raise ValueError("unsupported development workspace version")
-        if value.action not in {
-            "public_material",
-            "inventory",
-            "read_file",
-            "write_file",
-            "notebook",
-            "capability_request",
-            "run_python",
-        }:
+        if value.action not in DEVELOPMENT_WORKSPACE_ACTIONS:
             raise ValueError("unsupported development workspace action")
         if not 2 <= len(value.arguments_json.encode("utf-8")) <= 12_288:
             raise BoundExceededField("workspace arguments exceed closed text bound")

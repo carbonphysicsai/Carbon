@@ -124,6 +124,7 @@ class PublicResearchExecutor:
             "write_file": {"name", "content_base64", "expected_digest"},
             "notebook": {"kind", "body"},
             "capability_request": {"request"},
+            "check_design": {"design"},
             "run_python": {
                 "source",
                 "files",
@@ -207,6 +208,11 @@ class PublicResearchExecutor:
                 raise ValueError("miner notebook kind unavailable")
             self.ledger.note(owner=self.owner, kind=args["kind"], body=args["body"])
             return {"retained": True}
+        if spec.action == "check_design":
+            from .design_check import check_design
+
+            # Compile-only: no execution, no trial charged, nothing retained.
+            return check_design(args["design"])
         if spec.action == "capability_request":
             return request_capability(
                 self.ledger, owner=self.owner, request=args["request"]
