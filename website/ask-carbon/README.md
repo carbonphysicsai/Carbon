@@ -10,8 +10,11 @@ or proof of a production deployment.
 - Source release date: 2026-09-18
 - Private staging target: `carbon-ask-private-staging`, version `2cacdb3e-f499-4513-8bf3-f03c92743409`
 - Retained homepage live-evaluation source basis: `ask-carbon-staging-2026-09-16.1`
-- Release: `STAGING_REVIEWED`
-- Public activation: disabled
+- Release record: `APPROVED_PUBLIC` with `public_activation_allowed: true`, on
+  owner approval basis `OWNER_PUBLIC_CONTENT_APPROVAL_2026_09_22_WEB_QA_07_D1`
+- Public activation: a separate third gate, `ASK_CARBON_ACTIVATION`, which this
+  repository does not assert either way. **Deployed state is read from
+  `/health`, not from any file here**
 - Live provider calls: bounded WEB-QA-03 and WEB-QA-04 private evaluations only; no production calls
 - Private synthetic provider calls: observed through the authenticated staging Worker
 - Homepage source-grounded answer review: complete for delivered supported answers

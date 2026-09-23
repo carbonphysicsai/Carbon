@@ -113,9 +113,11 @@ it. This implementation creates no second allowance.
 
 The private live comparison is complete for the exact retained synthetic
 scope. The owner has accepted the prepared visitor privacy posture, while the
-observed provider project still does not establish ZDR/MAM. Public service
-remains unavailable because the candidate knowledge release, general-Q&A model,
-production route and exact activation package are not approved. The absent
+observed provider project still does not establish ZDR/MAM. Public service scope is unchanged by the knowledge release being approved:
+the general-Q&A model, the production route and the exact activation package
+remain unapproved, and the release record's `APPROVED_PUBLIC` status covers the
+reviewed cards and pinned sources only. Deployed state is read from `/health`,
+not from this document. The absent
 inquiry receiver/store blocks submission under issue #139, not local or guided
 drafting. Mock, authored, and synthetic live tests are not customer usability
 or scientific evidence.
