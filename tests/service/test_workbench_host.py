@@ -693,7 +693,6 @@ def operator_profile(service, tmp_path):
 def test_operator_commands_install_list_and_revoke_the_real_registry(
     tmp_path, monkeypatch, capsys
 ):
-    from carbon.miner_mcp import standard_cli
     from carbon.scientific_tasks import workbench_host
 
     service, request, _records, _ledger, _executions, _calls, composition = configured(
@@ -701,7 +700,9 @@ def test_operator_commands_install_list_and_revoke_the_real_registry(
     )
     try:
         profile = operator_profile(service, tmp_path)
-        monkeypatch.setattr(standard_cli, "load_profile", lambda *a, **k: profile)
+        monkeypatch.setattr(
+            workbench_host, "load_development_profile", lambda *a, **k: profile
+        )
         registry = private_directory(tmp_path / "private") / "cli-drafts.json"
         draft = tmp_path / "draft.json"
         draft.write_text(
@@ -763,7 +764,6 @@ def test_operator_commands_install_list_and_revoke_the_real_registry(
 def test_operator_commands_reject_an_open_draft_and_report_without_secrets(
     tmp_path, monkeypatch, capsys
 ):
-    from carbon.miner_mcp import standard_cli
     from carbon.scientific_tasks import workbench_host
 
     service, request, _records, _ledger, _executions, _calls, composition = configured(
@@ -771,7 +771,9 @@ def test_operator_commands_reject_an_open_draft_and_report_without_secrets(
     )
     try:
         profile = operator_profile(service, tmp_path)
-        monkeypatch.setattr(standard_cli, "load_profile", lambda *a, **k: profile)
+        monkeypatch.setattr(
+            workbench_host, "load_development_profile", lambda *a, **k: profile
+        )
         registry = private_directory(tmp_path / "private") / "cli-drafts.json"
         common = [
             "--configuration",
