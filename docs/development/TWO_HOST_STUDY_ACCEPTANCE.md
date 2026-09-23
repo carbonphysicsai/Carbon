@@ -800,3 +800,76 @@ Ceiling USD 30. Stop conditions unchanged. Stage A reports **device agreement
 and explicitly not orchestration agreement**; `validator_launch` remains
 `HARDWARE_EXERCISED: no`; nothing is qualified and `compare_r1` still returns
 `BACKEND_UNSUPPORTED`.
+
+---
+
+# Amendment 10 - validator compute requires the same part, and the provisional conventions are ratified
+
+**Recorded 2026-09-23. Owner decision, as deputy for the MQ-008 scientific
+holder.** Numbered after Amendment 9 (PR #311).
+
+The MQ-008 holder, Harshdeep Sharma, answered through the owner that validator
+compute must be the same generation. The owner then took the qualification in
+the holder's place, **provisionally, so development can continue**, and ruled on
+the granularity and on the two conventions still open on issue #42.
+
+## The evidence the ruling rests on, corrected
+
+The evidence package (§2) said "validators on the same generation will agree
+with each other." **That overstated what was measured.** Agreement was measured
+between identical **parts**:
+
+| Comparison | Parts | Result |
+| --- | --- | --- |
+| Same part | A40 x2 (one chassis, and across two hosts), H100 SXM x2, L4 x2, RTX PRO 6000 SE x2 | agreed, every time |
+| Same generation, different part | A40 vs RTX 3060 (both Ampere) | agreed; one incidental observation |
+| Same generation, different part | A100 vs A40, L40S vs L4, B200 vs RTX PRO 6000 | **not measured** |
+
+Digests did not follow generation in either direction: A40 (Ampere) and L4 (Ada)
+share one. A generation spans chips with different compilation targets, which can
+select different kernels, so "same generation" admits pairs nobody has compared.
+
+## Decided
+
+| Question | Ruling |
+| --- | --- |
+| Validator compute | **Same part.** Validators whose results are compared must run the same GPU part. Qualification is per part, for the parts measured: **A40, H100 SXM, L4, RTX PRO 6000 SE**. A part not listed is not qualified by this amendment, whatever its generation. |
+| Challenge | **`fixture_authoring 1.0`**, the C-02 development fixture plan at the representative scale of C-CORE-21 (100,680 parameters), on which every measurement here was made. **It is a test fixture, not a registered Challenge**, so the qualification is DEVELOPMENT-typed (below). |
+| Denominator convention (Amendment 5) | **Ratified as provisional:** relative L2 as headline, `|a-b| / max(|a|,|b|)` max as companion, absolute always reported. |
+| `delta` absolute, relative, or both (Amendment 5) | **Ratified as provisional:** both, with the relative convention stated. |
+| `delta` (Amendment 7) | **Ratified:** `1e-07` relative near-margin, controls `1e-05` and `1e-04`. This is the stage B decision-stability margin between candidate pairs (R2), **not** an R1 numerical tolerance. |
+| R1 numerical tolerance | **Bit-exact:** `absolute_delta` must be `0` on every output. This is what was measured - pinned same-part runs were bit-identical every time - and any positive tolerance would be an unmeasured allowance. |
+| Qualification type | **DEVELOPMENT.** Fixture-origin, through B-E1's existing types. The B-E1 fixture-only boundary is **not** migrated: a non-fixture qualification bound to a fixture Challenge would record fixture evidence as real authority. A non-fixture qualification waits for a registered Challenge and a same-part reproduction measured on it. |
+
+**Same part is stricter than same generation, and it is what the evidence
+supports.** It is the holder's rule applied at the granularity that was measured.
+Widening to a part in the same generation takes a same-part and a cross-part
+measurement for it, not an inference from its generation.
+
+## Every write-up must carry both facts
+
+**What this qualifies:** that the four named parts each reproduce bit-identically
+under the pinned configuration on `fixture_authoring 1.0` (C-02), as a DEVELOPMENT qualification, and the conventions a comparison is
+reported under.
+
+**What it does not:** it is the **owner's** qualification as deputy, not the
+holder's, and the MQ-008 review is still owed. It qualifies no other part, no
+other Challenge, no containment (every run was direct execution with the
+provider's runtime), and not `validator_launch`, which remains
+`HARDWARE_EXERCISED: no`. It is not `SECURITY_QUALIFIED` or
+`PRODUCTION_QUALIFIED`, activates no Challenge and creates no LIVE authority.
+H100 and RTX PRO 6000 SE were each measured on one host only.
+
+## Recorded here, implemented separately
+
+**`compare_r1` returns `BACKEND_UNSUPPORTED` until the DEVELOPMENT qualification
+is implemented**, in its own change: the four parts registered as supported
+backend profiles, a bit-exact comparison procedure, and owner provenance pinned
+to this amendment. B-E1's types already accept a fixture-origin qualification,
+so that needs no change to the fixture-only boundary, and it cannot enter
+official or LIVE authority.
+
+## Unchanged
+
+Ceiling USD 30, stop conditions and the four-attempt batch are unchanged. No
+hardware time was spent for this amendment.
