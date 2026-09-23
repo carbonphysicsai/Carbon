@@ -2,7 +2,7 @@
 
 julia_version = "1.13.0"
 manifest_format = "2.1"
-project_hash = "8aba381df0dc140f7c6527c33bf577503109694c"
+project_hash = "9f228c05825c43fcae632450094cc466ca5612f1"
 
 [[deps.ADTypes]]
 deps = ["PrecompileTools"]
@@ -1164,16 +1164,15 @@ version = "1.11.0"
 
 [[deps.Distributions]]
 deps = ["AliasTables", "FillArrays", "LinearAlgebra", "PDMats", "Printf", "QuadGK", "Random", "SpecialFunctions", "Statistics", "StatsAPI", "StatsBase", "StatsFuns"]
-git-tree-sha1 = "3c8a0a9a6d4a10bdfb6b751bd2b6051ed3e25fd4"
+git-tree-sha1 = "96f76dcd6cc75cf8eb49109123868499d413f526"
 registries = "General"
 uuid = "31c24e10-a181-5473-b8eb-7969acd0382f"
-version = "0.25.127"
-weakdeps = ["ChainRulesCore", "DensityInterface", "SparseConnectivityTracer", "Test"]
+version = "0.25.126"
+weakdeps = ["ChainRulesCore", "DensityInterface", "Test"]
 
     [deps.Distributions.extensions]
     DistributionsChainRulesCoreExt = "ChainRulesCore"
     DistributionsDensityInterfaceExt = "DensityInterface"
-    DistributionsSparseConnectivityTracerExt = "SparseConnectivityTracer"
     DistributionsTestExt = "Test"
 
 [[deps.DistributionsAD]]
