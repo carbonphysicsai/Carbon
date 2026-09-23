@@ -9644,6 +9644,18 @@ events:
       - "SYSTEM/DEVELOPMENT-HUB/VALIDATION"
     supersedes: null
     recorded_at: "2026-09-22T21:20:00Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "evidence"
+    event_id: "C-MLP-02-ACCESS-DOOR-SERVED-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "Wires the Cloudflare Access verifier from CARBON-D-MCP-REMOTE-AUTH-01 into the remote MCP door, which until now nothing served. Three gaps stood between the verifier and a request: no path constructed it, create_http_app refused it by exact type, and the SDK authenticates from the Authorization header while Access delivers its assertion in Cf-Access-Jwt-Assertion, so even a wired verifier would never have been handed a token. create_access_http_app now builds the door from the operator's own configuration file: a closed schema in which every field is required and none defaults, because the team issuer and application AUD tag belong to the operator's Cloudflare account and are deliberately absent from this public repository. The Access key set is read once at startup, so a wrong team host stops startup instead of refusing the first miner, through a fetch the operator supplies because this package opens no connection under the C-08 boundary. A mapping that names any principal other than the server's campaign owner is refused at startup, and a per-access guard re-checks issuer, resource, expiry, scope and principal on every data access. The assertion header is presented to the SDK's bearer check and any client-supplied Authorization header is discarded rather than forwarded, so behind Access the only credential that counts is the one Access minted; the browser cookie is never read. The rotating key handling was verified against the live Access key set on 23 September 2026, two RS256 keys served as X.509 certificates loaded in one fetch, which is observed rather than modelled. A real Cloudflare-minted service-token assertion has since been captured, and it is held outside every repository. Its key id is one of the two keys in that set, and its claims settle the shape this door was built against: aud a plain string, sub present and empty, common_name the full Client ID, no client_id or scope, and two undocumented claims, type and h_INTERNAL_DO_NOT_USE, which verification now ignores explicitly and never passes through. It was then run through this change's own startup loader, verify_token and the per-access guard at 2026-09-23T15:02:02Z by private operator tooling outside the repository, against the key set fetched live in the same run, and was admitted with every stage passing. That is one assertion for one service token, which establishes that the door accepts what Access actually mints; it does not qualify the door for deployment. Nothing hosts the door - the app starts no listener and no origin serves it - so the Launchpad reports remote_door_not_hosted for the personal agent, replacing a claim-contract reason that #295 had already made untrue. stdio remains open and ungated. No scientific, security, qualification or deployment authority is created or implied."
+    primary_detail: "carbon/miner_mcp/standard_http.py"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+    supersedes: null
+    recorded_at: "2026-09-23T16:00:00Z"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"

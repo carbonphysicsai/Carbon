@@ -1,9 +1,12 @@
 """Authenticated MCP resource server for one existing Carbon principal/grant.
 
-Operators supply the authorization server's reviewed public keys and explicit
-issuer/client/subject-to-Carbon binding. No token issuer, dynamic key URL, cloud
-listener or new grant is created here. Mount the returned ASGI app only in an
-authorized private service. Existing services still check task/artifact ownership.
+Two verifiers, chosen by exact type. `BoundTokenVerifier` takes the operator's
+reviewed public keys and an explicit issuer/client/subject-to-Carbon binding.
+`AccessVerifier` (decision CARBON-D-MCP-REMOTE-AUTH) takes Cloudflare Access as
+the issuer, from the operator's configuration file, and reads Access's rotating
+key set through a fetch the operator supplies. No token issuer, cloud listener
+or new grant is created here. Mount the returned ASGI app only in an authorized
+private service. Existing services still check task/artifact ownership.
 """
 
 from __future__ import annotations
@@ -153,21 +156,42 @@ class BoundTokenVerifier:
             raise PermissionError("Carbon research authorization required")
 
 
+def _serves(verifier, principal) -> bool:
+    """Whether every identity this verifier admits is this server's principal.
+
+    One server, one campaign owner. An Access mapping naming anyone else is a
+    configuration for a different server, so it is refused at startup rather
+    than left for the per-access guard to catch one request at a time.
+    """
+    from carbon.miner_mcp.access_auth import AccessVerifier
+
+    if type(verifier) is BoundTokenVerifier:
+        return verifier.binding.principal == principal
+    if type(verifier) is AccessVerifier:
+        return set(verifier.binding.principals.values()) == {principal}
+    return False
+
+
 def create_http_app(
     adapter: ResearchToolAdapter,
-    verifier: BoundTokenVerifier,
+    verifier,
     *,
     workbench=None,
     authorize_workbench=None,
 ):
-    """Return a bounded stateful Streamable HTTP app; do not start a listener."""
+    """Return a bounded stateful Streamable HTTP app; do not start a listener.
+
+    `verifier` is a `BoundTokenVerifier` or an Access `AccessVerifier`, by exact
+    type. Behind Access the assertion arrives in its own header, so the Access
+    app also carries the adapter that presents it to the SDK's bearer check.
+    """
     from mcp.server.auth.settings import AuthSettings
     from mcp.server.transport_security import TransportSecuritySettings
 
-    if (
-        type(adapter) is not ResearchToolAdapter
-        or type(verifier) is not BoundTokenVerifier
-        or adapter.principal != verifier.binding.principal
+    from carbon.miner_mcp.access_auth import AccessAssertionHeader, AccessVerifier
+
+    if type(adapter) is not ResearchToolAdapter or not _serves(
+        verifier, adapter.principal
     ):
         raise ValueError("HTTP identity must match the existing Carbon principal")
     binding = verifier.binding
@@ -185,7 +209,7 @@ def create_http_app(
             validate_token_resource=True,
         ),
     )
-    return server.streamable_http_app(
+    app = server.streamable_http_app(
         streamable_http_path=parsed.path or "/",
         json_response=True,
         stateless_http=False,
@@ -196,4 +220,35 @@ def create_http_app(
             allowed_hosts=[parsed.netloc],
             allowed_origins=[f"{parsed.scheme}://{parsed.netloc}"],
         ),
+    )
+    if type(verifier) is AccessVerifier:
+        # Outermost, so it runs before the SDK's authentication middleware.
+        app.add_middleware(AccessAssertionHeader)
+    return app
+
+
+def create_access_http_app(
+    adapter: ResearchToolAdapter,
+    config_path,
+    *,
+    fetch,
+    workbench=None,
+    authorize_workbench=None,
+):
+    """The remote door as the operator starts it: Access, from their own file.
+
+    Decision CARBON-D-MCP-REMOTE-AUTH. The team issuer, the application AUD tag
+    and the Client-ID-to-principal mapping come from `config_path` and from
+    nowhere else; this public repository holds none of them, and absence stops
+    startup. `fetch` reads the JWKS and is the operator's client, because this
+    package opens no connection. Like `create_http_app`, this returns an app and
+    starts no listener.
+    """
+    from carbon.miner_mcp.access_auth import load_access_verifier
+
+    return create_http_app(
+        adapter,
+        load_access_verifier(config_path, fetch=fetch),
+        workbench=workbench,
+        authorize_workbench=authorize_workbench,
     )
