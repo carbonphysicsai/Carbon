@@ -2307,6 +2307,13 @@
         "map_ref": "SYSTEM/PUBLICATION-AUTHORITY"
       },
       {
+        "id": "web-qa-06-public-activation-ticket",
+        "match_type": "exact",
+        "path": ".agent/tickets/WEB-QA-06_ask_carbon_public_activation.md",
+        "impact_class": "map_structural",
+        "map_ref": "SYSTEM/PUBLICATION-AUTHORITY"
+      },
+      {
         "id": "goal-workbench-private-service",
         "match_type": "exact",
         "path": ".agent/tickets/GOAL-WORKBENCH-12_private_service_composition.md",
