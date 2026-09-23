@@ -158,6 +158,15 @@ has a shorter window than stable conceptual explanations. Global withdrawal or
 withdrawal-epoch change invalidates live activation, static fallback and old
 continuations together.
 
+At runtime an expired card fails closed on its own and every other card keeps
+answering, so an expiry passes without anyone noticing. `npm run validate`
+raises it ahead of time instead: a card or release expiring within 30 days is a
+warning, and one expiring within 7 days, already expired, or with an unreadable
+expiry fails the check. The windows are reviewed constants in
+`tools/validate-knowledge.mjs`, not flags. Because of the 7-day failure window,
+set an expiry more than seven days out. The check makes the review happen; it
+never extends an expiry, which stays a content decision.
+
 ## Private staging sequence
 
 1. WEB-QA-03 uses Worker-enforced TLS Basic authentication because
