@@ -19,7 +19,7 @@
     "GOAL-WORKBENCH-10"
   ],
   "repository_base": "3681f7fb10be0c6e278f53d59ff9b022099ef12d",
-  "integration_revision_at_packaging": "4f709d67566551c62b96dd9444f43afa674dcbde",
+  "integration_revision_at_packaging": "a30cc9cbcea74e5534f89bf34a3c0d8416b97146",
   "integration_revision_note": "The checksum manifest describes exact packaged bytes. A commit cannot contain its own digest; final PR/head identity is reported by delivery.",
   "pinned_research_revision": "ca904dfee93d3574df4e56b99981a6ed3b138e80",
   "accepted_research_head": "0a5690270dc449ea19c941280203987d37db5283",
@@ -295,8 +295,8 @@
       "sha256": "5a4cd2f7f90bf6acbc20c6e7e40affd18552e98ed0c9ae78f90ff69ba1b01679"
     },
     "docs/E6_INTAKE_ENCRYPTION_PROPOSAL.md": {
-      "bytes": 5686,
-      "sha256": "d935e50e4d02d4f115ed99daacc60808aaa3758a9d35c732234892b8128558d4"
+      "bytes": 6014,
+      "sha256": "611c54a0fb09549c89542ef4c0b4aa82aaad6cf7ad02b9f2de6aa660ebda4350"
     },
     "docs/GOAL_WORKBENCH_03_NEXT_INTEGRATION.md": {
       "bytes": 1851,
@@ -367,8 +367,8 @@
       "sha256": "e4f5ebd532b8142f151b4dbb215aadc2a3a89b0f2fdef611fcc3add2b389deb4"
     },
     "docs/GOAL_WORKBENCH_09_PRIVATE_DEPLOYMENT_RUNBOOK.md": {
-      "bytes": 37097,
-      "sha256": "26450efc65f15c9bf98005695d9aa3169c97570916ebed0ef16a2f2ec34b1f82"
+      "bytes": 38098,
+      "sha256": "d0d495738f5ac5873d35a459e63e3ec1012007eca3b60c06948f7e434ae80b90"
     },
     "docs/GOAL_WORKBENCH_09_TEAM_REVIEW_REPORT.md": {
       "bytes": 8494,
