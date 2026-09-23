@@ -193,6 +193,7 @@ function validatePrincipal(principal, action) {
     attach_basis: ["DATA_STEWARD"],
     record_release: ["TEAM_REVIEWER", "DATA_STEWARD"],
     record_transport: ["INTAKE_RECEIVER"],
+    retention: ["DATA_STEWARD"],
     releases: ["DATA_STEWARD"],
     search: ["TEAM_REVIEWER", "INTAKE_RECEIVER"],
     outbox: ["NOTIFICATION_OPERATOR"],
@@ -496,6 +497,167 @@ function logRelease(store, record, actor, entry) {
 }
 
 
+// E1 and E2 share one way to destroy a record: the key first, then the record.
+function destroyRecord(store, inquiryId, actor, { reason, status, authority, reaches, cannotReach }) {
+  const existing = store.state.inquiries[inquiryId];
+  // The key goes first. Once it is destroyed every copy of this record, the
+  // store file and any backup or archive copy of it, is unreadable, even
+  // though those bytes remain. If the write below then failed, the record
+  // would still be present and still unreadable, which is the safe side.
+  const keyDestroyed = existing.archive_key_id ? store.keyring.destroy(existing.archive_key_id, { reason }) : null;
+  if (keyDestroyed)
+    store.state.inquiries[inquiryId] = {
+      inquiry_id: inquiryId,
+      owner_team: existing.owner_team,
+      archive_key_id: existing.archive_key_id,
+      lifecycle: KEY_DESTROYED,
+      history_origin: KEY_DESTROYED,
+      assessments: [],
+      version: existing.version,
+      unreadable_sealed: null,
+    };
+  const next = clone(store.state);
+  delete next.inquiries[inquiryId];
+  for (const [key, value] of Object.entries(next.idempotency))
+    if (value === inquiryId) delete next.idempotency[key];
+  for (const [key, value] of Object.entries(next.outbox))
+    if (value.inquiry_id === inquiryId) delete next.outbox[key];
+  next.tombstones[inquiryId] = {
+    inquiry_id: inquiryId,
+    deleted_by: actor,
+    prior_raw_sha256: existing.raw_sha256,
+    status,
+    ...authority,
+    // State the reach rather than implying removal everywhere. Promising a
+    // deletion that retained archives and prior exports do not honour would
+    // be a promise this store cannot keep.
+    reached: [...reaches],
+    did_not_reach: [...cannotReach],
+    // Deletion cannot reach prior releases. It can name them, so each one can
+    // be followed up with a request to destroy that copy.
+    prior_releases: Object.values(next.releases)
+      .filter((entry) => entry.inquiry_id === inquiryId)
+      .map((entry) => entry.release_id),
+    // The retained archive's bytes are not reached. Its key is, which is what
+    // makes those bytes unreadable; the two statements are both true.
+    archive_key: keyDestroyed ? "DESTROYED" : "NONE_HELD",
+    archive_key_destroyed_at: keyDestroyed ? keyDestroyed.destroyed_at : null,
+  };
+  store.persist(next);
+  return clone(next.tombstones[inquiryId]);
+}
+
+// ---------------------------------------------------------------------------
+// E2: the scheduled destruction job, so deletion stops being exception-only.
+//
+// The mechanism is approved; the values are counsel's. They are operator
+// configuration, never literals: `retentionValues` holds the closure events and
+// three ISO-8601 durations, or is null. With any value the job needs still
+// null, the job does not run at all. It records that it refused and names what
+// is missing. It never skips a record silently and never deletes on a guess,
+// and neither keeping nor deleting is treated as a safe default for a missing
+// period.
+
+const DURATION = /^P(?=\d)(?:(\d+)Y)?(?:(\d+)M)?(?:(\d+)D)?$/;
+
+function addDuration(atMs, duration) {
+  const [, years = "0", months = "0", days = "0"] = DURATION.exec(duration);
+  const date = new Date(atMs);
+  date.setUTCFullYear(date.getUTCFullYear() + Number(years), date.getUTCMonth() + Number(months), date.getUTCDate() + Number(days));
+  return date.getTime();
+}
+
+/** Operator-configured retention values, validated, or null when absent. */
+function retentionValuesFrom(value) {
+  if (value === null || value === undefined) return null;
+  const fields = ["closure_events", "active_period", "archive_period", "scoping_expiry"];
+  if (typeof value !== "object" || Object.keys(value).sort().join() !== [...fields].sort().join())
+    throw Error("Retention values carry exactly: " + fields.join(", "));
+  if (value.closure_events !== null && (!Array.isArray(value.closure_events) || !value.closure_events.length || value.closure_events.some((e) => typeof e !== "string" || !/^[A-Z][A-Z0-9_]{2,63}$/.test(e))))
+    throw Error("closure_events is null or a list of event names");
+  for (const field of ["active_period", "archive_period", "scoping_expiry"])
+    if (value[field] !== null && (typeof value[field] !== "string" || !DURATION.test(value[field])))
+      throw Error(field + " is null or an ISO-8601 duration of years, months and days");
+  return Object.freeze({ ...value, closure_events: value.closure_events && Object.freeze([...value.closure_events]) });
+}
+
+function receivedAt(record) {
+  if (record.received_at) return Date.parse(record.received_at);
+  const received = (record.basis_history || []).find((entry) => entry.event === "RECEIVED");
+  return received ? Date.parse(received.at) : NaN;
+}
+
+/** What is due, what is blocked and why. Pure: it reads the state only. */
+function retentionPlan(store, nowMs) {
+  const values = store.retentionValues || {};
+  const missing = ["closure_events", "active_period", "archive_period", "scoping_expiry"].filter(
+    (field) => values[field] === null || values[field] === undefined,
+  );
+  const blockers = [];
+  const actions = [];
+  for (const record of Object.values(store.state.inquiries)) {
+    if (record.lifecycle === KEY_DESTROYED) continue;
+    if (!record.basis) {
+      blockers.push({ inquiry_id: record.inquiry_id, reason: "NO_AGREEMENT_BASIS" });
+      continue;
+    }
+    if (record.basis.record_class === "SCOPING") {
+      const received = receivedAt(record);
+      if (!Number.isFinite(received)) blockers.push({ inquiry_id: record.inquiry_id, reason: "RECEIPT_TIME_UNKNOWN" });
+      else if (values.scoping_expiry && addDuration(received, values.scoping_expiry) <= nowMs)
+        actions.push({ inquiry_id: record.inquiry_id, action: "DESTROY", reason: "SCOPING_EXPIRY" });
+      continue;
+    }
+    const closedAt = record.retention.closure && Date.parse(record.retention.closure.at);
+    if (!Number.isFinite(closedAt)) continue; // an open study is kept; nothing is due
+    if (values.archive_period && addDuration(closedAt, values.archive_period) <= nowMs)
+      actions.push({ inquiry_id: record.inquiry_id, action: "DESTROY", reason: "ARCHIVE_PERIOD_ENDED" });
+    else if (values.active_period && addDuration(closedAt, values.active_period) <= nowMs && record.lifecycle === "ACTIVE")
+      actions.push({ inquiry_id: record.inquiry_id, action: "ARCHIVE", reason: "ACTIVE_PERIOD_ENDED" });
+  }
+  const runnable = !missing.length && !blockers.length;
+  return {
+    status: runnable ? "READY" : "REFUSED",
+    missing_values: missing,
+    blockers,
+    // Shown even when the job will not run, so an operator can see what the
+    // configured values would do. Nothing is applied from a refused plan.
+    would_apply: actions,
+  };
+}
+
+function runRetention(store, actor, nowMs) {
+  const plan = retentionPlan(store, nowMs);
+  const run = { at: new Date(nowMs).toISOString(), by: actor, status: plan.status, missing_values: plan.missing_values, blockers: plan.blockers, applied: [] };
+  if (plan.status === "READY") {
+    for (const item of plan.would_apply) {
+      if (item.action === "ARCHIVE") {
+        const next = clone(store.state);
+        const record = next.inquiries[item.inquiry_id];
+        record.lifecycle = "ARCHIVED";
+        record.retention = { ...record.retention, disposition: "ARCHIVED", archived_at: run.at, archived_by: actor };
+        appendRetentionEvent(record, "ARCHIVED", actor, { reason: item.reason });
+        store.persist(next);
+      } else {
+        destroyRecord(store, item.inquiry_id, actor, {
+          reason: item.reason,
+          status: "DESTROYED_BY_SCHEDULE",
+          authority: { schedule_reason: item.reason, retention_values: clone(store.retentionValues) },
+          reaches: RETENTION_POLICY.deletion_reaches,
+          cannotReach: RETENTION_POLICY.deletion_cannot_reach,
+        });
+      }
+      run.applied.push(item);
+    }
+  }
+  // Every run is recorded, including a refused one: a job that silently did
+  // nothing and one that was never scheduled look alike otherwise.
+  const next = clone(store.state);
+  next.retention_runs = [...(next.retention_runs || []), { seq: (next.retention_runs || []).length + 1, ...run }];
+  store.persist(next);
+  return clone(run);
+}
+
 class DurableIntakeStore {
   constructor(filePath, options = {}) {
     // A destination is configuration, not consent to send. With none set the
@@ -527,6 +689,9 @@ class DurableIntakeStore {
     if (!(options.keyring instanceof ArchiveKeyring))
       throw Error("A private intake store requires an archive keyring: client records are encrypted from the first one");
     this.keyring = options.keyring;
+    // E2: counsel's values as operator configuration, or null. Never a literal.
+    this.retentionValues = retentionValuesFrom(options.retentionValues);
+    this.clock = typeof options.clock === "function" ? options.clock : Date.now;
     const onDisk = fs.existsSync(this.filePath)
       ? F.strictJsonParse(fs.readFileSync(this.filePath, "utf8"), {
           maxBytes: READ_LIMIT_BYTES,
@@ -782,6 +947,8 @@ class DurableIntakeStore {
       // The owning team is taken from the authenticated identity, never from
       // the submission or the caller's argument list.
       owner_team: principal.team,
+      // E2: when the package was received. The scoping expiry counts from here.
+      received_at: new Date(this.clock()).toISOString(),
       // E4: the agreement this record is held under. Plain metadata: opaque
       // references, never agreement text.
       basis: recordBasis,
@@ -1079,54 +1246,48 @@ class DurableIntakeStore {
       throw Error(
         "Deletion requires an approved retention exception for this inquiry",
       );
-    // The key goes first. Once it is destroyed every copy of this record, the
-    // store file and any backup or archive copy of it, is unreadable, even
-    // though those bytes remain. If the write below then failed, the record
-    // would still be present and still unreadable, which is the safe side.
-    const keyDestroyed = existing.archive_key_id
-      ? this.keyring.destroy(existing.archive_key_id, { reason: exception.exception_id })
-      : null;
-    if (keyDestroyed)
-      this.state.inquiries[inquiryId] = {
-        inquiry_id: inquiryId,
-        owner_team: existing.owner_team,
-        archive_key_id: existing.archive_key_id,
-        lifecycle: KEY_DESTROYED,
-        history_origin: KEY_DESTROYED,
-        assessments: [],
-        version: existing.version,
-        unreadable_sealed: null,
-      };
-    const next = clone(this.state);
-    delete next.inquiries[inquiryId];
-    for (const [key, value] of Object.entries(next.idempotency))
-      if (value === inquiryId) delete next.idempotency[key];
-    for (const [key, value] of Object.entries(next.outbox))
-      if (value.inquiry_id === inquiryId) delete next.outbox[key];
-    next.tombstones[inquiryId] = {
-      inquiry_id: inquiryId,
-      deleted_by: actor,
-      prior_raw_sha256: existing.raw_sha256,
+    return destroyRecord(this, inquiryId, actor, {
+      reason: exception.exception_id,
       status: "DELETED_LOCAL_SYNTHETIC",
-      exception_id: exception.exception_id,
-      approved_by: exception.approver,
-      // State the reach rather than implying removal everywhere. Promising a
-      // deletion that retained archives and prior exports do not honour would
-      // be a promise this store cannot keep.
-      reached: [...exception.reaches],
-      did_not_reach: [...exception.cannot_reach],
-      // The retained archive's bytes are not reached. Its key is, which is what
-      // makes those bytes unreadable; the two statements are both true.
-      // Deletion cannot reach prior releases. It can name them, so each one
-      // can be followed up with a request to destroy that copy.
-      prior_releases: Object.values(next.releases)
-        .filter((entry) => entry.inquiry_id === inquiryId)
-        .map((entry) => entry.release_id),
-      archive_key: keyDestroyed ? "DESTROYED" : "NONE_HELD",
-      archive_key_destroyed_at: keyDestroyed ? keyDestroyed.destroyed_at : null,
-    };
+      authority: { exception_id: exception.exception_id, approved_by: exception.approver },
+      reaches: exception.reaches,
+      cannotReach: exception.cannot_reach,
+    });
+  }
+
+  /** What the scheduled job would do now, and why. Changes nothing. */
+  retentionPlan(principal) {
+    validatePrincipal(principal, "retention");
+    return retentionPlan(this, this.clock());
+  }
+
+  /** Run the scheduled destruction job now, as a data steward. */
+  runScheduledDestruction(principal) {
+    const actor = validatePrincipal(principal, "retention");
+    return runRetention(this, actor, this.clock());
+  }
+
+  /**
+   * Record that a record's study closed, and on which configured event. The
+   * list of events that count is counsel's; with none configured, a closure
+   * cannot be recorded, rather than being recorded against an event nobody
+   * defined.
+   */
+  recordClosure(inquiryId, { event, at } = {}, principal) {
+    const actor = validatePrincipal(principal, "retention");
+    const record = ownedRecord(this, inquiryId, principal);
+    const events = this.retentionValues && this.retentionValues.closure_events;
+    if (!events) throw Error("No closure events are configured: closure_event is counsel's and is unset");
+    if (!events.includes(event)) throw Error("Not a configured closure event: " + String(event));
+    const when = Date.parse(at);
+    if (!Number.isFinite(when) || when > this.clock()) throw Error("A closure is recorded at a real time that has passed");
+    if (!record.basis || record.basis.record_class !== "STUDY") throw Error("Only a STUDY record closes");
+    if (record.retention.closure && record.retention.closure.at) throw Error("This record's closure is already recorded");
+    const next = clone(this.state);
+    next.inquiries[inquiryId].retention.closure = { event, at: new Date(when).toISOString(), recorded_by: actor };
+    appendRetentionEvent(next.inquiries[inquiryId], "CLOSURE_RECORDED", actor, { event });
     this.persist(next);
-    return clone(next.tombstones[inquiryId]);
+    return clone(next.inquiries[inquiryId].retention.closure);
   }
 
   listOutbox(principal) {
@@ -1205,6 +1366,8 @@ class DurableIntakeStore {
 }
 
 module.exports = {
+  runRetention,
+  retentionValuesFrom,
   transportAtRelay,
   TRASH_PURGE_DAYS,
   SEALED_STORE_VERSION,

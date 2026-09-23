@@ -396,6 +396,43 @@ inventing no closure or period. A v1 record that ever carried a non-null
 `production_period` stops the store from opening, because splitting it would be
 a guess.
 
+**The scheduled destruction job (E2).** Deletion stops being exception-only. The
+values are counsel's, and they are **operator configuration**, never
+literals: `CARBON_TEAM_RETENTION_VALUES_FILE` names a JSON file with exactly
+`closure_events` (a list of event names), `active_period`, `archive_period` and
+`scoping_expiry` (ISO-8601 durations such as `P…Y…M…D`), each allowed to be
+`null`.
+
+- **With any value null, or no file at all, the job does not run.** It records
+  a `REFUSED` run naming every missing value and applies nothing. It does not
+  skip a record silently and does not delete on a guess. Neither keeping nor
+  deleting is treated as a safe default.
+- **A record whose receipt time is unknown** (written before E2 and E4) also
+  stops the run and is named as the blocker.
+- **When everything is set:** a SCOPING record is destroyed once its expiry
+  after receipt has passed. A STUDY record's clocks start at its recorded
+  closure. After the active period it is archived, and after the archive period
+  it is destroyed, key first, as in E1, with a tombstone of
+  `DESTROYED_BY_SCHEDULE` that names the values that applied. A study with no
+  recorded closure is kept.
+- A data steward records a closure at `POST` through the store's
+  `recordClosure`, against one of the configured closure events. With none
+  configured, a closure cannot be recorded.
+- `GET /private/retention/plan` shows what the job would do and why, including
+  what configured values would do even while it refuses.
+  `POST /private/retention/run` runs it now. Both are for data stewards only.
+- The receiver runs the job once a day in-process, because it holds the store's
+  writer lock, as the named system actor `scheduled-retention-job`. Every run
+  is recorded in `retention_runs`, refused or not.
+
+**Proposed, not built: a record-level hold.** The workspace edition has no
+legal hold on mail, and that stays a recorded limitation. But the store has its
+own destruction paths: this job, and the key destruction on an approved
+deletion. Neither can currently be paused for a record under hold. Until
+retention values are configured the job destroys nothing, so the risk is latent.
+**A hold flag that both paths refuse should be decided before any period is
+set.** Whether a hold is required at all is counsel's question.
+
 ### 3.5 Notification and the intake mailbox (E6)
 
 *The sender identity and mailbox now exist as operator configuration. The

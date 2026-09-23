@@ -5,7 +5,7 @@ const fs = require("node:fs");
 const http = require("node:http");
 const path = require("node:path");
 const F = require("../src/engine.js");
-const { DurableIntakeStore, transportAtRelay } = require("./team_intake_store.cjs");
+const { DurableIntakeStore, runRetention, transportAtRelay } = require("./team_intake_store.cjs");
 const { ArchiveKeyring } = require("./team_archive_keyring.cjs");
 const { basisFromHeaders } = require("./team_record_basis.cjs");
 const { smtpConfigFrom, smtpTransport } = require("./team_smtp_transport.cjs");
@@ -175,6 +175,11 @@ function createIntakeServer({ store, users, clock, limits, transport = null }) {
         const offered = F.strictJsonParse(await body(request), { maxBytes: 4_000, maxDepth: 3 });
         return send(response, 201, store.recordRelease(releasesMatch[1], offered, principal));
       }
+      // E2: what the scheduled job would do, and a steward-triggered run.
+      if (request.method === "GET" && url.pathname === "/private/retention/plan")
+        return send(response, 200, store.retentionPlan(principal));
+      if (request.method === "POST" && url.pathname === "/private/retention/run")
+        return send(response, 200, store.runScheduledDestruction(principal));
       if (request.method === "GET" && url.pathname === "/private/releases")
         return send(response, 200, {
           releases: store.releases(principal, { inquiryId: url.searchParams.get("inquiry") || undefined }),
@@ -235,7 +240,12 @@ function main() {
   const keyringPath = process.env.CARBON_TEAM_ARCHIVE_KEYRING;
   if (!keyringPath)
     throw Error("Set CARBON_TEAM_ARCHIVE_KEYRING: client records are encrypted from the first one");
+  // E2: counsel's retention values are operator configuration. Absent, the
+  // scheduled job refuses every run and records that it did.
+  const valuesFile = process.env.CARBON_TEAM_RETENTION_VALUES_FILE;
+  const retentionValues = valuesFile ? JSON.parse(fs.readFileSync(valuesFile, "utf8")) : null;
   const store = new DurableIntakeStore(storePath, {
+    retentionValues,
     destination: process.env.CARBON_TEAM_NOTIFY_DESTINATION,
     keyring: ArchiveKeyring.open(path.resolve(keyringPath), { storePath }),
   });
@@ -248,6 +258,17 @@ function main() {
   // A store written before E1 is sealed now, under the lock, rather than at
   // whatever write happens to come next. Earlier plaintext copies of it remain.
   if (store.sealAtRest()) process.stdout.write("Sealed a pre-E1 plaintext store at rest.\n");
+  // E2: the scheduled run, once a day, inside this process because it holds
+  // the store's writer lock. A timer cannot present a second factor, so it runs
+  // as a named system actor and every run, refused or not, is recorded.
+  const scheduled = setInterval(() => {
+    try {
+      runRetention(store, "scheduled-retention-job", Date.now());
+    } catch {
+      process.stderr.write("Scheduled retention run failed; see the store's retention_runs.\n");
+    }
+  }, 24 * 60 * 60 * 1000);
+  scheduled.unref();
   const release = () => {
     store.releaseWriterLock();
   };
