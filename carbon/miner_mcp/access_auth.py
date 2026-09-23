@@ -21,8 +21,17 @@ empty claim is equal - a live hole rather than a style point. So the identity is
 an `AccessIdentity`, which cannot be constructed from an empty or non-string
 value, and the principal mapping is keyed by that type. An absent or empty claim
 fails to become a key at all, before any comparison happens. That holds whether
-Cloudflare emits `sub` as empty or omits it, which matters because Cloudflare's
-service-token page documents creation and headers but not the claim shape.
+Cloudflare emits `sub` as empty or omits it. Cloudflare's service-token page
+documents creation and headers but not the claim shape; a real service-token
+assertion captured on 23 September 2026 carried `sub` present and empty,
+`common_name` holding the full Client ID including `.access`, `aud` as a plain
+string, no `client_id` and no `scope`.
+
+**Claims nobody documented are ignored, never read.** The same assertion
+carried `type` and `h_INTERNAL_DO_NOT_USE`, neither of them documented.
+Cloudflare evidently adds claims without notice, so verification must neither
+fail on an unknown claim nor let one through: the token Carbon builds carries
+only the issuer and the Carbon principal.
 
 **Keys rotate.** Access rotates its signing key roughly every six weeks and
 keeps the previous one valid for seven days. A key set frozen at construction
@@ -199,6 +208,15 @@ class AccessKeys:
         self._keys, self._loaded_at = keys, self._clock()
         self.fetches += 1
 
+    def prime(self):
+        """Load the key set now, so a wrong issuer fails at startup.
+
+        Without this the first sign of a misconfigured team host is the first
+        miner's request being refused, which reads as their credential being
+        wrong. Called once when the door is built.
+        """
+        self._load()
+
     def _stale(self) -> bool:
         return (
             self._loaded_at is None
@@ -266,6 +284,32 @@ class AccessVerifier:
             )
         return AccessIdentity(claims["common_name"])
 
+    def check_context(self):
+        """The per-access guard: re-read what `verify_token` established.
+
+        The SDK's middleware has already admitted the request, so this is not
+        the first check - it is the one every data access runs, and it refuses
+        a context this verifier could not have produced: another issuer,
+        another resource, an expired token, or a principal outside this door's
+        mapping.
+        """
+        from mcp.server.auth.middleware.auth_context import get_access_token
+
+        from carbon.miner_mcp.standard_http import RESEARCH_SCOPE
+
+        token = get_access_token()
+        binding = self.binding
+        if (
+            token is None
+            or (token.claims or {}).get("iss") != binding.issuer
+            or token.resource != binding.resource
+            or type(token.expires_at) is not int
+            or token.expires_at <= time.time()
+            or RESEARCH_SCOPE not in token.scopes
+            or token.subject not in set(binding.principals.values())
+        ):
+            raise PermissionError("Carbon research authorization required")
+
     async def verify_token(self, token: str):
         """Authenticate the assertion. Authorization is the mapping, below."""
         import jwt
@@ -321,3 +365,122 @@ def assertion_from(headers) -> str:
             "no Cf-Access-Jwt-Assertion header; the browser cookie is not accepted"
         )
     return value.strip()
+
+
+# --- operator configuration --------------------------------------------------
+
+#: The operator's description of the remote door. Closed: an unrecognised key
+#: is refused rather than ignored, because an ignored key is a setting the
+#: operator believes is in force and is not.
+CONFIG_SCHEMA = "carbon.mcp.access-door.v1"
+CONFIG_KEYS = frozenset({"schema", "issuer", "audience", "resource", "principals"})
+
+
+def access_binding_from_config(document: object) -> AccessBinding:
+    """Build the binding from the operator's configuration, or refuse.
+
+    There is no default for any field. The team issuer and the application AUD
+    tag belong to the operator's Cloudflare account and are not in this public
+    repository, so a missing value has nothing correct to fall back to - and a
+    door that starts with a guessed binding is a door whose authentication
+    nobody decided.
+    """
+    if not isinstance(document, dict):
+        raise AccessFailure("the Access door configuration must be a JSON object")
+    unknown = set(document) - CONFIG_KEYS
+    if unknown:
+        raise AccessFailure(
+            "unrecognised Access door configuration keys: " + ", ".join(sorted(unknown))
+        )
+    missing = CONFIG_KEYS - set(document)
+    if missing:
+        raise AccessFailure(
+            "the Access door configuration is missing: " + ", ".join(sorted(missing))
+        )
+    if document["schema"] != CONFIG_SCHEMA:
+        raise AccessFailure(
+            f"the Access door configuration schema must be {CONFIG_SCHEMA}"
+        )
+    principals = document["principals"]
+    if not isinstance(principals, dict):
+        raise AccessFailure(
+            "principals must map each service token Client ID to a Carbon principal"
+        )
+    return AccessBinding(
+        issuer=document["issuer"],
+        audience=document["audience"],
+        resource=document["resource"],
+        # Through the validated type, so an empty Client ID in the operator's
+        # file is refused here rather than becoming a key that matches nothing
+        # - or, worse, matches an empty claim.
+        principals={AccessIdentity(key): value for key, value in principals.items()},
+    )
+
+
+def load_access_verifier(path, *, fetch) -> AccessVerifier:
+    """The verifier for the remote door, from the operator's file, keys loaded.
+
+    `fetch` is required and has no default. This package opens no network
+    connection (the C-08 boundary), so the operator's startup code supplies the
+    client that reads the JWKS. The key set is loaded here, once, so a wrong
+    issuer or an unreachable team host stops startup instead of refusing the
+    first miner who connects.
+    """
+    from pathlib import Path
+
+    if not callable(fetch):
+        raise AccessFailure("a JWKS fetch function is required; there is no default")
+    source = Path(path)
+    if not source.is_file():
+        raise AccessFailure(
+            f"no Access door configuration at {source}; the remote door does "
+            "not start without one, and stdio needs none"
+        )
+    try:
+        document = json.loads(source.read_text(encoding="utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        raise AccessFailure(
+            f"the Access door configuration at {source} is not valid JSON"
+        ) from None
+    binding = access_binding_from_config(document)
+    keys = AccessKeys(binding, fetch=fetch)
+    keys.prime()
+    return AccessVerifier(binding, keys)
+
+
+# --- transport ---------------------------------------------------------------
+
+
+class AccessAssertionHeader:
+    """Present the Access assertion to the SDK's bearer check, and only it.
+
+    The SDK authenticates from `Authorization: Bearer`. Access delivers its
+    assertion in `Cf-Access-Jwt-Assertion`. Without this adapter the verifier
+    is never handed a token at all, and every request is refused - correctly,
+    but for a reason nobody would guess.
+
+    Any `Authorization` header the client sent is discarded, never forwarded.
+    Behind Access the only credential that counts is the one Access minted; a
+    client-supplied bearer value is not a second route in, even one that would
+    go on to fail verification. More than one assertion header is treated as
+    none. The browser cookie is never read.
+    """
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] in ("http", "websocket"):
+            name = ASSERTION_HEADER.lower().encode()
+            assertions = [
+                value for key, value in scope["headers"] if key.lower() == name
+            ]
+            headers = [
+                (key, value)
+                for key, value in scope["headers"]
+                if key.lower() not in (b"authorization", name)
+            ]
+            if len(assertions) == 1 and assertions[0].strip():
+                headers.append((b"authorization", b"Bearer " + assertions[0].strip()))
+            scope = {**scope, "headers": headers}
+        await self.app(scope, receive, send)

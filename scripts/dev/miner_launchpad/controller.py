@@ -383,13 +383,15 @@ def capability_catalog() -> dict:
                 # whatever asserts it - one of these blockers was contradicted
                 # by constants committed a week before it was written down.
                 #
-                # What is actually left is the claim contract. Access emits no
-                # `client_id` and no `scope`, both of which `verify_token`
-                # requires; its `aud` is the application AUD tag rather than a
-                # resource URL; its `sub` is empty for the service tokens a
-                # programmatic caller uses, with the identity in `common_name`;
-                # and its signing key rotates on a six-week cycle, which a key
-                # set fixed at construction cannot follow.
+                # Fifth revision. The claim contract the fourth named was
+                # implemented by `access_auth` (#295), and the door is now built
+                # from the operator's own configuration by
+                # `create_access_http_app`, with its rotating key set verified
+                # against the live Access JWKS. What is left is that nothing
+                # hosts it: the app starts no listener, no origin serves it, and
+                # the origin's shape is undecided - a Python ASGI app cannot run
+                # on the Workers custom domain the echo test used. No real
+                # Access assertion has yet been verified against it either.
                 #
                 # Scope note: this is the *remote* door only. A miner bringing
                 # their own agent over stdio needs no Cloudflare credential and
@@ -401,7 +403,7 @@ def capability_catalog() -> dict:
                 # suits a bounded set and does not suit open participation - so
                 # remote MCP is a convenience, never the general path.
                 "id": "personal-agent",
-                "reason": "access_assertion_claim_contract_not_implemented",
+                "reason": "remote_door_not_hosted",
             },
             {"id": "mira", "reason": "integration_interface_unverified"},
             {
