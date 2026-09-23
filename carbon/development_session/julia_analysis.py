@@ -236,6 +236,16 @@ USER 65532:65532
     return image
 
 
+LAZY_ARTIFACTS = """using Pkg, Pkg.Artifacts
+for (root, dirs, files) in walkdir(joinpath(first(DEPOT_PATH), "packages"))
+    if "Artifacts.toml" in files
+        Pkg.Artifacts.ensure_all_artifacts_installed(
+            joinpath(root, "Artifacts.toml"); include_lazy=true, quiet_download=true)
+    end
+end
+"""
+
+
 def _fetch_environments(cli, directory, tag):
     """Install every pinned package and binary artifact; compile nothing.
 
@@ -257,6 +267,9 @@ def _fetch_environments(cli, directory, tag):
         "-e 'using Pkg; Pkg.instantiate(; allow_autoprecomp=false)'"
         for name in ENVIRONMENTS
     )
+    # Lazy artifacts (MKL's OpenMP runtime, among others) are fetched on first
+    # use, which a network-off image can never do; install every one now.
+    write_once(context / "artifacts.jl", LAZY_ARTIFACTS.encode())
     copies = "\n".join(
         f"COPY {name}/Project.toml {name}/Manifest.toml {ANALYSIS_ROOT}/{name}/"
         for name in ENVIRONMENTS
@@ -264,9 +277,13 @@ def _fetch_environments(cli, directory, tag):
     recipe = f"""FROM {tag}
 USER 0:0
 {copies}
+COPY artifacts.jl /tmp/carbon-artifacts.jl
 RUN export JULIA_DEPOT_PATH={ANALYSIS_ROOT}/depot JULIA_PKG_PRECOMPILE_AUTO=0 \\
       HOME=/tmp TMPDIR=/tmp \\
-    && {instantiate}
+    && {instantiate} \\
+    && /opt/carbon-julia/bin/julia --startup-file=no --history-file=no \\
+      /tmp/carbon-artifacts.jl \\
+    && rm /tmp/carbon-artifacts.jl
 """
     write_once(context / "Dockerfile", recipe.encode())
     built = cli.run(
