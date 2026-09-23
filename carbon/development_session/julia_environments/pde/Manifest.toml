@@ -2,7 +2,7 @@
 
 julia_version = "1.13.0"
 manifest_format = "2.1"
-project_hash = "8d934472b613cef58ff7c099d5eeeb910f4c5c7b"
+project_hash = "8aba381df0dc140f7c6527c33bf577503109694c"
 
 [[deps.ADTypes]]
 deps = ["PrecompileTools"]
@@ -451,7 +451,6 @@ git-tree-sha1 = "52f3f101c0c541145da25fba9805f3ef076f2d96"
 registries = "General"
 uuid = "76274a88-744f-5084-9051-94815aaf08c4"
 version = "0.15.16"
-weakdeps = ["ChainRules", "DistributionsAD", "EnzymeCore", "ForwardDiff", "LazyArrays", "Mooncake", "ReverseDiff"]
 
     [deps.Bijectors.extensions]
     BijectorsDistributionsADExt = "DistributionsAD"
@@ -461,6 +460,15 @@ weakdeps = ["ChainRules", "DistributionsAD", "EnzymeCore", "ForwardDiff", "LazyA
     BijectorsMooncakeExt = "Mooncake"
     BijectorsReverseDiffChainRulesExt = ["ChainRules", "ReverseDiff"]
     BijectorsReverseDiffExt = "ReverseDiff"
+
+    [deps.Bijectors.weakdeps]
+    ChainRules = "082447d4-558c-5d27-93f4-14fc19e9eca2"
+    DistributionsAD = "ced4e74d-a319-5a8a-b0ac-84af2272839c"
+    EnzymeCore = "f151be2c-9106-41f4-ab19-57ee4f262869"
+    ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
+    LazyArrays = "5078a376-72f3-5289-bfd5-ec5146d43c02"
+    Mooncake = "da2b9cff-9c12-43a0-ae48-6db2b0edb7d6"
+    ReverseDiff = "37e2e3b7-166d-5795-8a7a-e32c996b4267"
 
 [[deps.BitTwiddlingConvenienceFunctions]]
 deps = ["Static"]
@@ -1452,7 +1460,6 @@ git-tree-sha1 = "3c7269c236978d434a16ebe99f9743b9d706270a"
 registries = "General"
 uuid = "a4df4552-cc26-4903-aec0-212e50a0e84b"
 version = "1.5.0"
-weakdeps = ["Enzyme", "ForwardDiff", "Measurements", "MonteCarloMeasurements", "Mooncake", "ReverseDiff", "Tracker"]
 
     [deps.FastPower.extensions]
     FastPowerEnzymeExt = "Enzyme"
@@ -1462,6 +1469,15 @@ weakdeps = ["Enzyme", "ForwardDiff", "Measurements", "MonteCarloMeasurements", "
     FastPowerMooncakeExt = "Mooncake"
     FastPowerReverseDiffExt = "ReverseDiff"
     FastPowerTrackerExt = "Tracker"
+
+    [deps.FastPower.weakdeps]
+    Enzyme = "7da242da-08ed-463a-9acd-ee780be4f1d9"
+    ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
+    Measurements = "eff96d63-e80a-5855-80a2-b1b0885c5ab7"
+    MonteCarloMeasurements = "0987c9cc-fe09-11e8-30f0-b96dd679fdca"
+    Mooncake = "da2b9cff-9c12-43a0-ae48-6db2b0edb7d6"
+    ReverseDiff = "37e2e3b7-166d-5795-8a7a-e32c996b4267"
+    Tracker = "9f7883ad-71c0-57eb-9f7f-b5c9e6d3789c"
 
 [[deps.FastTransforms]]
 deps = ["AbstractFFTs", "ArrayLayouts", "BandedMatrices", "FFTW", "FastGaussQuadrature", "FastTransforms_jll", "FillArrays", "GenericFFT", "LazyArrays", "Libdl", "LinearAlgebra", "RecurrenceRelationships", "SpecialFunctions", "ToeplitzMatrices"]
@@ -2888,33 +2904,6 @@ version = "1.5.2"
     RecipesBase = "3cdcf5f2-1ef4-517c-9805-6587b60abb01"
     Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
 
-[[deps.Mooncake]]
-deps = ["ADTypes", "ChainRules", "ChainRulesCore", "DiffRules", "ExprTools", "FunctionWrappers", "GPUArraysCore", "Graphs", "InteractiveUtils", "LinearAlgebra", "MistyClosures", "Random", "Test"]
-git-tree-sha1 = "243e07d3dc3842b9daa113d96c1d66981a5906b5"
-registries = "General"
-uuid = "da2b9cff-9c12-43a0-ae48-6db2b0edb7d6"
-version = "0.4.123"
-
-    [deps.Mooncake.extensions]
-    MooncakeAllocCheckExt = "AllocCheck"
-    MooncakeCUDAExt = "CUDA"
-    MooncakeFluxExt = "Flux"
-    MooncakeJETExt = "JET"
-    MooncakeLuxLibExt = "LuxLib"
-    MooncakeLuxLibSLEEFPiratesExtension = ["LuxLib", "SLEEFPirates"]
-    MooncakeNNlibExt = "NNlib"
-    MooncakeSpecialFunctionsExt = "SpecialFunctions"
-
-    [deps.Mooncake.weakdeps]
-    AllocCheck = "9b6a8646-10ed-4001-bbdc-1d2f46dfbb1a"
-    CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
-    Flux = "587475ba-b771-5e3f-ad9e-33799f191a9c"
-    JET = "c3a54625-cd67-489e-a8e7-0a5a0ff4e31b"
-    LuxLib = "82251201-b29d-42c6-8e01-566dec8acb11"
-    NNlib = "872c559c-99b0-510c-b3b7-b6c96a88d5cd"
-    SLEEFPirates = "476501e8-09a2-5ece-8869-fb82de89a1fa"
-    SpecialFunctions = "276daf66-3868-5448-9aa4-cd146d93841b"
-
 [[deps.Moshi]]
 deps = ["ExproniconLite", "Jieko"]
 git-tree-sha1 = "60beb0717782a3bbe0f7df56decad0ef89048c23"
@@ -3136,7 +3125,6 @@ git-tree-sha1 = "9323e063ce69851b28e5c96539b2e2024f9a7e4c"
 registries = "General"
 uuid = "be0214bd-f91f-a760-ac4e-3421ce2b2da0"
 version = "2.11.2"
-weakdeps = ["BandedMatrices", "ChainRulesCore", "Enzyme", "ForwardDiff", "LineSearch", "LinearSolve", "Mooncake", "ReverseDiff", "SparseArrays", "SparseMatrixColorings", "Tracker"]
 
     [deps.NonlinearSolveBase.extensions]
     NonlinearSolveBaseBandedMatricesExt = "BandedMatrices"
@@ -3150,6 +3138,19 @@ weakdeps = ["BandedMatrices", "ChainRulesCore", "Enzyme", "ForwardDiff", "LineSe
     NonlinearSolveBaseSparseArraysExt = "SparseArrays"
     NonlinearSolveBaseSparseMatrixColoringsExt = "SparseMatrixColorings"
     NonlinearSolveBaseTrackerExt = "Tracker"
+
+    [deps.NonlinearSolveBase.weakdeps]
+    BandedMatrices = "aae01518-5342-5314-be14-df237901396f"
+    ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
+    Enzyme = "7da242da-08ed-463a-9acd-ee780be4f1d9"
+    ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
+    LineSearch = "87fe0de2-c867-4266-b59a-2f0a94fc965b"
+    LinearSolve = "7ed4a6bd-45f5-4d41-b270-4a48e9bafcae"
+    Mooncake = "da2b9cff-9c12-43a0-ae48-6db2b0edb7d6"
+    ReverseDiff = "37e2e3b7-166d-5795-8a7a-e32c996b4267"
+    SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
+    SparseMatrixColorings = "0a514795-09f3-496d-8182-132a7b665d35"
+    Tracker = "9f7883ad-71c0-57eb-9f7f-b5c9e6d3789c"
 
 [[deps.NonlinearSolveFirstOrder]]
 deps = ["ADTypes", "ArrayInterface", "CommonSolve", "ConcreteStructs", "FiniteDiff", "ForwardDiff", "LineSearch", "LinearAlgebra", "LinearSolve", "MaybeInplace", "NonlinearSolveBase", "PrecompileTools", "Reexport", "SciMLBase", "SciMLJacobianOperators", "Setfield", "StaticArraysCore"]
@@ -3394,11 +3395,14 @@ git-tree-sha1 = "14566414dda89ecb60ebd2a312042b440325d477"
 registries = "General"
 uuid = "bbf590c4-e513-4bbe-9b18-05decba2e5d8"
 version = "3.25.0"
-weakdeps = ["Mooncake", "SparseArrays"]
 
     [deps.OrdinaryDiffEqCore.extensions]
     OrdinaryDiffEqCoreMooncakeExt = "Mooncake"
     OrdinaryDiffEqCoreSparseArraysExt = "SparseArrays"
+
+    [deps.OrdinaryDiffEqCore.weakdeps]
+    Mooncake = "da2b9cff-9c12-43a0-ae48-6db2b0edb7d6"
+    SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 
 [[deps.OrdinaryDiffEqDefault]]
 deps = ["ADTypes", "DiffEqBase", "EnumX", "LinearAlgebra", "LinearSolve", "OrdinaryDiffEqBDF", "OrdinaryDiffEqCore", "OrdinaryDiffEqRosenbrock", "OrdinaryDiffEqTsit5", "OrdinaryDiffEqVerner", "PrecompileTools", "Preferences", "Reexport", "SciMLBase"]
@@ -4172,10 +4176,12 @@ git-tree-sha1 = "b099878e89bb8175aaba5d16aba703564b5bb2ed"
 registries = "General"
 uuid = "1ed8b502-d754-442c-8d5d-10ac956f44a1"
 version = "7.94.0"
-weakdeps = ["Mooncake"]
 
     [deps.SciMLSensitivity.extensions]
     SciMLSensitivityMooncakeExt = "Mooncake"
+
+    [deps.SciMLSensitivity.weakdeps]
+    Mooncake = "da2b9cff-9c12-43a0-ae48-6db2b0edb7d6"
 
 [[deps.SciMLStructures]]
 deps = ["ArrayInterface", "PrecompileTools"]
