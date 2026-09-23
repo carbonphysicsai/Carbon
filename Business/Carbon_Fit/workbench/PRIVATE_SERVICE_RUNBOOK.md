@@ -193,6 +193,13 @@ again. A restart returns the saved study from the campaign's records and does no
 new numerical work. Only the external hotkey and testnet runtime is substituted,
 and the campaign is a test-owned synthetic one.
 
+The whole team journey can be rehearsed the same way:
+`tests/service/workbench_team_journey.py [--mobile]` starts this host and the
+stage-1 receiver, then drives one browser session through them. It goes from the
+client's preview, through the relayed inquiry, team assessment, registered draft
+and real-worker study, to saving and reopening the workspace. It needs Node,
+Playwright and a Chromium build (`NODE_PATH` pointing at `node_modules`).
+
 A closed browser tab is not a stop. Controller and task ownership are held by
 this process, not by the browser, so a disconnect, reload or laptop sleep leaves
 a running study running and its result retrievable on reconnect.
