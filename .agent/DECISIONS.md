@@ -15209,3 +15209,52 @@ deadline.
 commercial statement is added or altered. No activation flag changes. Deploying
 the refreshed release is a separate act and is recorded where the deployment is
 recorded, not here.
+
+## 2026-09-23 — OWNER-CONSTRUCTION-DECLARATIVE-01: construction widens declaratively
+
+**Authority:** owner direction given in session on 2026-09-23, adopting a
+reviewed recommendation as Carbon's initial construction direction. It replaces
+the earlier session proposal to bring arbitrary construction and prediction
+programs forward.
+
+**Decision.** Construction expansion is declarative only. Miners submit model,
+training and permitted training-data policy choices from a versioned vocabulary
+that Carbon owns. Carbon supplies the implementations, compiles the exact
+reconstruction plan, trains the model independently and runs prediction and
+evaluation through its registered services.
+
+These remain outside scope:
+- miner-submitted source code and executable expressions;
+- import or function names;
+- callbacks and serialized objects;
+- participant-defined composition graphs;
+- pretrained weights, checkpoints and embeddings;
+- fitted parameter arrays;
+- uploaded datasets.
+
+New capabilities enter through reviewed Carbon implementations and explicit
+contract extensions, never through per-submission exceptions.
+
+The validator never runs a miner's research image. It resolves its own pinned
+reconstruction image.
+
+Each capability carries one of three visible statuses:
+- research-only;
+- validator-rebuildable in DEVELOPMENT;
+- admitted for the applicable evaluation contract.
+
+**Unchanged.** This decision does not change:
+- the unlimited miner research environment, which governs exploration, not
+  submission;
+- the independent exam and the scientific criteria;
+- the declared comparison resources;
+- qualification, security, economic or LIVE states.
+
+A wider catalog adds no scoring rule, no miner-selected tolerance and no
+resource envelope.
+
+**Engineering consequence.** The map and the ordered plan (D0 to D4) are in
+`docs/development/DECLARATIVE_CONSTRUCTION_MAP.md`. D0 comes first. It gives an
+honest answer to "can I submit this design?", and it repairs the fields that
+are accepted today but ignored. No capability is added until that answer names
+the exact missing capability rather than reporting a generic failure.
