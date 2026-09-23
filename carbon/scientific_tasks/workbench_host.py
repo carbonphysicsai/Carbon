@@ -23,8 +23,8 @@ from dataclasses import dataclass
 from hashlib import sha256
 from pathlib import Path
 
+from carbon.development_session.private_records import private_json
 from carbon.development_session.profile import canonical
-from carbon.development_session.research_admission import private_json
 from carbon.development_session.research_sequences import SCOPE as _ENVELOPE_SCOPE
 from carbon.scientific_tasks.workbench import (
     RegisteredWorkbenchDraft,
@@ -697,16 +697,108 @@ def _origin(value: str, port: int) -> str:
     return value
 
 
+def load_development_profile(path: Path, *, cleanup_only=False):
+    """Carbon's own granted campaign, for this internal staff service.
+
+    The Workbench private service runs on Carbon's campaign under a development
+    grant - Carbon's owner capping Carbon's spend on Carbon's accounts. That is
+    the development path, which keeps the grant (C-MLP-02-D11); a miner's door
+    never does, and `carbon.miner_mcp.standard_cli.load_profile` admits only
+    campaigns admitted by registration. This loader is the grant path, moved
+    here unchanged from the MCP door so the door no longer carries it.
+    """
+    import time
+
+    from carbon.development_session.research_admission import (
+        MANIFEST,
+        Admission,
+        verify_cleanup_owner,
+    )
+    from carbon.development_session.research_control import CampaignControl
+    from carbon.development_session.research_ledger import CampaignLedger
+    from carbon.miner_mcp.standard_cli import OperatorProfile
+    from scripts.dev.miner_launchpad.runner import PATH_FIELDS
+
+    cfg = private_json(path)
+    if (
+        set(cfg)
+        != {
+            "schema",
+            "profile_id",
+            "principal",
+            "grant_file",
+            "account_ref",
+            "enabled",
+            "paths",
+            "accepted_revision",
+        }
+        or cfg["schema"] != "carbon.launchpad.runner-profile.v1"
+        or cfg["enabled"] is not True
+        or type(cfg["paths"]) is not dict
+        or set(cfg["paths"]) != PATH_FIELDS
+        or any(
+            type(v) is not str or not Path(v).is_absolute()
+            for v in cfg["paths"].values()
+        )
+    ):
+        raise ValueError("closed enabled operator profile required")
+    admission = Admission.load(Path(cfg["grant_file"]))
+    grant = admission.document
+    root = Path(grant["root"])
+    if not cleanup_only:
+        admission.verify(
+            root=root,
+            principal=cfg["principal"],
+            runtime=grant["runtime"],
+            now=time.time(),
+        )
+    if (
+        cfg["account_ref"] != grant["account_ref"]
+        or cfg["accepted_revision"] != grant["runtime"]["implementation"]["revision"]
+        or not root.is_dir()
+        or (not cleanup_only and (root / "campaign-complete.json").exists())
+        or not (root / "campaign.sqlite3").is_file()
+        or (root / "campaign.sqlite3").is_symlink()
+    ):
+        raise ValueError("existing unfinished admitted campaign required")
+    manifest = private_json(root / "campaign-manifest.json")
+    if (
+        manifest.get("schema") != MANIFEST
+        or manifest.get("principal") != cfg["principal"]
+        or manifest.get("runtime") != grant["runtime"]
+        or manifest.get("grant") != admission.binding()
+        or manifest.get("campaign_id") != grant["campaign_id"]
+    ):
+        raise ValueError("prepared campaign differs from operator grant")
+    if cleanup_only:
+        meter = CampaignLedger(root, admission=admission)
+        meter.generation = CampaignControl(meter).status()["generation"]
+        if verify_cleanup_owner(meter, manifest["owner"]) != manifest:
+            raise ValueError("retained cleanup profile differs")
+    return OperatorProfile(
+        path,
+        cfg,
+        grant["campaign_id"],
+        root,
+        manifest,
+        cleanup_only,
+        development_grant=admission,
+    )
+
+
 async def serve(args) -> int:
     """Serve the composed private host for as long as the campaign is attached."""
     import uvicorn
 
-    from carbon.miner_mcp.standard_cli import attached
+    from carbon.miner_mcp.standard_cli import attached_profile
 
     origin = _origin(args.origin, args.port)
     principals = StaffPrincipals.load(args.principals)
     verify_private_build(args.static)
-    async with attached(args.configuration) as (adapter, profile):
+    async with attached_profile(load_development_profile(args.configuration)) as (
+        adapter,
+        profile,
+    ):
         registry = RegisteredDraftStore(
             args.draft_registry, principal=adapter.principal
         )
@@ -766,9 +858,7 @@ def _print_report(report, *, origin=None, staff=()):
 
 
 def _registry_for(args):
-    from carbon.miner_mcp.standard_cli import load_profile
-
-    profile = load_profile(args.configuration)
+    profile = load_development_profile(args.configuration)
     registry = RegisteredDraftStore(
         args.draft_registry, principal=profile.document["principal"]
     )
@@ -817,9 +907,7 @@ def main(argv=None) -> int:
     args = parser.parse_args(argv)
     try:
         if args.command == "check":
-            from carbon.miner_mcp.standard_cli import load_profile
-
-            profile = load_profile(args.configuration)
+            profile = load_development_profile(args.configuration)
             registry = (
                 RegisteredDraftStore(
                     args.draft_registry, principal=profile.document["principal"]

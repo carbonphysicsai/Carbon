@@ -221,8 +221,8 @@ def test_the_cli_serves_the_open_tier_when_no_profile_is_given(monkeypatch):
     async def open_tier():
         served.append("open")
 
-    async def campaign(configuration, *, cleanup_only=False):
-        served.append(("campaign", configuration, cleanup_only))
+    async def campaign(configuration, campaign, *, cleanup_only=False):
+        served.append(("campaign", configuration, campaign, cleanup_only))
 
     monkeypatch.setattr(standard_cli, "serve_open_tier", open_tier)
     monkeypatch.setattr(standard_cli, "serve", campaign)
@@ -230,8 +230,22 @@ def test_the_cli_serves_the_open_tier_when_no_profile_is_given(monkeypatch):
     assert standard_cli.main([]) == 0
     assert served == ["open"]
 
-    assert standard_cli.main(["--configuration", "/nowhere/profile.json"]) == 0
+    assert (
+        standard_cli.main(
+            ["--configuration", "/nowhere/profile.json", "--campaign", "a" * 32]
+        )
+        == 0
+    )
     assert served[1][0] == "campaign"
+    assert served[1][2] == "a" * 32
+
+
+def test_a_profile_without_a_campaign_is_refused():
+    """A profile holds any number of campaigns; attaching names one."""
+    from carbon.miner_mcp import standard_cli
+
+    with pytest.raises(SystemExit):
+        standard_cli.main(["--configuration", "/nowhere/profile.json"])
 
 
 def test_cleanup_only_without_a_campaign_is_refused():

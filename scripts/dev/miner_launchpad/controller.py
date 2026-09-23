@@ -720,9 +720,10 @@ def main() -> None:
         "--research-profile",
         type=Path,
         help=(
-            "Development only: a private operator configuration carrying a "
-            "development grant, for Carbon's own bounded experiments. A miner "
-            "needs no such record and no approval to use their own compute."
+            "Your runner profile (runner-profile v2): the registered miner you "
+            "research as, the runtime your campaigns run on and where they "
+            "live. Launching needs only subnet registration, read at launch; "
+            "no grant or approval exists on this path."
         ),
     )
     parser.add_argument(
