@@ -99,11 +99,19 @@ rather than cited:
 | Notice and consent text | **Ryan and Nick with counsel** | Client-facing collection becomes possible at all |
 | Sender credential and authorised sender identity | **Ryan** | Notifications may be attempted; today every attempt reports that none is configured |
 | Named staff accounts and credential issuance | **Ryan** | Real identities replace the synthetic stage-1 directory |
-| Incident ownership and rollback authority | **Nick** | An operator exists to page |
+| Incident ownership and rollback authority | **Ryan** — decided, see `CARBON-D-INCIDENT` | already granted; the operator to page is named |
 | Rate limiting, lockout and escalation | engineering, gated on the security review above | The abuse controls the runbook records as absent get built |
 
 Every row is Ryan's or Nick's. Nothing here is external to Carbon, and nothing
 is waiting on a third party.
+
+One row is already decided and was decided before this table was written:
+**incident ownership is Ryan's**, recorded as `CARBON-D-INCIDENT`. The first
+revision of this table assigned it to Nick, following the W-C setup decisions
+document, which routed it as "conditional on Nick". That document predated the
+decision and the table repeated it, so a settled question was published as an
+open one against the owner's own answer. It is corrected here rather than left
+to be read twice.
 
 **What is already prepared against them.** Stage 1 runs today on loopback with
 one receiver process per store file, a store ceiling that cannot write a file it

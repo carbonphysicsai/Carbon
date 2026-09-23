@@ -15108,3 +15108,30 @@ survive the helper exiting — measured, not assumed, in this environment. The
 holder is recorded instead and staleness is detected rather than presumed: a
 lock is stale only when its pid is gone, or is alive but started at a different
 time, which separates a crashed holder from a reused pid.
+
+## 2026-09-22 — CARBON-D-INCIDENT: incident ownership and rollback authority are Ryan's
+
+**Authority source and scope.** The repository owner's relay of 2026-09-22
+evening states that he holds incident ownership and rollback authority, and that
+he decided this before the W-C blocker table was written. Recorded here because
+it was decided and then recorded nowhere, which is how a settled question gets
+published as an open one. It grants no deployment, spending, collection or
+qualification authority and changes no scientific or security state.
+
+**The decision.** Incident ownership and rollback authority for the private
+Workbench receiver are **Ryan's**. There is an operator to page, and the W-C row
+that named this as outstanding is resolved rather than pending.
+
+**What it corrects.** The W-C setup decisions document of 2026-09-22 routed
+incident ownership and rollback authority as "conditional on Nick", and the
+blocker table landed in `GOAL-WORKBENCH-12` in PR #300 repeated that routing.
+Both predated or contradicted this decision. The ticket table is corrected in
+the same change that records this, so the two cannot disagree.
+
+**What it does not decide.** Storage location and jurisdiction, the retention
+period, legal basis and approver, the notice and consent text, the sender
+credential, named staff accounts and credential issuance, the abuse-handling
+controls, and the money for counsel and a security review all remain open and
+are unaffected by this entry. Rollback itself is unchanged: stop the process and
+leave the store file in place, because the store is the evidence and a deletion
+still requires an approved retention exception.

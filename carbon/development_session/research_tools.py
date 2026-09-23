@@ -208,6 +208,27 @@ def public_wire(value):
     raise ValueError("unsupported public wire value")
 
 
+class PreDispatchRefusal(Exception):
+    """A refusal raised where nothing can have been dispatched yet.
+
+    A distinct type rather than a flag, because the caller's transport catches
+    every other exception and conservatively reports that dispatch *may* have
+    occurred - which is right when the controller could be holding an ambiguous
+    reservation, and wrong when the refusal fired before any reservation was
+    possible. Those two are indistinguishable once both are `Exception`, and a
+    miner told their work may have started when it provably did not will go
+    looking for consumption that does not exist.
+
+    Raised only where the absence of a campaign is established up front, so
+    every instance is one where "nothing happened" is a fact rather than a hope.
+    """
+
+    def __init__(self, reason: str, *, next_action: str):
+        super().__init__(reason)
+        self.reason = reason
+        self.next_action = next_action
+
+
 class ResearchMinerTools:
     def __init__(self, *, connection, wrapper, composition, ledger, owner):
         self.connection, self.wrapper, self.composition = (
@@ -333,6 +354,26 @@ class ResearchMinerTools:
         reusing ``identity`` for admission, task idempotency and cancellation.
         A fresh signature/request never grants another numerical allowance.
         """
+        if self.ledger is None:
+            # Checked once, for every research operation rather than only the
+            # dispatching ones. They all reach the validator through
+            # `supervised_call`, which requires a composition a campaign
+            # supplies, so without one none of them can do anything - and
+            # failing at the top says so honestly instead of failing deep with
+            # a message about a campaign that is not accepting work.
+            #
+            # Written for an agent, because only an agent reaches it: the
+            # browser never touches the sdk. It names no tool to call because no
+            # operation creates a campaign.
+            raise PreDispatchRefusal(
+                "NO_CAMPAIGN",
+                next_action=(
+                    "This server has no campaign to account against, and no "
+                    "operation on it creates one. Reconnect to a server with a "
+                    "campaign attached, then retry with the same operation_id. "
+                    "A budget is optional and is never what is missing here."
+                ),
+            )
         from .research_carrier import PRECHARGED_TRIAL
 
         if name == PREFIX + "start_research_task" and (
@@ -370,31 +411,6 @@ class ResearchMinerTools:
         )
         token = None
         if numerical:
-            if self.ledger is None:
-                # The one thing dispatch genuinely needs. Registration opens the
-                # research environment; a campaign is what work is dispatched
-                # *into*, and there is no way to account for a trial without
-                # one. Deliberately not a budget check - a miner who set no
-                # budget is not blocked from anything.
-                #
-                # Written for an agent, because only an agent can reach it:
-                # `ResearchMinerTools.call` is entered solely through
-                # `carbon.miner_mcp.standard`, and the browser never touches the
-                # sdk. A human filling the launch wizard gets a campaign as a
-                # consequence of launching; if a person ever saw this, the
-                # surface offered dispatch before the thing dispatch requires,
-                # and the repair is upstream of this message.
-                #
-                # It names no tool to call because none exists yet: no MCP
-                # operation creates a campaign. Saying so is more useful than
-                # inventing an instruction the caller cannot follow.
-                raise ValueError(
-                    "no campaign: this server has no campaign to account "
-                    "against, and no operation on it creates one; "
-                    "next_action=Reconnect to a server with a campaign "
-                    "attached, then retry with the same operation_id. A budget "
-                    "is optional and is never what is missing here."
-                )
             reservation = {"research_trials": 1}
             admission = self.ledger.reserve(
                 "trial-attempt-" + identity,
