@@ -1,0 +1,16 @@
+{
+  "map_ref": "SYSTEM/AGENT-EXECUTION",
+  "event_type": "decision",
+  "event_id": "MQ-008-SAME-PART-01",
+  "owner_lane": "core_platform",
+  "status": "implemented",
+  "summary": "Recorded the owner's provisional qualification, as deputy for the MQ-008 scientific holder, of the validator compute rule and the comparison conventions. The holder answered through the owner that validator compute must be the same generation; the evidence package had said validators on the same generation will agree, which overstated what was measured, since agreement was measured between identical parts and only one same-generation, different-part pair was ever observed, incidentally. The owner ruled at the measured granularity: validators whose results are compared must run the same GPU part, qualified per part for the four parts measured, A40, H100 SXM, L4 and RTX PRO 6000 SE, on the C-02 key at the representative scale; a part not listed is not qualified whatever its generation. The provisional divergence conventions were ratified, relative L2 as headline with the max-normalised companion and absolute always reported, delta both absolute and relative, and delta of 1e-07 near-margin with controls of 1e-05 and 1e-04. The evidence package was corrected in place with a dated note. This is the owner's qualification in the holder's place and the holder's review is still owed. It qualifies no other part or Challenge, no containment, and not validator_launch, which remains never hardware-exercised; it is not security or production qualification, activates no Challenge and creates no LIVE authority. It is also not yet reachable: the reproducibility comparison is fixture-only by construction, both its identity manifest and its procedure qualification refusing non-fixture origin, so backend comparison still reports the backend unsupported until a migration of that boundary is separately decided.",
+  "primary_detail": "docs/development/TWO_HOST_STUDY_ACCEPTANCE.md",
+  "affects": [
+    "SYSTEM/AGENT-EXECUTION",
+    "WAVE-C/C-03",
+    "WAVE-C/C-09"
+  ],
+  "supersedes": null,
+  "recorded_at": "2026-09-23T18:10:08Z"
+}
