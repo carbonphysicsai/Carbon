@@ -176,8 +176,17 @@ def relay(base, work: Path, request):
         },
     )
     assert status == 201 and receipt["disposition"] == "ACCEPTED", receipt
+    # E5: an export names who it is for and why, and is logged before it returns.
     _, record = receiver_request(
-        base, "GET", f"/private/intake/{receipt['inquiry_id']}/export", REVIEW_TOKEN
+        base,
+        "GET",
+        f"/private/intake/{receipt['inquiry_id']}/export",
+        REVIEW_TOKEN,
+        headers={
+            "x-carbon-release-recipient-kind": "CARBON_STAFF",
+            "x-carbon-release-recipient-ref": "synthetic-journey-reviewer",
+            "x-carbon-release-purpose": "Import into the Workbench for team review",
+        },
     )
     stored = work / "inquiry-from-receiver.json"
     stored.write_bytes(record["raw_json"].encode("utf-8"))
