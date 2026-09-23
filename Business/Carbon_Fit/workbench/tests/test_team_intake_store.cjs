@@ -485,7 +485,11 @@ test("the retention policy is versioned and leaves the legal fields unresolved",
   // belong to Ryan and Nick under OD-25 and are unresolved on purpose.
   assert.equal(RETENTION_POLICY.approved_by, null);
   assert.equal(RETENTION_POLICY.legal_basis, null);
-  assert.equal(RETENTION_POLICY.production_period, null);
+  // E3: the one period became a closure event and three periods, all
+  // counsel's and all unresolved.
+  assert.equal(RETENTION_POLICY.production_period, undefined);
+  for (const field of ["closure_event", "active_period", "archive_period", "scoping_expiry"])
+    assert.equal(RETENTION_POLICY[field], null, field);
   // What a deletion can and cannot reach is stated rather than implied.
   assert.deepEqual(RETENTION_POLICY.deletion_cannot_reach,
     ["RETAINED_ARCHIVE", "PRIOR_EXPORTS", "PROVIDER_RECORDS"]);
@@ -577,7 +581,9 @@ test("a v2 store migrates to versioned retention without back-dating an archive"
 
   const migrated = openStore(fixture.file);
   const record = migrated.read(receipt.inquiry_id, roles.reviewer);
-  assert.equal(record.retention.schema_version, "carbon.private-team-intake.retention.v1");
+  assert.equal(record.retention.schema_version, "carbon.private-team-intake.retention.v2");
+  assert.equal(record.retention.migrated_from, "PRE_VERSIONED_RETENTION");
+  assert.deepEqual(record.retention.closure, { event: null, at: null, recorded_by: null });
   assert.equal(record.retention.disposition, "ARCHIVE_INDEFINITE");
   // No archive action was ever taken, so none is recorded.
   assert.equal(record.retention.archived_at, null);
@@ -1288,7 +1294,8 @@ test("the adopted retention scope is not narrowed", () => {
     "PROVIDER_RECORDS",
   ]);
   assert.equal(RETENTION_POLICY.legal_basis, null);
-  assert.equal(RETENTION_POLICY.production_period, null);
+  for (const field of ["closure_event", "active_period", "archive_period", "scoping_expiry"])
+    assert.equal(RETENTION_POLICY[field], null, field);
   assert.equal(RETENTION_POLICY.approved_by, null);
 });
 

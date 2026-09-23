@@ -377,6 +377,25 @@ a client as complete erasure; the system cannot enforce that, and the tombstone
 is deliberately written so that nobody has to take an engineer's word for what
 it reached.
 
+**The retention schema (E3, `retention.v2`).** One `production_period` could
+not hold a closure event and two periods, so it was replaced rather than
+reinterpreted:
+
+| Field | Meaning | Value |
+|---|---|---|
+| `closure_event` (policy) | which events close a study | null: counsel's |
+| `closure` (record) | when this record's study actually closed, and who recorded it | null until recorded |
+| `active_period` | how long after closure the record stays active | null: counsel's |
+| `archive_period` | how long after closure the archive is kept | null: counsel's, to be matched to the limitation period under the MSA's governing law |
+| `scoping_expiry` | how long after receipt a SCOPING record is kept without an Order Form | null: counsel's. A STUDY record reads `NOT_APPLICABLE_STUDY_RECORD`, which is a different fact from unset |
+
+No intended value is written anywhere in the code, and a null never defaults to
+keeping or to deleting. Records written under `retention.v1` migrate when the
+store opens, keeping their archive facts, recording `migrated_from`, and
+inventing no closure or period. A v1 record that ever carried a non-null
+`production_period` stops the store from opening, because splitting it would be
+a guess.
+
 ### 3.5 Notification and the intake mailbox (E6)
 
 *The sender identity and mailbox now exist as operator configuration. The

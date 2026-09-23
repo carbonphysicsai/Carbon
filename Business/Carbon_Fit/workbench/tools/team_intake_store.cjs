@@ -17,7 +17,11 @@ const SEALED_FIELDS = ["raw_json", "validated_draft", "reviewed_package", "team_
 const KEY_DESTROYED = "ARCHIVE_KEY_DESTROYED";
 const STORE_VERSION_V2 = "carbon.private-team-intake.store.v2";
 const LEGACY_STORE_VERSION = "carbon.private-team-intake.store.v1";
-const RETENTION_VERSION = "carbon.private-team-intake.retention.v1";
+const RETENTION_VERSION = "carbon.private-team-intake.retention.v2";
+const RETENTION_VERSION_V1 = "carbon.private-team-intake.retention.v1";
+// E3. A SCOPING record's expiry does not apply to a STUDY record. That is a
+// different fact from "not yet set", so it has its own value rather than null.
+const SCOPING_EXPIRY_NOT_APPLICABLE = "NOT_APPLICABLE_STUDY_RECORD";
 
 // The owner's direction is archival retention with approved exception handling.
 // That is a design input, not a legal conclusion, so the fields a lawyer owns
@@ -31,7 +35,21 @@ const RETENTION_POLICY = Object.freeze({
   // Owner and legal, routed to Ryan and Nick under OD-25. Unresolved.
   approved_by: null,
   legal_basis: null,
-  production_period: null,
+  // E3. One field could not hold a closure event and two periods, so
+  // `production_period` is replaced rather than reinterpreted. The shape is
+  // approved; every value is counsel's and stays null. A null here stops the
+  // operation that needs it (the scheduled destruction job refuses to run); it
+  // never defaults to keeping or to deleting.
+  //   closure_event   the definition of when a study closes (which events count)
+  //   active_period   how long after closure the record stays active
+  //   archive_period  how long after closure the archive is kept
+  //   scoping_expiry  how long after receipt a SCOPING record is kept unless an
+  //                   Order Form is signed
+  // Periods, once confirmed, are ISO-8601 durations. None is written here.
+  closure_event: null,
+  active_period: null,
+  archive_period: null,
+  scoping_expiry: null,
   // What an approved deletion can and cannot reach, stated rather than implied.
   deletion_reaches: ["ACTIVE_RECORD", "ACTIVE_INDEX", "PENDING_NOTIFICATIONS"],
   deletion_cannot_reach: ["RETAINED_ARCHIVE", "PRIOR_EXPORTS", "PROVIDER_RECORDS"],
@@ -304,6 +322,7 @@ function validateStore(value) {
       record.basis_history = [];
       record.basis_origin = "PRE_E4_NONE_RECORDED";
     }
+    if (record.lifecycle !== KEY_DESTROYED) migrateRetention(record);
   }
   return value;
 }
@@ -333,17 +352,50 @@ function migrate(value) {
     // Empty rather than a reconstructed history. Nothing was retained, and an
     // invented entry would be indistinguishable from one that was recorded.
     if (!Array.isArray(record.retention_events)) record.retention_events = [];
-    record.retention = {
-      schema_version: RETENTION_VERSION,
-      policy_id: RETENTION_POLICY.policy_id,
-      disposition: RETENTION_POLICY.default_disposition,
-      archived_at: null,
-      archived_by: null,
-      exception_id: null,
-      production_period: RETENTION_POLICY.production_period,
-    };
+    // Pre-v3 stores predate versioned retention: the current block, with no
+    // archive action back-dated and nothing else invented.
+    record.retention = { ...retentionBlock(null), migrated_from: "PRE_VERSIONED_RETENTION" };
   }
   return next;
+}
+
+/** A record's retention block, at the current version, with nothing invented. */
+function retentionBlock(recordClass, carried = {}) {
+  return {
+    schema_version: RETENTION_VERSION,
+    policy_id: RETENTION_POLICY.policy_id,
+    disposition: carried.disposition || RETENTION_POLICY.default_disposition,
+    archived_at: carried.archived_at ?? null,
+    archived_by: carried.archived_by ?? null,
+    exception_id: carried.exception_id ?? null,
+    legal_basis: carried.legal_basis ?? null,
+    // When this record's study actually closed: a fact recorded later, never
+    // derived here.
+    closure: { event: null, at: null, recorded_by: null },
+    active_period: RETENTION_POLICY.active_period,
+    archive_period: RETENTION_POLICY.archive_period,
+    scoping_expiry: recordClass === "STUDY" ? SCOPING_EXPIRY_NOT_APPLICABLE : RETENTION_POLICY.scoping_expiry,
+  };
+}
+
+/**
+ * retention.v1 to v2. v1 held one `production_period`, which was null on every
+ * record because the policy never set it. A null maps to the new nulls. A
+ * non-null value cannot be split honestly into a closure event and two
+ * periods, so it is refused rather than guessed.
+ */
+function migrateRetention(record) {
+  const retention = record.retention || {};
+  if (retention.schema_version === RETENTION_VERSION) return;
+  if (retention.production_period !== undefined && retention.production_period !== null)
+    throw Error(
+      "Retention v1 record carries a production_period; it cannot be split into " +
+        "a closure event and two periods without a decision, so it is not migrated",
+    );
+  record.retention = {
+    ...retentionBlock(record.basis ? record.basis.record_class : null, retention),
+    migrated_from: retention.schema_version || "UNVERSIONED",
+  };
 }
 
 function appendRetentionEvent(record, action, actor, detail = {}) {
@@ -745,19 +797,7 @@ class DurableIntakeStore {
       // ever rewritten, so an engineer's revision history survives a correction.
       assessments: [],
       history_origin: "NATIVE",
-      retention: {
-        schema_version: RETENTION_VERSION,
-        policy_id: RETENTION_POLICY.policy_id,
-        disposition: RETENTION_POLICY.default_disposition,
-        archived_at: null,
-        archived_by: null,
-        // Set only by an approved exception; never inferred.
-        exception_id: null,
-        // The lawful basis the record is held on, enforced rather than filled
-        // in: it is the agreement reference, and a record cannot exist without it.
-        legal_basis: recordBasis.legal_basis,
-        production_period: RETENTION_POLICY.production_period,
-      },
+      retention: retentionBlock(recordBasis.record_class, { legal_basis: recordBasis.legal_basis }),
       // Append-only, like the assessment history. The retention block above is
       // current state and is overwritten — a restore clears the archive fields
       // — so on its own it loses who archived a record that was later restored
@@ -912,6 +952,7 @@ class DurableIntakeStore {
     const record = next.inquiries[inquiryId];
     record.basis = incoming;
     record.retention.legal_basis = incoming.legal_basis;
+    if (incoming.record_class === "STUDY") record.retention.scoping_expiry = SCOPING_EXPIRY_NOT_APPLICABLE;
     record.basis_history = [
       ...(record.basis_history || []),
       { seq: (record.basis_history || []).length + 1, event, ...incoming, by: actor, at: new Date().toISOString() },
@@ -1171,6 +1212,8 @@ module.exports = {
   READ_LIMIT_BYTES,
   STORE_VERSION,
   RETENTION_VERSION,
+  RETENTION_VERSION_V1,
+  SCOPING_EXPIRY_NOT_APPLICABLE,
   RETENTION_POLICY,
   LEGACY_STORE_VERSION,
   RECEIPT_VERSION,
