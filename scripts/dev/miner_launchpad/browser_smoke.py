@@ -32,9 +32,55 @@ def wait(session, expression):
     raise AssertionError(f"Browser condition failed: {expression}")
 
 
+class StubReader:
+    """A device-free, network-free chain reader.
+
+    The browser door now defaults to Carbon's real testnet, which is right for a
+    deployment and wrong for a smoke test: without this the page would make live
+    chain calls and the smoke would pass or fail on whether testnet answered.
+    """
+
+    def __init__(self, participants=()):
+        self.participants = tuple(participants)
+
+    async def capture(self, context):
+        from carbon.chain.models import MetagraphSnapshot
+
+        return MetagraphSnapshot(
+            context=context,
+            finalized_block=100,
+            block_hash="0x" + "cd" * 32,
+            timestamp_ms=1,
+            participants=self.participants,
+        )
+
+
+def stub_onboarding():
+    # Imported the way this file already imports `controller`: bare, because
+    # this directory is what is on sys.path here. The dotted `scripts.dev...`
+    # form resolves only when the repository root is also on the path, which is
+    # true of the test suite and not of this script.
+    from onboarding import BrowserOnboarding
+
+    from carbon.chain.models import ChainContext
+    from carbon.development_session.chain_onboarding import carbon_testnet_context
+
+    live = carbon_testnet_context()
+    return BrowserOnboarding(
+        reader=StubReader(),
+        context=ChainContext(
+            network=live.network,
+            endpoint=live.endpoint,
+            provider=live.provider,
+            genesis_hash=live.genesis_hash,
+            netuid=live.netuid,
+        ),
+    )
+
+
 @contextlib.contextmanager
 def serving(store, token, port=0):
-    server = controller.Server(store, token, port)
+    server = controller.Server(store, token, port, onboarding=stub_onboarding())
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     try:
@@ -231,6 +277,55 @@ class ResearchFixture:
         return [self.record] if self.record else []
 
 
+def press(session, key, *, code=None, modifiers=0):
+    """Send a real key event rather than calling .focus() or .click().
+
+    The distinction is the whole point of a keyboard assertion: driving the DOM
+    directly proves the element can be activated, not that a person using a
+    keyboard can reach it. Only a dispatched key exercises the tab order, and
+    the tab order is what a keyboard user actually has.
+    """
+    for kind in ("rawKeyDown", "char", "keyUp"):
+        if kind == "char" and key != "Enter":
+            continue
+        session.command(
+            "Input.dispatchKeyEvent",
+            {
+                "type": kind,
+                "key": key,
+                "code": code or key,
+                "windowsVirtualKeyCode": 13 if key == "Enter" else 9,
+                "modifiers": modifiers,
+            },
+        )
+
+
+def focused(session):
+    """What a keyboard user is currently on, as id or tag."""
+    return session.evaluate(
+        "(document.activeElement && (document.activeElement.id"
+        " || document.activeElement.tagName.toLowerCase())) || ''"
+    )
+
+
+def keyboard_reaches(session, identity, *, limit=40):
+    """Tab forward until the element has focus, or report how far we got.
+
+    Bounded rather than looping forever, and it reports the order it saw so a
+    failure says where the keyboard path stops instead of only that it did.
+    """
+    seen = []
+    for _ in range(limit):
+        current = focused(session)
+        if current == identity:
+            return seen
+        seen.append(current)
+        press(session, "Tab")
+    raise AssertionError(
+        f"{identity} was not reachable by keyboard; tab order visited {seen}"
+    )
+
+
 def run():
     with tempfile.TemporaryDirectory(prefix="carbon-launchpad-smoke-") as temporary:
         root = Path(temporary)
@@ -252,10 +347,97 @@ def run():
                     assert session.evaluate(
                         "document.getElementById('launch-fields').disabled"
                     )
+                    # The registration panel before connecting: present, and
+                    # refusing rather than erroring. Its endpoints existed long
+                    # before anything a person looked at reached them, so this
+                    # asserts the surface, not just the route.
+                    assert session.evaluate(
+                        "document.getElementById('onboarding-status').disabled"
+                    ), "registration controls must be disabled before connecting"
+                    assert session.evaluate(
+                        "document.getElementById('onboarding-coldkey')"
+                        ".textContent.toUpperCase().includes('COLDKEY')"
+                    ), "the coldkey warning must be on the page a miner reads"
+
                     connect(session, token)
                     assert session.evaluate(
                         "document.getElementById('research-launch').disabled"
                     )
+
+                    # After connecting the requirements are read and rendered.
+                    # Asserted on rendered text rather than on the response,
+                    # because a payload nobody can see is what this panel exists
+                    # to fix.
+                    wait(
+                        session,
+                        "document.getElementById('onboarding-facts')"
+                        ".textContent.includes('567')",
+                    )
+                    assert not session.evaluate(
+                        "document.getElementById('onboarding-status').disabled"
+                    )
+                    facts = session.evaluate(
+                        "document.getElementById('onboarding-facts').textContent"
+                    )
+                    assert "coldkey" in facts.lower(), facts[:200]
+                    # NOT_READ is shown as what it is. A figure here would be
+                    # read as a quote.
+                    assert "Not read by Carbon" in facts, facts[:200]
+
+                    # A real refusal through the real request path: a phrase in
+                    # the address field is rejected and never echoed back.
+                    phrase = (
+                        "bottom drive obey lake curtain smoke "
+                        "basket hold race lonely fit walk"
+                    )
+                    session.evaluate(
+                        "document.getElementById('onboarding-address').value="
+                        + json.dumps(phrase)
+                        + ";document.getElementById('onboarding-status').click()"
+                    )
+                    wait(
+                        session,
+                        "document.getElementById('onboarding-result')"
+                        ".textContent.length > 0",
+                    )
+                    shown = session.evaluate(
+                        "document.getElementById('onboarding-result').textContent"
+                    )
+                    for word in phrase.split():
+                        assert word not in shown, shown[:200]
+
+                    # Section 9 case 10: the journey has to be operable without
+                    # a mouse. Asserted with dispatched key events, because
+                    # calling .click() would prove only that the handler works -
+                    # which it already does - and nothing about whether a
+                    # keyboard user can ever get there.
+                    session.evaluate("document.body.focus()")
+                    session.evaluate(
+                        "document.getElementById('token').focus();"
+                        "document.getElementById('token').blur()"
+                    )
+                    # Targets an enabled control. `research-launch` is
+                    # disabled here by design - no research profile is
+                    # configured - and a browser correctly skips disabled
+                    # elements in the tab order, so asserting reachability of
+                    # one would demand the page break its own semantics. The
+                    # registration controls are the ones a miner actually
+                    # reaches first, and they are enabled once connected.
+                    order = keyboard_reaches(session, "onboarding-status")
+                    assert order, "tab order was empty; focus never moved"
+                    # Focus must be visible to whoever is driving it. An
+                    # outline removed for aesthetics makes the keyboard path
+                    # technically present and practically unusable.
+                    assert session.evaluate(
+                        "(() => {"
+                        " const node = document.getElementById('onboarding-status');"
+                        " node.focus();"
+                        " const style = getComputedStyle(node);"
+                        " return style.outlineStyle !== 'none'"
+                        "  || style.boxShadow !== 'none'"
+                        "  || style.borderStyle !== 'none';"
+                        "})()"
+                    ), "the focused control shows no visible focus indication"
 
                     # The public exam disclosure and the miner's own compute
                     # choices, rendered by the page from its own fetches. No

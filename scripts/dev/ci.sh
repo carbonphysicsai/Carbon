@@ -104,6 +104,19 @@ if [[ " ${CARBON_UV_GROUPS:-} " == *" mcp "* ]]; then
   fi
 fi
 
+# The Launchpad browser surface had no execution home: no browser on the
+# development host and no CI step ran it, so assertions added to that smoke
+# would have been coverage that never executes. It runs here rather than as a
+# workflow step because the workflow delegates all of its semantics to these
+# scripts, and adding a step there would have widened what that invariant pins
+# instead of respecting it. Skipped, loudly, where no browser exists.
+if "${python_bin}" -c "import sys; sys.path.insert(0, 'docs/development/carbon_hub/tools'); import browser_smoke_test as cdp; cdp.discover_browser()" >/dev/null 2>&1; then
+  echo "==> Launchpad real-browser smoke"
+  "${python_bin}" scripts/dev/miner_launchpad/browser_smoke.py
+else
+  echo "==> Launchpad real-browser smoke SKIPPED: no Chromium-family browser found"
+fi
+
 echo "==> canonical/legacy authority boundary"
 "${python_bin}" -m pytest tests/cpu/test_code_authority.py -q
 
