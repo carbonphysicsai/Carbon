@@ -1,41 +1,45 @@
-"""Non-spending prelaunch diagnostics; no model, numerical or chain dispatch."""
+"""Non-spending prelaunch diagnostics; no model, numerical or chain dispatch.
+
+The review reports the admission a launch will perform - subnet registration,
+read at launch (C-MLP-02-D11) - and never a grant, which no product surface has.
+"""
 
 import http.client
 import json
 import threading
-import time
+from pathlib import Path
 
 import pytest
-from test_miner_launchpad_admission import managed
-from test_miner_launchpad_runner import adapter
+from test_miner_launchpad_runner import (
+    KEY,
+    REVISION,
+    RUNTIME,
+    Chain,
+    adapter,
+    product_campaign,
+    run_id,
+)
 
 from carbon.development_session.profile import canonical, digest
+from carbon.development_session.research_ledger import (
+    DEVELOPMENT_CEILINGS,
+    SERVICE_LIMITS,
+)
 from scripts.dev.miner_launchpad.controller import Controller, Rejected, Server
 from scripts.dev.miner_launchpad.runner import PATH_FIELDS, RunnerAdapter
 
 
-def configured_bridge(tmp_path, monkeypatch):
-    ledger, _, _ = managed(tmp_path)
-    doc = dict(ledger.admission.document)
-    doc["runtime"] = {
-        "implementation": {
-            "revision": "a" * 40,
-            "tree": "b" * 40,
-            "source_tree_digest": "sha256:" + "c" * 64,
-        },
-        "images": ["sha256:" + "d" * 64],
-    }
-    doc["expires_unix"] = time.time() + 600
-    ledger.admission.path.write_bytes(canonical(doc))
+def configured_bridge(tmp_path, monkeypatch, *, chain=None):
+    tmp_path.chmod(0o700)
     cfg = {
-        "schema": "carbon.launchpad.runner-profile.v1",
+        "schema": "carbon.launchpad.runner-profile.v2",
         "profile_id": "private-fixture",
         "principal": "alice",
-        "grant_file": str(ledger.admission.path),
-        "account_ref": doc["account_ref"],
         "enabled": False,
         "disabled_reason": "OWNER_EXPERIMENT_PAUSE",
-        "accepted_revision": "a" * 40,
+        "accepted_revision": REVISION,
+        "campaigns_root": str(tmp_path / "PRIVATE-SENTINEL-campaigns"),
+        "runtime": json.loads(json.dumps(RUNTIME)),
         "paths": {
             key: str(tmp_path / ("PRIVATE-SENTINEL-" + key)) for key in PATH_FIELDS
         },
@@ -44,60 +48,114 @@ def configured_bridge(tmp_path, monkeypatch):
     path = tmp_path / "profile.json"
     path.write_bytes(canonical(cfg))
     path.chmod(0o600)
-    bridge = RunnerAdapter(tmp_path / "browser.sqlite3", configuration=path)
+    bridge = RunnerAdapter(
+        tmp_path / "browser.sqlite3",
+        configuration=path,
+        registration=chain or Chain(),
+    )
     monkeypatch.setattr(
         bridge, "_start", lambda *args: pytest.fail("dispatch forbidden")
     )
-    return bridge, cfg, doc, ledger
+    return bridge, cfg
+
+
+def write(bridge, cfg):
+    bridge.configuration.write_bytes(canonical(cfg))
+
+
+def enable(bridge, cfg):
+    cfg.pop("disabled_reason", None)
+    cfg["enabled"] = True
+    write(bridge, cfg)
 
 
 def test_paused_review_discloses_contract_not_private_inputs(tmp_path, monkeypatch):
-    bridge, cfg, doc, ledger = configured_bridge(tmp_path, monkeypatch)
-    before = ledger.admission.path.read_bytes()
+    bridge, cfg = configured_bridge(tmp_path, monkeypatch)
     result = bridge.preflight()
     assert not result["available"] and result["status"] == "OWNER_EXPERIMENT_PAUSE"
     assert result["research_guidance"]["text"] == cfg["research_guidance"]
     review = result["review"]
     assert review["execution"]["device_visibility"] == "NOT_OBSERVED"
     assert review["execution"]["runtime_evidence"] == "NOT_ATTACHED"
-    assert review["runtime"]["implementation"] == doc["runtime"]["implementation"]
+    assert review["runtime"]["implementation"] == cfg["runtime"]["implementation"]
+    # Specimen: the sentinel really is in the profile the review was built from.
+    assert "PRIVATE-SENTINEL" in bridge.configuration.read_text()
     assert "PRIVATE-SENTINEL" not in json.dumps(result)
-    assert cfg["account_ref"] not in json.dumps(result)
-    assert ledger.admission.path.read_bytes() == before
     for _ in range(2):
         with pytest.raises(Rejected, match="research_dispatch_disabled"):
             bridge.launch({"profile": cfg["profile_id"]}, "fixture-request-0001")
     assert bridge.recent() == []
-    restarted = RunnerAdapter(bridge.database, configuration=bridge.configuration)
+    restarted = RunnerAdapter(
+        bridge.database, configuration=bridge.configuration, registration=Chain()
+    )
     assert restarted.preflight() == result
 
 
-@pytest.mark.parametrize(
-    "state,expiry", [("REQUESTED_NOT_GRANTED", False), ("APPROVED", True)]
-)
-def test_expired_or_unapproved_grant_remains_reviewable_not_admissible(
-    tmp_path, monkeypatch, state, expiry
+def test_review_names_registration_as_the_gate_and_carries_no_grant(
+    tmp_path, monkeypatch
 ):
-    bridge, cfg, doc, ledger = configured_bridge(tmp_path, monkeypatch)
-    doc["status"] = state
-    if expiry:
-        doc["expires_unix"] = 1
-    ledger.admission.path.write_bytes(canonical(doc))
-    cfg.pop("disabled_reason")
-    cfg["enabled"] = True
-    bridge.configuration.write_bytes(canonical(cfg))
+    bridge, cfg = configured_bridge(tmp_path, monkeypatch)
+    enable(bridge, cfg)
     result = bridge.preflight()
-    assert not result["available"]
-    assert result["review"]["grant"]["expired"] is expiry
-    assert result["review"]["grant"]["status"] == state
-    with pytest.raises(Rejected, match="admission"):
+    assert result["available"] is True
+    assert result["admission"] == "SUBNET_REGISTRATION_CHECKED_AT_LAUNCH"
+    review = result["review"]
+    assert review["admission"]["gate"] == "SUBNET_REGISTRATION"
+    assert review["readiness"]["registration_checked"] == "AT_LAUNCH"
+    assert "grant" not in review and "grant" not in result
+    assert "GRANT" not in json.dumps(review["blockers"])
+
+
+def test_review_budget_is_the_miners_and_service_limits_are_carbons(
+    tmp_path, monkeypatch
+):
+    """The regression this guards: development ceilings described as a miner's."""
+    bridge, cfg = configured_bridge(tmp_path, monkeypatch)
+    enable(bridge, cfg)
+    resources = bridge.preflight()["review"]["resources"]
+    assert resources["miner_budget"] == "SET_AT_LAUNCH_OR_NONE"
+    assert resources["carbon_service_limits"] == SERVICE_LIMITS
+    assert "maximum_exploration" not in resources
+    assert "configured_ceilings" not in resources
+    # The development provider cap was one dollar; it must describe no miner.
+    specimen = DEVELOPMENT_CEILINGS["provider_nanodollars"]
+    assert str(specimen) in json.dumps(DEVELOPMENT_CEILINGS)
+    assert str(specimen) not in json.dumps(resources)
+
+
+def test_an_unregistered_launch_is_refused_and_writes_nothing(tmp_path, monkeypatch):
+    chain = Chain(failure="NOT_REGISTERED")
+    bridge, cfg = configured_bridge(tmp_path, monkeypatch, chain=chain)
+    enable(bridge, cfg)
+    monkeypatch.setattr(bridge, "_start", lambda *args: None)
+    body = {
+        "profile": cfg["profile_id"],
+        "review_digest": bridge.preflight()["review_digest"],
+    }
+    with pytest.raises(Rejected, match="registration_required"):
+        bridge.launch(body, "fixture-request-0001")
+    assert bridge.recent() == []
+    assert not Path(cfg["campaigns_root"]).exists()
+    chain.failure = None
+    assert bridge.launch(body, "fixture-request-0001")["id"] == run_id(
+        "fixture-request-0001"
+    )
+
+
+def test_a_v1_profile_is_named_as_retired_not_silently_refused(tmp_path, monkeypatch):
+    bridge, cfg = configured_bridge(tmp_path, monkeypatch)
+    write(bridge, {**cfg, "schema": "carbon.launchpad.runner-profile.v1"})
+    result = bridge.preflight()
+    assert result["status"] == "PROFILE_V1_RETIRED"
+    assert "registration" in result["reason"]
+    with pytest.raises(Rejected, match="runner_profile_v1_retired"):
         bridge.launch({"profile": cfg["profile_id"]}, "fixture-request-0001")
 
 
 def test_pause_explanation_cannot_enable_or_override_authority(tmp_path, monkeypatch):
-    bridge, cfg, _, _ = configured_bridge(tmp_path, monkeypatch)
+    bridge, cfg = configured_bridge(tmp_path, monkeypatch)
     cfg["enabled"] = True
-    bridge.configuration.write_bytes(canonical(cfg))
+    write(bridge, cfg)
     assert not bridge.preflight()["available"]
     with pytest.raises(Rejected):
         bridge.launch(
@@ -108,7 +166,7 @@ def test_pause_explanation_cannot_enable_or_override_authority(tmp_path, monkeyp
 
 def test_disabled_resume_keeps_status_stop_and_reconciliation(tmp_path, monkeypatch):
     bridge, ledger, control = adapter(tmp_path, monkeypatch)
-    run = bridge.launch({"profile": "opaque-profile"}, "fixture-request-0001")
+    run = bridge.launch({"profile": "opaque-profile"}, KEY)
 
     def disabled():
         raise Rejected("research_dispatch_disabled", 409)
@@ -128,24 +186,10 @@ def test_disabled_resume_keeps_status_stop_and_reconciliation(tmp_path, monkeypa
     )
 
 
-def test_final_reserve_projection_uses_existing_ledger_contract(tmp_path, monkeypatch):
-    bridge, _, doc, _ = configured_bridge(tmp_path, monkeypatch)
-    from carbon.development_session.research_ledger import SUGGESTED_FINAL_RESERVE
-
-    review = bridge.preflight()["review"]["resources"]
-    assert review["final_evaluation_reserve"] == SUGGESTED_FINAL_RESERVE
-    for dimension, ceiling in doc["ceilings"].items():
-        assert (
-            review["maximum_exploration"][dimension]
-            + SUGGESTED_FINAL_RESERVE.get(dimension, 0)
-            == ceiling
-        )
-
-
 def test_paused_direct_http_request_rejects_and_review_requires_auth(
     tmp_path, monkeypatch
 ):
-    bridge, cfg, _, _ = configured_bridge(tmp_path, monkeypatch)
+    bridge, cfg = configured_bridge(tmp_path, monkeypatch)
     server = Server(
         Controller(tmp_path / "http.sqlite3"),
         "fixture-token-long-enough-for-session",
@@ -190,9 +234,9 @@ def test_paused_direct_http_request_rejects_and_review_requires_auth(
 def test_gpu_configuration_is_not_cpu_fallback_or_execution_evidence(
     tmp_path, monkeypatch
 ):
-    bridge, cfg, doc, ledger = configured_bridge(tmp_path, monkeypatch)
-    doc["runtime"]["gpu_research"] = []  # Deliberately incomplete engineering fixture.
-    ledger.admission.path.write_bytes(canonical(doc))
+    bridge, cfg = configured_bridge(tmp_path, monkeypatch)
+    cfg["runtime"]["gpu_research"] = []  # Deliberately incomplete engineering fixture.
+    write(bridge, cfg)
     result = bridge.preflight()
     assert not result["available"]
     # A malformed scope is no longer reviewed as a GPU campaign. Advertising a
@@ -206,9 +250,7 @@ def test_gpu_configuration_is_not_cpu_fallback_or_execution_evidence(
         "LAUNCHPAD_CAMPAIGN_RUNTIME_COMPOSITION_UNAVAILABLE"
         in result["review"]["blockers"]
     )
-    cfg.pop("disabled_reason")
-    cfg["enabled"] = True
-    bridge.configuration.write_bytes(canonical(cfg))
+    enable(bridge, cfg)
     with pytest.raises(Rejected, match="runtime_interface_unavailable"):
         bridge.launch({"profile": cfg["profile_id"]}, "fixture-request-0001")
 
@@ -241,15 +283,15 @@ def _well_formed_gpu_scope():
 def test_declared_gpu_research_is_reviewed_as_its_own_runtime(tmp_path, monkeypatch):
     """The composition banner and the described runtime finally agree.
 
-    Before this, a grant declaring GPU research was shown with a cuda backend
+    Before this, a campaign declaring GPU research was shown with a cuda backend
     *and* a blocker saying the campaign composition was unavailable, because no
     runner could assemble one. A miner could not tell which of the two to
     believe. Now the runner assembles it, so neither statement contradicts the
     other.
     """
-    bridge, _cfg, doc, ledger = configured_bridge(tmp_path, monkeypatch)
-    doc["runtime"]["gpu_research"] = [_well_formed_gpu_scope()]
-    ledger.admission.path.write_bytes(canonical(doc))
+    bridge, cfg = configured_bridge(tmp_path, monkeypatch)
+    cfg["runtime"]["gpu_research"] = [_well_formed_gpu_scope()]
+    write(bridge, cfg)
 
     review = bridge.preflight()["review"]
 
@@ -273,7 +315,7 @@ def test_declared_gpu_research_is_reviewed_as_its_own_runtime(tmp_path, monkeypa
 
 def test_review_keeps_readiness_states_distinct(tmp_path, monkeypatch):
     """No single green badge. Each state carries its own evidence."""
-    bridge, _cfg, _doc, _ledger = configured_bridge(tmp_path, monkeypatch)
+    bridge, _cfg = configured_bridge(tmp_path, monkeypatch)
     readiness = bridge.preflight()["review"]["readiness"]
     assert readiness["connection_configured"] is False
     assert readiness["device_execution_observed"] is False
@@ -286,7 +328,7 @@ def test_review_keeps_readiness_states_distinct(tmp_path, monkeypatch):
         "connection_configured",
         "dependencies_inspected",
         "compatible_runtime_available",
-        "user_consent_active",
+        "registration_checked",
         "task_admitted",
         "device_execution_observed",
         "task_completed",
@@ -297,10 +339,8 @@ def test_review_keeps_readiness_states_distinct(tmp_path, monkeypatch):
 
 
 def test_pause_at_thread_handoff_never_enters_campaign(tmp_path, monkeypatch):
-    bridge, cfg, _, ledger = configured_bridge(tmp_path, monkeypatch)
-    cfg.pop("disabled_reason")
-    cfg["enabled"] = True
-    bridge.configuration.write_bytes(canonical(cfg))
+    bridge, cfg = configured_bridge(tmp_path, monkeypatch)
+    enable(bridge, cfg)
     # Retain the launch record without creating any numerical/model thread.
     monkeypatch.setattr(bridge, "_start", lambda *args: None)
     monkeypatch.setattr(bridge, "get", lambda identity: {"id": identity})
@@ -309,6 +349,8 @@ def test_pause_at_thread_handoff_never_enters_campaign(tmp_path, monkeypatch):
         {"profile": cfg["profile_id"], "review_digest": review["review_digest"]},
         "fixture-request-0001",
     )
+    root = Path(cfg["campaigns_root"]) / run["id"]
+    ledger, _, _ = product_campaign(root, run["id"])
     from carbon.development_session import research_campaign
 
     monkeypatch.setattr(
@@ -317,47 +359,37 @@ def test_pause_at_thread_handoff_never_enters_campaign(tmp_path, monkeypatch):
         lambda *args, **kwargs: pytest.fail("paused dispatch"),
     )
     disabled = {**cfg, "enabled": False, "disabled_reason": "OWNER_EXPERIMENT_PAUSE"}
-    bridge.configuration.write_bytes(canonical(disabled))
+    write(bridge, disabled)
     before = ledger.status(owner="miner-requester")
-    bridge._run(run["id"], cfg, ledger.admission, ledger.root)
+    bridge._run(run["id"], cfg, root, None)
     assert ledger.status(owner="miner-requester") == before
     with bridge.db() as db:
         assert (
-            db.execute("SELECT state FROM research_runs").fetchone()[0]
+            db.execute("SELECT state FROM launchpad_campaigns").fetchone()[0]
             == "RECONCILIATION_REQUIRED"
         )
 
 
-def test_guided_review_binds_grant_and_legacy_token_only_recovers_existing_run(
-    tmp_path, monkeypatch
-):
-    bridge, cfg, doc, ledger = configured_bridge(tmp_path, monkeypatch)
-    cfg.pop("disabled_reason")
-    cfg["enabled"] = True
-    bridge.configuration.write_bytes(canonical(cfg))
+def test_the_review_pin_binds_the_profile_the_miner_reviewed(tmp_path, monkeypatch):
+    """Any change to the profile after review invalidates the pin, and a stale
+    pin records nothing. A lost response still replays the launch it made."""
+    bridge, cfg = configured_bridge(tmp_path, monkeypatch)
+    enable(bridge, cfg)
     old_review = bridge.preflight()["review_digest"]
-    legacy = digest(canonical(cfg))
-    doc["ceilings"]["provider_attempts"] -= 1
-    ledger.admission.path.write_bytes(canonical(doc))
+    cfg["runtime"]["images"] = ["sha256:" + "e" * 64]
+    write(bridge, cfg)
     monkeypatch.setattr(bridge, "_start", lambda *args: None)
     monkeypatch.setattr(bridge, "get", lambda identity: {"id": identity})
-    for stale in (old_review, legacy):
+    for stale in (old_review, digest(canonical(cfg))):
         with pytest.raises(Rejected, match="research_review_changed"):
             bridge.launch(
                 {"profile": cfg["profile_id"], "review_digest": stale},
                 "fixture-request-0001",
             )
     with bridge.db() as db:
-        assert db.execute("SELECT COUNT(*) FROM research_runs").fetchone()[0] == 0
+        assert db.execute("SELECT COUNT(*) FROM launchpad_campaigns").fetchone()[0] == 0
     fresh = bridge.preflight()["review_digest"]
     assert fresh != old_review
-    first = bridge.launch(
-        {"profile": cfg["profile_id"], "review_digest": fresh}, "fixture-request-0001"
-    )
-    assert (
-        bridge.launch(
-            {"profile": cfg["profile_id"], "review_digest": legacy},
-            "fixture-request-0001",
-        )
-        == first
-    )
+    body = {"profile": cfg["profile_id"], "review_digest": fresh}
+    first = bridge.launch(body, "fixture-request-0001")
+    assert bridge.launch(body, "fixture-request-0001") == first

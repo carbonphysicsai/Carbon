@@ -5,7 +5,7 @@ import threading
 from types import SimpleNamespace
 
 import pytest
-from test_standard_mcp_cli import FixtureSigner, fixture_connection, prepare
+from test_standard_mcp_cli import CAMPAIGN, FixtureSigner, fixture_connection, prepare
 
 from carbon import research
 from carbon.development_session import research_tools
@@ -25,7 +25,7 @@ from carbon.miner_mcp.standard_cli import _AdmittedConnection, load_profile
 
 def compose(path, ledger, owner, monkeypatch, *, cleanup=False):
     monkeypatch.setattr(research_tools, "BittensorMessageSigner", FixtureSigner)
-    profile = load_profile(path, cleanup_only=cleanup)
+    profile = load_profile(path, CAMPAIGN, cleanup_only=cleanup)
     control = CampaignControl(ledger)
     ledger.generation = control.status()["generation"] if cleanup else control.acquire()
     composition = make_research_service(
@@ -49,6 +49,14 @@ def compose(path, ledger, owner, monkeypatch, *, cleanup=False):
         owner=owner,
     )
     return composition, ResearchToolAdapter(sdk, principal=owner)
+
+
+def exhaust_elapsed_budget(ledger):
+    """Start the campaign further back than the miner's elapsed budget allows."""
+    import time
+
+    with ledger.db() as db:
+        db.execute("UPDATE campaign SET started=? WHERE id=1", (time.time() - 61,))
 
 
 def request(identity="tasks-operation-0001"):
@@ -204,7 +212,7 @@ def test_cancel_reuses_identity_across_surfaces_and_shutdown_joins(
 def test_cleanup_attachment_reads_and_cancels_expired_owned_work_without_dispatch(
     tmp_path, monkeypatch
 ):
-    path, ledger, owner = prepare(tmp_path, monkeypatch)
+    path, ledger, owner = prepare(tmp_path, monkeypatch, budget={"elapsed_seconds": 60})
     composition, adapter = compose(path, ledger, owner, monkeypatch)
     # Persist an acknowledged QUEUED task, simulating loss before dispatch.
     original = composition.tasks.run_queued_task
@@ -221,13 +229,18 @@ def test_cleanup_attachment_reads_and_cancels_expired_owned_work_without_dispatc
     identity = asyncio.run(enqueue())
     composition.tasks.run_queued_task = original
     composition.tasks.close()
-    monkeypatch.setattr(
-        "carbon.miner_mcp.standard_cli.time.time",
-        lambda: ledger.admission.document["expires_unix"] + 1,
+    # The miner's elapsed budget is spent: new admission is refused on every
+    # call, while the work the campaign already owns can still be cleaned up.
+    exhaust_elapsed_budget(ledger)
+    admitting = _AdmittedConnection(
+        fixture_connection(ledger.root),
+        load_profile(path, CAMPAIGN),
+        ledger,
+        CampaignControl(ledger),
     )
-    ledger.clock = lambda: ledger.admission.document["expires_unix"] + 1
-    with pytest.raises(ValueError):
-        load_profile(path)
+    ledger.generation = CampaignControl(ledger).status()["generation"]
+    with pytest.raises(ValueError, match="elapsed budget"):
+        asyncio.run(admitting.check_registration())
     cleaned, bound = compose(path, ledger, owner, monkeypatch, cleanup=True)
     try:
         assert state(asyncio.run(bound.observe_task(identity))) == "QUEUED"
@@ -336,12 +349,12 @@ def test_cancelled_shutdown_retains_lease_until_owned_worker_finishes(
 
 
 @pytest.mark.parametrize("missing_observation", [False, True])
-def test_actual_cli_cleanup_mode_attaches_without_refreezing_expired_grant(
+def test_actual_cli_cleanup_mode_attaches_after_the_budget_is_spent(
     tmp_path, monkeypatch, missing_observation
 ):
     from carbon.miner_mcp import standard_cli
 
-    path, ledger, owner = prepare(tmp_path, monkeypatch)
+    path, ledger, owner = prepare(tmp_path, monkeypatch, budget={"elapsed_seconds": 60})
     composition, adapter = compose(path, ledger, owner, monkeypatch)
     composition.tasks.run_queued_task = (
         lambda identity: composition.tasks.task_observation(
@@ -362,9 +375,7 @@ def test_actual_cli_cleanup_mode_attaches_without_refreezing_expired_grant(
         with composition.tasks._db() as db:
             db.execute("DELETE FROM task_observations")
     composition.tasks.close()
-    monkeypatch.setattr(
-        standard_cli.time, "time", lambda: ledger.admission.document["expires_unix"] + 1
-    )
+    exhaust_elapsed_budget(ledger)
     monkeypatch.setattr(
         standard_cli,
         "_runtime",
@@ -396,7 +407,12 @@ def test_actual_cli_cleanup_mode_attaches_without_refreezing_expired_grant(
         return SimpleNamespace(run_async=run)
 
     monkeypatch.setattr(standard_cli, "create_stdio_server", server)
-    assert standard_cli.main(["--configuration", str(path), "--cleanup-only"]) == 0
+    assert (
+        standard_cli.main(
+            ["--configuration", str(path), "--campaign", CAMPAIGN, "--cleanup-only"]
+        )
+        == 0
+    )
     assert observed == ["QUEUED", "CANCELLED"]
     with ledger.db() as db:
         assert db.execute("SELECT COUNT(*) FROM operations").fetchone()[0] == 0

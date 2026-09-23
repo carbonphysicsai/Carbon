@@ -1,8 +1,9 @@
-"""Negotiated stdio Tasks on actual Julia; explicit local engineering authority.
+"""Negotiated stdio Tasks on actual Julia, on a registration-admitted campaign.
 
 Only external registration/signing and CPU public fixture composition are
-substituted. CLI ownership, grants, ledger, tasks, images, carrier and cleanup
-execute normally. This is not paid-agent, security or scientific qualification.
+substituted. CLI ownership, admission, ledger, tasks, images, carrier and
+cleanup execute normally. The campaign is a product campaign (C-MLP-02-D11):
+admitted by a recorded registration, never by a grant. This is not paid-agent, security or scientific qualification.
 """
 
 from __future__ import annotations
@@ -22,7 +23,9 @@ REPOSITORY = Path(__file__).resolve().parents[2]
 sys.path[:0] = [str(REPOSITORY), str(REPOSITORY / "tests/cpu")]
 
 from test_authored_julia_service import assert_removed
+from test_miner_launchpad_runner import registered
 from test_standard_mcp_cli import (
+    CAMPAIGN,
     FixtureSigner,
     fixture_connection,
     private_write,
@@ -37,17 +40,7 @@ from carbon.development_session.julia_analysis import (
     build_julia_analysis_image,
     load_julia_analysis_image,
 )
-from carbon.development_session.research_admission import (
-    MANIFEST,
-    PROFILE,
-    SCHEMA,
-    Admission,
-)
-from carbon.development_session.research_ledger import (
-    DEVELOPMENT_CEILINGS,
-    DEVELOPMENT_ELAPSED_SECONDS,
-    CampaignLedger,
-)
+from carbon.development_session.research_ledger import PRODUCT, CampaignLedger
 from carbon.development_session.research_material import PublicMaterial
 from carbon.development_session.research_service import make_research_service
 from carbon.miner_mcp import standard_cli
@@ -72,7 +65,9 @@ def prepare_native(root, worker, monkeypatch):
 
     monkeypatch.setattr(carbon.chain.auth, "BittensorMessageSigner", FixtureSigner)
     root.chmod(0o700)
-    campaign = root / "campaign"
+    campaigns = root / "campaigns"
+    campaigns.mkdir(mode=0o700)
+    campaign = campaigns / CAMPAIGN
     campaign.mkdir(mode=0o700)
     owner = asyncio.run(standard_cli._requester(fixture_connection(campaign)))
     runtime = {
@@ -80,39 +75,14 @@ def prepare_native(root, worker, monkeypatch):
         "images": [worker.parent.parent_image, worker.parent.image_id],
         "authored_research": [authored_julia_scope(worker)],
     }
-    grant = {
-        "schema": SCHEMA,
-        "status": "APPROVED",
-        "authority": "ENGINEERING_FIXTURE_ONLY",
-        "grant_id": "mcp-tasks-julia-fixture",
-        "campaign_id": "mcp-tasks-julia-fixture",
-        "root": str(campaign),
-        "principal": "fixture-operator",
-        "miner_identity": "fixture-miner",
-        "profile": PROFILE,
-        "runtime": runtime,
-        "provider": "openai-responses",
-        "account_ref": "fixture-no-paid-calls",
-        "campaign_count": 1,
-        "ceilings": dict(DEVELOPMENT_CEILINGS),
-        "elapsed_seconds": DEVELOPMENT_ELAPSED_SECONDS,
-        "expires_unix": time.time() + DEVELOPMENT_ELAPSED_SECONDS,
-        "cleanup": "all-campaign-owned-work; unresolved-reservations-retained",
-        "retry_allowance": 0,
-    }
-    grant_file = root / "grant.json"
-    private_write(grant_file, grant)
-    admission = Admission.load(grant_file)
     manifest = {
-        "schema": MANIFEST,
-        "campaign_id": grant["campaign_id"],
-        "authority": grant["authority"],
-        "principal": grant["principal"],
+        "schema": PRODUCT,
+        "authority": "C-MLP-02-D11",
+        "campaign_id": "cmp-" + CAMPAIGN,
+        "principal": "fixture-operator",
         "owner": owner,
         "runtime": runtime,
-        "grant": admission.binding(),
-        "ceilings": dict(DEVELOPMENT_CEILINGS),
-        "elapsed_seconds": DEVELOPMENT_ELAPSED_SECONDS,
+        "admission": registered().record(),
         "implementation": runtime["implementation"],
         "images": runtime["images"],
         **dict.fromkeys(
@@ -127,7 +97,7 @@ def prepare_native(root, worker, monkeypatch):
             "engineering-fixture-only",
         ),
     }
-    ledger = CampaignLedger(campaign, admission=admission)
+    ledger = CampaignLedger(campaign)
     ledger.freeze(manifest)
     private_write(campaign / "campaign-manifest.json", manifest)
     private_write(
@@ -148,14 +118,14 @@ def prepare_native(root, worker, monkeypatch):
     private_write(
         path,
         {
-            "schema": "carbon.launchpad.runner-profile.v1",
+            "schema": "carbon.launchpad.runner-profile.v2",
             "profile_id": "fixture-profile",
-            "principal": grant["principal"],
-            "grant_file": str(grant_file),
-            "account_ref": grant["account_ref"],
+            "principal": "fixture-operator",
             "enabled": True,
             "paths": {name: str(root / (name + ".json")) for name in PATH_FIELDS},
             "accepted_revision": runtime["implementation"]["revision"],
+            "campaigns_root": str(campaigns),
+            "runtime": runtime,
         },
     )
     return path, ledger, owner
@@ -182,7 +152,7 @@ def serve_native(path):
         PublicMaterial(None),
         unavailable_practice,
     )
-    return standard_cli.main(["--configuration", str(path)])
+    return standard_cli.main(["--configuration", str(path), "--campaign", CAMPAIGN])
 
 
 def arguments(identity, source):

@@ -1,0 +1,14 @@
+{
+  "map_ref": "SYSTEM/AGENT-EXECUTION",
+  "event_type": "evidence",
+  "event_id": "C-MLP-02-PRODUCT-SURFACES-REGISTRATION-01",
+  "owner_lane": "technical_lead",
+  "status": "implemented",
+  "summary": "Second half of C-MLP-02-D11: both miner front doors now admit a campaign by subnet registration alone, and neither can admit work under a development grant. The browser runner reads the chain for the miner's hotkey before anything durable is written - no row, no campaign directory, no thread - and admits a carbon.launchpad.campaign.v1 campaign with the RegisteredMiner that read produced; previously it recorded the launch and returned 200 before any registration read. A launch may carry the miner's own budget and with none there is no limit, including no epoch count. Each launch key is its own campaign under the profile's campaigns_root, where one grant had meant one campaign. Runner profile v2 drops grant_file and account_ref; a v1 profile is refused by name. The MCP registered tier attaches to a named product campaign, re-reads registration on every call and applies an elapsed deadline only if the miner set one. The prelaunch review reports registration as the gate and the miner's budget separately from Carbon's own service limits, and the Launchpad names no grant. Campaigns launched under a grant stay readable, pausable, stoppable and reconcilable through RetainedGrant, a grant type whose admission always refuses, and are never resumed. The grant stays on the development path: the development CLI gains --grant-file, and Carbon's internal Workbench service keeps its grant campaign through a development loader moved out of the MCP door into workbench_host. An invariant forbids every product-surface module from importing the grant module except the cleanup-only retained ledger, with specimens that the scanner finds the development CLI's import and the one permitted one. No surface's scientific, security, qualification or deployment authority changes, and registration enters no score.",
+  "primary_detail": "scripts/dev/miner_launchpad/runner.py",
+  "affects": [
+    "SYSTEM/AGENT-EXECUTION"
+  ],
+  "supersedes": null,
+  "recorded_at": "2026-09-23T17:30:00Z"
+}
