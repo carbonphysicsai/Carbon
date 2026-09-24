@@ -98,6 +98,13 @@ def chain_registration(cfg):
     )
 
 
+def runner_database(cfg):
+    """Where both doors record this profile's campaigns: beside them, so a
+    campaign launched from a browser and one launched from a miner's own MCP
+    client are one list, read and controlled the same way."""
+    return Path(cfg["campaigns_root"]) / "launchpad-campaigns.sqlite3"
+
+
 def product_agent(root):
     """Who selects in the campaign at `root`, from its frozen manifest."""
     manifest = Path(root) / "campaign-manifest.json"
@@ -326,6 +333,47 @@ class RunnerAdapter:
     # -- The campaign host: what the operations table's gates and bodies ask of
     # -- whichever door is calling. Both doors construct this same class.
 
+    @classmethod
+    def for_profile(cls, configuration, *, legacy_database=None, registration=None):
+        """The campaign host both doors construct for one runner profile.
+
+        Its records live beside the profile's campaigns. `legacy_database` is a
+        browser database from before the doors shared one: its campaign rows
+        are copied across once, so nothing launched earlier is lost.
+        """
+        cfg = validated_profile(private_json(Path(configuration)))
+        database = runner_database(cfg)
+        database.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+        host = cls(database, configuration=configuration, registration=registration)
+        if legacy_database is not None and Path(legacy_database).exists():
+            host._adopt(Path(legacy_database))
+        database.chmod(0o600)
+        return host
+
+    def _adopt(self, legacy):
+        with self.db() as db:
+            db.execute("ATTACH DATABASE ? AS legacy", (str(legacy),))
+            try:
+                tables = {
+                    r[0]
+                    for r in db.execute(
+                        "SELECT name FROM legacy.sqlite_master WHERE type='table'"
+                    )
+                }
+                for table in ("launchpad_campaigns", "research_runs"):
+                    if table in tables:
+                        columns = ",".join(
+                            r[1]
+                            for r in db.execute(f"PRAGMA legacy.table_info({table})")
+                        )
+                        db.execute(
+                            f"INSERT OR IGNORE INTO main.{table} ({columns}) "
+                            f"SELECT {columns} FROM legacy.{table}"
+                        )
+            finally:
+                db.commit()
+                db.execute("DETACH DATABASE legacy")
+
     def replayed(self, cfg, request):
         """Launch's read-only replay gate: validates the request, and returns
         the campaign a lost response created, reading no chain; or None."""
@@ -462,7 +510,7 @@ class RunnerAdapter:
         real training takes minutes, and observe shows the result."""
         import uuid
 
-        from carbon.development_session.research_tools import PREFIX
+        from carbon.development_session.research_campaign import practice_recipe
         from scripts.dev.miner_launchpad.operations import strategy_value
 
         strategy = strategy_value(request)
@@ -474,22 +522,17 @@ class RunnerAdapter:
         identity = "miner-practice-" + uuid.uuid4().hex[:16]
 
         async def practice(prepared):
-            return await prepared.sdk.call(
-                PREFIX + "start_research_task",
-                {
-                    "kind": "practice",
-                    "strategy_json": json.dumps(strategy),
-                    "action": None,
-                    "arguments_json": None,
-                    "hypothesis": hypothesis,
-                    "expected_effect": expected,
-                },
-                identity,
+            return await practice_recipe(
+                prepared,
+                strategy=strategy,
+                hypothesis=hypothesis,
+                expected_effect=expected,
+                identity=identity,
             )
 
         return self._background(admitted, practice, "PRACTICING")
 
-    def freeze_admitted(self, admitted, request):
+    def freeze_candidate_admitted(self, admitted, request):
         from carbon.development_session.research_campaign import freeze_candidate
         from scripts.dev.miner_launchpad.operations import strategy_value
 

@@ -27,6 +27,27 @@ from pathlib import Path
 # One refusal type for every door: a browser sees its status, MCP its code.
 from scripts.dev.miner_launchpad.controller import Rejected
 
+#: Every request field any operation takes, with its JSON type and meaning.
+#: Both doors read these: the browser validates bodies against them and MCP
+#: builds its tool schemas from them, so a field cannot mean two things.
+FIELDS = {
+    "agent": ("string", "Who selects: autonomous (Carbon's agent) or none (you)."),
+    "idempotency_key": ("string", "16-80 letters, digits, - or _; a retry replays."),
+    "budget": ("object", "Optional ceilings, elapsed_seconds or final_reserve."),
+    "review_digest": ("string", "The launch review you accepted, when one applies."),
+    "profile": ("string", "Your runner profile id, to confirm which one."),
+    "campaign": ("string", "The campaign id."),
+    "strategy": (
+        "object",
+        "A recipe: schema_version, challenge_id, backbone, parameters.",
+    ),
+    "reason": ("string", "Why this candidate: what your practice showed."),
+    "used_feedback": ("boolean", "Whether prior final feedback informed it."),
+    "hypothesis": ("string", "What this trial tests."),
+    "expected_effect": ("string", "What you expect it to show."),
+    "action": ("string", "stop, pause or reconcile."),
+}
+
 #: The gates, in the only order they run. `replay` is read-only and precedes
 #: registration so a lost response replays without a chain read.
 GATE_ORDER = ("request", "profile", "replay", "registration", "campaign")
@@ -55,7 +76,6 @@ class Operation:
     required: frozenset
     optional: frozenset
     gates: tuple
-    body: object
     #: Whether the operation starts or extends work - a campaign, a trial, a
     #: submission. Every one that does is admitted by registration before its
     #: body runs. One that only reads or withdraws (observe, halt) is not:
@@ -63,40 +83,14 @@ class Operation:
     admits_work: bool = True
 
     def __post_init__(self):
+        if not self.required | self.optional <= set(FIELDS):
+            raise ValueError(f"{self.name}: every field is declared in FIELDS")
         if list(self.gates) != [g for g in GATE_ORDER if g in self.gates]:
             raise ValueError(f"{self.name}: gates run in the fixed order")
         if self.gates[:2] != ("request", "profile"):
             raise ValueError(f"{self.name}: request and profile gates come first")
         if self.admits_work and "registration" not in self.gates:
             raise ValueError(f"{self.name}: registration admits all new work")
-
-
-def _launch(admitted, request):
-    return admitted.host.launch_admitted(admitted, request)
-
-
-def _freeze(admitted, request):
-    return admitted.host.freeze_admitted(admitted, request)
-
-
-def _submit(admitted, request):
-    return admitted.host.submit_admitted(admitted, request)
-
-
-def _observe(admitted, request):
-    return admitted.host.observe_admitted(admitted, request)
-
-
-def _practice(admitted, request):
-    return admitted.host.practice_admitted(admitted, request)
-
-
-def _halt(admitted, request):
-    return admitted.host.halt_admitted(admitted, request)
-
-
-def _resume(admitted, request):
-    return admitted.host.resume_admitted(admitted, request)
 
 
 OPERATIONS = {
@@ -109,7 +103,6 @@ OPERATIONS = {
             frozenset({"agent", "idempotency_key"}),
             frozenset({"budget", "review_digest", "profile"}),
             ("request", "profile", "replay", "registration"),
-            _launch,
         ),
         Operation(
             "observe",
@@ -118,7 +111,6 @@ OPERATIONS = {
             frozenset({"campaign"}),
             frozenset(),
             ("request", "profile", "campaign"),
-            _observe,
             admits_work=False,
         ),
         Operation(
@@ -129,7 +121,6 @@ OPERATIONS = {
             frozenset({"campaign", "strategy", "hypothesis"}),
             frozenset({"expected_effect"}),
             ("request", "profile", "registration", "campaign"),
-            _practice,
         ),
         Operation(
             "halt",
@@ -138,7 +129,6 @@ OPERATIONS = {
             frozenset({"campaign", "action"}),
             frozenset(),
             ("request", "profile", "campaign"),
-            _halt,
             admits_work=False,
         ),
         Operation(
@@ -147,7 +137,6 @@ OPERATIONS = {
             frozenset({"campaign"}),
             frozenset(),
             ("request", "profile", "registration", "campaign"),
-            _resume,
         ),
         Operation(
             "freeze_candidate",
@@ -156,7 +145,6 @@ OPERATIONS = {
             frozenset({"campaign", "strategy", "reason"}),
             frozenset({"used_feedback"}),
             ("request", "profile", "registration", "campaign"),
-            _freeze,
         ),
         Operation(
             "submit",
@@ -166,7 +154,6 @@ OPERATIONS = {
             frozenset({"campaign"}),
             frozenset(),
             ("request", "profile", "registration", "campaign"),
-            _submit,
         ),
     )
 }
@@ -233,7 +220,10 @@ def perform(host, name, request):
             # cleaned up, but no new work is ever admitted to it.
             if op.admits_work and campaign["kind"] != "product":
                 raise Rejected("retired_grant_campaign", 409)
-    return op.body(Admitted(_TOKEN, host, profile, miner, campaign), request)
+    # The body is the host's `<operation>_admitted`, found by name: the table
+    # names it, and no door supplies one of its own.
+    body = getattr(host, op.name + "_admitted")
+    return body(Admitted(_TOKEN, host, profile, miner, campaign), request)
 
 
 def describe():

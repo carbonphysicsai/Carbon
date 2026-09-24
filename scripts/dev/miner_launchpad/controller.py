@@ -335,11 +335,10 @@ def research_compute_choices() -> list:
 
 
 def _default_onboarding():
-    """A browser door onto the shared service, with no chain configured.
+    """A browser door onto the shared service, reading Carbon's testnet.
 
-    Kept absent rather than invented: `requirements` answers without a chain,
-    and the reads say plainly that the operator configured no endpoint instead
-    of guessing one.
+    `BrowserOnboarding` defaults to `chain_onboarding.carbon_testnet_context`,
+    the same context the MCP door's onboarding uses.
     """
     from scripts.dev.miner_launchpad.onboarding import BrowserOnboarding
 
@@ -790,7 +789,11 @@ def main() -> None:
         if args.research_profile is not None:
             from scripts.dev.miner_launchpad.runner import RunnerAdapter
 
-            runner = RunnerAdapter(database, configuration=args.research_profile)
+            # The same host an MCP client with this profile constructs, over
+            # the same records; earlier browser-only records are adopted once.
+            runner = RunnerAdapter.for_profile(
+                args.research_profile, legacy_database=database
+            )
         server = Server(
             controller,
             token,

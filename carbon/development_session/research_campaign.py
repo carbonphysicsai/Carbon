@@ -903,6 +903,29 @@ async def freeze_candidate(prepared, *, strategy, reason, used_feedback=False):
     return {"epoch": epoch, "selection": record}
 
 
+async def practice_recipe(prepared, *, strategy, hypothesis, expected_effect, identity):
+    """A miner's practice trial of a registered recipe on a prepared campaign.
+
+    The same research task the agent's practice runs, through the campaign's
+    own research service: real training on public TRAIN data, self-reported,
+    and the result a later freeze needs.
+    """
+    from .research_tools import PREFIX
+
+    return await prepared.sdk.call(
+        PREFIX + "start_research_task",
+        {
+            "kind": "practice",
+            "strategy_json": json.dumps(strategy),
+            "action": None,
+            "arguments_json": None,
+            "hypothesis": hypothesis,
+            "expected_effect": expected_effect,
+        },
+        identity,
+    )
+
+
 async def submit_frozen(prepared):
     """A miner's DEVELOPMENT submit of their frozen candidate.
 

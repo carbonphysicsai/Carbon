@@ -420,6 +420,14 @@ async def attached_profile(profile: OperatorProfile):
         raise TypeError("a loaded operator profile is required")
     cleanup_only = profile.cleanup_only
     with owner_lock(profile.root):
+        # Registration first: the campaign's frozen record, its control
+        # generation and its prepared tasks are not touched until the
+        # authenticated owner is known to be the registered one. The
+        # connection's session files already exist from launch.
+        connection, image, analysis, role_root = _runtime(profile)
+        owner = await _requester(connection)
+        if owner != profile.manifest.get("owner"):
+            raise ValueError("authenticated campaign owner changed")
         ledger = CampaignLedger(profile.root, admission=profile.development_grant)
         if not cleanup_only:
             ledger.freeze(profile.manifest)  # Must match the existing immutable record.
@@ -447,10 +455,6 @@ async def attached_profile(profile: OperatorProfile):
         ledger.generation = status["generation"] if cleanup_only else control.acquire()
         if cleanup_only:
             ledger.retained_owner(profile.manifest["owner"])
-        connection, image, analysis, role_root = _runtime(profile)
-        owner = await _requester(connection)
-        if owner != profile.manifest.get("owner"):
-            raise ValueError("authenticated campaign owner changed")
         authored = _authored_image(profile, analysis)
         material, practice = _science(
             ledger,
@@ -520,6 +524,37 @@ async def serve(configuration: Path, campaign: str, *, cleanup_only=False):
         await create_stdio_server(adapter).run_async()
 
 
+async def serve_operations(configuration: Path):
+    """A miner's own client with their runner profile: the whole journey.
+
+    Onboarding (the open tier, reading Carbon's testnet), every operation in
+    the shared table - launch with or without an agent, observe, practice,
+    freeze, submit, halt, resume - and attach/detach for deeper research. The
+    operation tools are generated from the same table as the browser's routes,
+    through the same campaign host over the same records. Nothing on this path
+    is issued by Carbon.
+    """
+    from carbon.miner_mcp.mcp_operations import (
+        Attachment,
+        make_attachment_tools,
+        make_operation_tools,
+    )
+    from carbon.miner_mcp.open_tier import create_open_tier_server
+    from scripts.dev.miner_launchpad.runner import RunnerAdapter
+
+    host = RunnerAdapter.for_profile(configuration)
+    server = create_open_tier_server()
+    attachment = Attachment(server, configuration)
+    tools = server._tool_manager._tools
+    for tool in [*make_operation_tools(host), *make_attachment_tools(attachment)]:
+        tools[tool.name] = tool
+    try:
+        await server.run_async()
+    finally:
+        await attachment.detach()
+        host.close()
+
+
 async def serve_open_tier():
     """Serve the open tier alone: no profile, no grant, no campaign, no lock.
 
@@ -528,10 +563,9 @@ async def serve_open_tier():
     nothing - which is the same statement as the tier rule that nothing here
     creates a campaign, consumes compute or touches the ledger.
 
-    No chain endpoint is configured, so `requirements` answers in full - it is
-    what an unregistered visitor needs first and needs no chain - and the reads
-    report `CHAIN_NOT_CONFIGURED` with the next usable step rather than guessing
-    an endpoint. The browser door is in the same position for the same reason.
+    Onboarding reads Carbon's own testnet by default - the same context the
+    browser door uses (`chain_onboarding.carbon_testnet_context`) - so `status`
+    and `confirm` answer from public chain state on either door.
     """
     from carbon.miner_mcp.open_tier import create_open_tier_server
 
@@ -544,9 +578,10 @@ def main(argv=None):
         "--configuration",
         type=Path,
         help=(
-            "An existing private operator profile. Omit it to serve the open "
-            "tier alone: registration onboarding and the published validator "
-            "exam environment, with no campaign and no research tools."
+            "Your private runner profile. With it and no --campaign: onboarding "
+            "and every miner operation, including launch. Omit it to serve the "
+            "open tier alone: registration onboarding and the published "
+            "validator exam environment."
         ),
     )
     parser.add_argument(
@@ -561,11 +596,15 @@ def main(argv=None):
     args = parser.parse_args(argv)
     if args.configuration is None and (args.cleanup_only or args.campaign):
         parser.error("--campaign and --cleanup-only need your runner profile")
-    if args.configuration is not None and not args.campaign:
-        parser.error("--configuration needs the --campaign to attach to")
+    if args.cleanup_only and not args.campaign:
+        parser.error("--cleanup-only needs the --campaign to clean up")
     try:
         if args.configuration is None:
             asyncio.run(serve_open_tier())
+        elif not args.campaign:
+            # With a profile and no campaign: every operation, including
+            # launching one. A miner's own client needs nothing Carbon issues.
+            asyncio.run(serve_operations(args.configuration))
         else:
             asyncio.run(
                 serve(args.configuration, args.campaign, cleanup_only=args.cleanup_only)

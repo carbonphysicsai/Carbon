@@ -74,6 +74,14 @@ def test_package_is_exact_and_exports_no_official_or_network_surface() -> None:
         "serving.py",
         "mcp_skills.py",
         "store.py",
+        # The MCP caller of the shared miner operations table. It defines no
+        # operation and no gate: every tool is generated from the table the
+        # browser's routes also come from, and runs the table's gates through
+        # the shared `perform`. Its submit is the DEVELOPMENT submit to the
+        # local development service - no chain write, no official submission,
+        # no signing on a miner's behalf. Attach/detach reuse the existing
+        # attachment and ownership lock.
+        "mcp_operations.py",
     }
     assert tuple(miner_mcp_exports) == (
         "AuthenticatedMcpResult",

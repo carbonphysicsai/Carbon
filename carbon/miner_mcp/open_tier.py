@@ -63,10 +63,9 @@ def create_open_tier_server(
 ):
     """A stdio server carrying only the open tier.
 
-    `reader` and `context` are optional. Without them `requirements` still
-    answers, which is what an unregistered visitor needs first, and the reads
-    report that the operator configured no chain endpoint rather than guessing
-    one.
+    `reader` and `context` default to Carbon's own testnet - the same
+    `chain_onboarding.carbon_testnet_context` the browser door uses - so
+    `status` and `confirm` answer from public chain state on either door.
     """
     from mcp.server import MCPServer
 
