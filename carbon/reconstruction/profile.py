@@ -13,6 +13,7 @@ from carbon.construction import (
     ResolvedConstructionPlan,
     SelectedSurface,
 )
+from carbon.reconstruction.capability_registry import rebuildable_families
 from carbon.reconstruction.model import ReconstructionFailure, ReconstructionProfile
 from carbon.reconstruction.scaling import BurgersPhysicalScaling
 
@@ -60,13 +61,11 @@ DEPENDENCY_SPECS = (
     ("pyyaml", "6.0.3", _tagged(b"pypi:pyyaml==6.0.3")),
 )
 
+# Every family the capability registry marks rebuildable, under the
+# registration's carbon_jax_<selector>1d backbone id.
 _BACKBONES = {
-    "fno": ("carbon_jax_fno1d", "fno1d"),
-    "deeponet": ("carbon_jax_deeponet1d", "deeponet1d"),
-    "transolver": ("carbon_jax_transolver1d", "physics_attention1d"),
-    "haar_operator": ("carbon_jax_haar_operator1d", "haar_operator1d"),
-    "gno": ("carbon_jax_gno1d", "gno1d"),
-    "gino": ("carbon_jax_gino1d", "gino1d"),
+    selector: (f"carbon_jax_{selector}1d", kind)
+    for selector, kind in rebuildable_families()
 }
 _MODEL_DEFAULTS = {
     "width": 8,

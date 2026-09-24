@@ -15258,3 +15258,45 @@ resource envelope.
 honest answer to "can I submit this design?", and it repairs the fields that
 are accepted today but ignored. No capability is added until that answer names
 the exact missing capability rather than reporting a generic failure.
+
+## 2026-09-23 — OWNER-CONSTRUCTION-ESCALATION-01: five triggers, and a public roadmap
+
+**Authority:** owner direction, confirmed directly in session on 2026-09-23.
+It extends `OWNER-CONSTRUCTION-DECLARATIVE-01`.
+
+**Standing mandate.** Any declarative capability that Carbon can rebuild is
+eligible to register without a per-capability owner decision. That covers:
+- model families, optimizers, schedules, losses and training stages;
+- curriculum and TRAIN-only sampling;
+- exact-symmetry augmentation;
+- Carbon-registered candidate-side solver templates;
+- symbolic templates whose coefficients Carbon fits during reconstruction.
+
+Escalate to the owner only on one of five triggers:
+1. external data or learned state;
+2. an executable submission;
+3. a change to the evidence design (exam, scoring, measurement or
+   reference-method authority);
+4. a new comparison or resource regime;
+5. widening an authority boundary, including a new Challenge or a new worker
+   image. A new image still needs human security review.
+
+Loss terms are candidate-side training code, never imported exam measurement
+code. Augmentations stay within TRAIN support. Ensembles, stages and weight
+averaging split the existing budget rather than adding to it.
+
+**Public roadmap.** The miner-visible capability roadmap publishes aggregated
+demand counts per registry capability id. The raw text of an unrecognized
+request stays private; the public view shows only an "unrecognized" count.
+Demand is a signal only: it never affects scoring or qualification, and a
+listing is not a delivery promise.
+
+**Engineering consequence.** `carbon/reconstruction/capability_registry.py`
+is the one source for each capability's status, blocker and trigger. The
+research catalog's backbones and fields, the reconstruction profile's backbone
+map and the public capability catalogue are derived from it. Construction of an
+entry refuses:
+- a rebuildable entry without its implementation;
+- an owner blocker without a trigger;
+- any claim of admission. Admission needs qualification evidence that the
+  registry cannot supply.
