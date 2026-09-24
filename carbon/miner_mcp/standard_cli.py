@@ -333,10 +333,13 @@ def _scientific_selection(runtime, image, role_root, authored=None):
     elif schemas == ["carbon.public-julia-study.scope.v1"]:
         kind, expected = "burgers", [julia_burgers_scope(image, role_root)]
     elif schemas == ["carbon.public-julia-study.scope.v1", ENVELOPE_SCOPE]:
-        kind, expected = "envelope", [
-            julia_burgers_scope(image, role_root),
-            julia_envelope_scope(image, role_root),
-        ]
+        kind, expected = (
+            "envelope",
+            [
+                julia_burgers_scope(image, role_root),
+                julia_envelope_scope(image, role_root),
+            ],
+        )
     else:
         raise ValueError("unsupported scientific scope combination")
     if canonical(scopes) != canonical(expected):
@@ -420,17 +423,9 @@ async def attached_profile(profile: OperatorProfile):
         raise TypeError("a loaded operator profile is required")
     cleanup_only = profile.cleanup_only
     with owner_lock(profile.root):
-        # Registration first: the campaign's frozen record, its control
-        # generation and its prepared tasks are not touched until the
-        # authenticated owner is known to be the registered one. The
-        # connection's session files already exist from launch.
-        connection, image, analysis, role_root = _runtime(profile)
-        owner = await _requester(connection)
-        if owner != profile.manifest.get("owner"):
-            raise ValueError("authenticated campaign owner changed")
         ledger = CampaignLedger(profile.root, admission=profile.development_grant)
-        if not cleanup_only:
-            ledger.freeze(profile.manifest)  # Must match the existing immutable record.
+        # A read-only refusal needs no session: unresolved consumption is
+        # refused before anything reaches the runtime.
         with ledger.db() as db:
             if (
                 not cleanup_only
@@ -439,6 +434,16 @@ async def attached_profile(profile: OperatorProfile):
                 ).fetchone()
             ):
                 raise ValueError("unresolved consumption requires reconciliation")
+        # Registration before any write: the campaign's frozen record, its
+        # control generation and its prepared tasks are not touched until the
+        # authenticated owner is known to be the registered one. The
+        # connection's session files already exist from launch.
+        connection, image, analysis, role_root = _runtime(profile)
+        owner = await _requester(connection)
+        if owner != profile.manifest.get("owner"):
+            raise ValueError("authenticated campaign owner changed")
+        if not cleanup_only:
+            ledger.freeze(profile.manifest)  # Must match the existing immutable record.
         _prepared_tasks(profile.root, cleanup_only=cleanup_only)
         control = CampaignControl(ledger)
         status = control.status()
@@ -464,9 +469,14 @@ async def attached_profile(profile: OperatorProfile):
             **({"authored": authored} if authored is not None else {}),
             **({"cleanup_only": True} if cleanup_only else {}),
         )
+        from carbon.development_session.capability_demand import DemandStore
+
         composition = make_research_service(
             cleanup_only=cleanup_only,
             julia_image=authored,
+            # Capability demand on this host: registry ids and miner digests
+            # only. On a miner's machine it stays theirs.
+            demand=DemandStore(profile.root / "capability-demand.sqlite"),
             root=profile.root / "research-tasks",
             ledger=ledger,
             owner=owner,
