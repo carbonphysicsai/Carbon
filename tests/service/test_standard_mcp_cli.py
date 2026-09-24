@@ -326,7 +326,7 @@ def test_attach_reads_registration_before_any_campaign_write(
     a registered owner does reach them, so the check can see a write."""
     from carbon.development_session.research_control import CampaignControl
 
-    path, ledger, owner = prepare(tmp_path, monkeypatch)
+    path, ledger, _ = prepare(tmp_path, monkeypatch)
     before = CampaignControl(ledger).status()["generation"]
     monkeypatch.setattr(
         standard_cli,
