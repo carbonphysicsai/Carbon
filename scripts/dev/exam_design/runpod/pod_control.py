@@ -70,7 +70,8 @@ def _key() -> str:
 
 def _req(method: str, url: str, body: dict | None = None, headers: dict | None = None, timeout=60):
     data = json.dumps(body).encode() if body is not None else None
-    h = {"Authorization": "Bearer " + _key(), "Content-Type": "application/json"} | (headers or {})
+    h = {"Authorization": "Bearer " + _key(), "Content-Type": "application/json",
+         "User-Agent": "carbon-exam-design/1"} | (headers or {})
     r = urllib.request.Request(url, data=data, method=method, headers=h)
     try:
         with urllib.request.urlopen(r, timeout=timeout) as resp:

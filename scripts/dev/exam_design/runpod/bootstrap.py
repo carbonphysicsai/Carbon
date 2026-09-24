@@ -52,7 +52,8 @@ def self_terminate():
     try:
         q = json.dumps({"query": 'mutation { podTerminate(input: {podId: "%s"}) }' % pod}).encode()
         req = urllib.request.Request("https://api.runpod.io/graphql", data=q, method="POST",
-                                     headers={"Content-Type": "application/json", "Authorization": "Bearer " + key})
+                                     headers={"Content-Type": "application/json", "Authorization": "Bearer " + key,
+                                              "User-Agent": "carbon-exam-design/1"})
         return urllib.request.urlopen(req, context=CTX, timeout=30).read()[:200].decode()
     except Exception as e:
         return "failed: " + repr(e)[:200]

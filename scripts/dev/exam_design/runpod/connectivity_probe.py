@@ -62,7 +62,8 @@ def self_terminate():
         ctx = ssl.create_default_context(cadata=CA) if CA else ssl.create_default_context()
         q = json.dumps({"query": 'mutation { podTerminate(input: {podId: "%s"}) }' % pod}).encode()
         req = urllib.request.Request("https://api.runpod.io/graphql", data=q, method="POST",
-                                     headers={"Content-Type": "application/json", "Authorization": "Bearer " + key})
+                                     headers={"Content-Type": "application/json", "Authorization": "Bearer " + key,
+                                              "User-Agent": "carbon-exam-design/1"})
         return urllib.request.urlopen(req, context=ctx, timeout=30).read()[:200].decode()
     except Exception as e:
         return "failed: " + repr(e)[:200]
