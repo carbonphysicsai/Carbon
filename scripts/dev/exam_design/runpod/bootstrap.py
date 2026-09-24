@@ -162,6 +162,7 @@ def main():
         env["PYBAMM_DISABLE_TELEMETRY"] = "true"
         env["HOME"] = "/tmp"
         env.setdefault("XLA_PYTHON_CLIENT_PREALLOCATE", "false")
+        env.setdefault("JAX_ENABLE_COMPILATION_CACHE", "false")  # the image points the cache at an unwritable /scratch
         env["MPLCONFIGDIR"] = "/tmp/mpl"
         with open(os.path.join(OUT, "phase.log"), "wb") as log:
             rc = subprocess.run([sys.executable, "-m", "scripts.dev.exam_design.runner", PHASE, "--out", OUT],

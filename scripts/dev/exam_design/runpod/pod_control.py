@@ -224,7 +224,7 @@ def cmd_dispatch(a) -> None:
     os.umask(old)
     created_req = time.time()
     deadline = created_req + minutes * 60
-    phase_cfg = {"plan": a.plan} if a.plan else {}
+    phase_cfg = {"plan_path": a.plan} if a.plan else {}
     phase_cfg["stop_admitting_epoch"] = deadline - a.export_minutes * 60
     env = {"PROBE_TOKEN": token, "PROBE_DEADLINE": str(int(deadline + 60)), "PROBE_CA_GZ_B64": ca_bundle_gz_b64(),
            "CODE_REF": ref, "CODE_MANIFEST": json.dumps(manifest, separators=(",", ":")), "PHASE": a.phase,

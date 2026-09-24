@@ -263,8 +263,8 @@ def main(argv=None) -> int:
     a = ap.parse_args(argv)
     os.makedirs(a.out, exist_ok=True)
     cfg = json.load(open(a.config)) if a.config else json.loads(os.environ.get("PHASE_CONFIG", "{}"))
-    if "plan" in cfg:  # committed, hash-pinned plan file; runtime keys (deadlines) override
-        cfg = json.load(open(cfg["plan"])) | {k: v for k, v in cfg.items() if k != "plan"}
+    if "plan_path" in cfg:  # committed, hash-pinned plan file; runtime keys (deadlines) override
+        cfg = json.load(open(cfg["plan_path"])) | {k: v for k, v in cfg.items() if k != "plan_path"}
     json.dump(cfg, open(os.path.join(a.out, "config.json"), "w"))
     if a.phase == "battery_refs":
         return run_battery_refs(cfg, a.out)
