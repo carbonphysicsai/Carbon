@@ -214,6 +214,10 @@ def run_photonic_refs(cfg: dict, out: str) -> int:
                    "elapsed_s": round(time.time() - t_start, 1)}, open(os.path.join(out, "progress.json"), "w"))
         base = {"case_id": job["case"]["case_id"], "inputs": job["case"], "refined": job.get("refined", False),
                 "role": job.get("role")}
+        try:  # keep the in-flight instrumentation of a case that times out or dies
+            base["last_progress"] = json.load(open(os.path.join(out, "current_case.json")))
+        except Exception:
+            pass
         if stop_at and time.time() >= stop_at:
             rec = base | {"status": "NOT_ADMITTED", "reason": "admission window closed before the pod deadline"}
         else:

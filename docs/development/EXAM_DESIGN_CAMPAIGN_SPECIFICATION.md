@@ -314,3 +314,35 @@ assumed):
 **The simulations** state their assumptions separately from measured results.
 **Verification** is fresh evidence only if the rule is not changed after it is
 opened; if the rule changes, that set becomes development evidence.
+
+## Amendments after the pilot (owner direction, 2026-09-24)
+
+These are recorded prospectively. The detail is in
+`EXAM_DESIGN_CAMPAIGN_PILOT.md`.
+
+1. **No clamping.** Recipes do not clip voltage. V(0) from the published OCV
+   table and T(0) = T_amb are *construction choices*, and passing a gate because
+   of them is not physics evidence.
+2. **The first voltage sample is a zero-current rest voltage.** It sits
+   0.003–0.44 mV below the model's own OCV (measured). `initial_voltage` is a
+   bounded-offset probe with a reference-derived tolerance, not an exact
+   initial-value constraint.
+3. **Secrecy.** Roles derived from the public campaign string (`train`,
+   `practice`, `final`, `verify`) are **offline development evidence**.
+   - The screening batches, the fresh finalist set and the verification set are
+     regenerated as private roles (`pscreen-B00…B05`, `pfinal`, `pverify`) from
+     a root outside the repository, via `carbon.seeding`.
+   - The root's commitment is published in `private_commitment.json`, and pods
+     receive only an encrypted job list.
+   - The public-seed `final`/`verify` sets are kept as development evidence,
+     not relabelled.
+4. **Scoring.** Normalization scales are floored at reference uncertainty. Equal
+   component weights are a declared engineering choice.
+   - Only `IMPROVEMENT` is promotable.
+   - A significant important-region regression blocks promotion at the final
+     comparison and at screening nomination.
+   - Equivalence requires the interval to lie inside the margin; failing to
+     detect a difference is never equivalence.
+5. **Execution.** Battery references and photonics run on separate pods.
+   Library threads are bounded per worker, completed cases are skipped on
+   resume, and the costed matrix in the pilot document governs admission.
