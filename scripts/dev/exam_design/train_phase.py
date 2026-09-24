@@ -65,6 +65,21 @@ def run(cfg: dict, out: str) -> int:
     by_role: dict[str, list[dict]] = {}
     for c in inputs["cases"]:
         by_role.setdefault(c["role"], []).append(c)
+    if cfg.get("private_blob"):
+        # Private roles arrive encrypted; hidden duplicates are rebuilt from the public slot list so each
+        # duplicate is predicted as its own request (the paired-repeat probe), never copied.
+        from scripts.dev.exam_design import private_cases
+
+        jobs = private_cases.unseal(open(cfg["private_blob"], "rb").read(), os.environ["PRIVATE_KEY"])
+        by_id = {}
+        for j in jobs:
+            c = dict(j["case"], role=j["role"])
+            by_id[c["case_id"]] = c
+        slots = json.load(open(cfg["private_slots"]))
+        for role, entries in slots.items():
+            for e in entries:
+                src = by_id[e.get("duplicate_of", e["case_id"])]
+                by_role.setdefault(role, []).append(dict(src, case_id=e["case_id"], role=role))
     timing = []
     for r, m in models:
         preds = {}

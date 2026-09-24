@@ -184,7 +184,9 @@ def cmd_train_plan(a) -> None:
     train = _jsonl(f"{EVID}/datasets/train-v1-candidates.jsonl.gz")[: a.n]
     sha = _write_jsonl_gz(f"{EVID}/datasets/train-v1.jsonl.gz", train)
     important = [r["case_id"] for r in train if scoring.is_important(r)]
-    roles = ["train", "practice", "final", "verify"] + [f"screen-B{b:02d}" for b in range(plans.SCREEN_BATCHES)]
+    # Public-seed roles are offline development evidence; exam roles are private (carbon.seeding root).
+    roles = ["train", "practice", "final", "verify"] + [f"pscreen-B{b:02d}" for b in range(plans.SCREEN_BATCHES)] + [
+        "pfinal", "pverify"]
     runs = [{"tag": "knn", "recipe": "knn", "seed": 0, "train_n": a.n, "predict_roles": roles}]
     for rec in ("mlp", "mlp_plus", "mlp_plus_localized"):
         for s in range(3):
@@ -193,7 +195,9 @@ def cmd_train_plan(a) -> None:
         runs.append({"tag": f"{rec}-s0-repeat", "recipe": rec, "seed": 0, "train_n": a.n, "predict_roles": roles})
     plan = {"plan": "battery-reconstruct-v1", "train_file": f"{EVID}/datasets/train-v1.jsonl.gz",
             "train_sha256": sha, "ocv_table": f"{EVID}/ocv_table.json", "inputs_file": f"{EVID}/datasets/inputs.json",
-            "important_train_ids": important, "runs": runs}
+            "important_train_ids": important, "runs": runs,
+            "private_blob": "scripts/dev/exam_design/private/refs-b-v1.bin",
+            "private_slots": f"{EVID}/plans/private-slots.json"}
     json.dump(plan, open(f"{EVID}/plans/reconstruct-v1.json", "w"), indent=1)
     print(json.dumps({"n_train": a.n, "runs": len(runs), "train_sha256": sha, "important": len(important)}))
 
