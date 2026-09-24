@@ -22,6 +22,37 @@ def data(p):
     )
 
 
+INTAKE_PUBLIC_KEY_SCHEMA = "carbon.intake-key.v1-public"
+INTAKE_PUBLIC_KEY_FIELDS = {"schema", "key_id", "public_spki", "fingerprint"}
+# DER prefix of a P-256 SubjectPublicKeyInfo holding an uncompressed point.
+P256_SPKI_PREFIX = bytes.fromhex("3059301306072a8648ce3d020106082a8648ce3d030107034200")
+
+
+def intake_public_key(path):
+    """The intake key record the Pilot Designer embeds, or a refusal naming why.
+
+    The page checks the record again before it seals anything. This check is
+    here so that a private key file, or a record whose label belongs to another
+    key, is never written into a page in the first place.
+    """
+    record = json.loads(path.read_text())
+    if not isinstance(record, dict):
+        raise ValueError("The intake key record is not an object")
+    if "private_pkcs8" in record:
+        raise ValueError("This is an intake private key; only the public key record may be published")
+    if record.get("schema") != INTAKE_PUBLIC_KEY_SCHEMA or set(record) != INTAKE_PUBLIC_KEY_FIELDS:
+        raise ValueError(f"Not a {INTAKE_PUBLIC_KEY_SCHEMA} record")
+    spki = base64.b64decode(record["public_spki"], validate=True)
+    if len(spki) != len(P256_SPKI_PREFIX) + 65 or not spki.startswith(P256_SPKI_PREFIX):
+        raise ValueError("The intake key is not a P-256 public key")
+    hexdigest = hashlib.sha256(spki).hexdigest()
+    if record["fingerprint"] != " ".join(hexdigest[i : i + 4] for i in range(0, 64, 4)):
+        raise ValueError("The intake key record's fingerprint does not match its key")
+    if record["key_id"] != "intake-key-" + hexdigest[:32]:
+        raise ValueError("The intake key record's key_id does not match its key")
+    return data(path)
+
+
 def build(*, private_science=False, output_directory=None):
     destination = Path(output_directory).resolve() if output_directory else ROOT
     if private_science and destination == ROOT.resolve():
@@ -117,9 +148,11 @@ def build(*, private_science=False, output_directory=None):
     (destination / "Carbon_Opportunity_Workbench.html").write_text(html)
     intake_style = (ROOT / "src/intake_styles.css").read_text()
     intake_app = (ROOT / "src/intake_app.js").read_text()
+    intake_seal = (ROOT / "src/intake_seal.js").read_text()
+    intake_key = intake_public_key(ROOT / "data/intake_public_key.json")
     intake_csp = (
         "default-src 'none'; script-src "
-        + " ".join("'" + digest(value) + "'" for value in [intake, intake_app])
+        + " ".join("'" + digest(value) + "'" for value in [intake, intake_seal, intake_app])
         + "; style-src '"
         + digest(intake_style)
         + "'; img-src data:; connect-src 'self'; form-action 'none'; base-uri 'none'; object-src 'none'"
@@ -129,6 +162,8 @@ def build(*, private_science=False, output_directory=None):
         "CSP": intake_csp,
         "STYLE": intake_style,
         "INTAKE": intake,
+        "INTAKE_SEAL": intake_seal,
+        "INTAKE_KEY": intake_key,
         "APP": intake_app,
     }.items():
         preview = preview.replace("{{" + key + "}}", value)

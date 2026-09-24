@@ -199,6 +199,38 @@ class SourceTests(unittest.TestCase):
         self.assertNotIn("OWNER-GW07-RYAN-SNAPSHOT-01", intake_text)
         self.assertNotIn("approved_assessments", intake_text)
 
+    def test_pilot_designer_embeds_only_a_verified_public_intake_key(self):
+        """E6: the page carries the published key record and nothing else of it."""
+        import base64
+        import tempfile
+
+        builder = module("builder", ROOT / "tools/build.py")
+        record = json.loads((ROOT / "data/intake_public_key.json").read_text())
+        page = (ROOT / "Carbon_Client_Pilot_Designer_Preview.html").read_text()
+        # Specimen: the committed record passes and is what the page carries,
+        # and the sealing script is admitted by the page's own policy.
+        self.assertIn(builder.intake_public_key(ROOT / "data/intake_public_key.json"), page)
+        self.assertIn(record["public_spki"], page)
+        self.assertIn(builder.digest((ROOT / "src/intake_seal.js").read_text()), page)
+        self.assertIn("Download encrypted for Carbon", page)
+
+        other = dict(record, public_spki=base64.b64encode(
+            builder.P256_SPKI_PREFIX + b"\x04" + bytes(range(64))
+        ).decode())
+        refusals = {
+            "intake private key": dict(record, schema="carbon.intake-key.v1", private_pkcs8="MIGH"),
+            "Not a carbon.intake-key.v1-public record": dict(record, note="extra"),
+            "fingerprint does not match": other,
+            "key_id does not match": dict(record, key_id="intake-key-" + "0" * 32),
+            "not a P-256 public key": dict(record, public_spki=base64.b64encode(b"\x30" * 91).decode()),
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            for reason, bad in refusals.items():
+                path = Path(directory) / "key.json"
+                path.write_text(json.dumps(bad))
+                with self.assertRaisesRegex(ValueError, reason):
+                    builder.intake_public_key(path)
+
     def test_current_schema_is_closed_v02(self):
         schema = json.loads((ROOT / "data/workspace.schema.json").read_text())
         self.assertEqual(
