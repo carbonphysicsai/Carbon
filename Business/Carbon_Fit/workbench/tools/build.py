@@ -37,10 +37,15 @@ def intake_public_key(path):
     """
     record = json.loads(path.read_text())
     if not isinstance(record, dict):
-        raise ValueError("The intake key record is not an object")
+        raise TypeError("The intake key record is not an object")
     if "private_pkcs8" in record:
-        raise ValueError("This is an intake private key; only the public key record may be published")
-    if record.get("schema") != INTAKE_PUBLIC_KEY_SCHEMA or set(record) != INTAKE_PUBLIC_KEY_FIELDS:
+        raise ValueError(
+            "This is an intake private key; only the public key record may be published"
+        )
+    if (
+        record.get("schema") != INTAKE_PUBLIC_KEY_SCHEMA
+        or set(record) != INTAKE_PUBLIC_KEY_FIELDS
+    ):
         raise ValueError(f"Not a {INTAKE_PUBLIC_KEY_SCHEMA} record")
     spki = base64.b64decode(record["public_spki"], validate=True)
     if len(spki) != len(P256_SPKI_PREFIX) + 65 or not spki.startswith(P256_SPKI_PREFIX):
@@ -152,7 +157,9 @@ def build(*, private_science=False, output_directory=None):
     intake_key = intake_public_key(ROOT / "data/intake_public_key.json")
     intake_csp = (
         "default-src 'none'; script-src "
-        + " ".join("'" + digest(value) + "'" for value in [intake, intake_seal, intake_app])
+        + " ".join(
+            "'" + digest(value) + "'" for value in [intake, intake_seal, intake_app]
+        )
         + "; style-src '"
         + digest(intake_style)
         + "'; img-src data:; connect-src 'self'; form-action 'none'; base-uri 'none'; object-src 'none'"
