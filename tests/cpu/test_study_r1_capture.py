@@ -167,12 +167,28 @@ def test_an_unrecorded_device_name_has_no_capture(monkeypatch) -> None:
         r1_capture.capture(record("v1", HOST_1))
 
 
-def test_the_shipped_name_map_is_empty_until_real_names_are_read() -> None:
+def test_the_shipped_name_map_holds_only_names_read_on_real_devices() -> None:
+    """Every entry is backed by an identity read committed as evidence."""
     import importlib
 
     fresh = importlib.reload(r1_capture)
     try:
-        assert fresh.PART_BY_NVML_NAME == {}
+        evidence = REPO / "docs/development/evidence/r1-simulated-validators-2026-09-24"
+        read = {
+            device["name"]
+            for identity in evidence.glob("*/identity.json")
+            for device in json.loads(identity.read_text())
+        }
+        assert (
+            set(fresh.PART_BY_NVML_NAME)
+            == read
+            == {
+                "NVIDIA L4",
+                "NVIDIA H100 80GB HBM3",
+            }
+        )
+        # Qualified but never read: no entry, so no capture.
+        assert not {"A40", "RTX PRO 6000 SE"} & set(fresh.PART_BY_NVML_NAME.values())
     finally:
         importlib.reload(r1_capture)
 

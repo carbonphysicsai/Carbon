@@ -73,9 +73,17 @@ RecordError = compare_units.RecordError
 Kind = reproducibility.ReproducibilityRefKind
 
 #: NVML device name -> qualified part. Filled only from names read on real devices
-#: of each part; empty means no real session can be captured yet, which is the
-#: correct state until they are read.
-PART_BY_NVML_NAME: dict[str, str] = {}
+#: of each part, so a part whose name has not been read has no capture. Each entry
+#: names the evidence it was read from.
+#:
+#: A40 and RTX PRO 6000 SE are qualified but absent: neither was in stock on a
+#: CUDA 13 host when these were read, and their names are not guessed.
+PART_BY_NVML_NAME: dict[str, str] = {
+    # docs/development/evidence/r1-simulated-validators-2026-09-24/l4-v{1,2}
+    "NVIDIA L4": "L4",
+    # docs/development/evidence/r1-simulated-validators-2026-09-24/h100-v{1,2}
+    "NVIDIA H100 80GB HBM3": "H100 SXM",
+}
 
 #: The numerics fields that define the pinned execution environment. Host facts are
 #: deliberately absent; see the module docstring.
