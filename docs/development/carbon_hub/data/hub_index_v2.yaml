@@ -9840,6 +9840,33 @@ events:
   -
     map_ref: "SYSTEM/AGENT-EXECUTION"
     event_type: "evidence"
+    event_id: "CONSTRUCTION-DEMAND-ROADMAP-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "Implemented capability demand records and the public construction roadmap, the last two steps of the registry plan under OWNER-CONSTRUCTION-ESCALATION-01, which publishes aggregated demand counts per registry capability id. Demand is recorded when a check-design verdict names a research-only capability (not yet rebuildable, or awaiting an owner decision) and when a capability request names a registry id through a new optional capability field; a request naming anything else is refused with a specific message. Each miner counts once per capability however often they ask; only research-only registry ids can be counted; miners are stored as digests; and text a miner supplied that Carbon does not recognize is never stored, only the number of miners who sent any. The new roadmap workspace action partitions the registry into available, roadmap (with what blocks each item, its trigger where the owner must decide, and its demand) and not planned, and states its terms: demand never affects scoring or qualification and a listing is not a delivery promise. A host that keeps no demand store reports counts as not collected rather than zero. The standard MCP entry point keeps the store at its profile root, so on a miner's own machine demand stays theirs and on Carbon's hosted door it is Carbon's; no demand leaves a miner's machine, which would be a separate decision. Tests show a private marker and a raw principal absent from the stored bytes while a recorded id is present in them."
+    primary_detail: "carbon/development_session/capability_demand.py"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "WAVE-C/C-W1-D4"
+    supersedes: null
+    recorded_at: "2026-09-23T21:46:39Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "evidence"
+    event_id: "MQ-008-R1-SIMULATED-VALIDATORS-01"
+    owner_lane: "core_platform"
+    status: "implemented"
+    summary: "Recorded the first reproducibility decisions on real GPU hardware, under the owner's DEVELOPMENT qualification of Amendment 10. Two simulated validators per part, separate single-GPU pods of one part in one datacenter each running the pinned session on its own, were compared through the R1 harness from their session records: L4 in EU-RO-1 and H100 SXM in US-NE-1. Pinned, all nine cross-validator pairs per part were reproducible with zero difference and exact identity; the unpinned control was not reproducible by exactly one float32 ulp on both parts, the positive control that shows the check can refuse on real data. H100 now reproduces across two hosts, which the MQ-008 evidence package had listed as open. One finding: unpinned, two validators trained bit-identical weights and still produced predictions differing by one ulp in 18 of 128 elements, so a weights digest does not establish that outputs reproduce and R1 compares predictions for that reason. The NVML device names of L4 and H100 SXM were read on the devices and are now the only entries in the capture name map; A40 and RTX PRO 6000 SE were out of stock on CUDA 13 hosts and have no entry. The study image was rebuilt at the capture revision from the pinned worker digest with its layers unchanged and verified locally before any spend; actual spend was about 0.75 US dollars. The session records are committed and a test re-derives every outcome from them. Simulated validators are direct execution in the pinned image, not validator_launch, which remains never hardware-exercised; this is DEVELOPMENT evidence on a fixture Challenge with no official or LIVE authority, and the MQ-008 holder's review is still owed."
+    primary_detail: "docs/development/GPU_R1_SIMULATED_VALIDATORS_RESULT.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "WAVE-C/C-03"
+      - "WAVE-C/C-09"
+    supersedes: null
+    recorded_at: "2026-09-24T02:04:35Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "evidence"
     event_id: "C-MLP-02-OPERATIONS-TABLE-01"
     owner_lane: "technical_lead"
     status: "implemented"

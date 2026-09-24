@@ -143,6 +143,7 @@ def make_research_service(
     practice,
     julia_image=None,
     cleanup_only=False,
+    demand=None,
 ):
     from .gpu_research import PublicGPUPractice, gpu_catalog
     from .julia_research import JuliaPublicMaterial
@@ -270,6 +271,7 @@ def make_research_service(
     discovery = Discovery(info, manifest)
     prior = NoPrior()
     executor = PublicResearchExecutor(
+        demand=demand,
         cleanup_only=cleanup_only,
         julia_image=julia_image,
         ledger=ledger,

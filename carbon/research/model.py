@@ -91,6 +91,7 @@ DEVELOPMENT_WORKSPACE_ACTIONS = (
     "notebook",
     "capability_request",
     "check_design",
+    "roadmap",
     "run_python",
 )
 OFFICIAL_V1_NAMESPACE = "carbon_protocol_v1"
