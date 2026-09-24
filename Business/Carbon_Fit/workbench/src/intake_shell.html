@@ -20,7 +20,8 @@
           <div id="guidance-boundary" class="boundary"><strong>AI guidance is off.</strong> The form remains local. Enable guidance only after reviewing exactly what would leave this browser. <button id="show-consent" type="button">Review AI data use</button></div>
           <section id="consent-panel" class="consent" hidden aria-labelledby="consent-title">
             <h3 id="consent-title">Before enabling AI guidance</h3>
-            <p><strong>Sent to provider:</strong> the current high-level brief, pilot outline, unresolved assumptions, and up to ten conversation turns. Contact details and the optional submission-history choice are not sent.</p>
+            <p><strong>Sent to provider:</strong> the current high-level brief, the pilot outline except its operating envelope and requested targets, unresolved assumptions, and up to ten conversation turns. Contact details, quantities, operating ranges, target values and the optional submission-history choice are not sent.</p>
+            <p><strong>Do not enter confidential values in guidance questions.</strong> Send them to Carbon under NDA instead.</p>
             <p><strong>Provider:</strong> OpenAI API, Responses API, <code>store:false</code>. OpenAI states that API data is not used to train models unless the customer opts in. For this private synthetic staging project, Carbon observed API call logging enabled per call and did not establish an approved Zero Data Retention or Modified Abuse Monitoring control. Treat prompts and responses as potentially retained for up to 30 days under default abuse monitoring. This staging observation does not authorize customer-data processing.</p>
             <p><strong>Carbon preview:</strong> this file stores no abandoned conversation. Conversation stays in memory unless explicitly included in an exported review package. Clearing it here does not delete provider records.</p>
             <details><summary>Preview the exact draft/context fields</summary><pre id="context-preview"></pre></details>
@@ -46,12 +47,18 @@
           <div class="panel-heading"><div><p class="eyebrow">Shared developing brief</p><h2 id="summary-title">Draft pilot for Carbon review</h2></div><span id="brief-mode" class="chip">client draft</span></div>
           <pre id="summary-text"></pre><section class="pilot-card"><h3>Proposed pilot</h3><p id="pilot-text">Not yet proposed.</p><h3>Unresolved assumptions</h3><ul id="assumption-list"><li>Complete or skip fields; unknowns remain visible.</li></ul></section><p id="next-clarification" class="clarification"></p>
           <details><summary>Contact and review-package choices</summary><label>Name<input id="contact-name" autocomplete="name"></label><label>Email<input id="contact-email" type="email" autocomplete="email"></label><label>Organization<input id="contact-organization" autocomplete="organization"></label><label class="check"><input id="include-conversation" type="checkbox"> Include conversation history for Carbon's review</label><p class="field-note">Off by default. Permission to respond does not grant marketing, model-training, or cross-customer reuse rights.</p></details>
-          <div class="boundary"><strong>Local review package only.</strong> Exporting downloads an unencrypted file. It does not submit an inquiry, promise contact, qualify Carbon, approve a pilot, or authorize execution.</div>
-          <div class="actions"><button id="export-intake" type="button">Download reviewed draft</button><button id="reset-draft" type="button" class="quiet">Reset draft</button><button type="button" class="quiet" disabled title="No approved receiver or private store is configured">Submit to Carbon · unavailable</button></div><p id="intake-status" role="status" aria-live="polite"></p>
+          <div class="boundary"><strong>Local review package only.</strong> The reviewed draft downloads as an unencrypted file for your own records. Neither download submits an inquiry, promises contact, qualifies Carbon, approves a pilot, or authorizes execution.</div>
+          <div class="actions"><button id="export-intake" type="button">Download reviewed draft</button><button id="export-sealed" type="button" disabled>Download encrypted for Carbon</button><button id="reset-draft" type="button" class="quiet">Reset draft</button><button type="button" class="quiet" disabled title="No approved receiver or private store is configured">Submit to Carbon · unavailable</button></div><p id="intake-status" role="status" aria-live="polite"></p>
+          <section class="consent sealed" aria-labelledby="sealed-title">
+            <h3 id="sealed-title">Sending this draft to Carbon under an NDA</h3>
+            <ol><li>Press <strong>Download encrypted for Carbon</strong>. The draft is encrypted in this browser to Carbon's intake key. Nothing is sent.</li><li>Check that this key fingerprint matches the one in the Data Handling Statement attached to your NDA: <code id="intake-fingerprint">checking the key…</code></li><li>Attach the downloaded <code>.carbon-sealed</code> file, and nothing else, to an email to the intake address given with your NDA.</li></ol>
+            <p class="field-note">You cannot open the encrypted file yourself. Keep the reviewed draft as well if you want a copy of what you sent.</p>
+          </section>
         </aside>
       </div>
     </main>
     <footer>This release drafts and downloads a local review package only. Inquiry collection remains a separate issue #139 workstream and is unavailable here.</footer>
-    <script>{{INTAKE}}</script><script>{{APP}}</script>
+    <script id="intake-public-key" type="application/json">{{INTAKE_KEY}}</script>
+    <script>{{INTAKE}}</script><script>{{INTAKE_SEAL}}</script><script>{{APP}}</script>
   </body>
 </html>

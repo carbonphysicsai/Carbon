@@ -263,6 +263,33 @@ Production needs a separate exact owner authorization after the staging report:
 > sections below describe the superseded 18 September procedure and are kept
 > for the record.
 
+> **Candidate 2026-09-24.1: static assets only.** This candidate changes two
+> shipped files against live version `65fd41de`:
+> `ask-carbon/pilot-designer.html` (GOAL-WORKBENCH-15 decisions 1 and 2) and
+> `ask-carbon/public-knowledge.v1.json` (the WEB-QA-07-D2 refresh, approved for
+> deployment on 2026-09-22 but not deployed then). The other 100 paths are
+> byte-identical to the live site. The `ask-carbon-public` Worker and its
+> activation are unchanged, so it is **not** redeployed. Once the owner's
+> approval is recorded against bundle `c973a2ea…`:
+>
+> ```sh
+> WRANGLER="$HOME/.local/lib/carbon-wrangler/node_modules/.bin/wrangler"
+> "$WRANGLER" deployments status --name carbonwebsite   # must still be 65fd41de
+> OUT=/tmp/ask-carbon-production-$(date -u +%Y%m%dT%H%M%SZ)
+> node website/ask-carbon/tools/integrate-static.mjs \
+>   --input /path/to/carbon-site-v2/index.html \
+>   --output "$OUT/index.html" \
+>   --asset-prefix ./ask-carbon \
+>   --existing-site /path/to/carbon-site-v2 \
+>   --require-complete-bundle              # bundle_identity_sha256 must be c973a2ea…
+> "$WRANGLER" deploy --name carbonwebsite --assets "$OUT" --compatibility-date 2026-09-12
+> ```
+>
+> Then confirm the two changed paths by digest on both hostnames, `/`,
+> `/workbench/` and `/workbench/atlas-source.json`, and that `/api/ask-carbon/health`
+> still reports `active: true`. If anything is wrong, roll back:
+> `"$WRANGLER" rollback 65fd41de-7ab6-4b0b-b138-b956a5917dd6 --name carbonwebsite`.
+
 For the approved 18 September inactive-publication candidate, extract the
 owner-supplied ZIP into a temporary directory, verify its recorded archive and
 `index.html` hashes, and build the static artifact with the repository tool:
