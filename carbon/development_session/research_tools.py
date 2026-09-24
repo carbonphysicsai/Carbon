@@ -15,6 +15,7 @@ from contextvars import ContextVar
 
 from carbon import research
 from carbon.chain.auth import BittensorMessageSigner
+from carbon.research.model import DEVELOPMENT_WORKSPACE_ACTIONS
 from carbon.transport.models import message
 
 from .profile import CHALLENGE, canonical, digest
@@ -79,16 +80,7 @@ FIELDS = {
         "strategy_json": {"type": ["string", "null"]},
         "action": {
             "type": ["string", "null"],
-            "enum": [
-                "public_material",
-                "inventory",
-                "read_file",
-                "write_file",
-                "notebook",
-                "capability_request",
-                "run_python",
-                None,
-            ],
+            "enum": [*DEVELOPMENT_WORKSPACE_ACTIONS, None],
         },
         "arguments_json": {"type": ["string", "null"]},
         "hypothesis": STRING,
@@ -101,7 +93,7 @@ FIELDS = {
     "cancel_research_task": {"task_id": STRING},
 }
 DESCRIPTIONS = {
-    "start_research_task": "Run one real practice recipe, or a public workspace action. Set kind=practice for a registered recipe: strategy_json is the recipe, action/arguments_json=null. Set kind=workspace for every workspace action, including run_python: strategy_json=null, action names the action and arguments_json contains its JSON object. Actions: public_material {name: objective|capabilities|training_data|practice_data|reference_method}; inventory {}; read_file {name,offset,count<=4096}; write_file {name,content_base64,expected_digest}; notebook {kind:hypothesis|decision|notebook,body:object}; capability_request {request:{purpose,operation,hypothesis,public_evidence,reason,expected_benefit,estimated_cost,minimal_safe_design,verification}}; run_python {source,files:[own filenames to stage],seconds:40..600,hypothesis,expected_effect}. An empty files list stages no workspace files. Supervisor waits without model polling.",
+    "start_research_task": "Run one real practice recipe, or a public workspace action. Set kind=practice for a registered recipe: strategy_json is the recipe, action/arguments_json=null. Set kind=workspace for every workspace action, including run_python: strategy_json=null, action names the action and arguments_json contains its JSON object. Actions: public_material {name: objective|capabilities|training_data|practice_data|reference_method}; inventory {}; read_file {name,offset,count<=4096}; write_file {name,content_base64,expected_digest}; notebook {kind:hypothesis|decision|notebook,body:object}; capability_request {request:{purpose,operation,hypothesis,public_evidence,reason,expected_benefit,estimated_cost,minimal_safe_design,verification}}; check_design {design:{strategy:{schema_version,challenge_id,backbone,parameters},capabilities?:[registry ids]}} - can I submit this? a verdict per choice and, when every choice is rebuildable, the canonical design Carbon would rebuild; run_python {source,files:[own filenames to stage],seconds:40..600,hypothesis,expected_effect}. An empty files list stages no workspace files. Supervisor waits without model polling.",
     "get_prior": "Discover prior availability; no registered prior pack in this profile.",
     "inspect_prior_alignment": "Unavailable without a registered prior pack; records capability limitation.",
 }

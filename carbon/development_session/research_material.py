@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from carbon.research import RESEARCH_NAMESPACE, SUPPORTED_OPERATIONS
+from carbon.research.model import DEVELOPMENT_WORKSPACE_ACTIONS
 
 from .profile import canonical, digest
 from .research_catalog import public_catalog
@@ -92,15 +93,7 @@ def capabilities():
             "steps": "target updates; choose a recipe that completes within the operative final limit. Incomplete reconstruction is retained and cannot be accepted",
             "warmup_steps_physics_warmup_steps": "each must be strictly less than steps; supplying physics_warmup_steps requires a positive pde_weight, since the ramp scales only the PDE term. A recipe Carbon cannot rebuild exactly as submitted is refused with each field and rule named",
         },
-        "workspace_actions": [
-            "public_material",
-            "inventory",
-            "read_file",
-            "write_file",
-            "notebook",
-            "capability_request",
-            "run_python",
-        ],
+        "workspace_actions": list(DEVELOPMENT_WORKSPACE_ACTIONS),
         "unsupported": [
             "registered public prior packs",
             "checkpoint resume",
