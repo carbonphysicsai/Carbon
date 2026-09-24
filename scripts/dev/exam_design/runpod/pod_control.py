@@ -226,6 +226,17 @@ def cmd_dispatch(a) -> None:
     deadline = created_req + minutes * 60
     phase_cfg = {"plan_path": a.plan} if a.plan else {}
     phase_cfg["stop_admitting_epoch"] = deadline - a.export_minutes * 60
+    if a.max_workers:
+        phase_cfg["max_workers"] = a.max_workers
+    if a.skip_from:
+        # Resume: every case already completed OK on an earlier pod is skipped, never paid for twice.
+        keys = set()
+        for path in a.skip_from:
+            for line in open(path):
+                r = json.loads(line)
+                if r.get("status") == "OK":
+                    keys.add(f'{r["case_id"]}{"/R" if r.get("refined") else ""}')
+        phase_cfg["skip_case_keys"] = sorted(keys)
     env = {"PROBE_TOKEN": token, "PROBE_DEADLINE": str(int(deadline + 60)), "PROBE_CA_GZ_B64": ca_bundle_gz_b64(),
            "CODE_REF": ref, "CODE_MANIFEST": json.dumps(manifest, separators=(",", ":")), "PHASE": a.phase,
            "PHASE_CONFIG": json.dumps(phase_cfg)}
@@ -364,6 +375,8 @@ def main(argv=None) -> None:
     d.add_argument("--pinned-xla", action="store_true")
     d.add_argument("--vcpu", type=int)
     d.add_argument("--private-key-name", help="key for the plan's encrypted private jobs (never printed)")
+    d.add_argument("--max-workers", type=int)
+    d.add_argument("--skip-from", nargs="*", help="records.jsonl files whose OK cases are skipped (resume)")
     sub.add_parser("poll")
     f = sub.add_parser("fetch")
     f.add_argument("dest")
