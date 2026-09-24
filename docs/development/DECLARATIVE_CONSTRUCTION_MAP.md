@@ -61,6 +61,10 @@ never from anything the miner used.
 
 ## Capability map
 
+The live source of every capability's status is
+`carbon/reconstruction/capability_registry.py`, and the catalogs are derived
+from it. The table below is the original survey and is kept for its citations.
+
 Status key:
 - **E**: exposed end to end.
 - **I**: implemented in the vendored lab but not exposed.
@@ -71,13 +75,14 @@ Status key:
 |---|---|---|---|
 | Model family | FNO (`fno1d`) | E | lab `models.py`; `profile.py` `_BACKBONES` |
 | | DeepONet (`deeponet1d`) | E | same |
-| | Physics attention (`physics_attention1d`, Transolver-style) | I | lab `models.py`, `config.py`; conformance-tested |
-| | Haar wavelet operator (`haar_operator1d`) | I | lab `models.py`; needs a grid-divisibility rule at compile time |
-| | Graph operators (`gno1d`, `gino1d`) | I | lab `models.py`; O(N²) cost needs a resource forecast |
+| | Physics attention (`physics_attention1d`, Transolver-style) | E (D1) | backbone `transolver` in the research catalog only; the session and GPU catalogs are unchanged |
+| | Haar wavelet operator (`haar_operator1d`) | E (D1) | backbone `haar_operator`; levels checked against the 64-point TRAIN grid |
+| | Graph operators (`gno1d`, `gino1d`) | E (D1) | backbones `gno` and `gino`; `graph_radius` is exposed as `neighborhood_radius` |
 | | Foundax FNO (`foundax_fno1d`) | I | `foundax_adapter.py`; different schedule semantics (see defects) |
 | | `uno`, `physicsnemo_fno` | A | accepted by `dry_validate`, then refused at compile |
 | Architecture | width, depth, n_modes, branch_points, remat | E | `research_catalog.py` SURFACES |
-| | heads, slices, expansion, wavelet_levels, graph_radius, latent_points | I | fixed values in `profile.py` |
+| | heads, slices, expansion | E (D1) | attention only; width must divide across heads |
+| | wavelet_levels, neighborhood_radius, latent_points | E (D1) | GINO modes must fit its latent grid |
 | | DeepONet branch and trunk depth | A | hard-coded three-layer MLP |
 | Objective | normalised data MSE | E | always on |
 | | relative loss, H1 weight, Burgers PDE residual weight | E | lab `training.py` |
@@ -126,7 +131,7 @@ shape as compile issues.
 
 ## Expansion plan, in order
 
-**D0: an honest answer to "can I submit this?"**
+**D0: an honest answer to "can I submit this?"** (delivered in part: defects 1 and 2 are refused by name, and compile now reports every issue with its code and field. Still open: `dry_validate` remains a structural check that accepts unknown backbones, and defects 3 to 5 remain)
 - Add a structured `SubmissionAssessment`, returned by an export-and-validate
   operation:
   - the canonical design;
@@ -142,7 +147,7 @@ shape as compile issues.
 
 No new capability is added in this step.
 
-**D1: expose what already exists (about 3 to 5 days)**, in this order:
+**D1: expose what already exists (about 3 to 5 days)**, in this order (all four lab families delivered; the weight-decay mask remains):
 1. physics attention, with `heads`, `slices` and `expansion`;
 2. the Haar wavelet operator, with `wavelet_levels`;
 3. graph operators, with `graph_radius` and `latent_points` and a resource
@@ -181,3 +186,104 @@ Each step must preserve:
 
 Widening the catalog adds no scoring rule, no miner-selected tolerance and no
 arbitrary resource envelope.
+
+## Beyond the installed lab: the wider inventory (second pass, 2026-09-23)
+
+The map above covers what Carbon can already rebuild. A miner with the full
+research environment can discover far more. Under the declarative rule, each
+discovery is a gap until Carbon registers it.
+
+### Cost bands
+
+The worker image installs only the `science-jax` group: jax, equinox, optax,
+foundax 0.2.0, chex and einops, all pinned by the profile's environment digest.
+That fixes three cost bands:
+
+- **In the vendored lab:** mapping only.
+- **In foundax or optax:** an adapter, with no new dependency.
+- **Only in PyTorch or Julia:** a new registered backend image, with its own
+  determinism and security review.
+
+### What foundax 0.2.0 provides
+
+foundax 0.2.0 ships architecture definitions only. It contains no weights and no
+loaders.
+
+- **Fit Carbon's direct-prediction interface in 1D:**
+  - `deeponet`, with branch, trunk and combination variants;
+  - `unet1d`, which must pin a deterministic norm;
+  - `mgno1d`;
+  - `pointnet`;
+  - `gnot`, `cgptno` and `moegptno`;
+  - `geofno` and `pcno`.
+- **Need a 2D or 3D Challenge:**
+  - `fno2d` and `fno3d`;
+  - `unet2d` and `unet3d`;
+  - `cno2d` and `mgno2d`;
+  - `pit`.
+- **Named foundation models:** `poseidon`, `dpot`, `mpp`, `morph`, `pdeformer2`,
+  `prose`, `bcat` and `walrus`. Without pretrained weights they are only
+  architectures, and pretrained state is outside the current contract.
+
+### Engineering-only batch (no owner decision needed)
+
+1. Remaining lab families: the Haar wavelet operator, GNO and GINO.
+2. Optimizer families from optax behind a closed choice:
+   - Lion, LAMB, Adafactor and RAdam;
+   - NAdamW and SGD with momentum;
+   - Muon, Prodigy and schedule-free;
+   - SAM.
+3. Learning-rate schedule families from optax, plus reduce-on-plateau driven by
+   TRAIN loss only.
+4. The weight-decay mask, lookahead and skip-nonfinite wrappers.
+5. foundax DeepONet variants.
+6. Weight averaging (SWA or tail averaging).
+7. New loss terms: spectral or frequency weighting, time weighting, and Sobolev
+   terms beyond H1.
+8. Explicit training stages with a per-stage step split and optimizer, for
+   example supervised fitting then physics fine-tuning, or an L-BFGS polish.
+9. Architecture detail fields (activation, normalization, initialization), and
+   DeepONet depth.
+10. A rollout or learned time-stepper predictor adapter. It is large, but it
+    leaves the exam unchanged.
+
+### Owner decisions required before these can proceed
+
+- **Training-data knobs** (TRAIN case count, grid resolution, number of times):
+  these set a data-generation budget and change the declared TRAIN support.
+- **Label method:** choosing it touches reference-solver authority.
+- **Curriculum and adaptive sampling:** these need the `R_strategy` vocabulary
+  ratified (MQ-024). Sampling must stay TRAIN-only.
+- **Burgers symmetry augmentations:** deciding which transforms preserve the
+  Challenge's invariants is a scientific decision. A Galilean boost, for
+  example, changes the mean.
+- **Conservation penalties built from exam measurement code:** they must not
+  collapse the separation between candidate and measurement.
+- **Solver hybrids and closures:** the FV and ETDRK4 solvers are the exam's
+  reference and witness methods. A candidate-side solver template may need to
+  be registered independently.
+- **Ensembles:** these need a resource envelope.
+- **Precision beyond float32:** this sets the reproducibility tolerance.
+- **2D and 3D families:** these need a new Challenge.
+- **PyTorch and Julia reconstruction backends:** these need image and security
+  review.
+- **Pretrained weights:** these raise provenance and licensing questions and are
+  currently forbidden.
+
+### Stays excluded
+
+- arbitrary losses as expressions;
+- composition graphs;
+- custom datasets;
+- miner seeds;
+- checkpoint selection on final labels.
+
+### Known gaps
+
+- **`dry_validate` still accepts backbones with no rebuild path** (`uno` and
+  `physicsnemo_fno`).
+- **The Burgers challenge kit is research-only.** Reconstruction always trains
+  on the controller's own TRAIN archive.
+- **A family name does not fix its meaning.** Families with the same name in
+  JAX, PyTorch and Julia are not equivalent, so Carbon documents its own meaning
+  for each family it registers.

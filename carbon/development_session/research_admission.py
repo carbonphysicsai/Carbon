@@ -13,6 +13,7 @@ import math
 from dataclasses import dataclass
 from pathlib import Path
 
+from .private_records import private_json
 from .profile import canonical, digest
 from .research_ledger import (
     DEVELOPMENT_CEILINGS,
@@ -23,23 +24,6 @@ from .research_ledger import (
 SCHEMA = "carbon.launchpad.research-grant.v1"
 MANIFEST = "carbon.autoresearch.campaign.v2"
 PROFILE = "carbon.burgers-autoresearch-development.v1"
-
-
-def private_json(path):
-    if (
-        not path.is_absolute()
-        or path.resolve() != path
-        or not path.is_file()
-        or path.stat().st_size > 65536
-        or path.stat().st_mode & 0o077
-        or path.parent.stat().st_mode & 0o077
-    ):
-        raise ValueError("private bounded operator record required")
-    raw = path.read_bytes()
-    value = json.loads(raw)
-    if canonical(value) != raw:
-        raise ValueError("canonical operator record required")
-    return value
 
 
 @dataclass(frozen=True)
@@ -136,6 +120,40 @@ class Admission:
         return {"path": str(self.path), "digest": self.pin}
 
 
+class RetainedGrant(Admission):
+    """A recorded grant, held only to prove ownership of what it already started.
+
+    Registration is the only product admission gate (C-MLP-02-D11), so a product
+    surface may never admit work under a grant. But campaigns launched under one
+    before that decision still own reservations, sequences and containers, and
+    expiry or retirement ends the right to spend, never the duty to clean up.
+
+    This is the one form of grant a product surface may hold. It satisfies the
+    cleanup-ownership proof and nothing else: `verify`, which every admission
+    path calls, always refuses. So "a retired grant admits no new work" is not a
+    check a caller has to remember - there is no method on this type that says
+    yes to dispatch.
+    """
+
+    def verify(self, **_ignored):
+        raise ValueError(
+            "a retired grant admits no new work; only cleanup of what it started"
+        )
+
+
+def retained_grant_ledger(root, record, pin):
+    """The ledger of a campaign launched under a now-retired grant, for cleanup.
+
+    `record` is the grant as recorded at launch - its path and document - and
+    `pin` the digest recorded beside it, so a changed grant file cannot redirect
+    cleanup to a different campaign.
+    """
+    from .research_ledger import CampaignLedger
+
+    admission = RetainedGrant(Path(record["path"]), pin, record["document"])
+    return CampaignLedger(Path(root), admission=admission)
+
+
 def verify_cleanup_owner(ledger, owner, *, db=None):
     """Authenticate retained campaign ownership without admitting further work.
 
@@ -144,7 +162,7 @@ def verify_cleanup_owner(ledger, owner, *, db=None):
     grant, or substitutes for the caller's fresh external authentication.
     """
     admission = ledger.admission
-    if type(admission) is not Admission:
+    if type(admission) not in (Admission, RetainedGrant):
         raise ValueError("explicit retained campaign authority required")
     doc = private_json(admission.path)
     if db is None:

@@ -11,6 +11,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 
 from carbon.reconstruction import profile
+from carbon.reconstruction.capability_registry import rebuildable_families
 from carbon.reconstruction.worker.model import PROFILE_ID, PROFILE_VERSION
 
 CATALOGUE_SCHEMA = "carbon.reconstruction-capabilities.v1"
@@ -54,42 +55,31 @@ class ReconstructionCapability:
     host_availability: str = "NOT_OBSERVED"
 
 
+_LAB_OBJECTIVES = (
+    "TRAIN RMS normalized squared error",
+    "optional relative data loss",
+    "optional H1 spectral derivative loss",
+    "optional Burgers PDE residual loss",
+)
+
+# One entry per family the construction capability registry marks rebuildable,
+# then the registered but unselected Foundax FNO.
 _CAPABILITIES = (
-    ReconstructionCapability(
-        "fno",
-        "carbon_jax_fno1d",
-        "1.0",
-        "fno1d",
-        profile.IMPLEMENTATION_ID,
-        profile.IMPLEMENTATION_VERSION,
-        profile.UPSTREAM_WHEEL_DIGEST,
-        "carbon_c02_jax_development",
-        "3.0",
-        (
-            "TRAIN RMS normalized squared error",
-            "optional relative data loss",
-            "optional H1 spectral derivative loss",
-            "optional Burgers PDE residual loss",
-        ),
-        True,
-    ),
-    ReconstructionCapability(
-        "deeponet",
-        "carbon_jax_deeponet1d",
-        "1.0",
-        "deeponet1d",
-        profile.IMPLEMENTATION_ID,
-        profile.IMPLEMENTATION_VERSION,
-        profile.UPSTREAM_WHEEL_DIGEST,
-        "carbon_c02_jax_development",
-        "3.0",
-        (
-            "TRAIN RMS normalized squared error",
-            "optional relative data loss",
-            "optional H1 spectral derivative loss",
-            "optional Burgers PDE residual loss",
-        ),
-        True,
+    *(
+        ReconstructionCapability(
+            selector,
+            f"carbon_jax_{selector}1d",
+            "1.0",
+            kind,
+            profile.IMPLEMENTATION_ID,
+            profile.IMPLEMENTATION_VERSION,
+            profile.UPSTREAM_WHEEL_DIGEST,
+            "carbon_c02_jax_development",
+            "3.0",
+            _LAB_OBJECTIVES,
+            True,
+        )
+        for selector, kind in rebuildable_families()
     ),
     ReconstructionCapability(
         "fno",

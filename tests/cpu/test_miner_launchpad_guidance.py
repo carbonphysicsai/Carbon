@@ -7,7 +7,7 @@ import pytest
 from test_cw1_research_loop import response
 from test_miner_launchpad_admission import managed
 from test_miner_launchpad_finite_completion import setup_campaign
-from test_miner_launchpad_runner import adapter
+from test_miner_launchpad_runner import KEY, REVISION, RUNTIME, adapter
 
 from carbon.development_session import research_campaign as campaign
 from carbon.development_session import research_guidance as guidance
@@ -34,13 +34,13 @@ def test_invalid_guidance_fails_before_admission(tmp_path, text):
     tmp_path.chmod(0o700)
     path = tmp_path / "profile.json"
     cfg = {
-        "schema": "carbon.launchpad.runner-profile.v1",
+        "schema": "carbon.launchpad.runner-profile.v2",
         "profile_id": "fixture",
         "principal": "alice",
-        "grant_file": str(tmp_path / "absent-grant"),
-        "account_ref": "fixture",
         "enabled": True,
-        "accepted_revision": "fixture",
+        "accepted_revision": REVISION,
+        "campaigns_root": str(tmp_path / "campaigns"),
+        "runtime": RUNTIME,
         "paths": {key: str(tmp_path / key) for key in PATH_FIELDS},
         "research_guidance": text,
     }
@@ -49,10 +49,10 @@ def test_invalid_guidance_fails_before_admission(tmp_path, text):
     bridge = RunnerAdapter(tmp_path / "browser.sqlite3", configuration=path)
     with pytest.raises(ValueError, match="guidance"):
         bridge.configured()
-    with pytest.raises(Rejected, match="admission"):
+    with pytest.raises(Rejected, match="profile_unavailable"):
         bridge.launch({"profile": "fixture"}, "fixture-request-0001")
     assert bridge.recent() == []
-    assert not (tmp_path / "absent-grant").exists()
+    assert not (tmp_path / "campaigns").exists()
 
 
 def test_exact_utf8_text_and_closed_binding():
@@ -105,8 +105,8 @@ def test_campaign_input_freeze_resume_and_tamper_rejection(tmp_path, monkeypatch
 
 def test_prelaunch_review_pin_persistence_and_legacy_migration(tmp_path, monkeypatch):
     bridge, meter, _ = adapter(tmp_path, monkeypatch)
-    cfg, _, _ = bridge.configured()
-    cfg.update(research_guidance=TASK, accepted_revision="fixture")
+    cfg = bridge.configured()
+    cfg.update(research_guidance=TASK)
     task = guidance.bind(TASK)
     with meter.db() as db:
         manifest = json.loads(db.execute("SELECT manifest FROM campaign").fetchone()[0])
@@ -120,20 +120,20 @@ def test_prelaunch_review_pin_persistence_and_legacy_migration(tmp_path, monkeyp
         {"profile": cfg["profile_id"], "review_digest": "stale"},
     ):
         with pytest.raises(Rejected):
-            bridge.launch(body, "fixture-request-0001")
+            bridge.launch(body, KEY)
     body = {"profile": cfg["profile_id"], "review_digest": preflight["review_digest"]}
-    run = bridge.launch(body, "fixture-request-0001")
+    run = bridge.launch(body, KEY)
     assert run["research_guidance"] == task
     other = RunnerAdapter(bridge.database, principal="other-owner")
     assert other.recent() == []
     with pytest.raises(Rejected, match="unavailable"):
         other.get(run["id"])
-    assert bridge.launch(body, "fixture-request-0001")["id"] == run["id"]
+    assert bridge.launch(body, KEY)["id"] == run["id"]
     recovered = RunnerAdapter(bridge.database, principal="alice")
     assert recovered.get(run["id"])["research_guidance"] == task
     cfg["research_guidance"] = "changed before retry"
     with pytest.raises(Rejected, match="review"):
-        bridge.launch(body, "fixture-request-0001")
+        bridge.launch(body, KEY)
     with pytest.raises(ValueError, match="resume binding"):
         bridge.control(run["id"], "resume")
     with meter.db() as db:
@@ -145,14 +145,18 @@ def test_prelaunch_review_pin_persistence_and_legacy_migration(tmp_path, monkeyp
 
 def test_legacy_rows_and_input_stay_absent(tmp_path, monkeypatch):
     bridge, _, _ = adapter(tmp_path, monkeypatch)
-    run = bridge.launch({"profile": "opaque-profile"}, "fixture-request-0001")
+    run = bridge.launch({"profile": "opaque-profile"}, KEY)
     assert "research_guidance" not in run
-    assert "review_digest" not in bridge.preflight()
-    # Actual old-table migration preserves the existing record and replay identity.
+    assert "research_guidance" not in bridge.preflight()
+    # The retired-grant table predates the guidance column; reopening migrates
+    # it in place and leaves the product record untouched.
     with bridge.db() as db:
         db.execute("ALTER TABLE research_runs DROP COLUMN research_guidance")
     recovered = RunnerAdapter(bridge.database, principal="alice")
     assert "research_guidance" not in recovered.get(run["id"])
+    with recovered.db() as db:
+        columns = {r[1] for r in db.execute("PRAGMA table_info(research_runs)")}
+    assert "research_guidance" in columns
 
 
 def test_scripted_three_trial_information_flow_and_earlier_selection(tmp_path):

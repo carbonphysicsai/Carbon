@@ -1,9 +1,13 @@
 # Standard Carbon research MCP
 
-This optional adapter exposes the existing admitted CPU research campaign. It
+This optional adapter exposes one of the miner's existing research campaigns. It
 uses the same principal, signed gateway, operation identity, task controller,
 workspace and campaign ledger as Launchpad. Starting another client does not
-create a grant, reset an allowance or start the paid research loop.
+create a campaign, change a budget or start the paid research loop.
+
+Registration is the only admission gate (C-MLP-02-D11). A campaign is admitted
+by the subnet registration its manifest records, and every research call
+re-reads that registration from the chain. No grant exists on this door.
 
 ## Operator setup
 
@@ -11,12 +15,14 @@ Use the accepted Linux checkout and pinned environment:
 
 ```sh
 CARBON_UV_GROUPS='chain archive science-jax mcp' ./scripts/dev/bootstrap.sh
-python -m carbon.miner_mcp.standard_cli --configuration /absolute/private/runner-profile.json
+python -m carbon.miner_mcp.standard_cli \
+  --configuration /absolute/private/runner-profile.json \
+  --campaign <campaign id under campaigns_root>
 ```
 
 ## Starting without a campaign
 
-A miner who has not registered yet has no profile, no grant and no campaign, so
+A miner who has not registered yet has no profile and no campaign, so
 `--configuration` is optional. Omitted, the server carries the open tier alone:
 
 ```sh
@@ -50,9 +56,12 @@ Two limitations worth knowing before building on this:
 ## The prepared-campaign profile
 
 The installed console command is `carbon-mcp` with the same arguments. The
-profile is the existing private Launchpad runner profile for an already prepared,
-frozen, unfinished campaign. It must match its existing owner, current grant,
-accepted implementation, role roots and image identities. Preparation and
+profile is the miner's private Launchpad runner profile (v2), and `--campaign`
+names one of the prepared, frozen, unfinished campaigns under its
+`campaigns_root`. The campaign must have been admitted by registration and must
+match the profile's principal, accepted implementation, role roots and image
+identities. A campaign launched under the retired development grant is not
+attached here; the Launchpad reconciles it. Preparation and
 authorization remain operator actions. Normal attachment rejects completed or
 expired campaigns; the cleanup-only mode below does not reopen research. The
 operator host needs the accepted checkout;
@@ -144,10 +153,10 @@ Tasks polling uses a separately bounded observation count in the same provider.
 
 Graceful server shutdown stops admission, requests cancellation of its owned
 workers and joins their supervised cleanup before the CLI closes its lease.
-Process loss cannot certify cleanup. The trusted operator may reattach using
-the existing CLI command plus `--cleanup-only` after grant expiry or pause;
+Process loss cannot certify cleanup. The miner may reattach using the same
+command plus `--cleanup-only` after a stop, a pause or an exhausted budget;
 this permits owned status/cancel access, rejects new execution, and still
-requires valid external authentication. It does not extend the grant.
+requires valid external authentication. It admits no new work.
 
 The `io.modelcontextprotocol/skills` extension implements `skills/list` and
 `skills/get`. Its fixed entry is
