@@ -181,3 +181,17 @@ def test_ranking_reliability_improves_with_batch_size():
     r = simulate.ranking_reliability(a, b, [50, 200, 600], margin=0.004, reps=800)
     s = r["sizes"]
     assert s[50]["same_order_as_full"] < s[600]["same_order_as_full"]
+
+
+def test_adaptive_agent_extension_refuses_without_an_authorized_budget(monkeypatch):
+    from scripts.dev.exam_design import adaptive_agent
+
+    monkeypatch.delenv("CARBON_EXAM_AGENT_BUDGET_USD", raising=False)
+    monkeypatch.delenv("CARBON_EXAM_AGENT_AUTHORITY", raising=False)
+    with pytest.raises(adaptive_agent.NotAuthorized):
+        adaptive_agent.authorize()
+    fb = adaptive_agent.feedback({"eligible": True, "score": 0.1, "pool_version": 2, "gate_failures": {},
+                                  "components": {"voltage": 0.1}})
+    assert set(fb) == {"eligible", "score", "pool_version", "failed_gates"}
+    with pytest.raises(ValueError):
+        adaptive_agent.validate_submission({"recipe": "mlp", "case_ids": ["x"]})
