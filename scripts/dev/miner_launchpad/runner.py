@@ -533,24 +533,34 @@ class RunnerAdapter:
         return self._background(admitted, practice, "PRACTICING")
 
     def freeze_candidate_admitted(self, admitted, request):
-        from carbon.development_session.research_campaign import freeze_candidate
+        """Freeze a practiced recipe. Its refusals - agent-selected campaign,
+        no practice result, a candidate awaiting submission, final exams used -
+        are read from the campaign's own records before anything starts, so a
+        person gets the named reason at once; the freeze itself then runs in
+        the background, because preparing the campaign can take a while."""
+        from carbon.development_session.research_campaign import (
+            freeze_candidate,
+            freeze_refusal,
+        )
         from scripts.dev.miner_launchpad.operations import strategy_value
 
         strategy = strategy_value(request)
         used = request.get("used_feedback", False)
         if type(used) is not bool:
             raise Rejected("used_feedback_boolean_required")
+        reason = request["reason"]
+        if type(reason) is not str or not 1 <= len(reason) <= 4096:
+            raise Rejected("bounded_reason_required")
+        refusal = freeze_refusal(Path(admitted.campaign["root"]), strategy)
+        if refusal is not None:
+            raise Rejected(refusal, 409)
 
         async def freeze(prepared):
             return await freeze_candidate(
-                prepared,
-                strategy=strategy,
-                reason=request["reason"],
-                used_feedback=used,
+                prepared, strategy=strategy, reason=reason, used_feedback=used
             )
 
-        self._operate(admitted, freeze)
-        return self.get(admitted.campaign["id"])
+        return self._background(admitted, freeze, "FREEZING")
 
     def submit_admitted(self, admitted, request):
         from carbon.development_session.research_campaign import submit_frozen
@@ -564,8 +574,14 @@ class RunnerAdapter:
         """Run a long miner operation on its own thread; observe reports it."""
         identity = admitted.campaign["id"]
         with self.lock:
-            if identity in self.threads and self.threads[identity].is_alive():
-                raise Rejected("campaign_busy", 409)
+            previous = self.threads.get(identity)
+            if previous is not None and previous.is_alive():
+                # A finished operation settles the campaign READY and then its
+                # thread exits: give it a moment to, so a client that saw
+                # READY is not told busy. A running one still answers busy.
+                previous.join(timeout=2)
+                if previous.is_alive():
+                    raise Rejected("campaign_busy", 409)
             thread = threading.Thread(
                 target=self._operation_thread, args=(admitted, work), daemon=True
             )

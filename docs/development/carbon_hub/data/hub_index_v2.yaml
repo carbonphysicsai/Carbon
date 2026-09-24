@@ -9877,6 +9877,19 @@ events:
       - "WAVE-C/C-W1-D4"
     supersedes: null
     recorded_at: "2026-09-24T02:42:16Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "evidence"
+    event_id: "C-MLP-02-BROWSER-NO-AGENT-JOURNEY-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "Implemented slice two of the Launchpad middle-of-the-journey mission: a person drives the whole research journey in the browser with no agent configured - launch, practice, observe, freeze a candidate, submit - on top of the shared operations table. The launch form asks who selects and submits (Carbon's agent, or the person with no agent). An agent-less campaign's card shows the person's journey: a practice form taking a recipe and a hypothesis, a freeze of a recipe they practiced with their reason, and the DEVELOPMENT submit; each is a call to the same table the agent and MCP clients use, and the page keeps what a person typed across refreshes and never rebuilds under their cursor. The projection now reports who selects and where the journey stands - submitted epochs, final exams remaining, whether a frozen candidate awaits submission - from the campaign's files. A freeze's refusals (agent-selected campaign, no practice result, a candidate already waiting, final exams used) are answered immediately by one checker that freeze_candidate itself uses, and the freeze then runs in the background like practice and submit, so a person gets a named reason rather than a timeout. The browser smoke gains a scenario that runs the journey in real Chromium through the real campaign host, operations table, gates, launch thread, freeze, submit, ledger and projection, and asserts the durable records: the frozen selected-recipe.json equals the agent's record by the same builder, the outcome records the miner as the selector and zero chain transactions, final feedback is written, and the campaign settles READY. Preparing the campaign, the practice trial's training and the final exam are fixtures in the smoke; no scientific campaign ran."
+    primary_detail: "scripts/dev/miner_launchpad/app.js"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "WAVE-C/C-W1-D4"
+    supersedes: null
+    recorded_at: "2026-09-24T02:53:48Z"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"

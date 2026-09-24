@@ -45,6 +45,10 @@ def prepared(tmp_path, monkeypatch, *, agent="none", practiced=(STRATEGY,)):
                 "INSERT INTO research_results VALUES(?,?,?,?)",
                 ("miner", f"task-{index}", body, digest(body)),
             )
+    manifest = {"owner": "miner"}
+    if agent is not None:
+        manifest["agent"] = agent
+    (ledger.root / "campaign-manifest.json").write_bytes(canonical(manifest))
     monkeypatch.setattr(campaign, "report", lambda *_, **__: None)
     submitted = []
 
@@ -62,7 +66,7 @@ def prepared(tmp_path, monkeypatch, *, agent="none", practiced=(STRATEGY,)):
         args=SimpleNamespace(),
         ledger=ledger,
         owner="miner",
-        manifest={"agent": agent},
+        manifest=manifest,
         seeds={},
         role_root=None,
         data=None,
@@ -134,10 +138,20 @@ def test_the_agent_selects_in_an_autonomous_campaign(tmp_path, monkeypatch):
         run(campaign.freeze_candidate(value, strategy=STRATEGY, reason="mine"))
     # Specimen: a campaign frozen before the choice existed is the agent's.
     legacy, _ = prepared(tmp_path / "legacy", monkeypatch, agent=None)
-    legacy.manifest.clear()
     assert legacy.agent == "autonomous"
+    with pytest.raises(campaign.OperationRefused, match="agent_selects"):
+        run(campaign.freeze_candidate(legacy, strategy=STRATEGY, reason="mine"))
 
 
 @pytest.mark.parametrize("name", list(OPERATIONS))
 def test_the_campaign_host_implements_every_operation_in_the_table(name):
     assert callable(getattr(RunnerAdapter, name + "_admitted", None)), name
+
+
+def test_the_early_answer_and_the_freeze_share_one_checker(tmp_path, monkeypatch):
+    value, _ = prepared(tmp_path, monkeypatch)
+    root = value.ledger.root
+    assert campaign.freeze_refusal(root, OTHER) == "practice_result_required"
+    assert campaign.freeze_refusal(root, STRATEGY) is None
+    run(campaign.freeze_candidate(value, strategy=STRATEGY, reason="first"))
+    assert campaign.freeze_refusal(root, STRATEGY) == "candidate_awaits_submission"
