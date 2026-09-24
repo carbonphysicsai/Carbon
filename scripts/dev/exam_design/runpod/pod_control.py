@@ -197,12 +197,12 @@ def cmd_dispatch(a) -> None:
     if existing:
         raise SystemExit(f"refusing: {len(existing)} pod(s) already exist; one A40 at a time")
     cuda_ok = []
-    for cuda in ("13.0", "13.2"):
+    for cuda in ("13.0",):  # the REST create schema accepts CUDA versions up to 13.0; keeps the host line fixed
         price, stock = a40_price(cuda)
         if price is not None and price <= MAX_RATE and stock:
             cuda_ok.append(cuda)
     if not cuda_ok:
-        raise SystemExit(f"refusing: no {GPU} Secure pod at <= USD {MAX_RATE}/hr on CUDA 13.0/13.2 right now")
+        raise SystemExit(f"refusing: no {GPU} Secure pod at <= USD {MAX_RATE}/hr on CUDA 13.0 right now")
     rate = MAX_RATE
     acct = account()
     minutes = float(a.minutes)
