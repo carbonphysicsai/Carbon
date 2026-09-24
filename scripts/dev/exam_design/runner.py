@@ -35,7 +35,14 @@ def host_info() -> dict:
         if q[0] != "max":
             info["cpu_quota"] = int(q[0]) / int(q[1])
     except Exception:
-        pass
+        try:  # cgroup v1: some hosts expose 96 CPUs with a small CFS quota
+            quota = int(open("/sys/fs/cgroup/cpu/cpu.cfs_quota_us").read())
+            period = int(open("/sys/fs/cgroup/cpu/cpu.cfs_period_us").read())
+            info["cgroup_v1_cfs"] = [quota, period]
+            if quota > 0:
+                info["cpu_quota"] = quota / period
+        except Exception:
+            pass
     try:
         info["cpu_model"] = next(l.split(":", 1)[1].strip() for l in open("/proc/cpuinfo") if l.startswith("model name"))
     except Exception:
@@ -235,6 +242,11 @@ def run_multi(cfg: dict, out: str) -> int:
         cpath = os.path.join(sub, "child_config.json")
         json.dump(ccfg, open(cpath, "w"))
         env = dict(os.environ)
+        # One BLAS/OpenMP thread per battery worker; a couple for the GPU child's host work. Libraries
+        # otherwise size their pools to all 96 visible cores and thrash a small CPU share.
+        threads = str(child.get("threads", 1 if child["phase"] == "battery_refs" else 2))
+        for var in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "NUMEXPR_NUM_THREADS"):
+            env[var] = threads
         code_root = os.getcwd()
         env["PYTHONPATH"] = ":".join([code_root, os.path.join(root, child["overlay"])])
         log = open(os.path.join(sub, "phase.log"), "wb")

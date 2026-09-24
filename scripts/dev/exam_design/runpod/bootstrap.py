@@ -163,6 +163,10 @@ def main():
         env["HOME"] = "/tmp"
         env.setdefault("XLA_PYTHON_CLIENT_PREALLOCATE", "false")
         env.setdefault("JAX_ENABLE_COMPILATION_CACHE", "false")  # the image points the cache at an unwritable /scratch
+        # Numerical libraries size thread pools to every visible core (96 on some hosts) regardless of
+        # the pod's CPU share; the pilot found 6 workers thrashing to ~1/10 speed without this.
+        env.setdefault("OMP_NUM_THREADS", "1")
+        env.setdefault("OPENBLAS_NUM_THREADS", "1")
         env["MPLCONFIGDIR"] = "/tmp/mpl"
         with open(os.path.join(OUT, "phase.log"), "wb") as log:
             rc = subprocess.run([sys.executable, "-m", "scripts.dev.exam_design.runner", PHASE, "--out", OUT],
