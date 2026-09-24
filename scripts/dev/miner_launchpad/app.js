@@ -16,6 +16,14 @@
   // Every launch-time choice with its true availability, from the options
   // operation - the same one an MCP client reads. Never a static list.
   let launchOptions = null;
+  // The one launch composition. The quick and advanced paths edit this same
+  // object, templates save and load it, and the launch body is built from it;
+  // there is no second copy to disagree with. `agent` stays null until the
+  // person or a template chooses, so a default is never mistaken for a choice.
+  let composition = {agent: null, budget: {}};
+  let launchPath = "quick";
+  let launchShape = null;
+  const templateKey = "carbon.launchpad.launch-templates.v1";
   const STARTER_RECIPE = JSON.stringify({schema_version: "1.0", challenge_id: "burgers-dynamics-v1", backbone: "fno", parameters: {steps: 64}}, null, 2);
   const researchKey = "carbon.launchpad.pending-research.v1";
   const pendingKey = "carbon.launchpad.pending.v1";
@@ -236,6 +244,10 @@
       if (research.preflight.available && !launchOptions) {
         try { launchOptions = await api("/api/v1/operations/options", {}); }
         catch (_) { launchOptions = null; }
+      }
+      if (!launchShape) {
+        try { launchShape = (await api("/api/v1/operations")).operations.find(op => op.operation === "launch") || null; }
+        catch (_) { launchShape = null; }
       }
       connected = true;
       render();
@@ -464,15 +476,8 @@
       data.style.whiteSpace = "pre-wrap"; data.style.overflowWrap = "anywhere";
       details.append(label, data); reviewPanel.append(details);
     }
-    const autonomous = document.querySelector("input[name=research-agent][value=autonomous]");
-    const agentOption = (launchOptions?.agents || []).find(option => option.value === "autonomous");
-    if (autonomous) {
-      const unavailable = agentOption?.availability === "unavailable";
-      autonomous.disabled = unavailable;
-      if (unavailable && autonomous.checked) document.querySelector("input[name=research-agent][value=none]").checked = true;
-      autonomous.parentElement.lastChild.textContent = " Carbon's agent researches, freezes and submits" + (unavailable ? " · unavailable: " + agentOption.reason.replaceAll("_", " ") : "");
-    }
-    $("research-launch").disabled = !connected || busy || storageError || !research.preflight.available;
+    const blocked = renderLaunchComposition();
+    $("research-launch").disabled = !connected || busy || storageError || !research.preflight.available || Boolean(blocked);
     $("research-launch").textContent = pendingResearch ? "Retry same research launch" : "Launch research";
     const container = $("research-runs");
     // Never rebuild under a person's cursor: the journey is typed into.
@@ -594,6 +599,166 @@
     second.append(freeze, submit); box.append(second);
     card.append(box);
   }
+  const AGENT_LABELS = {autonomous: "Carbon's agent researches, freezes and submits", none: "I do it myself \u2014 no agent"};
+  function words(value) { return String(value).replaceAll("_", " "); }
+  // Why this composition cannot launch right now, or null. Availability is
+  // the options operation's, read from the host - never assumed.
+  function compositionProblem(value) {
+    if (!launchOptions) return "launch options have not been read yet";
+    const agent = launchOptions.agents.find(option => option.value === value.agent);
+    if (!agent) return "choose who selects and submits";
+    if (agent.availability !== "available") return "the " + value.agent + " agent is unavailable: " + words(agent.reason);
+    const budget = value.budget || {};
+    const vocabulary = launchOptions.budget || {keys: [], ceilings: []};
+    for (const key of Object.keys(budget)) if (!vocabulary.keys.includes(key)) return "a budget cannot set " + key;
+    if ("elapsed_seconds" in budget && !(Number.isInteger(budget.elapsed_seconds) && budget.elapsed_seconds >= 1)) return "the elapsed limit must be a whole number of seconds, at least 1";
+    if ("final_reserve" in budget && typeof budget.final_reserve !== "boolean") return "the final reserve is on or off";
+    for (const [name, cap] of Object.entries(budget.ceilings || {})) {
+      if (!vocabulary.ceilings.includes(name)) return "no resource is called " + name;
+      if (!(Number.isInteger(cap) && cap >= 0)) return "the " + words(name) + " ceiling must be a whole number, 0 or more";
+    }
+    return null;
+  }
+  function describeComposition(value) {
+    const budget = value.budget || {};
+    const parts = [];
+    if ("elapsed_seconds" in budget) parts.push(budget.elapsed_seconds + " s elapsed");
+    if (budget.final_reserve) parts.push("final phase held back");
+    for (const [name, cap] of Object.entries(budget.ceilings || {})) parts.push(words(name) + " \u2264 " + cap);
+    return "Launches with " + (value.agent ? AGENT_LABELS[value.agent] || value.agent : "no choice yet") + " \u00b7 budget: " + (parts.length ? parts.join(", ") : "none, no cap");
+  }
+  function buildCeilings() {
+    const box = $("budget-ceilings");
+    if (!launchOptions?.budget || box.dataset.built) return;
+    for (const name of launchOptions.budget.ceilings) {
+      const wrap = document.createElement("div");
+      const label = document.createElement("label"); label.htmlFor = "ceiling-" + name; label.textContent = words(name);
+      const input = document.createElement("input"); input.id = "ceiling-" + name; input.type = "number"; input.min = "0"; input.step = "1"; input.placeholder = "No cap"; input.dataset.ceiling = name;
+      input.addEventListener("input", readAdvanced);
+      wrap.append(label, input); box.append(wrap);
+    }
+    box.dataset.built = "1";
+  }
+  // Advanced inputs write into the composition; a blank field removes its key.
+  function readAdvanced() {
+    const budget = {};
+    const whole = text => (text.trim() === "" ? undefined : Number(text));
+    const elapsed = whole($("budget-elapsed").value);
+    if (elapsed !== undefined) budget.elapsed_seconds = elapsed;
+    if ($("budget-final-reserve").checked) budget.final_reserve = true;
+    const ceilings = {};
+    for (const input of document.querySelectorAll("[data-ceiling]")) {
+      const cap = whole(input.value);
+      if (cap !== undefined) ceilings[input.dataset.ceiling] = cap;
+    }
+    if (Object.keys(ceilings).length) budget.ceilings = ceilings;
+    composition = {...composition, budget};
+    render();
+  }
+  function writeAdvanced() {
+    const budget = composition.budget || {};
+    $("budget-elapsed").value = budget.elapsed_seconds ?? "";
+    $("budget-final-reserve").checked = budget.final_reserve === true;
+    for (const input of document.querySelectorAll("[data-ceiling]")) input.value = budget.ceilings?.[input.dataset.ceiling] ?? "";
+  }
+  function renderLaunchComposition() {
+    buildCeilings();
+    if (composition.agent === null && launchOptions) {
+      // First read: offer the agent where it can run, and never select one
+      // that cannot.
+      const agent = launchOptions.agents.find(option => option.value === "autonomous");
+      composition = {...composition, agent: agent?.availability === "available" ? "autonomous" : "none"};
+    }
+    for (const radio of document.querySelectorAll("input[name=research-agent]")) {
+      const option = launchOptions?.agents.find(item => item.value === radio.value);
+      const unavailable = option && option.availability !== "available";
+      radio.disabled = Boolean(unavailable);
+      radio.checked = radio.value === composition.agent;
+      radio.parentElement.lastChild.textContent = " " + AGENT_LABELS[radio.value] + (unavailable ? " \u00b7 unavailable: " + words(option.reason) : "");
+    }
+    $("path-quick").setAttribute("aria-pressed", String(launchPath === "quick"));
+    $("path-advanced").setAttribute("aria-pressed", String(launchPath === "advanced"));
+    $("launch-advanced").hidden = launchPath !== "advanced";
+    const availability = $("launch-availability");
+    if (launchOptions && !availability.dataset.built) {
+      const families = {};
+      for (const family of launchOptions.families) (families[family.verdict] ||= []).push(family.selector || family.id.split(".")[1]);
+      for (const [verdict, names] of Object.entries(families)) researchNote(availability, "Model families \u00b7 " + words(verdict) + ": " + names.join(", "));
+      for (const [lane, state] of Object.entries(launchOptions.research_lanes)) researchNote(availability, "Research lane " + lane + " \u00b7 " + state.availability + (state.reason ? ": " + words(state.reason) : ""));
+      availability.dataset.built = "1";
+    }
+    const problem = compositionProblem(composition);
+    $("composition-summary").textContent = describeComposition(composition) + (problem ? " \u00b7 cannot launch: " + problem : "");
+    renderTemplates();
+    return problem;
+  }
+  function readTemplates() {
+    try { const value = JSON.parse(localStorage.getItem(templateKey) || "{}"); return value && typeof value === "object" && !Array.isArray(value) ? value : {}; }
+    catch (_) { return null; }
+  }
+  function renderTemplates() {
+    const templates = readTemplates();
+    const pick = $("template-pick");
+    const disabled = templates === null || !connected;
+    for (const id of ["template-name", "template-save", "template-pick", "template-load", "template-delete"]) $(id).disabled = disabled;
+    if (templates === null) { $("template-note").textContent = "Templates are unavailable: this browser refused its storage."; return; }
+    const names = Object.keys(templates).sort();
+    if (pick.dataset.names !== names.join("\n")) {
+      pick.replaceChildren(...names.map(name => { const option = document.createElement("option"); option.value = name; option.textContent = name; return option; }));
+      pick.dataset.names = names.join("\n");
+    }
+    $("template-load").disabled = disabled || !names.length;
+    $("template-delete").disabled = disabled || !names.length;
+  }
+  // A template is a launch composition and nothing else: closed against the
+  // launch operation's own fields, and checked against what is available now,
+  // not when it was saved.
+  function templateProblem(value) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) return "it is not a launch composition";
+    const fields = new Set([...(launchShape?.required || []), ...(launchShape?.optional || [])]);
+    for (const key of Object.keys(value)) if (!["agent", "budget"].includes(key) || !fields.has(key)) return "it sets " + key + ", which a template cannot carry";
+    return compositionProblem({agent: value.agent, budget: value.budget || {}});
+  }
+  $("path-quick").addEventListener("click", () => { launchPath = "quick"; render(); });
+  $("path-advanced").addEventListener("click", () => { launchPath = "advanced"; writeAdvanced(); render(); });
+  for (const radio of document.querySelectorAll("input[name=research-agent]")) radio.addEventListener("change", () => { composition = {...composition, agent: radio.value}; render(); });
+  $("budget-elapsed").addEventListener("input", readAdvanced);
+  $("budget-final-reserve").addEventListener("change", readAdvanced);
+  $("template-save").addEventListener("click", () => {
+    const name = $("template-name").value.trim();
+    if (!name) { message("Name the template first.", true); return; }
+    const problem = compositionProblem(composition);
+    if (problem) { message("Not saved: " + problem + ".", true); return; }
+    const templates = readTemplates();
+    if (templates === null) { message("Not saved: this browser refused its storage.", true); return; }
+    templates[name] = {agent: composition.agent, ...(Object.keys(composition.budget).length ? {budget: composition.budget} : {})};
+    try { localStorage.setItem(templateKey, JSON.stringify(templates)); }
+    catch (_) { message("Not saved: this browser refused its storage.", true); return; }
+    $("template-name").value = "";
+    message("Template \u201c" + name + "\u201d saved.");
+    render();
+  });
+  $("template-load").addEventListener("click", async () => {
+    const name = $("template-pick").value;
+    const value = (readTemplates() || {})[name];
+    // Availability is read again now: the moment of choosing is this one.
+    try { launchOptions = await api("/api/v1/operations/options", {}); } catch (_) { /* keep the last read */ }
+    const problem = templateProblem(value);
+    if (problem) { message("Template \u201c" + name + "\u201d not loaded: " + problem + ".", true); render(); return; }
+    composition = {agent: value.agent, budget: value.budget || {}};
+    writeAdvanced();
+    message("Template \u201c" + name + "\u201d loaded. " + describeComposition(composition) + ".");
+    render();
+  });
+  $("template-delete").addEventListener("click", () => {
+    const name = $("template-pick").value;
+    const templates = readTemplates();
+    if (!templates || !(name in templates)) return;
+    delete templates[name];
+    try { localStorage.setItem(templateKey, JSON.stringify(templates)); } catch (_) { message("Not deleted: this browser refused its storage.", true); return; }
+    message("Template \u201c" + name + "\u201d deleted.");
+    render();
+  });
   async function operate(name, body, done) {
     if (!connected || busy) return;
     busy = true; render();
@@ -619,8 +784,10 @@
   $("research-launch").addEventListener("click", async () => {
     if (!connected || busy || storageError || !research.preflight.available) return;
     if (!pendingResearch) {
-      const agent = document.querySelector("input[name=research-agent]:checked")?.value || "autonomous";
-      pendingResearch = {key: crypto.randomUUID(), body: {profile: research.preflight.profile, agent}};
+      const problem = compositionProblem(composition);
+      if (problem) { message("Not launched: " + problem + ".", true); return; }
+      pendingResearch = {key: crypto.randomUUID(), body: {profile: research.preflight.profile, agent: composition.agent}};
+      if (Object.keys(composition.budget).length) pendingResearch.body.budget = composition.budget;
       if (research.preflight.review_digest) pendingResearch.body.review_digest = research.preflight.review_digest;
       try { sessionStorage.setItem(researchKey, JSON.stringify(pendingResearch)); }
       catch (_) { storageError = true; render(); return; }
