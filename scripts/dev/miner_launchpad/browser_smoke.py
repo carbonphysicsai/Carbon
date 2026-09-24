@@ -19,6 +19,13 @@ from pathlib import Path
 import controller
 
 ROOT = Path(__file__).resolve().parents[3]
+# The checkout itself, as the controller's own entry point does: the shared
+# operations table and runner import as `scripts.dev.miner_launchpad.*`, and
+# `carbon` resolves to this checkout rather than any installed copy. The bare
+# `controller` module is the package module too, so a refusal raised through
+# either name is the one class the server catches.
+sys.path.insert(0, str(ROOT))
+sys.modules.setdefault("scripts.dev.miner_launchpad.controller", controller)
 sys.path.insert(0, str(ROOT / "docs/development/carbon_hub/tools"))
 import browser_smoke_test as cdp
 
@@ -202,9 +209,11 @@ class ResearchFixture:
         }
 
     def launch(self, value, key):
+        # The page states who selects; the default is Carbon's agent.
         assert value == {
             "profile": "engineering-fixture",
             "review_digest": "fixture-review-pin",
+            "agent": "autonomous",
         }
         self.keys.add(key)
         if self.record is None:
@@ -822,5 +831,134 @@ def run():
     )
 
 
+def journey():
+    """A person drives the whole journey in a real browser, with no agent."""
+    from carbon.development_session.research_loop import candidate_record
+    from scripts.dev.miner_launchpad.journey_fixture import journey_host
+
+    with tempfile.TemporaryDirectory(prefix="carbon-launchpad-journey-") as temporary:
+        root = Path(temporary)
+        root.chmod(0o700)
+        token = "browser-smoke-session-token-not-a-real-credential"
+        store = controller.Controller(root / "runs.sqlite3")
+        host = journey_host(root)
+        with cdp.launch_browser(cdp.discover_browser(), 20) as (_, browser_port):
+            session = cdp._open_page_session(browser_port, 10)
+            try:
+                session.command("Page.enable")
+                session.command("Runtime.enable")
+                with serving(store, token) as server:
+                    server.research_runner = host
+                    load(session, server.origin)
+                    connect(session, token)
+                    # True availability at the moment of choosing: this host
+                    # has no model-provider key, so Carbon's agent is offered
+                    # as unavailable with its reason, not as a choice that
+                    # would fail later.
+                    wait(
+                        session,
+                        "document.querySelector('input[name=research-agent][value=autonomous]').disabled",
+                    )
+                    assert "provider key not configured" in session.evaluate(
+                        "document.getElementById('research-selects').textContent"
+                    )
+                    session.evaluate(
+                        "document.querySelector('input[name=research-agent][value=none]').click()"
+                    )
+                    click(session, "research-launch")
+                    wait(session, "Boolean(document.querySelector('.journey'))")
+                    run_id = session.evaluate(
+                        "document.querySelector('.journey').id.slice('journey-'.length)"
+                    )
+                    campaign = root / "campaigns" / run_id
+                    # A refusal through the real route: submitting with nothing
+                    # frozen is a named 409, never a 500 - the shared table's
+                    # refusal is the one class this server catches.
+                    import http.client
+
+                    connection = http.client.HTTPConnection(
+                        "127.0.0.1", server.server_port, timeout=5
+                    )
+                    connection.request(
+                        "POST",
+                        "/api/v1/operations/submit",
+                        json.dumps({"campaign": run_id}),
+                        {
+                            "Authorization": "Bearer " + token,
+                            "Content-Type": "application/json",
+                        },
+                    )
+                    response = connection.getresponse()
+                    assert (response.status, json.loads(response.read())) == (
+                        409,
+                        {"error": "freeze_a_candidate_first"},
+                    )
+                    connection.close()
+                    wait(
+                        session,
+                        f"document.querySelector('.journey') && document.getElementById('journey-practice-{run_id}').disabled === false",
+                    )
+                    families = session.evaluate(
+                        "document.querySelector('.journey').textContent"
+                    )
+                    assert "freeze and submit now: fno" in families, families[:400]
+                    assert "Not yet rebuildable (research only):" in families
+                    assert "unet1d" in families
+                    # The freeze is refused before any practice: a candidate
+                    # must have a practice result.
+                    assert session.evaluate(
+                        f"document.getElementById('journey-freeze-{run_id}').disabled"
+                    )
+                    session.evaluate(
+                        f"const h=document.getElementById('journey-hypothesis-{run_id}');"
+                        "h.value='wider FNO lowers data loss';h.dispatchEvent(new Event('input'))"
+                    )
+                    click(session, f"journey-practice-{run_id}")
+                    wait(
+                        session,
+                        f"document.getElementById('journey-freeze-{run_id}') && !document.getElementById('journey-freeze-{run_id}').disabled",
+                    )
+                    click(session, f"journey-freeze-{run_id}")
+                    wait(
+                        session,
+                        f"document.getElementById('journey-submit-{run_id}') && !document.getElementById('journey-submit-{run_id}').disabled",
+                    )
+                    selected = json.loads(
+                        (campaign / "epoch-1" / "selected-recipe.json").read_bytes()
+                    )
+                    assert selected == candidate_record(
+                        selected["strategy"], "practiced", False
+                    ), "a person's freeze writes the agent's record, by the same builder"
+                    outcome = json.loads(
+                        (campaign / "epoch-1" / "outcome.json").read_bytes()
+                    )
+                    assert outcome["selected_by"] == "miner"
+                    assert outcome["chain_transactions"] == 0
+                    click(session, f"journey-submit-{run_id}")
+                    wait(
+                        session,
+                        "document.querySelector('.journey').textContent.includes('Submitted epochs: 1')",
+                    )
+                    assert (
+                        campaign / "epoch-1" / "permitted-final-feedback.json"
+                    ).exists()
+                    projected = host.get(run_id)
+                    assert projected["selects"] == "miner"
+                    assert projected["journey"]["submitted_epochs"] == [1]
+                    assert projected["state"] == "READY", projected["state"]
+                exceptions = [
+                    event
+                    for event in session.events
+                    if event["method"] == "Runtime.exceptionThrown"
+                ]
+                assert not exceptions, exceptions
+            finally:
+                session.close()
+    print(
+        "Launchpad journey smoke passed: with no agent, a person launched, practiced, froze and submitted in a real browser through the shared operations table; the frozen record is the agent's record, the ledger settled READY, and nothing reached the chain. Preparing, training and the final exam were fixtures."
+    )
+
+
 if __name__ == "__main__":
     run()
+    journey()

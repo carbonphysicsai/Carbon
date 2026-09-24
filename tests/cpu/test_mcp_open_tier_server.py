@@ -240,12 +240,20 @@ def test_the_cli_serves_the_open_tier_when_no_profile_is_given(monkeypatch):
     assert served[1][2] == "a" * 32
 
 
-def test_a_profile_without_a_campaign_is_refused():
-    """A profile holds any number of campaigns; attaching names one."""
+def test_a_profile_without_a_campaign_serves_every_operation(monkeypatch):
+    """With a profile and no campaign, a miner's own client gets the operations
+    tier - onboarding and every operation, launch included - instead of a
+    refusal: creating a campaign needs nothing Carbon issues (gap 1.4)."""
     from carbon.miner_mcp import standard_cli
 
-    with pytest.raises(SystemExit):
-        standard_cli.main(["--configuration", "/nowhere/profile.json"])
+    served = []
+
+    async def operations(configuration):
+        served.append(("operations", configuration))
+
+    monkeypatch.setattr(standard_cli, "serve_operations", operations)
+    assert standard_cli.main(["--configuration", "/nowhere/profile.json"]) == 0
+    assert served == [("operations", Path("/nowhere/profile.json"))]
 
 
 def test_cleanup_only_without_a_campaign_is_refused():

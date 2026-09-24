@@ -52,6 +52,9 @@ def project(row, root):
     if frozen is None:
         return value
     manifest = json.loads(frozen[0])
+    # Who selects: Carbon's agent, or - with no agent - the miner, through the
+    # freeze and submit operations.
+    value["selects"] = "miner" if manifest.get("agent") == "none" else "agent"
     if verify(manifest.get("research_guidance")) != task:
         raise ValueError("campaign guidance association differs")
     if task is not None:
@@ -193,6 +196,23 @@ def project(row, root):
                     )
     value["completed_experiments"] = len(value["experiments"])
     value["candidate_freezes"] = []
+    # Where a miner's own journey stands, from the campaign's files: which
+    # committed final epochs are submitted, and whether a frozen candidate is
+    # waiting for submission. The same rules freeze and submit enforce.
+    from carbon.development_session.research_campaign import FINAL_EPOCHS
+
+    submitted = [
+        e
+        for e in FINAL_EPOCHS
+        if (root / ("epoch-" + str(e)) / "permitted-final-feedback.json").exists()
+    ]
+    open_epoch = next((e for e in FINAL_EPOCHS if e not in submitted), None)
+    value["journey"] = {
+        "submitted_epochs": submitted,
+        "final_exams_remaining": len(FINAL_EPOCHS) - len(submitted),
+        "frozen_awaiting_submission": open_epoch is not None
+        and (root / ("epoch-" + str(open_epoch)) / "selected-recipe.json").exists(),
+    }
     for epoch in (1, 2):
         directory = root / ("epoch-" + str(epoch))
         outcome_path = directory / "outcome.json"
@@ -220,6 +240,11 @@ def project(row, root):
                             outcome.get("used_feedback")
                             if type(outcome.get("used_feedback")) is bool
                             else None
+                        ),
+                        "selected_by": (
+                            "miner"
+                            if outcome.get("selected_by") == "miner"
+                            else "agent"
                         ),
                         "evidence_basis": "AGENT_OR_CONTROLLER_REPORTED_NOT_INDEPENDENT_SCIENCE",
                         "final_evidence": False,

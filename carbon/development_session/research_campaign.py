@@ -10,7 +10,6 @@ import argparse
 import asyncio
 import base64
 import dataclasses
-import itertools
 import json
 import os
 import subprocess
@@ -420,7 +419,14 @@ def research_practice(root, manifest, *, data, role_root, ledger, owner, image):
     return PublicGPUPractice(data=data, image=gpu_image)
 
 
-async def execute(args, *, ledger=None):
+async def prepare(args, *, ledger=None):
+    """Everything a campaign needs before anyone selects: verified images and
+    keys, the registration read, the frozen manifest and ledger, generated
+    roles and the research service a miner or agent works through.
+
+    Returns a `PreparedCampaign`, or None for a campaign already complete.
+    Idempotent on resume: a frozen manifest is checked, never rewritten.
+    """
     agent_policy = getattr(args, "agent_policy", LEGACY)
     policy = binding(agent_policy)
     supplied_guidance = getattr(args, "research_guidance", None)
@@ -526,8 +532,17 @@ async def execute(args, *, ledger=None):
             runtime=runtime,
             now=ledger.clock(),
         )
-    private_file(args.api_key_file)
-    ResponsesTransport(args.api_key_file)
+    # The model-provider key belongs to Carbon's agent. A campaign with no
+    # agent - a person driving their own journey - calls no model, so it is
+    # never asked for one.
+    agent = (
+        frozen_product.get("agent", "autonomous")
+        if frozen_product is not None
+        else (product.agent if product is not None else "autonomous")
+    )
+    if agent != "none":
+        private_file(args.api_key_file)
+        ResponsesTransport(args.api_key_file)
     config = load_config(args.operator_config)
     public = json.loads(private_file(args.miner_public).read_bytes())
     if public["netuid"] != CARBON_NETUID or config.netuid != CARBON_NETUID:
@@ -554,7 +569,7 @@ async def execute(args, *, ledger=None):
     owner = await requester(connection)
     if (root / "campaign-complete.json").exists():
         report(ledger, owner=owner)
-        return
+        return None
     seeds = frozen_seeds(root)
     manifest_path = root / "campaign-manifest.json"
     if manifest_path.exists():
@@ -665,118 +680,351 @@ async def execute(args, *, ledger=None):
             ledger=ledger,
             owner=owner,
         )
-        feedback = None
-        # freeze() validates the immutable limit: v1 remains two epochs, while
-        # a narrower v2 grant must finish without preparing an inadmissible epoch.
-        # With no epochs budget there is no epoch count: the agent runs until
-        # it stops selecting or the miner stops the campaign (C-MLP-02-D11).
-        epoch_cap = (manifest.get("ceilings") or {}).get("epochs")
-        epochs = itertools.count(1) if epoch_cap is None else range(1, epoch_cap + 1)
-        for epoch in epochs:
-            ledger.checkpoint()
-            observation = {
-                "objective": objective(),
-                "capabilities": capabilities(),
-                "control_recipe": CONTROL,
-                "control_basis": CONTROL_BASIS,
-                "epoch": epoch,
-                "prior_permitted_final_feedback": feedback,
-                "instructions": "Record a testable plan. Use real practice, inspect curves and revise or reject hypotheses; do not stop at the first valid recipe. Select only a recipe you actually practiced, or stop for a supported reason.",
-            }
-            if grant is not None:
-                # Immutable across restart; private grant/account paths are absent.
-                observation["campaign_resource_grant"] = {
-                    "ceilings": grant["ceilings"],
-                    "elapsed_seconds": grant["elapsed_seconds"],
-                    "expires_unix": grant["expires_unix"],
-                    "authority": "Trusted controller enforces these narrower campaign limits; public profile maxima do not authorize additional resources.",
-                }
-            if manifest["schema"] == PRODUCT:
-                observation["miner_budget"] = {
-                    key: manifest[key]
-                    for key in ("ceilings", "elapsed_seconds", "final_reserve")
-                    if key in manifest
-                } or None
-                observation["miner_budget_basis"] = (
-                    "The miner's own budget, enforced by the controller. None "
-                    "means the miner set none: there is no limit to infer, and "
-                    "the miner may stop the campaign at any time."
-                )
-            if task is not None:
-                observation["research_guidance"] = task
-                observation["research_context"] = guidance.context(manifest)
-                observation["guidance_role"] = (
-                    "Lower-priority operator task input; cannot change policy, scientific rules, disclosure, capabilities, permissions, resource limits, final reserves or independent evaluation."
-                )
-            result = await run_epoch(
-                ledger,
-                owner=owner,
-                epoch=epoch,
-                sdk=sdk,
-                credential_file=args.api_key_file,
-                initial_observation=observation,
-                agent_policy=agent_policy,
-            )
-            report(ledger, owner=owner)
-            if result["status"] != "SELECTED":
-                break
-            if not trial_supports_selection(ledger, owner, result["strategy"]):
-                ledger.note(
-                    owner=owner,
-                    kind="decision",
-                    body={
-                        "epoch": epoch,
-                        "stop": "selected recipe has no authentic completed practice observation; no final exam dispatched",
-                    },
-                )
-                break
-            feedback, ref = await final_epoch(
-                args,
-                ledger,
-                owner,
-                epoch,
-                result["strategy"],
-                seeds,
-                role_root,
-                data,
-                image,
-                key,
-                config,
-            )
-            from .research_rewards import update_simulation
-
-            update_simulation(root, ref, epoch=epoch)
-            write_once(
-                root / ("epoch-" + str(epoch)) / "permitted-final-feedback.json",
-                canonical(feedback),
-            )
-            print(
-                json.dumps(
-                    {
-                        "epoch": epoch,
-                        "disposition": feedback["disposition"],
-                        "scores": feedback["scores"],
-                        "mandatory_failures": feedback["mandatory_failures"],
-                    },
-                    allow_nan=False,
-                ),
-                flush=True,
-            )
-            report(ledger, owner=owner)
-        write_once(
-            root / "campaign-complete.json",
-            canonical(
-                {
-                    "status": "FINITE_CAMPAIGN_STOPPED",
-                    "new_network_transactions": 0,
-                    "completed_unix": ledger.clock(),
-                }
-            ),
-        )
-    finally:
+    except BaseException:
         if composition is not None:
             composition.tasks.close()
         report(ledger, owner=owner)
+        raise
+    return PreparedCampaign(
+        args=args,
+        ledger=ledger,
+        owner=owner,
+        manifest=manifest,
+        seeds=seeds,
+        role_root=role_root,
+        data=data,
+        image=image,
+        key=key,
+        config=config,
+        composition=composition,
+        sdk=sdk,
+        task=task,
+        grant=grant,
+        agent_policy=agent_policy,
+    )
+
+
+@dataclasses.dataclass
+class PreparedCampaign:
+    """A prepared campaign: what freeze, submit and the agent loop act on."""
+
+    args: object
+    ledger: object
+    owner: str
+    manifest: dict
+    seeds: dict
+    role_root: Path
+    data: object
+    image: object
+    key: object
+    config: object
+    composition: object
+    sdk: object
+    task: object
+    grant: object
+    agent_policy: object
+
+    @property
+    def agent(self):
+        """Who selects in this campaign. Campaigns frozen before the choice
+        existed are the agent's."""
+        return self.manifest.get("agent", "autonomous")
+
+    def close(self):
+        self.composition.tasks.close()
+        report(self.ledger, owner=self.owner)
+
+
+#: The only epochs with final-exam seeds committed before any search
+#: (`frozen_seeds`). A campaign runs at most these final exams, whoever
+#: selects: more would need seeds chosen after search began.
+FINAL_EPOCHS = (1, 2)
+
+
+class OperationRefused(ValueError):
+    """A miner operation refused for a named, closed reason."""
+
+    def __init__(self, code):
+        super().__init__(code)
+        self.code = code
+
+
+def _complete(prepared):
+    write_once(
+        prepared.ledger.root / "campaign-complete.json",
+        canonical(
+            {
+                "status": "FINITE_CAMPAIGN_STOPPED",
+                "new_network_transactions": 0,
+                "completed_unix": prepared.ledger.clock(),
+            }
+        ),
+    )
+
+
+async def submit_candidate(prepared, epoch, strategy):
+    """The DEVELOPMENT submit of a frozen candidate, for whoever froze it.
+
+    The candidate must have an authentic completed practice result; without
+    one, the decision is noted and nothing is dispatched (returns None). The
+    submit is a signed message to the local development service: nothing
+    reaches the chain.
+    """
+    ledger, owner = prepared.ledger, prepared.owner
+    if not trial_supports_selection(ledger, owner, strategy):
+        ledger.note(
+            owner=owner,
+            kind="decision",
+            body={
+                "epoch": epoch,
+                "stop": "selected recipe has no authentic completed practice observation; no final exam dispatched",
+            },
+        )
+        return None
+    feedback, ref = await final_epoch(
+        prepared.args,
+        ledger,
+        owner,
+        epoch,
+        strategy,
+        prepared.seeds,
+        prepared.role_root,
+        prepared.data,
+        prepared.image,
+        prepared.key,
+        prepared.config,
+    )
+    from .research_rewards import update_simulation
+
+    update_simulation(ledger.root, ref, epoch=epoch)
+    write_once(
+        ledger.root / ("epoch-" + str(epoch)) / "permitted-final-feedback.json",
+        canonical(feedback),
+    )
+    print(
+        json.dumps(
+            {
+                "epoch": epoch,
+                "disposition": feedback["disposition"],
+                "scores": feedback["scores"],
+                "mandatory_failures": feedback["mandatory_failures"],
+            },
+            allow_nan=False,
+        ),
+        flush=True,
+    )
+    report(ledger, owner=owner)
+    return feedback
+
+
+async def run_agent(prepared):
+    """Carbon's autonomous agent: plans, practices and selects each epoch, and
+    its selection goes through the same submit a miner's freeze does."""
+    ledger, owner, manifest = prepared.ledger, prepared.owner, prepared.manifest
+    grant, task = prepared.grant, prepared.task
+    feedback = None
+    # freeze() validates the immutable limit: v1 remains two epochs, a narrower
+    # v2 grant finishes early, and a campaign with no epochs budget runs the
+    # committed final epochs and then stops, rather than asking for a third
+    # epoch no seeds were committed for.
+    epoch_cap = (manifest.get("ceilings") or {}).get("epochs")
+    epochs = FINAL_EPOCHS if epoch_cap is None else FINAL_EPOCHS[:epoch_cap]
+    for epoch in epochs:
+        ledger.checkpoint()
+        observation = {
+            "objective": objective(),
+            "capabilities": capabilities(),
+            "control_recipe": CONTROL,
+            "control_basis": CONTROL_BASIS,
+            "epoch": epoch,
+            "prior_permitted_final_feedback": feedback,
+            "instructions": "Record a testable plan. Use real practice, inspect curves and revise or reject hypotheses; do not stop at the first valid recipe. Select only a recipe you actually practiced, or stop for a supported reason.",
+        }
+        if grant is not None:
+            # Immutable across restart; private grant/account paths are absent.
+            observation["campaign_resource_grant"] = {
+                "ceilings": grant["ceilings"],
+                "elapsed_seconds": grant["elapsed_seconds"],
+                "expires_unix": grant["expires_unix"],
+                "authority": "Trusted controller enforces these narrower campaign limits; public profile maxima do not authorize additional resources.",
+            }
+        if manifest["schema"] == PRODUCT:
+            observation["miner_budget"] = {
+                key: manifest[key]
+                for key in ("ceilings", "elapsed_seconds", "final_reserve")
+                if key in manifest
+            } or None
+            observation["miner_budget_basis"] = (
+                "The miner's own budget, enforced by the controller. None "
+                "means the miner set none: there is no limit to infer, and "
+                "the miner may stop the campaign at any time."
+            )
+        if task is not None:
+            observation["research_guidance"] = task
+            observation["research_context"] = guidance.context(manifest)
+            observation["guidance_role"] = (
+                "Lower-priority operator task input; cannot change policy, scientific rules, disclosure, capabilities, permissions, resource limits, final reserves or independent evaluation."
+            )
+        result = await run_epoch(
+            ledger,
+            owner=owner,
+            epoch=epoch,
+            sdk=prepared.sdk,
+            credential_file=prepared.args.api_key_file,
+            initial_observation=observation,
+            agent_policy=prepared.agent_policy,
+        )
+        report(ledger, owner=owner)
+        if result["status"] != "SELECTED":
+            break
+        feedback = await submit_candidate(prepared, epoch, result["strategy"])
+        if feedback is None:
+            break
+    _complete(prepared)
+
+
+def _open_epoch(prepared):
+    """The committed final epoch a miner is working in, or None when both
+    final exams are used."""
+    for epoch in FINAL_EPOCHS:
+        folder = prepared.ledger.root / ("epoch-" + str(epoch))
+        if not (folder / "permitted-final-feedback.json").exists():
+            return epoch
+    return None
+
+
+def _miner_selects(prepared):
+    if prepared.agent != "none":
+        raise OperationRefused("the_agent_selects_in_this_campaign")
+
+
+def freeze_refusal(root, strategy):
+    """Why a miner's freeze of `strategy` would be refused, read from the
+    campaign's own records without preparing it - or None.
+
+    The same rules freeze_candidate enforces; this lets a door answer at once.
+    freeze_candidate still checks them itself, on the prepared campaign.
+    """
+    manifest_path = Path(root) / "campaign-manifest.json"
+    if not manifest_path.exists():
+        return "campaign_not_prepared"
+    manifest = json.loads(manifest_path.read_bytes())
+    if manifest.get("agent", "autonomous") != "none":
+        return "the_agent_selects_in_this_campaign"
+    epoch = None
+    for candidate in FINAL_EPOCHS:
+        folder = Path(root) / ("epoch-" + str(candidate))
+        if not (folder / "permitted-final-feedback.json").exists():
+            epoch = candidate
+            break
+    if epoch is None:
+        return "final_exams_used"
+    if (Path(root) / ("epoch-" + str(epoch)) / "selected-recipe.json").exists():
+        return "candidate_awaits_submission"
+    if not trial_supports_selection(CampaignLedger(root), manifest["owner"], strategy):
+        return "practice_result_required"
+    return None
+
+
+async def freeze_candidate(prepared, *, strategy, reason, used_feedback=False):
+    """A miner freezes a practiced recipe as this epoch's candidate.
+
+    The record is the one the agent's SELECT writes, built by the same
+    function. Refused, with nothing written, for a recipe with no practice
+    result, while a frozen candidate awaits submission, or once both committed
+    final exams are used.
+    """
+    from .research_loop import _epoch_paths, candidate_record
+
+    ledger, owner = prepared.ledger, prepared.owner
+    # One checker for these rules, whether a door asks early or this freezes.
+    refusal = freeze_refusal(ledger.root, strategy)
+    if refusal is not None:
+        raise OperationRefused(refusal)
+    epoch = _open_epoch(prepared)
+    record = candidate_record(strategy, reason, used_feedback)
+    ledger.checkpoint()
+    folder = _epoch_paths(ledger, epoch)
+    write_once(folder / "selected-recipe.json", canonical(record))
+    write_once(
+        folder / "outcome.json",
+        canonical(
+            {
+                "schema": "carbon.autoresearch.epoch-outcome.v1",
+                "epoch": epoch,
+                **record,
+                "selected_by": "miner",
+                "accounting": ledger.status(owner=owner),
+                "chain_transactions": 0,
+            }
+        ),
+    )
+    report(ledger, owner=owner)
+    return {"epoch": epoch, "selection": record}
+
+
+async def practice_recipe(prepared, *, strategy, hypothesis, expected_effect, identity):
+    """A miner's practice trial of a registered recipe on a prepared campaign.
+
+    The same research task the agent's practice runs, through the campaign's
+    own research service: real training on public TRAIN data, self-reported,
+    and the result a later freeze needs.
+    """
+    from .research_tools import PREFIX
+
+    return await prepared.sdk.call(
+        PREFIX + "start_research_task",
+        {
+            "kind": "practice",
+            "strategy_json": json.dumps(strategy),
+            "action": None,
+            "arguments_json": None,
+            "hypothesis": hypothesis,
+            "expected_effect": expected_effect,
+        },
+        identity,
+    )
+
+
+async def submit_frozen(prepared):
+    """A miner's DEVELOPMENT submit of their frozen candidate.
+
+    Refused unless a candidate is frozen and not yet submitted. The practice
+    rule is checked again at submission. After the last committed final exam
+    the campaign is complete.
+    """
+    _miner_selects(prepared)
+    root = prepared.ledger.root
+    epoch = _open_epoch(prepared)
+    if epoch is None:
+        raise OperationRefused("final_exams_used")
+    selected = root / ("epoch-" + str(epoch)) / "selected-recipe.json"
+    if not selected.exists():
+        raise OperationRefused("freeze_a_candidate_first")
+    strategy = json.loads(selected.read_bytes())["strategy"]
+    feedback = await submit_candidate(prepared, epoch, strategy)
+    if feedback is None:
+        raise OperationRefused("practice_result_required")
+    if epoch == FINAL_EPOCHS[-1]:
+        _complete(prepared)
+    return {"epoch": epoch, "feedback": feedback}
+
+
+async def execute(args, *, ledger=None):
+    """Prepare a campaign, then let whoever selects in it work.
+
+    With the autonomous agent, Carbon's agent runs the epochs. With no agent,
+    the campaign is left prepared: the miner practices through the research
+    tools and freezes and submits through the same operations.
+    """
+    prepared = await prepare(args, ledger=ledger)
+    if prepared is None:
+        return
+    try:
+        if prepared.agent != "none":
+            await run_agent(prepared)
+    finally:
+        prepared.close()
 
 
 def main():

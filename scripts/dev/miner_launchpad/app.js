@@ -11,6 +11,12 @@
   let research = {preflight: {available: false}, runs: []};
   let pendingResearch = null;
   const expandedResearch = new Set();
+  // What a person has typed into a campaign's journey, kept across refreshes.
+  const journeyDrafts = {};
+  // Every launch-time choice with its true availability, from the options
+  // operation - the same one an MCP client reads. Never a static list.
+  let launchOptions = null;
+  const STARTER_RECIPE = JSON.stringify({schema_version: "1.0", challenge_id: "burgers-dynamics-v1", backbone: "fno", parameters: {steps: 64}}, null, 2);
   const researchKey = "carbon.launchpad.pending-research.v1";
   const pendingKey = "carbon.launchpad.pending.v1";
   let storageError = false;
@@ -21,14 +27,14 @@
     $("message").textContent = text;
     $("message").className = error ? "message error" : "message";
   };
-  async function api(path, body, key) {
+  async function api(path, body, key, timeout = 5000) {
     const headers = {Authorization: "Bearer " + token};
     if (body !== undefined) headers["Content-Type"] = "application/json";
     if (key) headers["Idempotency-Key"] = key;
     const response = await fetch(path, {
       method: body === undefined ? "GET" : "POST", headers,
       body: body === undefined ? undefined : JSON.stringify(body),
-      signal: AbortSignal.timeout(5000), cache: "no-store", redirect: "error"
+      signal: AbortSignal.timeout(timeout), cache: "no-store", redirect: "error"
     });
     const result = await response.json();
     if (!response.ok) {
@@ -227,6 +233,10 @@
       runs = (await api("/api/v1/runs")).runs;
       developmentSources = (await api("/api/v1/development")).sources;
       research = await api("/api/v1/research");
+      if (research.preflight.available && !launchOptions) {
+        try { launchOptions = await api("/api/v1/operations/options", {}); }
+        catch (_) { launchOptions = null; }
+      }
       connected = true;
       render();
       $("connection-state").textContent = "Connected";
@@ -454,9 +464,21 @@
       data.style.whiteSpace = "pre-wrap"; data.style.overflowWrap = "anywhere";
       details.append(label, data); reviewPanel.append(details);
     }
+    const autonomous = document.querySelector("input[name=research-agent][value=autonomous]");
+    const agentOption = (launchOptions?.agents || []).find(option => option.value === "autonomous");
+    if (autonomous) {
+      const unavailable = agentOption?.availability === "unavailable";
+      autonomous.disabled = unavailable;
+      if (unavailable && autonomous.checked) document.querySelector("input[name=research-agent][value=none]").checked = true;
+      autonomous.parentElement.lastChild.textContent = " Carbon's agent researches, freezes and submits" + (unavailable ? " · unavailable: " + agentOption.reason.replaceAll("_", " ") : "");
+    }
     $("research-launch").disabled = !connected || busy || storageError || !research.preflight.available;
     $("research-launch").textContent = pendingResearch ? "Retry same research launch" : "Launch research";
-    const container = $("research-runs"); container.replaceChildren();
+    const container = $("research-runs");
+    // Never rebuild under a person's cursor: the journey is typed into.
+    const active = document.activeElement;
+    if (active && container.contains(active) && ["INPUT", "TEXTAREA", "SELECT"].includes(active.tagName)) return;
+    container.replaceChildren();
     for (const run of research.runs) {
       const card = document.createElement("div"); card.className = "integration";
       const title = document.createElement("h3"); title.textContent = run.id.slice(0, 10) + " · " + run.state;
@@ -482,7 +504,8 @@
         card.append(usage);
         researchNote(card, run.usage.cost_basis || "Cost basis unavailable.");
       }
-      for (const outcome of run.epoch_outcomes || []) researchNote(card, "Agent epoch " + outcome.epoch + ": " + outcome.status + " · " + (outcome.reason || "No reason reported") + " · Agent-reported decision, not independent science.");
+      for (const outcome of run.epoch_outcomes || []) researchNote(card, (outcome.selected_by === "miner" ? "Your" : "Agent") + " epoch " + outcome.epoch + ": " + outcome.status + " · " + (outcome.reason || "No reason reported") + " · " + (outcome.selected_by === "miner" ? "Your" : "Agent-reported") + " decision, not independent science.");
+      if (run.selects === "miner") renderJourney(card, run);
       for (const result of run.final_results || []) {
         const verified = result.status === "VERIFIED_SOURCE" && result.result;
         researchNote(card, "DEVELOPMENT evaluation: " + (verified ? (result.result.disposition || "disposition unavailable") + " · Accepted DEVELOPMENT improvement: " + (typeof result.result.accepted_development_improvement === "boolean" ? String(result.result.accepted_development_improvement) : "unavailable") : "Readback unavailable; no disposition inferred."), "development-result");
@@ -503,6 +526,83 @@
       details.append(summary, record); card.append(controls, details); container.append(card);
     }
   }
+  function draft(id, field, fallback) {
+    const key = id + ":" + field;
+    return key in journeyDrafts ? journeyDrafts[key] : fallback;
+  }
+  function journeyField(parent, id, field, labelText, element, fallback) {
+    const label = document.createElement("label"); label.textContent = labelText;
+    element.id = "journey-" + field + "-" + id; label.htmlFor = element.id;
+    element.value = draft(id, field, fallback);
+    element.addEventListener("input", () => { journeyDrafts[id + ":" + field] = element.value; });
+    parent.append(label, element);
+    return element;
+  }
+  function renderJourney(card, run) {
+    // A person's own journey, with no agent: practice, freeze, submit. Each
+    // step is an operation from the same table the agent and MCP clients use.
+    const box = document.createElement("div"); box.className = "journey"; box.id = "journey-" + run.id;
+    const heading = document.createElement("h4"); heading.textContent = "Your research · no agent";
+    box.append(heading);
+    researchNote(box, "1 · Practice a recipe. 2 · Freeze one you practiced. 3 · Submit it for the independent DEVELOPMENT comparison with the control. Nothing reaches the chain.");
+    const recipe = journeyField(box, run.id, "recipe", "Recipe to practice (JSON)", document.createElement("textarea"), STARTER_RECIPE);
+    recipe.rows = 6; recipe.className = "research-guidance";
+    const hypothesis = journeyField(box, run.id, "hypothesis", "What this trial tests", document.createElement("input"), "");
+    const practiced = [];
+    for (const experiment of run.experiments || []) {
+      if (!experiment.recipe) continue;
+      const text = JSON.stringify(experiment.recipe);
+      if (!practiced.includes(text)) practiced.push(text);
+    }
+    const choose = document.createElement("select");
+    for (const text of practiced) { const option = document.createElement("option"); option.value = text; option.textContent = text; choose.append(option); }
+    const reason = document.createElement("input");
+    const journey = run.journey || {};
+    const frozen = journey.frozen_awaiting_submission === true;
+    const exhausted = journey.final_exams_remaining === 0;
+    // One operation at a time: the campaign is READY again only once the last
+    // one has fully settled, and until then another would answer busy.
+    const ready = run.state === "READY";
+    if (!ready) researchNote(box, "Working: " + String(run.state).replaceAll("_", " ").toLowerCase() + ". The next step opens when the campaign is ready.");
+    researchNote(box, "Final exams remaining: " + (journey.final_exams_remaining ?? "unavailable") + " · Submitted epochs: " + ((journey.submitted_epochs || []).join(", ") || "none") + (frozen ? " · A frozen candidate is waiting for submission." : ""));
+    const buttons = document.createElement("div"); buttons.className = "controls";
+    const practice = document.createElement("button"); practice.type = "button"; practice.id = "journey-practice-" + run.id; practice.textContent = "Run practice trial";
+    practice.disabled = !connected || busy || !ready || exhausted;
+    practice.addEventListener("click", () => {
+      let strategy;
+      try { strategy = JSON.parse(recipe.value); } catch (_) { message("The recipe is not valid JSON.", true); return; }
+      operate("practice", {campaign: run.id, strategy, hypothesis: hypothesis.value || "practice"}, "Practice trial started. Its result appears below when training finishes.");
+    });
+    buttons.append(practice); box.append(buttons);
+    journeyField(box, run.id, "candidate", "Practiced recipe to freeze", choose, practiced[0] || "");
+    journeyField(box, run.id, "reason", "Why this candidate", reason, "");
+    if (!practiced.length) researchNote(box, "No practiced recipe yet: a candidate must have a practice result before it can be frozen.");
+    if (launchOptions) {
+      // Each family's true availability now, by its registry verdict.
+      const byVerdict = {};
+      for (const family of launchOptions.families) (byVerdict[family.verdict] ||= []).push(family.selector || family.id.split(".")[1]);
+      const labels = {supported: "Families you can freeze and submit now", not_yet_rebuildable: "Not yet rebuildable (research only)", needs_owner_decision: "Waiting on an owner decision", excluded: "Excluded"};
+      for (const [verdict, label] of Object.entries(labels)) if (byVerdict[verdict]) researchNote(box, label + ": " + byVerdict[verdict].join(", "));
+    }
+    const second = document.createElement("div"); second.className = "controls";
+    const freeze = document.createElement("button"); freeze.type = "button"; freeze.id = "journey-freeze-" + run.id; freeze.textContent = "Freeze candidate";
+    freeze.disabled = !connected || busy || !ready || !practiced.length || frozen || exhausted;
+    freeze.addEventListener("click", () => operate("freeze_candidate", {campaign: run.id, strategy: JSON.parse(choose.value), reason: reason.value || "practiced"}, "Candidate frozen for this epoch."));
+    const submit = document.createElement("button"); submit.type = "button"; submit.id = "journey-submit-" + run.id; submit.textContent = "Submit frozen candidate";
+    submit.disabled = !connected || busy || !ready || !frozen;
+    submit.addEventListener("click", () => operate("submit", {campaign: run.id}, "Submitted for the DEVELOPMENT comparison. The independent result appears below."));
+    second.append(freeze, submit); box.append(second);
+    card.append(box);
+  }
+  async function operate(name, body, done) {
+    if (!connected || busy) return;
+    busy = true; render();
+    try {
+      await api("/api/v1/operations/" + name, body, undefined, 20000);
+      message(done);
+    } catch (error) { message("Not done: " + error.message.replaceAll("_", " "), true); }
+    finally { busy = false; await refresh(); render(); }
+  }
   async function researchAction(id, action) {
     if (!connected || busy) return;
     busy = true; render();
@@ -519,7 +619,8 @@
   $("research-launch").addEventListener("click", async () => {
     if (!connected || busy || storageError || !research.preflight.available) return;
     if (!pendingResearch) {
-      pendingResearch = {key: crypto.randomUUID(), body: {profile: research.preflight.profile}};
+      const agent = document.querySelector("input[name=research-agent]:checked")?.value || "autonomous";
+      pendingResearch = {key: crypto.randomUUID(), body: {profile: research.preflight.profile, agent}};
       if (research.preflight.review_digest) pendingResearch.body.review_digest = research.preflight.review_digest;
       try { sessionStorage.setItem(researchKey, JSON.stringify(pendingResearch)); }
       catch (_) { storageError = true; render(); return; }
