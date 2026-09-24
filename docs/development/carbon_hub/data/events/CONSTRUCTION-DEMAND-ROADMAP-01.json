@@ -1,0 +1,15 @@
+{
+  "map_ref": "SYSTEM/AGENT-EXECUTION",
+  "event_type": "evidence",
+  "event_id": "CONSTRUCTION-DEMAND-ROADMAP-01",
+  "owner_lane": "technical_lead",
+  "status": "implemented",
+  "summary": "Implemented capability demand records and the public construction roadmap, the last two steps of the registry plan under OWNER-CONSTRUCTION-ESCALATION-01, which publishes aggregated demand counts per registry capability id. Demand is recorded when a check-design verdict names a research-only capability (not yet rebuildable, or awaiting an owner decision) and when a capability request names a registry id through a new optional capability field; a request naming anything else is refused with a specific message. Each miner counts once per capability however often they ask; only research-only registry ids can be counted; miners are stored as digests; and text a miner supplied that Carbon does not recognize is never stored, only the number of miners who sent any. The new roadmap workspace action partitions the registry into available, roadmap (with what blocks each item, its trigger where the owner must decide, and its demand) and not planned, and states its terms: demand never affects scoring or qualification and a listing is not a delivery promise. A host that keeps no demand store reports counts as not collected rather than zero. The standard MCP entry point keeps the store at its profile root, so on a miner's own machine demand stays theirs and on Carbon's hosted door it is Carbon's; no demand leaves a miner's machine, which would be a separate decision. Tests show a private marker and a raw principal absent from the stored bytes while a recorded id is present in them.",
+  "primary_detail": "carbon/development_session/capability_demand.py",
+  "affects": [
+    "SYSTEM/AGENT-EXECUTION",
+    "WAVE-C/C-W1-D4"
+  ],
+  "supersedes": null,
+  "recorded_at": "2026-09-23T21:46:39Z"
+}
