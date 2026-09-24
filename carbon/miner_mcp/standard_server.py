@@ -20,6 +20,7 @@ from carbon.miner_mcp.standard import (
     ResearchToolAdapter,
     ResearchToolRequest,
 )
+from carbon.research.model import DEVELOPMENT_WORKSPACE_ACTIONS
 
 SDK_VERSION = "2.2.0"
 CAPABILITIES_URI = "carbon://research/v1/capabilities"
@@ -132,15 +133,7 @@ def _create_server(
         requires_reconciliation: bool
         official_eligible: Literal[False]
 
-    actions = [
-        "public_material",
-        "inventory",
-        "read_file",
-        "write_file",
-        "notebook",
-        "capability_request",
-        "run_python",
-    ]
+    actions = list(DEVELOPMENT_WORKSPACE_ACTIONS)
     if adapter.authored_julia_available:
         actions.append("run_julia")
     fields = {
@@ -276,9 +269,9 @@ def _create_server(
         make_tasks_extension(
             adapter,
             guard=guard,
-            validate_start=lambda arguments: models["start_research_task"]
-            .model_validate(arguments)
-            .model_dump(),
+            validate_start=lambda arguments: (
+                models["start_research_task"].model_validate(arguments).model_dump()
+            ),
         ),
         make_skills_extension(guard=guard),
     ]
