@@ -766,6 +766,43 @@ def run():
                         assert session.evaluate(
                             "document.getElementById('stop').getBoundingClientRect().width >= 44"
                         ), width
+                        # The navigation lists every marked section, in page
+                        # order, and nothing else; each entry is a target a
+                        # finger can hit; and a real Enter on one moves the
+                        # working surface to that section.
+                        listed = session.evaluate(
+                            "JSON.stringify([...document.querySelectorAll('#tool-nav a')]"
+                            ".map(a => [a.getAttribute('href'), a.textContent,"
+                            " a.getBoundingClientRect().height >= 44]))"
+                        )
+                        marked = session.evaluate(
+                            "JSON.stringify([...document.querySelectorAll('[data-nav]')]"
+                            ".map(s => ['#' + s.id, s.dataset.nav, true]))"
+                        )
+                        assert json.loads(listed) == json.loads(marked), (width, listed)
+                        assert len(json.loads(listed)) == 7, listed
+                        if width == 1440:
+                            assert session.evaluate(
+                                "document.getElementById('tool-nav').getBoundingClientRect().right"
+                                " <= document.querySelector('.shell main').getBoundingClientRect().left + 1"
+                            ), "the navigation is not beside the working surface"
+                        session.evaluate(
+                            "scrollTo(0, 0); document.querySelector("
+                            "'#tool-nav a[href=\"#research\"]').focus()"
+                        )
+                        press(session, "Enter")
+                        deadline = time.monotonic() + 3
+                        while (
+                            session.evaluate("location.hash") != "#research"
+                            and time.monotonic() < deadline
+                        ):
+                            time.sleep(0.05)
+                        assert session.evaluate("location.hash") == "#research", width
+                        assert session.evaluate(
+                            "Math.abs(document.getElementById('research')"
+                            ".getBoundingClientRect().top) < 80"
+                            " || innerHeight + scrollY >= document.body.scrollHeight - 2"
+                        ), width
                         assert (
                             session.evaluate(
                                 "document.getElementById('research-guidance').value"
