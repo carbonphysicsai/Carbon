@@ -13,10 +13,27 @@ establishes nothing beyond the choice itself:
   error rather than removing it;
 * ``T(0) = T_amb``, which the reference satisfies exactly.
 
-No output is clamped. Clamping voltage to the cycler window would hide a model
-that predicts an impossible voltage, and would hide a correct prediction's error
-structure near the limits; the ``voltage_ceiling``/``voltage_floor`` gates see
-raw predictions.
+No output is clamped after the fact. Clamping voltage to the cycler window
+would hide a model that predicts an impossible voltage; the gates see raw
+predictions.
+
+Two *representation* choices, also declared, are made inside training:
+
+* **Soft voltage ceiling** (all MLP recipes except ``mlp_raw``): the network
+  predicts ``z`` in volts and the head returns
+  ``V = V_max - softplus(k (V_max - z)) / k`` with ``k = 200 /V`` (a ~5 mV
+  transition). Well below 4.2 V it is the identity; it can never exceed 4.2 V.
+  It is trained end to end on the exact inverse of the reference, so it is an
+  architecture choice rather than a post-hoc clamp. The protocol's cycler holds
+  V <= 4.2 V; passing ``voltage_ceiling`` because of this head is not physics
+  evidence. ``mlp_raw`` keeps an unconstrained head so the study measures what
+  the gate rejects. Tried first on 44 cases and rejected: a log-gap head and a
+  logistic window head both generalized badly (predictions collapsing to the
+  2.5 V floor, voltage error 2-4x worse), because most training cases sit on the
+  4.2 V hold and the representation made that a huge target range.
+* **Capacity as cycle-1 capacity plus fade**: targets are ``Q_1`` and
+  ``Q_1 - Q_k``; predicting each ``Q_k`` independently put errors of the size
+  of the whole 30-cycle fade signal into the outputs.
 
 Recipes (the role each plays in the study is fixed in the specification):
 
@@ -100,13 +117,35 @@ def to_preds(out: dict, case_ids: list) -> dict:
             for i, c in enumerate(case_ids)}
 
 
-def _targets(d: Data) -> np.ndarray:
-    return np.column_stack([d.v[:, 1:], d.t[:, 1:] - d.x[:, 2:3], d.eta[:, None], d.q])
+V_GAP_FLOOR = 1e-6  # V; training targets are clipped this far inside the [V_min, V_max] window
 
 
-def _split(y: np.ndarray, g: int):
+SOFT_K = 200.0  # 1/V; sharpness of the soft ceiling (width ~5 mV)
+
+
+def _to_logit(v: np.ndarray) -> np.ndarray:
+    """Inverse of the soft-ceiling head: z such that V_max - softplus(k (V_max - z)) / k = v."""
+    a = SOFT_K * np.maximum(V_MAX - v, V_GAP_FLOOR)
+    log_expm1 = np.where(a > 30.0, a + np.log1p(-np.exp(-np.minimum(a, 700.0))), np.log(np.expm1(np.minimum(a, 30.0))))
+    return V_MAX - log_expm1 / SOFT_K
+
+
+def _from_logit(z: np.ndarray) -> np.ndarray:
+    return V_MAX - np.logaddexp(0.0, SOFT_K * (V_MAX - z)) / SOFT_K
+
+
+def _targets(d: Data, bounded_v: bool = False) -> np.ndarray:
+    v = _to_logit(d.v[:, 1:]) if bounded_v else d.v[:, 1:]
+    q = np.column_stack([d.q[:, :1], d.q[:, :1] - d.q[:, 1:]])  # Q_1, then fade Q_1 - Q_k
+    return np.column_stack([v, d.t[:, 1:] - d.x[:, 2:3], d.eta[:, None], q])
+
+
+def _split(y: np.ndarray, g: int, bounded_v: bool = False):
     n1 = g - 1
-    return y[:, :n1], y[:, n1:2 * n1], y[:, 2 * n1], y[:, 2 * n1 + 1:]
+    v = _from_logit(y[:, :n1]) if bounded_v else y[:, :n1]
+    qf = y[:, 2 * n1 + 1:]
+    q = np.column_stack([qf[:, :1], qf[:, :1] - qf[:, 1:]])
+    return v, y[:, n1:2 * n1], y[:, 2 * n1], q
 
 
 class KNN:
@@ -132,18 +171,18 @@ class MLP:
     """``mlp`` and ``mlp_plus`` share this class; the config distinguishes them."""
 
     def __init__(self, name="mlp", width=128, depth=3, steps=3000, lr=3e-3, wd=0.0, rich=False, pca=0,
-                 important_weight=1.0):
+                 important_weight=1.0, bounded_v=True):
         self.name, self.width, self.depth, self.steps, self.lr, self.wd = name, width, depth, steps, lr, wd
-        self.rich, self.pca, self.important_weight = rich, pca, important_weight
+        self.rich, self.pca, self.important_weight, self.bounded_v = rich, pca, important_weight, bounded_v
 
     def config(self) -> dict:
         return {k: getattr(self, k) for k in ("name", "width", "depth", "steps", "lr", "wd", "rich", "pca",
-                                               "important_weight")}
+                                               "important_weight", "bounded_v")}
 
     def _encode(self, y: np.ndarray) -> np.ndarray:
         if not self.pca:
             return (y - self.mu) / self.sd
-        v, t, eta, q = _split(y, self.g)
+        v, t, eta, q = y[:, :self.g - 1], y[:, self.g - 1:2 * (self.g - 1)], y[:, 2 * (self.g - 1)], y[:, 2 * (self.g - 1) + 1:]
         cv = (v - self.vm) @ self.pv.T
         ct = (t - self.tm) @ self.pt.T
         z = np.column_stack([cv, ct, eta[:, None], q])
@@ -171,14 +210,15 @@ class MLP:
         import jax.numpy as jnp
 
         self.s, self.g, self.q_dim = structure, d.v.shape[1], d.q.shape[1]
-        y = _targets(d)
+        y = _targets(d, self.bounded_v)
         self.mu, self.sd = y.mean(0), y.std(0) + 1e-9
         if self.pca:
-            v, t, _, _ = _split(y, self.g)
+            n1 = self.g - 1
+            v, t = y[:, :n1], y[:, n1:2 * n1]
             self.vm, self.tm = v.mean(0), t.mean(0)
             self.pv = np.linalg.svd(v - self.vm, full_matrices=False)[2][: self.pca]
             self.pt = np.linalg.svd(t - self.tm, full_matrices=False)[2][: self.pca]
-            v2, t2, eta, q = _split(y, self.g)
+            v2, t2, eta, q = v, t, y[:, 2 * n1], y[:, 2 * n1 + 1:]
             z = np.column_stack([(v2 - self.vm) @ self.pv.T, (t2 - self.tm) @ self.pt.T, eta[:, None], q])
             self.zmu, self.zsd = z.mean(0), z.std(0) + 1e-9
         z = self._encode(y).astype(np.float32)
@@ -243,7 +283,7 @@ class MLP:
 
         f = features(x, self.rich).astype(np.float32)
         z = np.asarray(self._net([(jnp.asarray(w), jnp.asarray(b)) for w, b in self.params], jnp.asarray(f)), float)
-        return self.s.apply(x, *_split(self._decode(z), self.g))
+        return self.s.apply(x, *_split(self._decode(z), self.g, self.bounded_v))
 
 
 def make(name: str):
@@ -254,10 +294,13 @@ def make(name: str):
         return MLP("mlp", width=256, depth=3, steps=6000, lr=2e-3)
     if name == "mlp_plus":
         return MLP("mlp_plus", width=256, depth=3, steps=6000, lr=2e-3, wd=1e-4, rich=True, pca=16)
+    if name == "mlp_raw":
+        # Unconstrained voltage head: kept to measure what the voltage_ceiling gate rejects.
+        return MLP("mlp_raw", width=256, depth=3, steps=6000, lr=2e-3, bounded_v=False)
     if name == "mlp_plus_localized":
         return MLP("mlp_plus_localized", width=256, depth=3, steps=6000, lr=2e-3, wd=1e-4, rich=True, pca=16,
                    important_weight=0.1)
     raise KeyError(name)
 
 
-RECIPES = ("knn", "mlp", "mlp_plus", "mlp_plus_localized")
+RECIPES = ("knn", "mlp", "mlp_raw", "mlp_plus", "mlp_plus_localized")
