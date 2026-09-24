@@ -11,3 +11,6 @@
 {"utc": "2026-09-24T20:28:12Z", "event": "exported", "pod_id": "3tvflrs1asrzia", "dest": "../../../tmp/claude-0/p2_now", "bytes": 3421, "sha256": "3b583877ff1a717278c551f6e987ff980e43c012c3156d6636ae24117038b3e5"}
 {"utc": "2026-09-24T20:29:07Z", "event": "exported", "pod_id": "3tvflrs1asrzia", "dest": "../../../tmp/claude-0/p2_now2", "bytes": 4106, "sha256": "4d73aef5a39790c3ffe68f67f5f856026299403ec7dc0de724cd5a29a0c909ed"}
 {"utc": "2026-09-24T20:30:33Z", "event": "exported", "pod_id": "3tvflrs1asrzia", "dest": "../../../tmp/claude-0/p2_interim", "bytes": 4103, "sha256": "57f0b4fe90fe5bd6c18ded32ace3d65900d77134ff00bc0c612b45a050c15d4f"}
+{"utc": "2026-09-24T20:35:29Z", "event": "exported", "pod_id": "3tvflrs1asrzia", "dest": "docs/development/evidence/exam-design-2026-09-24/pilot-2", "bytes": 26102, "sha256": "056ffa14d8932e8d9b8fff7954281b5af90d4b676b0c31081ad6386549cd4128"}
+{"utc": "2026-09-24T20:35:29Z", "event": "terminate_requested", "pod_id": "3tvflrs1asrzia"}
+{"utc": "2026-09-24T20:35:30Z", "event": "terminated_verified", "pod_id": "3tvflrs1asrzia", "verified_epoch": 1790282130.8743923}
