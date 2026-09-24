@@ -45,7 +45,7 @@ def fit(config):
 passed={}
 for name,pair in cases.items():
     a,b=pair
-    if name in ('width','depth','n_modes','branch_points'):
+    if name in ('width','depth','n_modes','branch_points','heads','slices','expansion','wavelet_levels'):
         left,right=trainer(a),trainer(b)
         assert [v.shape for v in jax.tree.leaves(left.state.params)] != [v.shape for v in jax.tree.leaves(right.state.params)],name
         passed[name]='actual parameter shapes changed'
@@ -68,13 +68,13 @@ for name,pair in cases.items():
         passed[name]='actual permitted initial-field invariant enforced'
     else:
         left,right=fit(a),fit(b)
-        if name=='inference_weights':
-            # audit prohibits identical TRAIN membership; test predictor-selected weights directly.
-            def prediction(t):
-                weights=t.state.params if t.config.inference_weights=='params' else t.state.ema
-                return np.asarray(t.predictor(weights,jnp.asarray(initial),jnp.array([.01,.02,.03]),jnp.array([.1,.1,.1]),jnp.asarray(x)))
-            assert np.max(abs(prediction(left)-prediction(right)))>1e-8
-        elif name=='ema_decay':assert np.max(abs(array(left.state.ema)-array(right.state.ema)))>1e-8
+        # audit prohibits identical TRAIN membership; test predictor-selected weights directly.
+        def prediction(t):
+            weights=t.state.params if t.config.inference_weights=='params' else t.state.ema
+            return np.asarray(t.predictor(weights,jnp.asarray(initial),jnp.array([.01,.02,.03]),jnp.array([.1,.1,.1]),jnp.asarray(x)))
+        if name in ('inference_weights','ema_decay'):
+            # Both sides of ema_decay predict from EMA, so the field reaches the predictions.
+            assert np.max(abs(prediction(left)-prediction(right)))>1e-8,name
         else:
             l=array((left.state.params,left.state.optimizer));rr=array((right.state.params,right.state.optimizer))
             assert l.shape!=rr.shape or np.max(abs(l-rr))>1e-10,name
@@ -105,6 +105,12 @@ def test_advertised_controls_change_actual_execution_as_registered(tmp_path):
         "depth": 2,
         "n_modes": 8,
         "branch_points": 8,
+        "heads": 4,
+        "slices": 8,
+        "expansion": 3,
+        "wavelet_levels": 3,
+        "neighborhood_radius": 0.4,
+        "latent_points": 8,
         "remat": True,
         "hard_initial_condition": True,
         "enforce_mean": True,
@@ -143,6 +149,15 @@ def test_advertised_controls_change_actual_execution_as_registered(tmp_path):
             first["parameters"].pop("depth")
             first["parameters"].pop("n_modes")
             first["parameters"]["branch_points"] = 4
+        if name in ("heads", "slices", "expansion"):
+            first["backbone"] = "transolver"
+            first["parameters"].pop("n_modes")
+        if name == "wavelet_levels":
+            first["backbone"] = "haar_operator"
+            first["parameters"].pop("n_modes")
+        if name in ("neighborhood_radius", "latent_points"):
+            # GINO carries both, and its 4 modes fit either latent grid.
+            first["backbone"] = "gino"
         # A supplied field must reach what is rebuilt: the physics ramp needs a
         # PDE term, and EMA weights reach predictions only through EMA inference.
         if name == "physics_warmup_steps":

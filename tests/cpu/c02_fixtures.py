@@ -119,6 +119,12 @@ def compile_c02_plan(
         InterfaceDirection.OUTPUT,
     )
     backbone_target = ConsumerTarget("carbon_jax_lab_model", "kind")
+    # Another lab family is registered only when asked for, like width and
+    # n_modes, so a caller that does not ask gets the byte-identical
+    # two-backbone contract.
+    selectors = ("fno", "deeponet")
+    if backbone not in selectors:
+        selectors += (backbone,)
 
     def option(selector: str, backbone_id: str, *, is_foundax: bool = False):
         source_digest = FOUNDAX_WHEEL_DIGEST if is_foundax else wheel_digest
@@ -150,6 +156,7 @@ def compile_c02_plan(
                 is_foundax=foundax,
             ),
             option("deeponet", "carbon_jax_deeponet1d"),
+            *(option(s, f"carbon_jax_{s}1d") for s in selectors[2:]),
         ),
     )
     assembly = replace(
@@ -164,7 +171,7 @@ def compile_c02_plan(
     top = replace(
         entries["strategy_backbone"],
         consumer_target=backbone_target,
-        domain=ChoiceDomain(("fno", "deeponet")),
+        domain=ChoiceDomain(selectors),
     )
     step_target = ConsumerTarget("carbon_jax_lab_train", "steps")
     training = replace(
@@ -229,7 +236,7 @@ def compile_c02_plan(
             ValueCompatibilityCell(SurfaceValue(SurfaceValueType.UINT64, steps)),
             *(model_cells[name] for name in model_columns),
         )
-        for selector in ("fno", "deeponet")
+        for selector in selectors
     )
     compatibility = replace(
         old_rule,
