@@ -13,6 +13,9 @@
   const expandedResearch = new Set();
   // What a person has typed into a campaign's journey, kept across refreshes.
   const journeyDrafts = {};
+  // Every launch-time choice with its true availability, from the options
+  // operation - the same one an MCP client reads. Never a static list.
+  let launchOptions = null;
   const STARTER_RECIPE = JSON.stringify({schema_version: "1.0", challenge_id: "burgers-dynamics-v1", backbone: "fno", parameters: {steps: 64}}, null, 2);
   const researchKey = "carbon.launchpad.pending-research.v1";
   const pendingKey = "carbon.launchpad.pending.v1";
@@ -230,6 +233,10 @@
       runs = (await api("/api/v1/runs")).runs;
       developmentSources = (await api("/api/v1/development")).sources;
       research = await api("/api/v1/research");
+      if (research.preflight.available && !launchOptions) {
+        try { launchOptions = await api("/api/v1/operations/options", {}); }
+        catch (_) { launchOptions = null; }
+      }
       connected = true;
       render();
       $("connection-state").textContent = "Connected";
@@ -457,6 +464,14 @@
       data.style.whiteSpace = "pre-wrap"; data.style.overflowWrap = "anywhere";
       details.append(label, data); reviewPanel.append(details);
     }
+    const autonomous = document.querySelector("input[name=research-agent][value=autonomous]");
+    const agentOption = (launchOptions?.agents || []).find(option => option.value === "autonomous");
+    if (autonomous) {
+      const unavailable = agentOption?.availability === "unavailable";
+      autonomous.disabled = unavailable;
+      if (unavailable && autonomous.checked) document.querySelector("input[name=research-agent][value=none]").checked = true;
+      autonomous.parentElement.lastChild.textContent = " Carbon's agent researches, freezes and submits" + (unavailable ? " · unavailable: " + agentOption.reason.replaceAll("_", " ") : "");
+    }
     $("research-launch").disabled = !connected || busy || storageError || !research.preflight.available;
     $("research-launch").textContent = pendingResearch ? "Retry same research launch" : "Launch research";
     const container = $("research-runs");
@@ -562,6 +577,13 @@
     journeyField(box, run.id, "candidate", "Practiced recipe to freeze", choose, practiced[0] || "");
     journeyField(box, run.id, "reason", "Why this candidate", reason, "");
     if (!practiced.length) researchNote(box, "No practiced recipe yet: a candidate must have a practice result before it can be frozen.");
+    if (launchOptions) {
+      // Each family's true availability now, by its registry verdict.
+      const byVerdict = {};
+      for (const family of launchOptions.families) (byVerdict[family.verdict] ||= []).push(family.selector || family.id.split(".")[1]);
+      const labels = {supported: "Families you can freeze and submit now", not_yet_rebuildable: "Not yet rebuildable (research only)", needs_owner_decision: "Waiting on an owner decision", excluded: "Excluded"};
+      for (const [verdict, label] of Object.entries(labels)) if (byVerdict[verdict]) researchNote(box, label + ": " + byVerdict[verdict].join(", "));
+    }
     const second = document.createElement("div"); second.className = "controls";
     const freeze = document.createElement("button"); freeze.type = "button"; freeze.id = "journey-freeze-" + run.id; freeze.textContent = "Freeze candidate";
     freeze.disabled = !connected || busy || !ready || !practiced.length || frozen || exhausted;

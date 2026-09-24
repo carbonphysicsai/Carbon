@@ -851,6 +851,17 @@ def journey():
                     server.research_runner = host
                     load(session, server.origin)
                     connect(session, token)
+                    # True availability at the moment of choosing: this host
+                    # has no model-provider key, so Carbon's agent is offered
+                    # as unavailable with its reason, not as a choice that
+                    # would fail later.
+                    wait(
+                        session,
+                        "document.querySelector('input[name=research-agent][value=autonomous]').disabled",
+                    )
+                    assert "provider key not configured" in session.evaluate(
+                        "document.getElementById('research-selects').textContent"
+                    )
                     session.evaluate(
                         "document.querySelector('input[name=research-agent][value=none]').click()"
                     )
@@ -887,6 +898,12 @@ def journey():
                         session,
                         f"document.querySelector('.journey') && document.getElementById('journey-practice-{run_id}').disabled === false",
                     )
+                    families = session.evaluate(
+                        "document.querySelector('.journey').textContent"
+                    )
+                    assert "freeze and submit now: fno" in families, families[:400]
+                    assert "Not yet rebuildable (research only):" in families
+                    assert "unet1d" in families
                     # The freeze is refused before any practice: a candidate
                     # must have a practice result.
                     assert session.evaluate(

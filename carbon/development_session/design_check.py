@@ -65,6 +65,17 @@ def _nearest(text, choices):
     return difflib.get_close_matches(text, sorted(choices), n=3, cutoff=0.6)
 
 
+def availability(capability):
+    """One capability's availability in the design-check vocabulary.
+
+    What launch shows at the moment of choosing and what check-design answers
+    for a design are the same verdicts, from this one function.
+    """
+    if capability.status is Status.REBUILDABLE_DEVELOPMENT:
+        return {"verdict": SUPPORTED, "capability": capability.capability_id}
+    return _registered(capability)
+
+
 def _registered(capability):
     """The verdict for a registry entry Carbon does not rebuild."""
     verdict = {

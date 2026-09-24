@@ -17,7 +17,14 @@ import json
 HOTKEY = "5F3sa2TJAWMqDhXG6jhV4N8ko9SxwGy8TpaNS1repo5EYjQX"
 
 
-def journey_host(root):
+def journey_host(root, *, patch=setattr):
+    """`patch(target, name, value)` installs each fixture. A process of its own
+    (the smoke, a stdio server) uses plain setattr; a test runner passes
+    pytest's monkeypatch.setattr so nothing outlives the test."""
+    return _journey_host(root, patch)
+
+
+def _journey_host(root, patch):
     """The real campaign host, over real campaign records, with no agent.
 
     Real: the RunnerAdapter, the operations table and its gates, the launch
@@ -144,10 +151,10 @@ def journey_host(root):
             "fixture-ref",
         )
 
-    research_campaign.prepare = prepare
-    research_campaign.final_epoch = final_epoch
-    research_campaign.report = lambda *_, **__: None
-    research_rewards.update_simulation = lambda *_, **__: None
+    patch(research_campaign, "prepare", prepare)
+    patch(research_campaign, "final_epoch", final_epoch)
+    patch(research_campaign, "report", lambda *_, **__: None)
+    patch(research_rewards, "update_simulation", lambda *_, **__: None)
     host = RunnerAdapter(
         root / "runner.sqlite3", principal="alice", registration=registration
     )
