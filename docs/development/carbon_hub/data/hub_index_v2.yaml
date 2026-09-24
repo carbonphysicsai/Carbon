@@ -9863,6 +9863,19 @@ events:
       - "WAVE-C/C-W1-D4"
     supersedes: null
     recorded_at: "2026-09-24T02:53:48Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "evidence"
+    event_id: "C-MLP-02-STDIO-JOURNEY-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "Implemented slice three of the Launchpad middle-of-the-journey mission: a miner's own MCP client completes the journey over stdio with nothing Carbon issues. A real stdio server process and a real MCP client run onboarding confirm, launch with no agent, practice, observe, freeze and submit through the tools the server generates from the shared operations table, against the same journey host as the browser smoke, and assert the same durable records: the frozen record is the agent's record, the outcome names the miner and zero chain transactions, final feedback is written and the campaign settles READY. Two defects found on the way are fixed. First, the bare open tier over stdio called run_async on a raw MCPServer, which has only run_stdio_async, so it failed as soon as a client connected; its test replaced the function and never ran it. The same call in the new operations tier is fixed with it. Second, a campaign with no agent still required a model-provider API key file and constructed the provider transport, although a person driving their own journey calls no model; the key is now required only when Carbon's agent runs, with the agent launch as the specimen that still requires it. Findings reported rather than worked around: the closed runner-profile schema still lists an api_key_file path even for a miner who uses no agent, and the operator configuration's publisher hotkey - the public address of Carbon's development service that DEVELOPMENT submissions are signed to - is a value a miner must obtain from Carbon, though it is a public identifier, not a credential."
+    primary_detail: "carbon/miner_mcp/standard_cli.py"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "WAVE-C/C-W1-D4"
+    supersedes: null
+    recorded_at: "2026-09-24T03:01:44Z"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"
