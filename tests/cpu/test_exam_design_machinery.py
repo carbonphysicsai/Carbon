@@ -209,3 +209,39 @@ def test_screening_nomination_refuses_regional_regression():
     assert exam.nominate(better_but_regional, inc, 0.02) == (False, "important-region regression beyond the margin")
     assert exam.nominate(dict(better_but_regional, important_score=0.9), inc, 0.02)[0]
     assert not exam.nominate(dict(better_but_regional, pool_version=2), inc, 0.02)[0]
+
+
+def test_sealed_private_jobs_round_trip_and_hide_plaintext(tmp_path, monkeypatch):
+    from scripts.dev.exam_design import private_cases
+
+    monkeypatch.setattr(private_cases, "ROOT_PATH", tmp_path / "root.bin")
+    jobs = [{"case": {"case_id": "pscreen-B00-0000", "c1": 1.2345, "c2": 0.5, "t_amb_c": 21.0, "soc0": 0.3}}]
+    cipher, meta = private_cases.seal(jobs, "unit")
+    assert b"c1" not in cipher and b"pscreen" not in cipher
+    assert private_cases.unseal(cipher, private_cases.key_hex("unit")) == jobs
+    assert (tmp_path / "keys" / "unit.key").stat().st_mode & 0o077 == 0
+
+
+def test_soft_voltage_ceiling_is_exact_and_never_exceeds_the_limit():
+    from scripts.dev.exam_design import recipes
+
+    v = np.array([3.165, 3.9, 4.19, 4.1999, 4.2])
+    assert np.max(np.abs(recipes._from_logit(recipes._to_logit(v)) - v)) <= 1.01e-6
+    assert np.all(recipes._from_logit(np.linspace(-10, 50, 200)) <= recipes.V_MAX)
+
+
+def test_capacity_component_weights_fade_by_its_own_spread():
+    rng = np.random.default_rng(0)
+    refs = [_ref(f"t{i}", 0.2, 5 + i, 0.05, 30.0, rng) for i in range(20)]
+    for i, r in enumerate(refs):  # real-like: cycle-1 capacity varies ~60 mAh, 30-cycle fade ~2 mAh
+        q1 = 4.8 + 0.003 * i
+        r["outputs"]["capacity_ah"] = [q1, q1 - 0.002 - 0.0001 * i, q1 - 0.004 - 0.0002 * i]
+    sc = scoring.scales_from_train(refs)
+    assert sc["s_fade"] < sc["s_q1"]
+    ref = refs[0]
+    pred = {k: list(v) if isinstance(v, list) else v for k, v in ref["outputs"].items()}
+    pred["capacity_ah"] = [q + 0.002 for q in ref["outputs"]["capacity_ah"]]  # Q1 off, fade exact
+    c_level = scoring.case_components(pred, ref, sc)["capacity"]
+    pred["capacity_ah"] = [ref["outputs"]["capacity_ah"][0]] + [q + 0.002 for q in ref["outputs"]["capacity_ah"][1:]]
+    c_fade = scoring.case_components(pred, ref, sc)["capacity"]
+    assert c_fade > c_level  # the same 2 mAh costs more when it is fade error
