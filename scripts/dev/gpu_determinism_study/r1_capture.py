@@ -48,8 +48,9 @@ import sys
 from pathlib import Path
 
 try:
-    from . import compare_units
-except ImportError:  # run as a script from this directory
+    from scripts.dev.gpu_determinism_study import compare_units
+except ImportError:  # run as a script without the repository on the path
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
     import compare_units
 
 from carbon import reproducibility
