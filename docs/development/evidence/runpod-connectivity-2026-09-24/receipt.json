@@ -1,0 +1,51 @@
+{
+ "schema": "carbon.runpod-connectivity-test.v1",
+ "scope": "owner-authorized bounded connectivity test; not a study run",
+ "pod_id": "d69n88ih5wkx3i",
+ "cloud": "SECURE",
+ "gpu_type": "NVIDIA A40",
+ "gpu_count": 1,
+ "rate_usd_per_hr": 0.49,
+ "container_disk_gb": 20,
+ "volume_gb": 0,
+ "image": "ghcr.io/carbonphysicsai/carbon-determinism-study@sha256:2d19b261e722fe67f20bee02e115f2277a799c448b90d54d2872361b341bd940",
+ "image_tag": "d0c19830d095",
+ "created_utc": "2026-09-24T19:15:45Z",
+ "terminate_requested_utc": "2026-09-24T19:17:06Z",
+ "termination_verified": "GET /pods/d69n88ih5wkx3i -> 404; GET /pods -> []",
+ "access_path": "https://<pod>-8000.proxy.runpod.net/status with X-Probe-Token; unauthenticated -> 404",
+ "estimated_cost_usd": 0.011,
+ "probe": {
+  "schema": "carbon.runpod-connectivity-probe.v1",
+  "started_utc": "2026-09-24T19:16:42Z",
+  "state": "done",
+  "pod_id": "d69n88ih5wkx3i",
+  "python": "3.11.16",
+  "uid": 65532,
+  "nvml": {
+   "driver_version": "580.159.04",
+   "cuda_driver": "13.0",
+   "device_count": 1,
+   "devices": [
+    {
+     "index": 0,
+     "name": "NVIDIA A40",
+     "uuid": "GPU-b049bc7a-3a41-edfb-9e8b-3b3e18056e9f"
+    }
+   ]
+  },
+  "jax": {
+   "jax": "0.10.2",
+   "jaxlib": "0.10.2",
+   "backend": "gpu",
+   "devices": [
+    {
+     "id": 0,
+     "platform": "gpu",
+     "kind": "NVIDIA A40"
+    }
+   ]
+  },
+  "probe_done_utc": "2026-09-24T19:16:44Z"
+ }
+}
