@@ -217,6 +217,21 @@ def cmd_dispatch(a) -> None:
     paths = subprocess.run(["git", "-C", REPO, "ls-tree", "-r", "--name-only", ref, "scripts/dev/exam_design"],
                            capture_output=True, text=True, check=True).stdout.split()
     paths += [a.plan] if a.plan else []
+    if a.plan:
+        # Every repository file the plan names (TRAIN file, inputs, OCV table, slot list, blobs) is shipped and
+        # hash-pinned too; a child must never find a referenced path missing on the pod.
+        def walk(o):
+            if isinstance(o, dict):
+                for v in o.values():
+                    yield from walk(v)
+            elif isinstance(o, list):
+                for v in o:
+                    yield from walk(v)
+            elif isinstance(o, str) and "/" in o and not o.startswith("/"):
+                yield o
+        tracked = set(subprocess.run(["git", "-C", REPO, "ls-tree", "-r", "--name-only", ref], capture_output=True,
+                                     text=True, check=True).stdout.split())
+        paths += sorted({p for p in walk(json.load(open(os.path.join(REPO, a.plan)))) if p in tracked} - set(paths))
     manifest = code_manifest(ref, paths)
     token = secrets.token_urlsafe(24)
     old = os.umask(0o077)

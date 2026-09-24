@@ -31,12 +31,18 @@ The case error is the unweighted mean of the four; lower is better. It is a
 development measure of agreement with the specified model, bound to this
 challenge version, and not comparable across challenges.
 
-**Important region.** A case is important when its *reference* plating margin
-is at or below ``PLATING_IMPORTANT_V`` (plating conditions reached or within
-20 mV) or its reference peak temperature reaches ``T_IMPORTANT_C``. These are
-the cases where a prediction matters most for a charging decision. They are
-scored exactly like any other case, never gated, and reported separately so a
-comparison can refuse an overall gain bought by an important-region regression.
+**Important region.** A case is important when its *reference* plating
+margin lies within ``PLATING_BAND_V`` of zero (the plating decision boundary,
+where an error of a few millivolts flips whether the protocol plates) or its
+reference peak temperature reaches ``T_IMPORTANT_C`` (the thermal tail). Both
+values are provisional development choices made from reference data alone,
+before any model was compared: 5 mV is about 3x the largest refinement shift in
+the margin (1.6 mV); 55 C is the TRAIN 90th percentile. They select ~21 % of
+TRAIN. (The first definition - margin <= 20 mV or peak >= 45 C - selected 86 %
+of TRAIN, i.e. no region at all, and was replaced before scoring.) Important
+cases are scored exactly like any other, never gated, and reported separately
+so a comparison can refuse an overall gain bought by an important-region
+regression. Production values are owner-reserved.
 """
 
 from __future__ import annotations
@@ -44,8 +50,8 @@ from __future__ import annotations
 import numpy as np
 
 COMPONENTS = ("voltage", "temperature", "plating", "capacity")
-PLATING_IMPORTANT_V = 0.02
-T_IMPORTANT_C = 45.0
+PLATING_BAND_V = 0.005
+T_IMPORTANT_C = 55.0
 
 
 def scales_from_train(train_refs: list[dict], floors: dict | None = None) -> dict:
@@ -65,7 +71,7 @@ def scales_from_train(train_refs: list[dict], floors: dict | None = None) -> dic
 
 
 def is_important(ref: dict) -> bool:
-    return (ref["outputs"]["plating_margin_v"] <= PLATING_IMPORTANT_V
+    return (abs(ref["outputs"]["plating_margin_v"]) <= PLATING_BAND_V
             or ref.get("diagnostics", {}).get("t_max_c", -1e9) >= T_IMPORTANT_C)
 
 

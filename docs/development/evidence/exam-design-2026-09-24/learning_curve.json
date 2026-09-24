@@ -1,0 +1,406 @@
+{
+ "host": "development container (CPU); diagnostic, not A40 evidence",
+ "practice_n": 200,
+ "rows": [
+  {
+   "recipe": "knn",
+   "n_train": 25,
+   "seed": 0,
+   "fit_s": 0.02381439500095439,
+   "score": 0.38390272543727155,
+   "important_score": 0.40540108782128476,
+   "eligible": true,
+   "gate_failures": {},
+   "components": {
+    "voltage": 0.3710723372921184,
+    "temperature": 0.4169700694939846,
+    "plating": 0.4162180582689545,
+    "capacity": 0.3313504366940287
+   }
+  },
+  {
+   "recipe": "mlp",
+   "n_train": 25,
+   "seed": 0,
+   "fit_s": 7.999677562000215,
+   "score": 0.23571085692899485,
+   "important_score": 0.24207151409764427,
+   "eligible": true,
+   "gate_failures": {},
+   "components": {
+    "voltage": 0.25443839347636277,
+    "temperature": 0.3015666940382771,
+    "plating": 0.22187857550730655,
+    "capacity": 0.1649597646940328
+   }
+  },
+  {
+   "recipe": "mlp",
+   "n_train": 25,
+   "seed": 1,
+   "fit_s": 4.736472759999742,
+   "score": 0.23410979635344908,
+   "important_score": 0.24213836884653603,
+   "eligible": true,
+   "gate_failures": {},
+   "components": {
+    "voltage": 0.24959525491636533,
+    "temperature": 0.30629973112160963,
+    "plating": 0.21385085687377636,
+    "capacity": 0.16669334250204493
+   }
+  },
+  {
+   "recipe": "mlp_plus",
+   "n_train": 25,
+   "seed": 0,
+   "fit_s": 4.873216224999851,
+   "score": 0.26297872483757273,
+   "important_score": 0.27275985721090507,
+   "eligible": true,
+   "gate_failures": {},
+   "components": {
+    "voltage": 0.27655179585521517,
+    "temperature": 0.30209141665721934,
+    "plating": 0.2569078085375439,
+    "capacity": 0.21636387830031245
+   }
+  },
+  {
+   "recipe": "mlp_plus",
+   "n_train": 25,
+   "seed": 1,
+   "fit_s": 4.1523644189983315,
+   "score": 0.2592891621185798,
+   "important_score": 0.26892720040086093,
+   "eligible": true,
+   "gate_failures": {},
+   "components": {
+    "voltage": 0.2650735218639588,
+    "temperature": 0.3406887779421146,
+    "plating": 0.2483953183030426,
+    "capacity": 0.18299903036520304
+   }
+  },
+  {
+   "recipe": "knn",
+   "n_train": 50,
+   "seed": 0,
+   "fit_s": 0.025376243000209797,
+   "score": 0.3244348190705263,
+   "important_score": 0.33363632921200614,
+   "eligible": true,
+   "gate_failures": {},
+   "components": {
+    "voltage": 0.2920820945091883,
+    "temperature": 0.38462554445487485,
+    "plating": 0.35223181180372193,
+    "capacity": 0.26879982551432
+   }
+  },
+  {
+   "recipe": "mlp",
+   "n_train": 50,
+   "seed": 0,
+   "fit_s": 6.074336375000712,
+   "score": 0.20259926956228733,
+   "important_score": 0.20574782942448513,
+   "eligible": true,
+   "gate_failures": {},
+   "components": {
+    "voltage": 0.22306152435121285,
+    "temperature": 0.2188792255021309,
+    "plating": 0.20045731278887666,
+    "capacity": 0.16799901560692893
+   }
+  },
+  {
+   "recipe": "mlp",
+   "n_train": 50,
+   "seed": 1,
+   "fit_s": 6.223262360999797,
+   "score": 0.1921393270636428,
+   "important_score": 0.18959750532659259,
+   "eligible": true,
+   "gate_failures": {},
+   "components": {
+    "voltage": 0.20900466221979108,
+    "temperature": 0.21443989835851426,
+    "plating": 0.1857879447393847,
+    "capacity": 0.15932480293688125
+   }
+  },
+  {
+   "recipe": "mlp_plus",
+   "n_train": 50,
+   "seed": 0,
+   "fit_s": 5.478476295000291,
+   "score": 0.24122106133434584,
+   "important_score": 0.24996970007870972,
+   "eligible": true,
+   "gate_failures": {},
+   "components": {
+    "voltage": 0.25401606060632514,
+    "temperature": 0.3170004456679342,
+    "plating": 0.1793276689604876,
+    "capacity": 0.21454007010263632
+   }
+  },
+  {
+   "recipe": "mlp_plus",
+   "n_train": 50,
+   "seed": 1,
+   "fit_s": 5.461428742999487,
+   "score": 0.2236339368909456,
+   "important_score": 0.2261547357766325,
+   "eligible": true,
+   "gate_failures": {},
+   "components": {
+    "voltage": 0.24349465302166157,
+    "temperature": 0.28363506920665155,
+    "plating": 0.1672138116041537,
+    "capacity": 0.20019221373131565
+   }
+  },
+  {
+   "recipe": "knn",
+   "n_train": 100,
+   "seed": 0,
+   "fit_s": 0.021866630999284098,
+   "score": 0.24626809449233747,
+   "important_score": 0.2565588596762732,
+   "eligible": true,
+   "gate_failures": {},
+   "components": {
+    "voltage": 0.2461760172907851,
+    "temperature": 0.2892514818389608,
+    "plating": 0.25417941914403563,
+    "capacity": 0.1954654596955684
+   }
+  },
+  {
+   "recipe": "mlp",
+   "n_train": 100,
+   "seed": 0,
+   "fit_s": 8.90827373600041,
+   "score": 0.12789423908023198,
+   "important_score": 0.13578437274258154,
+   "eligible": true,
+   "gate_failures": {},
+   "components": {
+    "voltage": 0.14164532204773272,
+    "temperature": 0.12699883068489332,
+    "plating": 0.09304569214318179,
+    "capacity": 0.14988711144512007
+   }
+  },
+  {
+   "recipe": "mlp",
+   "n_train": 100,
+   "seed": 1,
+   "fit_s": 8.830013799999506,
+   "score": 0.13746286676359257,
+   "important_score": 0.14736986230532795,
+   "eligible": true,
+   "gate_failures": {},
+   "components": {
+    "voltage": 0.14245631731534825,
+    "temperature": 0.13432955354804238,
+    "plating": 0.11007265984480037,
+    "capacity": 0.16299293634617928
+   }
+  },
+  {
+   "recipe": "mlp_plus",
+   "n_train": 100,
+   "seed": 0,
+   "fit_s": 6.927197316999809,
+   "score": 0.18706384154890368,
+   "important_score": 0.1950970338775956,
+   "eligible": true,
+   "gate_failures": {},
+   "components": {
+    "voltage": 0.17507637877497093,
+    "temperature": 0.21697999441455504,
+    "plating": 0.14116433506727555,
+    "capacity": 0.2150346579388133
+   }
+  },
+  {
+   "recipe": "mlp_plus",
+   "n_train": 100,
+   "seed": 1,
+   "fit_s": 6.834835591000228,
+   "score": 0.18799600579067466,
+   "important_score": 0.18880945585547482,
+   "eligible": true,
+   "gate_failures": {},
+   "components": {
+    "voltage": 0.17609919361900425,
+    "temperature": 0.2198251735302575,
+    "plating": 0.15135311297380144,
+    "capacity": 0.20470654303963534
+   }
+  },
+  {
+   "recipe": "knn",
+   "n_train": 200,
+   "seed": 0,
+   "fit_s": 0.02187015399977099,
+   "score": 0.20736340507064616,
+   "important_score": 0.2149269342358794,
+   "eligible": true,
+   "gate_failures": {},
+   "components": {
+    "voltage": 0.19304401677345198,
+    "temperature": 0.23303070038684134,
+    "plating": 0.21772661647409788,
+    "capacity": 0.18565228664819347
+   }
+  },
+  {
+   "recipe": "mlp",
+   "n_train": 200,
+   "seed": 0,
+   "fit_s": 11.863497645999814,
+   "score": 0.08100844736734114,
+   "important_score": 0.08437175717527454,
+   "eligible": true,
+   "gate_failures": {},
+   "components": {
+    "voltage": 0.09345224996446604,
+    "temperature": 0.07073701621744818,
+    "plating": 0.0570088312934854,
+    "capacity": 0.10283569199396499
+   }
+  },
+  {
+   "recipe": "mlp",
+   "n_train": 200,
+   "seed": 1,
+   "fit_s": 11.575530281999818,
+   "score": 0.08590473442599927,
+   "important_score": 0.0895895133502578,
+   "eligible": true,
+   "gate_failures": {},
+   "components": {
+    "voltage": 0.09857217716075521,
+    "temperature": 0.07577318565653152,
+    "plating": 0.06721624534941902,
+    "capacity": 0.10205732953729135
+   }
+  },
+  {
+   "recipe": "mlp_plus",
+   "n_train": 200,
+   "seed": 0,
+   "fit_s": 10.009710237000036,
+   "score": 0.15144560237311178,
+   "important_score": 0.15170151042587485,
+   "eligible": true,
+   "gate_failures": {},
+   "components": {
+    "voltage": 0.12890751220587351,
+    "temperature": 0.14745462247467295,
+    "plating": 0.15403759632652844,
+    "capacity": 0.17538267848537223
+   }
+  },
+  {
+   "recipe": "mlp_plus",
+   "n_train": 200,
+   "seed": 1,
+   "fit_s": 10.344847063999623,
+   "score": 0.14546402449063822,
+   "important_score": 0.1457643138566275,
+   "eligible": true,
+   "gate_failures": {},
+   "components": {
+    "voltage": 0.13257545817078165,
+    "temperature": 0.15917183029235793,
+    "plating": 0.13137566099473597,
+    "capacity": 0.15873314850467743
+   }
+  },
+  {
+   "recipe": "knn",
+   "n_train": 400,
+   "seed": 0,
+   "fit_s": 0.03510713099967688,
+   "score": 0.17242925072369444,
+   "important_score": 0.18006550988773937,
+   "eligible": true,
+   "gate_failures": {},
+   "components": {
+    "voltage": 0.1673691265033926,
+    "temperature": 0.1918576791039308,
+    "plating": 0.179666542520777,
+    "capacity": 0.15082365476667733
+   }
+  },
+  {
+   "recipe": "mlp",
+   "n_train": 400,
+   "seed": 0,
+   "fit_s": 17.54600488700089,
+   "score": 0.05439073768613069,
+   "important_score": 0.05638009931260663,
+   "eligible": true,
+   "gate_failures": {},
+   "components": {
+    "voltage": 0.06133834924955955,
+    "temperature": 0.04295544153778318,
+    "plating": 0.041059873513878194,
+    "capacity": 0.07220928644330185
+   }
+  },
+  {
+   "recipe": "mlp",
+   "n_train": 400,
+   "seed": 1,
+   "fit_s": 17.50965284099948,
+   "score": 0.05656860658222326,
+   "important_score": 0.058623924962678285,
+   "eligible": true,
+   "gate_failures": {},
+   "components": {
+    "voltage": 0.06340365952165557,
+    "temperature": 0.04514247450331478,
+    "plating": 0.0427314659388065,
+    "capacity": 0.07499682636511618
+   }
+  },
+  {
+   "recipe": "mlp_plus",
+   "n_train": 400,
+   "seed": 0,
+   "fit_s": 14.44152300099995,
+   "score": 0.08798109691249344,
+   "important_score": 0.08774865625425975,
+   "eligible": true,
+   "gate_failures": {},
+   "components": {
+    "voltage": 0.06824672354760411,
+    "temperature": 0.07323752120874641,
+    "plating": 0.08484045143484631,
+    "capacity": 0.12559969145877695
+   }
+  },
+  {
+   "recipe": "mlp_plus",
+   "n_train": 400,
+   "seed": 1,
+   "fit_s": 14.698747490998358,
+   "score": 0.09045322616914461,
+   "important_score": 0.09213880104359753,
+   "eligible": true,
+   "gate_failures": {},
+   "components": {
+    "voltage": 0.07602221547129796,
+    "temperature": 0.07484190037089643,
+    "plating": 0.08876050879810798,
+    "capacity": 0.1221882800362761
+   }
+  }
+ ]
+}

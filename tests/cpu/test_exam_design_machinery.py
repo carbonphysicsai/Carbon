@@ -32,7 +32,7 @@ def store():
     rng = np.random.default_rng(0)
     refs = {}
     for i in range(40):
-        eta = -0.03 if i % 5 == 0 else 0.05  # every fifth case reaches plating conditions
+        eta = -0.003 if i % 5 == 0 else 0.05  # every fifth case sits at the plating decision boundary
         refs[f"c{i:03d}"] = _ref(f"c{i:03d}", 0.1 + 0.01 * i, 5 + i * 0.8, eta, 30 + i * 0.5, rng)
     refs["c001"] = refs["c000"] | {"case_id": "c001"}  # hidden duplicate: same inputs, same reference
     refs["c-bad"] = {"case_id": "c-bad", "status": "REFERENCE_SOLVER_FAILED", "inputs": {"t_amb_c": 20.0}}

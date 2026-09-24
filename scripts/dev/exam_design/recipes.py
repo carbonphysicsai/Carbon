@@ -171,13 +171,14 @@ class MLP:
     """``mlp`` and ``mlp_plus`` share this class; the config distinguishes them."""
 
     def __init__(self, name="mlp", width=128, depth=3, steps=3000, lr=3e-3, wd=0.0, rich=False, pca=0,
-                 important_weight=1.0, bounded_v=True):
+                 important_weight=1.0, bounded_v=True, train_fraction=1.0):
         self.name, self.width, self.depth, self.steps, self.lr, self.wd = name, width, depth, steps, lr, wd
         self.rich, self.pca, self.important_weight, self.bounded_v = rich, pca, important_weight, bounded_v
+        self.train_fraction = train_fraction
 
     def config(self) -> dict:
         return {k: getattr(self, k) for k in ("name", "width", "depth", "steps", "lr", "wd", "rich", "pca",
-                                               "important_weight", "bounded_v")}
+                                               "important_weight", "bounded_v", "train_fraction")}
 
     def _encode(self, y: np.ndarray) -> np.ndarray:
         if not self.pca:
@@ -209,6 +210,11 @@ class MLP:
         import jax
         import jax.numpy as jnp
 
+        if self.train_fraction < 1.0:
+            # A recipe may choose to use part of TRAIN; the subset is a seeded draw, recorded by the fraction.
+            keep = np.sort(np.random.default_rng(seed).permutation(len(d.case_ids))[: int(len(d.case_ids) * self.train_fraction)])
+            d = Data(d.x[keep], d.v[keep], d.t[keep], d.eta[keep], d.q[keep], d.important[keep],
+                     [d.case_ids[i] for i in keep])
         self.s, self.g, self.q_dim = structure, d.v.shape[1], d.q.shape[1]
         y = _targets(d, self.bounded_v)
         self.mu, self.sd = y.mean(0), y.std(0) + 1e-9
@@ -300,7 +306,43 @@ def make(name: str):
     if name == "mlp_plus_localized":
         return MLP("mlp_plus_localized", width=256, depth=3, steps=6000, lr=2e-3, wd=1e-4, rich=True, pca=16,
                    important_weight=0.1)
+    if name == "mlp_half":
+        # Weaker incumbent: the competent recipe on a seeded half of TRAIN (same data offered, same budget).
+        return MLP("mlp_half", width=256, depth=3, steps=6000, lr=2e-3, train_fraction=0.5)
+    if name == "mlp_ens3":
+        # Small candidate improvement: three members at 2000 steps each (6000 total, matched budget).
+        return Ensemble("mlp_ens3", dict(width=256, depth=3, steps=6000, lr=2e-3), 3)
+    if name == "mlp_localized":
+        # Localized-regression control on the competent recipe: important-region cases down-weighted to 0.1.
+        return MLP("mlp_localized", width=256, depth=3, steps=6000, lr=2e-3, important_weight=0.1)
     raise KeyError(name)
 
 
-RECIPES = ("knn", "mlp", "mlp_raw", "mlp_plus", "mlp_plus_localized")
+class Ensemble:
+    """``k`` members trained with split optimizer budget (``steps // k`` each): matched total steps."""
+
+    def __init__(self, name: str, member_kwargs: dict, k: int = 3):
+        self.name, self.k, self.member_kwargs = name, k, member_kwargs
+
+    def config(self) -> dict:
+        return {"name": self.name, "k": self.k, **self.member_kwargs}
+
+    def fit(self, d: Data, structure: Structure, seed: int) -> dict:
+        self.members, stats = [], []
+        for i in range(self.k):
+            kw = dict(self.member_kwargs)
+            kw["steps"] = kw["steps"] // self.k
+            m = MLP(name=f"{self.name}-m{i}", **kw)
+            stats.append(m.fit(d, structure, seed=seed * 1000 + i))
+            self.members.append(m)
+        blob = "".join(s["params_sha256"] for s in stats).encode()
+        return {"compile_s": sum(s["compile_s"] for s in stats), "train_s": sum(s["train_s"] for s in stats),
+                "final_loss": float(np.mean([s["final_loss"] for s in stats])),
+                "params_sha256": hashlib.sha256(blob).hexdigest(), "n_params": sum(s["n_params"] for s in stats)}
+
+    def predict(self, x: np.ndarray) -> dict:
+        outs = [m.predict(x) for m in self.members]
+        return {k: np.mean([o[k] for o in outs], axis=0) for k in outs[0]}
+
+
+RECIPES = ("knn", "mlp_half", "mlp", "mlp_ens3", "mlp_raw", "mlp_plus", "mlp_localized", "mlp_plus_localized")

@@ -221,7 +221,7 @@ def cmd_train_plan(a) -> None:
     roles = ["train", "practice", "final", "verify"] + [f"pscreen-B{b:02d}" for b in range(plans.SCREEN_BATCHES)] + [
         "pfinal", "pverify"]
     runs = [{"tag": "knn", "recipe": "knn", "seed": 0, "train_n": a.n, "predict_roles": roles}]
-    for rec in ("mlp", "mlp_plus", "mlp_plus_localized"):
+    for rec in ("mlp_half", "mlp", "mlp_ens3", "mlp_plus", "mlp_localized"):
         for s in range(3):
             runs.append({"tag": f"{rec}-s{s}", "recipe": rec, "seed": s, "train_n": a.n, "predict_roles": roles})
     for rec in ("mlp", "mlp_plus"):
