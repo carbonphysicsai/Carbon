@@ -226,6 +226,8 @@ def cmd_train_plan(a) -> None:
             runs.append({"tag": f"{rec}-s{s}", "recipe": rec, "seed": s, "train_n": a.n, "predict_roles": roles})
     for rec in ("mlp", "mlp_plus"):
         runs.append({"tag": f"{rec}-s0-repeat", "recipe": rec, "seed": 0, "train_n": a.n, "predict_roles": roles})
+    # Unconstrained voltage head: measures what the voltage_ceiling gate rejects (not a candidate).
+    runs.append({"tag": "mlp_raw-s0", "recipe": "mlp_raw", "seed": 0, "train_n": a.n, "predict_roles": roles})
     plan = {"plan": "battery-reconstruct-v1", "train_file": f"{EVID}/datasets/train-v1.jsonl.gz",
             "train_sha256": sha, "ocv_table": f"{EVID}/ocv_table.json", "inputs_file": f"{EVID}/datasets/inputs.json",
             "important_train_ids": important, "runs": runs,
