@@ -44,19 +44,32 @@ def _write_jsonl_gz(path, rows):
 
 
 def load_refs(pattern: str) -> tuple[dict, dict, list]:
-    """Normal references by case id, refined references by case id, and every record (failures kept)."""
+    """Normal references by case id, refined references by case id, and every record (failures kept).
+
+    ``pattern`` names a pod export prefix such as ``refs-a*``; single-phase exports keep records at
+    ``out/records.jsonl`` and multi-phase ones at ``out/battery_refs/records.jsonl``. A later OK record
+    for a case supersedes an earlier failure; every record is still returned in ``every``.
+    """
     normal, refined, every = {}, {}, []
-    for path in sorted(glob.glob(pattern)):
+    paths = sorted(set(glob.glob(f"{EVID}/{pattern}/out/battery_refs/records.jsonl")) |
+                   set(glob.glob(f"{EVID}/{pattern}/out/records.jsonl")))
+    for path in paths:
         for r in _jsonl(path):
             every.append(r)
-            (refined if r.get("refined") else normal)[r["case_id"]] = r
+            bucket = refined if r.get("refined") else normal
+            if r.get("status") == "OK" or r["case_id"] not in bucket:
+                bucket[r["case_id"]] = r
     return normal, refined, every
+
+
+def private_slots() -> dict:
+    return json.load(open(f"{EVID}/plans/private-slots.json"))
 
 
 def with_twins(refs: dict) -> tuple[dict, dict]:
     """Add hidden-duplicate case ids; each carries its original's reference unchanged."""
     twins = {}
-    for slots in plans.screen_batches():
+    for role, slots in private_slots().items():
         for c in slots:
             if "duplicate_of" in c and c["duplicate_of"] in refs:
                 refs[c["case_id"]] = dict(refs[c["duplicate_of"]], case_id=c["case_id"], duplicate_of=c["duplicate_of"])
@@ -101,7 +114,7 @@ def reference_uncertainty(normal: dict, refined: dict, scales: dict) -> dict:
 
 
 def cmd_prepare(a) -> None:
-    normal, refined, every = load_refs(f"{EVID}/refs-a/out/battery_refs/records.jsonl")
+    normal, refined, every = load_refs("refs-a*")
     table = json.load(open(f"{EVID}/ocv_table.json"))
     k = len(plans.MAIN_CHECKPOINTS)
     shapes = SHAPES(k)
@@ -154,7 +167,7 @@ def _store(refs, twins, prep, k):
 def cmd_learning_curve(a) -> None:
     """Local CPU study on PRACTICE (public): how much TRAIN is a useful starting point?"""
     prep = json.load(open(f"{EVID}/prepare.json"))
-    normal, _, _ = load_refs(f"{EVID}/refs-a/out/battery_refs/records.jsonl")
+    normal, _, _ = load_refs("refs-a*")
     train = _jsonl(f"{EVID}/datasets/train-v1-candidates.jsonl.gz")
     practice = sorted([r for r in normal.values() if r["role"] == "practice" and r["status"] == "OK"],
                       key=lambda r: r["case_id"])
@@ -209,7 +222,7 @@ SCHEDULES = (1, 3, 10)
 
 
 def _all_refs():
-    normal, refined, every = load_refs(f"{EVID}/refs-*/out/battery_refs/records.jsonl")
+    normal, refined, every = load_refs("refs-*")
     return with_twins(normal) + (refined, every)
 
 
@@ -227,7 +240,9 @@ def _role_ids(refs: dict, role: str) -> list:
 
 
 def _batch_ids() -> list[list[str]]:
-    return [[c["case_id"] for c in slots] for slots in plans.screen_batches()]
+    """Private screening batches (pscreen-B00..), in entry order, including their hidden duplicates."""
+    sl = private_slots()
+    return [[c["case_id"] for c in sl[f"pscreen-B{b:02d}"]] for b in range(plans.SCREEN_BATCHES)]
 
 
 def _case_errors(preds: dict, ids: list, store) -> tuple[dict, dict, dict]:
@@ -266,7 +281,8 @@ def cmd_analyze(a) -> None:
     for path in glob.glob(f"{EVID}/refs-b/out/train/inference_timing.json"):
         timing += json.load(open(path))
     batches = _batch_ids()
-    final_ids = _role_ids(refs, "final")
+    final_ids = _role_ids(refs, "pfinal")          # private fresh finalist cases
+    dev_final_ids = _role_ids(refs, "final")       # public-seed: offline development evidence
     practice_ids = _role_ids(refs, "practice")
     train_ids = _role_ids(refs, "train")
     res: dict = {"analyzed_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "models": {}}
@@ -276,6 +292,7 @@ def cmd_analyze(a) -> None:
     for tag, p in preds.items():
         per[tag] = {}
         for role, ids in (("train", train_ids), ("practice", practice_ids), ("final", final_ids),
+                          ("dev_final", dev_final_ids),
                           *[(f"screen-B{b:02d}", batches[b]) for b in range(len(batches))]):
             err, comp, agg = _case_errors(p, ids, store)
             per[tag][role] = {"err": err, "comp": comp, "agg": agg}
