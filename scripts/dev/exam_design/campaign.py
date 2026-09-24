@@ -101,7 +101,7 @@ def reference_uncertainty(normal: dict, refined: dict, scales: dict) -> dict:
 
 
 def cmd_prepare(a) -> None:
-    normal, refined, every = load_refs(f"{EVID}/refs-a/out/records.jsonl")
+    normal, refined, every = load_refs(f"{EVID}/refs-a/out/battery_refs/records.jsonl")
     table = json.load(open(f"{EVID}/ocv_table.json"))
     k = len(plans.MAIN_CHECKPOINTS)
     shapes = SHAPES(k)
@@ -154,7 +154,7 @@ def _store(refs, twins, prep, k):
 def cmd_learning_curve(a) -> None:
     """Local CPU study on PRACTICE (public): how much TRAIN is a useful starting point?"""
     prep = json.load(open(f"{EVID}/prepare.json"))
-    normal, _, _ = load_refs(f"{EVID}/refs-a/out/records.jsonl")
+    normal, _, _ = load_refs(f"{EVID}/refs-a/out/battery_refs/records.jsonl")
     train = _jsonl(f"{EVID}/datasets/train-v1-candidates.jsonl.gz")
     practice = sorted([r for r in normal.values() if r["role"] == "practice" and r["status"] == "OK"],
                       key=lambda r: r["case_id"])
@@ -205,11 +205,11 @@ SCHEDULES = (1, 3, 10)
 
 
 def _all_refs():
-    normal, refined, every = load_refs(f"{EVID}/refs-*/out/records.jsonl")
+    normal, refined, every = load_refs(f"{EVID}/refs-*/out/battery_refs/records.jsonl")
     return with_twins(normal) + (refined, every)
 
 
-def load_predictions(pattern=f"{EVID}/reconstruct/out/**/pred_*.json.gz") -> dict:
+def load_predictions(pattern=f"{EVID}/refs-b/out/train/pred_*.json.gz") -> dict:
     out = {}
     for path in sorted(glob.glob(pattern, recursive=True)):
         tag = os.path.basename(path)[len("pred_"):-len(".json.gz")]
@@ -256,10 +256,10 @@ def cmd_analyze(a) -> None:
     reference_self_check(refs, store.tol, store.ocv, SHAPES(k))
     preds = load_predictions()
     frozen = []
-    for path in glob.glob(f"{EVID}/reconstruct/out/**/frozen.json", recursive=True):
+    for path in glob.glob(f"{EVID}/refs-b/out/train/frozen.json"):
         frozen += json.load(open(path))
     timing = []
-    for path in glob.glob(f"{EVID}/reconstruct/out/**/inference_timing.json", recursive=True):
+    for path in glob.glob(f"{EVID}/refs-b/out/train/inference_timing.json"):
         timing += json.load(open(path))
     batches = _batch_ids()
     final_ids = _role_ids(refs, "final")
@@ -406,6 +406,59 @@ def cmd_analyze(a) -> None:
                      indent=1, default=float))
 
 
+def cmd_photonic(a) -> None:
+    """Feasibility summary for the photonic pilot: cost, passivity, reciprocity, refinement."""
+    recs = []
+    for path in sorted(glob.glob(f"{EVID}/refs-a/out/photonic_refs/records.jsonl")):
+        recs += _jsonl(path)
+    from scripts.dev.exam_design import photonic_reference as pr
+
+    wls = [str(w) for w in pr.SPEC["wavelengths_um"]]
+    rows = []
+    for r in recs:
+        row = {k: r.get(k) for k in ("case_id", "refined", "status", "wall_total_s", "cells", "sim_time_fs",
+                                     "resolution_nm", "gpu_peak_bytes", "error")}
+        row["inputs"] = r.get("inputs")
+        if r.get("status") == "OK":
+            ch = pr.checks(r["S"], wls)
+            row["passivity_max_sum"] = max(max(v["sum_power_from_p1"], v["sum_power_from_p3"]) for v in ch.values())
+            row["passivity_min_sum"] = min(min(v["sum_power_from_p1"], v["sum_power_from_p3"]) for v in ch.values())
+            row["reciprocity_max_abs"] = max(v["reciprocity_31_13"] for v in ch.values())
+            s31 = [abs(complex(*r["S"]["p3<-p1"][w])) for w in wls]
+            row["reciprocity_max_rel"] = max(v["reciprocity_31_13"] / max(s, 1e-9) for v, s in zip(ch.values(), s31))
+            runs = r.get("runs", [])
+            row["run_s"] = [x["run_s"] for x in runs]
+            row["setup_s"] = [x["setup_s"] for x in runs]
+        rows.append(row)
+    ref = {}
+    for r in recs:
+        if r.get("status") == "OK":
+            ref.setdefault(r["case_id"], {})["refined" if r.get("refined") else "normal"] = r
+    refinement = []
+    for cid, d in ref.items():
+        if "normal" in d and "refined" in d:
+            diffs = []
+            for key in d["normal"]["S"]:
+                for w in wls:
+                    a1 = complex(*d["normal"]["S"][key][w])
+                    a2 = complex(*d["refined"]["S"].get(key, {}).get(w, [np.nan, np.nan]))
+                    diffs.append(abs(a1 - a2))
+            t31 = [abs(complex(*d["refined"]["S"]["p3<-p1"][w])) ** 2 for w in wls]
+            refinement.append({"case_id": cid, "max_abs_S_diff": float(np.nanmax(diffs)),
+                               "median_abs_S_diff": float(np.nanmedian(diffs)), "refined_T31": t31})
+    ok = [r for r in rows if r["status"] == "OK" and not r["refined"]]
+    out = {"rows": rows, "refinement": refinement,
+           "summary": {"n_ok": len(ok), "n_total": len(rows),
+                       "statuses": {s: sum(r["status"] == s for r in rows) for s in {r["status"] for r in rows}},
+                       "wall_s_median_normal": float(np.median([r["wall_total_s"] for r in ok])) if ok else None,
+                       "passivity_max_sum": max((r["passivity_max_sum"] for r in rows if "passivity_max_sum" in r),
+                                                default=None),
+                       "reciprocity_max_abs": max((r["reciprocity_max_abs"] for r in rows if "reciprocity_max_abs" in r),
+                                                  default=None)}}
+    json.dump(out, open(f"{EVID}/photonic_pilot.json", "w"), indent=1, default=float)
+    print(json.dumps(out["summary"], indent=1), json.dumps(refinement, indent=1)[:2000])
+
+
 def main(argv=None) -> None:
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -417,9 +470,10 @@ def main(argv=None) -> None:
     tp = sub.add_parser("train-plan")
     tp.add_argument("--n", type=int, required=True)
     sub.add_parser("analyze")
+    sub.add_parser("photonic")
     a = ap.parse_args(argv)
     {"prepare": cmd_prepare, "learning-curve": cmd_learning_curve, "train-plan": cmd_train_plan,
-     "analyze": cmd_analyze}[a.cmd](a)
+     "analyze": cmd_analyze, "photonic": cmd_photonic}[a.cmd](a)
 
 
 if __name__ == "__main__":
