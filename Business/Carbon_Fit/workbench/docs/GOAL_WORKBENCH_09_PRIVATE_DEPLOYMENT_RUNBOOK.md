@@ -538,7 +538,11 @@ run with the real credential is the owner's.
 the record says exactly what that person did and on whose word:
 
 1. Open the package from the intake mailbox. Decrypt it on the internal machine,
-   **not** in the mailbox.
+   **not** in the mailbox. A sealed package (`carbon.intake-sealed.v1`) opens with
+   `node tools/intake_key.cjs unseal --key <private key> --in <file> --out <new file>`.
+   The key file must be `0600`. The plaintext goes to a new `0600` file, and
+   nothing is printed. A package sealed to a different, for example rotated, key
+   is named rather than tried.
 2. Relay it with the record class and agreement headers, plus
    `x-carbon-intake-channel: MAIL_INTAKE` and `x-carbon-transport-arrival:
    ENCRYPTED` or `PLAINTEXT`, stating how it actually arrived.
@@ -553,6 +557,16 @@ the record says exactly what that person did and on whose word:
 The record moves forward only, with no `DELETED` state that would blur the two.
 Each entry is `RECEIVER_ATTESTATION`, because this store cannot see the mailbox
 and does not claim to.
+
+**The intake key.** The owner generates it once, on the internal machine:
+`node tools/intake_key.cjs generate --private <path outside the checkout> --public <path>`.
+The private file is written `0600` and never overwritten. Keep one encrypted
+offline copy of it in the owner's password manager. The command prints only the
+key id and the fingerprint, and that fingerprint is what the Data Handling
+Statement attached to the NDA carries. Until the key exists, and a new Ask Carbon
+release candidate carries the Pilot Designer's *Download encrypted for Carbon*
+button, clients send packages as they do today, and each arrival is recorded as
+`ENCRYPTED` or `PLAINTEXT`.
 
 **Known limits, recorded rather than built around:**
 

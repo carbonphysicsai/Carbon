@@ -43,6 +43,26 @@ SELECTION_TOOL = {
 }
 
 
+def candidate_record(strategy, reason, used_feedback):
+    """The frozen-candidate record, whoever freezes it: the agent's SELECT tool
+    or a miner's own freeze. One builder, so the two cannot differ in shape."""
+    if type(reason) is not str or not 1 <= len(reason) <= 4096:
+        raise ValueError("a bounded selection reason is required")
+    if type(used_feedback) is not bool:
+        raise ValueError("used_feedback is a Boolean")
+    compiled, profile = compile_recipe(strategy)
+    return {
+        "status": "SELECTED",
+        "strategy": strategy,
+        "reason": reason,
+        "used_feedback": used_feedback,
+        "strategy_hash": compiled.construction_plan.strategy_hash.value,
+        "construction_plan_digest": compiled.construction_plan.to_ref().content_digest,
+        "reconstruction_profile_digest": profile.profile_digest,
+        "final_evidence": False,
+    }
+
+
 def _epoch_paths(ledger, epoch):
     if type(epoch) is not int or epoch not in (1, 2):
         raise ValueError("two finite epochs only")
@@ -238,18 +258,11 @@ async def run_epoch(
                     or not 1 <= len(arguments["reason"]) <= 4096
                 ):
                     raise ValueError("closed selection required")
-                strategy = _json(arguments["strategy_json"])
-                compiled, profile = compile_recipe(strategy)
-                result = {
-                    "status": "SELECTED",
-                    "strategy": strategy,
-                    "reason": arguments["reason"],
-                    "used_feedback": arguments["used_feedback"],
-                    "strategy_hash": compiled.construction_plan.strategy_hash.value,
-                    "construction_plan_digest": compiled.construction_plan.to_ref().content_digest,
-                    "reconstruction_profile_digest": profile.profile_digest,
-                    "final_evidence": False,
-                }
+                result = candidate_record(
+                    _json(arguments["strategy_json"]),
+                    arguments["reason"],
+                    arguments["used_feedback"],
+                )
                 write_once(root / "selected-recipe.json", canonical(result))
             else:
                 numerical = call["name"] == PREFIX + "start_research_task" and (

@@ -13,6 +13,7 @@ from carbon.construction import (
     ResolvedConstructionPlan,
     SelectedSurface,
 )
+from carbon.reconstruction.capability_registry import rebuildable_families
 from carbon.reconstruction.model import ReconstructionFailure, ReconstructionProfile
 from carbon.reconstruction.scaling import BurgersPhysicalScaling
 
@@ -60,9 +61,11 @@ DEPENDENCY_SPECS = (
     ("pyyaml", "6.0.3", _tagged(b"pypi:pyyaml==6.0.3")),
 )
 
+# Every family the capability registry marks rebuildable, under the
+# registration's carbon_jax_<selector>1d backbone id.
 _BACKBONES = {
-    "fno": ("carbon_jax_fno1d", "fno1d"),
-    "deeponet": ("carbon_jax_deeponet1d", "deeponet1d"),
+    selector: (f"carbon_jax_{selector}1d", kind)
+    for selector, kind in rebuildable_families()
 }
 _MODEL_DEFAULTS = {
     "width": 8,
@@ -108,6 +111,10 @@ _TRAIN_DEFAULTS = {
 }
 _TARGETS = {
     **{("carbon_jax_lab_model", field): ("model", field) for field in _MODEL_DEFAULTS},
+    # The public name for the lab's graph_radius: "graph" is reserved by
+    # B-02B's guard against participant composition graphs, and this field is
+    # a neighbourhood radius, not a graph a miner composes.
+    ("carbon_jax_lab_model", "neighborhood_radius"): ("model", "graph_radius"),
     **{("carbon_jax_lab_task", field): ("task", field) for field in _TASK_DEFAULTS},
     **{
         ("carbon_jax_lab_train", field): ("train", field)

@@ -11,7 +11,12 @@ from carbon.construction.compiler import SUPPORTED_COMPILER_IDENTITY
 from .contracts import strategy_limits
 from .profile import CHALLENGE, canonical, digest
 from .research_authoring import measurement_contract, population_and_sampling
-from .research_catalog import compile_recipe, public_catalog, research_contracts
+from .research_catalog import (
+    RecipeRejected,
+    compile_recipe,
+    public_catalog,
+    research_contracts,
+)
 from .research_profile import document
 from .research_resources import resources
 from .research_tasks import PublicDevelopmentResearchTasks, PublicResearchExecutor
@@ -27,7 +32,12 @@ class Compiler(research.B02BCompilationProvider):
             != self._assembly.training_support_ref
         ):
             raise ValueError("research compilation binding differs")
-        return getattr(self, "recipe_compiler", compile_recipe)(request.strategy)[0]
+        try:
+            return getattr(self, "recipe_compiler", compile_recipe)(request.strategy)[0]
+        except RecipeRejected as rejected:
+            # Returned, not raised: the protocol reports each named issue as a
+            # rejected compile result instead of a generic internal failure.
+            return rejected.rejected
 
 
 class Discovery:
@@ -133,6 +143,7 @@ def make_research_service(
     practice,
     julia_image=None,
     cleanup_only=False,
+    demand=None,
 ):
     from .gpu_research import PublicGPUPractice, gpu_catalog
     from .julia_research import JuliaPublicMaterial
@@ -260,6 +271,7 @@ def make_research_service(
     discovery = Discovery(info, manifest)
     prior = NoPrior()
     executor = PublicResearchExecutor(
+        demand=demand,
         cleanup_only=cleanup_only,
         julia_image=julia_image,
         ledger=ledger,

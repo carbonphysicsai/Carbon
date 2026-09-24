@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from carbon.research import RESEARCH_NAMESPACE, SUPPORTED_OPERATIONS
+from carbon.research.model import DEVELOPMENT_WORKSPACE_ACTIONS
 
 from .profile import canonical, digest
 from .research_catalog import public_catalog
@@ -72,27 +73,27 @@ def capabilities():
         },
         "prediction_contract": "direct u(initial,nu,t,x); no registered rollout or arbitrary submitted code",
         "parameter_notes": {
-            "width": "even, compatible with C-02 heads=2; actual memory/time admission applies",
-            "n_modes": "even only; odd values alias in the installed FNO and are rejected",
-            "depth_n_modes_remat": "FNO only; not silently accepted for DeepONet",
-            "branch_points": "DeepONet only",
+            "applicability": "which families accept each field is recipes.surfaces[field].architecture (null = every family); a field another family owns is refused by name",
+            "width": "channel width. FNO, DeepONet, Haar, GNO and GINO: even, since the installed configuration fixes two heads. transolver: divisible by heads. Actual memory/time admission applies",
+            "n_modes": "spectral modes (n_modes/2+1 allocated); even only, since odd values alias. GINO's modes must also fit its latent grid",
+            "depth_remat": "number of stacked blocks, and whether to rematerialize them",
+            "branch_points": "DeepONet sensor count",
+            "transolver": "Carbon's Transolver: the lab's physics_attention1d slice/attention/deslice blocks, adapted from THUML/Transolver with declared departures (softplus-parameterized temperature, optional quadrature weights, dropout fixed at zero). The meaning is Carbon's implementation, not any other library's model of the same name",
+            "heads": "attention heads; width must divide evenly across them",
+            "slices": "learned physical-state slices each head attends over",
+            "expansion": "width multiplier of each block's feed-forward layer",
+            "wavelet_levels": "Haar decomposition levels; the 64-point TRAIN grid must halve that many times",
+            "neighborhood_radius": "radius of each point's graph neighbourhood in periodic unit coordinates (the lab's graph_radius)",
+            "latent_points": "points on GINO's latent grid, where its spectral blocks run",
             "hard_initial_condition": "u0 + (t/27)*raw output",
             "enforce_mean": "project each predicted spatial field to the permitted initial mean; no accuracy credit by itself",
             "h1_weight": "spatial-derivative training error; requires additional derivative work",
             "pde_weight": "autodifferential Burgers residual training loss, not a weak-form evaluator; additional derivative cost",
-            "inference_weights": "params or EMA; selected weights retained in frozen reconstruction",
+            "inference_weights": "params or EMA; selected weights retained in frozen reconstruction. Supplying ema_decay requires EMA inference, since otherwise it would change nothing",
             "steps": "target updates; choose a recipe that completes within the operative final limit. Incomplete reconstruction is retained and cannot be accepted",
-            "warmup_steps_physics_warmup_steps": "each must be strictly less than steps; physics warmup changes behavior only when pde_weight is positive",
+            "warmup_steps_physics_warmup_steps": "each must be strictly less than steps; supplying physics_warmup_steps requires a positive pde_weight, since the ramp scales only the PDE term. A recipe Carbon cannot rebuild exactly as submitted is refused with each field and rule named",
         },
-        "workspace_actions": [
-            "public_material",
-            "inventory",
-            "read_file",
-            "write_file",
-            "notebook",
-            "capability_request",
-            "run_python",
-        ],
+        "workspace_actions": list(DEVELOPMENT_WORKSPACE_ACTIONS),
         "unsupported": [
             "registered public prior packs",
             "checkpoint resume",

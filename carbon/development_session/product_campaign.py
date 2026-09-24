@@ -43,6 +43,10 @@ def miner_budget(value: object) -> dict:
     return budget
 
 
+#: Who selects in a campaign. "none" is a person driving the whole journey.
+AGENTS = ("none", "autonomous")
+
+
 @dataclass(frozen=True)
 class ProductLaunch:
     """Everything a product campaign is admitted with, and nothing more."""
@@ -52,8 +56,12 @@ class ProductLaunch:
     miner: RegisteredMiner
     runtime: dict
     budget: dict
+    #: Who selects: Carbon's autonomous agent, or no agent - the miner does.
+    agent: str = "autonomous"
 
     def __post_init__(self):
+        if self.agent not in AGENTS:
+            raise ValueError("agent is one of: " + ", ".join(AGENTS))
         if type(self.miner) is not RegisteredMiner:
             raise TypeError("a product launch requires a RegisteredMiner")
         for value in (self.campaign_id, self.principal):
@@ -75,5 +83,6 @@ class ProductLaunch:
             "principal": self.principal,
             "runtime": self.runtime,
             "admission": self.miner.record(),
+            "agent": self.agent,
             **self.budget,
         }
