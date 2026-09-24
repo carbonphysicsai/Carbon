@@ -64,3 +64,38 @@ if __name__ == "__main__":  # pragma: no cover
     import sys
 
     json.dump(pilot_plan(), open(sys.argv[1], "w"), indent=1)
+
+
+def photonic_lhs(n: int, role: str, prefix: str) -> list[dict]:
+    from scripts.dev.exam_design.photonic_reference import SPEC as PSPEC
+
+    rng = np.random.default_rng(role_seed(role))
+    b = PSPEC["input_bounds"]
+    cols = {k: lo + (rng.permutation(n) + rng.uniform(size=n)) / n * (hi - lo) for k, (lo, hi) in b.items()}
+    return [{"case_id": f"{prefix}-{i:04d}", **{k: float(np.round(cols[k][i], 3)) for k in b}} for i in range(n)]
+
+
+def pilot2_plan() -> dict:
+    """Refinement rerun for battery (memory-fixed) beside the photonic feasibility pilot."""
+    p1 = pilot_plan()
+    by_id = {j["case"]["case_id"]: j["case"] for j in p1["jobs"]}
+    refine = p1["refined_case_ids"]
+    ck = [1, 5, 10, 15, 20, 25, 30, 35, 40]
+    bj = [{"case": by_id[c], "n_cycles": 40, "checkpoints": ck, "role": "pilot", "refined": True} for c in refine]
+    bj += [{"case": by_id[c], "n_cycles": 40, "checkpoints": ck, "role": "pilot"} for c in refine + ["pilot-0007"]]
+    pc = photonic_lhs(12, "photonic-pilot", "ppilot")
+    pick = []
+    for key, fn in (("gap_nm", min), ("gap_nm", max), ("length_um", max), ("length_um", min)):
+        c = fn(pc, key=lambda c: c[key])
+        if c["case_id"] not in pick:
+            pick.append(c["case_id"])
+    first = [c for c in pc if c["case_id"] in pick]
+    rest = [c for c in pc if c["case_id"] not in pick]
+    pj = [{"case": c, "role": "pilot", "timeout_s": 1200} for c in first]
+    pj += [{"case": c, "role": "pilot", "refined": True, "timeout_s": 2700} for c in first]
+    pj += [{"case": c, "role": "pilot", "timeout_s": 1200} for c in rest]
+    return {"plan": "pilot-2", "campaign_root": CAMPAIGN_ROOT, "children": [
+        {"phase": "battery_refs", "overlay": "battery",
+         "config": {"jobs": bj, "timeout_s": 2400, "max_workers": 4}},
+        {"phase": "photonic_refs", "overlay": "photonic", "config": {"jobs": pj, "timeout_s": 1200}}],
+        "battery_refined_case_ids": refine, "photonic_refined_case_ids": pick}

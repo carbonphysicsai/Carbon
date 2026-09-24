@@ -79,6 +79,18 @@ SPEC = {
 
 OUTPUT_NAMES = ("voltage_v", "temperature_c", "plating_margin_v", "capacity_ah")
 
+# The solver stores only these variables. Storing every variable at every output time made a
+# 40-cycle solve hold 6 GB (32 GB refined), which OOM-killed pilot workers; outputs are identical.
+STORED_VARIABLES = [
+    "Voltage [V]",
+    "Current [A]",
+    "Volume-averaged cell temperature [K]",
+    "Negative electrode lithium plating reaction overpotential [V]",
+    "Discharge capacity [A.h]",
+    "Loss of capacity to negative lithium plating [A.h]",
+    "Total heating [W]",
+]
+
 
 def time_grid() -> np.ndarray:
     return np.arange(0, SPEC["window_s"] + 1, SPEC["grid_step_s"], dtype=float)
@@ -135,7 +147,7 @@ def build_simulation(case: BatteryCase, n_cycles: int, refined: bool = False):
     npts = SPEC["refined_mesh_points"] if refined else SPEC["mesh_points"]
     var_pts = {"x_n": npts, "x_s": npts, "x_p": npts, "r_n": npts, "r_p": npts}
     s = SPEC["refined_solver"] if refined else SPEC["solver"]
-    solver = pybamm.IDAKLUSolver(rtol=s["rtol"], atol=s["atol"])
+    solver = pybamm.IDAKLUSolver(rtol=s["rtol"], atol=s["atol"], output_variables=STORED_VARIABLES)
     return pybamm.Simulation(
         model, parameter_values=params, experiment=_experiment(case, n_cycles), var_pts=var_pts, solver=solver
     )
@@ -156,14 +168,16 @@ def solve_case(case: BatteryCase, n_cycles: int, checkpoints: list[int], refined
     try:
         sim = build_simulation(case, n_cycles, refined)
         t1 = time.perf_counter()
-        sol = sim.solve(initial_soc=case.soc0)
+        # Keep full solutions only for cycle 1 and the checkpoint cycles: a 40-cycle DFN solution kept
+        # whole needs ~6 GB, which the pilot found OOM-kills parallel workers.
+        sol = sim.solve(initial_soc=case.soc0, save_at_cycles=sorted(set(checkpoints) | {1}), calc_esoh=False)
         t2 = time.perf_counter()
     except Exception as exc:  # solver or model failure: a reference failure, typed
         rec.update(status="REFERENCE_SOLVER_FAILED", error=repr(exc)[:300], wall_s=time.perf_counter() - t0)
         return rec
     rec["timing_s"] = {"build": t1 - t0, "solve": t2 - t1}
-    cycles = [c for c in sol.cycles if c is not None]
-    if len(cycles) < n_cycles:
+    cycles = list(sol.cycles)
+    if len(cycles) < n_cycles or any(cycles[k - 1] is None for k in set(checkpoints) | {1}):
         rec.update(status="REFERENCE_SOLVER_FAILED", error=f"completed {len(cycles)} of {n_cycles} cycles",
                    wall_s=time.perf_counter() - t0)
         return rec
@@ -177,22 +191,22 @@ def solve_case(case: BatteryCase, n_cycles: int, checkpoints: list[int], refined
         c1 = cycles[0]
         charge = [c1.steps[i + 1] for i in _CHARGE_STEPS]  # +1: initial rest
         eta = min(float(np.min(s["Negative electrode lithium plating reaction overpotential [V]"].entries)) for s in charge)
-        q = []
-        for k, cyc in enumerate(cycles):
-            st = cyc.steps[_DISCHARGE_STEP + (1 if k == 0 else 0)]
+        q = {}
+        for k in sorted(set(checkpoints) | {1}):
+            st = cycles[k - 1].steps[_DISCHARGE_STEP + (1 if k == 1 else 0)]
             dq = st["Discharge capacity [A.h]"].entries
-            q.append(float(dq[-1] - dq[0]))
-        heat = sol["Total heating [W]"].entries if "Total heating [W]" in sol.all_models[0].variables else None
+            q[k] = float(dq[-1] - dq[0])
+        heat = sol["Total heating [W]"].entries
         rec.update(
             status="OK",
             outputs={
                 "voltage_v": v.tolist(),
                 "temperature_c": temp.tolist(),
                 "plating_margin_v": eta,
-                "capacity_ah": [q[c - 1] for c in checkpoints],
+                "capacity_ah": [q[c] for c in checkpoints],
             },
             diagnostics={
-                "capacity_per_cycle_ah": q,
+                "capacity_at_checkpoints_ah": {str(k): v for k, v in q.items()},
                 "t_max_c": float(np.max(sol["Volume-averaged cell temperature [K]"].entries) - 273.15),
                 "t_min_c": float(np.min(sol["Volume-averaged cell temperature [K]"].entries) - 273.15),
                 "v_max_v": float(np.max(sol["Voltage [V]"].entries)),

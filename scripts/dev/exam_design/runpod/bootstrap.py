@@ -100,9 +100,9 @@ class H(http.server.BaseHTTPRequestHandler):
         pass
 
 
-def install_overlay(lock_path):
+def install_overlay(lock_path, target):
     lock = json.load(open(lock_path))
-    os.makedirs(OVL, exist_ok=True)
+    os.makedirs(target, exist_ok=True)
     for w in lock["wheels"]:
         data = fetch(w["url"])
         if hashlib.sha256(data).hexdigest() != w["sha256"]:
@@ -112,18 +112,18 @@ def install_overlay(lock_path):
                 parts = n.split("/")
                 if parts[0].endswith(".data"):
                     if len(parts) > 2 and parts[1] in ("purelib", "platlib"):
-                        target = os.path.join(OVL, *parts[2:])
+                        dst = os.path.join(target, *parts[2:])
                     else:
                         continue  # scripts/headers are not needed
                 else:
-                    target = os.path.join(OVL, n)
+                    dst = os.path.join(target, n)
                 if n.endswith("/"):
                     continue
-                os.makedirs(os.path.dirname(target), exist_ok=True)
-                with open(target, "wb") as f:
+                os.makedirs(os.path.dirname(dst), exist_ok=True)
+                with open(dst, "wb") as f:
                     f.write(z.read(n))
-                if target.endswith(".so") or ".so." in target:
-                    os.chmod(target, 0o755)
+                if dst.endswith(".so") or ".so." in dst:
+                    os.chmod(dst, 0o755)
     return {"wheels": len(lock["wheels"]), "lock_sha256": hashlib.sha256(open(lock_path, "rb").read()).hexdigest()}
 
 
@@ -141,16 +141,24 @@ def main():
             os.makedirs(os.path.dirname(dst), exist_ok=True)
             open(dst, "wb").write(data)
         STATE["code_files"] = len(MANIFEST)
-        lock = os.environ.get("OVERLAY_LOCK", "")
-        if lock:
-            STATE["stage"] = "installing_overlay"
+        # OVERLAYS: {"name": "path/to/lock.json"}; each lock installs into its own directory, because
+        # two locks may pin one package differently (xarray differs between battery and photonic).
+        overlays = json.loads(os.environ.get("OVERLAYS", "{}"))
+        STATE["overlay"] = {}
+        for name, lock in overlays.items():
+            STATE["stage"] = f"installing_overlay:{name}"
             t = time.time()
-            STATE["overlay"] = install_overlay(os.path.join(ROOT, lock)) | {"seconds": round(time.time() - t, 1)}
+            STATE["overlay"][name] = install_overlay(os.path.join(ROOT, lock), os.path.join(OVL, name)) | {
+                "seconds": round(time.time() - t, 1)}
         STATE["stage"] = "running_phase"
         env = {k: v for k, v in os.environ.items() if k not in ("RUNPOD_API_KEY", "CODE_MANIFEST")}
-        env["PYTHONPATH"] = ":".join(p for p in (ROOT, OVL, env.get("PYTHONPATH", "")) if p)
+        # A single overlay goes on the path directly; a multi-phase run gives each child its own.
+        single = [os.path.join(OVL, n) for n in overlays] if len(overlays) == 1 else []
+        env["PYTHONPATH"] = ":".join(p for p in (ROOT, *single, env.get("PYTHONPATH", "")) if p)
+        env["OVERLAY_ROOT"] = OVL
         env["PYBAMM_DISABLE_TELEMETRY"] = "true"
         env["HOME"] = "/tmp"
+        env.setdefault("XLA_PYTHON_CLIENT_PREALLOCATE", "false")
         env["MPLCONFIGDIR"] = "/tmp/mpl"
         with open(os.path.join(OUT, "phase.log"), "wb") as log:
             rc = subprocess.run([sys.executable, "-m", "scripts.dev.exam_design.runner", PHASE, "--out", OUT],

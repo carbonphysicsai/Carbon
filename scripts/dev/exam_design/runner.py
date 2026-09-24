@@ -163,6 +163,98 @@ def run_battery_refs(cfg: dict, out: str) -> int:
     return 0
 
 
+def _photonic_child(job: dict, q) -> None:
+    import resource as _r
+
+    from scripts.dev.exam_design import photonic_reference as pr
+
+    rec = pr.solve_case(job["case"], refined=job.get("refined", False), wavelengths=job.get("wavelengths"))
+    rec["role"] = job.get("role")
+    rec["peak_rss_kb"] = _r.getrusage(_r.RUSAGE_SELF).ru_maxrss
+    q.put(rec)
+
+
+def run_photonic_refs(cfg: dict, out: str) -> int:
+    """Sequential (one GPU); each case in a fresh spawned process under a wall limit."""
+    json.dump(host_info(), open(os.path.join(out, "host.json"), "w"), indent=1)
+    ctx = mp.get_context("spawn")
+    stop_at = float(cfg.get("stop_admitting_epoch", 0)) or None
+    recf = open(os.path.join(out, "records.jsonl"), "a")
+    done: dict = {}
+    t_start = time.time()
+    jobs = cfg["jobs"]
+    for i, job in enumerate(jobs):
+        json.dump({"phase": "photonic_refs", "total": len(jobs), "index": i, "done": done,
+                   "elapsed_s": round(time.time() - t_start, 1)}, open(os.path.join(out, "progress.json"), "w"))
+        base = {"case_id": job["case"]["case_id"], "inputs": job["case"], "refined": job.get("refined", False),
+                "role": job.get("role")}
+        if stop_at and time.time() >= stop_at:
+            rec = base | {"status": "NOT_ADMITTED", "reason": "admission window closed before the pod deadline"}
+        else:
+            timeout = float(job.get("timeout_s", cfg.get("timeout_s", 900)))
+            q = ctx.Queue()
+            p = ctx.Process(target=_photonic_child, args=(job, q))
+            t0 = time.time()
+            p.start()
+            rec = None
+            while time.time() - t0 < timeout:
+                try:
+                    rec = q.get(timeout=2)
+                    break
+                except Exception:
+                    if not p.is_alive():
+                        break
+            if rec is None:
+                alive = p.is_alive()
+                p.kill()
+                rec = base | ({"status": "REFERENCE_TIMEOUT"} if alive else {"status": "FAILED_INFRA", "exitcode": p.exitcode})
+            p.join(10)
+            rec["wall_total_s"] = time.time() - t0
+        recf.write(json.dumps(rec) + "\n")
+        recf.flush()
+        done[rec["status"]] = done.get(rec["status"], 0) + 1
+    recf.close()
+    json.dump({"phase": "photonic_refs", "total": len(jobs), "index": len(jobs), "done": done,
+               "elapsed_s": round(time.time() - t_start, 1)}, open(os.path.join(out, "progress.json"), "w"))
+    json.dump({"done": done, "elapsed_s": time.time() - t_start}, open(os.path.join(out, "DONE.json"), "w"))
+    return 0
+
+
+def run_multi(cfg: dict, out: str) -> int:
+    """Run child phases concurrently (e.g. CPU battery references beside GPU photonics)."""
+    import subprocess
+
+    procs = []
+    root = os.environ.get("OVERLAY_ROOT", "/tmp/overlay")
+    for child in cfg["children"]:
+        sub = os.path.join(out, child["phase"])
+        os.makedirs(sub, exist_ok=True)
+        ccfg = dict(child["config"])
+        if cfg.get("stop_admitting_epoch"):
+            ccfg["stop_admitting_epoch"] = cfg["stop_admitting_epoch"]
+        cpath = os.path.join(sub, "child_config.json")
+        json.dump(ccfg, open(cpath, "w"))
+        env = dict(os.environ)
+        code_root = os.getcwd()
+        env["PYTHONPATH"] = ":".join([code_root, os.path.join(root, child["overlay"])])
+        log = open(os.path.join(sub, "phase.log"), "wb")
+        procs.append((child["phase"], subprocess.Popen([sys.executable, "-m", "scripts.dev.exam_design.runner",
+                                                         child["phase"], "--out", sub, "--config", cpath],
+                                                        env=env, stdout=log, stderr=subprocess.STDOUT)))
+    while any(p.poll() is None for _, p in procs):
+        prog = {}
+        for name, _ in procs:
+            try:
+                prog[name] = json.load(open(os.path.join(out, name, "progress.json")))
+            except Exception:
+                prog[name] = None
+        json.dump({"phase": "multi", "children": prog}, open(os.path.join(out, "progress.json"), "w"))
+        time.sleep(5)
+    rc = {name: p.returncode for name, p in procs}
+    json.dump({"phase": "multi", "exit": rc}, open(os.path.join(out, "DONE.json"), "w"))
+    return 0 if all(v == 0 for v in rc.values()) else 1
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("phase")
@@ -176,6 +268,10 @@ def main(argv=None) -> int:
     json.dump(cfg, open(os.path.join(a.out, "config.json"), "w"))
     if a.phase == "battery_refs":
         return run_battery_refs(cfg, a.out)
+    if a.phase == "photonic_refs":
+        return run_photonic_refs(cfg, a.out)
+    if a.phase == "multi":
+        return run_multi(cfg, a.out)
     if a.phase == "host":
         json.dump(host_info(), open(os.path.join(a.out, "host.json"), "w"), indent=1)
         return 0

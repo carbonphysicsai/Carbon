@@ -230,7 +230,9 @@ def cmd_dispatch(a) -> None:
            "CODE_REF": ref, "CODE_MANIFEST": json.dumps(manifest, separators=(",", ":")), "PHASE": a.phase,
            "PHASE_CONFIG": json.dumps(phase_cfg)}
     if a.overlay:
-        env["OVERLAY_LOCK"] = a.overlay
+        # "name=path,name=path" or a bare path (named after the phase)
+        items = [x.split("=", 1) if "=" in x else [a.phase, x] for x in a.overlay.split(",")]
+        env["OVERLAYS"] = json.dumps({k: v for k, v in items})
     if a.pinned_xla:
         env |= {"XLA_FLAGS": "--xla_gpu_deterministic_ops=true --xla_gpu_exclude_nondeterministic_ops=true "
                              "--xla_gpu_autotune_level=0", "NVIDIA_TF32_OVERRIDE": "0",
@@ -271,7 +273,7 @@ def cmd_dispatch(a) -> None:
 def _proxy(path: str, timeout=60):
     pod = open(ACTIVE).read().strip()
     token = open(TOKEN_FILE).read().strip()
-    r = urllib.request.Request(f"https://{pod}-8000.proxy.runpod.net{path}", headers={"X-Probe-Token": token})
+    r = urllib.request.Request(f"https://{pod}-8000.proxy.runpod.net{path}", headers={"X-Probe-Token": token, "User-Agent": "carbon-exam-design/1"})
     try:
         with urllib.request.urlopen(r, timeout=timeout) as resp:
             return resp.status, resp.read()
