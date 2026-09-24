@@ -15209,3 +15209,94 @@ deadline.
 commercial statement is added or altered. No activation flag changes. Deploying
 the refreshed release is a separate act and is recorded where the deployment is
 recorded, not here.
+
+## 2026-09-23 — OWNER-CONSTRUCTION-DECLARATIVE-01: construction widens declaratively
+
+**Authority:** owner direction given in session on 2026-09-23, adopting a
+reviewed recommendation as Carbon's initial construction direction. It replaces
+the earlier session proposal to bring arbitrary construction and prediction
+programs forward.
+
+**Decision.** Construction expansion is declarative only. Miners submit model,
+training and permitted training-data policy choices from a versioned vocabulary
+that Carbon owns. Carbon supplies the implementations, compiles the exact
+reconstruction plan, trains the model independently and runs prediction and
+evaluation through its registered services.
+
+These remain outside scope:
+- miner-submitted source code and executable expressions;
+- import or function names;
+- callbacks and serialized objects;
+- participant-defined composition graphs;
+- pretrained weights, checkpoints and embeddings;
+- fitted parameter arrays;
+- uploaded datasets.
+
+New capabilities enter through reviewed Carbon implementations and explicit
+contract extensions, never through per-submission exceptions.
+
+The validator never runs a miner's research image. It resolves its own pinned
+reconstruction image.
+
+Each capability carries one of three visible statuses:
+- research-only;
+- validator-rebuildable in DEVELOPMENT;
+- admitted for the applicable evaluation contract.
+
+**Unchanged.** This decision does not change:
+- the unlimited miner research environment, which governs exploration, not
+  submission;
+- the independent exam and the scientific criteria;
+- the declared comparison resources;
+- qualification, security, economic or LIVE states.
+
+A wider catalog adds no scoring rule, no miner-selected tolerance and no
+resource envelope.
+
+**Engineering consequence.** The map and the ordered plan (D0 to D4) are in
+`docs/development/DECLARATIVE_CONSTRUCTION_MAP.md`. D0 comes first. It gives an
+honest answer to "can I submit this design?", and it repairs the fields that
+are accepted today but ignored. No capability is added until that answer names
+the exact missing capability rather than reporting a generic failure.
+
+## 2026-09-23 — OWNER-CONSTRUCTION-ESCALATION-01: five triggers, and a public roadmap
+
+**Authority:** owner direction, confirmed directly in session on 2026-09-23.
+It extends `OWNER-CONSTRUCTION-DECLARATIVE-01`.
+
+**Standing mandate.** Any declarative capability that Carbon can rebuild is
+eligible to register without a per-capability owner decision. That covers:
+- model families, optimizers, schedules, losses and training stages;
+- curriculum and TRAIN-only sampling;
+- exact-symmetry augmentation;
+- Carbon-registered candidate-side solver templates;
+- symbolic templates whose coefficients Carbon fits during reconstruction.
+
+Escalate to the owner only on one of five triggers:
+1. external data or learned state;
+2. an executable submission;
+3. a change to the evidence design (exam, scoring, measurement or
+   reference-method authority);
+4. a new comparison or resource regime;
+5. widening an authority boundary, including a new Challenge or a new worker
+   image. A new image still needs human security review.
+
+Loss terms are candidate-side training code, never imported exam measurement
+code. Augmentations stay within TRAIN support. Ensembles, stages and weight
+averaging split the existing budget rather than adding to it.
+
+**Public roadmap.** The miner-visible capability roadmap publishes aggregated
+demand counts per registry capability id. The raw text of an unrecognized
+request stays private; the public view shows only an "unrecognized" count.
+Demand is a signal only: it never affects scoring or qualification, and a
+listing is not a delivery promise.
+
+**Engineering consequence.** `carbon/reconstruction/capability_registry.py`
+is the one source for each capability's status, blocker and trigger. The
+research catalog's backbones and fields, the reconstruction profile's backbone
+map and the public capability catalogue are derived from it. Construction of an
+entry refuses:
+- a rebuildable entry without its implementation;
+- an owner blocker without a trigger;
+- any claim of admission. Admission needs qualification evidence that the
+  registry cannot supply.

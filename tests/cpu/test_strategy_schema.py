@@ -21,7 +21,16 @@ import pytest
 
 from carbon.schema import ValidationIssue, ValidationResult, dry_validate
 
-SUPPORTED_BACKBONES = ("deeponet", "fno", "physicsnemo_fno", "uno")
+SUPPORTED_BACKBONES = (
+    "deeponet",
+    "fno",
+    "gino",
+    "gno",
+    "haar_operator",
+    "physicsnemo_fno",
+    "transolver",
+    "uno",
+)
 REQUIRED_FIELDS = ("schema_version", "challenge_id", "backbone", "parameters")
 
 
@@ -273,7 +282,7 @@ def test_backbone_is_not_normalized(backbone: str) -> None:
 
 @pytest.mark.parametrize(
     "backbone",
-    ("fno1d", "fno2d", "gino", "pino", "transolver", "wno", "custom_backend"),
+    ("fno1d", "fno2d", "pino", "wno", "custom_backend"),
 )
 def test_legacy_proposal_and_custom_backbones_are_unsupported(
     backbone: str,

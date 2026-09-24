@@ -23,10 +23,13 @@ Nothing here is a deployment, a real user, or a scientific result.
 from __future__ import annotations
 
 import argparse
+import base64
 import hashlib
+import hmac
 import json
 import os
 import signal
+import struct
 import subprocess
 import sys
 import tempfile
@@ -62,7 +65,44 @@ RELAY_TOKEN = "journey-receiver-token-" + "c" * 20
 REVIEW_TOKEN = "journey-reviewer-token-" + "d" * 20
 
 
+def totp_secret(token: str) -> str:
+    """A synthetic 160-bit base32 second-factor secret for a test credential."""
+    return base64.b32encode(
+        hashlib.sha256(("totp:" + token).encode()).digest()[:20]
+    ).decode()
+
+
+def totp(secret: str, now: float) -> str:
+    """RFC 6238 TOTP: HMAC-SHA1, 30-second steps, six digits."""
+    counter = struct.pack(">Q", int(now // 30))
+    mac = hmac.new(base64.b32decode(secret), counter, "sha1").digest()
+    offset = mac[-1] & 0x0F
+    code = (int.from_bytes(mac[offset : offset + 4], "big") & 0x7FFFFFFF) % 10**6
+    return f"{code:06d}"
+
+
+SESSIONS: dict[str, str] = {}
+
+
+def session_for(base, token):
+    """Open one real session per credential, with its second factor (E9)."""
+    if token not in SESSIONS:
+        request = urllib.request.Request(
+            base + "/private/session",
+            data=json.dumps({"code": totp(totp_secret(token), time.time())}).encode(),
+            method="POST",
+            headers={
+                "authorization": "Bearer " + token,
+                "content-type": "application/json",
+            },
+        )
+        with urllib.request.urlopen(request, timeout=30) as response:
+            SESSIONS[token] = json.loads(response.read())["session_token"]
+    return SESSIONS[token]
+
+
 def receiver_request(base, method, route, token, body=None, headers=None):
+    token = session_for(base, token)
     request = urllib.request.Request(
         base + route,
         data=body,
@@ -83,7 +123,13 @@ def start_receiver(root: Path):
                     "team": "carbon-fit",
                     "roles": roles,
                     "token_sha256": hashlib.sha256(token.encode()).hexdigest(),
+                    "totp_secret": totp_secret(token),
                     "status": "ACTIVE",
+                    # E7: screened under the synthetic standard configured below.
+                    "screening": {
+                        "standard": "synthetic-journey-screening-standard",
+                        "ref": "synthetic-screening-" + principal,
+                    },
                 }
                 for principal, roles, token in (
                     ("journey-receiver", ["INTAKE_RECEIVER"], RELAY_TOKEN),
@@ -96,7 +142,11 @@ def start_receiver(root: Path):
     port = free_port()
     environment = {
         **os.environ,
-        "CARBON_TEAM_INTAKE_STORE": str(root / "receiver-store.json"),
+        # E1: the keyring lives outside the store's directory.
+        "CARBON_TEAM_INTAKE_STORE": str(root / "receiver-store" / "store.json"),
+        "CARBON_TEAM_ARCHIVE_KEYRING": str(root / "receiver-keys" / "keyring.json"),
+        # E7: a synthetic standard; the real one is counsel's.
+        "CARBON_TEAM_SCREENING_STANDARD": "synthetic-journey-screening-standard",
         "CARBON_TEAM_USERS_FILE": str(users),
         "CARBON_TEAM_INTAKE_PORT": str(port),
     }
@@ -123,11 +173,31 @@ def relay(base, work: Path, request):
         "/private/intake",
         RELAY_TOKEN,
         raw,
-        {"idempotency-key": "journey-001", "content-type": "application/json"},
+        {
+            "idempotency-key": "journey-001",
+            "content-type": "application/json",
+            # E4: the agreement basis travels beside the package, never in it.
+            # A synthetic reference; no real agreement is named anywhere here.
+            "x-carbon-record-class": "SCOPING",
+            "x-carbon-nda-ref": "synthetic-journey-nda-0001",
+            # E6: how the package arrived. The journey hands it over directly.
+            "x-carbon-intake-channel": "DIRECT_HANDOVER",
+            # E7: the export-control determination, by opaque reference.
+            "x-carbon-export-control-ref": "synthetic-journey-ec-0001",
+        },
     )
     assert status == 201 and receipt["disposition"] == "ACCEPTED", receipt
+    # E5: an export names who it is for and why, and is logged before it returns.
     _, record = receiver_request(
-        base, "GET", f"/private/intake/{receipt['inquiry_id']}/export", REVIEW_TOKEN
+        base,
+        "GET",
+        f"/private/intake/{receipt['inquiry_id']}/export",
+        REVIEW_TOKEN,
+        headers={
+            "x-carbon-release-recipient-kind": "CARBON_STAFF",
+            "x-carbon-release-recipient-ref": "synthetic-journey-reviewer",
+            "x-carbon-release-purpose": "Import into the Workbench for team review",
+        },
     )
     stored = work / "inquiry-from-receiver.json"
     stored.write_bytes(record["raw_json"].encode("utf-8"))
