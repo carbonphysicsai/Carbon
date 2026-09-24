@@ -5,9 +5,12 @@ normalized by a public scale published with the TRAIN dataset version (the
 TRAIN standard deviation of that output), so no component dominates by units:
 
 * ``voltage``      RMS_t(V_hat - V) / s_V
-* ``temperature``  RMS_t(T_hat - T) / s_T
+* ``temperature``  RMS_t(T_hat - T) / s_T   (s_T: spread of the rise T - T_amb, not of T)
 * ``plating``      |eta_hat - eta| / s_eta
-* ``capacity``     RMS_k(Q_hat_k - Q_k) / s_Q
+* ``capacity``     mean of |Q_hat_1 - Q_1| / s_Q1 and RMS_k(fade_hat_k - fade_k) / s_fade, where
+                   fade_k = Q_1 - Q_k. Split because cycle-1 capacity varies ~60 mAh with temperature
+                   while 30-cycle fade is ~6-8 mAh: one pooled scale would make a fade error of most
+                   of the degradation signal nearly free.
 
 **What the weights mean.** ``s_c`` is the spread of output ``c`` across TRAIN,
 so a component of 1.0 means the model explains none of that output's variation
@@ -48,12 +51,16 @@ T_IMPORTANT_C = 45.0
 def scales_from_train(train_refs: list[dict], floors: dict | None = None) -> dict:
     """TRAIN spread per output, never below the output's reference-uncertainty floor."""
     v = np.array([r["outputs"]["voltage_v"] for r in train_refs])
-    t = np.array([r["outputs"]["temperature_c"] for r in train_refs])
+    # Temperature is scaled by the spread of the *rise above ambient*: ambient is an input, so its 5-40 C
+    # range would otherwise inflate the scale and make a 1 C thermal error nearly free.
+    t = np.array([np.asarray(r["outputs"]["temperature_c"]) - r["inputs"]["t_amb_c"] for r in train_refs])
     e = np.array([r["outputs"]["plating_margin_v"] for r in train_refs])
     q = np.array([r["outputs"]["capacity_ah"] for r in train_refs])
-    raw = {"s_v": float(v.std()), "s_t": float(t.std()), "s_eta": float(e.std()), "s_q": float(q.std())}
+    fade = q[:, :1] - q[:, 1:]
+    raw = {"s_v": float(v.std()), "s_t": float(t.std()), "s_eta": float(e.std()), "s_q1": float(q[:, 0].std()),
+           "s_fade": float(fade.std())}
     floors = floors or {}
-    out = {k: max(val, floors.get(k, 0.0)) for k, val in raw.items()}
+    out = {k: max(val, float(floors.get(k, 0.0))) for k, val in raw.items()}
     return out | {"raw": raw, "floors": floors, "n_train": len(train_refs)}
 
 
@@ -69,7 +76,9 @@ def case_components(pred: dict, ref: dict, scales: dict) -> dict:
         "voltage": rms(pred["voltage_v"], o["voltage_v"]) / scales["s_v"],
         "temperature": rms(pred["temperature_c"], o["temperature_c"]) / scales["s_t"],
         "plating": abs(float(pred["plating_margin_v"]) - o["plating_margin_v"]) / scales["s_eta"],
-        "capacity": rms(pred["capacity_ah"], o["capacity_ah"]) / scales["s_q"],
+        "capacity": 0.5 * (abs(float(pred["capacity_ah"][0]) - o["capacity_ah"][0]) / scales["s_q1"]
+                           + rms(np.asarray(pred["capacity_ah"][0]) - np.asarray(pred["capacity_ah"][1:], float),
+                                 o["capacity_ah"][0] - np.asarray(o["capacity_ah"][1:], float)) / scales["s_fade"]),
     }
 
 

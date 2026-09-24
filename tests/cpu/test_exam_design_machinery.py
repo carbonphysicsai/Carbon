@@ -23,7 +23,7 @@ def _ref(cid: str, soc: float, t_amb: float, eta: float, t_max: float, rng) -> d
     t[0] = t_amb
     return {"case_id": cid, "status": "OK", "inputs": {"c1": 1.0, "c2": 0.5, "t_amb_c": t_amb, "soc0": soc},
             "outputs": {"voltage_v": v.tolist(), "temperature_c": t.tolist(), "plating_margin_v": eta,
-                        "capacity_ah": [4.9, 4.89, 4.88]},
+                        "capacity_ah": [4.9 + 0.001 * t_amb, 4.89 + 0.0011 * t_amb, 4.88 + 0.0009 * t_amb]},
             "diagnostics": {"t_max_c": t_max}}
 
 

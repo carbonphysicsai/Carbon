@@ -95,6 +95,26 @@ def reference_self_check(refs: dict, tol: gates.Tolerances, ocv: dict, shapes) -
     return bad
 
 
+def raw_uncertainty_floors(normal: dict, refined: dict) -> dict:
+    """Median coarse-vs-refined disagreement per output, in output units (the scale floors)."""
+    dv, dt, de, dq, df = [], [], [], [], []
+    for cid, f in refined.items():
+        c = normal.get(cid)
+        if not c or c.get("status") != "OK" or f.get("status") != "OK":
+            continue
+        a, b = c["outputs"], f["outputs"]
+        dv.append(float(np.sqrt(np.mean((np.array(a["voltage_v"]) - np.array(b["voltage_v"])) ** 2))))
+        dt.append(float(np.sqrt(np.mean((np.array(a["temperature_c"]) - np.array(b["temperature_c"])) ** 2))))
+        de.append(abs(a["plating_margin_v"] - b["plating_margin_v"]))
+        qa, qb = np.array(a["capacity_ah"]), np.array(b["capacity_ah"])
+        dq.append(abs(float(qa[0] - qb[0])))
+        df.append(float(np.sqrt(np.mean(((qa[0] - qa[1:]) - (qb[0] - qb[1:])) ** 2))))
+    if not dv:
+        return {}
+    return {"s_v": float(np.median(dv)), "s_t": float(np.median(dt)), "s_eta": float(np.median(de)),
+            "s_q1": float(np.median(dq)), "s_fade": float(np.median(df)), "n_pairs": len(dv)}
+
+
 def reference_uncertainty(normal: dict, refined: dict, scales: dict) -> dict:
     """Coarse-vs-refined disagreement per output, raw and in score units."""
     rows = []
@@ -122,10 +142,10 @@ def cmd_prepare(a) -> None:
     for r in normal.values():
         by_role.setdefault(r["role"], []).append(r)
     train_ok = [r for r in sorted(by_role["train"], key=lambda r: r["case_id"]) if r["status"] == "OK"]
-    practice_ok = [r for r in by_role["practice"] if r["status"] == "OK"]
+    practice_ok = [r for r in by_role.get("practice", []) if r["status"] == "OK"]
     ocv = ocv_map(normal, table)
     tol = gates.calibrate(train_ok + practice_ok, ocv, table["capacity_bounds"]["bound_ah"])
-    scales = scoring.scales_from_train(train_ok)
+    scales = scoring.scales_from_train(train_ok, floors=raw_uncertainty_floors(normal, refined))
     self_bad = reference_self_check(normal, tol, ocv, shapes)
     unc = reference_uncertainty(normal, refined, scales)
     os.makedirs(f"{EVID}/datasets", exist_ok=True)
