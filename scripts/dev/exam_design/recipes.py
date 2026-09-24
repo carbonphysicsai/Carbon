@@ -1,13 +1,22 @@
 """Surrogate recipes for the battery exam-design challenge (JAX, CPU or GPU).
 
 Every recipe trains on TRAIN v1 only and returns predictions in the challenge's
-output schema. The structural boundary conditions every competent recipe uses
-are the published ones, applied after the network:
+output schema.
 
-* ``V(0) = OCV(soc0)`` from the **published OCV table** (the parameter set's
-  equilibrium voltage on a 2001-point state-of-charge grid);
-* ``T(0) = T_amb``;
-* ``V`` clipped to the cycler's window [2.5 V, 4.2 V].
+**Construction choices** (declared, not physics evidence). Two structural
+choices are applied after the network, and passing a gate because of them
+establishes nothing beyond the choice itself:
+
+* ``V(0)`` is set from the **published OCV table**. The reference's first sample
+  is a zero-current rest voltage that sits 0.003-0.44 mV *below* OCV (small
+  internal side-reaction currents; measured), so this choice carries that
+  error rather than removing it;
+* ``T(0) = T_amb``, which the reference satisfies exactly.
+
+No output is clamped. Clamping voltage to the cycler window would hide a model
+that predicts an impossible voltage, and would hide a correct prediction's error
+structure near the limits; the ``voltage_ceiling``/``voltage_floor`` gates see
+raw predictions.
 
 Recipes (the role each plays in the study is fixed in the specification):
 
@@ -72,15 +81,15 @@ def features(x: np.ndarray, rich: bool) -> np.ndarray:
 
 
 class Structure:
-    """Published boundary projections; shared by every recipe."""
+    """Declared construction choices shared by every recipe (initial values only; no clamping)."""
 
     def __init__(self, ocv_soc: np.ndarray, ocv_v: np.ndarray):
         self.ocv_soc, self.ocv_v = np.asarray(ocv_soc, float), np.asarray(ocv_v, float)
 
     def apply(self, x, v_rest, t_rest, eta, q) -> dict:
+        # Construction choices only (see module docstring): no clamping of any output.
         v0 = np.interp(x[:, 3], self.ocv_soc, self.ocv_v)
-        v = np.clip(np.column_stack([v0, v_rest]), V_MIN, V_MAX)
-        v[:, 0] = v0
+        v = np.column_stack([v0, v_rest])
         t = np.column_stack([x[:, 2], x[:, 2][:, None] + t_rest])
         return {"v": v, "t": t, "eta": eta, "q": q}
 

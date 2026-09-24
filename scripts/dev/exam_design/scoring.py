@@ -9,6 +9,21 @@ TRAIN standard deviation of that output), so no component dominates by units:
 * ``plating``      |eta_hat - eta| / s_eta
 * ``capacity``     RMS_k(Q_hat_k - Q_k) / s_Q
 
+**What the weights mean.** ``s_c`` is the spread of output ``c`` across TRAIN,
+so a component of 1.0 means the model explains none of that output's variation
+over the operating envelope (it does as well as predicting the TRAIN mean) and
+0.1 means it leaves a tenth. Dividing by the spread therefore expresses each
+error as a fraction of what the envelope makes worth predicting, and weighting
+the four components equally is a declared **engineering choice** - equal
+concern for terminal voltage, thermal response, plating risk and capacity fade
+- not a scientific finding. An owner who values, say, plating risk above
+voltage fit would change the weights; that is a scoring-contract change.
+
+**Near-zero spread.** A scale is never allowed below that output's reference
+uncertainty (``floor_c``, the median coarse-versus-refined disagreement from
+the refinement sample): an output that barely varies across TRAIN cannot
+amplify errors the reference itself cannot resolve.
+
 The case error is the unweighted mean of the four; lower is better. It is a
 development measure of agreement with the specified model, bound to this
 challenge version, and not comparable across challenges.
@@ -30,13 +45,16 @@ PLATING_IMPORTANT_V = 0.02
 T_IMPORTANT_C = 45.0
 
 
-def scales_from_train(train_refs: list[dict]) -> dict:
+def scales_from_train(train_refs: list[dict], floors: dict | None = None) -> dict:
+    """TRAIN spread per output, never below the output's reference-uncertainty floor."""
     v = np.array([r["outputs"]["voltage_v"] for r in train_refs])
     t = np.array([r["outputs"]["temperature_c"] for r in train_refs])
     e = np.array([r["outputs"]["plating_margin_v"] for r in train_refs])
     q = np.array([r["outputs"]["capacity_ah"] for r in train_refs])
-    return {"s_v": float(v.std()), "s_t": float(t.std()), "s_eta": float(e.std()), "s_q": float(q.std()),
-            "n_train": len(train_refs)}
+    raw = {"s_v": float(v.std()), "s_t": float(t.std()), "s_eta": float(e.std()), "s_q": float(q.std())}
+    floors = floors or {}
+    out = {k: max(val, floors.get(k, 0.0)) for k, val in raw.items()}
+    return out | {"raw": raw, "floors": floors, "n_train": len(train_refs)}
 
 
 def is_important(ref: dict) -> bool:

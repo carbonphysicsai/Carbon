@@ -100,7 +100,14 @@ def _child(job: dict, q) -> None:
 def run_battery_refs(cfg: dict, out: str) -> int:
     info = host_info()
     json.dump(info, open(os.path.join(out, "host.json"), "w"), indent=1)
-    jobs = cfg["jobs"]
+    jobs = list(cfg["jobs"])
+    if cfg.get("private_blob"):
+        # Private jobs arrive encrypted (committed ciphertext); the key is only in this pod's environment.
+        from scripts.dev.exam_design import private_cases
+
+        jobs += private_cases.unseal(open(cfg["private_blob"], "rb").read(), os.environ["PRIVATE_KEY"])
+    skip = set(cfg.get("skip_case_keys", []))  # resume: cases already completed on an earlier pod
+    jobs = [j for j in jobs if f'{j["case"]["case_id"]}{"/R" if j.get("refined") else ""}' not in skip]
     workers = workers_for_host(info, cfg.get("max_workers"))
     timeout = float(cfg.get("timeout_s", 1200))
     stop_at = float(cfg.get("stop_admitting_epoch", 0)) or None
@@ -170,12 +177,24 @@ def run_battery_refs(cfg: dict, out: str) -> int:
     return 0
 
 
-def _photonic_child(job: dict, q) -> None:
+def _photonic_child(job: dict, q, out: str) -> None:
     import resource as _r
+
+    import jax
 
     from scripts.dev.exam_design import photonic_reference as pr
 
-    rec = pr.solve_case(job["case"], refined=job.get("refined", False), wavelengths=job.get("wavelengths"))
+    dev = {"devices": [str(d) for d in jax.devices()], "backend": jax.default_backend(), "case": job["case"]["case_id"],
+           "refined": job.get("refined", False), "started_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
+    json.dump(dev, open(os.path.join(out, "current_case.json"), "w"))
+
+    def progress(rec):
+        dev["runs"] = rec.get("runs", [])
+        json.dump(dev, open(os.path.join(out, "current_case.json"), "w"))
+
+    rec = pr.solve_case(job["case"], refined=job.get("refined", False), wavelengths=job.get("wavelengths"),
+                        progress=progress)
+    rec["jax_backend"] = dev["backend"]
     rec["role"] = job.get("role")
     rec["peak_rss_kb"] = _r.getrusage(_r.RUSAGE_SELF).ru_maxrss
     q.put(rec)
@@ -200,7 +219,7 @@ def run_photonic_refs(cfg: dict, out: str) -> int:
         else:
             timeout = float(job.get("timeout_s", cfg.get("timeout_s", 900)))
             q = ctx.Queue()
-            p = ctx.Process(target=_photonic_child, args=(job, q))
+            p = ctx.Process(target=_photonic_child, args=(job, q, out))
             t0 = time.time()
             p.start()
             rec = None

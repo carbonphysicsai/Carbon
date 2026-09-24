@@ -57,9 +57,11 @@ class Gate:
 GATES = (
     Gate("schema_finite", "every required output present, of the declared shape, and finite",
          ("voltage_v", "temperature_c", "plating_margin_v", "capacity_ah"), "all cases", "exact"),
-    Gate("initial_voltage", "|V_hat(0) - OCV(soc0, T_amb)| <= tau_v0",
-         ("voltage_v",), "all cases (cycle 1 begins with a rest at soc0)",
-         "max(2 x max reference |V(0) - OCV| on calibration references, 32 float32 ulp at 4.2 V)"),
+    Gate("initial_voltage", "|V_hat(0) - OCV(soc0)| <= tau_v0",
+         ("voltage_v",), "all cases (cycle 1 begins with a zero-current rest at soc0)",
+         "max(2 x max reference |V(0) - OCV| on calibration references, 32 float32 ulp at 4.2 V). The reference's "
+         "V(0) is a zero-current rest voltage 0.003-0.44 mV below OCV (internal side-reaction currents), so this "
+         "is a bounded-offset boundary probe, not an exact initial-value constraint"),
     Gate("initial_temperature", "|T_hat(0) - T_amb| <= tau_t0",
          ("temperature_c",), "all cases (initial temperature = ambient)",
          "max(2 x max reference |T(0) - T_amb|, 32 float32 ulp at 40 C)"),

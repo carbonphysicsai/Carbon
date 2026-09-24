@@ -229,4 +229,39 @@ def final_compare(inc_err: dict[str, float], chal_err: dict[str, float], importa
         o, why = NO_IMPROVEMENT, "within the equivalence margin"
     else:
         o, why = INSUFFICIENT, "confidence interval neither excludes nor fits inside the margin"
-    return out | {"outcome": o, "reason": why}
+    # Eligibility, not just reporting: only an IMPROVEMENT may be promoted. A significant important-region
+    # regression blocks promotion even when the overall score improved (TRADE_OFF), and "equivalent" is only
+    # ever concluded when the whole interval sits inside the margin - never from a failure to detect a
+    # difference, which is INSUFFICIENT_EVIDENCE.
+    return out | {"outcome": o, "reason": why, "promotable": o == IMPROVEMENT,
+                  "regional_block": imp == "worse", "existing_disposition": EXISTING_DISPOSITION[o]}
+
+
+# The repository's DEVELOPMENT comparison (carbon.scoring.development.compare) names its dispositions
+# differently; the adapter reports both so results read against existing machinery.
+EXISTING_DISPOSITION = {
+    IMPROVEMENT: "ACCEPTED_DEVELOPMENT_IMPROVEMENT",
+    REGRESSION: "DEVELOPMENT_REGRESSION",
+    TRADE_OFF: "DEVELOPMENT_TRADEOFF",
+    NO_IMPROVEMENT: "DEVELOPMENT_EQUIVALENT",
+    INSUFFICIENT: "INDETERMINATE_REPLICA_OR_EFFECT_RESOLUTION",
+}
+
+
+def nominate(record: dict, incumbent: dict | None, margin: float) -> tuple[bool, str]:
+    """Screening nomination rule: eligible, better overall, and no serious important-region regression.
+
+    ``record``/``incumbent`` are pool score records on the same ``pool_version``.
+    """
+    if not record["eligible"]:
+        return False, "gate failure"
+    if incumbent is None:
+        return True, "no incumbent"
+    if record["pool_version"] != incumbent["pool_version"]:
+        return False, "incumbent not scored on this pool version"
+    if record["score"] >= incumbent["score"] * (1 - margin):
+        return False, "not better than the incumbent by the margin"
+    ri, ii = record.get("important_score"), incumbent.get("important_score")
+    if ri is not None and ii is not None and ri > ii * (1 + margin):
+        return False, "important-region regression beyond the margin"
+    return True, "nominated"

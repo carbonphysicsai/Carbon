@@ -195,3 +195,17 @@ def test_adaptive_agent_extension_refuses_without_an_authorized_budget(monkeypat
     assert set(fb) == {"eligible", "score", "pool_version", "failed_gates"}
     with pytest.raises(ValueError):
         adaptive_agent.validate_submission({"recipe": "mlp", "case_ids": ["x"]})
+
+
+def test_regional_regression_blocks_promotion_even_with_an_overall_gain():
+    r = _cmp(lambda i: -0.1 if i % 4 else +0.1)
+    assert r["outcome"] == exam.TRADE_OFF and not r["promotable"] and r["regional_block"]
+    assert _cmp(lambda i: -0.1)["promotable"]
+
+
+def test_screening_nomination_refuses_regional_regression():
+    inc = {"eligible": True, "score": 1.0, "important_score": 1.0, "pool_version": 3}
+    better_but_regional = {"eligible": True, "score": 0.8, "important_score": 1.2, "pool_version": 3}
+    assert exam.nominate(better_but_regional, inc, 0.02) == (False, "important-region regression beyond the margin")
+    assert exam.nominate(dict(better_but_regional, important_score=0.9), inc, 0.02)[0]
+    assert not exam.nominate(dict(better_but_regional, pool_version=2), inc, 0.02)[0]

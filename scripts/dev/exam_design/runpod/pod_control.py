@@ -229,6 +229,10 @@ def cmd_dispatch(a) -> None:
     env = {"PROBE_TOKEN": token, "PROBE_DEADLINE": str(int(deadline + 60)), "PROBE_CA_GZ_B64": ca_bundle_gz_b64(),
            "CODE_REF": ref, "CODE_MANIFEST": json.dumps(manifest, separators=(",", ":")), "PHASE": a.phase,
            "PHASE_CONFIG": json.dumps(phase_cfg)}
+    if a.private_key_name:
+        from scripts.dev.exam_design import private_cases
+
+        env["PRIVATE_KEY"] = private_cases.key_hex(a.private_key_name)
     if a.overlay:
         # "name=path,name=path" or a bare path (named after the phase)
         items = [x.split("=", 1) if "=" in x else [a.phase, x] for x in a.overlay.split(",")]
@@ -359,6 +363,7 @@ def main(argv=None) -> None:
     d.add_argument("--overlay")
     d.add_argument("--pinned-xla", action="store_true")
     d.add_argument("--vcpu", type=int)
+    d.add_argument("--private-key-name", help="key for the plan's encrypted private jobs (never printed)")
     sub.add_parser("poll")
     f = sub.add_parser("fetch")
     f.add_argument("dest")
