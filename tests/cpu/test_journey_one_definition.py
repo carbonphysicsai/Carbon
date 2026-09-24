@@ -57,7 +57,11 @@ JOURNEY = (
     Step("options", {}),
     Step(
         "launch",
-        {"agent": "none", "idempotency_key": "one-journey-key-0000001"},
+        {
+            "agent": "none",
+            "budget": {"elapsed_seconds": 3600, "final_reserve": True},
+            "idempotency_key": "one-journey-key-0000001",
+        },
         then=_ready(),
     ),
     Step("submit", lambda c: {"campaign": c}, expect="freeze_a_candidate_first"),
@@ -227,6 +231,12 @@ async def run_journey(driver):
             verdicts = {f["id"]: f["verdict"] for f in value["families"]}
             assert verdicts["model_family.fno"] == "supported"
             assert verdicts["model_family.unet1d"] == "not_yet_rebuildable"
+            # The launch form's budget vocabulary is the ledger's own.
+            from carbon.development_session.product_campaign import BUDGET_KEYS
+            from carbon.development_session.research_ledger import DIMENSIONS
+
+            assert value["budget"]["keys"] == sorted(BUDGET_KEYS)
+            assert value["budget"]["ceilings"] == list(DIMENSIONS)
         if step.then is not None:
             deadline = time.monotonic() + 30
             while True:
@@ -239,6 +249,9 @@ async def run_journey(driver):
 
 
 def records(root, campaign):
+    manifest = json.loads(
+        (root / "campaigns" / campaign / "campaign-manifest.json").read_bytes()
+    )
     folder = root / "campaigns" / campaign / "epoch-1"
     selected = json.loads((folder / "selected-recipe.json").read_bytes())
     outcome = json.loads((folder / "outcome.json").read_bytes())
@@ -247,6 +260,7 @@ def records(root, campaign):
         "selected_by": outcome["selected_by"],
         "chain_transactions": outcome["chain_transactions"],
         "feedback": (folder / "permitted-final-feedback.json").exists(),
+        "budget": {k: manifest.get(k) for k in ("elapsed_seconds", "final_reserve")},
     }
 
 
@@ -286,6 +300,7 @@ def test_both_doors_run_one_journey_to_the_same_decisions_and_records(journeys):
     assert browser[1]["selected_by"] == "miner"
     assert browser[1]["chain_transactions"] == 0
     assert browser[1]["feedback"] is True
+    assert browser[1]["budget"] == {"elapsed_seconds": 3600, "final_reserve": True}
 
 
 def test_every_operation_in_the_table_is_a_step_or_read_by_the_journey():
