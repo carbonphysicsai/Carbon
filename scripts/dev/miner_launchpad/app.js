@@ -633,5 +633,31 @@
     } catch (error) { message("Research launch not confirmed: " + error.message + ". Retry retains the same request.", true); }
     finally { busy = false; await refresh(); render(); }
   });
+  // The navigation is built from the page's own sections: a section marked
+  // data-nav is listed, and nothing else can be, so the two cannot drift.
+  function buildNavigation() {
+    const nav = $("tool-nav");
+    const list = document.createElement("ul");
+    const links = new Map();
+    for (const section of document.querySelectorAll("[data-nav]")) {
+      const item = document.createElement("li");
+      const link = document.createElement("a");
+      link.href = "#" + section.id; link.textContent = section.dataset.nav;
+      item.append(link); list.append(item); links.set(section, link);
+    }
+    nav.replaceChildren(list);
+    if (!("IntersectionObserver" in window)) return;
+    const seen = new Set();
+    const observer = new IntersectionObserver(entries => {
+      for (const entry of entries) entry.isIntersecting ? seen.add(entry.target) : seen.delete(entry.target);
+      const current = [...links.keys()].find(section => seen.has(section));
+      for (const [section, link] of links) {
+        if (section === current) link.setAttribute("aria-current", "true");
+        else link.removeAttribute("aria-current");
+      }
+    }, {rootMargin: "0px 0px -60% 0px"});
+    for (const section of links.keys()) observer.observe(section);
+  }
+  buildNavigation();
   setInterval(refresh, 1500);
 })();

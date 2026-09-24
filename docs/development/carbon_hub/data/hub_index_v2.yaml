@@ -9916,6 +9916,19 @@ events:
       - "WAVE-C/C-W1-D4"
     supersedes: null
     recorded_at: "2026-09-24T03:06:33Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "evidence"
+    event_id: "C-MLP-02-SHELL-NAV-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "Implemented C1 of the Launchpad control center, shell and navigation, and nothing beyond it: C3 to C7 are not started. The page gains a persistent left navigation beside the working surface, in the existing visual language, becoming a scrollable strip above the content on narrow screens. The navigation is built from the page's own sections: a section marked data-nav is listed, in page order, and nothing else can be, so the navigation and the page cannot drift. Every section remains on the working surface; nothing is hidden behind a view switch, so no control becomes unreachable. The section in view is marked aria-current. The real-browser smoke asserts, at desktop and phone widths, that the navigation lists exactly the marked sections in order, that each entry is at least 44 pixels high, that on desktop it sits beside the working surface, and that a dispatched Enter on an entry moves the working surface to that section; a specimen run with one section dropped from the navigation fails that assertion. No operation, gate, record or scientific behavior changes."
+    primary_detail: "scripts/dev/miner_launchpad/app.js"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "WAVE-C/C-W1-D4"
+    supersedes: null
+    recorded_at: "2026-09-24T06:58:06Z"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"
