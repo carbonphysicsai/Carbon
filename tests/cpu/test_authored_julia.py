@@ -352,9 +352,13 @@ def test_the_miner_chooses_an_environment_and_nothing_else(tmp_path, monkeypatch
     monkeypatch.setattr(
         research_carrier, "_run", lambda *args, **kwargs: observed.append(kwargs) or {}
     )
-    arguments = dict(
-        owner="test-miner", identity="pde", source="1+1", files={}, image=image
-    )
+    arguments = {
+        "owner": "test-miner",
+        "identity": "pde",
+        "source": "1+1",
+        "files": {},
+        "image": image,
+    }
     julia.run_julia(ledger, environment="pde", **arguments)
     assert observed[0]["bootstrap"] == julia.bootstrap_for("pde")
     assert "/opt/carbon-julia-analysis/pde" in observed[0]["bootstrap"]
@@ -370,7 +374,7 @@ def test_every_environment_is_a_committed_pinned_manifest():
     document = julia.runtime_document(fixture_image().parent)
     assert set(document["environments"]) == set(julia.ENVIRONMENTS)
     for name in julia.ENVIRONMENTS:
-        project, manifest = julia.environment_files(name)
+        _project, manifest = julia.environment_files(name)
         assert b'julia_version = "1.13.0"' in manifest
         assert document["environments"][name]["manifest"] == digest(manifest)
     scope = julia.authored_julia_scope(fixture_image())
