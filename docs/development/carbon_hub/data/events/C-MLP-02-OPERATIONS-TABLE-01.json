@@ -1,0 +1,15 @@
+{
+  "map_ref": "SYSTEM/AGENT-EXECUTION",
+  "event_type": "evidence",
+  "event_id": "C-MLP-02-OPERATIONS-TABLE-01",
+  "owner_lane": "technical_lead",
+  "status": "implemented",
+  "summary": "Implemented the shared miner operations service, the first slice of the Launchpad middle-of-the-journey mission: every miner operation and its gates are defined once, and both doors and Carbon's autonomous agent are callers. scripts/dev/miner_launchpad/operations.py holds the table - launch (agent autonomous or none), observe, practice, halt, resume, freeze_candidate and submit - each with a closed request, fields declared once for both doors, and gates in one fixed order (request, profile, a read-only replay, registration, campaign). perform() runs the gates and hands the body, found by name on the shared campaign host, an Admitted that only perform can construct. The table refuses at import any operation that admits work without registration ahead of its body; observe and halt, which only read or withdraw, need neither registration nor an enabled profile, so a miner can always see and stop their own campaign. The browser's routes and the MCP tools are both generated from the table, and a test driven by the table sends generated requests through a real HTTP server and real MCP tools for every operation and requires the same gates, in the same order, to reach the same body - so an operation added to the table is exercised on both doors without editing the test, and none can be added to one door alone. A campaign is now prepare() followed by Carbon's agent or, with no agent, by the miner: a miner's freeze writes the same selected-recipe.json the agent's SELECT writes, through one builder, and both reach the same DEVELOPMENT submit, which keeps the rule that a candidate needs an authentic practice result and writes nothing to the chain. Over stdio a runner profile without a campaign serves onboarding, every operation and attach/detach, so a miner's own client can create a campaign with nothing Carbon issues. Also: MCP attach reads registration before touching the campaign's frozen record or control generation; confirm names what registration unlocks instead of an environment nothing opened; campaigns stop after the two final epochs whose seeds were committed before search rather than failing in a third; and three docstrings claiming no chain was configured are corrected. Official submission remains unexposed on both doors.",
+  "primary_detail": "scripts/dev/miner_launchpad/operations.py",
+  "affects": [
+    "SYSTEM/AGENT-EXECUTION",
+    "WAVE-C/C-W1-D4"
+  ],
+  "supersedes": null,
+  "recorded_at": "2026-09-24T02:42:16Z"
+}

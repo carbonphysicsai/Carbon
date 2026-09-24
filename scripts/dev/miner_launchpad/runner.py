@@ -23,7 +23,7 @@ import json
 import sqlite3
 import threading
 import time
-from contextlib import contextmanager
+from contextlib import ExitStack, contextmanager
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -96,6 +96,21 @@ def chain_registration(cfg):
     return asyncio.run(
         registered_miner(BittensorReader(), config.context, public["hotkey"])
     )
+
+
+def runner_database(cfg):
+    """Where both doors record this profile's campaigns: beside them, so a
+    campaign launched from a browser and one launched from a miner's own MCP
+    client are one list, read and controlled the same way."""
+    return Path(cfg["campaigns_root"]) / "launchpad-campaigns.sqlite3"
+
+
+def product_agent(root):
+    """Who selects in the campaign at `root`, from its frozen manifest."""
+    manifest = Path(root) / "campaign-manifest.json"
+    if not manifest.exists():
+        return None
+    return json.loads(manifest.read_bytes()).get("agent", "autonomous")
 
 
 def validated_profile(cfg):
@@ -307,75 +322,129 @@ class RunnerAdapter:
         return review(cfg)
 
     def launch(self, value, key):
-        from carbon.development_session.chain_onboarding import OnboardingFailure
-        from carbon.development_session.product_campaign import (
-            ProductLaunch,
-            miner_budget,
-        )
+        """The browser's launch: a caller of the shared `launch` operation."""
+        from scripts.dev.miner_launchpad.operations import perform
 
-        if type(value) is not dict or not {"profile"} <= set(value) <= {
-            "profile",
-            "review_digest",
-            "budget",
-        }:
+        if type(value) is not dict or "profile" not in value:
             raise Rejected("closed_research_launch_required")
+        request = {"agent": "autonomous", **value, "idempotency_key": key}
+        return perform(self, "launch", request)
+
+    # -- The campaign host: what the operations table's gates and bodies ask of
+    # -- whichever door is calling. Both doors construct this same class.
+
+    @classmethod
+    def for_profile(cls, configuration, *, legacy_database=None, registration=None):
+        """The campaign host both doors construct for one runner profile.
+
+        Its records live beside the profile's campaigns. `legacy_database` is a
+        browser database from before the doors shared one: its campaign rows
+        are copied across once, so nothing launched earlier is lost.
+        """
+        cfg = validated_profile(private_json(Path(configuration)))
+        database = runner_database(cfg)
+        database.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+        host = cls(database, configuration=configuration, registration=registration)
+        if legacy_database is not None and Path(legacy_database).exists():
+            host._adopt(Path(legacy_database))
+        database.chmod(0o600)
+        return host
+
+    def _adopt(self, legacy):
+        with self.db() as db:
+            db.execute("ATTACH DATABASE ? AS legacy", (str(legacy),))
+            try:
+                tables = {
+                    r[0]
+                    for r in db.execute(
+                        "SELECT name FROM legacy.sqlite_master WHERE type='table'"
+                    )
+                }
+                for table in ("launchpad_campaigns", "research_runs"):
+                    if table in tables:
+                        columns = ",".join(
+                            r[1]
+                            for r in db.execute(f"PRAGMA legacy.table_info({table})")
+                        )
+                        db.execute(
+                            f"INSERT OR IGNORE INTO main.{table} ({columns}) "
+                            f"SELECT {columns} FROM legacy.{table}"
+                        )
+            finally:
+                db.commit()
+                db.execute("DETACH DATABASE legacy")
+
+    def replayed(self, cfg, request):
+        """Launch's read-only replay gate: validates the request, and returns
+        the campaign a lost response created, reading no chain; or None."""
+        from carbon.development_session.product_campaign import AGENTS, miner_budget
+
+        key = request["idempotency_key"]
         if (
             type(key) is not str
             or not 16 <= len(key) <= 80
             or not all(c.isascii() and (c.isalnum() or c in "-_") for c in key)
         ):
             raise Rejected("invalid_idempotency_key")
+        if request["agent"] not in AGENTS:
+            raise Rejected("invalid_agent")
         try:
-            budget = miner_budget(value.get("budget"))
+            miner_budget(request.get("budget"))
         except ValueError:
             raise Rejected("invalid_budget") from None
-        try:
-            cfg = self.configured()
-        except Rejected:
-            raise
-        except Exception:  # noqa: BLE001
-            raise Rejected("research_profile_unavailable", 409) from None
-        if value["profile"] != cfg["profile_id"] or cfg["principal"] != self.principal:
+        if cfg["principal"] != self.principal:
             raise Rejected("research_profile_mismatch", 409)
         task = guidance.configured(cfg)
-        if (task is not None or "review_digest" in value) and value.get(
+        if (task is not None or "review_digest" in request) and request.get(
             "review_digest"
         ) != review_pin(cfg):
             raise Rejected("research_review_changed", 409)
-        run_id = digest(canonical([cfg["principal"], key]))[7:39]
-        request = digest(canonical(value))
-        config_pin = digest(canonical(cfg))
+        run_id, digest_value, config_pin = self._launch_identity(cfg, request)
         with self.db() as db:
             previous = db.execute(
                 "SELECT * FROM launchpad_campaigns WHERE request_key=? OR id=?",
                 (key, run_id),
             ).fetchall()
-        if previous:
-            # A lost response replays the campaign it created. It was admitted
-            # when it was recorded; replaying it reads no chain and starts
-            # nothing new.
-            if len(previous) != 1 or any(
-                previous[0][k] != v
-                for k, v in {
-                    "id": run_id,
-                    "request_digest": request,
-                    "principal": cfg["principal"],
-                    "config_digest": config_pin,
-                }.items()
-            ):
-                raise Rejected("research_launch_replay_conflict", 409)
-            return self.get(run_id)
-        # Registration, before anything durable. An unregistered miner reaches
-        # no code path that writes a record, starts a thread or reserves work.
-        try:
-            miner = self.registration(cfg)
-        except OnboardingFailure as failure:
-            code = {
-                "NOT_REGISTERED": ("registration_required", 403),
-                "CHAIN_UNAVAILABLE": ("registration_unreadable", 503),
-                "WRONG_NETWORK": ("registration_wrong_network", 409),
-            }.get(failure.reason, ("registration_unreadable", 503))
-            raise Rejected(*code) from None
+        if not previous:
+            return None
+        # A lost response replays the campaign it created. It was admitted
+        # when it was recorded; replaying it reads no chain and starts
+        # nothing new.
+        if len(previous) != 1 or any(
+            previous[0][k] != v
+            for k, v in {
+                "id": run_id,
+                "request_digest": digest_value,
+                "principal": cfg["principal"],
+                "config_digest": config_pin,
+            }.items()
+        ):
+            raise Rejected("research_launch_replay_conflict", 409)
+        return self.get(run_id)
+
+    def _launch_identity(self, cfg, request):
+        # The browser's request digest is of the launch fields it historically
+        # sent, so a replay of a launch recorded before operations existed still
+        # matches. The agent choice joins it only when it is not the default.
+        fields = {
+            k: v for k, v in request.items() if k not in {"idempotency_key", "agent"}
+        }
+        if request["agent"] != "autonomous":
+            fields["agent"] = request["agent"]
+        run_id = digest(canonical([cfg["principal"], request["idempotency_key"]]))[7:39]
+        return run_id, digest(canonical(fields)), digest(canonical(cfg))
+
+    def launch_admitted(self, admitted, request):
+        """Record and dispatch an admitted launch."""
+        from carbon.development_session.product_campaign import (
+            ProductLaunch,
+            miner_budget,
+        )
+
+        cfg, miner = admitted.profile, admitted.miner
+        task = guidance.configured(cfg)
+        budget = miner_budget(request.get("budget"))
+        run_id, request_digest, config_pin = self._launch_identity(cfg, request)
         root = Path(cfg["campaigns_root"]) / run_id
         product = ProductLaunch(
             campaign_id="cmp-" + run_id,
@@ -383,6 +452,7 @@ class RunnerAdapter:
             miner=miner,
             runtime=cfg["runtime"],
             budget=budget,
+            agent=request["agent"],
         )
         with self.db() as db:
             db.execute("BEGIN IMMEDIATE")
@@ -391,8 +461,8 @@ class RunnerAdapter:
                     "INSERT INTO launchpad_campaigns (id,request_key,request_digest,profile,principal,config_digest,campaign,state,created,root,admission,budget,research_guidance) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
                     (
                         run_id,
-                        key,
-                        request,
+                        request["idempotency_key"],
+                        request_digest,
                         cfg["profile_id"],
                         cfg["principal"],
                         config_pin,
@@ -409,6 +479,190 @@ class RunnerAdapter:
                 raise Rejected("research_launch_replay_conflict", 409) from None
         self._start(run_id, cfg, root, product)
         return self.get(run_id)
+
+    def owner(self):
+        """Whose campaigns this host serves, for operations that read or
+        withdraw: no enabled or runnable profile is required for those."""
+        if type(self.principal) is not str or not self.principal:
+            raise Rejected("research_profile_unavailable", 409)
+        return {"principal": self.principal}
+
+    def owned_campaign(self, identity):
+        """The campaign gate: a campaign this principal owns, and its kind."""
+        if type(identity) is not str:
+            raise Rejected("research_run_unavailable", 404)
+        row, kind, _ = self._bound(identity)
+        return {**dict(row), "kind": kind}
+
+    def observe_admitted(self, admitted, request):
+        return self.get(admitted.campaign["id"])
+
+    def halt_admitted(self, admitted, request):
+        if request["action"] not in {"stop", "pause", "reconcile"}:
+            raise Rejected("invalid_research_control")
+        return self._control(admitted.campaign["id"], request["action"])
+
+    def resume_admitted(self, admitted, request):
+        return self._control(admitted.campaign["id"], "resume")
+
+    def practice_admitted(self, admitted, request):
+        """One practice trial of a registered recipe, run in the background:
+        real training takes minutes, and observe shows the result."""
+        import uuid
+
+        from carbon.development_session.research_campaign import practice_recipe
+        from scripts.dev.miner_launchpad.operations import strategy_value
+
+        strategy = strategy_value(request)
+        hypothesis = request["hypothesis"]
+        expected = request.get("expected_effect", hypothesis)
+        for text in (hypothesis, expected):
+            if type(text) is not str or not 1 <= len(text) <= 2048:
+                raise Rejected("bounded_hypothesis_required")
+        identity = "miner-practice-" + uuid.uuid4().hex[:16]
+
+        async def practice(prepared):
+            return await practice_recipe(
+                prepared,
+                strategy=strategy,
+                hypothesis=hypothesis,
+                expected_effect=expected,
+                identity=identity,
+            )
+
+        return self._background(admitted, practice, "PRACTICING")
+
+    def freeze_candidate_admitted(self, admitted, request):
+        from carbon.development_session.research_campaign import freeze_candidate
+        from scripts.dev.miner_launchpad.operations import strategy_value
+
+        strategy = strategy_value(request)
+        used = request.get("used_feedback", False)
+        if type(used) is not bool:
+            raise Rejected("used_feedback_boolean_required")
+
+        async def freeze(prepared):
+            return await freeze_candidate(
+                prepared,
+                strategy=strategy,
+                reason=request["reason"],
+                used_feedback=used,
+            )
+
+        self._operate(admitted, freeze)
+        return self.get(admitted.campaign["id"])
+
+    def submit_admitted(self, admitted, request):
+        from carbon.development_session.research_campaign import submit_frozen
+
+        # Checked before the thread starts, so a submit with nothing frozen is
+        # refused to the caller rather than failing where no one sees it.
+        self._require_frozen(admitted)
+        return self._background(admitted, submit_frozen, "SUBMITTING")
+
+    def _background(self, admitted, work, state):
+        """Run a long miner operation on its own thread; observe reports it."""
+        identity = admitted.campaign["id"]
+        with self.lock:
+            if identity in self.threads and self.threads[identity].is_alive():
+                raise Rejected("campaign_busy", 409)
+            thread = threading.Thread(
+                target=self._operation_thread, args=(admitted, work), daemon=True
+            )
+            self.threads[identity] = thread
+            self._state(identity, state)
+            thread.start()
+        return self.get(identity)
+
+    @staticmethod
+    def _require_frozen(admitted):
+        from carbon.development_session.research_campaign import FINAL_EPOCHS
+
+        root = Path(admitted.campaign["root"])
+        for epoch in FINAL_EPOCHS:
+            folder = root / ("epoch-" + str(epoch))
+            if (folder / "permitted-final-feedback.json").exists():
+                continue
+            if (folder / "selected-recipe.json").exists():
+                return
+            break
+        raise Rejected("freeze_a_candidate_first", 409)
+
+    def _operation_thread(self, admitted, work):
+        try:
+            self._operate(admitted, work)
+        except Exception:  # noqa: BLE001 - never publish provider/key errors.
+            self._state(admitted.campaign["id"], "INTERRUPTED")
+
+    def _operate(self, admitted, work):
+        """Run one miner operation on a prepared campaign, under its owner lock
+        and a fresh control generation, and settle it afterwards.
+
+        A refusal changes nothing, so the campaign settles READY again; only
+        an unexpected failure leaves it for reconciliation.
+        """
+        from carbon.development_session.research_agent_policy import AUTONOMOUS
+        from carbon.development_session.research_campaign import (
+            OperationRefused,
+            prepare,
+        )
+
+        row, cfg = admitted.campaign, admitted.profile
+        root = Path(row["root"])
+        task = guidance.verify(
+            json.loads(row["research_guidance"])
+            if row["research_guidance"] is not None
+            else None
+        )
+        stack = ExitStack()
+        try:
+            stack.enter_context(owner_lock(root))
+        except RuntimeError:
+            raise Rejected("campaign_busy", 409) from None
+        with stack:
+            ledger = CampaignLedger(root)
+            control = CampaignControl(ledger)
+            generation = control.acquire()
+            ledger.generation = generation
+            args = SimpleNamespace(
+                **{k: Path(v) for k, v in cfg["paths"].items()},
+                root=root,
+                accepted_revision=cfg["accepted_revision"],
+                principal=cfg["principal"],
+                agent_policy=AUTONOMOUS,
+                product=None,
+                research_guidance=task["text"] if task is not None else None,
+                command="resume",
+            )
+
+            async def run():
+                prepared = await prepare(args, ledger=ledger)
+                if prepared is None:
+                    raise OperationRefused("campaign_complete")
+                try:
+                    return await work(prepared)
+                finally:
+                    prepared.close()
+
+            refused = None
+            try:
+                result = asyncio.run(run())
+            except OperationRefused as exc:
+                refused = exc.code
+            except BaseException:
+                control.settled(generation, cleanup_verified=self._cleanup(ledger))
+                raise
+            complete = (root / "campaign-complete.json").exists()
+            control.settled(
+                generation,
+                completed=complete,
+                ready=not complete,
+                cleanup_verified=self._cleanup(ledger),
+            )
+            self._state(row["id"], "COMPLETED" if complete else "READY")
+        if refused is not None:
+            raise Rejected(refused, 409)
+        return result
 
     def _start(self, run_id, cfg, root, product=None):
         with self.lock:
@@ -473,11 +727,18 @@ class RunnerAdapter:
                     self._state(run_id, "INTERRUPTED")
                 finally:
                     clean = self._cleanup(ledger)
-                    control.settled(
+                    completed = (root / "campaign-complete.json").exists()
+                    # An agent-less campaign is prepared and waiting for its
+                    # miner: ready, not interrupted.
+                    ready = not completed and product_agent(root) == "none"
+                    state = control.settled(
                         generation,
-                        completed=(root / "campaign-complete.json").exists(),
+                        completed=completed,
+                        ready=ready,
                         cleanup_verified=clean,
                     )
+                    if state == "READY":
+                        self._state(run_id, "READY")
         except Exception:  # noqa: BLE001
             self._state(run_id, "RECONCILIATION_REQUIRED")
             if generation is not None:
@@ -587,6 +848,14 @@ class RunnerAdapter:
         )
 
     def control(self, identity, action):
+        """The browser's control route: a caller of halt or resume."""
+        from scripts.dev.miner_launchpad.operations import perform
+
+        if action == "resume":
+            return perform(self, "resume", {"campaign": identity})
+        return perform(self, "halt", {"campaign": identity, "action": action})
+
+    def _control(self, identity, action):
         row, kind, root = self._bound(identity)
         if action == "resume" and kind != "product":
             # Resuming would dispatch new work under a grant, which no product
