@@ -9903,6 +9903,19 @@ events:
       - "WAVE-C/C-W1-D4"
     supersedes: null
     recorded_at: "2026-09-24T03:01:44Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "evidence"
+    event_id: "C-MLP-02-JOURNEY-ACCEPTANCE-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "Implemented slice four of the Launchpad middle-of-the-journey mission. One journey definition now runs through both doors: JOURNEY is written once as steps with the gate decision each must produce - done, or the refusal code - and two drivers run it, one posting to the browser's HTTP routes on a running server and one a real MCP client talking to a real stdio server process. The test requires both to produce the same decisions and the same durable records, and a companion check requires every operation in the table to be a journey step or read by it, so an operation added to the table and left out of the journey fails until someone places it. The journey includes three refusals both doors must give identically: submitting with nothing frozen, practicing a family the registry cannot rebuild yet, and freezing an unpracticed recipe. The capability registry is wired into launch: a new read-only options operation, generated on both doors from the table, reports every launch-time choice with its true availability - who selects (no agent always; Carbon's agent unavailable with its reason where no model-provider key is configured), every model family's registry verdict (supported, not_yet_rebuildable, needs_owner_decision, excluded) through check-design's own availability function, and the research lanes the host has (configured, or unavailable with a reason). Practice and freeze consult check-design first, so an unrebuildable recipe is refused by its verdict at the moment of choosing rather than discovered at submission. The browser shows the same: the agent choice disabled with its reason, and the journey listing families by verdict; the real-browser smoke asserts both. The journey fixture now installs its fixtures through a supplied patch function, so an in-process test undoes them."
+    primary_detail: "tests/cpu/test_journey_one_definition.py"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "WAVE-C/C-W1-D4"
+    supersedes: null
+    recorded_at: "2026-09-24T03:06:33Z"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"

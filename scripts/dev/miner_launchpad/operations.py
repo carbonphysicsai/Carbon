@@ -105,6 +105,16 @@ OPERATIONS = {
             ("request", "profile", "replay", "registration"),
         ),
         Operation(
+            "options",
+            "Every launch-time choice with its true availability now: who "
+            "selects, each model family's registry verdict, and the research "
+            "lanes this host has. Reads only.",
+            frozenset(),
+            frozenset(),
+            ("request", "profile"),
+            admits_work=False,
+        ),
+        Operation(
             "observe",
             "The campaign's state, epochs, practice results and any frozen "
             "candidate or final feedback. Reads only.",

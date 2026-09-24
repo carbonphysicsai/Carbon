@@ -494,6 +494,90 @@ class RunnerAdapter:
         row, kind, _ = self._bound(identity)
         return {**dict(row), "kind": kind}
 
+    def options_admitted(self, admitted, request):
+        """What a miner can choose at launch, and whether it can run now.
+
+        The vocabulary is check-design's (supported, not_yet_rebuildable,
+        needs_owner_decision, excluded) for what Carbon can rebuild, and
+        configured / unavailable-with-reason for what this host has. Built
+        from the capability registry and the profile, never from a static list,
+        so no option is offered that cannot run.
+        """
+        from carbon.development_session.design_check import availability
+        from carbon.reconstruction.capability_registry import REGISTRY, Dimension
+
+        # The gate established whose profile this is; its content is read here.
+        cfg = self.configured()
+        paths = cfg.get("paths", {})
+        runtime = cfg.get("runtime", {})
+        key = paths.get("api_key_file")
+        agent_ready = type(key) is str and Path(key).is_file()
+
+        def host(present, reason):
+            return (
+                {"availability": "configured"}
+                if present
+                else {
+                    "availability": "unavailable",
+                    "reason": reason,
+                }
+            )
+
+        return {
+            "schema": "carbon.launchpad.launch-options.v1",
+            "agents": [
+                {"value": "none", "availability": "available"},
+                {
+                    "value": "autonomous",
+                    **(
+                        {"availability": "available"}
+                        if agent_ready
+                        else {
+                            "availability": "unavailable",
+                            "reason": "model_provider_key_not_configured",
+                        }
+                    ),
+                },
+            ],
+            "families": [
+                {
+                    "id": c.capability_id,
+                    "selector": c.selector,
+                    "summary": c.summary,
+                    **availability(c),
+                }
+                for c in REGISTRY
+                if c.dimension is Dimension.MODEL_FAMILY
+            ],
+            "research_lanes": {
+                "julia": host(
+                    "authored_research" in runtime or "authored_julia_image" in cfg,
+                    "no_julia_image_installed_for_this_profile",
+                ),
+                "gpu": host("gpu_research" in runtime, "no_gpu_runtime_declared"),
+            },
+            "vocabulary": {
+                "supported": "Carbon rebuilds it in DEVELOPMENT; not official qualification",
+                "not_yet_rebuildable": "explore it in research; engineering has not registered it",
+                "needs_owner_decision": "research-only until the owner decides; see its trigger",
+                "excluded": "outside the declarative rule",
+                "configured": "this host has it",
+                "unavailable": "this host does not, for the reason given",
+            },
+        }
+
+    def _design_refusal(self, strategy):
+        """Check-design's verdict for a recipe about to be practiced or frozen:
+        refused now, by name, rather than failing at submission."""
+        from carbon.development_session.design_check import check_design
+
+        try:
+            verdict = check_design({"strategy": strategy})
+        except ValueError:
+            raise Rejected("design_malformed") from None
+        if verdict["verdict"] != "submittable":
+            raise Rejected("design_" + verdict["verdict"], 409)
+
     def observe_admitted(self, admitted, request):
         return self.get(admitted.campaign["id"])
 
@@ -514,6 +598,7 @@ class RunnerAdapter:
         from scripts.dev.miner_launchpad.operations import strategy_value
 
         strategy = strategy_value(request)
+        self._design_refusal(strategy)
         hypothesis = request["hypothesis"]
         expected = request.get("expected_effect", hypothesis)
         for text in (hypothesis, expected):
@@ -551,6 +636,7 @@ class RunnerAdapter:
         reason = request["reason"]
         if type(reason) is not str or not 1 <= len(reason) <= 4096:
             raise Rejected("bounded_reason_required")
+        self._design_refusal(strategy)
         refusal = freeze_refusal(Path(admitted.campaign["root"]), strategy)
         if refusal is not None:
             raise Rejected(refusal, 409)
