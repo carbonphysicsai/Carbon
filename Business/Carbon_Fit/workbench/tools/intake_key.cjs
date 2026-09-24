@@ -52,7 +52,7 @@ async function main(args) {
     const publicFile = argument(args, "--public");
     const pair = await S.generateKeyPair();
     writeNew(privateFile, JSON.stringify({ schema: KEY_SCHEMA, created_at: new Date().toISOString(), ...pair }, null, 2) + "\n");
-    writeNew(publicFile, JSON.stringify({ schema: KEY_SCHEMA + "-public", key_id: pair.key_id, public_spki: pair.public_spki, fingerprint: pair.fingerprint }, null, 2) + "\n");
+    writeNew(publicFile, JSON.stringify(S.publicRecord(pair), null, 2) + "\n");
     return { key_id: pair.key_id, fingerprint: pair.fingerprint };
   }
   if (command === "unseal") {

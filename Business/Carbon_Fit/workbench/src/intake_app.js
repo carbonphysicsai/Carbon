@@ -65,13 +65,7 @@
   }
 
   function guidanceContext() {
-    const draft = currentDraft();
-    return {
-      version: "carbon.client-intake.guidance-context.v1",
-      answers: Object.fromEntries(I.TEXT_FIELDS.map((field) => [field, draft.answers[field].state === "VALUE" ? draft.answers[field].value : null])),
-      pilot: Object.fromEntries(I.PILOT_FIELDS.map((field) => [field, pilot[field] || null])),
-      unresolved_assumptions: [...unresolvedAssumptions],
-    };
+    return I.guidanceContextFrom(currentDraft(), pilot, unresolvedAssumptions);
   }
 
   function renderBrief() {
@@ -253,6 +247,26 @@
     $("guidance-status").textContent = "Draft reset locally. This does not delete provider records. Continue with the form or review AI data use again.";
     renderProposals(); renderBrief(); setMode("guided"); $("show-guided").focus();
   };
-  $("export-intake").onclick = () => { try { const reviewed = reviewedPackage(); const blob = new Blob([JSON.stringify(reviewed, null, 2) + "\n"], { type: "application/json" }); const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = `${reviewed.brief.draft_id}_${reviewed.brief.revision_id}.carbon-intake.json`; link.click(); URL.revokeObjectURL(link.href); $("intake-status").textContent = "Reviewed brief downloaded locally. Nothing was transmitted to Carbon."; } catch (error) { $("intake-status").textContent = "Export blocked: " + error.message; } };
+  function download(text, name, type) { const blob = new Blob([text], { type }); const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = name; link.click(); URL.revokeObjectURL(link.href); }
+  const packageText = (reviewed) => JSON.stringify(reviewed, null, 2) + "\n";
+  const packageName = (reviewed) => `${reviewed.brief.draft_id}_${reviewed.brief.revision_id}`;
+  $("export-intake").onclick = () => { try { const reviewed = reviewedPackage(); download(packageText(reviewed), packageName(reviewed) + ".carbon-intake.json", "application/json"); $("intake-status").textContent = "Reviewed brief downloaded locally. Nothing was transmitted to Carbon."; } catch (error) { $("intake-status").textContent = "Export blocked: " + error.message; } };
+  // E6: the encrypted download seals the same bytes the reviewed download saves.
+  // The button stays disabled unless the key embedded in this page verifies, and
+  // the fingerprint shown is recomputed from that key.
+  let intakeRecipient = null;
+  $("export-sealed").onclick = async () => {
+    if (!intakeRecipient) return;
+    try {
+      const reviewed = reviewedPackage();
+      const sealed = await CarbonIntakeSeal.seal(packageText(reviewed), intakeRecipient);
+      download(JSON.stringify(sealed, null, 2) + "\n", packageName(reviewed) + ".carbon-sealed", "application/octet-stream");
+      $("intake-status").textContent = "Encrypted draft downloaded locally. Nothing was transmitted to Carbon.";
+    } catch (error) { $("intake-status").textContent = "Encrypted export blocked: " + error.message; }
+  };
+  Promise.resolve().then(() => CarbonIntakeSeal.recipient(JSON.parse($("intake-public-key").textContent))).then(
+    (built) => { intakeRecipient = built; $("intake-fingerprint").textContent = built.fingerprint; $("export-sealed").disabled = false; },
+    () => { $("intake-fingerprint").textContent = "unavailable. The intake key in this page did not verify, so encrypted download is off."; },
+  );
   renderBrief();
 })();

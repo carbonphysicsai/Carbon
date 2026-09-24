@@ -324,10 +324,11 @@ a legal question, and none authorizes deployment or collection.
    agreement reference is refused. Real client records stay unreachable until
    counsel's standard replaces it.
 
-Items 3 and 4 are built: the record hold (`tests/test_team_record_hold.cjs`) and the synthetic development standard (`tests/test_team_synthetic_standard.cjs`). Items 1 and 2 change the public Pilot Designer page, whose exact bytes are pinned by Ask Carbon's public release candidate. They therefore go through a new release candidate, and the owner's publication approval, as their own change. Item 2 also waits for the owner to generate the intake key. One correction to item 1 as first written: the assist already never received the quantity fields. The exposure is the free-text `operating_envelope` and `requested_targets` pilot fields, which is what item 1 will withhold.
+Items 3 and 4 are built: the record hold (`tests/test_team_record_hold.cjs`) and the synthetic development standard (`tests/test_team_synthetic_standard.cjs`). Items 1 and 2 change the public Pilot Designer page, whose exact bytes are pinned by Ask Carbon's public release candidate. They therefore go through a new release candidate, and the owner's publication approval, as their own change. For item 2, the owner generated the intake key on 2026-09-24, with its encrypted offline backup, and the button is wired to it (`data/intake_public_key.json`, stacked on item 1's pull request). Both wait only for the new candidate and the owner's publication approval. One correction to item 1 as first written: the assist already never received the quantity fields. The exposure is the free-text `operating_envelope` and `requested_targets` pilot fields, which is what item 1 will withhold.
 
 ## Open questions that remain
 
 - **Counsel:** the retention values (E2, E3), the screening standard (E7), and
   whether a legal hold is ever required.
-- **Owner:** the security review's spend figure, and generating the intake key.
+- **Owner:** the security review's spend figure, and when to prepare the new
+  Ask Carbon release candidate that carries decisions 1 and 2.

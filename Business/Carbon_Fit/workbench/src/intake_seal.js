@@ -10,10 +10,13 @@
   // it was sealed to by fingerprint, so a rotated key is recognised rather than
   // tried and failed.
   //
-  // Not wired into the public Pilot Designer. That page's bytes are pinned by
-  // Ask Carbon's public release candidate, and the button waits for the owner to
-  // generate the real intake key and approve a new candidate.
+  // The Pilot Designer seals only to a recipient built by `recipient`, from the
+  // published key record in data/intake_public_key.json. That page's bytes are
+  // pinned by Ask Carbon's public release candidate, so the button reaches the
+  // public site only through a new candidate and the owner's approval.
   const SCHEMA = "carbon.intake-sealed.v1";
+  const PUBLIC_KEY_SCHEMA = "carbon.intake-key.v1-public";
+  const PUBLIC_KEY_FIELDS = ["fingerprint", "key_id", "public_spki", "schema"];
   const INFO = new TextEncoder().encode(SCHEMA);
   const subtle = () => {
     const api = root.crypto && root.crypto.subtle;
@@ -51,15 +54,20 @@
     );
   }
 
-  /** Seal text to the intake public key (SPKI, base64). Returns the sealed object. */
-  async function seal(plaintext, recipientSpkiBase64) {
+  // Recipients this module built. `seal` accepts nothing else, so a key that
+  // skipped `recipient`'s checks cannot be sealed to, even when it is valid.
+  const issued = new WeakSet();
+
+  /** Seal text to a recipient from `recipient`. Returns the sealed object. */
+  async function seal(plaintext, to) {
     if (typeof plaintext !== "string") throw Error("Only text is sealed");
-    const recipient = await subtle().importKey("spki", fromBase64(recipientSpkiBase64), { name: "ECDH", namedCurve: "P-256" }, false, []);
+    if (!issued.has(to)) throw Error("Seal only to a recipient built by recipient() from a published key record");
+    const publicKey = await subtle().importKey("spki", fromBase64(to.public_spki), { name: "ECDH", namedCurve: "P-256" }, false, []);
     const sender = await subtle().generateKey({ name: "ECDH", namedCurve: "P-256" }, true, ["deriveBits"]);
     const salt = root.crypto.getRandomValues(new Uint8Array(32));
     const nonce = root.crypto.getRandomValues(new Uint8Array(12));
-    const keyId = await keyIdOf(recipientSpkiBase64);
-    const key = await derive(sender.privateKey, recipient, salt);
+    const keyId = to.key_id;
+    const key = await derive(sender.privateKey, publicKey, salt);
     const ciphertext = await subtle().encrypt({ name: "AES-GCM", iv: nonce, additionalData: aad(keyId) }, key, new TextEncoder().encode(plaintext));
     return {
       schema: SCHEMA,
@@ -94,6 +102,32 @@
     return new TextDecoder().decode(plaintext);
   }
 
+  /**
+   * The recipient a client seals to, built from a published key record.
+   *
+   * The record is closed: a private key file, or a public record carrying
+   * anything extra, is refused by name rather than having its public half used.
+   * The fingerprint and key identifier are recomputed from the key itself, so
+   * the fingerprint a client is shown is always the key's own, never a label
+   * that travels beside it.
+   */
+  async function recipient(record) {
+    if (!record || typeof record !== "object" || Array.isArray(record)) throw Error("The intake key record is not an object");
+    if ("private_pkcs8" in record) throw Error("This is an intake private key; only the public key record may be published");
+    if (record.schema !== PUBLIC_KEY_SCHEMA || Object.keys(record).sort().join() !== PUBLIC_KEY_FIELDS.join())
+      throw Error("Not a " + PUBLIC_KEY_SCHEMA + " record");
+    await subtle().importKey("spki", fromBase64(record.public_spki), { name: "ECDH", namedCurve: "P-256" }, false, []);
+    const computed = await fingerprint(record.public_spki);
+    if (record.fingerprint !== computed) throw Error("The intake key record's fingerprint does not match its key");
+    if (record.key_id !== (await keyIdOf(record.public_spki))) throw Error("The intake key record's key_id does not match its key");
+    const built = Object.freeze({ key_id: record.key_id, fingerprint: computed, public_spki: record.public_spki });
+    issued.add(built);
+    return built;
+  }
+
+  /** The public record for a key pair: the only part that is ever published. */
+  const publicRecord = (pair) => ({ schema: PUBLIC_KEY_SCHEMA, key_id: pair.key_id, public_spki: pair.public_spki, fingerprint: pair.fingerprint });
+
   /** A new intake key pair, for the owner's key tool. */
   async function generateKeyPair() {
     const pair = await subtle().generateKey({ name: "ECDH", namedCurve: "P-256" }, true, ["deriveBits"]);
@@ -106,7 +140,7 @@
     };
   }
 
-  const api = { SCHEMA, fingerprint, generateKeyPair, keyIdOf, open, seal };
+  const api = { SCHEMA, PUBLIC_KEY_SCHEMA, fingerprint, generateKeyPair, keyIdOf, open, publicRecord, recipient, seal };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.CarbonIntakeSeal = api;
 })(typeof globalThis !== "undefined" ? globalThis : this);
