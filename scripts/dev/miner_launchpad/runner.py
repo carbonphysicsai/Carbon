@@ -568,6 +568,8 @@ class RunnerAdapter:
         so no option is offered that cannot run.
         """
         from carbon.development_session.design_check import availability
+        from carbon.development_session.product_campaign import BUDGET_KEYS
+        from carbon.development_session.research_ledger import DIMENSIONS
         from carbon.reconstruction.capability_registry import REGISTRY, Dimension
 
         # The gate established whose profile this is; its content is read here.
@@ -619,6 +621,15 @@ class RunnerAdapter:
                     "no_julia_image_installed_for_this_profile",
                 ),
                 "gpu": host("gpu_research" in runtime, "no_gpu_runtime_declared"),
+            },
+            # The miner's own budget: every part optional, no bound to be
+            # outside of. Read from the ledger's own vocabulary, so a launch
+            # form built from it offers exactly what a launch accepts.
+            "budget": {
+                "availability": "available",
+                "keys": sorted(BUDGET_KEYS),
+                "ceilings": list(DIMENSIONS),
+                "bounds": "none: a ceiling is any whole number >= 0, elapsed_seconds any whole number >= 1; blank is no cap",
             },
             "vocabulary": {
                 "supported": "Carbon rebuilds it in DEVELOPMENT; not official qualification",

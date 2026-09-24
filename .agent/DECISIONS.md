@@ -15300,3 +15300,45 @@ entry refuses:
 - an owner blocker without a trigger;
 - any claim of admission. Admission needs qualification evidence that the
   registry cannot supply.
+
+## 2026-09-24 — WEB-QA-08-D1: publish Ask Carbon candidate 2026-09-24.1
+
+**Authority.** The repository owner (Nick Fitzpatrick, a named production
+incident owner under `WEB-QA-05-D2`) approved publication of candidate
+`ask-carbon-public-release-2026-09-24.1` on 2026-09-24, in session, together
+with the amended visitor notice.
+
+**What it publishes.** Static assets only, against live `carbonwebsite`
+version `65fd41de-7ab6-4b0b-b138-b956a5917dd6`. Two shipped files change:
+
+- `ask-carbon/pilot-designer.html`: GOAL-WORKBENCH-15 decision 1 (the public
+  assist never receives `operating_envelope` or `requested_targets`) and
+  decision 2 (*Download encrypted for Carbon*, sealed to the intake key with
+  fingerprint `5a38 c3ea bbd2 dd56 ce57 d3e1 f2c5 b1f1 6cd5 c1e0 f5bc 62a8 bb62 9699 8eec 5c18`).
+- `ask-carbon/public-knowledge.v1.json`: the `WEB-QA-07-D2` current-progress
+  refresh, approved for deployment on 2026-09-22 and not deployed until now.
+
+The other 100 staged paths are byte-identical to the live site. The
+`ask-carbon-public` Worker, model, budget, ceilings and activation are
+unchanged and are not redeployed.
+
+**Exact accepted artifact.**
+
+| Identity | Value |
+| --- | --- |
+| Bundle identity | `c973a2eaa9039c48df8660d0710f1dc34defe26026b6442b7f7d8aa9cbfc1bfc` |
+| Integrated homepage | `b1e8e7cdbea3d13d1ea2237e55db279bc962937a6a2cf2a65491dcf8255afd47` (unchanged) |
+| Pilot Designer | `3de37b4331234bb77f038ae65196c5c77d89879d183172abcbd0189873ae0650` |
+| Knowledge digest | `d937e9cabb1b39003bfd00bc14665ab90c5ba59c2e70729fdd46476e9da30804` |
+| Visitor notice | `PRIVACY_AND_RETENTION.md` as amended in this candidate |
+| Rollback target | `carbonwebsite` version `65fd41de-7ab6-4b0b-b138-b956a5917dd6` |
+
+A rebuild producing a different bundle identity is not the approved artifact.
+If the live version has moved from the rollback target at deploy time, the
+bundle is rebuilt and needs a fresh decision if its identity changes.
+
+**Scope preserved unchanged.** Inquiry collection (issue #139) stays disabled.
+The encrypted download saves a file in the visitor's browser and sends
+nothing. This decision authorizes no client-facing collection, no intake
+address publication, and no change to retention, screening or legal hold,
+which remain counsel's.

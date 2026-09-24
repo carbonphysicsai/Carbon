@@ -13,9 +13,10 @@ security qualification.
 > question or draft content to the AI provider. If you affirmatively enable AI,
 > Carbon sends your current question or the disclosed high-level draft context
 > to the OpenAI API through Carbon's server. Pilot guidance may include the
-> current brief, proposed pilot, unresolved assumptions and up to ten
-> conversation turns. Contact details and the optional conversation-export
-> choice are not sent to the AI.
+> current brief, the proposed pilot except its operating envelope and requested
+> targets, unresolved assumptions and up to ten conversation turns. Contact
+> details, quantities, operating ranges, target values and the optional
+> conversation-export choice are not sent to the AI.
 >
 > Do not include confidential engineering, customer, personal, credential,
 > solver, model, export-controlled or protected-evaluation information.
@@ -24,9 +25,11 @@ security qualification.
 > provider for up to 30 days. Clearing this browser view does not delete
 > provider records.
 >
-> You can draft with the form without AI. Downloading saves an unencrypted local
-> file; it does not submit an inquiry, promise staff follow-up, qualify a model,
-> approve a Challenge or authorize scientific work.
+> You can draft with the form without AI. The reviewed-draft download saves an
+> unencrypted local file. The encrypted download seals the same draft in your
+> browser to Carbon's intake key, so only Carbon can open it. Neither download
+> submits an inquiry, promises staff follow-up, qualifies a model, approves a
+> Challenge or authorizes scientific work.
 
 ## Processing and retention
 
@@ -34,7 +37,7 @@ security qualification.
 | --- | --- | --- | --- |
 | Browser saved mode | question and selected card | Used in page memory only; no AI request | Cleared on new chat, close/navigation or page lifecycle; no Web Storage/cookie |
 | Browser live mode | question and opaque continuation | Sent only to same-origin Worker | Continuation stays in memory; signed, source-versioned, withdrawal-bound, 15-minute expiry; contains card IDs, not visitor text or prior answers |
-| Browser pilot-design mode | high-level draft brief, pilot outline, unresolved assumptions and up to ten explicitly included conversation turns | Sent only after the visitor enables AI guidance; local form-only drafting remains available | Held in page memory. Abandoned raw conversation is not persisted by this implementation; optional inclusion in a locally exported review package is off by default |
+| Browser pilot-design mode | high-level draft brief, pilot outline except its operating envelope and requested targets, unresolved assumptions and up to ten explicitly included conversation turns | Sent only after the visitor enables AI guidance; local form-only drafting remains available | Held in page memory. Abandoned raw conversation is not persisted by this implementation; optional inclusion in a locally exported review package is off by default |
 | Worker request | question, request ID, origin, network address | Validates size/schema and retrieves public passages; sends only current question and passages to OpenAI | Raw visitor text is not intentionally logged or placed in telemetry; platform-level logs need target verification |
 | Worker pilot-design request | schema-bounded draft context, prior turns, retrieved public passages and pseudonymous session ID | Treats visitor fields as untrusted context; returns proposed edits requiring explicit client acceptance | No raw visitor text enters the budget ledger or intentional telemetry. Hosting logs and any future inquiry receiver need separate target verification |
 | Abuse counter | HMAC-style SHA-256 of secret plus IP | Stable pseudonymous client key for hourly/concurrency control | Default example retains inactive client counters for 24 hours; this is pseudonymous, not anonymous |

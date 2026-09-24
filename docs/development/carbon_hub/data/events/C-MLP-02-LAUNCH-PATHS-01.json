@@ -1,0 +1,15 @@
+{
+  "map_ref": "SYSTEM/AGENT-EXECUTION",
+  "event_type": "evidence",
+  "event_id": "C-MLP-02-LAUNCH-PATHS-01",
+  "owner_lane": "technical_lead",
+  "status": "implemented",
+  "summary": "Implemented C2 of the Launchpad control center, the last item section 5 of the mission allows; C3 to C7 are not started. Launch has a quick path and an advanced path over one composition: a single object holding who selects and the miner's optional budget, which both paths edit, templates save and load, and the launch body is built from, so the two paths cannot disagree about what will launch. The quick path chooses who selects; the advanced path adds the elapsed limit, the final-phase reserve and a ceiling per resource, each blank meaning no cap, and lists each model family's registry verdict and each research lane's availability. The options operation now reports the budget vocabulary - its keys and resource names - read from the ledger's own constants, so the form offers exactly what a launch accepts on either door. Every option shows its true availability from the options operation: an agent that cannot run here is shown unavailable with its reason, and a composition that cannot launch says why and cannot be launched. Templates are saved in the browser, closed against the launch operation's fields, and checked against availability when loaded, not when saved: a template naming an agent this host cannot run is refused with the reason, and one carrying a field a launch composition cannot hold is refused by name. The real-browser smoke drives both paths, the invalid-value refusal, saving, clearing and reloading a template, a tampered template refused beside the saved one loading, the composed budget arriving in the launch body, and a template refused for an agent unavailable at load. The one-journey test requires both doors to offer the ledger's budget vocabulary and to record the launched budget in the campaign manifest. No gate, scoring rule, exam or qualification changes.",
+  "primary_detail": "scripts/dev/miner_launchpad/app.js",
+  "affects": [
+    "SYSTEM/AGENT-EXECUTION",
+    "WAVE-C/C-W1-D4"
+  ],
+  "supersedes": null,
+  "recorded_at": "2026-09-24T07:03:26Z"
+}

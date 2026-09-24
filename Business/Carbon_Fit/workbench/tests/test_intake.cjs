@@ -361,3 +361,21 @@ test("attribution cannot disagree with the record in either direction", async ()
     "an AI attribution with no accepted suggestion behind it was accepted",
   );
 });
+
+test("the public AI assist is never sent the operating envelope or the requested targets", () => {
+  const draft = I.newDraft("withhold-draft", "rev-001");
+  draft.answers.intended_decision = { state: "VALUE", value: "Choose a cold-plate design", origin: "USER_ENTERED_LOCAL" };
+  const pilot = Object.fromEntries(I.PILOT_FIELDS.map((field) => [field, "VALUE-FOR-" + field]));
+  pilot.operating_envelope = "flow 2.5-4.0 L/min, inlet 18-24 C";
+  pilot.requested_targets = "hotspot error below 0.8 K";
+  const context = I.guidanceContextFrom(draft, pilot, ["one assumption"]);
+  const sent = JSON.stringify(context);
+  for (const withheld of ["2.5-4.0 L/min", "18-24 C", "0.8 K"]) assert.equal(sent.includes(withheld), false, withheld);
+  assert.equal(context.pilot.operating_envelope, null);
+  assert.equal(context.pilot.requested_targets, null);
+  // Specimen: every other pilot field, and the written answer, is still sent.
+  for (const field of I.PILOT_FIELDS.filter((f) => !I.GUIDANCE_WITHHELD.includes(f))) assert.equal(context.pilot[field], "VALUE-FOR-" + field);
+  assert.equal(context.answers.intended_decision, "Choose a cold-plate design");
+  // The request keeps the shape the assistant's Worker requires.
+  assert.deepEqual(Object.keys(context.pilot).sort(), [...I.PILOT_FIELDS].sort());
+});

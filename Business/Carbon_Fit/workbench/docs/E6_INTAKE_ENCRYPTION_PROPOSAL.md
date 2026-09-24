@@ -2,8 +2,13 @@
 
 Status: **approved under the owner's delegation, 2026-09-23 (GOAL-WORKBENCH-15).**
 The sealing format, key tool and unseal tool are built (`src/intake_seal.js`,
-`tools/intake_key.cjs`). The Pilot Designer button is not wired in yet: it waits
-for the owner's real key and a new Ask Carbon release candidate. The earlier
+`tools/intake_key.cjs`). The owner generated the intake key on the internal
+machine on 2026-09-24 and made its encrypted offline backup. Its public record is
+`data/intake_public_key.json`, fingerprint
+`5a38 c3ea bbd2 dd56 ce57 d3e1 f2c5 b1f1 6cd5 c1e0 f5bc 62a8 bb62 9699 8eec 5c18`.
+The Pilot Designer's *Download encrypted for Carbon* button is wired to that key.
+It reaches the public site only through a new Ask Carbon release candidate and
+the owner's publication approval. The earlier
 status line read **proposed, not implemented.** This is the only part of E6 that asks
 someone outside Carbon to do something, so it waits for the owner. Nothing here
 changes the public Pilot Designer until the owner has seen the client steps.
@@ -102,6 +107,14 @@ two channels, and they check each other:
 
 The owner confirms the fingerprint when the key is published, and again at
 each rotation, before the statement is updated.
+
+**How this is built.** The build refuses to embed anything but a closed public
+key record whose fingerprint and key identifier it recomputes from the key, so a
+private key file cannot be written into the page. The page checks the record
+again, shows the fingerprint it computed, and keeps the button disabled if the
+check fails. `seal` accepts only a recipient built by that check. A test pins the
+committed record to the owner-confirmed fingerprint, so a rotation changes that
+test deliberately.
 
 ## What deciding this would take
 
