@@ -506,8 +506,17 @@ async def prepare(args, *, ledger=None):
             runtime=runtime,
             now=ledger.clock(),
         )
-    private_file(args.api_key_file)
-    ResponsesTransport(args.api_key_file)
+    # The model-provider key belongs to Carbon's agent. A campaign with no
+    # agent - a person driving their own journey - calls no model, so it is
+    # never asked for one.
+    agent = (
+        frozen_product.get("agent", "autonomous")
+        if frozen_product is not None
+        else (product.agent if product is not None else "autonomous")
+    )
+    if agent != "none":
+        private_file(args.api_key_file)
+        ResponsesTransport(args.api_key_file)
     config = load_config(args.operator_config)
     public = json.loads(private_file(args.miner_public).read_bytes())
     if public["netuid"] != CARBON_NETUID or config.netuid != CARBON_NETUID:

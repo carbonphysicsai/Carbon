@@ -559,7 +559,9 @@ async def serve_operations(configuration: Path):
     for tool in [*make_operation_tools(host), *make_attachment_tools(attachment)]:
         tools[tool.name] = tool
     try:
-        await server.run_async()
+        # A raw MCPServer: stdio is `run_stdio_async`. (The `run_async` of
+        # `create_stdio_server` belongs to its wrapper, not to this class.)
+        await server.run_stdio_async()
     finally:
         await attachment.detach()
         host.close()
@@ -579,7 +581,11 @@ async def serve_open_tier():
     """
     from carbon.miner_mcp.open_tier import create_open_tier_server
 
-    await create_open_tier_server().run_async()
+    # A raw MCPServer, whose stdio entry point is `run_stdio_async`. This read
+    # `run_async` - the wrapper method of `create_stdio_server` - so the bare
+    # open tier failed as soon as a client connected; its test replaced this
+    # function and so never ran it.
+    await create_open_tier_server().run_stdio_async()
 
 
 def main(argv=None):
