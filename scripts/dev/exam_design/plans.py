@@ -99,3 +99,65 @@ def pilot2_plan() -> dict:
          "config": {"jobs": bj, "timeout_s": 2400, "max_workers": 4}},
         {"phase": "photonic_refs", "overlay": "photonic", "config": {"jobs": pj, "timeout_s": 1200}}],
         "battery_refined_case_ids": refine, "photonic_refined_case_ids": pick}
+
+
+MAIN_HORIZON = 30
+MAIN_CHECKPOINTS = [1, 10, 20, 30]
+ROLE_COUNTS = {"train": 400, "practice": 200, "final": 200, "verify": 200}
+SCREEN_BATCHES, SCREEN_BATCH_SIZE = 6, 200
+TWIN_SLOTS = ((10, 0), (20, 1))  # position of a hidden duplicate -> position it duplicates (inside every nested prefix)
+
+
+def screen_batches() -> list[list[dict]]:
+    """Each batch: 200 slots in a random order; two slots duplicate earlier slots (hidden paired probes).
+
+    Nested sizes 50/100/200 are prefixes, so both duplicates sit inside every prefix.
+    """
+    out = []
+    for b in range(SCREEN_BATCHES):
+        role = f"screen-B{b:02d}"
+        uniq = uniform_cases(SCREEN_BATCH_SIZE - len(TWIN_SLOTS), role, role)
+        slots = list(uniq)
+        for pos, src in TWIN_SLOTS:
+            slots.insert(pos, dict(slots[src], case_id=f"{role}-dup{src}", duplicate_of=slots[src]["case_id"]))
+        out.append(slots)
+    return out
+
+
+def main_cases() -> dict[str, list[dict]]:
+    roles = {r: uniform_cases(n, r, r) for r, n in ROLE_COUNTS.items()}
+    for b, slots in enumerate(screen_batches()):
+        roles[f"screen-B{b:02d}"] = slots
+    return roles
+
+
+def refs_plan_a(n_refine: int = 16) -> dict:
+    roles = main_cases()
+    jobs = []
+    for r in ("train", "practice", "final", "verify"):
+        jobs += [{"case": c, "n_cycles": MAIN_HORIZON, "checkpoints": MAIN_CHECKPOINTS, "role": r} for c in roles[r]]
+    # Reference-uncertainty sample: the first n TRAIN cases (a uniform draw), refined.
+    refine = [{"case": c, "n_cycles": MAIN_HORIZON, "checkpoints": MAIN_CHECKPOINTS, "role": "train", "refined": True}
+              for c in roles["train"][:n_refine]]
+    return {"plan": "battery-refs-a", "campaign_root": CAMPAIGN_ROOT, "horizon": MAIN_HORIZON,
+            "checkpoints": MAIN_CHECKPOINTS, "timeout_s": 1800, "max_workers": 7, "jobs": refine + jobs}
+
+
+def refs_plan_b() -> dict:
+    roles = main_cases()
+    jobs = []
+    for b in range(SCREEN_BATCHES):
+        r = f"screen-B{b:02d}"
+        jobs += [{"case": {k: v for k, v in c.items() if k != "duplicate_of"}, "n_cycles": MAIN_HORIZON,
+                  "checkpoints": MAIN_CHECKPOINTS, "role": r, "batch": b} for c in roles[r] if "duplicate_of" not in c]
+    return {"plan": "battery-refs-b", "campaign_root": CAMPAIGN_ROOT, "horizon": MAIN_HORIZON,
+            "checkpoints": MAIN_CHECKPOINTS, "timeout_s": 1800, "max_workers": 6, "jobs": jobs}
+
+
+def inputs_manifest() -> dict:
+    """Every case's inputs, by role, with no reference outputs: what prediction workers receive."""
+    cases = []
+    for r, cs in main_cases().items():
+        for c in cs:
+            cases.append({"case_id": c["case_id"], "role": r, **{k: c[k] for k in ("c1", "c2", "t_amb_c", "soc0")}})
+    return {"schema": "carbon.exam-design.inputs.v1", "campaign_root": CAMPAIGN_ROOT, "cases": cases}

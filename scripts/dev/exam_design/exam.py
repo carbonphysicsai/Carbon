@@ -213,6 +213,8 @@ def final_compare(inc_err: dict[str, float], chal_err: dict[str, float], importa
             "important": imp, "important_ci": ci_i, "n_important": len(imp_ids), "components": comp}
     if overall == "worse":
         o, why = REGRESSION, "overall error significantly higher"
+    elif imp == "worse" and overall != "better":
+        o, why = REGRESSION, "important region significantly worse without an overall gain"
     elif overall == "better" and imp == "worse":
         o, why = TRADE_OFF, "overall better but important region worse"
     elif overall == "better" and imp == "insufficient":

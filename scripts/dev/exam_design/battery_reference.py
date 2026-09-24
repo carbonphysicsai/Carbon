@@ -252,6 +252,28 @@ def open_circuit_voltage(soc: float, t_amb_c: float) -> float:
     return _ocp(params, "Positive electrode OCP [V]", y, t_k) - _ocp(params, "Negative electrode OCP [V]", x, t_k)
 
 
+def ocv_table(n: int = 4001) -> dict:
+    """The published OCV table: parameter-set equilibrium voltage on a uniform SOC grid.
+
+    PyBaMM's initial stoichiometries are linear in state of charge between the
+    0 % and 100 % end points, so one end-point solve gives the whole table.
+    OKane2022's entropic coefficients are zero, so the table is temperature
+    independent.
+    """
+    import pybamm
+
+    params = pybamm.ParameterValues(SPEC["parameter_set"])
+    x0, y0 = pybamm.lithium_ion.get_initial_stoichiometries(0.0, params)
+    x1, y1 = pybamm.lithium_ion.get_initial_stoichiometries(1.0, params)
+    soc = np.linspace(0.0, 1.0, n)
+    t_k = 298.15
+    v = [_ocp(params, "Positive electrode OCP [V]", y0 + s * (y1 - y0), t_k)
+         - _ocp(params, "Negative electrode OCP [V]", x0 + s * (x1 - x0), t_k) for s in soc]
+    return {"schema": "carbon.exam-design.ocv-table.v1", "parameter_set": SPEC["parameter_set"],
+            "soc": soc.tolist(), "ocv_v": v, "stoichiometry": {"x0": float(x0), "x100": float(x1),
+                                                                "y0": float(y0), "y100": float(y1)}}
+
+
 def capacity_bounds_ah() -> dict:
     """Upper bounds on dischargeable capacity from the parameter set.
 

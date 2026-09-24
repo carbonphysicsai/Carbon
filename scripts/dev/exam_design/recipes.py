@@ -241,7 +241,8 @@ def make(name: str):
     if name == "knn":
         return KNN(5)
     if name == "mlp":
-        return MLP("mlp", width=128, depth=3, steps=3000, lr=3e-3)
+        # Matched budget with the candidate: same width, depth, optimizer steps and learning rate.
+        return MLP("mlp", width=256, depth=3, steps=6000, lr=2e-3)
     if name == "mlp_plus":
         return MLP("mlp_plus", width=256, depth=3, steps=6000, lr=2e-3, wd=1e-4, rich=True, pca=16)
     if name == "mlp_plus_localized":
