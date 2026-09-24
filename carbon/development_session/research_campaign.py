@@ -863,6 +863,34 @@ def _miner_selects(prepared):
         raise OperationRefused("the_agent_selects_in_this_campaign")
 
 
+def freeze_refusal(root, strategy):
+    """Why a miner's freeze of `strategy` would be refused, read from the
+    campaign's own records without preparing it - or None.
+
+    The same rules freeze_candidate enforces; this lets a door answer at once.
+    freeze_candidate still checks them itself, on the prepared campaign.
+    """
+    manifest_path = Path(root) / "campaign-manifest.json"
+    if not manifest_path.exists():
+        return "campaign_not_prepared"
+    manifest = json.loads(manifest_path.read_bytes())
+    if manifest.get("agent", "autonomous") != "none":
+        return "the_agent_selects_in_this_campaign"
+    epoch = None
+    for candidate in FINAL_EPOCHS:
+        folder = Path(root) / ("epoch-" + str(candidate))
+        if not (folder / "permitted-final-feedback.json").exists():
+            epoch = candidate
+            break
+    if epoch is None:
+        return "final_exams_used"
+    if (Path(root) / ("epoch-" + str(epoch)) / "selected-recipe.json").exists():
+        return "candidate_awaits_submission"
+    if not trial_supports_selection(CampaignLedger(root), manifest["owner"], strategy):
+        return "practice_result_required"
+    return None
+
+
 async def freeze_candidate(prepared, *, strategy, reason, used_feedback=False):
     """A miner freezes a practiced recipe as this epoch's candidate.
 
@@ -873,15 +901,12 @@ async def freeze_candidate(prepared, *, strategy, reason, used_feedback=False):
     """
     from .research_loop import _epoch_paths, candidate_record
 
-    _miner_selects(prepared)
     ledger, owner = prepared.ledger, prepared.owner
+    # One checker for these rules, whether a door asks early or this freezes.
+    refusal = freeze_refusal(ledger.root, strategy)
+    if refusal is not None:
+        raise OperationRefused(refusal)
     epoch = _open_epoch(prepared)
-    if epoch is None:
-        raise OperationRefused("final_exams_used")
-    if (ledger.root / ("epoch-" + str(epoch)) / "selected-recipe.json").exists():
-        raise OperationRefused("candidate_awaits_submission")
-    if not trial_supports_selection(ledger, owner, strategy):
-        raise OperationRefused("practice_result_required")
     record = candidate_record(strategy, reason, used_feedback)
     ledger.checkpoint()
     folder = _epoch_paths(ledger, epoch)
