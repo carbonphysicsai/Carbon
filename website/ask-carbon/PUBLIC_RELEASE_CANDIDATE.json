@@ -1,15 +1,15 @@
 {
   "schema_version": "carbon.ask-carbon.public-release-candidate.v1",
   "candidate_id": "ask-carbon-public-release-2026-09-24.1",
-  "status": "AWAITING_OWNER_PUBLICATION_APPROVAL",
+  "status": "OWNER_APPROVED_PRODUCTION_PUBLICATION",
   "public_activation_allowed": true,
   "public_activation_allowed_decision": "WEB-QA-07-D1 (2026-09-22) for the content; WEB-QA-05-D2 (2026-09-19) for the activation itself. Serving answers additionally requires deploying wrangler.public-release-active.toml; the committed candidate config stays disabled as the fail-closed incident response.",
   "owner_authorization": {
-    "decision": null,
-    "recorded_at": null,
+    "decision": "WEB-QA-08-D1",
+    "recorded_at": "2026-09-24",
     "source": ".agent/DECISIONS.md",
-    "authorization": "NOT_YET_APPROVED",
-    "approved_by": null,
+    "authorization": "APPROVED_PRODUCTION_PUBLICATION",
+    "approved_by": "Nick Fitzpatrick (named production incident owner under WEB-QA-05-D2)",
     "scope": "publish the Pilot Designer carrying GOAL-WORKBENCH-15 decisions 1 and 2 (the public assist withholds operating ranges and targets; the in-browser Download encrypted for Carbon button sealed to the owner's intake key), together with the WEB-QA-07-D2 knowledge refresh already approved for deployment; the amended visitor notice; everything else unchanged; inquiry collection disabled",
     "attaches_to": {
       "bundle_identity_sha256": "c973a2eaa9039c48df8660d0710f1dc34defe26026b6442b7f7d8aa9cbfc1bfc",
@@ -116,7 +116,7 @@
     "modified_abuse_monitoring_established": false,
     "provider_default_abuse_monitoring_retention_may_be_days": 30,
     "superseded_notice_sha256": "35cc6f0349bfe04823b9380c810f1e7c6b228878e59a9a078fe2a3237cdbe8ed",
-    "notice_change_note": "Proposed with this candidate and approved only with it: the visitor notice in PRIVACY_AND_RETENTION.md now says the assist does not receive the operating envelope, requested targets, quantities, ranges or target values (decision 1), and that the encrypted download is sealed in the browser to Carbon's intake key while the reviewed-draft download stays unencrypted (decision 2). Nothing else in the posture changes."
+    "notice_change_note": "Approved with this candidate under WEB-QA-08-D1: the visitor notice in PRIVACY_AND_RETENTION.md now says the assist does not receive the operating envelope, requested targets, quantities, ranges or target values (decision 1), and that the encrypted download is sealed in the browser to Carbon's intake key while the reviewed-draft download stays unencrypted (decision 2). Nothing else in the posture changes."
   },
   "static_integration": {
     "source_authority": "REDESIGNED_SITE_BUILD_DIRECTORY_2026_09_22 (carbon-site-upload-v2.zip); the build directory is the reviewed source and needs no owner-upload reconciliation",
@@ -196,7 +196,8 @@
     "named disable and rollback operator": "WEB-QA-05-D2 (2026-09-19)",
     "owner re-approval against candidate ask-carbon-public-release-2026-09-22.1": "WEB-QA-06-D1 (2026-09-22)",
     "live carbonwebsite version id captured as rollback target": "dc5212bb-c84b-4051-9724-74cb21c16711, re-captured 2026-09-22T10:13Z for the activation deployment. The earlier capture 6b339116-ee62-43ac-bda8-cf3baa674551 satisfied this gate for the inactive publication and is retained in owner_authorization.attaches_to.",
-    "public content approved for display": "WEB-QA-07-D1 (2026-09-22)"
+    "public content approved for display": "WEB-QA-07-D1 (2026-09-22)",
+    "owner approval of publication against candidate ask-carbon-public-release-2026-09-24.1": "WEB-QA-08-D1 (2026-09-24), bundle c973a2eaa9039c48df8660d0710f1dc34defe26026b6442b7f7d8aa9cbfc1bfc"
   },
   "deployment_order": {
     "decision": "Deploy the inactive ask-carbon-public API Worker BEFORE publishing the carbonwebsite assets.",
