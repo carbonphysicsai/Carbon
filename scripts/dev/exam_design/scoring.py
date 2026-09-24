@@ -1,0 +1,90 @@
+"""Battery exam-design score: per-case normalized error from stored predictions.
+
+The score reuses exactly the predictions the gates checked. Each component is
+normalized by a public scale published with the TRAIN dataset version (the
+TRAIN standard deviation of that output), so no component dominates by units:
+
+* ``voltage``      RMS_t(V_hat - V) / s_V
+* ``temperature``  RMS_t(T_hat - T) / s_T
+* ``plating``      |eta_hat - eta| / s_eta
+* ``capacity``     RMS_k(Q_hat_k - Q_k) / s_Q
+
+The case error is the unweighted mean of the four; lower is better. It is a
+development measure of agreement with the specified model, bound to this
+challenge version, and not comparable across challenges.
+
+**Important region.** A case is important when its *reference* plating margin
+is at or below ``PLATING_IMPORTANT_V`` (plating conditions reached or within
+20 mV) or its reference peak temperature reaches ``T_IMPORTANT_C``. These are
+the cases where a prediction matters most for a charging decision. They are
+scored exactly like any other case, never gated, and reported separately so a
+comparison can refuse an overall gain bought by an important-region regression.
+"""
+
+from __future__ import annotations
+
+import numpy as np
+
+COMPONENTS = ("voltage", "temperature", "plating", "capacity")
+PLATING_IMPORTANT_V = 0.02
+T_IMPORTANT_C = 45.0
+
+
+def scales_from_train(train_refs: list[dict]) -> dict:
+    v = np.array([r["outputs"]["voltage_v"] for r in train_refs])
+    t = np.array([r["outputs"]["temperature_c"] for r in train_refs])
+    e = np.array([r["outputs"]["plating_margin_v"] for r in train_refs])
+    q = np.array([r["outputs"]["capacity_ah"] for r in train_refs])
+    return {"s_v": float(v.std()), "s_t": float(t.std()), "s_eta": float(e.std()), "s_q": float(q.std()),
+            "n_train": len(train_refs)}
+
+
+def is_important(ref: dict) -> bool:
+    return (ref["outputs"]["plating_margin_v"] <= PLATING_IMPORTANT_V
+            or ref.get("diagnostics", {}).get("t_max_c", -1e9) >= T_IMPORTANT_C)
+
+
+def case_components(pred: dict, ref: dict, scales: dict) -> dict:
+    o = ref["outputs"]
+    rms = lambda a, b: float(np.sqrt(np.mean((np.asarray(a, float) - np.asarray(b, float)) ** 2)))  # noqa: E731
+    return {
+        "voltage": rms(pred["voltage_v"], o["voltage_v"]) / scales["s_v"],
+        "temperature": rms(pred["temperature_c"], o["temperature_c"]) / scales["s_t"],
+        "plating": abs(float(pred["plating_margin_v"]) - o["plating_margin_v"]) / scales["s_eta"],
+        "capacity": rms(pred["capacity_ah"], o["capacity_ah"]) / scales["s_q"],
+    }
+
+
+def case_error(components: dict) -> float:
+    return float(np.mean([components[c] for c in COMPONENTS]))
+
+
+def aggregate(case_rows: list[dict]) -> dict:
+    """Summarize typed case rows from ``gates.evaluate_case`` plus errors.
+
+    A single gate failure makes the submission ineligible: mandatory failure is
+    not compensated by soft performance. Reference-invalid and infra cases are
+    counted and excluded, never charged to the model.
+    """
+    states = [r["state"] for r in case_rows]
+    scored = [r for r in case_rows if r["state"] == "SCORABLE"]
+    imp = [r for r in scored if r.get("important")]
+    out = {
+        "n_cases": len(case_rows),
+        "n_scored": len(scored),
+        "n_gate_failed": states.count("GATE_FAILED"),
+        "n_reference_invalid": states.count("REFERENCE_INVALID"),
+        "n_failed_infra": states.count("FAILED_INFRA"),
+        "eligible": states.count("GATE_FAILED") == 0 and len(scored) > 0,
+        "score": float(np.mean([r["error"] for r in scored])) if scored else None,
+        "important_score": float(np.mean([r["error"] for r in imp])) if imp else None,
+        "n_important": len(imp),
+        "components": {c: float(np.mean([r["components"][c] for r in scored])) for c in COMPONENTS} if scored else None,
+    }
+    fails: dict[str, int] = {}
+    for r in case_rows:
+        for g, v in r.get("gates", {}).items():
+            if v == "FAIL":
+                fails[g] = fails.get(g, 0) + 1
+    out["gate_failures"] = fails
+    return out
