@@ -122,7 +122,10 @@ def install_overlay(lock_path, target):
                 os.makedirs(os.path.dirname(dst), exist_ok=True)
                 with open(dst, "wb") as f:
                     f.write(z.read(n))
-                if dst.endswith(".so") or ".so." in dst:
+                # Keep the wheel's recorded mode: bundled executables (imageio-ffmpeg's ffmpeg)
+                # must stay executable, not only shared libraries.
+                mode = (z.getinfo(n).external_attr >> 16) & 0o777
+                if mode & 0o111 or dst.endswith(".so") or ".so." in dst:
                     os.chmod(dst, 0o755)
     return {"wheels": len(lock["wheels"]), "lock_sha256": hashlib.sha256(open(lock_path, "rb").read()).hexdigest()}
 
