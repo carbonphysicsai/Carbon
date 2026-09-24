@@ -533,6 +533,11 @@ class Handler(BaseHTTPRequestHandler):
             self.check(authenticated=True)
             if self.path == "/api/v1/capabilities":
                 self.reply(200, capability_catalog())
+            elif self.path == "/api/v1/operations":
+                # The same table MCP lists its operation tools from.
+                from scripts.dev.miner_launchpad.operations import describe
+
+                self.reply(200, {"operations": describe()})
             elif self.path == "/api/v1/onboarding/requirements":
                 # Open tier. No campaign, no compute, no ledger.
                 self.reply(200, self.server.onboarding.requirements())
@@ -629,6 +634,17 @@ class Handler(BaseHTTPRequestHandler):
                     # the next usable step, never a provider message or a trace.
                     self.reply(409, failure.body())
                     return
+            elif self.path.startswith("/api/v1/operations/"):
+                # Every miner operation, generated from the one table: this
+                # door holds no operation or gate of its own.
+                from scripts.dev.miner_launchpad.operations import perform
+
+                runner = self.server.research_runner
+                if runner is None:
+                    raise Rejected("research_admission_unavailable", 409)
+                result = perform(
+                    runner, self.path.removeprefix("/api/v1/operations/"), value
+                )
             elif self.path == "/api/v1/research":
                 runner = self.server.research_runner
                 if runner is None:
@@ -649,6 +665,10 @@ class Handler(BaseHTTPRequestHandler):
                 keys = self.headers.get_all("Idempotency-Key")
                 if keys is None or len(keys) != 1:
                     raise Rejected("idempotency_key_required")
+                # The rehearsal is the Launchpad before any research profile
+                # exists: a local fixture with no agent, chain, compute or
+                # campaign. It is not a miner operation and admits nothing, so
+                # it is outside the operations table and reads no registration.
                 result = self.server.controller.launch(value, keys[0])
             else:
                 parts = self.path.split("/")

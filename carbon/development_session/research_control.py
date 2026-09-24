@@ -135,7 +135,12 @@ class CampaignControl:
                 )
             time.sleep(0.1)
 
-    def settled(self, generation, *, completed=False, cleanup_verified=False):
+    def settled(
+        self, generation, *, completed=False, cleanup_verified=False, ready=False
+    ):
+        """Record how a dispatch ended. `ready` is a campaign prepared and
+        waiting for its miner - launched with no agent, or between a miner's
+        own operations - which is neither interrupted nor complete."""
         with self.ledger.db() as db:
             db.execute("BEGIN IMMEDIATE")
             current, desired = db.execute(
@@ -152,6 +157,8 @@ class CampaignControl:
                 state = "STOPPED"
             elif completed:
                 state = "COMPLETED"
+            elif ready:
+                state = "READY"
             elif desired == "PAUSE":
                 state = "PAUSED"
             else:
