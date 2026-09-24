@@ -317,6 +317,45 @@ def test_missing_authority_or_reconciliation_fails_closed(
     assert "Carbon MCP unavailable" in output.err
 
 
+@pytest.mark.parametrize("registered", [False, True])
+def test_attach_reads_registration_before_any_campaign_write(
+    tmp_path, monkeypatch, registered, capsys
+):
+    """An unregistered owner is refused before the campaign's control
+    generation or prepared tasks are touched. Specimen: the same attach with
+    a registered owner does reach them, so the check can see a write."""
+    from carbon.development_session.research_control import CampaignControl
+
+    path, ledger, _ = prepare(tmp_path, monkeypatch)
+    before = CampaignControl(ledger).status()["generation"]
+    monkeypatch.setattr(
+        standard_cli,
+        "_runtime",
+        lambda profile: (fixture_connection(profile.root), None, None, profile.root),
+    )
+    real = standard_cli._requester
+
+    async def requester(connection):
+        if not registered:
+            raise ValueError("hotkey is not registered")
+        return await real(connection)
+
+    reached = []
+
+    def prepared_tasks(*_, **__):
+        reached.append("tasks")
+        raise ValueError("stop after the first write")
+
+    monkeypatch.setattr(standard_cli, "_requester", requester)
+    monkeypatch.setattr(standard_cli, "_prepared_tasks", prepared_tasks)
+    assert (
+        standard_cli.main(["--configuration", str(path), "--campaign", CAMPAIGN]) == 2
+    )
+    assert "Carbon MCP unavailable" in capsys.readouterr().err
+    assert reached == (["tasks"] if registered else [])
+    assert CampaignControl(ledger).status()["generation"] == before
+
+
 def test_cli_help_does_not_require_secrets_or_runtime(capsys):
     with pytest.raises(SystemExit) as error:
         standard_cli.main(["--help"])
