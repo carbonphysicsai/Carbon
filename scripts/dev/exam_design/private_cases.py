@@ -79,7 +79,7 @@ def cases(role: str, n: int, bounds: dict, pin: dict) -> list[dict]:
     ctx = _context(pin)
     out = []
     for i in range(n):
-        seed = derive_mock_seed(ctx, RoleKey(role), i)
+        seed = derive_mock_seed(ctx, RoleKey(role.lower()), i)  # carbon.seeding role keys are lowercase canonical
         material = seed.as_backend_bytes()
         rng = np.random.default_rng(int.from_bytes(hashlib.sha256(material).digest()[:8], "big"))
         out.append({"case_id": f"{role}-{i:04d}",

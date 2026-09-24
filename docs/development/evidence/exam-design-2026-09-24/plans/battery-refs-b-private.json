@@ -1,0 +1,31 @@
+{
+ "plan": "battery-refs-b-private",
+ "campaign_root": "private (see private_commitment.json)",
+ "horizon": 30,
+ "checkpoints": [
+  1,
+  10,
+  20,
+  30
+ ],
+ "timeout_s": 1800,
+ "max_workers": 7,
+ "jobs": [],
+ "private_blob": "scripts/dev/exam_design/private/refs-b-v1.bin",
+ "private_blob_meta": {
+  "name": "refs-b-v1",
+  "plaintext_sha256": "f4fbdfd47a7d70deb54f1bca8c4363429fd109e945cb2918d662e55b10a77723",
+  "ciphertext_sha256": "cc358c887f421078c115d5dc3e52d59c6ab7d03a18bca831ac3f97fa43908e0e",
+  "bytes": 258260
+ },
+ "slot_structure": {
+  "pscreen-B00": 200,
+  "pscreen-B01": 200,
+  "pscreen-B02": 200,
+  "pscreen-B03": 200,
+  "pscreen-B04": 200,
+  "pscreen-B05": 200,
+  "pfinal": 200,
+  "pverify": 200
+ }
+}

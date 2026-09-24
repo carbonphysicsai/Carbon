@@ -72,6 +72,22 @@ def _centerline(x: np.ndarray, y_near: float, y_far: float, x0: float, bl: float
     return y
 
 
+def straight_geometry(length_um: float) -> dict:
+    """Calibration scene: one straight guide on the upper port line, no coupler.
+
+    Transmission should be |S31|^2 ~ 1 with no partner guide to couple into, so
+    it measures port normalization and discretization loss directly; and the
+    scene is its own mirror image, so the mirrored-excitation mapping must return
+    S13 = S31 to numerical precision. Neither check can be read off a coupler.
+    """
+    g = geometry(300.0, length_um)
+    w = SPEC["wg_width_nm"] * 1e-9
+    x = np.linspace(0, g["lx"], 4)
+    top, bot = np.full_like(x, g["y_far"] + w / 2), np.full_like(x, g["y_far"] - w / 2)
+    g["polys"] = [np.concatenate([np.column_stack([x, top]), np.column_stack([x[::-1], bot[::-1]])])]
+    return g
+
+
 def geometry(gap_nm: float, length_um: float, mirror: bool = False) -> dict:
     um = 1e-6
     w = SPEC["wg_width_nm"] * 1e-9
@@ -99,9 +115,12 @@ def solve_case(case: dict, refined: bool = False, wavelengths=None, progress=Non
     import jax
 
     t0 = time.perf_counter()
-    res = (SPEC["refined_resolution_nm"] if refined else SPEC["resolution_nm"]) * 1e-9
-    g = geometry(case["gap_nm"], case["length_um"])
-    gm = geometry(case["gap_nm"], case["length_um"], mirror=True)
+    res = (case.get("resolution_nm") or (SPEC["refined_resolution_nm"] if refined else SPEC["resolution_nm"])) * 1e-9
+    if case.get("kind") == "straight":
+        g = gm = straight_geometry(case["length_um"])
+    else:
+        g = geometry(case["gap_nm"], case["length_um"])
+        gm = geometry(case["gap_nm"], case["length_um"], mirror=True)
     wls = wavelengths or SPEC["wavelengths_um"]
     mats = {"cladding": fdtdx.Material(permittivity=SPEC["n_sio2"] ** 2),
             "si": fdtdx.Material(permittivity=SPEC["n_si"] ** 2)}
@@ -117,7 +136,8 @@ def solve_case(case: dict, refined: bool = False, wavelengths=None, progress=Non
     mirror_name = {"p1": "p3", "p2": "p4", "p3": "p1", "p4": "p2"}
     n_g = 4.2
     t_sim = SPEC["time_factor"] * (g["lx"] * n_g / 299792458.0 + 120e-15)
-    rec = {"case_id": case["case_id"], "inputs": {k: case[k] for k in ("gap_nm", "length_um")}, "refined": refined,
+    rec = {"case_id": case["case_id"], "inputs": {k: case[k] for k in ("gap_nm", "length_um", "kind") if k in case},
+           "refined": refined,
            "resolution_nm": res * 1e9, "domain_um": [g["lx"] * 1e6, g["ly"] * 1e6, g["lz"] * 1e6],
            "cells": int(round(g["lx"] / res)) * int(round(g["ly"] / res)) * int(round(g["lz"] / res)),
            "sim_time_fs": t_sim * 1e15, "runs": []}
