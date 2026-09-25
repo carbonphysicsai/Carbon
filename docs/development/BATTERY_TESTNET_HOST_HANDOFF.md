@@ -47,7 +47,7 @@ this document and `BATTERY_TESTNET_PROGRAMME_STATE.md`, then follow it.
    - `git fetch origin main`, and confirm that PR #351's merge commit is on
      `main`.
    - Work only in a clean worktree detached at exactly that commit (the
-     `Carbon-testnet` worktree), and run `uv sync --locked --group chain`.
+     worktree the private brief names), and run `uv sync --locked --group chain`.
    - `uv` is `~/.local/bin/uv`, which may not be on `PATH` in a non-login
      shell. Use the absolute path or `bash -lc`. A `command not found` is a
      failure, even when the shell exits 0.
@@ -88,12 +88,12 @@ this document and `BATTERY_TESTNET_PROGRAMME_STATE.md`, then follow it.
    uv run --locked --group chain python -m carbon.chain.runtime_probe \
      --config <existing operator config> > <owner-only dir>/probe.json
    ```
-   - Use the existing live operator config,
-     `~/.local/share/carbon-testnet/development-testnet.json`: schema
-     `carbon.development-testnet.operator.v1`, `netuid: 567`. Do not create a
-     new one.
-   - Do not use its sibling `development-testnet.before-subnet-creation.json`,
-     the pre-creation snapshot, or any repository `.example.json` template.
+   - Use the existing live operator config, named in the owner's private
+     host brief: schema `carbon.development-testnet.operator.v1`,
+     `netuid: 567`. Do not create a new one.
+   - Other files share that schema and netuid, such as a pre-creation
+     snapshot. Take only the one the private brief names. Never use a
+     repository `.example.json` template (`netuid: null`).
    - The config's `expected_runtime_spec: 458` is echoed in the report as
      `operator_expected_runtime_spec`. It does not decide the probe's
      status: that comes from comparing the live metadata with the pinned
@@ -235,16 +235,19 @@ Recompute every identity on the host at the exact commit you run
   the journal's root entry and never recomputed. **Back up the root, journal
   and state together.** The journal is append-only commitment evidence.
 
-**Secret locations (reference only):**
+**Secrets (shape only).** This repository is public. Wallet names, key
+filenames, account identifiers and operator-config contents never go into
+it. The owner's private host brief names each instance. The operator keeps
+them under the operator account's private data directory (`0700`), outside
+every checkout.
 
-| Secret | Location on the authorized host (`~` is the operator account's home) | Who holds it |
-|---|---|---|
-| Validator service key (OD-6) | `/srv/carbon/keys/battery-validator.key`, 32 raw bytes, `0600`. Create it with `signing.ServiceKey.create` from the accepted `main` commit. | Carbon operator |
-| Publisher wallet (UID 0, OD-4a) | `~/.bittensor/wallets/carbon-testnet-20260915` | Owner |
-| Publisher wallet password | `~/.local/share/carbon-testnet/secrets/wallet-password` | Owner |
-| Miner UID 1 signing key (OD-7) | `~/.local/share/carbon-testnet/secrets/miner-session-key` | Owner/miner |
-| Model-provider key | `~/.local/share/carbon-testnet/secrets/openai-api-key` | Owner |
-| RunPod API key | `~/.runpod/api_key` (`0600`, directory `0700`) | Owner |
+| Secret | Shape | Who holds it | Used by |
+|---|---|---|---|
+| Validator service key (OD-6) | `/srv/carbon/keys/battery-validator.key`: 32 raw bytes, `0600`, created by `signing.ServiceKey.create` from the accepted `main` commit | Carbon operator | `operate export` (off-chain signing) |
+| Publisher wallet (UID 0) | a bittensor wallet, directory `0700`, files `0600` | Owner | OD-4a dispatch only. It signs with the hotkey; the coldkey is never read. |
+| Miner UID 1 signing key | owner-only file | Owner/miner | OD-7 (not implemented) |
+| Model-provider key | owner-only file | Owner | a paid agent campaign |
+| RunPod API key | `~/.runpod/api_key` (`0600`), the path the repository's RunPod scripts read | Owner | the §4 matrix |
 
 Validators hold **no** hotkey (OD-6). Never copy a wallet into a
 reconstruction container. Never register a replacement identity because a
@@ -304,7 +307,7 @@ The read-only probe compares that exact surface with the live runtime:
 
 ```bash
 uv run --locked --group chain python -m carbon.chain.runtime_probe \
-  --config ~/.local/share/carbon-testnet/development-testnet.json > probe.json
+  --config <live operator config> > probe.json
 ```
 
 - **`COMPATIBLE_USED_SURFACE`:** these are unchanged:
