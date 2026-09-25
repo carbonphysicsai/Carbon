@@ -11,7 +11,8 @@ launch) names the battery Challenge. The shared machinery is used unchanged:
 Only the Challenge-specific parts differ:
 - the composition (`research.make_battery_research_service`);
 - a gateway that authenticates battery requests;
-- the evaluation deployment a submission reaches.
+- the validator daemon a submission reaches (`deployment`), the same one
+  every battery submitter reaches.
 
 The Burgers steps that do not apply are absent rather than stubbed: private
 role generation, committed final-exam seeds and the C-04/C-05 final epoch.
@@ -23,7 +24,6 @@ never run on battery.
 from __future__ import annotations
 
 import json
-import threading
 import time
 from pathlib import Path
 
@@ -39,9 +39,6 @@ REPLICAS = {
     "seed": "Carbon-derived from the evaluation deployment's private root",
 }
 PROVIDER = {"agent": "none", "model_calls": 0}
-
-_DEPLOYMENTS = {}
-_LOCK = threading.Lock()
 
 
 def campaign_challenge(args):
@@ -302,45 +299,72 @@ def is_battery(manifest):
     return (manifest.get("challenge") or {}).get("id") == BATTERY_CHALLENGE
 
 
-def deployment(config_path):
-    """One evaluation deployment per configuration for this process, so its
-    screening pool rotates across every submission it judges."""
-    from .evaluation import EvaluationDeployment
-
-    key = str(Path(config_path).resolve())
-    with _LOCK:
-        if key not in _DEPLOYMENTS:
-            _DEPLOYMENTS[key] = EvaluationDeployment.load(key, repository=REPOSITORY)
-        return _DEPLOYMENTS[key]
+def evaluation_config(prepared):
+    """The operator's validator deployment for this campaign, or None."""
+    return getattr(prepared.args, "battery_validator", None)
 
 
-def evaluate_candidate(prepared, epoch, record):
-    """Submit a frozen battery candidate to the evaluation deployment.
+async def evaluate_candidate(prepared, epoch, record):
+    """Submit a frozen battery candidate to the validator daemon (M3).
 
-    Returns the permitted feedback. Raises `OperationRefused` for an
-    evaluation that did not happen - unconfigured deployment or an
-    infrastructure failure - so the epoch is not consumed and the frozen
-    candidate can be submitted again.
+    The candidate goes the way an external miner's does: a signed
+    `battery_submit` message, authenticated by the battery gateway, admitted
+    and screened by the operator's `BatteryValidator`. Nothing here scores it.
+
+    Returns the permitted feedback. Raises `OperationRefused` when no
+    evaluation happened - no deployment, infrastructure failure, or a queued
+    submission - so the epoch is not consumed; resubmitting the same frozen
+    candidate is the same admission (idempotent), never a second one.
     """
+    import time
+
+    from carbon.development_session import research_tools
     from carbon.development_session.research_campaign import OperationRefused
+    from carbon.transport.models import message
 
-    from .evaluation import EvaluationUnavailable
+    from .daemon import SUBMIT_TOOL, AuthenticatedSubmission
+    from .deployment import EvaluationUnavailable, evaluate, validator
 
-    config = getattr(prepared.args, "battery_evaluation", None)
+    config = evaluation_config(prepared)
     if config is None:
         raise OperationRefused("evaluation_unavailable")
     try:
-        target = deployment(config)
+        target = validator(config, repository=REPOSITORY)
     except EvaluationUnavailable as unavailable:
         raise OperationRefused(unavailable.code) from None
-    with _LOCK:
-        outcome = target.evaluate(
-            prepared.manifest["campaign_id"] + "/epoch-" + str(epoch),
-            record["strategy"],
-            record.get("contract_digest"),
-        )
-    if outcome["status"] == "FAILED_INFRA":
+    sdk = prepared.sdk
+    gateway = sdk.wrapper.gateway
+    snapshot = await sdk.connection.check_registration()
+    body = message(
+        sdk.connection.chain_context,
+        snapshot.snapshot_id,
+        gateway.challenge,
+        session="carbon-autoresearch",
+        request=f"battery-submit-epoch-{epoch}-{time.time_ns()}",
+        tool=SUBMIT_TOOL,
+        fields={
+            "strategy_json": json.dumps(
+                record["strategy"], sort_keys=True, separators=(",", ":")
+            ),
+            # The contract the campaign froze and practiced under; a changed
+            # contract is refused at admission, never silently re-bound.
+            "contract_digest": record.get("contract_digest")
+            or prepared.manifest["contract_digest"],
+        },
+    )
+    headers = research_tools.BittensorMessageSigner(sdk.connection.miner_key).sign(
+        body, receiver=sdk.connection.publisher, nonce_ns=time.time_ns()
+    )
+    received = await gateway.receive(body, headers)
+    submission = AuthenticatedSubmission.from_received(received, gateway)
+    try:
+        outcome = evaluate(target, submission)
+    except EvaluationUnavailable as unavailable:
+        raise OperationRefused(unavailable.code) from None
+    if outcome["state"] == "FAILED_INFRA":
         raise OperationRefused("evaluation_failed_infra")
+    if outcome.get("waiting"):
+        raise OperationRefused("evaluation_queued")
     return {
         "schema": "carbon.battery.permitted-feedback.v1",
         "epoch": epoch,

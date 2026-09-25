@@ -779,7 +779,7 @@ async def submit_candidate(prepared, epoch, strategy):
         )
         return None
     if prepared.challenge is not None:
-        # This Challenge's evaluation deployment judges the candidate; the
+        # This Challenge's validator daemon judges the candidate; the
         # Burgers final epoch never sees it.
         from carbon.battery.campaign import evaluate_candidate
 
@@ -787,7 +787,7 @@ async def submit_candidate(prepared, epoch, strategy):
         record = json.loads((folder / "selected-recipe.json").read_bytes())
         if record["strategy"] != strategy:
             raise ValueError("submitted strategy differs from the frozen candidate")
-        feedback = evaluate_candidate(prepared, epoch, record)
+        feedback = await evaluate_candidate(prepared, epoch, record)
         write_once(folder / "permitted-final-feedback.json", canonical(feedback))
         report(ledger, owner=owner)
         return feedback

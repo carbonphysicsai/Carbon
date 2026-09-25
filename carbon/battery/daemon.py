@@ -69,6 +69,7 @@ from carbon.reconstruction.challenge_contracts import (
 )
 
 from . import exam
+from .calibration import PREPARE_SHA256, SHAPES, frozen_calibration
 from .challenge import (
     CHALLENGE,
     OCV_TABLE_SHA256,
@@ -76,8 +77,8 @@ from .challenge import (
     PublicMaterial,
 )
 from .pool_store import PoolStore, StateError, canonical
+from .research import EVALUATION_FEEDBACK_FIELDS, SCREENING_FEEDBACK_FIELDS
 from .seeds import PrivateBatch, make_batch, reconstruction_seed
-from .shadow import PREPARE_SHA256, SHAPES, frozen_calibration
 from .worker import WorkerFailure
 
 SCHEMA = "carbon.battery.validator-outcome.v1"
@@ -788,6 +789,10 @@ class BatteryValidator:
                 }
                 for f in finals
             ]
+        if set(out) - set(EVALUATION_FEEDBACK_FIELDS) or set(
+            out.get("screening", {})
+        ) - set(SCREENING_FEEDBACK_FIELDS):
+            raise RuntimeError("outcome field outside the disclosure allow-list")
         return out
 
     def _finals_for(self, submission_id):

@@ -5,13 +5,16 @@ An agent works through the same operations every Challenge uses:
 2. it validates, compiles and estimates recipes;
 3. it runs a real practice trial;
 4. it freezes the practiced recipe and submits it;
-5. Carbon rebuilds the recipe and scores it on committed private pools.
+5. the validator daemon admits the signed submission, rebuilds the recipe
+   and screens it on the whole active private pool.
 
 Real here:
 - the signed gateway and research adapter;
 - the durable task provider and the campaign ledger;
 - recipe compilation and JAX training on public TRAIN;
-- exam scoring, the seed journal and the shadow pool.
+- the M3 validator daemon: signed admission, durable pool state, exam
+  screening and the seed journal (its backend in-process, reported as
+  `DIRECT_TRUSTED_PROCESS`; the container path is `test_battery_validator_containers`).
 
 Fixtures here:
 - chain registration and signing, as in the Burgers interoperability tests;
@@ -45,11 +48,12 @@ from test_standard_mcp_cli import (
 )
 
 from carbon import research
-from carbon.battery import seeds
+from carbon.battery import deployment, seeds
 from carbon.battery.challenge import CHALLENGE, INPUTS
 from carbon.battery.research import (
     EVALUATION_FEEDBACK_FIELDS,
     SCAFFOLD,
+    SCREENING_FEEDBACK_FIELDS,
     objective,
 )
 from carbon.development_session.research_control import CampaignControl
@@ -229,17 +233,38 @@ async def practice(adapter, number, recipe):
 
 
 def deployment_config(root, repository_refs):
-    """An operator's evaluation deployment over committed private batches.
+    """An operator's validator deployment (the M3 daemon) with an open pool.
 
-    The batches are four 100-case batches of the campaign's retained private
-    screening references, each with two hidden repeats, committed to a fresh
-    journal under a fresh root before any submission exists.
+    Four 100-case batches of the campaign's retained private screening
+    references, each with two hidden repeats, are committed to a fresh
+    journal under a fresh root before any submission exists, and their
+    references ingested.
+
+    These cases were published with the exam-design campaign, so a real
+    deployment refuses them as hidden cases. The test alone lifts that guard
+    on the loaded daemon object; no configuration field can.
     """
+    from carbon.battery import deployment
+
     folder = root / "evaluation"
     folder.mkdir(mode=0o700)
     private_root = seeds.PrivateRoot.create(folder / "root.bin")
     journal = seeds.SeedJournal(folder / "journal.jsonl")
-    journal.commit_root(private_root, seeds.seed_pin("sha256:g", "sha256:s"))
+    journal.commit_root(
+        private_root, seeds.seed_pin("sha256:" + "a" * 64, "sha256:" + "b" * 64)
+    )
+    config = {
+        "schema": deployment.SCHEMA,
+        "state": str(folder / "state.sqlite3"),
+        "private_root": str(folder / "root.bin"),
+        "journal": str(folder / "journal.jsonl"),
+        "work": str(folder / "work"),
+        "backend": "direct",
+        "require_commitment": False,
+    }
+    private_write(folder / "deployment.json", config)
+    validator = deployment.validator(folder / "deployment.json", repository=REPOSITORY)
+    validator.allow_published_cases = True
     documents = []
     for b in range(4):
         role = f"pscreen-B0{b}"
@@ -252,23 +277,10 @@ def deployment_config(root, repository_refs):
         inputs = dict(cases)
         cases += [(d, inputs[o]) for d, o in repeats]
         batch = seeds.PrivateBatch(role, tuple(cases), tuple(repeats))
-        journal.commit(batch, pool_version=0)
+        fingerprint = validator.import_batch(batch, kind="screening")
+        validator.ingest_references(fingerprint, list(repository_refs.values()))
         documents.append(batch.document())
-    private_write(folder / "batches.json", documents)
-    references = folder / "references.jsonl"
-    references.write_text(
-        "".join(json.dumps(r) + "\n" for r in repository_refs.values())
-    )
-    references.chmod(0o600)
-    config = {
-        "schema": "carbon.battery.evaluation-deployment.v1",
-        "private_root": str(folder / "root.bin"),
-        "journal": str(folder / "journal.jsonl"),
-        "batches": str(folder / "batches.json"),
-        "references": str(references),
-        "results": str(folder / "results.jsonl"),
-    }
-    private_write(folder / "deployment.json", config)
+    validator.open_pool()
     return folder / "deployment.json", documents
 
 
@@ -287,7 +299,6 @@ def screening_refs():
 def test_an_agent_researches_and_submits_battery_through_mcp(
     tmp_path, monkeypatch, screening_refs
 ):
-    from carbon.battery import campaign as battery_campaign_module
     from carbon.development_session.research_campaign import (
         OperationRefused,
         freeze_candidate,
@@ -381,6 +392,7 @@ def test_an_agent_researches_and_submits_battery_through_mcp(
                 manifest=manifest,
                 challenge=CHALLENGE,
                 args=SimpleNamespace(),
+                sdk=adapter._sdk,
             )
             await freeze_candidate(prepared, strategy=KNN, reason="practiced")
             with pytest.raises(OperationRefused) as unavailable:
@@ -388,19 +400,30 @@ def test_an_agent_researches_and_submits_battery_through_mcp(
             assert unavailable.value.code == "evaluation_unavailable"
             assert not (root / "epoch-1" / "permitted-final-feedback.json").exists()
 
+            # The operator's validator daemon: the one battery evaluation path.
+            monkeypatch.setattr(deployment, "_VALIDATORS", {})
             config, documents = deployment_config(tmp_path, screening_refs)
-            prepared.args.battery_evaluation = str(config)
-            monkeypatch.setattr(battery_campaign_module, "_DEPLOYMENTS", {})
+            prepared.args.battery_validator = str(config)
             submitted = await submit_frozen(prepared)
             outcome = submitted["feedback"]["outcome"]
-            assert outcome["status"] == "SCORED"
-            public = outcome["result"]
-            assert set(public) == set(EVALUATION_FEEDBACK_FIELDS)
-            assert public["eligible"] is True and public["reward"] is False
-            assert public["reconstruction"] == {
+            assert outcome["state"] == "SCORED"
+            assert set(outcome) <= set(EVALUATION_FEEDBACK_FIELDS)
+            assert set(outcome["screening"]) == set(SCREENING_FEEDBACK_FIELDS)
+            assert outcome["screening"]["eligible"] is True
+            assert outcome["screening"]["pool_version"] == 0
+            assert outcome["reward"] is False and outcome["qualification"] is False
+            assert outcome["reconstruction"] == {
                 "backend": "DIRECT_TRUSTED_PROCESS",
                 "validator_path": False,
             }
+            # The daemon admitted it as a signed submission from this miner.
+            validator = deployment.validator(config, repository=REPOSITORY)
+            row = validator.store.submission(outcome["submission_id"])
+            # The transport-verified signer (the fixture chain's "miner"),
+            # never a field the miner typed.
+            assert row["hotkey"] == "miner"
+            assert row["binding"]["receipt"]["sequence"] >= 1
+            assert row["binding"]["contract_digest"] == manifest["contract_digest"]
             # Nothing private reached the miner: no private case, input or seed.
             text = json.dumps(submitted)
             for document in documents:

@@ -217,7 +217,7 @@ def score_practice(predictions, practice, material, root="."):
     and the exam agree on what a failure is. There are no hidden duplicates in
     PRACTICE, so the paired-repeat gate has nothing to check here.
     """
-    from .shadow import SHAPES, frozen_calibration
+    from .calibration import SHAPES, frozen_calibration
 
     tol, scales = frozen_calibration(root)
     refs = {r["case_id"]: r for r in practice.records}

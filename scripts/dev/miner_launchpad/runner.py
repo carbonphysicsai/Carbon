@@ -46,10 +46,11 @@ PATH_FIELDS = {
     "miner_password_file",
     "quarantine_journal",
 }
-#: Paths a profile may add. `battery_evaluation` is the operator's battery
-#: evaluation deployment (`carbon.battery.evaluation`); without it a battery
-#: submission is refused as evaluation_unavailable, never scored another way.
-OPTIONAL_PATH_FIELDS = {"battery_evaluation"}
+#: Paths a profile may add. `battery_validator` is the operator's battery
+#: validator deployment (`carbon.battery.deployment`, the M3 daemon); without
+#: it a battery submission is refused as evaluation_unavailable, never scored
+#: another way.
+OPTIONAL_PATH_FIELDS = {"battery_validator"}
 
 PROFILE_FIELDS = {
     "schema",
