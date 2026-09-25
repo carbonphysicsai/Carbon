@@ -8,6 +8,7 @@ the Burgers session; it does not replace training with a test fixture.
 
 from __future__ import annotations
 
+import functools
 import hashlib
 import json
 from dataclasses import dataclass
@@ -325,7 +326,10 @@ class BatteryContracts:
         )
 
 
+@functools.lru_cache(maxsize=1)
 def battery_contracts():
+    """The battery B-02B contracts. Built once per process: every input is
+    fixed by the registry, the authored contracts and the pinned modules."""
     physical, candidate, training = authored_contracts()
     source = semantic("provenance", "prospective_battery_profile")
     unqualified = FixtureAuthoringCapability().issue_origin(

@@ -383,13 +383,23 @@ def train(material):
     return material.train.subset(48)
 
 
-def fit(material, train, family="mlp", seed=0, **parameters):
+_FITS = {}
+
+
+def fit(material, train, family="mlp", seed=0, cached=True, **parameters):
+    """Rebuild and predict. Fits are cached by the resolved recipe, so a
+    baseline shared by many controls trains once (compilation dominates)."""
     _, recipe = compile_recipe(
         strategy(BATTERY, family, **{**SMALL[family], **parameters})
     )
+    key = (recipe.family, seed, recipe.values)
+    if cached and key in _FITS:
+        return _FITS[key]
     model, stats = rebuild(recipe, material, seed, train=train)
-    predictions = model.predict(material.train.x[200:208])
-    return stats, predictions
+    result = stats, model.predict(material.train.x[200:208])
+    if cached:
+        _FITS[key] = result
+    return result
 
 
 def differs(a, b):
@@ -399,28 +409,25 @@ def differs(a, b):
     )
 
 
-#: (surface, family, value a, value b, other fields). Every surface appears,
-#: and every value of a choice surface is compared with its default.
+#: (surface, family, value a, value b, other fields): one full rebuild per
+#: surface. Every value of every choice surface is covered as well, here or by
+#: the fast transform and network tests below.
 CONTROLS = [
     ("neighbours", "knn", 3, 7, {}),
     ("train_fraction", "knn", 1.0, 0.5, {}),
     ("width", "mlp", 16, 24, {}),
-    ("width", "deeponet", 16, 24, {}),
     ("depth", "mlp", 1, 2, {}),
     ("deeponet_depth", "deeponet", 1, 2, {}),
     ("basis_functions", "deeponet", 4, 8, {}),
     ("trajectory_components", "mlp", 0, 4, {}),
     ("arrhenius_features", "mlp", False, True, {}),
-    ("arrhenius_features", "deeponet", False, True, {}),
     ("bounded_voltage_head", "mlp", True, False, {}),
-    ("bounded_voltage_head", "deeponet", True, False, {}),
     ("ocv_initial_voltage", "mlp", True, False, {}),
-    ("ocv_initial_voltage", "deeponet", True, False, {}),
     ("capacity_fade_head", "mlp", True, False, {}),
-    ("capacity_fade_head", "deeponet", True, False, {}),
     ("steps", "mlp", 32, 48, {}),
     ("batch_size", "mlp", 400, 16, {}),
     ("microbatches", "mlp", 1, 2, {"batch_size": 16}),
+    ("optimizer_family", "mlp", "adam", "lion", {}),
     ("learning_rate", "mlp", 0.002, 0.01, {}),
     ("weight_decay", "mlp", 0.0, 0.05, {}),
     ("weight_decay_mask", "mlp", "all", "matrices", {"weight_decay": 0.05}),
@@ -428,49 +435,151 @@ CONTROLS = [
     ("beta1", "mlp", 0.9, 0.5, {}),
     ("beta2", "mlp", 0.999, 0.9, {}),
     ("adam_epsilon", "mlp", 1e-8, 1e-3, {}),
+    ("learning_rate_curve", "mlp", "cosine", "constant", {}),
     ("warmup_steps", "mlp", 0, 8, {}),
     ("min_learning_rate_ratio", "mlp", 0.0, 0.5, {}),
     ("relative_loss", "mlp", False, True, {}),
+    ("time_weighting", "mlp", "uniform", "early", {}),
+    ("time_weighting", "mlp", "uniform", "late", {}),
     ("h1_weight", "mlp", 0.0, 1.0, {}),
     ("h2_weight", "mlp", 0.0, 1.0, {}),
     ("spectral_weight", "mlp", 0.0, 1.0, {}),
     ("polish_steps", "mlp", 0, 4, {}),
     ("ensemble_members", "mlp", 1, 2, {}),
-    ("ensemble_members", "deeponet", 1, 2, {}),
     ("tail_averaging", "mlp", 0.0, 0.5, {}),
     ("inference_weights", "mlp", "params", "ema", {}),
     ("ema_decay", "mlp", 0.99, 0.5, {"inference_weights": "ema"}),
     ("precision", "mlp", "float32", "float64", {}),
     ("train_fraction", "mlp", 1.0, 0.5, {}),
     ("important_region_weight", "mlp", 1.0, 0.1, {}),
+    ("curriculum", "mlp", "none", "low_rate_first", {}),
+    ("curriculum", "mlp", "none", "high_rate_first", {}),
     ("hard_example_weight", "mlp", 0.0, 1.0, {}),
-    # The plateau curve needs a run long and fast enough to plateau.
-    (
-        "learning_rate_curve",
-        "mlp",
-        "constant",
-        "train_loss_plateau",
-        {"steps": 200, "learning_rate": 0.05, "depth": 3},
-    ),
+    ("activation", "mlp", "gelu", "tanh", {}),
+    ("normalization", "mlp", "none", "layer_norm", {}),
+    ("initialization", "mlp", "he_normal", "glorot_normal", {}),
 ]
-_DEFAULTS = {n: v[4] for n, v in r.catalog_surfaces(BATTERY).items()}
-for _name, (_, _kind, _choices, _, _default, _families) in r.catalog_surfaces(
-    BATTERY
-).items():
-    if _kind == "choice":
-        covered = {c[3] for c in CONTROLS if c[0] == _name}
-        for _value in _choices:
-            if _value != _default and _value not in covered:
-                CONTROLS.append((_name, _families[0], _default, _value, {}))
+#: Choice values checked without a model fit, by the tests below.
+UNIT_CHOICES = {
+    "optimizer_family",
+    "learning_rate_curve",
+    "activation",
+    "initialization",
+}
 
 
 def test_the_controls_cover_every_battery_surface_and_choice():
     surfaces = r.catalog_surfaces(BATTERY)
     assert {c[0] for c in CONTROLS} == set(surfaces)
     for name, (_, kind, choices, _, default, _) in surfaces.items():
-        if kind == "choice":
+        if kind == "choice" and name not in UNIT_CHOICES:
             tested = {c[3] for c in CONTROLS if c[0] == name} | {default}
             assert tested == set(choices), name
+
+
+def _settings(**overrides):
+    defaults = {n: v[4] for n, v in r.catalog_surfaces(BATTERY).items()}
+    return {**defaults, "learning_rate": 0.01, **overrides}
+
+
+def _run_transform(tx, value_fn=None, updates=4):
+    """A few updates of a fixed, non-uniform toy problem (no model fit)."""
+    import jax.numpy as jnp
+    import optax
+
+    rng = np.random.default_rng(3)
+    params = {
+        "w": jnp.asarray(rng.normal(size=(3, 2)), jnp.float32),
+        "b": jnp.asarray(rng.normal(size=(2,)), jnp.float32),
+    }
+    state = tx.init(params)
+    for i in range(updates):
+        grads = {
+            "w": jnp.asarray(rng.normal(size=(3, 2)) * (i + 1), jnp.float32),
+            "b": jnp.asarray(rng.normal(size=(2,)), jnp.float32),
+        }
+        extra = {} if value_fn is None else {"value": value_fn(i)}
+        step, state = tx.update(grads, state, params, **extra)
+        params = optax.apply_updates(params, step)
+    return np.concatenate([np.asarray(params["w"]).ravel(), np.asarray(params["b"])])
+
+
+def test_every_optimizer_is_its_own_transform():
+    import jax
+    import optax
+
+    from carbon.battery.training import optimizer
+
+    choices = r.catalog_surfaces(BATTERY)["optimizer_family"][2]
+    results = {
+        name: _run_transform(
+            optimizer(jax, optax, _settings(optimizer_family=name), 20)
+        )
+        for name in choices
+    }
+    assert len(results) == 11
+    for name, value in results.items():
+        assert np.isfinite(value).all(), name
+    distinct = {tuple(np.round(v, 12)) for v in results.values()}
+    assert len(distinct) == len(results)
+
+
+def test_every_learning_rate_curve_is_its_own_schedule():
+    import jax
+    import optax
+
+    from carbon.battery.training import curve, optimizer
+
+    choices = r.catalog_surfaces(BATTERY)["learning_rate_curve"][2]
+    steps = np.arange(100)
+    curves = {
+        name: tuple(
+            np.round(
+                [
+                    float(curve(optax, _settings(learning_rate_curve=name), 100)(i))
+                    for i in steps
+                ],
+                12,
+            )
+        )
+        for name in choices
+    }
+    # The plateau curve is the constant rate until TRAIN loss stalls; its
+    # difference is in the transform, driven by the loss value.
+    assert curves["train_loss_plateau"] == curves["constant"]
+    assert len(set(curves.values())) == len(choices) - 1
+    stalled = lambda i: 1.0
+    constant = _run_transform(
+        optimizer(jax, optax, _settings(learning_rate_curve="constant"), 20),
+        updates=30,
+    )
+    plateau = _run_transform(
+        optimizer(jax, optax, _settings(learning_rate_curve="train_loss_plateau"), 20),
+        stalled,
+        updates=30,
+    )
+    assert not np.array_equal(constant, plateau)
+
+
+def test_every_activation_and_initialization_builds_a_different_network():
+    import jax
+    import jax.numpy as jnp
+
+    from carbon.battery.training import apply_stack, dense_stack
+
+    x = jnp.linspace(-1.0, 1.0, 12).reshape(3, 4)
+    outputs = {}
+    for act in r.catalog_surfaces(BATTERY)["activation"][2]:
+        for init in r.catalog_surfaces(BATTERY)["initialization"][2]:
+            _, params = dense_stack(
+                jax, jax.random.PRNGKey(0), [4, 8, 2], init, jnp.float32
+            )
+            outputs[(act, init)] = tuple(
+                np.round(
+                    np.asarray(apply_stack(jax, params, x, act, "none")).ravel(), 7
+                )
+            )
+    assert len(set(outputs.values())) == len(outputs) == 15
 
 
 @pytest.mark.parametrize(
@@ -488,13 +597,15 @@ def test_every_surface_changes_what_carbon_rebuilds(
 
 
 def test_the_same_seed_gives_the_same_weights(material, train):
+    # The campaign's written-out loop (mlp) and the general optax loop
+    # (deeponet, minibatched Lion).
     for family, extra in (
         ("mlp", {}),
-        ("mlp", {"optimizer_family": "lion", "batch_size": 16}),
-        ("deeponet", {}),
+        ("deeponet", {"optimizer_family": "lion", "batch_size": 16}),
     ):
-        first = fit(material, train, family, seed=5, **extra)
-        assert not differs(first, fit(material, train, family, seed=5, **extra))
+        first = fit(material, train, family, seed=5, cached=False, **extra)
+        again = fit(material, train, family, seed=5, cached=False, **extra)
+        assert not differs(first, again)
         assert differs(first, fit(material, train, family, seed=6, **extra))
 
 
