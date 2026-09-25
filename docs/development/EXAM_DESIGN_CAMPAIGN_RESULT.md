@@ -266,8 +266,22 @@ never separated.
 
 **Three seeds are diagnostic, not a reliability guarantee.**
 
-The GPU re-reconstruction (same 19 fits, `JAX_PLATFORMS=cuda`) is reported in §9
-when it completes.
+**GPU re-reconstruction** (pod `ripykoc913imwx`; same 19 fits,
+`JAX_PLATFORMS=cuda`, pinned XLA; recorded in `backend_comparison.json`):
+
+- **Same-seed repeats are bit-identical on the GPU** too, for `mlp` and
+  `mlp_plus`: parameters and predictions.
+- **GPU and CPU reconstructions are *not* bit-identical.** Their parameters
+  differ, and single-sample voltage predictions differ by up to 20 mV for some
+  models.
+- **The exam does not notice the difference.**
+  - Fresh-case scores agree within **0.4 %**.
+  - Eligibility is unchanged (`mlp_raw` is still rejected).
+  - **Every frozen verification decision is identical** on both backends.
+- **So the backend changes the numerics, not the exam's decisions, in this
+  campaign.** A validator must still pin and record the backend, because the
+  prediction bytes differ.
+- **Cost:** GPU fits take **3–12 s**, against 41–106 s on the CPU backend.
 
 ## 6. Rotation behaviour
 
@@ -308,12 +322,13 @@ These are measured on one A40 Secure pod at USD 0.49/hr, 7.65 CPUs.
 |---|---|---|
 | Reference case (30 cycles) | 71 s median per worker, 7 workers; 1,004 cases in 176 pod-min including boot | **USD 0.0014 / case** |
 | Refined reference | about 240 s | about USD 0.005 |
-| Reconstruction (CPU backend, one recipe) | 41–106 s (median 80 s) while sharing the pod | about USD 0.011 at the full pod rate |
+| Reconstruction, GPU backend (one recipe) | **3–12 s** (median about 5 s) on the A40 | **about USD 0.001** at the full pod rate |
+| Reconstruction, CPU backend (the frozen results) | 41–106 s (median 80 s) while sharing the pod | about USD 0.011 |
 | Inference, stored model on a new batch | about 5 ms per 200 cases | negligible |
 | Gates + score | 0.04 s per 600 cases (local) | negligible |
-| **Screening one submission** (batch 100, pool 300) | one reconstruction + inference + scoring | **≈ USD 0.011** |
+| **Screening one submission** (batch 100, pool 300) | one GPU reconstruction + inference + scoring | **≈ USD 0.001** (USD 0.011 on the CPU backend) |
 | **Batch build** | 100 references | **USD 0.14**, amortized over 3 submissions = USD 0.047 |
-| **Finalist comparison** | 2 reconstructions + 200 fresh references + inference | **≈ USD 0.31** |
+| **Finalist comparison** | 2 reconstructions + 200 fresh references + inference | **≈ USD 0.29**, dominated by the fresh references |
 
 At the chosen setting, 6 of 18 scripted submissions were nominated, and 3 of
 those were adversarial pool leaks.
@@ -323,15 +338,15 @@ those were adversarial pool leaks.
 These are traffic assumptions, not measurements.
 
 **Fee components:**
-- screening: USD 0.011;
+- screening: USD 0.001 on the GPU backend;
 - batch amortization: USD 0.047;
 - nomination probability × finalist cost;
 - pod overhead (boot, idle, failed jobs): +50 %.
 
 | Assumed nomination rate | Estimated fee |
 |---|---|
-| 10 % | ≈ **USD 0.14** |
-| 33 % (as in this replay) | ≈ **USD 0.25** |
+| 10 % | ≈ **USD 0.12** |
+| 33 % (as in this replay) | ≈ **USD 0.22** |
 
 This covers compute only, with no operator margin, and fee policy is
 owner-reserved. **Fees never enter the score.**
@@ -374,7 +389,7 @@ owner-reserved. **Fees never enter the score.**
    `validator_launch`; the isolation acceptance is still owed.
 3. **Secrecy.** The private root lived in a container home directory, and its
    revealed-after-use protocol is not yet an official seed service.
-4. **GPU reconstruction** was not the path used for the frozen results (§5, §9).
+4. **Backend pinning.** The frozen results used the CPU backend. GPU reconstruction reproduces every decision, but not the bytes (§5), so a validator must pin and record the backend.
 5. **Adaptive miners** are unmeasured. Rare-event false-promotion rates cannot be
    bounded by a campaign this size.
 6. **Duplicates in every private set.** Every private evaluation set needs hidden
