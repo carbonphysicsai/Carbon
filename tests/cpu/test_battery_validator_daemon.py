@@ -15,6 +15,7 @@ truth solves or GPU execution.
 
 import json
 from pathlib import Path
+from typing import ClassVar
 
 import pytest
 
@@ -67,14 +68,14 @@ class Counting(DirectBackend):
 
     def reconstruct(self, identity, recipe, seed):
         if self.fail and self.fail[0] == "reconstruct":
-            kind, candidate = self.fail
+            _, candidate = self.fail
             self.fail = None
             raise WorkerFailure("injected", candidate=candidate)
         return super().reconstruct(identity, recipe, seed)
 
     def infer(self, identity, state, inputs):
         if self.fail and self.fail[0] == "infer":
-            kind, candidate = self.fail
+            _, candidate = self.fail
             self.fail = None
             raise WorkerFailure("injected", candidate=candidate)
         return super().infer(identity, state, inputs)
@@ -406,7 +407,10 @@ def test_changed_identities_are_refused_on_restart(tmp_path, refs, backend):
     make(tmp_path, refs, backend)
 
     class Other(Counting):
-        identity = {"backend": "ISOLATED_CARRIER", "validator_path": True}
+        identity: ClassVar[dict] = {
+            "backend": "ISOLATED_CARRIER",
+            "validator_path": True,
+        }
 
     with pytest.raises(StateError) as refused:
         make(tmp_path, refs, Other(REPOSITORY))
