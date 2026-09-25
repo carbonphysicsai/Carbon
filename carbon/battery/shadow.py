@@ -44,6 +44,9 @@ SHAPES = {
     "capacity_ah": (len(CAPACITY_CYCLES),),
 }
 PUBLIC_SCHEMA = "carbon.battery.shadow-result.public.v1"
+#: A rebuild in the scoring process itself: fresh model, Carbon's seed, pinned
+#: TRAIN, but not the validator's isolated reconstruction worker.
+DIRECT_RECONSTRUCTION = {"backend": "DIRECT_TRUSTED_PROCESS", "validator_path": False}
 
 
 def frozen_calibration(root="."):
@@ -103,9 +106,15 @@ class ShadowPool:
         self.bank = exam.PredictionBank()
         self.material = material
 
-    def score(self, submission_id, strategy, contract_digest, seed):
+    def score(
+        self, submission_id, strategy, contract_digest, seed, *, reconstruction=None
+    ):
         """Admit, rebuild and score one submission; returns the internal
-        record and its public projection."""
+        record and its public projection.
+
+        `reconstruction` names how the rebuild actually ran. It defaults to
+        this process, and the record says so: a direct rebuild is never
+        reported as the validator's isolated reconstruction path."""
         admitted = compile_submission(strategy, contract_digest=contract_digest)
         recipe = admitted.construction
         model, stats = rebuild(recipe, self.material, seed)
@@ -126,6 +135,7 @@ class ShadowPool:
             "contract_digest": admitted.contract_digest,
             "params_sha256": stats["params_sha256"],
             "seed": seed,
+            "reconstruction": dict(reconstruction or DIRECT_RECONSTRUCTION),
         }
         return internal, public_projection(internal, self.committed)
 
@@ -153,6 +163,10 @@ def public_projection(internal, committed):
             "scored": int(internal["n_scored"]),
             "reference_invalid": int(internal["n_reference_invalid"]),
             "failed_infra": int(internal["n_failed_infra"]),
+        },
+        "reconstruction": {
+            "backend": str(internal["reconstruction"]["backend"]),
+            "validator_path": bool(internal["reconstruction"]["validator_path"]),
         },
         "evidence": "DEVELOPMENT_SHADOW",
         "rule": exam.DEVELOPMENT_RULE["status"],

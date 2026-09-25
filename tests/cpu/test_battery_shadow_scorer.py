@@ -20,6 +20,7 @@ import pytest
 
 from carbon.battery import seeds, shadow
 from carbon.battery.challenge import INPUTS, PublicMaterial
+from carbon.battery.research import EVALUATION_FEEDBACK_FIELDS
 from carbon.reconstruction import capability_registry as r
 from carbon.reconstruction.challenge_contracts import SubmissionRefused
 
@@ -38,6 +39,7 @@ PUBLIC_KEYS = {
     "important_score",
     "gates_failed",
     "cases",
+    "reconstruction",
     "evidence",
     "rule",
     "qualification",
@@ -133,7 +135,12 @@ def test_scoring_rotation_and_disclosure(pool, campaign):
             f"sub-{i}", strategy(backbone, **params), digest, 7
         )
         results.append((internal, public))
-        assert set(public) == PUBLIC_KEYS
+        assert set(public) == PUBLIC_KEYS == set(EVALUATION_FEEDBACK_FIELDS)
+        # A direct rebuild never claims the validator's reconstruction path.
+        assert public["reconstruction"] == {
+            "backend": "DIRECT_TRUSTED_PROCESS",
+            "validator_path": False,
+        }
         assert public["eligible"] is True and public["qualification"] is False
         assert public["reward"] is False
     # Every duplicate of the active batches was inside what was scored.

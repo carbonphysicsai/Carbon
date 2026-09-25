@@ -67,7 +67,7 @@ def digest(value):
 
 
 #: Every module whose bytes determine what a battery recipe rebuilds.
-IMPLEMENTATION_MODULES = ("recipes.py", "training.py")
+IMPLEMENTATION_MODULES = ("domain.py", "recipes.py", "training.py")
 
 
 def implementation_digest():

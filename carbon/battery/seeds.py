@@ -177,6 +177,23 @@ class PrivateBatch:
             "duplicates": dict(self.duplicates),
         }
 
+    @staticmethod
+    def from_document(document):
+        """A batch from its own `document()`; the fingerprint then matches
+        only if every case, input and duplicate is exactly as committed."""
+        if document.get("schema") != FINGERPRINT_SCHEMA or document.get(
+            "challenge"
+        ) != [CHALLENGE.challenge_id, CHALLENGE.version]:
+            raise ValueError("not a battery private batch document")
+        return PrivateBatch(
+            document["role"],
+            tuple(
+                (c["case_id"], tuple(sorted(c["inputs"].items())))
+                for c in document["cases"]
+            ),
+            tuple(document["duplicates"].items()),
+        )
+
     @property
     def fingerprint(self):
         return (
@@ -215,6 +232,17 @@ def make_batch(root, pin, role, count, duplicates=2):
         tuple((c, tuple(sorted(x.items()))) for c, x in cases),
         tuple((dup, orig) for dup, (orig, _) in twins),
     )
+
+
+def reconstruction_seed(root, submission_id):
+    """Carbon's reconstruction seed for one submission: derived from the
+    private root, so no miner can choose or predict it."""
+    if type(root) is not PrivateRoot:
+        raise TypeError("an operator-held PrivateRoot is required")
+    tag = hmac.new(
+        root._bytes, b"reconstruction/" + submission_id.encode(), hashlib.sha256
+    ).digest()
+    return int.from_bytes(tag[:4], "big")
 
 
 @dataclass(frozen=True)
@@ -277,6 +305,33 @@ class SeedJournal:
             }
         )
         return CommittedBatch(batch, batch.fingerprint, entry["sequence"], _COMMITTED)
+
+    def recall(self, batch):
+        """The `CommittedBatch` for a batch committed earlier, regenerated from
+        its root. Refused unless this exact fingerprint is already in the
+        journal: recall never commits, so it cannot bypass commit-before-use."""
+        if type(batch) is not PrivateBatch:
+            raise TypeError("a PrivateBatch is required")
+        for entry in self._entries():
+            if entry["kind"] == "batch" and entry["fingerprint"] == batch.fingerprint:
+                return CommittedBatch(
+                    batch, batch.fingerprint, entry["sequence"], _COMMITTED
+                )
+        raise ValueError("this batch was never committed")
+
+    def retired(self):
+        """Fingerprints of every retired batch."""
+        return {e["fingerprint"] for e in self._entries() if e["kind"] == "retire"}
+
+    def root_pin(self, root):
+        """The seed pin committed with this root; refused for another root."""
+        for entry in self._entries():
+            if (
+                entry["kind"] == "root"
+                and entry["root_commitment"] == root.commitment()
+            ):
+                return entry["seed_pin"]
+        raise ValueError("this root was never committed")
 
     def retire(self, committed):
         return self._append({"kind": "retire", "fingerprint": committed.fingerprint})
