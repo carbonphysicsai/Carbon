@@ -113,4 +113,4 @@ autonomous agent.
   policy details remain open.
 - Truth solves run in the pinned truth image on a host. Tests use the
   exam-design campaign's retained references.
-- The executable host handoff is `.agent/plans/BATTERY_TESTNET_HOST_HANDOFF.md`.
+- The executable host handoff is `docs/development/BATTERY_TESTNET_HOST_HANDOFF.md`.
