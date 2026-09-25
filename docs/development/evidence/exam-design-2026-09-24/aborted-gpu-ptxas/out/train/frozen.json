@@ -1,0 +1,17 @@
+[
+ {
+  "tag": "knn",
+  "recipe": "knn",
+  "seed": 0,
+  "n_train": 400,
+  "status": "FROZEN",
+  "jax_backend": "gpu",
+  "config": {
+   "name": "knn",
+   "k": 5
+  },
+  "seconds": 0.0,
+  "params_sha256": "2ef2fa011ff1bc3a6b5026249a4534efc3e8413e6e5f181fe4a6d593db36aa01",
+  "fit_wall_s": 0.002339884638786316
+ }
+]

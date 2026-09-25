@@ -1,0 +1,40 @@
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/tmp/carbon/scripts/dev/exam_design/runner.py", line 321, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/tmp/carbon/scripts/dev/exam_design/runner.py", line 316, in main
+    return train_phase.run(cfg, a.out)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/carbon/scripts/dev/exam_design/train_phase.py", line 59, in run
+    stats = m.fit(d, structure, seed=r["seed"])
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/carbon/scripts/dev/exam_design/recipes.py", line 276, in fit
+    compiled = train.lower(params, f, z).compile()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/stages.py", line 592, in compile
+    return Compiled(self._lowering.compile(**kw), self._lowering.const_args,
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/interpreters/pxla.py", line 1239, in compile
+    executable = UnloadedMeshExecutable.from_hlo(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/interpreters/pxla.py", line 1733, in from_hlo
+    xla_executable = _cached_compilation(
+                     ^^^^^^^^^^^^^^^^^^^^
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/interpreters/pxla.py", line 1516, in _cached_compilation
+    xla_executable = compiler.compile_or_get_cached(
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/compiler.py", line 422, in compile_or_get_cached
+    return backend_compile_and_load(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/profiler.py", line 420, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/compiler.py", line 363, in backend_compile_and_load
+    raise e
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/compiler.py", line 353, in backend_compile_and_load
+    return backend.compile_and_load(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+jax.errors.JaxRuntimeError: INTERNAL: ptxas exited with non-zero error code 65280, output: ptxas fatal   : Could not open output file '/scratch/tmp/tmpxft_000001c0_0000000a'
+

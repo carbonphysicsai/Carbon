@@ -1,0 +1,1 @@
+{"phase": "multi", "children": {"train": {"phase": "train", "total": 19, "done": 1}, "photonic_refs": {"phase": "photonic_refs", "total": 6, "index": 5, "done": {"REFERENCE_SOLVER_FAILED": 5}, "elapsed_s": 63.3}}}

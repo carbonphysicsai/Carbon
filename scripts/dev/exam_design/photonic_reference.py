@@ -176,7 +176,11 @@ def solve_case(case: dict, refined: bool = False, wavelengths=None, progress=Non
                 if progress:
                     progress(rec)
     except Exception as e:
-        rec.update(status="REFERENCE_SOLVER_FAILED", error=repr(e)[:400], wall_s=time.perf_counter() - t0, S=S)
+        msg = repr(e)
+        # Toolchain/resource faults (GPU compiler, allocation) are infrastructure, never a reference failure.
+        infra = any(k in msg for k in ("ptxas", "RESOURCE_EXHAUSTED", "CUDA_ERROR", "Could not open output file"))
+        rec.update(status="FAILED_INFRA" if infra else "REFERENCE_SOLVER_FAILED", error=msg[:400],
+                   wall_s=time.perf_counter() - t0, S=S)
         return rec
     rec.update(status="OK", S=S, wall_s=time.perf_counter() - t0)
     try:

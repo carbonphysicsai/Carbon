@@ -168,6 +168,11 @@ def main():
         env.setdefault("OMP_NUM_THREADS", "1")
         env.setdefault("OPENBLAS_NUM_THREADS", "1")
         env["MPLCONFIGDIR"] = "/tmp/mpl"
+        # The image points TMPDIR at /scratch/tmp, which is not writable; JAX's GPU compiler (ptxas) writes its
+        # temporaries there and every GPU compile failed on the first GPU pod. Only /tmp is writable.
+        os.makedirs("/tmp/tmpdir", exist_ok=True)
+        for var in ("TMPDIR", "TMP", "TEMP"):
+            env[var] = "/tmp/tmpdir"
         with open(os.path.join(OUT, "phase.log"), "wb") as log:
             rc = subprocess.run([sys.executable, "-m", "scripts.dev.exam_design.runner", PHASE, "--out", OUT],
                                 cwd=ROOT, env=env, stdout=log, stderr=subprocess.STDOUT).returncode
