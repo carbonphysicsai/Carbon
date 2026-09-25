@@ -85,11 +85,12 @@ KNN = strategy("knn", neighbours=6)
 SMALL_MLP = strategy("mlp", steps=120, width=32, depth=2)
 
 
-def battery_campaign(root, monkeypatch):
+def battery_campaign(root, monkeypatch, agent="none", budget=None):
     """A registration-admitted product campaign bound to battery."""
     from test_miner_launchpad_runner import registered
 
     import carbon.chain.auth
+    from carbon.battery.campaign import provider_plan
     from carbon.development_session import research_tools
     from scripts.dev.miner_launchpad.runner import PATH_FIELDS
 
@@ -121,7 +122,7 @@ def battery_campaign(root, monkeypatch):
         "owner": owner,
         "runtime": runtime,
         "admission": registered().record(),
-        "agent": "none",
+        "agent": agent,
         "challenge": {"id": BATTERY, "version": CHALLENGE.version},
         "contract_digest": registry.contract_digest(BATTERY),
         "implementation": runtime["implementation"],
@@ -131,7 +132,8 @@ def battery_campaign(root, monkeypatch):
         "control": SCAFFOLD,
         "selection": {"rule": "fixture"},
         "replica_policy": {"reconstructions_per_submission": 1},
-        "provider": {"agent": "none", "model_calls": 0},
+        "provider": provider_plan(agent, budget),
+        **(budget or {}),
     }
     ledger = CampaignLedger(campaign)
     ledger.freeze(manifest)
@@ -481,3 +483,213 @@ def test_the_battery_gateway_refuses_another_challenges_request(tmp_path, monkey
     finally:
         asyncio.run(adapter.shutdown_tasks())
         composition.tasks.close()
+
+
+AGENT_BUDGET = {
+    "ceilings": {
+        "provider_attempts": 12,
+        "provider_nanodollars": 12 * 20480000,
+        "research_trials": 4,
+    }
+}
+
+
+def test_carbons_agent_researches_battery_through_the_same_path(
+    tmp_path, monkeypatch, screening_refs
+):
+    """Carbon's autonomous agent on battery, driven by a scripted provider.
+
+    Deterministic client acceptance: the provider is a fixed script, so this
+    shows the agent's control flow, records and disclosure - it is not a real
+    model-driven session and says nothing about research quality. The agent
+    has the miner's operations only; its selection is submitted as a signed
+    battery_submit to the same validator daemon.
+    """
+    from carbon.development_session.agent import MODEL
+    from carbon.development_session.research_agent_policy import (
+        AUTONOMOUS,
+        CHALLENGE_PROMPT,
+        STOP,
+    )
+    from carbon.development_session.research_campaign import run_agent
+    from carbon.development_session.research_loop import SELECT
+    from carbon.development_session.research_tools import PREFIX
+
+    path, ledger, owner, connection, manifest = battery_campaign(
+        tmp_path, monkeypatch, agent="autonomous", budget=AGENT_BUDGET
+    )
+    assert manifest["provider"]["agent"] == "autonomous"
+    assert manifest["provider"]["evaluator_access"] is False
+    composition, _wrapper, adapter = adapter_for(path, ledger, owner, connection)
+    monkeypatch.setattr(deployment, "_VALIDATORS", {})
+    config, documents = deployment_config(tmp_path, screening_refs)
+
+    def task(kind, *, strategy=None, action=None, arguments=None, why):
+        return (
+            PREFIX + "start_research_task",
+            {
+                "kind": kind,
+                "strategy_json": None if strategy is None else json.dumps(strategy),
+                "action": action,
+                "arguments_json": None if arguments is None else json.dumps(arguments),
+                "hypothesis": why,
+                "expected_effect": "an observation that decides the next step",
+            },
+        )
+
+    unsupported = strategy("fno", width=32)
+    script = [
+        (PREFIX + "get_challenge_info", {}),
+        task(
+            "workspace",
+            action="check_design",
+            arguments={"design": {"strategy": unsupported}},
+            why="An FNO is not a battery family",
+        ),
+        task(
+            "workspace",
+            action="capability_request",
+            arguments={
+                "request": {
+                    "purpose": "try a spectral operator on the trajectories",
+                    "operation": "rebuild an FNO recipe",
+                    "hypothesis": "spectral mixing helps the voltage tail",
+                    "public_evidence": "none yet",
+                    "reason": "missing_adapter",
+                    "expected_benefit": "unknown",
+                    "estimated_cost": "one practice",
+                    "minimal_safe_design": "declarative family in the JAX runtime",
+                    "verification": "practice diagnostics",
+                }
+            },
+            why="Record the unsupported capability instead of disguising it",
+        ),
+        task("practice", strategy=KNN, why="Neighbours interpolate the smooth map"),
+        (
+            SELECT,
+            {
+                "strategy_json": json.dumps(KNN),
+                "reason": "practiced, eligible; the only measured recipe",
+                "used_feedback": False,
+            },
+        ),
+        (
+            STOP,
+            {
+                "reason": "plateau",
+                "evidence": "one measured recipe; no hypothesis worth a trial",
+                "used_feedback": True,
+            },
+        ),
+    ]
+    requests = []
+
+    def transport(request):
+        requests.append(request)
+        name, arguments = script[len(requests) - 1]
+        return {
+            "model": MODEL,
+            "status": "completed",
+            "output": [
+                {
+                    "type": "function_call",
+                    "name": name,
+                    "call_id": f"scripted-{len(requests)}",
+                    "arguments": json.dumps(arguments),
+                }
+            ],
+            "usage": {
+                "input_tokens": 1000,
+                "output_tokens": 100,
+                "input_tokens_details": {"cached_tokens": 0},
+                "output_tokens_details": {"reasoning_tokens": 0},
+            },
+        }
+
+    prepared = SimpleNamespace(
+        ledger=ledger,
+        owner=owner,
+        agent="autonomous",
+        manifest=manifest,
+        challenge=CHALLENGE,
+        args=SimpleNamespace(api_key_file=None, battery_validator=str(config)),
+        sdk=adapter._sdk,
+        grant=None,
+        task=None,
+        agent_policy=AUTONOMOUS,
+    )
+
+    async def scenario():
+        try:
+            await run_agent(prepared, transport=transport)
+        finally:
+            await adapter.shutdown_tasks()
+            composition.tasks.close()
+
+    asyncio.run(scenario())
+    root = ledger.root
+    assert len(requests) == len(script)
+    # Challenge-aware: the battery prompt and battery's own discovery.
+    assert requests[0]["instructions"] == CHALLENGE_PROMPT
+    first = json.loads(requests[0]["input"][0]["content"])
+    assert first["challenge"]["challenge_id"] == BATTERY
+    plan = json.loads((root / "epoch-1" / "plan.json").read_bytes())
+    assert plan["agent_policy"]["challenge"]["id"] == BATTERY
+    # Epoch 1: the agent's selection was scored by the validator daemon.
+    feedback = json.loads(
+        (root / "epoch-1" / "permitted-final-feedback.json").read_bytes()
+    )
+    assert feedback["outcome"]["state"] == "SCORED"
+    assert set(feedback["outcome"]) <= set(EVALUATION_FEEDBACK_FIELDS)
+    # Epoch 2 saw only that allow-listed outcome, then stopped by itself.
+    second = json.loads(requests[-1]["input"][0]["content"])
+    assert second["prior_permitted_evaluation_feedback"] == feedback
+    stopped = json.loads((root / "epoch-2" / "outcome.json").read_bytes())
+    assert stopped["status"] == "STOPPED" and "plateau" in stopped["reason"]
+    assert (root / "campaign-complete.json").exists()
+    # Recorded: hypotheses, the capability request, every tool action.
+    with ledger.db() as db:
+        kinds = [row[0] for row in db.execute("SELECT kind FROM notes")]
+    assert "hypothesis" in kinds and "capability_request" in kinds
+    results = sorted((root / "epoch-1").glob("epoch-1-tool-*-result.json"))
+    assert len(results) == 5
+    states = [
+        json.loads(r.read_bytes()).get("terminal_task", {}).get("state")
+        for r in results[1:4]
+    ]
+    assert states == ["SUCCEEDED", "SUCCEEDED", "SUCCEEDED"]
+    # Metered against the campaign's own finite budget.
+    used = ledger.status(owner=owner)["used"]
+    assert used["provider_attempts"] == len(script)
+    assert used["research_trials"] == 1
+    # Nothing private anywhere the agent or miner can read: scan every file.
+    private = {c["case_id"] for d in documents for c in d["cases"]}
+    for file in root.rglob("*"):
+        if file.is_file() and file.suffix in {".json", ".jsonl", ".txt"}:
+            text = file.read_text(errors="replace")
+            assert not any(case in text for case in private), file
+
+
+def test_a_battery_agent_needs_a_finite_budget_and_the_autonomous_policy():
+    from carbon.battery.campaign import provider_plan
+    from carbon.development_session.research_agent_policy import (
+        AUTONOMOUS,
+        LEGACY,
+        prompt_for,
+    )
+
+    assert provider_plan("none", None) == {"agent": "none", "model_calls": 0}
+    for budget in (None, {}, {"ceilings": {"provider_attempts": 3}}):
+        with pytest.raises(ValueError, match="finite provider"):
+            provider_plan("autonomous", budget)
+    plan = provider_plan("autonomous", AGENT_BUDGET)
+    assert plan["ceilings"] == {
+        k: AGENT_BUDGET["ceilings"][k]
+        for k in ("provider_attempts", "provider_nanodollars")
+    }
+    assert plan["evaluator_access"] is False
+    # The Burgers prompts are unchanged; another Challenge never gets them.
+    with pytest.raises(ValueError):
+        prompt_for(LEGACY, CHALLENGE)
+    assert "Burgers" not in prompt_for(AUTONOMOUS, CHALLENGE)
+    assert "FNO" not in prompt_for(AUTONOMOUS, CHALLENGE)

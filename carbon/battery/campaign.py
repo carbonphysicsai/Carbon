@@ -16,9 +16,16 @@ Only the Challenge-specific parts differ:
 
 The Burgers steps that do not apply are absent rather than stubbed: private
 role generation, committed final-exam seeds and the C-04/C-05 final epoch.
-This version admits only a miner-driven campaign (agent ``none``). Carbon's
-autonomous agent is written for the Burgers task and is refused here by name,
-never run on battery.
+
+Who selects:
+- ``none``: the miner drives practice, freeze and submit;
+- ``autonomous``: Carbon's research agent, under the autonomous policy with the
+  Challenge-neutral prompt, observing battery's own discovery document. It has
+  exactly the miner's capabilities - the same twelve operations, the same
+  freeze and the same signed submission to the validator daemon - and no
+  evaluator access. It is a paid campaign, so it needs the model-provider
+  credential and a finite provider budget in the frozen manifest; its run plan
+  (model, calls and trials per epoch, epochs) is recorded there too.
 """
 
 from __future__ import annotations
@@ -38,7 +45,35 @@ REPLICAS = {
     "reconstructions_per_submission": 1,
     "seed": "Carbon-derived from the evaluation deployment's private root",
 }
-PROVIDER = {"agent": "none", "model_calls": 0}
+#: What an autonomous battery campaign must cap before any model call: the
+#: miner's (or operator's) own ceilings, never a default supplied here.
+AGENT_BUDGET_KEYS = ("provider_attempts", "provider_nanodollars")
+
+
+def provider_plan(agent, budget):
+    """The finite run plan a battery campaign freezes in its manifest."""
+    if agent == "none":
+        return {"agent": "none", "model_calls": 0}
+    from carbon.development_session.agent import MODEL
+    from carbon.development_session.research_agent_policy import AUTONOMOUS
+    from carbon.development_session.research_campaign import FINAL_EPOCHS
+
+    ceilings = (budget or {}).get("ceilings") or {}
+    if any(type(ceilings.get(k)) is not int for k in AGENT_BUDGET_KEYS):
+        raise ValueError(
+            "an autonomous battery campaign needs finite provider_attempts and "
+            "provider_nanodollars ceilings"
+        )
+    return {
+        "agent": "autonomous",
+        "policy": AUTONOMOUS,
+        "model": MODEL,
+        "epochs": len(FINAL_EPOCHS),
+        "max_provider_calls_per_epoch": 48,
+        "max_research_trials_per_epoch": 8,
+        "ceilings": {k: ceilings[k] for k in AGENT_BUDGET_KEYS},
+        "evaluator_access": False,
+    }
 
 
 def campaign_challenge(args):
@@ -70,7 +105,7 @@ def manifest_document(product, *, owner, implementation, images):
         "control": SCAFFOLD,
         "selection": SELECTION,
         "replica_policy": REPLICAS,
-        "provider": PROVIDER,
+        "provider": provider_plan(product.agent, product.budget),
         "images": images,
         "new_network_transactions": 0,
         **product.manifest_fields(),
@@ -115,7 +150,20 @@ async def prepare_battery(args, *, ledger=None):
         raise ValueError("a battery campaign never consumes a development grant")
     agent = frozen["agent"] if frozen is not None else product.agent
     if agent != "none":
-        raise ValueError("autonomous agent unavailable for this Challenge")
+        from carbon.development_session.agent import ResponsesTransport
+        from carbon.development_session.research_agent_policy import AUTONOMOUS
+
+        if getattr(args, "agent_policy", None) != AUTONOMOUS:
+            raise ValueError("a battery agent runs only under the autonomous policy")
+        plan = (
+            frozen["provider"]
+            if frozen is not None
+            else provider_plan(agent, product.budget)
+        )
+        if plan.get("agent") != "autonomous" or plan.get("evaluator_access"):
+            raise ValueError("the frozen battery agent plan is not runnable")
+        private_file(args.api_key_file)
+        ResponsesTransport(args.api_key_file)
     implementation = accepted_implementation(args.accepted_revision)
     image = load_image_identity(args.image_manifest)
     verify_current_worker(image, implementation)
@@ -371,4 +419,44 @@ async def evaluate_candidate(prepared, epoch, record):
         "outcome": outcome,
         "official_eligible": False,
         "reward": False,
+    }
+
+
+def agent_observation(prepared, epoch, feedback):
+    """What Carbon's agent sees first in a battery epoch: public discovery only.
+
+    The discovery document is the one every miner reads (`challenge_registry`),
+    less its long list of unsupported capabilities, which the agent can read
+    through `public_material capabilities` or `roadmap`. Nothing private: the
+    prior feedback is the daemon's allow-listed outcome.
+    """
+    from carbon.challenge_registry import describe
+
+    from .research import SCAFFOLD
+
+    document = describe(CHALLENGE.challenge_id, CHALLENGE.version)
+    unsupported = document.pop("unsupported")
+    manifest = prepared.manifest
+    return {
+        "challenge": document,
+        "unsupported_capabilities": {
+            "count": len(unsupported),
+            "read_with": "workspace public_material {name: capabilities} or roadmap {}",
+        },
+        "scaffold_recipe": SCAFFOLD,
+        "scaffold_basis": "An unexecuted template; it has no measured result.",
+        "epoch": epoch,
+        "prior_permitted_evaluation_feedback": feedback,
+        "run_plan": manifest["provider"],
+        "miner_budget": {
+            key: manifest[key]
+            for key in ("ceilings", "elapsed_seconds", "final_reserve")
+            if key in manifest
+        }
+        or None,
+        "instructions": (
+            "Record a testable plan. Use real practice, inspect its diagnostics "
+            "and revise or reject hypotheses. Select only a recipe you actually "
+            "practiced, or stop for a supported reason."
+        ),
     }
