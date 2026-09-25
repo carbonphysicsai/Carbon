@@ -1,5 +1,5 @@
 {
- "prepared_utc": "2026-09-24T23:35:30Z",
+ "prepared_utc": "2026-09-25T00:31:56Z",
  "status_counts": {
   "train/refined": {
    "OK": 16
@@ -11,7 +11,10 @@
    "OK": 200
   },
   "final": {
-   "OK": 66
+   "OK": 200
+  },
+  "verify": {
+   "OK": 200
   }
  },
  "tolerances": {
@@ -308,15 +311,15 @@
   }
  ],
  "wall_s": {
-  "median": 71.71250355243683,
-  "p90": 78.28221249580383,
+  "median": 70.70696914196014,
+  "p90": 77.19422798156738,
   "max": 85.29698777198792
  },
- "train_candidates_sha256": "e722e307bbf232877212a03548b3bd2ec52050bd8585f74d5697e40c277867c9",
+ "train_candidates_sha256": "9c03892f1b9ef1c4fd353248e5f8f0191258c8ead04e4b7d90637bed0e8899c8",
  "n_train_ok": 400,
  "verify_sealed": {
-  "n": 0,
-  "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+  "n": 200,
+  "sha256": "ad98e7dbba9a2c32323a557ea3b4d856f55568ec30a1b3e70c5b0849bf2abb76",
   "note": "verification references are not read until the freeze record is committed"
  }
 }
