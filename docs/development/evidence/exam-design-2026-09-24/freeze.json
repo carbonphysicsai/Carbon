@@ -1,0 +1,99 @@
+{
+ "schema": "carbon.exam-design.freeze.v1",
+ "frozen_utc": "2026-09-25T05:15:51Z",
+ "settings": {
+  "batch_size": 100,
+  "rotate_after": 3,
+  "active_batches": 3,
+  "train_v1_n": 400,
+  "equivalence_margin_rel": 0.056993107446249414,
+  "comparison_rule": {
+   "n_min": 30,
+   "n_boot": 4000,
+   "alpha": 0.05,
+   "important_min": 10
+  },
+  "important_region": {
+   "plating_band_v": 0.005,
+   "t_important_c": 55.0
+  },
+  "reconstruction": "single reconstruction per side (seed 0), matched budget, pinned XLA"
+ },
+ "rationale": "Chosen on development evidence only (screening batches, public-seed dev roles, pfinal). Batch 100 (pool 300): equal-quality seeds separated beyond the margin in 3.5% of resampled pools vs 9.6% at batch 50 and 0.5% at 200; screening-vs-fresh Kendall tau 0.93 (50: 0.88, 200: 0.92); half the reference cost of 200. Rotation after 3: the scripted aggregate-feedback attack gained <=0.3% of pool score at batch 100 for every schedule, far below the 5.7% margin, so the schedule is set conservatively for unmeasured adaptive agents at ~USD 0.05 of references per submission. Margin 5.7% = 2x the largest seed-to-seed relative SD. Only IMPROVEMENT is promotable; important-region regressions block promotion.",
+ "code_sha256": {
+  "scripts/dev/exam_design/gates.py": "54e527757b2d086fce637055d789f9499d81ff9ba7bf0641fe3dcf8fe4b06fc7",
+  "scripts/dev/exam_design/scoring.py": "885b4c3e1e2031943c0573b844ab782433d01deb9dc8ab3c07b4b01cc2d58c92",
+  "scripts/dev/exam_design/exam.py": "e47b7af41d005b112c1d47894229e478d76f4d9398d6083a82fcc875ac4d8ff6",
+  "scripts/dev/exam_design/controls.py": "35756117ed3db003d1a75e1d1c2c4dfec9f96b1c58e1aef9afcd7153dfd25692"
+ },
+ "prepare_sha256": "b23e3151d21eadd7fa63950ad41f6460d9fe21d75a345f825adcfa44182d5e99",
+ "analysis_sha256": "28fa5fb94104960e5487f61c1bc57f6f87461879175e47ba03d275d7f67ceb58",
+ "criteria": [
+  {
+   "id": "V1",
+   "comparison": [
+    "mlp-s0",
+    "mlp-s1"
+   ],
+   "expect_not_promotable": true,
+   "text": "equal-quality control (another seed of the incumbent recipe) is not promoted"
+  },
+  {
+   "id": "V2",
+   "faults": true,
+   "text": "every authored fault fires its expected gate on the verification cases"
+  },
+  {
+   "id": "V3",
+   "comparison": [
+    "mlp_half-s0",
+    "mlp-s0"
+   ],
+   "expect_outcome": "IMPROVEMENT",
+   "text": "the real improvement (full-TRAIN recipe over the half-TRAIN recipe) is promoted"
+  },
+  {
+   "id": "V4",
+   "comparison": [
+    "mlp-s0",
+    "mlp_plus-s0"
+   ],
+   "expect_outcome": "REGRESSION",
+   "text": "the intended improvement that regressed in development is classified as a regression"
+  },
+  {
+   "id": "V5",
+   "comparison": [
+    "mlp-s0",
+    "mlp_localized-s0"
+   ],
+   "expect_not_promotable": true,
+   "text": "the localized-regression control is not promoted"
+  },
+  {
+   "id": "V6",
+   "leak": true,
+   "expect_not_promotable": true,
+   "text": "a candidate that memorized screening references is not promoted on fresh verification cases"
+  },
+  {
+   "id": "V7",
+   "oracle": true,
+   "text": "the reference itself passes every gate on every valid verification case"
+  },
+  {
+   "id": "R1",
+   "comparison": [
+    "mlp-s0",
+    "mlp_ens3-s0"
+   ],
+   "report_only": true,
+   "text": "small candidate (3-ensemble): outcome reported, no pass criterion"
+  }
+ ],
+ "verification_set": {
+  "role": "pverify",
+  "source": "private (carbon.seeding root; see private_commitment.json)",
+  "rule_change_policy": "if any setting or criterion changes after verification opens, this verification becomes development evidence and a fresh set is required"
+ }
+}
