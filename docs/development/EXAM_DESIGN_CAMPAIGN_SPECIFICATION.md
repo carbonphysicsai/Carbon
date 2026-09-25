@@ -346,3 +346,14 @@ These are recorded prospectively. The detail is in
 5. **Execution.** Battery references and photonics run on separate pods.
    Library threads are bounded per worker, completed cases are skipped on
    resume, and the costed matrix in the pilot document governs admission.
+6. **Scoring corrections, found on interim TRAIN data before any comparison.**
+   - The temperature scale is the spread of the rise above ambient.
+   - Capacity is split into cycle-1 capacity and fade.
+   - The important region is |plating margin| ≤ 5 mV or peak temperature
+     ≥ 55 °C (21 % of TRAIN); the first definition selected 86 % of TRAIN.
+   - Recipes use a trained soft voltage ceiling, a declared construction choice.
+   - The comparison set is `mlp_half` / `mlp` / `mlp_ens3` / `mlp_plus` /
+     `mlp_localized`, plus the unconstrained `mlp_raw` gate control.
+7. **Execution findings.** JAX must be told `JAX_PLATFORMS=cuda,cpu` on the pinned
+   image (it defaults to CPU), and `TMPDIR` must be writable. The frozen battery
+   results used the CPU backend; the GPU re-reconstruction is supplementary.

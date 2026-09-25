@@ -233,6 +233,22 @@ pre-registered criteria passed** (`verification.json`).
 | V7 oracle | passes every gate |
 | R1 small ensemble (report only) | `IMPROVEMENT` (−8 %) |
 
+**Procedural deviation, disclosed.** The private reference records (screening,
+`pfinal`, `pverify`) were committed to the public branch at 05:15Z, about one
+minute *before* the freeze commit. It did not influence the result:
+- **Predictions came first.** Every prediction was produced on the pod and
+  hash-recorded at 00:32–00:58Z, before any `pverify` reference existed.
+- **The freeze saw no verification data.** Its settings came from an analysis
+  that excludes `pverify`.
+- **The set was read once**, by `verify`, after the freeze.
+
+Still, the correct order is: freeze, then verify, then publish. That order is
+fixed for the next campaign.
+
+After all dependent jobs closed, the private root was revealed
+(`private_reveal.json`). It matches its public commitment, and private cases
+re-derive from it.
+
 **What this does not show:**
 - A small physical campaign cannot establish a rare false-promotion rate. The
   loop saw 0 false promotions in 28 finals whose challenger was not truly
