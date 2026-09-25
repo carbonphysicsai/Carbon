@@ -18,6 +18,7 @@ that only this handoff's operator can produce.
 | Local GPU (RTX 3060, 6 GiB) | Preflight only. It is not M4 acceptance. |
 | Model-provider key | Present at `0600`. |
 | RunPod key | Placed by the owner at the §3 path (2026-09-25). Use it only for the §4 matrix. |
+| OD-3 security review | Recorded as approved for the truth image and the GPU validator image (OWNER-BATTERY-TESTNET-04). |
 | Testnet read | Working. The chain is at runtime spec 471. |
 | Testnet write | Blocked. The operator fails closed with `UNSUPPORTED_RUNTIME_VERSION` because it was validated for 460 (§5.1). |
 | OD-4a executable record | Missing (§5.2). |
@@ -43,7 +44,7 @@ Recompute every identity on the host at the exact commit you run
 | Battery implementation digest | printed by `operate status` (changes with battery code) |
 | Truth image (CPU, PyBaMM) | `ghcr.io/carbonphysicsai/carbon-determinism-study@sha256:2d19b261e722fe67f20bee02e115f2277a799c448b90d54d2872361b341bd940` plus overlay lock `scripts/dev/exam_design/locks/battery-overlay.lock.json` (`pybamm==26.8.0.0`) |
 | Validator reconstruction image (CPU) | the accepted C-03 worker image named by the runner profile's `image_manifest`. It is checked by `verify_current_worker` and the host `doctor`. |
-| Validator reconstruction image (GPU) | **to be pinned in M4.** The JAX GPU variant of the worker image. OD-3 security review applies before the testnet run. |
+| Validator reconstruction image (GPU) | `carbon-accelerator-worker@sha256:e4a2014daa9abc4e3df0bb890bc031a6a859ae21f42d4bec0a0494e25d949794`, reused per OWNER-BATTERY-TESTNET-04. Its lock pins jax/jaxlib 0.10.2, optax 0.2.8 and numpy 2.4.6, the battery runtime's versions. OD-3 is recorded as approved for it; any derived layer is shown to the owner first. |
 
 ## 2. Host checks (stop on any failure)
 
@@ -117,28 +118,22 @@ sandbox lacks access.
 
 ## 4. Budget (OD-5): reconciliation, remaining ceiling, run matrix
 
-**Reconciliation.**
-- The exam-design campaign's RunPod ledger
-  (`docs/development/evidence/exam-design-2026-09-24/accounting/ledger.jsonl`,
-  2026-09-24 19:54 to 2026-09-25 06:00 UTC) records:
-  - 13 pods;
-  - 12 terminations, each verified;
-  - about **USD 4.79** (pod-seconds × USD 0.49/h, plus a USD 0.011
-    connectivity test).
-- That campaign predates OWNER-BATTERY-TESTNET-01, which recorded OD-5 on
-  2026-09-25. It is counted against the USD 20 track total *conservatively*
-  until the owner says otherwise.
-- M1 to M3 spent **USD 0** on RunPod and **USD 0** on the model provider. The
-  agent tests use a scripted provider.
+**Reconciliation (OWNER-BATTERY-TESTNET-04).**
+- The exam-design campaign's earlier RunPod spend (about USD 4.79,
+  `docs/development/evidence/exam-design-2026-09-24/accounting/ledger.jsonl`,
+  with all 12 pods it launched verified terminated) is **not** counted
+  against this track.
+- M1 to M3 and M4P spent **USD 0** on RunPod and **USD 0** on the model
+  provider. The agent tests use a scripted provider.
 
-| Ceiling | Total | Spent (conservative) | Remaining |
+| Ceiling | Total | Spent | Remaining |
 |---|---|---|---|
-| RunPod | 14.00 | 4.79 | **9.21** |
+| RunPod | 14.00 | 0.00 | **14.00** |
 | Model provider | 6.00 | 0.00 | **6.00** |
-| Track | 20.00 | 4.79 | **15.21** |
+| Track | 20.00 | 0.00 | **20.00** |
 
 Before any paid step:
-1. Re-read the account balance and the ledger.
+1. Re-read the account balance, the active pods and the ledger.
 2. Confirm the step's worst case fits the *remaining* ceiling.
 3. Record the pod ID.
 4. Verify termination afterwards.
@@ -155,7 +150,7 @@ cleanup reserve to its worst case.
 | R2 | M4 determinism, host A: build/pull, doctor, rebuild KNN/MLP/DeepONet twice, infer 300 | 1 GPU pod | 0.5 h, USD 0.25 | 1.25 h, USD 0.61 |
 | R3 | M4 cross-host reproducibility, host B: same as R2 | 1 GPU pod | 0.5 h, USD 0.25 | 1.25 h, USD 0.61 |
 | R4 | M7 window: 2 validator instances | 2 GPU pods × 4 h | USD 3.92 | 2 × 5.25 h, USD 5.15 |
-| **RunPod total** | | | **USD 5.40** | **USD 8.45** (fits 9.21) |
+| **RunPod total** | | | **USD 5.40** | **USD 8.45** (fits 14.00) |
 | A1 | One real autonomous-agent battery campaign: 2 epochs × at most 48 calls, reserved at USD 0.02048 each; ceilings `provider_attempts: 96`, `provider_nanodollars: 1966080000` | Model provider | about USD 0.3 | **USD 1.97** |
 | A2 | Up to two further agent campaigns, same ceilings | Model provider | about USD 0.6 | USD 3.93 (A1 + A2 = 5.90, fits 6.00) |
 
