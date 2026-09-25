@@ -801,11 +801,21 @@ BURGERS_CONTRACT = ChallengeContract(
     catalog_version="carbon.burgers-autoresearch-recipes.v1",
     capabilities=REGISTRY,
     envelope=_WORKER_ENVELOPE,
-    # The historical C-W1 session and the GPU diagnostic lane offer exactly the
-    # two families they were accepted with.
+    # The historical C-W1 session offers exactly the two families it was
+    # accepted with. The GPU diagnostic lane offers every family Carbon
+    # rebuilds for Burgers (owner direction, 2026-09-25): the GPU worker trains
+    # through the same vendored lab as the CPU lane.
     lanes=(
         ("session", ("fno", "deeponet")),
-        ("gpu_diagnostic", ("fno", "deeponet")),
+        (
+            "gpu_diagnostic",
+            tuple(
+                c.selector
+                for c in REGISTRY
+                if c.dimension is Dimension.MODEL_FAMILY
+                and c.status is Status.REBUILDABLE_DEVELOPMENT
+            ),
+        ),
     ),
 )
 

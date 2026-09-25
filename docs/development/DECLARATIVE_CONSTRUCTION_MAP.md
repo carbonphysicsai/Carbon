@@ -71,9 +71,13 @@ One registry and one compiler; each Challenge version has its own
 
 A family rebuildable for one Challenge is not thereby rebuildable for another.
 
-- **`burgers-dynamics-v1`** keeps its vocabulary byte for byte. Its `session`
-  and `gpu_diagnostic` lanes (FNO, DeepONet) replace the lists that used to be
-  hard-coded in `contracts.py` and `gpu_research.py`.
+- **`burgers-dynamics-v1`** keeps its vocabulary byte for byte. Its lanes
+  replace the lists that used to be hard-coded in `contracts.py` and
+  `gpu_research.py`:
+  - `session`: FNO and DeepONet, unchanged;
+  - `gpu_diagnostic`: every rebuildable family, per the owner's 2026-09-25
+    direction. The GPU catalog moves to v2. GPU hardware acceptance of the
+    added families is not claimed.
 - **`battery-fastcharge-ageing-development-v1`** (identity
   `carbon.battery-fastcharge-ageing-development.v1`) rebuilds these, in
   `carbon/battery/`:

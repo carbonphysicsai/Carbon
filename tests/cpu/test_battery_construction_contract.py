@@ -108,7 +108,9 @@ def test_burgers_keeps_its_vocabulary_and_lanes():
     from carbon.development_session.gpu_research import GPU_BACKBONES
 
     assert r.REGISTRY is r.contract(BURGERS).capabilities
-    assert SESSION_BACKBONES == GPU_BACKBONES == ("fno", "deeponet")
+    assert SESSION_BACKBONES == ("fno", "deeponet")
+    # The GPU lane offers every family Carbon rebuilds for Burgers.
+    assert GPU_BACKBONES == tuple(s for s, _ in r.rebuildable_families(BURGERS))
     assert r.lane_families(BURGERS, "gpu_diagnostic") == GPU_BACKBONES
     # The default public projection is the historical Burgers one: no fields
     # were added to it.

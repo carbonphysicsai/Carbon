@@ -303,9 +303,9 @@ def test_attention_width_must_split_across_its_heads():
     compile_recipe(recipe("transolver", width=32, heads=4))
 
 
-def test_widening_the_research_catalog_leaves_the_other_catalogs_unchanged():
-    """The session and GPU catalogs keep their own backbones; the research one
-    is the only one that offers attention."""
+def test_each_catalog_offers_its_own_lane():
+    """The historical session keeps its two backbones; the research catalog and
+    the GPU lane offer every family Carbon rebuilds, attention included."""
     from carbon.development_session.gpu_research import gpu_catalog, gpu_contracts
 
     def backbones(contracts):
@@ -320,11 +320,13 @@ def test_widening_the_research_catalog_leaves_the_other_catalogs_unchanged():
         ("fno", "deeponet"),
         {"fno", "deeponet"},
     )
-    assert backbones(gpu_contracts())[1] == {"fno", "deeponet"}
-    assert gpu_catalog()["backbones"] == ["fno", "deeponet"]
-    assert "heads" not in gpu_catalog()["surfaces"]
-    # Specimen: the research catalog does offer it, and its fields.
-    assert "transolver" in backbones(research_contracts())[0]
+    research = backbones(research_contracts())
+    assert backbones(gpu_contracts()) == research
+    assert set(gpu_catalog()["backbones"]) == set(research[0])
+    assert gpu_catalog()["version"] == "carbon.burgers-gpu-diagnostic-recipes.v2"
+    assert gpu_catalog()["surfaces"]["heads"]["architecture"] == "transolver"
+    # Specimen: the session catalog does not offer attention.
+    assert "transolver" in research[0]
     from carbon.development_session.research_catalog import public_catalog
 
     assert public_catalog()["surfaces"]["heads"]["architecture"] == "transolver"

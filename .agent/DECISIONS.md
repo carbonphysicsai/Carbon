@@ -15400,15 +15400,19 @@ engineering choices, and none of them requires human-reserved input.
    before and after and is byte-identical. The per-Challenge status map
    (`status_map`) is derived from the contracts, so it cannot drift from them.
 3. **D3: lanes replace hard-coded family lists.**
-   - The historical session's and the GPU diagnostic lane's
-     `("fno", "deeponet")` now come from the Burgers contract's `session` and
-     `gpu_diagnostic` lanes.
-   - A lane offers a family only with that lane's own evidence, so it is not
-     widened here. Widening it is a one-line registry change once GPU-lane
-     evidence exists.
-   - This deviates from the handoff wording ("offers what the registry says is
-     rebuildable"). The registry now says what the lane offers. It does not
-     inherit the CPU list.
+   - The historical session's `("fno", "deeponet")` now comes from the Burgers
+     contract's `session` lane, unchanged.
+   - **GPU lane widened (owner direction, 2026-09-25).** The `gpu_diagnostic`
+     lane offers every family Carbon rebuilds for Burgers: FNO, DeepONet,
+     Transolver, Haar, GNO and GINO. It is derived from the registry, so a
+     newly rebuildable family joins it. The GPU worker trains through the
+     same vendored lab as the CPU lane.
+   - The GPU catalog version moves to
+     `carbon.burgers-gpu-diagnostic-recipes.v2`. v1 (FNO and DeepONet)
+     keeps its meaning for anything recorded under it.
+   - Hardware acceptance of the added families on the GPU lane is not
+     claimed: the catalog continues to state `hardware_acceptance:
+     NOT_EXECUTED`.
 4. **D4: closing `dry_validate` for every Challenge.**
    - `dry_validate` stays the registry-free structural layer that strategy
      identity is built on. Changing it would reinterpret historical identities.
