@@ -15517,3 +15517,45 @@ provisional DEVELOPMENT values.
 them, that would widen the declarative rule
 (OWNER-CONSTRUCTION-DECLARATIVE-01). It needs an explicit superseding decision
 and is not implemented.
+
+## 2026-09-25 — BATTERY-TESTNET-M2 working engineering decisions (M2-D1 to D5)
+
+Status: `IMPLEMENTED_WORKING_DECISION` in the M2 PR, under
+OWNER-BATTERY-TESTNET-01. All are reversible engineering choices. None needs
+human-reserved input.
+
+1. **M2-D1: KEEP the campaign code, WRAP it in `carbon/battery/`.**
+   - The exam (`exam.py`) and the reference (`reference.py`) are the research
+     modules' code with import paths changed.
+   - Replay tests hold them identical to the research modules on the retained
+     evidence.
+   - OD-2's rule is a named constant, `DEVELOPMENT_RULE`, labelled
+     `PROVISIONAL_DEVELOPMENT_NON_PAYING`. A test holds it equal to the
+     committed `freeze.json`.
+2. **M2-D2: replay basis.**
+   - The retained predictions are float32, so recorded mean differences
+     reproduce to about 1e-6, not bit for bit.
+   - Decisions, labels and which gates fire are identical.
+   - The nondeterminism fault's ceiling count moves by 2 of 200 at the 4.2 V
+     float32 boundary. This is stated in the test rather than hidden.
+3. **M2-D3: private seeds.**
+   - `PrivateRoot` loads only from an owner-only 32-byte regular file, and it
+     never serializes.
+   - Batches carry at least one hidden duplicate, with HMAC-derived opaque ids
+     and a shuffled order.
+   - `CommittedBatch` exists only as `SeedJournal.commit` output.
+   - A reveal is refused before retirement.
+   - `verify_reveal` reports how many reveals it checked, so an empty check
+     never reads as a pass.
+4. **M2-D4: truth runs.**
+   - Each case runs in its own forked worker.
+   - The memory bound is what the solve may add to the worker's size (an
+     absolute limit breaks after a fork from a large parent). A hit is
+     `FAILED_INFRA`, never a reference or candidate failure.
+   - Resume retries only `FAILED_INFRA`.
+5. **M2-D5: the shadow pool uses whole committed batches.**
+   - A committed batch holds exactly one screening batch of 100 cases, and the
+     pool scores whole batches. The campaign's nested-prefix option could drop
+     duplicates placed at the end.
+   - The public projection is constructed field by field from an allow-list,
+     never by filtering the internal record.
