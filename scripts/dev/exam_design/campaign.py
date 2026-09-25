@@ -20,6 +20,7 @@ import gzip
 import hashlib
 import json
 import os
+import subprocess
 import time
 
 import numpy as np
@@ -287,6 +288,26 @@ def _kendall(a: list, b: list) -> float:
     return float(s / (n * (n - 1) / 2))
 
 
+REAL = ["knn", "mlp_half-s0", "mlp_half-s1", "mlp_half-s2", "mlp-s0", "mlp-s1", "mlp-s2", "mlp_ens3-s0", "mlp_ens3-s1",
+        "mlp_ens3-s2", "mlp_plus-s0", "mlp_plus-s1", "mlp_plus-s2", "mlp_localized-s0", "mlp_localized-s1",
+        "mlp_localized-s2"]
+ORDER = ["knn", "mlp_half-s0", "mlp-s0", "mlp_plus-s0", "LEAK", "mlp_ens3-s0", "mlp_localized-s0", "mlp_half-s1",
+         "mlp-s1", "LEAK", "mlp_plus-s1", "mlp_ens3-s1", "mlp_localized-s1", "mlp-s2", "mlp_ens3-s2", "LEAK",
+         "mlp_plus-s2", "mlp_localized-s2"]
+
+
+def _truth(per_err: dict, a: str, b: str, ids: list, margin_rel: float) -> dict:
+    """Large-sample truth for 'b vs a' on ids (mean paired difference; positive = b worse)."""
+    common = [c for c in ids if c in per_err[a] and c in per_err[b]]
+    d = np.array([per_err[b][c] - per_err[a][c] for c in common])
+    base = float(np.mean([per_err[a][c] for c in common]))
+    se = float(d.std(ddof=1) / np.sqrt(d.size))
+    m = margin_rel * base
+    lab = "better" if d.mean() < -m and d.mean() + 2 * se < 0 else "worse" if d.mean() > m and d.mean() - 2 * se > 0 \
+        else "equivalent" if abs(d.mean()) + 2 * se <= m else "unclear"
+    return {"mean_delta": float(d.mean()), "se": se, "rel": float(d.mean() / base), "label": lab, "n": len(common)}
+
+
 def cmd_analyze(a) -> None:
     from scripts.dev.exam_design import controls, simulate
 
@@ -296,157 +317,141 @@ def cmd_analyze(a) -> None:
     store = _store(refs, twins, prep, k)
     reference_self_check(refs, store.tol, store.ocv, SHAPES(k))
     preds = load_predictions()
-    frozen = []
-    for path in glob.glob(f"{EVID}/refs-b/out/train/frozen.json"):
-        frozen += json.load(open(path))
-    timing = []
-    for path in glob.glob(f"{EVID}/refs-b/out/train/inference_timing.json"):
-        timing += json.load(open(path))
+    frozen = json.load(open(f"{EVID}/refs-b/out/train/frozen.json"))
+    timing = json.load(open(f"{EVID}/refs-b/out/train/inference_timing.json"))
     batches = _batch_ids()
-    final_ids = _role_ids(refs, "pfinal")          # private fresh finalist cases
-    dev_final_ids = _role_ids(refs, "final")       # public-seed: offline development evidence
-    practice_ids = _role_ids(refs, "practice")
-    train_ids = _role_ids(refs, "train")
+    ids = {r: _role_ids(refs, r) for r in ("train", "practice", "final", "verify", "pfinal")}
+    screen_all = [c for bt in batches for c in bt if c not in twins]
+    truth_ids = ids["practice"] + ids["final"] + ids["verify"] + screen_all  # never pfinal / pverify
     res: dict = {"analyzed_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "models": {}}
 
-    # 1. Every stored model on every development role (verification stays sealed).
-    per = {}
+    # 1. Every model on every development role, gates and scores from the same stored predictions.
+    per_err, per_comp, per_agg = {}, {}, {}
+    everything = sorted(set(truth_ids + ids["pfinal"] + ids["train"] + [c for bt in batches for c in bt]))
     for tag, p in preds.items():
-        per[tag] = {}
-        for role, ids in (("train", train_ids), ("practice", practice_ids), ("final", final_ids),
-                          ("dev_final", dev_final_ids),
-                          *[(f"screen-B{b:02d}", batches[b]) for b in range(len(batches))]):
-            err, comp, agg = _case_errors(p, ids, store)
-            per[tag][role] = {"err": err, "comp": comp, "agg": agg}
-        res["models"][tag] = {role: v["agg"] for role, v in per[tag].items()}
-
-    # 2. Reconstruction variability: seeds and same-seed repeats.
+        rows, _ = exam.evaluate(p, everything, store)
+        per_err[tag] = {r["case_id"]: r["error"] for r in rows if r["state"] == gates.SCORABLE}
+        per_comp[tag] = {r["case_id"]: r["components"] for r in rows if r["state"] == gates.SCORABLE}
+        res["models"][tag] = {}
+        for role, rid in (("train", ids["train"]), ("practice", ids["practice"]), ("dev_final", ids["final"]),
+                          ("pfinal", ids["pfinal"]), ("pool0_200", [c for bt in batches[:3] for c in bt])):
+            res["models"][tag][role] = exam.evaluate(p, rid, store)[1]
+    # 2. Reconstruction variability.
     var = {}
-    for rec in ("mlp", "mlp_plus", "mlp_plus_localized"):
-        tags = [f"{rec}-s{s}" for s in range(3) if f"{rec}-s{s}" in per]
-        if len(tags) < 2:
-            continue
-        fs = [per[t]["final"]["agg"]["score"] for t in tags]
-        pool0 = [float(np.mean([per[t][f"screen-B{b:02d}"]["agg"]["score"] for b in range(3)])) for t in tags]
-        var[rec] = {"seeds": tags, "final_scores": fs, "final_sd": float(np.std(fs, ddof=1)),
-                    "final_rel_sd": float(np.std(fs, ddof=1) / np.mean(fs)), "pool0_scores": pool0}
+    fz = {f["tag"]: f for f in frozen}
+    for rec in ("mlp_half", "mlp", "mlp_ens3", "mlp_plus", "mlp_localized"):
+        tags = [f"{rec}-s{i}" for i in range(3) if f"{rec}-s{i}" in preds]
+        truth_scores = [float(np.mean([per_err[t][c] for c in truth_ids if c in per_err[t]])) for t in tags]
+        var[rec] = {"tags": tags, "truth_scores": truth_scores, "sd": float(np.std(truth_scores, ddof=1)),
+                    "rel_sd": float(np.std(truth_scores, ddof=1) / np.mean(truth_scores)),
+                    "fit_s": [fz[t].get("fit_wall_s") for t in tags]}
         rep = f"{rec}-s0-repeat"
         if rep in preds:
-            fz = {f["tag"]: f for f in frozen}
-            same = all(preds[rep][c] == preds[f"{rec}-s0"][c] for c in final_ids)
-            var[rec]["same_seed_repeat"] = {"params_identical": fz.get(rep, {}).get("params_sha256") ==
-                                            fz.get(f"{rec}-s0", {}).get("params_sha256"),
-                                            "final_predictions_identical": same}
+            var[rec]["same_seed_repeat"] = {
+                "params_identical": fz[rep]["params_sha256"] == fz[f"{rec}-s0"]["params_sha256"],
+                "predictions_identical": all(preds[rep][c] == preds[f"{rec}-s0"][c] for c in preds[rep])}
     res["reconstruction_variability"] = var
-    margin = max([v["final_rel_sd"] for v in var.values()] + [0.0]) * 2
-    res["equivalence_margin_from_seed_sd"] = margin
-
-    # 3. Screening vs fresh: rank agreement across real trained models.
-    real = [t for t in per if not t.endswith("-repeat")]
-    for size in SCREEN_SIZES:
-        pool = [c for b in batches[:3] for c in b[:size]]
-        sc = [exam.evaluate(preds[t], pool, store)[1]["score"] for t in real]
-        fr = [per[t]["final"]["agg"]["score"] for t in real]
-        res.setdefault("screen_vs_fresh", {})[size] = {"models": real, "screen": sc, "final": fr,
-                                                      "kendall_tau": _kendall(sc, fr)}
-
-    # 4. Batch-size reliability for the decision that matters: candidate vs competent baseline, and
-    #    equal-quality seeds (which the screen should *not* separate beyond the margin).
-    screen_all = [c for b in batches for c in b if c not in twins]
-    def errs(tag):
-        return exam.evaluate(preds[tag], screen_all, store)[0]
-    def vec(rows, ids):
-        m = {r["case_id"]: r.get("error") for r in rows}
-        return np.array([m[c] for c in ids])
-    if all(t in preds for t in ("mlp-s0", "mlp-s1", "mlp_plus-s0")):
-        e = {t: errs(t) for t in ("mlp-s0", "mlp-s1", "mlp_plus-s0", "mlp_plus-s1")}
-        ok_ids = [c for c in screen_all if all(dict((r["case_id"], r["state"]) for r in e[t])[c] == gates.SCORABLE
-                                               for t in e)]
-        base = vec(e["mlp-s0"], ok_ids)
-        pool_sizes = [3 * s for s in SCREEN_SIZES]
-        res["ranking_reliability"] = {
-            "candidate_vs_competent": simulate.ranking_reliability(base, vec(e["mlp_plus-s0"], ok_ids), pool_sizes,
-                                                                   margin * float(base.mean())),
-            "equal_quality_seeds": simulate.ranking_reliability(base, vec(e["mlp-s1"], ok_ids), pool_sizes,
-                                                                margin * float(base.mean())),
-            "assumption": "pool of 3 x batch size; cases resampled from the 1188 screening cases",
-        }
-        res["seed_mixing_attack"] = [simulate.seed_mixing_attack(vec(e["mlp_plus-s0"], ok_ids),
-                                                                  vec(e["mlp_plus-s1"], ok_ids), n, kk, 30, reps=300)
-                                     for n in SCREEN_SIZES for kk in SCHEDULES]
-
-    # 5. Pool replay with rotation: scripted submissions, stored-model inference, pool versions.
-    order = ["knn", "mlp-s0", "mlp_plus-s0", "mlp_plus_localized-s0", "LEAK", "mlp-s1", "mlp_plus-s1",
-             "mlp_plus_localized-s1", "LEAK", "mlp-s2", "mlp_plus-s2", "mlp_plus_localized-s2"]
-    replays = []
-    for size in SCREEN_SIZES:
-        for kk in SCHEDULES:
+    margin = 2 * max(v["rel_sd"] for v in var.values())
+    res["equivalence_margin"] = {"relative": margin, "rule": "2 x the largest seed-to-seed relative SD of the "
+                                 "large-sample score among the reconstructed recipes"}
+    # 3. Large-sample truth for the decisions the exam must make (development roles only).
+    pairs = [("mlp_half-s0", "mlp-s0"), ("mlp-s0", "mlp_ens3-s0"), ("mlp-s0", "mlp_plus-s0"),
+             ("mlp-s0", "mlp_localized-s0"), ("mlp-s0", "mlp-s1"), ("knn", "mlp-s0")]
+    imp_truth = [c for c in truth_ids if store.important(c)]
+    res["truth"] = {f"{b} vs {a_}": {"overall": _truth(per_err, a_, b, truth_ids, margin),
+                                     "important": _truth(per_err, a_, b, imp_truth, margin)} for a_, b in pairs}
+    # 4. Screening vs fresh agreement across real models (rank correlation), per batch size.
+    for size in (50, 100, 200):
+        pool = [c for bt in batches[:3] for c in bt[:size]]
+        sc = [exam.evaluate(preds[t], pool, store)[1]["score"] for t in REAL]
+        fr = [float(np.mean([per_err[t][c] for c in ids["pfinal"] if c in per_err[t]])) for t in REAL]
+        tr = [float(np.mean([per_err[t][c] for c in truth_ids if c in per_err[t]])) for t in REAL]
+        res.setdefault("screen_vs_fresh", {})[size] = {"kendall_screen_vs_pfinal": _kendall(sc, fr),
+                                                      "kendall_screen_vs_truth": _kendall(sc, tr),
+                                                      "screen": dict(zip(REAL, sc)), "pfinal": dict(zip(REAL, fr))}
+    # 5. Controls: gates on authored faults, oracle, pool leak, unconstrained head.
+    pool0 = [c for bt in batches[:3] for c in bt]
+    ctrl = {"oracle": exam.evaluate(controls.oracle(refs, pool0), pool0, store)[1]}
+    for f, g in controls.FAULTS.items():
+        ctrl[f] = exam.evaluate(controls.fault(f, preds["mlp-s0"], store.tol.q_bound, seed=7), pool0, store)[1] | {
+            "expected_gate": g}
+    if "mlp_raw-s0" in preds:
+        ctrl["mlp_raw"] = exam.evaluate(preds["mlp_raw-s0"], pool0, store)[1]
+    res["controls"] = ctrl
+    # 6. The exam loop, replayed: screening -> nomination -> frozen final comparison -> promotion.
+    rule = exam.ComparisonRule(equivalence_margin=margin)
+    loops = []
+    for size in (50, 100, 200):
+        for kk in (1, 3, 10):
             bank = exam.PredictionBank()
-            for t in real:
+            for t in REAL:
                 bank.add(t, preds[t])
             pool = exam.ScreeningPool(batches=batches, rotate_after=kk, batch_size=size)
-            n_leak = 0
-            for t in order:
+            incumbent, events, n_leak = None, [], 0
+            for t in ORDER:
                 if t == "LEAK":
-                    # Authored overfitting control: memorizes the references of the pool it is scored on.
                     n_leak += 1
-                    tag = f"pool_leak-{n_leak}"
-                    exposed = set(pool.active_case_ids())
-                    bank.add(tag, controls.pool_leak(preds["mlp-s0"], refs, exposed))
-                    t = tag
-                if t not in bank.preds:
-                    continue
-                pool.score(t, bank, store)
-            best = min((h for h in pool.history if h["eligible"]), key=lambda h: h["score"])
-            replays.append({"batch_size": size, "rotate_after": kk, "rotations": pool.pool_version,
-                            "retired": pool.retired,
-                            "history": [{x: h[x] for x in ("model_id", "pool_version", "score", "eligible",
-                                                            "important_score")} for h in pool.history],
-                            "screen_leader": best["model_id"], "leader_pool_version": best["pool_version"]})
-    res["pool_replay"] = replays
-
-    # 6. Controls on the screening pool and on fresh cases.
-    ctrl = {}
-    pool0 = [c for b in batches[:3] for c in b]
-    oracle = controls.oracle(refs, pool0 + final_ids)
-    ctrl["oracle"] = exam.evaluate(oracle, pool0, store)[1]
-    for f in controls.FAULTS:
-        ctrl[f] = exam.evaluate(controls.fault(f, preds["mlp_plus-s0"], store.tol.q_bound, seed=7), pool0, store)[1]
-    leak = controls.pool_leak(preds["mlp-s0"], refs, set(pool0))
-    ctrl["pool_leak_on_screen"] = exam.evaluate(leak, pool0, store)[1]
-    ctrl["pool_leak_on_final"] = exam.evaluate(leak, final_ids, store)[1]
-    res["controls"] = ctrl
-
-    # 7. Final comparisons on fresh cases under the development rule (margin from seed variability).
-    rule = exam.ComparisonRule(equivalence_margin=margin)
-    def avg(rec, role="final"):
-        tags = [f"{rec}-s{s}" for s in range(3) if f"{rec}-s{s}" in per]
-        return _seed_avg([per[t][role]["err"] for t in tags]), tags
-    fin = {}
-    inc, _ = avg("mlp")
-    imp = {c: store.important(c) for c in final_ids}
-    for name, (chal, elig) in {
-        "mlp_plus vs mlp": (avg("mlp_plus")[0], True),
-        "mlp_plus_localized vs mlp": (avg("mlp_plus_localized")[0], True),
-        "knn vs mlp": (per["knn"]["final"]["err"], per["knn"]["final"]["agg"]["eligible"]),
-        "mlp seed1 vs mlp seed0 (equal quality)": (per["mlp-s1"]["final"]["err"], True),
-        "pool_leak vs mlp (overfitting control)": ({c: e for c, e in _case_errors(leak, final_ids, store)[0].items()},
-                                                   True),
-    }.items():
-        base = per["mlp-s0"]["final"]["err"] if "equal quality" in name or "pool_leak" in name else inc
-        fin[name] = exam.final_compare(base, chal, imp, rule, chal_eligible=elig)
-    res["final_comparisons_development"] = fin
-
-    # 8. Costs.
-    res["timing"] = {"frozen": frozen, "inference": timing}
+                    t = f"pool_leak-{n_leak}"
+                    base = incumbent or "mlp-s0"
+                    bank.add(t, controls.pool_leak(preds[base], refs, set(pool.active_case_ids())))
+                    per_err.setdefault(t, per_err[base])  # fresh-case truth = its base model (it learned nothing)
+                pv = pool.pool_version
+                rec = pool.score(t, bank, store)
+                inc_rec = None
+                if incumbent:
+                    ids_now = pool.active_case_ids() if pool.pool_version == pv else None
+                    ids_now = [c for bt in [pool.batches[b] for b in rec["active_batches"]] for c in (bt[:size])]
+                    _, inc_agg = exam.evaluate(bank.ensure(incumbent, ids_now), ids_now, store)
+                    inc_rec = {**inc_agg, "pool_version": rec["pool_version"]}
+                ok, why = exam.nominate(rec, inc_rec, margin)
+                ev = {"submission": t, "pool_version": rec["pool_version"], "score": rec["score"],
+                      "eligible": rec["eligible"], "nominated": ok, "why": why}
+                if ok and incumbent is None:
+                    incumbent = t
+                    ev["promoted"] = "first eligible incumbent"
+                elif ok:
+                    fin = exam.final_compare(
+                        {c: e for c, e in per_err[incumbent].items() if c in ids["pfinal"]},
+                        {c: e for c, e in (per_err[t] if not t.startswith("pool_leak") else
+                                          _case_errors(bank.preds[t], ids["pfinal"], store)[0]).items() if c in ids["pfinal"]},
+                        {c: store.important(c) for c in ids["pfinal"]}, rule)
+                    ev["final"] = {x: fin.get(x) for x in ("outcome", "reason", "promotable", "mean_delta", "ci",
+                                                           "important", "overall")}
+                    base_t = t if not t.startswith("pool_leak") else incumbent
+                    ev["truth_vs_incumbent"] = _truth(per_err, incumbent, base_t, truth_ids, margin)["label"]
+                    if fin["promotable"]:
+                        ev["promoted"] = f"replaces {incumbent}"
+                        incumbent = t
+                events.append(ev)
+            loops.append({"batch_size": size, "rotate_after": kk, "rotations": pool.pool_version,
+                          "events": events, "final_incumbent": incumbent})
+    res["exam_loop"] = loops
+    # 7. Detection power and false promotion on real paired errors + authored controlled improvements.
+    base_ids = [c for c in screen_all if c in per_err["mlp-s0"] and c in per_err["mlp-s1"]]
+    e0 = np.array([per_err["mlp-s0"][c] for c in base_ids])
+    e1 = np.array([per_err["mlp-s1"][c] for c in base_ids])
+    res["ranking_reliability"] = {
+        "equal_quality_seeds": simulate.ranking_reliability(e0, e1, [150, 300, 600], margin * float(e0.mean())),
+        "real_improvement_half_to_full": simulate.ranking_reliability(
+            np.array([per_err["mlp_half-s0"][c] for c in base_ids]), e0, [150, 300, 600], margin * float(e0.mean())),
+        "authored_improvements": {str(alpha): simulate.ranking_reliability(e0, (1 - alpha) * e0, [150, 300, 600],
+                                                                         margin * float(e0.mean()))
+                                  for alpha in (0.02, 0.05, 0.1, 0.2)},
+        "note": "pool sizes are 3 x batch size; authored improvements scale the incumbent's per-case error by (1-alpha): "
+                "synthetic controls with a known true effect, not trained models"}
+    res["seed_mixing_attack"] = [simulate.seed_mixing_attack(e0, e1, n, kk, 30, reps=300)
+                                 for n in (50, 100, 200) for kk in (1, 3, 10)]
+    # 8. Costs (measured).
     t0 = time.perf_counter()
-    exam.evaluate(preds["mlp_plus-s0"], pool0, store)
-    res["timing"]["gate_and_score_600_cases_s_local"] = time.perf_counter() - t0
+    exam.evaluate(preds["mlp-s0"], pool0, store)
+    res["cost_inputs"] = {"frozen": frozen, "inference": timing,
+                          "gate_and_score_600_cases_s_local": time.perf_counter() - t0}
     json.dump(res, open(f"{EVID}/analysis.json", "w"), indent=1, default=float)
-    print(json.dumps({"models": {t: {r: round(v["score"], 4) if v["score"] else None for r, v in m.items()
-                                     if r in ("practice", "final")} for t, m in res["models"].items()},
-                      "variability": var, "margin": margin, "final": {n: v["outcome"] for n, v in fin.items()}},
-                     indent=1, default=float))
+    print(json.dumps({"variability": {r: {k2: v[k2] for k2 in ("truth_scores", "rel_sd")} for r, v in var.items()},
+                      "margin": margin, "truth": {k2: (v["overall"]["label"], round(v["overall"]["rel"], 3),
+                                                       v["important"]["label"]) for k2, v in res["truth"].items()},
+                      "screen_vs_fresh": {s2: round(v["kendall_screen_vs_pfinal"], 3) for s2, v in
+                                          res["screen_vs_fresh"].items()}}, indent=1, default=float))
 
 
 def cmd_photonic(a) -> None:
@@ -502,6 +507,113 @@ def cmd_photonic(a) -> None:
     print(json.dumps(out["summary"], indent=1), json.dumps(refinement, indent=1)[:2000])
 
 
+FREEZE = f"{EVID}/freeze.json"
+CRITERIA = [
+    {"id": "V1", "comparison": ["mlp-s0", "mlp-s1"], "expect_not_promotable": True,
+     "text": "equal-quality control (another seed of the incumbent recipe) is not promoted"},
+    {"id": "V2", "faults": True, "text": "every authored fault fires its expected gate on the verification cases"},
+    {"id": "V3", "comparison": ["mlp_half-s0", "mlp-s0"], "expect_outcome": "IMPROVEMENT",
+     "text": "the real improvement (full-TRAIN recipe over the half-TRAIN recipe) is promoted"},
+    {"id": "V4", "comparison": ["mlp-s0", "mlp_plus-s0"], "expect_outcome": "REGRESSION",
+     "text": "the intended improvement that regressed in development is classified as a regression"},
+    {"id": "V5", "comparison": ["mlp-s0", "mlp_localized-s0"], "expect_not_promotable": True,
+     "text": "the localized-regression control is not promoted"},
+    {"id": "V6", "leak": True, "expect_not_promotable": True,
+     "text": "a candidate that memorized screening references is not promoted on fresh verification cases"},
+    {"id": "V7", "oracle": True, "text": "the reference itself passes every gate on every valid verification case"},
+    {"id": "R1", "comparison": ["mlp-s0", "mlp_ens3-s0"], "report_only": True,
+     "text": "small candidate (3-ensemble): outcome reported, no pass criterion"},
+]
+
+
+def _write_once(path: str, obj) -> None:
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o644)
+    with os.fdopen(fd, "w") as f:
+        json.dump(obj, f, indent=1, default=float)
+
+
+def cmd_freeze(a) -> None:
+    """Record the exam rule and verification criteria BEFORE the private verification set is read."""
+    an = json.load(open(f"{EVID}/analysis.json"))
+    digest = lambda p: hashlib.sha256(open(p, "rb").read()).hexdigest()  # noqa: E731
+    code = {p: digest(p) for p in ("scripts/dev/exam_design/gates.py", "scripts/dev/exam_design/scoring.py",
+                                    "scripts/dev/exam_design/exam.py", "scripts/dev/exam_design/controls.py")}
+    rec = {"schema": "carbon.exam-design.freeze.v1", "frozen_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+           "settings": {"batch_size": a.batch_size, "rotate_after": a.rotate_after, "active_batches": 3,
+                        "train_v1_n": 400, "equivalence_margin_rel": an["equivalence_margin"]["relative"],
+                        "comparison_rule": {"n_min": 30, "n_boot": 4000, "alpha": 0.05, "important_min": 10},
+                        "important_region": {"plating_band_v": scoring.PLATING_BAND_V, "t_important_c": scoring.T_IMPORTANT_C},
+                        "reconstruction": "single reconstruction per side (seed 0), matched budget, pinned XLA"},
+           "rationale": a.rationale, "code_sha256": code, "prepare_sha256": digest(f"{EVID}/prepare.json"),
+           "analysis_sha256": digest(f"{EVID}/analysis.json"), "criteria": CRITERIA,
+           "verification_set": {"role": "pverify", "source": "private (carbon.seeding root; see private_commitment.json)",
+                                "rule_change_policy": "if any setting or criterion changes after verification opens, this "
+                                "verification becomes development evidence and a fresh set is required"}}
+    _write_once(FREEZE, rec)
+    print(json.dumps(rec["settings"], indent=1))
+
+
+def _freeze_committed() -> dict:
+    ok = subprocess.run(["git", "ls-files", "--error-unmatch", FREEZE], capture_output=True).returncode == 0
+    clean = subprocess.run(["git", "diff", "--quiet", "HEAD", "--", FREEZE]).returncode == 0
+    if not (ok and clean):
+        raise SystemExit("refusing: the freeze record must be committed, unmodified, before verification opens")
+    return json.load(open(FREEZE))
+
+
+def cmd_verify(a) -> None:
+    from scripts.dev.exam_design import controls
+
+    fr = _freeze_committed()
+    prep = json.load(open(f"{EVID}/prepare.json"))
+    refs, twins, _, _ = _all_refs()
+    store = _store(refs, twins, prep, len(plans.MAIN_CHECKPOINTS))
+    preds = load_predictions()
+    vids = _role_ids(refs, "pverify")
+    rule = exam.ComparisonRule(equivalence_margin=fr["settings"]["equivalence_margin_rel"])
+    imp = {c: store.important(c) for c in vids}
+    errs = {t: _case_errors(p, vids, store) for t, p in preds.items()}
+    out = {"verified_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "n_cases": len(vids),
+           "freeze_sha256": hashlib.sha256(open(FREEZE, "rb").read()).hexdigest(), "results": []}
+    for crit in fr["criteria"]:
+        r = {"id": crit["id"], "text": crit["text"]}
+        if "comparison" in crit:
+            inc, ch = crit["comparison"]
+            fin = exam.final_compare(errs[inc][0], errs[ch][0], imp, rule, chal_eligible=errs[ch][2]["eligible"],
+                                     inc_components=errs[inc][1], chal_components=errs[ch][1])
+            r["outcome"] = {x: fin.get(x) for x in ("outcome", "reason", "promotable", "mean_delta", "ci", "overall",
+                                                    "important", "important_ci", "n_important", "components")}
+            if "expect_outcome" in crit:
+                r["pass"] = fin["outcome"] == crit["expect_outcome"]
+            elif crit.get("expect_not_promotable"):
+                r["pass"] = not fin["promotable"]
+            else:
+                r["pass"] = None
+        elif crit.get("faults"):
+            fired = {}
+            for f, g in controls.FAULTS.items():
+                agg = exam.evaluate(controls.fault(f, preds["mlp-s0"], store.tol.q_bound, seed=11), vids, store)[1]
+                fired[f] = {"expected": g, "gate_failures": agg["gate_failures"], "eligible": agg["eligible"]}
+            # nondeterminism needs a hidden duplicate; the verification set has none, so it is NOT_APPLICABLE here.
+            r["faults"] = fired
+            r["pass"] = all((v["expected"] in v["gate_failures"]) if v["expected"] and v["expected"] != "paired_repeat"
+                            else True for v in fired.values())
+        elif crit.get("leak"):
+            leak = controls.pool_leak(preds["mlp-s0"], refs, set(c for bt in _batch_ids() for c in bt))
+            le = _case_errors(leak, vids, store)
+            fin = exam.final_compare(errs["mlp-s0"][0], le[0], imp, rule)
+            r["outcome"] = {x: fin.get(x) for x in ("outcome", "promotable", "mean_delta")}
+            r["pass"] = not fin["promotable"]
+        elif crit.get("oracle"):
+            agg = exam.evaluate(controls.oracle(refs, vids), vids, store)[1]
+            r["gate_failures"] = agg["gate_failures"]
+            r["pass"] = agg["n_gate_failed"] == 0
+        out["results"].append(r)
+    json.dump(out, open(f"{EVID}/verification.json", "w"), indent=1, default=float)
+    print(json.dumps([{k: v for k, v in r.items() if k in ("id", "pass")} | ({"outcome": r["outcome"]["outcome"]}
+                      if "outcome" in r else {}) for r in out["results"]], indent=1))
+
+
 def main(argv=None) -> None:
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -514,9 +626,14 @@ def main(argv=None) -> None:
     tp.add_argument("--n", type=int, required=True)
     sub.add_parser("analyze")
     sub.add_parser("photonic")
+    fz = sub.add_parser("freeze")
+    fz.add_argument("--batch-size", type=int, required=True)
+    fz.add_argument("--rotate-after", type=int, required=True)
+    fz.add_argument("--rationale", required=True)
+    sub.add_parser("verify")
     a = ap.parse_args(argv)
     {"prepare": cmd_prepare, "learning-curve": cmd_learning_curve, "train-plan": cmd_train_plan,
-     "analyze": cmd_analyze, "photonic": cmd_photonic}[a.cmd](a)
+     "analyze": cmd_analyze, "photonic": cmd_photonic, "freeze": cmd_freeze, "verify": cmd_verify}[a.cmd](a)
 
 
 if __name__ == "__main__":
