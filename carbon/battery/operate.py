@@ -3,6 +3,8 @@
     python -m carbon.battery.operate <command> --config DEPLOYMENT.json ...
 
 Commands:
+- ``init``: create the private root and commit it, with the seed pin, to the
+  seed journal, once (an existing root and binding are kept);
 - ``status``: identities, pool, incumbent and batch counts;
 - ``batches``: each batch's kind, state and reference completion;
 - ``recover``: settle what a crash left mid-way (never dispatches work);
@@ -112,10 +114,59 @@ def _export(target, out):
     }
 
 
+def init(config_path, *, repository=REPOSITORY):
+    """Create a deployment's private root and commit it to the seed journal,
+    once. An existing valid root is kept; a journal already bound to this
+    root is reported, never rewritten; a journal bound to another root is
+    refused. Prints only public values: the root commitment and the pin."""
+    from . import seeds
+    from .daemon import rule_digest
+    from .deployment import _owner_only_directory
+
+    config = load_config(config_path)
+    root_path = Path(config["private_root"])
+    journal_path = Path(config["journal"])
+    for parent in {root_path.parent, journal_path.parent}:
+        _owner_only_directory(parent)
+    journal = seeds.SeedJournal(journal_path)
+    bound = any(e["kind"] == "root" for e in journal._entries())
+    created_root = not root_path.exists()
+    if created_root and bound:
+        # The committed root is missing: never replace it with a new one.
+        raise EvaluationUnavailable("evaluation_journal_other_root")
+    try:
+        root = (
+            seeds.PrivateRoot.create(root_path)
+            if created_root
+            else seeds.PrivateRoot.load(root_path)
+        )
+    except ValueError:
+        # Not a regular, owner-only, 32-byte file: kept as is, never replaced.
+        raise EvaluationUnavailable("evaluation_root_refused") from None
+    if not journal_path.exists():
+        os.close(os.open(journal_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600))
+    if os.stat(journal_path).st_mode & 0o077:
+        raise EvaluationUnavailable("evaluation_journal_not_owner_only")
+    try:
+        pin, committed = journal.root_pin(root), False
+    except ValueError:
+        if bound:
+            raise EvaluationUnavailable("evaluation_journal_other_root") from None
+        pin = seeds.seed_pin(seeds.generator_digest(repository), rule_digest())
+        journal.commit_root(root, pin)
+        committed = True
+    return {
+        "root_created": created_root,
+        "root_committed": committed,
+        "root_commitment": root.commitment(),
+        "seed_pin": pin,
+    }
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="python -m carbon.battery.operate")
     sub = parser.add_subparsers(dest="command", required=True)
-    for name in ("status", "batches", "recover", "open", "run"):
+    for name in ("init", "status", "batches", "recover", "open", "run"):
         sub.add_parser(name).add_argument("--config", required=True)
     prepare = sub.add_parser("prepare")
     prepare.add_argument("--config", required=True)
@@ -155,6 +206,14 @@ def main(argv=None):
         print(json.dumps(result, sort_keys=True, indent=2))
         return 0
 
+    if args.command == "init":
+        try:
+            result = init(args.config)
+        except EvaluationUnavailable as unavailable:
+            print(json.dumps({"unavailable": unavailable.code}))
+            return 2
+        print(json.dumps(result, sort_keys=True, indent=2))
+        return 0
     readonly = args.command in ("status", "batches", "jobs")
     try:
         load_config(args.config)

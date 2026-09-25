@@ -28,6 +28,126 @@ This document never contains a secret. Keys, wallets and credentials are named
 **by location only**. Never paste a token, key or password into a chat, a
 ticket or a log.
 
+## 0. Host session procedure (run after PR #351 merges)
+
+This is the complete procedure for a Claude Code session, or a person, on the
+authorized WSL host. It needs no conversation context: read `AGENTS.md`,
+this document and `BATTERY_TESTNET_PROGRAMME_STATE.md`, then follow it.
+
+**Hard rules.**
+- Never print, copy, log or commit a key, password, token or wallet file.
+- Do not change `expected_runtime_spec` or any runtime pin.
+- Dispatch no chain transaction and start no RunPod pod.
+- Do not provision a new host or register a new identity.
+- Keep every existing configuration file and key.
+- Stop, and report, at the first failing step. Never work around a failure.
+- Ask the owner to run any `sudo` command. Never ask for a password.
+
+1. **Source.**
+   - `git fetch origin main`, and confirm that PR #351's merge commit is on
+     `main`.
+   - Work only in a clean worktree at exactly that commit, for example
+     `git worktree add ../carbon-m4p <sha>`.
+   - Record: the SHA, `hostname`, `uname -a`, `/etc/os-release`,
+     `docker version --format '{{.Server.Version}}'` and
+     `stat -fc %T /sys/fs/cgroup`, which prints `cgroup2fs` for cgroup v2.
+2. **Inspect before running.** Read `carbon/battery/truth_env.py`,
+   `carbon/battery/operate.py` (`init`, `export`),
+   `carbon/chain/runtime_probe.py` and `carbon/battery/od4a.py`. For each,
+   confirm what it writes, what network it uses and that it opens no secret:
+   - `truth-materialize` fetches the 27 locked wheels from
+     files.pythonhosted.org and writes only under its target;
+   - `truth-verify` runs the pinned image with no network and the overlay
+     read-only;
+   - `init` writes only the root and the journal named in the deployment;
+   - `runtime_probe` makes read-only RPC calls and opens no wallet;
+   - `od4a request` reads files only.
+3. **Host checks (§2).**
+   - Run the §2.1 `doctor` with the `image_manifest` path from the existing
+     runner profile. If that manifest does not exist, stop: do not build or
+     accept an image.
+   - Confirm the truth base image is present:
+     `docker image inspect <§1 truth image>`. If it is absent, stop and
+     report. Pulling it needs the owner's own GHCR login.
+   - `/srv/carbon/battery` must be `0700` and owned by the operator user. If
+     creating it needs `sudo`, ask the owner to run
+     `sudo install -d -m 0700 -o <operator user> /srv/carbon/battery`.
+4. **Truth environment.** Run each command separately and record its exit
+   code:
+   ```bash
+   uv run --locked python -m carbon.battery.operate truth-materialize --target /srv/carbon/battery/truth-overlay
+   uv run --locked python -m carbon.battery.operate truth-verify --target /srv/carbon/battery/truth-overlay
+   ```
+   If `truth-verify` fails, stop everything that depends on it: references,
+   `prepare` and the M4 runs.
+5. **Runtime probe.** This is read-only:
+   ```bash
+   uv run --locked --group chain python -m carbon.chain.runtime_probe \
+     --config <existing operator config> > <owner-only dir>/probe.json
+   ```
+   - Use the existing subnet-567 operator config, schema
+     `carbon.development-testnet.operator.v1`. Do not create a new one.
+   - Exit 0 means `COMPATIBLE_USED_SURFACE`. Exit 3 means a used call,
+     storage item or API differs; the report names each difference.
+   - Either way, keep the report. It is the evidence for the owner's spec 471
+     decision (§5.1). The pin stays as it is.
+6. **Service key (§3).**
+   - If `/srv/carbon/keys/battery-validator.key` exists, keep it. Check only
+     that it is a regular file, `0600` and exactly 32 bytes.
+   - Otherwise, with `/srv/carbon/keys` at `0700`, create it:
+     ```bash
+     uv run --locked python -c "from carbon.battery.signing import ServiceKey; print(ServiceKey.create('/srv/carbon/keys/battery-validator.key').key_id)"
+     ```
+     This prints only the public key id. It is a Carbon service signing key,
+     **not** a validator hotkey (OD-6).
+7. **Deployment (§3).**
+   - Write `/srv/carbon/battery/validator/deployment.json` (`0600`) exactly as
+     §3, with the existing `image_manifest` path. Never overwrite an existing
+     valid file; if one differs from §3, report the difference.
+   - Then run:
+     ```bash
+     uv run --locked python -m carbon.battery.operate init --config $C
+     uv run --locked python -m carbon.battery.operate status --config $C
+     ```
+     `init` creates the private root once and commits it to the journal with
+     the seed pin (the generator identity and the OD-2 rule digest). It
+     prints the public root commitment and pin, never the root. It keeps an
+     existing root and binding. It refuses, and writes nothing, if the
+     journal is bound to another root or the root file is missing or
+     group-readable.
+   - **Back up `root.bin`, `journal.jsonl` and `state.sqlite3` together,
+     owner-only, off the repository.** A lost root cannot be replaced
+     without a new journal.
+8. **OD-4a request: draft for review only (§5.2).**
+   - Run `operate export --config $C --out <new owner-only dir>`.
+   - Run the §5.2 step 4 command with the saved `probe.json`.
+   - If the probe is not compatible, the generator refuses. Report that.
+   - Otherwise report the full request and its `request_digest`, with the
+     proposed window and expiry.
+   - This digest is a **draft for reviewing the format**. The window is
+     anchored to the probe's finalized block. The owner approves a digest
+     regenerated from a fresh probe just before dispatch, once §5.2 steps 1
+     and 2 hold.
+   - Even an approved request cannot dispatch while the operator config pins
+     460: the operator refuses with `UNSUPPORTED_RUNTIME_VERSION` until the
+     owner decides on spec 471.
+   - Do not dispatch.
+9. **Report, with no secrets:**
+   - the source commit and host identity;
+   - the doctor result;
+   - the overlay verification (versions);
+   - the probe status, spec version, differences, surface digest and raw
+     call types;
+   - evidence for the spec 471 decision;
+   - the service key id, and the modes and paths of the key, deployment,
+     root and journal;
+   - the `init` and `status` output;
+   - the draft OD-4a request and digest;
+   - every remaining prerequisite.
+
+   Update `BATTERY_TESTNET_PROGRAMME_STATE.md` item 2 through a PR, or send
+   the report to the owner so that the next PR records it.
+
 ## 1. Source and image identities
 
 Recompute every identity on the host at the exact commit you run
@@ -96,10 +216,12 @@ Recompute every identity on the host at the exact commit you run
   admission as `commitment: null`.
 - The Launchpad runner profile adds the optional path
   `"battery_validator": "/srv/carbon/battery/validator/deployment.json"`.
-- The private root and seed journal are created once:
-  `seeds.PrivateRoot.create` and `SeedJournal.commit_root`, with the seed pin
-  from the M2 seed service. **Back up the journal and state together.** The
-  journal is append-only commitment evidence.
+- The private root and seed journal are created once, by
+  `operate init --config <deployment>`. The seed pin binds
+  `seeds.generator_digest` (case derivation, reference model and solver,
+  truth image and overlay lock) and the OD-2 rule digest. It is recorded in
+  the journal's root entry and never recomputed. **Back up the root, journal
+  and state together.** The journal is append-only commitment evidence.
 
 **Secret locations (reference only):**
 
@@ -239,6 +361,8 @@ write scope.
 
 ```bash
 C=/srv/carbon/battery/validator/deployment.json
+# once: create the private root and commit it with the seed pin
+uv run --locked python -m carbon.battery.operate init --config $C
 # status / identities / pool / incumbent
 uv run --locked python -m carbon.battery.operate status --config $C
 uv run --locked python -m carbon.battery.operate batches --config $C

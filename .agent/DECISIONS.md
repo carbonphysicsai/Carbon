@@ -15863,3 +15863,31 @@ questions.
   journaled pod ID and verified termination.
 - OD-4a still needs its numbered, digest-approved record. OD-4b is not
   authorized.
+
+## 2026-09-25 — M4P-D1: the production seed pin and one-time `operate init`
+
+**Delegated engineering decision** (BATTERY-TESTNET-M4P; no scientific
+value is chosen).
+
+- **Finding.** A pre-handoff audit found that the handoff told the host to
+  commit the private root "with the seed pin from the M2 seed service", but
+  no production pin source existed. Only tests used fixture digests. A host
+  session would have had to invent the generator and scoring digests.
+- **Decision.** `seeds.generator_digest(repository)` is the generator
+  identity: the SHA-256 of `challenge.py`, `seeds.py`, `reference.py` and
+  `truth.py`, the truth base image reference and the overlay lock digest.
+  The scoring digest is the daemon's OD-2 `rule_digest()`.
+  `operate init --config` creates the root once, with `O_EXCL` and `0600`,
+  and commits it with that pin. The pin is recorded in the journal's root
+  entry and never recomputed, so later code changes do not rebind a
+  deployment.
+- **Fail closed.**
+  - An existing root and binding are kept and reported.
+  - A journal bound to another root is refused.
+  - A missing committed root is refused, and no replacement is written.
+  - A group-readable root or journal is refused.
+  - Only the public commitment and pin are printed.
+- **Handoff.** `BATTERY_TESTNET_HOST_HANDOFF.md` §0 now holds the complete
+  host-session procedure. The OD-4a request prepared on the host is a draft
+  for format review. The owner approves a digest regenerated from a fresh
+  probe just before dispatch.

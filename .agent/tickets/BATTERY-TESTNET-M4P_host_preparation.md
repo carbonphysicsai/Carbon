@@ -26,7 +26,8 @@ rent, publish or open a wallet.
   - solves inside the image from a jobs file only. The container never sees
     the validator state, root or journal.
 - **`operate`:** `truth-materialize`, `truth-verify`, `jobs`. `solve` moves
-  into the container.
+  into the container. `init` creates the private root and commits it, once,
+  with the production seed pin (M4P-D1).
 - **`carbon/chain/runtime_probe.py`:** a read-only comparison of the live
   runtime metadata with the pinned SDK's generated bindings, for the exact
   surface Carbon's publish path uses. It gives the report and a digest; it
@@ -34,7 +35,7 @@ rent, publish or open a wallet.
 - **`carbon/battery/od4a.py`:** the exact, numbered, digest-bound OD-4a
   request for one all-burn publication, plus the operator-config fragment
   the owner's approval completes.
-- **Handoff:** host readiness, secret locations by path, the truth steps,
+- **Handoff:** §0, the complete host-session procedure; host readiness, secret locations by path, the truth steps,
   the runtime-471 and OD-4a sequence, and the new stop conditions.
 
 ## Definition of Done
@@ -57,6 +58,12 @@ rent, publish or open a wallet.
     window anchored to a probe;
   - refuses a winner or tampered intent, an incompatible probe, another
     chain, mainnet and a malformed window or expiry.
+
+- [x] `operate init` creates the root and journal owner-only and commits the
+      pin (`seeds.generator_digest` and the OD-2 rule digest). Rerunning it
+      changes nothing. It refuses, writing nothing, when the journal is bound
+      to another root or the root is missing or group-readable. It never
+      prints the root.
 
 ## Evidence classes
 

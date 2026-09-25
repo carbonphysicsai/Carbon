@@ -114,6 +114,29 @@ def seed_pin(generator_digest, scoring_digest):
     }
 
 
+#: The modules whose bytes determine the cases and their reference answers.
+GENERATOR_MODULES = ("challenge.py", "seeds.py", "reference.py", "truth.py")
+
+
+def generator_digest(repository):
+    """The reference generator's identity for a deployment's seed pin: the
+    case derivation, the reference model and solver, and the pinned truth
+    environment (base image and overlay lock). Recorded once, in the
+    journal's root entry; later code changes never rewrite it."""
+    from .truth import TRUTH_IMAGE, lock_digest
+
+    here = Path(__file__).parent
+    identity = {
+        "modules": {
+            name: hashlib.sha256((here / name).read_bytes()).hexdigest()
+            for name in GENERATOR_MODULES
+        },
+        "truth_image": TRUTH_IMAGE["base_image"],
+        "overlay_lock": lock_digest(repository),
+    }
+    return "sha256:" + hashlib.sha256(_canonical(identity).encode()).hexdigest()
+
+
 def _context(root, pin):
     from carbon.registry.model import ChallengeKey
     from carbon.seeding.model import (

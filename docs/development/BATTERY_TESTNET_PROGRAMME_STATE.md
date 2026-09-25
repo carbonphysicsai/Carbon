@@ -29,9 +29,9 @@ All of these are in `.agent/DECISIONS.md`.
 | # | Item | Owner | Depends on | State |
 |---|---|---|---|---|
 | 1 | Merge PR #351 (M4P: truth environment, runtime-471 probe, OD-4a request) | Claude session | green Merge gate | CI running |
-| 2 | Host steps: truth-materialize, truth-verify, runtime probe, service key and deployment config, OD-4a request (handoff §2 and §3, §5.2 step 4) | host session on the authorized WSL host | 1 | not started |
+| 2 | Host steps, the complete procedure in handoff §0: doctor, truth-materialize, truth-verify, runtime probe, service key, deployment, `operate init`, and a draft OD-4a request | host session on the authorized WSL host | 1 | not started |
 | 3 | Decide whether to adopt runtime spec 471, from the probe report | owner | 2 | open |
-| 4 | Approve the exact OD-4a `request_digest` (one publication per record) | owner | 2, 3, 7 | open |
+| 4 | Approve the exact OD-4a `request_digest`, regenerated from a fresh probe just before dispatch (the step 2 draft is for format review only); one publication per record | owner | 2, 3, 7 | open |
 | 5 | EV1: 384 pinned-PyBaMM reference solves, then panel reconstruction, evaluation, report and PR | Claude session | — | solves in progress (local, resumable) |
 | 6 | M4: GPU backend for the daemon (device-attached carrier, host admission, device lease) | Claude session | 1 | not started |
 | 7 | M4: two-host RunPod reproducibility run (handoff §4 R2, R3) | host session | 6; fresh balance and active-pod check | not started |
