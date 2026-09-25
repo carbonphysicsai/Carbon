@@ -1,0 +1,15 @@
+{
+  "map_ref": "SYSTEM/AGENT-EXECUTION",
+  "event_type": "decision",
+  "event_id": "BATTERY-TESTNET-M1-01",
+  "owner_lane": "technical_lead",
+  "status": "implemented",
+  "summary": "Recorded OWNER-BATTERY-TESTNET-01 (OD-1 to OD-8, approved 2026-09-25) and delivered M1 of the battery testnet track. Construction contracts are now per Challenge: one registry and one B-02B compiler, but each Challenge version has its own ChallengeContract (capabilities, surfaces and ranges, declared envelope, lanes) pinned by its own contract digest. Burgers keeps its vocabulary and every contract and catalog identity byte for byte; its session and GPU-lane family lists now come from registry lanes. The non-paying DEVELOPMENT Challenge carbon.battery-fastcharge-ageing-development.v1 registers kNN and MLP families, promoted into carbon/battery with the campaign math held bit-identical, and the declared construction choices as surfaces. The operator families are research-only for battery, with reasons. Every Challenge's admission refuses an unknown Challenge, family or field by name, a Burgers family under battery and the reverse, and a contract-digest mismatch. The digest is recorded in check-design and in every frozen-candidate record. No exam, scoring rule, threshold, chain action, spend or qualification changes.",
+  "primary_detail": "docs/development/DECLARATIVE_CONSTRUCTION_MAP.md",
+  "affects": [
+    "SYSTEM/AGENT-EXECUTION",
+    "WAVE-C/C-W1-D4"
+  ],
+  "supersedes": null,
+  "recorded_at": "2026-09-25T12:00:00Z"
+}

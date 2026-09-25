@@ -22,7 +22,8 @@ import difflib
 import json
 
 from carbon.reconstruction.capability_registry import (
-    REGISTRY,
+    BURGERS_CHALLENGE,
+    CONTRACTS,
     Blocker,
     Dimension,
     Status,
@@ -48,13 +49,25 @@ OVERALL = {
     SUPPORTED: "submittable",
 }
 
-_BY_ID = {c.capability_id: c for c in REGISTRY}
-_FIELDS = catalog_surfaces()
-_FAMILIES = dict(rebuildable_families())
-#: Registry entries a parameter key or backbone name can name, by short name.
-_BY_NAME = {}
-for _c in REGISTRY:
-    _BY_NAME.setdefault(_c.capability_id.partition(".")[2], _c)
+
+class _Vocabulary:
+    """One Challenge's contract, indexed for verdicts (OD-8: per Challenge)."""
+
+    def __init__(self, challenge):
+        item = CONTRACTS[challenge]
+        self.challenge, self.digest = challenge, item.digest
+        self.entries = item.capabilities
+        self.by_id = {c.capability_id: c for c in item.capabilities}
+        self.fields = catalog_surfaces(challenge)
+        self.families = dict(rebuildable_families(challenge))
+        #: Registry entries a parameter key or backbone name can name.
+        self.by_name = {}
+        for c in item.capabilities:
+            self.by_name.setdefault(c.capability_id.partition(".")[2], c)
+
+
+_VOCABULARIES = {token: _Vocabulary(token) for token in CONTRACTS}
+_BURGERS = _VOCABULARIES[BURGERS_CHALLENGE]
 
 
 def _nearest(text, choices):
@@ -94,29 +107,29 @@ def _registered(capability):
     return item
 
 
-def _backbone(value):
-    if value in _FAMILIES:
+def _backbone(value, vocabulary=_BURGERS):
+    if value in vocabulary.families:
         return {
             "verdict": SUPPORTED,
             "capability": f"model_family.{value}",
-            "lab_kind": _FAMILIES[value],
+            "lab_kind": vocabulary.families[value],
         }
-    capability = _BY_NAME.get(value) if type(value) is str else None
+    capability = vocabulary.by_name.get(value) if type(value) is str else None
     if capability is not None and capability.dimension is Dimension.MODEL_FAMILY:
         return _registered(capability)
     return {
         "verdict": REFUSED,
         "reason": "unrecognized",
-        "nearest": _nearest(value, _FAMILIES),
+        "nearest": _nearest(value, vocabulary.families),
     }
 
 
-def _field(key, backbone):
-    if key in _FIELDS:
-        applies = _FIELDS[key][5]
+def _field(key, backbone, vocabulary=_BURGERS):
+    if key in vocabulary.fields:
+        applies = vocabulary.fields[key][5]
         capability = next(
             c.capability_id
-            for c in REGISTRY
+            for c in vocabulary.entries
             if c.surface is not None and c.capability_id.endswith("." + key)
         )
         if applies is None or backbone in applies:
@@ -127,7 +140,7 @@ def _field(key, backbone):
             "capability": capability,
             "families": list(applies),
         }
-    capability = _BY_NAME.get(key)
+    capability = vocabulary.by_name.get(key)
     if (
         capability is not None
         and capability.status is not Status.REBUILDABLE_DEVELOPMENT
@@ -136,26 +149,68 @@ def _field(key, backbone):
     return {
         "verdict": REFUSED,
         "reason": "unrecognized",
-        "nearest": _nearest(key, set(_FIELDS) | set(_BY_NAME)),
+        "nearest": _nearest(key, set(vocabulary.fields) | set(vocabulary.by_name)),
     }
 
 
-def _requested(value):
-    capability = _BY_ID.get(value) if type(value) is str else None
+def _requested(value, vocabulary=_BURGERS):
+    capability = vocabulary.by_id.get(value) if type(value) is str else None
     if capability is None:
         return {
             "verdict": REFUSED,
             "reason": "unrecognized",
-            "nearest": _nearest(value, _BY_ID),
+            "nearest": _nearest(value, vocabulary.by_id),
         }
     if capability.status is Status.REBUILDABLE_DEVELOPMENT:
         return {"verdict": SUPPORTED, "capability": capability.capability_id}
     return _registered(capability)
 
 
+def _rebuild_battery(strategy):
+    """The battery contract's compile: the same compiler, its own catalog."""
+    from carbon.battery.compile import compile_recipe
+    from carbon.battery.contracts import (
+        IMPLEMENTATION_ID,
+        IMPLEMENTATION_VERSION,
+        implementation_digest,
+    )
+
+    from .research_catalog import RecipeRejected
+
+    try:
+        _, recipe = compile_recipe(strategy)
+    except RecipeRejected as rejected:
+        return {
+            "accepted": False,
+            "issues": [
+                {"code": i.code, "path": i.path} for i in rejected.rejected.issues
+            ],
+        }
+    return {
+        "accepted": True,
+        "canonical": {
+            name: {
+                "value": value,
+                "source": "selected" if name in recipe.supplied else "defaulted",
+            }
+            for name, value in recipe.values
+        },
+        "implementation": {
+            "family": recipe.family,
+            "implementation_id": IMPLEMENTATION_ID,
+            "implementation_version": IMPLEMENTATION_VERSION,
+            "implementation_digest": implementation_digest(),
+            "recipe_digest": recipe.recipe_digest,
+            "plan_digest": recipe.plan_digest,
+        },
+    }
+
+
 def _rebuild(strategy):
     """Compile with the validator's compiler; name every issue, or return the
     canonical design Carbon would rebuild."""
+    if strategy.get("challenge_id") != BURGERS_CHALLENGE:
+        return _rebuild_battery(strategy)
     from carbon.construction.model import SelectedSurface
     from carbon.reconstruction.catalogue import reconstruction_capabilities
 
@@ -217,18 +272,34 @@ def check_design(design) -> dict:
         )
     json.dumps(design, allow_nan=False)  # finite, plain JSON only
 
-    backbone = _backbone(strategy.get("backbone"))
+    # The strategy names its Challenge; only that Challenge's contract answers.
+    vocabulary = _VOCABULARIES.get(strategy.get("challenge_id"))
+    if vocabulary is None:
+        return {
+            "schema": CHECK_SCHEMA,
+            "verdict": OVERALL[REFUSED],
+            "challenge": {
+                "verdict": REFUSED,
+                "reason": "unrecognized",
+                "nearest": _nearest(strategy.get("challenge_id"), _VOCABULARIES),
+            },
+            "evidence": "DEVELOPMENT_COMPILE_ONLY",
+            "qualification": False,
+        }
+    backbone = _backbone(strategy.get("backbone"), vocabulary)
     # Positions in sorted key order: the miner knows their own keys, and the
     # verdict never repeats one Carbon does not recognize.
     keys = sorted(strategy["parameters"], key=str)
     fields = [
-        {"position": i, **_field(key, strategy.get("backbone"))}
+        {"position": i, **_field(key, strategy.get("backbone"), vocabulary)}
         for i, key in enumerate(keys)
     ]
     for item, key in zip(fields, keys):
         if item["verdict"] == SUPPORTED or "capability" in item:
             item["field"] = key  # a registered name, safe to repeat
-    wanted = [{"position": i, **_requested(v)} for i, v in enumerate(requested)]
+    wanted = [
+        {"position": i, **_requested(v, vocabulary)} for i, v in enumerate(requested)
+    ]
 
     verdicts = [backbone["verdict"], *(f["verdict"] for f in fields)]
     verdicts += [w["verdict"] for w in wanted]
@@ -239,6 +310,9 @@ def check_design(design) -> dict:
         "backbone": backbone,
         "fields": fields,
         "requested": wanted,
+        # The contract this verdict was given under; a submission records it
+        # and a validator refuses a different one by name.
+        "contract": {"challenge": vocabulary.challenge, "digest": vocabulary.digest},
         "evidence": "DEVELOPMENT_COMPILE_ONLY",
         "qualification": False,
     }

@@ -59,6 +59,50 @@ The validator resolves its image from the operator-installed
 `validator-worker-image.json` (`carbon/reconstruction/validator_launch.py`),
 never from anything the miner used.
 
+## Per-Challenge contracts (OWNER-BATTERY-TESTNET-01, OD-8)
+
+One registry and one compiler; each Challenge version has its own
+`ChallengeContract` in `capability_registry.py`, holding:
+- the capabilities registered for that Challenge;
+- their surfaces and ranges;
+- its declared envelope;
+- named lanes;
+- its own contract digest.
+
+A family rebuildable for one Challenge is not thereby rebuildable for another.
+
+- **`burgers-dynamics-v1`** keeps its vocabulary byte for byte. Its `session`
+  and `gpu_diagnostic` lanes (FNO, DeepONet) replace the lists that used to be
+  hard-coded in `contracts.py` and `gpu_research.py`.
+- **`battery-fastcharge-ageing-development-v1`** (identity
+  `carbon.battery-fastcharge-ageing-development.v1`) rebuilds these, in
+  `carbon/battery/`:
+
+| Family | Surfaces |
+|---|---|
+| `knn` | `neighbours` |
+| `mlp` | `width`, `depth`, `trajectory_components`, `arrhenius_features`, `steps`, `learning_rate`, `weight_decay`, `ensemble_members`, and the declared choices `bounded_voltage_head`, `ocv_initial_voltage`, `capacity_fade_head` |
+
+Admission for every Challenge runs through `challenge_contracts.py`:
+- `validate_for_challenge` names each refusal;
+- `compile_submission` resolves only the named Challenge's catalog through
+  B-02B;
+- `check_contract_digest` refuses a submission recorded against a different
+  contract.
+
+**Battery applicability of the operator families** (all research-only):
+
+| Family | Assessment |
+|---|---|
+| DeepONet | Natural candidate. Needs a battery adapter: branch over the four scalar inputs, trunk over the 30 s time grid, scalar heads for plating margin and capacity. |
+| FNO, Transolver, Haar, GNO, GINO | Grid-to-grid operators over a spatial input field. Battery inputs are four scalars with no field, so no adapter is planned. |
+
+Also research-only for battery:
+- important-region weighting: owner decision (evidence design), because the
+  region is exam-owned;
+- TRAIN subsets and resolution: owner decision (comparison regime);
+- minibatching and warmup: engineering.
+
 ## Capability map
 
 The live source of every capability's status is
@@ -131,7 +175,7 @@ shape as compile issues.
 
 ## Expansion plan, in order
 
-**D0: an honest answer to "can I submit this?"** (delivered in part: defects 1 and 2 are refused by name, and compile now reports every issue with its code and field. Still open: `dry_validate` remains a structural check that accepts unknown backbones, and defects 3 to 5 remain)
+**D0: an honest answer to "can I submit this?"** (delivered in part: defects 1 and 2 are refused by name, and compile now reports every issue with its code and field. Since BATTERY-TESTNET-M1, `validate_for_challenge` refuses unknown Challenges, families and fields by name for every Challenge; `dry_validate` itself stays the structural layer strategy identity is built on. Defects 3 to 5 remain)
 - Add a structured `SubmissionAssessment`, returned by an export-and-validate
   operation:
   - the canonical design;

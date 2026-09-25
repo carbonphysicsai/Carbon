@@ -12,14 +12,25 @@ Pure data: importing this module never initializes a numerical runtime.
 Status is engineering state, never qualification. ADMITTED exists in the public
 vocabulary but no entry may claim it here: admission for an evaluation contract
 needs qualification evidence this registry cannot supply.
+
+Construction contracts are per Challenge (OWNER-BATTERY-TESTNET-01, OD-8). One
+registry, one compiler, but each Challenge version has its own
+`ChallengeContract`: the capabilities registered for that Challenge, their
+surfaces and ranges, and its declared resource envelope, pinned by its own
+contract digest. A family rebuildable for one Challenge is not thereby
+rebuildable for another. `REGISTRY` remains the Burgers contract's entries, and
+every function defaults to Burgers, so the historical vocabulary is unchanged.
 """
 
 from __future__ import annotations
 
+import hashlib
+import json
 from dataclasses import dataclass
 from enum import Enum
 
 REGISTRY_SCHEMA = "carbon.construction-capability-registry.v1"
+CONTRACT_SCHEMA = "carbon.challenge-construction-contract.v1"
 
 
 class Dimension(str, Enum):
@@ -519,33 +530,356 @@ REGISTRY = (
 )
 
 
-def _index():
+# --- Battery: carbon.battery-fastcharge-ageing-development.v1 (OD-1). ---
+#
+# Inputs are four scalars (first- and second-stage C-rate, ambient temperature,
+# initial state of charge); outputs are voltage and temperature on a 30 s grid,
+# a scalar plating margin and capacity at four checkpoint cycles. Bounds below
+# are engineering admission bounds, not quality or scientific claims; the
+# declared resource envelope dominates them.
+KNN, MLP = ("knn",), ("mlp",)
+
+
+def _battery_family(name, lab_kind, summary):
+    return _family(name, name, lab_kind, summary)
+
+
+_GRID_OPERATOR = (
+    "not applicable to battery: a grid-to-grid operator over a spatial input "
+    "field, and battery inputs are four scalars with no field; no adapter planned"
+)
+
+BATTERY_REGISTRY = (
+    _battery_family(
+        "knn",
+        "battery_knn",
+        "Inverse-distance k-nearest-neighbour over unit-scaled inputs; "
+        "V(0) from the published OCV table and T(0) = ambient",
+    ),
+    _battery_family(
+        "mlp",
+        "battery_mlp",
+        "Full-batch GELU MLP with Adam(W) and cosine decay on normalized "
+        "trajectory targets; T(0) = ambient",
+    ),
+    _field(
+        A,
+        "neighbours",
+        Surface("model", "uint", 1, 64, 5),
+        "Neighbours averaged",
+        KNN,
+    ),
+    _field(A, "width", Surface("model", "uint", 8, 512, 256), "Hidden width", MLP),
+    _field(A, "depth", Surface("model", "uint", 1, 6, 3), "Hidden layers", MLP),
+    _field(
+        A,
+        "trajectory_components",
+        Surface("model", "uint", 0, 32, 0),
+        "PCA heads per trajectory (0 = one output per sample)",
+        MLP,
+    ),
+    _field(
+        A,
+        "arrhenius_features",
+        Surface("model", "bool", None, None, False),
+        "Add Arrhenius, log-rate and interaction input features",
+        MLP,
+    ),
+    _field(B, "steps", Surface("train", "uint", 16, 20000, 6000), "Updates", MLP),
+    _field(
+        O,
+        "learning_rate",
+        Surface("train", "float", 0.00001, 0.05, 0.002),
+        "Adam peak rate (cosine to zero)",
+        MLP,
+    ),
+    _field(
+        O,
+        "weight_decay",
+        Surface("train", "float", 0.0, 0.1, 0.0),
+        "Decoupled decay",
+        MLP,
+    ),
+    _field(
+        INF,
+        "ensemble_members",
+        Surface("train", "uint", 1, 4, 1),
+        "Members sharing the step budget equally",
+        MLP,
+    ),
+    _field(
+        P,
+        "bounded_voltage_head",
+        Surface("task", "bool", None, None, True),
+        "Voltage head that cannot exceed the 4.2 V cycler limit (off: the raw control)",
+        MLP,
+    ),
+    _field(
+        P,
+        "ocv_initial_voltage",
+        Surface("task", "bool", None, None, True),
+        "V(0) from the published OCV table (off: predicted)",
+        MLP,
+    ),
+    _field(
+        P,
+        "capacity_fade_head",
+        Surface("task", "bool", None, None, True),
+        "Capacity as cycle-1 capacity plus fade (off: each checkpoint directly)",
+        MLP,
+    ),
+    # --- Applicability of the operator families (M1 assessment). ---
+    _todo(
+        M,
+        "deeponet",
+        "needs a battery adapter: branch over the four scalar inputs, trunk over "
+        "the 30 s time grid, scalar heads for plating margin and capacity",
+    ),
+    *(
+        _todo(M, name, _GRID_OPERATOR)
+        for name in ("fno", "transolver", "haar_operator", "gno", "gino")
+    ),
+    _todo(B, "minibatch", "Minibatch updates; the recipe trains full-batch"),
+    *(
+        _todo(O, name, summary)
+        for name, summary in (
+            ("lion", "Lion (sign-momentum) optimizer"),
+            ("sgd_momentum", "SGD with momentum"),
+        )
+    ),
+    _todo(S, "warmup_steps", "Linear warmup before the cosine decay"),
+    _owner(
+        T,
+        "important_region_weighting",
+        "Down- or up-weighting TRAIN cases by the exam's important region",
+        Trigger.EVIDENCE_DESIGN,
+    ),
+    _owner(
+        T,
+        "case_count_and_resolution",
+        "TRAIN case count, subsets, time grid and checkpoint cycles",
+        Trigger.COMPARISON_REGIME,
+    ),
+    _owner(INF, "precision", "Precision beyond float32", Trigger.COMPARISON_REGIME),
+    _excluded(
+        M,
+        "pretrained_weights",
+        "Pretrained weights, checkpoints or embeddings",
+        Trigger.EXTERNAL_STATE,
+    ),
+    _excluded(
+        T,
+        "submitted_datasets",
+        "Uploaded datasets or miner-chosen seeds",
+        Trigger.EXTERNAL_STATE,
+    ),
+    _excluded(
+        J,
+        "loss_expressions",
+        "Losses supplied as code or expressions",
+        Trigger.EXECUTABLE_SUBMISSION,
+    ),
+    _excluded(
+        INF,
+        "final_label_selection",
+        "Checkpoint selection by final labels",
+        Trigger.EVIDENCE_DESIGN,
+    ),
+)
+
+
+@dataclass(frozen=True)
+class ChallengeContract:
+    """One Challenge version's construction contract.
+
+    `token` is the Strategy `challenge_id` (Strategy 1.0 identifiers carry no
+    dots); `identity` is the Challenge's registered name. `lanes` name the
+    subsets of rebuildable families a specific execution lane offers: a lane
+    admits a family only with that lane's own evidence, so widening the
+    research catalog never widens a lane. The envelope is declared engineering
+    admission, never a scientific or economic value.
+    """
+
+    token: str
+    version: str
+    identity: str
+    catalog_version: str
+    capabilities: tuple[Capability, ...]
+    envelope: tuple[tuple[str, object], ...]
+    lanes: tuple[tuple[str, tuple[str, ...]], ...] = ()
+
+    def __post_init__(self):
+        if not all(type(c) is Capability for c in self.capabilities):
+            raise TypeError("exact Capability entries required")
+        ids = [c.capability_id for c in self.capabilities]
+        if len(ids) != len(set(ids)):
+            raise ValueError("duplicate capability id in " + self.token)
+        fields = [
+            c.capability_id.partition(".")[2] for c in self.capabilities if c.surface
+        ]
+        if len(fields) != len(set(fields)):
+            raise ValueError("duplicate field name in " + self.token)
+        families = {
+            c.selector
+            for c in self.capabilities
+            if c.dimension is Dimension.MODEL_FAMILY
+            and c.status is Status.REBUILDABLE_DEVELOPMENT
+        }
+        if not families:
+            raise ValueError("a contract rebuilds at least one family")
+        for c in self.capabilities:
+            if c.applies_to is not None and not set(c.applies_to) <= families:
+                raise ValueError(
+                    c.capability_id + " applies to a family this contract lacks"
+                )
+        for _, lane in self.lanes:
+            if not lane or not set(lane) <= families:
+                raise ValueError("a lane offers only rebuildable families")
+
+    def document(self):
+        """Everything the contract digest pins, as plain JSON data."""
+        return {
+            "schema": CONTRACT_SCHEMA,
+            "registry_schema": REGISTRY_SCHEMA,
+            "challenge": {"id": self.token, "version": self.version},
+            "identity": self.identity,
+            "catalog_version": self.catalog_version,
+            "capabilities": [
+                {
+                    "id": c.capability_id,
+                    "status": c.status.value,
+                    "blocker": c.blocker.value,
+                    "trigger": None if c.trigger is None else c.trigger.value,
+                    "selector": c.selector,
+                    "lab_kind": c.lab_kind,
+                    "surface": (
+                        None
+                        if c.surface is None
+                        else [
+                            c.surface.group,
+                            c.surface.kind,
+                            (
+                                list(c.surface.low)
+                                if type(c.surface.low) is tuple
+                                else c.surface.low
+                            ),
+                            c.surface.high,
+                            c.surface.default,
+                        ]
+                    ),
+                    "applies_to": None if c.applies_to is None else list(c.applies_to),
+                }
+                for c in self.capabilities
+            ],
+            "envelope": dict(self.envelope),
+            "lanes": {name: list(lane) for name, lane in self.lanes},
+        }
+
+    @property
+    def digest(self):
+        body = json.dumps(
+            self.document(), sort_keys=True, separators=(",", ":"), allow_nan=False
+        ).encode("utf-8")
+        return "sha256:" + hashlib.sha256(body).hexdigest()
+
+
+BURGERS_CHALLENGE = "burgers-dynamics-v1"
+BATTERY_CHALLENGE = "battery-fastcharge-ageing-development-v1"
+
+_WORKER_ENVELOPE = (
+    ("worker_cpu", 2),
+    ("worker_memory_bytes", 4 * 1024**3),
+    ("worker_swap_bytes", 0),
+    ("worker_deadline_seconds", 600),
+    ("precision", "float32"),
+)
+
+BURGERS_CONTRACT = ChallengeContract(
+    token=BURGERS_CHALLENGE,
+    version="1.0",
+    identity="carbon.burgers-autoresearch-development.v1",
+    catalog_version="carbon.burgers-autoresearch-recipes.v1",
+    capabilities=REGISTRY,
+    envelope=_WORKER_ENVELOPE,
+    # The historical C-W1 session and the GPU diagnostic lane offer exactly the
+    # two families they were accepted with.
+    lanes=(
+        ("session", ("fno", "deeponet")),
+        ("gpu_diagnostic", ("fno", "deeponet")),
+    ),
+)
+
+BATTERY_CONTRACT = ChallengeContract(
+    token=BATTERY_CHALLENGE,
+    version="1.0",
+    identity="carbon.battery-fastcharge-ageing-development.v1",
+    catalog_version="carbon.battery-fastcharge-ageing-recipes.v1",
+    capabilities=BATTERY_REGISTRY,
+    envelope=_WORKER_ENVELOPE + (("train_cases", 400), ("batching", "full")),
+)
+
+CONTRACTS = {c.token: c for c in (BURGERS_CONTRACT, BATTERY_CONTRACT)}
+
+
+class UnknownChallenge(KeyError):
+    """A Challenge with no registered construction contract."""
+
+
+def contract(challenge=BURGERS_CHALLENGE):
+    """The construction contract for exactly this Challenge token."""
+    try:
+        return CONTRACTS[challenge]
+    except (KeyError, TypeError):
+        raise UnknownChallenge("no construction contract for this challenge") from None
+
+
+def contract_digest(challenge=BURGERS_CHALLENGE):
+    return contract(challenge).digest
+
+
+def lane_families(challenge, lane):
+    """The families a named lane of one Challenge offers, from the registry."""
+    return dict(contract(challenge).lanes)[lane]
+
+
+def status_map(capability_id):
+    """{challenge: status} for every Challenge that registers this capability."""
+    return {
+        token: c.status.value
+        for token, item in CONTRACTS.items()
+        for c in item.capabilities
+        if c.capability_id == capability_id
+    }
+
+
+def _index(entries):
     seen = {}
-    for item in REGISTRY:
+    for item in entries:
         if item.capability_id in seen:
             raise ValueError("duplicate capability id " + item.capability_id)
         seen[item.capability_id] = item
     return seen
 
 
-_BY_ID = _index()
+_BY_ID = {token: _index(item.capabilities) for token, item in CONTRACTS.items()}
 
 
-def capability(capability_id):
-    return _BY_ID[capability_id]
+def capability(capability_id, challenge=BURGERS_CHALLENGE):
+    contract(challenge)
+    return _BY_ID[challenge][capability_id]
 
 
-def rebuildable_families():
+def rebuildable_families(challenge=BURGERS_CHALLENGE):
     """(selector, lab kind) for every family Carbon rebuilds, in registry order."""
     return tuple(
         (c.selector, c.lab_kind)
-        for c in REGISTRY
+        for c in contract(challenge).capabilities
         if c.dimension is Dimension.MODEL_FAMILY
         and c.status is Status.REBUILDABLE_DEVELOPMENT
     )
 
 
-def catalog_surfaces():
+def catalog_surfaces(challenge=BURGERS_CHALLENGE):
     """The research catalog's fields, in its historical tuple form:
     name -> (group, type, minimum/choices, maximum, default, families|None)."""
     return {
@@ -557,15 +891,15 @@ def catalog_surfaces():
             c.surface.default,
             c.applies_to,
         )
-        for c in REGISTRY
+        for c in contract(challenge).capabilities
         if c.surface is not None
     }
 
 
-def public_registry():
-    """Every capability's public status. Only registry-defined text, never
-    anything a miner supplied."""
-    return {
+def public_registry(challenge=BURGERS_CHALLENGE):
+    """Every capability's public status for one Challenge. Only
+    registry-defined text, never anything a miner supplied."""
+    value = {
         "schema": REGISTRY_SCHEMA,
         "status_meaning": {
             Status.RESEARCH_ONLY.value: "explore in research; Carbon cannot rebuild it yet",
@@ -584,6 +918,12 @@ def public_registry():
                 "selector": c.selector,
                 "applies_to": None if c.applies_to is None else list(c.applies_to),
             }
-            for c in REGISTRY
+            for c in contract(challenge).capabilities
         ],
     }
+    if challenge != BURGERS_CHALLENGE:
+        # Burgers keeps its historical projection byte for byte.
+        item = contract(challenge)
+        value["challenge"] = {"id": item.token, "version": item.version}
+        value["contract_digest"] = item.digest
+    return value
