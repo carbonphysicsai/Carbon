@@ -199,6 +199,21 @@ def describe():
             {"strategy": knn, "admission": _verdict(knn)},
         ],
         "unsupported": unsupported,
+        "exclusion_scope": {
+            "submission": (
+                "Submitted constructions rebuild only through Carbon's approved "
+                "JAX runtime. Excluded for battery submissions: PyTorch and "
+                "Julia submission or reconstruction backends, miner-supplied "
+                "reference labels, and models that invoke or reuse the PyBaMM "
+                "reference solver."
+            ),
+            "not_excluded": [
+                "studying and training on the approved public TRAIN v1 data "
+                "and the OCV table, which PyBaMM produced",
+                "Carbon running PyBaMM as its own independent truth service",
+                "Julia or other tools in research outside a submission",
+            ],
+        },
         "authority": (
             "DEVELOPMENT, non-paying; no reward, frontier, qualification or "
             "chain authority"

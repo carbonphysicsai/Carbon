@@ -202,3 +202,12 @@ def test_discovery_is_on_the_open_tier_and_grants_nothing(tmp_path, monkeypatch)
     assert catalog["schema"] == challenges.CATALOG_SCHEMA
     # Discovery created no campaign, ledger or file.
     assert list(tmp_path.rglob("*")) == []
+
+
+def test_battery_states_the_scope_of_its_submission_exclusions():
+    from carbon.challenge_registry import describe
+
+    scope = describe(BATTERY, "1.0")["exclusion_scope"]
+    assert "JAX" in scope["submission"] and "PyBaMM" in scope["submission"]
+    text = " ".join(scope["not_excluded"])
+    assert "TRAIN" in text and "truth service" in text
