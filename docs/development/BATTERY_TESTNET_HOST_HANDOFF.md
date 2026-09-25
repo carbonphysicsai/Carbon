@@ -103,14 +103,14 @@ Recompute every identity on the host at the exact commit you run
 
 **Secret locations (reference only):**
 
-| Secret | Location on the authorized host | Who holds it |
+| Secret | Location on the authorized host (`~` is the operator account's home) | Who holds it |
 |---|---|---|
 | Validator service key (OD-6) | `/srv/carbon/keys/battery-validator.key`, 32 raw bytes, `0600`. Create it with `signing.ServiceKey.create` from the accepted `main` commit. | Carbon operator |
-| Publisher wallet (UID 0, OD-4a) | `/home/carbon/.bittensor/wallets/carbon-testnet-20260915` | Owner |
-| Publisher wallet password | `/home/carbon/.local/share/carbon-testnet/secrets/wallet-password` | Owner |
-| Miner UID 1 signing key (OD-7) | `/home/carbon/.local/share/carbon-testnet/secrets/miner-session-key` | Owner/miner |
-| Model-provider key | `/home/carbon/.local/share/carbon-testnet/secrets/openai-api-key` | Owner |
-| RunPod API key | `/home/carbon/.runpod/api_key` (`0600`, directory `0700`) | Owner |
+| Publisher wallet (UID 0, OD-4a) | `~/.bittensor/wallets/carbon-testnet-20260915` | Owner |
+| Publisher wallet password | `~/.local/share/carbon-testnet/secrets/wallet-password` | Owner |
+| Miner UID 1 signing key (OD-7) | `~/.local/share/carbon-testnet/secrets/miner-session-key` | Owner/miner |
+| Model-provider key | `~/.local/share/carbon-testnet/secrets/openai-api-key` | Owner |
+| RunPod API key | `~/.runpod/api_key` (`0600`, directory `0700`) | Owner |
 
 Validators hold **no** hotkey (OD-6). Never copy a wallet into a
 reconstruction container. Never register a replacement identity because a
