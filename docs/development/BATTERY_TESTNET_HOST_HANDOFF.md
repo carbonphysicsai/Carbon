@@ -20,7 +20,7 @@ that only this handoff's operator can produce.
 | RunPod key | Placed by the owner at the §3 path (2026-09-25). Use it only for the §4 matrix. |
 | OD-3 security review | Recorded as approved for the truth image and the GPU validator image (OWNER-BATTERY-TESTNET-04). |
 | Testnet read | Working. The chain is at runtime spec 471. |
-| Testnet write | Blocked. The operator fails closed with `UNSUPPORTED_RUNTIME_VERSION` because it was validated for 460 (§5.1). |
+| Testnet write | Blocked. The operator fails closed with `UNSUPPORTED_RUNTIME_VERSION`: the live config pins `expected_runtime_spec: 458` (written 2026-09-15), and the chain is at 471 (§5.1). |
 | OD-4a executable record | Missing (§5.2). |
 | OD-4b | Not authorized. |
 
@@ -46,8 +46,11 @@ this document and `BATTERY_TESTNET_PROGRAMME_STATE.md`, then follow it.
 1. **Source.**
    - `git fetch origin main`, and confirm that PR #351's merge commit is on
      `main`.
-   - Work only in a clean worktree at exactly that commit, for example
-     `git worktree add ../carbon-m4p <sha>`.
+   - Work only in a clean worktree detached at exactly that commit (the
+     `Carbon-testnet` worktree), and run `uv sync --locked --group chain`.
+   - `uv` is `~/.local/bin/uv`, which may not be on `PATH` in a non-login
+     shell. Use the absolute path or `bash -lc`. A `command not found` is a
+     failure, even when the shell exits 0.
    - Record: the SHA, `hostname`, `uname -a`, `/etc/os-release`,
      `docker version --format '{{.Server.Version}}'` and
      `stat -fc %T /sys/fs/cgroup`, which prints `cgroup2fs` for cgroup v2.
@@ -85,8 +88,17 @@ this document and `BATTERY_TESTNET_PROGRAMME_STATE.md`, then follow it.
    uv run --locked --group chain python -m carbon.chain.runtime_probe \
      --config <existing operator config> > <owner-only dir>/probe.json
    ```
-   - Use the existing subnet-567 operator config, schema
-     `carbon.development-testnet.operator.v1`. Do not create a new one.
+   - Use the existing live operator config,
+     `~/.local/share/carbon-testnet/development-testnet.json`: schema
+     `carbon.development-testnet.operator.v1`, `netuid: 567`. Do not create a
+     new one.
+   - Do not use its sibling `development-testnet.before-subnet-creation.json`,
+     the pre-creation snapshot, or any repository `.example.json` template.
+   - The config's `expected_runtime_spec: 458` is echoed in the report as
+     `operator_expected_runtime_spec`. It does not decide the probe's
+     status: that comes from comparing the live metadata with the pinned
+     SDK's bindings. 458 against 471 is a stale pin for the owner's decision,
+     not a probe failure. Leave it unchanged.
    - Exit 0 means `COMPATIBLE_USED_SURFACE`. Exit 3 means a used call,
      storage item or API differs; the report names each difference.
    - Either way, keep the report. It is the evidence for the owner's spec 471
@@ -129,7 +141,7 @@ this document and `BATTERY_TESTNET_PROGRAMME_STATE.md`, then follow it.
      regenerated from a fresh probe just before dispatch, once §5.2 steps 1
      and 2 hold.
    - Even an approved request cannot dispatch while the operator config pins
-     460: the operator refuses with `UNSUPPORTED_RUNTIME_VERSION` until the
+     458: the operator refuses with `UNSUPPORTED_RUNTIME_VERSION` until the
      owner decides on spec 471.
    - Do not dispatch.
 9. **Report, with no secrets:**
@@ -286,13 +298,13 @@ Nothing below is inferred from general testnet approval.
 
 ### 5.1 Runtime 471
 
-The operator pins the runtime it validated (460). Carbon publishes through
+The live operator config pins the runtime it validated: `expected_runtime_spec: 458`, written 2026-09-15. The transaction plan's timelocked-commit evidence was observed on 460. Carbon publishes through
 `bittensor==11.1.0`, whose bindings name the calls and storage it encodes.
 The read-only probe compares that exact surface with the live runtime:
 
 ```bash
 uv run --locked --group chain python -m carbon.chain.runtime_probe \
-  --config /absolute/private/operator/development-testnet.json > probe.json
+  --config ~/.local/share/carbon-testnet/development-testnet.json > probe.json
 ```
 
 - **`COMPATIBLE_USED_SURFACE`:** these are unchanged:
