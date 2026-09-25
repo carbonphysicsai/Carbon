@@ -4,7 +4,7 @@
 **Status:** `in_progress`, pending delivery in its PR
 **Primary Hub map_ref:** `SYSTEM/AGENT-EXECUTION`
 **Authority:** OWNER-BATTERY-TESTNET-01 (OD-2, OD-4a/b, OD-5, OD-6, OD-7),
-OWNER-BATTERY-TESTNET-03 and OWNER-DX-03. Working decisions: M3-D1 to D12 in
+OWNER-BATTERY-TESTNET-03 and OWNER-DX-03. Working decisions: M3-D1 to D16 in
 `.agent/DECISIONS.md`.
 **Depends on:** BATTERY-TESTNET-M2 (exam, seeds, truth service) and
 BATTERY-TESTNET-M5A (Challenge registry and shared MCP workflow).
@@ -86,6 +86,16 @@ autonomous agent.
   - no container remains;
   - no network;
   - a crashed run is reconciled onto a new attempt.
+- [x] Complete-diff review findings closed, each with a test:
+  - a pending rotation resumes when a batch completes;
+  - a nomination commits with its score, and a promotion with its decision;
+  - a stale final is withdrawn and its challenger re-nominated;
+  - the incumbent's inference retries under a new identity;
+  - infrastructure retries are capped;
+  - references for other inputs are refused;
+  - there is one writer per deployment, and status is read-only;
+  - an owner-only work directory is required;
+  - the service key signs only the all-burn intent.
 - [x] Launchpad and miner submit through the daemon (end-to-end MCP test).
 - [x] Carbon's agent on battery, scripted provider: discovery, check_design,
       capability request, practice, select, daemon score and a self-reported

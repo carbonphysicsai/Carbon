@@ -569,7 +569,7 @@ def test_restart_between_rotation_and_journal_retirement(
     with monkeypatch.context() as patch:
         # The third admission rotates the pool; the process dies before the
         # journal records the retirement.
-        patch.setattr(validator.store, "settle_retirements", crash)
+        patch.setattr(validator.journal, "retire", crash)
         with pytest.raises(RuntimeError):
             run(validator, submission("hk2", neighbours=4))
     assert validator.store.pool()["version"] == 1
@@ -628,3 +628,175 @@ def test_an_unavailable_worker_host_is_infrastructure(tmp_path, refs):
     assert outcome["failure"]["code"] == "worker_infrastructure:FileNotFoundError"
     assert "screening" not in outcome
     assert validator.store.pool()["admitted"] == 0
+
+
+# --- review fixes: rotation, atomicity, stale finals, attempts, caps -----------
+
+
+def test_a_pending_rotation_resumes_when_a_batch_completes(tmp_path, refs):
+    validator = make(tmp_path, refs, Counting(REPOSITORY), screening=3, finalist=False)
+    for i, k in enumerate((8, 6, 4)):
+        run(validator, submission(f"hk{i}", neighbours=k))
+    assert validator.store.pool()["status"] == "ROTATION_PENDING"
+    queued = validator.admit(submission("hk9", neighbours=3))["submission_id"]
+    assert validator.process(queued)["waiting"] == "ROTATION_PENDING"
+    # The operator's path: a new batch, its references ingested, then `run`.
+    fp = validator.import_batch(batch(refs, "pscreen-B03"), kind="screening")
+    validator.ingest_references(fp, list(refs.values()))
+    assert validator.store.pool()["status"] == "OPEN"
+    assert validator.store.pool()["version"] == 1
+    validator.run_pending()
+    assert validator.outcome(queued)["screening"]["pool_version"] == 1
+
+
+def test_a_nomination_commits_with_its_score(tmp_path, refs, monkeypatch):
+    validator = make(tmp_path, refs, Counting(REPOSITORY))
+
+    settle = validator._settle
+    scored = []
+
+    def crash():
+        # Killed right after a score commit, before anything else runs.
+        if scored and validator.store.score(scored[-1]) is not None:
+            raise RuntimeError("process killed")
+        settle()
+
+    with monkeypatch.context() as patch:
+        patch.setattr(validator, "_settle", crash)
+        first = validator.admit(submission("hk0", neighbours=8))["submission_id"]
+        scored.append(first)
+        with pytest.raises(RuntimeError):
+            validator.process(first)
+        assert validator.store.incumbent()["model_id"] == first
+        nominee = validator.admit(
+            submission("hk1", backbone="mlp", steps=3000, width=64, depth=3)
+        )["submission_id"]
+        scored.append(nominee)
+        with pytest.raises(RuntimeError):
+            validator.process(nominee)
+    assert validator.store.score(nominee)["record"]["nomination"]["nominated"]
+    (final_id,) = validator.store.open_finals()
+    assert validator.store.final(final_id)["challenger"] == nominee
+
+
+def test_a_promotion_commits_with_its_decision(tmp_path, refs):
+    validator = make(tmp_path, refs, Counting(REPOSITORY), finalist=False)
+    a = run(validator, submission("hk0", neighbours=8))["submission_id"]
+    b = run(validator, submission("hk1", neighbours=6))["submission_id"]
+    store = validator.store
+    store.freeze_final("final-x", challenger=b, incumbent=a, frozen={"f": 1})
+    outcome = store.complete_final(
+        "final-x", {"outcome": exam.IMPROVEMENT, "promotable": True}
+    )
+    assert outcome["promotable"] and store.incumbent()["model_id"] == b
+    # A final decided after its incumbent moved is withdrawn, never promoted.
+    store.freeze_final("final-y", challenger=a, incumbent=a + "-old", frozen={"f": 2})
+    outcome = store.complete_final(
+        "final-y", {"outcome": exam.IMPROVEMENT, "promotable": True}
+    )
+    assert outcome["outcome"] == "WITHDRAWN_INCUMBENT_CHANGED"
+    assert not outcome["promotable"] and store.incumbent()["model_id"] == b
+
+
+def test_a_stale_final_is_withdrawn_and_its_challenger_renominated(tmp_path, refs):
+    validator = make(tmp_path, refs, Counting(REPOSITORY), finalist=False)
+    run(validator, submission("hk0", neighbours=8))
+    nominee = run(
+        validator, submission("hk1", backbone="mlp", steps=3000, width=64, depth=3)
+    )
+    assert nominee["nominated"]
+    (stale,) = validator.store.open_finals()
+    # Another decision replaced the incumbent while this final waited.
+    other = run(validator, submission("hk2", neighbours=3))["submission_id"]
+    incumbent = validator.store.incumbent()["model_id"]
+    validator.store.set_incumbent(other, "fixture", expected=incumbent)
+    decided = validator.process_final(stale)
+    assert decided["state"] == "DECIDED"
+    assert decided["outcome"]["outcome"] == "WITHDRAWN_INCUMBENT_CHANGED"
+    assert decided["outcome"]["promotable"] is False
+    assert validator.store.incumbent()["model_id"] == other
+    renominated = decided["outcome"]["new_final"]
+    if decided["outcome"]["renominated"]:
+        fresh = validator.store.final(renominated)
+        assert fresh["incumbent"] == other and fresh["state"] == "FROZEN"
+    shown = validator.outcome(nominee["submission_id"])["finals"]
+    assert shown[0]["outcome"] == "WITHDRAWN_INCUMBENT_CHANGED"
+    assert not any(f["promoted"] for f in shown)
+
+
+class IncumbentFails(Counting):
+    """Fails the incumbent's inference once; records every run identity."""
+
+    seen: ClassVar[list] = []
+
+    def infer(self, identity, state, inputs):
+        type(self).seen.append(identity)
+        if "-for-" in identity and not any("-for-" in i for i in type(self).seen[:-1]):
+            raise WorkerFailure("injected", candidate=False)
+        return super().infer(identity, state, inputs)
+
+
+def test_the_incumbents_inference_retries_under_a_new_identity(tmp_path, refs):
+    IncumbentFails.seen = []
+    validator = make(tmp_path, refs, IncumbentFails(REPOSITORY))
+    run(validator, submission("hk0", neighbours=8))
+    # Two more admissions rotate the pool, so the incumbent needs inference
+    # on the new batch when the next challenger is screened.
+    run(validator, submission("hk1", neighbours=9))
+    run(validator, submission("hk2", neighbours=10))
+    assert validator.store.pool()["version"] == 1
+    challenger = run(validator, submission("hk3", neighbours=6))
+    assert challenger["state"] == "FAILED_INFRA"
+    assert challenger["failure"]["code"].startswith("incumbent_inference:")
+    retried = validator.process(challenger["submission_id"])
+    assert retried["state"] == "SCORED"
+    tries = [i for i in IncumbentFails.seen if "-for-" in i]
+    assert len(tries) == 2 and tries[0] != tries[1]
+    assert all(challenger["submission_id"] in i for i in tries)
+
+
+class AlwaysInfra(Counting):
+    def reconstruct(self, identity, recipe, seed):
+        raise WorkerFailure("host_down", candidate=False)
+
+
+def test_infrastructure_retries_are_capped_and_never_scored(tmp_path, refs):
+    from carbon.battery.pool_store import MAX_INFRA_ATTEMPTS
+
+    validator = make(tmp_path, refs, AlwaysInfra(REPOSITORY))
+    sid = validator.admit(submission("hk1"))["submission_id"]
+    for _ in range(MAX_INFRA_ATTEMPTS + 2):
+        validator.run_pending()
+    outcome = validator.outcome(sid)
+    assert outcome["state"] == "FAILED_INFRA_EXHAUSTED"
+    assert "screening" not in outcome
+    assert sid not in validator.store.pending_submissions()
+    assert validator.store.submission(sid)["binding"]["attempt"] == MAX_INFRA_ATTEMPTS
+    assert validator.store.pool()["admitted"] == 0
+
+
+def test_references_for_other_inputs_are_refused(tmp_path, refs):
+    validator = make(tmp_path, refs, Counting(REPOSITORY), open_pool=False)
+    fp = validator.import_batch(batch(refs, "pscreen-B00"), kind="screening")
+    wrong = []
+    for r in refs.values():
+        if r["case_id"].startswith("pscreen-B00-"):
+            wrong.append(
+                {**r, "inputs": {**r["inputs"], "c1": r["inputs"]["c1"] + 0.1}}
+            )
+    with pytest.raises(StateError, match="reference_inputs_mismatch"):
+        validator.ingest_references(fp, wrong)
+
+
+def test_the_service_key_signs_only_the_all_burn_intent(tmp_path):
+    key = signing.ServiceKey.create(tmp_path / "service.key")
+    burn = signing.all_burn_intent(pool_version=3, reason="phase A")
+    assert signing.verify(key.sign("weight_intent", burn))
+    for tampered in (
+        {**burn, "mode": "WINNER"},
+        {**burn, "winner_weights": True},
+        {**burn, "weights": {"1": 65535}},
+        {**burn, "netuid": 1},
+    ):
+        with pytest.raises(PermissionError):
+            key.sign("weight_intent", tampered)

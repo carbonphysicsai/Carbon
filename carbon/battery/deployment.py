@@ -27,6 +27,8 @@ field or a changed identity binding is `EvaluationUnavailable`, never a score.
 
 from __future__ import annotations
 
+import contextlib
+import fcntl
 import json
 import os
 import stat
@@ -78,8 +80,41 @@ def load_config(path):
     return config
 
 
-def build(config, *, repository):
-    """A started daemon for one configuration. Never dispatches work."""
+@contextlib.contextmanager
+def writer(target):
+    """The single writer of one deployment's state, across processes.
+
+    An exclusive `flock` on `<state>.lock`, held for the whole operation,
+    so an operator command never recovers (abandons) or races a run that
+    another process - a campaign submitting, the daemon advancing - is
+    executing. Threads in this process queue on `_LOCK` first.
+    """
+    with _LOCK:
+        fd = os.open(target.lock_path, os.O_RDWR | os.O_CREAT, 0o600)
+        try:
+            fcntl.flock(fd, fcntl.LOCK_EX)
+            yield target
+        finally:
+            fcntl.flock(fd, fcntl.LOCK_UN)
+            os.close(fd)
+
+
+def _owner_only_directory(path):
+    path = Path(path)
+    path.mkdir(mode=0o700, parents=True, exist_ok=True)
+    info = os.lstat(path)
+    if not stat.S_ISDIR(info.st_mode) or info.st_mode & 0o077:
+        # Runs stage private case inputs here.
+        raise EvaluationUnavailable("evaluation_work_not_owner_only")
+    return path
+
+
+def build(config, *, repository, readonly=False):
+    """A daemon for one configuration. Never dispatches work.
+
+    `readonly` builds one for status and listing only: nothing is started,
+    recovered or locked, and it must not be used to advance anything.
+    """
     from . import seeds
     from .daemon import BatteryValidator
     from .pool_store import PoolStore, StateError
@@ -89,9 +124,8 @@ def build(config, *, repository):
     root = seeds.PrivateRoot.load(_private(config["private_root"]))
     journal = seeds.SeedJournal(config["journal"])
     store = PoolStore(config["state"])
-    work = Path(config["work"])
-    work.mkdir(mode=0o700, parents=True, exist_ok=True)
-    if config["backend"] == "carrier":
+    work = _owner_only_directory(config["work"])
+    if config["backend"] == "carrier" and not readonly:
         from carbon.reconstruction.worker.docker_runtime import (
             doctor,
             load_image_identity,
@@ -119,8 +153,13 @@ def build(config, *, repository):
         require_commitment=config.get("require_commitment", True),
         service_key=None if key is None else ServiceKey.load(key),
     )
+    validator.lock_path = str(config["state"]) + ".lock"
+    validator.readonly = readonly
+    if readonly:
+        return validator
     try:
-        validator.start()
+        with writer(validator):
+            validator.start()
     except StateError as changed:
         raise EvaluationUnavailable("evaluation_" + changed.code) from None
     except ValueError:
@@ -128,23 +167,27 @@ def build(config, *, repository):
     return validator
 
 
-def validator(config_path, *, repository):
-    """One daemon per configuration for this process."""
-    key = str(Path(config_path).resolve())
+def validator(config_path, *, repository, readonly=False):
+    """One daemon per configuration (and mode) for this process."""
+    key = (str(Path(config_path).resolve()), readonly)
     with _LOCK:
         if key not in _VALIDATORS:
-            _VALIDATORS[key] = build(load_config(key), repository=repository)
+            _VALIDATORS[key] = build(
+                load_config(key[0]), repository=repository, readonly=readonly
+            )
         return _VALIDATORS[key]
 
 
 def evaluate(target, submission):
     """Admit and advance one authenticated submission; return its outcome.
 
-    Serialized per process: the daemon's state file is the single writer's.
+    Runs under the deployment's single-writer lock (`writer`).
     """
     from .daemon import CommitmentRequired
 
-    with _LOCK:
+    if getattr(target, "readonly", False):
+        raise EvaluationUnavailable("evaluation_readonly")
+    with writer(target):
         try:
             admitted = target.admit(submission)
         except CommitmentRequired:

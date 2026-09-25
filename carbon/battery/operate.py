@@ -29,7 +29,7 @@ import os
 import sys
 from pathlib import Path
 
-from .deployment import EvaluationUnavailable, load_config, validator
+from .deployment import EvaluationUnavailable, load_config, validator, writer
 
 REPOSITORY = Path(__file__).resolve().parents[2]
 
@@ -70,7 +70,8 @@ def _solve(target, fingerprint, records, workers, timeout_s):
         raise SystemExit("the records file must be owner-only")
     jobs = target.reference_jobs(fingerprint)
     summary = TruthService(path, workers=workers, timeout_s=timeout_s).run(jobs)
-    complete = target.ingest_references(fingerprint, TruthService(path).records())
+    with writer(target):
+        complete = target.ingest_references(fingerprint, TruthService(path).records())
     return {"solve": summary, "complete": bool(complete)}
 
 
@@ -85,6 +86,13 @@ def _export(target, out):
         ids = [r[0] for r in db.execute("SELECT submission_id FROM submissions")]
     for sid in ids:
         _write_private(out / (sid + ".json"), target.signed_outcome(sid))
+    with target.store.db() as db:
+        finals = [
+            r[0]
+            for r in db.execute("SELECT final_id FROM finals WHERE state='DECIDED'")
+        ]
+    for final_id in finals:
+        _write_private(out / (final_id + ".json"), target.signed_final(final_id))
     pool = target.store.pool()
     intent = target.service_key.sign(
         "weight_intent",
@@ -94,7 +102,12 @@ def _export(target, out):
         ),
     )
     _write_private(out / "weight-intent.json", intent)
-    return {"outcomes": len(ids), "weight_intent": "ALL_BURN", "directory": str(out)}
+    return {
+        "outcomes": len(ids),
+        "finals": len(finals),
+        "weight_intent": "ALL_BURN",
+        "directory": str(out),
+    }
 
 
 def main(argv=None):
@@ -120,17 +133,30 @@ def main(argv=None):
     export.add_argument("--out", required=True)
     args = parser.parse_args(argv)
 
+    readonly = args.command in ("status", "batches")
     try:
         load_config(args.config)
-        target = validator(args.config, repository=REPOSITORY)
+        target = validator(args.config, repository=REPOSITORY, readonly=readonly)
     except EvaluationUnavailable as unavailable:
         print(json.dumps({"unavailable": unavailable.code}))
         return 2
-    if args.command == "status":
-        result = target.status()
-    elif args.command == "batches":
-        result = _batches(target)
-    elif args.command == "recover":
+    if readonly:
+        # Reads only: no start, no recovery, no lock - never touches a run
+        # another process is executing.
+        result = target.status() if args.command == "status" else _batches(target)
+    elif args.command == "solve":
+        # Solving takes hours and touches only the records file; the writer
+        # lock is held for the ingest alone.
+        result = _solve(target, args.batch, args.records, args.workers, args.timeout_s)
+    else:
+        with writer(target):
+            result = _mutate(target, args)
+    print(json.dumps(result, sort_keys=True, indent=2, default=str))
+    return 0
+
+
+def _mutate(target, args):
+    if args.command == "recover":
         target.recover()
         result = target.status()
     elif args.command == "prepare":
@@ -139,8 +165,6 @@ def main(argv=None):
                 args.role, kind=args.kind, count=args.count
             )
         }
-    elif args.command == "solve":
-        result = _solve(target, args.batch, args.records, args.workers, args.timeout_s)
     elif args.command == "ingest":
         from .truth import TruthService
 
@@ -157,8 +181,7 @@ def main(argv=None):
         result = {"advanced": len(target.run_pending()), "status": target.status()}
     else:
         result = _export(target, args.out)
-    print(json.dumps(result, sort_keys=True, indent=2, default=str))
-    return 0
+    return result
 
 
 if __name__ == "__main__":

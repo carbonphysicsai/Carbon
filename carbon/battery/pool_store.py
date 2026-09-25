@@ -50,6 +50,7 @@ SUBMISSION_STATES = (
     "INVALID_CONSTRUCTION",  # refused by the contract or compiler (terminal)
     "RECONSTRUCTION_FAILED",  # the candidate's own build or prediction failed
     "FAILED_INFRA",  # infrastructure; retryable, never a score
+    "FAILED_INFRA_EXHAUSTED",  # infrastructure, retry cap reached; parked
 )
 DDL = """
 CREATE TABLE IF NOT EXISTS meta(key TEXT PRIMARY KEY, value TEXT NOT NULL);
@@ -132,6 +133,15 @@ def _json(value):
         raise TypeError(type(item).__name__)
 
     return json.dumps(value, sort_keys=True, separators=(",", ":"), default=default)
+
+
+#: A final whose incumbent was replaced before it was decided: not a
+#: scientific outcome, never promotable (M3-D13).
+WITHDRAWN = "WITHDRAWN_INCUMBENT_CHANGED"
+#: Infrastructure attempts per submission or final before it is parked as
+#: FAILED_INFRA_EXHAUSTED for the operator (M3-D14): never a score, never
+#: retried automatically again.
+MAX_INFRA_ATTEMPTS = 3
 
 
 class StateError(RuntimeError):
@@ -288,10 +298,22 @@ class PoolStore:
         reference: it is left pending so the truth service retries it.
         """
         terminal = {"OK", "REFERENCE_SOLVER_FAILED", "REFERENCE_TIMEOUT"}
+        cases = {
+            c["case_id"]: c["inputs"]
+            for c in self.batch(fingerprint)["document"]["cases"]
+        }
         with self.transaction() as db:
             for record in records:
                 if record.get("status") not in terminal or record.get("refined"):
                     continue
+                expected = cases.get(record.get("case_id"))
+                if expected is not None and record.get("inputs") not in (
+                    None,
+                    expected,
+                ):
+                    # A record for this case id solved other inputs: the file
+                    # is not this batch's. Nothing from it is stored.
+                    raise StateError("reference_inputs_mismatch", record["case_id"])
                 db.execute(
                     "INSERT OR IGNORE INTO reference_records VALUES(?,?,?)",
                     (fingerprint, record["case_id"], _json(record)),
@@ -684,12 +706,28 @@ class PoolStore:
 
     # --- screening scores ---------------------------------------------------------
 
-    def record_score(self, submission_id, record, public, *, expected_version):
-        """Record one screening score, count it, and rotate if due - atomically.
+    def record_score(
+        self,
+        submission_id,
+        record,
+        public,
+        *,
+        expected_version,
+        expected_incumbent=None,
+        nomination=None,
+    ):
+        """Record one screening score, count it, apply its nomination and
+        rotate if due - all in one transaction.
+
+        `nomination` is None, `{"kind": "first_incumbent", "reason": ...}` or
+        `{"kind": "final", "final_id": ..., "incumbent": ..., "frozen": ...}`.
+        Committing it with the score means a crash can never leave a scored
+        nominee without its incumbent change or frozen final.
 
         Idempotent: a replay returns the stored score and counts nothing.
-        Refused if the pool moved since the score was computed, so a score is
-        never recorded against a pool it was not computed on.
+        Refused (`pool_moved`) if the pool or the incumbent changed since the
+        score was computed, so a score is never recorded against a pool or an
+        incumbent it was not computed on.
         """
         with self.transaction() as db:
             row = db.execute(
@@ -706,6 +744,8 @@ class PoolStore:
             pool = self._pool_row(db)
             if pool["status"] != "OPEN" or pool["version"] != expected_version:
                 raise StateError("pool_moved")
+            if self._incumbent_id(db) != expected_incumbent:
+                raise StateError("pool_moved", "incumbent changed")
             db.execute(
                 "INSERT INTO scores VALUES(?,?,?,?)",
                 (submission_id, pool["version"], _json(record), _json(public)),
@@ -720,6 +760,21 @@ class PoolStore:
                 "scored",
                 {"submission_id": submission_id, "pool_version": pool["version"]},
             )
+            if nomination is not None:
+                if nomination["kind"] == "first_incumbent":
+                    self._set_incumbent(
+                        db, submission_id, nomination["reason"], expected=None
+                    )
+                elif nomination["kind"] == "final":
+                    self._freeze_final(
+                        db,
+                        nomination["final_id"],
+                        challenger=submission_id,
+                        incumbent=nomination["incumbent"],
+                        frozen=nomination["frozen"],
+                    )
+                else:
+                    raise ValueError("unknown nomination kind")
             retired = self._try_rotate(db)
             return {
                 "pool_version": pool["version"],
@@ -752,40 +807,56 @@ class PoolStore:
             ).fetchone()
         return None if row is None else {"model_id": row[0], "reason": row[1]}
 
+    @staticmethod
+    def _incumbent_id(db):
+        row = db.execute("SELECT model_id FROM incumbent WHERE id=1").fetchone()
+        return row[0] if row else None
+
+    def _set_incumbent(self, db, model_id, reason, *, expected):
+        current = self._incumbent_id(db)
+        if current == model_id:
+            return
+        if current != expected:
+            raise StateError("incumbent_moved")
+        db.execute(
+            "INSERT OR REPLACE INTO incumbent VALUES(1, ?, ?, ?)",
+            (model_id, reason, self.clock()),
+        )
+        self._event(
+            db,
+            "incumbent",
+            {"model_id": model_id, "reason": reason, "previous": current},
+        )
+
     def set_incumbent(self, model_id, reason, *, expected=None):
         with self.transaction() as db:
-            row = db.execute("SELECT model_id FROM incumbent WHERE id=1").fetchone()
-            current = row[0] if row else None
-            if current == model_id:
-                return
-            if current != expected:
-                raise StateError("incumbent_moved")
-            db.execute(
-                "INSERT OR REPLACE INTO incumbent VALUES(1, ?, ?, ?)",
-                (model_id, reason, self.clock()),
-            )
-            self._event(
-                db,
-                "incumbent",
-                {"model_id": model_id, "reason": reason, "previous": current},
-            )
+            self._set_incumbent(db, model_id, reason, expected=expected)
+
+    def _freeze_final(self, db, final_id, *, challenger, incumbent, frozen):
+        row = db.execute(
+            "SELECT frozen FROM finals WHERE final_id=?", (final_id,)
+        ).fetchone()
+        if row is not None:
+            if json.loads(row[0]) != frozen:
+                raise StateError("final_replay_conflict")
+            return False
+        db.execute(
+            "INSERT INTO finals VALUES(?,?,?,NULL,?,'FROZEN',NULL)",
+            (final_id, challenger, incumbent, canonical(frozen)),
+        )
+        self._event(db, "final_frozen", {"final_id": final_id})
+        return True
 
     def freeze_final(self, final_id, *, challenger, incumbent, frozen):
         """Freeze a finalist comparison before any finalist input is used."""
         with self.transaction() as db:
-            row = db.execute(
-                "SELECT frozen FROM finals WHERE final_id=?", (final_id,)
-            ).fetchone()
-            if row is not None:
-                if json.loads(row[0]) != frozen:
-                    raise StateError("final_replay_conflict")
-                return False
-            db.execute(
-                "INSERT INTO finals VALUES(?,?,?,NULL,?,'FROZEN',NULL)",
-                (final_id, challenger, incumbent, canonical(frozen)),
+            return self._freeze_final(
+                db,
+                final_id,
+                challenger=challenger,
+                incumbent=incumbent,
+                frozen=frozen,
             )
-            self._event(db, "final_frozen", {"final_id": final_id})
-            return True
 
     def claim_finalist_set(self, final_id):
         """Assign one prepared, complete finalist batch to a frozen final."""
@@ -814,14 +885,53 @@ class PoolStore:
             )
             return nxt[0]
 
-    def complete_final(self, final_id, outcome):
+    def complete_final(self, final_id, outcome, *, new_final=None):
+        """Decide a final and apply what follows from it in one transaction.
+
+        A promotable outcome moves the incumbent to the challenger, but only
+        from the incumbent the comparison was run against. If the incumbent
+        changed meanwhile, the comparison no longer answers the question and
+        is recorded as withdrawn, never as a promotion. `new_final` freezes
+        the challenger's comparison against the current incumbent (after a
+        withdrawal). A final without a claimed set consumes nothing.
+        """
         with self.transaction() as db:
             row = db.execute(
-                "SELECT state, finalist, outcome FROM finals WHERE final_id=?",
+                "SELECT state, finalist, outcome, challenger, incumbent FROM finals "
+                "WHERE final_id=?",
                 (final_id,),
             ).fetchone()
             if row[0] == "DECIDED":
                 return json.loads(row[2])
+            if outcome.get("promotable"):
+                if self._incumbent_id(db) != row[4]:
+                    outcome = {
+                        **outcome,
+                        "outcome": WITHDRAWN,
+                        "reason": "the incumbent changed during the comparison",
+                        "promotable": False,
+                        "comparison_outcome": outcome.get("outcome"),
+                    }
+                else:
+                    self._set_incumbent(
+                        db,
+                        row[3],
+                        "IMPROVEMENT in the finalist comparison",
+                        expected=row[4],
+                    )
+            if new_final is not None:
+                self._freeze_final(db, **new_final)
+            db.execute(
+                "UPDATE finals SET state='DECIDED', outcome=? WHERE final_id=?",
+                (_json(outcome), final_id),
+            )
+            if row[1] is None:
+                self._event(
+                    db,
+                    "final_decided",
+                    {"final_id": final_id, "outcome": outcome.get("outcome")},
+                )
+                return outcome
             db.execute(
                 "UPDATE finals SET state='DECIDED', outcome=? WHERE final_id=?",
                 (_json(outcome), final_id),

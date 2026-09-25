@@ -76,7 +76,13 @@ from .challenge import (
     TRAIN_V1_SHA256,
     PublicMaterial,
 )
-from .pool_store import PoolStore, StateError, canonical
+from .pool_store import (
+    MAX_INFRA_ATTEMPTS,
+    WITHDRAWN,
+    PoolStore,
+    StateError,
+    canonical,
+)
 from .research import EVALUATION_FEEDBACK_FIELDS, SCREENING_FEEDBACK_FIELDS
 from .seeds import PrivateBatch, make_batch, reconstruction_seed
 from .worker import WorkerFailure
@@ -247,7 +253,7 @@ class BatteryValidator:
                 # own cleanup or will be removed by the operator's reconcile; it
                 # is infrastructure, and the retry uses a new attempt identity.
                 ledger.abandon(identity)
-        self.store.settle_retirements(self.journal, self._committed)
+        self._settle()
 
     def _committed(self, fingerprint):
         document = self.store.batch(fingerprint)["document"]
@@ -263,6 +269,7 @@ class BatteryValidator:
         """
         count = RULE["screening_batch_size"] if count is None else count
         batch = make_batch(self.root, self.pin, role, count, duplicates)
+        self._refuse_published(batch)
         try:
             committed = self.journal.recall(batch)
         except ValueError:
@@ -277,24 +284,28 @@ class BatteryValidator:
         validator was built with `allow_published_cases=True` - which only a
         test fixture does, never a deployment.
         """
-        from .challenge import INPUTS
-
         if type(batch) is not PrivateBatch:
             raise TypeError("a PrivateBatch is required")
-        if not self.allow_published_cases:
-            published = published_inputs(self.repository)
-            for _case_id, inputs in batch.cases:
-                values = dict(inputs)
-                if tuple(round(values[k], 4) for k in INPUTS) in published:
-                    raise PublishedCaseRefused(
-                        "a published campaign case cannot be a hidden case"
-                    )
+        self._refuse_published(batch)
         try:
             committed = self.journal.recall(batch)
         except ValueError:
             committed = self.journal.commit(batch, pool_version=self._pool_version())
         self.store.add_batch(committed, kind=kind)
         return committed.fingerprint
+
+    def _refuse_published(self, batch):
+        from .challenge import INPUTS
+
+        if self.allow_published_cases:
+            return
+        published = published_inputs(self.repository)
+        for _case_id, inputs in batch.cases:
+            values = dict(inputs)
+            if tuple(round(values[k], 4) for k in INPUTS) in published:
+                raise PublishedCaseRefused(
+                    "a published campaign case cannot be a hidden case"
+                )
 
     def _pool_version(self):
         pool = self.store.pool()
@@ -312,9 +323,15 @@ class BatteryValidator:
         ]
 
     def ingest_references(self, fingerprint, records):
-        """Store truth-service records; returns whether the batch is complete."""
+        """Store truth-service records; returns whether the batch is complete.
+
+        A newly complete screening batch resumes a pending rotation.
+        """
         self.store.record_references(fingerprint, records)
-        return self.store.complete_references(fingerprint)
+        complete = self.store.complete_references(fingerprint)
+        if complete:
+            self._settle()
+        return complete
 
     def open_pool(self):
         return self.store.open_pool()
@@ -479,11 +496,22 @@ class BatteryValidator:
     def _reference_identity(self, fingerprints):
         return {f: self.store.batch(f)["references_digest"] for f in fingerprints}
 
+    def _settle(self):
+        """Resume a pending rotation and complete journal retirements."""
+        self.store.rotate_if_ready()
+        self.store.settle_retirements(self.journal, self._committed)
+
     def process(self, submission_id):
         """Advance one submission as far as it can go now. Restart-safe."""
         row = self.store.submission(submission_id)
-        if row["state"] in ("SCORED", "INVALID_CONSTRUCTION", "RECONSTRUCTION_FAILED"):
+        if row["state"] in (
+            "SCORED",
+            "INVALID_CONSTRUCTION",
+            "RECONSTRUCTION_FAILED",
+            "FAILED_INFRA_EXHAUSTED",
+        ):
             return self.outcome(submission_id)
+        self._settle()
         pool = self.store.pool()
         if pool is None or pool["status"] != "OPEN":
             return self.outcome(submission_id)
@@ -509,11 +537,19 @@ class BatteryValidator:
                 self.store.mark(submission_id, "RECONSTRUCTED")
             return self._screen(submission_id, attempt)
         except WorkerFailure as failure:
-            state = "RECONSTRUCTION_FAILED" if failure.candidate else "FAILED_INFRA"
-            self.store.mark(
-                submission_id, state, {"code": failure.code, "attempt": attempt}
-            )
-            if not failure.candidate:
+            if failure.candidate:
+                self.store.mark(
+                    submission_id,
+                    "RECONSTRUCTION_FAILED",
+                    {"code": failure.code, "attempt": attempt},
+                )
+            else:
+                exhausted = attempt + 1 >= MAX_INFRA_ATTEMPTS
+                self.store.mark(
+                    submission_id,
+                    "FAILED_INFRA_EXHAUSTED" if exhausted else "FAILED_INFRA",
+                    {"code": failure.code, "attempt": attempt},
+                )
                 self._bump_attempt(submission_id, attempt + 1)
             return self.outcome(submission_id)
 
@@ -531,65 +567,87 @@ class BatteryValidator:
                 (canonical(binding), submission_id),
             )
 
+    def _pool_records(self, pool, challenger, incumbent_id, tag):
+        """Score a challenger and (inference only) the incumbent on a pool."""
+        ids = self.store.active_case_ids(pool)
+        inputs = self.store.case_inputs(pool["active"])
+        store = self._case_store(pool["active"])
+        preds = self._infer(challenger, ids, inputs, f"v{pool['version']}{tag}")
+        _rows, agg = exam.evaluate(preds, ids, store)
+        inc_rec = None
+        if incumbent_id is not None and incumbent_id != challenger:
+            try:
+                # Named with the challenger and its attempt: the incumbent's
+                # run on this pool never blocks a later challenger's retry.
+                inc_preds = self._infer(
+                    incumbent_id,
+                    ids,
+                    inputs,
+                    f"v{pool['version']}-for-{challenger}{tag}",
+                )
+            except WorkerFailure as failure:
+                # The incumbent's inference, not this candidate's: never
+                # charged to the challenger, which is retried.
+                raise WorkerFailure(
+                    "incumbent_inference:" + failure.code, candidate=False
+                ) from None
+            _, inc_agg = exam.evaluate(inc_preds, ids, store)
+            inc_rec = {**inc_agg, "pool_version": pool["version"]}
+        record = {
+            "model_id": challenger,
+            "pool_version": pool["version"],
+            "active_batches": list(pool["active"]),
+            "references": self._reference_identity(pool["active"]),
+            "rule_digest": rule_digest(),
+            **agg,
+        }
+        if inc_rec is not None and inc_rec["score"] is None:
+            # The rule compares against the incumbent's score; with none on
+            # this pool, "better than the incumbent" cannot be shown (M3-D15).
+            nominated, why = False, "the incumbent has no scorable result on this pool"
+        else:
+            nominated, why = exam.nominate(
+                record, inc_rec, RULE["equivalence_margin_rel"]
+            )
+        record["nomination"] = {
+            "nominated": nominated,
+            "reason": why,
+            "incumbent": incumbent_id,
+            "incumbent_score": None if inc_rec is None else inc_rec["score"],
+        }
+        return record
+
     def _screen(self, submission_id, attempt):
         while True:
             pool = self.store.pool()
             if pool["status"] != "OPEN":
                 return self.outcome(submission_id)
-            ids = self.store.active_case_ids(pool)
-            inputs = self.store.case_inputs(pool["active"])
-            store = self._case_store(pool["active"])
-            preds = self._infer(
-                submission_id, ids, inputs, f"v{pool['version']}a{attempt}"
-            )
-            _rows, agg = exam.evaluate(preds, ids, store)
             incumbent = self.store.incumbent()
-            inc_rec = None
-            if incumbent is not None and incumbent["model_id"] != submission_id:
-                try:
-                    inc_preds = self._infer(
-                        incumbent["model_id"], ids, inputs, f"v{pool['version']}"
-                    )
-                except WorkerFailure as failure:
-                    # The incumbent's inference, not this candidate's: never
-                    # charged to the challenger, which is retried.
-                    raise WorkerFailure(
-                        "incumbent_inference:" + failure.code, candidate=False
-                    ) from None
-                _, inc_agg = exam.evaluate(inc_preds, ids, store)
-                inc_rec = {**inc_agg, "pool_version": pool["version"]}
-            record = {
-                "model_id": submission_id,
-                "pool_version": pool["version"],
-                "active_batches": list(pool["active"]),
-                "references": self._reference_identity(pool["active"]),
-                "rule_digest": rule_digest(),
-                **agg,
-            }
-            nominated, why = exam.nominate(
-                record, inc_rec, RULE["equivalence_margin_rel"]
+            incumbent_id = None if incumbent is None else incumbent["model_id"]
+            record = self._pool_records(
+                pool, submission_id, incumbent_id, f"a{attempt}"
             )
-            record["nomination"] = {
-                "nominated": nominated,
-                "reason": why,
-                "incumbent": None if incumbent is None else incumbent["model_id"],
-                "incumbent_score": None if inc_rec is None else inc_rec["score"],
-            }
+            nomination = (
+                self._nomination(submission_id, incumbent_id, record)
+                if record["nomination"]["nominated"]
+                else None
+            )
             try:
+                # Score, count, nomination and any due rotation: one commit.
                 self.store.record_score(
                     submission_id,
                     record,
                     self._public_score(record),
                     expected_version=pool["version"],
+                    expected_incumbent=incumbent_id,
+                    nomination=nomination,
                 )
             except StateError as moved:
                 if moved.code == "pool_moved":
-                    continue  # another admission rotated the pool; screen again
+                    continue  # the pool or incumbent moved; screen again
                 raise
             break
-        self.store.settle_retirements(self.journal, self._committed)
-        if nominated:
-            self._nominated(submission_id, incumbent, record)
+        self._settle()
         return self.outcome(submission_id)
 
     def _public_score(self, record):
@@ -612,21 +670,28 @@ class BatteryValidator:
             },
         }
 
-    def _nominated(self, submission_id, incumbent, record):
-        if incumbent is None:
-            self.store.set_incumbent(
-                submission_id, "first eligible screened submission", expected=None
-            )
-            return
-        final_id = "final-" + _digest([incumbent["model_id"], submission_id])[7:31]
-        frozen = {
+    def _nomination(self, submission_id, incumbent_id, record):
+        """What a nomination commits with its score."""
+        if incumbent_id is None:
+            return {
+                "kind": "first_incumbent",
+                "reason": "first eligible screened submission",
+            }
+        final_id = "final-" + _digest([incumbent_id, submission_id])[7:31]
+        return {
+            "kind": "final",
+            "final_id": final_id,
+            "incumbent": incumbent_id,
+            "frozen": self._frozen(final_id, incumbent_id, submission_id, record),
+        }
+
+    def _frozen(self, final_id, incumbent_id, submission_id, record):
+        return {
             "schema": "carbon.battery.final-freeze.v1",
             "rule": exam.ComparisonRule(RULE["equivalence_margin_rel"]).__dict__,
             "rule_digest": rule_digest(),
-            "incumbent": incumbent["model_id"],
-            "incumbent_recipe": self.store.model_state(incumbent["model_id"])[
-                "recipe_digest"
-            ],
+            "incumbent": incumbent_id,
+            "incumbent_recipe": self.store.model_state(incumbent_id)["recipe_digest"],
             "challenger": submission_id,
             "challenger_recipe": self.store.submission(submission_id)["binding"][
                 "recipe_digest"
@@ -638,15 +703,10 @@ class BatteryValidator:
             },
             "seed": self._seed("final/" + final_id),
         }
-        self.store.freeze_final(
-            final_id,
-            challenger=submission_id,
-            incumbent=incumbent["model_id"],
-            frozen=frozen,
-        )
 
     def run_pending(self):
         """Advance every queued submission and open final, in order."""
+        self._settle()
         results = [self.process(s) for s in self.store.pending_submissions()]
         results += [self.process_final(f) for f in self.store.open_finals()]
         return results
@@ -657,14 +717,19 @@ class BatteryValidator:
         final = self.store.final(final_id)
         if final["state"] == "DECIDED":
             return final
+        attempt = self.store.final_attempt(final_id)
+        if attempt >= MAX_INFRA_ATTEMPTS:
+            return {**final, "status": "FAILED_INFRA_EXHAUSTED"}
+        current = self.store.incumbent()
+        if current is None or current["model_id"] != final["incumbent"]:
+            # Frozen against an incumbent that has since been replaced: the
+            # comparison no longer answers the question (M3-D13).
+            return self._withdraw(final_id, final, current, attempt)
         fingerprint = self.store.claim_finalist_set(final_id)
         if fingerprint is None:
             return {**final, "status": "WAITING_FOR_FINALIST_SET"}
         frozen = final["frozen"]
         seed = frozen["seed"]
-        # Like a submission's, every worker run is named by the attempt, so a
-        # retry after an infrastructure failure never reuses a run identity.
-        attempt = self.store.final_attempt(final_id)
         inputs = self.store.case_inputs([fingerprint])
         ids = [c["case_id"] for c in self.store.batch(fingerprint)["document"]["cases"]]
         store = self._case_store([fingerprint])
@@ -703,7 +768,7 @@ class BatteryValidator:
                     "reason": f"{role} {failure.code}",
                     "promotable": False,
                 }
-                return self._decide(final_id, final, outcome, fingerprint)
+                return self._decide(final_id, outcome, fingerprint)
             self.store.bump_final_attempt(final_id, attempt + 1)
             return {**final, "status": "FAILED_INFRA", "code": failure.code}
 
@@ -729,22 +794,66 @@ class BatteryValidator:
             inc_components=components(inc_rows),
             chal_components=components(chal_rows),
         )
-        return self._decide(final_id, final, outcome, fingerprint)
+        return self._decide(final_id, outcome, fingerprint)
 
-    def _decide(self, final_id, final, outcome, fingerprint):
+    def _withdraw(self, final_id, final, current, attempt):
+        """Withdraw a stale final and re-nominate its challenger now.
+
+        The challenger is screened against the current incumbent on the
+        current pool, by inference only. A nomination freezes a new final in
+        the same commit that withdraws the old one.
+        """
+        challenger = final["challenger"]
+        pool = self.store.pool()
+        new_final, why = None, None
+        if current is not None and current["model_id"] == challenger:
+            why = "the challenger is already the incumbent"
+        elif pool is None or pool["status"] != "OPEN":
+            return {**final, "status": "WAITING_FOR_POOL"}
+        else:
+            incumbent_id = None if current is None else current["model_id"]
+            try:
+                record = self._pool_records(
+                    pool, challenger, incumbent_id, f"-{final_id}-a{attempt}"
+                )
+            except WorkerFailure as failure:
+                if not failure.candidate:
+                    self.store.bump_final_attempt(final_id, attempt + 1)
+                    return {**final, "status": "FAILED_INFRA", "code": failure.code}
+                why = "challenger inference failed: " + failure.code
+            else:
+                why = record["nomination"]["reason"]
+                if record["nomination"]["nominated"] and incumbent_id is not None:
+                    new_id = "final-" + _digest([incumbent_id, challenger])[7:31]
+                    new_final = {
+                        "final_id": new_id,
+                        "challenger": challenger,
+                        "incumbent": incumbent_id,
+                        "frozen": self._frozen(
+                            new_id, incumbent_id, challenger, record
+                        ),
+                    }
+        outcome = {
+            "outcome": WITHDRAWN,
+            "reason": "the incumbent changed before the comparison was decided",
+            "promotable": False,
+            "renominated": new_final is not None,
+            "renomination": why,
+            "new_final": None if new_final is None else new_final["final_id"],
+        }
+        self.store.complete_final(final_id, outcome, new_final=new_final)
+        self._settle()
+        return self.store.final(final_id)
+
+    def _decide(self, final_id, outcome, fingerprint):
         outcome = {
             **outcome,
             "finalist_set": fingerprint,
             "references": self._reference_identity([fingerprint]),
         }
+        # The decision and any promotion commit together.
         self.store.complete_final(final_id, outcome)
-        if outcome.get("promotable"):
-            self.store.set_incumbent(
-                final["challenger"],
-                "IMPROVEMENT in the finalist comparison",
-                expected=final["incumbent"],
-            )
-        self.store.settle_retirements(self.journal, self._committed)
+        self._settle()
         return self.store.final(final_id)
 
     # --- disclosure -------------------------------------------------------------------------
@@ -807,6 +916,29 @@ class BatteryValidator:
                 "SELECT final_id FROM finals WHERE challenger=? ORDER BY rowid",
                 (submission_id,),
             ).fetchall()
+
+    def signed_final(self, final_id):
+        """A decided final for the owner publisher: identities and outcome
+        only, never its fresh cases or seed."""
+        if self.service_key is None:
+            raise PermissionError("no service key configured")
+        final = self.store.final(final_id)
+        if final["state"] != "DECIDED":
+            raise StateError("final_not_decided", final_id)
+        return self.service_key.sign(
+            "final_result",
+            {
+                "schema": "carbon.battery.final-result.v1",
+                "final_id": final_id,
+                "challenger": final["challenger"],
+                "incumbent": final["incumbent"],
+                "outcome": final["outcome"]["outcome"],
+                "promotable": bool(final["outcome"].get("promotable")),
+                "rule_digest": final["frozen"]["rule_digest"],
+                "qualification": False,
+                "reward": False,
+            },
+        )
 
     def signed_outcome(self, submission_id):
         if self.service_key is None:

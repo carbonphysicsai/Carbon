@@ -15685,7 +15685,7 @@ qualification.
    - Transactions: only the exact OD-4a and OD-7 records. Missing counts,
      windows, fee caps or expiry are prepared for approval, never inferred.
 
-## 2026-09-25 — BATTERY-TESTNET-M3 working engineering decisions (M3-D1 to D12)
+## 2026-09-25 — BATTERY-TESTNET-M3 working engineering decisions (M3-D1 to D16)
 
 Status: `IMPLEMENTED_WORKING_DECISION` in the M3 PR. Authority:
 OWNER-BATTERY-TESTNET-01 and -03. None of these changes an OD-2 value, a gate,
@@ -15784,6 +15784,39 @@ choice.
       receipt and binding metadata (`research_loop.model_view`). Without this
       the fixed request ceiling was exhausted within four calls. The retained
       result files are unchanged.
+
+13. **M3-D13: stale finals are withdrawn, and the challenger is re-nominated.**
+    - A final frozen against an incumbent that has since been replaced is
+      recorded as `WITHDRAWN_INCUMBENT_CHANGED`: never promotable, and never
+      a scientific outcome.
+    - Its challenger is screened again, by inference only, against the
+      current incumbent on the current pool. A nomination freezes a new
+      final in the same commit.
+    - A promotion commits with its decision. If the incumbent moved during
+      the comparison, the outcome is withdrawn, never applied. This is the
+      approved replay's "decide against the current incumbent", made durable
+      for finals that wait.
+14. **M3-D14: infrastructure retries are capped.**
+    - Operational limit: `MAX_INFRA_ATTEMPTS = 3` per submission or final.
+    - Beyond it the item is parked as `FAILED_INFRA_EXHAUSTED` for the
+      operator. It is never a score and is not retried automatically.
+    - The incumbent's inference on a new pool is named with the challenger
+      and its attempt, so it never blocks a later retry.
+15. **M3-D15: an incumbent with no scorable result on a pool nominates nobody.**
+    - `exam.nominate` compares against the incumbent's score. With none,
+      "better than the incumbent" cannot be shown, so the challenger is not
+      nominated and the reason is recorded.
+16. **M3-D16: one writer per deployment.**
+    - Every mutation (evaluate, run, prepare, ingest, open, recover, export,
+      and daemon start) holds an exclusive `flock` on `<state>.lock` across
+      processes.
+    - `status` and `batches` are read-only and never start, recover or lock.
+    - A solve holds the lock only for its ingest.
+    - The work directory must be an owner-only directory.
+    - A complete screening batch resumes a pending rotation.
+    - The nomination (first incumbent or frozen final) commits with its
+      score.
+    - The service key signs only the exact Phase A `ALL_BURN` intent shape.
 
 **Not done in M3, stated:**
 - the two-instance commit-reveal cross-check;

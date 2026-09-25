@@ -172,3 +172,64 @@ def test_operator_commands_disclose_no_case_seed_or_key(
     ]
     assert len(outcomes) == 1 and all(signing.verify(o) for o in outcomes)
     assert outcomes[0]["payload"]["state"] == "SCORED"
+
+
+def test_a_shared_work_directory_is_refused(tmp_path):
+    work = tmp_path / "work"
+    work.mkdir(mode=0o755)
+    work.chmod(0o755)
+    path = config(tmp_path)
+    with pytest.raises(deployment.EvaluationUnavailable) as refused:
+        deployment.validator(path, repository=REPOSITORY)
+    assert refused.value.code == "evaluation_work_not_owner_only"
+
+
+def test_status_never_recovers_a_run_another_process_is_executing(
+    tmp_path, capsys, monkeypatch
+):
+    """status and batches are read-only: they never start or recover the
+    daemon, so they can never abandon a run in flight in another process."""
+    from carbon.battery.daemon import BatteryValidator
+
+    path = config(tmp_path)
+    deployment.validator(path, repository=REPOSITORY)  # bind identities once
+    monkeypatch.setattr(deployment, "_VALIDATORS", {})
+
+    def forbidden(self):
+        raise AssertionError("a read-only command started or recovered")
+
+    monkeypatch.setattr(BatteryValidator, "start", forbidden)
+    monkeypatch.setattr(BatteryValidator, "recover", forbidden)
+    assert operate.main(["status", "--config", str(path)]) == 0
+    assert operate.main(["batches", "--config", str(path)]) == 0
+    capsys.readouterr()
+
+
+def test_the_writer_lock_excludes_other_processes(tmp_path):
+    import subprocess
+    import sys
+
+    path = config(tmp_path)
+    target = deployment.validator(path, repository=REPOSITORY)
+    probe = (
+        "import fcntl, os, sys\n"
+        "fd = os.open(sys.argv[1], os.O_RDWR)\n"
+        "try:\n"
+        "    fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)\n"
+        "except BlockingIOError:\n"
+        "    sys.exit(7)\n"
+    )
+    with deployment.writer(target):
+        held = subprocess.run(
+            [sys.executable, "-c", probe, target.lock_path], check=False
+        )
+    free = subprocess.run([sys.executable, "-c", probe, target.lock_path], check=False)
+    assert held.returncode == 7 and free.returncode == 0
+
+
+def test_a_readonly_deployment_cannot_evaluate(tmp_path):
+    path = config(tmp_path)
+    target = deployment.validator(path, repository=REPOSITORY, readonly=True)
+    with pytest.raises(deployment.EvaluationUnavailable) as refused:
+        deployment.evaluate(target, submission("hk1"))
+    assert refused.value.code == "evaluation_readonly"

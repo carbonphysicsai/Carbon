@@ -29,6 +29,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
+import stat
 from pathlib import Path
 
 from .practice import STAGED_MODULES, _canonical, _pinned
@@ -212,6 +214,11 @@ class WorkLedger:
     def __init__(self, store, root):
         self.store, self.root = store, Path(root)
         self.root.mkdir(mode=0o700, exist_ok=True)
+        # Runs stage private case inputs here: the directory must be the
+        # operator's alone, whoever created it.
+        info = os.lstat(self.root)
+        if not stat.S_ISDIR(info.st_mode) or info.st_mode & 0o077:
+            raise PermissionError("the work directory must be an owner-only directory")
 
     def reserve(self, identity, *, owner, phase, request, resources):
         body = _canonical(

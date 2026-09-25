@@ -30,6 +30,7 @@ Who selects:
 
 from __future__ import annotations
 
+import asyncio
 import json
 import time
 from pathlib import Path
@@ -406,7 +407,8 @@ async def evaluate_candidate(prepared, epoch, record):
     received = await gateway.receive(body, headers)
     submission = AuthenticatedSubmission.from_received(received, gateway)
     try:
-        outcome = evaluate(target, submission)
+        # Rebuilds and inference run for minutes; keep the event loop free.
+        outcome = await asyncio.to_thread(evaluate, target, submission)
     except EvaluationUnavailable as unavailable:
         raise OperationRefused(unavailable.code) from None
     if outcome["state"] == "FAILED_INFRA":

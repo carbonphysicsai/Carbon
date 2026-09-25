@@ -88,6 +88,10 @@ class ServiceKey:
     def sign(self, kind, payload):
         if kind not in KINDS:
             raise ValueError("unknown signature kind")
+        # Enforced here, not by convention: the only weight intent this key
+        # signs is the Phase A all-burn one (OD-4a; OD-4b refused).
+        if kind == "weight_intent" and not _is_all_burn(payload):
+            raise PermissionError("only the Phase A ALL_BURN intent is signed")
         body = {"kind": kind, "key_id": self.key_id, "payload": payload}
         message = DOMAIN + kind.encode() + b"\x00" + _canonical(body)
         return {
@@ -119,6 +123,19 @@ def verify(signed):
     except (InvalidSignature, KeyError, ValueError, TypeError):
         return False
     return signed["kind"] in KINDS
+
+
+def _is_all_burn(payload):
+    if type(payload) is not dict:
+        return False
+    fixed = all_burn_intent(pool_version=None, reason="")
+    variable = {"pool_version", "reason"}
+    return (
+        set(payload) == set(fixed)
+        and all(payload[k] == fixed[k] for k in set(fixed) - variable)
+        and (payload["pool_version"] is None or type(payload["pool_version"]) is int)
+        and type(payload["reason"]) is str
+    )
 
 
 def all_burn_intent(*, pool_version, reason):
