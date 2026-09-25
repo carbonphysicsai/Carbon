@@ -123,10 +123,8 @@ def _prepared_tasks(root, *, cleanup_only=False):
 
 def _runtime(profile):
     """Reuse the accepted session's host/image/key and public science services."""
-    from carbon.chain.auth import open_external_hotkey
     from carbon.development_session.research_campaign import (
         accepted_implementation,
-        private_file,
         verify_current_worker,
     )
     from carbon.development_session.research_image import (
@@ -134,8 +132,6 @@ def _runtime(profile):
         verify_image,
     )
     from carbon.development_session.research_profile import document, public_cases
-    from carbon.development_session.service import LocalMinerConnection
-    from carbon.development_testnet.operator import load_config
     from carbon.reconstruction.worker.docker_runtime import doctor, load_image_identity
 
     cfg = profile.document
@@ -157,6 +153,17 @@ def _runtime(profile):
         "images": [image.image_id, analysis.image_id],
     }
     role_root = profile.root / "private-roles"
+    from carbon.battery.campaign import check_attached, is_battery
+
+    if is_battery(profile.manifest):
+        # A battery campaign has no Burgers roles, objective or lanes to
+        # re-check; it re-checks its own frozen Challenge binding instead.
+        check_attached(
+            profile.manifest,
+            implementation=implementation,
+            images=runtime["images"],
+        )
+        return _connection(profile, paths), image, analysis, None
     authored = _authored_image(profile, analysis)
     _, scientific = _scientific_selection(
         profile.manifest["runtime"], image, role_root, authored
@@ -186,6 +193,16 @@ def _runtime(profile):
         raise ValueError("prepared public material profile changed")
     for role in ("research-train", "research-validation"):
         public_cases(role_root, role)  # Checks existing digests; never draws new cases.
+    return _connection(profile, paths), image, analysis, role_root
+
+
+def _connection(profile, paths):
+    """The existing signed session for this campaign's registered miner."""
+    from carbon.chain.auth import open_external_hotkey
+    from carbon.development_session.research_campaign import private_file
+    from carbon.development_session.service import LocalMinerConnection
+    from carbon.development_testnet.operator import load_config
+
     config = load_config(paths["operator_config"])
     public = json.loads(private_file(paths["miner_public"]).read_bytes())
     if (
@@ -202,10 +219,9 @@ def _runtime(profile):
     session = profile.root / "research-auth"
     if not session.is_dir() or session.is_symlink():
         raise ValueError("prepared authenticated session required")
-    connection = LocalMinerConnection(
+    return LocalMinerConnection(
         session, paths["image_manifest"], config.context, config.publisher_hotkey, key
     )
-    return connection, image, analysis, role_root
 
 
 def _authored_image(profile, analysis):
@@ -460,38 +476,54 @@ async def attached_profile(profile: OperatorProfile):
         ledger.generation = status["generation"] if cleanup_only else control.acquire()
         if cleanup_only:
             ledger.retained_owner(profile.manifest["owner"])
-        authored = _authored_image(profile, analysis)
-        material, practice = _science(
-            ledger,
-            owner,
-            image,
-            role_root,
-            **({"authored": authored} if authored is not None else {}),
-            **({"cleanup_only": True} if cleanup_only else {}),
-        )
+        from carbon.battery.campaign import is_battery
         from carbon.development_session.capability_demand import DemandStore
 
-        composition = make_research_service(
-            cleanup_only=cleanup_only,
-            julia_image=authored,
-            # Capability demand on this host: registry ids and miner digests
-            # only. On a miner's machine it stays theirs.
-            demand=DemandStore(profile.root / "capability-demand.sqlite"),
-            root=profile.root / "research-tasks",
-            ledger=ledger,
-            owner=owner,
-            image=analysis,
-            public_material=material,
-            practice=practice,
-        )
+        # Capability demand on this host: registry ids and miner digests
+        # only. On a miner's machine it stays theirs.
+        demand = DemandStore(profile.root / "capability-demand.sqlite")
+        if is_battery(profile.manifest):
+            from carbon.battery.campaign import compose
+
+            composition, wrapper = compose(
+                ledger=ledger,
+                owner=owner,
+                image=image,
+                analysis=analysis,
+                connection=connection,
+                demand=demand,
+                cleanup_only=cleanup_only,
+            )
+        else:
+            authored = _authored_image(profile, analysis)
+            material, practice = _science(
+                ledger,
+                owner,
+                image,
+                role_root,
+                **({"authored": authored} if authored is not None else {}),
+                **({"cleanup_only": True} if cleanup_only else {}),
+            )
+            composition = make_research_service(
+                cleanup_only=cleanup_only,
+                julia_image=authored,
+                demand=demand,
+                root=profile.root / "research-tasks",
+                ledger=ledger,
+                owner=owner,
+                image=analysis,
+                public_material=material,
+                practice=practice,
+            )
+            wrapper = AuthenticatedResearchService(
+                connection.service.gateway, {owner: composition.service}
+            )
         bound = None
         try:
             bound = _AdmittedConnection(connection, profile, ledger, control)
             sdk = ResearchMinerTools(
                 connection=bound,
-                wrapper=AuthenticatedResearchService(
-                    connection.service.gateway, {owner: composition.service}
-                ),
+                wrapper=wrapper,
                 composition=composition,
                 ledger=ledger,
                 owner=owner,
@@ -553,7 +585,19 @@ async def serve_operations(configuration: Path):
     from scripts.dev.miner_launchpad.runner import RunnerAdapter
 
     host = RunnerAdapter.for_profile(configuration)
-    server = create_open_tier_server()
+
+    def host_facts():
+        # Discovery reports what this operator's host can run: its configured
+        # worker image counts only once it loads and passes the doctor.
+        from carbon.miner_mcp.mcp_challenges import configured_host_facts
+
+        try:
+            profile = host.configured()
+        except Exception:  # noqa: BLE001 - an unusable profile configures nothing
+            profile = None
+        return configured_host_facts(profile)
+
+    server = create_open_tier_server(host_facts=host_facts)
     attachment = Attachment(server, configuration)
     tools = server._tool_manager._tools
     for tool in [*make_operation_tools(host), *make_attachment_tools(attachment)]:

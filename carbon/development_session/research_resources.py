@@ -17,7 +17,18 @@ from .profile import CHALLENGE
 from .research_authoring import clause
 
 
-def resources(contracts, compiler, *, gpu=False):
+def resources(
+    contracts,
+    compiler,
+    *,
+    gpu=False,
+    key=CHALLENGE,
+    clause=clause,
+    class_id=None,
+    policy_id=None,
+):
+    """The static research resource policy. Burgers keeps its historical ids;
+    another Challenge names its own class and policy under its own key."""
     unit = clause("unit", "cpu_seconds")
     provenance = rp.FixtureResourceProvenance(
         clause("fixture_registration", "development_static_metadata_not_observation"),
@@ -25,7 +36,7 @@ def resources(contracts, compiler, *, gpu=False):
         rp.ResourcePolicyAuthorityMarker.FIXTURE_PROVENANCE_NOT_PRODUCTION,
     )
     context = rp.FixturePracticeResourceContext(
-        CHALLENGE,
+        key,
         "autoresearch_static_metadata",
         provenance.fixture_registration_ref,
         clause("internal_service_scope", "public_development_research"),
@@ -35,8 +46,9 @@ def resources(contracts, compiler, *, gpu=False):
         "resource_class",
         rp.RESOURCE_POLICY_SCHEMA_VERSION,
         rp.RESOURCE_POLICY_CANONICALIZATION_PROFILE,
-        CHALLENGE,
-        "autoresearch_linux_gpu_diagnostic" if gpu else "autoresearch_linux_cpu",
+        key,
+        class_id
+        or ("autoresearch_linux_gpu_diagnostic" if gpu else "autoresearch_linux_cpu"),
         "1.0",
         contracts.assembly.environment_pins[0],
         contracts.assembly.environment_pins,
@@ -79,8 +91,9 @@ def resources(contracts, compiler, *, gpu=False):
         "research_resource_policy",
         rp.RESOURCE_POLICY_SCHEMA_VERSION,
         rp.RESOURCE_POLICY_CANONICALIZATION_PROFILE,
-        CHALLENGE,
-        "autoresearch_gpu_static_policy" if gpu else "autoresearch_static_policy",
+        key,
+        policy_id
+        or ("autoresearch_gpu_static_policy" if gpu else "autoresearch_static_policy"),
         "1.0",
         contracts.assembly.to_ref(),
         contracts.catalog.to_ref(candidate_assembly=contracts.assembly),

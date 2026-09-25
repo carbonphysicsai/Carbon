@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-25T11:51:24Z"
+  captured_at_utc: "2026-09-25T17:15:57Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "81d86a98bc3691f80252567cf808b1948863ba43"
+  authority_snapshot_commit: "649cf8ba204b2dc0cf4ee706ae5cc088b1556e26"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -9969,6 +9969,32 @@ events:
       - "WAVE-C/C-W1-D4"
     supersedes: null
     recorded_at: "2026-09-25T12:00:00Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "evidence"
+    event_id: "BATTERY-TESTNET-M2-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "Delivered M2 of the battery testnet track: the exam-design battery exam as reviewed Carbon modules. carbon/battery/exam.py keeps the campaign's gates, score, screening pools and frozen comparison and carries OD-2's provisional DEVELOPMENT rule; on all 2,600 retained cases for eight decision models it returns exactly what the research modules return, and every recorded verification decision (V1-V7, R1) is reproduced from the float32-retained predictions. The truth service keeps the pinned PyBaMM configuration and types every ending (OK, solver failure, timeout, FAILED_INFRA) under a wall-clock deadline and a memory bound, resuming by retrying only infrastructure failures; a reference failure is withdrawn for every model. The private-seed service replaces the container-local root: an owner-only root, the campaign's own derivation (regenerating the campaign's private cases from its revealed root), hidden duplicates with opaque ids in every private set, commit-before-use by construction and reveal only after retirement. A shadow scorer admits submissions through the battery contract and scores them on whole committed batches with an allow-listed public projection. No threshold, chain action, spend or qualification changes; the real PyBaMM solve runs only in the truth image."
+    primary_detail: ".agent/tickets/BATTERY-TESTNET-M2_exam_truth_seed_services.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "WAVE-C/C-09"
+    supersedes: null
+    recorded_at: "2026-09-25T14:10:00Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "evidence"
+    event_id: "BATTERY-TESTNET-M5A-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "Delivered M5A of the battery testnet track: battery research and submission through Carbon's shared MCP interface. A Challenge registry (carbon/challenge_registry) resolves an exact id, version and execution profile or refuses with a typed code; there is no default and no Burgers fallback. Battery and Burgers are implemented; chip cooling, electric motors and photonics are reserved with their tracking issues; power magnetics and airfoils are deferred. Open-tier MCP tools list and describe every Challenge from its executable registrations, separating implemented from usable on this host. One B-07 composition now serves every Challenge through the same twelve operations, and the Burgers composition digests are unchanged. The battery adapter supplies authored practice contracts, public TRAIN/PRACTICE/OCV material, and practice in the isolated carrier from the exact Carbon recipe bytes, scored by Carbon with the exam's gates. A launch binds its Challenge in the frozen manifest; prepare, attach, freeze and submit route by it; a battery gateway authenticates battery requests only. Submission reaches an operator-configured evaluation deployment over committed private batches, with allow-listed feedback and typed REFUSED/FAILED_INFRA outcomes. Stated limits: the rebuild runs in the evaluation process (validator_path false) until M3; battery campaigns are miner-driven. No threshold, chain action, spend or qualification changes."
+    primary_detail: ".agent/tickets/BATTERY-TESTNET-M5A_challenge_research_through_mcp.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "WAVE-C/C-09"
+    supersedes: null
+    recorded_at: "2026-09-25T16:00:00Z"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"

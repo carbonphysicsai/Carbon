@@ -46,6 +46,14 @@ FIELDS = {
     "hypothesis": ("string", "What this trial tests."),
     "expected_effect": ("string", "What you expect it to show."),
     "action": ("string", "stop, pause or reconcile."),
+    "challenge": (
+        "string",
+        (
+            "The Challenge id to research (carbon_challenges_v1__list). "
+            "Omitted: the historical Burgers campaign."
+        ),
+    ),
+    "challenge_version": ("string", "The exact version of that Challenge."),
 }
 
 #: The gates, in the only order they run. `replay` is read-only and precedes
@@ -101,7 +109,9 @@ OPERATIONS = {
             "Create a research campaign. agent=autonomous lets Carbon's agent "
             "research, select and submit; agent=none leaves every step to you.",
             frozenset({"agent", "idempotency_key"}),
-            frozenset({"budget", "review_digest", "profile"}),
+            frozenset(
+                {"budget", "review_digest", "profile", "challenge", "challenge_version"}
+            ),
             ("request", "profile", "replay", "registration"),
         ),
         Operation(

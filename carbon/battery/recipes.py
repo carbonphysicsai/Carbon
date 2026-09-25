@@ -35,7 +35,7 @@ import time
 
 import numpy as np
 
-from .challenge import INPUT_BOUNDS, INPUTS, V_MAX
+from .domain import INPUT_BOUNDS, INPUTS, V_MAX
 
 BOUNDS = np.array([INPUT_BOUNDS[k] for k in INPUTS], dtype=float)
 V_GAP_FLOOR = 1e-6  # V; training targets are clipped this far inside V_max
@@ -325,9 +325,14 @@ class MLP:
                 v = jax.tree_util.tree_map(lambda a, b: b2 * a + (1 - b2) * b * b, v, g)
                 t = i + 1.0
                 p = jax.tree_util.tree_map(
-                    lambda w, a, b: w
-                    - lr
-                    * ((a / (1 - b1**t)) / (jnp.sqrt(b / (1 - b2**t)) + eps) + wd * w),
+                    lambda w, a, b: (
+                        w
+                        - lr
+                        * (
+                            (a / (1 - b1**t)) / (jnp.sqrt(b / (1 - b2**t)) + eps)
+                            + wd * w
+                        )
+                    ),
                     p,
                     m,
                     v,
@@ -358,7 +363,7 @@ class MLP:
 
     def _network(self, jax, dtype, n_in, n_out):
         """(init, apply) for this family, in the requested precision."""
-        from .challenge import GRID_STEP_S
+        from .domain import GRID_STEP_S
         from .training import apply_stack, dense_stack
 
         s = self.settings
@@ -514,3 +519,13 @@ class Ensemble:
     def predict(self, x):
         outs = [m.predict(x) for m in self.members]
         return {k: np.mean([o[k] for o in outs], axis=0) for k in outs[0]}
+
+
+def build(family, settings):
+    """The untrained model a compiled recipe names. `compile.build_model` and
+    the isolated practice worker both construct through this one function."""
+    if family == "knn":
+        return KNN(settings["neighbours"], settings["train_fraction"])
+    if settings["ensemble_members"] == 1:
+        return MLP(family, settings)
+    return Ensemble(settings["ensemble_members"], family, settings)

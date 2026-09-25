@@ -17,7 +17,7 @@ from carbon.development_session.research_catalog import RecipeRejected, _issue
 
 from .challenge import CHALLENGE, TRAIN_V1_CASES
 from .contracts import battery_contracts, canonical, digest
-from .recipes import KNN, MLP, Ensemble, Structure
+from .recipes import Structure, build
 
 _COMPILED = object()
 MIN_MEMBER_STEPS = 16
@@ -175,12 +175,7 @@ def compile_recipe(strategy, *, contracts=None):
 def build_model(recipe):
     if type(recipe) is not BatteryRecipe:
         raise TypeError("a compiled BatteryRecipe is required")
-    s = recipe.settings
-    if recipe.family == "knn":
-        return KNN(s["neighbours"], s["train_fraction"])
-    if s["ensemble_members"] == 1:
-        return MLP(recipe.family, s)
-    return Ensemble(s["ensemble_members"], recipe.family, s)
+    return build(recipe.family, recipe.settings)
 
 
 def rebuild(recipe, material, seed, *, train=None):
