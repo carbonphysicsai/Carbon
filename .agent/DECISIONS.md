@@ -15891,3 +15891,83 @@ value is chosen).
   host-session procedure. The OD-4a request prepared on the host is a draft
   for format review. The owner approves a digest regenerated from a fresh
   probe just before dispatch.
+
+## 2026-09-25 — BATTERY-EV1 working engineering decisions (EV1-D1 to D8)
+
+Status: `IMPLEMENTED_WORKING_DECISION` in the EV1 PR. Authority: the owner's
+2026-09-25 engineering-value direction.
+
+This is off-chain public synthetic DEVELOPMENT evidence. The approved
+battery exam, pool rotation, commitments, Phase A publication, winner
+authority, fees and rewards are unchanged. The engineering preferences
+(thresholds, candidate grid, baseline, minimum useful improvement, mistake
+costs) are provisional DEVELOPMENT choices. No customer declared them and
+none is commercially qualified.
+
+1. **EV1-D1: a narrower first objective.**
+   - Time to a target state of charge cannot be measured from the reference
+     records. They keep V and T over the first 3600 s, a cycle-1 plating
+     margin and capacities, with no SOC, current or step-event data.
+   - EV1 therefore minimizes the worst-case **time to constant-voltage onset**:
+     the first 4.19 V crossing after the 120 s rest, on the 30 s grid, by
+     linear interpolation. Both the reference and every surrogate produce
+     this.
+   - An onset not reached inside the window fails a declared reach
+     constraint. It is never scored as the window length.
+   - The charging-time extension (a SOC target) is prepared separately
+     (`docs/development/BATTERY_ENGINEERING_VALUE_EV1.md` §7). It needs a
+     reference output change, a new surrogate output, versioned contracts
+     and re-solved references.
+2. **EV1-D2: design variables are separate from operating conditions.**
+   - c1 and c2 are the only choices. Ambient temperature and initial SOC are
+     fixed by each scenario.
+   - A protocol must meet every constraint in every condition of its
+     scenario. There is no per-condition choice.
+3. **EV1-D3: reference uncertainty comes from evidence.**
+   - The bands are the maximum shift between standard and refined solves of
+     the 16 refined TRAIN cases: 3.15 s, 1.97 mV and 0.157 °C.
+   - A value inside its band is UNRESOLVED and is never forced to pass or
+     fail.
+   - A missing or failed reference is REFERENCE_UNAVAILABLE, never a
+     candidate failure.
+4. **EV1-D4: physics is not measurable for battery.**
+   - The exam's gates are mandatory checks, not a physics score, and none is
+     invented.
+   - The 45/30/25 profile is therefore reported NOT_MEASURABLE (a
+     `missing_component` refusal), not computed with a constant.
+   - Robustness is `1/(1+E_important)` and accuracy is `1/(1+E)`. These are
+     the exam's own normalized errors with the CW1 DEVELOPMENT transform,
+     held fixed across profiles.
+5. **EV1-D5: zero weights get a separate versioned contract.**
+   - This is `carbon.development-weight-profile.v1`. A zero leg is omitted
+     before logarithms; positive weights sum to exactly 1; an all-zero
+     profile, a missing positive component and out-of-range values are
+     refused.
+   - Gates stay mandatory: an ineligible model scores 0.
+   - The core Score Pack parser is unchanged.
+6. **EV1-D6: the model panel.**
+   - The members are the campaign's retained recipes (knn, mlp, mlp_half,
+     mlp_plus, mlp_localized, mlp_raw, mlp_ens3), reconstructed with
+     declared seeds. Only weight digests were retained.
+   - Seeds are repetitions of a recipe, never separate families.
+   - Five labelled synthetic controls (oracle, conservative,
+     boundary-optimist, rank-preserving delay, localized sign error) test
+     scoring failure modes. They are not miner submissions or evidence of
+     achievable performance, and they keep the declared initial values, as
+     every real model does.
+7. **EV1-D7: the scoring set.**
+   - It is the retained exam-design private-role references: pscreen B00 to
+     B05, pfinal and pverify, 1588 cases, all public since the campaign
+     reveal.
+   - Hidden duplicates are absent, so the paired-repeat gate is not
+     exercised there.
+   - Leave-one-batch-out tests ranking stability.
+8. **EV1-D8: reference execution.**
+   - Decision references are solved with the pinned PyBaMM 26.8.0.0
+     overlay, installed from its hash-checked lock, by Carbon's truth
+     service in the development sandbox. This is not the digest-pinned truth
+     image.
+   - Each record keeps its solve time. The contract's reference identity
+     names this, and `import-references` accepts records re-solved on the
+     operator host.
+   - No paid resource is used.
