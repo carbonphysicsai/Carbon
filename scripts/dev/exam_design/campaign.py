@@ -618,6 +618,45 @@ def cmd_verify(a) -> None:
                       if "outcome" in r else {}) for r in out["results"]], indent=1))
 
 
+DECISION_MODELS = ["knn", "mlp_half-s0", "mlp-s0", "mlp-s1", "mlp_ens3-s0", "mlp_plus-s0", "mlp_localized-s0",
+                   "mlp_raw-s0"]
+
+
+def cmd_retain(a) -> None:
+    """Retain predictions compactly: full float32 arrays for decision models, a per-case score table for all.
+
+    Every prediction is regenerable bit-for-bit (same-seed reconstruction under the pinned configuration was
+    measured identical), so the repository keeps what a reviewer needs to check decisions without the
+    regenerable bulk; the original export digests are recorded.
+    """
+    src = f"{EVID}/refs-b/out/train"
+    dst = f"{EVID}/predictions"
+    os.makedirs(dst, exist_ok=True)
+    prep = json.load(open(f"{EVID}/prepare.json"))
+    refs, twins, _, _ = _all_refs()
+    store = _store(refs, twins, prep, len(plans.MAIN_CHECKPOINTS))
+    manifest, table = {}, {}
+    for path in sorted(glob.glob(f"{src}/pred_*.json.gz")):
+        tag = os.path.basename(path)[len("pred_"):-len(".json.gz")]
+        with gzip.open(path, "rt") as f:
+            d = json.load(f)
+        ids = sorted(d)
+        manifest[tag] = {"export_sha256": hashlib.sha256(open(path, "rb").read()).hexdigest(), "n": len(ids),
+                         "full_predictions_retained": tag in DECISION_MODELS}
+        if tag in DECISION_MODELS:
+            arr = lambda k: np.array([d[c][k] for c in ids], dtype=np.float32)  # noqa: E731
+            np.savez_compressed(f"{dst}/{tag}.npz", case_ids=np.array(ids), voltage_v=arr("voltage_v"),
+                                temperature_c=arr("temperature_c"), plating_margin_v=arr("plating_margin_v"),
+                                capacity_ah=arr("capacity_ah"))
+        rows, _ = exam.evaluate(d, [c for c in ids if c in refs], store)
+        table[tag] = {r["case_id"]: [r["state"], round(r.get("error", float("nan")), 6),
+                                     [g for g, v in r.get("gates", {}).items() if v == "FAIL"]] for r in rows}
+    json.dump(manifest, open(f"{dst}/manifest.json", "w"), indent=1)
+    with gzip.open(f"{dst}/case_scores.json.gz", "wt") as f:
+        json.dump(table, f)
+    print(json.dumps({t: m["full_predictions_retained"] for t, m in manifest.items()}))
+
+
 def main(argv=None) -> None:
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -635,9 +674,11 @@ def main(argv=None) -> None:
     fz.add_argument("--rotate-after", type=int, required=True)
     fz.add_argument("--rationale", required=True)
     sub.add_parser("verify")
+    sub.add_parser("retain")
     a = ap.parse_args(argv)
     {"prepare": cmd_prepare, "learning-curve": cmd_learning_curve, "train-plan": cmd_train_plan,
-     "analyze": cmd_analyze, "photonic": cmd_photonic, "freeze": cmd_freeze, "verify": cmd_verify}[a.cmd](a)
+     "analyze": cmd_analyze, "photonic": cmd_photonic, "freeze": cmd_freeze, "verify": cmd_verify,
+     "retain": cmd_retain}[a.cmd](a)
 
 
 if __name__ == "__main__":
