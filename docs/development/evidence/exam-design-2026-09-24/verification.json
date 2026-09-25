@@ -1,0 +1,224 @@
+{
+ "verified_utc": "2026-09-25T05:16:05Z",
+ "n_cases": 200,
+ "freeze_sha256": "9cc4c3664ddc27e0dfb51d7ed4ce0dbbf0992241abfe96df2076bae004374bab",
+ "results": [
+  {
+   "id": "V1",
+   "text": "equal-quality control (another seed of the incumbent recipe) is not promoted",
+   "outcome": {
+    "outcome": "INSUFFICIENT_EVIDENCE",
+    "reason": "confidence interval neither excludes nor fits inside the margin",
+    "promotable": false,
+    "mean_delta": 0.0015299478664370914,
+    "ci": [
+     -0.0013638704834634445,
+     0.004306101832608527
+    ],
+    "overall": "unresolved",
+    "important": "unresolved",
+    "important_ci": [
+     -0.004996301440061524,
+     0.0045197134610185504
+    ],
+    "n_important": 37,
+    "components": {
+     "voltage": "unresolved",
+     "temperature": "unresolved",
+     "plating": "unresolved",
+     "capacity": "unresolved"
+    }
+   },
+   "pass": true
+  },
+  {
+   "id": "V2",
+   "text": "every authored fault fires its expected gate on the verification cases",
+   "faults": {
+    "nan": {
+     "expected": "schema_finite",
+     "gate_failures": {
+      "schema_finite": 200
+     },
+     "eligible": false
+    },
+    "wrong_shape": {
+     "expected": "schema_finite",
+     "gate_failures": {
+      "schema_finite": 200
+     },
+     "eligible": false
+    },
+    "voltage_overshoot": {
+     "expected": "voltage_ceiling",
+     "gate_failures": {
+      "voltage_ceiling": 200
+     },
+     "eligible": false
+    },
+    "v0_offset": {
+     "expected": "initial_voltage",
+     "gate_failures": {
+      "initial_voltage": 200
+     },
+     "eligible": false
+    },
+    "t0_offset": {
+     "expected": "initial_temperature",
+     "gate_failures": {
+      "initial_temperature": 200
+     },
+     "eligible": false
+    },
+    "capacity_over": {
+     "expected": "capacity_bound",
+     "gate_failures": {
+      "capacity_bound": 200
+     },
+     "eligible": false
+    },
+    "nondeterministic": {
+     "expected": "paired_repeat",
+     "gate_failures": {
+      "voltage_ceiling": 120
+     },
+     "eligible": false
+    },
+    "time_shift": {
+     "expected": null,
+     "gate_failures": {},
+     "eligible": true
+    }
+   },
+   "pass": true
+  },
+  {
+   "id": "V3",
+   "text": "the real improvement (full-TRAIN recipe over the half-TRAIN recipe) is promoted",
+   "outcome": {
+    "outcome": "IMPROVEMENT",
+    "reason": "overall better; important region not worse",
+    "promotable": true,
+    "mean_delta": -0.035049187152713934,
+    "ci": [
+     -0.039824314941597286,
+     -0.0302785416308437
+    ],
+    "overall": "better",
+    "important": "better",
+    "important_ci": [
+     -0.03771767611362303,
+     -0.0211898283171103
+    ],
+    "n_important": 37,
+    "components": {
+     "voltage": "better",
+     "temperature": "better",
+     "plating": "better",
+     "capacity": "better"
+    }
+   },
+   "pass": true
+  },
+  {
+   "id": "V4",
+   "text": "the intended improvement that regressed in development is classified as a regression",
+   "outcome": {
+    "outcome": "REGRESSION",
+    "reason": "overall error significantly higher",
+    "promotable": false,
+    "mean_delta": 0.03542839736252659,
+    "ci": [
+     0.030916522550036903,
+     0.040140166639431464
+    ],
+    "overall": "worse",
+    "important": "worse",
+    "important_ci": [
+     0.031226165984842524,
+     0.05254112461449205
+    ],
+    "n_important": 37,
+    "components": {
+     "voltage": "worse",
+     "temperature": "worse",
+     "plating": "worse",
+     "capacity": "worse"
+    }
+   },
+   "pass": true
+  },
+  {
+   "id": "V5",
+   "text": "the localized-regression control is not promoted",
+   "outcome": {
+    "outcome": "REGRESSION",
+    "reason": "important region significantly worse without an overall gain",
+    "promotable": false,
+    "mean_delta": 0.0017407868104934074,
+    "ci": [
+     -0.0007438176432579761,
+     0.004327302786256169
+    ],
+    "overall": "unresolved",
+    "important": "worse",
+    "important_ci": [
+     0.0012191756755483955,
+     0.010163218534903507
+    ],
+    "n_important": 37,
+    "components": {
+     "voltage": "worse",
+     "temperature": "worse",
+     "plating": "unresolved",
+     "capacity": "unresolved"
+    }
+   },
+   "pass": true
+  },
+  {
+   "id": "V6",
+   "text": "a candidate that memorized screening references is not promoted on fresh verification cases",
+   "outcome": {
+    "outcome": "NO_IMPROVEMENT",
+    "promotable": false,
+    "mean_delta": 0.0
+   },
+   "pass": true
+  },
+  {
+   "id": "V7",
+   "text": "the reference itself passes every gate on every valid verification case",
+   "gate_failures": {},
+   "pass": true
+  },
+  {
+   "id": "R1",
+   "text": "small candidate (3-ensemble): outcome reported, no pass criterion",
+   "outcome": {
+    "outcome": "IMPROVEMENT",
+    "reason": "overall better; important region not worse",
+    "promotable": true,
+    "mean_delta": -0.00430854978515932,
+    "ci": [
+     -0.006827622726181129,
+     -0.001983409831533563
+    ],
+    "overall": "better",
+    "important": "better",
+    "important_ci": [
+     -0.011375288869776892,
+     -0.0032296285209128276
+    ],
+    "n_important": 37,
+    "components": {
+     "voltage": "unresolved",
+     "temperature": "unresolved",
+     "plating": "unresolved",
+     "capacity": "better"
+    }
+   },
+   "pass": null
+  }
+ ]
+}
