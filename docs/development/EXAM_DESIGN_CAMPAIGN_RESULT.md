@@ -35,14 +35,17 @@
   - **Two execution faults found and fixed:** the overlay dropped the bundled
     ffmpeg binary's execute bit, and the image defaults JAX to CPU.
   - **Normalization calibration:** local straight-guide calibration is exact.
-  - **GPU run:** a diagnostic run on the GPU is described in §9.
+  - **GPU run:** reciprocity holds to 0.4 % at 20 nm, but coupled power and
+    phase are not converged, and a mode-sign phase ambiguity is unresolved
+    (§9). Photonics is not expanded.
 - **Correction to earlier statements.** The battery reconstructions ran on the
   A40 pod's **CPU backend**: the image selects CPU unless `JAX_PLATFORMS` is set,
   and that was found late. Their results, the freeze and the verification are
   internally consistent. A GPU re-reconstruction is reported separately in §5.
-- **Spend:** USD 4.49 billed (balance 22.24 → 17.75) against the USD 20 ceiling.
-  USD 0.23 went to three wholly discarded pods; the others yielded retained
-  evidence.
+- **Spend:** USD 4.80 billed (balance 22.24 → 17.44) against the USD 20 ceiling,
+  well inside the USD 4 pilot allocation plus the costed matrix. USD 0.23 went
+  to three wholly discarded pods; the others yielded retained evidence,
+  including diagnosed failures.
 
 ## 1. What ran
 
@@ -59,6 +62,9 @@
 | `xtkoy5q53e8uao` | refs A: TRAIN 400, PRACTICE 200, public-seed FINAL/VERIFY 200 + 200, 4 refined | 175.7 | 1.443 |
 | `gvbul5monct3nl` | refs B: private screening 6 × 198, `pfinal` 200, `pverify` 200 + 19 reconstructions | 282.0 | 2.316 |
 | `lsj6gwe29se5wg` | photonic diagnosis, found on the CPU backend and stopped | 6.1 | 0.050 |
+| `n6lrqwc5hik1hn` | GPU attempt: `ptxas` could not write the image's `/scratch/tmp` | 5.4 | 0.044 |
+| `ripykoc913imwx` | GPU re-reconstruction (19 fits); photonic mode solver needed a CPU device | 6.3 | 0.051 |
+| `1s9yhraivqlorz` | photonic diagnosis on the GPU, 6 of 6 | 25.2 | 0.207 |
 
 Every pod was terminated with verification, and no volume was ever created.
 
@@ -359,11 +365,53 @@ owner-reserved. **Fees never enter the score.**
 - **Adaptive agents.** The harness is prepared (`adaptive_agent.py`) and refuses
   without an owner-authorized model-provider budget. None exists, so it is
   **unrun**, and the scripted candidates are not autonomous miners.
-- **Photonics** is at feasibility; see §9.
+- **Photonics** was stopped at feasibility; see §9.
 
 ## 9. GPU re-reconstruction and photonic feasibility
 
-*(filled from the GPU pod; see the end of this document)*
+### Photonics: feasibility only, not expanded
+
+**Execution faults, found and fixed.** Five faults stood between the photonic
+reference and a GPU:
+1. The overlay dropped the bundled ffmpeg's execute bit.
+2. The image defaults JAX to the CPU.
+3. The image's `TMPDIR` (`/scratch/tmp`) is unwritable, which broke `ptxas`.
+4. fdtdx's mode solver needs a CPU device beside the GPU:
+   `JAX_PLATFORMS=cuda,cpu`.
+5. fdtdx returns NaN normalization for −x sources. Port 3 is therefore excited
+   in the mirrored scene; the device is asymmetric, so reciprocity is a real
+   test.
+
+**Diagnosis on the A40** (pod `1s9yhraivqlorz`: 6 of 6 runs, 1.55 µm unless
+noted; `photonic-diagnostic/`):
+
+| Check | Result |
+|---|---|
+| Straight-guide normalization, 30 nm | \|S31\|² = **0.9996**, zero crosstalk, S31 = S13 exactly |
+| Summed port power | 0.96–0.98 at every resolution, never above 1 |
+| Reciprocity \|S31 − S13\|/\|S31\| on the asymmetric coupler | 0.97 % (40 nm), 0.47 % (30 nm), **0.42 %** (20 nm); 0.14–0.78 % across 1.50–1.60 µm at 30 nm |
+| Coupled power \|S41\|² | 0.052 / 0.070 / 0.060 at 40 / 30 / 20 nm: **not converged** (about 15 % of the coupled fraction) |
+| Absolute phase of S31 | 2.37 / 2.09 / 1.11 rad: **not converged** |
+| Relative phase arg(S41/S31) | −1.66 / **+1.53** / −1.63 rad: flips sign across resolutions, a π **mode-sign ambiguity** |
+| Cost per run | 30 nm: about 76 s, 4 GB; 20 nm: about 265 s, 10.9 GB |
+
+**What the diagnosis does not establish:**
+- Summed port power staying below 1 is **not** a validated passivity result.
+  Radiation is not separately accounted for, and the two excitations differ by
+  about 0.8 %.
+- Reciprocity agreeing to about 0.4 % supports the mirrored-excitation
+  implementation within numerical tolerance. It does not validate a reciprocity
+  gate tolerance, which would need a convergence study.
+
+**Why it stops here.** A complex port response is **not well defined** until the
+mode-sign phase convention is fixed. Coupled-power magnitudes are uncertain by
+about 15 % even at 20 nm, where one 5-wavelength parent case costs about
+USD 0.36, so a 100-case screening batch alone would cost about USD 36.
+Photonics therefore stays at documented feasibility for this campaign, with no
+2D substitute. Before any photonic exam, three things are needed:
+- a fixed mode-sign and phase convention;
+- a convergence study to 10–15 nm, or a mode-expansion reference;
+- a radiation or absorption account to support a passivity tolerance.
 
 ## 10. What can enter validator shadow mode now
 
