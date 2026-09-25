@@ -1,7 +1,7 @@
 # BATTERY-EV1 — Fixed-candidate engineering-value experiment
 
 **Programme:** battery testnet hardening track (parent #341)
-**Status:** `in_progress`, pending delivery in its PR
+**Status:** `done` on merge of its PR
 **Primary Hub map_ref:** `SYSTEM/AGENT-EXECUTION`
 **Authority:** the owner's 2026-09-25 engineering-value direction and
 OWNER-DX-03. Decisions: BATTERY-EV1 (EV1-D1 to D8).
@@ -62,13 +62,17 @@ evidence.
       foreign reference inputs are refused. There is one runner per root, and
       a missing runtime is reported, not faked.
 - [x] Workbench: public synthetic import only, and a retained-results view.
-- [ ] The authentic run: pinned PyBaMM references, reconstructed members,
-      evaluation and report (see the PR).
+- [x] The authentic run (2026-09-25):
+  - 384 pinned-PyBaMM references, all OK;
+  - 11 reconstructed members and 5 synthetic controls;
+  - evaluation and report, retained in
+    `docs/development/evidence/ev1-2026-09-25/` and summarized in the EV1
+    doc §5.
 
 ## Evidence classes
 
 | Class | Status |
 |---|---|
 | Implemented, tested locally (fixture world) | yes |
-| Authentic references (pinned PyBaMM, sandbox CPU) | see PR |
+| Authentic references (pinned PyBaMM overlay, sandbox CPU, not the digest-pinned image) | yes: 384 OK |
 | Isolated containers / GPU / testnet | not applicable to EV1 |

@@ -84,17 +84,106 @@ uv run --locked python -m carbon.battery.value import-references --root /srv/car
 
 | Step | Units | Measured / expected | Paid |
 |---|---|---|---|
-| Decision references | 384 PyBaMM solves (16 × 4 × 6) | about 62 s each, 4 workers: about 2 to 3.5 h wall on the 4-core sandbox, depending on contention | no |
-| Reconstructions | 11 (7 recipes, 1 to 3 seeds each) | minutes each on CPU | no |
+| Decision references | 384 PyBaMM solves (16 × 4 × 6) | measured: about 65 s each, 4 workers, about 1.2 h of solving; the wall time was longer because two container restarts interrupted it and the run resumed each time | no |
+| Reconstructions | 11 (7 recipes, 1 to 3 seeds each) | measured: about 2 min for all 11 on CPU | no |
 | Predictions, selection and scoring | 16 members × (1588 + 384) cases | seconds | no |
 
 OD-5 is not used: no RunPod pod and no model-provider call is needed. The
 track ceiling is untouched.
 
-## 5. Results
+## 5. Results (run of 2026-09-25)
 
-The results are in the EV1 PR's completion comment and in
-`results/report.md` under the experiment root. See §6 for how to read them.
+Public synthetic DEVELOPMENT evidence. It changes no testnet rule, claims no
+qualification and claims no optimal weight ratio.
+
+**Retained evidence** is in `docs/development/evidence/ev1-2026-09-25/`:
+- the frozen manifest, contract digest `sha256:292c0473…d0f9`;
+- `results.json` and `report.md` in full;
+- the 384 decision references (gzipped) with their SHA-256;
+- the SHA-256 of each member's predictions. The predictions themselves
+  (43 MB) are regenerable from the manifest.
+
+**How it ran.**
+- 384 pinned-PyBaMM reference solves (`pybamm==26.8.0.0` from the
+  hash-locked overlay), run locally: **384 OK**, 0 failed, 0 timed out.
+- 11 reconstructed members plus 5 labelled synthetic controls.
+- Selection used model predictions only. The references were read only
+  for verification.
+- Cost: USD 0. OD-5 is untouched.
+
+### 5.1 What the reference says about the decision
+
+| Scenario | Split | Feasible / infeasible / unresolved | Best in tested set | Main failing constraints (candidate × condition, of 64) |
+|---|---|---|---|---|
+| D1-temperate | development | 3 / 12 / 1 | c1 1.25, c2 0.8 | CV not reached 18, plating 18, temperature 4 |
+| D2-warm | development | 1 / 15 / 0 | c1 0.75, c2 1.0 | temperature 32, CV not reached 19, plating 4 |
+| D3-cool | development | 0 / 15 / 1 | none | plating 50, CV not reached 14 |
+| V1-mild | verification | 0 / 15 / 1 | none | plating 26, CV not reached 17 |
+| V2-hot | verification | 0 / 16 / 0 | none | temperature 34, CV not reached 22 |
+| V3-cold | verification | 0 / 16 / 0 | none | plating 51, CV not reached 16 |
+
+The baseline (c1 0.75, c2 0.6) is infeasible or unresolved in every
+scenario, so "improvement over baseline" is never measurable.
+
+**Finding 1: the tested design set is too narrow for most scenarios.** The
+objective is the worst case over each scenario's four conditions, so a
+protocol must be feasible in all of them. In the tested set:
+- the gentlest protocols do not reach CV within the window;
+- the faster protocols plate in the cold scenarios or overheat in the hot
+  one.
+
+As a result, **no verification scenario has a feasible protocol**. On the
+verification split, a member can only be told apart by whether it avoids
+selecting an infeasible protocol, a false acceptance. Regret and missed
+opportunity are not exercised there.
+
+### 5.2 Do the scoring rules prefer models that decide better?
+
+| Rule | τ development | τ verification | τ development incl. controls | Top member (8/8 leave-one-batch-out) |
+|---|---|---|---|---|
+| control-exam-v1 (approved rule) | 0.341 | **0.165** | 0.000 | mlp_ens3-s0 |
+| p45-r30-a25 | not measurable: the physics leg has no measurement for battery | — | — | — |
+| p0-r30-a70 | 0.341 | 0.110 | 0.149 | mlp_ens3-s0 |
+| p0-r20-a80 | 0.341 | 0.110 | 0.025 | mlp_ens3-s0 |
+| p0-r40-a60 | 0.341 | 0.110 | 0.149 | mlp_ens3-s0 |
+
+- **The rule chosen on development is the control.** All measurable rules
+  tie at τ 0.341, and ties go to the control by the frozen rule. On
+  verification, the control's τ is 0.165, against 0.110 for every
+  reweighted profile.
+- **Answer to the EV1 question.** Carbon can compare several models on the
+  same engineering decision, and the frozen scoring rule shows a **weak
+  positive** preference for models that select better reference-verified
+  designs (τ 0.17 on verification).
+  - The panel is small.
+  - The reconstruction seeds are repetitions of a recipe, not independent
+    models.
+  - The verification split measures only false acceptance (Finding 1).
+  - So this is **indicative, not established**.
+- **No reweighting beats the approved rule.** Moving weight between
+  robustness and accuracy does not improve decision alignment on
+  verification. This gives no reason to change the testnet rule, and none is
+  proposed.
+
+**Finding 2: error-based scores can rank a dangerous model highly.** The
+synthetic controls expose a blind spot that the reconstructed panel alone
+would hide:
+- `boundary_optimist` has small errors but always leans toward feasibility.
+  It selects an infeasible protocol in 5 of 6 scenarios (loss 10), yet it
+  scores better than every reconstructed member under the control rule
+  (-0.046, against -0.051 to -0.171).
+- With the controls included, the control rule's τ falls to 0.000.
+  Robustness-weighted profiles hold at 0.149, but no rule ranks
+  `boundary_optimist` last.
+- This is the case for §8's decision-aware robustness component.
+
+**Finding 3: gates and decision quality are separate.** `mlp_raw-s0` fails
+a mandatory exam gate and is ineligible under every rule, yet its decisions
+match the best members'. That is the intended "admissibility before
+ranking" behaviour, not a scoring error. It is reported, not rescued.
+
+**Stability.** The top member (`mlp_ens3-s0`) is unchanged in 8 of 8
+leave-one-batch-out subsets, under every measurable rule.
 
 ## 6. How to read the comparison
 
@@ -138,10 +227,22 @@ This is not needed for EV1. The objective would become time to 80% SOC.
 
 ## 8. Next scoring experiment (recommended)
 
-Add a **decision-aware robustness component** as a separate factor: error
-weighted by distance to the declared constraint boundaries (plating margin
-and peak temperature). Compare it with the important-region definition on
-the same panel. Then add the time-to-SOC objective once §7 lands.
+1. **EV2: a decision set that exercises every outcome.** Freeze a new
+   contract version before any run. EV1's contract and results stay
+   unchanged, and nothing is re-scored.
+   - Widen the candidates so that every scenario, verification included,
+     has feasible protocols: gentler first steps that still reach CV, and
+     intermediate c2 values.
+   - Or make the decision per condition instead of worst-case per scenario.
+   - Declare either choice in advance. Never choose it by looking at EV1's
+     verification results.
+2. **A decision-aware robustness component**, as a separate factor: error
+   weighted by distance to the declared constraint boundaries (plating
+   margin and peak temperature). Test whether it ranks `boundary_optimist`
+   below the members that decide correctly (Finding 2), on the same panel.
+3. **Independent models:** add recipes that differ in more than their seed,
+   so that τ rests on more than repetitions of a recipe.
+4. Add the time-to-SOC objective once §7 lands.
 
 ## 9. Remaining work for a continuous model-guided design loop
 
