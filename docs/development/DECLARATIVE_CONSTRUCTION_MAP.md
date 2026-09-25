@@ -59,6 +59,71 @@ The validator resolves its image from the operator-installed
 `validator-worker-image.json` (`carbon/reconstruction/validator_launch.py`),
 never from anything the miner used.
 
+## Per-Challenge contracts (OWNER-BATTERY-TESTNET-01, OD-8)
+
+One registry and one compiler; each Challenge version has its own
+`ChallengeContract` in `capability_registry.py`, holding:
+- the capabilities registered for that Challenge;
+- their surfaces and ranges;
+- its declared envelope;
+- named lanes;
+- its own contract digest.
+
+A family rebuildable for one Challenge is not thereby rebuildable for another.
+
+- **`burgers-dynamics-v1`** keeps its vocabulary byte for byte. Its lanes
+  replace the lists that used to be hard-coded in `contracts.py` and
+  `gpu_research.py`:
+  - `session`: FNO and DeepONet, unchanged;
+  - `gpu_diagnostic`: every rebuildable family, per the owner's 2026-09-25
+    direction. The GPU catalog moves to v2. GPU hardware acceptance of the
+    added families is not claimed.
+- **`battery-fastcharge-ageing-development-v1`** (identity
+  `carbon.battery-fastcharge-ageing-development.v1`) is implemented in
+  `carbon/battery/`. For research time (OWNER-BATTERY-TESTNET-02) it answers
+  every one of the review's 92 capabilities. Each is either its own entry or
+  realized by a battery field (`Capability.realizes`).
+
+| Group | Battery surfaces |
+|---|---|
+| Families | `knn`, `mlp`, `deeponet` (branch over the four inputs, trunk over the 30 s grid) |
+| Architecture | `neighbours`, `width`, `depth`, `deeponet_depth`, `basis_functions`, `trajectory_components`, `arrhenius_features`, `activation`, `normalization`, `initialization` |
+| Declared construction choices | `bounded_voltage_head`, `ocv_initial_voltage`, `capacity_fade_head` |
+| Optimizer | `optimizer_family` (adam, lion, lamb, adafactor, radam, nadamw, sgd_momentum, muon, prodigy, free_adamw, sam), `learning_rate`, `weight_decay`, `weight_decay_mask`, `clip_norm`, `beta1`, `beta2`, `adam_epsilon` |
+| Learning-rate curve | `learning_rate_curve` (cosine, constant, piecewise, exponential, one_cycle, sgdr, polynomial, train_loss_plateau), `warmup_steps`, `min_learning_rate_ratio` |
+| Batching | `steps`, `batch_size`, `microbatches` |
+| Objective | `relative_loss`, `time_weighting`, `h1_weight`, `h2_weight`, `spectral_weight` |
+| Stages and inference | `polish_steps` (L-BFGS, from the budget), `ensemble_members`, `tail_averaging`, `inference_weights`, `ema_decay`, `precision` |
+| Training data (TRAIN v1 only) | `train_fraction`, `important_region_weight`, `curriculum`, `hard_example_weight` |
+
+The campaign's recipes are bit-identical to the research recipes. Every other
+setting trains through `carbon/battery/training.py`. It uses JAX and the
+pinned optax: validation is JAX-only.
+
+**Research-only for battery, with reasons:**
+- the grid operators (FNO, Transolver, Haar, GNO, GINO) and their fields;
+- the foundax field and point models;
+- remat;
+- the PDE residual and its warmup;
+- enforce-mean;
+- exact-symmetry augmentation;
+- rollout, structure layers, and solver and symbolic templates, which are not
+  designed for battery yet.
+
+**Owner-gated:** support-leaving augmentation and 2D/3D.
+
+**Excluded:**
+- PyTorch and Julia backends, per-submission labels and PyBaMM reuse, because
+  validation is JAX-only;
+- the five items the declarative rule excludes.
+
+Admission for every Challenge runs through `challenge_contracts.py`:
+- `validate_for_challenge` names each refusal;
+- `compile_submission` resolves only the named Challenge's catalog through
+  B-02B;
+- `check_contract_digest` refuses a submission recorded against a different
+  contract.
+
 ## Capability map
 
 The live source of every capability's status is
@@ -131,7 +196,7 @@ shape as compile issues.
 
 ## Expansion plan, in order
 
-**D0: an honest answer to "can I submit this?"** (delivered in part: defects 1 and 2 are refused by name, and compile now reports every issue with its code and field. Still open: `dry_validate` remains a structural check that accepts unknown backbones, and defects 3 to 5 remain)
+**D0: an honest answer to "can I submit this?"** (delivered in part: defects 1 and 2 are refused by name, and compile now reports every issue with its code and field. Since BATTERY-TESTNET-M1, `validate_for_challenge` refuses unknown Challenges, families and fields by name for every Challenge; `dry_validate` itself stays the structural layer strategy identity is built on. Defects 3 to 5 remain)
 - Add a structured `SubmissionAssessment`, returned by an export-and-validate
   operation:
   - the canonical design;

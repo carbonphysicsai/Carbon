@@ -82,7 +82,10 @@ jobs:
     if: needs.preflight.outputs.change_scope == 'RUNTIME_FULL'
     needs: preflight
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    # The full canonical lane took 53 of 60 minutes before the battery JAX
+    # suites; they need more than the remaining headroom. A time limit is not
+    # a test, so raising it drops no coverage.
+    timeout-minutes: 90
     steps:
       - name: Check out exact classified candidate
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -136,7 +139,8 @@ jobs:
     if: needs.preflight.outputs.change_scope == 'RUNTIME_FULL' && needs.preflight.outputs.dev_image_required == 'true'
     needs: preflight
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    # Runs the same canonical acceptance inside the image (see canonical).
+    timeout-minutes: 90
     env:
       CARBON_DEV_IMAGE: carbon-dev:${{ needs.preflight.outputs.candidate_sha }}
       CARBON_UV_GROUPS: "chain archive science-jax"

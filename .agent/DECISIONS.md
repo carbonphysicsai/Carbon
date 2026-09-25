@@ -15342,3 +15342,178 @@ The encrypted download saves a file in the visitor's browser and sends
 nothing. This decision authorizes no client-facing collection, no intake
 address publication, and no change to retention, screening or legal hold,
 which remain counsel's.
+
+## 2026-09-25 — OWNER-BATTERY-TESTNET-01: battery testnet hardening track (OD-1 to OD-8)
+
+**Authority.** The owner (Fitz) approved OD-1 to OD-8 on 2026-09-25 in the
+battery-testnet handoff (decision D1 of the wave-1 handoff; parent issue #341).
+The table was posted verbatim on #341:
+https://github.com/carbonphysicsai/Carbon/issues/341#issuecomment-5831630172
+
+| ID | Decision (as approved) |
+|---|---|
+| OD-1 | **Battery is admitted as a new DEVELOPMENT Challenge** (escalation trigger 5): `carbon.battery-fastcharge-ageing-development.v1`, non-paying, with the declarative vocabulary registered in M1. |
+| OD-2 | **Provisional DEVELOPMENT exam rule for testnet** = the campaign's frozen, verified rule: TRAIN v1 = 400; screening batch 100 with 3 active; rotate after 3 admitted; 5.7% equivalence margin; only IMPROVEMENT promotable; important-region regressions block. Labelled provisional, non-paying, not production values. |
+| OD-3 | **Security review is approved** for the GPU validator reconstruction image and the PyBaMM truth image, before the testnet run. |
+| OD-4a | **Testnet dispatch authority for Phase A:** all-burn DEVELOPMENT weight vectors only, within a recorded block window and transaction count. **Published by the existing owner/publisher identity (UID 0)**, as in the previous DEVELOPMENT run. |
+| OD-4b | **Winner weights on testnet: decided after Phase A evidence**, as recommended. Not authorized yet; the winner issuer stays unavailable. |
+| OD-5 | **Budget: USD 20 total for this track**, covering RunPod and the agent's model provider. Suggested split: RunPod 14, model provider 6. It is a hard ceiling in the ledger; exceeding it needs a new approval. |
+| OD-7 | **APPROVED 2026-09-25:** (a) the Launchpad's miner hotkey (UID 1, or newly registered miner hotkeys) may post **recipe-hash commitment transactions** on netuid 567, bounded in count per day and in window; (b) a **Carbon submission intake** (NET-2 signed transport) may be exposed publicly during the testnet window, hosted with the validator pods (RunPod HTTP proxy) and covered by the OD-3 security review; (c) registering **additional miner hotkeys** for multi-agent runs, if wanted (test TAO registration cost). |
+| OD-8 | **APPROVED 2026-09-25: construction contracts are per challenge.** One registry and one compiler, but each challenge version has its **own contract**: the capabilities registered *for that challenge*, their surfaces and ranges, and its resource envelope, pinned by its own contract digest. A family rebuildable for one challenge is not thereby rebuildable for another; it needs that challenge's adapter and tests. Admitting a new challenge's vocabulary stays an owner decision (escalation trigger 5). Adding capabilities within an admitted challenge follows the standing mandate (OWNER-CONSTRUCTION-ESCALATION-01). |
+| OD-6 | **No validator hotkeys on testnet.** Validators run as Carbon-operated services **without chain identities**: they read miner commitments from the chain but never register or set weights. Weight publication (Phase A all-burn) goes only through the owner publisher under OD-4a. Validator receipts are signed with Carbon **service keys**, not hotkeys. |
+
+**Consequences recorded from the handoff.**
+- **Validator daemon (M3):** chain read-only. It watches miner commitments and
+  emits signed results and weight *intents* to the owner publisher. It never
+  sets weights. Two instances cross-check by commit-then-reveal with service
+  keys.
+- **Chain identity:** a pluggable role with two modes. `keyless` (testnet now)
+  is read-only, and the owner publisher sets weights. `validator-hotkey`
+  (mainnet) uses each validator's own registered, permitted hotkey with
+  commit-reveal weights. It is exercised on localnet (NET-5) and stays disabled
+  on testnet.
+- **Budget:** M1 to M3, M5 and M6 run on local CPU. GPU pods are used only for M4
+  and the M7 window. Stop and report before any dispatch that would cross the
+  USD 20 ceiling.
+- **Scope against #341:** #341 keeps battery outside the *commercial launch
+  portfolio*. This track is a non-paying DEVELOPMENT testnet Challenge and adds
+  no portfolio or launch claim. Classified `NO_CONFLICT`.
+- **Unchanged:** scientific, security, network and production qualification;
+  official C-W1, C-09 and C-EA2; LIVE; miner payment; settlement. OD-2 values
+  are provisional DEVELOPMENT values, not production values.
+
+### M1 working engineering decisions (BATTERY-M1-D1 to D6)
+
+Status: `IMPLEMENTED_WORKING_DECISION` in the M1 PR. All are reversible
+engineering choices, and none of them requires human-reserved input.
+
+1. **D1: Challenge token.** Strategy schema 1.0 identifiers carry no dots. The
+   OD-1 name is the Challenge's registered `identity`. Submissions name it by
+   the token `battery-fastcharge-ageing-development-v1`, version `1.0`.
+   Rejected alternative: widening the Strategy identifier grammar, which would
+   change a public interface for a naming preference.
+2. **D2: per-Challenge contracts in the one registry.** A `ChallengeContract`
+   holds each Challenge's capabilities, surfaces, ranges, envelope and named
+   lanes, pinned by its own digest (`carbon.challenge-construction-contract.v1`).
+   `REGISTRY` stays the Burgers contract, and every function defaults to
+   Burgers. Every Burgers contract, catalog and document identity was compared
+   before and after and is byte-identical. The per-Challenge status map
+   (`status_map`) is derived from the contracts, so it cannot drift from them.
+3. **D3: lanes replace hard-coded family lists.**
+   - The historical session's `("fno", "deeponet")` now comes from the Burgers
+     contract's `session` lane, unchanged.
+   - **GPU lane widened (owner direction, 2026-09-25).** The `gpu_diagnostic`
+     lane offers every family Carbon rebuilds for Burgers: FNO, DeepONet,
+     Transolver, Haar, GNO and GINO. It is derived from the registry, so a
+     newly rebuildable family joins it. The GPU worker trains through the
+     same vendored lab as the CPU lane.
+   - The GPU catalog version moves to
+     `carbon.burgers-gpu-diagnostic-recipes.v2`. v1 (FNO and DeepONet)
+     keeps its meaning for anything recorded under it.
+   - Hardware acceptance of the added families on the GPU lane is not
+     claimed: the catalog continues to state `hardware_acceptance:
+     NOT_EXECUTED`.
+4. **D4: closing `dry_validate` for every Challenge.**
+   - `dry_validate` stays the registry-free structural layer that strategy
+     identity is built on. Changing it would reinterpret historical identities.
+   - `carbon.reconstruction.challenge_contracts.validate_for_challenge` adds the
+     named Challenge's contract. It refuses each of these by code and path: an
+     unknown Challenge, a family not in the contract or not yet rebuildable, and
+     an unknown, not-yet-rebuildable or inapplicable field.
+   - `compile_submission` runs it before the one B-02B compiler and resolves
+     only that Challenge's catalog.
+5. **D5: the battery vocabulary (research time, OWNER-BATTERY-TESTNET-02).**
+   - **Coverage.** Every one of the 92 capabilities in the construction review
+     has a battery status. It has either its own entry or a battery entry that
+     `realizes` it: the optimizer and curve choices realize each
+     `optimizer.*` and `schedule.*` id.
+   - **Rebuildable in DEVELOPMENT (49 review ids):**
+     - **Families:** `knn`, `mlp` and the battery DeepONet (a branch over the
+       four inputs and a trunk over the 30 s grid).
+     - **Architecture:** width, depth, DeepONet depth, basis functions, PCA
+       heads, Arrhenius features, activation, normalization and
+       initialization.
+     - **Declared construction choices:** the bounded voltage head, the OCV
+       start voltage and capacity as fade.
+     - **Optimizers:** all eleven (the written-out Adam(W) plus ten optax
+       families; schedule-free AdamW is offered as `free_adamw` because B-02B
+       reserves the token "schedule"), with decay mask, clipping, betas and
+       epsilon.
+     - **Learning-rate curves:** all eight, with warmup and floor.
+     - **Batching:** minibatch and gradient accumulation.
+     - **Losses:** relative, time-weighted, first and second time derivative,
+       and spectral.
+     - **Stages and averaging:** an L-BFGS polish taken from the step budget;
+       ensembles; tail averaging; EMA; float64.
+     - **Training data:** TRAIN subsets, important-region weighting,
+       curriculum and hard-example weighting, all on TRAIN v1 only with
+       Carbon's randomness.
+   - **Research-only, with the reason recorded:**
+     - the grid operators and foundax field or point models, which need a
+       spatial field;
+     - the grid-family fields and remat;
+     - the PDE residual and its warmup;
+     - enforce-mean;
+     - exact-symmetry augmentation;
+     - rollout, structure layers, and solver and symbolic templates, which are
+       not designed for battery yet;
+     - support-leaving augmentation and 2D/3D (owner triggers).
+   - **Excluded (9):**
+     - PyTorch and Julia backends, per-submission labels and PyBaMM reuse,
+       because validation is JAX-only;
+     - the five items the declarative rule excludes.
+   - **Math.** The campaign's recipes stay bit-identical to
+     `scripts/dev/exam_design/recipes.py`, including the localized, half-TRAIN
+     and ensemble variants. Every other setting trains through
+     `carbon/battery/training.py`.
+   - **Named refusals.** A supplied field the rest of the recipe would ignore
+     or contradict is refused by name. For example: betas the optimizer does
+     not use, a floor on a curve without one, a mask with zero decay, EMA
+     decay without EMA inference, averaging with SAM or schedule-free, a
+     warmup or polish that consumes the budget, and a batch the microbatches
+     do not divide.
+   - **B-02B change.** Its training-control table registers the battery
+     consumer's `weight`-named controls.
+6. **D6: contract digest.**
+   - **Recorded:** by check-design (`contract`) and in every frozen-candidate
+     record (`contract_digest`).
+   - **Checked:** `check_contract_digest` refuses a mismatch by name
+     (`contract.digest_mismatch`). The validator daemon calls it on admission
+     in M3.
+   - **Public material:** the OCV table and TRAIN v1 are pinned by their exact
+     bytes and refused by name on mismatch. Packaging them into the validator
+     image is M4.
+
+## 2026-09-25 — OWNER-BATTERY-TESTNET-02: battery research vocabulary
+
+**Authority.** The owner, in session on 2026-09-25, after reviewing the
+construction capability review:
+
+- "This is research time": include the reviewed capabilities in the battery
+  construction contract.
+- "No burgers edits."
+- "Only JAX for validation."
+- "Yes on those excluded items." The executor read this as confirming that the
+  excluded items stay excluded.
+
+**What it means, as implemented (M1, PR #348):**
+- **Battery.** Every capability Carbon can rebuild in JAX is submittable for
+  the battery DEVELOPMENT Challenge. That includes the review items that were
+  owner-gated for Burgers but rebuild in JAX for battery: float64, TRAIN
+  subsets and important-region weighting.
+- **Excluded for battery:**
+  - PyTorch and Julia backends;
+  - per-submission reference labels;
+  - PyBaMM reference reuse;
+  - the five items the declarative rule excludes.
+- **Burgers.** Its vocabulary, lab and profile digests are untouched.
+- **GPU lane.** Widened separately the same day by owner direction.
+
+**Unchanged:** the exam, scoring, thresholds, comparison resources,
+qualification, security acceptance and chain authority. OD-2's values stay
+provisional DEVELOPMENT values.
+
+**Open to correction.** If "yes on those excluded items" was meant to admit
+them, that would widen the declarative rule
+(OWNER-CONSTRUCTION-DECLARATIVE-01). It needs an explicit superseding decision
+and is not implemented.

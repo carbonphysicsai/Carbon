@@ -157,10 +157,12 @@ def test_every_consumer_derives_from_the_registry():
 def test_every_rebuildable_family_is_in_the_strategy_vocabulary():
     from carbon.schema.strategy import _SUPPORTED_BACKBONES
 
-    selectors = {s for s, _ in r.rebuildable_families()}
+    selectors = {
+        s for challenge in r.CONTRACTS for s, _ in r.rebuildable_families(challenge)
+    }
     assert selectors <= _SUPPORTED_BACKBONES
-    # Known gap, recorded rather than hidden: the vocabulary still holds legacy
-    # names with no rebuild path, which compile refuses by name.
+    # The structural vocabulary still holds legacy names with no rebuild path;
+    # per-Challenge admission refuses them by name (test_challenge_contracts).
     assert _SUPPORTED_BACKBONES - selectors == {"uno", "physicsnemo_fno"}
 
 

@@ -34,6 +34,7 @@ from carbon.construction.canonical import (
     to_canonical_value,
 )
 from carbon.construction.catalog import (
+    REGISTERED_TRAINING_CONTROLS,
     _validate_authority_identifiers_with_pin_context,
     _validate_resource_output_identifiers,
 )
@@ -511,9 +512,8 @@ def _validate_plan_authority_carriers(plan: ResolvedConstructionPlan) -> None:
         # The consumer is always checked; only these matching field identities
         # are optimizer/loss/checkpoint controls rather than judge/chain weights.
         training_control = (
-            surface.consumer_target.consumer_id == "carbon_jax_lab_train"
-            and surface.consumer_target.field_id
-            in {"weight_decay", "h1_weight", "pde_weight", "inference_weights"}
+            surface.consumer_target.field_id
+            in REGISTERED_TRAINING_CONTROLS.get(surface.consumer_target.consumer_id, ())
             and surface.surface_id == surface.consumer_target.field_id
         )
         identities.append(

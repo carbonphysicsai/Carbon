@@ -90,6 +90,27 @@ _FORBIDDEN_RESOURCE_POLICY_TOKENS = frozenset(
         "verdicts",
     }
 )
+#: Exact registered TRAIN controls per training consumer: optimizer, loss and
+#: inference controls whose names carry a "weight" token, never judge, scorer
+#: or chain weights. C-02's lab, and the battery recipes' optimizer. The catalog
+#: and the resolved plan both read this one table.
+REGISTERED_TRAINING_CONTROLS = {
+    "carbon_jax_lab_train": frozenset(
+        {"weight_decay", "h1_weight", "pde_weight", "inference_weights"}
+    ),
+    "carbon_battery_train": frozenset(
+        {
+            "weight_decay",
+            "weight_decay_mask",
+            "h1_weight",
+            "h2_weight",
+            "spectral_weight",
+            "inference_weights",
+            "important_region_weight",
+            "hard_example_weight",
+        }
+    ),
+}
 _FORBIDDEN_GRAPH_TOKENS = frozenset(
     {
         "edge",
@@ -482,14 +503,10 @@ def _validate_entry_authority_identifiers(entry: m.ParameterCatalogEntry) -> Non
             )
         )
 
-    # Exact registered C-02 TRAIN controls; no scorer/network-weight exception.
-    training_fields = frozenset(
-        {"weight_decay", "h1_weight", "pde_weight", "inference_weights"}
-    )
     for identifier, field in identities:
         if (
-            entry.consumer_target.consumer_id == "carbon_jax_lab_train"
-            and entry.consumer_target.field_id in training_fields
+            entry.consumer_target.field_id
+            in REGISTERED_TRAINING_CONTROLS.get(entry.consumer_target.consumer_id, ())
             and entry.surface_id == entry.consumer_target.field_id
             and field in {"surface_id", "consumer_target/field_id"}
             and identifier == entry.surface_id

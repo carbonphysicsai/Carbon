@@ -9,6 +9,8 @@ from __future__ import annotations
 import asyncio
 import json
 
+from carbon.reconstruction.capability_registry import contract_digest
+
 from .agent import MAX_INPUT_TOKENS, MAX_OUTPUT_TOKENS, MODEL
 from .data import write_once
 from .profile import canonical, digest
@@ -59,6 +61,9 @@ def candidate_record(strategy, reason, used_feedback):
         "strategy_hash": compiled.construction_plan.strategy_hash.value,
         "construction_plan_digest": compiled.construction_plan.to_ref().content_digest,
         "reconstruction_profile_digest": profile.profile_digest,
+        # The Challenge contract this candidate was compiled under (OD-8); a
+        # validator refuses a submission recorded against a different one.
+        "contract_digest": contract_digest(strategy["challenge_id"]),
         "final_evidence": False,
     }
 

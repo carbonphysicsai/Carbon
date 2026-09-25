@@ -25,6 +25,7 @@ from carbon.construction.compiler import SUPPORTED_COMPILER_IDENTITY
 from carbon.construction.refs import CONSTRUCTION_CANONICALIZATION_PROFILE
 from carbon.fees import SubmissionResourceLimits
 from carbon.reconstruction import profile as jax
+from carbon.reconstruction.capability_registry import BURGERS_CHALLENGE, lane_families
 
 from .profile import CHALLENGE, TIME_SCALE, canonical, digest, profile_document
 
@@ -252,9 +253,10 @@ class SessionContracts:
         )
 
 
-#: The historical session's backbones. A wider catalog passes its own tuple;
-#: the default keeps this catalog's identity byte-for-byte.
-SESSION_BACKBONES = ("fno", "deeponet")
+#: The historical session's backbones, from the registry's "session" lane. A
+#: wider catalog passes its own tuple; the default keeps this catalog's
+#: identity byte-for-byte.
+SESSION_BACKBONES = lane_families(BURGERS_CHALLENGE, "session")
 
 
 def build_contracts(backbones=SESSION_BACKBONES) -> SessionContracts:
