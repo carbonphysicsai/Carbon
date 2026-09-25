@@ -15559,3 +15559,82 @@ human-reserved input.
      duplicates placed at the end.
    - The public projection is constructed field by field from an allow-list,
      never by filtering the internal record.
+
+## 2026-09-25 — BATTERY-TESTNET-M5A working engineering decisions (M5A-D1 to D8)
+
+Status: `IMPLEMENTED_WORKING_DECISION` in the M5A PR. Authority:
+OWNER-BATTERY-TESTNET-01 and the owner's 2026-09-25 direction to close the
+gap between Carbon's shared MCP interface and each Challenge's research
+environment. The launch Challenges are Battery, Chip cooling, Electric motors
+and Photonics; Power magnetics and airfoils are deferred.
+
+All of these are reversible engineering choices. None needs human-reserved
+input, and none renews a grant, raises spend, writes to a chain or confers
+qualification.
+
+1. **M5A-D1: one Challenge registry, exact selection, no fallback.**
+   - `carbon/challenge_registry` resolves (challenge_id, version, execution profile).
+   - Each unusable selection is a typed refusal with a stable code: unknown,
+     wrong version, reserved, deferred, or profile not usable here.
+   - There is no default Challenge.
+   - Chip cooling, electric motors and photonics are RESERVED under working
+     slugs with their tracking issues (#342, #344, #345), and nothing runs for
+     them.
+   - Power magnetics (#343) and airfoils (#346) are DEFERRED and kept for
+     history. No other executor's work is closed or overwritten.
+2. **M5A-D2: descriptions are derived, and usability is observed.**
+   - A description reads the executable registrations: the contract and its
+     capabilities, the public-material allow-list, the exam gates, the
+     feedback allow-list, and examples validated by the submission admission.
+   - *Implemented* and *usable on this host* are separate fields. Usability
+     comes from host facts: an installed module, the Docker CLI, or a
+     configured worker image that passes the doctor.
+3. **M5A-D3: one B-07 composition.**
+   - `compose_research_service(ChallengeParts)` serves every Challenge through
+     the same twelve operations, durable tasks, executor, ledger and carrier.
+   - Burgers' `make_research_service` now supplies Burgers parts, and its
+     ChallengeInfo, manifest, policy and scaffold digests are unchanged.
+   - The research SDK sends its composition's own key. A battery campaign uses
+     the connection's gateway with only the key changed, so a request for
+     another Challenge is refused before any provider sees it.
+4. **M5A-D4: battery practice.**
+   - The isolated carrier runs a fixed program on the trusted worker image.
+   - It stages the exact bytes of `domain.py`, `recipes.py` and `training.py`.
+     The pure `domain` module was split out of `challenge.py` for this, so it
+     is part of the implementation digest.
+   - Carbon scores the worker's predictions on the host, using the exam's
+     gates, the TRAIN scales and the frozen tolerances.
+   - PRACTICE is the exam-design campaign's public practice role: 200 OK cases,
+     pinned by the source file's digest, and disjoint from TRAIN v1 and from
+     the seed-service pools.
+5. **M5A-D5: evaluation.**
+   - A battery submission reaches an operator-configured deployment made of
+     owner-only files: root, journal, batch plaintexts, truth references and a
+     results log.
+   - Each batch is recalled against its prior journal commitment, and retired
+     batches are skipped.
+   - Missing references stop the load.
+   - An unconfigured deployment or `FAILED_INFRA` refuses the submission
+     without consuming the epoch.
+   - The rebuild runs in the evaluation process, and each result says
+     `DIRECT_TRUSTED_PROCESS` and `validator_path: false` until M3 moves it
+     into the isolated reconstruction worker.
+6. **M5A-D6: battery campaigns are miner-driven.**
+   - A battery launch requires `agent: none`.
+   - Carbon's autonomous agent is written for Burgers, so it is refused by name
+     rather than run on battery.
+   - Julia, GPU and authored-task lanes are not composed for battery.
+7. **M5A-D7: the campaign binds its Challenge.**
+   - `launch` takes optional `challenge` and `challenge_version`, and the
+     frozen manifest records them.
+   - Omitting them is the historical Burgers campaign, whose manifest is
+     unchanged.
+   - Prepare, attach, freeze and submit route by the frozen binding.
+8. **M5A-D8: the section-7 text was truncated.**
+   - The direction's section 7 ("preserve the exam's independence ...")
+     arrived cut off.
+   - Implemented from the complete sentences: current OD-2 battery exam
+     semantics, unchanged; no hidden case, seed or label for agents; the
+     evaluator chooses its own reference; and no miner artifact becomes a
+     grading reference.
+   - The rest of that section is open for the owner to resend.
