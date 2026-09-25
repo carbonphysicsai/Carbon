@@ -249,9 +249,9 @@ def _all_refs():
     return with_twins(normal) + (refined, every)
 
 
-def load_predictions(pattern=f"{EVID}/refs-b/out/train/pred_*.json.gz") -> dict:
+def load_predictions(pattern: str | None = None) -> dict:
     out = {}
-    for path in sorted(glob.glob(pattern, recursive=True)):
+    for path in sorted(glob.glob(pattern or f"{EVID}/refs-b/out/train/pred_*.json.gz")):
         tag = os.path.basename(path)[len("pred_"):-len(".json.gz")]
         with gzip.open(path, "rt") as f:
             out[tag] = json.load(f)
@@ -280,7 +280,11 @@ def _seed_avg(errs: list[dict]) -> dict:
     return {c: float(np.mean([e[c] for e in errs])) for c in common}
 
 
-def _kendall(a: list, b: list) -> float:
+def _kendall(a: list, b: list) -> float | None:
+    keep = [i for i in range(len(a)) if a[i] is not None and b[i] is not None]
+    a, b = [a[i] for i in keep], [b[i] for i in keep]
+    if len(a) < 3:
+        return None
     n, s = len(a), 0
     for i in range(n):
         for j in range(i + 1, n):
