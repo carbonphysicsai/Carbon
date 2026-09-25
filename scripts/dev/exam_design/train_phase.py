@@ -34,6 +34,11 @@ def _load_jsonl_gz(path: str) -> list[dict]:
 
 def run(cfg: dict, out: str) -> int:
     t_start = time.time()
+    import jax
+
+    backend = {"jax_backend": jax.default_backend(), "devices": [str(d) for d in jax.devices()],
+               "JAX_PLATFORMS": os.environ.get("JAX_PLATFORMS"), "XLA_FLAGS": os.environ.get("XLA_FLAGS")}
+    json.dump(backend, open(os.path.join(out, "backend.json"), "w"), indent=1)
     train_all = _load_jsonl_gz(cfg["train_file"])
     ocv = json.load(open(cfg["ocv_table"]))
     structure = recipes.Structure(ocv["soc"], ocv["ocv_v"])
@@ -54,6 +59,7 @@ def run(cfg: dict, out: str) -> int:
         stats = m.fit(d, structure, seed=r["seed"])
         stats["fit_wall_s"] = time.perf_counter() - t0
         rec = {"tag": r["tag"], "recipe": r["recipe"], "seed": r["seed"], "n_train": len(recs), "status": "FROZEN",
+               "jax_backend": backend["jax_backend"],
                "config": m.config() if hasattr(m, "config") else {"name": m.name, "k": getattr(m, "k", None)}} | stats
         frozen.append(rec)
         models.append((r, m))

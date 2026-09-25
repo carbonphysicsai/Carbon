@@ -263,6 +263,10 @@ def cmd_dispatch(a) -> None:
         # "name=path,name=path" or a bare path (named after the phase)
         items = [x.split("=", 1) if "=" in x else [a.phase, x] for x in a.overlay.split(",")]
         env["OVERLAYS"] = json.dumps({k: v for k, v in items})
+    if a.jax_platform:
+        # The pinned study image selects the CPU backend unless told otherwise (found when a photonic child
+        # reported devices ["cpu:0"] on an A40); GPU work must name the platform explicitly.
+        env["JAX_PLATFORMS"] = a.jax_platform
     if a.pinned_xla:
         env |= {"XLA_FLAGS": "--xla_gpu_deterministic_ops=true --xla_gpu_exclude_nondeterministic_ops=true "
                              "--xla_gpu_autotune_level=0", "NVIDIA_TF32_OVERRIDE": "0",
@@ -391,6 +395,7 @@ def main(argv=None) -> None:
     d.add_argument("--vcpu", type=int)
     d.add_argument("--private-key-name", help="key for the plan's encrypted private jobs (never printed)")
     d.add_argument("--max-workers", type=int)
+    d.add_argument("--jax-platform", help="e.g. cuda; the image defaults JAX to CPU")
     d.add_argument("--skip-from", nargs="*", help="records.jsonl files whose OK cases are skipped (resume)")
     sub.add_parser("poll")
     f = sub.add_parser("fetch")
