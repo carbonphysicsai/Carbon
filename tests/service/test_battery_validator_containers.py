@@ -184,3 +184,49 @@ def test_a_run_left_unresolved_is_reconciled_onto_a_new_attempt(tmp_path, refs):
     assert validator.store.submission(sid)["binding"]["attempt"] == 1
     assert containers() == []
     assert json.dumps(outcome).count("pscreen") == 0
+
+
+def test_a_run_killed_at_its_wall_clock_bound_is_infrastructure(tmp_path, refs):  # noqa: F811
+    """Cancellation: the container is killed mid-training and removed; its
+    partial work is never read, and the retry is a new attempt."""
+    validator = validator_with(tmp_path, refs, lambda store: carrier(store, tmp_path))
+    validator.backend.seconds = 3  # far shorter than this recipe's training
+    sid = validator.admit(
+        submission("hk1", backbone="mlp", steps=20000, width=256, depth=4)
+    )["submission_id"]
+    first = validator.process(sid)
+    assert first["state"] == "FAILED_INFRA" and "screening" not in first
+    assert first["failure"]["code"].startswith("worker_infrastructure")
+    assert containers() == []
+    assert validator.store.model_state(sid) is None  # nothing partial retained
+    validator.recover()
+    assert validator.backend.ledger.unresolved() == []
+    assert validator.store.submission(sid)["binding"]["attempt"] == 1
+
+
+def test_partial_output_is_infrastructure_never_a_candidate_failure(tmp_path, refs):  # noqa: F811
+    """A run whose export lacks a declared output is Carbon's failure."""
+
+    def partial(ledger, **kwargs):
+        result = runner.run(ledger, **kwargs)
+        snapshot = ledger.root / result["operation"] / "snapshot"
+        for name in ("fit.json", "predictions.json"):
+            if (snapshot / name).exists():
+                (snapshot / name).unlink()
+        return result
+
+    def backend_for(store):
+        return CarrierBackend(
+            WorkLedger(store, tmp_path / "work"),
+            None,
+            root=REPOSITORY,
+            runner=partial,
+            identity=runner.IDENTITY,
+        )
+
+    validator = validator_with(tmp_path, refs, backend_for)
+    sid = validator.admit(submission("hk1"))["submission_id"]
+    outcome = validator.process(sid)
+    assert outcome["state"] == "FAILED_INFRA"
+    assert outcome["failure"]["code"] == "output_missing"
+    assert containers() == []

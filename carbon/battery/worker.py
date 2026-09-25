@@ -303,6 +303,11 @@ class CarrierBackend:
         }
 
     def _snapshot(self, result, names):
+        if type(result) is not dict or "operation" not in result:
+            # A replayed run that ended without a result (FAILED_INFRA after
+            # reconciliation): infrastructure. The caller retries under a new
+            # attempt identity.
+            raise WorkerFailure("run_without_result", candidate=False)
         snapshot = self.ledger.root / result["operation"] / "snapshot"
         failure = snapshot / "failure.json"
         if failure.is_file() and not failure.is_symlink():

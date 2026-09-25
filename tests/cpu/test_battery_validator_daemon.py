@@ -544,3 +544,87 @@ def test_a_final_without_a_prepared_set_waits(tmp_path, refs, backend):
     (final_id,) = validator.store.open_finals()
     assert validator.process_final(final_id)["status"] == "WAITING_FOR_FINALIST_SET"
     assert validator.store.incumbent()["model_id"] != final_id
+
+
+def test_restart_after_admission_before_any_work(tmp_path, refs, backend):
+    validator = make(tmp_path, refs, backend)
+    sid = validator.admit(submission("hk1"))["submission_id"]
+    # The process dies here: admitted, nothing built.
+    restarted = make(tmp_path, refs, backend)
+    assert restarted.store.submission(sid)["state"] == "ADMITTED"
+    assert [r["state"] for r in restarted.run_pending()] == ["SCORED"]
+    assert restarted.store.pool()["admitted"] == 1
+
+
+def test_restart_between_rotation_and_journal_retirement(
+    tmp_path, refs, backend, monkeypatch
+):
+    validator = make(tmp_path, refs, backend)
+    run(validator, submission("hk0", neighbours=8))
+    run(validator, submission("hk1", neighbours=6))
+
+    def crash(*args, **kwargs):
+        raise RuntimeError("process killed")
+
+    with monkeypatch.context() as patch:
+        # The third admission rotates the pool; the process dies before the
+        # journal records the retirement.
+        patch.setattr(validator.store, "settle_retirements", crash)
+        with pytest.raises(RuntimeError):
+            run(validator, submission("hk2", neighbours=4))
+    assert validator.store.pool()["version"] == 1
+    assert not validator.journal.retired()
+    restarted = make(tmp_path, refs, backend)  # start() settles it
+    retired = restarted.store.batches(kind="screening", state="RETIRED")
+    assert [b["fingerprint"] for b in retired] == list(restarted.journal.retired())
+    restarted.recover()
+    entries = [e for e in restarted.journal.public() if e["kind"] == "retire"]
+    assert len(entries) == 1  # never retired twice
+
+
+def test_a_final_retries_infrastructure_under_a_new_attempt(
+    tmp_path, refs, backend, monkeypatch
+):
+    validator = make(tmp_path, refs, backend)
+    run(validator, submission("hk0", neighbours=8))
+    nominee = run(
+        validator, submission("hk1", backbone="mlp", steps=3000, width=64, depth=3)
+    )
+    assert nominee["nominated"] is True
+    (final_id,) = validator.store.open_finals()
+    backend.fail = ("reconstruct", False)
+    failed = validator.process_final(final_id)
+    assert failed["status"] == "FAILED_INFRA"
+    assert validator.store.final(final_id)["state"] == "FROZEN"  # never a result
+    assert validator.store.final_attempt(final_id) == 1
+    claimed = validator.store.final(final_id)["finalist"]
+    # A restart resumes the same final on the same fresh set, attempt 1.
+    restarted = make(tmp_path, refs, backend)
+    decided = restarted.process_final(final_id)
+    assert decided["state"] == "DECIDED"
+    assert decided["finalist"] == claimed
+    assert restarted.store.batches(kind="finalist", state="PREPARED") == []
+    assert len(restarted.store.batches(kind="finalist", state="CONSUMED")) == 1
+
+
+def test_an_unavailable_worker_host_is_infrastructure(tmp_path, refs):
+    from carbon.battery.worker import CarrierBackend, WorkLedger
+
+    def no_docker(ledger, **kwargs):
+        raise FileNotFoundError("docker")
+
+    store_path = tmp_path / "state.sqlite3"
+    validator = make(tmp_path, refs, DirectBackend(REPOSITORY))
+    validator.backend = CarrierBackend(
+        WorkLedger(validator.store, tmp_path / "work"),
+        None,
+        root=REPOSITORY,
+        runner=no_docker,
+        identity=validator.backend.identity,
+    )
+    assert store_path.exists()
+    outcome = run(validator, submission("hk1"))
+    assert outcome["state"] == "FAILED_INFRA"
+    assert outcome["failure"]["code"] == "worker_infrastructure:FileNotFoundError"
+    assert "screening" not in outcome
+    assert validator.store.pool()["admitted"] == 0

@@ -841,6 +841,25 @@ class PoolStore:
             )
             return outcome
 
+    def final_attempt(self, final_id):
+        """The attempt a finalist comparison's worker runs are named with."""
+        with self.db() as db:
+            row = db.execute(
+                "SELECT body FROM operations WHERE op_id=?",
+                ("final-attempt:" + final_id,),
+            ).fetchone()
+        return 0 if row is None else json.loads(row[0])["attempt"]
+
+    def bump_final_attempt(self, final_id, attempt):
+        """After an infrastructure failure: the retry uses a new identity."""
+        with self.transaction() as db:
+            db.execute(
+                "INSERT OR REPLACE INTO operations VALUES(?, 'final_attempt', "
+                "'RECORDED', ?)",
+                ("final-attempt:" + final_id, canonical({"attempt": attempt})),
+            )
+            self._event(db, "final_failed_infra", {"final": final_id, "next": attempt})
+
     def final(self, final_id):
         with self.db() as db:
             row = db.execute(

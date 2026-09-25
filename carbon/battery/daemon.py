@@ -660,6 +660,9 @@ class BatteryValidator:
             return {**final, "status": "WAITING_FOR_FINALIST_SET"}
         frozen = final["frozen"]
         seed = frozen["seed"]
+        # Like a submission's, every worker run is named by the attempt, so a
+        # retry after an infrastructure failure never reuses a run identity.
+        attempt = self.store.final_attempt(final_id)
         inputs = self.store.case_inputs([fingerprint])
         ids = [c["case_id"] for c in self.store.batch(fingerprint)["document"]["cases"]]
         store = self._case_store([fingerprint])
@@ -676,7 +679,7 @@ class BatteryValidator:
                 fresh = f"{final_id}-{role}"
                 if self.store.model_state(fresh) is None:
                     state, stats = self.backend.reconstruct(
-                        "rec-" + fresh, recipe, seed
+                        f"rec-{fresh}-a{attempt}", recipe, seed
                     )
                     self.store.retain_model(
                         fresh,
@@ -685,7 +688,7 @@ class BatteryValidator:
                         state=state,
                         reconstruction={**self.backend.identity, "fit": stats},
                     )
-                preds = self._infer(fresh, ids, inputs, "final")
+                preds = self._infer(fresh, ids, inputs, f"final-a{attempt}")
                 rows[role] = exam.evaluate(preds, ids, store)
         except WorkerFailure as failure:
             if failure.candidate:
@@ -699,6 +702,7 @@ class BatteryValidator:
                     "promotable": False,
                 }
                 return self._decide(final_id, final, outcome, fingerprint)
+            self.store.bump_final_attempt(final_id, attempt + 1)
             return {**final, "status": "FAILED_INFRA", "code": failure.code}
 
         def errors(case_rows):
