@@ -37,4 +37,3 @@ Traceback (most recent call last):
     return backend.compile_and_load(
            ^^^^^^^^^^^^^^^^^^^^^^^^^
 jax.errors.JaxRuntimeError: INTERNAL: ptxas exited with non-zero error code 65280, output: ptxas fatal   : Could not open output file '/scratch/tmp/tmpxft_000001c0_0000000a'
-
