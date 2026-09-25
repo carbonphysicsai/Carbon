@@ -529,3 +529,177 @@ def build(family, settings):
     if settings["ensemble_members"] == 1:
         return MLP(family, settings)
     return Ensemble(settings["ensemble_members"], family, settings)
+
+
+# --- Trained state: inference on new cases without retraining ---------------
+#
+# A retained model is brought onto a new screening batch by inference only. Its
+# trained state is exported as named arrays plus a JSON header, written with
+# numpy's own array format and read back with pickling disabled, so loading a
+# state can never execute code.
+
+STATE_SCHEMA = "carbon.battery.model-state.v1"
+
+
+def _layout_state(layout):
+    return {
+        "g": layout.g,
+        "k": layout.k,
+        "bounded_v": layout.bounded_v,
+        "predict_v0": layout.predict_v0,
+        "fade": layout.fade,
+    }
+
+
+def _classic_net(p, xx):
+    import jax
+
+    h = xx
+    for w, bb in p[:-1]:
+        h = jax.nn.gelu(h @ w + bb)
+    w, bb = p[-1]
+    return h @ w + bb
+
+
+def _mlp_arrays(model, prefix, arrays):
+    import jax
+
+    names = ["mu", "sd"] + (["vm", "tm", "pv", "pt", "zmu", "zsd"] if model.pca else [])
+    for name in names:
+        arrays[prefix + name] = np.asarray(getattr(model, name))
+    leaves = (
+        [a for w, b in model.params for a in (w, b)]
+        if model.classic
+        else [np.asarray(a) for a in jax.tree_util.tree_leaves(model.params)]
+    )
+    for i, leaf in enumerate(leaves):
+        arrays[f"{prefix}leaf{i:04d}"] = np.asarray(leaf)
+    return {
+        "classic": model.classic,
+        "x64": getattr(model, "x64", False),
+        "leaves": len(leaves),
+    }
+
+
+def export_state(model):
+    """(header, arrays) describing a trained model's full prediction state."""
+    if isinstance(model, KNN):
+        header = {"kind": "knn", "k": model.k, "fraction": model.fraction}
+        arrays = {"u": model.u, "y": model.y}
+        base = model
+    elif isinstance(model, MLP):
+        arrays = {}
+        header = {"kind": "mlp", "family": model.family, "settings": model.settings}
+        header["member"] = _mlp_arrays(model, "m0_", arrays)
+        base = model
+    elif isinstance(model, Ensemble):
+        arrays = {}
+        header = {
+            "kind": "ensemble",
+            "family": model.family,
+            "settings": model.settings,
+            "members": [
+                {"settings": m.settings, **_mlp_arrays(m, f"m{i}_", arrays)}
+                for i, m in enumerate(model.members)
+            ],
+        }
+        base = model.members[0]
+    else:
+        raise TypeError("not a battery recipe model")
+    header["schema"] = STATE_SCHEMA
+    header["layout"] = _layout_state(base.layout)
+    arrays["ocv_soc"], arrays["ocv_v"] = base.s.ocv_soc, base.s.ocv_v
+    return header, arrays
+
+
+def _restore_mlp(family, settings, header, prefix, arrays, layout, structure):
+    import jax
+
+    m = MLP(family, settings)
+    m.layout, m.s = layout, structure
+    m.classic, m.x64 = header["classic"], header["x64"]
+    for name in ["mu", "sd"] + (
+        ["vm", "tm", "pv", "pt", "zmu", "zsd"] if m.pca else []
+    ):
+        setattr(m, name, arrays[prefix + name])
+    leaves = [arrays[f"{prefix}leaf{i:04d}"] for i in range(header["leaves"])]
+    if m.classic:
+        m.params = [(leaves[i], leaves[i + 1]) for i in range(0, len(leaves), 2)]
+        m._net = _classic_net
+        return m
+    dtype = np.float64 if m.x64 else np.float32
+    with jax.enable_x64(m.x64):
+        n_in = features(np.zeros((1, 4)), m.rich).shape[1]
+        n_out = m.mu.size if not m.pca else m.zmu.size
+        init, apply = m._network(jax, dtype, n_in, n_out)
+        template = init(jax.random.PRNGKey(0))[1]
+        treedef = jax.tree_util.tree_structure(template)
+        m.params = jax.tree_util.tree_unflatten(
+            treedef, [jax.numpy.asarray(a) for a in leaves]
+        )
+    m._apply = apply
+    return m
+
+
+def import_state(header, arrays):
+    """The model an `export_state` described, ready to predict; never trains."""
+    if header.get("schema") != STATE_SCHEMA:
+        raise ValueError("not a battery model state")
+    layout = Layout(
+        header["layout"]["g"],
+        header["layout"]["k"],
+        bounded_v=header["layout"]["bounded_v"],
+        predict_v0=header["layout"]["predict_v0"],
+        fade=header["layout"]["fade"],
+    )
+    structure = Structure(arrays["ocv_soc"], arrays["ocv_v"])
+    if header["kind"] == "knn":
+        model = KNN(header["k"], header["fraction"])
+        model.layout, model.s = layout, structure
+        model.u, model.y = arrays["u"], arrays["y"]
+        return model
+    if header["kind"] == "mlp":
+        return _restore_mlp(
+            header["family"],
+            header["settings"],
+            header["member"],
+            "m0_",
+            arrays,
+            layout,
+            structure,
+        )
+    if header["kind"] == "ensemble":
+        model = Ensemble(len(header["members"]), header["family"], header["settings"])
+        model.members = [
+            _restore_mlp(
+                header["family"], m["settings"], m, f"m{i}_", arrays, layout, structure
+            )
+            for i, m in enumerate(header["members"])
+        ]
+        return model
+    raise ValueError("unknown model state kind")
+
+
+def state_bytes(model):
+    """One self-describing byte string: the header and every array."""
+    import io
+    import json
+
+    header, arrays = export_state(model)
+    buffer = io.BytesIO()
+    np.savez(
+        buffer,
+        __header__=np.frombuffer(json.dumps(header, sort_keys=True).encode(), np.uint8),
+        **arrays,
+    )
+    return buffer.getvalue()
+
+
+def model_from_bytes(body):
+    import io
+    import json
+
+    with np.load(io.BytesIO(body), allow_pickle=False) as data:
+        arrays = {k: data[k] for k in data.files if k != "__header__"}
+        header = json.loads(bytes(data["__header__"]).decode())
+    return import_state(header, arrays)
