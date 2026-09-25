@@ -5,6 +5,24 @@
 M4 and M7 are **not complete**. Each needs hardware or testnet observations
 that only this handoff's operator can produce.
 
+**Host readiness, as the operator observed it (2026-09-25).**
+
+| Requirement | State |
+|---|---|
+| Publisher UID 0 (owns netuid 567) | Wallet present on the authorized WSL host. Ready. |
+| Miner UID 1 | Registered, with its signing key at `0600`. The public miner metadata still says `registered: false`. Leave it unedited: the M7 preflight supersedes it with a fresh chain-bound record. |
+| Validator identity | None, by OD-6. Correct. |
+| Validator service key | Not yet created. Create it only from the accepted `main` commit. |
+| Host | Ubuntu 24.04, cgroup v2, Docker 29.8.0, 20 CPUs, about 16 GiB. The C-03 worker passes the doctor. |
+| Truth base image | Present by digest. The overlay is not yet materialized (§2.2). |
+| Local GPU (RTX 3060, 6 GiB) | Preflight only. It is not M4 acceptance. |
+| Model-provider key | Present at `0600`. |
+| RunPod key | Placed by the owner at the §3 path (2026-09-25). Use it only for the §4 matrix. |
+| Testnet read | Working. The chain is at runtime spec 471. |
+| Testnet write | Blocked. The operator fails closed with `UNSUPPORTED_RUNTIME_VERSION` because it was validated for 460 (§5.1). |
+| OD-4a executable record | Missing (§5.2). |
+| OD-4b | Not authorized. |
+
 This document never contains a secret. Keys, wallets and credentials are named
 **by location only**. Never paste a token, key or password into a chat, a
 ticket or a log.
@@ -34,10 +52,21 @@ Recompute every identity on the host at the exact commit you run
    ```bash
    uv run --locked python -c "from carbon.reconstruction.worker.docker_runtime import doctor, load_image_identity as l; i=l('<image_manifest>'); print(doctor(image_id=i.image_id, image_identity=i))"
    ```
-2. The truth image pulls by digest, and `python -c "import pybamm"` runs inside
-   it.
+2. **Truth environment.** The base image alone does not import `pybamm`, so
+   build the pinned overlay and verify it (`truth_env`):
+   ```bash
+   uv run --locked python -m carbon.battery.operate truth-materialize --target /srv/carbon/battery/truth-overlay
+   uv run --locked python -m carbon.battery.operate truth-verify --target /srv/carbon/battery/truth-overlay
+   ```
+   - Materialize downloads the 27 locked wheels. It checks each wheel's size
+     and SHA-256, and refuses any member that would leave the directory.
+   - Verify runs the pinned image with no network and the overlay read-only.
+     It requires `pybamm==26.8.0.0` and the lock's numpy and scipy.
+   - The overlay was materialized and hash-checked in the development
+     sandbox. Verification needs the image, so it runs on the host.
 3. Owner-only permissions (`0600` files, `0700` directories) on every path in
-   §3. A group-readable file is refused by name.
+   §3. A group-readable file is refused by name, and so is a shared work
+   directory.
 4. For M4: `nvidia-smi` in the GPU worker image, and JAX sees the device.
 
 ## 3. Non-secret configuration (schema and paths)
@@ -73,13 +102,14 @@ Recompute every identity on the host at the exact commit you run
 
 **Secret locations (reference only):**
 
-| Secret | Location | Who holds it |
+| Secret | Location on the authorized host | Who holds it |
 |---|---|---|
-| Validator service key (OD-6) | `/srv/carbon/keys/battery-validator.key`, 32 raw bytes, `0600`. Create it with `signing.ServiceKey.create`. | Carbon operator |
-| Owner/publisher wallet (UID 0, OD-4a) | the existing subnet-567 operator config's `wallet` / `publisher` entries on the authorized host | Owner |
-| Miner hotkey (UID 1, OD-7) | the Launchpad runner profile's `miner_public` and `miner_password_file` | Owner/miner |
-| RunPod API key | the operator's existing RunPod credential file on the authorized host | Owner |
-| Model-provider key | the runner profile's `api_key_file` | Owner |
+| Validator service key (OD-6) | `/srv/carbon/keys/battery-validator.key`, 32 raw bytes, `0600`. Create it with `signing.ServiceKey.create` from the accepted `main` commit. | Carbon operator |
+| Publisher wallet (UID 0, OD-4a) | `/home/carbon/.bittensor/wallets/carbon-testnet-20260915` | Owner |
+| Publisher wallet password | `/home/carbon/.local/share/carbon-testnet/secrets/wallet-password` | Owner |
+| Miner UID 1 signing key (OD-7) | `/home/carbon/.local/share/carbon-testnet/secrets/miner-session-key` | Owner/miner |
+| Model-provider key | `/home/carbon/.local/share/carbon-testnet/secrets/openai-api-key` | Owner |
+| RunPod API key | `/home/carbon/.runpod/api_key` (`0600`, directory `0700`) | Owner |
 
 Validators hold **no** hotkey (OD-6). Never copy a wallet into a
 reconstruction container. Never register a replacement identity because a
@@ -132,41 +162,83 @@ cleanup reserve to its worst case.
 Every pod is terminated at its deadline by the existing exam-design runner
 pattern. R4 needs its own window approval (§5).
 
-## 5. Transaction authority (OD-4a, OD-7): records needed before any chain write
+## 5. Transaction authority (OD-4a, OD-7): the exact sequence
 
 The repository holds the decision text (OD-4a, OD-7), not executable values.
-Nothing below is inferred from general testnet approval. Each field must be
-supplied by the owner and recorded before any dispatch.
+Nothing below is inferred from general testnet approval.
 
-**OD-4a Phase A all-burn weights.** Each publication is one
-`DevelopmentTransactionAuthorization`, with `max_dispatches` fixed at 1 in
-code. Supply these per publication, or as a numbered series:
+### 5.1 Runtime 471
 
-| Field | Needed from the owner |
-|---|---|
-| `authorization_id` | an id per publication |
-| `authority_record_digest` | the digest of the owner's written approval record |
-| `publisher_hotkey` | UID 0's hotkey (public SS58, which is not a secret) |
-| `expected_runtime_spec` | from `development_testnet doctor --online` |
-| `valid_from_block`, `valid_through_block` | **the block window** |
-| number of publications in the window | **the transaction count** |
-| fee cap | **the maximum fee (test TAO) per transaction.** `max_spend_tao` is 0 in code, so confirm fees are acceptable at 0 spend, or approve a cap as a code change. |
-| expiry | **the date after which unused authorizations lapse** |
+The operator pins the runtime it validated (460). Carbon publishes through
+`bittensor==11.1.0`, whose bindings name the calls and storage it encodes.
+The read-only probe compares that exact surface with the live runtime:
 
-**OD-7 miner recipe-hash commitments.**
-- **Missing before any commitment:**
-  - hotkeys: UID 1 and any added hotkeys (their registration cost in test
-    TAO);
-  - count per day;
-  - window (first and last block, or UTC dates);
-  - fee cap;
-  - expiry.
-- Commitment posting is not implemented in code, and neither is the
-  daemon's chain reader. Both are required before `require_commitment: true`.
+```bash
+uv run --locked --group chain python -m carbon.chain.runtime_probe \
+  --config /absolute/private/operator/development-testnet.json > probe.json
+```
 
-Dispatch and reconciliation follow
-`docs/development/CW1_DEVELOPMENT_TESTNET_TRANSACTION_PLAN.md`:
-`python -m carbon.development_testnet doctor|status|run|resume`.
+- **`COMPATIBLE_USED_SURFACE`:** these are unchanged:
+  - the weight calls (`set_mechanism_weights`,
+    `commit_timelocked_mechanism_weights`);
+  - the MEV-shield `submit_encrypted` call;
+  - the 27 storage items, and `SubnetInfoRuntimeApi.get_metagraph`.
+
+  The report lists the runtime's raw argument types, and its digest covers
+  them. It does not prove runtime behaviour. After reading it (and the
+  upstream release notes), the owner may set `expected_runtime_spec: 471`
+  in the operator config.
+- **`INCOMPATIBLE`:** stop. The SDK pin must move first, which is a code
+  change.
+
+### 5.2 OD-4a Phase A all-burn: one numbered record per publication
+
+1. M3 accepted and deployed; M4 complete with the GPU image and evidence
+   pinned.
+2. Runtime probe compatible (§5.1), with the owner's decision on spec 471
+   recorded.
+3. `operate export` writes the signed `weight-intent.json`, which is ALL_BURN
+   only.
+4. Generate the exact request. This is read-only; no chain call is made and
+   no wallet is opened:
+   ```bash
+   uv run --locked python -m carbon.battery.od4a request \
+     --operator-config OP.json --probe probe.json \
+     --intent EXPORT/weight-intent.json --sequence 1 \
+     --start-after <blocks> --window <blocks> --expires-utc <UTC>
+   ```
+   The request binds these fields into `request_digest`:
+   - `OD4A-BATTERY-0001`, the testnet genesis and netuid 567;
+   - UID 0 and its public hotkey, and mechanism 0;
+   - the row `[[0, 65535]]` and spec 471;
+   - the probe digest and its finalized block;
+   - the window and `max_dispatches: 1`;
+   - `max_fee_tao: 0` and `max_spend_tao: 0`, refused at dispatch if any
+     nonzero fee is observed;
+   - the expiry and the signed intent's digest;
+   - the exclusion of miner and winner rows;
+   - the reconcile-never-resend and consumption rules.
+
+   The window is the operator's proposal, and it is anchored to a fresh
+   finalized block. Do not choose blocks days ahead.
+5. **The owner approves that exact `request_digest`** in writing. The digest
+   of that approval record is the fragment's `authority_record_digest`.
+6. Paste the fragment into the operator config. Dispatch once through
+   `python -m carbon.development_testnet run|resume`
+   (`docs/development/CW1_DEVELOPMENT_TESTNET_TRANSACTION_PLAN.md`).
+7. Reconcile to the finalized state. The record is then consumed.
+8. Each further publication needs a new sequence number and its own
+   approval. OD-4b stays disabled.
+
+A positive fee cap would need an explicit owner value **and** a code change:
+`max_spend_tao` is fixed at 0 in `DevelopmentTransactionAuthorization`.
+
+### 5.3 OD-7 miner recipe-hash commitments
+
+Commitment posting and the daemon's chain reader are not implemented.
+Validators run with `require_commitment: false` until both exist, and until
+the count per day, window, fee cap and expiry are recorded as their own
+write scope.
 
 ## 6. Commands
 
@@ -182,9 +254,15 @@ for r in pscreen-T00 pscreen-T01 pscreen-T02 pscreen-T03; do
   uv run --locked python -m carbon.battery.operate prepare --config $C --role $r --kind screening
 done
 uv run --locked python -m carbon.battery.operate prepare --config $C --role pfinal-T00 --kind finalist --count 200
-# solve references (inside the truth image) and ingest
-uv run --locked python -m carbon.battery.operate solve --config $C --batch <fingerprint> \
-  --records /srv/carbon/battery/validator/refs-<fingerprint>.jsonl --workers 6
+# references: export jobs (owner-only), solve in the truth container, ingest
+mkdir -m 0700 -p /srv/carbon/battery/solve/<fp>
+uv run --locked python -m carbon.battery.operate jobs --config $C --batch <fp> \
+  --out /srv/carbon/battery/solve/<fp>/jobs.json
+uv run --locked python -c "import shlex; from carbon.battery.truth_env import solve_command as c; print(shlex.join(c('/srv/carbon/battery/truth-overlay', '/srv/carbon/battery/solve/<fp>', repository='.', workers=6)))"
+#   run the printed docker command: no network, read-only, sees only the
+#   overlay, Carbon's source and that one directory
+uv run --locked python -m carbon.battery.operate ingest --config $C --batch <fp> \
+  --records /srv/carbon/battery/solve/<fp>/records.jsonl
 # open the pool once three screening batches are complete
 uv run --locked python -m carbon.battery.operate open --config $C
 # advance queued submissions and finals
@@ -224,3 +302,8 @@ Stop and report when any of these occurs:
 - the pool is `ROTATION_PENDING` with no prepared complete batch;
 - any exported file contains a private case, input, label or seed;
 - two attempts fail for the same infrastructure reason.
+- the runtime probe reports `INCOMPATIBLE`, or the chain's spec differs from
+  the one the owner adopted;
+- `truth-verify` fails, or a solve refuses its environment;
+- an OD-4a request's window has passed or its expiry is reached (generate a
+  new numbered request; never stretch an approved one).

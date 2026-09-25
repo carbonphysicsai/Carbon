@@ -7,18 +7,23 @@ Commands:
 - ``batches``: each batch's kind, state and reference completion;
 - ``recover``: settle what a crash left mid-way (never dispatches work);
 - ``prepare``: generate, commit and record one private batch from the root;
-- ``solve``: run the truth service on a batch's reference jobs into an
-  owner-only records file, then ingest it. Run it inside the pinned truth
-  image (`truth.TRUTH_IMAGE`); it is CPU work;
-- ``ingest``: ingest an existing records file for a batch;
+- ``jobs``: write one batch's reference jobs to an owner-only file for the
+  truth container (read-only on the validator);
+- ``ingest``: ingest the truth container's records file for a batch;
 - ``open``: open the pool once three screening batches are complete;
 - ``run``: advance every queued submission and open finalist comparison;
+- ``truth-materialize`` / ``truth-verify``: build the PyBaMM overlay from its
+  hash-locked wheels and verify the pinned version inside the pinned image,
+  with no network (`truth_env`). The solve itself runs in that image
+  (`truth_env.solve_command`) and refuses without the pinned version; it
+  sees only the jobs and records files, never the validator state;
 - ``export``: write service-key-signed outcomes and the Phase A all-burn
   weight intent for the owner publisher. It sends nothing anywhere.
 
 Every output is operator-private: it goes to this terminal or an owner-only
 file. Nothing here prints a key, a seed or the root; `batches` names roles
-and fingerprints, never cases.
+and fingerprints, never cases. Only `jobs` writes cases, to an owner-only
+file for the truth container.
 """
 
 from __future__ import annotations
@@ -60,19 +65,16 @@ def _batches(target):
     ]
 
 
-def _solve(target, fingerprint, records, workers, timeout_s):
-    from .truth import TruthService
+def _jobs(target, fingerprint, out):
+    """Write one batch's reference jobs for the truth container.
 
-    path = Path(records)
-    if not path.exists():
-        path.touch(mode=0o600)
-    if path.stat().st_mode & 0o077:
-        raise SystemExit("the records file must be owner-only")
+    The file holds private case ids and inputs: it is created owner-only and
+    only the truth container reads it. The container never sees the
+    validator state, the private root or the journal.
+    """
     jobs = target.reference_jobs(fingerprint)
-    summary = TruthService(path, workers=workers, timeout_s=timeout_s).run(jobs)
-    with writer(target):
-        complete = target.ingest_references(fingerprint, TruthService(path).records())
-    return {"solve": summary, "complete": bool(complete)}
+    _write_private(out, {"fingerprint": fingerprint, "jobs": jobs})
+    return {"fingerprint": fingerprint, "jobs": len(jobs), "file": str(out)}
 
 
 def _export(target, out):
@@ -120,34 +122,52 @@ def main(argv=None):
     prepare.add_argument("--role", required=True)
     prepare.add_argument("--kind", choices=("screening", "finalist"), required=True)
     prepare.add_argument("--count", type=int)
-    for name in ("solve", "ingest"):
-        command = sub.add_parser(name)
-        command.add_argument("--config", required=True)
-        command.add_argument("--batch", required=True)
-        command.add_argument("--records", required=True)
-        if name == "solve":
-            command.add_argument("--workers", type=int, default=1)
-            command.add_argument("--timeout-s", type=float, default=1200.0)
+    ingest = sub.add_parser("ingest")
+    ingest.add_argument("--config", required=True)
+    ingest.add_argument("--batch", required=True)
+    ingest.add_argument("--records", required=True)
+    jobs = sub.add_parser("jobs")
+    jobs.add_argument("--config", required=True)
+    jobs.add_argument("--batch", required=True)
+    jobs.add_argument("--out", required=True)
+    materialize = sub.add_parser("truth-materialize")
+    materialize.add_argument("--target", required=True)
+    materialize.add_argument("--wheels-dir")
+    sub.add_parser("truth-verify").add_argument("--target", required=True)
     export = sub.add_parser("export")
     export.add_argument("--config", required=True)
     export.add_argument("--out", required=True)
     args = parser.parse_args(argv)
+    if args.command in ("truth-materialize", "truth-verify"):
+        from .truth_env import TruthEnvironmentError, materialize, verify
 
-    readonly = args.command in ("status", "batches")
+        try:
+            result = (
+                materialize(
+                    args.target, repository=REPOSITORY, wheels_dir=args.wheels_dir
+                )
+                if args.command == "truth-materialize"
+                else verify(args.target, repository=REPOSITORY)
+            )
+        except TruthEnvironmentError as refused:
+            print(json.dumps({"refused": str(refused)}))
+            return 2
+        print(json.dumps(result, sort_keys=True, indent=2))
+        return 0
+
+    readonly = args.command in ("status", "batches", "jobs")
     try:
         load_config(args.config)
         target = validator(args.config, repository=REPOSITORY, readonly=readonly)
     except EvaluationUnavailable as unavailable:
         print(json.dumps({"unavailable": unavailable.code}))
         return 2
-    if readonly:
+    if readonly and args.command != "jobs":
         # Reads only: no start, no recovery, no lock - never touches a run
         # another process is executing.
         result = target.status() if args.command == "status" else _batches(target)
-    elif args.command == "solve":
-        # Solving takes hours and touches only the records file; the writer
-        # lock is held for the ingest alone.
-        result = _solve(target, args.batch, args.records, args.workers, args.timeout_s)
+    elif args.command == "jobs":
+        result = _jobs(target, args.batch, args.out)
     else:
         with writer(target):
             result = _mutate(target, args)
