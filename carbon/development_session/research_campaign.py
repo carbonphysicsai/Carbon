@@ -193,6 +193,13 @@ def frozen_seeds(root):
     return value
 
 
+#: Service-produced practice results that can support a selection. The recipe
+#: names its Challenge, so a practice supports only its own Challenge.
+PRACTICE_PROVENANCES = frozenset(
+    {"REAL_JAX_PUBLIC_PRACTICE", "BATTERY_PUBLIC_PRACTICE"}
+)
+
+
 def trial_supports_selection(ledger, owner, strategy):
     with ledger.db() as db:
         rows = db.execute(
@@ -203,7 +210,7 @@ def trial_supports_selection(ledger, owner, strategy):
             raise ValueError("retained practice result changed")
         result = json.loads(body)
         if (
-            result.get("provenance") == "REAL_JAX_PUBLIC_PRACTICE"
+            result.get("provenance") in PRACTICE_PROVENANCES
             and result.get("recipe") == strategy
         ):
             return True
@@ -406,6 +413,20 @@ async def prepare(args, *, ledger=None):
     Returns a `PreparedCampaign`, or None for a campaign already complete.
     Idempotent on resume: a frozen manifest is checked, never rewritten.
     """
+    from carbon.battery.campaign import campaign_challenge
+
+    challenge = campaign_challenge(args)
+    if challenge is not None and challenge["id"] != CHALLENGE.challenge_id:
+        from carbon.challenge_registry import resolve
+        from carbon.reconstruction.capability_registry import BATTERY_CHALLENGE
+
+        # Exactly one registered Challenge, or a typed refusal; never Burgers.
+        resolve(challenge["id"], challenge["version"], "cpu_research")
+        if challenge["id"] != BATTERY_CHALLENGE:
+            raise ValueError("no campaign composition for this Challenge")
+        from carbon.battery.campaign import prepare_battery
+
+        return await prepare_battery(args, ledger=ledger)
     agent_policy = getattr(args, "agent_policy", LEGACY)
     policy = binding(agent_policy)
     supplied_guidance = getattr(args, "research_guidance", None)
@@ -697,6 +718,8 @@ class PreparedCampaign:
     task: object
     grant: object
     agent_policy: object
+    #: The Challenge this campaign serves; None is the historical Burgers one.
+    challenge: object = None
 
     @property
     def agent(self):
@@ -755,6 +778,19 @@ async def submit_candidate(prepared, epoch, strategy):
             },
         )
         return None
+    if prepared.challenge is not None:
+        # This Challenge's evaluation deployment judges the candidate; the
+        # Burgers final epoch never sees it.
+        from carbon.battery.campaign import evaluate_candidate
+
+        folder = ledger.root / ("epoch-" + str(epoch))
+        record = json.loads((folder / "selected-recipe.json").read_bytes())
+        if record["strategy"] != strategy:
+            raise ValueError("submitted strategy differs from the frozen candidate")
+        feedback = evaluate_candidate(prepared, epoch, record)
+        write_once(folder / "permitted-final-feedback.json", canonical(feedback))
+        report(ledger, owner=owner)
+        return feedback
     feedback, ref = await final_epoch(
         prepared.args,
         ledger,

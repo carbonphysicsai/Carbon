@@ -13,7 +13,7 @@ from carbon.reconstruction.capability_registry import contract_digest
 
 from .agent import MAX_INPUT_TOKENS, MAX_OUTPUT_TOKENS, MODEL
 from .data import write_once
-from .profile import canonical, digest
+from .profile import CHALLENGE, canonical, digest
 from .research_agent import request_model
 from .research_agent_policy import (
     AUTONOMOUS,
@@ -52,7 +52,18 @@ def candidate_record(strategy, reason, used_feedback):
         raise ValueError("a bounded selection reason is required")
     if type(used_feedback) is not bool:
         raise ValueError("used_feedback is a Boolean")
-    compiled, profile = compile_recipe(strategy)
+    if type(strategy) is dict and strategy.get("challenge_id") not in (
+        None,
+        CHALLENGE.challenge_id,
+    ):
+        # Another Challenge compiles under its own contract, never Burgers'.
+        from carbon.reconstruction.challenge_contracts import compile_submission
+
+        admitted = compile_submission(strategy)
+        compiled, rebuilt = admitted.compiled, admitted.construction.recipe_digest
+    else:
+        compiled, profile = compile_recipe(strategy)
+        rebuilt = profile.profile_digest
     return {
         "status": "SELECTED",
         "strategy": strategy,
@@ -60,7 +71,7 @@ def candidate_record(strategy, reason, used_feedback):
         "used_feedback": used_feedback,
         "strategy_hash": compiled.construction_plan.strategy_hash.value,
         "construction_plan_digest": compiled.construction_plan.to_ref().content_digest,
-        "reconstruction_profile_digest": profile.profile_digest,
+        "reconstruction_profile_digest": rebuilt,
         # The Challenge contract this candidate was compiled under (OD-8); a
         # validator refuses a submission recorded against a different one.
         "contract_digest": contract_digest(strategy["challenge_id"]),
@@ -169,7 +180,7 @@ async def run_epoch(
             }
             break
         print(
-            f"Research epoch {epoch}: agent call {index+1}/48; trial slots used {trials}/{trial_limit}",
+            f"Research epoch {epoch}: agent call {index + 1}/48; trial slots used {trials}/{trial_limit}",
             flush=True,
         )
         phase_path = root / (call_id + "-admission.json")

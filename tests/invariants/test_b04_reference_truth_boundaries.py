@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import ast
 import sys
+import tomllib
 from pathlib import Path
 
 import pytest
-import tomllib
 
 from tests.invariants._import_analysis import direct_import_modules
 
@@ -205,7 +205,14 @@ def _is_allowed_evaluation_consumer(path: Path, module_name: str) -> bool:
             and module_name == "carbon.evaluation.enums"
         )
         or (
-            path == _CARBON_ROOT / "development_session" / "research_authoring.py"
+            path
+            in {
+                _CARBON_ROOT / "development_session" / "research_authoring.py",
+                # The battery research measurement contract binds the same
+                # reference-policy identity; the symbol check below holds it
+                # to ReferencePolicyRef alone, never evaluator access.
+                _CARBON_ROOT / "battery" / "research.py",
+            }
             and module_name == "carbon.evaluation.refs"
         )
     )
@@ -384,8 +391,9 @@ def test_d4_consumes_only_reference_identity_and_outcome_enum():
     for filename, module, symbols in (
         ("research_authoring.py", "carbon.evaluation.refs", {"ReferencePolicyRef"}),
         ("research_data.py", "carbon.evaluation.enums", {"ReferenceRunOutcome"}),
+        ("../battery/research.py", "carbon.evaluation.refs", {"ReferencePolicyRef"}),
     ):
-        path = _CARBON_ROOT / "development_session" / filename
+        path = (_CARBON_ROOT / "development_session" / filename).resolve()
         imported = {
             alias.name
             for node in ast.walk(_parse(path))
