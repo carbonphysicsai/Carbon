@@ -40,9 +40,9 @@ Disposable C0 fixture integration only; G2 depends on actual runtime evidence an
 
 ## Repository detail
 
-- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/81d86a98bc3691f80252567cf808b1948863ba43/.agent/tickets/NET-5_disposable_localnet.md)
-- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/81d86a98bc3691f80252567cf808b1948863ba43/.agent/evidence/wave_c/net-5.md)
+- [Repo ticket](https://github.com/carbonphysicsai/Carbon/blob/788bf0ae25f95c4697e56fec871a0dbb83bb14b8/.agent/tickets/NET-5_disposable_localnet.md)
+- [Stable evidence](https://github.com/carbonphysicsai/Carbon/blob/788bf0ae25f95c4697e56fec871a0dbb83bb14b8/.agent/evidence/wave_c/net-5.md)
 - [Operator contract](https://github.com/carbonphysicsai/Carbon/blob/4f84329cb1f91b89b3b11547d938867fd846417d/docs/development/LOCALNET_INTEGRATION.md)
-- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/81d86a98bc3691f80252567cf808b1948863ba43/.agent/WAVE_C.md)
+- [Wave C board](https://github.com/carbonphysicsai/Carbon/blob/788bf0ae25f95c4697e56fec871a0dbb83bb14b8/.agent/WAVE_C.md)
 
 > Targets, stored weights, Yuma outcomes and settled receipts remain separate evidence states.
