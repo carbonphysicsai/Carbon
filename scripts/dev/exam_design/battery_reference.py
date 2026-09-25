@@ -62,7 +62,12 @@ SPEC = {
     },
     "parameter_set": "OKane2022",
     "parameter_overrides": ["Ambient temperature [K]", "Initial temperature [K]"],
-    "input_bounds": {"c1": [0.5, 2.0], "c2": [0.2, 1.0], "t_amb_c": [5.0, 40.0], "soc0": [0.05, 0.5]},
+    "input_bounds": {
+        "c1": [0.5, 2.0],
+        "c2": [0.2, 1.0],
+        "t_amb_c": [5.0, 40.0],
+        "soc0": [0.05, 0.5],
+    },
     "switch_voltage_v": 4.0,
     "v_max": 4.2,
     "v_min": 2.5,
@@ -105,7 +110,12 @@ class BatteryCase:
     soc0: float
 
     def inputs(self) -> dict:
-        return {"c1": self.c1, "c2": self.c2, "t_amb_c": self.t_amb_c, "soc0": self.soc0}
+        return {
+            "c1": self.c1,
+            "c2": self.c2,
+            "t_amb_c": self.t_amb_c,
+            "soc0": self.soc0,
+        }
 
     def vector(self) -> list[float]:
         return [self.c1, self.c2, self.t_amb_c, self.soc0]
@@ -147,9 +157,15 @@ def build_simulation(case: BatteryCase, n_cycles: int, refined: bool = False):
     npts = SPEC["refined_mesh_points"] if refined else SPEC["mesh_points"]
     var_pts = {"x_n": npts, "x_s": npts, "x_p": npts, "r_n": npts, "r_p": npts}
     s = SPEC["refined_solver"] if refined else SPEC["solver"]
-    solver = pybamm.IDAKLUSolver(rtol=s["rtol"], atol=s["atol"], output_variables=STORED_VARIABLES)
+    solver = pybamm.IDAKLUSolver(
+        rtol=s["rtol"], atol=s["atol"], output_variables=STORED_VARIABLES
+    )
     return pybamm.Simulation(
-        model, parameter_values=params, experiment=_experiment(case, n_cycles), var_pts=var_pts, solver=solver
+        model,
+        parameter_values=params,
+        experiment=_experiment(case, n_cycles),
+        var_pts=var_pts,
+        solver=solver,
     )
 
 
@@ -158,28 +174,48 @@ _CHARGE_STEPS = (0, 1, 2)
 _DISCHARGE_STEP = 4
 
 
-def solve_case(case: BatteryCase, n_cycles: int, checkpoints: list[int], refined: bool = False) -> dict:
+def solve_case(
+    case: BatteryCase, n_cycles: int, checkpoints: list[int], refined: bool = False
+) -> dict:
     """Solve one case in-process. Returns a record; never raises for solver failure."""
     import pybamm
 
     pybamm.set_logging_level("ERROR")
-    rec: dict = {"case_id": case.case_id, "inputs": case.inputs(), "refined": refined, "n_cycles": n_cycles}
+    rec: dict = {
+        "case_id": case.case_id,
+        "inputs": case.inputs(),
+        "refined": refined,
+        "n_cycles": n_cycles,
+    }
     t0 = time.perf_counter()
     try:
         sim = build_simulation(case, n_cycles, refined)
         t1 = time.perf_counter()
         # Keep full solutions only for cycle 1 and the checkpoint cycles: a 40-cycle DFN solution kept
         # whole needs ~6 GB, which the pilot found OOM-kills parallel workers.
-        sol = sim.solve(initial_soc=case.soc0, save_at_cycles=sorted(set(checkpoints) | {1}), calc_esoh=False)
+        sol = sim.solve(
+            initial_soc=case.soc0,
+            save_at_cycles=sorted(set(checkpoints) | {1}),
+            calc_esoh=False,
+        )
         t2 = time.perf_counter()
-    except Exception as exc:  # solver or model failure: a reference failure, typed
-        rec.update(status="REFERENCE_SOLVER_FAILED", error=repr(exc)[:300], wall_s=time.perf_counter() - t0)
+    except Exception as exc:  # noqa: BLE001
+        rec.update(
+            status="REFERENCE_SOLVER_FAILED",
+            error=repr(exc)[:300],
+            wall_s=time.perf_counter() - t0,
+        )
         return rec
     rec["timing_s"] = {"build": t1 - t0, "solve": t2 - t1}
     cycles = list(sol.cycles)
-    if len(cycles) < n_cycles or any(cycles[k - 1] is None for k in set(checkpoints) | {1}):
-        rec.update(status="REFERENCE_SOLVER_FAILED", error=f"completed {len(cycles)} of {n_cycles} cycles",
-                   wall_s=time.perf_counter() - t0)
+    if len(cycles) < n_cycles or any(
+        cycles[k - 1] is None for k in set(checkpoints) | {1}
+    ):
+        rec.update(
+            status="REFERENCE_SOLVER_FAILED",
+            error=f"completed {len(cycles)} of {n_cycles} cycles",
+            wall_s=time.perf_counter() - t0,
+        )
         return rec
     try:
         grid = time_grid()
@@ -187,10 +223,22 @@ def solve_case(case: BatteryCase, n_cycles: int, checkpoints: list[int], refined
         if t[-1] < grid[-1]:
             raise ValueError("solution shorter than the output window")
         v = np.interp(grid, t, sol["Voltage [V]"].entries)
-        temp = np.interp(grid, t, sol["Volume-averaged cell temperature [K]"].entries) - 273.15
+        temp = (
+            np.interp(grid, t, sol["Volume-averaged cell temperature [K]"].entries)
+            - 273.15
+        )
         c1 = cycles[0]
         charge = [c1.steps[i + 1] for i in _CHARGE_STEPS]  # +1: initial rest
-        eta = min(float(np.min(s["Negative electrode lithium plating reaction overpotential [V]"].entries)) for s in charge)
+        eta = min(
+            float(
+                np.min(
+                    s[
+                        "Negative electrode lithium plating reaction overpotential [V]"
+                    ].entries
+                )
+            )
+            for s in charge
+        )
         q = {}
         for k in sorted(set(checkpoints) | {1}):
             st = cycles[k - 1].steps[_DISCHARGE_STEP + (1 if k == 1 else 0)]
@@ -207,18 +255,28 @@ def solve_case(case: BatteryCase, n_cycles: int, checkpoints: list[int], refined
             },
             diagnostics={
                 "capacity_at_checkpoints_ah": {str(k): v for k, v in q.items()},
-                "t_max_c": float(np.max(sol["Volume-averaged cell temperature [K]"].entries) - 273.15),
-                "t_min_c": float(np.min(sol["Volume-averaged cell temperature [K]"].entries) - 273.15),
+                "t_max_c": float(
+                    np.max(sol["Volume-averaged cell temperature [K]"].entries) - 273.15
+                ),
+                "t_min_c": float(
+                    np.min(sol["Volume-averaged cell temperature [K]"].entries) - 273.15
+                ),
                 "v_max_v": float(np.max(sol["Voltage [V]"].entries)),
                 "v_min_v": float(np.min(sol["Voltage [V]"].entries)),
                 "v0_v": float(sol["Voltage [V]"].entries[0]),
-                "plated_capacity_ah": float(sol["Loss of capacity to negative lithium plating [A.h]"].entries[-1]),
+                "plated_capacity_ah": float(
+                    sol["Loss of capacity to negative lithium plating [A.h]"].entries[
+                        -1
+                    ]
+                ),
                 "min_total_heating_w": None if heat is None else float(np.min(heat)),
                 "experiment_duration_s": float(t[-1]),
             },
         )
-    except Exception as exc:
-        rec.update(status="REFERENCE_SOLVER_FAILED", error="extraction: " + repr(exc)[:300])
+    except Exception as exc:  # noqa: BLE001 -- failure is typed
+        rec.update(
+            status="REFERENCE_SOLVER_FAILED", error="extraction: " + repr(exc)[:300]
+        )
     rec["wall_s"] = time.perf_counter() - t0
     return rec
 
@@ -249,7 +307,9 @@ def open_circuit_voltage(soc: float, t_amb_c: float) -> float:
     t_k = 273.15 + t_amb_c
     params.update({"Ambient temperature [K]": t_k, "Initial temperature [K]": t_k})
     x, y = pybamm.lithium_ion.get_initial_stoichiometries(soc, params)
-    return _ocp(params, "Positive electrode OCP [V]", y, t_k) - _ocp(params, "Negative electrode OCP [V]", x, t_k)
+    return _ocp(params, "Positive electrode OCP [V]", y, t_k) - _ocp(
+        params, "Negative electrode OCP [V]", x, t_k
+    )
 
 
 def ocv_table(n: int = 4001) -> dict:
@@ -267,11 +327,23 @@ def ocv_table(n: int = 4001) -> dict:
     x1, y1 = pybamm.lithium_ion.get_initial_stoichiometries(1.0, params)
     soc = np.linspace(0.0, 1.0, n)
     t_k = 298.15
-    v = [_ocp(params, "Positive electrode OCP [V]", y0 + s * (y1 - y0), t_k)
-         - _ocp(params, "Negative electrode OCP [V]", x0 + s * (x1 - x0), t_k) for s in soc]
-    return {"schema": "carbon.exam-design.ocv-table.v1", "parameter_set": SPEC["parameter_set"],
-            "soc": soc.tolist(), "ocv_v": v, "stoichiometry": {"x0": float(x0), "x100": float(x1),
-                                                                "y0": float(y0), "y100": float(y1)}}
+    v = [
+        _ocp(params, "Positive electrode OCP [V]", y0 + s * (y1 - y0), t_k)
+        - _ocp(params, "Negative electrode OCP [V]", x0 + s * (x1 - x0), t_k)
+        for s in soc
+    ]
+    return {
+        "schema": "carbon.exam-design.ocv-table.v1",
+        "parameter_set": SPEC["parameter_set"],
+        "soc": soc.tolist(),
+        "ocv_v": v,
+        "stoichiometry": {
+            "x0": float(x0),
+            "x100": float(x1),
+            "y0": float(y0),
+            "y100": float(y1),
+        },
+    }
 
 
 def capacity_bounds_ah() -> dict:
@@ -286,8 +358,16 @@ def capacity_bounds_ah() -> dict:
     p = pybamm.ParameterValues(SPEC["parameter_set"])
     F = 96485.33212
     area = p["Electrode width [m]"] * p["Electrode height [m]"]
-    vol_n = p["Negative electrode active material volume fraction"] * p["Negative electrode thickness [m]"] * area
-    vol_p = p["Positive electrode active material volume fraction"] * p["Positive electrode thickness [m]"] * area
+    vol_n = (
+        p["Negative electrode active material volume fraction"]
+        * p["Negative electrode thickness [m]"]
+        * area
+    )
+    vol_p = (
+        p["Positive electrode active material volume fraction"]
+        * p["Positive electrode thickness [m]"]
+        * area
+    )
     qn = vol_n * p["Maximum concentration in negative electrode [mol.m-3]"] * F / 3600
     qp = vol_p * p["Maximum concentration in positive electrode [mol.m-3]"] * F / 3600
 
@@ -295,10 +375,20 @@ def capacity_bounds_ah() -> dict:
         v = p[key]
         return float(v) if not callable(v) else float(p.evaluate(v(pybamm.Scalar(0.5))))
 
-    qli = (vol_n * conc("Initial concentration in negative electrode [mol.m-3]")
-           + vol_p * conc("Initial concentration in positive electrode [mol.m-3]")) * F / 3600
-    return {"negative_ah": float(qn), "positive_ah": float(qp), "lithium_inventory_ah": float(qli),
-            "bound_ah": float(min(qn, qp, qli))}
+    qli = (
+        (
+            vol_n * conc("Initial concentration in negative electrode [mol.m-3]")
+            + vol_p * conc("Initial concentration in positive electrode [mol.m-3]")
+        )
+        * F
+        / 3600
+    )
+    return {
+        "negative_ah": float(qn),
+        "positive_ah": float(qp),
+        "lithium_inventory_ah": float(qli),
+        "bound_ah": float(min(qn, qp, qli)),
+    }
 
 
 def main() -> None:  # pragma: no cover - manual smoke entry

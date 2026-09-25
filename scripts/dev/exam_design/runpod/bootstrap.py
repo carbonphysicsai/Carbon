@@ -15,19 +15,44 @@
 #    code), refusing any wheel whose sha256 differs from the lock.
 # 4. Runs the phase and records its exit.
 # 5. At PROBE_DEADLINE asks RunPod to terminate this pod with the pod-scoped key.
-import base64, gzip, hashlib, hmac, http.server, io, json, os, ssl, subprocess, sys, tarfile, threading, time
-import urllib.request, zipfile
+import base64
+import gzip
+import hashlib
+import hmac
+import http.server
+import io
+import json
+import os
+import ssl
+import subprocess
+import sys
+import tarfile
+import threading
+import time
+import urllib.request
+import zipfile
+from pathlib import Path
 
 TOKEN = os.environ.pop("PROBE_TOKEN", "")
 DEADLINE = float(os.environ.pop("PROBE_DEADLINE", "0"))
-CA = gzip.decompress(base64.b64decode(os.environ.pop("PROBE_CA_GZ_B64", ""))).decode() if os.environ.get("PROBE_CA_GZ_B64") else ""
+CA = (
+    gzip.decompress(base64.b64decode(os.environ.pop("PROBE_CA_GZ_B64", ""))).decode()
+    if os.environ.get("PROBE_CA_GZ_B64")
+    else ""
+)
 CODE_REF = os.environ.get("CODE_REF", "")
 MANIFEST = json.loads(os.environ.get("CODE_MANIFEST", "{}"))
 PHASE = os.environ.get("PHASE", "")
 ROOT, OVL, OUT = "/tmp/carbon", "/tmp/overlay", "/tmp/out"
 CTX = ssl.create_default_context(cadata=CA) if CA else ssl.create_default_context()
-STATE = {"schema": "carbon.exam-design.pod-status.v1", "stage": "starting", "code_ref": CODE_REF, "phase": PHASE,
-         "started_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "deadline_epoch": DEADLINE}
+STATE = {
+    "schema": "carbon.exam-design.pod-status.v1",
+    "stage": "starting",
+    "code_ref": CODE_REF,
+    "phase": PHASE,
+    "started_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+    "deadline_epoch": DEADLINE,
+}
 os.makedirs(OUT, exist_ok=True)
 
 
@@ -39,9 +64,9 @@ def fetch(url, tries=4):
     for i in range(tries):
         try:
             return urllib.request.urlopen(url, context=CTX, timeout=120).read()
-        except Exception as e:  # noqa: PERF203
+        except Exception as e:  # noqa: BLE001 -- failure is typed
             err = e
-            time.sleep(2 ** i)
+            time.sleep(2**i)
     raise RuntimeError(f"fetch failed {url}: {err!r}")
 
 
@@ -50,12 +75,23 @@ def self_terminate():
     if not (key and pod):
         return "unavailable"
     try:
-        q = json.dumps({"query": 'mutation { podTerminate(input: {podId: "%s"}) }' % pod}).encode()
-        req = urllib.request.Request("https://api.runpod.io/graphql", data=q, method="POST",
-                                     headers={"Content-Type": "application/json", "Authorization": "Bearer " + key,
-                                              "User-Agent": "carbon-exam-design/1"})
-        return urllib.request.urlopen(req, context=CTX, timeout=30).read()[:200].decode()
-    except Exception as e:
+        q = json.dumps(
+            {"query": 'mutation { podTerminate(input: {podId: "' + pod + '"}) }'}
+        ).encode()
+        req = urllib.request.Request(
+            "https://api.runpod.io/graphql",
+            data=q,
+            method="POST",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + key,
+                "User-Agent": "carbon-exam-design/1",
+            },
+        )
+        return (
+            urllib.request.urlopen(req, context=CTX, timeout=30).read()[:200].decode()
+        )
+    except Exception as e:  # noqa: BLE001 -- failure is typed
         return "failed: " + repr(e)[:200]
 
 
@@ -69,8 +105,10 @@ def watchdog():
 def status_doc():
     doc = dict(STATE)
     try:
-        doc["progress"] = json.load(open(os.path.join(OUT, "progress.json")))
-    except Exception:
+        doc["progress"] = json.loads(
+            Path(os.path.join(OUT, "progress.json")).read_text()
+        )
+    except Exception:  # noqa: BLE001, S110 -- failure is typed
         pass
     return doc
 
@@ -88,20 +126,27 @@ class H(http.server.BaseHTTPRequestHandler):
         else:
             body, ctype = b"not found", "text/plain"
             self.send_response(404)
-            self.send_header("Content-Length", str(len(body))); self.end_headers(); self.wfile.write(body)
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
             return
         self.send_response(200)
         self.send_header("Content-Type", ctype)
-        self.send_header("Content-Length", str(len(body))); self.end_headers(); self.wfile.write(body)
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
 
-    do_HEAD = do_POST = do_PUT = do_DELETE = lambda self: (self.send_response(404), self.end_headers())
+    do_HEAD = do_POST = do_PUT = do_DELETE = lambda self: (
+        self.send_response(404),
+        self.end_headers(),
+    )
 
     def log_message(self, *a):
         pass
 
 
 def install_overlay(lock_path, target):
-    lock = json.load(open(lock_path))
+    lock = json.loads(Path(lock_path).read_text())
     os.makedirs(target, exist_ok=True)
     for w in lock["wheels"]:
         data = fetch(w["url"])
@@ -127,7 +172,10 @@ def install_overlay(lock_path, target):
                 mode = (z.getinfo(n).external_attr >> 16) & 0o777
                 if mode & 0o111 or dst.endswith(".so") or ".so." in dst:
                     os.chmod(dst, 0o755)
-    return {"wheels": len(lock["wheels"]), "lock_sha256": hashlib.sha256(open(lock_path, "rb").read()).hexdigest()}
+    return {
+        "wheels": len(lock["wheels"]),
+        "lock_sha256": hashlib.sha256(Path(lock_path).read_bytes()).hexdigest(),
+    }
 
 
 def main():
@@ -137,12 +185,14 @@ def main():
     try:
         STATE["stage"] = "fetching_code"
         for path, sha in MANIFEST.items():
-            data = fetch(f"https://raw.githubusercontent.com/carbonphysicsai/Carbon/{CODE_REF}/{path}")
+            data = fetch(
+                f"https://raw.githubusercontent.com/carbonphysicsai/Carbon/{CODE_REF}/{path}"
+            )
             if hashlib.sha256(data).hexdigest() != sha:
                 raise RuntimeError(f"code hash mismatch: {path}")
             dst = os.path.join(ROOT, path)
             os.makedirs(os.path.dirname(dst), exist_ok=True)
-            open(dst, "wb").write(data)
+            Path(dst).write_bytes(data)
         STATE["code_files"] = len(MANIFEST)
         # OVERLAYS: {"name": "path/to/lock.json"}; each lock installs into its own directory, because
         # two locks may pin one package differently (xarray differs between battery and photonic).
@@ -151,18 +201,27 @@ def main():
         for name, lock in overlays.items():
             STATE["stage"] = f"installing_overlay:{name}"
             t = time.time()
-            STATE["overlay"][name] = install_overlay(os.path.join(ROOT, lock), os.path.join(OVL, name)) | {
-                "seconds": round(time.time() - t, 1)}
+            STATE["overlay"][name] = install_overlay(
+                os.path.join(ROOT, lock), os.path.join(OVL, name)
+            ) | {"seconds": round(time.time() - t, 1)}
         STATE["stage"] = "running_phase"
-        env = {k: v for k, v in os.environ.items() if k not in ("RUNPOD_API_KEY", "CODE_MANIFEST")}
+        env = {
+            k: v
+            for k, v in os.environ.items()
+            if k not in ("RUNPOD_API_KEY", "CODE_MANIFEST")
+        }
         # A single overlay goes on the path directly; a multi-phase run gives each child its own.
         single = [os.path.join(OVL, n) for n in overlays] if len(overlays) == 1 else []
-        env["PYTHONPATH"] = ":".join(p for p in (ROOT, *single, env.get("PYTHONPATH", "")) if p)
+        env["PYTHONPATH"] = ":".join(
+            p for p in (ROOT, *single, env.get("PYTHONPATH", "")) if p
+        )
         env["OVERLAY_ROOT"] = OVL
         env["PYBAMM_DISABLE_TELEMETRY"] = "true"
         env["HOME"] = "/tmp"
         env.setdefault("XLA_PYTHON_CLIENT_PREALLOCATE", "false")
-        env.setdefault("JAX_ENABLE_COMPILATION_CACHE", "false")  # the image points the cache at an unwritable /scratch
+        env.setdefault(
+            "JAX_ENABLE_COMPILATION_CACHE", "false"
+        )  # the image points the cache at an unwritable /scratch
         # Numerical libraries size thread pools to every visible core (96 on some hosts) regardless of
         # the pod's CPU share; the pilot found 6 workers thrashing to ~1/10 speed without this.
         env.setdefault("OMP_NUM_THREADS", "1")
@@ -174,11 +233,24 @@ def main():
         for var in ("TMPDIR", "TMP", "TEMP"):
             env[var] = "/tmp/tmpdir"
         with open(os.path.join(OUT, "phase.log"), "wb") as log:
-            rc = subprocess.run([sys.executable, "-m", "scripts.dev.exam_design.runner", PHASE, "--out", OUT],
-                                cwd=ROOT, env=env, stdout=log, stderr=subprocess.STDOUT).returncode
+            rc = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "scripts.dev.exam_design.runner",
+                    PHASE,
+                    "--out",
+                    OUT,
+                ],
+                cwd=ROOT,
+                env=env,
+                stdout=log,
+                stderr=subprocess.STDOUT,
+                check=False,
+            ).returncode
         STATE["phase_exit"] = rc
         STATE["stage"] = "done" if rc == 0 else "phase_failed"
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 -- failure is typed
         STATE["stage"] = "bootstrap_failed"
         STATE["error"] = repr(e)[:500]
     STATE["finished_utc"] = now()

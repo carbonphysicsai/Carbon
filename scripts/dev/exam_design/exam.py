@@ -20,15 +20,20 @@ Concepts, as the campaign tests them:
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Callable
 
 import numpy as np
 
 from scripts.dev.exam_design import gates, scoring
 
 IMPROVEMENT, REGRESSION, TRADE_OFF, NO_IMPROVEMENT, INSUFFICIENT = (
-    "IMPROVEMENT", "REGRESSION", "TRADE_OFF", "NO_IMPROVEMENT", "INSUFFICIENT_EVIDENCE")
+    "IMPROVEMENT",
+    "REGRESSION",
+    "TRADE_OFF",
+    "NO_IMPROVEMENT",
+    "INSUFFICIENT_EVIDENCE",
+)
 
 
 @dataclass
@@ -40,15 +45,21 @@ class CaseStore:
     tol: gates.Tolerances
     scales: dict
     shapes: dict
-    twins: dict[str, str] = field(default_factory=dict)  # duplicate case id -> original case id
+    twins: dict[str, str] = field(
+        default_factory=dict
+    )  # duplicate case id -> original case id
 
     def important(self, cid: str) -> bool:
         r = self.refs[cid]
         return r.get("status") == "OK" and scoring.is_important(r)
 
 
-def evaluate(preds: dict[str, dict | None], case_ids: list[str], store: CaseStore,
-             infra_failed: set[str] | None = None) -> tuple[list[dict], dict]:
+def evaluate(
+    preds: dict[str, dict | None],
+    case_ids: list[str],
+    store: CaseStore,
+    infra_failed: set[str] | None = None,
+) -> tuple[list[dict], dict]:
     """Gate and score one model on ``case_ids`` from stored predictions."""
     infra_failed = infra_failed or set()
     inverse = {}
@@ -59,8 +70,16 @@ def evaluate(preds: dict[str, dict | None], case_ids: list[str], store: CaseStor
         ref = store.refs[cid]
         twin = store.twins.get(cid) or inverse.get(cid)
         twin_pred = preds.get(twin) if twin and twin in case_ids else None
-        row = gates.evaluate_case(preds.get(cid), ref, ref.get("inputs", {}), store.ocv.get(cid, np.nan), store.tol,
-                                  store.shapes, twin_pred=twin_pred, infra_failed=cid in infra_failed)
+        row = gates.evaluate_case(
+            preds.get(cid),
+            ref,
+            ref.get("inputs", {}),
+            store.ocv.get(cid, np.nan),
+            store.tol,
+            store.shapes,
+            twin_pred=twin_pred,
+            infra_failed=cid in infra_failed,
+        )
         row["case_id"] = cid
         if row["state"] == gates.SCORABLE:
             comp = scoring.case_components(preds[cid], ref, store.scales)
@@ -73,7 +92,10 @@ def evaluate(preds: dict[str, dict | None], case_ids: list[str], store: CaseStor
 class PredictionBank:
     """Stored predictions per model; inference on demand, never retraining."""
 
-    def __init__(self, predictors: dict[str, Callable[[list[str]], dict[str, dict]]] | None = None):
+    def __init__(
+        self,
+        predictors: dict[str, Callable[[list[str]], dict[str, dict]]] | None = None,
+    ):
         self.preds: dict[str, dict[str, dict]] = {}
         self.predictors = predictors or {}
         self.inference_calls: dict[str, int] = {}
@@ -87,10 +109,14 @@ class PredictionBank:
         missing = [c for c in case_ids if c not in have]
         if missing:
             if model_id not in self.predictors:
-                raise KeyError(f"{model_id}: no stored predictions for {len(missing)} cases and no predictor")
+                raise KeyError(
+                    f"{model_id}: no stored predictions for {len(missing)} cases and no predictor"
+                )
             have.update(self.predictors[model_id](missing))
             self.inference_calls[model_id] = self.inference_calls.get(model_id, 0) + 1
-            self.inferred_cases[model_id] = self.inferred_cases.get(model_id, 0) + len(missing)
+            self.inferred_cases[model_id] = self.inferred_cases.get(model_id, 0) + len(
+                missing
+            )
         return {c: have[c] for c in case_ids}
 
 
@@ -106,15 +132,17 @@ class TrainVersions:
             raise ValueError(f"TRAIN version {new_version} already exists")
         self.versions[new_version] = self.versions[self.current] + list(added_case_ids)
         self.current = new_version
-        self.__dict__.setdefault("log", []).append({"version": new_version, "added": len(added_case_ids), "reason": reason})
+        self.__dict__.setdefault("log", []).append(
+            {"version": new_version, "added": len(added_case_ids), "reason": reason}
+        )
 
 
 @dataclass
 class ScreeningPool:
-    batches: list[list[str]]          # every prepared batch, in entry order
-    rotate_after: int                 # admitted submissions per rotation
+    batches: list[list[str]]  # every prepared batch, in entry order
+    rotate_after: int  # admitted submissions per rotation
     n_active: int = 3
-    batch_size: int | None = None     # nested prefix of each batch, if smaller
+    batch_size: int | None = None  # nested prefix of each batch, if smaller
     _next: int = 0
     pool_version: int = 0
     admitted_since_rotation: int = 0
@@ -140,7 +168,12 @@ class ScreeningPool:
     def score(self, model_id: str, bank: PredictionBank, store: CaseStore) -> dict:
         ids = self.active_case_ids()
         _, agg = evaluate(bank.ensure(model_id, ids), ids, store)
-        rec = {"model_id": model_id, "pool_version": self.pool_version, "active_batches": list(self.active), **agg}
+        rec = {
+            "model_id": model_id,
+            "pool_version": self.pool_version,
+            "active_batches": list(self.active),
+            **agg,
+        }
         self.history.append(rec)
         self.admitted_since_rotation += 1
         if self.admitted_since_rotation >= self.rotate_after and self.can_rotate():
@@ -169,7 +202,9 @@ class ComparisonRule:
     seed: int = 20260924
 
 
-def _classify(d: np.ndarray, base: float, rule: ComparisonRule, rng) -> tuple[str, list[float]]:
+def _classify(
+    d: np.ndarray, base: float, rule: ComparisonRule, rng
+) -> tuple[str, list[float]]:
     boots = rng.choice(d, size=(rule.n_boot, d.size), replace=True).mean(axis=1)
     lo, hi = np.quantile(boots, [rule.alpha / 2, 1 - rule.alpha / 2])
     m = rule.equivalence_margin * base
@@ -185,56 +220,99 @@ def _classify(d: np.ndarray, base: float, rule: ComparisonRule, rng) -> tuple[st
     return c, [float(lo), float(hi)]
 
 
-def final_compare(inc_err: dict[str, float], chal_err: dict[str, float], important: dict[str, bool],
-                  rule: ComparisonRule, chal_eligible: bool = True, inc_components=None, chal_components=None) -> dict:
+def final_compare(
+    inc_err: dict[str, float],
+    chal_err: dict[str, float],
+    important: dict[str, bool],
+    rule: ComparisonRule,
+    chal_eligible: bool = True,
+    inc_components=None,
+    chal_components=None,
+) -> dict:
     """Paired comparison on the same fresh cases. Positive d means the challenger is worse."""
     rng = np.random.default_rng(rule.seed)
     ids = sorted(set(inc_err) & set(chal_err))
     out = {"n": len(ids), "rule": rule.__dict__}
     if not chal_eligible:
-        return out | {"outcome": REGRESSION, "reason": "challenger failed a mandatory gate on final cases"}
+        return out | {
+            "outcome": REGRESSION,
+            "reason": "challenger failed a mandatory gate on final cases",
+        }
     if len(ids) < rule.n_min:
-        return out | {"outcome": INSUFFICIENT, "reason": f"{len(ids)} scorable paired cases < {rule.n_min}"}
+        return out | {
+            "outcome": INSUFFICIENT,
+            "reason": f"{len(ids)} scorable paired cases < {rule.n_min}",
+        }
     d = np.array([chal_err[c] - inc_err[c] for c in ids])
     base = float(np.mean([inc_err[c] for c in ids]))
     overall, ci = _classify(d, base, rule, rng)
     imp_ids = [c for c in ids if important.get(c)]
     if len(imp_ids) >= rule.important_min:
         di = np.array([chal_err[c] - inc_err[c] for c in imp_ids])
-        imp, ci_i = _classify(di, float(np.mean([inc_err[c] for c in imp_ids])), rule, rng)
+        imp, ci_i = _classify(
+            di, float(np.mean([inc_err[c] for c in imp_ids])), rule, rng
+        )
     else:
         imp, ci_i = "insufficient", None
     comp = {}
     if inc_components and chal_components:
         for k in scoring.COMPONENTS:
             dk = np.array([chal_components[c][k] - inc_components[c][k] for c in ids])
-            comp[k], _ = _classify(dk, float(np.mean([inc_components[c][k] for c in ids])), rule, rng)
-    out |= {"mean_delta": float(d.mean()), "ci": ci, "incumbent_mean": base, "overall": overall,
-            "important": imp, "important_ci": ci_i, "n_important": len(imp_ids), "components": comp}
+            comp[k], _ = _classify(
+                dk, float(np.mean([inc_components[c][k] for c in ids])), rule, rng
+            )
+    out |= {
+        "mean_delta": float(d.mean()),
+        "ci": ci,
+        "incumbent_mean": base,
+        "overall": overall,
+        "important": imp,
+        "important_ci": ci_i,
+        "n_important": len(imp_ids),
+        "components": comp,
+    }
     if overall == "worse":
         o, why = REGRESSION, "overall error significantly higher"
     elif imp == "worse" and overall != "better":
-        o, why = REGRESSION, "important region significantly worse without an overall gain"
+        o, why = (
+            REGRESSION,
+            "important region significantly worse without an overall gain",
+        )
     elif overall == "better" and imp == "worse":
         o, why = TRADE_OFF, "overall better but important region worse"
     elif overall == "better" and imp == "insufficient":
-        o, why = INSUFFICIENT, "overall better but too few important-region cases to show no regression"
+        o, why = (
+            INSUFFICIENT,
+            "overall better but too few important-region cases to show no regression",
+        )
     elif overall == "better":
         o, why = IMPROVEMENT, "overall better; important region not worse"
     elif overall == "equivalent" and imp == "better":
         o, why = TRADE_OFF, "overall equivalent; important region better"
-    elif overall == "equivalent" and "worse" in comp.values() and "better" in comp.values():
+    elif (
+        overall == "equivalent"
+        and "worse" in comp.values()
+        and "better" in comp.values()
+    ):
         o, why = TRADE_OFF, "overall equivalent; components move in opposite directions"
     elif overall == "equivalent":
         o, why = NO_IMPROVEMENT, "within the equivalence margin"
     else:
-        o, why = INSUFFICIENT, "confidence interval neither excludes nor fits inside the margin"
+        o, why = (
+            INSUFFICIENT,
+            "confidence interval neither excludes nor fits inside the margin",
+        )
     # Eligibility, not just reporting: only an IMPROVEMENT may be promoted. A significant important-region
     # regression blocks promotion even when the overall score improved (TRADE_OFF), and "equivalent" is only
     # ever concluded when the whole interval sits inside the margin - never from a failure to detect a
     # difference, which is INSUFFICIENT_EVIDENCE.
-    return out | {"outcome": o, "reason": why, "promotable": o == IMPROVEMENT,
-                  "regional_block": imp == "worse", "existing_disposition": EXISTING_DISPOSITION[o]}
+    return out | {
+        "outcome": o,
+        "reason": why,
+        "promotable": o == IMPROVEMENT,
+        "regional_block": imp == "worse",
+        "existing_disposition": EXISTING_DISPOSITION[o],
+    }
 
 
 # The repository's DEVELOPMENT comparison (carbon.scoring.development.compare) names its dispositions

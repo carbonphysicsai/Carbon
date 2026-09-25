@@ -24,33 +24,52 @@ import platform
 import resource
 import sys
 import time
+from pathlib import Path
 
 
 def host_info() -> dict:
-    info = {"python": sys.version.split()[0], "platform": platform.platform(), "cpu_count": os.cpu_count(),
-            "affinity": len(os.sched_getaffinity(0)) if hasattr(os, "sched_getaffinity") else None}
+    info = {
+        "python": sys.version.split()[0],
+        "platform": platform.platform(),
+        "cpu_count": os.cpu_count(),
+        "affinity": (
+            len(os.sched_getaffinity(0)) if hasattr(os, "sched_getaffinity") else None
+        ),
+    }
     try:
-        q = open("/sys/fs/cgroup/cpu.max").read().split()
+        q = Path("/sys/fs/cgroup/cpu.max").read_text().split()
         info["cgroup_cpu_max"] = q
         if q[0] != "max":
             info["cpu_quota"] = int(q[0]) / int(q[1])
-    except Exception:
+    except Exception:  # noqa: BLE001 -- failure is typed
         try:  # cgroup v1: some hosts expose 96 CPUs with a small CFS quota
-            quota = int(open("/sys/fs/cgroup/cpu/cpu.cfs_quota_us").read())
-            period = int(open("/sys/fs/cgroup/cpu/cpu.cfs_period_us").read())
+            quota = int(Path("/sys/fs/cgroup/cpu/cpu.cfs_quota_us").read_text())
+            period = int(Path("/sys/fs/cgroup/cpu/cpu.cfs_period_us").read_text())
             info["cgroup_v1_cfs"] = [quota, period]
             if quota > 0:
                 info["cpu_quota"] = quota / period
-        except Exception:
+        except Exception:  # noqa: BLE001, S110 -- failure is typed
             pass
     try:
-        info["cpu_model"] = next(l.split(":", 1)[1].strip() for l in open("/proc/cpuinfo") if l.startswith("model name"))
-    except Exception:
+        info["cpu_model"] = next(
+            l.split(":", 1)[1].strip()
+            for l in open("/proc/cpuinfo")  # noqa: SIM115 -- long-lived handle
+            if l.startswith("model name")
+        )
+    except Exception:  # noqa: BLE001, S110 -- failure is typed
         pass
     try:
-        info["mem_total_kb"] = int(next(l.split()[1] for l in open("/proc/meminfo") if l.startswith("MemTotal")))
-        info["cgroup_memory_max"] = open("/sys/fs/cgroup/memory.max").read().strip()
-    except Exception:
+        info["mem_total_kb"] = int(
+            next(
+                l.split()[1]
+                for l in Path("/proc/meminfo").read_text().splitlines()
+                if l.startswith("MemTotal")
+            )
+        )
+        info["cgroup_memory_max"] = (
+            Path("/sys/fs/cgroup/memory.max").read_text().strip()
+        )
+    except Exception:  # noqa: BLE001, S110 -- failure is typed
         pass
     try:
         import ctypes
@@ -66,14 +85,16 @@ def host_info() -> dict:
         info["gpu"] = buf.value.decode()
         lib.nvmlDeviceGetUUID(h, buf, 96)
         info["gpu_uuid"] = buf.value.decode()
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 -- failure is typed
         info["nvml"] = repr(e)[:120]
     from importlib import metadata
 
     for mod in ("pybamm", "casadi", "numpy", "scipy", "jax", "jaxlib"):
         try:
-            info[mod] = metadata.version(mod)  # metadata only: importing JAX here would make fork unsafe
-        except Exception:
+            info[mod] = metadata.version(
+                mod
+            )  # metadata only: importing JAX here would make fork unsafe
+        except Exception:  # noqa: BLE001, S110 -- failure is typed
             pass
     return info
 
@@ -89,7 +110,9 @@ def _child(job: dict, q) -> None:
 
     t_import = time.perf_counter() - t0
     case = br.BatteryCase(**job["case"])
-    rec = br.solve_case(case, job["n_cycles"], job["checkpoints"], refined=job.get("refined", False))
+    rec = br.solve_case(
+        case, job["n_cycles"], job["checkpoints"], refined=job.get("refined", False)
+    )
     rec["role"] = job.get("role")
     rec["batch"] = job.get("batch")
     rec["timing_s"] = dict(rec.get("timing_s") or {}, import_s=t_import)
@@ -99,29 +122,53 @@ def _child(job: dict, q) -> None:
 
 def run_battery_refs(cfg: dict, out: str) -> int:
     info = host_info()
-    json.dump(info, open(os.path.join(out, "host.json"), "w"), indent=1)
+    Path(os.path.join(out, "host.json")).write_text(json.dumps(info, indent=1))
     jobs = list(cfg["jobs"])
     if cfg.get("private_blob"):
         # Private jobs arrive encrypted (committed ciphertext); the key is only in this pod's environment.
         from scripts.dev.exam_design import private_cases
 
-        jobs += private_cases.unseal(open(cfg["private_blob"], "rb").read(), os.environ["PRIVATE_KEY"])
-    skip = set(cfg.get("skip_case_keys", []))  # resume: cases already completed on an earlier pod
-    jobs = [j for j in jobs if f'{j["case"]["case_id"]}{"/R" if j.get("refined") else ""}' not in skip]
+        jobs += private_cases.unseal(
+            Path(cfg["private_blob"]).read_bytes(), os.environ["PRIVATE_KEY"]
+        )
+    skip = set(
+        cfg.get("skip_case_keys", [])
+    )  # resume: cases already completed on an earlier pod
+    jobs = [
+        j
+        for j in jobs
+        if f'{j["case"]["case_id"]}{"/R" if j.get("refined") else ""}' not in skip
+    ]
     workers = workers_for_host(info, cfg.get("max_workers"))
     timeout = float(cfg.get("timeout_s", 1200))
     stop_at = float(cfg.get("stop_admitting_epoch", 0)) or None
     ctx = mp.get_context("fork")
-    recf = open(os.path.join(out, "records.jsonl"), "a")
+    recf = open(os.path.join(out, "records.jsonl"), "a")  # noqa: SIM115
     running: dict = {}
     pending = list(jobs)
-    done = {"OK": 0, "REFERENCE_SOLVER_FAILED": 0, "REFERENCE_TIMEOUT": 0, "FAILED_INFRA": 0, "NOT_ADMITTED": 0}
+    done = {
+        "OK": 0,
+        "REFERENCE_SOLVER_FAILED": 0,
+        "REFERENCE_TIMEOUT": 0,
+        "FAILED_INFRA": 0,
+        "NOT_ADMITTED": 0,
+    }
     t_start = time.time()
 
     def progress():
-        json.dump({"phase": "battery_refs", "workers": workers, "total": len(jobs), "pending": len(pending),
-                   "running": len(running), "done": done, "elapsed_s": round(time.time() - t_start, 1)},
-                  open(os.path.join(out, "progress.json"), "w"))
+        Path(os.path.join(out, "progress.json")).write_text(
+            json.dumps(
+                {
+                    "phase": "battery_refs",
+                    "workers": workers,
+                    "total": len(jobs),
+                    "pending": len(pending),
+                    "running": len(running),
+                    "done": done,
+                    "elapsed_s": round(time.time() - t_start, 1),
+                }
+            )
+        )
 
     def write(rec):
         recf.write(json.dumps(rec) + "\n")
@@ -132,8 +179,15 @@ def run_battery_refs(cfg: dict, out: str) -> int:
         while pending and len(running) < workers:
             if stop_at and time.time() >= stop_at:
                 for j in pending:
-                    write({"case_id": j["case"]["case_id"], "role": j.get("role"), "refined": j.get("refined", False),
-                           "status": "NOT_ADMITTED", "reason": "admission window closed before the pod deadline"})
+                    write(
+                        {
+                            "case_id": j["case"]["case_id"],
+                            "role": j.get("role"),
+                            "refined": j.get("refined", False),
+                            "status": "NOT_ADMITTED",
+                            "reason": "admission window closed before the pod deadline",
+                        }
+                    )
                 pending = []
                 break
             job = pending.pop(0)
@@ -145,11 +199,16 @@ def run_battery_refs(cfg: dict, out: str) -> int:
             rec = None
             try:
                 rec = q.get_nowait()
-            except Exception:
+            except Exception:  # noqa: BLE001, S110 -- failure is typed
                 pass
-            base = {"case_id": job["case"]["case_id"], "inputs": {k: v for k, v in job["case"].items() if k != "case_id"},
-                    "role": job.get("role"), "batch": job.get("batch"), "refined": job.get("refined", False),
-                    "n_cycles": job["n_cycles"]}
+            base = {
+                "case_id": job["case"]["case_id"],
+                "inputs": {k: v for k, v in job["case"].items() if k != "case_id"},
+                "role": job.get("role"),
+                "batch": job.get("batch"),
+                "refined": job.get("refined", False),
+                "n_cycles": job["n_cycles"],
+            }
             if rec is not None:
                 p.join(5)
                 rec["wall_total_s"] = time.time() - t0
@@ -158,22 +217,39 @@ def run_battery_refs(cfg: dict, out: str) -> int:
             elif time.time() - t0 > timeout:
                 p.kill()
                 p.join(5)
-                write(base | {"status": "REFERENCE_TIMEOUT", "wall_total_s": time.time() - t0})
+                write(
+                    base
+                    | {"status": "REFERENCE_TIMEOUT", "wall_total_s": time.time() - t0}
+                )
                 del running[pid]
             elif not p.is_alive():
                 try:
                     rec = q.get(timeout=2)
                     rec["wall_total_s"] = time.time() - t0
                     write(rec)
-                except Exception:
-                    write(base | {"status": "FAILED_INFRA", "exitcode": p.exitcode, "wall_total_s": time.time() - t0})
+                except Exception:  # noqa: BLE001 -- failure is typed
+                    write(
+                        base
+                        | {
+                            "status": "FAILED_INFRA",
+                            "exitcode": p.exitcode,
+                            "wall_total_s": time.time() - t0,
+                        }
+                    )
                 del running[pid]
         progress()
         time.sleep(0.5)
     progress()
     recf.close()
-    json.dump({"finished_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "done": done,
-               "elapsed_s": time.time() - t_start}, open(os.path.join(out, "DONE.json"), "w"))
+    Path(os.path.join(out, "DONE.json")).write_text(
+        json.dumps(
+            {
+                "finished_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                "done": done,
+                "elapsed_s": time.time() - t_start,
+            }
+        )
+    )
     return 0
 
 
@@ -184,16 +260,25 @@ def _photonic_child(job: dict, q, out: str) -> None:
 
     from scripts.dev.exam_design import photonic_reference as pr
 
-    dev = {"devices": [str(d) for d in jax.devices()], "backend": jax.default_backend(), "case": job["case"]["case_id"],
-           "refined": job.get("refined", False), "started_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
-    json.dump(dev, open(os.path.join(out, "current_case.json"), "w"))
+    dev = {
+        "devices": [str(d) for d in jax.devices()],
+        "backend": jax.default_backend(),
+        "case": job["case"]["case_id"],
+        "refined": job.get("refined", False),
+        "started_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+    }
+    Path(os.path.join(out, "current_case.json")).write_text(json.dumps(dev))
 
     def progress(rec):
         dev["runs"] = rec.get("runs", [])
-        json.dump(dev, open(os.path.join(out, "current_case.json"), "w"))
+        Path(os.path.join(out, "current_case.json")).write_text(json.dumps(dev))
 
-    rec = pr.solve_case(job["case"], refined=job.get("refined", False), wavelengths=job.get("wavelengths"),
-                        progress=progress)
+    rec = pr.solve_case(
+        job["case"],
+        refined=job.get("refined", False),
+        wavelengths=job.get("wavelengths"),
+        progress=progress,
+    )
     rec["jax_backend"] = dev["backend"]
     rec["role"] = job.get("role")
     rec["peak_rss_kb"] = _r.getrusage(_r.RUSAGE_SELF).ru_maxrss
@@ -202,24 +287,42 @@ def _photonic_child(job: dict, q, out: str) -> None:
 
 def run_photonic_refs(cfg: dict, out: str) -> int:
     """Sequential (one GPU); each case in a fresh spawned process under a wall limit."""
-    json.dump(host_info(), open(os.path.join(out, "host.json"), "w"), indent=1)
+    Path(os.path.join(out, "host.json")).write_text(json.dumps(host_info(), indent=1))
     ctx = mp.get_context("spawn")
     stop_at = float(cfg.get("stop_admitting_epoch", 0)) or None
-    recf = open(os.path.join(out, "records.jsonl"), "a")
+    recf = open(os.path.join(out, "records.jsonl"), "a")  # noqa: SIM115
     done: dict = {}
     t_start = time.time()
     jobs = cfg["jobs"]
     for i, job in enumerate(jobs):
-        json.dump({"phase": "photonic_refs", "total": len(jobs), "index": i, "done": done,
-                   "elapsed_s": round(time.time() - t_start, 1)}, open(os.path.join(out, "progress.json"), "w"))
-        base = {"case_id": job["case"]["case_id"], "inputs": job["case"], "refined": job.get("refined", False),
-                "role": job.get("role")}
+        Path(os.path.join(out, "progress.json")).write_text(
+            json.dumps(
+                {
+                    "phase": "photonic_refs",
+                    "total": len(jobs),
+                    "index": i,
+                    "done": done,
+                    "elapsed_s": round(time.time() - t_start, 1),
+                }
+            )
+        )
+        base = {
+            "case_id": job["case"]["case_id"],
+            "inputs": job["case"],
+            "refined": job.get("refined", False),
+            "role": job.get("role"),
+        }
         try:  # keep the in-flight instrumentation of a case that times out or dies
-            base["last_progress"] = json.load(open(os.path.join(out, "current_case.json")))
-        except Exception:
+            base["last_progress"] = json.loads(
+                Path(os.path.join(out, "current_case.json")).read_text()
+            )
+        except Exception:  # noqa: BLE001, S110 -- failure is typed
             pass
         if stop_at and time.time() >= stop_at:
-            rec = base | {"status": "NOT_ADMITTED", "reason": "admission window closed before the pod deadline"}
+            rec = base | {
+                "status": "NOT_ADMITTED",
+                "reason": "admission window closed before the pod deadline",
+            }
         else:
             timeout = float(job.get("timeout_s", cfg.get("timeout_s", 900)))
             q = ctx.Queue()
@@ -231,22 +334,37 @@ def run_photonic_refs(cfg: dict, out: str) -> int:
                 try:
                     rec = q.get(timeout=2)
                     break
-                except Exception:
+                except Exception:  # noqa: BLE001 -- failure is typed
                     if not p.is_alive():
                         break
             if rec is None:
                 alive = p.is_alive()
                 p.kill()
-                rec = base | ({"status": "REFERENCE_TIMEOUT"} if alive else {"status": "FAILED_INFRA", "exitcode": p.exitcode})
+                rec = base | (
+                    {"status": "REFERENCE_TIMEOUT"}
+                    if alive
+                    else {"status": "FAILED_INFRA", "exitcode": p.exitcode}
+                )
             p.join(10)
             rec["wall_total_s"] = time.time() - t0
         recf.write(json.dumps(rec) + "\n")
         recf.flush()
         done[rec["status"]] = done.get(rec["status"], 0) + 1
     recf.close()
-    json.dump({"phase": "photonic_refs", "total": len(jobs), "index": len(jobs), "done": done,
-               "elapsed_s": round(time.time() - t_start, 1)}, open(os.path.join(out, "progress.json"), "w"))
-    json.dump({"done": done, "elapsed_s": time.time() - t_start}, open(os.path.join(out, "DONE.json"), "w"))
+    Path(os.path.join(out, "progress.json")).write_text(
+        json.dumps(
+            {
+                "phase": "photonic_refs",
+                "total": len(jobs),
+                "index": len(jobs),
+                "done": done,
+                "elapsed_s": round(time.time() - t_start, 1),
+            }
+        )
+    )
+    Path(os.path.join(out, "DONE.json")).write_text(
+        json.dumps({"done": done, "elapsed_s": time.time() - t_start})
+    )
     return 0
 
 
@@ -263,30 +381,60 @@ def run_multi(cfg: dict, out: str) -> int:
         if cfg.get("stop_admitting_epoch"):
             ccfg["stop_admitting_epoch"] = cfg["stop_admitting_epoch"]
         cpath = os.path.join(sub, "child_config.json")
-        json.dump(ccfg, open(cpath, "w"))
+        Path(cpath).write_text(json.dumps(ccfg))
         env = dict(os.environ)
         # One BLAS/OpenMP thread per battery worker; a couple for the GPU child's host work. Libraries
         # otherwise size their pools to all 96 visible cores and thrash a small CPU share.
-        threads = str(child.get("threads", 1 if child["phase"] == "battery_refs" else 2))
-        for var in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "NUMEXPR_NUM_THREADS"):
+        threads = str(
+            child.get("threads", 1 if child["phase"] == "battery_refs" else 2)
+        )
+        for var in (
+            "OMP_NUM_THREADS",
+            "OPENBLAS_NUM_THREADS",
+            "MKL_NUM_THREADS",
+            "NUMEXPR_NUM_THREADS",
+        ):
             env[var] = threads
         code_root = os.getcwd()
         env["PYTHONPATH"] = ":".join([code_root, os.path.join(root, child["overlay"])])
-        log = open(os.path.join(sub, "phase.log"), "wb")
-        procs.append((child["phase"], subprocess.Popen([sys.executable, "-m", "scripts.dev.exam_design.runner",
-                                                         child["phase"], "--out", sub, "--config", cpath],
-                                                        env=env, stdout=log, stderr=subprocess.STDOUT)))
+        log = open(os.path.join(sub, "phase.log"), "wb")  # noqa: SIM115
+        procs.append(
+            (
+                child["phase"],
+                subprocess.Popen(
+                    [
+                        sys.executable,
+                        "-m",
+                        "scripts.dev.exam_design.runner",
+                        child["phase"],
+                        "--out",
+                        sub,
+                        "--config",
+                        cpath,
+                    ],
+                    env=env,
+                    stdout=log,
+                    stderr=subprocess.STDOUT,
+                ),
+            )
+        )
     while any(p.poll() is None for _, p in procs):
         prog = {}
         for name, _ in procs:
             try:
-                prog[name] = json.load(open(os.path.join(out, name, "progress.json")))
-            except Exception:
+                prog[name] = json.loads(
+                    Path(os.path.join(out, name, "progress.json")).read_text()
+                )
+            except Exception:  # noqa: BLE001 -- failure is typed
                 prog[name] = None
-        json.dump({"phase": "multi", "children": prog}, open(os.path.join(out, "progress.json"), "w"))
+        Path(os.path.join(out, "progress.json")).write_text(
+            json.dumps({"phase": "multi", "children": prog})
+        )
         time.sleep(5)
     rc = {name: p.returncode for name, p in procs}
-    json.dump({"phase": "multi", "exit": rc}, open(os.path.join(out, "DONE.json"), "w"))
+    Path(os.path.join(out, "DONE.json")).write_text(
+        json.dumps({"phase": "multi", "exit": rc})
+    )
     return 0 if all(v == 0 for v in rc.values()) else 1
 
 
@@ -297,10 +445,18 @@ def main(argv=None) -> int:
     ap.add_argument("--config")
     a = ap.parse_args(argv)
     os.makedirs(a.out, exist_ok=True)
-    cfg = json.load(open(a.config)) if a.config else json.loads(os.environ.get("PHASE_CONFIG", "{}"))
-    if "plan_path" in cfg:  # committed, hash-pinned plan file; runtime keys (deadlines) override
-        cfg = json.load(open(cfg["plan_path"])) | {k: v for k, v in cfg.items() if k != "plan_path"}
-    json.dump(cfg, open(os.path.join(a.out, "config.json"), "w"))
+    cfg = (
+        json.loads(Path(a.config).read_text())
+        if a.config
+        else json.loads(os.environ.get("PHASE_CONFIG", "{}"))
+    )
+    if (
+        "plan_path" in cfg
+    ):  # committed, hash-pinned plan file; runtime keys (deadlines) override
+        cfg = json.loads(Path(cfg["plan_path"]).read_text()) | {
+            k: v for k, v in cfg.items() if k != "plan_path"
+        }
+    Path(os.path.join(a.out, "config.json")).write_text(json.dumps(cfg))
     if a.phase == "battery_refs":
         return run_battery_refs(cfg, a.out)
     if a.phase == "photonic_refs":
@@ -308,7 +464,9 @@ def main(argv=None) -> int:
     if a.phase == "multi":
         return run_multi(cfg, a.out)
     if a.phase == "host":
-        json.dump(host_info(), open(os.path.join(a.out, "host.json"), "w"), indent=1)
+        Path(os.path.join(a.out, "host.json")).write_text(
+            json.dumps(host_info(), indent=1)
+        )
         return 0
     if a.phase == "train":
         from scripts.dev.exam_design import train_phase

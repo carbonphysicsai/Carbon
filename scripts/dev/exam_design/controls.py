@@ -45,10 +45,16 @@ FAULTS = {
 
 
 def oracle(refs: dict[str, dict], case_ids) -> dict[str, dict]:
-    return {c: copy.deepcopy(refs[c]["outputs"]) for c in case_ids if refs[c].get("status") == "OK"}
+    return {
+        c: copy.deepcopy(refs[c]["outputs"])
+        for c in case_ids
+        if refs[c].get("status") == "OK"
+    }
 
 
-def fault(kind: str, base: dict[str, dict], q_bound: float, seed: int = 0) -> dict[str, dict]:
+def fault(
+    kind: str, base: dict[str, dict], q_bound: float, seed: int = 0
+) -> dict[str, dict]:
     rng = np.random.default_rng(seed)
     out = {}
     for cid, p in base.items():
@@ -77,7 +83,9 @@ def fault(kind: str, base: dict[str, dict], q_bound: float, seed: int = 0) -> di
         elif kind == "time_shift":
             v = np.concatenate([v[:1], v[:1].repeat(2), v[1:-2]])
             t = np.asarray(p["temperature_c"], float)
-            p["temperature_c"] = np.concatenate([t[:1], t[:1].repeat(2), t[1:-2]]).tolist()
+            p["temperature_c"] = np.concatenate(
+                [t[:1], t[:1].repeat(2), t[1:-2]]
+            ).tolist()
         else:
             raise KeyError(kind)
         p["voltage_v"] = v.tolist()
@@ -85,6 +93,14 @@ def fault(kind: str, base: dict[str, dict], q_bound: float, seed: int = 0) -> di
     return out
 
 
-def pool_leak(base: dict[str, dict], refs: dict[str, dict], exposed: set[str]) -> dict[str, dict]:
-    return {c: (copy.deepcopy(refs[c]["outputs"]) if c in exposed and refs[c].get("status") == "OK" else p)
-            for c, p in base.items()}
+def pool_leak(
+    base: dict[str, dict], refs: dict[str, dict], exposed: set[str]
+) -> dict[str, dict]:
+    return {
+        c: (
+            copy.deepcopy(refs[c]["outputs"])
+            if c in exposed and refs[c].get("status") == "OK"
+            else p
+        )
+        for c, p in base.items()
+    }

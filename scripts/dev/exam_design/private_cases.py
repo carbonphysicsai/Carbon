@@ -49,25 +49,46 @@ def _pin_material() -> dict:
 
     gen = hashlib.sha256(Path(battery_reference.__file__).read_bytes()).hexdigest()
     sco = hashlib.sha256(Path(scoring.__file__).read_bytes()).hexdigest()
-    binding = hashlib.sha256(f"{CHALLENGE_ID}/{CHALLENGE_VERSION}/{gen}/{sco}".encode()).hexdigest()
-    return {"challenge": [CHALLENGE_ID, CHALLENGE_VERSION], "generator_version": battery_reference.SPEC_VERSION,
-            "generator_digest": "sha256:" + gen, "scoring_version": "exam-design-scoring-v1",
-            "scoring_digest": "sha256:" + sco, "evaluation_binding": binding}
+    binding = hashlib.sha256(
+        f"{CHALLENGE_ID}/{CHALLENGE_VERSION}/{gen}/{sco}".encode()
+    ).hexdigest()
+    return {
+        "challenge": [CHALLENGE_ID, CHALLENGE_VERSION],
+        "generator_version": battery_reference.SPEC_VERSION,
+        "generator_digest": "sha256:" + gen,
+        "scoring_version": "exam-design-scoring-v1",
+        "scoring_digest": "sha256:" + sco,
+        "evaluation_binding": binding,
+    }
 
 
 def commitment(pin: dict | None = None) -> dict:
     pin = pin or _pin_material()
-    return {"schema": "carbon.exam-design.private-commitment.v1",
-            "root_commitment": hashlib.sha256(COMMIT_DOMAIN + _root()).hexdigest(), "seed_pin": pin,
-            "derivation": "carbon.seeding.derive_mock_seed(MockContext(MockEntropy(root), SeedPin), RoleKey(role), i)"}
+    return {
+        "schema": "carbon.exam-design.private-commitment.v1",
+        "root_commitment": hashlib.sha256(COMMIT_DOMAIN + _root()).hexdigest(),
+        "seed_pin": pin,
+        "derivation": "carbon.seeding.derive_mock_seed(MockContext(MockEntropy(root), SeedPin), RoleKey(role), i)",
+    }
 
 
 def _context(pin: dict):
     from carbon.registry.model import ChallengeKey
-    from carbon.seeding.model import EvaluationBinding, MockContext, MockEntropy, SeedPin
+    from carbon.seeding.model import (
+        EvaluationBinding,
+        MockContext,
+        MockEntropy,
+        SeedPin,
+    )
 
-    sp = SeedPin(ChallengeKey(*pin["challenge"]), pin["generator_version"], pin["generator_digest"],
-                 pin["scoring_version"], pin["scoring_digest"], EvaluationBinding(bytes.fromhex(pin["evaluation_binding"])))
+    sp = SeedPin(
+        ChallengeKey(*pin["challenge"]),
+        pin["generator_version"],
+        pin["generator_digest"],
+        pin["scoring_version"],
+        pin["scoring_digest"],
+        EvaluationBinding(bytes.fromhex(pin["evaluation_binding"])),
+    )
     return MockContext(MockEntropy(_root()), sp)
 
 
@@ -79,11 +100,22 @@ def cases(role: str, n: int, bounds: dict, pin: dict) -> list[dict]:
     ctx = _context(pin)
     out = []
     for i in range(n):
-        seed = derive_mock_seed(ctx, RoleKey(role.lower()), i)  # carbon.seeding role keys are lowercase canonical
+        seed = derive_mock_seed(
+            ctx, RoleKey(role.lower()), i
+        )  # carbon.seeding role keys are lowercase canonical
         material = seed.as_backend_bytes()
-        rng = np.random.default_rng(int.from_bytes(hashlib.sha256(material).digest()[:8], "big"))
-        out.append({"case_id": f"{role}-{i:04d}",
-                    **{k: float(np.round(rng.uniform(lo, hi), 4)) for k, (lo, hi) in bounds.items()}})
+        rng = np.random.default_rng(
+            int.from_bytes(hashlib.sha256(material).digest()[:8], "big")
+        )
+        out.append(
+            {
+                "case_id": f"{role}-{i:04d}",
+                **{
+                    k: float(np.round(rng.uniform(lo, hi), 4))
+                    for k, (lo, hi) in bounds.items()
+                },
+            }
+        )
     return out
 
 
@@ -117,15 +149,21 @@ def seal(obj, name: str) -> tuple[bytes, dict]:
     with os.fdopen(fd, "wb") as f:
         f.write(key)
     cipher = bytes(a ^ b for a, b in zip(plain, _keystream(key, len(plain))))
-    return cipher, {"name": name, "plaintext_sha256": hashlib.sha256(plain).hexdigest(),
-                    "ciphertext_sha256": hashlib.sha256(cipher).hexdigest(), "bytes": len(cipher)}
+    return cipher, {
+        "name": name,
+        "plaintext_sha256": hashlib.sha256(plain).hexdigest(),
+        "ciphertext_sha256": hashlib.sha256(cipher).hexdigest(),
+        "bytes": len(cipher),
+    }
 
 
 def unseal(cipher: bytes, key_hex: str):
     import json
 
     key = bytes.fromhex(key_hex)
-    return json.loads(bytes(a ^ b for a, b in zip(cipher, _keystream(key, len(cipher)))))
+    return json.loads(
+        bytes(a ^ b for a, b in zip(cipher, _keystream(key, len(cipher))))
+    )
 
 
 def key_hex(name: str) -> str:

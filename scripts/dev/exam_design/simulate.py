@@ -29,7 +29,9 @@ from __future__ import annotations
 import numpy as np
 
 
-def ranking_reliability(err_a: np.ndarray, err_b: np.ndarray, sizes, margin: float, reps=4000, seed=0) -> dict:
+def ranking_reliability(
+    err_a: np.ndarray, err_b: np.ndarray, sizes, margin: float, reps=4000, seed=0
+) -> dict:
     """``err_a``, ``err_b``: paired per-case errors on the same cases (a pool larger than any n)."""
     rng = np.random.default_rng(seed)
     full = float(np.mean(err_b - err_a))
@@ -46,8 +48,15 @@ def ranking_reliability(err_a: np.ndarray, err_b: np.ndarray, sizes, margin: flo
     return out
 
 
-def seed_mixing_attack(err_s1: np.ndarray, err_s2: np.ndarray, batch_size: int, rotate_after: int,
-                       submissions: int, reps=400, seed=0) -> dict:
+def seed_mixing_attack(
+    err_s1: np.ndarray,
+    err_s2: np.ndarray,
+    batch_size: int,
+    rotate_after: int,
+    submissions: int,
+    reps=400,
+    seed=0,
+) -> dict:
     """Pool-score optimism an aggregate-feedback attacker extracts, under rotation.
 
     ``err_s1``/``err_s2``: per-case errors of two equal-quality prediction sets over
@@ -67,15 +76,17 @@ def seed_mixing_attack(err_s1: np.ndarray, err_s2: np.ndarray, batch_size: int, 
         nxt = 3
         since = 0
 
-        def pool_ids():
-            return np.concatenate([np.arange(b * batch_size, (b + 1) * batch_size) for b in active])
+        def pool_ids(active):
+            return np.concatenate(
+                [np.arange(b * batch_size, (b + 1) * batch_size) for b in active]
+            )
 
-        def score(ch, ids):
+        def score(ch, ids, e1=e1, e2=e2):
             return np.where(ch[ids], e2[ids], e1[ids]).mean()
 
         start = None
         for _s in range(submissions):
-            ids = pool_ids()
+            ids = pool_ids(active)
             if start is None:
                 start = score(np.zeros(need, bool), ids)
             cur = score(choice, ids)
@@ -89,12 +100,18 @@ def seed_mixing_attack(err_s1: np.ndarray, err_s2: np.ndarray, batch_size: int, 
                 active = active[1:] + [nxt]
                 nxt += 1
                 since = 0
-        ids = pool_ids()
+        ids = pool_ids(active)
         honest = score(np.zeros(need, bool), ids)
         final = score(choice, ids)
         gains.append(honest - final)
         rel.append((honest - final) / honest)
-    return {"batch_size": batch_size, "rotate_after": rotate_after, "submissions": submissions,
-            "mean_gain": float(np.mean(gains)), "p90_gain": float(np.quantile(gains, 0.9)),
-            "mean_relative_gain": float(np.mean(rel)), "reps": reps,
-            "assumption": "aggregate score feedback only; attacker mixes two equal-quality seed predictions"}
+    return {
+        "batch_size": batch_size,
+        "rotate_after": rotate_after,
+        "submissions": submissions,
+        "mean_gain": float(np.mean(gains)),
+        "p90_gain": float(np.quantile(gains, 0.9)),
+        "mean_relative_gain": float(np.mean(rel)),
+        "reps": reps,
+        "assumption": "aggregate score feedback only; attacker mixes two equal-quality seed predictions",
+    }

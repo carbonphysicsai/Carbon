@@ -22,9 +22,27 @@ from __future__ import annotations
 
 import os
 
-ALLOWED_KEYS = {"recipe", "width", "depth", "steps", "lr", "wd", "pca", "important_weight", "seed"}
-BOUNDS = {"width": (32, 512), "depth": (1, 6), "steps": (500, 12000), "lr": (1e-4, 1e-2), "wd": (0.0, 1e-2),
-          "pca": (0, 32), "important_weight": (0.05, 5.0), "seed": (0, 2**31 - 1)}
+ALLOWED_KEYS = {
+    "recipe",
+    "width",
+    "depth",
+    "steps",
+    "lr",
+    "wd",
+    "pca",
+    "important_weight",
+    "seed",
+}
+BOUNDS = {
+    "width": (32, 512),
+    "depth": (1, 6),
+    "steps": (500, 12000),
+    "lr": (1e-4, 1e-2),
+    "wd": (0.0, 1e-2),
+    "pca": (0, 32),
+    "important_weight": (0.05, 5.0),
+    "seed": (0, 2**31 - 1),
+}
 
 
 class NotAuthorized(RuntimeError):
@@ -35,7 +53,9 @@ def authorize() -> float:
     budget = float(os.environ.get("CARBON_EXAM_AGENT_BUDGET_USD", "0") or 0)
     authority = os.environ.get("CARBON_EXAM_AGENT_AUTHORITY", "")
     if budget <= 0 or not authority:
-        raise NotAuthorized("adaptive-agent runs need an owner-authorized model-provider budget; none exists")
+        raise NotAuthorized(
+            "adaptive-agent runs need an owner-authorized model-provider budget; none exists"
+        )
     return budget
 
 
@@ -51,5 +71,9 @@ def validate_submission(sub: dict) -> dict:
 
 def feedback(score_record: dict) -> dict:
     """What the agent sees after an admitted submission - nothing per case."""
-    return {"eligible": score_record["eligible"], "score": score_record["score"],
-            "pool_version": score_record["pool_version"], "failed_gates": sorted(score_record.get("gate_failures", {}))}
+    return {
+        "eligible": score_record["eligible"],
+        "score": score_record["score"],
+        "pool_version": score_record["pool_version"],
+        "failed_gates": sorted(score_record.get("gate_failures", {})),
+    }

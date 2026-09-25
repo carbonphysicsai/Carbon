@@ -59,32 +59,54 @@ def scales_from_train(train_refs: list[dict], floors: dict | None = None) -> dic
     v = np.array([r["outputs"]["voltage_v"] for r in train_refs])
     # Temperature is scaled by the spread of the *rise above ambient*: ambient is an input, so its 5-40 C
     # range would otherwise inflate the scale and make a 1 C thermal error nearly free.
-    t = np.array([np.asarray(r["outputs"]["temperature_c"]) - r["inputs"]["t_amb_c"] for r in train_refs])
+    t = np.array(
+        [
+            np.asarray(r["outputs"]["temperature_c"]) - r["inputs"]["t_amb_c"]
+            for r in train_refs
+        ]
+    )
     e = np.array([r["outputs"]["plating_margin_v"] for r in train_refs])
     q = np.array([r["outputs"]["capacity_ah"] for r in train_refs])
     fade = q[:, :1] - q[:, 1:]
-    raw = {"s_v": float(v.std()), "s_t": float(t.std()), "s_eta": float(e.std()), "s_q1": float(q[:, 0].std()),
-           "s_fade": float(fade.std())}
+    raw = {
+        "s_v": float(v.std()),
+        "s_t": float(t.std()),
+        "s_eta": float(e.std()),
+        "s_q1": float(q[:, 0].std()),
+        "s_fade": float(fade.std()),
+    }
     floors = floors or {}
     out = {k: max(val, float(floors.get(k, 0.0))) for k, val in raw.items()}
     return out | {"raw": raw, "floors": floors, "n_train": len(train_refs)}
 
 
 def is_important(ref: dict) -> bool:
-    return (abs(ref["outputs"]["plating_margin_v"]) <= PLATING_BAND_V
-            or ref.get("diagnostics", {}).get("t_max_c", -1e9) >= T_IMPORTANT_C)
+    return (
+        abs(ref["outputs"]["plating_margin_v"]) <= PLATING_BAND_V
+        or ref.get("diagnostics", {}).get("t_max_c", -1e9) >= T_IMPORTANT_C
+    )
 
 
 def case_components(pred: dict, ref: dict, scales: dict) -> dict:
     o = ref["outputs"]
-    rms = lambda a, b: float(np.sqrt(np.mean((np.asarray(a, float) - np.asarray(b, float)) ** 2)))  # noqa: E731
+    rms = lambda a, b: float(
+        np.sqrt(np.mean((np.asarray(a, float) - np.asarray(b, float)) ** 2))
+    )
     return {
         "voltage": rms(pred["voltage_v"], o["voltage_v"]) / scales["s_v"],
         "temperature": rms(pred["temperature_c"], o["temperature_c"]) / scales["s_t"],
-        "plating": abs(float(pred["plating_margin_v"]) - o["plating_margin_v"]) / scales["s_eta"],
-        "capacity": 0.5 * (abs(float(pred["capacity_ah"][0]) - o["capacity_ah"][0]) / scales["s_q1"]
-                           + rms(np.asarray(pred["capacity_ah"][0]) - np.asarray(pred["capacity_ah"][1:], float),
-                                 o["capacity_ah"][0] - np.asarray(o["capacity_ah"][1:], float)) / scales["s_fade"]),
+        "plating": abs(float(pred["plating_margin_v"]) - o["plating_margin_v"])
+        / scales["s_eta"],
+        "capacity": 0.5
+        * (
+            abs(float(pred["capacity_ah"][0]) - o["capacity_ah"][0]) / scales["s_q1"]
+            + rms(
+                np.asarray(pred["capacity_ah"][0])
+                - np.asarray(pred["capacity_ah"][1:], float),
+                o["capacity_ah"][0] - np.asarray(o["capacity_ah"][1:], float),
+            )
+            / scales["s_fade"]
+        ),
     }
 
 
@@ -112,7 +134,14 @@ def aggregate(case_rows: list[dict]) -> dict:
         "score": float(np.mean([r["error"] for r in scored])) if scored else None,
         "important_score": float(np.mean([r["error"] for r in imp])) if imp else None,
         "n_important": len(imp),
-        "components": {c: float(np.mean([r["components"][c] for r in scored])) for c in COMPONENTS} if scored else None,
+        "components": (
+            {
+                c: float(np.mean([r["components"][c] for r in scored]))
+                for c in COMPONENTS
+            }
+            if scored
+            else None
+        ),
     }
     fails: dict[str, int] = {}
     for r in case_rows:

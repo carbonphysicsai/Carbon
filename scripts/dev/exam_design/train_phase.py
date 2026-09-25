@@ -21,6 +21,7 @@ import gzip
 import json
 import os
 import time
+from pathlib import Path
 
 import numpy as np
 
@@ -36,11 +37,15 @@ def run(cfg: dict, out: str) -> int:
     t_start = time.time()
     import jax
 
-    backend = {"jax_backend": jax.default_backend(), "devices": [str(d) for d in jax.devices()],
-               "JAX_PLATFORMS": os.environ.get("JAX_PLATFORMS"), "XLA_FLAGS": os.environ.get("XLA_FLAGS")}
-    json.dump(backend, open(os.path.join(out, "backend.json"), "w"), indent=1)
+    backend = {
+        "jax_backend": jax.default_backend(),
+        "devices": [str(d) for d in jax.devices()],
+        "JAX_PLATFORMS": os.environ.get("JAX_PLATFORMS"),
+        "XLA_FLAGS": os.environ.get("XLA_FLAGS"),
+    }
+    Path(os.path.join(out, "backend.json")).write_text(json.dumps(backend, indent=1))
     train_all = _load_jsonl_gz(cfg["train_file"])
-    ocv = json.load(open(cfg["ocv_table"]))
+    ocv = json.loads(Path(cfg["ocv_table"]).read_text())
     structure = recipes.Structure(ocv["soc"], ocv["ocv_v"])
     important = set(cfg.get("important_train_ids", []))
     runs = cfg["runs"]
@@ -52,22 +57,38 @@ def run(cfg: dict, out: str) -> int:
         if stop_at and time.time() >= stop_at:
             frozen.append({"tag": r["tag"], "status": "NOT_ADMITTED"})
             continue
-        recs = [x for x in train_all if x["case_id"] in set(r["train_ids"])] if "train_ids" in r else train_all[: r["train_n"]]
-        d = recipes.Data.from_records(recs, important_fn=lambda rec: rec["case_id"] in important)
+        recs = (
+            [x for x in train_all if x["case_id"] in set(r["train_ids"])]
+            if "train_ids" in r
+            else train_all[: r["train_n"]]
+        )
+        d = recipes.Data.from_records(
+            recs, important_fn=lambda rec: rec["case_id"] in important
+        )
         m = recipes.make(r["recipe"])
         t0 = time.perf_counter()
         stats = m.fit(d, structure, seed=r["seed"])
         stats["fit_wall_s"] = time.perf_counter() - t0
-        rec = {"tag": r["tag"], "recipe": r["recipe"], "seed": r["seed"], "n_train": len(recs), "status": "FROZEN",
-               "jax_backend": backend["jax_backend"],
-               "config": m.config() if hasattr(m, "config") else {"name": m.name, "k": getattr(m, "k", None)}} | stats
+        rec = {
+            "tag": r["tag"],
+            "recipe": r["recipe"],
+            "seed": r["seed"],
+            "n_train": len(recs),
+            "status": "FROZEN",
+            "jax_backend": backend["jax_backend"],
+            "config": (
+                m.config()
+                if hasattr(m, "config")
+                else {"name": m.name, "k": getattr(m, "k", None)}
+            ),
+        } | stats
         frozen.append(rec)
         models.append((r, m))
         progress["done"] = i + 1
-        json.dump(progress, open(os.path.join(out, "progress.json"), "w"))
-        json.dump(frozen, open(os.path.join(out, "frozen.json"), "w"), indent=1)
+        Path(os.path.join(out, "progress.json")).write_text(json.dumps(progress))
+        Path(os.path.join(out, "frozen.json")).write_text(json.dumps(frozen, indent=1))
     # Only now are non-TRAIN inputs read.
-    inputs = json.load(open(cfg["inputs_file"]))
+    inputs = json.loads(Path(cfg["inputs_file"]).read_text())
     by_role: dict[str, list[dict]] = {}
     for c in inputs["cases"]:
         by_role.setdefault(c["role"], []).append(c)
@@ -76,16 +97,20 @@ def run(cfg: dict, out: str) -> int:
         # duplicate is predicted as its own request (the paired-repeat probe), never copied.
         from scripts.dev.exam_design import private_cases
 
-        jobs = private_cases.unseal(open(cfg["private_blob"], "rb").read(), os.environ["PRIVATE_KEY"])
+        jobs = private_cases.unseal(
+            Path(cfg["private_blob"]).read_bytes(), os.environ["PRIVATE_KEY"]
+        )
         by_id = {}
         for j in jobs:
             c = dict(j["case"], role=j["role"])
             by_id[c["case_id"]] = c
-        slots = json.load(open(cfg["private_slots"]))
+        slots = json.loads(Path(cfg["private_slots"]).read_text())
         for role, entries in slots.items():
             for e in entries:
                 src = by_id[e.get("duplicate_of", e["case_id"])]
-                by_role.setdefault(role, []).append(dict(src, case_id=e["case_id"], role=role))
+                by_role.setdefault(role, []).append(
+                    dict(src, case_id=e["case_id"], role=role)
+                )
     timing = []
     for r, m in models:
         preds = {}
@@ -93,17 +118,31 @@ def run(cfg: dict, out: str) -> int:
             cases = by_role.get(role, [])
             if not cases:
                 continue
-            x = np.array([[c[k] for k in ("c1", "c2", "t_amb_c", "soc0")] for c in cases], float)
+            x = np.array(
+                [[c[k] for k in ("c1", "c2", "t_amb_c", "soc0")] for c in cases], float
+            )
             t0 = time.perf_counter()
             o = m.predict(x)
             t1 = time.perf_counter()
             # A second pass measures steady-state inference (the first includes compilation).
             m.predict(x)
             t2 = time.perf_counter()
-            timing.append({"tag": r["tag"], "role": role, "n": len(cases), "first_s": t1 - t0, "steady_s": t2 - t1})
+            timing.append(
+                {
+                    "tag": r["tag"],
+                    "role": role,
+                    "n": len(cases),
+                    "first_s": t1 - t0,
+                    "steady_s": t2 - t1,
+                }
+            )
             preds |= recipes.to_preds(o, [c["case_id"] for c in cases])
         with gzip.open(os.path.join(out, f"pred_{r['tag']}.json.gz"), "wt") as f:
             json.dump(preds, f)
-    json.dump(timing, open(os.path.join(out, "inference_timing.json"), "w"), indent=1)
-    json.dump({"elapsed_s": time.time() - t_start, "runs": len(runs)}, open(os.path.join(out, "DONE.json"), "w"))
+    Path(os.path.join(out, "inference_timing.json")).write_text(
+        json.dumps(timing, indent=1)
+    )
+    Path(os.path.join(out, "DONE.json")).write_text(
+        json.dumps({"elapsed_s": time.time() - t_start, "runs": len(runs)})
+    )
     return 0
