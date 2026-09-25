@@ -355,3 +355,22 @@ def test_capacity_component_weights_fade_by_its_own_spread():
     ]
     c_fade = scoring.case_components(pred, ref, sc)["capacity"]
     assert c_fade > c_level  # the same 2 mAh costs more when it is fade error
+
+
+def test_retained_predictions_round_trip_bit_exact_without_numpy_payload(tmp_path):
+    from scripts.dev.exam_design import campaign
+
+    rng = np.random.default_rng(0)
+    arrays = {
+        k: rng.standard_normal((3, 5)).astype(np.float32)
+        for k in campaign.RETAINED_ARRAYS
+    }
+    path = tmp_path / "m.f32.json.gz"
+    campaign.write_retained(str(path), ["a", "b", "c"], arrays)
+    first = path.read_bytes()
+    campaign.write_retained(str(path), ["a", "b", "c"], arrays)
+    assert path.read_bytes() == first  # deterministic bytes
+    ids, back = campaign.read_retained(str(path))
+    assert ids == ["a", "b", "c"]
+    for k, v in arrays.items():
+        assert back[k].tobytes() == v.tobytes()

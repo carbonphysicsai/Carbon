@@ -15,6 +15,7 @@ outputs until ``verify`` runs against a committed freeze record.
 from __future__ import annotations
 
 import argparse
+import base64
 import glob
 import gzip
 import hashlib
@@ -1193,6 +1194,50 @@ DECISION_MODELS = [
 ]
 
 
+RETAINED_FORMAT = "carbon-exam-design-f32-v1"
+RETAINED_ARRAYS = ("voltage_v", "temperature_c", "plating_margin_v", "capacity_ah")
+
+
+def write_retained(path: str, case_ids: list[str], arrays: dict) -> None:
+    """Write float32 arrays losslessly as base64 little-endian bytes in deterministic gzip JSON.
+
+    The repository forbids committed NumPy payloads, so retained predictions use this plain format.
+    """
+    doc = {
+        "format": RETAINED_FORMAT,
+        "case_ids": list(case_ids),
+        "arrays": {
+            k: {
+                "shape": list(v.shape),
+                "le_f32_b64": base64.b64encode(
+                    np.ascontiguousarray(v, dtype="<f4").tobytes()
+                ).decode("ascii"),
+            }
+            for k, v in arrays.items()
+        },
+    }
+    with (
+        open(path, "wb") as raw,
+        gzip.GzipFile(fileobj=raw, mode="wb", mtime=0, filename="") as f,
+    ):
+        f.write(json.dumps(doc, sort_keys=True).encode())
+
+
+def read_retained(path: str) -> tuple[list[str], dict]:
+    """Inverse of ``write_retained``: case ids and float32 arrays, bit-exact."""
+    with gzip.open(path, "rt") as f:
+        doc = json.load(f)
+    if doc.get("format") != RETAINED_FORMAT:
+        raise ValueError(f"unsupported retained prediction format: {doc.get('format')}")
+    arrays = {
+        k: np.frombuffer(base64.b64decode(v["le_f32_b64"]), dtype="<f4").reshape(
+            v["shape"]
+        )
+        for k, v in doc["arrays"].items()
+    }
+    return doc["case_ids"], arrays
+
+
 def cmd_retain(a) -> None:
     """Retain predictions compactly: full float32 arrays for decision models, a per-case score table for all.
 
@@ -1221,13 +1266,10 @@ def cmd_retain(a) -> None:
             arr = lambda k, d=d, ids=ids: np.array(
                 [d[c][k] for c in ids], dtype=np.float32
             )
-            np.savez_compressed(
-                f"{dst}/{tag}.npz",
-                case_ids=np.array(ids),
-                voltage_v=arr("voltage_v"),
-                temperature_c=arr("temperature_c"),
-                plating_margin_v=arr("plating_margin_v"),
-                capacity_ah=arr("capacity_ah"),
+            write_retained(
+                f"{dst}/{tag}.f32.json.gz",
+                ids,
+                {k: arr(k) for k in RETAINED_ARRAYS},
             )
         rows, _ = exam.evaluate(d, [c for c in ids if c in refs], store)
         table[tag] = {
