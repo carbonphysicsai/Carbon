@@ -93,7 +93,7 @@ runtime_namespaces = [
 executable_paths = [
     "Julia",
     "carbon/base",
-    "carbon/challenge_registry",
+    "carbon/challenges",
     "carbon/common",
     "carbon/data",
     "carbon/emission",
