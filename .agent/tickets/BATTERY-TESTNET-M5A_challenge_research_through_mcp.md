@@ -78,6 +78,12 @@ repository access or manual step:
 
 ## Known limits
 
+**Superseded by M3 (BATTERY-TESTNET-M3):** the reconstruction-path,
+pool-state and autonomous-agent limits below are closed there. Evaluation
+now goes through the validator daemon, `evaluation.py` is removed, and
+Carbon's agent can research battery (M3-D11, M3-D12). The text below is kept
+as M5A delivered it.
+
 - **Reconstruction path.** The submission rebuild runs in the evaluation
   process (`DIRECT_TRUSTED_PROCESS`), not in the validator's isolated
   reconstruction worker. Every result says `validator_path: false`. Moving it

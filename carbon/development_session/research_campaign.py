@@ -779,7 +779,7 @@ async def submit_candidate(prepared, epoch, strategy):
         )
         return None
     if prepared.challenge is not None:
-        # This Challenge's evaluation deployment judges the candidate; the
+        # This Challenge's validator daemon judges the candidate; the
         # Burgers final epoch never sees it.
         from carbon.battery.campaign import evaluate_candidate
 
@@ -787,7 +787,7 @@ async def submit_candidate(prepared, epoch, strategy):
         record = json.loads((folder / "selected-recipe.json").read_bytes())
         if record["strategy"] != strategy:
             raise ValueError("submitted strategy differs from the frozen candidate")
-        feedback = evaluate_candidate(prepared, epoch, record)
+        feedback = await evaluate_candidate(prepared, epoch, record)
         write_once(folder / "permitted-final-feedback.json", canonical(feedback))
         report(ledger, owner=owner)
         return feedback
@@ -827,9 +827,13 @@ async def submit_candidate(prepared, epoch, strategy):
     return feedback
 
 
-async def run_agent(prepared):
+async def run_agent(prepared, *, transport=None):
     """Carbon's autonomous agent: plans, practices and selects each epoch, and
-    its selection goes through the same submit a miner's freeze does."""
+    its selection goes through the same submit a miner's freeze does.
+
+    `transport` replaces the model provider for deterministic acceptance
+    only; every campaign door passes none, so a real campaign calls the
+    pinned provider with the recorded credential."""
     ledger, owner, manifest = prepared.ledger, prepared.owner, prepared.manifest
     grant, task = prepared.grant, prepared.task
     feedback = None
@@ -841,15 +845,20 @@ async def run_agent(prepared):
     epochs = FINAL_EPOCHS if epoch_cap is None else FINAL_EPOCHS[:epoch_cap]
     for epoch in epochs:
         ledger.checkpoint()
-        observation = {
-            "objective": objective(),
-            "capabilities": capabilities(),
-            "control_recipe": CONTROL,
-            "control_basis": CONTROL_BASIS,
-            "epoch": epoch,
-            "prior_permitted_final_feedback": feedback,
-            "instructions": "Record a testable plan. Use real practice, inspect curves and revise or reject hypotheses; do not stop at the first valid recipe. Select only a recipe you actually practiced, or stop for a supported reason.",
-        }
+        if prepared.challenge is not None:
+            from carbon.battery.campaign import agent_observation
+
+            observation = agent_observation(prepared, epoch, feedback)
+        else:
+            observation = {
+                "objective": objective(),
+                "capabilities": capabilities(),
+                "control_recipe": CONTROL,
+                "control_basis": CONTROL_BASIS,
+                "epoch": epoch,
+                "prior_permitted_final_feedback": feedback,
+                "instructions": "Record a testable plan. Use real practice, inspect curves and revise or reject hypotheses; do not stop at the first valid recipe. Select only a recipe you actually practiced, or stop for a supported reason.",
+            }
         if grant is not None:
             # Immutable across restart; private grant/account paths are absent.
             observation["campaign_resource_grant"] = {
@@ -883,11 +892,30 @@ async def run_agent(prepared):
             credential_file=prepared.args.api_key_file,
             initial_observation=observation,
             agent_policy=prepared.agent_policy,
+            challenge=prepared.challenge,
+            transport=transport,
         )
         report(ledger, owner=owner)
         if result["status"] != "SELECTED":
             break
-        feedback = await submit_candidate(prepared, epoch, result["strategy"])
+        try:
+            feedback = await submit_candidate(prepared, epoch, result["strategy"])
+        except OperationRefused as refused:
+            if prepared.challenge is None:
+                raise
+            # Nothing was evaluated (no deployment, infrastructure, queued):
+            # never a result. The frozen candidate stays for a later submit.
+            ledger.note(
+                owner=owner,
+                kind="decision",
+                body={
+                    "epoch": epoch,
+                    "stop": "submission not evaluated: " + refused.code,
+                    "candidate_retained": True,
+                },
+            )
+            report(ledger, owner=owner)
+            return
         if feedback is None:
             break
     _complete(prepared)

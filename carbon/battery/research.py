@@ -86,26 +86,34 @@ SCAFFOLD = {
     "backbone": "mlp",
     "parameters": {"steps": 2000, "width": 64, "depth": 3},
 }
-#: The allow-listed fields of an evaluation result a miner may receive
-#: (`shadow.public_projection`). Named here so discovery states it exactly.
+#: The allow-listed fields of a validator outcome a miner may receive
+#: (`daemon.BatteryValidator.outcome`), and of its screening summary. Named
+#: here so discovery states them exactly; the daemon refuses to emit any other.
 EVALUATION_FEEDBACK_FIELDS = (
     "schema",
-    "challenge",
     "submission_id",
+    "challenge",
+    "state",
+    "evidence",
+    "rule",
+    "qualification",
+    "reward",
+    "failure",
     "recipe_digest",
     "contract_digest",
+    "reconstruction",
+    "screening",
+    "nominated",
+    "waiting",
+    "finals",
+)
+SCREENING_FEEDBACK_FIELDS = (
     "pool_version",
-    "pool_fingerprints",
     "eligible",
     "score",
     "important_score",
     "gates_failed",
     "cases",
-    "reconstruction",
-    "evidence",
-    "rule",
-    "qualification",
-    "reward",
 )
 PRACTICE_SECONDS = 600
 

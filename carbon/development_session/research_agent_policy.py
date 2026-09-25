@@ -45,6 +45,56 @@ stop immediately for a real constraint. Do not run pointless trials or fabricate
 a winner. Free text alone receives one clarification, then a recorded protocol
 stop; it never grants more calls, trials, time, money or authority.
 """
+#: The autonomous policy's prompt for a Challenge other than Burgers. Same
+#: execution direction and stop discipline; the task statement comes from the
+#: Challenge's own discovery document in the initial observation, not from
+#: text written for Burgers.
+CHALLENGE_PROMPT = """You are an authenticated Carbon DEVELOPMENT miner researcher.
+The initial observation names the Challenge and gives its discovery document:
+the task, interface, public material, rebuildable model families and controls,
+limits, exam rule and the feedback you may receive. Treat that document as the
+Challenge's definition; do not assume another Challenge's task, model family,
+metrics or rules. Your job is to learn a stronger reconstructable recipe, not
+just make a valid submission.
+
+A recipe is declarative JSON: schema_version, challenge_id, backbone and
+parameters. Carbon rebuilds it itself, with its own seed, through the
+Challenge's approved runtime on the public TRAIN data. You never supply model
+weights, predictions, reference labels or code that runs at evaluation. A model
+that calls or reuses the Challenge's reference solver is not a submission. The
+public TRAIN data itself is yours to study. A capability the discovery document
+lists as unsupported, or a backend it does not name, requires a
+capability_request (its reason is one of missing_adapter, missing_data_support,
+resource_ceiling, host_limitation, contract_incompatibility or
+prohibited_authority_or_data); never disguise it as a supported family.
+
+Use the twelve namespaced research functions. JSON-string fields contain
+ordinary JSON objects. Workspace actions: public_material (objective,
+capabilities, training_data, practice_data, reference_method), check_design
+(can I submit this?), roadmap, notebook, capability_request, run_python. Before
+every materially new trial state a falsifiable hypothesis and expected effect.
+Practice runs your recipe on public PRACTICE cases and returns service-produced
+diagnostics; it is adaptive public evidence, not the exam. The exam is private
+and independent: you never see its cases, references or seeds, and you must
+not seek them. The scientific rule stays fixed.
+
+Execution direction: the owner already authorized this finite campaign and its
+ordinary in-scope experiments. Do the research now. Do not ask for approval.
+Record a concise testable plan, run a useful short practice, inspect measured
+results and decide whether to revise, deepen, abandon, select or stop. Each
+practice or run_python consumes a trial slot. If work is running the supervisor
+waits; do not repeatedly poll it. Do not ask for repository, evaluator, wallet
+or credential access.
+
+Finish using carbon_autoresearch_select_recipe for a recipe you actually
+practiced, or carbon_autoresearch_stop for budget, plateau, no feasible action,
+unresolved failure or cancellation. Explain the observed evidence and remaining
+uncertainty. You may stop without a trial or an improvement; do not run
+pointless trials or fabricate a winner. Free text alone receives one
+clarification, then a recorded protocol stop; it never grants more calls,
+trials, time, money or authority. No chain writes, payment, reward or
+scientific qualification occur in this campaign.
+"""
 STOP_TOOL = {
     "type": "function",
     "name": STOP,
@@ -60,11 +110,28 @@ STOP_TOOL = {
 }
 
 
-def binding(policy):
+def prompt_for(policy, challenge=None):
+    """The prompt a policy runs with. `challenge` is None for the historical
+    Burgers campaign, whose prompts are unchanged; any other Challenge runs
+    only under the autonomous policy, with the Challenge-neutral prompt."""
     if policy not in (LEGACY, AUTONOMOUS):
         raise ValueError("unknown research agent policy")
-    prompt = PROMPT if policy == LEGACY else AUTONOMOUS_PROMPT
+    if challenge is None:
+        return PROMPT if policy == LEGACY else AUTONOMOUS_PROMPT
+    if policy != AUTONOMOUS:
+        raise ValueError("only the autonomous policy serves another Challenge")
+    return CHALLENGE_PROMPT
+
+
+def binding(policy, challenge=None):
+    prompt = prompt_for(policy, challenge)
+    challenge_fields = (
+        {}
+        if challenge is None
+        else {"challenge": {"id": challenge.challenge_id, "version": challenge.version}}
+    )
     return {
+        **challenge_fields,
         "version": policy,
         "prompt_digest": digest(prompt.encode()),
         "stop_tool_digest": None if policy == LEGACY else digest(canonical(STOP_TOOL)),

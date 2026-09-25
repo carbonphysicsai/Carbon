@@ -42,6 +42,7 @@ def describe():
         EVALUATION_FEEDBACK_FIELDS,
         PRACTICE_SECONDS,
         SCAFFOLD,
+        SCREENING_FEEDBACK_FIELDS,
         BatteryPublicMaterial,
         objective,
         reference_method,
@@ -177,8 +178,10 @@ def describe():
             "progress": "get_research_result; cancel_research_task",
             "freeze": "freeze_candidate needs a completed practice of the same recipe",
             "submit": (
-                "submit: Carbon rebuilds the frozen recipe with its own seed "
-                "and scores it on committed private pools"
+                "submit: a signed battery_submit reaches the validator daemon, "
+                "which rebuilds the frozen recipe with Carbon's seed in its "
+                "reconstruction worker and screens it on the whole active "
+                "private pool; a nominee faces a fresh finalist comparison"
             ),
         },
         "exam": {
@@ -189,12 +192,30 @@ def describe():
         "feedback": {
             "practice": FEEDBACK_SCHEMA,
             "evaluation_fields": list(EVALUATION_FEEDBACK_FIELDS),
+            "screening_fields": list(SCREENING_FEEDBACK_FIELDS),
         },
         "examples": [
             {"strategy": SCAFFOLD, "admission": _verdict(SCAFFOLD)},
             {"strategy": knn, "admission": _verdict(knn)},
         ],
         "unsupported": unsupported,
+        "exclusion_scope": {
+            "submission": (
+                "Submitted constructions rebuild only through Carbon's approved "
+                "JAX runtime. Excluded for battery submissions: PyTorch and "
+                "Julia submission or reconstruction backends, miner-supplied "
+                "reference labels, and models that invoke or reuse the PyBaMM "
+                "reference solver."
+            ),
+            "not_excluded": [
+                (
+                    "studying and training on the approved public TRAIN v1 "
+                    "data and the OCV table, which PyBaMM produced"
+                ),
+                "Carbon running PyBaMM as its own independent truth service",
+                "Julia or other tools in research outside a submission",
+            ],
+        },
         "authority": (
             "DEVELOPMENT, non-paying; no reward, frontier, qualification or "
             "chain authority"
