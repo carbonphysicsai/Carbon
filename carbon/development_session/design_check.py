@@ -28,6 +28,7 @@ from carbon.reconstruction.capability_registry import (
     Dimension,
     Status,
     catalog_surfaces,
+    realizer,
     rebuildable_families,
 )
 
@@ -155,6 +156,16 @@ def _field(key, backbone, vocabulary=_BURGERS):
 
 def _requested(value, vocabulary=_BURGERS):
     capability = vocabulary.by_id.get(value) if type(value) is str else None
+    if capability is None and type(value) is str:
+        # A capability this Challenge realizes through one of its own fields,
+        # such as battery's optimizer.lion through optimizer_family.
+        by = realizer(value, vocabulary.challenge)
+        if by is not None:
+            return {
+                "verdict": SUPPORTED,
+                "capability": value,
+                "realized_by": by.capability_id,
+            }
     if capability is None:
         return {
             "verdict": REFUSED,

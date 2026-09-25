@@ -17,6 +17,7 @@ Claims tested:
 """
 
 from dataclasses import replace
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -62,6 +63,7 @@ def test_each_challenge_has_its_own_contract_and_digest():
     assert dict(r.rebuildable_families(BATTERY)) == {
         "knn": "battery_knn",
         "mlp": "battery_mlp",
+        "deeponet": "battery_deeponet",
     }
     # The same capability id carries a status per Challenge.
     assert r.status_map("model_family.fno") == {
@@ -123,9 +125,113 @@ def test_every_battery_consumer_derives_from_the_registry():
 
     contracts = battery_contracts()
     options = contracts.assembly.backbone_surface.options
-    assert [o.selector_token for o in options] == ["knn", "mlp"]
+    assert [o.selector_token for o in options] == ["knn", "mlp", "deeponet"]
     surfaces = {e.surface_id for e in contracts.catalog.entries}
     assert surfaces == {"strategy_backbone", *r.catalog_surfaces(BATTERY)}
+
+
+def test_every_reviewed_capability_has_a_battery_status():
+    """Research time: the whole construction review is answered for battery."""
+    statuses = {}
+    for c in r.REGISTRY:
+        found = r.realizer(c.capability_id, BATTERY)
+        assert found is not None, c.capability_id
+        statuses[c.capability_id] = found.status
+    rebuildable = [
+        i for i, s in statuses.items() if s is r.Status.REBUILDABLE_DEVELOPMENT
+    ]
+    assert len(statuses) == 92 and len(rebuildable) >= 45
+    for optimizer in ("lion", "lamb", "adafactor", "muon", "prodigy", "sam"):
+        assert (
+            r.status_map("optimizer." + optimizer)[BATTERY] == "rebuildable_development"
+        )
+    assert r.status_map("schedule.sgdr")[BATTERY] == "rebuildable_development"
+    assert r.status_map("inference.precision")[BATTERY] == "rebuildable_development"
+    # Validation is JAX-only: the other backends and the PyBaMM reference are
+    # excluded for battery, not merely pending.
+    for name in (
+        "model_family.pytorch_backend",
+        "model_family.julia_backend",
+        "training_data.label_method",
+        "hybrid.reference_solver_reuse",
+        "model_family.pretrained_weights",
+        "training_data.submitted_datasets",
+        "objective.loss_expressions",
+        "hybrid.composition_graphs",
+        "inference.final_label_selection",
+    ):
+        assert statuses[name] is r.Status.EXCLUDED, name
+    # Every research-only battery entry says why.
+    for c in r.contract(BATTERY).capabilities:
+        if c.status is r.Status.RESEARCH_ONLY:
+            assert len(c.summary) > 20, c.capability_id
+
+
+def test_a_realized_id_is_not_also_registered():
+    item = r.contract(BATTERY)
+    lion = r.Capability(
+        "optimizer.lion",
+        r.Dimension.OPTIMIZER,
+        "Lion",
+        r.Status.RESEARCH_ONLY,
+        r.Blocker.ENGINEERING,
+    )
+    with pytest.raises(ValueError):
+        replace(item, capabilities=item.capabilities + (lion,))
+    with pytest.raises(ValueError):  # only a rebuildable entry realizes
+        r.Capability(
+            "optimizer.example",
+            r.Dimension.OPTIMIZER,
+            "x",
+            r.Status.RESEARCH_ONLY,
+            r.Blocker.ENGINEERING,
+            realizes=("optimizer.lion",),
+        )
+
+
+def test_check_design_answers_a_realized_capability():
+    design = {"strategy": strategy(BATTERY, "mlp"), "capabilities": ["optimizer.lion"]}
+    result = check_design(design)
+    assert result["requested"][0]["verdict"] == "supported"
+    assert result["requested"][0]["realized_by"] == "optimizer.optimizer_family"
+    burgers = check_design(
+        {"strategy": strategy(BURGERS, "fno"), "capabilities": ["optimizer.lion"]}
+    )
+    assert burgers["requested"][0]["verdict"] == "not_yet_rebuildable"
+
+
+@pytest.mark.parametrize(
+    "parameters,path",
+    [
+        ({"optimizer_family": "adafactor", "beta1": 0.8}, "beta1"),
+        ({"optimizer_family": "lion", "adam_epsilon": 1e-6}, "adam_epsilon"),
+        (
+            {"learning_rate_curve": "constant", "min_learning_rate_ratio": 0.1},
+            "min_learning_rate_ratio",
+        ),
+        ({"learning_rate_curve": "one_cycle", "warmup_steps": 10}, "warmup_steps"),
+        (
+            {"optimizer_family": "free_adamw", "learning_rate_curve": "constant"},
+            "learning_rate_curve",
+        ),
+        (
+            {"optimizer_family": "sam", "learning_rate_curve": "train_loss_plateau"},
+            "learning_rate_curve",
+        ),
+        ({"weight_decay_mask": "matrices"}, "weight_decay_mask"),
+        ({"ema_decay": 0.9}, "ema_decay"),
+        ({"inference_weights": "ema", "tail_averaging": 0.5}, "tail_averaging"),
+        ({"optimizer_family": "sam", "tail_averaging": 0.5}, "tail_averaging"),
+        ({"steps": 100, "warmup_steps": 100}, "warmup_steps"),
+        ({"steps": 100, "polish_steps": 90}, "polish_steps"),
+        ({"train_fraction": 0.5, "batch_size": 300}, "batch_size"),
+        ({"batch_size": 30, "microbatches": 4}, "microbatches"),
+    ],
+)
+def test_an_ignored_or_inconsistent_field_is_refused_by_name(parameters, path):
+    with pytest.raises(RecipeRejected) as rejected:
+        compile_recipe(strategy(BATTERY, "mlp", **parameters))
+    assert ("/parameters/" + path) in {i.path for i in rejected.value.rejected.issues}
 
 
 # --- Refused by name, in both directions. ---
@@ -145,8 +251,9 @@ def test_a_burgers_family_under_battery_is_refused_by_name_and_the_reverse():
         ("backbone.not_in_contract", "/backbone")
     }
     # A field one Challenge owns is unknown to the other.
+    # n_modes is registered for battery, as not applicable (research-only).
     assert refusals(strategy(BATTERY, "mlp", n_modes=8)) == {
-        ("parameter.unknown", "/parameters/n_modes")
+        ("parameter.not_rebuildable", "/parameters/n_modes")
     }
     assert refusals(strategy(BURGERS, "fno", ensemble_members=2)) == {
         ("parameter.unknown", "/parameters/ensemble_members")
@@ -163,8 +270,10 @@ def test_unknown_and_unrebuildable_items_are_refused_by_name():
     assert refusals(strategy(BATTERY, "uno")) == {
         ("backbone.not_in_contract", "/backbone")
     }
-    assert refusals(strategy(BATTERY, "mlp", lion=True, bogus=1)) == {
-        ("parameter.not_rebuildable", "/parameters/lion"),
+    # Lion is a value of optimizer_family for battery, not a field of its own.
+    assert refusals(strategy(BATTERY, "mlp", remat=True, lion=True, bogus=1)) == {
+        ("parameter.not_rebuildable", "/parameters/remat"),
+        ("parameter.unknown", "/parameters/lion"),
         ("parameter.unknown", "/parameters/bogus"),
     }
     assert refusals(strategy(BATTERY, "knn", width=16)) == {
@@ -257,7 +366,11 @@ def test_check_design_answers_per_challenge():
 
 jax = pytest.importorskip("jax")
 
-SMALL = {"width": 16, "depth": 1, "steps": 32}
+SMALL = {
+    "mlp": {"width": 16, "depth": 1, "steps": 32},
+    "deeponet": {"width": 16, "deeponet_depth": 1, "basis_functions": 4, "steps": 32},
+    "knn": {},
+}
 
 
 @pytest.fixture(scope="module")
@@ -271,8 +384,9 @@ def train(material):
 
 
 def fit(material, train, family="mlp", seed=0, **parameters):
-    base = dict(SMALL) if family == "mlp" else {}
-    _, recipe = compile_recipe(strategy(BATTERY, family, **{**base, **parameters}))
+    _, recipe = compile_recipe(
+        strategy(BATTERY, family, **{**SMALL[family], **parameters})
+    )
     model, stats = rebuild(recipe, material, seed, train=train)
     predictions = model.predict(material.train.x[200:208])
     return stats, predictions
@@ -285,52 +399,133 @@ def differs(a, b):
     )
 
 
-#: Two values per surface; coverage must equal the battery surface set.
-PAIRS = {
-    "neighbours": ("knn", 3, 7),
-    "width": ("mlp", 16, 24),
-    "depth": ("mlp", 1, 2),
-    "trajectory_components": ("mlp", 0, 4),
-    "arrhenius_features": ("mlp", False, True),
-    "steps": ("mlp", 32, 48),
-    "learning_rate": ("mlp", 0.002, 0.01),
-    "weight_decay": ("mlp", 0.0, 0.05),
-    "ensemble_members": ("mlp", 1, 2),
-    "bounded_voltage_head": ("mlp", True, False),
-    "ocv_initial_voltage": ("mlp", True, False),
-    "capacity_fade_head": ("mlp", True, False),
-}
+#: (surface, family, value a, value b, other fields). Every surface appears,
+#: and every value of a choice surface is compared with its default.
+CONTROLS = [
+    ("neighbours", "knn", 3, 7, {}),
+    ("train_fraction", "knn", 1.0, 0.5, {}),
+    ("width", "mlp", 16, 24, {}),
+    ("width", "deeponet", 16, 24, {}),
+    ("depth", "mlp", 1, 2, {}),
+    ("deeponet_depth", "deeponet", 1, 2, {}),
+    ("basis_functions", "deeponet", 4, 8, {}),
+    ("trajectory_components", "mlp", 0, 4, {}),
+    ("arrhenius_features", "mlp", False, True, {}),
+    ("arrhenius_features", "deeponet", False, True, {}),
+    ("bounded_voltage_head", "mlp", True, False, {}),
+    ("bounded_voltage_head", "deeponet", True, False, {}),
+    ("ocv_initial_voltage", "mlp", True, False, {}),
+    ("ocv_initial_voltage", "deeponet", True, False, {}),
+    ("capacity_fade_head", "mlp", True, False, {}),
+    ("capacity_fade_head", "deeponet", True, False, {}),
+    ("steps", "mlp", 32, 48, {}),
+    ("batch_size", "mlp", 400, 16, {}),
+    ("microbatches", "mlp", 1, 2, {"batch_size": 16}),
+    ("learning_rate", "mlp", 0.002, 0.01, {}),
+    ("weight_decay", "mlp", 0.0, 0.05, {}),
+    ("weight_decay_mask", "mlp", "all", "matrices", {"weight_decay": 0.05}),
+    ("clip_norm", "mlp", 0.0, 0.01, {}),
+    ("beta1", "mlp", 0.9, 0.5, {}),
+    ("beta2", "mlp", 0.999, 0.9, {}),
+    ("adam_epsilon", "mlp", 1e-8, 1e-3, {}),
+    ("warmup_steps", "mlp", 0, 8, {}),
+    ("min_learning_rate_ratio", "mlp", 0.0, 0.5, {}),
+    ("relative_loss", "mlp", False, True, {}),
+    ("h1_weight", "mlp", 0.0, 1.0, {}),
+    ("h2_weight", "mlp", 0.0, 1.0, {}),
+    ("spectral_weight", "mlp", 0.0, 1.0, {}),
+    ("polish_steps", "mlp", 0, 4, {}),
+    ("ensemble_members", "mlp", 1, 2, {}),
+    ("ensemble_members", "deeponet", 1, 2, {}),
+    ("tail_averaging", "mlp", 0.0, 0.5, {}),
+    ("inference_weights", "mlp", "params", "ema", {}),
+    ("ema_decay", "mlp", 0.99, 0.5, {"inference_weights": "ema"}),
+    ("precision", "mlp", "float32", "float64", {}),
+    ("train_fraction", "mlp", 1.0, 0.5, {}),
+    ("important_region_weight", "mlp", 1.0, 0.1, {}),
+    ("hard_example_weight", "mlp", 0.0, 1.0, {}),
+    # The plateau curve needs a run long and fast enough to plateau.
+    (
+        "learning_rate_curve",
+        "mlp",
+        "constant",
+        "train_loss_plateau",
+        {"steps": 200, "learning_rate": 0.05, "depth": 3},
+    ),
+]
+_DEFAULTS = {n: v[4] for n, v in r.catalog_surfaces(BATTERY).items()}
+for _name, (_, _kind, _choices, _, _default, _families) in r.catalog_surfaces(
+    BATTERY
+).items():
+    if _kind == "choice":
+        covered = {c[3] for c in CONTROLS if c[0] == _name}
+        for _value in _choices:
+            if _value != _default and _value not in covered:
+                CONTROLS.append((_name, _families[0], _default, _value, {}))
 
 
-def test_the_controls_cover_every_battery_surface():
-    assert set(PAIRS) == set(r.catalog_surfaces(BATTERY))
+def test_the_controls_cover_every_battery_surface_and_choice():
+    surfaces = r.catalog_surfaces(BATTERY)
+    assert {c[0] for c in CONTROLS} == set(surfaces)
+    for name, (_, kind, choices, _, default, _) in surfaces.items():
+        if kind == "choice":
+            tested = {c[3] for c in CONTROLS if c[0] == name} | {default}
+            assert tested == set(choices), name
 
 
-@pytest.mark.parametrize("surface", sorted(PAIRS))
-def test_every_surface_changes_what_carbon_rebuilds(material, train, surface):
-    family, a, b = PAIRS[surface]
-    assert differs(
-        fit(material, train, family, **{surface: a}),
-        fit(material, train, family, **{surface: b}),
-    )
+@pytest.mark.parametrize(
+    "surface,family,a,b,extra",
+    CONTROLS,
+    ids=[f"{c[0]}-{c[1]}-{c[3]}" for c in CONTROLS],
+)
+def test_every_surface_changes_what_carbon_rebuilds(
+    material, train, surface, family, a, b, extra
+):
+    first = fit(material, train, family, **extra, **{surface: a})
+    second = fit(material, train, family, **extra, **{surface: b})
+    assert differs(first, second)
+    assert all(np.isfinite(v).all() for v in second[1].values())
 
 
 def test_the_same_seed_gives_the_same_weights(material, train):
-    first = fit(material, train, seed=5)
-    assert not differs(first, fit(material, train, seed=5))
-    assert differs(first, fit(material, train, seed=6))
+    for family, extra in (
+        ("mlp", {}),
+        ("mlp", {"optimizer_family": "lion", "batch_size": 16}),
+        ("deeponet", {}),
+    ):
+        first = fit(material, train, family, seed=5, **extra)
+        assert not differs(first, fit(material, train, family, seed=5, **extra))
+        assert differs(first, fit(material, train, family, seed=6, **extra))
 
 
 def test_declared_initial_values_hold(material, train):
-    _, predictions = fit(material, train)
     x = material.train.x[200:208]
-    assert np.array_equal(predictions["t"][:, 0], x[:, 2])
     ocv = np.interp(x[:, 3], material.ocv_soc, material.ocv_v)
-    assert np.array_equal(predictions["v"][:, 0], ocv)
-    assert predictions["v"].shape == (8, ch.GRID_POINTS)
-    assert predictions["q"].shape == (8, len(ch.CAPACITY_CYCLES))
-    # The bounded head can never exceed the cycler limit; nothing is clamped.
-    assert (predictions["v"] <= ch.V_MAX).all()
+    for family in ("mlp", "deeponet"):
+        _, predictions = fit(material, train, family)
+        assert np.array_equal(predictions["t"][:, 0], x[:, 2])
+        assert np.array_equal(predictions["v"][:, 0], ocv)
+        assert predictions["v"].shape == (8, ch.GRID_POINTS)
+        assert predictions["q"].shape == (8, len(ch.CAPACITY_CYCLES))
+        # The bounded head can never exceed the cycler limit; nothing is clamped.
+        assert (predictions["v"] <= ch.V_MAX).all()
+
+
+def test_the_important_region_is_the_published_one(material):
+    import gzip
+    import json
+
+    from scripts.dev.exam_design import scoring
+
+    body = gzip.decompress(Path(ch.TRAIN_V1_PATH).read_bytes())
+    records = [json.loads(line) for line in body.splitlines() if line.strip()]
+    assert (ch.PLATING_BAND_V, ch.T_IMPORTANT_C) == (
+        scoring.PLATING_BAND_V,
+        scoring.T_IMPORTANT_C,
+    )
+    expected = [scoring.is_important(rec) for rec in records]
+    assert list(material.train.important) == expected
+    assert 0 < sum(expected) < len(expected)
 
 
 def test_promoted_recipes_match_the_campaign_recipes_bit_for_bit(material, train):
@@ -338,7 +533,13 @@ def test_promoted_recipes_match_the_campaign_recipes_bit_for_bit(material, train
     from scripts.dev.exam_design import recipes as research
 
     data = research.Data(
-        train.x, train.v, train.t, train.eta, train.q, np.zeros(48, bool), []
+        train.x,
+        train.v,
+        train.t,
+        train.eta,
+        train.q,
+        train.important,
+        list(train.case_ids),
     )
     structure = research.Structure(material.ocv_soc, material.ocv_v)
     x = material.train.x[200:208]
@@ -360,6 +561,16 @@ def test_promoted_recipes_match_the_campaign_recipes_bit_for_bit(material, train
             {"bounded_voltage_head": False},
         ),
         (
+            research.MLP("mlp_localized", 16, 1, 32, 0.002, important_weight=0.1),
+            "mlp",
+            {"important_region_weight": 0.1},
+        ),
+        (
+            research.MLP("mlp_half", 16, 1, 32, 0.002, train_fraction=0.5),
+            "mlp",
+            {"train_fraction": 0.5},
+        ),
+        (
             research.Ensemble(
                 "mlp_ens3", {"width": 16, "depth": 1, "steps": 48, "lr": 0.002}, 3
             ),
@@ -370,7 +581,7 @@ def test_promoted_recipes_match_the_campaign_recipes_bit_for_bit(material, train
     for model, family, parameters in cases:
         stats = model.fit(data, structure, seed=2)
         ours, predictions = fit(material, train, family, seed=2, **parameters)
-        assert ours["params_sha256"] == stats["params_sha256"], family
+        assert ours["params_sha256"] == stats["params_sha256"], model.name
         theirs = model.predict(x)
         assert all(np.array_equal(theirs[k], predictions[k]) for k in theirs)
 

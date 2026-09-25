@@ -65,9 +65,21 @@ def digest(value):
     return "sha256:" + hashlib.sha256(value).hexdigest()
 
 
+#: Every module whose bytes determine what a battery recipe rebuilds.
+IMPLEMENTATION_MODULES = ("recipes.py", "training.py")
+
+
 def implementation_digest():
     """The exact bytes of Carbon's battery recipe implementation."""
-    return digest((Path(__file__).parent / "recipes.py").read_bytes())
+    here = Path(__file__).parent
+    return digest(
+        canonical(
+            {
+                name: digest((here / name).read_bytes())
+                for name in IMPLEMENTATION_MODULES
+            }
+        )
+    )
 
 
 def profile_document():

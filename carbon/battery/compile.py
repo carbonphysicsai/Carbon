@@ -15,7 +15,7 @@ from carbon.construction.compiler import CompileAccepted, CompileRejected
 from carbon.construction.model import SelectedSurface
 from carbon.development_session.research_catalog import RecipeRejected, _issue
 
-from .challenge import CHALLENGE
+from .challenge import CHALLENGE, TRAIN_V1_CASES
 from .contracts import battery_contracts, canonical, digest
 from .recipes import KNN, MLP, Ensemble, Structure
 
@@ -55,23 +55,84 @@ class BatteryRecipe:
         return digest(canonical(self.document()))
 
 
-def rebuild_issues(family, values):
+#: The optimizer hyperparameters each optimizer family consumes.
+USES = {
+    "adam": {"beta1", "beta2", "adam_epsilon"},
+    "lion": {"beta1", "beta2"},
+    "lamb": {"beta1", "beta2", "adam_epsilon"},
+    "adafactor": set(),
+    "radam": {"beta1", "beta2", "adam_epsilon"},
+    "nadamw": {"beta1", "beta2", "adam_epsilon"},
+    "sgd_momentum": {"beta1"},
+    "muon": {"beta1", "adam_epsilon"},
+    "prodigy": {"beta1", "beta2", "adam_epsilon"},
+    "free_adamw": {"beta1", "beta2", "adam_epsilon"},
+    "sam": {"beta1", "beta2", "adam_epsilon"},
+}
+#: Curves whose final rate `min_learning_rate_ratio` sets.
+FLOORED = {"cosine", "exponential", "polynomial"}
+
+
+def rebuild_issues(family, values, supplied):
     """Backend rules beyond B-02B's closed tables, each naming its field.
 
-    Every battery surface changes what is rebuilt at every value in its range,
-    so no supplied field can be silently ignored; only the ensemble's split of
-    the step budget needs a rule.
+    A supplied field must change what Carbon rebuilds; one the rest of the
+    recipe would ignore is refused by name, never silently accepted.
     """
     issues = []
-    if family == "mlp":
-        members = values["ensemble_members"]
-        # Members split the step budget exactly; a remainder would be dropped.
-        if values["steps"] % members:
-            issues.append(
-                _issue("parameter.dependency_unsatisfied", "ensemble_members")
-            )
-        elif values["steps"] // members < MIN_MEMBER_STEPS:
-            issues.append(_issue("parameter.dependency_unsatisfied", "steps"))
+
+    def refuse(code, field):
+        issues.append(_issue(code, field))
+
+    if family == "knn":
+        return ()
+    v = values
+    members = v["ensemble_members"]
+    # Members split the step budget exactly; a remainder would be dropped.
+    if v["steps"] % members:
+        refuse("parameter.dependency_unsatisfied", "ensemble_members")
+        return tuple(issues)
+    member_steps = v["steps"] // members
+    main = member_steps - v["polish_steps"]
+    if member_steps < MIN_MEMBER_STEPS:
+        refuse("parameter.dependency_unsatisfied", "steps")
+    elif main < MIN_MEMBER_STEPS:
+        refuse("parameter.dependency_unsatisfied", "polish_steps")
+    if v["warmup_steps"] and v["warmup_steps"] >= main:
+        refuse("parameter.dependency_unsatisfied", "warmup_steps")
+    optimizer, curve = v["optimizer_family"], v["learning_rate_curve"]
+    for field in sorted({"beta1", "beta2", "adam_epsilon"} - USES[optimizer]):
+        if field in supplied:
+            refuse("parameter.dependency_unsatisfied", field)
+    if "min_learning_rate_ratio" in supplied and curve not in FLOORED:
+        refuse("parameter.dependency_unsatisfied", "min_learning_rate_ratio")
+    if "warmup_steps" in supplied and curve == "one_cycle":
+        refuse("parameter.dependency_unsatisfied", "warmup_steps")
+    if "learning_rate_curve" in supplied and optimizer == "free_adamw":
+        refuse("parameter.dependency_unsatisfied", "learning_rate_curve")
+    # SAM alternates adversarial and true updates; a TRAIN-loss plateau
+    # measured across both is not a plateau of the model being trained.
+    if optimizer == "sam" and curve == "train_loss_plateau":
+        refuse("parameter.dependency_unsatisfied", "learning_rate_curve")
+    if "weight_decay_mask" in supplied and v["weight_decay"] == 0:
+        refuse("parameter.dependency_unsatisfied", "weight_decay_mask")
+    ema = v["inference_weights"] == "ema"
+    if "ema_decay" in supplied and not ema:
+        refuse("parameter.dependency_unsatisfied", "ema_decay")
+    if v["tail_averaging"] and ema:
+        refuse("parameter.dependency_unsatisfied", "tail_averaging")
+    # SAM's adversarial updates and schedule-free's evaluation point are not
+    # the iterates an average should see.
+    if optimizer in ("sam", "free_adamw") and (ema or v["tail_averaging"]):
+        refuse(
+            "parameter.dependency_unsatisfied",
+            "inference_weights" if ema else "tail_averaging",
+        )
+    cases = int(TRAIN_V1_CASES * v["train_fraction"])
+    if "batch_size" in supplied and v["batch_size"] > cases:
+        refuse("parameter.domain_mismatch", "batch_size")
+    if min(v["batch_size"], cases) % v["microbatches"]:
+        refuse("parameter.dependency_unsatisfied", "microbatches")
     return tuple(issues)
 
 
@@ -97,7 +158,7 @@ def compile_recipe(strategy, *, contracts=None):
         for s in plan.resolved_surfaces
         if type(s) is SelectedSurface and s.surface_id != "strategy_backbone"
     )
-    issues = rebuild_issues(family, values)
+    issues = rebuild_issues(family, values, supplied)
     if issues:
         raise RecipeRejected(CompileRejected(issues))
     recipe = BatteryRecipe(
@@ -116,25 +177,10 @@ def build_model(recipe):
         raise TypeError("a compiled BatteryRecipe is required")
     s = recipe.settings
     if recipe.family == "knn":
-        return KNN(s["neighbours"])
-    member = {
-        k: s[k]
-        for k in (
-            "width",
-            "depth",
-            "steps",
-            "learning_rate",
-            "weight_decay",
-            "arrhenius_features",
-            "trajectory_components",
-            "bounded_voltage_head",
-            "ocv_initial_voltage",
-            "capacity_fade_head",
-        )
-    }
+        return KNN(s["neighbours"], s["train_fraction"])
     if s["ensemble_members"] == 1:
-        return MLP(**member)
-    return Ensemble(s["ensemble_members"], **member)
+        return MLP(recipe.family, s)
+    return Ensemble(s["ensemble_members"], recipe.family, s)
 
 
 def rebuild(recipe, material, seed, *, train=None):

@@ -51,6 +51,20 @@ TRAIN_V1_PATH = (
 )
 
 
+#: The published important region (provisional DEVELOPMENT values, OD-2): a
+#: reference plating margin within 5 mV of zero, or a reference peak
+#: temperature of at least 55 C. It is defined from reference data alone.
+PLATING_BAND_V = 0.005
+T_IMPORTANT_C = 55.0
+
+
+def is_important(record):
+    return (
+        abs(record["outputs"]["plating_margin_v"]) <= PLATING_BAND_V
+        or record.get("diagnostics", {}).get("t_max_c", -1e9) >= T_IMPORTANT_C
+    )
+
+
 class MaterialMismatch(ValueError):
     """Public material whose bytes are not the pinned bytes."""
 
@@ -72,6 +86,8 @@ class TrainingData:
     eta: np.ndarray  # (n,)
     q: np.ndarray  # (n, K)
     case_ids: tuple[str, ...]
+    #: Each TRAIN case's membership of the published important region.
+    important: np.ndarray  # (n,) bool
 
     @staticmethod
     def from_records(records):
@@ -83,18 +99,25 @@ class TrainingData:
             np.array([o["plating_margin_v"] for o in outputs]),
             np.array([o["capacity_ah"] for o in outputs]),
             tuple(r["case_id"] for r in records),
+            np.array([is_important(r) for r in records], bool),
+        )
+
+    def take(self, index):
+        """The cases at `index`, in that order."""
+        index = np.asarray(index)
+        return TrainingData(
+            self.x[index],
+            self.v[index],
+            self.t[index],
+            self.eta[index],
+            self.q[index],
+            tuple(self.case_ids[i] for i in index),
+            self.important[index],
         )
 
     def subset(self, count):
         """The first `count` cases: for bounded tests and diagnostics only."""
-        return TrainingData(
-            self.x[:count],
-            self.v[:count],
-            self.t[:count],
-            self.eta[:count],
-            self.q[:count],
-            self.case_ids[:count],
-        )
+        return self.take(np.arange(count))
 
 
 @dataclass(frozen=True)

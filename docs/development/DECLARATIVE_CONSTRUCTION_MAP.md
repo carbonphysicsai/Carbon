@@ -79,13 +79,43 @@ A family rebuildable for one Challenge is not thereby rebuildable for another.
     direction. The GPU catalog moves to v2. GPU hardware acceptance of the
     added families is not claimed.
 - **`battery-fastcharge-ageing-development-v1`** (identity
-  `carbon.battery-fastcharge-ageing-development.v1`) rebuilds these, in
-  `carbon/battery/`:
+  `carbon.battery-fastcharge-ageing-development.v1`) is implemented in
+  `carbon/battery/`. For research time (OWNER-BATTERY-TESTNET-02) it answers
+  every one of the review's 92 capabilities. Each is either its own entry or
+  realized by a battery field (`Capability.realizes`).
 
-| Family | Surfaces |
+| Group | Battery surfaces |
 |---|---|
-| `knn` | `neighbours` |
-| `mlp` | `width`, `depth`, `trajectory_components`, `arrhenius_features`, `steps`, `learning_rate`, `weight_decay`, `ensemble_members`, and the declared choices `bounded_voltage_head`, `ocv_initial_voltage`, `capacity_fade_head` |
+| Families | `knn`, `mlp`, `deeponet` (branch over the four inputs, trunk over the 30 s grid) |
+| Architecture | `neighbours`, `width`, `depth`, `deeponet_depth`, `basis_functions`, `trajectory_components`, `arrhenius_features`, `activation`, `normalization`, `initialization` |
+| Declared construction choices | `bounded_voltage_head`, `ocv_initial_voltage`, `capacity_fade_head` |
+| Optimizer | `optimizer_family` (adam, lion, lamb, adafactor, radam, nadamw, sgd_momentum, muon, prodigy, free_adamw, sam), `learning_rate`, `weight_decay`, `weight_decay_mask`, `clip_norm`, `beta1`, `beta2`, `adam_epsilon` |
+| Learning-rate curve | `learning_rate_curve` (cosine, constant, piecewise, exponential, one_cycle, sgdr, polynomial, train_loss_plateau), `warmup_steps`, `min_learning_rate_ratio` |
+| Batching | `steps`, `batch_size`, `microbatches` |
+| Objective | `relative_loss`, `time_weighting`, `h1_weight`, `h2_weight`, `spectral_weight` |
+| Stages and inference | `polish_steps` (L-BFGS, from the budget), `ensemble_members`, `tail_averaging`, `inference_weights`, `ema_decay`, `precision` |
+| Training data (TRAIN v1 only) | `train_fraction`, `important_region_weight`, `curriculum`, `hard_example_weight` |
+
+The campaign's recipes are bit-identical to the research recipes. Every other
+setting trains through `carbon/battery/training.py`. It uses JAX and the
+pinned optax: validation is JAX-only.
+
+**Research-only for battery, with reasons:**
+- the grid operators (FNO, Transolver, Haar, GNO, GINO) and their fields;
+- the foundax field and point models;
+- remat;
+- the PDE residual and its warmup;
+- enforce-mean;
+- exact-symmetry augmentation;
+- rollout, structure layers, and solver and symbolic templates, which are not
+  designed for battery yet.
+
+**Owner-gated:** support-leaving augmentation and 2D/3D.
+
+**Excluded:**
+- PyTorch and Julia backends, per-submission labels and PyBaMM reuse, because
+  validation is JAX-only;
+- the five items the declarative rule excludes.
 
 Admission for every Challenge runs through `challenge_contracts.py`:
 - `validate_for_challenge` names each refusal;
@@ -93,19 +123,6 @@ Admission for every Challenge runs through `challenge_contracts.py`:
   B-02B;
 - `check_contract_digest` refuses a submission recorded against a different
   contract.
-
-**Battery applicability of the operator families** (all research-only):
-
-| Family | Assessment |
-|---|---|
-| DeepONet | Natural candidate. Needs a battery adapter: branch over the four scalar inputs, trunk over the 30 s time grid, scalar heads for plating margin and capacity. |
-| FNO, Transolver, Haar, GNO, GINO | Grid-to-grid operators over a spatial input field. Battery inputs are four scalars with no field, so no adapter is planned. |
-
-Also research-only for battery:
-- important-region weighting: owner decision (evidence design), because the
-  region is exam-owned;
-- TRAIN subsets and resolution: owner decision (comparison regime);
-- minibatching and warmup: engineering.
 
 ## Capability map
 

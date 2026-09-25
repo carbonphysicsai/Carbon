@@ -108,10 +108,19 @@ class Capability:
     #: A field's catalog surface, and the families it applies to (None = all).
     surface: Surface | None = None
     applies_to: tuple[str, ...] | None = None
+    #: Other capability ids this entry realizes in its Challenge, such as each
+    #: optimizer a choice field offers. Only a rebuildable entry realizes.
+    realizes: tuple[str, ...] = ()
 
     def __post_init__(self):
         if type(self.dimension) is not Dimension or type(self.status) is not Status:
             raise TypeError("exact Dimension and Status required")
+        if type(self.realizes) is not tuple or any(
+            type(i) is not str or not i.partition(".")[2] for i in self.realizes
+        ):
+            raise ValueError("realizes names capability ids")
+        if self.realizes and self.status is not Status.REBUILDABLE_DEVELOPMENT:
+            raise ValueError("only a rebuildable capability realizes another")
         prefix, _, name = self.capability_id.partition(".")
         if prefix != self.dimension.value or not name:
             raise ValueError("capability id is <dimension>.<name>")
@@ -158,7 +167,7 @@ def _family(name, selector, lab_kind, summary):
     )
 
 
-def _field(dimension, name, surface, summary, applies_to=None):
+def _field(dimension, name, surface, summary, applies_to=None, realizes=()):
     return Capability(
         f"{dimension.value}.{name}",
         dimension,
@@ -166,6 +175,7 @@ def _field(dimension, name, surface, summary, applies_to=None):
         Status.REBUILDABLE_DEVELOPMENT,
         surface=surface,
         applies_to=applies_to,
+        realizes=realizes,
     )
 
 
@@ -537,31 +547,118 @@ REGISTRY = (
 # a scalar plating margin and capacity at four checkpoint cycles. Bounds below
 # are engineering admission bounds, not quality or scientific claims; the
 # declared resource envelope dominates them.
-KNN, MLP = ("knn",), ("mlp",)
-
-
-def _battery_family(name, lab_kind, summary):
-    return _family(name, name, lab_kind, summary)
-
+#
+# Every capability of the construction review has a battery status: its own
+# entry, or a battery entry that realizes it. Research time (owner direction,
+# 2026-09-25): everything Carbon can rebuild in JAX is submittable; validation
+# stays JAX-only; excluded items stay excluded; Burgers is not edited.
+KNN, MLP, BDEEPONET = ("knn",), ("mlp",), ("deeponet",)
+LEARNED = MLP + BDEEPONET
 
 _GRID_OPERATOR = (
     "not applicable to battery: a grid-to-grid operator over a spatial input "
-    "field, and battery inputs are four scalars with no field; no adapter planned"
+    "field, and battery inputs are four scalars with no field"
+)
+#: Optimizer values and the review ids they realize. Schedule-free AdamW is
+#: offered as `free_adamw`: B-02B reserves the token "schedule" in construction
+#: identities.
+_OPTIMIZER_IDS = {
+    "adam": None,
+    "lion": "lion",
+    "lamb": "lamb",
+    "adafactor": "adafactor",
+    "radam": "radam",
+    "nadamw": "nadamw",
+    "sgd_momentum": "sgd_momentum",
+    "muon": "muon",
+    "prodigy": "prodigy",
+    "free_adamw": "schedule_free",
+    "sam": "sam",
+}
+_OPTIMIZERS = tuple(_OPTIMIZER_IDS)
+_CURVES = (
+    "cosine",
+    "constant",
+    "piecewise",
+    "exponential",
+    "one_cycle",
+    "sgdr",
+    "polynomial",
+    "train_loss_plateau",
 )
 
+
+def _not_applicable(dimension, name, reason):
+    return _todo(dimension, name, "not applicable to battery: " + reason)
+
+
 BATTERY_REGISTRY = (
-    _battery_family(
+    # --- Families. ---
+    _family(
+        "knn",
         "knn",
         "battery_knn",
         "Inverse-distance k-nearest-neighbour over unit-scaled inputs; "
         "V(0) from the published OCV table and T(0) = ambient",
     ),
-    _battery_family(
+    _family(
+        "mlp",
         "mlp",
         "battery_mlp",
-        "Full-batch GELU MLP with Adam(W) and cosine decay on normalized "
-        "trajectory targets; T(0) = ambient",
+        "GELU MLP on normalized trajectory targets; the campaign recipe at its "
+        "defaults (full-batch Adam(W), cosine decay); T(0) = ambient",
     ),
+    _family(
+        "deeponet",
+        "deeponet",
+        "battery_deeponet",
+        "Battery DeepONet: a branch MLP over the four inputs and a trunk MLP "
+        "over the 30 s time grid form the voltage and temperature "
+        "trajectories; the branch also heads plating margin and capacity",
+    ),
+    *(
+        _not_applicable(M, name, "a grid-to-grid operator over a spatial field")
+        for name in ("fno", "transolver", "haar_operator", "gno", "gino")
+    ),
+    _todo(
+        M,
+        "foundax_deeponet",
+        "foundax DeepONet variants over scalar inputs; Carbon's battery "
+        "DeepONet covers branch and trunk",
+    ),
+    *(
+        _not_applicable(M, name, "needs a spatial field or point-set input")
+        for name in (
+            "foundax_fno",
+            "unet1d",
+            "mgno1d",
+            "pointnet",
+            "gnot",
+            "cgptno",
+            "moegptno",
+            "geofno",
+            "pcno",
+        )
+    ),
+    _owner(
+        M,
+        "two_and_three_dimensional",
+        "2D and 3D families; needs a new Challenge",
+        Trigger.AUTHORITY_BOUNDARY,
+    ),
+    *(
+        _excluded(
+            M,
+            name,
+            summary + "; owner, 2026-09-25: validator reconstruction is JAX-only",
+            Trigger.AUTHORITY_BOUNDARY,
+        )
+        for name, summary in (
+            ("pytorch_backend", "PyTorch families (neuraloperator, PhysicsNeMo)"),
+            ("julia_backend", "Julia families (NeuralOperators.jl, NeuralPDE)"),
+        )
+    ),
+    # --- Architecture. ---
     _field(
         A,
         "neighbours",
@@ -569,8 +666,22 @@ BATTERY_REGISTRY = (
         "Neighbours averaged",
         KNN,
     ),
-    _field(A, "width", Surface("model", "uint", 8, 512, 256), "Hidden width", MLP),
+    _field(A, "width", Surface("model", "uint", 8, 512, 256), "Hidden width", LEARNED),
     _field(A, "depth", Surface("model", "uint", 1, 6, 3), "Hidden layers", MLP),
+    _field(
+        A,
+        "deeponet_depth",
+        Surface("model", "uint", 1, 6, 2),
+        "Branch and trunk hidden layers",
+        BDEEPONET,
+    ),
+    _field(
+        A,
+        "basis_functions",
+        Surface("model", "uint", 2, 64, 16),
+        "Trunk basis functions per trajectory",
+        BDEEPONET,
+    ),
     _field(
         A,
         "trajectory_components",
@@ -583,89 +694,341 @@ BATTERY_REGISTRY = (
         "arrhenius_features",
         Surface("model", "bool", None, None, False),
         "Add Arrhenius, log-rate and interaction input features",
-        MLP,
-    ),
-    _field(B, "steps", Surface("train", "uint", 16, 20000, 6000), "Updates", MLP),
-    _field(
-        O,
-        "learning_rate",
-        Surface("train", "float", 0.00001, 0.05, 0.002),
-        "Adam peak rate (cosine to zero)",
-        MLP,
+        LEARNED,
     ),
     _field(
-        O,
-        "weight_decay",
-        Surface("train", "float", 0.0, 0.1, 0.0),
-        "Decoupled decay",
-        MLP,
+        A,
+        "activation",
+        Surface(
+            "model",
+            "choice",
+            ("gelu", "relu", "tanh", "silu", "softplus"),
+            None,
+            "gelu",
+        ),
+        "Hidden-layer activation",
+        LEARNED,
+        ("architecture.activation_normalization_init",),
     ),
     _field(
-        INF,
-        "ensemble_members",
-        Surface("train", "uint", 1, 4, 1),
-        "Members sharing the step budget equally",
-        MLP,
+        A,
+        "normalization",
+        Surface("model", "choice", ("none", "layer_norm"), None, "none"),
+        "Normalization after each hidden layer",
+        LEARNED,
+        ("architecture.activation_normalization_init",),
     ),
+    _field(
+        A,
+        "initialization",
+        Surface(
+            "model",
+            "choice",
+            ("he_normal", "glorot_normal", "lecun_normal"),
+            None,
+            "he_normal",
+        ),
+        "Weight initialization",
+        LEARNED,
+        ("architecture.activation_normalization_init",),
+    ),
+    *(
+        _not_applicable(A, name, "a field of the grid operator families")
+        for name in (
+            "n_modes",
+            "branch_points",
+            "heads",
+            "slices",
+            "expansion",
+            "wavelet_levels",
+            "neighborhood_radius",
+            "latent_points",
+        )
+    ),
+    _not_applicable(
+        A,
+        "remat",
+        "rematerialization trades memory for time without changing the model, "
+        "and battery networks fit in memory",
+    ),
+    # --- Physical structure (declared construction choices). ---
     _field(
         P,
         "bounded_voltage_head",
         Surface("task", "bool", None, None, True),
         "Voltage head that cannot exceed the 4.2 V cycler limit (off: the raw control)",
-        MLP,
+        LEARNED,
     ),
     _field(
         P,
         "ocv_initial_voltage",
         Surface("task", "bool", None, None, True),
         "V(0) from the published OCV table (off: predicted)",
-        MLP,
+        LEARNED,
+        ("physical_structure.hard_initial_condition",),
     ),
     _field(
         P,
         "capacity_fade_head",
         Surface("task", "bool", None, None, True),
         "Capacity as cycle-1 capacity plus fade (off: each checkpoint directly)",
-        MLP,
+        LEARNED,
     ),
-    # --- Applicability of the operator families (M1 assessment). ---
+    _not_applicable(P, "enforce_mean", "battery outputs have no conserved mean"),
     _todo(
-        M,
-        "deeponet",
-        "needs a battery adapter: branch over the four scalar inputs, trunk over "
-        "the 30 s time grid, scalar heads for plating margin and capacity",
+        P,
+        "structure_layers",
+        "battery structure layers (for example monotone fade or a bounded "
+        "temperature rise) are not designed yet",
     ),
-    *(
-        _todo(M, name, _GRID_OPERATOR)
-        for name in ("fno", "transolver", "haar_operator", "gno", "gino")
+    # --- Batching. ---
+    _field(B, "steps", Surface("train", "uint", 16, 20000, 6000), "Updates", LEARNED),
+    _field(
+        B,
+        "batch_size",
+        Surface("train", "uint", 8, 400, 400),
+        "Cases per update (at or above the TRAIN cases: full batch)",
+        LEARNED,
     ),
-    _todo(B, "minibatch", "Minibatch updates; the recipe trains full-batch"),
-    *(
-        _todo(O, name, summary)
-        for name, summary in (
-            ("lion", "Lion (sign-momentum) optimizer"),
-            ("sgd_momentum", "SGD with momentum"),
-        )
+    _field(
+        B,
+        "microbatches",
+        Surface("train", "uint", 1, 8, 1),
+        "Gradient accumulation within a batch",
+        LEARNED,
     ),
-    _todo(S, "warmup_steps", "Linear warmup before the cosine decay"),
-    _owner(
-        T,
-        "important_region_weighting",
-        "Down- or up-weighting TRAIN cases by the exam's important region",
+    # --- Optimizer. ---
+    _field(
+        O,
+        "optimizer_family",
+        Surface("train", "choice", _OPTIMIZERS, None, "adam"),
+        "Optimizer (adam: the campaign's written-out Adam(W); others: optax)",
+        LEARNED,
+        tuple("optimizer." + i for i in _OPTIMIZER_IDS.values() if i),
+    ),
+    _field(
+        O,
+        "learning_rate",
+        Surface("train", "float", 0.00001, 0.05, 0.002),
+        "Peak learning rate",
+        LEARNED,
+    ),
+    _field(
+        O,
+        "weight_decay",
+        Surface("train", "float", 0.0, 0.1, 0.0),
+        "Decoupled decay",
+        LEARNED,
+    ),
+    _field(
+        O,
+        "weight_decay_mask",
+        Surface("train", "choice", ("all", "matrices"), None, "all"),
+        "Decay every parameter, or weight matrices only",
+        LEARNED,
+    ),
+    _field(
+        O,
+        "clip_norm",
+        Surface("train", "float", 0.0, 100.0, 0.0),
+        "Global-norm clipping (0: none)",
+        LEARNED,
+    ),
+    _field(O, "beta1", Surface("train", "float", 0.0, 0.9999, 0.9), "Beta1", LEARNED),
+    _field(
+        O, "beta2", Surface("train", "float", 0.0, 0.99999, 0.999), "Beta2", LEARNED
+    ),
+    _field(
+        O,
+        "adam_epsilon",
+        Surface("train", "float", 1e-12, 0.01, 1e-8),
+        "Adam-family epsilon",
+        LEARNED,
+    ),
+    # --- Schedule. ---
+    _field(
+        S,
+        "learning_rate_curve",
+        Surface("train", "choice", _CURVES, None, "cosine"),
+        "Learning-rate curve over the updates",
+        LEARNED,
+        tuple("schedule." + name for name in _CURVES[1:]),
+    ),
+    _field(
+        S,
+        "warmup_steps",
+        Surface("train", "uint", 0, 20000, 0),
+        "Linear warmup",
+        LEARNED,
+    ),
+    _field(
+        S,
+        "min_learning_rate_ratio",
+        Surface("train", "float", 0.0, 1.0, 0.0),
+        "Final rate as a fraction of the peak (cosine, exponential, polynomial)",
+        LEARNED,
+    ),
+    # --- Objective. ---
+    _field(
+        J,
+        "relative_loss",
+        Surface("train", "bool", None, None, False),
+        "Divide each case's error by its target energy",
+        LEARNED,
+    ),
+    _field(
+        J,
+        "time_weighting",
+        Surface("train", "choice", ("uniform", "early", "late"), None, "uniform"),
+        "Extra trajectory error weighted toward early or late times",
+        LEARNED,
+    ),
+    _field(
+        J,
+        "h1_weight",
+        Surface("train", "float", 0.0, 10.0, 0.0),
+        "First time-derivative error of the trajectories",
+        LEARNED,
+    ),
+    _field(
+        J,
+        "h2_weight",
+        Surface("train", "float", 0.0, 10.0, 0.0),
+        "Second time-derivative error of the trajectories",
+        LEARNED,
+        ("objective.sobolev",),
+    ),
+    _field(
+        J,
+        "spectral_weight",
+        Surface("train", "float", 0.0, 10.0, 0.0),
+        "Frequency-weighted trajectory error (higher frequencies weigh more)",
+        LEARNED,
+        ("objective.spectral_weighting",),
+    ),
+    _not_applicable(
+        J,
+        "pde_weight",
+        "no candidate-side governing equation is registered for the DFN model",
+    ),
+    _not_applicable(
+        ST,
+        "physics_warmup_steps",
+        "it ramps a PDE residual battery does not have",
+    ),
+    # --- Stages. ---
+    _field(
+        ST,
+        "polish_steps",
+        Surface("train", "uint", 0, 2000, 0),
+        "Final L-BFGS steps, taken from the step budget",
+        LEARNED,
+        ("stages.explicit_stages",),
+    ),
+    # --- Inference. ---
+    _field(
+        INF,
+        "ensemble_members",
+        Surface("train", "uint", 1, 4, 1),
+        "Members sharing the step budget equally",
+        LEARNED,
+        ("inference.ensembles",),
+    ),
+    _field(
+        INF,
+        "tail_averaging",
+        Surface("train", "float", 0.0, 0.9, 0.0),
+        "Average parameters over this final fraction of the updates",
+        LEARNED,
+        ("inference.weight_averaging",),
+    ),
+    _field(
+        INF,
+        "inference_weights",
+        Surface("train", "choice", ("params", "ema"), None, "params"),
+        "Predict from params or EMA",
+        LEARNED,
+    ),
+    _field(
+        INF,
+        "ema_decay",
+        Surface("train", "float", 0.0, 0.99999, 0.99),
+        "EMA decay (with EMA inference)",
+        LEARNED,
+    ),
+    _field(
+        INF,
+        "precision",
+        Surface("train", "choice", ("float32", "float64"), None, "float32"),
+        "Training and prediction precision",
+        LEARNED,
+    ),
+    _excluded(
+        INF,
+        "final_label_selection",
+        "Checkpoint selection by final labels",
         Trigger.EVIDENCE_DESIGN,
     ),
+    _todo(
+        PR,
+        "rollout",
+        "a learned time-stepper over the 30 s grid with rollout training; not "
+        "designed for battery yet",
+    ),
+    # --- Training data (TRAIN v1 only; Carbon's reconstruction randomness). ---
+    _field(
+        T,
+        "train_fraction",
+        Surface("train", "float", 0.1, 1.0, 1.0),
+        "Seeded subset of TRAIN v1; resolution and new cases stay fixed",
+        None,
+        ("training_data.case_count_and_resolution",),
+    ),
+    _field(
+        T,
+        "important_region_weight",
+        Surface("train", "float", 0.0, 10.0, 1.0),
+        "Weight of TRAIN cases in the published important region",
+        LEARNED,
+    ),
+    _field(
+        T,
+        "curriculum",
+        Surface(
+            "train",
+            "choice",
+            ("none", "low_rate_first", "high_rate_first"),
+            None,
+            "none",
+        ),
+        "Admit TRAIN cases by charge rate over the first half of training",
+        LEARNED,
+    ),
+    _field(
+        T,
+        "hard_example_weight",
+        Surface("train", "float", 0.0, 4.0, 0.0),
+        "Up-weight cases with high current TRAIN loss (exponent)",
+        LEARNED,
+        ("training_data.hard_example_sampling",),
+    ),
+    _not_applicable(
+        T,
+        "exact_symmetry_augmentation",
+        "no exact symmetry of the cycling protocol is registered",
+    ),
     _owner(
         T,
-        "case_count_and_resolution",
-        "TRAIN case count, subsets, time grid and checkpoint cycles",
+        "support_leaving_augmentation",
+        "Augmentations that leave TRAIN support",
         Trigger.COMPARISON_REGIME,
     ),
-    _owner(INF, "precision", "Precision beyond float32", Trigger.COMPARISON_REGIME),
     _excluded(
-        M,
-        "pretrained_weights",
-        "Pretrained weights, checkpoints or embeddings",
-        Trigger.EXTERNAL_STATE,
+        T,
+        "label_method",
+        "Per-submission reference labels; the reference is PyBaMM and "
+        "validation is JAX-only",
+        Trigger.EVIDENCE_DESIGN,
     ),
     _excluded(
         T,
@@ -673,17 +1036,42 @@ BATTERY_REGISTRY = (
         "Uploaded datasets or miner-chosen seeds",
         Trigger.EXTERNAL_STATE,
     ),
+    # --- Hybrid. ---
+    _todo(
+        H,
+        "candidate_solver_template",
+        "a Carbon-registered JAX cell model (for example a single-particle "
+        "model) with a learned correction; not designed yet",
+    ),
+    _todo(
+        H,
+        "symbolic_template",
+        "a registered expression template whose coefficients Carbon fits; not "
+        "designed for battery yet",
+    ),
+    _excluded(
+        H,
+        "reference_solver_reuse",
+        "Hybrids reusing the PyBaMM reference; validation is JAX-only",
+        Trigger.EVIDENCE_DESIGN,
+    ),
+    _excluded(
+        H,
+        "composition_graphs",
+        "Participant-defined composition graphs",
+        Trigger.EXECUTABLE_SUBMISSION,
+    ),
+    _excluded(
+        M,
+        "pretrained_weights",
+        "Pretrained weights, checkpoints or embeddings",
+        Trigger.EXTERNAL_STATE,
+    ),
     _excluded(
         J,
         "loss_expressions",
         "Losses supplied as code or expressions",
         Trigger.EXECUTABLE_SUBMISSION,
-    ),
-    _excluded(
-        INF,
-        "final_label_selection",
-        "Checkpoint selection by final labels",
-        Trigger.EVIDENCE_DESIGN,
     ),
 )
 
@@ -735,6 +1123,12 @@ class ChallengeContract:
         for _, lane in self.lanes:
             if not lane or not set(lane) <= families:
                 raise ValueError("a lane offers only rebuildable families")
+        # Several fields may jointly realize one grouped id (activation,
+        # normalization and initialization); an id is either registered or
+        # realized, never both.
+        realized = {i for c in self.capabilities for i in c.realizes}
+        if realized & set(ids):
+            raise ValueError("a realized id is not also registered")
 
     def document(self):
         """Everything the contract digest pins, as plain JSON data."""
@@ -768,6 +1162,7 @@ class ChallengeContract:
                         ]
                     ),
                     "applies_to": None if c.applies_to is None else list(c.applies_to),
+                    "realizes": list(c.realizes),
                 }
                 for c in self.capabilities
             ],
@@ -852,13 +1247,21 @@ def lane_families(challenge, lane):
     return dict(contract(challenge).lanes)[lane]
 
 
+def realizer(capability_id, challenge=BURGERS_CHALLENGE):
+    """The entry that registers or realizes this id in one Challenge, or None."""
+    for c in contract(challenge).capabilities:
+        if c.capability_id == capability_id or capability_id in c.realizes:
+            return c
+    return None
+
+
 def status_map(capability_id):
-    """{challenge: status} for every Challenge that registers this capability."""
+    """{challenge: status} for every Challenge that registers or realizes this
+    capability."""
     return {
-        token: c.status.value
-        for token, item in CONTRACTS.items()
-        for c in item.capabilities
-        if c.capability_id == capability_id
+        token: found.status.value
+        for token in CONTRACTS
+        if (found := realizer(capability_id, token)) is not None
     }
 
 

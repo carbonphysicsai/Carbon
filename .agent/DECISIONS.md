@@ -15422,28 +15422,58 @@ engineering choices, and none of them requires human-reserved input.
      an unknown, not-yet-rebuildable or inapplicable field.
    - `compile_submission` runs it before the one B-02B compiler and resolves
      only that Challenge's catalog.
-5. **D5: the battery vocabulary.**
-   - **Families:** `knn` and `mlp`, promoted from the campaign recipes (KEEP the
-     math). A test holds them bit-identical to the research recipes.
-   - **Surfaces:** `neighbours`, `width`, `depth`, `trajectory_components`,
-     `arrhenius_features`, `steps`, `learning_rate`, `weight_decay` and
-     `ensemble_members`. The declared construction choices
-     `bounded_voltage_head` (off is the `mlp_raw` control),
-     `ocv_initial_voltage` and `capacity_fade_head` are surfaces too.
-   - **Research-only:**
-     - the research recipe's important-region weighting (owner: evidence
-       design, because the region is exam-owned);
-     - TRAIN subsets (owner: comparison regime);
-     - minibatching and warmup (engineering);
-     - DeepONet, which needs a battery adapter;
-     - FNO, Transolver, Haar, GNO and GINO, which are not applicable because
-       battery has no spatial input field.
-   - **Budget:** the ensemble splits the step budget exactly and is refused by
-     name otherwise. Bounds are engineering admission bounds. The declared
-     worker envelope dominates them.
-   - **B-02B change:** its training-control exception is now one shared table
-     (`REGISTERED_TRAINING_CONTROLS`) that the catalog and the resolved plan
-     both read. It registers battery `weight_decay` alone.
+5. **D5: the battery vocabulary (research time, OWNER-BATTERY-TESTNET-02).**
+   - **Coverage.** Every one of the 92 capabilities in the construction review
+     has a battery status. It has either its own entry or a battery entry that
+     `realizes` it: the optimizer and curve choices realize each
+     `optimizer.*` and `schedule.*` id.
+   - **Rebuildable in DEVELOPMENT (49 review ids):**
+     - **Families:** `knn`, `mlp` and the battery DeepONet (a branch over the
+       four inputs and a trunk over the 30 s grid).
+     - **Architecture:** width, depth, DeepONet depth, basis functions, PCA
+       heads, Arrhenius features, activation, normalization and
+       initialization.
+     - **Declared construction choices:** the bounded voltage head, the OCV
+       start voltage and capacity as fade.
+     - **Optimizers:** all eleven (the written-out Adam(W) plus ten optax
+       families; schedule-free AdamW is offered as `free_adamw` because B-02B
+       reserves the token "schedule"), with decay mask, clipping, betas and
+       epsilon.
+     - **Learning-rate curves:** all eight, with warmup and floor.
+     - **Batching:** minibatch and gradient accumulation.
+     - **Losses:** relative, time-weighted, first and second time derivative,
+       and spectral.
+     - **Stages and averaging:** an L-BFGS polish taken from the step budget;
+       ensembles; tail averaging; EMA; float64.
+     - **Training data:** TRAIN subsets, important-region weighting,
+       curriculum and hard-example weighting, all on TRAIN v1 only with
+       Carbon's randomness.
+   - **Research-only, with the reason recorded:**
+     - the grid operators and foundax field or point models, which need a
+       spatial field;
+     - the grid-family fields and remat;
+     - the PDE residual and its warmup;
+     - enforce-mean;
+     - exact-symmetry augmentation;
+     - rollout, structure layers, and solver and symbolic templates, which are
+       not designed for battery yet;
+     - support-leaving augmentation and 2D/3D (owner triggers).
+   - **Excluded (9):**
+     - PyTorch and Julia backends, per-submission labels and PyBaMM reuse,
+       because validation is JAX-only;
+     - the five items the declarative rule excludes.
+   - **Math.** The campaign's recipes stay bit-identical to
+     `scripts/dev/exam_design/recipes.py`, including the localized, half-TRAIN
+     and ensemble variants. Every other setting trains through
+     `carbon/battery/training.py`.
+   - **Named refusals.** A supplied field the rest of the recipe would ignore
+     or contradict is refused by name. For example: betas the optimizer does
+     not use, a floor on a curve without one, a mask with zero decay, EMA
+     decay without EMA inference, averaging with SAM or schedule-free, a
+     warmup or polish that consumes the budget, and a batch the microbatches
+     do not divide.
+   - **B-02B change.** Its training-control table registers the battery
+     consumer's `weight`-named controls.
 6. **D6: contract digest.**
    - **Recorded:** by check-design (`contract`) and in every frozen-candidate
      record (`contract_digest`).
@@ -15453,3 +15483,37 @@ engineering choices, and none of them requires human-reserved input.
    - **Public material:** the OCV table and TRAIN v1 are pinned by their exact
      bytes and refused by name on mismatch. Packaging them into the validator
      image is M4.
+
+## 2026-09-25 — OWNER-BATTERY-TESTNET-02: battery research vocabulary
+
+**Authority.** The owner, in session on 2026-09-25, after reviewing the
+construction capability review:
+
+- "This is research time": include the reviewed capabilities in the battery
+  construction contract.
+- "No burgers edits."
+- "Only JAX for validation."
+- "Yes on those excluded items." The executor read this as confirming that the
+  excluded items stay excluded.
+
+**What it means, as implemented (M1, PR #348):**
+- **Battery.** Every capability Carbon can rebuild in JAX is submittable for
+  the battery DEVELOPMENT Challenge. That includes the review items that were
+  owner-gated for Burgers but rebuild in JAX for battery: float64, TRAIN
+  subsets and important-region weighting.
+- **Excluded for battery:**
+  - PyTorch and Julia backends;
+  - per-submission reference labels;
+  - PyBaMM reference reuse;
+  - the five items the declarative rule excludes.
+- **Burgers.** Its vocabulary, lab and profile digests are untouched.
+- **GPU lane.** Widened separately the same day by owner direction.
+
+**Unchanged:** the exam, scoring, thresholds, comparison resources,
+qualification, security acceptance and chain authority. OD-2's values stay
+provisional DEVELOPMENT values.
+
+**Open to correction.** If "yes on those excluded items" was meant to admit
+them, that would widen the declarative rule
+(OWNER-CONSTRUCTION-DECLARATIVE-01). It needs an explicit superseding decision
+and is not implemented.

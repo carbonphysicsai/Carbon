@@ -98,7 +98,18 @@ REGISTERED_TRAINING_CONTROLS = {
     "carbon_jax_lab_train": frozenset(
         {"weight_decay", "h1_weight", "pde_weight", "inference_weights"}
     ),
-    "carbon_battery_train": frozenset({"weight_decay"}),
+    "carbon_battery_train": frozenset(
+        {
+            "weight_decay",
+            "weight_decay_mask",
+            "h1_weight",
+            "h2_weight",
+            "spectral_weight",
+            "inference_weights",
+            "important_region_weight",
+            "hard_example_weight",
+        }
+    ),
 }
 _FORBIDDEN_GRAPH_TOKENS = frozenset(
     {
