@@ -1,0 +1,40 @@
+{
+ "decision": "battery horizon",
+ "horizon_cycles": 30,
+ "checkpoints": [
+  1,
+  10,
+  20,
+  30
+ ],
+ "rule": "longest horizon whose per-case cost fits the matrix (<= ~USD 4 and <= ~6 h pod wall for ~2200 cases) and whose capacity-change signal exceeds refinement disagreement in the majority of pilot cases",
+ "evidence": {
+  "fade30_normal_vs_refined_mAh": {
+   "pilot-0010": [
+    7.23,
+    7.23
+   ],
+   "pilot-0003": [
+    7.59,
+    7.51
+   ],
+   "pilot-0009": [
+    7.26,
+    6.99
+   ],
+   "pilot-0002": [
+    7.27,
+    7.24
+   ]
+  },
+  "signal_exceeds_disagreement": "4 of 4",
+  "pilot_case_spread_fade30_mAh": [
+   5.67,
+   7.59
+  ],
+  "wall_s_40_cycles_median": 88,
+  "cost_40_cycles_h_for_2200_cases_at_7_workers": 7.6,
+  "cost_30_cycles_h": 5.7
+ },
+ "recorded_utc": "2026-09-24T20:40Z"
+}

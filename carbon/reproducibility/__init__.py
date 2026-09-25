@@ -6,6 +6,16 @@ from .canonical import (
     canonical_digest,
     canonical_payload,
 )
+from .development import (
+    DEVELOPMENT_AUTHORITY,
+    DEVELOPMENT_AUTHORITY_DIGEST,
+    DEVELOPMENT_CHALLENGE,
+    QUALIFIED_PARTS,
+    DevelopmentBitExactProcedure,
+    development_backend_profile_ref,
+    development_backend_support,
+    development_procedure,
+)
 from .enums import (
     REQUIRED_EVIDENCE_FACTORS,
     ApplicabilityStatus,
@@ -138,4 +148,13 @@ __all__ = (  # noqa: RUF022 -- public contract grouped by role
     "compare_r0",
     "compare_r1",
     "evaluate_r2",
+    # The owner's DEVELOPMENT qualification (Amendment 10); fixture-origin.
+    "DEVELOPMENT_AUTHORITY",
+    "DEVELOPMENT_AUTHORITY_DIGEST",
+    "DEVELOPMENT_CHALLENGE",
+    "QUALIFIED_PARTS",
+    "DevelopmentBitExactProcedure",
+    "development_backend_profile_ref",
+    "development_backend_support",
+    "development_procedure",
 )

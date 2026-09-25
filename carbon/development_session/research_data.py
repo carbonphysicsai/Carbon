@@ -33,6 +33,7 @@ from carbon.reference_runtime.model import (
 from .data import write_once
 from .profile import canonical, digest
 from .research_carrier import ACTIVE_TASK, _check_cancel, _numerical_lease
+from .research_catalog import RESEARCH_GRID_POINTS
 from .research_profile import document, public_cases
 
 
@@ -207,7 +208,9 @@ class PublicReferenceData:
         for value in values:
             case = decode_public_case(value)
             solution, reference = self._reference(case)
-            query = candidate_query(case, grid_points=64, intervals_per_phase=4)
+            query = candidate_query(
+                case, grid_points=RESEARCH_GRID_POINTS, intervals_per_phase=4
+            )
             initial.append(query.initial_field)
             viscosity.append(query.viscosity)
             times.append(query.requested_times)

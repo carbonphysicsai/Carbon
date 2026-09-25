@@ -1,0 +1,15 @@
+{
+  "map_ref": "SYSTEM/AGENT-EXECUTION",
+  "event_type": "evidence",
+  "event_id": "BATTERY-TESTNET-M2-01",
+  "owner_lane": "technical_lead",
+  "status": "implemented",
+  "summary": "Delivered M2 of the battery testnet track: the exam-design battery exam as reviewed Carbon modules. carbon/battery/exam.py keeps the campaign's gates, score, screening pools and frozen comparison and carries OD-2's provisional DEVELOPMENT rule; on all 2,600 retained cases for eight decision models it returns exactly what the research modules return, and every recorded verification decision (V1-V7, R1) is reproduced from the float32-retained predictions. The truth service keeps the pinned PyBaMM configuration and types every ending (OK, solver failure, timeout, FAILED_INFRA) under a wall-clock deadline and a memory bound, resuming by retrying only infrastructure failures; a reference failure is withdrawn for every model. The private-seed service replaces the container-local root: an owner-only root, the campaign's own derivation (regenerating the campaign's private cases from its revealed root), hidden duplicates with opaque ids in every private set, commit-before-use by construction and reveal only after retirement. A shadow scorer admits submissions through the battery contract and scores them on whole committed batches with an allow-listed public projection. No threshold, chain action, spend or qualification changes; the real PyBaMM solve runs only in the truth image.",
+  "primary_detail": ".agent/tickets/BATTERY-TESTNET-M2_exam_truth_seed_services.md",
+  "affects": [
+    "SYSTEM/AGENT-EXECUTION",
+    "WAVE-C/C-09"
+  ],
+  "supersedes": null,
+  "recorded_at": "2026-09-25T14:10:00Z"
+}

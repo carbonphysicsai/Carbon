@@ -10,6 +10,7 @@ exactly as it would be through the controller.
 import hashlib
 import json
 import os
+import sys
 import traceback
 from pathlib import Path
 
@@ -100,6 +101,33 @@ record = {
     "backend": jax.default_backend(),
     "devices": [str(d) for d in jax.devices()],
     "numerics": numerics_environment(),
+    # The NVML identity of the device, driver build included, as `run_on_pod.sh`
+    # read it. `compare_units.py` refuses a record without it. Absent when run
+    # some other way, which is recorded as absent rather than filled in.
+    "device_identity": (
+        json.loads(os.environ["D3_DEVICE_IDENTITY"])
+        if os.environ.get("D3_DEVICE_IDENTITY")
+        else None
+    ),
+    # What R0 compares for this session, read from the materials it ran on, so
+    # an R1 capture can be built from the record alone once the pod is gone.
+    "materials": {
+        "plan_ref": spec["plan_ref"],
+        "plan_sha256": hashlib.sha256(
+            (materials / "plan.bin").read_bytes()
+        ).hexdigest(),
+        "train_sha256": hashlib.sha256(
+            (materials / "train.npz").read_bytes()
+        ).hexdigest(),
+        "randomness_sha256": hashlib.sha256(
+            (materials / "randomness.bin").read_bytes()
+        ).hexdigest(),
+    },
+    "software": {
+        "python": sys.version.split()[0],
+        "jax": getattr(jax, "__version__", None),
+        "jaxlib": getattr(__import__("jaxlib"), "__version__", None),
+    },
     "runs": [],
 }
 
@@ -269,6 +297,13 @@ for index in range(runs):
                 positions=_traj.positions,
             )
             _np.save(target / "predictions.npy", _np.asarray(_preds))
+            # Also in the record, exactly: each float32 widened to a Python
+            # float and written as hex, which round-trips bit for bit. An R1
+            # capture is built from these after the pod - and its files - are
+            # gone, so the log carries them rather than a digest of them.
+            _flat = _np.asarray(_preds, dtype=_np.float32).ravel()
+            entry["predictions"] = [float(v).hex() for v in _flat.tolist()]
+            entry["predictions_shape"] = list(_np.asarray(_preds).shape)
         entry.update(
             {
                 "status": receipt.status.value,

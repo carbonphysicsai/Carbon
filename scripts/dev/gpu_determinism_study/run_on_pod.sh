@@ -83,7 +83,14 @@ identity="$("${PYTHON}" "${HERE}/device_identity.py" "${DEVICE_INDEX}")" || {
 UUID="$(printf '%s' "${identity}" | "${PYTHON}" -c 'import json,sys; print(json.load(sys.stdin)[0]["uuid"] or "")')"
 KIND="$(printf '%s' "${identity}" | "${PYTHON}" -c 'import json,sys; print(json.load(sys.stdin)[0]["name"] or "")')"
 [ -n "${UUID}" ] || { echo "refusing: device UUID is unreadable; absent is not a name" >&2; exit 2; }
-echo "device ${DEVICE_INDEX}: ${UUID} (${KIND})"
+# The driver build travels into the session record, because a comparison across
+# pods can only enforce matching builds if each record says which build it ran
+# under. Stage B's two hosts differed and nothing recorded it where a comparison
+# could see it. Unreadable refuses here, as it does in the stage A matrix: a build
+# that cannot be read cannot be shown to match.
+DRIVER="$(printf '%s' "${identity}" | "${PYTHON}" -c 'import json,sys; print(json.load(sys.stdin)[0].get("driver_version") or "")')"
+[ -n "${DRIVER}" ] || { echo "refusing: driver build is unreadable; it is required to be recorded and matched" >&2; exit 2; }
+echo "device ${DEVICE_INDEX}: ${UUID} (${KIND}), driver ${DRIVER}"
 
 # /tmp, not /work. In the pinned image only /tmp is writable by the nonroot user
 # the image runs as - another assumption that held on the development host and
@@ -139,6 +146,7 @@ export D3_RESULTS="${STUDY_RESULTS}/${LABEL}.json"
 export D3_LABEL="${LABEL}"
 export D3_RUNS="${RUNS}"
 export D3_DEVICE_UUID="${UUID}"
+export D3_DEVICE_IDENTITY="$(printf '%s' "${identity}" | "${PYTHON}" -c 'import json,sys; print(json.dumps(json.load(sys.stdin)[0]))')"
 
 # Checked on both conditions. An unpinned contrast run on the wrong image would
 # make the contrast meaningless, so this is not gated on PINNED.

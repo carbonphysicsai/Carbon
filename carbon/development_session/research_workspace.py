@@ -144,10 +144,20 @@ CAPABILITY_FIELDS = {
 def request_capability(ledger, *, owner, request):
     if (
         type(request) is not dict
-        or set(request) != CAPABILITY_FIELDS
+        or set(request) - {"capability"} != CAPABILITY_FIELDS
         or request["reason"] not in CAPABILITY_REASONS
     ):
         raise ValueError("closed capability request required")
+    # Optionally, the registry capability this asks for, so it counts as demand.
+    if "capability" in request:
+        from carbon.reconstruction.capability_registry import capability
+
+        try:
+            capability(request["capability"])
+        except (KeyError, TypeError):
+            raise ValueError(
+                "capability names a registry id (see the roadmap), or is omitted"
+            ) from None
     if any(type(v) is not str or not 1 <= len(v) <= 4096 for v in request.values()):
         raise ValueError("bounded capability fields required")
     record = {**request, "disposition": "investigate", "authority_granted": False}

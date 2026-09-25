@@ -22,7 +22,13 @@ _SUPPORTED_BACKBONES = frozenset(
     {
         "deeponet",
         "fno",
+        "gino",
+        "gno",
+        "haar_operator",
+        "knn",
+        "mlp",
         "physicsnemo_fno",
+        "transolver",
         "uno",
     }
 )

@@ -9,23 +9,25 @@ from __future__ import annotations
 import asyncio
 import json
 
+from carbon.reconstruction.capability_registry import contract_digest
+
 from .agent import MAX_INPUT_TOKENS, MAX_OUTPUT_TOKENS, MODEL
 from .data import write_once
-from .profile import canonical, digest
+from .profile import CHALLENGE, canonical, digest
 from .research_agent import request_model
 from .research_agent_policy import (
     AUTONOMOUS,
-    AUTONOMOUS_PROMPT,
     LEGACY,
     REMINDER,
     STOP,
     STOP_TOOL,
     binding,
+    prompt_for,
     stop_result,
 )
 from .research_catalog import compile_recipe
 from .research_guidance import effective_digest
-from .research_tools import PREFIX, PROMPT, _json, _schema, tools_for_sdk
+from .research_tools import PREFIX, _json, _schema, tools_for_sdk
 
 SELECT = "carbon_autoresearch_select_recipe"
 SELECTION_TOOL = {
@@ -41,6 +43,65 @@ SELECTION_TOOL = {
         }
     ),
 }
+
+
+def candidate_record(strategy, reason, used_feedback):
+    """The frozen-candidate record, whoever freezes it: the agent's SELECT tool
+    or a miner's own freeze. One builder, so the two cannot differ in shape."""
+    if type(reason) is not str or not 1 <= len(reason) <= 4096:
+        raise ValueError("a bounded selection reason is required")
+    if type(used_feedback) is not bool:
+        raise ValueError("used_feedback is a Boolean")
+    if type(strategy) is dict and strategy.get("challenge_id") not in (
+        None,
+        CHALLENGE.challenge_id,
+    ):
+        # Another Challenge compiles under its own contract, never Burgers'.
+        from carbon.reconstruction.challenge_contracts import compile_submission
+
+        admitted = compile_submission(strategy)
+        compiled, rebuilt = admitted.compiled, admitted.construction.recipe_digest
+    else:
+        compiled, profile = compile_recipe(strategy)
+        rebuilt = profile.profile_digest
+    return {
+        "status": "SELECTED",
+        "strategy": strategy,
+        "reason": reason,
+        "used_feedback": used_feedback,
+        "strategy_hash": compiled.construction_plan.strategy_hash.value,
+        "construction_plan_digest": compiled.construction_plan.to_ref().content_digest,
+        "reconstruction_profile_digest": rebuilt,
+        # The Challenge contract this candidate was compiled under (OD-8); a
+        # validator refuses a submission recorded against a different one.
+        "contract_digest": contract_digest(strategy["challenge_id"]),
+        "final_evidence": False,
+    }
+
+
+#: Integrity metadata a task result repeats: the retained result file keeps
+#: it; a Challenge campaign's model sees each result without it.
+MODEL_VIEW_OMITS = frozenset({"immutable_bindings", "terminal_receipt"})
+
+
+def model_view(result):
+    """A tool result as a Challenge campaign's model sees it.
+
+    The full result is retained unchanged in the epoch's result file. The
+    model's copy drops only the receipt and binding metadata listed in
+    `MODEL_VIEW_OMITS`, which task replies repeat several times and which
+    would otherwise exhaust the fixed request ceiling within a few calls. The
+    historical Burgers campaign is unchanged.
+    """
+    if type(result) is dict:
+        return {
+            key: model_view(value)
+            for key, value in result.items()
+            if key not in MODEL_VIEW_OMITS
+        }
+    if type(result) is list:
+        return [model_view(value) for value in result]
+    return result
 
 
 def _epoch_paths(ledger, epoch):
@@ -61,6 +122,7 @@ async def run_epoch(
     initial_observation,
     transport=None,
     agent_policy=LEGACY,
+    challenge=None,
 ):
     """Run once or resume completed provider/tool observations without resends.
 
@@ -68,9 +130,9 @@ async def run_epoch(
     Successfully journalled replies can be replayed without another model call.
     """
     root = _epoch_paths(ledger, epoch)
-    policy = binding(agent_policy)
+    policy = binding(agent_policy, challenge)
     autonomous = agent_policy == AUTONOMOUS
-    prompt = AUTONOMOUS_PROMPT if autonomous else PROMPT
+    prompt = prompt_for(agent_policy, challenge)
     tools = tools_for_sdk(sdk) + [SELECTION_TOOL] + ([STOP_TOOL] if autonomous else [])
     plan = {
         "schema": "carbon.autoresearch.epoch-plan.v1",
@@ -144,7 +206,7 @@ async def run_epoch(
             }
             break
         print(
-            f"Research epoch {epoch}: agent call {index+1}/48; trial slots used {trials}/{trial_limit}",
+            f"Research epoch {epoch}: agent call {index + 1}/48; trial slots used {trials}/{trial_limit}",
             flush=True,
         )
         phase_path = root / (call_id + "-admission.json")
@@ -238,18 +300,11 @@ async def run_epoch(
                     or not 1 <= len(arguments["reason"]) <= 4096
                 ):
                     raise ValueError("closed selection required")
-                strategy = _json(arguments["strategy_json"])
-                compiled, profile = compile_recipe(strategy)
-                result = {
-                    "status": "SELECTED",
-                    "strategy": strategy,
-                    "reason": arguments["reason"],
-                    "used_feedback": arguments["used_feedback"],
-                    "strategy_hash": compiled.construction_plan.strategy_hash.value,
-                    "construction_plan_digest": compiled.construction_plan.to_ref().content_digest,
-                    "reconstruction_profile_digest": profile.profile_digest,
-                    "final_evidence": False,
-                }
+                result = candidate_record(
+                    _json(arguments["strategy_json"]),
+                    arguments["reason"],
+                    arguments["used_feedback"],
+                )
                 write_once(root / "selected-recipe.json", canonical(result))
             else:
                 numerical = call["name"] == PREFIX + "start_research_task" and (
@@ -282,7 +337,9 @@ async def run_epoch(
             {
                 "type": "function_call_output",
                 "call_id": call["call_id"],
-                "output": canonical(result).decode(),
+                "output": canonical(
+                    result if challenge is None else model_view(result)
+                ).decode(),
             }
         )
     if outcome is None:

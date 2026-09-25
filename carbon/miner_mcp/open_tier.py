@@ -51,6 +51,7 @@ OPEN_TIER_CAPABILITIES = (
     "chain onboarding: requirements, status, prepare, confirm",
     "the published validator exam environment",
     "capability discovery and guidance",
+    "challenge discovery: list and describe every Challenge",
 )
 
 
@@ -59,18 +60,21 @@ class CampaignAlreadyAttached(RuntimeError):
 
 
 def create_open_tier_server(
-    *, reader=None, context=None, guard=None, sink=None, **settings
+    *, reader=None, context=None, guard=None, sink=None, host_facts=None, **settings
 ):
     """A stdio server carrying only the open tier.
 
-    `reader` and `context` are optional. Without them `requirements` still
-    answers, which is what an unregistered visitor needs first, and the reads
-    report that the operator configured no chain endpoint rather than guessing
-    one.
+    `reader` and `context` default to Carbon's own testnet - the same
+    `chain_onboarding.carbon_testnet_context` the browser door uses - so
+    `status` and `confirm` answer from public chain state on either door.
     """
     from mcp.server import MCPServer
 
     from carbon.development_session.exam_environment import exam_environment
+    from carbon.miner_mcp.mcp_challenges import (
+        make_challenge_tools,
+        register_catalog_resource,
+    )
     from carbon.miner_mcp.mcp_onboarding import make_onboarding_tools
 
     server = MCPServer(
@@ -82,11 +86,15 @@ def create_open_tier_server(
             "mnemonic, and no tool here signs: you execute registration in your "
             "own wallet tooling. Reading grants no authority."
         ),
-        tools=make_onboarding_tools(
-            reader=reader, context=context, guard=guard, sink=sink
-        ),
+        tools=[
+            *make_onboarding_tools(
+                reader=reader, context=context, guard=guard, sink=sink
+            ),
+            *make_challenge_tools(guard=guard, host_facts=host_facts),
+        ],
         **settings,
     )
+    register_catalog_resource(server, guard=guard, host_facts=host_facts)
 
     @server.resource(
         "carbon://validator/v1/exam-environment", mime_type="application/json"

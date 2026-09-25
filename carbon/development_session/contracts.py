@@ -25,6 +25,7 @@ from carbon.construction.compiler import SUPPORTED_COMPILER_IDENTITY
 from carbon.construction.refs import CONSTRUCTION_CANONICALIZATION_PROFILE
 from carbon.fees import SubmissionResourceLimits
 from carbon.reconstruction import profile as jax
+from carbon.reconstruction.capability_registry import BURGERS_CHALLENGE, lane_families
 
 from .profile import CHALLENGE, TIME_SCALE, canonical, digest, profile_document
 
@@ -252,7 +253,13 @@ class SessionContracts:
         )
 
 
-def build_contracts() -> SessionContracts:
+#: The historical session's backbones, from the registry's "session" lane. A
+#: wider catalog passes its own tuple; the default keeps this catalog's
+#: identity byte-for-byte.
+SESSION_BACKBONES = lane_families(BURGERS_CHALLENGE, "session")
+
+
+def build_contracts(backbones=SESSION_BACKBONES) -> SessionContracts:
     physical, candidate, training = authored_contracts()
     source = semantic("provenance", "prospective_session_profile")
     unqualified = FixtureAuthoringCapability().issue_origin(
@@ -327,7 +334,7 @@ def build_contracts() -> SessionContracts:
             (),
             (),
         )
-        for selector in ("fno", "deeponet")
+        for selector in backbones
     )
     backbone_target = c.ConsumerTarget("carbon_jax_lab_model", "kind")
     common = {
@@ -384,7 +391,7 @@ def build_contracts() -> SessionContracts:
             "strategy_backbone",
             backbone_target,
             c.SurfaceValueType.BACKBONE_SELECTOR,
-            c.ChoiceDomain(("fno", "deeponet")),
+            c.ChoiceDomain(tuple(backbones)),
             c.RequiredSurface(),
             top=True,
         )

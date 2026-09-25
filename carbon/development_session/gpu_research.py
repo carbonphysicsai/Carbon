@@ -43,6 +43,7 @@ from carbon.reconstruction.accelerators import (
     lane_for_role,
     miner_lane_assurance,
 )
+from carbon.reconstruction.capability_registry import BURGERS_CHALLENGE, lane_families
 from carbon.reconstruction.model import PublicTrainingArchive, ReconstructionStatus
 from carbon.reconstruction.repeats import (
     DevelopmentReplica,
@@ -71,6 +72,9 @@ from .research_data import PublicReferenceData
 from .research_profile import _context, public_cases
 
 SCHEMA = "carbon.public-gpu-reconstruction.scope.v1"
+#: The families the GPU diagnostic lane rebuilds: the registry's
+#: "gpu_diagnostic" lane, which offers every rebuildable Burgers family.
+GPU_BACKBONES = lane_families(BURGERS_CHALLENGE, "gpu_diagnostic")
 # The result body gained the miner-lane assurance label, so it is served under a
 # new version rather than under the old one. A v1 result recorded no lane and is
 # not retrospectively read as though it had; existing records stay readable and
@@ -172,7 +176,8 @@ def _observations(run):
 
 def gpu_contracts():
     """Change authoring pins before compilation, never a compiled CPU plan."""
-    old = research_contracts()
+    # The GPU lane's families, from its own registry lane.
+    old = research_contracts(GPU_BACKBONES)
     env = c.EnvironmentPin(GPU_PROFILE.profile_id, "1.0", GPU_PROFILE.digest)
     deps = old.assembly.dependency_pins + tuple(
         c.DependencyPin(*s) for s in accelerator_dependency_specs(GPU_PROFILE)
@@ -200,8 +205,10 @@ def gpu_contracts():
 
 
 def gpu_catalog():
-    value = public_catalog()
-    value["version"] = "carbon.burgers-gpu-diagnostic-recipes.v1"
+    value = public_catalog(GPU_BACKBONES)
+    # v2 offers every rebuildable family; v1 offered FNO and DeepONet only and
+    # keeps that meaning for anything recorded under it.
+    value["version"] = "carbon.burgers-gpu-diagnostic-recipes.v2"
     value["constraints"][
         -1
     ] = "existing C03 host controls, the campaign grant and the installed host device record dominate parameter bounds"

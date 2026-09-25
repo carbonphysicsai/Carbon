@@ -15,6 +15,7 @@ from contextvars import ContextVar
 
 from carbon import research
 from carbon.chain.auth import BittensorMessageSigner
+from carbon.research.model import DEVELOPMENT_WORKSPACE_ACTIONS
 from carbon.transport.models import message
 
 from .profile import CHALLENGE, canonical, digest
@@ -79,16 +80,7 @@ FIELDS = {
         "strategy_json": {"type": ["string", "null"]},
         "action": {
             "type": ["string", "null"],
-            "enum": [
-                "public_material",
-                "inventory",
-                "read_file",
-                "write_file",
-                "notebook",
-                "capability_request",
-                "run_python",
-                None,
-            ],
+            "enum": [*DEVELOPMENT_WORKSPACE_ACTIONS, None],
         },
         "arguments_json": {"type": ["string", "null"]},
         "hypothesis": STRING,
@@ -101,7 +93,7 @@ FIELDS = {
     "cancel_research_task": {"task_id": STRING},
 }
 DESCRIPTIONS = {
-    "start_research_task": "Run one real practice recipe, or a public workspace action. Set kind=practice for a registered recipe: strategy_json is the recipe, action/arguments_json=null. Set kind=workspace for every workspace action, including run_python: strategy_json=null, action names the action and arguments_json contains its JSON object. Actions: public_material {name: objective|capabilities|training_data|practice_data|reference_method}; inventory {}; read_file {name,offset,count<=4096}; write_file {name,content_base64,expected_digest}; notebook {kind:hypothesis|decision|notebook,body:object}; capability_request {request:{purpose,operation,hypothesis,public_evidence,reason,expected_benefit,estimated_cost,minimal_safe_design,verification}}; run_python {source,files:[own filenames to stage],seconds?:optional wall allowance - omit for none; no Carbon limit on time, memory, CPU or output size,hypothesis,expected_effect}. An empty files list stages no workspace files. Supervisor waits without model polling.",
+    "start_research_task": "Run one real practice recipe, or a public workspace action. Set kind=practice for a registered recipe: strategy_json is the recipe, action/arguments_json=null. Set kind=workspace for every workspace action, including run_python: strategy_json=null, action names the action and arguments_json contains its JSON object. Actions: public_material {name: objective|capabilities|training_data|practice_data|reference_method}; inventory {}; read_file {name,offset,count<=4096}; write_file {name,content_base64,expected_digest}; notebook {kind:hypothesis|decision|notebook,body:object}; capability_request {request:{purpose,operation,hypothesis,public_evidence,reason,expected_benefit,estimated_cost,minimal_safe_design,verification}}; check_design {design:{strategy:{schema_version,challenge_id,backbone,parameters},capabilities?:[registry ids]}} - can I submit this? a verdict per choice and, when every choice is rebuildable, the canonical design Carbon would rebuild; roadmap {} - every capability, what blocks it, and how many miners asked; capability_request also takes an optional capability (a registry id) to count as demand; run_python {source,files:[own filenames to stage],seconds?:optional wall allowance - omit for none; no Carbon limit on time, memory, CPU or output size,hypothesis,expected_effect}. An empty files list stages no workspace files. Supervisor waits without model polling.",
     "get_prior": "Discover prior availability; no registered prior pack in this profile.",
     "inspect_prior_alignment": "Unavailable without a registered prior pack; records capability limitation.",
 }
@@ -242,43 +234,52 @@ class ResearchMinerTools:
         )
         self.ledger, self.owner = ledger, owner
 
+    @property
+    def challenge(self):
+        """The Challenge this SDK's composition serves (Burgers historically)."""
+        return getattr(self.composition, "challenge", CHALLENGE)
+
     def _request(self, operation, args, identity):
         c = self.composition
+        # The composition's own Challenge, never a default: a battery
+        # composition's requests name battery, and the gateway refuses any
+        # request whose key differs from the one it authenticates for.
+        key = self.challenge
         support = c.discovery.info.training_support_ref
         if operation == "get_challenge_info":
-            return research.GetChallengeInfoRequest(CHALLENGE)
+            return research.GetChallengeInfoRequest(key)
         if operation == "get_interaction_manifest":
-            return research.GetInteractionManifestRequest(CHALLENGE)
+            return research.GetInteractionManifestRequest(key)
         if operation == "get_prior":
-            return research.GetPriorRequest(CHALLENGE, research.NoPriorSelector())
+            return research.GetPriorRequest(key, research.NoPriorSelector())
         if operation == "get_mock_scaffold":
-            return research.GetMockScaffoldRequest(CHALLENGE, support, None)
+            return research.GetMockScaffoldRequest(key, support, None)
         if operation == "dry_validate":
-            return research.DryValidateRequest(CHALLENGE, _json(args["strategy_json"]))
+            return research.DryValidateRequest(key, _json(args["strategy_json"]))
         if operation == "compile_strategy":
             return research.CompileStrategyRequest(
-                CHALLENGE, _json(args["strategy_json"]), support
+                key, _json(args["strategy_json"]), support
             )
         if operation == "inspect_resources":
             return research.InspectResourcesRequest(
-                CHALLENGE, _json(args["strategy_json"]), c.inspection.policy_ref
+                key, _json(args["strategy_json"]), c.inspection.policy_ref
             )
         if operation == "forecast_resources":
             return research.ForecastResourcesRequest(
-                CHALLENGE,
+                key,
                 _json(args["strategy_json"]),
                 c.inspection.policy_ref,
                 args["seconds"],
             )
         if operation == "get_research_result":
             return research.GetResearchResultRequest(
-                CHALLENGE,
+                key,
                 research.ResearchTaskId(args["task_id"]),
                 args["poll_sequence"],
             )
         if operation == "cancel_research_task":
             return research.CancelResearchTaskRequest(
-                CHALLENGE, research.ResearchTaskId(args["task_id"]), identity
+                key, research.ResearchTaskId(args["task_id"]), identity
             )
         if operation != "start_research_task":
             raise ValueError("operation requires unavailable prior")
@@ -318,7 +319,7 @@ class ResearchMinerTools:
         else:
             raise ValueError("unsupported task kind")
         return research.StartResearchTaskRequest(
-            CHALLENGE,
+            key,
             identity,
             spec,
             support,
@@ -545,7 +546,7 @@ class ResearchMinerTools:
         body = message(
             self.connection.chain_context,
             observed.snapshot_id,
-            CHALLENGE,
+            self.challenge,
             session="carbon-autoresearch",
             request=identity if transport_request_id is None else transport_request_id,
             tool=research.RESEARCH_NAMESPACE,

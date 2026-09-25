@@ -28,6 +28,7 @@ from carbon.development_session.research_tools import (
     PreDispatchRefusal,
     ResearchMinerTools,
 )
+from carbon.research.model import DEVELOPMENT_WORKSPACE_ACTIONS
 
 # Leave room for the existing SDK's "trial-attempt-" ledger identity prefix.
 _TOKEN = re.compile(r"[A-Za-z0-9._:-]{16,114}\Z", re.ASCII)
@@ -176,13 +177,7 @@ def _arguments(operation, supplied):
             args["arguments_json"] = args.pop("arguments")
         elif args["kind"] == "workspace":
             if args["strategy"] is not None or args["action"] not in (
-                "public_material",
-                "inventory",
-                "read_file",
-                "write_file",
-                "notebook",
-                "capability_request",
-                "run_python",
+                *DEVELOPMENT_WORKSPACE_ACTIONS,
                 "run_julia",
             ):
                 _invalid()

@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
-import { readFile } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
+import { readFile, realpath } from "node:fs/promises";
+import { dirname, isAbsolute, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { evaluateRelease } from "../public/release-contract.js";
 
@@ -8,6 +8,27 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(HERE, "../../..");
 const DEFAULT_PATH = resolve(HERE, "../knowledge/public-knowledge.v1.json");
 const sha256 = (bytes) => createHash("sha256").update(bytes).digest("hex");
+
+// E8: the public assistant may be grounded only in the public repository. A
+// source path that resolves outside it, by an absolute path, a `..` segment or
+// a symlink, could point at a private store holding client material, so it is
+// refused before anything is read. Contained here, a source can only ever name
+// a file that is already public.
+export const containedSourcePath = async (repoPath, root = REPO_ROOT) => {
+  if (typeof repoPath !== "string" || !repoPath || isAbsolute(repoPath)) return null;
+  const inside = (base, target) => {
+    const step = relative(base, target);
+    return step !== "" && !step.startsWith("..") && !isAbsolute(step);
+  };
+  const candidate = resolve(root, repoPath);
+  if (!inside(root, candidate)) return null;
+  try {
+    const [realRoot, realTarget] = await Promise.all([realpath(root), realpath(candidate)]);
+    return inside(realRoot, realTarget) ? realTarget : null;
+  } catch {
+    return null;
+  }
+};
 
 // Reviewed thresholds, not flags. An expiry exists to force a content review, and
 // the runtime only notices once it has passed, when the card simply stops
@@ -47,8 +68,13 @@ export const validateKnowledge = async (knowledge, { mode = "staging", now = new
   for (const source of knowledge.sources ?? []) {
     if (!source.note?.toLowerCase().includes("paraphras")) warnings.push(`source_note_not_marked_paraphrase:${source.id}`);
     if (checkSourceBytes && source.repo_path) {
+      const contained = await containedSourcePath(source.repo_path);
+      if (!contained) {
+        errors.push(`source_outside_repository:${source.id}`);
+        continue;
+      }
       try {
-        const observed = sha256(await readFile(resolve(REPO_ROOT, source.repo_path)));
+        const observed = sha256(await readFile(contained));
         const matched = observed === source.sha256;
         sourceChecks.push({ source_id: source.id, repo_path: source.repo_path, expected_sha256: source.sha256, observed_sha256: observed, matched });
         if (!matched) errors.push(`source_changed:${source.id}`);

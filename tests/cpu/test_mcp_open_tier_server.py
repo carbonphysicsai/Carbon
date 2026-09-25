@@ -25,6 +25,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from test_standard_mcp_adapter import make_adapter
 
+from carbon.miner_mcp.mcp_challenges import PREFIX as CHALLENGE_PREFIX
 from carbon.miner_mcp.mcp_onboarding import PREFIX as ONBOARDING_PREFIX
 from carbon.miner_mcp.open_tier import (
     OPEN_TIER,
@@ -39,6 +40,7 @@ ONBOARDING = {
     ONBOARDING_PREFIX + name
     for name in ("requirements", "status", "prepare", "confirm")
 }
+CHALLENGE_DISCOVERY = {CHALLENGE_PREFIX + name for name in ("list", "describe")}
 
 
 def names(server):
@@ -58,7 +60,9 @@ def test_the_server_starts_with_no_profile_campaign_or_ledger():
     how to register were reachable only once they no longer needed them.
     """
     server = create_open_tier_server()
-    assert names(server) == ONBOARDING
+    # Onboarding, plus Challenge discovery: reading which Challenges exist
+    # needs no campaign either, and grants nothing.
+    assert names(server) == ONBOARDING | CHALLENGE_DISCOVERY
 
 
 def test_the_registered_tier_is_absent_rather_than_refusing():
@@ -240,12 +244,20 @@ def test_the_cli_serves_the_open_tier_when_no_profile_is_given(monkeypatch):
     assert served[1][2] == "a" * 32
 
 
-def test_a_profile_without_a_campaign_is_refused():
-    """A profile holds any number of campaigns; attaching names one."""
+def test_a_profile_without_a_campaign_serves_every_operation(monkeypatch):
+    """With a profile and no campaign, a miner's own client gets the operations
+    tier - onboarding and every operation, launch included - instead of a
+    refusal: creating a campaign needs nothing Carbon issues (gap 1.4)."""
     from carbon.miner_mcp import standard_cli
 
-    with pytest.raises(SystemExit):
-        standard_cli.main(["--configuration", "/nowhere/profile.json"])
+    served = []
+
+    async def operations(configuration):
+        served.append(("operations", configuration))
+
+    monkeypatch.setattr(standard_cli, "serve_operations", operations)
+    assert standard_cli.main(["--configuration", "/nowhere/profile.json"]) == 0
+    assert served == [("operations", Path("/nowhere/profile.json"))]
 
 
 def test_cleanup_only_without_a_campaign_is_refused():

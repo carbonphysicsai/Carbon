@@ -1,0 +1,15 @@
+{
+  "map_ref": "SYSTEM/AGENT-EXECUTION",
+  "event_type": "evidence",
+  "event_id": "CONSTRUCTION-DECLARATIVE-D1-ATTENTION-01",
+  "owner_lane": "technical_lead",
+  "status": "implemented",
+  "summary": "Implemented D1 of the declarative construction plan: every model family already in the vendored lab is now a backbone a miner can submit in the research catalog. transolver (Transolver-style) adds heads, slices and expansion; haar_operator adds wavelet_levels; gno and gino add neighborhood_radius, and gino adds latent_points; depth and remat extend to all grid families and n_modes to gino. Each field reaches the rebuilt model: the strategy vocabulary gains the four names additively, the research assembly registers carbon_jax_<family>1d, the reconstruction profile maps each, and the public capability catalogue lists them. The lab's graph_radius is exposed as neighborhood_radius because B-02B's guard reserves the token graph against participant composition graphs; the guard is unchanged and the profile maps the public name to the lab field. New named refusals: a width that does not divide across attention heads (naming heads), Haar levels the 64-point TRAIN grid cannot halve (naming wavelet_levels), and GINO modes its latent grid cannot hold, which would otherwise be silently clipped (naming n_modes). The historical session catalog and the GPU diagnostic catalog are unchanged byte for byte, shown by comparing contract identities before and after, so widening the research catalog widens nothing else. The executed controls test gains a case for every new field, and ema_decay is now asserted through predictions. No scoring rule, exam, tolerance, resource envelope or qualification changes; these families are DEVELOPMENT-rebuildable only.",
+  "primary_detail": "carbon/development_session/research_catalog.py",
+  "affects": [
+    "SYSTEM/AGENT-EXECUTION",
+    "WAVE-C/C-W1-D4"
+  ],
+  "supersedes": null,
+  "recorded_at": "2026-09-23T21:03:18Z"
+}

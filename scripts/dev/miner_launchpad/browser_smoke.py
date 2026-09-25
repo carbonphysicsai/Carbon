@@ -19,6 +19,13 @@ from pathlib import Path
 import controller
 
 ROOT = Path(__file__).resolve().parents[3]
+# The checkout itself, as the controller's own entry point does: the shared
+# operations table and runner import as `scripts.dev.miner_launchpad.*`, and
+# `carbon` resolves to this checkout rather than any installed copy. The bare
+# `controller` module is the package module too, so a refusal raised through
+# either name is the one class the server catches.
+sys.path.insert(0, str(ROOT))
+sys.modules.setdefault("scripts.dev.miner_launchpad.controller", controller)
 sys.path.insert(0, str(ROOT / "docs/development/carbon_hub/tools"))
 import browser_smoke_test as cdp
 
@@ -147,6 +154,9 @@ class ReadbackFixture:
         return [self.get("engineering-fixture")]
 
 
+LAUNCH_BUDGET = {"elapsed_seconds": 600, "ceilings": {"research_trials": 5}}
+
+
 class ResearchFixture:
     """Browser-control fixture only. Zero agents, numerical work or grants."""
 
@@ -201,11 +211,45 @@ class ResearchFixture:
             },
         }
 
+    # The two table methods the options operation needs: the profile gate and
+    # its body. The budget vocabulary is the ledger's own, as on a real host.
+    def owner(self):
+        return {"principal": "fixture", "profile_id": "engineering-fixture"}
+
+    def options_admitted(self, admitted, request):
+        from carbon.development_session.product_campaign import BUDGET_KEYS
+        from carbon.development_session.research_ledger import DIMENSIONS
+
+        return {
+            "schema": "carbon.launchpad.launch-options.v1",
+            "agents": [
+                {"value": "none", "availability": "available"},
+                {"value": "autonomous", "availability": "available"},
+            ],
+            "families": [],
+            "research_lanes": {
+                "gpu": {
+                    "availability": "unavailable",
+                    "reason": "no_gpu_runtime_declared",
+                }
+            },
+            "budget": {
+                "availability": "available",
+                "keys": sorted(BUDGET_KEYS),
+                "ceilings": list(DIMENSIONS),
+                "bounds": "none",
+            },
+        }
+
     def launch(self, value, key):
+        # The page states who selects - the default is Carbon's agent - and
+        # the budget is the one the person composed and saved as a template.
         assert value == {
             "profile": "engineering-fixture",
             "review_digest": "fixture-review-pin",
-        }
+            "agent": "autonomous",
+            "budget": LAUNCH_BUDGET,
+        }, value
         self.keys.add(key)
         if self.record is None:
             self.record = {
@@ -315,6 +359,89 @@ def keyboard_reaches(session, identity, *, limit=40):
     raise AssertionError(
         f"{identity} was not reachable by keyboard; tab order visited {seen}"
     )
+
+
+def summary(session):
+    return session.evaluate(
+        "document.getElementById('composition-summary').textContent"
+    )
+
+
+def set_field(session, identity, value):
+    session.evaluate(
+        f"(() => {{ const node = document.getElementById({json.dumps(identity)});"
+        f" node.value = {json.dumps(value)};"
+        " node.dispatchEvent(new Event('input', {bubbles: true})); })()"
+    )
+
+
+def compose_and_template(session):
+    """C2: one composition behind both paths, saved and loaded as a template,
+    closed and checked against what is available when it is loaded."""
+    assert summary(session).endswith("budget: none, no cap"), summary(session)
+    click(session, "path-advanced")
+    wait(session, "!document.getElementById('launch-advanced').hidden")
+    # Every resource the ledger knows is offered, and only those.
+    offered = session.evaluate(
+        "JSON.stringify([...document.querySelectorAll('[data-ceiling]')]"
+        ".map(n => n.dataset.ceiling))"
+    )
+    from carbon.development_session.research_ledger import DIMENSIONS
+
+    assert json.loads(offered) == list(DIMENSIONS), offered
+    assert "Research lane gpu" in session.evaluate(
+        "document.getElementById('launch-availability').textContent"
+    )
+    set_field(session, "budget-elapsed", "0")
+    wait(session, "document.getElementById('research-launch').disabled")
+    assert "cannot launch: the elapsed limit" in summary(session), summary(session)
+    set_field(session, "budget-elapsed", "600")
+    set_field(session, "ceiling-research_trials", "5")
+    wait(session, "!document.getElementById('research-launch').disabled")
+    assert "600 s elapsed" in summary(session) and "research trials" in summary(
+        session
+    ), summary(session)
+    set_field(session, "template-name", "night run")
+    click(session, "template-save")
+    wait(
+        session,
+        "[...document.getElementById('template-pick').options].some(o => o.value === 'night run')",
+    )
+    # Back to the quick path with nothing set: the same composition, now empty.
+    set_field(session, "budget-elapsed", "")
+    set_field(session, "ceiling-research_trials", "")
+    click(session, "path-quick")
+    wait(session, "document.getElementById('launch-advanced').hidden")
+    assert summary(session).endswith("budget: none, no cap"), summary(session)
+    # A template carrying anything a launch composition cannot is refused by
+    # name - and the specimen, the saved one, loads.
+    session.evaluate(
+        "(() => { const all = JSON.parse(localStorage.getItem('carbon.launchpad.launch-templates.v1'));"
+        " all['tampered'] = {...all['night run'], official: true};"
+        " localStorage.setItem('carbon.launchpad.launch-templates.v1', JSON.stringify(all)); })()"
+    )
+    click(session, "path-advanced")
+    session.evaluate("document.getElementById('template-pick').dataset.names = ''")
+    wait(
+        session,
+        "[...document.getElementById('template-pick').options].some(o => o.value === 'tampered')",
+    )
+    session.evaluate("document.getElementById('template-pick').value = 'tampered'")
+    click(session, "template-load")
+    wait(
+        session,
+        "document.getElementById('message').textContent.includes('which a template cannot carry')",
+    )
+    assert summary(session).endswith("budget: none, no cap"), summary(session)
+    session.evaluate("document.getElementById('template-pick').value = 'night run'")
+    click(session, "template-load")
+    wait(
+        session,
+        "document.getElementById('message').textContent.includes('\u201cnight run\u201d loaded')",
+    )
+    assert session.evaluate("document.getElementById('budget-elapsed').value") == "600"
+    click(session, "path-quick")
+    assert "600 s elapsed" in summary(session), summary(session)
 
 
 def run():
@@ -572,6 +699,7 @@ def run():
                         "document.getElementById('research-heading').closest('section').textContent"
                     )
                     assert "grant" not in panel.lower(), panel[:300]
+                    compose_and_template(session)
 
                     def lost_research_response(value, key):
                         research_launch(value, key)
@@ -757,6 +885,43 @@ def run():
                         assert session.evaluate(
                             "document.getElementById('stop').getBoundingClientRect().width >= 44"
                         ), width
+                        # The navigation lists every marked section, in page
+                        # order, and nothing else; each entry is a target a
+                        # finger can hit; and a real Enter on one moves the
+                        # working surface to that section.
+                        listed = session.evaluate(
+                            "JSON.stringify([...document.querySelectorAll('#tool-nav a')]"
+                            ".map(a => [a.getAttribute('href'), a.textContent,"
+                            " a.getBoundingClientRect().height >= 44]))"
+                        )
+                        marked = session.evaluate(
+                            "JSON.stringify([...document.querySelectorAll('[data-nav]')]"
+                            ".map(s => ['#' + s.id, s.dataset.nav, true]))"
+                        )
+                        assert json.loads(listed) == json.loads(marked), (width, listed)
+                        assert len(json.loads(listed)) == 7, listed
+                        if width == 1440:
+                            assert session.evaluate(
+                                "document.getElementById('tool-nav').getBoundingClientRect().right"
+                                " <= document.querySelector('.shell main').getBoundingClientRect().left + 1"
+                            ), "the navigation is not beside the working surface"
+                        session.evaluate(
+                            "scrollTo(0, 0); document.querySelector("
+                            "'#tool-nav a[href=\"#research\"]').focus()"
+                        )
+                        press(session, "Enter")
+                        deadline = time.monotonic() + 3
+                        while (
+                            session.evaluate("location.hash") != "#research"
+                            and time.monotonic() < deadline
+                        ):
+                            time.sleep(0.05)
+                        assert session.evaluate("location.hash") == "#research", width
+                        assert session.evaluate(
+                            "Math.abs(document.getElementById('research')"
+                            ".getBoundingClientRect().top) < 80"
+                            " || innerHeight + scrollY >= document.body.scrollHeight - 2"
+                        ), width
                         assert (
                             session.evaluate(
                                 "document.getElementById('research-guidance').value"
@@ -822,5 +987,157 @@ def run():
     )
 
 
+def journey():
+    """A person drives the whole journey in a real browser, with no agent."""
+    from carbon.development_session.research_loop import candidate_record
+    from scripts.dev.miner_launchpad.journey_fixture import journey_host
+
+    with tempfile.TemporaryDirectory(prefix="carbon-launchpad-journey-") as temporary:
+        root = Path(temporary)
+        root.chmod(0o700)
+        token = "browser-smoke-session-token-not-a-real-credential"
+        store = controller.Controller(root / "runs.sqlite3")
+        host = journey_host(root)
+        with cdp.launch_browser(cdp.discover_browser(), 20) as (_, browser_port):
+            session = cdp._open_page_session(browser_port, 10)
+            try:
+                session.command("Page.enable")
+                session.command("Runtime.enable")
+                with serving(store, token) as server:
+                    server.research_runner = host
+                    load(session, server.origin)
+                    connect(session, token)
+                    # True availability at the moment of choosing: this host
+                    # has no model-provider key, so Carbon's agent is offered
+                    # as unavailable with its reason, not as a choice that
+                    # would fail later.
+                    wait(
+                        session,
+                        "document.querySelector('input[name=research-agent][value=autonomous]').disabled",
+                    )
+                    assert "provider key not configured" in session.evaluate(
+                        "document.getElementById('research-selects').textContent"
+                    )
+                    # A template saved where the agent could run is checked
+                    # again when it is loaded here, where it cannot: refused
+                    # with the reason, and the composition is left unchanged.
+                    session.evaluate(
+                        "localStorage.setItem('carbon.launchpad.launch-templates.v1',"
+                        " JSON.stringify({'with agent': {agent: 'autonomous'}}))"
+                    )
+                    session.evaluate(
+                        "document.getElementById('template-pick').dataset.names = ''"
+                    )
+                    wait(
+                        session,
+                        "document.getElementById('template-pick').value === 'with agent'",
+                    )
+                    click(session, "template-load")
+                    wait(
+                        session,
+                        "document.getElementById('message').textContent.includes("
+                        "'not loaded: the autonomous agent is unavailable: model provider key not configured')",
+                    )
+                    assert session.evaluate(
+                        "document.querySelector('input[name=research-agent][value=none]').checked"
+                    )
+                    session.evaluate(
+                        "document.querySelector('input[name=research-agent][value=none]').click()"
+                    )
+                    click(session, "research-launch")
+                    wait(session, "Boolean(document.querySelector('.journey'))")
+                    run_id = session.evaluate(
+                        "document.querySelector('.journey').id.slice('journey-'.length)"
+                    )
+                    campaign = root / "campaigns" / run_id
+                    # A refusal through the real route: submitting with nothing
+                    # frozen is a named 409, never a 500 - the shared table's
+                    # refusal is the one class this server catches.
+                    import http.client
+
+                    connection = http.client.HTTPConnection(
+                        "127.0.0.1", server.server_port, timeout=5
+                    )
+                    connection.request(
+                        "POST",
+                        "/api/v1/operations/submit",
+                        json.dumps({"campaign": run_id}),
+                        {
+                            "Authorization": "Bearer " + token,
+                            "Content-Type": "application/json",
+                        },
+                    )
+                    response = connection.getresponse()
+                    assert (response.status, json.loads(response.read())) == (
+                        409,
+                        {"error": "freeze_a_candidate_first"},
+                    )
+                    connection.close()
+                    wait(
+                        session,
+                        f"document.querySelector('.journey') && document.getElementById('journey-practice-{run_id}').disabled === false",
+                    )
+                    families = session.evaluate(
+                        "document.querySelector('.journey').textContent"
+                    )
+                    assert "freeze and submit now: fno" in families, families[:400]
+                    assert "Not yet rebuildable (research only):" in families
+                    assert "unet1d" in families
+                    # The freeze is refused before any practice: a candidate
+                    # must have a practice result.
+                    assert session.evaluate(
+                        f"document.getElementById('journey-freeze-{run_id}').disabled"
+                    )
+                    session.evaluate(
+                        f"const h=document.getElementById('journey-hypothesis-{run_id}');"
+                        "h.value='wider FNO lowers data loss';h.dispatchEvent(new Event('input'))"
+                    )
+                    click(session, f"journey-practice-{run_id}")
+                    wait(
+                        session,
+                        f"document.getElementById('journey-freeze-{run_id}') && !document.getElementById('journey-freeze-{run_id}').disabled",
+                    )
+                    click(session, f"journey-freeze-{run_id}")
+                    wait(
+                        session,
+                        f"document.getElementById('journey-submit-{run_id}') && !document.getElementById('journey-submit-{run_id}').disabled",
+                    )
+                    selected = json.loads(
+                        (campaign / "epoch-1" / "selected-recipe.json").read_bytes()
+                    )
+                    assert selected == candidate_record(
+                        selected["strategy"], "practiced", False
+                    ), "a person's freeze writes the agent's record, by the same builder"
+                    outcome = json.loads(
+                        (campaign / "epoch-1" / "outcome.json").read_bytes()
+                    )
+                    assert outcome["selected_by"] == "miner"
+                    assert outcome["chain_transactions"] == 0
+                    click(session, f"journey-submit-{run_id}")
+                    wait(
+                        session,
+                        "document.querySelector('.journey').textContent.includes('Submitted epochs: 1')",
+                    )
+                    assert (
+                        campaign / "epoch-1" / "permitted-final-feedback.json"
+                    ).exists()
+                    projected = host.get(run_id)
+                    assert projected["selects"] == "miner"
+                    assert projected["journey"]["submitted_epochs"] == [1]
+                    assert projected["state"] == "READY", projected["state"]
+                exceptions = [
+                    event
+                    for event in session.events
+                    if event["method"] == "Runtime.exceptionThrown"
+                ]
+                assert not exceptions, exceptions
+            finally:
+                session.close()
+    print(
+        "Launchpad journey smoke passed: with no agent, a person launched, practiced, froze and submitted in a real browser through the shared operations table; the frozen record is the agent's record, the ledger settled READY, and nothing reached the chain. Preparing, training and the final exam were fixtures."
+    )
+
+
 if __name__ == "__main__":
     run()
+    journey()

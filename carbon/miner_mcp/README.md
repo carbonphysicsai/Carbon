@@ -20,6 +20,36 @@ python -m carbon.miner_mcp.standard_cli \
   --campaign <campaign id under campaigns_root>
 ```
 
+## Every operation, from your own client
+
+With your runner profile and no `--campaign`, the server carries the whole
+journey - nothing on it is issued by Carbon:
+
+```sh
+python -m carbon.miner_mcp.standard_cli \
+  --configuration /absolute/private/runner-profile.json
+```
+
+- the four `carbon_onboarding_*` tools, reading Carbon's testnet;
+- one tool per miner operation - `carbon_launch` (with `agent` `autonomous`
+  or `none`), `carbon_observe`, `carbon_practice`, `carbon_freeze_candidate`,
+  `carbon_submit`, `carbon_halt`, `carbon_resume` - generated from the same
+  operations table (`scripts/dev/miner_launchpad/operations.py`) as the
+  browser's `/api/v1/operations` routes, with the same gates in the same order
+  over the same campaign records;
+- `carbon_attach_campaign` and `carbon_detach_campaign`, which bind this
+  session to one campaign for the deeper research tools (workspace,
+  `run_python`, Julia). Attaching holds the campaign's ownership lock, so
+  practice, freeze and submit answer `campaign_busy` until you detach.
+
+Registration admits every operation that starts or extends work; observe and
+halt only read or withdraw, so a miner can always see and stop their own
+campaign. `carbon_submit` is the DEVELOPMENT submit: a signed message to the
+local development service, with nothing written to the chain. Official
+submission is not an operation on either door. A campaign an MCP session
+launched with the autonomous agent runs while the session lasts; resume
+continues it.
+
 ## Starting without a campaign
 
 A miner who has not registered yet has no profile and no campaign, so
@@ -44,10 +74,10 @@ refused rather than replacing the first.
 
 Two limitations worth knowing before building on this:
 
-- **No chain endpoint is configured.** `carbon_onboarding_requirements` answers
-  in full - it needs no chain - while the reads report `CHAIN_NOT_CONFIGURED`
-  with the next usable step rather than guessing an endpoint. The browser door
-  is in the same position for the same reason.
+- **Onboarding reads Carbon's testnet.** Both doors default to
+  `chain_onboarding.carbon_testnet_context` (subnet 567), so `status` and
+  `confirm` answer from public chain state; `confirm` names what registration
+  unlocks - the launch operation - rather than claiming an environment opened.
 - **The pinned SDK sends no list-changed notification.** A client sees the
   registered tier on its next `tools/list`, not before. This is a property of
   the SDK, not of how attachment is implemented: its own `add_tool` has no
@@ -61,8 +91,8 @@ names one of the prepared, frozen, unfinished campaigns under its
 `campaigns_root`. The campaign must have been admitted by registration and must
 match the profile's principal, accepted implementation, role roots and image
 identities. A campaign launched under the retired development grant is not
-attached here; the Launchpad reconciles it. Preparation and
-authorization remain operator actions. Normal attachment rejects completed or
+attached here; the Launchpad reconciles it. A campaign is created by the launch
+operation, from either door. Normal attachment rejects completed or
 expired campaigns; the cleanup-only mode below does not reopen research. The
 operator host needs the accepted checkout;
 an external MCP client needs only its configured command or private connection.

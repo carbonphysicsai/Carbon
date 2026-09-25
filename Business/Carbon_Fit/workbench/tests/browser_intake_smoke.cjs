@@ -49,6 +49,16 @@ async function saveDownload(page, selector, target) {
   const formPackage = JSON.parse(fs.readFileSync(formPath, "utf8"));
   check("form-only export uses the shared reviewed package without AI consent or conversation", formPackage.schema_version === "carbon.client-intake.reviewed.v1" && formPackage.brief.schema_version === "carbon.client-intake.draft.v1" && formPackage.ai_guidance.enabled === false && formPackage.sharing.conversation.length === 0);
   check("form-only export reports a local download rather than submission", await formOnly.locator("#intake-status").innerText().then((text) => text.includes("Nothing was transmitted")));
+  // E6: the encrypted download is sealed to the published key, shows that key's
+  // fingerprint, and carries none of the draft's text.
+  const intakeKey = JSON.parse(fs.readFileSync(path.join(ROOT, "data/intake_public_key.json"), "utf8"));
+  await formOnly.waitForFunction(() => !document.querySelector("#export-sealed").disabled);
+  check("the page shows the published intake key's fingerprint", (await formOnly.locator("#intake-fingerprint").innerText()) === intakeKey.fingerprint);
+  const sealedPath = path.join(tmp, "form-only.carbon-sealed");
+  await saveDownload(formOnly, "#export-sealed", sealedPath);
+  const sealedText = fs.readFileSync(sealedPath, "utf8");
+  const sealedPackage = JSON.parse(sealedText);
+  check("encrypted export is sealed to the published key and holds no draft text", sealedPackage.schema === "carbon.intake-sealed.v1" && sealedPackage.key_id === intakeKey.key_id && !sealedText.includes("faster design comparisons") && !sealedText.includes("seconds/query"));
   await formOnly.locator("#show-guided").click();
   await formOnly.locator("#show-consent").click();
   await formOnly.locator("#consent-check").check();

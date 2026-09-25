@@ -1,0 +1,1 @@
+{"phase": "multi", "children": {"battery_refs": {"phase": "battery_refs", "workers": 6, "total": 1016, "pending": 1004, "running": 6, "done": {"OK": 6, "REFERENCE_SOLVER_FAILED": 0, "REFERENCE_TIMEOUT": 0, "FAILED_INFRA": 0, "NOT_ADMITTED": 0}, "elapsed_s": 685.6}, "photonic_refs": {"phase": "photonic_refs", "total": 16, "index": 0, "done": {}, "elapsed_s": 0.0}}}

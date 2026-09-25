@@ -97,8 +97,11 @@ class PublicResearchExecutor:
         practice,
         julia_image=None,
         cleanup_only=False,
+        demand=None,
     ):
         self.ledger, self.owner, self.image = ledger, owner, image
+        # This host's capability demand store, or None where it collects none.
+        self.demand = demand
         self.workspace = ResearchWorkspace(ledger, owner)
         self.public_material, self.practice = public_material, practice
         self.julia_image = julia_image
@@ -124,6 +127,8 @@ class PublicResearchExecutor:
             "write_file": {"name", "content_base64", "expected_digest"},
             "notebook": {"kind", "body"},
             "capability_request": {"request"},
+            "check_design": {"design"},
+            "roadmap": set(),
             "run_python": {
                 "source",
                 "files",
@@ -215,10 +220,29 @@ class PublicResearchExecutor:
                 raise ValueError("miner notebook kind unavailable")
             self.ledger.note(owner=self.owner, kind=args["kind"], body=args["body"])
             return {"retained": True}
+        if spec.action == "check_design":
+            from .design_check import check_design
+
+            # Compile-only: no execution and no trial charged. What it records
+            # is demand: registry ids only, never the miner's own text.
+            result = check_design(args["design"])
+            if self.demand is not None:
+                from .capability_demand import demanded
+
+                ids, unrecognized = demanded(result)
+                self.demand.record(self.owner, ids, unrecognized=unrecognized)
+            return result
+        if spec.action == "roadmap":
+            from .capability_demand import public_roadmap
+
+            return public_roadmap(self.demand)
         if spec.action == "capability_request":
-            return request_capability(
+            record = request_capability(
                 self.ledger, owner=self.owner, request=args["request"]
             )
+            if self.demand is not None and "capability" in record:
+                self.demand.record(self.owner, [record["capability"]])
+            return record
         if any(
             type(args[k]) is not str or not 1 <= len(args[k]) <= 2048
             for k in ("hypothesis", "expected_effect")

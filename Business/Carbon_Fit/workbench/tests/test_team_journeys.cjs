@@ -19,13 +19,11 @@ const { StaffDirectory } = require("../tools/team_staff_directory.cjs");
 // Synthetic and local. The journey needs a real authenticated identity because
 // the receiver no longer accepts a principal the caller describes for itself.
 const RECEIVER_TOKEN = "synthetic-journey-receiver-0001";
-const receiver = new StaffDirectory([{
-  principal: "synthetic-receiver",
-  team: "carbon-fit",
-  roles: ["INTAKE_RECEIVER"],
-  token_sha256: crypto.createHash("sha256").update(RECEIVER_TOKEN).digest("hex"),
-  status: "ACTIVE",
-}]).authenticate("Bearer " + RECEIVER_TOKEN);
+const { enrolled, exportRef, mailed, openStore, principalFor, scoping } = require("./staff_fixture.cjs");
+const receiver = principalFor(
+  new StaffDirectory([enrolled("synthetic-receiver", "carbon-fit", ["INTAKE_RECEIVER"], RECEIVER_TOKEN)]),
+  RECEIVER_TOKEN,
+);
 
 function draftFor(scenario) {
   if (scenario.source_fixture)
@@ -74,8 +72,8 @@ for (const scenario of scenarios) {
   test(scenario.scenario_id + " completes durable intake through scoped handoff", async () => {
     const raw = JSON.stringify(reviewed(draftFor(scenario), scenario));
     const directory = fs.mkdtempSync(path.join(os.tmpdir(), "gw09-journey-"));
-    const store = new DurableIntakeStore(path.join(directory, "store.json"));
-    const receipt = await store.accept(raw, "key-" + scenario.scenario_id, receiver);
+    const store = openStore(path.join(directory, "store.json"));
+    const receipt = await store.accept(raw, "key-" + scenario.scenario_id, receiver, scoping(), mailed(), exportRef());
     const inspection = await I.inspect(raw, F.strictJsonParse);
     const workspace = G.newWorkspace(component());
     G.commitIntakeImport(workspace, inspection, G.previewIntakeImport(workspace, inspection));

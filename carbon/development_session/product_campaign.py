@@ -43,6 +43,10 @@ def miner_budget(value: object) -> dict:
     return budget
 
 
+#: Who selects in a campaign. "none" is a person driving the whole journey.
+AGENTS = ("none", "autonomous")
+
+
 @dataclass(frozen=True)
 class ProductLaunch:
     """Everything a product campaign is admitted with, and nothing more."""
@@ -52,8 +56,15 @@ class ProductLaunch:
     miner: RegisteredMiner
     runtime: dict
     budget: dict
+    #: Who selects: Carbon's autonomous agent, or no agent - the miner does.
+    agent: str = "autonomous"
+    #: The Challenge, as {"id", "version"}, resolved by `carbon.challenge_registry`.
+    #: None is the historical Burgers campaign, whose manifest is unchanged.
+    challenge: dict | None = None
 
     def __post_init__(self):
+        if self.agent not in AGENTS:
+            raise ValueError("agent is one of: " + ", ".join(AGENTS))
         if type(self.miner) is not RegisteredMiner:
             raise TypeError("a product launch requires a RegisteredMiner")
         for value in (self.campaign_id, self.principal):
@@ -65,6 +76,16 @@ class ProductLaunch:
             raise ValueError("a declared runtime with implementation and images")
         if miner_budget(self.budget) != self.budget:
             raise ValueError("the budget must be exactly what the miner set")
+        if self.challenge is not None:
+            from carbon.challenge_registry import resolve
+
+            if type(self.challenge) is not dict or set(self.challenge) != {
+                "id",
+                "version",
+            }:
+                raise ValueError("a challenge is {id, version}")
+            # Raises a typed ResolutionError: no fallback to another Challenge.
+            resolve(self.challenge["id"], self.challenge["version"], "cpu_research")
 
     def manifest_fields(self) -> dict:
         """What the frozen manifest records about this launch."""
@@ -75,5 +96,7 @@ class ProductLaunch:
             "principal": self.principal,
             "runtime": self.runtime,
             "admission": self.miner.record(),
+            "agent": self.agent,
+            **({"challenge": dict(self.challenge)} if self.challenge else {}),
             **self.budget,
         }

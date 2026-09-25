@@ -1,0 +1,15 @@
+{
+  "map_ref": "SYSTEM/AGENT-EXECUTION",
+  "event_type": "evidence",
+  "event_id": "BATTERY-TESTNET-M5A-01",
+  "owner_lane": "technical_lead",
+  "status": "implemented",
+  "summary": "Delivered M5A of the battery testnet track: battery research and submission through Carbon's shared MCP interface. A Challenge registry (carbon/challenge_registry) resolves an exact id, version and execution profile or refuses with a typed code; there is no default and no Burgers fallback. Battery and Burgers are implemented; chip cooling, electric motors and photonics are reserved with their tracking issues; power magnetics and airfoils are deferred. Open-tier MCP tools list and describe every Challenge from its executable registrations, separating implemented from usable on this host. One B-07 composition now serves every Challenge through the same twelve operations, and the Burgers composition digests are unchanged. The battery adapter supplies authored practice contracts, public TRAIN/PRACTICE/OCV material, and practice in the isolated carrier from the exact Carbon recipe bytes, scored by Carbon with the exam's gates. A launch binds its Challenge in the frozen manifest; prepare, attach, freeze and submit route by it; a battery gateway authenticates battery requests only. Submission reaches an operator-configured evaluation deployment over committed private batches, with allow-listed feedback and typed REFUSED/FAILED_INFRA outcomes. Stated limits: the rebuild runs in the evaluation process (validator_path false) until M3; battery campaigns are miner-driven. No threshold, chain action, spend or qualification changes.",
+  "primary_detail": ".agent/tickets/BATTERY-TESTNET-M5A_challenge_research_through_mcp.md",
+  "affects": [
+    "SYSTEM/AGENT-EXECUTION",
+    "WAVE-C/C-09"
+  ],
+  "supersedes": null,
+  "recorded_at": "2026-09-25T16:00:00Z"
+}

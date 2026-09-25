@@ -417,8 +417,15 @@ async def status(reader, context, address: object) -> dict[str, object]:
         "uid": participant.uid,
         "registered_at_block": participant.registered_at,
         "observed_block": observed.finalized_block,
+        # What registration unlocks, named exactly: the launch operation, which
+        # registration alone admits on either door. The runner profile it
+        # needs is the miner's own setup, not a further authority.
         "research_environment": "UNLOCKED",
-        "next_action": "Registered. Choose your research compute.",
+        "unlocks": "launch",
+        "next_action": (
+            "Registered. Launch a research campaign with your runner profile: "
+            "the launch operation on either door, with agent autonomous or none."
+        ),
     }
 
 
@@ -489,5 +496,8 @@ async def confirm(reader, context, address: object) -> dict[str, object]:
     return {
         **current,
         "confirmed": True,
-        "next_action": "Registered. The research environment is unlocked.",
+        "next_action": (
+            "Registered. Launch a research campaign with your runner profile: "
+            "the launch operation on either door, with agent autonomous or none."
+        ),
     }

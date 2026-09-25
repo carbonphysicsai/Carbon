@@ -1,0 +1,15 @@
+{
+  "map_ref": "SYSTEM/AGENT-EXECUTION",
+  "event_type": "evidence",
+  "event_id": "CONSTRUCTION-CAPABILITY-REGISTRY-01",
+  "owner_lane": "technical_lead",
+  "status": "implemented",
+  "summary": "Implemented the construction capability registry (carbon/reconstruction/capability_registry.py), the single source of what a miner may submit under OWNER-CONSTRUCTION-DECLARATIVE-01 and the five-trigger escalation mandate OWNER-CONSTRUCTION-ESCALATION-01. Every design capability has one entry with a dimension, a public summary, a status (research-only, rebuildable in DEVELOPMENT, or excluded), a blocker (engineering, owner decision or excluded) and, where the owner must decide or the rule excludes it, the named trigger. The research catalog's backbones and fields, the reconstruction profile's backbone map and the public capability catalogue are now derived from it; the refactor is byte-identical in every contract and document identity it touches, compared before and after. Construction refuses an entry that claims more than it carries: a rebuildable entry without its implementation, an owner blocker without a trigger, and any claim of admission, which needs qualification evidence the registry cannot supply. The registry also holds the research-only roadmap (optax optimizer and schedule families, foundax families, loss terms, stages, rollout, curriculum and exact-symmetry augmentation, candidate-side solver and symbolic templates), the owner-gated items with their triggers, and the excluded items. Importing it initializes no numerical runtime. Its public projection carries only registry-defined text; exposing it to miners, the check-design verdicts and demand records are the following steps. No capability, scoring rule, exam, tolerance or qualification changes.",
+  "primary_detail": "carbon/reconstruction/capability_registry.py",
+  "affects": [
+    "SYSTEM/AGENT-EXECUTION",
+    "WAVE-C/C-W1-D4"
+  ],
+  "supersedes": null,
+  "recorded_at": "2026-09-23T21:23:34Z"
+}

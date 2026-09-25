@@ -31,7 +31,7 @@ not to a provider or a machine.
 | Profile | `carbon.c03.linux-x86_64-cpu.development.v1`, version `1.0` |
 | Scope | `UNQUALIFIED_PUBLIC_DEVELOPMENT` |
 | Backend | JAX CPU |
-| Support status | **unresolved** — `compare_r1` returns `BACKEND_UNSUPPORTED` until MQ-008 qualifies a profile |
+| Support status | **unresolved** for this profile — `compare_r1` returns `BACKEND_UNSUPPORTED` for it. The only MQ-008 qualification is DEVELOPMENT-typed, per part, for four GPU parts on the fixture Challenge `fixture_authoring 1.0` (Amendment 10, `carbon/reproducibility/development.py`), and does not qualify this environment |
 
 A GPU backend profile is a separate profile and a separate qualification. It is
 not covered by this declaration, and running on a GPU does not inherit this one.
