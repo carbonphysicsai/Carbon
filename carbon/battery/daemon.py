@@ -596,12 +596,14 @@ class BatteryValidator:
         return {
             "pool_version": int(record["pool_version"]),
             "eligible": bool(record["eligible"]),
-            "score": None
-            if record["score"] is None
-            else round(float(record["score"]), 4),
-            "important_score": None
-            if record["important_score"] is None
-            else round(float(record["important_score"]), 4),
+            "score": (
+                None if record["score"] is None else round(float(record["score"]), 4)
+            ),
+            "important_score": (
+                None
+                if record["important_score"] is None
+                else round(float(record["important_score"]), 4)
+            ),
             "gates_failed": sorted(record["gate_failures"]),
             "cases": {
                 "scored": int(record["n_scored"]),
@@ -695,9 +697,9 @@ class BatteryValidator:
                 # The challenger's (or incumbent's) own rebuild failed: the
                 # comparison records it, never infers a result for it.
                 outcome = {
-                    "outcome": exam.REGRESSION
-                    if role == "challenger"
-                    else exam.INSUFFICIENT,
+                    "outcome": (
+                        exam.REGRESSION if role == "challenger" else exam.INSUFFICIENT
+                    ),
                     "reason": f"{role} {failure.code}",
                     "promotable": False,
                 }
@@ -815,14 +817,16 @@ class BatteryValidator:
         pool = self.store.pool()
         return {
             "identities": self.store.identities(),
-            "pool": None
-            if pool is None
-            else {
-                "version": pool["version"],
-                "admitted": pool["admitted"],
-                "status": pool["status"],
-                "active": len(pool["active"]),
-            },
+            "pool": (
+                None
+                if pool is None
+                else {
+                    "version": pool["version"],
+                    "admitted": pool["admitted"],
+                    "status": pool["status"],
+                    "active": len(pool["active"]),
+                }
+            ),
             "incumbent": self.store.incumbent(),
             "batches": {
                 kind: {

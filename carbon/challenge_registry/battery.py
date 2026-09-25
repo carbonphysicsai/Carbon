@@ -208,8 +208,10 @@ def describe():
                 "reference solver."
             ),
             "not_excluded": [
-                "studying and training on the approved public TRAIN v1 data "
-                "and the OCV table, which PyBaMM produced",
+                (
+                    "studying and training on the approved public TRAIN v1 "
+                    "data and the OCV table, which PyBaMM produced"
+                ),
                 "Carbon running PyBaMM as its own independent truth service",
                 "Julia or other tools in research outside a submission",
             ],

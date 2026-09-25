@@ -108,7 +108,11 @@ def test_a_required_commitment_is_never_skipped(tmp_path, refs):  # noqa: F811
     assert target.status()["pool"]["admitted"] == 0
 
 
-def test_operator_commands_disclose_no_case_seed_or_key(tmp_path, refs, capsys):  # noqa: F811
+def test_operator_commands_disclose_no_case_seed_or_key(
+    tmp_path,
+    refs,  # noqa: F811
+    capsys,
+):
     signing.ServiceKey.create(tmp_path / "service.key")
     path = config(tmp_path, service_key=str(tmp_path / "service.key"))
     target = deployment.validator(path, repository=REPOSITORY)

@@ -20,9 +20,7 @@ REMINDER = (
     "No additional permission for an in-scope trial is needed. You may stop without "
     "a trial or improvement; do not invent results. This is the only reminder."
 )
-AUTONOMOUS_PROMPT = (
-    PROMPT
-    + """
+AUTONOMOUS_PROMPT = PROMPT + """
 
 Execution direction: the owner already authorized this finite campaign and its
 ordinary in-scope experiments. Do the research now. Do not ask the owner to pick
@@ -47,7 +45,6 @@ stop immediately for a real constraint. Do not run pointless trials or fabricate
 a winner. Free text alone receives one clarification, then a recorded protocol
 stop; it never grants more calls, trials, time, money or authority.
 """
-)
 #: The autonomous policy's prompt for a Challenge other than Burgers. Same
 #: execution direction and stop discipline; the task statement comes from the
 #: Challenge's own discovery document in the initial observation, not from

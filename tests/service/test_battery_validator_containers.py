@@ -157,7 +157,10 @@ def test_daemon_screening_through_containers(tmp_path, refs):  # noqa: F811
     assert len(ledger.status(owner=None)["operations"]) == before
 
 
-def test_a_run_left_unresolved_is_reconciled_onto_a_new_attempt(tmp_path, refs):  # noqa: F811
+def test_a_run_left_unresolved_is_reconciled_onto_a_new_attempt(
+    tmp_path,
+    refs,  # noqa: F811
+):
     validator = validator_with(tmp_path, refs, lambda store: carrier(store, tmp_path))
     admitted = validator.admit(submission("hk1"))
     sid = admitted["submission_id"]
@@ -186,7 +189,10 @@ def test_a_run_left_unresolved_is_reconciled_onto_a_new_attempt(tmp_path, refs):
     assert json.dumps(outcome).count("pscreen") == 0
 
 
-def test_a_run_killed_at_its_wall_clock_bound_is_infrastructure(tmp_path, refs):  # noqa: F811
+def test_a_run_killed_at_its_wall_clock_bound_is_infrastructure(
+    tmp_path,
+    refs,  # noqa: F811
+):
     """Cancellation: the container is killed mid-training and removed; its
     partial work is never read, and the retry is a new attempt."""
     validator = validator_with(tmp_path, refs, lambda store: carrier(store, tmp_path))
@@ -204,7 +210,10 @@ def test_a_run_killed_at_its_wall_clock_bound_is_infrastructure(tmp_path, refs):
     assert validator.store.submission(sid)["binding"]["attempt"] == 1
 
 
-def test_partial_output_is_infrastructure_never_a_candidate_failure(tmp_path, refs):  # noqa: F811
+def test_partial_output_is_infrastructure_never_a_candidate_failure(
+    tmp_path,
+    refs,  # noqa: F811
+):
     """A run whose export lacks a declared output is Carbon's failure."""
 
     def partial(ledger, **kwargs):
