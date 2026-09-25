@@ -1,0 +1,325 @@
+{
+ "prepared_utc": "2026-09-25T00:31:56Z",
+ "status_counts": {
+  "train/refined": {
+   "OK": 16
+  },
+  "train": {
+   "OK": 400
+  },
+  "practice": {
+   "OK": 200
+  },
+  "final": {
+   "OK": 200
+  },
+  "verify": {
+   "OK": 200
+  }
+ },
+ "tolerances": {
+  "tau_v0": 0.0009876816119032128,
+  "tau_t0": 0.000152587890625,
+  "tau_vmax": 1.6021728515625e-05,
+  "tau_vmin": 9.5367431640625e-06,
+  "q_bound": 5.827615068509379,
+  "v_max": 4.2,
+  "v_min": 2.5,
+  "evidence": {
+   "max_ref_v0_minus_ocv": 0.0004938408059516064,
+   "max_ref_t0_minus_ambient": 8.526512829121202e-14,
+   "max_ref_overshoot_v": 7.993605777301127e-15,
+   "max_ref_undershoot_v": -0.6326691945760832,
+   "n_references": 600
+  }
+ },
+ "scales": {
+  "s_v": 0.1770451124822041,
+  "s_t": 3.682341302614542,
+  "s_eta": 0.023477651888985335,
+  "s_q1": 0.06075977851240296,
+  "s_fade": 0.0018116768112003093,
+  "raw": {
+   "s_v": 0.1770451124822041,
+   "s_t": 3.682341302614542,
+   "s_eta": 0.023477651888985335,
+   "s_q1": 0.06075977851240296,
+   "s_fade": 0.0018116768112003093
+  },
+  "floors": {
+   "s_v": 0.0005787038292786041,
+   "s_t": 0.00921876976200683,
+   "s_eta": 0.0009521191123315464,
+   "s_q1": 3.9323595658835586e-05,
+   "s_fade": 3.4375620749674545e-05,
+   "n_pairs": 16
+  },
+  "n_train": 400
+ },
+ "reference_self_check_failures": {},
+ "reference_uncertainty": {
+  "n": 16,
+  "case_error_median": 0.014881342509185672,
+  "case_error_max": 0.04257909804873247,
+  "components_median": {
+   "voltage": 0.0032686800621890832,
+   "temperature": 0.002503507688290954,
+   "plating": 0.04055427335040426,
+   "capacity": 0.010548823103433939
+  }
+ },
+ "reference_uncertainty_rows": [
+  {
+   "case_id": "train-0003",
+   "components": {
+    "voltage": 0.006875583089727378,
+    "temperature": 0.0045473963741549175,
+    "plating": 0.03849862512831108,
+    "capacity": 0.0769483348550182
+   },
+   "case_error": 0.0317174848618029,
+   "fade_last_mAh": {
+    "coarse": 7.70182210820991,
+    "refined": 7.972364345897098
+   },
+   "plating_margin_diff_v": -0.0009038573189670308
+  },
+  {
+   "case_id": "train-0002",
+   "components": {
+    "voltage": 0.0024132630802827103,
+    "temperature": 0.0007413906623552154,
+    "plating": 0.03489791348217259,
+    "capacity": 0.003941338553579131
+   },
+   "case_error": 0.01049847644459741,
+   "fade_last_mAh": {
+    "coarse": 6.957067121307503,
+    "refined": 6.976745094210202
+   },
+   "plating_margin_diff_v": -0.000819321064386376
+  },
+  {
+   "case_id": "train-0001",
+   "components": {
+    "voltage": 0.004931792742639374,
+    "temperature": 0.0026889438271977513,
+    "plating": 0.04909734764882169,
+    "capacity": 0.010958494306726541
+   },
+   "case_error": 0.01691914463134634,
+   "fade_last_mAh": {
+    "coarse": 5.3372512911984415,
+    "refined": 5.284497727387816
+   },
+   "plating_margin_diff_v": -0.0011526904367715283
+  },
+  {
+   "case_id": "train-0000",
+   "components": {
+    "voltage": 0.002191528820531134,
+    "temperature": 0.009411547324287324,
+    "plating": 0.04548383430343674,
+    "capacity": 0.0982034111742179
+   },
+   "case_error": 0.03882258040561827,
+   "fade_last_mAh": {
+    "coarse": 8.895930882033554,
+    "refined": 8.494376947990823
+   },
+   "plating_margin_diff_v": 0.0010678536283523776
+  },
+  {
+   "case_id": "train-0005",
+   "components": {
+    "voltage": 0.006475977087373272,
+    "temperature": 0.006426982184660116,
+    "plating": 0.04547511402514793,
+    "capacity": 0.005276886575855419
+   },
+   "case_error": 0.015913739968259184,
+   "fade_last_mAh": {
+    "coarse": 7.050643567431791,
+    "refined": 7.057697544931685
+   },
+   "plating_margin_diff_v": -0.0010676488966943377
+  },
+  {
+   "case_id": "train-0004",
+   "components": {
+    "voltage": 0.00315615276990504,
+    "temperature": 0.0026124099705981444,
+    "plating": 0.055393349003129776,
+    "capacity": 0.0032614099435540143
+   },
+   "case_error": 0.016105830421796745,
+   "fade_last_mAh": {
+    "coarse": 6.788759811501066,
+    "refined": 6.805309577499585
+   },
+   "plating_margin_diff_v": -0.0013005057648605538
+  },
+  {
+   "case_id": "train-0006",
+   "components": {
+    "voltage": 0.003929241424326302,
+    "temperature": 0.0014707051998605386,
+    "plating": 0.02852167987517419,
+    "capacity": 0.022440591284511743
+   },
+   "case_error": 0.014090554445968195,
+   "fade_last_mAh": {
+    "coarse": 7.055277941995897,
+    "refined": 7.177448720090851
+   },
+   "plating_margin_diff_v": -0.0006696220713984184
+  },
+  {
+   "case_id": "train-0008",
+   "components": {
+    "voltage": 0.002408629883963236,
+    "temperature": 0.0019428927775369592,
+    "plating": 0.024784620244287337,
+    "capacity": 0.004172901601203566
+   },
+   "case_error": 0.008327261126747774,
+   "fade_last_mAh": {
+    "coarse": 5.916012161737427,
+    "refined": 5.90231075037817
+   },
+   "plating_margin_diff_v": -0.0005818846862960768
+  },
+  {
+   "case_id": "train-0009",
+   "components": {
+    "voltage": 0.0010291861422413954,
+    "temperature": 0.001533886282172534,
+    "plating": 0.025692246089740484,
+    "capacity": 0.010139151900141337
+   },
+   "case_error": 0.009598617603573938,
+   "fade_last_mAh": {
+    "coarse": 7.194373565312162,
+    "refined": 7.138635729423193
+   },
+   "plating_margin_diff_v": -0.0006031936099410717
+  },
+  {
+   "case_id": "train-0007",
+   "components": {
+    "voltage": 0.003272131934829103,
+    "temperature": 0.0020114859466652357,
+    "plating": 0.03296957384216919,
+    "capacity": 0.024435330565949064
+   },
+   "case_error": 0.01567213057240315,
+   "fade_last_mAh": {
+    "coarse": 5.7619042948440224,
+    "refined": 5.892971823758586
+   },
+   "plating_margin_diff_v": -0.000774048177594645
+  },
+  {
+   "case_id": "train-0011",
+   "components": {
+    "voltage": 0.013715845548798235,
+    "temperature": 0.0139534791865194,
+    "plating": 0.08359931509171172,
+    "capacity": 0.05904775236790053
+   },
+   "case_error": 0.04257909804873247,
+   "fade_last_mAh": {
+    "coarse": 7.8956508625367405,
+    "refined": 7.597750699306793
+   },
+   "plating_margin_diff_v": -0.001962715617880806
+  },
+  {
+   "case_id": "train-0010",
+   "components": {
+    "voltage": 0.003265228189549063,
+    "temperature": 0.0011654089219871784,
+    "plating": 0.045564429317126086,
+    "capacity": 0.0008118896767805329
+   },
+   "case_error": 0.012701739026360714,
+   "fade_last_mAh": {
+    "coarse": 8.499032291735986,
+    "refined": 8.497887292659101
+   },
+   "plating_margin_diff_v": -0.001069745810027764
+  },
+  {
+   "case_id": "train-0015",
+   "components": {
+    "voltage": 0.002296405403759354,
+    "temperature": 0.003468088156898091,
+    "plating": 0.03257163510150661,
+    "capacity": 0.009446709663901336
+   },
+   "case_error": 0.011945709581516348,
+   "fade_last_mAh": {
+    "coarse": 5.472063375194125,
+    "refined": 5.513523280290755
+   },
+   "plating_margin_diff_v": -0.0007647055103682278
+  },
+  {
+   "case_id": "train-0013",
+   "components": {
+    "voltage": 0.0038951800587671975,
+    "temperature": 0.0025733846359860327,
+    "plating": 0.050667221264896534,
+    "capacity": 0.024750010455155597
+   },
+   "case_error": 0.020471449103701342,
+   "fade_last_mAh": {
+    "coarse": 5.828370946684203,
+    "refined": 5.754768866022886
+   },
+   "plating_margin_diff_v": -0.001189547383039436
+  },
+  {
+   "case_id": "train-0014",
+   "components": {
+    "voltage": 0.002100812875469471,
+    "temperature": 0.0013105669243408064,
+    "plating": 0.01819668410015738,
+    "capacity": 0.025179418941282162
+   },
+   "case_error": 0.011696870710312455,
+   "fade_last_mAh": {
+    "coarse": 6.45852706753125,
+    "refined": 6.401953810925676
+   },
+   "plating_margin_diff_v": -0.0004272154148373293
+  },
+  {
+   "case_id": "train-0012",
+   "components": {
+    "voltage": 0.0037316848796430583,
+    "temperature": 0.002433630740595875,
+    "plating": 0.042609921572497454,
+    "capacity": 0.002184059620752611
+   },
+   "case_error": 0.01273982420337225,
+   "fade_last_mAh": {
+    "coarse": 7.380281698788238,
+    "refined": 7.37038359240394
+   },
+   "plating_margin_diff_v": -0.001000380905696062
+  }
+ ],
+ "wall_s": {
+  "median": 70.70696914196014,
+  "p90": 77.19422798156738,
+  "max": 85.29698777198792
+ },
+ "train_candidates_sha256": "9c03892f1b9ef1c4fd353248e5f8f0191258c8ead04e4b7d90637bed0e8899c8",
+ "n_train_ok": 400,
+ "verify_sealed": {
+  "n": 200,
+  "sha256": "ad98e7dbba9a2c32323a557ea3b4d856f55568ec30a1b3e70c5b0849bf2abb76",
+  "note": "verification references are not read until the freeze record is committed"
+ }
+}

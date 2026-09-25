@@ -1,0 +1,1 @@
+{"devices": ["cuda:0"], "backend": "gpu", "case": "pdiag-coupler-30nm-3wl", "refined": false, "started_utc": "2026-09-25T05:33:02Z"}

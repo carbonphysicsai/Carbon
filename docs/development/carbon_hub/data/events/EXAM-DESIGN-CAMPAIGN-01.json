@@ -1,0 +1,16 @@
+{
+  "map_ref": "SYSTEM/AGENT-EXECUTION",
+  "event_type": "evidence",
+  "event_id": "EXAM-DESIGN-CAMPAIGN-01",
+  "owner_lane": "core_platform",
+  "status": "implemented",
+  "summary": "Ran the first bounded exam-design research campaign on RunPod A40 pods for about 4.80 US dollars of a 20 dollar ceiling, as public/synthetic DEVELOPMENT evidence with no official, LIVE or reward authority. The primary battery Challenge (PyBaMM DFN, OKane2022, 30-cycle horizon chosen because fade signal exceeds refinement disagreement) produced 2,604 typed references, all OK, at about 0.0014 dollars per case, bitwise identical across hosts. TRAIN v1 is 400 cases from the learning curve. Screening batches of 50/100/200 ranked candidates with Kendall tau 0.88/0.93/0.92 against fresh private cases. In a replay of the full exam loop, the real improvement was promoted in 9/9 settings, pool leaks were nominated 27/27 and promoted 0/27, regressions were never nominated, and nothing was falsely promoted; a regional regression blocked promotion as required. Scoring (batch 100, rotate after 3) was frozen and then verified against private references (V1-V7 pass). One ordering deviation is disclosed: the private references were committed about one minute before the freeze, while predictions preceded it by about four hours; the private root was revealed and the commitment verified. The photonic coupler stopped at feasibility (the straight-guide calibration passes; |S41| and phase did not converge). The Burgers control and the adaptive agents were not run. Scientific, security and production qualification are not claimed.",
+  "primary_detail": "docs/development/EXAM_DESIGN_CAMPAIGN_RESULT.md",
+  "affects": [
+    "SYSTEM/AGENT-EXECUTION",
+    "WAVE-C/C-03",
+    "WAVE-C/C-09"
+  ],
+  "supersedes": null,
+  "recorded_at": "2026-09-25T00:00:00Z"
+}

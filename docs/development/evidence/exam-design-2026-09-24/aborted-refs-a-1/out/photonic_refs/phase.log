@@ -1,0 +1,2 @@
+/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/compiler.py:782: UserWarning: Error reading persistent compilation cache entry for 'jit_stage': PermissionError: [Errno 13] Permission denied: '/scratch'
+  warnings.warn(

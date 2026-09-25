@@ -1,0 +1,222 @@
+Exception ignored in atexit callback: <function clean_up at 0x789e7558a480>
+Traceback (most recent call last):
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/api.py", line 2578, in clean_up
+    clear_backends(_crash=True)
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/api.py", line 2554, in clear_backends
+    effects_barrier()
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/api.py", line 2477, in effects_barrier
+    dispatch.runtime_tokens.block_until_ready()
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/dispatch.py", line 171, in block_until_ready
+    token.block_until_ready()
+jax.errors.JaxRuntimeError: INTERNAL: CpuCallback error calling callback: Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "/opt/uv-python/cpython-3.11.16-linux-x86_64-gnu/lib/python3.11/multiprocessing/spawn.py", line 122, in spawn_main
+  File "/opt/uv-python/cpython-3.11.16-linux-x86_64-gnu/lib/python3.11/multiprocessing/spawn.py", line 135, in _main
+  File "/opt/uv-python/cpython-3.11.16-linux-x86_64-gnu/lib/python3.11/multiprocessing/process.py", line 314, in _bootstrap
+  File "/opt/uv-python/cpython-3.11.16-linux-x86_64-gnu/lib/python3.11/multiprocessing/process.py", line 108, in run
+  File "/tmp/carbon/scripts/dev/exam_design/runner.py", line 195, in _photonic_child
+  File "/tmp/carbon/scripts/dev/exam_design/photonic_reference.py", line 166, in solve_case
+  File "/tmp/overlay/photonic/fdtdx/utils/sparams.py", line 290, in calculate_sparam
+  File "/tmp/overlay/photonic/fdtdx/fdtd/initialization.py", line 280, in apply_params
+  File "/tmp/overlay/photonic/fdtdx/objects/detectors/mode.py", line 126, in apply
+  File "/tmp/overlay/photonic/fdtdx/core/physics/modes.py", line 280, in compute_mode
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/callback.py", line 386, in pure_callback
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/core.py", line 705, in bind
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/core.py", line 713, in bind_with_trace
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/core.py", line 1294, in process_primitive
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/dispatch.py", line 88, in apply_primitive
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/traceback_util.py", line 195, in reraise_with_filtered_traceback
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/pjit.py", line 259, in cache_miss
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/pjit.py", line 139, in _run_python_pjit
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/pjit.py", line 1190, in _pjit_call_impl_python
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/profiler.py", line 420, in wrapper
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/interpreters/pxla.py", line 388, in __call__
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/callback.py", line 816, in _wrapped_callback
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/callback.py", line 226, in _callback
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/callback.py", line 85, in pure_callback_impl
+RuntimeError: jax.pure_callback failed to find a local CPU device to place the inputs on. Make sure "cpu" is listed in --jax_platforms or the JAX_PLATFORMS environment variable. [executable_name='jit_pure_callback']
+Exception ignored in atexit callback: <function clean_up at 0x788b76c85da0>
+Traceback (most recent call last):
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/api.py", line 2578, in clean_up
+    clear_backends(_crash=True)
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/api.py", line 2554, in clear_backends
+    effects_barrier()
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/api.py", line 2477, in effects_barrier
+    dispatch.runtime_tokens.block_until_ready()
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/dispatch.py", line 171, in block_until_ready
+    token.block_until_ready()
+jax.errors.JaxRuntimeError: INTERNAL: CpuCallback error calling callback: Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "/opt/uv-python/cpython-3.11.16-linux-x86_64-gnu/lib/python3.11/multiprocessing/spawn.py", line 122, in spawn_main
+  File "/opt/uv-python/cpython-3.11.16-linux-x86_64-gnu/lib/python3.11/multiprocessing/spawn.py", line 135, in _main
+  File "/opt/uv-python/cpython-3.11.16-linux-x86_64-gnu/lib/python3.11/multiprocessing/process.py", line 314, in _bootstrap
+  File "/opt/uv-python/cpython-3.11.16-linux-x86_64-gnu/lib/python3.11/multiprocessing/process.py", line 108, in run
+  File "/tmp/carbon/scripts/dev/exam_design/runner.py", line 195, in _photonic_child
+  File "/tmp/carbon/scripts/dev/exam_design/photonic_reference.py", line 166, in solve_case
+  File "/tmp/overlay/photonic/fdtdx/utils/sparams.py", line 290, in calculate_sparam
+  File "/tmp/overlay/photonic/fdtdx/fdtd/initialization.py", line 280, in apply_params
+  File "/tmp/overlay/photonic/fdtdx/objects/detectors/mode.py", line 126, in apply
+  File "/tmp/overlay/photonic/fdtdx/core/physics/modes.py", line 280, in compute_mode
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/callback.py", line 386, in pure_callback
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/core.py", line 705, in bind
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/core.py", line 713, in bind_with_trace
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/core.py", line 1294, in process_primitive
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/dispatch.py", line 88, in apply_primitive
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/traceback_util.py", line 195, in reraise_with_filtered_traceback
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/pjit.py", line 259, in cache_miss
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/pjit.py", line 139, in _run_python_pjit
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/pjit.py", line 1190, in _pjit_call_impl_python
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/profiler.py", line 420, in wrapper
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/interpreters/pxla.py", line 388, in __call__
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/callback.py", line 816, in _wrapped_callback
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/callback.py", line 226, in _callback
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/callback.py", line 85, in pure_callback_impl
+RuntimeError: jax.pure_callback failed to find a local CPU device to place the inputs on. Make sure "cpu" is listed in --jax_platforms or the JAX_PLATFORMS environment variable. [executable_name='jit_pure_callback']
+Exception ignored in atexit callback: <function clean_up at 0x720b8ef29da0>
+Traceback (most recent call last):
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/api.py", line 2578, in clean_up
+    clear_backends(_crash=True)
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/api.py", line 2554, in clear_backends
+    effects_barrier()
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/api.py", line 2477, in effects_barrier
+    dispatch.runtime_tokens.block_until_ready()
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/dispatch.py", line 171, in block_until_ready
+    token.block_until_ready()
+jax.errors.JaxRuntimeError: INTERNAL: CpuCallback error calling callback: Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "/opt/uv-python/cpython-3.11.16-linux-x86_64-gnu/lib/python3.11/multiprocessing/spawn.py", line 122, in spawn_main
+  File "/opt/uv-python/cpython-3.11.16-linux-x86_64-gnu/lib/python3.11/multiprocessing/spawn.py", line 135, in _main
+  File "/opt/uv-python/cpython-3.11.16-linux-x86_64-gnu/lib/python3.11/multiprocessing/process.py", line 314, in _bootstrap
+  File "/opt/uv-python/cpython-3.11.16-linux-x86_64-gnu/lib/python3.11/multiprocessing/process.py", line 108, in run
+  File "/tmp/carbon/scripts/dev/exam_design/runner.py", line 195, in _photonic_child
+  File "/tmp/carbon/scripts/dev/exam_design/photonic_reference.py", line 166, in solve_case
+  File "/tmp/overlay/photonic/fdtdx/utils/sparams.py", line 290, in calculate_sparam
+  File "/tmp/overlay/photonic/fdtdx/fdtd/initialization.py", line 280, in apply_params
+  File "/tmp/overlay/photonic/fdtdx/objects/detectors/mode.py", line 126, in apply
+  File "/tmp/overlay/photonic/fdtdx/core/physics/modes.py", line 280, in compute_mode
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/callback.py", line 386, in pure_callback
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/core.py", line 705, in bind
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/core.py", line 713, in bind_with_trace
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/core.py", line 1294, in process_primitive
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/dispatch.py", line 88, in apply_primitive
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/traceback_util.py", line 195, in reraise_with_filtered_traceback
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/pjit.py", line 259, in cache_miss
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/pjit.py", line 139, in _run_python_pjit
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/pjit.py", line 1190, in _pjit_call_impl_python
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/profiler.py", line 420, in wrapper
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/interpreters/pxla.py", line 388, in __call__
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/callback.py", line 816, in _wrapped_callback
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/callback.py", line 226, in _callback
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/callback.py", line 85, in pure_callback_impl
+RuntimeError: jax.pure_callback failed to find a local CPU device to place the inputs on. Make sure "cpu" is listed in --jax_platforms or the JAX_PLATFORMS environment variable. [executable_name='jit_pure_callback']
+Exception ignored in atexit callback: <function clean_up at 0x7c3448701da0>
+Traceback (most recent call last):
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/api.py", line 2578, in clean_up
+    clear_backends(_crash=True)
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/api.py", line 2554, in clear_backends
+    effects_barrier()
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/api.py", line 2477, in effects_barrier
+    dispatch.runtime_tokens.block_until_ready()
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/dispatch.py", line 171, in block_until_ready
+    token.block_until_ready()
+jax.errors.JaxRuntimeError: INTERNAL: CpuCallback error calling callback: Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "/opt/uv-python/cpython-3.11.16-linux-x86_64-gnu/lib/python3.11/multiprocessing/spawn.py", line 122, in spawn_main
+  File "/opt/uv-python/cpython-3.11.16-linux-x86_64-gnu/lib/python3.11/multiprocessing/spawn.py", line 135, in _main
+  File "/opt/uv-python/cpython-3.11.16-linux-x86_64-gnu/lib/python3.11/multiprocessing/process.py", line 314, in _bootstrap
+  File "/opt/uv-python/cpython-3.11.16-linux-x86_64-gnu/lib/python3.11/multiprocessing/process.py", line 108, in run
+  File "/tmp/carbon/scripts/dev/exam_design/runner.py", line 195, in _photonic_child
+  File "/tmp/carbon/scripts/dev/exam_design/photonic_reference.py", line 166, in solve_case
+  File "/tmp/overlay/photonic/fdtdx/utils/sparams.py", line 290, in calculate_sparam
+  File "/tmp/overlay/photonic/fdtdx/fdtd/initialization.py", line 280, in apply_params
+  File "/tmp/overlay/photonic/fdtdx/objects/detectors/mode.py", line 126, in apply
+  File "/tmp/overlay/photonic/fdtdx/core/physics/modes.py", line 280, in compute_mode
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/callback.py", line 386, in pure_callback
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/core.py", line 705, in bind
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/core.py", line 713, in bind_with_trace
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/core.py", line 1294, in process_primitive
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/dispatch.py", line 88, in apply_primitive
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/traceback_util.py", line 195, in reraise_with_filtered_traceback
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/pjit.py", line 259, in cache_miss
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/pjit.py", line 139, in _run_python_pjit
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/pjit.py", line 1190, in _pjit_call_impl_python
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/profiler.py", line 420, in wrapper
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/interpreters/pxla.py", line 388, in __call__
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/callback.py", line 816, in _wrapped_callback
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/callback.py", line 226, in _callback
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/callback.py", line 85, in pure_callback_impl
+RuntimeError: jax.pure_callback failed to find a local CPU device to place the inputs on. Make sure "cpu" is listed in --jax_platforms or the JAX_PLATFORMS environment variable. [executable_name='jit_pure_callback']
+Exception ignored in atexit callback: <function clean_up at 0x7a9db7395da0>
+Traceback (most recent call last):
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/api.py", line 2578, in clean_up
+    clear_backends(_crash=True)
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/api.py", line 2554, in clear_backends
+    effects_barrier()
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/api.py", line 2477, in effects_barrier
+    dispatch.runtime_tokens.block_until_ready()
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/dispatch.py", line 171, in block_until_ready
+    token.block_until_ready()
+jax.errors.JaxRuntimeError: INTERNAL: CpuCallback error calling callback: Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "/opt/uv-python/cpython-3.11.16-linux-x86_64-gnu/lib/python3.11/multiprocessing/spawn.py", line 122, in spawn_main
+  File "/opt/uv-python/cpython-3.11.16-linux-x86_64-gnu/lib/python3.11/multiprocessing/spawn.py", line 135, in _main
+  File "/opt/uv-python/cpython-3.11.16-linux-x86_64-gnu/lib/python3.11/multiprocessing/process.py", line 314, in _bootstrap
+  File "/opt/uv-python/cpython-3.11.16-linux-x86_64-gnu/lib/python3.11/multiprocessing/process.py", line 108, in run
+  File "/tmp/carbon/scripts/dev/exam_design/runner.py", line 195, in _photonic_child
+  File "/tmp/carbon/scripts/dev/exam_design/photonic_reference.py", line 166, in solve_case
+  File "/tmp/overlay/photonic/fdtdx/utils/sparams.py", line 290, in calculate_sparam
+  File "/tmp/overlay/photonic/fdtdx/fdtd/initialization.py", line 280, in apply_params
+  File "/tmp/overlay/photonic/fdtdx/objects/detectors/mode.py", line 126, in apply
+  File "/tmp/overlay/photonic/fdtdx/core/physics/modes.py", line 280, in compute_mode
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/callback.py", line 386, in pure_callback
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/core.py", line 705, in bind
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/core.py", line 713, in bind_with_trace
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/core.py", line 1294, in process_primitive
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/dispatch.py", line 88, in apply_primitive
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/traceback_util.py", line 195, in reraise_with_filtered_traceback
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/pjit.py", line 259, in cache_miss
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/pjit.py", line 139, in _run_python_pjit
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/pjit.py", line 1190, in _pjit_call_impl_python
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/profiler.py", line 420, in wrapper
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/interpreters/pxla.py", line 388, in __call__
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/callback.py", line 816, in _wrapped_callback
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/callback.py", line 226, in _callback
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/callback.py", line 85, in pure_callback_impl
+RuntimeError: jax.pure_callback failed to find a local CPU device to place the inputs on. Make sure "cpu" is listed in --jax_platforms or the JAX_PLATFORMS environment variable. [executable_name='jit_pure_callback']
+Exception ignored in atexit callback: <function clean_up at 0x740e63dfdda0>
+Traceback (most recent call last):
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/api.py", line 2578, in clean_up
+    clear_backends(_crash=True)
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/api.py", line 2554, in clear_backends
+    effects_barrier()
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/api.py", line 2477, in effects_barrier
+    dispatch.runtime_tokens.block_until_ready()
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/dispatch.py", line 171, in block_until_ready
+    token.block_until_ready()
+jax.errors.JaxRuntimeError: INTERNAL: CpuCallback error calling callback: Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "/opt/uv-python/cpython-3.11.16-linux-x86_64-gnu/lib/python3.11/multiprocessing/spawn.py", line 122, in spawn_main
+  File "/opt/uv-python/cpython-3.11.16-linux-x86_64-gnu/lib/python3.11/multiprocessing/spawn.py", line 135, in _main
+  File "/opt/uv-python/cpython-3.11.16-linux-x86_64-gnu/lib/python3.11/multiprocessing/process.py", line 314, in _bootstrap
+  File "/opt/uv-python/cpython-3.11.16-linux-x86_64-gnu/lib/python3.11/multiprocessing/process.py", line 108, in run
+  File "/tmp/carbon/scripts/dev/exam_design/runner.py", line 195, in _photonic_child
+  File "/tmp/carbon/scripts/dev/exam_design/photonic_reference.py", line 166, in solve_case
+  File "/tmp/overlay/photonic/fdtdx/utils/sparams.py", line 290, in calculate_sparam
+  File "/tmp/overlay/photonic/fdtdx/fdtd/initialization.py", line 280, in apply_params
+  File "/tmp/overlay/photonic/fdtdx/objects/detectors/mode.py", line 126, in apply
+  File "/tmp/overlay/photonic/fdtdx/core/physics/modes.py", line 280, in compute_mode
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/callback.py", line 386, in pure_callback
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/core.py", line 705, in bind
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/core.py", line 713, in bind_with_trace
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/core.py", line 1294, in process_primitive
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/dispatch.py", line 88, in apply_primitive
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/traceback_util.py", line 195, in reraise_with_filtered_traceback
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/pjit.py", line 259, in cache_miss
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/pjit.py", line 139, in _run_python_pjit
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/pjit.py", line 1190, in _pjit_call_impl_python
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/profiler.py", line 420, in wrapper
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/interpreters/pxla.py", line 388, in __call__
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/callback.py", line 816, in _wrapped_callback
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/callback.py", line 226, in _callback
+  File "/opt/carbon-worker/lib/python3.11/site-packages/jax/_src/callback.py", line 85, in pure_callback_impl
+RuntimeError: jax.pure_callback failed to find a local CPU device to place the inputs on. Make sure "cpu" is listed in --jax_platforms or the JAX_PLATFORMS environment variable. [executable_name='jit_pure_callback']

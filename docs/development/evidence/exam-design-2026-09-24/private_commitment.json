@@ -1,0 +1,18 @@
+{
+ "schema": "carbon.exam-design.private-commitment.v1",
+ "root_commitment": "7ff9e2b2b77773f86f28fd2a5b9ed8ab7dc4e8ec0b3b9c9c0d5f27d5e740ca3f",
+ "seed_pin": {
+  "challenge": [
+   "battery-charge-degradation-dev",
+   "0.1"
+  ],
+  "generator_version": "carbon.exam-design.battery-reference.v1",
+  "generator_digest": "sha256:f0fde5b6430ba6dff59997bb348158873b1a9916dc2fb173e414d4a35e029ee0",
+  "scoring_version": "exam-design-scoring-v1",
+  "scoring_digest": "sha256:c98080e38a7ef90d416c924779f28c1c672a310a250a4c31bd2261322be07c77",
+  "evaluation_binding": "34b543fc2c86491e4a43c495b1cff83a3741c50e30811fe840fe2b27071801da"
+ },
+ "derivation": "carbon.seeding.derive_mock_seed(MockContext(MockEntropy(root), SeedPin), RoleKey(role), i)",
+ "recorded_utc": "2026-09-24T21:25Z",
+ "note": "root kept outside the repository (mode 600); revealed only after dependent jobs close"
+}
