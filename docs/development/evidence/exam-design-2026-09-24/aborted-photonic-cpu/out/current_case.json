@@ -1,0 +1,1 @@
+{"devices": ["cpu:0"], "backend": "cpu", "case": "pdiag-smoke-60nm", "refined": false, "started_utc": "2026-09-25T05:16:23Z", "runs": [{"wl_um": 1.55, "src": "p1", "setup_s": 12.30244404898258, "run_s": 171.7398528100166}]}

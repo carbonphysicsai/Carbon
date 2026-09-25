@@ -1,0 +1,15 @@
+{
+  "map_ref": "SYSTEM/AGENT-EXECUTION",
+  "event_type": "evidence",
+  "event_id": "BATTERY-TESTNET-M3-01",
+  "owner_lane": "technical_lead",
+  "status": "implemented",
+  "summary": "Delivered M3 of the battery testnet track: the battery validator daemon. It admits a transport-authenticated battery_submit (commitment when required, exact Challenge and version, contract digest, battery compiler) and binds TRAIN v1, OCV, calibration, rule, implementation, backend, envelope, recipe and receipt identities. Screening rebuilds once in the isolated worker, infers the whole active 300-case pool, applies every gate across it, brings the incumbent onto the pool by inference only, and commits score, count and rotation together in a durable owner-only state file. Nominees face a frozen, fresh, matched-seed finalist comparison; only IMPROVEMENT promotes and the actual outcome is recorded. Invalid construction, reconstruction failure, gate failure, reference failure, infrastructure failure and insufficient evidence stay distinct; infrastructure retries under new attempt identities and is never scored. Results are signed with OD-6 service keys; the only weight intent is Phase A all-burn. The Launchpad, miner and Carbon's autonomous agent (now able to research battery with a Challenge-neutral prompt, a finite recorded plan and the miner's capabilities only) all submit through this one daemon; M2's in-process evaluation is removed. Tested in process, in local containers with the carrier's isolation arguments (not the accepted image, not host-doctor admitted), with a scripted agent provider and an external MCP stdio client. Not tested on GPU, not a real model-driven session, not observed on testnet. No threshold, chain action, spend or qualification changes.",
+  "primary_detail": ".agent/tickets/BATTERY-TESTNET-M3_validator_daemon.md",
+  "affects": [
+    "SYSTEM/AGENT-EXECUTION",
+    "WAVE-C/C-09"
+  ],
+  "supersedes": null,
+  "recorded_at": "2026-09-25T19:00:00Z"
+}

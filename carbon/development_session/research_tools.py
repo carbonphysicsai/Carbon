@@ -234,43 +234,52 @@ class ResearchMinerTools:
         )
         self.ledger, self.owner = ledger, owner
 
+    @property
+    def challenge(self):
+        """The Challenge this SDK's composition serves (Burgers historically)."""
+        return getattr(self.composition, "challenge", CHALLENGE)
+
     def _request(self, operation, args, identity):
         c = self.composition
+        # The composition's own Challenge, never a default: a battery
+        # composition's requests name battery, and the gateway refuses any
+        # request whose key differs from the one it authenticates for.
+        key = self.challenge
         support = c.discovery.info.training_support_ref
         if operation == "get_challenge_info":
-            return research.GetChallengeInfoRequest(CHALLENGE)
+            return research.GetChallengeInfoRequest(key)
         if operation == "get_interaction_manifest":
-            return research.GetInteractionManifestRequest(CHALLENGE)
+            return research.GetInteractionManifestRequest(key)
         if operation == "get_prior":
-            return research.GetPriorRequest(CHALLENGE, research.NoPriorSelector())
+            return research.GetPriorRequest(key, research.NoPriorSelector())
         if operation == "get_mock_scaffold":
-            return research.GetMockScaffoldRequest(CHALLENGE, support, None)
+            return research.GetMockScaffoldRequest(key, support, None)
         if operation == "dry_validate":
-            return research.DryValidateRequest(CHALLENGE, _json(args["strategy_json"]))
+            return research.DryValidateRequest(key, _json(args["strategy_json"]))
         if operation == "compile_strategy":
             return research.CompileStrategyRequest(
-                CHALLENGE, _json(args["strategy_json"]), support
+                key, _json(args["strategy_json"]), support
             )
         if operation == "inspect_resources":
             return research.InspectResourcesRequest(
-                CHALLENGE, _json(args["strategy_json"]), c.inspection.policy_ref
+                key, _json(args["strategy_json"]), c.inspection.policy_ref
             )
         if operation == "forecast_resources":
             return research.ForecastResourcesRequest(
-                CHALLENGE,
+                key,
                 _json(args["strategy_json"]),
                 c.inspection.policy_ref,
                 args["seconds"],
             )
         if operation == "get_research_result":
             return research.GetResearchResultRequest(
-                CHALLENGE,
+                key,
                 research.ResearchTaskId(args["task_id"]),
                 args["poll_sequence"],
             )
         if operation == "cancel_research_task":
             return research.CancelResearchTaskRequest(
-                CHALLENGE, research.ResearchTaskId(args["task_id"]), identity
+                key, research.ResearchTaskId(args["task_id"]), identity
             )
         if operation != "start_research_task":
             raise ValueError("operation requires unavailable prior")
@@ -310,7 +319,7 @@ class ResearchMinerTools:
         else:
             raise ValueError("unsupported task kind")
         return research.StartResearchTaskRequest(
-            CHALLENGE,
+            key,
             identity,
             spec,
             support,
@@ -537,7 +546,7 @@ class ResearchMinerTools:
         body = message(
             self.connection.chain_context,
             observed.snapshot_id,
-            CHALLENGE,
+            self.challenge,
             session="carbon-autoresearch",
             request=identity if transport_request_id is None else transport_request_id,
             tool=research.RESEARCH_NAMESPACE,

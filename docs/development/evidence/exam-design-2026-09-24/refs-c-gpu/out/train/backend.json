@@ -1,0 +1,8 @@
+{
+ "jax_backend": "gpu",
+ "devices": [
+  "cuda:0"
+ ],
+ "JAX_PLATFORMS": "cuda",
+ "XLA_FLAGS": "--xla_gpu_deterministic_ops=true --xla_gpu_exclude_nondeterministic_ops=true --xla_gpu_autotune_level=0"
+}

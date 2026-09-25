@@ -1,7 +1,7 @@
 {
   "schema_version": "carbon.ask-carbon.public-release-candidate.v1",
   "candidate_id": "ask-carbon-public-release-2026-09-24.1",
-  "status": "OWNER_APPROVED_PRODUCTION_PUBLICATION",
+  "status": "OWNER_APPROVED_PRODUCTION_PUBLICATION_DEPLOYED",
   "public_activation_allowed": true,
   "public_activation_allowed_decision": "WEB-QA-07-D1 (2026-09-22) for the content; WEB-QA-05-D2 (2026-09-19) for the activation itself. Serving answers additionally requires deploying wrangler.public-release-active.toml; the committed candidate config stays disabled as the fail-closed incident response.",
   "owner_authorization": {
@@ -154,9 +154,9 @@
     "plan_observed": "Free",
     "new_monetary_commitment": false,
     "production_static_worker": "carbonwebsite",
-    "production_current_version": "65fd41de-7ab6-4b0b-b138-b956a5917dd6",
+    "production_current_version": "b694b20f-a4d4-4f59-8f08-12629591a2dc",
     "production_rollback_version": "65fd41de-7ab6-4b0b-b138-b956a5917dd6",
-    "production_version_note": "65fd41de is the content-approved active publication (WEB-QA-07-D1, bundle 93bffeec…), deployed 2026-09-22T12:24Z and captured with wrangler 4.134.0 on 2026-09-24 as serving 100% of traffic. It replaced dc5212bb (the inactive publication). Rolling back to 65fd41de restores the previous Pilot Designer and the 3f22f87a… knowledge. Re-capture immediately before deploying this candidate.",
+    "production_version_note": "Rollback target 65fd41de-7ab6-4b0b-b138-b956a5917dd6 (the WEB-QA-07-D1 content-approved publication) was re-captured at 2026-09-24T09:29Z, immediately before deploying, and was still serving 100% of traffic. Rolling back to it restores the previous Pilot Designer and the 3f22f87a… knowledge, whose current-progress card expires 2026-09-25T00:00Z.",
     "production_hostnames": [
       "carbonphysics.ai",
       "www.carbonphysics.ai"
@@ -172,8 +172,8 @@
     "private_staging_url": "https://carbon-ask-private-staging.carbon-physics-ai.workers.dev",
     "budget_authority_worker": "ask-carbon-budget-authority",
     "budget_authority_version": "bad6566a-fec0-4a82-83d9-70762df3cc93",
-    "production_current_version_created": "2026-09-22T12:24:19.108Z",
-    "production_current_version_note": "Captured 2026-09-24 from the live carbonwebsite deployment with `wrangler deployments status`."
+    "production_current_version_created": "2026-09-24T09:30:31.026Z",
+    "production_current_version_note": "Candidate 2026-09-24.1 (bundle c973a2ea…) deployed 2026-09-24T09:30:32Z with wrangler 4.134.0 from merge commit 0df5efe1, static assets only; Cloudflare uploaded exactly the two changed assets. Captured with `wrangler deployments status` as serving 100% of traffic."
   },
   "budget_snapshot_micro_usd": {
     "period": "2026-09",
@@ -215,5 +215,25 @@
   },
   "supersedes_candidate_id": "ask-carbon-public-release-2026-09-22.1",
   "change_note": "Candidate 2026-09-24.1 carries the same runtime, model, knowledge version, budget and activation posture as 2026-09-22.1 and the live site. It changes exactly two shipped files: ask-carbon/pilot-designer.html (GOAL-WORKBENCH-15 decisions 1 and 2) and ask-carbon/public-knowledge.v1.json (the WEB-QA-07-D2 current-progress refresh, already approved for deployment). It also proposes the amended visitor notice. Every other staged path is byte-identical to the live site.",
-  "rebaseline_note_2026_09_22_1": "The 2026-09-18.2 candidate was owner-approved for inactive publication against the previous single-file homepage. On 2026-09-22 the owner replaced the live site with the multi-page redesign (carbon-site-upload.zip → carbonwebsite, verified 97/97 paths), which invalidated that candidate's static-integration pins. This candidate carries the SAME runtime, model, knowledge, privacy, budget and activation posture and changes only: (a) the static-integration source pin and complete baseline manifest, (b) the launcher/panel stylesheet restyled to the site's type system (Montreal, square corners, 600 weight), and (c) the site header/footer gaining an `Ask Carbon` link that opens the homepage panel. The owner's inactive-publication approval must be re-recorded against this candidate before deployment."
+  "rebaseline_note_2026_09_22_1": "The 2026-09-18.2 candidate was owner-approved for inactive publication against the previous single-file homepage. On 2026-09-22 the owner replaced the live site with the multi-page redesign (carbon-site-upload.zip → carbonwebsite, verified 97/97 paths), which invalidated that candidate's static-integration pins. This candidate carries the SAME runtime, model, knowledge, privacy, budget and activation posture and changes only: (a) the static-integration source pin and complete baseline manifest, (b) the launcher/panel stylesheet restyled to the site's type system (Montreal, square corners, 600 weight), and (c) the site header/footer gaining an `Ask Carbon` link that opens the homepage panel. The owner's inactive-publication approval must be re-recorded against this candidate before deployment.",
+  "deployment_record_2026_09_24_1": {
+    "decision": "WEB-QA-08-D1",
+    "deployed_utc": "2026-09-24T09:30:32Z",
+    "source_revision": "0df5efe1ce5d955718e857385c13a36373f1b31b",
+    "bundle_identity_sha256": "c973a2eaa9039c48df8660d0710f1dc34defe26026b6442b7f7d8aa9cbfc1bfc",
+    "rebuilt_identity_matched_approval": true,
+    "version_id": "b694b20f-a4d4-4f59-8f08-12629591a2dc",
+    "rollback_target_version_id": "65fd41de-7ab6-4b0b-b138-b956a5917dd6",
+    "ask_carbon_public_worker_redeployed": false,
+    "verification": {
+      "verified_utc": "2026-09-24T09:33Z",
+      "paths_matching_bundle": {
+        "carbonphysics.ai": "102/102",
+        "www.carbonphysics.ai": "102/102"
+      },
+      "method": "every staged path fetched from both hostnames and compared with the bundle by SHA-256; HTML compared after removing the challenge script Cloudflare injects at the edge",
+      "health": "active:true, valid:true, reasons [], no ineligible cards, on both hostnames",
+      "browser": "the live Pilot Designer shows fingerprint 5a38 c3ea bbd2 dd56 ce57 d3e1 f2c5 b1f1 6cd5 c1e0 f5bc 62a8 bb62 9699 8eec 5c18, enables Download encrypted for Carbon, and its consent text withholds the operating envelope and requested targets"
+    }
+  }
 }

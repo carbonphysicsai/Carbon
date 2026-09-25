@@ -1,0 +1,9 @@
+{
+ "schema": "carbon.exam-design.private-reveal.v1",
+ "revealed_utc": "2026-09-25T06:10Z",
+ "root_hex": "5d07f009f8805a03e7dd0d15471c334816557ba28eb1ba227f96a4169d8cd134",
+ "commitment_matches": true,
+ "sample_rederivation_matches": true,
+ "refs_b_job_key_hex": "7f382897553f1dd103aed861ef4925c36559c6914cc1ca7d01776996e722beb7",
+ "note": "All dependent jobs are closed. The root is campaign-specific (mock namespace) and is never reused; revealing it lets anyone verify the commitment and re-derive every private case."
+}

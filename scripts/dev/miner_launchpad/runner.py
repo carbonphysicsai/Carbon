@@ -46,6 +46,11 @@ PATH_FIELDS = {
     "miner_password_file",
     "quarantine_journal",
 }
+#: Paths a profile may add. `battery_validator` is the operator's battery
+#: validator deployment (`carbon.battery.deployment`, the M3 daemon); without
+#: it a battery submission is refused as evaluation_unavailable, never scored
+#: another way.
+OPTIONAL_PATH_FIELDS = {"battery_validator"}
 
 PROFILE_FIELDS = {
     "schema",
@@ -147,7 +152,10 @@ def validated_profile(cfg):
         and (cfg["disabled_reason"] != "OWNER_EXPERIMENT_PAUSE" or cfg["enabled"])
     ):
         raise ValueError("invalid disabled profile explanation")
-    if type(cfg["paths"]) is not dict or set(cfg["paths"]) != PATH_FIELDS:
+    if (
+        type(cfg["paths"]) is not dict
+        or set(cfg["paths"]) - OPTIONAL_PATH_FIELDS != PATH_FIELDS
+    ):
         raise ValueError("closed runner inputs required")
     if any(
         type(v) is not str or not Path(v).is_absolute()
@@ -498,6 +506,25 @@ class RunnerAdapter:
         run_id = digest(canonical([cfg["principal"], request["idempotency_key"]]))[7:39]
         return run_id, digest(canonical(fields)), digest(canonical(cfg))
 
+    @staticmethod
+    def _challenge(request):
+        """The launch's Challenge, resolved exactly, or None for the historical
+        default. An unknown, reserved, deferred or wrong-version Challenge is
+        refused by its code; nothing falls back to another Challenge."""
+        if "challenge" not in request and "challenge_version" not in request:
+            return None
+        from carbon.challenge_registry import ResolutionError, resolve
+
+        challenge = {
+            "id": request.get("challenge"),
+            "version": request.get("challenge_version"),
+        }
+        try:
+            resolve(challenge["id"], challenge["version"], "cpu_research")
+        except ResolutionError as refused:
+            raise Rejected(refused.code, 409) from None
+        return challenge
+
     def launch_admitted(self, admitted, request):
         """Record and dispatch an admitted launch."""
         from carbon.development_session.product_campaign import (
@@ -517,6 +544,7 @@ class RunnerAdapter:
             runtime=cfg["runtime"],
             budget=budget,
             agent=request["agent"],
+            challenge=self._challenge(request),
         )
         with self.db() as db:
             db.execute("BEGIN IMMEDIATE")

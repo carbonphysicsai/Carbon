@@ -15342,3 +15342,489 @@ The encrypted download saves a file in the visitor's browser and sends
 nothing. This decision authorizes no client-facing collection, no intake
 address publication, and no change to retention, screening or legal hold,
 which remain counsel's.
+
+## 2026-09-25 — OWNER-BATTERY-TESTNET-01: battery testnet hardening track (OD-1 to OD-8)
+
+**Authority.** The owner (Fitz) approved OD-1 to OD-8 on 2026-09-25 in the
+battery-testnet handoff (decision D1 of the wave-1 handoff; parent issue #341).
+The table was posted verbatim on #341:
+https://github.com/carbonphysicsai/Carbon/issues/341#issuecomment-5831630172
+
+| ID | Decision (as approved) |
+|---|---|
+| OD-1 | **Battery is admitted as a new DEVELOPMENT Challenge** (escalation trigger 5): `carbon.battery-fastcharge-ageing-development.v1`, non-paying, with the declarative vocabulary registered in M1. |
+| OD-2 | **Provisional DEVELOPMENT exam rule for testnet** = the campaign's frozen, verified rule: TRAIN v1 = 400; screening batch 100 with 3 active; rotate after 3 admitted; 5.7% equivalence margin; only IMPROVEMENT promotable; important-region regressions block. Labelled provisional, non-paying, not production values. |
+| OD-3 | **Security review is approved** for the GPU validator reconstruction image and the PyBaMM truth image, before the testnet run. |
+| OD-4a | **Testnet dispatch authority for Phase A:** all-burn DEVELOPMENT weight vectors only, within a recorded block window and transaction count. **Published by the existing owner/publisher identity (UID 0)**, as in the previous DEVELOPMENT run. |
+| OD-4b | **Winner weights on testnet: decided after Phase A evidence**, as recommended. Not authorized yet; the winner issuer stays unavailable. |
+| OD-5 | **Budget: USD 20 total for this track**, covering RunPod and the agent's model provider. Suggested split: RunPod 14, model provider 6. It is a hard ceiling in the ledger; exceeding it needs a new approval. |
+| OD-7 | **APPROVED 2026-09-25:** (a) the Launchpad's miner hotkey (UID 1, or newly registered miner hotkeys) may post **recipe-hash commitment transactions** on netuid 567, bounded in count per day and in window; (b) a **Carbon submission intake** (NET-2 signed transport) may be exposed publicly during the testnet window, hosted with the validator pods (RunPod HTTP proxy) and covered by the OD-3 security review; (c) registering **additional miner hotkeys** for multi-agent runs, if wanted (test TAO registration cost). |
+| OD-8 | **APPROVED 2026-09-25: construction contracts are per challenge.** One registry and one compiler, but each challenge version has its **own contract**: the capabilities registered *for that challenge*, their surfaces and ranges, and its resource envelope, pinned by its own contract digest. A family rebuildable for one challenge is not thereby rebuildable for another; it needs that challenge's adapter and tests. Admitting a new challenge's vocabulary stays an owner decision (escalation trigger 5). Adding capabilities within an admitted challenge follows the standing mandate (OWNER-CONSTRUCTION-ESCALATION-01). |
+| OD-6 | **No validator hotkeys on testnet.** Validators run as Carbon-operated services **without chain identities**: they read miner commitments from the chain but never register or set weights. Weight publication (Phase A all-burn) goes only through the owner publisher under OD-4a. Validator receipts are signed with Carbon **service keys**, not hotkeys. |
+
+**Consequences recorded from the handoff.**
+- **Validator daemon (M3):** chain read-only. It watches miner commitments and
+  emits signed results and weight *intents* to the owner publisher. It never
+  sets weights. Two instances cross-check by commit-then-reveal with service
+  keys.
+- **Chain identity:** a pluggable role with two modes. `keyless` (testnet now)
+  is read-only, and the owner publisher sets weights. `validator-hotkey`
+  (mainnet) uses each validator's own registered, permitted hotkey with
+  commit-reveal weights. It is exercised on localnet (NET-5) and stays disabled
+  on testnet.
+- **Budget:** M1 to M3, M5 and M6 run on local CPU. GPU pods are used only for M4
+  and the M7 window. Stop and report before any dispatch that would cross the
+  USD 20 ceiling.
+- **Scope against #341:** #341 keeps battery outside the *commercial launch
+  portfolio*. This track is a non-paying DEVELOPMENT testnet Challenge and adds
+  no portfolio or launch claim. Classified `NO_CONFLICT`.
+- **Unchanged:** scientific, security, network and production qualification;
+  official C-W1, C-09 and C-EA2; LIVE; miner payment; settlement. OD-2 values
+  are provisional DEVELOPMENT values, not production values.
+
+### M1 working engineering decisions (BATTERY-M1-D1 to D6)
+
+Status: `IMPLEMENTED_WORKING_DECISION` in the M1 PR. All are reversible
+engineering choices, and none of them requires human-reserved input.
+
+1. **D1: Challenge token.** Strategy schema 1.0 identifiers carry no dots. The
+   OD-1 name is the Challenge's registered `identity`. Submissions name it by
+   the token `battery-fastcharge-ageing-development-v1`, version `1.0`.
+   Rejected alternative: widening the Strategy identifier grammar, which would
+   change a public interface for a naming preference.
+2. **D2: per-Challenge contracts in the one registry.** A `ChallengeContract`
+   holds each Challenge's capabilities, surfaces, ranges, envelope and named
+   lanes, pinned by its own digest (`carbon.challenge-construction-contract.v1`).
+   `REGISTRY` stays the Burgers contract, and every function defaults to
+   Burgers. Every Burgers contract, catalog and document identity was compared
+   before and after and is byte-identical. The per-Challenge status map
+   (`status_map`) is derived from the contracts, so it cannot drift from them.
+3. **D3: lanes replace hard-coded family lists.**
+   - The historical session's `("fno", "deeponet")` now comes from the Burgers
+     contract's `session` lane, unchanged.
+   - **GPU lane widened (owner direction, 2026-09-25).** The `gpu_diagnostic`
+     lane offers every family Carbon rebuilds for Burgers: FNO, DeepONet,
+     Transolver, Haar, GNO and GINO. It is derived from the registry, so a
+     newly rebuildable family joins it. The GPU worker trains through the
+     same vendored lab as the CPU lane.
+   - The GPU catalog version moves to
+     `carbon.burgers-gpu-diagnostic-recipes.v2`. v1 (FNO and DeepONet)
+     keeps its meaning for anything recorded under it.
+   - Hardware acceptance of the added families on the GPU lane is not
+     claimed: the catalog continues to state `hardware_acceptance:
+     NOT_EXECUTED`.
+4. **D4: closing `dry_validate` for every Challenge.**
+   - `dry_validate` stays the registry-free structural layer that strategy
+     identity is built on. Changing it would reinterpret historical identities.
+   - `carbon.reconstruction.challenge_contracts.validate_for_challenge` adds the
+     named Challenge's contract. It refuses each of these by code and path: an
+     unknown Challenge, a family not in the contract or not yet rebuildable, and
+     an unknown, not-yet-rebuildable or inapplicable field.
+   - `compile_submission` runs it before the one B-02B compiler and resolves
+     only that Challenge's catalog.
+5. **D5: the battery vocabulary (research time, OWNER-BATTERY-TESTNET-02).**
+   - **Coverage.** Every one of the 92 capabilities in the construction review
+     has a battery status. It has either its own entry or a battery entry that
+     `realizes` it: the optimizer and curve choices realize each
+     `optimizer.*` and `schedule.*` id.
+   - **Rebuildable in DEVELOPMENT (49 review ids):**
+     - **Families:** `knn`, `mlp` and the battery DeepONet (a branch over the
+       four inputs and a trunk over the 30 s grid).
+     - **Architecture:** width, depth, DeepONet depth, basis functions, PCA
+       heads, Arrhenius features, activation, normalization and
+       initialization.
+     - **Declared construction choices:** the bounded voltage head, the OCV
+       start voltage and capacity as fade.
+     - **Optimizers:** all eleven (the written-out Adam(W) plus ten optax
+       families; schedule-free AdamW is offered as `free_adamw` because B-02B
+       reserves the token "schedule"), with decay mask, clipping, betas and
+       epsilon.
+     - **Learning-rate curves:** all eight, with warmup and floor.
+     - **Batching:** minibatch and gradient accumulation.
+     - **Losses:** relative, time-weighted, first and second time derivative,
+       and spectral.
+     - **Stages and averaging:** an L-BFGS polish taken from the step budget;
+       ensembles; tail averaging; EMA; float64.
+     - **Training data:** TRAIN subsets, important-region weighting,
+       curriculum and hard-example weighting, all on TRAIN v1 only with
+       Carbon's randomness.
+   - **Research-only, with the reason recorded:**
+     - the grid operators and foundax field or point models, which need a
+       spatial field;
+     - the grid-family fields and remat;
+     - the PDE residual and its warmup;
+     - enforce-mean;
+     - exact-symmetry augmentation;
+     - rollout, structure layers, and solver and symbolic templates, which are
+       not designed for battery yet;
+     - support-leaving augmentation and 2D/3D (owner triggers).
+   - **Excluded (9):**
+     - PyTorch and Julia backends, per-submission labels and PyBaMM reuse,
+       because validation is JAX-only;
+     - the five items the declarative rule excludes.
+   - **Math.** The campaign's recipes stay bit-identical to
+     `scripts/dev/exam_design/recipes.py`, including the localized, half-TRAIN
+     and ensemble variants. Every other setting trains through
+     `carbon/battery/training.py`.
+   - **Named refusals.** A supplied field the rest of the recipe would ignore
+     or contradict is refused by name. For example: betas the optimizer does
+     not use, a floor on a curve without one, a mask with zero decay, EMA
+     decay without EMA inference, averaging with SAM or schedule-free, a
+     warmup or polish that consumes the budget, and a batch the microbatches
+     do not divide.
+   - **B-02B change.** Its training-control table registers the battery
+     consumer's `weight`-named controls.
+6. **D6: contract digest.**
+   - **Recorded:** by check-design (`contract`) and in every frozen-candidate
+     record (`contract_digest`).
+   - **Checked:** `check_contract_digest` refuses a mismatch by name
+     (`contract.digest_mismatch`). The validator daemon calls it on admission
+     in M3.
+   - **Public material:** the OCV table and TRAIN v1 are pinned by their exact
+     bytes and refused by name on mismatch. Packaging them into the validator
+     image is M4.
+
+## 2026-09-25 — OWNER-BATTERY-TESTNET-02: battery research vocabulary
+
+**Authority.** The owner, in session on 2026-09-25, after reviewing the
+construction capability review:
+
+- "This is research time": include the reviewed capabilities in the battery
+  construction contract.
+- "No burgers edits."
+- "Only JAX for validation."
+- "Yes on those excluded items." The executor read this as confirming that the
+  excluded items stay excluded.
+
+**What it means, as implemented (M1, PR #348):**
+- **Battery.** Every capability Carbon can rebuild in JAX is submittable for
+  the battery DEVELOPMENT Challenge. That includes the review items that were
+  owner-gated for Burgers but rebuild in JAX for battery: float64, TRAIN
+  subsets and important-region weighting.
+- **Excluded for battery:**
+  - PyTorch and Julia backends;
+  - per-submission reference labels;
+  - PyBaMM reference reuse;
+  - the five items the declarative rule excludes.
+- **Burgers.** Its vocabulary, lab and profile digests are untouched.
+- **GPU lane.** Widened separately the same day by owner direction.
+
+**Unchanged:** the exam, scoring, thresholds, comparison resources,
+qualification, security acceptance and chain authority. OD-2's values stay
+provisional DEVELOPMENT values.
+
+**Open to correction.** If "yes on those excluded items" was meant to admit
+them, that would widen the declarative rule
+(OWNER-CONSTRUCTION-DECLARATIVE-01). It needs an explicit superseding decision
+and is not implemented.
+
+## 2026-09-25 — BATTERY-TESTNET-M2 working engineering decisions (M2-D1 to D5)
+
+Status: `IMPLEMENTED_WORKING_DECISION` in the M2 PR, under
+OWNER-BATTERY-TESTNET-01. All are reversible engineering choices. None needs
+human-reserved input.
+
+1. **M2-D1: KEEP the campaign code, WRAP it in `carbon/battery/`.**
+   - The exam (`exam.py`) and the reference (`reference.py`) are the research
+     modules' code with import paths changed.
+   - Replay tests hold them identical to the research modules on the retained
+     evidence.
+   - OD-2's rule is a named constant, `DEVELOPMENT_RULE`, labelled
+     `PROVISIONAL_DEVELOPMENT_NON_PAYING`. A test holds it equal to the
+     committed `freeze.json`.
+2. **M2-D2: replay basis.**
+   - The retained predictions are float32, so recorded mean differences
+     reproduce to about 1e-6, not bit for bit.
+   - Decisions, labels and which gates fire are identical.
+   - The nondeterminism fault's ceiling count moves by 2 of 200 at the 4.2 V
+     float32 boundary. This is stated in the test rather than hidden.
+3. **M2-D3: private seeds.**
+   - `PrivateRoot` loads only from an owner-only 32-byte regular file, and it
+     never serializes.
+   - Batches carry at least one hidden duplicate, with HMAC-derived opaque ids
+     and a shuffled order.
+   - `CommittedBatch` exists only as `SeedJournal.commit` output.
+   - A reveal is refused before retirement.
+   - `verify_reveal` reports how many reveals it checked, so an empty check
+     never reads as a pass.
+4. **M2-D4: truth runs.**
+   - Each case runs in its own forked worker.
+   - The memory bound is what the solve may add to the worker's size (an
+     absolute limit breaks after a fork from a large parent). A hit is
+     `FAILED_INFRA`, never a reference or candidate failure.
+   - Resume retries only `FAILED_INFRA`.
+5. **M2-D5: the shadow pool uses whole committed batches.**
+   - A committed batch holds exactly one screening batch of 100 cases, and the
+     pool scores whole batches. The campaign's nested-prefix option could drop
+     duplicates placed at the end.
+   - The public projection is constructed field by field from an allow-list,
+     never by filtering the internal record.
+
+## 2026-09-25 — BATTERY-TESTNET-M5A working engineering decisions (M5A-D1 to D8)
+
+Status: `IMPLEMENTED_WORKING_DECISION` in the M5A PR. Authority:
+OWNER-BATTERY-TESTNET-01 and the owner's 2026-09-25 direction to close the
+gap between Carbon's shared MCP interface and each Challenge's research
+environment. The launch Challenges are Battery, Chip cooling, Electric motors
+and Photonics; Power magnetics and airfoils are deferred.
+
+All of these are reversible engineering choices. None needs human-reserved
+input, and none renews a grant, raises spend, writes to a chain or confers
+qualification.
+
+1. **M5A-D1: one Challenge registry, exact selection, no fallback.**
+   - `carbon/challenge_registry` resolves (challenge_id, version, execution profile).
+   - Each unusable selection is a typed refusal with a stable code: unknown,
+     wrong version, reserved, deferred, or profile not usable here.
+   - There is no default Challenge.
+   - Chip cooling, electric motors and photonics are RESERVED under working
+     slugs with their tracking issues (#342, #344, #345), and nothing runs for
+     them.
+   - Power magnetics (#343) and airfoils (#346) are DEFERRED and kept for
+     history. No other executor's work is closed or overwritten.
+2. **M5A-D2: descriptions are derived, and usability is observed.**
+   - A description reads the executable registrations: the contract and its
+     capabilities, the public-material allow-list, the exam gates, the
+     feedback allow-list, and examples validated by the submission admission.
+   - *Implemented* and *usable on this host* are separate fields. Usability
+     comes from host facts: an installed module, the Docker CLI, or a
+     configured worker image that passes the doctor.
+3. **M5A-D3: one B-07 composition.**
+   - `compose_research_service(ChallengeParts)` serves every Challenge through
+     the same twelve operations, durable tasks, executor, ledger and carrier.
+   - Burgers' `make_research_service` now supplies Burgers parts, and its
+     ChallengeInfo, manifest, policy and scaffold digests are unchanged.
+   - The research SDK sends its composition's own key. A battery campaign uses
+     the connection's gateway with only the key changed, so a request for
+     another Challenge is refused before any provider sees it.
+4. **M5A-D4: battery practice.**
+   - The isolated carrier runs a fixed program on the trusted worker image.
+   - It stages the exact bytes of `domain.py`, `recipes.py` and `training.py`.
+     The pure `domain` module was split out of `challenge.py` for this, so it
+     is part of the implementation digest.
+   - Carbon scores the worker's predictions on the host, using the exam's
+     gates, the TRAIN scales and the frozen tolerances.
+   - PRACTICE is the exam-design campaign's public practice role: 200 OK cases,
+     pinned by the source file's digest, and disjoint from TRAIN v1 and from
+     the seed-service pools.
+5. **M5A-D5: evaluation.**
+   - A battery submission reaches an operator-configured deployment made of
+     owner-only files: root, journal, batch plaintexts, truth references and a
+     results log.
+   - Each batch is recalled against its prior journal commitment, and retired
+     batches are skipped.
+   - Missing references stop the load.
+   - An unconfigured deployment or `FAILED_INFRA` refuses the submission
+     without consuming the epoch.
+   - The rebuild runs in the evaluation process, and each result says
+     `DIRECT_TRUSTED_PROCESS` and `validator_path: false` until M3 moves it
+     into the isolated reconstruction worker.
+6. **M5A-D6: battery campaigns are miner-driven.**
+   - A battery launch requires `agent: none`.
+   - Carbon's autonomous agent is written for Burgers, so it is refused by name
+     rather than run on battery.
+   - Julia, GPU and authored-task lanes are not composed for battery.
+7. **M5A-D7: the campaign binds its Challenge.**
+   - `launch` takes optional `challenge` and `challenge_version`, and the
+     frozen manifest records them.
+   - Omitting them is the historical Burgers campaign, whose manifest is
+     unchanged.
+   - Prepare, attach, freeze and submit route by the frozen binding.
+8. **M5A-D8: the section-7 text was truncated.**
+   - The direction's section 7 ("preserve the exam's independence ...")
+     arrived cut off.
+   - Implemented from the complete sentences: current OD-2 battery exam
+     semantics, unchanged; no hidden case, seed or label for agents; the
+     evaluator chooses its own reference; and no miner artifact becomes a
+     grading reference.
+   - The rest of that section is open for the owner to resend.
+
+## 2026-09-25 — OWNER-BATTERY-TESTNET-03: exclusion scope, battery agent, M3 direction
+
+**Authority.** The owner, in session on 2026-09-25 ("DECISIONS AND SCOPE",
+"EXECUTION AND EXISTING AUTHORITY", "NEXT: M3").
+
+1. **The battery submission exclusions stand, and are scoped.**
+   - Submitted constructions rebuild only through the approved JAX runtime.
+   - Excluded for battery *submissions*:
+     - PyTorch and Julia submission or reconstruction backends;
+     - miner-supplied reference labels;
+     - hybrids that invoke or reuse the PyBaMM reference solver;
+     - the other declarative exclusions M1 recorded.
+   - These are not repository-wide prohibitions on Julia or other research
+     tools.
+   - "PyBaMM reference reuse" does not prohibit studying or training on the
+     approved public TRAIN v1 data and OCV table. Nor does it prohibit Carbon
+     running PyBaMM as its own independent truth service.
+   - TRAIN v1 and the OCV table stay pinned.
+   - Battery's discovery document states this scope in `exclusion_scope`. The
+     contract and its digest are unchanged.
+2. **Carbon's autonomous agent may research battery.**
+   - It goes through the shared challenge-aware MCP workflow, with Burgers
+     behaviour preserved.
+   - It has the same capabilities as an external miner, and no evaluator
+     access.
+   - It is never made to revise a set number of times or to show an
+     improvement.
+   - Its reasoning, actions, failed trials, capability requests and stop
+     reason are recorded.
+   - A paid agent campaign uses the track budget, an available credential and
+     a finite recorded run plan.
+3. **The approved exam (OD-2) is preserved exactly** (the direction's §7 A-G),
+   including:
+   - screening over the whole active pool;
+   - inference-only incumbents;
+   - durable, economical rotation;
+   - independent finalist decisions on fresh cases;
+   - distinct failure types;
+   - science separate from chain publication. Phase A is all-burn (OD-4a);
+     OD-4b stays unavailable.
+4. **Execution authority is unchanged.**
+   - Identities: OD-6.
+   - Spending: the OD-5 USD 20 track total, never renewed per milestone.
+   - Transactions: only the exact OD-4a and OD-7 records. Missing counts,
+     windows, fee caps or expiry are prepared for approval, never inferred.
+
+## 2026-09-25 — BATTERY-TESTNET-M3 working engineering decisions (M3-D1 to D16)
+
+Status: `IMPLEMENTED_WORKING_DECISION` in the M3 PR. Authority:
+OWNER-BATTERY-TESTNET-01 and -03. None of these changes an OD-2 value, a gate,
+a comparison rule or a chain permission. Each is a reversible operational
+resolution of a detail the rule leaves open, recorded as the smallest explicit
+choice.
+
+1. **M3-D1: one daemon, one durable state file.**
+   - `carbon/battery/daemon.py` (`BatteryValidator`) holds all state in
+     `pool_store.PoolStore`, an owner-only SQLite file. It records:
+     - batches and their references;
+     - pool version and admitted count;
+     - admissions and retained model states;
+     - predictions and scores;
+     - the incumbent and finals;
+     - pending operations and events.
+   - Identities are bound at start, and a changed identity refuses to start.
+2. **M3-D2: admission.**
+   - The signed transport authenticates first (`battery_submit`, closed
+     fields).
+   - The daemon then:
+     - checks the commitment when required;
+     - resolves the Challenge and version;
+     - checks the contract digest;
+     - compiles through battery's compiler.
+   - The admission binds:
+     - TRAIN v1, the OCV table and the frozen calibration;
+     - the rule digest and Carbon's implementation;
+     - the backend and the resource envelope;
+     - the recipe, strategy and plan digests;
+     - the commitment and the receipt.
+   - A refused construction is `INVALID_CONSTRUCTION`. It is never counted.
+   - The same hotkey, recipe and contract is the same submission
+     (idempotent).
+3. **M3-D3: `ROTATION_PENDING` queues.** When a rotation is due and no
+   complete prepared batch exists, admissions queue and nothing is scored. A
+   pool is never continued exhausted or incomplete.
+4. **M3-D4: the first eligible screened submission becomes the incumbent** on
+   an empty frontier, as in the approved campaign replay.
+5. **M3-D5: finalist sets.**
+   - One prepared fresh set is claimed per comparison, then consumed and
+     retired through the journal.
+   - The rule, both identities and a matched seed are frozen before the set
+     is assigned.
+6. **M3-D6: attempts.**
+   - Every worker run is named by an attempt, for both submissions and finals.
+   - After an infrastructure failure the retry uses the next attempt, so a
+     possibly unresolved run identity is never dispatched twice.
+7. **M3-D7: attribution.**
+   - The incumbent's inference failure is infrastructure, never charged to
+     the challenger.
+   - A candidate's own rebuild or prediction failure is
+     `RECONSTRUCTION_FAILED`.
+   - A missing, oversized or changed output is infrastructure.
+   - A failed program writes `failure.json`, which marks a candidate failure.
+8. **M3-D8: published cases are refused as hidden cases.**
+   - A batch that repeats a published exam-design case (inputs rounded to 4
+     decimal places) is refused on import.
+   - Only a test fixture may lift this, on the loaded object. No configuration
+     field can.
+9. **M3-D9: commitment digest.**
+   - The digest format is `carbon.battery.commitment.v1` over the Challenge,
+     the contract digest and the strategy hash.
+   - A deployment that requires commitments but has no chain reader refuses
+     every submission as `commitment_reader_unavailable`.
+   - The chain `CommitmentReader` is not implemented in M3.
+10. **M3-D10: service-key signatures (OD-6).**
+    - Ed25519 keys are owner-only files that are never serialized.
+    - Signatures are domain-separated by kind: screening result, final
+      result, weight intent.
+    - The only weight intent is Phase A `ALL_BURN`. `winner_intent` raises
+      (OD-4b).
+    - `operate export` writes signed files for the owner publisher and sends
+      nothing.
+11. **M3-D11: one battery evaluation path.**
+    - M2's in-process `EvaluationDeployment` and `ShadowPool` are removed.
+      This supersedes M5A-D5.
+    - A frozen candidate from the Launchpad, a miner or Carbon's agent is a
+      signed `battery_submit` to the operator's validator deployment
+      (`carbon.battery.validator-deployment.v1`, Launchpad profile path
+      `battery_validator`).
+    - The daemon emits only the allow-listed outcome fields that discovery
+      states.
+12. **M3-D12: the battery agent.** This supersedes M5A-D6.
+    - The autonomous policy gains a Challenge-neutral prompt. The Burgers
+      prompts and bindings are byte-identical.
+    - A battery epoch observes battery's discovery document and the previous
+      allow-listed outcome.
+    - A battery agent campaign needs:
+      - the autonomous policy;
+      - the provider credential;
+      - finite `provider_attempts` and `provider_nanodollars` ceilings.
+    - Its run plan (model, 48 calls and 8 trials per epoch, 2 epochs) is
+      frozen in the manifest.
+    - A Challenge campaign's model sees each tool result without its repeated
+      receipt and binding metadata (`research_loop.model_view`). Without this
+      the fixed request ceiling was exhausted within four calls. The retained
+      result files are unchanged.
+
+13. **M3-D13: stale finals are withdrawn, and the challenger is re-nominated.**
+    - A final frozen against an incumbent that has since been replaced is
+      recorded as `WITHDRAWN_INCUMBENT_CHANGED`: never promotable, and never
+      a scientific outcome.
+    - Its challenger is screened again, by inference only, against the
+      current incumbent on the current pool. A nomination freezes a new
+      final in the same commit.
+    - A promotion commits with its decision. If the incumbent moved during
+      the comparison, the outcome is withdrawn, never applied. This is the
+      approved replay's "decide against the current incumbent", made durable
+      for finals that wait.
+14. **M3-D14: infrastructure retries are capped.**
+    - Operational limit: `MAX_INFRA_ATTEMPTS = 3` per submission or final.
+    - Beyond it the item is parked as `FAILED_INFRA_EXHAUSTED` for the
+      operator. It is never a score and is not retried automatically.
+    - The incumbent's inference on a new pool is named with the challenger
+      and its attempt, so it never blocks a later retry.
+15. **M3-D15: an incumbent with no scorable result on a pool nominates nobody.**
+    - `exam.nominate` compares against the incumbent's score. With none,
+      "better than the incumbent" cannot be shown, so the challenger is not
+      nominated and the reason is recorded.
+16. **M3-D16: one writer per deployment.**
+    - Every mutation (evaluate, run, prepare, ingest, open, recover, export,
+      and daemon start) holds an exclusive `flock` on `<state>.lock` across
+      processes.
+    - `status` and `batches` are read-only and never start, recover or lock.
+    - A solve holds the lock only for its ingest.
+    - The work directory must be an owner-only directory.
+    - A complete screening batch resumes a pending rotation.
+    - The nomination (first incumbent or frozen final) commits with its
+      score.
+    - The service key signs only the exact Phase A `ALL_BURN` intent shape.
+
+**Not done in M3, stated:**
+- the two-instance commit-reveal cross-check;
+- the chain `CommitmentReader`;
+- the retired-case release policy (`releasable` lists candidates, and nothing
+  is released);
+- real GPU execution (M4);
+- the accepted digest-pinned worker image in this sandbox (the GHCR pull is
+  refused here);
+- truth solves on a host;
+- any testnet observation (M7).

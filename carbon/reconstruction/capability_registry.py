@@ -12,14 +12,25 @@ Pure data: importing this module never initializes a numerical runtime.
 Status is engineering state, never qualification. ADMITTED exists in the public
 vocabulary but no entry may claim it here: admission for an evaluation contract
 needs qualification evidence this registry cannot supply.
+
+Construction contracts are per Challenge (OWNER-BATTERY-TESTNET-01, OD-8). One
+registry, one compiler, but each Challenge version has its own
+`ChallengeContract`: the capabilities registered for that Challenge, their
+surfaces and ranges, and its declared resource envelope, pinned by its own
+contract digest. A family rebuildable for one Challenge is not thereby
+rebuildable for another. `REGISTRY` remains the Burgers contract's entries, and
+every function defaults to Burgers, so the historical vocabulary is unchanged.
 """
 
 from __future__ import annotations
 
+import hashlib
+import json
 from dataclasses import dataclass
 from enum import Enum
 
 REGISTRY_SCHEMA = "carbon.construction-capability-registry.v1"
+CONTRACT_SCHEMA = "carbon.challenge-construction-contract.v1"
 
 
 class Dimension(str, Enum):
@@ -97,10 +108,19 @@ class Capability:
     #: A field's catalog surface, and the families it applies to (None = all).
     surface: Surface | None = None
     applies_to: tuple[str, ...] | None = None
+    #: Other capability ids this entry realizes in its Challenge, such as each
+    #: optimizer a choice field offers. Only a rebuildable entry realizes.
+    realizes: tuple[str, ...] = ()
 
     def __post_init__(self):
         if type(self.dimension) is not Dimension or type(self.status) is not Status:
             raise TypeError("exact Dimension and Status required")
+        if type(self.realizes) is not tuple or any(
+            type(i) is not str or not i.partition(".")[2] for i in self.realizes
+        ):
+            raise ValueError("realizes names capability ids")
+        if self.realizes and self.status is not Status.REBUILDABLE_DEVELOPMENT:
+            raise ValueError("only a rebuildable capability realizes another")
         prefix, _, name = self.capability_id.partition(".")
         if prefix != self.dimension.value or not name:
             raise ValueError("capability id is <dimension>.<name>")
@@ -147,7 +167,7 @@ def _family(name, selector, lab_kind, summary):
     )
 
 
-def _field(dimension, name, surface, summary, applies_to=None):
+def _field(dimension, name, surface, summary, applies_to=None, realizes=()):
     return Capability(
         f"{dimension.value}.{name}",
         dimension,
@@ -155,6 +175,7 @@ def _field(dimension, name, surface, summary, applies_to=None):
         Status.REBUILDABLE_DEVELOPMENT,
         surface=surface,
         applies_to=applies_to,
+        realizes=realizes,
     )
 
 
@@ -519,33 +540,759 @@ REGISTRY = (
 )
 
 
-def _index():
+# --- Battery: carbon.battery-fastcharge-ageing-development.v1 (OD-1). ---
+#
+# Inputs are four scalars (first- and second-stage C-rate, ambient temperature,
+# initial state of charge); outputs are voltage and temperature on a 30 s grid,
+# a scalar plating margin and capacity at four checkpoint cycles. Bounds below
+# are engineering admission bounds, not quality or scientific claims; the
+# declared resource envelope dominates them.
+#
+# Every capability of the construction review has a battery status: its own
+# entry, or a battery entry that realizes it. Research time (owner direction,
+# 2026-09-25): everything Carbon can rebuild in JAX is submittable; validation
+# stays JAX-only; excluded items stay excluded; Burgers is not edited.
+KNN, MLP, BDEEPONET = ("knn",), ("mlp",), ("deeponet",)
+LEARNED = MLP + BDEEPONET
+
+_GRID_OPERATOR = (
+    "not applicable to battery: a grid-to-grid operator over a spatial input "
+    "field, and battery inputs are four scalars with no field"
+)
+#: Optimizer values and the review ids they realize. Schedule-free AdamW is
+#: offered as `free_adamw`: B-02B reserves the token "schedule" in construction
+#: identities.
+_OPTIMIZER_IDS = {
+    "adam": None,
+    "lion": "lion",
+    "lamb": "lamb",
+    "adafactor": "adafactor",
+    "radam": "radam",
+    "nadamw": "nadamw",
+    "sgd_momentum": "sgd_momentum",
+    "muon": "muon",
+    "prodigy": "prodigy",
+    "free_adamw": "schedule_free",
+    "sam": "sam",
+}
+_OPTIMIZERS = tuple(_OPTIMIZER_IDS)
+_CURVES = (
+    "cosine",
+    "constant",
+    "piecewise",
+    "exponential",
+    "one_cycle",
+    "sgdr",
+    "polynomial",
+    "train_loss_plateau",
+)
+
+
+def _not_applicable(dimension, name, reason):
+    return _todo(dimension, name, "not applicable to battery: " + reason)
+
+
+BATTERY_REGISTRY = (
+    # --- Families. ---
+    _family(
+        "knn",
+        "knn",
+        "battery_knn",
+        "Inverse-distance k-nearest-neighbour over unit-scaled inputs; "
+        "V(0) from the published OCV table and T(0) = ambient",
+    ),
+    _family(
+        "mlp",
+        "mlp",
+        "battery_mlp",
+        "GELU MLP on normalized trajectory targets; the campaign recipe at its "
+        "defaults (full-batch Adam(W), cosine decay); T(0) = ambient",
+    ),
+    _family(
+        "deeponet",
+        "deeponet",
+        "battery_deeponet",
+        "Battery DeepONet: a branch MLP over the four inputs and a trunk MLP "
+        "over the 30 s time grid form the voltage and temperature "
+        "trajectories; the branch also heads plating margin and capacity",
+    ),
+    *(
+        _not_applicable(M, name, "a grid-to-grid operator over a spatial field")
+        for name in ("fno", "transolver", "haar_operator", "gno", "gino")
+    ),
+    _todo(
+        M,
+        "foundax_deeponet",
+        "foundax DeepONet variants over scalar inputs; Carbon's battery "
+        "DeepONet covers branch and trunk",
+    ),
+    *(
+        _not_applicable(M, name, "needs a spatial field or point-set input")
+        for name in (
+            "foundax_fno",
+            "unet1d",
+            "mgno1d",
+            "pointnet",
+            "gnot",
+            "cgptno",
+            "moegptno",
+            "geofno",
+            "pcno",
+        )
+    ),
+    _owner(
+        M,
+        "two_and_three_dimensional",
+        "2D and 3D families; needs a new Challenge",
+        Trigger.AUTHORITY_BOUNDARY,
+    ),
+    *(
+        _excluded(
+            M,
+            name,
+            summary + "; owner, 2026-09-25: validator reconstruction is JAX-only",
+            Trigger.AUTHORITY_BOUNDARY,
+        )
+        for name, summary in (
+            ("pytorch_backend", "PyTorch families (neuraloperator, PhysicsNeMo)"),
+            ("julia_backend", "Julia families (NeuralOperators.jl, NeuralPDE)"),
+        )
+    ),
+    # --- Architecture. ---
+    _field(
+        A,
+        "neighbours",
+        Surface("model", "uint", 1, 64, 5),
+        "Neighbours averaged",
+        KNN,
+    ),
+    _field(A, "width", Surface("model", "uint", 8, 512, 256), "Hidden width", LEARNED),
+    _field(A, "depth", Surface("model", "uint", 1, 6, 3), "Hidden layers", MLP),
+    _field(
+        A,
+        "deeponet_depth",
+        Surface("model", "uint", 1, 6, 2),
+        "Branch and trunk hidden layers",
+        BDEEPONET,
+    ),
+    _field(
+        A,
+        "basis_functions",
+        Surface("model", "uint", 2, 64, 16),
+        "Trunk basis functions per trajectory",
+        BDEEPONET,
+    ),
+    _field(
+        A,
+        "trajectory_components",
+        Surface("model", "uint", 0, 32, 0),
+        "PCA heads per trajectory (0 = one output per sample)",
+        MLP,
+    ),
+    _field(
+        A,
+        "arrhenius_features",
+        Surface("model", "bool", None, None, False),
+        "Add Arrhenius, log-rate and interaction input features",
+        LEARNED,
+    ),
+    _field(
+        A,
+        "activation",
+        Surface(
+            "model",
+            "choice",
+            ("gelu", "relu", "tanh", "silu", "softplus"),
+            None,
+            "gelu",
+        ),
+        "Hidden-layer activation",
+        LEARNED,
+        ("architecture.activation_normalization_init",),
+    ),
+    _field(
+        A,
+        "normalization",
+        Surface("model", "choice", ("none", "layer_norm"), None, "none"),
+        "Normalization after each hidden layer",
+        LEARNED,
+        ("architecture.activation_normalization_init",),
+    ),
+    _field(
+        A,
+        "initialization",
+        Surface(
+            "model",
+            "choice",
+            ("he_normal", "glorot_normal", "lecun_normal"),
+            None,
+            "he_normal",
+        ),
+        "Weight initialization",
+        LEARNED,
+        ("architecture.activation_normalization_init",),
+    ),
+    *(
+        _not_applicable(A, name, "a field of the grid operator families")
+        for name in (
+            "n_modes",
+            "branch_points",
+            "heads",
+            "slices",
+            "expansion",
+            "wavelet_levels",
+            "neighborhood_radius",
+            "latent_points",
+        )
+    ),
+    _not_applicable(
+        A,
+        "remat",
+        "rematerialization trades memory for time without changing the model, "
+        "and battery networks fit in memory",
+    ),
+    # --- Physical structure (declared construction choices). ---
+    _field(
+        P,
+        "bounded_voltage_head",
+        Surface("task", "bool", None, None, True),
+        "Voltage head that cannot exceed the 4.2 V cycler limit (off: the raw control)",
+        LEARNED,
+    ),
+    _field(
+        P,
+        "ocv_initial_voltage",
+        Surface("task", "bool", None, None, True),
+        "V(0) from the published OCV table (off: predicted)",
+        LEARNED,
+        ("physical_structure.hard_initial_condition",),
+    ),
+    _field(
+        P,
+        "capacity_fade_head",
+        Surface("task", "bool", None, None, True),
+        "Capacity as cycle-1 capacity plus fade (off: each checkpoint directly)",
+        LEARNED,
+    ),
+    _not_applicable(P, "enforce_mean", "battery outputs have no conserved mean"),
+    _todo(
+        P,
+        "structure_layers",
+        "battery structure layers (for example monotone fade or a bounded "
+        "temperature rise) are not designed yet",
+    ),
+    # --- Batching. ---
+    _field(B, "steps", Surface("train", "uint", 16, 20000, 6000), "Updates", LEARNED),
+    _field(
+        B,
+        "batch_size",
+        Surface("train", "uint", 8, 400, 400),
+        "Cases per update (at or above the TRAIN cases: full batch)",
+        LEARNED,
+    ),
+    _field(
+        B,
+        "microbatches",
+        Surface("train", "uint", 1, 8, 1),
+        "Gradient accumulation within a batch",
+        LEARNED,
+    ),
+    # --- Optimizer. ---
+    _field(
+        O,
+        "optimizer_family",
+        Surface("train", "choice", _OPTIMIZERS, None, "adam"),
+        "Optimizer (adam: the campaign's written-out Adam(W); others: optax)",
+        LEARNED,
+        tuple("optimizer." + i for i in _OPTIMIZER_IDS.values() if i),
+    ),
+    _field(
+        O,
+        "learning_rate",
+        Surface("train", "float", 0.00001, 0.05, 0.002),
+        "Peak learning rate",
+        LEARNED,
+    ),
+    _field(
+        O,
+        "weight_decay",
+        Surface("train", "float", 0.0, 0.1, 0.0),
+        "Decoupled decay",
+        LEARNED,
+    ),
+    _field(
+        O,
+        "weight_decay_mask",
+        Surface("train", "choice", ("all", "matrices"), None, "all"),
+        "Decay every parameter, or weight matrices only",
+        LEARNED,
+    ),
+    _field(
+        O,
+        "clip_norm",
+        Surface("train", "float", 0.0, 100.0, 0.0),
+        "Global-norm clipping (0: none)",
+        LEARNED,
+    ),
+    _field(O, "beta1", Surface("train", "float", 0.0, 0.9999, 0.9), "Beta1", LEARNED),
+    _field(
+        O, "beta2", Surface("train", "float", 0.0, 0.99999, 0.999), "Beta2", LEARNED
+    ),
+    _field(
+        O,
+        "adam_epsilon",
+        Surface("train", "float", 1e-12, 0.01, 1e-8),
+        "Adam-family epsilon",
+        LEARNED,
+    ),
+    # --- Schedule. ---
+    _field(
+        S,
+        "learning_rate_curve",
+        Surface("train", "choice", _CURVES, None, "cosine"),
+        "Learning-rate curve over the updates",
+        LEARNED,
+        tuple("schedule." + name for name in _CURVES[1:]),
+    ),
+    _field(
+        S,
+        "warmup_steps",
+        Surface("train", "uint", 0, 20000, 0),
+        "Linear warmup",
+        LEARNED,
+    ),
+    _field(
+        S,
+        "min_learning_rate_ratio",
+        Surface("train", "float", 0.0, 1.0, 0.0),
+        "Final rate as a fraction of the peak (cosine, exponential, polynomial)",
+        LEARNED,
+    ),
+    # --- Objective. ---
+    _field(
+        J,
+        "relative_loss",
+        Surface("train", "bool", None, None, False),
+        "Divide each case's error by its target energy",
+        LEARNED,
+    ),
+    _field(
+        J,
+        "time_weighting",
+        Surface("train", "choice", ("uniform", "early", "late"), None, "uniform"),
+        "Extra trajectory error weighted toward early or late times",
+        LEARNED,
+    ),
+    _field(
+        J,
+        "h1_weight",
+        Surface("train", "float", 0.0, 10.0, 0.0),
+        "First time-derivative error of the trajectories",
+        LEARNED,
+    ),
+    _field(
+        J,
+        "h2_weight",
+        Surface("train", "float", 0.0, 10.0, 0.0),
+        "Second time-derivative error of the trajectories",
+        LEARNED,
+        ("objective.sobolev",),
+    ),
+    _field(
+        J,
+        "spectral_weight",
+        Surface("train", "float", 0.0, 10.0, 0.0),
+        "Frequency-weighted trajectory error (higher frequencies weigh more)",
+        LEARNED,
+        ("objective.spectral_weighting",),
+    ),
+    _not_applicable(
+        J,
+        "pde_weight",
+        "no candidate-side governing equation is registered for the DFN model",
+    ),
+    _not_applicable(
+        ST,
+        "physics_warmup_steps",
+        "it ramps a PDE residual battery does not have",
+    ),
+    # --- Stages. ---
+    _field(
+        ST,
+        "polish_steps",
+        Surface("train", "uint", 0, 2000, 0),
+        "Final L-BFGS steps, taken from the step budget",
+        LEARNED,
+        ("stages.explicit_stages",),
+    ),
+    # --- Inference. ---
+    _field(
+        INF,
+        "ensemble_members",
+        Surface("train", "uint", 1, 4, 1),
+        "Members sharing the step budget equally",
+        LEARNED,
+        ("inference.ensembles",),
+    ),
+    _field(
+        INF,
+        "tail_averaging",
+        Surface("train", "float", 0.0, 0.9, 0.0),
+        "Average parameters over this final fraction of the updates",
+        LEARNED,
+        ("inference.weight_averaging",),
+    ),
+    _field(
+        INF,
+        "inference_weights",
+        Surface("train", "choice", ("params", "ema"), None, "params"),
+        "Predict from params or EMA",
+        LEARNED,
+    ),
+    _field(
+        INF,
+        "ema_decay",
+        Surface("train", "float", 0.0, 0.99999, 0.99),
+        "EMA decay (with EMA inference)",
+        LEARNED,
+    ),
+    _field(
+        INF,
+        "precision",
+        Surface("train", "choice", ("float32", "float64"), None, "float32"),
+        "Training and prediction precision",
+        LEARNED,
+    ),
+    _excluded(
+        INF,
+        "final_label_selection",
+        "Checkpoint selection by final labels",
+        Trigger.EVIDENCE_DESIGN,
+    ),
+    _todo(
+        PR,
+        "rollout",
+        "a learned time-stepper over the 30 s grid with rollout training; not "
+        "designed for battery yet",
+    ),
+    # --- Training data (TRAIN v1 only; Carbon's reconstruction randomness). ---
+    _field(
+        T,
+        "train_fraction",
+        Surface("train", "float", 0.1, 1.0, 1.0),
+        "Seeded subset of TRAIN v1; resolution and new cases stay fixed",
+        None,
+        ("training_data.case_count_and_resolution",),
+    ),
+    _field(
+        T,
+        "important_region_weight",
+        Surface("train", "float", 0.0, 10.0, 1.0),
+        "Weight of TRAIN cases in the published important region",
+        LEARNED,
+    ),
+    _field(
+        T,
+        "curriculum",
+        Surface(
+            "train",
+            "choice",
+            ("none", "low_rate_first", "high_rate_first"),
+            None,
+            "none",
+        ),
+        "Admit TRAIN cases by charge rate over the first half of training",
+        LEARNED,
+    ),
+    _field(
+        T,
+        "hard_example_weight",
+        Surface("train", "float", 0.0, 4.0, 0.0),
+        "Up-weight cases with high current TRAIN loss (exponent)",
+        LEARNED,
+        ("training_data.hard_example_sampling",),
+    ),
+    _not_applicable(
+        T,
+        "exact_symmetry_augmentation",
+        "no exact symmetry of the cycling protocol is registered",
+    ),
+    _owner(
+        T,
+        "support_leaving_augmentation",
+        "Augmentations that leave TRAIN support",
+        Trigger.COMPARISON_REGIME,
+    ),
+    _excluded(
+        T,
+        "label_method",
+        "Per-submission reference labels; the reference is PyBaMM and "
+        "validation is JAX-only",
+        Trigger.EVIDENCE_DESIGN,
+    ),
+    _excluded(
+        T,
+        "submitted_datasets",
+        "Uploaded datasets or miner-chosen seeds",
+        Trigger.EXTERNAL_STATE,
+    ),
+    # --- Hybrid. ---
+    _todo(
+        H,
+        "candidate_solver_template",
+        "a Carbon-registered JAX cell model (for example a single-particle "
+        "model) with a learned correction; not designed yet",
+    ),
+    _todo(
+        H,
+        "symbolic_template",
+        "a registered expression template whose coefficients Carbon fits; not "
+        "designed for battery yet",
+    ),
+    _excluded(
+        H,
+        "reference_solver_reuse",
+        "Hybrids reusing the PyBaMM reference; validation is JAX-only",
+        Trigger.EVIDENCE_DESIGN,
+    ),
+    _excluded(
+        H,
+        "composition_graphs",
+        "Participant-defined composition graphs",
+        Trigger.EXECUTABLE_SUBMISSION,
+    ),
+    _excluded(
+        M,
+        "pretrained_weights",
+        "Pretrained weights, checkpoints or embeddings",
+        Trigger.EXTERNAL_STATE,
+    ),
+    _excluded(
+        J,
+        "loss_expressions",
+        "Losses supplied as code or expressions",
+        Trigger.EXECUTABLE_SUBMISSION,
+    ),
+)
+
+
+@dataclass(frozen=True)
+class ChallengeContract:
+    """One Challenge version's construction contract.
+
+    `token` is the Strategy `challenge_id` (Strategy 1.0 identifiers carry no
+    dots); `identity` is the Challenge's registered name. `lanes` name the
+    subsets of rebuildable families a specific execution lane offers: a lane
+    admits a family only with that lane's own evidence, so widening the
+    research catalog never widens a lane. The envelope is declared engineering
+    admission, never a scientific or economic value.
+    """
+
+    token: str
+    version: str
+    identity: str
+    catalog_version: str
+    capabilities: tuple[Capability, ...]
+    envelope: tuple[tuple[str, object], ...]
+    lanes: tuple[tuple[str, tuple[str, ...]], ...] = ()
+
+    def __post_init__(self):
+        if not all(type(c) is Capability for c in self.capabilities):
+            raise TypeError("exact Capability entries required")
+        ids = [c.capability_id for c in self.capabilities]
+        if len(ids) != len(set(ids)):
+            raise ValueError("duplicate capability id in " + self.token)
+        fields = [
+            c.capability_id.partition(".")[2] for c in self.capabilities if c.surface
+        ]
+        if len(fields) != len(set(fields)):
+            raise ValueError("duplicate field name in " + self.token)
+        families = {
+            c.selector
+            for c in self.capabilities
+            if c.dimension is Dimension.MODEL_FAMILY
+            and c.status is Status.REBUILDABLE_DEVELOPMENT
+        }
+        if not families:
+            raise ValueError("a contract rebuilds at least one family")
+        for c in self.capabilities:
+            if c.applies_to is not None and not set(c.applies_to) <= families:
+                raise ValueError(
+                    c.capability_id + " applies to a family this contract lacks"
+                )
+        for _, lane in self.lanes:
+            if not lane or not set(lane) <= families:
+                raise ValueError("a lane offers only rebuildable families")
+        # Several fields may jointly realize one grouped id (activation,
+        # normalization and initialization); an id is either registered or
+        # realized, never both.
+        realized = {i for c in self.capabilities for i in c.realizes}
+        if realized & set(ids):
+            raise ValueError("a realized id is not also registered")
+
+    def document(self):
+        """Everything the contract digest pins, as plain JSON data."""
+        return {
+            "schema": CONTRACT_SCHEMA,
+            "registry_schema": REGISTRY_SCHEMA,
+            "challenge": {"id": self.token, "version": self.version},
+            "identity": self.identity,
+            "catalog_version": self.catalog_version,
+            "capabilities": [
+                {
+                    "id": c.capability_id,
+                    "status": c.status.value,
+                    "blocker": c.blocker.value,
+                    "trigger": None if c.trigger is None else c.trigger.value,
+                    "selector": c.selector,
+                    "lab_kind": c.lab_kind,
+                    "surface": (
+                        None
+                        if c.surface is None
+                        else [
+                            c.surface.group,
+                            c.surface.kind,
+                            (
+                                list(c.surface.low)
+                                if type(c.surface.low) is tuple
+                                else c.surface.low
+                            ),
+                            c.surface.high,
+                            c.surface.default,
+                        ]
+                    ),
+                    "applies_to": None if c.applies_to is None else list(c.applies_to),
+                    "realizes": list(c.realizes),
+                }
+                for c in self.capabilities
+            ],
+            "envelope": dict(self.envelope),
+            "lanes": {name: list(lane) for name, lane in self.lanes},
+        }
+
+    @property
+    def digest(self):
+        body = json.dumps(
+            self.document(), sort_keys=True, separators=(",", ":"), allow_nan=False
+        ).encode("utf-8")
+        return "sha256:" + hashlib.sha256(body).hexdigest()
+
+
+BURGERS_CHALLENGE = "burgers-dynamics-v1"
+BATTERY_CHALLENGE = "battery-fastcharge-ageing-development-v1"
+
+_WORKER_ENVELOPE = (
+    ("worker_cpu", 2),
+    ("worker_memory_bytes", 4 * 1024**3),
+    ("worker_swap_bytes", 0),
+    ("worker_deadline_seconds", 600),
+    ("precision", "float32"),
+)
+
+BURGERS_CONTRACT = ChallengeContract(
+    token=BURGERS_CHALLENGE,
+    version="1.0",
+    identity="carbon.burgers-autoresearch-development.v1",
+    catalog_version="carbon.burgers-autoresearch-recipes.v1",
+    capabilities=REGISTRY,
+    envelope=_WORKER_ENVELOPE,
+    # The historical C-W1 session offers exactly the two families it was
+    # accepted with. The GPU diagnostic lane offers every family Carbon
+    # rebuilds for Burgers (owner direction, 2026-09-25): the GPU worker trains
+    # through the same vendored lab as the CPU lane.
+    lanes=(
+        ("session", ("fno", "deeponet")),
+        (
+            "gpu_diagnostic",
+            tuple(
+                c.selector
+                for c in REGISTRY
+                if c.dimension is Dimension.MODEL_FAMILY
+                and c.status is Status.REBUILDABLE_DEVELOPMENT
+            ),
+        ),
+    ),
+)
+
+BATTERY_CONTRACT = ChallengeContract(
+    token=BATTERY_CHALLENGE,
+    version="1.0",
+    identity="carbon.battery-fastcharge-ageing-development.v1",
+    catalog_version="carbon.battery-fastcharge-ageing-recipes.v1",
+    capabilities=BATTERY_REGISTRY,
+    envelope=_WORKER_ENVELOPE + (("train_cases", 400), ("batching", "full")),
+)
+
+CONTRACTS = {c.token: c for c in (BURGERS_CONTRACT, BATTERY_CONTRACT)}
+
+
+class UnknownChallenge(KeyError):
+    """A Challenge with no registered construction contract."""
+
+
+def contract(challenge=BURGERS_CHALLENGE):
+    """The construction contract for exactly this Challenge token."""
+    try:
+        return CONTRACTS[challenge]
+    except (KeyError, TypeError):
+        raise UnknownChallenge("no construction contract for this challenge") from None
+
+
+def contract_digest(challenge=BURGERS_CHALLENGE):
+    return contract(challenge).digest
+
+
+def lane_families(challenge, lane):
+    """The families a named lane of one Challenge offers, from the registry."""
+    return dict(contract(challenge).lanes)[lane]
+
+
+def realizer(capability_id, challenge=BURGERS_CHALLENGE):
+    """The entry that registers or realizes this id in one Challenge, or None."""
+    for c in contract(challenge).capabilities:
+        if c.capability_id == capability_id or capability_id in c.realizes:
+            return c
+    return None
+
+
+def status_map(capability_id):
+    """{challenge: status} for every Challenge that registers or realizes this
+    capability."""
+    return {
+        token: found.status.value
+        for token in CONTRACTS
+        if (found := realizer(capability_id, token)) is not None
+    }
+
+
+def _index(entries):
     seen = {}
-    for item in REGISTRY:
+    for item in entries:
         if item.capability_id in seen:
             raise ValueError("duplicate capability id " + item.capability_id)
         seen[item.capability_id] = item
     return seen
 
 
-_BY_ID = _index()
+_BY_ID = {token: _index(item.capabilities) for token, item in CONTRACTS.items()}
 
 
-def capability(capability_id):
-    return _BY_ID[capability_id]
+def capability(capability_id, challenge=BURGERS_CHALLENGE):
+    contract(challenge)
+    return _BY_ID[challenge][capability_id]
 
 
-def rebuildable_families():
+def rebuildable_families(challenge=BURGERS_CHALLENGE):
     """(selector, lab kind) for every family Carbon rebuilds, in registry order."""
     return tuple(
         (c.selector, c.lab_kind)
-        for c in REGISTRY
+        for c in contract(challenge).capabilities
         if c.dimension is Dimension.MODEL_FAMILY
         and c.status is Status.REBUILDABLE_DEVELOPMENT
     )
 
 
-def catalog_surfaces():
+def catalog_surfaces(challenge=BURGERS_CHALLENGE):
     """The research catalog's fields, in its historical tuple form:
     name -> (group, type, minimum/choices, maximum, default, families|None)."""
     return {
@@ -557,15 +1304,15 @@ def catalog_surfaces():
             c.surface.default,
             c.applies_to,
         )
-        for c in REGISTRY
+        for c in contract(challenge).capabilities
         if c.surface is not None
     }
 
 
-def public_registry():
-    """Every capability's public status. Only registry-defined text, never
-    anything a miner supplied."""
-    return {
+def public_registry(challenge=BURGERS_CHALLENGE):
+    """Every capability's public status for one Challenge. Only
+    registry-defined text, never anything a miner supplied."""
+    value = {
         "schema": REGISTRY_SCHEMA,
         "status_meaning": {
             Status.RESEARCH_ONLY.value: "explore in research; Carbon cannot rebuild it yet",
@@ -584,6 +1331,12 @@ def public_registry():
                 "selector": c.selector,
                 "applies_to": None if c.applies_to is None else list(c.applies_to),
             }
-            for c in REGISTRY
+            for c in contract(challenge).capabilities
         ],
     }
+    if challenge != BURGERS_CHALLENGE:
+        # Burgers keeps its historical projection byte for byte.
+        item = contract(challenge)
+        value["challenge"] = {"id": item.token, "version": item.version}
+        value["contract_digest"] = item.digest
+    return value

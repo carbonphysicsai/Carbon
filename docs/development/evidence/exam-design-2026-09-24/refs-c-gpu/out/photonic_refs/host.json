@@ -1,0 +1,20 @@
+{
+ "python": "3.11.16",
+ "platform": "Linux-6.8.0-124-generic-x86_64-with-glibc2.39",
+ "cpu_count": 96,
+ "affinity": 96,
+ "cgroup_v1_cfs": [
+  765000,
+  100000
+ ],
+ "cpu_quota": 7.65,
+ "cpu_model": "Intel(R) Xeon(R) Gold 6342 CPU @ 2.80GHz",
+ "mem_total_kb": 527972736,
+ "nvidia_driver": "580.159.04",
+ "gpu": "NVIDIA A40",
+ "gpu_uuid": "GPU-a31fabec-37a0-fea7-ed96-fde75ba45c63",
+ "numpy": "2.4.6",
+ "scipy": "1.17.1",
+ "jax": "0.10.2",
+ "jaxlib": "0.10.2"
+}

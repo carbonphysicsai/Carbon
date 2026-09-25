@@ -1,0 +1,640 @@
+Process SpawnProcess-1:
+Traceback (most recent call last):
+  File "/opt/uv-python/cpython-3.11.16-linux-x86_64-gnu/lib/python3.11/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/opt/uv-python/cpython-3.11.16-linux-x86_64-gnu/lib/python3.11/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/tmp/carbon/scripts/dev/exam_design/runner.py", line 171, in _photonic_child
+    rec = pr.solve_case(job["case"], refined=job.get("refined", False), wavelengths=job.get("wavelengths"))
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/carbon/scripts/dev/exam_design/photonic_reference.py", line 98, in solve_case
+    import fdtdx
+  File "/tmp/overlay/photonic/fdtdx/__init__.py", line 18, in <module>
+    from fdtdx.conversion.vti import export_arrays_snapshot_to_vti, export_vti
+  File "/tmp/overlay/photonic/fdtdx/conversion/vti.py", line 7, in <module>
+    from fdtdx.fdtd.container import ArrayContainer
+  File "/tmp/overlay/photonic/fdtdx/fdtd/container.py", line 21, in <module>
+    from fdtdx.objects.detectors.detector import Detector, DetectorState
+  File "/tmp/overlay/photonic/fdtdx/objects/detectors/detector.py", line 16, in <module>
+    from fdtdx.objects.detectors.plotting.video import generate_video_from_slices, plot_from_slices
+  File "/tmp/overlay/photonic/fdtdx/objects/detectors/plotting/video.py", line 10, in <module>
+    import moviepy as mpy
+  File "/tmp/overlay/photonic/moviepy/__init__.py", line 5, in <module>
+    from moviepy.audio import fx as afx
+  File "/tmp/overlay/photonic/moviepy/audio/fx/__init__.py", line 5, in <module>
+    from moviepy.audio.fx.AudioDelay import AudioDelay
+  File "/tmp/overlay/photonic/moviepy/audio/fx/AudioDelay.py", line 5, in <module>
+    from moviepy.audio.AudioClip import CompositeAudioClip
+  File "/tmp/overlay/photonic/moviepy/audio/AudioClip.py", line 13, in <module>
+    from moviepy.audio.io.ffmpeg_audiowriter import ffmpeg_audiowrite
+  File "/tmp/overlay/photonic/moviepy/audio/io/ffmpeg_audiowriter.py", line 7, in <module>
+    from moviepy.config import FFMPEG_BINARY
+  File "/tmp/overlay/photonic/moviepy/config.py", line 41, in <module>
+    FFMPEG_BINARY = get_exe()
+                    ^^^^^^^^^
+  File "/tmp/overlay/photonic/imageio/plugins/ffmpeg.py", line 173, in get_exe
+    return imageio_ffmpeg.get_ffmpeg_exe()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/overlay/photonic/imageio_ffmpeg/_utils.py", line 33, in get_ffmpeg_exe
+    raise RuntimeError(
+RuntimeError: No ffmpeg exe could be found. Install ffmpeg on your system, or set the IMAGEIO_FFMPEG_EXE environment variable.
+Process SpawnProcess-2:
+Traceback (most recent call last):
+  File "/opt/uv-python/cpython-3.11.16-linux-x86_64-gnu/lib/python3.11/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/opt/uv-python/cpython-3.11.16-linux-x86_64-gnu/lib/python3.11/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/tmp/carbon/scripts/dev/exam_design/runner.py", line 171, in _photonic_child
+    rec = pr.solve_case(job["case"], refined=job.get("refined", False), wavelengths=job.get("wavelengths"))
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/carbon/scripts/dev/exam_design/photonic_reference.py", line 98, in solve_case
+    import fdtdx
+  File "/tmp/overlay/photonic/fdtdx/__init__.py", line 18, in <module>
+    from fdtdx.conversion.vti import export_arrays_snapshot_to_vti, export_vti
+  File "/tmp/overlay/photonic/fdtdx/conversion/vti.py", line 7, in <module>
+    from fdtdx.fdtd.container import ArrayContainer
+  File "/tmp/overlay/photonic/fdtdx/fdtd/container.py", line 21, in <module>
+    from fdtdx.objects.detectors.detector import Detector, DetectorState
+  File "/tmp/overlay/photonic/fdtdx/objects/detectors/detector.py", line 16, in <module>
+    from fdtdx.objects.detectors.plotting.video import generate_video_from_slices, plot_from_slices
+  File "/tmp/overlay/photonic/fdtdx/objects/detectors/plotting/video.py", line 10, in <module>
+    import moviepy as mpy
+  File "/tmp/overlay/photonic/moviepy/__init__.py", line 5, in <module>
+    from moviepy.audio import fx as afx
+  File "/tmp/overlay/photonic/moviepy/audio/fx/__init__.py", line 5, in <module>
+    from moviepy.audio.fx.AudioDelay import AudioDelay
+  File "/tmp/overlay/photonic/moviepy/audio/fx/AudioDelay.py", line 5, in <module>
+    from moviepy.audio.AudioClip import CompositeAudioClip
+  File "/tmp/overlay/photonic/moviepy/audio/AudioClip.py", line 13, in <module>
+    from moviepy.audio.io.ffmpeg_audiowriter import ffmpeg_audiowrite
+  File "/tmp/overlay/photonic/moviepy/audio/io/ffmpeg_audiowriter.py", line 7, in <module>
+    from moviepy.config import FFMPEG_BINARY
+  File "/tmp/overlay/photonic/moviepy/config.py", line 41, in <module>
+    FFMPEG_BINARY = get_exe()
+                    ^^^^^^^^^
+  File "/tmp/overlay/photonic/imageio/plugins/ffmpeg.py", line 173, in get_exe
+    return imageio_ffmpeg.get_ffmpeg_exe()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/overlay/photonic/imageio_ffmpeg/_utils.py", line 33, in get_ffmpeg_exe
+    raise RuntimeError(
+RuntimeError: No ffmpeg exe could be found. Install ffmpeg on your system, or set the IMAGEIO_FFMPEG_EXE environment variable.
+Process SpawnProcess-3:
+Traceback (most recent call last):
+  File "/opt/uv-python/cpython-3.11.16-linux-x86_64-gnu/lib/python3.11/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/opt/uv-python/cpython-3.11.16-linux-x86_64-gnu/lib/python3.11/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/tmp/carbon/scripts/dev/exam_design/runner.py", line 171, in _photonic_child
+    rec = pr.solve_case(job["case"], refined=job.get("refined", False), wavelengths=job.get("wavelengths"))
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/carbon/scripts/dev/exam_design/photonic_reference.py", line 98, in solve_case
+    import fdtdx
+  File "/tmp/overlay/photonic/fdtdx/__init__.py", line 18, in <module>
+    from fdtdx.conversion.vti import export_arrays_snapshot_to_vti, export_vti
+  File "/tmp/overlay/photonic/fdtdx/conversion/vti.py", line 7, in <module>
+    from fdtdx.fdtd.container import ArrayContainer
+  File "/tmp/overlay/photonic/fdtdx/fdtd/container.py", line 21, in <module>
+    from fdtdx.objects.detectors.detector import Detector, DetectorState
+  File "/tmp/overlay/photonic/fdtdx/objects/detectors/detector.py", line 16, in <module>
+    from fdtdx.objects.detectors.plotting.video import generate_video_from_slices, plot_from_slices
+  File "/tmp/overlay/photonic/fdtdx/objects/detectors/plotting/video.py", line 10, in <module>
+    import moviepy as mpy
+  File "/tmp/overlay/photonic/moviepy/__init__.py", line 5, in <module>
+    from moviepy.audio import fx as afx
+  File "/tmp/overlay/photonic/moviepy/audio/fx/__init__.py", line 5, in <module>
+    from moviepy.audio.fx.AudioDelay import AudioDelay
+  File "/tmp/overlay/photonic/moviepy/audio/fx/AudioDelay.py", line 5, in <module>
+    from moviepy.audio.AudioClip import CompositeAudioClip
+  File "/tmp/overlay/photonic/moviepy/audio/AudioClip.py", line 13, in <module>
+    from moviepy.audio.io.ffmpeg_audiowriter import ffmpeg_audiowrite
+  File "/tmp/overlay/photonic/moviepy/audio/io/ffmpeg_audiowriter.py", line 7, in <module>
+    from moviepy.config import FFMPEG_BINARY
+  File "/tmp/overlay/photonic/moviepy/config.py", line 41, in <module>
+    FFMPEG_BINARY = get_exe()
+                    ^^^^^^^^^
+  File "/tmp/overlay/photonic/imageio/plugins/ffmpeg.py", line 173, in get_exe
+    return imageio_ffmpeg.get_ffmpeg_exe()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/overlay/photonic/imageio_ffmpeg/_utils.py", line 33, in get_ffmpeg_exe
+    raise RuntimeError(
+RuntimeError: No ffmpeg exe could be found. Install ffmpeg on your system, or set the IMAGEIO_FFMPEG_EXE environment variable.
+Process SpawnProcess-4:
+Traceback (most recent call last):
+  File "/opt/uv-python/cpython-3.11.16-linux-x86_64-gnu/lib/python3.11/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/opt/uv-python/cpython-3.11.16-linux-x86_64-gnu/lib/python3.11/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/tmp/carbon/scripts/dev/exam_design/runner.py", line 171, in _photonic_child
+    rec = pr.solve_case(job["case"], refined=job.get("refined", False), wavelengths=job.get("wavelengths"))
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/carbon/scripts/dev/exam_design/photonic_reference.py", line 98, in solve_case
+    import fdtdx
+  File "/tmp/overlay/photonic/fdtdx/__init__.py", line 18, in <module>
+    from fdtdx.conversion.vti import export_arrays_snapshot_to_vti, export_vti
+  File "/tmp/overlay/photonic/fdtdx/conversion/vti.py", line 7, in <module>
+    from fdtdx.fdtd.container import ArrayContainer
+  File "/tmp/overlay/photonic/fdtdx/fdtd/container.py", line 21, in <module>
+    from fdtdx.objects.detectors.detector import Detector, DetectorState
+  File "/tmp/overlay/photonic/fdtdx/objects/detectors/detector.py", line 16, in <module>
+    from fdtdx.objects.detectors.plotting.video import generate_video_from_slices, plot_from_slices
+  File "/tmp/overlay/photonic/fdtdx/objects/detectors/plotting/video.py", line 10, in <module>
+    import moviepy as mpy
+  File "/tmp/overlay/photonic/moviepy/__init__.py", line 5, in <module>
+    from moviepy.audio import fx as afx
+  File "/tmp/overlay/photonic/moviepy/audio/fx/__init__.py", line 5, in <module>
+    from moviepy.audio.fx.AudioDelay import AudioDelay
+  File "/tmp/overlay/photonic/moviepy/audio/fx/AudioDelay.py", line 5, in <module>
+    from moviepy.audio.AudioClip import CompositeAudioClip
+  File "/tmp/overlay/photonic/moviepy/audio/AudioClip.py", line 13, in <module>
+    from moviepy.audio.io.ffmpeg_audiowriter import ffmpeg_audiowrite
+  File "/tmp/overlay/photonic/moviepy/audio/io/ffmpeg_audiowriter.py", line 7, in <module>
+    from moviepy.config import FFMPEG_BINARY
+  File "/tmp/overlay/photonic/moviepy/config.py", line 41, in <module>
+    FFMPEG_BINARY = get_exe()
+                    ^^^^^^^^^
+  File "/tmp/overlay/photonic/imageio/plugins/ffmpeg.py", line 173, in get_exe
+    return imageio_ffmpeg.get_ffmpeg_exe()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/overlay/photonic/imageio_ffmpeg/_utils.py", line 33, in get_ffmpeg_exe
+    raise RuntimeError(
+RuntimeError: No ffmpeg exe could be found. Install ffmpeg on your system, or set the IMAGEIO_FFMPEG_EXE environment variable.
+Process SpawnProcess-5:
+Traceback (most recent call last):
+  File "/opt/uv-python/cpython-3.11.16-linux-x86_64-gnu/lib/python3.11/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/opt/uv-python/cpython-3.11.16-linux-x86_64-gnu/lib/python3.11/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/tmp/carbon/scripts/dev/exam_design/runner.py", line 171, in _photonic_child
+    rec = pr.solve_case(job["case"], refined=job.get("refined", False), wavelengths=job.get("wavelengths"))
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/carbon/scripts/dev/exam_design/photonic_reference.py", line 98, in solve_case
+    import fdtdx
+  File "/tmp/overlay/photonic/fdtdx/__init__.py", line 18, in <module>
+    from fdtdx.conversion.vti import export_arrays_snapshot_to_vti, export_vti
+  File "/tmp/overlay/photonic/fdtdx/conversion/vti.py", line 7, in <module>
+    from fdtdx.fdtd.container import ArrayContainer
+  File "/tmp/overlay/photonic/fdtdx/fdtd/container.py", line 21, in <module>
+    from fdtdx.objects.detectors.detector import Detector, DetectorState
+  File "/tmp/overlay/photonic/fdtdx/objects/detectors/detector.py", line 16, in <module>
+    from fdtdx.objects.detectors.plotting.video import generate_video_from_slices, plot_from_slices
+  File "/tmp/overlay/photonic/fdtdx/objects/detectors/plotting/video.py", line 10, in <module>
+    import moviepy as mpy
+  File "/tmp/overlay/photonic/moviepy/__init__.py", line 5, in <module>
+    from moviepy.audio import fx as afx
+  File "/tmp/overlay/photonic/moviepy/audio/fx/__init__.py", line 5, in <module>
+    from moviepy.audio.fx.AudioDelay import AudioDelay
+  File "/tmp/overlay/photonic/moviepy/audio/fx/AudioDelay.py", line 5, in <module>
+    from moviepy.audio.AudioClip import CompositeAudioClip
+  File "/tmp/overlay/photonic/moviepy/audio/AudioClip.py", line 13, in <module>
+    from moviepy.audio.io.ffmpeg_audiowriter import ffmpeg_audiowrite
+  File "/tmp/overlay/photonic/moviepy/audio/io/ffmpeg_audiowriter.py", line 7, in <module>
+    from moviepy.config import FFMPEG_BINARY
+  File "/tmp/overlay/photonic/moviepy/config.py", line 41, in <module>
+    FFMPEG_BINARY = get_exe()
+                    ^^^^^^^^^
+  File "/tmp/overlay/photonic/imageio/plugins/ffmpeg.py", line 173, in get_exe
+    return imageio_ffmpeg.get_ffmpeg_exe()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/overlay/photonic/imageio_ffmpeg/_utils.py", line 33, in get_ffmpeg_exe
+    raise RuntimeError(
+RuntimeError: No ffmpeg exe could be found. Install ffmpeg on your system, or set the IMAGEIO_FFMPEG_EXE environment variable.
+Process SpawnProcess-6:
+Traceback (most recent call last):
+  File "/opt/uv-python/cpython-3.11.16-linux-x86_64-gnu/lib/python3.11/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/opt/uv-python/cpython-3.11.16-linux-x86_64-gnu/lib/python3.11/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/tmp/carbon/scripts/dev/exam_design/runner.py", line 171, in _photonic_child
+    rec = pr.solve_case(job["case"], refined=job.get("refined", False), wavelengths=job.get("wavelengths"))
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/carbon/scripts/dev/exam_design/photonic_reference.py", line 98, in solve_case
+    import fdtdx
+  File "/tmp/overlay/photonic/fdtdx/__init__.py", line 18, in <module>
+    from fdtdx.conversion.vti import export_arrays_snapshot_to_vti, export_vti
+  File "/tmp/overlay/photonic/fdtdx/conversion/vti.py", line 7, in <module>
+    from fdtdx.fdtd.container import ArrayContainer
+  File "/tmp/overlay/photonic/fdtdx/fdtd/container.py", line 21, in <module>
+    from fdtdx.objects.detectors.detector import Detector, DetectorState
+  File "/tmp/overlay/photonic/fdtdx/objects/detectors/detector.py", line 16, in <module>
+    from fdtdx.objects.detectors.plotting.video import generate_video_from_slices, plot_from_slices
+  File "/tmp/overlay/photonic/fdtdx/objects/detectors/plotting/video.py", line 10, in <module>
+    import moviepy as mpy
+  File "/tmp/overlay/photonic/moviepy/__init__.py", line 5, in <module>
+    from moviepy.audio import fx as afx
+  File "/tmp/overlay/photonic/moviepy/audio/fx/__init__.py", line 5, in <module>
+    from moviepy.audio.fx.AudioDelay import AudioDelay
+  File "/tmp/overlay/photonic/moviepy/audio/fx/AudioDelay.py", line 5, in <module>
+    from moviepy.audio.AudioClip import CompositeAudioClip
+  File "/tmp/overlay/photonic/moviepy/audio/AudioClip.py", line 13, in <module>
+    from moviepy.audio.io.ffmpeg_audiowriter import ffmpeg_audiowrite
+  File "/tmp/overlay/photonic/moviepy/audio/io/ffmpeg_audiowriter.py", line 7, in <module>
+    from moviepy.config import FFMPEG_BINARY
+  File "/tmp/overlay/photonic/moviepy/config.py", line 41, in <module>
+    FFMPEG_BINARY = get_exe()
+                    ^^^^^^^^^
+  File "/tmp/overlay/photonic/imageio/plugins/ffmpeg.py", line 173, in get_exe
+    return imageio_ffmpeg.get_ffmpeg_exe()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/overlay/photonic/imageio_ffmpeg/_utils.py", line 33, in get_ffmpeg_exe
+    raise RuntimeError(
+RuntimeError: No ffmpeg exe could be found. Install ffmpeg on your system, or set the IMAGEIO_FFMPEG_EXE environment variable.
+Process SpawnProcess-7:
+Traceback (most recent call last):
+  File "/opt/uv-python/cpython-3.11.16-linux-x86_64-gnu/lib/python3.11/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/opt/uv-python/cpython-3.11.16-linux-x86_64-gnu/lib/python3.11/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/tmp/carbon/scripts/dev/exam_design/runner.py", line 171, in _photonic_child
+    rec = pr.solve_case(job["case"], refined=job.get("refined", False), wavelengths=job.get("wavelengths"))
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/carbon/scripts/dev/exam_design/photonic_reference.py", line 98, in solve_case
+    import fdtdx
+  File "/tmp/overlay/photonic/fdtdx/__init__.py", line 18, in <module>
+    from fdtdx.conversion.vti import export_arrays_snapshot_to_vti, export_vti
+  File "/tmp/overlay/photonic/fdtdx/conversion/vti.py", line 7, in <module>
+    from fdtdx.fdtd.container import ArrayContainer
+  File "/tmp/overlay/photonic/fdtdx/fdtd/container.py", line 21, in <module>
+    from fdtdx.objects.detectors.detector import Detector, DetectorState
+  File "/tmp/overlay/photonic/fdtdx/objects/detectors/detector.py", line 16, in <module>
+    from fdtdx.objects.detectors.plotting.video import generate_video_from_slices, plot_from_slices
+  File "/tmp/overlay/photonic/fdtdx/objects/detectors/plotting/video.py", line 10, in <module>
+    import moviepy as mpy
+  File "/tmp/overlay/photonic/moviepy/__init__.py", line 5, in <module>
+    from moviepy.audio import fx as afx
+  File "/tmp/overlay/photonic/moviepy/audio/fx/__init__.py", line 5, in <module>
+    from moviepy.audio.fx.AudioDelay import AudioDelay
+  File "/tmp/overlay/photonic/moviepy/audio/fx/AudioDelay.py", line 5, in <module>
+    from moviepy.audio.AudioClip import CompositeAudioClip
+  File "/tmp/overlay/photonic/moviepy/audio/AudioClip.py", line 13, in <module>
+    from moviepy.audio.io.ffmpeg_audiowriter import ffmpeg_audiowrite
+  File "/tmp/overlay/photonic/moviepy/audio/io/ffmpeg_audiowriter.py", line 7, in <module>
+    from moviepy.config import FFMPEG_BINARY
+  File "/tmp/overlay/photonic/moviepy/config.py", line 41, in <module>
+    FFMPEG_BINARY = get_exe()
+                    ^^^^^^^^^
+  File "/tmp/overlay/photonic/imageio/plugins/ffmpeg.py", line 173, in get_exe
+    return imageio_ffmpeg.get_ffmpeg_exe()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/overlay/photonic/imageio_ffmpeg/_utils.py", line 33, in get_ffmpeg_exe
+    raise RuntimeError(
+RuntimeError: No ffmpeg exe could be found. Install ffmpeg on your system, or set the IMAGEIO_FFMPEG_EXE environment variable.
+Process SpawnProcess-8:
+Traceback (most recent call last):
+  File "/opt/uv-python/cpython-3.11.16-linux-x86_64-gnu/lib/python3.11/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/opt/uv-python/cpython-3.11.16-linux-x86_64-gnu/lib/python3.11/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/tmp/carbon/scripts/dev/exam_design/runner.py", line 171, in _photonic_child
+    rec = pr.solve_case(job["case"], refined=job.get("refined", False), wavelengths=job.get("wavelengths"))
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/carbon/scripts/dev/exam_design/photonic_reference.py", line 98, in solve_case
+    import fdtdx
+  File "/tmp/overlay/photonic/fdtdx/__init__.py", line 18, in <module>
+    from fdtdx.conversion.vti import export_arrays_snapshot_to_vti, export_vti
+  File "/tmp/overlay/photonic/fdtdx/conversion/vti.py", line 7, in <module>
+    from fdtdx.fdtd.container import ArrayContainer
+  File "/tmp/overlay/photonic/fdtdx/fdtd/container.py", line 21, in <module>
+    from fdtdx.objects.detectors.detector import Detector, DetectorState
+  File "/tmp/overlay/photonic/fdtdx/objects/detectors/detector.py", line 16, in <module>
+    from fdtdx.objects.detectors.plotting.video import generate_video_from_slices, plot_from_slices
+  File "/tmp/overlay/photonic/fdtdx/objects/detectors/plotting/video.py", line 10, in <module>
+    import moviepy as mpy
+  File "/tmp/overlay/photonic/moviepy/__init__.py", line 5, in <module>
+    from moviepy.audio import fx as afx
+  File "/tmp/overlay/photonic/moviepy/audio/fx/__init__.py", line 5, in <module>
+    from moviepy.audio.fx.AudioDelay import AudioDelay
+  File "/tmp/overlay/photonic/moviepy/audio/fx/AudioDelay.py", line 5, in <module>
+    from moviepy.audio.AudioClip import CompositeAudioClip
+  File "/tmp/overlay/photonic/moviepy/audio/AudioClip.py", line 13, in <module>
+    from moviepy.audio.io.ffmpeg_audiowriter import ffmpeg_audiowrite
+  File "/tmp/overlay/photonic/moviepy/audio/io/ffmpeg_audiowriter.py", line 7, in <module>
+    from moviepy.config import FFMPEG_BINARY
+  File "/tmp/overlay/photonic/moviepy/config.py", line 41, in <module>
+    FFMPEG_BINARY = get_exe()
+                    ^^^^^^^^^
+  File "/tmp/overlay/photonic/imageio/plugins/ffmpeg.py", line 173, in get_exe
+    return imageio_ffmpeg.get_ffmpeg_exe()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/overlay/photonic/imageio_ffmpeg/_utils.py", line 33, in get_ffmpeg_exe
+    raise RuntimeError(
+RuntimeError: No ffmpeg exe could be found. Install ffmpeg on your system, or set the IMAGEIO_FFMPEG_EXE environment variable.
+Process SpawnProcess-9:
+Traceback (most recent call last):
+  File "/opt/uv-python/cpython-3.11.16-linux-x86_64-gnu/lib/python3.11/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/opt/uv-python/cpython-3.11.16-linux-x86_64-gnu/lib/python3.11/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/tmp/carbon/scripts/dev/exam_design/runner.py", line 171, in _photonic_child
+    rec = pr.solve_case(job["case"], refined=job.get("refined", False), wavelengths=job.get("wavelengths"))
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/carbon/scripts/dev/exam_design/photonic_reference.py", line 98, in solve_case
+    import fdtdx
+  File "/tmp/overlay/photonic/fdtdx/__init__.py", line 18, in <module>
+    from fdtdx.conversion.vti import export_arrays_snapshot_to_vti, export_vti
+  File "/tmp/overlay/photonic/fdtdx/conversion/vti.py", line 7, in <module>
+    from fdtdx.fdtd.container import ArrayContainer
+  File "/tmp/overlay/photonic/fdtdx/fdtd/container.py", line 21, in <module>
+    from fdtdx.objects.detectors.detector import Detector, DetectorState
+  File "/tmp/overlay/photonic/fdtdx/objects/detectors/detector.py", line 16, in <module>
+    from fdtdx.objects.detectors.plotting.video import generate_video_from_slices, plot_from_slices
+  File "/tmp/overlay/photonic/fdtdx/objects/detectors/plotting/video.py", line 10, in <module>
+    import moviepy as mpy
+  File "/tmp/overlay/photonic/moviepy/__init__.py", line 5, in <module>
+    from moviepy.audio import fx as afx
+  File "/tmp/overlay/photonic/moviepy/audio/fx/__init__.py", line 5, in <module>
+    from moviepy.audio.fx.AudioDelay import AudioDelay
+  File "/tmp/overlay/photonic/moviepy/audio/fx/AudioDelay.py", line 5, in <module>
+    from moviepy.audio.AudioClip import CompositeAudioClip
+  File "/tmp/overlay/photonic/moviepy/audio/AudioClip.py", line 13, in <module>
+    from moviepy.audio.io.ffmpeg_audiowriter import ffmpeg_audiowrite
+  File "/tmp/overlay/photonic/moviepy/audio/io/ffmpeg_audiowriter.py", line 7, in <module>
+    from moviepy.config import FFMPEG_BINARY
+  File "/tmp/overlay/photonic/moviepy/config.py", line 41, in <module>
+    FFMPEG_BINARY = get_exe()
+                    ^^^^^^^^^
+  File "/tmp/overlay/photonic/imageio/plugins/ffmpeg.py", line 173, in get_exe
+    return imageio_ffmpeg.get_ffmpeg_exe()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/overlay/photonic/imageio_ffmpeg/_utils.py", line 33, in get_ffmpeg_exe
+    raise RuntimeError(
+RuntimeError: No ffmpeg exe could be found. Install ffmpeg on your system, or set the IMAGEIO_FFMPEG_EXE environment variable.
+Process SpawnProcess-10:
+Traceback (most recent call last):
+  File "/opt/uv-python/cpython-3.11.16-linux-x86_64-gnu/lib/python3.11/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/opt/uv-python/cpython-3.11.16-linux-x86_64-gnu/lib/python3.11/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/tmp/carbon/scripts/dev/exam_design/runner.py", line 171, in _photonic_child
+    rec = pr.solve_case(job["case"], refined=job.get("refined", False), wavelengths=job.get("wavelengths"))
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/carbon/scripts/dev/exam_design/photonic_reference.py", line 98, in solve_case
+    import fdtdx
+  File "/tmp/overlay/photonic/fdtdx/__init__.py", line 18, in <module>
+    from fdtdx.conversion.vti import export_arrays_snapshot_to_vti, export_vti
+  File "/tmp/overlay/photonic/fdtdx/conversion/vti.py", line 7, in <module>
+    from fdtdx.fdtd.container import ArrayContainer
+  File "/tmp/overlay/photonic/fdtdx/fdtd/container.py", line 21, in <module>
+    from fdtdx.objects.detectors.detector import Detector, DetectorState
+  File "/tmp/overlay/photonic/fdtdx/objects/detectors/detector.py", line 16, in <module>
+    from fdtdx.objects.detectors.plotting.video import generate_video_from_slices, plot_from_slices
+  File "/tmp/overlay/photonic/fdtdx/objects/detectors/plotting/video.py", line 10, in <module>
+    import moviepy as mpy
+  File "/tmp/overlay/photonic/moviepy/__init__.py", line 5, in <module>
+    from moviepy.audio import fx as afx
+  File "/tmp/overlay/photonic/moviepy/audio/fx/__init__.py", line 5, in <module>
+    from moviepy.audio.fx.AudioDelay import AudioDelay
+  File "/tmp/overlay/photonic/moviepy/audio/fx/AudioDelay.py", line 5, in <module>
+    from moviepy.audio.AudioClip import CompositeAudioClip
+  File "/tmp/overlay/photonic/moviepy/audio/AudioClip.py", line 13, in <module>
+    from moviepy.audio.io.ffmpeg_audiowriter import ffmpeg_audiowrite
+  File "/tmp/overlay/photonic/moviepy/audio/io/ffmpeg_audiowriter.py", line 7, in <module>
+    from moviepy.config import FFMPEG_BINARY
+  File "/tmp/overlay/photonic/moviepy/config.py", line 41, in <module>
+    FFMPEG_BINARY = get_exe()
+                    ^^^^^^^^^
+  File "/tmp/overlay/photonic/imageio/plugins/ffmpeg.py", line 173, in get_exe
+    return imageio_ffmpeg.get_ffmpeg_exe()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/overlay/photonic/imageio_ffmpeg/_utils.py", line 33, in get_ffmpeg_exe
+    raise RuntimeError(
+RuntimeError: No ffmpeg exe could be found. Install ffmpeg on your system, or set the IMAGEIO_FFMPEG_EXE environment variable.
+Process SpawnProcess-11:
+Traceback (most recent call last):
+  File "/opt/uv-python/cpython-3.11.16-linux-x86_64-gnu/lib/python3.11/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/opt/uv-python/cpython-3.11.16-linux-x86_64-gnu/lib/python3.11/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/tmp/carbon/scripts/dev/exam_design/runner.py", line 171, in _photonic_child
+    rec = pr.solve_case(job["case"], refined=job.get("refined", False), wavelengths=job.get("wavelengths"))
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/carbon/scripts/dev/exam_design/photonic_reference.py", line 98, in solve_case
+    import fdtdx
+  File "/tmp/overlay/photonic/fdtdx/__init__.py", line 18, in <module>
+    from fdtdx.conversion.vti import export_arrays_snapshot_to_vti, export_vti
+  File "/tmp/overlay/photonic/fdtdx/conversion/vti.py", line 7, in <module>
+    from fdtdx.fdtd.container import ArrayContainer
+  File "/tmp/overlay/photonic/fdtdx/fdtd/container.py", line 21, in <module>
+    from fdtdx.objects.detectors.detector import Detector, DetectorState
+  File "/tmp/overlay/photonic/fdtdx/objects/detectors/detector.py", line 16, in <module>
+    from fdtdx.objects.detectors.plotting.video import generate_video_from_slices, plot_from_slices
+  File "/tmp/overlay/photonic/fdtdx/objects/detectors/plotting/video.py", line 10, in <module>
+    import moviepy as mpy
+  File "/tmp/overlay/photonic/moviepy/__init__.py", line 5, in <module>
+    from moviepy.audio import fx as afx
+  File "/tmp/overlay/photonic/moviepy/audio/fx/__init__.py", line 5, in <module>
+    from moviepy.audio.fx.AudioDelay import AudioDelay
+  File "/tmp/overlay/photonic/moviepy/audio/fx/AudioDelay.py", line 5, in <module>
+    from moviepy.audio.AudioClip import CompositeAudioClip
+  File "/tmp/overlay/photonic/moviepy/audio/AudioClip.py", line 13, in <module>
+    from moviepy.audio.io.ffmpeg_audiowriter import ffmpeg_audiowrite
+  File "/tmp/overlay/photonic/moviepy/audio/io/ffmpeg_audiowriter.py", line 7, in <module>
+    from moviepy.config import FFMPEG_BINARY
+  File "/tmp/overlay/photonic/moviepy/config.py", line 41, in <module>
+    FFMPEG_BINARY = get_exe()
+                    ^^^^^^^^^
+  File "/tmp/overlay/photonic/imageio/plugins/ffmpeg.py", line 173, in get_exe
+    return imageio_ffmpeg.get_ffmpeg_exe()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/overlay/photonic/imageio_ffmpeg/_utils.py", line 33, in get_ffmpeg_exe
+    raise RuntimeError(
+RuntimeError: No ffmpeg exe could be found. Install ffmpeg on your system, or set the IMAGEIO_FFMPEG_EXE environment variable.
+Process SpawnProcess-12:
+Traceback (most recent call last):
+  File "/opt/uv-python/cpython-3.11.16-linux-x86_64-gnu/lib/python3.11/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/opt/uv-python/cpython-3.11.16-linux-x86_64-gnu/lib/python3.11/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/tmp/carbon/scripts/dev/exam_design/runner.py", line 171, in _photonic_child
+    rec = pr.solve_case(job["case"], refined=job.get("refined", False), wavelengths=job.get("wavelengths"))
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/carbon/scripts/dev/exam_design/photonic_reference.py", line 98, in solve_case
+    import fdtdx
+  File "/tmp/overlay/photonic/fdtdx/__init__.py", line 18, in <module>
+    from fdtdx.conversion.vti import export_arrays_snapshot_to_vti, export_vti
+  File "/tmp/overlay/photonic/fdtdx/conversion/vti.py", line 7, in <module>
+    from fdtdx.fdtd.container import ArrayContainer
+  File "/tmp/overlay/photonic/fdtdx/fdtd/container.py", line 21, in <module>
+    from fdtdx.objects.detectors.detector import Detector, DetectorState
+  File "/tmp/overlay/photonic/fdtdx/objects/detectors/detector.py", line 16, in <module>
+    from fdtdx.objects.detectors.plotting.video import generate_video_from_slices, plot_from_slices
+  File "/tmp/overlay/photonic/fdtdx/objects/detectors/plotting/video.py", line 10, in <module>
+    import moviepy as mpy
+  File "/tmp/overlay/photonic/moviepy/__init__.py", line 5, in <module>
+    from moviepy.audio import fx as afx
+  File "/tmp/overlay/photonic/moviepy/audio/fx/__init__.py", line 5, in <module>
+    from moviepy.audio.fx.AudioDelay import AudioDelay
+  File "/tmp/overlay/photonic/moviepy/audio/fx/AudioDelay.py", line 5, in <module>
+    from moviepy.audio.AudioClip import CompositeAudioClip
+  File "/tmp/overlay/photonic/moviepy/audio/AudioClip.py", line 13, in <module>
+    from moviepy.audio.io.ffmpeg_audiowriter import ffmpeg_audiowrite
+  File "/tmp/overlay/photonic/moviepy/audio/io/ffmpeg_audiowriter.py", line 7, in <module>
+    from moviepy.config import FFMPEG_BINARY
+  File "/tmp/overlay/photonic/moviepy/config.py", line 41, in <module>
+    FFMPEG_BINARY = get_exe()
+                    ^^^^^^^^^
+  File "/tmp/overlay/photonic/imageio/plugins/ffmpeg.py", line 173, in get_exe
+    return imageio_ffmpeg.get_ffmpeg_exe()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/overlay/photonic/imageio_ffmpeg/_utils.py", line 33, in get_ffmpeg_exe
+    raise RuntimeError(
+RuntimeError: No ffmpeg exe could be found. Install ffmpeg on your system, or set the IMAGEIO_FFMPEG_EXE environment variable.
+Process SpawnProcess-13:
+Traceback (most recent call last):
+  File "/opt/uv-python/cpython-3.11.16-linux-x86_64-gnu/lib/python3.11/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/opt/uv-python/cpython-3.11.16-linux-x86_64-gnu/lib/python3.11/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/tmp/carbon/scripts/dev/exam_design/runner.py", line 171, in _photonic_child
+    rec = pr.solve_case(job["case"], refined=job.get("refined", False), wavelengths=job.get("wavelengths"))
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/carbon/scripts/dev/exam_design/photonic_reference.py", line 98, in solve_case
+    import fdtdx
+  File "/tmp/overlay/photonic/fdtdx/__init__.py", line 18, in <module>
+    from fdtdx.conversion.vti import export_arrays_snapshot_to_vti, export_vti
+  File "/tmp/overlay/photonic/fdtdx/conversion/vti.py", line 7, in <module>
+    from fdtdx.fdtd.container import ArrayContainer
+  File "/tmp/overlay/photonic/fdtdx/fdtd/container.py", line 21, in <module>
+    from fdtdx.objects.detectors.detector import Detector, DetectorState
+  File "/tmp/overlay/photonic/fdtdx/objects/detectors/detector.py", line 16, in <module>
+    from fdtdx.objects.detectors.plotting.video import generate_video_from_slices, plot_from_slices
+  File "/tmp/overlay/photonic/fdtdx/objects/detectors/plotting/video.py", line 10, in <module>
+    import moviepy as mpy
+  File "/tmp/overlay/photonic/moviepy/__init__.py", line 5, in <module>
+    from moviepy.audio import fx as afx
+  File "/tmp/overlay/photonic/moviepy/audio/fx/__init__.py", line 5, in <module>
+    from moviepy.audio.fx.AudioDelay import AudioDelay
+  File "/tmp/overlay/photonic/moviepy/audio/fx/AudioDelay.py", line 5, in <module>
+    from moviepy.audio.AudioClip import CompositeAudioClip
+  File "/tmp/overlay/photonic/moviepy/audio/AudioClip.py", line 13, in <module>
+    from moviepy.audio.io.ffmpeg_audiowriter import ffmpeg_audiowrite
+  File "/tmp/overlay/photonic/moviepy/audio/io/ffmpeg_audiowriter.py", line 7, in <module>
+    from moviepy.config import FFMPEG_BINARY
+  File "/tmp/overlay/photonic/moviepy/config.py", line 41, in <module>
+    FFMPEG_BINARY = get_exe()
+                    ^^^^^^^^^
+  File "/tmp/overlay/photonic/imageio/plugins/ffmpeg.py", line 173, in get_exe
+    return imageio_ffmpeg.get_ffmpeg_exe()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/overlay/photonic/imageio_ffmpeg/_utils.py", line 33, in get_ffmpeg_exe
+    raise RuntimeError(
+RuntimeError: No ffmpeg exe could be found. Install ffmpeg on your system, or set the IMAGEIO_FFMPEG_EXE environment variable.
+Process SpawnProcess-14:
+Traceback (most recent call last):
+  File "/opt/uv-python/cpython-3.11.16-linux-x86_64-gnu/lib/python3.11/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/opt/uv-python/cpython-3.11.16-linux-x86_64-gnu/lib/python3.11/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/tmp/carbon/scripts/dev/exam_design/runner.py", line 171, in _photonic_child
+    rec = pr.solve_case(job["case"], refined=job.get("refined", False), wavelengths=job.get("wavelengths"))
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/carbon/scripts/dev/exam_design/photonic_reference.py", line 98, in solve_case
+    import fdtdx
+  File "/tmp/overlay/photonic/fdtdx/__init__.py", line 18, in <module>
+    from fdtdx.conversion.vti import export_arrays_snapshot_to_vti, export_vti
+  File "/tmp/overlay/photonic/fdtdx/conversion/vti.py", line 7, in <module>
+    from fdtdx.fdtd.container import ArrayContainer
+  File "/tmp/overlay/photonic/fdtdx/fdtd/container.py", line 21, in <module>
+    from fdtdx.objects.detectors.detector import Detector, DetectorState
+  File "/tmp/overlay/photonic/fdtdx/objects/detectors/detector.py", line 16, in <module>
+    from fdtdx.objects.detectors.plotting.video import generate_video_from_slices, plot_from_slices
+  File "/tmp/overlay/photonic/fdtdx/objects/detectors/plotting/video.py", line 10, in <module>
+    import moviepy as mpy
+  File "/tmp/overlay/photonic/moviepy/__init__.py", line 5, in <module>
+    from moviepy.audio import fx as afx
+  File "/tmp/overlay/photonic/moviepy/audio/fx/__init__.py", line 5, in <module>
+    from moviepy.audio.fx.AudioDelay import AudioDelay
+  File "/tmp/overlay/photonic/moviepy/audio/fx/AudioDelay.py", line 5, in <module>
+    from moviepy.audio.AudioClip import CompositeAudioClip
+  File "/tmp/overlay/photonic/moviepy/audio/AudioClip.py", line 13, in <module>
+    from moviepy.audio.io.ffmpeg_audiowriter import ffmpeg_audiowrite
+  File "/tmp/overlay/photonic/moviepy/audio/io/ffmpeg_audiowriter.py", line 7, in <module>
+    from moviepy.config import FFMPEG_BINARY
+  File "/tmp/overlay/photonic/moviepy/config.py", line 41, in <module>
+    FFMPEG_BINARY = get_exe()
+                    ^^^^^^^^^
+  File "/tmp/overlay/photonic/imageio/plugins/ffmpeg.py", line 173, in get_exe
+    return imageio_ffmpeg.get_ffmpeg_exe()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/overlay/photonic/imageio_ffmpeg/_utils.py", line 33, in get_ffmpeg_exe
+    raise RuntimeError(
+RuntimeError: No ffmpeg exe could be found. Install ffmpeg on your system, or set the IMAGEIO_FFMPEG_EXE environment variable.
+Process SpawnProcess-15:
+Traceback (most recent call last):
+  File "/opt/uv-python/cpython-3.11.16-linux-x86_64-gnu/lib/python3.11/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/opt/uv-python/cpython-3.11.16-linux-x86_64-gnu/lib/python3.11/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/tmp/carbon/scripts/dev/exam_design/runner.py", line 171, in _photonic_child
+    rec = pr.solve_case(job["case"], refined=job.get("refined", False), wavelengths=job.get("wavelengths"))
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/carbon/scripts/dev/exam_design/photonic_reference.py", line 98, in solve_case
+    import fdtdx
+  File "/tmp/overlay/photonic/fdtdx/__init__.py", line 18, in <module>
+    from fdtdx.conversion.vti import export_arrays_snapshot_to_vti, export_vti
+  File "/tmp/overlay/photonic/fdtdx/conversion/vti.py", line 7, in <module>
+    from fdtdx.fdtd.container import ArrayContainer
+  File "/tmp/overlay/photonic/fdtdx/fdtd/container.py", line 21, in <module>
+    from fdtdx.objects.detectors.detector import Detector, DetectorState
+  File "/tmp/overlay/photonic/fdtdx/objects/detectors/detector.py", line 16, in <module>
+    from fdtdx.objects.detectors.plotting.video import generate_video_from_slices, plot_from_slices
+  File "/tmp/overlay/photonic/fdtdx/objects/detectors/plotting/video.py", line 10, in <module>
+    import moviepy as mpy
+  File "/tmp/overlay/photonic/moviepy/__init__.py", line 5, in <module>
+    from moviepy.audio import fx as afx
+  File "/tmp/overlay/photonic/moviepy/audio/fx/__init__.py", line 5, in <module>
+    from moviepy.audio.fx.AudioDelay import AudioDelay
+  File "/tmp/overlay/photonic/moviepy/audio/fx/AudioDelay.py", line 5, in <module>
+    from moviepy.audio.AudioClip import CompositeAudioClip
+  File "/tmp/overlay/photonic/moviepy/audio/AudioClip.py", line 13, in <module>
+    from moviepy.audio.io.ffmpeg_audiowriter import ffmpeg_audiowrite
+  File "/tmp/overlay/photonic/moviepy/audio/io/ffmpeg_audiowriter.py", line 7, in <module>
+    from moviepy.config import FFMPEG_BINARY
+  File "/tmp/overlay/photonic/moviepy/config.py", line 41, in <module>
+    FFMPEG_BINARY = get_exe()
+                    ^^^^^^^^^
+  File "/tmp/overlay/photonic/imageio/plugins/ffmpeg.py", line 173, in get_exe
+    return imageio_ffmpeg.get_ffmpeg_exe()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/overlay/photonic/imageio_ffmpeg/_utils.py", line 33, in get_ffmpeg_exe
+    raise RuntimeError(
+RuntimeError: No ffmpeg exe could be found. Install ffmpeg on your system, or set the IMAGEIO_FFMPEG_EXE environment variable.
+Process SpawnProcess-16:
+Traceback (most recent call last):
+  File "/opt/uv-python/cpython-3.11.16-linux-x86_64-gnu/lib/python3.11/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/opt/uv-python/cpython-3.11.16-linux-x86_64-gnu/lib/python3.11/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/tmp/carbon/scripts/dev/exam_design/runner.py", line 171, in _photonic_child
+    rec = pr.solve_case(job["case"], refined=job.get("refined", False), wavelengths=job.get("wavelengths"))
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/carbon/scripts/dev/exam_design/photonic_reference.py", line 98, in solve_case
+    import fdtdx
+  File "/tmp/overlay/photonic/fdtdx/__init__.py", line 18, in <module>
+    from fdtdx.conversion.vti import export_arrays_snapshot_to_vti, export_vti
+  File "/tmp/overlay/photonic/fdtdx/conversion/vti.py", line 7, in <module>
+    from fdtdx.fdtd.container import ArrayContainer
+  File "/tmp/overlay/photonic/fdtdx/fdtd/container.py", line 21, in <module>
+    from fdtdx.objects.detectors.detector import Detector, DetectorState
+  File "/tmp/overlay/photonic/fdtdx/objects/detectors/detector.py", line 16, in <module>
+    from fdtdx.objects.detectors.plotting.video import generate_video_from_slices, plot_from_slices
+  File "/tmp/overlay/photonic/fdtdx/objects/detectors/plotting/video.py", line 10, in <module>
+    import moviepy as mpy
+  File "/tmp/overlay/photonic/moviepy/__init__.py", line 5, in <module>
+    from moviepy.audio import fx as afx
+  File "/tmp/overlay/photonic/moviepy/audio/fx/__init__.py", line 5, in <module>
+    from moviepy.audio.fx.AudioDelay import AudioDelay
+  File "/tmp/overlay/photonic/moviepy/audio/fx/AudioDelay.py", line 5, in <module>
+    from moviepy.audio.AudioClip import CompositeAudioClip
+  File "/tmp/overlay/photonic/moviepy/audio/AudioClip.py", line 13, in <module>
+    from moviepy.audio.io.ffmpeg_audiowriter import ffmpeg_audiowrite
+  File "/tmp/overlay/photonic/moviepy/audio/io/ffmpeg_audiowriter.py", line 7, in <module>
+    from moviepy.config import FFMPEG_BINARY
+  File "/tmp/overlay/photonic/moviepy/config.py", line 41, in <module>
+    FFMPEG_BINARY = get_exe()
+                    ^^^^^^^^^
+  File "/tmp/overlay/photonic/imageio/plugins/ffmpeg.py", line 173, in get_exe
+    return imageio_ffmpeg.get_ffmpeg_exe()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/overlay/photonic/imageio_ffmpeg/_utils.py", line 33, in get_ffmpeg_exe
+    raise RuntimeError(
+RuntimeError: No ffmpeg exe could be found. Install ffmpeg on your system, or set the IMAGEIO_FFMPEG_EXE environment variable.

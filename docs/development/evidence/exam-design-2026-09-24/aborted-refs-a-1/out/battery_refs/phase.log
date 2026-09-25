@@ -1,0 +1,10 @@
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/tmp/carbon/scripts/dev/exam_design/runner.py", line 286, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/tmp/carbon/scripts/dev/exam_design/runner.py", line 267, in main
+    cfg = json.load(open(cfg["plan"])) | {k: v for k, v in cfg.items() if k != "plan"}
+                    ^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: 'battery-refs-a'

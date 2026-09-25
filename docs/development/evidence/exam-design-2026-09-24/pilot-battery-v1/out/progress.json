@@ -1,0 +1,1 @@
+{"phase": "battery_refs", "workers": 7, "total": 16, "pending": 0, "running": 0, "done": {"OK": 12, "REFERENCE_SOLVER_FAILED": 0, "REFERENCE_TIMEOUT": 0, "FAILED_INFRA": 4, "NOT_ADMITTED": 0}, "elapsed_s": 439.0}
