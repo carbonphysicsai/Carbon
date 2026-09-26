@@ -16044,3 +16044,59 @@ the opt-in), then "and counsel approves E7".
    standard of the 2026-09-23 delegated decision 4.
 
 See `.agent/tickets/GOAL-WORKBENCH-15_client_data_engineering.md`.
+
+## 2026-09-26 — WEB-QA-09-D1: publish Ask Carbon candidate 2026-09-26.1 (Chutes)
+
+**Authority.** The repository owner (Ryan Bequette, a named production
+incident owner under `WEB-QA-05-D2`) approved publication of candidate
+`ask-carbon-public-release-2026-09-26.1` on 2026-09-26, in session, with the
+decision packet in `website/ask-carbon/PUBLIC_RELEASE_DECISION_PACKET.md`.
+Approval basis: `OWNER_PUBLICATION_APPROVAL_2026_09_26_WEB_QA_09_D1`.
+
+**What it publishes.** Both deployables move together, because the Worker
+embeds its knowledge at build time:
+
+- `ask-carbon-public` Worker: answers through Chutes
+  (`gemma-4-31b-turbo-tee:v1`, `google/gemma-4-31B-turbo-TEE`, confidential
+  compute) instead of OpenAI (`gpt-5.6-luna:low:v1`), under privacy mode
+  `approved_public_privacy_v2_chutes_confidential`. It also carries the
+  already-approved knowledge `d937e9ca…` (WEB-QA-07-D2), which the live Worker
+  does not yet embed.
+- `carbonwebsite` static assets: two paths change against live —
+  `ask-carbon/ask-carbon.js` (visitor notice v2; live answers default-on in
+  the Q&A panel only) and `ask-carbon/pilot-designer.html` (client-intake #373:
+  the disclosure names Chutes; guidance stays opt-in). The other 100 paths are
+  byte-identical to live.
+
+**Exact accepted artifact.**
+
+| Identity | Value |
+| --- | --- |
+| Bundle identity | `2fe8eba27fda34610555f49e65f1331d90ee1c3f517b8a729098137be2afb5cf` |
+| Integrated homepage | `b1e8e7cdbea3d13d1ea2237e55db279bc962937a6a2cf2a65491dcf8255afd47` (unchanged) |
+| Q&A component | `62ba26ce2a2e76dc0b194dc0e7d1d113cbd2c5aa4f9770dce77f1a977e19f7f4` |
+| Pilot Designer | `4c9f39169cabc3748662d64925828cfa07aa63fe277dff164735847ee907c6cd` |
+| Knowledge digest | `d937e9cabb1b39003bfd00bc14665ab90c5ba59c2e70729fdd46476e9da30804` (unchanged; its `approval_basis` is not changed) |
+| Visitor notice | `ask-carbon-notice-v2-2026-09-26`, SHA-256 `92ee9254b8adc71fb4aff9baef993c2f40336dcb38cc9be0adf3be88daa43c87` |
+| Worker source | merge commit `178a45f9d` (PR #372); input digests in `PUBLIC_RELEASE_CANDIDATE.json` → `worker.source_sha256` |
+| Static rollback target | `carbonwebsite` version `b694b20f-a4d4-4f59-8f08-12629591a2dc` (content-identity inference; re-capture with wrangler before deploying) |
+| Worker rollback target | captured with wrangler immediately before deploying |
+
+A rebuild producing a different bundle identity is not the approved artifact.
+If either live version has moved at deploy time, the candidate is rebuilt and
+needs a fresh decision if its identity changes.
+
+**Known limits accepted with the approval.** The Chutes adapter is unit-tested
+against a constructed fixture only; the first production request is its first
+live exercise, and it fails closed on any unexpected response. The provider's
+retention and confidential-compute properties are Chutes' own statements, not
+a Carbon audit. Default-on live answers will draw more requests toward the
+unchanged ceilings (USD 50/month shared ledger, 100 requests/day, 12 per
+client per hour).
+
+**Not authorized by this decision.** Deployment is the owner's act, from a
+host holding the Cloudflare credential; this session has none and ran no
+wrangler command. No change to budget or ceilings, inquiry collection (issue
+#139, disabled), the Pilot Designer's opt-in, customer-data processing, or
+the `AskCarbonUsageLedger` Durable Object, which is never rolled back or
+deleted.
