@@ -170,7 +170,7 @@ def _runtime(profile):
     )
     if scientific is not None:
         runtime["scientific_tasks"] = scientific
-    if authored is not None:
+    if authored is not None and "authored_research" in profile.manifest["runtime"]:
         from carbon.development_session.julia_analysis import authored_julia_scope
 
         runtime["authored_research"] = [authored_julia_scope(authored)]
@@ -226,7 +226,14 @@ def _connection(profile, paths):
 
 def _authored_image(profile, analysis):
     if "authored_research" not in profile.manifest["runtime"]:
-        return None
+        if profile.development_grant is not None:
+            return None
+        # Anytime, for a product campaign: whichever image the host installed.
+        from carbon.development_session.research_campaign import (
+            available_julia_image,
+        )
+
+        return available_julia_image(profile.root, analysis)
     from carbon.development_session.research_campaign import registered_julia_image
 
     return registered_julia_image(profile.root, profile.manifest["runtime"], analysis)
@@ -439,6 +446,12 @@ async def attached_profile(profile: OperatorProfile):
         raise TypeError("a loaded operator profile is required")
     cleanup_only = profile.cleanup_only
     with owner_lock(profile.root):
+        if profile.development_grant is None and not cleanup_only:
+            from scripts.dev.miner_launchpad.runner import install_research_images
+
+            # The same install the Launchpad does at launch: the host's
+            # current image records, available to this campaign now.
+            install_research_images(profile.document, profile.root)
         ledger = CampaignLedger(profile.root, admission=profile.development_grant)
         # A read-only refusal needs no session: unresolved consumption is
         # refused before anything reaches the runtime.

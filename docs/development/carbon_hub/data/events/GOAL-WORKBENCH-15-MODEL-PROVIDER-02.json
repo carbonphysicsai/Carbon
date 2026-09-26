@@ -1,0 +1,14 @@
+{
+  "map_ref": "SYSTEM/BUSINESS-AUTHORITY",
+  "event_type": "evidence",
+  "event_id": "GOAL-WORKBENCH-15-MODEL-PROVIDER-02",
+  "owner_lane": "business_authority",
+  "status": "implemented",
+  "summary": "The owner lifted the synthetic-only restriction on client model processing and reported counsel's approval of E7. The gate is removed from the code: a real client's record may now be sent to the scheduled provider (Chutes) once that client's own signed opt-in is recorded, by an explicit reviewer request logged before sending, and only by staff screened under counsel's standard, which is configured privately and replaces the synthetic development standard. A synthetic opt-in can never open a real record; that guard replaces the gate and is refused both when recorded and at send time. Tests pair each refusal with its specimen. No real client, opt-in or client content exists yet, and nothing has been sent; no deployment, security acceptance or qualification is authorized.",
+  "primary_detail": ".agent/tickets/GOAL-WORKBENCH-15_client_data_engineering.md",
+  "affects": [
+    "SYSTEM/BUSINESS-AUTHORITY"
+  ],
+  "supersedes": null,
+  "recorded_at": "2026-09-26T18:45:00Z"
+}

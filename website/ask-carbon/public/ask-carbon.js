@@ -10,6 +10,14 @@ const retrievalTokens = (value) => (String(value ?? "").toLowerCase().match(/[a-
   .filter((word) => word.length > 1 && !RETRIEVAL_STOP_WORDS.has(word));
 
 export const shouldUseLiveAnswers = (liveStatus, visitorEnabled) => liveStatus?.active === true && visitorEnabled === true;
+// Live answers are on by default for public questions about Carbon. The
+// visitor can switch to saved explanations, which send nothing. Pilot
+// guidance is a separate, opt-in surface and is unaffected by this default.
+export const LIVE_ANSWERS_DEFAULT = true;
+export const LIVE_NOTICE = Object.freeze([
+  "Live answers are on. Carbon’s server sends your current question and the matching reviewed public passages to Chutes, which runs the model inside hardware-isolated confidential computing. Chutes states that it does not log, store or train on request or response content, and keeps only usage metadata such as token counts for billing.",
+  "Do not include confidential engineering, customer, personal, credential or protected-evaluation information. Saved explanations send nothing to any AI provider.",
+]);
 
 const createElement = (documentRef, tag, options = {}) => {
   const element = documentRef.createElement(tag);
@@ -81,7 +89,7 @@ export class AskCarbonElement extends HTMLElementBase {
     this.knowledge = null;
     this.releaseStatus = null;
     this.liveStatus = { active: false };
-    this.liveEnabled = false;
+    this.liveEnabled = LIVE_ANSWERS_DEFAULT;
     this.continuation = null;
     this.savedCardIds = [];
     this.guard = createThreadGuard();
@@ -225,12 +233,12 @@ export class AskCarbonElement extends HTMLElementBase {
     if (shouldUseLiveAnswers(this.liveStatus, this.liveEnabled)) {
       this.status.textContent = `Live answers · Reviewed public sources dated ${date}.`;
       this.mode.textContent = "Live public answer";
-      this.privacy.textContent = "Questions are sent to the approved AI provider. Do not paste confidential engineering or customer data.";
+      this.privacy.textContent = "Questions are sent through Carbon’s server to Chutes’ confidential-compute model. Do not paste confidential engineering or customer data.";
       return;
     }
     const staging = this.hasAttribute("staging-preview");
     this.status.textContent = this.liveStatus.active
-      ? "Saved explanations ready · Live AI stays off until you review the data use and enable it."
+      ? "Saved explanations only · Live answers are off for this page."
       : staging
         ? `Private staging preview · Reviewed saved explanations, not live AI. Sources released ${date}.`
         : `Saved public explanations · Sources released ${date}.`;
@@ -262,33 +270,30 @@ export class AskCarbonElement extends HTMLElementBase {
       createElement(doc, "span", { className: "ask-carbon-pathway-note", text: "Use the local form, or affirmatively enable bounded AI guidance." }),
     );
     pathways.append(learn, pilot);
-    if (this.liveStatus.active && !this.liveEnabled) {
+    if (this.liveStatus.active) {
       const disclosure = createElement(doc, "section", {
         className: "ask-carbon-live-disclosure",
         attributes: { "aria-labelledby": "ask-carbon-live-title" },
       });
-      disclosure.append(
-        createElement(doc, "h4", { text: "Before enabling live AI answers", attributes: { id: "ask-carbon-live-title" } }),
-        createElement(doc, "p", { text: "Saved explanations send nothing to the AI provider. If enabled, your current question and bounded reviewed public passages are sent through Carbon’s server to the OpenAI API. Contact details are not requested or sent." }),
-        createElement(doc, "p", { text: "Requests use store:false, but Carbon has not established Zero Data Retention or Modified Abuse Monitoring. Prompts and responses may be retained by the provider for up to 30 days. Do not include confidential, personal, credential, solver, model, customer or protected-evaluation information." }),
-      );
-      const consentLabel = createElement(doc, "label", { className: "ask-carbon-consent" });
-      const consent = createElement(doc, "input", { attributes: { type: "checkbox" } });
-      consentLabel.append(consent, " I understand and want to enable live AI answers.");
-      const enable = createElement(doc, "button", {
+      disclosure.append(createElement(doc, "h4", {
+        text: this.liveEnabled ? "How live answers use your question" : "Live answers are off",
+        attributes: { id: "ask-carbon-live-title" },
+      }));
+      if (this.liveEnabled) for (const text of LIVE_NOTICE) disclosure.append(createElement(doc, "p", { text }));
+      else disclosure.append(createElement(doc, "p", { text: "Saved explanations run in this page and send nothing to any AI provider." }));
+      const toggle = createElement(doc, "button", {
         className: "ask-carbon-enable-live",
-        text: "Enable live answers",
-        attributes: { type: "button", disabled: "" },
+        text: this.liveEnabled ? "Use saved explanations only" : "Turn live answers back on",
+        attributes: { type: "button", "aria-pressed": String(!this.liveEnabled) },
       });
-      consent.addEventListener("change", () => { enable.disabled = !consent.checked; });
-      enable.addEventListener("click", () => {
-        if (!consent.checked) return;
-        this.liveEnabled = true;
+      toggle.addEventListener("click", () => {
+        this.liveEnabled = !this.liveEnabled;
+        this.continuation = null;
         this.updateStatus();
         this.renderIntro();
         this.input.focus();
       });
-      disclosure.append(consentLabel, enable);
+      disclosure.append(toggle);
       intro.append(disclosure);
     }
     const topics = createElement(doc, "div", { className: "ask-carbon-topics" });

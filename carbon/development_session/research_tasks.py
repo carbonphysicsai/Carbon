@@ -144,7 +144,10 @@ class PublicResearchExecutor:
                 "expected_effect",
             },
         }[spec.action]
-        if set(args) != expected:
+        # `environment` is run_julia's one optional field: which pinned package
+        # environment to run in. Every other field remains exactly required.
+        optional = {"environment"} if spec.action == "run_julia" else set()
+        if not expected <= set(args) <= expected | optional:
             raise ValueError("workspace fields differ from registered action")
         if spec.action == "public_material":
             from .advection_research import MATERIAL as ADVECTION_MATERIAL
@@ -249,11 +252,17 @@ class PublicResearchExecutor:
                 "expected_effect": args["expected_effect"],
             },
         )
-        runner, image = run_script, self.image
+        runner, image, selection = run_script, self.image, {}
         if spec.action == "run_julia":
-            from .julia_analysis import run_julia
+            from .julia_analysis import DEFAULT_ENVIRONMENT, ENVIRONMENTS, run_julia
 
+            environment = args.get("environment", DEFAULT_ENVIRONMENT)
+            if environment not in ENVIRONMENTS:
+                raise ValueError(
+                    "environment must be one of: " + ", ".join(ENVIRONMENTS)
+                )
             runner, image = run_julia, self.julia_image
+            selection = {"environment": environment}
         result = runner(
             self.ledger,
             owner=self.owner,
@@ -262,6 +271,7 @@ class PublicResearchExecutor:
             files=self.workspace.snapshot(args["files"]),
             image=image,
             seconds=args["seconds"],
+            **selection,
         )
         # Import only the bounded validated export into the owner's scratch space.
         # No path from miner output is ever interpreted as a host source path.

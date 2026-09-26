@@ -281,18 +281,20 @@ function reachRecord(store, inquiryId, principal) {
 const modelProcessingOff = () => ({ active: false, provider: null, opt_in_ref: null, history: [] });
 
 /**
- * Owner direction, 26 September 2026: no client content goes to any model
- * provider, even with an opt-in. Until the owner lifts this, the switch works
- * only for a record whose every reference is synthetic, which is how the path
- * is proved. Lifting it is a code change, deliberately: it is not a setting.
+ * The owner lifted the synthetic-only restriction on 26 September 2026: a real
+ * client's record may be sent once that client's own signed opt-in is
+ * recorded. What stays is that a synthetic opt-in can never open a real
+ * record. A synthetic opt-in reference is accepted only on a record whose
+ * agreement and export-control references are all synthetic, just as the
+ * synthetic E7 standard reaches synthetic records only.
  */
-const MODEL_PROCESSING_SYNTHETIC_ONLY = true;
-function modelReferences(record) {
-  return [
+function syntheticOptInOnRealRecord(record, optInRef) {
+  if (!String(optInRef).startsWith(SYNTHETIC_REFERENCE_PREFIX)) return false;
+  const references = [
     ...Object.values((record.basis && record.basis.agreements) || {}),
     record.export_control && record.export_control.ref,
-    record.model_processing && record.model_processing.opt_in_ref,
   ];
+  return references.some((ref) => !String(ref).startsWith(SYNTHETIC_REFERENCE_PREFIX));
 }
 
 const MODEL_INSTRUCTION =
@@ -1306,6 +1308,8 @@ class DurableIntakeStore {
     const record = next.inquiries[inquiryId];
     const current = record.model_processing || modelProcessingOff();
     if (current.active) throw Error("This record's model-processing opt-in is already recorded");
+    if (syntheticOptInOnRealRecord(record, optIn.ref))
+      throw Object.assign(Error("A synthetic opt-in cannot open a real client's record; record the client's signed opt-in"), { status: 403 });
     record.model_processing = {
       active: true,
       provider: optIn.provider,
@@ -1348,8 +1352,8 @@ class DurableIntakeStore {
     const switchState = record.model_processing || modelProcessingOff();
     if (!switchState.active) throw denied("This client has not opted in to model processing; the switch is off");
     if (switchState.provider !== provider.id) throw denied("This client opted in to a different provider");
-    if (MODEL_PROCESSING_SYNTHETIC_ONLY && modelReferences(record).some((ref) => !String(ref).startsWith(SYNTHETIC_REFERENCE_PREFIX)))
-      throw denied("No client content is sent to a model provider: model processing is limited to synthetic records");
+    if (syntheticOptInOnRealRecord(record, switchState.opt_in_ref))
+      throw denied("A synthetic opt-in cannot open a real client's record; record the client's signed opt-in");
     if (record.lifecycle !== "ACTIVE") throw denied("Only an active record is sent for model processing", 409);
     if (typeof purpose !== "string" || purpose.trim().length < 3 || purpose.length > 200)
       throw Error("A model request states its purpose in 3 to 200 characters");
@@ -1601,7 +1605,6 @@ class DurableIntakeStore {
 
 module.exports = {
   SYNTHETIC_STANDARD_PREFIX,
-  MODEL_PROCESSING_SYNTHETIC_ONLY,
   runRetention,
   retentionValuesFrom,
   transportAtRelay,
