@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import worker, { AskCarbonUsageLedger, createWorker } from "../worker/index.mjs";
 import { answerSchema, pilotAnswerSchema, validatePilotProviderOutput } from "../worker/core.mjs";
 import knowledge from "../knowledge/public-knowledge.v1.json" with { type: "json" };
+import { readFileSync } from "node:fs";
+import { calculateUsageCostMicroUsd, estimateMaximumCostMicroUsd, getModelProfile, validateProviderUsage } from "../worker/models.mjs";
 
 class MemoryStorage {
   constructor() { this.values = new Map(); }
@@ -295,7 +297,8 @@ test("public boundary answers are specific, cite nothing and release before prov
     const privacy = await ask(createWorker(knowledge), runtime.env, "Do you retain absolutely nothing when I ask a question?");
     const privacyBody = await privacy.json();
     assert.equal(privacyBody.status, "service_information");
-    assert.match(privacyBody.answer, /not established Zero Data Retention/);
+    assert.match(privacyBody.answer, /Chutes/);
+    assert.doesNotMatch(privacyBody.answer, /OpenAI|Zero Data Retention|30 days/);
     assert.deepEqual(privacyBody.sources, []);
     const execution = await ask(createWorker(knowledge), runtime.env, "Deploy my miner now.");
     const executionBody = await execution.json();
@@ -524,4 +527,206 @@ test("pilot-design mode shares the repaired adapter, ledger and bounded output p
   const attempt = Object.values(state.attempts)[0];
   assert.equal(attempt.mode, "PILOT_DESIGN");
   assert.equal(attempt.state, "settled");
+});
+
+// Chutes chat/completions adapter. The fixture is constructed from the
+// OpenAI-compatible shape, not recorded (see its provenance block): no live
+// completion was requested for this candidate.
+const chutesFixture = JSON.parse(readFileSync(new URL("./fixtures/chutes-chat-completion.v1.json", import.meta.url), "utf8"));
+const chutesBody = (mutate = () => {}) => { const body = structuredClone(chutesFixture.response); mutate(body); return body; };
+const chutesRuntime = (overrides = {}) => makeRuntime({
+  ASK_CARBON_APPROVED_MODEL_CONFIGS: "gemma-4-31b-turbo-tee:v1",
+  ASK_CARBON_MODEL_CONFIG_ID: "gemma-4-31b-turbo-tee:v1",
+  ASK_CARBON_OPENAI_API_KEY: undefined,
+  ASK_CARBON_CHUTES_API_KEY: "test-chutes-key",
+  ...overrides,
+});
+const attemptState = async (runtime) => {
+  const snapshot = await runtime.ledger.fetch(new Request("https://ledger.test/snapshot", { method: "POST", body: JSON.stringify({ now_ms: Date.now() }) }));
+  const state = await snapshot.json();
+  return { attempt: Object.values(state.attempts)[0], month: state.months[new Date().toISOString().slice(0, 7)] };
+};
+const askChutes = async (runtime, body, status = 200) => withProvider(
+  async () => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } }),
+  async () => ask(createWorker(knowledge), runtime.env, "What is Carbon?"),
+);
+
+test("fixture provenance says constructed, so nobody mistakes it for a recorded provider response", () => {
+  assert.equal(chutesFixture.provenance.kind, "CONSTRUCTED_NOT_RECORDED");
+  assert.equal(chutesFixture.response.model, getModelProfile("gemma-4-31b-turbo-tee:v1").request_model);
+});
+
+test("Chutes profile carries the live-read prices and limits and settles through the shared cost rule", () => {
+  const profile = getModelProfile("gemma-4-31b-turbo-tee:v1");
+  assert.equal(profile.provider, "chutes_chat_completions");
+  assert.equal(profile.request_model, "google/gemma-4-31B-turbo-TEE");
+  assert.equal(profile.input_price_micro_usd_per_million, 120_000);
+  assert.equal(profile.cached_input_price_micro_usd_per_million, 12_000);
+  assert.equal(profile.output_price_micro_usd_per_million, 370_000);
+  assert.equal(profile.context_window_tokens, 131_072);
+  assert.equal(profile.model_max_output_tokens, 65_536);
+  assert.equal(profile.confidential_compute, true);
+  // 1834 * 0.12 + 41 * 0.37 = 235.25 micro-USD, rounded up.
+  assert.equal(calculateUsageCostMicroUsd(profile, validateProviderUsage(chutesFixture.response, profile)), 236);
+  assert.equal(estimateMaximumCostMicroUsd(profile, { maxInputTokens: 24_000, maxOutputTokens: 700 }), 3_139);
+});
+
+test("Chutes activation requires the Chutes secret and an OpenAI key does not satisfy it", async () => {
+  const health = async (env) => (await createWorker(knowledge).fetch(new Request("https://staging.example/api/ask-carbon/health"), env)).json();
+  const withOpenAiOnly = await health(chutesRuntime({ ASK_CARBON_CHUTES_API_KEY: undefined, ASK_CARBON_OPENAI_API_KEY: "test-provider-key" }).env);
+  assert.equal(withOpenAiOnly.active, false);
+  assert.ok(withOpenAiOnly.reasons.includes("missing_ask_carbon_chutes_api_key"));
+  assert.equal(withOpenAiOnly.reasons.includes("missing_ask_carbon_openai_api_key"), false);
+  // Specimen: the same check passes with the Chutes secret present.
+  const withChutes = await health(chutesRuntime().env);
+  assert.deepEqual(withChutes.reasons, []);
+  assert.equal(withChutes.active, true);
+  // And the reverse: an OpenAI configuration still demands its own key.
+  const lunaWithoutKey = await health(makeRuntime({ ASK_CARBON_OPENAI_API_KEY: undefined, ASK_CARBON_CHUTES_API_KEY: "test-chutes-key" }).env);
+  assert.ok(lunaWithoutKey.reasons.includes("missing_ask_carbon_openai_api_key"));
+  assert.equal(JSON.stringify(withOpenAiOnly).includes("test-provider-key"), false);
+});
+
+test("Chutes request is chat/completions with the strict selection schema, its own key and no OpenAI-only fields", async () => {
+  const runtime = chutesRuntime({ ASK_CARBON_EVALUATION_TELEMETRY: "enabled" });
+  let providerRequest;
+  await withProvider(async (url, options) => {
+    providerRequest = { url, headers: options.headers, body: JSON.parse(options.body) };
+    return new Response(JSON.stringify(chutesBody()), { status: 200, headers: { "content-type": "application/json" } });
+  }, async () => {
+    const response = await ask(createWorker(knowledge), runtime.env, "What is Carbon?");
+    assert.equal(response.status, 200);
+    const body = await response.json();
+    assert.equal(body.status, "supported");
+    assert.equal(body.model_config_id, "gemma-4-31b-turbo-tee:v1");
+    assert.equal(body.evaluation.provider_model, "google/gemma-4-31B-turbo-TEE");
+    assert.equal(body.evaluation.usage.input_tokens, 1834);
+    assert.equal(body.evaluation.actual_cost_micro_usd, 236);
+    assert.equal(body.evaluation.reserved_cost_micro_usd, 3_139);
+    assert.equal(body.follow_up, "What is a Challenge?");
+    assert.equal(body.sources[0].url.includes("/blob/405a820b"), true);
+  });
+  assert.equal(providerRequest.url, "https://llm.chutes.ai/v1/chat/completions");
+  assert.equal(providerRequest.headers.authorization, "Bearer test-chutes-key");
+  const sent = providerRequest.body;
+  assert.equal(sent.model, "google/gemma-4-31B-turbo-TEE");
+  assert.equal(sent.stream, false);
+  assert.equal(sent.temperature, 0);
+  assert.equal(sent.max_tokens, 700);
+  assert.deepEqual(sent.messages.map((message) => message.role), ["system", "user"]);
+  assert.equal(sent.messages[1].content, "What is Carbon?");
+  assert.equal(sent.messages[0].content.includes("Select the smallest set of retrieved card IDs"), true);
+  assert.equal(sent.response_format.type, "json_schema");
+  assert.equal(sent.response_format.json_schema.strict, true);
+  assert.equal(sent.response_format.json_schema.name, "ask_carbon_answer_selection");
+  assert.ok(sent.response_format.json_schema.schema.properties.card_ids.items.enum.includes("overview"));
+  for (const field of ["store", "reasoning", "text", "input", "instructions", "max_output_tokens", "tools"]) assert.equal(field in sent, false, field);
+  const { attempt, month } = await attemptState(runtime);
+  assert.equal(attempt.state, "settled");
+  assert.equal(attempt.model_config_id, "gemma-4-31b-turbo-tee:v1");
+  assert.equal(month.settled_micro_usd, 236);
+});
+
+test("Chutes non-stop completions settle billed usage and then fail typed", async () => {
+  const cases = [
+    [(body) => { body.choices[0].finish_reason = "length"; }, "provider_incomplete"],
+    [(body) => { body.choices[0].message.refusal = "I can't help with that."; }, "provider_refused"],
+    [(body) => { body.choices[0].finish_reason = "content_filter"; }, "provider_refused"],
+    [(body) => { body.choices.push(structuredClone(body.choices[0])); }, "provider_refused"],
+    [(body) => { body.choices = []; }, "provider_refused"],
+    [(body) => { body.choices[0].message.content = `<think>reasoning</think>${body.choices[0].message.content}`; }, "invalid_provider_output"],
+    [(body) => { body.choices[0].message.content = JSON.stringify({ status: "supported", card_ids: ["not-retrieved"], follow_up: null }); }, "unknown_evidence"],
+  ];
+  for (const [mutate, code] of cases) {
+    const runtime = chutesRuntime();
+    const response = await askChutes(runtime, chutesBody(mutate));
+    assert.equal(response.status, 502, code);
+    assert.equal((await response.json()).error.code, code);
+    assert.equal((await attemptState(runtime)).attempt.state, "settled", code);
+  }
+});
+
+test("Chutes responses with untrusted identity or usage stay conservatively unresolved", async () => {
+  const cases = [
+    [(body) => { body.model = "google/gemma-4-31b-turbo-tee"; }, "provider_model_mismatch"],
+    [(body) => { delete body.model; }, "provider_model_mismatch"],
+    [(body) => { delete body.usage; }, "untrusted_provider_usage"],
+    [(body) => { body.usage.total_tokens += 1; }, "untrusted_provider_usage"],
+    [(body) => { body.usage.prompt_tokens_details.cached_tokens = body.usage.prompt_tokens + 1; }, "untrusted_provider_usage"],
+    [(body) => { body.usage.completion_tokens_details = { reasoning_tokens: body.usage.completion_tokens + 1 }; }, "untrusted_provider_usage"],
+  ];
+  for (const [mutate, code] of cases) {
+    const runtime = chutesRuntime();
+    const response = await askChutes(runtime, chutesBody(mutate));
+    assert.equal(response.status, 502, code);
+    assert.equal((await response.json()).error.code, code);
+    const { attempt, month } = await attemptState(runtime);
+    assert.equal(attempt.state, "unresolved", code);
+    assert.equal(month.unresolved_micro_usd, 3_139, code);
+  }
+});
+
+test("a response in the other provider's shape is never read under the wrong rules", async () => {
+  // An OpenAI Responses body with the Chutes model id has no prompt/completion counts.
+  const runtime = chutesRuntime();
+  const response = await askChutes(runtime, validProviderBody({ model: "google/gemma-4-31B-turbo-TEE" }));
+  assert.equal((await response.json()).error.code, "untrusted_provider_usage");
+  assert.equal((await attemptState(runtime)).attempt.state, "unresolved");
+  // Specimen: the Luna profile does read that same shape once its own model id is present.
+  const luna = makeRuntime();
+  assert.equal((await askChutes(luna, validProviderBody())).status, 200);
+  // And the Luna profile refuses a chat/completions body.
+  const lunaGivenChutes = makeRuntime();
+  const refused = await askChutes(lunaGivenChutes, chutesBody((body) => { body.model = "gpt-5.6-luna"; }));
+  assert.equal((await refused.json()).error.code, "untrusted_provider_usage");
+});
+
+test("Chutes reasoning tokens are billed inside completion tokens, never on top", async () => {
+  const profile = getModelProfile("gemma-4-31b-turbo-tee:v1");
+  const usage = validateProviderUsage(chutesBody((body) => { body.usage.completion_tokens_details = { reasoning_tokens: 30 }; }), profile);
+  assert.equal(usage.reasoning_tokens, 30);
+  assert.equal(usage.output_tokens, 41);
+  assert.equal(calculateUsageCostMicroUsd(profile, usage), 236);
+});
+
+test("Chutes provider HTTP failure is unresolved and not a model mismatch", async () => {
+  const runtime = chutesRuntime();
+  const response = await askChutes(runtime, { detail: "rate limited" }, 429);
+  assert.equal((await response.json()).error.code, "provider_error");
+  const { attempt } = await attemptState(runtime);
+  assert.equal(attempt.state, "unresolved");
+  assert.equal(attempt.terminal_reason, "provider_http_429");
+});
+
+test("pilot-design mode uses the same Chutes adapter with its own schema", async () => {
+  const runtime = chutesRuntime();
+  const answers = Object.fromEntries(["intended_decision", "requested_result", "current_baseline", "baseline_limitation", "changing_conditions", "exclusions", "consequential_error", "comparison_evidence", "access_limitations"].map((field) => [field, field === "intended_decision" ? "Choose a cold-plate design." : null]));
+  const pilot = Object.fromEntries(["candidate_inputs", "candidate_outputs", "operating_envelope", "evaluation_questions", "requested_targets", "missing_evidence", "implementation_work", "bounded_first_pilot", "next_discussion"].map((field) => [field, null]));
+  let sent;
+  await withProvider(async (_url, options) => {
+    sent = JSON.parse(options.body);
+    return new Response(JSON.stringify(chutesBody((body) => {
+      body.choices[0].message.content = JSON.stringify({
+        message: "A bounded comparison can be drafted without promising execution.",
+        next_question: null,
+        proposals: [],
+        unresolved_assumptions: [],
+        source_ids: ["constitution-405a820b"],
+        maturity_note: "Draft pilot for Carbon review.",
+      });
+    })), { status: 200 });
+  }, async () => {
+    const response = await ask(createWorker(knowledge), runtime.env, "unused", null, { body: JSON.stringify({
+      mode: "PILOT_DESIGN",
+      session_id: "pilot-session-1",
+      question: "What is Carbon?",
+      turns: [],
+      draft_context: { version: "carbon.client-intake.guidance-context.v1", answers, pilot, unresolved_assumptions: [] },
+    }) });
+    assert.equal(response.status, 200);
+    assert.equal((await response.json()).mode, "PILOT_DESIGN");
+  });
+  assert.equal(sent.response_format.json_schema.name, "carbon_pilot_guidance");
+  assert.equal(sent.messages[1].content.includes("draft_context"), true);
+  assert.equal("store" in sent, false);
 });

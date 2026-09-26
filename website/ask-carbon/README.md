@@ -6,6 +6,11 @@ or proof of a production deployment.
 
 ## Current release state
 
+> **Candidate 2026-09-26.1 (built, not deployed):** Chutes provider, notice
+> version `ask-carbon-notice-v2-2026-09-26`, Q&A live answers default-on.
+> Awaiting owner publication approval. The Pilot Designer disclosure (client-intake
+> #373) already names Chutes. See `PUBLIC_RELEASE_CANDIDATE.json`.
+
 - Repository knowledge version: `ask-carbon-release-candidate-2026-09-18.2` (server-owned reviewed-answer selection successor; not production deployed)
 - Source release date: 2026-09-18
 - Private staging target: `carbon-ask-private-staging`, version `2cacdb3e-f499-4513-8bf3-f03c92743409`
@@ -161,29 +166,32 @@ reviewed live-source SHA before integration. It does not enable Ask Carbon.
 
 ## Provider configurations
 
-The candidate registry pins exact application configurations rather than
-accepting caller-provided prices:
+Each model profile in `worker/models.mjs` names its provider adapter
+(`worker/providers.mjs`), the Cloudflare secret that adapter requires, and the
+production privacy mode it is disclosed under. Activation fails closed unless
+the configured secret and privacy mode belong to the selected profile.
 
-- `gpt-5.6-luna:low:v1`: USD 0.20/M input, 0.02/M cached input,
-  1.20/M output;
-- `gpt-5.6-terra:low:v1`: USD 2.00/M input, 0.20/M cached input,
-  12.00/M output.
+- `gemma-4-31b-turbo-tee:v1` (**production candidate 2026-09-26.1**): Chutes
+  `https://llm.chutes.ai/v1/chat/completions`, model
+  `google/gemma-4-31B-turbo-TEE`, USD 0.12/M input, 0.012/M cached input,
+  0.37/M output, 131,072-token context, `confidential_compute: true`; secret
+  `ASK_CARBON_CHUTES_API_KEY`; privacy mode
+  `approved_public_privacy_v2_chutes_confidential`. Model id, prices and limits
+  read from `GET /v1/models` on 2026-09-26. The adapter is unit-tested against
+  a constructed (not recorded) response fixture; it has not been exercised live
+  through the Worker.
+- `gpt-5.6-luna:low:v1` and `gpt-5.6-terra:low:v1`: OpenAI Responses API,
+  retained for the historical evaluation evidence and the private staging
+  configuration. Luna served production until candidate 2026-09-26.1.
 
-Prices were rechecked in official OpenAI model documentation on 2026-09-18.
-The code includes output reasoning tokens in billed output, rejects missing or
-negative usage, and rejects an unexpected returned model identity. Both
-configurations passed the repaired source-grounded release set through the real
-staging Workers and shared ledger. Luna is the selected release candidate
-because it was materially cheaper and had no material quality or latency
-disadvantage in the retained measurements. This remains a candidate, not public
-activation authority. Direct unmetered provider evaluation remains prohibited.
+The code includes reasoning tokens in billed output, rejects missing or
+negative usage, and rejects an unexpected returned model identity. Direct
+unmetered provider evaluation remains prohibited.
 
-The separate guided-pilot evaluation used Luna through the authenticated
-private Worker. The owner approved the retained packet and its visible
-limitations; the `.2` successor reran all nine scenarios / eleven turns and
-reproduced the same three missing-field limitations. This does not approve the
-newer knowledge release, establish customer usability, or qualify Workbench
-output.
+The Q&A panel defaults live answers **on** when the Worker reports active
+health; the visitor can switch to saved explanations. Pilot Designer AI
+guidance stays **opt-in**: it receives the visitor's own engineering problem,
+not a public question about Carbon.
 
 ## Deployment boundary
 

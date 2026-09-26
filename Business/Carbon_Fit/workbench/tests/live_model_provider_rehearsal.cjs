@@ -2,8 +2,8 @@
 // Live synthetic rehearsal of external model processing, run by hand, never by
 // CI (it is not a test_*.cjs file). One synthetic record, received the relayed
 // way (Path A), is opted in with a synthetic opt-in and sent, by one explicit
-// reviewer request, to the scheduled Chutes model. No client content exists or
-// is sent: every reference is synthetic, and the store refuses anything else.
+// reviewer request, to the scheduled Chutes model. No client content is used:
+// every reference is synthetic.
 //
 //   CARBON_TEAM_MODEL_CREDENTIAL_FILE=/path/to/chutes.key node tests/live_model_provider_rehearsal.cjs
 //
