@@ -30,13 +30,13 @@ namespace_id = "902003"
 [vars]
 ASK_CARBON_ACTIVATION = "disabled"
 ASK_CARBON_RUNTIME_MODE = "production"
-ASK_CARBON_PRIVACY_MODE = "approved_public_privacy_v1"
+ASK_CARBON_PRIVACY_MODE = "approved_public_privacy_v2_chutes_confidential"
 ASK_CARBON_STAGING_ACCESS_MODE = "none"
 ASK_CARBON_EDGE_ACCESS_POLICY_ID = "public-origin-defense-in-depth-v1"
 ASK_CARBON_EDGE_ABUSE_POLICY_ID = "cf-workers-rate-limit-902003-and-durable-ledger-v1"
 ASK_CARBON_APPROVED_ORIGINS = "https://carbonphysics.ai,https://www.carbonphysics.ai"
-ASK_CARBON_APPROVED_MODEL_CONFIGS = "gpt-5.6-luna:low:v1"
-ASK_CARBON_MODEL_CONFIG_ID = "gpt-5.6-luna:low:v1"
+ASK_CARBON_APPROVED_MODEL_CONFIGS = "gemma-4-31b-turbo-tee:v1"
+ASK_CARBON_MODEL_CONFIG_ID = "gemma-4-31b-turbo-tee:v1"
 ASK_CARBON_LEDGER_AUTHORITY_ID = "ask-carbon-provider-budget-v2"
 ASK_CARBON_ENVIRONMENT = "production"
 ASK_CARBON_OPERATIONAL_SCOPE_ID = "production"
@@ -56,5 +56,7 @@ ASK_CARBON_PILOT_MAX_REQUESTS_PER_SESSION = "8"
 ASK_CARBON_EVALUATION_TELEMETRY = "disabled"
 
 # Provision only through Cloudflare secrets after owner release approval:
-# ASK_CARBON_OPENAI_API_KEY (dedicated Ask Carbon project key)
+# ASK_CARBON_CHUTES_API_KEY (Chutes key for https://llm.chutes.ai/v1; the
+#   retired ASK_CARBON_OPENAI_API_KEY is no longer read by this configuration
+#   and may be deleted from the Worker after the owner confirms the switch)
 # ASK_CARBON_CONTINUATION_SIGNING_SECRET
