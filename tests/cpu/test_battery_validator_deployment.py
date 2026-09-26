@@ -320,3 +320,27 @@ def test_the_generator_digest_is_a_stable_tagged_identity():
     value = seeds.generator_digest(REPOSITORY)
     assert value == seeds.generator_digest(REPOSITORY)
     assert value.startswith("sha256:") and len(value) == 71
+
+
+def test_a_carrier_deployment_reads_its_image_manifest_as_a_path(tmp_path, monkeypatch):
+    """The deployment file holds the manifest path as JSON text, and
+    `load_image_identity` reads a `Path`. Building a writable carrier
+    deployment must hand it a `Path`, or every export, run and prepare fails
+    before doing anything."""
+    from carbon.reconstruction.worker import docker_runtime
+
+    seen = []
+
+    class Stop(Exception):
+        pass
+
+    def capture(path):
+        seen.append(path)
+        raise Stop
+
+    monkeypatch.setattr(docker_runtime, "load_image_identity", capture)
+    manifest = tmp_path / "worker-image.json"
+    path = config(tmp_path, backend="carrier", image_manifest=str(manifest))
+    with pytest.raises(Stop):
+        deployment.validator(path, repository=REPOSITORY)
+    assert seen == [manifest] and isinstance(seen[0], Path)
