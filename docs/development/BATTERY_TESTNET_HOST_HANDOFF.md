@@ -47,7 +47,13 @@ this document and `BATTERY_TESTNET_PROGRAMME_STATE.md`, then follow it.
    - `git fetch origin main`, and confirm that PR #351's merge commit is on
      `main`.
    - Work only in a clean worktree detached at exactly that commit (the
-     worktree the private brief names), and run `uv sync --locked --group chain`.
+     worktree the private brief names), and run
+     `uv sync --locked --group science-jax --group chain --group archive`.
+     `chain` alone is not enough: the operator config loader
+     (`carbon.development_testnet`) needs `cryptography` (`archive`) and
+     `numpy` (`science-jax`), and so does the validator (`seeds`, `daemon`).
+     Every command below uses that same set, as `carbon.development_session`
+     does.
    - `uv` is `~/.local/bin/uv`, which may not be on `PATH` in a non-login
      shell. Use the absolute path or `bash -lc`. A `command not found` is a
      failure, even when the shell exits 0.
@@ -78,14 +84,14 @@ this document and `BATTERY_TESTNET_PROGRAMME_STATE.md`, then follow it.
 4. **Truth environment.** Run each command separately and record its exit
    code:
    ```bash
-   uv run --locked python -m carbon.battery.operate truth-materialize --target /srv/carbon/battery/truth-overlay
-   uv run --locked python -m carbon.battery.operate truth-verify --target /srv/carbon/battery/truth-overlay
+   uv run --locked --group science-jax --group chain --group archive python -m carbon.battery.operate truth-materialize --target /srv/carbon/battery/truth-overlay
+   uv run --locked --group science-jax --group chain --group archive python -m carbon.battery.operate truth-verify --target /srv/carbon/battery/truth-overlay
    ```
    If `truth-verify` fails, stop everything that depends on it: references,
    `prepare` and the M4 runs.
 5. **Runtime probe.** This is read-only:
    ```bash
-   uv run --locked --group chain python -m carbon.chain.runtime_probe \
+   uv run --locked --group science-jax --group chain --group archive python -m carbon.chain.runtime_probe \
      --config <existing operator config> > <owner-only dir>/probe.json
    ```
    - Use the existing live operator config, named in the owner's private
@@ -108,7 +114,7 @@ this document and `BATTERY_TESTNET_PROGRAMME_STATE.md`, then follow it.
      that it is a regular file, `0600` and exactly 32 bytes.
    - Otherwise, with `/srv/carbon/keys` at `0700`, create it:
      ```bash
-     uv run --locked python -c "from carbon.battery.signing import ServiceKey; print(ServiceKey.create('/srv/carbon/keys/battery-validator.key').key_id)"
+     uv run --locked --group science-jax --group chain --group archive python -c "from carbon.battery.signing import ServiceKey; print(ServiceKey.create('/srv/carbon/keys/battery-validator.key').key_id)"
      ```
      This prints only the public key id. It is a Carbon service signing key,
      **not** a validator hotkey (OD-6).
@@ -118,8 +124,8 @@ this document and `BATTERY_TESTNET_PROGRAMME_STATE.md`, then follow it.
      valid file; if one differs from §3, report the difference.
    - Then run:
      ```bash
-     uv run --locked python -m carbon.battery.operate init --config $C
-     uv run --locked python -m carbon.battery.operate status --config $C
+     uv run --locked --group science-jax --group chain --group archive python -m carbon.battery.operate init --config $C
+     uv run --locked --group science-jax --group chain --group archive python -m carbon.battery.operate status --config $C
      ```
      `init` creates the private root once and commits it to the journal with
      the seed pin (the generator identity and the OD-2 rule digest). It
@@ -183,13 +189,13 @@ Recompute every identity on the host at the exact commit you run
 1. Linux with cgroup v2, Docker and the carrier's `doctor`. The M3 container
    tests ran on cgroup v1 with a local image. That is not host acceptance.
    ```bash
-   uv run --locked python -c "from carbon.reconstruction.worker.docker_runtime import doctor, load_image_identity as l; i=l('<image_manifest>'); print(doctor(image_id=i.image_id, image_identity=i))"
+   uv run --locked --group science-jax --group chain --group archive python -c "from carbon.reconstruction.worker.docker_runtime import doctor, load_image_identity as l; i=l('<image_manifest>'); print(doctor(image_id=i.image_id, image_identity=i))"
    ```
 2. **Truth environment.** The base image alone does not import `pybamm`, so
    build the pinned overlay and verify it (`truth_env`):
    ```bash
-   uv run --locked python -m carbon.battery.operate truth-materialize --target /srv/carbon/battery/truth-overlay
-   uv run --locked python -m carbon.battery.operate truth-verify --target /srv/carbon/battery/truth-overlay
+   uv run --locked --group science-jax --group chain --group archive python -m carbon.battery.operate truth-materialize --target /srv/carbon/battery/truth-overlay
+   uv run --locked --group science-jax --group chain --group archive python -m carbon.battery.operate truth-verify --target /srv/carbon/battery/truth-overlay
    ```
    - Materialize downloads the 27 locked wheels. It checks each wheel's size
      and SHA-256, and refuses any member that would leave the directory.
@@ -306,7 +312,7 @@ The live operator config pins the runtime it validated: `expected_runtime_spec: 
 The read-only probe compares that exact surface with the live runtime:
 
 ```bash
-uv run --locked --group chain python -m carbon.chain.runtime_probe \
+uv run --locked --group science-jax --group chain --group archive python -m carbon.chain.runtime_probe \
   --config <live operator config> > probe.json
 ```
 
@@ -334,7 +340,7 @@ uv run --locked --group chain python -m carbon.chain.runtime_probe \
 4. Generate the exact request. This is read-only; no chain call is made and
    no wallet is opened:
    ```bash
-   uv run --locked python -m carbon.battery.od4a request \
+   uv run --locked --group science-jax --group chain --group archive python -m carbon.battery.od4a request \
      --operator-config OP.json --probe probe.json \
      --intent EXPORT/weight-intent.json --sequence 1 \
      --start-after <blocks> --window <blocks> --expires-utc <UTC>
@@ -377,32 +383,32 @@ write scope.
 ```bash
 C=/srv/carbon/battery/validator/deployment.json
 # once: create the private root and commit it with the seed pin
-uv run --locked python -m carbon.battery.operate init --config $C
+uv run --locked --group science-jax --group chain --group archive python -m carbon.battery.operate init --config $C
 # status / identities / pool / incumbent
-uv run --locked python -m carbon.battery.operate status --config $C
-uv run --locked python -m carbon.battery.operate batches --config $C
+uv run --locked --group science-jax --group chain --group archive python -m carbon.battery.operate status --config $C
+uv run --locked --group science-jax --group chain --group archive python -m carbon.battery.operate batches --config $C
 # resume after any crash (never dispatches work)
-uv run --locked python -m carbon.battery.operate recover --config $C
+uv run --locked --group science-jax --group chain --group archive python -m carbon.battery.operate recover --config $C
 # prepare private batches from the root (4 screening, 1 finalist)
 for r in pscreen-T00 pscreen-T01 pscreen-T02 pscreen-T03; do
-  uv run --locked python -m carbon.battery.operate prepare --config $C --role $r --kind screening
+  uv run --locked --group science-jax --group chain --group archive python -m carbon.battery.operate prepare --config $C --role $r --kind screening
 done
-uv run --locked python -m carbon.battery.operate prepare --config $C --role pfinal-T00 --kind finalist --count 200
+uv run --locked --group science-jax --group chain --group archive python -m carbon.battery.operate prepare --config $C --role pfinal-T00 --kind finalist --count 200
 # references: export jobs (owner-only), solve in the truth container, ingest
 mkdir -m 0700 -p /srv/carbon/battery/solve/<fp>
-uv run --locked python -m carbon.battery.operate jobs --config $C --batch <fp> \
+uv run --locked --group science-jax --group chain --group archive python -m carbon.battery.operate jobs --config $C --batch <fp> \
   --out /srv/carbon/battery/solve/<fp>/jobs.json
-uv run --locked python -c "import shlex; from carbon.battery.truth_env import solve_command as c; print(shlex.join(c('/srv/carbon/battery/truth-overlay', '/srv/carbon/battery/solve/<fp>', repository='.', workers=6)))"
+uv run --locked --group science-jax --group chain --group archive python -c "import shlex; from carbon.battery.truth_env import solve_command as c; print(shlex.join(c('/srv/carbon/battery/truth-overlay', '/srv/carbon/battery/solve/<fp>', repository='.', workers=6)))"
 #   run the printed docker command: no network, read-only, sees only the
 #   overlay, Carbon's source and that one directory
-uv run --locked python -m carbon.battery.operate ingest --config $C --batch <fp> \
+uv run --locked --group science-jax --group chain --group archive python -m carbon.battery.operate ingest --config $C --batch <fp> \
   --records /srv/carbon/battery/solve/<fp>/records.jsonl
 # open the pool once three screening batches are complete
-uv run --locked python -m carbon.battery.operate open --config $C
+uv run --locked --group science-jax --group chain --group archive python -m carbon.battery.operate open --config $C
 # advance queued submissions and finals
-uv run --locked python -m carbon.battery.operate run --config $C
+uv run --locked --group science-jax --group chain --group archive python -m carbon.battery.operate run --config $C
 # export signed outcomes + Phase A all-burn intent for the owner publisher
-uv run --locked python -m carbon.battery.operate export --config $C --out /srv/carbon/battery/export-<utc>
+uv run --locked --group science-jax --group chain --group archive python -m carbon.battery.operate export --config $C --out /srv/carbon/battery/export-<utc>
 ```
 
 Cleanup:
