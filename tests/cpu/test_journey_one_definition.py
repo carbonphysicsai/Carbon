@@ -29,12 +29,10 @@ from pathlib import Path
 
 import pytest
 
-from carbon.reconstruction.capability_registry import (
-    BATTERY_CHALLENGE,
-    BATTERY_CONTRACT,
-)
-
 REPOSITORY = Path(__file__).resolve().parents[2]
+#: journey_fixture.FIXTURE_CHALLENGE, spelled out: the MCP door's subprocess
+#: imports this module before `scripts` is importable.
+JOURNEY_CHALLENGE = {"id": "fixture-reference-burgers", "version": "0"}
 STRATEGY = {
     "schema_version": "1.0",
     "challenge_id": "burgers-dynamics-v1",
@@ -64,9 +62,10 @@ JOURNEY = (
         "launch",
         {
             "agent": "none",
-            # A launch names its Challenge; there is no default.
-            "challenge": BATTERY_CHALLENGE,
-            "challenge_version": BATTERY_CONTRACT.version,
+            # A launch names its Challenge; there is no default. This journey
+            # drives the reference fixture Challenge that journey_host registers.
+            "challenge": JOURNEY_CHALLENGE["id"],
+            "challenge_version": JOURNEY_CHALLENGE["version"],
             "budget": {"elapsed_seconds": 3600, "final_reserve": True},
             "idempotency_key": "one-journey-key-0000001",
         },
@@ -325,3 +324,9 @@ def test_every_operation_in_the_table_is_a_step_or_read_by_the_journey():
 if __name__ == "__main__":
     assert sys.argv[1] == "--serve"
     raise SystemExit(_serve(Path(sys.argv[2])))
+
+
+def test_the_journey_launches_the_fixture_challenge():
+    from scripts.dev.miner_launchpad.journey_fixture import FIXTURE_CHALLENGE
+
+    assert JOURNEY_CHALLENGE == FIXTURE_CHALLENGE
