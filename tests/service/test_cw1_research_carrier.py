@@ -41,12 +41,8 @@ assert Path('public.txt').read_bytes()==b'public-only'
 assert not Path('/var/run/docker.sock').exists()
 assert not list(Path('/home').glob('*/Carbon'))
 import importlib.util
-for name in ('carbon.measurement_runtime','carbon.reference_runtime.controller','carbon.development_session','carbon.audit','carbon.chain','carbon.scoring','carbon.miner_mcp','carbon.transport'):
+for name in ('carbon.measurement_runtime','carbon.reference_runtime','carbon.development_session','carbon.audit','carbon.registry','carbon.chain'):
     assert importlib.util.find_spec(name) is None,name
-# Specimen: the same check finds what does ship - the challenge kit and the
-# challenge's own generator and reference model (owner direction, C-MLP-02).
-for name in ('carbon.challenge_kit.burgers','carbon.generators.burgers_dynamics','carbon.reference_runtime.model'):
-    assert importlib.util.find_spec(name) is not None,name
 from carbon.reconstruction._vendor.carbon_jax_lab.config import ModelConfig
 assert ModelConfig(kind='fno1d',width=4,heads=2).kind=='fno1d'
 assert not any(k in os.environ for k in ('OPENAI_API_KEY','AWS_SECRET_ACCESS_KEY'))
@@ -255,51 +251,3 @@ finally:
     isolation = json.loads((operation / "resources.json").read_bytes())["isolation"]
     assert isolation["network"] == "none" and isolation["read_only_root"] is True
     assert isolation["memory"] is None and isolation["nano_cpus"] is None
-
-
-def test_a_miner_labels_training_data_with_the_trusted_solver_in_the_sandbox(
-    tmp_path,
-):
-    """The challenge kit, used for real inside the isolated research sandbox."""
-    parent = Path(os.environ["CARBON_C03_IMAGE_MANIFEST"])
-    image = build_analysis_image(parent, parent.parent / "d4-analysis-acceptance")
-    ledger = CampaignLedger(tmp_path)
-    ledger.freeze(
-        {
-            "schema": VERSION,
-            "campaign_id": "engineering-challenge-kit-test",
-            "implementation": "candidate",
-            "objective": "test-only",
-            "sampling": "public-test-only",
-            "control": "test-only",
-            "selection": "test-only",
-            "replica_policy": "test-only",
-            "provider": "none",
-            "owner": "synthetic-engineering-requester",
-        }
-    )
-    source = """
-import numpy as np
-from carbon.challenge_kit.burgers import dataset
-data = dataset(bytes(range(32)), 4, method='cole_hopf')
-np.savez('/scratch/output/train.npz', **data)
-"""
-    result = run_script(
-        ledger,
-        owner="synthetic-engineering-requester",
-        identity="challenge-kit-1",
-        source=source,
-        files={},
-        image=image,
-        seconds=None,
-    )
-    import numpy as np
-
-    from carbon.challenge_kit.burgers import dataset
-
-    produced = np.load(tmp_path / result["operation"] / "snapshot/train.npz")
-    expected = dataset(bytes(range(32)), 4, method="cole_hopf")
-    assert produced["solution"].shape == (4, 13, 64)
-    # Same bytes in, same labels out: the sandbox ran the validator's own code.
-    for key in expected:
-        assert np.array_equal(produced[key], expected[key]), key

@@ -1,9 +1,0 @@
-{
-  "challenge_id": "burgers-dynamics-v1",
-  "challenge_version": "1.0",
-  "evaluation_binding": "cf1ceb8b20d3f8738b69f8f58d4fa5bd1402b1b204c14653dc6479685084ee4a",
-  "generator_digest": "sha256:ce4a57f99dd79787616a99ce5d266a07cd77d09f6e80367ce53c63f8e4bf2793",
-  "generator_version": "c-auth1-1.0",
-  "scoring_digest": "sha256:e248bae48e64f4ff5565e462bd798c912326adef1e7a301f4b559d8668879f70",
-  "scoring_version": "balanced-v2-autoresearch-v1"
-}

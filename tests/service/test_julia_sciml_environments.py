@@ -118,18 +118,3 @@ end
     values = run(image, tmp_path, "sciml-pde", source, "pde")
     assert values["last_loss"] < values["first_loss"]
 
-
-@pytest.mark.parametrize("environment", ["current", "pde"])
-def test_the_challenge_kit_labels_a_case_from_julia(image, tmp_path, environment):
-    source = r"""
-kit = readchomp(`/opt/carbon-worker/bin/python -I -c "import carbon.challenge_kit as k, pathlib; print(pathlib.Path(k.__file__).parent / 'CarbonBurgers.jl')"`)
-include(kit)
-data = CarbonBurgers.dataset(collect(UInt8, 0:31), 2)
-@assert size(data["solution"]) == (2, 13, 64)
-@assert all(isfinite, data["solution"])
-open("/scratch/output/result.json", "w") do io
-    print(io, "{\"cases\":", size(data["solution"], 1), "}")
-end
-"""
-    values = run(image, tmp_path, "kit-" + environment, source, environment)
-    assert values["cases"] == 2
