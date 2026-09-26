@@ -1,0 +1,614 @@
+{
+  "candidates": [
+    {
+      "c1": 0.75,
+      "c2": 0.4,
+      "id": "c1=0.75,c2=0.4"
+    },
+    {
+      "c1": 0.75,
+      "c2": 0.6,
+      "id": "c1=0.75,c2=0.6"
+    },
+    {
+      "c1": 0.75,
+      "c2": 0.8,
+      "id": "c1=0.75,c2=0.8"
+    },
+    {
+      "c1": 0.75,
+      "c2": 1.0,
+      "id": "c1=0.75,c2=1"
+    },
+    {
+      "c1": 1.25,
+      "c2": 0.4,
+      "id": "c1=1.25,c2=0.4"
+    },
+    {
+      "c1": 1.25,
+      "c2": 0.6,
+      "id": "c1=1.25,c2=0.6"
+    },
+    {
+      "c1": 1.25,
+      "c2": 0.8,
+      "id": "c1=1.25,c2=0.8"
+    },
+    {
+      "c1": 1.25,
+      "c2": 1.0,
+      "id": "c1=1.25,c2=1"
+    },
+    {
+      "c1": 1.75,
+      "c2": 0.4,
+      "id": "c1=1.75,c2=0.4"
+    },
+    {
+      "c1": 1.75,
+      "c2": 0.6,
+      "id": "c1=1.75,c2=0.6"
+    },
+    {
+      "c1": 1.75,
+      "c2": 0.8,
+      "id": "c1=1.75,c2=0.8"
+    },
+    {
+      "c1": 1.75,
+      "c2": 1.0,
+      "id": "c1=1.75,c2=1"
+    },
+    {
+      "c1": 2.0,
+      "c2": 0.4,
+      "id": "c1=2,c2=0.4"
+    },
+    {
+      "c1": 2.0,
+      "c2": 0.6,
+      "id": "c1=2,c2=0.6"
+    },
+    {
+      "c1": 2.0,
+      "c2": 0.8,
+      "id": "c1=2,c2=0.8"
+    },
+    {
+      "c1": 2.0,
+      "c2": 1.0,
+      "id": "c1=2,c2=1"
+    }
+  ],
+  "contract": {
+    "acceptance": {
+      "rule_selection": "on development scenarios, choose the profile whose model ranking has the highest Kendall tau with the decision-loss ranking; ties go to the control",
+      "success_condition": "Carbon can compare several models on the same engineering decision and show whether its scoring prefers models that select better reference-verified designs",
+      "verification": "freeze the chosen profile, then report its agreement on the verification scenarios; revising after inspecting them makes them development evidence"
+    },
+    "authority": {
+      "chain": false,
+      "changes_testnet_rule": false,
+      "qualification": false,
+      "record": "the owner's 2026-09-25 engineering-value direction",
+      "reward": false
+    },
+    "baseline": {
+      "method": "fixed conservative default declared before any evaluation",
+      "protocol": {
+        "c1": 0.75,
+        "c2": 0.6
+      }
+    },
+    "budgets": {
+      "compute": "CPU; no paid resources",
+      "reconstructions_max": 16,
+      "reference_solves_max": 384
+    },
+    "challenge": {
+      "id": "battery-fastcharge-ageing-development-v1",
+      "version": "1.0"
+    },
+    "constraints": [
+      {
+        "id": "reach_cv_in_window",
+        "quantity": "time_to_cv_onset_s",
+        "rule": "reached within the window",
+        "unit": "s"
+      },
+      {
+        "id": "no_plating_onset",
+        "meaning": "cycle-1 minimum plating overpotential stays non-negative",
+        "quantity": "plating_margin_v",
+        "rule": ">=",
+        "threshold": 0.0,
+        "unit": "V"
+      },
+      {
+        "id": "peak_temperature",
+        "meaning": "maximum volume-averaged temperature over the first hour",
+        "quantity": "peak_temperature_c",
+        "rule": "<=",
+        "threshold": 45.0,
+        "unit": "degC"
+      }
+    ],
+    "contract_id": "ev1-battery-charge-protocol-selection",
+    "data_scope": {
+      "classification": "PUBLIC_SYNTHETIC",
+      "permitted_use": "public DEVELOPMENT evidence; no client material; client studies require the private execution route"
+    },
+    "decision": {
+      "adaptation": "one protocol per scenario; no per-condition protocol choice",
+      "claim_scope": "Charging speed is measured as time to constant-voltage onset (the voltage proxy below), not time to a target state of charge. The 30-cycle reference is not extrapolated to real-cell lifetime or safety.",
+      "intended_use": "Public synthetic DEVELOPMENT study: does Carbon's scoring prefer models that select better reference-verified protocols? Not a cell qualification, lifetime, warranty or safety claim.",
+      "statement": "Given a fixed set of two-stage fast-charge protocols and declared operating conditions, select the protocol that reaches the constant-voltage phase soonest in the worst declared condition while meeting every constraint in every declared condition, or abstain if none qualifies."
+    },
+    "design_variables": {
+      "c1": {
+        "allowed": [
+          0.75,
+          1.25,
+          1.75,
+          2.0
+        ],
+        "meaning": "first-stage constant-current rate, until 4.0 V",
+        "unit": "C"
+      },
+      "c2": {
+        "allowed": [
+          0.4,
+          0.6,
+          0.8,
+          1.0
+        ],
+        "meaning": "second-stage constant-current rate, until 4.2 V",
+        "unit": "C"
+      }
+    },
+    "minimum_useful_improvement_s": 120.0,
+    "mistake_costs": {
+      "false_acceptance": 10.0,
+      "missed_opportunity": 1.0,
+      "regret_per_minimum_useful_improvement": 1.0,
+      "status": "PROVISIONAL_DEVELOPMENT",
+      "unit": "multiples of the minimum useful improvement"
+    },
+    "models": {
+      "prediction_access": "models receive only design variables and operating conditions; reference answers are never visible to training or selection",
+      "reconstruction": "Carbon rebuilds each declared recipe with its declared seed through the battery construction contract",
+      "repetition": "reconstruction seeds are repetitions of one recipe, never separate model families",
+      "training_data": "public TRAIN v1 only"
+    },
+    "objective": {
+      "charge_start_s": 120.0,
+      "definition": "For each condition, the time from charge start (the end of the reference's 120 s initial rest) to the first crossing of the terminal voltage above 4.19 V on the 30 s grid, by linear interpolation; the objective is the maximum over the scenario's conditions.",
+      "name": "worst_case_time_to_cv_onset",
+      "sense": "minimize",
+      "threshold_v": 4.19,
+      "unit": "s",
+      "unreached": "NOT_REACHED_IN_WINDOW: the protocol fails the reach constraint in that condition; its objective is undefined, never the window length.",
+      "window_s": 3600.0
+    },
+    "operating_conditions": {
+      "envelope": {
+        "soc0": [
+          0.05,
+          0.5
+        ],
+        "t_amb_c": [
+          5.0,
+          40.0
+        ]
+      },
+      "rule": "Conditions are fixed by the scenario; a selector cannot choose them.",
+      "variables": {
+        "soc0": {
+          "meaning": "initial state of charge",
+          "unit": "fraction"
+        },
+        "t_amb_c": {
+          "meaning": "ambient and initial temperature",
+          "unit": "degC"
+        }
+      }
+    },
+    "preferences_status": "The thresholds, candidate grid, baseline, minimum useful improvement and mistake costs are provisional DEVELOPMENT engineering preferences. No customer declared them and none is commercially qualified.",
+    "reference": {
+      "generator": "carbon.battery.reference (PyBaMM 26.8.0.0, DFN, OKane2022, 30 cycles), pinned truth image and overlay lock",
+      "measurement_limitations": [
+        "voltage and temperature are kept only over the first 3600 s on a 30 s grid",
+        "no state-of-charge or current trajectory is recorded, so time to a target state of charge is not measurable",
+        "the plating margin is a cycle-1 minimum, not a lifetime plating measure"
+      ],
+      "uncertainty": {
+        "bands": {
+          "peak_temperature_c": 0.157,
+          "plating_margin_v": 0.00197,
+          "time_to_cv_onset_s": 3.15
+        },
+        "basis": "maximum observed shift between standard and refined solves of the refined TRAIN cases (docs/development/evidence/exam-design-2026-09-24/refs-a-part*)",
+        "treatment": "a reference value within the band of a threshold is UNRESOLVED, never forced to pass or fail; a missing or failed reference is REFERENCE_UNAVAILABLE, never a candidate failure"
+      }
+    },
+    "scenarios": {
+      "condition_order": [
+        "t_amb_c",
+        "soc0"
+      ],
+      "development": [
+        {
+          "conditions": [
+            [
+              20.0,
+              0.1
+            ],
+            [
+              20.0,
+              0.3
+            ],
+            [
+              25.0,
+              0.1
+            ],
+            [
+              25.0,
+              0.3
+            ]
+          ],
+          "id": "D1-temperate"
+        },
+        {
+          "conditions": [
+            [
+              32.0,
+              0.1
+            ],
+            [
+              32.0,
+              0.3
+            ],
+            [
+              36.0,
+              0.1
+            ],
+            [
+              36.0,
+              0.3
+            ]
+          ],
+          "id": "D2-warm"
+        },
+        {
+          "conditions": [
+            [
+              12.0,
+              0.2
+            ],
+            [
+              12.0,
+              0.4
+            ],
+            [
+              16.0,
+              0.2
+            ],
+            [
+              16.0,
+              0.4
+            ]
+          ],
+          "id": "D3-cool"
+        }
+      ],
+      "verification": [
+        {
+          "conditions": [
+            [
+              18.0,
+              0.15
+            ],
+            [
+              18.0,
+              0.35
+            ],
+            [
+              23.0,
+              0.15
+            ],
+            [
+              23.0,
+              0.35
+            ]
+          ],
+          "id": "V1-mild"
+        },
+        {
+          "conditions": [
+            [
+              30.0,
+              0.05
+            ],
+            [
+              30.0,
+              0.25
+            ],
+            [
+              38.0,
+              0.05
+            ],
+            [
+              38.0,
+              0.25
+            ]
+          ],
+          "id": "V2-hot"
+        },
+        {
+          "conditions": [
+            [
+              8.0,
+              0.1
+            ],
+            [
+              8.0,
+              0.3
+            ],
+            [
+              14.0,
+              0.1
+            ],
+            [
+              14.0,
+              0.3
+            ]
+          ],
+          "id": "V3-cold"
+        }
+      ]
+    },
+    "schema": "carbon.engineering-value-contract.v1",
+    "scoring_candidates": {
+      "aggregation": "carbon.development-weight-profile.v1 weighted geometric mean; zero weights removed from ranking, gates kept",
+      "components": {
+        "accuracy": "1/(1+E): mean normalized case error over all scorable cases",
+        "physics": "NOT_MEASURABLE for battery: no defensible physics measurement exists; the gates are mandatory checks, not a score",
+        "robustness": "1/(1+E_important): mean normalized case error over the published important region"
+      },
+      "control": "carbon.battery.exam.v1 approved DEVELOPMENT rule: gates, then mean normalized case error",
+      "scoring_data": "retained exam-design private-role references (pscreen, pfinal, pverify), public since the campaign reveal",
+      "weight_profiles": [
+        {
+          "id": "p45-r30-a25",
+          "weights": {
+            "accuracy": 0.25,
+            "physics": 0.45,
+            "robustness": 0.3
+          }
+        },
+        {
+          "id": "p0-r30-a70",
+          "weights": {
+            "accuracy": 0.7,
+            "physics": 0.0,
+            "robustness": 0.3
+          }
+        },
+        {
+          "id": "p0-r20-a80",
+          "rationale": "sensitivity of p0-r30-a70",
+          "weights": {
+            "accuracy": 0.8,
+            "physics": 0.0,
+            "robustness": 0.2
+          }
+        },
+        {
+          "id": "p0-r40-a60",
+          "rationale": "sensitivity of p0-r30-a70",
+          "weights": {
+            "accuracy": 0.6,
+            "physics": 0.0,
+            "robustness": 0.4
+          }
+        }
+      ]
+    },
+    "status": "PROVISIONAL_DEVELOPMENT",
+    "tie_rule": "lowest predicted objective; exact ties broken by lower c1, then lower c2",
+    "version": "1.0"
+  },
+  "contract_digest": "sha256:292c0473f295ac5898845b2a75b05e9cf6d843722fecd3812ad79abe7ea8d0f9",
+  "controls": [
+    "oracle",
+    "conservative",
+    "boundary_optimist",
+    "rank_preserving_delay",
+    "localized_sign_error"
+  ],
+  "decision_cases": 384,
+  "frozen_unix": 1790367392,
+  "implementation_digest": "sha256:fb9353a00426296dcbba3af5977e3094fd330236ca12d34aa4980c35fe0a5b7d",
+  "panel": [
+    {
+      "family": "knn",
+      "member": "knn-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "knn",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "neighbours": 5
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "family": "mlp",
+      "member": "mlp-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 3,
+          "steps": 6000,
+          "width": 256
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "family": "mlp",
+      "member": "mlp-s1",
+      "seed": 1,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 3,
+          "steps": 6000,
+          "width": 256
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "family": "mlp",
+      "member": "mlp-s2",
+      "seed": 2,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 3,
+          "steps": 6000,
+          "width": 256
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "family": "mlp_half",
+      "member": "mlp_half-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 3,
+          "steps": 6000,
+          "train_fraction": 0.5,
+          "width": 256
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "family": "mlp_half",
+      "member": "mlp_half-s1",
+      "seed": 1,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 3,
+          "steps": 6000,
+          "train_fraction": 0.5,
+          "width": 256
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "family": "mlp_plus",
+      "member": "mlp_plus-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "arrhenius_features": true,
+          "depth": 3,
+          "steps": 6000,
+          "trajectory_components": 16,
+          "weight_decay": 0.0001,
+          "width": 256
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "family": "mlp_localized",
+      "member": "mlp_localized-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 3,
+          "important_region_weight": 0.1,
+          "steps": 6000,
+          "width": 256
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "family": "mlp_localized",
+      "member": "mlp_localized-s1",
+      "seed": 1,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 3,
+          "important_region_weight": 0.1,
+          "steps": 6000,
+          "width": 256
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "family": "mlp_raw",
+      "member": "mlp_raw-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "bounded_voltage_head": false,
+          "depth": 3,
+          "steps": 6000,
+          "width": 256
+        },
+        "schema_version": "1.0"
+      }
+    },
+    {
+      "family": "mlp_ens3",
+      "member": "mlp_ens3-s0",
+      "seed": 0,
+      "strategy": {
+        "backbone": "mlp",
+        "challenge_id": "battery-fastcharge-ageing-development-v1",
+        "parameters": {
+          "depth": 3,
+          "ensemble_members": 3,
+          "steps": 6000,
+          "width": 256
+        },
+        "schema_version": "1.0"
+      }
+    }
+  ],
+  "schema": "carbon.engineering-value-experiment.v1",
+  "scoring_set": {
+    "cases": 1588,
+    "note": "hidden duplicates are not in this set, so the paired_repeat gate is not exercised here",
+    "path": "docs/development/evidence/exam-design-2026-09-24/refs-b/out/battery_refs/records.jsonl",
+    "sha256": "88df01aacec5222fabd0c6dada9d7f414662534997f22addd5a40352b4d730c6"
+  }
+}

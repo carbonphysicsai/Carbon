@@ -103,6 +103,28 @@ test("reviewed package requires complete provenance and exact accepted-suggestio
   assert.throws(() => I.validateReviewedPackage(stale), /does not match the current field value/);
 });
 
+test("guidance consent names Chutes now, and a package made under the OpenAI notice still validates", async () => {
+  const consented = (provider, notice) => {
+    const value = reviewed(JSON.parse(fixtureRaw("fresh_burgers_v1.json")));
+    value.ai_guidance = { enabled: true, provider, guidance_version: I.GUIDANCE_VERSION, notice_version: notice, consented_at: "2026-09-26T12:00:00.000Z", cleared_locally: false };
+    return JSON.stringify(value);
+  };
+  assert.equal((await inspect(consented("CHUTES_API", "carbon.ask-guidance.notice.v2-2026-09-26"))).transport_kind, "REVIEWED_PACKAGE");
+  assert.equal((await inspect(consented("OPENAI_API", "carbon.ask-guidance.notice.v1-2026-09-16"))).transport_kind, "REVIEWED_PACKAGE");
+  // A provider the notice never named is refused.
+  await assert.rejects(inspect(consented("SOME_OTHER_API", "carbon.ask-guidance.notice.v2-2026-09-26")), /provider and consent details/);
+  // The page records Chutes under the new notice, and its disclosure names Chutes, not OpenAI.
+  const app = fs.readFileSync(path.join(__dirname, "..", "src", "intake_app.js"), "utf8");
+  assert.ok(app.includes('provider: guidanceEnabled ? "CHUTES_API" : null'));
+  assert.ok(app.includes('"carbon.ask-guidance.notice.v2-2026-09-26"'));
+  for (const page of ["src/intake_shell.html", "Carbon_Client_Pilot_Designer_Preview.html"]) {
+    const html = fs.readFileSync(path.join(__dirname, "..", page), "utf8");
+    const provider = /<p><strong>Provider:<\/strong>(.*?)<\/p>/s.exec(html)[1];
+    assert.ok(provider.includes("Chutes") && provider.includes("google/gemma-4-31B-turbo-TEE"), page);
+    assert.ok(!provider.includes("OpenAI"), page);
+  }
+});
+
 test("accepted AI suggestion is separately attributed and remains unqualified client input", async () => {
   const brief = JSON.parse(fixtureRaw("fresh_burgers_v1.json"));
   const value = reviewed(brief);
