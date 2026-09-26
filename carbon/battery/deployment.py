@@ -131,7 +131,7 @@ def build(config, *, repository, readonly=False):
             load_image_identity,
         )
 
-        image = load_image_identity(config["image_manifest"])
+        image = load_image_identity(Path(config["image_manifest"]))
         if not doctor(image_id=image.image_id, image_identity=image).eligible:
             raise EvaluationUnavailable("evaluation_host_unavailable")
         backend = CarrierBackend(

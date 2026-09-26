@@ -117,4 +117,3 @@ end
 """
     values = run(image, tmp_path, "sciml-pde", source, "pde")
     assert values["last_loss"] < values["first_loss"]
-

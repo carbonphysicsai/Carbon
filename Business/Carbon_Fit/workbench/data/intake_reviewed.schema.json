@@ -884,7 +884,10 @@
               "type": "null"
             },
             {
-              "const": "OPENAI_API"
+              "enum": [
+                "OPENAI_API",
+                "CHUTES_API"
+              ]
             }
           ]
         },
