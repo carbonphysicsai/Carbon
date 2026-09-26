@@ -78,13 +78,10 @@ def provider_plan(agent, budget):
 
 
 def campaign_challenge(args):
-    """The Challenge a campaign is bound to, or None for the historical
-    Burgers campaign. The frozen manifest decides once it exists."""
-    path = args.root / "campaign-manifest.json"
-    if path.exists():
-        return json.loads(path.read_bytes()).get("challenge")
-    product = getattr(args, "product", None)
-    return getattr(product, "challenge", None)
+    """The Challenge a campaign is bound to; see `challenge_registry.campaigns`."""
+    from carbon.challenge_registry.campaigns import campaign_challenge
+
+    return campaign_challenge(args)
 
 
 def manifest_document(product, *, owner, implementation, images):
@@ -113,7 +110,7 @@ def manifest_document(product, *, owner, implementation, images):
     }
 
 
-async def prepare_battery(args, *, ledger=None):
+async def prepare_battery(args, *, ledger=None, campaign):
     from carbon.chain.auth import open_external_hotkey
     from carbon.chain.models import CARBON_NETUID
     from carbon.development_session.data import write_once
@@ -260,6 +257,7 @@ async def prepare_battery(args, *, ledger=None):
         task=None,
         grant=None,
         agent_policy=getattr(args, "agent_policy", None),
+        campaign=campaign,
         challenge=CHALLENGE,
     )
 
@@ -422,6 +420,24 @@ async def evaluate_candidate(prepared, epoch, record):
         "official_eligible": False,
         "reward": False,
     }
+
+
+async def evaluate_frozen(prepared, epoch, strategy):
+    """This Challenge's validator daemon judges the frozen candidate; the
+    Burgers final epoch never sees it."""
+    from carbon.development_session.data import write_once
+    from carbon.development_session.profile import canonical
+    from carbon.development_session.research_report import report
+
+    ledger, owner = prepared.ledger, prepared.owner
+    folder = ledger.root / ("epoch-" + str(epoch))
+    record = json.loads((folder / "selected-recipe.json").read_bytes())
+    if record["strategy"] != strategy:
+        raise ValueError("submitted strategy differs from the frozen candidate")
+    feedback = await evaluate_candidate(prepared, epoch, record)
+    write_once(folder / "permitted-final-feedback.json", canonical(feedback))
+    report(ledger, owner=owner)
+    return feedback
 
 
 def agent_observation(prepared, epoch, feedback):

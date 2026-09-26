@@ -1,0 +1,15 @@
+{
+  "map_ref": "SYSTEM/AGENT-EXECUTION",
+  "event_type": "adjustment",
+  "event_id": "C-MLP-02-CHALLENGE-CAMPAIGNS-01",
+  "owner_lane": "technical_lead",
+  "status": "implemented",
+  "summary": "The Launchpad research workflow reaches Challenge-specific behaviour only through a campaign resolved from the Challenge registry. Preparation, the agent's first observation, the evaluation of a frozen candidate, whether a refused submit retains the candidate, and an attach's re-check are each a property of the Challenge's registered campaign, obtained only by resolving the Challenge exactly; research_campaign and the stdio attach no longer import any Challenge package or branch on one by name. A registered Challenge without a composed campaign is refused with a typed reason and is never run as another Challenge. The Burgers and battery behaviour is unchanged and the historical Burgers campaign remains the default for a launch naming no Challenge; retiring it from the path is the next change. The requester bootstrap stays bound to the local gateway's key because requester identity is derived from chain registration alone, not from the Challenge.",
+  "primary_detail": "carbon/challenge_registry/campaigns.py",
+  "affects": [
+    "SYSTEM/AGENT-EXECUTION",
+    "WAVE-C/C-W1-D4"
+  ],
+  "supersedes": null,
+  "recorded_at": "2026-09-26T11:40:42Z"
+}
