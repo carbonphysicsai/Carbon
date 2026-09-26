@@ -31,7 +31,7 @@ from carbon.reconstruction.worker.protocol import decode_output_stream
 
 from .data import write_once
 from .profile import canonical, digest
-from .research_workspace import MAX_FILES, MAX_WORKSPACE_BYTES, ResearchWorkspace
+from .research_workspace import ResearchWorkspace
 
 PRECHARGED_TRIAL = ContextVar("carbon_precharged_trial", default=None)
 
@@ -55,8 +55,8 @@ def run_script(ledger, *, owner, identity, source, files, image, seconds=600):
 
     if type(image) is not ResearchImageIdentity:
         raise ValueError("miner scripts require the separate analysis image")
-    if type(source) is not str or len(source.encode()) > 65536:
-        raise ValueError("bounded research source required")
+    if type(source) is not str or not source:
+        raise ValueError("research source required")
     return _run(
         ledger,
         owner=owner,
@@ -183,21 +183,27 @@ def _run_locked(
     execution_contract=None,
     output_validator=None,
 ):
-    if type(seconds) is not int or not 40 <= seconds <= 600:
+    # The miner's own research has no Carbon limits (owner direction): any
+    # positive wall allowance, or none at all. Carbon's own work in this carrier
+    # keeps its bounded allowance.
+    miner_lane = provenance == "MINER_SELF_REPORTED"
+    if miner_lane:
+        if seconds is not None and (type(seconds) is not int or seconds < 1):
+            raise ValueError("a positive wall allowance, or none")
+        if seconds is None and _has_time_budget(ledger):
+            # The miner's own budget still binds where they set one: a run
+            # with no allowance could not be reserved against it.
+            raise ValueError(
+                "you set a compute-time budget; give this run a wall allowance"
+            )
+    elif type(seconds) is not int or not 40 <= seconds <= 600:
         raise ValueError("bounded worker wall allowance required")
-    if (
-        type(files) is not dict
-        or len(files) > MAX_FILES
-        or "program.py" in files
-        or program_name in files
-    ):
-        raise ValueError("bounded closed stage required")
+    if type(files) is not dict or "program.py" in files or program_name in files:
+        raise ValueError("closed stage required")
     for name, body in files.items():
         ResearchWorkspace.name(name)
         if type(body) is not bytes:
             raise ValueError("stage accepts bytes, never paths")
-    if sum(map(len, files.values())) > MAX_WORKSPACE_BYTES:
-        raise ValueError("aggregate input cap")
     request = {
         "source": digest(source.encode()),
         "files": {n: digest(b) for n, b in files.items()},
@@ -213,15 +219,19 @@ def _run_locked(
         canonical({"owner": owner, "identity": identity, "request": request})
     )
     operation = ledger.root / ("operation-" + launch[7:])
-    storage = sum(p.stat().st_size for p in ledger.root.rglob("*") if p.is_file())
-    # Account stored input, provisional stream and decoded bounded output.
-    reservation_bytes = (
-        sum(map(len, files.values())) + 2 * OUTPUT_BYTES + 2 * CONTROL_BYTES + 65536
-    )
-    if storage + reservation_bytes > 10 * 1024**3:
-        raise ValueError("campaign retained storage ceiling")
+    if miner_lane:
+        # The miner's disk; the only bound is their own retained_bytes budget.
+        reservation_bytes = sum(map(len, files.values())) + 65536
+    else:
+        storage = sum(p.stat().st_size for p in ledger.root.rglob("*") if p.is_file())
+        # Account stored input, provisional stream and decoded bounded output.
+        reservation_bytes = (
+            sum(map(len, files.values())) + 2 * OUTPUT_BYTES + 2 * CONTROL_BYTES + 65536
+        )
+        if storage + reservation_bytes > 10 * 1024**3:
+            raise ValueError("campaign retained storage ceiling")
     resources = {
-        "numerical_milliseconds": seconds * 1000,
+        "numerical_milliseconds": (seconds or 0) * 1000,
         "retained_bytes": reservation_bytes,
         **extra_resources,
     }
@@ -257,6 +267,26 @@ def _run_locked(
     if not checked.eligible:
         # No attempt is automatically retried and its reservation remains visible.
         raise ValueError("research host ineligible")
+    if miner_lane:
+        return _run_miner_lane(
+            ledger,
+            owner=owner,
+            identity=identity,
+            operation=operation,
+            stage=stage,
+            name=name,
+            cli=cli,
+            image=image,
+            launch=launch,
+            request=request,
+            seconds=seconds,
+            started=started,
+            started_unix=started_unix,
+            bootstrap=bootstrap,
+            output_validator=output_validator,
+            provenance=provenance,
+            resources=resources,
+        )
     worker = DevelopmentWorkerProfile(
         digest(b"carbon.autoresearch.public-research.v1"),
         digest(b"2cpu-4gib-noswap-600seconds"),
@@ -378,6 +408,146 @@ def _run_locked(
         identity, owner=owner, state="SUCCEEDED", actual=actual, result=result
     )
     return result
+
+
+def _run_miner_lane(
+    ledger,
+    *,
+    owner,
+    identity,
+    operation,
+    stage,
+    name,
+    cli,
+    image,
+    launch,
+    request,
+    seconds,
+    started,
+    started_unix,
+    bootstrap,
+    output_validator,
+    provenance,
+    resources,
+):
+    """Run the miner's own research: isolated, no Carbon limits.
+
+    Same lifecycle as Carbon's lane - durable intent, exact-label removal,
+    cancellation, a digest of every output - in the miner lane's container,
+    which has no size or time limit, writing to scratch on the miner's own disk.
+    """
+    from .miner_container import (
+        MinerResearchLaunch,
+        collect_outputs,
+        create_arguments,
+        inspect_isolation,
+        prepare_scratch,
+    )
+
+    scratch = prepare_scratch(operation / "scratch")
+    run = MinerResearchLaunch(name, image.image_id, launch, stage, scratch)
+    write_once(
+        operation / "intent.json",
+        canonical(
+            {
+                "launch": launch,
+                "container": name,
+                "request": request,
+                "owner": owner,
+                "identity": identity,
+                "deadline_unix": (
+                    None if seconds is None else started_unix + seconds - 30
+                ),
+            }
+        ),
+    )
+    # No deadline unless the miner asked for one; a very long transport bound
+    # stands in for "none" where the CLI needs a number.
+    unbounded = 10 * 365 * 24 * 3600
+    create_attempted = False
+    try:
+        _check_cancel(ledger, owner, identity)
+        create_attempted = True
+        cli.run(create_arguments(run), timeout=30)
+        _check_cancel(ledger, owner, identity)
+        if seconds is not None:
+            spawn_watchdog(
+                container_name=name,
+                launch_digest=launch,
+                deadline_unix=float(started_unix + seconds),
+            )
+        cli.run(["start", name], timeout=20)
+        isolation = inspect_isolation(cli, run)
+        cli.stream_to_file(
+            ["exec", name, "/opt/carbon-worker/bin/python", "-I", "-c", bootstrap],
+            operation / "stdout.txt",
+            maximum=1024**4,
+            timeout=unbounded if seconds is None else max(1, seconds),
+        )
+        write_once(operation / "resources.json", canonical({"isolation": isolation}))
+    finally:
+        if create_attempted:
+            remove_exact_container(cli=cli, container_name=name, launch_digest=launch)
+            remaining = cli.run(
+                ["ps", "-aq", "--filter", "name=^" + name + "$"], timeout=10
+            )
+            if remaining.stdout.strip():
+                raise ValueError("research cleanup uncertain; capacity stays reserved")
+    _check_cancel(ledger, owner, identity)
+    snapshot = operation / "snapshot"
+    collect_outputs(scratch, snapshot)
+    if output_validator is not None:
+        output_validator(snapshot)
+    files = {
+        p.relative_to(snapshot).as_posix(): _file_digest(p)
+        for p in sorted(snapshot.rglob("*"))
+        if p.is_file()
+    }
+    result = {
+        "schema": "carbon.autoresearch.worker-result.v1",
+        "provenance": provenance,
+        "output_digest": digest(canonical(files)),
+        "files": files,
+        "operation": operation.name,
+        "lane": "MINER_RESEARCH_UNLIMITED",
+        "scientific_qualification": False,
+        "official_eligible": False,
+    }
+    elapsed = math.ceil((time.monotonic() - started) * 1000)
+    actual = {
+        **resources,
+        "numerical_milliseconds": elapsed,
+        "retained_bytes": sum(
+            p.stat().st_size for p in operation.rglob("*") if p.is_file()
+        ),
+    }
+    ledger.finish(
+        identity, owner=owner, state="SUCCEEDED", actual=actual, result=result
+    )
+    return result
+
+
+def _has_time_budget(ledger):
+    from .research_ledger import NO_BUDGET, _caps
+
+    with ledger.db() as db:
+        row = db.execute("SELECT manifest FROM campaign WHERE id=1").fetchone()
+    if row is None:
+        return False
+    return (
+        _caps(json.loads(row[0])).get("numerical_milliseconds", NO_BUDGET)
+        is not NO_BUDGET
+    )
+
+
+def _file_digest(path):
+    import hashlib
+
+    sha = hashlib.sha256()
+    with path.open("rb") as handle:
+        while chunk := handle.read(1024**2):
+            sha.update(chunk)
+    return "sha256:" + sha.hexdigest()
 
 
 def reconcile_worker(ledger, *, owner, identity):

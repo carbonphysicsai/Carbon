@@ -365,7 +365,13 @@ async def final_epoch(
 
 
 def registered_julia_image(root, runtime, analysis):
-    """Read the fixed operator image record; the caller still verifies its grant."""
+    """Read the campaign's image record; the caller still verifies its authority.
+
+    A product campaign's record is installed at launch from the miner's own
+    profile; a development grant campaign's is written by its operator. Either
+    way the record grants nothing: the declared runtime must name this exact
+    scope, and the campaign's authority is re-read on every call.
+    """
     if "authored_research" not in runtime:
         return None
     from .julia_analysis import (
@@ -373,7 +379,7 @@ def registered_julia_image(root, runtime, analysis):
         load_julia_analysis_image,
         verify_julia_image,
     )
-    from .research_admission import private_json
+    from .private_records import private_json
 
     path = root / "authored-julia-image.json"
     private_json(path)
@@ -382,6 +388,21 @@ def registered_julia_image(root, runtime, analysis):
         authored_julia_scope(image)
     ]:
         raise ValueError("authored Julia operator image or scope differs")
+    return verify_julia_image(image)
+
+
+def available_julia_image(root, analysis):
+    """The Julia image installed for this campaign, if any, verified."""
+    from .julia_analysis import load_julia_analysis_image, verify_julia_image
+    from .private_records import private_json
+
+    path = root / "authored-julia-image.json"
+    if not path.exists():
+        return None
+    private_json(path)
+    image = load_julia_analysis_image(path)
+    if image.parent != analysis:
+        raise ValueError("authored Julia image does not extend this analysis image")
     return verify_julia_image(image)
 
 
@@ -493,6 +514,11 @@ async def prepare(args, *, ledger=None):
             from .julia_analysis import authored_julia_scope
 
             runtime["authored_research"] = [authored_julia_scope(authored)]
+        else:
+            # Anytime: a product campaign uses whichever Julia image the host
+            # has installed for it, declared or not. It is not part of the
+            # frozen runtime; each run's contract records exactly what ran.
+            authored = available_julia_image(root, analysis)
         if "gpu_research" in declared:
             from .gpu_research import declared_gpu_runtime
 

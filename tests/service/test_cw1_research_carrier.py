@@ -186,3 +186,68 @@ def test_cancel_live_script_removes_container_and_retains_charge(tmp_path):
     assert result["cleanup_observed"] and not result["retry_dispatched"]
     assert ledger.status(owner="fixture")["used"]["research_trials"] == 1
     assert ledger.status(owner="fixture")["used"]["numerical_milliseconds"] == 90000
+
+
+def test_the_miners_research_runs_without_carbon_limits(tmp_path):
+    """No Carbon limits in the miner's own research (owner direction).
+
+    600 MiB of output exceeds the old 512 MiB scratch and 128 MiB export stream
+    together; no wall allowance is given at all; and the container carries no
+    memory or CPU cap. Isolation - no network, read-only root - still holds,
+    asserted inside the run.
+    """
+    parent = Path(os.environ["CARBON_C03_IMAGE_MANIFEST"])
+    image = build_analysis_image(parent, parent.parent / "d4-analysis-acceptance")
+    ledger = CampaignLedger(tmp_path)
+    ledger.freeze(
+        {
+            "schema": VERSION,
+            "campaign_id": "engineering-unlimited-lane-test",
+            "implementation": "candidate",
+            "objective": "test-only",
+            "sampling": "public-test-only",
+            "control": "test-only",
+            "selection": "test-only",
+            "replica_policy": "test-only",
+            "provider": "none",
+            "owner": "synthetic-engineering-requester",
+        }
+    )
+    source = """
+import os,socket
+from pathlib import Path
+chunk=os.urandom(1024*1024)
+with open('/scratch/output/checkpoint.bin','wb') as out:
+    for _ in range(600):
+        out.write(chunk)
+try:
+    Path('/forbidden-root-file').write_text('x')
+except OSError:
+    pass
+else:
+    raise AssertionError('root filesystem writable')
+network=socket.socket();network.settimeout(.2)
+try:
+    network.connect(('192.0.2.1',443))
+except OSError:
+    pass
+else:
+    raise AssertionError('network access')
+finally:
+    network.close()
+"""
+    result = run_script(
+        ledger,
+        owner="synthetic-engineering-requester",
+        identity="unlimited-lane-1",
+        source=source,
+        files={},
+        image=image,
+        seconds=None,
+    )
+    assert result["lane"] == "MINER_RESEARCH_UNLIMITED"
+    operation = tmp_path / result["operation"]
+    assert (operation / "snapshot/checkpoint.bin").stat().st_size == 600 * 1024**2
+    isolation = json.loads((operation / "resources.json").read_bytes())["isolation"]
+    assert isolation["network"] == "none" and isolation["read_only_root"] is True
+    assert isolation["memory"] is None and isolation["nano_cpus"] is None

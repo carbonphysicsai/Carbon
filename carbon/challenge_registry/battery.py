@@ -47,11 +47,6 @@ def describe():
         objective,
         reference_method,
     )
-    from carbon.development_session.research_workspace import (
-        MAX_FILE_BYTES,
-        MAX_FILES,
-        MAX_WORKSPACE_BYTES,
-    )
     from carbon.reconstruction.capability_registry import (
         BATTERY_CHALLENGE,
         catalog_surfaces,
@@ -161,12 +156,16 @@ def describe():
         "limits": {
             "practice_worker_seconds": PRACTICE_SECONDS,
             "practice_charge": {"research_trials": 1},
-            "run_python_seconds": [40, 600],
-            "workspace": {
-                "max_file_bytes": MAX_FILE_BYTES,
-                "max_files": MAX_FILES,
-                "max_total_bytes": MAX_WORKSPACE_BYTES,
-            },
+            # The miner's own research has no Carbon limits (owner direction).
+            # Only a budget the miner sets for themselves binds.
+            "run_python_seconds": (
+                "optional; any positive wall allowance or none, unless the "
+                "miner set a compute-time budget"
+            ),
+            "workspace": (
+                "no Carbon size or count limit; only the miner's own "
+                "retained_bytes budget, if set"
+            ),
             "budget": "the campaign's own ledger; discovery charges nothing",
         },
         "workflow": {
