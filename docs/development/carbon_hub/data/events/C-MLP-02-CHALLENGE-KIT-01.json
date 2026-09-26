@@ -1,0 +1,15 @@
+{
+  "map_ref": "SYSTEM/AGENT-EXECUTION",
+  "event_type": "adjustment",
+  "event_id": "C-MLP-02-CHALLENGE-KIT-01",
+  "owner_lane": "technical_lead",
+  "status": "implemented",
+  "summary": "The miner's research image carries the Burgers challenge kit under owner decision OWNER-CHALLENGE-KIT-01. The sandbox may generate practice cases from the public generator under the published population, with the miner's own roots and mock seeding only. It never receives an official seed, derived seed, draw id or reversible id, and it cannot generate, infer or influence an official eval or stress realization. The generator-boundary invariant admits the kit through a symbol-scoped exception for five public symbols. A test shows the kit names no official or qualification seeding and no controller seed roots. These establish structural separation only: semantic decontamination (constitution section 7.2) stays open and owned by the MQ-008 holder.",
+  "primary_detail": ".agent/DECISIONS.md",
+  "affects": [
+    "SYSTEM/AGENT-EXECUTION",
+    "WAVE-C/C-W1-D4"
+  ],
+  "supersedes": null,
+  "recorded_at": "2026-09-26T16:33:09Z"
+}

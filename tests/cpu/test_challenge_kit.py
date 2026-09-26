@@ -112,3 +112,55 @@ def test_nothing_forbidden_or_private_ships():
         for name in shipped
         if "role-roots" in name or "final-seeds" in name or name.endswith(".bin")
     ]
+
+
+_OFFICIAL_NAMES = frozenset(
+    {
+        "OfficialContext",
+        "OfficialEntropy",
+        "OfficialExamProjection",
+        "QualificationContext",
+        "QualificationEntropy",
+        "FixtureOfficialContext",
+        "FixtureOfficialEntropy",
+        "FixtureOfficialExamProjection",
+        "acquire_official_context",
+        "acquire_fixture_official_context",
+        "frozen_seeds",
+        "ROLE_ROOTS",
+    }
+)
+
+
+def _official_names_used(path):
+    import ast
+
+    names = set()
+    for node in ast.walk(ast.parse(path.read_text())):
+        if isinstance(node, ast.ImportFrom):
+            names |= {a.name for a in node.names}
+        elif isinstance(node, ast.Name):
+            names.add(node.id)
+        elif isinstance(node, ast.Attribute):
+            names.add(node.attr)
+    return names & _OFFICIAL_NAMES
+
+
+def test_no_official_seed_material_reaches_the_sandbox():
+    """Structural separation only: the kit names no official or qualification
+    seeding, no controller seed roots and no frozen final seeds, and its only
+    context is a mock one over the miner's own 32-byte root. This does NOT
+    establish semantic decontamination (constitution section 7.2), which stays
+    open and owned by the MQ-008 holder."""
+    from carbon.challenge_kit import burgers
+    from carbon.seeding.model import MockContext
+
+    kit = Path(burgers.__file__)
+    assert _official_names_used(kit) == set()
+    # Specimen: the same scan finds official seeding where it really lives.
+    provider = kit.parents[1] / "seeding" / "provider.py"
+    assert "OfficialContext" in _official_names_used(provider)
+    assert type(burgers.context(bytes(32))) is MockContext
+    for bad in (b"", bytes(31), bytes(33), "00" * 32):
+        with pytest.raises(ValueError):
+            burgers.context(bad)

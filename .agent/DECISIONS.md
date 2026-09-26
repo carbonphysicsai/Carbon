@@ -15828,3 +15828,33 @@ choice.
   refused here);
 - truth solves on a host;
 - any testnet observation (M7).
+
+## 2026-09-26 — OWNER-CHALLENGE-KIT-01: public generation in the miner sandbox
+
+**Authority.** The owner, in session on 2026-09-26, on the Burgers challenge kit
+(#370): build it, with one hard line.
+
+1. **Allowed.** The miner's research sandbox may generate practice cases from a
+   Challenge's public generator, under the published population, with the
+   miner's own seed roots and mock seeding only. That is what practice is for: a
+   miner cannot train without data.
+2. **Never allowed.** The sandbox may never generate, infer or influence an
+   official eval or stress realization. Official seeds, derived seeds, draw ids
+   and reversible ids never reach it (`Challenge_Instance_Distribution.md`: no
+   miner control of official eval/stress realization). Invariant 12 holds: the
+   free loop cannot become the official exam, and practice signal stays
+   deliberately incomplete.
+3. **Enforced structurally.**
+   - `test_b03` admits `challenge_kit/burgers.py` through a symbol-scoped
+     exception for the five public generator symbols only.
+   - `test_no_official_seed_material_reaches_the_sandbox` shows the kit names
+     no official or qualification seeding, no controller seed roots and no
+     frozen final seeds, and that its only context is a mock one over the
+     miner's own 32-byte root. A specimen shows the same scan finds official
+     seeding where it lives.
+4. **Open, not settled by any test.** Constitution §7.2: seed separation does
+   not prove semantic decontamination. Different seeds from the same generator
+   are necessary but not sufficient. Whether what the sandbox can produce lets a
+   miner reconstruct the exam population is a scientific judgement, open and
+   owned by the MQ-008 holder. The passing tests above establish structural
+   separation only.
