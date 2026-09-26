@@ -10,6 +10,7 @@ from __future__ import annotations
 import hashlib
 import io
 import json
+import os
 import types
 import zipfile
 from pathlib import Path
@@ -145,6 +146,20 @@ def test_verify_runs_the_pinned_image_offline_and_records_versions(tmp_path):
     assert command[command.index("--network") + 1] == "none"
     assert any(part.endswith(":/overlay:ro") for part in command)
     assert (target / truth_env.VERIFIED).stat().st_mode & 0o077 == 0
+
+
+def test_verify_and_solve_run_as_the_owner_of_the_owner_only_overlay(tmp_path):
+    """materialize makes the overlay 0700 for the invoking user. The pinned
+    image's own user is someone else, so a container without --user cannot
+    enter the overlay and PyBaMM looks absent. Both runs must use the owner."""
+    owner = f"{os.getuid()}:{os.getgid()}"
+    for command in (
+        truth_env.verify_command(tmp_path / "overlay"),
+        truth_env.solve_command(
+            tmp_path / "overlay", tmp_path / "work", repository=REPOSITORY
+        ),
+    ):
+        assert command[command.index("--user") + 1] == owner
 
 
 @pytest.mark.parametrize(
