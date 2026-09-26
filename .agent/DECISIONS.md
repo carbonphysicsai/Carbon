@@ -15891,3 +15891,28 @@ value is chosen).
   host-session procedure. The OD-4a request prepared on the host is a draft
   for format review. The owner approves a digest regenerated from a fresh
   probe just before dispatch.
+
+## 2026-09-26 — OWNER-LAUNCH-PORTFOLIO-01: battery is a launch Challenge
+
+**Authority.** The owner, in session on 2026-09-26: "override. I want battery
+in the launch portfolio. I want battery, motors, cold plates, photonics", then
+"please proceed with battery like it is a launch challenge. it is".
+
+1. **The launch portfolio is battery, electric motors, AI-chip cold plates and
+   silicon photonics.** This supersedes #341's "custom chip design and battery
+   are outside this launch portfolio" for battery.
+2. **Battery proceeds as a launch Challenge.** Its study is the portfolio's most
+   advanced evidence, and its remaining work is launch-readiness work rather
+   than a close-out. EV1 and a successor EV2 continue as part of that path.
+3. **Power magnetics (#343) and airfoil (#346) are not named in the portfolio.**
+   Their issues stay open as recorded work. They are not scheduled ahead of the
+   four.
+4. **Unchanged by this decision:**
+   - scientific, security and production qualification;
+   - the OD-1 to OD-8 battery authorities, including non-paying DEVELOPMENT
+     status (OD-1) and Phase A all-burn only (OD-4a);
+   - the launch gates in `EXAM_DESIGN_CAMPAIGN_RESULT.md` §11;
+   - spending authority.
+
+   Portfolio membership states intent to launch. It is not a launch approval,
+   and no Challenge becomes LIVE or reward-bearing from it.
