@@ -1,0 +1,15 @@
+{
+  "map_ref": "SYSTEM/AGENT-EXECUTION",
+  "event_type": "evidence",
+  "event_id": "BATTERY-TESTNET-M4P-01",
+  "owner_lane": "technical_lead",
+  "status": "implemented",
+  "summary": "Host preparation tooling for battery M4/M7, answering the operator's host check. The PyBaMM truth environment is materialized from its hash-locked overlay (size/SHA-256 checked, zip-slip refused), verified inside the pinned image with no network, and solves run in that image from an owner-only jobs file without seeing validator state, root or journal. A read-only runtime probe compares the live testnet metadata with bittensor 11.1.0's generated bindings for the exact publish surface Carbon uses, so the owner can decide on runtime 471 from evidence; it claims no runtime behaviour and grants nothing. An OD-4a generator produces one numbered, digest-bound all-burn request ([[0,65535]], one dispatch, zero fee and spend, window anchored to a fresh probe) for the owner to approve; winner weights stay excluded. Nothing here dispatches, rents compute, publishes or opens a wallet.",
+  "primary_detail": ".agent/tickets/BATTERY-TESTNET-M4P_host_preparation.md",
+  "affects": [
+    "SYSTEM/AGENT-EXECUTION",
+    "WAVE-C/C-09"
+  ],
+  "supersedes": null,
+  "recorded_at": "2026-09-25T20:00:00Z"
+}

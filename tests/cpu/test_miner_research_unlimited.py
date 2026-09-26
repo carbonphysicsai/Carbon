@@ -16,6 +16,7 @@ from carbon.development_session.miner_container import (
     prepare_scratch,
 )
 from carbon.development_session.research_ledger import VERSION, CampaignLedger
+from carbon.reconstruction.worker.model import WorkerCode, WorkerFailure
 
 LAUNCH = "sha256:" + "a" * 64
 IMAGE = "sha256:" + "b" * 64
@@ -66,10 +67,13 @@ def test_the_validator_lane_still_carries_every_cap(tmp_path):
 
 
 def test_a_raw_request_cannot_become_a_miner_launch(tmp_path):
-    with pytest.raises(Exception):
+    # Refused as an invalid request specifically, not by any error at all.
+    with pytest.raises(WorkerFailure) as raw:
         create_arguments({"container_name": "x", "image_id": IMAGE})
-    with pytest.raises(Exception):
+    assert raw.value.code is WorkerCode.INVALID
+    with pytest.raises(WorkerFailure) as relative:
         MinerResearchLaunch("x", IMAGE, LAUNCH, Path("relative"), tmp_path)
+    assert relative.value.code is WorkerCode.INVALID
 
 
 def ledger(tmp_path, schema=VERSION, **budget):
