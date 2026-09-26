@@ -8,6 +8,7 @@ const { ArchiveKeyDestroyed, ArchiveKeyring } = require("./team_archive_keyring.
 const I = require("../src/intake.js");
 const { isAuthenticatedPrincipal } = require("./team_staff_directory.cjs");
 const { isRecordBasis, stored: storedBasis } = require("./team_record_basis.cjs");
+const { isModelOptIn, isScheduledProvider } = require("./team_model_provider.cjs");
 
 const STORE_VERSION = "carbon.private-team-intake.store.v3";
 // On disk only. The file carries the v3 state with every record's client content
@@ -197,6 +198,8 @@ function validatePrincipal(principal, action) {
     export_control: ["DATA_STEWARD"],
     hold: ["DATA_STEWARD"],
     releases: ["DATA_STEWARD"],
+    model_opt_in: ["DATA_STEWARD"],
+    model_assist: ["TEAM_REVIEWER"],
     search: ["TEAM_REVIEWER", "INTAKE_RECEIVER"],
     outbox: ["NOTIFICATION_OPERATOR"],
   }[action];
@@ -270,6 +273,33 @@ function reachRecord(store, inquiryId, principal) {
   }
   return record;
 }
+
+/**
+ * External model processing is a per-client switch, and it is off unless a
+ * data steward has recorded the client's signed opt-in. History is append-only.
+ */
+const modelProcessingOff = () => ({ active: false, provider: null, opt_in_ref: null, history: [] });
+
+/**
+ * The owner lifted the synthetic-only restriction on 26 September 2026: a real
+ * client's record may be sent once that client's own signed opt-in is
+ * recorded. What stays is that a synthetic opt-in can never open a real
+ * record. A synthetic opt-in reference is accepted only on a record whose
+ * agreement and export-control references are all synthetic, just as the
+ * synthetic E7 standard reaches synthetic records only.
+ */
+function syntheticOptInOnRealRecord(record, optInRef) {
+  if (!String(optInRef).startsWith(SYNTHETIC_REFERENCE_PREFIX)) return false;
+  const references = [
+    ...Object.values((record.basis && record.basis.agreements) || {}),
+    record.export_control && record.export_control.ref,
+  ];
+  return references.some((ref) => !String(ref).startsWith(SYNTHETIC_REFERENCE_PREFIX));
+}
+
+const MODEL_INSTRUCTION =
+  "You assist Carbon staff reviewing a client's design brief. Answer only from the brief provided. " +
+  "Do not invent physical values, thresholds, tolerances or qualification outcomes; where the brief is silent, say so.";
 
 const sealContext = (inquiryId) => "carbon.private-team-intake:" + inquiryId;
 
@@ -368,6 +398,10 @@ function validateStore(value) {
     if (record.lifecycle !== KEY_DESTROYED) migrateRetention(record);
     // Written before E7: no determination was recorded, and none is invented.
     if (record.export_control === undefined) record.export_control = { ref: null, recorded_by: null, recorded_at: null };
+    // Written before the model switch existed: off, which is the default.
+    if (record.model_processing === undefined) record.model_processing = modelProcessingOff();
+    if (record.model_processing.history.some((event, index) => event.seq !== index + 1))
+      throw Error("Model-processing history is not a contiguous append-only sequence");
   }
   return value;
 }
@@ -1017,6 +1051,8 @@ class DurableIntakeStore {
       // E7: the export-control determination this record is held under, as an
       // opaque reference. Absent, the record is unreachable until one is recorded.
       export_control: exportControlBlock(exportControlRef, actor),
+      // External model processing: off until the client's signed opt-in is recorded.
+      model_processing: modelProcessingOff(),
       basis_history: [{ seq: 1, event: "RECEIVED", ...recordBasis, by: actor, at: new Date().toISOString() }],
       team_fields: {
         assigned_reviewer: "",
@@ -1261,6 +1297,85 @@ class DurableIntakeStore {
     };
     this.persist(next);
     return clone(record.hold);
+  }
+
+  /** Turn a record's model switch on: the client's signed opt-in, for one scheduled provider. */
+  recordModelOptIn(inquiryId, optIn, principal) {
+    const actor = validatePrincipal(principal, "model_opt_in");
+    ownedRecord(this, inquiryId, principal);
+    if (!isModelOptIn(optIn)) throw Error("A model-processing opt-in can only be issued from the client's signed opt-in");
+    const next = clone(this.state);
+    const record = next.inquiries[inquiryId];
+    const current = record.model_processing || modelProcessingOff();
+    if (current.active) throw Error("This record's model-processing opt-in is already recorded");
+    if (syntheticOptInOnRealRecord(record, optIn.ref))
+      throw Object.assign(Error("A synthetic opt-in cannot open a real client's record; record the client's signed opt-in"), { status: 403 });
+    record.model_processing = {
+      active: true,
+      provider: optIn.provider,
+      opt_in_ref: optIn.ref,
+      history: [...current.history, { seq: current.history.length + 1, event: "OPTED_IN", provider: optIn.provider, opt_in_ref: optIn.ref, by: actor, at: new Date(this.clock()).toISOString() }],
+    };
+    this.persist(next);
+    return clone(record.model_processing);
+  }
+
+  /** Turn it off again, when the client withdraws. The history keeps both. */
+  withdrawModelOptIn(inquiryId, { reason } = {}, principal) {
+    const actor = validatePrincipal(principal, "model_opt_in");
+    ownedRecord(this, inquiryId, principal);
+    if (typeof reason !== "string" || reason.trim().length < 3 || reason.length > 200)
+      throw Error("Withdrawing a model-processing opt-in states its reason in 3 to 200 characters");
+    const next = clone(this.state);
+    const record = next.inquiries[inquiryId];
+    const current = record.model_processing || modelProcessingOff();
+    if (!current.active) throw Error("This record has no active model-processing opt-in");
+    record.model_processing = {
+      ...modelProcessingOff(),
+      history: [...current.history, { seq: current.history.length + 1, event: "WITHDRAWN", provider: current.provider, opt_in_ref: current.opt_in_ref, reason: reason.trim(), by: actor, at: new Date(this.clock()).toISOString() }],
+    };
+    this.persist(next);
+    return clone(record.model_processing);
+  }
+
+  /**
+   * Send one record's reviewed brief to the scheduled provider its client opted
+   * in to, at a reviewer's explicit request. Nothing calls this automatically.
+   * The release is logged (E5) before anything is sent.
+   */
+  async modelAssist(inquiryId, { purpose, question } = {}, principal, provider) {
+    const actor = validatePrincipal(principal, "model_assist");
+    const record = reachRecord(this, inquiryId, principal);
+    const denied = (message, status = 403) => Object.assign(Error(message), { status });
+    if (!provider) throw denied("No model provider is configured", 501);
+    if (!isScheduledProvider(provider)) throw denied("A model provider can only be built from the provider schedule");
+    const switchState = record.model_processing || modelProcessingOff();
+    if (!switchState.active) throw denied("This client has not opted in to model processing; the switch is off");
+    if (switchState.provider !== provider.id) throw denied("This client opted in to a different provider");
+    if (syntheticOptInOnRealRecord(record, switchState.opt_in_ref))
+      throw denied("A synthetic opt-in cannot open a real client's record; record the client's signed opt-in");
+    if (record.lifecycle !== "ACTIVE") throw denied("Only an active record is sent for model processing", 409);
+    if (typeof purpose !== "string" || purpose.trim().length < 3 || purpose.length > 200)
+      throw Error("A model request states its purpose in 3 to 200 characters");
+    if (typeof question !== "string" || !question.trim() || question.length > 2000)
+      throw Error("A model request asks one question of at most 2000 characters");
+    // The brief, the pilot and its open assumptions. Contact details and any
+    // shared conversation are not sent: the question is about the design.
+    const pkg = record.reviewed_package || {};
+    const modelInput = { brief: pkg.brief, pilot: pkg.pilot, unresolved_assumptions: pkg.unresolved_assumptions };
+    const messages = [
+      { role: "system", content: MODEL_INSTRUCTION },
+      { role: "user", content: "Client design brief (JSON):\n" + JSON.stringify(modelInput) + "\n\nQuestion: " + question.trim() },
+    ];
+    const release = logRelease(this, record, actor, {
+      recipient: { kind: "MODEL_PROVIDER", ref: provider.id + ":" + provider.model },
+      purpose: purpose.trim(),
+      channel: "EXTERNAL_MODEL",
+      opt_in_ref: switchState.opt_in_ref,
+      artifact_sha256: sha256(JSON.stringify({ model: provider.model, messages })),
+    });
+    const answer = await provider.complete({ messages, maxTokens: 2048 });
+    return { release_id: release.release_id, provider: provider.id, model: provider.model, ...answer };
   }
 
   /** Record a record's export-control reference, once. It is never replaced. */

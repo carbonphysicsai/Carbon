@@ -173,8 +173,10 @@ jobs:
     needs: preflight
     runs-on: ubuntu-24.04
     # The authored-Julia service suite builds and precompiles both pinned SciML
-    # environments from empty caches, after ~35 minutes of C-03 controls.
-    timeout-minutes: 120
+    # environments from empty caches, after ~35 minutes of C-03 controls. That
+    # cold build has taken 55-85 minutes on hosted runners; 120 cancelled a run
+    # whose every test had passed, one second before its last step.
+    timeout-minutes: 150
     steps:
       - name: Check out exact classified candidate
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

@@ -15996,3 +15996,107 @@ in the launch portfolio. I want battery, motors, cold plates, photonics", then
 
    Portfolio membership states intent to launch. It is not a launch approval,
    and no Challenge becomes LIVE or reward-bearing from it.
+
+## 2026-09-26 — OWNER-CLIENT-MODEL-PROVIDER-01: Chutes for client intake, per-client switch, default off
+
+**Authority.** Owner direction to the client-intake lane on 2026-09-26: "Name
+Chutes as the external model provider for client intake. Build the capability.
+The guard stays."
+
+1. **Chutes is the scheduled external model provider** for client material, with
+   `deepseek-ai/DeepSeek-V4-Flash-0731-TEE`. It was chosen for its 1,048,576-token
+   context and its TEE execution.
+2. **The guard becomes a per-client switch that defaults off.** A separately
+   signed opt-in is required for each client. No transfer is automatic.
+3. **No client content goes through it yet.** The store refuses every record
+   that carries a non-synthetic reference, until the owner lifts that in code.
+4. **Launchpad stays on Engy.** The two providers serve different needs and are
+   not consolidated.
+5. **Unchanged:**
+   - E8, meaning no route to the subnet or the public assistant;
+   - counsel brief §7 and §4.8;
+   - E7 screening.
+
+   The terms condition is the owner's determination, not an engineering
+   verification.
+
+See `.agent/tickets/GOAL-WORKBENCH-15_client_data_engineering.md`.
+
+## 2026-09-26 — OWNER-CLIENT-MODEL-PROVIDER-02: synthetic-only lifted; counsel approves E7
+
+**Authority.** The owner, in the client-intake session on 2026-09-26: "I lift
+synthetic only", then "I approve the opt in" (confirmed as: lift the gate, keep
+the opt-in), then "and counsel approves E7".
+
+1. **The synthetic-only restriction of OWNER-CLIENT-MODEL-PROVIDER-01 item 3 is
+   lifted.** A real client's record may go to the scheduled provider (Chutes)
+   once that client's own separately signed opt-in is recorded.
+2. **Unchanged:**
+   - the switch is per client and off by default;
+   - transfer is never automatic;
+   - every request is logged before it is sent;
+   - contact details are not sent;
+   - E8.
+3. **A synthetic opt-in can never open a real record.** This guard replaces the
+   removed gate.
+4. **Counsel approves E7.** The approved screening standard is configured
+   privately, not in this repository. It replaces the synthetic development
+   standard of the 2026-09-23 delegated decision 4.
+
+See `.agent/tickets/GOAL-WORKBENCH-15_client_data_engineering.md`.
+
+## 2026-09-26 — WEB-QA-09-D1: publish Ask Carbon candidate 2026-09-26.1 (Chutes)
+
+**Authority.** The repository owner (Ryan Bequette, a named production
+incident owner under `WEB-QA-05-D2`) approved publication of candidate
+`ask-carbon-public-release-2026-09-26.1` on 2026-09-26, in session, with the
+decision packet in `website/ask-carbon/PUBLIC_RELEASE_DECISION_PACKET.md`.
+Approval basis: `OWNER_PUBLICATION_APPROVAL_2026_09_26_WEB_QA_09_D1`.
+
+**What it publishes.** Both deployables move together, because the Worker
+embeds its knowledge at build time:
+
+- `ask-carbon-public` Worker: answers through Chutes
+  (`gemma-4-31b-turbo-tee:v1`, `google/gemma-4-31B-turbo-TEE`, confidential
+  compute) instead of OpenAI (`gpt-5.6-luna:low:v1`), under privacy mode
+  `approved_public_privacy_v2_chutes_confidential`. It also carries the
+  already-approved knowledge `d937e9ca…` (WEB-QA-07-D2), which the live Worker
+  does not yet embed.
+- `carbonwebsite` static assets: two paths change against live —
+  `ask-carbon/ask-carbon.js` (visitor notice v2; live answers default-on in
+  the Q&A panel only) and `ask-carbon/pilot-designer.html` (client-intake #373:
+  the disclosure names Chutes; guidance stays opt-in). The other 100 paths are
+  byte-identical to live.
+
+**Exact accepted artifact.**
+
+| Identity | Value |
+| --- | --- |
+| Bundle identity | `2fe8eba27fda34610555f49e65f1331d90ee1c3f517b8a729098137be2afb5cf` |
+| Integrated homepage | `b1e8e7cdbea3d13d1ea2237e55db279bc962937a6a2cf2a65491dcf8255afd47` (unchanged) |
+| Q&A component | `62ba26ce2a2e76dc0b194dc0e7d1d113cbd2c5aa4f9770dce77f1a977e19f7f4` |
+| Pilot Designer | `4c9f39169cabc3748662d64925828cfa07aa63fe277dff164735847ee907c6cd` |
+| Knowledge digest | `d937e9cabb1b39003bfd00bc14665ab90c5ba59c2e70729fdd46476e9da30804` (unchanged; its `approval_basis` is not changed) |
+| Visitor notice | `ask-carbon-notice-v2-2026-09-26`, SHA-256 `92ee9254b8adc71fb4aff9baef993c2f40336dcb38cc9be0adf3be88daa43c87` |
+| Worker source | merge commit `178a45f9d` (PR #372); input digests in `PUBLIC_RELEASE_CANDIDATE.json` → `worker.source_sha256` |
+| Static rollback target | `carbonwebsite` version `b694b20f-a4d4-4f59-8f08-12629591a2dc` (content-identity inference; re-capture with wrangler before deploying) |
+| Worker rollback target | captured with wrangler immediately before deploying |
+
+A rebuild producing a different bundle identity is not the approved artifact.
+If either live version has moved at deploy time, the candidate is rebuilt and
+needs a fresh decision if its identity changes.
+
+**Known limits accepted with the approval.** The Chutes adapter is unit-tested
+against a constructed fixture only; the first production request is its first
+live exercise, and it fails closed on any unexpected response. The provider's
+retention and confidential-compute properties are Chutes' own statements, not
+a Carbon audit. Default-on live answers will draw more requests toward the
+unchanged ceilings (USD 50/month shared ledger, 100 requests/day, 12 per
+client per hour).
+
+**Not authorized by this decision.** Deployment is the owner's act, from a
+host holding the Cloudflare credential; this session has none and ran no
+wrangler command. No change to budget or ceilings, inquiry collection (issue
+#139, disabled), the Pilot Designer's opt-in, customer-data processing, or
+the `AskCarbonUsageLedger` Durable Object, which is never rolled back or
+deleted.
