@@ -6,10 +6,10 @@ or proof of a production deployment.
 
 ## Current release state
 
-> **Candidate 2026-09-26.1 (built, not deployed):** Chutes provider, notice
+> **Candidate 2026-09-26.1 (owner-approved WEB-QA-09-D1, not yet deployed):** Chutes provider, notice
 > version `ask-carbon-notice-v2-2026-09-26`, Q&A live answers default-on.
-> Awaiting owner publication approval. The Pilot Designer disclosure (client-intake
-> #373) already names Chutes. See `PUBLIC_RELEASE_CANDIDATE.json`.
+> Deployment is the owner's act (OPERATIONS.md). The Pilot Designer disclosure
+> (client-intake #373) names Chutes. See `PUBLIC_RELEASE_CANDIDATE.json`.
 
 - Repository knowledge version: `ask-carbon-release-candidate-2026-09-18.2` (server-owned reviewed-answer selection successor; not production deployed)
 - Source release date: 2026-09-18

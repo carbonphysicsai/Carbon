@@ -293,9 +293,9 @@ Production needs a separate exact owner authorization after the staging report:
 > **Candidate 2026-09-26.1: Worker and static together.** Switches
 > `ask-carbon-public` to the Chutes profile and changes two shipped static
 > paths (`ask-carbon/ask-carbon.js`, `ask-carbon/pilot-designer.html`). The
-> Worker embeds its knowledge at build time, so both move together. Not
-> deployable until the owner's approval is recorded (see
-> `required_before_production_mutation`). Then, from the approved merge
+> Worker embeds its knowledge at build time, so both move together. Approved under
+> WEB-QA-09-D1 against bundle `2fe8eba2…`; the remaining pre-deploy inputs are
+> in `required_before_production_mutation`. Then, from the approved merge
 > commit:
 >
 > ```sh

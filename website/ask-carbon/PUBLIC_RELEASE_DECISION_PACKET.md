@@ -1,10 +1,12 @@
 # Ask Carbon concrete public-release decision packet
 
-## Pending: WEB-QA-09-D1, candidate 2026-09-26.1 (proposed, not approved)
+## WEB-QA-09-D1, candidate 2026-09-26.1: APPROVED 2026-09-26 (not yet deployed)
 
-**Asked of:** a named production incident owner under `WEB-QA-05-D2`.
+**Approved by:** Ryan Bequette, a named production incident owner under
+`WEB-QA-05-D2`, on 2026-09-26, basis
+`OWNER_PUBLICATION_APPROVAL_2026_09_26_WEB_QA_09_D1` (`.agent/DECISIONS.md`).
 
-**Approve publication of `ask-carbon-public-release-2026-09-26.1`:**
+**Approved: publication of `ask-carbon-public-release-2026-09-26.1`:**
 
 1. `ask-carbon-public` answers through Chutes (`gemma-4-31b-turbo-tee:v1`,
    `google/gemma-4-31B-turbo-TEE`, confidential compute) instead of OpenAI
