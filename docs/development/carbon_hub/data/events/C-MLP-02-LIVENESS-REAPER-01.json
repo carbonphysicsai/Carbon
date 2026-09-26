@@ -1,0 +1,15 @@
+{
+  "map_ref": "SYSTEM/AGENT-EXECUTION",
+  "event_type": "adjustment",
+  "event_id": "C-MLP-02-LIVENESS-REAPER-01",
+  "owner_lane": "technical_lead",
+  "status": "implemented",
+  "summary": "A miner-lane research run with no time budget is now guarded by a detached controller-liveness reaper (carbon/reconstruction/worker/liveness_reaper.py). The deadline watchdog was spawned only when a wall allowance existed, so an unbounded run - the default, since Carbon imposes no time limit on a miner's own research - had nothing to remove its container if the controller died. The reaper watches the owning controller process by its pid together with the kernel's record of when that pid started, so a reused pid is not mistaken for the owner and a zombie counts as gone. It removes the exact container, matched by name and launch-digest label through remove_exact_container, only once that process is gone, and never removes a container under another launch's label. A lease file was rejected because renewal and expiry would amount to a Carbon-chosen time limit that kills a live but stalled controller's run. The guard is recorded in the launch's durable intent.json (reaper: CONTROLLER_LIVENESS with the pid and identity, or DEADLINE) before the container is created, and it is started before the container starts. If the identity cannot be read or the reaper cannot start, the run does not start. Tested with a fake Docker CLI running the real removal: removed on controller death, kept while the controller lives, kept under a mismatched label with a matching-label specimen removed, kept when the runtime cannot answer, plus real child-process identity and the miner lane's intent and wiring. Not tested against a real Docker daemon.",
+  "primary_detail": "carbon/reconstruction/worker/liveness_reaper.py",
+  "affects": [
+    "SYSTEM/AGENT-EXECUTION",
+    "WAVE-C/C-W1-D4"
+  ],
+  "supersedes": null,
+  "recorded_at": "2026-09-26T12:08:17Z"
+}
