@@ -427,6 +427,18 @@ def research_practice(root, manifest, *, data, role_root, ledger, owner, image):
 
 
 async def prepare(args, *, ledger=None):
+    """Prepare a campaign for the Challenge it is bound to.
+
+    The Challenge's campaign comes from `challenge_registry.campaigns`, resolved
+    exactly; this module names no Challenge-specific path of its own.
+    """
+    from carbon.challenge_registry.campaigns import campaign_challenge, campaign_for
+
+    campaign = campaign_for(campaign_challenge(args))
+    return await campaign.prepare(args, ledger=ledger, campaign=campaign)
+
+
+async def prepare_burgers(args, *, ledger=None, campaign):
     """Everything a campaign needs before anyone selects: verified images and
     keys, the registration read, the frozen manifest and ledger, generated
     roles and the research service a miner or agent works through.
@@ -434,20 +446,6 @@ async def prepare(args, *, ledger=None):
     Returns a `PreparedCampaign`, or None for a campaign already complete.
     Idempotent on resume: a frozen manifest is checked, never rewritten.
     """
-    from carbon.battery.campaign import campaign_challenge
-
-    challenge = campaign_challenge(args)
-    if challenge is not None and challenge["id"] != CHALLENGE.challenge_id:
-        from carbon.challenge_registry import resolve
-        from carbon.reconstruction.capability_registry import BATTERY_CHALLENGE
-
-        # Exactly one registered Challenge, or a typed refusal; never Burgers.
-        resolve(challenge["id"], challenge["version"], "cpu_research")
-        if challenge["id"] != BATTERY_CHALLENGE:
-            raise ValueError("no campaign composition for this Challenge")
-        from carbon.battery.campaign import prepare_battery
-
-        return await prepare_battery(args, ledger=ledger)
     agent_policy = getattr(args, "agent_policy", LEGACY)
     policy = binding(agent_policy)
     supplied_guidance = getattr(args, "research_guidance", None)
@@ -722,6 +720,7 @@ async def prepare(args, *, ledger=None):
         task=task,
         grant=grant,
         agent_policy=agent_policy,
+        campaign=campaign,
     )
 
 
@@ -744,7 +743,11 @@ class PreparedCampaign:
     task: object
     grant: object
     agent_policy: object
-    #: The Challenge this campaign serves; None is the historical Burgers one.
+    #: The Challenge's campaign (`challenge_registry.campaigns`): how this
+    #: campaign's candidates are evaluated and what its agent is shown.
+    campaign: object
+    #: What the agent policy is bound to; None keeps the historical Burgers
+    #: prompts.
     challenge: object = None
 
     @property
@@ -804,19 +807,12 @@ async def submit_candidate(prepared, epoch, strategy):
             },
         )
         return None
-    if prepared.challenge is not None:
-        # This Challenge's validator daemon judges the candidate; the
-        # Burgers final epoch never sees it.
-        from carbon.battery.campaign import evaluate_candidate
+    return await prepared.campaign.evaluate(prepared, epoch, strategy)
 
-        folder = ledger.root / ("epoch-" + str(epoch))
-        record = json.loads((folder / "selected-recipe.json").read_bytes())
-        if record["strategy"] != strategy:
-            raise ValueError("submitted strategy differs from the frozen candidate")
-        feedback = await evaluate_candidate(prepared, epoch, record)
-        write_once(folder / "permitted-final-feedback.json", canonical(feedback))
-        report(ledger, owner=owner)
-        return feedback
+
+async def evaluate_burgers(prepared, epoch, strategy):
+    """The historical Burgers final epoch for a frozen candidate."""
+    ledger, owner = prepared.ledger, prepared.owner
     feedback, ref = await final_epoch(
         prepared.args,
         ledger,
@@ -853,6 +849,19 @@ async def submit_candidate(prepared, epoch, strategy):
     return feedback
 
 
+def burgers_observation(prepared, epoch, feedback):
+    """What Carbon's agent sees first in a historical Burgers epoch."""
+    return {
+        "objective": objective(),
+        "capabilities": capabilities(),
+        "control_recipe": CONTROL,
+        "control_basis": CONTROL_BASIS,
+        "epoch": epoch,
+        "prior_permitted_final_feedback": feedback,
+        "instructions": "Record a testable plan. Use real practice, inspect curves and revise or reject hypotheses; do not stop at the first valid recipe. Select only a recipe you actually practiced, or stop for a supported reason.",
+    }
+
+
 async def run_agent(prepared, *, transport=None):
     """Carbon's autonomous agent: plans, practices and selects each epoch, and
     its selection goes through the same submit a miner's freeze does.
@@ -871,20 +880,7 @@ async def run_agent(prepared, *, transport=None):
     epochs = FINAL_EPOCHS if epoch_cap is None else FINAL_EPOCHS[:epoch_cap]
     for epoch in epochs:
         ledger.checkpoint()
-        if prepared.challenge is not None:
-            from carbon.battery.campaign import agent_observation
-
-            observation = agent_observation(prepared, epoch, feedback)
-        else:
-            observation = {
-                "objective": objective(),
-                "capabilities": capabilities(),
-                "control_recipe": CONTROL,
-                "control_basis": CONTROL_BASIS,
-                "epoch": epoch,
-                "prior_permitted_final_feedback": feedback,
-                "instructions": "Record a testable plan. Use real practice, inspect curves and revise or reject hypotheses; do not stop at the first valid recipe. Select only a recipe you actually practiced, or stop for a supported reason.",
-            }
+        observation = prepared.campaign.observation(prepared, epoch, feedback)
         if grant is not None:
             # Immutable across restart; private grant/account paths are absent.
             observation["campaign_resource_grant"] = {
@@ -927,7 +923,7 @@ async def run_agent(prepared, *, transport=None):
         try:
             feedback = await submit_candidate(prepared, epoch, result["strategy"])
         except OperationRefused as refused:
-            if prepared.challenge is None:
+            if not prepared.campaign.refusal_retains_candidate:
                 raise
             # Nothing was evaluated (no deployment, infrastructure, queued):
             # never a result. The frozen candidate stays for a later submit.

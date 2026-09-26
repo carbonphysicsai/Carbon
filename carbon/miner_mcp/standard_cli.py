@@ -153,12 +153,13 @@ def _runtime(profile):
         "images": [image.image_id, analysis.image_id],
     }
     role_root = profile.root / "private-roles"
-    from carbon.battery.campaign import check_attached, is_battery
+    from carbon.challenge_registry.campaigns import campaign_for_manifest
 
-    if is_battery(profile.manifest):
-        # A battery campaign has no Burgers roles, objective or lanes to
-        # re-check; it re-checks its own frozen Challenge binding instead.
-        check_attached(
+    campaign = campaign_for_manifest(profile.manifest)
+    if campaign.check_attached is not None:
+        # A Challenge with its own campaign has no Burgers roles, objective or
+        # lanes to re-check; it re-checks its own frozen binding instead.
+        campaign.check_attached(
             profile.manifest,
             implementation=implementation,
             images=runtime["images"],
@@ -489,16 +490,15 @@ async def attached_profile(profile: OperatorProfile):
         ledger.generation = status["generation"] if cleanup_only else control.acquire()
         if cleanup_only:
             ledger.retained_owner(profile.manifest["owner"])
-        from carbon.battery.campaign import is_battery
+        from carbon.challenge_registry.campaigns import campaign_for_manifest
         from carbon.development_session.capability_demand import DemandStore
 
         # Capability demand on this host: registry ids and miner digests
         # only. On a miner's machine it stays theirs.
         demand = DemandStore(profile.root / "capability-demand.sqlite")
-        if is_battery(profile.manifest):
-            from carbon.battery.campaign import compose
-
-            composition, wrapper = compose(
+        campaign = campaign_for_manifest(profile.manifest)
+        if campaign.compose is not None:
+            composition, wrapper = campaign.compose(
                 ledger=ledger,
                 owner=owner,
                 image=image,
