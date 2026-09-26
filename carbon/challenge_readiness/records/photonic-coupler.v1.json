@@ -1,0 +1,192 @@
+{
+  "challenge_id": "photonic-coupler",
+  "costs": [
+    {
+      "basis": "unknown",
+      "evidence": null,
+      "item": "startup",
+      "unit": "USD",
+      "usd": null
+    },
+    {
+      "basis": "unknown",
+      "evidence": null,
+      "item": "mesh",
+      "unit": "USD",
+      "usd": null
+    },
+    {
+      "basis": "measured",
+      "evidence": "docs/development/EXAM_DESIGN_CAMPAIGN_RESULT.md section 9",
+      "item": "reference",
+      "unit": "USD per five-wavelength parent case at 20 nm (diagnostic, not qualified-truth cost)",
+      "usd": 0.36
+    },
+    {
+      "basis": "unknown",
+      "evidence": null,
+      "item": "reconstruction",
+      "unit": "USD",
+      "usd": null
+    },
+    {
+      "basis": "unknown",
+      "evidence": null,
+      "item": "inference",
+      "unit": "USD",
+      "usd": null
+    },
+    {
+      "basis": "unknown",
+      "evidence": null,
+      "item": "finalist",
+      "unit": "USD",
+      "usd": null
+    },
+    {
+      "basis": "unknown",
+      "evidence": null,
+      "item": "cleanup",
+      "unit": "USD",
+      "usd": null
+    }
+  ],
+  "decision": {
+    "buyer": "Photonic-component designers (a hypothesis in #345).",
+    "engineering_decision": "Choose a coupler geometry for prescribed splitting and transmission over wavelength and fabrication variation.",
+    "intended_use": "Repair first (#345): fix the phase convention and establish coupled-power convergence. No exam design until both are answered."
+  },
+  "design_variables": [
+    {
+      "description": "Parameters of one coupler family in a fixed material stack; not yet fixed.",
+      "name": "coupler_geometry",
+      "unit": "nm"
+    },
+    {
+      "description": "Wavelength in a declared band (the diagnostics used 1.50 to 1.60).",
+      "name": "wavelength",
+      "unit": "um"
+    }
+  ],
+  "limits": [],
+  "maturity": {
+    "baseline": "NOT_STARTED",
+    "reference_execution": "PILOTED"
+  },
+  "next_experiment": "Define the phase convention and reproduce the mode-sign issue with a small diagnostic, then plan a costed finer-mesh or mode-expansion comparison (#345 tasks 1 to 4).",
+  "outputs": [
+    {
+      "description": "Normalized port powers such as |S31|^2 and |S41|^2.",
+      "name": "port_power",
+      "unit": "1"
+    },
+    {
+      "description": "Complex response phase; not well defined until the mode-sign convention is fixed (RESULT section 9).",
+      "name": "relative_phase",
+      "unit": "rad"
+    }
+  ],
+  "pilots": [
+    {
+      "attempt_id": "photonic-diagnostic",
+      "case_kind": "diagnostic",
+      "evidence": "docs/development/evidence/exam-design-2026-09-24/photonic-diagnostic/out/records.jsonl",
+      "note": "6 of 6 diagnostic runs on the A40 at 40/30/20 nm; coupled power and phase not converged (RESULT section 9).",
+      "outcomes": {
+        "OK": 6
+      }
+    },
+    {
+      "attempt_id": "pilot-2-photonic",
+      "case_kind": "ordinary",
+      "evidence": "docs/development/evidence/exam-design-2026-09-24/pilot-2/out/photonic_refs/records.jsonl",
+      "note": "Import fault: the overlay dropped the bundled ffmpeg execute bit (RESULT section 9 fault 1).",
+      "outcomes": {
+        "FAILED_INFRA": 16
+      }
+    },
+    {
+      "attempt_id": "refs-a-part1-photonic",
+      "case_kind": "ordinary",
+      "evidence": "docs/development/evidence/exam-design-2026-09-24/refs-a-part1/out/photonic_refs/records.jsonl",
+      "note": "Photonic child starved by the battery run; stopped.",
+      "outcomes": {
+        "REFERENCE_TIMEOUT": 1
+      }
+    },
+    {
+      "attempt_id": "aborted-gpu-ptxas",
+      "case_kind": "diagnostic",
+      "evidence": "docs/development/evidence/exam-design-2026-09-24/aborted-gpu-ptxas/out/photonic_refs/records.jsonl",
+      "note": "Recorded by the runner as REFERENCE_SOLVER_FAILED, but the cause was infrastructure: ptxas could not write the image's TMPDIR (RESULT section 9 fault 3). Kept as recorded.",
+      "outcomes": {
+        "REFERENCE_SOLVER_FAILED": 6
+      }
+    },
+    {
+      "attempt_id": "refs-c-gpu-photonic",
+      "case_kind": "diagnostic",
+      "evidence": "docs/development/evidence/exam-design-2026-09-24/refs-c-gpu/out/photonic_refs/records.jsonl",
+      "note": "Recorded as REFERENCE_SOLVER_FAILED; the mode solver needed a CPU device beside the GPU (RESULT section 9 fault 4), a configuration cause. Kept as recorded.",
+      "outcomes": {
+        "REFERENCE_SOLVER_FAILED": 6
+      }
+    }
+  ],
+  "population": {
+    "approved": null,
+    "proposed": "One coupler family, fixed material stack, declared wavelength band and fabrication variations (#345). A proposed development design, not a ratified production population."
+  },
+  "recommendation": {
+    "basis": "Exam design is deferred until the phase convention and coupled-power convergence are repaired: an exam built on an unresolved convention grades the convention (#345; RESULT section 9).",
+    "decision": "DEFER"
+  },
+  "record_version": 1,
+  "reference": {
+    "applicability": "Diagnostic only: coupled power is unconverged (about 15 % of the coupled fraction at 20 nm) and relative phase flips by about pi across resolutions.",
+    "evidence": [
+      "docs/development/evidence/exam-design-2026-09-24/photonic-diagnostic/out/records.jsonl",
+      "docs/development/EXAM_DESIGN_CAMPAIGN_RESULT.md section 9"
+    ],
+    "licence": null,
+    "model": "3D FDTD of an asymmetric directional coupler",
+    "solver": "fdtdx (JAX FDTD), as used in scripts/dev/exam_design/photonic_reference.py"
+  },
+  "reviews": {
+    "customer": {
+      "authority": null,
+      "state": "NOT_STARTED"
+    },
+    "launch": {
+      "authority": null,
+      "state": "NOT_STARTED"
+    },
+    "numerical_reference": {
+      "authority": null,
+      "state": "NOT_STARTED"
+    },
+    "scientific": {
+      "authority": null,
+      "state": "NOT_STARTED"
+    },
+    "security": {
+      "authority": null,
+      "state": "NOT_STARTED"
+    }
+  },
+  "schema": "carbon.challenge-readiness.v1",
+  "sources": [
+    "carbonphysicsai/Carbon#345",
+    "docs/development/EXAM_DESIGN_CAMPAIGN_RESULT.md section 9",
+    "scripts/dev/exam_design/photonic_reference.py"
+  ],
+  "status": "PROPOSED_DEVELOPMENT_DESIGN",
+  "tracking": "carbonphysicsai/Carbon#345",
+  "unresolved": [
+    "Mode orientation, port reference planes, power normalization and complex phase convention are undefined (#345 task 1).",
+    "Coupled power does not converge at 40/30/20 nm; a 10-15 nm study or a mode-expansion reference is needed.",
+    "Radiated and absorbed energy are not accounted for, so no passivity tolerance is supportable.",
+    "Whether complex S-parameters are supportable is undecided; a power-only variant needs its own explicit contract.",
+    "The solver's licence and redistribution rights are not recorded."
+  ]
+}
