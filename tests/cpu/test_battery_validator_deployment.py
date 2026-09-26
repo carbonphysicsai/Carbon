@@ -233,3 +233,90 @@ def test_a_readonly_deployment_cannot_evaluate(tmp_path):
     with pytest.raises(deployment.EvaluationUnavailable) as refused:
         deployment.evaluate(target, submission("hk1"))
     assert refused.value.code == "evaluation_readonly"
+
+
+def bare_config(tmp_path):
+    """A deployment whose root and journal do not exist yet (for `init`)."""
+    tmp_path.chmod(0o700)
+    validator = tmp_path / "validator"
+    value = {
+        "schema": deployment.SCHEMA,
+        "state": str(validator / "state.sqlite3"),
+        "private_root": str(validator / "root.bin"),
+        "journal": str(validator / "journal.jsonl"),
+        "work": str(validator / "work"),
+        "backend": "direct",
+        "require_commitment": False,
+    }
+    return write(tmp_path / "deployment.json", value)
+
+
+def test_init_creates_and_commits_the_root_once(tmp_path, capsys):
+    path = bare_config(tmp_path)
+    assert operate.main(["init", "--config", str(path)]) == 0
+    first = json.loads(capsys.readouterr().out)
+    root_path = tmp_path / "validator" / "root.bin"
+    journal_path = tmp_path / "validator" / "journal.jsonl"
+    assert first["root_created"] and first["root_committed"]
+    assert root_path.stat().st_mode & 0o777 == 0o600
+    assert root_path.stat().st_size == 32
+    assert journal_path.stat().st_mode & 0o777 == 0o600
+    assert (tmp_path / "validator").stat().st_mode & 0o777 == 0o700
+    pin = first["seed_pin"]
+    assert pin["generator_digest"] == seeds.generator_digest(REPOSITORY)
+    from carbon.battery.daemon import rule_digest
+
+    assert pin["scoring_digest"] == rule_digest()
+    # Nothing printed reveals the root.
+    root = root_path.read_bytes()
+    assert root.hex() not in json.dumps(first)
+    # A second run keeps the root and its binding.
+    before = (root, journal_path.read_bytes())
+    assert operate.main(["init", "--config", str(path)]) == 0
+    second = json.loads(capsys.readouterr().out)
+    assert not second["root_created"] and not second["root_committed"]
+    assert second["seed_pin"] == pin
+    assert (root_path.read_bytes(), journal_path.read_bytes()) == before
+    # The deployment now builds and reports the committed pin.
+    assert operate.main(["status", "--config", str(path)]) == 0
+    capsys.readouterr()
+
+
+def test_init_refuses_a_journal_bound_to_another_root(tmp_path, capsys):
+    path = bare_config(tmp_path)
+    assert operate.main(["init", "--config", str(path)]) == 0
+    capsys.readouterr()
+    root_path = tmp_path / "validator" / "root.bin"
+    root_path.unlink()
+    # A missing committed root is refused, and no replacement is written.
+    assert operate.main(["init", "--config", str(path)]) == 2
+    assert json.loads(capsys.readouterr().out) == {
+        "unavailable": "evaluation_journal_other_root"
+    }
+    assert not root_path.exists()
+    # Another existing root is refused too.
+    seeds.PrivateRoot.create(root_path)
+    assert operate.main(["init", "--config", str(path)]) == 2
+    assert json.loads(capsys.readouterr().out) == {
+        "unavailable": "evaluation_journal_other_root"
+    }
+
+
+def test_init_keeps_and_refuses_a_group_readable_root(tmp_path, capsys):
+    path = bare_config(tmp_path)
+    (tmp_path / "validator").mkdir(mode=0o700)
+    root_path = tmp_path / "validator" / "root.bin"
+    root_path.write_bytes(b"x" * 32)
+    root_path.chmod(0o640)
+    assert operate.main(["init", "--config", str(path)]) == 2
+    assert json.loads(capsys.readouterr().out) == {
+        "unavailable": "evaluation_root_refused"
+    }
+    assert root_path.read_bytes() == b"x" * 32
+    assert not (tmp_path / "validator" / "journal.jsonl").exists()
+
+
+def test_the_generator_digest_is_a_stable_tagged_identity():
+    value = seeds.generator_digest(REPOSITORY)
+    assert value == seeds.generator_digest(REPOSITORY)
+    assert value.startswith("sha256:") and len(value) == 71

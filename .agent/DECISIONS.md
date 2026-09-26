@@ -15828,3 +15828,171 @@ choice.
   refused here);
 - truth solves on a host;
 - any testnet observation (M7).
+
+## 2026-09-25 — OWNER-BATTERY-TESTNET-04: prior spend, GPU image, OD-3 review
+
+**Authority.** The owner, in session on 2026-09-25, answering three
+questions.
+
+1. **The exam-design RunPod spend does not count against OD-5.**
+   - The earlier campaign's about USD 4.79 (the 2026-09-24/25 ledger) is
+     outside this track.
+   - The track keeps its full USD 20: RunPod 14, model provider 6.
+   - Spend in this track so far is USD 0 on each.
+2. **GPU validator image: reuse `carbon-accelerator-worker`, and build onto
+   it only if needed.**
+   - The image is `carbon-accelerator-worker@sha256:e4a2014daa9abc4e3df0bb890bc031a6a859ae21f42d4bec0a0494e25d949794`
+     (C-CORE-19 evidence), built from environment lock
+     `.devcontainer/accelerators/cuda13-py311.txt`.
+   - That lock pins the battery runtime's exact versions: jax/jaxlib
+     0.10.2, optax 0.2.8, numpy 2.4.6, scipy 1.17.1. The battery programs are
+     staged per run, so no new layer is expected.
+   - If one proves necessary, the derived image's identity and its added
+     layer are recorded and shown to the owner before use.
+3. **The OD-3 security review is recorded as approved** for:
+   - the PyBaMM truth image: the base digest plus the overlay lock;
+   - the GPU validator image named in item 2.
+
+   A derived image is a new identity. Its added layer is listed for the owner
+   under item 2, and the approval is not assumed to cover it.
+
+**Unchanged.**
+- M4 still requires two-host reproducibility on RunPod. The local RTX 3060
+  is preflight only.
+- Every paid step still needs a fresh balance and active-pod check, a
+  journaled pod ID and verified termination.
+- OD-4a still needs its numbered, digest-approved record. OD-4b is not
+  authorized.
+
+## 2026-09-25 — M4P-D1: the production seed pin and one-time `operate init`
+
+**Delegated engineering decision** (BATTERY-TESTNET-M4P; no scientific
+value is chosen).
+
+- **Finding.** A pre-handoff audit found that the handoff told the host to
+  commit the private root "with the seed pin from the M2 seed service", but
+  no production pin source existed. Only tests used fixture digests. A host
+  session would have had to invent the generator and scoring digests.
+- **Decision.** `seeds.generator_digest(repository)` is the generator
+  identity: the SHA-256 of `challenge.py`, `seeds.py`, `reference.py` and
+  `truth.py`, the truth base image reference and the overlay lock digest.
+  The scoring digest is the daemon's OD-2 `rule_digest()`.
+  `operate init --config` creates the root once, with `O_EXCL` and `0600`,
+  and commits it with that pin. The pin is recorded in the journal's root
+  entry and never recomputed, so later code changes do not rebind a
+  deployment.
+- **Fail closed.**
+  - An existing root and binding are kept and reported.
+  - A journal bound to another root is refused.
+  - A missing committed root is refused, and no replacement is written.
+  - A group-readable root or journal is refused.
+  - Only the public commitment and pin are printed.
+- **Handoff.** `BATTERY_TESTNET_HOST_HANDOFF.md` §0 now holds the complete
+  host-session procedure. The OD-4a request prepared on the host is a draft
+  for format review. The owner approves a digest regenerated from a fresh
+  probe just before dispatch.
+
+## 2026-09-25 — BATTERY-EV1 working engineering decisions (EV1-D1 to D8)
+
+Status: `IMPLEMENTED_WORKING_DECISION` in the EV1 PR. Authority: the owner's
+2026-09-25 engineering-value direction.
+
+This is off-chain public synthetic DEVELOPMENT evidence. The approved
+battery exam, pool rotation, commitments, Phase A publication, winner
+authority, fees and rewards are unchanged. The engineering preferences
+(thresholds, candidate grid, baseline, minimum useful improvement, mistake
+costs) are provisional DEVELOPMENT choices. No customer declared them and
+none is commercially qualified.
+
+1. **EV1-D1: a narrower first objective.**
+   - Time to a target state of charge cannot be measured from the reference
+     records. They keep V and T over the first 3600 s, a cycle-1 plating
+     margin and capacities, with no SOC, current or step-event data.
+   - EV1 therefore minimizes the worst-case **time to constant-voltage onset**:
+     the first 4.19 V crossing after the 120 s rest, on the 30 s grid, by
+     linear interpolation. Both the reference and every surrogate produce
+     this.
+   - An onset not reached inside the window fails a declared reach
+     constraint. It is never scored as the window length.
+   - The charging-time extension (a SOC target) is prepared separately
+     (`docs/development/BATTERY_ENGINEERING_VALUE_EV1.md` §7). It needs a
+     reference output change, a new surrogate output, versioned contracts
+     and re-solved references.
+2. **EV1-D2: design variables are separate from operating conditions.**
+   - c1 and c2 are the only choices. Ambient temperature and initial SOC are
+     fixed by each scenario.
+   - A protocol must meet every constraint in every condition of its
+     scenario. There is no per-condition choice.
+3. **EV1-D3: reference uncertainty comes from evidence.**
+   - The bands are the maximum shift between standard and refined solves of
+     the 16 refined TRAIN cases: 3.15 s, 1.97 mV and 0.157 °C.
+   - A value inside its band is UNRESOLVED and is never forced to pass or
+     fail.
+   - A missing or failed reference is REFERENCE_UNAVAILABLE, never a
+     candidate failure.
+4. **EV1-D4: physics is not measurable for battery.**
+   - The exam's gates are mandatory checks, not a physics score, and none is
+     invented.
+   - The 45/30/25 profile is therefore reported NOT_MEASURABLE (a
+     `missing_component` refusal), not computed with a constant.
+   - Robustness is `1/(1+E_important)` and accuracy is `1/(1+E)`. These are
+     the exam's own normalized errors with the CW1 DEVELOPMENT transform,
+     held fixed across profiles.
+5. **EV1-D5: zero weights get a separate versioned contract.**
+   - This is `carbon.development-weight-profile.v1`. A zero leg is omitted
+     before logarithms; positive weights sum to exactly 1; an all-zero
+     profile, a missing positive component and out-of-range values are
+     refused.
+   - Gates stay mandatory: an ineligible model scores 0.
+   - The core Score Pack parser is unchanged.
+6. **EV1-D6: the model panel.**
+   - The members are the campaign's retained recipes (knn, mlp, mlp_half,
+     mlp_plus, mlp_localized, mlp_raw, mlp_ens3), reconstructed with
+     declared seeds. Only weight digests were retained.
+   - Seeds are repetitions of a recipe, never separate families.
+   - Five labelled synthetic controls (oracle, conservative,
+     boundary-optimist, rank-preserving delay, localized sign error) test
+     scoring failure modes. They are not miner submissions or evidence of
+     achievable performance, and they keep the declared initial values, as
+     every real model does.
+7. **EV1-D7: the scoring set.**
+   - It is the retained exam-design private-role references: pscreen B00 to
+     B05, pfinal and pverify, 1588 cases, all public since the campaign
+     reveal.
+   - Hidden duplicates are absent, so the paired-repeat gate is not
+     exercised there.
+   - Leave-one-batch-out tests ranking stability.
+8. **EV1-D8: reference execution.**
+   - Decision references are solved with the pinned PyBaMM 26.8.0.0
+     overlay, installed from its hash-checked lock, by Carbon's truth
+     service in the development sandbox. This is not the digest-pinned truth
+     image.
+   - Each record keeps its solve time. The contract's reference identity
+     names this, and `import-references` accepts records re-solved on the
+     operator host.
+   - No paid resource is used.
+
+## 2026-09-26 — OWNER-LAUNCH-PORTFOLIO-01: battery is a launch Challenge
+
+**Authority.** The owner, in session on 2026-09-26: "override. I want battery
+in the launch portfolio. I want battery, motors, cold plates, photonics", then
+"please proceed with battery like it is a launch challenge. it is".
+
+1. **The launch portfolio is battery, electric motors, AI-chip cold plates and
+   silicon photonics.** This supersedes #341's "custom chip design and battery
+   are outside this launch portfolio" for battery.
+2. **Battery proceeds as a launch Challenge.** Its study is the portfolio's most
+   advanced evidence, and its remaining work is launch-readiness work rather
+   than a close-out. EV1 and a successor EV2 continue as part of that path.
+3. **Power magnetics (#343) and airfoil (#346) are not named in the portfolio.**
+   Their issues stay open as recorded work. They are not scheduled ahead of the
+   four.
+4. **Unchanged by this decision:**
+   - scientific, security and production qualification;
+   - the OD-1 to OD-8 battery authorities, including non-paying DEVELOPMENT
+     status (OD-1) and Phase A all-burn only (OD-4a);
+   - the launch gates in `EXAM_DESIGN_CAMPAIGN_RESULT.md` §11;
+   - spending authority.
+
+   Portfolio membership states intent to launch. It is not a launch approval,
+   and no Challenge becomes LIVE or reward-bearing from it.
