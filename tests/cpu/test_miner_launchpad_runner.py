@@ -548,3 +548,110 @@ def test_a_retired_grant_is_held_only_for_cleanup(tmp_path, monkeypatch):
     assert ledger.retained_owner("miner-requester")["owner"] == "miner-requester"
     with pytest.raises(ValueError, match="admits no new work"):
         reserve(ledger, "after-retirement")
+
+
+# --- research images come from the miner's profile, not a grant --------------
+
+
+def julia_profile(tmp_path, *, declare=True, name=True):
+    from scripts.dev.miner_launchpad.runner import PATH_FIELDS
+
+    record = tmp_path / "authored-julia-image-record.json"
+    record.write_bytes(canonical({"schema": "fixture-record", "image": "x"}))
+    record.chmod(0o600)
+    runtime = json.loads(json.dumps(RUNTIME))
+    if declare:
+        runtime["authored_research"] = [{"schema": "fixture-scope"}]
+    cfg = {
+        "schema": "carbon.launchpad.runner-profile.v2",
+        "profile_id": "opaque-profile",
+        "principal": "alice",
+        "enabled": True,
+        "accepted_revision": REVISION,
+        "campaigns_root": str(tmp_path / "campaigns"),
+        "runtime": runtime,
+        "paths": {key: str(tmp_path / key) for key in PATH_FIELDS},
+    }
+    if name:
+        cfg["authored_julia_image"] = str(record)
+    return cfg, record
+
+
+def test_a_declared_composition_needs_its_record(tmp_path):
+    from scripts.dev.miner_launchpad.runner import validated_profile
+
+    cfg, _ = julia_profile(tmp_path, declare=True, name=False)
+    with pytest.raises(ValueError, match="authored_julia_image"):
+        validated_profile(cfg)
+
+
+def test_julia_needs_no_declaration_at_all(tmp_path):
+    """Anytime: a profile naming a built Julia image is valid with nothing
+    declared in the runtime; every campaign can use it."""
+    from scripts.dev.miner_launchpad.runner import validated_profile
+
+    cfg, _ = julia_profile(tmp_path, declare=False, name=True)
+    assert validated_profile(cfg) == cfg
+
+
+def test_a_gpu_record_still_pairs_with_its_declaration(tmp_path):
+    """GPU research binds its scope to the campaign's own material, so a GPU
+    record with nothing declared is refused - the specimen that the pairing
+    check still bites where it applies."""
+    from scripts.dev.miner_launchpad.runner import validated_profile
+
+    cfg, _ = julia_profile(tmp_path, declare=False, name=False)
+    cfg["gpu_image"] = str(tmp_path / "gpu-record.json")
+    with pytest.raises(ValueError, match="gpu_image"):
+        validated_profile(cfg)
+
+
+def test_julia_needs_no_grant_only_the_profile(tmp_path, monkeypatch):
+    """The record is installed into the campaign root at launch, before the
+    campaign runs - where an operator used to write it by hand per grant."""
+    from carbon.development_session import research_campaign
+    from scripts.dev.miner_launchpad.runner import validated_profile
+
+    tmp_path.chmod(0o700)
+    cfg, record = julia_profile(tmp_path)
+    assert validated_profile(cfg) == cfg
+    Path(cfg["campaigns_root"]).mkdir(mode=0o700)
+    bridge = RunnerAdapter(
+        tmp_path / "browser.sqlite3", principal="alice", registration=Chain()
+    )
+    monkeypatch.setattr(bridge, "configured", lambda: cfg)
+    started = []
+    monkeypatch.setattr(bridge, "_start", lambda *args: started.append(args))
+    bridge.launch({"profile": "opaque-profile"}, KEY)
+    identity, _cfg, root, product = started[0]
+    seen = {}
+
+    async def entry(args, *, ledger):
+        seen["record"] = (root / "authored-julia-image.json").read_bytes()
+        seen["grant"] = ledger.admission
+
+    monkeypatch.setattr(research_campaign, "execute", entry)
+    monkeypatch.setattr(bridge, "_cleanup", lambda ledger: True)
+    bridge._run(identity, cfg, root, product)
+    assert seen == {"record": record.read_bytes(), "grant": None}
+    assert (root / "authored-julia-image.json").stat().st_mode & 0o777 == 0o600
+
+
+def test_a_rebuilt_image_reaches_a_running_campaign(tmp_path):
+    """Anytime: a newer record replaces the installed one on the next launch,
+    resume or attach. Nothing trusts the record's history; each run records
+    the image it actually used."""
+    from scripts.dev.miner_launchpad.runner import install_research_images
+
+    cfg, record = julia_profile(tmp_path)
+    root = tmp_path / "campaign"
+    root.mkdir(mode=0o700)
+    install_research_images(cfg, root)
+    install_research_images(cfg, root)  # Unchanged: nothing rewritten.
+    rebuilt = canonical({"schema": "fixture-record", "image": "rebuilt"})
+    record.write_bytes(rebuilt)
+    install_research_images(cfg, root)
+    installed = root / "authored-julia-image.json"
+    assert installed.read_bytes() == rebuilt
+    assert installed.stat().st_mode & 0o777 == 0o600
+    assert not (root / "authored-julia-image.json.installing").exists()

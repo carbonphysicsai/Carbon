@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-26T11:53:29Z"
+  captured_at_utc: "2026-09-26T16:30:28Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "ccc3fab2d45e61eb737deb7129f93819c08f2ae5"
+  authority_snapshot_commit: "c3ac244304b36431d404778b9b6a72aa28ba3864"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -9850,6 +9850,19 @@ events:
       - "WAVE-C/C-W1-D4"
     supersedes: null
     recorded_at: "2026-09-23T21:46:39Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "evidence"
+    event_id: "C-MLP-02-JULIA-ANYTIME-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "Implemented authored Julia for every product campaign at any time, with two pinned SciML environments, under the owner direction that a miner may use any prebuilt tool whenever they choose and that grants are test machinery, not product. A registered miner's product campaign reaches the host's installed Julia research image without a grant or any launch-time declaration: every launch, resume and attach installs the host's current image record, and each run records in its own execution contract exactly which image and environment it used. The image carries two environments, each a committed Project.toml and Manifest.toml pinned by content hash and precompiled at build time for a portable CPU target: current, with the newest SciML core (ModelingToolkit 11, Symbolics 7, OrdinaryDiffEq 7, Lux, Enzyme and the rest), and pde, with NeuralPDE, MethodOfLines and DataDrivenDiffEq on the prior core. Two packages were dropped from pde because the registry resolved incompatible releases together (Mooncake on Julia 1.13, and BoundaryValueDiffEq across a keyword rename; the current environment provides boundary-value solvers), and Distributions is held at 0.25.126 there for Turing. A defect invisible at build time is fixed: packages that create scratch space when they load, including GPUCompiler under Enzyme, could not load against the read-only image depot, so the bootstrap now puts a writable per-run depot ahead of it. Both environments are resolved and precompiled at build time; a service test proving real numerical work in the sandbox, beyond loading, is not part of this change and lands separately. Runs remain isolated, network-free, self-reported and never official."
+    primary_detail: "carbon/development_session/julia_analysis.py"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "WAVE-C/C-W1-D4"
+    supersedes: null
+    recorded_at: "2026-09-24T01:57:58Z"
   -
     map_ref: "SYSTEM/AGENT-EXECUTION"
     event_type: "evidence"

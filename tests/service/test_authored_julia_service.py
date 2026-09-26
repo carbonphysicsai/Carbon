@@ -119,8 +119,10 @@ using Sockets
 @assert !ispath("/input/campaign.sqlite3")
 @assert !ispath("/opt/carbon-worker/lib/python3.11/site-packages/carbon/development_session")
 @assert !any(haskey(ENV,k) for k in ["OPENAI_API_KEY","AWS_SECRET_ACCESS_KEY","GOOGLE_APPLICATION_CREDENTIALS"])
-@assert DEPOT_PATH == ["/opt/carbon-julia-analysis/depot"]
-@assert LOAD_PATH == ["/opt/carbon-julia-analysis", "@stdlib"]
+# A writable per-run depot first, then the read-only pinned image depot.
+@assert DEPOT_PATH == ["/scratch/julia-depot", "/opt/carbon-julia-analysis/depot"]
+# The default environment's pinned project, and nothing a program could add.
+@assert LOAD_PATH == ["/opt/carbon-julia-analysis/current", "@stdlib"]
 for path in ["/forbidden-root", "/opt/carbon-julia-analysis/Project.toml", "/input/public.txt"]
     failed=false
     try write(path,"forbidden") catch; failed=true end
@@ -189,7 +191,9 @@ using Pkg
 @assert !isfile("/scratch/output/startup-ran.txt")
 failed=try Pkg.add("CarbonUnregisteredRequestPackage"); false catch; true end
 @assert failed
-@assert isempty(readdir("/opt/carbon-julia-analysis/depot"))
+# The depot holds the pinned, precompiled packages and cannot be written.
+depot_written=try mkdir("/opt/carbon-julia-analysis/depot/added"); true catch; false end
+@assert !depot_written
 write("/scratch/output/result.json","{\"installation_denied\":true}")
 """
     result = run_julia(
@@ -411,9 +415,16 @@ def test_deadline_stops_running_julia_and_child_without_refund(image, tmp_path):
             time.sleep(0.1)
         else:
             pytest.fail("deadline test did not observe active Julia and child")
+        # The miner lane times the allowance from program start, not container
+        # creation, so the wait must outlast the whole 60 s allowance.
         with pytest.raises(WorkerFailure) as caught:
-            future.result(timeout=45)
-        assert caught.value.private_diagnostic == b"stream command timed out"
+            future.result(timeout=90)
+        # Either deadline stops it: the watchdog kills the container at the
+        # allowance (SIGKILL, exit 137), or the stream's own timeout fires first.
+        diagnostic = caught.value.private_diagnostic
+        assert diagnostic == b"stream command timed out" or diagnostic.startswith(
+            b"exit=137\n"
+        ), diagnostic
     result = reconcile_worker(ledger, owner="test-miner", identity="deadline-julia")
     assert result["cleanup_observed"] is True
     assert ledger.status(owner="test-miner")["used"]["numerical_milliseconds"] == 60000

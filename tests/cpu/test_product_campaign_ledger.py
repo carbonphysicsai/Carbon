@@ -323,3 +323,25 @@ def test_a_product_campaign_reaches_authored_julia_with_its_scope(tmp_path):
     julia.authorize_julia(ledger, OWNER, image)
     with pytest.raises(ValueError, match="authored Julia scope"):
         julia.authorize_julia(ledger, "bob", image)
+
+
+def test_a_product_campaign_uses_julia_with_nothing_declared(tmp_path):
+    """Anytime Julia. A development grant campaign keeps the frozen-scope rule;
+    `test_ungranted_authored_code_never_reaches_carrier` in the authored Julia
+    tests is the specimen that an undeclared grant campaign is still refused."""
+    from carbon.development_session import julia_analysis as julia
+    from carbon.development_session.profile import canonical
+    from carbon.development_session.research_image import ResearchImageIdentity
+
+    parent = ResearchImageIdentity(
+        "sha256:" + "a" * 64, "sha256:" + "b" * 64, "sha256:" + "c" * 64
+    )
+    image = julia.JuliaResearchImageIdentity(
+        "sha256:" + "d" * 64, parent, digest(canonical(julia.runtime_document(parent)))
+    )
+    ledger = product(tmp_path, runtime={"implementation": "fixture"})
+    julia.authorize_julia(ledger, OWNER, image)
+    with pytest.raises(ValueError, match="authored Julia scope"):
+        julia.authorize_julia(ledger, "bob", image)
+    with pytest.raises(ValueError, match="separate authored Julia image"):
+        julia.authorize_julia(ledger, OWNER, object())
