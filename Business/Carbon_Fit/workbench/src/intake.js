@@ -5,6 +5,7 @@
   const MAPPING_VERSION = "carbon.client-intake.mapping.v1";
   const REVIEW_VERSION = "carbon.client-intake.reviewed.v1";
   const GUIDANCE_VERSION = "carbon.client-intake.guidance.v1";
+  const GUIDANCE_PROVIDERS = Object.freeze(["OPENAI_API", "CHUTES_API"]);
   const LOCAL_SCOPE = "LOCAL_SYNTHETIC_DEVELOPMENT_NOT_TRANSMITTED";
   const REVIEW_SCOPE = "LOCAL_REVIEW_PACKAGE_NOT_SUBMITTED";
   const TEXT_FIELDS = [
@@ -338,7 +339,9 @@
     nullableText(value.ai_guidance.provider, "AI provider", 120);
     nullableText(value.ai_guidance.notice_version, "notice version", 128);
     nullableText(value.ai_guidance.consented_at, "consent time", 64);
-    if (value.ai_guidance.enabled && (value.ai_guidance.provider !== "OPENAI_API" || !value.ai_guidance.notice_version || !value.ai_guidance.consented_at))
+    // CHUTES_API since the 2026-09-26 notice. OPENAI_API stays valid so a
+    // package exported under the earlier notice still validates as it was made.
+    if (value.ai_guidance.enabled && (!GUIDANCE_PROVIDERS.includes(value.ai_guidance.provider) || !value.ai_guidance.notice_version || !value.ai_guidance.consented_at))
       throw Error("Enabled AI guidance requires provider and consent details");
     if (!value.ai_guidance.enabled && (value.ai_guidance.provider !== null || value.ai_guidance.notice_version !== null || value.ai_guidance.consented_at !== null))
       throw Error("Disabled AI guidance cannot claim consent");
@@ -469,6 +472,7 @@
     LOCAL_SCOPE,
     REVIEW_VERSION,
     GUIDANCE_VERSION,
+    GUIDANCE_PROVIDERS,
     REVIEW_SCOPE,
     TEXT_FIELDS,
     QUANTITY_FIELDS,
