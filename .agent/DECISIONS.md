@@ -16044,4 +16044,3 @@ the opt-in), then "and counsel approves E7".
    standard of the 2026-09-23 delegated decision 4.
 
 See `.agent/tickets/GOAL-WORKBENCH-15_client_data_engineering.md`.
-
