@@ -17,6 +17,44 @@ import json
 HOTKEY = "5F3sa2TJAWMqDhXG6jhV4N8ko9SxwGy8TpaNS1repo5EYjQX"
 
 
+def reference_burgers_campaign():
+    """DEVELOPMENT FIXTURE ONLY: the retired Burgers campaign's reference code.
+
+    Burgers is retired from the research path: `campaign_for` has no Burgers
+    campaign and a launch must name its Challenge. Tests of Challenge-neutral
+    lifecycle machinery (freeze, submit, epoch limits, finite completion) still
+    drive it through this reference code, built here explicitly; nothing in the
+    product can reach it.
+    """
+    from carbon.challenge_registry.campaigns import ChallengeCampaign
+    from carbon.development_session import research_campaign as burgers
+
+    def never_attached(*_, **__):
+        raise RuntimeError("the reference Burgers campaign is never attached")
+
+    return ChallengeCampaign(
+        key=burgers.CHALLENGE,
+        prepare=burgers.prepare_burgers,
+        evaluate=burgers.evaluate_burgers,
+        observation=burgers.burgers_observation,
+        refusal_retains_candidate=False,
+        check_attached=never_attached,
+        compose=never_attached,
+    )
+
+
+def use_reference_burgers(patch):
+    """DEVELOPMENT FIXTURE ONLY: route `research_campaign.prepare` to the
+    reference Burgers campaign for the rest of a test (pass pytest's
+    monkeypatch.setattr as `patch` so nothing outlives it)."""
+    from carbon.challenge_registry import campaigns
+
+    campaign = reference_burgers_campaign()
+    patch(campaigns, "campaign_challenge", lambda args: None)
+    patch(campaigns, "campaign_for", lambda challenge: campaign)
+    return campaign
+
+
 def journey_host(root, *, patch=setattr):
     """`patch(target, name, value)` installs each fixture. A process of its own
     (the smoke, a stdio server) uses plain setattr; a test runner passes
@@ -37,7 +75,6 @@ def _journey_host(root, patch):
     from types import SimpleNamespace
 
     from carbon.chain.models import MetagraphSnapshot, Participant
-    from carbon.challenge_registry.campaigns import campaign_for
     from carbon.development_session import research_campaign, research_rewards
     from carbon.development_session.chain_onboarding import (
         PublicAddress,
@@ -140,7 +177,7 @@ def _journey_host(root, patch):
             task=None,
             grant=None,
             agent_policy=None,
-            campaign=campaign_for(None),
+            campaign=reference_burgers_campaign(),
         )
 
     async def final_epoch(args, ledger, owner, epoch, strategy, *_):

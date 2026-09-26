@@ -29,6 +29,11 @@ from pathlib import Path
 
 import pytest
 
+from carbon.reconstruction.capability_registry import (
+    BATTERY_CHALLENGE,
+    BATTERY_CONTRACT,
+)
+
 REPOSITORY = Path(__file__).resolve().parents[2]
 STRATEGY = {
     "schema_version": "1.0",
@@ -59,6 +64,9 @@ JOURNEY = (
         "launch",
         {
             "agent": "none",
+            # A launch names its Challenge; there is no default.
+            "challenge": BATTERY_CHALLENGE,
+            "challenge_version": BATTERY_CONTRACT.version,
             "budget": {"elapsed_seconds": 3600, "final_reserve": True},
             "idempotency_key": "one-journey-key-0000001",
         },
