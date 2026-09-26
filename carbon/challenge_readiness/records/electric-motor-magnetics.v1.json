@@ -1,0 +1,156 @@
+{
+  "challenge_id": "electric-motor-magnetics",
+  "costs": [
+    {
+      "basis": "unknown",
+      "evidence": null,
+      "item": "startup",
+      "unit": "USD",
+      "usd": null
+    },
+    {
+      "basis": "unknown",
+      "evidence": null,
+      "item": "mesh",
+      "unit": "USD",
+      "usd": null
+    },
+    {
+      "basis": "unknown",
+      "evidence": null,
+      "item": "reference",
+      "unit": "USD",
+      "usd": null
+    },
+    {
+      "basis": "unknown",
+      "evidence": null,
+      "item": "reconstruction",
+      "unit": "USD",
+      "usd": null
+    },
+    {
+      "basis": "unknown",
+      "evidence": null,
+      "item": "inference",
+      "unit": "USD",
+      "usd": null
+    },
+    {
+      "basis": "unknown",
+      "evidence": null,
+      "item": "finalist",
+      "unit": "USD",
+      "usd": null
+    },
+    {
+      "basis": "unknown",
+      "evidence": null,
+      "item": "cleanup",
+      "unit": "USD",
+      "usd": null
+    }
+  ],
+  "decision": {
+    "buyer": "Motor and actuator suppliers (a hypothesis in #344; a magnetic component, not a qualified robotic joint).",
+    "engineering_decision": "Choose a permanent-magnet cross-section that maximizes useful torque under a prospectively specified ripple constraint, at fixed outer size, current and magnet use.",
+    "intended_use": "A small feasibility assessment (#341): whether a bounded magnetic-design candidate exists that Carbon could evaluate, and what its reference would cost."
+  },
+  "design_variables": [
+    {
+      "description": "Parameters of one permanent-magnet topology's 2D cross-section; the parameter list is not yet fixed.",
+      "name": "cross_section_geometry",
+      "unit": "mm"
+    },
+    {
+      "description": "Current and phase.",
+      "name": "phase_current",
+      "unit": "A"
+    },
+    {
+      "description": "Rotor angle.",
+      "name": "rotor_angle",
+      "unit": "rad"
+    }
+  ],
+  "limits": [],
+  "maturity": {
+    "baseline": "NOT_STARTED",
+    "reference_execution": "SCOPED"
+  },
+  "next_experiment": "Choose one published reproducible motor benchmark and prove a bounded rotor-angle sweep (#344 first task); this is a feasibility assessment, not a dataset.",
+  "outputs": [
+    {
+      "description": "Torque over rotor angle.",
+      "name": "torque_angle_curve",
+      "unit": "N.m"
+    },
+    {
+      "description": "Mean torque.",
+      "name": "mean_torque",
+      "unit": "N.m"
+    },
+    {
+      "description": "Torque ripple; its resolution must be demonstrated (#344).",
+      "name": "torque_ripple",
+      "unit": "N.m"
+    },
+    {
+      "description": "Selected flux quantities, not yet chosen.",
+      "name": "flux_quantities",
+      "unit": "T"
+    }
+  ],
+  "pilots": [],
+  "population": {
+    "approved": null,
+    "proposed": "One permanent-magnet topology with a parameterized 2D cross-section and a stated axial length (#344). A proposed development design, not a ratified production population."
+  },
+  "recommendation": {
+    "basis": "No reference pilot has run.",
+    "decision": "NONE"
+  },
+  "record_version": 1,
+  "reference": {
+    "applicability": "Candidate: FEMM or a Linux-capable FEM alternative, to be assessed; host automation and licensing must be verified, not assumed (#344). Nothing is pinned or run.",
+    "evidence": [],
+    "licence": null,
+    "model": null,
+    "solver": null
+  },
+  "reviews": {
+    "customer": {
+      "authority": null,
+      "state": "NOT_STARTED"
+    },
+    "launch": {
+      "authority": null,
+      "state": "NOT_STARTED"
+    },
+    "numerical_reference": {
+      "authority": null,
+      "state": "NOT_STARTED"
+    },
+    "scientific": {
+      "authority": null,
+      "state": "NOT_STARTED"
+    },
+    "security": {
+      "authority": null,
+      "state": "NOT_STARTED"
+    }
+  },
+  "schema": "carbon.challenge-readiness.v1",
+  "sources": [
+    "carbonphysicsai/Carbon#344",
+    "carbonphysicsai/Carbon#341"
+  ],
+  "status": "PROPOSED_DEVELOPMENT_DESIGN",
+  "tracking": "carbonphysicsai/Carbon#344",
+  "unresolved": [
+    "Material curves, axial length and the exclusions (end effects, thermal duty, stress, acoustics, drive control) are not yet specified.",
+    "Solver choice, Linux automation and licence are unverified.",
+    "The rotor-angle resolution needed to resolve ripple is not yet demonstrated.",
+    "#341 proposes 8 ordinary and 4 difficult valid cases with paired refinement of at least 4 as the first engineering pilot; it needs a price and owner approval before it runs."
+  ]
+}
