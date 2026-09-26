@@ -1,10 +1,14 @@
 # Battery adaptive-agent campaign: pre-registration
 
-**Status.** This is a **DRAFT for owner approval**, written before any run.
+**Status.** **APPROVED by the owner on 2026-09-26**, written before any run.
+The approval covers the whole document, including §2's feedback-blind control
+design and §3's USD 3 / USD 3 split.
 - No model call has been made and nothing is dispatched.
-- Once the owner approves it, this document is frozen. Its digest goes into
-  the campaign manifest before the first provider call.
-- Changes after approval need a new version, and the approved version is kept.
+- This version is frozen. Its digest goes into both campaign manifests before
+  the first provider call.
+- Changes need a new version, and this approved version is kept.
+- Approval of the design does not start the campaign. §6 still gates the first
+  provider call.
 
 **Authority.**
 - Owner approval of 2026-09-26: USD 6 model-provider budget (OD-5).
@@ -139,8 +143,8 @@ promote.
 
 ## 6. Before the first provider call
 
-1. The owner approves this document, including §2's control design and §3's
-   budget split.
+1. ~~The owner approves this document, including §2's control design and
+   §3's budget split.~~ Done: approved 2026-09-26.
 2. The Launchpad Anthropic-Messages transport is merged, then arm B's
    feedback-blind mode is implemented, tested and merged.
 3. The provider credential is owner-held on this host. The campaign reads it
