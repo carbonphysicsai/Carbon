@@ -32,7 +32,13 @@ from scripts.dev.miner_launchpad.controller import Rejected
 #: builds its tool schemas from them, so a field cannot mean two things.
 FIELDS = {
     "agent": ("string", "Who selects: autonomous (Carbon's agent) or none (you)."),
-    "idempotency_key": ("string", "16-80 letters, digits, - or _; a retry replays."),
+    "idempotency_key": (
+        "string",
+        (
+            "16-80 letters, digits, - or _, one per action: a retry with the "
+            "same key and request replays it; another request under it is refused."
+        ),
+    ),
     "budget": ("object", "Optional ceilings, elapsed_seconds or final_reserve."),
     "review_digest": ("string", "The launch review you accepted, when one applies."),
     "profile": ("string", "Your runner profile id, to confirm which one."),
@@ -57,7 +63,9 @@ FIELDS = {
 }
 
 #: The gates, in the only order they run. `replay` is read-only and precedes
-#: registration so a lost response replays without a chain read.
+#: registration so a lost response replays without a chain read. Launch
+#: requires a key; practice, freeze_candidate and submit accept one, and a
+#: request without one is simply never a replay.
 GATE_ORDER = ("request", "profile", "replay", "registration", "campaign")
 _TOKEN = object()
 
@@ -139,8 +147,8 @@ OPERATIONS = {
             "real training on public TRAIN data, self-reported. A candidate "
             "must have a practice result before it can be frozen.",
             frozenset({"campaign", "strategy", "hypothesis"}),
-            frozenset({"expected_effect"}),
-            ("request", "profile", "registration", "campaign"),
+            frozenset({"expected_effect", "idempotency_key"}),
+            ("request", "profile", "replay", "registration", "campaign"),
         ),
         Operation(
             "halt",
@@ -163,8 +171,8 @@ OPERATIONS = {
             "Freeze a recipe you have practiced as this epoch's candidate. "
             "Refused for a recipe with no practice result.",
             frozenset({"campaign", "strategy", "reason"}),
-            frozenset({"used_feedback"}),
-            ("request", "profile", "registration", "campaign"),
+            frozenset({"used_feedback", "idempotency_key"}),
+            ("request", "profile", "replay", "registration", "campaign"),
         ),
         Operation(
             "submit",
@@ -172,8 +180,8 @@ OPERATIONS = {
             "reconstruction and comparison with the control, against the local "
             "development service. Nothing reaches the chain.",
             frozenset({"campaign"}),
-            frozenset(),
-            ("request", "profile", "registration", "campaign"),
+            frozenset({"idempotency_key"}),
+            ("request", "profile", "replay", "registration", "campaign"),
         ),
     )
 }
@@ -229,7 +237,7 @@ def perform(host, name, request):
             if "profile" in request and request["profile"] != profile["profile_id"]:
                 raise Rejected("research_profile_mismatch", 409)
         elif gate == "replay":
-            replayed = host.replayed(profile, request)
+            replayed = host.replayed(profile, request, op.name)
             if replayed is not None:
                 return replayed
         elif gate == "registration":
