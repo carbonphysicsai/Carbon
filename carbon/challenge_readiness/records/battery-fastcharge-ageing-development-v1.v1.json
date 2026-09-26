@@ -1,0 +1,254 @@
+{
+  "challenge_id": "battery-fastcharge-ageing-development-v1",
+  "costs": [
+    {
+      "basis": "measured",
+      "evidence": "docs/development/EXAM_DESIGN_CAMPAIGN_RESULT.md section 7",
+      "item": "reference",
+      "unit": "USD per 30-cycle case (A40, 7 workers)",
+      "usd": 0.0014
+    },
+    {
+      "basis": "measured",
+      "evidence": "docs/development/EXAM_DESIGN_CAMPAIGN_RESULT.md section 7",
+      "item": "reconstruction",
+      "unit": "USD per recipe fit, GPU backend",
+      "usd": 0.001
+    },
+    {
+      "basis": "estimated",
+      "evidence": "docs/development/EXAM_DESIGN_CAMPAIGN_RESULT.md section 7",
+      "item": "inference",
+      "unit": "USD per 200 cases (about 5 ms; negligible)",
+      "usd": 0.0
+    },
+    {
+      "basis": "measured",
+      "evidence": "docs/development/EXAM_DESIGN_CAMPAIGN_RESULT.md section 7",
+      "item": "finalist",
+      "unit": "USD per finalist comparison, dominated by 200 fresh references",
+      "usd": 0.29
+    },
+    {
+      "basis": "measured",
+      "evidence": "docs/development/EXAM_DESIGN_CAMPAIGN_RESULT.md bottom line",
+      "item": "discarded",
+      "unit": "USD, three pods discarded without retained evidence",
+      "usd": 0.23
+    },
+    {
+      "basis": "unknown",
+      "evidence": null,
+      "item": "startup",
+      "unit": "USD per pod boot (included in, not separated from, the reference figure)",
+      "usd": null
+    },
+    {
+      "basis": "unknown",
+      "evidence": null,
+      "item": "cleanup",
+      "unit": "USD per campaign",
+      "usd": null
+    },
+    {
+      "basis": "not_applicable",
+      "evidence": null,
+      "item": "mesh",
+      "unit": "USD",
+      "usd": null
+    }
+  ],
+  "decision": {
+    "buyer": "Battery-management and cell engineers choosing charge protocols (a hypothesis; no customer demand is claimed).",
+    "engineering_decision": "Choose a two-stage constant-current fast-charge protocol, predicting voltage, temperature, lithium-plating margin and capacity fade before committing to it.",
+    "intended_use": "Predict the specified PyBaMM DFN (OKane2022) cell's response to a charge protocol over the declared input box; agreement is with that model, not with real cells."
+  },
+  "design_variables": [
+    {
+      "description": "First-stage charge current, bounds 0.5 to 2.0 (carbon/battery/domain.py INPUT_BOUNDS).",
+      "name": "c1",
+      "unit": "C-rate"
+    },
+    {
+      "description": "Second-stage charge current, bounds 0.2 to 1.0.",
+      "name": "c2",
+      "unit": "C-rate"
+    },
+    {
+      "description": "Ambient temperature, bounds 5 to 40 (an operating condition, not a design choice).",
+      "name": "t_amb_c",
+      "unit": "degC"
+    },
+    {
+      "description": "Initial state of charge, bounds 0.05 to 0.5 (an operating condition).",
+      "name": "soc0",
+      "unit": "1"
+    }
+  ],
+  "limits": [
+    {
+      "approved": null,
+      "basis": "OD-2 provisional DEVELOPMENT rule: 2 x the largest seed-to-seed SD from three seeds (RESULT section 5). Not a scientific value.",
+      "name": "equivalence_margin",
+      "proposed": 0.057,
+      "unit": "1"
+    },
+    {
+      "approved": null,
+      "basis": "OD-2 provisional DEVELOPMENT value (carbon/battery/domain.py PLATING_BAND_V).",
+      "name": "important_region_plating_band",
+      "proposed": 0.005,
+      "unit": "V"
+    },
+    {
+      "approved": null,
+      "basis": "OD-2 provisional DEVELOPMENT value (carbon/battery/domain.py T_IMPORTANT_C).",
+      "name": "important_region_temperature",
+      "proposed": 55.0,
+      "unit": "degC"
+    }
+  ],
+  "maturity": {
+    "baseline": "MEASURED",
+    "reference_execution": "CAMPAIGN_COMPLETE"
+  },
+  "next_experiment": "The M4 two-host GPU run and the adaptive-agent campaign (owner-approved 2026-09-26, USD 14 and USD 6 ceilings), then EV2 with a decision-aware robustness component.",
+  "outputs": [
+    {
+      "description": "Terminal voltage every 30 s over the first hour (121 points).",
+      "name": "voltage_v",
+      "unit": "V"
+    },
+    {
+      "description": "Cell temperature every 30 s over the first hour.",
+      "name": "temperature_c",
+      "unit": "degC"
+    },
+    {
+      "description": "Minimum plating overpotential during the cycle-1 charge.",
+      "name": "plating_margin_v",
+      "unit": "V"
+    },
+    {
+      "description": "Discharge capacity at cycles 1, 10, 20 and 30.",
+      "name": "capacity_ah",
+      "unit": "A.h"
+    }
+  ],
+  "pilots": [
+    {
+      "attempt_id": "pilot-battery-v1",
+      "case_kind": "mixed",
+      "evidence": "docs/development/evidence/exam-design-2026-09-24/pilot-battery-v1/out/records.jsonl",
+      "note": "First pilot: 12 cases plus 4 refinements; the FAILED_INFRA records are infrastructure, not reference, failures.",
+      "outcomes": {
+        "FAILED_INFRA": 4,
+        "OK": 12
+      }
+    },
+    {
+      "attempt_id": "pilot-2-battery",
+      "case_kind": "refinement",
+      "evidence": "docs/development/evidence/exam-design-2026-09-24/pilot-2/out/battery_refs/records.jsonl",
+      "note": "Second pilot, battery refinements.",
+      "outcomes": {
+        "OK": 9
+      }
+    },
+    {
+      "attempt_id": "aborted-refs-a-2-battery",
+      "case_kind": "ordinary",
+      "evidence": "docs/development/evidence/exam-design-2026-09-24/aborted-refs-a-2/out/battery_refs/records.jsonl",
+      "note": "Records salvaged from a run aborted for a plan-key collision.",
+      "outcomes": {
+        "OK": 6
+      }
+    },
+    {
+      "attempt_id": "refs-a-part1-battery",
+      "case_kind": "refinement",
+      "evidence": "docs/development/evidence/exam-design-2026-09-24/refs-a-part1/out/battery_refs/records.jsonl",
+      "note": "Salvaged from a stopped run (no DONE.json); refined TRAIN cases.",
+      "outcomes": {
+        "OK": 12
+      }
+    },
+    {
+      "attempt_id": "refs-a-part2",
+      "case_kind": "mixed",
+      "evidence": "docs/development/evidence/exam-design-2026-09-24/refs-a-part2/out/records.jsonl",
+      "note": "Main run A: TRAIN 404, PRACTICE 200, public-seed final and verify 200 + 200.",
+      "outcomes": {
+        "OK": 1004
+      }
+    },
+    {
+      "attempt_id": "refs-b",
+      "case_kind": "mixed",
+      "evidence": "docs/development/evidence/exam-design-2026-09-24/refs-b/out/battery_refs/records.jsonl",
+      "note": "Main run B: private screening 6 x 198, pfinal 200, pverify 200.",
+      "outcomes": {
+        "OK": 1588
+      }
+    }
+  ],
+  "population": {
+    "approved": null,
+    "proposed": "Development sampling of (c1, c2, t_amb_c, soc0) over INPUT_BOUNDS through carbon.seeding, under the OD-2 provisional DEVELOPMENT settings. Not a ratified production population."
+  },
+  "recommendation": {
+    "basis": "2,604 main-run references all OK (recounted), all 7 frozen verification criteria passed on 200 private cases, and the fresh finalist comparison stopped every memorizing candidate (RESULT sections 1 to 4).",
+    "decision": "PROCEED"
+  },
+  "record_version": 1,
+  "reference": {
+    "applicability": "The declared input box only; 30 cycles; the specified model, not real cells (RESULT section 11 item 7). Solver licence and redistribution review are not recorded here.",
+    "evidence": [
+      "docs/development/evidence/exam-design-2026-09-24/refs-a-part2/out/records.jsonl",
+      "docs/development/evidence/exam-design-2026-09-24/refs-b/out/battery_refs/records.jsonl",
+      "scripts/dev/exam_design/locks/battery-overlay.lock.json"
+    ],
+    "licence": null,
+    "model": "DFN with OKane2022 parameters, SEI and partially reversible plating, lumped thermal",
+    "solver": "PyBaMM 26.8.0.0 (hash-locked overlay on the digest-pinned study image)"
+  },
+  "reviews": {
+    "customer": {
+      "authority": null,
+      "state": "NOT_STARTED"
+    },
+    "launch": {
+      "authority": null,
+      "state": "NOT_STARTED"
+    },
+    "numerical_reference": {
+      "authority": null,
+      "state": "NOT_STARTED"
+    },
+    "scientific": {
+      "authority": null,
+      "state": "NOT_STARTED"
+    },
+    "security": {
+      "authority": null,
+      "state": "IN_REVIEW"
+    }
+  },
+  "schema": "carbon.challenge-readiness.v1",
+  "sources": [
+    "docs/development/EXAM_DESIGN_CAMPAIGN_RESULT.md",
+    "docs/development/BATTERY_EXAM_METHOD_RECORD.md",
+    "carbon/battery/domain.py",
+    "carbon/battery/contracts.py",
+    ".agent/DECISIONS.md OWNER-LAUNCH-PORTFOLIO-01"
+  ],
+  "status": "PROPOSED_DEVELOPMENT_DESIGN",
+  "tracking": "carbonphysicsai/Carbon#341",
+  "unresolved": [
+    "Security: OD-3 approves the reconstruction and truth images for the testnet run only; launch-grade acceptance (validator_launch isolation) is outstanding.",
+    "Scientific: every limit above is a provisional DEVELOPMENT value; none is scientifically approved.",
+    "Adaptive miners are unmeasured; the owner approved a USD 6 model-provider campaign on 2026-09-26.",
+    "The frozen results ran on the CPU backend; the M4 two-host GPU run (USD 14 ceiling, approved 2026-09-26) is outstanding.",
+    "Error-based scores rank a boundary-leaning model highly (EV1 Finding 2); a decision-aware robustness component is unbuilt."
+  ]
+}

@@ -1,0 +1,166 @@
+{
+  "challenge_id": "chip-cold-plate",
+  "costs": [
+    {
+      "basis": "unknown",
+      "evidence": null,
+      "item": "startup",
+      "unit": "USD",
+      "usd": null
+    },
+    {
+      "basis": "unknown",
+      "evidence": null,
+      "item": "mesh",
+      "unit": "USD",
+      "usd": null
+    },
+    {
+      "basis": "unknown",
+      "evidence": null,
+      "item": "reference",
+      "unit": "USD",
+      "usd": null
+    },
+    {
+      "basis": "unknown",
+      "evidence": null,
+      "item": "reconstruction",
+      "unit": "USD",
+      "usd": null
+    },
+    {
+      "basis": "unknown",
+      "evidence": null,
+      "item": "inference",
+      "unit": "USD",
+      "usd": null
+    },
+    {
+      "basis": "unknown",
+      "evidence": null,
+      "item": "finalist",
+      "unit": "USD",
+      "usd": null
+    },
+    {
+      "basis": "unknown",
+      "evidence": null,
+      "item": "cleanup",
+      "unit": "USD",
+      "usd": null
+    }
+  ],
+  "decision": {
+    "buyer": "Cooling and component suppliers (a hypothesis in #342; no customer demand or paid pilot is claimed).",
+    "engineering_decision": "Choose a channel layout for a single-phase liquid cold plate on a defined chip footprint and heat-load family.",
+    "intended_use": "Predict plate temperatures, coolant outlet temperature and pressure drop across a parameterized straight or serpentine channel family."
+  },
+  "design_variables": [
+    {
+      "description": "Parameters of straight or serpentine channels in a fixed external footprint; not arbitrary topology. The parameter list is not yet fixed.",
+      "name": "channel_geometry",
+      "unit": "mm"
+    },
+    {
+      "description": "Coolant volume flow; mass or volume flow must be declared explicitly (#342).",
+      "name": "coolant_flow",
+      "unit": "L/min"
+    },
+    {
+      "description": "Coolant inlet temperature.",
+      "name": "inlet_temperature",
+      "unit": "degC"
+    },
+    {
+      "description": "Spatial heat flux over the chip footprint.",
+      "name": "heat_load_map",
+      "unit": "W/m^2"
+    }
+  ],
+  "limits": [],
+  "maturity": {
+    "baseline": "NOT_STARTED",
+    "reference_execution": "SCOPED"
+  },
+  "next_experiment": "Select a reproducible simple straight-channel baseline and document the geometry-to-mesh-to-solve-to-output commands (#342 first task), then price the first pilot for owner approval.",
+  "outputs": [
+    {
+      "description": "Solid temperature at declared query points.",
+      "name": "solid_temperature",
+      "unit": "degC"
+    },
+    {
+      "description": "Peak solid temperature.",
+      "name": "peak_temperature",
+      "unit": "degC"
+    },
+    {
+      "description": "Mean solid temperature.",
+      "name": "mean_temperature",
+      "unit": "degC"
+    },
+    {
+      "description": "Coolant outlet temperature.",
+      "name": "outlet_temperature",
+      "unit": "degC"
+    },
+    {
+      "description": "Pressure drop, with its pressure-reference convention declared.",
+      "name": "pressure_drop",
+      "unit": "Pa"
+    }
+  ],
+  "pilots": [],
+  "population": {
+    "approved": null,
+    "proposed": "One single-phase liquid-cooled plate, one material and coolant, fixed external footprint, parameterized straight or serpentine channels (#342). A proposed development design, not a ratified production population."
+  },
+  "recommendation": {
+    "basis": "No reference pilot has run.",
+    "decision": "NONE"
+  },
+  "record_version": 1,
+  "reference": {
+    "applicability": "Candidate: a pinned OpenFOAM conjugate heat-transfer implementation, to be assessed (#342). Nothing is pinned or run; whether the envelope is laminar is not yet confirmed.",
+    "evidence": [],
+    "licence": null,
+    "model": null,
+    "solver": null
+  },
+  "reviews": {
+    "customer": {
+      "authority": null,
+      "state": "NOT_STARTED"
+    },
+    "launch": {
+      "authority": null,
+      "state": "NOT_STARTED"
+    },
+    "numerical_reference": {
+      "authority": null,
+      "state": "NOT_STARTED"
+    },
+    "scientific": {
+      "authority": null,
+      "state": "NOT_STARTED"
+    },
+    "security": {
+      "authority": null,
+      "state": "NOT_STARTED"
+    }
+  },
+  "schema": "carbon.challenge-readiness.v1",
+  "sources": [
+    "carbonphysicsai/Carbon#342",
+    "carbonphysicsai/Carbon#341"
+  ],
+  "status": "PROPOSED_DEVELOPMENT_DESIGN",
+  "tracking": "carbonphysicsai/Carbon#342",
+  "unresolved": [
+    "Units, coordinate conventions, geometry validity and physical ranges are not yet specified for domain review.",
+    "Solver identity, version, licence and redistribution rights are not pinned.",
+    "Whether the proposed envelope supports laminar flow is unconfirmed.",
+    "#341 proposes 8 ordinary and 4 difficult valid cases with paired refinement of at least 4 as the first engineering pilot; it needs a price and owner approval before it runs."
+  ]
+}
