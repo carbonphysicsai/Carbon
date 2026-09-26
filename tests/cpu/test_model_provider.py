@@ -7,6 +7,7 @@ No provider is contacted, no key is real, no model is inferred.
 import asyncio
 import io
 import json
+import tempfile
 import urllib.error
 from email.message import Message
 from pathlib import Path
@@ -20,6 +21,11 @@ from carbon.development_session.research_agent import (
     ProviderCallFailed,
     request_model,
 )
+
+# A fixture key file; never a real credential.
+FIXTURE_KEY_FILE = str(Path(tempfile.mkdtemp()) / "fixture.key")
+Path(FIXTURE_KEY_FILE).write_text("fixture-key-not-a-credential")
+FIXTURE_CREDENTIAL = {"kind": "file", "reference": FIXTURE_KEY_FILE}
 
 HISTORICAL_PROVIDER_BLOCK = {
     "model": "gpt-5-mini-2025-08-07",
@@ -227,7 +233,7 @@ def test_unknown_price_reserves_no_money_and_records_tokens(tmp_path):
     selection = mp.select(
         provider_id="openai-responses",
         model_id="gpt-4.1",
-        credential={"kind": "env", "reference": "FIXTURE_KEY"},
+        credential=FIXTURE_CREDENTIAL,
         settings={"reasoning_effort": None},
     )
     assert selection.reservation_nano is None
@@ -261,7 +267,7 @@ def test_declared_price_reserves_the_maximum_before_dispatch(tmp_path):
         provider_id="openai-compatible-chat",
         model_id="fixture-model",
         endpoint="https://llm.example.invalid/v1/chat/completions",
-        credential={"kind": "env", "reference": "FIXTURE_KEY"},
+        credential=FIXTURE_CREDENTIAL,
         declared_pricing={
             "input_nano": 100,
             "cached_input_nano": 10,
@@ -326,7 +332,7 @@ def test_a_new_selection_round_trips_through_its_record_without_the_key():
         ({"endpoint": "https://elsewhere.invalid/v1"}, "fixed"),
         ({"settings": {"temperature": 1}}, "unknown model setting"),
         ({"settings": {"max_output_tokens": 10**9}}, "max_output_tokens"),
-        ({"credential": {"kind": "inline", "reference": "sk-x"}}, "file or env"),
+        ({"credential": {"kind": "inline", "reference": "sk-x"}}, "key file path"),
         (
             {
                 "declared_pricing": {
@@ -345,7 +351,7 @@ def test_invalid_selections_are_refused(spec, message):
     base = {
         "provider_id": "openai-responses",
         "model_id": mp.MODEL,
-        "credential": {"kind": "env", "reference": "FIXTURE_KEY"},
+        "credential": FIXTURE_CREDENTIAL,
     }
     with pytest.raises(mp.ModelSelectionRefused, match=message):
         mp.select(**{**base, **spec})
@@ -358,7 +364,7 @@ def test_compatible_adapters_need_an_https_endpoint():
                 provider_id="openai-compatible-chat",
                 model_id="m",
                 endpoint=endpoint,
-                credential={"kind": "env", "reference": "K"},
+                credential=FIXTURE_CREDENTIAL,
             )
 
 
@@ -370,7 +376,7 @@ def test_a_selection_cannot_be_built_around_validation():
             "https://api.openai.com/v1/responses",
             mp.DEFAULT_SETTINGS,
             mp.GPT5_MINI_PRICING,
-            mp.CredentialReference("env", "K"),
+            mp.CredentialReference("file", FIXTURE_KEY_FILE),
         )
     import dataclasses
 
@@ -384,7 +390,7 @@ def test_a_money_limit_needs_a_price():
     unpriced = mp.select(
         provider_id="openai-responses",
         model_id="gpt-4.1",
-        credential={"kind": "env", "reference": "K"},
+        credential=FIXTURE_CREDENTIAL,
     )
     with pytest.raises(mp.ModelSelectionRefused, match="spend limit"):
         mp.check_budget(unpriced, {"provider_nanodollars": 10**9})
@@ -397,20 +403,24 @@ def test_a_money_limit_needs_a_price():
 
 
 def test_summary_lists_every_adapter_and_offers_none_without_a_credential():
-    rows = {row["provider_id"]: row for row in mp.provider_summary(environ={})}
+    rows = {row["provider_id"]: row for row in mp.provider_summary()}
     assert set(rows) == {
         "openai-responses",
+        "engy-anthropic",
+        "engy-chat",
+        "anthropic",
         "openai-compatible-responses",
         "openai-compatible-chat",
     }
     assert all(not row["available"] for row in rows.values())
     assert {row["reason"] for row in rows.values()} == {"credential_not_configured"}
-    listed = rows["openai-responses"]["listed_models"]
+    listed = rows["openai-responses"]["models"]
     assert [m["model_id"] for m in listed] == [mp.MODEL]
     assert listed[0]["pricing"]["observed"] == "2026-09-17"
     # No price is invented for a service Carbon has none for.
-    assert rows["openai-compatible-chat"]["listed_models"] == []
+    assert rows["anthropic"]["models"] == []
     assert rows["openai-compatible-chat"]["endpoint_required"] is True
+    assert rows["engy-anthropic"]["charge_settled_from"] == "x_engy.charged_micro"
 
 
 def test_summary_availability_reads_metadata_never_the_key(tmp_path, monkeypatch):
@@ -427,23 +437,24 @@ def test_summary_availability_reads_metadata_never_the_key(tmp_path, monkeypatch
     rows = {
         row["provider_id"]: row
         for row in mp.provider_summary(
-            {
-                "openai-compatible-chat": {"kind": "file", "reference": str(key)},
-                "openai-compatible-responses": {
-                    "kind": "file",
-                    "reference": str(oversized),
-                },
-            },
-            environ={"OPENAI_API_KEY": "fixture"},
+            {"engy-anthropic": str(key), "anthropic": str(oversized)}
         )
     }
-    assert rows["openai-responses"]["available"] is True
-    assert rows["openai-compatible-chat"]["available"] is True
-    assert rows["openai-compatible-responses"]["reason"] == "credential_file_unusable"
+    assert rows["engy-anthropic"]["available"] is True
+    assert rows["openai-responses"]["available"] is False
+    assert rows["anthropic"]["reason"] == "credential_file_unusable"
     assert "fixture-not-a-key" not in json.dumps(rows)
     # Specimen: the same patch does catch a function that reads the key.
     with pytest.raises(AssertionError, match="was read"):
         mp.read_credential(mp.CredentialReference("file", str(key)))
+
+
+def test_an_environment_variable_is_not_a_credential():
+    with pytest.raises(mp.ModelSelectionRefused, match="key file path"):
+        mp.select(
+            provider_id="engy-anthropic",
+            credential={"kind": "env", "reference": "ENGY_KEY"},
+        )
 
 
 # -- transports (fixture openers) --------------------------------------------
@@ -465,7 +476,7 @@ def test_chat_adapter_translates_history_and_reply():
         provider_id="openai-compatible-chat",
         model_id="fixture-model",
         endpoint="https://llm.example.invalid/v1/chat/completions",
-        credential={"kind": "env", "reference": "FIXTURE_KEY"},
+        credential=FIXTURE_CREDENTIAL,
     )
     opener = Opener(
         {
@@ -493,9 +504,7 @@ def test_chat_adapter_translates_history_and_reply():
             },
         }
     )
-    transport = mp.SelectionTransport(
-        selection, opener=opener, environ={"FIXTURE_KEY": "fixture"}
-    )
+    transport = mp.SelectionTransport(selection, opener=opener)
     value = {
         **request(selection),
         "input": [
@@ -542,13 +551,11 @@ def test_responses_adapter_omits_a_null_reasoning_setting():
     selection = mp.select(
         provider_id="openai-responses",
         model_id="gpt-4.1",
-        credential={"kind": "env", "reference": "FIXTURE_KEY"},
+        credential=FIXTURE_CREDENTIAL,
         settings={"reasoning_effort": None},
     )
     opener = Opener(completed("gpt-4.1"))
-    mp.SelectionTransport(selection, opener=opener, environ={"FIXTURE_KEY": "k"})(
-        request(selection)
-    )
+    mp.SelectionTransport(selection, opener=opener)(request(selection))
     body = json.loads(opener.sent[0][0].data)
     assert "reasoning" not in body and body["model"] == "gpt-4.1"
 
@@ -566,10 +573,9 @@ def test_an_http_rejection_keeps_status_code_and_retry_after_only():
         mp.select(
             provider_id="openai-responses",
             model_id=mp.MODEL,
-            credential={"kind": "env", "reference": "FIXTURE_KEY"},
+            credential=FIXTURE_CREDENTIAL,
         ),
         opener=opener,
-        environ={"FIXTURE_KEY": "k"},
     )
     with pytest.raises(mp.ProviderHTTPError) as raised:
         transport(request())
@@ -589,7 +595,7 @@ def test_run_epoch_uses_the_campaign_selection(tmp_path):
     selection = mp.select(
         provider_id="openai-responses",
         model_id="gpt-4.1",
-        credential={"kind": "env", "reference": "FIXTURE_KEY"},
+        credential=FIXTURE_CREDENTIAL,
         settings={"reasoning_effort": None, "max_output_tokens": 1024},
     )
     sent = []

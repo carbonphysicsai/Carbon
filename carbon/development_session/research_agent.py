@@ -21,6 +21,7 @@ Provider failures are typed (`model_provider.ProviderOutcome`):
 from __future__ import annotations
 
 import json
+import re
 import time
 
 from .data import write_once
@@ -31,6 +32,7 @@ from .model_provider import (
     ProviderTransport,
     SelectionTransport,
     classify,
+    provider_report,
 )
 from .profile import canonical, digest
 
@@ -112,11 +114,12 @@ def usage_cost(usage, selection=DEFAULT_SELECTION):
         "output_tokens": outgoing,
         "reasoning_tokens": reasoning,
         "nanodollars": charge,
-        "billing_basis": (
-            "published token prices; missing cache detail charged as uncached"
-            if pricing.source == "provider_published"
-            else "miner-declared token prices; missing cache detail charged as uncached"
-        ),
+        "billing_basis": {
+            "provider_published": "published token prices",
+            "declared_list": "declared list prices (" + pricing.reference + ")",
+            "miner_declared": "miner-declared token prices",
+        }[pricing.source]
+        + "; missing cache detail charged as uncached",
     }
 
 
@@ -316,22 +319,39 @@ def _request_once(
             "different provider model; retained usage needs reconciliation"
         )
     status = "SUCCEEDED" if response.get("status") == "completed" else "FAILED_INFRA"
+    report = provider_report(response, provider)
+    charge = settled_charge(usage, report, provider)
+    if priced and charge["nanodollars"] > provider.reservation_nano:
+        raise ValueError(
+            "provider-reported charge exceeds the reservation; retained for "
+            "reconciliation"
+        )
+    result = {
+        "request_digest": request_digest,
+        "response_digest": digest(body),
+        "usage": usage,
+        "provider_status": response.get("status"),
+    }
+    if not provider.is_historical_default:
+        # Campaign evidence for every call: the estimate and the provider's
+        # own charge side by side, and who served it.
+        result.update(
+            provider_model=reported,
+            provider_id=provider.provider_id,
+            charge=charge,
+            provider_report=report,
+        )
+        write_once(directory / "call.json", canonical({"identity": identity, **result}))
     ledger.finish(
         identity,
         owner=owner,
         state=status,
         actual={
             "provider_attempts": 1,
-            **({"provider_nanodollars": usage["nanodollars"]} if priced else {}),
+            **({"provider_nanodollars": charge["nanodollars"]} if priced else {}),
             "retained_bytes": len(payload) + len(body),
         },
-        result={
-            "request_digest": request_digest,
-            "response_digest": digest(body),
-            "usage": usage,
-            "provider_status": response.get("status"),
-            **({} if provider.is_historical_default else {"provider_model": reported}),
-        },
+        result=result,
     )
     if status != "SUCCEEDED":
         raise ValueError("incomplete provider response; retained accounting, no retry")
@@ -351,3 +371,139 @@ def _replayed_rejection(record, provider):
         ),
         fresh=False,
     )
+
+
+def settled_charge(usage, report, selection):
+    """What a call cost, and on what basis.
+
+    The provider's own reported charge settles it where the adapter reports
+    one; a missing report keeps the whole reservation (unknown, not the
+    headline rate). Otherwise the metered usage at the selection's price. The
+    token-price estimate is always kept beside it, never substituted for it.
+    """
+    estimate = usage["nanodollars"]
+    if selection.adapter.reported_charge is not None:
+        micro = None if report is None else report["charged_micro"]
+        if micro is None:
+            return {
+                "nanodollars": selection.reservation_nano,
+                "basis": "provider charge not reported; full reservation retained",
+                "provider_reported_micro": None,
+                "estimated_nanodollars": estimate,
+            }
+        return {
+            "nanodollars": micro * 1000,
+            "basis": "provider-reported " + selection.adapter.reported_charge,
+            "provider_reported_micro": micro,
+            "estimated_nanodollars": estimate,
+        }
+    return {
+        "nanodollars": estimate,
+        "basis": usage["billing_basis"],
+        "provider_reported_micro": None,
+        "estimated_nanodollars": estimate,
+    }
+
+
+_RETRY = re.compile(r"-rl\d+$")
+
+
+def provider_turns(operations):
+    """Cost, tokens and provenance per model turn, from the ledger's own
+    operations (retries under a rate limit fold into their turn).
+
+    Each turn states its charge basis. Where a call recorded no charge record
+    (the historical pinned selection) the settled amount is the ledger's own
+    actual, which is the metered usage.
+    """
+    turns = {}
+    for op in operations:
+        result = op.get("result")
+        if type(result) is not dict or "request_digest" not in result:
+            continue
+        turn = turns.setdefault(
+            _RETRY.sub("", op["id"]),
+            {
+                "turn": _RETRY.sub("", op["id"]),
+                "attempts": 0,
+                "state": None,
+                "charge_nanodollars": 0,
+                "charge_basis": [],
+                "provider_reported_micro": None,
+                "estimated_nanodollars": None,
+                "input_tokens": None,
+                "cached_input_tokens": None,
+                "output_tokens": None,
+                "reasoning_tokens": None,
+                "provenance": [],
+                "rejections": [],
+            },
+        )
+        turn["attempts"] += 1
+        turn["state"] = op["state"]
+        actual = op.get("actual") or {}
+        charge = result.get("charge")
+        if charge is not None:
+            amount, basis = charge["nanodollars"], charge["basis"]
+            if charge["provider_reported_micro"] is not None:
+                turn["provider_reported_micro"] = (
+                    turn["provider_reported_micro"] or 0
+                ) + charge["provider_reported_micro"]
+            if charge["estimated_nanodollars"] is not None:
+                turn["estimated_nanodollars"] = (
+                    turn["estimated_nanodollars"] or 0
+                ) + charge["estimated_nanodollars"]
+        elif "provider_rejection" in result:
+            amount, basis = 0, "rejected before generation; no token charge"
+            turn["rejections"].append(result["provider_rejection"])
+        else:
+            amount = actual.get("provider_nanodollars")
+            basis = (result.get("usage") or {}).get("billing_basis", "ledger actual")
+        if amount is None:
+            turn["charge_nanodollars"] = None
+        elif turn["charge_nanodollars"] is not None:
+            turn["charge_nanodollars"] += amount
+        if basis not in turn["charge_basis"]:
+            turn["charge_basis"].append(basis)
+        usage = result.get("usage") or {}
+        for key, name in (
+            ("input_tokens", "input_tokens"),
+            ("cached_input_tokens", "cached_input_tokens"),
+            ("output_tokens", "output_tokens"),
+            ("reasoning_tokens", "reasoning_tokens"),
+        ):
+            if usage.get(name) is not None:
+                turn[key] = (turn[key] or 0) + usage[name]
+        report = result.get("provider_report")
+        if report is not None:
+            turn["provenance"].append(
+                {k: report[k] for k in ("request_id", "miner", "worker")}
+            )
+    return list(turns.values())
+
+
+def caching_status(turns):
+    """Whether the provider's prompt cache is working, from recorded counts.
+
+    The first turn cannot hit a cache. If every later completed turn - at
+    least two of them - reports zero cached input tokens, something in the
+    prefix is varying and the campaign says CACHING_NOT_WORKING.
+    """
+    done = [t for t in turns if t["state"] == "SUCCEEDED"]
+    later = done[1:]
+    total = sum(t["input_tokens"] or 0 for t in done)
+    cached = sum(t["cached_input_tokens"] or 0 for t in done)
+    if len(later) < 2:
+        status = "INSUFFICIENT_TURNS"
+    elif any(t["cached_input_tokens"] is None for t in later):
+        status = "CACHE_NOT_REPORTED"
+    elif all(t["cached_input_tokens"] == 0 for t in later):
+        status = "CACHING_NOT_WORKING"
+    else:
+        status = "CACHING_OBSERVED"
+    return {
+        "status": status,
+        "turns_considered": len(done),
+        "cached_input_fraction": None if total == 0 else cached / total,
+        "basis": "recorded cached-input token counts per completed turn",
+    }

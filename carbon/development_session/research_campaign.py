@@ -568,16 +568,13 @@ async def prepare_burgers(args, *, ledger=None, campaign):
         else (product.agent if product is not None else "autonomous")
     )
     if agent != "none":
-        if selection.credential.kind == "env":
-            if not os.environ.get(selection.credential.reference):
-                raise ValueError("the selected credential variable is not set")
-            SelectionTransport(selection)
+        private_file(args.api_key_file)
+        if selection.is_historical_default:
+            ResponsesTransport(args.api_key_file)
         else:
-            private_file(args.api_key_file)
-            if selection.is_historical_default:
-                ResponsesTransport(args.api_key_file)
-            else:
-                SelectionTransport(selection)
+            SelectionTransport(selection)
+    if grant is not None and grant["provider"] != selection.provider_id:
+        raise ValueError("the grant names a different model provider")
     config = load_config(args.operator_config)
     public = json.loads(private_file(args.miner_public).read_bytes())
     if public["netuid"] != CARBON_NETUID or config.netuid != CARBON_NETUID:

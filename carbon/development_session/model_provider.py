@@ -11,13 +11,19 @@ Five things that used to be one hardwired transport are separate here:
 
 * the **agent application**: `research_loop`, not configured here;
 * the **provider adapter** (`ProviderAdapter`): a stable id, a wire protocol,
-  a fixed or miner-supplied endpoint, the models it knows prices for, its
-  credential requirement and how its errors are read;
-* the **model id**: any id the miner names; a listed model carries a sourced
-  price, any other has an unknown price unless the miner declares one;
+  an endpoint, the models it allows and the prices it knows, how it
+  authenticates, how its errors are read and how it reports what it charged;
+* the **model id**: an allowed id; a listed model carries a sourced price;
 * the **model settings**: token ceilings, reasoning effort, timeout;
-* the **credential reference**: a local file path or an environment variable
-  name. Never the key. Nothing here reads a key except a transport, at dispatch.
+* the **credential reference**: the path of the miner's own key file. Never
+  the key, never an environment variable. A transport reads the file at the
+  point of use, sends the key in one header, and drops it.
+
+Three wire protocols are implemented: OpenAI Responses (the loop's own
+shape), OpenAI Chat Completions and Anthropic Messages, each translated to and
+from the loop's one history format. Engy (Bittensor subnet 53) serves Messages
+at https://api.engy.ai and Chat Completions at https://api.engy.ai/v1; the
+Anthropic adapter is the same Messages transport at https://api.anthropic.com.
 
 A campaign's choice is a `ModelSelection`, which only `select()` builds, so an
 unvalidated combination cannot reach a transport. The one combination every
@@ -25,14 +31,16 @@ existing campaign was pinned to - OpenAI Responses with
 `gpt-5-mini-2025-08-07` - is `DEFAULT_SELECTION`, and its manifest record is
 byte-identical to the block those manifests carry.
 
-**Cost.** Where the price is known (listed with its source and observation
-date, or declared by the miner with theirs), each request reserves its maximum
-possible cost before dispatch - the whole admitted context at the uncached
-price plus the whole output ceiling - and settles to the metered usage. Where
-the price is unknown, no maximum is calculable: Carbon says so, reserves and
-meters no money for that selection, records token usage only, and refuses to
-pair it with a miner spend limit in money, which it could not enforce. Prices
-are never invented.
+**Cost.** Where a price is known - published by the provider, a declared list
+with its source and date, or declared by the miner - each request reserves its
+maximum possible cost before dispatch (the whole admitted context at the
+uncached price plus the whole output ceiling). That is an *estimate* and stays
+one. Where the provider reports what it actually charged (Engy's
+`x_engy.charged_micro`), that number settles the call; a missing report keeps
+the full reservation rather than falling back to the headline rate. Where the
+price is unknown, no maximum is calculable: Carbon says so, reserves and meters
+no money, records token usage only, and refuses a money ceiling it could not
+enforce. Prices are never invented.
 
 Replies other than a completed response are classified into
 `ProviderOutcome`; see `research_agent` for which are retried and how.
@@ -42,7 +50,6 @@ from __future__ import annotations
 
 import enum
 import json
-import os
 import re
 import urllib.error
 import urllib.request
@@ -54,6 +61,8 @@ PROVIDER_SUMMARY = "carbon.model-provider-summary.v1"
 
 RESPONSES = "openai.responses.v1"
 CHAT_COMPLETIONS = "openai.chat-completions.v1"
+MESSAGES = "anthropic.messages.v1"
+ANTHROPIC_VERSION = "2023-06-01"
 
 UNKNOWN_SPEND = (
     "unknown: no price is known or declared for this model, so no maximum cost "
@@ -66,8 +75,9 @@ UNKNOWN_SPEND = (
 class Pricing:
     """USD per token in integer nanodollars, and where the numbers came from.
 
-    `source` is `provider_published` for a listed model or `miner_declared`
-    for a price the miner states; there is no third, guessed kind.
+    `source` is `provider_published`, `declared_list` (a provider's price list
+    recorded by the owner with its date) or `miner_declared`; there is no
+    guessed kind.
     """
 
     input_nano: int
@@ -118,39 +128,41 @@ class Settings:
 
 @dataclass(frozen=True)
 class CredentialReference:
-    """Where the miner's own key is: a file path or an environment variable
-    name. Never the key itself."""
+    """Where the miner's own key file is. Never the key itself."""
 
     kind: str
     reference: str
 
     def record(self):
-        # A path is local layout and is supplied again at run time; only an
-        # environment variable's *name* is recorded.
-        return {
-            "kind": self.kind,
-            "reference": self.reference if self.kind == "env" else None,
-        }
+        # The path is local layout and is supplied again at run time.
+        return {"kind": self.kind, "reference": None}
 
 
 @dataclass(frozen=True)
 class ErrorSemantics:
-    """What this provider's HTTP rejections mean for money and retry.
+    """What a provider's HTTP rejections mean for money and retry.
 
     `unbilled_rejections` are statuses returned before any generation with no
-    usage object; the attempt is counted and no token charge recorded. Every
-    other failure - a 5xx, a timeout, a dropped connection, an unreadable body
-    - keeps its full reservation, because the request may have been processed.
+    usage object; the attempt is counted and no token charge recorded. A
+    status in `rate_limit_statuses`, or any response whose error code is in
+    `overload_codes`, is a rate limit: rejected before generation and safe to
+    retry under a new reservation. Every other failure - a 5xx, a timeout, a
+    dropped connection, an unreadable body - keeps its full reservation,
+    because the request may have been processed.
     """
 
     unbilled_rejections: tuple[int, ...]
+    rate_limit_statuses: tuple[int, ...]
+    overload_codes: tuple[str, ...]
     quota_codes: tuple[str, ...]
     context_codes: tuple[str, ...]
     basis: str
 
 
 OPENAI_ERRORS = ErrorSemantics(
-    unbilled_rejections=(400, 401, 403, 404, 409, 413, 422, 429),
+    unbilled_rejections=(400, 401, 402, 403, 404, 409, 413, 422, 429),
+    rate_limit_statuses=(429,),
+    overload_codes=(),
     quota_codes=("insufficient_quota",),
     context_codes=("context_length_exceeded",),
     basis=(
@@ -161,6 +173,38 @@ OPENAI_ERRORS = ErrorSemantics(
         "the full reservation."
     ),
 )
+MESSAGES_ERRORS = ErrorSemantics(
+    unbilled_rejections=(400, 401, 402, 403, 404, 413, 429, 529),
+    rate_limit_statuses=(429, 529),
+    overload_codes=("overloaded_error",),
+    quota_codes=("billing_error",),
+    context_codes=(),
+    basis=(
+        "Carbon's recorded reading of Anthropic Messages error semantics "
+        "(2026-09-26): 429 rate_limit_error and 529 or overloaded_error are "
+        "rejected before generation and retried as rate limits; other 4xx are "
+        "counted with no token charge; 5xx keep the full reservation. Messages "
+        "has no context-limit code, so an over-long prompt is an invalid request."
+    ),
+)
+ENGY_BASIS = (
+    " Engy's rate limits are undocumented (owner order 2026-09-26); these "
+    "semantics are the protocol's, not Engy-verified. Engy reports the actual "
+    "charge per call in x_engy.charged_micro, which settles the call."
+)
+ENGY_MESSAGES_ERRORS = ErrorSemantics(
+    **{
+        **MESSAGES_ERRORS.__dict__,
+        "basis": MESSAGES_ERRORS.basis + ENGY_BASIS,
+    }
+)
+ENGY_CHAT_ERRORS = ErrorSemantics(
+    **{
+        **OPENAI_ERRORS.__dict__,
+        "overload_codes": ("overloaded_error",),
+        "basis": OPENAI_ERRORS.basis + ENGY_BASIS,
+    }
+)
 
 
 @dataclass(frozen=True)
@@ -168,17 +212,42 @@ class ProviderAdapter:
     adapter_id: str
     display_name: str
     protocol: str
-    #: None: the miner supplies the endpoint (an OpenAI-compatible service).
+    #: The full request URL, or None where the miner supplies it.
     endpoint: str | None
-    #: Models with a provider-published price, by id.
+    #: The base URL a person configures a client with, for display.
+    base_url: str | None = None
+    #: Models with a known price, by id.
     priced_models: dict = field(default_factory=dict)
-    default_env: str | None = None
+    #: None: any model id; otherwise only these.
+    allowed_models: tuple | None = None
+    default_model: str | None = None
+    #: "bearer" (Authorization) or "x-api-key".
+    auth: str = "bearer"
+    #: Where the provider reports what it charged, if it does.
+    reported_charge: str | None = None
+    #: Anthropic prompt-cache breakpoints on the stable prefix.
+    cache_breakpoints: bool = False
+    #: The public model list, readable without a key.
+    models_url: str | None = None
     errors: ErrorSemantics = OPENAI_ERRORS
 
     def summary_models(self):
+        ids = (
+            self.allowed_models
+            if self.allowed_models is not None
+            else tuple(sorted(self.priced_models))
+        )
         return [
-            {"model_id": model, "pricing": pricing.record()}
-            for model, pricing in sorted(self.priced_models.items())
+            {
+                "model_id": model,
+                "default": model == self.default_model,
+                "pricing": (
+                    self.priced_models[model].record()
+                    if model in self.priced_models
+                    else None
+                ),
+            }
+            for model in ids
         ]
 
 
@@ -197,6 +266,36 @@ GPT5_MINI_PRICING = Pricing(
     ),
 )
 
+
+def _engy(input_nano, output_nano, cached_nano, context):
+    return Pricing(
+        input_nano=input_nano,
+        cached_input_nano=cached_nano,
+        output_nano=output_nano,
+        source="declared_list",
+        reference="Engy published list, observed 2026-09-26",
+        observed="2026-09-26",
+        note=(
+            f"Headline rate; context {context}. An estimate for the reservation "
+            "only: each call is settled from x_engy.charged_micro."
+        ),
+    )
+
+
+#: The owner's model ladder (order of 2026-09-26, section 3), cheapest first.
+#: Escalate one rung only on an observed research failure. deepseek-v4.1-flash
+#: is deliberately absent: its 327,680 context would confound comparison.
+ENGY_MODELS = {
+    "deepseek-v4-flash-0731": _engy(45, 90, 9, "1.05M"),
+    "qwen3.8-27b": _engy(45, 320, 15, "1.00M"),
+    "glm-5.3-flash": _engy(135, 450, 27, "262K"),
+    "glm-5.2": _engy(680, 1500, 180, "262K"),
+    "kimi-k3": _engy(1950, 9750, 195, "1.05M"),
+}
+ENGY_LADDER = tuple(ENGY_MODELS)
+ENGY_DEFAULT_MODEL = "deepseek-v4-flash-0731"
+ENGY_MODELS_URL = "https://api.engy.ai/v1/models"
+
 ADAPTERS = {
     adapter.adapter_id: adapter
     for adapter in (
@@ -205,8 +304,45 @@ ADAPTERS = {
             display_name="OpenAI Responses API",
             protocol=RESPONSES,
             endpoint="https://api.openai.com/v1/responses",
+            base_url="https://api.openai.com/v1",
             priced_models={GPT5_MINI: GPT5_MINI_PRICING},
-            default_env="OPENAI_API_KEY",
+        ),
+        ProviderAdapter(
+            adapter_id="engy-anthropic",
+            display_name="Engy (subnet 53), Anthropic Messages",
+            protocol=MESSAGES,
+            endpoint="https://api.engy.ai/v1/messages",
+            base_url="https://api.engy.ai",
+            priced_models=ENGY_MODELS,
+            allowed_models=ENGY_LADDER,
+            default_model=ENGY_DEFAULT_MODEL,
+            auth="x-api-key",
+            reported_charge="x_engy.charged_micro",
+            models_url=ENGY_MODELS_URL,
+            errors=ENGY_MESSAGES_ERRORS,
+        ),
+        ProviderAdapter(
+            adapter_id="engy-chat",
+            display_name="Engy (subnet 53), OpenAI Chat Completions",
+            protocol=CHAT_COMPLETIONS,
+            endpoint="https://api.engy.ai/v1/chat/completions",
+            base_url="https://api.engy.ai/v1",
+            priced_models=ENGY_MODELS,
+            allowed_models=ENGY_LADDER,
+            default_model=ENGY_DEFAULT_MODEL,
+            reported_charge="x_engy.charged_micro",
+            models_url=ENGY_MODELS_URL,
+            errors=ENGY_CHAT_ERRORS,
+        ),
+        ProviderAdapter(
+            adapter_id="anthropic",
+            display_name="Anthropic Messages API",
+            protocol=MESSAGES,
+            endpoint="https://api.anthropic.com/v1/messages",
+            base_url="https://api.anthropic.com",
+            auth="x-api-key",
+            cache_breakpoints=True,
+            errors=MESSAGES_ERRORS,
         ),
         ProviderAdapter(
             adapter_id="openai-compatible-responses",
@@ -232,7 +368,6 @@ DEFAULT_SETTINGS = Settings(
 )
 
 _MODEL_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:/@-]{0,127}")
-_ENV_NAME = re.compile(r"[A-Z_][A-Z0-9_]{0,63}")
 _DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
 EFFORTS = (None, "minimal", "low", "medium", "high")
 
@@ -300,9 +435,16 @@ class ModelSelection:
             "spend_bound": (
                 UNKNOWN_SPEND
                 if self.pricing is None
-                else "reserved per request before dispatch from "
+                else "estimate reserved per request before dispatch from "
                 + self.pricing.source
-                + " pricing; settled to metered usage"
+                + " pricing; settled to "
+                + (
+                    "the provider-reported charge ("
+                    + self.adapter.reported_charge
+                    + ")"
+                    if self.adapter.reported_charge
+                    else "metered usage at that price"
+                )
             ),
             "credential": self.credential.record(),
             "data": (
@@ -382,22 +524,20 @@ def _endpoint(adapter, endpoint):
 def _credential(value):
     if type(value) is not dict or set(value) != {"kind", "reference"}:
         raise ModelSelectionRefused("credential needs kind and reference")
-    kind, reference = value["kind"], value["reference"]
-    if kind == "file":
-        if type(reference) is not str or not 1 <= len(reference) <= 4096:
-            raise ModelSelectionRefused("a credential file path is required")
-    elif kind == "env":
-        if type(reference) is not str or not _ENV_NAME.fullmatch(reference):
-            raise ModelSelectionRefused("an environment variable name is required")
-    else:
-        raise ModelSelectionRefused("credential kind is file or env")
-    return CredentialReference(kind, reference)
+    if value["kind"] != "file":
+        # Owner order 2026-09-26 section 8: the key lives in its file and is
+        # read at the point of use, never from an environment variable.
+        raise ModelSelectionRefused("the credential is a key file path")
+    reference = value["reference"]
+    if type(reference) is not str or not 1 <= len(reference) <= 4096:
+        raise ModelSelectionRefused("a credential file path is required")
+    return CredentialReference("file", reference)
 
 
 def select(
     *,
     provider_id,
-    model_id,
+    model_id=None,
     credential,
     endpoint=None,
     settings=None,
@@ -405,17 +545,22 @@ def select(
 ):
     """Validate a miner's choice into a `ModelSelection`.
 
-    `credential` is {"kind": "file"|"env", "reference": path or variable name}.
-    `settings` may override max_input_tokens, max_output_tokens,
-    reasoning_effort and timeout_seconds. `declared_pricing` is the miner's own
-    statement of price for a model with no listed price; a listed price is
-    never overridden.
+    `credential` is {"kind": "file", "reference": path}. `model_id` may be
+    omitted for an adapter with a default model (Engy's is
+    deepseek-v4-flash-0731). `settings` may override max_input_tokens,
+    max_output_tokens, reasoning_effort and timeout_seconds.
+    `declared_pricing` is the miner's own statement of price for a model with
+    no listed price; a listed price is never overridden.
     """
     adapter = ADAPTERS.get(provider_id)
     if adapter is None:
         raise ModelSelectionRefused("unknown provider adapter")
+    if model_id is None:
+        model_id = adapter.default_model
     if type(model_id) is not str or not _MODEL_ID.fullmatch(model_id):
         raise ModelSelectionRefused("a model id is required")
+    if adapter.allowed_models is not None and model_id not in adapter.allowed_models:
+        raise ModelSelectionRefused("model id not allowed for this provider")
     chosen = dict(DEFAULT_SETTINGS.record())
     if settings is not None:
         if type(settings) is not dict or not set(settings) <= set(chosen):
@@ -457,8 +602,8 @@ def selection_from_record(record, *, credential_file=None):
 
     The historical block (every campaign pinned before selection existed)
     resolves to the pinned default and must match it exactly. A newer block is
-    re-validated through `select()`; a file credential's path is not recorded,
-    so it is supplied again at run time.
+    re-validated through `select()`; the credential file's path is not
+    recorded, so it is supplied again at run time.
     """
     if type(record) is not dict:
         raise ModelSelectionRefused("provider record required")
@@ -478,19 +623,13 @@ def selection_from_record(record, *, credential_file=None):
             "observed": pricing["observed"],
             "note": pricing["note"],
         }
-    credential = record.get("credential") or {}
-    reference = (
-        credential.get("reference")
-        if credential.get("kind") == "env"
-        else (None if credential_file is None else str(credential_file))
-    )
-    if reference is None:
+    if credential_file is None:
         raise ModelSelectionRefused("the credential file must be supplied again")
     adapter = ADAPTERS.get(record.get("provider_id"))
     selection = select(
         provider_id=record.get("provider_id"),
         model_id=record.get("model"),
-        credential={"kind": credential.get("kind"), "reference": reference},
+        credential={"kind": "file", "reference": str(credential_file)},
         endpoint=None if adapter is None or adapter.endpoint else record["endpoint"],
         settings=record.get("settings"),
         declared_pricing=declared,
@@ -531,13 +670,11 @@ MAX_INPUT_TOKENS = DEFAULT_SETTINGS.max_input_tokens
 MAX_OUTPUT_TOKENS = DEFAULT_SETTINGS.max_output_tokens
 
 
-def _credential_state(reference, environ):
-    """Whether a credential is configured, from metadata alone; never read."""
-    if reference is None:
+def _credential_state(path):
+    """Whether a key file is configured, from metadata alone; never read."""
+    if path is None:
         return "credential_not_configured"
-    if reference.kind == "env":
-        return None if environ.get(reference.reference) else "credential_not_configured"
-    path = Path(reference.reference)
+    path = Path(path)
     try:
         if path.is_symlink() or not path.is_file():
             return "credential_not_configured"
@@ -547,32 +684,19 @@ def _credential_state(reference, environ):
     return None if 0 < size <= 1024 else "credential_file_unusable"
 
 
-def provider_summary(credentials=None, *, environ=None):
-    """Every provider adapter, its listed models and prices, and whether the
-    miner has a credential configured for it.
+def provider_summary(credentials=None):
+    """Every provider adapter, its models and prices, and whether the miner
+    has a key file configured for it.
 
-    `credentials` maps adapter id to {"kind": "file"|"env", "reference": ...}.
-    An adapter with a default environment variable (OPENAI_API_KEY for OpenAI)
-    counts as configured when that variable is set. Availability is judged
-    from file metadata or variable presence only: no key is read and no
-    provider is contacted, so `available` means a credential is configured, not
-    that the provider accepts it.
+    `credentials` maps adapter id to the path of the miner's key file.
+    Availability is judged from the file's metadata only: no key is read and
+    no provider is contacted, so `available` means a key file is configured,
+    not that the provider accepts it.
     """
-    environ = os.environ if environ is None else environ
     credentials = credentials or {}
     rows = []
     for adapter in ADAPTERS.values():
-        given = credentials.get(adapter.adapter_id)
-        reference = (
-            _credential(given)
-            if given is not None
-            else (
-                CredentialReference("env", adapter.default_env)
-                if adapter.default_env
-                else None
-            )
-        )
-        reason = _credential_state(reference, environ)
+        reason = _credential_state(credentials.get(adapter.adapter_id))
         rows.append(
             {
                 "schema": PROVIDER_SUMMARY,
@@ -580,24 +704,28 @@ def provider_summary(credentials=None, *, environ=None):
                 "display_name": adapter.display_name,
                 "protocol": adapter.protocol,
                 "endpoint": adapter.endpoint,
+                "base_url": adapter.base_url,
                 "endpoint_required": adapter.endpoint is None,
-                "listed_models": adapter.summary_models(),
+                "models": adapter.summary_models(),
                 "model_policy": (
-                    "Name any model id. A listed model carries its sourced price; "
-                    "any other has an unknown price unless you declare one."
+                    "only the listed models"
+                    if adapter.allowed_models is not None
+                    else "Name any model id. A listed model carries its sourced "
+                    "price; any other has an unknown price unless you declare one."
                 ),
-                "spend_bound_for_unlisted_models": UNKNOWN_SPEND,
+                "spend_bound_for_unpriced_models": UNKNOWN_SPEND,
+                "charge_settled_from": adapter.reported_charge
+                or "metered usage at the model's price",
                 "credential": {
-                    "kinds": ["file", "env"],
-                    "default_env": adapter.default_env,
+                    "kind": "file",
                     "owner": "the miner; Carbon never issues or holds a provider key",
                 },
                 "default_settings": DEFAULT_SETTINGS.record(),
                 "available": reason is None,
                 "reason": reason,
                 "availability_basis": (
-                    "credential file metadata or environment variable presence "
-                    "only; no key was read and no provider was contacted"
+                    "key file metadata only; no key was read and no provider "
+                    "was contacted"
                 ),
             }
         )
@@ -625,6 +753,11 @@ class ProviderHTTPError(Exception):
     def __init__(self, status, *, code=None, retry_after=None):
         super().__init__("provider HTTP status " + str(status))
         self.status, self.code, self.retry_after = status, code, retry_after
+
+
+class NotDispatched(ValueError):
+    """The request could not be expressed in the provider's protocol and was
+    never sent. Safe: nothing was processed, so nothing can have been billed."""
 
 
 @dataclass(frozen=True)
@@ -669,16 +802,22 @@ def _code(value):
 def classify(error, errors=OPENAI_ERRORS):
     """The typed outcome of a failed provider call. Anything not recognised is
     UNKNOWN, which keeps the full reservation and is never resent."""
+    if type(error) is NotDispatched:
+        return ProviderFailure(
+            ProviderOutcome.INVALID_REQUEST, None, None, None, True, False
+        )
     if type(error) is not ProviderHTTPError:
         return ProviderFailure(ProviderOutcome.UNKNOWN, None, None, None, False, False)
     status, code = error.status, _code(error.code)
-    unbilled = status in errors.unbilled_rejections
     retry_after = _retry_after(error.retry_after)
-    if status == 429 and code not in errors.quota_codes:
+    if code in errors.overload_codes or (
+        status in errors.rate_limit_statuses and code not in errors.quota_codes
+    ):
         return ProviderFailure(
-            ProviderOutcome.RATE_LIMITED, status, code, retry_after, unbilled, unbilled
+            ProviderOutcome.RATE_LIMITED, status, code, retry_after, True, True
         )
-    if status == 429:
+    unbilled = status in errors.unbilled_rejections
+    if status == 402 or code in errors.quota_codes:
         outcome = ProviderOutcome.QUOTA_EXHAUSTED
     elif status in (401, 403):
         outcome = ProviderOutcome.AUTH_CREDENTIAL
@@ -695,53 +834,61 @@ def classify(error, errors=OPENAI_ERRORS):
     return ProviderFailure(outcome, status, code, retry_after, unbilled, False)
 
 
-def read_credential(reference: CredentialReference, environ=None):
-    """The key, read only at dispatch by a transport."""
-    if reference.kind == "env":
-        key = (os.environ if environ is None else environ).get(reference.reference)
-        if not key:
-            raise ValueError("credential environment variable is not set")
-        key = key.strip()
-    else:
-        path = Path(reference.reference)
-        if path.is_symlink() or not path.is_file() or path.stat().st_size > 1024:
-            raise ValueError("operator API credential file required")
-        key = path.read_text().strip()
+def read_credential(reference: CredentialReference):
+    """The key, read from its file only at the point of use. Callers pass it
+    straight into one request header and hold it nowhere else."""
+    path = Path(reference.reference)
+    if path.is_symlink() or not path.is_file() or path.stat().st_size > 1024:
+        raise ValueError("operator API credential file required")
+    key = path.read_text().strip()
     if not key or "\n" in key or "\r" in key:
-        raise ValueError("invalid API credential")
+        raise ValueError("invalid API credential file")
     return key
 
 
-def _post(endpoint, body, key, timeout, limit, opener=None):
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
+def _post(selection, body, opener=None):
+    """POST `body` to the selection's endpoint, reading the key here and
+    nowhere else. Rejections become `ProviderHTTPError` with no text."""
+    adapter, settings = selection.adapter, selection.settings
+    headers = {"Content-Type": "application/json"}
+    if adapter.protocol == MESSAGES:
+        headers["anthropic-version"] = ANTHROPIC_VERSION
+    if adapter.auth == "x-api-key":
+        headers["x-api-key"] = read_credential(selection.credential)
+    else:
+        headers["Authorization"] = "Bearer " + read_credential(selection.credential)
     outgoing = urllib.request.Request(
-        endpoint,
-        data=body,
-        headers={"Authorization": "Bearer " + key, "Content-Type": "application/json"},
-        method="POST",
+        selection.endpoint, data=body, headers=headers, method="POST"
     )
-
-    class NoRedirect(urllib.request.HTTPRedirectHandler):
-        def redirect_request(self, req, fp, code, msg, headers, newurl):
-            return None
-
-    opener = opener or urllib.request.build_opener(NoRedirect())
+    del headers
+    opener = opener or urllib.request.build_opener(_NoRedirect())
+    limit = settings.max_response_bytes
     try:
-        with opener.open(outgoing, timeout=timeout) as response:
+        with opener.open(outgoing, timeout=settings.timeout_seconds) as response:
             payload = response.read(limit + 1)
     except urllib.error.HTTPError as rejected:
         code = None
         try:
             parsed = json.loads(rejected.read(64 * 1024))
             error = parsed.get("error") if type(parsed) is dict else None
-            code = error.get("code") if type(error) is dict else None
+            if type(error) is dict:
+                # OpenAI names it `code`; Anthropic Messages names it `type`.
+                code = error.get("code") or error.get("type")
         except Exception:  # noqa: BLE001 - an unreadable body has no code
             code = None
-        headers = rejected.headers
+        retry_after = (
+            None if rejected.headers is None else rejected.headers.get("Retry-After")
+        )
         raise ProviderHTTPError(
-            rejected.code,
-            code=code,
-            retry_after=None if headers is None else headers.get("Retry-After"),
+            rejected.code, code=code, retry_after=retry_after
         ) from None
+    finally:
+        del outgoing
     if len(payload) > limit:
         raise ValueError("provider response exceeds bound")
     return json.loads(payload)
@@ -750,6 +897,14 @@ def _post(endpoint, body, key, timeout, limit, opener=None):
 def _responses_body(request):
     """The Responses request as sent: a null reasoning setting is omitted."""
     return {k: v for k, v in request.items() if not (k == "reasoning" and v is None)}
+
+
+def _text(item):
+    return "".join(
+        part.get("text", "")
+        for part in item.get("content") or []
+        if type(part) is dict and part.get("type") == "output_text"
+    )
 
 
 def chat_request(request):
@@ -765,12 +920,9 @@ def chat_request(request):
         if kind is None and item.get("role") in ("user", "assistant"):
             messages.append({"role": item["role"], "content": item["content"]})
         elif kind == "message":
-            text = "".join(
-                part.get("text", "")
-                for part in item.get("content") or []
-                if type(part) is dict and part.get("type") == "output_text"
+            messages.append(
+                {"role": item.get("role", "assistant"), "content": _text(item)}
             )
-            messages.append({"role": item.get("role", "assistant"), "content": text})
         elif kind == "function_call":
             messages.append(
                 {
@@ -799,7 +951,7 @@ def chat_request(request):
         elif kind == "reasoning":
             continue
         else:
-            raise ValueError("history item has no chat translation")
+            raise NotDispatched("history item has no chat translation")
     return {
         "model": request["model"],
         "messages": messages,
@@ -817,6 +969,12 @@ def chat_request(request):
         "parallel_tool_calls": request["parallel_tool_calls"],
         "max_tokens": request["max_output_tokens"],
     }
+
+
+def _engy_report(response):
+    """Engy's per-call report, carried through translation unchanged."""
+    report = response.get("x_engy")
+    return {"x_engy": report} if report is not None else {}
 
 
 def chat_response(response):
@@ -878,6 +1036,229 @@ def chat_response(response):
         "output": output,
         "usage": translated_usage,
         "provider_protocol": CHAT_COMPLETIONS,
+        **_engy_report(response),
+    }
+
+
+_CACHEABLE = ("text", "tool_result")
+
+
+def messages_request(request, adapter):
+    """Translate the loop's Responses-shaped request into Anthropic Messages.
+
+    History items map one to one: user text and assistant text become text
+    blocks; a function_call becomes an assistant `tool_use` block (its JSON
+    arguments decoded to the `input` object); a function_call_output becomes a
+    user `tool_result` block. Consecutive items of one role merge into one
+    message, as Messages requires alternating turns. Thinking blocks a
+    Messages model returned are carried back verbatim; reasoning items from
+    another protocol have no Messages form and are dropped. `strict`,
+    `store` and the reasoning effort have no Messages equivalent and are not
+    sent. With `cache_breakpoints`, the tools, system prompt and the newest
+    turn carry `cache_control` so the stable prefix is cached.
+    """
+    messages = []
+
+    def push(role, block):
+        if messages and messages[-1]["role"] == role:
+            messages[-1]["content"].append(block)
+        else:
+            messages.append({"role": role, "content": [block]})
+
+    for item in request["input"]:
+        kind = item.get("type") if type(item) is dict else None
+        if kind is None and item.get("role") in ("user", "assistant"):
+            if type(item.get("content")) is not str:
+                raise NotDispatched("message content must be text")
+            push(item["role"], {"type": "text", "text": item["content"]})
+        elif kind == "message":
+            text = _text(item)
+            if text:
+                push(item.get("role", "assistant"), {"type": "text", "text": text})
+        elif kind == "function_call":
+            try:
+                arguments = json.loads(item["arguments"])
+            except (TypeError, ValueError):
+                raise NotDispatched("tool call arguments are not JSON") from None
+            if type(arguments) is not dict:
+                raise NotDispatched("tool call arguments must be an object")
+            push(
+                "assistant",
+                {
+                    "type": "tool_use",
+                    "id": item["call_id"],
+                    "name": item["name"],
+                    "input": arguments,
+                },
+            )
+        elif kind == "function_call_output":
+            push(
+                "user",
+                {
+                    "type": "tool_result",
+                    "tool_use_id": item["call_id"],
+                    "content": item["output"],
+                },
+            )
+        elif kind == "reasoning":
+            for block in item.get("messages_blocks") or []:
+                push("assistant", block)
+        else:
+            raise NotDispatched("history item has no Messages translation")
+    if not messages or messages[0]["role"] != "user":
+        raise NotDispatched("a Messages conversation starts with the user")
+    tools = [
+        {
+            "name": tool["name"],
+            "description": tool.get("description", ""),
+            "input_schema": tool["parameters"],
+        }
+        for tool in request["tools"]
+    ]
+    system = [{"type": "text", "text": request["instructions"]}]
+    if adapter.cache_breakpoints:
+        mark = {"type": "ephemeral"}
+        system[0]["cache_control"] = mark
+        if tools:
+            tools[-1]["cache_control"] = mark
+        last = messages[-1]["content"][-1]
+        if last.get("type") in _CACHEABLE:
+            last["cache_control"] = mark
+    body = {
+        "model": request["model"],
+        "system": system,
+        "messages": messages,
+        "max_tokens": request["max_output_tokens"],
+    }
+    if tools:
+        body["tools"] = tools
+        body["tool_choice"] = {
+            "type": "auto",
+            "disable_parallel_tool_use": request["parallel_tool_calls"] is False,
+        }
+    return body
+
+
+def _count(value):
+    return value if type(value) is int and value >= 0 else None
+
+
+def messages_response(response):
+    """Translate a Messages reply into the Responses shape the loop reads.
+
+    Text blocks become one message item, each `tool_use` a function_call item
+    (its input re-encoded canonically, so the history stays byte-stable), and
+    thinking blocks a reasoning item that carries them back next turn.
+    Messages reports input excluding cache reads and writes; the loop's
+    input_tokens is their sum, with the cache read as cached tokens.
+    Messages has no reasoning-token count; one is recorded only if the
+    provider adds it.
+    """
+    from .profile import canonical
+
+    if type(response) is not dict or type(response.get("content")) is not list:
+        raise ValueError("Messages response malformed")
+    output, texts, thinking = [], [], []
+
+    def flush():
+        if texts:
+            output.append(
+                {
+                    "type": "message",
+                    "role": "assistant",
+                    "content": [{"type": "output_text", "text": "".join(texts)}],
+                }
+            )
+            texts.clear()
+        if thinking:
+            output.append({"type": "reasoning", "messages_blocks": list(thinking)})
+            thinking.clear()
+
+    for block in response["content"]:
+        kind = block.get("type") if type(block) is dict else None
+        if kind == "text":
+            if thinking:
+                flush()
+            texts.append(block.get("text") or "")
+        elif kind in ("thinking", "redacted_thinking"):
+            if texts:
+                flush()
+            thinking.append(block)
+        elif kind == "tool_use":
+            flush()
+            if type(block.get("input")) is not dict:
+                raise ValueError("Messages tool_use input malformed")
+            output.append(
+                {
+                    "type": "function_call",
+                    "call_id": block.get("id"),
+                    "name": block.get("name"),
+                    "arguments": canonical(block["input"]).decode(),
+                }
+            )
+        else:
+            raise ValueError("unmapped Messages content block")
+    flush()
+    usage = response.get("usage")
+    translated = None
+    if type(usage) is dict:
+        fresh = _count(usage.get("input_tokens"))
+        read = _count(usage.get("cache_read_input_tokens")) or 0
+        written = _count(usage.get("cache_creation_input_tokens")) or 0
+        translated = {
+            "input_tokens": None if fresh is None else fresh + read + written,
+            "output_tokens": usage.get("output_tokens"),
+            "input_tokens_details": {
+                "cached_tokens": read,
+                "cache_creation_tokens": written,
+            },
+        }
+        details = usage.get("output_tokens_details")
+        reasoning = (
+            details.get("reasoning_tokens")
+            if type(details) is dict
+            else usage.get("reasoning_tokens")
+        )
+        if reasoning is not None:
+            translated["output_tokens_details"] = {"reasoning_tokens": reasoning}
+    return {
+        "model": response.get("model"),
+        "status": (
+            "completed"
+            if response.get("stop_reason") in ("end_turn", "tool_use", "stop_sequence")
+            else "incomplete"
+        ),
+        "output": output,
+        "usage": translated,
+        "provider_protocol": MESSAGES,
+        "provider_stop_reason": response.get("stop_reason"),
+        **_engy_report(response),
+    }
+
+
+def provider_report(response, selection):
+    """What the provider itself reported about this call: the charge (for an
+    adapter that reports one) and the serving identity. Missing or malformed
+    fields are None - unknown, never zero."""
+    if selection.adapter.reported_charge is None:
+        return None
+    report = response.get("x_engy") if type(response) is dict else None
+    report = report if type(report) is dict else {}
+
+    def ident(value):
+        if type(value) is int and value >= 0:
+            return value
+        if type(value) is str and 1 <= len(value) <= 256 and value.isprintable():
+            return value
+        return None
+
+    charged = report.get("charged_micro")
+    return {
+        "source": selection.adapter.reported_charge,
+        "charged_micro": charged if type(charged) is int and charged >= 0 else None,
+        "request_id": ident(report.get("request_id")),
+        "miner": ident(report.get("miner")),
+        "worker": ident(report.get("worker")),
     }
 
 
@@ -885,31 +1266,34 @@ class SelectionTransport:
     """POST one closed request to the selected provider.
 
     No redirect is followed and nothing is retried here; a rejection is raised
-    as `ProviderHTTPError` and anything else propagates unchanged, classifying
-    as UNKNOWN. `opener` replaces urllib's for fixture tests only.
+    as `ProviderHTTPError`, an untranslatable request as `NotDispatched`
+    before anything is sent, and anything else propagates unchanged,
+    classifying as UNKNOWN. `opener` replaces urllib's for fixture tests only.
     """
 
-    def __init__(self, selection: ModelSelection, *, opener=None, environ=None):
+    def __init__(self, selection: ModelSelection, *, opener=None):
         if type(selection) is not ModelSelection:
             raise ModelSelectionRefused("a validated ModelSelection is required")
-        self.selection, self.opener, self.environ = selection, opener, environ
+        self.selection, self.opener = selection, opener
 
     def __call__(self, request: dict[str, object]):
         from .profile import canonical
 
-        s = self.selection
-        key = read_credential(s.credential, self.environ)
-        chat = s.adapter.protocol == CHAT_COMPLETIONS
-        body = chat_request(request) if chat else _responses_body(request)
-        response = _post(
-            s.endpoint,
-            canonical(body),
-            key,
-            s.settings.timeout_seconds,
-            s.settings.max_response_bytes,
-            self.opener,
-        )
-        return chat_response(response) if chat else response
+        protocol = self.selection.adapter.protocol
+        if protocol == CHAT_COMPLETIONS:
+            body = chat_request(request)
+        elif protocol == MESSAGES:
+            body = messages_request(request, self.selection.adapter)
+        else:
+            body = _responses_body(request)
+        # Canonical bytes: sorted keys and no volatile fields, so the same
+        # history always produces the same prefix for the provider's cache.
+        response = _post(self.selection, canonical(body), self.opener)
+        if protocol == CHAT_COMPLETIONS:
+            return chat_response(response)
+        if protocol == MESSAGES:
+            return messages_response(response)
+        return response
 
 
 class ProviderTransport(SelectionTransport):
@@ -919,3 +1303,37 @@ class ProviderTransport(SelectionTransport):
     def __init__(self, credential_file: Path):
         super().__init__(_default(credential_file))
         self.credential_file = credential_file
+
+
+def fetch_models(adapter_id="engy-anthropic", *, opener=None):
+    """The provider's live public model list (`GET /v1/models`, no key).
+
+    For an operator's live check before configuring; Carbon's tests pass a
+    fixture opener and never call it against the network.
+    """
+    adapter = ADAPTERS[adapter_id]
+    if adapter.models_url is None:
+        raise ValueError("this provider publishes no public model list")
+    opener = opener or urllib.request.build_opener(_NoRedirect())
+    outgoing = urllib.request.Request(adapter.models_url, method="GET")
+    with opener.open(outgoing, timeout=30) as response:
+        payload = response.read(2 * 1024**2 + 1)
+    if len(payload) > 2 * 1024**2:
+        raise ValueError("model list exceeds bound")
+    data = json.loads(payload)
+    items = data.get("data") if type(data) is dict else None
+    if type(items) is not list:
+        raise ValueError("model list malformed")
+    listed = sorted(
+        item["id"]
+        for item in items
+        if type(item) is dict and type(item.get("id")) is str
+    )
+    return {
+        "source": adapter.models_url,
+        "models": listed,
+        "allowed_and_listed": [m for m in adapter.allowed_models or () if m in listed],
+        "allowed_but_not_listed": [
+            m for m in adapter.allowed_models or () if m not in listed
+        ],
+    }

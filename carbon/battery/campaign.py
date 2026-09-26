@@ -189,18 +189,11 @@ async def prepare_battery(args, *, ledger=None, campaign):
             selection = plan_selection(args, plan)
         if plan.get("agent") != "autonomous" or plan.get("evaluator_access"):
             raise ValueError("the frozen battery agent plan is not runnable")
-        if selection.credential.kind == "env":
-            import os
-
-            if not os.environ.get(selection.credential.reference):
-                raise ValueError("the selected credential variable is not set")
-            SelectionTransport(selection)
+        private_file(args.api_key_file)
+        if selection.is_historical_default:
+            ResponsesTransport(args.api_key_file)
         else:
-            private_file(args.api_key_file)
-            if selection.is_historical_default:
-                ResponsesTransport(args.api_key_file)
-            else:
-                SelectionTransport(selection)
+            SelectionTransport(selection)
     implementation = accepted_implementation(args.accepted_revision)
     image = load_image_identity(args.image_manifest)
     verify_current_worker(image, implementation)

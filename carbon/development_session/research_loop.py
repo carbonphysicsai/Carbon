@@ -14,7 +14,7 @@ from carbon.reconstruction.capability_registry import contract_digest
 from .data import write_once
 from .model_provider import DEFAULT_SELECTION
 from .profile import CHALLENGE, canonical, digest
-from .research_agent import request_model
+from .research_agent import caching_status, provider_turns, request_model
 from .research_agent_policy import (
     AUTONOMOUS,
     LEGACY,
@@ -249,6 +249,21 @@ async def run_epoch(
             transport=transport,
             provider=provider,
         )
+        # The turn's cost, tokens and serving identity, journalled beside the
+        # epoch so a view shows spend per turn as it happens.
+        turns = provider_turns(ledger.status(owner=owner)["operations"])
+        turn = next(t for t in turns if t["turn"] == call_id)
+        write_once(root / (call_id + "-turn.json"), canonical(turn))
+        caching = caching_status(
+            [t for t in turns if t["turn"].startswith(f"epoch-{epoch}-")]
+        )
+        print(
+            f"Research epoch {epoch}: turn {index + 1} charge "
+            f"{turn['charge_nanodollars']} nanodollars ({'; '.join(turn['charge_basis'])}); "
+            f"cached input {turn['cached_input_tokens']}/{turn['input_tokens']}; "
+            f"caching {caching['status']}",
+            flush=True,
+        )
         output = response.get("output")
         if type(output) is not list:
             raise ValueError("provider output malformed; retained and stopped")
@@ -365,10 +380,17 @@ async def run_epoch(
         )
     if outcome is None:
         outcome = {"status": "STOPPED", "reason": "epoch provider-call ceiling"}
+    turns = [
+        t
+        for t in provider_turns(ledger.status(owner=owner)["operations"])
+        if t["turn"].startswith(f"epoch-{epoch}-")
+    ]
     report = {
         "schema": "carbon.autoresearch.epoch-outcome.v1",
         "epoch": epoch,
         **outcome,
+        "provider_turns": turns,
+        "caching": caching_status(turns),
         "accounting": ledger.status(owner=owner),
         "chain_transactions": 0,
     }
