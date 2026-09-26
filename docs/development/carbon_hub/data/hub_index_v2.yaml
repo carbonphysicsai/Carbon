@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-25T19:10:48Z"
+  captured_at_utc: "2026-09-25T21:16:49Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "107e3873ec3f05d7c45843500a38c4a38069c4e2"
+  authority_snapshot_commit: "7dd9a239006df42e4a8050da1f5d20ef9f7177b4"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -10008,6 +10008,19 @@ events:
       - "WAVE-C/C-09"
     supersedes: null
     recorded_at: "2026-09-25T19:00:00Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "evidence"
+    event_id: "BATTERY-TESTNET-M4P-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "Host preparation tooling for battery M4/M7, answering the operator's host check. The PyBaMM truth environment is materialized from its hash-locked overlay (size/SHA-256 checked, zip-slip refused), verified inside the pinned image with no network, and solves run in that image from an owner-only jobs file without seeing validator state, root or journal. A read-only runtime probe compares the live testnet metadata with bittensor 11.1.0's generated bindings for the exact publish surface Carbon uses, so the owner can decide on runtime 471 from evidence; it claims no runtime behaviour and grants nothing. An OD-4a generator produces one numbered, digest-bound all-burn request ([[0,65535]], one dispatch, zero fee and spend, window anchored to a fresh probe) for the owner to approve; winner weights stay excluded. Nothing here dispatches, rents compute, publishes or opens a wallet."
+    primary_detail: ".agent/tickets/BATTERY-TESTNET-M4P_host_preparation.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "WAVE-C/C-09"
+    supersedes: null
+    recorded_at: "2026-09-25T20:00:00Z"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"

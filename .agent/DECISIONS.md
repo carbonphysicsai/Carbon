@@ -15828,3 +15828,66 @@ choice.
   refused here);
 - truth solves on a host;
 - any testnet observation (M7).
+
+## 2026-09-25 — OWNER-BATTERY-TESTNET-04: prior spend, GPU image, OD-3 review
+
+**Authority.** The owner, in session on 2026-09-25, answering three
+questions.
+
+1. **The exam-design RunPod spend does not count against OD-5.**
+   - The earlier campaign's about USD 4.79 (the 2026-09-24/25 ledger) is
+     outside this track.
+   - The track keeps its full USD 20: RunPod 14, model provider 6.
+   - Spend in this track so far is USD 0 on each.
+2. **GPU validator image: reuse `carbon-accelerator-worker`, and build onto
+   it only if needed.**
+   - The image is `carbon-accelerator-worker@sha256:e4a2014daa9abc4e3df0bb890bc031a6a859ae21f42d4bec0a0494e25d949794`
+     (C-CORE-19 evidence), built from environment lock
+     `.devcontainer/accelerators/cuda13-py311.txt`.
+   - That lock pins the battery runtime's exact versions: jax/jaxlib
+     0.10.2, optax 0.2.8, numpy 2.4.6, scipy 1.17.1. The battery programs are
+     staged per run, so no new layer is expected.
+   - If one proves necessary, the derived image's identity and its added
+     layer are recorded and shown to the owner before use.
+3. **The OD-3 security review is recorded as approved** for:
+   - the PyBaMM truth image: the base digest plus the overlay lock;
+   - the GPU validator image named in item 2.
+
+   A derived image is a new identity. Its added layer is listed for the owner
+   under item 2, and the approval is not assumed to cover it.
+
+**Unchanged.**
+- M4 still requires two-host reproducibility on RunPod. The local RTX 3060
+  is preflight only.
+- Every paid step still needs a fresh balance and active-pod check, a
+  journaled pod ID and verified termination.
+- OD-4a still needs its numbered, digest-approved record. OD-4b is not
+  authorized.
+
+## 2026-09-25 — M4P-D1: the production seed pin and one-time `operate init`
+
+**Delegated engineering decision** (BATTERY-TESTNET-M4P; no scientific
+value is chosen).
+
+- **Finding.** A pre-handoff audit found that the handoff told the host to
+  commit the private root "with the seed pin from the M2 seed service", but
+  no production pin source existed. Only tests used fixture digests. A host
+  session would have had to invent the generator and scoring digests.
+- **Decision.** `seeds.generator_digest(repository)` is the generator
+  identity: the SHA-256 of `challenge.py`, `seeds.py`, `reference.py` and
+  `truth.py`, the truth base image reference and the overlay lock digest.
+  The scoring digest is the daemon's OD-2 `rule_digest()`.
+  `operate init --config` creates the root once, with `O_EXCL` and `0600`,
+  and commits it with that pin. The pin is recorded in the journal's root
+  entry and never recomputed, so later code changes do not rebind a
+  deployment.
+- **Fail closed.**
+  - An existing root and binding are kept and reported.
+  - A journal bound to another root is refused.
+  - A missing committed root is refused, and no replacement is written.
+  - A group-readable root or journal is refused.
+  - Only the public commitment and pin are printed.
+- **Handoff.** `BATTERY_TESTNET_HOST_HANDOFF.md` §0 now holds the complete
+  host-session procedure. The OD-4a request prepared on the host is a draft
+  for format review. The owner approves a digest regenerated from a fresh
+  probe just before dispatch.
