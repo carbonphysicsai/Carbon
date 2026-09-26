@@ -1,0 +1,2758 @@
+{
+  "claims": {
+    "best_in_tested_set_is_global_optimum": false,
+    "evidence_class": "PUBLIC_SYNTHETIC_DEVELOPMENT",
+    "optimal_weight_ratio_claimed": false,
+    "testnet_rule_changed": false
+  },
+  "comparison": {
+    "control-exam-v1": {
+      "measurable": true,
+      "not_measurable": [],
+      "tau_development": 0.34112114616897665,
+      "tau_development_with_controls": 0.0,
+      "tau_verification": 0.1651445647689541
+    },
+    "p0-r20-a80": {
+      "measurable": true,
+      "not_measurable": [],
+      "tau_development": 0.34112114616897665,
+      "tau_development_with_controls": 0.024845199749997663,
+      "tau_verification": 0.11009637651263607
+    },
+    "p0-r30-a70": {
+      "measurable": true,
+      "not_measurable": [],
+      "tau_development": 0.34112114616897665,
+      "tau_development_with_controls": 0.14907119849998599,
+      "tau_verification": 0.11009637651263607
+    },
+    "p0-r40-a60": {
+      "measurable": true,
+      "not_measurable": [],
+      "tau_development": 0.34112114616897665,
+      "tau_development_with_controls": 0.14907119849998599,
+      "tau_verification": 0.11009637651263607
+    },
+    "p45-r30-a25": {
+      "measurable": false,
+      "not_measurable": [
+        "NOT_MEASURABLE:missing_component"
+      ],
+      "tau_development": null,
+      "tau_development_with_controls": null,
+      "tau_verification": null
+    }
+  },
+  "components": {
+    "control-boundary_optimist": {
+      "E": 0.046173421917428986,
+      "E_important": 0.0862985894747582,
+      "eligible": true,
+      "gate_failures": []
+    },
+    "control-conservative": {
+      "E": 0.24170516864656036,
+      "E_important": 0.24170516864656036,
+      "eligible": true,
+      "gate_failures": []
+    },
+    "control-localized_sign_error": {
+      "E": 0.00771531825759051,
+      "E_important": 0.039395258498565046,
+      "eligible": true,
+      "gate_failures": []
+    },
+    "control-oracle": {
+      "E": 0.0,
+      "E_important": 0.0,
+      "eligible": true,
+      "gate_failures": []
+    },
+    "control-rank_preserving_delay": {
+      "E": 0.03285986136706365,
+      "E_important": 0.03504900593210868,
+      "eligible": true,
+      "gate_failures": []
+    },
+    "knn-s0": {
+      "E": 0.17084759000748753,
+      "E_important": 0.16107477289746097,
+      "eligible": true,
+      "gate_failures": []
+    },
+    "mlp-s0": {
+      "E": 0.055122742253247245,
+      "E_important": 0.05050858960055365,
+      "eligible": true,
+      "gate_failures": []
+    },
+    "mlp-s1": {
+      "E": 0.05641013356341416,
+      "E_important": 0.05245890035750235,
+      "eligible": true,
+      "gate_failures": []
+    },
+    "mlp-s2": {
+      "E": 0.057452232923369796,
+      "E_important": 0.054116699398851366,
+      "eligible": true,
+      "gate_failures": []
+    },
+    "mlp_ens3-s0": {
+      "E": 0.05143333982115176,
+      "E_important": 0.04740373949581767,
+      "eligible": true,
+      "gate_failures": []
+    },
+    "mlp_half-s0": {
+      "E": 0.0874179913537769,
+      "E_important": 0.08419439605648073,
+      "eligible": true,
+      "gate_failures": []
+    },
+    "mlp_half-s1": {
+      "E": 0.08339358954856335,
+      "E_important": 0.07109301087012779,
+      "eligible": true,
+      "gate_failures": []
+    },
+    "mlp_localized-s0": {
+      "E": 0.05716041098964638,
+      "E_important": 0.05661438967204081,
+      "eligible": true,
+      "gate_failures": []
+    },
+    "mlp_localized-s1": {
+      "E": 0.05835433189995777,
+      "E_important": 0.05471169064538045,
+      "eligible": true,
+      "gate_failures": []
+    },
+    "mlp_plus-s0": {
+      "E": 0.08900934295415326,
+      "E_important": 0.08705856985012399,
+      "eligible": true,
+      "gate_failures": []
+    },
+    "mlp_raw-s0": {
+      "E": 0.05826092770278732,
+      "E_important": 0.056523618169185046,
+      "eligible": false,
+      "gate_failures": [
+        "voltage_ceiling"
+      ]
+    }
+  },
+  "contract_digest": "sha256:292c0473f295ac5898845b2a75b05e9cf6d843722fecd3812ad79abe7ea8d0f9",
+  "decisions": {
+    "control-boundary_optimist": {
+      "D1-temperate": {
+        "agreement": {
+          "false_acceptances": 1,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": 1.0,
+          "resolved_candidates": 15,
+          "top1_among_feasible": true
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": "c1=1.25,c2=0.8",
+          "best_objective_s": 2421.9016793592973,
+          "decision_loss": null,
+          "kind": "SELECTED_UNRESOLVED",
+          "selected": "c1=1.25,c2=1",
+          "selected_status": "UNRESOLVED",
+          "selection_seconds": 0.001021814000523591
+        },
+        "split": "development"
+      },
+      "D2-warm": {
+        "agreement": {
+          "false_acceptances": 3,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 16,
+          "top1_among_feasible": true
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": "c1=0.75,c2=1",
+          "best_objective_s": 3157.591610420378,
+          "decision_loss": 10.0,
+          "kind": "SELECTED_INFEASIBLE",
+          "selected": "c1=1.25,c2=1",
+          "selected_status": "INFEASIBLE",
+          "selection_seconds": 0.0009476560007897206,
+          "violations": [
+            {
+              "peak_temperature": 0.15400709391190048
+            },
+            {},
+            {
+              "peak_temperature": 3.3881395136122023
+            },
+            {
+              "peak_temperature": 0.9068229573760505
+            }
+          ]
+        },
+        "split": "development"
+      },
+      "D3-cool": {
+        "agreement": {
+          "false_acceptances": 1,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 15,
+          "top1_among_feasible": null
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "UNRESOLVED",
+          "best_in_tested_set": null,
+          "best_objective_s": null,
+          "decision_loss": 10.0,
+          "kind": "SELECTED_INFEASIBLE",
+          "selected": "c1=0.75,c2=0.8",
+          "selected_status": "INFEASIBLE",
+          "selection_seconds": 0.0009116010005527642,
+          "violations": [
+            {
+              "no_plating_onset": 0.005844827651826926
+            },
+            {
+              "no_plating_onset": 0.00875803083353391
+            },
+            {
+              "no_plating_onset": 0.001315126368824888
+            },
+            {
+              "no_plating_onset": 0.0033603608502661385
+            }
+          ]
+        },
+        "split": "development"
+      },
+      "V1-mild": {
+        "agreement": {
+          "false_acceptances": 4,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 15,
+          "top1_among_feasible": null
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": null,
+          "best_objective_s": null,
+          "decision_loss": 10.0,
+          "kind": "SELECTED_INFEASIBLE",
+          "selected": "c1=1.25,c2=1",
+          "selected_status": "INFEASIBLE",
+          "selection_seconds": 0.0009777720006240997,
+          "violations": [
+            {
+              "no_plating_onset": 0.0001645826151308509
+            },
+            {
+              "no_plating_onset": 0.005944023574389411
+            },
+            {},
+            {}
+          ]
+        },
+        "split": "verification"
+      },
+      "V2-hot": {
+        "agreement": {
+          "false_acceptances": 1,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 16,
+          "top1_among_feasible": null
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": null,
+          "best_objective_s": null,
+          "decision_loss": 10.0,
+          "kind": "SELECTED_INFEASIBLE",
+          "selected": "c1=0.75,c2=1",
+          "selected_status": "INFEASIBLE",
+          "selection_seconds": 0.001056996999977855,
+          "violations": [
+            {},
+            {},
+            {
+              "peak_temperature": 1.0724170316046866
+            },
+            {
+              "peak_temperature": 1.2308569707510628
+            }
+          ]
+        },
+        "split": "verification"
+      },
+      "V3-cold": {
+        "agreement": {
+          "false_acceptances": 2,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 16,
+          "top1_among_feasible": null
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": null,
+          "best_objective_s": null,
+          "decision_loss": 10.0,
+          "kind": "SELECTED_INFEASIBLE",
+          "selected": "c1=0.75,c2=0.8",
+          "selected_status": "INFEASIBLE",
+          "selection_seconds": 0.0008298870006910875,
+          "violations": [
+            {
+              "no_plating_onset": 0.009833142754087823
+            },
+            {
+              "no_plating_onset": 0.011227052741618575
+            },
+            {
+              "no_plating_onset": 0.0033729734112084063
+            },
+            {
+              "no_plating_onset": 0.004460348158553644
+            }
+          ]
+        },
+        "split": "verification"
+      }
+    },
+    "control-conservative": {
+      "D1-temperate": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 3,
+          "rank_tau_among_feasible": 1.0,
+          "resolved_candidates": 15,
+          "top1_among_feasible": true
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": "c1=1.25,c2=0.8",
+          "best_objective_s": 2421.9016793592973,
+          "decision_loss": 1.0,
+          "kind": "MISSED_OPPORTUNITY",
+          "selected": null,
+          "selection_seconds": 0.0009786350001377286
+        },
+        "split": "development"
+      },
+      "D2-warm": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 1,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 16,
+          "top1_among_feasible": true
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": "c1=0.75,c2=1",
+          "best_objective_s": 3157.591610420378,
+          "decision_loss": 1.0,
+          "kind": "MISSED_OPPORTUNITY",
+          "selected": null,
+          "selection_seconds": 0.0009370070001750719
+        },
+        "split": "development"
+      },
+      "D3-cool": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 15,
+          "top1_among_feasible": null
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "UNRESOLVED",
+          "best_in_tested_set": null,
+          "best_objective_s": null,
+          "decision_loss": null,
+          "kind": "ABSTENTION_UNRESOLVED",
+          "selected": null,
+          "selection_seconds": 0.0009501209997324622
+        },
+        "split": "development"
+      },
+      "V1-mild": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 15,
+          "top1_among_feasible": null
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": null,
+          "best_objective_s": null,
+          "decision_loss": null,
+          "kind": "ABSTENTION_UNRESOLVED",
+          "selected": null,
+          "selection_seconds": 0.000958602000537212
+        },
+        "split": "verification"
+      },
+      "V2-hot": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 16,
+          "top1_among_feasible": null
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": null,
+          "best_objective_s": null,
+          "decision_loss": 0.0,
+          "kind": "CORRECT_ABSTENTION",
+          "selected": null,
+          "selection_seconds": 0.000996859999759181
+        },
+        "split": "verification"
+      },
+      "V3-cold": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 16,
+          "top1_among_feasible": null
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": null,
+          "best_objective_s": null,
+          "decision_loss": 0.0,
+          "kind": "CORRECT_ABSTENTION",
+          "selected": null,
+          "selection_seconds": 0.000871019999976852
+        },
+        "split": "verification"
+      }
+    },
+    "control-localized_sign_error": {
+      "D1-temperate": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 2,
+          "rank_tau_among_feasible": 1.0,
+          "resolved_candidates": 15,
+          "top1_among_feasible": true
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": "c1=1.25,c2=0.8",
+          "best_objective_s": 2421.9016793592973,
+          "decision_loss": 5.670263977425797,
+          "gap_to_best_in_set_s": 680.4316772910956,
+          "improvement_vs_baseline_s": null,
+          "kind": "SELECTED_FEASIBLE",
+          "selected": "c1=1.25,c2=0.6",
+          "selected_status": "FEASIBLE",
+          "selection_seconds": 0.0009708159996080212,
+          "useful_improvement": null,
+          "verified_objective_s": 3102.333356650393
+        },
+        "split": "development"
+      },
+      "D2-warm": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 16,
+          "top1_among_feasible": true
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": "c1=0.75,c2=1",
+          "best_objective_s": 3157.591610420378,
+          "decision_loss": 0.0,
+          "gap_to_best_in_set_s": 0.0,
+          "improvement_vs_baseline_s": null,
+          "kind": "SELECTED_FEASIBLE",
+          "selected": "c1=0.75,c2=1",
+          "selected_status": "FEASIBLE",
+          "selection_seconds": 0.000944121999964409,
+          "useful_improvement": null,
+          "verified_objective_s": 3157.591610420378
+        },
+        "split": "development"
+      },
+      "D3-cool": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 15,
+          "top1_among_feasible": null
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "UNRESOLVED",
+          "best_in_tested_set": null,
+          "best_objective_s": null,
+          "decision_loss": null,
+          "kind": "ABSTENTION_UNRESOLVED",
+          "selected": null,
+          "selection_seconds": 0.0009111389999816311
+        },
+        "split": "development"
+      },
+      "V1-mild": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 15,
+          "top1_among_feasible": null
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": null,
+          "best_objective_s": null,
+          "decision_loss": null,
+          "kind": "ABSTENTION_UNRESOLVED",
+          "selected": null,
+          "selection_seconds": 0.0009361379998154007
+        },
+        "split": "verification"
+      },
+      "V2-hot": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 16,
+          "top1_among_feasible": null
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": null,
+          "best_objective_s": null,
+          "decision_loss": 0.0,
+          "kind": "CORRECT_ABSTENTION",
+          "selected": null,
+          "selection_seconds": 0.0010201049999523093
+        },
+        "split": "verification"
+      },
+      "V3-cold": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 16,
+          "top1_among_feasible": null
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": null,
+          "best_objective_s": null,
+          "decision_loss": 0.0,
+          "kind": "CORRECT_ABSTENTION",
+          "selected": null,
+          "selection_seconds": 0.000805656999546045
+        },
+        "split": "verification"
+      }
+    },
+    "control-oracle": {
+      "D1-temperate": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": 1.0,
+          "resolved_candidates": 15,
+          "top1_among_feasible": true
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": "c1=1.25,c2=0.8",
+          "best_objective_s": 2421.9016793592973,
+          "decision_loss": 0.0,
+          "gap_to_best_in_set_s": 0.0,
+          "improvement_vs_baseline_s": null,
+          "kind": "SELECTED_FEASIBLE",
+          "selected": "c1=1.25,c2=0.8",
+          "selected_status": "FEASIBLE",
+          "selection_seconds": 0.0010058120005851379,
+          "useful_improvement": null,
+          "verified_objective_s": 2421.9016793592973
+        },
+        "split": "development"
+      },
+      "D2-warm": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 16,
+          "top1_among_feasible": true
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": "c1=0.75,c2=1",
+          "best_objective_s": 3157.591610420378,
+          "decision_loss": 0.0,
+          "gap_to_best_in_set_s": 0.0,
+          "improvement_vs_baseline_s": null,
+          "kind": "SELECTED_FEASIBLE",
+          "selected": "c1=0.75,c2=1",
+          "selected_status": "FEASIBLE",
+          "selection_seconds": 0.0009664519993748399,
+          "useful_improvement": null,
+          "verified_objective_s": 3157.591610420378
+        },
+        "split": "development"
+      },
+      "D3-cool": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 15,
+          "top1_among_feasible": null
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "UNRESOLVED",
+          "best_in_tested_set": null,
+          "best_objective_s": null,
+          "decision_loss": null,
+          "kind": "SELECTED_UNRESOLVED",
+          "selected": "c1=0.75,c2=0.6",
+          "selected_status": "UNRESOLVED",
+          "selection_seconds": 0.000939147000281082
+        },
+        "split": "development"
+      },
+      "V1-mild": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 15,
+          "top1_among_feasible": null
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": null,
+          "best_objective_s": null,
+          "decision_loss": null,
+          "kind": "SELECTED_UNRESOLVED",
+          "selected": "c1=0.75,c2=0.8",
+          "selected_status": "UNRESOLVED",
+          "selection_seconds": 0.000990782000371837
+        },
+        "split": "verification"
+      },
+      "V2-hot": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 16,
+          "top1_among_feasible": null
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": null,
+          "best_objective_s": null,
+          "decision_loss": 0.0,
+          "kind": "CORRECT_ABSTENTION",
+          "selected": null,
+          "selection_seconds": 0.0010577970006124815
+        },
+        "split": "verification"
+      },
+      "V3-cold": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 16,
+          "top1_among_feasible": null
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": null,
+          "best_objective_s": null,
+          "decision_loss": 0.0,
+          "kind": "CORRECT_ABSTENTION",
+          "selected": null,
+          "selection_seconds": 0.0009312510001109331
+        },
+        "split": "verification"
+      }
+    },
+    "control-rank_preserving_delay": {
+      "D1-temperate": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": 1.0,
+          "resolved_candidates": 15,
+          "top1_among_feasible": true
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": "c1=1.25,c2=0.8",
+          "best_objective_s": 2421.9016793592973,
+          "decision_loss": 0.0,
+          "gap_to_best_in_set_s": 0.0,
+          "improvement_vs_baseline_s": null,
+          "kind": "SELECTED_FEASIBLE",
+          "selected": "c1=1.25,c2=0.8",
+          "selected_status": "FEASIBLE",
+          "selection_seconds": 0.0009794150000743684,
+          "useful_improvement": null,
+          "verified_objective_s": 2421.9016793592973
+        },
+        "split": "development"
+      },
+      "D2-warm": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 16,
+          "top1_among_feasible": true
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": "c1=0.75,c2=1",
+          "best_objective_s": 3157.591610420378,
+          "decision_loss": 0.0,
+          "gap_to_best_in_set_s": 0.0,
+          "improvement_vs_baseline_s": null,
+          "kind": "SELECTED_FEASIBLE",
+          "selected": "c1=0.75,c2=1",
+          "selected_status": "FEASIBLE",
+          "selection_seconds": 0.0009390960003656801,
+          "useful_improvement": null,
+          "verified_objective_s": 3157.591610420378
+        },
+        "split": "development"
+      },
+      "D3-cool": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 15,
+          "top1_among_feasible": null
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "UNRESOLVED",
+          "best_in_tested_set": null,
+          "best_objective_s": null,
+          "decision_loss": null,
+          "kind": "SELECTED_UNRESOLVED",
+          "selected": "c1=0.75,c2=0.6",
+          "selected_status": "UNRESOLVED",
+          "selection_seconds": 0.0009110630007853615
+        },
+        "split": "development"
+      },
+      "V1-mild": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 15,
+          "top1_among_feasible": null
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": null,
+          "best_objective_s": null,
+          "decision_loss": null,
+          "kind": "SELECTED_UNRESOLVED",
+          "selected": "c1=0.75,c2=0.8",
+          "selected_status": "UNRESOLVED",
+          "selection_seconds": 0.0009510279996902682
+        },
+        "split": "verification"
+      },
+      "V2-hot": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 16,
+          "top1_among_feasible": null
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": null,
+          "best_objective_s": null,
+          "decision_loss": 0.0,
+          "kind": "CORRECT_ABSTENTION",
+          "selected": null,
+          "selection_seconds": 0.0010483639998710714
+        },
+        "split": "verification"
+      },
+      "V3-cold": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 16,
+          "top1_among_feasible": null
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": null,
+          "best_objective_s": null,
+          "decision_loss": 0.0,
+          "kind": "CORRECT_ABSTENTION",
+          "selected": null,
+          "selection_seconds": 0.0008500449994244264
+        },
+        "split": "verification"
+      }
+    },
+    "knn-s0": {
+      "D1-temperate": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 1,
+          "rank_tau_among_feasible": 1.0,
+          "resolved_candidates": 15,
+          "top1_among_feasible": true
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": "c1=1.25,c2=0.8",
+          "best_objective_s": 2421.9016793592973,
+          "decision_loss": 0.0,
+          "gap_to_best_in_set_s": 0.0,
+          "improvement_vs_baseline_s": null,
+          "kind": "SELECTED_FEASIBLE",
+          "selected": "c1=1.25,c2=0.8",
+          "selected_status": "FEASIBLE",
+          "selection_seconds": 0.0011353299996699207,
+          "useful_improvement": null,
+          "verified_objective_s": 2421.9016793592973
+        },
+        "split": "development"
+      },
+      "D2-warm": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 1,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 16,
+          "top1_among_feasible": false
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": "c1=0.75,c2=1",
+          "best_objective_s": 3157.591610420378,
+          "decision_loss": 1.0,
+          "kind": "MISSED_OPPORTUNITY",
+          "selected": null,
+          "selection_seconds": 0.0011102989992650691
+        },
+        "split": "development"
+      },
+      "D3-cool": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 15,
+          "top1_among_feasible": null
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "UNRESOLVED",
+          "best_in_tested_set": null,
+          "best_objective_s": null,
+          "decision_loss": null,
+          "kind": "SELECTED_UNRESOLVED",
+          "selected": "c1=0.75,c2=0.6",
+          "selected_status": "UNRESOLVED",
+          "selection_seconds": 0.0010528679995331913
+        },
+        "split": "development"
+      },
+      "V1-mild": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 15,
+          "top1_among_feasible": null
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": null,
+          "best_objective_s": null,
+          "decision_loss": null,
+          "kind": "ABSTENTION_UNRESOLVED",
+          "selected": null,
+          "selection_seconds": 0.0010485430002518115
+        },
+        "split": "verification"
+      },
+      "V2-hot": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 16,
+          "top1_among_feasible": null
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": null,
+          "best_objective_s": null,
+          "decision_loss": 0.0,
+          "kind": "CORRECT_ABSTENTION",
+          "selected": null,
+          "selection_seconds": 0.0010634520003804937
+        },
+        "split": "verification"
+      },
+      "V3-cold": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 16,
+          "top1_among_feasible": null
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": null,
+          "best_objective_s": null,
+          "decision_loss": 0.0,
+          "kind": "CORRECT_ABSTENTION",
+          "selected": null,
+          "selection_seconds": 0.0010044600003311643
+        },
+        "split": "verification"
+      }
+    },
+    "mlp-s0": {
+      "D1-temperate": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": 1.0,
+          "resolved_candidates": 15,
+          "top1_among_feasible": true
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": "c1=1.25,c2=0.8",
+          "best_objective_s": 2421.9016793592973,
+          "decision_loss": 0.0,
+          "gap_to_best_in_set_s": 0.0,
+          "improvement_vs_baseline_s": null,
+          "kind": "SELECTED_FEASIBLE",
+          "selected": "c1=1.25,c2=0.8",
+          "selected_status": "FEASIBLE",
+          "selection_seconds": 0.0010243719998470624,
+          "useful_improvement": null,
+          "verified_objective_s": 2421.9016793592973
+        },
+        "split": "development"
+      },
+      "D2-warm": {
+        "agreement": {
+          "false_acceptances": 1,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 16,
+          "top1_among_feasible": true
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": "c1=0.75,c2=1",
+          "best_objective_s": 3157.591610420378,
+          "decision_loss": 0.0,
+          "gap_to_best_in_set_s": 0.0,
+          "improvement_vs_baseline_s": null,
+          "kind": "SELECTED_FEASIBLE",
+          "selected": "c1=0.75,c2=1",
+          "selected_status": "FEASIBLE",
+          "selection_seconds": 0.0010171040003115195,
+          "useful_improvement": null,
+          "verified_objective_s": 3157.591610420378
+        },
+        "split": "development"
+      },
+      "D3-cool": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 15,
+          "top1_among_feasible": null
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "UNRESOLVED",
+          "best_in_tested_set": null,
+          "best_objective_s": null,
+          "decision_loss": null,
+          "kind": "ABSTENTION_UNRESOLVED",
+          "selected": null,
+          "selection_seconds": 0.0010140759995920234
+        },
+        "split": "development"
+      },
+      "V1-mild": {
+        "agreement": {
+          "false_acceptances": 1,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 15,
+          "top1_among_feasible": null
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": null,
+          "best_objective_s": null,
+          "decision_loss": null,
+          "kind": "SELECTED_UNRESOLVED",
+          "selected": "c1=0.75,c2=0.8",
+          "selected_status": "UNRESOLVED",
+          "selection_seconds": 0.001015598000776663
+        },
+        "split": "verification"
+      },
+      "V2-hot": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 16,
+          "top1_among_feasible": null
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": null,
+          "best_objective_s": null,
+          "decision_loss": 0.0,
+          "kind": "CORRECT_ABSTENTION",
+          "selected": null,
+          "selection_seconds": 0.0010255759998472058
+        },
+        "split": "verification"
+      },
+      "V3-cold": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 16,
+          "top1_among_feasible": null
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": null,
+          "best_objective_s": null,
+          "decision_loss": 0.0,
+          "kind": "CORRECT_ABSTENTION",
+          "selected": null,
+          "selection_seconds": 0.001105357000596996
+        },
+        "split": "verification"
+      }
+    },
+    "mlp-s1": {
+      "D1-temperate": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": 1.0,
+          "resolved_candidates": 15,
+          "top1_among_feasible": true
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": "c1=1.25,c2=0.8",
+          "best_objective_s": 2421.9016793592973,
+          "decision_loss": 0.0,
+          "gap_to_best_in_set_s": 0.0,
+          "improvement_vs_baseline_s": null,
+          "kind": "SELECTED_FEASIBLE",
+          "selected": "c1=1.25,c2=0.8",
+          "selected_status": "FEASIBLE",
+          "selection_seconds": 0.0010122330004378455,
+          "useful_improvement": null,
+          "verified_objective_s": 2421.9016793592973
+        },
+        "split": "development"
+      },
+      "D2-warm": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 16,
+          "top1_among_feasible": true
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": "c1=0.75,c2=1",
+          "best_objective_s": 3157.591610420378,
+          "decision_loss": 0.0,
+          "gap_to_best_in_set_s": 0.0,
+          "improvement_vs_baseline_s": null,
+          "kind": "SELECTED_FEASIBLE",
+          "selected": "c1=0.75,c2=1",
+          "selected_status": "FEASIBLE",
+          "selection_seconds": 0.0010260830003971932,
+          "useful_improvement": null,
+          "verified_objective_s": 3157.591610420378
+        },
+        "split": "development"
+      },
+      "D3-cool": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 15,
+          "top1_among_feasible": null
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "UNRESOLVED",
+          "best_in_tested_set": null,
+          "best_objective_s": null,
+          "decision_loss": null,
+          "kind": "SELECTED_UNRESOLVED",
+          "selected": "c1=0.75,c2=0.6",
+          "selected_status": "UNRESOLVED",
+          "selection_seconds": 0.001039722999848891
+        },
+        "split": "development"
+      },
+      "V1-mild": {
+        "agreement": {
+          "false_acceptances": 1,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 15,
+          "top1_among_feasible": null
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": null,
+          "best_objective_s": null,
+          "decision_loss": null,
+          "kind": "SELECTED_UNRESOLVED",
+          "selected": "c1=0.75,c2=0.8",
+          "selected_status": "UNRESOLVED",
+          "selection_seconds": 0.0011180980000062846
+        },
+        "split": "verification"
+      },
+      "V2-hot": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 16,
+          "top1_among_feasible": null
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": null,
+          "best_objective_s": null,
+          "decision_loss": 0.0,
+          "kind": "CORRECT_ABSTENTION",
+          "selected": null,
+          "selection_seconds": 0.0009975619996112073
+        },
+        "split": "verification"
+      },
+      "V3-cold": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 16,
+          "top1_among_feasible": null
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": null,
+          "best_objective_s": null,
+          "decision_loss": 0.0,
+          "kind": "CORRECT_ABSTENTION",
+          "selected": null,
+          "selection_seconds": 0.0010713780002333806
+        },
+        "split": "verification"
+      }
+    },
+    "mlp-s2": {
+      "D1-temperate": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": 1.0,
+          "resolved_candidates": 15,
+          "top1_among_feasible": true
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": "c1=1.25,c2=0.8",
+          "best_objective_s": 2421.9016793592973,
+          "decision_loss": 0.0,
+          "gap_to_best_in_set_s": 0.0,
+          "improvement_vs_baseline_s": null,
+          "kind": "SELECTED_FEASIBLE",
+          "selected": "c1=1.25,c2=0.8",
+          "selected_status": "FEASIBLE",
+          "selection_seconds": 0.000941463000344811,
+          "useful_improvement": null,
+          "verified_objective_s": 2421.9016793592973
+        },
+        "split": "development"
+      },
+      "D2-warm": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 16,
+          "top1_among_feasible": true
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": "c1=0.75,c2=1",
+          "best_objective_s": 3157.591610420378,
+          "decision_loss": 0.0,
+          "gap_to_best_in_set_s": 0.0,
+          "improvement_vs_baseline_s": null,
+          "kind": "SELECTED_FEASIBLE",
+          "selected": "c1=0.75,c2=1",
+          "selected_status": "FEASIBLE",
+          "selection_seconds": 0.000996420999399561,
+          "useful_improvement": null,
+          "verified_objective_s": 3157.591610420378
+        },
+        "split": "development"
+      },
+      "D3-cool": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 15,
+          "top1_among_feasible": null
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "UNRESOLVED",
+          "best_in_tested_set": null,
+          "best_objective_s": null,
+          "decision_loss": null,
+          "kind": "SELECTED_UNRESOLVED",
+          "selected": "c1=0.75,c2=0.6",
+          "selected_status": "UNRESOLVED",
+          "selection_seconds": 0.001000285000372969
+        },
+        "split": "development"
+      },
+      "V1-mild": {
+        "agreement": {
+          "false_acceptances": 1,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 15,
+          "top1_among_feasible": null
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": null,
+          "best_objective_s": null,
+          "decision_loss": 10.0,
+          "kind": "SELECTED_INFEASIBLE",
+          "selected": "c1=0.75,c2=0.6",
+          "selected_status": "INFEASIBLE",
+          "selection_seconds": 0.0010312350004824111,
+          "violations": [
+            {},
+            {},
+            {
+              "reach_cv_in_window": "NOT_REACHED_IN_WINDOW"
+            },
+            {}
+          ]
+        },
+        "split": "verification"
+      },
+      "V2-hot": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 16,
+          "top1_among_feasible": null
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": null,
+          "best_objective_s": null,
+          "decision_loss": 0.0,
+          "kind": "CORRECT_ABSTENTION",
+          "selected": null,
+          "selection_seconds": 0.0009860520003712736
+        },
+        "split": "verification"
+      },
+      "V3-cold": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 16,
+          "top1_among_feasible": null
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": null,
+          "best_objective_s": null,
+          "decision_loss": 0.0,
+          "kind": "CORRECT_ABSTENTION",
+          "selected": null,
+          "selection_seconds": 0.0009639380004955456
+        },
+        "split": "verification"
+      }
+    },
+    "mlp_ens3-s0": {
+      "D1-temperate": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": 1.0,
+          "resolved_candidates": 15,
+          "top1_among_feasible": true
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": "c1=1.25,c2=0.8",
+          "best_objective_s": 2421.9016793592973,
+          "decision_loss": 0.0,
+          "gap_to_best_in_set_s": 0.0,
+          "improvement_vs_baseline_s": null,
+          "kind": "SELECTED_FEASIBLE",
+          "selected": "c1=1.25,c2=0.8",
+          "selected_status": "FEASIBLE",
+          "selection_seconds": 0.001027536999572476,
+          "useful_improvement": null,
+          "verified_objective_s": 2421.9016793592973
+        },
+        "split": "development"
+      },
+      "D2-warm": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 16,
+          "top1_among_feasible": true
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": "c1=0.75,c2=1",
+          "best_objective_s": 3157.591610420378,
+          "decision_loss": 0.0,
+          "gap_to_best_in_set_s": 0.0,
+          "improvement_vs_baseline_s": null,
+          "kind": "SELECTED_FEASIBLE",
+          "selected": "c1=0.75,c2=1",
+          "selected_status": "FEASIBLE",
+          "selection_seconds": 0.0010237670003334642,
+          "useful_improvement": null,
+          "verified_objective_s": 3157.591610420378
+        },
+        "split": "development"
+      },
+      "D3-cool": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 15,
+          "top1_among_feasible": null
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "UNRESOLVED",
+          "best_in_tested_set": null,
+          "best_objective_s": null,
+          "decision_loss": null,
+          "kind": "SELECTED_UNRESOLVED",
+          "selected": "c1=0.75,c2=0.6",
+          "selected_status": "UNRESOLVED",
+          "selection_seconds": 0.0009758669993971125
+        },
+        "split": "development"
+      },
+      "V1-mild": {
+        "agreement": {
+          "false_acceptances": 1,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 15,
+          "top1_among_feasible": null
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": null,
+          "best_objective_s": null,
+          "decision_loss": null,
+          "kind": "SELECTED_UNRESOLVED",
+          "selected": "c1=0.75,c2=0.8",
+          "selected_status": "UNRESOLVED",
+          "selection_seconds": 0.000983969000117213
+        },
+        "split": "verification"
+      },
+      "V2-hot": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 16,
+          "top1_among_feasible": null
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": null,
+          "best_objective_s": null,
+          "decision_loss": 0.0,
+          "kind": "CORRECT_ABSTENTION",
+          "selected": null,
+          "selection_seconds": 0.001027141999657033
+        },
+        "split": "verification"
+      },
+      "V3-cold": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 16,
+          "top1_among_feasible": null
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": null,
+          "best_objective_s": null,
+          "decision_loss": 0.0,
+          "kind": "CORRECT_ABSTENTION",
+          "selected": null,
+          "selection_seconds": 0.0009487309998803539
+        },
+        "split": "verification"
+      }
+    },
+    "mlp_half-s0": {
+      "D1-temperate": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": 1.0,
+          "resolved_candidates": 15,
+          "top1_among_feasible": true
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": "c1=1.25,c2=0.8",
+          "best_objective_s": 2421.9016793592973,
+          "decision_loss": null,
+          "kind": "SELECTED_UNRESOLVED",
+          "selected": "c1=1.25,c2=1",
+          "selected_status": "UNRESOLVED",
+          "selection_seconds": 0.0009499580000920105
+        },
+        "split": "development"
+      },
+      "D2-warm": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 16,
+          "top1_among_feasible": true
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": "c1=0.75,c2=1",
+          "best_objective_s": 3157.591610420378,
+          "decision_loss": 0.0,
+          "gap_to_best_in_set_s": 0.0,
+          "improvement_vs_baseline_s": null,
+          "kind": "SELECTED_FEASIBLE",
+          "selected": "c1=0.75,c2=1",
+          "selected_status": "FEASIBLE",
+          "selection_seconds": 0.0010866399998121778,
+          "useful_improvement": null,
+          "verified_objective_s": 3157.591610420378
+        },
+        "split": "development"
+      },
+      "D3-cool": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 15,
+          "top1_among_feasible": null
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "UNRESOLVED",
+          "best_in_tested_set": null,
+          "best_objective_s": null,
+          "decision_loss": null,
+          "kind": "SELECTED_UNRESOLVED",
+          "selected": "c1=0.75,c2=0.6",
+          "selected_status": "UNRESOLVED",
+          "selection_seconds": 0.0009936099995684344
+        },
+        "split": "development"
+      },
+      "V1-mild": {
+        "agreement": {
+          "false_acceptances": 1,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 15,
+          "top1_among_feasible": null
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": null,
+          "best_objective_s": null,
+          "decision_loss": null,
+          "kind": "SELECTED_UNRESOLVED",
+          "selected": "c1=0.75,c2=0.8",
+          "selected_status": "UNRESOLVED",
+          "selection_seconds": 0.0010404900003777584
+        },
+        "split": "verification"
+      },
+      "V2-hot": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 16,
+          "top1_among_feasible": null
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": null,
+          "best_objective_s": null,
+          "decision_loss": 0.0,
+          "kind": "CORRECT_ABSTENTION",
+          "selected": null,
+          "selection_seconds": 0.0010544130000198493
+        },
+        "split": "verification"
+      },
+      "V3-cold": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 16,
+          "top1_among_feasible": null
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": null,
+          "best_objective_s": null,
+          "decision_loss": 0.0,
+          "kind": "CORRECT_ABSTENTION",
+          "selected": null,
+          "selection_seconds": 0.0009757909992913483
+        },
+        "split": "verification"
+      }
+    },
+    "mlp_half-s1": {
+      "D1-temperate": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": 1.0,
+          "resolved_candidates": 15,
+          "top1_among_feasible": true
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": "c1=1.25,c2=0.8",
+          "best_objective_s": 2421.9016793592973,
+          "decision_loss": 0.0,
+          "gap_to_best_in_set_s": 0.0,
+          "improvement_vs_baseline_s": null,
+          "kind": "SELECTED_FEASIBLE",
+          "selected": "c1=1.25,c2=0.8",
+          "selected_status": "FEASIBLE",
+          "selection_seconds": 0.000984951000646106,
+          "useful_improvement": null,
+          "verified_objective_s": 2421.9016793592973
+        },
+        "split": "development"
+      },
+      "D2-warm": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 16,
+          "top1_among_feasible": true
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": "c1=0.75,c2=1",
+          "best_objective_s": 3157.591610420378,
+          "decision_loss": 0.0,
+          "gap_to_best_in_set_s": 0.0,
+          "improvement_vs_baseline_s": null,
+          "kind": "SELECTED_FEASIBLE",
+          "selected": "c1=0.75,c2=1",
+          "selected_status": "FEASIBLE",
+          "selection_seconds": 0.0010162979997403454,
+          "useful_improvement": null,
+          "verified_objective_s": 3157.591610420378
+        },
+        "split": "development"
+      },
+      "D3-cool": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 15,
+          "top1_among_feasible": null
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "UNRESOLVED",
+          "best_in_tested_set": null,
+          "best_objective_s": null,
+          "decision_loss": null,
+          "kind": "SELECTED_UNRESOLVED",
+          "selected": "c1=0.75,c2=0.6",
+          "selected_status": "UNRESOLVED",
+          "selection_seconds": 0.0009414209998794831
+        },
+        "split": "development"
+      },
+      "V1-mild": {
+        "agreement": {
+          "false_acceptances": 1,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 15,
+          "top1_among_feasible": null
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": null,
+          "best_objective_s": null,
+          "decision_loss": 10.0,
+          "kind": "SELECTED_INFEASIBLE",
+          "selected": "c1=0.75,c2=0.6",
+          "selected_status": "INFEASIBLE",
+          "selection_seconds": 0.0011122339992652996,
+          "violations": [
+            {},
+            {},
+            {
+              "reach_cv_in_window": "NOT_REACHED_IN_WINDOW"
+            },
+            {}
+          ]
+        },
+        "split": "verification"
+      },
+      "V2-hot": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 16,
+          "top1_among_feasible": null
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": null,
+          "best_objective_s": null,
+          "decision_loss": 0.0,
+          "kind": "CORRECT_ABSTENTION",
+          "selected": null,
+          "selection_seconds": 0.0010443869996379362
+        },
+        "split": "verification"
+      },
+      "V3-cold": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 16,
+          "top1_among_feasible": null
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": null,
+          "best_objective_s": null,
+          "decision_loss": 0.0,
+          "kind": "CORRECT_ABSTENTION",
+          "selected": null,
+          "selection_seconds": 0.0010255520001010154
+        },
+        "split": "verification"
+      }
+    },
+    "mlp_localized-s0": {
+      "D1-temperate": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": 1.0,
+          "resolved_candidates": 15,
+          "top1_among_feasible": true
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": "c1=1.25,c2=0.8",
+          "best_objective_s": 2421.9016793592973,
+          "decision_loss": 0.0,
+          "gap_to_best_in_set_s": 0.0,
+          "improvement_vs_baseline_s": null,
+          "kind": "SELECTED_FEASIBLE",
+          "selected": "c1=1.25,c2=0.8",
+          "selected_status": "FEASIBLE",
+          "selection_seconds": 0.0009555710003041895,
+          "useful_improvement": null,
+          "verified_objective_s": 2421.9016793592973
+        },
+        "split": "development"
+      },
+      "D2-warm": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 16,
+          "top1_among_feasible": true
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": "c1=0.75,c2=1",
+          "best_objective_s": 3157.591610420378,
+          "decision_loss": 0.0,
+          "gap_to_best_in_set_s": 0.0,
+          "improvement_vs_baseline_s": null,
+          "kind": "SELECTED_FEASIBLE",
+          "selected": "c1=0.75,c2=1",
+          "selected_status": "FEASIBLE",
+          "selection_seconds": 0.0010100219997184468,
+          "useful_improvement": null,
+          "verified_objective_s": 3157.591610420378
+        },
+        "split": "development"
+      },
+      "D3-cool": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 15,
+          "top1_among_feasible": null
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "UNRESOLVED",
+          "best_in_tested_set": null,
+          "best_objective_s": null,
+          "decision_loss": null,
+          "kind": "SELECTED_UNRESOLVED",
+          "selected": "c1=0.75,c2=0.6",
+          "selected_status": "UNRESOLVED",
+          "selection_seconds": 0.000978033000137657
+        },
+        "split": "development"
+      },
+      "V1-mild": {
+        "agreement": {
+          "false_acceptances": 1,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 15,
+          "top1_among_feasible": null
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": null,
+          "best_objective_s": null,
+          "decision_loss": null,
+          "kind": "SELECTED_UNRESOLVED",
+          "selected": "c1=0.75,c2=0.8",
+          "selected_status": "UNRESOLVED",
+          "selection_seconds": 0.0010052389998236322
+        },
+        "split": "verification"
+      },
+      "V2-hot": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 16,
+          "top1_among_feasible": null
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": null,
+          "best_objective_s": null,
+          "decision_loss": 0.0,
+          "kind": "CORRECT_ABSTENTION",
+          "selected": null,
+          "selection_seconds": 0.001091170000108832
+        },
+        "split": "verification"
+      },
+      "V3-cold": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 16,
+          "top1_among_feasible": null
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": null,
+          "best_objective_s": null,
+          "decision_loss": 0.0,
+          "kind": "CORRECT_ABSTENTION",
+          "selected": null,
+          "selection_seconds": 0.0009954080005627475
+        },
+        "split": "verification"
+      }
+    },
+    "mlp_localized-s1": {
+      "D1-temperate": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": 1.0,
+          "resolved_candidates": 15,
+          "top1_among_feasible": true
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": "c1=1.25,c2=0.8",
+          "best_objective_s": 2421.9016793592973,
+          "decision_loss": null,
+          "kind": "SELECTED_UNRESOLVED",
+          "selected": "c1=1.25,c2=1",
+          "selected_status": "UNRESOLVED",
+          "selection_seconds": 0.0010281610002493835
+        },
+        "split": "development"
+      },
+      "D2-warm": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 16,
+          "top1_among_feasible": true
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": "c1=0.75,c2=1",
+          "best_objective_s": 3157.591610420378,
+          "decision_loss": 0.0,
+          "gap_to_best_in_set_s": 0.0,
+          "improvement_vs_baseline_s": null,
+          "kind": "SELECTED_FEASIBLE",
+          "selected": "c1=0.75,c2=1",
+          "selected_status": "FEASIBLE",
+          "selection_seconds": 0.0010761520006781211,
+          "useful_improvement": null,
+          "verified_objective_s": 3157.591610420378
+        },
+        "split": "development"
+      },
+      "D3-cool": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 15,
+          "top1_among_feasible": null
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "UNRESOLVED",
+          "best_in_tested_set": null,
+          "best_objective_s": null,
+          "decision_loss": null,
+          "kind": "ABSTENTION_UNRESOLVED",
+          "selected": null,
+          "selection_seconds": 0.0009555730002830387
+        },
+        "split": "development"
+      },
+      "V1-mild": {
+        "agreement": {
+          "false_acceptances": 1,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 15,
+          "top1_among_feasible": null
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": null,
+          "best_objective_s": null,
+          "decision_loss": null,
+          "kind": "SELECTED_UNRESOLVED",
+          "selected": "c1=0.75,c2=0.8",
+          "selected_status": "UNRESOLVED",
+          "selection_seconds": 0.0009931150007105316
+        },
+        "split": "verification"
+      },
+      "V2-hot": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 16,
+          "top1_among_feasible": null
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": null,
+          "best_objective_s": null,
+          "decision_loss": 0.0,
+          "kind": "CORRECT_ABSTENTION",
+          "selected": null,
+          "selection_seconds": 0.001045556000462966
+        },
+        "split": "verification"
+      },
+      "V3-cold": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 16,
+          "top1_among_feasible": null
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": null,
+          "best_objective_s": null,
+          "decision_loss": 0.0,
+          "kind": "CORRECT_ABSTENTION",
+          "selected": null,
+          "selection_seconds": 0.000991167000393034
+        },
+        "split": "verification"
+      }
+    },
+    "mlp_plus-s0": {
+      "D1-temperate": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": 1.0,
+          "resolved_candidates": 15,
+          "top1_among_feasible": true
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": "c1=1.25,c2=0.8",
+          "best_objective_s": 2421.9016793592973,
+          "decision_loss": 0.0,
+          "gap_to_best_in_set_s": 0.0,
+          "improvement_vs_baseline_s": null,
+          "kind": "SELECTED_FEASIBLE",
+          "selected": "c1=1.25,c2=0.8",
+          "selected_status": "FEASIBLE",
+          "selection_seconds": 0.0010193500002060318,
+          "useful_improvement": null,
+          "verified_objective_s": 2421.9016793592973
+        },
+        "split": "development"
+      },
+      "D2-warm": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 16,
+          "top1_among_feasible": true
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": "c1=0.75,c2=1",
+          "best_objective_s": 3157.591610420378,
+          "decision_loss": 0.0,
+          "gap_to_best_in_set_s": 0.0,
+          "improvement_vs_baseline_s": null,
+          "kind": "SELECTED_FEASIBLE",
+          "selected": "c1=0.75,c2=1",
+          "selected_status": "FEASIBLE",
+          "selection_seconds": 0.0010687650001273141,
+          "useful_improvement": null,
+          "verified_objective_s": 3157.591610420378
+        },
+        "split": "development"
+      },
+      "D3-cool": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 15,
+          "top1_among_feasible": null
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "UNRESOLVED",
+          "best_in_tested_set": null,
+          "best_objective_s": null,
+          "decision_loss": null,
+          "kind": "ABSTENTION_UNRESOLVED",
+          "selected": null,
+          "selection_seconds": 0.0009714369998619077
+        },
+        "split": "development"
+      },
+      "V1-mild": {
+        "agreement": {
+          "false_acceptances": 1,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 15,
+          "top1_among_feasible": null
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": null,
+          "best_objective_s": null,
+          "decision_loss": 10.0,
+          "kind": "SELECTED_INFEASIBLE",
+          "selected": "c1=0.75,c2=0.6",
+          "selected_status": "INFEASIBLE",
+          "selection_seconds": 0.0012423250000210828,
+          "violations": [
+            {},
+            {},
+            {
+              "reach_cv_in_window": "NOT_REACHED_IN_WINDOW"
+            },
+            {}
+          ]
+        },
+        "split": "verification"
+      },
+      "V2-hot": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 16,
+          "top1_among_feasible": null
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": null,
+          "best_objective_s": null,
+          "decision_loss": 0.0,
+          "kind": "CORRECT_ABSTENTION",
+          "selected": null,
+          "selection_seconds": 0.0010106239997185185
+        },
+        "split": "verification"
+      },
+      "V3-cold": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 16,
+          "top1_among_feasible": null
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": null,
+          "best_objective_s": null,
+          "decision_loss": 0.0,
+          "kind": "CORRECT_ABSTENTION",
+          "selected": null,
+          "selection_seconds": 0.001034214999890537
+        },
+        "split": "verification"
+      }
+    },
+    "mlp_raw-s0": {
+      "D1-temperate": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": 1.0,
+          "resolved_candidates": 15,
+          "top1_among_feasible": true
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": "c1=1.25,c2=0.8",
+          "best_objective_s": 2421.9016793592973,
+          "decision_loss": 0.0,
+          "gap_to_best_in_set_s": 0.0,
+          "improvement_vs_baseline_s": null,
+          "kind": "SELECTED_FEASIBLE",
+          "selected": "c1=1.25,c2=0.8",
+          "selected_status": "FEASIBLE",
+          "selection_seconds": 0.001106116999835649,
+          "useful_improvement": null,
+          "verified_objective_s": 2421.9016793592973
+        },
+        "split": "development"
+      },
+      "D2-warm": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 16,
+          "top1_among_feasible": true
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": "c1=0.75,c2=1",
+          "best_objective_s": 3157.591610420378,
+          "decision_loss": 0.0,
+          "gap_to_best_in_set_s": 0.0,
+          "improvement_vs_baseline_s": null,
+          "kind": "SELECTED_FEASIBLE",
+          "selected": "c1=0.75,c2=1",
+          "selected_status": "FEASIBLE",
+          "selection_seconds": 0.0010459290006110677,
+          "useful_improvement": null,
+          "verified_objective_s": 3157.591610420378
+        },
+        "split": "development"
+      },
+      "D3-cool": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 15,
+          "top1_among_feasible": null
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "UNRESOLVED",
+          "best_in_tested_set": null,
+          "best_objective_s": null,
+          "decision_loss": null,
+          "kind": "SELECTED_UNRESOLVED",
+          "selected": "c1=0.75,c2=0.6",
+          "selected_status": "UNRESOLVED",
+          "selection_seconds": 0.0009497930004727095
+        },
+        "split": "development"
+      },
+      "V1-mild": {
+        "agreement": {
+          "false_acceptances": 1,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 15,
+          "top1_among_feasible": null
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": null,
+          "best_objective_s": null,
+          "decision_loss": null,
+          "kind": "SELECTED_UNRESOLVED",
+          "selected": "c1=0.75,c2=0.8",
+          "selected_status": "UNRESOLVED",
+          "selection_seconds": 0.0010399380007584114
+        },
+        "split": "verification"
+      },
+      "V2-hot": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 16,
+          "top1_among_feasible": null
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": null,
+          "best_objective_s": null,
+          "decision_loss": 0.0,
+          "kind": "CORRECT_ABSTENTION",
+          "selected": null,
+          "selection_seconds": 0.0010273230000166222
+        },
+        "split": "verification"
+      },
+      "V3-cold": {
+        "agreement": {
+          "false_acceptances": 0,
+          "false_rejections": 0,
+          "rank_tau_among_feasible": null,
+          "resolved_candidates": 16,
+          "top1_among_feasible": null
+        },
+        "outcome": {
+          "baseline": "c1=0.75,c2=0.6",
+          "baseline_status": "INFEASIBLE",
+          "best_in_tested_set": null,
+          "best_objective_s": null,
+          "decision_loss": 0.0,
+          "kind": "CORRECT_ABSTENTION",
+          "selected": null,
+          "selection_seconds": 0.0009930699998221826
+        },
+        "split": "verification"
+      }
+    }
+  },
+  "manifest_digest": "sha256:bff50a12e75e576a1700ff31f9aff3acfd0d1f6500c7ff4c0231f9cd95150810",
+  "references": {
+    "D1-temperate": {
+      "baseline_status": "INFEASIBLE",
+      "best_in_tested_set": "c1=1.25,c2=0.8",
+      "split": "development",
+      "status_counts": {
+        "FEASIBLE": 3,
+        "INFEASIBLE": 12,
+        "REFERENCE_UNAVAILABLE": 0,
+        "UNRESOLVED": 1
+      }
+    },
+    "D2-warm": {
+      "baseline_status": "INFEASIBLE",
+      "best_in_tested_set": "c1=0.75,c2=1",
+      "split": "development",
+      "status_counts": {
+        "FEASIBLE": 1,
+        "INFEASIBLE": 15,
+        "REFERENCE_UNAVAILABLE": 0,
+        "UNRESOLVED": 0
+      }
+    },
+    "D3-cool": {
+      "baseline_status": "UNRESOLVED",
+      "best_in_tested_set": null,
+      "split": "development",
+      "status_counts": {
+        "FEASIBLE": 0,
+        "INFEASIBLE": 15,
+        "REFERENCE_UNAVAILABLE": 0,
+        "UNRESOLVED": 1
+      }
+    },
+    "V1-mild": {
+      "baseline_status": "INFEASIBLE",
+      "best_in_tested_set": null,
+      "split": "verification",
+      "status_counts": {
+        "FEASIBLE": 0,
+        "INFEASIBLE": 15,
+        "REFERENCE_UNAVAILABLE": 0,
+        "UNRESOLVED": 1
+      }
+    },
+    "V2-hot": {
+      "baseline_status": "INFEASIBLE",
+      "best_in_tested_set": null,
+      "split": "verification",
+      "status_counts": {
+        "FEASIBLE": 0,
+        "INFEASIBLE": 16,
+        "REFERENCE_UNAVAILABLE": 0,
+        "UNRESOLVED": 0
+      }
+    },
+    "V3-cold": {
+      "baseline_status": "INFEASIBLE",
+      "best_in_tested_set": null,
+      "split": "verification",
+      "status_counts": {
+        "FEASIBLE": 0,
+        "INFEASIBLE": 16,
+        "REFERENCE_UNAVAILABLE": 0,
+        "UNRESOLVED": 0
+      }
+    }
+  },
+  "rule_scores": {
+    "control-boundary_optimist": {
+      "control-exam-v1": -0.046173421917428986,
+      "p0-r20-a80": 0.9486963088048195,
+      "p0-r30-a70": 0.9451324132533799,
+      "p0-r40-a60": 0.9415819059183629,
+      "p45-r30-a25": "NOT_MEASURABLE:missing_component"
+    },
+    "control-conservative": {
+      "control-exam-v1": -0.24170516864656036,
+      "p0-r20-a80": 0.8053441551588166,
+      "p0-r30-a70": 0.8053441551588166,
+      "p0-r40-a60": 0.8053441551588166,
+      "p45-r30-a25": "NOT_MEASURABLE:missing_component"
+    },
+    "control-localized_sign_error": {
+      "control-exam-v1": -0.00771531825759051,
+      "p0-r20-a80": 0.9862194548722427,
+      "p0-r30-a70": 0.9831714945037225,
+      "p0-r40-a60": 0.980132954008601,
+      "p45-r30-a25": "NOT_MEASURABLE:missing_component"
+    },
+    "control-oracle": {
+      "control-exam-v1": -0.0,
+      "p0-r20-a80": 1.0,
+      "p0-r30-a70": 1.0,
+      "p0-r40-a60": 1.0,
+      "p45-r30-a25": "NOT_MEASURABLE:missing_component"
+    },
+    "control-rank_preserving_delay": {
+      "control-exam-v1": -0.03285986136706365,
+      "p0-r20-a80": 0.9677756644384267,
+      "p0-r30-a70": 0.9675707833243955,
+      "p0-r40-a60": 0.9673659455843325,
+      "p45-r30-a25": "NOT_MEASURABLE:missing_component"
+    },
+    "knn-s0": {
+      "control-exam-v1": -0.17084759000748753,
+      "p0-r20-a80": 0.8555150798582274,
+      "p0-r30-a70": 0.8562324576255043,
+      "p0-r40-a60": 0.8569504369378306,
+      "p45-r30-a25": "NOT_MEASURABLE:missing_component"
+    },
+    "mlp-s0": {
+      "control-exam-v1": -0.055122742253247245,
+      "p0-r20-a80": 0.9485881417451952,
+      "p0-r30-a70": 0.9490039692176949,
+      "p0-r40-a60": 0.9494199789742432,
+      "p45-r30-a25": "NOT_MEASURABLE:missing_component"
+    },
+    "mlp-s1": {
+      "control-exam-v1": -0.05641013356341416,
+      "p0-r20-a80": 0.9473117500936739,
+      "p0-r30-a70": 0.9476667987344455,
+      "p0-r40-a60": 0.9480219804460223,
+      "p45-r30-a25": "NOT_MEASURABLE:missing_component"
+    },
+    "mlp-s2": {
+      "control-exam-v1": -0.057452232923369796,
+      "p0-r20-a80": 0.9462669119564192,
+      "p0-r30-a70": 0.946565912971547,
+      "p0-r40-a60": 0.9468650084648879,
+      "p45-r30-a25": "NOT_MEASURABLE:missing_component"
+    },
+    "mlp_ens3-s0": {
+      "control-exam-v1": -0.05143333982115176,
+      "p0-r20-a80": 0.9518133258698501,
+      "p0-r30-a70": 0.9521788776800021,
+      "p0-r40-a60": 0.9525445698833618,
+      "p45-r30-a25": "NOT_MEASURABLE:missing_component"
+    },
+    "mlp_half-s0": {
+      "control-exam-v1": -0.0874179913537769,
+      "p0-r20-a80": 0.92015577692386,
+      "p0-r30-a70": 0.9204289980923283,
+      "p0-r40-a60": 0.9207023003881543,
+      "p45-r30-a25": "NOT_MEASURABLE:missing_component"
+    },
+    "mlp_half-s1": {
+      "control-exam-v1": -0.08339358954856335,
+      "p0-r20-a80": 0.9251359416569134,
+      "p0-r30-a70": 0.9261929294977645,
+      "p0-r40-a60": 0.9272511249701056,
+      "p45-r30-a25": "NOT_MEASURABLE:missing_component"
+    },
+    "mlp_localized-s0": {
+      "control-exam-v1": -0.05716041098964638,
+      "p0-r20-a80": 0.9460279833061447,
+      "p0-r30-a70": 0.9460768593548924,
+      "p0-r40-a60": 0.946125737928796,
+      "p45-r30-a25": "NOT_MEASURABLE:missing_component"
+    },
+    "mlp_localized-s1": {
+      "control-exam-v1": -0.05835433189995777,
+      "p0-r20-a80": 0.9455148946292354,
+      "p0-r30-a70": 0.9458409392236922,
+      "p0-r40-a60": 0.9461670962490352,
+      "p45-r30-a25": "NOT_MEASURABLE:missing_component"
+    },
+    "mlp_plus-s0": {
+      "control-exam-v1": -0.08900934295415326,
+      "p0-r20-a80": 0.9185951045084272,
+      "p0-r30-a70": 0.9187598173601546,
+      "p0-r40-a60": 0.9189245597464651,
+      "p45-r30-a25": "NOT_MEASURABLE:missing_component"
+    },
+    "mlp_raw-s0": {
+      "control-exam-v1": null,
+      "p0-r20-a80": 0.0,
+      "p0-r30-a70": 0.0,
+      "p0-r40-a60": 0.0,
+      "p45-r30-a25": 0.0
+    }
+  },
+  "schema": "carbon.engineering-value-results.v1",
+  "scoring_set": {
+    "cases": 1588,
+    "note": "hidden duplicates are not in this set, so the paired_repeat gate is not exercised here",
+    "path": "docs/development/evidence/exam-design-2026-09-24/refs-b/out/battery_refs/records.jsonl",
+    "sha256": "88df01aacec5222fabd0c6dada9d7f414662534997f22addd5a40352b4d730c6"
+  },
+  "seed_variation": {
+    "knn": {
+      "development": {
+        "max": 0.5,
+        "mean": 0.5,
+        "min": 0.5,
+        "seeds": 1
+      },
+      "verification": {
+        "max": 0.0,
+        "mean": 0.0,
+        "min": 0.0,
+        "seeds": 1
+      }
+    },
+    "mlp": {
+      "development": {
+        "max": 0.0,
+        "mean": 0.0,
+        "min": 0.0,
+        "seeds": 3
+      },
+      "verification": {
+        "max": 3.3333333333333335,
+        "mean": 1.1111111111111112,
+        "min": 0.0,
+        "seeds": 3
+      }
+    },
+    "mlp_ens3": {
+      "development": {
+        "max": 0.0,
+        "mean": 0.0,
+        "min": 0.0,
+        "seeds": 1
+      },
+      "verification": {
+        "max": 0.0,
+        "mean": 0.0,
+        "min": 0.0,
+        "seeds": 1
+      }
+    },
+    "mlp_half": {
+      "development": {
+        "max": 0.0,
+        "mean": 0.0,
+        "min": 0.0,
+        "seeds": 2
+      },
+      "verification": {
+        "max": 3.3333333333333335,
+        "mean": 1.6666666666666667,
+        "min": 0.0,
+        "seeds": 2
+      }
+    },
+    "mlp_localized": {
+      "development": {
+        "max": 0.0,
+        "mean": 0.0,
+        "min": 0.0,
+        "seeds": 2
+      },
+      "verification": {
+        "max": 0.0,
+        "mean": 0.0,
+        "min": 0.0,
+        "seeds": 2
+      }
+    },
+    "mlp_plus": {
+      "development": {
+        "max": 0.0,
+        "mean": 0.0,
+        "min": 0.0,
+        "seeds": 1
+      },
+      "verification": {
+        "max": 3.3333333333333335,
+        "mean": 3.3333333333333335,
+        "min": 3.3333333333333335,
+        "seeds": 1
+      }
+    },
+    "mlp_raw": {
+      "development": {
+        "max": 0.0,
+        "mean": 0.0,
+        "min": 0.0,
+        "seeds": 1
+      },
+      "verification": {
+        "max": 0.0,
+        "mean": 0.0,
+        "min": 0.0,
+        "seeds": 1
+      }
+    }
+  },
+  "stability": {
+    "control-exam-v1": {
+      "batches": 8,
+      "leave_one_batch_out_same_top": 8,
+      "top_member": "mlp_ens3-s0"
+    },
+    "p0-r20-a80": {
+      "batches": 8,
+      "leave_one_batch_out_same_top": 8,
+      "top_member": "mlp_ens3-s0"
+    },
+    "p0-r30-a70": {
+      "batches": 8,
+      "leave_one_batch_out_same_top": 8,
+      "top_member": "mlp_ens3-s0"
+    },
+    "p0-r40-a60": {
+      "batches": 8,
+      "leave_one_batch_out_same_top": 8,
+      "top_member": "mlp_ens3-s0"
+    },
+    "p45-r30-a25": null
+  },
+  "summary": {
+    "chosen_rule_on_development": "control-exam-v1",
+    "chosen_rule_tau_verification": 0.1651445647689541,
+    "control_tau_verification": 0.1651445647689541,
+    "members": {
+      "control-boundary_optimist": {
+        "eligible": true,
+        "kind": "SYNTHETIC_CONTROL",
+        "loss_development": 10.0,
+        "loss_verification": 10.0
+      },
+      "control-conservative": {
+        "eligible": true,
+        "kind": "SYNTHETIC_CONTROL",
+        "loss_development": 1.0,
+        "loss_verification": 0.0
+      },
+      "control-localized_sign_error": {
+        "eligible": true,
+        "kind": "SYNTHETIC_CONTROL",
+        "loss_development": 2.8351319887128983,
+        "loss_verification": 0.0
+      },
+      "control-oracle": {
+        "eligible": true,
+        "kind": "SYNTHETIC_CONTROL",
+        "loss_development": 0.0,
+        "loss_verification": 0.0
+      },
+      "control-rank_preserving_delay": {
+        "eligible": true,
+        "kind": "SYNTHETIC_CONTROL",
+        "loss_development": 0.0,
+        "loss_verification": 0.0
+      },
+      "knn-s0": {
+        "eligible": true,
+        "kind": "RECONSTRUCTED",
+        "loss_development": 0.5,
+        "loss_verification": 0.0
+      },
+      "mlp-s0": {
+        "eligible": true,
+        "kind": "RECONSTRUCTED",
+        "loss_development": 0.0,
+        "loss_verification": 0.0
+      },
+      "mlp-s1": {
+        "eligible": true,
+        "kind": "RECONSTRUCTED",
+        "loss_development": 0.0,
+        "loss_verification": 0.0
+      },
+      "mlp-s2": {
+        "eligible": true,
+        "kind": "RECONSTRUCTED",
+        "loss_development": 0.0,
+        "loss_verification": 3.3333333333333335
+      },
+      "mlp_ens3-s0": {
+        "eligible": true,
+        "kind": "RECONSTRUCTED",
+        "loss_development": 0.0,
+        "loss_verification": 0.0
+      },
+      "mlp_half-s0": {
+        "eligible": true,
+        "kind": "RECONSTRUCTED",
+        "loss_development": 0.0,
+        "loss_verification": 0.0
+      },
+      "mlp_half-s1": {
+        "eligible": true,
+        "kind": "RECONSTRUCTED",
+        "loss_development": 0.0,
+        "loss_verification": 3.3333333333333335
+      },
+      "mlp_localized-s0": {
+        "eligible": true,
+        "kind": "RECONSTRUCTED",
+        "loss_development": 0.0,
+        "loss_verification": 0.0
+      },
+      "mlp_localized-s1": {
+        "eligible": true,
+        "kind": "RECONSTRUCTED",
+        "loss_development": 0.0,
+        "loss_verification": 0.0
+      },
+      "mlp_plus-s0": {
+        "eligible": true,
+        "kind": "RECONSTRUCTED",
+        "loss_development": 0.0,
+        "loss_verification": 3.3333333333333335
+      },
+      "mlp_raw-s0": {
+        "eligible": false,
+        "kind": "RECONSTRUCTED",
+        "loss_development": 0.0,
+        "loss_verification": 0.0
+      }
+    },
+    "question": "Carbon can compare several models on the same engineering decision and show whether its scoring prefers models that select better reference-verified designs"
+  }
+}
