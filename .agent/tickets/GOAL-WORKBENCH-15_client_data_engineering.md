@@ -326,6 +326,83 @@ a legal question, and none authorizes deployment or collection.
 
 Items 3 and 4 are built: the record hold (`tests/test_team_record_hold.cjs`) and the synthetic development standard (`tests/test_team_synthetic_standard.cjs`). Items 1 and 2 change the public Pilot Designer page, whose exact bytes are pinned by Ask Carbon's public release candidate. They therefore go through a new release candidate, and the owner's publication approval, as their own change. For item 2, the owner generated the intake key on 2026-09-24, with its encrypted offline backup, and the button is wired to it (`data/intake_public_key.json`, stacked on item 1's pull request). Both wait only for the new candidate and the owner's publication approval. One correction to item 1 as first written: the assist already never received the quantity fields. The exposure is the free-text `operating_envelope` and `requested_targets` pilot fields, which is what item 1 will withhold.
 
+## External model provider: Chutes, a per-client switch that defaults off (owner direction, 2026-09-26)
+
+**Direction.** The owner named Chutes as the external model provider for client
+intake and asked for the capability to be built. The guard against automatic
+transfer stays. It stops being a permanent block and becomes a per-client switch
+that defaults off. No client content goes through it: there is no client and no
+signed opt-in, so the path is proved on synthetic material only.
+
+The counsel brief's §8.4(c) conditions, as the owner relayed them:
+
+| Condition | State |
+|---|---|
+| Provider named in the MSA provider schedule | Satisfied. Chutes is named in `data/client_model_provider_schedule.json`, which is the engineering side of the schedule; the MSA itself is held outside the repository. |
+| No training on inputs; zero or minimal retention | The owner's determination (TEE, and an API that cannot decrypt the request). Recorded as the owner's, not as an engineering verification. |
+| Separately signed per-client opt-in | Required and unchanged. It defaults off, and none exists. |
+
+§7 and §4.8 of the brief hold in full. E8 is unrelated and unchanged: nothing
+here reaches the subnet or the public Ask Carbon assistant.
+
+**Model.** `deepseek-ai/DeepSeek-V4-Flash-0731-TEE`. Confirmed from
+`GET https://llm.chutes.ai/v1/models` on 2026-09-26:
+
+- $0.44 input / $1.32 output per million tokens;
+- 1,048,576-token context and 131,072-token maximum output;
+- tools supported, and `confidential_compute: true`.
+
+Context is the deciding property, because client briefs are long. The TEE
+premium over the same model on Engy is deliberate. Launchpad stays on Engy and
+the two are not consolidated.
+
+**Built** (`tools/team_model_provider.cjs`, store and receiver):
+
+- A provider can only be built from a schedule entry, and it sends only to the
+  scheduled endpoint. An opt-in can only be issued from a signed-document
+  reference. The store refuses a copied literal of either.
+- The switch is per record, off at receipt, and append-only.
+  - A data steward turns it on with the client's opt-in, or off on withdrawal.
+  - Records written earlier read as off.
+- Only an explicit reviewer request, `modelAssist`, reaches a provider. It must
+  pass E7 reachability, an active opt-in for that provider, and the
+  synthetic-only restriction.
+- Each request is logged as an E5 release (`MODEL_PROVIDER`, `EXTERNAL_MODEL`,
+  request digest, opt-in reference) before it is sent.
+- The request carries the brief, the pilot and the open assumptions, never the
+  contact details.
+- **Synthetic only.** `MODEL_PROCESSING_SYNTHETIC_ONLY` refuses any record with
+  a non-synthetic agreement, export-control or opt-in reference. Lifting it is
+  the owner's decision and a code change, not a setting.
+- Credential handling:
+  - The key is read from its file at send time; the file must be `0600`, not a
+    link, and at most 1024 bytes.
+  - Only a status code is kept from a provider's refusal, because an error body
+    can echo the request.
+
+**Pinned by:** `tests/test_team_model_provider.cjs`. Each refusal is paired with
+the same call going through:
+
+- the switch is off by default;
+- nothing is sent automatically;
+- real references are refused under counsel's standard;
+- forged opt-ins and providers are refused;
+- an opt-in for another provider is refused;
+- withdrawal turns the switch off;
+- the release is logged before a failed send;
+- the contact details are withheld while present in the record;
+- the credential appears nowhere that is kept;
+- unsafe credential files are refused;
+- the same behaviour holds over HTTP.
+
+**Live synthetic observation.** `tests/live_model_provider_rehearsal.cjs`
+sent one synthetic Path A record, with a synthetic opt-in, to the scheduled
+model: 1,010 prompt and 104 completion tokens, 1.6 s. The observation is private
+evidence and is not stored here.
+
+**Limit.** A copy that staff export and paste into a model by hand is outside
+the receiver. It is covered only by E5's recorded-release rule.
+
 ## Open questions that remain
 
 - **Counsel:** the retention values (E2, E3), the screening standard (E7), and

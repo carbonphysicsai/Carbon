@@ -15996,3 +15996,28 @@ in the launch portfolio. I want battery, motors, cold plates, photonics", then
 
    Portfolio membership states intent to launch. It is not a launch approval,
    and no Challenge becomes LIVE or reward-bearing from it.
+
+## 2026-09-26 — OWNER-CLIENT-MODEL-PROVIDER-01: Chutes for client intake, per-client switch, default off
+
+**Authority.** Owner direction to the client-intake lane on 2026-09-26: "Name
+Chutes as the external model provider for client intake. Build the capability.
+The guard stays."
+
+1. **Chutes is the scheduled external model provider** for client material, with
+   `deepseek-ai/DeepSeek-V4-Flash-0731-TEE`. It was chosen for its 1,048,576-token
+   context and its TEE execution.
+2. **The guard becomes a per-client switch that defaults off.** A separately
+   signed opt-in is required for each client. No transfer is automatic.
+3. **No client content goes through it yet.** The store refuses every record
+   that carries a non-synthetic reference, until the owner lifts that in code.
+4. **Launchpad stays on Engy.** The two providers serve different needs and are
+   not consolidated.
+5. **Unchanged:**
+   - E8, meaning no route to the subnet or the public assistant;
+   - counsel brief §7 and §4.8;
+   - E7 screening.
+
+   The terms condition is the owner's determination, not an engineering
+   verification.
+
+See `.agent/tickets/GOAL-WORKBENCH-15_client_data_engineering.md`.
