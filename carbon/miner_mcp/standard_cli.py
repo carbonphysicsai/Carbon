@@ -34,9 +34,7 @@ from carbon.development_session.profile import CHALLENGE, canonical
 from carbon.development_session.research_control import CampaignControl
 from carbon.development_session.research_ledger import PRODUCT, CampaignLedger
 from carbon.development_session.research_material import PublicMaterial
-from carbon.development_session.research_service import make_research_service
 from carbon.development_session.research_tools import ResearchMinerTools
-from carbon.miner_mcp.research import AuthenticatedResearchService
 from carbon.miner_mcp.standard import ResearchToolAdapter
 from carbon.miner_mcp.standard_server import create_stdio_server
 
@@ -131,7 +129,6 @@ def _runtime(profile):
         load_analysis_image,
         verify_image,
     )
-    from carbon.development_session.research_profile import document, public_cases
     from carbon.reconstruction.worker.docker_runtime import doctor, load_image_identity
 
     cfg = profile.document
@@ -152,49 +149,15 @@ def _runtime(profile):
         "implementation": implementation,
         "images": [image.image_id, analysis.image_id],
     }
-    role_root = profile.root / "private-roles"
     from carbon.challenge_registry.campaigns import campaign_for_manifest
 
-    campaign = campaign_for_manifest(profile.manifest)
-    if campaign.check_attached is not None:
-        # A Challenge with its own campaign has no Burgers roles, objective or
-        # lanes to re-check; it re-checks its own frozen binding instead.
-        campaign.check_attached(
-            profile.manifest,
-            implementation=implementation,
-            images=runtime["images"],
-        )
-        return _connection(profile, paths), image, analysis, None
-    authored = _authored_image(profile, analysis)
-    _, scientific = _scientific_selection(
-        profile.manifest["runtime"], image, role_root, authored
+    # Each Challenge's campaign re-checks its own frozen binding.
+    campaign_for_manifest(profile.manifest).check_attached(
+        profile.manifest,
+        implementation=implementation,
+        images=runtime["images"],
     )
-    if scientific is not None:
-        runtime["scientific_tasks"] = scientific
-    if authored is not None and "authored_research" in profile.manifest["runtime"]:
-        from carbon.development_session.julia_analysis import authored_julia_scope
-
-        runtime["authored_research"] = [authored_julia_scope(authored)]
-    gpu = _gpu_image(profile.root, profile.manifest["runtime"], role_root)
-    if gpu is not None:
-        from carbon.development_session.gpu_research import gpu_scope
-
-        runtime["gpu_research"] = [gpu_scope(gpu, role_root)]
-    # The runtime the campaign was admitted with, exactly - as it once had to
-    # equal a grant's.
-    if runtime != profile.manifest["runtime"]:
-        raise ValueError("campaign runtime differs from the accepted runtime")
-    if (
-        profile.manifest.get("implementation") != implementation
-        or profile.manifest.get("images") != runtime["images"]
-        or profile.manifest.get("objective") != document()
-    ):
-        raise ValueError("campaign runtime or objective changed")
-    if private_json(role_root / "research-profile.json") != document():
-        raise ValueError("prepared public material profile changed")
-    for role in ("research-train", "research-validation"):
-        public_cases(role_root, role)  # Checks existing digests; never draws new cases.
-    return _connection(profile, paths), image, analysis, role_root
+    return _connection(profile, paths), image, analysis, None
 
 
 def _connection(profile, paths):
@@ -468,7 +431,7 @@ async def attached_profile(profile: OperatorProfile):
         # control generation and its prepared tasks are not touched until the
         # authenticated owner is known to be the registered one. The
         # connection's session files already exist from launch.
-        connection, image, analysis, role_root = _runtime(profile)
+        connection, image, analysis, _ = _runtime(profile)
         owner = await _requester(connection)
         if owner != profile.manifest.get("owner"):
             raise ValueError("authenticated campaign owner changed")
@@ -496,41 +459,15 @@ async def attached_profile(profile: OperatorProfile):
         # Capability demand on this host: registry ids and miner digests
         # only. On a miner's machine it stays theirs.
         demand = DemandStore(profile.root / "capability-demand.sqlite")
-        campaign = campaign_for_manifest(profile.manifest)
-        if campaign.compose is not None:
-            composition, wrapper = campaign.compose(
-                ledger=ledger,
-                owner=owner,
-                image=image,
-                analysis=analysis,
-                connection=connection,
-                demand=demand,
-                cleanup_only=cleanup_only,
-            )
-        else:
-            authored = _authored_image(profile, analysis)
-            material, practice = _science(
-                ledger,
-                owner,
-                image,
-                role_root,
-                **({"authored": authored} if authored is not None else {}),
-                **({"cleanup_only": True} if cleanup_only else {}),
-            )
-            composition = make_research_service(
-                cleanup_only=cleanup_only,
-                julia_image=authored,
-                demand=demand,
-                root=profile.root / "research-tasks",
-                ledger=ledger,
-                owner=owner,
-                image=analysis,
-                public_material=material,
-                practice=practice,
-            )
-            wrapper = AuthenticatedResearchService(
-                connection.service.gateway, {owner: composition.service}
-            )
+        composition, wrapper = campaign_for_manifest(profile.manifest).compose(
+            ledger=ledger,
+            owner=owner,
+            image=image,
+            analysis=analysis,
+            connection=connection,
+            demand=demand,
+            cleanup_only=cleanup_only,
+        )
         bound = None
         try:
             bound = _AdmittedConnection(connection, profile, ledger, control)

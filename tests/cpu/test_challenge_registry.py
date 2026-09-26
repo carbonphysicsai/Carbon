@@ -40,7 +40,9 @@ def test_the_catalog_names_launch_reserved_and_deferred_challenges():
         "airfoil",
     }
     assert listed[BATTERY]["status"] == "IMPLEMENTED"
-    assert listed[r.BURGERS_CHALLENGE]["status"] == "IMPLEMENTED"
+    # Retired from the research path: still listed, never selectable.
+    assert listed[r.BURGERS_CHALLENGE]["status"] == "RETIRED"
+    assert all(not p["implemented"] for p in listed[r.BURGERS_CHALLENGE]["profiles"])
     for reserved in ("chip-cold-plate", "electric-motor-magnetics", "photonic-coupler"):
         # A reserved Challenge has a name and an issue, and nothing to run.
         assert listed[reserved]["status"] == "RESERVED"
@@ -112,10 +114,17 @@ def test_the_battery_description_is_derived_from_executable_registrations():
         assert private not in text
 
 
-def test_the_burgers_description_reads_the_unchanged_burgers_path():
+def test_burgers_is_retired_and_its_reference_description_is_unchanged():
+    from carbon.challenge_registry.burgers import describe as burgers_reference
     from carbon.development_session.research_service import BURGERS_SCAFFOLD
 
-    described = challenges.describe(r.BURGERS_CHALLENGE, "1.0", host=NOTHING)
+    with pytest.raises(challenges.ChallengeRetired) as refused:
+        challenges.describe(r.BURGERS_CHALLENGE, "1.0", host=NOTHING)
+    assert refused.value.public()["code"] == "challenge_retired"
+    with pytest.raises(challenges.ChallengeRetired):
+        challenges.resolve(r.BURGERS_CHALLENGE, "1.0", "cpu_research")
+    # The code stays in the repository as reference, reading the same path.
+    described = burgers_reference()
     assert described["examples"][0]["strategy"] == BURGERS_SCAFFOLD
     assert described["examples"][0]["admission"]["valid"]
     assert described["lanes"]["session"] == ["fno", "deeponet"]
@@ -150,11 +159,15 @@ def test_the_launch_operation_refuses_by_code_never_falls_back():
     from scripts.dev.miner_launchpad.controller import Rejected
     from scripts.dev.miner_launchpad.runner import RunnerAdapter
 
-    assert RunnerAdapter._challenge({"agent": "none"}) is None
     assert RunnerAdapter._challenge(
         {"challenge": BATTERY, "challenge_version": "1.0"}
     ) == {"id": BATTERY, "version": "1.0"}
     for request, code in (
+        ({"agent": "none"}, "challenge_required"),
+        (
+            {"challenge": r.BURGERS_CHALLENGE, "challenge_version": "1.0"},
+            "challenge_retired",
+        ),
         ({"challenge": "airfoil"}, "challenge_deferred"),
         ({"challenge": BATTERY}, "challenge_version_unsupported"),
         ({"challenge_version": "1.0"}, "challenge_unknown"),

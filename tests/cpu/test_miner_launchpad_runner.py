@@ -655,3 +655,14 @@ def test_a_rebuilt_image_reaches_a_running_campaign(tmp_path):
     assert installed.read_bytes() == rebuilt
     assert installed.stat().st_mode & 0o777 == 0o600
     assert not (root / "authored-julia-image.json.installing").exists()
+
+
+@pytest.fixture(autouse=True)
+def _launches_name_a_challenge(monkeypatch):
+    """A launch must name its Challenge; these runner tests launch the
+    DEVELOPMENT-FIXTURE reference Challenge (journey_fixture)."""
+    from scripts.dev.miner_launchpad.journey_fixture import (
+        launch_with_fixture_challenge,
+    )
+
+    launch_with_fixture_challenge(monkeypatch.setattr)

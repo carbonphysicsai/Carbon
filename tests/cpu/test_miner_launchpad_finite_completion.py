@@ -15,9 +15,11 @@ from carbon.development_session.research_ledger import (
     DEVELOPMENT_ELAPSED_SECONDS,
     CampaignLedger,
 )
+from scripts.dev.miner_launchpad.journey_fixture import use_reference_burgers
 
 
 def setup_campaign(tmp_path, monkeypatch, epochs):
+    use_reference_burgers(monkeypatch.setattr)
     root = tmp_path / "campaign"
     tmp_path.chmod(0o700)
     admission = None
