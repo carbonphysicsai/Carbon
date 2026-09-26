@@ -10034,6 +10034,19 @@ events:
       - "WAVE-C/C-W1-D4"
     supersedes: null
     recorded_at: "2026-09-26T11:40:42Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "adjustment"
+    event_id: "C-MLP-02-OPERATION-IDEMPOTENCY-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "Practice, freeze_candidate and submit now take an optional idempotency key on both doors, with the same shape and validation as launch's, so a retried request can no longer run twice. Before, only launch was idempotent: a retried or double-clicked submit was held back only by the browser's busy flag and a READY check. The operations table gives the three operations the read-only replay gate ahead of registration, so the MCP tools expose the key, and an invalid key is refused before the chain is read. The campaign host records each keyed acceptance in a launchpad_operation_keys table in its own database, in the same critical section that starts the operation's thread: the same key with the same request replays the campaign as it stands and dispatches nothing, the same key with a different request (or another operation) is refused as operation_replay_conflict (409), and a refused request records nothing. The record survives a controller restart. A strategy counts by value whether a door sent it as an object or as JSON text. The browser sends one key per user action, kept in sessionStorage until the action is answered. Tests count dispatches on the real campaign host: a replay dispatches nothing, a conflicting reuse is refused, replays hold across a restart, three concurrent same-key submits plus one keyless-retry click give one dispatch and one final exam, and the battery evaluator admits a resubmission with a fresh transport receipt as the same submission and rebuilds nothing. DEVELOPMENT only; nothing reaches the chain."
+    primary_detail: "scripts/dev/miner_launchpad/runner.py"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "WAVE-C/C-W1-D4"
+    supersedes: null
+    recorded_at: "2026-09-26T12:00:08Z"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"

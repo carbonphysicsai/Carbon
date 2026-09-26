@@ -761,9 +761,17 @@
   });
   async function operate(name, body, done) {
     if (!connected || busy) return;
+    // One idempotency key per action, kept until answered: a retry of the
+    // same request (a lost response, a reload) replays it, never repeats it.
+    const operationKey = "carbon.launchpad.pending-operation.v1";
+    let held = null;
+    try { held = JSON.parse(sessionStorage.getItem(operationKey) || "null"); } catch (_) { held = null; }
+    const action = held && held.name === name && JSON.stringify(held.body) === JSON.stringify(body) ? held : {name, body, key: crypto.randomUUID()};
+    try { sessionStorage.setItem(operationKey, JSON.stringify(action)); } catch (_) { /* the key still covers this request */ }
     busy = true; render();
     try {
-      await api("/api/v1/operations/" + name, body, undefined, 20000);
+      await api("/api/v1/operations/" + name, {...body, idempotency_key: action.key}, undefined, 20000);
+      try { sessionStorage.removeItem(operationKey); } catch (_) { /* nothing held */ }
       message(done);
     } catch (error) { message("Not done: " + error.message.replaceAll("_", " "), true); }
     finally { busy = false; await refresh(); render(); }
