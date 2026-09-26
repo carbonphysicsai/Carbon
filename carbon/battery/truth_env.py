@@ -165,6 +165,10 @@ def verify_command(target, repository="."):
         "ALL",
         "--security-opt",
         "no-new-privileges",
+        # The overlay is owner-only (0700); the image's own user could not
+        # enter it, and PyBaMM would look absent. Run as the owner, as solve does.
+        "--user",
+        f"{os.getuid()}:{os.getgid()}",
         "-v",
         f"{Path(target).resolve()}:/overlay:ro",
         "-e",
