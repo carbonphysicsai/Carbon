@@ -11,10 +11,10 @@ import json
 
 from carbon.reconstruction.capability_registry import contract_digest
 
-from .agent import MAX_INPUT_TOKENS, MAX_OUTPUT_TOKENS, MODEL
 from .data import write_once
+from .model_provider import DEFAULT_SELECTION
 from .profile import CHALLENGE, canonical, digest
-from .research_agent import request_model
+from .research_agent import caching_status, provider_turns, request_model
 from .research_agent_policy import (
     AUTONOMOUS,
     LEGACY,
@@ -45,17 +45,29 @@ SELECTION_TOOL = {
 }
 
 
+class CandidateChallengeRequired(ValueError):
+    """A candidate must name its Challenge; none is assumed for it."""
+
+
 def candidate_record(strategy, reason, used_feedback):
     """The frozen-candidate record, whoever freezes it: the agent's SELECT tool
-    or a miner's own freeze. One builder, so the two cannot differ in shape."""
+    or a miner's own freeze. One builder, so the two cannot differ in shape.
+
+    The recipe's own `challenge_id` chooses the contract it compiles under. A
+    recipe that names none is refused rather than compiled as Burgers."""
     if type(reason) is not str or not 1 <= len(reason) <= 4096:
         raise ValueError("a bounded selection reason is required")
     if type(used_feedback) is not bool:
         raise ValueError("used_feedback is a Boolean")
-    if type(strategy) is dict and strategy.get("challenge_id") not in (
-        None,
-        CHALLENGE.challenge_id,
+    if (
+        type(strategy) is not dict
+        or type(strategy.get("challenge_id")) is not str
+        or not strategy["challenge_id"]
     ):
+        raise CandidateChallengeRequired(
+            "a candidate recipe must name its challenge_id"
+        )
+    if strategy["challenge_id"] != CHALLENGE.challenge_id:
         # Another Challenge compiles under its own contract, never Burgers'.
         from carbon.reconstruction.challenge_contracts import compile_submission
 
@@ -123,8 +135,13 @@ async def run_epoch(
     transport=None,
     agent_policy=LEGACY,
     challenge=None,
+    provider=DEFAULT_SELECTION,
 ):
     """Run once or resume completed provider/tool observations without resends.
+
+    `provider` is the campaign's model selection (`model_provider`); the
+    historical pinned selection produces the same plan and requests as before
+    selection existed.
 
     An interrupted tool with unknown side effects stops for reconciliation.
     Successfully journalled replies can be replayed without another model call.
@@ -138,7 +155,7 @@ async def run_epoch(
         "schema": "carbon.autoresearch.epoch-plan.v1",
         "epoch": epoch,
         "owner": owner,
-        "model": MODEL,
+        "model": provider.model_id,
         "prompt": prompt,
         "tools": tools,
         "initial_observation": initial_observation,
@@ -149,6 +166,8 @@ async def run_epoch(
     }
     if autonomous:
         plan["agent_policy"] = policy
+    if not provider.is_historical_default:
+        plan["model_selection"] = provider.record()
     if "research_guidance" in initial_observation:
         plan["effective_input_digest"] = effective_digest(policy, initial_observation)
     write_once(root / "plan.json", canonical(plan))
@@ -189,17 +208,18 @@ async def run_epoch(
             else 8
         )
         call_id = f"epoch-{epoch}-provider-{index:03d}"
+        effort = provider.settings.reasoning_effort
         request = {
-            "model": MODEL,
+            "model": provider.model_id,
             "instructions": prompt,
             "input": history,
             "tools": tools,
             "parallel_tool_calls": False,
             "store": False,
-            "max_output_tokens": MAX_OUTPUT_TOKENS,
-            "reasoning": {"effort": "low"},
+            "max_output_tokens": provider.settings.max_output_tokens,
+            "reasoning": None if effort is None else {"effort": effort},
         }
-        if len(canonical(request)) > MAX_INPUT_TOKENS - 4096:
+        if len(canonical(request)) > provider.settings.max_input_tokens - 4096:
             outcome = {
                 "status": "STOPPED",
                 "reason": "context admission ceiling; no history silently discarded",
@@ -227,6 +247,22 @@ async def run_epoch(
             credential_file=credential_file,
             phase=phase,
             transport=transport,
+            provider=provider,
+        )
+        # The turn's cost, tokens and serving identity, journalled beside the
+        # epoch so a view shows spend per turn as it happens.
+        turns = provider_turns(ledger.status(owner=owner)["operations"])
+        turn = next(t for t in turns if t["turn"] == call_id)
+        write_once(root / (call_id + "-turn.json"), canonical(turn))
+        caching = caching_status(
+            [t for t in turns if t["turn"].startswith(f"epoch-{epoch}-")]
+        )
+        print(
+            f"Research epoch {epoch}: turn {index + 1} charge "
+            f"{turn['charge_nanodollars']} nanodollars ({'; '.join(turn['charge_basis'])}); "
+            f"cached input {turn['cached_input_tokens']}/{turn['input_tokens']}; "
+            f"caching {caching['status']}",
+            flush=True,
         )
         output = response.get("output")
         if type(output) is not list:
@@ -344,10 +380,17 @@ async def run_epoch(
         )
     if outcome is None:
         outcome = {"status": "STOPPED", "reason": "epoch provider-call ceiling"}
+    turns = [
+        t
+        for t in provider_turns(ledger.status(owner=owner)["operations"])
+        if t["turn"].startswith(f"epoch-{epoch}-")
+    ]
     report = {
         "schema": "carbon.autoresearch.epoch-outcome.v1",
         "epoch": epoch,
         **outcome,
+        "provider_turns": turns,
+        "caching": caching_status(turns),
         "accounting": ledger.status(owner=owner),
         "chain_transactions": 0,
     }

@@ -24,6 +24,10 @@ from .research_ledger import (
 SCHEMA = "carbon.launchpad.research-grant.v1"
 MANIFEST = "carbon.autoresearch.campaign.v2"
 PROFILE = "carbon.burgers-autoresearch-development.v1"
+#: The model providers a development grant may name: each one specifically,
+#: never a pattern (owner order 2026-09-26, section 2). A grant's provider
+#: must also be the campaign's selected provider.
+GRANT_PROVIDERS = ("openai-responses", "engy-anthropic", "engy-chat", "anthropic")
 
 
 @dataclass(frozen=True)
@@ -84,7 +88,7 @@ class Admission:
             or doc["principal"] != principal
             or doc["runtime"] != runtime
             or doc["profile"] != PROFILE
-            or doc["provider"] != "openai-responses"
+            or doc["provider"] not in GRANT_PROVIDERS
             or type(doc["campaign_count"]) is not int
             or doc["campaign_count"] != 1
             or doc["retry_allowance"] != 0

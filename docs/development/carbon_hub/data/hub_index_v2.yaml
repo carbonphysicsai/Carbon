@@ -10034,6 +10034,32 @@ events:
       - "WAVE-C/C-W1-D4"
     supersedes: null
     recorded_at: "2026-09-26T11:40:42Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "adjustment"
+    event_id: "C-MLP-02-AGENT-PROVIDER-SELECTION-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "The research agent's model provider is the miner's choice (owner decision 2026-09-26). model_provider separates the agent application from provider adapters (OpenAI Responses; any OpenAI-compatible Responses or Chat Completions endpoint the miner names), model id, settings and a credential reference to the miner's own key file or environment variable, never the key. A campaign's ModelSelection is built only through select(); the pinned gpt-5-mini-2025-08-07 selection records the exact provider block and plan every existing campaign carries, so those still verify. A listed price carries its source and observation date; a miner may declare one; otherwise the spend bound is stated as unknown, no money is reserved or metered, and a money ceiling is refused. Provider failures are typed: a 429 rate limit is retried at most twice under new reservations with bounded backoff, 4xx rejections are counted with no token charge and never retried, and 5xx or unreadable outcomes keep the full reservation with no resend. The shared agent path no longer imports Burgers defaults: the historical Burgers prompt moved to its own module byte-identical, a composition naming no Challenge and a candidate naming no challenge_id are refused. agent_connection gives stdio connection instructions per tier and an in-process handshake check; Carbon does not control an external agent's lifecycle. No live provider call was made; real-model runs remain unexercised."
+    primary_detail: "carbon/development_session/model_provider.py"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "WAVE-C/C-W1-D4"
+    supersedes: null
+    recorded_at: "2026-09-26T12:07:04Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "adjustment"
+    event_id: "C-MLP-02-AGENT-ENGY-MESSAGES-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "Owner order of 2026-09-26 (agent inference): the research agent gains an Anthropic Messages transport (anthropic.messages.v1) translating the loop's history into tool_use/tool_result blocks and back, registered as engy-anthropic (https://api.engy.ai) and anthropic (https://api.anthropic.com), plus engy-chat on the Chat Completions transport. Development-grant admission names these providers specifically (GRANT_PROVIDERS) and a grant's provider must equal the campaign's. Engy's model ladder is allowed with its published prices as a declared list basis, deepseek-v4-flash-0731 the default and deepseek-v4.1-flash refused. Each call is settled from Engy's x_engy.charged_micro, kept beside the token-price estimate; a missing report keeps the full reservation. The per-call journal records the charge, reasoning and cached tokens and x_engy request_id, miner and worker; each turn's cost is written beside the epoch, and the campaign status reports cost per turn and a caching check that flags CACHING_NOT_WORKING. Rate limits, 529 and overloaded responses are typed rate limits retried under new reservations. The key is read from its file only at dispatch; environment-variable credentials were removed. Fixture transports only; no live provider call was made."
+    primary_detail: "carbon/development_session/model_provider.py"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "WAVE-C/C-W1-D4"
+    supersedes: null
+    recorded_at: "2026-09-26T12:28:33Z"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"
