@@ -133,7 +133,7 @@ with where it lives.
     EV1's `boundary_optimist` outscored every real model while choosing
     infeasible designs.
   - Any domain with hard engineering constraints (cold-plate peak
-    temperature, inductor saturation) inherits this blind spot unless the
+    temperature, motor winding temperature) inherits this blind spot unless the
     score is made decision-aware.
 - **Screening alone rewards memorization.** It nominated every pool-leak
   candidate. Without the fresh finalist stage, the exam would have promoted
