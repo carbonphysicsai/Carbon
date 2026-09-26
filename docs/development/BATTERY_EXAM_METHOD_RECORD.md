@@ -1,12 +1,21 @@
-# Battery: the exam-method record
+# Battery: the exam-method and launch-readiness record
 
-**Status.** This closes the battery study as **exam-method research**, following
-#341: "battery is outside this launch portfolio. Preserve the existing battery
-study as exam-method research." Battery is not a launched Challenge, and
-nothing here proposes one.
+**Status.** Battery is a **launch Challenge** in the portfolio of battery,
+electric motors, AI-chip cold plates and silicon photonics
+(OWNER-LAUNCH-PORTFOLIO-01, `.agent/DECISIONS.md`, 2026-09-26). That decision
+supersedes #341's exclusion of battery. This record is battery's baseline on the
+way to launch:
+- what its study established, and at what maturity;
+- what it cost;
+- what its method carries to the other three Challenges;
+- its limits;
+- what still stands between it and launch.
+
+Portfolio membership is intent to launch, not a launch approval.
 - Everything below is public, synthetic DEVELOPMENT evidence.
 - Nothing is scientifically, security or production qualified.
-- No reward, chain or official-exam state follows from it.
+- The OD-1 to OD-8 battery authorities are unchanged, including non-paying
+  DEVELOPMENT status and Phase A all-burn only.
 
 **How to read it.** Every figure carries its basis:
 - **Verified** means recounted from the retained raw records for this record,
@@ -68,7 +77,7 @@ Per-unit costs, all relayed (RESULT §7, one A40 pod):
 ## 3. What the method carries to another domain
 
 The battery physics is not the durable asset. The method is. These are the
-parts a cold plate, inductor, motor, photonic or airfoil exam can reuse, each
+parts the motor, cold-plate and photonic exams can reuse, each
 with where it lives.
 
 1. **Construction contract per Challenge (M1, OD-8).** A candidate declares
@@ -168,8 +177,9 @@ with where it lives.
 
 ## 5. What remains unexperimented
 
-"Fully experimented" is **not** reached from where the study stopped. The
-items below are what is missing. The cost estimates are relayed where a
+"Fully experimented" is **not** reached from where the study stopped. Now that
+battery is a launch Challenge, the items below are its launch-readiness
+queue, together with the launch gates in RESULT §11. The cost estimates are relayed where a
 record gives one and marked unknown where none does.
 
 | Missing | Why it matters | Cost basis |
@@ -182,10 +192,10 @@ record gives one and marked unknown where none does.
 | A GPU-backend run of the frozen pipeline, and M3 on a GPU host | The frozen results are CPU-backend | Part of the programme's M4 two-host run (USD 14 RunPod ceiling, unspent). |
 | Hidden duplicates in the verification set | V2's nondeterminism check fired only incidentally | Cheap: a set-design change. |
 
-**Owner decision needed.** #352 proposes EV2 as a continuation of battery
-work. This record closes the study as exam-method research. Whether EV
-continues as a separate track is the owner's call, and this record does not
-make it.
+**EV continues.** EV1 (#352) and its proposed EV2 are part of battery's
+launch path (OWNER-LAUNCH-PORTFOLIO-01). The decision-aware robustness score
+is the most important of them, because it closes the one blind spot in §4
+that could reward a dangerous model.
 
 ## 6. What this record does not do
 
