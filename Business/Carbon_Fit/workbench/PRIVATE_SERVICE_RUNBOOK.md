@@ -248,6 +248,42 @@ as a delivery. A queued notification carries only the inquiry identity, its
 canonical digest, the queue state, an authenticated record path and a minimal
 count summary — no client words, contact details or reviewed package.
 
+### External model processing (per-client switch, off by default)
+
+Chutes is the one scheduled external model provider
+(`data/client_model_provider_schedule.json`, model
+`deepseek-ai/DeepSeek-V4-Flash-0731-TEE`). The receiver builds it only when all
+three settings are present, and otherwise answers `501` to a model request:
+
+```bash
+CARBON_TEAM_MODEL_PROVIDER=chutes \
+CARBON_TEAM_MODEL=deepseek-ai/DeepSeek-V4-Flash-0731-TEE \
+CARBON_TEAM_MODEL_CREDENTIAL_FILE=/path/to/chutes.key \
+```
+
+The key is read from its file at send time. The file must be a regular file,
+not a link, mode `0600`, and at most 1024 bytes.
+
+The switch is per client and off by default:
+
+- A data steward records the client's separately signed opt-in with
+  `POST /private/intake/{id}/model-opt-in` and `{"provider","ref"}`, and
+  withdraws it with `.../model-opt-in/withdraw` and `{"reason"}`.
+- A reviewer then asks one question at a time with
+  `POST /private/intake/{id}/model-assist` and `{"purpose","question"}`.
+- Each request is an E5 release (`EXTERNAL_MODEL`), logged before it is sent.
+  It carries the brief, the pilot and the open assumptions, never the contact
+  details.
+- Nothing sends automatically.
+
+**No client content is sent to any provider.** Until the owner lifts it in
+code, the store refuses every record that carries a non-synthetic agreement,
+export-control or opt-in reference. The path is proved with synthetic material
+only: `tests/live_model_provider_rehearsal.cjs`.
+
+Launchpad's miner research inference stays on Engy. It is a separate
+provider, chosen for a different reason.
+
 ## 9. Required checks
 
 ```bash

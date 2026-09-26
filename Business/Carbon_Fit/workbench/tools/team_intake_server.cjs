@@ -10,6 +10,7 @@ const { ArchiveKeyring } = require("./team_archive_keyring.cjs");
 const { basisFromHeaders } = require("./team_record_basis.cjs");
 const { smtpConfigFrom, smtpTransport } = require("./team_smtp_transport.cjs");
 const { AccessControl, StaffDirectory } = require("./team_staff_directory.cjs");
+const { scheduledProviderFrom, signedOptIn } = require("./team_model_provider.cjs");
 
 function loadUsers(usersPath) {
   return StaffDirectory.load(usersPath);
@@ -47,7 +48,7 @@ function send(response, status, value) {
   response.end(JSON.stringify(value) + "\n");
 }
 
-function createIntakeServer({ store, users, clock, limits, transport = null }) {
+function createIntakeServer({ store, users, clock, limits, transport = null, modelProvider = null }) {
   // E9: a staff credential alone reaches nothing. It opens a session together
   // with a current second-factor code, and only a live session resolves to a
   // principal. Rate limiting and lockout are applied where that happens.
@@ -102,6 +103,35 @@ function createIntakeServer({ store, users, clock, limits, transport = null }) {
         if (!offered || typeof offered !== "object" || Object.keys(offered).join() !== "ref")
           throw Object.assign(Error("An export-control record carries exactly one field, ref"), { status: 400 });
         return send(response, 200, store.recordExportControl(exportControlMatch[1], offered.ref, principal));
+      }
+      // External model processing: a per-client switch, off by default. A data
+      // steward records the client's signed opt-in; a reviewer then asks one
+      // question at a time. Nothing reaches a provider any other way.
+      const optInMatch = /^\/private\/intake\/([A-Za-z0-9._:-]+)\/model-opt-in(\/withdraw)?$/.exec(url.pathname);
+      if (optInMatch && request.method === "POST") {
+        const offered = F.strictJsonParse(await body(request), { maxBytes: 1_000, maxDepth: 2 });
+        if (optInMatch[2]) {
+          if (!offered || typeof offered !== "object" || Object.keys(offered).join() !== "reason")
+            throw Object.assign(Error("A withdrawal carries exactly one field, reason"), { status: 400 });
+          return send(response, 200, store.withdrawModelOptIn(optInMatch[1], offered, principal));
+        }
+        if (!offered || typeof offered !== "object" || Object.keys(offered).sort().join() !== "provider,ref")
+          throw Object.assign(Error("An opt-in record carries exactly two fields, provider and ref"), { status: 400 });
+        return send(response, 200, store.recordModelOptIn(optInMatch[1], signedOptIn(offered), principal));
+      }
+      const assistMatch = /^\/private\/intake\/([A-Za-z0-9._:-]+)\/model-assist$/.exec(url.pathname);
+      if (assistMatch && request.method === "POST") {
+        const offered = F.strictJsonParse(await body(request), { maxBytes: 5_000, maxDepth: 2 });
+        if (!offered || typeof offered !== "object" || Object.keys(offered).sort().join() !== "purpose,question")
+          throw Object.assign(Error("A model request carries exactly two fields, purpose and question"), { status: 400 });
+        try {
+          return send(response, 200, await store.modelAssist(assistMatch[1], offered, principal, modelProvider));
+        } catch (error) {
+          // A typed provider outcome: nothing was reached (501), or the
+          // provider was reached and failed (502). The message is fixed text.
+          if (error.outcome) error.status = error.attempted ? 502 : 501;
+          throw error;
+        }
       }
       const transportMatch = /^\/private\/intake\/([A-Za-z0-9._:-]+)\/transport-copy$/.exec(url.pathname);
       if (transportMatch && request.method === "POST") {
@@ -303,7 +333,10 @@ function main() {
   // E6: a mail transport only when the operator configured one. The credential
   // is read from its file at send time and never here.
   const transport = smtpTransport(smtpConfigFrom(process.env));
-  createIntakeServer({ store, users: loadUsers(usersPath), transport }).listen(
+  // External model processing: a scheduled provider only when the operator
+  // configured one. Its credential is read from its file at send time.
+  const modelProvider = scheduledProviderFrom(process.env);
+  createIntakeServer({ store, users: loadUsers(usersPath), transport, modelProvider }).listen(
     port,
     "127.0.0.1",
     () => {

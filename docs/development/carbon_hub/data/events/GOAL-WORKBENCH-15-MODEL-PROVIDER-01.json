@@ -1,0 +1,14 @@
+{
+  "map_ref": "SYSTEM/BUSINESS-AUTHORITY",
+  "event_type": "evidence",
+  "event_id": "GOAL-WORKBENCH-15-MODEL-PROVIDER-01",
+  "owner_lane": "business_authority",
+  "status": "implemented",
+  "summary": "Names Chutes (deepseek-ai/DeepSeek-V4-Flash-0731-TEE, 1,048,576-token context, confidential compute, confirmed from the live model list) as the one scheduled external model provider for client intake, and builds the capability as a per-client switch that defaults off. A provider can be built only from the schedule and an opt-in only from a signed-document reference; only an explicit reviewer request reaches the provider, logged as an E5 release before sending, carrying the brief but never contact details. No client content is sent: the store refuses any record with a non-synthetic reference until the owner lifts that in code, and the path is proved with one live synthetic record. E8, E7 and counsel brief sections 7 and 4.8 are unchanged; Launchpad stays on Engy. No collection, deployment, security acceptance or qualification is authorized.",
+  "primary_detail": ".agent/tickets/GOAL-WORKBENCH-15_client_data_engineering.md",
+  "affects": [
+    "SYSTEM/BUSINESS-AUTHORITY"
+  ],
+  "supersedes": null,
+  "recorded_at": "2026-09-26T15:00:00Z"
+}

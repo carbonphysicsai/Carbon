@@ -1,0 +1,40 @@
+{
+  "schema_version": "carbon.private-team-intake.model-provider-schedule.v1",
+  "statement": "The external model providers that may process client material, for the engineering side of the MSA provider schedule. The MSA's own schedule is an agreement held outside this public repository; this file names the same provider so the receiver can refuse any other. Being named here is one of three conditions. A separately signed per-client opt-in is still required for every client, and until the owner lifts the synthetic-only restriction no client content is sent to any provider at all.",
+  "owner_direction": "Owner direction, 26 September 2026: name Chutes as the external model provider for client intake; keep the guard against automatic transfer; make it a per-client switch that defaults off; route no client content through it; prove the path with synthetic material only.",
+  "conditions": [
+    {
+      "id": "PROVIDER_NAMED_IN_SCHEDULE",
+      "state": "SATISFIED_BY_THIS_ENTRY"
+    },
+    {
+      "id": "NO_TRAINING_AND_ZERO_OR_MINIMAL_RETENTION",
+      "state": "OWNER_DETERMINATION_2026_09_26",
+      "basis": "Owner determination: confidential-compute (TEE) execution, and an API that cannot decrypt the request. Recorded as the owner's determination, not as an engineering verification of the provider's terms."
+    },
+    {
+      "id": "SIGNED_PER_CLIENT_OPT_IN",
+      "state": "REQUIRED_PER_CLIENT_DEFAULT_OFF"
+    }
+  ],
+  "providers": [
+    {
+      "id": "chutes",
+      "name": "Chutes",
+      "endpoint": "https://llm.chutes.ai/v1",
+      "models": [
+        {
+          "id": "deepseek-ai/DeepSeek-V4-Flash-0731-TEE",
+          "observed_at": "2026-09-26",
+          "observed_from": "GET https://llm.chutes.ai/v1/models",
+          "context_length": 1048576,
+          "max_output_length": 131072,
+          "confidential_compute": true,
+          "supported_features": ["json_mode", "structured_outputs", "tools", "reasoning"],
+          "usd_per_million_tokens": { "input": 0.44, "output": 1.32, "input_cache_read": 0.044 },
+          "chosen_for": "Context length: client design briefs are long documents. The TEE premium over non-confidential inference is deliberate."
+        }
+      ]
+    }
+  ]
+}
