@@ -27,8 +27,12 @@ def main():
                 "manifest": str(
                     args.root / image.runtime_digest[7:] / "julia-analysis-image.json"
                 ),
-                "requested_scope": authored_julia_scope(image),
-                "authority": "REQUESTED_NOT_GRANTED",
+                "runtime_authored_research": [authored_julia_scope(image)],
+                "next": (
+                    "Put runtime_authored_research in your runner profile's "
+                    "runtime and this manifest path in authored_julia_image. "
+                    "No grant is needed; building grants nothing by itself."
+                ),
             },
             sort_keys=True,
         )

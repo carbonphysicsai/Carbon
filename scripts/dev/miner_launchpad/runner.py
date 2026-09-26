@@ -62,7 +62,23 @@ PROFILE_FIELDS = {
     "campaigns_root",
     "runtime",
 }
-OPTIONAL_PROFILE_FIELDS = {"research_guidance", "disabled_reason"}
+OPTIONAL_PROFILE_FIELDS = {
+    "research_guidance",
+    "disabled_reason",
+    "authored_julia_image",
+    "gpu_image",
+}
+
+#: Image records a campaign's runtime can require, keyed by the profile field
+#: that names the miner's built record. Under the grant each had to be written
+#: by hand into one campaign's root; a product campaign's root is created at
+#: launch, so the runner installs the record there from the miner's profile.
+#: A record grants nothing by existing - the runtime still has to declare the
+#: composition, and the campaign recomputes and checks the scope itself.
+RESEARCH_IMAGE_RECORDS = {
+    "authored_julia_image": ("authored_research", "authored-julia-image.json"),
+    "gpu_image": ("gpu_research", "gpu-worker-image.json"),
+}
 
 # The runtime compositions this runner can actually assemble and dispatch.
 #
@@ -153,7 +169,55 @@ def validated_profile(cfg):
         or runtime["implementation"].get("revision") != cfg["accepted_revision"]
     ):
         raise ValueError("the runtime must name the accepted revision")
+    for field, (composition, _name) in RESEARCH_IMAGE_RECORDS.items():
+        # A declared composition needs its record, or it would fail after the
+        # miner had launched. A Julia record needs no declaration: Julia is
+        # available to every campaign whenever the host has it built. GPU
+        # research still binds its scope to the campaign's own material, so a
+        # GPU record still pairs with its declaration.
+        if composition in runtime and field not in cfg:
+            raise ValueError(
+                f"{field} is required when the runtime declares {composition}"
+            )
+        if field == "gpu_image" and field in cfg and composition not in runtime:
+            raise ValueError(
+                f"{field} is required exactly when the runtime declares {composition}"
+            )
+        if field in cfg and (
+            type(cfg[field]) is not str or not Path(cfg[field]).is_absolute()
+        ):
+            raise ValueError("operator paths must be absolute")
     return cfg
+
+
+def install_research_images(cfg, root):
+    """Put the host's current image records where the campaign looks for them.
+
+    Every launch, resume and attach installs the current records, so a rebuilt
+    image - new packages, a newer Julia environment - reaches running campaigns
+    too. Swapping is safe because nothing trusts the record's history: each run
+    records in its own execution contract exactly which image it used.
+    """
+    import os
+
+    for field, (_composition, name) in RESEARCH_IMAGE_RECORDS.items():
+        if field not in cfg:
+            continue
+        source = Path(cfg[field])
+        if source.is_symlink() or not source.is_file() or source.stat().st_size > 65536:
+            raise ValueError(f"{field} must be a bounded image record file")
+        data = source.read_bytes()
+        target = root / name
+        if target.is_symlink():
+            raise ValueError("an image record must not be a symlink")
+        if target.exists() and target.read_bytes() == data:
+            continue
+        staged = root / (name + ".installing")
+        staged.unlink(missing_ok=True)
+        handle = os.open(staged, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        with os.fdopen(handle, "wb") as record:
+            record.write(data)
+        os.replace(staged, target)
 
 
 class RunnerAdapter:
@@ -848,6 +912,7 @@ class RunnerAdapter:
                     ).fetchone()
                 if pending:
                     raise DispatchStopped("unresolved operation")
+                install_research_images(cfg, root)
                 args = SimpleNamespace(
                     **{k: Path(v) for k, v in cfg["paths"].items()},
                     root=root,

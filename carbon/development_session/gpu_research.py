@@ -263,7 +263,7 @@ GPU_IMAGE_RECORD = "gpu-worker-image.json"
 
 
 def registered_gpu_image(root, runtime, role_root):
-    """Read the fixed operator GPU image record; the caller still verifies its grant.
+    """Read the campaign's GPU image record; the caller still verifies its authority.
 
     The same shape as the Julia analysis resolver beside it: an operator writes
     the record, the scope is *recomputed* from the image and the campaign's own
