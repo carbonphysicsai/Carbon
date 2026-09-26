@@ -276,10 +276,17 @@ The switch is per client and off by default:
   details.
 - Nothing sends automatically.
 
-**No client content is sent to any provider.** Until the owner lifts it in
-code, the store refuses every record that carries a non-synthetic agreement,
-export-control or opt-in reference. The path is proved with synthetic material
-only: `tests/live_model_provider_rehearsal.cjs`.
+**A real client's record goes only with that client's own signed opt-in.** The
+owner lifted the synthetic-only restriction on 26 September 2026. What still
+applies:
+
+- A synthetic opt-in reference is refused on any record that carries a real
+  agreement or export-control reference.
+- A real record is reachable only by staff screened under counsel's standard
+  (E7, `CARBON_TEAM_SCREENING_STANDARD`). Under the synthetic development
+  standard it stays unreachable, opt-in or not.
+
+The live synthetic rehearsal is `tests/live_model_provider_rehearsal.cjs`.
 
 Launchpad's miner research inference stays on Engy. It is a separate
 provider, chosen for a different reason.

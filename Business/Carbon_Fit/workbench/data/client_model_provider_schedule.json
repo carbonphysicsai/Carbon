@@ -1,7 +1,7 @@
 {
   "schema_version": "carbon.private-team-intake.model-provider-schedule.v1",
-  "statement": "The external model providers that may process client material, for the engineering side of the MSA provider schedule. The MSA's own schedule is an agreement held outside this public repository; this file names the same provider so the receiver can refuse any other. Being named here is one of three conditions. A separately signed per-client opt-in is still required for every client, and until the owner lifts the synthetic-only restriction no client content is sent to any provider at all.",
-  "owner_direction": "Owner direction, 26 September 2026: name Chutes as the external model provider for client intake; keep the guard against automatic transfer; make it a per-client switch that defaults off; route no client content through it; prove the path with synthetic material only.",
+  "statement": "The external model providers that may process client material, for the engineering side of the MSA provider schedule. The MSA's own schedule is an agreement held outside this public repository; this file names the same provider so the receiver can refuse any other. Being named here is one of three conditions. A separately signed per-client opt-in is still required for every client; the switch is off until it is recorded.",
+  "owner_direction": "Owner direction, 26 September 2026: name Chutes as the external model provider for client intake; keep the guard against automatic transfer; make it a per-client switch that defaults off; route no client content through it; prove the path with synthetic material only. The owner lifted the synthetic-only restriction later the same day: a real client's record may be sent once that client's signed opt-in is recorded.",
   "conditions": [
     {
       "id": "PROVIDER_NAMED_IN_SCHEDULE",

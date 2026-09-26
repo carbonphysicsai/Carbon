@@ -371,9 +371,9 @@ the two are not consolidated.
   request digest, opt-in reference) before it is sent.
 - The request carries the brief, the pilot and the open assumptions, never the
   contact details.
-- **Synthetic only.** `MODEL_PROCESSING_SYNTHETIC_ONLY` refuses any record with
-  a non-synthetic agreement, export-control or opt-in reference. Lifting it is
-  the owner's decision and a code change, not a setting.
+- **Synthetic only, as built in #371.** `MODEL_PROCESSING_SYNTHETIC_ONLY`
+  refused any record with a non-synthetic reference. The owner lifted it the
+  same day; see below.
 - Credential handling:
   - The key is read from its file at send time; the file must be `0600`, not a
     link, and at most 1024 bytes.
@@ -385,7 +385,8 @@ the same call going through:
 
 - the switch is off by default;
 - nothing is sent automatically;
-- real references are refused under counsel's standard;
+- real references are refused under counsel's standard (as built in #371;
+  superseded below);
 - forged opt-ins and providers are refused;
 - an opt-in for another provider is refused;
 - withdrawal turns the switch off;
@@ -403,9 +404,43 @@ evidence and is not stored here.
 **Limit.** A copy that staff export and paste into a model by hand is outside
 the receiver. It is covered only by E5's recorded-release rule.
 
+## Synthetic-only lifted; counsel approves E7 (owner, 2026-09-26)
+
+**The owner lifted the synthetic-only restriction.** The gate was removed from
+the code rather than switched off. A real client's record can now go to the
+scheduled provider. What still has to hold:
+
+- that client's own separately signed opt-in is recorded by a data steward;
+- the request is an explicit reviewer request, logged before it is sent;
+- the reviewer is screened under counsel's E7 standard.
+
+**One guard replaces the gate.** A synthetic opt-in reference cannot open a real
+record. It is refused when recorded on any record with a real agreement or
+export-control reference, and again at send time. This is the same rule as the
+synthetic E7 standard, which reaches synthetic records only.
+
+**Counsel approves E7,** as the owner reported on 2026-09-26. The approved
+standard is operator configuration (`CARBON_TEAM_SCREENING_STANDARD`) and is not
+written here. Once it is configured, it replaces the synthetic development
+standard of decision 4. Until then, real records stay unreachable, opt-in or
+not.
+
+**Pinned by** `tests/test_team_model_provider.cjs`:
+
+- a real record is off by default;
+- a synthetic opt-in is refused on each kind of real reference;
+- the client's signed opt-in sends, and the release names it;
+- under the synthetic development standard, a real record stays unreachable
+  even with a signed opt-in.
+
+Each refusal is paired with its specimen.
+
+No real client, signed opt-in or client content exists yet. Nothing has been
+sent.
+
 ## Open questions that remain
 
-- **Counsel:** the retention values (E2, E3), the screening standard (E7), and
-  whether a legal hold is ever required.
+- **Counsel:** the retention values (E2, E3), and whether a legal hold is ever
+  required. The E7 screening standard is approved and is configured privately.
 - **Owner:** the security review's spend figure, and when to prepare the new
   Ask Carbon release candidate that carries decisions 1 and 2.
