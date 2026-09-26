@@ -10034,6 +10034,19 @@ events:
       - "WAVE-C/C-W1-D4"
     supersedes: null
     recorded_at: "2026-09-26T11:40:42Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "adjustment"
+    event_id: "C-MLP-02-CONTROL-CENTER-SHELL-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "The Launchpad browser becomes the miner Control Center: Overview, Campaigns, Challenges, Agents, Compute, Connections, Wallet & Identity and Settings, with each campaign deep-linked and tabbed (Overview, Experiments, Metrics, Research Journal, Artifacts, Submission, Logs, Settings), and the controller rehearsal, attached evidence and integration queue moved to a labelled Development area. Every choice is rendered from a new controller document, carbon.control-center.capabilities.v1, derived from the Challenge registry (catalog and descriptions), the shared options operation, the agent transport's own provider and model, the runner profile's runtime and the ledger's budget vocabulary; anything not offered (reserved and deferred Challenges, RunPod and other providers, the remote MCP door) is shown unavailable with its reason and next action. A launch wizard (Challenge, Agent, Model, Compute, Tools & limits, Review, Launch) always sends the chosen challenge and challenge_version through the existing launch operation with the same idempotency key and replay; unset limits are stated as no limit, and the journey's example recipe comes from the campaign's own Challenge description. DEVELOPMENT only: nothing here qualifies, pays, or writes to chain, and the model selection is informational until the launch operation carries one."
+    primary_detail: "scripts/dev/miner_launchpad/capabilities.py"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "WAVE-C/C-W1-D4"
+    supersedes: null
+    recorded_at: "2026-09-26T18:00:00Z"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"

@@ -55,6 +55,9 @@ def project(row, root):
     # Who selects: Carbon's agent, or - with no agent - the miner, through the
     # freeze and submit operations.
     value["selects"] = "miner" if manifest.get("agent") == "none" else "agent"
+    # The Challenge this campaign is bound to, as its frozen manifest records
+    # it; None for a campaign recorded before a Challenge was named.
+    value["challenge"] = manifest.get("challenge")
     if verify(manifest.get("research_guidance")) != task:
         raise ValueError("campaign guidance association differs")
     if task is not None:
