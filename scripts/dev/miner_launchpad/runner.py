@@ -134,6 +134,13 @@ def product_agent(root):
     return json.loads(manifest.read_bytes()).get("agent", "autonomous")
 
 
+def retired_challenge(root):
+    """Whether the campaign at `root` was frozen before Challenges were named:
+    the Burgers campaign, retired from the research path."""
+    manifest = Path(root) / "campaign-manifest.json"
+    return manifest.exists() and "challenge" not in json.loads(manifest.read_bytes())
+
+
 def validated_profile(cfg):
     """A runner profile v2, closed, or the reason it is not one.
 
@@ -508,11 +515,12 @@ class RunnerAdapter:
 
     @staticmethod
     def _challenge(request):
-        """The launch's Challenge, resolved exactly, or None for the historical
-        default. An unknown, reserved, deferred or wrong-version Challenge is
-        refused by its code; nothing falls back to another Challenge."""
+        """The launch's Challenge, resolved exactly. There is no default: a
+        launch naming none, or an unknown, reserved, deferred, retired or
+        wrong-version Challenge, is refused by its code; nothing falls back to
+        another Challenge."""
         if "challenge" not in request and "challenge_version" not in request:
-            return None
+            raise Rejected("challenge_required", 409)
         from carbon.challenge_registry import ResolutionError, resolve
 
         challenge = {
@@ -1067,6 +1075,10 @@ class RunnerAdapter:
             # Resuming would dispatch new work under a grant, which no product
             # surface may do. Observe, pause, stop and reconcile still work.
             raise Rejected("retired_grant_campaign", 409)
+        if action == "resume" and retired_challenge(root):
+            # Burgers is retired from the research path: nothing resumes it.
+            # Observe, pause, stop and reconcile still settle what it holds.
+            raise Rejected("challenge_retired", 409)
         ledger = self._ledger(row, kind, root)
         control = CampaignControl(ledger)
         if action == "reconcile":

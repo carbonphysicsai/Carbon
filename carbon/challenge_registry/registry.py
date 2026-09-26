@@ -11,7 +11,9 @@ describes the Challenge from its executable registrations:
 
 RESERVED entries are launch Challenges whose interface exists only as a name
 and a tracking issue. They say so, and refuse selection. DEFERRED entries are
-portfolio candidates kept for history.
+portfolio candidates kept for history. RETIRED entries were once selectable and
+are no longer on the research path; their code stays in the repository as
+reference, they stay listed, and selecting one is refused.
 
 A description separates *implemented* (Carbon has the code) from *usable
 here* (this host, as the operator configured it, can run the profile now).
@@ -31,7 +33,12 @@ from dataclasses import dataclass, field
 CATALOG_SCHEMA = "carbon.challenge-catalog.v1"
 DESCRIPTION_SCHEMA = "carbon.challenge-description.v1"
 
-IMPLEMENTED, RESERVED, DEFERRED = "IMPLEMENTED", "RESERVED", "DEFERRED"
+IMPLEMENTED, RESERVED, DEFERRED, RETIRED = (
+    "IMPLEMENTED",
+    "RESERVED",
+    "DEFERRED",
+    "RETIRED",
+)
 CAPABILITY_REQUEST = (
     "Ask with the research workspace action capability_request "
     "{request:{purpose,operation,hypothesis,public_evidence,reason,"
@@ -79,6 +86,14 @@ class ChallengeNotImplemented(ResolutionError):
 class ChallengeDeferred(ResolutionError):
     code = "challenge_deferred"
     next_action = "Deferred portfolio candidate; not selectable in this version."
+
+
+class ChallengeRetired(ResolutionError):
+    code = "challenge_retired"
+    next_action = (
+        "Retired from the research path; its code is kept for reference only. "
+        "Select an implemented Challenge from the catalog."
+    )
 
 
 class ProfileUnavailable(ResolutionError):
@@ -191,8 +206,8 @@ def _entries():
         Entry(
             BURGERS_CHALLENGE,
             BURGERS_CONTRACT.version,
-            "Burgers dynamics (DEVELOPMENT autoresearch)",
-            IMPLEMENTED,
+            "Burgers dynamics (DEVELOPMENT autoresearch, retired)",
+            RETIRED,
             "historical_development",
             None,
             (
@@ -277,6 +292,8 @@ def _find(challenge_id, version):
     if not matches:
         raise UnknownChallenge(f"no Challenge {challenge_id!r} is registered")
     entry = matches[0]
+    if entry.status == RETIRED:
+        raise ChallengeRetired(f"{challenge_id} is retired from the research path")
     if entry.status == DEFERRED:
         raise ChallengeDeferred(f"{challenge_id} is a deferred portfolio candidate")
     if entry.status == RESERVED:
