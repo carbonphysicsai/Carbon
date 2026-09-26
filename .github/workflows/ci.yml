@@ -172,7 +172,9 @@ jobs:
     if: needs.preflight.outputs.change_scope == 'RUNTIME_FULL' && needs.preflight.outputs.c03_worker_required == 'true'
     needs: preflight
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    # The authored-Julia service suite builds and precompiles both pinned SciML
+    # environments from empty caches, after ~35 minutes of C-03 controls.
+    timeout-minutes: 120
     steps:
       - name: Check out exact classified candidate
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
