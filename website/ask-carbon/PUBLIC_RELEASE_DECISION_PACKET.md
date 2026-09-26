@@ -1,5 +1,46 @@
 # Ask Carbon concrete public-release decision packet
 
+## Pending: WEB-QA-09-D1, candidate 2026-09-26.1 (proposed, not approved)
+
+**Asked of:** a named production incident owner under `WEB-QA-05-D2`.
+
+**Approve publication of `ask-carbon-public-release-2026-09-26.1`:**
+
+1. `ask-carbon-public` answers through Chutes (`gemma-4-31b-turbo-tee:v1`,
+   `google/gemma-4-31B-turbo-TEE`, confidential compute) instead of OpenAI
+   (`gpt-5.6-luna:low:v1`);
+2. the visitor notice becomes version `ask-carbon-notice-v2-2026-09-26`
+   (exact text in `PRIVACY_AND_RETENTION.md`, SHA-256 `92ee9254…`);
+3. live answers default **on** in the Q&A panel only; Pilot Designer guidance
+   stays opt-in.
+
+Nothing else changes: knowledge (`d937e9ca…`, already approved under
+WEB-QA-07-D1/D2), budget and ceilings, activation, inquiry collection
+(disabled).
+
+| Identity | Value |
+| --- | --- |
+| Bundle identity | `2fe8eba27fda34610555f49e65f1331d90ee1c3f517b8a729098137be2afb5cf` |
+| Changed static paths | `ask-carbon/ask-carbon.js` → `62ba26ce…`; `ask-carbon/pilot-designer.html` → `4c9f3916…` (client-intake #373). 100/102 identical to live on both hostnames, 2026-09-26T16:55Z |
+| Integrated homepage | `b1e8e7cd…` (unchanged) |
+| Worker inputs | `PUBLIC_RELEASE_CANDIDATE.json` → `worker.source_sha256` |
+| Rollback targets | `carbonwebsite` `b694b20f…` (content-identity inference); `ask-carbon-public`: capture at deploy |
+
+**What is not verified.** The Chutes adapter is unit-tested against a
+constructed fixture only; the first live request through the Worker will be
+its first real exercise. It fails closed (typed error, cost settled or held
+unresolved) on any response shape it does not expect. The provider's privacy
+and confidential-compute properties are Chutes' own statements.
+
+**Pilot Designer disclosure:** resolved by client-intake PR #373 (merged 2026-09-26T16:48Z), which now names Chutes; it ships in this bundle and guidance stays opt-in.
+
+**To record on approval:** approval basis
+`OWNER_PUBLICATION_APPROVAL_2026_09_26_WEB_QA_09_D1` on the release record and
+a `.agent/DECISIONS.md` entry in the WEB-QA-08-D1 form. The knowledge
+record's `approval_basis` does not change.
+
+---
+
 **Decision ID:** `ASK-CARBON-PUBLIC-RELEASE-DECISION-01`
 
 **Candidate:** `ask-carbon-public-release-2026-09-18.2`

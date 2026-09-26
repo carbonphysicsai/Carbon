@@ -5,6 +5,7 @@ import { REQUIRED_PRODUCTION_PATHS, integrateHtml, reconcileOwnerUploadedHomepag
 import { buildCsp } from "../tools/csp-report.mjs";
 import { validateKnowledge } from "../tools/validate-knowledge.mjs";
 import knowledge from "../knowledge/public-knowledge.v1.json" with { type: "json" };
+import { activationStatus } from "../worker/core.mjs";
 
 test("static integration preserves existing content and routes", () => {
   const input = "<!doctype html><html><head><title>Existing Carbon</title></head><body><main id=home>Keep me</main><a href=\"/workbench/\">Workbench</a></body></html>";
@@ -131,3 +132,27 @@ test("the required production path set covers the Workbench route and shared hom
 // real temporary files and real CLI child processes. The injected-probe tests
 // that used to live here could not observe empty files, wrong content,
 // directories at file paths, symlinks, or stale destination content.
+
+test("the committed production config pairs its provider with that provider's notice posture", async () => {
+  const active = await readFile(new URL("../wrangler.public-release-active.toml", import.meta.url), "utf8");
+  const vars = Object.fromEntries([...active.split("[vars]")[1].matchAll(/^(ASK_CARBON_[A-Z_]+) = "([^"]*)"$/gm)].map((match) => [match[1], match[2]]));
+  assert.equal(vars.ASK_CARBON_MODEL_CONFIG_ID, "gemma-4-31b-turbo-tee:v1");
+  const env = {
+    ...vars,
+    ASK_CARBON_CHUTES_API_KEY: "test-chutes-key",
+    ASK_CARBON_CONTINUATION_SIGNING_SECRET: "test-signing-secret",
+    ASK_CARBON_USAGE_LEDGER: { idFromName: () => "id", get: () => ({}) },
+    ASK_CARBON_EDGE_RATE_LIMITER: { limit: async () => ({ success: true }) },
+  };
+  const now = new Date("2026-09-26T12:00:00Z");
+  const status = activationStatus(env, knowledge, now);
+  assert.equal(status.reasons.includes("public_privacy_not_accepted"), false, JSON.stringify(status.reasons));
+  assert.equal(status.reasons.includes("missing_ask_carbon_chutes_api_key"), false);
+  // Specimens: the same config under the retired OpenAI notice posture is refused,
+  // and so is the retired OpenAI profile under the Chutes posture.
+  assert.ok(activationStatus({ ...env, ASK_CARBON_PRIVACY_MODE: "approved_public_privacy_v1" }, knowledge, now).reasons.includes("public_privacy_not_accepted"));
+  assert.ok(activationStatus({ ...env, ASK_CARBON_MODEL_CONFIG_ID: "gpt-5.6-luna:low:v1", ASK_CARBON_APPROVED_MODEL_CONFIGS: "gpt-5.6-luna:low:v1", ASK_CARBON_OPENAI_API_KEY: "k" }, knowledge, now).reasons.includes("public_privacy_not_accepted"));
+  // Without the Chutes secret the production config cannot activate.
+  const { ASK_CARBON_CHUTES_API_KEY: _omitted, ...withoutSecret } = env;
+  assert.ok(activationStatus(withoutSecret, knowledge, now).reasons.includes("missing_ask_carbon_chutes_api_key"));
+});

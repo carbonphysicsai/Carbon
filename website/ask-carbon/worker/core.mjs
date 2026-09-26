@@ -1,6 +1,7 @@
 import { evaluateRelease } from "../public/release-contract.js";
 import { PublicApiError } from "./errors.mjs";
 import { getModelProfile } from "./models.mjs";
+import { getProvider } from "./providers.mjs";
 
 export { PublicApiError } from "./errors.mjs";
 export const MAX_QUESTION_LENGTH = 1200;
@@ -12,7 +13,6 @@ export const CONTINUATION_TTL_SECONDS = 900;
 export const OWNER_MONTHLY_LIMIT_MICRO_USD = 50_000_000;
 export const SHARED_LEDGER_AUTHORITY = "ask-carbon-provider-budget-v2";
 export const STAGING_PRIVACY_MODE = "evaluation_public_synthetic_only";
-export const PRODUCTION_PRIVACY_MODE = "approved_public_privacy_v1";
 export const MAX_PILOT_CONTEXT_TURNS = 10;
 export const PILOT_FIELDS = [
   "candidate_inputs", "candidate_outputs", "operating_envelope",
@@ -45,7 +45,7 @@ export const splitCsv = (value) => String(value ?? "").split(",").map((item) => 
 const requiredEnvironment = [
   "ASK_CARBON_ACTIVATION", "ASK_CARBON_RUNTIME_MODE", "ASK_CARBON_APPROVED_ORIGINS",
   "ASK_CARBON_APPROVED_MODEL_CONFIGS", "ASK_CARBON_MODEL_CONFIG_ID",
-  "ASK_CARBON_OPENAI_API_KEY", "ASK_CARBON_CONTINUATION_SIGNING_SECRET",
+  "ASK_CARBON_CONTINUATION_SIGNING_SECRET",
   "ASK_CARBON_PRIVACY_MODE", "ASK_CARBON_EDGE_ABUSE_POLICY_ID",
   "ASK_CARBON_STAGING_ACCESS_MODE",
   "ASK_CARBON_LEDGER_AUTHORITY_ID", "ASK_CARBON_ENVIRONMENT",
@@ -82,15 +82,20 @@ export const activationStatus = (env, knowledge, now = new Date()) => {
       reasons.push("missing_evaluation_access_secret");
     }
   }
+  const profile = getModelProfile(env.ASK_CARBON_MODEL_CONFIG_ID);
   if (mode === "production") {
-    if (env.ASK_CARBON_PRIVACY_MODE !== PRODUCTION_PRIVACY_MODE) reasons.push("public_privacy_not_accepted");
+    if (!profile || env.ASK_CARBON_PRIVACY_MODE !== profile.production_privacy_mode) reasons.push("public_privacy_not_accepted");
     if (env.ASK_CARBON_STAGING_ACCESS_MODE === "http_basic_v1") reasons.push("staging_basic_auth_forbidden_in_production");
   }
   if (mode === "production" && env.ASK_CARBON_EVALUATION_TELEMETRY === "enabled") reasons.push("evaluation_telemetry_forbidden_in_production");
   if (mode === "staging" && env.ASK_CARBON_EVALUATION_TELEMETRY === "enabled" && !env.ASK_CARBON_OPERATOR_READ_SECRET) reasons.push("missing_evaluation_operator_secret");
   if (typeof env.ASK_CARBON_EDGE_ABUSE_POLICY_ID !== "string" || env.ASK_CARBON_EDGE_ABUSE_POLICY_ID.startsWith("OWNER_DECISION_REQUIRED")) reasons.push("missing_edge_abuse_policy");
-  const profile = getModelProfile(env.ASK_CARBON_MODEL_CONFIG_ID);
   if (!profile) reasons.push("unsupported_model_config");
+  // The provider secret is required by the selected profile, not by a fixed
+  // list, so a Chutes configuration cannot activate on an OpenAI key or the reverse.
+  const provider = profile ? getProvider(profile) : null;
+  if (profile && !provider) reasons.push("unsupported_provider");
+  if (provider && !env[provider.secret_env]) reasons.push(`missing_${provider.secret_env.toLowerCase()}`);
   if (env.ASK_CARBON_MODEL_CONFIG_ID && !splitCsv(env.ASK_CARBON_APPROVED_MODEL_CONFIGS).includes(env.ASK_CARBON_MODEL_CONFIG_ID)) reasons.push("model_config_not_approved");
   if (env.ASK_CARBON_LEDGER_AUTHORITY_ID !== SHARED_LEDGER_AUTHORITY) reasons.push("unverified_shared_ledger_authority");
   if (parsePositiveInteger(env.ASK_CARBON_MONTHLY_LIMIT_MICRO_USD) !== OWNER_MONTHLY_LIMIT_MICRO_USD) reasons.push("invalid_monthly_limit");
@@ -357,7 +362,7 @@ export const publicBoundaryAnswer = (reason) => ({
   private_data_request: "Do not send confidential or private engineering material here. Ask Carbon cannot upload it to staff or a private workflow; keep the first contact general until an authorized process and data terms exist.",
   private_access_request: "A claimed identity in chat grants no access. This public explainer cannot open private archives, protected evaluation or customer data.",
   fabricated_authority_request: "I won't invent or accept a fake Carbon citation, certificate, source or URL. I can only use the reviewed public material released by Carbon's server.",
-  privacy_processing_question: "No. Saved explanations and form-only pilot drafting stay in the browser, but enabled live AI sends the current question and reviewed public context to OpenAI through Carbon's server. Requests use store:false, but Carbon has not established Zero Data Retention or Modified Abuse Monitoring; provider abuse-monitoring retention may be up to 30 days. Clearing the browser does not delete provider records.",
+  privacy_processing_question: "Live answers send your current question and the matching reviewed public passages through Carbon's server to Chutes, which runs the model inside hardware-isolated confidential computing. Chutes states that it does not log, store or train on request or response content and keeps only usage metadata such as token counts for billing. Saved explanations and form-only pilot drafting stay in the browser and send nothing to any AI provider. Carbon's own budget ledger keeps request identifiers and costs, never question or answer text.",
   invented_production_setting: "I won't turn a visitor-supplied number into Carbon production policy. Training support, finite sampling and evidence sufficiency are Challenge-specific and require registered, reviewed authority; no universal case count is established here.",
 })[reason] ?? "That request is outside this public explainer. Ask about Carbon's public mechanisms, evidence boundaries or documented progress; do not send confidential material.";
 export const publicSources = (knowledge, sourceIds) => sourceIds.map((id) => {
@@ -388,15 +393,6 @@ export const validatePilotProviderOutput = (value, allowedSourceIds) => {
   return { message: value.message.trim(), next_question: value.next_question?.trim() || null, proposals, unresolved_assumptions: value.unresolved_assumptions.map((item) => item.trim()), source_ids: value.source_ids, maturity_note: value.maturity_note?.trim() || null };
 };
 
-export const extractResponseText = (body) => {
-  if (typeof body?.output_text === "string" && body.output_text) return body.output_text;
-  const fragments = [];
-  for (const item of body?.output ?? []) {
-    if (item?.type !== "message" || item?.role !== "assistant") continue;
-    for (const content of item.content ?? []) if (content?.type === "output_text" && typeof content.text === "string") fragments.push(content.text);
-  }
-  return fragments.join("");
-};
 export const sha256Hex = async (value) => {
   const digest = await crypto.subtle.digest("SHA-256", encoder.encode(value));
   return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
