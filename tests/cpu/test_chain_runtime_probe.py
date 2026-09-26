@@ -133,3 +133,40 @@ def test_the_pinned_sdk_binds_every_surface_item():
     assert None not in expected["calls"].values()
     assert None not in expected["storage"].values()
     assert len(expected["runtime_apis"]) == len(probe.SURFACE["runtime_apis"])
+
+
+def test_main_loads_the_operator_config_given_on_the_command_line(monkeypatch, capsys):
+    """The command line hands `--config` over as text, relative or absolute;
+    `load_config` accepts only an absolute `Path`. Offline: the chain read is
+    replaced, so this exercises exactly the argument path."""
+    import asyncio
+    import json
+    from pathlib import Path
+
+    example = Path(__file__).parents[2] / "docs/development"
+    seen = {}
+
+    async def offline(endpoint, genesis_hash):
+        seen["endpoint"] = endpoint
+        return {"status": "COMPATIBLE_USED_SURFACE", "spec_version": 471}
+
+    monkeypatch.setattr(probe, "probe", offline)
+    monkeypatch.setattr(asyncio, "run", lambda coroutine: _drain(coroutine))
+    monkeypatch.chdir(example)
+    for given in (
+        "CW1_DEVELOPMENT_TESTNET_OPERATOR.example.json",
+        str(example / "CW1_DEVELOPMENT_TESTNET_OPERATOR.example.json"),
+    ):
+        assert probe.main(["--config", given]) == 0
+        report = json.loads(capsys.readouterr().out)
+        assert report["spec_version"] == 471
+        assert type(report["operator_expected_runtime_spec"]) is int
+    assert seen["endpoint"].startswith("wss://")
+
+
+def _drain(coroutine):
+    try:
+        coroutine.send(None)
+    except StopIteration as done:
+        return done.value
+    raise AssertionError("the offline probe must not await anything")
