@@ -1,0 +1,33 @@
+{
+  "provenance": {
+    "kind": "CONSTRUCTED_NOT_RECORDED",
+    "constructed_utc": "2026-09-26",
+    "basis": "OpenAI-compatible chat/completions response shape served at https://llm.chutes.ai/v1/chat/completions. The model id, confidential_compute flag and prices were read live from GET https://llm.chutes.ai/v1/models on 2026-09-26; no completion was requested, because the owner excluded live provider calls for this candidate. Field presence (id, model echo, choices[0].finish_reason, usage.prompt_tokens_details) is therefore an assumption the adapter fails closed on, not an observation.",
+    "replace_with": "A recorded response body from the first metered staging request, with the visitor question replaced by this fixture's."
+  },
+  "response": {
+    "id": "chatcmpl-fixture-0001",
+    "object": "chat.completion",
+    "created": 1790467200,
+    "model": "google/gemma-4-31B-turbo-TEE",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "{\"status\":\"supported\",\"card_ids\":[\"overview\"],\"follow_up\":\"What is a Challenge?\"}",
+          "refusal": null,
+          "tool_calls": []
+        },
+        "logprobs": null,
+        "finish_reason": "stop"
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 1834,
+      "completion_tokens": 41,
+      "total_tokens": 1875,
+      "prompt_tokens_details": { "cached_tokens": 0 }
+    }
+  }
+}

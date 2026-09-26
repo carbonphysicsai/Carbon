@@ -40,20 +40,41 @@
   "deployment_target_observed": {
     "source": "Cloudflare Dashboard (authenticated as the account owner) on 2026-09-22; version id to be captured by `npx wrangler deployments list --name carbonwebsite` immediately before the next deployment, per OPERATIONS.md",
     "worker": "carbonwebsite",
-    "live_version_id": "65fd41de-7ab6-4b0b-b138-b956a5917dd6",
-    "live_version_source": "wrangler deployment (Cloudflare reports the source as Unknown (deployment))",
+    "live_version_id": "b694b20f-a4d4-4f59-8f08-12629591a2dc",
+    "live_version_source": "PUBLIC_RELEASE_CANDIDATE.json deployment_record_2026_09_24_1 (wrangler 4.134.0, 2026-09-24T09:30:32Z)",
     "live_version_note": "The redesigned site went live on 2026-09-22 via a Dashboard upload of carbon-site-upload.zip. That version supersedes 5a44ab03-ce7c-4100-ae42-71843b07246a (version 17, 2026-09-12) as the rollback target. Its id must be read from wrangler at deploy time and written here; do not deploy while this field still reads CAPTURE_BEFORE_DEPLOY.",
     "compatibility_date": "2026-09-12",
     "bindings": [],
-    "live_version_created": "2026-09-22T12:24:19.108Z",
-    "live_version_captured_utc": "2026-09-24T07:02Z",
-    "live_version_capture_method": "wrangler 4.134.0 `deployments status --name carbonwebsite` and `deployments list --name carbonwebsite`, authenticated as carbon.physics.ai@gmail.com, 2026-09-24; the version reported as serving 100% of traffic.",
-    "rollback_target_note": "65fd41de-7ab6-4b0b-b138-b956a5917dd6 is the version serving 100% of traffic at capture time (2026-09-24T07:02Z): the active, content-approved Ask Carbon publication (WEB-QA-07-D1, bundle 93bffeec…). It is the rollback target for candidate ask-carbon-public-release-2026-09-24.1; rolling back to it restores the site exactly as it stood before that candidate, with the previous Pilot Designer. It supersedes dc5212bb-c84b-4051-9724-74cb21c16711 (the inactive publication, 2026-09-22T10:13Z) and the earlier targets listed below, all retained as historical evidence only. Note that the rollback_target_captured guard checks only that this field holds a real version id, NOT that it is still the live one: re-capture immediately before every deployment rather than trusting a value written earlier.",
+    "live_version_created": "2026-09-24T09:30:31.026Z",
+    "live_version_captured_utc": "2026-09-26T16:38Z",
+    "live_version_capture_method": "CONTENT IDENTITY, NOT A PLATFORM READ. On 2026-09-26T16:38Z every one of the 102 paths of bundle c973a2ea… (rebuilt reproducibly from main 9428c8c2f and a digest-verified copy of the 97-path baseline) matched live on both carbonphysics.ai and www.carbonphysics.ai by SHA-256, HTML compared after removing the Cloudflare challenge script and Web Analytics beacon the edge injects. The release record says b694b20f serves exactly that bundle. The version id itself was NOT read from Cloudflare: no wrangler credential exists on the building host and `wrangler login` was deliberately not run. The deploying owner must confirm it with `wrangler deployments status --name carbonwebsite` immediately before deploying; if it differs, this candidate must be rebuilt against the new live version.",
+    "rollback_target_note": "b694b20f-a4d4-4f59-8f08-12629591a2dc serves candidate 2026-09-24.1 (bundle c973a2ea…, WEB-QA-08-D1). Rolling back carbonwebsite to it restores the previous Ask Carbon component (live AI opt-in, OpenAI-era notice text). The rollback_target_captured guard checks only that this field holds a well-formed version id, NOT that it is live: re-capture immediately before every deployment.",
     "superseded_rollback_targets": [
-      { "version_id": "dc5212bb-c84b-4051-9724-74cb21c16711", "was_live_until": "2026-09-22T12:24Z", "description": "inactive Ask Carbon publication (WEB-QA-06-D1)" },
-      { "version_id": "6b339116-ee62-43ac-bda8-cf3baa674551", "was_live_until": "2026-09-22T10:13Z", "description": "redesign before Ask Carbon integration" },
-      { "version_id": "5a44ab03-ce7c-4100-ae42-71843b07246a", "was_live_until": "2026-09-22T07:16Z", "description": "pre-redesign single-file homepage" },
-      { "version_id": "b99c37f0-c2d2-432b-842a-00b9fb518d96", "was_live_until": "2026-09-12T04:05Z", "description": "named in an earlier runbook revision as the rollback target; already stale when written" }
+      {
+        "version_id": "65fd41de-7ab6-4b0b-b138-b956a5917dd6",
+        "was_live_until": "2026-09-24T09:30Z",
+        "description": "WEB-QA-07-D1 content-approved publication (bundle 93bffeec…), rollback target for candidate 2026-09-24.1"
+      },
+      {
+        "version_id": "dc5212bb-c84b-4051-9724-74cb21c16711",
+        "was_live_until": "2026-09-22T12:24Z",
+        "description": "inactive Ask Carbon publication (WEB-QA-06-D1)"
+      },
+      {
+        "version_id": "6b339116-ee62-43ac-bda8-cf3baa674551",
+        "was_live_until": "2026-09-22T10:13Z",
+        "description": "redesign before Ask Carbon integration"
+      },
+      {
+        "version_id": "5a44ab03-ce7c-4100-ae42-71843b07246a",
+        "was_live_until": "2026-09-22T07:16Z",
+        "description": "pre-redesign single-file homepage"
+      },
+      {
+        "version_id": "b99c37f0-c2d2-432b-842a-00b9fb518d96",
+        "was_live_until": "2026-09-12T04:05Z",
+        "description": "named in an earlier runbook revision as the rollback target; already stale when written"
+      }
     ]
   },
   "routing_configuration": {

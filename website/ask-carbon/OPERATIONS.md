@@ -290,6 +290,41 @@ Production needs a separate exact owner authorization after the staging report:
 > still reports `active: true`. If anything is wrong, roll back:
 > `"$WRANGLER" rollback 65fd41de-7ab6-4b0b-b138-b956a5917dd6 --name carbonwebsite`.
 
+> **Candidate 2026-09-26.1: Worker and static together.** Switches
+> `ask-carbon-public` to the Chutes profile and changes one shipped static
+> path (`ask-carbon/ask-carbon.js`). The Worker embeds its knowledge at build
+> time, so both move together. Not deployable until the owner's approval and
+> the Pilot Designer disclosure update are recorded (see
+> `required_before_production_mutation`). Then, from the approved merge
+> commit:
+>
+> ```sh
+> WRANGLER="$HOME/.local/lib/carbon-wrangler/node_modules/.bin/wrangler"
+> "$WRANGLER" deployments status --name carbonwebsite       # must serve bundle c973a2ea… (recorded b694b20f)
+> "$WRANGLER" deployments status --name ask-carbon-public   # record as the Worker rollback target
+> "$WRANGLER" secret put ASK_CARBON_CHUTES_API_KEY --name ask-carbon-public
+> "$WRANGLER" deploy --config website/ask-carbon/wrangler.public-release-active.toml
+> curl -s https://carbonphysics.ai/api/ask-carbon/health   # active:true, model gemma-4-31b-turbo-tee:v1, reasons []
+> # rebuild with --require-complete-bundle; identity must equal the approved one
+> "$WRANGLER" deploy --name carbonwebsite --assets "$OUT" --compatibility-date 2026-09-12
+> ```
+>
+> Verify all 102 paths by digest on both hostnames and `/health` again.
+> Rollback: `wrangler rollback <captured ask-carbon-public id> --name
+> ask-carbon-public` and `wrangler rollback b694b20f-a4d4-4f59-8f08-12629591a2dc
+> --name carbonwebsite` (re-captured value wins). Keep
+> `ASK_CARBON_OPENAI_API_KEY` until the switch is confirmed, because the
+> rolled-back Worker reads it. Never roll back or delete the
+> `AskCarbonUsageLedger` Durable Object.
+>
+> Without an archive of the site build, the 97-path baseline can be re-derived
+> from live: fetch each manifest path, remove the edge-injected challenge
+> script and Web Analytics beacon, require every digest to match
+> `production-baseline.manifest.json`, and recover `index.html` by removing the
+> two integration blocks from the live homepage (must hash to `99be1318…`).
+> Rebuilding the currently deployed revision against that baseline must
+> reproduce the live bundle identity before it is trusted.
+
 For the approved 18 September inactive-publication candidate, extract the
 owner-supplied ZIP into a temporary directory, verify its recorded archive and
 `index.html` hashes, and build the static artifact with the repository tool:

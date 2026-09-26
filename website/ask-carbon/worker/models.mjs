@@ -1,9 +1,14 @@
 import { PublicApiError } from "./errors.mjs";
+import { assertProviderModel, getProvider } from "./providers.mjs";
+
+export { assertProviderModel };
 
 export const PRICING_OBSERVED_AT = "2026-09-16";
 export const MODEL_PROFILES = Object.freeze({
   "gpt-5.6-luna:low:v1": Object.freeze({
     config_id: "gpt-5.6-luna:low:v1",
+    provider: "openai_responses",
+    production_privacy_mode: "approved_public_privacy_v1",
     request_model: "gpt-5.6-luna",
     allowed_response_models: Object.freeze(["gpt-5.6-luna"]),
     pricing_id: "openai-standard-2026-09-16:gpt-5.6-luna",
@@ -21,6 +26,8 @@ export const MODEL_PROFILES = Object.freeze({
   }),
   "gpt-5.6-terra:low:v1": Object.freeze({
     config_id: "gpt-5.6-terra:low:v1",
+    provider: "openai_responses",
+    production_privacy_mode: "approved_public_privacy_v1",
     request_model: "gpt-5.6-terra",
     allowed_response_models: Object.freeze(["gpt-5.6-terra"]),
     pricing_id: "openai-standard-2026-09-16:gpt-5.6-terra",
@@ -35,6 +42,32 @@ export const MODEL_PROFILES = Object.freeze({
     model_max_output_tokens: 128_000,
     framing_token_allowance: 512,
     pricing_source: "https://developers.openai.com/api/docs/models/gpt-5.6-terra",
+  }),
+  // Prices, context and output limits read from GET https://llm.chutes.ai/v1/models
+  // on 2026-09-26 (price.*.usd per million tokens; confidential_compute: true).
+  "gemma-4-31b-turbo-tee:v1": Object.freeze({
+    config_id: "gemma-4-31b-turbo-tee:v1",
+    provider: "chutes_chat_completions",
+    // The public notice this provider is disclosed under. Production activation
+    // requires the configured privacy mode to equal it, so a provider cannot go
+    // live under another provider's notice.
+    production_privacy_mode: "approved_public_privacy_v2_chutes_confidential",
+    request_model: "google/gemma-4-31B-turbo-TEE",
+    allowed_response_models: Object.freeze(["google/gemma-4-31B-turbo-TEE"]),
+    pricing_id: "chutes-2026-09-26:google/gemma-4-31B-turbo-TEE",
+    input_price_micro_usd_per_million: 120_000,
+    cached_input_price_micro_usd_per_million: 12_000,
+    output_price_micro_usd_per_million: 370_000,
+    reasoning_effort: null,
+    verbosity: null,
+    temperature: 0,
+    supports_strict_json_schema: true,
+    requires_reasoning_usage: false,
+    confidential_compute: true,
+    context_window_tokens: 131_072,
+    model_max_output_tokens: 65_536,
+    framing_token_allowance: 512,
+    pricing_source: "https://llm.chutes.ai/v1/models",
   }),
 });
 
@@ -65,33 +98,10 @@ export const estimateMaximumCostMicroUsd = (profile, { maxInputTokens, maxOutput
   return Number(result);
 };
 
-export const validateProviderUsage = (body, profile) => {
-  const usage = body?.usage;
-  const values = [usage?.input_tokens, usage?.output_tokens, usage?.total_tokens];
-  if (!values.every((value) => Number.isSafeInteger(value) && value >= 0) ||
-      usage.total_tokens !== usage.input_tokens + usage.output_tokens) {
-    throw new PublicApiError(502, "untrusted_provider_usage", "The answer provider returned incomplete or invalid usage accounting.");
-  }
-  const cached = usage.input_tokens_details?.cached_tokens ?? 0;
-  if (!Number.isSafeInteger(cached) || cached < 0 || cached > usage.input_tokens) {
-    throw new PublicApiError(502, "untrusted_provider_usage", "The answer provider returned invalid cached-token accounting.");
-  }
-  const reasoning = usage.output_tokens_details?.reasoning_tokens;
-  if (profile.requires_reasoning_usage && (!Number.isSafeInteger(reasoning) || reasoning < 0 || reasoning > usage.output_tokens)) {
-    throw new PublicApiError(502, "untrusted_provider_usage", "The answer provider returned incomplete reasoning-token accounting.");
-  }
-  return {
-    input_tokens: usage.input_tokens,
-    cached_input_tokens: cached,
-    output_tokens: usage.output_tokens,
-    reasoning_tokens: reasoning ?? 0,
-    total_tokens: usage.total_tokens,
-  };
+export const providerFor = (profile) => {
+  const provider = getProvider(profile);
+  if (!provider) throw new PublicApiError(500, "unsupported_provider", "The configured answer provider is unsupported.");
+  return provider;
 };
 
-export const assertProviderModel = (body, profile) => {
-  if (!profile.allowed_response_models.includes(body?.model)) {
-    throw new PublicApiError(502, "provider_model_mismatch", "The answer provider returned an unexpected model identity.");
-  }
-  return body.model;
-};
+export const validateProviderUsage = (body, profile) => providerFor(profile).normalizeUsage(body, profile);

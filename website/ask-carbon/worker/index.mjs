@@ -10,7 +10,6 @@ import {
   assertAllowedOrigin,
   corsHeaders,
   detectOutOfScope,
-  extractResponseText,
   makeContinuation,
   parsePositiveInteger,
   publicBoundaryAnswer,
@@ -27,6 +26,7 @@ import {
   calculateUsageCostMicroUsd,
   estimateMaximumCostMicroUsd,
   getModelProfile,
+  providerFor,
   validateProviderUsage,
 } from "./models.mjs";
 import { AskCarbonUsageLedger } from "./ledger.mjs";
@@ -36,7 +36,6 @@ const API_PATH = "/api/ask-carbon";
 const HEALTH_PATH = "/api/ask-carbon/health";
 const OPERATOR_LEDGER_PATH = "/api/ask-carbon/internal/ledger";
 const STAGING_BUDGET_PATH = "/api/ask-carbon/staging/budget-snapshot";
-const PROVIDER_URL = "https://api.openai.com/v1/responses";
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 const securityHeaders = {
@@ -294,15 +293,13 @@ const buildProviderRequest = ({ profile, cards, input, maxOutputTokens, maxInput
   const content = mode === "PILOT_DESIGN"
     ? JSON.stringify({ question: input.question, prior_turns: input.turns, draft_context: input.draft_context })
     : input.question;
-  const body = {
-    model: profile.request_model,
-    store: false,
-    reasoning: { effort: profile.reasoning_effort },
-    max_output_tokens: maxOutputTokens,
+  const body = providerFor(profile).buildBody(profile, {
     instructions: providerPrompt(cards, mode, followUpOptions),
-    input: [{ role: "user", content: [{ type: "input_text", text: content }] }],
-    text: { verbosity: profile.verbosity, format: { type: "json_schema", name: mode === "PILOT_DESIGN" ? "carbon_pilot_guidance" : "ask_carbon_answer_selection", strict: true, schema: providerSchema(mode, cards, followUpOptions) } },
-  };
+    userText: content,
+    schemaName: mode === "PILOT_DESIGN" ? "carbon_pilot_guidance" : "ask_carbon_answer_selection",
+    schema: providerSchema(mode, cards, followUpOptions),
+    maxOutputTokens,
+  });
   const encoded = JSON.stringify(body);
   const byteUpperBound = encoder.encode(encoded).byteLength + profile.framing_token_allowance;
   if (byteUpperBound > maxInputTokens) throw new PublicApiError(400, "context_too_large", "The reviewed public context is too large for the configured accounting bound.");
@@ -310,9 +307,10 @@ const buildProviderRequest = ({ profile, cards, input, maxOutputTokens, maxInput
 };
 
 const performProviderCall = async ({ env, profile, encoded, signal }) => {
-  const response = await fetch(PROVIDER_URL, {
+  const provider = providerFor(profile);
+  const response = await fetch(provider.url, {
     method: "POST",
-    headers: { authorization: `Bearer ${env.ASK_CARBON_OPENAI_API_KEY}`, "content-type": "application/json" },
+    headers: { authorization: `Bearer ${env[provider.secret_env]}`, "content-type": "application/json" },
     body: encoded,
     signal,
   });
@@ -430,7 +428,8 @@ const handleAsk = async (request, env, knowledgeManifest) => {
       throw error;
     }
     const actualCost = calculateUsageCostMicroUsd(profile, usage);
-    const providerResponseId = typeof provider.body?.id === "string" && provider.body.id ? provider.body.id : await sha256Hex(JSON.stringify({ providerModel, usage, attemptId }));
+    const outcome = providerFor(profile).normalizeOutcome(provider.body ?? {});
+    const providerResponseId = outcome.response_id ?? await sha256Hex(JSON.stringify({ providerModel, usage, attemptId }));
     const settlementId = await sha256Hex(`${attemptId}:${providerResponseId}:${actualCost}`);
     await requireLedgerTransition(prepared.ledger, "/settle", {
       attempt_id: attemptId,
@@ -440,8 +439,8 @@ const handleAsk = async (request, env, knowledgeManifest) => {
       provider_response_id: providerResponseId,
     }, "accounting_settlement_failed");
     if (providerRejected) throw new PublicApiError(502, "provider_error", "The answer provider is temporarily unavailable.");
-    if (provider.body.status !== "completed") throw new PublicApiError(502, provider.body.status === "incomplete" ? "provider_incomplete" : "provider_refused", "The answer provider did not produce a complete supported answer.");
-    const responseText = extractResponseText(provider.body);
+    if (outcome.completion !== "completed") throw new PublicApiError(502, outcome.completion === "incomplete" ? "provider_incomplete" : "provider_refused", "The answer provider did not produce a complete supported answer.");
+    const responseText = outcome.text;
     if (!responseText) throw new PublicApiError(502, "invalid_provider_output", "The answer provider returned no answer.");
     let parsed;
     try { parsed = JSON.parse(responseText); } catch { throw new PublicApiError(502, "invalid_provider_output", "The answer provider returned invalid structured output."); }
