@@ -322,9 +322,7 @@ def test_the_generator_digest_is_a_stable_tagged_identity():
     assert value.startswith("sha256:") and len(value) == 71
 
 
-def test_a_carrier_deployment_reads_its_image_manifest_as_a_path(
-    tmp_path, monkeypatch
-):
+def test_a_carrier_deployment_reads_its_image_manifest_as_a_path(tmp_path, monkeypatch):
     """The deployment file holds the manifest path as JSON text, and
     `load_image_identity` reads a `Path`. Building a writable carrier
     deployment must hand it a `Path`, or every export, run and prepare fails
