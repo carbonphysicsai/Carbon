@@ -50,7 +50,7 @@ FIELDS = {
         "string",
         (
             "The Challenge id to research (carbon_challenges_v1__list). "
-            "Omitted: the historical Burgers campaign."
+            "Required; there is no default Challenge."
         ),
     ),
     "challenge_version": ("string", "The exact version of that Challenge."),
