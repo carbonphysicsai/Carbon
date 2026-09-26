@@ -71,7 +71,71 @@ def permitted_files():
     for path in sorted(lab.rglob("*")):
         if path.is_file() and "__pycache__" not in path.parts and path.suffix != ".pyc":
             result[path.relative_to(repo).as_posix()] = path.read_bytes()
+    for name in challenge_kit_files(repo):
+        result.setdefault(name, (repo / name).read_bytes())
     return result
+
+
+#: Never shipped to a miner, whatever the kit's imports reach: the controller,
+#: the evaluator's orchestration, private stores and anything that holds or
+#: routes protected material. The kit's closure is checked against these.
+KIT_FORBIDDEN = (
+    "carbon.development_session",
+    "carbon.reference_runtime.controller",
+    "carbon.measurement_runtime",
+    "carbon.audit",
+    "carbon.chain",
+    "carbon.miner_mcp",
+    "carbon.scoring",
+    "carbon.transport",
+)
+
+
+def challenge_kit_files(repo):
+    """The challenge kit and the exact import closure of what it runs.
+
+    Computed in a fresh interpreter from what the kit actually imports, so the
+    shipped generator and reference solvers are the validator's own files,
+    byte for byte, and nothing extra rides along. Fails closed if the closure
+    ever reaches a forbidden module.
+    """
+    import json as _json
+    import subprocess
+    import sys
+
+    probe = (
+        "import json,sys\n"
+        "import carbon.challenge_kit.burgers\n"
+        "import carbon.reference_runtime.model\n"
+        "print(json.dumps(sorted(m for m in sys.modules if m.startswith('carbon'))))\n"
+    )
+    modules = _json.loads(
+        subprocess.run(
+            [sys.executable, "-I", "-c", probe],
+            cwd=repo,
+            env={"PYTHONPATH": str(repo), "PATH": "/usr/bin:/bin"},
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout
+    )
+    reached = [m for m in modules if m.startswith(KIT_FORBIDDEN)]
+    if reached:
+        raise ValueError(
+            "challenge kit reaches forbidden modules: " + ", ".join(reached)
+        )
+    files = [
+        "carbon/challenge_kit/burgers_pin.json",
+        "carbon/challenge_kit/CarbonBurgers.jl",
+    ]
+    for module in modules:
+        path = repo / (module.replace(".", "/") + ".py")
+        package = repo / module.replace(".", "/") / "__init__.py"
+        target = package if package.is_file() else path
+        if module == "carbon" or not target.is_file():
+            continue
+        files.append(target.relative_to(repo).as_posix())
+    return sorted(set(files))
 
 
 def runtime_document(parent):
