@@ -2187,6 +2187,14 @@
         "the enable step remains separate",
         "Keep issue #139 inquiry collection disabled"
       ]
+    },
+    {
+      "id": "launchpad-authored-julia-anytime",
+      "path": "docs/development/AUTHORED_JULIA_RESEARCH.md",
+      "required_markers": [
+        "# Authored Julia research (prospective DEVELOPMENT scope)",
+        "No grant is needed (C-MLP-02-D11)."
+      ]
     }
   ],
   "authority_ceilings": {
