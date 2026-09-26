@@ -2,7 +2,7 @@
   "use strict";
   const I = CarbonClientIntake;
   const $ = (id) => document.getElementById(id);
-  const NOTICE_VERSION = "carbon.ask-guidance.notice.v1-2026-09-16";
+  const NOTICE_VERSION = "carbon.ask-guidance.notice.v2-2026-09-26";
   const quantityLabels = {
     preparation_time: "One-time preparation / training / reference generation",
     prediction_latency: "Recurring prediction latency",
@@ -196,7 +196,7 @@
       pilot: { label: "Draft pilot for Carbon review", ...pilot },
       field_provenance: fieldProvenance, accepted_suggestions: acceptedSuggestions,
       unresolved_assumptions: unresolvedAssumptions,
-      ai_guidance: { enabled: guidanceEnabled, provider: guidanceEnabled ? "OPENAI_API" : null, guidance_version: I.GUIDANCE_VERSION, notice_version: guidanceEnabled ? NOTICE_VERSION : null, consented_at: guidanceEnabled ? consentedAt : null, cleared_locally: clearedLocally },
+      ai_guidance: { enabled: guidanceEnabled, provider: guidanceEnabled ? "CHUTES_API" : null, guidance_version: I.GUIDANCE_VERSION, notice_version: guidanceEnabled ? NOTICE_VERSION : null, consented_at: guidanceEnabled ? consentedAt : null, cleared_locally: clearedLocally },
       sharing: { include_conversation: includeConversation, conversation: includeConversation ? conversation : [] },
       contact: { name: $("contact-name").value, email: $("contact-email").value, organization: $("contact-organization").value },
       local_scope: I.REVIEW_SCOPE,

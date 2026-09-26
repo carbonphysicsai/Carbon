@@ -1210,7 +1210,7 @@ reviewed_intake = obj(
         "ai_guidance": obj(
             {
                 "enabled": {"type": "boolean"},
-                "provider": nullable({"const": "OPENAI_API"}),
+                "provider": nullable({"enum": ["OPENAI_API", "CHUTES_API"]}),
                 "guidance_version": {"const": "carbon.client-intake.guidance.v1"},
                 "notice_version": nullable(string(128)),
                 "consented_at": nullable(string(64)),
