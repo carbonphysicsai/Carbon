@@ -20,6 +20,7 @@ A row is done only when its evidence is merged or recorded here.
 | OWNER-BATTERY-TESTNET-01 (OD-1 to OD-8) | challenge, exam rule (OD-2), security review (OD-3), all-burn Phase A (OD-4a), no winner weights (OD-4b), USD 20 budget (OD-5), no validator hotkeys (OD-6), miner commitments (OD-7), per-challenge contracts (OD-8) |
 | OWNER-BATTERY-TESTNET-02 / -03 | research vocabulary; exclusion scope; the battery agent; M3 direction |
 | OWNER-BATTERY-TESTNET-04 | prior spend excluded (USD 20 intact); GPU image = `carbon-accelerator-worker@sha256:e4a2…`; OD-3 recorded approved |
+| OWNER-LAUNCH-PORTFOLIO-01 (2026-09-26) | battery is a launch Challenge (portfolio: battery, motors, cold plates, photonics); EV1/EV2 are part of its launch-readiness path; OD-1 to OD-8, qualification, launch gates and spending are unchanged |
 | Engineering-value direction (2026-09-25) | EV1 is off-chain DEVELOPMENT; the testnet rule is unchanged until a prospective change is approved |
 
 All of these are in `.agent/DECISIONS.md`.
