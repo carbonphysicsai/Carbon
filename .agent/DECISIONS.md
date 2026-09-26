@@ -16021,3 +16021,27 @@ The guard stays."
    verification.
 
 See `.agent/tickets/GOAL-WORKBENCH-15_client_data_engineering.md`.
+
+## 2026-09-26 — OWNER-CLIENT-MODEL-PROVIDER-02: synthetic-only lifted; counsel approves E7
+
+**Authority.** The owner, in the client-intake session on 2026-09-26: "I lift
+synthetic only", then "I approve the opt in" (confirmed as: lift the gate, keep
+the opt-in), then "and counsel approves E7".
+
+1. **The synthetic-only restriction of OWNER-CLIENT-MODEL-PROVIDER-01 item 3 is
+   lifted.** A real client's record may go to the scheduled provider (Chutes)
+   once that client's own separately signed opt-in is recorded.
+2. **Unchanged:**
+   - the switch is per client and off by default;
+   - transfer is never automatic;
+   - every request is logged before it is sent;
+   - contact details are not sent;
+   - E8.
+3. **A synthetic opt-in can never open a real record.** This guard replaces the
+   removed gate.
+4. **Counsel approves E7.** The approved screening standard is configured
+   privately, not in this repository. It replaces the synthetic development
+   standard of the 2026-09-23 delegated decision 4.
+
+See `.agent/tickets/GOAL-WORKBENCH-15_client_data_engineering.md`.
+

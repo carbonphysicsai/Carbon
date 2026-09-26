@@ -1,8 +1,9 @@
 "use strict";
 // External model processing of a client record (owner direction, 26 September
 // 2026). Chutes is named in the provider schedule; the guard against automatic
-// transfer stays; the switch is per client and off by default; and no client
-// content goes to any provider: the path is proved on synthetic records only.
+// transfer stays; the switch is per client and off by default. The owner lifted
+// the synthetic-only restriction the same day: a real record is sent only with
+// that client's own signed opt-in, and a synthetic opt-in never opens one.
 // Every refusal is paired with the same call going through, and no test here
 // reaches a network: the provider's fetch is a recorder.
 const test = require("node:test");
@@ -126,7 +127,7 @@ test("nothing is sent automatically: only an explicit request reaches the provid
   assert.equal(w.calls.length, 1);
 });
 
-test("no client content is sent: a record with any real reference is refused even when opted in", async () => {
+test("a real client's record is sent only with that client's signed opt-in, under counsel's standard", async () => {
   const counsel = "COUNSEL-STANDARD-EXAMPLE";
   const accounts = new StaffDirectory([
     { ...enrolled("real-receiver", "carbon-fit", ["INTAKE_RECEIVER"], "real-receiver-token-00001"), screening: { standard: counsel, ref: "screening-record-1" } },
@@ -134,22 +135,50 @@ test("no client content is sent: a record with any real reference is refused eve
     { ...enrolled("real-steward", "carbon-fit", ["DATA_STEWARD"], "real-steward-token-000001"), screening: { standard: counsel, ref: "screening-record-3" } },
   ]);
   const who = (token) => principalFor(accounts, token);
+  const receiver = () => who("real-receiver-token-00001");
+  const reviewer = () => who("real-reviewer-token-00001");
+  const steward = () => who("real-steward-token-000001");
   const w = world({ screeningStandard: counsel });
-  const cases = [
-    [scopingBasis({ nda: "NDA-2026-0042" }), "synthetic-ec-0001", "synthetic-opt-in-0001"],
-    [scopingBasis({ nda: "synthetic-nda-0001" }), "EC-DETERMINATION-17", "synthetic-opt-in-0001"],
-    [scopingBasis({ nda: "synthetic-nda-0001" }), "synthetic-ec-0001", "OPT-IN-SIGNED-2026-0001"],
-  ];
-  for (const [index, [basis, ec, ref]] of cases.entries()) {
-    const receipt = await w.store.accept(raw(), "model-real-" + index, who("real-receiver-token-00001"), basis, mailed(), ec);
-    w.store.recordModelOptIn(receipt.inquiry_id, optIn(ref), who("real-steward-token-000001"));
-    await assert.rejects(w.store.modelAssist(receipt.inquiry_id, ASK, who("real-reviewer-token-00001"), w.provider), /limited to synthetic records/);
+  const real = await w.store.accept(raw(), "model-real-1", receiver(), scopingBasis({ nda: "NDA-2026-0042" }), mailed(), "EC-DETERMINATION-17");
+  // Off by default for a real record too.
+  await assert.rejects(w.store.modelAssist(real.inquiry_id, ASK, reviewer(), w.provider), /switch is off/);
+  // A synthetic opt-in cannot open a real record, whichever reference is real.
+  for (const [index, [basis, ec]] of [
+    [scopingBasis({ nda: "NDA-2026-0042" }), "synthetic-ec-0001"],
+    [scopingBasis({ nda: "synthetic-nda-0001" }), "EC-DETERMINATION-17"],
+  ].entries()) {
+    const mixed = await w.store.accept(raw(), "model-mixed-" + index, receiver(), basis, mailed(), ec);
+    assert.throws(() => w.store.recordModelOptIn(mixed.inquiry_id, optIn("synthetic-opt-in-0001"), steward()), /synthetic opt-in cannot open a real client's record/);
   }
+  assert.throws(() => w.store.recordModelOptIn(real.inquiry_id, optIn("synthetic-opt-in-0001"), steward()), /synthetic opt-in cannot open/);
   assert.equal(w.calls.length, 0);
-  // Specimen: under the same counsel standard, an all-synthetic record goes through.
-  const synthetic = await w.store.accept(raw(), "model-real-s", who("real-receiver-token-00001"), scoping(), mailed(), "synthetic-ec-0001");
-  w.store.recordModelOptIn(synthetic.inquiry_id, optIn(), who("real-steward-token-000001"));
-  await w.store.modelAssist(synthetic.inquiry_id, ASK, who("real-reviewer-token-00001"), w.provider);
+  // Specimen: the client's signed opt-in opens the same real record.
+  w.store.recordModelOptIn(real.inquiry_id, optIn("OPT-IN-SIGNED-2026-0001"), steward());
+  await w.store.modelAssist(real.inquiry_id, ASK, reviewer(), w.provider);
+  assert.equal(w.calls.length, 1);
+  const [release] = w.store.releases(steward(), { inquiryId: real.inquiry_id });
+  assert.equal(release.opt_in_ref, "OPT-IN-SIGNED-2026-0001");
+});
+
+test("under the synthetic development standard a real record stays unreachable, opt-in or not", async () => {
+  const { SYNTHETIC_STANDARD_PREFIX } = require("../tools/team_intake_store.cjs");
+  const standard = SYNTHETIC_STANDARD_PREFIX + "2026-09";
+  const screened = (account) => ({ ...account, screening: { standard, ref: "synthetic-screening-" + account.principal } });
+  const accounts = new StaffDirectory([
+    screened(enrolled("dev-receiver", "carbon-fit", ["INTAKE_RECEIVER"], "dev-receiver-token-000001")),
+    screened(enrolled("dev-reviewer", "carbon-fit", ["TEAM_REVIEWER"], "dev-reviewer-token-000001")),
+    screened(enrolled("dev-steward", "carbon-fit", ["DATA_STEWARD"], "dev-steward-token-0000001")),
+  ]);
+  const who = (token) => principalFor(accounts, token);
+  const w = world({ screeningStandard: standard });
+  const real = await w.store.accept(raw(), "model-dev-1", who("dev-receiver-token-000001"), scopingBasis({ nda: "NDA-2026-0042" }), mailed(), "EC-DETERMINATION-17");
+  w.store.recordModelOptIn(real.inquiry_id, optIn("OPT-IN-SIGNED-2026-0001"), who("dev-steward-token-0000001"));
+  await assert.rejects(w.store.modelAssist(real.inquiry_id, ASK, who("dev-reviewer-token-000001"), w.provider), /synthetic records only/);
+  assert.equal(w.calls.length, 0);
+  // Specimen: a synthetic record under the same standard is sent.
+  const synthetic = await w.store.accept(raw(), "model-dev-2", who("dev-receiver-token-000001"), scoping(), mailed(), "synthetic-ec-0001");
+  w.store.recordModelOptIn(synthetic.inquiry_id, optIn(), who("dev-steward-token-0000001"));
+  await w.store.modelAssist(synthetic.inquiry_id, ASK, who("dev-reviewer-token-000001"), w.provider);
   assert.equal(w.calls.length, 1);
 });
 

@@ -19,7 +19,7 @@
     "GOAL-WORKBENCH-10"
   ],
   "repository_base": "3681f7fb10be0c6e278f53d59ff9b022099ef12d",
-  "integration_revision_at_packaging": "cb5af86d0c57c6ce454b2cbb09e25f245103e98d",
+  "integration_revision_at_packaging": "69a4441b150123f4b9dc0fb9aca8738716db1bb6",
   "integration_revision_note": "The checksum manifest describes exact packaged bytes. A commit cannot contain its own digest; final PR/head identity is reported by delivery.",
   "pinned_research_revision": "ca904dfee93d3574df4e56b99981a6ed3b138e80",
   "accepted_research_head": "0a5690270dc449ea19c941280203987d37db5283",
@@ -195,8 +195,8 @@
       "sha256": "5e56ffa28a57a1672a0faf9a0ac9ded1ff20152d051c49c27c8fddb5887040e7"
     },
     "PRIVATE_SERVICE_RUNBOOK.md": {
-      "bytes": 16862,
-      "sha256": "4074e9c4f6b988164afb14d77f1d8fca76315ed8984e0e95f3aede016198c29c"
+      "bytes": 17140,
+      "sha256": "ea2de525f3a962eb8d3d26da214d9b462e13def54677134f5126c393875bc1d4"
     },
     "README.md": {
       "bytes": 27942,
@@ -235,8 +235,8 @@
       "sha256": "991851eb61f8f0e52669444930af445d301df07efb6d138bd854c700cd9aff35"
     },
     "data/client_model_provider_schedule.json": {
-      "bytes": 2227,
-      "sha256": "600973b5638ffc245bd987c91a4797a68ba82a9fed4d3ca0d52883d2a135e9ce"
+      "bytes": 2309,
+      "sha256": "3623a4f9c453d52e9f46db5b1070e180833bedd32329e4fe85785e9ec7ae04a9"
     },
     "data/cpes_study_v1.json": {
       "bytes": 255521,
@@ -871,8 +871,8 @@
       "sha256": "59362338f4f3fab033b1ea7e5e0c0c39751552279b9568ddfef46504284885d2"
     },
     "tests/live_model_provider_rehearsal.cjs": {
-      "bytes": 4418,
-      "sha256": "08bc2026ab0766366625d42edc6eac181a83e35bd881696b1f756c391f26e4d8"
+      "bytes": 4371,
+      "sha256": "679a3448835d7ea34a21e047d06ec5d1813481639190079685034cd52646b7c2"
     },
     "tests/preview_atlas.png": {
       "bytes": 268786,
@@ -995,8 +995,8 @@
       "sha256": "970a011262d9cfed6e8f04e4953b93a24ad9003cdcbcf769f60af48571cad587"
     },
     "tests/test_team_model_provider.cjs": {
-      "bytes": 17838,
-      "sha256": "e4d9eaa36513fa304e026d36ca9b7eebf0b3a721137b81fbf71f72ac8cd41cfa"
+      "bytes": 20024,
+      "sha256": "a17552280d0013858b1f87e5764403d3397adaa298ce3f927b341e16176caa0b"
     },
     "tests/test_team_record_basis.cjs": {
       "bytes": 9391,
@@ -1127,8 +1127,8 @@
       "sha256": "79d9ed90ad89404af38b3ece32411fd9076e07e978bf2d35462281403c67028b"
     },
     "tools/team_intake_store.cjs": {
-      "bytes": 77798,
-      "sha256": "7e2dfc57fe894bf4b0d29fe71bb844517f882fa79b75a6b9a34773ca171b6b5b"
+      "bytes": 78092,
+      "sha256": "2ff706c010f1fe92740fbccb56d83b7a86831219955826cb967f76d19ac85f7f"
     },
     "tools/team_model_provider.cjs": {
       "bytes": 8752,
