@@ -20,8 +20,8 @@ WEB-QA-07-D1/D2), budget and ceilings, activation, inquiry collection
 
 | Identity | Value |
 | --- | --- |
-| Bundle identity | `2d575c0acaca498307b2e5c709dc27b5a8bbbfad4d498d6133256857f43988d1` |
-| Changed static path | `ask-carbon/ask-carbon.js` → `62ba26ce…` (101/102 identical to live on both hostnames, 2026-09-26T16:39Z) |
+| Bundle identity | `2fe8eba27fda34610555f49e65f1331d90ee1c3f517b8a729098137be2afb5cf` |
+| Changed static paths | `ask-carbon/ask-carbon.js` → `62ba26ce…`; `ask-carbon/pilot-designer.html` → `4c9f3916…` (client-intake #373). 100/102 identical to live on both hostnames, 2026-09-26T16:55Z |
 | Integrated homepage | `b1e8e7cd…` (unchanged) |
 | Worker inputs | `PUBLIC_RELEASE_CANDIDATE.json` → `worker.source_sha256` |
 | Rollback targets | `carbonwebsite` `b694b20f…` (content-identity inference); `ask-carbon-public`: capture at deploy |
@@ -32,11 +32,7 @@ its first real exercise. It fails closed (typed error, cost settled or held
 unresolved) on any response shape it does not expect. The provider's privacy
 and confidential-compute properties are Chutes' own statements.
 
-**Blocking before deploy, owned by the client-intake lane:** the Pilot
-Designer page still names OpenAI in its AI disclosure and export record. The
-exact paths are in `PUBLIC_RELEASE_CANDIDATE.json`. After that lane's change
-the bundle is rebuilt, its identity changes, and approval must attach to the
-rebuilt identity.
+**Pilot Designer disclosure:** resolved by client-intake PR #373 (merged 2026-09-26T16:48Z), which now names Chutes; it ships in this bundle and guidance stays opt-in.
 
 **To record on approval:** approval basis
 `OWNER_PUBLICATION_APPROVAL_2026_09_26_WEB_QA_09_D1` on the release record and

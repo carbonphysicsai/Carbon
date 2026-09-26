@@ -44,10 +44,10 @@ independently audited the attestation chain, which is why the notice says
 "Chutes states".
 
 **What the notice deliberately does not say.** It does not repeat the Pilot
-Designer's own disclosure: that page carries its own notice, owned by the
-client-intake lane, and it must name the same provider before this candidate
-is published (see `PUBLIC_RELEASE_CANDIDATE.json`,
-`required_before_production_mutation`).
+Designer's own disclosure. That page carries its own notice, owned by the
+client-intake lane, and since client-intake PR #373 (2026-09-26) it names the
+same provider and model under notice version
+`carbon.ask-guidance.notice.v2-2026-09-26`.
 
 ## Processing and retention
 

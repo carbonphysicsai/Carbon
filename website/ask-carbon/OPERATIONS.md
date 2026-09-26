@@ -291,10 +291,10 @@ Production needs a separate exact owner authorization after the staging report:
 > `"$WRANGLER" rollback 65fd41de-7ab6-4b0b-b138-b956a5917dd6 --name carbonwebsite`.
 
 > **Candidate 2026-09-26.1: Worker and static together.** Switches
-> `ask-carbon-public` to the Chutes profile and changes one shipped static
-> path (`ask-carbon/ask-carbon.js`). The Worker embeds its knowledge at build
-> time, so both move together. Not deployable until the owner's approval and
-> the Pilot Designer disclosure update are recorded (see
+> `ask-carbon-public` to the Chutes profile and changes two shipped static
+> paths (`ask-carbon/ask-carbon.js`, `ask-carbon/pilot-designer.html`). The
+> Worker embeds its knowledge at build time, so both move together. Not
+> deployable until the owner's approval is recorded (see
 > `required_before_production_mutation`). Then, from the approved merge
 > commit:
 >
