@@ -235,13 +235,16 @@ async def probe(endpoint, genesis_hash):
 def main(argv=None):
     import argparse
     import asyncio
+    from pathlib import Path
 
     from carbon.development_testnet.operator import load_config
 
     parser = argparse.ArgumentParser(prog="python -m carbon.chain.runtime_probe")
-    parser.add_argument("--config", required=True, help="the operator config")
+    parser.add_argument(
+        "--config", type=Path, required=True, help="the operator config"
+    )
     args = parser.parse_args(argv)
-    config = load_config(args.config)
+    config = load_config(args.config.absolute())
     report = asyncio.run(probe(config.endpoint, config.genesis_hash))
     report["operator_expected_runtime_spec"] = config.expected_runtime_spec
     print(json.dumps(report, sort_keys=True, indent=2))
