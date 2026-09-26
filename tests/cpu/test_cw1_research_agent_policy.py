@@ -172,9 +172,20 @@ def test_unknown_policy_and_changed_plan_fail_before_provider(tmp_path):
 
 
 def test_clarification_cannot_bypass_context_budget(tmp_path, monkeypatch):
-    from carbon.development_session import research_loop
+    import dataclasses
+    from types import SimpleNamespace
 
-    monkeypatch.setattr(research_loop, "MAX_INPUT_TOKENS", 4096)
-    result = run(ledger(tmp_path), lambda _: pytest.fail("over-budget dispatch"))
+    from carbon.development_session.model_provider import DEFAULT_SELECTION
+
+    # A stand-in with a ceiling below any valid selection's; it never
+    # reaches a transport, which is the point.
+    tiny = SimpleNamespace(
+        model_id=DEFAULT_SELECTION.model_id,
+        settings=dataclasses.replace(DEFAULT_SELECTION.settings, max_input_tokens=4096),
+        is_historical_default=True,
+    )
+    result = run(
+        ledger(tmp_path), lambda _: pytest.fail("over-budget dispatch"), provider=tiny
+    )
     assert "context admission" in result["reason"]
     assert result["accounting"]["used"]["provider_attempts"] == 0

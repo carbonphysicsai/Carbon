@@ -9,18 +9,23 @@ from __future__ import annotations
 import asyncio
 import json
 import time
-import urllib.request
 from pathlib import Path
 
 from carbon.mcp import McpTool
 
 from .data import write_once
+from .model_provider import (
+    MAX_INPUT_TOKENS,
+    MAX_OUTPUT_TOKENS,
+    MODEL,
+    ProviderTransport,
+)
 from .profile import canonical, digest, profile_digest
 
-MODEL = "gpt-5-mini-2025-08-07"
+# The legacy Burgers session's own call and spend caps. The model id and token
+# ceilings are the registered provider's (`model_provider`), re-exported here
+# under the names this session has always used.
 MAX_CALLS = 12
-MAX_INPUT_TOKENS = 65536
-MAX_OUTPUT_TOKENS = 2048
 INPUT_USD_PER_MILLION = 0.25
 OUTPUT_USD_PER_MILLION = 2.0
 MAX_CALL_USD = 0.02048
@@ -163,38 +168,13 @@ def check_authority(path: Path, *, now: float, run_proposal=None):
     return authority
 
 
-class ResponsesTransport:
-    def __init__(self, credential_file: Path):
-        self.credential_file = credential_file
+class ResponsesTransport(ProviderTransport):
+    """The pinned OpenAI Responses selection, under its historical name.
 
-    def __call__(self, request: dict[str, object]):
-        path = self.credential_file
-        if path.is_symlink() or not path.is_file() or path.stat().st_size > 1024:
-            raise ValueError("operator API credential file required")
-        key = path.read_text().strip()
-        if not key or "\n" in key or "\r" in key:
-            raise ValueError("invalid API credential file")
-        outgoing = urllib.request.Request(
-            "https://api.openai.com/v1/responses",
-            data=canonical(request),
-            headers={
-                "Authorization": "Bearer " + key,
-                "Content-Type": "application/json",
-            },
-            method="POST",
-        )
-
-        # No retry, redirect or provider error body is propagated to the miner.
-        class NoRedirect(urllib.request.HTTPRedirectHandler):
-            def redirect_request(self, req, fp, code, msg, headers, newurl):
-                return None
-
-        opener = urllib.request.build_opener(NoRedirect())
-        with opener.open(outgoing, timeout=120) as response:
-            payload = response.read(2 * 1024**2 + 1)
-        if len(payload) > 2 * 1024**2:
-            raise ValueError("provider response exceeds bound")
-        return json.loads(payload)
+    No retry, redirect or provider error body is propagated to the miner; a
+    rejection surfaces as a typed `ProviderHTTPError` carrying status and code
+    only.
+    """
 
 
 async def run(
