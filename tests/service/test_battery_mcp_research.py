@@ -72,6 +72,13 @@ EVIDENCE = REPOSITORY / "docs/development/evidence/exam-design-2026-09-24"
 BATTERY = registry.BATTERY_CHALLENGE
 
 
+def _battery_campaign():
+    """The battery campaign, resolved through the registry as a launch does."""
+    from carbon.challenge_registry.campaigns import campaign_for
+
+    return campaign_for({"id": CHALLENGE.challenge_id, "version": CHALLENGE.version})
+
+
 def strategy(backbone, **parameters):
     return {
         "schema_version": "1.0",
@@ -393,6 +400,7 @@ def test_an_agent_researches_and_submits_battery_through_mcp(
                 agent="none",
                 manifest=manifest,
                 challenge=CHALLENGE,
+                campaign=_battery_campaign(),
                 args=SimpleNamespace(),
                 sdk=adapter._sdk,
             )
@@ -612,6 +620,7 @@ def test_carbons_agent_researches_battery_through_the_same_path(
         agent="autonomous",
         manifest=manifest,
         challenge=CHALLENGE,
+        campaign=_battery_campaign(),
         args=SimpleNamespace(api_key_file=None, battery_validator=str(config)),
         sdk=adapter._sdk,
         grant=None,
