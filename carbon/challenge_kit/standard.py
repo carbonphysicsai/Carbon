@@ -22,7 +22,6 @@ sandbox (invariants 1, 2 and 12; OWNER-CHALLENGE-KIT-01).
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Union
 
 #: The five things the owner named, made concrete. Each Challenge must cover
 #: every one.
@@ -67,7 +66,7 @@ class Gap:
     next_step: str
 
 
-Status = Union[Provided, Gap]
+Status = Provided | Gap
 
 REGISTRY_EVIDENCE = "carbon.reconstruction.capability_registry:public_registry"
 

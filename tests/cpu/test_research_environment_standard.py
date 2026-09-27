@@ -48,5 +48,26 @@ def test_provided_evidence_imports_and_gaps_are_named(challenge, provision, stat
 
 def test_open_gaps_are_reported():
     report = standard.gaps()
-    for challenge, table in report.items():
-        assert table and all(isinstance(g, standard.Gap) for g in table.values())
+    declared = {
+        (challenge, provision)
+        for challenge, provision, status in _entries()
+        if isinstance(status, standard.Gap)
+    }
+    reported = {
+        (challenge, provision)
+        for challenge, table in report.items()
+        for provision in table
+    }
+    assert reported == declared
+    assert all(table for table in report.values())
+
+
+def test_the_standard_stays_out_of_the_miner_image():
+    """The standard is validator-side policy, not kit code: it must never
+    enter the challenge kit's import closure shipped to miners."""
+    from pathlib import Path
+
+    from carbon.development_session.research_image import challenge_kit_files
+
+    repo = Path(__file__).resolve().parents[2]
+    assert "carbon/challenge_kit/standard.py" not in set(challenge_kit_files(repo))
