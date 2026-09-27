@@ -39,6 +39,40 @@ Regenerate it with `python -m carbon.challenge_readiness table`.
 - **An unknown cost stays unknown.** Cold plate and motor have no measured
   cost at all.
 
+## Provenance: what in each record is evidence, and what is a placeholder
+
+Audited 2026-09-27. Every path a record cites resolves on `main`. The
+registry identity (`challenge_id`, `tracking`) is enforced by the validator.
+
+Kinds of field:
+- **Verified.** Recounted from raw files by the tests.
+- **Relayed.** Taken from an existing record, not rerun.
+- **Placeholder.** A declared unknown, or a proposal awaiting review.
+
+| Field | Battery | Cold plate | Motor | Photonics |
+|---|---|---|---|---|
+| Identity and tracking | verified against the registry | verified | verified | verified |
+| Decision, intended use | from code and campaign docs | proposal (#342) | proposal (#344) | proposal (#345) |
+| Buyer | hypothesis | hypothesis | hypothesis | hypothesis |
+| Design variables, outputs, units | from `carbon/battery/domain.py` | proposal; the parameter list is not fixed | proposal; not fixed | proposal; not fixed |
+| Reference solver | PyBaMM 26.8.0.0 overlay, verified (truth-verify) | OpenFOAM v2512 candidate, verified on channel flow only (rung 1) | placeholder (none) | fdtdx, relayed; diagnostic only |
+| Licence | placeholder (not recorded) | GPL-3.0 as published; redistribution not reviewed | placeholder | placeholder |
+| Pilot outcomes | verified (recounted from `records.jsonl`) | none | none | verified (recounted) |
+| Costs | measured and relayed (reference, reconstruction, discarded); **estimated** (finalist, inference); unknown (startup, cleanup) | all unknown | all unknown | **estimated** (reference); the rest unknown |
+| Limits | proposed OD-2 DEVELOPMENT values; none approved | none declared | none declared | none declared |
+| Population | proposed; none approved | proposed | proposed | proposed |
+| Reviews | none approved; security IN_REVIEW, where OD-3 covers the testnet images only | none started | none started | none started |
+| Recommendation | PROCEED, on verified counts | none: no pilot has run | none | DEFER, relayed from RESULT section 9 and #345 |
+
+**Corrections made by this audit** (v1 to v2; v1 remains in git history):
+- **Battery finalist cost (USD 0.29).** `measured` → `estimated`. It is
+  composed from separately measured parts and was never measured as one run.
+- **Photonics reference cost (USD 0.36).** `measured` → `estimated`. It is
+  extrapolated from one measured run time of about 265 s.
+- **Cold-plate reference.** Now records the pinned OpenFOAM candidate and the
+  rung-1 channel-flow verification. Maturity stays `SCOPED`: a channel-flow
+  check is not a cold-plate pilot.
+
 ## Order of work
 
 Owner decision, 2026-09-26:
