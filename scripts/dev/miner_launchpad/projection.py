@@ -76,8 +76,9 @@ def project(row, root):
     if status["started_unix"] and manifest.get("elapsed_seconds") is not None:
         bounds.append(status["started_unix"] + manifest["elapsed_seconds"])
     value.update(
-        agent="carbon-autoresearch",
-        reasoning=manifest["provider"]["model"],
+        # A campaign with no agent calls no model: say so, never a default.
+        agent="manual" if manifest.get("agent") == "none" else "carbon-autoresearch",
+        reasoning=manifest["provider"].get("model"),
         compute="local-isolated-cpu",
         runtime_revision=manifest["implementation"]["revision"],
         images=manifest["images"],
@@ -162,6 +163,8 @@ def project(row, root):
                     ),
                 }
             )
+    from carbon.development_session.research_campaign import PRACTICE_PROVENANCES
+
     with ledger.db() as db:
         if db.execute(
             "SELECT 1 FROM sqlite_master WHERE name='research_results' AND type='table'"
@@ -173,7 +176,7 @@ def project(row, root):
                 if digest(body) != pin:
                     raise ValueError("research result changed")
                 result = json.loads(body)
-                if result.get("provenance") == "REAL_JAX_PUBLIC_PRACTICE":
+                if result.get("provenance") in PRACTICE_PROVENANCES:
                     value["experiments"].append(
                         {
                             "id": task,
@@ -182,6 +185,14 @@ def project(row, root):
                                 k: result[k]
                                 for k in (
                                     "recipe",
+                                    # A Challenge's own measured practice
+                                    # feedback, as recorded; absent is absent.
+                                    "challenge",
+                                    "backbone",
+                                    "recipe_digest",
+                                    "summary",
+                                    "fit",
+                                    "backend",
                                     "completed_steps",
                                     "worker_seconds",
                                     "diagnostics",

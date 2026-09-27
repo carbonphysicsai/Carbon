@@ -10084,6 +10084,19 @@ events:
       - "SYSTEM/BUSINESS-AUTHORITY"
     supersedes: null
     recorded_at: "2026-09-26T18:45:00Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "evidence"
+    event_id: "C-MLP-02-D1-BATTERY-OBSERVATION-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "A battery campaign's measured practice reaches observe on both doors. Observing a battery campaign with no agent raised KeyError, because the projection read a model the frozen plan does not have; and battery practice results were dropped because the projection knew only the Burgers provenance. The projection now names a manual campaign and no model, and projects every practice provenance with the Challenge's own recorded feedback (the exam's aggregate on public PRACTICE, fit statistics and the backend that ran), copying only what the practice recorded. A new service test runs one battery practice through the isolated research carrier in the trusted worker image, as every campaign door does, and asserts the carrier backend and a finite measured score; it runs in the C-03 service lane. Practice feedback is self-reported public PRACTICE, not an evaluation or official result."
+    primary_detail: "scripts/dev/miner_launchpad/projection.py"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "WAVE-C/C-W1-D4"
+    supersedes: null
+    recorded_at: "2026-09-27T01:59:25Z"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"
