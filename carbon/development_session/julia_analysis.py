@@ -186,7 +186,8 @@ def verify_julia_image(image, cli=None):
     if image.depot is not None and (
         labels.get(DEPOT_LABEL) != image.depot.depot_digest
         or labels.get(TREE_LABEL) != image.depot.tree_digest
-        or len(metadata.get("RootFS", {}).get("Layers", [])) != len(layers) + 1
+        # The depot copy and the one-directory chmod that restores its root.
+        or len(metadata.get("RootFS", {}).get("Layers", [])) != len(layers) + 2
     ):
         raise ValueError("authored Julia depot composition differs")
     return image
@@ -209,31 +210,45 @@ println(length(deps))
 """
 
 
+def _precompiled_arguments(image, name, *, hide_compiled=False):
+    """`docker run` arguments for PRECOMPILED_CHECK in one environment.
+
+    `hide_compiled` mounts an empty directory over the depot's compiled caches:
+    the specimen that shows the check fails when the caches are not there.
+    """
+    hidden = (
+        [f"--mount=type=tmpfs,destination={ANALYSIS_ROOT}/depot/compiled"]
+        if hide_compiled
+        else []
+    )
+    return [
+        "run",
+        "--rm",
+        "--network=none",
+        "--read-only",
+        "--tmpfs=/tmp",
+        "--user=65532:65532",
+        *hidden,
+        f"--entrypoint={JULIA_ROOT}/bin/julia",
+        f"--env=JULIA_DEPOT_PATH=/tmp/julia-depot:{ANALYSIS_ROOT}/depot",
+        f"--env=JULIA_PROJECT={ANALYSIS_ROOT}/{name}",
+        f"--env=JULIA_LOAD_PATH={ANALYSIS_ROOT}/{name}:@stdlib",
+        "--env=JULIA_PKG_OFFLINE=true",
+        "--env=HOME=/tmp",
+        # The image's own TMPDIR is the worker's scratch, absent here.
+        "--env=TMPDIR=/tmp",
+        image,
+        "--startup-file=no",
+        "--history-file=no",
+        "--compiled-modules=existing",
+        "-e",
+        PRECOMPILED_CHECK,
+    ]
+
+
 def _check_precompiled(cli, image):
     for name in ENVIRONMENTS:
-        cli.run(
-            [
-                "run",
-                "--rm",
-                "--network=none",
-                "--read-only",
-                "--tmpfs=/tmp",
-                "--user=65532:65532",
-                f"--entrypoint={JULIA_ROOT}/bin/julia",
-                f"--env=JULIA_DEPOT_PATH=/tmp/julia-depot:{ANALYSIS_ROOT}/depot",
-                f"--env=JULIA_PROJECT={ANALYSIS_ROOT}/{name}",
-                f"--env=JULIA_LOAD_PATH={ANALYSIS_ROOT}/{name}:@stdlib",
-                "--env=JULIA_PKG_OFFLINE=true",
-                "--env=HOME=/tmp",
-                image,
-                "--startup-file=no",
-                "--history-file=no",
-                "--compiled-modules=existing",
-                "-e",
-                PRECOMPILED_CHECK,
-            ],
-            timeout=1800,
-        )
+        cli.run(_precompiled_arguments(image, name), timeout=1800)
 
 
 def build_julia_analysis_image(parent_manifest, root):
@@ -286,9 +301,16 @@ def build_julia_analysis_image(parent_manifest, root):
             raise ValueError("Julia analysis build tag changed")
     context = directory / "build-context"
     context.mkdir(mode=0o700, exist_ok=True)
+    # COPY of a directory copies its contents but creates the destination
+    # directory itself with default permissions, so the depot root arrives
+    # writable by its owner where the depot has it read-only. The one-directory
+    # chmod restores it; the tree check below requires the result to equal the
+    # depot exactly, root included.
     recipe = f"""FROM {depot_tag} AS depot
 FROM {tag}
 COPY --from=depot {ANALYSIS_ROOT} {ANALYSIS_ROOT}
+USER 0:0
+RUN chmod a-w {ANALYSIS_ROOT}
 LABEL {RUNTIME_LABEL}="{fingerprint}" \\
       {DEPOT_LABEL}="{depot.depot_digest}" \\
       {TREE_LABEL}="{depot.tree_digest}"

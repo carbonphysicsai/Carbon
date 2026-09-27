@@ -133,3 +133,41 @@ end
 """
     values = run(image, tmp_path, "kit-" + environment, source, environment)
     assert values["cases"] == 2
+
+
+def test_the_precompiled_check_bites(image):
+    """The build refuses a composed image whose packages would recompile.
+
+    Specimen: the same check on the same image, with only the depot's compiled
+    caches hidden, fails and names the packages - so its pass on the real image
+    means the caches are there, not that the check cannot fail.
+    """
+    import subprocess
+
+    from carbon.development_session.julia_analysis import (
+        ENVIRONMENTS,
+        _precompiled_arguments,
+    )
+
+    for name in ENVIRONMENTS:
+        real = subprocess.run(
+            ["docker", *_precompiled_arguments(image.image_id, name)],
+            capture_output=True,
+            text=True,
+            timeout=1800,
+            check=False,
+        )
+        assert real.returncode == 0, real.stderr[-500:]
+        assert int(real.stdout.strip()) > 0
+    hidden = subprocess.run(
+        [
+            "docker",
+            *_precompiled_arguments(image.image_id, "current", hide_compiled=True),
+        ],
+        capture_output=True,
+        text=True,
+        timeout=1800,
+        check=False,
+    )
+    assert hidden.returncode == 3, hidden.stderr[-500:]
+    assert hidden.stderr.strip().splitlines()[-1].count(",") > 0
