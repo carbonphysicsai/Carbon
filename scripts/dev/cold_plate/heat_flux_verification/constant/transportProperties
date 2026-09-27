@@ -1,0 +1,13 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      transportProperties;
+}
+
+transportModel  Newtonian;
+nu              1e-06;  // m^2/s
+// Thermal diffusivity for scalarTransportFoam. DT = nu gives Pr = 1, a
+// verification choice: the fully developed Nusselt number does not depend on Pr.
+DT              1e-06;

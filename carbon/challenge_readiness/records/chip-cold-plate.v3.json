@@ -120,13 +120,16 @@
     "basis": "No reference pilot has run.",
     "decision": "NONE"
   },
-  "record_version": 1,
+  "record_version": 3,
   "reference": {
-    "applicability": "Candidate: a pinned OpenFOAM conjugate heat-transfer implementation, to be assessed (#342). Nothing is pinned or run; whether the envelope is laminar is not yet confirmed.",
-    "evidence": [],
-    "licence": null,
+    "applicability": "Candidate only. The pinned image reproduces laminar parallel-plate flow (rung 1) and the uniform-flux fully developed Nusselt number and energy balance (rung 2), both at second order, under scripts/dev/cold_plate/. No conjugate heat-transfer case, cold-plate geometry, material or coolant has been run; whether the envelope is laminar is not yet confirmed.",
+    "evidence": [
+      "scripts/dev/cold_plate/channel_verification/README.md",
+      "scripts/dev/cold_plate/heat_flux_verification/README.md"
+    ],
+    "licence": "GPL-3.0 as published upstream; run on the operator host only, redistribution not reviewed",
     "model": null,
-    "solver": null
+    "solver": "OpenFOAM v2512, opencfd/openfoam-default@sha256:33fb575aa9980d2bc42fd58c75ae698c489293ba30c991380fe3f899c622f319 (candidate)"
   },
   "reviews": {
     "customer": {
@@ -159,8 +162,8 @@
   "tracking": "carbonphysicsai/Carbon#342",
   "unresolved": [
     "Units, coordinate conventions, geometry validity and physical ranges are not yet specified for domain review.",
-    "Solver identity, version, licence and redistribution rights are not pinned.",
     "Whether the proposed envelope supports laminar flow is unconfirmed.",
-    "#341 proposes 8 ordinary and 4 difficult valid cases with paired refinement of at least 4 as the first engineering pilot; it needs a price and owner approval before it runs."
+    "#341 proposes 8 ordinary and 4 difficult valid cases with paired refinement of at least 4 as the first engineering pilot; it needs a price and owner approval before it runs.",
+    "Solver candidate pinned by digest; its conjugate heat-transfer path (chtMultiRegionFoam), the model, material and coolant identity, and redistribution rights are not yet established."
   ]
 }
