@@ -55,7 +55,7 @@ Kinds of field:
 | Decision, intended use | from code and campaign docs | proposal (#342) | proposal (#344) | proposal (#345) |
 | Buyer | hypothesis | hypothesis | hypothesis | hypothesis |
 | Design variables, outputs, units | from `carbon/battery/domain.py` | proposal; the parameter list is not fixed | proposal; not fixed | proposal; not fixed |
-| Reference solver | PyBaMM 26.8.0.0 overlay, verified (truth-verify) | OpenFOAM v2512 candidate, verified on channel flow only (rung 1) | placeholder (none) | fdtdx, relayed; diagnostic only |
+| Reference solver | PyBaMM 26.8.0.0 overlay, verified (truth-verify) | OpenFOAM v2512 candidate, verified on channel flow and uniform-flux heat transfer only (rungs 1 and 2) | placeholder (none) | fdtdx, relayed; diagnostic only |
 | Licence | placeholder (not recorded) | GPL-3.0 as published; redistribution not reviewed | placeholder | placeholder |
 | Pilot outcomes | verified (recounted from `records.jsonl`) | none | none | verified (recounted) |
 | Costs | measured and relayed (reference, reconstruction, discarded); **estimated** (finalist, inference); unknown (startup, cleanup) | all unknown | all unknown | **estimated** (reference); the rest unknown |
