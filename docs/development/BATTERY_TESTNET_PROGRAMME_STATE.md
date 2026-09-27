@@ -11,7 +11,7 @@ should depend on a conversation's memory.
 
 A row is done only when its evidence is merged or recorded here.
 
-**Last updated:** 2026-09-25, with the EV1 PR (BATTERY-EV1).
+**Last updated:** 2026-09-27, with the OWNER-RESEARCH-ENVIRONMENT-01 PR.
 
 ## Authority in force
 
@@ -41,6 +41,7 @@ All of these are in `.agent/DECISIONS.md`.
 | 12 | A real model-driven battery agent campaign (paid, within the OD-5 provider ceiling) | host session | provider key; run plan in the handoff | not run |
 | 14 | EV2: a frozen contract with a wider design set, so every scenario, verification included, has feasible protocols (EV1 finding 1) | Claude session | owner go-ahead | proposed (EV1 doc §8) |
 | 15 | A decision-aware robustness component, tested against the boundary-optimist control (EV1 finding 2) | Claude session | 14 | proposed |
+| 16 | Battery challenge kit (`carbon/challenge_kit/battery.py`): the pinned PyBaMM overlay and the public population in the miner research image, with miner seeds only; closes the battery `generate` gap (OWNER-RESEARCH-ENVIRONMENT-01) | Claude session | — | open gap, declared in `challenge_kit/standard.py` |
 | 13 | Charging time to a target SOC (reference v2, surrogate output, re-solved references) | Claude session | owner go-ahead | designed only (EV1 doc §7) |
 
 ## Budget (OD-5)
