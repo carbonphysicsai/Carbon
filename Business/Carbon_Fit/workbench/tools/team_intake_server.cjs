@@ -11,6 +11,7 @@ const { basisFromHeaders } = require("./team_record_basis.cjs");
 const { smtpConfigFrom, smtpTransport } = require("./team_smtp_transport.cjs");
 const { AccessControl, StaffDirectory } = require("./team_staff_directory.cjs");
 const { scheduledProviderFrom, signedOptIn } = require("./team_model_provider.cjs");
+const { mailboxCapacity } = require("./team_mailbox_capacity.cjs");
 
 function loadUsers(usersPath) {
   return StaffDirectory.load(usersPath);
@@ -48,7 +49,7 @@ function send(response, status, value) {
   response.end(JSON.stringify(value) + "\n");
 }
 
-function createIntakeServer({ store, users, clock, limits, transport = null, modelProvider = null }) {
+function createIntakeServer({ store, users, clock, limits, transport = null, modelProvider = null, mailbox = null }) {
   // E9: a staff credential alone reaches nothing. It opens a session together
   // with a current second-factor code, and only a live session resolves to a
   // principal. Rate limiting and lockout are applied where that happens.
@@ -165,6 +166,14 @@ function createIntakeServer({ store, users, clock, limits, transport = null, mod
                 501
               : 502;
         return send(response, status, event);
+      }
+      // E6: whether the intake mailbox has room. The receiver who relays reads
+      // it before relaying; a full pool bounces mail to the client unseen.
+      if (request.method === "GET" && url.pathname === "/private/mailbox") {
+        if (!principal.roles.includes("INTAKE_RECEIVER"))
+          throw Object.assign(Error("Principal is not authorized for mailbox capacity"), { status: 403 });
+        const read = mailbox || (() => mailboxCapacity({ credentialFile: null }));
+        return send(response, 200, await read());
       }
       if (request.method === "GET" && url.pathname === "/private/capacity")
         return send(response, 200, store.capacity(principal));
@@ -336,7 +345,9 @@ function main() {
   // External model processing: a scheduled provider only when the operator
   // configured one. Its credential is read from its file at send time.
   const modelProvider = scheduledProviderFrom(process.env);
-  createIntakeServer({ store, users: loadUsers(usersPath), transport, modelProvider }).listen(
+  // E6: the mailbox reading, when the operator configured its credential.
+  const mailbox = () => mailboxCapacity({ credentialFile: process.env.CARBON_TEAM_MAILBOX_QUOTA_CREDENTIAL_FILE || null });
+  createIntakeServer({ store, users: loadUsers(usersPath), transport, modelProvider, mailbox }).listen(
     port,
     "127.0.0.1",
     () => {
