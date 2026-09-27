@@ -33,6 +33,16 @@ from carbon.scientific_tasks.workbench_host import (
     create_host_app,
     verify_private_build,
 )
+from carbon.scientific_tasks.workbench_host import studies_retired
+
+# Owner decision, 2026-09-27: with Burgers retired, the host refuses every
+# command by name, which tests/cpu/test_workbench_host_studies_retired.py pins.
+# This drives a working Burgers study, so it runs only while Burgers is not retired.
+BURGERS_RETIRED = pytest.mark.skipif(
+    studies_retired(),
+    reason="Burgers is retired; the Workbench host refuses by name "
+    "(tests/cpu/test_workbench_host_studies_retired.py)",
+)
 from carbon.scientific_tasks.workbench_http import create_workbench_app  # noqa: F401
 
 ORIGIN = "https://workbench.internal.example"
@@ -690,6 +700,7 @@ def operator_profile(service, tmp_path):
     return profile
 
 
+@BURGERS_RETIRED
 def test_operator_commands_install_list_and_revoke_the_real_registry(
     tmp_path, monkeypatch, capsys
 ):
@@ -761,6 +772,7 @@ def test_operator_commands_install_list_and_revoke_the_real_registry(
         composition.tasks.close()
 
 
+@BURGERS_RETIRED
 def test_operator_commands_reject_an_open_draft_and_report_without_secrets(
     tmp_path, monkeypatch, capsys
 ):

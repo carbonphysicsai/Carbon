@@ -57,6 +57,16 @@ from carbon.development_session.research_service import make_research_service
 from carbon.miner_mcp import standard_cli
 from carbon.reconstruction.worker.docker_runtime import load_image_identity
 from carbon.scientific_tasks.workbench import REQUEST, TEMPLATE, wire_digest
+from carbon.scientific_tasks.workbench_host import studies_retired
+
+# Owner decision, 2026-09-27: with Burgers retired, the host refuses every
+# command by name, which tests/cpu/test_workbench_host_studies_retired.py pins.
+# This module attaches a Burgers campaign, so it runs only while Burgers is not retired.
+pytestmark = pytest.mark.skipif(
+    studies_retired(),
+    reason="Burgers is retired; the Workbench host refuses by name "
+    "(tests/cpu/test_workbench_host_studies_retired.py)",
+)
 
 HOST = [sys.executable, "-m", "carbon.scientific_tasks.workbench_host"]
 BUILD = REPOSITORY / "Business/Carbon_Fit/workbench/tools/build.py"

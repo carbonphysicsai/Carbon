@@ -16165,3 +16165,22 @@ all yet."
    - Rate limiting and lockout are built, as E9.
 
 See `.agent/tickets/GOAL-WORKBENCH-15_client_data_engineering.md`.
+
+## 2026-09-27 — OWNER-WORKBENCH-STUDIES-RETIRED-01: Workbench studies go dark when Burgers is retired
+
+**Authority.** The owner, in the client-intake session on 2026-09-27, answering
+whether Workbench scientific studies should go dark with Burgers, stay on
+Burgers, or move to battery: "Studies go dark".
+
+1. **Launchpad's #366 retires Burgers from the research path.** Every Workbench
+   scientific study runs on the fixed public Burgers definition
+   (`carbon/scientific_tasks/workbench.py`, `TEMPLATE`), and no other admitted
+   Challenge hosts them. Battery does not admit the authored Julia they use.
+2. **When the registry marks Burgers `RETIRED`, the Workbench host refuses
+   every command by name.** It does so before loading a profile or attaching a
+   campaign, and exits `3`. The registry decides; nothing restates its status.
+   Until then the host is unchanged.
+3. **No client is affected.** The host is the internal stage-1 host only. The
+   team receiver, E1–E9 and E8 are untouched.
+4. **Studies return** when an admitted Challenge hosts them. That needs a new
+   study adapter, which is not scheduled.
