@@ -109,7 +109,74 @@ def campaign_challenge(args):
     return campaign_challenge(args)
 
 
-def manifest_document(product, *, owner, implementation, images, selection=None):
+#: What Carbon's agent sees of the prior epoch's evaluation. FULL is the
+#: daemon's allow-listed outcome. SCORE_WITHHELD is the pre-registered control
+#: arm (docs/development/BATTERY_AGENT_CAMPAIGN_PREREGISTRATION.md section 2):
+#: the same agent at the same budget, seeing admissibility but no score.
+FEEDBACK_FULL, FEEDBACK_SCORE_WITHHELD = "FULL", "SCORE_WITHHELD"
+FEEDBACK_MODES = (FEEDBACK_FULL, FEEDBACK_SCORE_WITHHELD)
+
+#: The withheld view is an allow-list: a field added to the outcome later is
+#: withheld by default, never shown by accident.
+_WITHHELD_OUTCOME_FIELDS = (
+    "schema",
+    "submission_id",
+    "challenge",
+    "state",
+    "evidence",
+    "rule",
+    "qualification",
+    "reward",
+    "failure",
+    "recipe_digest",
+    "contract_digest",
+    "reconstruction",
+)
+_WITHHELD_SCREENING_FIELDS = ("eligible", "gates_failed")
+
+
+def feedback_mode(value):
+    """A frozen campaign's feedback mode; anything else is refused by name."""
+    if value not in FEEDBACK_MODES:
+        raise ValueError(f"unknown battery feedback mode: {value!r}")
+    return value
+
+
+def withheld_feedback(feedback):
+    """The prior epoch's feedback with every score-bearing value removed.
+
+    Kept: whether the submission was admitted and eligible, and the names of
+    any gates it failed. Removed: the pool score, the important-region score,
+    case counts, the pool version, nomination and finals.
+    """
+    outcome = feedback["outcome"]
+    shown = {k: outcome[k] for k in _WITHHELD_OUTCOME_FIELDS if k in outcome}
+    if isinstance(outcome.get("screening"), dict):
+        shown["screening"] = {
+            k: outcome["screening"][k]
+            for k in _WITHHELD_SCREENING_FIELDS
+            if k in outcome["screening"]
+        }
+    return {
+        "schema": feedback["schema"],
+        "epoch": feedback["epoch"],
+        "outcome": shown,
+        "official_eligible": feedback["official_eligible"],
+        "reward": feedback["reward"],
+        "feedback_mode": FEEDBACK_SCORE_WITHHELD,
+        "withheld": "scores, case counts, pool version, nomination and finals",
+    }
+
+
+def manifest_document(
+    product,
+    *,
+    owner,
+    implementation,
+    images,
+    selection=None,
+    feedback=FEEDBACK_FULL,
+):
     from carbon.development_session.research_ledger import VERSION
     from carbon.reconstruction.capability_registry import contract_digest
 
@@ -131,6 +198,7 @@ def manifest_document(product, *, owner, implementation, images, selection=None)
         "provider": provider_plan(product.agent, product.budget, selection),
         "images": images,
         "new_network_transactions": 0,
+        "feedback_mode": feedback_mode(feedback),
         **product.manifest_fields(),
     }
 
@@ -243,6 +311,7 @@ async def prepare_battery(args, *, ledger=None, campaign):
             implementation=implementation,
             images=runtime["images"],
             selection=selection,
+            feedback=getattr(args, "feedback_mode", FEEDBACK_FULL),
         )
         write_once(manifest_path, canonical(manifest))
     else:
@@ -489,6 +558,7 @@ def agent_observation(prepared, epoch, feedback):
     document = describe(CHALLENGE.challenge_id, CHALLENGE.version)
     unsupported = document.pop("unsupported")
     manifest = prepared.manifest
+    mode = feedback_mode(manifest.get("feedback_mode", FEEDBACK_FULL))
     return {
         "challenge": document,
         "unsupported_capabilities": {
@@ -498,7 +568,11 @@ def agent_observation(prepared, epoch, feedback):
         "scaffold_recipe": SCAFFOLD,
         "scaffold_basis": "An unexecuted template; it has no measured result.",
         "epoch": epoch,
-        "prior_permitted_evaluation_feedback": feedback,
+        "prior_permitted_evaluation_feedback": (
+            withheld_feedback(feedback)
+            if feedback is not None and mode == FEEDBACK_SCORE_WITHHELD
+            else feedback
+        ),
         "run_plan": manifest["provider"],
         "miner_budget": {
             key: manifest[key]
