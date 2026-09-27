@@ -132,6 +132,16 @@ const TRANSPORT_CHANNELS = ["MAIL_INTAKE", "DIRECT_HANDOVER"];
 const TRANSPORT_ARRIVALS = ["ENCRYPTED", "PLAINTEXT"];
 const TRANSPORT_STEPS = { PRESENT_IN_MAILBOX: ["MOVED_TO_TRASH", "PERMANENTLY_REMOVED"], MOVED_TO_TRASH: ["PERMANENTLY_REMOVED"], PERMANENTLY_REMOVED: [] };
 const TRASH_PURGE_DAYS = 30;
+// PERMANENTLY_REMOVED is the mailbox as its user sees it, not unrecoverable.
+// Google documents that "when the 30-day period after deleting ends, admins have
+// an additional 25 days to restore messages" (Workspace Admin Help, "Restore a
+// user's permanently deleted email", checked 2026-09-27). So the entry states
+// until when an administrator could still restore the copy. It takes the later
+// of two readings: 25 days after the first deletion's 30-day period, and 25
+// days after the purge itself. Its basis is the provider's documentation. It
+// has not been verified against the account.
+const ADMIN_RESTORE_DAYS = 25;
+const ADMIN_RESTORE_BASIS = "PROVIDER_DOCUMENTATION_NOT_VERIFIED_AGAINST_ACCOUNT";
 
 function transportAtRelay(headers = {}) {
   const channel = headers["x-carbon-intake-channel"];
@@ -1242,6 +1252,7 @@ class DurableIntakeStore {
     const next = clone(this.state);
     const record = next.inquiries[inquiryId];
     const now = new Date();
+    const day = 86_400_000;
     const entry = {
       seq: record.transport.history.length + 1,
       state,
@@ -1249,8 +1260,15 @@ class DurableIntakeStore {
       by: actor,
       basis: "RECEIVER_ATTESTATION",
       purge_expected_by:
-        state === "MOVED_TO_TRASH" ? new Date(now.getTime() + TRASH_PURGE_DAYS * 86_400_000).toISOString() : null,
+        state === "MOVED_TO_TRASH" ? new Date(now.getTime() + TRASH_PURGE_DAYS * day).toISOString() : null,
     };
+    if (state === "PERMANENTLY_REMOVED") {
+      const trashed = record.transport.history.find((item) => item.state === "MOVED_TO_TRASH");
+      const firstDeletion = trashed ? Date.parse(trashed.at) : now.getTime();
+      const until = Math.max(firstDeletion + (TRASH_PURGE_DAYS + ADMIN_RESTORE_DAYS) * day, now.getTime() + ADMIN_RESTORE_DAYS * day);
+      entry.admin_restore_possible_until = new Date(until).toISOString();
+      entry.admin_restore_basis = ADMIN_RESTORE_BASIS;
+    }
     record.transport.copy_state = state;
     record.transport.history.push(entry);
     this.persist(next);
@@ -1609,6 +1627,7 @@ module.exports = {
   retentionValuesFrom,
   transportAtRelay,
   TRASH_PURGE_DAYS,
+  ADMIN_RESTORE_DAYS,
   SEALED_STORE_VERSION,
   DEFAULT_WRITE_CEILING_BYTES,
   READ_LIMIT_BYTES,
