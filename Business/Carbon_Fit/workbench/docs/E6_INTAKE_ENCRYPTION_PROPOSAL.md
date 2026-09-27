@@ -75,7 +75,9 @@ The friction, honestly:
   relayed, then destroy it. Because each package names its key, a package that
   arrives late under the old key is recognised, not mis-decrypted.
 - **Review:** key management for this key joins the E1 archive keys in the
-  security review's scope, and is handled the same way, not separately.
+  security review's scope, and is handled the same way, not separately. The
+  review is postponed until the first real client engagement
+  (`OWNER-CLIENT-SECURITY-REVIEW-01`); this is its scope when it arms.
 
 ## (c) When a client sends plaintext anyway
 

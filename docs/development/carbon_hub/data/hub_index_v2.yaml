@@ -10084,6 +10084,18 @@ events:
       - "SYSTEM/BUSINESS-AUTHORITY"
     supersedes: null
     recorded_at: "2026-09-26T18:45:00Z"
+  -
+    map_ref: "SYSTEM/BUSINESS-AUTHORITY"
+    event_type: "evidence"
+    event_id: "GOAL-WORKBENCH-15-SECURITY-REVIEW-01"
+    owner_lane: "business_authority"
+    status: "implemented"
+    summary: "Records the owner's postponement of the client-data security review (OWNER-CLIENT-SECURITY-REVIEW-01): postponed, not cancelled. All nine client-data changes E1-E9 are delivered, so its engineering precondition (E9) is met; the remaining gate was a spend figure the owner had not supplied. The gate is now an event: the review is required before the first real client record is handled and arms on the first real client engagement (a signed client agreement, a recorded signed opt-in, or any instruction to receive real client material). Until then it blocks nothing, and the spend figure returns as an owner item only when it arms. AGENTS.md section 13 is unwaived, every E1-E9 control is unchanged, and the review's scope stays written. Two stale GOAL-WORKBENCH-12 rows are corrected: counsel money is resolved (counsel approved E7), and rate limiting and lockout are built (E9, #315). No spend, deployment, collection or control change is authorized."
+    primary_detail: ".agent/tickets/GOAL-WORKBENCH-15_client_data_engineering.md"
+    affects:
+      - "SYSTEM/BUSINESS-AUTHORITY"
+    supersedes: null
+    recorded_at: "2026-09-27T01:50:00Z"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"

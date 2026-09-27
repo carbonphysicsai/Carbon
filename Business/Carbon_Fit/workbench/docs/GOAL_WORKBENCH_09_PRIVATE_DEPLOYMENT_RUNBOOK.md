@@ -221,7 +221,9 @@ reached, and records `archive_key: DESTROYED`: both statements are true.
 A store written before E1 is sealed when the receiver starts. Copies of it made
 before that are plaintext and stay plaintext.
 
-**For the security review, not settled here:**
+**For the security review, not settled here.** The review is postponed until
+the first real client engagement (`OWNER-CLIENT-SECURITY-REVIEW-01`). These
+items stay as its scope:
 
 - The keyring holds key material in the clear, in a `0600` file. There is no key
   wrapping, HSM or KMS.
@@ -626,7 +628,9 @@ wrong credential names no account and is limited per source only.
 
 **Still absent: the escalation and abuse-response path** (who is told, what
 happens after repeated lockouts, how an account is investigated). That is
-policy, and it stays behind the security review. Absent is absent: do not read
+policy, and it is in the security review's scope. That review is postponed until
+the first real client engagement (`OWNER-CLIENT-SECURITY-REVIEW-01`). Absent is
+absent: do not read
 the controls above as an abuse posture.
 
 ### 3.8 Incident and rollback
@@ -667,9 +671,12 @@ Still blocked, and by which row: **§3.2** storage location and jurisdiction
 accounts and credential issuance; **§3.4** retention period, legal basis and
 approver (Ryan, Nick, counsel under OD-25 — `legal_basis` stays `null`);
 **§3.5** sender credential, which stays unset; **§3.6** notice and consent text;
-**§3.7** rate limiting, lockout and escalation, which remain absent; **§3.8**
-incident ownership and rollback authority. Money for counsel and for the §5
-security review is unanswered, and nothing legal can start until it is.
+**§3.7** the escalation and abuse-response path, which remains absent (rate
+limiting and lockout are built, E9); **§3.8** incident ownership and rollback
+authority. Counsel is engaged: E7's screening standard is approved
+(`OWNER-CLIENT-MODEL-PROVIDER-02`). The §5 security review is postponed, not
+cancelled. It is required before the first real client record is handled, and
+its spend figure returns as an owner item then (`OWNER-CLIENT-SECURITY-REVIEW-01`).
 
 **§3.1 being resolved is not W-C progressing.** A working internal host on
 loopback with synthetic fixtures is one precondition of nine, and the eight that
@@ -678,5 +685,7 @@ remain are the ones that involve a client.
 ## 5. What would make this deployable
 
 Every row in §2 resolved, then a security review of the deployed surface rather
-than of this repository's tests. Passing tests are not a security
+than of this repository's tests. That review is postponed until the first real
+client engagement and required before the first real client record is handled
+(`OWNER-CLIENT-SECURITY-REVIEW-01`). Passing tests are not a security
 qualification, and this runbook is not an authorization to provision anything.
