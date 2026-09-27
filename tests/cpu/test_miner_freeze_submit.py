@@ -13,6 +13,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from carbon.challenge_registry.campaigns import campaign_for
 from carbon.development_session import research_campaign as campaign
 from carbon.development_session.profile import canonical, digest
 from carbon.development_session.research_ledger import CampaignLedger
@@ -78,6 +79,7 @@ def prepared(tmp_path, monkeypatch, *, agent="none", practiced=(STRATEGY,)):
         task=None,
         grant=None,
         agent_policy=None,
+        campaign=campaign_for(None),
     )
     return value, submitted
 
