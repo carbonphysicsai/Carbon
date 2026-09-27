@@ -87,6 +87,12 @@ def test_package_is_exact_and_exports_no_official_or_network_surface() -> None:
         # no signing on a miner's behalf. Attach/detach reuse the existing
         # attachment and ownership lock.
         "mcp_operations.py",
+        # How a miner connects their own MCP agent, and an in-process handshake
+        # check against the open-tier server. It adds no capability: it
+        # describes the existing stdio server's tiers from the same factories
+        # and launches, supervises and stops nothing. No official,
+        # network-writing or signing surface is introduced.
+        "agent_connection.py",
     }
     assert tuple(miner_mcp_exports) == (
         "AuthenticatedMcpResult",
