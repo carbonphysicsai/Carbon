@@ -28,6 +28,7 @@ from carbon.development_session.research_ledger import PRODUCT, CampaignLedger
 from carbon.development_session.research_material import PublicMaterial
 from carbon.development_session.research_service import make_research_service
 from carbon.miner_mcp import standard_cli
+from carbon.reconstruction.capability_registry import BATTERY_CHALLENGE as BATTERY
 
 PREFIX = "carbon_research_v2__"
 CAMPAIGN = "c" * 32
@@ -150,19 +151,54 @@ def prepare(root, monkeypatch, *, budget=None):
     return path, ledger, owner
 
 
+#: The fixture worker images a battery campaign freezes (see
+#: `test_battery_mcp_research.battery_campaign`); only their ids are read.
+BATTERY_IMAGE = SimpleNamespace(image_id="fixture-cpu")
+BATTERY_ANALYSIS = SimpleNamespace(image_id="fixture-analysis")
+
+
+def fixture_runtime(profile):
+    """`standard_cli._runtime` with the host, images and key as fixtures.
+
+    Everything after it - registration, the frozen record, control and the
+    Challenge's own attach composition - runs for real.
+    """
+    return fixture_connection(profile.root), BATTERY_IMAGE, BATTERY_ANALYSIS, None
+
+
+def prepare_battery(root, monkeypatch, *, budget=None):
+    """A registration-admitted battery campaign as a launch leaves it.
+
+    Burgers is retired, so the attach door is exercised on battery, the
+    implemented Challenge with a real attach composition: its frozen
+    manifest, the miner's profile and the prepared research-task store.
+    Returns ``(path, ledger, owner, connection)``.
+    """
+    from test_battery_mcp_research import battery_campaign
+
+    from carbon.battery.campaign import compose
+
+    path, ledger, owner, connection, _ = battery_campaign(
+        root, monkeypatch, budget=budget
+    )
+    composition, _ = compose(
+        ledger=ledger,
+        owner=owner,
+        image=BATTERY_IMAGE,
+        analysis=BATTERY_ANALYSIS,
+        connection=connection,
+    )
+    composition.tasks.close()
+    return path, ledger, owner, connection
+
+
 def serve_fixture(path):
     import carbon.chain.auth
     from carbon.development_session import research_tools
 
     carbon.chain.auth.BittensorMessageSigner = FixtureSigner
     research_tools.BittensorMessageSigner = FixtureSigner
-    standard_cli._runtime = lambda profile: (
-        fixture_connection(profile.root),
-        SimpleNamespace(),
-        SimpleNamespace(),
-        profile.root,
-    )
-    standard_cli._science = lambda *args: (PublicMaterial(None), unavailable_practice)
+    standard_cli._runtime = fixture_runtime
     raise SystemExit(
         standard_cli.main(["--configuration", str(path), "--campaign", CAMPAIGN])
     )
@@ -181,7 +217,9 @@ def parameters(path):
 def test_actual_gateway_public_workflow_and_restart_over_stdio(tmp_path, monkeypatch):
     from mcp import Client
 
-    path, ledger, owner = prepare(tmp_path, monkeypatch)
+    from carbon.battery.research import objective
+
+    path, ledger, owner, _ = prepare_battery(tmp_path, monkeypatch)
     task_id = None
     request = {
         "operation_id": "real-gateway-public-task-0001",
@@ -208,21 +246,22 @@ def test_actual_gateway_public_workflow_and_restart_over_stdio(tmp_path, monkeyp
                     "operation_id": "real-gateway-compile-0001",
                     "strategy": {
                         "schema_version": "1.0",
-                        "challenge_id": "burgers-dynamics-v1",
-                        "backbone": "fno",
-                        "parameters": {"steps": 512, "enforce_mean": True},
+                        "challenge_id": BATTERY,
+                        "backbone": "knn",
+                        "parameters": {"neighbours": 6},
                     },
                 },
             )
             assert not proposed.is_error
             assert proposed.structured_content["payload"]["reply"]["status"] == "OK"
+            assert proposed.structured_content["payload"]["reply"]["result"]["accepted"]
             started = await client.call_tool(PREFIX + "start_research_task", request)
             assert not started.is_error
             body = started.structured_content["payload"]
             assert body["terminal_task"]["state"] == "SUCCEEDED"
-            assert (
-                body["public_result"]["result"]["document"]["score_rule"]["id"]
-                == "burgers-development-balanced-v2"
+            # The attach served battery's own public objective, exactly.
+            assert body["public_result"]["result"]["document"] == json.loads(
+                json.dumps(objective())
             )
             task_id = body["terminal_task"]["task_id"]["value"]
             status = await client.call_tool(
