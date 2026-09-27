@@ -24,9 +24,11 @@ from carbon.scientific_tasks import workbench_host
 def _burgers_status(monkeypatch, status):
     real = registry.entries()
     forced = tuple(
-        dataclasses.replace(entry, status=status)
-        if entry.challenge_id == BURGERS_CHALLENGE
-        else entry
+        (
+            dataclasses.replace(entry, status=status)
+            if entry.challenge_id == BURGERS_CHALLENGE
+            else entry
+        )
         for entry in real
     )
     assert any(entry.challenge_id == BURGERS_CHALLENGE for entry in forced)
@@ -35,24 +37,58 @@ def _burgers_status(monkeypatch, status):
 
 COMMANDS = [
     ["check", "--configuration", "/nonexistent/profile.json"],
-    ["list-drafts", "--configuration", "/nonexistent/profile.json", "--draft-registry", "/nonexistent/drafts"],
-    ["register-draft", "--configuration", "/nonexistent/profile.json", "--draft-registry", "/nonexistent/drafts", "--draft", "/nonexistent/draft.json"],
-    ["serve", "--configuration", "/nonexistent/profile.json", "--draft-registry", "/nonexistent/drafts", "--static", "/nonexistent/static", "--principals", "/nonexistent/principals.json", "--origin", "http://127.0.0.1:1", "--port", "1"],
+    [
+        "list-drafts",
+        "--configuration",
+        "/nonexistent/profile.json",
+        "--draft-registry",
+        "/nonexistent/drafts",
+    ],
+    [
+        "register-draft",
+        "--configuration",
+        "/nonexistent/profile.json",
+        "--draft-registry",
+        "/nonexistent/drafts",
+        "--draft",
+        "/nonexistent/draft.json",
+    ],
+    [
+        "serve",
+        "--configuration",
+        "/nonexistent/profile.json",
+        "--draft-registry",
+        "/nonexistent/drafts",
+        "--static",
+        "/nonexistent/static",
+        "--principals",
+        "/nonexistent/principals.json",
+        "--origin",
+        "http://127.0.0.1:1",
+        "--port",
+        "1",
+    ],
 ]
 
 
 @pytest.mark.parametrize("argv", COMMANDS, ids=[c[0] for c in COMMANDS])
-def test_every_command_refuses_by_name_when_burgers_is_retired(monkeypatch, capsys, argv):
+def test_every_command_refuses_by_name_when_burgers_is_retired(
+    monkeypatch, capsys, argv
+):
     _burgers_status(monkeypatch, "RETIRED")
     assert workbench_host.main(argv) == workbench_host.STUDIES_RETIRED_EXIT
     err = capsys.readouterr().err
-    assert "Burgers Challenge" in err and "retired" in err and "Nothing was started" in err
+    assert (
+        "Burgers Challenge" in err and "retired" in err and "Nothing was started" in err
+    )
     # Refused before any configuration is read: the generic branch never ran.
     assert "Verify the private profile" not in err
 
 
 @pytest.mark.parametrize("argv", COMMANDS, ids=[c[0] for c in COMMANDS])
-def test_specimen_an_implemented_burgers_reaches_the_configuration(monkeypatch, capsys, argv):
+def test_specimen_an_implemented_burgers_reaches_the_configuration(
+    monkeypatch, capsys, argv
+):
     # The same commands, with Burgers implemented, get past the refusal and
     # fail only on the missing configuration: the refusal is conditional.
     _burgers_status(monkeypatch, "IMPLEMENTED")

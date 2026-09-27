@@ -31,9 +31,9 @@ from carbon.scientific_tasks.workbench_host import (
     StaffPrincipals,
     capability_report,
     create_host_app,
+    studies_retired,
     verify_private_build,
 )
-from carbon.scientific_tasks.workbench_host import studies_retired
 
 # Owner decision, 2026-09-27: with Burgers retired, the host refuses every
 # command by name, which tests/cpu/test_workbench_host_studies_retired.py pins.
