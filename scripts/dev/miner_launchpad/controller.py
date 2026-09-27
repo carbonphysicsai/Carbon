@@ -345,7 +345,126 @@ def _default_onboarding():
     return BrowserOnboarding()
 
 
+#: Integrations Carbon does not offer, each with the reason and the category a
+#: miner meets it under. Both catalogs read this one list: the rehearsal's
+#: `unavailable` and the Control Center's per-category unavailable entries, so
+#: a reason cannot be corrected in one place and left stale in the other.
+INTEGRATIONS = (
+    {"id": "hermes", "reason": "adapter_not_implemented"},
+    {
+        # READ THIS FIELD AS LOAD-BEARING. These reasons are what a
+        # miner and a planner act on: a wrong one sends someone to build
+        # a bridge that exists, or manufactures an owner decision nobody
+        # needed to make. Both of those happened here.
+        #
+        # Fourth revision, and the first three were each wrong in a
+        # different way: an absent bridge that exists; a grant coupling
+        # that turned out to be nothing but a stale docstring, which was
+        # then relayed upward as fact by two people who had both read
+        # the docstring rather than the code; and an undecided
+        # authorization server that had in fact been decided
+        # (CARBON-D-MCP-REMOTE-AUTH: Cloudflare Access is the issuer).
+        #
+        # The lesson that produced three wrong entries: a reason is a
+        # claim about current code, and claims decay. Re-read the code
+        # it describes before repeating it, and check the date on
+        # whatever asserts it - one of these blockers was contradicted
+        # by constants committed a week before it was written down.
+        #
+        # Fifth revision. The claim contract the fourth named was
+        # implemented by `access_auth` (#295), and the door is now built
+        # from the operator's own configuration by
+        # `create_access_http_app`, with its rotating key set verified
+        # against the live Access JWKS. What is left is that nothing
+        # hosts it: the app starts no listener, no origin serves it, and
+        # the origin's shape is undecided - a Python ASGI app cannot run
+        # on the Workers custom domain the echo test used. A real
+        # Access-minted assertion has been verified against it, so
+        # authentication is not what is missing.
+        #
+        # Scope note: this is the *remote* door only. A miner bringing
+        # their own agent over stdio needs no Cloudflare credential and
+        # nothing issued by Carbon, and can connect today.
+        #
+        # The two doors also differ in what they cost to offer. stdio
+        # scales to any number of miners with no Carbon action at all.
+        # The remote door needs a service token issued per miner, which
+        # suits a bounded set and does not suit open participation - so
+        # remote MCP is a convenience, never the general path.
+        "id": "personal-agent",
+        "reason": "remote_door_not_hosted",
+    },
+    {"id": "mira", "reason": "integration_interface_unverified"},
+    {
+        "id": "chutes",
+        "reason": "authorization_and_billing_adapter_not_implemented",
+    },
+    {
+        "id": "lium",
+        "reason": "provisioning_and_teardown_adapter_not_implemented",
+    },
+    {"id": "engy", "reason": "inference_adapter_not_implemented"},
+    # Approved as a compute provider; offered once its adapter reports this
+    # host configured, and until then shown with this reason.
+    {"id": "runpod", "reason": "compute_adapter_not_configured_here"},
+    {
+        # Two earlier reasons here were wrong in different ways. The
+        # first named a signing wallet adapter, which the key rule
+        # forbids and Carbon will never build: `chain_onboarding`
+        # prepares an unsigned registration the miner executes in their
+        # own tooling. The second named a missing chain endpoint, which
+        # turned out to be settled already in
+        # `carbon.development_testnet.operator` and merely unread by
+        # these doors; both now default to it.
+        #
+        # What remains is not Carbon's to implement. A registration
+        # spends the miner's own funds and is signed in their own
+        # wallet, so the flow is complete and the execution is theirs.
+        "id": "testnet-registration",
+        "reason": "flow_implemented_execution_is_the_miners_own",
+    },
+)
+
+#: Where each integration is shown in the Control Center, and what to do now.
+INTEGRATION_PLACEMENT = {
+    "hermes": (
+        "agent",
+        "Use Carbon's agent, research manually, or bring your own agent over MCP stdio.",
+    ),
+    "personal-agent": (
+        "agent",
+        "Connect your own MCP client over stdio; it needs no Carbon credential.",
+    ),
+    "mira": ("connection", "None today; the interface has not been verified."),
+    "chutes": (
+        "model_provider",
+        "Choose a provider listed as available, or research without a model.",
+    ),
+    "engy": (
+        "model_provider",
+        "Choose a provider listed as available, or research without a model.",
+    ),
+    "runpod": (
+        "compute_provider",
+        "Run on this machine's isolated worker until the RunPod adapter reports this host configured.",
+    ),
+    "lium": (
+        "compute_provider",
+        "Run on this machine's isolated worker, or on a host you already control.",
+    ),
+    "testnet-registration": (
+        "wallet",
+        "Register in your own wallet; Wallet & Identity prepares the unsigned call.",
+    ),
+}
+
+
 def capability_catalog() -> dict:
+    """The controller rehearsal's own catalog (Development area only).
+
+    The Control Center reads `carbon.control-center.capabilities.v1` from
+    `capabilities.control_center`; this one describes the fixture rehearsal.
+    """
     return {
         "schema": SCHEMA,
         "mode": "REHEARSAL",
@@ -357,80 +476,7 @@ def capability_catalog() -> dict:
         # miner should have to buy their way into.
         "research_compute": research_compute_choices(),
         "unavailable": [
-            {
-                "id": "carbon-burgers-development",
-                "reason": "research_bridge_not_implemented",
-            },
-            {"id": "hermes", "reason": "adapter_not_implemented"},
-            {
-                # READ THIS FIELD AS LOAD-BEARING. These reasons are what a
-                # miner and a planner act on: a wrong one sends someone to build
-                # a bridge that exists, or manufactures an owner decision nobody
-                # needed to make. Both of those happened here.
-                #
-                # Fourth revision, and the first three were each wrong in a
-                # different way: an absent bridge that exists; a grant coupling
-                # that turned out to be nothing but a stale docstring, which was
-                # then relayed upward as fact by two people who had both read
-                # the docstring rather than the code; and an undecided
-                # authorization server that had in fact been decided
-                # (CARBON-D-MCP-REMOTE-AUTH: Cloudflare Access is the issuer).
-                #
-                # The lesson that produced three wrong entries: a reason is a
-                # claim about current code, and claims decay. Re-read the code
-                # it describes before repeating it, and check the date on
-                # whatever asserts it - one of these blockers was contradicted
-                # by constants committed a week before it was written down.
-                #
-                # Fifth revision. The claim contract the fourth named was
-                # implemented by `access_auth` (#295), and the door is now built
-                # from the operator's own configuration by
-                # `create_access_http_app`, with its rotating key set verified
-                # against the live Access JWKS. What is left is that nothing
-                # hosts it: the app starts no listener, no origin serves it, and
-                # the origin's shape is undecided - a Python ASGI app cannot run
-                # on the Workers custom domain the echo test used. A real
-                # Access-minted assertion has been verified against it, so
-                # authentication is not what is missing.
-                #
-                # Scope note: this is the *remote* door only. A miner bringing
-                # their own agent over stdio needs no Cloudflare credential and
-                # nothing issued by Carbon, and can connect today.
-                #
-                # The two doors also differ in what they cost to offer. stdio
-                # scales to any number of miners with no Carbon action at all.
-                # The remote door needs a service token issued per miner, which
-                # suits a bounded set and does not suit open participation - so
-                # remote MCP is a convenience, never the general path.
-                "id": "personal-agent",
-                "reason": "remote_door_not_hosted",
-            },
-            {"id": "mira", "reason": "integration_interface_unverified"},
-            {
-                "id": "chutes",
-                "reason": "authorization_and_billing_adapter_not_implemented",
-            },
-            {
-                "id": "lium",
-                "reason": "provisioning_and_teardown_adapter_not_implemented",
-            },
-            {"id": "engy", "reason": "inference_adapter_not_implemented"},
-            {
-                # Two earlier reasons here were wrong in different ways. The
-                # first named a signing wallet adapter, which the key rule
-                # forbids and Carbon will never build: `chain_onboarding`
-                # prepares an unsigned registration the miner executes in their
-                # own tooling. The second named a missing chain endpoint, which
-                # turned out to be settled already in
-                # `carbon.development_testnet.operator` and merely unread by
-                # these doors; both now default to it.
-                #
-                # What remains is not Carbon's to implement. A registration
-                # spends the miner's own funds and is signed in their own
-                # wallet, so the flow is complete and the execution is theirs.
-                "id": "testnet-registration",
-                "reason": "flow_implemented_execution_is_the_miners_own",
-            },
+            {"id": item["id"], "reason": item["reason"]} for item in INTEGRATIONS
         ],
     }
 
@@ -532,6 +578,12 @@ class Handler(BaseHTTPRequestHandler):
             self.check(authenticated=True)
             if self.path == "/api/v1/capabilities":
                 self.reply(200, capability_catalog())
+            elif self.path == "/api/v1/control-center/capabilities":
+                # Every launch choice the Control Center renders, derived from
+                # the registry, the shared options operation and this host.
+                from scripts.dev.miner_launchpad.capabilities import control_center
+
+                self.reply(200, control_center(self.server.research_runner))
             elif self.path == "/api/v1/operations":
                 # The same table MCP lists its operation tools from.
                 from scripts.dev.miner_launchpad.operations import describe
