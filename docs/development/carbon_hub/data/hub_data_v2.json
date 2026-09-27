@@ -2195,6 +2195,13 @@
         "# Authored Julia research (prospective DEVELOPMENT scope)",
         "No grant is needed (C-MLP-02-D11)."
       ]
+    },
+    {
+      "id": "compute-implementation-root",
+      "path": ".agent/CODE_AUTHORITY.toml",
+      "required_markers": [
+        "\"carbon/compute\","
+      ]
     }
   ],
   "authority_ceilings": {
