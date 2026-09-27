@@ -9,6 +9,7 @@ from __future__ import annotations
 import contextlib
 import hashlib
 import json
+import re
 import sqlite3
 import sys
 import tempfile
@@ -157,6 +158,37 @@ class ReadbackFixture:
 LAUNCH_BUDGET = {"elapsed_seconds": 600, "ceilings": {"research_trials": 5}}
 
 
+def _challenges():
+    from carbon.reconstruction.capability_registry import (
+        BATTERY_CHALLENGE,
+        BATTERY_CONTRACT,
+        BURGERS_CHALLENGE,
+    )
+
+    return BATTERY_CHALLENGE, BATTERY_CONTRACT, BURGERS_CHALLENGE
+
+
+BATTERY_CHALLENGE, BATTERY_CONTRACT, BURGERS_CHALLENGE = _challenges()
+
+
+def choose(session, name, value):
+    """Pick a wizard choice the way a person does: its radio, by value."""
+    selector = f"input[name={name}][value={json.dumps(value)}]"
+    wait(
+        session,
+        f"Boolean(document.querySelector({json.dumps(selector)}))"
+        f" && !document.querySelector({json.dumps(selector)}).disabled",
+    )
+    session.evaluate(f"document.querySelector({json.dumps(selector)}).click()")
+    wait(session, f"document.querySelector({json.dumps(selector)}).checked")
+
+
+def goto(session, hash_):
+    session.evaluate(f"location.hash = {json.dumps(hash_)}")
+    view = hash_.lstrip("#").split("/")[0]
+    wait(session, f"!document.getElementById({json.dumps(view)}).hidden")
+
+
 class ResearchFixture:
     """Browser-control fixture only. Zero agents, numerical work or grants."""
 
@@ -211,6 +243,16 @@ class ResearchFixture:
             },
         }
 
+    # The profile a configured host reads, which the Control Center's
+    # capability document needs to offer a Challenge as launchable.
+    def configured(self):
+        return {
+            "profile_id": "engineering-fixture",
+            "principal": "fixture",
+            "runtime": {},
+            "paths": {},
+        }
+
     # The two table methods the options operation needs: the profile gate and
     # its body. The budget vocabulary is the ledger's own, as on a real host.
     def owner(self):
@@ -244,11 +286,14 @@ class ResearchFixture:
     def launch(self, value, key):
         # The page states who selects - the default is Carbon's agent - and
         # the budget is the one the person composed and saved as a template.
+        # And the Challenge the person chose, exactly: there is no default.
         assert value == {
             "profile": "engineering-fixture",
             "review_digest": "fixture-review-pin",
             "agent": "autonomous",
             "budget": LAUNCH_BUDGET,
+            "challenge": BATTERY_CHALLENGE,
+            "challenge_version": BATTERY_CONTRACT.version,
         }, value
         self.keys.add(key)
         if self.record is None:
@@ -529,6 +574,7 @@ def run():
                     # calling .click() would prove only that the handler works -
                     # which it already does - and nothing about whether a
                     # keyboard user can ever get there.
+                    goto(session, "#wallet")
                     session.evaluate("document.body.focus()")
                     session.evaluate(
                         "document.getElementById('token').focus();"
@@ -688,6 +734,25 @@ def run():
                     assert session.evaluate(
                         "document.getElementById('research-review').textContent.includes('NOT_OBSERVED') && document.getElementById('research-review').textContent.includes('Admission: subnet registration')"
                     )
+                    # Every launch choice is rendered from the capability
+                    # document; the person picks each one, nothing is defaulted.
+                    goto(session, "#launch")
+                    choose(session, "wizard-challenge", BATTERY_CHALLENGE)
+                    assert session.evaluate(
+                        "document.getElementById('wizard-challenge-description').textContent.includes('Objective')"
+                    )
+                    reserved = session.evaluate(
+                        "document.getElementById('wizard-challenges').textContent"
+                    )
+                    assert "challenge not implemented" in reserved, reserved[:400]
+                    choose(session, "research-agent", "autonomous")
+                    choose(
+                        session,
+                        "wizard-model",
+                        session.evaluate(
+                            "document.querySelector('input[name=wizard-model]').value"
+                        ),
+                    )
                     research.preflight = original_preflight
                     wait(
                         session, "!document.getElementById('research-launch').disabled"
@@ -698,7 +763,9 @@ def run():
                     panel = session.evaluate(
                         "document.getElementById('research-heading').closest('section').textContent"
                     )
-                    assert "grant" not in panel.lower(), panel[:300]
+                    # "grants nothing" (a capability request) is not an
+                    # admission grant; the word itself must not appear.
+                    assert not re.search(r"\bgrant\b", panel.lower()), panel[:300]
                     compose_and_template(session)
 
                     def lost_research_response(value, key):
@@ -724,7 +791,7 @@ def run():
                     click(session, "research-launch")
                     wait(
                         session,
-                        "document.getElementById('research-runs').textContent.includes('UI FIXTURE')",
+                        "document.getElementById('campaign-detail').textContent.includes('UI FIXTURE')",
                     )
                     assert session.evaluate(
                         "document.querySelectorAll('.practice-result svg circle').length === 2"
@@ -739,17 +806,17 @@ def run():
                         "document.querySelector('.development-result').textContent.includes('no independent result')"
                     )
                     session.evaluate(
-                        "document.querySelector('#research-runs details').open = true"
+                        "document.querySelector('#campaign-detail details').open = true"
                     )
                     research.record["current_hypothesis"] = {
                         "hypothesis": "UI FIXTURE updated hypothesis"
                     }
                     wait(
                         session,
-                        "document.querySelector('#research-runs').textContent.includes('UI FIXTURE updated hypothesis')",
+                        "document.querySelector('#campaign-detail').textContent.includes('UI FIXTURE updated hypothesis')",
                     )
                     assert session.evaluate(
-                        "document.querySelector('#research-runs details').open"
+                        "document.querySelector('#campaign-detail details').open"
                     )
                     research.record["experiments"][0]["inline_curve"][0][
                         "data_loss"
@@ -771,7 +838,7 @@ def run():
                         "document.getElementById('connection-state').textContent === 'Connection interrupted'",
                     )
                     assert session.evaluate(
-                        "[...document.querySelectorAll('#research-runs button')].every(b => b.disabled)"
+                        "[...document.querySelectorAll('#campaign-detail button')].every(b => b.disabled)"
                     )
                     research.recent = original_research_recent
                     wait(
@@ -779,7 +846,7 @@ def run():
                         "document.getElementById('connection-state').textContent === 'Connected'",
                     )
                     assert session.evaluate(
-                        "document.querySelector('#research-runs details').open"
+                        "document.querySelector('#campaign-detail details').open"
                     )
                     for action, observed in (
                         ("pause", "PAUSE_REQUESTED"),
@@ -789,24 +856,24 @@ def run():
                     ):
                         wait(
                             session,
-                            "![...document.querySelectorAll('#research-runs button')].find(b => b.textContent === "
+                            "![...document.querySelectorAll('#campaign-detail button')].find(b => b.textContent === "
                             + json.dumps(action)
                             + ").disabled",
                         )
                         session.evaluate(
-                            "[...document.querySelectorAll('#research-runs button')].find(b => b.textContent === "
+                            "[...document.querySelectorAll('#campaign-detail button')].find(b => b.textContent === "
                             + json.dumps(action)
                             + ").click()"
                         )
                         wait(
                             session,
-                            "document.getElementById('research-runs').textContent.includes("
+                            "document.getElementById('campaign-detail').textContent.includes("
                             + json.dumps(observed)
                             + ")",
                         )
                     assert len(research.keys) == 1
                     assert "UI FIXTURE stop reason" in session.evaluate(
-                        "document.getElementById('research-runs').textContent"
+                        "document.getElementById('campaign-detail').textContent"
                     )
                     research.record["final_results"] = [
                         {
@@ -834,7 +901,7 @@ def run():
                     assert (
                         "ENGINEERING_FIXTURE_COMPLETE_UNRESOLVED"
                         not in session.evaluate(
-                            "document.getElementById('research-runs').textContent"
+                            "document.getElementById('campaign-detail').textContent"
                         )
                     )
                     load(session, origin)
@@ -869,6 +936,7 @@ def run():
                         "engineering-fixture"
                     )
 
+                    campaign_hash = "#campaigns/" + research.record["id"] + "/overview"
                     for width in (1440, 390):
                         session.command(
                             "Emulation.setDeviceMetricsOverride",
@@ -879,16 +947,34 @@ def run():
                                 "mobile": False,
                             },
                         )
+                        # No horizontal page scroll on any working surface.
+                        for surface in (
+                            "#overview",
+                            "#launch",
+                            "#challenges",
+                            "#wallet",
+                            "#development",
+                            campaign_hash,
+                        ):
+                            goto(session, surface)
+                            assert session.evaluate(
+                                "document.documentElement.scrollWidth <= innerWidth"
+                            ), (width, surface)
+                        # Monitoring and stop stay usable: the campaign's own
+                        # controls, and the rehearsal's in the Development area.
                         assert session.evaluate(
-                            "document.documentElement.scrollWidth <= innerWidth"
+                            "[...document.querySelectorAll('#campaign-detail button')]"
+                            ".find(b => b.textContent === 'stop').getBoundingClientRect().width >= 44"
                         ), width
+                        goto(session, "#development")
                         assert session.evaluate(
                             "document.getElementById('stop').getBoundingClientRect().width >= 44"
                         ), width
-                        # The navigation lists every marked section, in page
+                        # The navigation lists every marked view, in page
                         # order, and nothing else; each entry is a target a
                         # finger can hit; and a real Enter on one moves the
-                        # working surface to that section.
+                        # working surface to that view. Development is listed
+                        # apart from the primary views.
                         listed = session.evaluate(
                             "JSON.stringify([...document.querySelectorAll('#tool-nav a')]"
                             ".map(a => [a.getAttribute('href'), a.textContent,"
@@ -899,7 +985,21 @@ def run():
                             ".map(s => ['#' + s.id, s.dataset.nav, true]))"
                         )
                         assert json.loads(listed) == json.loads(marked), (width, listed)
-                        assert len(json.loads(listed)) == 7, listed
+                        assert [entry[1] for entry in json.loads(listed)] == [
+                            "Overview",
+                            "Campaigns",
+                            "Challenges",
+                            "Agents",
+                            "Compute",
+                            "Connections",
+                            "Wallet & Identity",
+                            "Settings",
+                            "Development",
+                        ], listed
+                        assert session.evaluate(
+                            "[...document.querySelectorAll('#tool-nav .nav-development a')]"
+                            ".map(a => a.textContent).join() === 'Development'"
+                        )
                         if width == 1440:
                             assert session.evaluate(
                                 "document.getElementById('tool-nav').getBoundingClientRect().right"
@@ -907,21 +1007,23 @@ def run():
                             ), "the navigation is not beside the working surface"
                         session.evaluate(
                             "scrollTo(0, 0); document.querySelector("
-                            "'#tool-nav a[href=\"#research\"]').focus()"
+                            "'#tool-nav a[href=\"#campaigns\"]').focus()"
                         )
                         press(session, "Enter")
                         deadline = time.monotonic() + 3
                         while (
-                            session.evaluate("location.hash") != "#research"
+                            session.evaluate("location.hash") != "#campaigns"
                             and time.monotonic() < deadline
                         ):
                             time.sleep(0.05)
-                        assert session.evaluate("location.hash") == "#research", width
-                        assert session.evaluate(
-                            "Math.abs(document.getElementById('research')"
-                            ".getBoundingClientRect().top) < 80"
-                            " || innerHeight + scrollY >= document.body.scrollHeight - 2"
-                        ), width
+                        assert session.evaluate("location.hash") == "#campaigns", width
+                        wait(session, "!document.getElementById('campaigns').hidden")
+                        # A campaign's deep link opens that campaign.
+                        goto(session, campaign_hash)
+                        wait(
+                            session,
+                            "Boolean(document.querySelector('.frozen-guidance'))",
+                        )
                         assert (
                             session.evaluate(
                                 "document.getElementById('research-guidance').value"
@@ -1038,12 +1140,15 @@ def journey():
                         "document.getElementById('message').textContent.includes("
                         "'not loaded: the autonomous agent is unavailable: model provider key not configured')",
                     )
-                    assert session.evaluate(
-                        "document.querySelector('input[name=research-agent][value=none]').checked"
+                    assert not session.evaluate(
+                        "document.querySelector('input[name=research-agent][value=autonomous]').checked"
                     )
-                    session.evaluate(
-                        "document.querySelector('input[name=research-agent][value=none]').click()"
-                    )
+                    # The fixture host composes the historical DEVELOPMENT
+                    # campaign, so the person picks that Challenge here; the
+                    # launch still names it exactly.
+                    goto(session, "#launch")
+                    choose(session, "wizard-challenge", BURGERS_CHALLENGE)
+                    choose(session, "research-agent", "manual")
                     click(session, "research-launch")
                     wait(session, "Boolean(document.querySelector('.journey'))")
                     run_id = session.evaluate(
@@ -1116,7 +1221,7 @@ def journey():
                     click(session, f"journey-submit-{run_id}")
                     wait(
                         session,
-                        "document.querySelector('.journey').textContent.includes('Submitted epochs: 1')",
+                        "document.getElementById('campaign-detail').textContent.includes('Submitted epochs: 1')",
                     )
                     assert (
                         campaign / "epoch-1" / "permitted-final-feedback.json"
