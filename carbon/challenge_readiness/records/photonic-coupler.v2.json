@@ -16,10 +16,10 @@
       "usd": null
     },
     {
-      "basis": "measured",
+      "basis": "estimated",
       "evidence": "docs/development/EXAM_DESIGN_CAMPAIGN_RESULT.md section 9",
       "item": "reference",
-      "unit": "USD per five-wavelength parent case at 20 nm (diagnostic, not qualified-truth cost)",
+      "unit": "USD per five-wavelength parent case at 20 nm, extrapolated from a measured single-run time of about 265 s (diagnostic, not qualified-truth cost)",
       "usd": 0.36
     },
     {
@@ -141,7 +141,7 @@
     "basis": "Exam design is deferred until the phase convention and coupled-power convergence are repaired: an exam built on an unresolved convention grades the convention (#345; RESULT section 9).",
     "decision": "DEFER"
   },
-  "record_version": 1,
+  "record_version": 2,
   "reference": {
     "applicability": "Diagnostic only: coupled power is unconverged (about 15 % of the coupled fraction at 20 nm) and relative phase flips by about pi across resolutions.",
     "evidence": [

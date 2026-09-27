@@ -26,9 +26,16 @@ from carbon.reconstruction.worker.docker_runtime import doctor, load_image_ident
 from carbon.transport.models import message
 
 from . import research_guidance as guidance
-from .agent import MODEL, ResponsesTransport
 from .data import write_once
 from .gpu_research import PublicGPUPractice, registered_gpu_image
+from .model_provider import (
+    MODEL,
+    SelectionTransport,
+    check_budget,
+    select,
+    selection_from_record,
+)
+from .model_provider import ProviderTransport as ResponsesTransport
 from .profile import CHALLENGE, canonical, digest
 from .research_agent_policy import AUTONOMOUS, LEGACY, binding
 from .research_catalog import compile_recipe
@@ -448,6 +455,7 @@ async def prepare_burgers(args, *, ledger=None, campaign):
     """
     agent_policy = getattr(args, "agent_policy", LEGACY)
     policy = binding(agent_policy)
+    selection = campaign_selection(args)
     supplied_guidance = getattr(args, "research_guidance", None)
     task = guidance.bind(supplied_guidance) if supplied_guidance is not None else None
     manifest_path = args.root / "campaign-manifest.json"
@@ -561,7 +569,12 @@ async def prepare_burgers(args, *, ledger=None, campaign):
     )
     if agent != "none":
         private_file(args.api_key_file)
-        ResponsesTransport(args.api_key_file)
+        if selection.is_historical_default:
+            ResponsesTransport(args.api_key_file)
+        else:
+            SelectionTransport(selection)
+    if grant is not None and grant["provider"] != selection.provider_id:
+        raise ValueError("the grant names a different model provider")
     config = load_config(args.operator_config)
     public = json.loads(private_file(args.miner_public).read_bytes())
     if public["netuid"] != CARBON_NETUID or config.netuid != CARBON_NETUID:
@@ -617,14 +630,9 @@ async def prepare_burgers(args, *, ledger=None, campaign):
             "selection": document()["selection"],
             "replica_policy": document()["replicas"],
             "seed_commitment": digest(canonical(seeds)),
-            "provider": {
-                "model": MODEL,
-                "input_per_million": 0.25,
-                "cached_per_million": 0.025,
-                "output_per_million": 2.0,
-                "store": False,
-                "data": "public synthetic and own permitted research only; standard API abuse monitoring may retain up to 30 days",
-            },
+            # The miner's model selection. The historical pinned selection
+            # records the exact block every earlier manifest carries.
+            "provider": selection.manifest_record(),
             "images": [image.image_id, analysis.image_id],
             "new_network_transactions": 0,
         }
@@ -651,6 +659,7 @@ async def prepare_burgers(args, *, ledger=None, campaign):
                 ceilings=grant["ceilings"],
                 elapsed_seconds=grant["elapsed_seconds"],
             )
+        check_budget(selection, manifest.get("ceilings"))
         compile_recipe(CONTROL)
         write_once(manifest_path, canonical(manifest))
     if (
@@ -721,7 +730,52 @@ async def prepare_burgers(args, *, ledger=None, campaign):
         grant=grant,
         agent_policy=agent_policy,
         campaign=campaign,
+        selection=selection,
     )
+
+
+def supplied_selection(args):
+    """The miner's `args.model_selection` ({provider_id, model_id, settings?,
+    endpoint?, declared_pricing?, credential?}), or the pinned default when
+    none is given. A file credential is the `--api-key-file` supplied at run
+    time; its path is never recorded."""
+    supplied = getattr(args, "model_selection", None)
+    path = getattr(args, "api_key_file", None)
+    spec = (
+        {"provider_id": "openai-responses", "model_id": MODEL}
+        if supplied is None
+        else supplied
+    )
+    if type(spec) is not dict:
+        raise ValueError("model selection must be an object")
+    credential = {"kind": "file", "reference": "unset" if path is None else str(path)}
+    return select(**{"credential": credential, **spec})
+
+
+def resolve_selection(args, record):
+    """A frozen campaign's selection from its recorded block; a differing
+    `model_selection` supplied on resume is refused."""
+    path = getattr(args, "api_key_file", None)
+    chosen = selection_from_record(
+        record, credential_file=None if path is None else str(path)
+    )
+    if (
+        getattr(args, "model_selection", None) is not None
+        and supplied_selection(args).record() != chosen.record()
+    ):
+        raise ValueError("model selection differs from the frozen campaign's")
+    return chosen
+
+
+def campaign_selection(args):
+    """The campaign's model selection (`model_provider`). A frozen campaign's
+    is the one its manifest records - every campaign frozen before selection
+    existed resolves to the pinned default - otherwise the miner's."""
+    manifest_path = args.root / "campaign-manifest.json"
+    if manifest_path.exists():
+        frozen = json.loads(manifest_path.read_bytes())
+        return resolve_selection(args, frozen["provider"])
+    return supplied_selection(args)
 
 
 @dataclasses.dataclass
@@ -749,6 +803,8 @@ class PreparedCampaign:
     #: What the agent policy is bound to; None keeps the historical Burgers
     #: prompts.
     challenge: object = None
+    #: The miner's model selection; None is the pinned historical default.
+    selection: object = None
 
     @property
     def agent(self):
@@ -916,6 +972,7 @@ async def run_agent(prepared, *, transport=None):
             agent_policy=prepared.agent_policy,
             challenge=prepared.challenge,
             transport=transport,
+            **({} if prepared.selection is None else {"provider": prepared.selection}),
         )
         report(ledger, owner=owner)
         if result["status"] != "SELECTED":
@@ -1108,7 +1165,12 @@ def main():
         "quarantine-journal",
     ):
         parser.add_argument("--" + name, type=Path)
+    # The miner's model provider and model (`model_provider.select`), as a
+    # JSON object; omitted, the pinned default. A frozen campaign keeps its own.
+    parser.add_argument("--model-selection", type=Path)
     args = parser.parse_args()
+    if args.model_selection is not None:
+        args.model_selection = json.loads(args.model_selection.read_bytes())
     if args.command in ("status", "report"):
         manifest = json.loads((args.root / "campaign-manifest.json").read_bytes())
         print(

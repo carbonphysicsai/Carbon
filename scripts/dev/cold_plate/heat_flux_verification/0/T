@@ -1,0 +1,19 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       volScalarField;
+    object      T;
+}
+
+// Uniform heat flux on both walls, written as a fixed wall-normal gradient
+// G = q''/k (K/m). The Nusselt number is independent of G's value.
+dimensions      [0 0 0 1 0 0 0];
+internalField   uniform 0;
+boundaryField
+{
+    inlet        { type fixedValue; value uniform 0; }
+    outlet       { type zeroGradient; }
+    walls        { type fixedGradient; gradient uniform 1000; }
+    frontAndBack { type empty; }
+}

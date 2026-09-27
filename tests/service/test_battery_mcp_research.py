@@ -626,6 +626,8 @@ def test_carbons_agent_researches_battery_through_the_same_path(
         grant=None,
         task=None,
         agent_policy=AUTONOMOUS,
+        # PreparedCampaign's default: the pinned historical model selection.
+        selection=None,
     )
 
     async def scenario():

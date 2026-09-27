@@ -1,7 +1,8 @@
 """Prospective miner orchestration policy; no new execution authority."""
 
+from .burgers_research_prompt import BURGERS_PROMPT as PROMPT
 from .profile import canonical, digest
-from .research_tools import PROMPT, _schema
+from .research_tools import _schema
 
 LEGACY = "carbon.autoresearch.agent-policy.v1"
 AUTONOMOUS = "carbon.autoresearch.agent-policy.v2"

@@ -377,7 +377,9 @@ def test_static_page_has_no_auth_secret(server):
     assert ("x" * 40).encode() not in body
     assert headers["X-Frame-Options"] == "DENY"
     assert "frame-ancestors 'none'" in headers["Content-Security-Policy"]
-    assert b"Controller rehearsal only" in body
+    assert b"Miner Control Center" in body
+    # The fixture rehearsal is still on the page, labelled as what it is.
+    assert b"Controller rehearsal" in body
 
 
 def test_api_requires_token(server):
