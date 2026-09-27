@@ -10109,6 +10109,18 @@ events:
       - "SYSTEM/BUSINESS-AUTHORITY"
     supersedes: null
     recorded_at: "2026-09-27T01:50:00Z"
+  -
+    map_ref: "SYSTEM/BUSINESS-AUTHORITY"
+    event_type: "evidence"
+    event_id: "GOAL-WORKBENCH-15-E6-LIMITS-01"
+    owner_lane: "business_authority"
+    status: "implemented"
+    summary: "Closes two of E6's three recorded limitations as far as engineering can without the owner's Workspace, and repairs stale gate statements in this lane's documents. The administrator restore window is established from Google's documentation (an admin can restore mail for 25 days after the 30-day period following deletion): PERMANENTLY_REMOVED does not mean unrecoverable, and each such entry now states admin_restore_possible_until with a basis naming the provider documentation, not verification against the account. A full intake mailbox, which bounces to the client unseen, is now observable: the pooled storage reading (Drive about.get storageQuota, drive.file scope only) reports OK, NEAR_FULL, FULL, UNLIMITED, NOT_CONFIGURED or UNREADABLE at GET /private/mailbox and from a command-line check; it reads once the owner issues the credential. The Vault limitation remains counsel's. A stale-gate audit of GOAL-WORKBENCH tickets and Workbench documents corrects statements whose cause was already resolved: incident ownership (CARBON-D-INCIDENT), rate limiting (E9, #315), the record hold (built), E6 decision 2 and the intake key, the E1 residual, and the Ask Carbon candidate (approved in #375, not deployed). No control is weakened; no spend, deployment or collection is authorized."
+    primary_detail: ".agent/tickets/GOAL-WORKBENCH-15_client_data_engineering.md"
+    affects:
+      - "SYSTEM/BUSINESS-AUTHORITY"
+    supersedes: null
+    recorded_at: "2026-09-27T02:10:00Z"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"

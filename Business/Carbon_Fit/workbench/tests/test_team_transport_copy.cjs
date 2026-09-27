@@ -94,6 +94,26 @@ test("Trash and permanent removal are two states, in that order, each the receiv
   assert.equal(store.recordTransportCopy(other.inquiry_id, "PERMANENTLY_REMOVED", as("receiver")).copy_state, "PERMANENTLY_REMOVED");
 });
 
+test("permanent removal states until when an administrator could still restore the copy", async () => {
+  const { ADMIN_RESTORE_DAYS } = require("../tools/team_intake_store.cjs");
+  const day = 86_400_000;
+  const store = fresh();
+  // After Trash: the later of 30 + 25 days from the first deletion, and 25 days from the purge.
+  const receipt = await store.accept(raw(), "copy-restore-1", as("receiver"), scoping(), mailed(), exportRef());
+  const trashed = store.recordTransportCopy(receipt.inquiry_id, "MOVED_TO_TRASH", as("receiver")).history[0];
+  const removed = store.recordTransportCopy(receipt.inquiry_id, "PERMANENTLY_REMOVED", as("receiver")).history[1];
+  assert.equal(removed.admin_restore_basis, "PROVIDER_DOCUMENTATION_NOT_VERIFIED_AGAINST_ACCOUNT");
+  const expected = Math.max(Date.parse(trashed.at) + (TRASH_PURGE_DAYS + ADMIN_RESTORE_DAYS) * day, Date.parse(removed.at) + ADMIN_RESTORE_DAYS * day);
+  assert.equal(Date.parse(removed.admin_restore_possible_until), expected);
+  assert.ok(Date.parse(removed.admin_restore_possible_until) > Date.parse(removed.at));
+  // Straight from the mailbox: the same bound, counted from that removal.
+  const direct = await store.accept(raw(), "copy-restore-2", as("receiver"), scoping(), mailed(), exportRef());
+  const only = store.recordTransportCopy(direct.inquiry_id, "PERMANENTLY_REMOVED", as("receiver")).history[0];
+  assert.equal(Date.parse(only.admin_restore_possible_until), Date.parse(only.at) + (TRASH_PURGE_DAYS + ADMIN_RESTORE_DAYS) * day);
+  // Specimen: the Trash entry makes no such statement; only removal does.
+  assert.equal(trashed.admin_restore_possible_until, undefined);
+});
+
 test("a plaintext arrival records that its copy is to be removed without delay", async () => {
   const store = fresh();
   const plaintext = transportAtRelay({ "x-carbon-intake-channel": "MAIL_INTAKE", "x-carbon-transport-arrival": "PLAINTEXT" });
