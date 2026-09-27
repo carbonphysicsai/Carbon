@@ -9,8 +9,13 @@ counsel's context only. It is not the authority to build them.
 
 Status: bounded engineering delivery, one item per pull request. No client-facing
 collection, no deployment beyond the one internal machine, no spend and no
-security review is authorized by this ticket. The review is gated on E9 and on a
-spend figure the owner has not yet supplied.
+security review is authorized by this ticket. E9 is complete (#315), and so are
+the other eight changes. The independent security review of the client-data path
+is **postponed** (`OWNER-CLIENT-SECURITY-REVIEW-01`, 2026-09-27). It is required
+before the first real client record is handled, and not before. It arms on
+the first real client engagement: whichever comes first of a signed client
+agreement, a recorded signed opt-in, or any instruction to receive real client
+material. Until then it is not a blocker on any item in any ticket.
 
 Primary Development Hub map_ref: `SYSTEM/BUSINESS-AUTHORITY`; impact
 `mapped_detail`.
@@ -37,7 +42,10 @@ progressing.
 | E6 | Encrypted intake package, one intake address, transport-copy deletion logged | 3 | address and Workspace settings are the owner's, operator configuration |
 | E7 | Client-record access limited to screened people; export-control reference per record | 3 | screening standard is counsel's, null — a null makes the record unreachable |
 
-The security review cannot start until E9 is complete. E2 and E5 must be
+The security review is required before the first real client record is handled
+and arms on the first real client engagement: whichever comes first of a signed client
+agreement, a recorded signed opt-in, or any instruction to receive real client
+material. E9, which it depended on, is complete. E2 and E5 must be
 complete before the first paying client. None of E1–E9 is a prerequisite for
 anything already launched.
 
@@ -442,5 +450,7 @@ sent.
 
 - **Counsel:** the retention values (E2, E3), and whether a legal hold is ever
   required. The E7 screening standard is approved and is configured privately.
-- **Owner:** the security review's spend figure, and when to prepare the new
-  Ask Carbon release candidate that carries decisions 1 and 2.
+- **Owner:** when to prepare the new Ask Carbon release candidate that carries
+  decisions 1 and 2. The security review's spend figure is not open while the
+  review is postponed. It becomes an open owner item again when the review arms
+  (`OWNER-CLIENT-SECURITY-REVIEW-01`).
