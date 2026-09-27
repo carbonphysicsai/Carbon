@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-27T03:02:02Z"
+  captured_at_utc: "2026-09-27T17:58:53Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "a7991ba4fed32db6a140a8b45ba5369ff2119887"
+  authority_snapshot_commit: "58797df7abb443c62250c0d6a1ca4ba943119a4c"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -10251,6 +10251,19 @@ events:
       - "WAVE-C/C-W1-D4"
     supersedes: null
     recorded_at: "2026-09-27T12:00:00Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "adjustment"
+    event_id: "OWNER-RESEARCH-ENVIRONMENT-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "Owner rule OWNER-RESEARCH-ENVIRONMENT-01 requires every Challenge's research environment to give miners what they need to research, hypothesize, train, generate data and evaluate, including the public generator and reference solver under the miner's own seeds. carbon/challenge_kit/standard.py declares each contracted Challenge's five provisions, each with importable evidence or a named gap and next step, and a test fails on an undeclared Challenge, a missing provision, evidence that does not import, a silent gap, or the standard entering the miner image's kit closure. Burgers is complete. Battery generate is the one open gap: no battery challenge kit runs the pinned PyBaMM reference. Invariant 33 and AGENTS.md invariant 16 record the rule. Submissions cannot request extra training data; Carbon may publish a larger TRAIN version for everyone when a Challenge stalls, as a prospective new version (per-Challenge owner inputs, not yet set). Official seed material still never reaches a sandbox, and submission exclusions are unchanged."
+    primary_detail: ".agent/DECISIONS.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "SYSTEM/GOVERNANCE"
+    supersedes: null
+    recorded_at: "2026-09-27T17:58:53Z"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"
