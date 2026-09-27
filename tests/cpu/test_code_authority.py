@@ -561,6 +561,19 @@ __import__("carbon", fromlist=("miner", computed_member))
     } <= resolved
 
 
+def _research_environment_evidence_modules() -> set[str]:
+    """Modules the research environment standard imports dynamically."""
+    from carbon.challenge_kit import standard
+
+    return {
+        ref.partition(":")[0]
+        for table in standard.ENVIRONMENTS.values()
+        for status in table.values()
+        if isinstance(status, standard.Provided)
+        for ref in status.evidence
+    }
+
+
 def test_canonical_python_cannot_import_retired_namespaces() -> None:
     authority = _authority()
     canonical = authority["canonical"]
@@ -650,6 +663,12 @@ def test_canonical_python_cannot_import_retired_namespaces() -> None:
             "importlib.import_module",
             "module_name",
         ),
+        (
+            "tests/cpu/test_research_environment_standard.py",
+            "test_provided_evidence_imports_and_gaps_are_named",
+            "import_module",
+            "module",
+        ),
     ]
 
     builtin_adapters = _literal_assignment(
@@ -719,6 +738,7 @@ def test_canonical_python_cannot_import_retired_namespaces() -> None:
         *b07d_modules,
         *b07e_modules,
         *b07f_modules,
+        *_research_environment_evidence_modules(),
     }
     assert not any(
         _matches_namespace(module, retired) for module in reviewed_dynamic_targets
