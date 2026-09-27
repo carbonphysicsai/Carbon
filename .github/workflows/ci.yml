@@ -26,6 +26,7 @@ jobs:
       dev_image_required: ${{ steps.delivery.outputs.dev_image_required }}
       c03_worker_required: ${{ steps.delivery.outputs.c03_worker_required }}
       workbench_required: ${{ steps.delivery.outputs.workbench_required }}
+      julia_service_required: ${{ steps.delivery.outputs.julia_service_required }}
     steps:
       - name: Resolve the current exact candidate
         id: candidate
@@ -169,7 +170,7 @@ jobs:
 
   c03-worker:
     name: C-03/C-04/C-05/C-07/C-08/C-10 isolated service acceptance
-    if: needs.preflight.outputs.change_scope == 'RUNTIME_FULL' && needs.preflight.outputs.c03_worker_required == 'true'
+    if: needs.preflight.outputs.change_scope == 'RUNTIME_FULL' && (needs.preflight.outputs.c03_worker_required == 'true' || needs.preflight.outputs.julia_service_required == 'true')
     needs: preflight
     runs-on: ubuntu-24.04
     # The authored-Julia service suite builds and precompiles both pinned SciML
@@ -382,6 +383,7 @@ jobs:
           PREFLIGHT_IMAGE: ${{ needs.preflight.outputs.dev_image_required }}
           PREFLIGHT_C03: ${{ needs.preflight.outputs.c03_worker_required }}
           PREFLIGHT_WORKBENCH: ${{ needs.preflight.outputs.workbench_required }}
+          PREFLIGHT_JULIA: ${{ needs.preflight.outputs.julia_service_required }}
           BOOTSTRAP_BASE_SHA: a20d9eece054e7f8b02538527221f6aea022aade
         run: |
           set -euo pipefail
@@ -478,7 +480,39 @@ jobs:
           done < "${candidate_scope_output}"
           [[ "${derived_c03}" == true || "${derived_c03}" == false ]]
           [[ "${PREFLIGHT_C03}" == "${derived_c03}" ]]
-          if [[ "${derived_c03}" == true ]]; then
+          # JULIA-REQUIREMENT BEGIN
+          # The C-03 job also runs the Julia service suite. Derived from the
+          # candidate's own module, like the Workbench requirement, so the
+          # owner-pinned classifier stays byte-identical.
+          derived_julia=
+          julia_scope=.carbon-gate-candidate/scripts/dev/julia_scope.py
+          if [[ -f "${julia_scope}" ]]; then
+            julia_output="${RUNNER_TEMP}/carbon-gate-julia.txt"
+            : > "${julia_output}"
+            python3 "${julia_scope}" --repository .carbon-gate-candidate --base "${BASE_SHA}" --github-output "${julia_output}"
+            julia_seen=0
+            while IFS='=' read -r key value || [[ -n "${key}" ]]; do
+              if [[ "${key}" == "julia_service_required" ]]; then
+                (( julia_seen == 0 )) || { echo "Duplicate Julia requirement." >&2; exit 2; }
+                julia_seen=1
+                derived_julia="${value}"
+              fi
+            done < "${julia_output}"
+            (( julia_seen == 1 )) || { echo "Julia scope module produced no explicit requirement." >&2; exit 2; }
+            [[ "${derived_julia}" == true || "${derived_julia}" == false ]] || { echo "Julia scope module produced no explicit requirement." >&2; exit 2; }
+            [[ "${PREFLIGHT_JULIA:-}" == true || "${PREFLIGHT_JULIA:-}" == false ]] || { echo "Preflight produced no explicit Julia requirement." >&2; exit 2; }
+            [[ "${PREFLIGHT_JULIA}" == "${derived_julia}" ]] || { echo "Preflight and protected Julia requirements disagree." >&2; exit 2; }
+          else
+            # Only a candidate that genuinely predates the module may omit it.
+            derived_julia=false
+            [[ -z "${PREFLIGHT_JULIA:-}" || "${PREFLIGHT_JULIA:-}" == false ]] || { echo "Preflight required the Julia suite but the candidate has no scope module." >&2; exit 2; }
+          fi
+          c03_job_required=false
+          if [[ "${derived_scope}" == RUNTIME_FULL && ( "${derived_c03}" == true || "${derived_julia}" == true ) ]]; then
+            c03_job_required=true
+          fi
+          # JULIA-REQUIREMENT END
+          if [[ "${c03_job_required}" == true ]]; then
             [[ "${{ needs.c03-worker.result }}" == success ]] \
               || { echo "C-03 worker service acceptance did not succeed." >&2; exit 1; }
           else
