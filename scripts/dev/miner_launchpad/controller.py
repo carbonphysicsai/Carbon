@@ -403,7 +403,6 @@ INTEGRATIONS = (
         "id": "lium",
         "reason": "provisioning_and_teardown_adapter_not_implemented",
     },
-    {"id": "engy", "reason": "inference_adapter_not_implemented"},
     # Approved as a compute provider; offered once its adapter reports this
     # host configured, and until then shown with this reason.
     {"id": "runpod", "reason": "compute_adapter_not_configured_here"},
@@ -437,10 +436,6 @@ INTEGRATION_PLACEMENT = {
     ),
     "mira": ("connection", "None today; the interface has not been verified."),
     "chutes": (
-        "model_provider",
-        "Choose a provider listed as available, or research without a model.",
-    ),
-    "engy": (
         "model_provider",
         "Choose a provider listed as available, or research without a model.",
     ),
