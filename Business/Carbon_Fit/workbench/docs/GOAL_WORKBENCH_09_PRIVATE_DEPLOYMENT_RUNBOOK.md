@@ -56,8 +56,9 @@ engineer, and none is filled in below.
 | Sender credential and authorized sender identity | Ryan | unresolved | §3.5; until then no notification is attempted |
 | Notice and consent text shown to a client before submission | Ryan, Nick, counsel | unresolved | §3.6 and any public collection |
 | Retention decision: period, legal basis, approver | Ryan, Nick (OD-25) | unresolved; the code carries `null` | §3.4 |
-| Abuse handling: rate limits, refusal and escalation path | Ryan | unresolved | §3.7 |
-| Incident ownership and rollback authority | Ryan | unresolved | §3.8 |
+| Abuse handling: rate limits and refusal | engineering | **resolved: built as E9 (#315)**; see §3.7 | — |
+| Abuse handling: escalation path | Ryan | unresolved; in the postponed security review's scope | §3.7 |
+| Incident ownership and rollback authority | Ryan | **resolved: `CARBON-D-INCIDENT`**, Ryan's | — |
 | Incremental cost acceptance | Ryan | unresolved | any paid provisioning |
 
 The retention fields are `null` in `RETENTION_POLICY` rather than defaulted.
@@ -221,7 +222,9 @@ reached, and records `archive_key: DESTROYED`: both statements are true.
 A store written before E1 is sealed when the receiver starts. Copies of it made
 before that are plaintext and stay plaintext.
 
-**For the security review, not settled here:**
+**For the security review, not settled here.** The review is postponed until
+the first real client engagement (`OWNER-CLIENT-SECURITY-REVIEW-01`). These
+items stay as its scope:
 
 - The keyring holds key material in the clear, in a `0600` file. There is no key
   wrapping, HSM or KMS.
@@ -460,13 +463,12 @@ literals: `CARBON_TEAM_RETENTION_VALUES_FILE` names a JSON file with exactly
   writer lock, as the named system actor `scheduled-retention-job`. Every run
   is recorded in `retention_runs`, refused or not.
 
-**Proposed, not built: a record-level hold.** The workspace edition has no
-legal hold on mail, and that stays a recorded limitation. But the store has its
-own destruction paths: this job, and the key destruction on an approved
-deletion. Neither can currently be paused for a record under hold. Until
-retention values are configured the job destroys nothing, so the risk is latent.
-**A hold flag that both paths refuse should be decided before any period is
-set.** Whether a hold is required at all is counsel's question.
+**Built: a record-level hold** (owner-delegated decision 3, 2026-09-23; pinned
+by `tests/test_team_record_hold.cjs`). The workspace edition has no legal hold on
+mail, and that stays a recorded limitation. But the store has its own
+destruction paths: this job, and the key destruction on an approved deletion.
+A data steward's hold, append-only, is refused by both. Whether a hold is
+required at all is counsel's question.
 
 ### 3.5 Notification and the intake mailbox (E6)
 
@@ -563,9 +565,11 @@ and does not claim to.
 The private file is written `0600` and never overwritten. Keep one encrypted
 offline copy of it in the owner's password manager. The command prints only the
 key id and the fingerprint, and that fingerprint is what the Data Handling
-Statement attached to the NDA carries. Until the key exists, and a new Ask Carbon
-release candidate carries the Pilot Designer's *Download encrypted for Carbon*
-button, clients send packages as they do today, and each arrival is recorded as
+Statement attached to the NDA carries. The owner generated the key on
+2026-09-24. Ask Carbon candidate 2026-09-26.1, which carries the Pilot
+Designer's *Download encrypted for Carbon* button, is approved for publishing
+(#375) but not yet deployed; deployment is the owner's. Until it is live,
+clients send packages as they do today, and each arrival is recorded as
 `ENCRYPTED` or `PLAINTEXT`.
 
 **Known limits, recorded rather than built around:**
@@ -574,12 +578,33 @@ button, clients send packages as they do today, and each arrival is recorded as
   keeps a message after deletion. That is what makes the record above honest.
   It also means there is **no legal hold on mail**. If counsel requires one, it
   is an edition upgrade and an owner decision, not an engineering change.
-- An administrator may be able to restore purged mail for a further window.
-  This has not been verified against the account, and until it is, "permanently
-  removed" means "permanently removed from the mailbox as its user sees it".
+- **An administrator can restore purged mail for a further window, per Google's
+  documentation.** Google's Workspace Admin Help ("Restore a user's permanently
+  deleted email", checked 2026-09-27) states: "When the 30-day period after
+  deleting ends, admins have an additional 25 days to restore messages."
+  - `PERMANENTLY_REMOVED` therefore means removed from the mailbox as its user
+    sees it. It does not mean unrecoverable.
+  - Each such entry carries `admin_restore_possible_until`, with basis
+    `PROVIDER_DOCUMENTATION_NOT_VERIFIED_AGAINST_ACCOUNT`. It is the later of 30
+    + 25 days after the first deletion and 25 days after the purge.
+  - This has not been verified against the account; doing so means using the
+    owner's Admin console.
 - The intake mailbox shares a pooled storage allowance. When it fills, mail
-  **bounces and nobody is told**. Check the mailbox's storage when relaying.
-  Nothing in the receiver watches it.
+  **bounces to the client, and nobody at Carbon is told.**
+  - `tools/team_mailbox_capacity.cjs` reads the pool's usage and limit (the
+    Drive API's `about.get`, `fields=storageQuota`) and reports `OK`,
+    `NEAR_FULL` (90% by default), `FULL`, `UNLIMITED`, `NOT_CONFIGURED` or
+    `UNREADABLE`.
+  - The receiver serves the reading at `GET /private/mailbox`, to the intake
+    receiver. `node tools/team_mailbox_capacity.cjs` exits non-zero for
+    anything but `OK` or `UNLIMITED`, so a scheduler can alert on it.
+  - **It needs one owner step:** an OAuth client for the intake account, with
+    the `drive.file` scope only, and its `client_id`, `client_secret` and
+    `refresh_token` in a `0600` JSON file named by
+    `CARBON_TEAM_MAILBOX_QUOTA_CREDENTIAL_FILE`. `drive.file` grants no access
+    to mail and none to any file the application did not create.
+  - Until that credential exists, the reading is `NOT_CONFIGURED`, never room.
+    Check the mailbox's storage by hand when relaying.
 
 ### 3.6 Notice and consent
 
@@ -626,12 +651,15 @@ wrong credential names no account and is limited per source only.
 
 **Still absent: the escalation and abuse-response path** (who is told, what
 happens after repeated lockouts, how an account is investigated). That is
-policy, and it stays behind the security review. Absent is absent: do not read
+policy, and it is in the security review's scope. That review is postponed until
+the first real client engagement (`OWNER-CLIENT-SECURITY-REVIEW-01`). Absent is
+absent: do not read
 the controls above as an abuse posture.
 
 ### 3.8 Incident and rollback
 
-*Precondition: named incident owner and rollback authority.*
+*Precondition: named incident owner and rollback authority. Met:
+`CARBON-D-INCIDENT`. Both are Ryan's.*
 
 Rollback is: stop the process and leave the store file in place. The store is
 the evidence; nothing in an incident justifies deleting it, and a deletion still
@@ -667,9 +695,13 @@ Still blocked, and by which row: **§3.2** storage location and jurisdiction
 accounts and credential issuance; **§3.4** retention period, legal basis and
 approver (Ryan, Nick, counsel under OD-25 — `legal_basis` stays `null`);
 **§3.5** sender credential, which stays unset; **§3.6** notice and consent text;
-**§3.7** rate limiting, lockout and escalation, which remain absent; **§3.8**
-incident ownership and rollback authority. Money for counsel and for the §5
-security review is unanswered, and nothing legal can start until it is.
+**§3.7** the escalation and abuse-response path, which remains absent (rate
+limiting and lockout are built, E9). **§3.8** is no longer blocked: incident
+ownership and rollback authority are Ryan's (`CARBON-D-INCIDENT`). Counsel is
+engaged: E7's screening standard is approved
+(`OWNER-CLIENT-MODEL-PROVIDER-02`). The §5 security review is postponed, not
+cancelled. It is required before the first real client record is handled, and
+its spend figure returns as an owner item then (`OWNER-CLIENT-SECURITY-REVIEW-01`).
 
 **§3.1 being resolved is not W-C progressing.** A working internal host on
 loopback with synthetic fixtures is one precondition of nine, and the eight that
@@ -678,5 +710,7 @@ remain are the ones that involve a client.
 ## 5. What would make this deployable
 
 Every row in §2 resolved, then a security review of the deployed surface rather
-than of this repository's tests. Passing tests are not a security
+than of this repository's tests. That review is postponed until the first real
+client engagement and required before the first real client record is handled
+(`OWNER-CLIENT-SECURITY-REVIEW-01`). Passing tests are not a security
 qualification, and this runbook is not an authorization to provision anything.
