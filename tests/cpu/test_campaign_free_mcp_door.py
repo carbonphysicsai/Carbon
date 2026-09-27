@@ -139,3 +139,64 @@ def test_the_new_slug_carries_a_next_action_like_every_other():
     assert "nothing to reconcile" in NEXT_ACTION[AdapterCode.NO_CAMPAIGN.value]
     for code in AdapterCode:
         assert NEXT_ACTION[code.value].strip(), code
+
+
+def _start_task(adapter):
+    from carbon.miner_mcp.standard import ResearchToolRequest
+
+    return asyncio.run(
+        adapter.start_task(
+            ResearchToolRequest(
+                "start_research_task", "external-operation-0003", dict(PRACTICE)
+            )
+        )
+    )
+
+
+def test_the_task_path_refuses_before_dispatch_as_honestly_as_the_call_path():
+    """`start_task` goes through `_task_call`, which once had no refusal branch.
+
+    Without it the refusal fell into the blanket handler and reported
+    `dispatch_may_have_occurred=True` for work that provably never started.
+    """
+    from carbon.miner_mcp.standard import AdapterFailure
+
+    _sdk, adapter = make_adapter(ledger=None)
+    with pytest.raises(AdapterFailure) as raised:
+        _start_task(adapter)
+    assert raised.value.code is AdapterCode.NO_CAMPAIGN
+    assert raised.value.dispatch_may_have_occurred is False
+
+
+def test_closed_admission_is_a_pre_dispatch_refusal_on_the_task_path():
+    """Admission closed is refused before any reservation; say nothing started."""
+    from carbon.miner_mcp.standard import AdapterFailure
+
+    sdk, adapter = make_adapter(ledger=object())
+    sdk.composition.executor.cleanup_only = True
+    with pytest.raises(AdapterFailure) as raised:
+        _start_task(adapter)
+    assert raised.value.code is AdapterCode.OPERATIONAL_STOP
+    assert raised.value.dispatch_may_have_occurred is False
+
+
+def test_a_failure_after_admission_still_reports_dispatch_may_have_occurred(
+    monkeypatch,
+):
+    """Specimen: the refusal branch does not swallow the conservative case.
+
+    A failure that is not a pre-dispatch refusal - raised where a reservation
+    could already be held - must keep reporting that dispatch may have occurred.
+    """
+    from carbon.development_session.research_tools import ResearchMinerTools
+    from carbon.miner_mcp.standard import AdapterFailure
+
+    async def after_reserve(self, mode, args, identity):
+        raise ValueError("research operation ambiguous; reconcile, never duplicate")
+
+    monkeypatch.setattr(ResearchMinerTools, "task_call", after_reserve)
+    _sdk, adapter = make_adapter(ledger=object())
+    with pytest.raises(AdapterFailure) as raised:
+        _start_task(adapter)
+    assert raised.value.code is AdapterCode.OPERATIONAL_STOP
+    assert raised.value.dispatch_may_have_occurred is True

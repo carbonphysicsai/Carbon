@@ -215,8 +215,9 @@ class PreDispatchRefusal(Exception):
     miner told their work may have started when it provably did not will go
     looking for consumption that does not exist.
 
-    Raised only where the absence of a campaign is established up front, so
-    every instance is one where "nothing happened" is a fact rather than a hope.
+    Raised only where the refusal is established up front - no campaign, or
+    admission closed before any reservation - so every instance is one where
+    "nothing happened" is a fact rather than a hope.
     """
 
     def __init__(self, reason: str, *, next_action: str):
@@ -385,7 +386,17 @@ class ResearchMinerTools:
             getattr(getattr(self.composition, "executor", None), "cleanup_only", False)
             or getattr(self.wrapper, "_closing", False)
         ):
-            raise ValueError("research admission is closed")
+            # Checked before any reservation or task admission, so refusing
+            # here is a fact that nothing started, not a hope.
+            raise PreDispatchRefusal(
+                "ADMISSION_CLOSED",
+                next_action=(
+                    "This server is shutting down or cleaning up and admits no "
+                    "new research. Nothing was started. Reconnect to a server "
+                    "that is accepting work, then retry with the same "
+                    "operation_id."
+                ),
+            )
 
         if transport_request_id is not None and (
             type(transport_request_id) is not str
