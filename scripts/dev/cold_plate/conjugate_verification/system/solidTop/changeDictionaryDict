@@ -1,0 +1,41 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      changeDictionaryDict;
+}
+
+T
+{
+    internalField   uniform 300;
+    boundaryField
+    {
+        heated
+        {
+            // Uniform heat flux q into the slab's outer face.
+            type            externalWallHeatFluxTemperature;
+            mode            flux;
+            q               uniform 1e4;
+            kappaMethod     solidThermo;
+            value           uniform 300;
+        }
+        solidEnds       { type zeroGradient; value uniform 300; }
+        "solidTop_to_.*"
+        {
+            type            compressible::turbulentTemperatureCoupledBaffleMixed;
+            Tnbr            T;
+            kappaMethod     solidThermo;
+            value           uniform 300;
+        }
+    }
+}
+p
+{
+    internalField   uniform 1e5;
+    boundaryField
+    {
+        ".*" { type calculated; value uniform 1e5; }
+        frontAndBack { type empty; }
+    }
+}

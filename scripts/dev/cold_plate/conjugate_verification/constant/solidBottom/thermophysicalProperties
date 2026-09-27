@@ -1,0 +1,27 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      thermophysicalProperties;
+}
+
+// Verification values, not a plate material: only kappa matters at steady
+// state. The expected temperature drop across the slab is q t / kappa.
+thermoType
+{
+    type            heSolidThermo;
+    mixture         pureMixture;
+    transport       constIso;
+    thermo          hConst;
+    equationOfState rhoConst;
+    specie          specie;
+    energy          sensibleEnthalpy;
+}
+mixture
+{
+    specie          { molWeight 50; }
+    transport       { kappa 10; }
+    thermodynamics  { Hf 0; Cp 1000; }
+    equationOfState { rho 1000; }
+}
