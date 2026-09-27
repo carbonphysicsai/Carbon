@@ -37,6 +37,7 @@ def _journey_host(root, patch):
     from types import SimpleNamespace
 
     from carbon.chain.models import MetagraphSnapshot, Participant
+    from carbon.challenge_registry.campaigns import campaign_for
     from carbon.development_session import research_campaign, research_rewards
     from carbon.development_session.chain_onboarding import (
         PublicAddress,
@@ -139,6 +140,7 @@ def _journey_host(root, patch):
             task=None,
             grant=None,
             agent_policy=None,
+            campaign=campaign_for(None),
         )
 
     async def final_epoch(args, ledger, owner, epoch, strategy, *_):
