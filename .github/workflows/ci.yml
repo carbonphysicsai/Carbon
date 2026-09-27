@@ -205,6 +205,12 @@ jobs:
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: "24.19.0"
+      - name: Reuse the published Julia depot when it is for these Julia inputs
+        # The depot's identity is Julia inputs only (julia_depot.depot_digest),
+        # so it survives commits that do not touch them. A lock for other
+        # inputs, a failed pull or a failed check leaves nothing recorded, and
+        # the suite then builds the depot cold. Pulled by digest, no credential.
+        run: ./.venv/bin/python ./scripts/dev/julia_depot.py adopt --root .carbon-artifacts/authored-julia-images/depot
       - name: Exercise registered Julia study and observed cancellation cleanup
         env:
           CARBON_JULIA_WORKER_MANIFEST: .carbon-artifacts/julia-worker-image.json
@@ -226,6 +232,7 @@ jobs:
             .carbon-artifacts/c03-service-traces.jsonl
             .carbon-artifacts/julia-worker-image.json
             .carbon-artifacts/julia-service-traces.jsonl
+            .carbon-artifacts/authored-julia-images/depot/events.jsonl
           if-no-files-found: error
 
   workbench:

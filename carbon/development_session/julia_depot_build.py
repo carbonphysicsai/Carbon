@@ -12,6 +12,7 @@ import hashlib
 import json
 import subprocess
 import tarfile
+import time
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -89,6 +90,15 @@ def tree_digest(cli, image, path):
     return digest(json.dumps(entries, separators=(",", ":")).encode())
 
 
+def _record(root, **event):
+    """Append what happened to this depot root's event log: evidence of whether
+    a run reused, adopted or built the depot, and how long that took."""
+    root.mkdir(parents=True, exist_ok=True, mode=0o700)
+    line = json.dumps({"at": round(time.time()), **event}, sort_keys=True)
+    with (root / "events.jsonl").open("a", encoding="utf-8") as log:
+        log.write(line + "\n")
+
+
 def verify_depot(depot, cli):
     """The depot image is the one recorded, built from today's Julia inputs."""
     if type(depot) is not JuliaDepotIdentity:
@@ -157,13 +167,23 @@ def build_depot(root, cli):
     """
     from .data import write_once
 
+    started = time.monotonic()
     fingerprint = depot_digest()
     manifest = depot_manifest(root)
     if manifest.exists():
         try:
-            return verify_depot(load_depot(manifest), cli), "reused"
-        except Exception:  # noqa: BLE001 - any failed check means a cold rebuild
+            depot = verify_depot(load_depot(manifest), cli)
+        except Exception as refused:  # noqa: BLE001 - any failed check: rebuild
             manifest.unlink()
+            _record(
+                root,
+                depot_digest=fingerprint,
+                how="discarded",
+                reason=type(refused).__name__,
+            )
+        else:
+            _record(root, depot_digest=fingerprint, how="reused", image=depot.image_id)
+            return depot, "reused"
     directory = manifest.parent
     directory.mkdir(parents=True, exist_ok=True, mode=0o700)
     base_context = directory / "base-context"
@@ -200,6 +220,13 @@ def build_depot(root, cli):
     )
     verify_depot(depot, cli)
     write_once(manifest, canonical({"schema": DEPOT_SCHEMA, **depot.__dict__}))
+    _record(
+        root,
+        depot_digest=fingerprint,
+        how="built",
+        image=depot.image_id,
+        seconds=round(time.monotonic() - started),
+    )
     return depot, "built"
 
 
@@ -250,4 +277,11 @@ def adopt_depot(root, cli, reference):
         manifest.unlink()
     manifest.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
     write_once(manifest, canonical({"schema": DEPOT_SCHEMA, **depot.__dict__}))
+    _record(
+        root,
+        depot_digest=depot.depot_digest,
+        how="adopted",
+        image=image,
+        reference=reference,
+    )
     return depot
