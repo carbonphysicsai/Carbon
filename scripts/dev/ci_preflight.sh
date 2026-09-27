@@ -49,6 +49,9 @@ python3 scripts/dev/classify_changes.py "${classifier_args[@]}"
 echo "==> Workbench product-lane requirement"
 python3 scripts/dev/workbench_scope.py "${classifier_args[@]}"
 
+echo "==> Julia service-suite requirement"
+python3 scripts/dev/julia_scope.py "${classifier_args[@]}"
+
 echo "==> introduced commit, identity, and tracked-text hygiene"
 python3 scripts/dev/check_delivery_hygiene.py \
   --repository "${repo_root}" \

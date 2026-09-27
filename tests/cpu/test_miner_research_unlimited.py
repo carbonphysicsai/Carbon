@@ -162,3 +162,29 @@ def test_a_miners_own_time_budget_still_binds(tmp_path):
     assert not _has_time_budget(ledger(tmp_path / "a"))
     budgeted = ledger(tmp_path / "b", ceilings={"numerical_milliseconds": 60_000})
     assert _has_time_budget(budgeted)
+
+
+def test_nested_output_is_collected_and_an_unreadable_part_fails(tmp_path):
+    from carbon.development_session.miner_container import collect_outputs
+
+    scratch = tmp_path / "scratch"
+    (scratch / "output" / "bundle" / "checkpoint").mkdir(parents=True)
+    (scratch / "output" / "digest.txt").write_text("d")
+    (scratch / "output" / "bundle" / "binding.json").write_text("{}")
+    (scratch / "output" / "bundle" / "checkpoint" / "state.npz").write_bytes(b"s")
+    # Specimen: readable nested output is collected in full.
+    copied = collect_outputs(scratch, tmp_path / "snapshot")
+    assert set(copied) == {
+        "digest.txt",
+        "bundle/binding.json",
+        "bundle/checkpoint/state.npz",
+    }
+    # A directory the host cannot read fails the collection rather than
+    # yielding a snapshot that silently lacks it.
+    locked = scratch / "output" / "bundle"
+    locked.chmod(0)
+    try:
+        with pytest.raises(ValueError, match="could not be read in full"):
+            collect_outputs(scratch, tmp_path / "snapshot-2")
+    finally:
+        locked.chmod(0o700)

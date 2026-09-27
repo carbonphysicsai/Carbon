@@ -7,8 +7,8 @@ machine on 2026-09-24 and made its encrypted offline backup. Its public record i
 `data/intake_public_key.json`, fingerprint
 `5a38 c3ea bbd2 dd56 ce57 d3e1 f2c5 b1f1 6cd5 c1e0 f5bc 62a8 bb62 9699 8eec 5c18`.
 The Pilot Designer's *Download encrypted for Carbon* button is wired to that key.
-It reaches the public site only through a new Ask Carbon release candidate and
-the owner's publication approval. The earlier
+It reaches the public site through Ask Carbon candidate 2026-09-26.1, which is
+approved for publishing (#375) and awaits the owner's deployment. The earlier
 status line read **proposed, not implemented.** This is the only part of E6 that asks
 someone outside Carbon to do something, so it waits for the owner. Nothing here
 changes the public Pilot Designer until the owner has seen the client steps.
@@ -75,7 +75,9 @@ The friction, honestly:
   relayed, then destroy it. Because each package names its key, a package that
   arrives late under the old key is recognised, not mis-decrypted.
 - **Review:** key management for this key joins the E1 archive keys in the
-  security review's scope, and is handled the same way, not separately.
+  security review's scope, and is handled the same way, not separately. The
+  review is postponed until the first real client engagement
+  (`OWNER-CLIENT-SECURITY-REVIEW-01`); this is its scope when it arms.
 
 ## (c) When a client sends plaintext anyway
 
@@ -90,8 +92,8 @@ the plaintext copy immediately shortens how long it exists.
 
 **This is built:** the relay states `x-carbon-transport-arrival: PLAINTEXT`, and
 the record then carries `required_disposition:
-PERMANENTLY_REMOVED_WITHOUT_DELAY`. The reply to the client is a human step,
-and it waits on the owner's approval of this proposal.
+PERMANENTLY_REMOVED_WITHOUT_DELAY`. The reply to the client is a human step.
+The proposal it waited on was approved on 2026-09-23.
 
 ## (d) Publishing the public key
 
@@ -116,12 +118,14 @@ check fails. `seal` accepts only a recipient built by that check. A test pins th
 committed record to the owner-confirmed fingerprint, so a rotation changes that
 test deliberately.
 
-## What deciding this would take
+## What deciding this took (decided 2026-09-23 and 2026-09-24)
 
 1. Approve or amend the recommended format and the client steps in (a).
 2. Approve the plaintext-arrival action in (c), including the reply to the
    client.
 3. Decide who generates the key pair and where its offline backup is kept.
 
-Until then, mailed packages relay as they are, and the record states honestly
-whether each one arrived `ENCRYPTED` or `PLAINTEXT`.
+Items 1 and 2 were approved on 2026-09-23 (working decision 2). For item 3, the
+owner generated the key on 2026-09-24 and holds its offline backup. Mailed
+packages still relay as they are until the button is live, and the record
+states whether each one arrived `ENCRYPTED` or `PLAINTEXT`.
