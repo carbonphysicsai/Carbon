@@ -73,6 +73,25 @@ _CORE04_GENERATOR_CONSUMERS = {
 }
 
 # C-CORE-08 reuses two exact frozen public TRAIN cases. No generation authority.
+# OWNER-CHALLENGE-KIT-01 (2026-09-26): the miner's research sandbox may generate
+# practice cases from the PUBLIC generator under the PUBLISHED population, with
+# the miner's own roots and mock seeding only. This is the one generation-
+# capable consumer outside the controller; it never receives an official seed,
+# derived seed, draw id or reversible id. Semantic decontamination (constitution
+# §7.2) is NOT established by this boundary: it stays open, owned by the MQ-008
+# holder.
+_CHALLENGE_KIT_GENERATOR_CONSUMERS = {
+    "challenge_kit/burgers.py": {
+        "carbon.generators.burgers_dynamics": {
+            "BurgersCaseCoordinates",
+            "PublicDevelopmentRole",
+            "evaluate_initial_field",
+            "generate_development_case",
+            "requested_times",
+        }
+    },
+}
+
 _CORE08_GENERATOR_CONSUMERS = {
     "development_session/julia_envelope.py": {
         "carbon.generators.burgers_dynamics": {
@@ -469,6 +488,11 @@ def test_existing_carbon_packages_do_not_reverse_import_generators() -> None:
             continue
         if path.relative_to(_CARBON_ROOT).as_posix() in _CORE08_GENERATOR_CONSUMERS:
             continue
+        if (
+            path.relative_to(_CARBON_ROOT).as_posix()
+            in _CHALLENGE_KIT_GENERATOR_CONSUMERS
+        ):
+            continue
         violations.extend(
             f"{_relative(path)}:{line}" for line in _imports_generators(path)
         )
@@ -672,6 +696,25 @@ def test_core04_workbench_imports_only_exact_public_case_symbols():
         _assert_registered_generator_symbols(
             path, _parse(path), _CORE04_GENERATOR_CONSUMERS
         )
+
+
+def test_the_challenge_kit_imports_only_the_public_generator_symbols():
+    for relative in _CHALLENGE_KIT_GENERATOR_CONSUMERS:
+        path = _CARBON_ROOT / relative
+        _assert_registered_generator_symbols(
+            path, _parse(path), _CHALLENGE_KIT_GENERATOR_CONSUMERS
+        )
+    for source in (
+        "from carbon.generators.burgers_dynamics import generate_development_case, GeneratorService",
+        "from carbon.generators.burgers_dynamics import *",
+        "from carbon.generators import GeneratorService",
+        "import carbon.generators.burgers_dynamics as generator",
+        "from carbon import generators",
+    ):
+        with pytest.raises(AssertionError):
+            _assert_registered_generator_symbols(
+                path, ast.parse(source), _CHALLENGE_KIT_GENERATOR_CONSUMERS
+            )
 
 
 def test_core08_envelope_imports_only_exact_public_case_symbols():

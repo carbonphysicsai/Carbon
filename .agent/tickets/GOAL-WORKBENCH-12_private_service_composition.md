@@ -93,14 +93,16 @@ rather than cited:
 
 | What is needed | Whose it is | What changes the day it is granted |
 |---|---|---|
-| Money for counsel and for a security review of the deployed surface | **Ryan** | Unblocks every legal item below; nothing legal can start until this is answered |
+| Money for counsel | **Ryan** — resolved | Counsel is engaged: counsel approved the E7 screening standard, which is configured privately (`OWNER-CLIENT-MODEL-PROVIDER-02`). Legal work has started and delivered. |
+| Security review of the deployed client-data surface | **Ryan** — postponed (`OWNER-CLIENT-SECURITY-REVIEW-01`) | Required before the first real client record is handled, not before. It arms on the first real client engagement (a signed client agreement, a recorded signed opt-in, or any instruction to receive real client material). Its spend figure returns as an open owner item then. |
 | Storage location and jurisdiction | **Nick**, plus a jurisdiction and entity only **Ryan** can supply | §3.2 proceeds; records that matter may be written |
 | Retention period, legal basis, approver (OD-25) | **Ryan and Nick with counsel** | `legal_basis` stops being `null`; deletion stops being exception-only by default |
 | Notice and consent text | **Ryan and Nick with counsel** | Client-facing collection becomes possible at all |
 | Sender credential and authorised sender identity | **Ryan** | Notifications may be attempted; today every attempt reports that none is configured |
 | Named staff accounts and credential issuance | **Ryan** | Real identities replace the synthetic stage-1 directory |
 | Incident ownership and rollback authority | **Ryan** — decided, see `CARBON-D-INCIDENT` | already granted; the operator to page is named |
-| Rate limiting, lockout and escalation | engineering, gated on the security review above | The abuse controls the runbook records as absent get built |
+| Rate limiting and lockout | engineering — **built** (E9, #315), before the review so the reviewer has controls to assess | Second factor, per-source rate limits, lockout and session limits are in the receiver |
+| Escalation and abuse response | **Ryan** — policy, in the security review's scope | Who is told and what follows repeated lockouts; still absent |
 
 Every row is Ryan's or Nick's. Nothing here is external to Carbon, and nothing
 is waiting on a third party.

@@ -28,7 +28,7 @@ Owner inputs still required before provisioning or live collection:
 | Notification | one staff destination and authorized sender | staff alert only; not durable receipt |
 | Retention/deletion | explicit period plus data-steward procedure | live intake |
 | Notice/permissions | reviewed inquiry notice; optional learning separate | public collection |
-| Incident/rollback | named operator; disable Worker route and preserve store | production operation |
+| Incident/rollback | **decided: `CARBON-D-INCIDENT`, Ryan's** | — |
 | Incremental cost | review actual Cloudflare storage/request estimate | paid provisioning |
 
 No secret belongs in source, an issue, a client export or chat. A shared staging

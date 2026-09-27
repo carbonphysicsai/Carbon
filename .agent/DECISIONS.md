@@ -16100,3 +16100,68 @@ wrangler command. No change to budget or ceilings, inquiry collection (issue
 #139, disabled), the Pilot Designer's opt-in, customer-data processing, or
 the `AskCarbonUsageLedger` Durable Object, which is never rolled back or
 deleted.
+
+## 2026-09-26 — OWNER-CHALLENGE-KIT-01: public generation in the miner sandbox
+
+**Authority.** The owner, in session on 2026-09-26, on the Burgers challenge kit
+(#370): build it, with one hard line.
+
+1. **Allowed.** The miner's research sandbox may generate practice cases from a
+   Challenge's public generator, under the published population, with the
+   miner's own seed roots and mock seeding only. That is what practice is for: a
+   miner cannot train without data.
+2. **Never allowed.** The sandbox may never generate, infer or influence an
+   official eval or stress realization. Official seeds, derived seeds, draw ids
+   and reversible ids never reach it (`Challenge_Instance_Distribution.md`: no
+   miner control of official eval/stress realization). Invariant 12 holds: the
+   free loop cannot become the official exam, and practice signal stays
+   deliberately incomplete.
+3. **Enforced structurally.**
+   - `test_b03` admits `challenge_kit/burgers.py` through a symbol-scoped
+     exception for the five public generator symbols only.
+   - `test_no_official_seed_material_reaches_the_sandbox` shows the kit names
+     no official or qualification seeding, no controller seed roots and no
+     frozen final seeds, and that its only context is a mock one over the
+     miner's own 32-byte root. A specimen shows the same scan finds official
+     seeding where it lives.
+4. **Open, not settled by any test.** Constitution §7.2: seed separation does
+   not prove semantic decontamination. Different seeds from the same generator
+   are necessary but not sufficient. Whether what the sandbox can produce lets a
+   miner reconstruct the exam population is a scientific judgement, open and
+   owned by the MQ-008 holder. The passing tests above establish structural
+   separation only.
+
+## 2026-09-27 — OWNER-CLIENT-SECURITY-REVIEW-01: the client-data security review is postponed to the first real client engagement
+
+**Authority.** The owner, in session on 2026-09-27, on the GOAL-WORKBENCH-15
+security review: "I'm postponing that activity until well closer to actual
+clients, remove it from being a blocker currently. There's no reason for it at
+all yet."
+
+1. **Postponed, not cancelled.** No real client, signed opt-in or client
+   content exists. Held today, the review would assess a pipeline that has never
+   carried a real record.
+2. **All nine client-data changes are delivered:** E8 (#314), E9 (#315) and
+   E1–E7 (#318). E6 is outstanding only on the client-side format. The ticket's
+   own precondition, E9, is met.
+3. **The gate is now an event, not a spend figure.**
+   - The independent security review of the client-data path is required before
+     the first real client record is handled, and not before.
+   - It arms on the first real client engagement, whichever comes first of:
+     - a signed client agreement;
+     - a recorded signed opt-in;
+     - any instruction to receive real client material.
+   - Until then it is not a blocker on any item in any ticket.
+   - No date is set.
+4. **The spend figure returns as an open owner item when the review arms,** and
+   not before. No figure is written here.
+5. **AGENTS.md section 13 is unwaived.** Tests are not a production security
+   audit, and client confidential data remains high-risk work that must be
+   surfaced for dedicated review. Only the review's timing changes.
+6. **Every E1–E9 control stays exactly as delivered,** and the review's scope
+   stays written down where it is.
+7. **Two stale rows in GOAL-WORKBENCH-12 are corrected.**
+   - Counsel money is resolved: counsel approved E7.
+   - Rate limiting and lockout are built, as E9.
+
+See `.agent/tickets/GOAL-WORKBENCH-15_client_data_engineering.md`.
