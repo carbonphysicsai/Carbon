@@ -10202,6 +10202,19 @@ events:
   -
     map_ref: "SYSTEM/AGENT-EXECUTION"
     event_type: "adjustment"
+    event_id: "C-MLP-02-UNAVAILABLE-CAUSES-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "The Control Center's unavailable integrations were re-audited against current code and three reasons that had outlived their causes were corrected: RunPod is now compute_adapter_not_wired_into_launch (carbon.compute implements the pod lifecycle, but no launch path dispatches to it, so configuring a key changes nothing); Chutes is no_chutes_adapter_generic_chat_adapter_unexercised_against_it (the generic OpenAI-compatible chat adapter reaches any endpoint the miner names, but Chutes has no adapter of its own and Carbon has not exercised one against it), with a next action pointing at that adapter; and the remote door's comment no longer calls its hosting undecided, naming the owner's section 4 security review as what gates external reach. A new test ties each code-describing reason to a probe of the code that makes it true (no launch-path module imports carbon.compute; no Chutes or Hermes adapter; no Lium compute provider; nothing that serves an app touches the remote door), each with a specimen showing its search finds what is present, so a reason fails its test when its cause goes away. DEVELOPMENT only; no provider was contacted."
+    primary_detail: "scripts/dev/miner_launchpad/controller.py"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "WAVE-C/C-W1-D4"
+    supersedes: null
+    recorded_at: "2026-09-27T11:00:00Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "adjustment"
     event_id: "C-MLP-02-LAUNCH-MODEL-SELECTION-01"
     owner_lane: "technical_lead"
     status: "implemented"

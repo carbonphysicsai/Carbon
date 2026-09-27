@@ -450,13 +450,17 @@ INTEGRATION_PLACEMENT = {
     "mira": ("connection", "None today; the interface has not been verified."),
     "chutes": (
         "model_provider",
-        "Choose 'Any service implementing OpenAI Chat Completions' with your "
-        "own endpoint and key, declaring the model's price for a spend limit.",
+        (
+            "Choose 'Any service implementing OpenAI Chat Completions' with your "
+            "own endpoint and key, declaring the model's price for a spend limit."
+        ),
     ),
     "runpod": (
         "compute_provider",
-        "Run on this machine's isolated worker, or attach a host you control "
-        "(a RunPod pod you started yourself counts).",
+        (
+            "Run on this machine's isolated worker, or attach a host you control "
+            "(a RunPod pod you started yourself counts)."
+        ),
     ),
     "lium": (
         "compute_provider",
