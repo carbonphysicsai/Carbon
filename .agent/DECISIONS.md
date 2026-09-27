@@ -16130,3 +16130,38 @@ deleted.
    miner reconstruct the exam population is a scientific judgement, open and
    owned by the MQ-008 holder. The passing tests above establish structural
    separation only.
+
+## 2026-09-27 — OWNER-CLIENT-SECURITY-REVIEW-01: the client-data security review is postponed to the first real client engagement
+
+**Authority.** The owner, in session on 2026-09-27, on the GOAL-WORKBENCH-15
+security review: "I'm postponing that activity until well closer to actual
+clients, remove it from being a blocker currently. There's no reason for it at
+all yet."
+
+1. **Postponed, not cancelled.** No real client, signed opt-in or client
+   content exists. Held today, the review would assess a pipeline that has never
+   carried a real record.
+2. **All nine client-data changes are delivered:** E8 (#314), E9 (#315) and
+   E1–E7 (#318). E6 is outstanding only on the client-side format. The ticket's
+   own precondition, E9, is met.
+3. **The gate is now an event, not a spend figure.**
+   - The independent security review of the client-data path is required before
+     the first real client record is handled, and not before.
+   - It arms on the first real client engagement, whichever comes first of:
+     - a signed client agreement;
+     - a recorded signed opt-in;
+     - any instruction to receive real client material.
+   - Until then it is not a blocker on any item in any ticket.
+   - No date is set.
+4. **The spend figure returns as an open owner item when the review arms,** and
+   not before. No figure is written here.
+5. **AGENTS.md section 13 is unwaived.** Tests are not a production security
+   audit, and client confidential data remains high-risk work that must be
+   surfaced for dedicated review. Only the review's timing changes.
+6. **Every E1–E9 control stays exactly as delivered,** and the review's scope
+   stays written down where it is.
+7. **Two stale rows in GOAL-WORKBENCH-12 are corrected.**
+   - Counsel money is resolved: counsel approved E7.
+   - Rate limiting and lockout are built, as E9.
+
+See `.agent/tickets/GOAL-WORKBENCH-15_client_data_engineering.md`.

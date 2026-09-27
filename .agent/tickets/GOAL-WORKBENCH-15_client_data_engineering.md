@@ -9,8 +9,13 @@ counsel's context only. It is not the authority to build them.
 
 Status: bounded engineering delivery, one item per pull request. No client-facing
 collection, no deployment beyond the one internal machine, no spend and no
-security review is authorized by this ticket. The review is gated on E9 and on a
-spend figure the owner has not yet supplied.
+security review is authorized by this ticket. E9 is complete (#315), and so are
+the other eight changes. The independent security review of the client-data path
+is **postponed** (`OWNER-CLIENT-SECURITY-REVIEW-01`, 2026-09-27). It is required
+before the first real client record is handled, and not before. It arms on
+the first real client engagement: whichever comes first of a signed client
+agreement, a recorded signed opt-in, or any instruction to receive real client
+material. Until then it is not a blocker on any item in any ticket.
 
 Primary Development Hub map_ref: `SYSTEM/BUSINESS-AUTHORITY`; impact
 `mapped_detail`.
@@ -37,7 +42,10 @@ progressing.
 | E6 | Encrypted intake package, one intake address, transport-copy deletion logged | 3 | address and Workspace settings are the owner's, operator configuration |
 | E7 | Client-record access limited to screened people; export-control reference per record | 3 | screening standard is counsel's, null — a null makes the record unreachable |
 
-The security review cannot start until E9 is complete. E2 and E5 must be
+The security review is required before the first real client record is handled
+and arms on the first real client engagement: whichever comes first of a signed client
+agreement, a recorded signed opt-in, or any instruction to receive real client
+material. E9, which it depended on, is complete. E2 and E5 must be
 complete before the first paying client. None of E1–E9 is a prerequisite for
 anything already launched.
 
@@ -120,8 +128,9 @@ material toward the subnet or the public assistant found:
   naming its format, and sends it somewhere, is not caught by these tests. They
   pin every route that exists. Stopping one that has not been written yet is what
   E1 adds: client records encrypted at rest under per-client keys that neither
-  the subnet side nor the assistant ever holds. Until E1 lands, that residual is
-  real and stated here rather than hidden.
+  the subnet side nor the assistant ever holds. E1 landed in #318, so a module
+  reading a record by path now reads only ciphertext under that record's own
+  key.
 
 **Open owner question, recorded rather than decided.** The public Pilot
 Designer's optional AI assist sends what a visitor types into the public site
@@ -242,8 +251,19 @@ plaintext handling and key publication. See
 
 **Known limitations:**
 - No Vault, so there is no retention rule and no legal hold on mail.
-- A possible administrator restore window has not been verified.
-- A full intake mailbox bounces unobserved.
+- **Administrator restore window.** Established from Google's documentation
+  (2026-09-27): an admin can restore mail for 25 days after the 30-day period
+  following deletion. `PERMANENTLY_REMOVED` therefore does not mean
+  unrecoverable. Each such entry now states `admin_restore_possible_until`,
+  with basis `PROVIDER_DOCUMENTATION_NOT_VERIFIED_AGAINST_ACCOUNT`. It is
+  pinned by `tests/test_team_transport_copy.cjs`.
+- **A full intake mailbox bounces to the client.** It is now observable:
+  - `tools/team_mailbox_capacity.cjs` reads the pooled storage and serves it at
+    `GET /private/mailbox`;
+  - `tests/test_team_mailbox_capacity.cjs` pins it.
+
+  It reads only once the owner issues a `drive.file`-only OAuth credential for
+  the intake account. Until then it reports `NOT_CONFIGURED`, never room.
 
 ## E3 — delivered (#318)
 
@@ -275,8 +295,8 @@ plaintext handling and key publication. See
   archive period (key first) each happen when due and not before. An open study
   is kept.
 
-**Proposed, not built:** a record-level hold that both destruction paths
-refuse, to be decided before any period is set.
+**Record hold:** built. See working decision 3 below and
+`tests/test_team_record_hold.cjs`.
 
 ## E7 — delivered (#318)
 
@@ -324,7 +344,7 @@ a legal question, and none authorizes deployment or collection.
    agreement reference is refused. Real client records stay unreachable until
    counsel's standard replaces it.
 
-Items 3 and 4 are built: the record hold (`tests/test_team_record_hold.cjs`) and the synthetic development standard (`tests/test_team_synthetic_standard.cjs`). Items 1 and 2 change the public Pilot Designer page, whose exact bytes are pinned by Ask Carbon's public release candidate. They therefore go through a new release candidate, and the owner's publication approval, as their own change. For item 2, the owner generated the intake key on 2026-09-24, with its encrypted offline backup, and the button is wired to it (`data/intake_public_key.json`, stacked on item 1's pull request). Both wait only for the new candidate and the owner's publication approval. One correction to item 1 as first written: the assist already never received the quantity fields. The exposure is the free-text `operating_envelope` and `requested_targets` pilot fields, which is what item 1 will withhold.
+Items 3 and 4 are built: the record hold (`tests/test_team_record_hold.cjs`) and the synthetic development standard (`tests/test_team_synthetic_standard.cjs`). Items 1 and 2 change the public Pilot Designer page, whose exact bytes are pinned by Ask Carbon's public release candidate. They therefore go through a new release candidate, and the owner's publication approval, as their own change. For item 2, the owner generated the intake key on 2026-09-24, with its encrypted offline backup, and the button is wired to it (`data/intake_public_key.json`, stacked on item 1's pull request). The new candidate carrying both, 2026-09-26.1, is approved for publishing (#375, WEB-QA-09-D1). Only its deployment, which is the owner's, remains. One correction to item 1 as first written: the assist already never received the quantity fields. The exposure is the free-text `operating_envelope` and `requested_targets` pilot fields, which is what item 1 will withhold.
 
 ## External model provider: Chutes, a per-client switch that defaults off (owner direction, 2026-09-26)
 
@@ -442,5 +462,8 @@ sent.
 
 - **Counsel:** the retention values (E2, E3), and whether a legal hold is ever
   required. The E7 screening standard is approved and is configured privately.
-- **Owner:** the security review's spend figure, and when to prepare the new
-  Ask Carbon release candidate that carries decisions 1 and 2.
+- **Owner:** deploying Ask Carbon candidate 2026-09-26.1, which carries
+  decisions 1 and 2 and was approved in #375. Issuing the `drive.file`-only
+  mailbox quota credential (E6). The security review's spend figure is not open while the
+  review is postponed. It becomes an open owner item again when the review arms
+  (`OWNER-CLIENT-SECURITY-REVIEW-01`).
