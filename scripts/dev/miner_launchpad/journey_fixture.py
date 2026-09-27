@@ -60,6 +60,12 @@ def use_reference_burgers(patch):
 FIXTURE_CHALLENGE = {"id": "fixture-reference-burgers", "version": "0"}
 
 
+def _reference_description():
+    from carbon.challenge_registry.burgers import describe
+
+    return describe()
+
+
 def register_fixture_challenge(patch):
     """DEVELOPMENT FIXTURE ONLY: register `FIXTURE_CHALLENGE` in the Challenge
     registry and map it to the reference Burgers campaign, so lifecycle tests
@@ -76,6 +82,9 @@ def register_fixture_challenge(patch):
         "fixture",
         None,
         (registry.ExecutionProfile(registry.CPU_RESEARCH, "fixture", "fixture", ()),),
+        # The registry requires a description for every implemented entry;
+        # this fixture runs the reference Burgers code, so it is that one.
+        _reference_description,
     )
     patch(registry, "_entries", lambda: (*entries(), fixture))
     patch(

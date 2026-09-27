@@ -114,7 +114,12 @@ def test_challenges_are_the_registry_catalog_with_its_descriptions():
             assert "description" not in entry
     # Reserved and deferred Challenges are listed with the registry's own code.
     reasons = {e["reason"] for e in document["challenges"] if not e["implemented"]}
-    assert reasons == {"challenge_not_implemented", "challenge_deferred"}
+    # Reserved, deferred and (Burgers) retired: each refused by its own code.
+    assert reasons == {
+        "challenge_not_implemented",
+        "challenge_deferred",
+        "challenge_retired",
+    }
     # The launch portfolio leads: the first Challenge offered is an implemented
     # launch Challenge, not the historical DEVELOPMENT one.
     first = document["challenges"][0]

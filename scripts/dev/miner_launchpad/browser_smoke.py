@@ -1092,7 +1092,10 @@ def run():
 def journey():
     """A person drives the whole journey in a real browser, with no agent."""
     from carbon.development_session.research_loop import candidate_record
-    from scripts.dev.miner_launchpad.journey_fixture import journey_host
+    from scripts.dev.miner_launchpad.journey_fixture import (
+        FIXTURE_CHALLENGE,
+        journey_host,
+    )
 
     with tempfile.TemporaryDirectory(prefix="carbon-launchpad-journey-") as temporary:
         root = Path(temporary)
@@ -1143,11 +1146,12 @@ def journey():
                     assert not session.evaluate(
                         "document.querySelector('input[name=research-agent][value=autonomous]').checked"
                     )
-                    # The fixture host composes the historical DEVELOPMENT
-                    # campaign, so the person picks that Challenge here; the
-                    # launch still names it exactly.
+                    # The fixture host registers the DEVELOPMENT-FIXTURE
+                    # reference Challenge (journey_fixture); Burgers itself is
+                    # retired, so the person picks the fixture here and the
+                    # launch names it exactly.
                     goto(session, "#launch")
-                    choose(session, "wizard-challenge", BURGERS_CHALLENGE)
+                    choose(session, "wizard-challenge", FIXTURE_CHALLENGE["id"])
                     choose(session, "research-agent", "manual")
                     click(session, "research-launch")
                     wait(session, "Boolean(document.querySelector('.journey'))")
