@@ -13,6 +13,7 @@ import time
 from contextlib import contextmanager
 from contextvars import ContextVar
 
+from carbon.reconstruction.worker import liveness_reaper
 from carbon.reconstruction.worker.docker_runtime import (
     DockerCLI,
     create_arguments,
@@ -446,6 +447,15 @@ def _run_miner_lane(
 
     scratch = prepare_scratch(operation / "scratch")
     run = MinerResearchLaunch(name, image.image_id, launch, stage, scratch)
+    # What removes this container if its owner cannot: the deadline watchdog
+    # when the miner set a time budget, otherwise a reaper that watches this
+    # controller process and removes the container only once it is gone. An
+    # unbounded run has no time limit, but it is never unguarded.
+    guard = (
+        {"kind": "DEADLINE"}
+        if seconds is not None
+        else liveness_reaper.controller_guard()
+    )
     write_once(
         operation / "intent.json",
         canonical(
@@ -458,6 +468,7 @@ def _run_miner_lane(
                 "deadline_unix": (
                     None if seconds is None else started_unix + seconds - 30
                 ),
+                "reaper": guard,
             }
         ),
     )
@@ -475,6 +486,10 @@ def _run_miner_lane(
                 container_name=name,
                 launch_digest=launch,
                 deadline_unix=float(started_unix + seconds),
+            )
+        else:
+            liveness_reaper.spawn_liveness_reaper(
+                container_name=name, launch_digest=launch, guard=guard
             )
         cli.run(["start", name], timeout=20)
         isolation = inspect_isolation(cli, run)
