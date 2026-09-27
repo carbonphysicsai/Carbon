@@ -209,7 +209,16 @@ def collect_outputs(scratch: Path, snapshot: Path) -> dict[str, int]:
     source = scratch / "output"
     snapshot.mkdir(mode=0o700)
     copied = {}
-    for directory, dirnames, filenames in os.walk(source, followlinks=False):
+
+    def unreadable(error):
+        # os.walk skips a directory it cannot list unless told otherwise; a
+        # snapshot missing part of the run's output must fail, never pass as
+        # complete.
+        raise ValueError("research output could not be read in full") from error
+
+    for directory, dirnames, filenames in os.walk(
+        source, followlinks=False, onerror=unreadable
+    ):
         base = Path(directory)
         for name in dirnames:
             if (base / name).is_symlink():
