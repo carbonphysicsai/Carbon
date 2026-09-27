@@ -82,6 +82,11 @@ def render_status(ledger, *, owner):
             op["actual"] if op["actual"] is not None else op["reservation"]
         ).items():
             total[key] = total.get(key, 0) + amount
+    from .research_agent import caching_status, provider_turns
+
+    # Cost per model turn, on its stated basis, and whether caching works.
+    value["provider_turns"] = provider_turns(value["operations"])
+    value["caching"] = caching_status(value["provider_turns"])
     value["epoch_outcomes"] = [
         json.loads(p.read_bytes())
         for p in sorted(ledger.root.glob("epoch-*/outcome.json"))
