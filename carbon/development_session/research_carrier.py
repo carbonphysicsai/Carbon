@@ -499,6 +499,12 @@ def _run_miner_lane(
             maximum=1024**4,
             timeout=unbounded if seconds is None else max(1, seconds),
         )
+        # The worker writes as its fixed non-root uid, so a directory the
+        # miner's code creates with default modes is unreadable to the host
+        # that collects it. The worker owns every output, so it opens them
+        # to reading before the container goes; links are refused at
+        # collection, and chmod -R does not follow them.
+        cli.run(["exec", name, "chmod", "-R", "a+rX", "/scratch/output"], timeout=120)
         write_once(operation / "resources.json", canonical({"isolation": isolation}))
     finally:
         if create_attempted:

@@ -23,10 +23,10 @@
       "usd": 0.0
     },
     {
-      "basis": "measured",
+      "basis": "estimated",
       "evidence": "docs/development/EXAM_DESIGN_CAMPAIGN_RESULT.md section 7",
       "item": "finalist",
-      "unit": "USD per finalist comparison, dominated by 200 fresh references",
+      "unit": "USD per finalist comparison, composed from separately measured reconstruction, reference and inference costs (never measured as one run)",
       "usd": 0.29
     },
     {
@@ -200,7 +200,7 @@
     "basis": "2,604 main-run references all OK (recounted), all 7 frozen verification criteria passed on 200 private cases, and the fresh finalist comparison stopped every memorizing candidate (RESULT sections 1 to 4).",
     "decision": "PROCEED"
   },
-  "record_version": 1,
+  "record_version": 2,
   "reference": {
     "applicability": "The declared input box only; 30 cycles; the specified model, not real cells (RESULT section 11 item 7). Solver licence and redistribution review are not recorded here.",
     "evidence": [
