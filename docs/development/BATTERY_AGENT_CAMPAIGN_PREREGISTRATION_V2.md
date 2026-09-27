@@ -1,13 +1,20 @@
 # Battery agent campaign v2: is the research environment optimal for an agent?
 
-**Status.** A **DRAFT pre-registration, version 2, for owner approval**,
-written before any v2 provider call.
+**Status.** **APPROVED by the owner on 2026-09-27** (restart brief, 21:45Z):
+"the v2 design as put to him". That covers environment-first, step zero then
+tiers 0 and 1, the campaign third at USD 3 with USD 3 reserved, the leak ladder
+designed but not run, the firewall and the maturity ceiling. Written before
+any v2 provider call.
 - v1 (`BATTERY_AGENT_CAMPAIGN_PREREGISTRATION.md`) stays exactly as approved.
   Its adaptation question is **deferred, not answered and not withdrawn**. No
   v2 result bears on whether adaptation helps.
-- Nothing in v2 runs a provider call, tier 0's included, until the owner
-  approves this document.
-- Once approved it is frozen. Changes need v3.
+- No v2 provider call had been made at approval. This version is now frozen;
+  changes need v3.
+- **Corrections made at approval**, before freezing. They are recorded here so
+  that no one reads them as silent edits:
+  - §3's claim that no sampling law is published was wrong. See the corrected
+    §3.
+  - The `generate` gap recorded by #397 is added to every tier (§3.1).
 
 **Authority.**
 - The owner's v2 brief of 2026-09-27 13:05Z ("Tiered Environment
@@ -71,14 +78,19 @@ and `run_python` are not among the twelve research operations
 1. **`check_design` is trial-free.** It is a compile-only design oracle,
    bounded only by the 48-call cap. It is the agent's most valuable
    inexpensive resource, and it is tier 3's first object of scrutiny.
-2. **Two costs are undisclosed**, and an agent that cannot see its costs
-   cannot budget:
-   - that every tool call consumes one of the 48 model calls;
-   - that a malformed practice or `run_python` call still consumes a trial.
-3. **`forecast_resources` is uncalibrated, and says so in advance**
+2. **Every tool call spends one of the 48 per-epoch model calls, and the
+   agent is never told that.** Accepted by the owner as a finding in its own
+   right. An agent that cannot see a cost cannot budget against it, which is
+   the same class of defect as an undocumented cap. The 48 appears in
+   `run_plan`, but nothing says that a free workspace action, SELECT, STOP or
+   a reminder turn each consumes one.
+3. **A malformed practice or `run_python` call still consumes a trial.** It is
+   charged before validation, and the agent learns this only from the
+   rejection text afterwards.
+4. **`forecast_resources` is uncalibrated, and says so in advance**
    (`workflow.estimate`). An agent asking what something will cost gets no
    prediction. It is disclosed, but it leaves the undisclosed costs of
-   finding 2 without a way to learn them.
+   findings 2 and 3 without a way to learn them.
 
 ## 3. Battery-specific corrections to the brief
 
@@ -89,9 +101,22 @@ in ways that change two items.
   units), the output contract, the gates, the score definition, the full OD-2
   rule (including the 5.7 % margin and the important region), and the
   miner-visible feedback fields.
-- **Not published.** A sampling law within the box. **And there is no
-  reference solve:** "no reference solve is offered to miners in this version"
-  (`battery/research.py:219-222`).
+- **A sampling law exists, but the agent sees only a reference to it.**
+  - The population contract declares its support (`four_input_box`) and a
+    probability law with base measure **`uniform_over_input_box`**
+    (`battery/research.py:challenge_parts`, `population.law_semantics`).
+  - `get_challenge_info` serves the population as `population.to_ref()`, an
+    object id and a content digest (`research_service.py:293-305`), not the
+    law's content.
+  - No `public_material` document states the law; the objective gives the
+    bounds only.
+  - **Correction:** the draft said no sampling law was published. What is
+    true is that it is declared and referenced, but not readable by the agent
+    as content. This is **not yet verified by a live `get_challenge_info`
+    call**. The tier-0 harness makes that call first, at no provider cost,
+    and records what the agent actually receives.
+- **There is no reference solve:** "no reference solve is offered to miners in
+  this version" (`battery/research.py:219-222`).
 - **So a battery agent cannot generate labelled practice cases itself.** It
   can generate inputs only. Its labelled data is the published TRAIN v1 set
   (`training_data`), and practice scores against the stored public PRACTICE
@@ -104,6 +129,36 @@ in ways that change two items.
   `evaluation_feedback_fields`, not Burgers' `final_feedback` text.
 - **The incumbent.** Its score appears nowhere in the battery objective
   (checked: no "incumbent" field). H1's premise holds.
+
+### 3.1 The recorded `generate` gap, named in every tier
+
+OWNER-RESEARCH-ENVIRONMENT-01 (#397) requires every Challenge's environment to
+give miners its public generator and reference solver under their own seeds.
+Battery's `generate` is a **recorded open gap** (`challenge_kit/standard.py`;
+`RESEARCH_ENVIRONMENT_STANDARD.md`): nothing miner-facing runs the pinned
+PyBaMM reference, so miners have only TRAIN v1 and the 200 PRACTICE cases.
+
+What it means for each tier:
+
+- **Tier 0 stays runnable for battery.** It tests whether a design is
+  admissible, using `check_design`, which compiles and never generates data.
+  The gap does not touch admissibility. Every tier-0 result is still labelled
+  "measured in an environment with the `generate` gap open".
+- **Tier 1** scores plans. A plan to generate labelled data is **correct under
+  the standard** and **impossible in this environment**. It is scored as
+  item 4's "no reference solve assumed" failure only if the plan assumes it
+  can run. It is also recorded separately as the plan reaching for a
+  provision the standard requires and battery lacks. That count is evidence
+  about the gap, not about the agent.
+- **Tier 2.** Any finding about data scarcity, extrapolation or wasted
+  practice is reported with the gap as a named cause, not attributed to the
+  agent or to the interface. A struggling agent in an environment missing a
+  required provision measures the environment.
+- **Tier 3.** The leak ladder concerns realized exam cases. The gap narrows
+  what a miner can generate, and it does not settle the reconstruction
+  question (MQ-008).
+
+No other Challenge is substituted for battery in any tier.
 
 ## 4. Tier 0: can the published material produce an admissible design?
 
