@@ -3,9 +3,9 @@
 `carbon.control-center.capabilities.v1` is what the browser renders every
 launch choice from. Nothing here is a hard-coded list of choices: Challenges
 come from `carbon.challenge_registry` (catalog and describe), who selects comes
-from the shared `options` operation, model providers are those the agent's
-transport implements (read from the transport itself; the miner chooses and
-holds the credential), compute is what the runner profile's runtime
+from the shared `options` operation, model providers are the agent's own
+transport and the registered provider adapters (the miner chooses and holds
+the credential; availability is the profile's key file for each), compute is what the runner profile's runtime
 assembles, tools come from each Challenge's own description, and the budget
 vocabulary is the ledger's.
 
@@ -263,10 +263,10 @@ def _model(options, refusal):
     """Model providers the miner can choose, each with its own credential.
 
     The miner chooses the provider and model and supplies the credential; Carbon
-    holds none. Today the agent implements one provider transport, reported
-    here from the transport itself rather than named as Carbon's model. A
-    provider registry replaces this source when it lands; the document shape
-    (providers, each with models, credential and availability) stays.
+    holds none. The pinned default is reported first, from the agent's own
+    transport rather than named as Carbon's model; the registered provider
+    adapters follow, each available only when the runner profile configures
+    its key file. A launch names one with `model_provider` and `model`.
     """
     provider, model = _implemented_transport()
     if options is None:
@@ -300,15 +300,93 @@ def _model(options, refusal):
                     **credential,
                 },
                 **state,
-            }
+            },
+            *_registered_providers(options, refusal),
         ],
-        "launch_field": None,
+        "launch_field": ["model_provider", "model"],
         "selection": (
-            "The launch operation carries no model field in this version: the "
-            "agent uses the provider transport your runner profile configures."
+            "The launch carries model_provider and model. The key file is the "
+            "one your runner profile configures for that provider; a provider "
+            "without one is refused, never replaced by another."
         ),
         "unavailable": _integrations("model_provider"),
     }
+
+
+_CREDENTIAL_NEXT = {
+    "model_provider_credential_not_configured": (
+        "Add provider_credentials.{id} to your runner profile, pointing at "
+        "your own key file."
+    ),
+    "model_provider_credential_unusable": (
+        "Make provider_credentials.{id} a regular, owner-only file of at "
+        "most 1024 bytes in an owner-only directory."
+    ),
+    "model_provider_endpoint_not_launchable": (
+        "This adapter needs your endpoint URL, which a launch does not carry "
+        "yet; choose a provider with a fixed endpoint."
+    ),
+}
+
+
+def _registered_providers(options, refusal):
+    """The other registered provider adapters (`model_provider.ADAPTERS`),
+    each with this profile's availability from the shared `options`
+    operation. Only an available one is selectable."""
+    from carbon.development_session.model_provider import ADAPTERS
+
+    offered = {
+        row["provider_id"]: row for row in (options or {}).get("model_providers", [])
+    }
+    rows = []
+    for provider_id, adapter in ADAPTERS.items():
+        if provider_id == "openai-responses":
+            continue  # Listed first, from the agent's own transport.
+        row = offered.get(provider_id)
+        if options is None or row is None:
+            credential = {
+                "configured": None,
+                "basis": "NOT_READ: " + refusal["reason"],
+            }
+            state = _unavailable(refusal["reason"], refusal["next_action"])
+        else:
+            reason = row.get("reason")
+            credential = {
+                "configured": reason
+                not in (
+                    "model_provider_credential_not_configured",
+                    "model_provider_endpoint_not_launchable",
+                ),
+                "basis": "key file metadata from your runner profile; no key read",
+            }
+            state = (
+                {"availability": "available"}
+                if row["availability"] == "available"
+                else _unavailable(
+                    reason,
+                    _CREDENTIAL_NEXT.get(reason, "Choose another provider.").format(
+                        id=provider_id
+                    ),
+                )
+            )
+        models = [m["model_id"] for m in adapter.summary_models()]
+        rows.append(
+            {
+                "id": provider_id,
+                "provider": adapter.display_name,
+                "models": [{"id": m, "availability": "available"} for m in models],
+                "default_model": adapter.default_model,
+                "credential": {
+                    "reference": "provider_credentials."
+                    + provider_id
+                    + " in your runner profile",
+                    "held_by": "you; Carbon never stores or transmits it",
+                    **credential,
+                },
+                **state,
+            }
+        )
+    return rows
 
 
 def _compute(cfg, options, refusal, host):
@@ -373,6 +451,8 @@ def _launch():
             "challenge_version",
             "budget",
             "review_digest",
+            "model_provider",
+            "model",
         ],
         "challenge_default": None,
     }

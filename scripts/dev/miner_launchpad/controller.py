@@ -376,11 +376,16 @@ INTEGRATIONS = (
         # from the operator's own configuration by
         # `create_access_http_app`, with its rotating key set verified
         # against the live Access JWKS. What is left is that nothing
-        # hosts it: the app starts no listener, no origin serves it, and
-        # the origin's shape is undecided - a Python ASGI app cannot run
-        # on the Workers custom domain the echo test used. A real
-        # Access-minted assertion has been verified against it, so
+        # hosts it: the app starts no listener and no origin serves it. A
+        # real Access-minted assertion has been verified against it, so
         # authentication is not what is missing.
+        #
+        # Sixth revision. Where it would be hosted is decided (the owner's
+        # own development host). What gates reaching it from beyond that
+        # machine is the owner's section 4 security review, not a hosting
+        # choice; the fifth revision's "origin's shape is undecided" had
+        # outlived its cause. `test_unavailable_reasons_have_causes` fails
+        # when something starts serving it.
         #
         # Scope note: this is the *remote* door only. A miner bringing
         # their own agent over stdio needs no Cloudflare credential and
@@ -396,17 +401,24 @@ INTEGRATIONS = (
     },
     {"id": "mira", "reason": "integration_interface_unverified"},
     {
+        # Not "no adapter": `openai-compatible-chat` sends to any endpoint
+        # the miner names, Chutes included. What is missing is an adapter
+        # of Chutes' own (its listed models, prices and charge report) and
+        # an exercise of the generic one against Chutes - Carbon has not
+        # run one, so it does not claim that it works.
         "id": "chutes",
-        "reason": "authorization_and_billing_adapter_not_implemented",
+        "reason": "no_chutes_adapter_generic_chat_adapter_unexercised_against_it",
     },
     {
         "id": "lium",
         "reason": "provisioning_and_teardown_adapter_not_implemented",
     },
-    {"id": "engy", "reason": "inference_adapter_not_implemented"},
-    # Approved as a compute provider; offered once its adapter reports this
-    # host configured, and until then shown with this reason.
-    {"id": "runpod", "reason": "compute_adapter_not_configured_here"},
+    # Approved as a compute provider. `carbon.compute` implements its pod
+    # lifecycle, but no launch path dispatches to it: a campaign runs on this
+    # machine's worker or a host the miner attaches, whatever key is
+    # configured. Configuring a key does not change this reason; wiring
+    # dispatch does, and `test_unavailable_reasons_have_causes` fails then.
+    {"id": "runpod", "reason": "compute_adapter_not_wired_into_launch"},
     {
         # Two earlier reasons here were wrong in different ways. The
         # first named a signing wallet adapter, which the key rule
@@ -438,15 +450,17 @@ INTEGRATION_PLACEMENT = {
     "mira": ("connection", "None today; the interface has not been verified."),
     "chutes": (
         "model_provider",
-        "Choose a provider listed as available, or research without a model.",
-    ),
-    "engy": (
-        "model_provider",
-        "Choose a provider listed as available, or research without a model.",
+        (
+            "Choose 'Any service implementing OpenAI Chat Completions' with your "
+            "own endpoint and key, declaring the model's price for a spend limit."
+        ),
     ),
     "runpod": (
         "compute_provider",
-        "Run on this machine's isolated worker until the RunPod adapter reports this host configured.",
+        (
+            "Run on this machine's isolated worker, or attach a host you control "
+            "(a RunPod pod you started yourself counts)."
+        ),
     ),
     "lium": (
         "compute_provider",
