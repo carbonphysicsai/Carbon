@@ -10199,6 +10199,19 @@ events:
       - "SYSTEM/BUSINESS-AUTHORITY"
     supersedes: null
     recorded_at: "2026-09-27T02:10:00Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "adjustment"
+    event_id: "C-MLP-02-LAUNCH-MODEL-SELECTION-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "The shared launch operation now carries the miner's model choice and a battery feedback mode, so both doors take them: model_provider and model (optional; omitted keeps the pinned default and the historical request digest) and feedback_mode (battery Challenge only, FULL or SCORE_WITHHELD). The fields join the launch request digest, so a changed provider or model under the same idempotency key is a replay conflict, not a replay. The key file is never in the request: the runner profile gains an optional provider_credentials map (provider id to an absolute key-file path), and a launch naming a provider whose key file is absent, not owner-only, a symlink or oversized is refused by name (model_provider_credential_not_configured or model_provider_credential_unusable) before the registration read and before anything is recorded; no provider ever falls back to another provider's key, and only the pinned default reads the profile's api_key_file. The runner validates the choice with model_provider.select and applies it, with that provider's key file, only when the campaign is first created; a resume keeps the frozen manifest and reads the key for the frozen provider, refusing by name rather than substituting one. feedback_mode outside the battery Challenge is refused, and SCORE_WITHHELD is refused until the battery campaign itself reads the mode, so a withheld score is never run as FULL. The options operation and the Control Center capability contract list every registered provider adapter with its availability from the profile's key files, the stale 'engy not implemented' integration is removed, and the wizard sends the chosen provider and model; only providers with a configured key are selectable. Tests plant fixture keys and show they never reach the request records, the frozen manifest blocks, refusals or logs, with the key file as the positive specimen. DEVELOPMENT only; no provider was contacted."
+    primary_detail: "scripts/dev/miner_launchpad/runner.py"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "WAVE-C/C-W1-D4"
+    supersedes: null
+    recorded_at: "2026-09-27T12:00:00Z"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"

@@ -24,6 +24,7 @@ import sqlite3
 import threading
 import time
 from contextlib import ExitStack, contextmanager
+from dataclasses import dataclass
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -67,7 +68,15 @@ OPTIONAL_PROFILE_FIELDS = {
     "disabled_reason",
     "authored_julia_image",
     "gpu_image",
+    "provider_credentials",
 }
+
+#: The provider every campaign was pinned to before selection existed. Its key
+#: is the profile's `api_key_file`, unless `provider_credentials` names one.
+DEFAULT_PROVIDER = "openai-responses"
+#: A battery campaign's feedback modes. Validated here, before dispatch, so a
+#: launch never depends on the campaign code reading a mode it does not know.
+FEEDBACK_MODES = ("FULL", "SCORE_WITHHELD")
 
 #: Image records a campaign's runtime can require, keyed by the profile field
 #: that names the miner's built record. Under the grant each had to be written
@@ -187,7 +196,96 @@ def validated_profile(cfg):
             type(cfg[field]) is not str or not Path(cfg[field]).is_absolute()
         ):
             raise ValueError("operator paths must be absolute")
+    if "provider_credentials" in cfg:
+        from carbon.development_session.model_provider import ADAPTERS
+
+        credentials = cfg["provider_credentials"]
+        # Shape only: whether each file is usable is read at launch, so a key
+        # file removed later refuses its provider rather than the profile.
+        if (
+            type(credentials) is not dict
+            or not set(credentials) <= set(ADAPTERS)
+            or any(
+                type(v) is not str or len(v) > 4096 or not Path(v).is_absolute()
+                for v in credentials.values()
+            )
+        ):
+            raise ValueError("provider_credentials maps provider ids to key files")
     return cfg
+
+
+def provider_credential(cfg, provider_id):
+    """The key file the runner profile configures for `provider_id`, or None.
+
+    The request never supplies it. The pinned default provider's key is the
+    profile's `api_key_file` when no entry names another; no other provider
+    ever falls back to that key.
+    """
+    path = (cfg.get("provider_credentials") or {}).get(provider_id)
+    if path is None and provider_id == DEFAULT_PROVIDER:
+        path = (cfg.get("paths") or {}).get("api_key_file")
+    return path
+
+
+def credential_refusal(path):
+    """Why a configured key file cannot be used, or None when it can.
+
+    Read from metadata only - `model_provider`'s own check (a regular file,
+    not a symlink, bounded) and the campaign's owner-only rule. The key itself
+    is never read here.
+    """
+    from carbon.development_session.model_provider import provider_summary
+    from carbon.development_session.research_campaign import private_file
+
+    if path is None:
+        return "model_provider_credential_not_configured"
+    row = provider_summary({DEFAULT_PROVIDER: path})[0]
+    if not row["available"]:
+        return (
+            "model_provider_credential_not_configured"
+            if row["reason"] == "credential_not_configured"
+            else "model_provider_credential_unusable"
+        )
+    try:
+        private_file(Path(path))
+    except (OSError, ValueError):
+        return "model_provider_credential_unusable"
+    return None
+
+
+def frozen_provider(root):
+    """The provider a frozen campaign's manifest records, or None before one
+    exists. A block without a selection schema is the pinned default."""
+    manifest = Path(root) / "campaign-manifest.json"
+    if not manifest.exists():
+        return None
+    block = json.loads(manifest.read_bytes()).get("provider") or {}
+    # A battery run plan nests the selection; a Burgers manifest is it.
+    record = block.get("model_selection", block)
+    if type(record) is dict and "schema" in record:
+        return record.get("provider_id")
+    return DEFAULT_PROVIDER
+
+
+@dataclass(frozen=True)
+class LaunchChoice:
+    """What a launch chose beyond the product admission: the validated model
+    selection (built only by `model_provider.select`, with the profile's key
+    file for that provider) and a battery feedback mode. Applied when the
+    campaign is first created, never on resume: the manifest is frozen then."""
+
+    selection: object = None
+    feedback_mode: str | None = None
+
+    def apply(self, args):
+        if self.selection is not None:
+            args.model_selection = {
+                "provider_id": self.selection.provider_id,
+                "model_id": self.selection.model_id,
+            }
+            args.api_key_file = Path(self.selection.credential.reference)
+        if self.feedback_mode is not None:
+            args.feedback_mode = self.feedback_mode
 
 
 def install_research_images(cfg, root):
@@ -506,6 +604,9 @@ class RunnerAdapter:
                 (key, run_id),
             ).fetchall()
         if not previous:
+            # Refused here, before the registration read, as well as in the
+            # body: a choice that cannot run never reaches the chain.
+            self._launch_choice(cfg, request, self._challenge(request))
             return None
         # A lost response replays the campaign it created. It was admitted
         # when it was recorded; replaying it reads no chain and starts
@@ -583,6 +684,64 @@ class RunnerAdapter:
             raise Rejected(refused.code, 409) from None
         return challenge
 
+    @staticmethod
+    def _launch_choice(cfg, request, challenge):
+        """The launch's model and feedback choice, refused by name before
+        anything is created. None when the launch chose neither, which is
+        exactly today's pinned default."""
+        from carbon.development_session.model_provider import (
+            ADAPTERS,
+            ModelSelectionRefused,
+            check_budget,
+            select,
+        )
+        from carbon.development_session.product_campaign import miner_budget
+        from carbon.reconstruction.capability_registry import BATTERY_CHALLENGE
+
+        mode = request.get("feedback_mode")
+        if mode is not None:
+            if mode not in FEEDBACK_MODES:
+                raise Rejected("invalid_feedback_mode")
+            if (challenge or {}).get("id") != BATTERY_CHALLENGE:
+                raise Rejected("feedback_mode_is_battery_only", 409)
+            from carbon.battery import campaign as battery
+
+            # Fail closed until the battery campaign itself reads the mode: a
+            # withheld score it would silently ignore is refused, not run FULL.
+            if mode not in getattr(battery, "FEEDBACK_MODES", ("FULL",)):
+                raise Rejected("feedback_mode_not_supported_by_this_runtime", 409)
+        provider, model = request.get("model_provider"), request.get("model")
+        selection = None
+        if provider is not None or model is not None:
+            if provider is None:
+                raise Rejected("model_provider_required")
+            if type(provider) is not str or provider not in ADAPTERS:
+                raise Rejected("unknown_model_provider")
+            if model is not None and type(model) is not str:
+                raise Rejected("model_selection_refused")
+            if request["agent"] != "autonomous":
+                # No agent calls a model; a choice nothing uses is refused.
+                raise Rejected("model_selection_needs_the_autonomous_agent", 409)
+            if ADAPTERS[provider].endpoint is None:
+                raise Rejected("model_provider_endpoint_not_launchable", 409)
+            path = provider_credential(cfg, provider)
+            refusal = credential_refusal(path)
+            if refusal is not None:
+                raise Rejected(refusal, 409)
+            try:
+                selection = select(
+                    provider_id=provider,
+                    model_id=model,
+                    credential={"kind": "file", "reference": path},
+                )
+                budget = miner_budget(request.get("budget"))
+                check_budget(selection, budget.get("ceilings"))
+            except ModelSelectionRefused:
+                raise Rejected("model_selection_refused", 409) from None
+        if selection is None and mode is None:
+            return None
+        return LaunchChoice(selection=selection, feedback_mode=mode)
+
     def launch_admitted(self, admitted, request):
         """Record and dispatch an admitted launch."""
         from carbon.development_session.product_campaign import (
@@ -593,6 +752,8 @@ class RunnerAdapter:
         cfg, miner = admitted.profile, admitted.miner
         task = guidance.configured(cfg)
         budget = miner_budget(request.get("budget"))
+        challenge = self._challenge(request)
+        choice = self._launch_choice(cfg, request, challenge)
         run_id, request_digest, config_pin = self._launch_identity(cfg, request)
         root = Path(cfg["campaigns_root"]) / run_id
         product = ProductLaunch(
@@ -602,7 +763,7 @@ class RunnerAdapter:
             runtime=cfg["runtime"],
             budget=budget,
             agent=request["agent"],
-            challenge=self._challenge(request),
+            challenge=challenge,
         )
         with self.db() as db:
             db.execute("BEGIN IMMEDIATE")
@@ -627,7 +788,7 @@ class RunnerAdapter:
                 )
             except sqlite3.IntegrityError:
                 raise Rejected("research_launch_replay_conflict", 409) from None
-        self._start(run_id, cfg, root, product)
+        self._start(run_id, cfg, root, product, choice)
         return self.get(run_id)
 
     def owner(self):
@@ -691,6 +852,7 @@ class RunnerAdapter:
                     ),
                 },
             ],
+            "model_providers": self._model_providers(cfg),
             "families": [
                 {
                     "id": c.capability_id,
@@ -726,6 +888,35 @@ class RunnerAdapter:
                 "unavailable": "this host does not, for the reason given",
             },
         }
+
+    @staticmethod
+    def _model_providers(cfg):
+        """Each provider a launch may name, and whether this profile has its
+        key file - judged from metadata only; no key is read and no provider
+        contacted. Only an available one can launch."""
+        from carbon.development_session.model_provider import ADAPTERS
+
+        rows = []
+        for provider_id, adapter in ADAPTERS.items():
+            if adapter.endpoint is None:
+                reason = "model_provider_endpoint_not_launchable"
+            else:
+                reason = credential_refusal(provider_credential(cfg, provider_id))
+            rows.append(
+                {
+                    "provider_id": provider_id,
+                    "display_name": adapter.display_name,
+                    "models": [m["model_id"] for m in adapter.summary_models()],
+                    "default_model": adapter.default_model,
+                    "any_model_id": adapter.allowed_models is None,
+                    **(
+                        {"availability": "available"}
+                        if reason is None
+                        else {"availability": "unavailable", "reason": reason}
+                    ),
+                }
+            )
+        return rows
 
     def _design_refusal(self, strategy):
         """Check-design's verdict for a recipe about to be practiced or frozen:
@@ -930,6 +1121,9 @@ class RunnerAdapter:
                 research_guidance=task["text"] if task is not None else None,
                 command="resume",
             )
+            credential = self._frozen_credential(cfg, root)
+            if credential is not None:
+                args.api_key_file = credential
 
             async def run():
                 prepared = await prepare(args, ledger=ledger)
@@ -960,17 +1154,36 @@ class RunnerAdapter:
             raise Rejected(refused, 409)
         return result
 
-    def _start(self, run_id, cfg, root, product=None):
+    @staticmethod
+    def _frozen_credential(cfg, root):
+        """The key file for the provider a frozen campaign records, from the
+        runner profile. A resumed campaign never sends one provider's key to
+        another: an unconfigured provider is refused, not substituted."""
+        provider = frozen_provider(root)
+        if provider in (None, DEFAULT_PROVIDER):
+            # Every campaign frozen before selection existed, unchanged: the
+            # campaign checks this key itself when its agent needs one.
+            path = provider_credential(cfg, DEFAULT_PROVIDER)
+            return None if path is None else Path(path)
+        path = provider_credential(cfg, provider)
+        refusal = credential_refusal(path)
+        if refusal is not None:
+            raise Rejected(refusal, 409)
+        return Path(path)
+
+    def _start(self, run_id, cfg, root, product=None, choice=None):
         with self.lock:
             if run_id in self.threads and self.threads[run_id].is_alive():
                 return
             thread = threading.Thread(
-                target=self._run, args=(run_id, cfg, root, product), daemon=True
+                target=self._run,
+                args=(run_id, cfg, root, product, choice),
+                daemon=True,
             )
             self.threads[run_id] = thread
             thread.start()
 
-    def _run(self, run_id, cfg, root, product):
+    def _run(self, run_id, cfg, root, product, choice=None):
         from carbon.development_session.research_agent_policy import AUTONOMOUS
         from carbon.development_session.research_campaign import execute
 
@@ -1004,6 +1217,7 @@ class RunnerAdapter:
                 if pending:
                     raise DispatchStopped("unresolved operation")
                 install_research_images(cfg, root)
+                creating = not (root / "campaign-manifest.json").exists()
                 args = SimpleNamespace(
                     **{k: Path(v) for k, v in cfg["paths"].items()},
                     root=root,
@@ -1012,12 +1226,18 @@ class RunnerAdapter:
                     agent_policy=AUTONOMOUS,
                     product=product,
                     research_guidance=task["text"] if task is not None else None,
-                    command=(
-                        "resume"
-                        if (root / "campaign-manifest.json").exists()
-                        else "run"
-                    ),
+                    command="run" if creating else "resume",
                 )
+                if creating:
+                    # The launch's choice freezes into the manifest now.
+                    if choice is not None:
+                        choice.apply(args)
+                else:
+                    # A resume keeps the frozen choice; only its key file is
+                    # read again, from the profile, for the frozen provider.
+                    credential = self._frozen_credential(cfg, root)
+                    if credential is not None:
+                        args.api_key_file = credential
                 try:
                     asyncio.run(execute(args, ledger=ledger))
                 except Exception:  # noqa: BLE001 - never publish provider/key errors.
@@ -1170,6 +1390,8 @@ class RunnerAdapter:
                 cfg = self.configured()
                 if digest(canonical(cfg)) != row["config_digest"]:
                     raise ValueError("resume binding differs")
+                # Refused by name now, rather than after the thread starts.
+                self._frozen_credential(cfg, root)
             control.request(action)
             if action == "stop":
                 ledger.generation = control.status()["generation"]

@@ -1450,6 +1450,13 @@
       // The Challenge is always sent, exactly: there is no default Challenge.
       pendingResearch = {key: crypto.randomUUID(), body: {profile: research.preflight.profile, agent: composition.agent, challenge: entry.challenge_id, challenge_version: entry.version}};
       if (Object.keys(composition.budget).length) pendingResearch.body.budget = composition.budget;
+      // The chosen provider and model, when the agent calls one and the launch
+      // carries them; the key file stays in the runner profile.
+      const provider = selectedProvider();
+      if (agentEntry(wizard.agentChoice)?.uses_model && caps.model.launch_field && provider?.availability === "available" && wizard.model) {
+        pendingResearch.body.model_provider = provider.id;
+        pendingResearch.body.model = wizard.model;
+      }
       if (research.preflight.review_digest) pendingResearch.body.review_digest = research.preflight.review_digest;
       try { sessionStorage.setItem(researchKey, JSON.stringify(pendingResearch)); }
       catch (_) { storageError = true; render(); return; }
