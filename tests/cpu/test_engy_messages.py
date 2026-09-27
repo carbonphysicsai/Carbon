@@ -37,7 +37,8 @@ from carbon.development_session.research_ledger import (
     DEVELOPMENT_ELAPSED_SECONDS,
 )
 
-REAL_KEY = "/home/carbon/.local/share/carbon-credentials/" + "engy.key"
+# The operator's credential location, derived rather than written down.
+REAL_KEY = str(Path.home() / ".local/share/carbon-credentials" / "engy.key")
 SPECIMEN = "sk-PLANTED-SPECIMEN-4c1f9e2a7b"
 
 
