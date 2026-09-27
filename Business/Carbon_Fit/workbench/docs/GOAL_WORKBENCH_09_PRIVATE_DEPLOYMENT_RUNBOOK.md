@@ -593,17 +593,19 @@ clients send packages as they do today, and each arrival is recorded as
   **bounces to the client, and nobody at Carbon is told.**
   - `tools/team_mailbox_capacity.cjs` reads the pool's usage and limit (the
     Drive API's `about.get`, `fields=storageQuota`) and reports `OK`,
-    `NEAR_FULL` (90% by default), `FULL`, `UNLIMITED`, `NOT_CONFIGURED` or
+    `NEAR_FULL` (90% by default), `FULL`, `UNLIMITED`, `NOT_ATTEMPTED_NO_CREDENTIAL` or
     `UNREADABLE`.
-  - The receiver serves the reading at `GET /private/mailbox`, to the intake
-    receiver. `node tools/team_mailbox_capacity.cjs` exits non-zero for
-    anything but `OK` or `UNLIMITED`, so a scheduler can alert on it.
+  - The receiver watches it. It takes a reading at start and hourly, and says
+    on stderr when the mailbox needs attention. `GET /private/mailbox` (for the
+    intake receiver) takes a fresh reading and reports `watched` and
+    `needs_attention`. `node tools/team_mailbox_capacity.cjs` exits non-zero for
+    anything but `OK` or `UNLIMITED`, so a scheduler can alert on it too.
   - **It needs one owner step:** an OAuth client for the intake account, with
     the `drive.file` scope only, and its `client_id`, `client_secret` and
     `refresh_token` in a `0600` JSON file named by
     `CARBON_TEAM_MAILBOX_QUOTA_CREDENTIAL_FILE`. `drive.file` grants no access
     to mail and none to any file the application did not create.
-  - Until that credential exists, the reading is `NOT_CONFIGURED`, never room.
+  - Until that credential exists, the reading is `NOT_ATTEMPTED_NO_CREDENTIAL`, never room.
     Check the mailbox's storage by hand when relaying.
 
 ### 3.6 Notice and consent

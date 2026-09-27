@@ -9,7 +9,7 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 if (!globalThis.crypto) globalThis.crypto = crypto.webcrypto;
-const { ABOUT_URL, TOKEN_URL, mailboxCapacity } = require("../tools/team_mailbox_capacity.cjs");
+const { ABOUT_URL, MailboxWatch, TOKEN_URL, mailboxCapacity } = require("../tools/team_mailbox_capacity.cjs");
 const { StaffDirectory, totp } = require("../tools/team_staff_directory.cjs");
 const { createIntakeServer } = require("../tools/team_intake_server.cjs");
 const { enrolled, openStore, secretFor } = require("./staff_fixture.cjs");
@@ -64,9 +64,9 @@ test("the reading asks for the storage quota only, with a token from the refresh
   assert.equal(g.calls[1].init.headers.authorization, "Bearer " + ACCESS);
 });
 
-test("no credential is NOT_CONFIGURED, a failed reading is UNREADABLE, and neither reports room", async () => {
+test("no credential is NOT_ATTEMPTED_NO_CREDENTIAL, a failed reading is UNREADABLE, and neither reports room", async () => {
   const none = await mailboxCapacity({ credentialFile: null, fetch: google({ usage: 1, limit: 100 }).fetch });
-  assert.equal(none.state, "NOT_CONFIGURED");
+  assert.equal(none.state, "NOT_ATTEMPTED_NO_CREDENTIAL");
   assert.equal(none.usage_bytes, undefined);
   for (const [file, pattern] of [
     [credentialFile(0o644), /owner only/],
@@ -108,7 +108,7 @@ test("the receiver serves the reading to the intake receiver only", async () => 
   ]);
   const store = openStore(path.join(fs.mkdtempSync(path.join(os.tmpdir(), "carbon-quota-store-")), "store.json"));
   for (const configured of [false, true]) {
-    const mailbox = configured ? () => mailboxCapacity({ credentialFile: credentialFile(), fetch: google({ usage: 99, limit: 100 }).fetch }) : null;
+    const mailbox = configured ? new MailboxWatch(() => mailboxCapacity({ credentialFile: credentialFile(), fetch: google({ usage: 99, limit: 100 }).fetch })) : null;
     const server = createIntakeServer({ store, users, mailbox });
     await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
     const base = `http://127.0.0.1:${server.address().port}`;
@@ -124,9 +124,82 @@ test("the receiver serves the reading to the intake receiver only", async () => 
       assert.equal((await fetch(base + "/private/mailbox", { headers: { authorization: await session(token.reviewer) } })).status, 403);
       const answer = await fetch(base + "/private/mailbox", { headers: { authorization: await session(token.receiver) } });
       assert.equal(answer.status, 200);
-      assert.equal((await answer.json()).state, configured ? "NEAR_FULL" : "NOT_CONFIGURED");
+      const body = await answer.json();
+      assert.equal(body.state, configured ? "NEAR_FULL" : "NOT_ATTEMPTED_NO_CREDENTIAL");
+      assert.equal(body.watched, configured);
+      assert.equal(body.needs_attention, true);
     } finally {
       server.close();
     }
   }
+});
+
+test("the bounce path is watched when a credential is present, and its absence is reported, not silent", async () => {
+  // With a credential, the watch reaches the provider on every check, and a
+  // full pool is something to look at.
+  let usage = 10;
+  const g = { calls: 0 };
+  const fetch = async (url, init) => {
+    g.calls += 1;
+    return google({ usage, limit: 100 }).fetch(url, init);
+  };
+  const watched = new MailboxWatch(() => mailboxCapacity({ credentialFile: credentialFile(), fetch }));
+  // Before the first reading the watch says so rather than implying room.
+  assert.deepEqual(watched.status(), { state: "NOT_YET_CHECKED", watched: false, needs_attention: true, checks: 0, reading: null });
+  let status = await watched.check();
+  assert.deepEqual([status.state, status.watched, status.needs_attention, status.checks], ["OK", true, false, 1]);
+  usage = 100;
+  status = await watched.check();
+  assert.deepEqual([status.state, status.watched, status.needs_attention, status.checks], ["FULL", true, true, 2]);
+  assert.equal(g.calls, 4); // a token and a reading, per check
+  // Without a credential: nothing is attempted, and the watch says it is unwatched.
+  const unwatched = new MailboxWatch(() => mailboxCapacity({ credentialFile: null, fetch }));
+  status = await unwatched.check();
+  assert.equal(status.state, "NOT_ATTEMPTED_NO_CREDENTIAL");
+  assert.equal(status.watched, false);
+  assert.equal(status.needs_attention, true);
+  assert.match(status.reading.reason, /CARBON_TEAM_MAILBOX_QUOTA_CREDENTIAL_FILE/);
+  assert.equal(g.calls, 4);
+  // A reading that failed is unwatched too, never room.
+  const failing = new MailboxWatch(() => mailboxCapacity({ credentialFile: credentialFile(), fetch: google({ usage: 1, limit: 100, aboutStatus: 403 }).fetch }));
+  status = await failing.check();
+  assert.deepEqual([status.state, status.watched, status.needs_attention], ["UNREADABLE", false, true]);
+});
+
+test("the real receiver, started without a credential, says the mailbox is not watched", async () => {
+  const childProcess = require("node:child_process");
+  const root = path.resolve(__dirname, "..");
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "carbon-quota-process-"));
+  const keys = fs.mkdtempSync(path.join(os.tmpdir(), "carbon-quota-keys-"));
+  const users = path.join(directory, "users.json");
+  fs.writeFileSync(users, JSON.stringify([enrolled("quota-receiver", "carbon-fit", ["INTAKE_RECEIVER"], "quota-process-token-001")]));
+  const spawnWith = (extra) =>
+    childProcess.spawn(process.execPath, [path.join(root, "tools/team_intake_server.cjs")], {
+      env: {
+        PATH: process.env.PATH,
+        CARBON_TEAM_INTAKE_STORE: path.join(directory, "store-" + crypto.randomBytes(3).toString("hex") + ".json"),
+        CARBON_TEAM_USERS_FILE: users,
+        CARBON_TEAM_ARCHIVE_KEYRING: path.join(keys, "keys-" + crypto.randomBytes(3).toString("hex") + ".json"),
+        CARBON_TEAM_INTAKE_PORT: "0",
+        ...extra,
+      },
+    });
+  // Collect stderr until the mailbox line appears, then stop the receiver.
+  const mailboxLine = (child) =>
+    new Promise((resolve, reject) => {
+      let err = "";
+      const timer = setTimeout(() => { child.kill("SIGTERM"); reject(Error("no mailbox line: " + err)); }, 8000);
+      child.stderr.on("data", (chunk) => {
+        err += chunk;
+        const line = err.split("\n").find((l) => l.startsWith("Intake mailbox:"));
+        if (line) { clearTimeout(timer); child.kill("SIGTERM"); resolve(line); }
+      });
+    });
+  const line = await mailboxLine(spawnWith({}));
+  assert.match(line, /NOT_ATTEMPTED_NO_CREDENTIAL \(not watched\)/);
+  // Specimen: with a credential file that cannot be used, the line names that
+  // state instead, so the line reflects the reading rather than being fixed text.
+  const unsafe = credentialFile(0o644);
+  const other = await mailboxLine(spawnWith({ CARBON_TEAM_MAILBOX_QUOTA_CREDENTIAL_FILE: unsafe }));
+  assert.match(other, /UNREADABLE \(not watched\)/);
 });

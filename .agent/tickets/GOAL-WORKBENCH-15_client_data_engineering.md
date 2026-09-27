@@ -263,7 +263,11 @@ plaintext handling and key publication. See
   - `tests/test_team_mailbox_capacity.cjs` pins it.
 
   It reads only once the owner issues a `drive.file`-only OAuth credential for
-  the intake account. Until then it reports `NOT_CONFIGURED`, never room.
+  the intake account. Until then it reports `NOT_ATTEMPTED_NO_CREDENTIAL`, never room.
+  The receiver watches it at start and hourly, and reports whether it is
+  `watched`. Without the credential it says the mailbox is **not watched**,
+  rather than going silent. This is pinned by
+  `tests/test_team_mailbox_capacity.cjs`, against the real receiver process.
 
 ## E3 — delivered (#318)
 
