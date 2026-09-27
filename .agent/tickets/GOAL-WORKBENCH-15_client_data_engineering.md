@@ -227,11 +227,15 @@ to the log.
 ## E6 — delivered, except the client-side format (#318)
 
 **Built:**
-- The transport copy is recorded in two states that are never collapsed:
-  `MOVED_TO_TRASH`, with `purge_expected_by`, then `PERMANENTLY_REMOVED`. They
-  move forward only, and each is marked `RECEIVER_ATTESTATION`.
+- The transport copy is recorded in states that are never collapsed and move
+  forward only. Each mailbox step is marked `RECEIVER_ATTESTATION`.
+  - As built in #318 (schema v1): `MOVED_TO_TRASH`, with `purge_expected_by`,
+    then `PERMANENTLY_REMOVED`.
+  - Schema v2, below: `PERMANENTLY_REMOVED` is replaced, because it claimed
+    more than was true.
 - A relay states its channel and how the package arrived. A `PLAINTEXT` arrival
-  records `PERMANENTLY_REMOVED_WITHOUT_DELAY`.
+  records `PERMANENTLY_REMOVED_WITHOUT_DELAY` under v1, or
+  `PURGED_FROM_MAILBOX_WITHOUT_DELAY` under v2.
 - A standard-library STARTTLS SMTP transport, configured by the operator only
   and sending only to the sender's own domain.
 - A missing credential (`NOT_ATTEMPTED_NO_CREDENTIAL`, `501`) is distinct from a
@@ -253,10 +257,8 @@ plaintext handling and key publication. See
 - No Vault, so there is no retention rule and no legal hold on mail.
 - **Administrator restore window.** Established from Google's documentation
   (2026-09-27): an admin can restore mail for 25 days after the 30-day period
-  following deletion. `PERMANENTLY_REMOVED` therefore does not mean
-  unrecoverable. Each such entry now states `admin_restore_possible_until`,
-  with basis `PROVIDER_DOCUMENTATION_NOT_VERIFIED_AGAINST_ACCOUNT`. It is
-  pinned by `tests/test_team_transport_copy.cjs`.
+  following deletion. So v1's `PERMANENTLY_REMOVED` asserted a destruction the
+  provider can reverse. **Repaired in transport-copy schema v2** (see below).
 - **A full intake mailbox bounces to the client.** It is now observable:
   - `tools/team_mailbox_capacity.cjs` reads the pooled storage and serves it at
     `GET /private/mailbox`;
@@ -264,6 +266,57 @@ plaintext handling and key publication. See
 
   It reads only once the owner issues a `drive.file`-only OAuth credential for
   the intake account. Until then it reports `NOT_CONFIGURED`, never room.
+
+### E6 transport-copy schema v2 (2026-09-27)
+
+**Why.** v1's terminal state, `PERMANENTLY_REMOVED`, asserted a destruction the
+provider can reverse: an administrator can restore purged Gmail for a further
+window. A client told their copy was "permanently removed" on the strength of
+that state would have been told something Carbon cannot stand behind.
+
+**Shape chosen: rename, and add the true terminal state.** I chose this over
+keeping the name and adding a field, because a field beside a name that says
+"permanently" still leaves the name making the claim.
+
+| v2 state | What it asserts |
+|---|---|
+| `PRESENT_IN_MAILBOX` | The package is in the intake mailbox |
+| `MOVED_TO_TRASH` | The package is in Trash, purge expected by `purge_expected_by` |
+| `PURGED_FROM_MAILBOX` | Gone from the mailbox as its user sees it. An administrator could still restore it until `admin_restore_possible_until` |
+| `PROVIDER_RESTORE_WINDOW_ELAPSED` | The provider's documented restore window has closed. Recordable only once it has |
+
+- **Forward only.** A package may go to Trash and then be purged, or be purged
+  directly. The elapsed state is final.
+- **The elapsed state cannot be recorded while the window is open.** An attempt
+  answers `409` and names the end of the window.
+- **The provider's window is observed behaviour, not Carbon policy.**
+  - `PROVIDER_RESTORE_OBSERVATION` records the provider, the 30 and 25 days,
+    the quoted sentence, the source page, its update date (2026-09-24), the read
+    date (2026-09-27), the basis `PROVIDER_DOCUMENTATION_NOT_VERIFIED_AGAINST_ACCOUNT`
+    and the status `OBSERVED_PROVIDER_BEHAVIOUR_NOT_CARBON_POLICY`.
+  - It is copied into every entry computed from it, so a later reading never
+    changes an earlier entry.
+  - Retention rules remain counsel's, and null.
+- **The migration is prospective.**
+  - An entry without a `schema` was written under v1, and it keeps v1's meaning.
+    Nothing recorded is rewritten.
+  - A v1 `PERMANENTLY_REMOVED` stays exactly as recorded, disposition included.
+    Its only next step is the elapsed state, once the window its own recorded
+    times imply has closed.
+  - A v1 block moving forward records `schema_before` and
+    `schema_changed_at_seq`.
+  - `PERMANENTLY_REMOVED` is no longer recordable. An attempt is refused, and
+    the refusal names `PURGED_FROM_MAILBOX` as the state to record.
+
+**Pinned by** `tests/test_team_transport_copy.cjs`:
+- the elapsed state is refused at the purge and one millisecond before the
+  window closes, and is recorded at its end (the specimen);
+- a v1 record reopened from disk is unchanged, and moves forward only to the
+  elapsed state;
+- the observation carries its source, read date and non-policy status.
+
+No E1–E9 control changes. This repairs what a state claims, not what the system
+does.
 
 ## E3 — delivered (#318)
 

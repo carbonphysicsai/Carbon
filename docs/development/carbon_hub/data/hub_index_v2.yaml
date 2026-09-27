@@ -10225,6 +10225,18 @@ events:
       - "WAVE-C/C-W1-D4"
     supersedes: null
     recorded_at: "2026-09-27T12:00:00Z"
+  -
+    map_ref: "SYSTEM/BUSINESS-AUTHORITY"
+    event_type: "evidence"
+    event_id: "GOAL-WORKBENCH-15-E6-TRANSPORT-V2-01"
+    owner_lane: "business_authority"
+    status: "implemented"
+    summary: "Repairs what E6's transport-copy states claim. Schema v1's terminal PERMANENTLY_REMOVED asserted a destruction the provider can reverse, since an administrator can restore purged Gmail for a further documented window. Schema v2 renames it and adds the true terminal state: PRESENT_IN_MAILBOX, MOVED_TO_TRASH, PURGED_FROM_MAILBOX (which states until when an administrator could restore the copy) and PROVIDER_RESTORE_WINDOW_ELAPSED, which is refused with 409 while that window is open. States move forward only. The provider's window is recorded as observed behaviour with its source, page date, read date and basis, not as a Carbon retention rule, and is copied into each entry computed from it. The migration is prospective: v1 entries keep their recorded meaning and are never rewritten, a v1 PERMANENTLY_REMOVED moves forward only to the elapsed state, and PERMANENTLY_REMOVED is no longer recordable. No E1-E9 control changes."
+    primary_detail: ".agent/tickets/GOAL-WORKBENCH-15_client_data_engineering.md"
+    affects:
+      - "SYSTEM/BUSINESS-AUTHORITY"
+    supersedes: null
+    recorded_at: "2026-09-27T15:00:00Z"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"
