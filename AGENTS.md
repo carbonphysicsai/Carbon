@@ -1,5 +1,13 @@
 # Carbon — Agent Engineering Instructions
 
+> **OWNER-RESEARCH-ENVIRONMENT-01 (2026-09-27):** every mining environment
+> MUST give miners everything they need to research, hypothesize, train,
+> generate data, test and iterate, including the Challenge's public generator
+> and reference solver under their own seeds. Declare each Challenge's
+> provisions (or named gaps) in `carbon/challenge_kit/standard.py`; see
+> `docs/development/RESEARCH_ENVIRONMENT_STANDARD.md`. Official evaluation
+> material still never reaches a sandbox.
+
 > **OWNER-C-W1-D3-DELEGATION-01:** Ryan delegates provisional scientific and
 > engineering choices only for the separately typed, non-paying C-W1-D3
 > DEVELOPMENT rule. See `.agent/DECISIONS.md` and
@@ -214,6 +222,8 @@ These bind all current Wave-A work.
 13. **A8 fixture execution is not production authority.** Fixture/stub execution cannot create frontier, treasury, product, or production claims.
 14. **A5 scoring does not own frontier/treasury policy.**
 15. **A7 submission lifecycle does not own frontier/treasury state.**
+
+16. **Complete research environments.** Every Challenge's mining environment provides research, hypothesize, train, generate and evaluate (OWNER-RESEARCH-ENVIRONMENT-01); gaps are declared, never silent.
 
 See `.agent/INVARIANTS.md` for the always-on expanded list.
 
