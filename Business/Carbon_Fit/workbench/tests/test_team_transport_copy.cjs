@@ -1,8 +1,9 @@
 "use strict";
 // E6: the transport copy - the package as it arrived in the intake mailbox.
-// Moved to Trash and permanently removed are different states, reached in that
-// order, and each is recorded as the receiver's attestation, because the
-// mailbox step is a human one this store cannot see.
+// Transport-copy schema v2: moved to Trash, purged from the mailbox, and the
+// provider's restore window elapsed are different states, reached in that
+// order. No state claims a destruction the provider can still reverse. Mailbox
+// steps are the receiver's attestation, because this store cannot see them.
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const crypto = require("node:crypto");
@@ -12,7 +13,7 @@ const path = require("node:path");
 if (!globalThis.crypto) globalThis.crypto = crypto.webcrypto;
 const { StaffDirectory, totp } = require("../tools/team_staff_directory.cjs");
 const { createIntakeServer } = require("../tools/team_intake_server.cjs");
-const { TRASH_PURGE_DAYS, transportAtRelay } = require("../tools/team_intake_store.cjs");
+const { ADMIN_RESTORE_DAYS, PROVIDER_RESTORE_OBSERVATION, TRANSPORT_SCHEMA, TRASH_PURGE_DAYS, transportAtRelay } = require("../tools/team_intake_store.cjs");
 const { SCOPING_HEADERS, enrolled, exportRef, mailed, openStore, principalFor, scoping, secretFor } = require("./staff_fixture.cjs");
 const I = require("../src/intake.js");
 
@@ -43,7 +44,14 @@ function raw(draftId = "copy-draft-" + crypto.randomBytes(4).toString("hex")) {
   });
 }
 
-const fresh = () => openStore(path.join(fs.mkdtempSync(path.join(os.tmpdir(), "carbon-copy-")), "store.json"));
+const DAY = 86_400_000;
+const fresh = (clock) => openStore(path.join(fs.mkdtempSync(path.join(os.tmpdir(), "carbon-copy-")), "store.json"), clock ? { clock } : {});
+// A store whose time the test moves.
+function clocked() {
+  let now = Date.UTC(2027, 0, 1);
+  const store = fresh(() => now);
+  return { store, advance: (ms) => { now += ms; }, now: () => now };
+}
 
 test("a relay states its channel and how the package arrived, or nothing is stored", async () => {
   assert.throws(() => transportAtRelay({}), /states its intake channel/);
@@ -66,52 +74,104 @@ test("a relay states its channel and how the package arrived, or nothing is stor
   assert.equal(handed.copy_state, "NO_TRANSPORT_COPY");
 });
 
-test("Trash and permanent removal are two states, in that order, each the receiver's attestation", async () => {
-  const store = fresh();
-  const receipt = await store.accept(raw(), "copy-002", as("receiver"), scoping(), mailed(), exportRef());
-  const before = Date.now();
-  const trashed = store.recordTransportCopy(receipt.inquiry_id, "MOVED_TO_TRASH", as("receiver"));
+test("Trash, purge and the elapsed window are states in that order, each stating its basis", async () => {
+  const c = clocked();
+  const receipt = await c.store.accept(raw(), "copy-002", as("receiver"), scoping(), mailed(), exportRef());
+  const trashed = c.store.recordTransportCopy(receipt.inquiry_id, "MOVED_TO_TRASH", as("receiver"));
   assert.equal(trashed.copy_state, "MOVED_TO_TRASH");
   const [first] = trashed.history;
+  assert.equal(first.schema, TRANSPORT_SCHEMA);
   assert.equal(first.basis, "RECEIVER_ATTESTATION");
   assert.equal(first.by, "copy-receiver");
   // The claim in Trash says when the purge is expected, not that it happened.
-  const expected = Date.parse(first.purge_expected_by) - Date.parse(first.at);
-  assert.equal(expected, TRASH_PURGE_DAYS * 86_400_000);
-  assert.ok(Date.parse(first.at) >= before - 1000);
+  assert.equal(Date.parse(first.purge_expected_by) - Date.parse(first.at), TRASH_PURGE_DAYS * DAY);
   // Never backwards, never twice, never an unknown state.
-  assert.throws(() => store.recordTransportCopy(receipt.inquiry_id, "MOVED_TO_TRASH", as("receiver")), /cannot move/);
-  assert.throws(() => store.recordTransportCopy(receipt.inquiry_id, "DELETED", as("receiver")), /cannot move/);
-  const removed = store.recordTransportCopy(receipt.inquiry_id, "PERMANENTLY_REMOVED", as("receiver"));
-  assert.equal(removed.copy_state, "PERMANENTLY_REMOVED");
-  assert.deepEqual(removed.history.map((entry) => entry.state), ["MOVED_TO_TRASH", "PERMANENTLY_REMOVED"]);
-  assert.equal(removed.history[1].purge_expected_by, null);
-  assert.throws(() => store.recordTransportCopy(receipt.inquiry_id, "PERMANENTLY_REMOVED", as("receiver")), /cannot move/);
+  assert.throws(() => c.store.recordTransportCopy(receipt.inquiry_id, "MOVED_TO_TRASH", as("receiver")), /cannot move/);
+  assert.throws(() => c.store.recordTransportCopy(receipt.inquiry_id, "DELETED", as("receiver")), /cannot move/);
+  c.advance(DAY);
+  const purged = c.store.recordTransportCopy(receipt.inquiry_id, "PURGED_FROM_MAILBOX", as("receiver"));
+  assert.equal(purged.copy_state, "PURGED_FROM_MAILBOX");
+  assert.deepEqual(purged.history.map((entry) => entry.state), ["MOVED_TO_TRASH", "PURGED_FROM_MAILBOX"]);
+  assert.throws(() => c.store.recordTransportCopy(receipt.inquiry_id, "PURGED_FROM_MAILBOX", as("receiver")), /cannot move/);
+  assert.throws(() => c.store.recordTransportCopy(receipt.inquiry_id, "MOVED_TO_TRASH", as("receiver")), /cannot move/);
   // Only the receiver who holds the mailbox records what happened in it.
-  const other = await store.accept(raw(), "copy-003", as("receiver"), scoping(), mailed(), exportRef());
-  assert.throws(() => store.recordTransportCopy(other.inquiry_id, "MOVED_TO_TRASH", as("reviewer")), /not authorized/);
-  // Specimen: permanent removal straight from the mailbox is a valid single step.
-  assert.equal(store.recordTransportCopy(other.inquiry_id, "PERMANENTLY_REMOVED", as("receiver")).copy_state, "PERMANENTLY_REMOVED");
+  const other = await c.store.accept(raw(), "copy-003", as("receiver"), scoping(), mailed(), exportRef());
+  assert.throws(() => c.store.recordTransportCopy(other.inquiry_id, "MOVED_TO_TRASH", as("reviewer")), /not authorized/);
+  // Specimen: purging straight from the mailbox is a valid single step.
+  assert.equal(c.store.recordTransportCopy(other.inquiry_id, "PURGED_FROM_MAILBOX", as("receiver")).copy_state, "PURGED_FROM_MAILBOX");
 });
 
-test("permanent removal states until when an administrator could still restore the copy", async () => {
-  const { ADMIN_RESTORE_DAYS } = require("../tools/team_intake_store.cjs");
-  const day = 86_400_000;
-  const store = fresh();
-  // After Trash: the later of 30 + 25 days from the first deletion, and 25 days from the purge.
-  const receipt = await store.accept(raw(), "copy-restore-1", as("receiver"), scoping(), mailed(), exportRef());
-  const trashed = store.recordTransportCopy(receipt.inquiry_id, "MOVED_TO_TRASH", as("receiver")).history[0];
-  const removed = store.recordTransportCopy(receipt.inquiry_id, "PERMANENTLY_REMOVED", as("receiver")).history[1];
-  assert.equal(removed.admin_restore_basis, "PROVIDER_DOCUMENTATION_NOT_VERIFIED_AGAINST_ACCOUNT");
-  const expected = Math.max(Date.parse(trashed.at) + (TRASH_PURGE_DAYS + ADMIN_RESTORE_DAYS) * day, Date.parse(removed.at) + ADMIN_RESTORE_DAYS * day);
-  assert.equal(Date.parse(removed.admin_restore_possible_until), expected);
-  assert.ok(Date.parse(removed.admin_restore_possible_until) > Date.parse(removed.at));
-  // Straight from the mailbox: the same bound, counted from that removal.
-  const direct = await store.accept(raw(), "copy-restore-2", as("receiver"), scoping(), mailed(), exportRef());
-  const only = store.recordTransportCopy(direct.inquiry_id, "PERMANENTLY_REMOVED", as("receiver")).history[0];
-  assert.equal(Date.parse(only.admin_restore_possible_until), Date.parse(only.at) + (TRASH_PURGE_DAYS + ADMIN_RESTORE_DAYS) * day);
-  // Specimen: the Trash entry makes no such statement; only removal does.
+test("a purge states until when an administrator could restore it, as observed provider behaviour", async () => {
+  const c = clocked();
+  const receipt = await c.store.accept(raw(), "copy-restore-1", as("receiver"), scoping(), mailed(), exportRef());
+  const trashed = c.store.recordTransportCopy(receipt.inquiry_id, "MOVED_TO_TRASH", as("receiver")).history[0];
+  c.advance(3 * DAY);
+  const purged = c.store.recordTransportCopy(receipt.inquiry_id, "PURGED_FROM_MAILBOX", as("receiver")).history[1];
+  // The later of the trash period plus the restore days after the first
+  // deletion, and the restore days after the purge.
+  const expected = Math.max(Date.parse(trashed.at) + (TRASH_PURGE_DAYS + ADMIN_RESTORE_DAYS) * DAY, Date.parse(purged.at) + ADMIN_RESTORE_DAYS * DAY);
+  assert.equal(Date.parse(purged.admin_restore_possible_until), expected);
+  // The window is the provider's documented behaviour with its source and read
+  // date, never a Carbon retention rule.
+  assert.deepEqual(purged.provider_observation, { ...PROVIDER_RESTORE_OBSERVATION });
+  assert.equal(purged.provider_observation.status, "OBSERVED_PROVIDER_BEHAVIOUR_NOT_CARBON_POLICY");
+  assert.equal(purged.provider_observation.basis, "PROVIDER_DOCUMENTATION_NOT_VERIFIED_AGAINST_ACCOUNT");
+  assert.equal(purged.provider_observation.read_on, "2026-09-27");
+  // Specimen: the Trash entry makes no such statement; only the purge does.
   assert.equal(trashed.admin_restore_possible_until, undefined);
+});
+
+test("while the restore window is open the elapsed state cannot be recorded; once it closes it can", async () => {
+  const c = clocked();
+  const receipt = await c.store.accept(raw(), "copy-window-1", as("receiver"), scoping(), mailed(), exportRef());
+  const purged = c.store.recordTransportCopy(receipt.inquiry_id, "PURGED_FROM_MAILBOX", as("receiver")).history[0];
+  const end = Date.parse(purged.admin_restore_possible_until);
+  // Refused at the purge, and one millisecond before the window closes.
+  assert.throws(() => c.store.recordTransportCopy(receipt.inquiry_id, "PROVIDER_RESTORE_WINDOW_ELAPSED", as("receiver")), /restore window is open/);
+  c.advance(end - c.now() - 1);
+  assert.throws(() => c.store.recordTransportCopy(receipt.inquiry_id, "PROVIDER_RESTORE_WINDOW_ELAPSED", as("receiver")), /restore window is open/);
+  assert.equal(c.store.read(receipt.inquiry_id, as("reviewer")).transport.copy_state, "PURGED_FROM_MAILBOX");
+  // Specimen: at the end of the window it is recorded, and it is final.
+  c.advance(1);
+  const elapsed = c.store.recordTransportCopy(receipt.inquiry_id, "PROVIDER_RESTORE_WINDOW_ELAPSED", as("receiver"));
+  assert.equal(elapsed.copy_state, "PROVIDER_RESTORE_WINDOW_ELAPSED");
+  const entry = elapsed.history[1];
+  assert.equal(entry.basis, "PROVIDER_DOCUMENTED_WINDOW_ELAPSED");
+  assert.equal(entry.window_ended_at, purged.admin_restore_possible_until);
+  assert.deepEqual(entry.provider_observation, purged.provider_observation);
+  assert.throws(() => c.store.recordTransportCopy(receipt.inquiry_id, "PURGED_FROM_MAILBOX", as("receiver")), /cannot move/);
+});
+
+test("PERMANENTLY_REMOVED is no longer recordable, and a v1 record keeps what it recorded", async () => {
+  const c = clocked();
+  const receipt = await c.store.accept(raw(), "copy-v1-1", as("receiver"), scoping(), mailed(), exportRef());
+  assert.throws(() => c.store.recordTransportCopy(receipt.inquiry_id, "PERMANENTLY_REMOVED", as("receiver")), /v1 state.*record PURGED_FROM_MAILBOX/);
+  // A record written under v1: no schema on the block or its entries, ending
+  // in v1's terminal state, the way the store holds one written before v2.
+  const v1 = await c.store.accept(raw(), "copy-v1-2", as("receiver"), scoping(), mailed(), exportRef());
+  const removedAt = new Date(c.now()).toISOString();
+  const v1Entry = { seq: 1, state: "PERMANENTLY_REMOVED", at: removedAt, by: "copy-receiver", basis: "RECEIVER_ATTESTATION", purge_expected_by: null };
+  const legacy = { channel: "MAIL_INTAKE", arrival: "ENCRYPTED", required_disposition: "PERMANENTLY_REMOVED", copy_state: "PERMANENTLY_REMOVED", history: [v1Entry] };
+  const next = JSON.parse(JSON.stringify(c.store.state));
+  next.inquiries[v1.inquiry_id].transport = legacy;
+  c.store.persist(next);
+  // Not reinterpreted: reopened from disk, the v1 state, disposition and entry
+  // are exactly as recorded.
+  const fromDisk = openStore(c.store.filePath, { clock: c.now });
+  assert.deepEqual(fromDisk.read(v1.inquiry_id, as("reviewer")).transport, legacy);
+  // Its only next step is the elapsed state, and only after the window its own
+  // recorded time implies.
+  assert.throws(() => c.store.recordTransportCopy(v1.inquiry_id, "PURGED_FROM_MAILBOX", as("receiver")), /cannot move from PERMANENTLY_REMOVED/);
+  assert.throws(() => c.store.recordTransportCopy(v1.inquiry_id, "PROVIDER_RESTORE_WINDOW_ELAPSED", as("receiver")), /restore window is open/);
+  c.advance((TRASH_PURGE_DAYS + ADMIN_RESTORE_DAYS) * DAY);
+  const moved = c.store.recordTransportCopy(v1.inquiry_id, "PROVIDER_RESTORE_WINDOW_ELAPSED", as("receiver"));
+  // The v1 entry is untouched; the new entry and the block say where v2 began.
+  assert.deepEqual(moved.history[0], v1Entry);
+  assert.equal(moved.history[1].schema, TRANSPORT_SCHEMA);
+  assert.equal(moved.schema, TRANSPORT_SCHEMA);
+  assert.equal(moved.schema_before, "carbon.private-team-intake.transport-copy.v1");
+  assert.equal(moved.schema_changed_at_seq, 2);
+  assert.equal(moved.required_disposition, "PERMANENTLY_REMOVED");
 });
 
 test("a plaintext arrival records that its copy is to be removed without delay", async () => {
@@ -120,9 +180,10 @@ test("a plaintext arrival records that its copy is to be removed without delay",
   const receipt = await store.accept(raw(), "copy-004", as("receiver"), scoping(), plaintext, exportRef());
   const transport = store.read(receipt.inquiry_id, as("reviewer")).transport;
   assert.equal(transport.arrival, "PLAINTEXT");
-  assert.equal(transport.required_disposition, "PERMANENTLY_REMOVED_WITHOUT_DELAY");
+  assert.equal(transport.required_disposition, "PURGED_FROM_MAILBOX_WITHOUT_DELAY");
+  assert.equal(transport.schema, TRANSPORT_SCHEMA);
   // Specimen: an encrypted arrival carries the ordinary requirement.
-  assert.equal(mailed().required_disposition, "PERMANENTLY_REMOVED");
+  assert.equal(mailed().required_disposition, "PURGED_FROM_MAILBOX");
 });
 
 test("a direct handover has no transport copy to record against", async () => {
@@ -165,9 +226,11 @@ test("over HTTP, the relay and the transport-copy record work end to end", async
         body: JSON.stringify({ state }),
       });
     assert.equal((await record("MOVED_TO_TRASH")).status, 200);
-    const removed = await record("PERMANENTLY_REMOVED");
-    assert.equal(removed.status, 200);
-    assert.equal((await removed.json()).copy_state, "PERMANENTLY_REMOVED");
+    assert.equal((await record("PERMANENTLY_REMOVED")).status, 400);
+    const purged = await record("PURGED_FROM_MAILBOX");
+    assert.equal(purged.status, 200);
+    assert.equal((await purged.json()).copy_state, "PURGED_FROM_MAILBOX");
+    assert.equal((await record("PROVIDER_RESTORE_WINDOW_ELAPSED")).status, 409);
     assert.equal((await record("MOVED_TO_TRASH")).status, 400);
   } finally {
     server.close();
