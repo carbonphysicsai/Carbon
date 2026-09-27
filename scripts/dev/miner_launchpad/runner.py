@@ -24,6 +24,7 @@ import sqlite3
 import threading
 import time
 from contextlib import ExitStack, contextmanager
+from dataclasses import dataclass
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -67,7 +68,15 @@ OPTIONAL_PROFILE_FIELDS = {
     "disabled_reason",
     "authored_julia_image",
     "gpu_image",
+    "provider_credentials",
 }
+
+#: The provider every campaign was pinned to before selection existed. Its key
+#: is the profile's `api_key_file`, unless `provider_credentials` names one.
+DEFAULT_PROVIDER = "openai-responses"
+#: A battery campaign's feedback modes. Validated here, before dispatch, so a
+#: launch never depends on the campaign code reading a mode it does not know.
+FEEDBACK_MODES = ("FULL", "SCORE_WITHHELD")
 
 #: Image records a campaign's runtime can require, keyed by the profile field
 #: that names the miner's built record. Under the grant each had to be written
@@ -187,7 +196,96 @@ def validated_profile(cfg):
             type(cfg[field]) is not str or not Path(cfg[field]).is_absolute()
         ):
             raise ValueError("operator paths must be absolute")
+    if "provider_credentials" in cfg:
+        from carbon.development_session.model_provider import ADAPTERS
+
+        credentials = cfg["provider_credentials"]
+        # Shape only: whether each file is usable is read at launch, so a key
+        # file removed later refuses its provider rather than the profile.
+        if (
+            type(credentials) is not dict
+            or not set(credentials) <= set(ADAPTERS)
+            or any(
+                type(v) is not str or len(v) > 4096 or not Path(v).is_absolute()
+                for v in credentials.values()
+            )
+        ):
+            raise ValueError("provider_credentials maps provider ids to key files")
     return cfg
+
+
+def provider_credential(cfg, provider_id):
+    """The key file the runner profile configures for `provider_id`, or None.
+
+    The request never supplies it. The pinned default provider's key is the
+    profile's `api_key_file` when no entry names another; no other provider
+    ever falls back to that key.
+    """
+    path = (cfg.get("provider_credentials") or {}).get(provider_id)
+    if path is None and provider_id == DEFAULT_PROVIDER:
+        path = (cfg.get("paths") or {}).get("api_key_file")
+    return path
+
+
+def credential_refusal(path):
+    """Why a configured key file cannot be used, or None when it can.
+
+    Read from metadata only - `model_provider`'s own check (a regular file,
+    not a symlink, bounded) and the campaign's owner-only rule. The key itself
+    is never read here.
+    """
+    from carbon.development_session.model_provider import provider_summary
+    from carbon.development_session.research_campaign import private_file
+
+    if path is None:
+        return "model_provider_credential_not_configured"
+    row = provider_summary({DEFAULT_PROVIDER: path})[0]
+    if not row["available"]:
+        return (
+            "model_provider_credential_not_configured"
+            if row["reason"] == "credential_not_configured"
+            else "model_provider_credential_unusable"
+        )
+    try:
+        private_file(Path(path))
+    except (OSError, ValueError):
+        return "model_provider_credential_unusable"
+    return None
+
+
+def frozen_provider(root):
+    """The provider a frozen campaign's manifest records, or None before one
+    exists. A block without a selection schema is the pinned default."""
+    manifest = Path(root) / "campaign-manifest.json"
+    if not manifest.exists():
+        return None
+    block = json.loads(manifest.read_bytes()).get("provider") or {}
+    # A battery run plan nests the selection; a Burgers manifest is it.
+    record = block.get("model_selection", block)
+    if type(record) is dict and "schema" in record:
+        return record.get("provider_id")
+    return DEFAULT_PROVIDER
+
+
+@dataclass(frozen=True)
+class LaunchChoice:
+    """What a launch chose beyond the product admission: the validated model
+    selection (built only by `model_provider.select`, with the profile's key
+    file for that provider) and a battery feedback mode. Applied when the
+    campaign is first created, never on resume: the manifest is frozen then."""
+
+    selection: object = None
+    feedback_mode: str | None = None
+
+    def apply(self, args):
+        if self.selection is not None:
+            args.model_selection = {
+                "provider_id": self.selection.provider_id,
+                "model_id": self.selection.model_id,
+            }
+            args.api_key_file = Path(self.selection.credential.reference)
+        if self.feedback_mode is not None:
+            args.feedback_mode = self.feedback_mode
 
 
 def install_research_images(cfg, root):
@@ -220,6 +318,30 @@ def install_research_images(cfg, root):
         os.replace(staged, target)
 
 
+def _valid_key(key):
+    """An idempotency key: 16-80 ASCII letters, digits, - or _."""
+    if (
+        type(key) is not str
+        or not 16 <= len(key) <= 80
+        or not all(c.isascii() and (c.isalnum() or c in "-_") for c in key)
+    ):
+        raise Rejected("invalid_idempotency_key")
+    return key
+
+
+def _operation_digest(operation, request):
+    """What a keyed operation's request asked for. The key is how it is named,
+    not part of it; a strategy counts by value, whether a door sent it as an
+    object or as JSON text, so the browser and MCP retry the same request."""
+    fields = {k: v for k, v in request.items() if k != "idempotency_key"}
+    if type(fields.get("strategy")) is str:
+        try:
+            fields["strategy"] = json.loads(fields["strategy"])
+        except ValueError:
+            pass
+    return digest(canonical([operation, fields]))
+
+
 class RunnerAdapter:
     def __init__(
         self, database, *, configuration=None, principal=None, registration=None
@@ -245,6 +367,14 @@ class RunnerAdapter:
             # nothing new is ever written here.
             db.execute(
                 "CREATE TABLE IF NOT EXISTS research_runs (id TEXT PRIMARY KEY, request_key TEXT UNIQUE NOT NULL, profile TEXT NOT NULL, principal TEXT NOT NULL, config_digest TEXT NOT NULL, grant_digest TEXT NOT NULL, campaign TEXT NOT NULL, state TEXT NOT NULL, created REAL NOT NULL, root TEXT NOT NULL, grant_record BLOB NOT NULL, grant_id TEXT UNIQUE NOT NULL)"
+            )
+            # One row per accepted keyed miner operation (practice, freeze,
+            # submit): what a retry under the same key replays. Written in the
+            # same critical section that dispatches the operation, so a key is
+            # recorded exactly when its work was started, and kept in this
+            # database so a restarted controller replays rather than redoes.
+            db.execute(
+                "CREATE TABLE IF NOT EXISTS launchpad_operation_keys (principal TEXT NOT NULL, request_key TEXT NOT NULL, operation TEXT NOT NULL, campaign TEXT NOT NULL, request_digest TEXT NOT NULL, created REAL NOT NULL, PRIMARY KEY(principal, request_key))"
             )
             if "research_guidance" not in {
                 r[1] for r in db.execute("PRAGMA table_info(research_runs)")
@@ -446,18 +576,14 @@ class RunnerAdapter:
                 db.commit()
                 db.execute("DETACH DATABASE legacy")
 
-    def replayed(self, cfg, request):
-        """Launch's read-only replay gate: validates the request, and returns
-        the campaign a lost response created, reading no chain; or None."""
+    def replayed(self, cfg, request, operation="launch"):
+        """The read-only replay gate: validates the request's key, and returns
+        what a lost response already started, reading no chain; or None."""
+        if operation != "launch":
+            return self._operation_replayed(cfg, request, operation)
         from carbon.development_session.product_campaign import AGENTS, miner_budget
 
-        key = request["idempotency_key"]
-        if (
-            type(key) is not str
-            or not 16 <= len(key) <= 80
-            or not all(c.isascii() and (c.isalnum() or c in "-_") for c in key)
-        ):
-            raise Rejected("invalid_idempotency_key")
+        key = _valid_key(request["idempotency_key"])
         if request["agent"] not in AGENTS:
             raise Rejected("invalid_agent")
         try:
@@ -478,6 +604,9 @@ class RunnerAdapter:
                 (key, run_id),
             ).fetchall()
         if not previous:
+            # Refused here, before the registration read, as well as in the
+            # body: a choice that cannot run never reaches the chain.
+            self._launch_choice(cfg, request, self._challenge(request))
             return None
         # A lost response replays the campaign it created. It was admitted
         # when it was recorded; replaying it reads no chain and starts
@@ -493,6 +622,36 @@ class RunnerAdapter:
         ):
             raise Rejected("research_launch_replay_conflict", 409)
         return self.get(run_id)
+
+    def _operation_replayed(self, cfg, request, operation):
+        """A keyed practice, freeze or submit already accepted under this key:
+        the campaign it was started on, as it stands now. The same key with a
+        different request is a conflict, never a second dispatch."""
+        if "idempotency_key" not in request:
+            return None
+        key = _valid_key(request["idempotency_key"])
+        if cfg["principal"] != self.principal:
+            raise Rejected("research_profile_mismatch", 409)
+        with self.db() as db:
+            recorded = self._recorded_operation(db, key, operation, request)
+        return None if recorded is None else self.get(recorded)
+
+    def _recorded_operation(self, db, key, operation, request):
+        """The campaign a matching earlier acceptance of `key` started work
+        on, or None when the key is unused. Raises the conflict otherwise."""
+        row = db.execute(
+            "SELECT operation,campaign,request_digest FROM launchpad_operation_keys WHERE principal=? AND request_key=?",
+            (self.principal, key),
+        ).fetchone()
+        if row is None:
+            return None
+        if (row["operation"], row["campaign"], row["request_digest"]) != (
+            operation,
+            request.get("campaign"),
+            _operation_digest(operation, request),
+        ):
+            raise Rejected("operation_replay_conflict", 409)
+        return row["campaign"]
 
     def _launch_identity(self, cfg, request):
         # The browser's request digest is of the launch fields it historically
@@ -525,6 +684,64 @@ class RunnerAdapter:
             raise Rejected(refused.code, 409) from None
         return challenge
 
+    @staticmethod
+    def _launch_choice(cfg, request, challenge):
+        """The launch's model and feedback choice, refused by name before
+        anything is created. None when the launch chose neither, which is
+        exactly today's pinned default."""
+        from carbon.development_session.model_provider import (
+            ADAPTERS,
+            ModelSelectionRefused,
+            check_budget,
+            select,
+        )
+        from carbon.development_session.product_campaign import miner_budget
+        from carbon.reconstruction.capability_registry import BATTERY_CHALLENGE
+
+        mode = request.get("feedback_mode")
+        if mode is not None:
+            if mode not in FEEDBACK_MODES:
+                raise Rejected("invalid_feedback_mode")
+            if (challenge or {}).get("id") != BATTERY_CHALLENGE:
+                raise Rejected("feedback_mode_is_battery_only", 409)
+            from carbon.battery import campaign as battery
+
+            # Fail closed until the battery campaign itself reads the mode: a
+            # withheld score it would silently ignore is refused, not run FULL.
+            if mode not in getattr(battery, "FEEDBACK_MODES", ("FULL",)):
+                raise Rejected("feedback_mode_not_supported_by_this_runtime", 409)
+        provider, model = request.get("model_provider"), request.get("model")
+        selection = None
+        if provider is not None or model is not None:
+            if provider is None:
+                raise Rejected("model_provider_required")
+            if type(provider) is not str or provider not in ADAPTERS:
+                raise Rejected("unknown_model_provider")
+            if model is not None and type(model) is not str:
+                raise Rejected("model_selection_refused")
+            if request["agent"] != "autonomous":
+                # No agent calls a model; a choice nothing uses is refused.
+                raise Rejected("model_selection_needs_the_autonomous_agent", 409)
+            if ADAPTERS[provider].endpoint is None:
+                raise Rejected("model_provider_endpoint_not_launchable", 409)
+            path = provider_credential(cfg, provider)
+            refusal = credential_refusal(path)
+            if refusal is not None:
+                raise Rejected(refusal, 409)
+            try:
+                selection = select(
+                    provider_id=provider,
+                    model_id=model,
+                    credential={"kind": "file", "reference": path},
+                )
+                budget = miner_budget(request.get("budget"))
+                check_budget(selection, budget.get("ceilings"))
+            except ModelSelectionRefused:
+                raise Rejected("model_selection_refused", 409) from None
+        if selection is None and mode is None:
+            return None
+        return LaunchChoice(selection=selection, feedback_mode=mode)
+
     def launch_admitted(self, admitted, request):
         """Record and dispatch an admitted launch."""
         from carbon.development_session.product_campaign import (
@@ -535,6 +752,8 @@ class RunnerAdapter:
         cfg, miner = admitted.profile, admitted.miner
         task = guidance.configured(cfg)
         budget = miner_budget(request.get("budget"))
+        challenge = self._challenge(request)
+        choice = self._launch_choice(cfg, request, challenge)
         run_id, request_digest, config_pin = self._launch_identity(cfg, request)
         root = Path(cfg["campaigns_root"]) / run_id
         product = ProductLaunch(
@@ -544,7 +763,7 @@ class RunnerAdapter:
             runtime=cfg["runtime"],
             budget=budget,
             agent=request["agent"],
-            challenge=self._challenge(request),
+            challenge=challenge,
         )
         with self.db() as db:
             db.execute("BEGIN IMMEDIATE")
@@ -569,7 +788,7 @@ class RunnerAdapter:
                 )
             except sqlite3.IntegrityError:
                 raise Rejected("research_launch_replay_conflict", 409) from None
-        self._start(run_id, cfg, root, product)
+        self._start(run_id, cfg, root, product, choice)
         return self.get(run_id)
 
     def owner(self):
@@ -633,6 +852,7 @@ class RunnerAdapter:
                     ),
                 },
             ],
+            "model_providers": self._model_providers(cfg),
             "families": [
                 {
                     "id": c.capability_id,
@@ -668,6 +888,35 @@ class RunnerAdapter:
                 "unavailable": "this host does not, for the reason given",
             },
         }
+
+    @staticmethod
+    def _model_providers(cfg):
+        """Each provider a launch may name, and whether this profile has its
+        key file - judged from metadata only; no key is read and no provider
+        contacted. Only an available one can launch."""
+        from carbon.development_session.model_provider import ADAPTERS
+
+        rows = []
+        for provider_id, adapter in ADAPTERS.items():
+            if adapter.endpoint is None:
+                reason = "model_provider_endpoint_not_launchable"
+            else:
+                reason = credential_refusal(provider_credential(cfg, provider_id))
+            rows.append(
+                {
+                    "provider_id": provider_id,
+                    "display_name": adapter.display_name,
+                    "models": [m["model_id"] for m in adapter.summary_models()],
+                    "default_model": adapter.default_model,
+                    "any_model_id": adapter.allowed_models is None,
+                    **(
+                        {"availability": "available"}
+                        if reason is None
+                        else {"availability": "unavailable", "reason": reason}
+                    ),
+                }
+            )
+        return rows
 
     def _design_refusal(self, strategy):
         """Check-design's verdict for a recipe about to be practiced or frozen:
@@ -718,7 +967,7 @@ class RunnerAdapter:
                 identity=identity,
             )
 
-        return self._background(admitted, practice, "PRACTICING")
+        return self._background(admitted, practice, "PRACTICING", "practice", request)
 
     def freeze_candidate_admitted(self, admitted, request):
         """Freeze a practiced recipe. Its refusals - agent-selected campaign,
@@ -749,7 +998,9 @@ class RunnerAdapter:
                 prepared, strategy=strategy, reason=reason, used_feedback=used
             )
 
-        return self._background(admitted, freeze, "FREEZING")
+        return self._background(
+            admitted, freeze, "FREEZING", "freeze_candidate", request
+        )
 
     def submit_admitted(self, admitted, request):
         from carbon.development_session.research_campaign import submit_frozen
@@ -757,12 +1008,24 @@ class RunnerAdapter:
         # Checked before the thread starts, so a submit with nothing frozen is
         # refused to the caller rather than failing where no one sees it.
         self._require_frozen(admitted)
-        return self._background(admitted, submit_frozen, "SUBMITTING")
+        return self._background(
+            admitted, submit_frozen, "SUBMITTING", "submit", request
+        )
 
-    def _background(self, admitted, work, state):
-        """Run a long miner operation on its own thread; observe reports it."""
+    def _background(self, admitted, work, state, operation, request):
+        """Run a long miner operation on its own thread; observe reports it.
+
+        A keyed request is claimed in the same critical section that starts
+        the thread: a concurrent or later retry under the key finds the claim
+        and replays, and a refused request (busy) records nothing.
+        """
         identity = admitted.campaign["id"]
+        key = request.get("idempotency_key")
         with self.lock:
+            if key is not None:
+                with self.db() as db:
+                    if self._recorded_operation(db, key, operation, request):
+                        return self.get(identity)
             previous = self.threads.get(identity)
             if previous is not None and previous.is_alive():
                 # A finished operation settles the campaign READY and then its
@@ -771,6 +1034,25 @@ class RunnerAdapter:
                 previous.join(timeout=2)
                 if previous.is_alive():
                     raise Rejected("campaign_busy", 409)
+            if key is not None:
+                with self.db() as db:
+                    try:
+                        db.execute(
+                            "INSERT INTO launchpad_operation_keys (principal,request_key,operation,campaign,request_digest,created) VALUES(?,?,?,?,?,?)",
+                            (
+                                self.principal,
+                                key,
+                                operation,
+                                identity,
+                                _operation_digest(operation, request),
+                                time.time(),
+                            ),
+                        )
+                    except sqlite3.IntegrityError:
+                        # Another controller process claimed it first.
+                        if self._recorded_operation(db, key, operation, request):
+                            return self.get(identity)
+                        raise
             thread = threading.Thread(
                 target=self._operation_thread, args=(admitted, work), daemon=True
             )
@@ -839,6 +1121,9 @@ class RunnerAdapter:
                 research_guidance=task["text"] if task is not None else None,
                 command="resume",
             )
+            credential = self._frozen_credential(cfg, root)
+            if credential is not None:
+                args.api_key_file = credential
 
             async def run():
                 prepared = await prepare(args, ledger=ledger)
@@ -869,17 +1154,36 @@ class RunnerAdapter:
             raise Rejected(refused, 409)
         return result
 
-    def _start(self, run_id, cfg, root, product=None):
+    @staticmethod
+    def _frozen_credential(cfg, root):
+        """The key file for the provider a frozen campaign records, from the
+        runner profile. A resumed campaign never sends one provider's key to
+        another: an unconfigured provider is refused, not substituted."""
+        provider = frozen_provider(root)
+        if provider in (None, DEFAULT_PROVIDER):
+            # Every campaign frozen before selection existed, unchanged: the
+            # campaign checks this key itself when its agent needs one.
+            path = provider_credential(cfg, DEFAULT_PROVIDER)
+            return None if path is None else Path(path)
+        path = provider_credential(cfg, provider)
+        refusal = credential_refusal(path)
+        if refusal is not None:
+            raise Rejected(refusal, 409)
+        return Path(path)
+
+    def _start(self, run_id, cfg, root, product=None, choice=None):
         with self.lock:
             if run_id in self.threads and self.threads[run_id].is_alive():
                 return
             thread = threading.Thread(
-                target=self._run, args=(run_id, cfg, root, product), daemon=True
+                target=self._run,
+                args=(run_id, cfg, root, product, choice),
+                daemon=True,
             )
             self.threads[run_id] = thread
             thread.start()
 
-    def _run(self, run_id, cfg, root, product):
+    def _run(self, run_id, cfg, root, product, choice=None):
         from carbon.development_session.research_agent_policy import AUTONOMOUS
         from carbon.development_session.research_campaign import execute
 
@@ -913,6 +1217,7 @@ class RunnerAdapter:
                 if pending:
                     raise DispatchStopped("unresolved operation")
                 install_research_images(cfg, root)
+                creating = not (root / "campaign-manifest.json").exists()
                 args = SimpleNamespace(
                     **{k: Path(v) for k, v in cfg["paths"].items()},
                     root=root,
@@ -921,12 +1226,18 @@ class RunnerAdapter:
                     agent_policy=AUTONOMOUS,
                     product=product,
                     research_guidance=task["text"] if task is not None else None,
-                    command=(
-                        "resume"
-                        if (root / "campaign-manifest.json").exists()
-                        else "run"
-                    ),
+                    command="run" if creating else "resume",
                 )
+                if creating:
+                    # The launch's choice freezes into the manifest now.
+                    if choice is not None:
+                        choice.apply(args)
+                else:
+                    # A resume keeps the frozen choice; only its key file is
+                    # read again, from the profile, for the frozen provider.
+                    credential = self._frozen_credential(cfg, root)
+                    if credential is not None:
+                        args.api_key_file = credential
                 try:
                     asyncio.run(execute(args, ledger=ledger))
                 except Exception:  # noqa: BLE001 - never publish provider/key errors.
@@ -1082,6 +1393,8 @@ class RunnerAdapter:
                 cfg = self.configured()
                 if digest(canonical(cfg)) != row["config_digest"]:
                     raise ValueError("resume binding differs")
+                # Refused by name now, rather than after the thread starts.
+                self._frozen_credential(cfg, root)
             control.request(action)
             if action == "stop":
                 ledger.generation = control.status()["generation"]

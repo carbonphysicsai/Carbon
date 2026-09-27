@@ -46,7 +46,7 @@ class SpyHost:
         self.calls.append("owner")
         return {"principal": "miner"}
 
-    def replayed(self, profile, request):
+    def replayed(self, profile, request, operation):
         self.calls.append("replay")
 
     def registration(self, profile):

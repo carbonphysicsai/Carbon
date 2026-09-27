@@ -88,6 +88,12 @@ def docker(monkeypatch):
     )
     monkeypatch.setattr(research_image, "verify_image", lambda image, cli: None)
     monkeypatch.setattr(carrier, "spawn_watchdog", lambda **kwargs: None)
+    holder["reapers"] = []
+    monkeypatch.setattr(
+        carrier.liveness_reaper,
+        "spawn_liveness_reaper",
+        lambda **kwargs: holder["reapers"].append(kwargs),
+    )
     monkeypatch.setattr(
         carrier,
         "remove_exact_container",
@@ -229,6 +235,24 @@ def test_uncertain_cancellation_is_checked_before_the_ledger_finishes(
     with pytest.raises(ValueError, match="cancellation cleanup uncertain"):
         run(ledger)
     assert operation(ledger)["state"] == "RESERVED"
+
+
+@pytest.mark.parametrize("seconds", [None, 3600])
+def test_the_early_intent_records_the_miner_lanes_guard(tmp_path, docker, seconds):
+    """The intent is written before staging, and it names what will remove the
+    container if its owner cannot: the deadline watchdog, or the liveness
+    reaper for an unbounded run, which is then started with that guard."""
+    ledger = unbudgeted_ledger(tmp_path)
+    run(ledger, seconds=seconds)
+    (path,) = ledger.root.glob("operation-*/intent.json")
+    intent = json.loads(path.read_bytes())
+    if seconds is None:
+        guard = carrier.liveness_reaper.controller_guard()
+        assert intent["deadline_unix"] is None and intent["reaper"] == guard
+        assert [r["guard"] for r in docker["reapers"]] == [guard]
+    else:
+        assert intent["reaper"] == {"kind": "DEADLINE"}
+        assert docker["reapers"] == []
 
 
 def test_without_a_cancellation_the_same_run_succeeds(tmp_path, docker):

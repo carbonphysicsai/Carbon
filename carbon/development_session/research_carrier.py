@@ -14,6 +14,7 @@ import time
 from contextlib import contextmanager
 from contextvars import ContextVar
 
+from carbon.reconstruction.worker import liveness_reaper
 from carbon.reconstruction.worker.docker_runtime import (
     DockerCLI,
     create_arguments,
@@ -306,6 +307,11 @@ def _run_locked(
     # leaves an operation reconcile_worker can settle, rather than a RESERVED
     # row with no record of what might have been launched.
     operation.mkdir()
+    # What removes a miner-lane container if its owner cannot: the deadline
+    # watchdog when the miner set a time budget, otherwise a reaper that
+    # watches this controller process and removes the container only once it
+    # is gone. An unbounded run has no time limit, but it is never unguarded.
+    guard = _miner_guard(seconds) if miner_lane else None
     write_once(
         operation / "intent.json",
         canonical(
@@ -318,6 +324,7 @@ def _run_locked(
                 "deadline_unix": (
                     None if seconds is None else started_unix + seconds - 30
                 ),
+                **({} if guard is None else {"reaper": guard}),
             }
         ),
     )
@@ -370,6 +377,7 @@ def _run_locked(
     if miner_lane:
         return _run_miner_lane(
             ledger,
+            guard=guard,
             owner=owner,
             identity=identity,
             operation=operation,
@@ -500,9 +508,18 @@ def _run_locked(
     return result
 
 
+def _miner_guard(seconds):
+    """The deadline watchdog for a timed run; otherwise the controller-liveness
+    reaper, so an unbounded run is never unguarded."""
+    if seconds is not None:
+        return {"kind": "DEADLINE"}
+    return liveness_reaper.controller_guard()
+
+
 def _run_miner_lane(
     ledger,
     *,
+    guard,
     owner,
     identity,
     operation,
@@ -559,6 +576,10 @@ def _run_miner_lane(
                 container_name=name,
                 launch_digest=launch,
                 deadline_unix=float(started_unix + seconds),
+            )
+        else:
+            liveness_reaper.spawn_liveness_reaper(
+                container_name=name, launch_digest=launch, guard=guard
             )
         cli.run(["start", name], timeout=20)
         isolation = inspect_isolation(cli, run)

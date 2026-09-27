@@ -120,11 +120,12 @@
     "basis": "No reference pilot has run.",
     "decision": "NONE"
   },
-  "record_version": 2,
+  "record_version": 3,
   "reference": {
-    "applicability": "Candidate only. The pinned image reproduces laminar parallel-plate flow at second order (rung 1, scripts/dev/cold_plate/channel_verification). No conjugate heat-transfer case, cold-plate geometry or material has been run; whether the envelope is laminar is not yet confirmed.",
+    "applicability": "Candidate only. The pinned image reproduces laminar parallel-plate flow (rung 1) and the uniform-flux fully developed Nusselt number and energy balance (rung 2), both at second order, under scripts/dev/cold_plate/. No conjugate heat-transfer case, cold-plate geometry, material or coolant has been run; whether the envelope is laminar is not yet confirmed.",
     "evidence": [
-      "scripts/dev/cold_plate/channel_verification/README.md"
+      "scripts/dev/cold_plate/channel_verification/README.md",
+      "scripts/dev/cold_plate/heat_flux_verification/README.md"
     ],
     "licence": "GPL-3.0 as published upstream; run on the operator host only, redistribution not reviewed",
     "model": null,

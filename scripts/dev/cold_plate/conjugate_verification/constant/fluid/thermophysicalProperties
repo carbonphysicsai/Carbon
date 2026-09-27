@@ -1,0 +1,28 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      thermophysicalProperties;
+}
+
+// Verification values, not a coolant: constant properties chosen so that
+// nu = mu/rho = 1e-6 m^2/s (Re 200 as in rungs 1-2) and Pr = 1, giving
+// k = mu Cp / Pr = 4.181 W/m/K.
+thermoType
+{
+    type            heRhoThermo;
+    mixture         pureMixture;
+    transport       const;
+    thermo          hConst;
+    equationOfState rhoConst;
+    specie          specie;
+    energy          sensibleEnthalpy;
+}
+mixture
+{
+    specie          { molWeight 18; }
+    equationOfState { rho 1000; }
+    thermodynamics  { Cp 4181; Hf 0; }
+    transport       { mu 1e-3; Pr 1; }
+}
