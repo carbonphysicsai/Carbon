@@ -220,6 +220,30 @@ def install_research_images(cfg, root):
         os.replace(staged, target)
 
 
+def _valid_key(key):
+    """An idempotency key: 16-80 ASCII letters, digits, - or _."""
+    if (
+        type(key) is not str
+        or not 16 <= len(key) <= 80
+        or not all(c.isascii() and (c.isalnum() or c in "-_") for c in key)
+    ):
+        raise Rejected("invalid_idempotency_key")
+    return key
+
+
+def _operation_digest(operation, request):
+    """What a keyed operation's request asked for. The key is how it is named,
+    not part of it; a strategy counts by value, whether a door sent it as an
+    object or as JSON text, so the browser and MCP retry the same request."""
+    fields = {k: v for k, v in request.items() if k != "idempotency_key"}
+    if type(fields.get("strategy")) is str:
+        try:
+            fields["strategy"] = json.loads(fields["strategy"])
+        except ValueError:
+            pass
+    return digest(canonical([operation, fields]))
+
+
 class RunnerAdapter:
     def __init__(
         self, database, *, configuration=None, principal=None, registration=None
@@ -245,6 +269,14 @@ class RunnerAdapter:
             # nothing new is ever written here.
             db.execute(
                 "CREATE TABLE IF NOT EXISTS research_runs (id TEXT PRIMARY KEY, request_key TEXT UNIQUE NOT NULL, profile TEXT NOT NULL, principal TEXT NOT NULL, config_digest TEXT NOT NULL, grant_digest TEXT NOT NULL, campaign TEXT NOT NULL, state TEXT NOT NULL, created REAL NOT NULL, root TEXT NOT NULL, grant_record BLOB NOT NULL, grant_id TEXT UNIQUE NOT NULL)"
+            )
+            # One row per accepted keyed miner operation (practice, freeze,
+            # submit): what a retry under the same key replays. Written in the
+            # same critical section that dispatches the operation, so a key is
+            # recorded exactly when its work was started, and kept in this
+            # database so a restarted controller replays rather than redoes.
+            db.execute(
+                "CREATE TABLE IF NOT EXISTS launchpad_operation_keys (principal TEXT NOT NULL, request_key TEXT NOT NULL, operation TEXT NOT NULL, campaign TEXT NOT NULL, request_digest TEXT NOT NULL, created REAL NOT NULL, PRIMARY KEY(principal, request_key))"
             )
             if "research_guidance" not in {
                 r[1] for r in db.execute("PRAGMA table_info(research_runs)")
@@ -446,18 +478,14 @@ class RunnerAdapter:
                 db.commit()
                 db.execute("DETACH DATABASE legacy")
 
-    def replayed(self, cfg, request):
-        """Launch's read-only replay gate: validates the request, and returns
-        the campaign a lost response created, reading no chain; or None."""
+    def replayed(self, cfg, request, operation="launch"):
+        """The read-only replay gate: validates the request's key, and returns
+        what a lost response already started, reading no chain; or None."""
+        if operation != "launch":
+            return self._operation_replayed(cfg, request, operation)
         from carbon.development_session.product_campaign import AGENTS, miner_budget
 
-        key = request["idempotency_key"]
-        if (
-            type(key) is not str
-            or not 16 <= len(key) <= 80
-            or not all(c.isascii() and (c.isalnum() or c in "-_") for c in key)
-        ):
-            raise Rejected("invalid_idempotency_key")
+        key = _valid_key(request["idempotency_key"])
         if request["agent"] not in AGENTS:
             raise Rejected("invalid_agent")
         try:
@@ -493,6 +521,36 @@ class RunnerAdapter:
         ):
             raise Rejected("research_launch_replay_conflict", 409)
         return self.get(run_id)
+
+    def _operation_replayed(self, cfg, request, operation):
+        """A keyed practice, freeze or submit already accepted under this key:
+        the campaign it was started on, as it stands now. The same key with a
+        different request is a conflict, never a second dispatch."""
+        if "idempotency_key" not in request:
+            return None
+        key = _valid_key(request["idempotency_key"])
+        if cfg["principal"] != self.principal:
+            raise Rejected("research_profile_mismatch", 409)
+        with self.db() as db:
+            recorded = self._recorded_operation(db, key, operation, request)
+        return None if recorded is None else self.get(recorded)
+
+    def _recorded_operation(self, db, key, operation, request):
+        """The campaign a matching earlier acceptance of `key` started work
+        on, or None when the key is unused. Raises the conflict otherwise."""
+        row = db.execute(
+            "SELECT operation,campaign,request_digest FROM launchpad_operation_keys WHERE principal=? AND request_key=?",
+            (self.principal, key),
+        ).fetchone()
+        if row is None:
+            return None
+        if (row["operation"], row["campaign"], row["request_digest"]) != (
+            operation,
+            request.get("campaign"),
+            _operation_digest(operation, request),
+        ):
+            raise Rejected("operation_replay_conflict", 409)
+        return row["campaign"]
 
     def _launch_identity(self, cfg, request):
         # The browser's request digest is of the launch fields it historically
@@ -718,7 +776,7 @@ class RunnerAdapter:
                 identity=identity,
             )
 
-        return self._background(admitted, practice, "PRACTICING")
+        return self._background(admitted, practice, "PRACTICING", "practice", request)
 
     def freeze_candidate_admitted(self, admitted, request):
         """Freeze a practiced recipe. Its refusals - agent-selected campaign,
@@ -749,7 +807,9 @@ class RunnerAdapter:
                 prepared, strategy=strategy, reason=reason, used_feedback=used
             )
 
-        return self._background(admitted, freeze, "FREEZING")
+        return self._background(
+            admitted, freeze, "FREEZING", "freeze_candidate", request
+        )
 
     def submit_admitted(self, admitted, request):
         from carbon.development_session.research_campaign import submit_frozen
@@ -757,12 +817,24 @@ class RunnerAdapter:
         # Checked before the thread starts, so a submit with nothing frozen is
         # refused to the caller rather than failing where no one sees it.
         self._require_frozen(admitted)
-        return self._background(admitted, submit_frozen, "SUBMITTING")
+        return self._background(
+            admitted, submit_frozen, "SUBMITTING", "submit", request
+        )
 
-    def _background(self, admitted, work, state):
-        """Run a long miner operation on its own thread; observe reports it."""
+    def _background(self, admitted, work, state, operation, request):
+        """Run a long miner operation on its own thread; observe reports it.
+
+        A keyed request is claimed in the same critical section that starts
+        the thread: a concurrent or later retry under the key finds the claim
+        and replays, and a refused request (busy) records nothing.
+        """
         identity = admitted.campaign["id"]
+        key = request.get("idempotency_key")
         with self.lock:
+            if key is not None:
+                with self.db() as db:
+                    if self._recorded_operation(db, key, operation, request):
+                        return self.get(identity)
             previous = self.threads.get(identity)
             if previous is not None and previous.is_alive():
                 # A finished operation settles the campaign READY and then its
@@ -771,6 +843,25 @@ class RunnerAdapter:
                 previous.join(timeout=2)
                 if previous.is_alive():
                     raise Rejected("campaign_busy", 409)
+            if key is not None:
+                with self.db() as db:
+                    try:
+                        db.execute(
+                            "INSERT INTO launchpad_operation_keys (principal,request_key,operation,campaign,request_digest,created) VALUES(?,?,?,?,?,?)",
+                            (
+                                self.principal,
+                                key,
+                                operation,
+                                identity,
+                                _operation_digest(operation, request),
+                                time.time(),
+                            ),
+                        )
+                    except sqlite3.IntegrityError:
+                        # Another controller process claimed it first.
+                        if self._recorded_operation(db, key, operation, request):
+                            return self.get(identity)
+                        raise
             thread = threading.Thread(
                 target=self._operation_thread, args=(admitted, work), daemon=True
             )
