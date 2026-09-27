@@ -44,12 +44,13 @@ class ChallengeCampaign:
     #: A submit refused before evaluation keeps the frozen candidate for a
     #: later submit (True), or ends the campaign with the refusal (False).
     refusal_retains_candidate: bool
-    #: (manifest, *, implementation, images) -> None; raises if the frozen
-    #: binding changed. None: the attach re-checks the historical Burgers
-    #: roles, objective and lanes in `standard_cli`.
+    #: (manifest, *, implementation, images, julia_image) -> None; raises if
+    #: the frozen binding changed. `julia_image` is the host's verified
+    #: authored Julia image, or None. None here: the attach re-checks the
+    #: historical Burgers roles, objective and lanes in `standard_cli`.
     check_attached: Callable | None
-    #: (**attach) -> (composition, wrapper); None: the historical Burgers
-    #: composition in `standard_cli`.
+    #: (**attach, julia_image) -> (composition, wrapper); None: the
+    #: historical Burgers composition in `standard_cli`.
     compose: Callable | None
 
 
