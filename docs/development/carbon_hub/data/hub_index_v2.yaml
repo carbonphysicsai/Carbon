@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-26T16:30:28Z"
+  captured_at_utc: "2026-09-27T03:02:02Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "c3ac244304b36431d404778b9b6a72aa28ba3864"
+  authority_snapshot_commit: "a7991ba4fed32db6a140a8b45ba5369ff2119887"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -10112,6 +10112,19 @@ events:
       - "WAVE-C/C-W1-D4"
     supersedes: null
     recorded_at: "2026-09-26T12:28:33Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "adjustment"
+    event_id: "C-MLP-02-COMPUTE-PROVIDER-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "carbon.compute adds a provider-neutral compute layer and a RunPod adapter, tested only against a mock transport; no live RunPod call has been made from it. Provisioning persists an intent with a Carbon-generated ownership tag before any provider request and marks it as possibly sent before sending, so a lost create response is resolved by adopting the tagged pod, never by resending. Provision is idempotent per campaign and intent. Only a store-issued Carbon-owned resource can be stopped or terminated; a user-managed host has no such capability and an untagged or retagged pod is refused. A first provision requires a recorded account-balance observation, which is the spending cap, with the miner's own budget applied beneath it. The reconciler (python -m carbon.compute reconcile) runs from the controller host's store and the provider API alone, refuses to run on a rented pod, terminates Carbon-owned resources past deadline or campaign stop, and reports but never touches orphans or untagged pods. Estimates, provider-reported charges and unresolved charges stay separate, and storage that survives a stop is estimated. Concurrency admission is derived from observed host facts. The adapter issues only pod-lifecycle, balance and price requests. The stop and billing request shapes are not yet verified live. No scientific, security or production qualification is claimed."
+    primary_detail: "carbon/compute/__init__.py"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "WAVE-C/C-W1-D4"
+    supersedes: null
+    recorded_at: "2026-09-26T14:00:00Z"
   -
     map_ref: "SYSTEM/BUSINESS-AUTHORITY"
     event_type: "evidence"
