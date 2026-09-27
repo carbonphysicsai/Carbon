@@ -60,6 +60,26 @@ FIELDS = {
         ),
     ),
     "challenge_version": ("string", "The exact version of that Challenge."),
+    "model_provider": (
+        "string",
+        (
+            "The provider adapter Carbon's agent calls (options lists them). "
+            "Its key file comes from your runner profile, never the request; "
+            "a provider with no key configured there is refused. Omitted: the "
+            "pinned default."
+        ),
+    ),
+    "model": (
+        "string",
+        "The model id at that provider. Omitted: the provider's default.",
+    ),
+    "feedback_mode": (
+        "string",
+        (
+            "Battery Challenge only: FULL (default) or SCORE_WITHHELD. Frozen "
+            "when the campaign is created; a resume keeps the frozen mode."
+        ),
+    ),
 }
 
 #: The gates, in the only order they run. `replay` is read-only and precedes
@@ -118,7 +138,16 @@ OPERATIONS = {
             "research, select and submit; agent=none leaves every step to you.",
             frozenset({"agent", "idempotency_key"}),
             frozenset(
-                {"budget", "review_digest", "profile", "challenge", "challenge_version"}
+                {
+                    "budget",
+                    "review_digest",
+                    "profile",
+                    "challenge",
+                    "challenge_version",
+                    "model_provider",
+                    "model",
+                    "feedback_mode",
+                }
             ),
             ("request", "profile", "replay", "registration"),
         ),
