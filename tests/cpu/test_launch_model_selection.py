@@ -438,3 +438,101 @@ def test_the_page_sends_the_chosen_provider_and_model():
     ).read_text()
     assert "pendingResearch.body.model_provider = provider.id" in script
     assert "pendingResearch.body.model = wizard.model" in script
+
+
+# -- Model settings ----------------------------------------------------------
+
+
+def test_both_doors_carry_model_settings_as_an_object():
+    launch = OPERATIONS["launch"]
+    assert "model_settings" in launch.optional
+    assert FIELDS["model_settings"][0] == "object"
+    tools = {tool.name: tool for tool in make_operation_tools(object())}
+    assert "model_settings" in tools[PREFIX + "launch"].parameters["properties"]
+    # The specimen: practice carries no model settings.
+    assert "model_settings" not in tools[PREFIX + "practice"].parameters["properties"]
+
+
+def test_a_chosen_output_cap_reaches_the_campaign_and_its_record(tmp_path, monkeypatch):
+    """The cap flows launch -> choice -> args -> the campaign's own selection
+    builder -> the provider plan the manifest freezes, and sizes the per-call
+    reservation. The specimen: the same launch without settings keeps 2048."""
+    from carbon.battery.campaign import provider_plan
+
+    cfg, _ = engy_profile(tmp_path)
+    bridge, started = host(tmp_path, monkeypatch, cfg)
+    request = {
+        "profile": "opaque-profile",
+        "model_provider": "engy-anthropic",
+        "model_settings": {"max_output_tokens": 16384},
+    }
+    identity = bridge.launch(request, KEY)["id"]
+    _, _, root, product, choice = started[0]
+    assert choice.selection.settings.max_output_tokens == 16384
+    product_campaign(root, identity)
+    seen = capture_run(monkeypatch, bridge)
+    bridge._run(identity, cfg, root, product, choice)
+    assert seen["args"].model_selection["settings"] == {"max_output_tokens": 16384}
+    selection = research_campaign.supplied_selection(seen["args"])
+    assert selection.settings.max_output_tokens == 16384
+    budget = {"ceilings": {"provider_attempts": 5, "provider_nanodollars": 10**9}}
+    plan = provider_plan("autonomous", budget, selection)
+    assert plan["model_selection"]["settings"]["max_output_tokens"] == 16384
+
+    default_request = {k: v for k, v in request.items() if k != "model_settings"}
+    bridge.launch(default_request, "request-key-default-settings")
+    default = started[1][4]
+    assert default.settings is None
+    assert default.selection.settings.max_output_tokens == 2048
+    assert selection.reservation_nano > default.selection.reservation_nano
+
+
+@pytest.mark.parametrize(
+    "request_fields,code",
+    [
+        ({"model_settings": {"max_output_tokens": 16384}}, "model_provider_required"),
+        (
+            {"model_provider": "engy-anthropic", "model_settings": 16384},
+            "model_selection_refused",
+        ),
+        (
+            {"model_provider": "engy-anthropic", "model_settings": {"top_p": 1}},
+            "model_selection_refused",
+        ),
+        (
+            {
+                "model_provider": "engy-anthropic",
+                "model_settings": {"max_output_tokens": 255},
+            },
+            "model_selection_refused",
+        ),
+        (
+            {
+                "model_provider": "engy-anthropic",
+                "model_settings": {"max_output_tokens": 131073},
+            },
+            "model_selection_refused",
+        ),
+    ],
+)
+def test_unusable_model_settings_are_refused_before_anything(
+    tmp_path, monkeypatch, request_fields, code
+):
+    cfg, _ = engy_profile(tmp_path)
+    chain = Chain()
+    bridge, started = host(tmp_path, monkeypatch, cfg, chain)
+    with pytest.raises(Rejected, match=code):
+        bridge.launch({"profile": "opaque-profile", **request_fields}, KEY)
+    assert started == [] and bridge.recent() == [] and chain.reads == 0
+    # The specimen: the bounds themselves are accepted.
+    for cap in (256, 131072):
+        bridge.launch(
+            {
+                "profile": "opaque-profile",
+                "model_provider": "engy-anthropic",
+                "model_settings": {"max_output_tokens": cap},
+            },
+            f"request-key-bound-{cap}",
+        )
+    caps = [s[4].selection.settings.max_output_tokens for s in started]
+    assert caps == [256, 131072]
