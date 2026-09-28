@@ -14,6 +14,24 @@ REASONS = (
     "unresolved_failure",
     "cancellation",
 )
+#: How the loop treats a provider that returns several tool calls in one turn
+#: despite `parallel_tool_calls: false` (owner decision, 28 September 2026).
+#: A campaign freezes this in its provider plan; one frozen before it existed
+#: has no such field and keeps the historical rule - such output stops the
+#: epoch - so its retained turns keep the meaning they were recorded with.
+PARALLEL_CALLS = {
+    "schema": "carbon.autoresearch.parallel-calls.v1",
+    "rule": "FIRST_RUN_REST_REFUSED",
+    "consecutive_limit": 3,
+}
+PARALLEL_REFUSAL = {
+    "status": "REFUSED_NOT_RUN",
+    "reason": (
+        "One tool call per turn: only the first call in this turn ran. "
+        "Call this one again in a later turn if you still need it."
+    ),
+    "authority_granted": False,
+}
 REMINDER = (
     "This is an already authorized autonomous campaign, not an interactive planning "
     "consultation. Continue with a feasible research tool, select a practiced recipe, "
