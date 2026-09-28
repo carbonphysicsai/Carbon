@@ -199,6 +199,14 @@ def inspect_isolation(cli, launch: MinerResearchLaunch) -> dict:
     }
 
 
+class MinerOutputRefused(ValueError):
+    """The run's own output holds something other than regular files.
+
+    Distinct from an unreadable output tree, which can be the host's doing: a
+    link, FIFO, socket or device can only have been written by the run.
+    """
+
+
 def collect_outputs(scratch: Path, snapshot: Path) -> dict[str, int]:
     """Copy the run's own outputs into the snapshot, as untrusted bytes.
 
@@ -222,13 +230,15 @@ def collect_outputs(scratch: Path, snapshot: Path) -> dict[str, int]:
         base = Path(directory)
         for name in dirnames:
             if (base / name).is_symlink():
-                raise ValueError("research output may not contain links")
+                raise MinerOutputRefused("research output may not contain links")
         for name in filenames:
             path = base / name
             relative = path.relative_to(source)
             info = os.lstat(path)
             if not stat.S_ISREG(info.st_mode):
-                raise ValueError("research output may contain regular files only")
+                raise MinerOutputRefused(
+                    "research output may contain regular files only"
+                )
             target = snapshot / relative
             target.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
             handle = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)

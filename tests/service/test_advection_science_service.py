@@ -26,7 +26,7 @@ from carbon.development_session.julia_analysis import (
     run_julia,
     verify_julia_image,
 )
-from carbon.development_session.research_carrier import ACTIVE_TASK
+from carbon.development_session.research_carrier import ACTIVE_TASK, MinerProgramFailure
 from carbon.development_session.research_workspace import ResearchWorkspace
 from carbon.reconstruction.worker.docker_runtime import DockerCLI
 from carbon.reconstruction.worker.model import WorkerFailure
@@ -166,7 +166,9 @@ def test_native_malformed_units_reject_and_cleanup_without_success(image, tmp_pa
     malformed = request.encode().replace(
         b"carbon_advection_definition_native_v1", b"dimensionless"
     )
-    with pytest.raises((ValueError, WorkerFailure)):
+    # run_julia is the miner's route, so a program exiting on bad input is the
+    # miner's typed failure; a daemon failure would still be WorkerFailure.
+    with pytest.raises((ValueError, WorkerFailure, MinerProgramFailure)):
         run_julia(
             ledger,
             owner="test-miner",

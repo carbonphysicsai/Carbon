@@ -8,7 +8,6 @@ runs the real `remove_exact_container` against them; the controller's
 identity is either a scripted fake or a real child process.
 """
 
-import json
 import subprocess
 import sys
 import time
@@ -338,12 +337,16 @@ def test_the_miner_lane_records_and_starts_its_guard(tmp_path, monkeypatch, seco
             output_validator=None,
             provenance="fixture",
             resources={},
+            guard=research_carrier._miner_guard(seconds),
+            miner_authored=False,
+            before_finish=lambda: None,
         )
-    intent = json.loads((operation / "intent.json").read_bytes())
+    # The intent, guard included, is written by the caller before the lane
+    # (test_d3_failure_paths pins that); the lane starts the guard it is given.
     assert NAME not in cli.containers  # the lane's own cleanup still ran
     if seconds is None:
         guard = liveness_reaper.controller_guard()
-        assert intent["deadline_unix"] is None and intent["reaper"] == guard
+        assert research_carrier._miner_guard(None) == guard
         assert spawned == [
             (
                 "liveness",
@@ -351,5 +354,5 @@ def test_the_miner_lane_records_and_starts_its_guard(tmp_path, monkeypatch, seco
             )
         ]
     else:
-        assert intent["reaper"] == {"kind": "DEADLINE"}
+        assert research_carrier._miner_guard(seconds) == {"kind": "DEADLINE"}
         assert [kind for kind, _ in spawned] == ["deadline"]

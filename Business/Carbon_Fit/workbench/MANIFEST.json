@@ -19,7 +19,7 @@
     "GOAL-WORKBENCH-10"
   ],
   "repository_base": "3681f7fb10be0c6e278f53d59ff9b022099ef12d",
-  "integration_revision_at_packaging": "b05be137ae63de14dc1c4b6df6517e56eee2569a",
+  "integration_revision_at_packaging": "85104e04529ade55eacd1d266205acca2f164ab3",
   "integration_revision_note": "The checksum manifest describes exact packaged bytes. A commit cannot contain its own digest; final PR/head identity is reported by delivery.",
   "pinned_research_revision": "ca904dfee93d3574df4e56b99981a6ed3b138e80",
   "accepted_research_head": "0a5690270dc449ea19c941280203987d37db5283",
@@ -375,8 +375,8 @@
       "sha256": "61e19171a2499c2f2d48fd43574cab5af435812e4e49a3e65d0144f9282a4c49"
     },
     "docs/GOAL_WORKBENCH_09_PRIVATE_DEPLOYMENT_RUNBOOK.md": {
-      "bytes": 41172,
-      "sha256": "69876bd9594a2be408f5a11791f29791bb186045e48fc1ebe7226df800aff75f"
+      "bytes": 41361,
+      "sha256": "84e96d58b98e0da82db1812d3d974b10100a0c61ec860d99554425bbd3d60b8c"
     },
     "docs/GOAL_WORKBENCH_09_TEAM_REVIEW_REPORT.md": {
       "bytes": 8494,
@@ -995,8 +995,8 @@
       "sha256": "970a011262d9cfed6e8f04e4953b93a24ad9003cdcbcf769f60af48571cad587"
     },
     "tests/test_team_mailbox_capacity.cjs": {
-      "bytes": 7454,
-      "sha256": "b9eddd7d12c72114da4d5487e6c4303b03a1202f00252544b8d39f6cf9dc6c1d"
+      "bytes": 11644,
+      "sha256": "4d003ab5defbbe1a454f047948f9f1b55d7d225da2006830b4ee84514eaefbb1"
     },
     "tests/test_team_model_provider.cjs": {
       "bytes": 20024,
@@ -1127,16 +1127,16 @@
       "sha256": "12ccb8e8c8e3538d53ca0fdc50c6eb1ede4382992dddefe68e539dabfe22fdc6"
     },
     "tools/team_intake_server.cjs": {
-      "bytes": 19210,
-      "sha256": "8fbb9326abcaba6e755facfb1caad0a1de9ff05d479550a1e6f2eff8c8706285"
+      "bytes": 20025,
+      "sha256": "27dfae4d2422f2c5534c806b845a324c75dc50b5e6c6d1d28de193b2377353bd"
     },
     "tools/team_intake_store.cjs": {
       "bytes": 82509,
       "sha256": "d21831463a7dbbc2580c290b4fe6f3f401fd6a0ccc2017c1f3d6647110fb1324"
     },
     "tools/team_mailbox_capacity.cjs": {
-      "bytes": 5744,
-      "sha256": "493268d52345d4053f3f325404367d457943994c653366615d2b353799a3b622"
+      "bytes": 7091,
+      "sha256": "e878417bfba744cc5f63b2406f7c85e7c83e922124b51bcb0ee1e228d39d29d3"
     },
     "tools/team_model_provider.cjs": {
       "bytes": 8752,

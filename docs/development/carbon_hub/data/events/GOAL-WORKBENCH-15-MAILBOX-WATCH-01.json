@@ -1,0 +1,14 @@
+{
+  "map_ref": "SYSTEM/BUSINESS-AUTHORITY",
+  "event_type": "evidence",
+  "event_id": "GOAL-WORKBENCH-15-MAILBOX-WATCH-01",
+  "owner_lane": "business_authority",
+  "status": "implemented",
+  "summary": "Makes the intake mailbox's bounce path watched rather than merely readable. The receiver takes a pooled-storage reading at start and hourly, says on stderr when the mailbox needs attention, and GET /private/mailbox reports whether it is watched. With a credential the watch reaches the provider on every check and a full pool needs attention. Without one it reports NOT_ATTEMPTED_NO_CREDENTIAL, the E6 transport's own term, and says the mailbox is not watched, never silence and never room. This is pinned against the real receiver process. The credential is the owner's and is not configured; no Workspace account was touched.",
+  "primary_detail": ".agent/tickets/GOAL-WORKBENCH-15_client_data_engineering.md",
+  "affects": [
+    "SYSTEM/BUSINESS-AUTHORITY"
+  ],
+  "supersedes": null,
+  "recorded_at": "2026-09-27T15:20:00Z"
+}

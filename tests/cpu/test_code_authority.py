@@ -1097,8 +1097,10 @@ def test_default_workflow_delegates_all_semantics_to_repository_scripts() -> Non
     )
     assert _inline_run_commands(jobs["workbench"]) == (
         "./scripts/dev/bootstrap.sh",
+        "./scripts/dev/workbench_worker_checks.sh",
         "./scripts/dev/workbench_release_checks.sh",
     )
+    assert 'CARBON_UV_GROUPS: "chain archive science-jax mcp"' in jobs["workbench"]
     assert 'CARBON_UV_GROUPS: "chain archive science-jax mcp"' in jobs["c03-worker"]
     assert 'CARBON_UV_GROUPS: "archive"' in jobs["contract-authority"]
     required_repository_commands = (
@@ -1111,6 +1113,7 @@ def test_default_workflow_delegates_all_semantics_to_repository_scripts() -> Non
         "./scripts/dev/c03_worker.sh doctor",
         "./scripts/dev/c03_worker.sh smoke",
         "./scripts/dev/c03_worker.sh reconcile",
+        "./scripts/dev/workbench_worker_checks.sh",
         "./scripts/dev/workbench_release_checks.sh",
         "./scripts/dev/ci_contract_authority.sh",
         "./scripts/dev/ci_hub.sh",

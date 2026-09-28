@@ -731,6 +731,12 @@
     const list = $("research-runs");
     const current = route();
     const detail = $("campaign-detail");
+    // Read what is open now, before anything is rebuilt. The toggle event is
+    // asynchronous, so a miner's click that lands just before a live refresh
+    // would otherwise fire on a replaced element and be lost.
+    for (const node of detail.querySelectorAll("details[data-research-run]")) {
+      if (node.open) expandedResearch.add(node.dataset.researchRun); else expandedResearch.delete(node.dataset.researchRun);
+    }
     const run = current.view === "campaigns" && current.id ? research.runs.find(r => r.id === current.id) : null;
     list.hidden = Boolean(run);
     detail.hidden = !run && !(current.view === "campaigns" && current.id);
@@ -876,6 +882,7 @@
     row("Admission", words(run.admission || "unavailable"));
     panel.append(grid);
     const details = document.createElement("details"); const summary = document.createElement("summary"); summary.textContent = "Research, usage, candidate and independent result";
+    details.dataset.researchRun = run.id;
     details.open = expandedResearch.has(run.id);
     details.addEventListener("toggle", () => { if (details.isConnected) { if (details.open) expandedResearch.add(run.id); else expandedResearch.delete(run.id); } });
     const record = document.createElement("pre"); record.style.whiteSpace = "pre-wrap"; record.style.overflowWrap = "anywhere";

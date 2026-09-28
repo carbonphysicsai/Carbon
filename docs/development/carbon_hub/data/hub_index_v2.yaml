@@ -10214,6 +10214,19 @@ events:
     recorded_at: "2026-09-27T02:10:00Z"
   -
     map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "evidence"
+    event_id: "C-MLP-02-D3-FAILURE-PATHS-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "Implemented D3, failure and recovery end to end, on the miner research carrier. A task whose ledger operation is still RESERVED now reports requires_reconciliation even when the task itself is terminal. Reconciliation keys on the durable worker intent rather than reserved milliseconds, so a miner run with no wall allowance can be reconciled, and the launchpad cleanup counts any operation it cannot settle as not clean. The durable intent is written before staging, image verification and the host doctor; a failure there, with no container command issued, settles FAILED_INFRA keeping the full reservation. Cancellation-watcher errors are checked before the ledger records a terminal state, so the ledger never says SUCCEEDED while the task fails. Pre-dispatch refusals on the task path, including closed admission, report dispatch_may_have_occurred=false; a failure after admission still reports true. The miner's own program failing on observed evidence (its own allowance elapsed, a daemon-reported OOM kill, a nonzero exit from a still-running container, or output refused for its own content) settles as a typed FAILED_MINER ledger state with existing WorkerCode values, cleanup observed and the full reservation kept; the workspace task completes with outcome MINER_PROGRAM_FAILED and no scientific claim. Ambiguous daemon, CLI and host failures stay FAILED_INFRA. Reconciling a worker also ends its task, in the same call when the provider is live and on the next load otherwise. A digest mismatch on retained research or battery output writes a security_incident note before refusing. No scientific, qualification, economic or public-network behavior changes."
+    primary_detail: "carbon/development_session/research_carrier.py"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "WAVE-C/C-W1-D4"
+    supersedes: null
+    recorded_at: "2026-09-27T02:33:56Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
     event_type: "adjustment"
     event_id: "C-MLP-02-UNAVAILABLE-CAUSES-01"
     owner_lane: "technical_lead"
@@ -10225,6 +10238,18 @@ events:
       - "WAVE-C/C-W1-D4"
     supersedes: null
     recorded_at: "2026-09-27T11:00:00Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "adjustment"
+    event_id: "C-MLP-02-BATTERY-RESEARCH-IMAGES-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "Battery research campaigns now accept the host's authored Julia image, the way a Burgers product campaign does, under the owner's direction that every prebuilt capability is available to every campaign without declaring it at launch, a grant or a per-campaign install. Until now prepare_battery and check_attached required the runtime to be exactly implementation and images, so a runner profile declaring authored_research could not launch a battery campaign and run_julia was never composed for one. A declared authored_research scope must name exactly the image record the runner installs, is frozen in the manifest, and is re-checked on every resume and attach; a campaign that declared none still gets whichever Julia image the host has installed, which is not part of the frozen runtime. The verified image reaches only the research executor's run_julia. Tests show that battery discovery, the recipe compiler, practice, the contract digest and the submission fields are identical with and without it, and that the validator-side modules (daemon, deployment, compile, training, recipes, exam, contracts) never read a research image, with a positive specimen for that scan. GPU research is refused by name for battery rather than frozen: its scope binds Burgers' GPU recipe catalogue and public TRAIN cases, and battery has no GPU practice lane. A battery GPU lane is follow-up work. This is engineering evidence from fixture images; no scientific, security, qualification or deployment authority is created or implied."
+    primary_detail: "carbon/battery/campaign.py"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+    supersedes: null
+    recorded_at: "2026-09-27T12:00:00Z"
   -
     map_ref: "SYSTEM/AGENT-EXECUTION"
     event_type: "adjustment"
@@ -10251,6 +10276,18 @@ events:
     supersedes: null
     recorded_at: "2026-09-27T15:00:00Z"
   -
+    map_ref: "SYSTEM/BUSINESS-AUTHORITY"
+    event_type: "evidence"
+    event_id: "GOAL-WORKBENCH-15-MAILBOX-WATCH-01"
+    owner_lane: "business_authority"
+    status: "implemented"
+    summary: "Makes the intake mailbox's bounce path watched rather than merely readable. The receiver takes a pooled-storage reading at start and hourly, says on stderr when the mailbox needs attention, and GET /private/mailbox reports whether it is watched. With a credential the watch reaches the provider on every check and a full pool needs attention. Without one it reports NOT_ATTEMPTED_NO_CREDENTIAL, the E6 transport's own term, and says the mailbox is not watched, never silence and never room. This is pinned against the real receiver process. The credential is the owner's and is not configured; no Workspace account was touched."
+    primary_detail: ".agent/tickets/GOAL-WORKBENCH-15_client_data_engineering.md"
+    affects:
+      - "SYSTEM/BUSINESS-AUTHORITY"
+    supersedes: null
+    recorded_at: "2026-09-27T15:20:00Z"
+  -
     map_ref: "SYSTEM/AGENT-EXECUTION"
     event_type: "adjustment"
     event_id: "OWNER-RESEARCH-ENVIRONMENT-01"
@@ -10263,6 +10300,18 @@ events:
       - "SYSTEM/GOVERNANCE"
     supersedes: null
     recorded_at: "2026-09-27T17:58:53Z"
+  -
+    map_ref: "SYSTEM/BUSINESS-AUTHORITY"
+    event_type: "evidence"
+    event_id: "GOAL-WORKBENCH-CI-COVERAGE-01"
+    owner_lane: "business_authority"
+    status: "implemented"
+    summary: "Closes the Workbench CI coverage gap recorded in GOAL-WORKBENCH-12 (OWNER-WORKBENCH-CI-COVERAGE-01). The Workbench job now runs the real-worker suites for the private host and study adapter after its release checks, building the pinned C-03 and Julia workers first, and workbench_scope.py selects the job for the host, the adapter, those suites (read from the script that runs them) and itself. The change is additive: the owner-pinned classify_changes.py and development_scope.py are untouched. The owner chose this knowing every Workbench change pays for the images and suites, and the PR records measured before and after job times."
+    primary_detail: ".agent/tickets/GOAL-WORKBENCH-12_private_service_composition.md"
+    affects:
+      - "SYSTEM/BUSINESS-AUTHORITY"
+    supersedes: null
+    recorded_at: "2026-09-27T22:10:00Z"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"
