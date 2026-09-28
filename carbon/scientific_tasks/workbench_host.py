@@ -821,8 +821,43 @@ def _attached_server_class():
     return AttachedServer
 
 
+#: Exit status for a host that refuses because its studies' Challenge is
+#: retired: distinct from 2, which means a configuration could not be used.
+STUDIES_RETIRED_EXIT = 3
+STUDIES_RETIRED = (
+    "Carbon Workbench scientific studies are unavailable: the Burgers Challenge "
+    "they run on is retired from the research path, and no admitted Challenge "
+    "hosts Workbench studies (owner decision, 2026-09-27). Nothing was started."
+)
+
+
+class StudiesRetired(RuntimeError):
+    """The host refuses by name, before anything is loaded or attached."""
+
+    def __init__(self):
+        super().__init__(STUDIES_RETIRED)
+
+
+def studies_retired() -> bool:
+    """True when the registry itself marks the Burgers Challenge retired.
+
+    Every Workbench study runs on the fixed public Burgers definition
+    (`workbench.TEMPLATE`), so a retired Burgers leaves the host nothing to
+    serve. The registry decides; nothing here restates its status.
+    """
+    from carbon.challenge_registry.registry import entries
+    from carbon.reconstruction.capability_registry import BURGERS_CHALLENGE
+
+    return any(
+        entry.challenge_id == BURGERS_CHALLENGE and entry.status == "RETIRED"
+        for entry in entries()
+    )
+
+
 async def serve(args) -> int:
     """Serve the composed private host for as long as the campaign is attached."""
+    if studies_retired():
+        raise StudiesRetired()
     import uvicorn
 
     from carbon.miner_mcp.standard_cli import attached_profile
@@ -954,6 +989,11 @@ def main(argv=None) -> int:
     common(listing)
 
     args = parser.parse_args(argv)
+    # Every command reads the Burgers campaign or its public definition. A
+    # retired Burgers is refused here by name, not as an unusable configuration.
+    if studies_retired():
+        print(STUDIES_RETIRED, file=sys.stderr)
+        return STUDIES_RETIRED_EXIT
     try:
         if args.command == "check":
             profile = load_development_profile(args.configuration)

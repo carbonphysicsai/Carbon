@@ -695,3 +695,43 @@ def test_the_key_appears_only_in_its_file_and_its_request_header(
     assert all(h["X-api-key"] == SPECIMEN for h in headers)
     assert not any("Authorization" in h for h in headers)
     assert headers[0]["Anthropic-version"] == mp.ANTHROPIC_VERSION
+
+
+def test_an_absent_cache_count_is_unknown_not_a_miss():
+    """Engy's Messages endpoint was observed returning usage with no cache
+    fields. That is unknown, and must never read as a cache that missed.
+
+    Specimen: the same translation reports a real zero as zero, so the check
+    below distinguishes the two rather than seeing None everywhere.
+    """
+    absent = mp.messages_response(
+        messages_reply([], usage={"input_tokens": 12, "output_tokens": 2})
+    )["usage"]
+    assert absent["input_tokens"] == 12
+    assert "input_tokens_details" not in absent
+    zero = mp.messages_response(
+        messages_reply(
+            [],
+            usage={
+                "input_tokens": 12,
+                "output_tokens": 2,
+                "cache_read_input_tokens": 0,
+                "cache_creation_input_tokens": 0,
+            },
+        )
+    )["usage"]
+    assert zero["input_tokens_details"]["cached_tokens"] == 0
+
+    def turns(usage):
+        details = usage.get("input_tokens_details") or {}
+        return [
+            {
+                "state": "SUCCEEDED",
+                "input_tokens": 12,
+                "cached_input_tokens": details.get("cached_tokens"),
+            }
+            for _ in range(3)
+        ]
+
+    assert caching_status(turns(absent))["status"] == "CACHE_NOT_REPORTED"
+    assert caching_status(turns(zero))["status"] == "CACHING_NOT_WORKING"
