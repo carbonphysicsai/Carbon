@@ -16165,3 +16165,60 @@ all yet."
    - Rate limiting and lockout are built, as E9.
 
 See `.agent/tickets/GOAL-WORKBENCH-15_client_data_engineering.md`.
+
+## 2026-09-27 — OWNER-RESEARCH-ENVIRONMENT-01: every mining environment is complete
+
+**Authority.** The owner, in session on 2026-09-27: "Going forward the research
+environment MUST be enabled with everything they need to research,
+hypothesize, train, test, iterate." And earlier in that session: "They need to
+be able to generate training and test data in the mining environment or how
+would they test and iterate and optimize?"
+
+1. **The rule.** Every Challenge's research environment provides five things:
+   `research`, `hypothesize`, `train`, `generate` and `evaluate`, as defined in
+   `docs/development/RESEARCH_ENVIRONMENT_STANDARD.md`. `generate` includes
+   the Challenge's public generator and its reference solver, runnable with
+   the miner's own seeds.
+2. **Enforced structurally.** `carbon/challenge_kit/standard.py` declares each
+   Challenge's provisions. `tests/cpu/test_research_environment_standard.py`
+   fails if a Challenge with a construction contract has no declaration, a
+   provision is undeclared, provided evidence does not import, or a gap has no
+   reason or next step. A gap may exist; it may not be silent.
+3. **Scope.** The rule governs what miners can use. It does not widen what a
+   submission may declare, and it does not change official evaluation:
+   invariants 1, 2 and 12, OWNER-CHALLENGE-KIT-01's hard line, and
+   OWNER-BATTERY-TESTNET-03's submission exclusions all stand.
+4. **Open gap recorded.** Battery `generate`: no battery challenge kit; the
+   PyBaMM reference is not runnable from the miner sandbox. Next step is
+   `carbon/challenge_kit/battery.py`, following the Burgers kit.
+5. **Submissions do not request training data.** The owner, same session: "I
+   don't think requesting extra training is good for fairness." Every recipe
+   is rebuilt on the Challenge's one pinned TRAIN version (or a declared
+   subset of it). More data would reward budget over method and hide solver
+   cost that Carbon's claim is about.
+6. **Carbon may grow TRAIN for everyone.** Direction, not yet a rule: when a
+   Challenge stalls, Carbon may publish a larger TRAIN version to all miners
+   at once, if the Challenge's budget allows. It is a new version (for
+   example TRAIN v2): prospective, announced before it applies, and
+   incumbents are rebuilt on it before being compared with new entries
+   (invariant 10: no silent rescore). What counts as a stall and the data
+   budget are per-Challenge owner inputs, set before they are used.
+
+## 2026-09-27 — OWNER-WORKBENCH-CI-COVERAGE-01: every Workbench change runs its real-worker suites
+
+**Authority.** The owner, in the client-intake session on 2026-09-27, was shown
+the measured cost: the Workbench job then took 0.6–0.8 min, and adding the
+image builds and real-worker suites would make it several times slower. Given a
+choice of deferring, a narrow path-gated step, or running them in the whole
+Workbench job, the owner chose "Whole Workbench job".
+
+1. **The Workbench job runs the real-worker suites on every Workbench change.**
+   They run through `scripts/dev/workbench_worker_checks.sh`, after the release
+   checks. `workbench_scope.py` also selects the job for the private host, its
+   study adapter, those suites and itself.
+2. **Additive only.** `classify_changes.py` and `development_scope.py` are
+   unchanged and still match their OWNER-CW1-DEVELOPMENT-CI-01 digests.
+   Unknown paths still fail closed in the shared path validator.
+3. **Known cost, accepted.** Every Workbench change pays for the image builds
+   and the suites. The measured before and after job times are recorded on the
+   PR that makes the change.

@@ -731,6 +731,12 @@
     const list = $("research-runs");
     const current = route();
     const detail = $("campaign-detail");
+    // Read what is open now, before anything is rebuilt. The toggle event is
+    // asynchronous, so a miner's click that lands just before a live refresh
+    // would otherwise fire on a replaced element and be lost.
+    for (const node of detail.querySelectorAll("details[data-research-run]")) {
+      if (node.open) expandedResearch.add(node.dataset.researchRun); else expandedResearch.delete(node.dataset.researchRun);
+    }
     const run = current.view === "campaigns" && current.id ? research.runs.find(r => r.id === current.id) : null;
     list.hidden = Boolean(run);
     detail.hidden = !run && !(current.view === "campaigns" && current.id);
@@ -876,6 +882,7 @@
     row("Admission", words(run.admission || "unavailable"));
     panel.append(grid);
     const details = document.createElement("details"); const summary = document.createElement("summary"); summary.textContent = "Research, usage, candidate and independent result";
+    details.dataset.researchRun = run.id;
     details.open = expandedResearch.has(run.id);
     details.addEventListener("toggle", () => { if (details.isConnected) { if (details.open) expandedResearch.add(run.id); else expandedResearch.delete(run.id); } });
     const record = document.createElement("pre"); record.style.whiteSpace = "pre-wrap"; record.style.overflowWrap = "anywhere";
@@ -1416,9 +1423,17 @@
   });
   async function operate(name, body, done) {
     if (!connected || busy) return;
+    // One idempotency key per action, kept until answered: a retry of the
+    // same request (a lost response, a reload) replays it, never repeats it.
+    const operationKey = "carbon.launchpad.pending-operation.v1";
+    let held = null;
+    try { held = JSON.parse(sessionStorage.getItem(operationKey) || "null"); } catch (_) { held = null; }
+    const action = held && held.name === name && JSON.stringify(held.body) === JSON.stringify(body) ? held : {name, body, key: crypto.randomUUID()};
+    try { sessionStorage.setItem(operationKey, JSON.stringify(action)); } catch (_) { /* the key still covers this request */ }
     busy = true; render();
     try {
-      await api("/api/v1/operations/" + name, body, undefined, 20000);
+      await api("/api/v1/operations/" + name, {...body, idempotency_key: action.key}, undefined, 20000);
+      try { sessionStorage.removeItem(operationKey); } catch (_) { /* nothing held */ }
       message(done);
     } catch (error) { message("Not done: " + error.message.replaceAll("_", " "), true); }
     finally { busy = false; await refresh(); render(); }
@@ -1442,6 +1457,13 @@
       // The Challenge is always sent, exactly: there is no default Challenge.
       pendingResearch = {key: crypto.randomUUID(), body: {profile: research.preflight.profile, agent: composition.agent, challenge: entry.challenge_id, challenge_version: entry.version}};
       if (Object.keys(composition.budget).length) pendingResearch.body.budget = composition.budget;
+      // The chosen provider and model, when the agent calls one and the launch
+      // carries them; the key file stays in the runner profile.
+      const provider = selectedProvider();
+      if (agentEntry(wizard.agentChoice)?.uses_model && caps.model.launch_field && provider?.availability === "available" && wizard.model) {
+        pendingResearch.body.model_provider = provider.id;
+        pendingResearch.body.model = wizard.model;
+      }
       if (research.preflight.review_digest) pendingResearch.body.review_digest = research.preflight.review_digest;
       try { sessionStorage.setItem(researchKey, JSON.stringify(pendingResearch)); }
       catch (_) { storageError = true; render(); return; }

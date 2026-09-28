@@ -18,7 +18,7 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 SCRIPT_ROOT = REPOSITORY_ROOT / "scripts/dev"
 sys.path.insert(0, str(SCRIPT_ROOT))
 
-from workbench_scope import workbench_required
+from workbench_scope import workbench_required, workbench_worker_tests
 
 
 @pytest.mark.parametrize(
@@ -45,6 +45,18 @@ from workbench_scope import workbench_required
         "Business/Carbon_Fit/workbench/tests/test_sources.py",
         "scripts/dev/workbench_release_checks.sh",
         "scripts/dev/workbench_science_checks.sh",
+        # The private host, its study adapter and the real-worker suites that
+        # exercise them, which no other selector named, and this module itself.
+        "carbon/scientific_tasks/workbench.py",
+        "carbon/scientific_tasks/workbench_host.py",
+        "tests/service/test_workbench_host.py",
+        "tests/service/test_workbench_host_process.py",
+        "tests/service/test_julia_workbench.py",
+        "tests/service/test_julia_envelope_worker.py",
+        "tests/service/workbench_team_journey.py",
+        "tests/cpu/test_workbench_science.py",
+        "scripts/dev/workbench_worker_checks.sh",
+        "scripts/dev/workbench_scope.py",
     ],
 )
 def test_workbench_inputs_require_the_product_lane(path: str) -> None:
@@ -57,6 +69,9 @@ def test_workbench_inputs_require_the_product_lane(path: str) -> None:
         "README.md",
         "docs/development/carbon_hub/data/decisions.json",
         "carbon/execution/worker.py",
+        # Neighbours of the host and adapter that are not Workbench inputs.
+        "carbon/scientific_tasks/definitions.py",
+        "tests/service/test_julia_science_service.py",
         "Business/Business_Canon.md",
         "website/ask-carbon/index.html",
     ],
@@ -167,3 +182,27 @@ def test_cli_fails_closed_on_an_unusable_base() -> None:
         check=False,
     )
     assert result.returncode == 2
+
+
+def test_the_worker_suites_are_read_from_the_script_that_runs_them() -> None:
+    """The selector names exactly what the Workbench job's real-worker step
+    runs, so neither can change without the other."""
+    script = (SCRIPT_ROOT / "workbench_worker_checks.sh").read_text(encoding="utf-8")
+    suites = workbench_worker_tests()
+    assert suites, "the real-worker step names no suite"
+    for suite in suites:
+        assert suite in script
+        assert (REPOSITORY_ROOT / suite).is_file(), f"{suite} does not exist"
+        assert workbench_required([suite]) is True
+
+
+def test_the_workbench_job_runs_the_worker_suites() -> None:
+    workflow = (REPOSITORY_ROOT / ".github/workflows/ci.yml").read_text(
+        encoding="utf-8"
+    )
+    job = workflow.split("  workbench:\n", 1)[1].split("\n  contract-authority:", 1)[0]
+    assert "./scripts/dev/workbench_worker_checks.sh" in job
+    assert "./scripts/dev/workbench_release_checks.sh" in job
+    # Specimen: the isolated service job does not own this step.
+    c03 = workflow.split("  c03-worker:\n", 1)[1].split("\n  workbench:", 1)[0]
+    assert "workbench_worker_checks.sh" not in c03

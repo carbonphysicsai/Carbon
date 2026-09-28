@@ -446,4 +446,5 @@ def run_julia(
             "selected_environment": environment,
         },
         output_validator=validate_julia_output,
+        miner_authored=True,
     )

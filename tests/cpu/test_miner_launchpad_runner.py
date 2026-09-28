@@ -415,7 +415,9 @@ def test_the_launch_carries_the_registration_and_no_grant(tmp_path, monkeypatch)
     started = []
     monkeypatch.setattr(bridge, "_start", lambda *args: started.append(args))
     bridge.launch({"profile": "opaque-profile"}, KEY)
-    _identity, _cfg, root, product = started[0]
+    _identity, _cfg, root, product, choice = started[0]
+    # No model or feedback choice: exactly the pinned default, nothing applied.
+    assert choice is None
     assert root == Path(configured(tmp_path)["campaigns_root"]) / run_id()
     assert product.miner.hotkey == HOTKEY
     assert product.budget == {}
@@ -623,7 +625,7 @@ def test_julia_needs_no_grant_only_the_profile(tmp_path, monkeypatch):
     started = []
     monkeypatch.setattr(bridge, "_start", lambda *args: started.append(args))
     bridge.launch({"profile": "opaque-profile"}, KEY)
-    identity, _cfg, root, product = started[0]
+    identity, _cfg, root, product, _choice = started[0]
     seen = {}
 
     async def entry(args, *, ledger):

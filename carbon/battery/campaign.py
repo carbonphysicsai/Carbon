@@ -51,11 +51,17 @@ REPLICAS = {
 AGENT_BUDGET_KEYS = ("provider_attempts", "provider_nanodollars")
 
 
-def provider_plan(agent, budget):
-    """The finite run plan a battery campaign freezes in its manifest."""
+def provider_plan(agent, budget, selection=None):
+    """The finite run plan a battery campaign freezes in its manifest.
+
+    `selection` is the miner's model selection; the pinned default records the
+    plan exactly as before selection existed, any other adds its record."""
     if agent == "none":
         return {"agent": "none", "model_calls": 0}
-    from carbon.development_session.agent import MODEL
+    from carbon.development_session.model_provider import (
+        DEFAULT_SELECTION,
+        check_budget,
+    )
     from carbon.development_session.research_agent_policy import AUTONOMOUS
     from carbon.development_session.research_campaign import FINAL_EPOCHS
 
@@ -65,16 +71,35 @@ def provider_plan(agent, budget):
             "an autonomous battery campaign needs finite provider_attempts and "
             "provider_nanodollars ceilings"
         )
-    return {
+    selection = DEFAULT_SELECTION if selection is None else selection
+    # A spend ceiling in money needs a price to enforce it against.
+    check_budget(selection, ceilings)
+    plan = {
         "agent": "autonomous",
         "policy": AUTONOMOUS,
-        "model": MODEL,
+        "model": selection.model_id,
         "epochs": len(FINAL_EPOCHS),
         "max_provider_calls_per_epoch": 48,
         "max_research_trials_per_epoch": 8,
         "ceilings": {k: ceilings[k] for k in AGENT_BUDGET_KEYS},
         "evaluator_access": False,
     }
+    if not selection.is_historical_default:
+        plan["model_selection"] = selection.record()
+    return plan
+
+
+def plan_selection(args, plan):
+    """The model selection a frozen battery run plan records."""
+    from carbon.development_session.model_provider import DEFAULT_SELECTION
+    from carbon.development_session.research_campaign import resolve_selection
+
+    record = plan.get("model_selection")
+    if record is None:
+        if plan.get("model") != DEFAULT_SELECTION.model_id:
+            raise ValueError("the frozen battery run plan names no usable model")
+        record = DEFAULT_SELECTION.manifest_record()
+    return resolve_selection(args, record)
 
 
 def campaign_challenge(args):
@@ -84,7 +109,74 @@ def campaign_challenge(args):
     return campaign_challenge(args)
 
 
-def manifest_document(product, *, owner, implementation, images):
+#: What Carbon's agent sees of the prior epoch's evaluation. FULL is the
+#: daemon's allow-listed outcome. SCORE_WITHHELD is the pre-registered control
+#: arm (docs/development/BATTERY_AGENT_CAMPAIGN_PREREGISTRATION.md section 2):
+#: the same agent at the same budget, seeing admissibility but no score.
+FEEDBACK_FULL, FEEDBACK_SCORE_WITHHELD = "FULL", "SCORE_WITHHELD"
+FEEDBACK_MODES = (FEEDBACK_FULL, FEEDBACK_SCORE_WITHHELD)
+
+#: The withheld view is an allow-list: a field added to the outcome later is
+#: withheld by default, never shown by accident.
+_WITHHELD_OUTCOME_FIELDS = (
+    "schema",
+    "submission_id",
+    "challenge",
+    "state",
+    "evidence",
+    "rule",
+    "qualification",
+    "reward",
+    "failure",
+    "recipe_digest",
+    "contract_digest",
+    "reconstruction",
+)
+_WITHHELD_SCREENING_FIELDS = ("eligible", "gates_failed")
+
+
+def feedback_mode(value):
+    """A frozen campaign's feedback mode; anything else is refused by name."""
+    if value not in FEEDBACK_MODES:
+        raise ValueError(f"unknown battery feedback mode: {value!r}")
+    return value
+
+
+def withheld_feedback(feedback):
+    """The prior epoch's feedback with every score-bearing value removed.
+
+    Kept: whether the submission was admitted and eligible, and the names of
+    any gates it failed. Removed: the pool score, the important-region score,
+    case counts, the pool version, nomination and finals.
+    """
+    outcome = feedback["outcome"]
+    shown = {k: outcome[k] for k in _WITHHELD_OUTCOME_FIELDS if k in outcome}
+    if isinstance(outcome.get("screening"), dict):
+        shown["screening"] = {
+            k: outcome["screening"][k]
+            for k in _WITHHELD_SCREENING_FIELDS
+            if k in outcome["screening"]
+        }
+    return {
+        "schema": feedback["schema"],
+        "epoch": feedback["epoch"],
+        "outcome": shown,
+        "official_eligible": feedback["official_eligible"],
+        "reward": feedback["reward"],
+        "feedback_mode": FEEDBACK_SCORE_WITHHELD,
+        "withheld": "scores, case counts, pool version, nomination and finals",
+    }
+
+
+def manifest_document(
+    product,
+    *,
+    owner,
+    implementation,
+    images,
+    selection=None,
+    feedback=FEEDBACK_FULL,
+):
     from carbon.development_session.research_ledger import VERSION
     from carbon.reconstruction.capability_registry import contract_digest
 
@@ -103,9 +195,10 @@ def manifest_document(product, *, owner, implementation, images):
         "control": SCAFFOLD,
         "selection": SELECTION,
         "replica_policy": REPLICAS,
-        "provider": provider_plan(product.agent, product.budget),
+        "provider": provider_plan(product.agent, product.budget, selection),
         "images": images,
         "new_network_transactions": 0,
+        "feedback_mode": feedback_mode(feedback),
         **product.manifest_fields(),
     }
 
@@ -147,21 +240,28 @@ async def prepare_battery(args, *, ledger=None, campaign):
     if ledger.root != root or ledger.admission is not None:
         raise ValueError("a battery campaign never consumes a development grant")
     agent = frozen["agent"] if frozen is not None else product.agent
+    selection = None
     if agent != "none":
         from carbon.development_session.agent import ResponsesTransport
+        from carbon.development_session.model_provider import SelectionTransport
         from carbon.development_session.research_agent_policy import AUTONOMOUS
+        from carbon.development_session.research_campaign import supplied_selection
 
         if getattr(args, "agent_policy", None) != AUTONOMOUS:
             raise ValueError("a battery agent runs only under the autonomous policy")
-        plan = (
-            frozen["provider"]
-            if frozen is not None
-            else provider_plan(agent, product.budget)
-        )
+        if frozen is None:
+            selection = supplied_selection(args)
+            plan = provider_plan(agent, product.budget, selection)
+        else:
+            plan = frozen["provider"]
+            selection = plan_selection(args, plan)
         if plan.get("agent") != "autonomous" or plan.get("evaluator_access"):
             raise ValueError("the frozen battery agent plan is not runnable")
         private_file(args.api_key_file)
-        ResponsesTransport(args.api_key_file)
+        if selection.is_historical_default:
+            ResponsesTransport(args.api_key_file)
+        else:
+            SelectionTransport(selection)
     implementation = accepted_implementation(args.accepted_revision)
     image = load_image_identity(args.image_manifest)
     verify_current_worker(image, implementation)
@@ -210,6 +310,8 @@ async def prepare_battery(args, *, ledger=None, campaign):
             owner=owner,
             implementation=implementation,
             images=runtime["images"],
+            selection=selection,
+            feedback=getattr(args, "feedback_mode", FEEDBACK_FULL),
         )
         write_once(manifest_path, canonical(manifest))
     else:
@@ -259,6 +361,7 @@ async def prepare_battery(args, *, ledger=None, campaign):
         agent_policy=getattr(args, "agent_policy", None),
         campaign=campaign,
         challenge=CHALLENGE,
+        selection=selection,
     )
 
 
@@ -455,6 +558,7 @@ def agent_observation(prepared, epoch, feedback):
     document = describe(CHALLENGE.challenge_id, CHALLENGE.version)
     unsupported = document.pop("unsupported")
     manifest = prepared.manifest
+    mode = feedback_mode(manifest.get("feedback_mode", FEEDBACK_FULL))
     return {
         "challenge": document,
         "unsupported_capabilities": {
@@ -464,7 +568,11 @@ def agent_observation(prepared, epoch, feedback):
         "scaffold_recipe": SCAFFOLD,
         "scaffold_basis": "An unexecuted template; it has no measured result.",
         "epoch": epoch,
-        "prior_permitted_evaluation_feedback": feedback,
+        "prior_permitted_evaluation_feedback": (
+            withheld_feedback(feedback)
+            if feedback is not None and mode == FEEDBACK_SCORE_WITHHELD
+            else feedback
+        ),
         "run_plan": manifest["provider"],
         "miner_budget": {
             key: manifest[key]

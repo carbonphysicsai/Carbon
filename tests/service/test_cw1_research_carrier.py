@@ -303,3 +303,164 @@ np.savez('/scratch/output/train.npz', **data)
     # Same bytes in, same labels out: the sandbox ran the validator's own code.
     for key in expected:
         assert np.array_equal(produced[key], expected[key]), key
+
+
+def _unbudgeted_ledger(root, campaign):
+    ledger = CampaignLedger(root)
+    ledger.freeze(
+        {
+            "schema": VERSION,
+            "campaign_id": campaign,
+            "implementation": "candidate",
+            "objective": "test-only",
+            "sampling": "public-test-only",
+            "control": "test-only",
+            "selection": "test-only",
+            "replica_policy": "test-only",
+            "provider": "none",
+            "owner": "synthetic-engineering-requester",
+        }
+    )
+    return ledger
+
+
+def _absent(container):
+    from carbon.reconstruction.worker.docker_runtime import DockerCLI
+
+    return (
+        not DockerCLI()
+        .run(["ps", "-aq", "--filter", "name=^" + container + "$"], timeout=10)
+        .stdout.strip()
+    )
+
+
+def test_a_miner_program_exiting_nonzero_is_typed_as_the_miners(tmp_path):
+    """D3: the miner's own nonzero exit is theirs, observed, not infrastructure."""
+    import pytest
+
+    from carbon.development_session.research_carrier import MinerProgramFailure
+    from carbon.reconstruction.worker.model import WorkerCode
+
+    parent = Path(os.environ["CARBON_C03_IMAGE_MANIFEST"])
+    image = build_analysis_image(parent, parent.parent / "d4-analysis-acceptance")
+    ledger = _unbudgeted_ledger(tmp_path, "engineering-miner-exit-test")
+    owner = "synthetic-engineering-requester"
+    # Specimen: the same program exiting 0 is a result.
+    ok = run_script(
+        ledger, owner=owner, identity="exit-0", source="pass", files={}, image=image
+    )
+    assert ok["lane"] == "MINER_RESEARCH_UNLIMITED"
+    with pytest.raises(MinerProgramFailure) as raised:
+        run_script(
+            ledger,
+            owner=owner,
+            identity="exit-3",
+            source="raise SystemExit(3)",
+            files={},
+            image=image,
+            seconds=None,
+        )
+    assert raised.value.code is WorkerCode.RUNTIME
+    assert raised.value.result["observation"] == "NONZERO_EXIT"
+    (failed,) = [
+        o for o in ledger.status(owner=owner)["operations"] if o["id"] == "exit-3"
+    ]
+    assert failed["state"] == "FAILED_MINER"
+    assert failed["actual"]["research_trials"] == 1
+    for path in tmp_path.glob("operation-*/intent.json"):
+        assert _absent(json.loads(path.read_bytes())["container"])
+
+
+ABANDONED_RUN = """
+import sys
+from pathlib import Path
+from carbon.development_session.research_carrier import run_script
+from carbon.development_session.research_image import build_analysis_image
+from carbon.development_session.research_ledger import CampaignLedger
+image = build_analysis_image(Path(sys.argv[1]), Path(sys.argv[2]))
+run_script(
+    CampaignLedger(Path(sys.argv[3])), owner=sys.argv[4], identity="abandoned",
+    source="import time; time.sleep(600)", files={}, image=image, seconds=None,
+)
+"""
+
+
+def test_an_abandoned_unbounded_run_is_reconciled_and_removed(tmp_path):
+    """D3: a run with no wall allowance reserves no milliseconds, and is still
+    a worker. Its supervisor is killed mid-run; reconciliation finds it by its
+    durable intent, removes the container and settles the full reservation.
+    """
+    import signal
+    import subprocess
+    import sys
+    import time
+
+    from carbon.development_session.research_carrier import reconcile_worker
+    from carbon.reconstruction.worker.docker_runtime import (
+        DockerCLI,
+        remove_exact_container,
+    )
+
+    parent = Path(os.environ["CARBON_C03_IMAGE_MANIFEST"])
+    build = parent.parent / "d4-analysis-acceptance"
+    build_analysis_image(parent, build)
+    ledger = _unbudgeted_ledger(tmp_path, "engineering-abandon-test")
+    owner = "synthetic-engineering-requester"
+    child = subprocess.Popen(
+        [
+            sys.executable,
+            "-c",
+            ABANDONED_RUN,
+            str(parent),
+            str(build),
+            str(tmp_path),
+            owner,
+        ],
+        env=os.environ.copy(),
+    )
+    intent = None
+    try:
+        deadline = time.monotonic() + 120
+        while time.monotonic() < deadline:
+            intents = list(tmp_path.glob("operation-*/intent.json"))
+            if intents:
+                intent = json.loads(intents[0].read_bytes())
+                if not _absent(intent["container"]):
+                    running = DockerCLI().run(
+                        [
+                            "inspect",
+                            "--format",
+                            "{{.State.Running}}",
+                            intent["container"],
+                        ],
+                        timeout=10,
+                        accepted=(0, 1),
+                    )
+                    if running.stdout.strip() == b"true":
+                        break
+            assert child.poll() is None, "the run ended before it was abandoned"
+            time.sleep(0.2)
+        else:
+            raise AssertionError("the unbounded run never started")
+        child.send_signal(signal.SIGKILL)
+        child.wait(timeout=30)
+        (op,) = ledger.status(owner=owner)["operations"]
+        assert op["state"] == "RESERVED"
+        assert op["reservation"]["numerical_milliseconds"] == 0
+        assert not _absent(intent["container"])  # specimen: it is really there
+        result = reconcile_worker(ledger, owner=owner, identity="abandoned")
+        assert result["state"] == "FAILED_INFRA" and result["cleanup_observed"]
+        assert _absent(intent["container"])
+        (op,) = ledger.status(owner=owner)["operations"]
+        assert op["state"] == "FAILED_INFRA"
+        assert op["actual"] == op["reservation"]
+    finally:
+        if child.poll() is None:
+            child.kill()
+            child.wait(timeout=30)
+        if intent is not None and not _absent(intent["container"]):
+            remove_exact_container(
+                cli=DockerCLI(),
+                container_name=intent["container"],
+                launch_digest=intent["launch"],
+            )

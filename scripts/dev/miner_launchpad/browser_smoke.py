@@ -287,6 +287,8 @@ class ResearchFixture:
         # The page states who selects - the default is Carbon's agent - and
         # the budget is the one the person composed and saved as a template.
         # And the Challenge the person chose, exactly: there is no default.
+        # And the model provider and model the person chose for the agent,
+        # named on the launch; the credential stays in the runner profile.
         assert value == {
             "profile": "engineering-fixture",
             "review_digest": "fixture-review-pin",
@@ -294,6 +296,8 @@ class ResearchFixture:
             "budget": LAUNCH_BUDGET,
             "challenge": BATTERY_CHALLENGE,
             "challenge_version": BATTERY_CONTRACT.version,
+            "model_provider": "openai-responses",
+            "model": "gpt-5-mini-2025-08-07",
         }, value
         self.keys.add(key)
         if self.record is None:
