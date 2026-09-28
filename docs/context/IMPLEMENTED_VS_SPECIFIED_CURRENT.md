@@ -1,4 +1,6 @@
-# Carbon — Current Implemented vs Specified Ledger
+# Carbon implementation ledger
+
+> **Reading this ledger:** the detailed sections below retain historical ticket snapshots, including C0 and early C1 records. For the 28 September 2026 cross-track view, read [Project status](../publications/PROJECT_STATUS.md). The battery, Control Center, and research-tooling records contain later work that these earlier tables do not summarize. Historical results keep their original scope.
 
 > **Current C0 implementation:** NET-1 through NET-6, C-REWARD and NET-5R are
 > done in bounded engineering scope. D6 canonical run 34518806217 passed the

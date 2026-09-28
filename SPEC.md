@@ -1,134 +1,54 @@
-# Carbon — Protocol Specification
+# Carbon protocol specification
 
-**A Bittensor subnet for trust-minimized, auditable verification of physics-informed neural operator training strategies**
+Carbon coordinates research into fast physical models and independent evaluation of the submitted construction methods. This specification describes the architecture and points to the contracts that own its detailed behavior.
 
-**Status:** Phase 0 foundations + offline PoC. Landscape and commercial layers are **build-ordered** — not assumed live at launch.
+For a plain-language introduction, read the [README](README.md). For the current implementation and research record, read [Project status](docs/publications/PROJECT_STATUS.md). Carbon is in development and testnet work; architectural descriptions below do not establish production readiness.
 
-> **Reconciliation (post-ratification):** SPEC remains **architectural**. Mathematical scoring authority lives only in `Design_Specs/Scoring.md` (binary hard gates; weighted geometric soft aggregate; P0 baseline **45/30/25** pack-bound).
->
-> **P0 launch slice vs Phase-0 expansion:** The **P0 launch slice** is the minimum LIVE subnet loop (one lean challenge path, mandatory lean pack, binary gates, weighted geometric scoring). **Phase-0 expansion** adds further academic PDEs/packs under the same invariants — not a different scoring constitution.
->
-> **Shared exam identity.** Official evaluation pins one exam identity per `(challenge_id, scoring_version, generator_version)`.
->
-> **Public physics / hidden realizations.** Declared envelope + dossier are public; official draws/seeds stay hidden.
->
-> **Port B.** Every scored nonzero submission completes the **same mandatory lean pack**; progressive depth is scheduling/prefilter/supplemental, not variable grading.
->
-> **Wave B miner-research migration.** The implemented Wave A v1 MCP remains
-> unchanged. The B-07R version 0.4 working engineering architecture uses a
-> separate local/in-process research plane, immutable evidence-labeled
-> PriorPacks, deterministic Strategy
-> compilation, and nominal practice paths. It provides no official-score or
-> rank prediction. `Design_Specs/Miner_MCP_Wave_B_Research_Contract.md` and the
-> Wave B tickets control that migration; B-07S owns every exact protocol
-> mechanic. Real science, security, rights, economics, qualification, LIVE,
-> launch, and production remain fail closed.
->
-> **Post-Wave-B network and economic migration.** `OWNER-NET-01` begins real
-> Bittensor integration only after Wave B. Bittensor identity/discovery and
-> hotkey-authenticated transport wrap the Carbon Miner MCP; SDK objects remain
-> downstream of Carbon scientific authority. Temporary C2 testnet weights are
-> winner-triggered, expiring, `TESTNET_ONLY`, `NON_LIVE`, and `NON_SETTLING`;
-> raw score magnitude never maps to weight magnitude. Mainnet economic
-> activation requires Wave-H frontier evidence and Wave-I treasury routing and
-> per-Challenge settlement. See launch path v1.0.5. B-E4 research and separate
-> Concierge empirical utility qualification are optional/non-blocking under
-> `OWNER-ROADMAP-02`.
+## Current scope and interpretation
 
+The initial protocol uses constrained construction recipes and producer-independent reconstruction. The repository now includes the Burgers development testbed, battery-specific development contracts, and reserved launch directions for cold plates, motors, and photonics. Each challenge has its own inputs, outputs, reference, and evaluation contract.
 
-**Canonical companions**
+`OWNER-C0-REWARD-01` supersedes older mandatory-treasury and temporary-direct-only payment routing: the current direction is persistent **DIRECT_WINNER_PLUS_BURN**, with treasury optional. Scientific comparison, frontier/finality, security, qualification, and deployment requirements remain unchanged. `OWNER-C-W1-DEV-TESTNET-01` authorizes only its separately bounded development scenario; it does not establish official or mainnet readiness.
 
-| Doc | Role |
-|-----|------|
-| [`Design_Specs/Scoring.md`](./Design_Specs/Scoring.md) | Lean formulas, Score Bank, validator load path |
-| [`Design_Specs/Launch_Bar.md`](./Design_Specs/Launch_Bar.md) | Stop-ship before public prior publish |
-| [`Design_Specs/Landscape_Agent.md`](./Design_Specs/Landscape_Agent.md) | Four-port knowledge architecture (v1.2+) |
-| [`Design_Specs/Specialist_Bank.md`](./Design_Specs/Specialist_Bank.md) | Product gauntlet, dual egress (v1.3+) |
-| [`Design_Specs/Use_Cases_by_Phase.md`](./Design_Specs/Use_Cases_by_Phase.md) | Inverse design / plant / UQ / hybrid truth |
-| [`Design_Specs/Data_Management.md`](./Design_Specs/Data_Management.md) | Seeds, train ≠ eval |
-| [`Design_Specs/Trustless_Verification.md`](./Design_Specs/Trustless_Verification.md) | Generators, seeds, proprietary data plan |
-| [`Design_Specs/Implementation.md`](./Design_Specs/Implementation.md) / `IMPLEMENTATION.md` | Code-level patterns |
-| [`Design_Specs/Compute_Optimization.md`](./Design_Specs/Compute_Optimization.md) | Compute strategy |
-| [`Design_Specs/JAX_Optimization.md`](./Design_Specs/JAX_Optimization.md) | Validator JAX efficiency |
-| [`Design_Specs/Operations.md`](./Design_Specs/Operations.md) | Deploy / ops |
-| [`Design_Specs/Miner_MCP_Wave_B_Research_Contract.md`](./Design_Specs/Miner_MCP_Wave_B_Research_Contract.md) | B-07R agent-selected working engineering architecture; merged authority only under its exact review/CI/normal-merge/exact-main-CI predicate; no qualification |
-| [`launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.5.md`](./launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.5.md) | Current post-Wave-B C0/C1/C2 → D → H → I launch crosswalk and optional-research correction; planning only |
+The P0 45/30/25 profile is a particular scoring contract. It is not a universal scoring formula for the launch portfolio. Exact scoring mathematics remain with [Scoring](Design_Specs/Scoring.md) and each registered challenge's applicable contract.
 
----
+## 1. Mechanism
 
-## 1. Executive summary
+A researcher submits a method the evaluator can reconstruct. Evaluators build and test candidates under pinned contracts, data roles, environments, and resources. Mandatory physical checks precede ranking; a candidate cannot offset a mandatory failure with better average accuracy.
 
-Carbon coordinates miners and agents to discover training strategies for neural operators (FNO, GINO, WNO, Transolver, and successors). Validators retrain and evaluate those strategies on hidden, procedurally generated data under hard physics gates. The independent scientific result—not self-reported metrics—determines Challenge-local leader and later frontier eligibility. Network publication and settlement remain separately governed.
+The scientific record identifies the candidate, evaluation context, measurements, and limitations. Public projections disclose permitted evidence while preserving protected evaluation material. A qualified official exam requires more than successful code execution: its population, reference, measurements, and decision rules need supporting evidence and review.
 
-**Target qualified loop:** Miners submit declarative training strategies
-containing a registered backbone and Challenge-bound parameter choices.
-Validators independently reconstruct and train from scratch under pinned
-contracts, environments, and resources; residual reconstruction variance is
-measured and carried into the decision interval. They evaluate qualified runs
-against mandatory physics gates and Challenge-bound Score Packs. Eligible
-private evidence and bounded card projections may later feed a knowledge layer
-under strict evidence, rights, and publication rules and, only after separate
-verification, commercial specialists.
+The intended network separates three decisions:
 
-Traditional neural operators are dominated by accuracy-driven objectives. They may solve overfitting, but the objective still drives them toward accuracy and learning data, which is why they struggle with real physics in deployment. Carbon changes the optimization target because physics gates, fidelity, and model robustness are weighted more than pure training loss accuracy in the final score. We are driving miners at training strategies that survive a different objective, and learning from them. That is the valuable work Carbon is paying for and that the validators are pressure-testing. It is plausible that the Pareto front of methods under hard physics + stress differs from those under pure accuracy, and Bittensor miners are the right tool for finding it.
+- Whether a candidate satisfies the challenge's scientific requirements.
+- Whether the evidence supports a qualifying improvement under the registered comparison policy.
+- How an eligible result enters the network reward and settlement policy.
 
-Challenge contracts and evaluation criteria are frozen prospectively and made
-public. After a Strategy is committed, typed role-separated entropy derives
-protected fresh case realizations; under the registered threat assumptions,
-miners do not receive those draws before evaluation. Qualified official runs
-produce private evidence and bounded card projections, while practice produces
-non-authoritative research records and receipts. Version pins, commitments,
-retained evidence, and independent review make the result auditable within the
-stated scientific and execution qualifications; they are not a full
-cryptographic proof of correct private execution. Eligible evidence may later
-improve priors, prospective Challenge design, and separately qualified product
-work under explicit rights and publication policies.
+A research result does not qualify a customer deployment. Commercial qualification needs evidence for the exact artifact, runtime, operating conditions, and engineering use.
 
-**What the network optimizes for**  
-Training methods that survive stress and physical constraints — not low loss on a fixed public set.
+## 2. Responsibilities and technical references
 
-**What the network eventually supplies**  
-Envelope-qualified solution maps (problem setup → physical fields) for jobs engineers already run: inverse design, plant-style / real-time response, exploration & UQ, and hybrid truth (dense surrogate queries + sparse high-fidelity anchors). See [`Use_Cases_by_Phase.md`](./Design_Specs/Use_Cases_by_Phase.md).
+Model builders provide candidates and recipes. Reference solvers or measurements provide the comparison basis. Carbon defines the evaluation contracts and independent reconstruction process. Bittensor supplies network participation and incentive transport; chain consensus does not define physical truth.
 
-### Dual threshold (non-negotiable)
+Landscape, broader construction programs, private deployment modes, and commercial specialists remain governed by their own implementation and qualification requirements. A planned interface or architecture does not make one available.
 
-| Path | What it grades | Outcome |
-|------|----------------|--------|
-| **Miner → validator (lean)** | Physics gates, stress, short rollout, Model Card | Challenge-local scientific result / leaderboard; later policy events may create temporary testnet integration or frontier eligibility |
-| **Promotion → commercial (Specialist Bank)** | Effect-based recipe → controlled retrain → **product battery** (inverse-design bakeoff, deep rollout/plant suite, adversarial stress, latency, ONNX, escalation notes) | **Commercial SKU** — shelf credibility |
+| Document | Responsibility |
+|---|---|
+| [Scoring](Design_Specs/Scoring.md) | P0 scoring mathematics, gates, and Score Packs |
+| [Data management](Design_Specs/Data_Management.md) | Data roles and protected evaluation material |
+| [Trustless verification](Design_Specs/Trustless_Verification.md) | Commitments, seeds, and evaluation boundaries |
+| [Generator validation](Design_Specs/Generator_Validation.md) | Reference and exam qualification |
+| [Launch requirements](Design_Specs/Launch_Bar.md) | Qualification and stop-ship requirements |
+| [Miner MCP](Design_Specs/Miner_MCP.md) | Miner-facing contract |
+| [Research service contract](Design_Specs/Miner_MCP_Wave_B_Research_Contract.md) | Separate research-plane architecture and controls |
+| [Current MCP implementation guide](carbon/miner_mcp/README.md) | Available client interfaces and development limits |
+| [Specialist Bank](Design_Specs/Specialist_Bank.md) | Separate product qualification path |
+| [Landscape](Design_Specs/Landscape_Agent.md) | Knowledge and evidence reuse architecture |
+| [Implementation](Design_Specs/Implementation.md) | Code-level patterns |
+| [Launch path v1.0.7](launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.7.md) | Current launch amendments and development-testnet boundaries |
+| [Constitutional overlay](Design_Specs/Build_Out_Constitutional_Overlay.md) | Interpretation of older sequencing against later decisions |
 
-Leaderboard rank ≠ shelf product. No commercial full specialist ships without the product battery. No pay-to-compete.
-
-**Lead capability (raise / pre-launch):** trust-minimized, auditable verification + dual threshold + sponsored path.
-**Knowledge layer (Landscape):** designed four-port compounding architecture — **build-ordered**, not a pre-launch live brain. Public L0 priors only after [`Launch_Bar.md`](./Design_Specs/Launch_Bar.md) is green.
-
-**Epistemic line:** Hard gates (when Launch Bar is green) are protocol decisions. Association and effect-candidate bands are decision support. Causal language requires a registered identification design and epistemic promotion.
-
-**Port D export law:** *Qualified evidence in. Independently re-tested
-capability out.* No teacher-checkpoint distillation; recipes from stable
-effects; re-execute; grounding gate or no ship.
-
----
-
-## 2. Position in the physics-AI stack
-
-```
-COMPUTE LAYER       NVIDIA (CUDA, TensorRT, PhysicsNeMo / Apollo-class stacks)
-                      → demand generator — not Carbon’s product
-
-MODEL SUPPLY LAYER  **CARBON**
-                      → decentralized strategy search
-                      → independent exams (lean)
-                      → gauntlet-gated commercial artifacts (later)
-
-TOOLING/DEPLOYMENT  Ansys, Siemens, Dyad, Dassault, nTop, Rescale, …
-                      → consumers of verified supply / export paths
-
-END USERS           Aero / auto / energy / defense — digital twins, HIL,
-                      design optimization, hybrid truth loops
-```
-
-Carbon does not replace the GPU vendor or the CAE seat. It owns discovery of training methods under an exam the producer does not control, with a hard line between competition results and sold artifacts. Bittensor works because the Carbon objective is mathematical and fail-closed, validation can be independent of the incentivized producer, and agentic search can scale discovery without a single lab owning both the training and the answer key. It enables an intelligence flywheel by publishing qualified, lagged aggregate evidence about registered interventions, with uncertainty, caveats, and falsification aids. The Bittensor mechanism allows Carbon to provide trust-minimized, committed, and auditable verification for surrogate models intended for settings where physics breakdowns are expensive. This design does not yet claim cryptographic proof of the full computation. The open verification standard and independently reviewable evidence are what an engineer can use to defend a deployment decision.
+The detailed sections below include P0 and later architectural designs. Apply the current scope and domain-owned contracts above when reading older examples.
 
 ---
 
@@ -166,7 +86,7 @@ SPECIALIST BANK (Port D execution)
 
 INCENTIVES
   ├─ C2: eligible-leader event → expiring TESTNET_ONLY winner intent
-  ├─ Mainnet: FrontierAdvanceEvent → SettlementObligation → treasury routing
+  ├─ Reward direction: direct winner plus burn; treasury optional
   └─ Landscape similarity never a score term
 ```
 
@@ -231,7 +151,7 @@ Full design including proprietary-data handling: [`Trustless_Verification.md`](.
 
 ### Philosophy
 
-- **Validator authority:** Every official score-bearing path is a full lean exam on hidden data with hard gates. Only exact real C2 provenance may create a temporary non-settling testnet event; production economics require later frontier/treasury authority.
+- **Validator authority:** Every official score-bearing path is a full lean exam on hidden data with hard gates. Only exact real C2 provenance may create a temporary non-settling testnet event; production economics require the applicable scientific, frontier, reward-policy, and launch authority.
 - **Miner autonomy:** Local iteration is encouraged, never required.
 - **Zero-friction submit:** Strategy JSON can be submitted with **no** local training.
 - **Information boundary:** Publish the registered physics target, strategy
@@ -536,9 +456,9 @@ CLASSIFIED / CUSTOMER REGIME (enclave)
 - A Challenge-local eligible-leader tracker may nominate the temporary C2
   testnet event; it does not map score magnitude to weight magnitude.
 - Participation dust, reward-window duration, exact no-winner sink, bounties,
-  and settlement values remain future human/economic policy. Mainnet routes
-  network allocation to treasury receivers rather than direct scientific
-  winners.
+  and settlement values remain human/economic policy. OWNER-C0-REWARD-01
+  selects persistent direct-winner-plus-burn routing; treasury receivers are
+  optional. This payment direction does not grant production authority.
 - **Forbidden as direct score terms:** Landscape similarity, prior distance, product-battery status.
 
 ---

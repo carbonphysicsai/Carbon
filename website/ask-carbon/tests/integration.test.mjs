@@ -62,9 +62,9 @@ test("reviewed knowledge is approved for public display and production releasabl
   assert.equal(preview.card_count, knowledge.cards.length);
   assert.ok(knowledge.cards.some((card) => card.id === "population-training-separation"));
   assert.equal(preview.source_checks.filter((check) => check.matched).length, 9);
-  // Approved for public display on 2026-09-22 under WEB-QA-07-D1. The card and
-  // source content is unchanged from the staging-reviewed set; only the
-  // release approval status changed, so the version pin stays valid.
+  // Approved for public display on 2026-09-22 under WEB-QA-07-D1. The approved cards retain their version pin. Source references are
+  // reconciled separately with documentation changes; validation checks each
+  // pinned digest against its repository bytes.
   assert.equal(knowledge.release.status, "APPROVED_PUBLIC");
   assert.equal(knowledge.release.public_activation_allowed, true);
   assert.equal(knowledge.knowledge_version, "ask-carbon-release-candidate-2026-09-18.2");

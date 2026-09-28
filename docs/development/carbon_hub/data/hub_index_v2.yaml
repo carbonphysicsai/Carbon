@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-27T17:58:53Z"
+  captured_at_utc: "2026-09-28T10:27:41Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "58797df7abb443c62250c0d6a1ca4ba943119a4c"
+  authority_snapshot_commit: "6ba5232f00e81b0ecd02fb3684ec808f0ada00d7"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -10337,6 +10337,50 @@ events:
       - "SYSTEM/BUSINESS-AUTHORITY"
     supersedes: null
     recorded_at: "2026-09-27T22:10:00Z"
+  -
+    map_ref: "SYSTEM/CI"
+    event_type: "adjustment"
+    event_id: "C-MLP-02-JULIA-DEPOT-SPLIT-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "The authored-Julia precompiled depot is now built from Julia inputs only and reused across commits. Its identity, julia_depot.depot_digest, hashes the Julia version and checksum-pinned archive, the pinned base, the CPU target, the four committed environment files, the bootstraps and the depot's recipe module, and never the Carbon source tree; a test records every file the digest reads and requires exactly those. The depot is built on a Julia-only image and composed onto the Carbon analysis parent, and nothing is recorded until the build shows the parent's Julia tree equals the depot's, the composed depot tree equals the depot's exactly (root included), and every package in both environments loads precompiled under the parent's Julia (with a specimen that fails when the compiled caches are hidden). Provenance is versioned prospectively: new images are analysis-image v2 and scope v3 and record both the parent and the depot; v1 records keep their meaning. The depot is published to ghcr.io/carbonphysicsai/carbon-julia-depot and pinned by digest in scripts/dev/julia_depot.lock.json; CI gains packages: read and adopts it inside julia_worker_service.sh, recomputing its tree digest from the pulled bytes. A lock for other inputs, a failed pull or a failed verification builds cold; verification is never relaxed. DEVELOPMENT only."
+    primary_detail: ".github/workflows/ci.yml"
+    affects:
+      - "SYSTEM/CI"
+      - "SYSTEM/AGENT-EXECUTION"
+    supersedes: null
+    recorded_at: "2026-09-28T03:50:00Z"
+  -
+    map_ref: "SYSTEM/PUBLICATION-AUTHORITY"
+    event_type: "adjustment"
+    event_id: "PUBLIC-READINESS-2026-09-28"
+    owner_lane: "documentation_maintenance"
+    status: "implemented"
+    summary: "Refresh the public README and business reading path for the reveal. Add a dated source-linked status guide covering the four-challenge portfolio, battery evidence, miner tooling and remaining qualification work. Reconcile superseded mandatory-treasury wording and record the founder's planned company buyback-and-burn direction without adopting operating terms or activating payments. Preserve historical research outcomes, domain authority, engineering selection, and qualification boundaries."
+    primary_detail: "docs/publications/PROJECT_STATUS.md"
+    affects:
+      - "SYSTEM/BUSINESS-AUTHORITY"
+      - "SYSTEM/GOVERNANCE"
+      - "SYSTEM/PROTOCOL-AUTHORITY"
+      - "SYSTEM/AGENT-EXECUTION"
+      - "SYSTEM/MATURITY"
+      - "SYSTEM/DEVELOPMENT-HUB"
+    supersedes: null
+    recorded_at: "2026-09-28T06:37:22Z"
+  -
+    map_ref: "SYSTEM/PUBLICATION-AUTHORITY"
+    event_type: "adjustment"
+    event_id: "PUBLIC-READINESS-PAGE-REMOVAL-2026-09-28"
+    owner_lane: "documentation_maintenance"
+    status: "implemented"
+    summary: "At the owner's request, remove the standalone network and Alpha page from the public documentation and remove its incoming links from the README, business documents and Development Hub. Existing commercial direction, protocol rules, maturity and qualification boundaries remain unchanged. Git history retains earlier versions."
+    primary_detail: "Business/README.md"
+    affects:
+      - "SYSTEM/BUSINESS-AUTHORITY"
+      - "SYSTEM/GOVERNANCE"
+      - "SYSTEM/DEVELOPMENT-HUB"
+    supersedes: null
+    recorded_at: "2026-09-28T10:22:06Z"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"

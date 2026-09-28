@@ -1,126 +1,41 @@
-# Carbon Publications — Reconciliation and Source Map
+# Carbon publications and reading guide
 
-**Status:** publication-control documentation on `main`.  
-**Purpose:** keep public papers and presentation guidance aligned with Carbon's scientific architecture, business canon, implementation maturity, and claim discipline without allowing publications to become protocol authority.
+Start with the [repository overview](../../README.md) for Carbon's purpose and mechanism, then read [Project status](PROJECT_STATUS.md) for the software, experiments, and remaining work. [Business and market](../../Business/Investor_Positioning_and_Market.md) explains the commercial thesis.
 
----
+## Current reading
 
-## Authority boundary
+| Document | Use it for |
+|---|---|
+| [Project status](PROJECT_STATUS.md) | Dated implementation and research evidence, with source links |
+| [Business overview](../../Business/README.md) | Products, buyers, company economics, and network relationship |
+| [Protocol specification](../../SPEC.md) | Architecture and links to technical contracts |
+| [Challenge readiness](../development/CHALLENGE_READINESS.md) | Per-challenge reference and review records |
+| [Scientific reference canon](../context/SCIENTIFIC_REFERENCE_CANON_V4_MASTER.md) | Scientific principles, evidence interpretation, and proposal boundaries |
+| [Development Hub](../development/carbon_hub/orientation/START_HERE.md) | Engineering map and routes to implementation work |
 
-Publications explain Carbon. They do **not** define scientific runtime behavior, qualification criteria, commercial rights, treasury governance, or business traction.
+## Earlier papers and editorial records
 
-Publication authors should reconcile against two distinct authority planes:
+This folder retains the August 2026 v3.1 reconciliation records for the whitepaper and academic litepaper. The source-status record identifies prepared LaTeX and PDF artifacts, but those paper sources and PDFs are not present in this repository snapshot. These records should not be read as current downloadable paper releases.
 
-### Scientific authority
+| Record | Context |
+|---|---|
+| [Source status v3.1](SOURCE_STATUS_V3_1.md) | Prepared source/PDF identities and build record, dated 23 August 2026 |
+| [Whitepaper reconciliation](WHITEPAPER_V3_1_RECONCILIATION.md) | Editorial changes for the prepared v3.1 whitepaper |
+| [Litepaper reconciliation](LITEPAPER_V3_1_RECONCILIATION.md) | Editorial changes for the prepared v3.1 academic litepaper |
+| [Cross-paper reconciliation](PUBLICATION_RECONCILIATION_2026-08-23.md) | Scientific and business alignment at that date |
+| [Claim audit](PUBLICATION_CLAIM_AUDIT_V3_1.md) | Claim checks for that publication generation |
+| [Stage deck review v5](Carbon_Exploit_Summit_Pitch_Deck_Review_v5.md) | Earlier editorial review; not the current deck or project status |
 
-- current runtime specifications and code on `main` govern implemented behavior;
-- owner-recommended integrated scientific architecture may exist ahead of runtime migration and must be labeled accordingly;
-- external scientific literature supports premises, not Carbon-specific proof;
-- Carbon experiments determine whether Carbon's hypotheses work.
+The older records include superseded treasury and launch framing. The current reward direction is direct winner plus burn, with treasury optional. The current launch portfolio is battery, cold plates, motors, and photonics. Follow [Project status](PROJECT_STATUS.md) and the linked owner decisions for those updates; historical records retain their original meaning.
 
-### Business authority
+## Reading claims
 
-- [`../../Business/Business_Canon.md`](../../Business/Business_Canon.md) governs durable business principles;
-- [`../../Business/Business_Plan.md`](../../Business/Business_Plan.md) and companion `Business/` documents govern product, GTM, financial, investor, and company/network positioning;
-- business architecture is not customer traction;
-- customer payment and investor priorities never alter scientific evidence requirements.
+A design describes intended behavior. Code implements a bounded capability. A recorded experiment supplies evidence for the conditions it tested. Scientific, security, and production qualification each require their own supporting review. A competition result alone does not qualify an engineering product.
 
----
+The same distinction applies to the business: a product plan is not a customer interview, an interview is not a paid pilot, and a pilot does not establish repeatable or recurring revenue. Public summaries link to evidence and retain unresolved outcomes.
 
-## Current reconciled publication generation
+## Source responsibilities
 
-### Whitepaper v3.1
+Publications explain Carbon. Current specifications and code govern runtime behavior; scientific records govern evidence and qualification; [Business canon](../../Business/Business_Canon.md) and its companion documents govern commercial design. A publication cannot change an evaluation rule, create customer rights, or establish traction.
 
-Source target: `Carbon_Whitepaper_v3.1.tex`.
-
-Reconciliation record: [`WHITEPAPER_V3_1_RECONCILIATION.md`](./WHITEPAPER_V3_1_RECONCILIATION.md).
-
-v3.1 preserves the scientific paper's purpose and adds a bounded commercial architecture section that explicitly separates the OpCo/business loop from the scientific judge.
-
-### Academic Litepaper v3.1
-
-Source target: `Carbon_Academic_Litepaper_v3.1.tex`.
-
-Reconciliation record: [`LITEPAPER_V3_1_RECONCILIATION.md`](./LITEPAPER_V3_1_RECONCILIATION.md).
-
-v3.1 adds a concise commercial architecture section while retaining the paper's scientific/academic center of gravity.
-
-### Exploit Summit / stage deck review v5
-
-Source-controlled editorial review: [`Carbon_Exploit_Summit_Pitch_Deck_Review_v5.md`](./Carbon_Exploit_Summit_Pitch_Deck_Review_v5.md).
-
-The stage deck should remain simpler than the papers. It should explain the problem, qualified exam, competition, verified frontier advance, reward, and business wedge without teaching internal schema names or treasury internals.
-
----
-
-## Reconciliation, claim, and source records
-
-- [`PUBLICATION_RECONCILIATION_2026-08-23.md`](./PUBLICATION_RECONCILIATION_2026-08-23.md) — cross-paper authority and content reconciliation.
-- [`PUBLICATION_CLAIM_AUDIT_V3_1.md`](./PUBLICATION_CLAIM_AUDIT_V3_1.md) — scientific/business/network pre-release claim controls.
-- [`SOURCE_STATUS_V3_1.md`](./SOURCE_STATUS_V3_1.md) — prepared source/PDF hashes, build state, and current source-control caveat.
-
----
-
-## Claim maturity discipline
-
-Scientific publication claims should distinguish:
-
-```text
-EXTERNAL PREMISE
-!=
-CARBON DESIGN
-!=
-IMPLEMENTATION
-!=
-CARBON EVIDENCE
-!=
-REPLICATION
-!=
-PRODUCTION QUALIFICATION
-```
-
-Business/investor claims should distinguish:
-
-```text
-BUSINESS DESIGN
-!=
-CUSTOMER DISCOVERY
-!=
-PAID PILOT
-!=
-REPEATABLE SERVICE
-!=
-EXPANSION
-!=
-RECURRING REVENUE
-!=
-PLATFORMIZATION
-!=
-NETWORK LEVERAGE
-```
-
-Do not present a designed product, pricing architecture, revenue scenario, or network-value hypothesis as achieved traction.
-
----
-
-## Current publication non-claims
-
-Unless later evidence explicitly changes the record, Carbon should not claim that it has already demonstrated:
-
-- production-qualified Burgers;
-- production treasury deployment;
-- empirically proven frontier economics;
-- a successful seven-Challenge LIVE portfolio;
-- superiority over centralized search;
-- production-qualified generalized reconstruction;
-- paid commercial traction merely because the business architecture is specified;
-- proven recurring-revenue or gross-margin economics;
-- a validated Physics Intelligence commercial product;
-- automatic transfer of OpCo revenue into Alpha value;
-- universal safety, regulatory certification, or engineering fitness from a Carbon subnet result.
-
----
-
-## Build artifact policy
-
-LaTeX source is the publication source of truth where available. Rendered PDFs are generated artifacts and should be regenerated from the exact source/version before external release. A successful compile is not a scientific, commercial, or legal approval.
+For a future paper release, maintainers should commit the source, build from that exact revision, verify citations and claims, inspect the rendered PDF, and record source and artifact identities. Compilation alone does not approve scientific or commercial claims.

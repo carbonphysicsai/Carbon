@@ -14,7 +14,6 @@ import os
 import sqlite3
 import sys
 import time
-from dataclasses import asdict
 from pathlib import Path
 
 import pytest
@@ -31,10 +30,8 @@ from test_standard_mcp_cli import (
 )
 
 from carbon.development_session.julia_analysis import (
-    SCHEMA as IMAGE_SCHEMA,
-)
-from carbon.development_session.julia_analysis import (
     build_julia_analysis_image,
+    image_record,
     load_julia_analysis_image,
 )
 from carbon.miner_mcp import standard_cli
@@ -65,7 +62,7 @@ def prepare_native(root, worker, monkeypatch):
     from test_battery_mcp_research import battery_campaign
 
     path, ledger, owner, _connection, _manifest = battery_campaign(root, monkeypatch)
-    record = {"schema": IMAGE_SCHEMA, **asdict(worker)}
+    record = image_record(worker)
     private_write(ledger.root / "authored-julia-image.json", record)
     # The runner profile names the image record it installs at every attach.
     installed = root / "authored-julia-image-record.json"

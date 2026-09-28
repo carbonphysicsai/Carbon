@@ -515,7 +515,7 @@ Repeat across multiple Challenges before generalizing. If centralized search win
 
 **Architect recommendation:** first utility should be **commercially valuable network-backed Sponsored Discovery / Frontier Market work**, including sponsor-funded frontier rewards. Keep enterprise UX fiat-first; OpCo translates eligible customer programs into network work where qualified.
 
-Do not begin with forced customer Alpha purchases, buyback/burn, revenue share, or speculative token choreography. Additional Alpha-native service utility can be considered after legal/economic review and demonstrated product benefit.
+The founder's 23 September 2026 direction adds a planned company payment path: treat the subnet as a research team and pay for useful output through Alpha buyback and burn. The company has not implemented this payment mechanism. Terms, legal/economic review, treasury controls, and execution evidence remain open; no percentage or revenue-share entitlement is established. Enterprise customers can continue to procure in fiat. Additional Alpha-native service utility requires review and demonstrated product benefit.
 
 **Owner:** Business + economics + legal.  
 **Proof required:** first commercial network-backed program and NetworkUtilityConversion metrics.  
