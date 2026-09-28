@@ -2,7 +2,7 @@
 
 import json
 import struct
-from dataclasses import asdict, replace
+from dataclasses import replace
 from types import SimpleNamespace
 
 import pytest
@@ -164,10 +164,9 @@ def test_operator_composition_requires_exact_private_image_record(
     with pytest.raises((ValueError, FileNotFoundError)):
         registered_julia_image(tmp_path, runtime, image.parent)
     path = tmp_path / "authored-julia-image.json"
-    # A v1 record in the shape v1 records were written: no depot field.
-    record = asdict(image)
-    assert record.pop("depot") is None
-    path.write_bytes(canonical(dict(schema=julia.SCHEMA, **record)))
+    # A v1 image is recorded in the shape v1 records were written: no depot.
+    assert "depot" not in julia.image_record(image)
+    path.write_bytes(canonical(julia.image_record(image)))
     path.chmod(0o600)
     assert registered_julia_image(tmp_path, runtime, image.parent) == image
     assert observed == [image]

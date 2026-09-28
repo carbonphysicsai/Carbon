@@ -346,3 +346,27 @@ def test_the_committed_lock_is_closed_and_pinned_by_digest(tmp_path):
         path.write_text(json.dumps(bad))
         with pytest.raises(ValueError):
             build.read_lock(path)
+
+
+def test_every_image_is_recorded_under_its_own_schema(tmp_path):
+    """image_record is the one way to write a Julia image record, and each
+    schema round-trips; a v2 record never carries the v1 label, nor the
+    reverse. (A service test that hand-wrote v1's label over a v2 image's
+    fields is what this replaced; the closed loader refused it.)"""
+    parent = ResearchImageIdentity(
+        "sha256:" + "a" * 64, "sha256:" + "b" * 64, "sha256:" + "c" * 64
+    )
+    built = build.JuliaDepotIdentity(
+        "sha256:" + "1" * 64, depot.depot_digest(), "sha256:" + "2" * 64
+    )
+    v1 = julia.JuliaResearchImageIdentity("sha256:" + "d" * 64, parent, "sha256:x")
+    v2 = julia.JuliaResearchImageIdentity(
+        "sha256:" + "e" * 64, parent, "sha256:y", built
+    )
+    path = tmp_path / "julia-analysis-image.json"
+    for image, schema in ((v1, julia.SCHEMA), (v2, julia.SCHEMA_V2)):
+        record = julia.image_record(image)
+        assert record["schema"] == schema
+        assert ("depot" in record) is (image.depot is not None)
+        path.write_bytes(canonical(record))
+        assert julia.load_julia_analysis_image(path) == image

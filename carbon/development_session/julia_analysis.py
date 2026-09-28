@@ -59,6 +59,7 @@ __all__ = [
     "bootstrap_for",
     "build_julia_analysis_image",
     "environment_files",
+    "image_record",
     "load_julia_analysis_image",
     "run_julia",
     "runtime_document",
@@ -336,23 +337,25 @@ USER 65532:65532
         raise ValueError("composed image does not carry the depot exactly")
     _check_precompiled(cli, image.image_id)
     write_once(directory / "runtime-material.json", canonical(document))
-    write_once(
-        manifest,
-        canonical(
-            {
-                "schema": SCHEMA_V2,
-                "image_id": image.image_id,
-                "parent": {
-                    "image_id": parent.image_id,
-                    "parent_image": parent.parent_image,
-                    "runtime_digest": parent.runtime_digest,
-                },
-                "runtime_digest": fingerprint,
-                "depot": asdict(depot),
-            }
-        ),
-    )
+    write_once(manifest, canonical(image_record(image)))
     return image
+
+
+def image_record(image):
+    """The record a Julia image is written under, in its own schema: v1 with
+    no depot field, v2 with it. Everything that records an image uses this,
+    so a record can never pair one schema with the other's fields."""
+    if type(image) is not JuliaResearchImageIdentity:
+        raise ValueError("separate authored Julia image required")
+    record = {
+        "schema": SCHEMA if image.depot is None else SCHEMA_V2,
+        "image_id": image.image_id,
+        "parent": asdict(image.parent),
+        "runtime_digest": image.runtime_digest,
+    }
+    if image.depot is not None:
+        record["depot"] = asdict(image.depot)
+    return record
 
 
 def load_julia_analysis_image(path):
