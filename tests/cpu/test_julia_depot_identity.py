@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import inspect
 import json
+import re
 import shutil
 import sys
 from dataclasses import asdict
@@ -370,3 +371,31 @@ def test_every_image_is_recorded_under_its_own_schema(tmp_path):
         assert ("depot" in record) is (image.depot is not None)
         path.write_bytes(canonical(record))
         assert julia.load_julia_analysis_image(path) == image
+
+
+#: A Julia image record written by hand: a schema label spread over asdict().
+HAND_WRITTEN_RECORD = re.compile(
+    r"schema\W{1,6}(?:julia\.)?(?:IMAGE_)?SCHEMA(?:_V2)?\W{1,6}\*\*asdict\("
+)
+
+
+def test_no_julia_image_record_is_written_by_hand():
+    """image_record is the only writer. A hand-written record pairs one
+    schema's label with the other's fields as soon as the identity grows a
+    field - twice already, in code from two branches."""
+    specimens = (
+        'canonical({"schema": SCHEMA, **asdict(image)})',
+        "canonical(dict(schema=julia.SCHEMA, **asdict(image)))",
+        '{"schema": IMAGE_SCHEMA, **asdict(worker)}',
+    )
+    assert all(HAND_WRITTEN_RECORD.search(line) for line in specimens)
+    root = Path(__file__).resolve().parents[2]
+    offenders = [
+        f"{path.relative_to(root)}:{number}"
+        for folder in ("carbon", "scripts", "tests")
+        for path in sorted((root / folder).rglob("*.py"))
+        if path.name != "test_julia_depot_identity.py"
+        for number, line in enumerate(path.read_text("utf-8").splitlines(), 1)
+        if HAND_WRITTEN_RECORD.search(line)
+    ]
+    assert offenders == []
