@@ -187,8 +187,23 @@ that job only when the C-03 worker boundary changes. A change to the Workbench
 launcher, its tests or that script does not select it, so none of these tests
 ran in CI on the change that added the launcher test. The 2026-09-23 results
 above are native-host runs on the supported Linux environment. They are
-diagnostics, not canonical acceptance. Making the job follow the Workbench paths
-is a classifier change, and that is the owner's to make.
+diagnostics, not canonical acceptance.
+
+**Closed on 2026-09-27 (`OWNER-WORKBENCH-CI-COVERAGE-01`).** The fix is
+additive, not a classifier change. The owner-pinned `classify_changes.py` and
+`development_scope.py` are untouched.
+- `scripts/dev/workbench_scope.py` now also selects the Workbench job for:
+  - the private host and study adapter (`carbon/scientific_tasks/workbench.py`,
+    `workbench_host.py`);
+  - `tests/service/workbench_team_journey.py`;
+  - the new `scripts/dev/workbench_worker_checks.sh`;
+  - every suite that script runs, read from the script so the two cannot drift;
+  - the scope module itself.
+- The Workbench job runs `workbench_worker_checks.sh` after its release checks.
+  It builds the pinned C-03 worker and the Julia worker on it, then runs the
+  host and adapter suites against the real worker.
+- The owner chose this knowing that every Workbench change, doc-only ones
+  included, now pays for the image builds and the real-worker suites.
 
 **The stated precondition was the wrong one.** Cases 7, 8 and 12 were held on
 "an admitted campaign with its grant". Handoff §G permits a test-owned synthetic

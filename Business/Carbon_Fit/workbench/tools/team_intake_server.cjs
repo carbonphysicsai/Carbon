@@ -11,7 +11,7 @@ const { basisFromHeaders } = require("./team_record_basis.cjs");
 const { smtpConfigFrom, smtpTransport } = require("./team_smtp_transport.cjs");
 const { AccessControl, StaffDirectory } = require("./team_staff_directory.cjs");
 const { scheduledProviderFrom, signedOptIn } = require("./team_model_provider.cjs");
-const { mailboxCapacity } = require("./team_mailbox_capacity.cjs");
+const { MailboxWatch, mailboxCapacity } = require("./team_mailbox_capacity.cjs");
 
 function loadUsers(usersPath) {
   return StaffDirectory.load(usersPath);
@@ -172,8 +172,10 @@ function createIntakeServer({ store, users, clock, limits, transport = null, mod
       if (request.method === "GET" && url.pathname === "/private/mailbox") {
         if (!principal.roles.includes("INTAKE_RECEIVER"))
           throw Object.assign(Error("Principal is not authorized for mailbox capacity"), { status: 403 });
-        const read = mailbox || (() => mailboxCapacity({ credentialFile: null }));
-        return send(response, 200, await read());
+        // A fresh reading, with whether the pool is watched at all. Without a
+        // watch the answer is the unwatched state, never room.
+        const watch = mailbox || new MailboxWatch(() => mailboxCapacity({ credentialFile: null }));
+        return send(response, 200, await watch.check());
       }
       if (request.method === "GET" && url.pathname === "/private/capacity")
         return send(response, 200, store.capacity(principal));
@@ -345,8 +347,20 @@ function main() {
   // External model processing: a scheduled provider only when the operator
   // configured one. Its credential is read from its file at send time.
   const modelProvider = scheduledProviderFrom(process.env);
-  // E6: the mailbox reading, when the operator configured its credential.
-  const mailbox = () => mailboxCapacity({ credentialFile: process.env.CARBON_TEAM_MAILBOX_QUOTA_CREDENTIAL_FILE || null });
+  // E6: the mailbox watch. It reads at start and hourly; with no credential it
+  // reports NOT_ATTEMPTED_NO_CREDENTIAL and says it is unwatched, never room.
+  const mailbox = new MailboxWatch(() =>
+    mailboxCapacity({ credentialFile: process.env.CARBON_TEAM_MAILBOX_QUOTA_CREDENTIAL_FILE || null }),
+  );
+  const announce = (status) => {
+    if (status.needs_attention)
+      process.stderr.write(`Intake mailbox: ${status.state}${status.watched ? "" : " (not watched)"}; see GET /private/mailbox.\n`);
+  };
+  mailbox.check().then(announce, () => process.stderr.write("Intake mailbox: the watch could not take a reading.\n"));
+  const watching = setInterval(() => {
+    mailbox.check().then(announce, () => process.stderr.write("Intake mailbox: the watch could not take a reading.\n"));
+  }, 60 * 60 * 1000);
+  watching.unref();
   createIntakeServer({ store, users: loadUsers(usersPath), transport, modelProvider, mailbox }).listen(
     port,
     "127.0.0.1",
