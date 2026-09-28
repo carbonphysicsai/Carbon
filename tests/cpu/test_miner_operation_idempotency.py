@@ -64,10 +64,19 @@ class Counted:
 
 @pytest.fixture
 def campaign(tmp_path, monkeypatch):
+    # Burgers is retired, so a launch names its Challenge: the registered
+    # DEVELOPMENT fixture Challenge, as the other launch tests do.
+    from scripts.dev.miner_launchpad.journey_fixture import (
+        register_fixture_challenge,
+    )
+
+    named = register_fixture_challenge(monkeypatch.setattr)
     tmp_path.chmod(0o700)
     host = journey_host(tmp_path, patch=monkeypatch.setattr)
     launched = perform(
-        host, "launch", {"agent": "none", "idempotency_key": "launch-key-0000001"}
+        host,
+        "launch",
+        {**named, "agent": "none", "idempotency_key": "launch-key-0000001"},
     )
     assert settle(host, launched["id"])["state"] == "READY"
     return host, launched["id"]

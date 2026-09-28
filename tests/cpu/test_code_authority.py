@@ -567,7 +567,12 @@ def _research_environment_evidence_modules() -> set[str]:
 
     return {
         ref.partition(":")[0]
-        for table in standard.ENVIRONMENTS.values()
+        for table in (
+            *standard.offered().values(),
+            # A retired Challenge's record still names, and imports, what it
+            # provided.
+            *(record.provided for record in standard.retired().values()),
+        )
         for status in table.values()
         if isinstance(status, standard.Provided)
         for ref in status.evidence

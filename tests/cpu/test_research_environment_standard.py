@@ -99,9 +99,8 @@ def test_a_retired_record_stays_readable(challenge, provision, status):
     it provided it through, still resolve, so recorded evidence keeps its
     meaning."""
     assert isinstance(status, standard.Provided)
-    for ref in status.evidence:
-        module, _, symbol = ref.partition(":")
-        assert callable(getattr(import_module(module), symbol)), ref
+    # The same check the offered Challenges' evidence passes.
+    test_provided_evidence_imports_and_gaps_are_named(challenge, provision, status)
 
 
 def test_retired_is_never_a_gap():
