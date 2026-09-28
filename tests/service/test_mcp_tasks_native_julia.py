@@ -61,7 +61,20 @@ def prepare_native(root, worker, monkeypatch):
     """
     from test_battery_mcp_research import battery_campaign
 
-    path, ledger, owner, _connection, _manifest = battery_campaign(root, monkeypatch)
+    from carbon.battery.campaign import compose
+
+    path, ledger, owner, connection, _manifest = battery_campaign(root, monkeypatch)
+    # Prepare the research-task store as a launch does, with the real images
+    # and the host's Julia image the attach will compose with.
+    composition, _ = compose(
+        ledger=ledger,
+        owner=owner,
+        image=worker.parent,
+        analysis=worker.parent,
+        connection=connection,
+        julia_image=worker,
+    )
+    composition.tasks.close()
     record = image_record(worker)
     private_write(ledger.root / "authored-julia-image.json", record)
     # The runner profile names the image record it installs at every attach.
