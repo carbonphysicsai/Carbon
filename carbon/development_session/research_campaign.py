@@ -371,6 +371,13 @@ async def final_epoch(
     return project_development_acceptance(ref), ref
 
 
+def frozen_parallel_calls(manifest):
+    """The parallel tool call rule the campaign froze in its provider plan,
+    or None: a plan frozen before the rule existed keeps the historical one."""
+    plan = manifest.get("provider") if type(manifest) is dict else None
+    return plan.get("parallel_calls") if type(plan) is dict else None
+
+
 def registered_julia_image(root, runtime, analysis):
     """Read the campaign's image record; the caller still verifies its authority.
 
@@ -972,6 +979,7 @@ async def run_agent(prepared, *, transport=None):
             agent_policy=prepared.agent_policy,
             challenge=prepared.challenge,
             transport=transport,
+            parallel_calls=frozen_parallel_calls(prepared.manifest),
             **({} if prepared.selection is None else {"provider": prepared.selection}),
         )
         report(ledger, owner=owner)

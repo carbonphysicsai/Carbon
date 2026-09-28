@@ -18,6 +18,8 @@ from .research_agent import caching_status, provider_turns, request_model
 from .research_agent_policy import (
     AUTONOMOUS,
     LEGACY,
+    PARALLEL_CALLS,
+    PARALLEL_REFUSAL,
     REMINDER,
     STOP,
     STOP_TOOL,
@@ -136,6 +138,7 @@ async def run_epoch(
     agent_policy=LEGACY,
     challenge=None,
     provider=DEFAULT_SELECTION,
+    parallel_calls=None,
 ):
     """Run once or resume completed provider/tool observations without resends.
 
@@ -145,7 +148,15 @@ async def run_epoch(
 
     An interrupted tool with unknown side effects stops for reconciliation.
     Successfully journalled replies can be replayed without another model call.
+
+    `parallel_calls` is the rule the campaign froze for a turn with several
+    tool calls: None is the historical rule (the epoch stops, retained);
+    `PARALLEL_CALLS` runs the first call, answers each other with a journalled
+    refusal that consumes no trial slot, and stops only on its consecutive
+    limit.
     """
+    if parallel_calls is not None and parallel_calls != PARALLEL_CALLS:
+        raise ValueError("unknown parallel tool call rule")
     root = _epoch_paths(ledger, epoch)
     policy = binding(agent_policy, challenge)
     autonomous = agent_policy == AUTONOMOUS
@@ -168,6 +179,8 @@ async def run_epoch(
         plan["agent_policy"] = policy
     if not provider.is_historical_default:
         plan["model_selection"] = provider.record()
+    if parallel_calls is not None:
+        plan["parallel_calls"] = parallel_calls
     if "research_guidance" in initial_observation:
         plan["effective_input_digest"] = effective_digest(policy, initial_observation)
     write_once(root / "plan.json", canonical(plan))
@@ -195,6 +208,9 @@ async def run_epoch(
     trial_start = json.loads(trial_start_file.read_bytes())["count"]
     outcome = None
     reminders = 0
+    # Consecutive turns with several tool calls; recomputed identically on a
+    # replay, because the retained responses replay in order.
+    parallel_run = 0
     for index in range(48):
         ledger.checkpoint()
         status = ledger.status(owner=owner)
@@ -272,9 +288,49 @@ async def run_epoch(
             for item in output
             if type(item) is dict and item.get("type") == "function_call"
         ]
-        if len(calls) > 1:
+        if len(calls) > 1 and parallel_calls is None:
             raise ValueError("parallel tool output prohibited; retained and stopped")
+        parallel_run = parallel_run + 1 if len(calls) > 1 else 0
+        if parallel_run >= (parallel_calls or {}).get("consecutive_limit", 1):
+            outcome = {
+                "status": "STOPPED",
+                "reason": (
+                    "provider returned several tool calls on "
+                    f"{parallel_run} consecutive turns; retained and stopped"
+                ),
+                "parallel_calls": parallel_calls,
+            }
+            break
         history.extend(output)
+        if len(calls) > 1:
+            # Only the first call runs. Every other one is answered, so the
+            # conversation stays well formed, with a refusal that dispatched
+            # nothing and consumed no trial slot - and is journalled.
+            refused = calls[1:]
+            write_once(
+                root / (call_id + "-parallel-refusal.json"),
+                canonical(
+                    {
+                        "schema": "carbon.autoresearch.parallel-refusal.v1",
+                        "turn": call_id,
+                        "response_digest": digest(canonical(response)),
+                        "ran": calls[0].get("call_id"),
+                        "refused": [item.get("call_id") for item in refused],
+                        "consecutive": parallel_run,
+                        "rule": parallel_calls,
+                    }
+                ),
+            )
+            for item in refused:
+                if type(item.get("call_id")) is not str:
+                    raise ValueError("provider tool identity malformed")
+                history.append(
+                    {
+                        "type": "function_call_output",
+                        "call_id": item["call_id"],
+                        "output": canonical(PARALLEL_REFUSAL).decode(),
+                    }
+                )
         if not calls:
             if autonomous and reminders < policy["free_text_reminders"]:
                 reminders += 1

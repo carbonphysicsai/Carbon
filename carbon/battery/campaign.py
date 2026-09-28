@@ -66,7 +66,10 @@ def provider_plan(agent, budget, selection=None):
         DEFAULT_SELECTION,
         check_budget,
     )
-    from carbon.development_session.research_agent_policy import AUTONOMOUS
+    from carbon.development_session.research_agent_policy import (
+        AUTONOMOUS,
+        PARALLEL_CALLS,
+    )
     from carbon.development_session.research_campaign import FINAL_EPOCHS
 
     ceilings = (budget or {}).get("ceilings") or {}
@@ -87,6 +90,9 @@ def provider_plan(agent, budget, selection=None):
         "max_research_trials_per_epoch": 8,
         "ceilings": {k: ceilings[k] for k in AGENT_BUDGET_KEYS},
         "evaluator_access": False,
+        # Frozen with the plan: a provider that returns several tool calls in
+        # one turn gets the first run and the rest refused, not a stopped run.
+        "parallel_calls": PARALLEL_CALLS,
     }
     if not selection.is_historical_default:
         plan["model_selection"] = selection.record()
