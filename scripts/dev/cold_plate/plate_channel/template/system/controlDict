@@ -1,0 +1,49 @@
+FoamFile { version 2.0; format ascii; class dictionary; object controlDict; }
+application     chtMultiRegionSimpleFoam;
+startFrom       startTime;
+startTime       0;
+stopAt          endTime;
+endTime         END_TIME;
+deltaT          1;
+writeControl    timeStep;
+writeInterval   WRITE_INTERVAL;  // half-way and final: an iteration-convergence check
+purgeWrite      0;
+writeFormat     ascii;
+writePrecision  12;
+timeFormat      general;
+runTimeModifiable false;
+
+// Patch integrals on the fluid region, evaluated at each write.
+flowSum
+{
+    type            surfaceFieldValue;
+    libs            (fieldFunctionObjects);
+    region          fluid;
+    writeControl    writeTime;
+    writeFields     false;
+    regionType      patch;
+    operation       sum;
+    fields          (phi);
+}
+bulk
+{
+    $flowSum;
+    operation       weightedAverage;
+    weightField     phi;
+    fields          (T);
+}
+meanPressure
+{
+    $flowSum;
+    operation       areaAverage;
+    fields          (p);
+}
+functions
+{
+    massIn    { $flowSum;      name inlet; }
+    massOut   { $flowSum;      name outlet; }
+    bulkIn    { $bulk;         name inlet; }
+    bulkOut   { $bulk;         name outlet; }
+    pressIn   { $meanPressure; name inlet; }
+    pressOut  { $meanPressure; name outlet; }
+}
