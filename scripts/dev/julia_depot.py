@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -22,6 +23,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from carbon.development_session import julia_depot
 from carbon.development_session import julia_depot_build as build
 from carbon.reconstruction.worker.docker_runtime import DockerCLI
+
+
+def _not_adopted(message):
+    """Say so, and under GitHub Actions raise an annotation: a depot that is
+    never adopted would otherwise hide as a green, merely slow, job."""
+    print(message)
+    if os.environ.get("GITHUB_ACTIONS") == "true":
+        print(f"::warning title=Julia depot not adopted::{message}")
 
 
 def main(argv=None):
@@ -42,15 +51,15 @@ def main(argv=None):
     key = julia_depot.depot_digest()
     lock = build.read_lock()
     if lock is None:
-        print(f"no published depot for {key}; it will be built cold")
+        _not_adopted(f"no published depot for {key}; it will be built cold")
         return 0
     try:
         cli.run(["pull", "--platform=linux/amd64", lock["image"]], timeout=3600)
         depot = build.adopt_depot(args.root, cli, lock["image"])
     except Exception as refused:  # noqa: BLE001 - absent or unverified: build cold
-        print(
-            f"published depot {lock['image']} not adopted ({type(refused).__name__});"
-            " it will be built cold"
+        _not_adopted(
+            f"published depot {lock['image']} not adopted "
+            f"({type(refused).__name__}); it will be built cold"
         )
         return 0
     print(

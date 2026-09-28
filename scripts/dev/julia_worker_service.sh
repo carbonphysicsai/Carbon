@@ -13,12 +13,19 @@ export CARBON_AUTHORED_JULIA_IMAGE_ROOT="${CARBON_AUTHORED_JULIA_IMAGE_ROOT:-${r
 # commits that do not touch them. A read token, when given, reaches docker over
 # stdin only. No lock for these inputs, a failed sign-in, a failed pull or a
 # failed check records nothing, and the suite then builds the depot cold.
+# The sign-in lasts only as long as the adopt: it is removed right after, and
+# by the trap if adopt itself fails, so the service tests never run with it.
 if [[ -n "${GHCR_READ_TOKEN:-}" ]]; then
+  trap 'docker logout ghcr.io >/dev/null 2>&1 || true' EXIT
   printf '%s' "${GHCR_READ_TOKEN}" | docker login ghcr.io -u "${GITHUB_ACTOR:-carbon-ci}" --password-stdin >/dev/null 2>&1 \
     || echo 'Julia depot registry sign-in failed; the depot will be built if it cannot be pulled.'
 fi
 "${repo_root}/.venv/bin/python" "${repo_root}/scripts/dev/julia_depot.py" adopt \
   --root "${CARBON_AUTHORED_JULIA_IMAGE_ROOT}/depot"
+if [[ -n "${GHCR_READ_TOKEN:-}" ]]; then
+  docker logout ghcr.io >/dev/null 2>&1 || true
+  trap - EXIT
+fi
 "${repo_root}/.venv/bin/python" -m pytest tests/service/test_julia_science_service.py \
   -k 'registered_julia or existing_c04_controller' -q
 "${repo_root}/.venv/bin/python" -m pytest tests/service/test_julia_miner_research.py -q
