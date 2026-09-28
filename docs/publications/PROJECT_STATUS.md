@@ -62,7 +62,7 @@ The [engineering board](../../.agent/WAVE.md) records completion of the bounded 
 
 The current reward direction is direct winner plus burn, with treasury optional. Battery Phase A permits only its approved all-burn development path. Mainnet operation, paying winners, and production qualification require their own evidence and authority.
 
-The company's planned Alpha buyback and burn for useful research output is a separate commercial mechanism. See [Network and Alpha](../../Business/Network_and_Alpha_Value.md).
+The company's planned Alpha buyback and burn for useful research output is a separate commercial mechanism.
 
 ## Commercial position
 

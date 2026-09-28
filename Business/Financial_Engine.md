@@ -11,7 +11,7 @@ Carbon plans to earn initial revenue from scoped audits, reference integration, 
 
 The key economic test is whether Carbon can deliver more customer value with fewer custom hours per engagement. Reference calculations, reconstruction, security requirements, and support remain real costs even when model inference is fast.
 
-This document defines accounting and planning methods. It contains no achieved revenue, validated margin, or committed forecast. [Products and revenue](Product_and_Revenue_Architecture.md) describes the offering sequence; [Network and Alpha](Network_and_Alpha_Value.md) distinguishes company income, sponsor rewards, and planned token purchases.
+This document defines accounting and planning methods. It contains no achieved revenue, validated margin, or committed forecast. [Products and revenue](Product_and_Revenue_Architecture.md) describes the offering sequence. Carbon must account for company income, sponsor rewards, and planned token purchases as distinct flows.
 
 # 1. Financial doctrine
 

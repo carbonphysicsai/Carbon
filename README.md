@@ -10,7 +10,7 @@ Fast physics models approximate expensive simulations. An engineer might use one
 
 Carbon brings competitive model discovery and independent evaluation into one system. This repository contains the implementation, scientific contracts, development studies, and commercial plan.
 
-[Project status](docs/publications/PROJECT_STATUS.md) · [Business and market](Business/Investor_Positioning_and_Market.md) · [Network and Alpha](Business/Network_and_Alpha_Value.md) · [Miner MCP](carbon/miner_mcp/README.md) · [Development setup](docs/DEVELOPMENT.md) · [Website](https://carbonphysics.ai)
+[Project status](docs/publications/PROJECT_STATUS.md) · [Business and market](Business/Investor_Positioning_and_Market.md) · [Miner MCP](carbon/miner_mcp/README.md) · [Development setup](docs/DEVELOPMENT.md) · [Website](https://carbonphysics.ai)
 
 ## How Carbon works
 
@@ -72,7 +72,7 @@ The network thesis is that independent researchers and agents can explore more u
 
 The current reward direction is **direct winner plus burn**, with a treasury optional. The separately recorded development testnet publications are non-paying demonstrations. They do not establish miner payouts or production settlement.
 
-The company's commercial plan is to use the subnet as a research team and pay for useful output through Alpha buyback and burn. This remains a planned commercial mechanism, with implementation and review outstanding. Company revenue, network rewards, and Alpha ownership are distinct. See [Network and Alpha](Business/Network_and_Alpha_Value.md) for the distinction between that plan and protocol reward routing.
+The company's commercial plan is to use the subnet as a research team and pay for useful output through Alpha buyback and burn. This remains a planned commercial mechanism, with implementation and review outstanding. Company revenue, network rewards, and Alpha ownership are distinct.
 
 ## Explore the repository
 

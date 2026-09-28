@@ -249,7 +249,6 @@ Primary documents:
 - `Business/Go_To_Market.md`
 - `Business/Investor_Positioning_and_Market.md`
 - `Business/Financial_Engine.md`
-- `Business/Network_and_Alpha_Value.md`
 - `Business/Design_Questions.md`
 
 Business law:
@@ -278,7 +277,7 @@ Preferred value path:
 
 > **Create Alpha value by making the subnet economically useful and increasingly necessary to valuable scientific work.**
 
-Carbon's current commercial direction is to pay for useful subnet research output through Alpha buyback and burn, as a planned mechanism described in [Network and Alpha](Business/Network_and_Alpha_Value.md). This does not implement or activate a payment policy. Operating terms and legal/economic/governance adoption remain separate requirements. It creates no revenue-share or token-holder entitlement.
+Carbon's current commercial direction is to pay for useful subnet research output through Alpha buyback and burn. This does not implement or activate a payment policy. Operating terms and legal/economic/governance adoption remain separate requirements. It creates no revenue-share or token-holder entitlement.
 
 ---
 

@@ -12,7 +12,6 @@ These documents describe company strategy and commercial design. They do not est
 |---|---|
 | [Business and market](Investor_Positioning_and_Market.md) | Customer problem, competition, growth thesis, and milestones |
 | [Products and revenue](Product_and_Revenue_Architecture.md) | What customers would buy and how engagements could expand |
-| [Network and Alpha](Network_and_Alpha_Value.md) | Research supply, reward routing, and the planned company payment mechanism |
 | [Business plan](Business_Plan.md) | Delivery sequence, economics, risks, and measures of progress |
 | [Go-to-market](Go_To_Market.md) | Target buyers, initial verticals, partners, and opportunity qualification |
 | [Commercial operating model](Commercial_Operating_Model.md) | Scope, reference access, rights, privacy, and acceptance |
@@ -23,7 +22,7 @@ These documents describe company strategy and commercial design. They do not est
 
 The company owns customer relationships and delivery obligations. The subnet provides a route to external research and evaluation. Enterprise buyers can procure services in fiat; they do not need to manage tokens to commission an audit.
 
-Carbon plans to pay for useful subnet output through Alpha buyback and burn. The [network document](Network_and_Alpha_Value.md) explains its planned status and separates it from protocol rewards. Neither the business plan nor token ownership establishes a claim on company revenue.
+Carbon plans to pay for useful subnet output through Alpha buyback and burn. The company has not implemented that commercial mechanism; protocol rewards follow their own registered policy. Neither the business plan nor token ownership establishes a claim on company revenue.
 
 ## Commercial responsibilities
 

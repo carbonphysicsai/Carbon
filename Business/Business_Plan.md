@@ -49,7 +49,7 @@ Incumbents can develop competing capabilities. Carbon needs to demonstrate that 
 
 Carbon plans to treat the subnet as a research team and pay for useful output through Alpha buyback and burn. That commercial mechanism remains planned, with terms and execution outstanding. The company must remain viable on customer revenue without relying on token appreciation.
 
-Work moves from `OFFCHAIN_ONLY` to `NETWORK_ELIGIBLE` or `NETWORK_REQUIRED` only when the product, privacy, scientific quality, and economics support it. The [network document](Network_and_Alpha_Value.md) distinguishes commercial payments, sponsor funds, and protocol reward routing.
+Work moves from `OFFCHAIN_ONLY` to `NETWORK_ELIGIBLE` or `NETWORK_REQUIRED` only when the product, privacy, scientific quality, and economics support it. Carbon accounts for commercial payments and sponsor funds apart from protocol rewards.
 
 ## Milestones
 

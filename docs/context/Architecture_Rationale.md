@@ -117,7 +117,7 @@ identity/custody remains a network/economic/security decision.
 
 ## Why reward routing stays separate from scientific evidence
 
-`OWNER-C0-REWARD-01` selects direct winner plus burn and makes treasury optional. Scientific comparison remains upstream of either routing mechanism: a chain allocation cannot create, erase, or change an improvement. Any future treasury must preserve that separation. The [network guide](../../Business/Network_and_Alpha_Value.md) also distinguishes protocol rewards from the company's planned Alpha purchases for useful research output.
+`OWNER-C0-REWARD-01` selects direct winner plus burn and makes treasury optional. Scientific comparison remains upstream of either routing mechanism: a chain allocation cannot create, erase, or change an improvement. Any future treasury must preserve that separation. Protocol rewards remain separate from the company's planned Alpha purchases for useful research output.
 
 ## Why CI is constitutional
 Carbon is agent-assisted software with security- and science-critical invariants. Ordinary unit tests are not sufficient if a future change can make the suite green by weakening the invariant itself. Dedicated trust-boundary tests make no-seed-leakage, mock isolation, score semantics, stub non-emission, infra/science separation, and qualification gating mechanically difficult to regress.

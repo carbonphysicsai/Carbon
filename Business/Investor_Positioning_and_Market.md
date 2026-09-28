@@ -46,7 +46,7 @@ Carbon is developing its network on Bittensor. Researchers and agents explore su
 
 The potential benefit is access to a wider range of approaches without hiring each specialist into the company. Carbon still has to measure whether that produces better results per dollar, faster progress, or capabilities an internal team would struggle to supply. The repository does not establish a proven network advantage over centralized research.
 
-The company plans to treat the subnet as a research team and pay for useful output through Alpha buyback and burn. That plan remains separate from the implemented development reward-routing work. See [Network and Alpha](Network_and_Alpha_Value.md) for status and boundaries.
+The company plans to treat the subnet as a research team and pay for useful output through Alpha buyback and burn. That plan remains separate from the implemented development reward-routing work.
 
 ## Revenue and expansion
 
