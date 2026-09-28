@@ -21,3 +21,7 @@ The knowledge manifest updates the three source revisions, URLs, and SHA-256 dig
 The existing owner approval basis continues to describe the unchanged answer content. This editorial source review does not rewrite the historical approval, claim a new owner review, or transfer approval to a rebuilt website bundle. `PUBLIC_RELEASE_CANDIDATE.json` retains its original approved manifest and bundle digests. A website release containing the refreshed manifest needs its own candidate preparation and deployment decision under `OPERATIONS.md`.
 
 Verification for this revision includes equality of all 27 cards against the preceding commit, SHA-256 matching for all nine sources, production-mode knowledge validation, and the Ask Carbon test suite. The existing October expiry warnings remain visible.
+
+## Same-day page removal
+
+The owner requested removal of the standalone network and Alpha page. Revision `6ba5232f00e81b0ecd02fb3684ec808f0ada00d7` removes its authority-list entry and outgoing references. The constitution and business canon retain the reviewed passages listed above. Their manifest revisions, URLs and hashes now identify that revision. The protocol source and all 27 answer cards remain unchanged. This maintenance grants no website or Worker deployment authority.

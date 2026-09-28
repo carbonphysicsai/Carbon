@@ -1,0 +1,16 @@
+{
+  "map_ref": "SYSTEM/PUBLICATION-AUTHORITY",
+  "event_type": "adjustment",
+  "event_id": "PUBLIC-READINESS-PAGE-REMOVAL-2026-09-28",
+  "owner_lane": "documentation_maintenance",
+  "status": "implemented",
+  "summary": "At the owner's request, remove the standalone network and Alpha page from the public documentation and remove its incoming links from the README, business documents and Development Hub. Existing commercial direction, protocol rules, maturity and qualification boundaries remain unchanged. Git history retains earlier versions.",
+  "primary_detail": "Business/README.md",
+  "affects": [
+    "SYSTEM/BUSINESS-AUTHORITY",
+    "SYSTEM/GOVERNANCE",
+    "SYSTEM/DEVELOPMENT-HUB"
+  ],
+  "supersedes": null,
+  "recorded_at": "2026-09-28T10:22:06Z"
+}
