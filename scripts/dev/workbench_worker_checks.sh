@@ -28,6 +28,7 @@ echo "==> Workbench host and study adapter against the real worker"
   tests/service/test_julia_workbench.py \
   tests/service/test_workbench_host_process.py \
   tests/service/test_julia_envelope_worker.py \
-  tests/cpu/test_workbench_science.py
+  tests/cpu/test_workbench_science.py \
+  tests/cpu/test_workbench_host_studies_retired.py
 
 echo "Workbench real-worker checks passed."
