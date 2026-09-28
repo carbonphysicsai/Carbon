@@ -164,10 +164,16 @@ class DevelopmentTransactionAuthorization:
     max_dispatches: int = 1
     max_spend_tao: int = 0
     development_only: bool = True
+    #: The digest of the one source intent this authorization may publish.
+    #: None for the C-W1 path, whose intent is issued at dispatch; set, it
+    #: admits only the battery OD-4a publisher (carbon.battery.od4a_dispatch).
+    source_intent_digest: str | None = None
 
     def __post_init__(self) -> None:
         _token(self.authorization_id)
         _digest(self.authority_record_digest)
+        if self.source_intent_digest is not None:
+            _digest(self.source_intent_digest)
         _token(self.publisher_hotkey)
         if (
             type(self.context) is not ChainContext

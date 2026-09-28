@@ -12,16 +12,24 @@ from .service import DevelopmentTestnetIntentIssuer
 
 
 class DevelopmentTestnetPublisher(VerifiedWeightPublisher):
+    ISSUER_TYPE = DevelopmentTestnetIntentIssuer
+    INTENT_TYPE = DevelopmentTestnetWeightIntent
+    #: An authorization bound to one source intent belongs to the battery
+    #: OD-4a publisher only; the C-W1 path refuses it, and the reverse.
+    BINDS_SOURCE_INTENT = False
+
     def __init__(self, issuer, backend, authorization):
         if type(authorization) is not DevelopmentTransactionAuthorization:
             raise DevelopmentTestnetFailure("TRANSACTION_AUTHORIZATION_REQUIRED")
+        if (authorization.source_intent_digest is not None) != self.BINDS_SOURCE_INTENT:
+            raise DevelopmentTestnetFailure("TRANSACTION_AUTHORIZATION_SCOPE_MISMATCH")
         authorization.validate(issuer.profile, backend.publisher)
         self.authorization = authorization
         super().__init__(
             issuer,
             backend,
-            issuer_type=DevelopmentTestnetIntentIssuer,
-            intent_type=DevelopmentTestnetWeightIntent,
+            issuer_type=self.ISSUER_TYPE,
+            intent_type=self.INTENT_TYPE,
             network="testnet",
             spec_version=issuer.profile.expected_runtime_spec,
         )
