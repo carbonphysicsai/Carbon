@@ -8,6 +8,8 @@ on:
 permissions:
   contents: read
   pull-requests: read
+  # Read-only: pull the published authored-Julia depot (julia_depot.lock.json).
+  packages: read
 
 concurrency:
   group: ci-${{ github.event_name }}-${{ github.event.pull_request.number || github.sha }}
@@ -207,6 +209,9 @@ jobs:
           node-version: "24.19.0"
       - name: Exercise registered Julia study and observed cancellation cleanup
         env:
+          # Read-only (packages: read), for the published Julia depot the
+          # service script adopts before the suite; see julia_worker_service.sh.
+          GHCR_READ_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CARBON_JULIA_WORKER_MANIFEST: .carbon-artifacts/julia-worker-image.json
           CARBON_JULIA_TRACE_PATH: .carbon-artifacts/julia-service-traces.jsonl
         run: bash ./scripts/dev/julia_worker_service.sh
@@ -226,6 +231,7 @@ jobs:
             .carbon-artifacts/c03-service-traces.jsonl
             .carbon-artifacts/julia-worker-image.json
             .carbon-artifacts/julia-service-traces.jsonl
+            .carbon-artifacts/authored-julia-images/depot/events.jsonl
           if-no-files-found: error
 
   workbench:

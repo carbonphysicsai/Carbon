@@ -1,0 +1,19 @@
+{
+  "map_ref": "SYSTEM/PUBLICATION-AUTHORITY",
+  "event_type": "adjustment",
+  "event_id": "PUBLIC-READINESS-2026-09-28",
+  "owner_lane": "documentation_maintenance",
+  "status": "implemented",
+  "summary": "Refresh the public README and business reading path for the reveal. Add a dated source-linked status guide covering the four-challenge portfolio, battery evidence, miner tooling and remaining qualification work. Reconcile superseded mandatory-treasury wording and record the founder's planned company buyback-and-burn direction without adopting operating terms or activating payments. Preserve historical research outcomes, domain authority, engineering selection, and qualification boundaries.",
+  "primary_detail": "docs/publications/PROJECT_STATUS.md",
+  "affects": [
+    "SYSTEM/BUSINESS-AUTHORITY",
+    "SYSTEM/GOVERNANCE",
+    "SYSTEM/PROTOCOL-AUTHORITY",
+    "SYSTEM/AGENT-EXECUTION",
+    "SYSTEM/MATURITY",
+    "SYSTEM/DEVELOPMENT-HUB"
+  ],
+  "supersedes": null,
+  "recorded_at": "2026-09-28T06:37:22Z"
+}

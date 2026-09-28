@@ -1,5 +1,7 @@
 # Carbon Context
-**Status:** v1.1 — team-review context reconciled to `OWNER-NET-01`
+**Status:** historical v1.1 engineering context reconciled to `OWNER-NET-01`.
+
+For current public orientation, use the [README](../../README.md) and [Project status](../publications/PROJECT_STATUS.md). This earlier context predates the four-challenge launch portfolio and `OWNER-C0-REWARD-01`, which supersedes mandatory-treasury and temporary-direct-only payment routing. Current domain decisions govern where this snapshot differs.
 
 ## Mission
 Carbon is a competitive scientific-computing system, initially a Bittensor subnet, for discovering and independently evaluating neural-operator training strategies. Miners submit methods; validators independently retrain them on hidden procedural data under a pinned challenge contract. Mandatory physics gates establish admissibility; surviving strategies are ranked on physics fidelity, robustness, and accuracy.

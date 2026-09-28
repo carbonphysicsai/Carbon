@@ -1,4 +1,18 @@
-# Carbon Goal-to-Challenge Workbench v0.10
+# Carbon Goal-to-Challenge Workbench
+
+The Workbench helps an engineering team turn a modeling opportunity into a scoped evaluation or research program. Users describe the decision, model inputs and outputs, operating conditions, reference evidence, and unresolved requirements. Carbon's team can review the draft, preserve revisions, and prepare a proposed pilot.
+
+The public onboarding edition runs in the visitor's browser and exports a draft for Carbon review. Its structural checks identify missing information; they do not run a physics exam or qualify a model. The internal service and intake paths have separate access and deployment requirements.
+
+The internal scientific-study host currently depends on the public Burgers challenge. When the registry marks that challenge retired, the host refuses study commands until another admitted challenge can support them. Public scoping and the separate team intake receiver are unaffected. The [runbook](PRIVATE_SERVICE_RUNBOOK.md) records this operating boundary.
+
+Start with `Carbon_Public_Workbench_Onboarding.html` for local scoping, or the [private service runbook](PRIVATE_SERVICE_RUNBOOK.md) for operator setup. GitHub's file view does not host the application. See [Project status](../../../docs/publications/PROJECT_STATUS.md) for the wider development record.
+
+## Implementation history and operator notes
+
+The notes below retain the scope and evidence of each delivered version. Later code and its deployment records govern current behavior.
+
+### v0.10 and subsequent work
 
 GOAL-WORKBENCH-14 adds a public onboarding edition,
 `Carbon_Public_Workbench_Onboarding.html`. It is built from the same sources as

@@ -304,14 +304,13 @@ def test_cancellation_reaps_julia_and_child_and_retains_uncertain_charge(
 def test_authored_julia_through_real_external_stdio_reconnect_and_owned_ledger(
     image, tmp_path, monkeypatch
 ):
-    from dataclasses import asdict
 
     from mcp import Client
     from mcp.client.stdio import StdioServerParameters
     from test_standard_mcp_cli import FixtureSigner, fixture_connection
 
     import carbon.chain.auth
-    from carbon.development_session.julia_analysis import SCHEMA
+    from carbon.development_session.julia_analysis import image_record
     from carbon.development_session.profile import canonical
     from carbon.miner_mcp.standard_cli import _requester
 
@@ -320,7 +319,7 @@ def test_authored_julia_through_real_external_stdio_reconnect_and_owned_ledger(
     owner = asyncio.run(_requester(fixture_connection(tmp_path / "campaign")))
     ledger, _ = prepared(tmp_path, image=image, owner=owner)
     image_path = tmp_path / "image.json"
-    image_path.write_bytes(canonical({"schema": SCHEMA, **asdict(image)}))
+    image_path.write_bytes(canonical(image_record(image)))
     parameters = StdioServerParameters(
         command=sys.executable,
         args=[str(Path(__file__).resolve()), "--serve", str(tmp_path), str(image_path)],

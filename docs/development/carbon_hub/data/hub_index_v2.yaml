@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-27T17:58:53Z"
+  captured_at_utc: "2026-09-28T10:27:41Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "58797df7abb443c62250c0d6a1ca4ba943119a4c"
+  authority_snapshot_commit: "6ba5232f00e81b0ecd02fb3684ec808f0ada00d7"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -10241,6 +10241,18 @@ events:
   -
     map_ref: "SYSTEM/AGENT-EXECUTION"
     event_type: "adjustment"
+    event_id: "C-MLP-02-BATTERY-RESEARCH-IMAGES-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "Battery research campaigns now accept the host's authored Julia image, the way a Burgers product campaign does, under the owner's direction that every prebuilt capability is available to every campaign without declaring it at launch, a grant or a per-campaign install. Until now prepare_battery and check_attached required the runtime to be exactly implementation and images, so a runner profile declaring authored_research could not launch a battery campaign and run_julia was never composed for one. A declared authored_research scope must name exactly the image record the runner installs, is frozen in the manifest, and is re-checked on every resume and attach; a campaign that declared none still gets whichever Julia image the host has installed, which is not part of the frozen runtime. The verified image reaches only the research executor's run_julia. Tests show that battery discovery, the recipe compiler, practice, the contract digest and the submission fields are identical with and without it, and that the validator-side modules (daemon, deployment, compile, training, recipes, exam, contracts) never read a research image, with a positive specimen for that scan. GPU research is refused by name for battery rather than frozen: its scope binds Burgers' GPU recipe catalogue and public TRAIN cases, and battery has no GPU practice lane. A battery GPU lane is follow-up work. This is engineering evidence from fixture images; no scientific, security, qualification or deployment authority is created or implied."
+    primary_detail: "carbon/battery/campaign.py"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+    supersedes: null
+    recorded_at: "2026-09-27T12:00:00Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "adjustment"
     event_id: "C-MLP-02-LAUNCH-MODEL-SELECTION-01"
     owner_lane: "technical_lead"
     status: "implemented"
@@ -10251,6 +10263,18 @@ events:
       - "WAVE-C/C-W1-D4"
     supersedes: null
     recorded_at: "2026-09-27T12:00:00Z"
+  -
+    map_ref: "SYSTEM/BUSINESS-AUTHORITY"
+    event_type: "evidence"
+    event_id: "GOAL-WORKBENCH-STUDIES-RETIRED-01"
+    owner_lane: "business_authority"
+    status: "implemented"
+    summary: "Records the owner's decision (OWNER-WORKBENCH-STUDIES-RETIRED-01) that Workbench scientific studies go dark when Burgers is retired from the research path. Every study runs on the fixed public Burgers definition and no other admitted Challenge hosts them. When the Challenge registry marks Burgers RETIRED, every Workbench host command refuses by name before loading a profile or attaching a campaign, and exits 3; until then the host is unchanged. The refusal is pinned in both registry states, and the tests that drive a working Burgers study skip by name only while Burgers is retired. It lands before Launchpad's #366 so main never carries a host that fails at attach. The team receiver, E1-E9 and E8 are untouched; no client is affected."
+    primary_detail: "Business/Carbon_Fit/workbench/PRIVATE_SERVICE_RUNBOOK.md"
+    affects:
+      - "SYSTEM/BUSINESS-AUTHORITY"
+    supersedes: null
+    recorded_at: "2026-09-27T14:40:00Z"
   -
     map_ref: "SYSTEM/BUSINESS-AUTHORITY"
     event_type: "evidence"
@@ -10300,6 +10324,50 @@ events:
       - "SYSTEM/BUSINESS-AUTHORITY"
     supersedes: null
     recorded_at: "2026-09-27T22:10:00Z"
+  -
+    map_ref: "SYSTEM/CI"
+    event_type: "adjustment"
+    event_id: "C-MLP-02-JULIA-DEPOT-SPLIT-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "The authored-Julia precompiled depot is now built from Julia inputs only and reused across commits. Its identity, julia_depot.depot_digest, hashes the Julia version and checksum-pinned archive, the pinned base, the CPU target, the four committed environment files, the bootstraps and the depot's recipe module, and never the Carbon source tree; a test records every file the digest reads and requires exactly those. The depot is built on a Julia-only image and composed onto the Carbon analysis parent, and nothing is recorded until the build shows the parent's Julia tree equals the depot's, the composed depot tree equals the depot's exactly (root included), and every package in both environments loads precompiled under the parent's Julia (with a specimen that fails when the compiled caches are hidden). Provenance is versioned prospectively: new images are analysis-image v2 and scope v3 and record both the parent and the depot; v1 records keep their meaning. The depot is published to ghcr.io/carbonphysicsai/carbon-julia-depot and pinned by digest in scripts/dev/julia_depot.lock.json; CI gains packages: read and adopts it inside julia_worker_service.sh, recomputing its tree digest from the pulled bytes. A lock for other inputs, a failed pull or a failed verification builds cold; verification is never relaxed. DEVELOPMENT only."
+    primary_detail: ".github/workflows/ci.yml"
+    affects:
+      - "SYSTEM/CI"
+      - "SYSTEM/AGENT-EXECUTION"
+    supersedes: null
+    recorded_at: "2026-09-28T03:50:00Z"
+  -
+    map_ref: "SYSTEM/PUBLICATION-AUTHORITY"
+    event_type: "adjustment"
+    event_id: "PUBLIC-READINESS-2026-09-28"
+    owner_lane: "documentation_maintenance"
+    status: "implemented"
+    summary: "Refresh the public README and business reading path for the reveal. Add a dated source-linked status guide covering the four-challenge portfolio, battery evidence, miner tooling and remaining qualification work. Reconcile superseded mandatory-treasury wording and record the founder's planned company buyback-and-burn direction without adopting operating terms or activating payments. Preserve historical research outcomes, domain authority, engineering selection, and qualification boundaries."
+    primary_detail: "docs/publications/PROJECT_STATUS.md"
+    affects:
+      - "SYSTEM/BUSINESS-AUTHORITY"
+      - "SYSTEM/GOVERNANCE"
+      - "SYSTEM/PROTOCOL-AUTHORITY"
+      - "SYSTEM/AGENT-EXECUTION"
+      - "SYSTEM/MATURITY"
+      - "SYSTEM/DEVELOPMENT-HUB"
+    supersedes: null
+    recorded_at: "2026-09-28T06:37:22Z"
+  -
+    map_ref: "SYSTEM/PUBLICATION-AUTHORITY"
+    event_type: "adjustment"
+    event_id: "PUBLIC-READINESS-PAGE-REMOVAL-2026-09-28"
+    owner_lane: "documentation_maintenance"
+    status: "implemented"
+    summary: "At the owner's request, remove the standalone network and Alpha page from the public documentation and remove its incoming links from the README, business documents and Development Hub. Existing commercial direction, protocol rules, maturity and qualification boundaries remain unchanged. Git history retains earlier versions."
+    primary_detail: "Business/README.md"
+    affects:
+      - "SYSTEM/BUSINESS-AUTHORITY"
+      - "SYSTEM/GOVERNANCE"
+      - "SYSTEM/DEVELOPMENT-HUB"
+    supersedes: null
+    recorded_at: "2026-09-28T10:22:06Z"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"

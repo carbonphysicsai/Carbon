@@ -1,252 +1,78 @@
-# Carbon Product and Revenue Architecture v1
+# Products and revenue
 
-**Status:** OWNER-CANONICAL commercial architecture.  
-**Purpose:** define what Carbon sells, how products connect, which revenue rails attach, and how one customer relationship can expand without corrupting scientific authority.
+Carbon's commercial plan starts with evidence for a model a customer already owns, then expands into discovery, qualification, and ongoing model support. Customers can retain their existing solvers and engineering tools.
 
----
+The offerings below describe product design and the intended delivery sequence. They are not a list of production services or evidence of sales. See [Project status](../docs/publications/PROJECT_STATUS.md) for the implementation record.
 
-# 1. Product-system principle
+## Start with the customer's model
 
-Carbon should not be one product called “a sponsored Challenge.” One coherent scientific/evidence infrastructure should support multiple products and multiple revenue events.
+**Carbon Evidence Audit** is the preferred first engagement. The customer supplies a candidate model, its intended engineering use, and access to an adequate reference. Carbon scopes and runs an independent evaluation, then reports supported behavior, failure regions, limitations, and proposed follow-up work.
 
-```text
-CUSTOMER PHYSICS PROBLEM
-        ↓
-PROBLEM / CHALLENGE DESIGN
-        ↓
-TRUTH + DATA INTEGRATION
-        ↓
-INDEPENDENT EVIDENCE OR COMPETITIVE DISCOVERY
-        ↓
-MODEL / METHOD DELIVERY
-        ↓
-QUALIFICATION
-        ↓
-DEPLOYMENT
-        ↓
-LIFECYCLE / REQUALIFICATION
-        ↓
-PLATFORM / API / OEM
-        ↓
-PHYSICS INTELLIGENCE WHEN EARNED
-```
+A customer without a well-defined evaluation problem starts with **Challenge Feasibility / Design**. That engagement establishes the inputs and outputs, operating conditions, reference access, rights, and evidence needed for a useful program.
 
----
+Both engagements have finite scope. A negative finding can still satisfy the contract when Carbon delivers the agreed evidence.
 
-# 2. Product families
+## Product families
 
-## P1 — Carbon Evidence Audit
+The existing P1–P11 identifiers remain the commercial planning taxonomy.
 
-**Buyer:** organization with an existing fast physical model.  
-**Job:** independently determine what the candidate can support and where it fails.  
-**Primary revenue:** authoring, truth integration, evaluation usage, report/diligence, security/deployment premium.  
-**Expansion:** remediation, Sponsored Discovery, Qualification, Lifecycle.
+| ID | Product | Customer need and intended deliverable | Revenue design |
+|---|---|---|---|
+| P1 | Evidence Audit | Assess an existing model for a defined use; deliver an evidence and failure report | Scoped audit, integration, and evaluation fees |
+| P2 | Challenge Feasibility / Design | Establish whether a problem supports a defensible evaluation or discovery program | Authoring and feasibility fee |
+| P3 | Sponsored Discovery | Search for a better method against agreed requirements; deliver research outcomes and evidence | Program, integration, evaluation, and reward-administration fees |
+| P4 | Model Development | Turn a promising method into a reproducible candidate artifact | Development and integration fees |
+| P5 | Qualified Model Program | Assess one exact model or system for a bounded engineering use | Qualification, evidence, and deployment fees |
+| P6 | Model Lifecycle | Revisit evidence after changes to a model, reference, runtime, or operating range | Recurring support, lifecycle, and requalification fees |
+| P7 | Enterprise Evidence Platform | Manage repeated evaluations across teams and model portfolios | Subscription, usage, private deployment, and support |
+| P8 | Evidence / Qualification API and OEM | Embed Carbon's evidence workflows in another engineering platform | License, usage, OEM royalty, and support |
+| P9 | Sponsored Frontier Market | Run recurring research competitions for defined scientific improvements | Platform, authoring, evaluation, and administration fees |
+| P10 | Model / Method Licensing | Obtain permitted rights to reproduced or qualified work | License or royalty, subject to Carbon's rights |
+| P11 | Physics Intelligence / Experiment Allocation | Use accumulated evidence to choose better future experiments | Future project, subscription, or API fees after prospective validation |
 
-## P2 — Carbon Challenge Feasibility / Design
+P1 and P2 are the initial commercial focus. P3 is the first planned expansion that depends on competitive research supply. The later offerings require their own implementation, customer evidence, and qualification.
 
-**Buyer:** organization with a physical-modeling opportunity but no defensible evaluation program.  
-**Job:** determine whether the problem can become a valid Carbon program.  
-**Primary revenue:** authoring/advisory fee.  
-**Expansion:** Evidence Audit, Sponsored Discovery, Model Development.
+## Sponsored Discovery
 
-## P3 — Carbon Sponsored Discovery Program
+A sponsor brings a physical-modeling problem and a reference path. Carbon defines the program, establishes the evaluation contract, and organizes research. Evaluators determine whether candidates meet the requirements and improve on the comparison baseline.
 
-**Buyer:** R&D sponsor or engineering organization seeking a better construction approach.  
-**Job:** run a qualified competitive search.  
-**Primary revenue:** authoring, truth integration, platform/program fee, evaluation usage, reward administration.  
-**Pass-through:** sponsor-funded participant reward pool.  
-**Expansion:** Model Development, Qualification, Licensing, Lifecycle.
+The commercial deliverable is the agreed research and evidence program. Carbon does not guarantee a frontier advance. A candidate from the competition still needs separate evidence for a customer's deployment.
 
-## P4 — Carbon Model Development Program
+The contract separates Carbon's fees from any sponsor-funded participant reward pool. Participant rewards are not automatically company revenue.
 
-**Buyer:** customer wanting Carbon to turn search/evidence into a strong candidate artifact/method.  
-**Primary revenue:** model-development fee, compute/integration usage.  
-**Expansion:** Qualification, deployment, license, lifecycle.
+## Expansion within an account
 
-## P5 — Carbon Qualified Model Program
+| Customer situation | Next potential engagement |
+|---|---|
+| Audit identifies important failure regions | Discovery or model development |
+| Candidate supports further investigation | Qualification for a defined use |
+| Customer deploys or changes a model | Lifecycle support and requalification |
+| Teams repeat evaluation across a portfolio | Enterprise software and APIs |
+| An engineering platform needs the workflow | OEM or embedded API partnership |
 
-**Buyer:** customer needing a bounded evidence-backed claim for one exact artifact/system and use.  
-**Primary revenue:** qualification fee, evidence generation, deployment integration.  
-**Expansion:** Lifecycle, requalification, platform, support.
+Customers need not buy each stage. Carbon's aim is to reuse the reference integration and evidence workflow when further work makes sense.
 
-## P6 — Carbon Model Lifecycle
+## Pricing and delivery economics
 
-**Buyer:** owner/operator of qualified or evidence-managed models.  
-**Primary revenue:** lifecycle subscription, requalification fee, support SLA, usage.  
-**Expansion:** Enterprise Platform.
+Carbon plans to price the engineering outcome and evidence burden. Scope includes expert work, reference calculations, evaluation compute, integration, and any qualified private deployment. Contracts specify finite capacity and change-order terms.
 
-## P7 — Carbon Enterprise Evidence Platform
+The pricing principles remain:
 
-**Buyer:** organization with many models/programs/teams.  
-**Primary revenue:** software subscription, usage commitment, private deployment license, support.  
-**Expansion:** OEM/API, broader organizational rollout.
+- Base fees cover legitimate work even when the evidence is negative. Any success fee is additional.
+- Customer payments cannot change the scientific standard for the same claim.
+- Rights, exclusivity, support, and private deployment need explicit scope and authority.
+- Enterprise procurement can use fiat without a mandatory Alpha purchase.
 
-## P8 — Evidence / Qualification API and OEM Rail
+The accounting system retains separate revenue identifiers: `AUTHORING_FEE`, `TRUTH_INTEGRATION_FEE`, `PROGRAM_PLATFORM_FEE`, `EVALUATION_USAGE_FEE`, `SPONSORED_REWARD_ADMIN_FEE`, `MODEL_DEVELOPMENT_FEE`, `QUALIFICATION_FEE`, `DEPLOYMENT_INTEGRATION_FEE`, `SOFTWARE_SUBSCRIPTION`, `ON_PREM_LICENSE`, `MODEL_LICENSE`, `METHOD_LICENSE`, `OEM_ROYALTY`, `SUPPORT_SLA_FEE`, `LIFECYCLE_SUBSCRIPTION`, `REQUALIFICATION_FEE`, and `PHYSICS_INTELLIGENCE_FEE`.
 
-**Buyer:** CAE, engineering-AI, simulation, digital-engineering platforms.  
-**Primary revenue:** annual license, usage, OEM royalty, support.
+Per engagement, Carbon tracks contracted and collected value, recurring value, reward pass-through, direct labor, reference and compute costs, integration, support, gross contribution, custom versus reusable work, network activity, reuse rights, and expansion. These commercial fields do not enter scientific scoring.
 
-## P9 — Sponsored Frontier Market
+## Product maturity
 
-**Buyer:** recurring sponsors of scientific/model-construction progress.  
-**Primary revenue:** platform fee, reward administration, authoring, evaluation usage, downstream delivery/qualification.  
-**Network role:** high.
+Commercial progression remains `CONCEPT` → `DESIGN_SPECIFIED` → `INTERNAL_PILOT` → `PAID_PILOT` → `REPEATABLE_SERVICE` → `PRODUCTIZED` → `ENTERPRISE_QUALIFIED` → `SCALE_READY`. Each promotion requires evidence for that product; a software test or a research result cannot substitute for a customer purchase.
 
-## P10 — Model / Method Licensing
+Each offering needs a buyer, deliverable, cost model, rights agreement, bounded evidence claim, and a reason to repeat or expand it. [Financial model](Financial_Engine.md) and [Commercial operating model](Commercial_Operating_Model.md) retain the delivery and accounting controls.
 
-**Buyer:** customers wanting rights to a qualified or reproduced artifact/method.  
-**Primary revenue:** license/royalty.  
-**Constraint:** only where Carbon has the required rights.
+## Research services
 
-## P11 — Physics Intelligence / Experiment Allocation
-
-**Buyer:** organizations seeking evidence-informed recommendations for what to try/test next.  
-**Primary revenue:** subscription/project/API.  
-**Constraint:** only after prospective decision lift is demonstrated.
-
----
-
-# 3. Revenue rails
-
-```text
-AUTHORING_FEE
-TRUTH_INTEGRATION_FEE
-PROGRAM_PLATFORM_FEE
-EVALUATION_USAGE_FEE
-SPONSORED_REWARD_ADMIN_FEE
-MODEL_DEVELOPMENT_FEE
-QUALIFICATION_FEE
-DEPLOYMENT_INTEGRATION_FEE
-SOFTWARE_SUBSCRIPTION
-ON_PREM_LICENSE
-MODEL_LICENSE
-METHOD_LICENSE
-OEM_ROYALTY
-SUPPORT_SLA_FEE
-LIFECYCLE_SUBSCRIPTION
-REQUALIFICATION_FEE
-PHYSICS_INTELLIGENCE_FEE
-```
-
-A customer contract may bundle rails, but Carbon's internal economics should preserve each separately.
-
----
-
-# 4. Product maturity states
-
-```text
-CONCEPT
-DESIGN_SPECIFIED
-INTERNAL_PILOT
-PAID_PILOT
-REPEATABLE_SERVICE
-PRODUCTIZED
-ENTERPRISE_QUALIFIED
-SCALE_READY
-```
-
-Sales and investor materials should always use the actual maturity state.
-
----
-
-# 5. Pricing rules
-
-1. Price the customer outcome and evidence burden, not only labor or GPU time.
-2. Every expensive truth/evaluation path has finite included capacity.
-3. Custom integration is separately scoped.
-4. Security/VPC/on-prem requirements can carry a premium.
-5. Exclusivity and rights can carry a premium if Carbon has authority to grant them.
-6. Success fees may exist as upside, but base fees pay for legitimate scientific work.
-7. No customer gets a scientifically easier exam because it pays more.
-8. No forced Alpha purchase is required for enterprise procurement.
-
----
-
-# 6. Default land-and-expand graph
-
-```text
-P2 Challenge Feasibility
-        ↘
-P1 Evidence Audit
-        ↓
-P3 Sponsored Discovery / P4 Model Development
-        ↓
-P5 Qualified Model Program
-        ↓
-Deployment
-        ↓
-P6 Lifecycle / Requalification
-        ↓
-P7 Enterprise Evidence Platform
-        ↓
-P8 API/OEM / P9 Frontier Market
-        ↓
-P11 Physics Intelligence when earned
-```
-
----
-
-# 7. Revenue quality progression
-
-Desired company evolution:
-
-```text
-EARLY
-project + expert revenue
-        ↓
-MIDDLE
-repeatable programs + qualification + lifecycle
-        ↓
-LATER
-subscription + usage + API/OEM + marketplace
-        ↓
-COMPOUND
-rights-permitted licenses + validated intelligence
-```
-
-Business planning should track both total revenue and revenue quality.
-
----
-
-# 8. Commercial accounting object
-
-Each engagement should record at minimum:
-
-```text
-product_family
-revenue_rails
-contracted_value
-collected_value
-recurring_value
-reward_pass_through
-direct_labor_cost
-truth_cost
-evaluation_compute_cost
-integration_cost
-support_cost
-gross_contribution
-custom_work_fraction
-reusable_work_fraction
-network_activity_class
-evidence_reuse_class
-expansion_state
-```
-
-These fields never enter scientific scoring.
-
----
-
-# 9. Portfolio rule
-
-Carbon should maximize the number of valuable things it can sell from one coherent infrastructure, but only where each product has:
-
-- a real buyer;
-- a real deliverable;
-- a real cost model;
-- clear rights;
-- a bounded evidence claim;
-- a credible path to repeatability or strategic expansion.
-
-# 10. Research-service integration amendment (2026-09-08)
-
-The future Research Concierge/Copilot lane is an evidence-service/workflow option governed by `OWNER-EVIDENCE-RESEARCH-01`, not a proven primary revenue source. Evidence Audit remains the current entry product. `G-PR0` freezes the pilot before paid workflow implementation; `G-PR1..5` separately gate entitlement/rights, campaign memory, non-official execution, billing/spend, and an evidence-based commercial decision. Official-derived scientific content and release timing remain equal for free and paid miners.
+Research Concierge / Copilot remains a candidate workflow offering under `OWNER-EVIDENCE-RESEARCH-01`. `G-PR0` freezes the pilot; `G-PR1..5` govern entitlement and rights, campaign memory, non-official execution, billing and spend, and the commercial decision. Evidence Audit remains the first entry product. Free and paid miners receive official-derived scientific content on equal release terms. Interest or a stated budget does not establish revenue or authorize spending.

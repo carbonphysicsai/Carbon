@@ -691,12 +691,32 @@ def make_battery_research_service(
     material=None,
     demand=None,
     cleanup_only=False,
+    julia_image=None,
 ):
-    """The battery composition of the shared B-07 research service."""
+    """The battery composition of the shared B-07 research service.
+
+    `julia_image` gives the research executor authored Julia (`run_julia`), as
+    it does in the Burgers composition. It is a research tool only: the parts
+    below - contracts, recipe compiler, strategy schema, scoring document and
+    practice - are the same with or without it.
+    """
+    from dataclasses import replace
+
     from carbon.development_session.research_service import compose_research_service
 
+    parts = challenge_parts()
+    if julia_image is not None:
+        from carbon.development_session import julia_analysis
+
+        parts = replace(
+            parts,
+            implementation_files=(
+                *parts.implementation_files,
+                Path(julia_analysis.__file__),
+            ),
+        )
     return compose_research_service(
-        challenge_parts(),
+        parts,
         root=root,
         ledger=ledger,
         owner=owner,
@@ -705,6 +725,7 @@ def make_battery_research_service(
             BatteryPublicMaterial(practice.root) if material is None else material
         ),
         practice=practice,
+        julia_image=julia_image,
         cleanup_only=cleanup_only,
         demand=demand,
     )

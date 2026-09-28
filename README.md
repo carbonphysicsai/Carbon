@@ -1,342 +1,106 @@
-<img width="1412" height="62" alt="image" src="https://github.com/user-attachments/assets/1d63753c-a391-44d9-a4b8-ee667545bcae" />
+<img width="1412" height="62" alt="Carbon" src="https://github.com/user-attachments/assets/1d63753c-a391-44d9-a4b8-ee667545bcae" />
 
 # Carbon
 
-**Discovery + evidence infrastructure for fast physical models**
+**Discovery and evidence infrastructure for Physics AI.**
 
-Carbon is an incentivized experimental system for discovering, independently testing, learning from, and qualifying methods for constructing fast physical models.
+Carbon is building a research network that helps engineers find better fast physics models and establish where they can rely on them. Researchers and AI agents compete to develop model-building methods. Carbon's evaluators rebuild and test candidates against reference physics, with the model producer kept outside the official grading process.
 
-Public shorthand:
+Fast physics models approximate expensive simulations. An engineer might use one to compare battery charging protocols, explore a cooling design, or optimize an electric motor. Speed makes more design iterations possible. The engineer still needs evidence that the model predicts the right quantities under the conditions that matter.
 
-> **Carbon pays people and agents to find better ways to build fast physics models, then independently tests what survives.**
+Carbon brings competitive model discovery and independent evaluation into one system. This repository contains the implementation, scientific contracts, development studies, and commercial plan.
 
-Company shorthand:
+[Project status](docs/publications/PROJECT_STATUS.md) · [Business and market](Business/Investor_Positioning_and_Market.md) · [Miner MCP](carbon/miner_mcp/README.md) · [Development setup](docs/DEVELOPMENT.md) · [Website](https://carbonphysics.ai)
 
-> **Carbon is building the discovery, evidence, and qualification infrastructure for fast physical models.**
+## How Carbon works
 
-P0 starts deliberately narrower: bounded neural-operator training-strategy search, validator-controlled fresh retraining, and protected scientific evaluation. The broader architecture does **not** imply that arbitrary model families or arbitrary participant code are enabled today.
+1. **Define the engineering job.** Specify the model's inputs, outputs, operating conditions, and the decision it should support.
+2. **Establish the exam.** Check the reference solver or measurements, define physical requirements, and register the evaluation rules before testing candidates.
+3. **Open the research.** Miners, human researchers, and agents explore methods using public research material and compatible tools. They submit a reproducible construction recipe within the challenge's supported vocabulary.
+4. **Rebuild and evaluate.** Evaluators reconstruct candidates under a pinned environment and compare their predictions with reference results. Official evaluation cases remain separate from miner practice.
+5. **Recognize useful progress.** A candidate must satisfy mandatory checks before its performance can count toward an improvement. Reward routing follows a separate policy.
+
+Each challenge defines its own scientific test. A high average accuracy cannot cancel a mandatory physical failure, and winning a research competition does not establish fitness for an engineering deployment. A customer deployment needs evidence for its particular model, operating conditions, and use.
+
+The initial implementation uses constrained model-building recipes. Broader model families and construction programs remain extensions of that approach, with the same separation between research and grading.
+
+## Current development
+
+**As of 28 September 2026, Carbon is in development and testnet work.** The repository includes reconstruction and evaluation software, Bittensor integration tested on a local network, a development testnet publication record, miner research tools, and numerical studies. These have different levels of evidence; Carbon has not established production-qualified challenges or a production reward network.
+
+The planned launch portfolio is:
+
+| Challenge | Engineering objective | Current position |
+|---|---|---|
+| Battery fast charging and ageing | Predict voltage, temperature, plating margin, and capacity under different charging conditions | First launch focus. Reference studies, reconstruction, development evaluation, and miner research services exist; deployment and qualification work continues. |
+| AI-chip cold plates | Explore cooling performance and pressure drop for bounded channel designs | Reference-toolchain verification, including a simplified conjugate heat-transfer case; a full cold-plate challenge remains in development. |
+| Electric motors | Predict torque and magnetic behavior for a bounded motor topology | Feasibility assessment; benchmark and reference validation remain ahead. |
+| Silicon photonics | Predict optical coupling for a bounded device family | Reference diagnostics; phase convention and convergence require further work. |
+
+Burgers' equation remains a development testbed for the reconstruction and evaluation pipeline. It is not the current commercial launch portfolio.
+
+The [project status and evidence guide](docs/publications/PROJECT_STATUS.md) links each statement to the relevant code or study, including limitations and the next milestones.
+
+## Research tools
+
+Carbon provides two interfaces to the same research operations:
+
+- **Miner Control Center / Launchpad:** a local browser interface for challenge selection, campaign controls, research settings, and permitted evidence.
+- **Miner MCP:** a Model Context Protocol interface for external agents and clients, including onboarding reads, campaign operations, and research tools.
+
+Researchers can use public material, run supported experiments, inspect results, and submit a frozen candidate through the development path. Available models and compute depend on the challenge and configured host. The complete hosted battery journey is still an integration milestone; a visible UI or an installed adapter does not establish that journey.
+
+See the [MCP guide](carbon/miner_mcp/README.md), [Control Center programme](docs/development/CONTROL_CENTER_PROGRAMME.md), and [research environment standard](docs/development/RESEARCH_ENVIRONMENT_STANDARD.md). The standard records available provisions and remaining gaps, including the battery generator/reference kit.
+
+## Commercial model
+
+The first planned customer engagement is a **Carbon Evidence Audit**. An engineering team brings an existing fast model and a proposed use. Carbon scopes an independent evaluation to identify supported behavior, failure regions, and the evidence still needed before wider use.
+
+**Sponsored Discovery** extends that work to finding a better model-building method. A customer brings a defined problem; Carbon organizes research and independent evaluation. Customers pay for the agreed research and evidence program, with outcomes that can include a useful candidate, a narrower operating range, or a finding that the current approach is inadequate.
+
+The expansion path is qualification, model lifecycle support, and recurring evidence software for teams managing multiple models. Reusable solver integrations, evaluation workflows, and permitted experiment records could reduce the cost of each subsequent engagement. Paid demand, repeatability, and delivery economics still need commercial evidence.
+
+Carbon can work with model developers, CAE vendors, and engineering software platforms. Customers keep their existing simulation and design tools; Carbon aims to supply the research and evidence they need to use fast models within those workflows.
+
+[Products and revenue](Business/Product_and_Revenue_Architecture.md) · [Go-to-market](Business/Go_To_Market.md) · [Business plan](Business/Business_Plan.md)
+
+## Why Bittensor
+
+Bittensor provides a network for researcher participation and incentives. Carbon defines the physics task, evaluation rules, and evidence required for a candidate to count as an improvement. Chain consensus does not determine physical truth.
+
+The network thesis is that independent researchers and agents can explore more useful approaches than Carbon could develop with one internal team. Carbon must test that thesis against the cost, speed, and quality of credible alternatives.
+
+The current reward direction is **direct winner plus burn**, with a treasury optional. The separately recorded development testnet publications are non-paying demonstrations. They do not establish miner payouts or production settlement.
+
+The company's commercial plan is to use the subnet as a research team and pay for useful output through Alpha buyback and burn. This remains a planned commercial mechanism, with implementation and review outstanding. Company revenue, network rewards, and Alpha ownership are distinct.
+
+## Explore the repository
+
+| Start here | Read for |
+|---|---|
+| [Project status](docs/publications/PROJECT_STATUS.md) | Implemented capabilities, research evidence, open work, and launch milestones |
+| [Business overview](Business/README.md) | Customers, products, company economics, and market position |
+| [Protocol specification](SPEC.md) | Architecture and links to the domain specifications |
+| [Challenge readiness](docs/development/CHALLENGE_READINESS.md) | Per-challenge reference, cost, and review records |
+| [Development Hub](docs/development/carbon_hub/orientation/START_HERE.md) | Implementation map and engineering workstreams |
+| [Publications](docs/publications/README.md) | Current reading guide and historical paper records |
+| [Constitution](CONSTITUTION.md) | Scientific, business, and implementation responsibilities |
 
 ## Development Hub
 
-New contributors can start with [Development Hub: Start Here](docs/development/carbon_hub/orientation/START_HERE.md), the GitHub-readable guide to what Carbon is building, why the Wave A-N sequence exists, where the current work sits, and how proposed changes route back to repository authority.
-
-- [Local or hosted HTML build](docs/development/carbon_hub/index.html) contains the complete static Hub for use after cloning or through a configured static host. GitHub's file view is not a hosted Hub application.
-- [Hub maintenance contract](docs/development/carbon_hub/orientation/AGENT_MAINTENANCE_CONTRACT.md) defines ticket-start placement, update triggers, regeneration, validation, and PR impact reporting.
-- [Development environment](docs/DEVELOPMENT.md) remains the canonical setup and execution guide.
-
-The hub owns orientation—what, why, where, status, dependency, and handoff. The repository's constitution, specifications, active board, tickets, decisions, code, review, tests, and evidence remain authoritative for exact semantics and implementation.
-
----
-
-## The problem
-
-High-fidelity simulation is foundational to engineering, but repeating it thousands of times can be too expensive for design exploration, uncertainty studies, control loops, digital twins, and increasingly agentic engineering workflows.
-
-Fast learned, reduced, hybrid, and other surrogate models can change those economics. But a low average test error does not establish that a model:
-
-- preserves mandatory physical behavior;
-- survives difficult regimes;
-- reproduces independently;
-- remains valid after the model/data/runtime changes;
-- supports the engineering job in which somebody wants to use it.
-
-As fast physical models become easier to create, the bottleneck increasingly moves toward **discovery, independent evidence, bounded qualification, and lifecycle credibility**.
-
----
-
-## The scientific mechanism
-
-Carbon's owner-recommended system architecture is:
-
-```text
-DEFINE THE PHYSICS JOB
-        ↓
-QUALIFY THE EXAM
-        ↓
-PEOPLE + AGENTS COMPETE
-        ↓
-VALIDATORS REBUILD + TEST
-        ↓
-A VERIFIED FRONTIER ADVANCE WINS
-        ↓
-TREASURY SETTLES THE REWARD
-```
-
-Core rule:
-
-> **Carbon qualifies the exam before the exam qualifies a candidate.**
-
-A qualified Challenge separates the physical job, candidate inputs/outputs, operating envelope, target population, finite sampling design, generator, truth/reference path, measurements, Validation Dossier, and Score Pack rather than allowing one implementation to silently own all of those authorities.
-
-The Score Pack is best understood as a versioned **Evidence Use Contract**. It consumes already-qualified evidence and determines eligibility, mandatory scientific admissibility, score-bearing estimands, and Challenge-bound ranking.
-
-> **Admissibility precedes ranking. Mandatory physical/scientific failure cannot be compensated by soft performance.**
-
-The current P0 45/30/25 profile is one narrow scoring implementation, not Carbon's universal definition of `physics > loss`.
-
----
-
-## From score to frontier reward
-
-A Challenge score and an economic reward are different operations.
-
-Where sampling or reconstruction variance matters, Carbon's intended frontier architecture compares the incumbent and eligible challengers under a common fresh promotion experiment and a registered `LeaderReplacementPolicy`.
-
-```text
-qualified candidate evidence
-        ↓
-Challenge-bound ScoreResult
-        ↓
-COMMON FRONTIER PROMOTION EXAM
-        ↓
-SUPERIOR | NOT_SUPERIOR | INDETERMINATE
-        ↓
-FrontierAdvanceEvent (if superior)
-        ↓
-separate settlement
-```
-
-> **A new leader is an evidence state, not merely a floating-point inequality.**
-
-> **Carbon rewards verified frontier advances, not permanent incumbency.**
-
-Raw scores from different Challenges are not automatically comparable. The intended Phase-0 breadth mechanism is a small frozen portfolio of qualified Challenges with equal notional reward opportunity, while each Challenge keeps its own scientific ruler.
-
----
-
-## Bittensor's role
-
-Bittensor supplies the open economic substrate and optimizer market. Carbon supplies the scientific objective, independent judge, frontier rule, and evidence-bound settlement semantics.
-
-```text
-Carbon:    What counts as a real advance?
-Bittensor: Who can find it?
-```
-
-Bittensor consensus does not determine physical truth.
-
-A separately governed treasury-neuron architecture is the leading settlement design for decoupling normalized network transport from Carbon's Challenge-specific frontier accounting. That architecture remains subject to localnet/testnet/security qualification before production claims.
-
----
-
-## P0: prove the judge first
-
-The current launch implementation remains intentionally bounded:
-
-1. miners/agents submit a schema-constrained neural-operator training strategy;
-2. validators independently retrain on validator-controlled data;
-3. protected evaluation runs mandatory physics/scientific checks plus registered soft objectives;
-4. invalid, infrastructure-failed, scientifically inadmissible, indeterminate, and valid-ranked outcomes remain distinct;
-5. rich evidence is retained internally while miner/public disclosure is budgeted;
-6. winning a competition does **not** make an artifact a qualified engineering product.
-
-The first authoritative Burgers Challenge is being repaired around a narrow fixed-viscosity `u0 -> u(T)` task with independently qualified truth and appropriate final-state physical measurements. Earlier PoC behavior remains historical evidence rather than being retroactively relabeled as qualified science.
-
-The current C-02 reconstruction backend is an offline,
-`UNQUALIFIED_PUBLIC_DEVELOPMENT` capability. Its v3 CPU profile keeps the
-repaired Carbon JAX-lab FNO/DeepONet paths and adds one exact Foundax 0.2.0 FNO
-implementation, explicit reversible Burgers physical scaling, manufactured-
-solution checks, immutable checkpoint/resume, and target-free inference. See
-the [integration report](docs/development/C02_JAX_INTEGRATION_REPORT.md) and
-[machine-readable v3 profile](docs/development/c02_jax_profile_v3.json).
-Neither backend is a qualified reference, official evaluator, hostile-code
-sandbox, production repeat policy, GPU profile, network service, or LIVE path.
-
----
-
-## What Carbon can become
-
-Carbon standardizes the **job and scientific exam**, not the terminal model ideology.
-
-Its search freedom can widen over time:
-
-```text
-parameters
-    ↓
-recipes / training strategies
-    ↓
-architectures / model compositions
-    ↓
-model-construction methods
-    ↓
-construction algorithms
-```
-
-The invariant is producer-independent reconstruction and protected official evaluation. Current neural P0 uses fresh validator retraining; broader reconstruction protocols and heterogeneous model families are later architecture, not current runtime capability.
-
-> **Model class is a hypothesis. Registered external evidence is the judge.**
-
----
-
-## The business
-
-Carbon's company/business architecture is intentionally separate from the scientific judge.
-
-The locked hybrid model is:
-
-```text
-SERVICES
-        ↓
-ENTERPRISE PLATFORM
-        ↓
-NETWORK MARKETPLACE
-        ↓
-QUALIFICATION + LIFECYCLE
-        ↓
-PHYSICS INTELLIGENCE
-```
-
-> **Services get Carbon into the customer. Platform makes the relationship recurring. The network makes discovery scalable. Qualification increases contract value. Lifecycle increases retention. Physics intelligence compounds the moat only if it earns prospective value.**
-
-### Product ladder
-
-```text
-LAND
-Evidence Audit / Challenge Feasibility / truth integration
-        ↓
-EXPAND
-Sponsored Discovery / Model Development / Qualification / deployment
-        ↓
-RECUR
-Lifecycle / requalification / support / Enterprise Evidence Platform
-        ↓
-SCALE
-API / OEM / Frontier Market / usage / rights-permitted licensing
-        ↓
-COMPOUND
-Physics Intelligence and experiment allocation only after prospective validation
-```
-
-The preferred first commercial wedge is **Carbon Evidence Audit**: bring an existing fast physical model and the engineering job it is meant to support; Carbon independently evaluates what survives, where it fails, and what stronger evidence or remediation would be required.
-
-The preferred first network-differentiated product is **Sponsored Discovery**: a sponsor brings an authorable physical-modeling problem; Carbon qualifies the research objective, opens competitive search, independently determines whether the frontier moved, and delivers the resulting evidence/candidate path.
-
-A scientifically negative Audit or a Sponsored Discovery program with no frontier advance can still be a successful commercial delivery if Carbon honestly delivered the contracted evidence program.
-
----
-
-## Company and network economics
-
-Carbon OpCo and the Carbon subnet are related but distinct economic systems.
-
-```text
-CARBON OPCO
-enterprise contracts
-services / software / licenses / qualification / support
-        ↕ explicit reviewed bridges
-CARBON NETWORK
-miners / validators / frontier rewards / Alpha / treasury
-```
-
-The company must be commercially viable without assuming speculative Alpha appreciation. Enterprise customers may buy through conventional fiat procurement.
-
-> **OpCo revenue does not automatically create Alpha value.**
-
-The network earns economic relevance when commercially valuable scientific work genuinely uses miners, validators, sponsor-funded rewards, or network-native services. Direct financial-engineering mechanisms require separate legal/economic/governance review.
-
----
-
-## Commercial and scientific authority remain separate
-
-Commercial terms may determine:
-
-- which customer problem to pursue;
-- privacy/deployment mode;
-- rights and licensing;
-- deliverables and customer acceptance;
-- pricing and payment;
-- support/lifecycle terms.
-
-They may **not** lower the evidence required for the same scientific claim, manufacture a frontier winner, or turn a competition result into a product qualification.
-
-> **Rank nominates. Evidence qualifies.**
-
----
-
-## Current maturity
-
-Carbon distinguishes architecture from evidence.
-
-Scientific maturity should distinguish external premise, Carbon design, implementation, Carbon evidence, replication, and production qualification.
-
-Business maturity should distinguish:
-
-```text
-DESIGN
-→ CUSTOMER DISCOVERY
-→ PAID PILOT
-→ REPEATABLE SERVICE
-→ EXPANSION
-→ RECURRING REVENUE
-→ PLATFORMIZATION
-→ NETWORK LEVERAGE
-```
-
-The business architecture on `main` is owner-canonical strategy. It is **not** itself evidence of paid customers, recurring revenue, validated pricing, proven margins, or product-market fit.
-
-Likewise, owner-recommended integrated scientific architecture may be ahead of current runtime migration. Current runtime specifications and repository code remain authoritative for implemented behavior until intentionally changed.
-
----
-
-## Repository map
-
-### Business canon and company plan
-
-| Document | Role |
-|---|---|
-| [Business/README.md](./Business/README.md) | Business authority/read-order map |
-| [Business/Business_Canon.md](./Business/Business_Canon.md) | Durable business constitution |
-| [Business/Business_Plan.md](./Business/Business_Plan.md) | Integrated company plan |
-| [Business/Product_and_Revenue_Architecture.md](./Business/Product_and_Revenue_Architecture.md) | Product ladder and revenue rails |
-| [Business/Go_To_Market.md](./Business/Go_To_Market.md) | ICPs, sales motions, GTM |
-| [Business/Investor_Positioning_and_Market.md](./Business/Investor_Positioning_and_Market.md) | Category, market and investor positioning |
-| [Business/Financial_Engine.md](./Business/Financial_Engine.md) | Financial modeling discipline and unit-economics architecture |
-| [Business/Network_and_Alpha_Value.md](./Business/Network_and_Alpha_Value.md) | OpCo/network/Alpha value boundary |
-| [Business/Commercial_Operating_Model.md](./Business/Commercial_Operating_Model.md) | Rights, privacy, deliverables and commercial execution |
-| [Business/Design_Questions.md](./Business/Design_Questions.md) | Open decisions for business lead |
-
-### Technical/runtime documentation
-
-| Document | Role |
-|---|---|
-| [SPEC.md](./SPEC.md) | Current protocol/runtime architecture where implemented |
-| [Design_Specs/Build_Out.md](./Design_Specs/Build_Out.md) | Current implementation sequencing |
-| [Design_Specs/Miner_MCP.md](./Design_Specs/Miner_MCP.md) | Miner/agent interfaces |
-| [Design_Specs/Scoring.md](./Design_Specs/Scoring.md) | Current P0 scoring authority |
-| [Design_Specs/Generator_Validation.md](./Design_Specs/Generator_Validation.md) | Validation Dossier / exam qualification architecture |
-| [Design_Specs/Data_Management.md](./Design_Specs/Data_Management.md) | Official data and role separation |
-| [Design_Specs/Trustless_Verification.md](./Design_Specs/Trustless_Verification.md) | Evaluation/seeding trust boundaries |
-| [Design_Specs/Specialist_Bank.md](./Design_Specs/Specialist_Bank.md) | Product qualification path |
-| [docs/context/SCIENTIFIC_REFERENCE_CANON.md](./docs/context/SCIENTIFIC_REFERENCE_CANON.md) | Scientific reference/evidence map currently on main |
-| [docs/context/BUSINESS_REFERENCE_CANON.md](./docs/context/BUSINESS_REFERENCE_CANON.md) | Canonical business companion |
-
-### Publications
-
-| Document | Role |
-|---|---|
-| [docs/publications/README.md](./docs/publications/README.md) | Publication authority/reconciliation map |
-| [docs/publications/PUBLICATION_RECONCILIATION_2026-08-23.md](./docs/publications/PUBLICATION_RECONCILIATION_2026-08-23.md) | Current cross-paper reconciliation record |
-
----
+Use the [GitHub reading guide](docs/development/carbon_hub/orientation/START_HERE.md) to explore the implementation map. The [HTML Hub](docs/development/carbon_hub/index.html) opens as a local file after cloning; GitHub's file view does not host it. Contributors follow the [Hub maintenance contract](docs/development/carbon_hub/orientation/AGENT_MAINTENANCE_CONTRACT.md) when changes affect the map.
 
 ## Development
 
 ```bash
 git clone https://github.com/carbonphysicsai/Carbon.git
 cd Carbon
-# Open the repository in the committed Carbon Dev Container / canonical Ubuntu environment.
+# Use the committed Carbon Dev Container / canonical Ubuntu environment.
 ./scripts/dev/bootstrap.sh
 ./scripts/dev/doctor.sh
 ./scripts/dev/ci.sh
 ```
 
-[`docs/DEVELOPMENT.md`](./docs/DEVELOPMENT.md) and
-[`docs/development/ENVIRONMENT.md`](./docs/development/ENVIRONMENT.md) govern
-setup. `./scripts/dev/ci.sh` is the normal pre-PR gate; do not reconstruct an
-alternate pip/pytest environment. Optional science and network dependency
-groups are non-default and may be enabled only when the active ticket owns
-them.
+Follow [Development setup](docs/DEVELOPMENT.md) and the [environment guide](docs/development/ENVIRONMENT.md). Optional science and network dependencies have separate setup requirements. Contributors should read [AGENTS.md](AGENTS.md) before changing code or specifications.
 
----
-
-*Carbon: define the job, qualify the exam, open the search, keep the producer out of the official grade, and qualify only what the evidence supports.*
+For commercial enquiries and project updates, visit [carbonphysics.ai](https://carbonphysics.ai). Keep confidential customer data out of public issues.
