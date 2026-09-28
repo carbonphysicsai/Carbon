@@ -468,3 +468,153 @@ def test_signing_boundaries_are_untouched_and_unused():
     )
     adapter = Path(od4a_dispatch.__file__).read_text()
     assert not forbidden & _called(adapter)
+
+
+# -- review fixes: the documented workflow, live probe, exclusive journal ----
+
+
+def test_the_generated_config_fragment_makes_a_usable_authorization(key):
+    parts = approved_parts(key)
+    request, approval = parts["request"], parts["approval_bytes"]
+    fragment = dict(request["operator_config_fragment"]["transaction_authorization"])
+    assert fragment["source_intent_digest"] == request["source_intent"]["digest"]
+    # The operator's one edit: the approval record's digest replaces HUMAN_INPUT.
+    fragment["authority_record_digest"] = (
+        "sha256:" + hashlib.sha256(approval).hexdigest()
+    )
+    authorization = DevelopmentTransactionAuthorization(context=chain(), **fragment)
+    assert ApprovedPublication.verify(**{**parts, "authorization": authorization})
+    # Specimen: the same fragment without the new field is refused.
+    del fragment["source_intent_digest"]
+    unbound = DevelopmentTransactionAuthorization(context=chain(), **fragment)
+    with pytest.raises(DispatchRefused, match="AUTHORIZATION_NOT_BOUND_TO_APPROVAL"):
+        ApprovedPublication.verify(**{**parts, "authorization": unbound})
+
+
+def _operator(tmp_path, key):
+    parts = approved_parts(key)
+    files = {}
+    for name, value in (("request", parts["request"]), ("intent", parts["intent"])):
+        files[name] = tmp_path / (name + ".json")
+        files[name].write_text(json.dumps(value))
+    files["approval"] = tmp_path / "approval.json"
+    files["approval"].write_bytes(parts["approval_bytes"])
+    args = SimpleNamespace(journal=tmp_path / "journal.sqlite3", probe=None, **files)
+    config = SimpleNamespace(
+        transaction_authorization=parts["authorization"],
+        endpoint=DEFAULT_ENDPOINT,
+        genesis_hash=TESTNET_GENESIS,
+        context=chain(),
+        publisher_hotkey="owner-hotkey",
+        netuid=567,
+    )
+    return args, config
+
+
+@pytest.fixture
+def no_wallet(monkeypatch):
+    from carbon.development_testnet import operator
+
+    def wallet(config):
+        raise AssertionError("the wallet was opened")
+
+    monkeypatch.setattr(operator, "_wallet", wallet)
+    monkeypatch.setattr(od4a_dispatch, "_utc_now", lambda: NOW)
+
+
+def test_run_reads_the_runtime_live_and_refuses_a_changed_surface(
+    tmp_path, key, monkeypatch, no_wallet
+):
+    from carbon.development_testnet import operator
+
+    args, config = _operator(tmp_path, key)
+
+    async def changed(config):
+        return probe(surface="sha256:" + "e" * 64)
+
+    monkeypatch.setattr(od4a_dispatch, "_live_probe", changed)
+    with pytest.raises(DispatchRefused, match="RUNTIME_PROBE_CHANGED"):
+        run(od4a_dispatch._run(args, config))
+
+    # Specimen: with the approved surface read live, verification passes and
+    # the run proceeds to the chain readiness check (stopped there, no wallet).
+    async def same(config):
+        return probe()
+
+    async def not_ready(config, online):
+        return {"chain_transaction_ready": False}
+
+    monkeypatch.setattr(od4a_dispatch, "_live_probe", same)
+    monkeypatch.setattr(operator, "doctor", not_ready)
+    with pytest.raises(DispatchRefused, match="CHAIN_TRANSACTION_NOT_READY"):
+        run(od4a_dispatch._run(args, config))
+
+
+def test_run_refuses_a_probe_file(tmp_path, key, monkeypatch, capsys):
+    from carbon.development_testnet import operator
+
+    args, config = _operator(tmp_path, key)
+    monkeypatch.setattr(operator, "load_config", lambda path: config)
+    stale = tmp_path / "probe.json"
+    stale.write_text(json.dumps(probe()))
+    common = [
+        "--config",
+        str(tmp_path / "config.json"),
+        "--request",
+        str(args.request),
+        "--approval",
+        str(args.approval),
+        "--intent",
+        str(args.intent),
+        "--journal",
+        str(args.journal),
+    ]
+    monkeypatch.setattr(od4a_dispatch, "_utc_now", lambda: NOW)
+    assert od4a_dispatch.main(["run", *common, "--probe", str(stale)]) == 2
+    assert "PROBE_FILE_ONLY_FOR_VERIFY" in capsys.readouterr().out
+    # Specimen: verify takes the same file offline and succeeds.
+    assert od4a_dispatch.main(["verify", *common, "--probe", str(stale)]) == 0
+    assert '"verified": true' in capsys.readouterr().out
+
+
+def test_one_process_holds_the_dispatch_journal(tmp_path, key, monkeypatch, no_wallet):
+    args, config = _operator(tmp_path, key)
+    probed = []
+
+    async def live(config):
+        probed.append(True)
+        return probe()
+
+    monkeypatch.setattr(od4a_dispatch, "_live_probe", live)
+    with od4a_dispatch._JournalLock.hold(args.journal):
+        with pytest.raises(DispatchRefused, match="DISPATCH_JOURNAL_LOCKED"):
+            od4a_dispatch._JournalLock.hold(args.journal)
+        with pytest.raises(DispatchRefused, match="DISPATCH_JOURNAL_LOCKED"):
+            run(od4a_dispatch._run(args, config))
+        with pytest.raises(DispatchRefused, match="DISPATCH_JOURNAL_LOCKED"):
+            run(od4a_dispatch._resume(args, config))
+    assert probed == []  # refused before any chain read
+    # Specimen: released, the same journal can be held again.
+    with od4a_dispatch._JournalLock.hold(args.journal) as lock:
+        assert lock.held()
+    assert not lock.held()
+
+
+def test_composition_requires_a_held_journal_lock(tmp_path, key):
+    args, config = _operator(tmp_path, key)
+    with pytest.raises(TypeError, match="only from _JournalLock.hold"):
+        od4a_dispatch._JournalLock(0)
+    with pytest.raises(DispatchRefused, match="DISPATCH_JOURNAL_LOCK_REQUIRED"):
+        od4a_dispatch._composition(args, config, Backend(snapshot(chain())), None, None)
+    released = od4a_dispatch._JournalLock.hold(args.journal)
+    released.release()
+    with pytest.raises(DispatchRefused, match="DISPATCH_JOURNAL_LOCK_REQUIRED"):
+        od4a_dispatch._composition(
+            args, config, Backend(snapshot(chain())), released, None
+        )
+    # Specimen: a held lock composes.
+    with od4a_dispatch._JournalLock.hold(args.journal) as lock:
+        issuer, _ = od4a_dispatch._composition(
+            args, config, Backend(snapshot(chain())), lock, None
+        )
+        assert issuer.approved.authorization_id == "OD4A-BATTERY-0003"

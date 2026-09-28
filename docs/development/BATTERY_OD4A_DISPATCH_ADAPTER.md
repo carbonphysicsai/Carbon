@@ -1,10 +1,14 @@
 # Battery OD-4a dispatch adapter: scope
 
-**Status.** SECURITY-SENSITIVE (AGENTS.md §13).
-- It is **implemented only for review. It is NOT REVIEWED, NOT merged on
-  green, and no dispatch may use it** until dedicated review accepts it.
-- **Building it authorizes nothing.** A fresh request (0003), a fresh owner
-  approval of that exact digest, and review must all come first.
+**Status.** SECURITY-SENSITIVE (AGENTS.md §13). Owner review on 2026-09-28
+required three fixes, all made below: the config fragment's
+`source_intent_digest`, a live runtime probe in `run`, and an exclusive lock
+on the dispatch journal. **The review does not make the adapter
+SECURITY_QUALIFIED; that is the owner's call, and no dispatch happens until
+then.**
+- **Merging it authorizes nothing, and no dispatch may use it until the owner
+  says so.** A dispatch first needs the owner's security call, then a fresh
+  request (0003) and a fresh owner approval of that exact digest.
 - OD4A-BATTERY-0002 lapsed unused at 2026-09-28T11:50:07Z by owner decision.
 
 ## Why it is needed
@@ -99,16 +103,27 @@ In the shared publisher (`chain/publisher.py`, `development_testnet/publication.
   `source_intent_digest`, which defaults to None, so existing configurations
   load unchanged.
 
-## As implemented (NOT REVIEWED)
+## As implemented (owner-reviewed 2026-09-28; not security-qualified)
 
 - `carbon/battery/od4a_dispatch.py`: `ApprovedPublication`,
   `BatteryAllBurnIntentIssuer`, `BatteryAllBurnPublisher`, and the CLI
   `verify|run|resume`.
-  - `verify` reads no wallet and makes no chain call.
-  - `run` verifies every offline binding before it reads the chain or opens
-    the publisher hotkey.
+  - `verify` is offline. It checks a supplied probe report, reads no wallet
+    and makes no chain call.
+  - `run` reads the runtime surface **live from the chain** and refuses a
+    probe file, so a stale report cannot stand in. It verifies every binding
+    before it opens the publisher hotkey, and probes again when it composes
+    the publisher.
   - `resume` only reconciles a dispatch already made. It opens no wallet and
-    never signs, so it may run after the expiry. `resume` needs no probe.
+    never signs, so it may run after the expiry.
+  - `run` and `resume` each hold an **exclusive lock on the dispatch
+    journal**, a non-blocking `flock` on a file beside it, for their whole
+    duration. A second process is refused `DISPATCH_JOURNAL_LOCKED`, and the
+    publisher cannot be composed without a held lock.
+- **The request generator** (`carbon.battery.od4a`) now puts
+  `source_intent_digest` in its operator-config fragment. So the documented
+  workflow produces an authorization the adapter accepts: fill in the
+  approval record's digest, and nothing else.
 - **The trusted service key is pinned by its full public key in the source.**
   Rotating the key is therefore a reviewed code change.
 - **Tests:** `tests/cpu/test_battery_od4a_dispatch.py`. The structural

@@ -1,9 +1,10 @@
 """Dispatch adapter for one approved battery OD-4a all-burn publication.
 
-SECURITY-SENSITIVE (AGENTS.md §13). IMPLEMENTED, NOT REVIEWED: no dispatch
-may use this until dedicated review accepts it. Building it authorizes
-nothing; a publication needs a fresh request, the owner's written approval of
-that exact request digest, and the operator-config authorization bound to it.
+SECURITY-SENSITIVE (AGENTS.md §13). Owner-reviewed 2026-09-28, NOT
+SECURITY_QUALIFIED: no dispatch may use this until the owner says so. It
+authorizes nothing; a publication needs a fresh request, the owner's written
+approval of that exact request digest, and the operator-config authorization
+bound to it.
 Scope: docs/development/BATTERY_OD4A_DISPATCH_ADAPTER.md.
 
 The only thing this adapter can publish is the source intent the owner
@@ -409,21 +410,74 @@ def _read_json(path):
     return json.loads(Path(path).read_bytes())
 
 
-def _approved(args, config, now):
+class _JournalLock:
+    """An exclusive, non-blocking lock on one dispatch journal, held for the
+    whole of a `run` or `resume`, so two processes can never both sign. The
+    lock file sits beside the journal; the OS releases it if the process dies.
+    Only `_JournalLock.hold` makes one, and composition requires a held one."""
+
+    __slots__ = ("_handle",)
+
+    def __init__(self, handle, *, _token=None):
+        if _token is not _VERIFIED:
+            raise TypeError("a journal lock comes only from _JournalLock.hold")
+        self._handle = handle
+
+    @classmethod
+    def hold(cls, journal):
+        import fcntl
+        import os
+
+        path = Path(str(journal) + ".lock")
+        descriptor = os.open(path, os.O_RDWR | os.O_CREAT, 0o600)
+        try:
+            fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            os.close(descriptor)
+            _refuse("DISPATCH_JOURNAL_LOCKED")
+        return cls(descriptor, _token=_VERIFIED)
+
+    def held(self):
+        return self._handle is not None
+
+    def release(self):
+        import os
+
+        if self._handle is not None:
+            os.close(self._handle)
+            object.__setattr__(self, "_handle", None)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        self.release()
+
+
+async def _live_probe(config):
+    """The runtime surface read from the chain now, never from a file."""
+    from carbon.chain.runtime_probe import probe
+
+    return await probe(config.endpoint, config.genesis_hash)
+
+
+def _approved(args, config, now, probe=None):
     return ApprovedPublication.verify(
         request=_read_json(args.request),
         approval_bytes=Path(args.approval).read_bytes(),
         intent=_read_json(args.intent),
-        probe=None if now is None else _read_json(args.probe),
+        probe=probe,
         authorization=config.transaction_authorization,
         now=now,
     )
 
 
-def _composition(args, config, backend, now):
+def _composition(args, config, backend, lock, now, probe=None):
     from carbon.transport.store import ReceiptJournal
 
-    approved = _approved(args, config, now)
+    if type(lock) is not _JournalLock or not lock.held():
+        _refuse("DISPATCH_JOURNAL_LOCK_REQUIRED")
+    approved = _approved(args, config, now, probe)
     issuer = BatteryAllBurnIntentIssuer(
         ReceiptJournal(Path(args.journal), config.context), approved
     )
@@ -434,32 +488,37 @@ async def _run(args, config):
     from carbon.chain.sdk_weights import BittensorPublicationBackend
     from carbon.development_testnet.operator import _wallet, doctor
 
-    # Every offline binding is verified before the chain or the wallet is touched.
-    _approved(args, config, _utc_now())
-    report = await doctor(config, online=True)
-    if report["chain_transaction_ready"] is not True:
-        _refuse("CHAIN_TRANSACTION_NOT_READY")
-    backend = BittensorPublicationBackend(
-        config.context, config.publisher_hotkey, _wallet(config), network="testnet"
-    )
-    try:
-        issuer, publisher = _composition(args, config, backend, _utc_now())
-        return await publisher.publish(issuer.issue())
-    finally:
-        await backend.close()
+    with _JournalLock.hold(args.journal) as lock:
+        # Every binding, including the runtime surface read live from the
+        # chain, is verified before the wallet is touched.
+        _approved(args, config, _utc_now(), await _live_probe(config))
+        report = await doctor(config, online=True)
+        if report["chain_transaction_ready"] is not True:
+            _refuse("CHAIN_TRANSACTION_NOT_READY")
+        backend = BittensorPublicationBackend(
+            config.context, config.publisher_hotkey, _wallet(config), network="testnet"
+        )
+        try:
+            issuer, publisher = _composition(
+                args, config, backend, lock, _utc_now(), await _live_probe(config)
+            )
+            return await publisher.publish(issuer.issue())
+        finally:
+            await backend.close()
 
 
 async def _resume(args, config):
     from carbon.chain.sdk_weights import BittensorPublicationBackend
 
-    backend = BittensorPublicationBackend(
-        config.context, config.publisher_hotkey, None, network="testnet"
-    )
-    try:
-        issuer, publisher = _composition(args, config, backend, None)
-        return await publisher.reconcile(issuer.issue().digest)
-    finally:
-        await backend.close()
+    with _JournalLock.hold(args.journal) as lock:
+        backend = BittensorPublicationBackend(
+            config.context, config.publisher_hotkey, None, network="testnet"
+        )
+        try:
+            issuer, publisher = _composition(args, config, backend, lock, None)
+            return await publisher.reconcile(issuer.issue().digest)
+        finally:
+            await backend.close()
 
 
 def main(argv=None):
@@ -467,7 +526,11 @@ def main(argv=None):
     parser.add_argument("command", choices=("verify", "run", "resume"))
     for name in ("config", "request", "approval", "intent", "journal"):
         parser.add_argument("--" + name, required=True, type=Path)
-    parser.add_argument("--probe", type=Path, help="required for verify and run")
+    parser.add_argument(
+        "--probe",
+        type=Path,
+        help="verify only: an offline probe report; run always probes live",
+    )
     args = parser.parse_args(argv)
     from carbon.development_testnet.operator import load_config
 
@@ -477,10 +540,12 @@ def main(argv=None):
             _refuse("TESTNET_567_ONLY")
         if config.transaction_authorization is None:
             _refuse("TRANSACTION_AUTHORIZATION_REQUIRED")
-        if args.command != "resume" and args.probe is None:
-            _refuse("FRESH_RUNTIME_PROBE_REQUIRED")
+        if (args.command == "verify") != (args.probe is not None):
+            # verify is offline and checks a supplied report; run reads the
+            # runtime live and refuses a file, so a stale report cannot stand in.
+            _refuse("PROBE_FILE_ONLY_FOR_VERIFY")
         if args.command == "verify":
-            approved = _approved(args, config, _utc_now())
+            approved = _approved(args, config, _utc_now(), _read_json(args.probe))
             result = {
                 "verified": True,
                 "authorization_id": approved.authorization_id,

@@ -144,6 +144,9 @@ def build_request(
             "expected_runtime_spec": request["expected_runtime_spec"],
             "valid_from_block": request["valid_from_block"],
             "valid_through_block": request["valid_through_block"],
+            # Binds the authorization to this request's one source intent; the
+            # dispatch adapter (od4a_dispatch) refuses an authorization without it.
+            "source_intent_digest": request["source_intent"]["digest"],
         }
     }
     return request
