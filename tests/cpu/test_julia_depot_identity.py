@@ -319,3 +319,30 @@ def test_the_two_schemas_never_read_as_each_other(tmp_path):
         path.write_bytes(canonical(record))
         with pytest.raises(ValueError, match="closed"):
             julia.load_julia_analysis_image(path)
+
+
+def test_the_committed_lock_is_closed_and_pinned_by_digest(tmp_path):
+    """The lock names a published depot by immutable digest. A lock for other
+    Julia inputs is not an error - it reads as absent, and CI builds cold -
+    but a malformed or tag-pinned lock is refused."""
+    lock = build.read_lock()
+    if lock is not None:
+        assert lock["depot_digest"] == depot.depot_digest()
+        assert lock["image"].startswith(build.REGISTRY + "@sha256:")
+    base = {
+        "schema": build.LOCK_SCHEMA,
+        "depot_digest": depot.depot_digest(),
+        "image": build.REGISTRY + "@sha256:" + "a" * 64,
+    }
+    path = tmp_path / "lock.json"
+    path.write_text(json.dumps(base))
+    assert build.read_lock(path) == base  # specimen: a good lock reads
+    path.write_text(json.dumps({**base, "depot_digest": "sha256:" + "b" * 64}))
+    assert build.read_lock(path) is None
+    for bad in (
+        {**base, "image": build.REGISTRY + ":latest"},
+        {**base, "extra": 1},
+    ):
+        path.write_text(json.dumps(bad))
+        with pytest.raises(ValueError):
+            build.read_lock(path)
