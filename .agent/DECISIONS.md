@@ -16204,6 +16204,25 @@ would they test and iterate and optimize?"
    (invariant 10: no silent rescore). What counts as a stall and the data
    budget are per-Challenge owner inputs, set before they are used.
 
+## 2026-09-27 — OWNER-WORKBENCH-CI-COVERAGE-01: every Workbench change runs its real-worker suites
+
+**Authority.** The owner, in the client-intake session on 2026-09-27, was shown
+the measured cost: the Workbench job then took 0.6–0.8 min, and adding the
+image builds and real-worker suites would make it several times slower. Given a
+choice of deferring, a narrow path-gated step, or running them in the whole
+Workbench job, the owner chose "Whole Workbench job".
+
+1. **The Workbench job runs the real-worker suites on every Workbench change.**
+   They run through `scripts/dev/workbench_worker_checks.sh`, after the release
+   checks. `workbench_scope.py` also selects the job for the private host, its
+   study adapter, those suites and itself.
+2. **Additive only.** `classify_changes.py` and `development_scope.py` are
+   unchanged and still match their OWNER-CW1-DEVELOPMENT-CI-01 digests.
+   Unknown paths still fail closed in the shared path validator.
+3. **Known cost, accepted.** Every Workbench change pays for the image builds
+   and the suites. The measured before and after job times are recorded on the
+   PR that makes the change.
+
 ## 2026-09-27 — OWNER-WORKBENCH-STUDIES-RETIRED-01: Workbench studies go dark when Burgers is retired
 
 **Authority.** The owner, in the client-intake session on 2026-09-27, answering

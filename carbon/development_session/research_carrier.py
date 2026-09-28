@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import math
+import re
 import time
 from contextlib import contextmanager
 from contextvars import ContextVar
@@ -27,6 +28,8 @@ from carbon.reconstruction.worker.model import (
     CONTROL_BYTES,
     OUTPUT_BYTES,
     DevelopmentWorkerProfile,
+    WorkerCode,
+    WorkerFailure,
 )
 from carbon.reconstruction.worker.protocol import decode_output_stream
 
@@ -70,7 +73,42 @@ def run_script(ledger, *, owner, identity, source, files, image, seconds=600):
         extra_resources=(
             {} if PRECHARGED_TRIAL.get() is not None else {"research_trials": 1}
         ),
+        miner_authored=True,
     )
+
+
+class MinerProgramFailure(Exception):
+    """The miner's own program failed, observed - not an infrastructure failure.
+
+    Raised only where the evidence was observed: the miner's own wall allowance
+    elapsed, the daemon reported the container OOM-killed, the miner's program
+    exited nonzero inside a still-running container, or the miner's output was
+    refused for its own content. The operation is already settled as
+    FAILED_MINER with the full reservation retained and cleanup observed, so
+    there is nothing to reconcile. Daemon, CLI and host failures never take this
+    type; they stay infrastructure failures.
+    """
+
+    def __init__(self, result):
+        if (
+            type(result) is not dict
+            or result.get("schema") != MINER_FAILURE_SCHEMA
+            or result.get("failure_code")
+            not in {code.value for code in MINER_FAILURE_CODES}
+        ):
+            raise TypeError("typed miner program failure result required")
+        super().__init__(result["observation"])
+        self.result = result
+        self.code = WorkerCode(result["failure_code"])
+
+
+MINER_FAILURE_SCHEMA = "carbon.autoresearch.miner-program-failure.v1"
+# Existing worker codes, reused: the miner's allowance elapsed (DEADLINE), their
+# program failed (RUNTIME: nonzero exit or OOM kill), their output was refused
+# for its own content (OUTPUT).
+MINER_FAILURE_CODES = frozenset(
+    {WorkerCode.DEADLINE, WorkerCode.RUNTIME, WorkerCode.OUTPUT}
+)
 
 
 @contextmanager
@@ -130,10 +168,22 @@ def _run(ledger, **kwargs):
                     errors.append("cancellation cleanup uncertain")
                     return
 
+        def settle():
+            # Called immediately before the ledger records a terminal state.
+            # The watcher is stopped and its errors read first, so the ledger
+            # can never say an operation finished while the task then fails on
+            # an uncertain cancellation: raising here leaves it RESERVED.
+            stop.set()
+            watcher.join(timeout=45)
+            if watcher.is_alive():
+                raise ValueError("cancellation supervisor did not stop")
+            if errors:
+                raise ValueError(errors[0])
+
         watcher = threading.Thread(target=watch, daemon=True)
         watcher.start()
         try:
-            result = _run_locked(ledger, **kwargs)
+            result = _run_locked(ledger, before_finish=settle, **kwargs)
             if errors:
                 raise ValueError(errors[0])
             return result
@@ -183,7 +233,10 @@ def _run_locked(
     bootstrap=BOOTSTRAP,
     execution_contract=None,
     output_validator=None,
+    miner_authored=False,
+    before_finish=None,
 ):
+    before_finish = before_finish or (lambda: None)
     # The miner's own research has no Carbon limits (owner direction): any
     # positive wall allowance, or none at all. Carbon's own work in this carrier
     # keeps its bounded allowance.
@@ -242,35 +295,89 @@ def _run_locked(
     if not admission["dispatch"]:
         if admission["state"] == "RESERVED":
             raise ValueError("research operation ambiguous; reconcile, never duplicate")
+        if admission["state"] == "FAILED_MINER":
+            # A replay reports the same typed outcome, never a success.
+            raise MinerProgramFailure(admission["result"])
         return admission["result"]
     started = time.monotonic()
     started_unix = time.time()
-    stage = operation / "input"
-    stage.mkdir(parents=True, mode=0o755)
-    stage.chmod(0o755)
-    for name, body in {**files, program_name: source.encode()}.items():
-        path = stage / name
-        write_once(path, body)
-        path.chmod(0o444)
     name = "carbon-d4-" + launch[7:31]
+    # The durable intent is written first, before staging, image verification
+    # or the host doctor: an interruption anywhere after the reservation then
+    # leaves an operation reconcile_worker can settle, rather than a RESERVED
+    # row with no record of what might have been launched.
+    operation.mkdir()
+    # What removes a miner-lane container if its owner cannot: the deadline
+    # watchdog when the miner set a time budget, otherwise a reaper that
+    # watches this controller process and removes the container only once it
+    # is gone. An unbounded run has no time limit, but it is never unguarded.
+    guard = _miner_guard(seconds) if miner_lane else None
+    write_once(
+        operation / "intent.json",
+        canonical(
+            {
+                "launch": launch,
+                "container": name,
+                "request": request,
+                "owner": owner,
+                "identity": identity,
+                "deadline_unix": (
+                    None if seconds is None else started_unix + seconds - 30
+                ),
+                **({} if guard is None else {"reaper": guard}),
+            }
+        ),
+    )
+    stage = operation / "input"
     cli = DockerCLI()
-    if provenance == "MINER_SELF_REPORTED":
-        from .julia_analysis import JuliaResearchImageIdentity, verify_julia_image
-        from .research_image import verify_image
+    try:
+        stage.mkdir(mode=0o755)
+        stage.chmod(0o755)
+        for filename, body in {**files, program_name: source.encode()}.items():
+            path = stage / filename
+            write_once(path, body)
+            path.chmod(0o444)
+        if provenance == "MINER_SELF_REPORTED":
+            from .julia_analysis import JuliaResearchImageIdentity, verify_julia_image
+            from .research_image import verify_image
 
-        if type(image) is JuliaResearchImageIdentity:
-            verify_julia_image(image, cli)
+            if type(image) is JuliaResearchImageIdentity:
+                verify_julia_image(image, cli)
+            else:
+                verify_image(image, cli)
+            checked = doctor(image_id=image.image_id, cli=cli)
         else:
-            verify_image(image, cli)
-        checked = doctor(image_id=image.image_id, cli=cli)
-    else:
-        checked = doctor(image_id=image.image_id, image_identity=image, cli=cli)
-    if not checked.eligible:
-        # No attempt is automatically retried and its reservation remains visible.
-        raise ValueError("research host ineligible")
+            checked = doctor(image_id=image.image_id, image_identity=image, cli=cli)
+        if not checked.eligible:
+            # No attempt is automatically retried and its reservation remains
+            # visible.
+            raise ValueError("research host ineligible")
+    except Exception:
+        # Nothing was created: no container command has been issued. That is
+        # a fact of this process, not an inference from absence, so settle now
+        # as infrastructure failure keeping the full reservation - no refund.
+        before_finish()
+        ledger.finish(
+            identity,
+            owner=owner,
+            state="FAILED_INFRA",
+            actual=resources,
+            result={
+                "schema": "carbon.autoresearch.worker-reconciliation.v1",
+                "operation": operation.name,
+                "state": "FAILED_INFRA",
+                "worker_created": False,
+                "cleanup_observed": True,
+                "accounting": "full original reservation retained as conservative consumption",
+                "scientific_outcome": "UNRESOLVED",
+                "retry_dispatched": False,
+            },
+        )
+        raise
     if miner_lane:
         return _run_miner_lane(
             ledger,
+            guard=guard,
             owner=owner,
             identity=identity,
             operation=operation,
@@ -287,23 +394,12 @@ def _run_locked(
             output_validator=output_validator,
             provenance=provenance,
             resources=resources,
+            miner_authored=miner_authored,
+            before_finish=before_finish,
         )
     worker = DevelopmentWorkerProfile(
         digest(b"carbon.autoresearch.public-research.v1"),
         digest(b"2cpu-4gib-noswap-600seconds"),
-    )
-    write_once(
-        operation / "intent.json",
-        canonical(
-            {
-                "launch": launch,
-                "container": name,
-                "request": request,
-                "owner": owner,
-                "identity": identity,
-                "deadline_unix": started_unix + seconds - 30,
-            }
-        ),
     )
     create_attempted = False
     output = operation / "export.stream"
@@ -405,15 +501,25 @@ def _run_locked(
             p.stat().st_size for p in operation.rglob("*") if p.is_file()
         ),
     }
+    before_finish()
     ledger.finish(
         identity, owner=owner, state="SUCCEEDED", actual=actual, result=result
     )
     return result
 
 
+def _miner_guard(seconds):
+    """The deadline watchdog for a timed run; otherwise the controller-liveness
+    reaper, so an unbounded run is never unguarded."""
+    if seconds is not None:
+        return {"kind": "DEADLINE"}
+    return liveness_reaper.controller_guard()
+
+
 def _run_miner_lane(
     ledger,
     *,
+    guard,
     owner,
     identity,
     operation,
@@ -430,14 +536,22 @@ def _run_miner_lane(
     output_validator,
     provenance,
     resources,
+    miner_authored,
+    before_finish,
 ):
     """Run the miner's own research: isolated, no Carbon limits.
 
     Same lifecycle as Carbon's lane - durable intent, exact-label removal,
     cancellation, a digest of every output - in the miner lane's container,
     which has no size or time limit, writing to scratch on the miner's own disk.
+
+    Where the miner's own program is observed to be the cause of a failure
+    (``miner_authored`` only), the operation settles FAILED_MINER with cleanup
+    observed and the full reservation kept, and ``MinerProgramFailure`` is
+    raised. Every other failure keeps its infrastructure meaning.
     """
     from .miner_container import (
+        MinerOutputRefused,
         MinerResearchLaunch,
         collect_outputs,
         create_arguments,
@@ -447,35 +561,11 @@ def _run_miner_lane(
 
     scratch = prepare_scratch(operation / "scratch")
     run = MinerResearchLaunch(name, image.image_id, launch, stage, scratch)
-    # What removes this container if its owner cannot: the deadline watchdog
-    # when the miner set a time budget, otherwise a reaper that watches this
-    # controller process and removes the container only once it is gone. An
-    # unbounded run has no time limit, but it is never unguarded.
-    guard = (
-        {"kind": "DEADLINE"}
-        if seconds is not None
-        else liveness_reaper.controller_guard()
-    )
-    write_once(
-        operation / "intent.json",
-        canonical(
-            {
-                "launch": launch,
-                "container": name,
-                "request": request,
-                "owner": owner,
-                "identity": identity,
-                "deadline_unix": (
-                    None if seconds is None else started_unix + seconds - 30
-                ),
-                "reaper": guard,
-            }
-        ),
-    )
     # No deadline unless the miner asked for one; a very long transport bound
     # stands in for "none" where the CLI needs a number.
     unbounded = 10 * 365 * 24 * 3600
     create_attempted = False
+    failure = None
     try:
         _check_cancel(ledger, owner, identity)
         create_attempted = True
@@ -493,18 +583,30 @@ def _run_miner_lane(
             )
         cli.run(["start", name], timeout=20)
         isolation = inspect_isolation(cli, run)
-        cli.stream_to_file(
-            ["exec", name, "/opt/carbon-worker/bin/python", "-I", "-c", bootstrap],
-            operation / "stdout.txt",
-            maximum=1024**4,
-            timeout=unbounded if seconds is None else max(1, seconds),
-        )
-        # The worker writes as its fixed non-root uid, so a directory the
-        # miner's code creates with default modes is unreadable to the host
-        # that collects it. The worker owns every output, so it opens them
-        # to reading before the container goes; links are refused at
-        # collection, and chmod -R does not follow them.
-        cli.run(["exec", name, "chmod", "-R", "a+rX", "/scratch/output"], timeout=120)
+        try:
+            cli.stream_to_file(
+                ["exec", name, "/opt/carbon-worker/bin/python", "-I", "-c", bootstrap],
+                operation / "stdout.txt",
+                maximum=1024**4,
+                timeout=unbounded if seconds is None else max(1, seconds),
+            )
+        except WorkerFailure as error:
+            # Classified while the container still exists to be inspected. A
+            # requested cancellation is never the miner's failure.
+            if not miner_authored or _cancel_path(ledger, owner, identity).exists():
+                raise
+            failure = _observed_miner_failure(cli, name, error, seconds, started)
+            if failure is None:
+                raise
+        if failure is None:
+            # The worker writes as its fixed non-root uid, so a directory the
+            # miner's code creates with default modes is unreadable to the host
+            # that collects it. The worker owns every output, so it opens them
+            # to reading before the container goes; links are refused at
+            # collection, and chmod -R does not follow them.
+            cli.run(
+                ["exec", name, "chmod", "-R", "a+rX", "/scratch/output"], timeout=120
+            )
         write_once(operation / "resources.json", canonical({"isolation": isolation}))
     finally:
         if create_attempted:
@@ -514,11 +616,55 @@ def _run_miner_lane(
             )
             if remaining.stdout.strip():
                 raise ValueError("research cleanup uncertain; capacity stays reserved")
+    if failure is not None:
+        _settle_miner_failure(
+            ledger,
+            owner=owner,
+            identity=identity,
+            operation=operation,
+            resources=resources,
+            started=started,
+            failure=failure,
+            before_finish=before_finish,
+        )
     _check_cancel(ledger, owner, identity)
     snapshot = operation / "snapshot"
-    collect_outputs(scratch, snapshot)
+    try:
+        collect_outputs(scratch, snapshot)
+    except MinerOutputRefused:
+        # A link, FIFO, socket or device in the output is the miner's own
+        # doing. An unreadable tree is not typed this way: that can be the
+        # host's, and stays an infrastructure failure.
+        if not miner_authored:
+            raise
+        _settle_miner_failure(
+            ledger,
+            owner=owner,
+            identity=identity,
+            operation=operation,
+            resources=resources,
+            started=started,
+            failure=(WorkerCode.OUTPUT, "OUTPUT_NOT_REGULAR_FILES"),
+            before_finish=before_finish,
+        )
     if output_validator is not None:
-        output_validator(snapshot)
+        try:
+            output_validator(snapshot)
+        except ValueError:
+            # The declared validator refused the miner's own bytes (malformed,
+            # non-finite, undeclared type). OSError and the like stay infra.
+            if not miner_authored:
+                raise
+            _settle_miner_failure(
+                ledger,
+                owner=owner,
+                identity=identity,
+                operation=operation,
+                resources=resources,
+                started=started,
+                failure=(WorkerCode.OUTPUT, "OUTPUT_REFUSED_BY_VALIDATOR"),
+                before_finish=before_finish,
+            )
     files = {
         p.relative_to(snapshot).as_posix(): _file_digest(p)
         for p in sorted(snapshot.rglob("*"))
@@ -542,10 +688,107 @@ def _run_miner_lane(
             p.stat().st_size for p in operation.rglob("*") if p.is_file()
         ),
     }
+    before_finish()
     ledger.finish(
         identity, owner=owner, state="SUCCEEDED", actual=actual, result=result
     )
     return result
+
+
+_DOCKER_OWN_EXITS = frozenset({125, 126, 127})
+
+
+def _observed_miner_failure(cli, name, error, seconds, started):
+    """Name the miner's program as the cause only on observed evidence.
+
+    Returns ``(WorkerCode, observation)`` or None. None keeps the failure an
+    infrastructure failure: an ambiguous daemon or CLI error is never blamed on
+    the miner.
+    """
+    if seconds is not None and time.monotonic() - started >= seconds:
+        # The miner's own allowance elapsed; the watchdog or stream bound that
+        # fired is the one they chose.
+        return WorkerCode.DEADLINE, "OWN_ALLOWANCE_ELAPSED"
+    try:
+        state = cli.json(["inspect", name, "--format", "{{json .State}}"], timeout=10)
+    except WorkerFailure:
+        return None
+    if type(state) is not dict:
+        return None
+    if state.get("OOMKilled") is True:
+        return WorkerCode.RUNTIME, "OOM_KILLED"
+    exited = re.match(rb"exit=(\d+)\n", error.private_diagnostic)
+    if (
+        exited is not None
+        and state.get("Running") is True
+        and int(exited.group(1)) not in _DOCKER_OWN_EXITS
+        and int(exited.group(1)) != 0
+        and b"Error response from daemon" not in error.private_diagnostic
+    ):
+        # docker exec returned the program's own status from a container that
+        # is still running: the program ran and exited nonzero.
+        return WorkerCode.RUNTIME, "NONZERO_EXIT"
+    return None
+
+
+def _settle_miner_failure(
+    ledger, *, owner, identity, operation, resources, started, failure, before_finish
+):
+    """Settle an observed miner-caused failure and raise it, typed.
+
+    The full reservation is kept, and anything measured beyond it is charged
+    too: the metered dimensions record at least what the run used.
+    """
+    code, observation = failure
+    result = {
+        "schema": MINER_FAILURE_SCHEMA,
+        "operation": operation.name,
+        "state": "FAILED_MINER",
+        "cause": "MINER_PROGRAM",
+        "failure_code": code.value,
+        "observation": observation,
+        "cleanup_observed": True,
+        "accounting": "full original reservation retained; no refund",
+        "retry_dispatched": False,
+        "scientific_qualification": False,
+        "official_eligible": False,
+    }
+    elapsed = math.ceil((time.monotonic() - started) * 1000)
+    retained = sum(p.stat().st_size for p in operation.rglob("*") if p.is_file())
+    actual = {
+        **resources,
+        "numerical_milliseconds": max(resources["numerical_milliseconds"], elapsed),
+        "retained_bytes": max(resources["retained_bytes"], retained),
+    }
+    before_finish()
+    ledger.finish(
+        identity, owner=owner, state="FAILED_MINER", actual=actual, result=result
+    )
+    raise MinerProgramFailure(result)
+
+
+def record_output_tamper(ledger, *, owner, operation, name, expected, observed):
+    """Leave a durable security_incident record, then refuse the output.
+
+    A retained output whose digest no longer matches the one recorded when it
+    was collected was changed after collection. Refusing it silently would
+    leave no trace that anything happened; the record is written first, and if
+    it cannot be written the refusal says so.
+    """
+    body = {
+        "event": "RESEARCH_OUTPUT_DIGEST_MISMATCH",
+        "operation": operation,
+        "file": name[:256],
+        "expected_digest": expected,
+        "observed_digest": observed,
+    }
+    try:
+        ledger.note(owner=owner, kind="security_incident", body=body)
+    except Exception:  # noqa: BLE001
+        raise ValueError(
+            "research output changed; security incident record failed"
+        ) from None
+    raise ValueError("research output changed after collection")
 
 
 def _has_time_budget(ledger):
@@ -592,10 +835,9 @@ def reconcile_worker(ledger, *, owner, identity):
             )
         if op["state"] != "RESERVED":
             return op["result"]
-        if not op["reservation"].get("numerical_milliseconds"):
-            raise ValueError(
-                "not a numerical worker; no provider billing reconciliation"
-            )
+        # Keyed on the durable intent, not the reserved milliseconds: the
+        # miner's own run with no wall allowance reserves none and is still a
+        # worker. An operation with no intent is refused below, never skipped.
         intents = []
         for path in ledger.root.glob("operation-*/intent.json"):
             if path.is_symlink() or path.stat().st_size > 65536:

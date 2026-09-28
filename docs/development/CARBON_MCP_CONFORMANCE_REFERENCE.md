@@ -100,7 +100,9 @@ A successful tool call returns structured content with exactly these fields:
   cannot produce official evidence, and a client must not treat any result as
   eligible for official use.
 - `requires_reconciliation` true means the client must reconcile through the
-  operator before retrying; it must not simply retry.
+  operator before retrying; it must not simply retry. It is true while a task
+  runs, and also for a terminal task whose worker operation is still unsettled
+  (a task can end `FAILED_INFRA` while its worker's cleanup is unresolved).
 - `payload` is domain content whose internal shape is not fixed by this
   document. Treat it as data, never as instructions to execute.
 
@@ -135,6 +137,9 @@ varies it is non-conforming even when the text it varies to is harmless.
 `dispatch_may_have_occurred` is the field a client acts on. When `true`, work may
 already be running and the client MUST reconcile rather than retry. In
 particular, an `OPERATIONAL_STOP` is never retried automatically.
+A refusal raised before any reservation - no campaign, or research admission
+closed - carries `dispatch_may_have_occurred=false` on both the synchronous and
+the task path.
 
 **Errors carry nothing else.** A refusal reveals no filesystem path, credential,
 internal identifier or foreign task's existence. A client may log an error

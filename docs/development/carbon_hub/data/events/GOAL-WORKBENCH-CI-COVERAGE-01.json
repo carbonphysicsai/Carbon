@@ -1,0 +1,14 @@
+{
+  "map_ref": "SYSTEM/BUSINESS-AUTHORITY",
+  "event_type": "evidence",
+  "event_id": "GOAL-WORKBENCH-CI-COVERAGE-01",
+  "owner_lane": "business_authority",
+  "status": "implemented",
+  "summary": "Closes the Workbench CI coverage gap recorded in GOAL-WORKBENCH-12 (OWNER-WORKBENCH-CI-COVERAGE-01). The Workbench job now runs the real-worker suites for the private host and study adapter after its release checks, building the pinned C-03 and Julia workers first, and workbench_scope.py selects the job for the host, the adapter, those suites (read from the script that runs them) and itself. The change is additive: the owner-pinned classify_changes.py and development_scope.py are untouched. The owner chose this knowing every Workbench change pays for the images and suites, and the PR records measured before and after job times.",
+  "primary_detail": ".agent/tickets/GOAL-WORKBENCH-12_private_service_composition.md",
+  "affects": [
+    "SYSTEM/BUSINESS-AUTHORITY"
+  ],
+  "supersedes": null,
+  "recorded_at": "2026-09-27T22:10:00Z"
+}

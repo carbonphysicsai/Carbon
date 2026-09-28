@@ -17,27 +17,51 @@ does not change any existing classification.
 from __future__ import annotations
 
 import argparse
+import re
 import sys
 from pathlib import Path
 
 from classify_changes import ChangeClassificationError, changed_paths, normalize_path
 
-# Everything the Workbench release is generated from, plus the scripts that
-# run its acceptance.
+# Everything the Workbench release is generated from, the private host and
+# study adapter its real-worker suites exercise, and the scripts that run its
+# acceptance, this module included.
+WORKBENCH_WORKER_SCRIPT = "scripts/dev/workbench_worker_checks.sh"
 WORKBENCH_PREFIXES = ("Business/Carbon_Fit/workbench/",)
 WORKBENCH_EXACT = frozenset(
     {
+        "carbon/scientific_tasks/workbench.py",
+        "carbon/scientific_tasks/workbench_host.py",
         "scripts/dev/workbench_release_checks.sh",
         "scripts/dev/workbench_science_checks.sh",
+        "scripts/dev/workbench_scope.py",
+        "tests/service/workbench_team_journey.py",
+        WORKBENCH_WORKER_SCRIPT,
     }
 )
 
 
+def workbench_worker_tests() -> frozenset[str]:
+    """The tests the Workbench job's real-worker step runs, read from its
+    script, so this requirement cannot drift from the suites it guards."""
+    script = Path(__file__).resolve().parents[2] / WORKBENCH_WORKER_SCRIPT
+    return frozenset(
+        re.findall(
+            r"tests/(?:service|cpu)/[A-Za-z0-9_]+\.py", script.read_text("utf-8")
+        )
+    )
+
+
 def workbench_required(paths: list[str] | tuple[str, ...]) -> bool:
     """True when a changed path is an input to the Workbench release."""
+    suites = workbench_worker_tests()
     for raw_path in paths:
         path = normalize_path(raw_path)
-        if path in WORKBENCH_EXACT or path.startswith(WORKBENCH_PREFIXES):
+        if (
+            path in WORKBENCH_EXACT
+            or path in suites
+            or path.startswith(WORKBENCH_PREFIXES)
+        ):
             return True
     return False
 

@@ -640,7 +640,11 @@ class CampaignLedger:
         return settle_sequence(self, parent, owner=owner)
 
     def finish(self, identity, *, owner, state, actual, result):
-        if state not in {"SUCCEEDED", "FAILED_INFRA", "CANCELLED"}:
+        # FAILED_MINER: the miner's own program was observed to fail (its
+        # allowance elapsed, OOM kill, nonzero exit, refused output). Distinct
+        # from FAILED_INFRA, which is Carbon's or the host's; both keep the
+        # full reservation.
+        if state not in {"SUCCEEDED", "FAILED_INFRA", "FAILED_MINER", "CANCELLED"}:
             raise ValueError("terminal state required")
         actual = _vector(actual)
         body = canonical(result)
@@ -693,6 +697,15 @@ class CampaignLedger:
                 "UPDATE operations SET state=?,actual=?,result=? WHERE id=?",
                 (state, canonical(actual), body, identity),
             )
+
+    def operation_state(self, identity, *, owner):
+        """This owner's operation state, or None when it has no such operation."""
+        with self.db() as db:
+            row = db.execute(
+                "SELECT state FROM operations WHERE id=? AND owner=?",
+                (identity, owner),
+            ).fetchone()
+        return None if row is None else row[0]
 
     def note(self, *, owner, kind, body):
         if kind not in {
