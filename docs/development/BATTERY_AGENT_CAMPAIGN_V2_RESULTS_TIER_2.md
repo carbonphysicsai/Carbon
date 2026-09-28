@@ -104,3 +104,104 @@ the owner's list of reserved changes:
 
 **Planned future work, not built:** re-run tier 0 on the same harness once
 the battery kit lands, for a before-and-after on `generate`.
+
+---
+
+## Rerun under amendment 2 (2026-09-28)
+
+This is the one new arm-A campaign that amendment 2 specifies. It was
+launched from main at `8ee4038d`, which contains #408. Its manifest records:
+
+| Setting | Value |
+|---|---|
+| Parallel-call rule | `FIRST_RUN_REST_REFUSED`, three in a row |
+| Output allowance | `max_output_tokens` 16,384 |
+| Reasoning effort | `low`, the pinned default |
+| Feedback | `FULL` |
+| Budget | the USD 3 ceiling less the first run's spend |
+
+Every call was metered from `charged_micro`. **Battery's `generate` gap
+remained open.** The run never reached a point where it would have mattered.
+
+### What happened
+
+The epoch **stopped after 19 of 48 calls**, with the reason "context admission
+ceiling". The run made **no practice, no `run_python`, no submission and no
+final**, and **no workspace action executed**.
+
+| | Count |
+|---|---|
+| Provider calls | 19 |
+| Turns with parallel calls | 1: turn 1, one extra call refused, the run continued |
+| Tool calls refused or erroring | **15 of 19** |
+| `start_research_task` refused | **13 of 13** |
+| Research-trial slots consumed | **4 of 8**, with **no task started** |
+
+**Finding R1: `"null"` as a string, not JSON `null`.** On every
+`start_research_task` call, the agent sent `strategy_json`, `action` and
+`arguments_json` as the string `"null"` where the contract wants JSON `null`.
+- The tool schema allows JSON `null` for all three: each is typed
+  `["string", "null"]`.
+- `arguments_json` is itself JSON encoded as a string, so `"null"` is a
+  natural reading.
+- The correction text says `strategy_json=null`. It was returned verbatim 13
+  times, and never says which field was wrong or that the string differs from
+  the value.
+- The agent never recovered.
+- **Cost:** 3 practices and 1 `run_python` were each charged a trial slot and
+  none started (the step-zero finding that a malformed practice is still
+  charged). Every recipe it tried was reported `valid` by `dry_validate`.
+
+**Finding R2: the context ceiling compares bytes with tokens.**
+- The loop refuses the next call when `len(canonical(request))`, in **bytes**,
+  exceeds `max_input_tokens − 4096 = 61,440`, a number of **tokens**.
+- Measured at 4.0 bytes per token, the run stopped at **about 15,140 tokens of
+  context, against 65,536 configured**.
+- This is conservative by construction, because bytes are always at least
+  tokens. But it stopped the campaign after 19 of 48 calls, and the agent is
+  never shown this limit.
+
+**Finding R3: refusals are filed as capability requests.** Each refused call
+was journaled as a `capability_request` note ("disposition: investigate").
+There are 14, and none is a request the agent made. So the Demand family is
+contaminated by construction.
+
+**Finding R4: `get_prior` was called with `{}`** and returned
+`REQUEST_TYPE_INVALID`. It needs a selector the agent did not supply.
+
+**The parallel-call rule worked.** One turn had a parallel call, the extra
+call was refused, and the run continued. The agent made no parallel call
+after that refusal (1 of 19 turns).
+
+### Hypotheses, against their pre-stated predictions
+
+| | Prediction | Result |
+|---|---|---|
+| H1 | Orientation calls dominate the calls with a stated purpose, and no stopping rule is written. | **Prediction met, not attributable.** All 13 calls with a stated purpose were orientation or baseline, none a physics hypothesis, and no notebook or stopping rule was written. But no practice ran, so the agent never received the feedback H1 is about. R1 explains the pattern. Refutation criterion: not met. |
+| H2 | Several variables change per step, and steps go unexplained. | **Not exercised.** There was no practice and no submission. |
+| H3 | Late or absent use of `check_design` and `roadmap`; practice spent on designs `check_design` would reject. | **Ordering part met.** The first practice attempt (call 11) came before the first `check_design` (call 14) and `roadmap` (calls 15–16). All three were refused under R1, so none executed. Practice failures on a ground `check_design` would catch: **0**. They failed on the argument encoding. Tier 1 had put the number at 8/10 check-first in plans; the live ordering went the other way. |
+| H4 | A practice or submission refused as `strategy.identity_invalid` or equivalent on an all-`supported` design. | **Not exercised as stated.** No design was assessed. The designs had 3 parameters (MLP) and 1 (KNN), far under the 32-member cap. **A sibling mechanism, the envelope encoding in R1, cost 4 of 8 trial slots with no task started.** It is an observation beside H4, not a confirmation of it. |
+
+### The six recorded families
+
+| Family | Recorded |
+|---|---|
+| Utilisation | 19 calls: `start_research_task` 13, `dry_validate` 2, `get_challenge_info` 1, `get_mock_scaffold` 1, `get_prior` 1, `get_research_result` 1. **Never called:** `get_interaction_manifest` (refused as the parallel extra), `compile_strategy`, `inspect_prior_alignment`, `inspect_resources`, `forecast_resources`, `cancel_research_task`, SELECT and STOP. |
+| Friction | 15 failures in 19 calls: 10 `workspace_recipe_forbidden`, 3 `practice_recipe_required`, 1 `contract_incompatibility` and 1 `REQUEST_TYPE_INVALID`. Recovery: none. Cost: 4 trial slots and about 75% of the calls. |
+| Discovery | No `public_material` name was read. The agent tried `objective` 4 times and `capabilities` once, and all were refused. `reference_method` was unread (flagged, not judged). |
+| Demand | 14 `capability_request` notes, **all artefacts of R3**. There was no genuine request. |
+| Prediction quality | No practice or `run_python` executed. The stated hypotheses are recorded, for example "KNN should be valid", with nothing to compare against. |
+| Economics | 19 calls, all `charged_micro`. Reasoning tokens 0 on every turn. **Cached-input fraction 0.86** (`CACHING_OBSERVED` from turn 3). Every reservation settled at the provider's much smaller charge. |
+
+### Supported environment changes this run adds (proposed owners)
+
+| # | Change | Proposed owner |
+|---|---|---|
+| 8 | Name the offending field in the argument-contract correction, and state plainly that `null` means JSON `null`, not the string `"null"`. Or accept the string `"null"` as null for the three nullable fields. | Launchpad (research surface). Accepting the string is an interface change and needs the owner's decision. |
+| 9 | Do not charge a trial slot for a request refused before dispatch. The step-zero finding again, now measured costing half an epoch's trials. | Launchpad. The owner decides, because it is a budget rule. |
+| 10 | Measure the context ceiling in tokens, or scale the byte bound, so a 65,536-token setting is not a 15,000-token limit. | Launchpad (research loop) |
+| 11 | Do not file refusals as capability requests. | Launchpad |
+| 12 | Say what selector `get_prior` needs. | Launchpad |
+
+**Maturity:** exploratory engineering evidence. There is no scientific
+qualification, and MQ-008 is untouched.
