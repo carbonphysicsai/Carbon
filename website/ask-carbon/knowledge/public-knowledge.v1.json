@@ -13,7 +13,7 @@
     "public_activation_allowed": true,
     "approval_basis": "OWNER_PUBLIC_CONTENT_APPROVAL_2026_09_22_WEB_QA_07_D2",
     "approval_note": "The owner approved the 27 reviewed answer cards and 9 pinned sources for public display on 2026-09-22 (WEB-QA-07-D1), and on the same day approved a dated refresh of the current-progress card (WEB-QA-07-D2): its expiry moves to 2026-10-16, its maturity label becomes DATED_STATUS_2026_09_22, and its answer restates the pinned date as 22 September 2026. No claim, passage, qualification or disclosure class changed. This approves the content only. Serving it still requires ASK_CARBON_ACTIVATION=enabled, which the committed release-candidate config deliberately leaves disabled so that redeploying it remains the fail-closed incident response.",
-    "content_unchanged_since": "Every card and source remains byte-identical to the 2026-09-18 staging-reviewed set except the current-progress card, whose expiry, maturity label and pinned-date clause were refreshed under WEB-QA-07-D2, and its wave-status source, whose revision and url were re-pointed from 90dd9670 to 40174f92 while its sha256 stayed identical because .agent/WAVE.md is byte-identical at both revisions. release_id and knowledge_version are deliberately unchanged, following WEB-QA-07-D1, so existing source pins and historical evidence records stay valid; the file digest moves and is recorded in the decision entry instead.",
+    "content_unchanged_since": "All 27 answer cards, passages, maturity labels, expiry dates and disclosure classes are unchanged from the owner-approved WEB-QA-07-D2 content. On 2026-09-28, the constitution, protocol and business-canon source references were refreshed after reviewing support against the public documentation revision a0bd920f1f1191dde5fdcdbe35c7233aaa2169fb. Their stable source IDs are retained for passage compatibility; revision, URL and SHA-256 identify the refreshed bytes. The other six sources are unchanged. Historical deployment approvals and evidence retain their original manifest digests; this source refresh does not approve a new website or Worker deployment.",
     "notice": "Reviewed public explanations approved for public display. Approval covers the pinned reviewed content only; it is not a scientific, security, production or commercial qualification."
   },
   "candidate_review": {
@@ -24,15 +24,39 @@
     "reviewed_against": "405a820bfdd5a38aa2d498e3dbde3fa15449379f",
     "note": "Useful explanations were repaired or retained only where current governing public sources support them. Candidate wording is not authority."
   },
+  "source_refresh": {
+    "reviewed_at": "2026-09-28",
+    "basis": "Owner-requested GitHub public-documentation update; editorial source-support review by Codex.",
+    "review_record": "website/ask-carbon/evidence/PUBLIC_DOCS_SOURCE_REVIEW_2026_09_28.md",
+    "changed_sources": [
+      {
+        "source_id": "constitution-405a820b",
+        "previous_revision": "405a820bfdd5a38aa2d498e3dbde3fa15449379f",
+        "previous_sha256": "7e088fa32805768453900102446c6691198ad46721469594c5992506357feab5"
+      },
+      {
+        "source_id": "protocol-405a820b",
+        "previous_revision": "405a820bfdd5a38aa2d498e3dbde3fa15449379f",
+        "previous_sha256": "cb66fc9db0d3d2d9c38251c3fdc6e7e88357153a221190f8d760c27375250846"
+      },
+      {
+        "source_id": "business-canon-405a820b",
+        "previous_revision": "405a820bfdd5a38aa2d498e3dbde3fa15449379f",
+        "previous_sha256": "d5a779b5426d63138c91e7e3f2a2b6f01b0c7ec0a1c45b4fc7c80bf38c0c3e59"
+      }
+    ],
+    "card_content_changed": false,
+    "deployment_authorized": false
+  },
   "sources": [
     {
       "id": "constitution-405a820b",
       "title": "Carbon Constitutional Authority Map",
       "repo_path": "CONSTITUTION.md",
-      "sections": ["1 Carbon identity", "3 Scientific authority", "5 Implementation maturity", "11 Publication authority"],
-      "revision": "405a820bfdd5a38aa2d498e3dbde3fa15449379f",
-      "sha256": "7e088fa32805768453900102446c6691198ad46721469594c5992506357feab5",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/405a820bfdd5a38aa2d498e3dbde3fa15449379f/CONSTITUTION.md",
+      "sections": ["1 Carbon identity", "3 Scientific authority", "5 Historical implementation snapshot", "11 Publication authority"],
+      "revision": "a0bd920f1f1191dde5fdcdbe35c7233aaa2169fb",
+      "sha256": "d4eb613f9bce734050051d54c194c7014c9c2b12d6f923f27617faf16cd69abe",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/a0bd920f1f1191dde5fdcdbe35c7233aaa2169fb/CONSTITUTION.md",
       "publication_status": "REVIEWED_PUBLIC_EXISTING",
       "integrity_status": "MATCHED_AT_BUILD",
       "withdrawn_at": null,
@@ -94,10 +118,10 @@
       "id": "protocol-405a820b",
       "title": "Carbon Protocol Specification",
       "repo_path": "SPEC.md",
-      "sections": ["Executive summary", "participant roles", "evaluation and network boundaries"],
-      "revision": "405a820bfdd5a38aa2d498e3dbde3fa15449379f",
-      "sha256": "cb66fc9db0d3d2d9c38251c3fdc6e7e88357153a221190f8d760c27375250846",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/405a820bfdd5a38aa2d498e3dbde3fa15449379f/SPEC.md",
+      "sections": ["1 Mechanism", "2 Responsibilities and technical references", "Current scope and interpretation"],
+      "revision": "a0bd920f1f1191dde5fdcdbe35c7233aaa2169fb",
+      "sha256": "0908a1903b57c2de03b1063f900aca59994921ef9644af6468e3b856b8045f94",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/a0bd920f1f1191dde5fdcdbe35c7233aaa2169fb/SPEC.md",
       "publication_status": "REVIEWED_PUBLIC_EXISTING",
       "integrity_status": "MATCHED_AT_BUILD",
       "withdrawn_at": null,
@@ -108,9 +132,9 @@
       "title": "Carbon Business Canon",
       "repo_path": "Business/Business_Canon.md",
       "sections": ["1 Business identity", "5 Product ladder", "6 First-product doctrine", "7 Commercial outcome", "13 Rights and privacy", "21 Commercial evidence ladder"],
-      "revision": "405a820bfdd5a38aa2d498e3dbde3fa15449379f",
-      "sha256": "d5a779b5426d63138c91e7e3f2a2b6f01b0c7ec0a1c45b4fc7c80bf38c0c3e59",
-      "url": "https://github.com/carbonphysicsai/Carbon/blob/405a820bfdd5a38aa2d498e3dbde3fa15449379f/Business/Business_Canon.md",
+      "revision": "a0bd920f1f1191dde5fdcdbe35c7233aaa2169fb",
+      "sha256": "41c6958520afc9351ae1f7fdb2bfddced3e2fe1392c8f620cebcc349ba6e5451",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/a0bd920f1f1191dde5fdcdbe35c7233aaa2169fb/Business/Business_Canon.md",
       "publication_status": "REVIEWED_PUBLIC_EXISTING",
       "integrity_status": "MATCHED_AT_BUILD",
       "withdrawn_at": null,
