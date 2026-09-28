@@ -13,11 +13,11 @@ from types import SimpleNamespace
 
 import pytest
 
-from carbon.challenge_registry.campaigns import campaign_for
 from carbon.development_session import research_campaign as campaign
 from carbon.development_session.profile import canonical, digest
 from carbon.development_session.research_ledger import CampaignLedger
 from carbon.development_session.research_loop import candidate_record
+from scripts.dev.miner_launchpad.journey_fixture import reference_burgers_campaign
 from scripts.dev.miner_launchpad.operations import OPERATIONS
 from scripts.dev.miner_launchpad.runner import RunnerAdapter
 
@@ -79,7 +79,7 @@ def prepared(tmp_path, monkeypatch, *, agent="none", practiced=(STRATEGY,)):
         task=None,
         grant=None,
         agent_policy=None,
-        campaign=campaign_for(None),
+        campaign=reference_burgers_campaign(),
     )
     return value, submitted
 

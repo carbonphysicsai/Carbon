@@ -1,6 +1,5 @@
 """CLI composition fixtures; no provider, native numerical worker or campaign run."""
 
-import asyncio
 import copy
 import json
 from types import SimpleNamespace
@@ -13,7 +12,6 @@ from test_julia_research import prepared
 from carbon.development_session.advection_research import PublicAdvectionMaterial
 from carbon.development_session.julia_envelope import JuliaEnvelopeMaterial
 from carbon.development_session.julia_research import JuliaPublicMaterial
-from carbon.development_session.profile import canonical
 from carbon.development_session.research_carrier import ACTIVE_TASK
 from carbon.development_session.research_material import PublicMaterial
 from carbon.development_session.research_workspace import ResearchWorkspace
@@ -183,109 +181,17 @@ def test_expired_owned_cleanup_constructs_but_cannot_execute(
 
 
 @pytest.mark.parametrize("kind", ["envelope", "advection"])
-@pytest.mark.parametrize("cleanup", [False, True])
-def test_normal_stdio_factory_attaches_exact_material_and_shared_image(
-    tmp_path, monkeypatch, kind, cleanup
-):
-    """Real CLI owner/control/service composition, fixture external host and transport."""
-    from test_c08_authenticated_miner_mcp import (
-        CONTEXT,
-        NOW,
-        _Adapter,
-        _snapshot,
-        _Verifier,
-    )
+def test_attaching_a_retired_burgers_campaign_is_refused(tmp_path, monkeypatch, kind):
+    """Burgers is retired from the research path. The stdio attach that once
+    composed its scientific-task material now refuses a Burgers campaign (one
+    frozen before Challenges were named) by code, before any composition."""
+    from carbon.challenge_registry import ChallengeRetired
+    from carbon.challenge_registry.campaigns import campaign_for_manifest
 
-    from carbon.development_session.profile import CHALLENGE
-    from carbon.development_session.research_service import make_research_service
-    from carbon.transport.gateway import AuthenticatedGateway
-    from carbon.transport.store import ReceiptJournal
-
-    config = configuration(tmp_path, monkeypatch, kind)
-    ledger, image, roles, authored = config
+    ledger, _, _, _ = configuration(tmp_path, monkeypatch, kind)
     with ledger.db() as db:
         manifest = json.loads(db.execute("SELECT manifest FROM campaign").fetchone()[0])
-    profile_path = tmp_path / "operator.json"
-    document = {"principal": manifest["principal"]}
-    profile_path.write_bytes(canonical(document))
-    profile_path.chmod(0o600)
-    # A granted campaign attaches only through the development path's profile
-    # (C-MLP-02-D11); the shared attach lifecycle is what this exercises.
-    profile = cli.OperatorProfile(
-        profile_path,
-        document,
-        "c" * 32,
-        ledger.root,
-        manifest,
-        cleanup,
-        development_grant=ledger.admission,
-    )
-    initial = make_research_service(
-        root=ledger.root / "research-tasks",
-        ledger=ledger,
-        owner="test-miner",
-        image=image,
-        public_material=attach(config),
-        practice=None,
-        julia_image=authored,
-    )
-    initial.tasks.close()
-    if cleanup:
-        ledger.clock = lambda: ledger.admission.document["expires_unix"] + 1
-
-    snapshot = _snapshot()
-
-    async def observe():
-        return snapshot
-
-    connection = SimpleNamespace(
-        check_registration=observe,
-        chain_context=CONTEXT,
-        publisher="fixture",
-        miner_key=object(),
-        service=SimpleNamespace(
-            gateway=AuthenticatedGateway(
-                CONTEXT,
-                CHALLENGE,
-                "fixture",
-                _Adapter(snapshot),
-                _Verifier(),
-                ReceiptJournal(ledger.root / "transport.sqlite3", CONTEXT),
-                clock_ns=lambda: NOW,
-            )
-        ),
-    )
-
-    async def requester(_connection):
-        return "test-miner"
-
-    seen = []
-
-    def server(adapter):
-        async def run_async():
-            sdk = adapter._sdk
-            selected = sdk.composition.executor.public_material
-            assert type(selected) is (
-                JuliaEnvelopeMaterial if kind == "envelope" else PublicAdvectionMaterial
-            )
-            assert sdk.composition.executor.julia_image is authored
-            if cleanup:
-                assert await sdk.connection.check_cleanup_registration()
-                with pytest.raises(ValueError, match="cleanup-only"):
-                    await sdk.connection.check_registration()
-                with pytest.raises(ValueError):
-                    selected("capabilities", sdk.composition.executor.workspace)
-            else:
-                assert await sdk.connection.check_registration()
-            seen.append(kind)
-
-        return SimpleNamespace(run_async=run_async)
-
-    monkeypatch.setattr(cli, "load_profile", lambda *a, **kw: profile)
-    monkeypatch.setattr(cli, "CampaignLedger", lambda *a, **kw: ledger)
-    monkeypatch.setattr(cli, "_runtime", lambda p: (connection, image, image, roles))
-    monkeypatch.setattr(cli, "_requester", requester)
-    monkeypatch.setattr(cli, "_authored_image", lambda *a: authored)
-    monkeypatch.setattr(cli, "create_stdio_server", server)
-    asyncio.run(cli.serve(profile_path, "c" * 32, cleanup_only=cleanup))
-    assert seen == [kind]
+    assert "challenge" not in manifest
+    with pytest.raises(ChallengeRetired) as refused:
+        campaign_for_manifest(manifest)
+    assert refused.value.public()["code"] == "challenge_retired"

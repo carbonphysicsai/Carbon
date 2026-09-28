@@ -312,3 +312,14 @@ def test_scripted_three_trial_information_flow_and_earlier_selection(tmp_path):
         )
     with pytest.raises(ValueError):
         asyncio.run(run_epoch(meter, **args))
+
+
+@pytest.fixture(autouse=True)
+def _launches_name_a_challenge(monkeypatch):
+    """A launch must name its Challenge; these runner tests launch the
+    DEVELOPMENT-FIXTURE reference Challenge (journey_fixture)."""
+    from scripts.dev.miner_launchpad.journey_fixture import (
+        launch_with_fixture_challenge,
+    )
+
+    launch_with_fixture_challenge(monkeypatch.setattr)

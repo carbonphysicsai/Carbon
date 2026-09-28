@@ -352,10 +352,17 @@ def test_cancelled_shutdown_retains_lease_until_owned_worker_finishes(
 def test_actual_cli_cleanup_mode_attaches_after_the_budget_is_spent(
     tmp_path, monkeypatch, missing_observation
 ):
+    """The real cleanup-only attach, on battery (Burgers is retired): the
+    Challenge's own attach composition serves the retained task."""
+    from test_battery_mcp_research import adapter_for, battery_campaign
+    from test_standard_mcp_cli import BATTERY_ANALYSIS, BATTERY_IMAGE
+
     from carbon.miner_mcp import standard_cli
 
-    path, ledger, owner = prepare(tmp_path, monkeypatch, budget={"elapsed_seconds": 60})
-    composition, adapter = compose(path, ledger, owner, monkeypatch)
+    path, ledger, owner, connection, _ = battery_campaign(
+        tmp_path, monkeypatch, budget={"elapsed_seconds": 60}
+    )
+    composition, _wrapper, adapter = adapter_for(path, ledger, owner, connection)
     composition.tasks.run_queued_task = (
         lambda identity: composition.tasks.task_observation(
             identity, composition.discovery.info.challenge_key, count=False
@@ -376,20 +383,12 @@ def test_actual_cli_cleanup_mode_attaches_after_the_budget_is_spent(
             db.execute("DELETE FROM task_observations")
     composition.tasks.close()
     exhaust_elapsed_budget(ledger)
+    # The same signed fixture connection, whose gateway clock has advanced
+    # past the transmissions above: the receipt journal refuses an earlier one.
     monkeypatch.setattr(
         standard_cli,
         "_runtime",
-        lambda profile: (
-            fixture_connection(profile.root),
-            SimpleNamespace(),
-            SimpleNamespace(),
-            profile.root,
-        ),
-    )
-    monkeypatch.setattr(
-        standard_cli,
-        "_science",
-        lambda *args, **kwargs: (PublicMaterial(None), lambda *a: None),
+        lambda profile: (connection, BATTERY_IMAGE, BATTERY_ANALYSIS, None),
     )
     observed = []
 

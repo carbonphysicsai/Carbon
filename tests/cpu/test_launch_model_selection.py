@@ -45,6 +45,18 @@ OPENAI_KEY = "sk-openai-PLANTED-SPECIMEN-2b81"
 LAUNCH_FIELDS = {"model_provider", "model", "feedback_mode"}
 
 
+@pytest.fixture(autouse=True)
+def _named_challenge(monkeypatch):
+    """Burgers is retired, so a launch must name its Challenge. A launch body
+    here that names none names the registered DEVELOPMENT fixture Challenge,
+    exactly as the other launch tests do."""
+    from scripts.dev.miner_launchpad.journey_fixture import (
+        launch_with_fixture_challenge,
+    )
+
+    launch_with_fixture_challenge(monkeypatch.setattr)
+
+
 def key_file(tmp_path, name, secret, mode=0o600):
     keys = tmp_path / "keys"
     keys.mkdir(mode=0o700, exist_ok=True)
@@ -321,10 +333,20 @@ def test_an_invalid_feedback_mode_is_refused(tmp_path, monkeypatch, mode):
     assert started == []
 
 
-@pytest.mark.parametrize("challenge", [BURGERS, {}])
-def test_feedback_mode_is_refused_outside_the_battery(tmp_path, monkeypatch, challenge):
+@pytest.mark.parametrize(
+    ("challenge", "refusal"),
+    [
+        # A non-battery Challenge (the registered fixture) refuses the mode.
+        ({}, "feedback_mode_is_battery_only"),
+        # Burgers is retired: refused as retired, before any mode is read.
+        (BURGERS, "challenge_retired"),
+    ],
+)
+def test_feedback_mode_is_refused_outside_the_battery(
+    tmp_path, monkeypatch, challenge, refusal
+):
     bridge, started = host(tmp_path, monkeypatch, profile(tmp_path))
-    with pytest.raises(Rejected, match="feedback_mode_is_battery_only"):
+    with pytest.raises(Rejected, match=refusal):
         bridge.launch(
             {"profile": "opaque-profile", **challenge, "feedback_mode": "FULL"}, KEY
         )

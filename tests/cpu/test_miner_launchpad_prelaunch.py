@@ -397,3 +397,14 @@ def test_the_review_pin_binds_the_profile_the_miner_reviewed(tmp_path, monkeypat
     body = {"profile": cfg["profile_id"], "review_digest": fresh}
     first = bridge.launch(body, "fixture-request-0001")
     assert bridge.launch(body, "fixture-request-0001") == first
+
+
+@pytest.fixture(autouse=True)
+def _launches_name_a_challenge(monkeypatch):
+    """A launch must name its Challenge; these runner tests launch the
+    DEVELOPMENT-FIXTURE reference Challenge (journey_fixture)."""
+    from scripts.dev.miner_launchpad.journey_fixture import (
+        launch_with_fixture_challenge,
+    )
+
+    launch_with_fixture_challenge(monkeypatch.setattr)

@@ -1,0 +1,15 @@
+{
+  "map_ref": "SYSTEM/AGENT-EXECUTION",
+  "event_type": "adjustment",
+  "event_id": "C-MLP-02-RETIRE-BURGERS-PATH-01",
+  "owner_lane": "technical_lead",
+  "status": "implemented",
+  "summary": "Burgers is retired from the Launchpad research path, completing the change the Challenge-campaign adapter named as next. The Challenge registry lists Burgers as RETIRED and refuses to resolve it with challenge_retired; there is no default Challenge, so a launch that names none is refused with challenge_required, and campaign_for composes no Burgers campaign. A frozen campaign from before Challenges were named is the retired Burgers campaign: resuming it is refused, while observe, pause, stop and reconcile still work. The stdio attach composes only through a Challenge's own registered campaign. Lifecycle tests run on a development-fixture Challenge registered only for the test's duration. The Burgers code stays in the repository as reference and no scientific, evaluation or disclosure rule changes.",
+  "primary_detail": "carbon/challenge_registry/registry.py",
+  "affects": [
+    "SYSTEM/AGENT-EXECUTION",
+    "WAVE-C/C-W1-D4"
+  ],
+  "supersedes": null,
+  "recorded_at": "2026-09-26T16:00:00Z"
+}

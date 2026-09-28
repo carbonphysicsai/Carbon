@@ -22,24 +22,18 @@ REPOSITORY = Path(__file__).resolve().parents[2]
 sys.path[:0] = [str(REPOSITORY), str(REPOSITORY / "tests/cpu")]
 
 from test_authored_julia_service import assert_removed
-from test_miner_launchpad_runner import registered
 from test_standard_mcp_cli import (
     CAMPAIGN,
     FixtureSigner,
     fixture_connection,
     private_write,
-    unavailable_practice,
 )
 
 from carbon.development_session.julia_analysis import (
-    authored_julia_scope,
     build_julia_analysis_image,
     image_record,
     load_julia_analysis_image,
 )
-from carbon.development_session.research_ledger import PRODUCT, CampaignLedger
-from carbon.development_session.research_material import PublicMaterial
-from carbon.development_session.research_service import make_research_service
 from carbon.miner_mcp import standard_cli
 
 
@@ -57,79 +51,38 @@ def image(tmp_path_factory):
 
 
 def prepare_native(root, worker, monkeypatch):
-    import carbon.chain.auth
-    from scripts.dev.miner_launchpad.runner import PATH_FIELDS
+    """A registration-admitted battery campaign with the host's authored Julia
+    image installed, as a Launchpad profile installs it.
 
-    monkeypatch.setattr(carbon.chain.auth, "BittensorMessageSigner", FixtureSigner)
-    root.chmod(0o700)
-    campaigns = root / "campaigns"
-    campaigns.mkdir(mode=0o700)
-    campaign = campaigns / CAMPAIGN
-    campaign.mkdir(mode=0o700)
-    owner = asyncio.run(standard_cli._requester(fixture_connection(campaign)))
-    runtime = {
-        "implementation": {"revision": "f" * 40},
-        "images": [worker.parent.parent_image, worker.parent.image_id],
-        "authored_research": [authored_julia_scope(worker)],
-    }
-    manifest = {
-        "schema": PRODUCT,
-        "authority": "C-MLP-02-D11",
-        "campaign_id": "cmp-" + CAMPAIGN,
-        "principal": "fixture-operator",
-        "owner": owner,
-        "runtime": runtime,
-        "admission": registered().record(),
-        "implementation": runtime["implementation"],
-        "images": runtime["images"],
-        **dict.fromkeys(
-            (
-                "objective",
-                "sampling",
-                "control",
-                "selection",
-                "replica_policy",
-                "provider",
-            ),
-            "engineering-fixture-only",
-        ),
-    }
-    ledger = CampaignLedger(campaign)
-    ledger.freeze(manifest)
-    private_write(campaign / "campaign-manifest.json", manifest)
-    private_write(
-        campaign / "authored-julia-image.json",
-        image_record(worker),
-    )
-    prepared = make_research_service(
-        root=campaign / "research-tasks",
+    Burgers is retired from the research path, so the native Tasks lifecycle is
+    exercised on battery: a product campaign that declares nothing still
+    reaches the host's Julia image, and battery's own composition routes
+    `run_julia` to it (#388).
+    """
+    from test_battery_mcp_research import battery_campaign
+
+    from carbon.battery.campaign import compose
+
+    path, ledger, owner, connection, _manifest = battery_campaign(root, monkeypatch)
+    # Prepare the research-task store as a launch does, with the real images
+    # and the host's Julia image the attach will compose with.
+    composition, _ = compose(
         ledger=ledger,
         owner=owner,
         image=worker.parent,
+        analysis=worker.parent,
+        connection=connection,
         julia_image=worker,
-        public_material=PublicMaterial(None),
-        practice=unavailable_practice,
     )
-    prepared.tasks.close()
-    # The runner profile names the image record it installs at every attach,
-    # as a real Launchpad profile does when it declares authored research.
-    record = root / "authored-julia-image-record.json"
-    private_write(record, image_record(worker))
-    path = root / "profile.json"
-    private_write(
-        path,
-        {
-            "authored_julia_image": str(record),
-            "schema": "carbon.launchpad.runner-profile.v2",
-            "profile_id": "fixture-profile",
-            "principal": "fixture-operator",
-            "enabled": True,
-            "paths": {name: str(root / (name + ".json")) for name in PATH_FIELDS},
-            "accepted_revision": runtime["implementation"]["revision"],
-            "campaigns_root": str(campaigns),
-            "runtime": runtime,
-        },
-    )
+    composition.tasks.close()
+    record = image_record(worker)
+    private_write(ledger.root / "authored-julia-image.json", record)
+    # The runner profile names the image record it installs at every attach.
+    installed = root / "authored-julia-image-record.json"
+    private_write(installed, record)
+    profile = json.loads(path.read_bytes())
+    profile["authored_julia_image"] = str(installed)
+    private_write(path, profile)
     return path, ledger, owner
 
 
@@ -141,19 +94,13 @@ def serve_native(path):
     research_tools.BittensorMessageSigner = FixtureSigner
 
     def runtime(profile):
+        # The host and its images are the real authored Julia image's; what
+        # follows - registration, the frozen record, control and battery's own
+        # attach composition with the host's Julia image - runs for real.
         worker = load_julia_analysis_image(profile.root / "authored-julia-image.json")
-        return (
-            fixture_connection(profile.root),
-            worker.parent,
-            worker.parent,
-            profile.root,
-        )
+        return fixture_connection(profile.root), worker.parent, worker.parent, None
 
     standard_cli._runtime = runtime
-    standard_cli._science = lambda *args, **kwargs: (
-        PublicMaterial(None),
-        unavailable_practice,
-    )
     return standard_cli.main(["--configuration", str(path), "--campaign", CAMPAIGN])
 
 
