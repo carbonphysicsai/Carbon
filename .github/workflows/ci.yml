@@ -248,11 +248,19 @@ jobs:
           enable-cache: true
           cache-dependency-glob: uv.lock
       - name: Bootstrap locked Carbon environment
+        env:
+          # The real-worker suites open the campaign hotkey (chain), read
+          # numerical arrays (science-jax) and serve over HTTP (mcp).
+          CARBON_UV_GROUPS: "chain archive science-jax mcp"
         run: ./scripts/dev/bootstrap.sh
       - name: Install pinned Workbench Node runtime
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: "24.19.0"
+      # First: the worker image build requires a clean checkout, and the
+      # release checks rebuild tracked artifacts in place.
+      - name: Run the Workbench real-worker suites
+        run: ./scripts/dev/workbench_worker_checks.sh
       - name: Run required Workbench release and application checks
         run: ./scripts/dev/workbench_release_checks.sh
 

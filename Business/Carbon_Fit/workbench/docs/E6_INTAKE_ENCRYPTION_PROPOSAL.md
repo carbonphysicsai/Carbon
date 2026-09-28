@@ -92,7 +92,8 @@ the plaintext copy immediately shortens how long it exists.
 
 **This is built:** the relay states `x-carbon-transport-arrival: PLAINTEXT`, and
 the record then carries `required_disposition:
-PERMANENTLY_REMOVED_WITHOUT_DELAY`. The reply to the client is a human step.
+PURGED_FROM_MAILBOX_WITHOUT_DELAY` (transport-copy schema v2; v1 records say
+`PERMANENTLY_REMOVED_WITHOUT_DELAY`). The reply to the client is a human step.
 The proposal it waited on was approved on 2026-09-23.
 
 ## (d) Publishing the public key

@@ -10252,6 +10252,30 @@ events:
     supersedes: null
     recorded_at: "2026-09-27T12:00:00Z"
   -
+    map_ref: "SYSTEM/BUSINESS-AUTHORITY"
+    event_type: "evidence"
+    event_id: "GOAL-WORKBENCH-15-E6-TRANSPORT-V2-01"
+    owner_lane: "business_authority"
+    status: "implemented"
+    summary: "Repairs what E6's transport-copy states claim. Schema v1's terminal PERMANENTLY_REMOVED asserted a destruction the provider can reverse, since an administrator can restore purged Gmail for a further documented window. Schema v2 renames it and adds the true terminal state: PRESENT_IN_MAILBOX, MOVED_TO_TRASH, PURGED_FROM_MAILBOX (which states until when an administrator could restore the copy) and PROVIDER_RESTORE_WINDOW_ELAPSED, which is refused with 409 while that window is open. States move forward only. The provider's window is recorded as observed behaviour with its source, page date, read date and basis, not as a Carbon retention rule, and is copied into each entry computed from it. The migration is prospective: v1 entries keep their recorded meaning and are never rewritten, a v1 PERMANENTLY_REMOVED moves forward only to the elapsed state, and PERMANENTLY_REMOVED is no longer recordable. No E1-E9 control changes."
+    primary_detail: ".agent/tickets/GOAL-WORKBENCH-15_client_data_engineering.md"
+    affects:
+      - "SYSTEM/BUSINESS-AUTHORITY"
+    supersedes: null
+    recorded_at: "2026-09-27T15:00:00Z"
+  -
+    map_ref: "SYSTEM/BUSINESS-AUTHORITY"
+    event_type: "evidence"
+    event_id: "GOAL-WORKBENCH-15-MAILBOX-WATCH-01"
+    owner_lane: "business_authority"
+    status: "implemented"
+    summary: "Makes the intake mailbox's bounce path watched rather than merely readable. The receiver takes a pooled-storage reading at start and hourly, says on stderr when the mailbox needs attention, and GET /private/mailbox reports whether it is watched. With a credential the watch reaches the provider on every check and a full pool needs attention. Without one it reports NOT_ATTEMPTED_NO_CREDENTIAL, the E6 transport's own term, and says the mailbox is not watched, never silence and never room. This is pinned against the real receiver process. The credential is the owner's and is not configured; no Workspace account was touched."
+    primary_detail: ".agent/tickets/GOAL-WORKBENCH-15_client_data_engineering.md"
+    affects:
+      - "SYSTEM/BUSINESS-AUTHORITY"
+    supersedes: null
+    recorded_at: "2026-09-27T15:20:00Z"
+  -
     map_ref: "SYSTEM/AGENT-EXECUTION"
     event_type: "adjustment"
     event_id: "OWNER-RESEARCH-ENVIRONMENT-01"
@@ -10264,6 +10288,18 @@ events:
       - "SYSTEM/GOVERNANCE"
     supersedes: null
     recorded_at: "2026-09-27T17:58:53Z"
+  -
+    map_ref: "SYSTEM/BUSINESS-AUTHORITY"
+    event_type: "evidence"
+    event_id: "GOAL-WORKBENCH-CI-COVERAGE-01"
+    owner_lane: "business_authority"
+    status: "implemented"
+    summary: "Closes the Workbench CI coverage gap recorded in GOAL-WORKBENCH-12 (OWNER-WORKBENCH-CI-COVERAGE-01). The Workbench job now runs the real-worker suites for the private host and study adapter after its release checks, building the pinned C-03 and Julia workers first, and workbench_scope.py selects the job for the host, the adapter, those suites (read from the script that runs them) and itself. The change is additive: the owner-pinned classify_changes.py and development_scope.py are untouched. The owner chose this knowing every Workbench change pays for the images and suites, and the PR records measured before and after job times."
+    primary_detail: ".agent/tickets/GOAL-WORKBENCH-12_private_service_composition.md"
+    affects:
+      - "SYSTEM/BUSINESS-AUTHORITY"
+    supersedes: null
+    recorded_at: "2026-09-27T22:10:00Z"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"
