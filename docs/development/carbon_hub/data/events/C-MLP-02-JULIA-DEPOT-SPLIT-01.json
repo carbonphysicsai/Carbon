@@ -1,0 +1,15 @@
+{
+  "map_ref": "SYSTEM/CI",
+  "event_type": "adjustment",
+  "event_id": "C-MLP-02-JULIA-DEPOT-SPLIT-01",
+  "owner_lane": "technical_lead",
+  "status": "implemented",
+  "summary": "The authored-Julia precompiled depot is now built from Julia inputs only and reused across commits. Its identity, julia_depot.depot_digest, hashes the Julia version and checksum-pinned archive, the pinned base, the CPU target, the four committed environment files, the bootstraps and the depot's recipe module, and never the Carbon source tree; a test records every file the digest reads and requires exactly those. The depot is built on a Julia-only image and composed onto the Carbon analysis parent, and nothing is recorded until the build shows the parent's Julia tree equals the depot's, the composed depot tree equals the depot's exactly (root included), and every package in both environments loads precompiled under the parent's Julia (with a specimen that fails when the compiled caches are hidden). Provenance is versioned prospectively: new images are analysis-image v2 and scope v3 and record both the parent and the depot; v1 records keep their meaning. The depot is published to ghcr.io/carbonphysicsai/carbon-julia-depot and pinned by digest in scripts/dev/julia_depot.lock.json; CI gains packages: read and adopts it inside julia_worker_service.sh, recomputing its tree digest from the pulled bytes. A lock for other inputs, a failed pull or a failed verification builds cold; verification is never relaxed. DEVELOPMENT only.",
+  "primary_detail": ".github/workflows/ci.yml",
+  "affects": [
+    "SYSTEM/CI",
+    "SYSTEM/AGENT-EXECUTION"
+  ],
+  "supersedes": null,
+  "recorded_at": "2026-09-28T03:50:00Z"
+}

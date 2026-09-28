@@ -55,7 +55,7 @@ def install(root, image):
     """What the runner's `install_research_images` puts in a campaign root."""
     path = root / "authored-julia-image.json"
     path.unlink(missing_ok=True)
-    path.write_bytes(canonical(dict(schema=julia.SCHEMA, **asdict(image))))
+    path.write_bytes(canonical(julia.image_record(image)))
     path.chmod(0o600)
 
 
