@@ -2,9 +2,13 @@
 
 Exact at steady state, whatever the mesh:
   mass     inlet and outlet mass flow agree;
-  energy   m_dot c_p (T_b,out - T_b,in) + inlet conduction = q A_heated,
-           since the lid, the plate ends, the outlet (zero gradient) and both
+  energy   m_dot c_p (T_b,out - T_b,in) + inlet conduction
+           + kinetic-energy flux change = q A_heated.
+           The lid, the plate ends, the outlet (zero gradient) and both
            symmetry planes are adiabatic; the fixed-temperature inlet is not.
+           The solver's enthalpy equation carries div(phi, K), K = |U|^2/2,
+           so the uniform inlet developing into a duct profile moves energy
+           out of h.
 Exact for fully developed flow (Shah & London; White, Viscous Fluid Flow,
 eq. 3-48), for a duct of half-sides a <= b:
   U = a^2 G / (3 mu) [1 - (192 a / (pi^5 b)) sum_{n odd} tanh(n pi b / 2a) / n^5]
@@ -95,6 +99,23 @@ def at_time(case, t, geometry):
     x_first = min(x for x, _, _ in centres)
     first = [tt for (x, _, _), tt in zip(centres, fluid_t) if abs(x - x_first) < 1e-12]
     face_area = geometry["channel_width"] / 2 * geometry["channel_height"] * 1e-6
+    # Kinetic-energy flux through the outlet (zero-gradient U, so face values
+    # are the last cells') less the uniform inlet's.
+    velocity = internal_field(case / t / "fluid" / "U")
+    x_last = max(x for x, _, _ in centres)
+    last = [u for (x, _, _), u in zip(centres, velocity) if abs(x - x_last) < 1e-12]
+    kinetic = (
+        sum(
+            RHO
+            * u[0]
+            * face_area
+            / len(last)
+            * 0.5
+            * (u[0] ** 2 + u[1] ** 2 + u[2] ** 2)
+            for u in last
+        )
+        - m_in * 0.5 * U**2
+    )
     inlet_conduction = sum(
         K_F * (tt - t_in) / x_first * face_area / len(first) for tt in first
     )
@@ -127,6 +148,9 @@ def at_time(case, t, geometry):
         "inlet_conduction_W": inlet_conduction,
         "energy_balance_with_inlet_conduction_rel": (heat_out + inlet_conduction)
         / heat_in
+        - 1,
+        "kinetic_energy_flux_W": kinetic,
+        "energy_balance_complete_rel": (heat_out + inlet_conduction + kinetic) / heat_in
         - 1,
         "bulk_outlet_K": t_out,
         "dp_dx_developed_Pa_m": gradient,
