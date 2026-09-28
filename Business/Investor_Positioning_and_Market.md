@@ -1,394 +1,84 @@
-# Carbon Investor Positioning and Market Plan v1
+# Carbon: business and market
 
-**Status:** OWNER-CANONICAL investor/category architecture.  
-**Purpose:** define how Carbon should be positioned to investors and strategic partners without overstating traction, TAM, network advantage, or future products.
+Carbon is building **discovery and evidence infrastructure for Physics AI**. Its opportunity lies in helping engineering teams choose better fast models, test their physical behavior, and maintain evidence as their designs and models change.
 
----
+This document describes the investment thesis and its remaining tests. [Project status](../docs/publications/PROJECT_STATUS.md) records implementation and research evidence as of 28 September 2026. The commercial plan does not establish customer traction or forecast revenue.
 
-# 1. Category
+## The engineering problem
 
-Preferred category:
+An engineer may use a fast model to evaluate thousands of cooling designs or charging protocols before running expensive simulations on the finalists. That acceleration is useful only if the model preserves the behavior that matters to the decision.
 
-> **Discovery + Evidence Infrastructure for Physics AI**
+Average prediction error leaves several questions open: performance near a physical limit, behavior outside familiar training conditions, reproducibility, and the effect of changing a solver, model, or runtime. Engineering teams must answer those questions before they can expand a model's use.
 
-Company description:
+Carbon aims to make that work reusable. The company combines a defined engineering task, a defensible reference, independent reconstruction, and an evaluation program with explicit limits on what the evidence supports.
 
-> **Carbon is building the independent discovery, evidence, and qualification infrastructure for fast physical models.**
+## First customer engagement
 
-Investor shorthand:
+The **Carbon Evidence Audit** starts with a customer's existing model. Carbon and the customer agree the decision, operating range, reference source, and evaluation scope. The intended deliverable is an evidence package identifying supported behavior, failures, and the next work needed.
 
-> **The evidence and research-market layer for Physics AI.**
+| Audit finding | Potential next engagement |
+|---|---|
+| The model fails in important conditions | Remediation or Sponsored Discovery |
+| The model shows promise within a narrower range | Qualification for that defined use |
+| The customer changes the model or operating conditions | Re-evaluation and lifecycle support |
+| Multiple teams repeat the same evaluation workflow | Enterprise evidence software or API integration |
 
-Avoid positioning Carbon as:
+This sequence lets Carbon learn the customer's workflow before building a broad platform. Repeat purchases and lower delivery cost would provide evidence that the approach can scale.
 
-- a generic “Physics AI platform”;
-- only a neural-operator subnet;
-- a CAE replacement;
-- a token-first marketplace;
-- a universal certification authority.
+## How Carbon can compete
 
----
+Carbon's position is compatible with customers continuing to use their existing CAE tools and model providers. A model builder can supply candidates, a simulation vendor can supply reference calculations, and Carbon can organize independent comparison and further research.
 
-# 2. Investor problem framing
+| Adjacent category | Carbon's intended role |
+|---|---|
+| CAE and high-fidelity simulation | Integrate trusted reference calculations into model evaluation |
+| Physics AI and engineering-AI model builders | Evaluate candidates and organize research on unmet requirements |
+| Engineering validation and data platforms | Add challenge-specific reconstruction, physical checks, and evidence records |
+| Compute and orchestration providers | Use their infrastructure for research and evaluation |
 
-The investor story should begin with a structural shift:
+Well-funded model builders can also develop evaluation capabilities. Carbon's competitive case rests on execution: evaluation across suppliers, a producer-independent grading process, and access to external research through the subnet. Capital raised by another company does not prove or disprove those advantages.
 
-```text
-FAST PHYSICAL MODELS
-become cheaper / easier to create
-        ↓
-THE BOTTLENECK MOVES
-        ↓
-Which method should we use?
-Does the model survive?
-What evidence supports deployment?
-What remains valid when it changes?
-```
+Carbon does not claim that other companies lack validation. The intended distinction is the combination of competitive discovery, independent reconstruction and testing, and evidence tied to a specific engineering use.
 
-Carbon addresses the discovery/evidence/lifecycle bottleneck rather than only model generation.
+## Research network
 
----
+Carbon is developing its network on Bittensor. Researchers and agents explore supported methods; evaluators determine whether a candidate meets the challenge's requirements and improves on the comparison baseline.
 
-# 3. Stack position
+The potential benefit is access to a wider range of approaches without hiring each specialist into the company. Carbon still has to measure whether that produces better results per dollar, faster progress, or capabilities an internal team would struggle to supply. The repository does not establish a proven network advantage over centralized research.
 
-```text
-HIGH-FIDELITY PHYSICS / CAE / EXPERIMENTS
-        ↓
-MODEL BUILDERS / ENGINEERING-AI SYSTEMS
-        ↓
-CARBON
-independent discovery + evidence + qualification
-        ↓
-ENGINEERING DEPLOYMENT / DECISION WORKFLOWS
-```
+The company plans to treat the subnet as a research team and pay for useful output through Alpha buyback and burn. That plan remains separate from the implemented development reward-routing work. See [Network and Alpha](Network_and_Alpha_Value.md) for status and boundaries.
 
-This position allows adjacent companies to be:
+## Revenue and expansion
 
-- competitors for some development work;
-- candidate/model suppliers;
-- truth/solver providers;
-- evidence customers;
-- OEM/API partners;
-- distribution channels.
+The initial revenue design combines scoped evaluation services, reference integration, and finite research programs. As customers repeat those workflows, Carbon plans to add qualification, lifecycle support, subscriptions, usage fees, and API or OEM distribution.
 
-Strategic neutrality is an asset.
+The company must demonstrate that repeat work requires fewer custom engineering hours. Reusable adapters and evidence workflows matter economically only when they reduce cost or improve delivery for a subsequent customer.
 
----
+Longer-term research products could use permitted experiment records to recommend methods and allocate experiments. Carbon must demonstrate that those recommendations improve future decisions before treating Physics Intelligence as a validated product.
 
-# 4. Competitive categories
+## Initial markets
 
-## CAE / simulation incumbents
+The initial direct-sales focus remains aerospace, space and defense, followed by energy, turbomachinery and industrial physics. The partner track includes CAE vendors, engineering-AI platforms, and simulation infrastructure providers.
 
-Strengths:
-- installed base;
-- solver fidelity;
-- workflow ownership;
-- enterprise distribution.
+The engineering launch portfolio is battery fast charging and ageing, AI-chip cold plates, electric motors, and silicon photonics. Those are selected research directions at different stages of readiness. They are not evidence of four commercial products or customers in those industries.
 
-Carbon response:
-- integrate rather than replace where possible;
-- provide independent evidence/discovery across toolchains;
-- pursue OEM/API relationships.
+Carbon's market model uses target enterprises, relevant model programs, and addressable evaluation and research spend. A simulation-market total would provide category context, not Carbon's obtainable revenue. A credible near-term model needs named opportunities, procurement evidence, delivery costs, and repeat demand.
 
-## AI-native engineering/model-building platforms
+## What could compound
 
-Strengths:
-- model creation;
-- design workflows;
-- AI-native engineering UX.
+Each completed engagement could leave Carbon with reusable reference integrations, evaluation workflows, reproduced method knowledge, and a better understanding of customer requirements. Customer rights determine which records and methods Carbon can reuse.
 
-Carbon response:
-- do not become a smaller clone;
-- provide independent evidence/qualification;
-- provide competitive research market where useful;
-- support their models as candidate inputs.
+Over time, those assets could shorten setup, support repeat evaluation, and give external researchers better-defined problems. Their value remains a thesis until Carbon demonstrates repeat use and improved economics.
 
-## Engineering testing / data / validation tools
+## Milestones and risks
 
-Strengths:
-- test optimization;
-- engineering data workflows;
-- validation process integration.
+| Milestone | Evidence an investor can inspect | Main risk it tests |
+|---|---|---|
+| Reliable battery development journey | Retained research, reconstruction, evaluation, recovery, and resource records | A working interface may still fail to support useful research |
+| Qualified challenge and deployment | Reference, scientific, security, and operating evidence for the exact configuration | Correct software may still apply an inadequate exam |
+| First paid Evidence Audit | An agreed scope, delivered evidence, and payment | Engineering interest may not convert to budget |
+| Repeat delivery and expansion | Further engagements with measured effort and margin | Carbon may remain dependent on bespoke services |
+| Useful network research | Comparison of cost, quality, and time against credible alternatives | The subnet may add more overhead than value |
+| Recurring evidence software | Renewals and repeated workflow usage | Customers may need occasional projects rather than a platform |
 
-Carbon response:
-- differentiate through qualified physics-model exams, producer independence, construction-method search, and product/lifecycle evidence.
-
-## HPC / orchestration / compute platforms
-
-Strengths:
-- infrastructure;
-- simulation scale;
-- data/compute management.
-
-Carbon response:
-- treat as substrate/integration partner;
-- do not compete as a GPU scheduler.
-
----
-
-# 5. Differentiation
-
-Carbon's differentiated institutional combination is:
-
-```text
-qualified exam
-+
-producer-independent evaluation
-+
-competitive construction-method discovery
-+
-frontier economics
-+
-bounded product qualification
-+
-lifecycle evidence
-```
-
-Do not claim that individual components are unique where they are not. The differentiation is the integrated system and its authority boundaries.
-
----
-
-# 6. Initial wedge
-
-Investor wedge:
-
-> **Carbon Evidence Audit** — independent evidence for a fast physical model the customer already owns.
-
-Why it matters:
-- lower adoption friction;
-- validates Carbon without replacing the customer's stack;
-- creates revenue before open-market discovery is mature;
-- creates natural expansion into discovery, qualification, lifecycle, and platform.
-
-Network-differentiated wedge:
-
-> **Sponsored Discovery Program** — qualified competitive R&D where external researchers/agents are paid for verified frontier progress.
-
----
-
-# 7. Business-model evolution
-
-```text
-SERVICES / AUDITS
-high-value land motion
-        ↓
-PRODUCTIZED PROGRAMS
-repeatable discovery / qualification
-        ↓
-RECURRING LIFECYCLE
-requalification / support / usage
-        ↓
-ENTERPRISE PLATFORM
-subscription / private workspace
-        ↓
-API / OEM
-software distribution
-        ↓
-NETWORK MARKETPLACE
-scalable external research supply
-        ↓
-PHYSICS INTELLIGENCE
-higher-margin decision products when earned
-```
-
-The investor should see a deliberate revenue-quality transition, not a consulting business with a software aspiration added later.
-
----
-
-# 8. Market model methodology
-
-Do not use one unsourced “Physics AI TAM” number.
-
-## TAM
-
-Use adjacent economic pools only as category context and avoid double counting:
-
-- engineering simulation / CAE;
-- engineering R&D services;
-- industrial digital engineering;
-- model V&V / testing;
-- scientific/engineering AI;
-- simulation infrastructure.
-
-## SAM
-
-Bottom-up:
-
-```text
-target enterprises
-× relevant model/simulation programs per enterprise
-× addressable annual spend across:
-  evidence
-  discovery
-  qualification
-  lifecycle
-  platform
-```
-
-## SOM
-
-Execution-based:
-
-```text
-named target accounts
-× qualified opportunity rate
-× close rate
-× initial ACV
-× expansion / renewal
-```
-
-Hard market figures should live in a dated, sourced investor model rather than being permanently embedded in this architecture document.
-
----
-
-# 9. Moat
-
-Investor moat stack:
-
-```text
-qualified evidence workflows
-+
-truth / solver / representation adapters
-+
-proprietary evaluation / qualification infrastructure
-+
-rights-permitted experiment records
-+
-reproduced construction-method knowledge
-+
-customer workflow integrations
-+
-research-network liquidity
-+
-qualification / lifecycle registry
-+
-future validated Physics Intelligence
-```
-
-The moat compounds as Carbon delivers more programs—subject to customer rights and confidentiality.
-
----
-
-# 10. Network advantage
-
-Investor framing:
-
-> **The subnet is a variable external R&D supply layer: Carbon can expose a well-defined scientific objective to independent researchers and agents and pay for independently verified improvement rather than hiring every specialist centrally.**
-
-This advantage must be proven through metrics such as:
-
-- useful hypotheses per dollar;
-- method diversity;
-- time to verified improvement;
-- marginal discovery cost;
-- frontier performance;
-- access to specialized capability.
-
-If the network does not outperform credible centralized alternatives for a workload, Carbon should not claim that it does.
-
----
-
-# 11. OpCo / network investor story
-
-```text
-CARBON OPCO
-enterprise products + revenue
-        ↕
-explicit economic / workload bridges
-        ↕
-CARBON NETWORK
-external research + validation supply
-```
-
-Investor principles:
-
-- OpCo thesis stands without token appreciation;
-- Alpha utility is additive;
-- fiat-first enterprise sales are acceptable;
-- network usage should correspond to useful scientific work;
-- do not imply revenue-share/buyback economics unless separately adopted and legally reviewed.
-
----
-
-# 12. Investor evidence ladder
-
-```text
-DESIGN
-        ↓
-CUSTOMER DISCOVERY
-        ↓
-PAID PILOT
-        ↓
-REPEATABLE SERVICE
-        ↓
-ACCOUNT EXPANSION
-        ↓
-RECURRING REVENUE
-        ↓
-PLATFORMIZATION
-        ↓
-NETWORK LEVERAGE
-```
-
-Every claim in an investor deck should map to one of these states.
-
----
-
-# 13. Core investor objections
-
-## “This is consulting.”
-
-The risk is real. Evidence against it must be:
-- falling custom hours per engagement;
-- reusable adapters/templates;
-- rising recurring/software share;
-- improving gross margin;
-- platform/API adoption;
-- revenue per technical FTE.
-
-## “Why won't incumbents do this?”
-
-They may. Carbon's defense is neutrality, independent evidence, cross-stack integration, open competitive research supply, and a compounding evidence/qualification system.
-
-## “Why decentralize?”
-
-Because it may provide better variable external search supply. Prove it empirically; do not sell ideology.
-
-## “Why will customers share data/IP?”
-
-Support private/customer-hosted truth and rights-aware evidence reuse. If Carbon cannot meet security/rights requirements, do not claim the market is available.
-
-## “Where does recurrence come from?”
-
-Model/data/solver/runtime/context changes create real re-evidence and requalification demand; multiple models/programs create platform demand.
-
-## “Why is this venture-scale?”
-
-Because the intended evolution is from high-ACV expert-led wedge → recurring evidence infrastructure → enterprise platform/API → marketplace/network leverage, not linear consulting headcount.
-
----
-
-# 14. Recommended investor deck storyline
-
-1. Carbon — Discovery + Evidence Infrastructure for Physics AI
-2. Fast physical models are getting easier to create than to trust
-3. Discovery / evidence / lifecycle bottleneck
-4. Carbon's independent infrastructure layer
-5. Evidence Audit + Sponsored Discovery wedge
-6. Land-and-expand product ladder
-7. Why customers pay
-8. Initial vertical focus
-9. Competitive landscape / stack position
-10. Business model and revenue-quality evolution
-11. Moat / evidence flywheel
-12. Network advantage
-13. De-risking milestones / use of capital
-14. Long-term vision
-
-Technical protocol details belong in diligence appendices, not the core company story.
-
----
-
-# 15. Long-term vision
-
-> **As engineering becomes increasingly AI-native and autonomous, every fast physical model will need an evidence boundary. Carbon aims to become the infrastructure that discovers better methods, records what survives, and tells engineering systems when a fast answer deserves to influence a real decision.**
+Carbon's long-term ambition is to give engineers and engineering agents access to better fast models with an inspectable record of where they work. The near-term task is to prove that sequence with bounded physics challenges and customer evidence.

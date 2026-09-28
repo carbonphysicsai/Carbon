@@ -68,7 +68,8 @@ publishes through a narrow adapter. During C2, Challenge-local result/rank may
 decide whether a new eligible test leader exists; score magnitude never sets
 weight magnitude. Mainnet scientific-economic authority follows fresh
 frontier promotion → `FrontierAdvanceEvent` → `SettlementObligation` →
-treasury settlement. Economic consensus cannot silently rewrite historical
+separate settlement under the adopted routing policy. Treasury is optional
+under `OWNER-C0-REWARD-01`. Economic consensus cannot silently rewrite historical
 scientific evidence.
 
 ## Why validator free-riding is an explicit threat
@@ -102,13 +103,9 @@ lets Carbon test and reuse the application protocol without making SDK objects
 the application ontology, and it preserves the rule that the official exam is
 not miner-facing.
 
-## Why the direct-weight path is testnet-only
-Carbon must prove real chain weight setting before claiming network
-integration, but that proof arrives before frontier and settlement machinery.
-C2 therefore uses an expiring winner-triggered event and intent marked
-`TESTNET_ONLY`, `NON_LIVE`, `NON_SETTLING`, and
-`NOT_FRONTIER_QUALIFIED`. It demonstrates authenticated candidate-to-chain
-wiring; it does not prove Wave-D science or create lasting economic merit.
+## Why development publication does not establish production rewards
+
+The current owner direction is persistent direct winner plus burn, with a treasury optional. The earlier temporary-direct-only design has been superseded on payment routing. Development testnet intents retain their exact non-LIVE and non-settling scope; testing one cannot establish mainnet eligibility. Production operation still needs the applicable scientific, frontier, security, economic, and deployment evidence.
 
 ## Why no winner is an explicit non-paying state
 Omitting a weight update can leave the previous participant economically
@@ -118,14 +115,9 @@ or bad chain binding must instead route to an approved non-paying sink while
 participant miners are zero. The policy is structural; the exact sink
 identity/custody remains a network/economic/security decision.
 
-## Why mainnet routes through treasury
-Direct scientific-winner weights collapse scientific comparison, normalized
-chain allocation, custody, and payout into one mechanism and cannot represent
-per-Challenge obligations cleanly. Treasury routing keeps the production
-chain vector free of raw scores, hidden measurements, thresholds, and payout
-amounts. A frozen scientific event creates an immutable settlement obligation;
-custody and payout execution can retry, fail, or be audited without changing
-the scientific record.
+## Why reward routing stays separate from scientific evidence
+
+`OWNER-C0-REWARD-01` selects direct winner plus burn and makes treasury optional. Scientific comparison remains upstream of either routing mechanism: a chain allocation cannot create, erase, or change an improvement. Any future treasury must preserve that separation. The [network guide](../../Business/Network_and_Alpha_Value.md) also distinguishes protocol rewards from the company's planned Alpha purchases for useful research output.
 
 ## Why CI is constitutional
 Carbon is agent-assisted software with security- and science-critical invariants. Ordinary unit tests are not sufficient if a future change can make the suite green by weakening the invariant itself. Dedicated trust-boundary tests make no-seed-leakage, mock isolation, score semantics, stub non-emission, infra/science separation, and qualification gating mechanically difficult to regress.

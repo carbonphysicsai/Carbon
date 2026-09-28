@@ -1,236 +1,58 @@
-# Carbon Network and Alpha Value Architecture v1
+# Carbon network and Alpha
 
-**Status:** OWNER-CANONICAL business/network value architecture.  
-**Purpose:** define how Carbon OpCo and the Carbon subnet relate economically without assuming that company revenue automatically creates Alpha value or allowing token economics to alter scientific authority.
+Carbon's company develops customer relationships and delivers engineering evidence programs. The Carbon subnet is the planned external research and evaluation network behind eligible work. Alpha is the subnet token. These roles connect, but a company sale, a research result, and a token transaction represent different events.
 
----
+## The network's job
 
-# 1. Separation principle
+Carbon aims to give independent researchers and AI agents a defined physical-modeling problem, a usable research environment, and an evaluation process they do not control. Participants compete to find useful improvements. Evaluators rebuild and test candidates against the challenge's reference and rules.
 
-```text
-CARBON OPCO
-enterprise contracts
-services
-software
-licenses
-qualification
-support
-        ↕ explicit auditable bridges
-CARBON NETWORK
-miners
-validators
-sponsored frontier rewards
-network execution
-Alpha
-scientific treasury
-```
+The business case is access to more useful approaches, specialist capability, or faster progress than Carbon could obtain from one internal team. Carbon must measure that advantage against credible centralized alternatives. Useful hypotheses per dollar, time to verified improvement, reconstruction reliability, and evaluation cost are better evidence than token price.
 
-The company and the network are related but not interchangeable economic systems.
+## How commercial work could create network demand
 
----
+Enterprise customers can pay Carbon in fiat for audits, research, and related services. Carbon plans to use the subnet as a research team and pay for useful output through **Alpha buyback and burn**.
 
-# 2. Core laws
+That is the commercial direction recorded from the founder's 23 September 2026 instruction and reflected in this documentation update. It remains a **plan**, not an implemented payment service or a fixed allocation of company revenue. This update sets no percentage, purchase schedule, automatic liability, or token-holder entitlement. Legal and economic review, treasury controls, implementation, and chain testing remain prerequisites to operating the mechanism.
 
-1. **OpCo revenue does not automatically create Alpha value.**
-2. **Enterprise customers may buy Carbon through conventional fiat procurement.**
-3. **Network value should come from economically useful scientific work.**
-4. **Token mechanics do not determine scientific truth.**
-5. **Commercial settlement and scientific evaluation remain separate.**
-6. **Any direct financial-engineering bridge requires explicit legal/economic/governance review.**
+The intended relationship is customer-funded work, a company research budget, useful subnet output, and company-funded Alpha purchase and burn. The company still needs enough revenue to cover customer delivery, operations, and product development. Carbon must account for these flows without counting a sponsor reward pool or token purchase as additional customer revenue.
 
----
+Alpha ownership alone grants no company equity, profit share, or contractual claim under these documents. Company revenue does not automatically produce Alpha value or guarantee a price outcome.
 
-# 3. Network role in the business
+## Protocol rewards are a separate mechanism
 
-The subnet is intended to become a variable external research and validation supply layer.
+The current engineering direction, `OWNER-C0-REWARD-01`, is **DIRECT_WINNER_PLUS_BURN**. The intended protocol pays eligible winners under the registered reward policy and routes the remainder through an explicit burn path. A treasury is optional and is not a launch dependency on payment routing.
 
-Potential value:
+That protocol direction is separate from the company's planned purchase of Alpha with a commercial research budget. A protocol burn allocation is not evidence that the company has bought and burned tokens.
 
-- larger hypothesis supply;
-- diverse independent construction attempts;
-- external specialist capability;
-- competitive frontier improvement;
-- validator/evaluator supply;
-- sponsor-funded research market.
+| Mechanism | Purpose | Evidence and status |
+|---|---|---|
+| Direct winner plus burn | Route network rewards under the registered policy | Bounded implementation and localnet evidence; no production reward claim |
+| Development all-burn publication | Exercise a constrained testnet publication path | A historical row has verified readback; miner payment, burn amounts, and settlement effects remain unproven |
+| Company buyback and burn | Pay for useful subnet output from a commercial research budget | Planned; terms, review, implementation, and execution evidence outstanding |
+| Sponsor-funded rewards | Add a participant reward pool to an eligible research program | Commercial architecture; not evidence of a funded program |
 
-This is an empirical business hypothesis, not an assumed advantage.
+The [launch path](../launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.7.md), [reward program](../.agent/plans/C0_score_reward_program.md), and [project status](../docs/publications/PROJECT_STATUS.md) provide the technical context. Scientific evidence determines eligibility; neither payment routing nor chain consensus creates physical validity.
 
----
+## Where the network fits
 
-# 4. Workload classification
+Carbon retains three workload classes:
 
-Each commercial activity should be classified:
+| Class | Meaning | Examples |
+|---|---|---|
+| `OFFCHAIN_ONLY` | Work that does not require network execution | Customer discovery, feasibility, and early audits |
+| `NETWORK_ELIGIBLE` | Work that can use the network once the relevant requirements are met | Research with appropriate reference access, privacy, and evaluation controls |
+| `NETWORK_REQUIRED` | A product whose agreed delivery includes network participation | A qualified public Sponsored Discovery program or future Frontier Market |
 
-```text
-OFFCHAIN_ONLY
-NETWORK_ELIGIBLE
-NETWORK_REQUIRED
-```
+Private research needs a qualified private execution and disclosure arrangement before it can use external participants. Carbon does not require token use in customer workflows where it adds no engineering value.
 
-Examples:
+## Sponsorship, services, and treasury
 
-- sales discovery: OFFCHAIN_ONLY;
-- Challenge feasibility: usually OFFCHAIN_ONLY;
-- first Evidence Audits: may be OFFCHAIN_ONLY while product matures;
-- public Sponsored Discovery: NETWORK_REQUIRED when qualified;
-- private Sponsored Discovery: NETWORK_ELIGIBLE only after private topology is qualified;
-- product qualification: separate product plane unless a qualified network role is explicitly designed;
-- Frontier Market: NETWORK_REQUIRED by definition.
+A Sponsored Discovery contract separates Carbon's service/platform fees, evaluation and integration fees, and the sponsor-funded participant reward pool. Sponsors agree success criteria before results exist; they cannot redefine an improvement after observing the winner.
 
-The objective is deliberate migration toward network use where it improves economics, scale, or differentiation—not forced token usage everywhere.
+Future network-native services or stake/collateral requirements need their own product and mechanism review. A separately adopted treasury could hold sponsor funds or settle eligible obligations. It cannot alter a scientific outcome or qualify an engineering product.
 
----
+## Evidence to track
 
-# 5. Alpha value-accrual ladder
+Carbon's commercial reporting should distinguish eligible commercial work from work that used the network. Useful measures include sponsor reward capital, external researcher participation, verified improvements from commercial programs, cost per authoritative result, and research cost versus an internal baseline.
 
-Preferred order:
-
-## A1 — Commercially valuable network work
-
-Customers/sponsors create real programs that require or materially use miners/validators.
-
-This is the strongest form of utility because the network performs work the market values.
-
-## A2 — Sponsor-funded frontier rewards
-
-Commercial sponsors may add reward capital for verified frontier advances.
-
-This creates participant economic opportunity beyond base issuance while remaining scientifically event-bound.
-
-## A3 — Network-native service utility
-
-Possible future utility around:
-
-- Challenge activation;
-- evaluation credits;
-- sponsor reward deposits;
-- network API usage;
-- qualification/evidence jobs where appropriate.
-
-Add only where it improves the product rather than enterprise friction.
-
-## A4 — Stake/collateral/commitment utility
-
-Possible where economic bonding improves behavior, access, or reliability. Requires explicit mechanism review.
-
-## A5 — Financial engineering
-
-Buyback/burn/revenue-share or similar mechanisms are not business-canon defaults. They require separate legal, tax, securities, treasury, liquidity, Bittensor, and governance analysis.
-
----
-
-# 6. Fiat-first customer UX
-
-Preferred enterprise flow:
-
-```text
-CUSTOMER
-USD / conventional procurement
-        ↓
-CARBON OPCO
-commercial contract
-        ↓
-where product requires network work
-network gateway / sponsor reward / treasury
-        ↓
-miners / validators / Alpha economy
-```
-
-Do not require an aerospace or industrial customer to understand token mechanics merely to purchase an Evidence Audit or enterprise platform subscription.
-
----
-
-# 7. Sponsored program economics
-
-A Sponsored Discovery engagement should separate:
-
-```text
-CARBON SERVICE / PLATFORM REVENUE
-+
-EVALUATION / INTEGRATION REVENUE
-+
-SPONSOR-FUNDED PARTICIPANT REWARD POOL
-```
-
-The participant reward is not automatically gross revenue.
-
-Scientific success semantics are frozen prospectively. The sponsor cannot decide after seeing results whether a frontier advance “counts.”
-
----
-
-# 8. Treasury relationship
-
-The network treasury architecture may:
-
-- receive network-side emissions/rewards;
-- hold sponsor-funded reward capital where appropriate;
-- settle FrontierAdvanceEvent-linked payouts;
-- fund qualified research or infrastructure under explicit governance.
-
-It does not:
-
-- create scientific entitlement;
-- override Challenge outcomes;
-- convert OpCo revenue into Alpha value by declaration;
-- certify products.
-
----
-
-# 9. Network utility metrics
-
-Track a `NetworkUtilityConversion` family of metrics rather than relying on token price as product evidence.
-
-Potential metrics:
-
-```text
-commercial_program_value_eligible_for_network
-commercial_program_value_using_network
-network_executed_fraction
-sponsor_reward_capital
-verified_frontier_events_from_commercial_programs
-useful_hypotheses_per_dollar
-verified_improvement_per_dollar
-time_to_frontier_improvement
-external_researcher_participation
-validator_cost_per_authoritative_result
-```
-
----
-
-# 10. Network falsification tests
-
-The subnet earns a stronger business role only if evidence shows advantages over credible centralized alternatives.
-
-Test:
-
-- centralized search vs network search cost;
-- diversity of useful methods;
-- time to verified advance;
-- scientific quality of best candidate;
-- operating overhead;
-- privacy/security impact;
-- participant liquidity;
-- reliability of independent evaluation.
-
-If centralized execution is better for a class of work, Carbon should use the better architecture rather than forcing network use ideologically.
-
----
-
-# 11. Investor communication
-
-Use:
-
-> **The subnet is Carbon's scalable external research and verification market. As commercially valuable programs increasingly route through it, the network gains utility from real scientific work.**
-
-Avoid:
-
-- “Company revenue automatically flows to Alpha.”
-- “Alpha holders receive OpCo profits” unless a separately adopted legal structure actually establishes this.
-- “Token price proves product-market fit.”
-- “Every customer must buy Alpha.”
-
----
-
-# 12. Network north star
-
-> **Create Alpha value by making the Carbon subnet economically useful and increasingly necessary to valuable scientific work, while keeping enterprise UX simple and scientific authority independent of token economics.**
+The network thesis strengthens if customers fund useful work, researchers produce better candidates, evaluators reproduce the results, and Carbon can deliver the output at sustainable cost. [Business plan](Business_Plan.md) covers the company milestones that accompany this thesis.

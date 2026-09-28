@@ -1,7 +1,7 @@
 # Carbon Business Canon v1
 
 **Status:** OWNER-CANONICAL business section of the Carbon canon.  
-**Purpose:** preserve the durable business principles learned through the commercial, revenue, pricing, GTM, investor, and market-positioning gauntlets.  
+**Purpose:** define Carbon's commercial principles, product sequence, and evidence requirements.
 **Scope:** company/business architecture outside the scientific loop.  
 **Does not override:** scientific specifications, Challenge qualification, Score Packs, validator rules, Product Qualification Packs, or treasury protocol specifications.
 
@@ -9,21 +9,11 @@
 
 # 1. Business identity
 
-> **Carbon is building the discovery, evidence, and qualification infrastructure for fast physical models.**
+Carbon is building **discovery and evidence infrastructure for Physics AI**: research and evaluation that help engineers find better fast models and establish where they can rely on them.
 
-Investor/company expression:
+The company plans to start with independent Evidence Audits, expand into sponsored research and qualification, and develop recurring evidence software as customers repeat those workflows. Carbon can work across customers' existing solvers, models, and engineering tools.
 
-> **Carbon lands through high-value independent evidence and sponsored R&D programs, converts repeated workflows into enterprise software and APIs, uses an open research network to scale discovery, and monetizes qualification and model lifecycle as recurring infrastructure.**
-
-Category:
-
-> **Discovery + Evidence Infrastructure for Physics AI**
-
-Investor shorthand:
-
-> **The evidence and research-market layer for Physics AI.**
-
-Carbon is not required to own the customer's CAE stack, high-fidelity solver, model architecture, or engineering workflow. It can sit across those systems as an independent discovery/evidence layer.
+These are commercial principles and product plans. The [project status](../docs/publications/PROJECT_STATUS.md) records current implementation and research evidence; customer records must establish commercial traction.
 
 ---
 
@@ -455,7 +445,7 @@ Rules:
 3. Network value should come from genuine economically useful network work.
 4. Sponsored rewards can create additional participant incentives where appropriate.
 5. Network-native service utility may be added where it improves the product rather than customer friction.
-6. Buyback/burn/revenue-share or similar financial mechanisms require separate legal/economic review before adoption.
+6. Carbon plans to treat the subnet as a research team and pay for useful output through Alpha buyback and burn, following the founder direction of 23 September 2026. This is a planned commercial mechanism, not an implemented payment policy. Legal/economic review and explicit operating terms remain required; no percentage, revenue share, token-holder right, or launch authority follows. See [Network and Alpha](Network_and_Alpha_Value.md).
 
 Canon law:
 

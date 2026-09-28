@@ -1,92 +1,32 @@
-# Carbon Business — Canonical Documentation Map
+# Carbon business
 
-**Status:** OWNER-CANONICAL business documentation on `main`.  
-**Purpose:** define Carbon's company/business architecture outside the scientific decision loop.  
-**Boundary:** these documents govern business strategy, commercial packaging, GTM, investor framing, and company/network value-capture design. They do **not** define scientific truth, Challenge qualification, scoring, validator behavior, or product scientific qualification criteria.
+Carbon is building discovery and evidence infrastructure for Physics AI. Engineering teams need fast models for design exploration and repeated prediction, together with evidence that those models work under the conditions that matter.
 
----
+The commercial entry point is an **Evidence Audit** for a model a customer already owns. **Sponsored Discovery** adds competitive research when the customer needs a better method. Qualification, lifecycle support, and evidence software form the planned expansion path.
 
-## Read order
+These documents describe company strategy and commercial design. They do not establish paid customers, recurring revenue, or production qualification. For implementation and research evidence, read [Project status](../docs/publications/PROJECT_STATUS.md).
 
-1. [`Business_Canon.md`](./Business_Canon.md) — durable business principles and claim discipline.
-2. [`Business_Plan.md`](./Business_Plan.md) — integrated company plan.
-3. [`Product_and_Revenue_Architecture.md`](./Product_and_Revenue_Architecture.md) — product ladder, revenue rails, land-and-expand.
-4. [`Commercial_Operating_Model.md`](./Commercial_Operating_Model.md) — engagement objects, rights/privacy, truth-access modes, deliverables, acceptance, and SOW controls.
-5. [`Go_To_Market.md`](./Go_To_Market.md) — buyers, sales motions, vertical sequencing, opportunity qualification, and account expansion.
-6. [`Investor_Positioning_and_Market.md`](./Investor_Positioning_and_Market.md) — category, competitive position, moat, investor narrative, market-model method.
-7. [`Financial_Engine.md`](./Financial_Engine.md) — unit economics, revenue-quality transition, margin architecture, scenario-model rules.
-8. [`Network_and_Alpha_Value.md`](./Network_and_Alpha_Value.md) — OpCo/network separation and explicit paths by which commercial use can create network utility.
-9. [`Design_Questions.md`](./Design_Questions.md) — deeper business-lead working queue and historical question framing.
-10. [`../docs/context/MASTER_OPEN_DESIGN_QUESTIONS.md`](../docs/context/MASTER_OPEN_DESIGN_QUESTIONS.md) — **canonical cross-domain open-question queue**, including the de-duplicated business questions and current architect recommendations/proof paths.
+## Reading guide
 
-> **Open-question authority:** `Business/Design_Questions.md` remains useful domain context, but canonical OPEN/ratification status now lives in `docs/context/MASTER_OPEN_DESIGN_QUESTIONS.md` so scientific, protocol, business, legal, treasury, network, and publication decisions cannot drift into separate authoritative queues.
+| Document | Covers |
+|---|---|
+| [Business and market](Investor_Positioning_and_Market.md) | Customer problem, competition, growth thesis, and milestones |
+| [Products and revenue](Product_and_Revenue_Architecture.md) | What customers would buy and how engagements could expand |
+| [Network and Alpha](Network_and_Alpha_Value.md) | Research supply, reward routing, and the planned company payment mechanism |
+| [Business plan](Business_Plan.md) | Delivery sequence, economics, risks, and measures of progress |
+| [Go-to-market](Go_To_Market.md) | Target buyers, initial verticals, partners, and opportunity qualification |
+| [Commercial operating model](Commercial_Operating_Model.md) | Scope, reference access, rights, privacy, and acceptance |
+| [Financial model](Financial_Engine.md) | Cost accounting, revenue quality, and planning assumptions |
+| [Business canon](Business_Canon.md) | Durable commercial principles and scientific boundaries |
 
----
+## Company and network
 
-## Company thesis
+The company owns customer relationships and delivery obligations. The subnet provides a route to external research and evaluation. Enterprise buyers can procure services in fiat; they do not need to manage tokens to commission an audit.
 
-> **Carbon is building the discovery, evidence, and qualification infrastructure for fast physical models. It lands through high-value independent evidence and sponsored R&D programs, converts repeated workflows into enterprise software and APIs, uses an open research network to scale discovery, and monetizes qualification and model lifecycle as recurring infrastructure.**
+Carbon plans to pay for useful subnet output through Alpha buyback and burn. The [network document](Network_and_Alpha_Value.md) explains its planned status and separates it from protocol rewards. Neither the business plan nor token ownership establishes a claim on company revenue.
 
-The business model is deliberately hybrid:
+## Commercial responsibilities
 
-```text
-SERVICES
-land the customer and solve valuable integration/evidence problems
-        ↓
-ENTERPRISE PLATFORM
-make repeated workflows recurring and software-led
-        ↓
-NETWORK MARKETPLACE
-scale discovery and external research supply
-        ↓
-QUALIFICATION + LIFECYCLE
-increase contract value and retention
-        ↓
-PHYSICS INTELLIGENCE
-compound evidence into higher-margin decision products only when earned
-```
+The business team defines target customers, packaging, pricing, contracts, and delivery terms. Scientific owners define the evidence needed to support a claim. A customer payment cannot lower that standard or change a result after evaluation.
 
-> **Services get Carbon into the customer. Platform makes the relationship recurring. The network makes discovery scalable. Qualification increases contract value. Lifecycle increases retention. Physics intelligence compounds the moat.**
-
----
-
-## Authority rule
-
-Business documents may decide:
-
-- target customers and verticals;
-- product packaging;
-- pricing and contracts;
-- sales process;
-- privacy and commercial deployment modes;
-- commercial rights and licensing strategy;
-- OpCo/network economic interfaces;
-- fundraising narrative;
-- business milestones.
-
-Business documents may **not** weaken or change scientific evidence requirements to create a sale, payout, qualification, or investor claim.
-
----
-
-## Maturity discipline
-
-Every commercial claim should be labeled by evidence state where material:
-
-```text
-DESIGN
-CUSTOMER-DISCOVERY EVIDENCE
-PAID PILOT
-REPEATABLE SERVICE
-EXPANSION
-RECURRING REVENUE
-PLATFORMIZED
-NETWORK-LEVERAGED
-```
-
-Do not present architecture as traction.
-
----
-
-## Publication linkage
-
-Public papers and presentation guidance should reconcile against this business stack through [`../docs/publications/README.md`](../docs/publications/README.md). Publications may explain the business architecture but do not supersede it or convert design assumptions into customer evidence.
+The [cross-domain decision register](../docs/context/MASTER_OPEN_DESIGN_QUESTIONS.md) tracks unresolved decisions. [Business design questions](Design_Questions.md) retains supporting working material. [Publications](../docs/publications/README.md) explains how public summaries relate to those records.
