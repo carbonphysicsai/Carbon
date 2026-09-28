@@ -4,6 +4,8 @@ The Workbench helps an engineering team turn a modeling opportunity into a scope
 
 The public onboarding edition runs in the visitor's browser and exports a draft for Carbon review. Its structural checks identify missing information; they do not run a physics exam or qualify a model. The internal service and intake paths have separate access and deployment requirements.
 
+The internal scientific-study host currently depends on the public Burgers challenge. When the registry marks that challenge retired, the host refuses study commands until another admitted challenge can support them. Public scoping and the separate team intake receiver are unaffected. The [runbook](PRIVATE_SERVICE_RUNBOOK.md) records this operating boundary.
+
 Start with `Carbon_Public_Workbench_Onboarding.html` for local scoping, or the [private service runbook](PRIVATE_SERVICE_RUNBOOK.md) for operator setup. GitHub's file view does not host the application. See [Project status](../../../docs/publications/PROJECT_STATUS.md) for the wider development record.
 
 ## Implementation history and operator notes

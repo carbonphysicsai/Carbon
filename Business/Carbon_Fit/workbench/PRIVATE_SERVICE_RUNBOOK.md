@@ -137,6 +137,16 @@ restart.
 
 ## 5. Start
 
+**When Burgers is retired, this host has nothing to serve.** Every Workbench
+study runs on the fixed public Burgers definition. When the Challenge registry
+marks Burgers `RETIRED`, every command (`check`, `serve`, `register-draft`,
+`revoke-draft`, `list-drafts`) refuses by name, before it reads a profile or
+attaches a campaign, and exits `3`. Exit `2` still means a configuration that
+could not be used. This is the owner's decision of 2026-09-27: studies go dark
+until an admitted Challenge hosts them. The team receiver is a separate process
+and is unaffected.
+
+
 ```bash
 .venv/bin/python -m carbon.scientific_tasks.workbench_host serve \
   --configuration /private/carbon-workbench/runner-profile.json \
