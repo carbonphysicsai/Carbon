@@ -283,6 +283,9 @@ class LaunchChoice:
 
     selection: object = None
     feedback_mode: str | None = None
+    #: The launch's settings overrides, exactly as `select` accepted them.
+    #: None keeps the pinned defaults and the historical args shape.
+    settings: dict | None = None
 
     def apply(self, args):
         if self.selection is not None:
@@ -290,6 +293,8 @@ class LaunchChoice:
                 "provider_id": self.selection.provider_id,
                 "model_id": self.selection.model_id,
             }
+            if self.settings is not None:
+                args.model_selection["settings"] = dict(self.settings)
             args.api_key_file = Path(self.selection.credential.reference)
         if self.feedback_mode is not None:
             args.feedback_mode = self.feedback_mode
@@ -719,6 +724,13 @@ class RunnerAdapter:
             if mode not in getattr(battery, "FEEDBACK_MODES", ("FULL",)):
                 raise Rejected("feedback_mode_not_supported_by_this_runtime", 409)
         provider, model = request.get("model_provider"), request.get("model")
+        settings = request.get("model_settings")
+        if settings is not None:
+            # Settings modify a selection; without a provider nothing uses them.
+            if provider is None:
+                raise Rejected("model_provider_required")
+            if type(settings) is not dict:
+                raise Rejected("model_selection_refused")
         selection = None
         if provider is not None or model is not None:
             if provider is None:
@@ -741,6 +753,7 @@ class RunnerAdapter:
                     provider_id=provider,
                     model_id=model,
                     credential={"kind": "file", "reference": path},
+                    settings=settings,
                 )
                 budget = miner_budget(request.get("budget"))
                 check_budget(selection, budget.get("ceilings"))
@@ -748,7 +761,11 @@ class RunnerAdapter:
                 raise Rejected("model_selection_refused", 409) from None
         if selection is None and mode is None:
             return None
-        return LaunchChoice(selection=selection, feedback_mode=mode)
+        return LaunchChoice(
+            selection=selection,
+            feedback_mode=mode,
+            settings=None if settings is None else dict(settings),
+        )
 
     def launch_admitted(self, admitted, request):
         """Record and dispatch an admitted launch."""

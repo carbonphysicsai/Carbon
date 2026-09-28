@@ -10279,6 +10279,18 @@ events:
   -
     map_ref: "SYSTEM/BUSINESS-AUTHORITY"
     event_type: "evidence"
+    event_id: "GOAL-WORKBENCH-STUDIES-RETIRED-01"
+    owner_lane: "business_authority"
+    status: "implemented"
+    summary: "Records the owner's decision (OWNER-WORKBENCH-STUDIES-RETIRED-01) that Workbench scientific studies go dark when Burgers is retired from the research path. Every study runs on the fixed public Burgers definition and no other admitted Challenge hosts them. When the Challenge registry marks Burgers RETIRED, every Workbench host command refuses by name before loading a profile or attaching a campaign, and exits 3; until then the host is unchanged. The refusal is pinned in both registry states, and the tests that drive a working Burgers study skip by name only while Burgers is retired. It lands before Launchpad's #366 so main never carries a host that fails at attach. The team receiver, E1-E9 and E8 are untouched; no client is affected."
+    primary_detail: "Business/Carbon_Fit/workbench/PRIVATE_SERVICE_RUNBOOK.md"
+    affects:
+      - "SYSTEM/BUSINESS-AUTHORITY"
+    supersedes: null
+    recorded_at: "2026-09-27T14:40:00Z"
+  -
+    map_ref: "SYSTEM/BUSINESS-AUTHORITY"
+    event_type: "evidence"
     event_id: "GOAL-WORKBENCH-15-E6-TRANSPORT-V2-01"
     owner_lane: "business_authority"
     status: "implemented"

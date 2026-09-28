@@ -73,6 +73,16 @@ FIELDS = {
         "string",
         "The model id at that provider. Omitted: the provider's default.",
     ),
+    "model_settings": (
+        "object",
+        (
+            "Optional overrides of the chosen model's settings: any of "
+            "max_input_tokens, max_output_tokens, reasoning_effort and "
+            "timeout_seconds, within the provider selection's bounds. Needs "
+            "model_provider; recorded in the campaign manifest. Omitted: the "
+            "pinned defaults."
+        ),
+    ),
     "feedback_mode": (
         "string",
         (
@@ -146,6 +156,7 @@ OPERATIONS = {
                     "challenge_version",
                     "model_provider",
                     "model",
+                    "model_settings",
                     "feedback_mode",
                 }
             ),

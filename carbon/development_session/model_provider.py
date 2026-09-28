@@ -1203,16 +1203,23 @@ def messages_response(response):
     translated = None
     if type(usage) is dict:
         fresh = _count(usage.get("input_tokens"))
-        read = _count(usage.get("cache_read_input_tokens")) or 0
-        written = _count(usage.get("cache_creation_input_tokens")) or 0
+        # An absent cache count is unknown, never zero: a provider that omits
+        # it (Engy's Messages endpoint did) must read as CACHE_NOT_REPORTED,
+        # not as a cache that missed every turn. Pricing already treats an
+        # unknown cached count as all uncached.
+        read = _count(usage.get("cache_read_input_tokens"))
+        written = _count(usage.get("cache_creation_input_tokens"))
         translated = {
-            "input_tokens": None if fresh is None else fresh + read + written,
+            "input_tokens": (
+                None if fresh is None else fresh + (read or 0) + (written or 0)
+            ),
             "output_tokens": usage.get("output_tokens"),
-            "input_tokens_details": {
+        }
+        if read is not None or written is not None:
+            translated["input_tokens_details"] = {
                 "cached_tokens": read,
                 "cache_creation_tokens": written,
-            },
-        }
+            }
         details = usage.get("output_tokens_details")
         reasoning = (
             details.get("reasoning_tokens")
