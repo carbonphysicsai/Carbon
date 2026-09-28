@@ -12,76 +12,71 @@ from __future__ import annotations
 import json
 import math
 import struct
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from pathlib import Path
 
 from carbon.reconstruction.worker.docker_runtime import DockerCLI
 
 from .data import write_once
+from .julia_depot import (
+    ANALYSIS_ROOT,
+    ARCHIVE,
+    CPU_TARGET,
+    DEFAULT_ENVIRONMENT,
+    DEPOT_LABEL,
+    ENVIRONMENT_ROOT,
+    ENVIRONMENTS,
+    JULIA_ROOT,
+    TREE_LABEL,
+    VERSION,
+    bootstrap_for,
+    environment_files,
+)
+from .julia_depot_build import (
+    JuliaDepotIdentity,
+    build_depot,
+    tree_digest,
+    verify_depot,
+)
 from .profile import canonical, digest
 from .research_image import ResearchImageIdentity, build_analysis_image, verify_image
 
+__all__ = [
+    "ANALYSIS_ROOT",
+    "ARCHIVE",
+    "BOOTSTRAP",
+    "CPU_TARGET",
+    "DEFAULT_ENVIRONMENT",
+    "ENVIRONMENTS",
+    "ENVIRONMENT_ROOT",
+    "SCHEMA",
+    "SCHEMA_V2",
+    "VERSION",
+    "JuliaDepotIdentity",
+    "JuliaResearchImageIdentity",
+    "authored_julia_scope",
+    "authorize_julia",
+    "bootstrap_for",
+    "build_julia_analysis_image",
+    "environment_files",
+    "image_record",
+    "load_julia_analysis_image",
+    "run_julia",
+    "runtime_document",
+    "runtime_document_v2",
+    "validate_julia_output",
+    "verify_julia_image",
+]
+
+#: Images built before the depot split. Their runtime digest hashes the Carbon
+#: parent together with the Julia inputs, and every record written under this
+#: schema keeps that meaning: it is read, verified and scoped exactly as it was.
 SCHEMA = "carbon.authored-julia.analysis-image.v1"
-VERSION = "1.13.0"
-ARCHIVE = "sha256:8975da61c128a5e5ded3e719e868da8c8781deb7ad7913d37fb99be02a81904b"
-
-#: Two pinned package environments, because the newest SciML core cannot yet
-#: coexist with the packages that have not migrated to it (owner decision,
-#: 23 September 2026). `current` carries the newest core - ModelingToolkit 11,
-#: Symbolics 7, OrdinaryDiffEq 7, SciMLBase 3 - and everything compatible with
-#: it; `pde` carries NeuralPDE, MethodOfLines and DataDrivenDiffEq on the prior
-#: core. Each is a committed Project.toml and Manifest.toml: every package and
-#: binary artifact pinned by content hash, installed and precompiled when the
-#: image is built, never at request time.
-ENVIRONMENTS = ("current", "pde")
-DEFAULT_ENVIRONMENT = "current"
-ENVIRONMENT_ROOT = Path(__file__).resolve().parent / "julia_environments"
-ANALYSIS_ROOT = "/opt/carbon-julia-analysis"
-
-#: Precompiled once for a portable set of x86-64 targets - Julia's own release
-#: target - so one image serves every miner's host rather than the builder's.
-CPU_TARGET = "generic;sandybridge,-xsaveopt,clone_all;haswell,-rdrnd,base(1)"
-
-
-def environment_files(name):
-    """The committed Project.toml and Manifest.toml bytes for one environment."""
-    if name not in ENVIRONMENTS:
-        raise ValueError("unknown authored Julia environment")
-    directory = ENVIRONMENT_ROOT / name
-    return (
-        (directory / "Project.toml").read_bytes(),
-        (directory / "Manifest.toml").read_bytes(),
-    )
-
-
-def bootstrap_for(name):
-    """The fixed worker bootstrap for one environment. The miner chooses which
-    environment, never a path, project, depot or flag."""
-    if name not in ENVIRONMENTS:
-        raise ValueError("unknown authored Julia environment")
-    project = f"{ANALYSIS_ROOT}/{name}"
-    return f"""import os,shutil
-from pathlib import Path
-work=Path('/scratch/workspace');work.mkdir()
-Path('/scratch/output').mkdir()
-# A writable per-run depot first: packages such as GPUCompiler (under Enzyme)
-# create scratch space when they load. The image depot stays read-only and
-# still supplies every pinned, precompiled package.
-Path('/scratch/julia-depot').mkdir()
-for item in Path('/input').iterdir():
-    if item.name!='program.jl':shutil.copyfile(item,work/item.name)
-os.chdir(work)
-env={{'PATH':'/opt/carbon-julia/bin:/usr/bin:/bin','HOME':'/scratch/home',
-     'TMPDIR':'/scratch/tmp','LANG':'C.UTF-8',
-     'JULIA_DEPOT_PATH':'/scratch/julia-depot:{ANALYSIS_ROOT}/depot',
-     'JULIA_LOAD_PATH':'{project}:@stdlib',
-     'JULIA_PROJECT':'{project}','JULIA_PKG_OFFLINE':'true',
-     'JULIA_PKG_SERVER':'','JULIA_PKG_PRECOMPILE_AUTO':'0',
-     'JULIA_NUM_THREADS':'1','OPENBLAS_NUM_THREADS':'1','OMP_NUM_THREADS':'1'}}
-os.execve('/opt/carbon-julia/bin/julia',['julia','--startup-file=no',
-    '--history-file=no','--project={project}',
-    '--compiled-modules=existing','--threads=1','--','/input/program.jl'],env)
-"""
+#: Images composed from a separately built depot (`julia_depot`). The runtime
+#: digest names both the Carbon parent and the depot; only the depot, whose
+#: identity is Julia inputs alone, is reused across commits.
+SCHEMA_V2 = "carbon.authored-julia.analysis-image.v2"
+RUNTIME_LABEL = "org.opencontainers.image.carbon.authored-julia.runtime"
 
 
 #: The default environment's bootstrap, for the registered routes that run
@@ -94,9 +89,12 @@ class JuliaResearchImageIdentity:
     image_id: str
     parent: ResearchImageIdentity
     runtime_digest: str
+    #: None for a v1 image; the depot it was composed from for a v2 image.
+    depot: JuliaDepotIdentity | None = None
 
 
 def runtime_document(parent):
+    """The v1 runtime document, unchanged: historical v1 digests mean this."""
     if type(parent) is not ResearchImageIdentity:
         raise ValueError("separate public analysis parent required")
     return {
@@ -121,12 +119,49 @@ def runtime_document(parent):
     }
 
 
+def runtime_document_v2(parent, depot):
+    """What ran: the exact Carbon parent and the exact depot composed onto it.
+
+    The parent stays part of the composed runtime's identity - it is a true fact
+    about what ran. It is not part of the depot's identity, which is the only
+    thing reused across commits.
+    """
+    if type(parent) is not ResearchImageIdentity:
+        raise ValueError("separate public analysis parent required")
+    if type(depot) is not JuliaDepotIdentity:
+        raise ValueError("separate authored Julia depot required")
+    return {
+        "schema": SCHEMA_V2,
+        "parent_image": parent.image_id,
+        "parent_runtime": parent.runtime_digest,
+        "depot_image": depot.image_id,
+        "depot_digest": depot.depot_digest,
+        "depot_tree": depot.tree_digest,
+        "julia_version": VERSION,
+        "julia_archive": ARCHIVE,
+        "composer": digest(Path(__file__).read_bytes()),
+        "scope": "PUBLIC_MINER_AUTHORED_JULIA_NO_EVALUATOR",
+        "qualification": False,
+    }
+
+
+def _expected_runtime(image):
+    if image.depot is None:
+        return digest(canonical(runtime_document(image.parent)))
+    return digest(canonical(runtime_document_v2(image.parent, image.depot)))
+
+
 def verify_julia_image(image, cli=None):
+    """Check a v1 or v2 image against its own schema; never one against the
+    other. A failure is final for this image: the builder rebuilds rather than
+    relaxes."""
     if type(image) is not JuliaResearchImageIdentity:
         raise ValueError("separate authored Julia image required")
     cli = cli or DockerCLI()
     verify_image(image.parent, cli)
-    expected = digest(canonical(runtime_document(image.parent)))
+    if image.depot is not None:
+        verify_depot(image.depot, cli)
+    expected = _expected_runtime(image)
     if image.runtime_digest != expected:
         raise ValueError("authored Julia runtime source differs")
     metadata = cli.json(["image", "inspect", image.image_id, "--format", "{{json .}}"])
@@ -144,17 +179,89 @@ def verify_julia_image(image, cli=None):
         or config.get("Entrypoint") != parent.get("Config", {}).get("Entrypoint")
         or labels.get("org.opencontainers.image.carbon.julia.tarball") != ARCHIVE
         or labels.get("org.opencontainers.image.carbon.julia.version") != VERSION
-        or labels.get("org.opencontainers.image.carbon.authored-julia.runtime")
-        != expected
+        or labels.get(RUNTIME_LABEL) != expected
         or not layers
         or metadata.get("RootFS", {}).get("Layers", [])[: len(layers)] != layers
     ):
         raise ValueError("authored Julia image binding differs")
+    if image.depot is not None and (
+        labels.get(DEPOT_LABEL) != image.depot.depot_digest
+        or labels.get(TREE_LABEL) != image.depot.tree_digest
+        # The depot copy and the one-directory chmod that restores its root.
+        or len(metadata.get("RootFS", {}).get("Layers", [])) != len(layers) + 2
+    ):
+        raise ValueError("authored Julia depot composition differs")
     return image
 
 
+#: Run in the composed image under the parent's own Julia, with the depot
+#: read-only: every package each environment names must load from the depot's
+#: existing compiled cache. A package that would recompile at request time
+#: means the composed environment is not the one that was built.
+PRECOMPILED_CHECK = """using Pkg
+deps = Pkg.project().dependencies
+missing = String[]
+for (name, uuid) in deps
+    id = Base.PkgId(uuid, name)
+    Base.in_sysimage(id) && continue
+    Base.isprecompiled(id) || push!(missing, name)
+end
+isempty(missing) || (println(stderr, join(sort(missing), ",")); exit(3))
+println(length(deps))
+"""
+
+
+def _precompiled_arguments(image, name, *, hide_compiled=False):
+    """`docker run` arguments for PRECOMPILED_CHECK in one environment.
+
+    `hide_compiled` mounts an empty directory over the depot's compiled caches:
+    the specimen that shows the check fails when the caches are not there.
+    """
+    hidden = (
+        [f"--mount=type=tmpfs,destination={ANALYSIS_ROOT}/depot/compiled"]
+        if hide_compiled
+        else []
+    )
+    return [
+        "run",
+        "--rm",
+        "--network=none",
+        "--read-only",
+        "--tmpfs=/tmp",
+        "--user=65532:65532",
+        *hidden,
+        f"--entrypoint={JULIA_ROOT}/bin/julia",
+        f"--env=JULIA_DEPOT_PATH=/tmp/julia-depot:{ANALYSIS_ROOT}/depot",
+        f"--env=JULIA_PROJECT={ANALYSIS_ROOT}/{name}",
+        f"--env=JULIA_LOAD_PATH={ANALYSIS_ROOT}/{name}:@stdlib",
+        "--env=JULIA_PKG_OFFLINE=true",
+        "--env=HOME=/tmp",
+        # The image's own TMPDIR is the worker's scratch, absent here.
+        "--env=TMPDIR=/tmp",
+        image,
+        "--startup-file=no",
+        "--history-file=no",
+        "--compiled-modules=existing",
+        "-e",
+        PRECOMPILED_CHECK,
+    ]
+
+
+def _check_precompiled(cli, image):
+    for name in ENVIRONMENTS:
+        cli.run(_precompiled_arguments(image, name), timeout=1800)
+
+
 def build_julia_analysis_image(parent_manifest, root):
-    """Operator build only; parent already contains the checksum-pinned Julia."""
+    """Operator build only: compose the Julia-inputs-only depot onto the exact
+    Carbon analysis parent.
+
+    The depot under `root / "depot"` is reused whenever today's Julia inputs
+    name one that verifies; otherwise it is built. Composition is one copy, and
+    nothing is recorded until it is shown that the parent's Julia is the Julia
+    the depot was compiled with, that the composed image carries exactly the
+    depot's tree, and that every package loads precompiled.
+    """
     parent = build_analysis_image(parent_manifest, root / "python-analysis-parent")
     cli = DockerCLI()
     parent_metadata = cli.json(
@@ -166,44 +273,48 @@ def build_julia_analysis_image(parent_manifest, root):
         or labels.get("org.opencontainers.image.carbon.julia.version") != VERSION
     ):
         raise ValueError("existing pinned Julia parent required; no runtime download")
-    document = runtime_document(parent)
+    depot, _how = build_depot(root / "depot", cli)
+    document = runtime_document_v2(parent, depot)
     fingerprint = digest(canonical(document))
     directory = root / fingerprint[7:]
     directory.mkdir(parents=True, exist_ok=True, mode=0o700)
     manifest = directory / "julia-analysis-image.json"
     if manifest.exists():
-        return verify_julia_image(load_julia_analysis_image(manifest), cli)
+        try:
+            return verify_julia_image(load_julia_analysis_image(manifest), cli)
+        except Exception:  # noqa: BLE001 - any failed check means recompose
+            manifest.unlink()
+    # The depot was compiled by the Julia-only image's Julia; it is valid here
+    # only if the parent's Julia is the same tree.
+    if tree_digest(cli, parent.image_id, JULIA_ROOT) != tree_digest(
+        cli, depot.image_id, JULIA_ROOT
+    ):
+        raise ValueError("parent Julia differs from the depot's Julia")
     tag = "carbon-authored-julia-parent:" + parent.image_id[7:]
     cli.run(["tag", parent.image_id, tag])
-    if (
-        cli.json(["image", "inspect", tag, "--format", "{{json .}}"])["Id"]
-        != parent.image_id
-    ):
-        raise ValueError("Julia analysis parent tag changed")
-    fetched = _fetch_environments(cli, directory, tag)
+    depot_tag = "carbon-julia-depot:" + depot.image_id[7:]
+    cli.run(["tag", depot.image_id, depot_tag])
+    for name, expected in ((tag, parent.image_id), (depot_tag, depot.image_id)):
+        if (
+            cli.json(["image", "inspect", name, "--format", "{{json .}}"])["Id"]
+            != expected
+        ):
+            raise ValueError("Julia analysis build tag changed")
     context = directory / "build-context"
     context.mkdir(mode=0o700, exist_ok=True)
-    precompile = " && ".join(
-        f"JULIA_PROJECT={ANALYSIS_ROOT}/{name} /opt/carbon-julia/bin/julia "
-        "--startup-file=no --history-file=no --threads=1 "
-        "-e 'using Pkg; Pkg.precompile(; strict=true)'"
-        for name in ENVIRONMENTS
-    )
-    # Network off for the image itself. The packages arrive from the fetch
-    # image, where each was verified against its manifest's content hash; this
-    # step only compiles them, for the portable CPU target, with the flags the
-    # runtime uses, and then makes the whole environment read-only.
-    recipe = f"""FROM {fetched} AS packages
+    # COPY of a directory copies its contents but creates the destination
+    # directory itself with default permissions, so the depot root arrives
+    # writable by its owner where the depot has it read-only. The one-directory
+    # chmod restores it; the tree check below requires the result to equal the
+    # depot exactly, root included.
+    recipe = f"""FROM {depot_tag} AS depot
 FROM {tag}
+COPY --from=depot {ANALYSIS_ROOT} {ANALYSIS_ROOT}
 USER 0:0
-COPY --from=packages {ANALYSIS_ROOT} {ANALYSIS_ROOT}
-RUN export JULIA_DEPOT_PATH={ANALYSIS_ROOT}/depot JULIA_PKG_OFFLINE=true \\
-      JULIA_CPU_TARGET='{CPU_TARGET}' HOME=/tmp TMPDIR=/tmp \\
-    && rm -rf {ANALYSIS_ROOT}/depot/compiled \\
-    && {precompile} \\
-    && rm -rf {ANALYSIS_ROOT}/depot/logs {ANALYSIS_ROOT}/depot/scratchspaces \\
-    && chmod -R a+rX,a-w {ANALYSIS_ROOT}
-LABEL org.opencontainers.image.carbon.authored-julia.runtime="{fingerprint}"
+RUN chmod a-w {ANALYSIS_ROOT}
+LABEL {RUNTIME_LABEL}="{fingerprint}" \\
+      {DEPOT_LABEL}="{depot.depot_digest}" \\
+      {TREE_LABEL}="{depot.tree_digest}"
 USER 65532:65532
 """
     write_once(context / "Dockerfile", recipe.encode())
@@ -216,113 +327,67 @@ USER 65532:65532
             "-q",
             str(context),
         ],
-        timeout=4 * 3600,
+        timeout=3600,
     )
     image = JuliaResearchImageIdentity(
-        built.stdout.decode().strip(), parent, fingerprint
+        built.stdout.decode().strip(), parent, fingerprint, depot
     )
     verify_julia_image(image, cli)
+    if tree_digest(cli, image.image_id, ANALYSIS_ROOT) != depot.tree_digest:
+        raise ValueError("composed image does not carry the depot exactly")
+    _check_precompiled(cli, image.image_id)
     write_once(directory / "runtime-material.json", canonical(document))
-    write_once(
-        manifest,
-        canonical(
-            {
-                "schema": SCHEMA,
-                "image_id": image.image_id,
-                "parent": {
-                    "image_id": parent.image_id,
-                    "parent_image": parent.parent_image,
-                    "runtime_digest": parent.runtime_digest,
-                },
-                "runtime_digest": fingerprint,
-            }
-        ),
-    )
+    write_once(manifest, canonical(image_record(image)))
     return image
 
 
-LAZY_ARTIFACTS = """using Pkg, Pkg.Artifacts
-for (root, dirs, files) in walkdir(joinpath(first(DEPOT_PATH), "packages"))
-    if "Artifacts.toml" in files
-        Pkg.Artifacts.ensure_all_artifacts_installed(
-            joinpath(root, "Artifacts.toml"); include_lazy=true, quiet_download=true)
-    end
-end
-"""
-
-
-def _fetch_environments(cli, directory, tag):
-    """Install every pinned package and binary artifact; compile nothing.
-
-    The one step with network. Pkg verifies each package's tree hash and each
-    artifact's SHA-256 against the committed manifests, so what arrives is
-    exactly what the manifests name. Returns the fetch image's id, which the
-    network-off build copies from.
-    """
-    context = directory / "fetch-context"
-    context.mkdir(mode=0o700, exist_ok=True)
-    for name in ENVIRONMENTS:
-        project, manifest = environment_files(name)
-        (context / name).mkdir(mode=0o700, exist_ok=True)
-        write_once(context / name / "Project.toml", project)
-        write_once(context / name / "Manifest.toml", manifest)
-    instantiate = " && ".join(
-        f"JULIA_PROJECT={ANALYSIS_ROOT}/{name} /opt/carbon-julia/bin/julia "
-        "--startup-file=no --history-file=no "
-        "-e 'using Pkg; Pkg.instantiate(; allow_autoprecomp=false)'"
-        for name in ENVIRONMENTS
-    )
-    # Lazy artifacts (MKL's OpenMP runtime, among others) are fetched on first
-    # use, which a network-off image can never do; install every one now.
-    write_once(context / "artifacts.jl", LAZY_ARTIFACTS.encode())
-    copies = "\n".join(
-        f"COPY {name}/Project.toml {name}/Manifest.toml {ANALYSIS_ROOT}/{name}/"
-        for name in ENVIRONMENTS
-    )
-    recipe = f"""FROM {tag}
-USER 0:0
-{copies}
-COPY artifacts.jl /tmp/carbon-artifacts.jl
-RUN export JULIA_DEPOT_PATH={ANALYSIS_ROOT}/depot JULIA_PKG_PRECOMPILE_AUTO=0 \\
-      HOME=/tmp TMPDIR=/tmp \\
-    && {instantiate} \\
-    && /opt/carbon-julia/bin/julia --startup-file=no --history-file=no \\
-      /tmp/carbon-artifacts.jl \\
-    && rm /tmp/carbon-artifacts.jl
-"""
-    write_once(context / "Dockerfile", recipe.encode())
-    built = cli.run(
-        ["build", "--pull=false", "--platform=linux/amd64", "-q", str(context)],
-        timeout=2 * 3600,
-    )
-    image = built.stdout.decode().strip()
-    # BuildKit resolves a bare image id in FROM as a registry name and tries to
-    # pull it, so the local fetch image is addressed by a tag that embeds its
-    # id - the same treatment the parent gets - and the tag is checked.
-    tag = "carbon-authored-julia-packages:" + image.removeprefix("sha256:")
-    cli.run(["tag", image, tag])
-    if cli.json(["image", "inspect", tag, "--format", "{{json .}}"])["Id"] != image:
-        raise ValueError("Julia package image tag changed")
-    return tag
+def image_record(image):
+    """The record a Julia image is written under, in its own schema: v1 with
+    no depot field, v2 with it. Everything that records an image uses this,
+    so a record can never pair one schema with the other's fields."""
+    if type(image) is not JuliaResearchImageIdentity:
+        raise ValueError("separate authored Julia image required")
+    record = {
+        "schema": SCHEMA if image.depot is None else SCHEMA_V2,
+        "image_id": image.image_id,
+        "parent": asdict(image.parent),
+        "runtime_digest": image.runtime_digest,
+    }
+    if image.depot is not None:
+        record["depot"] = asdict(image.depot)
+    return record
 
 
 def load_julia_analysis_image(path):
+    """Read a v1 or v2 record, each under the schema it was written with."""
     if path.is_symlink() or path.stat().st_size > 8192:
         raise ValueError("bounded authored Julia manifest required")
     value = json.loads(path.read_bytes())
-    if (
-        set(value) != {"schema", "image_id", "parent", "runtime_digest"}
-        or value.pop("schema") != SCHEMA
-    ):
-        raise ValueError("closed authored Julia image manifest required")
-    value["parent"] = ResearchImageIdentity(**value["parent"])
-    return JuliaResearchImageIdentity(**value)
+    schema = value.pop("schema", None)
+    keys = {"image_id", "parent", "runtime_digest"}
+    if schema == SCHEMA and set(value) == keys:
+        value["parent"] = ResearchImageIdentity(**value["parent"])
+        return JuliaResearchImageIdentity(**value)
+    if schema == SCHEMA_V2 and set(value) == keys | {"depot"}:
+        depot = value["depot"]
+        if type(depot) is not dict or set(depot) != {
+            "image_id",
+            "depot_digest",
+            "tree_digest",
+        }:
+            raise ValueError("closed authored Julia image manifest required")
+        value["parent"] = ResearchImageIdentity(**value["parent"])
+        value["depot"] = JuliaDepotIdentity(**depot)
+        return JuliaResearchImageIdentity(**value)
+    raise ValueError("closed authored Julia image manifest required")
 
 
 def authored_julia_scope(image):
+    """The scope a campaign freezes. A v1 image keeps its v2 scope byte for
+    byte; a v2 image names its depot too, under scope v3."""
     if type(image) is not JuliaResearchImageIdentity:
         raise ValueError("separate authored Julia image required")
-    return {
+    scope = {
         "schema": "carbon.authored-julia.scope.v2",
         "language": "julia",
         "action": "run_julia",
@@ -335,6 +400,10 @@ def authored_julia_scope(image):
         "provenance": "MINER_SELF_REPORTED",
         "official_eligible": False,
     }
+    if image.depot is not None:
+        scope["schema"] = "carbon.authored-julia.scope.v3"
+        scope["depot"] = image.depot.depot_digest
+    return scope
 
 
 def authorize_julia(ledger, owner, image):
