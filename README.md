@@ -86,6 +86,10 @@ The company's commercial plan is to use the subnet as a research team and pay fo
 | [Publications](docs/publications/README.md) | Current reading guide and historical paper records |
 | [Constitution](CONSTITUTION.md) | Scientific, business, and implementation responsibilities |
 
+## Development Hub
+
+Use the [GitHub reading guide](docs/development/carbon_hub/orientation/START_HERE.md) to explore the implementation map. The [HTML Hub](docs/development/carbon_hub/index.html) opens as a local file after cloning; GitHub's file view does not host it. Contributors follow the [Hub maintenance contract](docs/development/carbon_hub/orientation/AGENT_MAINTENANCE_CONTRACT.md) when changes affect the map.
+
 ## Development
 
 ```bash
