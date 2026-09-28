@@ -3,6 +3,10 @@
 `research_campaign.prepare` routes here when the frozen manifest (or the
 launch) names the battery Challenge. The shared machinery is used unchanged:
 - the verified images and the host doctor;
+- the host's research images: authored Julia for `run_julia`, declared and
+  frozen or used anytime, exactly as in a Burgers product campaign. They are
+  research tools only; evaluation, submission and reconstruction never read
+  them. GPU research is not composed: its scope binds Burgers material;
 - the registered hotkey and the signed local transport;
 - the campaign ledger, its budget and the ownership lock;
 - the research SDK and the twelve operations;
@@ -271,13 +275,15 @@ async def prepare_battery(args, *, ledger=None, campaign):
     verify_image(analysis)
     if analysis.parent_image != image.image_id:
         raise ValueError("analysis/trusted image parent differs")
-    runtime = {
-        "implementation": implementation,
-        "images": [image.image_id, analysis.image_id],
-    }
     declared = frozen["runtime"] if frozen is not None else product.runtime
+    julia_image = host_julia_image(root, declared, analysis)
+    runtime = research_runtime(
+        declared,
+        implementation=implementation,
+        images=[image.image_id, analysis.image_id],
+        julia_image=julia_image,
+    )
     if declared != runtime:
-        # Julia, GPU and other research lanes are not composed for battery.
         raise ValueError("configured runtime differs from the battery runtime")
     config = load_config(args.operator_config)
     public = json.loads(private_file(args.miner_public).read_bytes())
@@ -319,7 +325,10 @@ async def prepare_battery(args, *, ledger=None, campaign):
         if manifest.get("owner") != owner:
             raise ValueError("battery campaign owner changed")
         check_attached(
-            manifest, implementation=implementation, images=runtime["images"]
+            manifest,
+            implementation=implementation,
+            images=runtime["images"],
+            julia_image=julia_image,
         )
     ledger.freeze(manifest)
     composition = None
@@ -330,6 +339,7 @@ async def prepare_battery(args, *, ledger=None, campaign):
             image=image,
             analysis=analysis,
             connection=connection,
+            julia_image=julia_image,
         )
         sdk = ResearchMinerTools(
             connection=connection,
@@ -374,10 +384,16 @@ def compose(
     connection,
     demand=None,
     cleanup_only=False,
+    julia_image=None,
     runner=None,
     backend=None,
 ):
     """The battery composition and the wrapper that authenticates for it.
+
+    `julia_image` is the host's authored Julia image, verified by the caller
+    (`host_julia_image`), or None. It reaches only the research executor's
+    `run_julia`; practice, the recipe compiler, discovery and submission are
+    composed identically with or without it.
 
     The gateway is the connection's own: the same chain context, publisher,
     observed registration, verifier and receipt journal. Only its Challenge
@@ -407,6 +423,7 @@ def compose(
         practice=practice,
         demand=demand,
         cleanup_only=cleanup_only,
+        julia_image=julia_image,
     )
     base = connection.service.gateway
     gateway = AuthenticatedGateway(
@@ -423,8 +440,61 @@ def compose(
     )
 
 
-def check_attached(manifest, *, implementation, images):
-    """An attach re-checks the frozen battery binding it serves."""
+#: A battery runtime may name these keys and no others. GPU research is not
+#: among them: its scope (`gpu_research.gpu_scope`) binds Burgers' GPU recipe
+#: catalogue and Burgers' public TRAIN cases, and battery has no GPU practice
+#: lane to run it, so a declared GPU scope is refused rather than frozen as a
+#: composition this campaign does not have.
+RUNTIME_KEYS = frozenset({"implementation", "images", "authored_research"})
+
+
+def host_julia_image(root, declared, analysis):
+    """The authored Julia image the host installed for this campaign, verified.
+
+    The same resolution as a Burgers product campaign: a runtime that declares
+    `authored_research` must name exactly the installed record's scope; one
+    that does not still gets whichever image the host has installed (anytime
+    Julia), which is then not part of the frozen runtime. None when the host
+    has no Julia image.
+    """
+    from carbon.development_session.research_campaign import (
+        available_julia_image,
+        registered_julia_image,
+    )
+
+    if "authored_research" in declared:
+        return registered_julia_image(root, declared, analysis)
+    return available_julia_image(root, analysis)
+
+
+def research_runtime(declared, *, implementation, images, julia_image):
+    """The runtime this host composes for a battery campaign declaring `declared`.
+
+    The research images are research tools only. Nothing here reaches the
+    recipe compiler, practice, the contract digest or a submission.
+    """
+    extra = set(declared) - RUNTIME_KEYS
+    if extra:
+        raise ValueError(
+            "battery has no research composition for "
+            + ", ".join(sorted(extra))
+            + " (GPU research binds Burgers material)"
+        )
+    runtime = {"implementation": implementation, "images": images}
+    if julia_image is not None and "authored_research" in declared:
+        from carbon.development_session.julia_analysis import authored_julia_scope
+
+        runtime["authored_research"] = [authored_julia_scope(julia_image)]
+    return runtime
+
+
+def check_attached(manifest, *, implementation, images, julia_image=None):
+    """An attach re-checks the frozen battery binding it serves.
+
+    `julia_image` is the host's verified authored Julia image
+    (`host_julia_image`); the frozen runtime must equal, exactly, the one this
+    host composes with it.
+    """
     from carbon.reconstruction.capability_registry import contract_digest
 
     from .research import objective
@@ -439,7 +509,13 @@ def check_attached(manifest, *, implementation, images):
     for field, value in expected.items():
         if manifest.get(field) != value:
             raise ValueError("battery campaign " + field + " changed")
-    if manifest.get("runtime") != {"implementation": implementation, "images": images}:
+    frozen = manifest.get("runtime")
+    if type(frozen) is not dict or frozen != research_runtime(
+        frozen,
+        implementation=implementation,
+        images=images,
+        julia_image=julia_image,
+    ):
         raise ValueError("campaign runtime differs from the battery runtime")
 
 

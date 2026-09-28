@@ -10254,6 +10254,18 @@ events:
   -
     map_ref: "SYSTEM/AGENT-EXECUTION"
     event_type: "adjustment"
+    event_id: "C-MLP-02-BATTERY-RESEARCH-IMAGES-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "Battery research campaigns now accept the host's authored Julia image, the way a Burgers product campaign does, under the owner's direction that every prebuilt capability is available to every campaign without declaring it at launch, a grant or a per-campaign install. Until now prepare_battery and check_attached required the runtime to be exactly implementation and images, so a runner profile declaring authored_research could not launch a battery campaign and run_julia was never composed for one. A declared authored_research scope must name exactly the image record the runner installs, is frozen in the manifest, and is re-checked on every resume and attach; a campaign that declared none still gets whichever Julia image the host has installed, which is not part of the frozen runtime. The verified image reaches only the research executor's run_julia. Tests show that battery discovery, the recipe compiler, practice, the contract digest and the submission fields are identical with and without it, and that the validator-side modules (daemon, deployment, compile, training, recipes, exam, contracts) never read a research image, with a positive specimen for that scan. GPU research is refused by name for battery rather than frozen: its scope binds Burgers' GPU recipe catalogue and public TRAIN cases, and battery has no GPU practice lane. A battery GPU lane is follow-up work. This is engineering evidence from fixture images; no scientific, security, qualification or deployment authority is created or implied."
+    primary_detail: "carbon/battery/campaign.py"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+    supersedes: null
+    recorded_at: "2026-09-27T12:00:00Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "adjustment"
     event_id: "C-MLP-02-LAUNCH-MODEL-SELECTION-01"
     owner_lane: "technical_lead"
     status: "implemented"

@@ -156,6 +156,7 @@ def _runtime(profile):
         profile.manifest,
         implementation=implementation,
         images=runtime["images"],
+        julia_image=_authored_image(profile, analysis),
     )
     return _connection(profile, paths), image, analysis, None
 
@@ -467,6 +468,7 @@ async def attached_profile(profile: OperatorProfile):
             connection=connection,
             demand=demand,
             cleanup_only=cleanup_only,
+            julia_image=_authored_image(profile, analysis),
         )
         bound = None
         try:

@@ -49,10 +49,11 @@ class ChallengeCampaign:
     #: A submit refused before evaluation keeps the frozen candidate for a
     #: later submit (True), or ends the campaign with the refusal (False).
     refusal_retains_candidate: bool
-    #: (manifest, *, implementation, images) -> None; raises if the frozen
-    #: binding changed.
+    #: (manifest, *, implementation, images, julia_image) -> None; raises if
+    #: the frozen binding changed. `julia_image` is the host's verified
+    #: authored Julia image, or None.
     check_attached: Callable
-    #: (**attach) -> (composition, wrapper)
+    #: (**attach, julia_image) -> (composition, wrapper)
     compose: Callable
 
 
