@@ -90,8 +90,40 @@ In the shared publisher (`chain/publisher.py`, `development_testnet/publication.
   The coldkey is not read, copied, moved or decrypted; only the public coldkey
   address is compared, as today.
 - **Testnet 567 only.** No mainnet path, now or anticipated.
-- **The CW1 publisher code is not edited.** The adapter is additive, so the
-  CW1 invariant and publication tests keep passing unchanged.
+- **The C-W1 path changes only additively.** `DevelopmentTestnetPublisher`
+  names its issuer and intent types as class attributes, so the battery
+  publisher can subclass it and inherit every check. It gains one refusal: an
+  authorization bound to a source intent is refused on the C-W1 path, and an
+  unbound one is refused on the battery path. So neither authorization can
+  publish through the other. `DevelopmentTransactionAuthorization` gains
+  `source_intent_digest`, which defaults to None, so existing configurations
+  load unchanged.
+
+## As implemented (NOT REVIEWED)
+
+- `carbon/battery/od4a_dispatch.py`: `ApprovedPublication`,
+  `BatteryAllBurnIntentIssuer`, `BatteryAllBurnPublisher`, and the CLI
+  `verify|run|resume`.
+  - `verify` reads no wallet and makes no chain call.
+  - `run` verifies every offline binding before it reads the chain or opens
+    the publisher hotkey.
+  - `resume` only reconciles a dispatch already made. It opens no wallet and
+    never signs, so it may run after the expiry. `resume` needs no probe.
+- **The trusted service key is pinned by its full public key in the source.**
+  Rotating the key is therefore a reviewed code change.
+- **Tests:** `tests/cpu/test_battery_od4a_dispatch.py`. The structural
+  refusals, each run beside the approved case as a positive control:
+  - a validly signed but unapproved all-burn intent is refused;
+  - a tampered intent is refused;
+  - a self-consistent intent from an untrusted key is refused;
+  - there is no constructor except verification;
+  - an altered or forged journal row is refused.
+
+  Other tests cover each binding, testnet 567 only, cross-path authorization
+  refusal, expiry rechecked just before signing, a row other than UID 0, the
+  inherited block window, and one dispatch.
+- **What is not tested here:** a real chain. The adapter reuses the checked
+  SDK backend unchanged, and no transaction was sent while building it.
 
 ## Sequencing against M4
 
