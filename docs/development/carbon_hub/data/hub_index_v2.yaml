@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-27T03:02:02Z"
+  captured_at_utc: "2026-09-27T17:58:53Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "a7991ba4fed32db6a140a8b45ba5369ff2119887"
+  authority_snapshot_commit: "58797df7abb443c62250c0d6a1ca4ba943119a4c"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -10188,6 +10188,19 @@ events:
     supersedes: null
     recorded_at: "2026-09-27T01:50:00Z"
   -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "evidence"
+    event_id: "C-MLP-02-D1-BATTERY-OBSERVATION-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "A battery campaign's measured practice reaches observe on both doors. Observing a battery campaign with no agent raised KeyError, because the projection read a model the frozen plan does not have; and battery practice results were dropped because the projection knew only the Burgers provenance. The projection now names a manual campaign and no model, and projects every practice provenance with the Challenge's own recorded feedback (the exam's aggregate on public PRACTICE, fit statistics and the backend that ran), copying only what the practice recorded. A new service test runs one battery practice through the isolated research carrier in the trusted worker image, as every campaign door does, and asserts the carrier backend and a finite measured score; it runs in the C-03 service lane. Practice feedback is self-reported public PRACTICE, not an evaluation or official result."
+    primary_detail: "scripts/dev/miner_launchpad/projection.py"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "WAVE-C/C-W1-D4"
+    supersedes: null
+    recorded_at: "2026-09-27T01:59:25Z"
+  -
     map_ref: "SYSTEM/BUSINESS-AUTHORITY"
     event_type: "evidence"
     event_id: "GOAL-WORKBENCH-15-E6-LIMITS-01"
@@ -10199,6 +10212,19 @@ events:
       - "SYSTEM/BUSINESS-AUTHORITY"
     supersedes: null
     recorded_at: "2026-09-27T02:10:00Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "evidence"
+    event_id: "C-MLP-02-D3-FAILURE-PATHS-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "Implemented D3, failure and recovery end to end, on the miner research carrier. A task whose ledger operation is still RESERVED now reports requires_reconciliation even when the task itself is terminal. Reconciliation keys on the durable worker intent rather than reserved milliseconds, so a miner run with no wall allowance can be reconciled, and the launchpad cleanup counts any operation it cannot settle as not clean. The durable intent is written before staging, image verification and the host doctor; a failure there, with no container command issued, settles FAILED_INFRA keeping the full reservation. Cancellation-watcher errors are checked before the ledger records a terminal state, so the ledger never says SUCCEEDED while the task fails. Pre-dispatch refusals on the task path, including closed admission, report dispatch_may_have_occurred=false; a failure after admission still reports true. The miner's own program failing on observed evidence (its own allowance elapsed, a daemon-reported OOM kill, a nonzero exit from a still-running container, or output refused for its own content) settles as a typed FAILED_MINER ledger state with existing WorkerCode values, cleanup observed and the full reservation kept; the workspace task completes with outcome MINER_PROGRAM_FAILED and no scientific claim. Ambiguous daemon, CLI and host failures stay FAILED_INFRA. Reconciling a worker also ends its task, in the same call when the provider is live and on the next load otherwise. A digest mismatch on retained research or battery output writes a security_incident note before refusing. No scientific, qualification, economic or public-network behavior changes."
+    primary_detail: "carbon/development_session/research_carrier.py"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "WAVE-C/C-W1-D4"
+    supersedes: null
+    recorded_at: "2026-09-27T02:33:56Z"
   -
     map_ref: "SYSTEM/AGENT-EXECUTION"
     event_type: "adjustment"
@@ -10225,6 +10251,55 @@ events:
       - "WAVE-C/C-W1-D4"
     supersedes: null
     recorded_at: "2026-09-27T12:00:00Z"
+  -
+    map_ref: "SYSTEM/BUSINESS-AUTHORITY"
+    event_type: "evidence"
+    event_id: "GOAL-WORKBENCH-15-E6-TRANSPORT-V2-01"
+    owner_lane: "business_authority"
+    status: "implemented"
+    summary: "Repairs what E6's transport-copy states claim. Schema v1's terminal PERMANENTLY_REMOVED asserted a destruction the provider can reverse, since an administrator can restore purged Gmail for a further documented window. Schema v2 renames it and adds the true terminal state: PRESENT_IN_MAILBOX, MOVED_TO_TRASH, PURGED_FROM_MAILBOX (which states until when an administrator could restore the copy) and PROVIDER_RESTORE_WINDOW_ELAPSED, which is refused with 409 while that window is open. States move forward only. The provider's window is recorded as observed behaviour with its source, page date, read date and basis, not as a Carbon retention rule, and is copied into each entry computed from it. The migration is prospective: v1 entries keep their recorded meaning and are never rewritten, a v1 PERMANENTLY_REMOVED moves forward only to the elapsed state, and PERMANENTLY_REMOVED is no longer recordable. No E1-E9 control changes."
+    primary_detail: ".agent/tickets/GOAL-WORKBENCH-15_client_data_engineering.md"
+    affects:
+      - "SYSTEM/BUSINESS-AUTHORITY"
+    supersedes: null
+    recorded_at: "2026-09-27T15:00:00Z"
+  -
+    map_ref: "SYSTEM/BUSINESS-AUTHORITY"
+    event_type: "evidence"
+    event_id: "GOAL-WORKBENCH-15-MAILBOX-WATCH-01"
+    owner_lane: "business_authority"
+    status: "implemented"
+    summary: "Makes the intake mailbox's bounce path watched rather than merely readable. The receiver takes a pooled-storage reading at start and hourly, says on stderr when the mailbox needs attention, and GET /private/mailbox reports whether it is watched. With a credential the watch reaches the provider on every check and a full pool needs attention. Without one it reports NOT_ATTEMPTED_NO_CREDENTIAL, the E6 transport's own term, and says the mailbox is not watched, never silence and never room. This is pinned against the real receiver process. The credential is the owner's and is not configured; no Workspace account was touched."
+    primary_detail: ".agent/tickets/GOAL-WORKBENCH-15_client_data_engineering.md"
+    affects:
+      - "SYSTEM/BUSINESS-AUTHORITY"
+    supersedes: null
+    recorded_at: "2026-09-27T15:20:00Z"
+  -
+    map_ref: "SYSTEM/AGENT-EXECUTION"
+    event_type: "adjustment"
+    event_id: "OWNER-RESEARCH-ENVIRONMENT-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "Owner rule OWNER-RESEARCH-ENVIRONMENT-01 requires every Challenge's research environment to give miners what they need to research, hypothesize, train, generate data and evaluate, including the public generator and reference solver under the miner's own seeds. carbon/challenge_kit/standard.py declares each contracted Challenge's five provisions, each with importable evidence or a named gap and next step, and a test fails on an undeclared Challenge, a missing provision, evidence that does not import, a silent gap, or the standard entering the miner image's kit closure. Burgers is complete. Battery generate is the one open gap: no battery challenge kit runs the pinned PyBaMM reference. Invariant 33 and AGENTS.md invariant 16 record the rule. Submissions cannot request extra training data; Carbon may publish a larger TRAIN version for everyone when a Challenge stalls, as a prospective new version (per-Challenge owner inputs, not yet set). Official seed material still never reaches a sandbox, and submission exclusions are unchanged."
+    primary_detail: ".agent/DECISIONS.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "SYSTEM/GOVERNANCE"
+    supersedes: null
+    recorded_at: "2026-09-27T17:58:53Z"
+  -
+    map_ref: "SYSTEM/BUSINESS-AUTHORITY"
+    event_type: "evidence"
+    event_id: "GOAL-WORKBENCH-CI-COVERAGE-01"
+    owner_lane: "business_authority"
+    status: "implemented"
+    summary: "Closes the Workbench CI coverage gap recorded in GOAL-WORKBENCH-12 (OWNER-WORKBENCH-CI-COVERAGE-01). The Workbench job now runs the real-worker suites for the private host and study adapter after its release checks, building the pinned C-03 and Julia workers first, and workbench_scope.py selects the job for the host, the adapter, those suites (read from the script that runs them) and itself. The change is additive: the owner-pinned classify_changes.py and development_scope.py are untouched. The owner chose this knowing every Workbench change pays for the images and suites, and the PR records measured before and after job times."
+    primary_detail: ".agent/tickets/GOAL-WORKBENCH-12_private_service_composition.md"
+    affects:
+      - "SYSTEM/BUSINESS-AUTHORITY"
+    supersedes: null
+    recorded_at: "2026-09-27T22:10:00Z"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"

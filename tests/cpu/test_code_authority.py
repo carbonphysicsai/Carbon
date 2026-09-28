@@ -561,6 +561,19 @@ __import__("carbon", fromlist=("miner", computed_member))
     } <= resolved
 
 
+def _research_environment_evidence_modules() -> set[str]:
+    """Modules the research environment standard imports dynamically."""
+    from carbon.challenge_kit import standard
+
+    return {
+        ref.partition(":")[0]
+        for table in standard.ENVIRONMENTS.values()
+        for status in table.values()
+        if isinstance(status, standard.Provided)
+        for ref in status.evidence
+    }
+
+
 def test_canonical_python_cannot_import_retired_namespaces() -> None:
     authority = _authority()
     canonical = authority["canonical"]
@@ -650,6 +663,12 @@ def test_canonical_python_cannot_import_retired_namespaces() -> None:
             "importlib.import_module",
             "module_name",
         ),
+        (
+            "tests/cpu/test_research_environment_standard.py",
+            "test_provided_evidence_imports_and_gaps_are_named",
+            "import_module",
+            "module",
+        ),
     ]
 
     builtin_adapters = _literal_assignment(
@@ -719,6 +738,7 @@ def test_canonical_python_cannot_import_retired_namespaces() -> None:
         *b07d_modules,
         *b07e_modules,
         *b07f_modules,
+        *_research_environment_evidence_modules(),
     }
     assert not any(
         _matches_namespace(module, retired) for module in reviewed_dynamic_targets
@@ -1077,8 +1097,10 @@ def test_default_workflow_delegates_all_semantics_to_repository_scripts() -> Non
     )
     assert _inline_run_commands(jobs["workbench"]) == (
         "./scripts/dev/bootstrap.sh",
+        "./scripts/dev/workbench_worker_checks.sh",
         "./scripts/dev/workbench_release_checks.sh",
     )
+    assert 'CARBON_UV_GROUPS: "chain archive science-jax mcp"' in jobs["workbench"]
     assert 'CARBON_UV_GROUPS: "chain archive science-jax mcp"' in jobs["c03-worker"]
     assert 'CARBON_UV_GROUPS: "archive"' in jobs["contract-authority"]
     required_repository_commands = (
@@ -1091,6 +1113,7 @@ def test_default_workflow_delegates_all_semantics_to_repository_scripts() -> Non
         "./scripts/dev/c03_worker.sh doctor",
         "./scripts/dev/c03_worker.sh smoke",
         "./scripts/dev/c03_worker.sh reconcile",
+        "./scripts/dev/workbench_worker_checks.sh",
         "./scripts/dev/workbench_release_checks.sh",
         "./scripts/dev/ci_contract_authority.sh",
         "./scripts/dev/ci_hub.sh",

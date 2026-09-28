@@ -1295,14 +1295,17 @@ class RunnerAdapter:
                 clean = False
         with ledger.db() as db:
             rows = db.execute(
-                "SELECT id,owner,reservation FROM operations WHERE state='RESERVED'"
+                "SELECT id,owner FROM operations WHERE state='RESERVED'"
             ).fetchall()
-        for identity, owner, reserved in rows:
-            if json.loads(reserved).get("numerical_milliseconds"):
-                try:
-                    reconcile_worker(ledger, owner=owner, identity=identity)
-                except Exception:  # noqa: BLE001
-                    clean = False
+        # Every RESERVED operation goes to reconcile_worker, which keys on the
+        # durable worker intent rather than reserved milliseconds - the miner's
+        # own run with no wall allowance reserves none. One it cannot settle
+        # stays RESERVED, and a skipped operation is never counted as clean.
+        for identity, owner in rows:
+            try:
+                reconcile_worker(ledger, owner=owner, identity=identity)
+            except Exception:  # noqa: BLE001
+                clean = False
         for path in _stores(ledger.root):
             store = DurableWorkerLaunchStore(path)
             for item in store.reconciliation_targets():

@@ -552,11 +552,17 @@ the record says exactly what that person did and on whose word:
    to 30 days later. Record `MOVED_TO_TRASH` at
    `POST /private/intake/<id>/transport-copy`.
 4. Empty it from Trash: open Trash, select the message, *Delete forever*. Only
-   then record `PERMANENTLY_REMOVED`. A plaintext arrival is recorded as
-   `required_disposition: PERMANENTLY_REMOVED_WITHOUT_DELAY`, so do step 4 at
-   once.
+   then record `PURGED_FROM_MAILBOX`. The entry states until when an
+   administrator could still restore the message (`admin_restore_possible_until`).
+   A plaintext arrival is recorded as `required_disposition:
+   PURGED_FROM_MAILBOX_WITHOUT_DELAY`, so do step 4 at once.
+5. After `admin_restore_possible_until`, record
+   `PROVIDER_RESTORE_WINDOW_ELAPSED`. Before then it is refused with `409`,
+   because an administrator could still restore the copy.
 
-The record moves forward only, with no `DELETED` state that would blur the two.
+The record moves forward only, with no `DELETED` state that would blur the steps.
+`PERMANENTLY_REMOVED` (transport-copy schema v1) is no longer recorded, because
+it claimed more than was true. Records written under v1 keep it as recorded.
 Each entry is `RECEIVER_ATTESTATION`, because this store cannot see the mailbox
 and does not claim to.
 
@@ -582,28 +588,35 @@ clients send packages as they do today, and each arrival is recorded as
   documentation.** Google's Workspace Admin Help ("Restore a user's permanently
   deleted email", checked 2026-09-27) states: "When the 30-day period after
   deleting ends, admins have an additional 25 days to restore messages."
-  - `PERMANENTLY_REMOVED` therefore means removed from the mailbox as its user
-    sees it. It does not mean unrecoverable.
-  - Each such entry carries `admin_restore_possible_until`, with basis
-    `PROVIDER_DOCUMENTATION_NOT_VERIFIED_AGAINST_ACCOUNT`. It is the later of 30
-    + 25 days after the first deletion and 25 days after the purge.
+  - A purge is therefore `PURGED_FROM_MAILBOX` (transport-copy schema v2):
+    removed from the mailbox as its user sees it, not unrecoverable.
+  - Each purge entry carries `admin_restore_possible_until`. It is the later
+    of 30 + 25 days after the first deletion and 25 days after the purge.
+  - Each entry also carries the provider observation it was computed under:
+    its source, read date, basis
+    `PROVIDER_DOCUMENTATION_NOT_VERIFIED_AGAINST_ACCOUNT` and status
+    `OBSERVED_PROVIDER_BEHAVIOUR_NOT_CARBON_POLICY`.
+  - Only `PROVIDER_RESTORE_WINDOW_ELAPSED`, which is recordable once that time
+    has passed, says the window has closed.
   - This has not been verified against the account; doing so means using the
     owner's Admin console.
 - The intake mailbox shares a pooled storage allowance. When it fills, mail
   **bounces to the client, and nobody at Carbon is told.**
   - `tools/team_mailbox_capacity.cjs` reads the pool's usage and limit (the
     Drive API's `about.get`, `fields=storageQuota`) and reports `OK`,
-    `NEAR_FULL` (90% by default), `FULL`, `UNLIMITED`, `NOT_CONFIGURED` or
+    `NEAR_FULL` (90% by default), `FULL`, `UNLIMITED`, `NOT_ATTEMPTED_NO_CREDENTIAL` or
     `UNREADABLE`.
-  - The receiver serves the reading at `GET /private/mailbox`, to the intake
-    receiver. `node tools/team_mailbox_capacity.cjs` exits non-zero for
-    anything but `OK` or `UNLIMITED`, so a scheduler can alert on it.
+  - The receiver watches it. It takes a reading at start and hourly, and says
+    on stderr when the mailbox needs attention. `GET /private/mailbox` (for the
+    intake receiver) takes a fresh reading and reports `watched` and
+    `needs_attention`. `node tools/team_mailbox_capacity.cjs` exits non-zero for
+    anything but `OK` or `UNLIMITED`, so a scheduler can alert on it too.
   - **It needs one owner step:** an OAuth client for the intake account, with
     the `drive.file` scope only, and its `client_id`, `client_secret` and
     `refresh_token` in a `0600` JSON file named by
     `CARBON_TEAM_MAILBOX_QUOTA_CREDENTIAL_FILE`. `drive.file` grants no access
     to mail and none to any file the application did not create.
-  - Until that credential exists, the reading is `NOT_CONFIGURED`, never room.
+  - Until that credential exists, the reading is `NOT_ATTEMPTED_NO_CREDENTIAL`, never room.
     Check the mailbox's storage by hand when relaying.
 
 ### 3.6 Notice and consent

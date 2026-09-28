@@ -17,7 +17,7 @@
 // The credential is the operator's: an OAuth client and a refresh token issued
 // by the owner for the intake account, in a 0600 file named by
 // CARBON_TEAM_MAILBOX_QUOTA_CREDENTIAL_FILE. It is read at check time and never
-// logged, returned or recorded. Without it the state is NOT_CONFIGURED, which
+// logged, returned or recorded. Without it the state is NOT_ATTEMPTED_NO_CREDENTIAL, which
 // is a different fact from a reading that failed (UNREADABLE). Neither is
 // reported as room.
 
@@ -31,12 +31,12 @@ const CREDENTIAL_MAX_BYTES = 4096;
 const NEAR_FULL_FRACTION = 0.9;
 
 function readCredential(file) {
-  if (!file) return { state: "NOT_CONFIGURED", reason: "No mailbox quota credential is configured: set CARBON_TEAM_MAILBOX_QUOTA_CREDENTIAL_FILE" };
+  if (!file) return { state: "NOT_ATTEMPTED_NO_CREDENTIAL", reason: "No mailbox quota credential is configured: set CARBON_TEAM_MAILBOX_QUOTA_CREDENTIAL_FILE" };
   let stat;
   try {
     stat = fs.lstatSync(file);
   } catch {
-    return { state: "NOT_CONFIGURED", reason: "The configured mailbox quota credential file does not exist" };
+    return { state: "NOT_ATTEMPTED_NO_CREDENTIAL", reason: "The configured mailbox quota credential file does not exist" };
   }
   if (!stat.isFile() || (stat.mode & 0o077) !== 0 || stat.size > CREDENTIAL_MAX_BYTES)
     return { state: "UNREADABLE", reason: "The mailbox quota credential must be a regular file, not a link, readable by its owner only, and at most 4096 bytes" };
@@ -93,13 +93,52 @@ async function mailboxCapacity({ credentialFile, fetch = globalThis.fetch, now =
   return { state, usage_bytes: usage, limit_bytes: limit, used_fraction: Math.round(fraction * 10_000) / 10_000, observed_at: observedAt, basis: "DRIVE_ABOUT_STORAGE_QUOTA" };
 }
 
-module.exports = { ABOUT_URL, NEAR_FULL_FRACTION, TOKEN_URL, mailboxCapacity };
+// The states that mean the pool has room. Everything else, including a reading
+// that was not attempted, is something a person should look at.
+const ROOM = Object.freeze(["OK", "UNLIMITED"]);
+
+/**
+ * The receiver's watch over the intake mailbox. It takes a reading when the
+ * receiver starts and on every tick, and keeps the last one with when it was
+ * taken. A missing credential is a reading too: NOT_ATTEMPTED_NO_CREDENTIAL,
+ * reported as unwatched, never as silence and never as room.
+ */
+class MailboxWatch {
+  constructor(read) {
+    if (typeof read !== "function") throw Error("A mailbox watch takes a reading function");
+    this.read = read;
+    this.last = null;
+    this.checks = 0;
+  }
+
+  async check() {
+    const reading = await this.read();
+    this.checks += 1;
+    this.last = reading;
+    return this.status();
+  }
+
+  status() {
+    if (!this.last)
+      return { state: "NOT_YET_CHECKED", watched: false, needs_attention: true, checks: 0, reading: null };
+    return {
+      state: this.last.state,
+      // Watched only when a reading actually reached the provider.
+      watched: !["NOT_ATTEMPTED_NO_CREDENTIAL", "UNREADABLE"].includes(this.last.state),
+      needs_attention: !ROOM.includes(this.last.state),
+      checks: this.checks,
+      reading: this.last,
+    };
+  }
+}
+
+module.exports = { ABOUT_URL, MailboxWatch, NEAR_FULL_FRACTION, ROOM, TOKEN_URL, mailboxCapacity };
 
 // `node tools/team_mailbox_capacity.cjs`: one reading, printed as JSON. The exit
 // status is 0 only for OK or UNLIMITED, so a scheduler can alert on anything else.
 if (require.main === module) {
   mailboxCapacity({ credentialFile: process.env.CARBON_TEAM_MAILBOX_QUOTA_CREDENTIAL_FILE }).then((reading) => {
     process.stdout.write(JSON.stringify(reading) + "\n");
-    process.exit(["OK", "UNLIMITED"].includes(reading.state) ? 0 : 1);
+    process.exit(ROOM.includes(reading.state) ? 0 : 1);
   });
 }

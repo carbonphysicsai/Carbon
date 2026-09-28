@@ -122,41 +122,78 @@ function emptyStore() {
 // destruction. An entry names who released what, to whom, when and why; it
 // carries digests, never the content, so it can outlive the record.
 // E6. The transport copy: the package as it arrived in the intake mailbox,
-// before the receiver relayed it here. Two deletion states, never collapsed.
-// In Gmail, deleting moves a message to Trash, where it stays for up to 30 days
-// before it is purged; "deleted" while it sits in Trash would be a claim that
-// cannot say what it checked. So MOVED_TO_TRASH and PERMANENTLY_REMOVED are
-// different states, reached in that order, and each entry says its basis: the
+// before the receiver relayed it here. Each entry says its basis: the
 // receiver's own attestation, because the mailbox step is a human one.
+//
+// Transport-copy schema v2 (2026-09-27). v1 ended in PERMANENTLY_REMOVED, which
+// asserted a destruction the provider can reverse: an administrator can restore
+// purged Gmail for a further window. No v2 state asserts a destruction that is
+// still reversible:
+//   PRESENT_IN_MAILBOX -> MOVED_TO_TRASH -> PURGED_FROM_MAILBOX
+//     -> PROVIDER_RESTORE_WINDOW_ELAPSED
+// PURGED_FROM_MAILBOX is gone from the mailbox as its user sees it, and its
+// entry states until when an administrator could still restore it. Only the
+// elapsed state says the provider's documented window has closed, and it
+// cannot be recorded before then. States move forward only.
+//
+// The migration is prospective. An entry without a `schema` was written under
+// v1 and keeps v1's meaning; nothing already recorded is rewritten. A v1
+// PERMANENTLY_REMOVED stays exactly as recorded, and its only next step is the
+// elapsed state.
 const TRANSPORT_CHANNELS = ["MAIL_INTAKE", "DIRECT_HANDOVER"];
 const TRANSPORT_ARRIVALS = ["ENCRYPTED", "PLAINTEXT"];
-const TRANSPORT_STEPS = { PRESENT_IN_MAILBOX: ["MOVED_TO_TRASH", "PERMANENTLY_REMOVED"], MOVED_TO_TRASH: ["PERMANENTLY_REMOVED"], PERMANENTLY_REMOVED: [] };
-const TRASH_PURGE_DAYS = 30;
-// PERMANENTLY_REMOVED is the mailbox as its user sees it, not unrecoverable.
-// Google documents that "when the 30-day period after deleting ends, admins have
-// an additional 25 days to restore messages" (Workspace Admin Help, "Restore a
-// user's permanently deleted email", checked 2026-09-27). So the entry states
-// until when an administrator could still restore the copy. It takes the later
-// of two readings: 25 days after the first deletion's 30-day period, and 25
-// days after the purge itself. Its basis is the provider's documentation. It
-// has not been verified against the account.
-const ADMIN_RESTORE_DAYS = 25;
-const ADMIN_RESTORE_BASIS = "PROVIDER_DOCUMENTATION_NOT_VERIFIED_AGAINST_ACCOUNT";
+const TRANSPORT_SCHEMA = "carbon.private-team-intake.transport-copy.v2";
+const TRANSPORT_STEPS = {
+  PRESENT_IN_MAILBOX: ["MOVED_TO_TRASH", "PURGED_FROM_MAILBOX"],
+  MOVED_TO_TRASH: ["PURGED_FROM_MAILBOX"],
+  PURGED_FROM_MAILBOX: ["PROVIDER_RESTORE_WINDOW_ELAPSED"],
+  // v1's terminal state, kept as recorded.
+  PERMANENTLY_REMOVED: ["PROVIDER_RESTORE_WINDOW_ELAPSED"],
+  PROVIDER_RESTORE_WINDOW_ELAPSED: [],
+};
+// The provider's behaviour as observed, with its source and when it was read.
+// It is not a Carbon retention rule; retention values are counsel's and stay
+// null. It is copied into every entry computed from it, so a later reading
+// never changes what an earlier entry was computed under.
+const PROVIDER_RESTORE_OBSERVATION = Object.freeze({
+  status: "OBSERVED_PROVIDER_BEHAVIOUR_NOT_CARBON_POLICY",
+  provider: "Google Workspace Gmail",
+  trash_days: 30,
+  admin_restore_days_after_trash_period: 25,
+  quoted: "When the 30-day period after deleting ends, admins have an additional 25 days to restore messages.",
+  source: "Google Workspace Admin Help, Restore a user's permanently deleted email",
+  page_updated: "2026-09-24",
+  read_on: "2026-09-27",
+  basis: "PROVIDER_DOCUMENTATION_NOT_VERIFIED_AGAINST_ACCOUNT",
+});
+const TRASH_PURGE_DAYS = PROVIDER_RESTORE_OBSERVATION.trash_days;
+const ADMIN_RESTORE_DAYS = PROVIDER_RESTORE_OBSERVATION.admin_restore_days_after_trash_period;
+const DAY_MS = 86_400_000;
+
+// Until when an administrator could still restore the copy: the later of two
+// readings of the provider's statement, the trash period plus the restore days
+// after the first deletion, and the restore days after the purge.
+function restoreWindowEnd(history, purgedAtMs) {
+  const trashed = history.find((item) => item.state === "MOVED_TO_TRASH");
+  const firstDeletion = trashed ? Date.parse(trashed.at) : purgedAtMs;
+  return Math.max(firstDeletion + (TRASH_PURGE_DAYS + ADMIN_RESTORE_DAYS) * DAY_MS, purgedAtMs + ADMIN_RESTORE_DAYS * DAY_MS);
+}
 
 function transportAtRelay(headers = {}) {
   const channel = headers["x-carbon-intake-channel"];
   if (!TRANSPORT_CHANNELS.includes(channel))
     throw Error("A relay states its intake channel: " + TRANSPORT_CHANNELS.join(" | "));
-  if (channel === "DIRECT_HANDOVER") return { channel, arrival: null, copy_state: "NO_TRANSPORT_COPY", history: [] };
+  if (channel === "DIRECT_HANDOVER") return { schema: TRANSPORT_SCHEMA, channel, arrival: null, copy_state: "NO_TRANSPORT_COPY", history: [] };
   const arrival = headers["x-carbon-transport-arrival"];
   if (!TRANSPORT_ARRIVALS.includes(arrival))
     throw Error("A mailed package states how it arrived: " + TRANSPORT_ARRIVALS.join(" | "));
   return {
+    schema: TRANSPORT_SCHEMA,
     channel,
     arrival,
     // A package that arrived in plaintext was readable in the mailbox. Its copy
-    // is to be removed permanently, not left in Trash; the record says so.
-    required_disposition: arrival === "PLAINTEXT" ? "PERMANENTLY_REMOVED_WITHOUT_DELAY" : "PERMANENTLY_REMOVED",
+    // is to be purged, not left in Trash; the record says so.
+    required_disposition: arrival === "PLAINTEXT" ? "PURGED_FROM_MAILBOX_WITHOUT_DELAY" : "PURGED_FROM_MAILBOX",
     copy_state: "PRESENT_IN_MAILBOX",
     history: [],
   };
@@ -1246,31 +1283,54 @@ class DurableIntakeStore {
     const actor = validatePrincipal(principal, "record_transport");
     const current = ownedRecord(this, inquiryId, principal);
     const transport = current.transport || {};
+    // v1's terminal name is not recordable now: it claims more than is true.
+    if (state === "PERMANENTLY_REMOVED")
+      throw Error("PERMANENTLY_REMOVED is a v1 state and is no longer recorded: record PURGED_FROM_MAILBOX, which states until when an administrator could still restore the copy");
     const allowed = TRANSPORT_STEPS[transport.copy_state] || [];
     if (!allowed.includes(state))
       throw Error(`The transport copy cannot move from ${transport.copy_state || "unrecorded"} to ${state}`);
+    const nowMs = this.clock();
     const next = clone(this.state);
     const record = next.inquiries[inquiryId];
-    const now = new Date();
-    const day = 86_400_000;
+    const history = record.transport.history;
     const entry = {
-      seq: record.transport.history.length + 1,
+      schema: TRANSPORT_SCHEMA,
+      seq: history.length + 1,
       state,
-      at: now.toISOString(),
+      at: new Date(nowMs).toISOString(),
       by: actor,
       basis: "RECEIVER_ATTESTATION",
-      purge_expected_by:
-        state === "MOVED_TO_TRASH" ? new Date(now.getTime() + TRASH_PURGE_DAYS * day).toISOString() : null,
+      purge_expected_by: state === "MOVED_TO_TRASH" ? new Date(nowMs + TRASH_PURGE_DAYS * DAY_MS).toISOString() : null,
     };
-    if (state === "PERMANENTLY_REMOVED") {
-      const trashed = record.transport.history.find((item) => item.state === "MOVED_TO_TRASH");
-      const firstDeletion = trashed ? Date.parse(trashed.at) : now.getTime();
-      const until = Math.max(firstDeletion + (TRASH_PURGE_DAYS + ADMIN_RESTORE_DAYS) * day, now.getTime() + ADMIN_RESTORE_DAYS * day);
-      entry.admin_restore_possible_until = new Date(until).toISOString();
-      entry.admin_restore_basis = ADMIN_RESTORE_BASIS;
+    if (state === "PURGED_FROM_MAILBOX") {
+      entry.admin_restore_possible_until = new Date(restoreWindowEnd(history, nowMs)).toISOString();
+      entry.provider_observation = { ...PROVIDER_RESTORE_OBSERVATION };
+    }
+    if (state === "PROVIDER_RESTORE_WINDOW_ELAPSED") {
+      const purged = history[history.length - 1];
+      // A v1 entry recorded before the window was stated has none; it is
+      // computed from its own recorded times, and the v1 entry is not changed.
+      const windowEnd = purged.admin_restore_possible_until
+        ? Date.parse(purged.admin_restore_possible_until)
+        : restoreWindowEnd(history, Date.parse(purged.at));
+      if (nowMs < windowEnd)
+        throw Object.assign(
+          Error(`The provider's documented restore window is open until ${new Date(windowEnd).toISOString()}; an administrator could still restore this copy`),
+          { status: 409 },
+        );
+      entry.basis = "PROVIDER_DOCUMENTED_WINDOW_ELAPSED";
+      entry.window_ended_at = new Date(windowEnd).toISOString();
+      entry.provider_observation = purged.provider_observation || { ...PROVIDER_RESTORE_OBSERVATION };
+    }
+    // A block written under v1 continues under v2 from its next entry on. Its
+    // earlier entries, and what they meant, are left as recorded.
+    if (record.transport.schema !== TRANSPORT_SCHEMA) {
+      record.transport.schema_before = record.transport.schema || "carbon.private-team-intake.transport-copy.v1";
+      record.transport.schema = TRANSPORT_SCHEMA;
+      record.transport.schema_changed_at_seq = entry.seq;
     }
     record.transport.copy_state = state;
-    record.transport.history.push(entry);
+    history.push(entry);
     this.persist(next);
     return clone(record.transport);
   }
@@ -1628,6 +1688,8 @@ module.exports = {
   transportAtRelay,
   TRASH_PURGE_DAYS,
   ADMIN_RESTORE_DAYS,
+  PROVIDER_RESTORE_OBSERVATION,
+  TRANSPORT_SCHEMA,
   SEALED_STORE_VERSION,
   DEFAULT_WRITE_CEILING_BYTES,
   READ_LIMIT_BYTES,

@@ -36,6 +36,10 @@ Aligned with `CONSTITUTION.md`, `docs/context/SCIENTIFIC_REFERENCE_CANON_V4_MAST
 27. **Component qualification does not automatically compose.** System/router/product claims require their own evidence path.
 28. **Physics Intelligence must earn prospective value.** Retrospective correlations are not automatically causal or decision-authoritative.
 
+## Research environment invariant
+
+33. **Mining environments are complete.** Every Challenge's research environment gives miners what they need to research, hypothesize, train, generate data and evaluate, including the public generator and reference solver under their own seeds; any missing provision is a named gap in `carbon/challenge_kit/standard.py` (OWNER-RESEARCH-ENVIRONMENT-01). This never admits official seed material to a sandbox (invariants 1, 2 and 12).
+
 ## Business / publication invariants
 
 29. **Commercial pressure does not rewrite scientific truth.** Customer payment, investor priority, sales urgency, or sponsor reward cannot weaken the registered scientific ruler after outcomes are observed.

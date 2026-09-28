@@ -66,6 +66,16 @@ class AdapterFailure(ValueError):
         self.dispatch_may_have_occurred = dispatch_may_have_occurred
 
 
+def _refused_before_dispatch(refusal):
+    """Map a pre-dispatch refusal to its closed code; nothing can have run."""
+    code = (
+        AdapterCode.NO_CAMPAIGN
+        if refusal.reason == "NO_CAMPAIGN"
+        else AdapterCode.OPERATIONAL_STOP
+    )
+    return AdapterFailure(code, dispatch_may_have_occurred=False)
+
+
 @dataclass(frozen=True)
 class ResearchToolRequest:
     operation: str
@@ -343,16 +353,14 @@ class ResearchToolAdapter:
                 request.operation_id,
                 transport_request_id="mcp-" + uuid.uuid4().hex,
             )
-        except PreDispatchRefusal:
+        except PreDispatchRefusal as refusal:
             # Caught before the blanket handler below, and reported with
             # dispatch_may_have_occurred=False. That is a fact here rather than
             # an optimistic default: the refusal is raised at the top of the
             # call, before any reservation is possible. Folding it into the
             # conservative case would tell a miner their work may have started
             # when nothing could have.
-            raise AdapterFailure(
-                AdapterCode.NO_CAMPAIGN, dispatch_may_have_occurred=False
-            ) from None
+            raise _refused_before_dispatch(refusal) from None
         except Exception:  # noqa: BLE001
             # The controller retains ambiguous reservations and dispatch intents.
             # Never label an authentication/execution failure as candidate failure.
@@ -393,6 +401,10 @@ class ResearchToolAdapter:
         self._task_api_used = True
         try:
             value = await self._sdk.task_call(mode, args, identity)
+        except PreDispatchRefusal as refusal:
+            # The same fact as the synchronous path: refused before anything
+            # could be reserved, so nothing can have started.
+            raise _refused_before_dispatch(refusal) from None
         except Exception:  # noqa: BLE001
             raise AdapterFailure(
                 AdapterCode.OPERATIONAL_STOP, dispatch_may_have_occurred=True
