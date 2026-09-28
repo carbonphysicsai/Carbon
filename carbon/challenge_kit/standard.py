@@ -13,6 +13,13 @@ either the code that provides it or a named gap. The test
 A gap is allowed to exist; it is not allowed to be silent. Closing a gap means
 replacing it with `Provided(...)` evidence in the same PR.
 
+A retired Challenge (the registry's RETIRED status) owes no research
+environment, so it is declared `Retired` as a whole: not a per-provision
+status, and never a gap. A gap is work owed; retired is work no longer owed.
+Its record of what it provided stays here unchanged, so evidence recorded
+while it was offered keeps its meaning (OWNER-RESEARCH-ENVIRONMENT-01 as
+amended by the owner's decision (a), 27 September 2026).
+
 This standard governs what a miner can *use*. It never widens what a submission
 may *declare* (the construction contract) and never touches official
 evaluation: official seeds, derived seeds and draw ids stay out of every
@@ -66,31 +73,62 @@ class Gap:
     next_step: str
 
 
+#: A per-provision status. `Retired` is deliberately not one of these.
 Status = Provided | Gap
+
+
+@dataclass(frozen=True)
+class Retired:
+    """A Challenge no longer offered: it carries no research-environment
+    obligation, so nothing about it can be a gap.
+
+    `provided` is the historical record - what the Challenge provided, and
+    through which symbols, while it was offered. It is kept, not reinterpreted:
+    retiring is prospective and deletes nothing.
+    """
+
+    decision: str
+    provided: dict[str, Provided]
+
+    def __post_init__(self):
+        if not self.decision.strip():
+            raise ValueError("a retirement names the decision that made it")
+        if not set(self.provided) <= set(PROVISIONS):
+            raise ValueError("a retired record names only known provisions")
+        if any(type(value) is not Provided for value in self.provided.values()):
+            # A gap is work owed; nothing is owed by a retired Challenge.
+            raise TypeError("a retired record holds what was provided, never a gap")
+
 
 REGISTRY_EVIDENCE = "carbon.reconstruction.capability_registry:public_registry"
 
-ENVIRONMENTS: dict[str, dict[str, Status]] = {
-    "burgers-dynamics-v1": {
-        "research": Provided(
-            ("carbon.development_session.research_service:make_research_service",)
+ENVIRONMENTS: dict[str, dict[str, Status] | Retired] = {
+    "burgers-dynamics-v1": Retired(
+        decision=(
+            "Retired from the research path (#366); kept in this standard as "
+            "Retired by the owner's decision (a), 27 September 2026."
         ),
-        "hypothesize": Provided((REGISTRY_EVIDENCE,)),
-        "train": Provided(
-            ("carbon.development_session.research_image:permitted_files",),
-            "The vendored JAX lab ships into the miner analysis image.",
-        ),
-        "generate": Provided(
-            (
-                "carbon.challenge_kit.burgers:generate",
-                "carbon.challenge_kit.burgers:solve",
+        provided={
+            "research": Provided(
+                ("carbon.development_session.research_service:make_research_service",)
             ),
-            "OWNER-CHALLENGE-KIT-01: public generator and reference solvers.",
-        ),
-        "evaluate": Provided(
-            ("carbon.development_session.research_service:make_research_service",)
-        ),
-    },
+            "hypothesize": Provided((REGISTRY_EVIDENCE,)),
+            "train": Provided(
+                ("carbon.development_session.research_image:permitted_files",),
+                "The vendored JAX lab ships into the miner analysis image.",
+            ),
+            "generate": Provided(
+                (
+                    "carbon.challenge_kit.burgers:generate",
+                    "carbon.challenge_kit.burgers:solve",
+                ),
+                "OWNER-CHALLENGE-KIT-01: public generator and reference solvers.",
+            ),
+            "evaluate": Provided(
+                ("carbon.development_session.research_service:make_research_service",)
+            ),
+        },
+    ),
     "battery-fastcharge-ageing-development-v1": {
         "research": Provided(("carbon.battery.research:challenge_parts",)),
         "hypothesize": Provided((REGISTRY_EVIDENCE,)),
@@ -120,10 +158,28 @@ ENVIRONMENTS: dict[str, dict[str, Status]] = {
 }
 
 
+def offered() -> dict[str, dict[str, Status]]:
+    """The Challenges that owe a research environment: every one not retired."""
+    return {
+        challenge: table
+        for challenge, table in ENVIRONMENTS.items()
+        if not isinstance(table, Retired)
+    }
+
+
+def retired() -> dict[str, Retired]:
+    return {
+        challenge: record
+        for challenge, record in ENVIRONMENTS.items()
+        if isinstance(record, Retired)
+    }
+
+
 def gaps() -> dict[str, dict[str, Gap]]:
-    """Every open gap, by Challenge, for reports and the Hub."""
+    """Every open gap, by offered Challenge, for reports and the Hub. A
+    retired Challenge owes nothing and is never reported here."""
     return {
         challenge: {k: v for k, v in table.items() if isinstance(v, Gap)}
-        for challenge, table in ENVIRONMENTS.items()
+        for challenge, table in offered().items()
         if any(isinstance(v, Gap) for v in table.values())
     }

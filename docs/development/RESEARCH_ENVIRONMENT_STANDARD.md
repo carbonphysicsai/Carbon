@@ -56,11 +56,26 @@ may **declare**, and it does not touch who grades.
    seeding only, with a test showing no official seed material is present.
 4. Close a gap by replacing it with `Provided(...)` in the PR that builds it.
 
+## Retired Challenges
+
+A Challenge the registry marks RETIRED owes no research environment. It is
+declared `Retired(decision, provided)` as a whole, never per provision:
+
+- **It is not a gap.** A gap is work owed; retired is work no longer owed.
+  `gaps()` never reports it, and `Retired` cannot be built holding a `Gap`.
+- **It stays readable.** `provided` keeps what it provided and through which
+  symbols, and those symbols must still import, so evidence recorded while it
+  was offered keeps its meaning (invariant 10).
+- **It is prospective.** Retiring changes what is offered from now on, not how
+  any recorded result is read.
+- **It matches the registry.** A Challenge is `Retired` here exactly when the
+  registry marks it RETIRED; a test fails if the two disagree.
+
 ## Current state (2026-09-27)
 
 | Challenge | research | hypothesize | train | generate | evaluate |
 |---|---|---|---|---|---|
-| burgers-dynamics-v1 | provided | provided | provided | provided | provided |
+| burgers-dynamics-v1 (retired; provided all five while offered) | retired | retired | retired | retired | retired |
 | battery-fastcharge-ageing-development-v1 | provided | provided | provided | **gap** | provided (200 public PRACTICE cases) |
 
 **Battery `generate` gap.** Nothing miner-facing runs the pinned PyBaMM
