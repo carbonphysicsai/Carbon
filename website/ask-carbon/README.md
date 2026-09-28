@@ -1,57 +1,20 @@
-# Ask Carbon public homepage component
+# Ask Carbon
 
-Ask Carbon is a dependency-free component for the existing Carbon homepage. It
-is not a second application, an iframe, the authenticated Research Concierge,
-or proof of a production deployment.
+Ask Carbon is the public Q&A component for Carbon's website. Visitors can explore reviewed explanations of the project and inspect the source material behind each answer. A separate, optional Pilot Designer mode helps structure a proposed engineering project.
 
-## Current release state
+The general Q&A provider selects from reviewed answer cards. The Worker returns the selected passages and their pinned sources; the provider cannot supply new factual prose. Unknown, withdrawn, or unsupported selections are refused. Pilot Designer suggestions use a separate proposal schema and require the visitor to accept each change.
 
-> **Candidate 2026-09-26.1 (owner-approved WEB-QA-09-D1, not yet deployed):** Chutes provider, notice
-> version `ask-carbon-notice-v2-2026-09-26`, Q&A live answers default-on.
-> Deployment is the owner's act (OPERATIONS.md). The Pilot Designer disclosure
-> (client-intake #373) names Chutes. See `PUBLIC_RELEASE_CANDIDATE.json`.
+## Content and release status
 
-- Repository knowledge version: `ask-carbon-release-candidate-2026-09-18.2` (server-owned reviewed-answer selection successor; not production deployed)
-- Source release date: 2026-09-18
-- Private staging target: `carbon-ask-private-staging`, version `2cacdb3e-f499-4513-8bf3-f03c92743409`
-- Retained homepage live-evaluation source basis: `ask-carbon-staging-2026-09-16.1`
-- Release record: `APPROVED_PUBLIC` with `public_activation_allowed: true`, on
-  owner approval basis `OWNER_PUBLIC_CONTENT_APPROVAL_2026_09_22_WEB_QA_07_D1`
-- Public activation: a separate third gate, `ASK_CARBON_ACTIVATION`, which this
-  repository does not assert either way. **Deployed state is read from
-  `/health`, not from any file here**
-- Live provider calls: bounded WEB-QA-03 and WEB-QA-04 private evaluations only; no production calls
-- Private synthetic provider calls: observed through the authenticated staging Worker
-- Homepage source-grounded answer review: complete for delivered supported answers
-- Owner human-quality disposition for the retained private pilot packet:
-  approved in the owner conversation; no separate Nick-authored disposition or
-  customer-usability evidence is inferred
-- Production homepage change: none
+The repository contains 27 reviewed answer cards backed by nine public repository sources. The owner approved the content under `WEB-QA-07-D1` and its dated progress refresh under `WEB-QA-07-D2`. The knowledge identifier remains `ask-carbon-release-candidate-2026-09-18.2`.
 
-The production release contract deliberately rejects this manifest. The
-explicit `staging-preview` attribute is required to display its saved answers.
-Without a valid public release, the default component shows an unavailable
-state rather than draft content.
+On 28 September 2026, three source references were reconciled with the revised GitHub documentation. All answer cards, passages, maturity labels, and expiry dates are unchanged. See the [source review](evidence/PUBLIC_DOCS_SOURCE_REVIEW_2026_09_28.md). The assistant's dated progress answer is therefore still a September 22 snapshot; [Project status](../../docs/publications/PROJECT_STATUS.md) is the newer repository overview.
 
-The live general-answer provider no longer authors public factual prose. It
-selects up to three retrieved reviewed-card IDs and at most one exact reviewed
-follow-up. The Worker renders the selected cards' exact reviewed passage text,
-pinned source destinations and maturity notes. Unknown, duplicate,
-non-retrieved or withdrawn selections fail closed. The guided-pilot mode keeps
-its separate proposal schema and does not gain public-answer authority.
+Content approval and deployment are separate. The recorded website candidate `2026-09-26.1` uses Chutes and was approved under `WEB-QA-09-D1`; its exact approved digests remain in [PUBLIC_RELEASE_CANDIDATE.json](PUBLIC_RELEASE_CANDIDATE.json). The September 28 source refresh changes the knowledge manifest and requires a new deployment decision before inclusion in a website or Worker release. This documentation update does not deploy either.
 
-The recovered `Carbon_Ask_v1.zip` matched SHA-256
-`ca1e23c3a77ec813c384d893358fe1fe1959edd5989068a5711b04e2821120cb`.
-Its 31 cards and 40 single-turn/five-conversation evaluation plan were treated
-as draft input and reconciled against current sources, not copied as authority
-or retained as a count gate. The current repository collection contains 27
-useful reviewed units backed by nine exact source revisions. The retained
-live-evaluation artifacts remain pinned to the preceding `2026-09-16.1`
-snapshot so their answers and source basis stay inspectable. The candidate
-private staging surface is prepared for
-`ask-carbon-release-candidate-2026-09-18.2`; its changed cases were evaluated
-through both registered model candidates and its exact pilot surface was run
-through Luna. Prior artifacts remain pinned to their original identities.
+Read the running Worker's `/api/ask-carbon/health` endpoint to establish deployed state. Repository files alone do not prove which version is live. The committed candidate configuration keeps activation disabled; the separately controlled active configuration enables it only when the content, provider, privacy, and budget checks pass. Without a valid public release, the component shows an unavailable state.
+
+Historical private evaluations remain under `evidence/`, with their original model, knowledge, and source identities. They demonstrate the bounded behavior recorded in each run and do not establish customer usability or production qualification.
 
 ## Components
 

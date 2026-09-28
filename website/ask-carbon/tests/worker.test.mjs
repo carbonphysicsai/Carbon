@@ -226,7 +226,7 @@ test("active path uses the exact compatible schema, settles trustworthy usage an
     assert.equal(response.status, 200);
     const body = await response.json();
     assert.equal(body.status, "supported");
-    assert.equal(body.sources[0].url.includes("/blob/405a820b"), true);
+    assert.equal(body.sources[0].url, knowledge.sources.find((source) => source.id === "constitution-405a820b").url);
     assert.ok(body.maturity_note.includes("BOUNDED"));
     assert.equal(typeof body.continuation, "string");
     assert.equal(body.evaluation.provider_model, "gpt-5.6-luna");
@@ -604,7 +604,7 @@ test("Chutes request is chat/completions with the strict selection schema, its o
     assert.equal(body.evaluation.actual_cost_micro_usd, 236);
     assert.equal(body.evaluation.reserved_cost_micro_usd, 3_139);
     assert.equal(body.follow_up, "What is a Challenge?");
-    assert.equal(body.sources[0].url.includes("/blob/405a820b"), true);
+    assert.equal(body.sources[0].url, knowledge.sources.find((source) => source.id === "constitution-405a820b").url);
   });
   assert.equal(providerRequest.url, "https://llm.chutes.ai/v1/chat/completions");
   assert.equal(providerRequest.headers.authorization, "Bearer test-chutes-key");

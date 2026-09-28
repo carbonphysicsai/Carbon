@@ -1,322 +1,80 @@
-# Carbon Go-To-Market Plan v1
+# Go-to-market
 
-**Status:** OWNER-CANONICAL GTM architecture.  
-**Purpose:** define who Carbon sells to, how products enter accounts, how opportunities are qualified, and how accounts expand.
+Carbon's first sales conversation starts with the customer's engineering decision: the fast model they want to use, the simulation work they want to accelerate, and the evidence they need before relying on its predictions.
 
----
+The preferred entry product is a scoped **Evidence Audit**. **Sponsored Discovery** follows when the customer needs a better method and the problem supports a defensible research program. These are target sales motions; the plan does not establish signed customers or pilots.
 
-# 1. GTM principle
+## Initial focus
 
-Do not sell “a subnet.” Do not lead with Alpha. Lead with a concrete engineering pain involving fast physical models.
+| Segment | Engineering need to investigate | Likely technical buyers |
+|---|---|---|
+| Aerospace, space, and defense | Repeated simulation, surrogate credibility, regime coverage, and model change control | Simulation directors, chief engineers, digital engineering, V&V, and R&D leaders |
+| Energy, turbomachinery, and industrial physics | Thermal, flow, and structural modeling; optimization and revalidation | CAE leads, R&D teams, control/digital-twin teams, and engineering platform owners |
+| CAE and engineering-AI partners | Independent evidence for customer models; reference integration; embedded evaluation | Product, engineering, research, and partnership leaders |
 
-Opening question:
+Carbon's battery, cold-plate, motor, and photonics launch research creates concrete examples for these conversations. Research selection does not establish that a customer has validated the use case.
 
-> **Do you already build or use fast physical models, and what prevents you from relying on them more broadly?**
+## First engagement: Evidence Audit
 
-Carbon's four commercial motions are:
+A suitable customer has an existing fast model and a decision they cannot support with current evidence. Carbon scopes the operating range, reference access, and evaluation, then delivers findings and limitations.
 
-```text
-DIAGNOSTIC / EVIDENCE
-R&D / DISCOVERY
-QUALIFICATION / LIFECYCLE
-PLATFORM / CHANNEL
-```
+The customer keeps its model-development stack. Negative findings can help the team narrow the model's use, identify remediation, or avoid an unsupported deployment. The initial engagement should be finite enough to price, deliver, and evaluate before proposing broader work.
 
----
+## Discovery and qualification
 
-# 2. Initial vertical focus
+A Sponsored Discovery prospect has a valuable modeling problem, an adequate reference path, and a reason to search beyond its current methods. Carbon's proposed deliverable is a research and evidence program. A better candidate is a possible outcome, not a contractual certainty.
 
-## Direct-sales vertical 1 — Aerospace / space / defense
+Qualification addresses a particular artifact and engineering use. Lifecycle support becomes relevant when the customer changes a model, dataset, reference, runtime, or operating range. Multiple recurring evaluations can justify enterprise software or API integration.
 
-Target pains:
-- expensive repeated CFD/FEA/simulation;
-- surrogate credibility;
-- optimization-loop acceleration;
-- high-consequence regime coverage;
-- private/on-prem evidence requirements;
-- model V&V and change control.
-
-Target roles:
-- VP/Director Simulation;
-- Chief Engineer;
-- Digital Engineering leader;
-- SciML/AI Engineering leader;
-- V&V/modeling authority;
-- R&D program manager.
+## Opportunity qualification
 
-## Direct-sales vertical 2 — Energy / turbomachinery / industrial physics
+Before proposing work, Carbon establishes:
 
-Target pains:
-- repeated thermal/flow/structural simulation;
-- rare-regime robustness;
-- design optimization;
-- real-time models / digital twins;
-- expensive model updates and revalidation.
+- The engineering decision, required inputs and outputs, important regimes, and consequences of error.
+- The existing model or method, current cost or delay, and the improvement the customer values.
+- The reference source, its adequacy, access arrangement, and cost.
+- The technical owner, budget owner, procurement path, and decision date.
+- Data rights, confidentiality, deployment constraints, and permission to reuse evidence.
+- The intended deliverable, evidence limits, budget, and treatment of a negative or unresolved result.
 
-Target roles:
-- simulation/CAE lead;
-- R&D engineering lead;
-- digital twin/control lead;
-- AI/SciML lead;
-- engineering platform owner.
+A technically interesting problem is insufficient without a buyer, feasible evidence program, and defined next step.
 
-## Strategic partner track — CAE / engineering software / engineering-AI
+## Engagement stages
 
-Potential motions:
-- independent evidence for platform-generated models;
-- qualification API/OEM;
-- solver/truth integration;
-- joint customer programs;
-- sponsored research marketplace.
+| Stage | Required progress |
+|---|---|
+| S0 Target | Account and plausible engineering need identified |
+| S1 Discovery | Customer's problem and current workflow recorded |
+| S2 Technical qualification | Model/problem, reference, and evidence scope assessed |
+| S3 Commercial qualification | Buyer, budget, value, and procurement understood |
+| S4 Proposal | Finite deliverables, capacity, costs, and limitations agreed for review |
+| S5 Security / legal / procurement | Required privacy, rights, deployment, and contracting reviews completed |
+| S6 Contracted / pilot | An executed agreement supports the scoped work |
+| S7 Delivered | Customer receives the agreed evidence and deliverables |
+| S8 Expansion identified | A specific follow-on need has customer support |
+| S9 Recurring / platform | Repeat use or recurring commitment has evidence |
 
----
+A discussion is not a pilot, and a pilot does not establish repeatability. Customer statements, Carbon's observations, and Carbon's interpretations stay distinct in opportunity records, with source, person, organization, date, and evidence state.
 
-# 3. Opportunity routing
+## Partners
 
-```text
-Customer already has a fast model?
-    yes → credibility problem? → Evidence Audit
-          deployment claim? → Qualified Model Program
+CAE vendors can provide reference integrations and customer access. Engineering-AI platforms can supply models that need evaluation or bring unmet modeling requirements. Simulation infrastructure providers can support execution. Carbon should test each partnership against a concrete joint workflow and customer benefit.
 
-Customer lacks satisfactory model?
-    problem ill-defined? → Challenge Feasibility
-    problem ready? → Sponsored Discovery or Model Development
+An API or OEM engagement needs a maintained interface and qualified delivery path. Private or customer-hosted solver execution remains available only when the relevant implementation, security, rights, and scientific requirements are met.
 
-Many models / versions / teams?
-    → Lifecycle / Enterprise Evidence Platform
+## Common buyer questions
 
-Software vendor?
-    → API / OEM
+| Question | Carbon's position |
+|---|---|
+| Can we do this internally? | Carbon must demonstrate better evidence, lower effort, useful external research, or a repeatable workflow worth buying. |
+| What happens if the model fails? | The evidence and limitations remain the deliverable; remediation is a separate decision. |
+| Can our solver and data stay private? | Scope the required topology and verify its readiness before offering it. |
+| Who owns the model or method? | Agree rights before work begins; ownership does not follow from evaluating it. |
+| Does this certify our design? | Carbon supports bounded evidence for a defined use. Governing engineering and regulatory authorities retain their roles. |
+| Must we buy Alpha? | Enterprise procurement can use fiat. The network supplies research where it improves the program. |
 
-Recurring sponsor of research problems?
-    → Frontier Market
+## Measures of progress
 
-Evidence corpus + prospective decision lift proven?
-    → Physics Intelligence
-```
+Early measures are qualified interviews, repeated pain, willingness-to-pay evidence, proposal conversion, and the first paid audit. Later measures include delivery cost, repeat purchases, expansion, recurring share, renewals, and partner usage.
 
----
-
-# 4. Sales stages
-
-```text
-S0 TARGET
-S1 DISCOVERY
-S2 TECHNICAL QUALIFICATION
-S3 COMMERCIAL QUALIFICATION
-S4 PROPOSAL
-S5 SECURITY / LEGAL / PROCUREMENT
-S6 CONTRACTED / PILOT
-S7 DELIVERED
-S8 EXPANSION IDENTIFIED
-S9 RECURRING / PLATFORM
-```
-
-A lead should not advance solely because it is technically interesting.
-
----
-
-# 5. Discovery qualification
-
-Required discovery questions:
-
-1. What engineering decision/job is the fast model intended to support?
-2. Does the customer already have a candidate?
-3. What are required inputs and outputs?
-4. Which physical regimes matter most?
-5. What is the truth/reference source?
-6. Can Carbon access it directly, remotely, or through customer-hosted execution?
-7. What is the cost of the current workflow?
-8. What happens if the fast model is wrong?
-9. Who owns the technical decision?
-10. Who owns the budget?
-11. What privacy/IP/security constraints exist?
-12. What deliverable does the customer believe it is buying?
-13. Is the expected claim compatible with Carbon's evidence scope?
-14. What is the timeline and procurement path?
-15. What happens if the evidence is negative or no frontier advance occurs?
-
----
-
-# 6. First-wedge motion — Evidence Audit
-
-## Trigger
-
-Customer has an existing model but lacks independent evidence or cannot confidently expand its use.
-
-## Sales promise
-
-> **Carbon independently tests what the model can actually support, where it fails, and what stronger evidence or remediation would be needed.**
-
-## Why low-friction
-
-- customer keeps its current model-development stack;
-- no need to outsource R&D immediately;
-- negative findings are still valuable;
-- finite scoped pilot;
-- natural path into follow-on work.
-
-## Expansion signals
-
-```text
-model fails → remediation / discovery
-model promising → qualification
-model deployed → lifecycle
-many models → enterprise platform
-```
-
----
-
-# 7. Sponsored Discovery motion
-
-## Trigger
-
-Customer has a valuable, authorable physical-modeling problem and wants broader search than its internal team can supply.
-
-## Sales promise
-
-> **Carbon turns the problem into a qualified competitive R&D program and independently verifies whether anyone genuinely advances the frontier.**
-
-Commercial success is delivery of the agreed program and evidence, not guaranteed frontier improvement.
-
----
-
-# 8. Qualification/lifecycle motion
-
-## Trigger
-
-Customer wants an exact candidate to support a defined operational or engineering use.
-
-## Buyer value
-
-- bounded evidence package;
-- versioned artifact identity;
-- limitations and answerability;
-- change/requalification plan;
-- auditable lifecycle.
-
-This naturally supports recurring revenue because evidence must be revisited when the system changes materially.
-
----
-
-# 9. Enterprise platform motion
-
-Trigger platform conversation when:
-
-- same customer has multiple models/programs;
-- customer repeats Audits/qualifications;
-- shared truth adapters can be standardized;
-- customer needs governance/evidence registry across teams;
-- annual usage becomes predictable.
-
-Sell:
-- private workspace;
-- model/evidence registry;
-- evaluation capacity;
-- truth adapters;
-- lifecycle/requalification;
-- API/export;
-- support;
-- VPC/on-prem where required.
-
----
-
-# 10. Objection handling
-
-## “Why not validate internally?”
-
-Carbon must prove value through independent evidence, protected evaluation, standardized provenance, broader competitive search, or reduced time/cost. Do not assume independence alone is sufficient.
-
-## “Why not hire a consultant?”
-
-Carbon's answer is repeatable infrastructure, evidence objects, qualification/lifecycle, software, and eventually scalable research supply—not advice alone.
-
-## “Why Bittensor?”
-
-It is the external research/optimizer market behind eligible discovery work. It is not required as the first sentence of an enterprise sale.
-
-## “What if the model fails?”
-
-Failure is useful evidence; the commercial product is the evidence program, not a guaranteed positive answer.
-
-## “Our solver cannot leave our VPC.”
-
-Use customer-hosted truth or private deployment once qualified. Do not promise unimplemented security topologies.
-
-## “Who owns the method?”
-
-Rights are specified prospectively in the commercial contract; sales may not improvise ownership.
-
-## “Is this certification?”
-
-No universal certification claim. Carbon can support bounded evidence/qualification for an exact context; governing engineering/regulatory authority remains external.
-
----
-
-# 11. CRM evidence fields
-
-Every opportunity should capture:
-
-```text
-vertical
-buyer_role
-budget_owner
-product_motion
-existing_model_yes_no
-truth_access_mode
-privacy_mode
-technical_pain
-business_pain
-current_cost_or_delay
-claim_requested
-estimated_program_scope
-security_complexity
-rights_complexity
-network_eligibility
-next_step
-decision_date
-expansion_hypothesis
-```
-
----
-
-# 12. Design-partner criteria
-
-Best early design partners:
-
-- real expensive physics workflow;
-- accessible technical buyer;
-- real model or authorable problem;
-- defensible truth path;
-- willingness to share enough evidence to improve productization;
-- manageable privacy/security scope;
-- credible path to second engagement;
-- meaningful reference value if successful;
-- no requirement for Carbon to overclaim scientific authority.
-
----
-
-# 13. GTM success metrics
-
-Early:
-- number of qualified interviews;
-- repeated pain themes;
-- willingness-to-pay evidence;
-- proposal conversion;
-- first paid Audit.
-
-Then:
-- repeatable Audit delivery;
-- expansion rate;
-- qualification/lifecycle attach rate;
-- sales-cycle length;
-- ACV;
-- recurring share;
-- platform conversion;
-- partner/OEM pipeline.
-
----
-
-# 14. GTM rule
-
-> **Sell the customer's engineering outcome first, Carbon's evidence system second, and the network only where it materially improves the customer proposition.**
+[Products and revenue](Product_and_Revenue_Architecture.md) defines the offering sequence. [Commercial operating model](Commercial_Operating_Model.md) governs scope, rights, and acceptance.

@@ -1,4 +1,10 @@
-# Standard Carbon research MCP
+# Carbon research MCP
+
+Carbon's Model Context Protocol interface lets an external agent or client inspect challenges, use research tools, and operate a development campaign. It shares campaign operations and records with the Miner Control Center. Start without a configuration to inspect the open onboarding and exam information; research execution needs a registered miner and a configured runtime.
+
+This is a development interface. A submitted candidate is not a qualified engineering model or a production reward claim. [Project status](../../docs/publications/PROJECT_STATUS.md) explains the available challenges and evidence.
+
+## Interface and admission
 
 This optional adapter exposes one of the miner's existing research campaigns. It
 uses the same principal, signed gateway, operation identity, task controller,

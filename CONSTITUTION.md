@@ -19,13 +19,7 @@
 
 > **Carbon is an incentivized experimental system for discovering, independently testing, learning from, and qualifying methods for constructing fast physical models.**
 
-Public shorthand:
-
-> **Carbon pays people and agents to find better ways to build fast physics models, then independently tests what survives.**
-
-Business identity:
-
-> **Carbon is building the discovery, evidence, and qualification infrastructure for fast physical models.**
+Carbon's business is the discovery, evidence, and qualification infrastructure around those models. The [README](README.md) explains the project; [Project status](docs/publications/PROJECT_STATUS.md) distinguishes current development from planned capabilities.
 
 The first bounded implementation searches neural-operator `TrainingStrategy` objects. The long-term scientific object is broader: `ModelConstructionStrategy` / future `ConstructionProgram` producing a `FastPhysicalModel` or physical-decision system under a registered reconstruction and evaluation contract.
 
@@ -127,9 +121,11 @@ as the migration guard. The overlay **does not authorize a speculative implement
 
 ---
 
-# 5. Implementation maturity
+# 5. Historical implementation snapshot
 
-At the time of this constitutional reconciliation:
+The following records the 23 August 2026 reconciliation. It is not the current implementation state. Wave A has since closed in bounded engineering scope; consult `.agent/WAVE.md`, per-track records, and [Project status](docs/publications/PROJECT_STATUS.md) for subsequent work.
+
+At that reconciliation:
 
 ```text
 A-1  done
@@ -150,7 +146,7 @@ A12  not implemented
 
 A0–A7 are real implementation/test accomplishments in their recorded bounded scopes. They are **not** declarations of production scientific qualification.
 
-A8 remains the next Wave-A implementation seam. No documentation change may relabel it as implemented before code, tests, review, merge, and board evidence exist.
+At that date A8 was the next Wave-A implementation seam. Later implementation status depends on code, tests, merge, and board evidence; this historical snapshot does not select current work.
 
 ---
 
@@ -253,7 +249,6 @@ Primary documents:
 - `Business/Go_To_Market.md`
 - `Business/Investor_Positioning_and_Market.md`
 - `Business/Financial_Engine.md`
-- `Business/Network_and_Alpha_Value.md`
 - `Business/Design_Questions.md`
 
 Business law:
@@ -282,7 +277,7 @@ Preferred value path:
 
 > **Create Alpha value by making the subnet economically useful and increasingly necessary to valuable scientific work.**
 
-No buyback, revenue-share, burn, or similar direct financial mechanism is constitutional by default; each requires explicit legal/economic/governance adoption.
+Carbon's current commercial direction is to pay for useful subnet research output through Alpha buyback and burn. This does not implement or activate a payment policy. Operating terms and legal/economic/governance adoption remain separate requirements. It creates no revenue-share or token-holder entitlement.
 
 ---
 

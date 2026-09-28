@@ -140,7 +140,6 @@ The new commercial section is Carbon-authored business strategy. It should be gr
 - `Business/Business_Plan.md`;
 - `Business/Product_and_Revenue_Architecture.md`;
 - `Business/Go_To_Market.md`;
-- `Business/Network_and_Alpha_Value.md`;
 - `Business/Commercial_Operating_Model.md`.
 
 Do **not** add academic citations to statements such as:
