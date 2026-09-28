@@ -22,9 +22,13 @@ from carbon.development_session.julia_analysis import (
     load_julia_analysis_image,
     run_julia,
 )
-from carbon.development_session.research_carrier import reconcile_worker, request_cancel
+from carbon.development_session.research_carrier import (
+    MinerProgramFailure,
+    reconcile_worker,
+    request_cancel,
+)
 from carbon.reconstruction.worker.docker_runtime import DockerCLI
-from carbon.reconstruction.worker.model import WorkerFailure
+from carbon.reconstruction.worker.model import WorkerCode, WorkerFailure
 
 
 def serve(root, image_path):
@@ -221,7 +225,10 @@ write("/scratch/output/result.json","{\"installation_denied\":true}")
 )
 def test_invalid_exports_never_become_results(image, tmp_path, source):
     ledger, _ = prepared(tmp_path, image=image)
-    with pytest.raises((ValueError, WorkerFailure)):
+    # The miner's own output refused for its content is the miner's failure,
+    # typed as such and settled with cleanup observed - never a result, and
+    # never an infrastructure failure left for reconciliation.
+    with pytest.raises(MinerProgramFailure) as raised:
         run_julia(
             ledger,
             owner="test-miner",
@@ -231,7 +238,11 @@ def test_invalid_exports_never_become_results(image, tmp_path, source):
             image=image,
             seconds=90,
         )
-    assert ledger.status(owner="test-miner")["operations"][0]["state"] == "RESERVED"
+    assert raised.value.code is WorkerCode.OUTPUT
+    operation = ledger.status(owner="test-miner")["operations"][0]
+    assert operation["state"] == "FAILED_MINER"
+    assert operation["result"]["cleanup_observed"] is True
+    assert operation["actual"]["numerical_milliseconds"] >= 90000
     reconciled = reconcile_worker(ledger, owner="test-miner", identity="invalid-output")
     assert reconciled["retry_dispatched"] is False
     assert_removed(ledger)
@@ -417,17 +428,17 @@ def test_deadline_stops_running_julia_and_child_without_refund(image, tmp_path):
             pytest.fail("deadline test did not observe active Julia and child")
         # The miner lane times the allowance from program start, not container
         # creation, so the wait must outlast the whole 60 s allowance.
-        with pytest.raises(WorkerFailure) as caught:
+        # Either deadline stops it - the watchdog kills the container at the
+        # allowance, or the stream's own timeout fires first - and both are the
+        # miner's own allowance elapsing, typed as their deadline.
+        with pytest.raises(MinerProgramFailure) as caught:
             future.result(timeout=90)
-        # Either deadline stops it: the watchdog kills the container at the
-        # allowance (SIGKILL, exit 137), or the stream's own timeout fires first.
-        diagnostic = caught.value.private_diagnostic
-        assert diagnostic == b"stream command timed out" or diagnostic.startswith(
-            b"exit=137\n"
-        ), diagnostic
+        assert caught.value.code is WorkerCode.DEADLINE
     result = reconcile_worker(ledger, owner="test-miner", identity="deadline-julia")
     assert result["cleanup_observed"] is True
-    assert ledger.status(owner="test-miner")["used"]["numerical_milliseconds"] == 60000
+    assert result["state"] == "FAILED_MINER"
+    # The full allowance is charged, and any measured overrun with it.
+    assert ledger.status(owner="test-miner")["used"]["numerical_milliseconds"] >= 60000
     assert_removed(ledger)
 
 

@@ -1,0 +1,15 @@
+{
+  "map_ref": "SYSTEM/AGENT-EXECUTION",
+  "event_type": "evidence",
+  "event_id": "C-MLP-02-D3-FAILURE-PATHS-01",
+  "owner_lane": "technical_lead",
+  "status": "implemented",
+  "summary": "Implemented D3, failure and recovery end to end, on the miner research carrier. A task whose ledger operation is still RESERVED now reports requires_reconciliation even when the task itself is terminal. Reconciliation keys on the durable worker intent rather than reserved milliseconds, so a miner run with no wall allowance can be reconciled, and the launchpad cleanup counts any operation it cannot settle as not clean. The durable intent is written before staging, image verification and the host doctor; a failure there, with no container command issued, settles FAILED_INFRA keeping the full reservation. Cancellation-watcher errors are checked before the ledger records a terminal state, so the ledger never says SUCCEEDED while the task fails. Pre-dispatch refusals on the task path, including closed admission, report dispatch_may_have_occurred=false; a failure after admission still reports true. The miner's own program failing on observed evidence (its own allowance elapsed, a daemon-reported OOM kill, a nonzero exit from a still-running container, or output refused for its own content) settles as a typed FAILED_MINER ledger state with existing WorkerCode values, cleanup observed and the full reservation kept; the workspace task completes with outcome MINER_PROGRAM_FAILED and no scientific claim. Ambiguous daemon, CLI and host failures stay FAILED_INFRA. Reconciling a worker also ends its task, in the same call when the provider is live and on the next load otherwise. A digest mismatch on retained research or battery output writes a security_incident note before refusing. No scientific, qualification, economic or public-network behavior changes.",
+  "primary_detail": "carbon/development_session/research_carrier.py",
+  "affects": [
+    "SYSTEM/AGENT-EXECUTION",
+    "WAVE-C/C-W1-D4"
+  ],
+  "supersedes": null,
+  "recorded_at": "2026-09-27T02:33:56Z"
+}

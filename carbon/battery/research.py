@@ -579,7 +579,18 @@ class BatteryPractice:
                 raise ValueError("bounded practice result required")
             body = path.read_bytes()
             if digest(body) != worker["files"].get(name):
-                raise ValueError("practice result changed")
+                from carbon.development_session.research_carrier import (
+                    record_output_tamper,
+                )
+
+                record_output_tamper(
+                    self.ledger,
+                    owner=self.owner,
+                    operation=worker["operation"],
+                    name=name,
+                    expected=worker["files"].get(name),
+                    observed=digest(body),
+                )
             return json.loads(body)
 
         predictions = checked("predictions.json", 16 * 1024**2)

@@ -21,6 +21,7 @@ from carbon.research import (
     load_canonical,
 )
 from carbon.research.durable import DurableResearchTaskProvider
+from carbon.research.model import InfrastructureFailureClass
 from carbon.research.records import (
     AuthorizedResearchOutcome,
     EvidenceContext,
@@ -33,11 +34,27 @@ from carbon.research.records import (
 )
 
 from .profile import canonical, digest
-from .research_carrier import ACTIVE_TASK, request_cancel, run_script
+from .research_carrier import (
+    ACTIVE_TASK,
+    MinerProgramFailure,
+    record_output_tamper,
+    request_cancel,
+    run_script,
+)
 from .research_workspace import ResearchWorkspace, request_capability
 
 
 class PublicDevelopmentResearchTasks(DurableResearchTaskProvider):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        try:
+            # A worker reconciled while no supervisor held this store (the
+            # launchpad's cleanup) settled the ledger; end its task now.
+            self.settle_reconciled_tasks()
+        except BaseException:
+            self.close()
+            raise
+
     @staticmethod
     def _spec_parts(request):
         if type(request.task_spec) is DevelopmentWorkspaceTaskSpecV1:
@@ -51,6 +68,66 @@ class PublicDevelopmentResearchTasks(DurableResearchTaskProvider):
         if result.task.state is ResearchTaskState.CANCEL_REQUESTED:
             self._executor.executor.cancel(request.task_id.value)
         return result
+
+    def reconcile_task(self, task_id):
+        """Reconcile an orphaned task's worker and end the task in one call.
+
+        The ledger settles through ``reconcile_worker`` (observed cleanup, full
+        reservation kept); the task then leaves RUNNING for its terminal state
+        rather than staying RUNNING over a settled operation.
+        """
+        from .research_carrier import reconcile_worker
+
+        executor = self._executor.executor
+        result = reconcile_worker(
+            executor.ledger, owner=executor.owner, identity=task_id.value
+        )
+        self.settle_reconciled_tasks(only=task_id)
+        return result
+
+    def settle_reconciled_tasks(self, *, only=None):
+        """End tasks whose worker operation was already reconciled.
+
+        Only a ledger FAILED_INFRA settles a task here: RESERVED still needs
+        reconciliation, and an absent operation is not evidence of anything.
+        A requested cancellation ends CANCELLED, as the lifecycle ends it.
+        Called on load, where the supervisor lock excludes any live execution,
+        and after ``reconcile_task``, whose numerical lease excluded it.
+        """
+        executor = self._executor.executor
+        settled = []
+        with self._lock:
+            for task in self._tasks.values():
+                if only is not None and task.task_id != only:
+                    continue
+                if task.state not in {
+                    ResearchTaskState.RUNNING,
+                    ResearchTaskState.CANCEL_REQUESTED,
+                }:
+                    continue
+                state = executor.ledger.operation_state(
+                    task.task_id.value, owner=executor.owner
+                )
+                if state != "FAILED_INFRA":
+                    continue
+                completed_at = self._now(task.updated_at_micros)
+                if task.state is ResearchTaskState.CANCEL_REQUESTED:
+                    receipt = self._receipt(
+                        task, ResearchTaskState.CANCELLED, completed_at
+                    )
+                    self._transition(task, ResearchTaskState.CANCELLED, receipt=receipt)
+                else:
+                    receipt = self._receipt(
+                        task,
+                        ResearchTaskState.FAILED_INFRA,
+                        completed_at,
+                        failure_class=InfrastructureFailureClass.WORKER_LOST,
+                    )
+                    self._transition(
+                        task, ResearchTaskState.FAILED_INFRA, receipt=receipt
+                    )
+                settled.append(task.task_id)
+        return tuple(settled)
 
     def request_for_execution(self, task_id):
         """Trusted executor lookup, never a public operation."""
@@ -268,16 +345,29 @@ class PublicResearchExecutor:
                 )
             runner, image = run_julia, self.julia_image
             selection = {"environment": environment}
-        result = runner(
-            self.ledger,
-            owner=self.owner,
-            identity=identity,
-            source=args["source"],
-            files=self.workspace.snapshot(args["files"]),
-            image=image,
-            seconds=args.get("seconds"),
-            **selection,
-        )
+        try:
+            result = runner(
+                self.ledger,
+                owner=self.owner,
+                identity=identity,
+                source=args["source"],
+                files=self.workspace.snapshot(args["files"]),
+                image=image,
+                seconds=args.get("seconds"),
+                **selection,
+            )
+        except MinerProgramFailure as failure:
+            # The miner's program failed, observed, with cleanup observed and
+            # the full reservation kept. Carbon executed the request, so the
+            # task completes and reports the typed miner-caused outcome; it is
+            # never relabelled as an infrastructure failure, and it carries no
+            # scientific claim (workspace records stay STRUCTURAL_ONLY).
+            return {
+                "provenance": "MINER_SELF_REPORTED",
+                "outcome": "MINER_PROGRAM_FAILED",
+                "worker": failure.result,
+                "workspace_exports": [],
+            }
         # Import only the bounded validated export into the owner's scratch space.
         # No path from miner output is ever interpreted as a host source path.
         snapshot = self.ledger.root / result["operation"] / "snapshot"
@@ -287,7 +377,14 @@ class PublicResearchExecutor:
                 continue  # nested checkpoint bundles remain retained by task
             body = (snapshot / relative).read_bytes()
             if digest(body) != fingerprint:
-                raise ValueError("research export changed")
+                record_output_tamper(
+                    self.ledger,
+                    owner=self.owner,
+                    operation=result["operation"],
+                    name=relative,
+                    expected=fingerprint,
+                    observed=digest(body),
+                )
             name = identity[-20:] + "-" + relative
             if len(body) <= 8 * 1024**2 and len(name) <= 96:
                 self.workspace.put(name, body)

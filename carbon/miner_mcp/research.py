@@ -179,9 +179,7 @@ class AuthenticatedResearchService:
                 else None
             ),
             "public_result": projection,
-            "requires_reconciliation": task is not None
-            and task.state
-            in {ResearchTaskState.RUNNING, ResearchTaskState.CANCEL_REQUESTED},
+            "requires_reconciliation": _requires_reconciliation(task, composition),
             "official_eligible": False,
             **(
                 {"original_operation_id": operation_id}
@@ -220,3 +218,24 @@ class AuthenticatedResearchService:
             if interrupted:
                 raise asyncio.CancelledError
         self._active.clear()
+
+
+def _requires_reconciliation(task, composition):
+    """Whether this task's outcome still holds unsettled work.
+
+    A task still running needs reconciling, and so does a terminal task whose
+    ledger operation is still RESERVED: a carrier failure can end the task
+    FAILED_INFRA while its worker's cleanup and accounting stay unresolved.
+    The task state alone would report that as settled.
+    """
+    if task is None:
+        return False
+    if task.state in {ResearchTaskState.RUNNING, ResearchTaskState.CANCEL_REQUESTED}:
+        return True
+    executor = getattr(composition, "executor", None)
+    ledger = getattr(executor, "ledger", None)
+    if ledger is None:
+        return False
+    return (
+        ledger.operation_state(task.task_id.value, owner=executor.owner) == "RESERVED"
+    )
