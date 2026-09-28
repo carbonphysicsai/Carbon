@@ -175,4 +175,4 @@ settlement, weight, or emission claim.
 - [Publications and reading guide](https://github.com/carbonphysicsai/Carbon/blob/6ba5232f00e81b0ecd02fb3684ec808f0ada00d7/docs/publications/README.md)
 
 Authority snapshot: `6ba5232f` on `main`,
-captured 2026-09-28T10:22:06Z.
+captured 2026-09-28T10:27:41Z.
