@@ -27,6 +27,14 @@ from pathlib import Path
 # One refusal type for every door: a browser sees its status, MCP its code.
 from scripts.dev.miner_launchpad.controller import Rejected
 
+
+def _battery_feedback_modes():
+    # The runner validates against the same tuple (runner.feedback_modes).
+    from scripts.dev.miner_launchpad.runner import feedback_modes
+
+    return feedback_modes()
+
+
 #: Every request field any operation takes, with its JSON type and meaning.
 #: Both doors read these: the browser validates bodies against them and MCP
 #: builds its tool schemas from them, so a field cannot mean two things.
@@ -86,8 +94,10 @@ FIELDS = {
     "feedback_mode": (
         "string",
         (
-            "Battery Challenge only: FULL (default) or SCORE_WITHHELD. Frozen "
-            "when the campaign is created; a resume keeps the frozen mode."
+            "Battery Challenge only: one of "
+            + ", ".join(_battery_feedback_modes())
+            + " (FULL by default). Frozen when the campaign is created; a "
+            "resume keeps the frozen mode."
         ),
     ),
 }
