@@ -311,7 +311,10 @@ def test_task_kind_mismatch_returns_safe_correction_without_dispatch(
         assert status["used"]["research_trials"] == 1
         assert status["used"]["provider_attempts"] == 0
         assert status["used"]["numerical_milliseconds"] == 0
-        assert status["notes"][0]["body"]["minimal_safe_design"] == first["correction"]
+        # Filed as a refusal, never as a capability request: nothing was asked
+        # for that Carbon lacks.
+        assert {n["kind"] for n in status["notes"]} == {"refusal"}
+        assert status["notes"][0]["body"]["correction_code"] == code
         # The hint describes an already supported route; it grants no new API.
         corrected = {
             **args,

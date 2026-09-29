@@ -409,7 +409,7 @@ async def run_epoch(
                         "reason": "epoch research trial ceiling; select retained recipe or stop",
                         "authority_granted": False,
                     }
-                    ledger.note(owner=owner, kind="capability_request", body=result)
+                    ledger.note(owner=owner, kind="refusal", body=result)
                 else:
                     result = await sdk.call(call["name"], arguments, tool_identity)
             write_once(result_file, canonical(result))

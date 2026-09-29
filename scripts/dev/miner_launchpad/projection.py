@@ -12,6 +12,17 @@ from carbon.development_session.research_guidance import context, verify, verify
 from carbon.development_session.research_ledger import DIMENSIONS, CampaignLedger
 from carbon.development_session.research_workspace import CAPABILITY_FIELDS
 
+#: What a refusal shows: which operation, why, and the correction if any.
+REFUSAL_FIELDS = {
+    "operation",
+    "purpose",
+    "hypothesis",
+    "status",
+    "reason",
+    "detail",
+    "correction_code",
+}
+
 
 def _text_fields(body, fields):
     if type(body) is not dict:
@@ -32,6 +43,7 @@ def project(row, root):
         "hypotheses": [],
         "epoch_outcomes": [],
         "capability_requests": [],
+        "refusals": [],
         "decisions": [],
         "final_results": [],
         "official_eligible": False,
@@ -154,6 +166,14 @@ def project(row, root):
                 {
                     "sequence": note["sequence"],
                     **_text_fields(note["body"], CAPABILITY_FIELDS),
+                    "authority_granted": False,
+                }
+            )
+        elif note["kind"] == "refusal":
+            value["refusals"].append(
+                {
+                    "sequence": note["sequence"],
+                    **_text_fields(note["body"], REFUSAL_FIELDS),
                     "authority_granted": False,
                 }
             )
