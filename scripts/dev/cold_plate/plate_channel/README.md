@@ -206,27 +206,31 @@ every pair of meshes gives an order directly.
 - The order is approaching the scheme's second order. The coarse mesh has 5
   cells across a 0.15 mm half-channel.
 
-**Temperatures.** The mean converges and the peak does not.
+**Temperatures.** The mean and the outlet converge. The local base
+temperatures do not.
 - **The mean** base temperature changes by −0.32 K from r = 1 to 2, then by
   +0.03 K from r = 2 to 3. **It converges.**
 - **The outlet bulk temperature is converged** to 0.4 mK.
-- **The reported peak does not converge.** It rises by +0.07 K, then by
-  +0.19 K, and the step grows with refinement. The peak always sits in the
-  last cell column, at the corner where the heated base meets the adiabatic
-  plate end.
-  - The analyzer takes the last cell's centre value plus the imposed flux
-    over half a cell. As the cells shrink, that column moves into the
-    corner.
-  - So "peak base temperature" is not yet a mesh-independent quantity for
-    this geometry. It needs either a corner-resolving measurement (graded
-    cells, or face values from the solver) or a peak defined away from the
-    end.
-  - **No peak value here is a converged result.**
+- **The local base temperatures are not mesh-converged.**
+  - The peak rises by +0.07 K from r = 1 to 2, then by +0.19 K from r = 2
+    to 3.
+  - The maximum restricted to x ≤ 0.8 L or x ≤ 0.9 L rises by about
+    0.2-0.25 K between r = 2 and r = 3. The increment does not shrink.
+  - **This is not a measurement artefact.** The heated patch's own face
+    temperatures, written by the solver, agree with the analyzer's
+    extrapolated values to 0.1 mK.
+  - **Not the plate-end corner** either: the non-convergence appears away
+    from the end.
+  - **Hypothesis, untested:** at Pr = 11, the thermal boundary layer is thin
+    and still developing over the whole 30 mm plate, since the thermal entry
+    length is about 90 mm. Uniform meshes of 5-15 cells across the 0.15 mm
+    half-channel may not resolve it.
+  - **No local or peak temperature here is claimed as converged.**
 
 **The die temperature, under the design basis's interface assumption.** The
 nominal R″ = 0.05 cm²·K/W adds q″·R″ = 5.56 K. **This offset is exact.** A
-die temperature built on the peak inherits the peak's lack of convergence:
-it is about 83 °C at a 40 °C inlet on these meshes.
+die temperature built on the peak inherits the lack of convergence in the local
+base temperatures: it is about 83 °C at a 40 °C inlet on these meshes.
 - This is a derived number, not a design verdict.
 - No temperature limit is set here.
 
@@ -235,9 +239,9 @@ CPUs. No pod was used.
 
 ## Next
 
-1. **A mesh-independent peak temperature:** grade the cells toward the plate
-   end, or read face values from the solver, before the family sweep reports
-   peaks.
+1. **Resolve the thermal boundary layer.** Grade the fluid cells toward the
+   walls, and repeat the three-mesh study until the local base temperatures
+   converge. This comes before the family sweep reports any peak.
 2. **The straight-channel family sweep,** within the design basis's ranges:
    - channel width, fin width and depth;
    - flow, from 1.25 to 2.0 L/min per kW;
