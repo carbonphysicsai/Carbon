@@ -70,8 +70,11 @@ def operating_rules():
             "history is never silently dropped."
         ),
         (
-            'Arguments. null means JSON null (unquoted), never the string "null". A '
-            "refused argument names the field that broke the contract."
+            'Arguments. null means JSON null (unquoted), never the string "null". '
+            "A field ending in _json is a string holding encoded JSON, for "
+            'example arguments_json: "{\\"name\\":\\"objective\\"}", never a '
+            "JSON object. A refused argument names the field that broke the "
+            "contract."
         ),
         (
             "Strategy capture limits. A recipe beyond any of these is refused with "
@@ -152,8 +155,8 @@ capability_request (its reason is one of missing_adapter, missing_data_support,
 resource_ceiling, host_limitation, contract_incompatibility or
 prohibited_authority_or_data); never disguise it as a supported family.
 
-Use the twelve namespaced research functions. JSON-string fields contain
-ordinary JSON objects. Workspace actions: public_material (objective,
+Use the twelve namespaced research functions. A field whose name ends in _json
+carries a JSON object encoded as a string, never the object itself. Workspace actions: public_material (objective,
 capabilities, training_data, practice_data, reference_method), check_design
 (can I submit this?), roadmap, notebook, capability_request, run_python. Before
 every materially new trial state a falsifiable hypothesis and expected effect.
