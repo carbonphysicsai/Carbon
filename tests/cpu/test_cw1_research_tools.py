@@ -233,21 +233,22 @@ def test_invalid_trial_is_counted_and_returns_repairable_feedback(tmp_path):
     }
     result = asyncio.run(sdk.call(PREFIX + "start_research_task", args, "bad-trial"))
     assert result["status"] == "REJECTED_BEFORE_DISPATCH"
-    assert meter.status(owner="alice")["used"]["research_trials"] == 1
+    # Refused before dispatch: nothing started, so no trial slot is charged.
+    assert meter.status(owner="alice")["used"]["research_trials"] == 0
     assert (
         asyncio.run(sdk.call(PREFIX + "start_research_task", args, "bad-trial"))[
             "status"
         ]
         == result["status"]
     )
-    assert meter.status(owner="alice")["used"]["research_trials"] == 1
+    assert meter.status(owner="alice")["used"]["research_trials"] == 0
     note = meter.status(owner="alice")["notes"][0]["body"]
     assert note["hypothesis"] == "invalid input"
     assert note["authority_granted"] is False
 
 
 @pytest.mark.parametrize(
-    ("kind", "strategy", "action", "arguments", "code"),
+    ("kind", "strategy", "action", "arguments", "code", "field"),
     [
         (
             "practice",
@@ -255,13 +256,32 @@ def test_invalid_trial_is_counted_and_returns_repairable_feedback(tmp_path):
             "run_python",
             '{"source":"PRIVATE_SENTINEL"}',
             "practice_recipe_required",
+            "strategy_json",
         ),
-        ("practice", None, None, None, "practice_recipe_required"),
-        ("workspace", "{}", "run_python", "{}", "workspace_recipe_forbidden"),
+        ("practice", None, None, None, "practice_recipe_required", "strategy_json"),
+        ("practice", "{}", "null", None, "practice_recipe_required", "action"),
+        ("practice", "{}", None, "null", "practice_recipe_required", "arguments_json"),
+        # Tier-2 finding R1: every nullable field sent as the string "null".
+        (
+            "workspace",
+            "null",
+            "null",
+            "null",
+            "workspace_recipe_forbidden",
+            "strategy_json",
+        ),
+        (
+            "workspace",
+            "{}",
+            "run_python",
+            "{}",
+            "workspace_recipe_forbidden",
+            "strategy_json",
+        ),
     ],
 )
 def test_task_kind_mismatch_returns_safe_correction_without_dispatch(
-    tmp_path, kind, strategy, action, arguments, code
+    tmp_path, kind, strategy, action, arguments, code, field
 ):
     import asyncio
 
@@ -277,7 +297,7 @@ def test_task_kind_mismatch_returns_safe_correction_without_dispatch(
         practice=lambda *a: pytest.fail("rejected request executed"),
     )
     # No connection/signer/provider exists: rejection must precede authentication
-    # and task dispatch. The proposal remains charged in the original ledger.
+    # and task dispatch, and a refused request costs no trial slot.
     sdk = ResearchMinerTools(
         connection=None,
         wrapper=None,
@@ -304,14 +324,27 @@ def test_task_kind_mismatch_returns_safe_correction_without_dispatch(
         assert first["status"] == "REJECTED_BEFORE_DISPATCH"
         assert first["reason"] == "contract_incompatibility"
         assert first["correction_code"] == code
+        assert first["field"] == field
+        assert "The field that broke the contract: " + field in first["correction"]
+        assert 'null means JSON null (unquoted), not the string "null"' in (
+            first["correction"]
+        )
+        # The string "null" is named as such; it is refused, never accepted.
+        assert (args[field] == "null") == (
+            'It holds the string "null"' in first["correction"]
+        )
         assert "kind=workspace" in first["correction"]
         assert first["authority_granted"] is False
         assert "PRIVATE_SENTINEL" not in canonical(first).decode()
         status = meter.status(owner="alice")
-        assert status["used"]["research_trials"] == 1
+        assert status["used"]["research_trials"] == 0
         assert status["used"]["provider_attempts"] == 0
         assert status["used"]["numerical_milliseconds"] == 0
-        assert status["notes"][0]["body"]["minimal_safe_design"] == first["correction"]
+        # Filed as a refusal, never as a capability request: nothing was asked
+        # for that Carbon lacks.
+        assert {n["kind"] for n in status["notes"]} == {"refusal"}
+        assert status["notes"][0]["body"]["correction_code"] == code
+        assert status["notes"][0]["body"]["field"] == field
         # The hint describes an already supported route; it grants no new API.
         corrected = {
             **args,

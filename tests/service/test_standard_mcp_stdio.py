@@ -148,7 +148,9 @@ def test_external_sdk_stdio_discovery_tools_resources_and_restart(tmp_path, mode
             second = await client.call_tool(PREFIX + "start_research_task", _practice())
             assert not first.is_error and not second.is_error
             assert first.structured_content == second.structured_content
-            assert second.structured_content["payload"]["reply"]["used_trials"] == 1
+            # `_call` is a fixture here, so no executor starts a task and no
+            # trial slot is charged (OWNER-BATTERY-V2-DISCLOSURE-01, change 9).
+            assert second.structured_content["payload"]["reply"]["used_trials"] == 0
 
             for invalid in (
                 {**_practice(), "principal": "someone-else"},
@@ -181,7 +183,7 @@ def test_external_sdk_stdio_discovery_tools_resources_and_restart(tmp_path, mode
                 PREFIX + "start_research_task", _practice()
             )
             assert not repeated.is_error
-            assert repeated.structured_content["payload"]["reply"]["used_trials"] == 1
+            assert repeated.structured_content["payload"]["reply"]["used_trials"] == 0
             conflict = _practice()
             conflict["strategy"] = {"parameters": {"steps": 1024}}
             result = await client.call_tool(PREFIX + "start_research_task", conflict)

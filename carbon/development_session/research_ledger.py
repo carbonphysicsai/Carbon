@@ -712,6 +712,7 @@ class CampaignLedger:
             "hypothesis",
             "decision",
             "capability_request",
+            "refusal",
             "operational_error",
             "security_incident",
             "notebook",
