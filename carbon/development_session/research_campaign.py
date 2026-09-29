@@ -160,7 +160,12 @@ async def requester(connection):
         snapshot.snapshot_id,
         CHALLENGE,
         session="carbon-autoresearch",
-        request="bootstrap-research-owner",
+        # A fresh request per preparation. Every manual operation and every
+        # resume prepares the campaign again, and its receipt journal refuses
+        # a reused request id whose body differs (a later registration
+        # snapshot) as TRANSPORT_CONFLICT, and an identical one as a replay.
+        # The requester comes from the verified hotkey, not this id.
+        request="bootstrap-research-owner-" + uuid.uuid4().hex,
         tool=research.RESEARCH_NAMESPACE,
         fields={
             "call_base64": base64.b64encode(research.canonical_bytes(call)).decode()
