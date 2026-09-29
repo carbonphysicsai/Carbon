@@ -348,12 +348,29 @@ from production. `integrate-static.mjs` writes only `index.html` and the
 `ask-carbon/` assets, so deploying its output directory on its own would
 delete the live Workbench route and the shared homepage images.
 
-#### The asset inventory is not yet established
+#### The asset inventory: what is true as of 2026-09-28
 
-`production-baseline.manifest.json` records the SHA-256 digest and byte size of
-every asset currently known to be deployed. It is marked
-`"inventory_status": "incomplete"`, and `--require-complete-bundle` therefore
-**refuses to certify any production bundle** until that changes.
+Both earlier statements were wrong, in opposite directions. This section said
+the inventory was "not established" while `production-baseline.manifest.json`
+claimed `"verified-complete"`. The 97-entry v2 manifest was complete and
+correct for live through at least 2026-09-26T16:38Z (measured then, 96/97
+entries plus the integrated homepage matching live on both hostnames), and
+stale after a later `carbonwebsite` deployment carrying the v3 Litepaper and
+Whitepaper.
+
+The manifest is now version 3 (observed 2026-09-28T12:55Z): 100 site entries,
+each carrying the reason it changed since v2 (53 changed, 4 added, 1 removed,
+`index.html` kept as the reviewed source `99be1318…`). Its basis is the
+owner-supplied live archive `carbon-site-upload-v3-papers.zip` (SHA-256
+`23fe55ae…`), which matched live 105/105 by digest on both hostnames. That the
+archive is the complete deployed directory is the owner's statement; the
+per-path match is measured. `deployment_target_observed.live_version_id` reads
+`CAPTURE_BEFORE_DEPLOY`: the live version is not `b694b20f` (which serves the
+v2 site) and cannot be read without the Cloudflare credential, so
+`--require-complete-bundle` refuses until the deploying operator records it.
+Pass the manifest explicitly with `--baseline-manifest`. `--reconcile-owner-upload`
+does not apply: it verifies the superseded 2026-09-18 homepage pin
+(`546fb89d…`) and can never pass for the redesigned site.
 
 That refusal is correct and must not be worked around. Downloading a list of
 known public URLs retrieves verified bytes for the paths you already know; it
@@ -466,7 +483,7 @@ evidence:
 | Named incident/rollback owner recorded | Satisfied (`WEB-QA-05-D2`) |
 | Cloudflare deployment credentials for the Carbon account | Satisfied — OAuth session for `carbon.physics.ai@gmail.com`, account `7462053c6992b9c9fd889952a7ae0496`, with `workers`/`workers_scripts`/`workers_routes` write |
 | Pinned deployment tool | Satisfied — Wrangler `4.134.0` (see below) |
-| Complete verified production asset inventory | **Not established** — `inventory_status: "incomplete"`; needs the owner's website archive |
+| Complete verified production asset inventory | Satisfied for live as of 2026-09-28T12:55Z — manifest v3 from the owner's live archive, 105/105 matched on both hostnames; must be re-checked if live moves again |
 | Required Worker secrets present and bound | **Not verified** |
 | CI / release verification for the repaired revision | Per `.agent/DELIVERY_PROTOCOL.md` |
 | Recorded pre-deployment rollback target | **Must be re-captured immediately before deploying** |

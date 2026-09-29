@@ -265,17 +265,33 @@ test("the shipped baseline manifest is a complete, self-consistent inventory of 
   // No entry may be an empty file: /index.html 307-redirects to /, so a naive
   // download of the listed paths yields a zero-byte homepage.
   assert.ok(manifest.assets.every((asset) => asset.bytes > 0));
-  // The upload archive is the provenance and must match the entry count.
-  assert.equal(manifest.upload_archive.file_count, manifest.assets.length);
+  // The upload archive is the provenance: the site entries plus the Ask Carbon
+  // assets the integration tool supplies, which are never baseline entries.
+  assert.equal(manifest.upload_archive.site_file_count, manifest.assets.length);
+  assert.equal(manifest.upload_archive.file_count, manifest.assets.length + manifest.upload_archive.ask_carbon_files.length);
+  assert.ok(manifest.upload_archive.ask_carbon_files.every((path) => path.startsWith("ask-carbon/")));
+  assert.ok(!manifest.assets.some((asset) => asset.path.startsWith("ask-carbon/")));
   assert.match(manifest.upload_archive.sha256, /^[0-9a-f]{64}$/);
   // The reviewed homepage source pin in the manifest is the entry the bundle replaces.
   const index = manifest.assets.find((asset) => asset.path === "index.html");
   assert.equal(manifest.homepage_source_authority.reviewed_source_index_sha256, index.sha256);
   assert.equal(manifest.homepage_source_authority.reconciliation_required, false);
-  // The change set against the previous live version is explicit and additive-free.
-  assert.deepEqual(manifest.changes_since_previous_live.added_paths, []);
-  assert.deepEqual(manifest.changes_since_previous_live.removed_paths, []);
-  assert.ok(manifest.changes_since_previous_live.changed_paths.includes("index.html"));
+  // Every entry states why it changed since the previous baseline, and the
+  // change set agrees with those reasons: a baseline that changes without a
+  // recorded reason is not a baseline.
+  const reasonOf = (path) => manifest.assets.find((asset) => asset.path === path)?.change_since_2026_09_22_baseline ?? "";
+  assert.ok(manifest.assets.every((asset) => /^(UNCHANGED|CHANGED|ADDED)\b/.test(asset.change_since_2026_09_22_baseline ?? "")));
+  const { changed_paths: changed, added_paths: added, removed_paths: removed } = manifest.changes_since_previous_live;
+  assert.ok(changed.length > 0 && changed.every((path) => reasonOf(path).startsWith("CHANGED")));
+  assert.ok(added.every((path) => reasonOf(path).startsWith("ADDED")));
+  assert.equal(manifest.assets.filter((asset) => /^(CHANGED|ADDED)/.test(asset.change_since_2026_09_22_baseline)).length, changed.length + added.length);
+  // Removed paths are gone from the inventory and each carries its own reason.
+  for (const path of removed) {
+    assert.ok(!manifest.assets.some((asset) => asset.path === path), `${path} was removed and must not be an entry`);
+    assert.match(manifest.removed_since_previous.find((entry) => entry.path === path)?.reason ?? "", /^REMOVED\b/);
+  }
+  // Specimen: the same reason check does fail on an entry that lacks a reason.
+  assert.equal(/^(UNCHANGED|CHANGED|ADDED)\b/.test(""), false);
   // The routing configuration explains the redirect trap.
   assert.equal(manifest.routing_configuration.html_handling, "auto-trailing-slash");
   assert.equal(manifest.routing_configuration.authoritative, true);
