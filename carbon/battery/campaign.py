@@ -119,15 +119,26 @@ def campaign_challenge(args):
     return campaign_challenge(args)
 
 
-#: What Carbon's agent sees of the prior epoch's evaluation. FULL is the
+#: What Carbon's agent sees of the prior epoch's evaluation, as a ladder of
+#: allow-lists (v2 section 7, the leak ladder; amendment 4). FULL is the
 #: daemon's allow-listed outcome. SCORE_WITHHELD is the pre-registered control
 #: arm (docs/development/BATTERY_AGENT_CAMPAIGN_PREREGISTRATION.md section 2):
-#: the same agent at the same budget, seeing admissibility but no score.
+#: admissibility and failed gate names, no score. ELIGIBILITY_ONLY drops the
+#: gate names too; AGGREGATE_SCORE adds back the two aggregate scores only.
 FEEDBACK_FULL, FEEDBACK_SCORE_WITHHELD = "FULL", "SCORE_WITHHELD"
-FEEDBACK_MODES = (FEEDBACK_FULL, FEEDBACK_SCORE_WITHHELD)
+FEEDBACK_ELIGIBILITY_ONLY, FEEDBACK_AGGREGATE_SCORE = (
+    "ELIGIBILITY_ONLY",
+    "AGGREGATE_SCORE",
+)
+FEEDBACK_MODES = (
+    FEEDBACK_FULL,
+    FEEDBACK_SCORE_WITHHELD,
+    FEEDBACK_ELIGIBILITY_ONLY,
+    FEEDBACK_AGGREGATE_SCORE,
+)
 
-#: The withheld view is an allow-list: a field added to the outcome later is
-#: withheld by default, never shown by accident.
+#: Every restricted view is an allow-list: a field added to the outcome later
+#: is withheld by default, never shown by accident.
 _WITHHELD_OUTCOME_FIELDS = (
     "schema",
     "submission_id",
@@ -142,7 +153,20 @@ _WITHHELD_OUTCOME_FIELDS = (
     "contract_digest",
     "reconstruction",
 )
-_WITHHELD_SCREENING_FIELDS = ("eligible", "gates_failed")
+#: The screening fields each restricted rung shows, lowest rung first.
+_SCREENING_FIELDS = {
+    FEEDBACK_ELIGIBILITY_ONLY: ("eligible",),
+    FEEDBACK_SCORE_WITHHELD: ("eligible", "gates_failed"),
+    FEEDBACK_AGGREGATE_SCORE: ("eligible", "gates_failed", "score", "important_score"),
+}
+_WITHHELD_SCREENING_FIELDS = _SCREENING_FIELDS[FEEDBACK_SCORE_WITHHELD]
+_WITHHELD_NOTE = {
+    FEEDBACK_ELIGIBILITY_ONLY: (
+        "failed gate names, scores, case counts, pool version, nomination and finals"
+    ),
+    FEEDBACK_SCORE_WITHHELD: "scores, case counts, pool version, nomination and finals",
+    FEEDBACK_AGGREGATE_SCORE: "case counts, pool version, nomination and finals",
+}
 
 
 def feedback_mode(value):
@@ -152,20 +176,17 @@ def feedback_mode(value):
     return value
 
 
-def withheld_feedback(feedback):
-    """The prior epoch's feedback with every score-bearing value removed.
+def restricted_feedback(feedback, mode):
+    """The prior epoch's feedback as one restricted rung of the ladder shows it.
 
-    Kept: whether the submission was admitted and eligible, and the names of
-    any gates it failed. Removed: the pool score, the important-region score,
-    case counts, the pool version, nomination and finals.
-    """
+    Kept: the outcome's allow-listed identity and state fields, and only the
+    screening fields that rung allows. FULL is not a restricted rung."""
+    fields = _SCREENING_FIELDS[feedback_mode(mode)]
     outcome = feedback["outcome"]
     shown = {k: outcome[k] for k in _WITHHELD_OUTCOME_FIELDS if k in outcome}
     if isinstance(outcome.get("screening"), dict):
         shown["screening"] = {
-            k: outcome["screening"][k]
-            for k in _WITHHELD_SCREENING_FIELDS
-            if k in outcome["screening"]
+            k: outcome["screening"][k] for k in fields if k in outcome["screening"]
         }
     return {
         "schema": feedback["schema"],
@@ -173,9 +194,26 @@ def withheld_feedback(feedback):
         "outcome": shown,
         "official_eligible": feedback["official_eligible"],
         "reward": feedback["reward"],
-        "feedback_mode": FEEDBACK_SCORE_WITHHELD,
-        "withheld": "scores, case counts, pool version, nomination and finals",
+        "feedback_mode": mode,
+        "withheld": _WITHHELD_NOTE[mode],
     }
+
+
+def withheld_feedback(feedback):
+    """The prior epoch's feedback with every score-bearing value removed.
+
+    Kept: whether the submission was admitted and eligible, and the names of
+    any gates it failed. Removed: the pool score, the important-region score,
+    case counts, the pool version, nomination and finals.
+    """
+    return restricted_feedback(feedback, FEEDBACK_SCORE_WITHHELD)
+
+
+def permitted_feedback(feedback, mode):
+    """What the agent may see of the prior epoch's evaluation under `mode`."""
+    if feedback is None or feedback_mode(mode) == FEEDBACK_FULL:
+        return feedback
+    return restricted_feedback(feedback, mode)
 
 
 def manifest_document(
@@ -650,11 +688,7 @@ def agent_observation(prepared, epoch, feedback):
         "scaffold_recipe": SCAFFOLD,
         "scaffold_basis": "An unexecuted template; it has no measured result.",
         "epoch": epoch,
-        "prior_permitted_evaluation_feedback": (
-            withheld_feedback(feedback)
-            if feedback is not None and mode == FEEDBACK_SCORE_WITHHELD
-            else feedback
-        ),
+        "prior_permitted_evaluation_feedback": permitted_feedback(feedback, mode),
         "run_plan": manifest["provider"],
         "miner_budget": {
             key: manifest[key]
