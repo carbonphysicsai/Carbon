@@ -881,7 +881,11 @@ def main() -> None:
 
         thread = threading.Thread(target=worker, daemon=True)
         thread.start()
-        print(f"Carbon DEVELOPMENT controller rehearsal: {server.origin}")
+        print(
+            f"Carbon DEVELOPMENT Control Center: {server.origin}"
+            if runner
+            else f"Carbon DEVELOPMENT controller rehearsal: {server.origin}"
+        )
         print(f"Local session token (paste into page; do not share): {token}")
         print(
             "Research requires a separate approved operator profile and accepted runtime."
