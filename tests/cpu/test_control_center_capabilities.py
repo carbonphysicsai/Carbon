@@ -373,3 +373,22 @@ def test_no_challenge_is_hard_coded_into_the_page():
     for challenge_id in ids:
         assert pattern.search("recipe for " + challenge_id + " here")
     assert "burgers" in "The Burgers research bridge".lower()
+
+
+def test_each_challenge_lists_its_own_model_families(host):
+    """Found in the live battery journey (Launchpad H): a battery launch
+    listed Burgers' families. Each Challenge's list now comes from its own
+    construction contract (OD-8)."""
+    from carbon.reconstruction.capability_registry import (
+        BATTERY_CHALLENGE,
+        BURGERS_CHALLENGE,
+    )
+    from scripts.dev.miner_launchpad.operations import perform
+
+    by = perform(host, "options", {})["families_by_challenge"]
+    battery = {f["selector"] for f in by[BATTERY_CHALLENGE]}
+    burgers = {f["selector"] for f in by[BURGERS_CHALLENGE]}
+    assert {"knn", "mlp"} <= battery
+    assert "transolver" not in battery
+    # Specimen: the family a battery launch must not list is Burgers' own.
+    assert "transolver" in burgers
