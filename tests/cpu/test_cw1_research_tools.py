@@ -357,3 +357,114 @@ def test_task_kind_mismatch_returns_safe_correction_without_dispatch(
         assert type(request.task_spec) is research.DevelopmentWorkspaceTaskSpecV1
     finally:
         composition.tasks.close()
+
+
+@pytest.mark.parametrize(
+    ("operation", "args", "field"),
+    [
+        # Tier 3A, epoch 1: arguments_json sent as a JSON object, six times.
+        (
+            "start_research_task",
+            {
+                "kind": "workspace",
+                "strategy_json": None,
+                "action": "public_material",
+                "arguments_json": {"name": "objective"},
+                "hypothesis": "read the objective",
+                "expected_effect": "know the task",
+            },
+            "arguments_json",
+        ),
+        (
+            "start_research_task",
+            {
+                "kind": "workspace",
+                "strategy_json": None,
+                "action": "inventory",
+                "arguments_json": None,
+                "hypothesis": "list files",
+                "expected_effect": "know the files",
+            },
+            "arguments_json",
+        ),
+        ("dry_validate", {"strategy_json": {"backbone": "mlp"}}, "strategy_json"),
+    ],
+)
+def test_a_json_string_field_sent_as_an_object_is_named(
+    tmp_path, operation, args, field
+):
+    import asyncio
+
+    from test_cw1_research_ledger import ledger as make_ledger
+
+    meter = make_ledger(tmp_path)
+    composition = make_research_service(
+        root=tmp_path / "tasks",
+        ledger=meter,
+        owner="alice",
+        image=SimpleNamespace(),
+        public_material=lambda *a: pytest.fail("rejected request executed"),
+        practice=lambda *a: pytest.fail("rejected request executed"),
+    )
+    sdk = ResearchMinerTools(
+        connection=None,
+        wrapper=None,
+        composition=composition,
+        ledger=meter,
+        owner="alice",
+    )
+    try:
+        result = asyncio.run(sdk.call(PREFIX + operation, args, "json-" + field))
+        assert result["status"] == "REJECTED_BEFORE_DISPATCH"
+        assert result["correction_code"] == "json_string_required"
+        assert result["field"] == field
+        assert "JSON encoded as a string" in result["correction"]
+        assert meter.status(owner="alice")["used"]["research_trials"] == 0
+    finally:
+        composition.tasks.close()
+
+
+def test_a_json_string_field_sent_as_a_string_is_not_refused_for_it(tmp_path):
+    """Specimen for the refusals above: the same request with the object
+    encoded as a string builds, so the check is about the encoding alone."""
+    from test_cw1_research_ledger import ledger as make_ledger
+
+    from carbon.development_session.research_tools import (
+        TaskContractMismatch,
+    )
+
+    meter = make_ledger(tmp_path)
+    composition = make_research_service(
+        root=tmp_path / "tasks",
+        ledger=meter,
+        owner="alice",
+        image=SimpleNamespace(),
+        public_material=lambda *a: None,
+        practice=lambda *a: None,
+    )
+    sdk = ResearchMinerTools(
+        connection=None,
+        wrapper=None,
+        composition=composition,
+        ledger=None,
+        owner="alice",
+    )
+    args = {
+        "kind": "workspace",
+        "strategy_json": None,
+        "action": "public_material",
+        "arguments_json": '{"name":"objective"}',
+        "hypothesis": "read the objective",
+        "expected_effect": "know the task",
+    }
+    try:
+        request = sdk._request("start_research_task", args, "json-string-ok-0000000001")
+        assert type(request.task_spec) is research.DevelopmentWorkspaceTaskSpecV1
+        with pytest.raises(TaskContractMismatch):
+            sdk._request(
+                "start_research_task",
+                {**args, "arguments_json": {"name": "objective"}},
+                "json-object-0000000000001",
+            )
+    finally:
+        composition.tasks.close()
