@@ -77,6 +77,11 @@ TASK_CORRECTIONS = {
         "action, use kind=workspace, strategy_json=null and the action's arguments_json. "
         "Only files explicitly listed in run_python arguments are staged."
     ),
+    "json_string_required": (
+        "This field carries JSON encoded as a string: send the object as a "
+        'quoted string such as "{\\"name\\":\\"objective\\"}", not as a '
+        "JSON object, list or number."
+    ),
     "workspace_field_missing": (
         "arguments_json for this workspace action is missing a required field; "
         "the start_research_task description lists each action's fields."
@@ -271,6 +276,19 @@ class ResearchMinerTools:
 
     def _request(self, operation, args, identity):
         c = self.composition
+        # A JSON-string field sent as a JSON object (or list, or number) is
+        # named before anything parses it. JSON null stays the per-kind rule.
+        for field in NULLABLE_TASK_FIELDS:
+            if field.endswith("_json") and field in args:
+                value = args[field]
+                if value is not None and type(value) is not str:
+                    raise TaskContractMismatch("json_string_required", field)
+        if (
+            operation == "start_research_task"
+            and args.get("kind") == "workspace"
+            and args.get("arguments_json") is None
+        ):
+            raise TaskContractMismatch("json_string_required", "arguments_json")
         # The composition's own Challenge, never a default: a battery
         # composition's requests name battery, and the gateway refuses any
         # request whose key differs from the one it authenticates for.
