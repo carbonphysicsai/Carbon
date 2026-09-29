@@ -326,9 +326,8 @@ def test_task_kind_mismatch_returns_safe_correction_without_dispatch(
         assert first["correction_code"] == code
         assert first["field"] == field
         assert "The field that broke the contract: " + field in first["correction"]
-        assert (
-            'null means JSON null (unquoted), not the string "null"'
-            in (first["correction"])
+        assert 'null means JSON null (unquoted), not the string "null"' in (
+            first["correction"]
         )
         # The string "null" is named as such; it is refused, never accepted.
         assert (args[field] == "null") == (
