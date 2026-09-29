@@ -58,6 +58,19 @@ def test_the_loop_enforces_the_stated_call_and_trial_counts():
     assert not re.search(r"range\(48\)|min\(8,", source)
 
 
+def test_both_admission_checks_hold_back_the_stated_reserve():
+    import inspect
+
+    from carbon.development_session import research_agent, research_loop
+
+    for source in (
+        inspect.getsource(research_loop.run_epoch),
+        inspect.getsource(research_agent._request_once),
+    ):
+        assert "max_input_tokens - CONTEXT_RESERVE_TOKENS" in source
+        assert not re.search(r"max_input_tokens\s*-\s*\d", source)
+
+
 EXAM_MARKERS = ("seed", "hidden case", "private", "final case", "verify case")
 
 
