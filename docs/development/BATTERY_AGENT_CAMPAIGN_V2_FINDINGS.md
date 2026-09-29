@@ -21,6 +21,42 @@ environment changes would measure the same defects again.
   every operating rule below.
 - **Recorded gap.** Battery's `generate` gap was open throughout (v2 §3.1).
 
+## Headline result: the environment was the constraint
+
+The v2 hypothesis was that Carbon's research environment, not the agent,
+limited what an agent could do. It was tested with **a measured before, one
+named change, and a measured after**, on the same model, transport, caps and
+feedback mode.
+
+| | Before: tier 2, run 2 | After: tier 3A |
+|---|---|---|
+| Practices executed | 0 | 16 |
+| Evaluated submissions | 0 | 2, both `SCORED` and eligible |
+| Tool calls refused | 15 of 19 | 11 of 59 |
+| How the run ended | stopped at the context ceiling after 19 of 48 calls | both epochs ended in the agent's own selection |
+
+**The named change** was OWNER-BATTERY-V2-DISCLOSURE-01: the agent is told
+every operating rule it can hit, delivered in #415, #417, #419, #420 and #422.
+- **The model did not change:** `deepseek-v4-flash-0731` on `engy-chat`,
+  16,384 output tokens, 48 calls and 8 trials per epoch, `FULL` feedback.
+- **The budget was never binding.** Tier 2 used under one per cent of its
+  ceiling.
+
+**An agent that could not complete one practice now runs the loop and
+produces scored submissions.** That is the headline result of v2.
+
+**Basis:**
+- run 2 is recorded in `BATTERY_AGENT_CAMPAIGN_V2_RESULTS_TIER_2.md`;
+- tier 3A is recorded in `BATTERY_AGENT_CAMPAIGN_V2_RESULTS_TIER_3.md`, and
+  was pre-registered as amendment 3 before any call.
+
+**Limits of the claim:**
+- It is one run on each side. It shows that the environment no longer stops
+  research. It is not a measured effect size.
+- **Maturity:** exploratory engineering evidence, feeding exam qualification
+  (AGENTS.md §7.1) and not constituting it.
+- **MQ-008 is untouched.**
+
 ## 1. The finding: an agent cannot plan against a limit it is not told about
 
 This is **one finding with three instances**. Each instance is a hard limit
