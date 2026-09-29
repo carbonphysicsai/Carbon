@@ -16242,6 +16242,57 @@ Burgers, or move to battery: "Studies go dark".
 4. **Studies return** when an admitted Challenge hosts them. That needs a new
    study adapter, which is not scheduled.
 
+## 2026-09-29 — OWNER-BATTERY-V2-DISCLOSURE-01: the research agent is told every operating rule; tier-2 changes 8 and 9 decided; tier 3 spend approved; cold-plate design basis delegated
+
+**Authority.** The owner, in the Testnet session on 2026-09-29, answering the
+twelve numbered questions put after
+`docs/development/BATTERY_AGENT_CAMPAIGN_V2_FINDINGS.md` (#411). The owner's
+reply, verbatim: "1. a 2. dont charge till it starts 3. into instructions of
+course. Give it everything it needs to know! 4. Yes give it all info 5. yes,
+all info 6. yes all info 7. yes all info. 8. confirm 9. approved 10. you pick
+a group and optimize 11. you pick whats most valuable 12. you pick what's
+optimal".
+
+1. **Tier-2 change 8, option (a).** The argument-contract correction names the
+   offending field and states that `null` means JSON `null`, not the string
+   `"null"`. The string `"null"` is **not** accepted; there is no interface
+   change.
+2. **Tier-2 change 9.** A research-trial slot is charged only when a task
+   actually starts. A request refused before dispatch costs no slot.
+3. **The one-call rule goes into the agent's instructions,** with its
+   three-consecutive-turns stop: "Give it everything it needs to know!"
+4. **The strategy capture limits are published to the agent** (`contracts.py`
+   `strategy_limits`), and the refusal names the limit exceeded.
+5. **The context admission ceiling is stated to the agent,** in tokens.
+6. **The agent is told the per-call cost:** every tool call spends one of the
+   epoch's model calls, and practice or `run_python` spends a trial slot.
+7. **Battery's declared sampling law is readable by the agent** (support
+   `four_input_box`, base measure `uniform_over_input_box`).
+8. **The one-call question is otherwise closed.** #408 delivered the loop
+   change, and no model change is needed; disclosure (item 3) was the only
+   remaining part.
+9. **The reserved USD 3 for tier 3 is approved.** Tier 3 still needs its own
+   pre-registration (success and failure criteria, a same-budget control)
+   before any provider call, and it runs only after items 1-7 are delivered,
+   so that it measures the fixed environment.
+10. **Cold plate (#342): material and coolant** are delegated to the executor:
+    "you pick a group and optimize".
+11. **Cold plate: flow and heat-load ranges** are delegated: "you pick whats
+    most valuable".
+12. **Cold plate: the thermal-interface assumption** is delegated: "you pick
+    what's optimal".
+
+**Scope.**
+- Items 3-7 are Carbon's operating rules, not exam material. Invariant 4
+  still keeps official seeds, hidden cases, references and private evaluation
+  state from the agent.
+- Items 10-12 are provisional development design choices for #342's proposed
+  scope, recorded with their sources where they are made. They are not a
+  qualified population, tolerance or production claim, and they grant no
+  scientific qualification.
+- **Owners.** Items 1-7 are Launchpad's to implement, in the research surface
+  and loop. Items 10-12 are Testnet's to record and use.
+
 ## 2026-09-29 — WEB-QA-10-D1: publish Ask Carbon bundle 48fd4680 (refreshed knowledge fab55d5d)
 
 **Authority.** The repository owner (Ryan Bequette, a named production
