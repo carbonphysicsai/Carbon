@@ -1,10 +1,10 @@
 meta:
   title: "Carbon Development Hub"
   version: "2.1"
-  captured_at_utc: "2026-09-28T10:27:41Z"
+  captured_at_utc: "2026-09-29T02:19:48Z"
   repository: "https://github.com/carbonphysicsai/Carbon"
   branch: "main"
-  authority_snapshot_commit: "6ba5232f00e81b0ecd02fb3684ec808f0ada00d7"
+  authority_snapshot_commit: "1a1f106f4782d1288e1322d5d346007557192f2a"
   hub_build_commit: null
   purpose: "A non-repository orientation and navigation layer for understanding what Carbon is building, why it exists, where changes belong, and which repository record owns the implementation detail."
   authority_notice: "Repository authority controls implementation. OWNER-DX-03 governs delivery: implement the ticket, pass automated checks, and ship without a mandatory human reviewer or GPT receipt. Scientific and security qualification remain separate."
@@ -10381,6 +10381,20 @@ events:
       - "SYSTEM/DEVELOPMENT-HUB"
     supersedes: null
     recorded_at: "2026-09-28T10:22:06Z"
+  -
+    map_ref: "SYSTEM/DEVELOPMENT-SEQUENCING"
+    event_type: "decision"
+    event_id: "OWNER-TRAINING-BUDGET-STUDY-01"
+    owner_lane: "technical_lead"
+    status: "implemented"
+    summary: "The owner adopted the Challenge training budget study as a standing launch requirement: every Challenge completes it, with its own sheet, before its training limit is set and before it pays rewards. Launch path v1.0.8 records it. Readiness records move to schema carbon.challenge-readiness.v2 with a required training_budget_study block, and the validator refuses a launch approval until the study is COMPLETE with a result and an owner decision; every record starts NOT_STARTED. Decision rules R1-R8 are frozen by SHA-256, checked by a test. Miners see the published curves and rule. Battery runs first once its sheet is supplied; no pod time is spent before then. The study is off-chain development evidence and grants no scientific, security or production qualification."
+    primary_detail: "launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.8.md"
+    affects:
+      - "SYSTEM/AGENT-EXECUTION"
+      - "SYSTEM/GOVERNANCE"
+      - "SYSTEM/PROTOCOL-AUTHORITY"
+    supersedes: null
+    recorded_at: "2026-09-29T03:00:00Z"
 event_schema:
   map_ref: "WAVE-B/B-04"
   event_type: "decision | adjustment | bug | blocker | risk | evidence"

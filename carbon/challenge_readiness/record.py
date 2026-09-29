@@ -33,7 +33,7 @@ import json
 import math
 from pathlib import Path
 
-SCHEMA = "carbon.challenge-readiness.v1"
+SCHEMA = "carbon.challenge-readiness.v2"
 STATUS = "PROPOSED_DEVELOPMENT_DESIGN"
 RECORDS = Path(__file__).resolve().parent / "records"
 
@@ -54,12 +54,13 @@ KEYS = {
     "pilots",
     "costs",
     "reviews",
+    "training_budget_study",
     "unresolved",
     "next_experiment",
     "recommendation",
 }
 
-#: The units a v1 record may declare. A unit outside this set is refused,
+#: The units a record may declare. A unit outside this set is refused,
 #: never passed through as free text.
 UNITS = frozenset(
     {
@@ -271,6 +272,30 @@ def _reviews(reviews):
         raise ReadinessError("launch_approved_before_other_reviews")
 
 
+#: OWNER-TRAINING-BUDGET-STUDY-01: every Challenge completes the training
+#: budget study (docs/development/CHALLENGE_TRAINING_BUDGET_STUDY.md) before
+#: its training limit is set and before it pays rewards. STOPPED is a finished
+#: study that chose no limit (for example, R1 failed); it does not satisfy launch.
+STUDY_STATES = ("NOT_STARTED", "IN_PROGRESS", "STOPPED", "COMPLETE")
+
+
+def _training_budget_study(study, reviews):
+    if type(study) is not dict or set(study) != {"state", "result", "decision"}:
+        raise ReadinessError("invalid_training_budget_study")
+    if study["state"] not in STUDY_STATES:
+        raise ReadinessError("invalid_training_budget_study", "state")
+    if study["state"] in ("STOPPED", "COMPLETE"):
+        _text(study["result"], "study_finished_without_result")
+    elif study["result"] is not None:
+        raise ReadinessError("study_result_before_finish")
+    if study["state"] == "COMPLETE":
+        _text(study["decision"], "study_complete_without_owner_decision")
+    elif study["decision"] is not None:
+        raise ReadinessError("study_decision_before_complete")
+    if reviews["launch"]["state"] == "APPROVED" and study["state"] != "COMPLETE":
+        raise ReadinessError("launch_approved_before_training_budget_study")
+
+
 def _limits(limits, reviews):
     if type(limits) is not list:
         raise ReadinessError("invalid_limits")
@@ -307,7 +332,7 @@ def _limits(limits, reviews):
 
 
 def validate(document):
-    """Return the document if it is a valid v1 record; refuse it otherwise."""
+    """Return the document if it is a valid v2 record; refuse it otherwise."""
     if type(document) is not dict:
         raise ReadinessError("invalid_record")
     if document.get("schema") != SCHEMA:
@@ -363,10 +388,11 @@ def validate(document):
     if population["approved"] is not None:
         raise ReadinessError(
             "approved_population_not_supported",
-            "v1 records a proposed population only",
+            "records carry a proposed population only",
         )
     reviews = document["reviews"]
     _reviews(reviews)
+    _training_budget_study(document["training_budget_study"], reviews)
     _limits(document["limits"], reviews)
     ok_cases = _pilots(document["pilots"])
     maturity = document["maturity"]

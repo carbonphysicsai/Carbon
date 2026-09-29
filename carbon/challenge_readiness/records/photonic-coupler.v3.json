@@ -141,7 +141,7 @@
     "basis": "Exam design is deferred until the phase convention and coupled-power convergence are repaired: an exam built on an unresolved convention grades the convention (#345; RESULT section 9).",
     "decision": "DEFER"
   },
-  "record_version": 2,
+  "record_version": 3,
   "reference": {
     "applicability": "Diagnostic only: coupled power is unconverged (about 15 % of the coupled fraction at 20 nm) and relative phase flips by about pi across resolutions.",
     "evidence": [
@@ -174,7 +174,7 @@
       "state": "NOT_STARTED"
     }
   },
-  "schema": "carbon.challenge-readiness.v1",
+  "schema": "carbon.challenge-readiness.v2",
   "sources": [
     "carbonphysicsai/Carbon#345",
     "docs/development/EXAM_DESIGN_CAMPAIGN_RESULT.md section 9",
@@ -182,6 +182,11 @@
   ],
   "status": "PROPOSED_DEVELOPMENT_DESIGN",
   "tracking": "carbonphysicsai/Carbon#345",
+  "training_budget_study": {
+    "decision": null,
+    "result": null,
+    "state": "NOT_STARTED"
+  },
   "unresolved": [
     "Mode orientation, port reference planes, power normalization and complex phase convention are undefined (#345 task 1).",
     "Coupled power does not converge at 40/30/20 nm; a 10-15 nm study or a mode-expansion reference is needed.",
