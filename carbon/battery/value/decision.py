@@ -64,7 +64,7 @@ def _constraint_rules(contract):
     return rules
 
 
-def _check(contract, quantities, band=None):
+def check(contract, quantities, band=None):
     """Per-constraint PASS / FAIL / UNRESOLVED for one condition."""
     rules = _constraint_rules(contract)
     bands = band or {}
@@ -127,7 +127,7 @@ def assess_predicted(contract, scenario, candidates, quantities):
         per = [
             quantities[(candidate["id"], i)] for i in range(len(scenario["conditions"]))
         ]
-        checks = [_check(contract, q) for q in per]
+        checks = [check(contract, q) for q in per]
         feasible = all(v == PASS for c in checks for v in c.values())
         out[candidate["id"]] = {
             "feasible": feasible,
@@ -171,7 +171,7 @@ def assess_reference(contract, scenario, candidates, references):
             out[candidate["id"]] = {"status": UNAVAILABLE, "objective": None}
             continue
         per = [measure(contract, r["outputs"]) for r in records]
-        checks = [_check(contract, q, bands) for q in per]
+        checks = [check(contract, q, bands) for q in per]
         values = [v for c in checks for v in c.values()]
         status = (
             INFEASIBLE

@@ -111,6 +111,10 @@ class Experiment:
             raise ExperimentError("contract_mismatch", "manifest contract changed")
         return document
 
+    def _members(self):
+        """The panel the frozen contract names (EV1's by default)."""
+        return pn.members(self.contract().get("panel", "ev1"))
+
     # --- 1. freeze -----------------------------------------------------------------
 
     def freeze(self, contract_path=None):
@@ -132,7 +136,7 @@ class Experiment:
             "decision_cases": len(ev.decision_cases(document)),
             "panel": [
                 {"member": m, "family": f, "strategy": s, "seed": seed}
-                for m, f, s, seed in pn.members()
+                for m, f, s, seed in pn.members(document.get("panel", "ev1"))
             ],
             "controls": list(pn.CONTROLS),
             "scoring_set": scoring_identity,
@@ -269,7 +273,7 @@ class Experiment:
             if store.refs[c].get("inputs")
         }
         done = []
-        for member, _family, strategy, seed in pn.members():
+        for member, _family, strategy, seed in self._members():
             if only is not None and member not in only:
                 continue
             path = self._prediction_path(member)
@@ -314,7 +318,9 @@ class Experiment:
         refs = self.reference_map()
         jobs = ev.decision_cases(contract)
         unsolved = [j["case_id"] for j in jobs if j["case_id"] not in refs]
-        members = [m for m, *_ in pn.members() if not self._prediction_path(m).exists()]
+        members = [
+            m for m, *_ in self._members() if not self._prediction_path(m).exists()
+        ]
         return unsolved, members
 
     def evaluate(self):
@@ -327,7 +333,7 @@ class Experiment:
         from ..compile import compile_recipe
 
         bundles = {}
-        for member, _family, strategy, seed in pn.members():
+        for member, _family, strategy, seed in self._members():
             bundle = self._member_predictions(member)
             _, recipe = compile_recipe(strategy)
             if (
@@ -380,7 +386,7 @@ class Experiment:
         seconds = {"reference_solves": 0.0, "reconstruction": 0.0, "prediction": 0.0}
         for record in records:
             seconds["reference_solves"] += float(record.get("wall_s") or 0.0)
-        for member, *_ in pn.members():
+        for member, *_ in self._members():
             path = self._prediction_path(member)
             if path.exists():
                 meta = json.loads(gzip.decompress(path.read_bytes()))["seconds"]
@@ -413,7 +419,7 @@ class Experiment:
                 ),
             },
             "panel": {
-                "members": len(pn.members()),
+                "members": len(self._members()),
                 "missing": members,
             },
             "resources_seconds": seconds,
@@ -443,11 +449,38 @@ def _quantities(contract, predictions, scenario, candidates):
     out = {}
     for candidate in candidates:
         for index in range(len(scenario["conditions"])):
-            case_id = f"ev1:{scenario['id']}:{candidate['id']}:{index}"
-            outputs = predictions.get(case_id)
+            outputs = predictions.get(ev.case_id(contract, scenario, candidate, index))
             if outputs is None:
                 return None
             out[(candidate["id"], index)] = d.measure(contract, outputs)
+    return out
+
+
+def _boundary_optimist_check(rules, scores, reconstructed, components):
+    """EV2 hypothesis H2, per rule: does the rule score the boundary-optimist
+    control below every eligible reconstructed member? None when the control
+    is absent or the rule is not measurable."""
+    name = "control-boundary_optimist"
+    if name not in scores:
+        return None
+    eligible = [m for m in reconstructed if components[m]["eligible"]]
+    out = {}
+    for rule in rules:
+        mine = scores[name][rule]
+        others = [scores[m][rule] for m in eligible]
+        if (
+            isinstance(mine, str)
+            or mine is None
+            or not others
+            or any(isinstance(v, str) or v is None for v in others)
+        ):
+            out[rule] = None
+            continue
+        out[rule] = {
+            "below_every_eligible_member": all(mine < v for v in others),
+            "members_scored_below_it": sum(1 for v in others if v <= mine),
+            "eligible_members": len(others),
+        }
     return out
 
 
@@ -504,7 +537,7 @@ def evaluate(
         refs = {}
         for candidate in candidates:
             for index in range(len(scenario["conditions"])):
-                case_id = f"ev1:{scenario['id']}:{candidate['id']}:{index}"
+                case_id = ev.case_id(contract, scenario, candidate, index)
                 if case_id in reference_records:
                     refs[(candidate["id"], index)] = reference_records[case_id]
         reference = d.assess_reference(contract, scenario, candidates, refs)
@@ -527,12 +560,16 @@ def evaluate(
                 "agreement": agreement,
             }
     components = {
-        member: sc.components(preds, scoring_ids, store)
+        member: sc.components(preds, scoring_ids, store, contract)
         for member, preds in predictions.items()
     }
     scores = {member: sc.rule_scores(contract, c) for member, c in components.items()}
     rules = [sc.CONTROL] + [
-        p["id"] for p in contract["scoring_candidates"]["weight_profiles"]
+        p["id"]
+        for p in (
+            contract["scoring_candidates"]["weight_profiles"]
+            + contract["scoring_candidates"].get("decision_aware_profiles", [])
+        )
     ]
 
     def loss(member, split):
@@ -608,6 +645,9 @@ def evaluate(
         for family, members in families.items()
     }
     summary = {
+        "boundary_optimist_check": _boundary_optimist_check(
+            rules, scores, reconstructed, components
+        ),
         "question": contract["acceptance"]["success_condition"],
         "chosen_rule_on_development": chosen,
         "chosen_rule_tau_verification": (
@@ -653,7 +693,9 @@ def _stability(contract, predictions, scoring_ids, store, rules, reconstructed, 
         excluded = set(ids)
         kept = [c for c in scoring_ids if c not in excluded]
         partial[name] = {
-            m: sc.rule_scores(contract, sc.components(predictions[m], kept, store))
+            m: sc.rule_scores(
+                contract, sc.components(predictions[m], kept, store, contract)
+            )
             for m in reconstructed
         }
 
