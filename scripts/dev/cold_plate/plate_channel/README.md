@@ -342,16 +342,16 @@ nominal design point.
 - It is **not** a design optimization, a population or a dataset.
 - It sets no threshold, and ranks nothing as acceptable.
 
-**The change.**  (design set only) derives
+**The change.** `generate.py --flow-lpm-per-kw F` (design set only) derives
 the inlet velocity:
 - the plate's flow (1 kW × F) is shared equally by the ⌊30 mm / (channel +
   fin)⌋ channel periods that fit across the footprint;
 - the nominal geometry reproduces the fixed design-set velocity (0.833 m/s,
   50 channels);
--  records the flow and the channel count.
+- `case.json` records the flow and the channel count.
 
 **How every case ran:**
-- resolution 2, , 4,000 iterations;
+- resolution 2, `--wall-grading 4`, 4,000 iterations;
 - 30 mm plate, 1 mm base, 0.5 mm lid;
 - PG25 at 40 °C on copper C11000.
 
