@@ -184,45 +184,60 @@ the printed digit.
 |---|---|---|---|---|---|
 | 1 (9,000) | 21 s | −9e-10 | −1.1e-7 | 157,713 Pa/m | −5.01 % |
 | 2 (72,000) | 442 s | +1e-10 | −1.6e-8 | 163,272 Pa/m | −1.66 % |
+| 3 (243,000) | 2,757 s | +5e-11 | −1.3e-9 | 164,716 Pa/m | −0.79 % |
 
-| Quantity, no closed form | r = 1 | r = 2 | Change |
+| Quantity, no closed form | r = 1 | r = 2 | r = 3 |
 |---|---|---|---|
-| Peak heated-face temperature | 350.801 K (77.65 °C), x = 29.7 mm | 350.871 K (77.72 °C), x = 29.85 mm | +0.07 K |
-| Mean heated-face temperature | 344.188 K | 343.865 K | −0.32 K |
-| Outlet bulk temperature | 323.1299 K | 323.1297 K | −0.2 mK |
-| Pressure drop, 30 mm | 4,972 Pa | 5,188 Pa | +4.3 % |
+| Peak heated-face temperature, last cell column | 350.801 K | 350.871 K | 351.063 K |
+| Mean heated-face temperature | 344.188 K | 343.865 K | 343.895 K |
+| Outlet bulk temperature | 323.1299 K | 323.1297 K | 323.1295 K |
+| Pressure drop, 30 mm | 4,972 Pa | 5,188 Pa | 5,249 Pa |
 
 **Conservation.**
 - **Mass and energy are conserved to round-off** on both meshes.
 - **The coolant rise is 9.98 K,** which is exactly Q/(ṁ·c_p) for 10 W per
   half-cell. This matches OCP's 10 °C design rule at 1.5 L/min per kW.
 
-**The pressure gradient converges, but more slowly than in rung 4.**
-- The error falls by 3.02 between meshes, an **observed order of 1.59**.
-  Rung 4 gave 1.92.
-- Two meshes cannot say whether this is pre-asymptotic behaviour or a slower
-  scheme order. The coarse mesh has 5 cells across a 0.15 mm half-channel,
-  and 0.6 mm cells along the flow.
-- **A third mesh is needed to establish the order.** It is not claimed here.
+**The pressure gradient converges toward second order; the coarse mesh is
+pre-asymptotic.** Each error is measured against the exact duct series, so
+every pair of meshes gives an order directly.
+- Error: −5.01 %, then −1.66 %, then −0.79 %.
+- Observed order: **1.59** from r = 1 to 2, and **1.83** from r = 2 to 3.
+- The order is approaching the scheme's second order. The coarse mesh has 5
+  cells across a 0.15 mm half-channel.
 
-**Temperatures.**
-- The peak base temperature changes by 0.07 K between meshes. The mean
-  changes by 0.32 K.
-- The hot spot is at the outlet end, as in rung 4.
+**Temperatures.** The mean converges and the peak does not.
+- **The mean** base temperature changes by −0.32 K from r = 1 to 2, then by
+  +0.03 K from r = 2 to 3. **It converges.**
+- **The outlet bulk temperature is converged** to 0.4 mK.
+- **The reported peak does not converge.** It rises by +0.07 K, then by
+  +0.19 K, and the step grows with refinement. The peak always sits in the
+  last cell column, at the corner where the heated base meets the adiabatic
+  plate end.
+  - The analyzer takes the last cell's centre value plus the imposed flux
+    over half a cell. As the cells shrink, that column moves into the
+    corner.
+  - So "peak base temperature" is not yet a mesh-independent quantity for
+    this geometry. It needs either a corner-resolving measurement (graded
+    cells, or face values from the solver) or a peak defined away from the
+    end.
+  - **No peak value here is a converged result.**
 
 **The die temperature, under the design basis's interface assumption.** The
-nominal R″ = 0.05 cm²·K/W adds q″·R″ = 5.56 K. That puts the die at about
-356.4 K (83.3 °C) at a 40 °C inlet.
+nominal R″ = 0.05 cm²·K/W adds q″·R″ = 5.56 K. **This offset is exact.** A
+die temperature built on the peak inherits the peak's lack of convergence:
+it is about 83 °C at a 40 °C inlet on these meshes.
 - This is a derived number, not a design verdict.
 - No temperature limit is set here.
 
-**Cost.** 21 s and 442 s of wall time on local CPU, capped at two CPUs. No
-pod was used.
+**Cost.** 21 s, 442 s and 2,757 s of wall time on local CPU, capped at two
+CPUs. No pod was used.
 
 ## Next
 
-1. **A third mesh at the design point,** to settle the pressure-gradient
-   order.
+1. **A mesh-independent peak temperature:** grade the cells toward the plate
+   end, or read face values from the solver, before the family sweep reports
+   peaks.
 2. **The straight-channel family sweep,** within the design basis's ranges:
    - channel width, fin width and depth;
    - flow, from 1.25 to 2.0 L/min per kW;
