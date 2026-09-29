@@ -415,3 +415,67 @@ divides 30 mm (9.98 K at 1.5 L/min per kW).
    properties at 45 °C are recorded in the design basis.
 3. **Serpentine channels and a whole plate with headers.**
 4. **The #342 pilot proposal,** priced for owner approval before it runs.
+
+
+---
+
+# Rung 6b: two-factor interactions
+
+**What it is.** Rung 6 found trade-offs between factors, so this rung asks
+whether pairs of them interact. Each pair is run at the corners of a 2 × 2
+grid, with the nominal case (rung 6) at its centre:
+- channel width {0.2, 0.5} mm × depth {1, 3} mm, with 0.3 mm fins and
+  1.5 L/min per kW;
+- fin width {0.2, 0.5} mm × flow {1.25, 2.0} L/min per kW, with 0.3 × 2 mm
+  channels.
+
+Everything else is as in rung 6: r = 2, `--wall-grading 4`, 4,000
+iterations, the design set.
+
+## Result (2026-09-29, this host)
+
+**All eight cases ran; none failed.**
+- Mass and energy are conserved to about 5e-8 or better.
+- Each case took 170-339 s on local CPU.
+
+| Case | Channels | Re | Peak base (K) | Mean base (K) | Δp (Pa) | dp/dx against the exact duct |
+|---|---|---|---|---|---|---|
+| nominal (0.3 / 0.3 / 2 mm, 1.5 L/min/kW) | 50 | 325 | 351.29 (78.1 °C) | 343.98 | 5,243 | -1.09 % |
+| width 0.2 mm, depth 1 mm | 59 | 527 | 350.63 (77.5 °C) | 342.77 | 31,404 | -1.01 % |
+| width 0.2 mm, depth 3 mm | 59 | 198 | 338.85 (65.7 °C) | 334.02 | 9,056 | -1.32 % |
+| width 0.5 mm, depth 1 mm | 37 | 672 | 383.82 (110.7 °C) | 369.10 | 4,984 | +2.35 % |
+| width 0.5 mm, depth 3 mm | 37 | 288 | 362.83 (89.7 °C) | 354.10 | 1,066 | -0.98 % |
+| fin 0.2 mm, 1.25 L/min/kW | 59 | 229 | 351.12 (78.0 °C) | 343.79 | 3,639 | -1.10 % |
+| fin 0.2 mm, 2.0 L/min/kW | 59 | 367 | 345.94 (72.8 °C) | 339.87 | 5,969 | -1.08 % |
+| fin 0.5 mm, 1.25 L/min/kW | 37 | 365 | 358.70 (85.5 °C) | 349.99 | 5,948 | -1.08 % |
+| fin 0.5 mm, 2.0 L/min/kW | 37 | 585 | 352.34 (79.2 °C) | 344.92 | 9,886 | -0.96 % |
+
+**The interactions,** measured on the peak base temperature:
+- **Channel width and depth interact strongly.** Widening the channel from
+  0.2 to 0.5 mm raises the peak by **33.2 K at 1 mm depth** but by **24.0 K
+  at 3 mm depth**. Depth moderates the penalty for wide channels.
+- **Fin width and flow interact weakly.** Thickening the fin from 0.2 to
+  0.5 mm raises the peak by **7.6 K at 1.25** and **6.4 K at 2.0 L/min per
+  kW**.
+
+**The pressure drop spans 1.1 kPa to 31.4 kPa** across the width × depth
+grid. The narrow, shallow corner (0.2 × 1 mm) is 6× nominal.
+
+**Where the pressure check does not apply: width 0.5 mm, depth 1 mm.**
+- Its developed-gradient error is **+2.35 %**, where every other case reads
+  about −1 %.
+- **The reason:** at Re 672 and D_h 0.67 mm, the hydrodynamic entrance
+  length is about 0.05 · Re · D_h ≈ 22 mm. That reaches into the 18-28.5 mm
+  window where "fully developed" is measured.
+- **So the exact duct comparison is not applicable to this case,** and its
+  error is not reported as a discretization error.
+- Its conservation checks hold, and it is kept, not dropped.
+
+**What this rung does not cover:** the same exclusions as rung 6.
+
+## Next
+
+1. **Temperature-dependent viscosity,** and the inlet-temperature axis, once
+   properties at 45 °C are recorded in the design basis.
+2. **Serpentine channels and a whole plate with headers.**
+3. **The #342 pilot proposal,** priced for owner approval before it runs.
