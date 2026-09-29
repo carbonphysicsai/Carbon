@@ -26,6 +26,25 @@ So a miner on their own machine has no way to reach the validator.
   publicly during the testnet window, hosted with the validator pods (RunPod
   HTTP proxy) and covered by the OD-3 security review".
 
+**Correction (2026-09-29), reported by Launchpad and checked against
+main.** Two code facts widen the gap. Both paths need both of these.
+
+1. **Submission signs in-process today.**
+   - `carbon/battery/campaign.py:343-347` opens the miner's hotkey from its
+     key file and password file inside the Control Center process.
+   - `:625-627` signs `battery_submit` there, with
+     `BittensorMessageSigner`.
+   - No external-signing path exists. For a remote miner, a seam where the
+     miner's own tooling signs has to be built.
+2. **Submission evaluates in-process today,** on a host that holds the
+   validator's secrets.
+   - `campaign.py:628-632` calls `gateway.receive` and then the evaluation
+     directly.
+   - `carbon/battery/deployment.py:124-145` loads the validator's private
+     root, seed journal, pool state, work directory and service key.
+   - For a remote miner, that call must become a client transport to the
+     intake, in addition to the listener.
+
 ### (a) The chain path: recipe-hash commitments
 
 **What it binds.** M3-D9 defines the digest format
@@ -96,7 +115,9 @@ The journal:
 - **limits that apply before authentication.** Today's per-hotkey limit
   applies only after the signature is verified, and each request fetches a
   chain snapshot, which is an amplification risk;
-- a miner client;
+- a miner client, replacing the in-process `gateway.receive` and evaluation
+  in `campaign.py:628-632`;
+- an external-signing seam, since submission signs in-process today;
 - **a security review scoped to the intake.** OD-3 as recorded covers only
   the PyBaMM truth image and the GPU validator image
   (OWNER-BATTERY-TESTNET-04). It does not cover an intake.
@@ -140,7 +161,9 @@ validator pods". The battery validator now deploys **on this host** (#357).
 **What does not change:**
 - no chain write without its exact approved record;
 - testnet 567 only;
-- signing stays external: the miner signs in their own tooling;
+- no path signs with a key Carbon holds. The *intended* design is that the
+  miner signs in their own tooling. **Today's code does not do that yet**
+  (below);
 - Carbon holds no key.
 
 **Maturity.** This is an engineering assessment from code and records. It
