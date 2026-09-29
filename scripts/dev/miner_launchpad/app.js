@@ -768,7 +768,14 @@
     const controls = document.createElement("div"); controls.className = "controls sticky-controls";
     for (const action of ["pause", "resume", "stop", "reconcile", "export"]) {
       const button = document.createElement("button"); button.type = "button"; button.textContent = action; button.dataset.action = action;
-      button.disabled = !connected || busy || (action === "resume" && !research.preflight.available) || (action !== "export" && ["COMPLETED", "STOPPED", "READBACK_UNAVAILABLE"].includes(run.state));
+      // A disabled control says why, rather than leaving the miner to guess.
+      const reason = !connected ? "Reconnect this browser first."
+        : busy ? "Another request is in progress."
+        : action === "resume" && !research.preflight.available ? "Resume needs a configured runner profile."
+        : action !== "export" && ["COMPLETED", "STOPPED", "READBACK_UNAVAILABLE"].includes(run.state) ? "This campaign is " + run.state + "; there is nothing left to " + action + ". Export still gives its full record."
+        : "";
+      button.disabled = Boolean(reason);
+      if (reason) button.title = reason;
       button.addEventListener("click", () => researchAction(run.id, action)); controls.append(button);
     }
     const tabs = el("nav", undefined, "tabs"); tabs.setAttribute("aria-label", "Campaign sections");
