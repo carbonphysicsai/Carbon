@@ -169,6 +169,15 @@ contaminated by construction.
 **Finding R4: `get_prior` was called with `{}`** and returned
 `REQUEST_TYPE_INVALID`. It needs a selector the agent did not supply.
 
+> **Correction (2026-09-29).** R4's cause was misstated: there is no selector
+> the agent could have supplied. The `get_prior` tool schema accepts only `{}`
+> (`research_tools.py:40`), the client always sends `NoPriorSelector`
+> (`research_tools.py:232`), and with no prior pack registered the service
+> returns `REQUEST_TYPE_INVALID` on every call. The agent's call was correct;
+> the tool can never succeed in this profile, which its description does not
+> say. Change 12 below is corrected accordingly. Reported by Launchpad and
+> checked against the code on main.
+
 **The parallel-call rule worked.** One turn had a parallel call, the extra
 call was refused, and the run continued. The agent made no parallel call
 after that refusal (1 of 19 turns).
@@ -201,7 +210,7 @@ after that refusal (1 of 19 turns).
 | 9 | Do not charge a trial slot for a request refused before dispatch. The step-zero finding again, now measured costing half an epoch's trials. | Launchpad. The owner decides, because it is a budget rule. |
 | 10 | Measure the context ceiling in tokens, or scale the byte bound, so a 65,536-token setting is not a 15,000-token limit. | Launchpad (research loop) |
 | 11 | Do not file refusals as capability requests. | Launchpad |
-| 12 | Say what selector `get_prior` needs. | Launchpad |
+| 12 | ~~Say what selector `get_prior` needs.~~ Corrected: say that `get_prior` always returns `REQUEST_TYPE_INVALID` while no prior pack is registered, so it is not worth a call. | Launchpad |
 
 **Maturity:** exploratory engineering evidence. There is no scientific
 qualification, and MQ-008 is untouched.

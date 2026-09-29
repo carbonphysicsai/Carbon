@@ -123,6 +123,29 @@ def usage_cost(usage, selection=DEFAULT_SELECTION):
     }
 
 
+def input_token_bound(request_bytes, anchor):
+    """An upper bound, in tokens, on a request's input.
+
+    Every token covers at least one byte, so a request's canonical byte count
+    bounds its tokens whatever the tokenizer. Once a turn has reported its
+    input tokens, the next request only appends to that one (the instructions
+    and tools are fixed and the history only grows), so its tokens are bounded
+    by the reported count plus the bytes appended since. Without an anchor the
+    bound is the byte count itself, as before.
+    """
+    if anchor is None:
+        return request_bytes
+    if (
+        type(anchor) is not tuple
+        or len(anchor) != 2
+        or any(type(v) is not int or v < 0 for v in anchor)
+        or anchor[1] > request_bytes
+    ):
+        raise ValueError("token anchor must precede an appended request")
+    tokens, anchored_bytes = anchor
+    return tokens + request_bytes - anchored_bytes
+
+
 def request_model(
     ledger,
     *,
@@ -134,6 +157,7 @@ def request_model(
     transport=None,
     provider=DEFAULT_SELECTION,
     sleep=time.sleep,
+    anchor=None,
 ):
     """One model call, with bounded rate-limit retries under new reservations."""
     for attempt in range(MAX_RATE_LIMIT_RETRIES + 1):
@@ -148,6 +172,7 @@ def request_model(
                 phase=phase,
                 transport=transport,
                 provider=provider,
+                anchor=anchor,
             )
         except _RateLimited as limited:
             if attempt == MAX_RATE_LIMIT_RETRIES:
@@ -187,6 +212,7 @@ def _request_once(
     phase,
     transport,
     provider,
+    anchor=None,
 ):
     settings = provider.settings
     priced = provider.reservation_nano is not None
@@ -213,7 +239,7 @@ def _request_once(
     ):
         raise ValueError("only local supervised functions allowed; no hosted tools")
     payload = canonical(request)
-    if len(payload) > settings.max_input_tokens - 4096:
+    if input_token_bound(len(payload), anchor) > settings.max_input_tokens - 4096:
         raise ValueError("cumulative history/schema token reservation exhausted")
     # A new request must fit the provider timeout in the remaining elapsed
     # envelope; replay remains permitted after expiry.

@@ -130,7 +130,7 @@ every measured one, however plausible it is.
 | 5 | **Separate refusals from capability requests** (section 2) | **14 of 14 Demand records (100%)** are refusals. This is an instrument confound, not an agent one. | Small: a new note kind at three sites | No | Launchpad |
 | 6 | **Surface `check_design` and `roadmap` where planning starts** | Tier 1: **10 of 20** plans find `check_design`, **1 of 20** find `roadmap`. Tier 2 live: the first practice (call 11) came before the first `check_design` (call 14). | Small: text | No: both are already disclosed tools | Launchpad |
 | 7 | **Align the discovery examples with the shape `check_design` accepts** | Tier 0, run B: **2 of 27** designs carried the examples' extra `admission` key | Small | No | Launchpad |
-| 8 | **Say what selector `get_prior` needs.** Tier-2 change 12. | Run 2: **1 of 19** calls | Small: text | No | Launchpad |
+| 8 | **Say that `get_prior` cannot succeed while no prior pack is registered** (corrected 2026-09-29: it takes no selector; the schema is `{}` and every call returns `REQUEST_TYPE_INVALID`). Tier-2 change 12. | Run 2: **1 of 19** calls | Small: text | No | Launchpad |
 | 9 | **State that every tool call spends one of the 48 model calls** | Not measured separately. It is the denominator of every figure above. | Small: text | **Yes** | The owner decides; Launchpad implements |
 | 10 | **Publish a description of the sampling law**, which is public by design | Not measured. Evidence against `challenge_kit/standard.py` marking battery's `research` provision as fully provided. | Small | **Yes**; placement is the owner's call | The owner |
 
