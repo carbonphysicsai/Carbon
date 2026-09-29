@@ -177,6 +177,20 @@ def _requested(value, vocabulary=_BURGERS):
     return _registered(capability)
 
 
+def _refused(rejected, strategy):
+    """The compiler's issues, unchanged, and for `strategy.identity_invalid`
+    the published capture limits the strategy exceeded, so the refusal says
+    which rule broke (OWNER-BATTERY-V2-DISCLOSURE-01, item 4)."""
+    from .contracts import strategy_limits
+    from .strategy_limits import limits_exceeded
+
+    issues = [{"code": i.code, "path": i.path} for i in rejected.rejected.issues]
+    value = {"accepted": False, "issues": issues}
+    if any(i["code"] == "strategy.identity_invalid" for i in issues):
+        value["limits_exceeded"] = list(limits_exceeded(strategy, strategy_limits()))
+    return value
+
+
 def _rebuild_battery(strategy):
     """The battery contract's compile: the same compiler, its own catalog."""
     from carbon.battery.compile import compile_recipe
@@ -191,12 +205,7 @@ def _rebuild_battery(strategy):
     try:
         _, recipe = compile_recipe(strategy)
     except RecipeRejected as rejected:
-        return {
-            "accepted": False,
-            "issues": [
-                {"code": i.code, "path": i.path} for i in rejected.rejected.issues
-            ],
-        }
+        return _refused(rejected, strategy)
     return {
         "accepted": True,
         "canonical": {
@@ -230,12 +239,7 @@ def _rebuild(strategy):
     try:
         compiled, profile = compile_recipe(strategy)
     except RecipeRejected as rejected:
-        return {
-            "accepted": False,
-            "issues": [
-                {"code": i.code, "path": i.path} for i in rejected.rejected.issues
-            ],
-        }
+        return _refused(rejected, strategy)
     plan = compiled.construction_plan
     implementation = next(
         c
