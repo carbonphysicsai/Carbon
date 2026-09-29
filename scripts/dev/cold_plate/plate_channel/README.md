@@ -131,12 +131,13 @@ Under refinement, where there is no closed form:
 2. **Serpentine channels and a whole plate with inlet and outlet headers.**
    These are the first rungs where the symmetric cell no longer represents
    the plate.
-3. **Owner and domain inputs this family now needs:**
-   - material and coolant identity;
-   - the flow and heat-load ranges, which decide whether the envelope stays
-     laminar (#342 asks for this to be confirmed first);
-   - the thermal-interface assumption.
+3. **The owner and domain inputs are now set, provisionally,** in
+   `../DESIGN_BASIS.md` (owner-delegated, 2026-09-29):
+   - a copper C11000 plate cooled by PG25;
+   - the 1 kW accelerator class, at 1.25-2.0 L/min per kW and a 30-45 °C
+     inlet, which is laminar across the family;
+   - the TIM as a uniform resistance added after the solve.
 
-   None of these is chosen here.
+   Rung 5 uses these instead of the verification properties.
 4. **Then the #342 pilot:** 8 ordinary and 4 difficult cases with paired
    refinement, priced for owner approval before it runs.
