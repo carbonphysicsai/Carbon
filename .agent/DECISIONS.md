@@ -16292,3 +16292,70 @@ optimal".
   scientific qualification.
 - **Owners.** Items 1-7 are Launchpad's to implement, in the research surface
   and loop. Items 10-12 are Testnet's to record and use.
+
+## 2026-09-29 — WEB-QA-10-D1: publish Ask Carbon bundle 48fd4680 (refreshed knowledge fab55d5d)
+
+**Authority.** The repository owner (Ryan Bequette, a named production
+incident owner under `WEB-QA-05-D2`) chose candidate (b) of the two prepared
+bundles and approved everything in it, in session, on 2026-09-29. Approval
+basis: `OWNER_PUBLICATION_APPROVAL_2026_09_29_WEB_QA_10_D1`. The alternative,
+candidate (a) (revision `c3786477b`, bundle `4d58738b…`, knowledge unchanged),
+was not chosen.
+
+**What it publishes.** Both deployables move together, because the Worker
+embeds its knowledge at build time:
+
+- `carbonwebsite` static assets: three paths change against live (baseline
+  manifest v3, live verified 105/105 on both hostnames at 2026-09-28T23:44Z):
+  `ask-carbon/ask-carbon.js` and `ask-carbon/pilot-designer.html` at the
+  digests already approved under `WEB-QA-09-D1`, and
+  `ask-carbon/public-knowledge.v1.json` at the refreshed digest below. The
+  other 102 paths are byte-identical to live.
+- `ask-carbon-public` Worker, activated with
+  `wrangler.public-release-active.toml`: the `WEB-QA-09-D1` Worker source
+  (merge `178a45f9d`), unchanged except for the embedded knowledge file.
+
+**This approves the knowledge refresh.** `public-knowledge.v1.json` digest
+`fab55d5d…` (PR #406, reviewed in
+`website/ask-carbon/evidence/PUBLIC_DOCS_SOURCE_REVIEW_2026_09_28.md`) re-pins
+the constitution, protocol and business-canon sources to newer revisions. All
+27 answer cards are unchanged (`card_content_changed: false`). The file's own
+`source_refresh.deployment_authorized: false` is left as written, because
+editing it would change the approved digest. This decision entry is the
+deployment authorization for that digest.
+
+**Exact accepted artifact.**
+
+| Identity | Value |
+| --- | --- |
+| Bundle identity | `48fd4680a3f408448273ffeae99f333ba8d2cdfd326a8d6f599fa0f73d629085` (105 files) |
+| Source revision | `368c713eac41015eecd83f37661001e5508a1a96`; the shipped inputs are byte-identical on main at `2ba394223` |
+| Integrated homepage | `b1e8e7cdbea3d13d1ea2237e55db279bc962937a6a2cf2a65491dcf8255afd47` (unchanged; reviewed source `99be1318…`) |
+| Q&A component | `62ba26ce2a2e76dc0b194dc0e7d1d113cbd2c5aa4f9770dce77f1a977e19f7f4` |
+| Pilot Designer | `4c9f39169cabc3748662d64925828cfa07aa63fe277dff164735847ee907c6cd` |
+| Knowledge digest | `fab55d5dca7f547d47899f29c5cf3b1b0b7ab1674e923da945feef02fd0361a0` (`knowledge_version` still `ask-carbon-release-candidate-2026-09-18.2`) |
+| Site baseline | `carbon-site-upload-v3-papers.zip`, SHA-256 `23fe55aee17ae5468673eb19e7416b710744257de1c178ead339d3daeab3e2cf`; manifest v3 (PR #410) |
+| Static rollback target | the live `carbonwebsite` version id, **not yet captured**; the operator records it before building. It is **not** `b694b20f…`, which serves the v2 site |
+| Worker rollback target | captured with wrangler immediately before deploying |
+
+The identity was re-derived from the staged files on disk and does not depend
+on the rollback id. A rebuild producing a different bundle identity is not the
+approved artifact. If live has moved at deploy time, the pre-deploy check will
+show more than these three differing paths; stop, and rebuild for a fresh
+decision.
+
+**Known limit accepted with the approval.** `/health` reports the same
+`knowledge_version` for `d937e9ca…` and `fab55d5d…`, so it cannot confirm
+which knowledge the Worker embeds. The binding evidence is that the Worker is
+deployed from the approved revision.
+
+**Supersedes.** The `WEB-QA-09-D1` static rollback target `b694b20f…` is
+withdrawn: that version serves the v2 site, and rolling back to it would
+withdraw the v3 papers.
+
+**Not authorized by this decision.** Deployment is the operator's act, from a
+host holding the Cloudflare credential; this session has none and ran no
+wrangler command. No deploy may proceed until the live `carbonwebsite` version
+id is captured. No change to budget or ceilings, to the `AskCarbonUsageLedger`
+Durable Object (never rolled back or deleted), or to Cloudflare Email Routing
+(never enabled). The six cards expiring 2026-10-16 are not refreshed here.
