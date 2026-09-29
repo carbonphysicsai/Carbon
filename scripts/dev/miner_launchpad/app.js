@@ -835,7 +835,7 @@
       table.append(row);
     }
     const wrap = el("div", undefined, "table-wrap"); wrap.append(table); panel.append(wrap);
-    const scores = (run.experiments || []).map((experiment, index) => "#" + (index + 1) + ": " + (experiment.diagnostics?.descriptive_score ?? "unavailable"));
+    const scores = (run.experiments || []).map((experiment, index) => "#" + (index + 1) + ": " + (experiment.diagnostics?.descriptive_score ?? experiment.summary?.score ?? "unavailable"));
     researchNote(panel, scores.length ? "Descriptive practice scores (not accepted improvements): " + scores.join(" · ") : "No practice score yet.");
   }
   function tabJournal(panel, run) {
@@ -890,9 +890,28 @@
     record.textContent = JSON.stringify({challenge: run.challenge, runtime_revision: run.runtime_revision, agent_policy: run.agent_policy, research_guidance: run.research_guidance, effective_research_inputs: run.effective_research_inputs, hypothesis: run.current_hypothesis, hypotheses: run.hypotheses, decisions: run.decisions, outcomes: run.epoch_outcomes, usage: run.usage, experiments: run.experiments, operations: run.operations, freezes: run.candidate_freezes, development: run.final_results, capability_requests: run.capability_requests, refusals: run.refusals}, null, 2);
     details.append(summary, record); panel.append(details);
   }
+  // A Challenge's own practice feedback (battery's summary, fit and backend),
+  // as recorded; a field it does not report is shown as unavailable.
+  // One Challenge's own model families (its construction contract), or the
+  // historical list when the controller predates the per-Challenge field.
+  function familiesFor(challengeId) {
+    const by = launchOptions && launchOptions.families_by_challenge;
+    return (by && challengeId && by[challengeId]) || (launchOptions ? launchOptions.families : []);
+  }
+  function renderChallengePractice(section, experiment) {
+    const s = experiment.summary, fit = experiment.fit || {}, backend = experiment.backend || {};
+    const num = v => typeof v === "number" && Number.isFinite(v) ? String(v) : "unavailable";
+    researchNote(section, "Recipe: " + (experiment.backbone || experiment.recipe?.backbone || "unavailable") + (experiment.recipe?.parameters ? " · " + JSON.stringify(experiment.recipe.parameters) : ""), "code");
+    researchNote(section, "Descriptive practice score: " + num(s.score) + " · important region: " + num(s.important_score) + " · lower is better · Not an accepted improvement.");
+    const failures = s.gate_failures && typeof s.gate_failures === "object" ? Object.entries(s.gate_failures).filter(([, v]) => v).map(([k, v]) => k + " " + v) : [];
+    researchNote(section, "Practice gates: " + (s.eligible === true ? "all passed" : s.eligible === false ? "failed · " + (failures.join(", ") || "gate counts unavailable") : "unavailable") + " · final admissibility is separate.");
+    researchNote(section, "Cases: " + num(s.n_scored) + " scored of " + num(s.n_cases) + " · " + num(s.n_reference_invalid) + " reference invalid · " + num(s.n_failed_infra) + " infrastructure failed");
+    researchNote(section, "Training: final loss " + num(fit.final_loss) + " · " + num(fit.n_params) + " parameters · " + num(fit.train_s) + " s training · backend " + (backend.kind || "unavailable"));
+  }
   function renderPractice(parent, experiment, index) {
     const section = document.createElement("section"); section.className = "practice-result";
     const heading = document.createElement("h4"); heading.textContent = "Practice experiment " + (index + 1); section.append(heading);
+    if (experiment.summary && typeof experiment.summary === "object") { renderChallengePractice(section, experiment); parent.append(section); return; }
     researchNote(section, "Completed updates: " + experiment.completed_steps + " · Worker seconds: " + experiment.worker_seconds);
     const diagnostics = experiment.diagnostics || {};
     researchNote(section, "Descriptive practice score: " + (diagnostics.descriptive_score ?? "unavailable") + " · Not an accepted improvement.");
@@ -990,7 +1009,7 @@
     if (launchOptions) {
       // Each family's true availability now, by its registry verdict.
       const byVerdict = {};
-      for (const family of launchOptions.families) (byVerdict[family.verdict] ||= []).push(family.selector || family.id.split(".")[1]);
+      for (const family of familiesFor(run.challenge && run.challenge.id)) (byVerdict[family.verdict] ||= []).push(family.selector || family.id.split(".")[1]);
       const labels = {supported: "Families you can freeze and submit now", not_yet_rebuildable: "Not yet rebuildable (research only)", needs_owner_decision: "Waiting on an owner decision", excluded: "Excluded"};
       for (const [verdict, label] of Object.entries(labels)) if (byVerdict[verdict]) researchNote(box, label + ": " + byVerdict[verdict].join(", "));
     }
@@ -1341,12 +1360,14 @@
     $("path-advanced").setAttribute("aria-pressed", String(launchPath === "advanced"));
     $("launch-advanced").hidden = launchPath !== "advanced";
     const availability = $("launch-availability");
-    if (launchOptions && !availability.dataset.built) {
+    const chosen = wizard.challenge ? wizard.challenge.id : "";
+    if (launchOptions && availability.dataset.built !== chosen) {
+      availability.replaceChildren();
       const families = {};
-      for (const family of launchOptions.families) (families[family.verdict] ||= []).push(family.selector || family.id.split(".")[1]);
+      for (const family of familiesFor(chosen)) (families[family.verdict] ||= []).push(family.selector || family.id.split(".")[1]);
       for (const [verdict, names] of Object.entries(families)) researchNote(availability, "Model families · " + words(verdict) + ": " + names.join(", "));
       for (const [lane, state] of Object.entries(launchOptions.research_lanes)) researchNote(availability, "Research lane " + lane + " · " + state.availability + (state.reason ? ": " + words(state.reason) : ""));
-      availability.dataset.built = "1";
+      availability.dataset.built = chosen;
     }
     const problem = compositionProblem(composition);
     $("composition-summary").textContent = describeComposition(composition) + (problem ? " · cannot launch: " + problem : "");

@@ -844,7 +844,11 @@ class RunnerAdapter:
         from carbon.development_session.design_check import availability
         from carbon.development_session.product_campaign import BUDGET_KEYS
         from carbon.development_session.research_ledger import DIMENSIONS
-        from carbon.reconstruction.capability_registry import REGISTRY, Dimension
+        from carbon.reconstruction.capability_registry import (
+            CONTRACTS,
+            REGISTRY,
+            Dimension,
+        )
 
         # The gate established whose profile this is; its content is read here.
         cfg = self.configured()
@@ -890,6 +894,21 @@ class RunnerAdapter:
                 for c in REGISTRY
                 if c.dimension is Dimension.MODEL_FAMILY
             ],
+            # Each Challenge's own families, from its own construction contract
+            # (OD-8): a battery launch lists battery's, never Burgers'.
+            "families_by_challenge": {
+                token: [
+                    {
+                        "id": c.capability_id,
+                        "selector": c.selector,
+                        "summary": c.summary,
+                        **availability(c),
+                    }
+                    for c in item.capabilities
+                    if c.dimension is Dimension.MODEL_FAMILY
+                ]
+                for token, item in CONTRACTS.items()
+            },
             "research_lanes": {
                 "julia": host(
                     "authored_research" in runtime or "authored_julia_image" in cfg,

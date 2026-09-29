@@ -241,10 +241,15 @@ def project(row, root):
         for e in FINAL_EPOCHS
         if (root / ("epoch-" + str(e)) / "permitted-final-feedback.json").exists()
     ]
-    open_epoch = next((e for e in FINAL_EPOCHS if e not in submitted), None)
+    # The same cap the campaign runs under (research_campaign: a miner's
+    # epochs ceiling narrows the committed final epochs), so the count shown
+    # is the count that can actually be used.
+    cap = (manifest.get("ceilings") or {}).get("epochs")
+    allowed = FINAL_EPOCHS if type(cap) is not int else FINAL_EPOCHS[:cap]
+    open_epoch = next((e for e in allowed if e not in submitted), None)
     value["journey"] = {
         "submitted_epochs": submitted,
-        "final_exams_remaining": len(FINAL_EPOCHS) - len(submitted),
+        "final_exams_remaining": max(0, len(allowed) - len(submitted)),
         "frozen_awaiting_submission": open_epoch is not None
         and (root / ("epoch-" + str(open_epoch)) / "selected-recipe.json").exists(),
     }
