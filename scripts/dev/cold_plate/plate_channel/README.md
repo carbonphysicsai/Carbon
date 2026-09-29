@@ -479,3 +479,43 @@ grid. The narrow, shallow corner (0.2 × 1 mm) is 6× nominal.
    properties at 45 °C are recorded in the design basis.
 2. **Serpentine channels and a whole plate with headers.**
 3. **The #342 pilot proposal,** priced for owner approval before it runs.
+
+
+---
+
+# Rung 6c: the inlet-temperature axis
+
+**What changed.**
+- The design basis now tabulates PG25 at 35 and 45 °C. The source is the
+  same pinned CoolProp 6.8.0 model, whose 30, 40 and 50 °C rows reproduce
+  the existing table exactly.
+- `generate.py` gains `--properties design-30C` and `design-45C`.
+  - Each is the design set with the fluid and the inlet temperature at that
+    temperature.
+  - Properties are constant at the inlet temperature, as in the 40 °C set.
+- The nominal geometry is rerun at the ends of the design basis's 30-45 °C
+  range: r = 2, `--wall-grading 4`, 1.5 L/min per kW.
+
+## Result (2026-09-29, this host)
+
+**Both cases ran.** Mass and energy are conserved to about 1e-8. The
+dp/dx error is −1.1 %, as at 40 °C.
+
+| Inlet | Re | Peak − inlet | Mean base − inlet | Coolant rise | Δp |
+|---|---|---|---|---|---|
+| 30 °C | 248 | 38.51 K | 31.15 K | 9.99 K | 6,788 Pa |
+| 40 °C (rung 6 nominal) | 325 | 38.14 K | 30.83 K | 9.98 K | 5,243 Pa |
+| 45 °C | 365 | 37.98 K | 30.69 K | 9.98 K | 4,681 Pa |
+
+**The peak moves almost one-for-one with the inlet temperature.** The peak
+rise above inlet changes by only 0.5 K across 15 °C.
+
+**The pressure drop follows viscosity, as laminar flow should.** It falls by
+1.29× from 30 to 40 °C, against a viscosity ratio of 1.31.
+
+**Still constant-property.** Within one case, viscosity is held at the inlet
+value. Over the 10 K rise it would fall by about 15-25 %, most of it near
+the walls, where the fluid is hottest.
+- The next step is temperature-dependent viscosity, which OpenFOAM supports
+  with a polynomial transport model.
+- Its effect on the peak and on Δp is not measured here.
