@@ -140,6 +140,35 @@ class PublicDevelopmentResearchTasks(DurableResearchTaskProvider):
             return load_canonical(self._requests[task_id], StartResearchTaskRequest)
 
 
+def workspace_fields(action):
+    """The (required, optional) argument fields of one workspace action.
+
+    The one table both the executor and the pre-dispatch check read, so a
+    request refused for its fields before dispatch is refused by the same
+    rule the executor would apply. Raises KeyError for an unknown action.
+    """
+    expected = {
+        "public_material": {"name"},
+        "inventory": set(),
+        "read_file": {"name", "offset", "count"},
+        "write_file": {"name", "content_base64", "expected_digest"},
+        "notebook": {"kind", "body"},
+        "capability_request": {"request"},
+        "check_design": {"design"},
+        "roadmap": set(),
+        "run_python": {"source", "files", "hypothesis", "expected_effect"},
+        "run_julia": {"source", "files", "hypothesis", "expected_effect"},
+    }[action]
+    # `environment` is run_julia's one optional field: which pinned package
+    # environment to run in. For the miner's own scripts a wall allowance,
+    # `seconds`, may be omitted for none at all. Every other field is
+    # exactly required.
+    optional = {"environment"} if action == "run_julia" else set()
+    if action in {"run_python", "run_julia"}:
+        optional = optional | {"seconds"}
+    return frozenset(expected), frozenset(optional)
+
+
 def _arguments(raw):
     def unique(pairs):
         result = {}
@@ -197,38 +226,7 @@ class PublicResearchExecutor:
 
     def _workspace_action(self, spec, identity):
         args = _arguments(spec.arguments_json)
-        expected = {
-            "public_material": {"name"},
-            "inventory": set(),
-            "read_file": {"name", "offset", "count"},
-            "write_file": {"name", "content_base64", "expected_digest"},
-            "notebook": {"kind", "body"},
-            "capability_request": {"request"},
-            "check_design": {"design"},
-            "roadmap": set(),
-            "run_python": {
-                "source",
-                "files",
-                "seconds",
-                "hypothesis",
-                "expected_effect",
-            },
-            "run_julia": {
-                "source",
-                "files",
-                "seconds",
-                "hypothesis",
-                "expected_effect",
-            },
-        }[spec.action]
-        # `environment` is run_julia's one optional field: which pinned package
-        # environment to run in. Every other field remains exactly required.
-        # Optional fields: which Julia environment, and - for the miner's own
-        # scripts - a wall allowance, which may be omitted for none at all.
-        optional = {"environment"} if spec.action == "run_julia" else set()
-        if spec.action in {"run_python", "run_julia"}:
-            expected = expected - {"seconds"}
-            optional = optional | {"seconds"}
+        expected, optional = workspace_fields(spec.action)
         if not expected <= set(args) <= expected | optional:
             raise ValueError("workspace fields differ from registered action")
         if spec.action == "public_material":

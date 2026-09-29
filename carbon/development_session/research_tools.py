@@ -82,6 +82,15 @@ TASK_CORRECTIONS = {
         'quoted string such as "{\\"name\\":\\"objective\\"}", not as a '
         "JSON object, list or number."
     ),
+    "workspace_field_missing": (
+        "arguments_json for this workspace action is missing a required field; "
+        "the start_research_task description lists each action's fields."
+    ),
+    "workspace_field_unexpected": (
+        "arguments_json for this workspace action has a field the action does "
+        "not take; the start_research_task description lists each action's "
+        "fields."
+    ),
     "workspace_recipe_forbidden": (
         "kind=workspace requires strategy_json=null, an allowed action and its "
         "arguments_json object. To practice a registered recipe, use kind=practice "
@@ -97,9 +106,26 @@ class TaskContractMismatch(ValueError):
     """
 
     def __init__(self, code, field):
-        if code not in TASK_CORRECTIONS or field not in NULLABLE_TASK_FIELDS:
+        if code not in TASK_CORRECTIONS or not (
+            field in NULLABLE_TASK_FIELDS or _registered_argument(field)
+        ):
             raise TypeError("allow-listed correction and field required")
         super().__init__(code, field)
+
+
+def _registered_argument(field):
+    """`arguments_json.<name>` where <name> is a field some workspace action
+    registers: a name Carbon wrote, never one a requester sent."""
+    from .research_tasks import workspace_fields
+
+    prefix = "arguments_json."
+    if type(field) is not str or not field.startswith(prefix):
+        return False
+    name = field[len(prefix) :]
+    return any(
+        name in required | optional
+        for required, optional in map(workspace_fields, DEVELOPMENT_WORKSPACE_ACTIONS)
+    )
 
 
 #: The start_research_task fields whose value is either a string or JSON null.
@@ -338,11 +364,23 @@ class ResearchMinerTools:
                     research.DevelopmentWorkspaceTaskSpecV2,
                     "carbon.autoresearch.workspace.v2",
                 )
-            spec = constructor(
-                version,
-                args["action"],
-                canonical(_json(args["arguments_json"])).decode(),
-            )
+            arguments = _json(args["arguments_json"])
+            from .research_tasks import workspace_fields
+
+            # The executor's own field table, checked before dispatch: a
+            # request with the wrong fields starts no task, so it can never
+            # be recorded as an infrastructure failure (tier 3A, N2).
+            required, optional = workspace_fields(args["action"])
+            missing = sorted(required - set(arguments))
+            if missing:
+                raise TaskContractMismatch(
+                    "workspace_field_missing", "arguments_json." + missing[0]
+                )
+            if not set(arguments) <= required | optional:
+                raise TaskContractMismatch(
+                    "workspace_field_unexpected", "arguments_json"
+                )
+            spec = constructor(version, args["action"], canonical(arguments).decode())
         else:
             raise ValueError("unsupported task kind")
         return research.StartResearchTaskRequest(
