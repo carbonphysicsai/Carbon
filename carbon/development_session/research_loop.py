@@ -14,7 +14,12 @@ from carbon.reconstruction.capability_registry import contract_digest
 from .data import write_once
 from .model_provider import DEFAULT_SELECTION
 from .profile import CHALLENGE, canonical, digest
-from .research_agent import caching_status, provider_turns, request_model
+from .research_agent import (
+    caching_status,
+    input_token_bound,
+    provider_turns,
+    request_model,
+)
 from .research_agent_policy import (
     AUTONOMOUS,
     LEGACY,
@@ -211,6 +216,9 @@ async def run_epoch(
     # Consecutive turns with several tool calls; recomputed identically on a
     # replay, because the retained responses replay in order.
     parallel_run = 0
+    # The last turn's provider-reported input tokens and its request's bytes;
+    # None until a turn reports them.
+    anchor = None
     for index in range(48):
         ledger.checkpoint()
         status = ledger.status(owner=owner)
@@ -235,7 +243,11 @@ async def run_epoch(
             "max_output_tokens": provider.settings.max_output_tokens,
             "reasoning": None if effort is None else {"effort": effort},
         }
-        if len(canonical(request)) > provider.settings.max_input_tokens - 4096:
+        request_bytes = len(canonical(request))
+        if (
+            input_token_bound(request_bytes, anchor)
+            > provider.settings.max_input_tokens - 4096
+        ):
             outcome = {
                 "status": "STOPPED",
                 "reason": "context admission ceiling; no history silently discarded",
@@ -264,12 +276,15 @@ async def run_epoch(
             phase=phase,
             transport=transport,
             provider=provider,
+            anchor=anchor,
         )
         # The turn's cost, tokens and serving identity, journalled beside the
         # epoch so a view shows spend per turn as it happens.
         turns = provider_turns(ledger.status(owner=owner)["operations"])
         turn = next(t for t in turns if t["turn"] == call_id)
         write_once(root / (call_id + "-turn.json"), canonical(turn))
+        if type(turn["input_tokens"]) is int and turn["input_tokens"] >= 0:
+            anchor = (turn["input_tokens"], request_bytes)
         caching = caching_status(
             [t for t in turns if t["turn"].startswith(f"epoch-{epoch}-")]
         )
