@@ -16359,3 +16359,36 @@ wrangler command. No deploy may proceed until the live `carbonwebsite` version
 id is captured. No change to budget or ceilings, to the `AskCarbonUsageLedger`
 Durable Object (never rolled back or deleted), or to Cloudflare Email Routing
 (never enabled). The six cards expiring 2026-10-16 are not refreshed here.
+
+## 2026-09-29 — OWNER-TRAINING-BUDGET-STUDY-01: every Challenge completes a training budget study before its training limit is set and before it pays rewards
+
+**Authority.** The owner, in the Testnet session on 2026-09-29, pasting
+"Challenge Training Budget Study: Testnet Test Spec" (2026-09-28) and
+writing: "adopt this. I approve." The spec's four open decisions are taken
+as approved, in the spec's own recommended form.
+
+1. **A standing launch requirement.** Every Challenge completes the study,
+   with its own sheet, before its training limit is set and before it pays
+   rewards. The spec is at `docs/development/CHALLENGE_TRAINING_BUDGET_STUDY.md`.
+   - It is recorded in the launch path
+     (`launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.8.md`).
+   - It is recorded in the readiness records, schema
+     `carbon.challenge-readiness.v2`. Their required `training_budget_study`
+     block makes the validator refuse a launch approval until the study is
+     `COMPLETE`, with a result and an owner decision.
+2. **Decision rules R1-R8 frozen as written** in
+   `docs/development/training_budget_study/DECISION_RULES.md`, SHA-256
+   `087bdef894190c1ed6b034a7b9302727b359225e35d214501db168062543179a`.
+   Changing a rule needs a new owner decision and a note in the report.
+3. **Miners see each result:** the curves and the rule are published. The
+   study cases are separate from the live exam.
+4. **The Battery sheet's decisions are approved.** The sheet itself (its
+   spend ceiling, GPU, time target, memory ceiling, recipes and rebuild
+   counts) is **not yet in the repository**. Nothing that needs those values
+   runs until it is supplied. No pod time is spent before then.
+
+**Scope.**
+- The study is off-chain development evidence. It stays out of the live
+  hidden batches, the exam rule, chain state, submissions and payouts.
+- It grants no scientific, security or production qualification.
+- The study-only contract with raised ranges is never registered live.

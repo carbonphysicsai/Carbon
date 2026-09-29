@@ -206,6 +206,37 @@ def test_projection_withholds_private_operations_and_retains_attempt_failure(
     assert result["final_results"] == []
 
 
+def test_refusals_are_shown_apart_from_capability_requests(tmp_path, monkeypatch):
+    """A refused request is not demand: it is listed as a refusal, and only the
+    agent's own capability_request action is listed as a request. Specimen:
+    the capability request is listed, so the separation can be seen to bite."""
+    bridge, value, _ = adapter(tmp_path, monkeypatch)
+    identity = bridge.launch({"profile": "opaque-profile"}, "request-key-000001")["id"]
+    value.note(
+        owner="miner-requester",
+        kind="refusal",
+        body={
+            "operation": "start_research_task",
+            "reason": "contract_incompatibility",
+            "correction_code": "practice_recipe_required",
+            "request_digest": "PRIVATE-DIGEST-SENTINEL",
+        },
+    )
+    value.note(
+        owner="miner-requester",
+        kind="capability_request",
+        body={"purpose": "a battery GPU practice lane", "reason": "missing_adapter"},
+    )
+    result = bridge.get(identity)
+    assert [r["correction_code"] for r in result["refusals"]] == [
+        "practice_recipe_required"
+    ]
+    assert [r["purpose"] for r in result["capability_requests"]] == [
+        "a battery GPU practice lane"
+    ]
+    assert "PRIVATE-DIGEST-SENTINEL" not in json.dumps(result)
+
+
 def test_completed_epoch_can_stop_without_candidate_or_improvement(
     tmp_path, monkeypatch
 ):

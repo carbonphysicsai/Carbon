@@ -1,0 +1,120 @@
+# Cold plate (#342): provisional design basis
+
+**Authority.** The owner delegated three choices to the executor on 2026-09-29
+(`.agent/DECISIONS.md`, OWNER-BATTERY-V2-DISCLOSURE-01, items 10-12):
+- material and coolant: "you pick a group and optimize";
+- flow and heat-load ranges: "you pick whats most valuable";
+- the thermal-interface assumption: "you pick what's optimal".
+
+These are the choices, with their sources and reasons.
+
+**What this is not.**
+- It is a **provisional development design basis** for #342's proposed
+  scope.
+- It is not a qualified Challenge population or sampling law, not a
+  tolerance, and not a production or customer claim.
+- It grants no scientific qualification. The exam population, its sampling
+  law and every gate remain separate decisions, made before they are used.
+
+## 1. Material and coolant: a copper plate cooled by PG25
+
+| | Choice | Why |
+|---|---|---|
+| Plate | **Copper, C11000 (ETP)** | It is the standard material for AI-accelerator cold plates. Its conductivity is the highest of the practical, machinable options, so the channel design, not the metal, decides performance. |
+| Coolant | **PG25**: 25 % propylene glycol in water | It is the coolant the Open Compute Project specifies for single-phase cold plates ([OCP PG25 guidelines](https://www.opencompute.org/documents/ocp-pg25-guidelines-v1-0-0-pdf); [OCP PG25 cold-plate base specification](https://www.opencompute.org/documents/ocp-base-specification-pg25-v1-0-0-final-pdf)). Its viscosity is about twice water's, which makes pressure drop matter more. |
+
+**Copper properties.** At steady state only the conductivity enters.
+
+| Property | Value | Source |
+|---|---|---|
+| k | 391 W/m·K at 20 °C | Copper Development Association, C11000 data sheet |
+| ρ | 8,890 kg/m³ | Copper Development Association, C11000 data sheet |
+| c_p | 385 J/kg·K | Copper Development Association, C11000 data sheet |
+
+Conductivity varies by about 1 % over 20-80 °C, so it is held constant.
+
+**PG25 properties.** These come from CoolProp 6.8.0, incompressible fluid
+`INCOMP::MPG[0.25]`. That is the Melinder (2010, IIR) propylene glycol-water
+data, at mass fraction 0.25, evaluated at 2 bar:
+
+| T | ρ (kg/m³) | c_p (J/kg·K) | k (W/m·K) | μ (mPa·s) | Pr |
+|---|---|---|---|---|---|
+| 30 °C | 1014.90 | 3944.6 | 0.4769 | 1.7761 | 14.69 |
+| 40 °C | 1009.91 | 3968.6 | 0.4858 | 1.3530 | 11.05 |
+| 50 °C | 1004.38 | 3992.4 | 0.4946 | 1.0726 | 8.66 |
+
+- **Mass fraction versus volume.** OCP's PG25 is 25 % by volume. That is
+  close to 0.25 by mass, and within the spread of the correlation. The
+  difference is recorded here, not hidden.
+- **Constant or temperature-dependent.** The verification rungs use
+  constant properties at 40 °C. Viscosity falls about 40 % from 30 to 50 °C,
+  so whether a production reference needs temperature-dependent viscosity is
+  a reference-qualification question for later. It is not settled here.
+
+The command that produced the table:
+
+```bash
+python3 -m venv env && env/bin/pip install CoolProp==6.8.0
+env/bin/python -c "import CoolProp.CoolProp as C; print([C.PropsSI(p,'T',313.15,'P',2e5,'INCOMP::MPG[0.25]') for p in 'DCLV'])"
+```
+
+## 2. Flow and heat load: the 1 kW accelerator class
+
+The most valuable envelope is the one being built now: single accelerators
+around 1 kW, where cold-plate design limits the power.
+
+| Parameter | Range | Nominal | Basis |
+|---|---|---|---|
+| Heat load per plate | 500-1,500 W | 1,000 W | The current accelerator class (about 700 W to over 1 kW) |
+| Heated footprint | 30 × 30 mm | same | About one large die. Average flux is 56-167 W/cm². |
+| Heat map | uniform, or hot-spot maps up to 3× the average | uniform first | A family parameter. The frozen maps are a later, recorded choice. |
+| Flow | 1.25-2.0 L/min per kW | 1.5 L/min per kW | OCP's PG25 guidance: 1.5 L/min per kW is about a 10 °C rise, and 1.25-2.0 is the recommended band |
+| Inlet temperature | 30-45 °C | 40 °C | OCP's group-2 supply band (30-37 °C), extended to 45 °C for warm-water operation |
+| Straight channels | width 0.2-0.5 mm, fin 0.2-0.5 mm, depth 1-3 mm | 0.3 / 0.3 / 2 mm | The microchannel range for skived or machined copper |
+
+**Is it laminar?** #342 asks for this to be confirmed first. It was computed
+over the full factorial of the ranges above: 324 combinations, with channels
+spanning the 30 mm footprint and PG25 viscosity at the inlet temperature.
+- **Re runs from 50 to 1,931. None exceeds 2,000.**
+- The top corner is 1,500 W, 2.0 L/min per kW, a 45 °C inlet and 1 mm
+  channel depth. It comes within about 20 % of the usual transition near
+  2,300 in straight ducts.
+- **Laminar solver assumptions are supported for straight channels.** That
+  corner, and any serpentine bends (which can trip earlier), are flagged for
+  checking before cases there are generated.
+
+## 3. The thermal interface: a uniform resistance, applied after the solve
+
+The choice is to **model the thermal interface material (TIM) between die and
+plate as a uniform areal resistance R″, and add it after the solve**:
+T_die = T_base + q″·R″.
+
+The reason: the plate takes a prescribed heat flux (a "flux-mode" boundary),
+and the TIM is a thin layer.
+- In that case the TIM changes the die temperature and nothing inside the
+  plate. The plate's temperature field is identical for every R″.
+- So adding q″·R″ afterwards is exact to first order. It costs nothing, and
+  one plate solution serves every TIM.
+- Treating it as a parameter keeps TIM quality from being confounded with
+  channel design, which is what the Challenge is about.
+
+The nominal value is **R″ = 0.05 cm²·K/W (5 × 10⁻⁶ m²·K/W)**. That is a good
+paste or phase-change TIM. Liquid metal is about 0.01-0.02 and ordinary
+grease 0.1 or more. It is reported alongside every result, never folded into
+the plate score.
+
+**Where this stops holding.** The TIM would need to be meshed only if it were
+thick or conductive enough to spread heat sideways. At a 50 µm thickness it is
+not.
+
+## 4. What still needs a decision before a dataset exists
+
+This design basis sets the physics and the ranges. **None of these follow
+from it:**
+- the Challenge's population and its sampling law;
+- the gates and tolerances;
+- the frozen heat maps;
+- the pilot cost proposal (8 ordinary and 4 difficult cases with paired
+  refinement), which goes to the owner priced, before it runs.
+
+Those are made, and recorded, when the pilot is proposed.

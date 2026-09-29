@@ -484,7 +484,12 @@ class ResearchMinerTools:
         correction=None,
         field=None,
     ):
-        """A pre-dispatch rejection is feedback, never an ambiguous execution."""
+        """A pre-dispatch rejection is feedback, never an ambiguous execution.
+
+        It is journalled as a refusal, not a capability request: the requester
+        broke a disclosed contract, it did not ask for something Carbon lacks.
+        Only the agent's own capability_request action files demand.
+        """
         record = {
             "purpose": args.get("expected_effect", "Not supplied by the requester"),
             "operation": operation,
@@ -492,18 +497,12 @@ class ResearchMinerTools:
             "public_evidence": "Rejected request " + identity,
             "request_digest": digest(canonical(args)),
             "reason": reason,
-            "expected_benefit": "Requester has not yet justified an extension",
-            "estimated_cost": "Unestimated; requires investigation",
-            "minimal_safe_design": "Use the disclosed closed recipe/workspace contract; extensions require tested delivery",
-            "verification": "A bounded valid request must execute and reconstruct with identical semantics",
-            "disposition": "investigate",
             "authority_granted": False,
         }
         if correction in TASK_CORRECTIONS:
-            record["minimal_safe_design"] = task_correction(
-                correction, field, args.get(field)
-            )
-        self._journal("capability_request", record)
+            record["correction_code"] = correction
+            record["field"] = field
+        self._journal("refusal", record)
         result = {
             "status": "REJECTED_BEFORE_DISPATCH",
             "reason": reason,
@@ -607,12 +606,11 @@ class ResearchMinerTools:
         ):
             self.ledger.note(
                 owner=self.owner,
-                kind="capability_request",
+                kind="refusal",
                 body={
                     "operation": operation,
                     "request_digest": digest(canonical(args)),
                     "reason": "contract_incompatibility",
-                    "disposition": "investigate",
                     "authority_granted": False,
                     "public_error": public_wire(reply.result),
                 },

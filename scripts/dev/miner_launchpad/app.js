@@ -844,6 +844,7 @@
     for (const item of hypotheses) researchNote(panel, "Hypothesis " + (item.sequence ?? "") + ": " + (item.hypothesis || JSON.stringify(item)));
     for (const item of decisions) researchNote(panel, "Decision " + (item.sequence ?? "") + ": " + JSON.stringify(item));
     for (const item of run.capability_requests || []) researchNote(panel, "Capability request (grants nothing): " + JSON.stringify(item));
+    for (const item of run.refusals || []) researchNote(panel, "Refused request (nothing ran): " + JSON.stringify(item));
     for (const outcome of run.epoch_outcomes || []) researchNote(panel, (outcome.selected_by === "miner" ? "Your" : "Agent") + " epoch " + outcome.epoch + ": " + outcome.status + " · " + (outcome.reason || "No reason reported") + " · " + (outcome.selected_by === "miner" ? "Your" : "Agent-reported") + " decision, not independent science.");
     if (!hypotheses.length && !decisions.length && !(run.epoch_outcomes || []).length) missing(panel, "the journal fills as hypotheses, decisions and epoch outcomes are recorded.");
   }
@@ -886,7 +887,7 @@
     details.open = expandedResearch.has(run.id);
     details.addEventListener("toggle", () => { if (details.isConnected) { if (details.open) expandedResearch.add(run.id); else expandedResearch.delete(run.id); } });
     const record = document.createElement("pre"); record.style.whiteSpace = "pre-wrap"; record.style.overflowWrap = "anywhere";
-    record.textContent = JSON.stringify({challenge: run.challenge, runtime_revision: run.runtime_revision, agent_policy: run.agent_policy, research_guidance: run.research_guidance, effective_research_inputs: run.effective_research_inputs, hypothesis: run.current_hypothesis, hypotheses: run.hypotheses, decisions: run.decisions, outcomes: run.epoch_outcomes, usage: run.usage, experiments: run.experiments, operations: run.operations, freezes: run.candidate_freezes, development: run.final_results, capability_requests: run.capability_requests}, null, 2);
+    record.textContent = JSON.stringify({challenge: run.challenge, runtime_revision: run.runtime_revision, agent_policy: run.agent_policy, research_guidance: run.research_guidance, effective_research_inputs: run.effective_research_inputs, hypothesis: run.current_hypothesis, hypotheses: run.hypotheses, decisions: run.decisions, outcomes: run.epoch_outcomes, usage: run.usage, experiments: run.experiments, operations: run.operations, freezes: run.candidate_freezes, development: run.final_results, capability_requests: run.capability_requests, refusals: run.refusals}, null, 2);
     details.append(summary, record); panel.append(details);
   }
   function renderPractice(parent, experiment, index) {
