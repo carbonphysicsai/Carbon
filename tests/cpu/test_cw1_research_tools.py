@@ -357,3 +357,120 @@ def test_task_kind_mismatch_returns_safe_correction_without_dispatch(
         assert type(request.task_spec) is research.DevelopmentWorkspaceTaskSpecV1
     finally:
         composition.tasks.close()
+
+
+def _workspace_sdk(tmp_path):
+    from test_cw1_research_ledger import ledger as make_ledger
+
+    meter = make_ledger(tmp_path)
+    composition = make_research_service(
+        root=tmp_path / "tasks",
+        ledger=meter,
+        owner="alice",
+        image=SimpleNamespace(),
+        public_material=lambda *a: pytest.fail("rejected request executed"),
+        practice=lambda *a: pytest.fail("rejected request executed"),
+    )
+    sdk = ResearchMinerTools(
+        connection=None,
+        wrapper=None,
+        composition=composition,
+        ledger=meter,
+        owner="alice",
+    )
+    return sdk, meter, composition
+
+
+def _run_python(arguments):
+    import json
+
+    return {
+        "kind": "workspace",
+        "strategy_json": None,
+        "action": "run_python",
+        "arguments_json": json.dumps(arguments),
+        "hypothesis": "analyse the training data",
+        "expected_effect": "a summary",
+    }
+
+
+def test_a_missing_workspace_field_is_refused_before_any_task_starts(tmp_path):
+    """Tier 3A, N2: run_python without `files` used to create a task that
+    failed as FAILED_INFRA with no cause. It is now refused before dispatch,
+    naming the missing field, and nothing starts."""
+    import asyncio
+
+    sdk, meter, composition = _workspace_sdk(tmp_path)
+    try:
+        args = _run_python(
+            {"source": "print(1)", "hypothesis": "h", "expected_effect": "e"}
+        )
+        result = asyncio.run(
+            sdk.call(PREFIX + "start_research_task", args, "n2-missing")
+        )
+        assert result["status"] == "REJECTED_BEFORE_DISPATCH"
+        assert result["correction_code"] == "workspace_field_missing"
+        assert result["field"] == "arguments_json.files"
+        assert meter.status(owner="alice")["used"]["research_trials"] == 0
+    finally:
+        composition.tasks.close()
+
+
+def test_an_unexpected_workspace_field_is_refused_without_echoing_it(tmp_path):
+    import asyncio
+
+    sdk, _, composition = _workspace_sdk(tmp_path)
+    try:
+        args = _run_python(
+            {
+                "source": "print(1)",
+                "files": [],
+                "hypothesis": "h",
+                "expected_effect": "e",
+                "HOSTILE_KEY_SENTINEL": 1,
+            }
+        )
+        result = asyncio.run(
+            sdk.call(PREFIX + "start_research_task", args, "n2-unexpected")
+        )
+        assert result["correction_code"] == "workspace_field_unexpected"
+        assert result["field"] == "arguments_json"
+        assert "HOSTILE_KEY_SENTINEL" not in canonical(result).decode()
+        # Specimen: the sentinel really was in what the requester sent.
+        assert "HOSTILE_KEY_SENTINEL" in canonical(args).decode()
+    finally:
+        composition.tasks.close()
+
+
+def test_a_complete_run_python_request_builds_its_task(tmp_path):
+    """Specimen for the refusals above: the same request with every
+    required field builds a workspace task spec."""
+    sdk, _, composition = _workspace_sdk(tmp_path)
+    try:
+        request = sdk._request(
+            "start_research_task",
+            _run_python(
+                {
+                    "source": "print(1)",
+                    "files": [],
+                    "hypothesis": "h",
+                    "expected_effect": "e",
+                }
+            ),
+            "n2-complete-00000000001",
+        )
+        assert type(request.task_spec) is research.DevelopmentWorkspaceTaskSpecV1
+    finally:
+        composition.tasks.close()
+
+
+def test_the_pre_dispatch_check_and_the_executor_share_one_field_table():
+    import inspect
+
+    from carbon.development_session import research_tasks
+    from carbon.development_session.research_tools import ResearchMinerTools
+
+    assert "workspace_fields(spec.action)" in inspect.getsource(
+        research_tasks.PublicResearchExecutor._workspace_action
+    )
+    assert "workspace_fields(args[" in inspect.getsource(ResearchMinerTools._request)

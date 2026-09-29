@@ -157,9 +157,15 @@ def test_every_layer_lists_actions_from_the_one_canonical_list():
     # The executor has a branch for every listed action.
     import inspect
 
+    from carbon.development_session.research_tasks import workspace_fields
+
     source = inspect.getsource(PublicResearchExecutor._workspace_action)
+    source += inspect.getsource(workspace_fields)
     for action in DEVELOPMENT_WORKSPACE_ACTIONS:
         assert f'"{action}"' in source, action
+        # The one field table, read by the executor and the pre-dispatch
+        # check alike, has an entry for every listed action.
+        workspace_fields(action)
 
 
 def test_check_design_runs_through_the_real_workspace_executor(tmp_path):
