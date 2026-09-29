@@ -65,7 +65,7 @@ FIELDS = {
     "cancel_research_task": {"task_id": STRING},
 }
 DESCRIPTIONS = {
-    "start_research_task": "Run one real practice recipe, or a public workspace action. Set kind=practice for a registered recipe: strategy_json is the recipe, action/arguments_json=null. Set kind=workspace for every workspace action, including run_python: strategy_json=null, action names the action and arguments_json contains its JSON object. Actions: public_material {name: objective|capabilities|training_data|practice_data|reference_method}; inventory {}; read_file {name,offset,count<=4096}; write_file {name,content_base64,expected_digest}; notebook {kind:hypothesis|decision|notebook,body:object}; capability_request {request:{purpose,operation,hypothesis,public_evidence,reason,expected_benefit,estimated_cost,minimal_safe_design,verification}}; check_design {design:{strategy:{schema_version,challenge_id,backbone,parameters},capabilities?:[registry ids]}} - can I submit this? a verdict per choice and, when every choice is rebuildable, the canonical design Carbon would rebuild; roadmap {} - every capability, what blocks it, and how many miners asked; capability_request also takes an optional capability (a registry id) to count as demand; run_python {source,files:[own filenames to stage],seconds?:optional wall allowance - omit for none; no Carbon limit on time, memory, CPU or output size,hypothesis,expected_effect}. An empty files list stages no workspace files. Supervisor waits without model polling.",
+    "start_research_task": 'Run one real practice recipe, or a public workspace action. Set kind=practice for a registered recipe: strategy_json is the recipe, action/arguments_json=null. null always means JSON null (unquoted), never the string "null". Set kind=workspace for every workspace action, including run_python: strategy_json=null, action names the action and arguments_json contains its JSON object. Actions: public_material {name: objective|capabilities|training_data|practice_data|reference_method}; inventory {}; read_file {name,offset,count<=4096}; write_file {name,content_base64,expected_digest}; notebook {kind:hypothesis|decision|notebook,body:object}; capability_request {request:{purpose,operation,hypothesis,public_evidence,reason,expected_benefit,estimated_cost,minimal_safe_design,verification}}; check_design {design:{strategy:{schema_version,challenge_id,backbone,parameters},capabilities?:[registry ids]}} - can I submit this? a verdict per choice and, when every choice is rebuildable, the canonical design Carbon would rebuild; roadmap {} - every capability, what blocks it, and how many miners asked; capability_request also takes an optional capability (a registry id) to count as demand; run_python {source,files:[own filenames to stage],seconds?:optional wall allowance - omit for none; no Carbon limit on time, memory, CPU or output size,hypothesis,expected_effect}. An empty files list stages no workspace files. Supervisor waits without model polling.',
     "get_prior": "Discover prior availability; no registered prior pack in this profile.",
     "inspect_prior_alignment": "Unavailable without a registered prior pack; records capability limitation.",
 }
@@ -86,7 +86,33 @@ TASK_CORRECTIONS = {
 
 
 class TaskContractMismatch(ValueError):
-    """Allow-listed corrective feedback, never a private exception message."""
+    """Allow-listed corrective feedback, never a private exception message.
+
+    Carries the correction code and the one argument field that broke it.
+    """
+
+    def __init__(self, code, field):
+        if code not in TASK_CORRECTIONS or field not in NULLABLE_TASK_FIELDS:
+            raise TypeError("allow-listed correction and field required")
+        super().__init__(code, field)
+
+
+#: The start_research_task fields whose value is either a string or JSON null.
+NULLABLE_TASK_FIELDS = ("strategy_json", "action", "arguments_json")
+
+
+def task_correction(code, field, value):
+    """The correction for one broken field: which field, what it must hold,
+    and that null is JSON null. The string "null" stays refused."""
+    text = TASK_CORRECTIONS[code] + " The field that broke the contract: " + field + "."
+    if value == "null":
+        text += (
+            ' It holds the string "null". null means JSON null (unquoted), '
+            'not the string "null".'
+        )
+    else:
+        text += ' null means JSON null (unquoted), not the string "null".'
+    return text
 
 
 TOOLS = [
@@ -267,16 +293,21 @@ class ResearchMinerTools:
         ):
             raise ValueError("prospective bounded hypothesis required")
         if args["kind"] == "practice":
+            # The first field that breaks the contract is the one named.
             if (
-                args["action"] is not None
-                or args["arguments_json"] is not None
-                or type(args["strategy_json"]) is not str
+                type(args["strategy_json"]) is not str
+                or args["strategy_json"] == "null"
             ):
-                raise TaskContractMismatch("practice_recipe_required")
+                raise TaskContractMismatch("practice_recipe_required", "strategy_json")
+            for field in ("action", "arguments_json"):
+                if args[field] is not None:
+                    raise TaskContractMismatch("practice_recipe_required", field)
             spec = research.PracticeTaskSpec(_json(args["strategy_json"]), None)
         elif args["kind"] == "workspace":
             if args["strategy_json"] is not None:
-                raise TaskContractMismatch("workspace_recipe_forbidden")
+                raise TaskContractMismatch(
+                    "workspace_recipe_forbidden", "strategy_json"
+                )
             constructor, version = (
                 research.DevelopmentWorkspaceTaskSpecV1,
                 "carbon.autoresearch.workspace.v1",
@@ -357,7 +388,6 @@ class ResearchMinerTools:
                     "A budget is optional and is never what is missing here."
                 ),
             )
-        from .research_carrier import PRECHARGED_TRIAL
 
         if name == PREFIX + "start_research_task" and (
             getattr(getattr(self.composition, "executor", None), "cleanup_only", False)
@@ -394,6 +424,13 @@ class ResearchMinerTools:
             authorize_julia(
                 self.ledger, self.owner, self.composition.executor.julia_image
             )
+        # A research-trial slot is charged by the executor that starts the
+        # task, in its own reservation, and nowhere else: a request refused
+        # before dispatch started nothing and costs no slot
+        # (OWNER-BATTERY-V2-DISCLOSURE-01, change 9). The operation id is
+        # still bound to its request here, charging nothing, so a changed
+        # request under a used id is refused as a replay conflict. Ledgers
+        # written before this keep their historical `trial-attempt-` charges.
         numerical = (
             name == PREFIX + "start_research_task"
             and type(args) is dict
@@ -402,35 +439,25 @@ class ResearchMinerTools:
                 or args.get("action") in {"run_python", "run_julia"}
             )
         )
-        token = None
         if numerical:
-            reservation = {"research_trials": 1}
-            admission = self.ledger.reserve(
-                "trial-attempt-" + identity,
+            bound = self.ledger.reserve(
+                "task-request-" + identity,
                 owner=self.owner,
                 phase="research",
                 request=args,
-                resources=reservation,
+                resources={},
             )
-            if admission["dispatch"]:
+            if bound["dispatch"]:
                 self.ledger.finish(
-                    "trial-attempt-" + identity,
+                    "task-request-" + identity,
                     owner=self.owner,
                     state="SUCCEEDED",
-                    actual=reservation,
-                    result={
-                        "status": "PROPOSAL_ATTEMPT_CHARGED",
-                        "training_completed": False,
-                    },
+                    actual={},
+                    result={"status": "REQUEST_BOUND", "trial_charged": False},
                 )
-            token = PRECHARGED_TRIAL.set(identity)
-        try:
-            return await self._call(
-                name, args, identity, transport_request_id=transport_request_id
-            )
-        finally:
-            if token is not None:
-                PRECHARGED_TRIAL.reset(token)
+        return await self._call(
+            name, args, identity, transport_request_id=transport_request_id
+        )
 
     def _journal(self, kind, body):
         """Record against the campaign journal, when there is a campaign.
@@ -455,6 +482,7 @@ class ResearchMinerTools:
         *,
         reason="contract_incompatibility",
         correction=None,
+        field=None,
     ):
         """A pre-dispatch rejection is feedback, never an ambiguous execution.
 
@@ -473,16 +501,18 @@ class ResearchMinerTools:
         }
         if correction in TASK_CORRECTIONS:
             record["correction_code"] = correction
+            record["field"] = field
         self._journal("refusal", record)
         result = {
             "status": "REJECTED_BEFORE_DISPATCH",
             "reason": reason,
-            "detail": "Request does not satisfy the disclosed argument/recipe contract. Inspect capabilities and correct the request. This consumed the applicable proposal counter, but started no task.",
+            "detail": "Request does not satisfy the disclosed argument/recipe contract. Inspect capabilities and correct the request. Nothing started and no research-trial slot was charged.",
             "authority_granted": False,
         }
         if correction in TASK_CORRECTIONS:
             result["correction_code"] = correction
-            result["correction"] = TASK_CORRECTIONS[correction]
+            result["field"] = field
+            result["correction"] = task_correction(correction, field, args.get(field))
         return result
 
     async def _call(self, name, args, identity, *, transport_request_id=None):
@@ -504,7 +534,10 @@ class ResearchMinerTools:
                 identity,
             )
         except TaskContractMismatch as exc:
-            return self.rejected(operation, args, identity, correction=exc.args[0])
+            code, field = exc.args
+            return self.rejected(
+                operation, args, identity, correction=code, field=field
+            )
         except (ValueError, TypeError, KeyError):
             return self.rejected(operation, args, identity)
         # Authentication and execution exceptions remain operational stops. Only

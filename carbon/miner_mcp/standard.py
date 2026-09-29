@@ -30,7 +30,7 @@ from carbon.development_session.research_tools import (
 )
 from carbon.research.model import DEVELOPMENT_WORKSPACE_ACTIONS
 
-# Leave room for the existing SDK's "trial-attempt-" ledger identity prefix.
+# Leave room for the SDK's ledger identity prefixes ("trial-attempt-", "task-request-").
 _TOKEN = re.compile(r"[A-Za-z0-9._:-]{16,114}\Z", re.ASCII)
 _ARGUMENT_BYTES = 32768
 _RESULT_BYTES = 1024 * 1024

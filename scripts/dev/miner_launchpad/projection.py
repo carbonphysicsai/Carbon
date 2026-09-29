@@ -21,6 +21,7 @@ REFUSAL_FIELDS = {
     "reason",
     "detail",
     "correction_code",
+    "field",
 }
 
 
