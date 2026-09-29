@@ -15,9 +15,10 @@ environment changes would measure the same defects again.
 - **MQ-008 is untouched.** Whether the sandbox lets a miner reconstruct the
   exam population is a scientific judgement, open and owned by the MQ-008
   holder.
-- **Nothing here is implemented.** Every change below is proposed. Changes 8
-  and 9 of the tier-2 record are **held for the owner** and appear only as
-  held.
+- **Nothing here is implemented.** Every change below is proposed. The
+  owner decided changes 8 and 9 and every disclosure question on 2026-09-29
+  (`.agent/DECISIONS.md`, OWNER-BATTERY-V2-DISCLOSURE-01): the agent is told
+  every operating rule below.
 - **Recorded gap.** Battery's `generate` gap was open throughout (v2 §3.1).
 
 ## 1. The finding: an agent cannot plan against a limit it is not told about
@@ -123,7 +124,7 @@ every measured one, however plausible it is.
 | Rank | Change | Measured confound (basis) | Cost | Disclosure decision? | Proposed owner |
 |---|---|---|---|---|---|
 | 1 | **Measure the context ceiling in tokens** (or scale the byte bound) so a 65,536-token setting is not a ~15,000-token limit, and state the ceiling. Tier-2 change 10. | **29 of 48 calls (60%)** of the epoch never happened (run 2, outcome `STOPPED`, "context admission ceiling") | Small: one comparison in `research_loop.py:238`, plus a test pairing a request that is under the token bound but over the byte bound | Stating the ceiling: yes. Fixing the unit: no. | Launchpad (research loop); the owner decides stating it |
-| 2 | *Held for the owner:* name the offending field in the argument correction and say that `null` is JSON `null` (tier-2 change 8); stop charging a trial slot for a request refused before dispatch (change 9) | **15 of 19 calls (79%)** failed, and **4 of 8 trial slots** were consumed with no task started (run 2, R1) | Not proposed here | Change 8's string acceptance is an interface change; change 9 is a budget rule | **Held. Put to the owner; not implemented and not requested of Launchpad.** |
+| 2 | *Held for the owner:* name the offending field in the argument correction and say that `null` is JSON `null` (tier-2 change 8); stop charging a trial slot for a request refused before dispatch (change 9) | **15 of 19 calls (79%)** failed, and **4 of 8 trial slots** were consumed with no task started (run 2, R1) | Not proposed here | Change 8's string acceptance is an interface change; change 9 is a budget rule | **Decided 2026-09-29 (OWNER-BATTERY-V2-DISCLOSURE-01): change 8 option (a), naming the field with no interface change; change 9, no slot charged until a task starts. Launchpad implements.** |
 | 3 | **Disclose the one-call rule and its three-in-a-row stop** in the agent's instructions. The loop half is done (#408). | Run 1: **100%**. The campaign ended on its only call. Run 2, after #408: 1 extra call refused, 0 calls lost. | Small: prompt text | **Yes** | The owner decides; Launchpad implements |
 | 4 | **Publish the strategy capture limits, and name the exceeded limit in the refusal**, replacing the catch-all at `compiler.py:1088` with a specific refusal | **9 of 27 designs (33%)** refused although every choice was valid (tier 0, run B) | Medium: the refusal must carry the limit from `identify_strategy` through `CompileRejected`; publishing is a text change | Publishing: yes. Naming it in the refusal: no. | Launchpad (research surface); the owner decides publishing |
 | 5 | **Separate refusals from capability requests** (section 2) | **14 of 14 Demand records (100%)** are refusals. This is an instrument confound, not an agent one. | Small: a new note kind at three sites | No | Launchpad |
