@@ -74,9 +74,17 @@ OPTIONAL_PROFILE_FIELDS = {
 #: The provider every campaign was pinned to before selection existed. Its key
 #: is the profile's `api_key_file`, unless `provider_credentials` names one.
 DEFAULT_PROVIDER = "openai-responses"
-#: A battery campaign's feedback modes. Validated here, before dispatch, so a
-#: launch never depends on the campaign code reading a mode it does not know.
-FEEDBACK_MODES = ("FULL", "SCORE_WITHHELD")
+
+
+def feedback_modes():
+    """The battery campaign's own feedback modes, read from the campaign code
+    that applies them, so a mode cannot exist in one place and not the other.
+    Validated here, before dispatch. A runtime whose campaign declares none
+    knows only FULL: fail closed, never run a mode it would silently ignore."""
+    from carbon.battery import campaign as battery
+
+    return tuple(getattr(battery, "FEEDBACK_MODES", ("FULL",)))
+
 
 #: Image records a campaign's runtime can require, keyed by the profile field
 #: that names the miner's built record. Under the grant each had to be written
@@ -713,16 +721,10 @@ class RunnerAdapter:
 
         mode = request.get("feedback_mode")
         if mode is not None:
-            if mode not in FEEDBACK_MODES:
+            if type(mode) is not str or mode not in feedback_modes():
                 raise Rejected("invalid_feedback_mode")
             if (challenge or {}).get("id") != BATTERY_CHALLENGE:
                 raise Rejected("feedback_mode_is_battery_only", 409)
-            from carbon.battery import campaign as battery
-
-            # Fail closed until the battery campaign itself reads the mode: a
-            # withheld score it would silently ignore is refused, not run FULL.
-            if mode not in getattr(battery, "FEEDBACK_MODES", ("FULL",)):
-                raise Rejected("feedback_mode_not_supported_by_this_runtime", 409)
         provider, model = request.get("model_provider"), request.get("model")
         settings = request.get("model_settings")
         if settings is not None:

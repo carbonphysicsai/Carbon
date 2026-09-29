@@ -370,7 +370,7 @@ def test_a_withheld_score_needs_a_campaign_that_reads_the_mode(tmp_path, monkeyp
         "feedback_mode": "SCORE_WITHHELD",
     }
     monkeypatch.delattr(battery, "FEEDBACK_MODES", raising=False)
-    with pytest.raises(Rejected, match="feedback_mode_not_supported_by_this_runtime"):
+    with pytest.raises(Rejected, match="invalid_feedback_mode"):
         bridge.launch(request, KEY)
     assert started == []
     monkeypatch.setattr(
@@ -378,6 +378,34 @@ def test_a_withheld_score_needs_a_campaign_that_reads_the_mode(tmp_path, monkeyp
     )
     bridge.launch(request, KEY)
     assert started[0][4].feedback_mode == "SCORE_WITHHELD"
+
+
+def test_the_runner_takes_its_modes_from_the_battery_campaign(tmp_path, monkeypatch):
+    """One list: a mode the battery campaign declares is accepted and
+    described, with no second copy in the runner to update."""
+    from carbon.battery import campaign as battery
+    from scripts.dev.miner_launchpad import operations
+
+    monkeypatch.setattr(
+        battery, "FEEDBACK_MODES", (*battery.FEEDBACK_MODES, "FIXTURE_NEW_MODE")
+    )
+    bridge, started = host(tmp_path, monkeypatch, profile(tmp_path))
+    bridge.launch(
+        {"profile": "opaque-profile", **BATTERY, "feedback_mode": "FIXTURE_NEW_MODE"},
+        KEY,
+    )
+    assert started[0][4].feedback_mode == "FIXTURE_NEW_MODE"
+    for mode in battery.FEEDBACK_MODES:
+        assert mode in operations._battery_feedback_modes()
+
+
+def test_the_described_modes_are_the_battery_modes():
+    from carbon.battery import campaign as battery
+    from scripts.dev.miner_launchpad import operations
+
+    described = operations.FIELDS["feedback_mode"][1]
+    for mode in battery.FEEDBACK_MODES:
+        assert mode in described
 
 
 # -- Resume -----------------------------------------------------------------
