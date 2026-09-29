@@ -71,5 +71,6 @@ def test_independent_typescript_sdk_stdio(tmp_path):
     assert evidence["client"] == "@modelcontextprotocol/client"
     assert evidence["version"] == "2.0.0"
     assert evidence["fixture_only"] is True
-    assert evidence["server_restarts"] == evidence["used_trials"] == 1
+    assert evidence["server_restarts"] == 1
+    assert evidence["used_trials"] == 0
     assert len(evidence["checks"]) == 9

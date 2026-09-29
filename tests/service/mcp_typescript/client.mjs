@@ -67,7 +67,9 @@ await connected(async (client) => {
   assert(!repeated.isError);
   assert.deepEqual(first.structuredContent, repeated.structuredContent);
   assert.equal(first.structuredContent.official_eligible, false);
-  assert.equal(first.structuredContent.payload.reply.used_trials, 1);
+  // The server's dispatch is a fixture, so no executor starts a task and no
+  // trial slot is charged (OWNER-BATTERY-V2-DISCLOSURE-01, change 9).
+  assert.equal(first.structuredContent.payload.reply.used_trials, 0);
   assert(first.content.some((item) => item.type === 'text'));
   for (const invalid of [
     { ...practice, principal: 'another-user' },
@@ -84,7 +86,7 @@ await connected(async (client) => {
 await connected(async (client) => {
   const repeated = await client.callTool({ name: `${prefix}start_research_task`, arguments: practice });
   assert(!repeated.isError);
-  assert.equal(repeated.structuredContent.payload.reply.used_trials, 1);
+  assert.equal(repeated.structuredContent.payload.reply.used_trials, 0);
   const conflict = await client.callTool({
     name: `${prefix}start_research_task`,
     arguments: { ...practice, strategy: { parameters: { steps: 1024 } } },
@@ -98,6 +100,6 @@ process.stdout.write(JSON.stringify({
   transport: 'stdio',
   fixture_only: true,
   server_restarts: 1,
-  used_trials: 1,
+  used_trials: 0,
   checks: ['discovery', 'resources', 'prompt', 'structured_tool_result', 'strict_inputs', 'redaction', 'durable_retry', 'restart', 'conflict'],
 }) + '\n');
