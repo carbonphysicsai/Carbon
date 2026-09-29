@@ -133,3 +133,82 @@ def test_the_manifest_records_the_mode_and_refuses_an_unknown_one():
     assert blind["feedback_mode"] == "SCORE_WITHHELD"
     with pytest.raises(ValueError, match="unknown battery feedback mode"):
         campaign.manifest_document(product, feedback="NONE", **common)
+
+
+#: The leak ladder (v2 section 7; amendment 4), lowest rung first. Each rung's
+#: screening view, and the markers the rung above it adds.
+LADDER = (
+    (campaign.FEEDBACK_ELIGIBILITY_ONLY, {"eligible": False}),
+    (
+        campaign.FEEDBACK_SCORE_WITHHELD,
+        {"eligible": False, "gates_failed": ["voltage_ceiling"]},
+    ),
+    (
+        campaign.FEEDBACK_AGGREGATE_SCORE,
+        {
+            "eligible": False,
+            "gates_failed": ["voltage_ceiling"],
+            "score": SCORE,
+            "important_score": IMPORTANT,
+        },
+    ),
+)
+
+
+@pytest.mark.parametrize(("mode", "screening"), LADDER)
+def test_each_restricted_rung_shows_exactly_its_screening_fields(mode, screening):
+    view = shown(mode, feedback())
+    assert view["outcome"]["screening"] == screening
+    assert view["feedback_mode"] == mode
+    assert view["outcome"]["state"] == "SCREENED"
+
+
+def test_each_rung_adds_only_its_channel_over_the_rung_below():
+    """Rung 1 withholds the gate names that rung 2 shows; rung 2 withholds the
+    scores that rung 3 shows; rung 3 withholds what only FULL shows. Each
+    absence is paired with the next rung showing it (the specimen)."""
+    adds = (
+        (
+            campaign.FEEDBACK_ELIGIBILITY_ONLY,
+            campaign.FEEDBACK_SCORE_WITHHELD,
+            ('"gates_failed"', "voltage_ceiling"),
+        ),
+        (
+            campaign.FEEDBACK_SCORE_WITHHELD,
+            campaign.FEEDBACK_AGGREGATE_SCORE,
+            (str(SCORE), str(IMPORTANT)),
+        ),
+        (
+            campaign.FEEDBACK_AGGREGATE_SCORE,
+            campaign.FEEDBACK_FULL,
+            ('"pool_version"', '"scored"', '"nominated"', '"finals"'),
+        ),
+    )
+    for lower, upper, markers in adds:
+        below = json.dumps(shown(lower, feedback()), sort_keys=True)
+        above = json.dumps(shown(upper, feedback()), sort_keys=True)
+        for marker in markers:
+            assert marker in above, (upper, marker)
+            assert marker not in below, (lower, marker)
+
+
+@pytest.mark.parametrize("mode", [mode for mode, _ in LADDER])
+def test_every_restricted_rung_is_an_allow_list(mode):
+    fb = feedback()
+    fb["outcome"]["ranking_hint"] = "LEADER"
+    fb["outcome"]["screening"]["percentile"] = 97
+    full = json.dumps(shown(campaign.FEEDBACK_FULL, fb))
+    restricted = json.dumps(shown(mode, fb))
+    for marker in ("LEADER", "percentile"):
+        assert marker in full
+        assert marker not in restricted
+
+
+def test_the_score_withheld_view_is_unchanged_by_the_ladder():
+    """Arm B campaigns frozen before the ladder keep their exact view."""
+    assert campaign.withheld_feedback(feedback()) == campaign.restricted_feedback(
+        feedback(), campaign.FEEDBACK_SCORE_WITHHELD
+    )
+    assert campaign.withheld_feedback(feedback())["withheld"] == (
+        "scores, case counts, pool version, nomination and finals"
+    )
