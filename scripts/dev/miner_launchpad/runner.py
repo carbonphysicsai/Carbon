@@ -20,6 +20,8 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
+import re
 import sqlite3
 import threading
 import time
@@ -360,6 +362,35 @@ def _operation_digest(operation, request):
         except ValueError:
             pass
     return digest(canonical([operation, fields]))
+
+
+_CODE = re.compile(r"[A-Z][A-Z0-9_]{0,63}")
+
+
+def record_interruption(root, stage, exc):
+    """Keep why a campaign was interrupted, privately, for its owner.
+
+    The page still shows only INTERRUPTED. This appends one line to the
+    campaign's owner-only interruptions.jsonl: the exception's type and, for
+    a typed failure, its code. Never its message or traceback, which could
+    carry a provider response or a path. Recording never masks the
+    interruption itself.
+    """
+    code = getattr(exc, "code", None)
+    code = getattr(code, "value", code)
+    entry = {
+        "at_unix": round(time.time(), 3),
+        "stage": stage,
+        "error_type": type(exc).__module__ + "." + type(exc).__qualname__,
+        "code": code if type(code) is str and _CODE.fullmatch(code) else None,
+    }
+    try:
+        path = Path(root) / "interruptions.jsonl"
+        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)
+        with os.fdopen(fd, "a", encoding="utf-8") as handle:
+            handle.write(json.dumps(entry, sort_keys=True) + "\n")
+    except OSError:
+        pass
 
 
 class RunnerAdapter:
@@ -1124,7 +1155,8 @@ class RunnerAdapter:
     def _operation_thread(self, admitted, work):
         try:
             self._operate(admitted, work)
-        except Exception:  # noqa: BLE001 - never publish provider/key errors.
+        except Exception as exc:  # noqa: BLE001 - never publish provider/key errors.
+            record_interruption(Path(admitted.campaign["root"]), "operation", exc)
             self._state(admitted.campaign["id"], "INTERRUPTED")
 
     def _operate(self, admitted, work):
@@ -1286,7 +1318,9 @@ class RunnerAdapter:
                         args.api_key_file = credential
                 try:
                     asyncio.run(execute(args, ledger=ledger))
-                except Exception:  # noqa: BLE001 - never publish provider/key errors.
+                except Exception as exc:  # noqa: BLE001 - kept private
+                    # Never published; record_interruption keeps only its type.
+                    record_interruption(root, "run" if creating else "resume", exc)
                     self._state(run_id, "INTERRUPTED")
                 finally:
                     clean = self._cleanup(ledger)
