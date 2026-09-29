@@ -61,6 +61,23 @@ PROPERTY_SETS = {
         "q_flux": 1000 / 0.03**2,
     },
 }
+#: The design point's footprint and heat load (DESIGN_BASIS.md section 2).
+FOOTPRINT_M, HEAT_LOAD_W = 0.03, 1000.0
+
+
+def design_inlet_velocity(geometry_mm, flow_lpm_per_kw):
+    """Mean channel velocity when the design flow is shared equally by the
+    whole number of channel-plus-fin periods that fit across the footprint.
+    The cell stays a periodic unit; the flux per footprint area is unchanged."""
+    period = (geometry_mm["channel_width"] + geometry_mm["fin_width"]) * 1e-3
+    channels = int(FOOTPRINT_M // period + 1e-9)
+    if channels < 1:
+        raise ValueError("no channel fits across the footprint")
+    area = geometry_mm["channel_width"] * geometry_mm["channel_height"] * 1e-6
+    flow = HEAT_LOAD_W / 1000 * flow_lpm_per_kw / 60000
+    return flow / (channels * area), channels
+
+
 TOKENS = {
     "RHO_F": "rho_f",
     "CP_F": "cp_f",
@@ -196,6 +213,13 @@ def main(argv=None):
     parser.add_argument(
         "--properties", choices=sorted(PROPERTY_SETS), default="verification"
     )
+    parser.add_argument(
+        "--flow-lpm-per-kw",
+        type=float,
+        default=None,
+        help="design set only: coolant flow per kW (design basis range 1.25-2.0); "
+        "the inlet velocity is derived from it and the geometry",
+    )
     for name, value in DEFAULTS.items():
         parser.add_argument("--" + name.replace("_", "-"), type=float, default=value)
     args = parser.parse_args(argv)
@@ -209,7 +233,14 @@ def main(argv=None):
     if args.out.exists():
         parser.error(f"{args.out} exists; refusing to overwrite")
     shutil.copytree(TEMPLATE, args.out)
-    properties = PROPERTY_SETS[args.properties]
+    properties = dict(PROPERTY_SETS[args.properties])
+    channels = None
+    if args.flow_lpm_per_kw is not None:
+        if args.properties != "design" or args.flow_lpm_per_kw <= 0:
+            parser.error("--flow-lpm-per-kw is a positive design-set option")
+        properties["u_in"], channels = design_inlet_velocity(
+            geometry, args.flow_lpm_per_kw
+        )
     for path in args.out.rglob("*"):
         if path.is_file():
             text = path.read_text()
@@ -231,6 +262,8 @@ def main(argv=None):
         "wall_grading": args.wall_grading,
         "property_set": args.properties,
         "properties": properties,
+        "flow_lpm_per_kw": args.flow_lpm_per_kw,
+        "channels_across_footprint": channels,
         "iterations": args.iterations,
         "mesh": mesh,
     }
