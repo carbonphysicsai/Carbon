@@ -76,7 +76,29 @@ TOKENS = {
 CELLS = {"x": 50, "y": (5, 5), "z": (5, 10, 3)}
 
 
-def block_mesh(g, r):
+def _y_grading(j, g):
+    """Across the width: fine toward the channel wall at y1 in both columns
+    (column 0 ends there, column 1 starts there). Blocks in one column share
+    y-edges, so the grading is per column."""
+    if g == 1.0:
+        return "1"
+    return f"{1 / g:.12g}" if j == 0 else f"{g:.12g}"
+
+
+def _z_grading(k, g):
+    """Through the height: fine toward both channel walls. The base row ends
+    at the channel floor, the lid row starts at its ceiling, and the channel
+    row is fine at both ends. Blocks in one row share z-edges."""
+    if g == 1.0:
+        return "1"
+    if k == 0:
+        return f"{1 / g:.12g}"
+    if k == 2:
+        return f"{g:.12g}"
+    return f"((0.5 0.5 {g:.12g}) (0.5 0.5 {1 / g:.12g}))"
+
+
+def block_mesh(g, r, grading=1.0):
     xs = (0.0, g["length"])
     ys = (0.0, g["channel_width"] / 2, (g["channel_width"] + g["fin_width"]) / 2)
     z1 = g["base_thickness"]
@@ -113,7 +135,7 @@ def block_mesh(g, r):
             ]
             zone = "fluid" if (j, k) == (0, 1) else "solid"
             blocks.append(
-                f"hex ({' '.join(map(str, h))}) {zone} ({nx} {ny[j]} {nz[k]}) simpleGrading (1 1 1)"
+                f"hex ({' '.join(map(str, h))}) {zone} ({nx} {ny[j]} {nz[k]}) simpleGrading (1 {_y_grading(j, grading)} {_z_grading(k, grading)})"
             )
             face = {
                 "xmin": (h[0], h[4], h[7], h[3]),
@@ -164,6 +186,12 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("out", type=Path)
     parser.add_argument("--resolution", type=float, default=1.0)
+    parser.add_argument(
+        "--wall-grading",
+        type=float,
+        default=1.0,
+        help="largest-to-smallest cell ratio toward each solid-fluid wall; 1 is uniform",
+    )
     parser.add_argument("--iterations", type=int, default=4000)
     parser.add_argument(
         "--properties", choices=sorted(PROPERTY_SETS), default="verification"
@@ -172,7 +200,11 @@ def main(argv=None):
         parser.add_argument("--" + name.replace("_", "-"), type=float, default=value)
     args = parser.parse_args(argv)
     geometry = {name: getattr(args, name) for name in DEFAULTS}
-    if any(value <= 0 for value in geometry.values()) or args.resolution <= 0:
+    if (
+        any(value <= 0 for value in geometry.values())
+        or args.resolution <= 0
+        or args.wall_grading < 1
+    ):
         parser.error("every dimension and the resolution must be positive")
     if args.out.exists():
         parser.error(f"{args.out} exists; refusing to overwrite")
@@ -185,7 +217,7 @@ def main(argv=None):
                 text = text.replace(token, repr(properties[name]))
             path.write_text(text)
     args.out.chmod(0o700)
-    text, mesh = block_mesh(geometry, args.resolution)
+    text, mesh = block_mesh(geometry, args.resolution, args.wall_grading)
     (args.out / "system" / "blockMeshDict").write_text(text)
     control = args.out / "system" / "controlDict"
     control.write_text(
@@ -196,6 +228,7 @@ def main(argv=None):
     case = {
         "geometry_mm": geometry,
         "resolution": args.resolution,
+        "wall_grading": args.wall_grading,
         "property_set": args.properties,
         "properties": properties,
         "iterations": args.iterations,

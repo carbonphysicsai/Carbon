@@ -214,8 +214,12 @@ temperatures do not.
 - **The local base temperatures are not mesh-converged.**
   - The peak rises by +0.07 K from r = 1 to 2, then by +0.19 K from r = 2
     to 3.
-  - The maximum restricted to x ≤ 0.8 L or x ≤ 0.9 L rises by about
-    0.2-0.25 K between r = 2 and r = 3. The increment does not shrink.
+  - Measured on the heated patch's own face temperatures, the maximum
+    restricted to x ≤ 0.9 L goes 350.312 → 350.399 → 350.599 K (+0.09, then
+    +0.20). The increment does not shrink.
+    *(Corrected: an earlier version quoted 0.2-0.25 K from raw cell-centre
+    values. Those omit the half-cell flux correction, which shrinks with
+    refinement.)*
   - **This is not a measurement artefact.** The heated patch's own face
     temperatures, written by the solver, agree with the analyzer's
     extrapolated values to 0.1 mK.
@@ -239,9 +243,8 @@ CPUs. No pod was used.
 
 ## Next
 
-1. **Resolve the thermal boundary layer.** Grade the fluid cells toward the
-   walls, and repeat the three-mesh study until the local base temperatures
-   converge. This comes before the family sweep reports any peak.
+1. **Resolve the thermal boundary layer.** Done in rung 5b (below): with
+   wall grading, the local base temperatures converge.
 2. **The straight-channel family sweep,** within the design basis's ranges:
    - channel width, fin width and depth;
    - flow, from 1.25 to 2.0 L/min per kW;
@@ -251,3 +254,79 @@ CPUs. No pod was used.
    50 °C, so whether the reference needs it is a reference-qualification
    question. The sweep can measure its effect.
 4. **Serpentine channels and a whole plate with headers.**
+
+
+---
+
+# Rung 5b: wall-graded meshes at the design point
+
+**The change.** `generate.py --wall-grading G` makes cells shrink by up to a
+factor G toward every solid-fluid wall:
+- in y, toward the channel wall, per column;
+- in z, toward the channel floor and ceiling, per row.
+
+Blocks that share edges get the same grading. `G = 1`, the default, is the
+uniform mesh of rungs 4 and 5.
+
+**The analyzer now weights each cell by its volume** when the case writes
+`V`. `run_case.sh` now does. Axial spacing is uniform, so a cell's volume is
+proportional to its cross-section face. This applies to:
+- the section-averaged pressure;
+- the inlet conduction;
+- the outlet kinetic-energy flux;
+- the mean heated-face temperature.
+
+A uniform r = 1 case that writes `V` reproduces rung 5's unweighted r = 1
+values to round-off.
+
+**The run.** It is the design point of rung 5, with `--wall-grading 4`.
+`checkMesh` reports every mesh OK, fully orthogonal, maximum aspect ratio
+45.
+
+## Result (2026-09-29, this host)
+
+All three meshes are iteration-converged.
+
+| Resolution (cells) | Wall | Mass imbalance | Energy balance, complete | dp/dx error | Peak heated face | Mean heated face | Pressure drop |
+|---|---|---|---|---|---|---|---|
+| 1 (9,000) | 17 s | +1.2e-8 | +7.2e-8 | −4.25 % | 351.572 K | 344.304 K | 5,068 Pa |
+| 2 (72,000) | 315 s | +5e-10 | −1.1e-8 | −1.09 % | 351.295 K | 343.983 K | 5,243 Pa |
+| 3 (243,000) | 2,031 s | −2e-10 | −1.1e-9 | −0.48 % | 351.263 K | 343.940 K | 5,280 Pa |
+
+**The pressure gradient converges at second order:** an observed order of
+1.96, then 2.03. The uniform meshes gave 1.59 and 1.83.
+
+**The local base temperatures now converge,** measured on the solver's face
+temperatures:
+
+| Heated-face maximum | Uniform, r = 1 → 2 → 3 | Graded G = 4, r = 1 → 2 → 3 |
+|---|---|---|
+| x ≤ 0.5 L | 344.867 → 344.729 → 344.839 | 345.176 → 344.974 → 344.963 |
+| x ≤ 0.9 L | 350.312 → 350.399 → 350.599 | 351.048 → 350.814 → 350.796 |
+| whole face | 350.801 → 350.871 → 351.063 | 351.572 → 351.295 → 351.263 |
+
+**What this shows.**
+- **On graded meshes, every local maximum converges monotonically,** and
+  the step shrinks, from about 0.2-0.3 K to about 0.01-0.03 K.
+- **The finest uniform mesh underestimates the peak by about 0.2 K.**
+- **This supports the hypothesis:** the uniform meshes under-resolved the
+  thermal boundary layer at Pr 11. It does not prove it.
+
+**The design-point peak.**
+- **Measured: 351.26 K (78.1 °C)** on the finest graded mesh. The last
+  refinement step changed it by 0.03 K.
+- **Extrapolated: about 351.24 K,** assuming p = 2 from the pressure order.
+  This is an estimate, not a bound.
+- **The die temperature**, with the design basis's R″ = 0.05 cm²·K/W
+  (+5.56 K, exact), is **about 356.8 K (83.6 °C) at a 40 °C inlet.** That is
+  a derived number, not a design verdict. No temperature limit is set.
+
+**Cost:** 17 s, 315 s and 2,031 s on local CPU, capped at two CPUs.
+
+## Next
+
+1. **Use graded meshes (G = 4, r ≥ 2) for the straight-channel family
+   sweep** within the design basis's ranges. Preserve every failed geometry.
+2. **Temperature-dependent viscosity.** Measure its effect on the converged
+   peak.
+3. **Serpentine channels and a whole plate with headers.**

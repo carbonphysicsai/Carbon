@@ -88,6 +88,14 @@ def last_initial(log, field):
     return float(found[-1]) if found else None
 
 
+def _weights(case, t, region, count):
+    """Cell volumes when written (graded meshes); equal weights otherwise.
+    Axial spacing is uniform, so within one x-column a cell's volume is
+    proportional to its cross-section face."""
+    path = case / t / region / "V"
+    return internal_field(path) if path.exists() else [1.0] * count
+
+
 def at_time(case, t, geometry, props):
     Q, U, RHO, CP, MU = (props[k] for k in ("q_flux", "u_in", "rho_f", "cp_f", "mu_f"))
     K_S, K_F = props["k_s"], MU * CP / props["pr_f"]
@@ -104,36 +112,50 @@ def at_time(case, t, geometry, props):
     # The inlet fixes T, so fluid warmed near it conducts heat back out through
     # the inlet face: k_f (T_cell - T_in) / (dx/2) over each inlet face.
     fluid_t = internal_field(case / t / "fluid" / "T")
+    fluid_w = _weights(case, t, "fluid", len(centres))
     x_first = min(x for x, _, _ in centres)
-    first = [tt for (x, _, _), tt in zip(centres, fluid_t) if abs(x - x_first) < 1e-12]
+    first = [
+        (tt, w)
+        for (x, _, _), tt, w in zip(centres, fluid_t, fluid_w)
+        if abs(x - x_first) < 1e-12
+    ]
     face_area = geometry["channel_width"] / 2 * geometry["channel_height"] * 1e-6
     # Kinetic-energy flux through the outlet (zero-gradient U, so face values
     # are the last cells') less the uniform inlet's.
     velocity = internal_field(case / t / "fluid" / "U")
     x_last = max(x for x, _, _ in centres)
-    last = [u for (x, _, _), u in zip(centres, velocity) if abs(x - x_last) < 1e-12]
+    last = [
+        (u, w)
+        for (x, _, _), u, w in zip(centres, velocity, fluid_w)
+        if abs(x - x_last) < 1e-12
+    ]
+    last_w = sum(w for _, w in last)
     kinetic = (
         sum(
             RHO
             * u[0]
             * face_area
-            / len(last)
+            * w
+            / last_w
             * 0.5
             * (u[0] ** 2 + u[1] ** 2 + u[2] ** 2)
-            for u in last
+            for u, w in last
         )
         - m_in * 0.5 * U**2
     )
+    first_w = sum(w for _, w in first)
     inlet_conduction = sum(
-        K_F * (tt - t_in) / x_first * face_area / len(first) for tt in first
+        K_F * (tt - t_in) / x_first * face_area * w / first_w for tt, w in first
     )
     pressure = internal_field(case / t / "fluid" / "p")
     sections = defaultdict(list)
-    for (x, _, _), p in zip(centres, pressure):
-        sections[round(x, 12)].append(p)
+    for (x, _, _), p, w in zip(centres, pressure, fluid_w):
+        sections[round(x, 12)].append((p, w))
     lo, hi = (f * length for f in DEVELOPED)
     profile = [
-        (x, sum(v) / len(v)) for x, v in sorted(sections.items()) if lo <= x <= hi
+        (x, sum(p * w for p, w in v) / sum(w for _, w in v))
+        for x, v in sorted(sections.items())
+        if lo <= x <= hi
     ]
     gradient = -slope(profile)
     expected = duct_gradient(
@@ -142,13 +164,14 @@ def at_time(case, t, geometry, props):
 
     solid = internal_field(case / t / "solid" / "C")
     temperature = internal_field(case / t / "solid" / "T")
+    solid_w = _weights(case, t, "solid", len(solid))
     z_first = min(z for _, _, z in solid)
     face = [
-        (x, tt + Q * z_first / K_S)  # cell value plus the imposed flux over half a cell
-        for (x, _, z), tt in zip(solid, temperature)
+        (x, tt + Q * z_first / K_S, w)  # cell value plus the flux over half a cell
+        for (x, _, z), tt, w in zip(solid, temperature, solid_w)
         if abs(z - z_first) < 1e-12
     ]
-    peak_x, peak = max(face, key=lambda item: item[1])
+    peak_x, peak, _ = max(face, key=lambda item: item[1])
     return {
         "mass_flow_kg_s": m_out,
         "mass_imbalance_rel": m_out / m_in - 1,
@@ -168,7 +191,8 @@ def at_time(case, t, geometry, props):
         - surface_value(case, "pressOut", t),
         "heated_face_peak_K": peak,
         "heated_face_peak_x_mm": peak_x * 1e3,
-        "heated_face_mean_K": sum(v for _, v in face) / len(face),
+        "heated_face_mean_K": sum(v * w for _, v, w in face)
+        / sum(w for _, _, w in face),
     }
 
 
