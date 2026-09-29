@@ -1,7 +1,10 @@
 """Prospective miner orchestration policy; no new execution authority."""
 
 from .burgers_research_prompt import BURGERS_PROMPT as PROMPT
+from .contracts import strategy_limits
+from .model_provider import DEFAULT_SELECTION
 from .profile import canonical, digest
+from .research_agent import CONTEXT_RESERVE_TOKENS
 from .research_tools import _schema
 
 LEGACY = "carbon.autoresearch.agent-policy.v1"
@@ -32,6 +35,68 @@ PARALLEL_REFUSAL = {
     ),
     "authority_granted": False,
 }
+#: An epoch's model calls and research-trial slots; the loop enforces these.
+MAX_PROVIDER_CALLS = 48
+MAX_RESEARCH_TRIALS = 8
+
+
+def operating_rules():
+    """Every operating rule an agent can otherwise only discover by breaking
+    it, built from the values that enforce each one
+    (OWNER-BATTERY-V2-DISCLOSURE-01, items 3-6: "Give it everything it needs
+    to know"). Operating rules only: no exam material."""
+    limits = strategy_limits()
+    default = DEFAULT_SELECTION.settings.max_input_tokens
+    rules = (
+        (
+            "One tool call per turn. If you return several, only the first runs; "
+            "every other one is answered REFUSED_NOT_RUN and did not happen. After "
+            f"{PARALLEL_CALLS['consecutive_limit']} consecutive turns with several "
+            "calls, the epoch stops."
+        ),
+        (
+            f"Budget. This epoch allows {MAX_PROVIDER_CALLS} model calls, and every "
+            "turn spends one, whatever it does, including a refused call. Starting a "
+            f"practice or run_python task spends one of {MAX_RESEARCH_TRIALS} "
+            "research-trial slots (fewer if the miner set a lower budget). A request "
+            "refused before any task starts spends no slot."
+        ),
+        (
+            "Context ceiling. A request is admitted only while its input stays under "
+            f"your model's max_input_tokens minus {CONTEXT_RESERVE_TOKENS} tokens "
+            f"({default - CONTEXT_RESERVE_TOKENS} tokens at the default {default}). "
+            "After the first turn it is measured with the provider's reported input "
+            "tokens plus what was added since. Past the ceiling the epoch stops; "
+            "history is never silently dropped."
+        ),
+        (
+            'Arguments. null means JSON null (unquoted), never the string "null". A '
+            "refused argument names the field that broke the contract."
+        ),
+        (
+            "Strategy capture limits. A recipe beyond any of these is refused with "
+            "strategy.identity_invalid, and check_design names the limit: at most "
+            f"{limits.max_object_members} members in any JSON object, "
+            f"{limits.max_list_items} items in any list, "
+            f"{limits.max_total_value_nodes} values in total, "
+            f"{limits.max_string_utf8_bytes} UTF-8 bytes in any string, "
+            f"{limits.max_object_key_utf8_bytes} UTF-8 bytes in any object key, and "
+            f"{limits.max_strategy_identity_bytes} bytes of canonical strategy "
+            "identity."
+        ),
+        (
+            "Priors. No prior pack is registered in this profile. get_prior takes no "
+            "selector and returns no prior, and inspect_prior_alignment has nothing "
+            "to align with; neither is worth a call."
+        ),
+    )
+    return (
+        "\nOperating rules. These are all of Carbon's rules for this session, "
+        "stated so you never have to discover one by breaking it.\n"
+        + "".join("- " + rule + "\n" for rule in rules)
+    )
+
+
 REMINDER = (
     "This is an already authorized autonomous campaign, not an interactive planning "
     "consultation. Continue with a feasible research tool, select a practiced recipe, "
@@ -100,9 +165,8 @@ not seek them. The scientific rule stays fixed.
 Execution direction: the owner already authorized this finite campaign and its
 ordinary in-scope experiments. Do the research now. Do not ask for approval.
 Record a concise testable plan, run a useful short practice, inspect measured
-results and decide whether to revise, deepen, abandon, select or stop. Each
-practice or run_python consumes a trial slot. If work is running the supervisor
-waits; do not repeatedly poll it. Do not ask for repository, evaluator, wallet
+results and decide whether to revise, deepen, abandon, select or stop. If work
+is running the supervisor waits; do not repeatedly poll it. Do not ask for repository, evaluator, wallet
 or credential access.
 
 Finish using carbon_autoresearch_select_recipe for a recipe you actually
@@ -113,7 +177,7 @@ pointless trials or fabricate a winner. Free text alone receives one
 clarification, then a recorded protocol stop; it never grants more calls,
 trials, time, money or authority. No chain writes, payment, reward or
 scientific qualification occur in this campaign.
-"""
+""" + operating_rules()
 STOP_TOOL = {
     "type": "function",
     "name": STOP,

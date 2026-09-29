@@ -123,6 +123,10 @@ def usage_cost(usage, selection=DEFAULT_SELECTION):
     }
 
 
+#: Input tokens held back from the model's max_input_tokens for its reply.
+CONTEXT_RESERVE_TOKENS = 4096
+
+
 def input_token_bound(request_bytes, anchor):
     """An upper bound, in tokens, on a request's input.
 
@@ -239,7 +243,10 @@ def _request_once(
     ):
         raise ValueError("only local supervised functions allowed; no hosted tools")
     payload = canonical(request)
-    if input_token_bound(len(payload), anchor) > settings.max_input_tokens - 4096:
+    if (
+        input_token_bound(len(payload), anchor)
+        > settings.max_input_tokens - CONTEXT_RESERVE_TOKENS
+    ):
         raise ValueError("cumulative history/schema token reservation exhausted")
     # A new request must fit the provider timeout in the remaining elapsed
     # envelope; replay remains permitted after expiry.

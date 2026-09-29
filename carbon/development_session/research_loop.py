@@ -15,6 +15,7 @@ from .data import write_once
 from .model_provider import DEFAULT_SELECTION
 from .profile import CHALLENGE, canonical, digest
 from .research_agent import (
+    CONTEXT_RESERVE_TOKENS,
     caching_status,
     input_token_bound,
     provider_turns,
@@ -23,6 +24,8 @@ from .research_agent import (
 from .research_agent_policy import (
     AUTONOMOUS,
     LEGACY,
+    MAX_PROVIDER_CALLS,
+    MAX_RESEARCH_TRIALS,
     PARALLEL_CALLS,
     PARALLEL_REFUSAL,
     REMINDER,
@@ -175,8 +178,8 @@ async def run_epoch(
         "prompt": prompt,
         "tools": tools,
         "initial_observation": initial_observation,
-        "max_provider_calls": 48,
-        "max_research_trials": 8,
+        "max_provider_calls": MAX_PROVIDER_CALLS,
+        "max_research_trials": MAX_RESEARCH_TRIALS,
         "rule_change": False,
         "selection_is_final_evidence": False,
     }
@@ -219,7 +222,7 @@ async def run_epoch(
     # The last turn's provider-reported input tokens and its request's bytes;
     # None until a turn reports them.
     anchor = None
-    for index in range(48):
+    for index in range(MAX_PROVIDER_CALLS):
         ledger.checkpoint()
         status = ledger.status(owner=owner)
         trials = status["used"]["research_trials"] - trial_start
@@ -227,9 +230,9 @@ async def run_epoch(
         # its absence is not a reason to invent a different number.
         budgeted = (status.get("budget") or {}).get("research_trials")
         trial_limit = (
-            min(8, max(0, budgeted - trial_start))
+            min(MAX_RESEARCH_TRIALS, max(0, budgeted - trial_start))
             if ledger.admission is not None and budgeted is not None
-            else 8
+            else MAX_RESEARCH_TRIALS
         )
         call_id = f"epoch-{epoch}-provider-{index:03d}"
         effort = provider.settings.reasoning_effort
@@ -246,7 +249,7 @@ async def run_epoch(
         request_bytes = len(canonical(request))
         if (
             input_token_bound(request_bytes, anchor)
-            > provider.settings.max_input_tokens - 4096
+            > provider.settings.max_input_tokens - CONTEXT_RESERVE_TOKENS
         ):
             outcome = {
                 "status": "STOPPED",
@@ -254,7 +257,7 @@ async def run_epoch(
             }
             break
         print(
-            f"Research epoch {epoch}: agent call {index + 1}/48; trial slots used {trials}/{trial_limit}",
+            f"Research epoch {epoch}: agent call {index + 1}/{MAX_PROVIDER_CALLS}; trial slots used {trials}/{trial_limit}",
             flush=True,
         )
         phase_path = root / (call_id + "-admission.json")
