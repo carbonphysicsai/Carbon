@@ -1,7 +1,7 @@
 FoamFile { version 2.0; format ascii; class dictionary; object changeDictionaryDict; }
 T
 {
-    internalField   uniform 300;
+    internalField   uniform T_IN;
     boundaryField
     {
         heated
@@ -9,17 +9,17 @@ T
             // Uniform heat flux q into the plate's base.
             type            externalWallHeatFluxTemperature;
             mode            flux;
-            q               uniform 1e4;
+            q               uniform Q_FLUX;
             kappaMethod     solidThermo;
-            value           uniform 300;
+            value           uniform T_IN;
         }
-        "(solidEnds|lid|inlet|outlet)" { type zeroGradient; value uniform 300; }
+        "(solidEnds|lid|inlet|outlet)" { type zeroGradient; value uniform T_IN; }
         "solid_to_.*"
         {
             type            compressible::turbulentTemperatureCoupledBaffleMixed;
             Tnbr            T;
             kappaMethod     solidThermo;
-            value           uniform 300;
+            value           uniform T_IN;
         }
         "sym.*" { type symmetry; }
     }

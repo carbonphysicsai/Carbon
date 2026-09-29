@@ -14,9 +14,10 @@ and an adiabatic lid. Cross-section (y across, z up; x is the flow):
        0          y1          y2   y1 = wc/2, y2 = (wc + wf)/2
      symmetry                symmetry
 
-Only geometry and mesh resolution are parameters here. The fluid and solid
-properties, velocity and flux are verification choices fixed in the template
-(see README), not a coolant or a plate material.
+Geometry and mesh resolution are parameters. Fluid and solid properties,
+inlet velocity and temperature and the base flux come from a named property
+set: `verification` (rungs 3-4: not a coolant or a plate material) or
+`design` (the provisional design basis, ../DESIGN_BASIS.md).
 """
 
 import argparse
@@ -33,6 +34,42 @@ DEFAULTS = {  # millimetres; a verification geometry, not a product design
     "fin_width": 1.0,
     "base_thickness": 1.0,
     "lid_thickness": 0.5,
+}
+# Constant properties, SI units. `design` is PG25 at 40 C (CoolProp 6.8.0,
+# INCOMP::MPG[0.25]) on copper C11000, at the nominal point of the design
+# basis: 1 kW over a 30 x 30 mm footprint, 1.5 L/min per kW through 50
+# channels of 0.3 x 2 mm. Its velocity assumes that nominal channel geometry.
+PROPERTY_SETS = {
+    "verification": {
+        "rho_f": 1000.0,
+        "cp_f": 4181.0,
+        "mu_f": 1e-3,
+        "pr_f": 1.0,
+        "k_s": 10.0,
+        "u_in": 0.1,
+        "t_in": 300.0,
+        "q_flux": 1e4,
+    },
+    "design": {
+        "rho_f": 1009.91,
+        "cp_f": 3968.6,
+        "mu_f": 1.3530e-3,
+        "pr_f": 11.05,
+        "k_s": 391.0,
+        "u_in": 1.5e-3 / 60 / (50 * 0.3e-3 * 2e-3),
+        "t_in": 313.15,
+        "q_flux": 1000 / 0.03**2,
+    },
+}
+TOKENS = {
+    "RHO_F": "rho_f",
+    "CP_F": "cp_f",
+    "MU_F": "mu_f",
+    "PR_F": "pr_f",
+    "K_S": "k_s",
+    "U_IN": "u_in",
+    "T_IN": "t_in",
+    "Q_FLUX": "q_flux",
 }
 # Cells per segment at resolution 1: x, then y (channel, fin), then z
 # (base, channel, lid). Resolution r multiplies every count by r.
@@ -128,6 +165,9 @@ def main(argv=None):
     parser.add_argument("out", type=Path)
     parser.add_argument("--resolution", type=float, default=1.0)
     parser.add_argument("--iterations", type=int, default=4000)
+    parser.add_argument(
+        "--properties", choices=sorted(PROPERTY_SETS), default="verification"
+    )
     for name, value in DEFAULTS.items():
         parser.add_argument("--" + name.replace("_", "-"), type=float, default=value)
     args = parser.parse_args(argv)
@@ -137,6 +177,13 @@ def main(argv=None):
     if args.out.exists():
         parser.error(f"{args.out} exists; refusing to overwrite")
     shutil.copytree(TEMPLATE, args.out)
+    properties = PROPERTY_SETS[args.properties]
+    for path in args.out.rglob("*"):
+        if path.is_file():
+            text = path.read_text()
+            for token, name in TOKENS.items():
+                text = text.replace(token, repr(properties[name]))
+            path.write_text(text)
     args.out.chmod(0o700)
     text, mesh = block_mesh(geometry, args.resolution)
     (args.out / "system" / "blockMeshDict").write_text(text)
@@ -149,6 +196,8 @@ def main(argv=None):
     case = {
         "geometry_mm": geometry,
         "resolution": args.resolution,
+        "property_set": args.properties,
+        "properties": properties,
         "iterations": args.iterations,
         "mesh": mesh,
     }

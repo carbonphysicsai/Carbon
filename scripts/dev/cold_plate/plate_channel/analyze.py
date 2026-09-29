@@ -27,11 +27,17 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
-# Verification choices, as rungs 1-3 and the template; not a coolant or a
-# plate material.
-Q, U, RHO, CP, MU = 1e4, 0.1, 1000.0, 4181.0, 1e-3
-K_S = 10.0
-K_F = MU * CP / 1.0  # Pr = 1
+# Rung-4 cases predate property sets and used the verification set.
+VERIFICATION = {
+    "rho_f": 1000.0,
+    "cp_f": 4181.0,
+    "mu_f": 1e-3,
+    "pr_f": 1.0,
+    "k_s": 10.0,
+    "u_in": 0.1,
+    "t_in": 300.0,
+    "q_flux": 1e4,
+}
 DEVELOPED = (0.6, 0.95)  # fraction of the length
 
 
@@ -62,7 +68,7 @@ def surface_value(case, name, t):
     raise ValueError(f"{name} has no value at {t}")
 
 
-def duct_gradient(width, height):
+def duct_gradient(width, height, MU, U):
     a, b = sorted((width / 2, height / 2))
     series = sum(math.tanh(n * math.pi * b / (2 * a)) / n**5 for n in range(1, 400, 2))
     return 3 * MU * U / (a * a * (1 - 192 * a / (math.pi**5 * b) * series))
@@ -82,7 +88,9 @@ def last_initial(log, field):
     return float(found[-1]) if found else None
 
 
-def at_time(case, t, geometry):
+def at_time(case, t, geometry, props):
+    Q, U, RHO, CP, MU = (props[k] for k in ("q_flux", "u_in", "rho_f", "cp_f", "mu_f"))
+    K_S, K_F = props["k_s"], MU * CP / props["pr_f"]
     length = geometry["length"] * 1e-3
     half_cell = (geometry["channel_width"] + geometry["fin_width"]) / 2 * 1e-3
     m_in = -surface_value(case, "massIn", t)
@@ -129,7 +137,7 @@ def at_time(case, t, geometry):
     ]
     gradient = -slope(profile)
     expected = duct_gradient(
-        geometry["channel_width"] * 1e-3, geometry["channel_height"] * 1e-3
+        geometry["channel_width"] * 1e-3, geometry["channel_height"] * 1e-3, MU, U
     )
 
     solid = internal_field(case / t / "solid" / "C")
@@ -175,7 +183,12 @@ def main(case):
         "last_initial_residual": {
             f: last_initial(log, f) for f in ("h", "Ux", "p_rgh")
         },
-        "by_iteration": {t: at_time(case, t, spec["geometry_mm"]) for t in times},
+        "by_iteration": {
+            t: at_time(
+                case, t, spec["geometry_mm"], spec.get("properties", VERIFICATION)
+            )
+            for t in times
+        },
     }
     print(json.dumps(result, indent=2))
 

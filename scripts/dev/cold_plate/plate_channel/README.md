@@ -141,3 +141,113 @@ Under refinement, where there is no closed form:
    Rung 5 uses these instead of the verification properties.
 4. **Then the #342 pilot:** 8 ordinary and 4 difficult cases with paired
    refinement, priced for owner approval before it runs.
+
+---
+
+# Rung 5: the same cell at the design point
+
+**What changed from rung 4.**
+
+1. **Named property sets.** `generate.py --properties design` uses the
+   provisional design basis (`../DESIGN_BASIS.md`):
+   - PG25 at 40 °C (CoolProp 6.8.0, `INCOMP::MPG[0.25]`) on copper C11000;
+   - 1 kW over a 30 × 30 mm footprint;
+   - 1.5 L/min per kW through 50 channels of 0.3 × 2 mm;
+   - so U = 0.833 m/s, q = 1.11 MW/m², Re ≈ 325 and Pr = 11.05.
+
+   `--properties verification` (the default) is rung 4's set. Its generated
+   dictionaries differ from rung 4's only in number formatting (for example
+   `1000` against `1000.0`).
+2. **Energy converges in far fewer iterations.** Two solver settings
+   changed:
+   - the solid enthalpy solve runs to its absolute tolerance (`relTol 0`);
+   - enthalpy is not under-relaxed (`h 1.0`, in both regions).
+
+   With rung 4's settings, copper's high conductivity left the energy balance
+   95 % open after 400 iterations. With these, it closes within 200.
+   - **Checked on rung 4's own case:** rung 4's coarse case, rerun under the
+     new settings, reproduces every reported quantity to the printed digit.
+   - Its complete energy balance tightens from −4.5e-10 to +1.4e-9.
+3. **The analyzer reads its properties from `case.json`.** A rung-4 case
+   directory has no property set recorded, and is read as `verification`.
+
+**The case.** The geometry is `--length 30 --channel-width 0.3 --fin-width
+0.3 --channel-height 2 --base-thickness 1 --lid-thickness 0.5`. The runs
+were 2,000 iterations at resolution 1 and 4,000 at resolution 2.
+
+## Result (2026-09-29, this host)
+
+Both runs are iteration-converged: the half-way and final writes agree to
+the printed digit.
+
+| Resolution (cells) | Wall | Mass imbalance | Energy balance, complete | dp/dx (exact 166,029 Pa/m) | dp/dx error |
+|---|---|---|---|---|---|
+| 1 (9,000) | 21 s | −9e-10 | −1.1e-7 | 157,713 Pa/m | −5.01 % |
+| 2 (72,000) | 442 s | +1e-10 | −1.6e-8 | 163,272 Pa/m | −1.66 % |
+| 3 (243,000) | 2,757 s | +5e-11 | −1.3e-9 | 164,716 Pa/m | −0.79 % |
+
+| Quantity, no closed form | r = 1 | r = 2 | r = 3 |
+|---|---|---|---|
+| Peak heated-face temperature, last cell column | 350.801 K | 350.871 K | 351.063 K |
+| Mean heated-face temperature | 344.188 K | 343.865 K | 343.895 K |
+| Outlet bulk temperature | 323.1299 K | 323.1297 K | 323.1295 K |
+| Pressure drop, 30 mm | 4,972 Pa | 5,188 Pa | 5,249 Pa |
+
+**Conservation.**
+- **Mass and energy are conserved to round-off** on both meshes.
+- **The coolant rise is 9.98 K,** which is exactly Q/(ṁ·c_p) for 10 W per
+  half-cell. This matches OCP's 10 °C design rule at 1.5 L/min per kW.
+
+**The pressure gradient converges toward second order; the coarse mesh is
+pre-asymptotic.** Each error is measured against the exact duct series, so
+every pair of meshes gives an order directly.
+- Error: −5.01 %, then −1.66 %, then −0.79 %.
+- Observed order: **1.59** from r = 1 to 2, and **1.83** from r = 2 to 3.
+- The order is approaching the scheme's second order. The coarse mesh has 5
+  cells across a 0.15 mm half-channel.
+
+**Temperatures.** The mean and the outlet converge. The local base
+temperatures do not.
+- **The mean** base temperature changes by −0.32 K from r = 1 to 2, then by
+  +0.03 K from r = 2 to 3. **It converges.**
+- **The outlet bulk temperature is converged** to 0.4 mK.
+- **The local base temperatures are not mesh-converged.**
+  - The peak rises by +0.07 K from r = 1 to 2, then by +0.19 K from r = 2
+    to 3.
+  - The maximum restricted to x ≤ 0.8 L or x ≤ 0.9 L rises by about
+    0.2-0.25 K between r = 2 and r = 3. The increment does not shrink.
+  - **This is not a measurement artefact.** The heated patch's own face
+    temperatures, written by the solver, agree with the analyzer's
+    extrapolated values to 0.1 mK.
+  - **Not the plate-end corner** either: the non-convergence appears away
+    from the end.
+  - **Hypothesis, untested:** at Pr = 11, the thermal boundary layer is thin
+    and still developing over the whole 30 mm plate, since the thermal entry
+    length is about 90 mm. Uniform meshes of 5-15 cells across the 0.15 mm
+    half-channel may not resolve it.
+  - **No local or peak temperature here is claimed as converged.**
+
+**The die temperature, under the design basis's interface assumption.** The
+nominal R″ = 0.05 cm²·K/W adds q″·R″ = 5.56 K. **This offset is exact.** A
+die temperature built on the peak inherits the lack of convergence in the local
+base temperatures: it is about 83 °C at a 40 °C inlet on these meshes.
+- This is a derived number, not a design verdict.
+- No temperature limit is set here.
+
+**Cost.** 21 s, 442 s and 2,757 s of wall time on local CPU, capped at two
+CPUs. No pod was used.
+
+## Next
+
+1. **Resolve the thermal boundary layer.** Grade the fluid cells toward the
+   walls, and repeat the three-mesh study until the local base temperatures
+   converge. This comes before the family sweep reports any peak.
+2. **The straight-channel family sweep,** within the design basis's ranges:
+   - channel width, fin width and depth;
+   - flow, from 1.25 to 2.0 L/min per kW;
+   - inlet temperature, from 30 to 45 °C;
+   - preserving every failed geometry.
+3. **Temperature-dependent viscosity.** It falls about 40 % between 30 and
+   50 °C, so whether the reference needs it is a reference-qualification
+   question. The sweep can measure its effect.
+4. **Serpentine channels and a whole plate with headers.**

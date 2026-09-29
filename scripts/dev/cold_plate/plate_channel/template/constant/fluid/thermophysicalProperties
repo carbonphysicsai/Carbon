@@ -22,7 +22,7 @@ thermoType
 mixture
 {
     specie          { molWeight 18; }
-    equationOfState { rho 1000; }
-    thermodynamics  { Cp 4181; Hf 0; }
-    transport       { mu 1e-3; Pr 1; }
+    equationOfState { rho RHO_F; }
+    thermodynamics  { Cp CP_F; Hf 0; }
+    transport       { mu MU_F; Pr PR_F; }
 }
