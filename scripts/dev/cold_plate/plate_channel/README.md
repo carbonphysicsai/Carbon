@@ -330,3 +330,88 @@ temperatures:
 2. **Temperature-dependent viscosity.** Measure its effect on the converged
    peak.
 3. **Serpentine channels and a whole plate with headers.**
+
+
+---
+
+# Rung 6: the straight-channel family, one factor at a time
+
+**What it is.** A first look at how the design basis's straight-channel
+parameters move the answers. It varies one factor at a time around the
+nominal design point.
+- It is **not** a design optimization, a population or a dataset.
+- It sets no threshold, and ranks nothing as acceptable.
+
+**The change.**  (design set only) derives
+the inlet velocity:
+- the plate's flow (1 kW × F) is shared equally by the ⌊30 mm / (channel +
+  fin)⌋ channel periods that fit across the footprint;
+- the nominal geometry reproduces the fixed design-set velocity (0.833 m/s,
+  50 channels);
+-  records the flow and the channel count.
+
+**How every case ran:**
+- resolution 2, , 4,000 iterations;
+- 30 mm plate, 1 mm base, 0.5 mm lid;
+- PG25 at 40 °C on copper C11000.
+
+**Why resolution 2 is enough here.** Rung 5b measured the nominal case from
+r = 2 to r = 3: the peak changed by 0.03 K and the pressure-gradient error
+by 0.6 points (−1.09 % to −0.48 %).
+
+## Result (2026-09-29, this host)
+
+**All nine cases ran; none failed.**
+- Mass and energy are conserved to about 1e-8 or better.
+- The peak is iteration-converged to about 1e-7 K.
+- Each case took 294-354 s on local CPU, capped at two CPUs.
+
+**The columns.**
+- **Peak and mean** are measured on the heated face.
+- **The rise** is outlet bulk minus inlet.
+- **Δp** is over the 30 mm of channel, with no headers.
+- **Hydraulic power** is Δp × the plate's total flow.
+
+| Case | Channels | U (m/s) | Re | Peak base (K) | Mean base (K) | Coolant rise (K) | Δp (Pa) | Hydraulic power (W) |
+|---|---|---|---|---|---|---|---|---|
+{table}
+
+**What the sweep shows,** within this model, one factor at a time:
+- **Narrower channels** (0.2 mm): **9.7 K cooler** peak than nominal, at
+  **2.7×** the pressure drop.
+- **Wider channels** (0.5 mm): **18.6 K hotter**, at about a third of the
+  pressure drop.
+- **Thinner fins** (0.2 mm) are cooler *and* lower in pressure drop than
+  nominal. More channels fit, so each carries less flow.
+- **Thicker fins** (0.5 mm) are hotter *and* higher in pressure drop.
+- **Deeper channels** (3 mm) are cooler at lower pressure drop.
+- **Shallower channels** (1 mm) are hotter at 2.4× the pressure drop.
+- **More flow** lowers the peak and the rise, and raises Δp roughly in
+  proportion to the flow.
+- **Every case is laminar:** Re 226-574. The design basis's laminar check is
+  borne out at these points.
+
+**The coolant rise.** It is exactly Q/(ṁ·c_p) when the channel period
+divides 30 mm (9.98 K at 1.5 L/min per kW).
+- It is 9.81-9.85 K where it does not: for example, 59 × 0.5 mm covers
+  29.5 mm, and 9.98 × 29.5/30 = 9.81 K.
+- This is the periodic-cell model: the heated area it represents is the
+  channels' span. It is not a numerical error.
+
+**What this rung does not cover:**
+- **Interactions between factors.** Each case changes one.
+- **Inlet temperature.** The design basis tabulates properties at 30, 40 and
+  50 °C only; the 45 °C end is not evaluated here.
+- **Headers, manifolds, serpentines, spreading at the plate edges, and
+  non-uniform heat maps.**
+- **Temperature-dependent viscosity.**
+- **The TIM,** which adds a uniform 5.56 K at the nominal R″.
+
+## Next
+
+1. **Two-factor interactions** where the one-factor results trade against
+   each other: channel width against depth, and fin width against flow.
+2. **Temperature-dependent viscosity,** and the inlet-temperature axis, once
+   properties at 45 °C are recorded in the design basis.
+3. **Serpentine channels and a whole plate with headers.**
+4. **The #342 pilot proposal,** priced for owner approval before it runs.
