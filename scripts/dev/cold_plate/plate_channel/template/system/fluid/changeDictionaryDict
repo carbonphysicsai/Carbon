@@ -1,0 +1,50 @@
+FoamFile { version 2.0; format ascii; class dictionary; object changeDictionaryDict; }
+// Verification choices, as rung 3: U = 0.1 m/s uniform at the inlet, 300 K.
+U
+{
+    internalField   uniform (0.1 0 0);
+    boundaryField
+    {
+        inlet         { type fixedValue; value uniform (0.1 0 0); }
+        outlet        { type zeroGradient; }
+        "fluid_to_.*" { type noSlip; }
+        "sym.*"       { type symmetry; }
+    }
+}
+T
+{
+    internalField   uniform 300;
+    boundaryField
+    {
+        inlet         { type fixedValue; value uniform 300; }
+        outlet        { type zeroGradient; value uniform 300; }
+        "fluid_to_.*"
+        {
+            type            compressible::turbulentTemperatureCoupledBaffleMixed;
+            Tnbr            T;
+            kappaMethod     fluidThermo;
+            value           uniform 300;
+        }
+        "sym.*"       { type symmetry; }
+    }
+}
+p_rgh
+{
+    internalField   uniform 1e5;
+    boundaryField
+    {
+        inlet         { type fixedFluxPressure; value uniform 1e5; }
+        outlet        { type fixedValue; value uniform 1e5; }
+        "fluid_to_.*" { type fixedFluxPressure; value uniform 1e5; }
+        "sym.*"       { type symmetry; }
+    }
+}
+p
+{
+    internalField   uniform 1e5;
+    boundaryField
+    {
+        ".*"    { type calculated; value uniform 1e5; }
+        "sym.*" { type symmetry; }
+    }
+}
