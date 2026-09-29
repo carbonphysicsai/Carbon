@@ -31,6 +31,85 @@ def _text_fields(body, fields):
     return {k: body[k][:4096] for k in fields if type(body.get(k)) is str}
 
 
+BATTERY_FEEDBACK_SCHEMA = "carbon.battery.permitted-feedback.v1"
+#: What the Submission view shows of a validator outcome: only fields the
+#: permitted feedback already carries for this miner, never more.
+_SCREENING_FIELDS = (
+    "eligible",
+    "gates_failed",
+    "cases",
+    "score",
+    "important_score",
+    "pool_version",
+)
+
+
+def pointer_exists(directory):
+    return (directory / "final/comparison-ref.json").is_file()
+
+
+def _validator_outcome(epoch, path):
+    """The validator's outcome for one submitted epoch, from the campaign's
+    permitted feedback (the same allow-listed view the agent receives), or
+    READBACK_UNAVAILABLE. Nothing is inferred from a file that differs."""
+    unavailable = {
+        "epoch": epoch,
+        "mode": "DEVELOPMENT_EVALUATION",
+        "status": "READBACK_UNAVAILABLE",
+        "result": None,
+    }
+    try:
+        if path.is_symlink() or path.stat().st_size > 65536:
+            return unavailable
+        document = json.loads(path.read_bytes())
+        outcome = document["outcome"]
+        if (
+            document.get("schema") != BATTERY_FEEDBACK_SCHEMA
+            or document.get("epoch") != epoch
+            or type(outcome) is not dict
+            or type(outcome.get("state")) is not str
+        ):
+            return unavailable
+        screening = outcome.get("screening")
+        finals = outcome.get("finals")
+        result = {
+            "state": outcome["state"][:64],
+            "submission_id": str(outcome.get("submission_id", ""))[:128],
+            "evidence": str(outcome.get("evidence", ""))[:64],
+            "nominated": (
+                outcome.get("nominated")
+                if type(outcome.get("nominated")) is bool
+                else None
+            ),
+            "waiting": (
+                outcome.get("waiting") if type(outcome.get("waiting")) is str else None
+            ),
+            "screening": (
+                {k: screening[k] for k in _SCREENING_FIELDS if k in screening}
+                if type(screening) is dict
+                else None
+            ),
+            "finals": [
+                {
+                    "state": str(item.get("state", ""))[:64],
+                    "promoted": item.get("promoted") is True,
+                }
+                for item in (finals if type(finals) is list else [])
+                if type(item) is dict
+            ][:8],
+            "qualification": False,
+            "reward": False,
+        }
+    except (OSError, ValueError, TypeError, KeyError):
+        return unavailable
+    return {
+        "epoch": epoch,
+        "mode": "DEVELOPMENT_EVALUATION",
+        "status": "VALIDATOR_OUTCOME",
+        "result": result,
+    }
+
+
 def project(row, root):
     value = {
         "schema": "carbon.launchpad.own-research.v1",
@@ -312,6 +391,9 @@ def project(row, root):
                     "final_evidence": False,
                 }
             )
+        feedback = directory / "permitted-final-feedback.json"
+        if feedback.is_file() and not pointer_exists(directory):
+            value["final_results"].append(_validator_outcome(epoch, feedback))
         pointer = directory / "final/comparison-ref.json"
         if pointer.is_file():
             try:

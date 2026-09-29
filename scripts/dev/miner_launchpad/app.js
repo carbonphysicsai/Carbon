@@ -856,10 +856,25 @@
     if (!freezes.length && !recipes.length) missing(panel, "the controller does not expose trained weights or files; recipes and frozen candidates appear here once recorded.");
     researchNote(panel, "Export gives the full public record of this campaign as JSON.", "hint");
   }
+  function renderValidatorOutcome(panel, result) {
+    const o = result.result;
+    const s = o.screening;
+    const cases = s && s.cases && typeof s.cases === "object" ? Object.entries(s.cases).map(([k, v]) => words(k) + " " + v).join(", ") : "unavailable";
+    const lines = [
+      "Validator outcome, epoch " + result.epoch + ": " + o.state + (o.waiting ? " · waiting: " + o.waiting : ""),
+      "Submission: " + (o.submission_id || "unavailable"),
+      s ? "Screening on pool version " + (s.pool_version ?? "?") + ": " + (s.eligible === true ? "eligible" : s.eligible === false ? "not eligible" : "eligibility unavailable") + " · gates failed: " + ((s.gates_failed || []).join(", ") || "none") + " · cases: " + cases : "Screening: not shown in this feedback mode.",
+      s && typeof s.score === "number" ? "Score: " + s.score + (typeof s.important_score === "number" ? " · important region: " + s.important_score : "") : "Score: not shown in this feedback mode.",
+      "Nominated for a final: " + (o.nominated === true ? "yes" : o.nominated === false ? "no" : "unavailable") + ((o.finals || []).length ? " · finals: " + o.finals.map(f => f.state + (f.promoted ? " (promoted)" : "")).join(", ") : ""),
+      (o.evidence || "DEVELOPMENT") + ": no qualification, no reward, no chain write.",
+    ];
+    for (const line of lines) researchNote(panel, line, "development-result");
+  }
   function tabSubmission(panel, run) {
     if (run.selects === "miner") renderJourneySubmission(panel, run);
     else if (run.selects === "agent") researchNote(panel, "Carbon's agent freezes and submits in this campaign.", "hint");
     for (const result of run.final_results || []) {
+      if (result.status === "VALIDATOR_OUTCOME" && result.result) { renderValidatorOutcome(panel, result); continue; }
       const verified = result.status === "VERIFIED_SOURCE" && result.result;
       researchNote(panel, "DEVELOPMENT evaluation: " + (verified ? (result.result.disposition || "disposition unavailable") + " · Accepted DEVELOPMENT improvement: " + (typeof result.result.accepted_development_improvement === "boolean" ? String(result.result.accepted_development_improvement) : "unavailable") : "Readback unavailable; no disposition inferred."), "development-result");
     }
