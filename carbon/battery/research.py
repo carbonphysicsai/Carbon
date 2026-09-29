@@ -122,6 +122,31 @@ def na(label):
     return A.not_applicable(semantic("applicability_reason", label))
 
 
+def sampling_law():
+    """The declared practice sampling law, read from the authored population
+    contract so the disclosure cannot differ from it
+    (OWNER-BATTERY-V2-DISCLOSURE-01, item 7)."""
+    population, _ = population_and_sampling()
+    support = population.support_contract
+    law = population.law_semantics.payload
+    return {
+        "support": support.membership_rule_ref.object_id,
+        "support_bounds": {name: list(INPUT_BOUNDS[name]) for name in INPUTS},
+        "support_boundary": support.boundary_semantics_ref.object_id,
+        "base_measure": law.base_measure_ref.object_id,
+        "normalization": law.normalization_claim_ref.object_id,
+        "draw": (
+            "each input independently uniform over its bounds, rounded to 4 "
+            "decimal places"
+        ),
+        "drawn_from_it": ["TRAIN v1", "PRACTICE"],
+        "meaning": (
+            "uniform coverage of the input box, not the prevalence of any real "
+            "charging protocol or climate"
+        ),
+    }
+
+
 def objective():
     """The public task statement, derived from the executable registrations."""
     rule = exam.DEVELOPMENT_RULE
@@ -168,6 +193,7 @@ def objective():
                 "cycles": list(CAPACITY_CYCLES),
             },
         },
+        "sampling_law": sampling_law(),
         "conventions": {
             "cycler_window_v": [V_MIN, V_MAX],
             "initial_state": "equilibrium at soc0 and ambient temperature",
