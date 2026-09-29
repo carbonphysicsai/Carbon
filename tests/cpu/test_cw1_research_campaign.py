@@ -62,7 +62,7 @@ def test_selected_recipe_needs_real_practice_and_integrity(tmp_path):
         trial_supports_selection(meter, "alice", CONTROL)
 
 
-def test_invalid_numerical_attempt_consumes_one_slot_and_replay_does_not_repeat(
+def test_invalid_numerical_attempt_consumes_no_slot_and_replay_does_not_repeat(
     tmp_path,
 ):
     import asyncio
@@ -77,7 +77,9 @@ def test_invalid_numerical_attempt_consumes_one_slot_and_replay_does_not_repeat(
             sdk.call(PREFIX + "start_research_task", args, "invalid-proposal")
         )
         assert result["status"] == "REJECTED_BEFORE_DISPATCH"
-    assert meter.status(owner="alice")["used"]["research_trials"] == 1
+    # Refused before dispatch: nothing started, so no trial slot was charged
+    # (OWNER-BATTERY-V2-DISCLOSURE-01, change 9).
+    assert meter.status(owner="alice")["used"]["research_trials"] == 0
 
 
 def test_private_credential_file_never_accepts_world_readable_or_symlink(tmp_path):

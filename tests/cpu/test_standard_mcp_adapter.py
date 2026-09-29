@@ -249,17 +249,19 @@ def test_trial_replay_and_adapter_reconstruction_use_one_existing_ledger(
     async def receive(self, name, arguments, identity, *, transport_request_id=None):
         return reply("start_research_task")
 
-    # Retain real ResearchMinerTools.call and its durable proposal charge.
+    # Retain real ResearchMinerTools.call. It charges no trial slot itself: the
+    # executor that starts a task charges it (OWNER-BATTERY-V2-DISCLOSURE-01),
+    # and `_call` is stubbed here, so nothing starts and nothing is charged.
     monkeypatch.setattr(ResearchMinerTools, "_call", receive)
     args = practice()
     call(adapter, "start_research_task", args)
     reopened = ResearchToolAdapter(sdk, principal="alice")
     call(reopened, "start_research_task", args)
-    assert meter.status(owner="alice")["used"]["research_trials"] == 1
+    assert meter.status(owner="alice")["used"]["research_trials"] == 0
     args["strategy"]["parameters"]["steps"] = 1024
     with pytest.raises(AdapterFailure, match="OPERATIONAL_STOP"):
         call(reopened, "start_research_task", args)
-    assert meter.status(owner="alice")["used"]["research_trials"] == 1
+    assert meter.status(owner="alice")["used"]["research_trials"] == 0
 
 
 @pytest.mark.parametrize(
@@ -482,7 +484,9 @@ def test_real_authenticated_workspace_survives_adapter_reconnect(
             == second.payload["terminal_task"]["task_id"]
         )
         assert first.payload["public_result"] == second.payload["public_result"]
-        assert ledger.status(owner=owner)["used"]["research_trials"] == int(numerical)
+        # The injected worker fails before its executor reserves anything, so
+        # no trial slot is charged; the replay still executes it only once.
+        assert ledger.status(owner=owner)["used"]["research_trials"] == 0
         assert executions == ([1] if numerical else [])
         assert ledger.status(owner=owner)["used"]["provider_attempts"] == 0
         assert not first.requires_reconciliation
@@ -490,7 +494,7 @@ def test_real_authenticated_workspace_survives_adapter_reconnect(
             changed = {**args, "hypothesis": "changed request under the same key"}
             with pytest.raises(AdapterFailure, match="OPERATIONAL_STOP"):
                 call(reopened, "start_research_task", changed)
-            assert ledger.status(owner=owner)["used"]["research_trials"] == 1
+            assert ledger.status(owner=owner)["used"]["research_trials"] == 0
             assert executions == [1]
         else:
             conflict = call(reopened, "start_research_task", workspace("inventory"))
