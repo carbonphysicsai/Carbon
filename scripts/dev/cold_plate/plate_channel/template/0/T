@@ -7,9 +7,9 @@ FoamFile
 }
 
 dimensions      [0 0 0 1 0 0 0];
-internalField   uniform 300;
+internalField   uniform T_IN;
 boundaryField
 {
-    ".*" { type calculated; value uniform 300; }
+    ".*" { type calculated; value uniform T_IN; }
     "sym.*" { type symmetry; }
 }

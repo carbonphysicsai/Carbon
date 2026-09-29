@@ -21,7 +21,7 @@ thermoType
 mixture
 {
     specie          { molWeight 50; }
-    transport       { kappa 10; }
+    transport       { kappa K_S; }
     thermodynamics  { Hf 0; Cp 1000; }
     equationOfState { rho 1000; }
 }

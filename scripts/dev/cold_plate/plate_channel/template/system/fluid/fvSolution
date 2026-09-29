@@ -22,5 +22,5 @@ SIMPLE
 relaxationFactors
 {
     fields    { rho 1.0; p_rgh 0.7; }
-    equations { U 0.7; h 0.9; }
+    equations { U 0.7; h 1.0; }
 }

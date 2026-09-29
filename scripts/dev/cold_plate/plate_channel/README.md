@@ -141,3 +141,94 @@ Under refinement, where there is no closed form:
    Rung 5 uses these instead of the verification properties.
 4. **Then the #342 pilot:** 8 ordinary and 4 difficult cases with paired
    refinement, priced for owner approval before it runs.
+
+---
+
+# Rung 5: the same cell at the design point
+
+**What changed from rung 4.**
+
+1. **Named property sets.** `generate.py --properties design` uses the
+   provisional design basis (`../DESIGN_BASIS.md`):
+   - PG25 at 40 °C (CoolProp 6.8.0, `INCOMP::MPG[0.25]`) on copper C11000;
+   - 1 kW over a 30 × 30 mm footprint;
+   - 1.5 L/min per kW through 50 channels of 0.3 × 2 mm;
+   - so U = 0.833 m/s, q = 1.11 MW/m², Re ≈ 325 and Pr = 11.05.
+
+   `--properties verification` (the default) is rung 4's set. Its generated
+   dictionaries differ from rung 4's only in number formatting (for example
+   `1000` against `1000.0`).
+2. **Energy converges in far fewer iterations.** Two solver settings
+   changed:
+   - the solid enthalpy solve runs to its absolute tolerance (`relTol 0`);
+   - enthalpy is not under-relaxed (`h 1.0`, in both regions).
+
+   With rung 4's settings, copper's high conductivity left the energy balance
+   95 % open after 400 iterations. With these, it closes within 200.
+   - **Checked on rung 4's own case:** rung 4's coarse case, rerun under the
+     new settings, reproduces every reported quantity to the printed digit.
+   - Its complete energy balance tightens from −4.5e-10 to +1.4e-9.
+3. **The analyzer reads its properties from `case.json`.** A rung-4 case
+   directory has no property set recorded, and is read as `verification`.
+
+**The case.** The geometry is `--length 30 --channel-width 0.3 --fin-width
+0.3 --channel-height 2 --base-thickness 1 --lid-thickness 0.5`. The runs
+were 2,000 iterations at resolution 1 and 4,000 at resolution 2.
+
+## Result (2026-09-29, this host)
+
+Both runs are iteration-converged: the half-way and final writes agree to
+the printed digit.
+
+| Resolution (cells) | Wall | Mass imbalance | Energy balance, complete | dp/dx (exact 166,029 Pa/m) | dp/dx error |
+|---|---|---|---|---|---|
+| 1 (9,000) | 21 s | −9e-10 | −1.1e-7 | 157,713 Pa/m | −5.01 % |
+| 2 (72,000) | 442 s | +1e-10 | −1.6e-8 | 163,272 Pa/m | −1.66 % |
+
+| Quantity, no closed form | r = 1 | r = 2 | Change |
+|---|---|---|---|
+| Peak heated-face temperature | 350.801 K (77.65 °C), x = 29.7 mm | 350.871 K (77.72 °C), x = 29.85 mm | +0.07 K |
+| Mean heated-face temperature | 344.188 K | 343.865 K | −0.32 K |
+| Outlet bulk temperature | 323.1299 K | 323.1297 K | −0.2 mK |
+| Pressure drop, 30 mm | 4,972 Pa | 5,188 Pa | +4.3 % |
+
+**Conservation.**
+- **Mass and energy are conserved to round-off** on both meshes.
+- **The coolant rise is 9.98 K,** which is exactly Q/(ṁ·c_p) for 10 W per
+  half-cell. This matches OCP's 10 °C design rule at 1.5 L/min per kW.
+
+**The pressure gradient converges, but more slowly than in rung 4.**
+- The error falls by 3.02 between meshes, an **observed order of 1.59**.
+  Rung 4 gave 1.92.
+- Two meshes cannot say whether this is pre-asymptotic behaviour or a slower
+  scheme order. The coarse mesh has 5 cells across a 0.15 mm half-channel,
+  and 0.6 mm cells along the flow.
+- **A third mesh is needed to establish the order.** It is not claimed here.
+
+**Temperatures.**
+- The peak base temperature changes by 0.07 K between meshes. The mean
+  changes by 0.32 K.
+- The hot spot is at the outlet end, as in rung 4.
+
+**The die temperature, under the design basis's interface assumption.** The
+nominal R″ = 0.05 cm²·K/W adds q″·R″ = 5.56 K. That puts the die at about
+356.4 K (83.3 °C) at a 40 °C inlet.
+- This is a derived number, not a design verdict.
+- No temperature limit is set here.
+
+**Cost.** 21 s and 442 s of wall time on local CPU, capped at two CPUs. No
+pod was used.
+
+## Next
+
+1. **A third mesh at the design point,** to settle the pressure-gradient
+   order.
+2. **The straight-channel family sweep,** within the design basis's ranges:
+   - channel width, fin width and depth;
+   - flow, from 1.25 to 2.0 L/min per kW;
+   - inlet temperature, from 30 to 45 °C;
+   - preserving every failed geometry.
+3. **Temperature-dependent viscosity.** It falls about 40 % between 30 and
+   50 °C, so whether the reference needs it is a reference-qualification
+   question. The sweep can measure its effect.
+4. **Serpentine channels and a whole plate with headers.**
