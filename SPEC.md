@@ -45,7 +45,7 @@ Landscape, broader construction programs, private deployment modes, and commerci
 | [Specialist Bank](Design_Specs/Specialist_Bank.md) | Separate product qualification path |
 | [Landscape](Design_Specs/Landscape_Agent.md) | Knowledge and evidence reuse architecture |
 | [Implementation](Design_Specs/Implementation.md) | Code-level patterns |
-| [Launch path v1.0.7](launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.7.md) | Current launch amendments and development-testnet boundaries |
+| [Launch path v1.0.8](launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.8.md) | Current launch amendments: the training budget study requirement (v1.0.8) and development-testnet boundaries (v1.0.7) |
 | [Constitutional overlay](Design_Specs/Build_Out_Constitutional_Overlay.md) | Interpretation of older sequencing against later decisions |
 
 The detailed sections below include P0 and later architectural designs. Apply the current scope and domain-owned contracts above when reading older examples.

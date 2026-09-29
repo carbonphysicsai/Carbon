@@ -8,6 +8,12 @@
 > `docs/development/RESEARCH_ENVIRONMENT_STANDARD.md`. Official evaluation
 > material still never reaches a sandbox.
 
+> **OWNER-TRAINING-BUDGET-STUDY-01 (2026-09-29):** every Challenge completes
+> the training budget study (`docs/development/CHALLENGE_TRAINING_BUDGET_STUDY.md`)
+> with its own sheet before its training limit is set and before it pays
+> rewards. Readiness records enforce it; rules R1-R8 are frozen by digest.
+> Launch path v1.0.8.
+
 > **OWNER-C-W1-D3-DELEGATION-01:** Ryan delegates provisional scientific and
 > engineering choices only for the separately typed, non-paying C-W1-D3
 > DEVELOPMENT rule. See `.agent/DECISIONS.md` and

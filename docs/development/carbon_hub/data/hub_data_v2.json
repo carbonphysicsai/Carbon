@@ -3172,6 +3172,27 @@
         "map_ref": "SYSTEM/DEVELOPMENT-SEQUENCING"
       },
       {
+        "id": "launch-training-budget-study",
+        "match_type": "exact",
+        "path": "launch/Carbon_Testnet_to_Mainnet_Launch_Path_v1.0.8.md",
+        "impact_class": "map_structural",
+        "map_ref": "SYSTEM/DEVELOPMENT-SEQUENCING"
+      },
+      {
+        "id": "training-budget-study-spec",
+        "match_type": "prefix",
+        "path": "docs/development/training_budget_study/",
+        "impact_class": "mapped_detail",
+        "map_ref": "SYSTEM/DEVELOPMENT-SEQUENCING"
+      },
+      {
+        "id": "training-budget-study-spec-doc",
+        "match_type": "exact",
+        "path": "docs/development/CHALLENGE_TRAINING_BUDGET_STUDY.md",
+        "impact_class": "mapped_detail",
+        "map_ref": "SYSTEM/DEVELOPMENT-SEQUENCING"
+      },
+      {
         "id": "root-agent-instructions",
         "match_type": "exact",
         "path": "AGENTS.md",

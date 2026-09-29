@@ -200,7 +200,7 @@
     "basis": "2,604 main-run references all OK (recounted), all 7 frozen verification criteria passed on 200 private cases, and the fresh finalist comparison stopped every memorizing candidate (RESULT sections 1 to 4).",
     "decision": "PROCEED"
   },
-  "record_version": 2,
+  "record_version": 3,
   "reference": {
     "applicability": "The declared input box only; 30 cycles; the specified model, not real cells (RESULT section 11 item 7). Solver licence and redistribution review are not recorded here.",
     "evidence": [
@@ -234,7 +234,7 @@
       "state": "IN_REVIEW"
     }
   },
-  "schema": "carbon.challenge-readiness.v1",
+  "schema": "carbon.challenge-readiness.v2",
   "sources": [
     "docs/development/EXAM_DESIGN_CAMPAIGN_RESULT.md",
     "docs/development/BATTERY_EXAM_METHOD_RECORD.md",
@@ -244,6 +244,11 @@
   ],
   "status": "PROPOSED_DEVELOPMENT_DESIGN",
   "tracking": "carbonphysicsai/Carbon#341",
+  "training_budget_study": {
+    "decision": null,
+    "result": null,
+    "state": "NOT_STARTED"
+  },
   "unresolved": [
     "Security: OD-3 approves the reconstruction and truth images for the testnet run only; launch-grade acceptance (validator_launch isolation) is outstanding.",
     "Scientific: every limit above is a provisional DEVELOPMENT value; none is scientifically approved.",

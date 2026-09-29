@@ -110,7 +110,7 @@
     "basis": "No reference pilot has run.",
     "decision": "NONE"
   },
-  "record_version": 1,
+  "record_version": 2,
   "reference": {
     "applicability": "Candidate: FEMM or a Linux-capable FEM alternative, to be assessed; host automation and licensing must be verified, not assumed (#344). Nothing is pinned or run.",
     "evidence": [],
@@ -140,13 +140,18 @@
       "state": "NOT_STARTED"
     }
   },
-  "schema": "carbon.challenge-readiness.v1",
+  "schema": "carbon.challenge-readiness.v2",
   "sources": [
     "carbonphysicsai/Carbon#344",
     "carbonphysicsai/Carbon#341"
   ],
   "status": "PROPOSED_DEVELOPMENT_DESIGN",
   "tracking": "carbonphysicsai/Carbon#344",
+  "training_budget_study": {
+    "decision": null,
+    "result": null,
+    "state": "NOT_STARTED"
+  },
   "unresolved": [
     "Material curves, axial length and the exclusions (end effects, thermal duty, stress, acoustics, drive control) are not yet specified.",
     "Solver choice, Linux automation and licence are unverified.",

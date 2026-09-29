@@ -119,7 +119,7 @@ REFUSALS = [
     (BATTERY, _set(("limits", 0, "unit"), "percent"), "unsupported_unit"),
     (
         "chip-cold-plate",
-        _set(("schema",), "carbon.challenge-readiness.v2"),
+        _set(("schema",), "carbon.challenge-readiness.v1"),
         "unsupported_schema",
     ),
     ("chip-cold-plate", _set(("record_version",), 0), "unsupported_record_version"),
@@ -177,6 +177,41 @@ REFUSALS = [
         "chip-cold-plate",
         _set(("reviews", "customer"), {"state": "NOT_STARTED", "authority": "OWNER-X"}),
         "authority_without_approval",
+    ),
+    # the training budget study (OWNER-TRAINING-BUDGET-STUDY-01)
+    (
+        "chip-cold-plate",
+        lambda d: d.pop("training_budget_study"),
+        "exact_keys_required",
+    ),
+    (
+        BATTERY,
+        _set(("training_budget_study", "state"), "DONE"),
+        "invalid_training_budget_study",
+    ),
+    (
+        BATTERY,
+        _set(("training_budget_study", "state"), "COMPLETE"),
+        "study_finished_without_result",
+    ),
+    (
+        BATTERY,
+        _set(("training_budget_study", "result"), "docs/development/X.md"),
+        "study_result_before_finish",
+    ),
+    (
+        BATTERY,
+        lambda d: d["training_budget_study"].update(
+            state="COMPLETE", result="docs/development/X.md"
+        ),
+        "study_complete_without_owner_decision",
+    ),
+    (
+        BATTERY,
+        lambda d: d["training_budget_study"].update(
+            state="STOPPED", result="docs/development/X.md", decision="OWNER-X"
+        ),
+        "study_decision_before_complete",
     ),
 ]
 
@@ -250,3 +285,49 @@ def test_a_record_must_live_under_its_own_name(tmp_path):
 def test_the_published_table_matches_the_records():
     doc = (REPOSITORY / "docs/development/CHALLENGE_READINESS.md").read_text()
     assert readiness.table(readiness.load_all()) in doc
+
+
+def _all_reviews_approved(document):
+    for axis in readiness.REVIEW_AXES:
+        document["reviews"][axis] = {"state": "APPROVED", "authority": "OWNER-X"}
+
+
+def test_launch_is_refused_until_the_training_budget_study_is_complete():
+    """No Challenge goes live without its training budget study: with every
+    other review approved, launch approval is refused for each unfinished
+    study state, and a stopped study (no limit chosen) does not count."""
+    for state, result in (
+        ("NOT_STARTED", None),
+        ("IN_PROGRESS", None),
+        ("STOPPED", "docs/development/X_TRAINING_BUDGET_STUDY_RESULT.md"),
+    ):
+
+        def unfinished(document, state=state, result=result):
+            _all_reviews_approved(document)
+            document["training_budget_study"].update(state=state, result=result)
+
+        with pytest.raises(readiness.ReadinessError) as refused:
+            readiness.validate(_mutated(BATTERY, unfinished))
+        assert refused.value.code == "launch_approved_before_training_budget_study"
+
+    # Specimen: the same record with a completed study and its owner decision
+    # is accepted, so the refusal above is about the study and nothing else.
+    def complete(document):
+        _all_reviews_approved(document)
+        document["training_budget_study"] = {
+            "state": "COMPLETE",
+            "result": "docs/development/X_TRAINING_BUDGET_STUDY_RESULT.md",
+            "decision": "OWNER-X",
+        }
+
+    readiness.validate(_mutated(BATTERY, complete))
+
+
+def test_every_record_starts_without_a_training_budget_study():
+    for path in readiness.RECORDS.glob("*.json"):
+        document, _ = readiness.load(path)
+        assert document["training_budget_study"] == {
+            "state": "NOT_STARTED",
+            "result": None,
+            "decision": None,
+        }

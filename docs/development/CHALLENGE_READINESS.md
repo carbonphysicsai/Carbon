@@ -2,9 +2,16 @@
 
 **What this is.** It is #347's first deliverable. There is one versioned
 readiness record per launch-portfolio Challenge:
-- `carbon/challenge_readiness/records/<challenge_id>.v1.json`;
+- `carbon/challenge_readiness/records/<challenge_id>.v<N>.json`;
 - validated by `carbon/challenge_readiness/record.py`;
-- schema `carbon.challenge-readiness.v1`.
+- schema `carbon.challenge-readiness.v2`.
+
+**The training budget study** (OWNER-TRAINING-BUDGET-STUDY-01, schema v2).
+Every record carries a required `training_budget_study` block: its state,
+result report and owner decision. The validator refuses a launch approval
+unless the study is `COMPLETE`, so no Challenge can go live without it.
+Every record starts `NOT_STARTED`. The spec is
+`docs/development/CHALLENGE_TRAINING_BUDGET_STUDY.md`.
 
 The portfolio is battery, AI-chip cold plates, electric motors and silicon
 photonics (OWNER-LAUNCH-PORTFOLIO-01). The records make them comparable for
