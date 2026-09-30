@@ -144,11 +144,38 @@
     return { name: limit.name, proposed: limit.proposed, approved: limit.approved, unit: limit.unit, basis: limit.basis };
   }
 
+  // Why the evidence does not cover this brief, if it does not (slice 3). A
+  // unit to confirm is not a reason: it is a question for the client.
+  function campaignNeed(record, family, conditions, extra) {
+    const reasons = [];
+    if (!family) reasons.push("No Carbon family matches this brief, so a new family would need its own reference, measurements and exam-design study.");
+    else if (!family.evidence) reasons.push(`${family.title} has no exam-design evidence yet.`);
+    for (const c of conditions.filter((x) => x.status === "OUTSIDE_TESTED_RANGE"))
+      reasons.push(`${c.variable} is outside the range Carbon tested (${c.tested_range[0]} to ${c.tested_range[1]} ${c.unit}).`);
+    if (family && extra.length) reasons.push(`Your brief varies ${extra.join(", ")}, which the tested design does not.`);
+    if (!reasons.length) return null;
+    const plan = record.campaign_plan;
+    return {
+      reasons,
+      title: plan.title,
+      purpose: plan.purpose,
+      source: plan.source,
+      questions: plan.questions,
+      stages: plan.stages,
+      cannot_establish: plan.cannot_establish,
+      training_budget: plan.training_budget.summary,
+      // For scale only, and only where Carbon measured it.
+      measured: family && family.evidence
+        ? { prior_spend: plan.prior_spend, per_item: family.costs.filter((c) => c.basis === "measured") }
+        : null,
+    };
+  }
+
   function propose(draft, record, familyId = null) {
     const matches = match(draft, record);
     const chosenId = familyId || matches[0]?.family_id || null;
     const base = { version: PROPOSAL_VERSION, draft: { draft_id: draft.draft_id, revision_id: draft.revision_id }, matches, authority: "PROPOSAL_ONLY_NOT_REGISTERED_QUALIFIED_OR_APPROVED" };
-    if (!chosenId) return { ...base, kind: KIND.NONE, family: null };
+    if (!chosenId) return { ...base, kind: KIND.NONE, family: null, campaign: campaignNeed(record, null, [], []) };
     const family = record.families.find((f) => f.id === chosenId);
     if (!family) throw Error("Unknown Challenge family: " + chosenId);
     const conditions = family.design_variables.map((v) => condition(v, draft.system ? draft.system.inputs : []));
@@ -175,6 +202,7 @@
       outputs: outputsCoverage(family, draft.system),
       costs: family.costs,
     };
+    common.campaign = campaignNeed(record, family, conditions, common.extra_client_inputs);
     if (!family.evidence) return { ...common, kind: KIND.SCOPED, evidence: null, settings: [] };
     const evidence = record.evidence[family.evidence];
     const outside = conditions.some((c) => c.status === "OUTSIDE_TESTED_RANGE");
@@ -190,7 +218,8 @@
   function markdown(p) {
     const lines = ["# Proposed Challenge: draft for Carbon review", "", `Brief ${p.draft.draft_id} / ${p.draft.revision_id}. ${p.version}.`, "", "This proposal is computed in your browser from Carbon's public records. It registers, runs, prices and approves nothing, and it is not a scientific assessment.", ""];
     if (p.kind === KIND.NONE) {
-      lines.push("No launch-portfolio family matched this brief. Carbon would scope it from the start: a new family needs its own reference, measurements and exam-design study.");
+      lines.push("No launch-portfolio family matched this brief. Carbon would scope it from the start: a new family needs its own reference, measurements and exam-design study.", "");
+      campaignMarkdown(p.campaign, lines);
       return lines.join("\n") + "\n";
     }
     lines.push(`## Family: ${p.family.title}`, "", `Status: ${p.family.status}. Training budget study: ${p.family.training_budget_study}.`, "", `Carbon's tested decision: ${p.family.engineering_decision}`, "", `Where the evidence applies: ${p.family.reference_applicability}`, "");
@@ -212,11 +241,29 @@
     } else {
       lines.push("", "## No exam-design evidence yet", "", "Carbon has scoped this family but has not run its exam-design campaign, so no setting is proposed. What would come first:", "", `- ${p.family.next_experiment}`, "", "Cost items not yet measured: " + p.costs.filter((c) => c.basis === "unknown").map((c) => c.item).join(", ") + ".", "");
     }
+    campaignMarkdown(p.campaign, lines);
     lines.push("## Open items", "", ...p.family.unresolved.map((u) => "- " + u), "");
     return lines.join("\n") + "\n";
   }
 
-  const api = { PROPOSAL_VERSION, KIND, match, propose, markdown, clientText };
+  // A cost as recorded. The record's unit already names its currency.
+  function costText(item) {
+    return /^USD\b/.test(item.unit) ? `${item.usd} ${item.unit}` : `USD ${item.usd} ${item.unit}`;
+  }
+
+  function campaignMarkdown(c, lines) {
+    if (!c) return;
+    lines.push(`## ${c.title}`, "", ...c.reasons.map((r) => "- " + r), "", c.purpose, "", "A study answers these questions:", "", ...c.questions.map((q, i) => `${i + 1}. ${q}`), "");
+    lines.push("| " + c.stages.columns.join(" | ") + " |", "|" + c.stages.columns.map(() => "---").join("|") + "|", ...c.stages.rows.map((r) => "| " + r.join(" | ") + " |"), "", `Stages as Carbon ran them in its first campaign (${c.source.path}).`, "");
+    if (c.measured) {
+      lines.push(`For scale, measured compute: ${c.measured.prior_spend.label}: ${c.measured.prior_spend.value}.`);
+      for (const item of c.measured.per_item) lines.push(`- ${item.item}: ${costText(item)}.`);
+      lines.push("Compute only; not a price, a quote or a commitment to run.", "");
+    }
+    lines.push("A study of this kind cannot establish: " + c.cannot_establish.join(" ").replace(/\.$/, "") + ".", "", c.training_budget, "");
+  }
+
+  const api = { PROPOSAL_VERSION, KIND, match, propose, markdown, clientText, costText };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.CarbonChallengeProposal = api;
 })(typeof globalThis !== "undefined" ? globalThis : this);

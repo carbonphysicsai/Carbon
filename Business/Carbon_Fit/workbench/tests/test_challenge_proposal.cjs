@@ -177,3 +177,55 @@ test("the built Pilot Designer carries the proposal and its record under its con
   const embedded = JSON.parse(html.match(/<script id="challenge-families" type="application\/json">([^<]*)<\/script>/)[1]);
   assert.deepEqual(embedded, RECORD);
 });
+
+// Slice 3: what a new study would need, and only when the evidence does not cover the brief.
+test("a brief inside the tested design needs no new study", () => {
+  const proposal = P.propose(batteryBrief([input("inp_amb", "Ambient temperature", "degC", 10, 35)]), RECORD);
+  assert.equal(proposal.campaign, null);
+  // A unit to confirm is a question for the client, not a reason for a study.
+  assert.equal(P.propose(batteryBrief([input("inp_amb", "Ambient temperature", "K", 283, 308)]), RECORD).campaign, null);
+});
+
+test("a range outside the evidence explains why and relays the measured cost for scale", () => {
+  const proposal = P.propose(batteryBrief([input("inp_rate", "First-stage charge rate", "C-rate", 0.5, 3), input("inp_tab", "Tab cooling coefficient", "W/m2K", 5, 50)]), RECORD);
+  const c = proposal.campaign;
+  assert.ok(c.reasons.some((r) => r.startsWith("c1 is outside the range Carbon tested (0.5 to 2 C-rate)")));
+  assert.ok(c.reasons.some((r) => r.includes("Tab cooling coefficient")));
+  assert.equal(c.measured.prior_spend.value, "USD 4.80 billed");
+  assert.ok(c.measured.per_item.length > 0 && c.measured.per_item.every((item) => item.basis === "measured" && typeof item.usd === "number"));
+  const md = P.markdown(proposal);
+  assert.match(md, /Compute only; not a price, a quote or a commitment to run\./);
+  assert.match(md, /\| 5 Freeze & verify \|/);
+});
+
+test("a family without evidence, and a brief with no family, get the plan without a cost", () => {
+  const cooling = JSON.parse(fs.readFileSync(path.join(ROOT, "intake/fixtures/cooling_system_draft_v2.json"), "utf8"));
+  const scoped = P.propose(cooling, RECORD).campaign;
+  assert.match(scoped.reasons[0], /has no exam-design evidence yet/);
+  assert.equal(scoped.measured, null);
+  const none = P.propose(brief({ intended_decision: "Something Carbon has no family for" }), RECORD);
+  assert.equal(none.kind, P.KIND.NONE);
+  assert.match(none.campaign.reasons[0], /No Carbon family matches/);
+  assert.equal(none.campaign.measured, null);
+});
+
+test("the plan is the specification's own words: seven questions, five stages, five gaps", () => {
+  const plan = RECORD.campaign_plan;
+  const spec = fs.readFileSync(path.join(REPO, plan.source.path), "utf8").replaceAll("**", "").replaceAll("`", "").replace(/\n\s+/g, " ");
+  assert.equal(plan.questions.length, 7);
+  for (const q of plan.questions) assert.ok(spec.includes(q), q);
+  assert.deepEqual(plan.stages.rows.map((r) => r[0]), ["1 Pilot", "2 References", "3 Reconstruction", "4 Settings", "5 Freeze & verify"]);
+  assert.equal(plan.cannot_establish.length, 5);
+  for (const gap of plan.cannot_establish) assert.ok(spec.includes(gap), gap);
+});
+
+test("the relayed spend carries no account balance", () => {
+  // Specimen: the source line does carry one, so the check below can fail.
+  const result = fs.readFileSync(path.join(REPO, "docs/development/EXAM_DESIGN_CAMPAIGN_RESULT.md"), "utf8");
+  const line = result.split("\n").find((l) => l.includes("USD 4.80 billed"));
+  const figure = /balance \d/;
+  assert.match(line, figure);
+  const text = JSON.stringify(RECORD);
+  assert.doesNotMatch(text, figure);
+  for (const amount of line.match(/\d+\.\d+ → \d+\.\d+/)[0].split(" → ")) assert.ok(!text.includes(amount), amount);
+});

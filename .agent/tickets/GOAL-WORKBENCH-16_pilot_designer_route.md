@@ -16,7 +16,7 @@ Recorded as `OWNER-PILOT-DESIGNER-ROUTE-01` in `.agent/DECISIONS.md`.
 Primary Development Hub map_ref: `SYSTEM/BUSINESS-AUTHORITY`; impact
 `mapped_detail`.
 
-Status: slice 1 merged (#448, e27a7adb3). Slice 2 in progress. One pull request per slice, each based on main.
+Status: slice 1 merged (#448, e27a7adb3); slice 2 merged (#449, ac75b4f76). Slice 3 in progress. One pull request per slice, each based on main.
 
 ## Why
 
@@ -120,3 +120,22 @@ guided AI conversation and the encrypted handover.
 - **D10. The proposal stays out of the brief format.** It is recomputable from
   the brief, so the reviewed package is unchanged; the client can download it
   as Markdown. It is not sent to the guidance provider.
+
+## Slice 3 decisions
+
+- **D11. Say why the evidence does not cover a brief, and only then.** A
+  proposal carries a "what a new study would need" section when its family has
+  no evidence, when no family matches, when a client range is outside the
+  tested range, or when the client varies an input the tested design does not.
+  A unit to confirm is a question for the client, not a reason for a study.
+- **D12. The plan is Carbon's own, relayed.** The questions a study answers,
+  its stages and what it cannot establish are extracted from the named sections
+  of `docs/development/EXAM_DESIGN_CAMPAIGN_SPECIFICATION.md`, and the build
+  stops if a section disappears. The training budget study requirement is
+  quoted from its specification.
+- **D13. Measured compute, for scale, and only where measured.** For a family
+  with evidence, the section shows the first campaign's billed compute (quoted
+  as `USD 4.80 billed`, without the account balance on the same source line)
+  and the record's measured per-item costs, labelled as compute only and not a
+  price, a quote or a commitment to run. A family without evidence shows no
+  figure.

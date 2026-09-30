@@ -95,6 +95,16 @@
     NEEDED_NO_TESTED_RANGE: "needed; no tested range yet",
   };
   const table = (columns, rows) => `<div class="table-wrap"><table><thead><tr>${columns.map((c) => `<th scope="col">${esc(c)}</th>`).join("")}</tr></thead><tbody>${rows.map((r) => `<tr>${r.map((c) => `<td>${esc(c)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+  function campaignHtml(c) {
+    if (!c) return "";
+    let html = `<section class="campaign" aria-labelledby="campaign-title"><h3 id="campaign-title">${esc(c.title)}</h3><ul>${c.reasons.map((r) => `<li>${esc(r)}</li>`).join("")}</ul><p class="field-note">${esc(c.purpose)}</p>`;
+    html += `<details class="method"><summary>The questions a study answers (${c.questions.length})</summary><ol>${c.questions.map((q) => `<li>${esc(q)}</li>`).join("")}</ol></details>`;
+    html += `<details class="method"><summary>How Carbon ran its first campaign, stage by stage</summary>${table(c.stages.columns, c.stages.rows)}<p class="field-note">Source: ${esc(c.source.path)}.</p></details>`;
+    if (c.measured) html += `<p><strong>For scale, measured compute.</strong> ${esc(c.measured.prior_spend.label)}: ${esc(c.measured.prior_spend.value)}.</p><ul>${c.measured.per_item.map((i) => `<li>${esc(i.item)}: ${esc(P.costText(i))}</li>`).join("")}</ul><p class="field-note">Compute only. Not a price, a quote or a commitment to run.</p>`;
+    html += `<p class="field-note">A study of this kind cannot establish: ${esc(c.cannot_establish.join(" "))}</p><p class="field-note">${esc(c.training_budget)}</p></section>`;
+    return html;
+  }
+
   function renderProposal(draft) {
     let proposal;
     try { proposal = P.propose(draft, FAMILIES, proposalFamily); } catch (error) { proposalFamily = null; proposal = P.propose(draft, FAMILIES); }
@@ -108,7 +118,8 @@
       }).join("");
     const view = $("proposal-view");
     if (proposal.kind === P.KIND.NONE) {
-      view.innerHTML = `<div class="boundary"><strong>No launch-portfolio family matches this brief yet.</strong> Describe the system and what you need to predict, in the form or in Your system, and the proposal will follow. A problem outside Carbon's current families is still welcome: Carbon would scope it from the start, and a new family needs its own reference, measurements and exam-design study.</div><p class="field-note">Families Carbon has records for: ${esc(FAMILIES.families.map((f) => f.title).join(", "))}.</p>`;
+      const blank = !P.clientText(draft).trim();
+      view.innerHTML = `<div class="boundary"><strong>No launch-portfolio family matches this brief yet.</strong> Describe the system and what you need to predict, in the form or in Your system, and the proposal will follow. A problem outside Carbon's current families is still welcome: Carbon would scope it from the start.</div><p class="field-note">Families Carbon has records for: ${esc(FAMILIES.families.map((f) => f.title).join(", "))}.</p>${blank ? "" : campaignHtml(proposal.campaign)}`;
       return;
     }
     const f = proposal.family;
@@ -129,6 +140,7 @@
       const unknown = proposal.costs.filter((c) => c.basis === "unknown").map((c) => c.item);
       html += `<h3>No exam-design evidence yet</h3><p>Carbon has scoped this family but has not run its exam-design campaign, so no exam setting is proposed. The first step on record:</p><p class="clarification">${esc(f.next_experiment)}</p>${unknown.length ? `<p class="field-note">Cost items not yet measured: ${esc(unknown.join(", "))}. No figure is shown until it is measured.</p>` : ""}`;
     }
+    html += campaignHtml(proposal.campaign);
     html += `<details class="method"><summary>Open items Carbon still has to resolve (${f.unresolved.length})</summary><ul>${f.unresolved.map((u) => `<li>${esc(u)}</li>`).join("")}</ul></details>`;
     view.innerHTML = html;
   }
