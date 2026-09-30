@@ -270,8 +270,7 @@ class Inbox:
     def __init__(self, path):
         self.path = Path(path)
         with self._db() as db:
-            db.executescript(
-                """
+            db.executescript("""
                 CREATE TABLE IF NOT EXISTS inbox (
                   submission_id TEXT PRIMARY KEY,
                   hotkey TEXT NOT NULL,
@@ -281,8 +280,7 @@ class Inbox:
                     CHECK(state IN ('RECEIVED','ADMITTED','REFUSED')),
                   failure TEXT
                 );
-                """
-            )
+                """)
         self.path.chmod(0o600)
 
     @contextlib.contextmanager
