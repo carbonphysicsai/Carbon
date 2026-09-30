@@ -35,9 +35,9 @@ def test_pinned_localnet_submission_reward_publication_and_recovery(tmp_path):
     private = os.environ.get("CARBON_LOCALNET_STATE")
     if private:
         tmp_path = Path(private).absolute()
-        assert not tmp_path.exists(), (
-            "Never overwrite or blindly replay an existing localnet session"
-        )
+        assert (
+            not tmp_path.exists()
+        ), "Never overwrite or blindly replay an existing localnet session"
         tmp_path.mkdir(parents=True, mode=0o700)
     directory = Path(os.environ["CARBON_LOCALNET_EVIDENCE"])
     report = {
@@ -251,9 +251,9 @@ def test_pinned_localnet_submission_reward_publication_and_recovery(tmp_path):
                 write_evidence(directory / "integration.json", report)
                 assert caps.burn_mode == "Burn"
                 sample["miner_burned_q32"] = miner_burned_q32(values[0])
-                assert sample["miner_burned_q32"] > 0, (
-                    "No miner burn observed in finalized epoch"
-                )
+                assert (
+                    sample["miner_burned_q32"] > 0
+                ), "No miner burn observed in finalized epoch"
                 write_evidence(directory / "integration.json", report)
                 return sample
 
