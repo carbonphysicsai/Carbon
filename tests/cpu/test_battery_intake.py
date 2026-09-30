@@ -7,6 +7,7 @@ SECURITY_QUALIFIED.
 """
 
 import json
+import re
 import sys
 import threading
 import time
@@ -27,6 +28,7 @@ from test_battery_validator_daemon import (
     refs,  # noqa: F401 - fixture
 )
 
+from carbon.battery import exam
 from carbon.battery import intake as ib
 from carbon.battery import intake_client as ic
 from carbon.battery.daemon import (
@@ -66,9 +68,8 @@ def snapshot(block=100):
     )
 
 
-@pytest.fixture
-def deployed(tmp_path, refs, backend):  # noqa: F811
-    target = make(tmp_path, refs, backend)
+def build(tmp_path, refs, backend, rule=None):  # noqa: F811
+    target = make(tmp_path, refs, backend, rule=rule)
     target.lock_path = str(tmp_path / "state.sqlite3.lock")
     window = ib.SnapshotWindow()
     window.add(snapshot())
@@ -82,8 +83,19 @@ def deployed(tmp_path, refs, backend):  # noqa: F811
         inbox=ib.Inbox(tmp_path / "inbox.sqlite3"),
         window=window,
         status_reader=target.outcome,
+        rule=target.rule if rule is not None else None,
     )
     return intake, target
+
+
+@pytest.fixture
+def deployed(tmp_path, refs, backend):  # noqa: F811
+    return build(tmp_path, refs, backend)
+
+
+@pytest.fixture
+def deployed_v2(tmp_path, refs, backend):  # noqa: F811
+    return build(tmp_path, refs, backend, rule=exam.DEVELOPMENT_RULE_V2)
 
 
 def facts(intake):
@@ -293,3 +305,94 @@ def test_one_submission_over_real_http(deployed):
     finally:
         httpd.shutdown()
         httpd.server_close()
+
+
+# --- rule v2: one submission per hotkey per tempo, and clear feedback -----------
+
+OTHER_STRATEGY = {**STRATEGY, "parameters": {"neighbours": 9}}
+
+
+def test_the_public_facts_say_when_a_hotkey_may_submit(deployed_v2):
+    intake, _ = deployed_v2
+    rule = facts(intake)["submission_rule"]
+    assert rule["per_hotkey"] == {"scored_per_window": 1, "window_blocks": 360}
+    assert rule["current_window"] == {"start_block": 0, "end_block": 360}
+
+
+def test_a_second_submission_in_one_tempo_is_answered_at_once(deployed_v2):
+    intake, _ = deployed_v2
+    first = ic.submission_message(facts(intake), STRATEGY, DIGEST, request="a")
+    assert post(intake, MINER, first).status == 202
+    second = ic.submission_message(facts(intake), OTHER_STRATEGY, DIGEST, request="b")
+    answer = post(intake, MINER, second)
+    assert answer.status == 429
+    assert answer.body == {
+        "refused": "hotkey_window_used",
+        "next_block": 360,
+        "retry_after_s": (360 - 100) * 12,
+    }
+    text = ic.describe(answer.status, answer.body)
+    assert "block 360" in text and "about 52 min" in text
+    # Another hotkey is unaffected, and a resend of the first is not refused.
+    other = ic.submission_message(facts(intake), STRATEGY, DIGEST, request="c")
+    assert post(intake, OTHER, other).status == 202
+    again = ic.submission_message(facts(intake), STRATEGY, DIGEST, request="d")
+    assert post(intake, MINER, again).status == 202
+
+
+def test_a_window_refusal_at_admission_can_be_resent_next_tempo(deployed_v2):
+    intake, target = deployed_v2
+    # The hotkey's window is used by a submission that reached the daemon by
+    # another path (the in-process campaign), which the inbox never saw.
+    direct = AuthenticatedSubmission(
+        MINER.ss58_address,
+        {"sequence": 1, "digest": "0" * 64, "block": 150},
+        STRATEGY["challenge_id"],
+        "1.0",
+        OTHER_STRATEGY,
+        DIGEST,
+    )
+    target.admit(direct)
+    body = ic.submission_message(facts(intake), STRATEGY, DIGEST, request="a")
+    sid = post(intake, MINER, body).body["submission_id"]
+    ib.work_once(intake.inbox, target)
+    status = post(intake, MINER, ic.status_message(facts(intake), sid, request="s"))
+    assert status.body["state"] == "REFUSED"
+    assert status.body["failure"] == {"code": "hotkey_window_used", "next_block": 360}
+    assert "block 360" in ic.describe(status.status, status.body)
+
+    intake.window.add(snapshot(400))
+    resend = ic.submission_message(facts(intake), STRATEGY, DIGEST, request="r")
+    assert post(intake, MINER, resend).body == {
+        "submission_id": sid,
+        "state": "RECEIVED",
+    }
+    ib.work_once(intake.inbox, target)
+    done = post(intake, MINER, ic.status_message(facts(intake), sid, request="t"))
+    assert done.body["state"] == "SCORED"
+    assert ic.describe(done.status, done.body).startswith("Scored on pool version")
+
+
+def test_every_refusal_code_has_a_plain_explanation():
+    from carbon.chain.auth import AuthCode
+    from carbon.transport.models import TransportCode
+
+    source = (REPOSITORY / "carbon/battery/intake.py").read_text()
+    intake_codes = set(re.findall(r'_refused\(\s*\d+,\s*"([a-z_]+)"\)', source))
+    worker_codes = {"hotkey_window_used", "receipt_block_missing"}
+    codes = (
+        intake_codes
+        | worker_codes
+        | {c.value for c in TransportCode}
+        | {c.value for c in AuthCode}
+    )
+    # Specimen: the source scan found the intake's own codes.
+    assert {"rate", "snapshot_unknown", "inbox_full"} <= intake_codes
+    missing = codes - set(ic.REFUSALS)
+    assert missing == set()
+
+
+def test_describe_never_calls_a_failure_of_the_validator_a_verdict():
+    for state in ("FAILED_INFRA", "FAILED_INFRA_EXHAUSTED"):
+        text = ic.describe(200, {"state": state})
+        assert "not a verdict on your recipe" in text
