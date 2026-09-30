@@ -337,6 +337,32 @@ class SourceTests(unittest.TestCase):
                     json.loads((fixtures / name).read_text()), intake_v2
                 )
 
+    def test_challenge_family_record_is_regenerated_from_repository_sources(self):
+        # GOAL-WORKBENCH-16 slice 2. The record relays readiness records and
+        # quoted campaign evidence from outside the Workbench, so the release
+        # freshness gate (which stages Workbench sources only) cannot rebuild
+        # it. This does: the committed bytes must equal a fresh build from the
+        # repository as it stands, and every quote must still be verbatim.
+        record = ROOT / "data/challenge_families_v1.json"
+        committed = record.read_bytes()
+        try:
+            subprocess.run(
+                ["/usr/bin/python3", str(ROOT / "tools/build_challenge_families.py")],
+                check=True,
+                capture_output=True,
+            )
+            self.assertEqual(committed, record.read_bytes())
+        finally:
+            record.write_bytes(committed)
+        document = json.loads(committed)
+        self.assertEqual(
+            document["schema"], "carbon.pilot-designer.challenge-families.v1"
+        )
+        for family in document["families"]:
+            self.assertEqual(family["status"], "PROPOSED_DEVELOPMENT_DESIGN")
+            for limit in family["limits"]:
+                self.assertIsNone(limit["approved"])
+
     def test_repository_snapshot_schemas_are_deeply_closed_and_reproducible(self):
         tool = ROOT / "tools/build_repository_snapshot_schemas.py"
         schema_dir = ROOT / "source_assessment/repository_snapshot/v1/schemas"
@@ -547,6 +573,10 @@ class SourceTests(unittest.TestCase):
                 "data/problem_engine_provenance.json",
                 "data/intake_draft_v2.schema.json",
                 "data/intake_reviewed_v2.schema.json",
+                "src/challenge_proposal.js",
+                "data/challenge_families_v1.json",
+                "data/challenge_evidence_source_v1.json",
+                "tools/build_challenge_families.py",
             ):
                 self.assertIn("carbon_goal_workbench_v0_10/" + name, names)
             self.assertIn("carbon_goal_workbench_v0_10/src/team_review.js", names)

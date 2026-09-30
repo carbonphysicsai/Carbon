@@ -47,7 +47,7 @@ async function upload(page, text, name) {
   await page.goto(PAGE);
 
   // Three editing modes over one draft.
-  check("the page offers three editing modes", (await page.locator(".mode-tabs [role=tab]").count()) === 3);
+  check("the page offers four editing modes, the proposal last", (await page.locator(".mode-tabs [role=tab]").count()) === 4);
   await page.locator("#show-system").click();
   check("Your system opens its own panel and hides the others", await page.locator("#system-panel").isVisible() && !(await page.locator("#guided-panel").isVisible()) && !(await page.locator("#form-panel").isVisible()));
   check("an empty system says so rather than drawing one", (await page.locator("#sb-map").innerText()).includes("Add a component"));
@@ -128,7 +128,7 @@ async function upload(page, text, name) {
   // Keyboard and narrow screens.
   await page.locator("#show-guided").focus();
   await page.keyboard.press("End");
-  check("the End key reaches Your system", (await page.locator("#show-system").getAttribute("aria-selected")) === "true");
+  check("the End key reaches the last mode", (await page.locator("#show-proposal").getAttribute("aria-selected")) === "true");
   await page.keyboard.press("Home");
   check("the Home key returns to the conversation", (await page.locator("#show-guided").getAttribute("aria-selected")) === "true");
   await page.setViewportSize({ width: 390, height: 844 });
