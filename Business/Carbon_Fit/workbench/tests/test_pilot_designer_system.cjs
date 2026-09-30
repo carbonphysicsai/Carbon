@@ -247,3 +247,44 @@ test("the schema's enumerations restate the engine's keys exactly", () => {
   assert.deepEqual(schema.properties.system.required, E.problemKeys);
   assert.deepEqual(schema.properties.system.properties.economics.required, E.econKeys);
 });
+
+// The live /workbench/ page rendered its assistant and send-brief panels twice:
+// its index.html was saved from an already-rendered page, and assist-ui.js
+// inserted both panels again, so 16 element IDs were duplicated and the second
+// copies were never wired. The Pilot Designer is built from a source template;
+// this keeps every ID in it unique.
+test("every element ID in the built Pilot Designer is unique", () => {
+  const ids = (html) => [...html.matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]);
+  const duplicates = (list) => [...new Set(list.filter((id, i) => list.indexOf(id) !== i))];
+  // Specimen: the check finds a doubled ID when one exists.
+  assert.deepEqual(duplicates(ids('<div id="assistant"></div><div id="assistant"></div>')), ["assistant"]);
+  const html = fs.readFileSync(path.join(ROOT, "Carbon_Client_Pilot_Designer_Preview.html"), "utf8");
+  const found = ids(html);
+  assert.ok(found.length > 50);
+  assert.deepEqual(duplicates(found), []);
+});
+
+// GOAL-WORKBENCH-16 migration ticket, sections 4.3 and 5.1.
+test("every control the page ships disabled states its reason beside it", () => {
+  const html = fs.readFileSync(path.join(ROOT, "Carbon_Client_Pilot_Designer_Preview.html"), "utf8");
+  const body = html.slice(html.indexOf("<body"), html.indexOf("<script"));
+  const controls = [...body.matchAll(/<(button|textarea|input|select)\b[^>]*\sdisabled\b[^>]*>/g)].map((m) => m[0]);
+  // Specimen: a disabled control without a described reason is caught.
+  const unexplained = (tags) => tags.filter((tag) => {
+    const ref = /aria-describedby="([^"]+)"/.exec(tag);
+    return !ref || !new RegExp(`id="${ref[1]}"[^>]*>[^<]{10,}`).test(body + '<p id="x">specimen reason</p>');
+  });
+  assert.equal(unexplained(['<button disabled>Go</button>']).length, 1);
+  assert.ok(controls.length >= 5, "the page ships its disabled controls");
+  assert.deepEqual(unexplained(controls), []);
+});
+
+test("the live Workbench's hedges are carried word for word", () => {
+  const source = fs.readFileSync(path.join(ROOT, "src/system_builder.js"), "utf8");
+  for (const phrase of [
+    "Concept diagram. No simulation or feasibility result.",
+    "This is a work list, not a feasibility score.",
+    "These are requested targets. They are not measured performance or a promise of delivery.",
+    "No solver or scientific assessment has run.",
+  ]) assert.ok(source.includes(phrase), phrase);
+});

@@ -88,6 +88,7 @@ const text = async (page, selector) => (await page.locator(selector).textContent
   await page.setViewportSize({ width: 390, height: 844 });
   check("no horizontal page scroll at phone width", await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1));
 
+  check("no element ID is rendered twice with the proposal shown", (await page.evaluate(() => { const seen = new Set(), dup = []; for (const e of document.querySelectorAll("[id]")) { if (seen.has(e.id)) dup.push(e.id); seen.add(e.id); } return dup; })).length === 0);
   check("no page errors", errors.length === 0);
   check("no request left the page", outbound.length === 0);
   await browser.close();

@@ -74,6 +74,8 @@ async function upload(page, text, name) {
   await page.locator("details.leads > summary").click();
   await page.locator("#sb-atlas-search").fill("heat conduction");
   await page.locator("[data-use-lead]").first().click();
+  const duplicateIds = () => page.evaluate(() => { const seen = new Set(), dup = new Set(); for (const e of document.querySelectorAll("[id]")) (seen.has(e.id) ? dup : seen).add(e.id); return [...dup]; });
+  check("no element ID is rendered twice after building a system", (await duplicateIds()).length === 0);
   check("a research lead is added as a component and a lead reference", (await page.locator("#summary-text").innerText()).match(/Research leads: PHY-/) !== null);
 
   // An invalid entry blocks download until corrected.
@@ -135,6 +137,11 @@ async function upload(page, text, name) {
   await page.locator("#show-system").click();
   check("no horizontal page scroll at phone width", await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1));
 
+  const unexplainedDisabled = await page.evaluate(() => [...document.querySelectorAll("button:disabled, input:disabled, textarea:disabled, select:disabled")]
+    .filter((e) => e.getClientRects().length)
+    .filter((e) => { const ref = document.getElementById(e.getAttribute("aria-describedby") || ""); return !ref || !ref.getClientRects().length || ref.textContent.trim().length < 10; })
+    .map((e) => e.id || e.textContent.trim()));
+  check("every visible disabled control points to a visible reason", unexplainedDisabled.length === 0);
   check("no page errors", errors.length === 0);
   check("no request left the page", outbound.length === 0);
   await browser.close();
