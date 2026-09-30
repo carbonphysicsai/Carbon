@@ -16360,6 +16360,34 @@ id is captured. No change to budget or ceilings, to the `AskCarbonUsageLedger`
 Durable Object (never rolled back or deleted), or to Cloudflare Email Routing
 (never enabled). The six cards expiring 2026-10-16 are not refreshed here.
 
+**Deployment event (recorded 2026-09-30).** Ask Carbon bundle `48fd4680…` is
+live. Reported by the owner in session on 2026-09-29: Nick Fitzpatrick deployed
+it as the operator.
+
+| Item | Value | Basis |
+| --- | --- | --- |
+| `carbonwebsite` live version | `dc4469a7-f4da-4437-aaa1-2789277e57fc` | operator, via the owner's report |
+| `carbonwebsite` rollback target | `f7954cb2-b610-40f9-86e6-0a3fe6d04c93`, captured before the build | operator, via the owner's report; now committed to `production-baseline.manifest.json` |
+| `ask-carbon-public` | activated with `wrangler.public-release-active.toml` | operator, via the owner's report |
+| `ask-carbon-public` deployed and rollback version ids | **not supplied to the repository** | The decision requires the Worker rollback target to be captured before deploying. The operator holds it, and it should be recorded here. |
+| Health on both hostnames | `valid:true`, `mode:production`, `active:true`, `reasons:[]`, `model_config_id:gemma-4-31b-turbo-tee:v1`, 27 eligible cards, `ineligible_cards:{}` | measured from this host at 2026-09-30T04:44Z |
+| Static content on both hostnames | 105/105 paths match: the 100 manifest-v3 entries (`index.html` = `b1e8e7cd…`), `ask-carbon.js` `62ba26ce…`, `pilot-designer.html` `4c9f3916…`, `public-knowledge.v1.json` `fab55d5d…`, plus `ask-carbon.css` and `release-contract.js` byte-identical to source revision `368c713e` | measured from this host at 2026-09-30T04:47Z; HTML compared after removing the edge-injected challenge script |
+
+What this does **not** establish: the knowledge embedded in the Worker. `/health`
+reports the same `knowledge_version` for `d937e9ca…` and `fab55d5d…`, which is
+the known limit accepted with this approval. The bundle identity was not
+re-derived from live; the per-path digests were.
+
+This event also completes the WEB-QA-09-D1 static changes (`ask-carbon.js`,
+`pilot-designer.html`) and the Chutes provider switch, which had been approved
+but never deployed on their own.
+
+Operator follow-up: the `carbonwebsite` version id written into the manifest
+for the build was edited on the operator's machine and never committed. It is
+committed now. The manifest also records `dc4469a7` as `deployed_after_capture`.
+`integrate-static.mjs` refuses `--require-complete-bundle` while that marker is
+present, so the next build cannot reuse `f7954cb2` as its rollback target.
+
 ## 2026-09-29 — OWNER-TRAINING-BUDGET-STUDY-01: every Challenge completes a training budget study before its training limit is set and before it pays rewards
 
 **Authority.** The owner, in the Testnet session on 2026-09-29, pasting
