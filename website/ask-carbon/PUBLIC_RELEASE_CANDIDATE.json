@@ -1,24 +1,38 @@
 {
   "schema_version": "carbon.ask-carbon.public-release-candidate.v1",
-  "candidate_id": "ask-carbon-public-release-2026-09-30.1",
-  "status": "BUILT_AWAITING_OWNER_APPROVAL_OF_EXACT_BUNDLE",
-  "status_note": "Built and certified on 2026-09-30 (bundle 86f51385…, 105 files). The owner approved the release in principle before its digests existed; approval of this exact bundle identity is still required (WEB-QA-11-D1). NOT deployed. Deployment is the operator's act from a host holding the Cloudflare credential: static only, carbonwebsite, after re-confirming the live version is dc4469a7.",
+  "candidate_id": "ask-carbon-public-release-2026-09-30.2",
+  "status": "OWNER_APPROVED_PRODUCTION_PUBLICATION",
+  "status_note": "Approved by the owner under WEB-QA-11-D1 on 2026-09-30 against bundle e68e712c… (105 files). NOT deployed. Deployment is the operator's act from a host holding the Cloudflare credential: static only, carbonwebsite, after re-confirming the live version is dc4469a7; a rebuild must reproduce this identity.",
   "public_activation_allowed": true,
   "public_activation_allowed_decision": "WEB-QA-07-D1 (2026-09-22) for the content; WEB-QA-05-D2 (2026-09-19) for the activation itself. Serving answers additionally requires deploying wrangler.public-release-active.toml; the committed candidate config stays disabled as the fail-closed incident response.",
   "owner_authorization": {
     "decision": "WEB-QA-11-D1",
     "recorded_at": "2026-09-30",
     "source": ".agent/DECISIONS.md",
-    "state": "APPROVED_IN_PRINCIPLE_AWAITING_EXACT_BUNDLE",
+    "state": "APPROVED_EXACT_BUNDLE",
     "approval_in_principle": "The owner, in the Workbench session on 2026-09-30: \"Approve 1, how can I do #2\", where item 1 was the Ask Carbon release carrying the new Pilot Designer and replacing /workbench/ with a redirect page. Relayed to the Ask Carbon lane by that session; given before the bundle existed.",
-    "required": "The owner's approval of bundle identity 86f51385e05d6d2aca50c612b11f986916c74210c2bda96ac33ed41dcbc3d14a. A rebuild with a different identity is not the approved artifact.",
+    "required": "Satisfied. A rebuild with a different identity is not the approved artifact and needs a fresh decision.",
     "attaches_to": {
-      "bundle_identity_sha256": "86f51385e05d6d2aca50c612b11f986916c74210c2bda96ac33ed41dcbc3d14a",
-      "integrated_index_sha256": "b1e8e7cdbea3d13d1ea2237e55db279bc962937a6a2cf2a65491dcf8255afd47",
+      "bundle_identity_sha256": "e68e712cecdfd4e4557c987cb01e5927d0294972af09da8e1a454c9b39c11de2",
+      "reviewed_source_index_sha256": "2615131c681efbbf89bec1840d0761313e638a2cb5372a5cc106ef0beb7dd426",
+      "integrated_index_sha256": "aea519e16310bd2ec854e8555424f0208aac4d33d0b6f3c32fb38b2bc2f1ac76",
       "pilot_html_sha256": "be64f8b9a2ab4f420cbe4acbd0087f987fbbe9ccf531d8fb7a3bcf82f8322496",
-      "workbench_index_html_sha256": "9a44f683c743a084b029644956ae19a9f513474acbc665c501e199af8f8b671b",
+      "site_replacements": {
+        "workbench/index.html": "74a707dd4d89e73b8d8005426fe09229c2217e0e0b10f95555af8fc4e973911c",
+        "404.html": "235c82ddb97c08b956fc3e9000177e05e76b35601b5ecb33c373bbd28b674fd5",
+        "about/index.html": "f25833daa8bb349abd10fd01c2756a4e9fbd3d552eb200758429792fcc4cca14",
+        "customers/index.html": "e6aca17e6564cf256ee4caf7d02f734afa6410e5060f35fda89402a28816b0b9",
+        "investors/index.html": "021f27a114d95dbded7dfd966fa22474f63bae67d3b0fec122f511626ad81760",
+        "miners/index.html": "faaab9c79054bea66c55befeb521674638fa01bc792f25d44d2958eee15b2489",
+        "papers/index.html": "245b636df56468bab332f8c1c153f9885bdd5f766bc0ed7a86184c94e23bfaed",
+        "validators/index.html": "ae1933c207bbbe977f1ba2498ddd60173283b1c016c94e30ec1173a78e0371d7"
+      },
       "rollback_target_version_id": "dc4469a7-f4da-4437-aaa1-2789277e57fc (captured by the owner with wrangler on 2026-09-30)"
-    }
+    },
+    "approval_of_2026_09_30_1": "The owner approved bundle 86f51385… first-hand in the Ask Carbon session on 2026-09-30 (\"yes\"), then widened the release (Start a Project and the footer link to the Pilot Designer) and chose to deploy only the new bundle.",
+    "authorization": "APPROVED_PRODUCTION_PUBLICATION",
+    "approval_basis": "OWNER_PUBLICATION_APPROVAL_2026_09_30_WEB_QA_11_D1",
+    "approved_by": "Ryan Bequette (named production incident owner under WEB-QA-05-D2), first-hand in the Ask Carbon session: \"approve\""
   },
   "owner_authorization_superseded_2026_09_24": {
     "decision": "WEB-QA-08-D1",
@@ -173,30 +187,38 @@
     "upload_archive_sha256": "850f85a7bab5eb99ee0190974b9a486264e2a179a4d62b3529484ae27b55379c",
     "previous_live_upload_archive_sha256": "76ec8def33dcca11212e5d383e7a5d6da06bee9f03a92fb4e6e4654dcc198dad",
     "reconciliation_id": null,
-    "reviewed_source_index_sha256": "99be1318deb88923a92d40f07b70779d71c76930478086be0df501e5c8bc9c5b",
-    "integrated_index_sha256": "b1e8e7cdbea3d13d1ea2237e55db279bc962937a6a2cf2a65491dcf8255afd47",
+    "reviewed_source_index_sha256": "2615131c681efbbf89bec1840d0761313e638a2cb5372a5cc106ef0beb7dd426",
+    "integrated_index_sha256": "aea519e16310bd2ec854e8555424f0208aac4d33d0b6f3c32fb38b2bc2f1ac76",
     "launcher_scope": "homepage only (index.html); other pages link to /?ask-carbon=open via the header and mobile sheet",
     "component_js_sha256": "62ba26ce2a2e76dc0b194dc0e7d1d113cbd2c5aa4f9770dce77f1a977e19f7f4",
     "component_css_sha256": "52b6ae6670735774f1db19c1a76b130ca5e5292bd79063edf79e362cd59663a9",
     "pilot_html_sha256": "be64f8b9a2ab4f420cbe4acbd0087f987fbbe9ccf531d8fb7a3bcf82f8322496",
     "release_contract_sha256": "3b91dca55ad7dc787902d307930f8ed018cce42821fdd2fdae42278531ce2329",
     "pilot_html_sha256_note": "GOAL-WORKBENCH-16 Pilot Designer (Workbench lane #448, #449, #450; final at main 1e3292a2): four modes, reviewed-package format carbon.client-intake.reviewed.v2 (v1 still validates), CSP connect-src 'self', guidance context to /api/ask-carbon unchanged. Opens all three /workbench/ save formats under Continue a saved draft. Live serves 4c9f3916… (WEB-QA-10-D1).",
-    "bundle_identity_sha256": "86f51385e05d6d2aca50c612b11f986916c74210c2bda96ac33ed41dcbc3d14a",
+    "bundle_identity_sha256": "e68e712cecdfd4e4557c987cb01e5927d0294972af09da8e1a454c9b39c11de2",
     "staged_file_count": 105,
     "build_certified_utc": "2026-09-30",
-    "build_certification_note": "Built with Node 24.19.0 from main b4871ebcc plus this branch, with --existing-site (the re-derived live baseline), --site-replacements site-replacements.json and --require-complete-bundle. The tool reported baseline_assets_preserved, rollback_target_captured (dc4469a7) and deployable_to_carbonwebsite true, release_authorized false.",
+    "build_certification_note": "Built with Node 24.19.0 from main b4871ebcc plus this branch, with --existing-site (the re-derived live baseline), --input site/homepage.source.html, --site-replacements site-replacements.json (eight pages) and --require-complete-bundle. The tool reported baseline_assets_preserved, rollback_target_captured (dc4469a7) and deployable_to_carbonwebsite true, release_authorized false.",
     "knowledge_json_sha256": "fab55d5dca7f547d47899f29c5cf3b1b0b7ab1674e923da945feef02fd0361a0",
     "changes_against_live": {
-      "compared_utc": "2026-09-30T18:16:28.552Z",
+      "compared_utc": "2026-09-30T18:30:17.955Z",
       "live_version_id": "dc4469a7-f4da-4437-aaa1-2789277e57fc",
       "live_bundle_identity_sha256": "48fd4680a3f408448273ffeae99f333ba8d2cdfd326a8d6f599fa0f73d629085",
       "method": "every one of the 105 staged paths fetched from both hostnames and compared by SHA-256, HTML after removing the edge-injected challenge script and analytics beacon",
       "paths_matching": {
-        "carbonphysics.ai": "103/105",
-        "www.carbonphysics.ai": "103/105"
+        "carbonphysics.ai": "95/105",
+        "www.carbonphysics.ai": "95/105"
       },
       "changed_paths": [
+        "404.html",
+        "about/index.html",
         "ask-carbon/pilot-designer.html",
+        "customers/index.html",
+        "index.html",
+        "investors/index.html",
+        "miners/index.html",
+        "papers/index.html",
+        "validators/index.html",
         "workbench/index.html"
       ],
       "added_paths": [],
@@ -247,11 +269,57 @@
     "site_replacements": [
       {
         "path": "workbench/index.html",
-        "sha256": "9a44f683c743a084b029644956ae19a9f513474acbc665c501e199af8f8b671b",
+        "sha256": "74a707dd4d89e73b8d8005426fe09229c2217e0e0b10f95555af8fc4e973911c",
         "replaces_baseline_sha256": "05018e5c0a13219ddb70906b49c5637464f77356bd93b4852ff3e043b8073d3d",
         "reason": "Retires the /workbench/ page: its capabilities moved into the Pilot Designer (GOAL-WORKBENCH-16). The page tells visitors so, links to /ask-carbon/pilot-designer and redirects there after five seconds. The other workbench/ files stay published so saved drafts and bookmarks keep working."
+      },
+      {
+        "path": "404.html",
+        "sha256": "235c82ddb97c08b956fc3e9000177e05e76b35601b5ecb33c373bbd28b674fd5",
+        "replaces_baseline_sha256": "2f555675ec55a990fe50a7d810df3dd732173f146dd47e0d3adbfbf5eee55f87",
+        "reason": "The owner asked for \"Start a Project\" to go to the Pilot Designer (2026-09-30). The header and mobile-menu Start a Project links, and the footer Workbench link (renamed Pilot Designer), now point to /ask-carbon/pilot-designer. Nothing else on the page changes."
+      },
+      {
+        "path": "about/index.html",
+        "sha256": "f25833daa8bb349abd10fd01c2756a4e9fbd3d552eb200758429792fcc4cca14",
+        "replaces_baseline_sha256": "8f0a0a10c8d91fdd427454e6c4dccd0a86a57d0573294eb807c2d6b082714848",
+        "reason": "The owner asked for \"Start a Project\" to go to the Pilot Designer (2026-09-30). The header and mobile-menu Start a Project links, and the footer Workbench link (renamed Pilot Designer), now point to /ask-carbon/pilot-designer. Nothing else on the page changes."
+      },
+      {
+        "path": "customers/index.html",
+        "sha256": "e6aca17e6564cf256ee4caf7d02f734afa6410e5060f35fda89402a28816b0b9",
+        "replaces_baseline_sha256": "7dd2062fd4030015b64cbaaa5654dea5798fdc55e2bddcb0be09aa4dd4164e22",
+        "reason": "The owner asked for \"Start a Project\" to go to the Pilot Designer (2026-09-30). The header and mobile-menu Start a Project links, and the footer Workbench link (renamed Pilot Designer), now point to /ask-carbon/pilot-designer. Nothing else on the page changes."
+      },
+      {
+        "path": "investors/index.html",
+        "sha256": "021f27a114d95dbded7dfd966fa22474f63bae67d3b0fec122f511626ad81760",
+        "replaces_baseline_sha256": "2eb018bd3dc128b693726e8a0b4db38d0eeca799ee66cda7241b8f8e768317f0",
+        "reason": "The owner asked for \"Start a Project\" to go to the Pilot Designer (2026-09-30). The header and mobile-menu Start a Project links, and the footer Workbench link (renamed Pilot Designer), now point to /ask-carbon/pilot-designer. Nothing else on the page changes."
+      },
+      {
+        "path": "miners/index.html",
+        "sha256": "faaab9c79054bea66c55befeb521674638fa01bc792f25d44d2958eee15b2489",
+        "replaces_baseline_sha256": "88517c7c62c1743f2cd4628e4bf583fd86160fd3ab1f2ac02f7cee3d4ccafe43",
+        "reason": "The owner asked for \"Start a Project\" to go to the Pilot Designer (2026-09-30). The header and mobile-menu Start a Project links, and the footer Workbench link (renamed Pilot Designer), now point to /ask-carbon/pilot-designer. Nothing else on the page changes."
+      },
+      {
+        "path": "papers/index.html",
+        "sha256": "245b636df56468bab332f8c1c153f9885bdd5f766bc0ed7a86184c94e23bfaed",
+        "replaces_baseline_sha256": "fe9f5cb65ca0746d5605c06b0d94737bb987b6865acbf169ba6f8ac917752a09",
+        "reason": "The owner asked for \"Start a Project\" to go to the Pilot Designer (2026-09-30). The header and mobile-menu Start a Project links, and the footer Workbench link (renamed Pilot Designer), now point to /ask-carbon/pilot-designer. Nothing else on the page changes."
+      },
+      {
+        "path": "validators/index.html",
+        "sha256": "ae1933c207bbbe977f1ba2498ddd60173283b1c016c94e30ec1173a78e0371d7",
+        "replaces_baseline_sha256": "d76340edf1ae78d85894017fcf7914f053aadc72884d6a7bc27b53ca98ca138c",
+        "reason": "The owner asked for \"Start a Project\" to go to the Pilot Designer (2026-09-30). The header and mobile-menu Start a Project links, and the footer Workbench link (renamed Pilot Designer), now point to /ask-carbon/pilot-designer. Nothing else on the page changes."
       }
-    ]
+    ],
+    "bundle_identity_sha256_superseded_2026_09_30_1": "86f51385e05d6d2aca50c612b11f986916c74210c2bda96ac33ed41dcbc3d14a",
+    "integrated_index_sha256_superseded_2026_09_30_1": "b1e8e7cdbea3d13d1ea2237e55db279bc962937a6a2cf2a65491dcf8255afd47",
+    "reviewed_source_index_sha256_superseded": "99be1318deb88923a92d40f07b70779d71c76930478086be0df501e5c8bc9c5b",
+    "reviewed_source_index_note": "website/ask-carbon/site/homepage.source.html: the live homepage source 99be1318… with the two Start a Project links and the footer link pointed at /ask-carbon/pilot-designer (footer text Workbench → Pilot Designer). Built with --expected-sha256 of this file."
   },
   "worker": {
     "name": "ask-carbon-public",
@@ -323,8 +391,7 @@
   },
   "budget_note_2026_09_26": "Budget snapshot not re-read (the operator ledger endpoint is staging-only and needs an operator secret). Ceilings are unchanged: USD 50/month shared ledger, 100 requests/day, 12/client/hour, concurrency 4. Default-on live answers will raise request volume toward the daily limit; at the Chutes prices the per-request reservation falls from 5,640 to 3,139 micro-USD at the same 24,000/700 token bounds.",
   "required_before_production_mutation": [
-    "Owner approval of bundle identity 86f51385… (WEB-QA-11-D1)",
-    "Live carbonwebsite version re-confirmed as dc4469a7 with `wrangler deployments status --name carbonwebsite` immediately before deploying; if it has moved, stop and rebuild"
+    "Live carbonwebsite version re-confirmed as dc4469a7 with `wrangler deployments status --name carbonwebsite` immediately before deploying; if it has moved, stop and rebuild for a fresh decision"
   ],
   "required_before_production_mutation_satisfied": {
     "named production incident owner": "WEB-QA-05-D2 (2026-09-19)",
@@ -334,7 +401,8 @@
     "public content approved for display": "WEB-QA-07-D1 (2026-09-22)",
     "owner approval of publication against candidate ask-carbon-public-release-2026-09-24.1": "WEB-QA-08-D1 (2026-09-24), bundle c973a2eaa9039c48df8660d0710f1dc34defe26026b6442b7f7d8aa9cbfc1bfc",
     "owner approval of publication against candidate ask-carbon-public-release-2026-09-26.1": "WEB-QA-09-D1 (2026-09-26), bundle 2fe8eba27fda34610555f49e65f1331d90ee1c3f517b8a729098137be2afb5cf",
-    "Pilot Designer disclosure names the serving provider": "client-intake PR #373 (2026-09-26T16:48Z)"
+    "Pilot Designer disclosure names the serving provider": "client-intake PR #373 (2026-09-26T16:48Z)",
+    "owner approval of the exact bundle e68e712c…": "WEB-QA-11-D1 (2026-09-30)"
   },
   "deployment_order": {
     "decision": "Deploy the inactive ask-carbon-public API Worker BEFORE publishing the carbonwebsite assets.",
@@ -343,7 +411,8 @@
     "supersedes": "The handoff brief's step 6 ordering, which listed carbonwebsite first.",
     "candidate_2026_09_24_1": "Static assets only. The ask-carbon-public Worker, its configuration and its activation are unchanged, so only carbonwebsite is deployed (`wrangler deploy --name carbonwebsite --assets <bundle> --compatibility-date 2026-09-12`), after re-capturing the live version. Verify the two changed paths by digest on both hostnames and /health still active afterwards.",
     "candidate_2026_09_26_1": "Worker first, then static. Deploy ask-carbon-public with wrangler.public-release-active.toml (Chutes profile, privacy mode v2, activation enabled) after provisioning ASK_CARBON_CHUTES_API_KEY; confirm /health active:true, model_config_id gemma-4-31b-turbo-tee:v1, no reasons, current-progress eligible, on both hostnames. Then deploy carbonwebsite with the rebuilt bundle; verify all 102 paths by digest on both hostnames. The window between the two deploys serves the Chutes Worker behind the old opt-in client, which is conservative (live stays off until a visitor enables it) but shows the old OpenAI-era disclosure text; keep it short.",
-    "candidate_2026_09_30_1": "Static assets only, like 2026-09-24.1: rebuild from the approved merge commit with --site-replacements website/ask-carbon/site-replacements.json and --require-complete-bundle (identity must equal 86f51385…), then `wrangler deploy --name carbonwebsite --assets <bundle> --compatibility-date 2026-09-12`. Verify the two changed paths on both hostnames, /workbench/ redirecting to /ask-carbon/pilot-designer, and /api/ask-carbon/health still active. Roll back with `wrangler rollback dc4469a7-f4da-4437-aaa1-2789277e57fc --name carbonwebsite`."
+    "candidate_2026_09_30_1": "Static assets only, like 2026-09-24.1: rebuild from the approved merge commit with --site-replacements website/ask-carbon/site-replacements.json and --require-complete-bundle (identity must equal 86f51385…), then `wrangler deploy --name carbonwebsite --assets <bundle> --compatibility-date 2026-09-12`. Verify the two changed paths on both hostnames, /workbench/ redirecting to /ask-carbon/pilot-designer, and /api/ask-carbon/health still active. Roll back with `wrangler rollback dc4469a7-f4da-4437-aaa1-2789277e57fc --name carbonwebsite`.",
+    "candidate_2026_09_30_2": "Static only. Rebuild from the approved merge commit with --input website/ask-carbon/site/homepage.source.html --expected-sha256 2615131c681efbbf89bec1840d0761313e638a2cb5372a5cc106ef0beb7dd426 --site-replacements website/ask-carbon/site-replacements.json --require-complete-bundle against the re-derived live baseline (identity must equal e68e712cecdfd4e4557c987cb01e5927d0294972af09da8e1a454c9b39c11de2), then `wrangler deploy --name carbonwebsite --assets <bundle> --compatibility-date 2026-09-12`. Verify the ten changed paths on both hostnames, Start a Project opening /ask-carbon/pilot-designer, /workbench/ redirecting there, and /api/ask-carbon/health still active. Roll back with `wrangler rollback dc4469a7-f4da-4437-aaa1-2789277e57fc --name carbonwebsite`."
   },
   "remaining_execution_inputs": [
     "None beyond the owner's byte approval: no Worker deploy and no new secret."
@@ -352,8 +421,8 @@
     "Cloudflare deployment access": "Existing authorized OAuth session for account 7462053c6992b9c9fd889952a7ae0496 with workers / workers_scripts / workers_routes write, verified 2026-09-22. No new credential was requested, created or stored.",
     "Pinned deployment tool": "Wrangler 4.134.0, installed outside the repository and outside the public asset tree."
   },
-  "supersedes_candidate_id": "ask-carbon-public-release-2026-09-26.1",
-  "change_note": "Candidate 2026-09-30.1 ships the GOAL-WORKBENCH-16 Pilot Designer (main 1e3292a2, #448-#450: guided conversation, form, Your system, Proposed Challenge) and retires /workbench/ with a page that points to the Pilot Designer and redirects there after five seconds. Static only: exactly two paths change against live (ask-carbon/pilot-designer.html, workbench/index.html); the other 103 are byte-identical on both hostnames. The other workbench/ files stay so saved drafts and bookmarks keep working. Worker, knowledge (fab55d5d…), budget, ceilings, activation, Pilot Designer AI opt-in and inquiry collection are unchanged.",
+  "supersedes_candidate_id": "ask-carbon-public-release-2026-09-30.1 (never deployed); live is 2026-09-26.1 as rebuilt under WEB-QA-10-D1",
+  "change_note": "Candidate 2026-09-30.2 ships the GOAL-WORKBENCH-16 Pilot Designer, retires /workbench/ (a page that points to the Pilot Designer and redirects after five seconds), and points every page's Start a Project links (header and mobile menu) and the footer link, renamed Pilot Designer, at /ask-carbon/pilot-designer. Static only: exactly ten paths change against live (index.html, 404.html, the six section pages, workbench/index.html, ask-carbon/pilot-designer.html); the other 95 are byte-identical on both hostnames. The other workbench/ files stay so saved drafts and bookmarks keep working. Worker, knowledge, budget, ceilings, activation, AI opt-in and inquiry collection are unchanged.",
   "superseded_candidate_2026_09_24_1": {
     "candidate_id": "ask-carbon-public-release-2026-09-24.1",
     "status": "OWNER_APPROVED_PRODUCTION_PUBLICATION_DEPLOYED",
@@ -429,5 +498,11 @@
   ],
   "remaining_execution_inputs_superseded_2026_09_26": [
     "ASK_CARBON_CHUTES_API_KEY as a Cloudflare secret on ask-carbon-public (the local key file is not a deployment mechanism and was never read into any artifact)"
-  ]
+  ],
+  "superseded_candidate_2026_09_30_1": {
+    "candidate_id": "ask-carbon-public-release-2026-09-30.1",
+    "bundle_identity_sha256": "86f51385e05d6d2aca50c612b11f986916c74210c2bda96ac33ed41dcbc3d14a",
+    "status": "OWNER_APPROVED_THEN_SUPERSEDED_BEFORE_DEPLOYMENT",
+    "note": "The owner approved bundle 86f51385… in the Ask Carbon session on 2026-09-30, then asked for the Start a Project links to go to the Pilot Designer and chose to deploy once, with the new bundle. 86f51385… was never deployed and must not be."
+  }
 }

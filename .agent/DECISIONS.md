@@ -16450,7 +16450,7 @@ from this host, no Cloudflare access, no spend. The client security review
 (OWNER-CLIENT-SECURITY-REVIEW-01) still arms on the first real client
 engagement. Ticket: `.agent/tickets/GOAL-WORKBENCH-16_pilot_designer_route.md`.
 
-## 2026-09-30 — WEB-QA-11-D1: Ask Carbon candidate 2026-09-30.1 carries the new Pilot Designer and retires /workbench/ (approved in principle; exact bundle awaits the owner)
+## 2026-09-30 — WEB-QA-11-D1: publish Ask Carbon bundle e68e712c (new Pilot Designer, /workbench/ retired, Start a Project to the Pilot Designer)
 
 **Authority.**
 - The owner approved the release in principle in the Workbench session on
@@ -16505,3 +16505,44 @@ straight at the Pilot Designer, are follow-ups for the owner.
 `PUBLIC_RELEASE_CANDIDATE.json` `deployment_order.candidate_2026_09_30_1`.
 Deployment is the operator's act; this host has no Cloudflare credential and
 ran no wrangler command.
+
+**Amendment, same day: candidate 2026-09-30.2 replaces .1 before any deploy.**
+
+What happened, all first-hand in the Ask Carbon session unless noted:
+1. The owner approved bundle `86f51385…`: "yes".
+2. The owner then asked, through the Workbench session: "Can we make the
+   workbench link go to pilot designer where it says. "Start a project"".
+3. In the Ask Carbon session, the owner then chose two things:
+   - rename the footer Workbench link to Pilot Designer as well;
+   - deploy once, with the new bundle.
+4. `86f51385…` was therefore never deployed, and must not be.
+
+**Candidate `ask-carbon-public-release-2026-09-30.2`, bundle
+`e68e712cecdfd4e4557c987cb01e5927d0294972af09da8e1a454c9b39c11de2`** (105
+files, certified, rollback target `dc4469a7`).
+- Every page's "Start a Project" link, in the header and in the mobile menu,
+  now points to `/ask-carbon/pilot-designer`.
+- The footer link does too, and its text is now "Pilot Designer".
+- The homepage reaches the bundle through a new reviewed source,
+  `site/homepage.source.html` (`2615131c…`). That file is the live source
+  `99be1318…` with only those three links changed; the integrated homepage is
+  `aea519e1…`.
+- The other seven pages and `/workbench/` are declared site replacements. Each
+  page differs from live only in those three links.
+
+**Measured against live `dc4469a7` at 2026-09-30T18:30Z:** exactly ten paths
+differ on both hostnames, and the other 95 are byte-identical.
+- The ten are `index.html`, `404.html`, the six section pages,
+  `workbench/index.html` and `ask-carbon/pilot-designer.html`.
+- Live still serves the WEB-QA-10-D1 files, so nothing has been deployed since.
+
+**Approved.** The owner approved bundle `e68e712c…` first-hand in the Ask
+Carbon session on 2026-09-30 ("approve"). Basis:
+`OWNER_PUBLICATION_APPROVAL_2026_09_30_WEB_QA_11_D1`.
+
+- Deployment is the operator's act from a host holding the Cloudflare
+  credential: static only, following `deployment_order.candidate_2026_09_30_2`.
+- The live version must still be `dc4469a7` at deploy time, and a rebuild must
+  reproduce `e68e712c…`. Otherwise stop, and rebuild for a fresh decision.
+- No Worker change, no budget change, and no change to the
+  `AskCarbonUsageLedger` Durable Object.

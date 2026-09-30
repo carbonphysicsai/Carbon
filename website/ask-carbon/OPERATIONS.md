@@ -325,25 +325,31 @@ Production needs a separate exact owner authorization after the staging report:
 > Rebuilding the currently deployed revision against that baseline must
 > reproduce the live bundle identity before it is trusted.
 
-> **Candidate 2026-09-30.1: static only, with one declared replacement.**
-> Ships the GOAL-WORKBENCH-16 Pilot Designer and retires `/workbench/` (the
-> reviewed page `site/workbench/index.html`, declared in
-> `site-replacements.json`). Bundle `86f51385…` (WEB-QA-11-D1, awaiting the
-> owner's approval of the exact bundle). The Worker is not redeployed. From the
-> approved merge commit, with the live baseline re-derived as above:
+> **Candidate 2026-09-30.2: static only, eight declared replacements and a
+> new homepage source.** Ships the GOAL-WORKBENCH-16 Pilot Designer, retires
+> `/workbench/`, and points every page's Start a Project links and the footer
+> link (renamed Pilot Designer) at `/ask-carbon/pilot-designer`. Bundle
+> `e68e712c…` (WEB-QA-11-D1; it supersedes `86f51385…`, which was never
+> deployed). The Worker is not redeployed. From the approved merge commit,
+> with the live baseline re-derived as above:
 >
 > ```sh
 > "$WRANGLER" deployments status --name carbonwebsite   # must still be dc4469a7
 > node website/ask-carbon/tools/integrate-static.mjs \
->   --input <baseline>/index.html --output "$OUT/index.html" --asset-prefix ./ask-carbon \
+>   --input website/ask-carbon/site/homepage.source.html \
+>   --expected-sha256 2615131c681efbbf89bec1840d0761313e638a2cb5372a5cc106ef0beb7dd426 \
+>   --output "$OUT/index.html" --asset-prefix ./ask-carbon \
 >   --existing-site <baseline> --site-replacements website/ask-carbon/site-replacements.json \
->   --require-complete-bundle              # bundle_identity_sha256 must be 86f51385…
+>   --require-complete-bundle              # bundle_identity_sha256 must be e68e712c…
 > "$WRANGLER" deploy --name carbonwebsite --assets "$OUT" --compatibility-date 2026-09-12
 > ```
 >
-> Then confirm `ask-carbon/pilot-designer.html` and `workbench/index.html` by
-> digest on both hostnames, `/workbench/` showing the moved page and redirecting
-> to `/ask-carbon/pilot-designer`, and `/api/ask-carbon/health` still active.
+> Then, on both hostnames:
+> - confirm the ten changed paths by digest;
+> - confirm Start a Project opens `/ask-carbon/pilot-designer`;
+> - confirm `/workbench/` shows the moved page and redirects there;
+> - confirm `/api/ask-carbon/health` is still active.
+>
 > Rollback: `"$WRANGLER" rollback dc4469a7-f4da-4437-aaa1-2789277e57fc --name carbonwebsite`.
 
 For the approved 18 September inactive-publication candidate, extract the
