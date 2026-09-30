@@ -1,0 +1,14 @@
+{
+  "map_ref": "SYSTEM/BUSINESS-AUTHORITY",
+  "event_type": "evidence",
+  "event_id": "GOAL-WORKBENCH-16-PROPOSED-CHALLENGE-01",
+  "owner_lane": "business_authority",
+  "status": "implemented",
+  "summary": "Adds a proposed Challenge to the Pilot Designer (OWNER-PILOT-DESIGNER-ROUTE-01, slice 2). It follows the client's draft, suggests a launch-portfolio family from the client's own words and physics, and for a family with exam-design evidence (battery) proposes that family's tested settings, each with its reason and the measured table behind it, relayed verbatim from the exam-design campaign result. Conditions the client omitted are proposed from the tested design and labelled; ranges outside the tested design are flagged; units are never converted. A family without evidence proposes no setting and no cost. Deterministic, in the browser, not sent to the guidance provider; it registers, qualifies, prices and approves nothing.",
+  "primary_detail": ".agent/tickets/GOAL-WORKBENCH-16_pilot_designer_route.md",
+  "affects": [
+    "SYSTEM/BUSINESS-AUTHORITY"
+  ],
+  "supersedes": null,
+  "recorded_at": "2026-09-30T19:00:00Z"
+}

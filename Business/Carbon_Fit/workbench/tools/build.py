@@ -163,6 +163,8 @@ def build(*, private_science=False, output_directory=None):
     intake_app = (ROOT / "src/intake_app.js").read_text()
     intake_seal = (ROOT / "src/intake_seal.js").read_text()
     system_builder = (ROOT / "src/system_builder.js").read_text()
+    challenge_proposal = (ROOT / "src/challenge_proposal.js").read_text()
+    families = data(ROOT / "data/challenge_families_v1.json")
     intake_key = intake_public_key(ROOT / "data/intake_public_key.json")
     intake_csp = (
         "default-src 'none'; script-src "
@@ -174,6 +176,7 @@ def build(*, private_science=False, output_directory=None):
                 intake,
                 intake_seal,
                 system_builder,
+                challenge_proposal,
                 intake_app,
             ]
         )
@@ -192,6 +195,8 @@ def build(*, private_science=False, output_directory=None):
         "PROBLEM_LEGACY": problem_legacy,
         "PROBLEM_ENGINE": problem_engine,
         "SYSTEM_BUILDER": system_builder,
+        "CHALLENGE_PROPOSAL": challenge_proposal,
+        "FAMILIES": families,
         "APP": intake_app,
     }.items():
         preview = preview.replace("{{" + key + "}}", value)
