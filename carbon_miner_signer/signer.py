@@ -25,6 +25,7 @@ import socket
 import stat
 import struct
 import sys
+import threading
 import time
 from enum import Enum
 from pathlib import Path
@@ -33,6 +34,10 @@ PROTOCOL = "carbon.miner-signer.v1"
 #: The one request target Carbon's miner session signs for.
 PATH = "/carbon/v1/mcp"
 MAX_REQUEST_BYTES = 4096
+#: Connections served at once. Each is answered on its own thread, so one
+#: slow or stalled client never holds up Carbon's other requests.
+MAX_CONNECTIONS = 32
+BACKLOG = 128
 #: How old, and how far in the future, a request nonce may be. The verifier's
 #: own window is 10 s back and 2 s ahead; this is wider only so clock
 #: granularity between the two processes never refuses an honest request.
@@ -138,6 +143,8 @@ class SignerServer:
         self._log = log if log is not None else sys.stderr
         self._clock = clock
         self._listener = None
+        self._slots = threading.BoundedSemaphore(MAX_CONNECTIONS)
+        self._signing = threading.Lock()
 
     def __repr__(self):
         # Never the keypair.
@@ -170,7 +177,7 @@ class SignerServer:
             listener.bind(str(self.socket_path))
         finally:
             os.umask(previous)
-        listener.listen(8)
+        listener.listen(BACKLOG)
         self._listener = listener
         return self
 
@@ -182,8 +189,19 @@ class SignerServer:
                 if self._listener is None:
                     return
                 raise
+            # At the connection bound, wait for a slot rather than refuse: the
+            # client's own deadline decides when waiting has gone on too long.
+            self._slots.acquire()
+            threading.Thread(
+                target=self._serve_and_release, args=(connection,), daemon=True
+            ).start()
+
+    def _serve_and_release(self, connection):
+        try:
             with connection:
                 self.serve_one(connection)
+        finally:
+            self._slots.release()
 
     def serve_one(self, connection):
         connection.settimeout(CONNECTION_TIMEOUT_S)
@@ -222,7 +240,8 @@ class SignerServer:
         )
         if refusal is not None:
             return self._refuse(refusal)
-        signature = bytes(self._keypair.sign(payload))
+        with self._signing:
+            signature = bytes(self._keypair.sign(payload))
         lines = payload.decode("ascii").split("\n")
         self._note(
             f"signed a Carbon request for receiver {lines[7]}, body sha256 {lines[4][:16]}"

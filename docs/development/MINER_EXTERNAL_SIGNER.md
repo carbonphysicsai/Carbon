@@ -108,6 +108,9 @@ point calls it, and it is never a miner's key.
 - Like ssh-agent, any process running as your user can ask the signer to sign a
   Carbon-shaped request. `--receiver` narrows what it will sign.
 - Without `--receiver`, the signer signs for any validator hotkey.
+- Each connection is served on its own thread (up to 32 at once), so a
+  stalled client delays no one else. When every slot is held, Carbon waits
+  until its deadline and reports `signer_timeout`, never `signer_not_running`.
 - The SDK may read a `BT_PW_*` environment variable if you set one. That is the
   SDK's feature in your signer's environment, not a Carbon input.
 - On non-Linux hosts the `0700` directory is the only boundary; there is no

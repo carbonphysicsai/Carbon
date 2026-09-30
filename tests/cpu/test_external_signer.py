@@ -441,3 +441,62 @@ def test_no_secret_reaches_anything_either_side_writes(specimen_key, tmp_path):
     assert b"signed a Carbon request" in process.output
     assert leaks(process.output) == set(), "the signer's terminal shows a secret"
     assert leaks("\n".join(carbon_side).encode()) == set()
+
+
+def test_concurrent_campaigns_all_sign_and_a_stalled_client_holds_up_nothing():
+    """Several campaigns sign at once, and another client that connects and
+    never finishes its request delays none of them. Before each connection had
+    its own thread, most of these failed as `signer_not_running`: the signer
+    was running, only busy."""
+    from concurrent.futures import ThreadPoolExecutor
+
+    from tests.cpu._signer_harness import in_thread_signer
+
+    receiver = _keypair(RECEIVER_URI).ss58_address
+    with in_thread_signer(_keypair(URI)) as external:
+        stalled = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        stalled.connect(str(external._path))
+        stalled.sendall(b'{"protocol":')  # and never the rest
+        try:
+            started = time.monotonic()
+            with ThreadPoolExecutor(32) as pool:
+                signed = list(
+                    pool.map(
+                        lambda n: _signed(external, b'{"n":%d}' % n, receiver),
+                        range(200),
+                    )
+                )
+            assert len(signed) == 200
+            assert time.monotonic() - started < 4  # not waiting out the stall
+        finally:
+            stalled.close()
+
+
+def test_a_busy_signer_is_a_timeout_never_not_running(tmp_path):
+    """Specimen for the distinction: a socket whose accept queue is full is a
+    signer that exists and is busy. Carbon waits until its deadline and says
+    `signer_timeout`; only a missing socket is `signer_not_running`."""
+    path = _short_dir() / "busy.sock"
+    listener = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    listener.bind(str(path))
+    listener.listen(0)  # never accepted: the queue fills at once
+    held = []
+    try:
+        for _ in range(4):
+            client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            client.setblocking(False)
+            try:
+                client.connect(str(path))
+            except BlockingIOError:
+                pass
+            held.append(client)
+        with pytest.raises(SignerFailure) as busy:
+            connect_signer(_keypair(URI).ss58_address, socket_path=path, timeout=0.5)
+        assert busy.value.code == SignerCode.TIMEOUT.value
+    finally:
+        for client in held:
+            client.close()
+        listener.close()
+    with pytest.raises(SignerFailure) as absent:
+        connect_signer(_keypair(URI).ss58_address, socket_path=path, timeout=0.5)
+    assert absent.value.code == SignerCode.NOT_RUNNING.value

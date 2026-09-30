@@ -21,6 +21,7 @@ import json
 import re
 import socket
 import threading
+import time
 from enum import Enum
 from pathlib import Path
 
@@ -74,16 +75,38 @@ def default_socket(hotkey: str) -> Path:
     return Path.home() / ".carbon" / "signer" / (hotkey + ".sock")
 
 
-def _exchange(path: Path, request: dict, timeout: float) -> dict:
-    client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    client.settimeout(timeout)
-    try:
+def _connect(path: Path, timeout: float) -> socket.socket:
+    """Connect to the signer, telling "not running" from "busy".
+
+    Nothing at the path, or nothing listening, is NOT_RUNNING. A full accept
+    queue (EAGAIN) means a signer is there and busy: retry until the deadline,
+    then TIMEOUT - never report a busy signer as one that is not running.
+    """
+    deadline = time.monotonic() + timeout
+    delay = 0.005
+    while True:
+        client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        client.settimeout(max(deadline - time.monotonic(), 0.001))
         try:
             client.connect(str(path))
+            return client
+        except (BlockingIOError, InterruptedError):
+            client.close()
         except TimeoutError:
+            client.close()
             raise SignerFailure(SignerCode.TIMEOUT) from None
         except OSError:
+            client.close()
             raise SignerFailure(SignerCode.NOT_RUNNING) from None
+        if time.monotonic() + delay >= deadline:
+            raise SignerFailure(SignerCode.TIMEOUT)
+        time.sleep(delay)
+        delay = min(delay * 2, 0.1)
+
+
+def _exchange(path: Path, request: dict, timeout: float) -> dict:
+    client = _connect(path, timeout)
+    try:
         data = b""
         try:
             client.sendall(json.dumps(request).encode() + b"\n")
