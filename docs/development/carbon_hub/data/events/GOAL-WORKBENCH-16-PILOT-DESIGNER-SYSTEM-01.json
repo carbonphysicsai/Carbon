@@ -1,0 +1,14 @@
+{
+  "map_ref": "SYSTEM/BUSINESS-AUTHORITY",
+  "event_type": "evidence",
+  "event_id": "GOAL-WORKBENCH-16-PILOT-DESIGNER-SYSTEM-01",
+  "owner_lane": "business_authority",
+  "status": "implemented",
+  "summary": "Makes the Pilot Designer the one client route (OWNER-PILOT-DESIGNER-ROUTE-01, slice 1). The live /workbench/ page's problem builder moves into it as a third editing mode: components and couplings, structured inputs and outputs, evidence sources, success criteria, constraints, the cost calculator, the 64 research leads and the derived evidence plan, on that page's own engine copied byte for byte. A saved /workbench/ draft, which the internal Workbench could never import, now opens in the Pilot Designer. The brief gains an additive v2 that carries the system; the receiver and the internal import accept it through the same checks, and every v1 brief and package keeps its meaning. The system is not sent to the guidance provider. Nothing is deployed; publication stays the owner's act.",
+  "primary_detail": ".agent/tickets/GOAL-WORKBENCH-16_pilot_designer_route.md",
+  "affects": [
+    "SYSTEM/BUSINESS-AUTHORITY"
+  ],
+  "supersedes": null,
+  "recorded_at": "2026-09-30T13:00:00Z"
+}

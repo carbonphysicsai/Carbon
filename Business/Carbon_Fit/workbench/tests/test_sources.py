@@ -303,6 +303,39 @@ class SourceTests(unittest.TestCase):
         self.assertFalse(reviewed["properties"]["ai_guidance"]["additionalProperties"])
         self.assertNotIn("approved", reviewed["properties"])
         self.assertNotIn("qualified", reviewed["properties"])
+        # GOAL-WORKBENCH-16: the v2 brief is as closed as v1, its system
+        # carries structure only, and it grants nothing.
+        intake_v2 = json.loads((ROOT / "data/intake_draft_v2.schema.json").read_text())
+        reviewed_v2 = json.loads(
+            (ROOT / "data/intake_reviewed_v2.schema.json").read_text()
+        )
+        system = intake_v2["properties"]["system"]
+        self.assertFalse(intake_v2["additionalProperties"])
+        self.assertFalse(system["additionalProperties"])
+        for words in ("title", "description", "decision", "baseline"):
+            self.assertEqual(system["properties"][words], {"const": ""})
+        for schema in (intake_v2, reviewed_v2, system):
+            for word in ("qualified", "approval", "approved", "score"):
+                self.assertNotIn(word, schema["properties"])
+        self.assertEqual(
+            reviewed_v2["properties"]["brief"]["properties"]["schema_version"],
+            {"const": "carbon.client-intake.draft.v2"},
+        )
+        try:
+            import jsonschema
+        except ImportError:  # pragma: no cover - the canonical venv has it
+            self.skipTest("jsonschema is not installed")
+        fixtures = ROOT / "intake/fixtures"
+        jsonschema.validate(
+            json.loads((fixtures / "cooling_system_draft_v2.json").read_text()),
+            intake_v2,
+        )
+        for name in ("existing_method_v1.json", "fresh_burgers_v1.json"):
+            jsonschema.validate(json.loads((fixtures / name).read_text()), intake)
+            with self.assertRaises(jsonschema.ValidationError):
+                jsonschema.validate(
+                    json.loads((fixtures / name).read_text()), intake_v2
+                )
 
     def test_repository_snapshot_schemas_are_deeply_closed_and_reproducible(self):
         tool = ROOT / "tools/build_repository_snapshot_schemas.py"
@@ -507,6 +540,15 @@ class SourceTests(unittest.TestCase):
             )
             self.assertIn("carbon_goal_workbench_v0_10/src/source_assessment.js", names)
             self.assertIn("carbon_goal_workbench_v0_10/src/intake.js", names)
+            for name in (
+                "src/problem/engine.js",
+                "src/problem/cooling-v02.js",
+                "src/system_builder.js",
+                "data/problem_engine_provenance.json",
+                "data/intake_draft_v2.schema.json",
+                "data/intake_reviewed_v2.schema.json",
+            ):
+                self.assertIn("carbon_goal_workbench_v0_10/" + name, names)
             self.assertIn("carbon_goal_workbench_v0_10/src/team_review.js", names)
             self.assertIn(
                 "carbon_goal_workbench_v0_10/data/intake_draft.schema.json", names

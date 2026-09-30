@@ -28,6 +28,13 @@
       "revision_id": "rev-002",
       "raw_sha256": "sha256:26b07059f463d2479a47cbf5bb4a3216ad962746a4ceb51420b6e89aace7a4ff",
       "canonical_digest": "sha256:326f25448fa09b674ecb87120fc2999ebe934fc8ce0cee66cd8fc351fda2640a"
+    },
+    {
+      "name": "cooling_system_draft_v2.json",
+      "draft_id": "synthetic-cooling-system",
+      "revision_id": "rev-001",
+      "raw_sha256": "sha256:1910a427f96cdea5c65700740a6b3b9957c36f82061df908d6f2a29bcd434f4d",
+      "canonical_digest": "sha256:fee68d8047d2afbbcfd89203ecd98b49a13844a2c451a2d352e39ae1eff79cb8"
     }
   ]
 }
