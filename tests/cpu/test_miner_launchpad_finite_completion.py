@@ -55,11 +55,7 @@ def setup_campaign(tmp_path, monkeypatch, epochs):
     if admission is not None:
         meter.generation = CampaignControl(meter).acquire()
     private = tmp_path / "private-fixture"
-    private.write_bytes(
-        canonical(
-            {"netuid": 567, "hotkey": "fixture-miner"}
-        )
-    )
+    private.write_bytes(canonical({"netuid": 567, "hotkey": "fixture-miner"}))
     private.chmod(0o600)
     args = SimpleNamespace(
         root=root,

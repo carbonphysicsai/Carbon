@@ -120,7 +120,13 @@ class SignerServer:
     """Holds one keypair and signs Carbon request payloads for its owner."""
 
     def __init__(
-        self, keypair, socket_path: Path, *, receivers=None, log=None, clock=time.time_ns
+        self,
+        keypair,
+        socket_path: Path,
+        *,
+        receivers=None,
+        log=None,
+        clock=time.time_ns,
     ):
         if keypair.crypto_type not in SCHEMES:
             raise ValueError("unsupported key type")
@@ -153,7 +159,9 @@ class SignerServer:
             except OSError:
                 self.socket_path.unlink()  # a previous signer's, no longer live
             else:
-                raise ValueError("a signer is already running on " + str(self.socket_path))
+                raise ValueError(
+                    "a signer is already running on " + str(self.socket_path)
+                )
             finally:
                 probe.close()
         listener = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
@@ -216,7 +224,9 @@ class SignerServer:
             return self._refuse(refusal)
         signature = bytes(self._keypair.sign(payload))
         lines = payload.decode("ascii").split("\n")
-        self._note(f"signed a Carbon request for receiver {lines[7]}, body sha256 {lines[4][:16]}")
+        self._note(
+            f"signed a Carbon request for receiver {lines[7]}, body sha256 {lines[4][:16]}"
+        )
         return {"ok": True, "signature": "0x" + signature.hex()}
 
     def close(self):
@@ -247,7 +257,7 @@ class SignerServer:
         return {"ok": False, "refusal": refusal.value}
 
     def _note(self, text):
-        stamp = datetime.datetime.now(datetime.timezone.utc).strftime("%H:%M:%SZ")
+        stamp = datetime.datetime.now(datetime.UTC).strftime("%H:%M:%SZ")
         print(f"{stamp} {text}", file=self._log, flush=True)
 
 
@@ -272,7 +282,9 @@ def load_hotkey(*, wallet=None, hotkey=None, wallet_path=None, key_file=None):
     except Exception:  # noqa: BLE001 - never show the SDK's error text
         keypair = None
     if keypair is None:
-        raise SystemExit("could not unlock the hotkey (wrong password, or no such key file)")
+        raise SystemExit(
+            "could not unlock the hotkey (wrong password, or no such key file)"
+        )
     return keypair
 
 
@@ -286,15 +298,23 @@ def main(argv=None):
     )
     parser.add_argument("--wallet", help="Bittensor wallet name")
     parser.add_argument("--hotkey", help="hotkey name within the wallet")
-    parser.add_argument("--wallet-path", help="wallets directory (the SDK default if omitted)")
-    parser.add_argument("--key-file", type=Path, help="a hotkey file, instead of --wallet/--hotkey")
-    parser.add_argument("--expect", help="refuse to start unless the hotkey has this ss58 address")
+    parser.add_argument(
+        "--wallet-path", help="wallets directory (the SDK default if omitted)"
+    )
+    parser.add_argument(
+        "--key-file", type=Path, help="a hotkey file, instead of --wallet/--hotkey"
+    )
+    parser.add_argument(
+        "--expect", help="refuse to start unless the hotkey has this ss58 address"
+    )
     parser.add_argument(
         "--receiver",
         action="append",
         help="only sign requests addressed to this validator hotkey (repeatable)",
     )
-    parser.add_argument("--socket", type=Path, help="socket path (derived from the hotkey if omitted)")
+    parser.add_argument(
+        "--socket", type=Path, help="socket path (derived from the hotkey if omitted)"
+    )
     args = parser.parse_args(argv)
     if (args.key_file is None) == (args.wallet is None or args.hotkey is None):
         parser.error("give either --wallet and --hotkey, or --key-file")

@@ -19,7 +19,6 @@ def test_pinned_localnet_submission_reward_publication_and_recovery(tmp_path):
 
     from carbon.chain import ChainFailure, ReadOnlyChainAdapter
     from carbon.chain.auth import BittensorHotkeyVerifier, BittensorMessageSigner
-    from tests.cpu._signer_harness import in_thread_signer
     from carbon.chain.localnet import LocalnetSession, miner_burned_q32, write_evidence
     from carbon.chain.publication import PublicationFailure
     from carbon.chain.publisher import LocalnetPublisher
@@ -29,6 +28,7 @@ def test_pinned_localnet_submission_reward_publication_and_recovery(tmp_path):
     from carbon.rewards.intents import LocalnetIntentIssuer
     from carbon.rewards.ledger import FixtureRewardLedger
     from carbon.transport.store import ReceiptJournal
+    from tests.cpu._signer_harness import in_thread_signer
 
     mode = os.environ.get("CARBON_LOCALNET_MODE", "full")
     assert mode in ("full", "operator")

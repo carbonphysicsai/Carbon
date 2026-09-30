@@ -105,9 +105,7 @@ def imported_names(path):
 
 def product_closure():
     """The files the product process can import from this repository."""
-    todo = [
-        path for entry in PRODUCT_ENTRIES for path in sorted(entry.glob("*.py"))
-    ]
+    todo = [path for entry in PRODUCT_ENTRIES for path in sorted(entry.glob("*.py"))]
     seen = set()
     while todo:
         path = todo.pop()
@@ -161,14 +159,17 @@ def violations(source, label):
         ):
             construct = "import " + node.name
         elif (
-            isinstance(node, ast.ImportFrom)
-            and (node.module or "").split(".")[0] == SIGNER_PACKAGE
+            (
+                isinstance(node, ast.ImportFrom)
+                and (node.module or "").split(".")[0] == SIGNER_PACKAGE
+            )
+            or isinstance(node, ast.ImportFrom)
+            and node.module
+            in {
+                "bittensor.keyfiles",
+                "bittensor.wallet",
+            }
         ):
-            construct = "import " + node.module
-        elif isinstance(node, ast.ImportFrom) and node.module in {
-            "bittensor.keyfiles",
-            "bittensor.wallet",
-        }:
             construct = "import " + node.module
         if construct is not None:
             found.add((label, function, construct))
@@ -219,7 +220,7 @@ def test_the_scanner_finds_the_key_in_the_signer_package():
 def test_the_scanner_finds_each_rule_in_a_deliberate_violation():
     """Specimen: the loader external signing removed, and each other way key
     material could come back, are each caught by name."""
-    violation = '''
+    violation = """
 from pathlib import Path
 from bittensor.keyfiles import Keyfile
 import carbon_miner_signer
@@ -235,7 +236,7 @@ def prepare(args, public):
     wallet = bt.Wallet(name="w", hotkey="h")
     pair = bt.Keypair.create_from_mnemonic("never")
     return key, wallet, pair
-'''
+"""
     found = violations(violation, "specimen.py")
     constructs = {construct for _, _, construct in found}
     assert {
@@ -279,7 +280,10 @@ def test_no_function_claims_externality_it_lacks():
     """`open_external_hotkey` claimed external signing while decrypting the key
     in-process. No function in the repository may carry that name again."""
     names = set()
-    for path in [*ROOT.joinpath("carbon").rglob("*.py"), *ROOT.joinpath("scripts").rglob("*.py")]:
+    for path in [
+        *ROOT.joinpath("carbon").rglob("*.py"),
+        *ROOT.joinpath("scripts").rglob("*.py"),
+    ]:
         for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 names.add(node.name)

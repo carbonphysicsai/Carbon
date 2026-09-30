@@ -187,7 +187,7 @@ def test_the_bytes_signed_are_the_bytes_verified(signer, monkeypatch):
     """4.4: both sides derive the payload with the SDK's one `build_payload`,
     and a signature covers the body exactly - one changed byte, or the same
     JSON serialized differently, does not verify."""
-    import bittensor.http_auth as http_auth
+    from bittensor import http_auth
 
     from carbon.chain.auth import AuthCode, AuthFailure
 
@@ -283,7 +283,11 @@ def _fake_signer(path, reply):
                 else:
                     answer = reply
                 connection.sendall(
-                    (answer if isinstance(answer, bytes) else json.dumps(answer).encode())
+                    (
+                        answer
+                        if isinstance(answer, bytes)
+                        else json.dumps(answer).encode()
+                    )
                     + b"\n"
                 )
 
@@ -326,15 +330,15 @@ def test_the_signer_payload_rule():
     now = time.time_ns()
 
     def payload(**change):
-        fields = dict(
-            scheme="sr25519",
-            method="POST",
-            path="/carbon/v1/mcp",
-            body=b"{}",
-            nonce_ns=now,
-            sender_ss58=miner,
-            receiver_ss58=receiver,
-        )
+        fields = {
+            "scheme": "sr25519",
+            "method": "POST",
+            "path": "/carbon/v1/mcp",
+            "body": b"{}",
+            "nonce_ns": now,
+            "sender_ss58": miner,
+            "receiver_ss58": receiver,
+        }
         fields.update(change)
         return build_payload(**fields)
 

@@ -124,9 +124,7 @@ def host(tmp_path, monkeypatch):
         "load_config",
         lambda _: SimpleNamespace(netuid=567, context=None, publisher_hotkey="pub"),
     )
-    monkeypatch.setattr(
-        carbon.chain.external_signer, "miner_signer", lambda *_: None
-    )
+    monkeypatch.setattr(carbon.chain.external_signer, "miner_signer", lambda *_: None)
     monkeypatch.setattr(service, "LocalMinerConnection", lambda *_: None)
     # Verification inspects Docker; the record and scope checks stay real.
     monkeypatch.setattr(julia, "verify_julia_image", lambda image: image)

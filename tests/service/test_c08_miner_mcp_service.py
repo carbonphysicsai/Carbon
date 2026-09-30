@@ -10,8 +10,6 @@ from test_c07_development_orchestration import _orchestrator, _owners, _signer
 from test_c08_authenticated_miner_mcp import _real_request
 from test_mcp_skeleton import CHALLENGE_KEY, _service, _strategy
 
-from tests.cpu._signer_harness import in_thread_signer
-
 from carbon import audit
 from carbon.chain import ChainContext, MetagraphSnapshot, Participant
 from carbon.chain.auth import BittensorHotkeyVerifier, BittensorMessageSigner
@@ -26,6 +24,7 @@ from carbon.orchestration import OperationalDisposition
 from carbon.transport.gateway import AuthenticatedGateway, requester_for_receipt
 from carbon.transport.models import message
 from carbon.transport.store import ReceiptJournal
+from tests.cpu._signer_harness import in_thread_signer
 
 NOW = 100_000_000_000
 CONTEXT = ChainContext("localnet", "ws://127.0.0.1:9944", "dev", "0x" + "1" * 64, 1)
