@@ -196,22 +196,43 @@ export const mockModel = async ({ passages }) => {
 
 // OpenAI-compatible chat/completions with strict JSON-schema output, the same
 // wire format the Worker's Chutes adapter sends.
-export const chatCompletionsModel = ({ baseUrl, model, apiKeyFile, maxOutputTokens, timeoutMs = 60_000 }) => async ({ instructions, userText, schema }) => {
+// A rate limit or a transport failure says nothing about the model's answer,
+// so it is retried with backoff (5 s, 15 s, 45 s) before counting as an error.
+// A timeout is not retried: it is the latency a visitor would see.
+export const RETRY_DELAYS_MS = Object.freeze([5_000, 15_000, 45_000]);
+export const chatCompletionsModel = ({ baseUrl, model, apiKeyFile, maxOutputTokens, timeoutMs = 60_000, retryDelaysMs = RETRY_DELAYS_MS }) => async ({ instructions, userText, schema }) => {
   const adapter = PROVIDERS.chutes_chat_completions;
   const body = adapter.buildBody({ request_model: model, temperature: 0 }, {
     instructions, userText, schemaName: "ask_carbon_referenced_answer", schema, maxOutputTokens,
   });
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
   let response;
-  try {
-    response = await fetch(`${baseUrl.replace(/\/$/, "")}/chat/completions`, {
-      method: "POST",
-      headers: { authorization: `Bearer ${(await readFile(apiKeyFile, "utf8")).trim()}`, "content-type": "application/json" },
-      body: JSON.stringify(body),
-      signal: controller.signal,
-    });
-  } finally { clearTimeout(timer); }
+  let retries = 0;
+  for (let attempt = 0; ; attempt += 1) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      response = await fetch(`${baseUrl.replace(/\/$/, "")}/chat/completions`, {
+        method: "POST",
+        headers: { authorization: `Bearer ${(await readFile(apiKeyFile, "utf8")).trim()}`, "content-type": "application/json" },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      });
+    } catch (error) {
+      clearTimeout(timer);
+      if (error?.name === "AbortError") throw Object.assign(new Error("provider_timeout"), { code: "provider_timeout" });
+      if (attempt >= retryDelaysMs.length) throw Object.assign(new Error("provider_transport"), { code: "provider_transport" });
+      retries += 1;
+      await delay(retryDelaysMs[attempt]);
+      continue;
+    }
+    clearTimeout(timer);
+    if ((response.status === 429 || response.status >= 500) && attempt < retryDelaysMs.length) {
+      retries += 1;
+      await delay(retryDelaysMs[attempt]);
+      continue;
+    }
+    break;
+  }
   const payload = await response.json().catch(() => null);
   if (!response.ok || !payload) throw Object.assign(new Error(`provider_http_${response.status}`), { code: `provider_http_${response.status}` });
   const outcome = adapter.normalizeOutcome(payload);
@@ -220,7 +241,7 @@ export const chatCompletionsModel = ({ baseUrl, model, apiKeyFile, maxOutputToke
   try { parsed = JSON.parse(outcome.text); } catch { throw Object.assign(new Error("invalid_json"), { code: "invalid_json" }); }
   return {
     parsed,
-    usage: { input_tokens: payload.usage?.prompt_tokens ?? null, output_tokens: payload.usage?.completion_tokens ?? null, response_model: payload.model ?? null },
+    usage: { input_tokens: payload.usage?.prompt_tokens ?? null, output_tokens: payload.usage?.completion_tokens ?? null, response_model: payload.model ?? null, retries },
   };
 };
 

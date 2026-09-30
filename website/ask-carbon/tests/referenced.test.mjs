@@ -125,7 +125,10 @@ test("no sentences, a no_reference status, a URL or a short quote all end as no 
   assert.equal(status({ status: "answered", sentences: [] }).status, "no_reference");
   assert.equal(status({ status: "answered", sentences: [{ kind: "fact", text: "See https://example.com for customers.", citations: [{ passage: label, quote: "does not establish signed paid customers" }] }] }).status, "no_reference");
   assert.equal(status({ status: "answered", sentences: [{ kind: "fact", text: "No customers.", citations: [{ passage: label, quote: "customers" }] }] }).status, "no_reference");
-  assert.throws(() => verifyReferencedAnswer({ status: "maybe", sentences: [] }, passages), (error) => error.code === "invalid_provider_output");
+  assert.throws(() => verifyReferencedAnswer({ status: "answered" }, passages), (error) => error.code === "invalid_provider_output");
+  // The model's own label does not decide: a checked fact labelled
+  // no_reference is still an answer (observed from gemma-4-31B on 2026-09-30).
+  assert.equal(status({ status: "no_reference", sentences: [{ kind: "fact", text: "We haven't established paying customers.", citations: [{ passage: label, quote: "does not establish signed paid customers" }] }] }).status, "supported");
 });
 
 test("the schema only offers the retrieved passage labels", () => {

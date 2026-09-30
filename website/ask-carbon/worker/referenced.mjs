@@ -187,7 +187,7 @@ export const referencedInstructions = (passages, { priorQuestion = null, priorAn
   `Return your reply as sentences. Each sentence has a kind:
 - "fact": says anything about Carbon. It must cite one or two passages, each with a short quote copied from that passage that supports what you said. Quotes are for our own checking and are never shown inline, so write naturally rather than echoing them. A fact the server cannot find in the cited passage is deleted.
 - "conversation": at most ${MAX_CONVERSATION_SENTENCES}, under ${MAX_CONVERSATION_CHARS} characters, with no information about Carbon at all: acknowledging the question, or offering to go deeper ("Happy to go into how the battery exam works if that's useful."). No citations.`,
-  `Use at most ${MAX_FACT_SENTENCES} fact sentences. If the passages do not answer the question, return status no_reference and no sentences.`,
+  `Use at most ${MAX_FACT_SENTENCES} fact sentences. If the passages do not answer the question, return an empty sentences list. An honest answer that something is not done yet, or not established, is still an answer: say it, with its quote.`,
   "Keep Carbon's own qualifiers. Do not turn planned into done, designed into implemented, tested into qualified, or selected into launched. Do not give dates, prices, returns, customer names or numbers that the passages do not state. Do not include URLs.",
   ...(priorQuestion ? [`Earlier in this conversation the visitor asked: ${JSON.stringify(priorQuestion)}${priorAnswer ? ` and we answered: ${JSON.stringify(priorAnswer)}` : ""}. Use it to understand the new question; facts still need passages.`] : []),
   `Passages: ${JSON.stringify(passages.map((passage, index) => ({ id: passageLabel(index), document: passage.path, section: passage.heading, text: passage.text })))}`,
@@ -196,9 +196,8 @@ export const referencedInstructions = (passages, { priorQuestion = null, priorAn
 export const referencedSchema = (passageCount) => ({
   type: "object",
   additionalProperties: false,
-  required: ["status", "sentences"],
+  required: ["sentences"],
   properties: {
-    status: { type: "string", enum: ["answered", "no_reference"] },
     sentences: {
       type: "array",
       maxItems: MAX_SENTENCES,
@@ -291,7 +290,10 @@ export const smallTalkAnswer = (question) => {
 };
 
 export const verifyReferencedAnswer = (value, passages) => {
-  if (!value || typeof value !== "object" || Array.isArray(value) || !["answered", "no_reference"].includes(value.status) || !Array.isArray(value.sentences)) {
+  // Whether this is an answer is decided here, by what survives the check, not
+  // by the model's own label: a model can write a well-referenced answer and
+  // still call it "no reference".
+  if (!value || typeof value !== "object" || Array.isArray(value) || !Array.isArray(value.sentences)) {
     throw new PublicApiError(502, "invalid_provider_output", "The answer provider returned an invalid result.");
   }
   const passageWords = passages.map((passage) => words(passage.text));
@@ -301,7 +303,7 @@ export const verifyReferencedAnswer = (value, passages) => {
   let facts = 0;
   let conversation = 0;
   const audit = { proposed_sentences: 0, kept_sentences: 0, kept_facts: 0, kept_conversation: 0, proposed_citations: 0, verified_citations: 0, inexact_citations: 0, rejected: [] };
-  if (value.status === "answered") {
+  {
     for (const sentence of value.sentences.slice(0, MAX_SENTENCES)) {
       audit.proposed_sentences += 1;
       const text = typeof sentence?.text === "string" ? sentence.text.trim() : "";

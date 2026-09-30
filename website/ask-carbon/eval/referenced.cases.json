@@ -271,7 +271,8 @@
         ]
       ],
       "must_not": [
-        "\\b(has|have) solved the battery challenge\\b"
+        "\\byes\\b[^.]*\\bsolved\\b",
+        "\\b(we|carbon|our agent)\\b[^.]{0,20}\\b(has|have) (already |now )?solved the battery challenge\\b"
       ]
     },
     {
