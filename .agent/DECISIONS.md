@@ -16449,3 +16449,39 @@ pays nothing; no Challenge pays rewards before its training budget study
 from this host, no Cloudflare access, no spend. The client security review
 (OWNER-CLIENT-SECURITY-REVIEW-01) still arms on the first real client
 engagement. Ticket: `.agent/tickets/GOAL-WORKBENCH-16_pilot_designer_route.md`.
+
+## 2026-09-30 — OWNER-BATTERY-SCORING-WINDOW-01: battery exam rule v2 removes the 3-submission scoring cap
+
+**Authority.** The owner, in the Testnet session on 2026-09-30: "Remove the 3
+scoring slot limit and handle that whatever way is optimal on bittensor. We
+need easy to submit, clearn submission feedback", then "approved" to the
+proposed design (one scored submission per hotkey per tempo, block-based
+rotation, scoring that never stalls).
+
+1. **Rule v2** (`exam.DEVELOPMENT_RULE_V2`) replaces OD-2's "rotate after 3
+   admitted" and nothing else:
+   - **Per hotkey:** one scored submission per hotkey per 360-block window
+     (one Bittensor tempo), aligned to multiples of 360. The block is the
+     finalized block of the validator-observed snapshot the request was
+     authenticated against. An invalid construction does not use the window.
+     Many hotkeys cost registration burns, which is Bittensor's sybil price.
+   - **Rotation by block height:** a fresh screening batch every 1080 blocks
+     (3 tempos). A batch is active about 9 tempos, so one hotkey can see it
+     scored about 9 times, the bound v1 placed on all miners together.
+   - **Never stall:** a due rotation with no prepared batch keeps scoring on
+     the current batches and records `rotation_overdue`.
+2. **The values 360, 1080 and 1 are the executor's provisional development
+   choices** under the owner's "whatever way is optimal" delegation. They are
+   not production values and nothing here is scientifically qualified.
+3. **Historical results keep v1.** A seed root is committed for one rule, so
+   v2 runs on a fresh deployment state and root; a validator refuses a root
+   committed for another rule (`rule_mismatch`). v1's state is archived, not
+   rewritten.
+
+**Consequences recorded, not decided here.**
+- The volume channel amendment 4 measures (D3/D4) was bounded globally under
+  v1 and is bounded per hotkey under v2. Amendment 4 must be re-registered
+  against v2 before any 3B provider call.
+- The research agent's disclosed rule (`carbon/battery/research.py`) is the
+  Launchpad lane's surface (OWNER-BATTERY-V2-DISCLOSURE-01) and still names
+  v1 until it is updated there.

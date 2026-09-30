@@ -11,7 +11,7 @@ should depend on a conversation's memory.
 
 A row is done only when its evidence is merged or recorded here.
 
-**Last updated:** 2026-09-29, with the v2 amendment 4 (tier 3B) PR.
+**Last updated:** 2026-09-30, with the battery exam rule v2 PR (OWNER-BATTERY-SCORING-WINDOW-01).
 
 ## Authority in force
 
@@ -42,7 +42,8 @@ All of these are in `.agent/DECISIONS.md`.
 | 14 | EV2: a frozen contract with a wider design set, so every scenario, verification included, has feasible protocols (EV1 finding 1) | Claude session | owner go-ahead | proposed (EV1 doc §8) |
 | 15 | A decision-aware robustness component, tested against the boundary-optimist control (EV1 finding 2) | Claude session | 14 | proposed |
 | 16 | Battery challenge kit (`carbon/challenge_kit/battery.py`): the pinned PyBaMM overlay and the public population in the miner research image, with miner seeds only; closes the battery `generate` gap (OWNER-RESEARCH-ENVIRONMENT-01) | Claude session | — | open gap, declared in `challenge_kit/standard.py` |
-| 17 | Tier 3B, the leak ladder: pre-registered in `BATTERY_AGENT_CAMPAIGN_PREREGISTRATION_V2_AMENDMENT_4.md`; four campaigns, one per feedback rung, USD 2.00 of the USD 2.50 held | owner, then Claude session | owner approval of amendment 4; 3 prepared screening batches (the pool is `ROTATION_PENDING` after H) | pre-registered, not run |
+| 17 | Tier 3B, the leak ladder: pre-registered in `BATTERY_AGENT_CAMPAIGN_PREREGISTRATION_V2_AMENDMENT_4.md`; four campaigns, one per feedback rung, USD 2.00 of the USD 2.50 held | owner, then Claude session | owner approval of amendment 4, **re-registered against rule v2** (its volume bounds D3/D4 are v1's) | pre-registered, not run |
+| 19 | Battery exam rule v2 (`exam.DEVELOPMENT_RULE_V2`): one scored submission per hotkey per tempo, block-based rotation, never stalls; the deployment selects it with `"rule": "v2"` on a fresh root | Claude session; Launchpad for the research disclosure | this PR; a fresh v2 deployment with its own batches | built and tested; deployment pending |
 | 13 | Charging time to a target SOC (reference v2, surrogate output, re-solved references) | Claude session | owner go-ahead | designed only (EV1 doc §7) |
 
 ## Budget (OD-5)

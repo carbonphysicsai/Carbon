@@ -75,6 +75,9 @@ CREATE TABLE IF NOT EXISTS pool(
   admitted INTEGER NOT NULL,
   active TEXT NOT NULL,
   status TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS pool_clock(
+  id INTEGER PRIMARY KEY CHECK(id = 1),
+  block INTEGER);
 CREATE TABLE IF NOT EXISTS submissions(
   submission_id TEXT PRIMARY KEY,
   request_digest TEXT NOT NULL,
@@ -152,12 +155,26 @@ class StateError(RuntimeError):
         self.code = code
 
 
+class HotkeyWindowUsed(PermissionError):
+    """This hotkey already has its submission in the current window (v2).
+
+    Not a refusal of the recipe and never recorded: the same submission is
+    admissible from block `next_block`.
+    """
+
+    def __init__(self, next_block):
+        super().__init__(f"next window opens at block {next_block}")
+        self.next_block = next_block
+
+
 class PoolStore:
     """Transactional access to the validator's durable battery state."""
 
-    def __init__(self, path, *, clock=time.time):
+    def __init__(self, path, *, clock=time.time, rule=None):
         self.path = Path(path)
         self.clock = clock
+        # The exam rule this state runs under (v1 unless a deployment says).
+        self.rule = RULE if rule is None else rule
         new = not self.path.exists()
         if not new:
             info = os.lstat(self.path)
@@ -413,9 +430,9 @@ class PoolStore:
                     "state='PREPARED' AND references_state='COMPLETE' ORDER BY sequence"
                 )
             ]
-            if len(ready) < RULE["active_batches"]:
+            if len(ready) < self.rule["active_batches"]:
                 raise StateError("pool_incomplete", f"{len(ready)} complete batches")
-            active = ready[: RULE["active_batches"]]
+            active = ready[: self.rule["active_batches"]]
             for fingerprint in active:
                 db.execute(
                     "UPDATE batches SET state='ACTIVE', activated_version=0 "
@@ -459,12 +476,28 @@ class PoolStore:
         """Rotate if due and possible; else mark ROTATION_PENDING. Returns the
         retired fingerprint when a rotation happened."""
         pool = self._pool_row(db)
-        if pool["admitted"] < RULE["rotate_after_admitted"]:
-            return None
+        rotation = self.rule.get("rotation")
+        if rotation is None:
+            if pool["admitted"] < self.rule["rotate_after_admitted"]:
+                return None
+        else:
+            latest = self._latest_block(db)
+            activated = self._activated_block(db, latest)
+            if latest is None or latest - activated < rotation["every_blocks"]:
+                return None
         nxt = db.execute(
             "SELECT fingerprint FROM batches WHERE kind='screening' AND state='PREPARED' "
             "AND references_state='COMPLETE' ORDER BY sequence LIMIT 1"
         ).fetchone()
+        if nxt is None and rotation is not None:
+            # v2 never stalls miners: keep scoring on the current batches and
+            # record, once per pool version, that the rotation is overdue.
+            if not db.execute(
+                "SELECT 1 FROM events WHERE kind='rotation_overdue' AND body=?",
+                (_json({"version": pool["version"]}),),
+            ).fetchone():
+                self._event(db, "rotation_overdue", {"version": pool["version"]})
+            return None
         if nxt is None:
             if pool["status"] != "ROTATION_PENDING":
                 db.execute("UPDATE pool SET status='ROTATION_PENDING' WHERE id=1")
@@ -485,6 +518,11 @@ class PoolStore:
             "UPDATE pool SET version=?, admitted=0, active=?, status='OPEN' WHERE id=1",
             (version, canonical(active)),
         )
+        if rotation is not None:
+            db.execute(
+                "INSERT OR REPLACE INTO pool_clock VALUES(1, ?)",
+                (self._latest_block(db),),
+            )
         # The journal retirement is a separate file; it is recorded here as a
         # pending operation and completed idempotently (`settle_retirements`).
         db.execute(
@@ -497,6 +535,23 @@ class PoolStore:
             {"version": version, "retired": retired, "activated": nxt[0]},
         )
         return retired
+
+    def _latest_block(self, db):
+        """The newest finalized block any admission was received against."""
+        row = db.execute(
+            "SELECT MAX(json_extract(binding, '$.receipt.block')) FROM submissions"
+        ).fetchone()
+        return None if row is None else row[0]
+
+    def _activated_block(self, db, latest):
+        """The block the current pool version started at (v2). The first
+        observed block starts the clock for a freshly opened pool."""
+        row = db.execute("SELECT block FROM pool_clock WHERE id=1").fetchone()
+        if row is not None and row[0] is not None:
+            return row[0]
+        if latest is not None:
+            db.execute("INSERT OR REPLACE INTO pool_clock VALUES(1, ?)", (latest,))
+        return latest
 
     def rotate_if_ready(self):
         """Resolve a pending rotation once a complete batch is prepared."""
@@ -522,10 +577,24 @@ class PoolStore:
     # --- admissions ------------------------------------------------------------
 
     def admit(
-        self, submission_id, *, request_digest, hotkey, challenge, strategy, binding
+        self,
+        submission_id,
+        *,
+        request_digest,
+        hotkey,
+        challenge,
+        strategy,
+        binding,
+        window=None,
     ):
         """Record an admission once. A replay with the same request returns
-        the existing row; a different request under the same id is refused."""
+        the existing row; a different request under the same id is refused.
+
+        `window` (rule v2) is `(start, end, limit)`: the hotkey's admissions
+        received in blocks `[start, end)`, counted and inserted in one
+        transaction, so two concurrent submissions cannot both take the last
+        place. A full window raises `HotkeyWindowUsed` and records nothing.
+        """
         now = self.clock()
         with self.transaction() as db:
             row = db.execute(
@@ -536,6 +605,17 @@ class PoolStore:
                 if row[0] != request_digest:
                     raise StateError("submission_replay_conflict")
                 return self._submission(db, submission_id), False
+            if window is not None:
+                start, end, limit = window
+                used = db.execute(
+                    "SELECT COUNT(*) FROM submissions WHERE hotkey=? AND "
+                    "state!='INVALID_CONSTRUCTION' AND "
+                    "json_extract(binding, '$.receipt.block') >= ? AND "
+                    "json_extract(binding, '$.receipt.block') < ?",
+                    (hotkey, start, end),
+                ).fetchone()[0]
+                if used >= limit:
+                    raise HotkeyWindowUsed(end)
             db.execute(
                 "INSERT INTO submissions VALUES(?,?,?,?,?,?,'ADMITTED',NULL,?,?)",
                 (
