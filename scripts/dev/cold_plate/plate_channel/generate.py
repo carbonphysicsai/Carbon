@@ -61,6 +61,21 @@ PROPERTY_SETS = {
         "q_flux": 1000 / 0.03**2,
     },
 }
+# The design set at the inlet-temperature range's ends (DESIGN_BASIS.md
+# section 2), same source and convention: constant properties at the inlet
+# temperature; only the fluid and the inlet temperature change.
+for _name, _t_c, _rho, _cp, _mu, _pr in (
+    ("design-30C", 30.0, 1014.90, 3944.6, 1.7761e-3, 14.69),
+    ("design-45C", 45.0, 1007.21, 3980.6, 1.1993e-3, 9.74),
+):
+    PROPERTY_SETS[_name] = {
+        **PROPERTY_SETS["design"],
+        "rho_f": _rho,
+        "cp_f": _cp,
+        "mu_f": _mu,
+        "pr_f": _pr,
+        "t_in": 273.15 + _t_c,
+    }
 #: The design point's footprint and heat load (DESIGN_BASIS.md section 2).
 FOOTPRINT_M, HEAT_LOAD_W = 0.03, 1000.0
 
@@ -236,7 +251,7 @@ def main(argv=None):
     properties = dict(PROPERTY_SETS[args.properties])
     channels = None
     if args.flow_lpm_per_kw is not None:
-        if args.properties != "design" or args.flow_lpm_per_kw <= 0:
+        if not args.properties.startswith("design") or args.flow_lpm_per_kw <= 0:
             parser.error("--flow-lpm-per-kw is a positive design-set option")
         properties["u_in"], channels = design_inlet_velocity(
             geometry, args.flow_lpm_per_kw
