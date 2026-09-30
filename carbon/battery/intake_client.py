@@ -115,3 +115,142 @@ def post(url, body, headers, *, timeout=30.0):
             return r.status, json.loads(r.read(65536))
     except urllib.error.HTTPError as refused:
         return refused.code, json.loads(refused.read(65536) or b"{}")
+
+
+# --- plain-language feedback ------------------------------------------------------
+
+#: Why a request was refused, and what the miner does about it. Every code the
+#: intake or the daemon can return has an entry; `describe` never guesses.
+REFUSALS = {
+    "rate": "Too many requests from your address. Wait a few seconds and retry.",
+    "capacity": "The intake is busy. Retry in a few seconds.",
+    "inbox_full": "The validator's queue is full. Retry in a few minutes.",
+    "body": "The request is larger than the intake accepts (64 KiB).",
+    "headers": "A request header is repeated; send each header once.",
+    "not_found": "No submission with that id belongs to your hotkey.",
+    "tool": "The intake only accepts battery_submit and battery_status.",
+    "submission_fields": "A submission needs exactly strategy_json and contract_digest.",
+    "status_fields": "A status request needs exactly submission_id.",
+    "snapshot_unknown": (
+        "Your message names a chain snapshot this validator no longer holds. "
+        "Read the intake again, rebuild and sign, then send at once."
+    ),
+    "snapshot_unavailable": (
+        "The validator cannot read the chain right now. This is on the "
+        "validator's side; retry in a minute."
+    ),
+    "hotkey_window_used": (
+        "Your hotkey already has its submission for this tempo. Send this one "
+        "again once the next window opens."
+    ),
+    "receipt_block_missing": "The validator could not date this request; resend it.",
+    "commitment_reader_unavailable": (
+        "This validator requires an on-chain commitment it cannot yet read."
+    ),
+    "commitment_required": "Commit this recipe's hash on chain, then resend.",
+    "TRANSPORT_IDENTITY": (
+        "Your hotkey is not registered on this subnet (or the validator's is "
+        "not). Register first, then resend."
+    ),
+    "TRANSPORT_STALE": "The request is too old. Rebuild, sign and send at once.",
+    "TRANSPORT_REPLAY": "This exact request was already received.",
+    "TRANSPORT_CONFLICT": "A different request reused this request id.",
+    "TRANSPORT_CONTEXT": "The message names another network, subnet or Challenge.",
+    "TRANSPORT_MALFORMED": "The message is not a valid Carbon request.",
+    "TRANSPORT_RATE": "More than 32 requests a second from your hotkey.",
+    "TRANSPORT_CAPACITY": "The validator's receipt journal is full.",
+    "TRANSPORT_STORE": (
+        "The validator could not record the request. This is on the "
+        "validator's side; retry."
+    ),
+    "AUTH_BAD_SIGNATURE": "The signature does not verify for your hotkey.",
+    "AUTH_WRONG_RECEIVER": "The request was signed for another validator.",
+    "AUTH_STALE": "The signature is older than 10 seconds. Sign and send at once.",
+    "AUTH_REPLAY": "This signature was already used.",
+    "AUTH_MALFORMED": "The signature headers are missing or malformed.",
+    "AUTH_UNAVAILABLE": "The validator cannot verify signatures right now.",
+}
+
+_STATES = {
+    "RECEIVED": "Received. Waiting for the validator to admit it.",
+    "ADMITTED": "Admitted. Waiting to be rebuilt and scored.",
+    "RECONSTRUCTED": "Rebuilt by the validator. Waiting to be scored.",
+    "FAILED_INFRA": (
+        "The validator hit an infrastructure failure. This is not a verdict on "
+        "your recipe; it will be retried."
+    ),
+    "FAILED_INFRA_EXHAUSTED": (
+        "The validator's infrastructure failed on every retry. This is not a "
+        "verdict on your recipe; nothing was scored."
+    ),
+    "INVALID_CONSTRUCTION": "Refused: the recipe cannot be built as submitted.",
+    "RECONSTRUCTION_FAILED": "The validator could not rebuild your recipe.",
+}
+
+_WAITING = {
+    "QUEUED": "It is queued behind other submissions.",
+    "ROTATION_PENDING": "Scoring is paused until the validator prepares a batch.",
+    "POOL_NOT_OPEN": "The validator's exam pool is not open yet.",
+}
+
+
+def _minutes(seconds):
+    return max(1, round(seconds / 60))
+
+
+def describe(status, answer):
+    """One plain-language paragraph for any intake answer."""
+    if "refused" in answer:
+        code = answer["refused"]
+        text = REFUSALS.get(code, f"Refused ({code}).")
+        if code == "hotkey_window_used":
+            text += (
+                f" Next window: block {answer['next_block']}, in about "
+                f"{_minutes(answer['retry_after_s'])} min."
+            )
+        return text
+    state = answer.get("state")
+    if state == "REFUSED":
+        failure = answer.get("failure", {})
+        text = REFUSALS.get(failure.get("code"), f"Refused ({failure.get('code')}).")
+        if failure.get("next_block") is not None:
+            text += f" Next window: block {failure['next_block']}."
+        return text
+    if status == 202:
+        return (
+            f"Submitted as {answer['submission_id']}. Ask for its status in a "
+            "few minutes; rebuilding and scoring take several."
+        )
+    if state == "SCORED":
+        s = answer["screening"]
+        if not s["eligible"]:
+            gates = ", ".join(s.get("gates_failed") or []) or "a mandatory gate"
+            return (
+                f"Scored on pool version {s['pool_version']}: NOT ELIGIBLE. "
+                f"It failed {gates}; a failed gate is never offset by score."
+            )
+        text = (
+            f"Scored on pool version {s['pool_version']}: eligible, score "
+            f"{s['score']} (important region {s['important_score']}); lower is "
+            "better."
+        )
+        if answer.get("nominated"):
+            text += " Nominated for a finalist comparison against the incumbent."
+        for final in answer.get("finals", []):
+            text += f" Final: {final['state']}"
+            if final.get("outcome"):
+                text += f", {final['outcome']}"
+                text += " (promoted)" if final.get("promoted") else ""
+            text += "."
+        return text + " Development evidence only: no reward, not a qualification."
+    text = _STATES.get(state, f"State: {state}.")
+    if state == "INVALID_CONSTRUCTION" and answer.get("failure"):
+        f = answer["failure"]
+        issues = "; ".join(
+            f"{i.get('code')} at {'/'.join(map(str, i.get('path', [])))}"
+            for i in f.get("issues", [])
+        )
+        text += f" Reason: {f.get('code')}" + (f" ({issues})." if issues else ".")
+    if answer.get("waiting") in _WAITING:
+        text += " " + _WAITING[answer["waiting"]]
+    return text
