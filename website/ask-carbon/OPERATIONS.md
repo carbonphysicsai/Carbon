@@ -364,10 +364,17 @@ each carrying the reason it changed since v2 (53 changed, 4 added, 1 removed,
 owner-supplied live archive `carbon-site-upload-v3-papers.zip` (SHA-256
 `23fe55ae…`), which matched live 105/105 by digest on both hostnames. That the
 archive is the complete deployed directory is the owner's statement; the
-per-path match is measured. `deployment_target_observed.live_version_id` reads
-`CAPTURE_BEFORE_DEPLOY`: the live version is not `b694b20f` (which serves the
-v2 site) and cannot be read without the Cloudflare credential, so
-`--require-complete-bundle` refuses until the deploying operator records it.
+per-path match is measured. `deployment_target_observed.live_version_id` is
+`f7954cb2-b610-40f9-86e6-0a3fe6d04c93`, captured by the deploying operator
+before the WEB-QA-10-D1 build (it is not `b694b20f`, which serves the v2 site).
+That build was then deployed as `dc4469a7-f4da-4437-aaa1-2789277e57fc`, which
+the manifest records as `deployed_after_capture`. `f7954cb2` is therefore the
+rollback target for WEB-QA-10-D1 and not the current live version, and
+`--require-complete-bundle` refuses while `deployed_after_capture` is present.
+The next deployable build must capture the then-live version id with
+`wrangler deployments status --name carbonwebsite`, write it to
+`live_version_id` and remove `deployed_after_capture`. The building host has
+no Cloudflare credential and cannot read it.
 Pass the manifest explicitly with `--baseline-manifest`. `--reconcile-owner-upload`
 does not apply: it verifies the superseded 2026-09-18 homepage pin
 (`546fb89d…`) and can never pass for the redesigned site.

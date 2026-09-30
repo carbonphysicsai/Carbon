@@ -54,7 +54,7 @@ const writeFixture = async (root, path, contents) => {
  * manifest that describes it. `extra` lets a test add a legitimate asset that
  * is absent from the old hard-coded REQUIRED_PRODUCTION_PATHS list.
  */
-const buildBaseline = async ({ complete = true, extra = null, rollback = "0f1e2d3c-4b5a-4978-8765-43210fedcba9" } = {}) => {
+const buildBaseline = async ({ complete = true, extra = null, rollback = "0f1e2d3c-4b5a-4978-8765-43210fedcba9", deployedAfter = null } = {}) => {
   const root = await workspace();
   const site = join(root, "current");
   const files = [
@@ -98,7 +98,11 @@ const buildBaseline = async ({ complete = true, extra = null, rollback = "0f1e2d
     inventory_status: complete ? "verified-complete" : "incomplete",
     inventory_complete: complete,
     inventory_status_reason: complete ? "fixture" : "fixture: deployed asset set not enumerated",
-    deployment_target_observed: { worker: "carbonwebsite", live_version_id: rollback },
+    deployment_target_observed: {
+      worker: "carbonwebsite",
+      live_version_id: rollback,
+      ...(deployedAfter ? { deployed_after_capture: { version_id: deployedAfter } } : {}),
+    },
     assets,
   }, null, 2));
   const input = join(root, "input.html");
@@ -301,6 +305,13 @@ test("the shipped baseline manifest is a complete, self-consistent inventory of 
   const target = manifest.deployment_target_observed.live_version_id;
   assert.ok(/^[0-9a-f-]{36}$/.test(target) || target === "CAPTURE_BEFORE_DEPLOY");
   assert.notEqual(target, "5a44ab03-ce7c-4100-ae42-71843b07246a", "the 2026-09-12 version was superseded on 2026-09-22");
+  // A deployment recorded after the capture must be a different version; the
+  // tool then refuses to reuse the capture as the next rollback target.
+  const after = manifest.deployment_target_observed.deployed_after_capture;
+  if (after) {
+    assert.match(after.version_id, /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
+    assert.notEqual(after.version_id, target);
+  }
 });
 
 test("a complete baseline without a captured rollback target refuses certification", async () => {
@@ -310,6 +321,21 @@ test("a complete baseline without a captured rollback target refuses certificati
   assert.notEqual(result.code, 0);
   assert.match(result.stderr, /rollback target/);
   await assert.rejects(readFile(output), /ENOENT/);
+});
+
+test("a rollback target captured before a later deployment refuses certification", async () => {
+  const fixture = await buildBaseline({ deployedAfter: "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d" });
+  const output = join(fixture.root, "fresh", "index.html");
+  const result = await runCli(productionArgs(fixture, output, ["--require-complete-bundle"]));
+  assert.notEqual(result.code, 0);
+  assert.match(result.stderr, /captured before deployment 1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d/);
+  await assert.rejects(readFile(output), /ENOENT/);
+  // Specimen: the identical baseline without the later deployment certifies.
+  const control = await buildBaseline();
+  const controlOutput = join(control.root, "fresh", "index.html");
+  const passed = await runCli(productionArgs(control, controlOutput, ["--require-complete-bundle"]));
+  assert.equal(passed.code, 0, passed.stderr);
+  assert.equal(JSON.parse(passed.stdout).deployable_to_carbonwebsite, true);
 });
 
 // --- completeness is not authorization --------------------------------------

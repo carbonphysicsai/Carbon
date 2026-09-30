@@ -376,7 +376,10 @@ const main = async () => {
       : false;
     const inventoryComplete = manifest.inventory_complete === true;
     const rollbackTarget = manifest.deployment_target_observed?.live_version_id;
-    const rollbackCaptured = typeof rollbackTarget === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(rollbackTarget);
+    // A capture that a later deployment has already superseded is no longer
+    // the live version, so it cannot be the next build's rollback target.
+    const deployedAfterCapture = manifest.deployment_target_observed?.deployed_after_capture?.version_id ?? null;
+    const rollbackCaptured = typeof rollbackTarget === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(rollbackTarget) && deployedAfterCapture === null;
     const deployable = baselinePreserved && inventoryComplete && rollbackCaptured && !previewOnly;
 
     if (args["require-complete-bundle"] && !deployable) {
@@ -384,7 +387,8 @@ const main = async () => {
       if (!args["existing-site"]) reasons.push("no --existing-site baseline was supplied, so no existing production asset is preserved");
       else if (!baselinePreserved) reasons.push("the staged bundle does not reproduce every verified baseline asset");
       if (!inventoryComplete) reasons.push(`the baseline manifest is "${manifest.inventory_status}": ${manifest.inventory_status_reason ?? "the deployed asset set has not been enumerated"}`);
-      if (!rollbackCaptured) reasons.push("the baseline manifest does not record the live carbonwebsite version id (deployment_target_observed.live_version_id) as the rollback target; capture it with `wrangler deployments list --name carbonwebsite` before building");
+      if (deployedAfterCapture !== null) reasons.push(`the recorded rollback target ${rollbackTarget} was captured before deployment ${deployedAfterCapture} (deployment_target_observed.deployed_after_capture); capture the now-live version id with \`wrangler deployments status --name carbonwebsite\`, write it to live_version_id and remove deployed_after_capture before building`);
+      else if (!rollbackCaptured) reasons.push("the baseline manifest does not record the live carbonwebsite version id (deployment_target_observed.live_version_id) as the rollback target; capture it with `wrangler deployments list --name carbonwebsite` before building");
       if (previewOnly) reasons.push("--staging-preview/--allow-changed-source builds are inspection artifacts and never carry production authorization");
       throw new Error(`Refusing to certify a deployable production bundle: ${reasons.join("; ")}. Deploying an incomplete asset set to carbonwebsite would withdraw the missing paths from production.`);
     }
