@@ -3861,6 +3861,13 @@
         "map_ref": "SYSTEM/AGENT-EXECUTION"
       },
       {
+        "id": "miner-environment-ticket",
+        "match_type": "exact",
+        "path": ".agent/tickets/C-MLP-03_miner_environment.md",
+        "impact_class": "map_structural",
+        "map_ref": "SYSTEM/AGENT-EXECUTION"
+      },
+      {
         "id": "miner-launchpad-handoff",
         "match_type": "exact",
         "path": "docs/development/MINER_LAUNCHPAD_HANDOFF.md",

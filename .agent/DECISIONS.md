@@ -16449,3 +16449,50 @@ pays nothing; no Challenge pays rewards before its training budget study
 from this host, no Cloudflare access, no spend. The client security review
 (OWNER-CLIENT-SECURITY-REVIEW-01) still arms on the first real client
 engagement. Ticket: `.agent/tickets/GOAL-WORKBENCH-16_pilot_designer_route.md`.
+
+## 2026-09-30 — OWNER-MINER-ENVIRONMENT-01: a registered miner's environment comes with GPU, model and agent connected
+
+**Authority.** The owner, in chat on 2026-09-30: "This environment is supposed
+to be fully loaded with GPU + Model + Agent set up immediately after miner
+registration. Offering Engy/chutes inference targon/Lium compute Hermes/mira
+agents." On scope: "We are just facilitating a miner to set those things up on
+their own machine! We aren't hosting anything except for the environment."
+
+**Decision.**
+1. **Setup follows registration.** After the onboarding door confirms
+   registration, the Control Center takes the miner through one setup:
+   inference, compute, agent, then review. Setup writes the miner's runner
+   profile itself; operators keep `--research-profile`.
+2. **The named integrations:**
+   - inference: Engy and Chutes;
+   - compute: the miner's own GPU, Lium and Targon, with RunPod under the
+     miner's own key;
+   - agents: Carbon's own and Hermes, with Mira once verified.
+3. **Facilitated, not hosted.** Carbon hosts nothing new. Every account, key
+   and bill is the miner's. A key is entered once on the loopback page,
+   stored owner-only on the miner's machine, sent only to its own provider,
+   and never reaches Carbon.
+4. **Enforced by the standard.** The research environment standard gains
+   three provisions: `compute`, `model` and `agent`. Battery starts with
+   three named Gaps, and each C-MLP-03 slice replaces one with `Provided`
+   evidence.
+
+**Unchanged.**
+- The exam: the validator's rule, backend and resources. GPU practice is
+  research only.
+- Official evaluation material never reaches a sandbox.
+- No spending choice is made for the miner. Ceilings stay optional, except
+  the existing finite ceilings for Carbon's autonomous battery agent.
+- Testnet 567 only; no chain write.
+- The Control Center programme's other decisions stand: validator hosting,
+  the reused UID, external signing, battery first, and "the model provider is
+  the miner's choice".
+
+**Supersedes.**
+- The unticketed Hermes/Chutes/Lium plan in `MINER_LAUNCHPAD_HANDOFF.md`.
+- The compute, model and agent scope of the first release in
+  `CONTROL_CENTER_PROGRAMME.md`.
+
+**Open input.** "Which Mira?" This ticket assumes Mira Network's Flows.
+Ticket: `.agent/tickets/C-MLP-03_miner_environment.md`.
+
