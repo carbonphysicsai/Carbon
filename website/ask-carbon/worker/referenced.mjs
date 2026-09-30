@@ -188,6 +188,7 @@ export const referencedInstructions = (passages, { priorQuestion = null, priorAn
 - "fact": says anything about Carbon. It must cite one or two passages, each with a short quote copied from that passage that supports what you said. Quotes are for our own checking and are never shown inline, so write naturally rather than echoing them. A fact the server cannot find in the cited passage is deleted.
 - "conversation": at most ${MAX_CONVERSATION_SENTENCES}, under ${MAX_CONVERSATION_CHARS} characters, with no information about Carbon at all: acknowledging the question, or offering to go deeper ("Happy to go into how the battery exam works if that's useful."). No citations.`,
   `Use at most ${MAX_FACT_SENTENCES} fact sentences. If the passages do not answer the question, return an empty sentences list. An honest answer that something is not done yet, or not established, is still an answer: say it, with its quote.`,
+  "Never mention passages, passage labels such as P2, excerpts or documentation in your sentences; the visitor never sees them. Just say it.",
   "Keep Carbon's own qualifiers. Do not turn planned into done, designed into implemented, tested into qualified, or selected into launched. Do not give dates, prices, returns, customer names or numbers that the passages do not state. Do not include URLs.",
   ...(priorQuestion ? [`Earlier in this conversation the visitor asked: ${JSON.stringify(priorQuestion)}${priorAnswer ? ` and we answered: ${JSON.stringify(priorAnswer)}` : ""}. Use it to understand the new question; facts still need passages.`] : []),
   `Passages: ${JSON.stringify(passages.map((passage, index) => ({ id: passageLabel(index), document: passage.path, section: passage.heading, text: passage.text })))}`,
@@ -307,7 +308,9 @@ export const verifyReferencedAnswer = (value, passages) => {
     for (const sentence of value.sentences.slice(0, MAX_SENTENCES)) {
       audit.proposed_sentences += 1;
       const text = typeof sentence?.text === "string" ? sentence.text.trim() : "";
-      if (!text || text.length > MAX_SENTENCE_CHARS || /https?:\/\/|www\./i.test(text)) {
+      // A sentence that names an internal passage label reads as a lookup,
+      // not a conversation, and the label means nothing to the visitor.
+      if (!text || text.length > MAX_SENTENCE_CHARS || /https?:\/\/|www\./i.test(text) || /\bpassages?\s+P?\d|\bP\d{1,2}\b/.test(text)) {
         audit.rejected.push({ reason: "invalid_sentence", text: text.slice(0, 120) });
         continue;
       }

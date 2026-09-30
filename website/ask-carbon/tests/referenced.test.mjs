@@ -125,6 +125,11 @@ test("no sentences, a no_reference status, a URL or a short quote all end as no 
   assert.equal(status({ status: "answered", sentences: [] }).status, "no_reference");
   assert.equal(status({ status: "answered", sentences: [{ kind: "fact", text: "See https://example.com for customers.", citations: [{ passage: label, quote: "does not establish signed paid customers" }] }] }).status, "no_reference");
   assert.equal(status({ status: "answered", sentences: [{ kind: "fact", text: "No customers.", citations: [{ passage: label, quote: "customers" }] }] }).status, "no_reference");
+  // Naming an internal passage label is dropped; the same fact without it is the specimen that passes.
+  const cited = (text) => status({ sentences: [{ kind: "fact", text, citations: [{ passage: label, quote: "does not establish signed paid customers" }] }] }).status;
+  assert.equal(cited("Passage P2 says we have no signed paid customers."), "no_reference");
+  assert.equal(cited("We have no signed paid customers (see P2)."), "no_reference");
+  assert.equal(cited("We have no signed paid customers yet."), "supported");
   assert.throws(() => verifyReferencedAnswer({ status: "answered" }, passages), (error) => error.code === "invalid_provider_output");
   // The model's own label does not decide: a checked fact labelled
   // no_reference is still an answer (observed from gemma-4-31B on 2026-09-30).
