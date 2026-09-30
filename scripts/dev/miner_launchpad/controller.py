@@ -507,6 +507,9 @@ class Server(ThreadingHTTPServer):
         development_sources=None,
         research_runner=None,
         onboarding=None,
+        state_dir=None,
+        legacy_database=None,
+        setup_checks=None,
     ):
         if len(token) < 32:
             raise ValueError("A generated local session token is required")
@@ -517,12 +520,45 @@ class Server(ThreadingHTTPServer):
         # registered hotkey, because onboarding exists for people who have none
         # of those yet.
         self.onboarding = onboarding or _default_onboarding()
+        # C-MLP-03: after registration the miner sets up their environment
+        # here, and the profile it writes is loaded without a restart.
+        self.research_profile = None
+        self.legacy_database = legacy_database
+        self.attach_lock = threading.Lock()
+        self.setup = None
+        if state_dir is not None:
+            from scripts.dev.miner_launchpad.environment_setup import EnvironmentSetup
+
+            self.setup = EnvironmentSetup(
+                state_dir,
+                onboarding=self.onboarding,
+                checks=setup_checks,
+                attach=self.attach_profile,
+            )
         self.token = token
         self.assets = Path(__file__).parent
         self.request_slots = threading.BoundedSemaphore(16)
         super().__init__(("127.0.0.1", port), Handler)
         self.authority = f"127.0.0.1:{self.server_port}"
         self.origin = f"http://{self.authority}"
+
+    def attach_profile(self, profile: Path) -> bool:
+        """Load the runner profile setup wrote, without a restart.
+
+        Only into an empty seat: an operator's `--research-profile` is never
+        replaced from the browser. Re-attaching the same file is a no-op, since
+        the runner re-reads its profile on every operation.
+        """
+        from scripts.dev.miner_launchpad.runner import RunnerAdapter
+
+        with self.attach_lock:
+            if self.research_runner is not None:
+                return self.research_profile == Path(profile)
+            self.research_runner = RunnerAdapter.for_profile(
+                profile, legacy_database=self.legacy_database
+            )
+            self.research_profile = Path(profile)
+            return True
 
     def process_request(self, request, client_address):
         if not self.request_slots.acquire(blocking=False):
@@ -617,6 +653,15 @@ class Handler(BaseHTTPRequestHandler):
                 self.reply(200, exam_environment())
             elif self.path == "/api/v1/runs":
                 self.reply(200, {"runs": self.server.controller.recent()})
+            elif self.path == "/api/v1/setup":
+                # Authenticated: the page shows the miner's own choices.
+                self.check(authenticated=True)
+                setup = self.server.setup
+                if setup is None:
+                    raise Rejected("setup_unavailable", 409)
+                from scripts.dev.miner_launchpad.environment_setup import choices
+
+                self.reply(200, {**setup.state(), "choices": choices()})
             elif self.path == "/api/v1/development":
                 sources = self.server.development_sources
                 self.reply(200, {"sources": sources.recent() if sources else []})
@@ -682,7 +727,14 @@ class Handler(BaseHTTPRequestHandler):
             if len(body) != length:
                 raise Rejected("incomplete_body")
             value = parse_json(body)
-            if self.path.startswith("/api/v1/onboarding/"):
+            if self.path.startswith("/api/v1/setup/"):
+                action = self.path.removeprefix("/api/v1/setup/")
+                if action not in {"begin", "inference", "compute", "agent", "review"}:
+                    raise Rejected("unknown_setup_step", 404)
+                if self.server.setup is None:
+                    raise Rejected("setup_unavailable", 409)
+                result = getattr(self.server.setup, action)(value)
+            elif self.path.startswith("/api/v1/onboarding/"):
                 action = self.path.removeprefix("/api/v1/onboarding/")
                 if action not in {"status", "prepare", "confirm"}:
                     raise Rejected("unknown_onboarding_action", 404)
@@ -744,7 +796,13 @@ class Handler(BaseHTTPRequestHandler):
                 result = self.server.controller.control(parts[4], parts[5])
             self.reply(200, result)
         except Rejected as exc:
-            self.reply(exc.status, {"error": exc.code})
+            body = {"error": exc.code}
+            # A setup refusal names the field it is about, and the next step
+            # when there is one to take.
+            for name in ("field", "next_step"):
+                if getattr(exc, name, None) is not None:
+                    body[name] = getattr(exc, name)
+            self.reply(exc.status, body)
         except (OSError, sqlite3.Error):
             self.reply(503, {"error": "local_infrastructure_unavailable"})
         except (ValueError, RuntimeError):
@@ -866,7 +924,11 @@ def main() -> None:
             args.port,
             development_sources=sources,
             research_runner=runner,
+            state_dir=args.state_dir,
+            legacy_database=database,
         )
+        if runner is not None:
+            server.research_profile = args.research_profile
         controller.recover()
         done = threading.Event()
 
@@ -898,8 +960,8 @@ def main() -> None:
             pass
         finally:
             done.set()
-            if runner is not None:
-                runner.close()
+            if server.research_runner is not None:
+                server.research_runner.close()
             thread.join(timeout=3)
             server.server_close()
 
