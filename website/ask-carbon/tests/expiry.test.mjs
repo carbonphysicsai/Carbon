@@ -90,3 +90,30 @@ test("the committed knowledge is caught before its October cards go quiet", asyn
   assert.equal(failed.valid, false);
   assert.deepEqual(failed.errors.map((e) => e.split(":")[1]).sort(), october);
 });
+
+test("per-PR CI can demote wall-clock findings, and only those", async () => {
+  const aged = clear();
+  aged.cards[0].expires_at = at(3 * DAY_MS);
+  aged.cards[1].expires_at = at(-DAY_MS);
+  aged.release.expires_at = at(5 * DAY_MS);
+  const aging = [`card_expires_within_7d:${aged.cards[0].id}`, `card_expired_or_invalid:${aged.cards[1].id}`, "release_expires_within_7d"].sort();
+  // Specimen: strict mode fails on exactly these findings.
+  const strict = await validate(aged);
+  assert.equal(strict.valid, false);
+  assert.deepEqual(strict.errors, aging);
+  const relaxed = await validateKnowledge(aged, { mode: "production", now: NOW, checkSourceBytes: false, timeFindings: "warning" });
+  assert.equal(relaxed.valid, true, JSON.stringify(relaxed.errors));
+  for (const code of aging) assert.ok(relaxed.warnings.includes(code), code);
+
+  // A malformed expiry and a structural defect are not ageing; they stay errors.
+  const broken = clear();
+  broken.cards[0].expires_at = "not-a-date";
+  broken.cards[1].passages = [];
+  const still = await validateKnowledge(broken, { mode: "production", now: NOW, checkSourceBytes: false, timeFindings: "warning" });
+  assert.equal(still.valid, false);
+  assert.ok(still.errors.includes(`card_expired_or_invalid:${broken.cards[0].id}`));
+  assert.ok(still.errors.includes(`missing_answer_basis:${broken.cards[1].id}`));
+
+  const unknown = await validateKnowledge(clear(), { mode: "production", now: NOW, checkSourceBytes: false, timeFindings: "ignore" });
+  assert.deepEqual(unknown.errors, ["invalid_time_findings_mode"]);
+});

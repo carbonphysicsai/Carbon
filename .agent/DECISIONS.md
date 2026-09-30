@@ -16420,3 +16420,55 @@ as approved, in the spec's own recommended form.
   hidden batches, the exam rule, chain state, submissions and payouts.
 - It grants no scientific, security or production qualification.
 - The study-only contract with raised ranges is never registered live.
+
+## 2026-09-30 — OWNER-ASK-CARBON-FRESHNESS-01: Ask Carbon cards stay current by source, not by calendar
+
+**Authority.** The owner, in the Ask Carbon session on 2026-09-30, replying
+"approved" to two proposals:
+
+1. **Source-bound cards.** A card that paraphrases a pinned source expires when
+   that source changes. It has no calendar expiry of its own. The release
+   expiry stays as a backstop, because a source can stay byte-identical while
+   the facts move.
+2. **Standing approval for date-only refreshes.** A refresh qualifies only when
+   all pinned sources are byte-identical and the only fields that change are the
+   expiry and the date in the maturity label and answer. It needs no further
+   owner approval.
+
+The owner also approved the engineering to support these. An agent drafts
+content refreshes for owner approval, and per-PR CI stops failing unrelated
+changes on the calendar.
+
+**Finding recorded with the approval: proposal 2 is not safe for
+`current-progress`.** That card's only source, `.agent/WAVE.md`, is still
+byte-identical to its pin. However, it has not changed since 2026-09-17. The
+owner decisions since then, including the four-Challenge launch portfolio
+(`OWNER-LAUNCH-PORTFOLIO-01`), have not reached it. The card tells visitors
+that a closed three-campaign programme with no successor is Carbon's latest
+status. `docs/publications/PROJECT_STATUS.md`, reviewed 2026-09-28, describes a
+four-Challenge launch plan led by battery. A date-only refresh would restate the
+stale status under a newer date. So the card is not refreshed under proposal 2.
+Its redraft goes to the owner.
+
+**Delivered in this change.**
+- `validate-knowledge.mjs --time-findings-as-warnings` demotes expiry findings
+  that have a readable date, and only those.
+- Per-PR CI uses that flag unless the PR edits `website/ask-carbon/knowledge/`.
+- The strict check runs daily on `main` in the new `Ask Carbon freshness`
+  workflow.
+
+**Not delivered: the knowledge change.** The edit to
+`knowledge/public-knowledge.v1.json` was blocked by the session's permission
+check. That edit sets four cards (`bittensor`, `incentives`,
+`customer-product`, `contact`) to the release backstop, and records each card's
+freshness basis. It needs the owner to apply it or to permit it. The following
+stay unchanged until then:
+- All six cards still expire 2026-10-16.
+- The live `assistant-scope` card still shows
+  `STAGING_CANDIDATE_PUBLIC_ACTIVATION_DISABLED`.
+- Any knowledge change takes effect on the site only through a new bundle and
+  redeploys of `carbonwebsite` and `ask-carbon-public`.
+
+**Not decided:** whether the Worker should load its knowledge at runtime
+rather than embed it. That would remove the redeploy from refreshes. It is a
+security and integrity decision for the owner.

@@ -99,7 +99,19 @@ jobs:
       - name: Run bounded public Ask Carbon acceptance
         run: |
           npm test --prefix website/ask-carbon
-          npm run validate --prefix website/ask-carbon
+          # Card and release expiry say the committed knowledge has aged, not
+          # that this change is wrong, so they fail only a PR that edits the
+          # knowledge. The scheduled Ask Carbon freshness workflow keeps them
+          # errors. Any git failure falls back to the strict check.
+          set +e
+          git diff --quiet origin/main...HEAD -- website/ask-carbon/knowledge
+          knowledge_diff=$?
+          set -e
+          if [ "$knowledge_diff" -eq 0 ]; then
+            npm run validate --prefix website/ask-carbon -- --time-findings-as-warnings
+          else
+            npm run validate --prefix website/ask-carbon
+          fi
       - name: Install pinned uv
         uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:

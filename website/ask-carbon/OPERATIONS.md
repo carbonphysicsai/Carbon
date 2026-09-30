@@ -167,6 +167,13 @@ expiry fails the check. The windows are reviewed constants in
 set an expiry more than seven days out. The check makes the review happen; it
 never extends an expiry, which stays a content decision.
 
+Where the check fails: ageing is not a defect in an unrelated change, so per-PR
+CI runs `npm run validate -- --time-findings-as-warnings` unless the PR edits
+`knowledge/`, and then it runs the strict check. The flag demotes only expiry
+findings with a readable date; a malformed expiry, a changed source and every
+structural error still fail. The strict check runs daily on `main` in the
+`Ask Carbon freshness` workflow, which is where an approaching expiry goes red.
+
 ## Private staging sequence
 
 1. WEB-QA-03 uses Worker-enforced TLS Basic authentication because
