@@ -16,7 +16,27 @@ Recorded as `OWNER-MINER-ENVIRONMENT-01` in `.agent/DECISIONS.md` (slice 1).
 **Primary Development Hub map_ref:** `SYSTEM/AGENT-EXECUTION`,
 `HUB_UPDATE_REQUIRED`.
 
-**Status:** slice 1 in progress.
+**Status:** slice 1 implemented (engineering evidence only).
+- Setup: `scripts/dev/miner_launchpad/environment_setup.py`, with routes
+  `/api/v1/setup` in the controller and the "Set up your environment" view.
+- Tests: `tests/cpu/test_miner_launchpad_environment_setup.py` and
+  `setup_journey` in the Launchpad browser smoke.
+- **Recorded engineering decisions (slice 1):**
+  - *Images are verified, not pulled.* Carbon publishes no image registry,
+    and the worker is built from the miner's exact clean checkout. Setup
+    verifies the locally built worker and analysis images against that
+    revision. A missing one is refused by field with its build command.
+    Pulling a pinned image stays open until a registry exists.
+  - *The agent step's live check is local.* For Carbon's autonomous agent, it
+    opens the miner's hotkey with their password and checks that it is the
+    registered one. The MCP handshake for an external agent is slice 5.
+  - *The key belongs to one provider.* The profile records the setup's
+    `model_selection`. An autonomous launch that names no model runs with
+    it. A key file named in `provider_credentials` is never used for the
+    pinned default provider.
+  - *The operator config is supplied, not generated.* The miner supplies its
+    path, and setup validates it for subnet 567. Its content is deployment
+    identity and never enters the repository.
 - One pull request per slice, each based on main.
 - Written against main `af5b8ac0`.
 - The owner authorized per-slice branches `claude/c-mlp-03-slice-N` on
