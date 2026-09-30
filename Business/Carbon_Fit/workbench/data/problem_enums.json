@@ -1,0 +1,109 @@
+{
+  "physics": [
+    "thermal",
+    "fluid",
+    "solid",
+    "electromagnetic",
+    "acoustic",
+    "chemical",
+    "other",
+    "unknown"
+  ],
+  "goal": [
+    "unknown",
+    "predict",
+    "ranking",
+    "inverse",
+    "optimize",
+    "audit",
+    "custom"
+  ],
+  "geometry": [
+    "unknown",
+    "fixed",
+    "family",
+    "unseen"
+  ],
+  "time": [
+    "unknown",
+    "steady",
+    "transient",
+    "frequency"
+  ],
+  "model": [
+    "unknown",
+    "existing",
+    "develop"
+  ],
+  "deployment": [
+    "unknown",
+    "offline",
+    "batch",
+    "online",
+    "control"
+  ],
+  "access": [
+    "unknown",
+    "yes",
+    "no"
+  ],
+  "independence": [
+    "unknown",
+    "independent",
+    "shared"
+  ],
+  "dataType": [
+    "simulation",
+    "experiment",
+    "analytical",
+    "operational",
+    "other"
+  ],
+  "dataRole": [
+    "undecided",
+    "learning",
+    "evaluation",
+    "both"
+  ],
+  "countUnit": [
+    "unknown",
+    "cases",
+    "designs",
+    "runs",
+    "snapshots"
+  ],
+  "variation": [
+    "unknown",
+    "design",
+    "operating",
+    "material",
+    "initial",
+    "boundary",
+    "history",
+    "other"
+  ],
+  "priority": [
+    "primary",
+    "supporting"
+  ],
+  "criterion": [
+    "performance",
+    "physical"
+  ],
+  "operator": [
+    "unknown",
+    "max",
+    "min",
+    "match",
+    "custom"
+  ],
+  "coupling": [
+    "oneway",
+    "twoway"
+  ],
+  "safety": [
+    "unknown",
+    "low",
+    "high"
+  ]
+}

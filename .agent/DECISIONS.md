@@ -16421,6 +16421,35 @@ as approved, in the spec's own recommended form.
 - It grants no scientific, security or production qualification.
 - The study-only contract with raised ranges is never registered live.
 
+## 2026-09-30 — OWNER-PILOT-DESIGNER-ROUTE-01: one client route, from guided intake to a proposed Challenge
+
+**Authority.** The repository owner, in the Workbench session on 2026-09-30,
+asked to "integrate all capabilities here into the Pilot Designer, retire
+external workbench parts we don't need, and also leverage some of the testnet
+test designs we've created where it makes sense to", as "a seamless route from
+guided intake to proposed challenge with data on why we chose to build it that
+way", and approved the four-slice plan ("Approved.").
+
+**Decision.**
+1. The Pilot Designer is the one client entry point. The live `/workbench/`
+   page's capabilities move into it; the page itself retires in slice 4
+   through the owner's site upload.
+2. The live page's problem model is reused byte for byte, not rewritten.
+3. The brief gains `carbon.client-intake.draft.v2` / `reviewed.v2`
+   prospectively. Every v1 brief and package keeps its meaning (AGENTS.md §12,
+   invariant 10).
+4. The proposed Challenge (slices 2 and 3) is computed in the client's browser
+   from public records and carries the exam-design evidence behind each
+   setting. Conditions the client did not give are proposed from a design
+   Carbon already tested and labelled as proposals, never invented.
+
+**Scope.** Engineering only. A proposal registers, qualifies, activates and
+pays nothing; no Challenge pays rewards before its training budget study
+(OWNER-TRAINING-BUDGET-STUDY-01). E1–E9 and E8 are unchanged. No deployment
+from this host, no Cloudflare access, no spend. The client security review
+(OWNER-CLIENT-SECURITY-REVIEW-01) still arms on the first real client
+engagement. Ticket: `.agent/tickets/GOAL-WORKBENCH-16_pilot_designer_route.md`.
+
 ## 2026-09-30 — OWNER-BATTERY-INTAKE-01: the intake path is chosen; screening batches approved
 
 **Authority.** The owner, in the Testnet session on 2026-09-30, answering the

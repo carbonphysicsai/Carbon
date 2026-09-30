@@ -1,0 +1,23 @@
+{
+  "schema": "carbon.workbench.problem-engine-provenance.v1",
+  "purpose": "The live /workbench/ page's problem model, reused unchanged by the Pilot Designer (GOAL-WORKBENCH-16, OWNER-PILOT-DESIGNER-ROUTE-01).",
+  "source": {
+    "archive": "carbon-site-v3-BUILD-INPUT.zip",
+    "archive_sha256": "a99e31b532fba16ac53c14ca79407e00c27ede688932623da08bc7fd7d17a4b2",
+    "archive_owner": "repository owner's site upload for the carbonwebsite static-assets Worker",
+    "live_comparison": "Each file below matched https://carbonphysics.ai/workbench/<name> byte for byte when read on 2026-09-30."
+  },
+  "problem_schema": "carbon.workbench.problem.v0.3",
+  "rules": "problem.rules.2026-09-12.2",
+  "files": {
+    "src/problem/engine.js": {
+      "sha256": "32caeaf50bf6477c0af4dbefdc197f4c9c791036bd7f2ce324ebcdf1b1a5acf3",
+      "live_path": "/workbench/engine.js"
+    },
+    "src/problem/cooling-v02.js": {
+      "sha256": "199a93b595a13b563a8fc47209089f7e2c4b750de61d45fe7f5aed3b43c0dca3",
+      "live_path": "/workbench/cooling-v02.js"
+    }
+  },
+  "change_policy": "Byte-for-byte copies. A change here is a change to the problem model, which needs a new brief version, not an edit in place."
+}
