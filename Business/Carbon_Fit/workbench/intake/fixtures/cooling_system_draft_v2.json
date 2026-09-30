@@ -1,0 +1,252 @@
+{
+  "schema_version": "carbon.client-intake.draft.v2",
+  "draft_id": "synthetic-cooling-system",
+  "revision_id": "rev-001",
+  "predecessor": null,
+  "answers": {
+    "intended_decision": {
+      "state": "VALUE",
+      "value": "Choose which cooling designs deserve detailed simulation or physical testing.",
+      "origin": "USER_ENTERED_LOCAL"
+    },
+    "requested_result": {
+      "state": "VALUE",
+      "value": "Compare cooling designs — Screen a family of cold plates under varying loads and flow conditions.",
+      "origin": "USER_ENTERED_LOCAL"
+    },
+    "current_baseline": {
+      "state": "UNKNOWN",
+      "value": "",
+      "origin": "USER_ENTERED_LOCAL"
+    },
+    "baseline_limitation": {
+      "state": "UNKNOWN",
+      "value": "",
+      "origin": "USER_ENTERED_LOCAL"
+    },
+    "changing_conditions": {
+      "state": "UNKNOWN",
+      "value": "",
+      "origin": "USER_ENTERED_LOCAL"
+    },
+    "exclusions": {
+      "state": "VALUE",
+      "value": "Illustrative example only: no customer, measurement or qualification claim.",
+      "origin": "USER_ENTERED_LOCAL"
+    },
+    "consequential_error": {
+      "state": "UNKNOWN",
+      "value": "",
+      "origin": "USER_ENTERED_LOCAL"
+    },
+    "comparison_evidence": {
+      "state": "UNKNOWN",
+      "value": "",
+      "origin": "USER_ENTERED_LOCAL"
+    },
+    "access_limitations": {
+      "state": "UNKNOWN",
+      "value": "",
+      "origin": "USER_ENTERED_LOCAL"
+    }
+  },
+  "quantities": {
+    "preparation_time": {
+      "state": "UNKNOWN",
+      "value": null,
+      "minimum": null,
+      "maximum": null,
+      "unit": "",
+      "note": "",
+      "origin": "USER_ENTERED_LOCAL"
+    },
+    "prediction_latency": {
+      "state": "UNKNOWN",
+      "value": null,
+      "minimum": null,
+      "maximum": null,
+      "unit": "",
+      "note": "",
+      "origin": "USER_ENTERED_LOCAL"
+    },
+    "reference_query_time": {
+      "state": "UNKNOWN",
+      "value": null,
+      "minimum": null,
+      "maximum": null,
+      "unit": "",
+      "note": "",
+      "origin": "USER_ENTERED_LOCAL"
+    },
+    "workload_frequency": {
+      "state": "UNKNOWN",
+      "value": null,
+      "minimum": null,
+      "maximum": null,
+      "unit": "",
+      "note": "",
+      "origin": "USER_ENTERED_LOCAL"
+    },
+    "desired_accuracy": {
+      "state": "UNKNOWN",
+      "value": null,
+      "minimum": null,
+      "maximum": null,
+      "unit": "",
+      "note": "",
+      "origin": "USER_ENTERED_LOCAL"
+    }
+  },
+  "system": {
+    "title": "",
+    "description": "",
+    "goal": "ranking",
+    "decision": "",
+    "components": [
+      {
+        "id": "c_heat",
+        "name": "Cold plate heat transfer",
+        "physics": "thermal",
+        "regime": "Single-phase planning example; material and boundaries to define."
+      },
+      {
+        "id": "c_flow",
+        "name": "Coolant flow",
+        "physics": "fluid",
+        "regime": "Flow regime and fluid properties to confirm."
+      }
+    ],
+    "couplings": [
+      {
+        "id": "link_heat_flow",
+        "from": "c_flow",
+        "to": "c_heat",
+        "quantity": "Flow-dependent heat transfer and temperature-dependent properties",
+        "direction": "twoway"
+      }
+    ],
+    "inputs": [
+      {
+        "id": "i_load",
+        "name": "Heat load",
+        "unit": "W",
+        "variation": "operating",
+        "min": null,
+        "max": null,
+        "definition": ""
+      },
+      {
+        "id": "i_flow",
+        "name": "Coolant flow rate",
+        "unit": "L/min",
+        "variation": "operating",
+        "min": null,
+        "max": null,
+        "definition": ""
+      },
+      {
+        "id": "i_geometry",
+        "name": "Cold plate geometry",
+        "unit": "CAD or parameter vector",
+        "variation": "design",
+        "min": null,
+        "max": null,
+        "definition": ""
+      }
+    ],
+    "outputs": [
+      {
+        "id": "o_temperature",
+        "name": "Peak temperature",
+        "unit": "K",
+        "priority": "primary",
+        "purpose": "Check cooling adequacy."
+      },
+      {
+        "id": "o_pressure",
+        "name": "Pressure drop",
+        "unit": "Pa",
+        "priority": "primary",
+        "purpose": "Assess pumping burden."
+      }
+    ],
+    "requirements": [
+      {
+        "id": "r_0",
+        "output": "o_temperature",
+        "kind": "performance",
+        "measure": "Decision-relevant error in Peak temperature",
+        "operator": "unknown",
+        "target": null,
+        "unit": "K"
+      },
+      {
+        "id": "r_1",
+        "output": "o_pressure",
+        "kind": "performance",
+        "measure": "Decision-relevant error in Pressure drop",
+        "operator": "unknown",
+        "target": null,
+        "unit": "Pa"
+      }
+    ],
+    "sources": [
+      {
+        "id": "s_cfd",
+        "name": "Candidate CFD reference",
+        "type": "simulation",
+        "role": "undecided",
+        "access": "unknown",
+        "independence": "unknown",
+        "count": null,
+        "countUnit": "unknown",
+        "coverage": "",
+        "uncertainty": ""
+      }
+    ],
+    "geometry": "family",
+    "time": "steady",
+    "model": "existing",
+    "baseline": "",
+    "deployment": "offline",
+    "safety": "low",
+    "compute": "",
+    "timeline": "",
+    "notes": "",
+    "economics": {
+      "queries": null,
+      "baselineSeconds": null,
+      "targetSeconds": null,
+      "baselineCost": null,
+      "targetCost": null,
+      "setupCost": null,
+      "monthlyCost": null,
+      "hardware": "",
+      "matchedTiming": false
+    },
+    "sourceRefs": []
+  },
+  "summary": {
+    "mapping_version": "carbon.client-intake.mapping.v2",
+    "text": "Decision: Choose which cooling designs deserve detailed simulation or physical testing.\nRequested result: Compare cooling designs — Screen a family of cold plates under varying loads and flow conditions.\nCurrent baseline: Unknown\nReported limitation: Unknown\nChanging conditions: Unknown\nExclusions: Illustrative example only: no customer, measurement or qualification claim.\nConsequential error: Unknown\nComparison evidence (claimed): Unknown\nAccess/use limitations: Unknown\nPreparation time: unknown\nRecurring prediction latency: unknown\nReference-query time: unknown\nWorkload frequency: unknown\nRequested accuracy: unknown (unreviewed client intent)\nGoal: Choose between designs\nPhysical components: Cold plate heat transfer (Heat transfer); Coolant flow (Fluid flow)\nCouplings: Coolant flow <-> Cold plate heat transfer: Flow-dependent heat transfer and temperature-dependent properties\nInputs: Heat load [W]; Coolant flow rate [L/min]; Cold plate geometry [CAD or parameter vector]\nOutputs: Peak temperature [K] (Primary outcome); Pressure drop [Pa] (Primary outcome)\nEvidence sources (client-reported): 1\nSuccess criteria (requested, not accepted): 2\nGeometry: A defined design family; time: Steady behavior; model: We have a model\nIntended use: Offline engineering study; consequence: Offline / low-consequence study\nResearch leads: none",
+    "unknown_fields": [
+      "current_baseline",
+      "baseline_limitation",
+      "changing_conditions",
+      "consequential_error",
+      "comparison_evidence",
+      "access_limitations",
+      "preparation_time",
+      "prediction_latency",
+      "reference_query_time",
+      "workload_frequency",
+      "desired_accuracy"
+    ],
+    "next_clarification": "Clarify current baseline without supplying sensitive data."
+  },
+  "source": {
+    "application": "Carbon Client Intake Preview",
+    "mapping_version": "carbon.client-intake.mapping.v2",
+    "local_scope": "LOCAL_SYNTHETIC_DEVELOPMENT_NOT_TRANSMITTED"
+  }
+}
