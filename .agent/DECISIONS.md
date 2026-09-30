@@ -16472,3 +16472,61 @@ stay unchanged until then:
 **Not decided:** whether the Worker should load its knowledge at runtime
 rather than embed it. That would remove the redeploy from refreshes. It is a
 security and integrity decision for the owner.
+
+## 2026-09-30 — OWNER-ASK-CARBON-REFERENCED-ANSWERS-01: Ask Carbon answers from current documents, with a reference for every sentence
+
+**Authority.** The owner, in the Ask Carbon session on 2026-09-30: "I'm done
+with this card stuff. Have an agent pull up to date information and only
+answer with answers that it has a reference to. I need it to be that simple.
+We can test models till we get one that can execute this properly."
+
+**Decision.** The reviewed-card answer contract is to be replaced by
+`REFERENCED_ANSWER_V1`:
+- The model writes the answer from Carbon's public documentation, read from the
+  public repository's `main` at request time.
+- A sentence reaches the visitor only if it carries a quote that the server
+  finds verbatim in the passage it cites.
+- An answer left with no such sentence is "no reference".
+
+The owner chose this over per-card review. Reviewed card text is no longer
+what a visitor reads. The quote check and the model evaluation are the
+safeguard. This supersedes `OWNER-ASK-CARBON-FRESHNESS-01` for general Q&A
+once the new contract is live.
+
+**Engineering choices made under this decision (delegated, revisable).**
+- **Corpus.** Eleven public documents listed in `CORPUS_PATHS`: the README,
+  project status, publications guide, constitution, spec, business canon,
+  investor positioning, challenge readiness, the miner MCP guide and the
+  v1.0.7 and v1.0.8 launch path. The Worker reads them at the resolved `main`
+  commit, and a GitHub API failure falls back to `main`. Anyone who can merge
+  to `main` can change the answers; that is the documentation's own trust
+  boundary.
+- **Retrieval.** Dependency-free BM25 over Markdown sections, up to eight
+  passages per question.
+- **Limits.** At most six sentences, each with at most two quotes of 20–300
+  characters. URLs are not allowed in answer text.
+- **Output budget.** At least 1600 output tokens; `/health` refuses the
+  contract below that.
+- **Model choice.** A model is proposed for the live Worker only after it
+  meets `PASS_BAR` on `eval/referenced.cases.json`. The bar is set by
+  engineering and can be changed by the owner:
+  - at least 90% of answer cases pass;
+  - every no-reference case declines;
+  - no forbidden claim appears;
+  - at least 80% of quotes verify;
+  - no errors occur.
+
+**Rollout.** The contract is configuration (`ASK_CARBON_QA_CONTRACT`), and the
+cards remain the default, so nothing changes on the live site until a model
+passes and the operator deploys with the new setting. Deployment remains the
+operator's act.
+
+**Blocked on the owner: a provider API key for the model runs.** This host has
+none that the session may use. A run needs `--api-key-file <path>` from the
+owner.
+
+**Not changed:**
+- Activation still evaluates the card release file; its release expiry is
+  2026-12-15.
+- The Pilot Designer still cites that file's sources.
+- Retiring the file follows once the referenced contract is live.

@@ -4,6 +4,8 @@ Ask Carbon is the public Q&A component for Carbon's website. Visitors can explor
 
 The general Q&A provider selects from reviewed answer cards. The Worker returns the selected passages and their pinned sources; the provider cannot supply new factual prose. Unknown, withdrawn, or unsupported selections are refused. Pilot Designer suggestions use a separate proposal schema and require the visitor to accept each change.
 
+**Replacing the cards: referenced answers (`REFERENCED_ANSWER_V1`).** The owner decided on 2026-09-30 (`OWNER-ASK-CARBON-REFERENCED-ANSWERS-01`) that the cards should be replaced. The model writes the answer from Carbon's current public documentation, which the Worker reads from the public repository's `main` when a question arrives. The Worker shows a sentence only if it contains a quote that the server has found, verbatim, in the document it cites; otherwise it answers that it has no reference. The code is in `worker/referenced.mjs`, and it is enabled by `ASK_CARBON_QA_CONTRACT=REFERENCED_ANSWER_V1`. The cards stay the default until a model passes `eval/referenced-eval.mjs`. See [Referenced answers](OPERATIONS.md#referenced-answers-referenced_answer_v1) in the runbook.
+
 ## Content and release status
 
 The repository contains 27 reviewed answer cards backed by nine public repository sources. The owner approved the content under `WEB-QA-07-D1` and its dated progress refresh under `WEB-QA-07-D2`. The knowledge identifier remains `ask-carbon-release-candidate-2026-09-18.2`.

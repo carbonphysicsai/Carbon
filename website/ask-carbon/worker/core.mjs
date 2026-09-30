@@ -2,6 +2,7 @@ import { evaluateRelease } from "../public/release-contract.js";
 import { PublicApiError } from "./errors.mjs";
 import { getModelProfile } from "./models.mjs";
 import { getProvider } from "./providers.mjs";
+import { MIN_OUTPUT_TOKENS as REFERENCED_MIN_OUTPUT_TOKENS, REFERENCED_ANSWER_CONTRACT } from "./referenced.mjs";
 
 export { PublicApiError } from "./errors.mjs";
 export const MAX_QUESTION_LENGTH = 1200;
@@ -109,7 +110,11 @@ export const activationStatus = (env, knowledge, now = new Date()) => {
     if (!parsePositiveInteger(env[key])) reasons.push(`invalid_${key.toLowerCase()}`);
   }
   if (!splitCsv(env.ASK_CARBON_APPROVED_ORIGINS).length) reasons.push("no_approved_origins");
-  return { ...release, active: reasons.length === 0, reasons: [...new Set(reasons)].sort(), model_config_id: profile?.config_id ?? null };
+  // Unset keeps the reviewed-card contract; any other value must be named exactly.
+  const qaContract = env.ASK_CARBON_QA_CONTRACT ?? "REVIEWED_CARD_SELECTION";
+  if (![REFERENCED_ANSWER_CONTRACT, "REVIEWED_CARD_SELECTION"].includes(qaContract)) reasons.push("unsupported_qa_contract");
+  if (qaContract === REFERENCED_ANSWER_CONTRACT && !(parsePositiveInteger(env.ASK_CARBON_MAX_OUTPUT_TOKENS) >= REFERENCED_MIN_OUTPUT_TOKENS)) reasons.push("referenced_output_tokens_too_low");
+  return { ...release, active: reasons.length === 0, reasons: [...new Set(reasons)].sort(), model_config_id: profile?.config_id ?? null, qa_contract: qaContract };
 };
 
 export const normalizeOrigin = (value) => {
@@ -217,7 +222,7 @@ const directCardScore = (card, question) => {
   const cardTerms = [...tokens((card.questions ?? [card.question]).join(" ")), ...tokens((card.keywords ?? []).join(" ")), ...tokens(card.topic)];
   return cardTerms.reduce((score, term) => score + (query.has(term) ? 2 : 0), 0);
 };
-const needsTopicContext = (question) => /\b(those|they|them|their|it|that|this|these|former|latter)\b/i.test(question) || tokens(question).length <= 2;
+export const needsTopicContext = (question) => /\b(those|they|them|their|it|that|this|these|former|latter)\b/i.test(question) || tokens(question).length <= 2;
 
 export const selectCards = (knowledge, question, { continuation = null, limit = 6, minScore = 2, eligibleCardIds = null } = {}) => {
   const eligible = eligibleCardIds ? new Set(eligibleCardIds) : null;
@@ -254,13 +259,31 @@ export const signContinuation = async (payload, secret) => {
   const signature = await crypto.subtle.sign("HMAC", await hmacKey(secret), encoder.encode(encoded));
   return `${encoded}.${base64UrlEncode(new Uint8Array(signature))}`;
 };
+const readSignedPayload = async (token, secret) => {
+  if (typeof token !== "string" || token.split(".").length !== 2) throw new Error("shape");
+  const [encoded, signature] = token.split(".");
+  const valid = await crypto.subtle.verify("HMAC", await hmacKey(secret), base64UrlDecode(signature), encoder.encode(encoded));
+  if (!valid) throw new Error("signature");
+  return JSON.parse(decoder.decode(base64UrlDecode(encoded)));
+};
+// Referenced answers carry only the previous question, so a short follow-up
+// ("what about those?") can be retrieved in context.
+export const makeReferencedContinuation = ({ question, secret, nowSeconds }) => signContinuation({
+  v: 3, prior_question: question.slice(0, 300), iat: nowSeconds, exp: nowSeconds + CONTINUATION_TTL_SECONDS,
+}, secret);
+export const verifyReferencedContinuation = async (token, secret, nowSeconds = Math.floor(Date.now() / 1000)) => {
+  try {
+    const payload = await readSignedPayload(token, secret);
+    if (payload.v !== 3 || typeof payload.prior_question !== "string" || payload.prior_question.length > 300 ||
+        !Number.isSafeInteger(payload.iat) || !Number.isSafeInteger(payload.exp) || payload.exp <= nowSeconds || payload.iat > nowSeconds + 5) throw new Error("payload");
+    return payload;
+  } catch {
+    throw new PublicApiError(400, "invalid_continuation", "The conversation continuation is invalid or expired.");
+  }
+};
 export const verifyContinuation = async (token, secret, knowledge, nowSeconds = Math.floor(Date.now() / 1000)) => {
   try {
-    if (typeof token !== "string" || token.split(".").length !== 2) throw new Error("shape");
-    const [encoded, signature] = token.split(".");
-    const valid = await crypto.subtle.verify("HMAC", await hmacKey(secret), base64UrlDecode(signature), encoder.encode(encoded));
-    if (!valid) throw new Error("signature");
-    const payload = JSON.parse(decoder.decode(base64UrlDecode(encoded)));
+    const payload = await readSignedPayload(token, secret);
     if (payload.v !== 2 || payload.knowledge_version !== knowledge.knowledge_version ||
         payload.withdrawal_epoch !== knowledge.release.withdrawal_epoch ||
         !Number.isSafeInteger(payload.iat) || !Number.isSafeInteger(payload.exp) || payload.exp <= nowSeconds || payload.iat > nowSeconds + 5 ||

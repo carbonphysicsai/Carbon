@@ -174,6 +174,70 @@ findings with a readable date; a malformed expiry, a changed source and every
 structural error still fail. The strict check runs daily on `main` in the
 `Ask Carbon freshness` workflow, which is where an approaching expiry goes red.
 
+## Referenced answers (REFERENCED_ANSWER_V1)
+
+This is the owner's replacement for the reviewed cards
+(`OWNER-ASK-CARBON-REFERENCED-ANSWERS-01`, 2026-09-30). It is built and tested
+in the repository, but no deployed Worker enables it yet.
+
+**What it does.**
+1. The Worker resolves the current commit of `main` through the GitHub API,
+   cached for five minutes.
+2. It reads the documents in `CORPUS_PATHS` (`worker/referenced.mjs`) at that
+   commit from `raw.githubusercontent.com`.
+3. It splits them into sections and ranks the sections against the question
+   (BM25).
+4. It sends the top eight sections to the model.
+5. The model returns sentences, and each sentence cites a section with a quote.
+   The server keeps a sentence only if one of its quotes appears verbatim in the
+   cited section; whitespace, Markdown emphasis and quote style are ignored.
+6. If no sentence survives, the visitor gets the no-reference answer. A
+   question that retrieves nothing makes no model call.
+7. References render in the existing source list: file, section, commit, the
+   quoted text, and a GitHub link to the exact lines.
+
+**What changes when a listed document changes:** the answers, within about five
+minutes, with no redeploy. Adding or removing a document is a code change to
+`CORPUS_PATHS` and needs a Worker deploy. Anyone who can merge to `main` can
+change what Ask Carbon says. This is the same trust boundary as the
+documentation itself.
+
+**Choosing a model.** Each run tests one model against
+`eval/referenced.cases.json` (32 questions). It uses the Worker's own
+retrieval, prompt, schema and quote check, on the corpus at a git revision:
+
+```
+npm run eval:referenced:mock --prefix website/ask-carbon      # offline, no model
+node website/ask-carbon/eval/referenced-eval.mjs --model <chutes model id> \
+  --api-key-file <path> --revision origin/main --output <new file>
+```
+
+The key is read from the file at each request. It is never written anywhere,
+and before writing, the output is checked to confirm the key is absent. The
+run exits 0 only when the model meets `PASS_BAR`:
+- at least 90% of answer cases pass;
+- every no-reference case declines;
+- no forbidden claim appears;
+- at least 80% of proposed quotes verify;
+- no errors occur.
+
+**Switching the live Worker, once a model passes:**
+1. Add a model profile for the passing model if it is not `gemma-4-31b-turbo-tee:v1`.
+2. Set `ASK_CARBON_QA_CONTRACT = "REFERENCED_ANSWER_V1"`.
+3. Set `ASK_CARBON_MAX_OUTPUT_TOKENS` to at least 1600. `/health` refuses the
+   referenced contract with `referenced_output_tokens_too_low` below that.
+4. Deploy `ask-carbon-public`.
+5. `/health` then reports `qa_contract: REFERENCED_ANSWER_V1`.
+
+The page itself needs no change.
+
+**Still tied to the card file:**
+- Activation still evaluates `knowledge/public-knowledge.v1.json`, so its
+  release expiry (2026-12-15) would still switch Ask Carbon off.
+- The Pilot Designer still cites that file's sources.
+
+Retiring the file is the follow-up once the referenced contract is live.
+
 ## Private staging sequence
 
 1. WEB-QA-03 uses Worker-enforced TLS Basic authentication because

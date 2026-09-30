@@ -11,6 +11,8 @@ import {
   corsHeaders,
   detectOutOfScope,
   makeContinuation,
+  makeReferencedContinuation,
+  needsTopicContext,
   parsePositiveInteger,
   publicBoundaryAnswer,
   publicSources,
@@ -20,7 +22,20 @@ import {
   validatePilotProviderOutput,
   validateRequestBody,
   verifyContinuation,
+  verifyReferencedContinuation,
 } from "./core.mjs";
+import {
+  REFERENCED_ANSWER_CONTRACT,
+  REFERENCED_MATURITY_NOTE,
+  NO_REFERENCE_ANSWER,
+  loadCorpus,
+  publicReferences,
+  referencedInstructions,
+  referencedSchema,
+  retrieve,
+  verifyReferencedAnswer,
+  workerFetchText,
+} from "./referenced.mjs";
 import {
   assertProviderModel,
   calculateUsageCostMicroUsd,
@@ -288,12 +303,18 @@ const providerSchema = (mode, cards, followUpOptions = []) => {
   return schema;
 };
 
-const buildProviderRequest = ({ profile, cards, input, maxOutputTokens, maxInputTokens, followUpOptions = [] }) => {
+const buildProviderRequest = ({ profile, cards, input, maxOutputTokens, maxInputTokens, followUpOptions = [], referenced = null }) => {
   const mode = input.mode ?? "GENERAL_QA";
   const content = mode === "PILOT_DESIGN"
     ? JSON.stringify({ question: input.question, prior_turns: input.turns, draft_context: input.draft_context })
     : input.question;
-  const body = providerFor(profile).buildBody(profile, {
+  const body = providerFor(profile).buildBody(profile, referenced ? {
+    instructions: referencedInstructions(referenced.passages),
+    userText: content,
+    schemaName: "ask_carbon_referenced_answer",
+    schema: referencedSchema(referenced.passages.length),
+    maxOutputTokens,
+  } : {
     instructions: providerPrompt(cards, mode, followUpOptions),
     userText: content,
     schemaName: mode === "PILOT_DESIGN" ? "carbon_pilot_guidance" : "ask_carbon_answer_selection",
@@ -342,7 +363,7 @@ const evaluationTelemetry = (env, { usage, actualCost, providerModel, reservedCo
     worker_elapsed_ms: Date.now() - startedAtMs,
   } : undefined;
 
-const handleAsk = async (request, env, knowledgeManifest) => {
+const handleAsk = async (request, env, knowledgeManifest, fetchText = workerFetchText) => {
   const startedAtMs = Date.now();
   const origin = assertAllowedOrigin(request, env);
   const headers = corsHeaders(origin);
@@ -352,8 +373,13 @@ const handleAsk = async (request, env, knowledgeManifest) => {
   const nowMs = Date.now();
   const nowSeconds = Math.floor(nowMs / 1_000);
   const mode = input.mode ?? "GENERAL_QA";
-  const continuation = input.continuation ? await verifyContinuation(input.continuation, env.ASK_CARBON_CONTINUATION_SIGNING_SECRET, knowledgeManifest, nowSeconds) : null;
-  const retrieval = selectCards(knowledgeManifest, input.question, { continuation, eligibleCardIds: status.eligible_card_ids });
+  // The general Q&A contract is configuration, so the reviewed-card path stays
+  // the default until a model passes the referenced-answer evaluation.
+  const referencedMode = mode === "GENERAL_QA" && env.ASK_CARBON_QA_CONTRACT === REFERENCED_ANSWER_CONTRACT;
+  const continuation = !input.continuation ? null
+    : referencedMode ? await verifyReferencedContinuation(input.continuation, env.ASK_CARBON_CONTINUATION_SIGNING_SECRET, nowSeconds)
+      : await verifyContinuation(input.continuation, env.ASK_CARBON_CONTINUATION_SIGNING_SECRET, knowledgeManifest, nowSeconds);
+  const retrieval = referencedMode ? { kind: "referenced", cards: [] } : selectCards(knowledgeManifest, input.question, { continuation, eligibleCardIds: status.eligible_card_ids });
   const attemptId = crypto.randomUUID();
   const clientAddress = request.headers.get("cf-connecting-ip") || "unavailable";
   const clientId = await sha256Hex(`${env.ASK_CARBON_CONTINUATION_SIGNING_SECRET}:${clientAddress}`);
@@ -367,6 +393,17 @@ const handleAsk = async (request, env, knowledgeManifest) => {
       await requireLedgerTransition(prepared.ledger, "/release-pre-dispatch", { attempt_id: attemptId, now_ms: nowMs, reason: "out_of_scope" }, "accounting_release_failed");
       return json({ status: outOfScope === "privacy_processing_question" ? "service_information" : "out_of_scope", answer: publicBoundaryAnswer(outOfScope), reason: outOfScope, sources: [], follow_up: null, maturity_note: null, knowledge_version: knowledgeManifest.knowledge_version, request_id: attemptId }, 200, headers);
     }
+    let referenced = null;
+    if (referencedMode) {
+      const corpus = await loadCorpus(fetchText);
+      const query = continuation && needsTopicContext(input.question) ? `${continuation.prior_question} ${input.question}` : input.question;
+      const passages = retrieve(corpus.passages, query);
+      if (!passages.length) {
+        await requireLedgerTransition(prepared.ledger, "/release-pre-dispatch", { attempt_id: attemptId, now_ms: nowMs, reason: "no_relevant_reference" }, "accounting_release_failed");
+        return json({ status: "no_reference", answer: NO_REFERENCE_ANSWER, sources: [], follow_up: null, maturity_note: null, answer_contract: REFERENCED_ANSWER_CONTRACT, documentation_revision: corpus.revision, request_id: attemptId }, 200, headers);
+      }
+      referenced = { passages, revision: corpus.revision };
+    }
     if (mode === "GENERAL_QA" && retrieval.kind === "no_evidence") {
       await requireLedgerTransition(prepared.ledger, "/release-pre-dispatch", { attempt_id: attemptId, now_ms: nowMs, reason: "no_relevant_evidence" }, "accounting_release_failed");
       return json({ status: "insufficient_evidence", answer: "I don't have relevant reviewed public evidence for that question. Try naming the Carbon mechanism or project area you mean.", sources: [], follow_up: "Which part of Carbon would you like explained?", maturity_note: null, knowledge_version: knowledgeManifest.knowledge_version, request_id: attemptId }, 200, headers);
@@ -374,7 +411,7 @@ const handleAsk = async (request, env, knowledgeManifest) => {
     const cards = retrieval.kind === "match" ? retrieval.cards : [];
     const followUpOptions = mode === "GENERAL_QA" ? followUpOptionsForCards(cards, knowledgeManifest, status.eligible_card_ids) : [];
     const maxOutputTokens = parsePositiveInteger(env.ASK_CARBON_MAX_OUTPUT_TOKENS);
-    const providerRequest = buildProviderRequest({ profile, cards, input, maxOutputTokens, maxInputTokens: parsePositiveInteger(env.ASK_CARBON_MAX_INPUT_TOKENS), followUpOptions });
+    const providerRequest = buildProviderRequest({ profile, cards, input, maxOutputTokens, maxInputTokens: parsePositiveInteger(env.ASK_CARBON_MAX_INPUT_TOKENS), followUpOptions, referenced });
     await requireLedgerTransition(prepared.ledger, "/authorize-dispatch", { attempt_id: attemptId, now_ms: Date.now() }, "dispatch_authorization_failed");
     dispatchAuthorized = true;
     const controller = new AbortController();
@@ -444,6 +481,31 @@ const handleAsk = async (request, env, knowledgeManifest) => {
     if (!responseText) throw new PublicApiError(502, "invalid_provider_output", "The answer provider returned no answer.");
     let parsed;
     try { parsed = JSON.parse(responseText); } catch { throw new PublicApiError(502, "invalid_provider_output", "The answer provider returned invalid structured output."); }
+    const evaluationFor = () => evaluationTelemetry(env, {
+      usage,
+      actualCost,
+      providerModel,
+      reservedCost: prepared.reservedCost,
+      conservativeInputTokenUpperBound: providerRequest.conservative_input_token_upper_bound,
+      startedAtMs,
+    });
+    if (referenced) {
+      const verified = verifyReferencedAnswer(parsed, referenced.passages);
+      const evaluation = evaluationFor();
+      return json({
+        status: verified.status,
+        answer: verified.answer,
+        sources: publicReferences(verified.references, referenced.passages, referenced.revision),
+        follow_up: null,
+        maturity_note: verified.status === "supported" ? REFERENCED_MATURITY_NOTE : null,
+        continuation: await makeReferencedContinuation({ question: input.question, secret: env.ASK_CARBON_CONTINUATION_SIGNING_SECRET, nowSeconds }),
+        answer_contract: REFERENCED_ANSWER_CONTRACT,
+        documentation_revision: referenced.revision,
+        model_config_id: profile.config_id,
+        request_id: attemptId,
+        ...(evaluation ? { evaluation: { ...evaluation, reference_audit: verified.audit } } : {}),
+      }, 200, headers);
+    }
     const output = mode === "PILOT_DESIGN"
       ? validatePilotProviderOutput(parsed, new Set(sourceIdsForCards(cards)))
       : validateProviderOutput(parsed, cards, followUpOptions);
@@ -493,7 +555,7 @@ const handleAsk = async (request, env, knowledgeManifest) => {
   }
 };
 
-export const createWorker = (knowledgeManifest = knowledge) => ({
+export const createWorker = (knowledgeManifest = knowledge, fetchText = workerFetchText) => ({
   async fetch(request, env) {
     const url = new URL(request.url);
     if (!await stagingAuthorized(request, env)) return stagingAuthRequired();
@@ -525,7 +587,7 @@ export const createWorker = (knowledgeManifest = knowledge) => ({
       const edgeKey = request.headers.get("cf-access-client-id") || request.headers.get("cf-connecting-ip") || "unavailable";
       const edgeLimit = await env.ASK_CARBON_EDGE_RATE_LIMITER.limit({ key: edgeKey });
       if (!edgeLimit?.success) throw new PublicApiError(429, "edge_rate_limit", "Ask Carbon has reached a temporary usage limit.");
-      return await handleAsk(request, env, knowledgeManifest);
+      return await handleAsk(request, env, knowledgeManifest, fetchText);
     } catch (error) { return errorResponse(error, headers); }
   },
 });
